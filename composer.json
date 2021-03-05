@@ -1,6 +1,6 @@
 {
 	"name": "liquiddesign/eshop",
-	"description": "☸ Služby, entity, administrace a kontroly pro eshop",
+	"description": "Ⓔ Služby, entity, administrace a kontroly pro eshop",
 	"license": "MIT",
 	"autoload": {
 		"psr-4": {"Eshop\\": "src/"},
@@ -29,6 +29,6 @@
 		"phpstan": "phpstan analyse --memory-limit 1G -c phpstan.neon",
 		"phpcs": "phpcs --standard=ruleset.xml --ignore=assets src",
 		"phpcsfix": "phpcbf --standard=ruleset.xml --ignore=assets src",
-		"tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php",
+		"tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php"
 	}
 }

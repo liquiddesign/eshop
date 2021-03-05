@@ -1,4 +1,4 @@
-# ☸ Eshop
+# Ⓔ Eshop
 Služby, entity, administrace a kontroly pro eshop
  
 ![Travis](https://travis-ci.org/liquiddesign/eshop.svg?branch=master)
