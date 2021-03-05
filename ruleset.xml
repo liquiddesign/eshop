@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<ruleset name="LqdCS">
+    <rule ref="vendor/liquiddesign/codestyle/LqdCodingStandard/ruleset.xml"/>
+    <rule ref="SlevomatCodingStandard.Files.TypeNameMatchesFileName">
+        <properties>
+            <property name="rootNamespaces" type="array">
+                <element key="src" value="Eshop"/>
+            </property>
+        </properties>
+    </rule>
+</ruleset>

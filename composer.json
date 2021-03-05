@@ -1,0 +1,34 @@
+{
+	"name": "liquiddesign/eshop",
+	"description": "☸ Služby, entity, administrace a kontroly pro eshop",
+	"license": "MIT",
+	"autoload": {
+		"psr-4": {"Eshop\\": "src/"},
+		"classmap": []
+	},
+	"autoload-dev": {
+		"psr-4": { "Eshop\\Tests\\": "tests/" }
+	},
+	"require" :
+	{
+		"php":">=7.4",
+		"nette/application":"~3.0",
+		"liquiddesign/storm": "@dev",
+		"ext-pdo": "*"
+	},
+	"require-dev": 
+	{
+		"nette/tester":"*",
+		"tracy/tracy":"*",
+		"composer/composer": "*",
+		"liquiddesign/codestyle": "@dev",
+		"liquiddesign/migrator": "@dev",
+		"phpstan/phpstan": "*"
+	},
+	"scripts": {
+		"phpstan": "phpstan analyse --memory-limit 1G -c phpstan.neon",
+		"phpcs": "phpcs --standard=ruleset.xml --ignore=assets src",
+		"phpcsfix": "phpcbf --standard=ruleset.xml --ignore=assets src",
+		"tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php",
+	}
+}
