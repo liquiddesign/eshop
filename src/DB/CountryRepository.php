@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use IGeneralRepository;
 use StORM\Collection;
 
 /**
@@ -12,7 +11,6 @@ use StORM\Collection;
  */
 class CountryRepository extends \StORM\Repository implements IGeneralRepository
 {
-
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('name');

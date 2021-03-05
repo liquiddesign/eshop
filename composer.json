@@ -13,8 +13,15 @@
 	{
 		"php":">=7.4",
 		"nette/application":"~3.0",
+		"nette/http":"~3.0",
+		"nette/utils":"~3.0",
 		"liquiddesign/storm": "@dev",
-		"ext-pdo": "*"
+		"liquiddesign/forms": "@dev",
+		"liquiddesign/security": "@dev",
+		"liquiddesign/messages": "@dev",
+		"liquiddesign/translator": "@dev",
+		"ext-pdo": "*",
+		"ext-intl": "*"
 	},
 	"require-dev": 
 	{

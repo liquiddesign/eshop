@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use IGeneralRepository;
+
 use User\DB\Customer;
 use User\DB\CustomerGroup;
 use StORM\Collection;

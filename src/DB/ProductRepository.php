@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Eshop\Shopper;
-use IGeneralRepository;
+
 use User\DB\Customer;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -19,14 +19,14 @@ use StORM\SchemaManager;
  */
 class ProductRepository extends Repository implements IGeneralRepository
 {
-	private Shopper $shopper;
+	/*private Shopper $shopper;
 
 	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager)
 	{
 		parent::__construct($connection, $schemaManager);
 
 		$this->shopper = $shopper;
-	}
+	}*/
 
 	static public function generateUuid(?string $ean, ?string $fullCode, ?string $supplierCode)
 	{

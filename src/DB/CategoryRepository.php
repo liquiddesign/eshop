@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use IGeneralRepository;
 use Nette\Caching\Cache;
 use Nette\Caching\IStorage;
 use Nette\Utils\Strings;
