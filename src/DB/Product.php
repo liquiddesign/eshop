@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use User\DB\Watcher;
 use Nette\Application\ApplicationException;
 use StORM\RelationCollection;
 

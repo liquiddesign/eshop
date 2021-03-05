@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Eshop\DB\Category;
-use Eshop\DB\CategoryRepository;
-use Eshop\DB\Currency;
 use League\Csv\Writer;
 use Nette\Utils\DateTime;
 use StORM\Collection;

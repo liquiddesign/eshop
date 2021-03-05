@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Eshop\DB\DeliveryType;
-use Eshop\DB\DiscountCoupon;
-use Eshop\DB\PaymentType;
 use StORM\Collection;
 use StORM\RelationCollection;
 

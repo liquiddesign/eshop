@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Eshop\DB\Currency;
-use Eshop\DB\DeliveryType;
-use Eshop\DB\PaymentType;
 use Nette\Security\IIdentity;
 use Security\DB\Account;
 use Security\DB\IUser;

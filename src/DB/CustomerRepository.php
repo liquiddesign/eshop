@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Eshop\DB\Pricelist;
 use League\Csv\Writer;
 use Security\DB\IUserRepository;
 use Security\DB\UserRepositoryTrait;

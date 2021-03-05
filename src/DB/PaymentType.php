@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use User\DB\CustomerGroup;
-use User\DB\CustomerGroupRepository;
-
 /**
  * Typ platby
  * @table

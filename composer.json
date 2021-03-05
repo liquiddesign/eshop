@@ -15,6 +15,7 @@
 		"nette/application":"~3.0",
 		"nette/http":"~3.0",
 		"nette/utils":"~3.0",
+		"league/csv": "^9.0",
 		"liquiddesign/storm": "@dev",
 		"liquiddesign/forms": "@dev",
 		"liquiddesign/security": "@dev",

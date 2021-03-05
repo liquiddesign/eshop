@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Eshop\BuyException;
-use Eshop\DB\Amount;
-use Eshop\DB\Product;
-use Eshop\DB\Variant;
 use StORM\Collection;
 use StORM\Entity;
 

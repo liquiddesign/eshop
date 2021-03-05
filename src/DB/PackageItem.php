@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use User\DB\CartItem;
-use User\DB\Delivery;
-
 /**
  * Položka balíčku
  * @table

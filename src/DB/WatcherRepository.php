@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Eshop\DB\Product;
-use Eshop\DB\ProductRepository;
 use StORM\ICollection;
 
 /**
