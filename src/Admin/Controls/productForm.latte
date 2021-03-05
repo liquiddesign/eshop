@@ -1,0 +1,345 @@
+<form n:name="form">
+	{var $renderer = $form->getRenderer()}
+	<ul class="error" n:ifcontent>
+		<li n:foreach="$form->getOwnErrors() as $error">{$error}</li>
+	</ul>
+
+	<fieldset>
+		<legend>Hlavní atributy</legend>
+
+		<table class="mt-1 mb-1">
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label code/}</th>
+
+				<td class="align-middle form-inline">
+					{input code class => 'form-control form-control-sm col-label'} {input subCode class => 'ml-2 form-control form-control-sm col-label max-number'}
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError code}</span>
+				</td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label ean/}</th>
+
+				<td class="align-middle">
+					{input ean class => 'form-control form-control-sm col-label'}
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError ean}</span>
+				</td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label name-cs/}</th>
+
+				<td class="align-middle">{input name-cs class => 'form-control form-control-sm'}
+					<div class="pt-1" n:ifcontent>
+						{foreach $supplierProducts as $supplierProduct}
+							<a href="#" data-value="{$supplierProduct->name}" data-for="{$form['name']['cs']->getHtmlId()}" class="product-loader"><i class="far fa-clone"></i> {$supplierProduct->supplier->name}</a>
+						{/foreach}
+
+						{if $supplierProducts && $product}
+							<a href="#" data-value="{$product->name}" data-for="{$form['name']['cs']->getHtmlId()}" class="product-loader"><i class="far fa-times-circle"></i></a>
+						{/if}
+					</div>
+
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError name-cs}</span></td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label imageFileName/}</th>
+
+				<td class="align-middle">
+					{input imageFileName}
+
+					{*<div id="{$form['imageFileName']->getHtmlId()}-supplier" class="upload-image-supplier-container" style="display: inline-block">
+						<img src="#" style="max-height:50px; max-width:50px;">
+					</div>*}
+					<div class="pt-1" n:ifcontent>
+						{foreach $supplierProducts as $supplierProduct}
+							<a href="#" data-value="{$supplierProduct->fileName}" data-for="{$form['imageFileName']->getHtmlId()}-container" class="product-loader"><i class="far fa-clone"></i> {$supplierProduct->supplier->name}</a>
+						{/foreach}
+						{if $supplierProducts && $product}
+							<a href="#" data-value="{$product->imageFileName}" data-for="{$form['imageFileName']->getHtmlId()}-container" class="product-loader"><i class="far fa-times-circle"></i></a>
+						{/if}
+					</div>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError imageFileName}</span>
+				</td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label categories/}</th>
+
+				<td class="align-middle">{input categories}
+					<div class="pt-1" n:ifcontent>
+						{foreach $supplierProducts as $supplierProduct}
+							<a href="#" data-value="{$supplierProduct->getValue('category')}" data-for="{$form['categories']->getHtmlId()}" class="product-loader"><i class="far fa-clone"></i> {$supplierProduct->supplier->name}</a>
+						{/foreach}
+						{if $supplierProducts && $product}
+							<a href="#" data-value="{\implode(';', $product->categories->toArrayOf('uuid'))}" data-for="{$form['categories']->getHtmlId()}" class="product-loader"><i class="far fa-times-circle"></i></a>
+						{/if}
+					</div>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError categories}</span></td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label producer/}</th>
+
+				<td class="align-middle">{input producer}
+					<div class="pt-1" n:ifcontent>
+						{foreach $supplierProducts as $supplierProduct}
+							<a href="#" data-value="{$supplierProduct->getValue('producer')}" data-for="{$form['producer']->getHtmlId()}" class="product-loader"><i class="far fa-clone"></i> {$supplierProduct->supplier->name}</a>
+						{/foreach}
+						{if $supplierProducts && $product}
+							<a href="#" data-value="{$product->getValue('producer')}" data-for="{$form['producer']->getHtmlId()}" class="product-loader"><i class="far fa-times-circle"></i></a>
+						{/if}
+					</div>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError producer}</span></td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label parameterGroups/}</th>
+
+				<td class="align-middle">{input parameterGroups}
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError parameterGroups}</span></td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label tags/}</th>
+
+				<td class="align-middle">{input tags}
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError tags}</span></td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label ribbons/}</th>
+
+				<td class="align-middle">{input ribbons}
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError ribbons}</span></td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label displayAmount/}</th>
+
+				<td class="align-middle">{input displayAmount}
+					<div class="pt-1" n:ifcontent>
+						{foreach $supplierProducts as $supplierProduct}
+							<a href="#" data-value="{$supplierProduct->getValue('displayAmount')}" data-for="{$form['displayAmount']->getHtmlId()}" class="product-loader"><i class="far fa-clone"></i> {$supplierProduct->supplier->name}</a>
+						{/foreach}
+						{if $supplierProducts && $product}
+							<a href="#" data-value="{$product->getValue('displayAmount')}" data-for="{$form['displayAmount']->getHtmlId()}" class="product-loader"><i class="far fa-times-circle"></i></a>
+						{/if}
+					</div>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError displayAmount}</span></td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label displayDelivery/}</th>
+
+				<td class="align-middle">{input displayDelivery}
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError displayDelivery}</span></td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label perex-cs/}</th>
+
+				<td class="align-middle">{input perex-cs}
+					<div class="pt-1" n:ifcontent>
+						{foreach $supplierProducts as $supplierProduct}
+							<a href="#" data-value="{$supplierProduct->content}" data-for="{$form['perex']['cs']->getHtmlId()}" class="product-loader"><i class="far fa-clone"></i> {$supplierProduct->supplier->name}</a>
+						{/foreach}
+						{if $supplierProducts && $product}
+							<a href="#" data-value="{$product->perex}" data-for="{$form['perex']['cs']->getHtmlId()}" class="product-loader"><i class="far fa-times-circle"></i></a>
+						{/if}
+					</div>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError perex-cs}</span></td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label content-cs/}</th>
+
+				<td class="align-middle">{input content-cs}
+					<div class="pt-1" n:ifcontent>
+						{foreach $supplierProducts as $supplierProduct}
+							<a href="#" data-value="{$supplierProduct->content}" data-for="{$form['content']['cs']->getHtmlId()}" class="product-loader"><i class="far fa-clone"></i> {$supplierProduct->supplier->name}</a>
+						{/foreach}
+						{if $supplierProducts && $product}
+							<a href="#" data-value="{$product->content}" data-for="{$form['content']['cs']->getHtmlId()}" class="product-loader"><i class="far fa-times-circle"></i></a>
+						{/if}
+					</div>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError content-cs}</span></td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label supplierLock/}</th>
+
+				<td class="align-middle">{input supplierLock class=>"form-control form-control-sm", style=>'max-width: 260px;'}
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError supplierLock}</span></td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label priority/}</th>
+
+				<td class="align-middle" >{input priority  class => 'form-control form-control-sm col-label max-number'}
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError priority}</span></td>
+			</tr>
+
+			{$renderer->renderPair($form['hidden'])|noescape}
+
+			{$renderer->renderPair($form['recommended'])|noescape}
+		</table>
+	</fieldset>
+
+	<fieldset>
+		<legend>Ceny</legend>
+
+		<table class="mt-1 mb-1">
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label discountLevelPct/}</th>
+
+				<td colspan="3"  class="align-middle">{input discountLevelPct  class => 'form-control form-control-sm col-label max-number'}
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError discountLevelPct}</span></td>
+			</tr>
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label vatRate/}</th>
+
+				<td colspan="3" class="align-middle">{input vatRate class=>'form-control form-control-sm '}
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError vatRate}</span></td>
+
+			</tr>
+		<tr class="m-0 mt-1 has-danger" n:if="$pricelists">
+			<th></th>
+			<th class="">Cena bez DPH</th>
+			<th class="pl-2">Cena s DPH</th>
+			<th class="pl-2">Původní bez DPH</th>
+			<th class="pl-2">Původní s DPH</th>
+		</tr>
+			{foreach $pricelists as $id => $pricelist}
+		<tr class="m-0 mt-1 has-danger">
+
+			<th class="col-label col-form-label col">{$pricelist->name}</th>
+
+			<td class="align-middle">{input prices-$id-price class => 'form-control form-control-sm col-label max-number'}
+				<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
+			</td>
+			<td class="align-middle">{input prices-$id-priceVat class => 'ml-2 form-control form-control-sm col-label max-number'}
+				<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
+			</td>
+			<td class="align-middle">{input prices-$id-priceBefore class => 'ml-2 form-control form-control-sm col-label max-number'}
+				<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
+			</td>
+			<td class="align-middle">{input prices-$id-priceVatBefore class => 'ml-2 form-control form-control-sm col-label max-number'}
+				<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
+			</td>
+		</tr>
+			{/foreach}
+
+		</table>
+	</fieldset>
+	<fieldset>
+		<legend>Nákup</legend>
+
+		<table class="mt-1 mb-1">
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label unit/}</th>
+
+				<td class="align-middle">{input unit class => 'form-control form-control-sm col-label max-number'}
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span></td>
+			</tr>
+
+			<tr class="m-0 mt-1  required has-danger">
+				<th class="col-label col-form-label col">Základní / krokové množství</th>
+
+				<td class="align-middle form-inline">
+					{input defaultBuyCount class => 'form-control form-control-sm col-label max-number mr-2'} /
+					{input buyStep class => 'form-control form-control-sm col-label max-number ml-2'}
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError defaultBuyCount}</span>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError buyStep}</span>
+				</td>
+			</tr>
+
+			<tr class="m-0 mt-1 required has-danger">
+				<th class="col-label col-form-label col">Minimální / maximální množství</th>
+				<td class="align-middle form-inline">
+					{input minBuyCount class => 'form-control form-control-sm col-label max-number mr-2'} /
+					{input maxBuyCount class => 'form-control form-control-sm col-label max-number ml-2'}
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError minBuyCount}</span>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError maxBuyCount}</span>
+				</td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">Počet v balení / kartón / paleta</th>
+
+				<td class="align-middle form-inline">
+					{input inPackage class => 'form-control form-control-sm col-label max-number mr-2'} /
+					{input inCarton class => 'form-control form-control-sm col-label max-number ml-2 mr-2'} /
+					{input inPalett class => 'form-control form-control-sm col-label max-number ml-2'}
+
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError inPackage}</span>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError inCarton}</span>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError inPalett}</span>
+				</td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">Zokrouhlení balení / kartón / paleta (%)</th>
+
+				<td class="align-middle form-inline">
+					{input roundingPackagePct class => 'form-control form-control-sm col-label max-number mr-2'} /
+					{input roundingCartonPct class => 'form-control form-control-sm col-label max-number ml-2 mr-2'} /
+					{input roundingPalletPct class => 'form-control form-control-sm col-label max-number ml-2'}
+
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError roundingPackagePct}</span>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError roundingCartonPct}</span>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError roundingPalletPct}</span>
+				</td>
+			</tr>
+
+
+			{$renderer->renderPair($form['unavailable'])|noescape}
+
+
+
+
+
+
+		</table>
+	</fieldset>
+
+<fieldset>
+		<legend>URL A SEO</legend>
+
+		<table class="mt-1 mb-1">
+	{$renderer->renderControls($form['page'])|noescape}
+
+	</table>
+	</fieldset>
+
+	<fieldset>
+
+		<table class="mt-1 mb-1">
+	{$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndBack']])|noescape}
+		</table>
+	</fieldset>
+
+
+
+</form>
+<script>
+    $(function() {
+        $('.product-loader').click(function(event) {
+            $('#' + $(this).data('for')).val($(this).data('value'));
+
+            // if target has class
+			// hide main container
+			// change img and show
+
+            if (polyfills[$(this).data('for')]) {
+                polyfills[$(this).data('for')].options.select($(this).data('value'), "#");
+			}
+
+			if (tinymce.get($(this).data('for'))) {
+                tinymce.get($(this).data('for')).execCommand('mceInsertContent', false, $(this).data('value'));
+            }
+            event.preventDefault();
+        });
+    })
+</script>

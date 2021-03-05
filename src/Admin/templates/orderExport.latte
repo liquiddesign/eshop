@@ -1,0 +1,156 @@
+{templateType App\User\TemplateTypes\OrderDetail}
+<div class="col section-to-print">
+    <h2>Objednávka č. {$order->code}</h2>
+    <div class="text-success-normal text-xl">{$order->getState()}</div>
+
+    <h3>Zboží v objednávce</h3>
+
+    <div class="table-responsive mb-8 lg:mb-16">
+        <table class="w-full">
+            <thead>
+            <tr class="border border-2 border-gray-lighter border-l-0 border-t-0 border-r-0">
+                <th class="py-4 px-4 text-left whitespace-no-wrap">Produkt</th>
+                <th class="py-4 px-4 text-left whitespace-no-wrap text-right">Množství</th>
+                <th class="py-4 px-4 text-left whitespace-no-wrap text-right">Cena bez DPH</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            <tr n:foreach="$purchase->getItems() as $cartItem">
+                <td class="p-4 align-middle">
+                    <div class="flex items-center">
+                        <div class="leading-snug">
+                            {if $cartItem->product}
+                                <a href="{plink :Eshop:Product:detail, $cartItem->product->getPK()}" class="font-bold text-main whitespace-no-wrap hover:text-primary-normal">{$cartItem->productName}</a>
+                            {else}
+                                <span class="font-bold text-main whitespace-no-wrap">{$cartItem->productName}</span>
+                            {/if}
+                            <div class="flex">
+                                <div class="text-gray-dark text-sm mr-3"><strong>Kód</strong>: {$cartItem->getFullCode()}</div>
+                                <div n:if="$cartItem->getValue('product') && $cartItem->product->ean" class="text-gray-dark text-sm"><strong>EAN</strong>: {$cartItem->product->ean}</div>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+
+                <td class="p-4 align-middle text-right">
+                    {$cartItem->amount} ks
+                </td>
+
+                <td class="p-4 pt-0 lg:pt-4 align-middle text-right">
+                    {$cartItem->getPriceSum()|price:$order->currency->code}
+                </td>
+            </tr>
+
+            <tr n:if="$purchase->coupon">
+                <td class="p-4">
+                    <div class="flex items-center">
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-normal rounded">
+                            <span style="font-family: 'Arial', sans-serif; font-size: 32px; font-weight: bold; color: white;">%</span>
+                        </div>
+
+                        <div class="leading-snug ml-6">
+                            <div class="font-bold text-main whitespace-pre-wrap">{$purchase->coupon->discount->name} ({if $purchase->coupon->discountPct}{-$purchase->coupon->discountPct}&nbsp;%{else}{-$purchase->coupon->discountValue|price:$order->currency->code}{/if})</div>
+                            <div class="text-gray-dark text-sm">{$purchase->coupon->code}</div>
+                        </div>
+                    </div>
+
+                </td>
+                <td></td>
+                <td class="p-4 pt-0 lg:pt-4 align-middle text-right">{-$order->getDiscountPrice()|price:$order->currency->code}</td>
+            </tr>
+            </tbody>
+            <tfoot>
+            <tr>
+                <td class="pt-8 px-4" colspan="2">
+                    <div class="flex items-center text-md mb-2">
+                        <strong>{$delivery->typeName}</strong>
+                    </div>
+                    <div class="flex items-center text-md">
+                        <strong>{$payment->typeName}</strong>
+                    </div>
+                </td>
+
+                <td class="pt-8 px-4 text-right">{$deliveryAndPaymentPrice|price:$order->currency->code}</td>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <hr>
+    <div class="flex flex-col lg:flex-row lg:justify-between mt-12">
+        <div class="lg:w-7/12">
+            <div>
+                Datum vytvoření: <strong>{$order->createdTs|date}</strong>
+            </div>
+            <div>
+                Datum expedice: <strong>{if $purchase->desiredShippingDate}{$purchase->desiredShippingDate|date}{else}nezadáno{/if}</strong>
+            </div>
+            <div>
+                Interní číslo objednávky: <strong>{$purchase->internalOrderCode ?: 'nezadáno'}</strong>
+            </div>
+            <div>
+                Poznámka k objednávce:
+                {if $purchase->note}
+                    <p class="mt-0">
+                        <strong>{$purchase->note}</strong>
+                    </p>
+                {else}
+                    <strong>nezadáno</strong>
+                {/if}
+            </div>
+        </div>
+
+        <div class="text-right leading-tight lg:w-5/12 mt-6 lg:mt-0">
+            <div class="ml-4"><span class="text-base">Hmotnost objednávky:</span> <strong>{$purchase->getSumWeight()} kg</strong></div>
+            {*					<div class="ml-4"><span class="text-base">Celkem bez DPH:</span> <strong>{$priceSum|price:$order->currency->code}</strong></div>*}
+            <div class="ml-4"><span class="text-base">Celkem bez DPH:</span> <strong>{$order->getTotalPrice()|price:$order->currency->code}</strong></div>
+
+            <div class="ml-4 text-3xl font-bold mt-3"><span class="text-base">Celkem s DPH:</span> {$order->getTotalPriceVat()|price:$order->currency->code}</div>
+        </div>
+    </div>
+
+    <hr>
+    <div class="md:grid md:grid-cols-3 md:gap-8 mb-8 lg:mb-16">
+        {*					<div>*}
+        {*						<h3 class="flex items-center">*}
+        {*							<svg class="flex-shrink-0 h-6 w-6 mr-2 text-primary-normal" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">*}
+        {*								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />*}
+        {*							</svg>*}
+
+        {*							Osobní informace*}
+        {*						</h3>*}
+
+        {*						<div>Jméno a příjmení / Název firmy: <strong>{$purchase->fullname}</strong></div>*}
+
+        {*					</div>*}
+
+        <div>
+            <h3 class="flex items-center">
+
+
+                Fakturační adresa
+            </h3>
+            <div><strong>{$purchase->fullname}</strong></div>
+            <div n:if="$purchase->ic">IČ: <strong>{$purchase->ic}</strong></div>
+            <div n:if="$purchase->dic">DIČ: <strong>{$purchase->dic}</strong></div>
+            <div>{$billingAddress->street},</div>
+            <div>{$billingAddress->zipcode} {$billingAddress->city}</div>
+            <div>{$purchase->email}</div>
+            <div>{$purchase->phone}</div>
+        </div>
+
+        <div>
+            <h3 class="flex items-center">
+
+
+                Dodací adresa
+            </h3>
+
+            <div><strong>{$deliveryAddress->name}</strong></div>
+            <div>{$deliveryAddress->street},</div>
+            <div>{$deliveryAddress->zipcode} {$deliveryAddress->city}</div>
+            <div></div>
+        </div>
+    </div>
+</div>

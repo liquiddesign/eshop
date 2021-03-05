@@ -1,0 +1,230 @@
+{define content}
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-1">
+                <div class="col-sm-6">
+                    <h1>{@$headerLabel}</h1>
+                    {if @$displayLabels}
+                        {foreach $displayLabels as $label}
+                            <h2>{$label|noescape}</h2>
+                        {/foreach}
+                    {/if}
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{plink :Eshop:Admin:Dashboard:default}">Domů</a></li>
+                        {ifset $headerTree}
+                            {foreach $headerTree as $item}
+                                <li class="breadcrumb-item {if $iterator->isLast()}active{/if}">
+                                    {ifset $item[1]}
+                                        {ifset $item[2]}
+                                            <a href="{plink $item[1], $item[2]}">{$item[0]}</a>
+                                        {else}
+                                            <a href="{plink $item[1]}">{$item[0]}</a>
+                                        {/ifset}
+                                    {else}
+                                        {$item[0]}
+                                    {/ifset}
+                                </li>
+                            {/foreach}
+                        {/ifset}
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header border-transparent">
+                            <h3 class="card-title">Objednávky</h3>
+                        </div>
+                        <!-- /.card-header -->
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table m-0">
+                                    <thead>
+                                    <tr>
+                                        <th class="minimal">Č. objednávky</th>
+                                        <th class="minimal">Datum</th>
+                                        <th>Cena (s DPH)</th>
+                                        <th>Zákazník</th>
+                                        <th>Stav</th>
+                                        <th></th>
+                                    </tr>
+                                    </thead>
+                                    <tbody n:inner-foreach="$recievedOrders as $order">
+                                    <tr>
+                                        <td>{$order->code}</td>
+                                        <td>{$order->createdTs|date}</td>
+                                        <td>{$order->purchase->getSumPriceVat()|price}</td>
+                                        <td>{ifset $order->customer}<a
+                                                    href="{plink :Eshop:Admin:Customer:edit, $order->customer}"><i
+                                                        class="fa fa-external-link-alt fa-sm"></i>&nbsp;{$order->customer->fullname ?? ($order->customer->email ?? '')}
+                                            </a>{else}{$order->purchase->fullname}{/ifset}</td>
+                                        <td>{$order->getState()}</td>
+                                        <td><a href="{plink :Eshop:Admin:Order:detail, $order}"><i
+                                                        class="fa fa-external-link-alt fa-sm"></i>&nbsp;Detail</a></td>
+                                    </tr>
+                                    </tbody>
+                                    <tbody n:inner-if="count($recievedOrders) == 0">
+                                    <tr>
+                                        <td colspan="5">Žádné aktivní objednávky.</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- /.table-responsive -->
+                        </div>
+                        <!-- /.card-body -->
+                        <div class="card-footer clearfix">
+                            <a href="{plink :Eshop:Admin:Order:default}" class="btn btn-sm btn-secondary float-right">Zobrazit
+                                všechny objednávky</a>
+                        </div>
+                        <!-- /.card-footer -->
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header border-transparent">
+                            <h3 class="card-title">Neschválení uživatelé</h3>
+                        </div>
+                        <!-- /.card-header -->
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table m-0">
+                                    <thead>
+                                    <tr>
+                                        <th>Uživatel</th>
+                                        <th>Datum registrace</th>
+                                        <th></th>
+                                    </tr>
+                                    </thead>
+                                    <tbody n:inner-foreach="$nonActiveUsers as $nonActiveUser">
+                                    <tr>
+                                        <td>
+                                            {if $nonActiveUser instanceOf Eshop\DB\Customer}
+                                                <a href="{plink :Eshop:Admin:Customer:edit, $nonActiveUser}">
+                                                    <i class="fa fa-external-link-alt"></i>
+                                                {ifset $nonActiveUser->fullname}
+                                                    {$nonActiveUser->fullname}
+                                                {else}
+                                                    {$nonActiveUser->email}
+                                                {/ifset}
+                                                </a>
+                                                <div><small>zákazník</small></div>
+                                            {elseif $nonActiveUser instanceOf Eshop\DB\Merchant}
+                                                <a href="{plink :Eshop:Admin:Merchant:detail, $nonActiveUser}">
+                                                    <i class="fa fa-external-link-alt"></i> {$nonActiveUser->fullName}
+                                                </a>
+                                                <div><small>obchodník</small></div>
+                                            {else}
+                                                {$nonActiveUser->login}
+                                            {/if}
+                                        </td>
+                                        <td>
+                                            {if $nonActiveUser instanceOf Eshop\DB\Customer || $nonActiveUser instanceOf Eshop\DB\Merchant}
+                                                {$nonActiveUser->getAccount()->tsRegistered|date}
+                                            {else}
+                                                {$nonActiveUser->tsRegistered|date}
+                                            {/if}
+                                        </td>
+                                        <td>
+                                            {if $nonActiveUser instanceOf Eshop\DB\Customer}
+                                                <a href="{plink :Eshop:Admin:Customer:editAccount, $nonActiveUser}">
+                                                    <i class="far fa-edit"></i> Detail
+                                                </a>
+                                            {elseif $nonActiveUser instanceOf Eshop\DB\Merchant}
+                                                <a href="{plink :Eshop:Admin:Merchant:editAccount, $nonActiveUser}">
+                                                    <i class="far fa-edit"></i> Detail
+                                                </a>
+                                            {/if}
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                    <tbody n:inner-if="count($nonActiveUsers) == 0">
+                                    <tr>
+                                        <td colspan="5">Žádní uživatelé.</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- /.table-responsive -->
+                        </div>
+                        <!-- /.card-body -->
+                        <div class="card-footer clearfix">
+                            <a href="{plink :Eshop:Admin:Customer:default}"
+                               class="btn btn-sm btn-secondary float-right m-1">
+                                Zobrazit všechny zákazníky
+                            </a>
+                            <a href="{plink :Eshop:Admin:Merchant:default}"
+                               class="btn btn-sm btn-secondary float-right m-1">
+                                Zobrazit všechny obchodníky
+                            </a>
+                        </div>
+                        <!-- /.card-footer -->
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header border-transparent">
+                            <h3 class="card-title">Aktivní akce</h3>
+                        </div>
+                        <!-- /.card-header -->
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table m-0">
+                                    <thead>
+                                    <tr>
+                                        <th>Název</th>
+                                        <th>Platnost od</th>
+                                        <th>Platnost do</th>
+                                        <th></th>
+                                    </tr>
+                                    </thead>
+                                    <tbody n:inner-foreach="$discounts as $discount">
+                                    <tr>
+                                        <td>{$discount->name}</td>
+                                        <td>{$discount->validFrom|date}</td>
+                                        <td>{$discount->validTo|date}</td>
+                                        <td><a href="{plink :Eshop:Admin:Discount:detail, $discount}"><i
+                                                        class="fa fa-external-link-alt fa-sm"></i>&nbsp;Detail</a></td>
+                                    </tr>
+                                    </tbody>
+                                    <tbody n:inner-if="count($discounts) == 0">
+                                    <tr>
+                                        <td colspan="5">Žádné aktivní akce.</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- /.table-responsive -->
+                        </div>
+                        <!-- /.card-body -->
+                        <div class="card-footer clearfix">
+                            <a href="{plink :Eshop:Admin:Discount:default}"
+                               class="btn btn-sm btn-secondary float-right">Zobrazit všechny akce</a>
+                        </div>
+                        <!-- /.card-footer -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{/define}
+
+{block scripts}
+    <script n:if="$flashes" src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+    {foreach $flashes as $flash}
+        <script>
+            toastr.{$flash->type|noescape}({$flash->message});
+        </script>
+    {/foreach}
+{/block}
+
+
+{include '../@layout.latte'}

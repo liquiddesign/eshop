@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+	<meta charset="UTF-8">
+	<title>Administrace</title>
+	<style>
+        .mutation-flag {
+            height: 24px;
+        }
+	</style>
+</head>
+<body>
+<h1>Administrace</h1>
+<a href="{plink logout!}">Odhlásit</a>
+<span n:foreach="$flashes as $flash" n:class="flash, $flash->type">{$flash->message}</span>
+<hr>
+<div style="float: left; margin-right: 20px; padding-right: 20px; border-right: 1px solid gray;">
+	{control menu}
+</div>
+<div style="float: left;">
+	{if @$displayButtons}
+		{foreach $displayButtons as $button}
+			{$button|noescape}
+		{/foreach}
+	{/if}
+	<br><br>
+	<h2>Detail objednávky</h2>
+	{control newForm}
+	<h2>Košíky</h2>
+	{control cartsGrid}
+</div>
+<div style="clear:left;"></div>
+<hr>
+<small>FOOTER</small>
+</body>
+
+</html>

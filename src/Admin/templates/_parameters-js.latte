@@ -1,0 +1,17 @@
+{include '../../../Admin/@layout.latte'}
+<script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function(event) {
+        var select = document.getElementById('frm-newForm-type');
+        onTypeChange(select);
+    });
+
+    function onTypeChange(select){
+        if(select.value === 'list'){
+            document.getElementById('frm-newForm-allowedValues-cs-toogle').hidden=false;
+            document.getElementById('frm-newForm-allowedValues-en-toogle').hidden=false;
+        }else {
+            document.getElementById('frm-newForm-allowedValues-cs-toogle').hidden=true;
+            document.getElementById('frm-newForm-allowedValues-en-toogle').hidden=true;
+        }
+    }
+</script>
