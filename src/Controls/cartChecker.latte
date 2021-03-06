@@ -1,0 +1,78 @@
+<div n:if="count($incorrectCartItems) > 0 || ($discountCoupon && !$discountCouponValid)">
+	<h3 class="inline-flex items-center">
+		<svg class="w-8 h-8 mr-3 text-red-normal" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+		</svg>
+		Úpravy položek v košíku
+	</h3>
+
+	<div class="table-responsive">
+		<table class="w-full">
+			<thead>
+			<tr class="border border-2 border-gray-lighter border-l-0 border-t-0 border-r-0">
+				<th class="py-2 px-4 text-left whitespace-no-wrap">Kód</th>
+{*				<th class="py-2 px-4 text-left whitespace-no-wrap">EAN</th>*}
+				<th class="py-2 px-4 text-left whitespace-no-wrap">Název</th>
+				<th class="py-2 px-4 text-left whitespace-no-wrap">Důvod úpravy</th>
+				<th class="py-2 px-4 text-left whitespace-no-wrap">Původně</th>
+				<th class="py-2 px-4 text-left whitespace-no-wrap">Nově</th>
+				<th></th>
+			</tr>
+			</thead>
+			<tbody>
+			<tr n:foreach="$incorrectCartItems as $incorrectCartItem" class="{$iterator->getCounter() % 2 !== 0 ? 'bg-gray-light'}">
+				<td class="px-4 py-2 whitespace-no-wrap">{$incorrectCartItem['object']->getFullCode()}</td>
+{*				<td class="px-4 py-2 whitespace-no-wrap">{$item['object']->product->ean}</td>*}
+				<td class="px-4 py-2 whitespace-no-wrap">{$incorrectCartItem['object']->productName}</td>
+				<td class="px-4 py-2 whitespace-no-wrap text-red-normal">
+					{switch $incorrectCartItem['reason']}
+						{case 'incorrect-amount'}
+							Minimální/maximální odběr nebo násobek<br>
+						{case 'incorrect-price'}
+							Neaktuální cena
+						{case 'product-round'}
+							Zaokrouhlení na balení/karton/paletu
+						{case 'unavailable'}
+							Produkt již není k prodeji
+					{/switch}
+				</td>
+				<td class="px-4 py-2 whitespace-no-wrap text-red-normal">
+					{switch $incorrectCartItem['reason']}
+						{case 'incorrect-amount', 'product-round'}
+							{$incorrectCartItem['object']->amount} ks
+						{case 'incorrect-price'}
+							{$incorrectCartItem['object']->price|price}
+					{/switch}
+				</td>
+				<td class="px-4 py-2 whitespace-no-wrap font-bold">
+					{switch $incorrectCartItem['reason']}
+						{case 'incorrect-amount', 'product-round'}
+							{$incorrectCartItem['correctValue']} ks
+						{case 'incorrect-price'}
+							{$incorrectCartItem['correctValue']|price}
+						{case 'unavailable'}
+							Odstranění z košíku
+					{/switch}
+				</td>
+				<td class="px-4 py-2 whitespace-no-wrap text-right">
+					<a href="{link confirmChanges!, $incorrectCartItem['object']->getPK()}" class="btn btn-primary btn-sm mr-1{if $incorrectCartItem['reason'] === 'unavailable'} disabled{/if}">Schválit</a>
+					<a href="{link rejectChanges!, $incorrectCartItem['object']->getPK()}" class="btn btn-danger btn-sm">Smazat</a>
+				</td>
+			</tr>
+			<tr n:if="$discountCoupon && !$discountCouponValid">
+				<td class="px-4 py-2 whitespace-no-wrap">{$discountCoupon->code}</td>
+				<td class="px-4 py-2 whitespace-no-wrap">{$discountCoupon->discount->name} ({if $discountCoupon->discountPct}{-$discountCoupon->discountPct}&nbsp;%{else}{-$discountCoupon->discountValueVat|price}{/if})</td>
+				<td class="px-4 py-2 whitespace-no-wrap text-red-normal">Slevový kupón již není aktivní</td>
+				<td></td>
+				<td class="px-4 py-2 whitespace-no-wrap font-bold">Odstranění z košíku</td>
+				<td></td>
+			</tr>
+			</tbody>
+		</table>
+		<div class="text-right mt-5">
+			<a href="{link confirmChanges!}" class="btn btn-primary mr-1">Schválit všechny změny</a>
+			<a href="{link rejectChanges!}" class="btn btn-danger">Smazat všechny položky</a>
+		</div>
+	</div>
+	<hr>
+</div>

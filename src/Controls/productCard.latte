@@ -1,0 +1,65 @@
+{varType Eshop\DB\Product $item}
+
+<div>
+	<a href="{plink :Eshop:Product:detail $item->uuid}" class="block pb-full relative">
+		<img class="object-contain absolute-position-center w-full h-full z-10" data-src="{$item->getPreviewImage($basePath)}" loading="lazy" alt="">
+
+		<div class="flex flex-col items-start absolute top-4 left-0 z-30 w-full h-full pt-8 lg:pt-0">
+			{foreach $item->ribbons->where('hidden', 0)->orderBy(['priority']) as $ribbon}
+				<div class="block flex-grow-0 bg-red-normal text-white text-xs px-2 py-1 rounded leading-none mb-1" style="color: {$ribbon->color|noescape} !important; background-color: {$ribbon->backgroundColor|noescape} !important;">
+					{$ribbon->name}
+				</div>
+			{/foreach}
+		</div>
+	</a>
+
+	<div class="leading-snug">
+		<h3 class="text-xl mb-2"><a href="{plink :Eshop:Product:detail $item->uuid}" class="text-main hover:text-primary-normal">{$item->name}</a></h3>
+		<div class="text-sm text-gray-dark">Kód: {$item->code}</div>
+	</div>
+
+	<div class="flex items-end justify-between">
+		<div class="leading-tight mt-4">
+			{if $presenter->shopper->getCatalogPermission() === 'price' || $presenter->shopper->getCatalogPermission() === 'full'}
+			<div n:if="$item->priceBefore" class="font-light text-gray-dark"><del>{$item->priceBefore|price}</del></div>
+			<div class="text-2xl font-bold">{$item->price|price}</div>
+			<div class="text-sm text-gray-dark">s DPH {$item->priceVat|price}</div>
+			{/if}
+		</div>
+
+		<a href="{link buy! $item->uuid}" class="btn btn-sm" n:if="$control->checkoutManager->canBuyProduct($item) && $presenter->shopper->getCatalogPermission() === 'full'">
+			<svg class="h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+			</svg>
+
+			<span class="ml-2">Koupit</span>
+		</a>
+	</div>
+
+	<div class="flex items-end justify-between mt-4">
+		{if $item->inStock()}
+			<div class="text-success-normal font-bold">{if $item->displayAmount}{$item->displayAmount->label}{else}Skladem: na dotaz{/if}</div>
+			<div class="text-sm">{if $item->displayDelivery}{$item->displayDelivery->label}{else}Neznámé dodání{/if}</div>
+		{else}
+			<div class="text-red-normal font-bold">{if $item->displayAmount}{$item->displayAmount->label}{else}Není skladem{/if}</div>
+			<div class="text-sm ml-6">
+				<span n:if="$presenter->getUser()->isLoggedIn()">
+					{* @TODO ajax *}
+					<a n:if="!$item->watcher" href="{link watchIt $item->uuid}" class="">
+
+						<svg class="w-4 h-4" style="display: inline-block;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+						</svg>
+					</a>
+					<a n:if="$item->watcher" href="{link unWatchIt $item->uuid}" class="">
+
+						<svg class="w-4 h-4" style="display: inline-block;"  xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</a>
+				</span>
+				<span class="">{if $item->storageDate}{$item->storageDate|date}{else}Naskladnění neznámé{/if}</span>
+			</div>
+		{/if}
+	</div>
+</div>

@@ -1,0 +1,117 @@
+{varType Eshop\DB\CartItem $cartItem}
+
+<div class="table-responsive">
+	<table class="w-full">
+		<tbody>
+		<tr n:foreach="$cartItems as $cartItem" class="flex flex-col lg:table-row">
+			<td class="p-4 align-middle">
+				<div class="flex items-center">
+					<div class="relative w-12 h-12 mr-6 flex-shrink-0 overflow-hidden">
+						<img class="non-responsive absolute w-full h-full object-contain" data-src="{if $cartItem->getValue('product')}{$cartItem->product->getPreviewImage($basePath)}{else}{$pubUrl}/img/no-image.png{/if}" alt="" loading="lazy" />
+					</div>
+
+					<div class="leading-snug">
+						<a n:tag-if="$cartItem->getValue('product')" href="{plink :Eshop:Product:detail, $cartItem->product->getPK()}" class="font-bold text-main whitespace-pre-wrap hover:text-primary-normal">{$cartItem->productName}</a>
+						<div class="flex">
+                            <div class="text-gray-dark text-sm mr-3"><strong>Kód</strong>: {$cartItem->getFullCode()}</div>
+                            <div n:if="$cartItem->getValue('product') && $cartItem->product->ean" class="text-gray-dark text-sm"><strong>EAN</strong>: {$cartItem->product->ean}</div>
+						</div>
+					</div>
+				</div>
+			</td>
+
+			<td class="p-4 align-middle">
+				<div class="flex items-center justify-between">
+					{form changeAmountForm-$cartItem->uuid}
+						<div class="flex items-center lg:mt-0">
+							<input n:name="amount" type="number" class="form-control lg:w-24" value="{$cartItem->amount}" onchange="this.form.submit()">
+							<strong class="pl-2">ks</strong>
+						</div>
+					{/form}
+					<div class="leading-none text-right">
+						<div class="text-xl font-bold whitespace-no-wrap">{$cartItem->getPriceSum()|price}</div>
+						<div class="text-sm text-gray-dark mt-1 lg:text-xs">s DPH {$cartItem->getPriceVatSum()|price}</div>
+					</div>
+				</div>
+			</td>
+
+			<td class="p-4 pt-0 lg:pt-4 mt-3 align-middle text-right">
+				<div class="flex justify-between items-center">
+					<div class="leading-tight whitespace-no-wrap text-left" n:if="$cartItem->getValue('product')">
+						{if $cartItem->product->inStock()}
+							<div class="text-success-normal font-bold">{if $cartItem->product->displayAmount}{$cartItem->product->displayAmount->label}{else}Skladem: na dotaz{/if}</div>
+							<div class="text-sm ml-6">{if $cartItem->product->displayDelivery}{$cartItem->product->displayDelivery->label}{else}Neznámé dodání{/if}</div>
+						{else}
+							<div class="text-red-normal font-bold">{if $cartItem->product->displayAmount}{$cartItem->product->displayAmount->label}{else}Není skladem{/if}</div>
+							<div class="text-sm ml-6">
+								<a n:if="!$cartItem->product->watcher" href="{*link watchIt $cartItem->product->uuid*}" class="flex items-center">
+									Zapnout hlídání
+
+									<svg class="w-4 h-4 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+									</svg>
+								</a>
+								<a n:if="$cartItem->product->watcher" href="{*link unWatchIt $item->uuid*}" class="flex items-center">
+									Vypnout hlídání
+									<svg class="w-4 h-4 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+									</svg>
+								</a>
+								<div class="text-xs">{if $cartItem->product->storageDate}{$cartItem->product->storageDate|date}{else}Naskladnění neznámé{/if}</div>
+							</div>
+						{/if}
+					</div>
+
+					<div>
+						<a href="{link deleteItem! $cartItem->getPK()}" class="btn btn-danger lg:hidden text-xs">Odebrat z košíku</a>
+						<a href="{link deleteItem! $cartItem->getPK()}" class="flex-grow-0 hidden lg:flex lg:items-center lg:justify-center text-secondary-normal rounded w-10 h-10 hover:text-red-normal">
+							<svg class="w-5 h-5 stroke-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+							</svg>
+						</a>
+					</div>
+				</div>
+			</td>
+		</tr>
+
+		<tr n:if="$discountCoupon">
+			<td class="p-4" colspan="2">
+				<div class="flex items-center">
+					<div class="inline-flex items-center justify-center w-12 h-12 bg-gray-normal rounded">
+						<span style="font-family: 'Arial', sans-serif; font-size: 32px; font-weight: bold; color: white;">%</span>
+					</div>
+
+					<div class="leading-snug ml-6">
+						<div class="font-bold text-main whitespace-pre-wrap">{$discountCoupon->discount->name}{* ({if $discountCoupon->discountPct}{-$discountCoupon->discountPct}&nbsp;%{else}{-$discountCoupon->discountValueVat|price}{/if})*}</div>
+						<div class="text-gray-dark text-sm">{$discountCoupon->label}</div>
+{*						<div class="text-gray-dark text-sm">{$discountCoupon->code}</div>*}
+					</div>
+
+					<div class="ml-auto" n:if="$discountPrice != 0">
+						<div class="leading-none text-right">
+							<div class="text-xl font-bold whitespace-no-wrap">{-$discountPrice|price}</div>
+							<div class="text-sm text-gray-dark mt-1 lg:text-xs">s DPH {-$discountPriceVat|price}</div>
+						</div>
+					</div>
+				</div>
+
+			</td>
+
+			<td class="text-right">
+				<a href="{link removeDiscountCoupon!, $discountCoupon->getPK()}" class="btn btn-danger lg:hidden text-xs">Odebrat</a>
+				<a href="{link removeDiscountCoupon!, $discountCoupon->getPK()}" class="flex-grow-0 hidden lg:flex lg:items-center lg:justify-center text-secondary-normal rounded w-10 h-10 hover:text-red-normal ml-auto">
+					<svg class="w-5 h-5 stroke-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+					</svg>
+				</a>
+			</td>
+		</tr>
+		</tbody>
+	</table>
+
+	{if count($cartItems) < 1}
+		<div class="alert alert-info">
+			V košíku nemáte žádné položky
+		</div>
+	{/if}
+</div>

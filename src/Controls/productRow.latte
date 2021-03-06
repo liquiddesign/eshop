@@ -1,0 +1,97 @@
+{varType Eshop\DB\Product $item}
+<tr class="flex flex-col lg:table-row border border-t-0 border-l-0 border-r-0 border-gray-light">
+	<td class="p-4 py-6">
+		<div class="flex flex-col lg:flex-row lg:items-center">
+			<a href="{plink :Eshop:Product:detail $item->uuid}" class="block relative w-32 pb-32">
+				<img class="absolute w-full h-full object-contain" data-src="{$item->getPreviewImage($basePath)}" loading="lazy" alt="" />
+			</a>
+
+			<div class="flex flex-col leading-snug lg:ml-6 mt-6 lg:mt-0">
+				<a href="{plink :Eshop:Product:detail $item->uuid}" class="font-bold text-main whitespace-pre-wrap text-xl lg:text-lg xl:text-xl hover:text-primary-normal">{$item->name}</a>
+
+				<div class="flex mb-2" n:inner-foreach="$item->ribbons->where('hidden', 0)->orderBy(['priority']) as $ribbon">
+					<div class="bg-red-normal text-white text-xs px-2 py-1 rounded leading-none mr-1" style="color: {$ribbon->color|noescape} !important; background-color: {$ribbon->backgroundColor|noescape} !important">
+						{$ribbon->name}
+					</div>
+				</div>
+
+				<p class="mt-0 text-xs xl:text-sm text-gray-dark whitespace-pre-wrap">{\strip_tags($item->perex)}</p>
+
+				<div class="flex items-center leading-snug">
+					<div class="text-sm">Kód: {$item->code}</div>
+					<div class="text-sm ml-4">Hmotnost: {$item->weight} kg</div>
+				</div>
+			</div>
+		</div>
+	</td>
+	<td class="p-4">
+		<div class="leading-tight lg:mt-0 lg:text-right">
+			{if $presenter->shopper->getCatalogPermission() === 'price' || $presenter->shopper->getCatalogPermission() === 'full'}
+			<div n:if="$item->priceBefore" class="font-light text-sm text-gray-dark"><del>{$item->priceBefore|price}</del></div>
+			<div class="text-2xl font-bold">{$item->price|price}</div>
+			<div class="text-xs text-gray-dark">s DPH {$item->priceVat|price}</div>
+			{/if}
+		</div>
+
+
+
+		<div class="mt-2 text-sm">
+			<div class="flex items-center justify-between">
+				{if $item->inStock()}
+					<div class="text-success-normal font-bold">{if $item->displayAmount}{$item->displayAmount->label}{else}Skladem: na dotaz{/if}</div>
+					<div class="text-sm ml-6">{if $item->displayDelivery}{$item->displayDelivery->label}{else}Neznámé dodání{/if}</div>
+				{else}
+					<div class="text-red-normal font-bold">{if $item->displayAmount}{$item->displayAmount->label}{else}Není skladem{/if}</div>
+					<div class="text-sm ml-6">
+						<div n:if="$presenter->getUser()->isLoggedIn()">
+							<a n:if="!$item->watcher" href="{link watchIt! $item->uuid}" class="flex items-center">
+								Zapnout hlídání
+								<svg class="w-4 h-4 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+								</svg>
+							</a>
+							<a n:if="$item->watcher" href="{link unWatchIt! $item->uuid}" class="flex items-center">
+								Vypnout hlídání
+								<svg class="w-4 h-4 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+								</svg>
+							</a>
+						</div>
+						<div class="text-xs">{if $item->storageDate}{$item->storageDate|date}{else}Naskladnění neznámé{/if}</div>
+					</div>
+				{/if}
+			</div>
+
+			<div class="flex items-center justify-between" n:if="false">
+
+			</div>
+		</div>
+	</td>
+
+	<td class="p-4">
+		<div class="text-sm">
+			<div n:if="$item->inPackage">Balení: <strong>{$item->inPackage} {$item->unit}</strong> <a n:if="$control->checkoutManager->canBuyProduct($item) && $presenter->shopper->getCatalogPermission() === 'full'" href="javascript:void(0);" data-amount="{$item->inPackage}" class="ml-4" data-set-amount="#input-{$item->getPK()}">Nastavit</a></div>
+			<div n:if="$item->inCarton">V kartónu: <strong>{$item->inCarton} {$item->unit}</strong> <a n:if="$control->checkoutManager->canBuyProduct($item) && $presenter->shopper->getCatalogPermission() === 'full'" href="javascript:void(0);" data-amount="{$item->inCarton}" class="ml-4" data-set-amount="#input-{$item->getPK()}">Nastavit</a></div>
+			<div n:if="$item->inPalett">Na paletě: <strong>{$item->inPalett} {$item->unit}</strong><a n:if="$control->checkoutManager->canBuyProduct($item) && $presenter->shopper->getCatalogPermission() === 'full'" href="javascript:void(0);" data-amount="{$item->inPalett}" class="ml-4" data-set-amount="#input-{$item->getPK()}">Nastavit</a></div>
+			<div>Min. objednávka: <strong>{$item->minBuyCount} {$item->unit}</strong></div>
+		</div>
+
+		{if $control->checkoutManager->canBuyProduct($item) && $presenter->shopper->getCatalogPermission() === 'full'}
+			{form buyForm-$item->uuid class=> "mt-4 flex flex-row items-center justify-start"}
+				<div class="form-group mb-0 flex-grow-0 mr-2">
+					<input n:name="amount" id="input-{$item->getPK()}" type="number" class="form-control form-control-sm w-24">
+				</div>
+
+				<span class="mr-4 lg:mr-8 font-bold">{$item->unit}</span>
+
+				<button n:name="submit" type="submit" class="btn btn-sm">
+					<svg class="h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+					</svg>
+
+					<span class="ml-2">Do košíku</span>
+				</button>
+			{/form}
+		{/if}
+	</td>
+</tr>

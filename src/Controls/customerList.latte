@@ -1,0 +1,49 @@
+{form filterForm class=>"lg:flex lg:items-center"}
+	<div class="flex flex-col lg:flex-row lg:items-center lg:w-1/2 mb-8">
+		<div class="form-group relative mb-2 lg:mb-0 flex-grow lg:mr-2">
+			<input n:name="name" type="text" class="form-control" />
+			<label>Vyhledat zákazníka</label>
+		</div>
+
+		<div class="flex">
+			<input n:name="submit" type="submit" class="btn" value="Filtrovat">
+			<a href="{link reset!}" class="btn btn-secondary ml-2">Storno</a>
+		</div>
+	</div>
+{/form}
+
+<div n:if="!$control->getItemsOnPage()" class="text-gray-dark">Nemáte žádné zákazníky</div>
+
+{if count($control->getItemsOnPage())}
+
+	{var $dir = $control->getDirection(true)}
+
+	<table class="w-full">
+		<thead>
+		<tr class="border border-2 border-gray-lighter border-l-0 border-t-0 border-r-0">
+			<th><a href="{link this order => 'fullname-' . $dir}">Název / Jméno</a></th>
+			<th><a href="{link this order => 'email-' . $dir}">E-mail</a></th>
+			<th><a href="{link this order => 'phone-' . $dir}">Telefon</a></th>
+			<th><a href="{link this order => 'ic-' . $dir}">IČ</a></th>
+			<th><a href="{link this order => 'city-' . $dir}">Dodací adresa</a></th>
+			<!--<th></th>-->
+			<th></th>
+		</tr>
+		</thead>
+		<tbody>
+		{foreach $control->getItemsOnPage() as $item}
+			<tr class="border border-gray-light border-l-0 border-t-0 border-r-0">
+				<td class="p-4 whitespace-no-wrap">{$item->company ?: $item->fullname}</td>
+				<td class="p-4 whitespace-no-wrap"><a href="mailto:{$item->email}">{$item->email}</a></td>
+				<td class="p-4 whitespace-no-wrap"><a href="tel:{$item->phone}">{$item->phone}</a></td>
+				<td class="p-4 whitespace-no-wrap">{$item->ic}</td>
+				<td class="p-4 whitespace-no-wrap">{$item->getDeliveryAddressLine()}</td>
+				<!--<td class="p-4 whitespace-no-wrap"><a href="#">Statistiky</a></td>-->
+				<td class="p-4 whitespace-no-wrap"><a href="{link login! $item->getPK()}">Přihlásit</a></td>
+			</tr>
+		{/foreach}
+		</tbody>
+	</table>
+	{control paging}
+
+{/if}

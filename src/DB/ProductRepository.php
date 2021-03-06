@@ -124,9 +124,9 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$collection->select(['ribbonsIds' => $subSelect]);
 
 		if ($customer) {
-			$subSelect = $this->getConnection()->rows(['user_watcher'], ['uuid'])
-				->where('user_watcher.fk_customer= :test')
-				->where('user_watcher.fk_product=this.uuid');
+			$subSelect = $this->getConnection()->rows(['eshop_watcher'], ['uuid'])
+				->where('eshop_watcher.fk_customer= :test')
+				->where('eshop_watcher.fk_product=this.uuid');
 			$collection->select(['fk_watcher' => $subSelect], ['test' => $customer->getPK()]);
 		}
 

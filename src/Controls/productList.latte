@@ -1,0 +1,23 @@
+{do $fileName = "product$display.latte"}
+
+<div class="row">
+	<div class="col">
+		<div n:if="count($control->getItemsOnPage())" class="{if $display === 'Card'}grid grid-cols-1 gap-8 md:grid-cols-2 lg:gap-12 lg:grid-cols-3 xl:grid-cols-4 mb-8 lg:mb-16{else}table-responsive mb-8 lg:mb-16{/if}">
+			{if $display === 'Row'}
+			<table>
+				<tbody>
+				{/if}
+				{foreach $control->getItemsOnPage() as $id => $item}
+					{include $fileName item:$item}
+				{/foreach}
+				{if $display === 'Row'}
+				</tbody>
+			</table>
+			{/if}
+		</div>
+
+		<div n:if="!count($control->getItemsOnPage())" class="text-center mb-16">
+			Nebyly nalezeny žádné produkty.<br>Kategorie je buď prázdná nebo žádný produkt neodpovídá nastaveným filtračním kritériím.
+		</div>
+	</div>
+</div>

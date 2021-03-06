@@ -1,0 +1,55 @@
+{form filterForm}
+	<div class="flex flex-col lg:flex-row lg:items-center lg:w-1/2 mb-8">
+		<div class="form-group relative mb-2 lg:mb-0 flex-grow lg:mr-2">
+			<input n:name="search" type="text" class="form-control" />
+			<label>Vyhledat dle čísla objednávky nebo názvu produktu</label>
+		</div>
+
+		<div class="flex">
+			<input n:name="submit" type="submit" class="btn" value="Filtrovat">
+			<a href="{link this search => null}" class="btn btn-secondary ml-2">Zrušit</a>
+		</div>
+	</div>
+{/form}
+
+{if count($control->getItemsOnPage()) > 0}
+	<table>
+		<thead>
+		<tr>
+			<th>Č. objednávky</th>
+			<th>Datum</th>
+			<th>Cena bez DPH</th>
+			<th>Cena s DPH</th>
+			<th>Faktura</th>
+			<th>Stav</th>
+			<th></th>
+		</tr>
+		</thead>
+
+		<tbody n:inner-foreach="$control->getItemsOnPage() as $order">
+		<tr>
+			<td>{$order->code}</td>
+			<td>{$order->createdTs|date}</td>
+			<td>{$order->getTotalPrice()|price}</td>
+			<td>{$order->getTotalPriceVat()|price}</td>
+			<td>
+				<a href="{plink downloadInvoice!, $order->getPK()}" class="flex items-center mr-3">
+					<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+					</svg>
+
+					Faktura {$order->code}
+				</a>
+			</td>
+			<td>{$order->getState()}</td>
+			<td><a href="{plink order, $order->getPK()}" class="btn btn-sm">Detail</a></td>
+		</tr>
+		</tbody>
+	</table>
+
+	<div class="mt-3">
+		{control paging}
+	</div>
+{else}
+	<div class="text-gray-dark">Nemáte žádné vyřízené objednávky nebo žádná neodpovídá nastavenému filtru</div>
+{/if}

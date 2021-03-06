@@ -1,0 +1,77 @@
+{form filterForm}
+    <div class="bg-gray-light px-8 py-6 mt-8 lg:mr-8">
+        {foreach $form->getErrors() as $message}
+            <div class="alert alert-danger">{$message}</div>
+        {/foreach}
+        <a href="#" data-filter class="flex items-center justify-between lg:hidden font-bold uppercase">
+            {_'.showFilter','Zobrazit filtr'}
+
+            <svg class="w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+        </a>
+
+        <div id="filter-form" class="hidden lg:block">
+            <!-- PARAMETER -->
+            <div>
+                <div class="font-bold uppercase">{_'.price','Cena'}</div>
+
+                <!-- FORM -->
+                <div class="mt-2">
+                    <div class="form-group">
+                        <div class="flex items-center justify-start">
+                            <input class="flex-grow-0 w-20" type="number" n:name="priceFrom">
+                            <div class="mx-2">-</div>
+                            <input class="flex-grow-0 w-20" type="number" n:name="priceTo">
+                            <div class="ml-1">Kč</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            {formContainer parameters}
+                {foreach $form->getComponent('parameters')->getComponents() as $component}
+                        {formContainer $component->name}
+                            <!-- PARAMETER -->
+                            <div class="mt-2 lg:mt-0">
+                                {if $groups[$component->name]->name}<div class="font-bold uppercase">{$groups[$component->name]->name}</div>{/if}
+                                <!-- FORM -->
+                                <div class="mt-2">
+                                    <div id="{$component->name}" class="collapse show" aria-expanded="true">
+                                        <div class="form-group">
+                                            {foreach $component->getComponents() as $key => $input}
+                                                {if $input instanceOf Nette\Forms\Controls\MultiSelectBox || $input instanceOf Nette\Forms\Controls\TextInput}
+                                                    <span class="mb-2">{$input->caption}</span>
+                                                    {input $input->name}
+                                                {else}
+                                                    <label for="input-{$input->name}" class="flex items-center">
+                                                        <input id="input-{$input->name}" n:name="$input->name">
+                                                        <span class="ml-2">{$input->caption}</span>
+                                                    </label>
+                                                {/if}
+                                            {/foreach}
+                                        </div>
+                                    </div>
+
+                                    <a href="#" class="text-sm collapsed" data-toggle="collapse" data-target="#{$component->name}" aria-expanded="true">{_'filter.hideItems','Skrýt položky'}</a>
+                                </div>
+                            </div>
+                        {/formContainer}
+                    <hr class="my-4">
+                {/foreach}
+            {/formContainer}
+
+            <a n:href="clearFilters!" class="inline-flex items-center">
+                <svg class="w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+
+                {_'.cancelFilters','Zrušit všechny filtry'}
+            </a>
+
+            {input submit, 'class' => 'btn btn-primary'}
+        </div>
+    </div>
+{/form}

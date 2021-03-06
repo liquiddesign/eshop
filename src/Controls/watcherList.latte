@@ -1,0 +1,101 @@
+{*<table border="1" cellspacing="0" cellpadding="0">*}
+{*	<tr>*}
+{*		<th><a href="{link this order => 'name-ASC'}">Kod</a></th>*}
+{*		<th><a href="{link this order => 'name-ASC'}">Produkt</a></th>*}
+{*		<th><a href="{link this order => 'name-ASC'}">Co hlidam</a></th>*}
+{*		<th><a href="{link this order => 'name-ASC'}"></a></th>*}
+{*	</tr>*}
+{*	{foreach $control->getItemsOnPage() as $item}*}
+{*		<tr>*}
+{*			<td>@TODO: kod</td>*}
+{*			<td>@TODO: produkt</td>*}
+{*			<td>@TODO: co hlidam</td>*}
+{*			<td>@TODO: odebrat</td>*}
+{*		</tr>*}
+{*	{/foreach}*}
+{*</table>*}
+<div n:if="!$control->getItemsOnPage()" class="text-gray-dark">Nemáte žádné hlídané produkty</div>
+
+{if count($control->getItemsOnPage())}
+	{form filterForm class=>"lg:flex lg:items-center p-2"}
+		<div class="flex flex-col lg:flex-row lg:items-center lg:w-1/2 mb-8">
+			<div class="form-group relative mb-2 lg:mb-0 flex-grow lg:mr-2">
+				<input n:name="productName" type="text" class="form-control" />
+				<label>Vyhledat produkt</label>
+			</div>
+
+			<div class="flex">
+				<input n:name="submit" type="submit" class="btn" value="Filtrovat">
+				<a href="{link this productName => null}" class="btn btn-secondary ml-2">Zrušit</a>
+			</div>
+		</div>
+	{/form}
+
+	<table class="w-full">
+		<thead>
+		<tr class="border border-2 border-gray-lighter border-l-0 border-t-0 border-r-0">
+			<th>Název produktu</th>
+			<th>Co hlídám</th>
+			<th>Stav</th>
+		</tr>
+		</thead>
+		<tbody n:inner-foreach="$control->getItemsOnPage() as $watcher">
+			<tr class="flex flex-col lg:table-row">
+				<td class="p-4 align-middle">
+					<div class="flex items-center">
+						<div class="relative w-12 h-12 mr-6 flex-shrink-0 overflow-hidden">
+							<img class="non-responsive absolute w-full h-full object-contain" data-src="{if $watcher->getValue('product')}{$watcher->product->getPreviewImage($basePath)}{else}{$pubUrl}/img/no-image.png{/if}" alt="" loading="lazy" />
+						</div>
+
+						<div class="leading-snug">
+							<a n:tag-if="$watcher->getValue('product')" href="{plink :Eshop:Product:detail, $watcher->product->getPK()}" class="font-bold text-main whitespace-pre-wrap hover:text-primary-normal">{$watcher->product->name}</a>
+							<div class="flex">
+								<div n:if="$watcher->getValue('product')" class="text-gray-dark text-sm mr-3"><strong>Kód</strong>: {$watcher->product->getFullCode()}</div>
+								<div n:if="$watcher->getValue('product') && $watcher->product->ean" class="text-gray-dark text-sm"><strong>EAN</strong>: {$watcher->product->ean}</div>
+							</div>
+						</div>
+					</div>
+				</td>
+
+{*				<td class="p-4 align-middle">*}
+{*					<div class="flex items-center justify-between">*}
+
+{*						<div class="leading-none text-right">*}
+{*	*}{*						<div class="text-sm font-light text-gray-dark"><del>999 990 Kč</del></div>*}
+{*	*}{*						<div class="text-xl font-bold whitespace-no-wrap">{$watcher->product->price|price}</div>*}
+{*	*}{*						<div class="text-sm text-gray-dark mt-1 lg:text-xs">s DPH {$watcher->product->priceVat|price}</div>*}
+{*						</div>*}
+{*					</div>*}
+{*				</td>*}
+
+				<td class="p-4 align-middle">
+					<div class="flex items-center justify-between">
+
+						<div class="leading-none text-right">
+							Hlídat dostupnost
+						</div>
+					</div>
+				</td>
+
+				<td class="p-4 pt-0 lg:pt-4 mt-3 align-middle text-right">
+					<div class="flex justify-between items-center">
+						<div class="leading-tight whitespace-no-wrap text-left">
+							<div n:if="false" class="text-green font-bold">Očekáváme 21.3.2021</div>{*@todo: očekávaná dostupnost*}
+							<div class="text-red-normal font-bold">Naskladnění neznámé</div>{*@todo: očekávaná dostupnost*}
+							<div class="text-sm">Hlídáno od: {$watcher->createdTs|date}</div>
+						</div>
+
+						<div>
+							<a href="{link deleteWatcher!, $watcher->getPK()}" class="btn btn-danger lg:hidden text-xs">Odebrat z hlídání</a>
+							<a href="{link deleteWatcher!, $watcher->getPK()}" class="flex-grow-0 hidden lg:flex lg:items-center lg:justify-center text-secondary-normal rounded w-10 h-10 hover:text-red-normal">
+								<svg class="w-5 h-5 stroke-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+								</svg>
+							</a>
+						</div>
+					</div>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+{/if}
