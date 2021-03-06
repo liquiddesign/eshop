@@ -5,6 +5,6 @@ Služby, entity, administrace a kontroly pro eshop
 ![Release](https://img.shields.io/github/v/release/liquiddesign/eshop.svg?1)
 
 ## Dokumentace
-☞ [Dropbox paper](https://paper.dropbox.com/doc/Messages--A9L2iCAckPxrssEBrtLFfO~lAg-Ys1ougYFs5QFVusokIN3z)
+☞ [Dropbox paper](https://paper.dropbox.com/doc/E-Eshop--BGZLihaxZHQ3iGcTOQkPYfXrAg-eOMqwxUnWnQGWEGWGxnHl)
 
 ## TODO
