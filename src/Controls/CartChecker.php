@@ -68,6 +68,6 @@ class CartChecker extends Control
 		$this->template->discountCoupon = $this->checkoutManager->getDiscountCoupon();
 		$this->template->discountCouponValid = $this->checkoutManager->checkDiscountCoupon();
 		
-		$this->template->render(__DIR__ . '/cartChecker.latte');
+		$this->template->render($this->template->getFile() ?: __DIR__ . '/cartChecker.latte');
 	}
 }

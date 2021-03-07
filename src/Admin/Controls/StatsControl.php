@@ -21,8 +21,6 @@ class StatsControl extends Control
 	/** @persistent */
 	public $merchant;
 
-	public $templateFile;
-
 	private FormFactory $formFactory;
 
 	private Shopper $shopper;
@@ -113,7 +111,7 @@ class StatsControl extends Control
 
 		$this->template->topProducts = $this->orderRepository->getCustomerOrdersTopProductsByAmount($user, $from, $to, $currency);
 
-		$this->template->render($this->templateFile ?? __DIR__ . \DIRECTORY_SEPARATOR . 'statsControl.latte');
+		$this->template->render($this->template->getFile() ?: __DIR__ . \DIRECTORY_SEPARATOR . 'statsControl.latte');
 	}
 
 	public function handleResetStatsFilter()

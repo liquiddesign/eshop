@@ -41,7 +41,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		throw new \InvalidArgumentException('There is no unique parameter');
 	}
 
-	public function getProduct(string $productUuid): Entity
+	public function getProduct(string $productUuid): Product
 	{
 		return $this->getProducts()->where('this.uuid', $productUuid)->first(true);
 	}

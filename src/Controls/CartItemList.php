@@ -100,6 +100,7 @@ class CartItemList extends Datalist
 		$this->template->discountCoupon = $this->checkoutManager->getDiscountCoupon();
 		$this->template->discountPrice = $this->checkoutManager->getDiscountPrice();
 		$this->template->discountPriceVat = $this->checkoutManager->getDiscountPriceVat();
-		$this->template->render(__DIR__ . '/cartItemList.latte');
+		
+		$this->template->render($this->template->getFile() ?: __DIR__ . '/cartItemList.latte');
 	}
 }

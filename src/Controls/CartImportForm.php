@@ -32,10 +32,10 @@ class CartImportForm extends Form
 		$this->addUpload('importFile');
 //			->addRule(Form::MIME_TYPE, 'Soubor musí být ve formátu CSV', 'text/csv');
 		$this->addSubmit('submit');
-		$this->onSuccess[] = [$this, 'success'];
+		$this->onValidate[] = [$this, 'importAttempt'];
 	}
 	
-	public function success(Form $form): void
+	public function importAttempt(Form $form): void
 	{
 		$values = $form->getValues();
 		
@@ -64,15 +64,12 @@ class CartImportForm extends Form
 		}
 		
 		/* produkty které nebyly nalezeny nebo byly chybně zadány se vloží zpět do pastArea */
-		if (\count($notFoundProducts) > 0) {
+		if ($notFoundProducts) {
 			$form->addError('Některé z produktů nebyly nalezeny. Zkontrolujte prosím jejich zadání');
 			$form['pasteArea']->value = \implode("\n", $notFoundProducts);
-		} else {
-			$this->getPresenter()->flashMessage('Import produktů proběhl úspěšně.', 'success');
-			$this->getPresenter()->redirect('this');
 		}
 	}
-	
+
 	private function parseCSVFile(FileUpload $importFile): void
 	{
 		$delimiter = $this->detectDelimiter($importFile->getTemporaryFile());

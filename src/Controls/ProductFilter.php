@@ -73,7 +73,7 @@ class ProductFilter extends Control
 	{
 		$this->setDefaults();
 		$this->template->groups = $this->parameterGroupRepository->getCollection();
-		$this->template->render(__DIR__ . '/productFilter.latte');
+		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
 
 	public function createComponentFilterForm(): Form

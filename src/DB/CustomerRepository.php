@@ -57,4 +57,11 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository
 	{
 		return $this->many()->toArrayOf('%s', ['fullname']);
 	}
+	
+	public function getEmailVariables(Customer $customer)
+	{
+		return [
+			'login' => $customer->email,
+		];
+	}
 }

@@ -192,7 +192,8 @@ class ProductList extends Datalist
 		$this->template->templateFilters = $this->templateFilters;
 		$this->template->display = $display === 'card' ? 'Card' : 'Row';
 		$this->template->paginator = $this->getPaginator();
-		$this->template->render(__DIR__ . '/productList.latte');
+	
+		$this->template->render($this->template->getFile() ?: __DIR__ . '/productList.latte');
 	}
 
 	public function createComponentImage(): ImageControl

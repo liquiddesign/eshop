@@ -48,6 +48,6 @@ class WatcherList extends Datalist
 	
 	public function render(): void
 	{
-		$this->template->render(__DIR__ . '/watcherList.latte');
+		$this->template->render($this->template->getFile() ?: __DIR__ . '/watcherList.latte');
 	}
 }

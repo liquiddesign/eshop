@@ -144,7 +144,7 @@ class PickupPointList extends \Grid\Datalist
 		$this->template->openingHours = $openingHours;
 		$this->template->openingHoursTexts = $openingHoursTexts;
 		$this->template->paginator = $this->getPaginator();
-		$this->template->render(__DIR__ . '/pickupPointList.latte');
+		$this->template->render($this->template->getFile() ?: __DIR__ . '/pickupPointList.latte');
 	}
 
 	public function handleClearFilters()

@@ -37,6 +37,6 @@ class OrderList extends Datalist
 	public function render(): void
 	{
 		$this->template->paginator = $this->getPaginator();
-		$this->template->render(__DIR__ . '/orderList.latte');
+		$this->template->render($this->template->getFile() ?: __DIR__ . '/orderList.latte');
 	}
 }
