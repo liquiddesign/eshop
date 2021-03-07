@@ -13,6 +13,7 @@ use StORM\RelationCollection;
 /**
  * Zákazník
  * @table
+ * @method array getData()
  */
 class Customer extends Entity implements IIdentity, IUser
 {
@@ -267,5 +268,10 @@ class Customer extends Entity implements IIdentity, IUser
 	public function isCompany(): bool
 	{
 		return (bool) $this->ic;
+	}
+	
+	public function __call($name, $arguments)
+	{
+		// TODO: Implement @method array getData()
 	}
 }

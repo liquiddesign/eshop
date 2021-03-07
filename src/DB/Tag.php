@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use StORM\RelationCollection;
+
 /**
  * Tag
  * @table
@@ -43,6 +45,12 @@ class Tag extends \StORM\Entity
 	public int $priority = 10;
 	
 	/**
+	 * Systemový
+	 * @column
+	 */
+	public bool $systemic = false;
+	
+	/**
 	 * Doporučené
 	 * @column
 	 */
@@ -54,9 +62,15 @@ class Tag extends \StORM\Entity
 	 */
 	public bool $hidden = false;
 	
+	/**
+	 * Podobné tagy
+	 * @relationNxN
+	 * @var \Eshop\DB\Tag[]|\StORM\RelationCollection<\Eshop\DB\Tag>
+	 */
+	public RelationCollection $similar;
+	
 	public function getImageFileName(string $basePath): string
 	{
 		return $this->imageFileName ? $basePath . '/userfiles/' . self::IMAGE_DIR . '/detail/' . $this->imageFileName : $basePath . '/public/img/no-image.png';
 	}
 }
-
