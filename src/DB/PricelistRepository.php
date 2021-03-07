@@ -33,7 +33,7 @@ class PricelistRepository extends \StORM\Repository
 	public function getCustomerPricelists(Customer $customer, Currency $currency, Country $country): Collection
 	{
 		$collection = $this->many()
-			->join(['nxn' => 'user_customer_nxn_eshop_pricelist'], 'fk_pricelist=this.uuid')
+			->join(['nxn' => 'eshop_customer_nxn_eshop_pricelist'], 'fk_pricelist=this.uuid')
 			->where('nxn.fk_customer', $customer->getPK())
 			->where('isActive', true)
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL  OR discount.validTo >= DATE(now()))')
@@ -45,7 +45,7 @@ class PricelistRepository extends \StORM\Repository
 	
 	public function removeCustomerPricelist(Customer $customer, Pricelist $pricelist): void
 	{
-		$this->connection->rows(['user_customer_nxn_eshop_pricelist'])
+		$this->connection->rows(['eshop_customer_nxn_eshop_pricelist'])
 			->where('fk_customer', $customer->getPK())
 			->where('fk_pricelist', $pricelist->getPK())
 			->delete();
@@ -54,7 +54,7 @@ class PricelistRepository extends \StORM\Repository
 	public function getPricelistCustomers(Pricelist $pricelist): array
 	{
 		return $this->getConnection()->findRepository(Customer::class)->many()
-			->join(['nxn' => 'user_customer_nxn_eshop_pricelist'], 'this.uuid=nxn.fk_customer')
+			->join(['nxn' => 'eshop_customer_nxn_eshop_pricelist'], 'this.uuid=nxn.fk_customer')
 			->where('nxn.fk_pricelist', $pricelist->getPK())
 			->toArray();
 	}
@@ -62,21 +62,21 @@ class PricelistRepository extends \StORM\Repository
 	public function getPricelistCustomersCount(Pricelist $pricelist): int
 	{
 		return $this->many()
-			->join(['nxn' => 'user_customer_nxn_eshop_pricelist'], 'this.uuid=nxn.fk_pricelist')
+			->join(['nxn' => 'eshop_customer_nxn_eshop_pricelist'], 'this.uuid=nxn.fk_pricelist')
 			->where('nxn.fk_pricelist', $pricelist->getPK())
 			->count();
 	}
 	
 	public function removeAllCustomersFromPricelist(Pricelist $pricelist): void
 	{
-		$this->getConnection()->rows(['nxn' => 'user_customer_nxn_eshop_pricelist'])
+		$this->getConnection()->rows(['nxn' => 'eshop_customer_nxn_eshop_pricelist'])
 			->where('nxn.fk_pricelist', $pricelist->getPK())
 			->delete();
 	}
 	
 	public function addCustomerToPricelist(Customer $customer, Pricelist $pricelist): void
 	{
-		$this->getConnection()->createRow('user_customer_nxn_eshop_pricelist', [
+		$this->getConnection()->createRow('eshop_customer_nxn_eshop_pricelist', [
 			'fk_customer' => $customer->getPK(),
 			'fk_pricelist' => $pricelist->getPK(),
 		]);

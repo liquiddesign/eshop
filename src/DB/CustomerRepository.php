@@ -24,7 +24,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository
 
 	public function removePriceList(Customer $customer, Pricelist $pricelist): void
 	{
-		$this->connection->rows(['user_customer_nxn_eshop_pricelist'])
+		$this->connection->rows(['eshop_customer_nxn_eshop_pricelist'])
 			->where('fk_customer', $customer->getPK())
 			->where('fk_pricelist', $pricelist->getPK())
 			->delete();
@@ -32,7 +32,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository
 
 	public function addPriceList(Customer $customer, Pricelist $pricelist): void
 	{
-		$this->connection->createRow('user_customer_nxn_eshop_pricelist', [
+		$this->connection->createRow('eshop_customer_nxn_eshop_pricelist', [
 			'fk_customer' => $customer->getPK(),
 			'fk_pricelist' => $pricelist->getPK(),
 		]);

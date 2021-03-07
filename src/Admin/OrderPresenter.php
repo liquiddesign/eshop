@@ -140,7 +140,7 @@ class OrderPresenter extends \Nette\Application\UI\Presenter
 		$collection = $this->cartItemRepo->many()
 			->select(['amount' => 'SUM(this.amount)','packageAmount' => 'IFNULL(package.amount, 0)'])
 			->join(['package' => 'eshop_packageItem'], 'package.fk_cartItem =this.uuid AND package.fk_delivery = :delivery', ['delivery' => $this->getParameter('delivery')])
-			->join(['cart' => 'user_cart'], 'cart.uuid = this.fk_cart')
+			->join(['cart' => 'eshop_cart'], 'cart.uuid = this.fk_cart')
 			->where('cart.fk_purchase', $this->getParameter('delivery')->order->getValue('purchase'))
 			->setGroupBy(['this.productCode']);
 			
