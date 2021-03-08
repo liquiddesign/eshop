@@ -299,8 +299,6 @@ class ProductRepository extends Repository implements IGeneralRepository
 			}
 		}
 
-		$groups = [];
-
 		/** @var \Eshop\DB\ParameterGroupRepository $groupRepo */
 		$groupRepo = $this->getConnection()->findRepository(ParameterGroup::class);
 		/** @var \Eshop\DB\ParameterRepository $paramRepo */
@@ -308,7 +306,22 @@ class ProductRepository extends Repository implements IGeneralRepository
 		/** @var \Eshop\DB\ParameterValueRepository $paramValueRepo */
 		$paramValueRepo = $this->getConnection()->findRepository(ParameterValue::class);
 
-		return $groups;
+		$suffix = $this->getConnection()->getMutationSuffix();
+
+		$groupedParameters = [];
+
+		/** @var \Eshop\DB\Parameter[] $parameters */
+		$parameters = $paramRepo->many()
+			->join(['value' => 'eshop_parametervalue'], 'this.uuid = value.fk_parameter')
+			->select(['content' => "value.content$suffix"])
+			->where('fk_product', $product->getPK());
+
+		foreach ($parameters as $parameter) {
+			$groupedParameters[$parameter->group->getPK()]['group'] = $parameter->group;
+			$groupedParameters[$parameter->group->getPK()]['parameters'][] = $parameter;
+		}
+
+		return $groupedParameters;
 	}
 
 	public function isProductInCategory($product, $category): bool
