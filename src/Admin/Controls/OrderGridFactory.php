@@ -188,8 +188,9 @@ class OrderGridFactory
 		if ($order->customer) {
 			$fullName = $order->customer && $order->customer->fullname ? $order->customer->fullname : ($order->purchase->fullname ?: '');
 			$link = $grid->getPresenter()->link(':Eshop:Admin:Customer:edit', [$order->customer]);
+			$address = $order->customer->getBillingAddressLine() ?? '';
 
-			return "<a href='$link' style='white-space: nowrap;'>$fullName</a><br><small>Erbenova 808, Třebíč 67401</small>";
+			return "<a href='$link' style='white-space: nowrap;'>$fullName</a><br><small>$address</small>";
 		}
 
 		return $order->purchase->fullname ? "<span style='white-space: nowrap;'>".$order->purchase->fullname."</span>" : '';
