@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use User\DB\Customer;
-
 /**
  * @extends \StORM\Repository<\Eshop\DB\DiscountCoupon>
  */
