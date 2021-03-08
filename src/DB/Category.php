@@ -117,6 +117,17 @@ class Category extends \StORM\Entity
 		return $this->getRepository()->many()->where(":path LIKE CONCAT(this.path,'%')", ['path' => $this->path])->orderBy(['LENGTH(path)' => $asc ? 'ASC' : 'DESC']);
 	}
 	
+	public function getDescendants(?int $level = null)
+	{
+		$collection = $this->getRepository()->many()->where("this.path LIKE :path", ['path' => $this->path . '%'])->whereNot('this.uuid', $this->getPK());
+		
+		if ($level !== null) {
+			$this->getRepository()->many()->where("LENGTH(path) / 4 >= :level", ['level' => $level + 1]);
+		}
+		
+		return $collection->orderBy(['LENGTH(path)' => 'ASC']);
+	}
+	
 	public function getParentPath(int $level)
 	{
 		return \substr($this->path, 0, 4 * ($level + 1));
