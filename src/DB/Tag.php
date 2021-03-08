@@ -64,7 +64,7 @@ class Tag extends \StORM\Entity
 	
 	/**
 	 * Podobné tagy
-	 * @relationNxN
+	 * @relationNxN{"sourceViaKey":"fk_tag","targetViaKey":"fk_similar"}
 	 * @var \Eshop\DB\Tag[]|\StORM\RelationCollection<\Eshop\DB\Tag>
 	 */
 	public RelationCollection $similar;
