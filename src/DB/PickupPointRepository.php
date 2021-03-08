@@ -42,7 +42,7 @@ class PickupPointRepository extends \StORM\Repository implements IGeneralReposit
 
 	public function getCitiesArrayForSelect(): array
 	{
-		/** @var \User\DB\AddressRepository $addressRepo */
+		/** @var \Eshop\DB\AddressRepository $addressRepo */
 		$addressRepo = $this->getConnection()->findRepository(Address::class);
 
 		return $addressRepo->many()
