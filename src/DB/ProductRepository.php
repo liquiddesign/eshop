@@ -311,4 +311,27 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $groups;
 	}
 
+	public function isProductInCategory($product, $category): bool
+	{
+		/** @var \Eshop\DB\CategoryRepository $categoryRepo */
+		$categoryRepo = $this->getConnection()->findRepository(Category::class);
+
+		if (!$product instanceof Product) {
+			if (!$product = $this->one($product)) {
+				return false;
+			}
+		}
+
+		if (!$category instanceof Category) {
+			if (!$category = $categoryRepo->one($category)) {
+				return false;
+			}
+		}
+
+		if (!$primaryCategory = $product->getPrimaryCategory()) {
+			return false;
+		}
+
+		return $primaryCategory ? $categoryRepo->getRootCategoryOfCategory($primaryCategory) == $category->getPK() : false;
+	}
 }

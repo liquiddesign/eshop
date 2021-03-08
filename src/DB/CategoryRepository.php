@@ -183,7 +183,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		return $this->many()
 			->where('path', \substr($category->path, 0, 4))
-			->fetch();
+			->first();
 	}
 
 	public function getParameterCategoryOfCategory(Category $category): ?ParameterCategory
