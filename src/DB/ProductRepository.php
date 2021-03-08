@@ -290,4 +290,22 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		return $similarProducts;
 	}
+
+	public function getGroupedProductParameters($product): array
+	{
+		if (!$product instanceof Product) {
+			if (!$product = $this->one($product)) {
+				return [];
+			}
+		}
+
+		$groups = [];
+
+		$groupRepo = $this-$this->getConnection()->findRepository(ParameterGroup::class);
+		$paramRepo = $this-$this->getConnection()->findRepository(Parameter::class);
+		$paramValueRepo = $this-$this->getConnection()->findRepository(ParameterValue::class);
+
+		return $groups;
+	}
+
 }
