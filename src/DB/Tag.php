@@ -61,6 +61,11 @@ class Tag extends \StORM\Entity
 	 * @column
 	 */
 	public bool $hidden = false;
+
+	public function isSystemic(): bool
+	{
+		return $this->systemic;
+	}
 	
 	/**
 	 * Podobné tagy

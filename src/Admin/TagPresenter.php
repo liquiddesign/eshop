@@ -45,10 +45,12 @@ class TagPresenter extends \Nette\Application\UI\Presenter
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('Detail');
-		$grid->addColumnActionDelete();
+		$grid->addColumnActionDeleteSystemic();
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(null, false, function ($object) {
+			return $object->isSystemic();
+		});
 
 		$grid->addFilterTextInput('search', ['name_cs'], null, 'Název');
 		$grid->addFilterButtons();
@@ -85,6 +87,8 @@ class TagPresenter extends \Nette\Application\UI\Presenter
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('recommended', 'Doporučeno');
+
+		$form->addDataMultiSelect('similar', 'Podobné tagy', $this->tagRepository->getArrayForSelect());
 		
 		$form->addPageContainer('product_list', ['tag' => $this->getParameter('tag')], $nameInput);
 		
@@ -150,6 +154,6 @@ class TagPresenter extends \Nette\Application\UI\Presenter
 		/** @var Form $form */
 		$form = $this->getComponent('newForm');
 
-		$form->setDefaults($tag->toArray());
+		$form->setDefaults($tag->toArray(['similar']));
 	}
 }
