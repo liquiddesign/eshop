@@ -301,9 +301,12 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$groups = [];
 
-		$groupRepo = $this-$this->getConnection()->findRepository(ParameterGroup::class);
-		$paramRepo = $this-$this->getConnection()->findRepository(Parameter::class);
-		$paramValueRepo = $this-$this->getConnection()->findRepository(ParameterValue::class);
+		/** @var \Eshop\DB\ParameterGroupRepository $groupRepo */
+		$groupRepo = $this->getConnection()->findRepository(ParameterGroup::class);
+		/** @var \Eshop\DB\ParameterRepository $paramRepo */
+		$paramRepo = $this->getConnection()->findRepository(Parameter::class);
+		/** @var \Eshop\DB\ParameterValueRepository $paramValueRepo */
+		$paramValueRepo = $this->getConnection()->findRepository(ParameterValue::class);
 
 		return $groups;
 	}
