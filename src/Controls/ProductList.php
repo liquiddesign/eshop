@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
+use Eshop\DB\ParameterRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\Shopper;
 use Eshop\DB\WatcherRepository;
@@ -37,10 +38,13 @@ class ProductList extends Datalist
 	private Translator $translator;
 	
 	private FormFactory $formFactory;
-
+	
+	private ParameterRepository $parameterRepository;
+	
 	public function __construct(
 		ProductRepository $productRepository,
 		WatcherRepository $watcherRepository,
+		ParameterRepository $parameterRepository,
 		CheckoutManager $checkoutManager,
 		Shopper $shopper,
 		IImageControlFactory $imageControlFactory,
@@ -124,6 +128,7 @@ class ProductList extends Datalist
 		$this->imageControlFactory = $imageControlFactory;
 		$this->translator = $translator;
 		$this->formFactory = $formFactory;
+		$this->parameterRepository = $parameterRepository;
 	}
 
 	public function handleWatchIt(string $product): void
@@ -189,7 +194,7 @@ class ProductList extends Datalist
 
 	public function render(string $display = 'card'): void
 	{
-		$this->template->templateFilters = $this->templateFilters;
+		$this->template->templateFilters = $this->getFiltersForTemplate();
 		$this->template->display = $display === 'card' ? 'Card' : 'Row';
 		$this->template->paginator = $this->getPaginator();
 	
@@ -201,11 +206,6 @@ class ProductList extends Datalist
 		return $this->imageControlFactory->create();
 	}
 
-	public function setTemplateFilters($filters): void
-	{
-		$this->templateFilters = $filters;
-	}
-	
 	protected function createComponentFilterForm():\Forms\Form
 	{
 		$filterForm = $this->formFactory->create();
@@ -216,5 +216,34 @@ class ProductList extends Datalist
 		$this->makeFilterForm($filterForm);
 		
 		return $filterForm;
+	}
+	
+	private function getFiltersForTemplate(): array
+	{
+		$filters = $this->getFilters()['parameters'] ?? [];
+		$templateFilters = [];
+		
+		/** @var \Eshop\DB\Parameter[] $parameters */
+		$parameters = $this->parameterRepository->getCollection()->toArray();
+		
+		foreach ($filters as $key => $group) {
+			foreach ($group as $pKey => $parameter) {
+				if (\is_array($parameter)) {
+					// list
+					if (\count($parameter) == 0) {
+						continue;
+					}
+					
+					$templateFilters[$pKey] = $parameters[$pKey]->name . ': ' . \implode(', ', $parameter);
+				} else {
+					// bool, text
+					if ($parameter) {
+						$templateFilters[$pKey] =  $parameters[$pKey]->name . ($parameter !== true ? (': ' . $parameter) : '');
+					}
+				}
+			}
+		}
+		
+		return $templateFilters;
 	}
 }
