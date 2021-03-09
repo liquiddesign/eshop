@@ -63,7 +63,7 @@ class OrderGridFactory
 	{
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
-		$grid = $this->gridFactory->create($this->getCollectionByState($state), 20, 'this.createdTs', 'DESC', true);
+		$grid = $this->gridFactory->create($this->getCollectionByState($state), 20, 'createdTs', 'DESC', true);
 
 		$grid->addColumnSelector();
 		$grid->addColumnText('Číslo a datum', ['code', "createdTs|date:'d.m.Y G:i"], '%s<br><small>%s</small>', 'this.code', ['class' => 'fit']);
@@ -97,7 +97,7 @@ class OrderGridFactory
 		$grid->addColumnLink('orderItems','Položky', null, ['class' => 'minimal']);
 
 		$grid->addColumn('',  function (Order $order) use ($grid) {
-			return $grid->getPresenter()->link(':User:Order:order', $order->getPK());
+			return $grid->getPresenter()->link(':Eshop:Order:order', $order->getPK());
 		}, "<a class='$btnSecondary' href='%s' target='_blank'><i class='fa fa-print'></i> Detail</a>", null, ['class' => 'minimal']);
 
 
@@ -177,23 +177,24 @@ class OrderGridFactory
 		} else {
 			$deliveryInfo = "<br><small title='Neexpedováno'><i class='fas fa-stop fa-xs' style='color: gray'></i> <a href='$linkShip'>Expedovat</a>  | <a href='$linkShipPlusEmail'>Expedovat + email</a></small>";
 		}
-		
+
 		$date = $delivery->shippingDate ? '<i style=\'color: gray;\' class=\'fa fa-shipping-fast\'></i> ' . $grid->template->getLatte()->invokeFilter('date', [$delivery->shippingDate]) : '';
-		
+
 		return "<a href='$link'>".$delivery->getTypeName()."</a> <small> $date</small>" . $deliveryInfo;
 	}
 
 	public function renderCustomerColumn(Order $order, Datagrid $grid)
 	{
+		$address = $order->purchase->deliveryAddress ? $order->purchase->deliveryAddress->getFullAddress() : ($order->purchase->billAddress ? $order->purchase->billAddress->getFullAddress() : '');
+
 		if ($order->customer) {
 			$fullName = $order->customer && $order->customer->fullname ? $order->customer->fullname : ($order->purchase->fullname ?: '');
 			$link = $grid->getPresenter()->link(':Eshop:Admin:Customer:edit', [$order->customer]);
-			$address = $order->customer->getBillingAddressLine() ?? '';
 
 			return "<a href='$link' style='white-space: nowrap;'>$fullName</a><br><small>$address</small>";
 		}
 
-		return $order->purchase->fullname ? "<span style='white-space: nowrap;'>".$order->purchase->fullname."</span>" : '';
+		return $order->purchase->fullname ? "<span style='white-space: nowrap;'>".$order->purchase->fullname."</span><br><small>$address</small>" : '';
 	}
 
 	public function cancelOrderMultiple(Button $button)
