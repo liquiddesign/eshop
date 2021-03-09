@@ -333,7 +333,6 @@ class OrderRepository extends \StORM\Repository
 	
 	public function getEmailVariables(Order $order): array
 	{
-		/** @var \Eshop\DB\Purchase $purchase */
 		$purchase = $order->purchase;
 		$items = [];
 		
@@ -352,12 +351,12 @@ class OrderRepository extends \StORM\Repository
 		$values = [
 			'orderCode' => $order->code,
 			'currencyCode' => $order->currency->code,
-			'desiredShippingDate' => $purchase->desiredShippingDate ?? null,
-			'internalOrderCode' => $purchase->internalOrderCode ?? null,
+			'desiredShippingDate' => $purchase->desiredShippingDate,
+			'internalOrderCode' => $purchase->internalOrderCode,
 			'phone' => $purchase->phone,
 			'email' => $purchase->email,
 			'items' => $items,
-			'note' => $purchase->note ?? null,
+			'note' => $purchase->note,
 			'deliveryType' => $purchase->deliveryType->name,
 			'deliveryPrice' => $order->deliveries->firstValue('price'),
 			'totalDeliveryPrice' => $totalDeliveryPrice,
@@ -366,8 +365,8 @@ class OrderRepository extends \StORM\Repository
 			'paymentPrice' => $order->payments->firstValue('price'),
 			'paymentPriceVat' => $order->payments->firstValue('priceVat'),
 			'billName' => $purchase->fullname,
-			'billingAddress' =>  $purchase->billAddress,
-			'deliveryAddress' => $purchase->deliveryAddress ? $purchase->deliveryAddress->toArray() : $purchase->billAddress->toArray(),
+			'billingAddress' =>  $purchase->billAddress->jsonSerialize(),
+			'deliveryAddress' => $purchase->deliveryAddress ? $purchase->deliveryAddress->jsonSerialize() : $purchase->billAddress->jsonSerialize(),
 			'totalPrice' => $order->getTotalPrice(),
 			'totalPriceVat' => $order->getTotalPriceVat(),
 		];
