@@ -1,0 +1,58 @@
+<h2>{_'checkoutDP.orderRe','Rekapitulace objednávky'}</h2>
+
+<div class="border-b border-gray-lighter py-4 md:py-6" n:foreach="$cartItems as $cartItem">
+    <div class="md:flex items-center justify-between">
+        <div class="flex items-center">
+            <!-- PRODUCT IMAGE -->
+            <div class="w-12 pb-12 relative flex-shrink-0 mr-4">
+                <img class="absolute w-full h-full object-contain lazyloaded" data-src="{if $cartItem->getValue('product')}{$cartItem->product->getPreviewImage($basePath)}{else}{$pubUrl}/img/no-image.png{/if}" alt="" loading="lazy" src="{if $cartItem->getValue('product')}{$cartItem->product->getPreviewImage($basePath)}{else}{$pubUrl}/img/no-image.png{/if}">
+            </div>
+
+            <div>
+                <div class="whitespace-normal leading-snug text-lg">
+                    <a n:tag-if="$cartItem->getValue('product')" href="{plink :Eshop:Product:detail, $cartItem->product->getPK()}" class="font-bold text-main whitespace-no-wrap hover:underline no-underline">{$cartItem->productName}</a>
+                </div>
+
+                <div class="hidden md:flex items-center">
+                    <div class="flex items-center text-sm mr-4">
+                        <div class="w-2 h-2 flex-shrink-0 mr-1 rounded-full" style="background-color: black;"></div>
+                        <strong>Černá</strong>
+                    </div>
+
+                    <div n:if="$cartItem->getFullCode()" class="text-sm mr-4">{_'cartRe.code','Kód'}: <strong>{$cartItem->getFullCode()}</strong></div>
+                    <div n:if="$cartItem->getValue('product') && $cartItem->product->ean" class="text-sm">{_'cartRe.ean','EAN'}: <strong>{$cartItem->product->ean}</strong> </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center mt-4 md:hidden">
+            <div class="flex items-center text-sm mr-4">
+                <div class="w-2 h-2 flex-shrink-0 mr-1 rounded-full" style="background-color: black;"></div>
+                <strong>Černá</strong>
+            </div>
+
+            <div n:if="$cartItem->getFullCode()" class="text-sm mr-4">{_'cartRe.code','Kód'}: <strong>{$cartItem->getFullCode()}</strong></div>
+            <div n:if="$cartItem->getValue('product') && $cartItem->product->ean" class="text-sm">{_'cartRe.ean','EAN'}: <strong>{$cartItem->product->ean}</strong> </div>
+        </div>
+
+        <div class="text-xl flex justify-between mt-6 md:mt-0">
+            <div class="font-bold md:mr-8">{$cartItem->amount} {$cartItem->product->unit}</div>
+            <div class="font-bold"><span class="font-normal text-gray mr-2 text-sm">{_'cartRe.totalVat','Celkem s DPH'}</span> {$cartItem->getPriceVatSum()|price}</div>
+        </div>
+    </div>
+</div>
+
+<div class="lg:ml-auto lg:w-1/3 leading-loose mt-8 text-right">
+    <div>{_'checkoutDP.totalPrice','Cena za zboží celkem'}: <span class="font-bold ml-2">{$cartCheckoutPrice|price:$cartCurrency}</span>
+    </div>
+    {*<div>{_'checkoutDP.personalPickup','Doprava - Osobní odběr'}: <span class="font-bold ml-2">Zdarma</span> </div>
+    <div>{_'checkoutDP.cardOnline','Platba - Kartou online'}: <span class="font-bold ml-2">Zdarma</span> </div>*}
+
+
+    <div class="flex justify-end text-xl lg:text-2xl font-bold">
+
+        <div class="ml-4 text-3xl font-bold"><span
+                    class="text-base">{_'checkoutDP.totalVat','Celkem s DPH'}:</span> {$cartCheckoutPriceVat|price:$cartCurrency}
+        </div>
+    </div>
+</div>

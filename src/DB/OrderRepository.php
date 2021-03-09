@@ -345,19 +345,19 @@ class OrderRepository extends \StORM\Repository
 			$items[$cartItem->getPK()]['totalPriceVat'] = $cartItem->getPriceVatSum();
 		}
 		
-		$deliveryPrice = (float) $order->deliveries->firstValue('price');
-		$paymentPrice = (float) $order->payments->firstValue('price');
+		$deliveryPrice = $order->getDeliveryPriceVatSum();
+		$paymentPrice = $order->getPaymentPriceVatSum();
 		$totalDeliveryPrice = $deliveryPrice + $paymentPrice;
 		
 		$values = [
 			'orderCode' => $order->code,
 			'currencyCode' => $order->currency->code,
-			'desiredShippingDate' => $purchase->desiredShippingDate,
-			'internalOrderCode' => $purchase->internalOrderCode,
+			'desiredShippingDate' => $purchase->desiredShippingDate ?? null,
+			'internalOrderCode' => $purchase->internalOrderCode ?? null,
 			'phone' => $purchase->phone,
 			'email' => $purchase->email,
 			'items' => $items,
-			'note' => $purchase->note,
+			'note' => $purchase->note ?? null,
 			'deliveryType' => $purchase->deliveryType->name,
 			'deliveryPrice' => $order->deliveries->firstValue('price'),
 			'totalDeliveryPrice' => $totalDeliveryPrice,
@@ -366,7 +366,7 @@ class OrderRepository extends \StORM\Repository
 			'paymentPrice' => $order->payments->firstValue('price'),
 			'paymentPriceVat' => $order->payments->firstValue('priceVat'),
 			'billName' => $purchase->fullname,
-			'billingAddress' => $purchase->billAddress->toArray(),
+			'billingAddress' =>  $purchase->billAddress,
 			'deliveryAddress' => $purchase->deliveryAddress ? $purchase->deliveryAddress->toArray() : $purchase->billAddress->toArray(),
 			'totalPrice' => $order->getTotalPrice(),
 			'totalPriceVat' => $order->getTotalPriceVat(),
