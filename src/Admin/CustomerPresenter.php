@@ -32,7 +32,7 @@ use StORM\ICollection;
 class CustomerPresenter extends \Nette\Application\UI\Presenter
 {
 	use PresenterTrait;
-	
+
 	/** @inject */
 	public AccountFormFactory $accountFormFactory;
 
@@ -47,7 +47,7 @@ class CustomerPresenter extends \Nette\Application\UI\Presenter
 
 	/** @inject */
 	public TemplateRepository $templateRepository;
-	
+
 	/** @inject */
 	public ProductRepository $productRepo;
 
@@ -83,76 +83,78 @@ class CustomerPresenter extends \Nette\Application\UI\Presenter
 		$grid->addColumnText('Skupina', 'group.name', '%s', 'group.name');
 		$grid->addColumnText('Telefon', 'phone', '<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		$grid->addColumnText('Email', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
-		
+
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('Feed', function (Customer $customer) use ($btnSecondary) {
 			return "<a class='$btnSecondary' target='_blank' href='" . $this->link('//:Eshop:Export:supplier', $customer->getPK()) . "'><i class='fa fa-sm fa-rss'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
-		
+
 		$grid->addColumn('Login', function (Customer $object, Datagrid $grid) use ($btnSecondary) {
-			$link = $object->getAccount() ? $grid->getPresenter()->link('loginCustomer!',[$object->getAccount()->login]) : '#';
-			
+			$link = $object->getAccount() ? $grid->getPresenter()->link('loginCustomer!', [$object->getAccount()->login]) : '#';
+
 			return "<a class='" . ($object->getAccount() ? '' : 'disabled') . " $btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
-		
+
 		$grid->addColumn('', function (Customer $object, Datagrid $datagrid) use ($btnSecondary) {
 			return $object->getAccount() != null ?
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('editAccount', $object) . "'>Detail&nbsp;účtu</a>" :
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('newAccount', $object) . "'>Vytvořit&nbsp;účet</a>";
 		}, '%s', null, ['class' => 'minimal']);
-		
+
 		$grid->addColumnLink('editAddress', 'Adresy');
 		$grid->addColumnLinkDetail('edit');
-	
+
 		$grid->addColumnActionDelete([$this->accountFormFactory, 'deleteAccountHolder']);
-		
+
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder']);
 
 		$grid->addButtonBulkEdit('form', ['pricelists', 'merchant', 'group']);
-		
+
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů');
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
 		$submit->onClick[] = [$this, 'exportCustomers'];
 
 		$grid->addFilterTextInput('search', ['this.fullname', 'this.email', 'this.phone'], null, 'Jméno a příjmení, email, telefon');
 
-
-
 		$grid->addFilterSelectInput('newsletter', 'this.newsletter = :newsletter', null, '- Měna -', null, [
-			 false => 'Ne', true => 'Ano'
+			false => 'Ne', true => 'Ano'
 		], 'newsletter');
 
-		$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-			$source->where('fk_merchant', $value);
-		}, '', 'merchant', 'Obchodník', $this->merchantRepository->getListForSelect(), ['placeholder' => '- Obchodník -']);
+		if (\count($this->merchantRepository->getListForSelect()) > 0) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+				$source->where('fk_merchant', $value);
+			}, '', 'merchant', 'Obchodník', $this->merchantRepository->getListForSelect(), ['placeholder' => '- Obchodník -']);
+		}
 
-		$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-			$source->where('fk_group', $value);
-		}, '', 'group', 'Skupina', $this->groupsRepo->getListForSelect(), ['placeholder' => '- Skupina -']);
+		if (\count($this->groupsRepo->getListForSelect()) > 0) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+				$source->where('fk_group', $value);
+			}, '', 'group', 'Skupina', $this->groupsRepo->getListForSelect(), ['placeholder' => '- Skupina -']);
+		}
 
 		$grid->addFilterButtons();
 
 		return $grid;
 	}
-	
+
 	public function exportCustomers(Button $button)
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
-		
+
 		$tempFilename = \tempnam($this->context->parameters['tempDir'], "csv");
 		$collection = $grid->getSource()->where($grid->getSourceIdName(), $grid->getSelectedIds());
 		$this->customerRepository->csvExport($collection, Writer::createFromPath($tempFilename, 'w+'));
-		
+
 		$response = new FileResponse($tempFilename, "zakaznici.csv", 'text/csv');
 		$this->sendResponse($response);
 	}
-	
+
 	public function handleLoginCustomer($login)
 	{
 		$this->user->login($login, '', [Customer::class], true);
-		
+
 		$this->presenter->redirect(':Web:Index:default');
 	}
 
@@ -162,22 +164,22 @@ class CustomerPresenter extends \Nette\Application\UI\Presenter
 		$form = $this->getComponent('accountForm');
 		$form['account']['email']->setDefaultValue($customer->email);
 		$form['account']->setDefaults($customer->account->toArray());
-		
+
 		$this->accountFormFactory->onDeleteAccount[] = function () {
 			$this->flashMessage('Účet byl smazán', 'success');
 			$this->redirect('default');
 		};
 	}
-	
+
 	public function actionNewAccount(Customer $customer)
 	{
 		$form = $this->getComponent('accountForm');
 		$form['account']['password']->setRequired();
 		unset($form['delete']);
-		
-		$this->accountFormFactory->onCreateAccount[] = function(Account $account) use ($customer) {
+
+		$this->accountFormFactory->onCreateAccount[] = function (Account $account) use ($customer) {
 			$customer->update(['account' => $account]);
-			
+
 			$this->flashMessage('Účet byl vytvořen', 'success');
 			$this->redirect('default');
 		};
@@ -206,7 +208,7 @@ class CustomerPresenter extends \Nette\Application\UI\Presenter
 		$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired();
 		$form->addText('ccEmails', 'Kopie emailů')->setHtmlAttribute('data-info', 'Zadejte emailové adresy oddělené středníkem (;).');
 		$form->addCheckbox('newsletter', 'Přihlášen k newsletteru');
-		
+
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->many()->toArrayOf('name'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 		$form->addDataSelect('merchant', 'Obchodník', $this->merchantRepository->getListForSelect())->setPrompt('Žádná');
@@ -233,9 +235,9 @@ class CustomerPresenter extends \Nette\Application\UI\Presenter
 			->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
 		$form->addText('ediBranch', 'EDI: Identifikátor pobočky')
 			->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
-		
+
 		$form->bind($this->customerRepository->getStructure(), []);
-		
+
 		if (!$this->getParameter('customer')) {
 			$form->addGroup('Účet');
 			$this->accountFormFactory->addContainer($form);
@@ -245,7 +247,7 @@ class CustomerPresenter extends \Nette\Application\UI\Presenter
 
 		return $form;
 	}
-	
+
 	public function createComponentEditAddress()
 	{
 		$form = $this->formFactory->create();
@@ -264,7 +266,7 @@ class CustomerPresenter extends \Nette\Application\UI\Presenter
 		$deliveryAddress->addText('city', 'Město');
 		$deliveryAddress->addText('zipcode', 'PSČ');
 		$deliveryAddress->addText('state', 'Stát');
-		
+
 		$form->bind(null, ['deliveryAddress' => $this->addressRepo->getStructure(), 'billAddress' => $this->addressRepo->getStructure()]);
 
 		$form->addSubmits();
@@ -343,7 +345,7 @@ class CustomerPresenter extends \Nette\Application\UI\Presenter
 			$this->accountFormFactory->onCreateAccount[] = function ($account) use ($customer) {
 				$customer->update(['account' => $account]);
 			};
-			$this->accountFormFactory->success($form,'register.successAdmin');
+			$this->accountFormFactory->success($form, 'register.successAdmin');
 
 
 			$this->flashMessage('Vytvořeno', 'success');
@@ -355,7 +357,7 @@ class CustomerPresenter extends \Nette\Application\UI\Presenter
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('form');
-		
+
 		$form->setDefaults($customer->toArray(['pricelists', 'exclusivePaymentTypes', 'exclusiveDeliveryTypes']));
 
 		$form->onSuccess[] = function (AdminForm $form) use ($customer) {
@@ -380,7 +382,7 @@ class CustomerPresenter extends \Nette\Application\UI\Presenter
 
 			$bill = $this->addressRepo->syncOne($values['billAddress']);
 			$delivery = $this->addressRepo->syncOne($values['deliveryAddress']);
-			
+
 			$customer->update([
 				'billAddress' => $bill,
 				'deliveryAddress' => $delivery,
@@ -393,7 +395,7 @@ class CustomerPresenter extends \Nette\Application\UI\Presenter
 
 		$this->renderEditAddress();
 	}
-	
+
 	public function createComponentAccountForm(): AdminForm
 	{
 		return $this->accountFormFactory->create();
