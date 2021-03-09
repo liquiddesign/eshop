@@ -13,6 +13,7 @@ use Grid\Datalist;
 use Nette\Application\UI\Form;
 use Nette\Application\UI\Multiplier;
 use Nette\Forms\IControl;
+use StORM\ICollection;
 
 /**
  * Class Products
@@ -21,18 +22,18 @@ use Nette\Forms\IControl;
 class CartRecapitulationList extends Datalist
 {
 	public CheckoutManager $checkoutManager;
-	
+
 	private CartItemRepository $cartItemsRepository;
-	
+
 	private Shopper $shopper;
-	
-	public function __construct(CartItemRepository $cartItemsRepository, CheckoutManager $checkoutManager, Shopper $shopper)
+
+	public function __construct(CartItemRepository $cartItemsRepository, CheckoutManager $checkoutManager, Shopper $shopper, ?ICollection $items = null)
 	{
 		$this->checkoutManager = $checkoutManager;
 		$this->cartItemsRepository = $cartItemsRepository;
 		$this->shopper = $shopper;
-		
-		parent::__construct($this->checkoutManager->getItems());
+
+		parent::__construct($items ?? $this->checkoutManager->getItems());
 	}
 
 	public function render(): void
@@ -44,7 +45,7 @@ class CartRecapitulationList extends Datalist
 		$this->template->discountPriceVat = $this->checkoutManager->getDiscountPriceVat();
 		$this->template->cartCheckoutPrice = $this->checkoutManager->getCartCheckoutPrice();
 		$this->template->cartCheckoutPriceVat = $this->checkoutManager->getCartCheckoutPriceVat();
-		
+
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/cartRecapitulationList.latte');
 	}
 }
