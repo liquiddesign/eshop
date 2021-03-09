@@ -358,15 +358,14 @@ class Product extends \StORM\Entity
 		foreach (\explode(',', $this->getValue('parameters')) as $parameterSerialized) {
 			$parameter = \explode('|', $parameterSerialized);
 			
-			if (!isset($parameters[$parameter[3]])) {
-				$parameters[$parameter[3]] = [];
+			if (!isset($parameters[$parameter[2]])) {
+				$parameters[$parameter[2]] = [];
 			}
 			
-			$parameters[$parameter[3]][] = new ParameterValue([
+			$parameters[$parameter[2]][] = new ParameterValue([
 				'uuid' => $parameter[0],
 				'value' => $parameter[1],
-				'metaValue' => $parameter[2],
-				'fk_parameter' => $parameter[3],
+				'fk_parameter' => $parameter[2],
 			], $this->getConnection()->findRepository(ParameterValue::class));
 		}
 		
