@@ -39,7 +39,8 @@ class CouponForm extends \Nette\Application\UI\Form
 		$this->checkoutManager = $checkoutManager;
 		
 		$discountCoupon = $checkoutManager->getDiscountCoupon();
-		
+
+		$this->addCheckbox('active');
 		$this->addText('code')
 			->setDefaultValue($discountCoupon ? $discountCoupon->code : null)
 			->addRule([$this, 'validateCoupon'], 'Slevový kupón není platný', [$shopper->getCurrency(), $shopper->getCustomer(), $discountCouponRepository]);
