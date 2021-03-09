@@ -52,7 +52,9 @@ class ProductFilter extends Control
 	 */
 	public function getSelectedCategory(): ?ParameterCategory
 	{
-		return $this->selectedCategory ??= $this->categoryRepository->getParameterCategoryOfCategory($this->categoryRepository->one(['path' => $this->getParent()->getFilters()['category']]));
+		$category = $this->getParent()->getFilters()['category'] ?? null;
+		
+		return $this->selectedCategory ??= $category ? $this->categoryRepository->getParameterCategoryOfCategory($this->categoryRepository->one(['path' => $category])) : null;
 	}
 
 	public function render(): void
