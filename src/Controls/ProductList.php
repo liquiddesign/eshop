@@ -83,7 +83,7 @@ class ProductList extends Datalist
 		$this->addFilterExpression('toners', function (ICollection $collection, $value): void {
 			$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_master');
 			$collection->where('related.fk_slave', $value);
-			$collection->where('related.fk_type = "tonersForPrinter"');
+			$collection->where('related.fk_type = "tonerForPrinter"');
 		});
 
 		$this->addFilterExpression('parameters', function (ICollection $collection, $groups): void {
