@@ -30,6 +30,12 @@ class Parameter extends \StORM\Entity
 	
 	/**
 	 * Povolené hodnoty
+	 * @column
+	 */
+	public ?string $allowedMetas;
+	
+	/**
+	 * Povolené hodnoty, textově
 	 * @column{"mutations":true}
 	 */
 	public ?string $allowedValues;
