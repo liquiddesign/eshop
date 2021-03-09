@@ -29,10 +29,10 @@ class Parameter extends \StORM\Entity
 	public string $type;
 	
 	/**
-	 * Povolené hodnoty
+	 * Povolené hodnoty, klíče
 	 * @column
 	 */
-	public ?string $allowedMetas;
+	public ?string $allowedKeys;
 	
 	/**
 	 * Povolené hodnoty, textově
