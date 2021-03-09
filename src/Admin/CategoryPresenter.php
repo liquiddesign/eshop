@@ -117,6 +117,7 @@ class CategoryPresenter extends \Nette\Application\UI\Presenter
 		
 		$nameInput = $form->addLocaleText('name', 'Název');
 		$form->addLocalePerexEdit('perex', 'Perex');
+		$form->addLocaleRichEdit('content', 'Obsah');
 
 		$categories = $this->categoryRepository->getArrayForSelect();
 
