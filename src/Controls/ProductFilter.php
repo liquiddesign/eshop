@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\ParameterCategory;
 use Eshop\DB\ParameterCategoryRepository;
@@ -16,12 +15,6 @@ use Forms\Form;
 
 class ProductFilter extends Control
 {
-	/** @persistent */
-	public $filters;
-
-	/** @persistent */
-	public $selectedCategory;
-
 	private ParameterRepository $parameterRepository;
 
 	private TranslationRepository $translator;
@@ -33,6 +26,8 @@ class ProductFilter extends Control
 	private FormFactory $formFactory;
 
 	private CategoryRepository $categoryRepository;
+	
+	private ?ParameterCategory $selectedCategory;
 
 	public function __construct(
 		ParameterRepository $parameterRepository,
@@ -57,29 +52,16 @@ class ProductFilter extends Control
 	 */
 	public function getSelectedCategory(): ?ParameterCategory
 	{
-		return $this->selectedCategory ? $this->parameterCategoryRepository->one($this->selectedCategory) : null;
-	}
-
-	public function setParameterCategoryByCategory($category): void
-	{
-		if (!$category instanceof Category) {
-			if (!$category = $this->categoryRepository->one($category)) {
-				return;
-			}
-		}
-
-		$parameterCategory = $this->categoryRepository->getParameterCategoryOfCategory($category);
-		$this->selectedCategory = $parameterCategory ? $parameterCategory->getPK() : null;
+		return $this->selectedCategory ??= $this->categoryRepository->getParameterCategoryOfCategory($this->categoryRepository->one(['path' => $this->getParent()->getFilters()['category']]));
 	}
 
 	public function render(): void
 	{
-		$this->setDefaults();
 		$this->template->groups = $this->parameterGroupRepository->getCollection();
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
 
-	public function createComponentFilterForm(): Form
+	public function createComponentForm(): Form
 	{
 		$filterForm = $this->formFactory->create();
 
@@ -123,113 +105,43 @@ class ProductFilter extends Control
 		};
 
 		$filterForm->onSuccess[] = function (Form $form) {
-			$this->setFilters($form->getValues());
-			$this->redirect('this');
+			$parameters = [];
+			
+			$parent = $this->getParent()->getName();
+			
+			foreach ($form->getValues('array') as $name => $values) {
+				$parameters["$parent-$name"] = $values;
+			}
+			
+			
+			$this->getPresenter()->redirect('this', $parameters);
 		};
 
 		return $filterForm;
 	}
 
-	public function setDefaults(): void
-	{
-		if (isset($this->filters)) {
-			/** @var \Forms\Form $filterForm */
-			$filterForm = $this->getComponent('filterForm');
-			$filterForm->setDefaults($this->getFilters());
-		}
-	}
-
-	public function setFilters($filters): void
-	{
-		$this->filters = \urlencode(\http_build_query($filters));
-	}
-
-	public function getFilters(): array
-	{
-		if (!isset($this->filters)) {
-			return [];
-		}
-
-		\parse_str(\urldecode($this->filters), $filters);
-
-		/** @var \Eshop\DB\Parameter[] $parameters */
-		$parameters = $this->parameterRepository->getCollection()->toArray();
-
-		$parametersFilters = &$filters['parameters'];
-
-		foreach ($parametersFilters as $gKey => $group) {
-			foreach ($group as $pKey => $parameter) {
-				if (!isset($parameters[$pKey])) {
-					continue;
-				}
-
-				$parametersFilters[$gKey][$pKey] = $parameters[$pKey]->type == 'bool' ? (bool)$parametersFilters[$gKey][$pKey] : $parametersFilters[$gKey][$pKey];
-			}
-		}
-
-		return $filters;
-	}
-
-	public function getFiltersForTemplate(): array
-	{
-		$filters = $this->getFilters()['parameters'] ?? [];
-		$templateFilters = [];
-
-		/** @var \Eshop\DB\Parameter[] $parameters */
-		$parameters = $this->parameterRepository->getCollection()->toArray();
-
-		foreach ($filters as $key => $group) {
-			foreach ($group as $pKey => $parameter) {
-				if (\is_array($parameter)) {
-					// list
-					if (\count($parameter) == 0) {
-						continue;
-					}
-
-					$templateFilters[$pKey] = $parameters[$pKey]->name . ': ' . \implode(', ', $parameter);
-				} else {
-					// bool, text
-					if ($parameter) {
-						$templateFilters[$pKey] =  $parameters[$pKey]->name . ($parameter !== true ? (': ' . $parameter) : '');
-					}
-				}
-			}
-		}
-
-		return $templateFilters;
-	}
 
 	public function handleClearFilters(): void
 	{
-		$this->clearFilters();
-		$this->redirect('this');
-	}
-
-	public function clearFilters(): void
-	{
-		$this->filters = null;
-	}
-
-	public function clearFilter($filter): void
-	{
-		$filters = $this->getFilters();
-		$filtersParameters = $filters['parameters'];
-
-		foreach ($filtersParameters as $key => $group) {
-			foreach ($group as $pKey => $parameter) {
-				if ($pKey == $filter) {
-					unset($filters['parameters'][$key][$pKey]);
-					break;
-				}
-			}
-		}
-
-		$this->setFilters($filters);
+		$parent = $this->getParent()->getName();
+		
+		$this->getPresenter()->redirect('this', ["$parent-priceFrom" => null, "$parent-priceTo" => null, "$parent-parameters" => null]);
 	}
 
 	public function handleClearFilter($filter): void
 	{
-		$this->clearFilter($filter);
-		$this->redirect('this');
+		$filtersParameters = $this->getParent()->getFilters()['parameters'];
+		$parent = $this->getParent()->getName();
+		
+		foreach ($filtersParameters as $key => $group) {
+			foreach ($group as $pKey => $parameter) {
+				if ($pKey == $filter) {
+					unset($filtersParameters[$key][$pKey]);
+					break;
+				}
+			}
+		}
+		
+		$this->getPresenter()->redirect('this', ["$parent-parameters" => $filtersParameters]);
 	}
 }
