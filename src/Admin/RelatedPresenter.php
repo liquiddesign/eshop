@@ -169,8 +169,8 @@ class RelatedPresenter extends \Nette\Application\UI\Presenter
 		$form['type']->setDefaultValue($relation->type);
 		$form['hidden']->setDefaultValue($relation->hidden);
 		$form['priority']->setDefaultValue($relation->priority);
-		$form['master']->setDefaultValue($relation->master->getFullCode());
-		$form['slave']->setDefaultValue($relation->slave->getFullCode());
+		$form['master']->setDefaultValue($relation->master->getFullCode() ?? $relation->master->ean);
+		$form['slave']->setDefaultValue($relation->slave->getFullCode() ?? $relation->slave->ean);
 	}
 
 	public function renderDetailRelation(Related $relation)

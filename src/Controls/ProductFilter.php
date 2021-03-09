@@ -60,11 +60,14 @@ class ProductFilter extends Control
 		return $this->selectedCategory ? $this->parameterCategoryRepository->one($this->selectedCategory) : null;
 	}
 
-	/**
-	 * @param \Eshop\DB\Category $category
-	 */
-	public function setParameterCategoryByCategory(Category $category): void
+	public function setParameterCategoryByCategory($category): void
 	{
+		if (!$category instanceof Category) {
+			if (!$category = $this->categoryRepository->one($category)) {
+				return;
+			}
+		}
+
 		$parameterCategory = $this->categoryRepository->getParameterCategoryOfCategory($category);
 		$this->selectedCategory = $parameterCategory ? $parameterCategory->getPK() : null;
 	}

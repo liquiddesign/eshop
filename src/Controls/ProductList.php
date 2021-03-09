@@ -35,7 +35,7 @@ class ProductList extends Datalist
 	private ?array $templateFilters = null;
 
 	private Translator $translator;
-	
+
 	private FormFactory $formFactory;
 
 	public function __construct(
@@ -76,9 +76,14 @@ class ProductList extends Datalist
 			$collection->filter(['q' => $value]);
 		});
 
+		$this->addFilterExpression('toners', function (ICollection $collection, $value): void {
+			$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_master');
+			$collection->where('related.fk_slave', $value);
+		});
+
 		$this->addFilterExpression('parameters', function (ICollection $collection, $groups): void {
 			$suffix = $collection->getConnection()->getMutationSuffix();
-			
+
 			if ($groups) {
 				$query = '';
 
@@ -177,7 +182,7 @@ class ProductList extends Datalist
 			/** @var \Eshop\DB\Product $product */
 			$product = $this->itemsOnPage !== null ? ($this->itemsOnPage[$itemId] ?? null) : $productRepository->getProduct($itemId);
 
-			$form = new BuyForm($product, $shopper, $checkoutManager,$this->translator);
+			$form = new BuyForm($product, $shopper, $checkoutManager, $this->translator);
 			$form->onSuccess[] = function ($form, $values): void {
 				$form->getPresenter()->redirect('this');
 				// @TODO call event
@@ -192,7 +197,7 @@ class ProductList extends Datalist
 		$this->template->templateFilters = $this->templateFilters;
 		$this->template->display = $display === 'card' ? 'Card' : 'Row';
 		$this->template->paginator = $this->getPaginator();
-	
+
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productList.latte');
 	}
 
@@ -205,8 +210,8 @@ class ProductList extends Datalist
 	{
 		$this->templateFilters = $filters;
 	}
-	
-	protected function createComponentFilterForm():\Forms\Form
+
+	protected function createComponentFilterForm(): \Forms\Form
 	{
 		$filterForm = $this->formFactory->create();
 		$filterForm->addText('priceFrom');
@@ -214,7 +219,7 @@ class ProductList extends Datalist
 		$filterForm->addCheckbox('inStock');
 		$filterForm->addSubmit('submit');
 		$this->makeFilterForm($filterForm);
-		
+
 		return $filterForm;
 	}
 }
