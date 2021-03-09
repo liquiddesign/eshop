@@ -80,6 +80,11 @@ class ProductList extends Datalist
 			$collection->filter(['q' => $value]);
 		});
 
+		$this->addFilterExpression('toners', function (ICollection $collection, $value): void {
+			$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_master');
+			$collection->where('related.fk_slave', $value);
+		});
+
 		$this->addFilterExpression('parameters', function (ICollection $collection, $groups): void {
 			$suffix = $collection->getConnection()->getMutationSuffix();
 			
