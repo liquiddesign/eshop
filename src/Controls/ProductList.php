@@ -104,6 +104,8 @@ class ProductList extends Datalist
 				foreach ($groups as $key => $group) {
 					foreach ($group as $pKey => $parameter) {
 						if ($parameters[$pKey]->type == 'list') {
+							$parameter = \is_array($parameter) ? $parameter : [$parameter];
+
 							if (\count($parameter) == 0) {
 								continue;
 							}
