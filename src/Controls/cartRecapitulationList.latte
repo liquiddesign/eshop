@@ -42,6 +42,25 @@
     </div>
 </div>
 
+<div n:if="$discountCoupon" class="flex items-center mt-2" id="discountCouponRow">
+    <div class="inline-flex items-center justify-center w-12 h-12 bg-gray rounded">
+        <span style="font-family: 'Arial', sans-serif; font-size: 32px; font-weight: bold; color: white;">%</span>
+    </div>
+
+    <div class="leading-snug ml-6">
+        <div class="font-bold text-main whitespace-pre-wrap">{$discountCoupon->discount->name}{* ({if $discountCoupon->discountPct}{-$discountCoupon->discountPct}&nbsp;%{else}{-$discountCoupon->discountValueVat|price}{/if})*}</div>
+        <div class="text-gray-dark text-sm">{$discountCoupon->label}</div>
+        {*						<div class="text-gray-dark text-sm">{$discountCoupon->code}</div>*}
+    </div>
+
+    <div class="ml-auto" n:if="$discountPrice != 0">
+        <div class="leading-none text-right">
+            <div class="text-xl font-bold whitespace-no-wrap">{-$discountPrice|price}</div>
+            <div class="text-sm text-gray-dark mt-1 lg:text-xs">{_'cartItemList.withVat','s DPH'} {-$discountPriceVat|price}</div>
+        </div>
+    </div>
+</div>
+
 <div class="lg:ml-auto lg:w-1/3 leading-loose mt-8 text-right">
     <div>{_'checkoutDP.totalPrice','Cena za zboží celkem'}: <span class="font-bold ml-2">{$cartCheckoutPrice|price:$cartCurrency}</span>
     </div>
