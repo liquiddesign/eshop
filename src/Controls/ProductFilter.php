@@ -26,7 +26,7 @@ class ProductFilter extends Control
 	private FormFactory $formFactory;
 
 	private CategoryRepository $categoryRepository;
-	
+
 	private ?ParameterCategory $selectedCategory;
 
 	public function __construct(
@@ -53,7 +53,7 @@ class ProductFilter extends Control
 	public function getSelectedCategory(): ?ParameterCategory
 	{
 		$category = $this->getParent()->getFilters()['category'] ?? null;
-		
+
 		return $this->selectedCategory ??= $category ? $this->categoryRepository->getParameterCategoryOfCategory($this->categoryRepository->one(['path' => $category])) : null;
 	}
 
@@ -109,14 +109,14 @@ class ProductFilter extends Control
 
 		$filterForm->onSuccess[] = function (Form $form) {
 			$parameters = [];
-			
+
 			$parent = $this->getParent()->getName();
-			
+
 			foreach ($form->getValues('array') as $name => $values) {
 				$parameters["$parent-$name"] = $values;
 			}
-			
-			
+
+
 			$this->getPresenter()->redirect('this', $parameters);
 		};
 
@@ -127,7 +127,7 @@ class ProductFilter extends Control
 	public function handleClearFilters(): void
 	{
 		$parent = $this->getParent()->getName();
-		
+
 		$this->getPresenter()->redirect('this', ["$parent-priceFrom" => null, "$parent-priceTo" => null, "$parent-parameters" => null]);
 	}
 
@@ -135,7 +135,7 @@ class ProductFilter extends Control
 	{
 		$filtersParameters = $this->getParent()->getFilters()['parameters'];
 		$parent = $this->getParent()->getName();
-		
+
 		foreach ($filtersParameters as $key => $group) {
 			foreach ($group as $pKey => $parameter) {
 				if ($pKey == $filter) {
@@ -144,7 +144,7 @@ class ProductFilter extends Control
 				}
 			}
 		}
-		
+
 		$this->getPresenter()->redirect('this', ["$parent-parameters" => $filtersParameters]);
 	}
 }
