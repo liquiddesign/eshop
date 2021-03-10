@@ -314,6 +314,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$parameters = $paramRepo->many()
 			->join(['value' => 'eshop_parametervalue'], 'this.uuid = value.fk_parameter')
 			->select(['content' => "value.content$suffix"])
+			->select(['metaValue' => "value.metaValue"])
 			->where('fk_product', $product->getPK());
 
 		foreach ($parameters as $parameter) {
