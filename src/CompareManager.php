@@ -168,7 +168,11 @@ class CompareManager
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->one($product, true);
 
-		if (!$parameterCategory = $this->categoryRepository->getParameterCategoryOfCategory($product->getPrimaryCategory())) {
+		if (!$productCategory = $product->getPrimaryCategory()) {
+			return;
+		};
+
+		if (!$parameterCategory = $this->categoryRepository->getParameterCategoryOfCategory($productCategory)) {
 			return;
 		}
 

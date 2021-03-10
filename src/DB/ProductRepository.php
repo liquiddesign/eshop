@@ -348,7 +348,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $primaryCategory ? $categoryRepo->getRootCategoryOfCategory($primaryCategory) == $category->getPK() : false;
 	}
 
-	public function getCompatiblePrintersByToner($product): ?ICollection
+	public function getSlaveProductsByRelationAndMaster($relation, $product): ?ICollection
 	{
 		if (!$product instanceof Product) {
 			if (!$product = $this->one($product)) {
@@ -358,12 +358,12 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		return $this->many()->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave')
 			->where('related.fk_master', $product->getPK())
-			->where('related.fk_type = "tonerForPrinter"');
+			->where('related.fk_type', $relation);
 	}
 
-	public function getCompatiblePrintersByTonerCount($product): int
+	public function getSlaveProductsCountByRelationAndMaster($relation, $product): int
 	{
-		$result = $this->getCompatiblePrintersByToner($product);
+		$result = $this->getSlaveProductsByRelationAndMaster($relation, $product);
 
 		return $result ? $result->enum() : 0;
 	}
