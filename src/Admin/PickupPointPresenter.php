@@ -162,7 +162,7 @@ class PickupPointPresenter extends \Nette\Application\UI\Presenter
 		$grid = $this->gridFactory->create($this->pickupPointTypeRepo->getCollection(), 20, 'priority');
 		$grid->addColumnSelector();
 
-		$grid->addColumnImage('logoFileName', PickupPointType::IMAGE_DIR);
+		$grid->addColumnImage('imageFileName', PickupPointType::IMAGE_DIR);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
