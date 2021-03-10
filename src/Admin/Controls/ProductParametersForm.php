@@ -13,6 +13,7 @@ use Eshop\DB\ParameterValueRepository;
 use Eshop\DB\Product;
 use Nette\Application\UI\Control;
 use Nette\DI\Container;
+use Nette\Utils\Arrays;
 
 class ProductParametersForm extends Control
 {
@@ -43,11 +44,11 @@ class ProductParametersForm extends Control
 		$this->parameterGroupRepository = $parameterGroupRepository;
 		$this->parameterValueRepository = $parameterValueRepository;
 
-		$mutation = $this->parameterValueRepository->getConnection()->getMutation();
-
 		/** @var \App\Admin\Controls\AdminForm $form */
 		$form = $container->getService(AdminFormFactory::SERVICE_NAME)->create();
 		$form->removeComponent($form->getComponent('uuid'));
+
+		$mutation = 'cs';
 
 		$productCategory = $product->getPrimaryCategory();
 
@@ -81,8 +82,9 @@ class ProductParametersForm extends Control
 				if ($parameter->type == 'bool') {
 					$input = $groupContainer->addCheckbox($parameter->getPK(), $parameter->name);
 				} elseif ($parameter->type == 'list') {
+					$allowedKeys = \explode(';', $parameter->allowedKeys ?? '');
 					$allowedValues = \explode(';', $parameter->allowedValues ?? '');
-					$input = $groupContainer->addLocaleDataMultiSelect($parameter->getPK(), $parameter->name, \array_combine($allowedValues, $allowedValues));
+					$input = $groupContainer->addDataMultiSelect($parameter->getPK(), $parameter->name, \array_combine($allowedKeys, $allowedValues));
 				} else {
 					$input = $groupContainer->addLocaleText($parameter->getPK(), $parameter->name);
 				}
@@ -90,17 +92,16 @@ class ProductParametersForm extends Control
 				/** @var \Eshop\DB\ParameterValue $paramValue */
 				$paramValue = $parameterValueRepository->many()->where('fk_product', $product->getPK())->where('fk_parameter', $parameter->getPK())->first();
 
-				if ($paramValue && $paramValue->content) {
+				if ($paramValue && ($paramValue->content || $paramValue->metaValue)) {
 					$content = $paramValue->jsonSerialize()['content'];
+					$metaValue = $paramValue->jsonSerialize()['metaValue'];
 
-					if ($paramValue->parameter->type == 'list') {
-						foreach ($content as $k => $v) {
-							$content[$k] = $v ? \explode(';', $v) : null;
-						}
+					if ($paramValue->parameter->type == 'list' && $metaValue) {
+						$metaValue = \explode(';', $metaValue);
 					}
 
-					if ($parameter->type == 'bool') {
-						$input->setDefaultValue($content[$mutation]);
+					if ($parameter->type == 'bool' || $parameter->type == 'list') {
+						$input->setDefaultValue($metaValue);
 					} else {
 						$input->setDefaults($content);
 					}
@@ -130,6 +131,9 @@ class ProductParametersForm extends Control
 
 		foreach ($values as $containerKey => $container) {
 			foreach ($container as $itemKey => $itemValue) {
+				/** @var \Eshop\DB\Parameter $parameter */
+				$parameter = $this->parameterRepository->one($itemKey);
+
 				if (!\is_array($itemValue)) {
 					$tempValue = [];
 
@@ -144,19 +148,28 @@ class ProductParametersForm extends Control
 					$itemValue[$k] = \is_array($v) ? \implode(';', $v) : $v;
 				}
 
+				$updateValues = [];
+
+				if ($parameter->type == 'list') {
+					$updateValues['metaValue'] = \implode(';', $itemValue);
+				} elseif ($parameter->type == 'bool') {
+					$updateValues['metaValue'] = (string)Arrays::first($itemValue);
+				} else {
+					$updateValues['content'] = $itemValue;
+				}
+
 				if ($paramValue = $this->parameterValueRepository->many()->where('fk_product', $this->product->getPK())->where('fk_parameter', $itemKey)->first()) {
-					$paramValue->update([
-						'content' => $itemValue
-					]);
+					$paramValue->update($updateValues);
 				} else {
 					$this->parameterValueRepository->createOne([
-						'content' => $itemValue,
-						'product' => $this->product->getPK(),
-						'parameter' => $itemKey
-					]);
+							'product' => $this->product->getPK(),
+							'parameter' => $itemKey
+						] + $updateValues);
 				}
 			}
 		}
+
+		$this->redirect('this');
 	}
 
 	public function render()

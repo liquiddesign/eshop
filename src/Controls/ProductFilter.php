@@ -87,8 +87,9 @@ class ProductFilter extends Control
 				if ($parameter->type == 'bool') {
 					$groupContainer->addCheckbox($parameter->getPK(), $parameter->name);
 				} elseif ($parameter->type == 'list') {
+					$allowedKeys = \explode(';', $parameter->allowedKeys ?? '');
 					$allowedValues = \explode(';', $parameter->allowedValues ?? '');
-					$groupContainer->addMultiSelect($parameter->getPK(), $parameter->name, \array_combine($allowedValues, $allowedValues));
+					$groupContainer->addCheckboxList($parameter->getPK(), $parameter->name, \array_combine($allowedKeys, $allowedValues));
 				} else {
 					$groupContainer->addText($parameter->getPK(), $parameter->name);
 				}

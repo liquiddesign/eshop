@@ -35,12 +35,12 @@ class ParameterPresenter extends \Nette\Application\UI\Presenter
 	public ParameterCategoryRepository $parameterCategoryRepo;
 
 	public const TABS = [
-		'categories' => 'Kategorie',
 		'groups' => 'Skupiny',
+		'categories' => 'Kategorie',
 	];
 
 	/** @persistent */
-	public string $tab = 'categories';
+	public string $tab = 'groups';
 
 	protected const TYPES = [
 		'bool' => 'Ano / Ne',
@@ -108,8 +108,11 @@ class ParameterPresenter extends \Nette\Application\UI\Presenter
 
 		$form->addSelect('type', 'Typ', $this::TYPES)->setHtmlAttribute('onchange', 'onTypeChange(this)');
 
+		$form->addText('allowedKeys', 'Povolené klíče')
+			->setHtmlAttribute('data-info', 'Zadejte hodnoty oddělené středníkem. Např.: "red; blue". Počet položek musí být stejný jako v poli "Povolené hodnoty"');
+
 		$localeContainer = $form->addLocaleText('allowedValues', 'Povolené hodnoty');
-		$localeContainer->getComponents()['cs']->setHtmlAttribute('data-info', 'Zadejte hodnoty oddělené středníkem. Např.: "Test; Test2;". Poznámka: Řetězec musí vždy končit středníkem!');
+		$localeContainer->getComponents()['cs']->setHtmlAttribute('data-info', 'Zadejte hodnoty oddělené středníkem. Např.: "Červená; Modrá". Počet položek musí být stejný jako v poli "Povolené klíče"');
 
 		$form->addText('priority', 'Priorita')
 			->addRule($form::INTEGER)
@@ -118,7 +121,21 @@ class ParameterPresenter extends \Nette\Application\UI\Presenter
 		$form->addCheckbox('isPreview', 'Náhled')->setHtmlAttribute('data-info', 'Parametr se zobrazí v náhledu produktu.');
 		$form->addCheckbox('hidden', 'Skryto');
 
-		$form->addSubmits(!$this->getParameter('parameter'));
+		$form->addSubmits(!$parameter);
+
+		$form->onValidate[] = function (AdminForm $form)  {
+			$values = $form->getValues('array');
+
+			$keysCount = \count(\explode(';',$values['allowedKeys']));
+
+			foreach ($form->getMutations() as $mutation){
+				if($keysCount != \count(\explode(';',$values['allowedValues'][$mutation]))){
+					$form['allowedKeys']->addError('Nesprávný počet položek!');
+
+					break;
+				};
+			}
+		};
 
 		$form->onSuccess[] = function (AdminForm $form) use ($parameter) {
 			$values = $form->getValues('array');
@@ -190,6 +207,14 @@ class ParameterPresenter extends \Nette\Application\UI\Presenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('groupDefault')];
 		$this->template->displayControls = [$this->getComponent('parameterCategoryForm')];
+	}
+
+	public function actionParameterCategoryDetail(ParameterCategory $parameterCategory, ?string $backLink = null)
+	{
+		/** @var Form $form */
+		$form = $this->getComponent('parameterCategoryForm');
+
+		$form->setDefaults($parameterCategory->toArray());
 	}
 
 	public function renderParameterCategoryDetail(ParameterCategory $parameterCategory, ?string $backLink = null)

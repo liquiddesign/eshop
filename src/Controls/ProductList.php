@@ -36,11 +36,11 @@ class ProductList extends Datalist
 	private ?array $templateFilters = null;
 
 	private Translator $translator;
-	
+
 	private FormFactory $formFactory;
-	
+
 	private ParameterRepository $parameterRepository;
-	
+
 	public function __construct(
 		ProductRepository $productRepository,
 		WatcherRepository $watcherRepository,
@@ -88,30 +88,32 @@ class ProductList extends Datalist
 
 		$this->addFilterExpression('parameters', function (ICollection $collection, $groups): void {
 			$suffix = $collection->getConnection()->getMutationSuffix();
-			
+
+			/** @var \Eshop\DB\Parameter[] $parameters */
+			$parameters = $this->parameterRepository->getCollection()->toArray();
+
 			if ($groups) {
 				$query = '';
 
 				foreach ($groups as $key => $group) {
 					foreach ($group as $pKey => $parameter) {
-						if (\is_array($parameter)) {
+						if ($parameters[$pKey]->type == 'list') {
 							if (\count($parameter) == 0) {
 								continue;
 							}
 							// list
 							$implodedValues = "'" . \implode("','", $parameter) . "'";
-							$query .= "(parametervalue.fk_parameter = '$pKey' AND parametervalue.content$suffix IN ($implodedValues))";
+							$query .= "(parametervalue.fk_parameter = '$pKey' AND parametervalue.metaValue IN ($implodedValues))";
 							$query .= ' OR ';
-						} else {
-							if ($parameter === true) {
-								// bool
-								$query .= "(parametervalue.fk_parameter = '$pKey' AND parametervalue.content$suffix = '1')";
-								$query .= ' OR ';
-							} elseif ($parameter !== false) {
-								// text
-								$query .= "(parametervalue.fk_parameter = '$pKey' AND parametervalue.content$suffix = '$parameter')";
+						}elseif ($parameters[$pKey]->type == 'bool') {
+							if($parameter === '1'){
+								$query .= "(parametervalue.fk_parameter = '$pKey' AND parametervalue.metaValue = '1')";
 								$query .= ' OR ';
 							}
+						} else {
+							// text
+							$query .= "(parametervalue.fk_parameter = '$pKey' AND parametervalue.content$suffix = '$parameter')";
+							$query .= ' OR ';
 						}
 					}
 				}
@@ -188,7 +190,7 @@ class ProductList extends Datalist
 			/** @var \Eshop\DB\Product $product */
 			$product = $this->itemsOnPage !== null ? ($this->itemsOnPage[$itemId] ?? null) : $productRepository->getProduct($itemId);
 
-			$form = new BuyForm($product, $shopper, $checkoutManager,$this->translator);
+			$form = new BuyForm($product, $shopper, $checkoutManager, $this->translator);
 			$form->onSuccess[] = function ($form, $values): void {
 				$form->getPresenter()->redirect('this');
 				// @TODO call event
@@ -203,7 +205,7 @@ class ProductList extends Datalist
 		$this->template->templateFilters = $this->getFiltersForTemplate();
 		$this->template->display = $display === 'card' ? 'Card' : 'Row';
 		$this->template->paginator = $this->getPaginator();
-	
+
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productList.latte');
 	}
 
@@ -212,7 +214,7 @@ class ProductList extends Datalist
 		return $this->imageControlFactory->create();
 	}
 
-	protected function createComponentFilterForm():\Forms\Form
+	protected function createComponentFilterForm(): \Forms\Form
 	{
 		$filterForm = $this->formFactory->create();
 		$filterForm->addText('priceFrom');
@@ -220,36 +222,46 @@ class ProductList extends Datalist
 		$filterForm->addCheckbox('inStock');
 		$filterForm->addSubmit('submit');
 		$this->makeFilterForm($filterForm);
-		
+
 		return $filterForm;
 	}
-	
+
 	private function getFiltersForTemplate(): array
 	{
 		$filters = $this->getFilters()['parameters'] ?? [];
 		$templateFilters = [];
-		
+
 		/** @var \Eshop\DB\Parameter[] $parameters */
 		$parameters = $this->parameterRepository->getCollection()->toArray();
-		
+
 		foreach ($filters as $key => $group) {
 			foreach ($group as $pKey => $parameter) {
-				if (\is_array($parameter)) {
+				if ($parameters[$pKey]->type == 'list') {
 					// list
 					if (\count($parameter) == 0) {
 						continue;
 					}
-					
+
+					$allowed = \array_combine(\explode(';', $parameters[$pKey]->allowedKeys), \explode(';', $parameters[$pKey]->allowedValues));
+					foreach ($parameter as $pvKey => $item) {
+						$parameter[$pvKey] = $allowed[$item];
+					}
+
 					$templateFilters[$pKey] = $parameters[$pKey]->name . ': ' . \implode(', ', $parameter);
+				} elseif ($parameters[$pKey]->type == 'bool') {
+					// bool
+					if($parameter === '1'){
+						$templateFilters[$pKey] = $parameters[$pKey]->name;
+					}
 				} else {
-					// bool, text
+					// text
 					if ($parameter) {
-						$templateFilters[$pKey] =  $parameters[$pKey]->name . ($parameter !== true ? (': ' . $parameter) : '');
+						$templateFilters[$pKey] = $parameters[$pKey]->name . ': ' . $parameter;
 					}
 				}
 			}
 		}
-		
+
 		return $templateFilters;
 	}
 }
