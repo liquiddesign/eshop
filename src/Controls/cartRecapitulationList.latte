@@ -36,8 +36,8 @@
         </div>
 
         <div class="text-xl flex justify-between mt-6 md:mt-0">
-            <div class="font-bold md:mr-8">{$cartItem->amount} {$cartItem->product->unit}</div>
-            <div class="font-bold"><span class="font-normal text-gray mr-2 text-sm">{_'cartRe.totalVat','Celkem s DPH'}</span> {$cartItem->getPriceVatSum()|price}</div>
+            <div class="font-bold md:mr-8 whitespace-nowrap">{$cartItem->amount} {$cartItem->product->unit}</div>
+            <div class="font-bold whitespace-nowrap"><span class="font-normal text-gray mr-2 text-sm">{_'cartRe.totalVat','Celkem s DPH'}</span> {$cartItem->getPriceVatSum()|price}</div>
         </div>
     </div>
 </div>
