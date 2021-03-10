@@ -7,9 +7,11 @@
 
     function onTypeChange(select){
         if(select.value === 'list'){
+            document.getElementById('frm-newForm-allowedKeys-toogle').hidden=false;
             document.getElementById('frm-newForm-allowedValues-cs-toogle').hidden=false;
             document.getElementById('frm-newForm-allowedValues-en-toogle').hidden=false;
         }else {
+            document.getElementById('frm-newForm-allowedKeys-toogle').hidden=true;
             document.getElementById('frm-newForm-allowedValues-cs-toogle').hidden=true;
             document.getElementById('frm-newForm-allowedValues-en-toogle').hidden=true;
         }

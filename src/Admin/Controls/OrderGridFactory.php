@@ -114,7 +114,7 @@ class OrderGridFactory
 		}, '', 'date_from', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
 
 		$grid->addFilterDatetime(function (ICollection $source, $value) {
-			$source->where('createdTs <= :created_to', ['created_from' => $value]);
+			$source->where('createdTs <= :created_to', ['created_to' => $value]);
 		}, '', 'created_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
 
 
