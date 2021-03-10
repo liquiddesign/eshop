@@ -347,4 +347,24 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		return $primaryCategory ? $categoryRepo->getRootCategoryOfCategory($primaryCategory) == $category->getPK() : false;
 	}
+
+	public function getCompatiblePrintersByToner($product): ?ICollection
+	{
+		if (!$product instanceof Product) {
+			if (!$product = $this->one($product)) {
+				return null;
+			}
+		}
+
+		return $this->many()->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave')
+			->where('related.fk_master', $product->getPK())
+			->where('related.fk_type = "tonerForPrinter"');
+	}
+
+	public function getCompatiblePrintersByTonerCount($product): int
+	{
+		$result = $this->getCompatiblePrintersByToner($product);
+
+		return $result ? $result->enum() : 0;
+	}
 }

@@ -86,6 +86,12 @@ class ProductList extends Datalist
 			$collection->where('related.fk_type = "tonerForPrinter"');
 		});
 
+		$this->addFilterExpression('compatiblePrinters', function (ICollection $collection, $value): void {
+			$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave');
+			$collection->where('related.fk_master', $value);
+			$collection->where('related.fk_type = "tonerForPrinter"');
+		});
+
 		$this->addFilterExpression('parameters', function (ICollection $collection, $groups): void {
 			$suffix = $collection->getConnection()->getMutationSuffix();
 
