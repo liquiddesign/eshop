@@ -269,9 +269,4 @@ class Customer extends Entity implements IIdentity, IUser
 	{
 		return (bool) $this->ic;
 	}
-	
-	public function __call($name, $arguments)
-	{
-		// TODO: Implement @method array getData()
-	}
 }
