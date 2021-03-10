@@ -42,7 +42,7 @@ class ParameterPresenter extends \Nette\Application\UI\Presenter
 	/** @persistent */
 	public string $tab = 'categories';
 
-	private const TYPES = [
+	protected const TYPES = [
 		'bool' => 'Ano / Ne',
 		'list' => 'Seznam',
 		'text' => 'Text',
