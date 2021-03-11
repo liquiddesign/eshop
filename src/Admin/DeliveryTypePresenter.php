@@ -106,7 +106,7 @@ class DeliveryTypePresenter extends \Nette\Application\UI\Presenter
 	{
 		$form = $this->formFactory->create();
 		
-		$form->addText('code', 'Kód')->setNullable();
+		$form->addText('code', 'Kód')->setRequired();
 		
 		/** @var DeliveryType $deliveryType */
 		$deliveryType = $this->getParameter('deliveryType');

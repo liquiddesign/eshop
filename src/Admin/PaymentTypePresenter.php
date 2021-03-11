@@ -91,7 +91,7 @@ class PaymentTypePresenter extends \Nette\Application\UI\Presenter
 		/** @var PaymentType $paymentType */
 		$paymentType = $this->getParameter('paymentType');
 		
-		$form->addText('code', 'Kód')->setNullable();
+		$form->addText('code', 'Kód')->setRequired();
 		
 		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
 			PaymentType::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
