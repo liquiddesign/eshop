@@ -403,7 +403,7 @@ class PricelistsPresenter extends \Nette\Application\UI\Presenter
 			$targetPricelist = $this->priceListRepository->one($values['originalPricelist']);
 			$quantity = $this->getParameter('type') === 'quantity';
 			
-			$this->priceListRepository->copyPrices($originalPricelist, $targetPricelist, (float) $values['percent'] / 10, $values['roundPrecision'], $values['overwrite'], $values['beforePrices'], $quantity);
+			$this->priceListRepository->copyPrices($originalPricelist, $targetPricelist, (float) $values['percent'] / 100, $values['roundPrecision'], $values['overwrite'], $values['beforePrices'], $quantity);
 			
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('this', $quantity ? 'quantityPrices' : 'priceListItems', [$originalPricelist], [$originalPricelist]);
