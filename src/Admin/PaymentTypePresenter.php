@@ -191,8 +191,8 @@ class PaymentTypePresenter extends \Nette\Application\UI\Presenter
 		$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
 		
 		$grid->addColumnActionDelete();
-		
-		$grid->addButtonSaveAll();
+
+		$grid->addButtonSaveAll([], [], 'this.uuid');
 		$grid->addButtonDeleteSelected();
 		
 		return $grid;

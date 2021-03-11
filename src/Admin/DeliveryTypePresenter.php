@@ -214,8 +214,8 @@ class DeliveryTypePresenter extends \Nette\Application\UI\Presenter
 		$grid->addColumnText('Měna', 'currency.code', '%s');
 		
 		$grid->addColumnActionDelete();
-		
-		$grid->addButtonSaveAll(['weightTo']);
+
+		$grid->addButtonSaveAll(['weightTo'], [], 'this.uuid');
 		$grid->addButtonDeleteSelected();
 		
 		$grid->addFilterSelectInput('search', 'fk_currency = :q', 'Měna', '- Měna -', null, $this->currencyRepo->getArrayForSelect());

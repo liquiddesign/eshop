@@ -44,7 +44,7 @@
                                             {foreach $component->getComponents() as $key => $input}
                                                 {if $input instanceOf Nette\Forms\Controls\CheckboxList}
                                                     <span class="mb-2"><b>{$input->caption}</b></span><br>
-                                                {input $input->name}
+                                                    {input $input->name}
                                                 {elseif  $input instanceOf Nette\Forms\Controls\TextInput}
                                                     <span class="mb-2">{$input->caption}</span>
                                                 {input $input->name}
