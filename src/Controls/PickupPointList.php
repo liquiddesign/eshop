@@ -68,7 +68,7 @@ class PickupPointList extends \Grid\Datalist
 		$cities = $pickupPointRepository->getCitiesArrayForSelect();
 
 		$this->getFilterForm()->addText('name', $translator->translate('pointList.name', 'Název'));
-		$this->getFilterForm()->addSelect('city', $translator->translate('pointList.city', 'Město'), \array_combine(\array_values($cities), \array_values($cities)))->setPrompt($translator->translate('.all', 'Vše'));
+		$this->getFilterForm()->addSelect('city', $translator->translate('pointList.city', 'Město'), \array_combine(\array_values($cities), \array_values($cities)))->setPrompt($translator->translate('pointList.all', 'Vše'));
 		$this->getFilterForm()->addSubmit('submit', $translator->translate('pointList.showPlaces', 'Zobrazit místa'));
 
 		$this->pickupPointRepository = $pickupPointRepository;

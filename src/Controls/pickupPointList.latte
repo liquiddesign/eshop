@@ -65,7 +65,7 @@ $presenter->translator->translate('.sunday','Neděle')
             <div class="col p-0">
                 <div n:if="count($control->getItemsOnPage())" class="table-responsive">
                     <table>
-                        <tbody>
+                        <tbody id="anchor-list-start">
 
                         {foreach $control->getItemsOnPage() as $id => $item}
                             <tr>
