@@ -117,10 +117,6 @@ class CustomerPresenter extends \Nette\Application\UI\Presenter
 		
 		$grid->addFilterTextInput('search', ['this.fullname', 'this.email', 'this.phone'], null, 'Jméno a příjmení, email, telefon');
 		
-		$grid->addFilterSelectInput('newsletter', 'this.newsletter = :newsletter', null, '- Měna -', null, [
-			false => 'Ne', true => 'Ano'
-		], 'newsletter');
-		
 		if (\count($this->merchantRepository->getListForSelect()) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$source->where('fk_merchant', $value);
@@ -132,6 +128,8 @@ class CustomerPresenter extends \Nette\Application\UI\Presenter
 				$source->where('fk_group', $value);
 			}, '', 'group', 'Skupina', $this->groupsRepo->getListForSelect(), ['placeholder' => '- Skupina -']);
 		}
+		
+		$grid->addFilterCheckboxInput('newsletter', "newsletter = 1", 'Newsletter');
 		
 		$grid->addFilterButtons();
 		
