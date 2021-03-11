@@ -55,7 +55,7 @@ class AccountFormFactory
 		$this->mailer = $mailer;
 	}
 	
-	public function addContainer(AdminForm $form, bool $addRoles = false)
+	public function addContainer(AdminForm $form, bool $addRoles = false, bool $sendEmail = true)
 	{
 		$roles = $this->roleRepository->many()->where('this.uuid != :role', ['role' => 'servis'])->toArrayOf('name');
 		
@@ -75,7 +75,9 @@ class AccountFormFactory
 		$accountContainer->addCheckbox('active', 'Aktivní')->setDefaultValue(true);
 		$accountContainer->addHidden('email');
 		
-		$accountContainer->addCheckbox('sendEmail', 'Odeslat e-mail o vytvoření');
+		if ($sendEmail) {
+			$accountContainer->addCheckbox('sendEmail', 'Odeslat e-mail o vytvoření');
+		}
 	}
 	
 	public function create()
