@@ -82,7 +82,7 @@ class CategoryPresenter extends \Nette\Application\UI\Presenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected();
 
-		$grid->addButtonBulkEdit('newForm', ['ancestor', 'exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory']);
+		$grid->addButtonBulkEdit('categoryNewForm', ['ancestor', 'exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
 
 
 		$grid->addFilterTextInput('search', ['code', 'name_cs'], null, 'Kód, Název');
