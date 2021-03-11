@@ -95,7 +95,7 @@ class ProductGridFactory
 		
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		
-		$grid->addButtonBulkEdit('form', ['vatRate']);
+		$grid->addButtonBulkEdit('productForm', ['vatRate'], 'productGrid');
 		
 		/*$submit = $grid->getForm()->addSubmit('completeMultiple2');
 		$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')
