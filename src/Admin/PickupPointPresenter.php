@@ -191,7 +191,7 @@ class PickupPointPresenter extends \Nette\Application\UI\Presenter
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 
 		$grid->addColumnText('Adresa', ['address.street','address.city'], '%s, %s','address.street');
-		$grid->addColumnText('Telefon', 'phone', '<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>', 'telephone')->onRenderCell[] = [$grid, 'decoratorEmpty'];
+		$grid->addColumnText('Telefon', 'phone', '<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>', 'phone')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		$grid->addColumnText('Email', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>', 'email')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		$grid->addColumn('Typ místa', function (PickupPoint $object, $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:PickupPoint:typeDetail') && $object->pickupPointType ? $datagrid->getPresenter()->link(':Eshop:Admin:PickupPoint:typeDetail', [$object->pickupPointType, 'backLink' => $this->storeRequest()]) : '#';
