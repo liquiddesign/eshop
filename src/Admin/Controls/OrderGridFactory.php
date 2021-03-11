@@ -53,7 +53,7 @@ class OrderGridFactory
 		}
 
 		if ($state === 'canceled') {
-			return $this->orderRepository->many()->where('this.completedTs IS NULL AND this.canceledTs IS NOT NULL');
+			return $this->orderRepository->many()->where('this.canceledTs IS NOT NULL');
 		}
 
 		throw new \DomainException("Invalid state: $state");
