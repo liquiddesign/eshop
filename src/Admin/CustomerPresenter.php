@@ -362,7 +362,7 @@ class CustomerPresenter extends \Nette\Application\UI\Presenter
 
 		$form->onSuccess[] = function (AdminForm $form) use ($customer) {
 			$values = $form->getValues('array');
-			$customer->update($values);
+			$this->customerRepository->syncOne($values, null ,true);
 			$form->getPresenter()->flashMessage('Uloženo', 'success');
 			$form->processRedirect('edit', 'default', [$customer]);
 		};

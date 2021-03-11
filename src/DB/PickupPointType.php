@@ -22,7 +22,7 @@ class PickupPointType extends \StORM\Entity
 	 * Logo
 	 * @column
 	 */
-	public ?string $logoFileName;
+	public ?string $imageFileName;
 
 	/**
 	 * Priorita

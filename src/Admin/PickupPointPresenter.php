@@ -162,7 +162,7 @@ class PickupPointPresenter extends \Nette\Application\UI\Presenter
 		$grid = $this->gridFactory->create($this->pickupPointTypeRepo->getCollection(), 20, 'priority');
 		$grid->addColumnSelector();
 
-		$grid->addColumnImage('logoFileName', PickupPointType::IMAGE_DIR);
+		$grid->addColumnImage('imageFileName', PickupPointType::IMAGE_DIR);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
@@ -209,11 +209,14 @@ class PickupPointPresenter extends \Nette\Application\UI\Presenter
 		$grid->addButtonDeleteSelected();
 
 		$grid->addFilterTextInput('search', ['name_cs'], null, 'Název');
-		$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-			$source->where('fk_pickupPointType', $value);
-		}, '', 'type', 'Typ', $this->pickupPointTypeRepo->getArrayForSelect(), ['placeholder' => '- Typ -']);
-		$grid->addFilterButtons();
 
+		if(\count($this->pickupPointTypeRepo->getArrayForSelect()) > 0){
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+				$source->where('fk_pickupPointType', $value);
+			}, '', 'type', 'Typ', $this->pickupPointTypeRepo->getArrayForSelect(), ['placeholder' => '- Typ -']);
+		}
+
+		$grid->addFilterButtons();
 		$grid->onDelete[] = [$this, 'onDelete'];
 
 		return $grid;

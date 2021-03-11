@@ -86,6 +86,12 @@ class ProductList extends Datalist
 			$collection->where('related.fk_type = "tonerForPrinter"');
 		});
 
+		$this->addFilterExpression('compatiblePrinters', function (ICollection $collection, $value): void {
+			$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave');
+			$collection->where('related.fk_master', $value);
+			$collection->where('related.fk_type = "tonerForPrinter"');
+		});
+
 		$this->addFilterExpression('parameters', function (ICollection $collection, $groups): void {
 			$suffix = $collection->getConnection()->getMutationSuffix();
 
@@ -98,6 +104,8 @@ class ProductList extends Datalist
 				foreach ($groups as $key => $group) {
 					foreach ($group as $pKey => $parameter) {
 						if ($parameters[$pKey]->type == 'list') {
+							$parameter = \is_array($parameter) ? $parameter : [$parameter];
+
 							if (\count($parameter) == 0) {
 								continue;
 							}
@@ -237,6 +245,7 @@ class ProductList extends Datalist
 		foreach ($filters as $key => $group) {
 			foreach ($group as $pKey => $parameter) {
 				if ($parameters[$pKey]->type == 'list') {
+					$parameter = \is_array($parameter) ? $parameter : [$parameter];
 					// list
 					if (\count($parameter) == 0) {
 						continue;

@@ -121,14 +121,25 @@ class CompareManager
 						->where('fk_parameter', $parameter->getPK())
 						->first();
 
-					if (!$value || !$value->content) {
+					if (!($value && ($value->content || $value->metaValue))) {
 						$data['values'][$group->getPK()][$parameter->getPK()][$product->getPK()] = '-';
 						continue;
 					}
 
-					$data['values'][$group->getPK()][$parameter->getPK()][$product->getPK()] = $value->parameter->type === 'bool' ?
-						($value->content ? $this->translator->translate('.yes', 'Ano') : $this->translator->translate('.no', 'Ne')) :
-						($value->parameter->type === 'list' ? \str_replace(';', ', ', $value->content) : $value->content);
+					if($value->parameter->type == 'bool'){
+						$data['values'][$group->getPK()][$parameter->getPK()][$product->getPK()] = $value->metaValue ? $this->translator->translate('.yes', 'Ano') : $this->translator->translate('.no', 'Ne');
+					}elseif ($value->parameter->type == 'list'){
+						$allowed = \array_combine(\explode(';', $parameter->allowedKeys ?? ''), \explode(';', $parameter->allowedValues ?? ''));
+						$metaValue = \explode(';', $value->metaValue);
+						$finalMeta = [];
+						foreach ($metaValue as $metaV){
+							$finalMeta[] = $allowed[$metaV];
+						}
+
+						$data['values'][$group->getPK()][$parameter->getPK()][$product->getPK()] = \implode(', ',$finalMeta);
+					}else{
+						$data['values'][$group->getPK()][$parameter->getPK()][$product->getPK()] = $value->content;
+					}
 				}
 			}
 		}
@@ -168,7 +179,11 @@ class CompareManager
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->one($product, true);
 
-		if (!$parameterCategory = $this->categoryRepository->getParameterCategoryOfCategory($product->getPrimaryCategory())) {
+		if (!$productCategory = $product->getPrimaryCategory()) {
+			return;
+		};
+
+		if (!$parameterCategory = $this->categoryRepository->getParameterCategoryOfCategory($productCategory)) {
 			return;
 		}
 

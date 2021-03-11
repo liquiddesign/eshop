@@ -164,18 +164,23 @@ class Order extends \StORM\Entity
 
 		return $grouped;
 	}
-	
+
 	public function getPayment(): ?Payment
 	{
 		$payments = clone $this->payments;
-		
+
 		return $payments->orderBy(['createdTs' => 'DESC'])->first();
 	}
-	
+
 	public function getLastDelivery(): ?Delivery
 	{
 		$deliveries = clone $this->deliveries;
-		
+
 		return $deliveries->orderBy(['createdTs' => 'DESC'])->first();
+	}
+
+	public function getDiscountCoupon(): ?DiscountCoupon
+	{
+		return $this->purchase->coupon;
 	}
 }
