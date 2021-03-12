@@ -48,7 +48,7 @@ class SupplierProductPresenter extends \Nette\Application\UI\Presenter
 	
 	public function createComponentGrid()
 	{
-		$grid = $this->gridFactory->create($this->supplierProductRepository->many(), 20, 'createdTs', 'ASC', true);
+		$grid = $this->gridFactory->create($this->supplierProductRepository->many()->where('fk_supplier', $this->tab), 20, 'createdTs', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Aktualizace', "updatedTs|date:'d.m.Y'", '%s', 'updatedTs', ['class' => 'fit']);
 		$grid->addColumn('Párovat podle', function (SupplierProduct $product) {
@@ -130,14 +130,14 @@ class SupplierProductPresenter extends \Nette\Application\UI\Presenter
 			
 			/** @var \Eshop\DB\Supplier $supplier */
 			$supplier = $this->getParameter('supplier');
-	
+			
 			$currency = 'CZK';
 			$mutation = 'cs';
 			$country = 'CZ';
-	
+			
 			$this->supplierProductRepository->syncProducts($supplier, $mutation, $country, $values['overwrite']);
 			
-			foreach (['B2B', 'B2C'] as $type) {
+			foreach (['A'] as $type) {
 				$pricelist = $this->pricelistRepository->syncOne([
 					'uuid' => DIConnection::generateUuid($supplier->getPK(), $type),
 					'name' => $supplier->name . " ($type)",
@@ -148,7 +148,7 @@ class SupplierProductPresenter extends \Nette\Application\UI\Presenter
 				
 				$this->supplierProductRepository->syncPrices($supplier, $pricelist, $type);
 			}
-		
+			
 			$this->flashMessage('Uloženo', 'success');
 			$form->getPresenter()->redirect('default');
 		};
@@ -167,6 +167,7 @@ class SupplierProductPresenter extends \Nette\Application\UI\Presenter
 		
 		$this->template->tabs = [
 			'atc' => 'AT Computers',
+			'agem' => 'Agem.cz',
 		];
 		
 		$supplier = new Supplier(['uuid' => $this->tab]);
