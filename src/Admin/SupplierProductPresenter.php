@@ -169,6 +169,8 @@ class SupplierProductPresenter extends \Nette\Application\UI\Presenter
 		$this->template->tabs = [
 			'atc' => 'AT Computers',
 			'agem' => 'Agem.cz',
+			'tc' => 'Tonercentrum.cz',
+			'arles' => 'Arles.cz',
 		];
 		
 		$supplier = new Supplier(['uuid' => $this->tab]);
