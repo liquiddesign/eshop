@@ -113,6 +113,7 @@ class CategoryPresenter extends \Nette\Application\UI\Presenter
 
 		$imagePicker->onDelete[] = function (array $directories, $filename) use($category) {
 			$this->onDelete($category);
+			$this->redirect('this');
 		};
 		
 		$nameInput = $form->addLocaleText('name', 'Název');

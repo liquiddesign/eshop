@@ -105,6 +105,7 @@ class PaymentTypePresenter extends \Nette\Application\UI\Presenter
 
 		$imagePicker->onDelete[] = function (array $directories, $filename) use($paymentType) {
 			$this->onDelete($paymentType);
+			$this->redirect('this');
 		};
 		
 		$form->addLocaleText('name', 'Název');

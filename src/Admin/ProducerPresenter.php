@@ -78,6 +78,7 @@ class ProducerPresenter extends \Nette\Application\UI\Presenter
 
 		$imagePicker->onDelete[] = function () use ($producer) {
 			$this->onDelete($producer);
+			$this->redirect('this');
 		};
 
 		$form->addLocalePerexEdit('perex', 'Perex');
@@ -156,6 +157,5 @@ class ProducerPresenter extends \Nette\Application\UI\Presenter
 	{
 		$this->onDeleteImage($object);
 		$this->onDeletePage($object);
-		$this->redirect('this');
 	}
 }

@@ -79,6 +79,7 @@ class RibbonPresenter extends \Nette\Application\UI\Presenter
 
 		$imagePicker->onDelete[] = function () use ($ribbon) {
 			$this->onDelete($ribbon);
+			$this->redirect('this');
 		};
 
 		$form->addSelect('type', 'Typ', $this::TYPES);

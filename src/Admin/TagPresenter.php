@@ -80,6 +80,7 @@ class TagPresenter extends \Nette\Application\UI\Presenter
 
 		$imagePicker->onDelete[] = function () use ($tag) {
 			$this->onDelete($tag);
+			$this->redirect('this');
 		};
 
 		$form->addLocalePerexEdit('perex', 'Perex');
