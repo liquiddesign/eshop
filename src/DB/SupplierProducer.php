@@ -7,12 +7,13 @@ namespace Eshop\DB;
 /**
  * Mapování výrobců
  * @table
+ * @index{"name":"supplier_producer_name","unique":true,"columns":["name","fk_supplier"]}
  */
 class SupplierProducer extends \StORM\Entity
 {
 	/**
 	 * Vzor na mapování
-	 * @column{"unique":true}
+	 * @column
 	 */
 	public string $name;
 	

@@ -7,12 +7,13 @@ namespace Eshop\DB;
 /**
  * Mapování dostupnosti
  * @table
+ * @index{"name":"supplier_deliveryamount_name","unique":true,"columns":["name","fk_supplier"]}
  */
 class SupplierDisplayAmount extends \StORM\Entity
 {
 	/**
 	 * Vzor na mapování
-	 * @column{"unique":true}
+	 * @column
 	 */
 	public string $name;
 	
