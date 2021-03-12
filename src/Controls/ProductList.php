@@ -69,6 +69,9 @@ class ProductList extends Datalist
 		$this->addFilterExpression('priceTo', function (ICollection $collection, $value): void {
 			$collection->where('price <= :priceTo', ['priceTo' => (float)$value]);
 		}, '');
+		$this->addFilterExpression('producer', function (ICollection $collection, $value): void {
+			$collection->where('fk_producer', $value);
+		}, '');
 		$this->addFilterExpression('inStock', function (ICollection $collection, $value): void {
 			if ($value) {
 				$collection

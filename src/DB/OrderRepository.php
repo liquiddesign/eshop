@@ -5,15 +5,29 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use League\Csv\Writer;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 use Nette\Utils\DateTime;
 use StORM\Collection;
-use StORM\Entity;
+use StORM\DIConnection;
+use StORM\SchemaManager;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Order>
  */
 class OrderRepository extends \StORM\Repository
 {
+	/**
+	 * @var \Nette\Caching\Cache
+	 */
+	private Cache $cache;
+
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Storage $storage)
+	{
+		parent::__construct($connection, $schemaManager);
+		$this->cache = new Cache($storage);
+	}
+
 	/**
 	 * @param string $customerId
 	 * @return \StORM\Collection|\Eshop\DB\Order[]
@@ -304,7 +318,7 @@ class OrderRepository extends \StORM\Repository
 	 * @param \Nette\Utils\DateTime $to
 	 * @return \StORM\Collection
 	 */
-	public function getOrdersByUserInRange($user, DateTime $from, DateTime $to): Collection
+	public function getOrdersByUserInRange($user, DateTime $from, DateTime $to): ?Collection
 	{
 		$from->setTime(0, 0);
 		$to->setTime(23, 59, 59);
@@ -328,26 +342,25 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		return $collection;
-
 	}
-	
+
 	public function getEmailVariables(Order $order): array
 	{
 		$purchase = $order->purchase;
 		$items = [];
-		
+
 		/** @var \Eshop\DB\CartItem $cartItem */
 		foreach ($purchase->getItems() as $cartItem) {
 			$items[$cartItem->getPK()] = $cartItem->toArray();
 			$items[$cartItem->getPK()]['fullCode'] = $cartItem->getFullCode();
-			$items[$cartItem->getPK()]['totalPrice'] =  $cartItem->getPriceSum();
+			$items[$cartItem->getPK()]['totalPrice'] = $cartItem->getPriceSum();
 			$items[$cartItem->getPK()]['totalPriceVat'] = $cartItem->getPriceVatSum();
 		}
-		
+
 		$deliveryPrice = $order->getDeliveryPriceVatSum();
 		$paymentPrice = $order->getPaymentPriceVatSum();
 		$totalDeliveryPrice = $deliveryPrice + $paymentPrice;
-		
+
 		$values = [
 			'orderCode' => $order->code,
 			'currencyCode' => $order->currency->code,
@@ -365,13 +378,57 @@ class OrderRepository extends \StORM\Repository
 			'paymentPrice' => $order->payments->firstValue('price'),
 			'paymentPriceVat' => $order->payments->firstValue('priceVat'),
 			'billName' => $purchase->fullname,
-			'billingAddress' =>  $purchase->billAddress->jsonSerialize(),
+			'billingAddress' => $purchase->billAddress->jsonSerialize(),
 			'deliveryAddress' => $purchase->deliveryAddress ? $purchase->deliveryAddress->jsonSerialize() : $purchase->billAddress->jsonSerialize(),
 			'totalPrice' => $order->getTotalPrice(),
 			'totalPriceVat' => $order->getTotalPriceVat(),
 		];
-		
+
 		return $values;
 	}
 
+	public function getProductUniqueOrderCountInDateRange($product, DateTime $from, DateTime $to): int
+	{
+		/** @var \Eshop\DB\ProductRepository $productRepository */
+		$productRepository = $this->getConnection()->findRepository(Product::class);
+
+		if (!$product instanceof Product) {
+			if (!$product = $productRepository->one($product)) {
+				return 0;
+			}
+		}
+
+		return $this->cache->load("uniqueOrderCount_" . $product->getPK(), function (&$dependencies) use ($product, $from, $to) {
+			$dependencies = [
+				Cache::TAGS => 'stats',
+			];
+
+			$from->setTime(0, 0);
+			$to->setTime(23, 59, 59);
+			$fromString = $from->format('Y-m-d\TH:i:s');
+			$toString = $to->format('Y-m-d\TH:i:s');
+
+			/** @var \Eshop\DB\Order[] $orders */
+			$orders = $this->many()
+				->select(["date" => "DATE_FORMAT(createdTs, '%Y-%m')"])
+				->where('completedTs IS NOT NULL')
+				->where('createdTs >= :from AND createdTs <= :to', ['from' => $fromString, 'to' => $toString])
+				->orderBy(["date"]);
+
+			$count = 0;
+			foreach ($orders as $order) {
+				/** @var \Eshop\DB\CartItem[] $items */
+				$items = $order->getGroupedItems();
+
+				foreach ($items as $item) {
+					if ($item->productName == $product->name || ($item->product && $item->product->getPK() == $product->getPK())) {
+						$count++;
+						break;
+					}
+				}
+			}
+
+			return $count;
+		});
+	}
 }
