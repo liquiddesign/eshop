@@ -26,7 +26,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$this->shopper = $shopper;
 	}
 
-	static public function generateUuid(?string $ean, ?string $fullCode, ?string $supplierCode)
+	static public function generateUuid(?string $ean, ?string $fullCode)
 	{
 		$namespace = 'product';
 
@@ -34,10 +34,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 			return DIConnection::generateUuid($namespace, $ean);
 		} elseif ($fullCode) {
 			return DIConnection::generateUuid($namespace, $fullCode);
-		} elseif ($supplierCode) {
-			return DIConnection::generateUuid($namespace, $supplierCode);
 		}
-
+		
 		throw new \InvalidArgumentException('There is no unique parameter');
 	}
 
