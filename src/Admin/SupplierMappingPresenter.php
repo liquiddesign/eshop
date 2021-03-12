@@ -423,5 +423,15 @@ class SupplierMappingPresenter extends \Nette\Application\UI\Presenter
 			$this->redirect('default');
 		};
 	}
-
+	
+	public function renderBulkEdit(string $grid = 'grid')
+	{
+		$this->template->headerLabel = 'Hromadná úprava';
+		$this->template->headerTree = [
+			['Zákazníci', 'default'],
+			['Hromadná úprava'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('grid-bulkForm')];
+	}
 }

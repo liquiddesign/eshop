@@ -69,28 +69,28 @@ class SupplierProduct extends \StORM\Entity
 	public ?float $vatRate;
 	
 	/**
-	 * B2C Cena bez DPH
+	 * Cena A bez DPH
 	 * @column
 	 */
-	public ?float $priceB2C;
+	public ?float $priceA;
 	
 	/**
-	 * B2C Cena s DPH
+	 * Cena B s DPH
 	 * @column
 	 */
-	public ?float $priceVatB2C;
+	public ?float $priceVatA;
 	
 	/**
-	 * B2B Cena bez DPH
+	 * Cena B bez DPH
 	 * @column
 	 */
-	public ?float $priceB2B;
+	public ?float $priceB;
 	
 	/**
-	 * B2B Cena s DPH
+	 * Cena B s DPH
 	 * @column
 	 */
-	public ?float $priceVatB2B;
+	public ?float $priceVatB;
 	
 	/**
 	 * Množství

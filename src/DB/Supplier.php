@@ -11,6 +11,12 @@ namespace Eshop\DB;
 class Supplier extends \StORM\Entity
 {
 	/**
+	 * Kód
+	 * @column{"unique":true}
+	 */
+	public ?string $code;
+	
+	/**
 	 * Název
 	 * @column
 	 */

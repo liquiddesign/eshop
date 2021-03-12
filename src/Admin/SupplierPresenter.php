@@ -73,6 +73,7 @@ class SupplierPresenter extends \Nette\Application\UI\Presenter
 		$form = $this->formFactory->create();
 		
 		$form->addGroup('Obecné');
+		$form->addText('code', 'Kód');
 		$form->addText('name', 'Název')->setRequired();
 		$form->addText('phone', 'Telefon');
 		$form->addEmail('email', 'Email');

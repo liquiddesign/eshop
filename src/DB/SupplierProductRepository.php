@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use App\Web\DB\Page;
 use Nette\DI\Container;
 use StORM\DIConnection;
 use StORM\ICollection;
@@ -51,14 +52,14 @@ class SupplierProductRepository extends \StORM\Repository
 		
 		foreach ($supplierProductRepository->many()->where('fk_supplier', $supplier)->where('active', true) as $draft) {
 			
-			// ean -> code.Subcode -> supplierCode
-			$uuid = ProductRepository::generateUuid($draft->ean, $draft->getProductFullCode(), $draft->code);
+			$code = $draft->productCode ?: $supplier->code . '-' . $draft->code;
+			$uuid = ProductRepository::generateUuid($draft->ean, $draft->getProductFullCode() ?: $supplier->code . '-' . $draft->code);
 			$values = [
 				'uuid' => $uuid,
 				'ean' => $draft->ean ?: null,
-				'code' => $draft->productCode,
+				'code' => $code,
 				'subCode' => $draft->productSubCode,
-				'supplierCode' => !$draft->ean && !$draft->productCode ? $draft->code : null, // jen pokud neni mozne parovat
+				'supplierCode' => $draft->code, // jen pokud neni mozne parovat
 				'name' => [$mutation => $draft->name],
 				//'perex' => [$mutation => substr($draft->content, 0, 150)],
 				'content' => [$mutation => $draft->content],
@@ -86,6 +87,10 @@ class SupplierProductRepository extends \StORM\Repository
 			
 			if ($draft->getValue('product') !== $uuid) {
 				$draft->update(['product' => $uuid]);
+			}
+			
+			if (!is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
+				continue;
 			}
 			
 			$mtime = \filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
