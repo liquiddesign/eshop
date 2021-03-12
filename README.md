@@ -8,3 +8,6 @@ Služby, entity, administrace a kontroly pro eshop
 ☞ [Dropbox paper](https://paper.dropbox.com/doc/E-Eshop--BGZLihaxZHQ3iGcTOQkPYfXrAg-eOMqwxUnWnQGWEGWGxnHl)
 
 ## TODO
+
+##Cache
+Všechny statistiky mají dependency tag "stats".
