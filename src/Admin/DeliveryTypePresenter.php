@@ -123,6 +123,7 @@ class DeliveryTypePresenter extends \Nette\Application\UI\Presenter
 
 		$imagePicker->onDelete[] = function (array $directories, $filename) use($deliveryType) {
 			$this->onDelete($deliveryType);
+			$this->redirect('this');
 		};
 		
 		$form->addLocaleText('name', 'Název');

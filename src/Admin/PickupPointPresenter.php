@@ -260,6 +260,7 @@ class PickupPointPresenter extends \Nette\Application\UI\Presenter
 
 		$imagePicker->onDelete[] = function (array $directories, $filename) {
 			$this->onDelete($this->getParameter('pickupPointType'));
+			$this->redirect('this');
 		};
 
 		$form->addInteger('priority', 'Priorita')
