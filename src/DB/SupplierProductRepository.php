@@ -6,11 +6,11 @@ namespace Eshop\DB;
 
 use App\Web\DB\Page;
 use Nette\DI\Container;
+use Nette\Utils\Strings;
 use StORM\DIConnection;
 use StORM\ICollection;
 use StORM\InsertResult;
 use StORM\Literal;
-use StORM\Repository;
 use StORM\SchemaManager;
 
 /**
@@ -35,6 +35,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$vatLevels = $this->getConnection()->findRepository(VatRate::class)->many()->where('fk_country', $country)->setIndex('rate')->toArrayOf('uuid');
 		$supplierProductRepository = $this->getConnection()->findRepository(SupplierProduct::class);
 		$productRepository = $this->getConnection()->findRepository(Product::class);
+		$pagesRepository = $this->getConnection()->findRepository(Page::class);
 		
 		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$mutation];
 		
@@ -67,9 +68,9 @@ class SupplierProductRepository extends \StORM\Repository
 				'imageFileName' => $draft->fileName,
 				'vatRate' => $vatLevels[(int) $draft->vatRate] ?? 'standard',
 				'producer' => $draft->producer->getValue('producer'),
-				'displayAmount' => $draft->displayAmount->getValue('displayAmount'),
+				'displayAmount' => $draft->displayAmount ? $draft->displayAmount->getValue('displayAmount') : null,
 				'categories' => $draft->category->getValue('category') ? [$draft->category->getValue('category')] : [],
-				'primaryCategory' => $draft->category->getValue('category'),
+				'primaryCategory' => $draft->category ? $draft->category->getValue('category') : null,
 				'supplierLock' => $supplier->importPriority,
 				'supplierSource' => $supplier,
 			];
@@ -103,6 +104,14 @@ class SupplierProductRepository extends \StORM\Repository
 				\touch($targetImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $mtime);
 				\touch($targetImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $mtime);
 			}
+			
+			$pagesRepository->syncOne([
+				'uuid' => $uuid,
+				'url' => ['cs' => Strings::webalize($draft->name) . '-' . Strings::webalize($code)],
+				'title' => ['cs' => $draft->name],
+				'params' => "product=$uuid&",
+				'type' => 'product_detail',
+			], []);
 		}
 	}
 	

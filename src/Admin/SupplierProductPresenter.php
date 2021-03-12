@@ -144,6 +144,7 @@ class SupplierProductPresenter extends \Nette\Application\UI\Presenter
 					'isActive' => false,
 					'currency' => $currency,
 					'country' => $country,
+					'supplier' => $supplier,
 				], ['currency', 'country']);
 				
 				$this->supplierProductRepository->syncPrices($supplier, $pricelist, $type);
