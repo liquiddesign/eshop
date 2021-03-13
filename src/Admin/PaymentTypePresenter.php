@@ -251,10 +251,10 @@ class PaymentTypePresenter extends \Nette\Application\UI\Presenter
 		$this->template->headerLabel = 'Ceník typu platby';
 		$this->template->headerTree = [
 			['Typy platby', 'default'],
-			['Ceník typu platby', ':Eshop:Admin:Paymenttype:prices', $paymentType],
+			['Ceník typu platby', ':Eshop:Admin:PaymentType:prices', $paymentType],
 			['Nová cena'],
 		];
-		$this->template->displayButtons = [$this->createBackButton(':Eshop:Admin:Paymenttype:prices', $paymentType)];
+		$this->template->displayButtons = [$this->createBackButton(':Eshop:Admin:PaymentType:prices', $paymentType)];
 		$this->template->displayControls = [$this->getComponent('pricesForm')];
 	}
 	

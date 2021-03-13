@@ -267,10 +267,10 @@ class DeliveryTypePresenter extends \Nette\Application\UI\Presenter
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
 			['Typy dopravy', 'default'],
-			['Ceník typu dopravy', ':Eshop:Admin:Deliverytype:prices', $deliveryType],
+			['Ceník typu dopravy', ':Eshop:Admin:DeliveryType:prices', $deliveryType],
 			['Nová položka'],
 		];
-		$this->template->displayButtons = [$this->createBackButton(':Eshop:Admin:Deliverytype:prices', $deliveryType)];
+		$this->template->displayButtons = [$this->createBackButton(':Eshop:Admin:DeliveryType:prices', $deliveryType)];
 		$this->template->displayControls = [$this->getComponent('pricesForm')];
 	}
 }
