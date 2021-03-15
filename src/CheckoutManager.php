@@ -361,7 +361,7 @@ class CheckoutManager
 		}
 		
 		$cartItem = $this->itemRepository->syncItem($cart ?? $this->getCart(), null, $product, $variant, $amount);
-
+		
 		$this->refreshSumProperties();
 		
 		return $cartItem;
@@ -517,7 +517,7 @@ class CheckoutManager
 				$incorrectItems[] = [
 					'object' => $cartItem,
 					'reason' => 'incorrect-price',
-					'correctValue' => \floatval($this->productRepository->getProduct($cartItem->product->getPK())->getValue('price')),
+					'correctValue' => \floatval($this->productRepository->getProduct($cartItem->product->getPK())->getPrice($cartItem->amount)),
 				];
 			}
 			
@@ -752,8 +752,8 @@ class CheckoutManager
 	
 	public function checkCartItemPrice(CartItem $cartItem): bool
 	{
-		$productPrice = $this->productRepository->getProduct($cartItem->product->getPK())->getValue('price');
-
+		$productPrice = $this->productRepository->getProduct($cartItem->product->getPK())->getPrice((int) $cartItem->amount);
+		
 		return \floatval($productPrice) === $cartItem->price;
 	}
 	
@@ -801,7 +801,7 @@ class CheckoutManager
 			'password' => $purchase->password,
 			'active' => true,
 			'authorized' => true,
-//			'confirmationToken' => $token,
+			//			'confirmationToken' => $token,
 		]);
 		
 		return $this->customerRepository->createNew([

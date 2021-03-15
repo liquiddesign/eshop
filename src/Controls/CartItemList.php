@@ -59,20 +59,21 @@ class CartItemList extends Datalist
 		return new Multiplier(function ($itemId) use ($checkoutManager, $cartItemRepository, $shopper) {
 			/** @var \Eshop\DB\CartItem $cartItem */
 			$cartItem = $cartItemRepository->one($itemId);
-			$product = $cartItem->product;
+			$product = $cartItem->getProduct();
+			
 			
 			$form = new Form();
 			
-//			$maxCount = $product->maxBuyCount ?? $shopper->getMaxBuyCount();
+			//			$maxCount = $product->maxBuyCount ?? $shopper->getMaxBuyCount();
 			$amountInput = $form->addInteger('amount');
-//
-//			if ($maxCount !== null) {
-//				$amountInput->addRule($form::MAX, 'Překročeno povolené množství', $product->maxBuyCount ?? $shopper->getMaxBuyCount());
-//			}
-//
-//			if ($product->buyStep !== null) {
-//				$amountInput->addRule([$this, 'validateNumber'], 'Není to násobek', $product->buyStep);
-//			}
+			//
+			//			if ($maxCount !== null) {
+			//				$amountInput->addRule($form::MAX, 'Překročeno povolené množství', $product->maxBuyCount ?? $shopper->getMaxBuyCount());
+			//			}
+			//
+			//			if ($product->buyStep !== null) {
+			//				$amountInput->addRule([$this, 'validateNumber'], 'Není to násobek', $product->buyStep);
+			//			}
 			
 			$form->onSuccess[] = function ($form, $values) use ($cartItem, $product, $checkoutManager): void {
 				$amount = \intval($values->amount);

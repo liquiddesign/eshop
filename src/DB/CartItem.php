@@ -94,6 +94,13 @@ class CartItem extends \StORM\Entity
 	public ?Product $product;
 	
 	/**
+	 * Ceník
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @relation
+	 */
+	public ?Pricelist $pricelist;
+	
+	/**
 	 * Varianta
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 * @relation
@@ -106,6 +113,19 @@ class CartItem extends \StORM\Entity
 	 * @relation
 	 */
 	public Cart $cart;
+	
+	public function getProduct(): ?Product
+	{
+		if ($this->product) {
+			$this->product->setValue('price', $this->price);
+			$this->product->setValue('priceVat', $this->priceVat);
+			$this->product->setValue('pricelist', $this->pricelist);
+			
+			return $this->product;
+		}
+		
+		return null;
+	}
 	
 	public function getPriceSum(): float
 	{
