@@ -67,6 +67,7 @@ class ProductList extends Datalist
 			$this->setDefaultOnPage(5);
 			$collection->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=this.uuid');
 			$collection->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
+			$collection->where('categories.path LIKE :cp',['cp' => "$value%"]);
 			$collection->orderBy(['LENGTH(categories.path)' => 'DESC']);
 		});
 
