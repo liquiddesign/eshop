@@ -392,13 +392,16 @@ class OrderRepository extends \StORM\Repository
 		/** @var \Eshop\DB\ProductRepository $productRepository */
 		$productRepository = $this->getConnection()->findRepository(Product::class);
 
+		/** @var \Eshop\DB\CartItemRepository $cartItemRepository */
+		$cartItemRepository = $this->getConnection()->findRepository(CartItem::class);
+
 		if (!$product instanceof Product) {
 			if (!$product = $productRepository->one($product)) {
 				return 0;
 			}
 		}
 
-		return $this->cache->load("uniqueOrderCount_" . $product->getPK(), function (&$dependencies) use ($product, $from, $to) {
+		return $this->cache->load("uniqueOrderCount_" . $product->getPK(), function (&$dependencies) use ($product, $from, $to, $cartItemRepository) {
 			$dependencies = [
 				Cache::TAGS => 'stats',
 			];
@@ -408,27 +411,15 @@ class OrderRepository extends \StORM\Repository
 			$fromString = $from->format('Y-m-d\TH:i:s');
 			$toString = $to->format('Y-m-d\TH:i:s');
 
-			/** @var \Eshop\DB\Order[] $orders */
-			$orders = $this->many()
-				->select(["date" => "DATE_FORMAT(createdTs, '%Y-%m')"])
-				->where('completedTs IS NOT NULL')
-				->where('createdTs >= :from AND createdTs <= :to', ['from' => $fromString, 'to' => $toString])
-				->orderBy(["date"]);
-
-			$count = 0;
-			foreach ($orders as $order) {
-				/** @var \Eshop\DB\CartItem[] $items */
-				$items = $order->getGroupedItems();
-
-				foreach ($items as $item) {
-					if ($item->productName == $product->name || ($item->product && $item->product->getPK() == $product->getPK())) {
-						$count++;
-						break;
-					}
-				}
-			}
-
-			return $count;
+			return $cartItemRepository->many()
+				->join(['cart' => 'eshop_cart'], 'this.fk_cart = cart.uuid')
+				->join(['purchase' => 'eshop_purchase'], 'cart.fk_purchase = purchase.uuid')
+				->join(['orderTable' => 'eshop_order'], 'orderTable.fk_purchase = purchase.uuid')
+				->select(["date" => "DATE_FORMAT(order.createdTs, '%Y-%m')"])
+				->where('orderTable.completedTs IS NOT NULL')
+				->where('orderTable.createdTs >= :from AND orderTable.createdTs <= :to', ['from' => $fromString, 'to' => $toString])
+				->where('this.fk_product', $product->getPK())
+				->enum();
 		});
 	}
 }
