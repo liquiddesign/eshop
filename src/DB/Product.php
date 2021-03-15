@@ -339,10 +339,23 @@ class Product extends \StORM\Entity
 	/**
 	 * @return \Eshop\DB\Ribbon[]
 	 */
-	public function getRibbons(): array
+	public function getImageRibbons(): array
 	{
 		$ids = $this->getValue('ribbonsIds');
-		$riboons = $this->getConnection()->findRepository(Ribbon::class)->getRibbons();
+		
+		$riboons = $this->getConnection()->findRepository(Ribbon::class)->getImageRibbons();
+		
+		return \array_intersect_key($riboons->toArray(), \array_flip(\explode(',', $ids ?? '')));
+	}
+	
+	/**
+	 * @return \Eshop\DB\Ribbon[]
+	 */
+	public function getTextRibbons(): array
+	{
+		$ids = $this->getValue('ribbonsIds');
+		
+		$riboons = $this->getConnection()->findRepository(Ribbon::class)->getTextRibbons();
 		
 		return \array_intersect_key($riboons->toArray(), \array_flip(\explode(',', $ids ?? '')));
 	}

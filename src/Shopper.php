@@ -91,6 +91,8 @@ class Shopper
 	private string $currencyCode;
 
 	private ?Customer $customer = null;
+	
+	private ?CustomerGroup $customerGroup;
 
 	public function __construct(
 		User $user,
@@ -190,6 +192,7 @@ class Shopper
 	public function setCustomer(Customer $customer): void
 	{
 		$this->customer = $customer;
+		$this->customerGroup = null;
 	}
 	
 	public function getMerchant(): ?Merchant
@@ -201,7 +204,7 @@ class Shopper
 	{
 		$customer = $this->getCustomer();
 		
-		return $customer ? $customer->group : $this->customerGroupRepository->getUnregisteredGroup();
+		return $this->customerGroup ??= $customer ? $customer->group : $this->customerGroupRepository->getUnregisteredGroup();
 	}
 	
 	public function getMinimalOrderValue()

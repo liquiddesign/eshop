@@ -11,11 +11,18 @@ use StORM\Collection;
  */
 class RibbonRepository extends \StORM\Repository implements IGeneralRepository
 {
-	private ?Collection $ribbons = null;
+	private Collection $imageRibbons;
 	
-	public function getRibbons(): Collection
+	private Collection $textRibbons;
+	
+	public function getImageRibbons(): Collection
 	{
-		return $this->ribbons ??= $this->many()->where('hidden', false)->orderBy(['priority']);
+		return $this->imageRibbons ??= $this->many()->where('type', 'onlyImage')->where('hidden', false)->orderBy(['priority']);
+	}
+	
+	public function getTextRibbons(): Collection
+	{
+		return $this->textRibbons ??= $this->many()->where('type', 'normal')->where('hidden', false)->orderBy(['priority']);
 	}
 	
 	public function getArrayForSelect(bool $includeHidden = true): array

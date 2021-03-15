@@ -4,23 +4,25 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use StORM\Collection;
-
 /**
  * @extends \StORM\Repository<\Eshop\DB\UserGroup>
  */
 class CustomerGroupRepository extends \StORM\Repository
 {
 	public const UNREGISTERED_PK = 'unregistred';
+	
+	private ?CustomerGroup $unregisteredGroup;
+	
+	private ?CustomerGroup $defaultRegistrationGroup;
 
 	public function getUnregisteredGroup(): CustomerGroup
 	{
-		return $this->one(self::UNREGISTERED_PK, true);
+		return $this->unregisteredGroup ??= $this->one(self::UNREGISTERED_PK, true);
 	}
 
 	public function getDefaultRegistrationGroup(): ?CustomerGroup
 	{
-		return $this->many()->where('defaultAfterRegistration = 1')->fetch();
+		return $this->defaultRegistrationGroup ??= $this->many()->where('defaultAfterRegistration = 1')->fetch();
 	}
 
 	public function getRegisteredGroupsArray(): array
