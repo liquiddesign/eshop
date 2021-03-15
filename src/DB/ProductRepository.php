@@ -35,7 +35,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		} elseif ($fullCode) {
 			return DIConnection::generateUuid($namespace, $fullCode);
 		}
-		
+
 		throw new \InvalidArgumentException('There is no unique parameter');
 	}
 
@@ -365,5 +365,27 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$result = $this->getSlaveProductsByRelationAndMaster($relation, $product);
 
 		return $result ? $result->enum() : 0;
+	}
+
+	/**
+	 * @param \Eshop\DB\Customer|\Eshop\DB\Merchant $user
+	 * @return \StORM\Collection|\StORM\GenericCollection|array
+	 */
+	public function getBoughtPrintersByUser($user)
+	{
+		if (!$user instanceof Customer && !$user instanceof Merchant) {
+			return [];
+		}
+
+		return $this->many()
+			->join(['cartitem' => 'eshop_cartitem'], 'this.uuid = cartitem.fk_product')
+			->join(['relation' => 'eshop_related'], 'cartitem.fk_product = relation.fk_slave')
+			->join(['cart' => 'eshop_cart'], 'cartitem.fk_cart = cart.uuid')
+			->join(['purchase' => 'eshop_purchase'], 'cart.fk_purchase = purchase.uuid')
+			->join(['orderTable' => 'eshop_order'], 'orderTable.fk_purchase = purchase.uuid')
+			->where('orderTable.fk_customer', $user->getPK())
+			->where('relation.fk_type','tonerForPrinter')
+			->where('orderTable.completedTs IS NOT NULL')
+			->orderBy(['orderTable.completedTs' => 'DESC']);
 	}
 }

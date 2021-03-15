@@ -83,6 +83,12 @@ class ProductList extends Datalist
 			$collection->filter(['q' => $value]);
 		});
 
+		$this->addFilterExpression('relatedSlave', function (ICollection $collection, $value): void {
+			$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave');
+			$collection->where('related.fk_type', $value[0]);
+			$collection->where('related.fk_master', $value[1]);
+		});
+
 		$this->addFilterExpression('toners', function (ICollection $collection, $value): void {
 			$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_master');
 			$collection->where('related.fk_slave', $value);
@@ -116,8 +122,8 @@ class ProductList extends Datalist
 							$implodedValues = "'" . \implode("','", $parameter) . "'";
 							$query .= "(parametervalue.fk_parameter = '$pKey' AND parametervalue.metaValue IN ($implodedValues))";
 							$query .= ' OR ';
-						}elseif ($parameters[$pKey]->type == 'bool') {
-							if($parameter === '1'){
+						} elseif ($parameters[$pKey]->type == 'bool') {
+							if ($parameter === '1') {
 								$query .= "(parametervalue.fk_parameter = '$pKey' AND parametervalue.metaValue = '1')";
 								$query .= ' OR ';
 							}
@@ -262,7 +268,7 @@ class ProductList extends Datalist
 					$templateFilters[$pKey] = $parameters[$pKey]->name . ': ' . \implode(', ', $parameter);
 				} elseif ($parameters[$pKey]->type == 'bool') {
 					// bool
-					if($parameter === '1'){
+					if ($parameter === '1') {
 						$templateFilters[$pKey] = $parameters[$pKey]->name;
 					}
 				} else {
