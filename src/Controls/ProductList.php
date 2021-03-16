@@ -72,8 +72,16 @@ class ProductList extends Datalist
 
 		$this->addFilterExpression('crossSellFilter', function (ICollection $collection, $value): void {
 			[$path, $currentProduct] = $value;
-			$collection->where('this.uuid != :currentProduct',['currentProduct' => "$currentProduct"]);
-			$collection->where('categories.path LIKE :cp',['cp' => "%$path"]);
+
+			$collection->where('this.uuid != :currentProduct', ['currentProduct' => "$currentProduct"]);
+
+			$sql = '';
+
+			foreach (\str_split($path, 4) as $path) {
+				$sql .= " categories.path LIKE '%$path' OR";
+			}
+
+			$collection->where(\substr($sql, 0, -2));
 		});
 
 		$this->setAllowedRepositoryFilters(['category', 'tag', 'producer', 'related', 'recommended', 'q']);
