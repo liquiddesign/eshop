@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use Admin\DB\AdministratorRepository;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
@@ -12,10 +13,8 @@ use App\Admin\PresenterTrait;
 use Forms\Form;
 use Security\DB\AccountRepository;
 
-class ProfilePresenter extends \Nette\Application\UI\Presenter
+class ProfilePresenter extends BackendPresenter
 {
-	use PresenterTrait;
-
 	/** @inject */
 	public AccountRepository $accountRepo;
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminFormFactory;
 use Eshop\DB\File;
 use Eshop\DB\FileRepository;
@@ -11,12 +12,8 @@ use Eshop\DB\Product;
 use Forms\Form;
 use Nette\Utils\FileSystem;
 
-class FilePresenter extends \Nette\Application\UI\Presenter
+class FilePresenter extends BackendPresenter
 {
-	use \App\Admin\PresenterTrait;
-	
-	
-	
 	/** @inject */
 	public FileRepository $fileRepository;
 	

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\CustomValidators;
 use App\Admin\PresenterTrait;
@@ -20,10 +21,8 @@ use Forms\Form;
 use Grid\Datagrid;
 use StORM\Connection;
 
-class DiscountPresenter extends \Nette\Application\UI\Presenter
+class DiscountPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-
 	/** @inject */
 	public DiscountRepository $discountRepository;
 

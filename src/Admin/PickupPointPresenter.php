@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminGrid;
 use App\Admin\PresenterTrait;
@@ -18,10 +19,8 @@ use Nette\Utils\Image;
 use StORM\DIConnection;
 use StORM\ICollection;
 
-class PickupPointPresenter extends \Nette\Application\UI\Presenter
+class PickupPointPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-
 	/** @inject */
 	public PickupPointTypeRepository $pickupPointTypeRepo;
 

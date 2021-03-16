@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
 use App\Admin\PresenterTrait;
@@ -19,10 +20,8 @@ use Security\Authenticator;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
 
-class MerchantPresenter extends Presenter
+class MerchantPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-	
 	/** @inject */
 	public AccountFormFactory $accountFormFactory;
 	

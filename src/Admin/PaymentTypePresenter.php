@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminGrid;
 use App\Admin\PresenterTrait;
@@ -21,10 +22,8 @@ use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use StORM\DIConnection;
 
-class PaymentTypePresenter extends \Nette\Application\UI\Presenter
+class PaymentTypePresenter extends BackendPresenter
 {
-	use PresenterTrait;
-	
 	/** @inject */
 	public PaymentTypeRepository $paymentTypeRepository;
 	

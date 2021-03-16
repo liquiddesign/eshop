@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\PresenterTrait;
 use Eshop\DB\Producer;
@@ -16,10 +17,8 @@ use Pages\Helpers;
 use StORM\DIConnection;
 use StORM\Entity;
 
-class ProducerPresenter extends \Nette\Application\UI\Presenter
+class ProducerPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-
 	/** @inject */
 	public ProducerRepository $producerRepository;
 

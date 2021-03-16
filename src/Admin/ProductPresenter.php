@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminGrid;
 use App\Admin\PresenterTrait;
@@ -31,10 +32,8 @@ use Nette\Utils\Random;
 use Pages\DB\PageRepository;
 use StORM\DIConnection;
 
-class ProductPresenter extends \Nette\Application\UI\Presenter
+class ProductPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-
 	/** @inject */
 	public ProductGridFactory $productGridFactory;
 

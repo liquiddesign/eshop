@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
 use App\Admin\Controls\AdminGrid;
@@ -11,10 +12,8 @@ use App\Admin\PresenterTrait;
 use Eshop\DB\DisplayDelivery;
 use Eshop\DB\DisplayDeliveryRepository;
 
-class DisplayDeliveryPresenter extends \Nette\Application\UI\Presenter
+class DisplayDeliveryPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-	
 	/** @inject */
 	public DisplayDeliveryRepository $displayDeliveryRepository;
 	

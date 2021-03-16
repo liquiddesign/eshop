@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminFormFactory;
 use App\Admin\PresenterTrait;
 use Eshop\DB\Photo;
@@ -13,12 +14,8 @@ use Eshop\DB\ProductRepository;
 use Forms\Form;
 use Nette\Utils\FileSystem;
 
-class PhotoPresenter extends \Nette\Application\UI\Presenter
+class PhotoPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-	
-	
-	
 	/** @inject */
 	public PhotoRepository $photoRepository;
 	

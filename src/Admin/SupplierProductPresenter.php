@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
 use App\Admin\Controls\CustomValidators;
@@ -24,10 +25,8 @@ use StORM\InsertResult;
 use StORM\Literal;
 use StORM\Repository;
 
-class SupplierProductPresenter extends \Nette\Application\UI\Presenter
+class SupplierProductPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-	
 	/** @persistent */
 	public string $tab = 'atc';
 	
