@@ -691,14 +691,14 @@ class CheckoutManager
 	{
 		$currency = $this->cartExists() ? $this->getCart()->currency : $this->shopper->getCurrency();
 		
-		return $this->deliveryDiscountRepository->getActiveDeliveryDiscount($currency, $this->getSumPrice());
+		return $this->deliveryDiscountRepository->getActiveDeliveryDiscount($currency, $this->getCartCheckoutPrice());
 	}
 	
 	public function getPossibleDeliveryDiscount(): ?DeliveryDiscount
 	{
 		$currency = $this->cartExists() ? $this->getCart()->currency : $this->shopper->getCurrency();
 		
-		return $this->deliveryDiscountRepository->getNextDeliveryDiscount($currency, $this->getSumPrice());
+		return $this->deliveryDiscountRepository->getNextDeliveryDiscount($currency, $this->getCartCheckoutPrice());
 	}
 	
 	public function getDiscountCoupon(): ?DiscountCoupon
