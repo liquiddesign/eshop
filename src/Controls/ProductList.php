@@ -63,12 +63,17 @@ class ProductList extends Datalist
 			return $filteredSource->count();
 		});
 
-		$this->addOrderExpression('crossSell', function (ICollection $collection, $value): void {
+		$this->addOrderExpression('crossSellOrder', function (ICollection $collection, $value): void {
 			$this->setDefaultOnPage(5);
 			$collection->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=this.uuid');
 			$collection->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
-			$collection->where('categories.path LIKE :cp',['cp' => "$value%"]);
-			$collection->orderBy(['LENGTH(categories.path)' => 'DESC']);
+			$collection->orderBy(['LENGTH(categories.path)' => $value]);
+		});
+
+		$this->addFilterExpression('crossSellFilter', function (ICollection $collection, $value): void {
+			[$path, $currentProduct] = $value;
+			$collection->where('this.uuid != :currentProduct',['currentProduct' => "$currentProduct"]);
+			$collection->where('categories.path LIKE :cp',['cp' => "%$path"]);
 		});
 
 		$this->setAllowedRepositoryFilters(['category', 'tag', 'producer', 'related', 'recommended', 'q']);
