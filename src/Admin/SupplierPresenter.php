@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\PresenterTrait;
 use Eshop\DB\Supplier;
@@ -11,10 +12,8 @@ use Eshop\DB\SupplierRepository;
 use Eshop\DB\AddressRepository;
 use Forms\Form;
 
-class SupplierPresenter extends \Nette\Application\UI\Presenter
+class SupplierPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-	
 	/** @inject */
 	public SupplierRepository $supplierRepository;
 	

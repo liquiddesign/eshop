@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\PresenterTrait;
 use Eshop\DB\PricelistRepository;
@@ -13,10 +14,8 @@ use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Forms\Form;
 
-class CustomerGroupPresenter extends \Nette\Application\UI\Presenter
+class CustomerGroupPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-	
 	/** @inject */
 	public CustomerRepository $customerRepo;
 

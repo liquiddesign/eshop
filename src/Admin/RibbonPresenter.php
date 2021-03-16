@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\PresenterTrait;
 use Eshop\DB\Ribbon;
@@ -13,10 +14,8 @@ use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use StORM\DIConnection;
 
-class RibbonPresenter extends \Nette\Application\UI\Presenter
+class RibbonPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-
 	/** @inject */
 	public RibbonRepository $ribbonRepository;
 

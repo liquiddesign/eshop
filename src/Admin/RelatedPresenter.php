@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminGrid;
 use App\Admin\Controls\CustomValidators;
@@ -17,10 +18,8 @@ use Forms\Form;
 use StORM\DIConnection;
 use StORM\ICollection;
 
-class RelatedPresenter extends \Nette\Application\UI\Presenter
+class RelatedPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-
 	/** @inject */
 	public RelatedRepository $relatedRepository;
 

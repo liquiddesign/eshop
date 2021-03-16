@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\CustomValidators;
 use App\Admin\PresenterTrait;
@@ -39,10 +40,8 @@ use Nette\Http\Request;
 use Nette\Mail\Mailer;
 use Nette\Utils\DateTime;
 
-class OrderPresenter extends \Nette\Application\UI\Presenter
+class OrderPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-
 	/** @inject */
 	public OrderRepository $orderRepository;
 

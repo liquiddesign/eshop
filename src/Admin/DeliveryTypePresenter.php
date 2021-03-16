@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
 use App\Admin\Controls\AdminGrid;
@@ -28,10 +29,8 @@ use Nette\Utils\Image;
 use Nette\Utils\Random;
 use StORM\DIConnection;
 
-class DeliveryTypePresenter extends \Nette\Application\UI\Presenter
+class DeliveryTypePresenter extends BackendPresenter
 {
-	use PresenterTrait;
-	
 	/** @inject */
 	public DeliveryTypeRepository $deliveryRepo;
 	

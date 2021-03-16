@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\PresenterTrait;
 use Eshop\Admin\Controls\AccountFormFactory;
@@ -29,10 +30,8 @@ use Security\DB\AccountRepository;
 use StORM\Collection;
 use StORM\ICollection;
 
-class CustomerPresenter extends \Nette\Application\UI\Presenter
+class CustomerPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-	
 	/** @inject */
 	public AccountFormFactory $accountFormFactory;
 	

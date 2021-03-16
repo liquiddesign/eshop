@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\CustomValidators;
 use App\Admin\Controls\AdminGrid;
@@ -16,10 +17,8 @@ use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierRepository;
 use Forms\Form;
 
-class StorePresenter extends \Nette\Application\UI\Presenter
+class StorePresenter extends BackendPresenter
 {
-	use PresenterTrait;
-
 	/** @inject */
 	public StoreRepository $storeRepository;
 

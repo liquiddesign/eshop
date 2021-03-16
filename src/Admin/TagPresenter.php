@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\PresenterTrait;
 use Eshop\DB\Producer;
@@ -16,10 +17,8 @@ use Pages\DB\PageRepository;
 use Pages\Helpers;
 use StORM\DIConnection;
 
-class TagPresenter extends \Nette\Application\UI\Presenter
+class TagPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-
 	/** @inject */
 	public TagRepository $tagRepository;
 	

@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\PresenterTrait;
 use Eshop\DB\Order;
 
-class PaymentPresenter extends \Nette\Application\UI\Presenter
+class PaymentPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-	
 	public function actionOrderPayments(Order $order)
 	{
 	}

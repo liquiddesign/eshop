@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
 use App\Admin\Controls\AdminGrid;
@@ -15,10 +16,8 @@ use Forms\Form;
 use Nette\Http\Request;
 use StORM\DIConnection;
 
-class CountryPresenter extends \Nette\Application\UI\Presenter
+class CountryPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-
 	/** @inject */
 	public CountryRepository $countryRepository;
 	

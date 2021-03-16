@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\PresenterTrait;
 use Eshop\DB\CategoryRepository;
@@ -25,10 +26,8 @@ use StORM\Entity;
 use StORM\ICollection;
 use StORM\Repository;
 
-class SupplierMappingPresenter extends \Nette\Application\UI\Presenter
+class SupplierMappingPresenter extends BackendPresenter
 {
-	use PresenterTrait;
-
 	public const TABS = [
 		'category' => 'Kategorie',
 		'producer' => 'Výrobce',
