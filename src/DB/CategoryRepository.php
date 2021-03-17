@@ -23,7 +23,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$this->cache = new Cache($storage);
 	}
 
-	public function clearCategoryCache()
+	public function clearCategoriesCache()
 	{
 		$this->cache->clean([
 			Cache::TAGS => ["categories"],
@@ -57,7 +57,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	public function updateCategoryChildrenPath(Category $category): void
 	{
 		if ($category->ancestor == null) {
-			$this->clearCategoryCache();
+			$this->clearCategoriesCache();
 		}
 
 		$tree = $this->getTree();
@@ -91,7 +91,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			}
 		}
 
-		$this->clearCategoryCache();
+		$this->clearCategoriesCache();
 	}
 
 	private function findCategoryInTree(Category $category, Category $targetCategory): ?Category

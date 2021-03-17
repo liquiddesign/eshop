@@ -335,6 +335,13 @@ class Product extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\QuantityPrice>|\Eshop\DB\QuantityPrice[]
 	 */
 	public RelationCollection $quantityPrices;
+
+	/**
+	 * Poplatky a daně
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\Tax>|\Eshop\DB\Tax[]
+	 */
+	public RelationCollection $taxes;
 	
 	/**
 	 * @return \Eshop\DB\Ribbon[]

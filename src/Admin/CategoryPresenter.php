@@ -85,7 +85,7 @@ class CategoryPresenter extends BackendPresenter
 
 		$grid->onDelete[] = function(Category $object){
 			$this->onDeleteImage($object);
-			$this->categoryRepository->clearCategoryCache();
+			$this->categoryRepository->clearCategoriesCache();
 		};
 
 		return $grid;
