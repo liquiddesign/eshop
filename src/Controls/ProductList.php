@@ -9,8 +9,6 @@ use Eshop\DB\ParameterRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\Shopper;
 use Eshop\DB\WatcherRepository;
-use App\Web\Controls\IImageControlFactory;
-use App\Web\Controls\ImageControl;
 use Forms\FormFactory;
 use Grid\Datalist;
 use Nette\Application\UI\Multiplier;
@@ -32,8 +30,6 @@ class ProductList extends Datalist
 
 	private Shopper $shopper;
 
-	public IImageControlFactory $imageControlFactory;
-
 	private ?array $templateFilters = null;
 
 	private Translator $translator;
@@ -48,7 +44,6 @@ class ProductList extends Datalist
 		ParameterRepository $parameterRepository,
 		CheckoutManager $checkoutManager,
 		Shopper $shopper,
-		IImageControlFactory $imageControlFactory,
 		Translator $translator,
 		FormFactory $formFactory
 	)
