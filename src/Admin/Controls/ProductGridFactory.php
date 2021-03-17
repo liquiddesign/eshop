@@ -13,7 +13,7 @@ use Eshop\DB\ProductRepository;
 use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\TagRepository;
-use App\Web\DB\PageRepository;
+use Web\DB\PageRepository;
 use Grid\Datagrid;
 use Nette\DI\Container;
 use Nette\Utils\FileSystem;

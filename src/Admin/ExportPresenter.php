@@ -8,7 +8,7 @@ use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
 use App\Admin\PresenterTrait;
 use Eshop\DB\PricelistRepository;
-use App\Web\DB\SettingRepository;
+use Web\DB\SettingRepository;
 
 class ExportPresenter extends BackendPresenter
 {

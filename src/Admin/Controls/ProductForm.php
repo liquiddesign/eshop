@@ -21,7 +21,7 @@ use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\TagRepository;
 use Eshop\DB\VatRateRepository;
-use App\Web\DB\PageRepository;
+use Web\DB\PageRepository;
 use Forms\Form;
 use Nette\Application\UI\Control;
 use Nette\DI\Container;

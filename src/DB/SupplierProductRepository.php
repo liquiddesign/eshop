@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use App\Web\DB\Page;
+use Web\DB\Page;
 use Nette\DI\Container;
 use Nette\Utils\Strings;
 use StORM\DIConnection;
