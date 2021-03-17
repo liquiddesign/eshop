@@ -5,32 +5,34 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Nette\Caching\Cache;
-use Nette\Caching\IStorage;
-use Nette\Utils\Strings;
+use Nette\Caching\Storage;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
-use Tracy\Debugger;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Category>
  */
 class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 {
-	/**
-	 * @var \Nette\Caching\Cache
-	 */
 	private Cache $cache;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, IStorage $storage)
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Storage $storage)
 	{
 		parent::__construct($connection, $schemaManager);
 		$this->cache = new Cache($storage);
 	}
 
+	public function clearCategoriesCache()
+	{
+		$this->cache->clean([
+			Cache::TAGS => ["categories"],
+		]);
+	}
+
 	/**
-	 * @param string[] $orderBy
 	 * @return \Eshop\DB\Category[]
+	 * @throws \Throwable
 	 */
 	public function getTree(): array
 	{
@@ -50,13 +52,12 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	/**
 	 * Updates all paths of children of category.
 	 * @param \Eshop\DB\Category $category
+	 * @throws \Throwable
 	 */
 	public function updateCategoryChildrenPath(Category $category): void
 	{
 		if ($category->ancestor == null) {
-			$this->cache->clean([
-				Cache::TAGS => ["categories"],
-			]);
+			$this->clearCategoriesCache();
 		}
 
 		$tree = $this->getTree();
@@ -90,9 +91,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			}
 		}
 
-		$this->cache->clean([
-			Cache::TAGS => ["categories"],
-		]);
+		$this->clearCategoriesCache();
 	}
 
 	private function findCategoryInTree(Category $category, Category $targetCategory): ?Category

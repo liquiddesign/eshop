@@ -335,6 +335,13 @@ class Product extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\QuantityPrice>|\Eshop\DB\QuantityPrice[]
 	 */
 	public RelationCollection $quantityPrices;
+
+	/**
+	 * Poplatky a daně
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\Tax>|\Eshop\DB\Tax[]
+	 */
+	public RelationCollection $taxes;
 	
 	/**
 	 * @return \Eshop\DB\Ribbon[]
@@ -370,10 +377,6 @@ class Product extends \StORM\Entity
 		
 		foreach (\explode(',', $this->getValue('parameters')) as $parameterSerialized) {
 			$parameter = \explode('|', $parameterSerialized);
-			
-			if (empty($parameter[2])) {
-				continue;
-			}
 			
 			if (!isset($parameters[$parameter[2]])) {
 				$parameters[$parameter[2]] = [];

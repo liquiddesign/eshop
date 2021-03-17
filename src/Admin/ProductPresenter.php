@@ -60,10 +60,10 @@ class ProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public ParameterValueRepository $parameterValueRepository;
-	
+
 	/** @inject */
 	public VatRateRepository $vatRateRepository;
-	
+
 	/** @inject */
 	public PageRepository $pageRepository;
 
@@ -120,7 +120,7 @@ class ProductPresenter extends BackendPresenter
 	{
 		$product = $this->getParameter('product');
 		$countryCode = 'CZ';
-		
+
 		$collection = $this->pricelistRepository->many()
 			->select([
 				'price' => 'prices.price',
@@ -131,8 +131,8 @@ class ProductPresenter extends BackendPresenter
 			])
 			->join(['prices' => 'eshop_price'], 'prices.fk_pricelist=this.uuid AND prices.fk_product=:product', ['product' => $product])
 			->join(['rates' => 'eshop_vatRate'], 'rates.uuid = :rate AND rates.fk_country=this.fk_country', ['rate' => $product->vatRate]);
-		
-		
+
+
 		$grid = $this->gridFactory->create($collection, 20, 'code', 'ASC');
 
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
@@ -142,7 +142,7 @@ class ProductPresenter extends BackendPresenter
 		$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
 		$grid->addColumnInputPrice('Původní', 'priceBefore');
 		$grid->addColumnInputPrice('Původní s DPH', 'priceVatBefore');
-		
+
 		$submit = $grid->getForm()->addSubmit('submit', 'Uložit');
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-primary');
 		$submit->onClick[] = function ($button) use ($grid, $product) {
@@ -175,7 +175,7 @@ class ProductPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 		$form->addFilePicker('fileName', 'Vybrat soubor', \DIRECTORY_SEPARATOR . Product::FILE_DIR)->setRequired();
-		
+
 		$form->addLocaleText('label', 'Popisek');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
@@ -257,7 +257,7 @@ class ProductPresenter extends BackendPresenter
 	{
 		return $this->productParametersFormFatory->create($this->getParameter('product'));
 	}
-	
+
 	public function actionDetailFile(File $file)
 	{
 		/** @var \Forms\Form $form */
@@ -343,12 +343,12 @@ class ProductPresenter extends BackendPresenter
 		foreach ($form['prices']->getComponents() as $pricelistId => $container) {
 			$container->setDefaults($prices[$pricelistId]->toArray());
 		}
-		
-		$form->setDefaults($product->toArray(['categories', 'tags', 'ribbons', 'parameterGroups']));
-		
+
+		$form->setDefaults($product->toArray(['categories', 'tags', 'ribbons', 'parameterGroups', 'taxes']));
+
 		if ($page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product])) {
 			$form['page']->setDefaults($page->toArray());
-			
+
 			$form['page']['url']->forAll(function (TextInput $text, $mutation) use ($page, $form) {
 				$text->getRules()->reset();
 				$text->addRule([$form, 'validateUrl'], 'URL již existuje', [$this->pageRepository, $mutation, $page->getPK()]);

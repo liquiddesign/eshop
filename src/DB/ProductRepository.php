@@ -261,32 +261,25 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	/**
 	 * @param \Eshop\DB\Product|string $product
-	 * @return array
+	 * @return \StORM\Collection|null
+	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getSimilarProductsByProduct($product): array
+	public function getSimilarProductsByProduct($product): ?Collection
 	{
 		if (!$product instanceof Product) {
 			if (!$product = $this->one($product)) {
-				return [];
+				return null;
 			}
 		}
 
 		/** @var \Eshop\DB\RelatedRepository $relatedRepo */
 		$relatedRepo = $this->getConnection()->findRepository(Related::class);
 
-		/** @var \Eshop\DB\Related[] $similarCollection */
-		$similarCollection = $relatedRepo->getCollection()
+		return $relatedRepo->getCollection()
 			->join(['type' => 'eshop_relatedtype'], 'this.fk_type=type.uuid')
 			->where('fk_master = :q OR fk_slave = :q', ['q' => $product->getPK()])
-			->where('type.similar', true);
-
-		$similarProducts = [];
-
-		foreach ($similarCollection as $relation) {
-			$similarProducts[] = $relation->master->getPK() == $product->getPK() ? $relation->slave : $relation->master;
-		}
-
-		return $similarProducts;
+			->where('type.similar', true)
+			->where('this.uuid != :currentRelationProduct', ['currentRelationProduct' => $product->getPK()]);
 	}
 
 	public function getGroupedProductParameters($product): array
@@ -384,7 +377,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			->join(['purchase' => 'eshop_purchase'], 'cart.fk_purchase = purchase.uuid')
 			->join(['orderTable' => 'eshop_order'], 'orderTable.fk_purchase = purchase.uuid')
 			->where('orderTable.fk_customer', $user->getPK())
-			->where('relation.fk_type','tonerForPrinter')
+			->where('relation.fk_type', 'tonerForPrinter')
 			->where('orderTable.completedTs IS NOT NULL')
 			->orderBy(['orderTable.completedTs' => 'DESC']);
 	}

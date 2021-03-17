@@ -12,20 +12,16 @@ use App\Admin\PresenterTrait;
 use App\Admin\Controls\Label;
 use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
-use Eshop\DB\ParameterCategory;
 use Eshop\DB\ParameterCategoryRepository;
-use Eshop\DB\Tag;
 use Forms\Form;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 use Nette\Http\Request;
-use Nette\Utils\DateTime;
-use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Nette\Utils\Random;
 use Pages\DB\PageRepository;
 use Pages\Helpers;
 use StORM\DIConnection;
-use StORM\Entity;
-use StORM\ICollection;
 
 class CategoryPresenter extends BackendPresenter
 {
@@ -87,7 +83,10 @@ class CategoryPresenter extends BackendPresenter
 		$grid->addFilterTextInput('search', ['code', 'name_cs'], null, 'Kód, Název');
 		$grid->addFilterButtons();
 
-		$grid->onDelete[] = [$this, 'onDelete'];
+		$grid->onDelete[] = function(Category $object){
+			$this->onDeleteImage($object);
+			$this->categoryRepository->clearCategoriesCache();
+		};
 
 		return $grid;
 	}

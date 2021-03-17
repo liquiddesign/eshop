@@ -39,7 +39,7 @@ class RelatedPresenter extends BackendPresenter
 
 	public function createComponentRelationGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->relatedRepository->many(), 20, 'priority', 'ASC', true);
+		$grid = $this->gridFactory->create($this->relatedRepository->many(), 20, 'this.priority', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumn('Typ', function (Related $object, $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Related:detailType') && $object->type ? $datagrid->getPresenter()->link(':Eshop:Admin:Related:detailType', [$object->type, 'backLink' => $this->storeRequest()]) : '#';
@@ -59,8 +59,8 @@ class RelatedPresenter extends BackendPresenter
 			return $object->slave ? "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->slave->name . "</a>" : '';
 		}, '%s');
 
-		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
-		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
+		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'this.priority', [], true);
+		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'this.hidden');
 
 		$grid->addColumnLinkDetail('detailRelation');
 		$grid->addColumnActionDelete();
@@ -75,6 +75,9 @@ class RelatedPresenter extends BackendPresenter
 				$source->where('fk_type', $value);
 			}, '- Typ -', 'type', 'Typ', $this->relatedTypeRepository->getArrayForSelect(), ['placeholder' => '- Typ -']);
 		}
+
+		$grid->addFilterTextInput('master', ['master.code', 'master.ean', 'master.name_cs'], null, 'Master: EAN, kód, název', '', '%s%%');
+		$grid->addFilterTextInput('slave', ['slave.code', 'slave.ean', 'slave.name_cs'], null, 'Slave: EAN, kód, název', '', '%s%%');
 
 		$grid->addFilterButtons();
 
@@ -207,7 +210,7 @@ class RelatedPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 
 		$form->addLocaleText('name', 'Název');
-		$form->addCheckbox('similar', 'Podobné');
+		$form->addCheckbox('similar', 'Podobné')->setHtmlAttribute('data-info', 'Produkty v této vazbě budou zobrazeny v detailu produktu jako podobné produkty. Na pořadí nezáleží.');
 
 		$form->addSubmits(!$this->getParameter('relatedType'));
 
