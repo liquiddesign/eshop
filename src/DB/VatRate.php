@@ -21,6 +21,12 @@ class VatRate extends \StORM\Entity
 	 * @column
 	 */
 	public float $rate;
+
+	/**
+	 * Priorita
+	 * @column
+	 */
+	public int $priority = 10;
 	
 	/**
 	 * Země
