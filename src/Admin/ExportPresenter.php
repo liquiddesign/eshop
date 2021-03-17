@@ -9,6 +9,8 @@ use App\Admin\Controls\AdminFormFactory;
 use App\Admin\PresenterTrait;
 use Eshop\DB\PricelistRepository;
 use App\Web\DB\SettingRepository;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 
 class ExportPresenter extends BackendPresenter
 {
@@ -17,6 +19,9 @@ class ExportPresenter extends BackendPresenter
 
 	/** @inject */
 	public PricelistRepository $priceListRepo;
+
+	/** @inject */
+	public Storage $storage;
 
 	public function actionDefault(): void
 	{
@@ -80,6 +85,11 @@ class ExportPresenter extends BackendPresenter
 					]);
 				}
 			}
+
+			$cache = new Cache($this->storage);
+			$cache->clean([
+				Cache::TAGS => ["export"],
+			]);
 
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$this->redirect('default');
