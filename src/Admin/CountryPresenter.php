@@ -48,15 +48,16 @@ class CountryPresenter extends BackendPresenter
 	
 	public function createComponentVatGrid()
 	{
-		$grid = $this->gridFactory->create($this->vatRateRepository->many()->where('fk_country', $this->getParameter('country')), 20, 'rate', 'ASC', true);
+		$grid = $this->gridFactory->create($this->vatRateRepository->many()->where('fk_country', $this->getParameter('country')), 20, 'priority', 'ASC', true);
 		$grid->addColumnSelector();
 		
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumnText('Výše', 'rate', '%s %%', 'rate');
+		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		
 		$grid->addColumnLinkDetail('vatDetail');
 		
-		// $grid->addButtonSaveAll();
+		$grid->addButtonSaveAll();
 		
 		$grid->addFilterTextInput('search', ['this.name'], null, 'Název');
 		$grid->addFilterButtons();
@@ -91,6 +92,10 @@ class CountryPresenter extends BackendPresenter
 		$form->addText('name', 'Název');
 		$form->addText('rate', 'Výše')->addRule($form::FLOAT)->setRequired();
 		$form->addHidden('country', (string) $this->getParameter('vat')->country);
+		$form->addText('priority', 'Priorita')
+			->addRule($form::INTEGER)
+			->setRequired()
+			->setDefaultValue(10);
 		$form->addSubmits(false, false);
 		
 		$form->onSuccess[] = function (AdminForm $form) {
