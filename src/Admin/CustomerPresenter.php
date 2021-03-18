@@ -23,10 +23,8 @@ use Messages\DB\TemplateRepository;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
-use Security\Authenticator;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
-use StORM\Collection;
 use StORM\ICollection;
 
 class CustomerPresenter extends BackendPresenter
