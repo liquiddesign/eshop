@@ -175,7 +175,6 @@ class ProductList extends Datalist
 		$this->watcherRepository = $watcherRepository;
 		$this->shopper = $shopper;
 		$this->checkoutManager = $checkoutManager;
-		$this->imageControlFactory = $imageControlFactory;
 		$this->translator = $translator;
 		$this->formFactory = $formFactory;
 		$this->parameterRepository = $parameterRepository;
