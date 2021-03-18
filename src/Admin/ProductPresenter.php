@@ -22,6 +22,7 @@ use Eshop\DB\ProductRepository;
 use Eshop\DB\VatRateRepository;
 use Forms\Form;
 use Nette\Forms\Controls\TextInput;
+use Nette\InvalidArgumentException;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Pages\DB\PageRepository;
@@ -344,7 +345,11 @@ class ProductPresenter extends BackendPresenter
 
 		$form->setDefaults($product->toArray(['categories', 'tags', 'ribbons', 'parameterGroups', 'taxes']));
 
-		$form['tonerForPrinters']->setDefaultValue($this->productRepository->getSlaveProductsByRelationAndMaster('tonerForPrinter', $product)->setSelect(['this.uuid'])->toArray());
+		try {
+			$form['tonerForPrinters']->setDefaultValue($this->productRepository->getSlaveProductsByRelationAndMaster('tonerForPrinter', $product)->setSelect(['this.uuid'])->toArray());
+		} catch (InvalidArgumentException $e) {
+			$form['tonerForPrinters']->setHtmlAttribute('data-error', 'Byla detekována chybná vazba! Vyberte, prosím, tiskárny znovu.');
+		}
 
 		if ($page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product])) {
 			$form['page']->setDefaults($page->toArray());

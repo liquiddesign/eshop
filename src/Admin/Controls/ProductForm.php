@@ -136,14 +136,22 @@ class ProductForm extends Control
 		$form->addIntegerNullable('roundingPalletPct', 'Zokrouhlení paletu (%)');
 		$form->addCheckbox('unavailable', 'Neprodejné');
 
-		$printers = $productRepository->many();
+		/** @var \Eshop\DB\Category $printerCategory */
+		$printerCategory = $categoryRepository->one('printers');
 
-		if ($product) {
-			$printers->where('uuid != :thisProduct', ['thisProduct' => $product->getPK()]);
-		}
+		if ($printerCategory) {
+			$printers = $productRepository->many()
+				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'this.uuid = nxnCategory.fk_product')
+				->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
+				->where('category.path LIKE :categoryPath', ['categoryPath' => $printerCategory->path . '%']);
 
-		if (\count($printers) > 0) {
-			$form->addDataMultiSelect('tonerForPrinters', 'Toner pro tiskárny', $printers->orderBy(['name_cs'])->toArrayOf('name'));
+			if ($product) {
+				$printers->where('this.uuid != :thisProduct', ['thisProduct' => $product->getPK()]);
+			}
+
+			if (\count($printers) > 0) {
+				$form->addDataMultiSelect('tonerForPrinters', 'Toner pro tiskárny', $printers->orderBy(['name_cs'])->toArrayOf('name'));
+			}
 		}
 
 		$form->addDataMultiSelect('taxes', 'Poplatky a daně', $taxRepository->getArrayForSelect());

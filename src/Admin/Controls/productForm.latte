@@ -174,7 +174,12 @@
 					<th class="col-label col-form-label col">{label tonerForPrinters/}</th>
 
 					<td class="align-middle">{input tonerForPrinters}
-						<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError tonerForPrinters}</span></td>
+						<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError tonerForPrinters}</span>
+						{do $dataError = $form['tonerForPrinters']->getControlPrototype()->getAttribute('data-error')}
+						{if $dataError}
+							<span class="text-danger text-sm">{$dataError}</span>
+						{/if}
+					</td>
 				</tr>
 			{/ifset}
 

@@ -25,7 +25,7 @@ class CategoryPresenter extends BackendPresenter
 
 	/** @inject */
 	public CategoryRepository $categoryRepository;
-	
+
 	/** @inject */
 	public PageRepository $pageRepository;
 
@@ -48,9 +48,9 @@ class CategoryPresenter extends BackendPresenter
 
 		$grid->addColumnImage('imageFileName', Category::IMAGE_DIR);
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
-		
+
 		$grid->addColumn('Název', function (Category $category, $grid) {
-			return [$grid->getPresenter()->link(':Eshop:Product:list', ['category' => (string) $category]), $category->name];
+			return [$grid->getPresenter()->link(':Eshop:Product:list', ['category' => (string)$category]), $category->name];
 		}, '<a href="%s" target="_blank"> %s</a>', 'name')->onRenderCell[] = function (\Nette\Utils\Html $td, Category $object) {
 			$level = \strlen($object->path) / 4 - 1;
 			$td->setHtml(\str_repeat('- - ', $level) . $td->getHtml());
@@ -67,10 +67,12 @@ class CategoryPresenter extends BackendPresenter
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('Detail');
-		$grid->addColumnActionDelete();
+		$grid->addColumnActionDeleteSystemic();
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(null, false, function ($object) {
+			return !$object->isSystemic();
+		});
 
 		$grid->addButtonBulkEdit('categoryNewForm', ['ancestor', 'exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
 
@@ -78,7 +80,7 @@ class CategoryPresenter extends BackendPresenter
 		$grid->addFilterTextInput('search', ['code', 'name_cs'], null, 'Kód, Název');
 		$grid->addFilterButtons();
 
-		$grid->onDelete[] = function(Category $object){
+		$grid->onDelete[] = function (Category $object) {
 			$this->onDeleteImage($object);
 			$this->categoryRepository->clearCategoriesCache();
 		};
@@ -91,7 +93,7 @@ class CategoryPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 
 		$form->addText('code', 'Kód');
-		
+
 		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => static function (Image $image): void {
@@ -104,11 +106,11 @@ class CategoryPresenter extends BackendPresenter
 
 		$category = $this->getParameter('category');
 
-		$imagePicker->onDelete[] = function (array $directories, $filename) use($category) {
+		$imagePicker->onDelete[] = function (array $directories, $filename) use ($category) {
 			$this->onDelete($category);
 			$this->redirect('this');
 		};
-		
+
 		$nameInput = $form->addLocaleText('name', 'Název');
 		$form->addLocalePerexEdit('perex', 'Perex');
 		$form->addLocaleRichEdit('content', 'Obsah');
@@ -121,14 +123,14 @@ class CategoryPresenter extends BackendPresenter
 
 		$form->addDataSelect('ancestor', 'Nadřazená kategorie', $categories)->setPrompt('Žádná');
 		$form->addDataSelect('parameterCategory', 'Kategorie parametrů', $this->parameterCategoryRepository->getArrayForSelect())->setPrompt('Žádná')
-		->setHtmlAttribute('data-info','&nbsp;Pokud nebude kategorie parametrů nastavena, bude získána kategorie parametrů z nadřazené kategorie.');
+			->setHtmlAttribute('data-info', '&nbsp;Pokud nebude kategorie parametrů nastavena, bude získána kategorie parametrů z nadřazené kategorie.');
 		$form->addText('exportGoogleCategory', 'Exportní název pro Google');
 		$form->addText('exportHeurekaCategory', 'Export název pro Heuréku');
 		$form->addText('exportZboziCategory', 'Export název pro Zbozi');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('recommended', 'Doporučeno');
-		
+
 		$form->addPageContainer('product_list', ['category' => $this->getParameter('category')], $nameInput);
 
 		$form->addSubmits(!$category);
@@ -137,11 +139,11 @@ class CategoryPresenter extends BackendPresenter
 			$values = $form->getValues('array');
 
 			$this->createImageDirs(Category::IMAGE_DIR);
-			
+
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
 			}
-		
+
 			$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
 
 			$prefix = $values['ancestor'] ? $this->categoryRepository->one($values['ancestor'])->path : '';
@@ -157,7 +159,7 @@ class CategoryPresenter extends BackendPresenter
 			$category = $this->categoryRepository->syncOne($values, null, true);
 
 			$this->categoryRepository->updateCategoryChildrenPath($category);
-			
+
 			$values['page']['params'] = Helpers::serializeParameters(['category' => $category->getPK()]);
 			$this->pageRepository->syncOne($values['page']);
 
