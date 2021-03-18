@@ -23,6 +23,8 @@
 		"liquiddesign/translator": "@dev",
 		"liquiddesign/pages": "@dev",
 		"liquiddesign/admin": "@dev",
+		"liquiddesign/web": "@dev",
+		"liquiddesign/grid": "@dev",
 		"ext-pdo": "*",
 		"ext-intl": "*"
 	},

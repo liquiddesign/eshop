@@ -4,12 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\Admin\Controls;
 
-use App\Admin\Controls\AdminGridFactory;
-use Eshop\DB\Customer;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
-use Forms\Form;
-use Forms\Forms;
 use Grid\Datagrid;
 use League\Csv\Writer;
 use Messages\DB\TemplateRepository;
@@ -25,7 +21,7 @@ class OrderGridFactory
 {
 	private OrderRepository $orderRepository;
 
-	private AdminGridFactory $gridFactory;
+	private \Admin\Controls\AdminGridFactory $gridFactory;
 
 	private TemplateRepository $templateRepository;
 
@@ -33,7 +29,7 @@ class OrderGridFactory
 
 	private Translator $translator;
 
-	public function __construct(AdminGridFactory $adminGridFactory, OrderRepository $orderRepository, TemplateRepository $templateRepository, Mailer $mailer, Translator $translator)
+	public function __construct(\Admin\Controls\AdminGridFactory $adminGridFactory, OrderRepository $orderRepository, TemplateRepository $templateRepository, Mailer $mailer, Translator $translator)
 	{
 		$this->orderRepository = $orderRepository;
 		$this->gridFactory = $adminGridFactory;

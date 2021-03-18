@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\Admin\Controls;
 
-use App\Admin\Controls\AdminGridFactory;
-use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
@@ -24,7 +22,7 @@ class ProductGridFactory
 {
 	private ProductRepository $productRepository;
 
-	private AdminGridFactory $gridFactory;
+	private \Admin\Controls\AdminGridFactory $gridFactory;
 	
 	private ProducerRepository $producerRepository;
 	
@@ -41,7 +39,7 @@ class ProductGridFactory
 	private Container $container;
 	
 	public function __construct(
-		AdminGridFactory $gridFactory,
+		\Admin\Controls\AdminGridFactory $gridFactory,
 		Container $container,
 		PageRepository $pageRepository,
 		ProductRepository $productRepository,
