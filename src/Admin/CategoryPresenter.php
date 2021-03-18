@@ -8,8 +8,6 @@ use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
 use Admin\Controls\AdminGrid;
-use App\Admin\PresenterTrait;
-use App\Admin\Controls\Label;
 use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\ParameterCategoryRepository;

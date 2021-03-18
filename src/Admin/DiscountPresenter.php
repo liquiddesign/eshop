@@ -7,7 +7,6 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\CustomValidators;
-use App\Admin\PresenterTrait;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\DeliveryDiscountRepository;
 use Eshop\DB\Discount;

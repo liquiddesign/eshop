@@ -7,16 +7,13 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
-use App\Admin\PresenterTrait;
 use Eshop\Admin\Controls\AccountFormFactory;
 use Eshop\DB\Merchant;
 use Eshop\DB\MerchantRepository;
 use Forms\Form;
 use Grid\Datagrid;
 use Messages\DB\TemplateRepository;
-use Nette\Application\UI\Presenter;
 use Nette\Mail\Mailer;
-use Security\Authenticator;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
 

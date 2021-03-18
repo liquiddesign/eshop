@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
-use App\Admin\PresenterTrait;
 use Eshop\Admin\Controls\IStatsControlFactory;
 use Eshop\Admin\Controls\StatsControl;
 

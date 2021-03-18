@@ -8,7 +8,6 @@ use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\CustomValidators;
 use Admin\Controls\AdminGrid;
-use App\Admin\PresenterTrait;
 use Eshop\DB\Amount;
 use Eshop\DB\AmountRepository;
 use Eshop\DB\ProductRepository;

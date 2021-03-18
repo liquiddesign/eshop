@@ -8,7 +8,6 @@ use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
 use App\Admin\Controls\CustomValidators;
-use App\Admin\PresenterTrait;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\DiscountRepository;
 use Eshop\DB\QuantityPrice;
@@ -26,13 +25,8 @@ use Grid\Datagrid;
 use League\Csv\Reader;
 use League\Csv\Writer;
 use Nette\Application\Responses\FileResponse;
-use Nette\Utils\FileSystem;
-use Nette\Utils\Random;
 use StORM\Connection;
-use StORM\DIConnection;
-use StORM\ICollection;
 use Nette;
-use StORM\Repository;
 
 class PricelistsPresenter extends BackendPresenter
 {
