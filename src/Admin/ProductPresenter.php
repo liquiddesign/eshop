@@ -18,6 +18,7 @@ use Eshop\DB\PhotoRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\Product;
+use Eshop\DB\ProductRepository;
 use Eshop\DB\VatRateRepository;
 use Forms\Form;
 use Nette\Forms\Controls\TextInput;
@@ -60,6 +61,9 @@ class ProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public PageRepository $pageRepository;
+
+	/** @inject */
+	public ProductRepository $productRepository;
 
 	public function createComponentProductGrid()
 	{
@@ -339,6 +343,8 @@ class ProductPresenter extends BackendPresenter
 		}
 
 		$form->setDefaults($product->toArray(['categories', 'tags', 'ribbons', 'parameterGroups', 'taxes']));
+
+		$form['tonerForPrinters']->setDefaultValue($this->productRepository->getSlaveProductsByRelationAndMaster('tonerForPrinter', $product)->setSelect(['this.uuid'])->toArray());
 
 		if ($page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product])) {
 			$form['page']->setDefaults($page->toArray());

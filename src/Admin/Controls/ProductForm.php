@@ -15,6 +15,7 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\RelatedRepository;
 use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
@@ -47,6 +48,8 @@ class ProductForm extends Control
 
 	private TaxRepository $taxRepository;
 
+	private RelatedRepository $relatedRepository;
+
 	public function __construct(
 		Container $container,
 		PageRepository $pageRepository,
@@ -64,6 +67,7 @@ class ProductForm extends Control
 		DisplayAmountRepository $displayAmountRepository,
 		DisplayDeliveryRepository $displayDeliveryRepository,
 		TaxRepository $taxRepository,
+		RelatedRepository $relatedRepository,
 		$product = null
 	)
 	{
@@ -170,12 +174,12 @@ class ProductForm extends Control
 		$this->supplierProductRepository = $supplierProductRepository;
 		$this->pageRepository = $pageRepository;
 		$this->taxRepository = $taxRepository;
+		$this->relatedRepository = $relatedRepository;
 	}
 
 	public function submit(AdminForm $form)
 	{
 		$values = $form->getValues('array');
-		$product = $this->getPresenter()->getParameter('product');
 
 		$this->createImageDirs();
 
@@ -186,6 +190,21 @@ class ProductForm extends Control
 		$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
 
 		$product = $this->productRepository->syncOne($values, null, true);
+
+		if (isset($values['tonerForPrinters'])) {
+			$this->relatedRepository->many()
+				->where('fk_master', $product->getPK())
+				->where('fk_type', 'tonerForPrinter')
+				->delete();
+
+			foreach ($values['tonerForPrinters'] as $value) {
+				$this->relatedRepository->syncOne([
+					'master' => $product->getPK(),
+					'slave' => $value,
+					'type' => 'tonerForPrinter'
+				]);
+			}
+		}
 
 		foreach ($values['prices'] as $pricelistId => $prices) {
 			$conditions = [
