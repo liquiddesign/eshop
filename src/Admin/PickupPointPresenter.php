@@ -5,7 +5,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
-use App\Admin\Controls\AdminGrid;
+use Admin\Controls\AdminGrid;
 use App\Admin\PresenterTrait;
 use Eshop\DB\OpeningHoursRepository;
 use Eshop\DB\PickupPoint;

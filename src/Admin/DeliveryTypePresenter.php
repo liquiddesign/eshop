@@ -7,7 +7,7 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
-use App\Admin\Controls\AdminGrid;
+use Admin\Controls\AdminGrid;
 use App\Admin\PresenterTrait;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\CurrencyRepository;
