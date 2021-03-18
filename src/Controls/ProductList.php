@@ -249,11 +249,6 @@ class ProductList extends Datalist
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productList.latte');
 	}
 
-	public function createComponentImage(): ImageControl
-	{
-		return $this->imageControlFactory->create();
-	}
-
 	protected function createComponentFilterForm(): \Forms\Form
 	{
 		$filterForm = $this->formFactory->create();
