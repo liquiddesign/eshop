@@ -5,7 +5,6 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
-use App\Admin\PresenterTrait;
 use Eshop\Admin\Controls\AccountFormFactory;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\DeliveryTypeRepository;

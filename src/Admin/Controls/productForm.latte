@@ -46,22 +46,17 @@
 			<tr class="m-0 mt-1 has-danger">
 				<th class="col-label col-form-label col">{label imageFileName/}</th>
 
-				<td class="align-middle">
-					{input imageFileName}
+				{$renderer->renderControl($form['imageFileName'])|noescape}
 
-					{*<div id="{$form['imageFileName']->getHtmlId()}-supplier" class="upload-image-supplier-container" style="display: inline-block">
-						<img src="#" style="max-height:50px; max-width:50px;">
-					</div>*}
-					<div class="pt-1" n:ifcontent>
-						{foreach $supplierProducts as $supplierProduct}
-							<a href="#" data-value="{$supplierProduct->fileName}" data-for="{$form['imageFileName']->getHtmlId()}-container" class="product-loader"><i class="far fa-clone"></i> {$supplierProduct->supplier->name}</a>
-						{/foreach}
-						{if $supplierProducts && $product}
-							<a href="#" data-value="{$product->imageFileName}" data-for="{$form['imageFileName']->getHtmlId()}-container" class="product-loader"><i class="far fa-times-circle"></i></a>
-						{/if}
-					</div>
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError imageFileName}</span>
-				</td>
+				<div class="pt-1" n:ifcontent>
+					{foreach $supplierProducts as $supplierProduct}
+						<a href="#" data-value="{$supplierProduct->fileName}" data-for="{$form['imageFileName']->getHtmlId()}-container" class="product-loader"><i class="far fa-clone"></i> {$supplierProduct->supplier->name}</a>
+					{/foreach}
+					{if $supplierProducts && $product}
+						<a href="#" data-value="{$product->imageFileName}" data-for="{$form['imageFileName']->getHtmlId()}-container" class="product-loader"><i class="far fa-times-circle"></i></a>
+					{/if}
+				</div>
+				<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError imageFileName}</span>
 			</tr>
 
 			<tr class="m-0 mt-1 has-danger">
@@ -174,12 +169,14 @@
 					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError priority}</span></td>
 			</tr>
 
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label tonerForPrinters/}</th>
+			{ifset $form['tonerForPrinters']}
+				<tr class="m-0 mt-1 has-danger">
+					<th class="col-label col-form-label col">{label tonerForPrinters/}</th>
 
-				<td class="align-middle">{input tonerForPrinters}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError tonerForPrinters}</span></td>
-			</tr>
+					<td class="align-middle">{input tonerForPrinters}
+						<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError tonerForPrinters}</span></td>
+				</tr>
+			{/ifset}
 
 			<tr class="m-0 mt-1 has-danger">
 				<th class="col-label col-form-label col">{label taxes/}</th>
@@ -303,11 +300,6 @@
 
 			{$renderer->renderPair($form['unavailable'])|noescape}
 
-
-
-
-
-
 		</table>
 	</fieldset>
 
@@ -321,9 +313,12 @@
 	</fieldset>
 
 	<fieldset>
-
 		<table class="mt-1 mb-1">
-	{$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndBack']])|noescape}
+			{ifset $form['submitAndContinue']}
+				{$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndBack']])|noescape}
+			{else}
+				{$renderer->renderPairMulti([$form['submit'], $form['submitAndBack']])|noescape}
+			{/ifset}
 		</table>
 	</fieldset>
 

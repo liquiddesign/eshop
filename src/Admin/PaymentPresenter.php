@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
-use App\Admin\PresenterTrait;
 use Eshop\DB\Order;
 
 class PaymentPresenter extends BackendPresenter

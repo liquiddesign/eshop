@@ -7,8 +7,7 @@ use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
 use App\Admin\Controls\CustomValidators;
-use App\Admin\Controls\AdminGrid;
-use App\Admin\PresenterTrait;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
@@ -17,13 +16,7 @@ use Eshop\DB\SupplierProduct;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Forms\Form;
-use Grid\Datagrid;
-use Nette\Forms\Controls\Button;
 use StORM\DIConnection;
-use StORM\ICollection;
-use StORM\InsertResult;
-use StORM\Literal;
-use StORM\Repository;
 
 class SupplierProductPresenter extends BackendPresenter
 {

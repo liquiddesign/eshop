@@ -7,7 +7,6 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
-use App\Admin\PresenterTrait;
 use Eshop\DB\Currency;
 use Eshop\DB\CurrencyRepository;
 use Forms\Form;

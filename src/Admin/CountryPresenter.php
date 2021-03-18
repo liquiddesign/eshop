@@ -6,15 +6,12 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
-use App\Admin\Controls\AdminGrid;
-use App\Admin\PresenterTrait;
 use Eshop\DB\Country;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\VatRate;
 use Eshop\DB\VatRateRepository;
 use Forms\Form;
 use Nette\Http\Request;
-use StORM\DIConnection;
 
 class CountryPresenter extends BackendPresenter
 {

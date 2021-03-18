@@ -13,7 +13,6 @@ use Forms\FormFactory;
 use Grid\Datalist;
 use Nette\Application\UI\Multiplier;
 use Nette\Localization\Translator;
-use StORM\Collection;
 use StORM\ICollection;
 
 /**

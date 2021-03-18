@@ -6,8 +6,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
-use App\Admin\Controls\AdminGrid;
-use App\Admin\PresenterTrait;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\PaymentType;
@@ -18,7 +17,6 @@ use Eshop\Shopper;
 use Eshop\DB\CustomerGroupRepository;
 use Forms\Form;
 use Nette\Http\Request;
-use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use StORM\DIConnection;
 

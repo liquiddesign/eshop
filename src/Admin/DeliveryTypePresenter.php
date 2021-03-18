@@ -7,26 +7,20 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
-use App\Admin\Controls\AdminGrid;
-use App\Admin\PresenterTrait;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\DeliveryType;
 use Eshop\DB\DeliveryTypePrice;
 use Eshop\DB\DeliveryTypePriceRepository;
 use Eshop\DB\DeliveryTypeRepository;
-use Eshop\DB\PaymentType;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\Shopper;
-use Eshop\DB\CustomerGroup;
 use Eshop\DB\CustomerGroupRepository;
 use Forms\Form;
 use Nette\DI\Container;
 use Nette\Http\Request;
-use Nette\Utils\DateTime;
-use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
-use Nette\Utils\Random;
 use StORM\DIConnection;
 
 class DeliveryTypePresenter extends BackendPresenter

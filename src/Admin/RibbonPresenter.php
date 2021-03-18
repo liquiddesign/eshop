@@ -6,11 +6,9 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
-use App\Admin\PresenterTrait;
 use Eshop\DB\Ribbon;
 use Eshop\DB\RibbonRepository;
 use Forms\Form;
-use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use StORM\DIConnection;
 

@@ -6,7 +6,6 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
-use App\Admin\PresenterTrait;
 use Eshop\DB\Producer;
 use Eshop\DB\ProducerRepository;
 use Forms\Form;

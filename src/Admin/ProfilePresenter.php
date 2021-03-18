@@ -8,9 +8,6 @@ use Admin\BackendPresenter;
 use Admin\DB\AdministratorRepository;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
-use App\Admin\Controls\Label;
-use App\Admin\PresenterTrait;
-use Forms\Form;
 use Security\DB\AccountRepository;
 
 class ProfilePresenter extends BackendPresenter

@@ -7,20 +7,16 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
-use App\Admin\Controls\AdminGrid;
-use App\Admin\Controls\AdminGridFactory;
-use App\Admin\PresenterTrait;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\Parameter;
 use Eshop\DB\ParameterCategory;
 use Eshop\DB\ParameterCategoryRepository;
 use Eshop\DB\ParameterGroup;
 use Eshop\DB\ParameterGroupRepository;
 use Eshop\DB\ParameterRepository;
-use Eshop\DB\Product;
 use Forms\Form;
 use StORM\DIConnection;
 use StORM\ICollection;
-use Tracy\Debugger;
 
 class ParameterPresenter extends BackendPresenter
 {

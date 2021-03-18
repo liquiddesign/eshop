@@ -6,5 +6,9 @@ namespace Eshop\Admin\Controls;
 
 interface IProductFormFactory
 {
-	public function create(): ProductForm;
+	/**
+	 * @param \Eshop\DB\Product|string|null $product
+	 * @return \Eshop\Admin\Controls\ProductForm
+	 */
+	public function create($product = null): ProductForm;
 }

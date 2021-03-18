@@ -7,8 +7,6 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
-use App\Admin\Controls\AdminGrid;
-use App\Admin\PresenterTrait;
 use Eshop\DB\DisplayAmount;
 use Eshop\DB\DisplayAmountRepository;
 use Forms\Form;

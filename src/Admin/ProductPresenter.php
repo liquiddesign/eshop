@@ -6,8 +6,6 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
-use App\Admin\Controls\AdminGrid;
-use App\Admin\PresenterTrait;
 use Eshop\Admin\Controls\IProductFormFactory;
 use Eshop\Admin\Controls\IProductParametersFormFactory;
 use Eshop\Admin\Controls\ProductGridFactory;
@@ -22,13 +20,9 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\Product;
 use Eshop\DB\VatRateRepository;
 use Forms\Form;
-use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
-use Nette\Utils\ArrayHash;
-use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
-use Nette\Utils\Random;
 use Pages\DB\PageRepository;
 use StORM\DIConnection;
 
@@ -74,7 +68,7 @@ class ProductPresenter extends BackendPresenter
 
 	public function createComponentProductForm()
 	{
-		return $this->productFormFatory->create();
+		return $this->productFormFatory->create($this->getParameter('product'));
 	}
 
 	public function createComponentPhotoGrid()

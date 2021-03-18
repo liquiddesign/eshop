@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
-use App\Admin\PresenterTrait;
 use Eshop\DB\DiscountRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\OrderRepository;
-use Nette\Application\UI\Presenter;
 use Security\DB\AccountRepository;
 
 class DashboardPresenter extends BackendPresenter

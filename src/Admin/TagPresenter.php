@@ -5,13 +5,10 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
-use App\Admin\PresenterTrait;
-use Eshop\DB\Producer;
 use Eshop\DB\Tag;
 use Eshop\DB\TagRepository;
 use Forms\Form;
 use Nette\Http\Request;
-use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Pages\DB\PageRepository;
 use Pages\Helpers;

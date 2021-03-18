@@ -6,7 +6,6 @@ namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
 use Eshop\DB\OrderRepository;
-use Nette;
 
 class NoteForm extends \Nette\Application\UI\Form
 {

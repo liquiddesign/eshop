@@ -63,10 +63,12 @@ class ProductForm extends Control
 		VatRateRepository $vatRateRepository,
 		DisplayAmountRepository $displayAmountRepository,
 		DisplayDeliveryRepository $displayDeliveryRepository,
-		TaxRepository $taxRepository
+		TaxRepository $taxRepository,
+		$product = null
 	)
 	{
 		//Form::initialize();
+		$product = $productRepository->get($product);
 
 		/** @var \App\Admin\Controls\AdminForm $form */
 		$form = $container->getService(AdminFormFactory::SERVICE_NAME)->create();
@@ -130,14 +132,16 @@ class ProductForm extends Control
 		$form->addIntegerNullable('roundingPalletPct', 'Zokrouhlení paletu (%)');
 		$form->addCheckbox('unavailable', 'Neprodejné');
 
-		$product = $this->getParameter('product');
-
 		$printers = $productRepository->many();
+
 		if ($product) {
-			$printers->where('uuid != :thisProduct', $product);
+			$printers->where('uuid != :thisProduct', ['thisProduct' => $product->getPK()]);
 		}
 
-		$form->addDataMultiSelect('tonerForPrinters', 'Toner pro tiskárny', $printers->toArrayOf('name'));
+		if (\count($printers) > 0) {
+			$form->addDataMultiSelect('tonerForPrinters', 'Toner pro tiskárny', $printers->orderBy(['name_cs'])->toArrayOf('name'));
+		}
+
 		$form->addDataMultiSelect('taxes', 'Poplatky a daně', $taxRepository->getArrayForSelect());
 
 		$prices = $form->addContainer('prices');
@@ -152,7 +156,7 @@ class ProductForm extends Control
 
 		$form->addPageContainer('product_detail', ['product' => null], $nameInput);
 
-		$form->addSubmits(!$this->getParameter('product'));
+		$form->addSubmits(!$product);
 
 		$form->onSuccess[] = [$this, 'submit'];
 

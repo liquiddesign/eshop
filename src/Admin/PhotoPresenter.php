@@ -6,7 +6,6 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminFormFactory;
-use App\Admin\PresenterTrait;
 use Eshop\DB\Photo;
 use Eshop\DB\PhotoRepository;
 use Eshop\DB\Product;

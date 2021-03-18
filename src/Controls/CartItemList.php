@@ -6,7 +6,6 @@ namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
 use Eshop\Shopper;
-use Eshop\DB\Cart;
 use Eshop\DB\CartItem;
 use Eshop\DB\CartItemRepository;
 use Grid\Datalist;
