@@ -129,7 +129,15 @@ class ProductForm extends Control
 		$form->addIntegerNullable('roundingCartonPct', 'Zokrouhlení karton (%)');
 		$form->addIntegerNullable('roundingPalletPct', 'Zokrouhlení paletu (%)');
 		$form->addCheckbox('unavailable', 'Neprodejné');
-		$form->addDataMultiSelect('tonerForPrinters', 'Toner pro tiskárny', $productRepository->getArrayForSelect());
+
+		$product = $this->getParameter('product');
+
+		$printers = $productRepository->many();
+		if ($product) {
+			$printers->where('uuid != :thisProduct', $product);
+		}
+
+		$form->addDataMultiSelect('tonerForPrinters', 'Toner pro tiskárny', $printers->toArrayOf('name'));
 		$form->addDataMultiSelect('taxes', 'Poplatky a daně', $taxRepository->getArrayForSelect());
 
 		$prices = $form->addContainer('prices');
