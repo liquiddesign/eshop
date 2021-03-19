@@ -210,26 +210,4 @@ class CategoryPresenter extends BackendPresenter
 		$form = $this->getComponent('categoryNewForm');
 		$form->setDefaults($category->toArray());
 	}
-
-	public function renderBulkEditIds(string $Ids)
-	{
-		$this->template->headerLabel = 'Hromadná úprava';
-		$this->template->headerTree = [
-			['Kategorie', 'default'],
-			['Hromadná úprava'],
-		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('bulkEditDetail')];
-	}
-
-	public function renderBulkEditAll()
-	{
-		$this->template->headerLabel = 'Hromadná úprava';
-		$this->template->headerTree = [
-			['Kategorie', 'default'],
-			['Hromadná úprava'],
-		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('bulkEditDetail')];
-	}
 }

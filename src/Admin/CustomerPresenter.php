@@ -105,7 +105,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder']);
 		
-		$grid->addButtonBulkEdit('form', ['pricelists', 'merchant', 'group']);
+		$grid->addButtonBulkEdit('form', ['pricelists', 'merchant', 'group'], 'customers');
 		
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů');
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
@@ -320,17 +320,6 @@ class CustomerPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('accountForm')];
-	}
-	
-	public function renderBulkEdit(string $grid = 'grid')
-	{
-		$this->template->headerLabel = 'Hromadná úprava';
-		$this->template->headerTree = [
-			['Zákazníci', 'default'],
-			['Hromadná úprava'],
-		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('customers-bulkForm')];
 	}
 	
 	public function actionNew()

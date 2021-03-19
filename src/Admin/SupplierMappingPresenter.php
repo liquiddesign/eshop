@@ -412,24 +412,4 @@ class SupplierMappingPresenter extends BackendPresenter
 
 		throw new \DomainException('Invalid state');
 	}
-
-	public
-	function actionBulkEdit(string $grid = 'grid')
-	{
-		$this['grid']['bulkForm']->onSuccess[] = function () {
-			$this->flashMessage('Uloženo', 'success');
-			$this->redirect('default');
-		};
-	}
-	
-	public function renderBulkEdit(string $grid = 'grid')
-	{
-		$this->template->headerLabel = 'Hromadná úprava';
-		$this->template->headerTree = [
-			['Zákazníci', 'default'],
-			['Hromadná úprava'],
-		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('grid-bulkForm')];
-	}
 }
