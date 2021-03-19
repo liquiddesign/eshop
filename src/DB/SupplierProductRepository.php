@@ -69,7 +69,7 @@ class SupplierProductRepository extends \StORM\Repository
 				'vatRate' => $vatLevels[(int) $draft->vatRate] ?? 'standard',
 				'producer' => $draft->producer->getValue('producer'),
 				'displayAmount' => $draft->displayAmount ? $draft->displayAmount->getValue('displayAmount') : null,
-				'categories' => $draft->category->getValue('category') ? [$draft->category->getValue('category')] : [],
+				'categories' => $draft->category && $draft->category->getValue('category') ? [$draft->category->getValue('category')] : [],
 				'primaryCategory' => $draft->category ? $draft->category->getValue('category') : null,
 				'supplierLock' => $supplier->importPriority,
 				'supplierSource' => $supplier,
