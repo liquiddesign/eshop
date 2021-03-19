@@ -76,18 +76,22 @@ class SupplierProductRepository extends \StORM\Repository
 			];
 			
 			/** @var \Eshop\DB\Product $product */
-			$product = $productRepository->syncOne($values, $updates);
+			$product = $productRepository->syncOne($values, $updates, false, null, ['categories' => false]);
 			
 			if ($overwrite && $product->getParent() instanceof ICollection && $product->getParent()->getAffectedNumber() === InsertResult::UPDATE_AFFECTED_COUNT) {
 				$product->categories->unrelateAll();
 				
 				if ($draft->category->getValue('category')) {
-					$product->categories->relate([$draft->category->getValue('category')]);
+					$product->categories->relate([$draft->category->getValue('category')], false);
 				}
 			}
 			
-			if ($draft->getValue('product') !== $uuid) {
-				$draft->update(['product' => $uuid]);
+			if ($draft->getValue('product') !== $uuid && \is_string($uuid)) {
+				try {
+					$draft->update(['product' => $uuid]);
+				} catch (\PDOException $x) {
+					;
+				}
 			}
 			
 			if (!is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
