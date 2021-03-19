@@ -6,7 +6,6 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
-use Admin\Controls\AdminGrid;
 use Eshop\DB\Country;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\VatRate;

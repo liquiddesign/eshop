@@ -6,13 +6,8 @@ namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
 use Eshop\Shopper;
-use Eshop\DB\Cart;
-use Eshop\DB\CartItem;
 use Eshop\DB\CartItemRepository;
 use Grid\Datalist;
-use Nette\Application\UI\Form;
-use Nette\Application\UI\Multiplier;
-use Nette\Forms\IControl;
 use StORM\ICollection;
 
 /**

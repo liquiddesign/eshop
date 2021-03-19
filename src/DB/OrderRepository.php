@@ -360,6 +360,7 @@ class OrderRepository extends \StORM\Repository
 		$deliveryPrice = $order->getDeliveryPriceVatSum();
 		$paymentPrice = $order->getPaymentPriceVatSum();
 		$totalDeliveryPrice = $deliveryPrice + $paymentPrice;
+		$totalDeliveryPriceVat = $order->getDeliveryPriceVatSum() + $order->getPaymentPriceVatSum();
 
 		$values = [
 			'orderCode' => $order->code,
@@ -373,6 +374,7 @@ class OrderRepository extends \StORM\Repository
 			'deliveryType' => $purchase->deliveryType->name,
 			'deliveryPrice' => $order->deliveries->firstValue('price'),
 			'totalDeliveryPrice' => $totalDeliveryPrice,
+			'totalDeliveryPriceVat' => $totalDeliveryPriceVat,
 			'deliveryPriceVat' => $order->deliveries->firstValue('priceVat'),
 			'paymentType' => $purchase->paymentType->name,
 			'paymentPrice' => $order->payments->firstValue('price'),

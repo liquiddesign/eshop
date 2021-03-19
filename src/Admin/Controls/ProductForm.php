@@ -15,6 +15,7 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\RelatedRepository;
 use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
@@ -47,6 +48,8 @@ class ProductForm extends Control
 
 	private TaxRepository $taxRepository;
 
+	private RelatedRepository $relatedRepository;
+
 	public function __construct(
 		Container $container,
 		PageRepository $pageRepository,
@@ -63,10 +66,13 @@ class ProductForm extends Control
 		VatRateRepository $vatRateRepository,
 		DisplayAmountRepository $displayAmountRepository,
 		DisplayDeliveryRepository $displayDeliveryRepository,
-		TaxRepository $taxRepository
+		TaxRepository $taxRepository,
+		RelatedRepository $relatedRepository,
+		$product = null
 	)
 	{
 		//Form::initialize();
+		$product = $productRepository->get($product);
 
 		/** @var \App\Admin\Controls\AdminForm $form */
 		$form = $container->getService(AdminFormFactory::SERVICE_NAME)->create();
@@ -130,14 +136,24 @@ class ProductForm extends Control
 		$form->addIntegerNullable('roundingPalletPct', 'Zokrouhlení paletu (%)');
 		$form->addCheckbox('unavailable', 'Neprodejné');
 
-		$product = $this->getParameter('product');
+		/** @var \Eshop\DB\Category $printerCategory */
+		$printerCategory = $categoryRepository->one('printers');
 
-		$printers = $productRepository->many();
-		if ($product) {
-			$printers->where('uuid != :thisProduct', $product);
+		if ($printerCategory) {
+			$printers = $productRepository->many()
+				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'this.uuid = nxnCategory.fk_product')
+				->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
+				->where('category.path LIKE :categoryPath', ['categoryPath' => $printerCategory->path . '%']);
+
+			if ($product) {
+				$printers->where('this.uuid != :thisProduct', ['thisProduct' => $product->getPK()]);
+			}
+
+			if (\count($printers) > 0) {
+				$form->addDataMultiSelect('tonerForPrinters', 'Toner pro tiskárny', $printers->orderBy(['name_cs'])->toArrayOf('name'));
+			}
 		}
 
-		$form->addDataMultiSelect('tonerForPrinters', 'Toner pro tiskárny', $printers->toArrayOf('name'));
 		$form->addDataMultiSelect('taxes', 'Poplatky a daně', $taxRepository->getArrayForSelect());
 
 		$prices = $form->addContainer('prices');
@@ -152,7 +168,7 @@ class ProductForm extends Control
 
 		$form->addPageContainer('product_detail', ['product' => null], $nameInput);
 
-		$form->addSubmits(!$this->getParameter('product'));
+		$form->addSubmits(!$product);
 
 		$form->onSuccess[] = [$this, 'submit'];
 
@@ -166,12 +182,12 @@ class ProductForm extends Control
 		$this->supplierProductRepository = $supplierProductRepository;
 		$this->pageRepository = $pageRepository;
 		$this->taxRepository = $taxRepository;
+		$this->relatedRepository = $relatedRepository;
 	}
 
 	public function submit(AdminForm $form)
 	{
 		$values = $form->getValues('array');
-		$product = $this->getPresenter()->getParameter('product');
 
 		$this->createImageDirs();
 
@@ -182,6 +198,21 @@ class ProductForm extends Control
 		$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
 
 		$product = $this->productRepository->syncOne($values, null, true);
+
+		if (isset($values['tonerForPrinters'])) {
+			$this->relatedRepository->many()
+				->where('fk_master', $product->getPK())
+				->where('fk_type', 'tonerForPrinter')
+				->delete();
+
+			foreach ($values['tonerForPrinters'] as $value) {
+				$this->relatedRepository->syncOne([
+					'master' => $product->getPK(),
+					'slave' => $value,
+					'type' => 'tonerForPrinter'
+				]);
+			}
+		}
 
 		foreach ($values['prices'] as $pricelistId => $prices) {
 			$conditions = [

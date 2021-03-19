@@ -13,7 +13,6 @@ use Forms\FormFactory;
 use Grid\Datalist;
 use Nette\Application\UI\Multiplier;
 use Nette\Localization\Translator;
-use StORM\Collection;
 use StORM\ICollection;
 
 /**
@@ -248,11 +247,6 @@ class ProductList extends Datalist
 		$this->template->paginator = $this->getPaginator();
 
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productList.latte');
-	}
-
-	public function createComponentImage(): ImageControl
-	{
-		return $this->imageControlFactory->create();
 	}
 
 	protected function createComponentFilterForm(): \Forms\Form

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
-use App\Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\CustomValidators;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\Related;

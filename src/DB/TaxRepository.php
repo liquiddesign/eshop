@@ -23,4 +23,20 @@ class TaxRepository extends \StORM\Repository implements IGeneralRepository
 
 		return $collection->orderBy(["name$suffix"]);
 	}
+
+	public function getTaxesForProduct($product, $currency): array
+	{
+		/** @var \Eshop\DB\ProductRepository $productRepository */
+		$productRepository = $this->getConnection()->findRepository(Product::class);
+
+		if (!$product = $productRepository->get($product)) {
+			return [];
+		}
+
+		return $this->many()
+			->join(['nxn' => 'eshop_product_nxn_eshop_tax'], 'this.uuid = nxn.fk_tax')
+			->where('nxn.fk_product', $product->getPK())
+			->where('this.fk_currency', $currency)
+			->toArray();
+	}
 }

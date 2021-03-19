@@ -8,7 +8,6 @@ use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
 use App\Admin\Controls\AdminFormFactory;
 use Admin\Controls\AdminGrid;
-use Admin\Controls\AdminGridFactory;
 use Eshop\DB\Parameter;
 use Eshop\DB\ParameterCategory;
 use Eshop\DB\ParameterCategoryRepository;

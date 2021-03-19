@@ -6,7 +6,6 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use App\Admin\Controls\AdminForm;
-use Admin\Controls\AdminGrid;
 use Eshop\Admin\Controls\IProductFormFactory;
 use Eshop\Admin\Controls\IProductParametersFormFactory;
 use Eshop\Admin\Controls\ProductGridFactory;
@@ -19,9 +18,11 @@ use Eshop\DB\PhotoRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\Product;
+use Eshop\DB\ProductRepository;
 use Eshop\DB\VatRateRepository;
 use Forms\Form;
 use Nette\Forms\Controls\TextInput;
+use Nette\InvalidArgumentException;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Pages\DB\PageRepository;
@@ -62,6 +63,9 @@ class ProductPresenter extends BackendPresenter
 	/** @inject */
 	public PageRepository $pageRepository;
 
+	/** @inject */
+	public ProductRepository $productRepository;
+
 	public function createComponentProductGrid()
 	{
 		return $this->productGridFactory->create();
@@ -69,7 +73,7 @@ class ProductPresenter extends BackendPresenter
 
 	public function createComponentProductForm()
 	{
-		return $this->productFormFatory->create();
+		return $this->productFormFatory->create($this->getParameter('product'));
 	}
 
 	public function createComponentPhotoGrid()
@@ -340,6 +344,12 @@ class ProductPresenter extends BackendPresenter
 		}
 
 		$form->setDefaults($product->toArray(['categories', 'tags', 'ribbons', 'parameterGroups', 'taxes']));
+
+		try {
+			$form['tonerForPrinters']->setDefaultValue($this->productRepository->getSlaveProductsByRelationAndMaster('tonerForPrinter', $product)->setSelect(['this.uuid'])->toArray());
+		} catch (InvalidArgumentException $e) {
+			$form['tonerForPrinters']->setHtmlAttribute('data-error', 'Byla detekována chybná vazba! Vyberte, prosím, tiskárny znovu.');
+		}
 
 		if ($page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product])) {
 			$form['page']->setDefaults($page->toArray());

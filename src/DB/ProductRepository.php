@@ -381,4 +381,24 @@ class ProductRepository extends Repository implements IGeneralRepository
 			->where('orderTable.completedTs IS NOT NULL')
 			->orderBy(['orderTable.completedTs' => 'DESC']);
 	}
+
+	/**
+	 * @param \Eshop\DB\Product|string|null $product
+	 * @return \Eshop\DB\Product|null
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function get($product)
+	{
+		if (!$product) {
+			return null;
+		}
+
+		if (!$product instanceof Product) {
+			if (!$product = $this->one($product)) {
+				return null;
+			}
+		}
+
+		return $product;
+	}
 }

@@ -16,7 +16,6 @@ use Eshop\DB\SupplierProduct;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Forms\Form;
-use Grid\Datagrid;
 use StORM\DIConnection;
 
 class SupplierProductPresenter extends BackendPresenter

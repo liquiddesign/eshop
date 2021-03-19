@@ -26,7 +26,8 @@
 		"liquiddesign/web": "@dev",
 		"liquiddesign/grid": "@dev",
 		"ext-pdo": "*",
-		"ext-intl": "*"
+		"ext-intl": "*",
+		"guzzlehttp/guzzle": "^7.0"
 	},
 	"require-dev": 
 	{
