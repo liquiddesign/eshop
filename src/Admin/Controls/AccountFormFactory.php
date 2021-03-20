@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\Admin\Controls;
 
-use App\Admin\Controls\AdminForm;
-use App\Admin\Controls\AdminFormFactory;
+use Admin\Controls\AdminForm;
+use Admin\Controls\AdminFormFactory;
 use Messages\DB\TemplateRepository;
 use Nette\DI\Container;
 use Nette\Forms\Controls\Button;

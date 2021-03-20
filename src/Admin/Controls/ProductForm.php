@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\Admin\Controls;
 
-use App\Admin\Controls\AdminForm;
-use App\Admin\Controls\AdminFormFactory;
+use Admin\Controls\AdminForm;
+use Admin\Controls\AdminFormFactory;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
