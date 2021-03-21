@@ -12,7 +12,6 @@ use Eshop\DB\ParameterRepository;
 use Eshop\DB\ParameterValueRepository;
 use Eshop\DB\Product;
 use Nette\Application\UI\Control;
-use Nette\DI\Container;
 use Nette\Utils\Arrays;
 
 class ProductParametersForm extends Control

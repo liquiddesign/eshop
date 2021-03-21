@@ -7,7 +7,6 @@ namespace Eshop\Admin\Controls;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
 use Messages\DB\TemplateRepository;
-use Nette\DI\Container;
 use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\SmartObject;
@@ -16,7 +15,6 @@ use Security\DB\Account;
 use Security\DB\AccountRepository;
 use Security\DB\IUser;
 use Security\DB\RoleRepository;
-use StORM\Entity;
 
 /**
  * @method onCreateAccount(\Security\DB\Account $account)
