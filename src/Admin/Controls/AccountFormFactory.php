@@ -46,9 +46,9 @@ class AccountFormFactory
 	
 	private RoleRepository $roleRepository;
 	
-	public function __construct(Container $container, AccountRepository $accountRepository, TemplateRepository $templateRepository, RoleRepository $roleRepository, Mailer $mailer)
+	public function __construct(AdminFormFactory $adminFormFactory, AccountRepository $accountRepository, TemplateRepository $templateRepository, RoleRepository $roleRepository, Mailer $mailer)
 	{
-		$this->adminFormFactory = $container->getService(AdminFormFactory::SERVICE_NAME);
+		$this->adminFormFactory = $adminFormFactory;
 		$this->accountRepository = $accountRepository;
 		$this->templateRepository = $templateRepository;
 		$this->roleRepository = $roleRepository;
