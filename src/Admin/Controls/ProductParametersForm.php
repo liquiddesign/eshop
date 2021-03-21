@@ -19,8 +19,6 @@ class ProductParametersForm extends Control
 {
 	private Product $product;
 
-	private Container $container;
-
 	private ParameterRepository $parameterRepository;
 
 	private ParameterGroupRepository $parameterGroupRepository;
@@ -31,7 +29,7 @@ class ProductParametersForm extends Control
 
 	public function __construct(
 		Product $product,
-		Container $container,
+		AdminFormFactory $adminFormFatory,
 		ParameterRepository $parameterRepository,
 		ParameterGroupRepository $parameterGroupRepository,
 		ParameterValueRepository $parameterValueRepository,
@@ -39,13 +37,11 @@ class ProductParametersForm extends Control
 	)
 	{
 		$this->product = $product;
-		$this->container = $container;
 		$this->parameterRepository = $parameterRepository;
 		$this->parameterGroupRepository = $parameterGroupRepository;
 		$this->parameterValueRepository = $parameterValueRepository;
 
-		/** @var \App\Admin\Controls\AdminForm $form */
-		$form = $container->getService(AdminFormFactory::SERVICE_NAME)->create();
+		$form = $adminFormFatory->create();
 		$form->removeComponent($form->getComponent('uuid'));
 
 		$mutation = 'cs';

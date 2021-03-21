@@ -52,6 +52,7 @@ class ProductForm extends Control
 
 	public function __construct(
 		Container $container,
+		AdminFormFactory $adminFormFactory,
 		PageRepository $pageRepository,
 		ProductRepository $productRepository,
 		PricelistRepository $pricelistRepository,
@@ -74,8 +75,7 @@ class ProductForm extends Control
 		//Form::initialize();
 		$product = $productRepository->get($product);
 
-		/** @var \App\Admin\Controls\AdminForm $form */
-		$form = $container->getService(AdminFormFactory::SERVICE_NAME)->create();
+		$form = $adminFormFactory->create();
 
 		$form->addGroup('Hlavní atributy');
 
