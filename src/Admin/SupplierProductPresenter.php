@@ -4,9 +4,8 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
-use App\Admin\Controls\AdminForm;
-use App\Admin\Controls\AdminFormFactory;
-use App\Admin\Controls\CustomValidators;
+use Eshop\FormValidators;
+use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProducerRepository;
@@ -99,7 +98,7 @@ class SupplierProductPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 		$form->addText('productFullCode', 'Párovat k produktu')
 			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
-			->addRule(CustomValidators::IS_PRODUCT_EXISTS, 'Produkt neexistuje!', [
+			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [
 				$this->productRepository,
 				$this->supplierProductRepository,
 				$form

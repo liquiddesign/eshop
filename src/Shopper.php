@@ -8,9 +8,7 @@ use Eshop\DB\Country;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\Currency;
 use Eshop\DB\CurrencyRepository;
-use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\MinimalOrderValueRepository;
-use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\Customer;
 use Eshop\DB\CustomerGroup;
@@ -21,7 +19,6 @@ use Eshop\DB\MerchantRepository;
 use Nette\Application\Application;
 use Nette\Application\UI\ITemplate;
 use Nette\Security\User;
-use Nette\Utils\Arrays;
 use StORM\Collection;
 use Translator\Translator;
 

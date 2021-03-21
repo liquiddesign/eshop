@@ -6,8 +6,8 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminGrid;
-use App\Admin\Controls\AdminForm;
-use App\Admin\Controls\CustomValidators;
+use Eshop\FormValidators;
+use Admin\Controls\AdminForm;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\Related;
 use Eshop\DB\RelatedRepository;
@@ -97,7 +97,7 @@ class RelatedPresenter extends BackendPresenter
 
 		$form->addText('master', 'První produkt')
 			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
-			->addRule(CustomValidators::IS_PRODUCT_EXISTS, 'Produkt neexistuje!', [
+			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [
 				$this->productRepository,
 				$form
 			])
@@ -105,7 +105,7 @@ class RelatedPresenter extends BackendPresenter
 
 		$form->addText('slave', 'Druhý produkt')
 			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
-			->addRule(CustomValidators::IS_PRODUCT_EXISTS, 'Produkt neexistuje!', [
+			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [
 				$this->productRepository,
 				$form
 			])

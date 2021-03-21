@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
-use App\Admin\Controls\AdminForm;
-use App\Admin\Controls\CustomValidators;
+use Eshop\FormValidators;
+use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\Amount;
 use Eshop\DB\AmountRepository;
@@ -157,7 +157,7 @@ class StorePresenter extends BackendPresenter
 		
 		$form->addText('product', 'Produkt')
 			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
-			->addRule(CustomValidators::AMOUNT_PRODUCT_CHECK, 'Produkt neexistuje nebo již existuje záznam pro tento produkt!', [$this->productRepo, $this->amountRepo, $this->getParameter('store')])
+			->addRule([FormValidators::class, 'amountProductCheck'], 'Produkt neexistuje nebo již existuje záznam pro tento produkt!', [$this->productRepo, $this->amountRepo, $this->getParameter('store')])
 			->setRequired();
 		
 		$form->addInteger('inStock', 'Naskladněno');

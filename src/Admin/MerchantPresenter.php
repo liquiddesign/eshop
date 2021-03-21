@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
-use App\Admin\Controls\AdminForm;
-use App\Admin\Controls\AdminFormFactory;
+use Admin\Controls\AdminForm;
+use Admin\Controls\AdminFormFactory;
 use Eshop\Admin\Controls\AccountFormFactory;
 use Eshop\DB\Merchant;
 use Eshop\DB\MerchantRepository;

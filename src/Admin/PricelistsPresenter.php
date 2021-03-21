@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
-use App\Admin\Controls\AdminForm;
-use App\Admin\Controls\AdminFormFactory;
-use App\Admin\Controls\CustomValidators;
+use Eshop\FormValidators;
+use Admin\Controls\AdminForm;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\DiscountRepository;
 use Eshop\DB\QuantityPrice;
@@ -351,7 +350,7 @@ class PricelistsPresenter extends BackendPresenter
 		
 		$form->addText('product', 'Produkt')
 			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
-			->addRule(CustomValidators::IS_PRODUCT_EXISTS, 'Produkt neexistuje nebo neplatná hodnota!', [$this->productRepository])
+			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje nebo neplatná hodnota!', [$this->productRepository])
 			->setRequired();
 		
 		$form->addText('price', 'Cena')->addRule($form::FLOAT)->setRequired();
@@ -386,7 +385,7 @@ class PricelistsPresenter extends BackendPresenter
 		$form->addDataSelect('originalPricelist', 'Cílový ceník', $pricelists)->setRequired();
 		$form->addText('percent', 'Procentuální změna')->addRule($form::FLOAT)
 			->setHtmlAttribute('data-info', 'Zadejte hodnotu v procentech (%).')
-			->addRule(CustomValidators::IS_PERCENT_NOMAX,'Zadaná hodnota není správná (>=0)!')
+			->addRule([FormValidators::class, 'isPercentNoMax'], 'Zadaná hodnota není správná (>=0)!')
 			->setRequired()->setDefaultValue(100);
 		
 		$form->addInteger('roundPrecision', 'Přesnost zaokrouhlení')

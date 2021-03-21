@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
-use App\Admin\Controls\AdminForm;
-use App\Admin\Controls\CustomValidators;
+use Eshop\FormValidators;
+use Admin\Controls\AdminForm;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\DeliveryDiscountRepository;
 use Eshop\DB\Discount;
@@ -104,7 +104,7 @@ class DiscountPresenter extends BackendPresenter
 				->setHtmlAttribute('data-info', 'Zadejte hodnotu v procentech (%).')
 				->addCondition(Form::FILLED)
 				->addRule($form::FLOAT)
-				->addRule(CustomValidators::IS_PERCENT, 'Zadaná hodnota není procento!');
+				->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
 		}
 
 		$pricelists = $discount ? $this->priceListRepository->many()->where('fk_discount IS NULL OR fk_discount = :q', ['q' => $discount->getPK()]) : $this->priceListRepository->many()->where('fk_discount IS NULL');

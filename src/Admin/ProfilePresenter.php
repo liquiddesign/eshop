@@ -6,8 +6,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\DB\AdministratorRepository;
-use App\Admin\Controls\AdminForm;
-use App\Admin\Controls\AdminFormFactory;
+use Admin\Controls\AdminForm;
 use Security\DB\AccountRepository;
 
 class ProfilePresenter extends BackendPresenter

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
-use App\Admin\Controls\AdminFormFactory;
 use Eshop\DB\File;
 use Eshop\DB\FileRepository;
 use Eshop\DB\Product;

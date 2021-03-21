@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
-use App\Admin\Controls\AdminForm;
-use App\Admin\Controls\CustomValidators;
+use Eshop\FormValidators;
+use Admin\Controls\AdminForm;
 use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\DeliveryTypeRepository;
@@ -481,7 +481,7 @@ class OrderPresenter extends BackendPresenter
 
 		$form->addText('product', 'Produkt')
 			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
-			->addRule(CustomValidators::IS_PRODUCT_EXISTS, 'Produkt neexistuje nebo již existuje záznam pro tento produkt!', [$this->productRepo])
+			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje nebo již existuje záznam pro tento produkt!', [$this->productRepo])
 			->setRequired();
 		
 		$form->addSelect('cart', 'Košík č.', $order->purchase->carts->toArrayOf('id'))->setRequired();

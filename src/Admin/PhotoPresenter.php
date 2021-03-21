@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
-use App\Admin\Controls\AdminFormFactory;
 use Eshop\DB\Photo;
 use Eshop\DB\PhotoRepository;
 use Eshop\DB\Product;

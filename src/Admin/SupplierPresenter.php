@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
-use App\Admin\Controls\AdminForm;
+use Admin\Controls\AdminForm;
 use Eshop\DB\Supplier;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\AddressRepository;
