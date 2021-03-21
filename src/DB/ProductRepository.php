@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Common\DB\IGeneralRepository;
 use Eshop\Shopper;
 use StORM\Collection;
 use StORM\DIConnection;

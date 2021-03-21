@@ -25,6 +25,7 @@
 		"liquiddesign/admin": "@dev",
 		"liquiddesign/web": "@dev",
 		"liquiddesign/grid": "@dev",
+		"liquiddesign/common": "@dev",
 		"ext-pdo": "*",
 		"ext-intl": "*",
 		"guzzlehttp/guzzle": "^7.0"

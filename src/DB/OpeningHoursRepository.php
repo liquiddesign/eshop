@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 
+use Common\DB\IGeneralRepository;
 use StORM\Collection;
 
 /**
