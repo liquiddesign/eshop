@@ -110,6 +110,21 @@ class CategoryPresenter extends BackendPresenter
 			$this->redirect('this');
 		};
 
+		$imagePicker = $form->addImagePicker('productFallbackImageFileName', 'Placeholder produktů', [
+			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
+			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => static function (Image $image): void {
+				$image->resize(600, null);
+			},
+			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
+				$image->resize(300, null);
+			},
+		]);
+
+		$imagePicker->onDelete[] = function (array $directories, $filename) use ($category) {
+			$this->onDeleteImage($category, 'productFallbackImageFileName');
+			$this->redirect('this');
+		};
+
 		$nameInput = $form->addLocaleText('name', 'Název');
 		$form->addLocalePerexEdit('perex', 'Perex');
 		$form->addLocaleRichEdit('content', 'Obsah');
@@ -144,6 +159,7 @@ class CategoryPresenter extends BackendPresenter
 			}
 
 			$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
+			$values['productFallbackImageFileName'] = $form['productFallbackImageFileName']->upload($values['uuid'] . '_fallback.%2$s');
 
 			$prefix = $values['ancestor'] ? $this->categoryRepository->one($values['ancestor'])->path : '';
 			$random = null;

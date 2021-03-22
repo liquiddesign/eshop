@@ -50,6 +50,12 @@ class Category extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $imageFileName;
+
+	/**
+	 * Záložní obrázek pro produkty
+	 * @column
+	 */
+	public ?string $productFallbackImageFileName;
 	
 	/**
 	 * Exportní název pro Google
@@ -92,6 +98,7 @@ class Category extends \StORM\Entity
 	 * @column
 	 */
 	public bool $systemic = false;
+
 
 	public function isSystemic(): bool
 	{
