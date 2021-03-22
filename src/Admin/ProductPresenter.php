@@ -221,7 +221,7 @@ class ProductPresenter extends BackendPresenter
 
 		/*$imagePicker->onDelete[] = function (array $directories, $filename) use ($product) {
 			foreach ($directories as $key => $directory) {
-				FileSystem::delete($this->context->getParameters()['wwwDir'] . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $key . \DIRECTORY_SEPARATOR . $photo->fileName);
+				FileSystem::delete($this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $key . \DIRECTORY_SEPARATOR . $photo->fileName);
 			}
 			
 			$photo->delete();
@@ -436,7 +436,7 @@ class ProductPresenter extends BackendPresenter
 	public function deleteFile(File $file)
 	{
 		$dir = File::FILE_DIR;
-		$rootDir = $this->context->parameters['wwwDir'] . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
+		$rootDir = $this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
 		FileSystem::delete($rootDir . \DIRECTORY_SEPARATOR . $file->fileName);
 	}
 
@@ -446,7 +446,7 @@ class ProductPresenter extends BackendPresenter
 		$dir = Photo::IMAGE_DIR;
 
 		foreach ($subDirs as $subDir) {
-			$rootDir = $this->context->parameters['wwwDir'] . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
+			$rootDir = $this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
 			FileSystem::delete($rootDir . \DIRECTORY_SEPARATOR . $subDir . \DIRECTORY_SEPARATOR . $photo->fileName);
 		}
 
@@ -459,7 +459,7 @@ class ProductPresenter extends BackendPresenter
 		$dirs = [Product::IMAGE_DIR, Photo::IMAGE_DIR];
 
 		foreach ($dirs as $dir) {
-			$rootDir = $this->context->parameters['wwwDir'] . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
+			$rootDir = $this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
 			FileSystem::createDir($rootDir);
 
 			foreach ($subDirs as $subDir) {
@@ -467,7 +467,7 @@ class ProductPresenter extends BackendPresenter
 			}
 		}
 
-		FileSystem::createDir($this->context->parameters['wwwDir'] . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . File::FILE_DIR);
+		FileSystem::createDir($this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . File::FILE_DIR);
 	}
 
 }

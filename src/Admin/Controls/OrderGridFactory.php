@@ -9,6 +9,7 @@ use Eshop\DB\OrderRepository;
 use Grid\Datagrid;
 use League\Csv\Writer;
 use Messages\DB\TemplateRepository;
+use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\Button;
 use Nette\Localization\Translator;
@@ -28,14 +29,17 @@ class OrderGridFactory
 	private Mailer $mailer;
 
 	private Translator $translator;
-
-	public function __construct(\Admin\Controls\AdminGridFactory $adminGridFactory, OrderRepository $orderRepository, TemplateRepository $templateRepository, Mailer $mailer, Translator $translator)
+	
+	private Application $application;
+	
+	public function __construct(\Admin\Controls\AdminGridFactory $adminGridFactory, OrderRepository $orderRepository, Application $application, TemplateRepository $templateRepository, Mailer $mailer, Translator $translator)
 	{
 		$this->orderRepository = $orderRepository;
 		$this->gridFactory = $adminGridFactory;
 		$this->templateRepository = $templateRepository;
 		$this->mailer = $mailer;
 		$this->translator = $translator;
+		$this->application = $application;
 	}
 
 	private function getCollectionByState(string $state): Collection
@@ -264,11 +268,11 @@ class OrderGridFactory
 	{
 		$presenter = $grid->getPresenter();
 
-		$tempFilename = \tempnam($presenter->context->parameters['tempDir'], "xml");
+		$tempFilename = \tempnam($presenter->tempDir, "xml");
 		$fh = \fopen($tempFilename, 'w+');
 		\fwrite($fh, $this->orderRepository->ediExport($object));
 		\fclose($fh);
-		$presenter->context->getService('application')->onShutdown[] = function () use ($tempFilename) {
+		$this->application->onShutdown[] = function () use ($tempFilename) {
 			unlink($tempFilename);
 		};
 		$presenter->sendResponse(new FileResponse($tempFilename, 'order.txt', 'text/plain'));
@@ -278,8 +282,8 @@ class OrderGridFactory
 	{
 		$presenter = $grid->getPresenter();
 
-		$tempFilename = \tempnam($presenter->context->parameters['tempDir'], "csv");
-		$presenter->context->getService('application')->onShutdown[] = function () use ($tempFilename) {
+		$tempFilename = \tempnam($presenter->tempDir, "csv");
+		$this->application->onShutdown[] = function () use ($tempFilename) {
 			\unlink($tempFilename);
 		};
 		$this->orderRepository->csvExport($object, Writer::createFromPath($tempFilename, 'w+'));

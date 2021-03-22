@@ -137,7 +137,7 @@ class CustomerPresenter extends BackendPresenter
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
 		
-		$tempFilename = \tempnam($this->context->parameters['tempDir'], "csv");
+		$tempFilename = \tempnam($this->tempDir, "csv");
 		$collection = $grid->getSource()->where($grid->getSourceIdName(), $grid->getSelectedIds());
 		$this->customerRepository->csvExport($collection, Writer::createFromPath($tempFilename, 'w+'));
 		

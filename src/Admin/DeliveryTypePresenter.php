@@ -43,9 +43,6 @@ class DeliveryTypePresenter extends BackendPresenter
 	public CustomerGroupRepository $groupRepo;
 	
 	/** @inject */
-	public Container $context;
-	
-	/** @inject */
 	public Shopper $shopper;
 	
 	/** @inject */

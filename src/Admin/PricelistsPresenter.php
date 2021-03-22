@@ -60,9 +60,6 @@ class PricelistsPresenter extends BackendPresenter
 	public QuantityPriceRepository $quantityPriceRepo;
 	
 	/** @inject */
-	public Nette\DI\Container $context;
-	
-	/** @inject */
 	public CountryRepository $countryRepo;
 	
 	public function createComponentPriceLists()
@@ -306,7 +303,7 @@ class PricelistsPresenter extends BackendPresenter
 	
 	public function handlePriceListExport(string $pricelistId, string $type = 'standart')
 	{
-		$tempFilename = \tempnam($this->context->parameters['tempDir'], "csv");
+		$tempFilename = \tempnam($this->tempDir, "csv");
 		
 		$this->priceListRepository->csvExport($this->priceListRepository->one($pricelistId), Writer::createFromPath($tempFilename, 'w+'), $type === 'quantity');
 		
