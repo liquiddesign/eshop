@@ -220,6 +220,18 @@ class Product extends \StORM\Entity
 	public ?string $published;
 	
 	/**
+	 * Id zdroje dat produktu s kterým je svázaný
+	 * @column
+	 */
+	public ?string $source;
+	
+	/**
+	 * Id ve zdroji dat
+	 * @column
+	 */
+	public ?string $sourceId;
+	
+	/**
 	 * Zamknuto pro prioritu dodavatele
 	 * @column
 	 */
