@@ -85,14 +85,15 @@ class CustomerGroupPresenter extends BackendPresenter
 		if ($group && $group->isSystemic()) {
 			$input->setHtmlAttribute('readonly', 'readonly');
 		}
-		
-		if (!($group && $group->getPK() == CustomerGroupRepository::UNREGISTERED_PK)) {
-			$form->addCheckbox('defaultAfterRegistration', 'Výchozí po registraci');
-		}
 
 		$form->addSelect('defaultCatalogPermission', 'Katalogové oprávnění', Shopper::PERMISSIONS);
 		$form->addDataMultiSelect('defaultPricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
+
+		if (!($group && $group->getPK() == CustomerGroupRepository::UNREGISTERED_PK)) {
+			$form->addCheckbox('defaultAfterRegistration', 'Výchozí po registraci');
+			$form->addCheckbox('autoActiveCustomers', 'Zákazníci budou automaticky aktivní po registraci');
+		}
 
 		$form->addSubmits(!$group);
 
@@ -114,9 +115,9 @@ class CustomerGroupPresenter extends BackendPresenter
 
 	public function renderDefault()
 	{
-		$this->template->headerLabel = 'Skupiny uživatelů';
+		$this->template->headerLabel = 'Skupiny zákazníků';
 		$this->template->headerTree = [
-			['Skupiny uživatelů'],
+			['Skupiny zákazníků'],
 		];
 		$this->template->displayButtons = [$this->createNewItemButton('new')];
 		$this->template->displayControls = [$this->getComponent('grid')];
@@ -126,7 +127,7 @@ class CustomerGroupPresenter extends BackendPresenter
 	{
 		$this->template->headerLabel = 'Nový';
 		$this->template->headerTree = [
-			['Skupiny uživatelů', 'default'],
+			['Skupiny zákazníků', 'default'],
 			['Nový'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
@@ -137,7 +138,7 @@ class CustomerGroupPresenter extends BackendPresenter
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
-			['Skupiny uživatelů', 'default'],
+			['Skupiny zákazníků', 'default'],
 			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];

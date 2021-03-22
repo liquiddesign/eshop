@@ -44,6 +44,12 @@ class CustomerGroup extends \StORM\Entity
 	public bool $defaultAfterRegistration = false;
 
 	/**
+	 * Automaticky potvrdit zákazníky
+	 * @column
+	 */
+	public bool $autoActiveCustomers = true;
+
+	/**
 	 * Systémová
 	 * @column
 	 */

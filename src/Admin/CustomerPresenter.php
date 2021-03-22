@@ -230,7 +230,7 @@ class CustomerPresenter extends BackendPresenter
 		$form->addText('ediBranch', 'EDI: Identifikátor pobočky')
 			->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
 		
-		$form->bind($this->customerRepository->getStructure(), []);
+		//$form->bind($this->customerRepository->getStructure(), []);
 		
 		if (!$this->getParameter('customer')) {
 			$form->addGroup('Účet');

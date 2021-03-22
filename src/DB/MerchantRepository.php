@@ -27,4 +27,32 @@ class MerchantRepository extends \StORM\Repository implements IUserRepository
 			->where('fk_merchant', $merchant->getPK())
 			->toArray();
 	}
+
+	/**
+	 * @param \Eshop\DB\Customer|string $customer
+	 * @return \Eshop\DB\Merchant[]
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function getMerchantsByCustomer($customer): array
+	{
+		/** @var \Eshop\DB\CustomerRepository $customerRepository */
+		$customerRepository = $this->getConnection()->findRepository(Customer::class);
+
+		/** @var \Eshop\DB\Customer $customer */
+		if (!$customer instanceof Customer) {
+			if ($customer = $customerRepository->one($customer)) {
+				return [];
+			}
+		}
+
+		if ($customer->merchant) {
+			return [$customer->merchant];
+		}
+
+		if (!$customer->group) {
+			return [];
+		}
+
+		return $this->many()->where('fk_customerGroup', $customer->group->getPK())->toArray();
+	}
 }

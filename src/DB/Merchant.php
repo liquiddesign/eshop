@@ -38,6 +38,25 @@ class Merchant extends \StORM\Entity implements IIdentity, IUser
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?Customer $activeCustomer;
+
+	/**
+	 * Skupina zákazníků, ve které je správce
+	 * @relation
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 */
+	public ?CustomerGroup $customerGroup;
+
+	/**
+	 * Oprávnění potvrzovat registrace přiřazených zákazníků (přímo, skupina)
+	 * @column
+	 */
+	public bool $canApproveRegistrations = false;
+
+	/**
+	 * Informace o objednávkách zákazníků
+	 * @column
+	 */
+	public bool $customerEmailNotification = false;
 	
 	/**
 	 * @relation

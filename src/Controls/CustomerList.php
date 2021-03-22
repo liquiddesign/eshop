@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Eshop\DB\CustomerRepository;
 use Eshop\Shopper;
 use Grid\Datalist;
 use StORM\Collection;
@@ -17,7 +18,9 @@ class CustomerList extends Datalist
 {
 	private Shopper $shopper;
 
-	public function __construct(Collection $customers, Shopper $shopper)
+	private CustomerRepository $customerRepository;
+
+	public function __construct(Collection $customers, Shopper $shopper, CustomerRepository $customerRepository)
 	{
 		parent::__construct($customers);
 
@@ -32,6 +35,7 @@ class CustomerList extends Datalist
 		$this->getFilterForm()->addSubmit('submit');
 
 		$this->shopper = $shopper;
+		$this->customerRepository = $customerRepository;
 	}
 
 	public function handleLogin(string $user): void
@@ -48,8 +52,30 @@ class CustomerList extends Datalist
 		$this->getPresenter()->redirect('this');
 	}
 
+	public function handleDeactivateCustomerAccount($customer)
+	{
+		if ($customer = $this->customerRepository->one($customer)) {
+			if ($customer->account) {
+				$customer->account->update(['active' => false]);
+			}
+		}
+
+		$this->redirect('this');
+	}
+
+	public function handleActivateCustomerAccount($customer)
+	{
+		if ($customer = $this->customerRepository->one($customer)) {
+			if ($customer->account) {
+				$customer->account->update(['active' => true]);
+			}
+		}
+
+		$this->redirect('this');
+	}
+
 	public function render(): void
 	{
-		$this->template->render(__DIR__ . '/customerList.latte');
+		$this->template->render($this->template->getFile() ?: __DIR__ . '/customerList.latte');
 	}
 }

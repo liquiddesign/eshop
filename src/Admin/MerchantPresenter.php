@@ -8,6 +8,7 @@ use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
 use Eshop\Admin\Controls\AccountFormFactory;
+use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\Merchant;
 use Eshop\DB\MerchantRepository;
 use Forms\Form;
@@ -30,6 +31,9 @@ class MerchantPresenter extends BackendPresenter
 	
 	/** @inject */
 	public TemplateRepository $templateRepository;
+
+	/** @inject */
+	public CustomerGroupRepository $customerGroupRepository;
 	
 	/** @inject */
 	public Mailer $mailer;
@@ -78,6 +82,10 @@ class MerchantPresenter extends BackendPresenter
 		if (!$this->getParameter('merchant')) {
 			$this->accountFormFactory->addContainer($form);
 		}
+
+		$form->addDataSelect('customerGroup', 'Skupina zákazníků', $this->customerGroupRepository->getArrayForSelect());
+		$form->addCheckbox('canApproveRegistrations', 'Může schvalovat registrace zákazníků')->setHtmlAttribute('data-info','Platí pouze v rámci přiřazené skupiny a pro přímo přiřazené zákazníky.');
+		$form->addCheckbox('customerEmailNotification', 'Posílat emailem informace o objednávkách přiřazených zákazníků.');
 		
 		$form->addSubmits(!$this->getParameter('merchant'));
 		
