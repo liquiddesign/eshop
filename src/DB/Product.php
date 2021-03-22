@@ -455,11 +455,8 @@ class Product extends \StORM\Entity
 			throw new ApplicationException('Invalid product image size: ' . $size);
 		}
 
-		$fallbackImage = null;
-
-		if ($category = $this->getPrimaryCategory()) {
-			$fallbackImage = $category->getFallbackImage();
-		}
+		$category = $this->getPrimaryCategory();
+		$fallbackImage = $category ? $category->getFallbackImage() : null;
 
 		return $this->imageFileName ? $basePath . '/userfiles/' . self::IMAGE_DIR . '/' . $size . '/' . $this->imageFileName :
 			($fallbackImage ? $basePath . '/userfiles/' . Category::IMAGE_DIR . '/' . $size . '/' . $fallbackImage :
