@@ -128,7 +128,7 @@ class ProductGridFactory
 		$grid->addFilterTextInput('code', ['code', 'ean'], null, 'EAN, kód', '', '%s%%');
 		$grid->addFilterTextInput('search', ['this.name_cs'], null, 'Název');
 
-		if ($categories = $this->categoryRepository->getArrayForSelect()) {
+		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
 			$grid->addFilterDataSelect(function (Collection $source, $value) {
 				$source->filter(['category' => $this->categoryRepository->one($value)->path]);
 			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');

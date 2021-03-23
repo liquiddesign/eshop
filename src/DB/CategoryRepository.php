@@ -153,6 +153,49 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		return $this->many()->orderBy(["name$suffix"])->toArrayOf('name');
 	}
 
+	public function getTreeArrayForSelect(bool $includeHidden = true): array
+	{
+		$repository = $this;
+
+//		return $this->cache->load('categoryTreeForSelect', static function (&$dependencies) use ($repository) {
+//			$dependencies = [
+//				Cache::TAGS => 'categories',
+//			];
+//
+//			return $repository->buildTree($repository->getCategories()->where('LENGTH(path) <= 40')->toArray(), null);
+//		});
+
+		$list = [];
+		$repository->buildTreeArrayForSelect($repository->getCategories()->where('LENGTH(path) <= 40')->toArray(), null, $list);
+
+		return $list;
+	}
+
+	/**
+	 * @param \Eshop\DB\Category[] $elements
+	 * @param string|null $ancestorId
+	 * @param array $list
+	 * @return \Eshop\DB\Category[]
+	 */
+	private function buildTreeArrayForSelect(array $elements, ?string $ancestorId = null, array &$list = []): array
+	{
+		$branch = [];
+
+		foreach ($elements as $element) {
+			if ($element->getValue('ancestor') === $ancestorId) {
+				$list[$element->getPK()] = \str_repeat('- ', \strlen($element->path) / 4) . $element->name;
+
+				if ($children = $this->buildTreeArrayForSelect($elements, $element->getPK(), $list)) {
+					$element->children = $children;
+				}
+
+				$branch[] = $element;
+			}
+		}
+
+		return $branch;
+	}
+
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();

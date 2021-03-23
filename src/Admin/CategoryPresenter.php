@@ -129,7 +129,7 @@ class CategoryPresenter extends BackendPresenter
 		$form->addLocalePerexEdit('perex', 'Perex');
 		$form->addLocaleRichEdit('content', 'Obsah');
 
-		$categories = $this->categoryRepository->getArrayForSelect();
+		$categories = $this->categoryRepository->getTreeArrayForSelect();
 
 		if ($this->getParameter('category')) {
 			unset($categories[$this->getParameter('category')->getPK()]);

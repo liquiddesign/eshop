@@ -100,7 +100,7 @@ class ProductForm extends Control
 		};
 
 		$form->addSelect('vatRate', 'Úroveň DPH', $vatRateRepository->getDefaultVatRates());
-		$form->addDataMultiSelect('categories', 'Kategorie', $categoryRepository->many()->toArrayOf('name'));
+		$form->addDataMultiSelect('categories', 'Kategorie', $categoryRepository->getTreeArrayForSelect());
 		$form->addDataSelect('producer', 'Výrobce', $producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 		$form->addDataMultiSelect('parameterGroups', 'Skupiny parametrů', $parameterGroupRepository->getArrayForSelect());
 		$form->addDataMultiSelect('tags', 'Tagy', $tagRepository->getArrayForSelect());

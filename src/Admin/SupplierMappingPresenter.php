@@ -144,7 +144,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		$form->addText('name', 'Název / hodnota')->setHtmlAttribute('readonly', 'readonly');
 
 		if ($this->tab === 'category') {
-			$form->addDataSelect('category', 'Kategorie', $this->categoryRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
+			$form->addDataSelect('category', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('Nepřiřazeno');
 		}
 
 		if ($this->tab === 'producer') {
