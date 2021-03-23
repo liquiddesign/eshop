@@ -47,10 +47,10 @@ class Merchant extends \StORM\Entity implements IIdentity, IUser
 	public ?CustomerGroup $customerGroup;
 
 	/**
-	 * Oprávnění potvrzovat registrace přiřazených zákazníků (přímo, skupina)
+	 * Oprávnění potvrzovat registrace přiřazených zákazníků (přímo, skupina), nastavovat katalogové oprávnění
 	 * @column
 	 */
-	public bool $canApproveRegistrations = false;
+	public bool $extendedPermission = false;
 
 	/**
 	 * Informace o objednávkách zákazníků

@@ -84,7 +84,7 @@ class MerchantPresenter extends BackendPresenter
 		}
 
 		$form->addDataSelect('customerGroup', 'Skupina zákazníků', $this->customerGroupRepository->getArrayForSelect())->setPrompt('Žádná');
-		$form->addCheckbox('canApproveRegistrations', 'Může schvalovat registrace zákazníků')->setHtmlAttribute('data-info','Platí pouze v rámci přiřazené skupiny a pro přímo přiřazené zákazníky.');
+		$form->addCheckbox('extendedPermission', 'Rozšířená správa zákazníků')->setHtmlAttribute('data-info','Povoluje schvalovat zákazníky a nastavovat katalogové oprávnění.<br>Platí pouze v rámci přiřazené skupiny a pro přímo přiřazené zákazníky.');
 		$form->addCheckbox('customerEmailNotification', 'Posílat emailem informace o objednávkách přiřazených zákazníků.');
 		
 		$form->addSubmits(!$this->getParameter('merchant'));

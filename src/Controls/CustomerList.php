@@ -7,6 +7,8 @@ namespace Eshop\Controls;
 use Eshop\DB\CustomerRepository;
 use Eshop\Shopper;
 use Grid\Datalist;
+use Nette\Application\UI\Form;
+use Nette\Application\UI\Multiplier;
 use StORM\Collection;
 use StORM\ICollection;
 
@@ -76,6 +78,33 @@ class CustomerList extends Datalist
 
 	public function render(): void
 	{
+		$this->template->paginator = $this->getPaginator();
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/customerList.latte');
+	}
+
+	public function createComponentChangePermForm(): Multiplier
+	{
+		return new Multiplier(function ($itemId) {
+			/** @var \Eshop\DB\Customer $customer */
+			$customer = $this->customerRepository->one($itemId);
+
+			$form = new Form();
+
+			$form->addSelect('catalogPermission', null, [
+				'none' => 'Žádné',
+				'catalog' => 'Katalogy',
+				'price' => 'Ceny',
+				'full' => 'Plné',
+			])->setDefaultValue($customer->catalogPermission);
+
+			$form->onSuccess[] = function ($form, $values) use ($customer): void {
+
+				$customer->update([
+					'catalogPermission' => $values->catalogPermission
+				]);
+			};
+
+			return $form;
+		});
 	}
 }
