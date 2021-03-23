@@ -84,6 +84,12 @@ class Purchase extends \StORM\Entity
 	 * @column{"type":"text"}
 	 */
 	public ?string $note;
+
+	/**
+	 * ID pobočky zásilkovny
+	 * @column{"type":"text"}
+	 */
+	public ?string $zasilkovnaId;
 	
 	/**
 	 * Fakturační adresa

@@ -879,7 +879,12 @@ class CheckoutManager
 				'typeCode' => $purchase->deliveryType->code,
 				'price' => $this->getDeliveryPrice(),
 				'priceVat' => $this->getDeliveryPriceVat(),
+				'zasilkovnaId' => $purchase->zasilkovnaId
 			]);
+
+			if ($purchase->zasilkovnaId) {
+				$purchase->update(['zasilkovnaId' => null]);
+			}
 		}
 
 		if ($purchase->paymentType) {
