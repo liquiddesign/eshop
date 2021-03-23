@@ -345,10 +345,12 @@ class ProductPresenter extends BackendPresenter
 
 		$form->setDefaults($product->toArray(['categories', 'tags', 'ribbons', 'parameterGroups', 'taxes']));
 
-		try {
-			$form['tonerForPrinters']->setDefaultValue($this->productRepository->getSlaveProductsByRelationAndMaster('tonerForPrinter', $product)->setSelect(['this.uuid'])->toArray());
-		} catch (InvalidArgumentException $e) {
-			$form['tonerForPrinters']->setHtmlAttribute('data-error', 'Byla detekována chybná vazba! Vyberte, prosím, tiskárny znovu.');
+		if (isset($form['tonerForPrinters'])) {
+			try {
+				$form['tonerForPrinters']->setDefaultValue($this->productRepository->getSlaveProductsByRelationAndMaster('tonerForPrinter', $product)->setSelect(['this.uuid'])->toArray());
+			} catch (InvalidArgumentException $e) {
+				$form['tonerForPrinters']->setHtmlAttribute('data-error', 'Byla detekována chybná vazba! Vyberte, prosím, tiskárny znovu.');
+			}
 		}
 
 		if ($page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product])) {
