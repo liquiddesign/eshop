@@ -1,0 +1,36 @@
+{varType string $list}
+
+<script>
+    $(document).on('mousedown', '.productClick', function(event) {
+        event.preventDefault();
+        let product = $(this).data('product');
+        let position = $(this).data('position');
+
+        window.dataLayer = window.dataLayer || [];
+        dataLayer.push({
+            'event': 'productClick',
+            'ecommerce': {
+                'click': {
+                    'actionField': {'list': {$list}},
+                    'products': [{
+                        'name': product.name,
+                        'id': product.id,
+                        'price': product.price,
+                        'brand': product.producer,
+                        'category': product.category,
+                        'variant': product.variant,
+                        'position': position
+                    }]
+                }
+            },
+            'eventCallback': function() {
+                if ($(this).is('button')) {
+                    $(this).closest('form').submit();
+                } else {
+                    document.location = $(this).attr('href');
+                }
+            },
+            'eventTimeout' : 2000
+        });
+    });
+</script>

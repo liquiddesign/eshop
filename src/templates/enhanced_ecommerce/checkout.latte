@@ -1,0 +1,38 @@
+{varType int $step}
+{varType Eshop\DB\CartItem[] $items}
+
+<script>
+    $(document).on('mousedown', '.checkout_next,.checkout_prev', function(event) {
+        event.preventDefault();
+
+        window.dataLayer = window.dataLayer || [];
+        dataLayer.push({
+            'event': 'checkout',
+            'ecommerce': {
+                'checkout': {
+                    'actionField': {'step': {$step|noescape}},
+                    'products': [
+						{foreach $items as $item}{if $item->product}
+                        {
+                            'name': {(string) \Nette\Utils\Strings::fixEncoding($item->product->name)},
+                            'id': {$item->product->getPK()},
+                            'price': '{$item->product->getPrice()|noescape}',
+                            'brand': {$item->product->producer ? (string) \Nette\Utils\Strings::fixEncoding($item->product->producer->name) : null},
+                            'category': {$item->product->primaryCategory ? (string) \Nette\Utils\Strings::fixEncoding($item->product->primaryCategory->name) : null},
+                            'variant': null,
+                            'quantity': {$item->amount}
+                        }{sep},{/sep}
+						{/if}{/foreach}]
+                }
+            },
+            'eventCallback': function() {
+                if ($(this).is('button')) {
+                    $(this).closest('form').submit();
+                } else {
+                    document.location = $(this).attr('href');
+                }
+            },
+            'eventTimeout' : 2000
+        });
+    });
+</script>

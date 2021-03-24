@@ -1,0 +1,25 @@
+{varType Eshop\DB\Product[] $products}
+{varType string $currency}
+{varType string $list}
+
+<script>
+    window.dataLayer = window.dataLayer || [];
+    dataLayer.push({
+        'ecommerce': {
+            'currencyCode': {$currency},
+            'impressions': [
+				{foreach $products as $product}
+                {
+                    'name': {(string) \Nette\Utils\Strings::fixEncoding($product->name)},
+                    'id': {$product->getPK()},
+                    'price': '{$product->getPrice()|noescape}',
+                    'brand': {$product->producer ? (string) \Nette\Utils\Strings::fixEncoding($product->producer->name) : null},
+                    'category': {$product->primaryCategory ? (string) \Nette\Utils\Strings::fixEncoding($product->primaryCategory->name) : null},
+                    'variant': null,
+                    'list': {$list},
+                    'position': {$iterator->getCounter()}
+                }{sep},{/sep}
+				{/foreach}]
+        }
+    });
+</script>

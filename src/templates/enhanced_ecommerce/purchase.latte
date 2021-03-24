@@ -1,0 +1,30 @@
+{varType Eshop\DB\Order $order}
+{varType Eshop\DB\CartItem[] $items}
+<script>
+    window.dataLayer = window.dataLayer || [];
+    dataLayer.push({
+        'ecommerce': {
+            'purchase': {
+                'actionField': {
+                    'id': {$order->code},
+                    'revenue': '{$order->getTotalPrice()|noescape}',
+                    'tax': '{$order->getTotalPriceVat() - $order->getTotalPrice()|noescape}',
+                    'shipping': '{($order->getDeliveryPriceSum() + $order->getPaymentPriceSum())|noescape}',
+                    'coupon': {$order->getDiscountCoupon() ? $order->getDiscountCoupon()->code : ''}
+                },
+                'products': [
+                    {foreach $items as $item}{if $item->product}
+                    {
+                        'name': {(string) \Nette\Utils\Strings::fixEncoding($item->product->name)},
+                        'id': {$item->product->getPK()},
+                        'price': '{$item->product->getPrice()|noescape}',
+                        'brand': {$item->product->producer ? (string) \Nette\Utils\Strings::fixEncoding($item->product->producer->name) : null},
+                        'category': {$item->product->primaryCategory ? (string) \Nette\Utils\Strings::fixEncoding($item->product->primaryCategory->name) : null},
+                        'variant': null,
+                        'quantity': {$item->amount}
+                    }{sep},{/sep}
+                    {/if}{/foreach}]
+            }
+        }
+    });
+</script>

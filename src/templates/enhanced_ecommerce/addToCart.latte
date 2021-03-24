@@ -1,0 +1,36 @@
+{varType string $currency}
+
+<script>
+    $(document).on('mousedown', '.addToCart', function(event) {
+        event.preventDefault();
+        let product = $(this).data('product');
+        let quantity = $(this).data('quantity');
+
+        window.dataLayer = window.dataLayer || [];
+        dataLayer.push({
+            'event': 'addToCart',
+            'ecommerce': {
+                'currencyCode': {$currency},
+                'add': {
+                    'products': [{
+                        'name': product.name,
+                        'id': product.id,
+                        'price': product.price,
+                        'brand': product.producer,
+                        'category': product.category,
+                        'variant': product.variant,
+                        'quantity': quantity
+                    }]
+                }
+            },
+            'eventCallback': function() {
+                if ($(this).is('button')) {
+                    $(this).closest('form').submit();
+                } else {
+                    document.location = $(this).attr('href');
+                }
+            },
+            'eventTimeout' : 2000
+        });
+    });
+</script>
