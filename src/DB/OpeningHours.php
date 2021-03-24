@@ -9,6 +9,7 @@ use Nette\Utils\DateTime;
 /**
  * Otevírací doba
  * @table
+ * @index{"name":"openinghours_unique","unique":true,"columns":["day","fk_pickupPoint"]}
  */
 class OpeningHours extends \StORM\Entity
 {

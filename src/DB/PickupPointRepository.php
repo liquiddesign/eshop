@@ -52,7 +52,7 @@ class PickupPointRepository extends \StORM\Repository implements IGeneralReposit
 			->toArrayOf('city');
 	}
 
-	public function getOpeningHoursByPickupPoints(array $pickupPoints): array
+	public function getOpeningHoursByPickupPoints($pickupPoints): array
 	{
 		/** @var \Eshop\DB\OpeningHoursRepository $openingHoursRepo */
 		$openingHoursRepo = $this->getConnection()->findRepository(OpeningHours::class);

@@ -36,4 +36,14 @@ class PickupPointType extends \StORM\Entity
 	 */
 	public bool $hidden = false;
 
+	/**
+	 * Systémová
+	 * @column
+	 */
+	public bool $systemic = false;
+
+	public function isSystemic(): bool
+	{
+		return $this->systemic;
+	}
 }
