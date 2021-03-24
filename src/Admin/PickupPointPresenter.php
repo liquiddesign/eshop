@@ -38,13 +38,13 @@ class PickupPointPresenter extends BackendPresenter
 	];
 
 	public const WEEK_DAYS = [
-		0 => 'Pondělí',
-		1 => 'Úterý',
-		2 => 'Středa',
-		3 => 'Čtvrtek',
-		4 => 'Pátek',
-		5 => 'Sobota',
-		6 => 'Neděle'
+		1 => 'Pondělí',
+		2 => 'Úterý',
+		3 => 'Středa',
+		4 => 'Čtvrtek',
+		5 => 'Pátek',
+		6 => 'Sobota',
+		7 => 'Neděle'
 	];
 
 	/** @persistent */
@@ -167,10 +167,12 @@ class PickupPointPresenter extends BackendPresenter
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('typeDetail');
-		$grid->addColumnActionDelete();
+		$grid->addColumnActionDeleteSystemic();
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(null, false, function ($object) {
+			return $object->isSystemic();
+		});
 
 		$grid->addFilterTextInput('search', ['name_cs'], null, 'Název');
 		$grid->addFilterButtons();

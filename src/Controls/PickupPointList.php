@@ -6,6 +6,8 @@ namespace Eshop\Controls;
 use Eshop\DB\OpeningHoursRepository;
 use Eshop\DB\PickupPointRepository;
 use Eshop\DB\PickupPointTypeRepository;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 use StORM\ICollection;
 use Nette;
 use GuzzleHttp\Client;
@@ -22,8 +24,16 @@ class PickupPointList extends \Grid\Datalist
 
 	private ?array $gpsLocation;
 
-	public function __construct(PickupPointRepository $pickupPointRepository, PickupPointTypeRepository $pickupPointTypeRepository, OpeningHoursRepository $openingHoursRepository, Nette\Localization\Translator $translator, Nette\Http\Request $request)
+	private Cache $cache;
+
+	public function __construct(PickupPointRepository $pickupPointRepository, PickupPointTypeRepository $pickupPointTypeRepository, OpeningHoursRepository $openingHoursRepository, Nette\Localization\Translator $translator, Nette\Http\Request $request, Storage $storage)
 	{
+		$this->pickupPointRepository = $pickupPointRepository;
+		$this->pickupPointTypeRepository = $pickupPointTypeRepository;
+		$this->openingHoursRepository = $openingHoursRepository;
+		$this->translator = $translator;
+		$this->cache = new Cache($storage);
+
 		//@TODO only for testing on localhost, in production remove default GPS
 		$this->gpsLocation = $this->getGpsByIP($request->getRemoteAddress()) ?? ['N' => 49.1920700, 'E' => 16.6125203];
 
@@ -35,9 +45,8 @@ class PickupPointList extends \Grid\Datalist
 		if ($this->gpsLocation) {
 			$sf = 3.14159 / 180; // scaling factor
 			$er = 10219; // earth radius in kilometers, approximate
-			$mr = 100; // max radius
-			$source->where(':mr >= :er * ACOS(SIN(gpsN*:sf)*SIN(:lat*:sf) + COS(gpsN*:sf)*COS(:lat*:sf)*COS((gpsE-:lon)*:sf))', [
-				'mr' => $mr,
+
+			$source->where('CEIL(ACOS(SIN(gpsN*:sf)*SIN(:lat*:sf) + COS(gpsN*:sf)*COS(:lat*:sf)*COS((gpsE-:lon)*:sf)) * 10000) >= 0', [
 				'er' => $er,
 				'sf' => $sf,
 				'lon' => $this->gpsLocation['E'],
@@ -46,7 +55,7 @@ class PickupPointList extends \Grid\Datalist
 			$source->select(['distance' => 'CEIL(ACOS(SIN(gpsN*:sf)*SIN(:lat*:sf) + COS(gpsN*:sf)*COS(:lat*:sf)*COS((gpsE-:lon)*:sf)) * 10000)']);
 		}
 
-		parent::__construct($source);
+		parent::__construct($source, 100);
 
 		$this->addFilterExpression('city', function (ICollection $source, $value) {
 			$source->where("address.city", $value);
@@ -57,7 +66,7 @@ class PickupPointList extends \Grid\Datalist
 			$source->where("name$suffix LIKE :n", ['n' => "%$value%"]);
 		}, '');
 
-		$this->addOrderExpression('distance', function (ICollection $source, $dir) {
+		$this->addOrderExpression('distance', function (ICollection $source, $dir) use ($sf, $er) {
 			if ($this->gpsLocation) {
 				$source->orderBy(['ACOS(SIN(gpsN*:sf)*SIN(:lat*:sf) + COS(gpsN*:sf)*COS(:lat*:sf)*COS((gpsE-:lon)*:sf))' => $dir]);
 			}
@@ -70,11 +79,6 @@ class PickupPointList extends \Grid\Datalist
 		$this->getFilterForm()->addText('name', $translator->translate('pointList.name', 'Název'));
 		$this->getFilterForm()->addSelect('city', $translator->translate('pointList.city', 'Město'), \array_combine(\array_values($cities), \array_values($cities)))->setPrompt($translator->translate('pointList.all', 'Vše'));
 		$this->getFilterForm()->addSubmit('submit', $translator->translate('pointList.showPlaces', 'Zobrazit místa'));
-
-		$this->pickupPointRepository = $pickupPointRepository;
-		$this->pickupPointTypeRepository = $pickupPointTypeRepository;
-		$this->openingHoursRepository = $openingHoursRepository;
-		$this->translator = $translator;
 	}
 
 	private function getGpsByIP(string $ip): ?array
@@ -92,7 +96,15 @@ class PickupPointList extends \Grid\Datalist
 
 	public function render(): void
 	{
-		$openingHours = $this->pickupPointRepository->getOpeningHoursByPickupPoints($this->getItemsOnPage());
+		$repository = $this->pickupPointRepository;
+
+		$openingHours = $this->cache->load('openingHoursByPickupPoints', static function (&$dependencies) use ($repository) {
+			$dependencies = [
+				Cache::TAGS => 'pickupPoints',
+			];
+
+			return $repository->getOpeningHoursByPickupPoints($repository->many());
+		});
 
 		$weekDay = (int)(new Nette\Utils\DateTime())->format('w') - 1;
 		$currentDate = (new Nette\Utils\DateTime())->format('Y-m-d');

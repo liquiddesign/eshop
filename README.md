@@ -11,3 +11,4 @@ Služby, entity, administrace a kontroly pro eshop
 
 ##Cache
 Všechny statistiky mají dependency tag "stats".
+Výpis pickup points má tag "pickupPoints".
