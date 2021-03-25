@@ -5,12 +5,17 @@
         <div class="flex items-center">
             <!-- PRODUCT IMAGE -->
             <div class="w-12 pb-12 relative flex-shrink-0 mr-4">
-                <img class="absolute w-full h-full object-contain lazyloaded" data-src="{if $cartItem->getValue('product')}{$cartItem->product->getPreviewImage($basePath)}{else}{$pubUrl}/img/no-image.png{/if}" alt="" loading="lazy" src="{if $cartItem->getValue('product')}{$cartItem->product->getPreviewImage($basePath)}{else}{$pubUrl}/img/no-image.png{/if}">
+                <img class="absolute w-full h-full object-contain lazyloaded"
+                     data-src="{if $cartItem->getValue('product')}{$cartItem->product->getPreviewImage($basePath)}{else}{$pubUrl}/img/no-image.png{/if}"
+                     alt="" loading="lazy"
+                     src="{if $cartItem->getValue('product')}{$cartItem->product->getPreviewImage($basePath)}{else}{$pubUrl}/img/no-image.png{/if}">
             </div>
 
             <div>
                 <div class="whitespace-normal leading-snug text-lg">
-                    <a n:tag-if="$cartItem->getValue('product')" href="{plink :Eshop:Product:detail, $cartItem->product->getPK()}" class="font-bold text-main whitespace-no-wrap hover:underline no-underline">{$cartItem->productName}</a>
+                    <a n:tag-if="$cartItem->getValue('product')"
+                            href="{plink :Eshop:Product:detail, $cartItem->product->getPK()}"
+                            class="font-bold text-main whitespace-no-wrap hover:underline no-underline">{$cartItem->productName}</a>
                 </div>
 
                 <div class="hidden md:flex items-center">
@@ -19,8 +24,10 @@
                         <strong>Černá</strong>
                     </div>
 
-                    <div n:if="$cartItem->getFullCode()" class="text-sm mr-4">{_'cartRe.code','Kód'}: <strong>{$cartItem->getFullCode()}</strong></div>
-                    <div n:if="$cartItem->getValue('product') && $cartItem->product->ean" class="text-sm">{_'cartRe.ean','EAN'}: <strong>{$cartItem->product->ean}</strong> </div>
+                    <div n:if="$cartItem->getFullCode()" class="text-sm mr-4">{_'cartRe.code','Kód'}:
+                        <strong>{$cartItem->getFullCode()}</strong></div>
+                    <div n:if="$cartItem->getValue('product') && $cartItem->product->ean"
+                            class="text-sm">{_'cartRe.ean','EAN'}: <strong>{$cartItem->product->ean}</strong></div>
                 </div>
             </div>
         </div>
@@ -31,13 +38,17 @@
                 <strong>Černá</strong>
             </div>
 
-            <div n:if="$cartItem->getFullCode()" class="text-sm mr-4">{_'cartRe.code','Kód'}: <strong>{$cartItem->getFullCode()}</strong></div>
-            <div n:if="$cartItem->getValue('product') && $cartItem->product->ean" class="text-sm">{_'cartRe.ean','EAN'}: <strong>{$cartItem->product->ean}</strong> </div>
+            <div n:if="$cartItem->getFullCode()" class="text-sm mr-4">{_'cartRe.code','Kód'}:
+                <strong>{$cartItem->getFullCode()}</strong></div>
+            <div n:if="$cartItem->getValue('product') && $cartItem->product->ean" class="text-sm">{_'cartRe.ean','EAN'}:
+                <strong>{$cartItem->product->ean}</strong></div>
         </div>
 
         <div class="text-xl flex justify-between mt-6 md:mt-0">
             <div class="font-bold md:mr-8 whitespace-nowrap">{$cartItem->amount} {$cartItem->product->unit}</div>
-            <div class="font-bold whitespace-nowrap"><span class="font-normal text-gray mr-2 text-sm">{_'cartRe.totalVat','Celkem s DPH'}</span> {$cartItem->getPriceVatSum()|price}</div>
+            <div class="font-bold whitespace-nowrap"><span
+                        class="font-normal text-gray mr-2 text-sm">{_'cartRe.totalVat','Celkem s DPH'}</span> {$cartItem->getPriceVatSum()|price}
+            </div>
         </div>
     </div>
 </div>
@@ -61,8 +72,50 @@
     </div>
 </div>
 
+<!-- DELIVERY + PAYMENT -->
+<div class="border-b border-gray-lighter py-4 mb-2" n:if="isset($deliveryType) || isset($paymentType)">
+    <div class="md:flex md:items-center md:justify-between">
+        <div>
+            <div n:ifset="$deliveryType" class="flex items-center">
+                <div class="w-10 h-10 relative flex-shrink-0 ml-1 mr-5 bg-gray-light text-gray flex items-center justify-center">
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path fill="#fff" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                    </svg>
+                </div>
+
+                <div>
+                    <div class="whitespace-normal leading-snug">
+                        <span class="font-bold text-main whitespace-no-wrap">{$deliveryType->name}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div n:ifset="$paymentType" class="flex items-center mt-2">
+                <div class="w-10 h-10 relative flex-shrink-0 ml-1 mr-5 bg-gray-light text-gray flex items-center justify-center">
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                </div>
+
+                <div>
+                    <div class="whitespace-normal leading-snug">
+                        <span class="font-bold text-main whitespace-no-wrap">{$paymentType->name}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-xl flex justify-end">
+            <div class="font-bold"><span
+                        class="font-normal text-gray mr-2 text-sm">{_'cartRe.totalVat','Celkem s DPH'}</span> {$deliveryAndPaymentPriceVat|price:$cartCurrency}</div>
+        </div>
+    </div>
+</div>
+
 <div class="lg:ml-auto lg:w-1/3 leading-loose mt-8 text-right">
-    <div>{_'checkoutDP.totalPrice','Cena za zboží celkem'}: <span class="font-bold ml-2">{$cartCheckoutPrice|price:$cartCurrency}</span>
+    <div>{_'checkoutDP.totalPrice','Cena za zboží celkem'}: <span
+                class="font-bold ml-2">{$cartCheckoutPrice|price:$cartCurrency}</span>
     </div>
     {*<div>{_'checkoutDP.personalPickup','Doprava - Osobní odběr'}: <span class="font-bold ml-2">Zdarma</span> </div>
     <div>{_'checkoutDP.cardOnline','Platba - Kartou online'}: <span class="font-bold ml-2">Zdarma</span> </div>*}

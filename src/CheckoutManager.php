@@ -29,6 +29,7 @@ use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentRepository;
 use Eshop\DB\Purchase;
 use Eshop\DB\PurchaseRepository;
+use GuzzleHttp\Client;
 use Nette\Http\Request;
 use Nette\Http\Response;
 use Nette\SmartObject;
@@ -38,6 +39,7 @@ use StORM\Collection;
 use StORM\Connection;
 use StORM\DIConnection;
 use StORM\Exception\NotFoundException;
+use Web\DB\SettingRepository;
 
 /**
  * Služba která zapouzdřuje košíky nakupujícího
@@ -98,6 +100,8 @@ class CheckoutManager
 
 	private DiscountCouponRepository $discountCouponRepository;
 
+	private SettingRepository $settingRepository;
+
 	private Collection $paymentTypes;
 
 	private Collection $deliveryTypes;
@@ -151,7 +155,8 @@ class CheckoutManager
 		Request $request,
 		Response $response,
 		TaxRepository $taxRepository,
-		CartItemTaxRepository $cartItemTaxRepository
+		CartItemTaxRepository $cartItemTaxRepository,
+		SettingRepository $settingRepository
 	)
 	{
 		$this->customer = $shopper->getCustomer();
@@ -172,6 +177,7 @@ class CheckoutManager
 		$this->response = $response;
 		$this->taxRepository = $taxRepository;
 		$this->cartItemTaxRepository = $cartItemTaxRepository;
+		$this->settingRepository = $settingRepository;
 
 		if (!$request->getCookie('cartToken') && !$this->customer) {
 			$this->cartToken = DIConnection::generateUuid();
@@ -851,6 +857,70 @@ class CheckoutManager
 		]);
 	}
 
+	public function createZasilkovnaPackage(Order $order)
+	{
+		if (!$zasilkovnaApiPassword = $this->settingRepository->many()->where('name = "zasilkovnaApiPassword"')->first()) {
+			return;
+		}
+
+		$purchase = $this->purchaseRepository->many()->join(['orders' => 'eshop_order'], 'this.uuid = orders.fk_purchase')->where('orders.uuid', $order->getPK())->first();
+		$payment = $order->getPayment();
+
+		if ($payment->typeCode == 'dob') {
+			$codValue = $order->getTotalPriceVat();
+		}
+
+//		$names = \explode(' ', $purchase->fullname);
+
+//		if (\count($names) < 2) {
+//			$middle = \strrpos(\substr($purchase->fullname, 0, \floor(\strlen($purchase->fullname) / 2)), ' ') + 1;
+//
+//			$name1 = \substr($purchase->fullname, 0, $middle);
+//			$name2 = \substr($purchase->fullname, $middle);
+//		} else {
+//			$name1 = $names[0];
+//			$name2 = '';
+//			for ($i = 1; $i < \count($names); $i++) {
+//				$name2 .= $names[$i];
+//			}
+//		}
+
+		$client = new Client([
+			'base_uri' => 'https://www.zasilkovna.cz/api/rest',
+			'timeout' => 5.0,
+		]);
+
+		$xml = '
+			<createPacket>
+			    <apiPassword>' . $zasilkovnaApiPassword->value . '</apiPassword>
+			    <packetAttributes>
+			        <number>' . $order->code . '</number>
+			        <name>' . $purchase->fullname . '</name>
+			        <email>' . $purchase->email . '</email>
+			        <phone>' . $purchase->phone . '</phone>
+			        <addressId>' . $purchase->zasilkovnaId . '</addressId>
+			        <currency>' . $this->getCart()->currency . '</currency>
+			        <value>' . \ceil($order->getTotalPriceVat()) . '</value>
+			        ' . (isset($codValue) ? '<cod>' . \ceil($order->getTotalPriceVat()) . '</cod>' : null) . '
+			        <eshop>lqd.cz</eshop>
+			    </packetAttributes>
+			</createPacket>
+			';
+
+		bdump($xml);
+
+		$options = [
+			'headers' => [
+				'Content-Type' => 'text/xml; charset=UTF8',
+			],
+			'body' => $xml,
+		];
+
+		$response = $client->request('POST', '', $options);
+		$responseContent = $response->getBody()->getContents();
+		bdump($responseContent);
+	}
+
 	public function createOrder(?Purchase $purchase = null): void
 	{
 		$purchase = $purchase ?: $this->getPurchase();
@@ -881,10 +951,6 @@ class CheckoutManager
 				'priceVat' => $this->getDeliveryPriceVat(),
 				'zasilkovnaId' => $purchase->zasilkovnaId
 			]);
-
-			if ($purchase->zasilkovnaId) {
-				$purchase->update(['zasilkovnaId' => null]);
-			}
 		}
 
 		if ($purchase->paymentType) {
@@ -897,6 +963,11 @@ class CheckoutManager
 				'price' => $this->getPaymentPrice(),
 				'priceVat' => $this->getPaymentPriceVat(),
 			]);
+		}
+
+		if ($purchase->deliveryType->code == 'zasilkovna' && $purchase->zasilkovnaId) {
+			$this->createZasilkovnaPackage($order, $purchase);
+			$purchase->update(['zasilkovnaId' => null]);
 		}
 
 		if ($purchase->billAddress) {

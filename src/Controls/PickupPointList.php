@@ -96,15 +96,7 @@ class PickupPointList extends \Grid\Datalist
 
 	public function render(): void
 	{
-		$repository = $this->pickupPointRepository;
-
-		$openingHours = $this->cache->load('openingHoursByPickupPoints', static function (&$dependencies) use ($repository) {
-			$dependencies = [
-				Cache::TAGS => 'pickupPoints',
-			];
-
-			return $repository->getOpeningHoursByPickupPoints($repository->many());
-		});
+		$openingHours = $this->pickupPointRepository->getAllOpeningHours();
 
 		$weekDay = (int)(new Nette\Utils\DateTime())->format('w') - 1;
 		$currentDate = (new Nette\Utils\DateTime())->format('Y-m-d');
