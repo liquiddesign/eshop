@@ -25,7 +25,7 @@ class AddressesForm extends Form
 		
 		$this->addText('email', 'AddressesForm.email')->setRequired()->addRule($this::EMAIL);
 		$this->addText('ccEmails', 'AddressesForm.ccEmails');
-		$this->addText('fullname', 'AddressesForm.fullname')->setRequired();
+		$this->addText('fullname', 'AddressesForm.fullname')->setRequired()->setMaxLength(32);
 		$this->addText('phone', 'AddressesForm.phone');
 		
 		// address bill

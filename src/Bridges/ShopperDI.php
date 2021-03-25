@@ -18,6 +18,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 	public function getConfigSchema(): Schema
 	{
 		return Expect::structure([
+			'projectUrl' => Expect::string('lqd.cz'),
 			'country' => Expect::string('CZ'),
 			'currency' => Expect::string('CZK'),
 			'registration' => Expect::structure([
@@ -45,7 +46,8 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$cartManager = $builder->addDefinition($this->prefix('cartManager'))->setType(CheckoutManager::class);
 		$builder->addDefinition($this->prefix('compareManager'))->setType(CompareManager::class);
 		$builder->getDefinition('latte.templateFactory')->addSetup('$onCreate[]', [['@shopper.shopper', 'addFilters']]);
-		
+
+		$shopper->addSetup('setProjectUrl',[$config['projectUrl']]);
 		$shopper->addSetup('setRegistrationConfiguration',[(array) $config['registration']]);
 		$shopper->addSetup('setCountry',[$config['country']]);
 		$shopper->addSetup('setCurrency',[$config['currency']]);

@@ -864,26 +864,6 @@ class CheckoutManager
 		}
 
 		$purchase = $this->purchaseRepository->many()->join(['orders' => 'eshop_order'], 'this.uuid = orders.fk_purchase')->where('orders.uuid', $order->getPK())->first();
-		$payment = $order->getPayment();
-
-		if ($payment->typeCode == 'dob') {
-			$codValue = $order->getTotalPriceVat();
-		}
-
-//		$names = \explode(' ', $purchase->fullname);
-
-//		if (\count($names) < 2) {
-//			$middle = \strrpos(\substr($purchase->fullname, 0, \floor(\strlen($purchase->fullname) / 2)), ' ') + 1;
-//
-//			$name1 = \substr($purchase->fullname, 0, $middle);
-//			$name2 = \substr($purchase->fullname, $middle);
-//		} else {
-//			$name1 = $names[0];
-//			$name2 = '';
-//			for ($i = 1; $i < \count($names); $i++) {
-//				$name2 .= $names[$i];
-//			}
-//		}
 
 		$client = new Client([
 			'base_uri' => 'https://www.zasilkovna.cz/api/rest',
@@ -900,14 +880,12 @@ class CheckoutManager
 			        <phone>' . $purchase->phone . '</phone>
 			        <addressId>' . $purchase->zasilkovnaId . '</addressId>
 			        <currency>' . $this->getCart()->currency . '</currency>
-			        <value>' . \ceil($order->getTotalPriceVat()) . '</value>
-			        ' . (isset($codValue) ? '<cod>' . \ceil($order->getTotalPriceVat()) . '</cod>' : null) . '
-			        <eshop>lqd.cz</eshop>
+			        <value>' . $order->getTotalPriceVat() . '</value>
+			        ' . ($order->getPayment()->typeCode == 'dob' ? '<cod>' . $order->getTotalPriceVat() . '</cod>' : null) . '
+			        <eshop>' . $this->shopper->getProjectUrl() . '</eshop>
 			    </packetAttributes>
 			</createPacket>
 			';
-
-		bdump($xml);
 
 		$options = [
 			'headers' => [
@@ -918,6 +896,7 @@ class CheckoutManager
 
 		$response = $client->request('POST', '', $options);
 		$responseContent = $response->getBody()->getContents();
+
 		bdump($responseContent);
 	}
 

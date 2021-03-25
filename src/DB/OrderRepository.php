@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Eshop\Shopper;
 use League\Csv\Writer;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
@@ -17,15 +18,15 @@ use StORM\SchemaManager;
  */
 class OrderRepository extends \StORM\Repository
 {
-	/**
-	 * @var \Nette\Caching\Cache
-	 */
 	private Cache $cache;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Storage $storage)
+	private Shopper $shopper;
+
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Storage $storage, Shopper $shopper)
 	{
 		parent::__construct($connection, $schemaManager);
 		$this->cache = new Cache($storage);
+		$this->shopper = $shopper;
 	}
 
 	/**
@@ -79,6 +80,52 @@ class OrderRepository extends \StORM\Repository
 				$item->getPriceVatSum(),
 				$item->vatPct,
 				$item->note
+			]);
+		}
+	}
+
+	public function csvExportZasilkovna(array $orders, Writer $writer): void
+	{
+		$writer->setDelimiter(';');
+
+		/** @var \Eshop\DB\DeliveryRepository $deliveryRepository */
+		$deliveryRepository = $this->getConnection()->findRepository(Delivery::class);
+
+		$writer->insertOne(['version 6']);
+		$writer->insertOne([]);
+
+		foreach ($orders as $order) {
+			/** @var \Eshop\DB\Order $order */
+			$order = $this->one($order);
+
+			$purchase = $order->purchase;
+
+			$payment = $order->getPayment();
+
+			/** @var \Eshop\DB\Delivery $delivery */
+			$delivery = $deliveryRepository->many()
+				->where('fk_order', $order->getPK())
+				->where('zasilkovnaId IS NOT NULL')
+				->first();
+
+			if (!$delivery) {
+				continue;
+			}
+
+			$writer->insertOne([
+				'',
+				$order->code,
+				$purchase->fullname,
+				'',
+				'',
+				$purchase->email,
+				$purchase->phone,
+				$payment->typeCode == 'dob' ? $order->getTotalPriceVat() : '',
+				$this->shopper->getCurrency(),
+				$order->getTotalPriceVat(),
+				'',
+				$delivery->zasilkovnaId,
+				$this->shopper->getProjectUrl()
 			]);
 		}
 	}

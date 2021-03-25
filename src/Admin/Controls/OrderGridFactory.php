@@ -132,6 +132,10 @@ class OrderGridFactory
 			$submit->onClick[] = [$this, 'cancelOrderMultiple'];
 		}
 
+		$submit = $grid->getForm()->addSubmit('exportZasilkovna');
+		$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')->setHtml('<i class="fa fa-download"></i> Export pro Zásilkovnu');
+		$submit->onClick[] = [$this, 'exportZasilkovna'];
+
 		return $grid;
 	}
 
@@ -213,6 +217,22 @@ class OrderGridFactory
 
 		$grid->getPresenter()->flashMessage('Provedeno', 'success');
 		$grid->getPresenter()->redirect('this');
+	}
+
+	public function exportZasilkovna(Button $button)
+	{
+		/** @var \Grid\Datagrid $grid */
+		$grid = $button->lookup(Datagrid::class);
+
+		$presenter = $grid->getPresenter();
+
+		$tempFilename = \tempnam($presenter->tempDir, "csv");
+		$this->application->onShutdown[] = function () use ($tempFilename) {
+			\unlink($tempFilename);
+		};
+		$this->orderRepository->csvExportZasilkovna($grid->getSelectedIds(), Writer::createFromPath($tempFilename, 'w+'));
+		$response = new FileResponse($tempFilename, "zasilkovna.csv", 'text/csv');
+		$presenter->sendResponse($response);
 	}
 
 	public function cancelOrder(Order $object, Datagrid $grid)

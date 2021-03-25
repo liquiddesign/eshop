@@ -87,6 +87,8 @@ class Shopper
 	
 	private string $currencyCode;
 
+	private string $projectUrl;
+
 	private ?Customer $customer = null;
 	
 	private ?CustomerGroup $customerGroup;
@@ -121,11 +123,21 @@ class Shopper
 	{
 		$this->registrationConfiguration = $configuration;
 	}
+
+	public function setProjectUrl(string $projectUrl): void
+	{
+		$this->projectUrl = $projectUrl;
+	}
 	
 	public function setCountry(string $countryCode): void
 	{
 		unset($this->country);
 		$this->countryCode = $countryCode;
+	}
+
+	public function getProjectUrl(): string
+	{
+		return $this->projectUrl;
 	}
 	
 	public function getCountry()
