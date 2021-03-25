@@ -868,6 +868,7 @@ class CheckoutManager
 		$client = new Client([
 			'base_uri' => 'https://www.zasilkovna.cz/api/rest',
 			'timeout' => 5.0,
+			'verify' => false
 		]);
 
 		$xml = '
@@ -945,7 +946,7 @@ class CheckoutManager
 		}
 
 		if ($purchase->deliveryType->code == 'zasilkovna' && $purchase->zasilkovnaId) {
-			$this->createZasilkovnaPackage($order, $purchase);
+			$this->createZasilkovnaPackage($order);
 			$purchase->update(['zasilkovnaId' => null]);
 		}
 
