@@ -216,6 +216,11 @@ class Shopper
 		return $this->customerGroup ??= $customer ? $customer->group : $this->customerGroupRepository->getUnregisteredGroup();
 	}
 	
+	public function setCustomerGroup(CustomerGroup $customerGroup): void
+	{
+		$this->customerGroup = $customerGroup;
+	}
+	
 	public function getMinimalOrderValue()
 	{
 		$group = $this->getCustomerGroup();
