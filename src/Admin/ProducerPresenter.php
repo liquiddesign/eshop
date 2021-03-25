@@ -75,7 +75,7 @@ class ProducerPresenter extends BackendPresenter
 		$producer = $this->getParameter('producer');
 
 		$imagePicker->onDelete[] = function () use ($producer) {
-			$this->onDelete($producer);
+			$this->onDeleteImage($producer);
 			$this->redirect('this');
 		};
 
