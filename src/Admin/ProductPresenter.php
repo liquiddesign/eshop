@@ -25,6 +25,7 @@ use Nette\Forms\Controls\TextInput;
 use Nette\InvalidArgumentException;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
+use Nette\Utils\Strings;
 use Pages\DB\PageRepository;
 use StORM\DIConnection;
 
@@ -471,5 +472,17 @@ class ProductPresenter extends BackendPresenter
 
 		FileSystem::createDir($this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . File::FILE_DIR);
 	}
-
+	
+	public function getDataJson(): \stdClass
+	{
+		$object = new \stdClass();
+		$object->name = Strings::fixEncoding($this->name);
+		$object->id = $this->getPK();
+		$object->price = $this->getPrice();
+		$object->producer = $this->producer ? Strings::toAscii($this->producer->name) : null;
+		$object->category = $this->primaryCategory ? Strings::fixEncoding($this->primaryCategory->name) : null;
+		$object->variant = null;
+		
+		return $object;
+	}
 }
