@@ -190,7 +190,7 @@ class PickupPointPresenter extends BackendPresenter
 		$grid->addColumnImage('imageFileName', PickupPoint::IMAGE_DIR);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 
-		$grid->addColumnText('Adresa', ['address.street','address.city'], '%s, %s','address.street');
+		$grid->addColumnText('Adresa', ['address.street', 'address.city'], '%s, %s', 'address.street');
 		$grid->addColumnText('Telefon', 'phone', '<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>', 'phone')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		$grid->addColumnText('Email', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>', 'email')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		$grid->addColumn('Typ místa', function (PickupPoint $object, $datagrid) {
@@ -210,7 +210,7 @@ class PickupPointPresenter extends BackendPresenter
 
 		$grid->addFilterTextInput('search', ['name_cs'], null, 'Název');
 
-		if(\count($this->pickupPointTypeRepo->getArrayForSelect()) > 0){
+		if (\count($this->pickupPointTypeRepo->getArrayForSelect()) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$source->where('fk_pickupPointType', $value);
 			}, '', 'type', 'Typ', $this->pickupPointTypeRepo->getArrayForSelect(), ['placeholder' => '- Typ -']);
@@ -239,6 +239,8 @@ class PickupPointPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected();
 
+		$grid->onDelete[] = [$this, 'onDelete'];
+
 		return $grid;
 	}
 
@@ -260,6 +262,7 @@ class PickupPointPresenter extends BackendPresenter
 
 		$imagePicker->onDelete[] = function (array $directories, $filename) {
 			$this->onDelete($this->getParameter('pickupPointType'));
+			$this->pickupPointRepo->clearCache();
 			$this->redirect('this');
 		};
 
@@ -281,6 +284,8 @@ class PickupPointPresenter extends BackendPresenter
 			$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
 
 			$pickupPointType = $this->pickupPointTypeRepo->syncOne($values);
+			$this->pickupPointRepo->clearCache();
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('typeDetail', 'default', [$pickupPointType]);
 		};
@@ -359,6 +364,8 @@ class PickupPointPresenter extends BackendPresenter
 			}
 
 			$pickupPoint = $this->pickupPointRepo->syncOne($values);
+			$this->pickupPointRepo->clearCache();
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('pointDetail', 'default', [$pickupPoint]);
 		};
@@ -419,6 +426,8 @@ class PickupPointPresenter extends BackendPresenter
 			$values['pickupPoint'] = $this->selectedPickupPoint;
 
 			$this->openingHoursRepo->syncOne($values);
+			$this->pickupPointRepo->clearCache();
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('', 'pointHours');
 		};
@@ -472,10 +481,17 @@ class PickupPointPresenter extends BackendPresenter
 				]);
 			}
 
+			$this->pickupPointRepo->clearCache();
 			$this->flashMessage('Uloženo', 'success');
 			$this->redirect('this');
 		};
 
 		return $form;
+	}
+
+	public function onDelete($object)
+	{
+		parent::onDelete($object);
+		$this->pickupPointRepo->clearCache();
 	}
 }

@@ -33,13 +33,17 @@ class CartRecapitulationList extends Datalist
 
 	public function render(): void
 	{
+		$this->template->deliveryAndPaymentPrice = $this->checkoutManager->getDeliveryPrice() +  $this->checkoutManager->getPaymentPrice();
+		$this->template->deliveryAndPaymentPriceVat = $this->checkoutManager->getDeliveryPriceVat() +  $this->checkoutManager->getPaymentPriceVat();
 		$this->template->cartCurrency = $this->checkoutManager->getCartCurrencyCode();
 		$this->template->cartItems = $this->checkoutManager->getItems();
 		$this->template->discountCoupon = $this->checkoutManager->getDiscountCoupon();
 		$this->template->discountPrice = $this->checkoutManager->getDiscountPrice();
 		$this->template->discountPriceVat = $this->checkoutManager->getDiscountPriceVat();
-		$this->template->cartCheckoutPrice = $this->checkoutManager->getCartCheckoutPrice();
-		$this->template->cartCheckoutPriceVat = $this->checkoutManager->getCartCheckoutPriceVat();
+		$this->template->deliveryType = $this->checkoutManager->getPurchase() ? $this->checkoutManager->getPurchase()->deliveryType : null;
+		$this->template->paymentType = $this->checkoutManager->getPurchase() ? $this->checkoutManager->getPurchase()->paymentType : null;
+		$this->template->cartCheckoutPrice = $this->checkoutManager->getCartCheckoutPrice() + $this->checkoutManager->getDeliveryPrice() + $this->checkoutManager->getPaymentPrice();
+		$this->template->cartCheckoutPriceVat = $this->checkoutManager->getCartCheckoutPriceVat() + $this->checkoutManager->getDeliveryPriceVat() + $this->checkoutManager->getPaymentPriceVat();
 
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/cartRecapitulationList.latte');
 	}
