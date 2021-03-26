@@ -130,7 +130,7 @@ class ProductPresenter extends BackendPresenter
 				'rate' => 'rates.rate',
 			])
 			->join(['prices' => 'eshop_price'], 'prices.fk_pricelist=this.uuid AND prices.fk_product=:product', ['product' => $product])
-			->join(['rates' => 'eshop_vatRate'], 'rates.uuid = :rate AND rates.fk_country=this.fk_country', ['rate' => $product->vatRate]);
+			->join(['rates' => 'eshop_vatrate'], 'rates.uuid = :rate AND rates.fk_country=this.fk_country', ['rate' => $product->vatRate]);
 
 
 		$grid = $this->gridFactory->create($collection, 20, 'code', 'ASC');
