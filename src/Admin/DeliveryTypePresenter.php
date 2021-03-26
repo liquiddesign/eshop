@@ -192,7 +192,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		$collection = $this->deliveryPriceRepo->many()->where('fk_deliveryType', $this->getParameter('deliveryType')->getPK())
 			->select(['rate' => 'rates.rate'])
 			->join(['country' => 'eshop_country'], 'country.uuid = this.fk_country')
-			->join(['rates' => 'eshop_vatRate'], 'rates.uuid = country.deliveryVatRate AND rates.fk_country=this.fk_country');
+			->join(['rates' => 'eshop_vatrate'], 'rates.uuid = country.deliveryVatRate AND rates.fk_country=this.fk_country');
 		
 		$grid = $this->gridFactory->create($collection, 20, 'price', 'ASC');
 		$grid->addColumnSelector();
