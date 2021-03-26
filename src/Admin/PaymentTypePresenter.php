@@ -179,7 +179,7 @@ class PaymentTypePresenter extends BackendPresenter
 		$collection = $this->paymentPriceRepo->many()->where('fk_paymentType', $this->getParameter('paymentType')->getPK())
 			->select(['rate' => 'rates.rate'])
 			->join(['country' => 'eshop_country'], 'country.uuid = this.fk_country')
-			->join(['rates' => 'eshop_vatRate'], 'rates.uuid = country.paymentVatRate AND rates.fk_country=this.fk_country');
+			->join(['rates' => 'eshop_vatrate'], 'rates.uuid = country.paymentVatRate AND rates.fk_country=this.fk_country');
 		
 		$grid = $this->gridFactory->create($collection, 20, 'price', 'ASC');
 		$grid->addColumnSelector();

@@ -18,7 +18,7 @@ class QuantityPriceRepository extends Repository
 			->select(['rate' => 'rates.rate'])
 			->join(['products' => 'eshop_product'], 'products.uuid=this.fk_product')
 			->join(['pricelists' => 'eshop_pricelist'], 'pricelists.uuid=this.fk_pricelist')
-			->join(['rates' => 'eshop_vatRate'], 'rates.uuid = products.vatRate AND rates.fk_country=pricelists.fk_country')
+			->join(['rates' => 'eshop_vatrate'], 'rates.uuid = products.vatRate AND rates.fk_country=pricelists.fk_country')
 			->where('fk_pricelist', $priceList->getPK());
 	}
 	
