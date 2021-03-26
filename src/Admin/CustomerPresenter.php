@@ -225,8 +225,8 @@ class CustomerPresenter extends BackendPresenter
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 		$form->addDataMultiSelect('exclusiveDeliveryTypes', 'Povolené exkluzivní dopravy', $this->deliveryTypeRepo->many()->toArrayOf('code'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
-		$form->addInteger('discountLevelPct', 'Slevová hladina (%)');
-		$form->addText('productRoundingPct', 'Zokrouhlení od procent (%)')->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
+		$form->addInteger('discountLevelPct', 'Slevová hladina (%)')->setDefaultValue(0)->setRequired();
+		$form->addText('productRoundingPct', 'Zokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
 		$form->addGroup('Exporty');
 		$form->addCheckbox('allowExport', 'Feed povolen');
 		$form->addText('ediCompany', 'EDI: Identifikátor firmy')
@@ -361,10 +361,26 @@ class CustomerPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($customer) {
 			$values = $form->getValues('array');
 
+			if ($customer->email) {
+				try {
+					$this->mailerLite->unsubscribe($customer);
+				} catch (\Exception $e) {
+				}
+			}
+
+			/** @var \Eshop\DB\Customer $customer */
 			$customer = $this->customerRepository->syncOne($values, null, true);
 
 			if ($values['newsletter']) {
-				$this->mailerLite->subscribe($customer);
+				try {
+					$this->mailerLite->subscribe($customer);
+				} catch (\Exception $e) {
+				}
+			} else {
+				try {
+					$this->mailerLite->unsubscribe($customer);
+				} catch (\Exception $e) {
+				}
 			}
 
 			$form->getPresenter()->flashMessage('Uloženo', 'success');

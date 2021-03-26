@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Nette\Application\ApplicationException;
+
 /**
  * Typ výdejního místa
  * @table
@@ -45,5 +47,15 @@ class PickupPointType extends \StORM\Entity
 	public function isSystemic(): bool
 	{
 		return $this->systemic;
+	}
+
+	public function getImage(string $basePath, string $size = 'detail'): string
+	{
+		if (!\in_array($size, ['origin', 'detail', 'thumb'])) {
+			throw new ApplicationException('Invalid product image size: ' . $size);
+		}
+
+		return $this->imageFileName ? $basePath . '/userfiles/' . self::IMAGE_DIR . '/' . $size . '/' . $this->imageFileName :
+			$basePath . '/public/img/map-point.png';
 	}
 }

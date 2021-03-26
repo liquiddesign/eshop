@@ -51,6 +51,12 @@ class Order extends \StORM\Entity
 	public ?string $canceledTs;
 
 	/**
+	 * Odesláno do systému zásilkovny
+	 * @column
+	 */
+	public bool $zasilkovnaCompleted = false;
+
+	/**
 	 * Nákup
 	 * @relation
 	 * @constraint{"onUpdate":"RESTRICT","onDelete":"RESTRICT"}
