@@ -39,4 +39,18 @@ class ParameterRepository extends \StORM\Repository implements IGeneralRepositor
 
 		return $collection->orderBy(['priority', "name$suffix"]);
 	}
+	
+	public function getCounts(Collection $collection): array
+	{
+		$collection = $this->many()
+			->join(['parametervalue' => 'eshop_parametervalue'], 'parametervalue.fk_parameter=this.uuid')
+			->join(['product' => $collection], 'product.uuid=parametervalue.fk_product', $collection->getVars())
+			->setSelect(['count' => 'COUNT(product.uuid)'])
+			->setIndex('this.uuid')
+			->setGroupBy(['this.uuid']);
+		
+		$collection->setFetchClass(\stdClass::class);
+		
+		return $collection->toArrayOf('count');
+	}
 }
