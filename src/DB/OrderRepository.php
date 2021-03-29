@@ -431,6 +431,7 @@ class OrderRepository extends \StORM\Repository
 			'deliveryAddress' => $purchase->deliveryAddress ? $purchase->deliveryAddress->jsonSerialize() : $purchase->billAddress->jsonSerialize(),
 			'totalPrice' => $order->getTotalPrice(),
 			'totalPriceVat' => $order->getTotalPriceVat(),
+			'currency' => $order->currency
 		];
 
 		return $values;

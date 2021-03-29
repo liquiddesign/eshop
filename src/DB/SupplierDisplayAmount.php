@@ -16,6 +16,12 @@ class SupplierDisplayAmount extends \StORM\Entity
 	 * @column
 	 */
 	public string $name;
+
+	/**
+	 * Skladová zásoba
+	 * @column
+	 */
+	public ?string $storeAmount;
 	
 	/**
 	 * Mapování dostupnosti, jestli je zadáno
@@ -36,4 +42,6 @@ class SupplierDisplayAmount extends \StORM\Entity
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
 	public string $createdTs;
+
+
 }
