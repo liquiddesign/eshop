@@ -69,9 +69,6 @@ class CustomerPresenter extends BackendPresenter
 	/** @inject */
 	public PricelistRepository $pricelistRepo;
 
-	/** @inject */
-	public MailerLite $mailerLite;
-
 	public function createComponentCustomers()
 	{
 		$grid = $this->gridFactory->create($this->customerRepository->many(), 20, 'createdTs', 'DESC', true);
@@ -361,27 +358,8 @@ class CustomerPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($customer) {
 			$values = $form->getValues('array');
 
-			if ($customer->email) {
-				try {
-					$this->mailerLite->unsubscribe($customer);
-				} catch (\Exception $e) {
-				}
-			}
-
 			/** @var \Eshop\DB\Customer $customer */
 			$customer = $this->customerRepository->syncOne($values, null, true);
-
-			if ($values['newsletter']) {
-				try {
-					$this->mailerLite->subscribe($customer);
-				} catch (\Exception $e) {
-				}
-			} else {
-				try {
-					$this->mailerLite->unsubscribe($customer);
-				} catch (\Exception $e) {
-				}
-			}
 
 			$form->getPresenter()->flashMessage('Uloženo', 'success');
 			$form->processRedirect('edit', 'default', [$customer]);
