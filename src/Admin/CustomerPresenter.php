@@ -106,7 +106,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder']);
 
-		$grid->addButtonBulkEdit('form', ['pricelists', 'merchant', 'group'], 'customers');
+		$grid->addButtonBulkEdit('form', ['pricelists', 'merchant', 'group', 'newsletter'], 'customers');
 
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů');
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');

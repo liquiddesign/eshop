@@ -50,6 +50,8 @@ class ProductForm extends Control
 
 	private RelatedRepository $relatedRepository;
 
+	private ?Product $product;
+
 	public function __construct(
 		Container $container,
 		AdminFormFactory $adminFormFactory,
@@ -72,8 +74,8 @@ class ProductForm extends Control
 		$product = null
 	)
 	{
-		//Form::initialize();
 		$product = $productRepository->get($product);
+		$this->product = $product;
 
 		$form = $adminFormFactory->create();
 
@@ -170,6 +172,7 @@ class ProductForm extends Control
 
 		$form->addSubmits(!$product);
 
+		$form->onValidate[] = [$this, 'validate'];
 		$form->onSuccess[] = [$this, 'submit'];
 
 		$this->addComponent($form, 'form');
@@ -183,6 +186,45 @@ class ProductForm extends Control
 		$this->pageRepository = $pageRepository;
 		$this->taxRepository = $taxRepository;
 		$this->relatedRepository = $relatedRepository;
+	}
+
+	public function validate(AdminForm $form)
+	{
+		$values = $form->getValues('array');
+
+		if ($values['ean']) {
+			if ($product = $this->productRepository->many()->where('ean', $values['ean'])->first()) {
+				if ($this->product) {
+					if ($product->getPK() != $this->product->getPK()) {
+						$form['ean']->addError('Již existuje produkt s tímto EAN');
+					}
+				} else {
+					$form['ean']->addError('Již existuje produkt s tímto EAN');
+				}
+			}
+		}
+
+		$product = $this->productRepository->many();
+
+		if ($values['code']) {
+			$product = $product->where('code', $values['code']);
+		}
+
+		if ($values['subCode']) {
+			$product = $product->where('subCode', $values['subCode']);
+		}
+
+		$product = $product->first();
+
+		if (($values['code'] || $values['subCode']) && $product) {
+			if ($this->product) {
+				if ($product->getPK() != $this->product->getPK()) {
+					$form['code']->addError('Již existuje produkt s touto kombinací kódu a subkódu');
+				}
+			} else {
+				$form['code']->addError('Již existuje produkt s touto kombinací kódu a subkódu');
+			}
+		}
 	}
 
 	public function submit(AdminForm $form)
