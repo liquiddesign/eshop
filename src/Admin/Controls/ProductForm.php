@@ -22,6 +22,7 @@ use Eshop\DB\SupplierRepository;
 use Eshop\DB\TagRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\VatRateRepository;
+use Nette\Utils\Arrays;
 use Web\DB\PageRepository;
 use Forms\Form;
 use Nette\Application\UI\Control;
@@ -237,6 +238,7 @@ class ProductForm extends Control
 			$values['uuid'] = ProductRepository::generateUuid($values['ean'], $values['subCode'] ? $values['code'] . '.' . $values['subCode'] : $values['code'], null);
 		}
 
+		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
 		$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
 
 		$product = $this->productRepository->syncOne($values, null, true);
