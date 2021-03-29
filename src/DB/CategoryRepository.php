@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
+use Eshop\Shopper;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use StORM\Collection;
@@ -17,17 +18,20 @@ use StORM\SchemaManager;
 class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 {
 	private Cache $cache;
-
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Storage $storage)
+	
+	private Shopper $shopper;
+	
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Shopper $shopper, Storage $storage)
 	{
 		parent::__construct($connection, $schemaManager);
 		$this->cache = new Cache($storage);
+		$this->shopper = $shopper;
 	}
 
 	public function clearCategoriesCache()
 	{
 		$this->cache->clean([
-			Cache::TAGS => ["categories"],
+			Cache::TAGS => ['categories'],
 		]);
 	}
 
@@ -47,6 +51,44 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			];
 
 			return $repository->buildTree($repository->getCategories()->where('LENGTH(path) <= 40')->toArray(), null);
+		});
+	}
+	
+	public function getCounts(array $pricelists = []): array
+	{
+		$currency = $this->shopper->getCurrency();
+		$suffix = $this->getConnection()->getMutationSuffix();
+		$pricelists = $pricelists ? $pricelists : \array_values($this->shopper->getPricelists($currency->isConversionEnabled() ? $currency->convertCurrency : null)->toArray());
+		
+		$cacheIndex = "catagories_counts$suffix";
+		
+		foreach ($pricelists as $pricelist) {
+			$cacheIndex .= '_' . $pricelist->getPK();
+		}
+		
+		$rows = $this->many();
+		
+		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($rows, $suffix, $pricelists) {
+			$dependencies = [
+				Cache::TAGS => ['categories', 'products', 'pricelists'],
+			];
+			
+			$rows->join(['subs' => 'eshop_category'], 'subs.path LIKE CONCAT(this.path,"%")')
+				->join(['nxn' => 'eshop_product_nxn_eshop_category'], 'nxn.fk_category=subs.uuid')
+				->join(['product' => 'eshop_product'], "nxn.fk_product=product.uuid AND product.draft$suffix = 0 AND product.fk_alternative IS NULL")
+				->setSelect(['count' => 'COUNT(product.uuid)'])
+				->setGroupBy(['this.uuid']);
+			
+			foreach ($pricelists as $id => $pricelist) {
+				$rows->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=product.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
+				$priceWhere[] = "prices$id.price IS NOT NULL";
+			}
+			
+			$rows->where(\implode(' OR ', $priceWhere));
+			$rows->setIndex('this.uuid');
+			$rows->setFetchClass(\stdClass::class);
+			
+			return $rows->toArrayOf('count');
 		});
 	}
 
