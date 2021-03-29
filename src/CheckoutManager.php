@@ -884,8 +884,7 @@ class CheckoutManager
 				'typeName' => $purchase->deliveryType->toArray()['name'],
 				'typeCode' => $purchase->deliveryType->code,
 				'price' => $this->getDeliveryPrice(),
-				'priceVat' => $this->getDeliveryPriceVat(),
-				'zasilkovnaId' => $purchase->zasilkovnaId
+				'priceVat' => $this->getDeliveryPriceVat()
 			]);
 		}
 

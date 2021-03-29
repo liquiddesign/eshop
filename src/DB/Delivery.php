@@ -59,12 +59,6 @@ class Delivery extends \StORM\Entity
 	 * @column{"type":"date"}
 	 */
 	public ?string $shippingDate;
-
-	/**
-	 * ID pobočky zásilkovny
-	 * @column{"type":"text"}
-	 */
-	public ?string $zasilkovnaId;
 	
 	/**
 	 * Typ dopravy
