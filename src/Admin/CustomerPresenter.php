@@ -5,7 +5,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
-use Eshop\Admin\Controls\AccountFormFactory;
+use Admin\Admin\Controls\AccountFormFactory;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\PaymentTypeRepository;
