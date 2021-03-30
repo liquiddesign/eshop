@@ -83,7 +83,7 @@ class CustomerPresenter extends BackendPresenter
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('Feed', function (Customer $customer) use ($btnSecondary) {
-			return "<a class='$btnSecondary' target='_blank' href='" . $this->link('//:Eshop:Export:supplier', $customer->getPK()) . "'><i class='fa fa-sm fa-rss'></i></a>";
+			return "<a class='$btnSecondary' target='_blank' href='" . $this->link('//:Eshop:Export:customer', $customer->getPK()) . "'><i class='fa fa-sm fa-rss'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
 
 		$grid->addColumn('Login', function (Customer $object, Datagrid $grid) use ($btnSecondary) {

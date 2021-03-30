@@ -18,7 +18,6 @@ use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Http\Request;
 use Security\DB\AccountRepository;
-use Web\DB\Setting;
 use Web\DB\SettingRepository;
 
 abstract class ExportPresenter extends \Nette\Application\UI\Presenter
@@ -55,6 +54,8 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 
 	protected Cache $cache;
 
+	protected const ERROR_MSG = 'Invalid export settings! No pricelist selected! You can set pricelist in admin web settings.';
+
 	public function __construct(Storage $storage)
 	{
 		parent::__construct();
@@ -67,11 +68,41 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 		$this->template->productImageUrl = $this->request->getUrl()->getBaseUrl() . 'userfiles/' . Product::IMAGE_DIR . '/thumb/';
 	}
 
+	private function getPricelistFromSetting(string $settingName): Pricelist
+	{
+		/** @var \Web\DB\Setting $setting */
+		$setting = $this->settingRepo->one(['name' => $settingName]);
+
+		if (!$setting || !$setting->value) {
+			throw new \Exception($this::ERROR_MSG);
+		}
+
+		if (!$pricelist = $this->priceListRepo->one($setting->value)) {
+			throw new \Exception($this::ERROR_MSG);
+		}
+
+		return $pricelist;
+	}
+
+	private function export(string $name)
+	{
+		$this->template->setFile(__DIR__ . "/templates/export/$name.latte");
+
+		$this->template->pricelist = $pricelist = $this->getPricelistFromSetting($name . 'ExportPricelist');
+
+		$this->template->products = $this->cache->load("export_$name", function (&$dependencies) use ($pricelist) {
+			$dependencies[Cache::TAGS] = ['export', 'categories'];
+			$dependencies[Cache::EXPIRE] = '1 day';
+
+			return $this->productRepo->getProducts([$pricelist])->where('this.hidden', false)->toArray();
+		});
+	}
+
 	public function renderPartnersExport(): void
 	{
 		$this->template->setFile(__DIR__ . '/templates/export/partners.latte');
 
-		$products = $this->cache->load('export_products', function (&$dependencies) {
+		$this->template->products = $this->cache->load('export_partners', function (&$dependencies) {
 			$dependencies[Cache::EXPIRE] = '1 day';
 			$dependencies[Cache::TAGS] = ['export', 'categories'];
 
@@ -79,122 +110,51 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 		});
 
 		$this->template->vatRates = $this->vatRateRepo->getVatRatesByCountry();
-		$this->template->products = $products;
 	}
 
 	public function renderHeurekaExport(): void
 	{
-		$this->template->setFile(__DIR__ . '/templates/export/heureka.latte');
-
-		/** @var Setting $setting */
-		$setting = $this->settingRepo->one(['name' => 'heurekaExportPricelist']);
-
-		if (!$setting || !$setting->value) {
-			$this->template->error = 'Invalid export settings! No pricelist selected! You can set pricelist in admin web settings.';
-
-			return;
+		try {
+			$this->export('heureka');
+		} catch (\Exception $e) {
+			$this->template->error = $e->getMessage();
 		}
-
-		$pricelist = $this->priceListRepo->one($setting->value);
-
-		if (!$pricelist) {
-			$this->template->error = 'Invalid export settings! No pricelist selected! You can set pricelist in admin web settings.';
-
-			return;
-		}
-
-		$this->template->pricelist = $pricelist;
-
-		$products = $this->cache->load('export_heureka', function (&$dependencies) use ($pricelist) {
-			$dependencies[Cache::TAGS] = ['export', 'categories'];
-			$dependencies[Cache::EXPIRE] = '1 day';
-
-			return $this->productRepo->getProducts([$pricelist])->where('this.hidden', false)->toArray();
-		});
-
-		$this->template->products = $products;
 	}
 
 	public function renderZboziExport(): void
 	{
-		$this->template->setFile(__DIR__ . '/templates/export/zbozi.latte');
-
-		/** @var Setting $setting */
-		$setting = $this->settingRepo->one(['name' => 'zboziExportPricelist']);
-
-		if (!$setting || !$setting->value) {
-			$this->template->error = 'Invalid export settings! No pricelist selected! You can set pricelist in admin web settings.';
-
-			return;
+		try {
+			$this->export('zbozi');
+		} catch (\Exception $e) {
+			$this->template->error = $e->getMessage();
 		}
-
-		/** @var Pricelist $pricelist */
-		$pricelist = $this->priceListRepo->one($setting->value);
-
-		if (!$pricelist) {
-			$this->template->error = 'Invalid export settings! No pricelist selected! You can set pricelist in admin web settings.';
-
-			return;
-		}
-
-		$this->template->pricelist = $pricelist;
-
-		$products = $this->cache->load('export_zbozi', function (&$dependencies) use ($pricelist) {
-			$dependencies[Cache::TAGS] = ['export', 'categories'];
-			$dependencies[Cache::EXPIRE] = '1 day';
-
-			return $this->productRepo->getProducts([$pricelist])->where('this.hidden', false)->toArray();
-		});
-
-		$this->template->products = $products;
 	}
 
 	public function renderGoogleExport(): void
 	{
-		$this->template->setFile(__DIR__ . '/templates/export/google.latte');
-
-		/** @var Setting $setting */
-		$setting = $this->settingRepo->one(['name' => 'googleExportPricelist']);
-
-		if (!$setting || !$setting->value) {
-			$this->template->error = 'Invalid export settings! No pricelist selected! You can set pricelist in admin web settings.';
-
-			return;
+		try {
+			$this->export('google');
+		} catch (\Exception $e) {
+			$this->template->error = $e->getMessage();
 		}
-
-		/** @var Pricelist $pricelist */
-		$pricelist = $this->priceListRepo->one($setting->value);
-
-		if (!$pricelist) {
-			$this->template->error = 'Invalid export settings! No pricelist selected! You can set pricelist in admin web settings.';
-
-			return;
-		}
-
-		$this->template->pricelist = $pricelist;
-
-		$products = $this->cache->load('export_google', function (&$dependencies) use ($pricelist) {
-			$dependencies[Cache::TAGS] = ['export', 'categories'];
-			$dependencies[Cache::EXPIRE] = '1 day';
-
-			return $this->productRepo->getProducts([$pricelist])->where('this.hidden', false)->toArray();
-		});
-
-		$this->template->products = $products;
 	}
 
-	public function actionSupplier(string $uuid)
+	public function actionCustomer(?string $uuid = null)
 	{
-		if (!isset($_SERVER['PHP_AUTH_USER']) && !$this->user->isLoggedIn()) {
+		if (!isset($_SERVER['PHP_AUTH_USER']) && !$this->user->isLoggedIn() && !$uuid) {
 			\Header("WWW-Authenticate: Basic realm=\"Please, log in.\"");
 			\Header("HTTP/1.0 401 Unauthorized");
 			echo "401 Unauthorized\n";
-			echo "Please, sign in through this page or admin page.\n";
+			echo "Please, sign in through this page or login page.\n";
 			exit;
 		}
 
 		if (isset($_SERVER['PHP_AUTH_USER'])) {
-			$this->user->login($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'], \Admin\DB\Administrator::class);
+			$this->user->login($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'], Customer::class);
+		}
+
+		if (!$uuid) {
+			$uuid = $this->user->getIdentity()->getPK();
 		}
 
 		/** @var Customer $customer */
@@ -209,12 +169,17 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 			return;
 		}
 
-		$this->template->products = $this->productRepo->getProducts(null, ($customer ?? $merchant));
+		$this->template->products = $this->cache->load("export_customer_$uuid", function (&$dependencies) use ($customer, $merchant) {
+			$dependencies[Cache::TAGS] = ['export', 'categories'];
+			$dependencies[Cache::EXPIRE] = '1 day';
+
+			return $this->productRepo->getProducts(null, ($customer ?? $merchant))->toArray();
+		});
 	}
 
-	public function renderSupplier(string $uuid)
+	public function renderCustomer(?string $uuid = null)
 	{
-		$this->template->setFile(__DIR__ . '/templates/export/supplier.latte');
+		$this->template->setFile(__DIR__ . '/templates/export/customer.latte');
 		$this->template->vatRates = $this->vatRateRepo->getVatRatesByCountry();
 	}
 
