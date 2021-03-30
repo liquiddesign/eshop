@@ -11,9 +11,22 @@ namespace Eshop\DB;
 class Set extends \StORM\Entity
 {
 	/**
+	 * Sleva v rámci setu
 	 * @column
 	 */
-	public float $discountPct;
+	public float $discountPct = 0;
+	
+	/**
+	 * Množství v setu
+	 * @column
+	 */
+	public int $amount;
+	
+	/**
+	 * Pořadí v setu
+	 * @column
+	 */
+	public int $priority = 1;
 	
 	/**
 	 * @relation
@@ -23,7 +36,7 @@ class Set extends \StORM\Entity
 	
 	/**
 	 * @relation
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * @constraint{"onUpdate":"RESTRICT","onDelete":"RESTRICT"}
 	 */
 	public Product $product;
 }

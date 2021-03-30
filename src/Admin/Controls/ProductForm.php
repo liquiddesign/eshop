@@ -22,6 +22,7 @@ use Eshop\DB\SupplierRepository;
 use Eshop\DB\TagRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\VatRateRepository;
+use Nette\Utils\Arrays;
 use Web\DB\PageRepository;
 use Forms\Form;
 use Nette\Application\UI\Control;
@@ -50,6 +51,8 @@ class ProductForm extends Control
 
 	private RelatedRepository $relatedRepository;
 
+	private ?Product $product;
+
 	public function __construct(
 		Container $container,
 		AdminFormFactory $adminFormFactory,
@@ -72,8 +75,8 @@ class ProductForm extends Control
 		$product = null
 	)
 	{
-		//Form::initialize();
 		$product = $productRepository->get($product);
+		$this->product = $product;
 
 		$form = $adminFormFactory->create();
 
@@ -170,6 +173,7 @@ class ProductForm extends Control
 
 		$form->addSubmits(!$product);
 
+		$form->onValidate[] = [$this, 'validate'];
 		$form->onSuccess[] = [$this, 'submit'];
 
 		$this->addComponent($form, 'form');
@@ -185,6 +189,45 @@ class ProductForm extends Control
 		$this->relatedRepository = $relatedRepository;
 	}
 
+	public function validate(AdminForm $form)
+	{
+		$values = $form->getValues('array');
+
+		if ($values['ean']) {
+			if ($product = $this->productRepository->many()->where('ean', $values['ean'])->first()) {
+				if ($this->product) {
+					if ($product->getPK() != $this->product->getPK()) {
+						$form['ean']->addError('Již existuje produkt s tímto EAN');
+					}
+				} else {
+					$form['ean']->addError('Již existuje produkt s tímto EAN');
+				}
+			}
+		}
+
+		$product = $this->productRepository->many();
+
+		if ($values['code']) {
+			$product = $product->where('code', $values['code']);
+		}
+
+		if ($values['subCode']) {
+			$product = $product->where('subCode', $values['subCode']);
+		}
+
+		$product = $product->first();
+
+		if (($values['code'] || $values['subCode']) && $product) {
+			if ($this->product) {
+				if ($product->getPK() != $this->product->getPK()) {
+					$form['code']->addError('Již existuje produkt s touto kombinací kódu a subkódu');
+				}
+			} else {
+				$form['code']->addError('Již existuje produkt s touto kombinací kódu a subkódu');
+			}
+		}
+	}
+
 	public function submit(AdminForm $form)
 	{
 		$values = $form->getValues('array');
@@ -195,6 +238,7 @@ class ProductForm extends Control
 			$values['uuid'] = ProductRepository::generateUuid($values['ean'], $values['subCode'] ? $values['code'] . '.' . $values['subCode'] : $values['code'], null);
 		}
 
+		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
 		$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
 
 		$product = $this->productRepository->syncOne($values, null, true);

@@ -857,50 +857,6 @@ class CheckoutManager
 		]);
 	}
 
-	public function createZasilkovnaPackage(Order $order)
-	{
-		if (!$zasilkovnaApiPassword = $this->settingRepository->many()->where('name = "zasilkovnaApiPassword"')->first()) {
-			return;
-		}
-
-		$purchase = $this->purchaseRepository->many()->join(['orders' => 'eshop_order'], 'this.uuid = orders.fk_purchase')->where('orders.uuid', $order->getPK())->first();
-
-		$client = new Client([
-			'base_uri' => 'https://www.zasilkovna.cz/api/rest',
-			'timeout' => 5.0,
-			'verify' => false
-		]);
-
-		$xml = '
-			<createPacket>
-			    <apiPassword>' . $zasilkovnaApiPassword->value . '</apiPassword>
-			    <packetAttributes>
-			        <number>' . $order->code . '</number>
-			        <name>' . $purchase->fullname . '</name>
-			        <email>' . $purchase->email . '</email>
-			        <phone>' . $purchase->phone . '</phone>
-			        <addressId>' . $purchase->zasilkovnaId . '</addressId>
-			        <currency>' . $this->getCart()->currency . '</currency>
-			        <value>' . $order->getTotalPriceVat() . '</value>
-			        ' . ($order->getPayment()->typeCode == 'dob' ? '<cod>' . $order->getTotalPriceVat() . '</cod>' : null) . '
-			        <eshop>' . $this->shopper->getProjectUrl() . '</eshop>
-			    </packetAttributes>
-			</createPacket>
-			';
-
-		$options = [
-			'headers' => [
-				'Content-Type' => 'text/xml; charset=UTF8',
-			],
-			'body' => $xml,
-		];
-
-		$response = $client->request('POST', '', $options);
-		$responseContent = $response->getBody()->getContents();
-
-		bdump($responseContent);
-	}
-
 	public function createOrder(?Purchase $purchase = null): void
 	{
 		$purchase = $purchase ?: $this->getPurchase();
@@ -928,8 +884,7 @@ class CheckoutManager
 				'typeName' => $purchase->deliveryType->toArray()['name'],
 				'typeCode' => $purchase->deliveryType->code,
 				'price' => $this->getDeliveryPrice(),
-				'priceVat' => $this->getDeliveryPriceVat(),
-				'zasilkovnaId' => $purchase->zasilkovnaId
+				'priceVat' => $this->getDeliveryPriceVat()
 			]);
 		}
 
@@ -943,11 +898,6 @@ class CheckoutManager
 				'price' => $this->getPaymentPrice(),
 				'priceVat' => $this->getPaymentPriceVat(),
 			]);
-		}
-
-		if ($purchase->deliveryType->code == 'zasilkovna' && $purchase->zasilkovnaId) {
-			$this->createZasilkovnaPackage($order);
-			$purchase->update(['zasilkovnaId' => null]);
 		}
 
 		if ($purchase->billAddress) {

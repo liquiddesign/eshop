@@ -6,28 +6,26 @@
     {$error}
 </error>
 {else}
-<SHOP>
+<SHOP xmlns="http://www.zbozi.cz/ns/offer/1.0">
     <SHOPITEM n:foreach="$products as $product">
         <ITEM_ID>{$product->getPK()}</ITEM_ID>
         <PRODUCTNAME><![CDATA[{$product->name}]]></PRODUCTNAME>
-        <DESCRIPTION n:if="$product->content"><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
+        <DESCRIPTION><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
         <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
         {ifset $product->imageFileName}<IMGURL>{$productImageUrl . $product->imageFileName}</IMGURL>{/ifset}
-        <PRICE>{$product->priceVat}</PRICE>
-        <VAT>{$vatRates[$product->vatRate]}</VAT>
+        <PRICE_VAT>{$product->priceVat}</PRICE_VAT>
         <MANUFACTURER>{ifset $product->producer}{$product->producer->name}{/ifset}</MANUFACTURER>
-        {ifset $product->primaryCategory}
+        {if ($category = $product->getPrimaryCategory()) !== null}
             {do $categories = []}
-            {do $category = $product->primaryCategory}
             {while $category != null}
                 {do $categories[] = $category}
                 {do $category = $category->ancestor}
             {/while}
             {do $categories = \array_reverse($categories)}
         <CATEGORYTEXT>{foreach $categories as $category}{$category->name|noescape}{if !$iterator->isLast()} | {/if}{/foreach}</CATEGORYTEXT>
-        {/ifset}
+        {/if}
         <EAN>{$product->ean}</EAN>
-        <DELIVERY_DATE>{$product->deliveryDays}</DELIVERY_DATE>
+        <DELIVERY_DATE>{$product->inStock() ? 0 : -1}</DELIVERY_DATE>
 {*        <CODE>{$product->code}</CODE>*}
 {*        <WEIGHT>{$product->weight}</WEIGHT>*}
 {*        <UNIT>{$product->unit}</UNIT>*}

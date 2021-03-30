@@ -5,7 +5,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
-use Eshop\Admin\Controls\AccountFormFactory;
+use Admin\Admin\Controls\AccountFormFactory;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\PaymentTypeRepository;
@@ -69,9 +69,6 @@ class CustomerPresenter extends BackendPresenter
 	/** @inject */
 	public PricelistRepository $pricelistRepo;
 
-	/** @inject */
-	public MailerLite $mailerLite;
-
 	public function createComponentCustomers()
 	{
 		$grid = $this->gridFactory->create($this->customerRepository->many(), 20, 'createdTs', 'DESC', true);
@@ -86,7 +83,7 @@ class CustomerPresenter extends BackendPresenter
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('Feed', function (Customer $customer) use ($btnSecondary) {
-			return "<a class='$btnSecondary' target='_blank' href='" . $this->link('//:Eshop:Export:supplier', $customer->getPK()) . "'><i class='fa fa-sm fa-rss'></i></a>";
+			return "<a class='$btnSecondary' target='_blank' href='" . $this->link('//:Eshop:Export:customer', $customer->getPK()) . "'><i class='fa fa-sm fa-rss'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
 
 		$grid->addColumn('Login', function (Customer $object, Datagrid $grid) use ($btnSecondary) {
@@ -109,7 +106,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder']);
 
-		$grid->addButtonBulkEdit('form', ['pricelists', 'merchant', 'group'], 'customers');
+		$grid->addButtonBulkEdit('form', ['pricelists', 'merchant', 'group', 'newsletter'], 'customers');
 
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů');
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
@@ -225,8 +222,8 @@ class CustomerPresenter extends BackendPresenter
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 		$form->addDataMultiSelect('exclusiveDeliveryTypes', 'Povolené exkluzivní dopravy', $this->deliveryTypeRepo->many()->toArrayOf('code'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
-		$form->addInteger('discountLevelPct', 'Slevová hladina (%)');
-		$form->addText('productRoundingPct', 'Zokrouhlení od procent (%)')->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
+		$form->addInteger('discountLevelPct', 'Slevová hladina (%)')->setDefaultValue(0)->setRequired();
+		$form->addText('productRoundingPct', 'Zokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
 		$form->addGroup('Exporty');
 		$form->addCheckbox('allowExport', 'Feed povolen');
 		$form->addText('ediCompany', 'EDI: Identifikátor firmy')
@@ -361,11 +358,8 @@ class CustomerPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($customer) {
 			$values = $form->getValues('array');
 
+			/** @var \Eshop\DB\Customer $customer */
 			$customer = $this->customerRepository->syncOne($values, null, true);
-
-			if ($values['newsletter']) {
-				$this->mailerLite->subscribe($customer);
-			}
 
 			$form->getPresenter()->flashMessage('Uloženo', 'success');
 			$form->processRedirect('edit', 'default', [$customer]);

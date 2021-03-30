@@ -16,24 +16,15 @@
         <g:link>{plink //:Eshop:Product:detail $product->getPK()}</g:link>
         {ifset $product->imageFileName}<g:image_link>{$productImageUrl . $product->imageFileName}</g:image_link>{/ifset}
         <g:condition>new</g:condition>
-        <g:availability>{ifset $product->displayAmount}{$product->displayAmount->label}{/ifset}</g:availability>
-        <g:price>{$product->priceVat}</g:price>
+        <g:availability>{if $product->inStock()}in stock{else}out of stock{/if}</g:availability>
+        <g:price>{$product->priceVat} {$pricelist->currency->code}</g:price>
+        <g:brand>{$product->producer ? $product->producer->name : null}</g:brand>
+        <g:gtin>{$product->ean}</g:gtin>
+        <g:adult>no</g:adult>
         {ifset $product->displayDelivery}
         <g:shipping>
             <g:country>CS</g:country>
-            <g:service>Standardní přeprava</g:service>
-            <g:price>0</g:price>
         </g:shipping>
-        {/ifset}
-        {ifset $product->primaryCategory}
-            {do $categories = []}
-            {do $category = $product->primaryCategory}
-            {while $category != null}
-                {do $categories[] = $category}
-                {do $category = $category->ancestor}
-            {/while}
-            {do $categories = \array_reverse($categories)}
-        <g:google_product_category>{foreach $categories as $category}{$category->name|noescape}{if !$iterator->isLast()} &gt; {/if}{/foreach}</g:google_product_category>
         {/ifset}
     </item>
 </channel>

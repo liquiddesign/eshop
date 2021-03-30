@@ -14,12 +14,12 @@ class VatRateRepository extends \StORM\Repository implements IGeneralRepository
 {
 	public function getDefaultVatRates(): array
 	{
-		return $this->many()->where('fk_country', 'CZ')->orderBy(['priority'])->toArrayOf('name');
+		return $this->many()->where('fk_country', 'CZ')->orderBy(['priority'])->toArrayOf('rate');
 	}
 
 	public function getVatRatesByCountry(?Country $country = null): array
 	{
-		return $country ? $this->many()->where('fk_country', $country->getPK())->orderBy(['priority'])->toArrayOf('name') : $this->getDefaultVatRates();
+		return $country ? $this->many()->where('fk_country', $country->getPK())->orderBy(['priority'])->toArrayOf('rate') : $this->getDefaultVatRates();
 	}
 
 	public function getArrayForSelect(bool $includeHidden = true): array

@@ -1,18 +1,16 @@
 {varType Eshop\DB\PickupPoint $item}
 
-{do $weekDay = (int)(new Nette\Utils\DateTime())->format('w')-1}
+{do $weekDay = (int)(new Nette\Utils\DateTime())->format('N')}
 {do $currentDate = (new Nette\Utils\DateTime())->format('Y-m-d')}
 {do $nextDate = (new Nette\Utils\DateTime())->modify('+1 day')->format('Y-m-d')}
 
-{do $weekDays = [
-$presenter->translator->translate('.monday','Pondělí'),
-$presenter->translator->translate('.tuesday','Úterý'),
-$presenter->translator->translate('.wednesday','Středa'),
-$presenter->translator->translate('.thursday','Čtvrtek'),
-$presenter->translator->translate('.friday','Pátek'),
-$presenter->translator->translate('.saturday','Sobota'),
-$presenter->translator->translate('.sunday','Neděle')
-]}
+{do $weekDays[1] = $presenter->translator->translate('.monday','Pondělí')}
+{do $weekDays[2] = $presenter->translator->translate('.tuesday','Úterý')}
+{do $weekDays[3] = $presenter->translator->translate('.wednesday','Středa')}
+{do $weekDays[4] = $presenter->translator->translate('.thursday','Čtvrtek')}
+{do $weekDays[5] = $presenter->translator->translate('.friday','Pátek')}
+{do $weekDays[6] = $presenter->translator->translate('.saturday','Sobota')}
+{do $weekDays[7] = $presenter->translator->translate('.sunday','Neděle')}
 
 <style>
     [title~="map-img"]{
@@ -32,23 +30,17 @@ $presenter->translator->translate('.sunday','Neděle')
         <h2>{_'pickupPoint.pickupPointList','Seznam výdejních míst'}</h2>
         <!-- FILTERS -->
         {form filterForm}
-            <div class="flex flex-col md:flex-row md:items-center">
-                <div class="form-group mx-2">
+            <div class="flex flex-col md:flex-row md:items-end md:space-x-2">
+                <div class="form-group">
                     {label name}
+                    {input name}
                 </div>
-                <div class="form-group mx-2">
-                    {input name, 'class' => 'form-control'}
-                </div>
-                <div class="form-group mx-2">
+                <div class="form-group">
                     {label city}
+                    {input city}
                 </div>
-                <div class="form-group mx-2">
-                    {input city, 'class' => 'form-control lg:px-6'}
-                </div>
-                <div class="form-group mx-2">
+                <div class="form-group">
                     {input submit, 'class' => 'btn btn-primary'}
-                </div>
-                <div class="form-group mx-2">
                     <a n:href="clearFilters!" class="btn btn-secondary">{_'pickupPointList.cancel','Zrušit'}</a>
                 </div>
             </div>
@@ -61,8 +53,8 @@ $presenter->translator->translate('.sunday','Neděle')
             <hr>
         </div>
 
-        <tr class="row w-full">
-            <div class="col p-0" id="anchor-list-start">
+        <div id="anchor-search" class="row w-full">
+            <div class="col p-0">
                 <div n:if="count($control->getItemsOnPage())" class="table-responsive">
                     <table>
                         <tbody>
@@ -70,10 +62,10 @@ $presenter->translator->translate('.sunday','Neděle')
                         {foreach $control->getItemsOnPage() as $id => $item}
                             <tr>
                                 <td id="anchor-{$id}">
-                                    {ifset $item->pickupPointType->logoFileName}
-                                        <a href="{$userUrl}/pickupPointType_images/origin/{$item->pickupPointType->logoFileName}"
+                                    {ifset $item->pickupPointType->imageFileName}
+                                        <a href="{$userUrl}/pickupPointType_images/origin/{$item->pickupPointType->imageFileName}"
                                            target="_blank"><img style="max-width: 64px!important;"
-                                                                src="{$userUrl}/pickupPointType_images/thumb/{$item->pickupPointType->logoFileName}"
+                                                                src="{$userUrl}/pickupPointType_images/thumb/{$item->pickupPointType->imageFileName}"
                                                                 alt="{$item->pickupPointType->name}"/></a>
                                     {else}
                                         {$item->pickupPointType->name}
@@ -120,12 +112,32 @@ $presenter->translator->translate('.sunday','Neděle')
                                 {/if}
 
                                 {if \count($openingHours[$id]['special'])>0}
+                                    <hr class="my-1">
+                                    <strong>{_'pickupPointList.hoursChanged','Změny v otevírací době'}</strong>
+                                    <div class="grid grid-cols-3">
+                                        {foreach $openingHours[$id]['special'] as $key => $value}
+                                            <div class="col">
+                                                {$value->date|date} ({$weekDays[(int)DateTime::createFromFormat('Y-m-d', $value->date)->format('N')]})
+                                            </div>
+                                            {if isset($value->openFrom)}
+                                                {ifset $value->pauseFrom}
+                                                    <div class="col">{$value->openFrom|date:'H:i'} - {$value->pauseFrom|date:'H:i'} </div><div class="col"> {@$value->pauseTo|date:'H:i'} - {@$value->openTo|date:'H:i'} </div>
+                                                {else}
+                                                    <div class="col">{$value->openFrom|date:'H:i'} - {@$value->openTo|date:'H:i'} </div><div class="col"></div>
+                                                {/ifset}
+                                            {else}
+                                                <div class="col">{_'pickupPointList.closed','zavřeno'}</div><div class="col"></div>
+                                            {/if}
+                                        {/foreach}
+                                    </div>
+                                {/if}
+
                                 <hr class="my-1">
-                                <strong>{_'pickupPointList.hoursChanged','Změny v otevírací době'}</strong>
+                                <strong>{_'pickupPointList.openingHours','Otevírací doba'}</strong>
                                 <div class="grid grid-cols-3">
-                                    {foreach $openingHours[$id]['special'] as $key => $value}
+                                    {foreach $openingHours[$id]['normal'] as $key => $value}
                                         <div class="col">
-                                            {$value->date|date} ({$weekDays[(int)DateTime::createFromFormat('Y-m-d', $value->date)->format('w')-1]})
+                                            {$weekDays[$key]}
                                         </div>
                                         {if isset($value->openFrom)}
                                             {ifset $value->pauseFrom}
@@ -138,30 +150,14 @@ $presenter->translator->translate('.sunday','Neděle')
                                         {/if}
                                     {/foreach}
                                 </div>
-                                {/if}
-
-                                <hr class="my-1">
-                                <strong>{_'pickupPointList.openingHours','Otevírací doba'}</strong>
-                                <div class="grid grid-cols-3">
-                                {foreach $openingHours[$id]['normal'] as $key => $value}
-                                    <div class="col">
-                                        {$weekDays[$key]}
-                                    </div>
-                                    {if isset($value->openFrom)}
-                                        {ifset $value->pauseFrom}
-                                            <div class="col">{$value->openFrom|date:'H:i'} - {$value->pauseFrom|date:'H:i'} </div><div class="col"> {@$value->pauseTo|date:'H:i'} - {@$value->openTo|date:'H:i'} </div>
-                                        {else}
-                                            <div class="col">{$value->openFrom|date:'H:i'} - {@$value->openTo|date:'H:i'} </div><div class="col"></div>
-                                        {/ifset}
-                                    {else}
-                                        <div class="col">{_'pickupPointList.closed','zavřeno'}</div><div class="col"></div>
-                                    {/if}
-                                {/foreach}
-                                </div>
                             </div>
                         {/foreach}
                         </tbody>
                     </table>
+
+                    <div class="mt-3">
+                        {include '../../@paging.latte' paginator:$paginator}
+                    </div>
                 </div>
 
                 <div n:if="!count($control->getItemsOnPage())" class="text-center mb-16">
@@ -182,11 +178,11 @@ $presenter->translator->translate('.sunday','Neděle')
     <script type="text/javascript">Loader.load();</script>
     <script type="text/javascript">
         {ifset $gps}
-            var center = SMap.Coords.fromWGS84({\str_replace(',','.',$gps['E'])|noescape},{\str_replace(',','.',$gps['N'])|noescape});
-            var m = new SMap(JAK.gel("m"), center, 11);
+        var center = SMap.Coords.fromWGS84({\str_replace(',','.',$gps['E'])|noescape},{\str_replace(',','.',$gps['N'])|noescape});
+        var m = new SMap(JAK.gel("m"), center, 11);
         {else}
-            var center = SMap.Coords.fromWGS84(15.3386383, 49.7437572);
-            var m = new SMap(JAK.gel("m"), center, 7);
+        var center = SMap.Coords.fromWGS84(15.3386383, 49.7437572);
+        var m = new SMap(JAK.gel("m"), center, 7);
         {/ifset}
 
         m.addDefaultLayer(SMap.DEF_BASE).enable();
@@ -196,10 +192,10 @@ $presenter->translator->translate('.sunday','Neděle')
         m.addLayer(layer);
         layer.enable();
 
-{*        {ifset $gps}*}
-{*        var marker = new SMap.Marker(SMap.Coords.fromWGS84({\str_replace(',','.',$gps['E'])|noescape},{\str_replace(',','.',$gps['N'])|noescape}));*}
-{*        layer.addMarker(marker);*}
-{*        {/ifset}*}
+        {*        {ifset $gps}*}
+        {*        var marker = new SMap.Marker(SMap.Coords.fromWGS84({\str_replace(',','.',$gps['E'])|noescape},{\str_replace(',','.',$gps['N'])|noescape}));*}
+        {*        layer.addMarker(marker);*}
+        {*        {/ifset}*}
 
         {foreach $control->getItemsOnPage() as $key => $point}
 
@@ -208,11 +204,11 @@ $presenter->translator->translate('.sunday','Neděle')
         card.getBody().innerHTML = "{$point->address->getFullAddress()|noescape}<hr class='my-1'>" +
             '{$openingHoursTexts[$key]|noescape}<hr class="my-1">'+
             '<a href="#anchor-{$key|noescape}">{_'pickupPointList.moreInfo','Více informací'|noescape}</a>'
-            '</span>';
+        '</span>';
 
         var options = {
             title: 'map-img',
-            url: "{$userUrl|noescape}/pickupPointType_images/thumb/{$point->pickupPointType->logoFileName|noescape}",
+            url: "{$point->pickupPointType->getImage($basePath)|noescape}",
         };
 
         var marker = new SMap.Marker(SMap.Coords.fromWGS84({\str_replace(',','.',$point->gpsE)}, {\str_replace(',','.',$point->gpsN)}), {$key}, options);

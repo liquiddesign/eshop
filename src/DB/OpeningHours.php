@@ -9,7 +9,7 @@ use Nette\Utils\DateTime;
 /**
  * Otevírací doba
  * @table
- * @index{"name":"openinghours_unique","unique":true,"columns":["day","fk_pickupPoint"]}
+ * @index{"name":"openinghours_unique","unique":true,"columns":["day","fk_pickupPoint","date"]}
  */
 class OpeningHours extends \StORM\Entity
 {
@@ -51,8 +51,8 @@ class OpeningHours extends \StORM\Entity
 
 	/**
 	 * Výdejní místo
-	 * @column
 	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public PickupPoint $pickupPoint;
 }

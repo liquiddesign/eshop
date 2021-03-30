@@ -153,6 +153,7 @@ class SupplierMappingPresenter extends BackendPresenter
 
 		if ($this->tab === 'amount') {
 			$form->addDataSelect('displayAmount', 'Dostupnost', $this->displayAmountRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
+			$form->addText('storeAmount', 'Skladová zásoba')->setNullable();
 		}
 
 		$form->addHidden('supplier');
@@ -322,13 +323,11 @@ class SupplierMappingPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public
-	function actionMapping($selectedIds)
+	public function actionMapping($selectedIds)
 	{
 	}
 
-	public
-	function renderMapping($selectedIds)
+	public function renderMapping($selectedIds)
 	{
 		$this->template->headerLabel = 'Vytvořit strukturu';
 		$this->template->headerTree = [
@@ -339,8 +338,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('mappingForm')];
 	}
 
-	public
-	function renderDefault()
+	public function renderDefault()
 	{
 		$this->template->headerLabel = 'Mapování';
 		$this->template->headerTree = [
@@ -358,8 +356,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		}
 	}
 
-	public
-	function renderNew()
+	public function renderNew()
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -370,8 +367,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
 
-	public
-	function renderDetail(string $uuid)
+	public function renderDetail(string $uuid)
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -382,8 +378,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
 
-	public
-	function actionDetail(string $uuid)
+	public function actionDetail(string $uuid)
 	{
 		/** @var Form $form */
 		$form = $this->getComponent('form');
@@ -391,8 +386,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		$form->setDefaults($this->getMappingRepository()->one($uuid)->toArray());
 	}
 
-	private
-	function getMappingRepository(): Repository
+	private function getMappingRepository(): Repository
 	{
 		if ($this->tab === 'category') {
 			return $this->supplierCategoryRepository;

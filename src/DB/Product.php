@@ -178,12 +178,6 @@ class Product extends \StORM\Entity
 	public int $priority = 10;
 
 	/**
-	 * Je to produkt, dárek nebo set
-	 * @column{"type":"enum","length":"'product','gift','set'"}
-	 */
-	public string $type = 'product';
-
-	/**
 	 * Neprodejné
 	 * @column
 	 */
@@ -218,6 +212,12 @@ class Product extends \StORM\Entity
 	 * @column{"type":"date"}
 	 */
 	public ?string $published;
+	
+	/**
+	 * Hodnota v % na upsell produktu
+	 * @column
+	 */
+	public ?float $dependedValue = null;
 
 	/**
 	 * Id zdroje dat produktu s kterým je svázaný
@@ -354,6 +354,13 @@ class Product extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Tax>|\Eshop\DB\Tax[]
 	 */
 	public RelationCollection $taxes;
+	
+	/**
+	 * Upsell produkty
+	 * @relationNxN{"sourceViaKey":"fk_root","targetViaKey":"fk_upsell"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\Product>|\Eshop\DB\Product[]
+	 */
+	public RelationCollection $upsells;
 
 	/**
 	 * @return \Eshop\DB\Ribbon[]

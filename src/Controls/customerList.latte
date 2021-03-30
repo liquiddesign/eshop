@@ -1,18 +1,17 @@
 {form filterForm class=>"lg:flex lg:items-center"}
-	<div class="flex flex-col lg:flex-row lg:items-center lg:w-1/2 mb-8">
-		<div class="form-group relative mb-2 lg:mb-0 flex-grow lg:mr-2">
-			<input n:name="name" type="text" class="form-control" />
-			<label>Vyhledat zákazníka</label>
-		</div>
-
-		<div class="flex">
-			<input n:name="submit" type="submit" class="btn" value="Filtrovat">
-			<a href="{link reset!}" class="btn btn-secondary ml-2">Storno</a>
-		</div>
+	<div class="flex flex-col lg:flex-row lg:items-end lg:w-1/2 mb-8">
+	<div class="form-group relative mb-2 lg:mb-0 flex-grow lg:mr-2">
+		<input n:name="name" type="text" class="form-control" placeholder="{_'customerList.searchCustomer','Vyhledat zákazníka'}" />
 	</div>
+
+	<div class="flex">
+	<input n:name="submit" type="submit" class="btn btn-primary" value="{_'.filter','Filtrovat'}">
+	<a href="{link reset!}" class="btn btn-secondary ml-2">{_'.cancel','Zrušit'}</a>
+</div>
+</div>
 {/form}
 
-<div n:if="!$control->getItemsOnPage()" class="text-gray-dark">Nemáte žádné zákazníky</div>
+<div n:if="!$control->getItemsOnPage()" class="text-gray">{_'customerList.noCustomersFilter','Nebyli nalezeni žádní zákazníci. Zkuste změnit filtr.'}</div>
 
 {if count($control->getItemsOnPage())}
 
@@ -21,29 +20,54 @@
 	<table class="w-full">
 		<thead>
 		<tr class="border border-2 border-gray-lighter border-l-0 border-t-0 border-r-0">
-			<th><a href="{link this order => 'fullname-' . $dir}">Název / Jméno</a></th>
-			<th><a href="{link this order => 'email-' . $dir}">E-mail</a></th>
-			<th><a href="{link this order => 'phone-' . $dir}">Telefon</a></th>
-			<th><a href="{link this order => 'ic-' . $dir}">IČ</a></th>
-			<th><a href="{link this order => 'city-' . $dir}">Dodací adresa</a></th>
-			<!--<th></th>-->
+			<th><a href="{link this order => 'fullname-' . $dir}">{_'customerList.name','Název / Jméno'}</a></th>
+			<th><a href="{link this order => 'email-' . $dir}">{_'customerList.email','E-mail'}</a></th>
+			<th><a href="{link this order => 'phone-' . $dir}">{_'customerList.phone','Telefon'}</a></th>
+			<th><a href="{link this order => 'ic-' . $dir}">{_'customerList.ic','IČ'}</a></th>
+			<th><a href="{link this order => 'city-' . $dir}">{_'customerList.deliveryAddr','Dodací adresa'}</a></th>
+			<th>{_'customerList.group','Skupina'}</th>
+			<th>{_'customerList.catalogPerm','Katalogové oprávnění'}</th>
+			<th></th>
 			<th></th>
 		</tr>
 		</thead>
 		<tbody>
 		{foreach $control->getItemsOnPage() as $item}
-			<tr class="border border-gray-light border-l-0 border-t-0 border-r-0">
-				<td class="p-4 whitespace-no-wrap">{$item->company ?: $item->fullname}</td>
-				<td class="p-4 whitespace-no-wrap"><a href="mailto:{$item->email}">{$item->email}</a></td>
-				<td class="p-4 whitespace-no-wrap"><a href="tel:{$item->phone}">{$item->phone}</a></td>
-				<td class="p-4 whitespace-no-wrap">{$item->ic}</td>
-				<td class="p-4 whitespace-no-wrap">{$item->getDeliveryAddressLine()}</td>
-				<!--<td class="p-4 whitespace-no-wrap"><a href="#">Statistiky</a></td>-->
-				<td class="p-4 whitespace-no-wrap"><a href="{link login! $item->getPK()}">Přihlásit</a></td>
-			</tr>
+			{form changePermForm-$item->uuid}
+				{*				{if $item->account && !$item->account->active}text-danger-lighter{/if}*}
+				<tr class="border border-gray-light border-l-0 border-t-0 border-r-0 ">
+					<td class="p-4 whitespace-no-wrap">{$item->company ?: $item->fullname}</td>
+					<td class="p-4 whitespace-no-wrap"><a href="mailto:{$item->email}">{$item->email}</a></td>
+					<td class="p-4 whitespace-no-wrap"><a href="tel:{$item->phone}">{$item->phone}</a></td>
+					<td class="p-4 whitespace-no-wrap">{$item->ic}</td>
+					<td class="p-4 whitespace-no-wrap">{$item->getDeliveryAddressLine()}</td>
+					<td class="p-4 whitespace-no-wrap">{@$item->group->name}</td>
+					<td class="p-4 whitespace-no-wrap">
+						{if $item->account && $merchant->extendedPermission}
+							{input catalogPermission 'class'=>'', 'onChange'=>'this.form.submit()'}
+						{/if}
+					</td>
+					<td class="p-4 whitespace-no-wrap ">
+						{if $item->account && $merchant->extendedPermission}
+							{if $item->account->active}
+								<a href="{link deactivateCustomerAccount! $item->getPK()}">{_'customerList.deactivate','Deaktivovat'}</a>
+							{else}
+								<a href="{link activateCustomerAccount! $item->getPK()}">{_'customerList.activate','Aktivovat'}</a>
+							{/if}
+						{/if}
+					</td>
+					<td class="p-4 whitespace-no-wrap">
+						{if $item->account && $item->account->active}
+							<a href="{link login! $item->getPK()}">{_'customerList.signIn','Přihlásit'}</a>
+						{/if}
+					</td>
+				</tr>
+			{/form }
 		{/foreach}
 		</tbody>
 	</table>
-	{control paging}
 
+	<div class="mt-3">
+		{include '../../@paging.latte' paginator:$paginator}
+	</div>
 {/if}
