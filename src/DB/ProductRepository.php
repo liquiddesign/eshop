@@ -44,13 +44,14 @@ class ProductRepository extends Repository implements IGeneralRepository
 	{
 		return $this->getProducts()->where('this.uuid', $productUuid)->first(true);
 	}
-
+	
 	/**
 	 * @param Pricelist[]|null $pricelists
 	 * @param Customer|null $customer
+	 * @param bool $selects
 	 * @return Collection
 	 */
-	public function getProducts(?array $pricelists = null, ?Customer $customer = null): Collection
+	public function getProducts(?array $pricelists = null, ?Customer $customer = null, bool $selects = true): Collection
 	{
 		$currency = $this->shopper->getCurrency();
 		$convertRatio = null;
@@ -90,43 +91,46 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$collection = $this->many(null, true, false);
 
 		foreach ($pricelists as $id => $pricelist) {
-			$price = $this->sqlHandlePrice("prices$id", 'price', $discountLevelPct, $generalPricelistIds, $prec, $convertRatio);
-			$priceVat = $this->sqlHandlePrice("prices$id", 'priceVat', $discountLevelPct, $generalPricelistIds, $prec, $convertRatio);
-			$priceBefore = $this->sqlHandlePrice("prices$id", 'priceBefore', 0, [], $prec, $convertRatio);
-			$priceVatBefore = $this->sqlHandlePrice("prices$id", 'priceVatBefore', 0, [], $prec, $convertRatio);
-
+			if ($selects) {
+				$price = $this->sqlHandlePrice("prices$id", 'price', $discountLevelPct, $generalPricelistIds, $prec, $convertRatio);
+				$priceVat = $this->sqlHandlePrice("prices$id", 'priceVat', $discountLevelPct, $generalPricelistIds, $prec, $convertRatio);
+				$priceBefore = $this->sqlHandlePrice("prices$id", 'priceBefore', 0, [], $prec, $convertRatio);
+				$priceVatBefore = $this->sqlHandlePrice("prices$id", 'priceVatBefore', 0, [], $prec, $convertRatio);
+				$priceSelects[] = "IF(prices$id.price IS NULL,'X',CONCAT_WS('$sep',LPAD(" . $pricelist->priority . ",$priorityLpad,'0'),LPAD(CAST($price AS DECIMAL($priceLpad,$prec)), $priceLpad, '0'),$priceVat,IFNULL($priceBefore,0),IFNULL($priceVatBefore,0),prices$id.fk_pricelist))";
+			}
+			
 			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
-			$priceSelects[] = "IF(prices$id.price IS NULL,'X',CONCAT_WS('$sep',LPAD(" . $pricelist->priority . ",$priorityLpad,'0'),LPAD(CAST($price AS DECIMAL($priceLpad,$prec)), $priceLpad, '0'),$priceVat,IFNULL($priceBefore,0),IFNULL($priceVatBefore,0),prices$id.fk_pricelist))";
 			$priceWhere[] = "prices$id.price IS NOT NULL";
 		}
-
-		$expression = \count($pricelists) > 1 ? 'LEAST(' . \implode(',', $priceSelects) . ')' : $priceSelects[0];
-		$collection->select(['price' => $this->sqlExplode($expression, $sep, 2)]);
-		$collection->select(['pricexxx' => $this->sqlExplode($expression, $sep, 2)]);
-		$collection->select(['priceVat' => $this->sqlExplode($expression, $sep, 3)]);
-		$collection->select(['priceBefore' => $this->sqlExplode($expression, $sep, 4)]);
-		$collection->select(['priceVatBefore' => $this->sqlExplode($expression, $sep, 5)]);
-		$collection->select(['pricelist' => $this->sqlExplode($expression, $sep, 6)]);
-		$collection->select(['currencyCode' => "'" . $currency->code . "'"]);
-
-		$collection->select(['vatPct' => "IF(vatRate = 'standard'," . ($vatRates['standard'] ?? 0) . ",IF(vatRate = 'reduced-high'," . ($vatRates['reduced-high'] ?? 0) . ",IF(vatRate = 'reduced-low'," . ($vatRates['reduced-low'] ?? 0) . ",0)))"]);
-
-		$subSelect = $this->getConnection()->rows(['eshop_parametervalue'], ["GROUP_CONCAT(CONCAT_WS('$sep', eshop_parametervalue.uuid, content$suffix, metavalue, fk_parameter))"])
-			->join(['eshop_parameter'], 'eshop_parameter.uuid = eshop_parametervalue.fk_parameter')
-			->where('eshop_parameter.isPreview=1')
-			->where('eshop_parametervalue.fk_product=this.uuid');
-		$collection->select(['parameters' => $subSelect]);
-
-		$subSelect = $this->getConnection()->rows(['eshop_ribbon'], ['GROUP_CONCAT(uuid)'])
-			->join(['nxn' => 'eshop_product_nxn_eshop_ribbon'], 'eshop_ribbon.uuid = nxn.fk_ribbon')
-			->where('nxn.fk_product=this.uuid');
-		$collection->select(['ribbonsIds' => $subSelect]);
-
-		if ($customer) {
-			$subSelect = $this->getConnection()->rows(['eshop_watcher'], ['uuid'])
-				->where('eshop_watcher.fk_customer= :test')
-				->where('eshop_watcher.fk_product=this.uuid');
-			$collection->select(['fk_watcher' => $subSelect], ['test' => $customer->getPK()]);
+		
+		if ($selects) {
+			$expression = \count($pricelists) > 1 ? 'LEAST(' . \implode(',', $priceSelects) . ')' : $priceSelects[0];
+			$collection->select(['price' => $this->sqlExplode($expression, $sep, 2)]);
+			$collection->select(['priceVat' => $this->sqlExplode($expression, $sep, 3)]);
+			$collection->select(['priceBefore' => $this->sqlExplode($expression, $sep, 4)]);
+			$collection->select(['priceVatBefore' => $this->sqlExplode($expression, $sep, 5)]);
+			$collection->select(['pricelist' => $this->sqlExplode($expression, $sep, 6)]);
+			$collection->select(['currencyCode' => "'" . $currency->code . "'"]);
+			
+			$collection->select(['vatPct' => "IF(vatRate = 'standard'," . ($vatRates['standard'] ?? 0) . ",IF(vatRate = 'reduced-high'," . ($vatRates['reduced-high'] ?? 0) . ",IF(vatRate = 'reduced-low'," . ($vatRates['reduced-low'] ?? 0) . ",0)))"]);
+			
+			$subSelect = $this->getConnection()->rows(['eshop_parametervalue'], ["GROUP_CONCAT(CONCAT_WS('$sep', eshop_parametervalue.uuid, content$suffix, metavalue, fk_parameter))"])
+				->join(['eshop_parameter'], 'eshop_parameter.uuid = eshop_parametervalue.fk_parameter')
+				->where('eshop_parameter.isPreview=1')
+				->where('eshop_parametervalue.fk_product=this.uuid');
+			$collection->select(['parameters' => $subSelect]);
+			
+			$subSelect = $this->getConnection()->rows(['eshop_ribbon'], ['GROUP_CONCAT(uuid)'])
+				->join(['nxn' => 'eshop_product_nxn_eshop_ribbon'], 'eshop_ribbon.uuid = nxn.fk_ribbon')
+				->where('nxn.fk_product=this.uuid');
+			$collection->select(['ribbonsIds' => $subSelect]);
+			
+			if ($customer) {
+				$subSelect = $this->getConnection()->rows(['eshop_watcher'], ['uuid'])
+					->where('eshop_watcher.fk_customer= :test')
+					->where('eshop_watcher.fk_product=this.uuid');
+				$collection->select(['fk_watcher' => $subSelect], ['test' => $customer->getPK()]);
+			}
 		}
 
 		$collection->where(\implode(' OR ', $priceWhere));
