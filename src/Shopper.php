@@ -265,7 +265,7 @@ class Shopper
 			return self::MERCHANT_CATALOG_PERMISSIONS;
 		}
 		
-		return $customer ? $customer->catalogPermission : $this->customerGroupRepository->getUnregisteredGroup()->defaultCatalogPermission;
+		return $customer ? $customer->catalogPermission : $this->getCustomerGroup()->defaultCatalogPermission;
 	}
 	
 	/**
