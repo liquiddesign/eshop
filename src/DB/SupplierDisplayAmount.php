@@ -21,7 +21,7 @@ class SupplierDisplayAmount extends \StORM\Entity
 	 * Skladová zásoba
 	 * @column
 	 */
-	public ?string $storeAmount;
+	public ?int $storeAmount;
 	
 	/**
 	 * Mapování dostupnosti, jestli je zadáno
