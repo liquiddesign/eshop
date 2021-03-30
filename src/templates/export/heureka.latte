@@ -14,7 +14,6 @@
         <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
         {ifset $product->imageFileName}<IMGURL>{$productImageUrl . $product->imageFileName}</IMGURL>{/ifset}
         <PRICE>{$product->priceVat}</PRICE>
-        <VAT>{$vatRates[$product->vatRate]}</VAT>
         <MANUFACTURER>{ifset $product->producer}{$product->producer->name}{/ifset}</MANUFACTURER>
         {ifset $product->primaryCategory}
             {do $categories = []}
@@ -27,7 +26,7 @@
             <CATEGORYTEXT>{foreach $categories as $category}{$category->name|noescape}{if !$iterator->isLast()} | {/if}{/foreach}</CATEGORYTEXT>
         {/ifset}
         <EAN>{$product->ean}</EAN>
-        <HEUREKA_CPC></HEUREKA_CPC>
+        <DELIVERY_DATE n:if="$product->inStock()">0</DELIVERY_DATE>
 {*        <CODE>{$product->code}</CODE>*}
 {*        <WEIGHT>{$product->weight}</WEIGHT>*}
 {*        <UNIT>{$product->unit}</UNIT>*}
