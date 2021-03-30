@@ -17,7 +17,7 @@
         {ifset $product->imageFileName}<g:image_link>{$productImageUrl . $product->imageFileName}</g:image_link>{/ifset}
         <g:condition>new</g:condition>
         <g:availability>{ifset $product->displayAmount}{$product->displayAmount->label}{/ifset}</g:availability>
-        <g:price>{$product->priceVat}</g:price>
+        <g:price>{$product->priceVat} {$pricelist->currency->code}</g:price>
         {ifset $product->displayDelivery}
         <g:shipping>
             <g:country>CS</g:country>
@@ -25,16 +25,15 @@
             <g:price>0</g:price>
         </g:shipping>
         {/ifset}
-        {ifset $product->primaryCategory}
+        {if ($category = $product->getPrimaryCategory()) !== null}
             {do $categories = []}
-            {do $category = $product->primaryCategory}
             {while $category != null}
                 {do $categories[] = $category}
                 {do $category = $category->ancestor}
             {/while}
             {do $categories = \array_reverse($categories)}
         <g:google_product_category>{foreach $categories as $category}{$category->name|noescape}{if !$iterator->isLast()} &gt; {/if}{/foreach}</g:google_product_category>
-        {/ifset}
+        {/if}
     </item>
 </channel>
 </rss>

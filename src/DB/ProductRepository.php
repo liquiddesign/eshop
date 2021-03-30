@@ -73,7 +73,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 				$generalPricelistIds[] = $pricelist->getPK();
 			}
 
-			if ($pricelist->getValue('currency') !== $currency->getPK() && $currency->convertRatio) {
+			if ($pricelist->getValue('currency') !== $currency->getPK() && $convertRatio) {
 				$convertionPricelistIds[] = $pricelist->getPK();
 			}
 		}
