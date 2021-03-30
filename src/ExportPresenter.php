@@ -65,7 +65,7 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 
 	public function beforeRender()
 	{
-		$this->template->productImageUrl = $this->request->getUrl()->getBaseUrl() . 'userfiles/' . Product::IMAGE_DIR . '/thumb/';
+		$this->template->productImageUrl = $this->request->getUrl()->withoutUserInfo()->getBaseUrl() . 'userfiles/' . Product::IMAGE_DIR . '/thumb/';
 	}
 
 	private function getPricelistFromSetting(string $settingName): Pricelist
