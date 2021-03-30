@@ -14,7 +14,7 @@ class Set extends \StORM\Entity
 	 * Sleva v rámci setu
 	 * @column
 	 */
-	public float $discountPct;
+	public float $discountPct = 0;
 	
 	/**
 	 * Množství v setu
