@@ -17,7 +17,7 @@ class OrderList extends Datalist
 {
 	public function __construct(OrderRepository $orderRepository, Shopper $shopper)
 	{
-		parent::__construct($orderRepository->getFinishedOrdersByCustomer($shopper->getCustomer()->getPK()));
+		parent::__construct($orderRepository->getFinishedOrders($shopper->getCustomer(), $shopper->getMerchant()));
 		
 		$this->setDefaultOnPage(10);
 		$this->setDefaultOrder('this.createdTs', 'DESC');

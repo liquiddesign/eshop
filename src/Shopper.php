@@ -242,7 +242,8 @@ class Shopper
 		}
 		
 		$customer = $this->getCustomer();
-		$unregisteredPricelists = $this->customerGroupRepository->getUnregisteredGroup()->defaultPricelists->toArrayOf('uuid');
+		$unregistredGroup = $this->getCustomerGroup() ?: $this->customerGroupRepository->getUnregisteredGroup();
+		$unregisteredPricelists = $unregistredGroup->defaultPricelists->toArrayOf('uuid');
 		$repo = $this->pricelistRepository;
 		
 		return $this->pricelists = $customer ? $repo->getCustomerPricelists($customer, $currency ?: $this->getCurrency(), $this->getCountry()) : $repo->getPricelists($unregisteredPricelists, $currency ?: $this->getCurrency(), $this->getCountry());
