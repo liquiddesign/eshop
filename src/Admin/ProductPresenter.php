@@ -15,6 +15,7 @@ use Eshop\DB\ParameterRepository;
 use Eshop\DB\ParameterValueRepository;
 use Eshop\DB\Photo;
 use Eshop\DB\PhotoRepository;
+use Eshop\DB\Pricelist;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\Product;
@@ -141,6 +142,7 @@ class ProductPresenter extends BackendPresenter
 		$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
 		$grid->addColumnInputPrice('Původní', 'priceBefore');
 		$grid->addColumnInputPrice('Původní s DPH', 'priceVatBefore');
+		$grid->addColumnActionDelete([$this, 'deletePrice'], true);
 		
 		$submit = $grid->getForm()->addSubmit('submit', 'Uložit');
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-primary');
@@ -168,6 +170,11 @@ class ProductPresenter extends BackendPresenter
 		$grid->addFilterButtons(['productFiles', $this->getParameter('product')]);
 		
 		return $grid;
+	}
+	
+	public function deletePrice(Pricelist $pricelist)
+	{
+		$this->priceRepository->getPricesByPriceList($pricelist)->where('fk_product', $this->getParameter('product'))->delete();
 	}
 	
 	public function createComponentFileForm(): Form
