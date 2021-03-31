@@ -41,7 +41,7 @@ class ProductGridFactory
 
 	private Container $container;
 
-	private Session $session;
+
 
 	public function __construct(
 		\Admin\Controls\AdminGridFactory $gridFactory,
@@ -52,8 +52,7 @@ class ProductGridFactory
 		SupplierRepository $supplierRepository,
 		CategoryRepository $categoryRepository,
 		RibbonRepository $ribbonRepository,
-		TagRepository $tagRepository,
-		Session $session
+		TagRepository $tagRepository
 	)
 	{
 		$this->productRepository = $productRepository;
@@ -65,7 +64,6 @@ class ProductGridFactory
 		$this->tagRepository = $tagRepository;
 		$this->pageRepository = $pageRepository;
 		$this->container = $container;
-		$this->session = $session;
 	}
 
 	public function create(): Datagrid
@@ -125,9 +123,6 @@ class ProductGridFactory
 
 		$this->addFilters($grid);
 		$grid->addFilterButtons();
-
-		$grid->onLoadState[] = Datalist::loadSession($this->session->getSection('productGrid'));
-		$grid->onSaveState[] = Datalist::saveSession($this->session->getSection('productGrid'));
 
 		return $grid;
 	}
