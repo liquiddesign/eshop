@@ -64,25 +64,42 @@ class ProductList extends Datalist
 			$collection->orderBy(['LENGTH(categories.path)' => $value]);
 		});
 
-		$this->setAllowedRepositoryFilters([
-			'category',
-			'tag',
-			'producer',
-			'related',
-			'recommended',
-			'q',
-			'priceFrom',
-			'priceTo',
-			'ribbon',
-			'crossSellFilter',
-			'inStock',
-			'query',
-			'relatedSlave',
-			'toners',
-			'compatiblePrinters',
-			'similarProducts',
-			'parameters'
-		]);
+		$this->setAllowedRepositoryFilters(['category', 'tag', 'producer', 'related', 'recommended', 'q']);
+
+		$this->addFilterExpression('crossSellFilter', function (ICollection $collection, $value): void {
+			$this->productRepository->filterCrossSellFilter($value, $collection);
+		});
+		$this->addFilterExpression('priceFrom', function (ICollection $collection, $value): void {
+			$this->productRepository->filterPriceFrom($value, $collection);
+		}, '');
+		$this->addFilterExpression('priceTo', function (ICollection $collection, $value): void {
+			$this->productRepository->filterPriceTo($value, $collection);
+		}, '');
+		$this->addFilterExpression('producer', function (ICollection $collection, $value): void {
+			$this->productRepository->filterProducer($value, $collection);
+		}, '');
+		$this->addFilterExpression('inStock', function (ICollection $collection, $value): void {
+			$this->productRepository->filterInStock($value, $collection);
+		});
+		$this->addFilterExpression('query', function (ICollection $collection, $value): void {
+			$this->productRepository->filterQuery($value, $collection);
+		});
+		$this->addFilterExpression('relatedSlave', function (ICollection $collection, $value): void {
+			$this->productRepository->filterRelatedSlave($value, $collection);
+		});
+		$this->addFilterExpression('toners', function (ICollection $collection, $value): void {
+			$this->productRepository->filterToners($value, $collection);
+		});
+		$this->addFilterExpression('compatiblePrinters', function (ICollection $collection, $value): void {
+			$this->productRepository->filterCompatiblePrinters($value, $collection);
+		});
+		$this->addFilterExpression('similarProducts', function (ICollection $collection, $value): void {
+			$this->productRepository->filterSimilarProducts($value, $collection);
+		});
+		$this->addFilterExpression('parameters', function (ICollection $collection, $groups): void {
+			$this->productRepository->filterParameters($groups, $collection);
+		});
+
 
 		$this->productRepository = $productRepository;
 		$this->watcherRepository = $watcherRepository;
