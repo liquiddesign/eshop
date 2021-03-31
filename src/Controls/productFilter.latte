@@ -1,8 +1,9 @@
-{form filterForm}
-    <div class="bg-gray-light px-8 py-6 mt-8 lg:mr-8">
+{form form}
+    <div class="bg-gray-light px-8 py-6">
         {foreach $form->getErrors() as $message}
             <div class="alert alert-danger">{$message}</div>
         {/foreach}
+
         <a href="#" data-filter class="flex items-center justify-between lg:hidden font-bold uppercase">
             {_'.showFilter','Zobrazit filtr'}
 
@@ -13,16 +14,16 @@
 
         <div id="filter-form" class="hidden lg:block">
             <!-- PARAMETER -->
-            <div>
+            <div class="pt-8 lg:pt-0">
                 <div class="font-bold uppercase">{_'.price','Cena'}</div>
 
                 <!-- FORM -->
                 <div class="mt-2">
                     <div class="form-group">
                         <div class="flex items-center justify-start">
-                            <input class="flex-grow-0 w-20" type="number" n:name="priceFrom">
-                            <div class="mx-2">-</div>
-                            <input class="flex-grow-0 w-20" type="number" n:name="priceTo">
+                            <input class="flex-grow text-right pr-2" type="number" n:name="priceFrom">
+                            <div class="mx-4">-</div>
+                            <input class="flex-grow text-right pr-2" type="number" n:name="priceTo">
                             <div class="ml-1">Kč</div>
                         </div>
                     </div>
@@ -33,40 +34,59 @@
 
             {formContainer parameters}
                 {foreach $form->getComponent('parameters')->getComponents() as $component}
-                        {formContainer $component->name}
-                            <!-- PARAMETER -->
-                            <div class="mt-2 lg:mt-0">
-                                {if $groups[$component->name]->name}<div class="font-bold uppercase">{$groups[$component->name]->name}</div>{/if}
-                                <!-- FORM -->
-                                <div class="mt-2">
-                                    <div id="{$component->name}" class="collapse show" aria-expanded="true">
-                                        <div class="form-group">
-                                            {foreach $component->getComponents() as $key => $input}
-                                                {if $input instanceOf Nette\Forms\Controls\CheckboxList}
-                                                    <span class="mb-2"><b>{$input->caption}</b></span><br>
-                                                    {input $input->name}
-                                                {elseif  $input instanceOf Nette\Forms\Controls\TextInput}
-                                                    <span class="mb-2">{$input->caption}</span>
-                                                {input $input->name}
-                                                {else}
-                                                    <label for="input-{$input->name}" class="flex items-center">
-                                                        <input id="input-{$input->name}" n:name="$input->name">
-                                                        <span class="ml-2">{$input->caption}</span>
+                    {formContainer $component->name}
+                        <!-- PARAMETER -->
+                        <div class="mt-2 lg:mt-0">
+                            {if $groups[$component->name]->name}<div class="font-bold uppercase">{$groups[$component->name]->name}</div>{/if}
+                            <!-- FORM -->
+                            <div class="mt-2">
+                                <div id="{$component->name}" class="collapse show" aria-expanded="true">
+                                    {foreach $component->getComponents() as $key => $input}
+                                        <div class="form-group mb-2">
+                                            {if $input instanceOf Nette\Forms\Controls\CheckboxList}
+                                                <div class="font-bold">{$input->caption}<span class="text-sm text-gray font-normal ml-1">{ifset $parameterCounts[$key]}({$parameterCounts[$key]}){else}(0){/ifset}</span></div>
+                                                {foreach $input->items as $subKey => $label}
+                                                    <label n:name="$key:$subKey" class="flex items-center">
+                                                        <input n:name="$key:$subKey">
+                                                        <span class="ml-2">
+															{$label}
+														</span>
                                                     </label>
-                                                {/if}
-                                            {/foreach}
+                                                {/foreach}
+                                            {elseif $input instanceOf Nette\Forms\Controls\Checkbox}
+                                                <label for="input-{$input->name}" class="flex items-center">
+                                                    <input id="input-{$input->name}" n:name="$input->name">
+                                                    <span class="ml-2">
+														{$input->caption}
+														<span class="text-sm text-gray font-normal ml-1">{ifset $parameterCounts[$key]}({$parameterCounts[$key]}){else}(0){/ifset}</span>
+													</span>
+                                                </label>
+                                            {elseif $input instanceOf Nette\Forms\Controls\TextInput}
+                                                <label for="input-{$input->name}">
+                                                    {$input->caption}
+                                                    <span class="text-sm text-gray font-normal ml-1">{ifset $parameterCounts[$key]}({$parameterCounts[$key]}){else}(0){/ifset}</span>
+                                                </label>
+                                                <input id="input-{$input->name}" n:name="$input->name">
+                                            {else}
+                                                <span class="mb-2">
+													{$input->caption}
+													<span class="text-sm text-gray font-normal ml-1">{ifset $parameterCounts[$key]}({$parameterCounts[$key]}){else}(0){/ifset}</span>
+												</span>
+                                                {input $input->name}
+                                            {/if}
                                         </div>
-                                    </div>
-
-                                    <a href="#" class="text-sm collapsed" data-toggle="collapse" data-target="#{$component->name}" aria-expanded="true">{_'filter.hideItems','Skrýt položky'}</a>
+                                    {/foreach}
                                 </div>
+
+                                <a href="#" class="text-sm collapsed" data-toggle="collapse" data-target="#{$component->name}" data-original-text="{_'filter.showItems','Zobrazit položky'}" data-collapse-text="{_'filter.hideItems','Skrýt položky'}" aria-expanded="true">{_'filter.hideItems','Skrýt položky'}</a>
                             </div>
-                        {/formContainer}
+                        </div>
+                    {/formContainer}
                     <hr class="my-4">
                 {/foreach}
             {/formContainer}
 
-            <a n:href="clearFilters!" class="inline-flex items-center">
+            <a href="{link clearFilters!}" class="inline-flex items-center">
                 <svg class="w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
