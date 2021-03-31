@@ -141,6 +141,7 @@ class ProductPresenter extends BackendPresenter
 		$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
 		$grid->addColumnInputPrice('Původní', 'priceBefore');
 		$grid->addColumnInputPrice('Původní s DPH', 'priceVatBefore');
+		$grid->addColumnActionDelete();
 		
 		$submit = $grid->getForm()->addSubmit('submit', 'Uložit');
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-primary');
