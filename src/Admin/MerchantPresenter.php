@@ -46,6 +46,7 @@ class MerchantPresenter extends BackendPresenter
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit']);
 		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname');
 		$grid->addColumnText('Email', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
+		$grid->addColumnText('Skupina', 'customerGroup.name', '%s', 'customerGroup.name');
 		
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('', function (Merchant $object, Datagrid $datagrid) use ($btnSecondary) {

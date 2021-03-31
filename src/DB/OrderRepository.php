@@ -43,12 +43,17 @@ class OrderRepository extends \StORM\Repository
 	{
 		$collection = $this->many()->where('this.completedTs IS NOT NULL OR this.canceledTs IS NOT NULL');
 		
-		if ($merchant) {
-			$collection->where('customer.fk_merchant', $merchant);
-		}
-		
 		if ($customer) {
 			$collection->where('this.fk_customer', $customer);
+		} else if ($merchant) {
+			if ($merchant->customerGroup) {
+				$collection->where('customer.fk_merchant=:merchant OR customer.fk_group=:group', [
+					'merchant' => $merchant,
+					'group' => $merchant->customerGroup,
+				]);
+			} else {
+				$collection->where('customer.fk_merchant', $merchant);
+			}
 		}
 		
 		return $collection;
@@ -68,12 +73,17 @@ class OrderRepository extends \StORM\Repository
 	{
 		$collection = $this->many()->where('this.completedTs IS NULL AND this.canceledTs IS NULL');
 		
-		if ($merchant) {
-			$collection->where('customer.fk_merchant', $merchant);
-		}
-		
 		if ($customer) {
 			$collection->where('this.fk_customer', $customer);
+		} else if ($merchant) {
+			if ($merchant->customerGroup) {
+				$collection->where('customer.fk_merchant=:merchant OR customer.fk_group=:group', [
+					'merchant' => $merchant,
+					'group' => $merchant->customerGroup,
+				]);
+			} else {
+				$collection->where('customer.fk_merchant', $merchant);
+			}
 		}
 		
 		return $collection;
