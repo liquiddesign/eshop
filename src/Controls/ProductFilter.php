@@ -64,7 +64,7 @@ class ProductFilter extends Control
 
 	public function render(): void
 	{
-		$collection = $this->productRepository->getProducts([], null, false)->filter($this->getParent()->getFilters())->setSelect(['this.uuid']);
+		$collection = $this->getParent()->getSource()->setSelect(['this.uuid']);
 
 		bdump($collection->toArray());
 		$this->template->parameterCounts = $this->parameterRepository->getCounts($collection);

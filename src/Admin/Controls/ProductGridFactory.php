@@ -11,6 +11,8 @@ use Eshop\DB\ProductRepository;
 use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\TagRepository;
+use Grid\Datalist;
+use Nette\Http\Session;
 use Web\DB\PageRepository;
 use Grid\Datagrid;
 use Nette\DI\Container;
@@ -39,6 +41,8 @@ class ProductGridFactory
 
 	private Container $container;
 
+	private Session $session;
+
 	public function __construct(
 		\Admin\Controls\AdminGridFactory $gridFactory,
 		Container $container,
@@ -48,7 +52,8 @@ class ProductGridFactory
 		SupplierRepository $supplierRepository,
 		CategoryRepository $categoryRepository,
 		RibbonRepository $ribbonRepository,
-		TagRepository $tagRepository
+		TagRepository $tagRepository,
+		Session $session
 	)
 	{
 		$this->productRepository = $productRepository;
@@ -60,6 +65,7 @@ class ProductGridFactory
 		$this->tagRepository = $tagRepository;
 		$this->pageRepository = $pageRepository;
 		$this->container = $container;
+		$this->session = $session;
 	}
 
 	public function create(): Datagrid
@@ -119,6 +125,9 @@ class ProductGridFactory
 
 		$this->addFilters($grid);
 		$grid->addFilterButtons();
+
+		$grid->onLoadState[] = Datalist::loadSession($this->session->getSection('productGrid'));
+		$grid->onSaveState[] = Datalist::saveSession($this->session->getSection('productGrid'));
 
 		return $grid;
 	}
