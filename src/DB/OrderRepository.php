@@ -470,7 +470,7 @@ class OrderRepository extends \StORM\Repository
 			'paymentPriceVat' => $order->payments->firstValue('priceVat'),
 			'billName' => $purchase->fullname,
 			'billingAddress' => $purchase->billAddress ? $purchase->billAddress->jsonSerialize() : [],
-			'deliveryAddress' => $purchase->deliveryAddress ? $purchase->deliveryAddress->jsonSerialize() : $purchase->billAddress ? $purchase->billAddress->jsonSerialize() : [],
+			'deliveryAddress' => $purchase->deliveryAddress ? $purchase->deliveryAddress->jsonSerialize() : ($purchase->billAddress ? $purchase->billAddress->jsonSerialize() : []),
 			'totalPrice' => $order->getTotalPrice(),
 			'totalPriceVat' => $order->getTotalPriceVat(),
 			'currency' => $order->currency

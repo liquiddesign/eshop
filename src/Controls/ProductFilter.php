@@ -8,6 +8,7 @@ use Eshop\DB\ParameterCategory;
 use Eshop\DB\ParameterCategoryRepository;
 use Eshop\DB\ParameterGroupRepository;
 use Eshop\DB\ParameterRepository;
+use Eshop\DB\ProductRepository;
 use Nette\Application\UI\Control;
 use Translator\DB\TranslationRepository;
 use Forms\FormFactory;
@@ -29,13 +30,16 @@ class ProductFilter extends Control
 
 	private ?ParameterCategory $selectedCategory;
 
+	private ProductRepository $productRepository;
+
 	public function __construct(
 		ParameterRepository $parameterRepository,
 		TranslationRepository $translator,
 		ParameterGroupRepository $parameterGroupRepository,
 		ParameterCategoryRepository $parameterCategoryRepository,
 		FormFactory $formFactory,
-		CategoryRepository $categoryRepository
+		CategoryRepository $categoryRepository,
+		ProductRepository $productRepository
 	)
 	{
 		$this->parameterRepository = $parameterRepository;
@@ -44,6 +48,7 @@ class ProductFilter extends Control
 		$this->parameterCategoryRepository = $parameterCategoryRepository;
 		$this->formFactory = $formFactory;
 		$this->categoryRepository = $categoryRepository;
+		$this->productRepository = $productRepository;
 	}
 
 	/**
@@ -59,6 +64,11 @@ class ProductFilter extends Control
 
 	public function render(): void
 	{
+		$collection = $this->productRepository->getProducts([], null, false)->filter($this->getParent()->getFilters())->setSelect(['this.uuid']);
+
+		bdump($collection->toArray());
+		$this->template->parameterCounts = $this->parameterRepository->getCounts($collection);
+		bdump($this->template->parameterCounts);
 		$this->template->groups = $this->parameterGroupRepository->getCollection();
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
