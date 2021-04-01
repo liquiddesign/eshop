@@ -22,6 +22,7 @@ use Eshop\DB\SupplierRepository;
 use Eshop\DB\TagRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\VatRateRepository;
+use Eshop\FormValidators;
 use Nette\Utils\Arrays;
 use Web\DB\PageRepository;
 use Forms\Form;
@@ -123,6 +124,7 @@ class ProductForm extends Control
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('recommended', 'Doporučeno');
+
 		$form->addGroup('Nákup');
 		$form->addText('unit', 'Prodejní jednotka')
 			->setHtmlAttribute('data-info', 'Např.: ks, ml, ...');
@@ -137,6 +139,11 @@ class ProductForm extends Control
 		$form->addIntegerNullable('roundingPackagePct', 'Zokrouhlení balení (%)');
 		$form->addIntegerNullable('roundingCartonPct', 'Zokrouhlení karton (%)');
 		$form->addIntegerNullable('roundingPalletPct', 'Zokrouhlení paletu (%)');
+		$form->addText('dependedValue', 'Závislá cena (%)')
+			->setNullable()
+			->setHtmlAttribute('data-info', 'V případě upsell položky a pokud neexistuje ceník, bude cena vypočítána procentuálně.')
+			->addCondition($form::FILLED)
+			->addRule($form::FLOAT);
 		$form->addCheckbox('unavailable', 'Neprodejné');
 
 		/** @var \Eshop\DB\Category $printerCategory */
@@ -158,6 +165,10 @@ class ProductForm extends Control
 		}
 
 		$form->addDataMultiSelect('taxes', 'Poplatky a daně', $taxRepository->getArrayForSelect());
+		$form->addText('upsells', 'Upsell')
+			->setNullable()
+			->addCondition($form::FILLED)
+			->addRule([FormValidators::class, 'isMultipleProductsExists'], 'Chybný formát nebo nebyl nalezen některý ze zadaných produktů!', [$productRepository]);
 
 		$prices = $form->addContainer('prices');
 
@@ -191,6 +202,10 @@ class ProductForm extends Control
 
 	public function validate(AdminForm $form)
 	{
+		if (!$form->isValid()) {
+			return;
+		}
+
 		$values = $form->getValues('array');
 
 		if ($values['ean']) {
@@ -240,6 +255,17 @@ class ProductForm extends Control
 
 		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
 		$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
+
+		$this->product->upsells->unrelateAll();
+
+		if ($values['upsells']) {
+			$upsells = [];
+			foreach (\explode(';', $values['upsells']) as $upsell) {
+				$upsells[] = $this->productRepository->getProductByCodeOrEAN($upsell)->getPK();
+			}
+
+			$this->product->upsells->relate($upsells);
+		}
 
 		$product = $this->productRepository->syncOne($values, null, true);
 

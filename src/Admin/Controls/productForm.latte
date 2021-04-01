@@ -184,6 +184,16 @@
 			{/ifset}
 
 			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label upsells/}</th>
+
+				<td class="align-middle" >
+					{input upsells  class => 'form-control form-control-sm col-label'}
+					<span id="data-info" class="text-gray text-sm">Zadejte EAN nebo kódy oddělené středníky. Např.: 10001;123456789</span>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError upsells}</span>
+				</td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
 				<th class="col-label col-form-label col">{label taxes/}</th>
 
 				<td class="align-middle">{input taxes}
@@ -302,9 +312,17 @@
 				</td>
 			</tr>
 
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label dependedValue}</th>
+
+				<td class="align-middle form-inline">
+					{input dependedValue class => 'form-control form-control-sm max-number col-label'}
+
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError dependedValue}</span>
+				</td>
+			</tr>
 
 			{$renderer->renderPair($form['unavailable'])|noescape}
-
 		</table>
 	</fieldset>
 
