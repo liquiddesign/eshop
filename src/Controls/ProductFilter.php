@@ -66,9 +66,8 @@ class ProductFilter extends Control
 	{
 		$collection = $this->getParent()->getSource()->setSelect(['this.uuid']);
 
-		bdump($collection->toArray());
 		$this->template->parameterCounts = $this->parameterRepository->getCounts($collection);
-		bdump($this->template->parameterCounts);
+		
 		$this->template->groups = $this->parameterGroupRepository->getCollection();
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
