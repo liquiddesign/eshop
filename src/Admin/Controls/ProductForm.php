@@ -143,7 +143,8 @@ class ProductForm extends Control
 			->setNullable()
 			->setHtmlAttribute('data-info', 'V případě upsell položky a pokud neexistuje ceník, bude cena vypočítána procentuálně.')
 			->addCondition($form::FILLED)
-			->addRule($form::FLOAT);
+			->addRule($form::FLOAT)
+			->addRule([FormValidators::class, 'isPercentNoMax'],'Neplatná hodnota!');
 		$form->addCheckbox('unavailable', 'Neprodejné');
 
 		/** @var \Eshop\DB\Category $printerCategory */
@@ -169,6 +170,8 @@ class ProductForm extends Control
 			->setNullable()
 			->addCondition($form::FILLED)
 			->addRule([FormValidators::class, 'isMultipleProductsExists'], 'Chybný formát nebo nebyl nalezen některý ze zadaných produktů!', [$productRepository]);
+		$form->addText('alternative', 'Alternativa k produktu')
+			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$productRepository]);
 
 		$prices = $form->addContainer('prices');
 
@@ -251,12 +254,12 @@ class ProductForm extends Control
 
 		if (!$values['uuid']) {
 			$values['uuid'] = ProductRepository::generateUuid($values['ean'], $values['subCode'] ? $values['code'] . '.' . $values['subCode'] : $values['code'], null);
+		}else{
+			$this->product->upsells->unrelateAll();
 		}
 
 		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
 		$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
-
-		$this->product->upsells->unrelateAll();
 
 		if ($values['upsells']) {
 			$upsells = [];
@@ -266,6 +269,8 @@ class ProductForm extends Control
 
 			$this->product->upsells->relate($upsells);
 		}
+
+		$values['alternative'] = $values['alternative'] ? $this->productRepository->getProductByCodeOrEAN($values['alternative']) : null;
 
 		$product = $this->productRepository->syncOne($values, null, true);
 

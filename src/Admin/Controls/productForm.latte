@@ -188,8 +188,18 @@
 
 				<td class="align-middle" >
 					{input upsells  class => 'form-control form-control-sm col-label'}
-					<span id="data-info" class="text-gray text-sm">Zadejte EAN nebo kódy oddělené středníky. Např.: 10001;123456789</span>
+					<span id="data-info" class="text-gray text-sm">Zadejte EAN nebo kódy oddělené středníky. Např.: 10001;123456789<br>V případě upsell položky a pokud neexistuje ceník, bude cena vypočítána procentuálně.</span>
 					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError upsells}</span>
+				</td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label alternative/}</th>
+
+				<td class="align-middle" >
+					{input alternative  class => 'form-control form-control-sm col-label'}
+					<span id="data-info" class="text-gray text-sm">Zadejte EAN nebo kód.<br>Produkt nebude zobrazen ve výpisu, ale pod mateřskou kartou.</span>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError alternative}</span>
 				</td>
 			</tr>
 

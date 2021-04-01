@@ -523,4 +523,35 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		return $product;
 	}
+
+	public function getUpsellsForProduct($product): array
+	{
+		/** @var \Eshop\DB\Product $product */
+		if (!$product = $this->getProducts()->where('this.uuid', $product instanceof Product ? $product->getPK() : $product)->first()) {
+			return [];
+		}
+
+		/** @var \Eshop\DB\Product[] $products */
+		$products = $this->getProducts()
+			->join(['upsell' => 'eshop_product_nxn_eshop_product'], 'this.uuid = upsell.fk_upsell')
+			->where('upsell.fk_root', $product->getPK())
+			->toArray();
+
+		$finalArray = [];
+
+		foreach ($product->upsells as $upsell) {
+			if (\array_key_exists($upsell->getPK(), $products) && $products[$upsell->getPK()]->getPriceVat()) {
+				$finalArray[$upsell->getPK()] = $products[$upsell->getPK()];
+			} else {
+				if ($product->dependedValue) {
+					$upsell->price = $product->getPrice() * ($product->dependedValue / 100);
+					$upsell->priceVat = $product->getPriceVat() * ($product->dependedValue / 100);
+					$finalArray[$upsell->getPK()] = $upsell;
+				}
+			}
+		}
+
+		return $finalArray;
+	}
+
 }
