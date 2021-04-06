@@ -184,6 +184,12 @@ class Product extends \StORM\Entity
 	public bool $unavailable = false;
 
 	/**
+	 * Set produktů
+	 * @column
+	 */
+	public bool $productsSet = false;
+
+	/**
 	 * Skryto
 	 * @column
 	 */

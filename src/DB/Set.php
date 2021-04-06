@@ -7,6 +7,7 @@ namespace Eshop\DB;
 /**
  * Set produktu
  * @table
+ * @index{"name":"uni","unique":true,"columns":["fk_set","fk_product"]}
  */
 class Set extends \StORM\Entity
 {

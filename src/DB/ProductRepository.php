@@ -22,12 +22,15 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	private ParameterRepository $parameterRepository;
 
-	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager, ParameterRepository $parameterRepository)
+	private SetRepository $setRepository;
+
+	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager, ParameterRepository $parameterRepository, SetRepository $setRepository)
 	{
 		parent::__construct($connection, $schemaManager);
 
 		$this->shopper = $shopper;
 		$this->parameterRepository = $parameterRepository;
+		$this->setRepository = $setRepository;
 	}
 
 	static public function generateUuid(?string $ean, ?string $fullCode)
@@ -524,34 +527,59 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $product;
 	}
 
-	public function getUpsellsForProduct($product): array
+	public function getUpsellsForProducts($products): array
 	{
-		/** @var \Eshop\DB\Product $product */
-		if (!$product = $this->getProducts()->where('this.uuid', $product instanceof Product ? $product->getPK() : $product)->first()) {
-			return [];
+		$upsells = [];
+
+		foreach ($products as $product) {
+			if ($product instanceof CartItem) {
+				$product = $product->product;
+			}
+
+			/** @var \Eshop\DB\Product $product */
+			if (!$product = $this->getProducts()->where('this.uuid', $product instanceof Product ? $product->getPK() : $product)->first()) {
+				continue;
+			}
+
+			/** @var \Eshop\DB\Product[] $products */
+			$products = $this->getProducts()
+				->join(['upsell' => 'eshop_product_nxn_eshop_product'], 'this.uuid = upsell.fk_upsell')
+				->where('upsell.fk_root', $product->getPK())
+				->toArray();
+
+			$finalArray = [];
+
+			foreach ($product->upsells as $upsell) {
+				if (\array_key_exists($upsell->getPK(), $products) && $products[$upsell->getPK()]->getPriceVat()) {
+					$finalArray[$upsell->getPK()] = $products[$upsell->getPK()];
+				} else {
+					if ($product->dependedValue) {
+						$upsell->price = $product->getPrice() * ($product->dependedValue / 100);
+						$upsell->priceVat = $product->getPriceVat() * ($product->dependedValue / 100);
+						$finalArray[$upsell->getPK()] = $upsell;
+					}
+				}
+			}
+
+			$upsells[$product->getPK()] = $finalArray;
 		}
 
-		/** @var \Eshop\DB\Product[] $products */
-		$products = $this->getProducts()
-			->join(['upsell' => 'eshop_product_nxn_eshop_product'], 'this.uuid = upsell.fk_upsell')
-			->where('upsell.fk_root', $product->getPK())
-			->toArray();
+		return $upsells;
+	}
 
-		$finalArray = [];
-
-		foreach ($product->upsells as $upsell) {
-			if (\array_key_exists($upsell->getPK(), $products) && $products[$upsell->getPK()]->getPriceVat()) {
-				$finalArray[$upsell->getPK()] = $products[$upsell->getPK()];
-			} else {
-				if ($product->dependedValue) {
-					$upsell->price = $product->getPrice() * ($product->dependedValue / 100);
-					$upsell->priceVat = $product->getPriceVat() * ($product->dependedValue / 100);
-					$finalArray[$upsell->getPK()] = $upsell;
-				}
+	/**
+	 * @param $set
+	 * @return \Eshop\DB\Set[]
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function getSetProducts($set): array
+	{
+		if (!$set instanceof Product) {
+			if (!$set = $this->one($set)) {
+				return [];
 			}
 		}
 
-		return $finalArray;
+		return $this->setRepository->many()->join(['product' => 'eshop_product'], 'product.uuid=this.fk_set')->orderBy(['priority'])->toArray();
 	}
-
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
+use Eshop\DB\ProductRepository;
 use Eshop\Shopper;
 use Eshop\DB\CartItem;
 use Eshop\DB\CartItemRepository;
@@ -24,12 +25,15 @@ class CartItemList extends Datalist
 	private CartItemRepository $cartItemsRepository;
 	
 	private Shopper $shopper;
+
+	private ProductRepository $productRepository;
 	
-	public function __construct(CartItemRepository $cartItemsRepository, CheckoutManager $checkoutManager, Shopper $shopper)
+	public function __construct(CartItemRepository $cartItemsRepository, CheckoutManager $checkoutManager, Shopper $shopper, ProductRepository $productRepository)
 	{
 		$this->checkoutManager = $checkoutManager;
 		$this->cartItemsRepository = $cartItemsRepository;
 		$this->shopper = $shopper;
+		$this->productRepository = $productRepository;
 		
 		parent::__construct($this->checkoutManager->getItems());
 	}
@@ -100,6 +104,7 @@ class CartItemList extends Datalist
 		$this->template->discountCoupon = $this->checkoutManager->getDiscountCoupon();
 		$this->template->discountPrice = $this->checkoutManager->getDiscountPrice();
 		$this->template->discountPriceVat = $this->checkoutManager->getDiscountPriceVat();
+		$this->template->upsells = $this->productRepository->getUpsellsForProducts($this->getItemsOnPage());
 		
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/cartItemList.latte');
 	}
