@@ -91,6 +91,20 @@ class CartItemList extends Datalist
 			return $form;
 		});
 	}
+
+	public function handleChangeAmount($cartItem, $amount){
+		/** @var \Eshop\DB\CartItem $cartItem */
+		$cartItem = $this->cartItemsRepository->one($cartItem, true);
+
+		$amount = \intval($amount);
+
+		if ($amount <= 0) {
+			$amount = 1;
+		}
+
+		$this->checkoutManager->changeItemAmount($cartItem->getProduct(), $cartItem->variant, $amount, false);
+	}
+
 	
 	public function validateNumber(IControl $control, int $number): bool
 	{
