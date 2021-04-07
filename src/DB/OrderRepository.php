@@ -141,18 +141,12 @@ class OrderRepository extends \StORM\Repository
 			$order = $this->one($order);
 			
 			$purchase = $order->purchase;
-			
-			$payment = $order->getPayment();
-			
-			/** @var \Eshop\DB\Delivery $delivery */
-			$delivery = $deliveryRepository->many()
-				->where('fk_order', $order->getPK())
-				->where('zasilkovnaId IS NOT NULL')
-				->first();
-			
-			if (!$delivery) {
+
+			if(!$purchase->zasilkovnaId){
 				continue;
 			}
+
+			$payment = $order->getPayment();
 			
 			$writer->insertOne([
 				'',
@@ -166,7 +160,7 @@ class OrderRepository extends \StORM\Repository
 				$this->shopper->getCurrency(),
 				$order->getTotalPriceVat(),
 				'',
-				$delivery->zasilkovnaId,
+				$purchase->zasilkovnaId,
 				$this->shopper->getProjectUrl()
 			]);
 		}

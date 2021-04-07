@@ -104,7 +104,6 @@ class CartItemList extends Datalist
 
 		$this->checkoutManager->changeItemAmount($cartItem->getProduct(), $cartItem->variant, $amount, false);
 	}
-
 	
 	public function validateNumber(IControl $control, int $number): bool
 	{
