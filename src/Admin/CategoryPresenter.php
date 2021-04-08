@@ -74,7 +74,7 @@ class CategoryPresenter extends BackendPresenter
 				return !$object->isSystemic();
 			}
 
-			return true;
+			return false;
 		});
 
 		$grid->addButtonBulkEdit('categoryNewForm', ['ancestor', 'exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
