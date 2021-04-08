@@ -182,7 +182,7 @@ class ProductForm extends Control
 		}
 
 		$form->addDataMultiSelect('taxes', 'Poplatky a daně', $taxRepository->getArrayForSelect());
-		$form->addText('upsells', 'Upsell')
+		$form->addText('upsells', 'Upsell pro produkty')
 			->setNullable()
 			->addCondition($form::FILLED)
 			->addRule([FormValidators::class, 'isMultipleProductsExists'], 'Chybný formát nebo nebyl nalezen některý ze zadaných produktů!', [$productRepository]);
@@ -423,7 +423,9 @@ class ProductForm extends Control
 	{
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->pricelistRepository->getDefaultPricelists();
-		$this->template->supplierProducts = $this->getPresenter()->getParameter('product') ? $this->supplierProductRepository->many()->where('fk_product', $this->getPresenter()->getParameter('product'))->toArray() : [];
+		$this->template->supplierProducts = [];
+		// docasne vypnuto
+		// $this->template->supplierProducts = $this->getPresenter()->getParameter('product') ? $this->supplierProductRepository->many()->where('fk_product', $this->getPresenter()->getParameter('product'))->toArray() : [];
 		$this->template->render(__DIR__ . '/productForm.latte');
 	}
 }

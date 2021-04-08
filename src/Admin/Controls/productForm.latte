@@ -188,7 +188,7 @@
 
 				<td class="align-middle" >
 					{input upsells  class => 'form-control form-control-sm col-label'}
-					<span id="data-info" class="text-gray text-sm">Zadejte EAN nebo kódy oddělené středníky. Např.: 10001;123456789<br>Pokud neexistuje cena pro upsell položku, bude její cena vypočítána procentuálně na základě závislé ceny z ceny tohoto produktu.</span>
+					<span id="data-info" class="text-gray text-sm">Zadejte EAN nebo kódy oddělené středníky. Např.: 10001;123456789</span>
 					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError upsells}</span>
 				</td>
 			</tr>
@@ -198,7 +198,7 @@
 
 				<td class="align-middle" >
 					{input alternative  class => 'form-control form-control-sm col-label'}
-					<span id="data-info" class="text-gray text-sm">Zadejte EAN nebo kód.<br>Produkt nebude zobrazen ve výpisu, ale pod mateřskou kartou.</span>
+					<span id="data-info" class="text-gray text-sm">Zadejte EAN nebo kód. Produkt nebude zobrazen ve výpisu, ale pod mateřskou kartou.</span>
 					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError alternative}</span>
 				</td>
 			</tr>
@@ -220,7 +220,7 @@
                 <th class="col-label col-form-label col">Položky setu</th>
 
                 <td class="align-middle">
-						<table>
+						<table style="width: auto;">
 							<thead>
 								<tr>
 									<th></th>
@@ -294,7 +294,7 @@
 	<fieldset>
 		<legend>Ceny</legend>
 
-		<table class="mt-1 mb-1">
+		<table class="mt-1 mb-1" style="width: auto;">
 			<tr class="m-0 mt-1 has-danger">
 				<th class="col-label col-form-label col">{label discountLevelPct/}</th>
 
