@@ -225,7 +225,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		foreach ($elements as $element) {
 			if ($element->getValue('ancestor') === $ancestorId) {
-				$list[$element->getPK()] = \str_repeat('- ', \strlen($element->path) / 4) . $element->name;
+				$list[$element->getPK()] = \str_repeat('--', (\strlen($element->path) / 4) - 1) . " $element->name";
 
 				if ($children = $this->buildTreeArrayForSelect($elements, $element->getPK(), $list)) {
 					$element->children = $children;
