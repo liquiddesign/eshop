@@ -470,6 +470,11 @@ class ProductPresenter extends BackendPresenter
 	{
 		$dir = File::FILE_DIR;
 		$rootDir = $this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
+
+		if (!$file->fileName) {
+			return;
+		}
+
 		FileSystem::delete($rootDir . \DIRECTORY_SEPARATOR . $file->fileName);
 	}
 
@@ -477,6 +482,10 @@ class ProductPresenter extends BackendPresenter
 	{
 		$subDirs = ['origin', 'detail', 'thumb'];
 		$dir = Photo::IMAGE_DIR;
+
+		if (!$photo->fileName) {
+			return;
+		}
 
 		foreach ($subDirs as $subDir) {
 			$rootDir = $this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;

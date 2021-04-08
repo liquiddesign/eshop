@@ -42,7 +42,6 @@ class ProductGridFactory
 	private Container $container;
 
 
-
 	public function __construct(
 		\Admin\Controls\AdminGridFactory $gridFactory,
 		Container $container,
@@ -168,6 +167,10 @@ class ProductGridFactory
 	{
 		if ($page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product])) {
 			$page->delete();
+		}
+
+		if (!$product->imageFileName) {
+			return;
 		}
 
 		$subDirs = ['origin', 'detail', 'thumb'];
