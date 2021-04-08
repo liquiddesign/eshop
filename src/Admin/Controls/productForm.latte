@@ -295,6 +295,15 @@
 		<legend>Ceny</legend>
 
 		<table class="mt-1 mb-1" style="width: auto;">
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label vatRate/}</th>
+
+				<td class="align-middle">{input vatRate class=>'form-control form-control-sm '}
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError vatRate}</span></td>
+				<td colspan="2"></td>
+
+			</tr>
 			<tr class="m-0 mt-1 has-danger">
 				<th class="col-label col-form-label col">{label discountLevelPct/}</th>
 
@@ -302,11 +311,13 @@
 					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError discountLevelPct}</span></td>
 			</tr>
 			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label vatRate/}</th>
+				<th class="col-label col-form-label col">{label dependedValue}</th>
 
-				<td colspan="3" class="align-middle">{input vatRate class=>'form-control form-control-sm '}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError vatRate}</span></td>
-
+				<td colspan="3" class="align-middle">
+					{input dependedValue class => 'form-control form-control-sm max-number col-label'}
+					<span id="data-info" class="text-gray text-sm">Pokud neexistuje cena pro upsell položku, bude její cena vypočítána procentuálně z ceny tohoto produktu</span>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError dependedValue}</span>
+				</td>
 			</tr>
 		<tr class="m-0 mt-1 has-danger" n:if="$pricelists">
 			<th></th>
@@ -397,15 +408,6 @@
 				</td>
 			</tr>
 
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label dependedValue}</th>
-
-				<td class="align-middle">
-					{input dependedValue class => 'form-control form-control-sm max-number col-label'}
-					<span id="data-info" class="text-gray text-sm">Pokud neexistuje cena pro upsell položku, bude její cena vypočítána procentuálně z ceny tohoto produktu.</span>
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError dependedValue}</span>
-				</td>
-			</tr>
 
 			{$renderer->renderPair($form['unavailable'])|noescape}
 		</table>
