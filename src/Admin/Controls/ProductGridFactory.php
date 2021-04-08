@@ -13,6 +13,7 @@ use Eshop\DB\SupplierRepository;
 use Eshop\DB\TagRepository;
 use Grid\Datalist;
 use Nette\Http\Session;
+use StORM\Expression;
 use Web\DB\PageRepository;
 use Grid\Datagrid;
 use Nette\DI\Container;
@@ -97,9 +98,9 @@ class ProductGridFactory
 		$grid->addButtonDeleteSelected([$this, 'onDelete']);
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
-
-		$grid->addButtonBulkEdit('productForm', ['vatRate', 'taxes'], 'productGrid');
-
+		
+		$grid->addButtonBulkEdit('productForm', ['producer', 'categories', 'tags', 'vatRate', 'taxes'], 'productGrid');
+		
 		/*$submit = $grid->getForm()->addSubmit('completeMultiple2');
 		$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')
 			->setHtml('<i class="far fa-arrow-alt-circle-down"></i> Import produktů');
@@ -143,10 +144,16 @@ class ProductGridFactory
 			}, '', 'producers', null, $producers, ['placeholder' => '- Výrobci -']);
 
 		}
-
+		
 		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$source->where('supplierProducts.fk_supplier', $value);
+				$expression = new Expression();
+				
+				foreach ($value as $supplier) {
+					$expression->add('OR', 'supplierProducts.fk_supplier=%1$s OR fk_supplierSource=%1$s', [$supplier]);
+				}
+				
+				$source->where($expression->getSql(), $expression->getVars());
 			}, '', 'suppliers', null, $suppliers, ['placeholder' => '- Dodavatelé -']);
 		}
 
