@@ -70,7 +70,11 @@ class CategoryPresenter extends BackendPresenter
 
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected(null, false, function ($object) {
-			return !$object->isSystemic();
+			if($object){
+				return !$object->isSystemic();
+			}
+
+			return true;
 		});
 
 		$grid->addButtonBulkEdit('categoryNewForm', ['ancestor', 'exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
