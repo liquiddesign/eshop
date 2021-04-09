@@ -21,14 +21,12 @@ class CartList extends \Grid\Datalist
 	{
 		parent::__construct($carts);
 
-		$this->setDefaultOnPage(20);
-		$this->setDefaultOrder('id');
-
-		$this->addFilterExpression('id', function (ICollection $collection, $value): void {
-			$collection->where('id LIKE :query', ['query' => '%' . $value . '%']);
+		$this->addFilterExpression('customer', function (ICollection $collection, $value): void {
+			$collection->join(['customerTable' => 'eshop_customer'],'this.fk_customer = customerTable.uuid');
+			$collection->where('customerTable.fullname LIKE :query OR customerTable.email LIKE :query', ['query' => '%' . $value . '%']);
 		}, '');
 
-		$this->getFilterForm()->addText('id');
+		$this->getFilterForm()->addText('customer');
 		$this->getFilterForm()->addSubmit('submit');
 
 		$this->shopper = $shopper;
