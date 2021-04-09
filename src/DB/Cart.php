@@ -23,6 +23,12 @@ class Cart extends \StORM\Entity
 	 * @column
 	 */
 	public bool $active;
+
+	/**
+	 * Schválený košík
+	 * @column{"type":"enum","length":"'waiting','no','yes'"}
+	 */
+	public string $approved = 'waiting';
 	
 	/**
 	 * Vytvořen

@@ -63,7 +63,7 @@ class OrderGridFactory
 	{
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
-		$grid = $this->gridFactory->create($this->getCollectionByState($state), 20, 'createdTs', 'DESC', true);
+		$grid = $this->gridFactory->create($this->getCollectionByState($state), 20, 'this.createdTs', 'DESC', true);
 
 		$grid->addColumnSelector();
 		$grid->addColumnText('Číslo a datum', ['code', "createdTs|date:'d.m.Y G:i"], '%s<br><small>%s</small>', 'this.code', ['class' => 'fit']);
@@ -79,6 +79,8 @@ class OrderGridFactory
 		$grid->addColumnText('Cena', $properties, '%s<br><small>%s s DPH</small>', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
 		if ($state !== 'finished') {
+			$grid->addColumn('Schváleno', [$this, 'renderApprovalColumn'], '%s', null, ['class' => 'minimal']);
+
 			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Zpracovat'><i class='fa fa-sm fa-check'></i></a>";
 			$grid->addColumnAction('', $actionIco, [$this, 'completeOrder'], [], null, ['class' => 'minimal']);
 		}
@@ -110,11 +112,11 @@ class OrderGridFactory
 		$grid->addFilterButtons(['default']);
 
 		$grid->addFilterDatetime(function (ICollection $source, $value) {
-			$source->where('createdTs >= :created_from', ['created_from' => $value]);
+			$source->where('this.createdTs >= :created_from', ['created_from' => $value]);
 		}, '', 'date_from', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
 
 		$grid->addFilterDatetime(function (ICollection $source, $value) {
-			$source->where('createdTs <= :created_to', ['created_to' => $value]);
+			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
 		}, '', 'created_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
 
 
@@ -185,6 +187,13 @@ class OrderGridFactory
 		$date = $delivery->shippingDate ? '<i style=\'color: gray;\' class=\'fa fa-shipping-fast\'></i> ' . $grid->template->getLatte()->invokeFilter('date', [$delivery->shippingDate]) : '';
 
 		return "<a href='$link'>" . $delivery->getTypeName() . "</a> <small> $date</small>" . $deliveryInfo;
+	}
+
+	public function renderApprovalColumn(Order $order, Datagrid $grid)
+	{
+		$approved = $this->orderRepository->isOrderApproved($order);
+
+		return $approved === true ? 'Ano' : ($approved === false ? 'Ne' : 'Čeká');
 	}
 
 	public function renderCustomerColumn(Order $order, Datagrid $grid)
@@ -278,7 +287,7 @@ class OrderGridFactory
 
 		$this->mailer->send($mail);
 
-		if($redirectAfter){
+		if ($redirectAfter) {
 			$grid->getPresenter()->flashMessage('Provedeno', 'success');
 			$grid->getPresenter()->redirect('this');
 		}

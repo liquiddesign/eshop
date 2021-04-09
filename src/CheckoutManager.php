@@ -861,7 +861,10 @@ class CheckoutManager
 	{
 		$purchase = $purchase ?: $this->getPurchase();
 		$customer = $this->shopper->getCustomer();
-		$currency = $this->getCart()->currency;
+		$cart = $this->getCart();
+		$currency = $cart->currency;
+
+		$cart->update(['approved' => $customer->orderPermission == 'full' ? 'yes' : 'waiting']);
 
 		// createAccount
 		if ($purchase->createAccount && !$customer) {

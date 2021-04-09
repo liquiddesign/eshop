@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Common\DB\IGeneralRepository;
 use League\Csv\Writer;
 use Security\DB\IUserRepository;
 use Security\DB\UserRepositoryTrait;
@@ -13,7 +14,7 @@ use StORM\ICollection;
 /**
  * @extends \StORM\Repository<\Eshop\DB\Customer>
  */
-class CustomerRepository extends \StORM\Repository implements IUserRepository
+class CustomerRepository extends \StORM\Repository implements IUserRepository, IGeneralRepository
 {
 	use UserRepositoryTrait;
 
@@ -53,9 +54,12 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository
 		}
 	}
 
+	/**
+	 * @deprecated use getArrayForSelect()
+	 */
 	public function getListForSelect(): array
 	{
-		return $this->many()->toArrayOf('%s', ['fullname']);
+		return $this->getArrayForSelect();
 	}
 	
 	public function getEmailVariables(Customer $customer)
@@ -63,5 +67,17 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository
 		return [
 			'login' => $customer->email,
 		];
+	}
+
+	public function getArrayForSelect(bool $includeHidden = true): array
+	{
+		return $this->getCollection($includeHidden)->toArrayOf('fullname');
+	}
+
+	public function getCollection(bool $includeHidden = false): Collection
+	{
+		$collection = $this->many();
+
+		return $collection->orderBy(['fullname']);
 	}
 }

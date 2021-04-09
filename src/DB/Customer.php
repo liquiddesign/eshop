@@ -190,6 +190,12 @@ class Customer extends Entity implements IIdentity, IUser
 	 * @column{"type":"enum","length":"'none','catalog','price','full'"}
 	 */
 	public string $catalogPermission = 'full';
+
+	/**
+	 * Oprávnění: objednávky
+	 * @column{"type":"enum","length":"'fullWithApproval','full'"}
+	 */
+	public string $orderPermission = 'full';
 	
 	/**
 	 * Oprávnění: filiálka

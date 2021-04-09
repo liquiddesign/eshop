@@ -206,13 +206,25 @@ class CustomerPresenter extends BackendPresenter
 
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->many()->toArrayOf('name'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
-		$form->addDataSelect('merchant', 'Obchodník', $this->merchantRepository->getListForSelect())->setPrompt('Žádná');
+
+		$customersForSelect = $this->customerRepository->getArrayForSelect();
+
+		if($customer = $this->getParameter('customer')){
+			unset($customersForSelect[$customer->getPK()]);
+		}
+
+		$form->addDataSelect('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->setPrompt('Žádná');
+		$form->addDataSelect('merchant', 'Obchodník', $this->merchantRepository->getArrayForSelect())->setPrompt('Žádná');
 		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getRegisteredGroupsArray())->setPrompt('Žádná');
 		$form->addGroup('Nákup a preference');
 		$form->addSelect('catalogPermission', 'Oprávnění: katalog', [
 			'none' => 'Žádné',
 			'catalog' => 'Katalogy',
 			'price' => 'Ceny',
+			'full' => 'Plné',
+		]);
+		$form->addSelect('orderPermission', 'Oprávnění: objednávky', [
+			'fullWithApproval' => 'Pouze se schválením',
 			'full' => 'Plné',
 		]);
 		$form->addDataSelect('preferredCurrency', 'Preferovaná měna nákupu', $this->currencyRepo->getArrayForSelect())->setPrompt('Žádný');
