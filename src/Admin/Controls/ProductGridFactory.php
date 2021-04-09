@@ -129,7 +129,7 @@ class ProductGridFactory
 
 	private function addFilters(Datagrid $grid)
 	{
-		$grid->addFilterTextInput('code', ['code', 'ean'], null, 'EAN, kód', '', '%s%%');
+		$grid->addFilterTextInput('code', ['this.code', 'this.ean'], null, 'EAN, kód', '', '%s%%');
 		$grid->addFilterTextInput('search', ['this.name_cs'], null, 'Název');
 
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
