@@ -171,7 +171,7 @@ class PickupPointPresenter extends BackendPresenter
 
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected(null, false, function ($object) {
-			return $object->isSystemic();
+			return !$object->isSystemic();
 		});
 
 		$grid->addFilterTextInput('search', ['name_cs'], null, 'Název');

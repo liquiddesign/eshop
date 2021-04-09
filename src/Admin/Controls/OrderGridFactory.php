@@ -29,9 +29,9 @@ class OrderGridFactory
 	private Mailer $mailer;
 
 	private Translator $translator;
-	
+
 	private Application $application;
-	
+
 	public function __construct(\Admin\Controls\AdminGridFactory $adminGridFactory, OrderRepository $orderRepository, Application $application, TemplateRepository $templateRepository, Mailer $mailer, Translator $translator)
 	{
 		$this->orderRepository = $orderRepository;
@@ -76,7 +76,7 @@ class OrderGridFactory
 		$grid->addColumn('Platba', [$this, 'renderPaymentColumn']);
 
 		$properties = ["getTotalPrice|price:currency.code", 'getTotalPriceVat|price:currency.code'];
-		$grid->addColumnText('Cena', $properties, '%s<br><small>%s s DPH</small>',null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		$grid->addColumnText('Cena', $properties, '%s<br><small>%s s DPH</small>', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
 		if ($state !== 'finished') {
 			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Zpracovat'><i class='fa fa-sm fa-check'></i></a>";
@@ -91,17 +91,17 @@ class OrderGridFactory
 		$grid->addColumnLink('orderEmail', '<i class="far fa-envelope"></i>', null, ['class' => 'minimal']);
 
 		$downloadIco = "<a href='%s' class='$btnSecondary' title='Stáhnout'><i class='fa fa-sm fa-download'></i></a>";
-		$grid->addColumnAction('EDI', $downloadIco,  [$this, 'downloadEdi'], [], null, ['class' => 'minimal']);
-		$grid->addColumnAction('CSV', $downloadIco,  [$this, 'downloadCsv'], [], null, ['class' => 'minimal']);
+		$grid->addColumnAction('EDI', $downloadIco, [$this, 'downloadEdi'], [], null, ['class' => 'minimal']);
+		$grid->addColumnAction('CSV', $downloadIco, [$this, 'downloadCsv'], [], null, ['class' => 'minimal']);
 
-		$grid->addColumnLink('orderItems','Položky', null, ['class' => 'minimal']);
+		$grid->addColumnLink('orderItems', 'Položky', null, ['class' => 'minimal']);
 
-		$grid->addColumn('',  function (Order $order) use ($grid) {
+		$grid->addColumn('', function (Order $order) use ($grid) {
 			return $grid->getPresenter()->link(':Eshop:Order:order', $order->getPK());
 		}, "<a class='$btnSecondary' href='%s' target='_blank'><i class='fa fa-print'></i> Detail</a>", null, ['class' => 'minimal']);
 
 
-		$grid->addColumnLink('detail','<i class="fa fa-edit"></i>', null, ['class' => 'minimal']);
+		$grid->addColumnLink('detail', '<i class="fa fa-edit"></i>', null, ['class' => 'minimal']);
 
 		// filters
 		$grid->addFilterTextInput('search_order', ['this.code'], null, 'Č. objednávky');
@@ -147,9 +147,9 @@ class OrderGridFactory
 			return '<a href="' . $link . '" class="btn btn-sm btn-outline-primary"><i class="fa fa-sm fa-plus m-1"></i>Zvolte platbu</a>';
 		}
 
-		$linkPay = $grid->getPresenter()->link('changePayment!', ['payment' => (string) $payment, 'paid' => true]);
-		$linkPayPlusEmail = $grid->getPresenter()->link('changePayment!', ['payment' => (string) $payment, 'paid' => true, 'email' => true]);
-		$linkCancel = $grid->getPresenter()->link('changePayment!', ['payment' => (string) $payment, 'paid' => false]);
+		$linkPay = $grid->getPresenter()->link('changePayment!', ['payment' => (string)$payment, 'paid' => true]);
+		$linkPayPlusEmail = $grid->getPresenter()->link('changePayment!', ['payment' => (string)$payment, 'paid' => true, 'email' => true]);
+		$linkCancel = $grid->getPresenter()->link('changePayment!', ['payment' => (string)$payment, 'paid' => false]);
 
 		if ($payment->paidTs) {
 			$date = $grid->template->getLatte()->invokeFilter('date', [$payment->paidTs]);
@@ -158,7 +158,7 @@ class OrderGridFactory
 			$paymentInfo = "<br><small title='Nezaplaceno'><i class='fas fa-stop fa-xs' style='color: gray'></i> <a href='$linkPay'>Zaplatit</a> | <a href='$linkPayPlusEmail'>Zaplatit + email</a></small>";
 		}
 
-		return "<a href='$link'>".$payment->getTypeName()."</a>" . $paymentInfo;
+		return "<a href='$link'>" . $payment->getTypeName() . "</a>" . $paymentInfo;
 	}
 
 	public function renderDeliveryColumn(Order $order, Datagrid $grid)
@@ -169,12 +169,12 @@ class OrderGridFactory
 			return '<a href="' . $link . '" class="btn btn-sm btn-outline-primary"><i class="fa fa-sm fa-plus m-1"></i>Zvolte dopravu</a>';
 		}
 
-		$linkShip = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string) $delivery, 'shipped' => true, 'email' => false]);
-		$linkShipPlusEmail = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string) $delivery, 'shipped' => true, 'email' => true]);
-		$linkCancel = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string) $delivery, 'shipped' => false]);
+		$linkShip = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string)$delivery, 'shipped' => true, 'email' => false]);
+		$linkShipPlusEmail = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string)$delivery, 'shipped' => true, 'email' => true]);
+		$linkCancel = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string)$delivery, 'shipped' => false]);
 
 		if ($delivery->shippedTs) {
-			$from  = $order->deliveries->clear(true)->where('shippedTs IS NOT NULL')->enum();
+			$from = $order->deliveries->clear(true)->where('shippedTs IS NOT NULL')->enum();
 			$to = $order->deliveries->clear(true)->enum();
 			$date = $grid->template->getLatte()->invokeFilter('date', [$delivery->shippedTs]);
 			$deliveryInfo = "<br><small title='Expedováno'><i class='fas fa-play fa-xs' style='color: gray;'></i> $from / $to | $date <a href='$linkCancel'><i class='far fa-times-circle'></i></a></small>";
@@ -184,7 +184,7 @@ class OrderGridFactory
 
 		$date = $delivery->shippingDate ? '<i style=\'color: gray;\' class=\'fa fa-shipping-fast\'></i> ' . $grid->template->getLatte()->invokeFilter('date', [$delivery->shippingDate]) : '';
 
-		return "<a href='$link'>".$delivery->getTypeName()."</a> <small> $date</small>" . $deliveryInfo;
+		return "<a href='$link'>" . $delivery->getTypeName() . "</a> <small> $date</small>" . $deliveryInfo;
 	}
 
 	public function renderCustomerColumn(Order $order, Datagrid $grid)
@@ -198,7 +198,7 @@ class OrderGridFactory
 			return "<a href='$link' style='white-space: nowrap;'>$fullName</a><br><small>$address</small>";
 		}
 
-		return $order->purchase->fullname ? "<span style='white-space: nowrap;'>".$order->purchase->fullname."</span><br><small>$address</small>" : '';
+		return $order->purchase->fullname ? "<span style='white-space: nowrap;'>" . $order->purchase->fullname . "</span><br><small>$address</small>" : '';
 	}
 
 	public function cancelOrderMultiple(Button $button)
@@ -252,36 +252,36 @@ class OrderGridFactory
 		$grid = $button->lookup(Datagrid::class);
 
 		foreach ($grid->getSelectedIds() as $id) {
-			$grid->getSource()->where($grid->getSourceIdName(), $id)->update(['completedTs' => new DateTime()]);
-
-			/** @var \Eshop\DB\Order $order */
-			$order = $this->orderRepository->one($id, true);
-
-			$mail = $this->templateRepository->createMessage('order.changed', [
-				'orderCode' => $order->code,
-				'orderState' => $this->translator->translate('order.statusCompleted','vyřízena')
-			], $order->purchase->email);
-
-			$this->mailer->send($mail);
+			$this->completeOrder($grid->getSource()->where($grid->getSourceIdName(), $id)->first(), $grid, false);
 		}
 
 		$grid->getPresenter()->flashMessage('Provedeno', 'success');
 		$grid->getPresenter()->redirect('this');
 	}
 
-	public function completeOrder(Order $object, Datagrid $grid)
+	public function completeOrder(Order $object, Datagrid $grid, bool $redirectAfter = true)
 	{
 		$object->update(['completedTs' => (string)new DateTime()]);
 
+		foreach ($object->purchase->getItems() as $item) {
+			if (!$item->product) {
+				continue;
+			}
+
+			$item->product->update(['buyCount' => $item->product->buyCount + $item->amount]);
+		}
+
 		$mail = $this->templateRepository->createMessage('order.changed', [
 			'orderCode' => $object->code,
-			'orderState' => $this->translator->translate('order.statusCompleted','vyřízena')
+			'orderState' => $this->translator->translate('order.statusCompleted', 'vyřízena')
 		], $object->purchase->email);
 
 		$this->mailer->send($mail);
 
-		$grid->getPresenter()->flashMessage('Provedeno', 'success');
-		$grid->getPresenter()->redirect('this');
+		if($redirectAfter){
+			$grid->getPresenter()->flashMessage('Provedeno', 'success');
+			$grid->getPresenter()->redirect('this');
+		}
 	}
 
 	public function downloadEdi(Order $object, Datagrid $grid)

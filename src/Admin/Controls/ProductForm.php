@@ -17,11 +17,13 @@ use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\RelatedRepository;
 use Eshop\DB\RibbonRepository;
+use Eshop\DB\SetRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\TagRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\VatRateRepository;
+use Eshop\FormValidators;
 use Nette\Utils\Arrays;
 use Web\DB\PageRepository;
 use Forms\Form;
@@ -51,6 +53,10 @@ class ProductForm extends Control
 
 	private RelatedRepository $relatedRepository;
 
+	private AdminFormFactory $adminFormFactory;
+
+	private SetRepository $setRepository;
+
 	private ?Product $product;
 
 	public function __construct(
@@ -72,11 +78,22 @@ class ProductForm extends Control
 		DisplayDeliveryRepository $displayDeliveryRepository,
 		TaxRepository $taxRepository,
 		RelatedRepository $relatedRepository,
+		SetRepository $setRepository,
 		$product = null
 	)
 	{
-		$product = $productRepository->get($product);
-		$this->product = $product;
+		$this->product = $product = $productRepository->get($product);
+		$this->productRepository = $productRepository;
+		$this->container = $container;
+		$this->pricelistRepository = $pricelistRepository;
+		$this->priceRepository = $priceRepository;
+		$this->supplierRepository = $supplierRepository;
+		$this->supplierProductRepository = $supplierProductRepository;
+		$this->pageRepository = $pageRepository;
+		$this->taxRepository = $taxRepository;
+		$this->relatedRepository = $relatedRepository;
+		$this->adminFormFactory = $adminFormFactory;
+		$this->setRepository = $setRepository;
 
 		$form = $adminFormFactory->create();
 
@@ -123,6 +140,8 @@ class ProductForm extends Control
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('recommended', 'Doporučeno');
+		$form->addCheckbox('productsSet', 'Set produktů');
+
 		$form->addGroup('Nákup');
 		$form->addText('unit', 'Prodejní jednotka')
 			->setHtmlAttribute('data-info', 'Např.: ks, ml, ...');
@@ -137,6 +156,11 @@ class ProductForm extends Control
 		$form->addIntegerNullable('roundingPackagePct', 'Zokrouhlení balení (%)');
 		$form->addIntegerNullable('roundingCartonPct', 'Zokrouhlení karton (%)');
 		$form->addIntegerNullable('roundingPalletPct', 'Zokrouhlení paletu (%)');
+		$form->addText('dependedValue', 'Závislá cena (%)')
+			->setNullable()
+			->addCondition($form::FILLED)
+			->addRule($form::FLOAT)
+			->addRule([FormValidators::class, 'isPercentNoMax'], 'Neplatná hodnota!');
 		$form->addCheckbox('unavailable', 'Neprodejné');
 
 		/** @var \Eshop\DB\Category $printerCategory */
@@ -158,6 +182,12 @@ class ProductForm extends Control
 		}
 
 		$form->addDataMultiSelect('taxes', 'Poplatky a daně', $taxRepository->getArrayForSelect());
+		$form->addText('upsells', 'Upsell pro produkty')
+			->setNullable()
+			->addCondition($form::FILLED)
+			->addRule([FormValidators::class, 'isMultipleProductsExists'], 'Chybný formát nebo nebyl nalezen některý ze zadaných produktů!', [$productRepository]);
+		$form->addText('alternative', 'Alternativa k produktu')
+			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$productRepository]);
 
 		$prices = $form->addContainer('prices');
 
@@ -171,26 +201,52 @@ class ProductForm extends Control
 
 		$form->addPageContainer('product_detail', ['product' => null], $nameInput);
 
+		$setItems = $this->product ? $this->productRepository->getSetProducts($this->product) : [];
+
+		$setItemsContainer = $form->addContainer('setItems');
+
+		if (\count($setItems) > 0) {
+			foreach ($setItems as $item) {
+				$itemContainer = $setItemsContainer->addContainer($item->getPK());
+				$itemContainer->addText('product')
+					->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$this->productRepository])
+					->setRequired()
+					->setDefaultValue($item->product->getFullCode());
+				$itemContainer->addInteger('priority')->setRequired()->setDefaultValue($item->priority);
+				$itemContainer->addInteger('amount')->setRequired()->setDefaultValue($item->amount);
+				$itemContainer->addText('discountPct')->setRequired()->setDefaultValue($item->discountPct)
+					->addRule($form::FLOAT)
+					->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
+			}
+		}
+
+		$itemContainer = $setItemsContainer->addContainer('new');
+		$itemContainer->addText('product')
+			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$this->productRepository]);
+		$itemContainer->addText('priority')->setDefaultValue(1)->addConditionOn($itemContainer['product'], $form::FILLED)->addRule($form::INTEGER)->setRequired();
+		$itemContainer->addText('amount')->addConditionOn($itemContainer['product'], $form::FILLED)->addRule($form::INTEGER)->setRequired();
+		$itemContainer->addText('discountPct')->setDefaultValue(0)
+			->addConditionOn($itemContainer['product'], $form::FILLED)
+			->setRequired()
+			->addRule($form::FLOAT)
+			->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
+
+
 		$form->addSubmits(!$product);
+		$form->addSubmit('submitSet');
 
 		$form->onValidate[] = [$this, 'validate'];
 		$form->onSuccess[] = [$this, 'submit'];
 
 		$this->addComponent($form, 'form');
-
-		$this->productRepository = $productRepository;
-		$this->container = $container;
-		$this->pricelistRepository = $pricelistRepository;
-		$this->priceRepository = $priceRepository;
-		$this->supplierRepository = $supplierRepository;
-		$this->supplierProductRepository = $supplierProductRepository;
-		$this->pageRepository = $pageRepository;
-		$this->taxRepository = $taxRepository;
-		$this->relatedRepository = $relatedRepository;
 	}
 
 	public function validate(AdminForm $form)
 	{
+		if (!$form->isValid()) {
+			return;
+		}
+
 		$values = $form->getValues('array');
 
 		if ($values['ean']) {
@@ -228,6 +284,12 @@ class ProductForm extends Control
 		}
 	}
 
+	public function handleDeleteSetItem($uuid)
+	{
+		$this->setRepository->many()->where('uuid', $uuid)->delete();
+		$this->redirect('this');
+	}
+
 	public function submit(AdminForm $form)
 	{
 		$values = $form->getValues('array');
@@ -236,12 +298,49 @@ class ProductForm extends Control
 
 		if (!$values['uuid']) {
 			$values['uuid'] = ProductRepository::generateUuid($values['ean'], $values['subCode'] ? $values['code'] . '.' . $values['subCode'] : $values['code'], null);
+		} else {
+			$this->product->upsells->unrelateAll();
 		}
 
 		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
 		$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
 
+		if ($values['upsells']) {
+			$upsells = [];
+			foreach (\explode(';', $values['upsells']) as $upsell) {
+				$upsells[] = $this->productRepository->getProductByCodeOrEAN($upsell)->getPK();
+			}
+
+			$this->product->upsells->relate($upsells);
+		}
+
+		$values['alternative'] = $values['alternative'] ? $this->productRepository->getProductByCodeOrEAN($values['alternative']) : null;
+
 		$product = $this->productRepository->syncOne($values, null, true);
+
+		$this->setRepository->many()->where('fk_set', $product->getPK())->delete();
+
+		if ($values['productsSet']) {
+			if ($values['setItems']['new']['product']) {
+				$newItemValues = $values['setItems']['new'];
+				$newItemValues['set'] = $product->getPK();
+				$newItemValues['product'] = $this->productRepository->getProductByCodeOrEAN($newItemValues['product']);
+
+				$this->setRepository->createOne($newItemValues);
+			}
+
+			unset($values['setItems']['new']);
+
+			foreach ($values['setItems'] as $key => $item) {
+				$item['uuid'] = $key;
+				$item['set'] = $product->getPK();
+				$item['product'] = $this->productRepository->getProductByCodeOrEAN($item['product']);
+
+				$this->setRepository->syncOne($item);
+			}
+		}
+
+		unset($values['setItems']);
 
 		if (isset($values['tonerForPrinters'])) {
 			$this->relatedRepository->many()
@@ -283,6 +382,11 @@ class ProductForm extends Control
 		$this->pageRepository->syncOne($values['page']);
 
 		$this->getPresenter()->flashMessage('Uloženo', 'success');
+
+		if ($form->isSubmitted()->getName() == 'submitSet') {
+			$this->getPresenter()->redirect('this');
+		}
+
 		$this['form']->processRedirect('edit', 'default', [$product]);
 	}
 
@@ -319,7 +423,9 @@ class ProductForm extends Control
 	{
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->pricelistRepository->getDefaultPricelists();
-		$this->template->supplierProducts = $this->getPresenter()->getParameter('product') ? $this->supplierProductRepository->many()->where('fk_product', $this->getPresenter()->getParameter('product'))->toArray() : [];
+		$this->template->supplierProducts = [];
+		// docasne vypnuto
+		// $this->template->supplierProducts = $this->getPresenter()->getParameter('product') ? $this->supplierProductRepository->many()->where('fk_product', $this->getPresenter()->getParameter('product'))->toArray() : [];
 		$this->template->render(__DIR__ . '/productForm.latte');
 	}
 }

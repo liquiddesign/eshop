@@ -184,6 +184,12 @@ class Product extends \StORM\Entity
 	public bool $unavailable = false;
 
 	/**
+	 * Set produktů
+	 * @column
+	 */
+	public bool $productsSet = false;
+
+	/**
 	 * Skryto
 	 * @column
 	 */
@@ -396,6 +402,10 @@ class Product extends \StORM\Entity
 
 		foreach (\explode(',', $this->getValue('parameters')) as $parameterSerialized) {
 			$parameter = \explode('|', $parameterSerialized);
+
+			if(!isset($parameter[2])){
+				continue;
+			}
 
 			if (!isset($parameters[$parameter[2]])) {
 				$parameters[$parameter[2]] = [];

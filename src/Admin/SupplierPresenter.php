@@ -34,7 +34,7 @@ class SupplierPresenter extends BackendPresenter
 		$grid->addColumnActionDeleteSystemic();
 		
 		$grid->addButtonDeleteSelected(null, false, function (Supplier $supplier) {
-			return $supplier->isSystemic();
+			return !$supplier->isSystemic();
 		});
 		
 		$grid->addFilterTextInput('search', ['name', 'email', 'phone'], null, 'Název, email, telefon');

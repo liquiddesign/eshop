@@ -213,26 +213,20 @@ class OrderPresenter extends BackendPresenter
 		
 		$templates = ['order.created', 'order.canceled', 'order.changed', 'order.created', 'order.payed', 'order.shipped'];
 		
-		
 		$form->addSelect('template', 'Šablona', $this->templateRepository->many()->where('uuid', $templates)->toArrayOf('name'))->setRequired();
 		$form->addText('email', 'Email')->setRequired();
 		$form->addText('ccEmails', 'Kopie emailů')->setNullable();
 		
 		$form->addSubmit('submit', 'Odeslat');
 		
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form) use($order) {
 			$values = $form->getValues('array');
 			
-			$mail = $this->templateRepository->createMessage($values['template'], $this->orderRepository->getEmailVariables($this->getParameter('order')), $values['email'], $values['ccEmails']);
+			$mail = $this->templateRepository->createMessage($values['template'], $this->orderRepository->getEmailVariables($order), $values['email'], $values['ccEmails']);
 			$this->mailer->send($mail);
 			
-			/** @var Order $order */
-			$order = $this->getParameter('order');
-			$order->update($values);
-			
-			$this->flashMessage('Uloženo', 'success');
-			
-			$form->processRedirect('detail', 'default', [$order]);
+			$this->flashMessage('Odesláno', 'success');
+			$this->redirect('this');
 		};
 		
 		return $form;

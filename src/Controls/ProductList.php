@@ -64,111 +64,42 @@ class ProductList extends Datalist
 			$collection->orderBy(['LENGTH(categories.path)' => $value]);
 		});
 
-		$this->addFilterExpression('crossSellFilter', function (ICollection $collection, $value): void {
-			[$path, $currentProduct] = $value;
-
-			$collection->where('this.uuid != :currentProduct', ['currentProduct' => "$currentProduct"]);
-
-			$sql = '';
-
-			foreach (\str_split($path, 4) as $path) {
-				$sql .= " categories.path LIKE '%$path' OR";
-			}
-
-			$collection->where(\substr($sql, 0, -2));
-		});
-
 		$this->setAllowedRepositoryFilters(['category', 'tag', 'producer', 'related', 'recommended', 'q']);
+
+		$this->addFilterExpression('crossSellFilter', function (ICollection $collection, $value): void {
+			$this->productRepository->filterCrossSellFilter($value, $collection);
+		});
 		$this->addFilterExpression('priceFrom', function (ICollection $collection, $value): void {
-			$collection->where('price >= :priceFrom', ['priceFrom' => (float)$value]);
+			$this->productRepository->filterPriceFrom($value, $collection);
 		}, '');
 		$this->addFilterExpression('priceTo', function (ICollection $collection, $value): void {
-			$collection->where('price <= :priceTo', ['priceTo' => (float)$value]);
+			$this->productRepository->filterPriceTo($value, $collection);
 		}, '');
 		$this->addFilterExpression('producer', function (ICollection $collection, $value): void {
-			$collection->where('fk_producer', $value);
+			$this->productRepository->filterProducer($value, $collection);
 		}, '');
 		$this->addFilterExpression('inStock', function (ICollection $collection, $value): void {
-			if ($value) {
-				$collection
-					->join(['displayAmount' => 'eshop_displayamount'], 'displayAmount.uuid=this.fk_displayAmount')
-					->where('fk_displayAmount IS NULL OR displayAmount.isSold = 0');
-			}
+			$this->productRepository->filterInStock($value, $collection);
 		});
 		$this->addFilterExpression('query', function (ICollection $collection, $value): void {
-			$collection->filter(['q' => $value]);
+			$this->productRepository->filterQuery($value, $collection);
 		});
-
-
 		$this->addFilterExpression('relatedSlave', function (ICollection $collection, $value): void {
-			$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave');
-			$collection->where('related.fk_type', $value[0]);
-			$collection->where('related.fk_master', $value[1]);
+			$this->productRepository->filterRelatedSlave($value, $collection);
 		});
-
 		$this->addFilterExpression('toners', function (ICollection $collection, $value): void {
-			$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_master');
-			$collection->where('related.fk_slave', $value);
-			$collection->where('related.fk_type = "tonerForPrinter"');
+			$this->productRepository->filterToners($value, $collection);
 		});
-
 		$this->addFilterExpression('compatiblePrinters', function (ICollection $collection, $value): void {
-			$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave');
-			$collection->where('related.fk_master', $value);
-			$collection->where('related.fk_type = "tonerForPrinter"');
+			$this->productRepository->filterCompatiblePrinters($value, $collection);
 		});
-
 		$this->addFilterExpression('similarProducts', function (ICollection $collection, $value): void {
-			$collection->join(['relation' => 'eshop_related'], 'this.uuid=relation.fk_master OR this.uuid=relation.fk_slave')
-				->join(['type' => 'eshop_relatedtype'], 'relation.fk_type=type.uuid')
-				->where('type.similar', true)
-				->where('this.uuid != :currentRelationProduct', ['currentRelationProduct' => $value]);
+			$this->productRepository->filterSimilarProducts($value, $collection);
 		});
-
 		$this->addFilterExpression('parameters', function (ICollection $collection, $groups): void {
-			$suffix = $collection->getConnection()->getMutationSuffix();
-
-			/** @var \Eshop\DB\Parameter[] $parameters */
-			$parameters = $this->parameterRepository->getCollection()->toArray();
-
-			if ($groups) {
-				$query = '';
-
-				foreach ($groups as $key => $group) {
-					foreach ($group as $pKey => $parameter) {
-						if ($parameters[$pKey]->type == 'list') {
-							$parameter = \is_array($parameter) ? $parameter : [$parameter];
-
-							if (\count($parameter) == 0) {
-								continue;
-							}
-							// list
-							$implodedValues = "'" . \implode("','", $parameter) . "'";
-							$query .= "(parametervalue.fk_parameter = '$pKey' AND parametervalue.metaValue IN ($implodedValues))";
-							$query .= ' OR ';
-						} elseif ($parameters[$pKey]->type == 'bool') {
-							if ($parameter === '1') {
-								$query .= "(parametervalue.fk_parameter = '$pKey' AND parametervalue.metaValue = '1')";
-								$query .= ' OR ';
-							}
-						} else {
-							// text
-							$query .= "(parametervalue.fk_parameter = '$pKey' AND parametervalue.content$suffix = '$parameter')";
-							$query .= ' OR ';
-						}
-					}
-				}
-
-				if (\strlen($query) > 0) {
-					$query = \substr($query, 0, -3);
-
-					$collection
-						->join(['parametervalue' => 'eshop_parametervalue'], 'this.uuid = parametervalue.fk_product')
-						->where($query);
-
-				}
-			}
+			$this->productRepository->filterParameters($groups, $collection);
 		});
+
 
 		$this->productRepository = $productRepository;
 		$this->watcherRepository = $watcherRepository;

@@ -184,6 +184,26 @@
 			{/ifset}
 
 			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label upsells/}</th>
+
+				<td class="align-middle" >
+					{input upsells  class => 'form-control form-control-sm col-label'}
+					<span id="data-info" class="text-gray text-sm">Zadejte EAN nebo kódy oddělené středníky. Např.: 10001;123456789</span>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError upsells}</span>
+				</td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label alternative/}</th>
+
+				<td class="align-middle" >
+					{input alternative  class => 'form-control form-control-sm col-label'}
+					<span id="data-info" class="text-gray text-sm">Zadejte EAN nebo kód. Produkt nebude zobrazen ve výpisu, ale pod mateřskou kartou.</span>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError alternative}</span>
+				</td>
+			</tr>
+
+			<tr class="m-0 mt-1 has-danger">
 				<th class="col-label col-form-label col">{label taxes/}</th>
 
 				<td class="align-middle">{input taxes}
@@ -193,25 +213,111 @@
 			{$renderer->renderPair($form['hidden'])|noescape}
 
 			{$renderer->renderPair($form['recommended'])|noescape}
+
+			{$renderer->renderPair($form['productsSet'])|noescape}
+
+            <tr class="m-0 mt-1 has-danger" id="setItems">
+                <th class="col-label col-form-label col">Položky setu</th>
+
+                <td class="align-middle">
+						<table style="width: auto;">
+							<thead>
+								<tr>
+									<th></th>
+									<th class="pr-2">Položka</th>
+									<th class="pr-2">Pořadí</th>
+									<th class="pr-2">Množství</th>
+									<th class="pr-2">Sleva v rámci setu</th>
+								</tr>
+							</thead>
+							<tbody>
+							{formContainer setItems}
+								{foreach $form->getComponent('setItems')->getComponents() as $component}
+									<tr>
+										{formContainer $component->getName()}
+											<td {if !$iterator->isLast()}class="pr-2"{/if}>
+												{if !$iterator->isLast()}
+													<a href="{link deleteSetItem! $component->getName()}">
+														<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
+															 fill="none" width="20" height="20" viewBox="0 0 24 24"
+															 stroke="currentColor">
+															<path stroke-linecap="round" stroke-linejoin="round"
+																  stroke-width="2"
+																  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+														</svg>
+													</a>
+												{/if}
+											</td>
+                                            <td class="pr-2">
+                                                {input product class => 'form-control form-control-sm', placeholder => 'EAN nebo kód'}
+                                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+                                                    {inputError product}
+                                                </span>
+                                            </td>
+											<td class="pr-2">
+												{input priority class => 'form-control form-control-sm'}
+                                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+                                                    {inputError priority}
+                                                </span>
+											</td>
+											<td class="pr-2">
+												{input amount class => 'form-control form-control-sm'}
+                                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+                                                    {inputError amount}
+                                                </span>
+											</td>
+											<td class="pr-2">
+												{input discountPct class => 'form-control form-control-sm'}
+                                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+                                                    {inputError discountPct}
+                                                </span>
+											</td>
+										{/formContainer}
+									</tr>
+								{/foreach}
+							{/formContainer}
+							</tbody>
+						</table>
+					<label>
+						<input n:name="submitSet" style="display: none;">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" width="20" height="20"
+							 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+								  d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+						</svg>
+					</label>
+                </td>
+            </tr>
 		</table>
 	</fieldset>
 
 	<fieldset>
 		<legend>Ceny</legend>
 
-		<table class="mt-1 mb-1">
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label discountLevelPct/}</th>
+		<table class="mt-1 mb-1" style="width: auto;">
 
-				<td colspan="3"  class="align-middle">{input discountLevelPct  class => 'form-control form-control-sm col-label max-number'}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError discountLevelPct}</span></td>
-			</tr>
 			<tr class="m-0 mt-1 has-danger">
 				<th class="col-label col-form-label col">{label vatRate/}</th>
 
-				<td colspan="3" class="align-middle">{input vatRate class=>'form-control form-control-sm '}
+				<td class="align-middle">{input vatRate class=>'form-control form-control-sm '}
 					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError vatRate}</span></td>
+				<td colspan="3"></td>
 
+			</tr>
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label discountLevelPct/}</th>
+
+				<td colspan="4"  class="align-middle">{input discountLevelPct  class => 'form-control form-control-sm col-label max-number'}
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError discountLevelPct}</span></td>
+			</tr>
+			<tr class="m-0 mt-1 has-danger">
+				<th class="col-label col-form-label col">{label dependedValue}</th>
+
+				<td colspan="4" class="align-middle">
+					{input dependedValue class => 'form-control form-control-sm max-number col-label'}
+					<span id="data-info" class="text-gray text-sm">Pokud neexistuje cena pro upsell položku, bude její cena vypočítána procentuálně z ceny tohoto produktu</span>
+					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError dependedValue}</span>
+				</td>
 			</tr>
 		<tr class="m-0 mt-1 has-danger" n:if="$pricelists">
 			<th></th>
@@ -304,7 +410,6 @@
 
 
 			{$renderer->renderPair($form['unavailable'])|noescape}
-
 		</table>
 	</fieldset>
 
@@ -348,5 +453,21 @@
             }
             event.preventDefault();
         });
+
+        $('#frm-productForm-form-productsSet').change(function () {
+            if (!this.checked) {
+                $('#setItems').hide();
+            } else {
+                $('#setItems').show();
+            }
+        });
+
+		$( document ).ready(function() {
+			if(document.getElementById('frm-productForm-form-productsSet').checked){
+				$('#setItems').show();
+			}else{
+				$('#setItems').hide();
+			}
+		});
     })
 </script>

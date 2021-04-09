@@ -53,7 +53,7 @@ class SupplierProductRepository extends \StORM\Repository
 		
 		foreach ($supplierProductRepository->many()->where('fk_supplier', $supplier)->where('active', true) as $draft) {
 			
-			$code = $draft->productCode ?: $supplier->code . '-' . $draft->code;
+			$code = $draft->productCode ?: $supplier->code . $draft->code;
 			$uuid = ProductRepository::generateUuid($draft->ean, $draft->getProductFullCode() ?: $supplier->code . '-' . $draft->code);
 			$values = [
 				'uuid' => $uuid,
