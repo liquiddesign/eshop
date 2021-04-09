@@ -215,6 +215,7 @@ class CustomerPresenter extends BackendPresenter
 			'price' => 'Ceny',
 			'full' => 'Plné',
 		]);
+		$form->addCheckbox('allowPurchase', 'Polit nákup');
 		$form->addDataSelect('preferredCurrency', 'Preferovaná měna nákupu', $this->currencyRepo->getArrayForSelect())->setPrompt('Žádný');
 		$form->addDataSelect('preferredPaymentType', 'Preferovaná platba', $this->paymentTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
 		$form->addDataSelect('preferredDeliveryType', 'Preferovaná doprava', $this->deliveryTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
