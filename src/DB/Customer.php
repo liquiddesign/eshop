@@ -198,6 +198,12 @@ class Customer extends Entity implements IIdentity, IUser
 	public string $orderPermission = 'full';
 	
 	/**
+	 * Oprávnění: nákup
+	 * @column{"default":"true"}
+	 */
+	public bool $allowPurchase = true;
+	
+	/**
 	 * Oprávnění: filiálka
 	 * @column{"type":"enum","length":"'slave','master','admin'"}
 	 */
