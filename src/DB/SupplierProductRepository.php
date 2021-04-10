@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use StORM\Collection;
 use Web\DB\Page;
 use Nette\DI\Container;
 use Nette\Utils\Strings;
@@ -119,13 +120,11 @@ class SupplierProductRepository extends \StORM\Repository
 		}
 	}
 	
-	public function syncPrices(Supplier $supplier, Pricelist $pricelist, int $precision = 2): void
+	public function syncPrices(Collection $products, Supplier $supplier, Pricelist $pricelist, int $precision = 2): void
 	{
 		$priceRepository = $this->getConnection()->findRepository(Price::class);
 
-		$collection = $this->many()->where('fk_product IS NOT NULL');
-		
-		foreach ($collection as $draft) {
+		foreach ($products as $draft) {
 			if ($draft->price === null) {
 				continue;
 			}

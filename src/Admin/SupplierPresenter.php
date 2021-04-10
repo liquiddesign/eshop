@@ -89,18 +89,31 @@ class SupplierPresenter extends BackendPresenter
 			
 			$this->supplierProductRepository->syncProducts($supplier, $mutation, $country, $values['overwrite']);
 			
-			foreach (['A'] as $type) {
-				$pricelist = $this->pricelistRepository->syncOne([
-					'uuid' => DIConnection::generateUuid($supplier->getPK(), $type),
-					'name' => $supplier->name . " ($type)",
-					'isActive' => false,
-					'currency' => $currency,
-					'country' => $country,
-					'supplier' => $supplier,
-				], ['currency', 'country']);
-				
-				$this->supplierProductRepository->syncPrices($supplier, $pricelist, $type);
-			}
+			$pricelist = $this->pricelistRepository->syncOne([
+				'uuid' => DIConnection::generateUuid($supplier->getPK(), 'available'),
+				'code' => $supplier->code,
+				'name' => $supplier->name,
+				'isActive' => false,
+				'currency' => $currency,
+				'country' => $country,
+				'supplier' => $supplier,
+				'priority' => 2,
+			], ['currency', 'country']);
+			
+			$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unvailable', false), $supplier, $pricelist);
+			
+			$pricelist = $this->pricelistRepository->syncOne([
+				'uuid' => DIConnection::generateUuid($supplier->getPK(), 'unavailable'),
+				'code' => $supplier->code . '-U',
+				'name' => $supplier->name . " (Nedostupné)",
+				'isActive' => false,
+				'currency' => $currency,
+				'country' => $country,
+				'supplier' => $supplier,
+				'priority' => 1,
+			], ['currency', 'country']);
+			
+			$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unvailable', true), $supplier, $pricelist);
 			
 			$this->flashMessage('Uloženo', 'success');
 			$form->getPresenter()->redirect('default');

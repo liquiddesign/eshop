@@ -242,6 +242,13 @@ class Product extends \StORM\Entity
 	 * @column
 	 */
 	public int $supplierLock = 0;
+	
+	/**
+	 * Přebírat obsah
+	 * @relation
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 */
+	public ?Supplier $supplierContent;
 
 	/**
 	 * Zdrojový dodavatel
