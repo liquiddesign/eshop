@@ -72,25 +72,13 @@ class SupplierProduct extends \StORM\Entity
 	 * Cena A bez DPH
 	 * @column
 	 */
-	public ?float $priceA;
+	public ?float $price;
 	
 	/**
 	 * Cena B s DPH
 	 * @column
 	 */
-	public ?float $priceVatA;
-	
-	/**
-	 * Cena B bez DPH
-	 * @column
-	 */
-	public ?float $priceB;
-	
-	/**
-	 * Cena B s DPH
-	 * @column
-	 */
-	public ?float $priceVatB;
+	public ?float $priceVat;
 	
 	/**
 	 * Množství
@@ -105,16 +93,22 @@ class SupplierProduct extends \StORM\Entity
 	public ?string $fileName;
 	
 	/**
+	 * Zkopírovat / spárovat s produkty
+	 * @column
+	 */
+	public bool $active = true;
+	
+	/**
 	 * Je ve feedu smazaný
 	 * @column
 	 */
 	public bool $deleted = false;
 	
 	/**
-	 * Zkopírovat / spárovat s produkty
+	 * Nedostupné
 	 * @column
 	 */
-	public bool $active = true;
+	public bool $unavailable = false;
 	
 	/**
 	 * Výrobce

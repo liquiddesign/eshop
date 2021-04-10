@@ -10,6 +10,7 @@ use Eshop\DB\Supplier;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\AddressRepository;
 use Forms\Form;
+use StORM\DIConnection;
 
 class SupplierPresenter extends BackendPresenter
 {
@@ -23,47 +24,21 @@ class SupplierPresenter extends BackendPresenter
 	{
 		$grid = $this->gridFactory->create($this->supplierRepository->many(), 20, 'name', 'ASC', true);
 		$grid->addColumnSelector();
-		
+		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumnText('Telefon', 'phone', '<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		$grid->addColumnText('Email', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
-		$grid->addColumnLink('import', "<i class='fa fa-sm fa-cog'></i>&nbsp;Import</a>", '');
 		
+		$grid->addColumnInputText('Priorita', 'importPriority');
+		$grid->addColumnInputCheckbox('Aktivní', 'isImportActive', '', '', 'isImportActive');
+		
+		$grid->addColumnLink('pair', '<i class="fa fa-play"></i> Import');
 		$grid->addColumnLinkDetail();
-		
-		$grid->addColumnActionDeleteSystemic();
-		
-		$grid->addButtonDeleteSelected(null, false, function (Supplier $supplier) {
-			return !$supplier->isSystemic();
-		});
 		
 		$grid->addFilterTextInput('search', ['name', 'email', 'phone'], null, 'Název, email, telefon');
 		$grid->addFilterButtons();
 		
 		return $grid;
-	}
-	
-	public function createComponentImportForm(): AdminForm
-	{
-		$form = $this->formFactory->create();
-		
-		$form->addIntegerNullable('importPriority', 'Priorita importu');
-		$form->addCheckbox('isImportActive', 'Je import aktivní?');
-		
-		$form->addSubmits(!$this->getParameter('supplier'));
-		
-		$form->onSuccess[] = function (AdminForm $form) {
-			$values = $form->getValues('array');
-			
-			/** @var Supplier $supplier */
-			$supplier = $this->getParameter('supplier');
-			$supplier->update($values);
-
-			$this->flashMessage('Uloženo','success');
-			$form->processRedirect('import','default',[$supplier]);
-		};
-		
-		return $form;
 	}
 	
 	public function createComponentForm(): AdminForm
@@ -75,35 +50,14 @@ class SupplierPresenter extends BackendPresenter
 		$form->addText('name', 'Název')->setRequired();
 		$form->addText('phone', 'Telefon');
 		$form->addEmail('email', 'Email');
-		
-		$form->addGroup('Fakturační adresa');
-		$billAddress = $form->addContainer('billAddress');
-		$billAddress->addHidden('uuid');
-		$billAddress->addText('street', 'Ulice');
-		$billAddress->addText('city', 'Město');
-		$billAddress->addText('zipcode', 'PSČ');
-		$billAddress->addText('state', 'Stát');
-		
-		$form->addGroup('Doručovací adresa');
-		$deliveryAddress = $form->addContainer('deliveryAddress');
-		$deliveryAddress->addHidden('uuid');
-		$deliveryAddress->addText('name',' Jméno a příjmení / název firmy');
-		$deliveryAddress->addText('street', 'Ulice');
-		$deliveryAddress->addText('city', 'Město');
-		$deliveryAddress->addText('zipcode', 'PSČ');
-		$deliveryAddress->addText('state', 'Stát');
+		$form->addInteger('importPriority', 'Priorita');
+		$form->addInteger('importPriceRatio', 'Procentuální změna ceny');
+		$form->addCheckbox('isImportActive', 'Aktivní');
 		
 		$form->addSubmits(!$this->getParameter('supplier'));
 		
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
-			
-			if (!$this->getParameter('supplier')) {
-				unset($values['billAddress']['uuid'], $values['deliveryAddress']['uuid']);
-			}
-			
-			$values['billAddress'] = $this->addressRepository->syncOne($values['billAddress']);
-			$values['deliveryAddress'] = $this->addressRepository->syncOne($values['deliveryAddress']);
 			
 			/** @var Supplier $supplier */
 			$supplier = $this->supplierRepository->syncOne($values, null, true);
@@ -115,32 +69,80 @@ class SupplierPresenter extends BackendPresenter
 		return $form;
 	}
 	
-	public function renderDefault()
+	public function createComponentPairForm(): AdminForm
 	{
-		$this->template->headerLabel = 'Dodavatelé';
-		$this->template->headerTree = [
-			['Dodavatelé', 'default'],
-		];
-		$this->template->displayButtons = [$this->createNewItemButton('new')];
-		$this->template->displayControls = [$this->getComponent('grid')];
+		$form = $this->formFactory->create();
+		
+		$form->addCheckbox('overwrite', 'Přepsat nezamčené')->setDefaultValue(true);
+		
+		$form->addSubmit('submit', 'Importovat');
+		
+		$form->onSuccess[] = function (AdminForm $form) {
+			$values = $form->getValues('array');
+			
+			/** @var \Eshop\DB\Supplier $supplier */
+			$supplier = $this->getParameter('supplier');
+			
+			$currency = 'CZK';
+			$mutation = 'cs';
+			$country = 'CZ';
+			
+			$this->supplierProductRepository->syncProducts($supplier, $mutation, $country, $values['overwrite']);
+			
+			foreach (['A'] as $type) {
+				$pricelist = $this->pricelistRepository->syncOne([
+					'uuid' => DIConnection::generateUuid($supplier->getPK(), $type),
+					'name' => $supplier->name . " ($type)",
+					'isActive' => false,
+					'currency' => $currency,
+					'country' => $country,
+					'supplier' => $supplier,
+				], ['currency', 'country']);
+				
+				$this->supplierProductRepository->syncPrices($supplier, $pricelist, $type);
+			}
+			
+			$this->flashMessage('Uloženo', 'success');
+			$form->getPresenter()->redirect('default');
+		};
+		
+		return $form;
 	}
 	
-	public function renderNew()
+	public function actionPair(Supplier $supplier)
 	{
-		$this->template->headerLabel = 'Nový dodavatel';
+		/** @var \Admin\Controls\AdminForm $form */
+		$form = $this->getComponent('pairForm');
+		
+		$form->setDefaults($supplier->toArray());
+	}
+	
+	public function renderPair(Supplier $supplier)
+	{
+		$this->template->headerLabel = 'Import';
 		$this->template->headerTree = [
-			['Dodavatelé', 'default'],
-			['Nový dodavatel'],
+			['Přehled zdrojů', 'default'],
+			['Import'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('form')];
+		$this->template->displayButtons = [];
+		$this->template->displayControls = [$this->getComponent('pairForm')];
+	}
+	
+	public function renderDefault()
+	{
+		$this->template->headerLabel = 'Přehled zdrojů';
+		$this->template->headerTree = [
+			['Přehled zdrojů', 'default'],
+		];
+		$this->template->displayButtons = [];
+		$this->template->displayControls = [$this->getComponent('grid')];
 	}
 	
 	public function renderDetail(Supplier $supplier)
 	{
-		$this->template->headerLabel = 'Detail dodavatele';
+		$this->template->headerLabel = 'Detail zdroje';
 		$this->template->headerTree = [
-			['Dodavatelé', 'default'],
+			['Detail zdroje', 'default'],
 			['Detail'],
 		];
 		$this->template->displayButtons = [
@@ -154,7 +156,7 @@ class SupplierPresenter extends BackendPresenter
 		/** @var Form $form */
 		$form = $this->getComponent('form');
 		
-		$form->setDefaults($supplier->toArray(['deliveryAddress', 'billAddress']));
+		$form->setDefaults($supplier->toArray());
 	}
 	
 	public function actionImport(Supplier $supplier)

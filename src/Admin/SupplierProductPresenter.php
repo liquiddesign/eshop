@@ -66,7 +66,8 @@ class SupplierProductPresenter extends BackendPresenter
 		
 		$grid->addColumnText('Název', "name", '%s', 'updatedTs');
 		$grid->addColumnText('Výrobce', "producer.name", '%s', 'updatedTs');
-		$grid->addColumnText('Kategorie', "category.name", '%s', 'updatedTs');
+		$grid->addColumnText('Kategorie', ['category.categoryNameL1', 'category.categoryNameL2', 'category.categoryNameL3', 'category.categoryNameL4'], '%s > %s > %s > %s', 'updatedTs');
+		
 		
 		$grid->addColumn('Katalog', function (SupplierProduct $supplierProduct, AdminGrid $datagrid) {
 			$link = $supplierProduct->product && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$supplierProduct->product, 'backLink' => $this->storeRequest(),]) : '#';
@@ -126,80 +127,20 @@ class SupplierProductPresenter extends BackendPresenter
 		return $form;
 	}
 	
-	public function createComponentPairForm(): AdminForm
-	{
-		$form = $this->formFactory->create();
-		
-		$form->addCheckbox('overwrite', 'Přepsat nezamčené')->setDefaultValue(true);
-		
-		$form->addSubmit('submit', 'Spárovat');
-		
-		$form->onSuccess[] = function (AdminForm $form) {
-			$values = $form->getValues('array');
-			
-			/** @var \Eshop\DB\Supplier $supplier */
-			$supplier = $this->getParameter('supplier');
-			
-			$currency = 'CZK';
-			$mutation = 'cs';
-			$country = 'CZ';
-			
-			$this->supplierProductRepository->syncProducts($supplier, $mutation, $country, $values['overwrite']);
-			
-			foreach (['A'] as $type) {
-				$pricelist = $this->pricelistRepository->syncOne([
-					'uuid' => DIConnection::generateUuid($supplier->getPK(), $type),
-					'name' => $supplier->name . " ($type)",
-					'isActive' => false,
-					'currency' => $currency,
-					'country' => $country,
-					'supplier' => $supplier,
-				], ['currency', 'country']);
-				
-				$this->supplierProductRepository->syncPrices($supplier, $pricelist, $type);
-			}
-			
-			$this->flashMessage('Uloženo', 'success');
-			$form->getPresenter()->redirect('default');
-		};
-		
-		return $form;
-	}
-	
-	
 	public function renderDefault()
 	{
-		$this->template->headerLabel = 'Dodavatelské produkty';
-		$this->template->headerTree = [
-			['Dodavatelské produkty'],
-		];
+		$this->template->headerLabel = 'Externí produkty';
 		
+		$this->template->headerTree = [
+			['Externí produkty'],
+		];
 		
 		$this->template->tabs = $this->tabs;
 		
-		$supplier = new Supplier(['uuid' => $this->tab]);
-		$this->template->displayButtons = [$this->createButtonWithClass('pair', '<i class="fa fa-sync"></i> Synchronizovat katalog', 'btn btn-sm btn-outline-primary', $supplier)];
+		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
 	
-	public function actionPair(Supplier $supplier)
-	{
-		/** @var \App\Admin\Controls\AdminForm $form */
-		$form = $this->getComponent('pairForm');
-		
-		$form->setDefaults($supplier->toArray());
-	}
-	
-	public function renderPair(Supplier $supplier)
-	{
-		$this->template->headerLabel = 'Aktualizovat produkty';
-		$this->template->headerTree = [
-			['Dodavatelské produkty', 'default'],
-			['Aktualizovat produkty'],
-		];
-		$this->template->displayButtons = [];
-		$this->template->displayControls = [$this->getComponent('pairForm')];
-	}
 	
 	public function renderNew()
 	{
@@ -208,7 +149,6 @@ class SupplierProductPresenter extends BackendPresenter
 			['Dodavatelské produkty', 'default'],
 			['Nová položka'],
 		];
-		
 		
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('form')];
