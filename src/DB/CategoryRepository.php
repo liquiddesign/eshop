@@ -78,13 +78,18 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 				->join(['product' => 'eshop_product'], "nxn.fk_product=product.uuid AND product.draft$suffix = 0 AND product.fk_alternative IS NULL")
 				->setSelect(['count' => 'COUNT(product.uuid)'])
 				->setGroupBy(['this.uuid']);
-
+			
+			$priceWhere = [];
+			
 			foreach ($pricelists as $id => $pricelist) {
 				$rows->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=product.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
 				$priceWhere[] = "prices$id.price IS NOT NULL";
 			}
 			
-			$rows->where(\implode(' OR ', $priceWhere));
+			if ($priceWhere) {
+				$rows->where(\implode(' OR ', $priceWhere));
+			}
+			
 			$rows->setIndex('this.uuid');
 			$rows->setFetchClass(\stdClass::class);
 			
