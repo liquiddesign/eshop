@@ -7,6 +7,7 @@ namespace Eshop\DB;
 use Nette\Security\IIdentity;
 use Security\DB\Account;
 use Security\DB\IUser;
+use StORM\RelationCollection;
 
 /**
  * Obchodník
@@ -59,14 +60,16 @@ class Merchant extends \StORM\Entity implements IIdentity, IUser
 	public bool $customerEmailNotification = false;
 	
 	/**
-	 * @relation
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Security\DB\Account>|\Security\DB\Account[]
 	 */
-	public ?Account $account;
+	public RelationCollection $accounts;
+	
+	protected ?Account $account = null;
 	
 	function getId()
 	{
-		return $this->getValue('account');
+		return $this->getPK();
 	}
 	
 	function getRoles(): array
@@ -77,5 +80,10 @@ class Merchant extends \StORM\Entity implements IIdentity, IUser
 	public function getAccount(): ?Account
 	{
 		return $this->account;
+	}
+	
+	public function setAccount(Account $account): void
+	{
+		$this->account = $account;
 	}
 }

@@ -18,7 +18,7 @@
 		"league/csv": "^9.0",
 		"liquiddesign/storm": "@dev",
 		"liquiddesign/forms": "@dev",
-		"liquiddesign/security": "@dev",
+		"liquiddesign/security": "v2.x-dev",
 		"liquiddesign/messages": "@dev",
 		"liquiddesign/translator": "@dev",
 		"liquiddesign/pages": "@dev",

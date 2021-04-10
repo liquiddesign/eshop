@@ -184,12 +184,6 @@ class Customer extends Entity implements IIdentity, IUser
 	 * @column
 	 */
 	public bool $pricesWithVat = false;
-	
-	/**
-	 * Oprávnění: katalog
-	 * @column{"type":"enum","length":"'none','catalog','price','full'"}
-	 */
-	public string $catalogPermission = 'full';
 
 	/**
 	 * Oprávnění: objednávky
@@ -228,10 +222,14 @@ class Customer extends Entity implements IIdentity, IUser
 	public ?string $ediBranch = null;
 	
 	/**
-	 * @relation
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @relationNxN{"via":"eshop_catalogpermission"}
+	 * @var \StORM\RelationCollection<\Security\DB\Account>|\Security\DB\Account[]
 	 */
-	public ?Account $account;
+	public RelationCollection $accounts;
+	
+	protected ?Account $account = null;
+	
+	protected ?CatalogPermission $catalogPermission;
 	
 	/**
 	 * Vytvořen
@@ -255,7 +253,7 @@ class Customer extends Entity implements IIdentity, IUser
 	
 	public function getId(): string
 	{
-		return $this->getValue('account');
+		return $this->getPK();
 	}
 	
 	/**
@@ -269,6 +267,16 @@ class Customer extends Entity implements IIdentity, IUser
 	public function getAccount(): ?Account
 	{
 		return $this->account;
+	}
+	
+	public function setAccount(Account $account): void
+	{
+		$this->account = $account;
+	}
+	
+	public function getCatalogPermission(): ?CatalogPermission
+	{
+		return $this->catalogPermission ??= $this->account ? $this->getConnection()->findRepository(CatalogPermission::class)->one(['fk_customer' => $this, 'fk_account' => $this->account], false) : null;
 	}
 	
 	public function isCompany(): bool
