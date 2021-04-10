@@ -158,7 +158,10 @@ class CustomerPresenter extends BackendPresenter
 		/** @var Form $form */
 		$form = $this->getComponent('accountForm');
 		$form['account']['email']->setDefaultValue($customer->email);
-		$form['account']->setDefaults($customer->account->toArray());
+		
+		if ($account = $customer->accounts->first()) {
+			$form['account']->setDefaults($account->toArray());
+		}
 
 		$this->accountFormFactory->onDeleteAccount[] = function () {
 			$this->flashMessage('Účet byl smazán', 'success');
@@ -173,7 +176,7 @@ class CustomerPresenter extends BackendPresenter
 		unset($form['delete']);
 
 		$this->accountFormFactory->onCreateAccount[] = function (Account $account) use ($customer) {
-			$customer->update(['account' => $account]);
+			$customer->accounts->relate($account);
 
 			$this->flashMessage('Účet byl vytvořen', 'success');
 			$this->redirect('default');

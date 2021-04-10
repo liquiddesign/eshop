@@ -102,7 +102,7 @@ class MerchantPresenter extends BackendPresenter
 			
 			if (isset($form['account'])) {
 				$this->accountFormFactory->onCreateAccount[] = function ($account) use ($merchant) {
-					$merchant->update(['account' => $account]);
+					$merchant->accounts->relate($account);
 				};
 				$this->accountFormFactory->success($form, 'merchant.register.successAdmin');
 			}
@@ -178,7 +178,10 @@ class MerchantPresenter extends BackendPresenter
 		/** @var Form $form */
 		$form = $this->getComponent('accountForm');
 		$form['account']['email']->setDefaultValue($merchant->email);
-		$form['account']->setDefaults($merchant->account->toArray());
+		
+		if ($account = $merchant->accounts->first()) {
+			$form['account']->setDefaults($account->toArray());
+		}
 		
 		$this->accountFormFactory->onDeleteAccount[] = function () {
 			$this->flashMessage('Účet byl smazán', 'success');
