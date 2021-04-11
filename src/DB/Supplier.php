@@ -23,18 +23,6 @@ class Supplier extends \StORM\Entity
 	public string $name;
 	
 	/**
-	 * Email
-	 * @column
-	 */
-	public ?string $email;
-	
-	/**
-	 * Telefon
-	 * @column
-	 */
-	public ?string $phone;
-	
-	/**
 	 * Priorita importu
 	 * @column
 	 */
@@ -51,4 +39,10 @@ class Supplier extends \StORM\Entity
 	 * @column
 	 */
 	public ?bool $isImportActive;
+	
+	/**
+	 * Aktualizován
+	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
+	 */
+	public string $updatedTs;
 }
