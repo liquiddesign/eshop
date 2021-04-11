@@ -59,8 +59,7 @@ class SupplierProductPresenter extends BackendPresenter
 	{
 		$grid = $this->gridFactory->create($this->supplierProductRepository->many()->where('fk_supplier', $this->tab), 20, 'createdTs', 'ASC', true);
 		$grid->addColumnSelector();
-		$grid->addColumnText('Aktualizace', "updatedTs|date:'d.m.Y'", '%s', 'updatedTs', ['class' => 'fit']);
-		$grid->addColumn('Párovat podle', function (SupplierProduct $product) {
+		$grid->addColumn('Identifikátor', function (SupplierProduct $product) {
 			return $product->productCode ? ('Kód: ' . $product->getProductFullCode()) : ($product->ean ? ('EAN: ' . $product->ean) : '-');
 		}, '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		

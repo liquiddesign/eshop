@@ -13,25 +13,25 @@ class SupplierCategory extends \StORM\Entity
 {
 	/**
 	 * Vzor na mapování 1
-	 * @column
+	 * @column{"length":128}
 	 */
 	public string $categoryNameL1;
 	
 	/**
 	 * Vzor na mapování 2
-	 * @column
+	 * @column{"length":128}
 	 */
 	public ?string $categoryNameL2;
 	
 	/**
 	 * Vzor na mapování 3
-	 * @column
+	 * @column{"length":128}
 	 */
 	public ?string $categoryNameL3;
 	
 	/**
 	 * Vzor na mapování 3
-	 * @column
+	 * @column{"length":128}
 	 */
 	public ?string $categoryNameL4;
 	

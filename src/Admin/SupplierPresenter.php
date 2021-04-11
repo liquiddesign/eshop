@@ -24,10 +24,9 @@ class SupplierPresenter extends BackendPresenter
 	{
 		$grid = $this->gridFactory->create($this->supplierRepository->many(), 20, 'name', 'ASC', true);
 		$grid->addColumnSelector();
+		$grid->addColumnText('Aktualizace', "updatedTs|date:'d.m.Y'", '%s', 'updatedTs', ['class' => 'fit']);
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
-		$grid->addColumnText('Telefon', 'phone', '<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
-		$grid->addColumnText('Email', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		
 		$grid->addColumnInputText('Priorita', 'importPriority');
 		$grid->addColumnInputCheckbox('Aktivní', 'isImportActive', '', '', 'isImportActive');
@@ -35,7 +34,7 @@ class SupplierPresenter extends BackendPresenter
 		$grid->addColumnLink('pair', '<i class="fa fa-play"></i> Import');
 		$grid->addColumnLinkDetail();
 		
-		$grid->addFilterTextInput('search', ['name', 'email', 'phone'], null, 'Název, email, telefon');
+		$grid->addFilterTextInput('search', ['name', 'code'], null, 'Název, kód');
 		$grid->addFilterButtons();
 		
 		return $grid;
@@ -48,8 +47,7 @@ class SupplierPresenter extends BackendPresenter
 		$form->addGroup('Obecné');
 		$form->addText('code', 'Kód');
 		$form->addText('name', 'Název')->setRequired();
-		$form->addText('phone', 'Telefon');
-		$form->addEmail('email', 'Email');
+		
 		$form->addInteger('importPriority', 'Priorita');
 		$form->addInteger('importPriceRatio', 'Procentuální změna ceny');
 		$form->addCheckbox('isImportActive', 'Aktivní');

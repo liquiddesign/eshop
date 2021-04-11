@@ -23,6 +23,12 @@ class Supplier extends \StORM\Entity
 	public string $name;
 	
 	/**
+	 * Třída importu
+	 * @column
+	 */
+	public string $providerClass;
+	
+	/**
 	 * Priorita importu
 	 * @column
 	 */

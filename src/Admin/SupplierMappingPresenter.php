@@ -256,11 +256,25 @@ class SupplierMappingPresenter extends BackendPresenter
 					/** @var \Eshop\DB\SupplierCategory $supplierCategory */
 					$supplierCategory = $this->supplierCategoryRepository->one($uuid);
 					
-					if (!$supplierCategory->name) {
+					if (!$supplierCategory->categoryNameL1) {
 						continue;
 					}
 					
-					$newTree = \array_map('trim', \explode('>', $supplierCategory->name));
+					$newTree[] = $supplierCategory->categoryNameL1;
+					
+					if ($supplierCategory->categoryNameL2) {
+						$newTree[] = $supplierCategory->categoryNameL2;
+					}
+					
+					if ($supplierCategory->categoryNameL3) {
+						$newTree[] = $supplierCategory->categoryNameL3;
+					}
+					
+					if ($supplierCategory->categoryNameL4) {
+						$newTree[] = $supplierCategory->categoryNameL4;
+					}
+					
+					
 					$currentCategory = $insertToCategory;
 					$path = $insertToCategory ? $insertToCategory->path : null;
 					$first = true;
