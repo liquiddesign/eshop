@@ -65,8 +65,7 @@ class SupplierProductPresenter extends BackendPresenter
 		
 		$grid->addColumnText('Název', "name", '%s', 'updatedTs');
 		$grid->addColumnText('Výrobce', "producer.name", '%s', 'updatedTs');
-		$grid->addColumnText('Kategorie', ['category.categoryNameL1', 'category.categoryNameL2', 'category.categoryNameL3', 'category.categoryNameL4'], '%s > %s > %s > %s', 'updatedTs');
-		
+		$grid->addColumnText('Kategorie', 'category.getNameTree', '%s');
 		
 		$grid->addColumn('Katalog', function (SupplierProduct $supplierProduct, AdminGrid $datagrid) {
 			$link = $supplierProduct->product && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$supplierProduct->product, 'backLink' => $this->storeRequest(),]) : '#';
@@ -75,7 +74,7 @@ class SupplierProductPresenter extends BackendPresenter
 		}, '%s', 'product');
 		
 		
-		$grid->addColumnInputCheckbox('<span title="Aktivní">Aktvní</span>', 'active', 'active');
+		$grid->addColumnInputCheckbox('<span title="Aktivní">Aktivní</span>', 'active', 'active');
 		
 		$grid->addColumnLinkDetail('Detail');
 		

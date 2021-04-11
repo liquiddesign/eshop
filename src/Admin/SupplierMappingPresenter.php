@@ -80,7 +80,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		
 		
 		if ($this->tab === 'category') {
-			$grid->addColumnText('Název', ['categoryNameL1', 'categoryNameL2', 'categoryNameL3', 'categoryNameL4'], '%s > %s > %s > %s', 'updatedTs');
+			$grid->addColumnText('Název', 'getNameTree', '%s', 'updatedTs');
 			
 			$grid->addColumn('Kategorie', function (SupplierCategory $mapping) {
 				$link = $mapping->category && $this->admin->isAllowed(':Eshop:Admin:Category:detail') ? $this->link(':Eshop:Admin:Category:detail', [$mapping->category, 'backLink' => $this->storeRequest(),]) : '#';
@@ -256,25 +256,11 @@ class SupplierMappingPresenter extends BackendPresenter
 					/** @var \Eshop\DB\SupplierCategory $supplierCategory */
 					$supplierCategory = $this->supplierCategoryRepository->one($uuid);
 					
-					if (!$supplierCategory->categoryNameL1) {
+					if (!$supplierCategory->name) {
 						continue;
 					}
 					
-					$newTree[] = $supplierCategory->categoryNameL1;
-					
-					if ($supplierCategory->categoryNameL2) {
-						$newTree[] = $supplierCategory->categoryNameL2;
-					}
-					
-					if ($supplierCategory->categoryNameL3) {
-						$newTree[] = $supplierCategory->categoryNameL3;
-					}
-					
-					if ($supplierCategory->categoryNameL4) {
-						$newTree[] = $supplierCategory->categoryNameL4;
-					}
-					
-					
+					$newTree = \array_map('trim', \explode('>', $supplierCategory->name));
 					$currentCategory = $insertToCategory;
 					$path = $insertToCategory ? $insertToCategory->path : null;
 					$first = true;

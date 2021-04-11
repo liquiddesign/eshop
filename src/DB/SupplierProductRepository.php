@@ -37,6 +37,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$supplierProductRepository = $this->getConnection()->findRepository(SupplierProduct::class);
 		$productRepository = $this->getConnection()->findRepository(Product::class);
 		$pagesRepository = $this->getConnection()->findRepository(Page::class);
+		$supplierId = $supplier->getPK();
 		
 		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$mutation];
 		
@@ -46,8 +47,9 @@ class SupplierProductRepository extends \StORM\Repository
 			$updates = \array_fill_keys($updates, null);
 			
 			foreach (\array_keys($updates) as $name) {
-				$updates[$name] = new Literal("IF(VALUES(supplierLock) >= supplierLock, VALUES($name), $name)");
+				$updates[$name] = new Literal("IF((supplierLock IS NOT NULL && VALUES(supplierLock) >= supplierLock) || fk_supplierContent='$supplierId', VALUES($name), $name)");
 			}
+			
 		} else {
 			$updates = [];
 		}
@@ -66,6 +68,7 @@ class SupplierProductRepository extends \StORM\Repository
 				//'perex' => [$mutation => substr($draft->content, 0, 150)],
 				'content' => [$mutation => $draft->content],
 				'unit' => $draft->unit,
+				'unavailable' => $draft->unavailable,
 				'imageFileName' => $draft->fileName,
 				'vatRate' => $vatLevels[(int) $draft->vatRate] ?? 'standard',
 				'producer' => $draft->producer->getValue('producer'),
@@ -123,7 +126,7 @@ class SupplierProductRepository extends \StORM\Repository
 	public function syncPrices(Collection $products, Supplier $supplier, Pricelist $pricelist, int $precision = 2): void
 	{
 		$priceRepository = $this->getConnection()->findRepository(Price::class);
-
+		
 		foreach ($products as $draft) {
 			if ($draft->price === null) {
 				continue;

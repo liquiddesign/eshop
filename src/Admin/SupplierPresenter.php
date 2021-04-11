@@ -6,7 +6,9 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Eshop\DB\PricelistRepository;
 use Eshop\DB\Supplier;
+use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\AddressRepository;
 use Forms\Form;
@@ -16,6 +18,12 @@ class SupplierPresenter extends BackendPresenter
 {
 	/** @inject */
 	public SupplierRepository $supplierRepository;
+	
+	/** @inject */
+	public SupplierProductRepository $supplierProductRepository;
+	
+	/** @inject */
+	public PricelistRepository $pricelistRepository;
 	
 	/** @inject */
 	public AddressRepository $addressRepository;
@@ -89,7 +97,7 @@ class SupplierPresenter extends BackendPresenter
 			
 			$pricelist = $this->pricelistRepository->syncOne([
 				'uuid' => DIConnection::generateUuid($supplier->getPK(), 'available'),
-				'code' => $supplier->code,
+				'code' => $supplier->code . '2',
 				'name' => $supplier->name,
 				'isActive' => false,
 				'currency' => $currency,
@@ -98,11 +106,11 @@ class SupplierPresenter extends BackendPresenter
 				'priority' => 2,
 			], ['currency', 'country']);
 			
-			$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unvailable', false), $supplier, $pricelist);
+			$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unavailable', false), $supplier, $pricelist);
 			
 			$pricelist = $this->pricelistRepository->syncOne([
 				'uuid' => DIConnection::generateUuid($supplier->getPK(), 'unavailable'),
-				'code' => $supplier->code . '-U',
+				'code' => $supplier->code . '1',
 				'name' => $supplier->name . " (Nedostupné)",
 				'isActive' => false,
 				'currency' => $currency,
@@ -111,7 +119,7 @@ class SupplierPresenter extends BackendPresenter
 				'priority' => 1,
 			], ['currency', 'country']);
 			
-			$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unvailable', true), $supplier, $pricelist);
+			$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unavailable', true), $supplier, $pricelist);
 			
 			$this->flashMessage('Uloženo', 'success');
 			$form->getPresenter()->redirect('default');
