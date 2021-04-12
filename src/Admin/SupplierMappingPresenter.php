@@ -22,6 +22,7 @@ use Nette\Http\Session;
 use Nette\Utils\Arrays;
 use Nette\Utils\Random;
 use StORM\Entity;
+use StORM\Expression;
 use StORM\ICollection;
 use StORM\Repository;
 
@@ -85,10 +86,24 @@ class SupplierMappingPresenter extends BackendPresenter
 			$grid->addColumn('Kategorie', function (SupplierCategory $mapping) {
 				$link = $mapping->category && $this->admin->isAllowed(':Eshop:Admin:Category:detail') ? $this->link(':Eshop:Admin:Category:detail', [$mapping->category, 'backLink' => $this->storeRequest(),]) : '#';
 				
-				return $mapping->category ? "<a href='$link'>" . ($mapping->category->categoryNameL1 ?: 'Detail kategorie') . '</a>' : '-';
+				return $mapping->category ? "<a href='$link'>" . ($mapping->category->name ?: 'Detail kategorie') . '</a>' : '-';
 			});
 			
 			$property = 'category';
+			$grid->addFilterText(function (ICollection $source, $value) {
+				$parsed = \explode('>', $value);
+				$expression = new Expression();
+				
+				for ($i = 1; $i != 5; $i++) {
+					if (isset($parsed[$i - 1])) {
+						$expression->add('AND', "categoryNameL$i=%s", [\trim($parsed[$i - 1])]);
+					}
+				}
+				
+				$source->where($expression->getSql(), $expression->getVars());
+				
+			}, '', 'category')->setHtmlAttribute('placeholder', 'Název')->setHtmlAttribute('class', 'form-control form-control-sm');
+			
 		}
 		
 		if ($this->tab === 'producer') {
@@ -100,6 +115,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			});
 			
 			$property = 'producer';
+			$grid->addFilterTextInput('search', ['name'], null, 'Název');
 		}
 		
 		if ($this->tab === 'amount') {
@@ -111,6 +127,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			});
 			
 			$property = 'displayAmount';
+			$grid->addFilterTextInput('search', ['name'], null, 'Název');
 		}
 		
 		$grid->addColumn('', function ($object, $datagrid) {
@@ -132,7 +149,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			}, null, 'supplier', null, $suppliers, ['placeholder' => '- Dodavatel -']);
 		}
 		
-		$grid->addFilterTextInput('search', ['name'], null, 'Název');
+		
 		
 		$grid->addFilterCheckboxInput('notmapped', "fk_$property IS NULL", 'Nenapárované');
 		
@@ -145,17 +162,19 @@ class SupplierMappingPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 		
-		$form->addText('name', 'Název / hodnota')->setHtmlAttribute('readonly', 'readonly');
+		
 		
 		if ($this->tab === 'category') {
 			$form->addDataSelect('category', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('Nepřiřazeno');
 		}
 		
 		if ($this->tab === 'producer') {
+			$form->addText('name', 'Název / hodnota')->setHtmlAttribute('readonly', 'readonly');
 			$form->addDataSelect('producer', 'Výrobce', $this->producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 		}
 		
 		if ($this->tab === 'amount') {
+			$form->addText('name', 'Název / hodnota')->setHtmlAttribute('readonly', 'readonly');
 			$form->addDataSelect('displayAmount', 'Dostupnost', $this->displayAmountRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 			$form->addText('storeAmount', 'Skladová zásoba')->setNullable();
 		}

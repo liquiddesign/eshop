@@ -16,6 +16,8 @@ use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Forms\Form;
 use StORM\DIConnection;
+use StORM\Expression;
+use StORM\ICollection;
 
 class SupplierProductPresenter extends BackendPresenter
 {
@@ -57,7 +59,7 @@ class SupplierProductPresenter extends BackendPresenter
 	
 	public function createComponentGrid()
 	{
-		$grid = $this->gridFactory->create($this->supplierProductRepository->many()->where('fk_supplier', $this->tab), 20, 'createdTs', 'ASC', true);
+		$grid = $this->gridFactory->create($this->supplierProductRepository->many()->where('this.fk_supplier', $this->tab), 20, 'this.createdTs', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumn('Identifikátor', function (SupplierProduct $product) {
 			return $product->productCode ? ('Kód: ' . $product->getProductFullCode()) : ($product->ean ? ('EAN: ' . $product->ean) : '-');
@@ -70,20 +72,34 @@ class SupplierProductPresenter extends BackendPresenter
 		$grid->addColumn('Katalog', function (SupplierProduct $supplierProduct, AdminGrid $datagrid) {
 			$link = $supplierProduct->product && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$supplierProduct->product, 'backLink' => $this->storeRequest(),]) : '#';
 			
-			return $supplierProduct->product ? "<a href='$link'>ano</a>" : "-";
+			return $supplierProduct->product ? "<a href='$link'>".$supplierProduct->product->getFullCode()."</a>" : "-";
 		}, '%s', 'product');
 		
 		
-		$grid->addColumnInputCheckbox('<span title="Aktivní">Aktivní</span>', 'active', 'active');
+		$grid->addColumnInputCheckbox('<span title="Aktivní">Aktivní</span>', 'active', 'active', '', 'this.active');
 		
 		$grid->addColumnLinkDetail('Detail');
 		
 		$grid->addButtonSaveAll();
 		
 		$grid->addFilterTextInput('search', ['ean', 'code'], null, 'EAN, kód');
-		$grid->addFilterTextInput('q', ['name_cs'], null, 'Název produktu');
+		$grid->addFilterTextInput('q', ['name'], null, 'Název produktu');
 		
-		$grid->addFilterCheckboxInput('notmapped', "fk_product IS NULL", 'Nenapárované');
+		$grid->addFilterText(function (ICollection $source, $value) {
+			$parsed = \explode('>', $value);
+			$expression = new Expression();
+			
+			for ($i = 1; $i != 5; $i++) {
+				if (isset($parsed[$i - 1])) {
+					$expression->add('AND', "category.categoryNameL$i=%s", [\trim($parsed[$i - 1])]);
+				}
+			}
+			
+			$source->where('(' . $expression->getSql() . ') OR producer.name=:producer', $expression->getVars() + ['producer' => $value]);
+			
+		}, '', 'category')->setHtmlAttribute('placeholder', 'Kategorie, výrobce')->setHtmlAttribute('class', 'form-control form-control-sm');
+		
+		$grid->addFilterCheckboxInput('notmapped', "fk_product IS NOT NULL", 'Importované');
 		
 		$grid->addButtonBulkEdit('form', ['active']);
 		
