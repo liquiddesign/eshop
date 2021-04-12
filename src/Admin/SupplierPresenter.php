@@ -58,7 +58,7 @@ class SupplierPresenter extends BackendPresenter
 		
 		$form->addInteger('importPriority', 'Priorita');
 		$form->addInteger('importPriceRatio', 'Procentuální změna ceny');
-		$form->addCheckbox('isImportActive', 'Aktivní');
+		$form->addCheckbox('isImportActive', 'Automaticky');
 		
 		$form->addSubmits(!$this->getParameter('supplier'));
 		
