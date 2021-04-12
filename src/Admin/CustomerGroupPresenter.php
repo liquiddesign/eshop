@@ -80,27 +80,22 @@ class CustomerGroupPresenter extends BackendPresenter
 		/** @var CustomerGroup $group */
 		$group = $this->getParameter('group');
 
-		$input = $form->addText('name', 'Název')->setRequired();
+		$form->addText('name', 'Název')->setRequired();
 		
-		if ($group && $group->isSystemic()) {
-			$input->setHtmlAttribute('readonly', 'readonly');
-		}
-
 		$form->addSelect('defaultCatalogPermission', 'Katalogové oprávnění', Shopper::PERMISSIONS);
 		$form->addDataMultiSelect('defaultPricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 
-		if (!($group && $group->getPK() == CustomerGroupRepository::UNREGISTERED_PK)) {
-			$form->addCheckbox('defaultAfterRegistration', 'Výchozí po registraci');
-			$form->addCheckbox('autoActiveCustomers', 'Zákazníci budou automaticky aktivní po registraci');
-		}
-
+		
+		$form->addCheckbox('defaultAfterRegistration', 'Výchozí po registraci');
+		$form->addCheckbox('autoActiveCustomers', 'Zákazníci budou automaticky aktivní po registraci');
+		
 		$form->addSubmits(!$group);
 
 		$form->onSuccess[] = function (AdminForm $form) use ($group) {
 			$values= $form->getValues('array');
 			
-			if ($values['defaultAfterRegistration'] ?? null) {
+			if ($values['defaultAfterRegistration']) {
 				$this->userGroupRepo->many()->update(['defaultAfterRegistration' => false]);
 			}
 
