@@ -54,4 +54,23 @@ class SupplierCategory extends \StORM\Entity
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
 	public string $createdTs;
+	
+	public function getNameTree(string $glue = ' > ')
+	{
+		$str = $this->categoryNameL1;
+		
+		if ($this->categoryNameL2) {
+			$str .= $glue . $this->categoryNameL2;
+		}
+		
+		if ($this->categoryNameL3) {
+			$str .= $glue . $this->categoryNameL3;
+		}
+		
+		if ($this->categoryNameL4) {
+			$str .= $glue . $this->categoryNameL4;
+		}
+		
+		return $str;
+	}
 }
