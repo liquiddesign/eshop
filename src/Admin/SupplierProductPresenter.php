@@ -82,8 +82,8 @@ class SupplierProductPresenter extends BackendPresenter
 		
 		$grid->addButtonSaveAll();
 		
-		$grid->addFilterTextInput('search', ['ean', 'code'], null, 'EAN, kód');
-		$grid->addFilterTextInput('q', ['name'], null, 'Název produktu');
+		$grid->addFilterTextInput('search', ['this.ean', 'this.code'], null, 'EAN, kód');
+		$grid->addFilterTextInput('q', ['this.name'], null, 'Název produktu');
 		
 		$grid->addFilterText(function (ICollection $source, $value) {
 			$parsed = \explode('>', $value);
