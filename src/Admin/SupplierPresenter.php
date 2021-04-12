@@ -79,9 +79,9 @@ class SupplierPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 		
-		$form->addCheckbox('overwrite', 'Přepsat nezamčené')->setDefaultValue(true);
+		$form->addCheckbox('only_new', 'Jen nové produkty')->setDefaultValue(false);
 		
-		$form->addSubmit('submit', 'Importovat');
+		$form->addSubmit('submit', 'Potvrdit');
 		
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
@@ -93,7 +93,7 @@ class SupplierPresenter extends BackendPresenter
 			$mutation = 'cs';
 			$country = 'CZ';
 			
-			$this->supplierProductRepository->syncProducts($supplier, $mutation, $country, $values['overwrite']);
+			$this->supplierProductRepository->syncProducts($supplier, $mutation, $country, !$values['only_new']);
 			
 			$pricelist = $this->pricelistRepository->syncOne([
 				'uuid' => DIConnection::generateUuid($supplier->getPK(), 'available'),
