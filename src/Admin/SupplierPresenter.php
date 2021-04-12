@@ -103,7 +103,7 @@ class SupplierPresenter extends BackendPresenter
 				'currency' => $currency,
 				'country' => $country,
 				'supplier' => $supplier,
-				'priority' => 2,
+				'priority' => 3,
 			], ['currency', 'country']);
 			
 			$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unavailable', false), $supplier, $pricelist);
@@ -116,7 +116,7 @@ class SupplierPresenter extends BackendPresenter
 				'currency' => $currency,
 				'country' => $country,
 				'supplier' => $supplier,
-				'priority' => 1,
+				'priority' => 4,
 			], ['currency', 'country']);
 			
 			$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unavailable', true), $supplier, $pricelist);
