@@ -126,9 +126,11 @@ class SupplierProductPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
 			
-			$parsed = \explode('.', $values['productFullCode']);
-			$values['productCode'] = $parsed[0] ?? null;
-			$values['productSubCode'] = $parsed[1] ?? null;
+			if ($values['productFullCode']) {
+				$parsed = \explode('.', (string) $values['productFullCode']);
+				$values['productCode'] = $parsed[0] ?? null;
+				$values['productSubCode'] = $parsed[1] ?? null;
+			}
 			
 			$supplierProduct = $this->getParameter('supplierProduct');
 			
