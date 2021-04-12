@@ -151,7 +151,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		
 		
 		
-		$grid->addFilterCheckboxInput('notmapped', "fk_$property IS NULL", 'Nenapárované');
+		$grid->addFilterCheckboxInput('notmapped', "fk_$property IS NOT NULL", 'Napárované');
 		
 		$grid->addFilterButtons();
 		
