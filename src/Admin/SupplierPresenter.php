@@ -37,9 +37,9 @@ class SupplierPresenter extends BackendPresenter
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		
 		$grid->addColumnInputText('Priorita', 'importPriority');
-		$grid->addColumnInputCheckbox('Aktivní', 'isImportActive', '', '', 'isImportActive');
+		$grid->addColumnInputCheckbox('Automaticky', 'isImportActive', '', '', 'isImportActive');
 		
-		$grid->addColumnLink('pair', '<i class="fa fa-play"></i> Import');
+		$grid->addColumnLink('pair', '<i class="fa fa-play"></i> Ruční import');
 		$grid->addColumnLinkDetail();
 		
 		$grid->addFilterTextInput('search', ['name', 'code'], null, 'Název, kód');
