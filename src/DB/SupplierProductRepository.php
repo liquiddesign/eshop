@@ -47,7 +47,7 @@ class SupplierProductRepository extends \StORM\Repository
 			$updates = \array_fill_keys($updates, null);
 			
 			foreach (\array_keys($updates) as $name) {
-				$updates[$name] = new Literal("IF((supplierLock IS NOT NULL && VALUES(supplierLock) >= supplierLock) || fk_supplierContent='$supplierId', VALUES($name), $name)");
+				$updates[$name] = new Literal("IF((supplierContentLock = 0 && VALUES(supplierLock) >= supplierLock) || fk_supplierContent='$supplierId', VALUES($name), $name)");
 			}
 			
 		} else {
@@ -55,6 +55,11 @@ class SupplierProductRepository extends \StORM\Repository
 		}
 		
 		foreach ($supplierProductRepository->many()->where('fk_supplier', $supplier)->where('active', true) as $draft) {
+			$category = $draft->category ? $draft->category->getValue('category') : null;
+			
+			if (!$category) {
+				continue;
+			}
 			
 			$code = $draft->productCode ?: $supplier->code . $draft->code;
 			$uuid = ProductRepository::generateUuid($draft->ean, $draft->getProductFullCode() ?: $supplier->code . '-' . $draft->code);
@@ -69,12 +74,13 @@ class SupplierProductRepository extends \StORM\Repository
 				'content' => [$mutation => $draft->content],
 				'unit' => $draft->unit,
 				'unavailable' => $draft->unavailable,
+				'hidden' => true,
 				'imageFileName' => $draft->fileName,
 				'vatRate' => $vatLevels[(int) $draft->vatRate] ?? 'standard',
 				'producer' => $draft->producer->getValue('producer'),
 				'displayAmount' => $draft->displayAmount ? $draft->displayAmount->getValue('displayAmount') : null,
-				'categories' => $draft->category && $draft->category->getValue('category') ? [$draft->category->getValue('category')] : [],
-				'primaryCategory' => $draft->category ? $draft->category->getValue('category') : null,
+				'categories' => $category ? [$category] : [],
+				'primaryCategory' => $category,
 				'supplierLock' => $supplier->importPriority,
 				'supplierSource' => $supplier,
 			];
@@ -86,7 +92,7 @@ class SupplierProductRepository extends \StORM\Repository
 				$product->categories->unrelateAll();
 				
 				if ($draft->category->getValue('category')) {
-					$product->categories->relate([$draft->category->getValue('category')], false);
+					$product->categories->relate([$category], false);
 				}
 			}
 			
