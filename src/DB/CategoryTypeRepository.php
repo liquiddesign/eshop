@@ -5,35 +5,31 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
+use Eshop\Shopper;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 use StORM\Collection;
+use StORM\DIConnection;
+use StORM\SchemaManager;
 
 /**
- * @extends \StORM\Repository<\Eshop\DB\Tag>
+ * @extends \StORM\Repository<\Eshop\DB\CategoryType>
  */
-class TagRepository extends \StORM\Repository implements IGeneralRepository
+class CategoryTypeRepository extends \StORM\Repository implements IGeneralRepository
 {
-	/**
-	 * @deprecated
-	 */
-	public function getListForSelect():array
-	{
-		return $this->getArrayForSelect();
-	}
-	
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('name');
 	}
-	
+
 	public function getCollection(bool $includeHidden = false): Collection
 	{
-		$suffix = $this->getConnection()->getMutationSuffix();
 		$collection = $this->many();
-		
+
 		if (!$includeHidden) {
 			$collection->where('hidden', false);
 		}
-		
-		return $collection->orderBy(['priority', "name$suffix"]);
+
+		return $collection->orderBy(['priority', "name"]);
 	}
 }

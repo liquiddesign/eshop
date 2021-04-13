@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use StORM\Collection;
+use StORM\RelationCollection;
 
 /**
  * Kategorie
@@ -99,7 +100,6 @@ class Category extends \StORM\Entity
 	 */
 	public bool $systemic = false;
 
-
 	public function isSystemic(): bool
 	{
 		return $this->systemic;
@@ -124,6 +124,13 @@ class Category extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public ?ParameterCategory $parameterCategory;
+
+	/**
+	 * Zařazení do menu
+	 * @relationNxN
+	 * @var \Eshop\DB\CategoryType[]|\StORM\RelationCollection<\Eshop\DB\CategoryType>
+	 */
+	public RelationCollection $types;
 
 	public function isBottom()
 	{

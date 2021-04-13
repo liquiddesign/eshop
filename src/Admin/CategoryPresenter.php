@@ -6,11 +6,15 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\CategoryType;
+use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\ParameterCategoryRepository;
 use Forms\Form;
 use Nette\Http\Request;
+use Nette\Utils\Arrays;
 use Nette\Utils\Image;
 use Nette\Utils\Random;
 use Pages\DB\PageRepository;
@@ -31,9 +35,25 @@ class CategoryPresenter extends BackendPresenter
 	/** @inject */
 	public ParameterCategoryRepository $parameterCategoryRepository;
 
+	/** @inject */
+	public CategoryTypeRepository $categoryTypeRepository;
+
+	private array $tabs = [];
+
+	/** @persistent */
+	public string $tab = 'none';
+
 	public function createComponentCategoryGrid()
 	{
-		$grid = $this->gridFactory->create($this->categoryRepository->many(), null, 'priority', 'ASC', true);
+		$source = $this->categoryRepository->many()->join(['type' => 'eshop_category_nxn_eshop_categorytype'], 'type.fk_category=this.uuid');
+
+		if ($this->tab != 'unclassified') {
+			$source->where('type.fk_categoryType', $this->tab);
+		} else {
+			$source->where('type.fk_categoryType IS NULL');
+		}
+
+		$grid = $this->gridFactory->create($source, null, 'this.priority', 'ASC', true);
 
 		$grid->setNestingCallback(static function ($source, $parent) {
 			if (!$parent) {
@@ -61,7 +81,7 @@ class CategoryPresenter extends BackendPresenter
 			return $object->parameterCategory ? "<a href='$link'>" . $object->parameterCategory->name . "</a>" : '';
 		}, '%s');
 
-		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
+		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'this.priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
@@ -70,7 +90,7 @@ class CategoryPresenter extends BackendPresenter
 
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected(null, false, function ($object) {
-			if($object){
+			if ($object) {
 				return !$object->isSystemic();
 			}
 
@@ -140,13 +160,14 @@ class CategoryPresenter extends BackendPresenter
 			unset($categories[$this->getParameter('category')->getPK()]);
 		}
 
+		$form->addDataMultiSelect('types', 'Typy', $this->categoryTypeRepository->getArrayForSelect());
 		$form->addDataSelect('ancestor', 'Nadřazená kategorie', $categories)->setPrompt('Žádná');
 		$form->addDataSelect('parameterCategory', 'Kategorie parametrů', $this->parameterCategoryRepository->getArrayForSelect())->setPrompt('Žádná')
 			->setHtmlAttribute('data-info', '&nbsp;Pokud nebude kategorie parametrů nastavena, bude získána kategorie parametrů z nadřazené kategorie.');
 		$form->addText('exportGoogleCategory', 'Exportní název pro Google');
 		$form->addText('exportHeurekaCategory', 'Export název pro Heuréku');
 		$form->addText('exportZboziCategory', 'Export název pro Zbozi');
-		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
+		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('recommended', 'Doporučeno');
 
@@ -190,14 +211,44 @@ class CategoryPresenter extends BackendPresenter
 		return $form;
 	}
 
+	public function actionDefault()
+	{
+		$this->tabs = $this->categoryTypeRepository->getArrayForSelect();
+		$this->tabs['unclassified'] = '<i class="fas fa-border-style"></i> Nezařazené';
+		$this->tabs['types'] = '<i class="fa fa-bars"></i> Typy';
+
+		if ($this->tab == 'none') {
+			$this->tab = \count($this->tabs) > 1 ? Arrays::first(\array_keys($this->tabs)) : 'unclassified';
+		}
+	}
+
 	public function renderDefault()
 	{
-		$this->template->headerLabel = 'Kategorie';
-		$this->template->headerTree = [
-			['Kategorie', 'default'],
-		];
-		$this->template->displayButtons = [$this->createNewItemButton('categoryNew')];
-		$this->template->displayControls = [$this->getComponent('categoryGrid')];
+		$this->template->tabs = $this->tabs;
+
+		if ($this->tab == 'types') {
+			$this->template->headerLabel = 'Typy kategorií';
+			$this->template->headerTree = [
+				['Kategorie', 'default'],
+				['Typy']
+			];
+			$this->template->displayButtons = [$this->createNewItemButton('categoryTypeNew')];
+			$this->template->displayControls = [$this->getComponent('categoryTypeGrid')];
+		} elseif ($this->tab == 'unclassified') {
+			$this->template->headerLabel = 'Nezařazené';
+			$this->template->headerTree = [
+				['Kategorie', 'default'],
+			];
+			$this->template->displayButtons = [$this->createNewItemButton('categoryNew')];
+			$this->template->displayControls = [$this->getComponent('categoryGrid')];
+		} else {
+			$this->template->headerLabel = 'Kategorie - ' . $this->tabs[$this->tab];
+			$this->template->headerTree = [
+				['Kategorie', 'default'],
+			];
+			$this->template->displayButtons = [$this->createNewItemButton('categoryNew')];
+			$this->template->displayControls = [$this->getComponent('categoryGrid')];
+		}
 	}
 
 	public function renderCategoryNew()
@@ -228,6 +279,98 @@ class CategoryPresenter extends BackendPresenter
 	{
 		/** @var Form $form */
 		$form = $this->getComponent('categoryNewForm');
-		$form->setDefaults($category->toArray());
+		$form->setDefaults($category->toArray(['types']));
+	}
+
+	public function createComponentCategoryTypeGrid(): AdminGrid
+	{
+		$grid = $this->gridFactory->create($this->categoryTypeRepository->many(), null, 'priority', 'ASC', true);
+		$grid->addColumnSelector();
+
+		$grid->addColumnText('Název', 'name', '%s', 'name');
+
+		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
+		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
+
+		$grid->addColumnLinkDetail('categoryTypeDetail');
+		$grid->addColumnActionDeleteSystemic();
+
+		$grid->addButtonSaveAll();
+		$grid->addButtonDeleteSelected(null, false, function ($object) {
+			if ($object) {
+				return !$object->isSystemic();
+			}
+
+			return false;
+		});
+
+		$grid->addButtonBulkEdit('categoryTypeForm', ['hidden', 'priority'], 'categoryTypeGrid');
+
+		$grid->addFilterTextInput('search', ['name'], null, 'Název');
+		$grid->addFilterButtons();
+
+		$grid->onDelete[] = function (CategoryType $object) {
+			$this->categoryRepository->clearCategoriesCache();
+		};
+
+		return $grid;
+	}
+
+	public function createComponentCategoryTypeForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+
+		$categoryType = $this->getParameter('categoryType');
+
+		$form->addText('name', 'Název');
+		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
+		$form->addCheckbox('hidden', 'Skryto');
+
+		$form->addSubmits(!$categoryType);
+
+		$form->onSuccess[] = function (AdminForm $form) {
+			$values = $form->getValues('array');
+
+			$categoryType = $this->categoryTypeRepository->syncOne($values);
+
+			$this->flashMessage('Uloženo', 'success');
+			$form->processRedirect('categoryTypeDetail', 'default', [$categoryType]);
+		};
+
+		return $form;
+	}
+
+	public function actionCategoryTypeNew()
+	{
+
+	}
+
+	public function renderCategoryTypeNew()
+	{
+		$this->template->headerLabel = 'Nový typ kategorie';
+		$this->template->headerTree = [
+			['Kategorie', 'default'],
+			['Typy']
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('categoryTypeForm')];
+	}
+
+	public function actionCategoryTypeDetail(CategoryType $categoryType)
+	{
+		/** @var Form $form */
+		$form = $this->getComponent('categoryTypeForm');
+		$form->setDefaults($categoryType->toArray());
+	}
+
+	public function renderCategoryTypeDetail(CategoryType $categoryType)
+	{
+		$this->template->headerLabel = 'Detail typu kategorie';
+		$this->template->headerTree = [
+			['Kategorie', 'default'],
+			['Typy']
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('categoryTypeForm')];
 	}
 }
