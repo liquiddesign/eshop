@@ -497,7 +497,11 @@ class CustomerPresenter extends BackendPresenter
 			$container->addCheckbox('buyAllowed', 'Oprávnění: Nákup');
 		}
 
-		$form = $this->accountFormFactory->create(false, ['permission', $container]);
+		if (isset($container)) {
+			$form = $this->accountFormFactory->create(false, ['permission', $container]);
+		} else {
+			$form = $this->accountFormFactory->create(false);
+		}
 
 		return $form;
 	}
