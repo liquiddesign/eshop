@@ -208,7 +208,7 @@ class PricelistsPresenter extends BackendPresenter
 			/** @var \Nette\Http\FileUpload $file */
 			$file = $form->getValues()->file;
 			
-			$priceList = $this->getParameter('pricelist');
+			$priceList = $this->getParameter('priceList');
 			$quantity = $this->getParameter('type') === 'quantity';
 			
 			$this->priceListRepository->csvImport($priceList, Reader::createFromString($file->getContents()), $quantity);
