@@ -77,7 +77,7 @@ class CategoryPresenter extends BackendPresenter
 			return false;
 		});
 
-		$grid->addButtonBulkEdit('categoryNewForm', ['ancestor', 'exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
+		$grid->addButtonBulkEdit('categoryNewForm', ['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
 
 
 		$grid->addFilterTextInput('search', ['code', 'name_cs'], null, 'Kód, Název');
