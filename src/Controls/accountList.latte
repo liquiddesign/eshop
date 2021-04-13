@@ -1,0 +1,63 @@
+{form filterForm class=>"lg:flex lg:items-center"}
+	<div class="flex flex-col lg:flex-row lg:items-end lg:w-1/2 mb-8">
+		<div class="form-group relative mb-2 lg:mb-0 flex-grow lg:mr-2">
+			<input n:name="login" type="text" class="form-control" placeholder="{_'accountList.searchAccount','Vyhledat účet'}" />
+		</div>
+
+		<div class="flex">
+			<input n:name="submit" type="submit" class="btn btn-primary" value="{_'.filter','Filtrovat'}">
+			<a href="{link reset!}" class="btn btn-secondary ml-2">{_'.cancel','Zrušit'}</a>
+		</div>
+	</div>
+{/form}
+
+<div n:if="!$control->getItemsOnPage()" class="text-gray">{_'accountList.noAccountsFilter','Nebyli nalezeny žádné účty. Zkuste změnit filtr.'}</div>
+
+{if count($control->getItemsOnPage())}
+	{var $dir = $control->getDirection(true)}
+
+	<table class="w-full">
+		<thead>
+		<tr class="border border-2 border-gray-lighter border-l-0 border-t-0 border-r-0">
+			<th><a href="{link this order => 'login-' . $dir}">{_'accountList.login', 'Login'}</a></th>
+			<th>{_'accountList.catalogPermission', 'Katalogové oprávnění'}</th>
+			<th></th>
+			{if $merchant instanceOf Eshop\DB\Merchant}<th></th>{/if}
+		</tr>
+		</thead>
+		<tbody>
+		{foreach $control->getItemsOnPage() as $item}
+			{form changePermForm-$item->uuid}
+				<tr class="border border-gray-light border-l-0 border-t-0 border-r-0 ">
+					<td class="p-4 whitespace-no-wrap">{$item->login}</td>
+					<td class="p-4 whitespace-no-wrap">
+						{if $merchant instanceOf Eshop\DB\Customer || $merchant->extendedPermission}
+							{input catalogPermission 'class'=>'', 'onChange'=>'this.form.submit()'}
+						{/if}
+					</td>
+					<td class="p-4 whitespace-no-wrap ">
+						{if $merchant instanceOf Eshop\DB\Customer || $merchant->extendedPermission}
+							{if $item->active}
+								<a href="{link deactivateAccount! $item->getPK()}">{_'customerList.deactivate','Deaktivovat'}</a>
+							{else}
+								<a href="{link activateAccount! $item->getPK()}">{_'customerList.activate','Aktivovat'}</a>
+							{/if}
+						{/if}
+					</td>
+					{if $merchant instanceOf Eshop\DB\Merchant}
+						<td class="p-4 whitespace-no-wrap">
+							{if $item->active}
+								<a href="{link login! $customer}">{_'customerList.signIn','Přihlásit'}</a>
+							{/if}
+						</td>
+					{/if}
+				</tr>
+			{/form }
+		{/foreach}
+		</tbody>
+	</table>
+
+	<div class="mt-3">
+		{include '../../@paging.latte' paginator:$paginator}
+	</div>
+{/if}

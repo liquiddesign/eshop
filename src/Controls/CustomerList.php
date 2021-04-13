@@ -41,40 +41,11 @@ class CustomerList extends Datalist
 		$this->customerRepository = $customerRepository;
 	}
 
-	public function handleLogin(string $user): void
-	{
-		$this->shopper->getMerchant()->update(['activeCustomer' => $user]);
-
-		$this->getPresenter()->redirect(':Web:Index:default');
-	}
-
 	public function handleReset(): void
 	{
 		$this->setFilters(['name' => null]);
 		$this->setOrder('fullname');
 		$this->getPresenter()->redirect('this');
-	}
-
-	public function handleDeactivateCustomerAccount($customer)
-	{
-		if ($customer = $this->customerRepository->one($customer)) {
-			if ($customer->account) {
-				$customer->account->update(['active' => false]);
-			}
-		}
-
-		$this->redirect('this');
-	}
-
-	public function handleActivateCustomerAccount($customer)
-	{
-		if ($customer = $this->customerRepository->one($customer)) {
-			if ($customer->account) {
-				$customer->account->update(['active' => true]);
-			}
-		}
-
-		$this->redirect('this');
 	}
 
 	public function render(): void
@@ -97,23 +68,14 @@ class CustomerList extends Datalist
 
 			$form = new Form();
 
-			$form->addSelect('catalogPermission', null, [
-				'none' => 'Žádné',
-				'catalog' => 'Katalogy',
-				'price' => 'Ceny',
-				'full' => 'Plné',
-			])->setDefaultValue($customer->catalogPermission);
-
 			$form->addSelect('orderPermission', null, [
 				'fullWithApproval' => 'Pouze se schválením',
 				'full' => 'Plné',
 			])->setDefaultValue($customer->orderPermission);
 
 			$form->onSuccess[] = function ($form, $values) use ($customer): void {
-				$customer->update([
-					'catalogPermission' => $values->catalogPermission,
-					'orderPermission' => $values->orderPermission
-				]);
+				$customer->update(['orderPermission' => $values->orderPermission]);
+				$this->redirect('this');
 			};
 
 			return $form;

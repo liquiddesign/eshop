@@ -34,9 +34,9 @@ class Shopper
 		'price' => 'Ceny',
 		'full' => 'Plné'
 	];
-	
+
 	private const MERCHANT_CATALOG_PERMISSIONS = 'price';
-	
+
 	/**
 	 * @var bool[]
 	 */
@@ -45,52 +45,52 @@ class Shopper
 		'confirmation' => true,
 		'emailAuthorization' => true,
 	];
-	
+
 	/**
 	 * @var \StORM\Collection<\Eshop\DB\Pricelist>|null
 	 */
 	private ?Collection $pricelists = null;
-	
+
 	private User $user;
-	
+
 	private PricelistRepository $pricelistRepository;
-	
+
 	private Currency $currency;
-	
+
 	private Country $country;
-	
+
 	/**
 	 * @var float[]
 	 */
 	private array $vatRates = [];
-	
+
 	/**
 	 * @var \Eshop\DB\Currency[]
 	 */
 	private array $altCurrencies = [];
-	
+
 	private Application $application;
-	
+
 	private CurrencyRepository $currencyRepository;
-	
+
 	private CountryRepository $countryRepository;
-	
+
 	private CustomerRepository $customerRepository;
-	
+
 	private MerchantRepository $merchantRepository;
-	
+
 	private CustomerGroupRepository $customerGroupRepository;
-	
+
 	private MinimalOrderValueRepository $minimalOrderValueRepository;
-	
+
 	private string $countryCode;
-	
+
 	private string $currencyCode;
 
 	private string $projectUrl;
 
 	private ?Customer $customer = null;
-	
+
 	private ?CustomerGroup $customerGroup;
 
 	public function __construct(
@@ -110,7 +110,7 @@ class Shopper
 		$this->user = $user;
 		$this->pricelistRepository = $pricelistRepository;
 		$this->application = $application;
-		
+
 		$this->countryRepository = $countryRepository;
 		$this->currencyRepository = $currencyRepository;
 		$this->customerRepository = $customerRepository;
@@ -118,7 +118,7 @@ class Shopper
 		$this->customerGroupRepository = $customerGroupRepository;
 		$this->minimalOrderValueRepository = $minimalOrderValueRepository;
 	}
-	
+
 	public function setRegistrationConfiguration(array $configuration): void
 	{
 		$this->registrationConfiguration = $configuration;
@@ -128,7 +128,7 @@ class Shopper
 	{
 		$this->projectUrl = $projectUrl;
 	}
-	
+
 	public function setCountry(string $countryCode): void
 	{
 		unset($this->country);
@@ -139,18 +139,18 @@ class Shopper
 	{
 		return $this->projectUrl;
 	}
-	
+
 	public function getCountry()
 	{
 		return $this->country ??= $this->countryRepository->one(['code' => $this->countryCode], true);
 	}
-	
+
 	public function setCurrency(string $currencyCode): void
 	{
 		unset($this->currency);
 		$this->currencyCode = $currencyCode;
 	}
-	
+
 	/**
 	 * Vrací aktuální měnu, pokud zadáte kód vrací měnu dle kódu
 	 */
@@ -159,14 +159,14 @@ class Shopper
 		if ($code) {
 			return $this->altCurrencies[$code] ??= $this->currencyRepository->one(['code' => $code], true);
 		}
-		
+
 		if ($this->getCustomer() && $this->getCustomer()->preferredCurrency) {
 			return $this->getCustomer()->preferredCurrency;
 		}
-		
+
 		return $this->currency ??= $this->currencyRepository->one(['code' => $this->currencyCode], true);
 	}
-	
+
 	/**
 	 * Vrací aktuálního uživatele
 	 * Prioritně vrací zákazníka nastaveného pomocí setCustomer
@@ -203,35 +203,35 @@ class Shopper
 		$this->customer = $customer;
 		$this->customerGroup = null;
 	}
-	
+
 	public function getMerchant(): ?Merchant
 	{
 		return $this->user->isLoggedIn() && $this->user->getIdentity() instanceof Merchant ? $this->user->getIdentity() : null;
 	}
-	
+
 	public function getCustomerGroup(): ?CustomerGroup
 	{
 		$customer = $this->getCustomer();
-		
+
 		return $this->customerGroup ??= $customer ? $customer->group : $this->customerGroupRepository->getUnregisteredGroup();
 	}
-	
+
 	public function setCustomerGroup(CustomerGroup $customerGroup): void
 	{
 		$this->customerGroup = $customerGroup;
 	}
-	
+
 	public function getMinimalOrderValue()
 	{
 		$group = $this->getCustomerGroup();
-		
+
 		if ($group && $minimalOrderValue = $this->minimalOrderValueRepository->getMinimalOrderValue($group, $this->getCurrency())) {
 			return $minimalOrderValue->price;
 		}
-		
+
 		return 0;
 	}
-	
+
 	/**
 	 * Vrací kolekci aktuálních ceník, respektující uživatel i měnu
 	 */
@@ -240,15 +240,15 @@ class Shopper
 		if ($this->pricelists !== null) {
 			return $this->pricelists;
 		}
-		
+
 		$customer = $this->getCustomer();
 		$unregistredGroup = $this->getCustomerGroup() ?: $this->customerGroupRepository->getUnregisteredGroup();
 		$unregisteredPricelists = $unregistredGroup->defaultPricelists->toArrayOf('uuid');
 		$repo = $this->pricelistRepository;
-		
+
 		return $this->pricelists = $customer ? $repo->getCustomerPricelists($customer, $currency ?: $this->getCurrency(), $this->getCountry()) : $repo->getPricelists($unregisteredPricelists, $currency ?: $this->getCurrency(), $this->getCountry());
 	}
-	
+
 	/**
 	 * @return mixed[]
 	 */
@@ -256,18 +256,26 @@ class Shopper
 	{
 		return $this->registrationConfiguration;
 	}
-	
+
 	public function getCatalogPermission(): string
 	{
 		$customer = $this->getCustomer();
-		
+
 		if ($this->getMerchant() && !$customer) {
 			return self::MERCHANT_CATALOG_PERMISSIONS;
 		}
-		
-		return $customer ? ($customer->getCatalogPermission() ? $customer->getCatalogPermission()->catalogPermission : 'none') : $this->getCustomerGroup()->defaultCatalogPermission;
+
+		if (!$customer) {
+			return $this->getCustomerGroup()->defaultCatalogPermission;
+		}
+
+		if (!$catalogPermission = $customer->getCatalogPermission()) {
+			return 'none';
+		}
+
+		return $catalogPermission->catalogPermission == 'price' && $catalogPermission->buyAllowed ? 'full' : $catalogPermission->catalogPermission;
 	}
-	
+
 	/**
 	 * @return float[]
 	 */
@@ -275,18 +283,18 @@ class Shopper
 	{
 		return $this->vatRates ??= $this->getCountry()->vatRates->toArrayOf('rate');
 	}
-	
+
 	public function showPricesWithVat(): bool
 	{
 		$customer = $this->getCustomer();
-		
+
 		if ($this->getMerchant() && !$customer) {
 			return false;
 		}
-		
+
 		return $customer ? $customer->pricesWithVat : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricesWithVat;
 	}
-	
+
 	/**
 	 * @param \Nette\Application\UI\ITemplate|\stdClass $template
 	 */
@@ -296,7 +304,7 @@ class Shopper
 			return $this->filterPrice($number, $currencyCode);
 		});
 	}
-	
+
 	/**
 	 * Formátuje cenu
 	 * @param float|int $number
@@ -306,16 +314,16 @@ class Shopper
 	public function filterPrice($number, ?string $currencyCode = null): string
 	{
 		$currency = $this->getCurrency($currencyCode);
-		
+
 		if ($currency->formatDecimals === null) {
 			$formatter = new \NumberFormatter($this->application->getMutation(), \NumberFormatter::CURRENCY);
-			
+
 			return $formatter->formatCurrency((float)$number, $currency->code);
 		}
-		
+
 		$nbsp = \html_entity_decode('&nbsp;');
 		$formatted = \number_format((float) $number, $currency->formatDecimals, $currency->formatDecimalSeparator, \str_replace(' ', $nbsp, $currency->formatThousandsSeparator));
-		
+
 		return ($currency->formatSymbolPosition !== 'after' ? $currency->symbol : '') . $formatted . $nbsp . ($currency->formatSymbolPosition === 'after' ? $currency->symbol : '');
 	}
 }

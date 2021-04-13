@@ -1,14 +1,14 @@
 {form filterForm class=>"lg:flex lg:items-center"}
 	<div class="flex flex-col lg:flex-row lg:items-end lg:w-1/2 mb-8">
-	<div class="form-group relative mb-2 lg:mb-0 flex-grow lg:mr-2">
-		<input n:name="name" type="text" class="form-control" placeholder="{_'customerList.searchCustomer','Vyhledat zákazníka'}" />
-	</div>
+		<div class="form-group relative mb-2 lg:mb-0 flex-grow lg:mr-2">
+			<input n:name="name" type="text" class="form-control" placeholder="{_'customerList.searchCustomer','Vyhledat zákazníka'}" />
+		</div>
 
-	<div class="flex">
-	<input n:name="submit" type="submit" class="btn btn-primary" value="{_'.filter','Filtrovat'}">
-	<a href="{link reset!}" class="btn btn-secondary ml-2">{_'.cancel','Zrušit'}</a>
-</div>
-</div>
+		<div class="flex">
+			<input n:name="submit" type="submit" class="btn btn-primary" value="{_'.filter','Filtrovat'}">
+			<a href="{link reset!}" class="btn btn-secondary ml-2">{_'.cancel','Zrušit'}</a>
+		</div>
+	</div>
 {/form}
 
 <div n:if="!$control->getItemsOnPage()" class="text-gray">{_'customerList.noCustomersFilter','Nebyli nalezeni žádní zákazníci. Zkuste změnit filtr.'}</div>
@@ -26,8 +26,7 @@
 			<th><a href="{link this order => 'ic-' . $dir}">{_'customerList.ic','IČ'}</a></th>
 			<th><a href="{link this order => 'city-' . $dir}">{_'customerList.deliveryAddr','Dodací adresa'}</a></th>
 			<th>{_'customerList.group','Skupina'}</th>
-			<th>{_'customerList.catalogPerm','Katalogové oprávnění'}</th>
-			<th></th>
+			{if $merchant instanceOf Eshop\DB\Customer}<th>{_'customerList.orderPerm','Objednávkové oprávnění'}</th>{/if}
 			<th></th>
 		</tr>
 		</thead>
@@ -42,23 +41,14 @@
 					<td class="p-4 whitespace-no-wrap">{$item->ic}</td>
 					<td class="p-4 whitespace-no-wrap">{$item->getDeliveryAddressLine()}</td>
 					<td class="p-4 whitespace-no-wrap">{@$item->group->name}</td>
+					{if $merchant instanceOf Eshop\DB\Customer}
+						<td class="p-4 whitespace-no-wrap">
+							{input orderPermission 'class'=>'', 'onChange'=>'this.form.submit()'}
+						</td>
+					{/if}
 					<td class="p-4 whitespace-no-wrap">
-						{if $item->account && $merchant->extendedPermission}
-							{input catalogPermission 'class'=>'', 'onChange'=>'this.form.submit()'}
-						{/if}
-					</td>
-					<td class="p-4 whitespace-no-wrap ">
-						{if $item->account && $merchant->extendedPermission}
-							{if $item->account->active}
-								<a href="{link deactivateCustomerAccount! $item->getPK()}">{_'customerList.deactivate','Deaktivovat'}</a>
-							{else}
-								<a href="{link activateCustomerAccount! $item->getPK()}">{_'customerList.activate','Aktivovat'}</a>
-							{/if}
-						{/if}
-					</td>
-					<td class="p-4 whitespace-no-wrap">
-						{if $item->account && $item->account->active}
-							<a href="{link login! $item->getPK()}">{_'customerList.signIn','Přihlásit'}</a>
+						{if \count($item->accounts) > 0}
+							<a href="{plink accounts $item->getPK()}">{_'customerList.accounts','Účty'}</a>
 						{/if}
 					</td>
 				</tr>
