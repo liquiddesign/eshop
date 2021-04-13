@@ -33,6 +33,9 @@ class CustomerGroupRepository extends \StORM\Repository implements IGeneralRepos
 		return $this->many()->where('uuid != :s', ['s' => self::UNREGISTERED_PK])->toArrayOf('name');
 	}
 
+	/**
+	 * @deprecated use getArrayForSelect()
+	 */
 	public function getListForSelect(): array
 	{
 		return $this->many()->toArrayOf('name');
