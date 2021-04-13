@@ -82,6 +82,9 @@ class CustomerPresenter extends BackendPresenter
 	/** @persistent */
 	public string $tab = 'customers';
 
+	/** @persistent */
+	public ?string $selectedCustomer = null;
+
 	public function createComponentCustomers()
 	{
 		$grid = $this->gridFactory->create($this->customerRepository->many(), 20, 'createdTs', 'DESC', true);
@@ -106,7 +109,7 @@ class CustomerPresenter extends BackendPresenter
 
 		$grid->addColumn('', function (Customer $object, Datagrid $datagrid) use ($btnSecondary) {
 			return \count($object->accounts) > 0 ?
-				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'accounts', 'accountGrid-customer' => [$object->getPK()]]) . "'>Účty</a>" :
+				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'accounts', 'customer' => $object, 'accountGrid-customer' => [$object->getPK()]]) . "'>Účty</a>" :
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('newAccount', $object) . "'>Vytvořit&nbsp;účet</a>";
 		}, '%s', null, ['class' => 'minimal']);
 
@@ -171,13 +174,20 @@ class CustomerPresenter extends BackendPresenter
 		$form = $this->getComponent('accountForm');
 		$form['account']->setDefaults($account->toArray());
 
-		if (isset($form['permission'])) {
-			$permission = $this->catalogPermissionRepo->many()->where('fk_account', $account->getPK())->first();
+		$customer = $this->selectedCustomer;
+
+		if (isset($form['permission']) && $customer) {
+			$permission = $this->catalogPermissionRepo->many()->where('fk_account', $account->getPK())->where('fk_customer', $customer)->first();
 			$form['permission']->setDefaults($permission ? $permission->toArray() : []);
 		}
 
-		$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values) {
-			$this->catalogPermissionRepo->many()->where('fk_account', $account->getPK())->update($values['permission']);
+		$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values) use ($customer) {
+			$collection = $this->catalogPermissionRepo->many()->where('fk_account', $account->getPK());
+			if ($customer) {
+				$collection->where('fk_customer', $customer);
+			}
+
+			$collection->update($values['permission']);
 		};
 	}
 
@@ -279,7 +289,12 @@ class CustomerPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderDefault(?Customer $customer): void
+	public function actionDefault(?Customer $customer = null): void
+	{
+		$this->selectedCustomer = $customer ? $customer->getPK() : null;
+	}
+
+	public function renderDefault(?Customer $customer = null): void
 	{
 		if ($this->tab == 'customers') {
 			$this->template->headerLabel = 'Zákazníci';
@@ -489,12 +504,18 @@ class CustomerPresenter extends BackendPresenter
 
 		if ($account && $this->catalogPermissionRepo->many()->where('fk_account', $account)->count() > 0) {
 			$container = new Container();
-			$container->addSelect('catalogPermission', 'Oprávnění: Katalog', [
+			$select = $container->addSelect('catalogPermission', 'Oprávnění: Katalog', [
 				'none' => 'Žádné',
 				'catalog' => 'Katalogy',
 				'price' => 'Ceny',
 			]);
-			$container->addCheckbox('buyAllowed', 'Oprávnění: Nákup');
+
+			$checkbox = $container->addCheckbox('buyAllowed', 'Oprávnění: Nákup');
+
+			if (!$this->selectedCustomer) {
+				$select->setHtmlAttribute('data-info', 'Nebyl zvolen zákazník. Tato změna bude aplikována pro všechny záznamy!');
+				$checkbox->setHtmlAttribute('data-info', 'Nebyl zvolen zákazník. Tato změna bude aplikována pro všechny záznamy!');
+			}
 		}
 
 		if (isset($container)) {
