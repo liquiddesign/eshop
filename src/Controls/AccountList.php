@@ -106,8 +106,13 @@ class AccountList extends Datalist
 				'price' => 'Ceny'
 			])->setDefaultValue($catalogPerm->catalogPermission);
 
+			$form->addCheckbox('buyAllowed')->setHtmlAttribute('onChange','this.form.submit()')->setDefaultValue($catalogPerm->buyAllowed);
+
 			$form->onSuccess[] = function ($form, $values) use ($catalogPerm): void {
-				$catalogPerm->update(['catalogPermission' => $values->catalogPermission]);
+				$catalogPerm->update([
+					'catalogPermission' => $values->catalogPermission,
+					'buyAllowed' => $values->buyAllowed
+				]);
 				$this->redirect('this');
 			};
 
