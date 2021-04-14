@@ -55,13 +55,15 @@ class CategoryPresenter extends BackendPresenter
 
 		$grid = $this->gridFactory->create($source, null, 'this.priority', 'ASC', true);
 
-		$grid->setNestingCallback(static function ($source, $parent) {
-			if (!$parent) {
-				return $source->where('LENGTH(path)=4');
-			}
+		if ($this->tab != 'unclassified') {
+			$grid->setNestingCallback(static function ($source, $parent) {
+				if (!$parent) {
+					return $source->where('LENGTH(path)=4');
+				}
 
-			return $source->where('path!=:parent AND path LIKE :path', ['path' => $parent->path . '%', 'parent' => $parent->path]);
-		});
+				return $source->where('path!=:parent AND path LIKE :path', ['path' => $parent->path . '%', 'parent' => $parent->path]);
+			});
+		}
 
 		$grid->addColumnSelector();
 
@@ -160,7 +162,6 @@ class CategoryPresenter extends BackendPresenter
 			unset($categories[$this->getParameter('category')->getPK()]);
 		}
 
-		$form->addDataMultiSelect('types', 'Typy', $this->categoryTypeRepository->getArrayForSelect());
 		$form->addDataSelect('ancestor', 'Nadřazená kategorie', $categories)->setPrompt('Žádná');
 		$form->addDataSelect('parameterCategory', 'Kategorie parametrů', $this->parameterCategoryRepository->getArrayForSelect())->setPrompt('Žádná')
 			->setHtmlAttribute('data-info', '&nbsp;Pokud nebude kategorie parametrů nastavena, bude získána kategorie parametrů z nadřazené kategorie.');
@@ -182,6 +183,10 @@ class CategoryPresenter extends BackendPresenter
 
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
+
+				if($this->tab != 'unclassified'){
+					$values['types'] = [$this->tab];
+				}
 			}
 
 			$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
@@ -279,7 +284,7 @@ class CategoryPresenter extends BackendPresenter
 	{
 		/** @var Form $form */
 		$form = $this->getComponent('categoryNewForm');
-		$form->setDefaults($category->toArray(['types']));
+		$form->setDefaults($category->toArray());
 	}
 
 	public function createComponentCategoryTypeGrid(): AdminGrid
