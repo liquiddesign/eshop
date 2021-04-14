@@ -34,57 +34,54 @@ class CustomerPresenter extends BackendPresenter
 {
 	/** @inject */
 	public AccountFormFactory $accountFormFactory;
-
+	
 	/** @inject */
 	public CustomerRepository $customerRepository;
-
+	
 	/** @inject */
 	public AccountRepository $accountRepository;
-
+	
 	/** @inject */
 	public MerchantRepository $merchantRepository;
-
+	
 	/** @inject */
 	public TemplateRepository $templateRepository;
-
+	
 	/** @inject */
 	public ProductRepository $productRepo;
-
+	
 	/** @inject */
 	public PaymentTypeRepository $paymentTypeRepo;
-
+	
 	/** @inject */
 	public DeliveryTypeRepository $deliveryTypeRepo;
-
+	
 	/** @inject */
 	public CurrencyRepository $currencyRepo;
-
+	
 	/** @inject */
 	public CustomerGroupRepository $groupsRepo;
-
+	
 	/** @inject */
 	public AddressRepository $addressRepo;
-
+	
 	/** @inject */
 	public Mailer $mailer;
-
+	
 	/** @inject */
 	public PricelistRepository $pricelistRepo;
-
+	
 	/** @inject */
 	public CatalogPermissionRepository $catalogPermissionRepo;
-
+	
 	public const TABS = [
 		'customers' => 'Zákazníci',
 		'accounts' => 'Účty',
 	];
-
+	
 	/** @persistent */
 	public string $tab = 'customers';
-
-	/** @persistent */
-	public ?string $selectedCustomer = null;
-
+	
 	public function createComponentCustomers()
 	{
 		$grid = $this->gridFactory->create($this->customerRepository->many(), 20, 'createdTs', 'DESC', true);
@@ -95,108 +92,114 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnText('Skupina', 'group.name', '%s', 'group.name');
 		$grid->addColumnText('Telefon', 'phone', '<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		$grid->addColumnText('Email', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
-
+		
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('Feed', function (Customer $customer) use ($btnSecondary) {
 			return "<a class='$btnSecondary' target='_blank' href='" . $this->link('//:Eshop:Export:customer', $customer->getPK()) . "'><i class='fa fa-sm fa-rss'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
-
+		
 		$grid->addColumn('Login', function (Customer $object, Datagrid $grid) use ($btnSecondary) {
 			$link = \count($object->accounts) > 0 ? $grid->getPresenter()->link('loginCustomer!', [$object->accounts->first()->login]) : '#';
-
+			
 			return "<a class='" . (\count($object->accounts) > 0 ? '' : 'disabled') . " $btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
-
+		
 		$grid->addColumn('', function (Customer $object, Datagrid $datagrid) use ($btnSecondary) {
 			return \count($object->accounts) > 0 ?
-				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'accounts', 'customer' => $object, 'accountGrid-customer' => [$object->getPK()]]) . "'>Účty</a>" :
+				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'accounts', 'accountGrid-company' => $object->company ?: $object->fullname]) . "'>Účty</a>" :
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('newAccount', $object) . "'>Vytvořit&nbsp;účet</a>";
 		}, '%s', null, ['class' => 'minimal']);
-
+		
 		$grid->addColumnLink('editAddress', 'Adresy');
 		$grid->addColumnLinkDetail('edit');
-
+		
 		$grid->addColumnActionDelete([$this->accountFormFactory, 'deleteAccountHolder']);
-
+		
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder']);
-
+		
 		$grid->addButtonBulkEdit('form', ['pricelists', 'merchant', 'group', 'newsletter'], 'customers');
-
+		
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů');
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
 		$submit->onClick[] = [$this, 'exportCustomers'];
-
+		
 		$grid->addFilterTextInput('search', ['this.fullname', 'this.email', 'this.phone'], null, 'Jméno a příjmení, email, telefon');
-
+		
 		if (\count($this->merchantRepository->getListForSelect()) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$source->where('fk_merchant', $value);
 			}, '', 'merchant', 'Obchodník', $this->merchantRepository->getListForSelect(), ['placeholder' => '- Obchodník -']);
 		}
-
+		
 		if (\count($this->groupsRepo->getListForSelect()) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$source->where('fk_group', $value);
 			}, '', 'group', 'Skupina', $this->groupsRepo->getListForSelect(), ['placeholder' => '- Skupina -']);
 		}
-
+		
 		$grid->addFilterCheckboxInput('newsletter', "newsletter = 1", 'Newsletter');
-
+		
 		$grid->addFilterButtons();
-
+		
 		return $grid;
 	}
-
+	
 	public function exportCustomers(Button $button)
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
-
+		
 		$tempFilename = \tempnam($this->tempDir, "csv");
 		$collection = $grid->getSource()->where($grid->getSourceIdName(), $grid->getSelectedIds());
 		$this->customerRepository->csvExport($collection, Writer::createFromPath($tempFilename, 'w+'));
-
+		
 		$response = new FileResponse($tempFilename, "zakaznici.csv", 'text/csv');
 		$this->sendResponse($response);
 	}
-
+	
 	public function handleLoginCustomer($login)
 	{
 		$this->user->login($login, '', [Customer::class], true);
-
+		
 		$this->presenter->redirect(':Web:Index:default');
 	}
-
+	
 	public function actionEditAccount(Account $account): void
 	{
 		/** @var Form $form */
 		$form = $this->getComponent('accountForm');
 		$form['account']->setDefaults($account->toArray());
-
-		$customer = $this->selectedCustomer;
-
-		if (isset($form['permission']) && $customer) {
-			$permission = $this->catalogPermissionRepo->many()->where('fk_account', $account->getPK())->where('fk_customer', $customer)->first();
-			$form['permission']->setDefaults($permission ? $permission->toArray() : []);
+		
+		$permission = $this->catalogPermissionRepo->many()->where('fk_account', $account->getPK())->first();
+		
+		if ($permission) {
+			$form['permission']->setDefaults($permission->toArray());
+			
+			$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values) use ($permission, $form) {
+				$permission->update($values['permission']);
+				$this->flashMessage('Uloženo', 'success');
+				$form->processRedirect('editAccount', 'default', [$account]);
+			};
 		}
-
-		$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values) use ($customer) {
-			$collection = $this->catalogPermissionRepo->many()->where('fk_account', $account->getPK());
-			if ($customer) {
-				$collection->where('fk_customer', $customer);
-			}
-
-			$collection->update($values['permission']);
-		};
 	}
-
+	
 	public function actionNewAccount(?Customer $customer = null)
 	{
 		$form = $this->getComponent('accountForm');
 		$form['account']['password']->setRequired();
+		
+		if ($customer) {
+			$form['permission']['customer']->setDefaultValue($customer);
+		}
+		
+		$this->accountFormFactory->onCreateAccount[] = function (Account $account, array $values) use ($form) {
+			$this->catalogPermissionRepo->createOne($values['permission'] + ['account' => $account]);
+			$this->flashMessage('Uloženo', 'success');
+			$form->processRedirect('editAccount', 'default', [$account]);
+		};
 	}
-
+	
 	public function renderNewAccount(?Customer $customer = null): void
 	{
 		$this->template->headerLabel = 'Nový účet zákazníka';
@@ -207,11 +210,11 @@ class CustomerPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('accountForm')];
 	}
-
+	
 	public function createComponentForm()
 	{
 		$form = $this->formFactory->create();
-
+		
 		$form->addText('fullname', 'Jméno a příjmení');
 		$form->addText('phone', 'Telefon');
 		$form->addText('company', 'Firma');
@@ -220,21 +223,20 @@ class CustomerPresenter extends BackendPresenter
 		$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired();
 		$form->addText('ccEmails', 'Kopie emailů')->setHtmlAttribute('data-info', 'Zadejte emailové adresy oddělené středníkem (;).');
 		$form->addCheckbox('newsletter', 'Přihlášen k newsletteru');
-
+		
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->many()->toArrayOf('name'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
-
+		
 		$customersForSelect = $this->customerRepository->getArrayForSelect();
-
+		
 		if ($customer = $this->getParameter('customer')) {
 			unset($customersForSelect[$customer->getPK()]);
 		}
-
+		
 		$form->addDataSelect('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->setPrompt('Žádná');
 		$form->addDataSelect('merchant', 'Obchodník', $this->merchantRepository->getArrayForSelect())->setPrompt('Žádná');
 		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getRegisteredGroupsArray())->setPrompt('Žádná');
-		$form->addDataMultiSelect('accounts', 'Účty', $this->accountRepository->many()->where('uuid != "servis"')->toArrayOf('login'));
-
+		
 		$form->addGroup('Nákup a preference');
 		$form->addSelect('orderPermission', 'Oprávnění: objednávky', [
 			'fullWithApproval' => 'Pouze se schválením',
@@ -255,25 +257,25 @@ class CustomerPresenter extends BackendPresenter
 			->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
 		$form->addText('ediBranch', 'EDI: Identifikátor pobočky')
 			->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
-
+		
 		//$form->bind($this->customerRepository->getStructure(), []);
-
+		
 		$form->addSubmits(!$this->getParameter('customer'));
-
+		
 		return $form;
 	}
-
+	
 	public function createComponentEditAddress()
 	{
 		$form = $this->formFactory->create();
-
+		
 		$form->addGroup('Fakturační adresa');
 		$billAddress = $form->addContainer('billAddress');
 		$billAddress->addText('street', 'Ulice');
 		$billAddress->addText('city', 'Město');
 		$billAddress->addText('zipcode', 'PSČ');
 		$billAddress->addText('state', 'Stát');
-
+		
 		$form->addGroup('Doručovací adresa');
 		$deliveryAddress = $form->addContainer('deliveryAddress');
 		$deliveryAddress->addText('name', ' Jméno a příjmení / název firmy');
@@ -281,19 +283,15 @@ class CustomerPresenter extends BackendPresenter
 		$deliveryAddress->addText('city', 'Město');
 		$deliveryAddress->addText('zipcode', 'PSČ');
 		$deliveryAddress->addText('state', 'Stát');
-
+		
 		$form->bind(null, ['deliveryAddress' => $this->addressRepo->getStructure(), 'billAddress' => $this->addressRepo->getStructure()]);
-
+		
 		$form->addSubmits();
-
+		
 		return $form;
 	}
-
-	public function actionDefault(?Customer $customer = null): void
-	{
-		$this->selectedCustomer = $customer ? $customer->getPK() : null;
-	}
-
+	
+	
 	public function renderDefault(?Customer $customer = null): void
 	{
 		if ($this->tab == 'customers') {
@@ -312,10 +310,10 @@ class CustomerPresenter extends BackendPresenter
 			$this->template->displayButtons = [$this->createNewItemButton('newAccount')];
 			$this->template->displayControls = [$this->getComponent('accountGrid')];
 		}
-
+		
 		$this->template->tabs = self::TABS;
 	}
-
+	
 	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nový zákazník';
@@ -326,7 +324,7 @@ class CustomerPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
-
+	
 	public function renderEdit(): void
 	{
 		$this->template->headerLabel = 'Detail zákazníka - ' . $this->getParameter('customer')->fullname;
@@ -337,7 +335,7 @@ class CustomerPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
-
+	
 	public function renderEditAddress(): void
 	{
 		$this->template->headerLabel = 'Detail adresy zákazníka - ' . $this->getParameter('customer')->fullname;
@@ -348,7 +346,7 @@ class CustomerPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('editAddress')];
 	}
-
+	
 	public function renderEditAccount(Account $account): void
 	{
 		$this->template->headerLabel = 'Detail účtu - ' . $account->login;
@@ -360,37 +358,37 @@ class CustomerPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('accountForm')];
 	}
-
+	
 	public function actionNew()
 	{
 		/** @var Form $form */
 		$form = $this->getComponent('form');
-
+		
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
-
+			
 			$accounts = $values['accounts'];
 			unset($values['accounts']);
-
+			
 			$customer = $this->customerRepository->syncOne($values, null, true);
-
+			
 			foreach ($accounts as $account) {
 				/** @var \Eshop\DB\CatalogPermission $permission */
 				$permission = $this->catalogPermissionRepo->many()
 					->where('fk_account', $account)
 					->first();
-
+				
 				/** @var \Eshop\DB\CatalogPermission $permission */
 				$realPermission = $this->catalogPermissionRepo->many()
 					->where('fk_account', $account)
 					->where('fk_customer', $customer->getPK())
 					->first();
-
+				
 				$newValues = [
 					'customer' => $customer->getPK(),
 					'account' => $account,
 				];
-
+				
 				if ($permission) {
 					$newValues += [
 						'catalogPermission' => $permission->catalogPermission,
@@ -398,29 +396,29 @@ class CustomerPresenter extends BackendPresenter
 						'orderAllowed' => $permission->orderAllowed,
 					];
 				}
-
+				
 				if ($realPermission) {
 					$realPermission->update($newValues);
 				} else {
 					$this->catalogPermissionRepo->createOne($newValues);
 				}
 			}
-
+			
 			$this->flashMessage('Vytvořeno', 'success');
 			$form->processRedirect('edit', 'default', [$customer]);
 		};
 	}
-
+	
 	public function actionEdit(Customer $customer)
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('form');
-
+		
 		$form->setDefaults($customer->toArray(['pricelists', 'exclusivePaymentTypes', 'exclusiveDeliveryTypes', 'accounts']));
-
+		
 		$form->onSuccess[] = function (AdminForm $form) use ($customer) {
 			$values = $form->getValues('array');
-
+			
 			foreach ($this->catalogPermissionRepo->many()->where('fk_customer', $customer->getPK()) as $permission) {
 				if (Arrays::contains($values['accounts'], $permission->getValue('account'))) {
 					unset($values['accounts'][$permission->getValue('account')]);
@@ -428,24 +426,24 @@ class CustomerPresenter extends BackendPresenter
 					$permission->delete();
 				}
 			}
-
+			
 			foreach ($values['accounts'] as $account) {
 				/** @var \Eshop\DB\CatalogPermission $permission */
 				$permission = $this->catalogPermissionRepo->many()
 					->where('fk_account', $account)
 					->first();
-
+				
 				/** @var \Eshop\DB\CatalogPermission $permission */
 				$realPermission = $this->catalogPermissionRepo->many()
 					->where('fk_account', $account)
 					->where('fk_customer', $customer->getPK())
 					->first();
-
+				
 				$newValues = [
 					'customer' => $customer->getPK(),
 					'account' => $account,
 				];
-
+				
 				if ($permission) {
 					$newValues += [
 						'catalogPermission' => $permission->catalogPermission,
@@ -453,120 +451,112 @@ class CustomerPresenter extends BackendPresenter
 						'orderAllowed' => $permission->orderAllowed,
 					];
 				}
-
+				
 				if ($realPermission) {
 					$realPermission->update($newValues);
 				} else {
 					$this->catalogPermissionRepo->createOne($newValues);
 				}
 			}
-
+			
 			unset($values['accounts']);
-
+			
 			/** @var \Eshop\DB\Customer $customer */
 			$customer = $this->customerRepository->syncOne($values, null, true);
-
+			
 			$form->getPresenter()->flashMessage('Uloženo', 'success');
 			$form->processRedirect('edit', 'default', [$customer]);
 		};
-
+		
 		$this->renderEdit();
 	}
-
+	
 	public function actionEditAddress(Customer $customer): void
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('editAddress');
-
+		
 		$form->setDefaults($customer->jsonSerialize());
-
+		
 		$form->onSuccess[] = function (AdminForm $form) use ($customer) {
 			$values = $form->getValues('array');
-
+			
 			$bill = $this->addressRepo->syncOne($values['billAddress']);
 			$delivery = $this->addressRepo->syncOne($values['deliveryAddress']);
-
+			
 			$customer->update([
 				'billAddress' => $bill,
 				'deliveryAddress' => $delivery,
 			]);
-
+			
 			$form->getPresenter()->flashMessage('Uloženo', 'success');
 			$form->processRedirect('this', 'default');
 		};
-
+		
 		$this->renderEditAddress();
 	}
-
+	
 	public function createComponentAccountForm(): AdminForm
 	{
-		$account = $this->getParameter('account');
-
-		if ($account && $this->catalogPermissionRepo->many()->where('fk_account', $account)->count() > 0) {
-			$container = new Container();
-			$select = $container->addSelect('catalogPermission', 'Oprávnění: Katalog', [
+		$callback = function (Form $form) {
+			
+			$form->addGroup('Oprávnění a zákazník');
+			$container = $form->addContainer('permission');
+			$container->addDataSelect('customer', 'Zákazník', $this->customerRepository->getArrayForSelect())->setPrompt('-Zvolte-')->setRequired();
+			$container->addSelect('catalogPermission', 'Zobrazení', [
 				'none' => 'Žádné',
 				'catalog' => 'Katalogy',
 				'price' => 'Ceny',
 			]);
-
-			$checkbox = $container->addCheckbox('buyAllowed', 'Oprávnění: Nákup');
-
-			if (!$this->selectedCustomer) {
-				$select->setHtmlAttribute('data-info', 'Nebyl zvolen zákazník. Tato změna bude aplikována pro všechny záznamy!');
-				$checkbox->setHtmlAttribute('data-info', 'Nebyl zvolen zákazník. Tato změna bude aplikována pro všechny záznamy!');
-			}
-		}
-
-		if (isset($container)) {
-			$form = $this->accountFormFactory->create(false, ['permission', $container]);
-		} else {
-			$form = $this->accountFormFactory->create(false);
-		}
-
+			$container->addCheckbox('buyAllowed', 'Povolit nákup');
+		};
+		
+		$form = $this->accountFormFactory->create(false, $callback);
+		
 		return $form;
 	}
-
+	
 	public function createComponentAccountGrid()
 	{
-		/*
-	 	->join(['catalogPermission' => 'eshop_catalogpermission'], 'catalogPermission.fk_account = this.uuid')
-		->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogPermission.fk_customer')
-		 */
-
-		$grid = $this->gridFactory->create($this->accountRepository->many()->where('this.uuid != "servis"'), 20, 'createdTs', 'DESC', true);
+		$collection = $this->accountRepository->many()
+			->join(['catalogPermission' => 'eshop_catalogpermission'], 'catalogPermission.fk_account = this.uuid')
+			->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogPermission.fk_customer')
+			->where('customer.uuid IS NOT NULL')
+			->select(['company' => 'customer.company', 'fullname' => 'customer.fullname'])
+			->select(['permission' => 'catalogPermission.catalogPermission', 'buyAllowed' => 'catalogPermission.buyAllowed']);
+		
+		$grid = $this->gridFactory->create($collection, 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
-		$grid->addColumn('Aktivní', function (Account $account) {
-			return '<i title=' . ($account->isActive() ? 'Aktivní' : 'Neaktivní') . ' class="fa fa-circle fa-sm text-' . ($account->isActive() ? 'success' : 'danger') . '">';
-		}, '%s', 'active', ['class' => 'fit']);
-		$grid->addColumn('Autorizovaný', function (Account $account) {
-			return '<i title=' . ($account->authorized ? 'Autorizovaný' : 'Neautorizovaný') . ' class="fa fa-circle fa-sm text-' . ($account->authorized ? 'success' : 'danger') . '">';
-		}, '%s', 'authorized', ['class' => 'fit']);
-		$grid->addColumnText('Login', 'login', '%s', 'login');
+		$grid->addColumnText('Vytvořen', 'tsRegistered|date', '%s', 'tsRegistered', ['class' => 'fit']);
+		$grid->addColumnText('Login', 'login', '%s', 'login', ['class' => 'fit']);
+		$grid->addColumn('Zákazník', function (Account $account) {
+			return $account->company ? $account->company . ' (' . $account->fullname . ')' : $account->fullname;
+		});
+		$grid->addColumn('Oprávnění', function (Account $account) {
+			$label = ['none' => 'Žádné', 'catalog' => 'Katalogy', 'price' => 'Ceny',];
+			
+			return '' . $label[$account->permission] . ' + ' . ($account->buyAllowed ? 'nákup' : 'bez nákupu');
+		});
+		
 		$grid->addColumnText('Aktivní od', 'activeFrom', '%s', 'activeFrom', ['class' => 'fit']);
 		$grid->addColumnText('Aktivní do', 'activeTo', '%s', 'activeTo', ['class' => 'fit']);
-		$grid->addColumnText('Registrace', 'tsRegistered|date', '%s', 'tsRegistered', ['class' => 'fit']);
-
+		$grid->addColumnInputCheckbox('Aktivní', 'active');
+		$grid->addColumnInputCheckbox('Autorizovaný', 'authorized');
+		
 		$grid->addColumnLinkDetail('editAccount');
-
+		
 		$grid->addColumnActionDelete();
-
+		
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected();
-
-		$grid->addButtonBulkEdit('accountForm', [], 'accountGrid');
-
+		
 		$grid->addFilterTextInput('search', ['this.login'], null, 'Login');
-
-		if (\count($this->customerRepository->getArrayForSelect()) > 0) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$source->join(['catalogPermission' => 'eshop_catalogpermission'], 'catalogPermission.fk_account = this.uuid');
-				$source->where('catalogPermission.fk_customer', $value);
-			}, '', 'customer', 'Zákazník', $this->customerRepository->getArrayForSelect(), ['placeholder' => '- Zákazník -']);
-		}
-
+		$grid->addFilterTextInput('company', ['customer.company', 'customer.fullname', 'customer.ic'], null, 'Zákazník, IČ');
+		
+		
+		
 		$grid->addFilterButtons();
-
+		
 		return $grid;
 	}
 }
