@@ -62,6 +62,8 @@ class AccountList extends Datalist
 				$collection->join(['catalogpermission' => 'eshop_catalogpermission'], 'this.uuid = catalogpermission.fk_account')
 					->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogpermission.fk_customer');
 
+				$collection->select(['customer.fullname']);
+
 				if ($user instanceof Merchant) {
 					if ($user->customerGroup) {
 						$collection->where('customer.fk_group=:customerGroup OR customer.fk_merchant=:merchant', [
@@ -83,7 +85,9 @@ class AccountList extends Datalist
 
 	public function handleLogin(string $account): void
 	{
-		$this->shopper->getMerchant()->update(['activeCustomer' => $this->getPresenter()->getParameter('customer')]);
+		$customer = $this->customerRepository->many()->join(['catalogpermission' => 'eshop_catalogpermission'], 'this.uuid = catalogpermission.fk_account')->first();
+
+		$this->shopper->getMerchant()->update(['activeCustomer' => $this->getPresenter()->getParameter('customer') ?? $customer]);
 		$this->shopper->getMerchant()->update(['activeCustomerAccount' => $account]);
 
 		$this->getPresenter()->redirect(':Web:Index:default');
@@ -112,6 +116,7 @@ class AccountList extends Datalist
 	{
 		$this->template->merchant = $merchant = $this->shopper->getMerchant() ?? $this->shopper->getCustomer();
 		$this->template->customer = $this->shopper->getCustomer();
+		$this->template->customerParameter = $this->getPresenter()->getParameter('customer');
 		$this->template->paginator = $this->getPaginator();
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/accountList.latte');
 	}
