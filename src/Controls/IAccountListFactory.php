@@ -8,5 +8,5 @@ use StORM\Collection;
 
 interface IAccountListFactory
 {
-	public function create(Collection $accounts): AccountList;
+	public function create(?Collection $accounts = null): AccountList;
 }

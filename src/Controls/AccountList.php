@@ -28,9 +28,16 @@ class AccountList extends Datalist
 
 	private CatalogPermissionRepository $catalogPermissionRepository;
 
-	public function __construct(Collection $accounts, Shopper $shopper, AccountRepository $accountRepository, CatalogPermissionRepository $catalogPermissionRepository)
+	private CustomerRepository $customerRepository;
+
+	public function __construct(Shopper $shopper, AccountRepository $accountRepository, CatalogPermissionRepository $catalogPermissionRepository, CustomerRepository $customerRepository, ?Collection $accounts = null)
 	{
-		parent::__construct($accounts);
+		$this->shopper = $shopper;
+		$this->accountRepository = $accountRepository;
+		$this->catalogPermissionRepository = $catalogPermissionRepository;
+		$this->customerRepository = $customerRepository;
+
+		parent::__construct($accounts ?? $this->accountRepository->many());
 
 		$this->setDefaultOnPage(20);
 		$this->setDefaultOrder('login');
@@ -39,19 +46,39 @@ class AccountList extends Datalist
 			$collection->where('login LIKE :query', ['query' => '%' . $value . '%']);
 		}, '');
 
+		$this->addFilterExpression('customer', function (ICollection $collection, $customer): void {
+			if ($customer) {
+				$customer = $this->customerRepository->one($customer, true);
+
+				$collection->join(['catalogpermission' => 'eshop_catalogpermission'], 'this.uuid = catalogpermission.fk_account')
+					->where('catalogpermission.fk_customer', $customer->getPK());
+			}
+		}, '');
+
+		$this->addFilterExpression('noCustomer', function (ICollection $collection, $enable): void {
+			if ($enable) {
+				$user = $this->shopper->getMerchant() ?? $this->shopper->getCustomer();
+
+				$collection->join(['catalogpermission' => 'eshop_catalogpermission'], 'this.uuid = catalogpermission.fk_account')
+					->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogpermission.fk_customer');
+
+				if ($user instanceof Merchant) {
+					if ($user->customerGroup) {
+						$collection->where('customer.fk_group=:customerGroup OR customer.fk_merchant=:merchant', [
+							'customerGroup' => $user->customerGroup,
+							'merchant' => $user,
+						]);
+					} else {
+						$collection->where('customer.fk_merchant', $user);
+					}
+				} else {
+					$collection->where('customer.fk_parentCustomer', $user->getPK());
+				}
+			}
+		}, '');
+
 		$this->getFilterForm()->addText('login');
 		$this->getFilterForm()->addSubmit('submit');
-
-		$this->shopper = $shopper;
-		$this->accountRepository = $accountRepository;
-		$this->catalogPermissionRepository = $catalogPermissionRepository;
-	}
-
-	public function handleLogin(string $customer): void
-	{
-		$this->shopper->getMerchant()->update(['activeCustomer' => $customer]);
-
-		$this->getPresenter()->redirect(':Web:Index:default');
 	}
 
 	public function handleReset(): void
@@ -77,11 +104,6 @@ class AccountList extends Datalist
 	{
 		$this->template->merchant = $merchant = $this->shopper->getMerchant() ?? $this->shopper->getCustomer();
 		$this->template->customer = $this->getPresenter()->getParameter('customer');
-
-		if ($merchant instanceof Merchant) {
-			$this->template->customerGroup = $this->shopper->getMerchant()->customerGroup;
-		}
-
 		$this->template->paginator = $this->getPaginator();
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/accountList.latte');
 	}
@@ -106,7 +128,7 @@ class AccountList extends Datalist
 				'price' => 'Ceny'
 			])->setDefaultValue($catalogPerm->catalogPermission);
 
-			$form->addCheckbox('buyAllowed')->setHtmlAttribute('onChange','this.form.submit()')->setDefaultValue($catalogPerm->buyAllowed);
+			$form->addCheckbox('buyAllowed')->setHtmlAttribute('onChange', 'this.form.submit()')->setDefaultValue($catalogPerm->buyAllowed);
 
 			$form->onSuccess[] = function ($form, $values) use ($catalogPerm): void {
 				$catalogPerm->update([

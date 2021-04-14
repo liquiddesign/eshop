@@ -101,7 +101,6 @@ class CategoryPresenter extends BackendPresenter
 
 		$grid->addButtonBulkEdit('categoryNewForm', ['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
 
-
 		$grid->addFilterTextInput('search', ['code', 'name_cs'], null, 'Kód, Název');
 		$grid->addFilterButtons();
 
