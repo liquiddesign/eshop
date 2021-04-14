@@ -81,6 +81,14 @@ class AccountList extends Datalist
 		$this->getFilterForm()->addSubmit('submit');
 	}
 
+	public function handleLogin(string $account): void
+	{
+		$this->shopper->getMerchant()->update(['activeCustomer' => $this->getPresenter()->getParameter('customer')]);
+		$this->shopper->getMerchant()->update(['activeCustomerAccount' => $account]);
+
+		$this->getPresenter()->redirect(':Web:Index:default');
+	}
+
 	public function handleReset(): void
 	{
 		$this->setFilters(['login' => null]);
@@ -103,7 +111,7 @@ class AccountList extends Datalist
 	public function render(): void
 	{
 		$this->template->merchant = $merchant = $this->shopper->getMerchant() ?? $this->shopper->getCustomer();
-		$this->template->customer = $this->getPresenter()->getParameter('customer');
+		$this->template->customer = $this->shopper->getCustomer();
 		$this->template->paginator = $this->getPaginator();
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/accountList.latte');
 	}

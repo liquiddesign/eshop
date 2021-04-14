@@ -260,13 +260,22 @@ class Shopper
 	public function getCatalogPermission(): string
 	{
 		$customer = $this->getCustomer();
+		$merchant = $this->getMerchant();
 
-		if ($this->getMerchant() && !$customer) {
+		if ($merchant && !$customer) {
 			return self::MERCHANT_CATALOG_PERMISSIONS;
 		}
 
 		if (!$customer) {
 			return $this->getCustomerGroup()->defaultCatalogPermission;
+		}
+
+		if ($merchant->activeCustomer) {
+			if ($merchant->activeCustomerAccount) {
+				$customer->setAccount($merchant->activeCustomerAccount);
+			} else {
+				return 'none';
+			}
 		}
 
 		if (!$catalogPermission = $customer->getCatalogPermission()) {
@@ -322,7 +331,7 @@ class Shopper
 		}
 
 		$nbsp = \html_entity_decode('&nbsp;');
-		$formatted = \number_format((float) $number, $currency->formatDecimals, $currency->formatDecimalSeparator, \str_replace(' ', $nbsp, $currency->formatThousandsSeparator));
+		$formatted = \number_format((float)$number, $currency->formatDecimals, $currency->formatDecimalSeparator, \str_replace(' ', $nbsp, $currency->formatThousandsSeparator));
 
 		return ($currency->formatSymbolPosition !== 'after' ? $currency->symbol : '') . $formatted . $nbsp . ($currency->formatSymbolPosition === 'after' ? $currency->symbol : '');
 	}

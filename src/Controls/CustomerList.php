@@ -48,13 +48,6 @@ class CustomerList extends Datalist
 		$this->getPresenter()->redirect('this');
 	}
 
-	public function handleLogin(string $customer): void
-	{
-		$this->shopper->getMerchant()->update(['activeCustomer' => $customer]);
-
-		$this->getPresenter()->redirect(':Web:Index:default');
-	}
-
 	public function render(): void
 	{
 		$this->template->merchant = $merchant = $this->shopper->getMerchant() ?? $this->shopper->getCustomer();

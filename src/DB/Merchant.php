@@ -32,13 +32,20 @@ class Merchant extends \StORM\Entity implements IIdentity, IUser
 	 * @column
 	 */
 	public string $email;
-	
+
 	/**
 	 * Právě přihlášený zákazník
 	 * @relation
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?Customer $activeCustomer;
+
+	/**
+	 * Právě přihlášený účet zákazníka
+	 * @relation
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 */
+	public ?Account $activeCustomerAccount;
 
 	/**
 	 * Skupina zákazníků, ve které je správce
