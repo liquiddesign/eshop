@@ -18,6 +18,7 @@ use Eshop\DB\SupplierProducer;
 use Eshop\DB\SupplierProducerRepository;
 use Eshop\DB\SupplierRepository;
 use Forms\Form;
+use Nette\Application\Helpers;
 use Nette\Http\Session;
 use Nette\Utils\Arrays;
 use Nette\Utils\Random;
@@ -81,7 +82,9 @@ class SupplierMappingPresenter extends BackendPresenter
 		
 		
 		if ($this->tab === 'category') {
-			$grid->addColumnText('Název', 'getNameTree', '%s', 'updatedTs');
+			$grid->addColumnText('Název', 'getNameTree', '%s', 'categoryNameL1');
+			$dir = \explode('-', $this->getHttpRequest()->getQuery('grid-order') ?? '')[1] ?? 'ASC';
+			$grid->setSecondaryOrder(['categoryNameL2' => $dir, 'categoryNameL3' => $dir, 'categoryNameL4' => $dir]);
 			
 			$grid->addColumn('Kategorie', function (SupplierCategory $mapping) {
 				$link = $mapping->category && $this->admin->isAllowed(':Eshop:Admin:Category:detail') ? $this->link(':Eshop:Admin:Category:detail', [$mapping->category, 'backLink' => $this->storeRequest(),]) : '#';
@@ -93,6 +96,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			$grid->addFilterText(function (ICollection $source, $value) {
 				$parsed = \explode('>', $value);
 				$expression = new Expression();
+				$orExpression = '';
 				
 				for ($i = 1; $i != 5; $i++) {
 					if (isset($parsed[$i - 1])) {
@@ -100,7 +104,11 @@ class SupplierMappingPresenter extends BackendPresenter
 					}
 				}
 				
-				$source->where($expression->getSql(), $expression->getVars());
+				for ($i = 1; $i != 5; $i++) {
+					$orExpression  .= " OR categoryNameL$i LIKE :value";
+				}
+				
+				$source->where($expression->getSql() . $orExpression, $expression->getVars() + ['value' => "$value%"]);
 				
 			}, '', 'category')->setHtmlAttribute('placeholder', 'Název')->setHtmlAttribute('class', 'form-control form-control-sm');
 			
