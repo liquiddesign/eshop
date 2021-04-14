@@ -18,9 +18,9 @@ use StORM\SchemaManager;
 class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 {
 	private Cache $cache;
-	
+
 	private Shopper $shopper;
-	
+
 	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Shopper $shopper, Storage $storage)
 	{
 		parent::__construct($connection, $schemaManager);
@@ -53,46 +53,46 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			return $repository->buildTree($repository->getCategories()->where('LENGTH(path) <= 40')->toArray(), null);
 		});
 	}
-	
+
 	public function getCounts(array $pricelists = []): array
 	{
 		$currency = $this->shopper->getCurrency();
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$pricelists = $pricelists ? $pricelists : \array_values($this->shopper->getPricelists($currency->isConversionEnabled() ? $currency->convertCurrency : null)->toArray());
-		
+
 		$cacheIndex = "catagories_counts$suffix";
-		
+
 		foreach ($pricelists as $pricelist) {
 			$cacheIndex .= '_' . $pricelist->getPK();
 		}
-		
+
 		$rows = $this->many();
-		
+
 		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($rows, $suffix, $pricelists) {
 			$dependencies = [
 				Cache::TAGS => ['categories', 'products', 'pricelists'],
 			];
-			
+
 			$rows->join(['subs' => 'eshop_category'], 'subs.path LIKE CONCAT(this.path,"%")')
 				->join(['nxn' => 'eshop_product_nxn_eshop_category'], 'nxn.fk_category=subs.uuid')
 				->join(['product' => 'eshop_product'], "nxn.fk_product=product.uuid AND product.draft$suffix = 0 AND product.fk_alternative IS NULL")
 				->setSelect(['count' => 'COUNT(product.uuid)'])
 				->setGroupBy(['this.uuid']);
-			
+
 			$priceWhere = [];
-			
+
 			foreach ($pricelists as $id => $pricelist) {
 				$rows->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=product.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
 				$priceWhere[] = "prices$id.price IS NOT NULL";
 			}
-			
+
 			if ($priceWhere) {
 				$rows->where(\implode(' OR ', $priceWhere));
 			}
-			
+
 			$rows->setIndex('this.uuid');
 			$rows->setFetchClass(\stdClass::class);
-			
+
 			return $rows->toArrayOf('count');
 		});
 	}
@@ -200,20 +200,16 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		return $this->many()->orderBy(["name$suffix"])->toArrayOf('name');
 	}
 
-	public function getTreeArrayForSelect(bool $includeHidden = true): array
+	public function getTreeArrayForSelect(bool $includeHidden = true, string $type = null): array
 	{
-		$repository = $this;
+		$collection = $this->getCategories()->where('LENGTH(path) <= 40');
 
-//		return $this->cache->load('categoryTreeForSelect', static function (&$dependencies) use ($repository) {
-//			$dependencies = [
-//				Cache::TAGS => 'categories',
-//			];
-//
-//			return $repository->buildTree($repository->getCategories()->where('LENGTH(path) <= 40')->toArray(), null);
-//		});
+		if ($type) {
+			$collection->where('fk_type', $type);
+		}
 
 		$list = [];
-		$repository->buildTreeArrayForSelect($repository->getCategories()->where('LENGTH(path) <= 40')->toArray(), null, $list);
+		$this->buildTreeArrayForSelect($collection->toArray(), null, $list);
 
 		return $list;
 	}

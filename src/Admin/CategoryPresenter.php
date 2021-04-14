@@ -45,25 +45,15 @@ class CategoryPresenter extends BackendPresenter
 
 	public function createComponentCategoryGrid()
 	{
-		$source = $this->categoryRepository->many()->join(['type' => 'eshop_category_nxn_eshop_categorytype'], 'type.fk_category=this.uuid');
+		$grid = $this->gridFactory->create($this->categoryRepository->many()->where('this.fk_type', $this->tab), null, 'this.priority', 'ASC', true);
 
-		if ($this->tab != 'unclassified') {
-			$source->where('type.fk_categoryType', $this->tab);
-		} else {
-			$source->where('type.fk_categoryType IS NULL');
-		}
+		$grid->setNestingCallback(static function ($source, $parent) {
+			if (!$parent) {
+				return $source->where('LENGTH(path)=4');
+			}
 
-		$grid = $this->gridFactory->create($source, null, 'this.priority', 'ASC', true);
-
-		if ($this->tab != 'unclassified') {
-			$grid->setNestingCallback(static function ($source, $parent) {
-				if (!$parent) {
-					return $source->where('LENGTH(path)=4');
-				}
-
-				return $source->where('path!=:parent AND path LIKE :path', ['path' => $parent->path . '%', 'parent' => $parent->path]);
-			});
-		}
+			return $source->where('path!=:parent AND path LIKE :path', ['path' => $parent->path . '%', 'parent' => $parent->path]);
+		});
 
 		$grid->addColumnSelector();
 
@@ -155,7 +145,7 @@ class CategoryPresenter extends BackendPresenter
 		$form->addLocalePerexEdit('perex', 'Perex');
 		$form->addLocaleRichEdit('content', 'Obsah');
 
-		$categories = $this->categoryRepository->getTreeArrayForSelect();
+		$categories = $this->categoryRepository->getTreeArrayForSelect(false, $this->tab);
 
 		if ($this->getParameter('category')) {
 			unset($categories[$this->getParameter('category')->getPK()]);
@@ -182,10 +172,7 @@ class CategoryPresenter extends BackendPresenter
 
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
-
-				if($this->tab != 'unclassified'){
-					$values['types'] = [$this->tab];
-				}
+				$values['type'] = $this->tab;
 			}
 
 			$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
@@ -218,11 +205,10 @@ class CategoryPresenter extends BackendPresenter
 	public function actionDefault()
 	{
 		$this->tabs = $this->categoryTypeRepository->getArrayForSelect();
-		$this->tabs['unclassified'] = '<i class="fas fa-border-style"></i> Nezařazené';
 		$this->tabs['types'] = '<i class="fa fa-bars"></i> Typy';
 
 		if ($this->tab == 'none') {
-			$this->tab = \count($this->tabs) > 1 ? Arrays::first(\array_keys($this->tabs)) : 'unclassified';
+			$this->tab = \count($this->tabs) > 1 ? Arrays::first(\array_keys($this->tabs)) : 'types';
 		}
 	}
 
@@ -238,13 +224,6 @@ class CategoryPresenter extends BackendPresenter
 			];
 			$this->template->displayButtons = [$this->createNewItemButton('categoryTypeNew')];
 			$this->template->displayControls = [$this->getComponent('categoryTypeGrid')];
-		} elseif ($this->tab == 'unclassified') {
-			$this->template->headerLabel = 'Nezařazené';
-			$this->template->headerTree = [
-				['Kategorie', 'default'],
-			];
-			$this->template->displayButtons = [$this->createNewItemButton('categoryNew')];
-			$this->template->displayControls = [$this->getComponent('categoryGrid')];
 		} else {
 			$this->template->headerLabel = 'Kategorie - ' . $this->tabs[$this->tab];
 			$this->template->headerTree = [

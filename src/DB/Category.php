@@ -127,10 +127,10 @@ class Category extends \StORM\Entity
 
 	/**
 	 * Zařazení do menu
-	 * @relationNxN
-	 * @var \Eshop\DB\CategoryType[]|\StORM\RelationCollection<\Eshop\DB\CategoryType>
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
-	public RelationCollection $types;
+	public CategoryType $type;
 
 	public function isBottom()
 	{
