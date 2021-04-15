@@ -509,8 +509,8 @@ class CustomerPresenter extends BackendPresenter
 				'none' => 'Žádné',
 				'catalog' => 'Katalogy',
 				'price' => 'Ceny',
-			]);
-			$container->addCheckbox('buyAllowed', 'Povolit nákup');
+			])->setDefaultValue('price');
+			$container->addCheckbox('buyAllowed', 'Povolit nákup')->setDefaultValue(true);
 		};
 		
 		$form = $this->accountFormFactory->create(false, $callback);
