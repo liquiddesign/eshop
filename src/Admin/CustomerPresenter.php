@@ -87,7 +87,9 @@ class CustomerPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($this->customerRepository->many(), 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Registrace', "createdTs|date", '%s', 'createdTs', ['class' => 'fit']);
-		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname');
+		$grid->addColumn('Jméno a příjmení, společnost', function (Customer $customer) {
+			return $customer->company ? $customer->company . ' (' . $customer->fullname . ')' : $customer->fullname;
+		});
 		$grid->addColumnText('Obchodník', 'merchant.fullname', '%s', 'merchant.fullname');
 		$grid->addColumnText('Skupina', 'group.name', '%s', 'group.name');
 		$grid->addColumnText('Telefon', 'phone', '<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
