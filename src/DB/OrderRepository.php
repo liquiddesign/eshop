@@ -465,9 +465,10 @@ class OrderRepository extends \StORM\Repository
 			'billName' => $purchase->fullname,
 			'billingAddress' => $purchase->billAddress ? $purchase->billAddress->jsonSerialize() : [],
 			'deliveryAddress' => $purchase->deliveryAddress ? $purchase->deliveryAddress->jsonSerialize() : ($purchase->billAddress ? $purchase->billAddress->jsonSerialize() : []),
-			'totalPrice' => $order->getTotalPrice(),
-			'totalPriceVat' => $order->getTotalPriceVat(),
-			'currency' => $order->currency
+			'totalPrice' => $this->shopper->getCatalogPermission() == 'price' ? $order->getTotalPrice() : null,
+			'totalPriceVat' => $this->shopper->getCatalogPermission() == 'price' ? $order->getTotalPriceVat() : null,
+			'currency' => $order->currency,
+			'shopper' => $this->shopper
 		];
 
 		return $values;
