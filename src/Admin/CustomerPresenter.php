@@ -100,12 +100,6 @@ class CustomerPresenter extends BackendPresenter
 			return "<a class='$btnSecondary' target='_blank' href='" . $this->link('//:Eshop:Export:customer', $customer->getPK()) . "'><i class='fa fa-sm fa-rss'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
 		
-		$grid->addColumn('Login', function (Customer $object, Datagrid $grid) use ($btnSecondary) {
-			$link = \count($object->accounts) > 0 ? $grid->getPresenter()->link('loginCustomer!', [$object->accounts->first()->login]) : '#';
-			
-			return "<a class='" . (\count($object->accounts) > 0 ? '' : 'disabled') . " $btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>";
-		}, '%s', null, ['class' => 'minimal']);
-		
 		$grid->addColumn('', function (Customer $object, Datagrid $datagrid) use ($btnSecondary) {
 			return \count($object->accounts) > 0 ?
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'accounts', 'accountGrid-company' => $object->company ?: $object->fullname]) . "'>Účty</a>" :
@@ -545,7 +539,12 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnText('Aktivní do', 'activeTo', '%s', 'activeTo', ['class' => 'fit']);
 		$grid->addColumnInputCheckbox('Aktivní', 'active');
 		$grid->addColumnInputCheckbox('Autorizovaný', 'authorized');
-		
+		$btnSecondary = 'btn btn-sm btn-outline-primary';
+		$grid->addColumn('Login', function (Account $object, Datagrid $grid) use ($btnSecondary) {
+			$link = $grid->getPresenter()->link('loginCustomer!', [$object->login]);
+			
+			return "<a class='$btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>";
+		}, '%s', null, ['class' => 'minimal']);
 		$grid->addColumnLinkDetail('editAccount');
 		
 		$grid->addColumnActionDelete();
