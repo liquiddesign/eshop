@@ -88,7 +88,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnSelector();
 		$grid->addColumnText('Registrace', "createdTs|date", '%s', 'createdTs', ['class' => 'fit']);
 		$grid->addColumn('Název / Jméno', function (Customer $customer) {
-			return $customer->company ? $customer->company . ' (' . $customer->fullname . ')' : $customer->fullname;
+			return $customer->company ?: $customer->fullname;
 		});
 		$grid->addColumnText('Obchodník', 'merchant.fullname', '%s', 'merchant.fullname');
 		$grid->addColumnText('Skupina', 'group.name', '%s', 'group.name');
@@ -532,7 +532,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnText('Vytvořen', 'tsRegistered|date', '%s', 'tsRegistered', ['class' => 'fit']);
 		$grid->addColumnText('Login', 'login', '%s', 'login', ['class' => 'fit']);
 		$grid->addColumn('Zákazník', function (Account $account) {
-			return $account->company ? $account->company . ' (' . $account->fullname . ')' : $account->fullname;
+			return $account->company ?: $account->fullname;
 		});
 		$grid->addColumn('Oprávnění', function (Account $account) {
 			$label = ['none' => 'Žádné', 'catalog' => 'Katalogy', 'price' => 'Ceny',];
