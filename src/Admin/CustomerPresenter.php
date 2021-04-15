@@ -238,10 +238,10 @@ class CustomerPresenter extends BackendPresenter
 		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getRegisteredGroupsArray())->setPrompt('Žádná');
 		
 		$form->addGroup('Nákup a preference');
-		$form->addSelect('orderPermission', 'Oprávnění: objednávky', [
+		$form->addSelect('orderPermission', 'Objenání', [
 			'fullWithApproval' => 'Pouze se schválením',
-			'full' => 'Plné',
-		]);
+			'full' => 'Povoleno',
+		])->setDefaultValue('full');
 		$form->addDataSelect('preferredCurrency', 'Preferovaná měna nákupu', $this->currencyRepo->getArrayForSelect())->setPrompt('Žádný');
 		$form->addDataSelect('preferredPaymentType', 'Preferovaná platba', $this->paymentTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
 		$form->addDataSelect('preferredDeliveryType', 'Preferovaná doprava', $this->deliveryTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
@@ -367,18 +367,19 @@ class CustomerPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
 			
-			$accounts = $values['accounts'];
-			unset($values['accounts']);
+			//$accounts = $values['accounts'];
+			//unset($values['accounts']);
 			
 			$customer = $this->customerRepository->syncOne($values, null, true);
 			
+			/*
 			foreach ($accounts as $account) {
-				/** @var \Eshop\DB\CatalogPermission $permission */
+				
 				$permission = $this->catalogPermissionRepo->many()
 					->where('fk_account', $account)
 					->first();
 				
-				/** @var \Eshop\DB\CatalogPermission $permission */
+				
 				$realPermission = $this->catalogPermissionRepo->many()
 					->where('fk_account', $account)
 					->where('fk_customer', $customer->getPK())
@@ -402,7 +403,7 @@ class CustomerPresenter extends BackendPresenter
 				} else {
 					$this->catalogPermissionRepo->createOne($newValues);
 				}
-			}
+			}*/
 			
 			$this->flashMessage('Vytvořeno', 'success');
 			$form->processRedirect('edit', 'default', [$customer]);
