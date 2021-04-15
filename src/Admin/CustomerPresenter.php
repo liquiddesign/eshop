@@ -422,6 +422,7 @@ class CustomerPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($customer) {
 			$values = $form->getValues('array');
 			
+			/*
 			foreach ($this->catalogPermissionRepo->many()->where('fk_customer', $customer->getPK()) as $permission) {
 				if (Arrays::contains($values['accounts'], $permission->getValue('account'))) {
 					unset($values['accounts'][$permission->getValue('account')]);
@@ -431,12 +432,10 @@ class CustomerPresenter extends BackendPresenter
 			}
 			
 			foreach ($values['accounts'] as $account) {
-				/** @var \Eshop\DB\CatalogPermission $permission */
 				$permission = $this->catalogPermissionRepo->many()
 					->where('fk_account', $account)
 					->first();
 				
-				/** @var \Eshop\DB\CatalogPermission $permission */
 				$realPermission = $this->catalogPermissionRepo->many()
 					->where('fk_account', $account)
 					->where('fk_customer', $customer->getPK())
@@ -461,7 +460,7 @@ class CustomerPresenter extends BackendPresenter
 					$this->catalogPermissionRepo->createOne($newValues);
 				}
 			}
-			
+			*/
 			unset($values['accounts']);
 			
 			/** @var \Eshop\DB\Customer $customer */
