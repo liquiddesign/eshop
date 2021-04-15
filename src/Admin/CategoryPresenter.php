@@ -20,6 +20,7 @@ use Nette\Utils\Random;
 use Pages\DB\PageRepository;
 use Pages\Helpers;
 use StORM\DIConnection;
+use StORM\Entity;
 
 class CategoryPresenter extends BackendPresenter
 {
@@ -95,8 +96,12 @@ class CategoryPresenter extends BackendPresenter
 		$grid->addFilterButtons();
 
 		$grid->onDelete[] = function (Category $object) {
-			$this->onDeleteImage($object);
-			$this->onDeletePage($object);
+			foreach ($this->categoryRepository->many()->where('path LIKE :q', ['q' => "$object->path%"])->toArray() as $subCategory) {
+				$this->onDeleteImage($subCategory);
+				$this->onDeletePage($subCategory);
+				$subCategory->delete();
+			}
+
 			$this->categoryRepository->clearCategoriesCache();
 		};
 

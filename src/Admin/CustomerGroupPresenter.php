@@ -49,6 +49,10 @@ class CustomerGroupPresenter extends BackendPresenter
 		$grid->addColumn('Katalogové oprávnění', function (CustomerGroup $group) {
 			return Shopper::PERMISSIONS[$group->defaultCatalogPermission];
 		}, '%s', null, ['class' => 'fit']);
+
+		$grid->addColumn('Povolený nákup', function (CustomerGroup $group) {
+			return $group->defaultBuyAllowed ? 'Ano' : 'Ne';
+		}, '%s', null, ['class' => 'fit']);
 		
 		$grid->addColumn('Výchozí pro registraci', function (CustomerGroup $group) {
 			return $group->defaultAfterRegistration ? 'Ano' : 'Ne';
@@ -83,6 +87,7 @@ class CustomerGroupPresenter extends BackendPresenter
 		$form->addText('name', 'Název')->setRequired();
 		
 		$form->addSelect('defaultCatalogPermission', 'Katalogové oprávnění', Shopper::PERMISSIONS);
+		$form->addCheckbox('defaultBuyAllowed', 'Povolený nákup');
 		$form->addDataMultiSelect('defaultPricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 

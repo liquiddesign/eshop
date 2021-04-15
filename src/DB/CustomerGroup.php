@@ -25,10 +25,16 @@ class CustomerGroup extends \StORM\Entity
 	public bool $defaultPricesWithVat = false;
 
 	/**
-	 * Defaultní orávnění: katalog
-	 * @column{"type":"enum","length":"'none','catalog','price','full'"}
+	 * Defaultní oprávnění: katalog
+	 * @column{"type":"enum","length":"'none','catalog','price'"}
 	 */
-	public string $defaultCatalogPermission = 'full';
+	public string $defaultCatalogPermission = 'price';
+
+	/**
+	 * Defaultní oprávnění: nákup
+	 * @column
+	 */
+	public bool $defaultBuyAllowed = true;
 
 	/**
 	 * Defaultní ceníky

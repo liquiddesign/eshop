@@ -373,7 +373,7 @@ class CheckoutManager
 			throw new BuyException('Invalid amount', BuyException::INVALID_AMOUNT);
 		}
 
-		if ($this->shopper->getCatalogPermission() !== 'full') {
+		if (!$this->shopper->getBuyPermission()) {
 			throw new BuyException('Permission denied', BuyException::PERMISSION_DENIED);
 		}
 

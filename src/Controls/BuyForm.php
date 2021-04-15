@@ -34,9 +34,9 @@ class BuyForm extends \Nette\Application\UI\Form
 		
 		$this->addHidden('itemId', $product->getPK());
 		$this->addHidden('variant');
-		$this->addSubmit('submit', 'Přidat do košíku')->setDisabled($shopper->getCatalogPermission() !== 'full');
+		$this->addSubmit('submit', 'Přidat do košíku')->setDisabled(!$shopper->getBuyPermission());
 		
-		if ($shopper->getCatalogPermission() === 'full' && $product) {
+		if ($shopper->getBuyPermission() && $product) {
 			$this->onSuccess[] = function ($form, $values) use ($product, $checkoutManager) {
 				$checkoutManager->addItemToCart($product, $values->variant ?: null, intval($values->amount));
 			};

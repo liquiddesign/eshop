@@ -32,7 +32,6 @@ class Shopper
 		'none' => 'Žádné',
 		'catalog' => 'Katalog',
 		'price' => 'Ceny',
-		'full' => 'Plné'
 	];
 
 	private const MERCHANT_CATALOG_PERMISSIONS = 'price';
@@ -186,6 +185,9 @@ class Shopper
 			}
 
 			if ($identity instanceof Merchant) {
+				if ($identity->activeCustomerAccount) {
+					$identity->activeCustomer->setAccount($identity->activeCustomerAccount);
+				}
 
 				return $identity->activeCustomer;
 			}
@@ -262,7 +264,7 @@ class Shopper
 		$customer = $this->getCustomer();
 		$merchant = $this->getMerchant();
 
-		if ($merchant && !$customer) {
+		if ($merchant && (!$customer && !$merchant->activeCustomerAccount)) {
 			return self::MERCHANT_CATALOG_PERMISSIONS;
 		}
 
@@ -270,19 +272,31 @@ class Shopper
 			return $this->getCustomerGroup()->defaultCatalogPermission;
 		}
 
-		if ($merchant) {
-			if ($merchant->activeCustomerAccount) {
-				$customer->setAccount($merchant->activeCustomerAccount);
-			} else {
-				return 'none';
-			}
-		}
-
 		if (!$catalogPermission = $customer->getCatalogPermission()) {
 			return 'none';
 		}
 
-		return $catalogPermission->catalogPermission == 'price' && $catalogPermission->buyAllowed ? 'full' : $catalogPermission->catalogPermission;
+		return $catalogPermission->catalogPermission;
+	}
+
+	public function getBuyPermission(): bool
+	{
+		$customer = $this->getCustomer();
+		$merchant = $this->getMerchant();
+
+		if ($merchant && (!$customer && !$merchant->activeCustomerAccount)) {
+			return false;
+		}
+
+		if (!$customer) {
+			return $this->getCustomerGroup()->defaultBuyAllowed;
+		}
+
+		if (!$catalogPermission = $customer->getCatalogPermission()) {
+			return false;
+		}
+
+		return $catalogPermission->buyAllowed;
 	}
 
 	/**
