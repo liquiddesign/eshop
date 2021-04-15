@@ -154,7 +154,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$source->where('fk_supplier', $value);
-			}, null, 'supplier', null, $suppliers, ['placeholder' => '- Dodavatel -']);
+			}, null, 'supplier', null, $suppliers, ['placeholder' => '- Zdroj -']);
 		}
 		
 		$grid->addFilterCheckboxInput('notmapped', "fk_$property IS NOT NULL", 'Napárované');

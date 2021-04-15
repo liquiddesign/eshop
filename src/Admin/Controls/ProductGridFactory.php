@@ -158,7 +158,7 @@ class ProductGridFactory
 				}
 				
 				$source->where($expression->getSql(), $expression->getVars());
-			}, '', 'suppliers', null, $suppliers, ['placeholder' => '- Dodavatelé -']);
+			}, '', 'suppliers', null, $suppliers, ['placeholder' => '- Zdroje -']);
 		}
 		
 		if ($tags = $this->tagRepository->getListForSelect()) {

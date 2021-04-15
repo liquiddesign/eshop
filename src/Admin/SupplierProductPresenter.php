@@ -162,7 +162,7 @@ class SupplierProductPresenter extends BackendPresenter
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
-			['Dodavatelské produkty', 'default'],
+			['Externí produkty', 'default'],
 			['Nová položka'],
 		];
 		
@@ -174,7 +174,7 @@ class SupplierProductPresenter extends BackendPresenter
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
-			['Dodavatelské produkty', 'default'],
+			['Externí produkty', 'default'],
 			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
