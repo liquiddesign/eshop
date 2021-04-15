@@ -42,6 +42,10 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	public function getTree(): array
 	{
 		$repository = $this;
+		
+		if ($this->shopper->getCatalogPermission() === 'none') {
+			return [];
+		}
 
 		// @TODO: jen viditelne kategorie pro daneho uzivatele, cistit cache po prihlaseni, take dle jazyku (muze byt jine poradi)
 

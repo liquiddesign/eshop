@@ -281,6 +281,11 @@ class Customer extends Entity implements IIdentity, IUser
 	
 	public function isCompany(): bool
 	{
-		return (bool) $this->ic;
+		return (bool) $this->company;
+	}
+	
+	public function getName(): string
+	{
+		return (string) $this->company ?: $this->fullname;
 	}
 }
