@@ -270,7 +270,7 @@ class Shopper
 			return $this->getCustomerGroup()->defaultCatalogPermission;
 		}
 
-		if ($merchant->activeCustomer) {
+		if ($merchant) {
 			if ($merchant->activeCustomerAccount) {
 				$customer->setAccount($merchant->activeCustomerAccount);
 			} else {
