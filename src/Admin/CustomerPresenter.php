@@ -218,10 +218,11 @@ class CustomerPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 		
 		$form->addText('fullname', 'Jméno a příjmení');
-		$form->addText('phone', 'Telefon');
 		$form->addText('company', 'Firma');
 		$form->addText('ic', 'IČ');
 		$form->addText('dic', 'DIČ');
+		$form->addText('phone', 'Telefon');
+		
 		$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired();
 		$form->addText('ccEmails', 'Kopie emailů')->setHtmlAttribute('data-info', 'Zadejte emailové adresy oddělené středníkem (;).');
 		$form->addCheckbox('newsletter', 'Přihlášen k newsletteru');
