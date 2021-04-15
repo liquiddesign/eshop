@@ -240,7 +240,7 @@ class CustomerPresenter extends BackendPresenter
 		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getRegisteredGroupsArray())->setPrompt('Žádná');
 		
 		$form->addGroup('Nákup a preference');
-		$form->addSelect('orderPermission', 'Objenání', [
+		$form->addSelect('orderPermission', 'Objednání', [
 			'fullWithApproval' => 'Pouze se schválením',
 			'full' => 'Povoleno',
 		])->setDefaultValue('full');
