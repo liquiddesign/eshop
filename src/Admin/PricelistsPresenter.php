@@ -79,7 +79,7 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addColumnText('Akce od', "discount.validFrom|date:'d.m.Y G:i'", '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Akce do', "discount.validTo|date:'d.m.Y G:i'", '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		
-		$grid->addColumn('Dodavatel', function (Pricelist $object) {
+		$grid->addColumn('Zdroj', function (Pricelist $object) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') && $object->supplier ? $this->link(':Eshop:Admin:Supplier:detail', [$object->supplier, 'backLink' => $this->storeRequest()]) : '#';
 			
 			return $object->supplier ? "<a href='" . $link . "'>" . $object->supplier->name . "</a>" : '';
@@ -179,7 +179,7 @@ class PricelistsPresenter extends BackendPresenter
 		$form->addDataSelect('currency', 'Měna', $this->currencyRepository->getArrayForSelect());
 		$form->addDataSelect('country', 'Země DPH', $this->countryRepo->getArrayForSelect());
 		$form->addDataSelect('discount', 'Akce', $this->discountRepo->getArrayForSelect())->setPrompt('Žádná');
-		$form->addDataSelect('supplier', 'Dodavatel', $this->supplierRepo->getArrayForSelect())->setPrompt('Žádný');
+		$form->addDataSelect('supplier', 'Zdroj', $this->supplierRepo->getArrayForSelect())->setPrompt('Žádný');
 		$form->addText('priority', 'Priorita')->addRule($form::INTEGER)->setRequired()->setDefaultValue(10);
 		$form->addCheckbox('allowDiscountLevel', 'Povolit slevovou hladinu');
 		$form->addCheckbox('isActive', 'Aktivní');

@@ -190,7 +190,7 @@ class SupplierPresenter extends BackendPresenter
 	{
 		$this->template->headerLabel = 'Import';
 		$this->template->headerTree = [
-			['Dodavatelé', 'default'],
+			['Zdroje', 'default'],
 			['Import'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];

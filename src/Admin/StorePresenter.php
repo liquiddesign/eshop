@@ -37,7 +37,7 @@ class StorePresenter extends BackendPresenter
 
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Název', 'name', '%s', 'name');
-		$grid->addColumn('Dodavatel', function (Store $object, $datagrid) {
+		$grid->addColumn('Zdroj', function (Store $object, $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') && $object->supplier ? $datagrid->getPresenter()->link(':Eshop:Admin:Supplier:detail', [$object->supplier, 'backLink' => $this->storeRequest()]) : '#';
 			
 			return $object->supplier ? "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->supplier->name . "</a>" : '';
@@ -62,7 +62,7 @@ class StorePresenter extends BackendPresenter
 		
 		$form->addText('code', 'Kód')->setNullable();
 		$form->addLocaleText('name', 'Název');
-		$form->addDataSelect('supplier', 'Dodavatel', $this->supplierRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
+		$form->addDataSelect('supplier', 'Zdroj', $this->supplierRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 
 		$form->addSubmits(!$this->getParameter('store'));
 

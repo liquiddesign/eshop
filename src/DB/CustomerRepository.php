@@ -68,10 +68,10 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 			'login' => $customer->email,
 		];
 	}
-
+	
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		return $this->getCollection($includeHidden)->toArrayOf('fullname');
+		return $this->getCollection($includeHidden)->select(['name' => 'IF(this.company != "",this.company,this.fullname)'])->toArrayOf('name');
 	}
 
 	public function getCollection(bool $includeHidden = false): Collection
