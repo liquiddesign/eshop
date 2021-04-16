@@ -50,15 +50,15 @@ class MerchantPresenter extends BackendPresenter
 		
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('', function (Merchant $object, Datagrid $datagrid) use ($btnSecondary) {
-			return $object->accounts->first() != null ?
+			return $object->accounts->clear()->first() != null ?
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('editAccount', $object) . "'>Detail&nbsp;účtu</a>" :
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('newAccount', $object) . "'>Vytvořit&nbsp;účet</a>";
 		}, '%s', null, ['class' => 'minimal']);
 		
 		$grid->addColumn('Login', function (Merchant $object, Datagrid $grid) use ($btnSecondary) {
-			$link = $object->getAccount() ? $grid->getPresenter()->link('loginMerchant!', [$object->accounts->first()->login]) : '#';
+			$link = $object->accounts->clear()->first() ? $grid->getPresenter()->link('loginMerchant!', [$object->accounts->clear()->first()->login]) : '#';
 			
-			return "<a class='" . ($object->accounts->first() ? '' : 'disabled') . " $btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>";
+			return "<a class='" . ($object->accounts->clear()->first() ? '' : 'disabled') . " $btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
 		
 		$grid->addColumnLinkDetail('Detail');
