@@ -77,7 +77,7 @@ class SupplierProductRepository extends \StORM\Repository
 				'hidden' => true,
 				'imageFileName' => $draft->fileName,
 				'vatRate' => $vatLevels[(int) $draft->vatRate] ?? 'standard',
-				'producer' => $draft->producer->getValue('producer'),
+				'producer' => $draft->producer ? $draft->producer->getValue('producer') : null,
 				'displayAmount' => $draft->displayAmount ? $draft->displayAmount->getValue('displayAmount') : null,
 				'categories' => $category ? [$category] : [],
 				'primaryCategory' => $category,
