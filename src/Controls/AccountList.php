@@ -62,7 +62,7 @@ class AccountList extends Datalist
 				$collection->join(['catalogpermission' => 'eshop_catalogpermission'], 'this.uuid = catalogpermission.fk_account')
 					->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogpermission.fk_customer');
 
-				$collection->select(['customer.fullname']);
+				$collection->select(['customerFullname' => 'customer.fullname']);
 
 				if ($user instanceof Merchant) {
 					if ($user->customerGroup) {

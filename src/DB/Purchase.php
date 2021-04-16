@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Security\DB\Account;
 use StORM\Collection;
 use StORM\RelationCollection;
 
@@ -18,6 +19,12 @@ class Purchase extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $fullname;
+
+	/**
+	 * Jméno účtu zákazníka
+	 * @column
+	 */
+	public ?string $accountFullname;
 	
 	/**
 	 * Telefon
@@ -132,6 +139,13 @@ class Purchase extends \StORM\Entity
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?Customer $customer;
+
+	/**
+	 * Účet
+	 * @relation
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 */
+	public ?Account $account;
 	
 	/**
 	 * Obchodník

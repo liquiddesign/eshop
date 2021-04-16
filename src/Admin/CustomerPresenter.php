@@ -17,7 +17,6 @@ use Eshop\DB\Customer;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\MerchantRepository;
-use Forms\Container;
 use Forms\Form;
 use Grid\Datagrid;
 use League\Csv\Writer;
@@ -25,7 +24,6 @@ use Messages\DB\TemplateRepository;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
-use Nette\Utils\Arrays;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\ICollection;
@@ -508,7 +506,7 @@ class CustomerPresenter extends BackendPresenter
 			$container->addCheckbox('buyAllowed', 'Povolit nákup')->setDefaultValue(true);
 		};
 		
-		$form = $this->accountFormFactory->create(false, $callback);
+		$form = $this->accountFormFactory->create(false, $callback, true, true);
 		
 		return $form;
 	}
@@ -519,15 +517,16 @@ class CustomerPresenter extends BackendPresenter
 			->join(['catalogPermission' => 'eshop_catalogpermission'], 'catalogPermission.fk_account = this.uuid')
 			->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogPermission.fk_customer')
 			->where('customer.uuid IS NOT NULL')
-			->select(['company' => 'customer.company', 'fullname' => 'customer.fullname'])
+			->select(['company' => 'customer.company', 'customerFullname' => 'customer.fullname'])
 			->select(['permission' => 'catalogPermission.catalogPermission', 'buyAllowed' => 'catalogPermission.buyAllowed']);
 		
 		$grid = $this->gridFactory->create($collection, 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Vytvořen', 'tsRegistered|date', '%s', 'tsRegistered', ['class' => 'fit']);
 		$grid->addColumnText('Login', 'login', '%s', 'login', ['class' => 'fit']);
+		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname', ['class' => 'fit']);
 		$grid->addColumn('Zákazník', function (Account $account) {
-			return $account->company ?: $account->fullname;
+			return $account->company ?: $account->customerFullname;
 		});
 		$grid->addColumn('Oprávnění', function (Account $account) {
 			$label = ['none' => 'Žádné', 'catalog' => 'Katalogy', 'price' => 'Ceny',];
