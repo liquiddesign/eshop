@@ -44,6 +44,7 @@ class SupplierPresenter extends BackendPresenter
 		
 		$grid->addFilterTextInput('search', ['name', 'code'], null, 'Název, kód');
 		$grid->addFilterButtons();
+		$grid->addButtonSaveAll();
 		
 		return $grid;
 	}
