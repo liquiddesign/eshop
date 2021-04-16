@@ -306,7 +306,7 @@ class CustomerPresenter extends BackendPresenter
 			$this->template->displayControls = [$this->getComponent('accountGrid')];
 		}
 		
-		$this->template->tabs = self::TABS;
+		$this->template->tabs = static::TABS;
 	}
 	
 	public function renderNew(): void

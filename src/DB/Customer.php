@@ -222,6 +222,18 @@ class Customer extends Entity implements IIdentity, IUser
 	public ?string $ediBranch = null;
 	
 	/**
+	 * Volné vstupní pole 1
+	 * @column
+	 */
+	public ?string $customField1;
+	
+	/**
+	 * Vytvořen
+	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
+	 */
+	public string $createdTs;
+	
+	/**
 	 * @relationNxN{"via":"eshop_catalogpermission"}
 	 * @var \StORM\RelationCollection<\Security\DB\Account>|\Security\DB\Account[]
 	 */
@@ -230,12 +242,6 @@ class Customer extends Entity implements IIdentity, IUser
 	protected ?Account $account = null;
 	
 	protected ?CatalogPermission $catalogPermission;
-	
-	/**
-	 * Vytvořen
-	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
-	 */
-	public string $createdTs;
 	
 	public function getDeliveryAddressLine(): ?string
 	{
@@ -281,6 +287,11 @@ class Customer extends Entity implements IIdentity, IUser
 	
 	public function isCompany(): bool
 	{
-		return (bool) $this->ic;
+		return (bool) $this->company;
+	}
+	
+	public function getName(): string
+	{
+		return (string) $this->company ?: $this->fullname;
 	}
 }
