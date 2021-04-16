@@ -43,7 +43,7 @@ class AccountList extends Datalist
 		$this->setDefaultOrder('login');
 
 		$this->addFilterExpression('login', function (ICollection $collection, $value): void {
-			$collection->where('login LIKE :query OR fullname LIKE :query', ['query' => '%' . $value . '%']);
+			$collection->where('login LIKE :query OR this.fullname LIKE :query', ['query' => '%' . $value . '%']);
 		}, '');
 
 		$this->addFilterExpression('customer', function (ICollection $collection, $customer): void {
