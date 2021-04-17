@@ -129,20 +129,23 @@ class SupplierProductRepository extends \StORM\Repository
 		}
 	}
 	
-	public function syncPrices(Collection $products, Supplier $supplier, Pricelist $pricelist, int $precision = 2): void
+	public function syncPrices(Collection $products, Supplier $supplier, Pricelist $pricelist, string $property = 'price', int $precision = 2): void
 	{
 		$priceRepository = $this->getConnection()->findRepository(Price::class);
 		
+		$price = $property;
+		$priceVat = $property . 'Vat';
+		
 		foreach ($products as $draft) {
-			if ($draft->price === null) {
+			if ($draft->$price === null) {
 				continue;
 			}
 			
 			$priceRepository->syncOne([
 				'product' => $draft->getValue('product'),
 				'pricelist' => $pricelist,
-				'price' => \round($draft->price * ($supplier->importPriceRatio / 100), $precision),
-				'priceVat' => \round($draft->priceVat * ($supplier->importPriceRatio / 100), $precision),
+				'price' => \round($draft->$price * ($supplier->importPriceRatio / 100), $precision),
+				'priceVat' => \round($draft->$priceVat * ($supplier->importPriceRatio / 100), $precision),
 			]);
 		}
 	}

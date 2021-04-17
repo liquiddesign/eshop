@@ -30,6 +30,12 @@ class Pricelist extends \StORM\Entity
 	public bool $isActive;
 	
 	/**
+	 * Je nákupní?
+	 * @column
+	 */
+	public bool $isPurchase = false;
+	
+	/**
 	 * Povolit slevovou hladinu
 	 * @column
 	 */

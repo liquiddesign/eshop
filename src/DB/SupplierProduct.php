@@ -81,6 +81,18 @@ class SupplierProduct extends \StORM\Entity
 	public ?float $priceVat;
 	
 	/**
+	 * Nákupní cena
+	 * @column
+	 */
+	public ?float $purchasePrice;
+	
+	/**
+	 * Nákupní cena s DPH
+	 * @column
+	 */
+	public ?float $purchasePriceVat;
+	
+	/**
 	 * Množství
 	 * @column
 	 */

@@ -122,6 +122,19 @@ class SupplierPresenter extends BackendPresenter
 			
 			$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unavailable', true), $supplier, $pricelist);
 			
+			$pricelist = $this->pricelistRepository->syncOne([
+				'uuid' => DIConnection::generateUuid($supplier->getPK(), 'purchase'),
+				'code' => $supplier->code . '0',
+				'name' => $supplier->name . " (Nákupní)",
+				'isActive' => false,
+				'currency' => $currency,
+				'country' => $country,
+				'supplier' => $supplier,
+				'priority' => 9,
+			], ['currency', 'country']);
+			
+			$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unavailable', true), $supplier, $pricelist, 'purchasePrice');
+			
 			$this->flashMessage('Uloženo', 'success');
 			$form->getPresenter()->redirect('default');
 		};

@@ -182,6 +182,7 @@ class PricelistsPresenter extends BackendPresenter
 		$form->addDataSelect('supplier', 'Zdroj', $this->supplierRepo->getArrayForSelect())->setPrompt('Žádný');
 		$form->addText('priority', 'Priorita')->addRule($form::INTEGER)->setRequired()->setDefaultValue(10);
 		$form->addCheckbox('allowDiscountLevel', 'Povolit slevovou hladinu');
+		$form->addCheckbox('isPurchase', 'Nákupní');
 		$form->addCheckbox('isActive', 'Aktivní');
 		
 		$form->addSubmits(!$this->getParameter('priceList'));
