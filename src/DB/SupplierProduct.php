@@ -51,6 +51,12 @@ class SupplierProduct extends \StORM\Entity
 	public string $name;
 	
 	/**
+	 * Perex
+	 * @column{"type":"longtext"}
+	 */
+	public ?string $perex;
+	
+	/**
 	 * Popis
 	 * @column{"type":"longtext"}
 	 */
