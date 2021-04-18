@@ -88,7 +88,9 @@ class SupplierProductRepository extends \StORM\Repository
 			/** @var \Eshop\DB\Product $product */
 			$product = $productRepository->syncOne($values, $updates, false, null, ['categories' => false]);
 			
-			if ($overwrite && $product->getParent() instanceof ICollection && $product->getParent()->getAffectedNumber() === InsertResult::UPDATE_AFFECTED_COUNT) {
+			$updated = $product->getParent() instanceof ICollection && $product->getParent()->getAffectedNumber() === InsertResult::UPDATE_AFFECTED_COUNT;
+			
+			if ($overwrite && $updated) {
 				$product->categories->unrelateAll();
 				
 				if ($draft->category->getValue('category')) {
@@ -110,7 +112,7 @@ class SupplierProductRepository extends \StORM\Repository
 			
 			$mtime = \filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 			
-			if ($overwrite && $draft->fileName && $mtime !== @\filemtime($targetImageDirectory .  $sep . 'origin' . $sep . $draft->fileName)) {
+			if (!$updated && $overwrite && $draft->fileName && $mtime !== @\filemtime($targetImageDirectory .  $sep . 'origin' . $sep . $draft->fileName)) {
 				\copy($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $targetImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 				\copy($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $targetImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
 				\copy($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $targetImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
