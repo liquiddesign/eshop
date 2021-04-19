@@ -447,13 +447,12 @@ class ProductForm extends Control
 			];
 			
 			$this->template->supplierProducts = $this->supplierProductRepository->many()->where('uuid', $test)->toArray();
-			
-			$this->template->modals = [
-				'name' => 'frm-productForm-form-name-cs',
-				'perex' => 'frm-perex-cs',
-				'content' => 'frm-content-cs',
-			];
-		*/
+			*/
+		$this->template->modals = [
+			'name' => 'frm-productForm-form-name-cs',
+			'perex' => 'frm-perex-cs',
+			'content' => 'frm-content-cs',
+		];
 		
 		$this->template->supplierProducts = $this->getPresenter()->getParameter('product') ? $this->supplierProductRepository->many()->where('fk_product', $this->getPresenter()->getParameter('product'))->toArray() : [];
 		$this->template->render(__DIR__ . '/productForm.latte');
