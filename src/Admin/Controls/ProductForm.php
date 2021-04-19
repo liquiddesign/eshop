@@ -437,8 +437,25 @@ class ProductForm extends Control
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->pricelistRepository->getDefaultPricelists();
 		$this->template->supplierProducts = [];
-		// docasne vypnuto
-		// $this->template->supplierProducts = $this->getPresenter()->getParameter('product') ? $this->supplierProductRepository->many()->where('fk_product', $this->getPresenter()->getParameter('product'))->toArray() : [];
+		
+		/*
+		 * TEST products
+			$test = [
+				'00010eea25ba58fce37020fa0b8d83fe',
+				'0001705f7c395fe2513ffd39e630f896',
+				'0001b97b90863d5f26f45518d5c35a5e',
+			];
+			
+			$this->template->supplierProducts = $this->supplierProductRepository->many()->where('uuid', $test)->toArray();
+			
+			$this->template->modals = [
+				'name' => 'frm-productForm-form-name-cs',
+				'perex' => 'frm-perex-cs',
+				'content' => 'frm-content-cs',
+			];
+		*/
+		
+		$this->template->supplierProducts = $this->getPresenter()->getParameter('product') ? $this->supplierProductRepository->many()->where('fk_product', $this->getPresenter()->getParameter('product'))->toArray() : [];
 		$this->template->render(__DIR__ . '/productForm.latte');
 	}
 }

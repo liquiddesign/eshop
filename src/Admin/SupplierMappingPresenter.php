@@ -154,7 +154,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$source->where('fk_supplier', $value);
-			}, null, 'supplier', null, $suppliers, ['placeholder' => '- Zdroj -']);
+			}, null, 'supplier', null, $suppliers, ['placeholder' => '- Dodavatel -']);
 		}
 		
 		$grid->addFilterCheckboxInput('notmapped', "fk_$property IS NOT NULL", 'Napárované');
@@ -276,16 +276,30 @@ class SupplierMappingPresenter extends BackendPresenter
 			} elseif ($this->tab == 'category') {
 				/** @var \Eshop\DB\Category $insertToCategory */
 				$insertToCategory = $values['category'] ? $this->categoryRepository->one($values['category']) : null;
+				$type = $insertToCategory->getValue('type');
 				
 				foreach ($data as $uuid) {
 					/** @var \Eshop\DB\SupplierCategory $supplierCategory */
 					$supplierCategory = $this->supplierCategoryRepository->one($uuid);
 					
-					if (!$supplierCategory->name) {
+					if (!$supplierCategory->categoryNameL1) {
 						continue;
 					}
 					
-					$newTree = \array_map('trim', \explode('>', $supplierCategory->name));
+					$newTree = [$supplierCategory->categoryNameL1];
+					
+					if ($supplierCategory->categoryNameL2) {
+						$newTree[] = $supplierCategory->categoryNameL2;
+					}
+					
+					if ($supplierCategory->categoryNameL3) {
+						$newTree[] = $supplierCategory->categoryNameL3;
+					}
+					
+					if ($supplierCategory->categoryNameL4) {
+						$newTree[] = $supplierCategory->categoryNameL4;
+					}
+					
 					$currentCategory = $insertToCategory;
 					$path = $insertToCategory ? $insertToCategory->path : null;
 					$first = true;
@@ -306,7 +320,8 @@ class SupplierMappingPresenter extends BackendPresenter
 						$newCategoryData = [
 							'name' => ['cs' => $cKey, 'en' => null],
 							'path' => $path,
-							'ancestor' => $currentCategory ? $currentCategory->getPK() : null
+							'ancestor' => $currentCategory ? $currentCategory->getPK() : null,
+							'type' => $type
 						];
 						
 						if ($existingCategory) {

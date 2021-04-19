@@ -34,27 +34,30 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			Cache::TAGS => ['categories'],
 		]);
 	}
-
+	
 	/**
+	 * @param string|null $typeId
 	 * @return \Eshop\DB\Category[]
 	 * @throws \Throwable
 	 */
-	public function getTree(): array
+	public function getTree(?string $typeId = null): array
 	{
 		$repository = $this;
 		
-		if ($this->shopper->getCatalogPermission() === 'none') {
-			return [];
-		}
-
 		// @TODO: jen viditelne kategorie pro daneho uzivatele, cistit cache po prihlaseni, take dle jazyku (muze byt jine poradi)
-
-		return $this->cache->load('categoryTree', static function (&$dependencies) use ($repository) {
+		
+		return $this->cache->load("categoryTree-" . ($typeId ?: ''), static function (&$dependencies) use ($repository, $typeId) {
 			$dependencies = [
 				Cache::TAGS => 'categories',
 			];
-
-			return $repository->buildTree($repository->getCategories()->where('LENGTH(path) <= 40')->toArray(), null);
+			
+			$collection = $repository->getCategories()->where('LENGTH(path) <= 40');
+			
+			if ($typeId) {
+				$collection->where('this.fk_type', $typeId);
+			}
+			
+			return $repository->buildTree($collection->toArray(), null);
 		});
 	}
 

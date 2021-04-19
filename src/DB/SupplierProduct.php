@@ -51,6 +51,12 @@ class SupplierProduct extends \StORM\Entity
 	public string $name;
 	
 	/**
+	 * Perex
+	 * @column{"type":"longtext"}
+	 */
+	public ?string $perex;
+	
+	/**
 	 * Popis
 	 * @column{"type":"longtext"}
 	 */
@@ -79,6 +85,18 @@ class SupplierProduct extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $priceVat;
+	
+	/**
+	 * Nákupní cena
+	 * @column
+	 */
+	public ?float $purchasePrice;
+	
+	/**
+	 * Nákupní cena s DPH
+	 * @column
+	 */
+	public ?float $purchasePriceVat;
 	
 	/**
 	 * Množství
