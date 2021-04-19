@@ -244,9 +244,15 @@ class Shopper
 		}
 
 		$customer = $this->getCustomer();
+		$merchant = $this->getMerchant();
+
 		$unregistredGroup = $this->getCustomerGroup() ?: $this->customerGroupRepository->getUnregisteredGroup();
 		$unregisteredPricelists = $unregistredGroup->defaultPricelists->toArrayOf('uuid');
 		$repo = $this->pricelistRepository;
+
+		if(!$customer && $merchant){
+			return $this->pricelists = $repo->getMerchantPricelists($merchant, $currency ?: $this->getCurrency(), $this->getCountry());
+		}
 
 		return $this->pricelists = $customer ? $repo->getCustomerPricelists($customer, $currency ?: $this->getCurrency(), $this->getCountry()) : $repo->getPricelists($unregisteredPricelists, $currency ?: $this->getCurrency(), $this->getCountry());
 	}

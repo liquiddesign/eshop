@@ -42,6 +42,22 @@ class PricelistRepository extends \StORM\Repository
 		
 		return $collection->orderBy(['priority']);
 	}
+
+	/**
+	 * @return \Storm\Collection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
+	 */
+	public function getMerchantPricelists(Merchant $merchant, Currency $currency, Country $country): Collection
+	{
+		$collection = $this->many()
+			->join(['nxn' => 'eshop_merchant_nxn_eshop_pricelist'], 'fk_pricelist=this.uuid')
+			->where('nxn.fk_merchant', $merchant->getPK())
+			->where('isActive', true)
+			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL  OR discount.validTo >= DATE(now()))')
+			->where('fk_currency ', $currency->getPK())
+			->where('fk_country', $country->getPK());
+
+		return $collection->orderBy(['priority']);
+	}
 	
 	public function removeCustomerPricelist(Customer $customer, Pricelist $pricelist): void
 	{
