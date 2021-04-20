@@ -20,6 +20,13 @@ class Product extends \StORM\Entity
 	public const GALLERY_DIR = 'product_gallery_images';
 	
 	public const FILE_DIR = 'product_files';
+
+	public const CODE_TYPES = [
+		'fullCode',
+		'code',
+		'externalCode',
+		'supplierCode'
+	];
 	
 	/**
 	 * Název
@@ -428,10 +435,20 @@ class Product extends \StORM\Entity
 		return $parameters;
 	}
 	
-	public function getFullCode(): ?string
+	public function getFullCode(string $type = 'fullCode'): ?string
 	{
-		//@TODO code-subcode delimeter (tečka) by mel jit nastavit
-		return $this->subCode ? $this->code . '.' . $this->subCode : $this->code;
+		if($type == 'fullCode'){
+			//@TODO code-subcode delimeter (tečka) by mel jit nastavit
+			return $this->subCode ? $this->code . '.' . $this->subCode : $this->code;
+		}elseif ($type == 'code'){
+			return $this->code;
+		}elseif ($type == 'supplierCode'){
+			return $this->supplierCode;
+		}elseif ($type == 'externalCode'){
+			return $this->externalCode;
+		}
+
+		return null;
 	}
 	
 	public function getPrimaryCategory(): ?Category
