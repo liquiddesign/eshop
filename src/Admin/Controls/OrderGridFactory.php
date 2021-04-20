@@ -46,20 +46,20 @@ class OrderGridFactory
 	{
 		if ($state === 'received') {
 			return $this->orderRepository->many()->where('this.completedTs IS NULL AND this.canceledTs IS NULL')
-				->join(['purchase'=>'eshop_purchase'],'this.fk_purchase = purchase.uuid')
-				->join(['customer'=>'eshop_customer'], 'purchase.fk_customer = customer.uuid');
+				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
 
 		if ($state === 'finished') {
 			return $this->orderRepository->many()->where('this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
-				->join(['purchase','eshop_purchase'],'this.fk_purchase = purchase.uuid')
-				->join(['customer'=>'eshop_customer'], 'purchase.fk_customer = customer.uuid');
+				->join(['purchase', 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
 
 		if ($state === 'canceled') {
 			return $this->orderRepository->many()->where('this.canceledTs IS NOT NULL')
-				->join(['purchase','eshop_purchase'],'this.fk_purchase = purchase.uuid')
-				->join(['customer'=>'eshop_customer'], 'purchase.fk_customer = customer.uuid');
+				->join(['purchase', 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
 
 		throw new \DomainException("Invalid state: $state");
@@ -250,15 +250,17 @@ class OrderGridFactory
 		$presenter->sendResponse($response);
 	}
 
-	public function cancelOrder(Order $object, Datagrid $grid)
+	public function cancelOrder(Order $object, ?Datagrid $grid = null)
 	{
-		$object->update(['canceledTs' => (string)new DateTime()]);
+		$object->update(['canceledTs' => (string)new DateTime(), 'completedTs' => null]);
 
 		$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $object->code], $object->purchase->email);
 		$this->mailer->send($mail);
 
-		$grid->getPresenter()->flashMessage('Provedeno', 'success');
-		$grid->getPresenter()->redirect('this');
+		if ($grid) {
+			$grid->getPresenter()->flashMessage('Provedeno', 'success');
+			$grid->getPresenter()->redirect('this');
+		}
 	}
 
 	public function completeOrderMultiple(Button $button)
@@ -274,9 +276,9 @@ class OrderGridFactory
 		$grid->getPresenter()->redirect('this');
 	}
 
-	public function completeOrder(Order $object, Datagrid $grid, bool $redirectAfter = true)
+	public function completeOrder(Order $object, ?Datagrid $grid = null, bool $redirectAfter = true)
 	{
-		$object->update(['completedTs' => (string)new DateTime()]);
+		$object->update(['completedTs' => (string)new DateTime(), 'canceledTs' => null]);
 
 		foreach ($object->purchase->getItems() as $item) {
 			if (!$item->product) {
@@ -293,7 +295,7 @@ class OrderGridFactory
 
 		$this->mailer->send($mail);
 
-		if ($redirectAfter) {
+		if ($grid && $redirectAfter) {
 			$grid->getPresenter()->flashMessage('Provedeno', 'success');
 			$grid->getPresenter()->redirect('this');
 		}

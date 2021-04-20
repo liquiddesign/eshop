@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\Shopper;
 use Eshop\DB\OrderRepository;
 use Grid\Datalist;
+use Nette\Application\UI\Form;
+use Nette\Localization\Translator;
 use StORM\Collection;
-use StORM\Expression;
 use StORM\ICollection;
 
 /**
@@ -17,7 +19,13 @@ use StORM\ICollection;
  */
 class OrderList extends Datalist
 {
-	public function __construct(OrderRepository $orderRepository, Shopper $shopper, ?Collection $orders = null)
+	private Translator $translator;
+
+	private OrderGridFactory $orderGridFactory;
+
+	private OrderRepository $orderRepository;
+
+	public function __construct(Translator $translator, OrderGridFactory $orderGridFactory, OrderRepository $orderRepository, Shopper $shopper, ?Collection $orders = null)
 	{
 		parent::__construct($orders ?? $orderRepository->getFinishedOrders($shopper->getCustomer(), $shopper->getMerchant()));
 
@@ -42,11 +50,49 @@ class OrderList extends Datalist
 
 		$this->getFilterForm()->addText('search');
 		$this->getFilterForm()->addSubmit('submit');
+
+		$this->translator = $translator;
+		$this->orderGridFactory = $orderGridFactory;
+		$this->orderRepository = $orderRepository;
 	}
 
 	public function render(): void
 	{
 		$this->template->paginator = $this->getPaginator();
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/orderList.latte');
+	}
+
+	public function createComponentSelectOrdersForm()
+	{
+		$form = new \Nette\Application\UI\Form();
+
+		foreach ($this->getItemsOnPage() as $order) {
+			$form->addCheckbox('check_' . $order->getPK());
+		}
+
+		$form->addSubmit('finish', $this->translator->translate('orderL.finish', 'Vyřídit vybrané'));
+		$form->addSubmit('cancel', $this->translator->translate('orderL.cancel', 'Stornovat vybrané'));
+
+		$form->onSuccess[] = function (Form $form) {
+			$values = $form->getValues('array');
+
+			$submitName = $form->isSubmitted()->getName();
+
+			foreach ($values as $key => $value) {
+				$order = $this->orderRepository->one(\explode('_', $key)[1], true);
+
+				if($value){
+					if ($submitName == 'finish') {
+						$this->orderGridFactory->completeOrder($order);
+					} else {
+						$this->orderGridFactory->cancelOrder($order);
+					}
+				}
+			}
+
+			$this->getPresenter()->redirect('this');
+		};
+
+		return $form;
 	}
 }

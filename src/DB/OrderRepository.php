@@ -41,7 +41,7 @@ class OrderRepository extends \StORM\Repository
 
 	public function getFinishedOrders(?Customer $customer, ?Merchant $merchant = null): Collection
 	{
-		$collection = $this->many()->where('this.completedTs IS NOT NULL OR this.canceledTs IS NOT NULL');
+		$collection = $this->many()->where('this.completedTs IS NOT NULL AND this.canceledTs IS NULL');
 		$collection->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid');
 		$collection->join(['customer' => 'eshop_customer'], 'customer.uuid = purchase.fk_customer');
 		$collection->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'customer.uuid = nxn.fk_customer');
@@ -65,13 +65,29 @@ class OrderRepository extends \StORM\Repository
 		return $this->many()
 			->join(['purchase' => 'eshop_purchase'], 'purchase.fk_purchase = purchase.uuid')
 			->join(['customer' => 'eshop_customer'], 'customer.uuid = purchase.fk_customer')
-			->where('this.fk_customer', $customerId)
+			->where('purchase.fk_customer', $customerId)
 			->where('this.completedTs IS NULL AND this.canceledTs IS NULL');
 	}
 
 	public function getNewOrders(?Customer $customer, ?Merchant $merchant = null): Collection
 	{
 		$collection = $this->many()->where('this.completedTs IS NULL AND this.canceledTs IS NULL');
+		$collection->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid');
+		$collection->join(['customer' => 'eshop_customer'], 'customer.uuid = purchase.fk_customer');
+		$collection->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'customer.uuid = nxn.fk_customer');
+
+		if ($customer) {
+			$collection->where('purchase.fk_customer', $customer);
+		} else if ($merchant) {
+			$collection->where('nxn.fk_merchant', $merchant);
+		}
+
+		return $collection;
+	}
+
+	public function getCanceledOrders(?Customer $customer, ?Merchant $merchant = null): Collection
+	{
+		$collection = $this->many()->where('this.canceledTs IS NOT NULL');
 		$collection->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid');
 		$collection->join(['customer' => 'eshop_customer'], 'customer.uuid = purchase.fk_customer');
 		$collection->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'customer.uuid = nxn.fk_customer');
