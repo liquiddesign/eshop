@@ -20,7 +20,6 @@ use Nette\Application\Application;
 use Nette\Application\UI\ITemplate;
 use Nette\Security\User;
 use StORM\Collection;
-use Translator\Translator;
 
 /**
  * Služba která zapouzdřuje nakupujícího
@@ -29,9 +28,9 @@ use Translator\Translator;
 class Shopper
 {
 	public const PERMISSIONS = [
-		'none' => 'Žádné',
-		'catalog' => 'Katalog',
-		'price' => 'Ceny',
+		'none' => 'Nezobrazeno',
+		'catalog' => 'Bez cen',
+		'price' => 'S cenami',
 	];
 
 	private const MERCHANT_CATALOG_PERMISSIONS = 'price';

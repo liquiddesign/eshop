@@ -160,6 +160,13 @@ class Purchase extends \StORM\Entity
 	 * @constraint
 	 */
 	public ?DiscountCoupon $coupon;
+
+	/**
+	 * Měna
+	 * @relation
+	 * @constraint
+	 */
+	public Currency $currency;
 	
 	/**
 	 * Vytvořen

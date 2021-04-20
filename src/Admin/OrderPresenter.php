@@ -501,9 +501,9 @@ class OrderPresenter extends BackendPresenter
 			/** @var Cart $cart */
 			$cart = $this->cartRepository->one($values['cart']);
 			
-			if ($order->customer) {
-				$this->shopper->setCustomer($order->customer);
-				$this->checkoutManager->setCustomer($order->customer);
+			if ($order->purchase->customer) {
+				$this->shopper->setCustomer($order->purchase->customer);
+				$this->checkoutManager->setCustomer($order->purchase->customer);
 			}
 
 			/** @var Product $product */

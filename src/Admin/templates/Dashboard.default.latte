@@ -60,9 +60,9 @@
                                         <td>{$order->code}</td>
                                         <td>{$order->createdTs|date}</td>
                                         <td>{$order->purchase->getSumPriceVat()|price}</td>
-                                        <td>{ifset $order->customer}<a
-                                                    href="{plink :Eshop:Admin:Customer:edit, $order->customer}"><i
-                                                        class="fa fa-external-link-alt fa-sm"></i>&nbsp;{$order->customer->fullname ?? ($order->customer->email ?? '')}
+                                        <td>{ifset $order->purchase->customer}<a
+                                                    href="{plink :Eshop:Admin:Customer:edit, $order->purchase->customer}"><i
+                                                        class="fa fa-external-link-alt fa-sm"></i>&nbsp;{$order->purchase->customer->fullname ?? ($order->purchase->customer->email ?? '')}
                                             </a>{else}{$order->purchase->fullname}{/ifset}</td>
                                         <td>{$order->getState()}</td>
                                         <td><a href="{plink :Eshop:Admin:Order:detail, $order}"><i

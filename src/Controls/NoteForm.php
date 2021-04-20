@@ -39,6 +39,7 @@ class NoteForm extends \Nette\Application\UI\Form
 
 		$values['account'] = $this->shopper->getCustomer()->getAccount();
 		$values['accountFullname'] = $values['account']->fullname;
+		$values['currency'] = $this->shopper->getCurrency();
 		
 		$this->checkoutManager->syncPurchase($values);
 	}

@@ -9,6 +9,7 @@ use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
 use Admin\Admin\Controls\AccountFormFactory;
 use Eshop\DB\CustomerGroupRepository;
+use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\PricelistRepository;
@@ -35,6 +36,9 @@ class MerchantPresenter extends BackendPresenter
 
 	/** @inject */
 	public CustomerGroupRepository $customerGroupRepository;
+
+	/** @inject */
+	public CustomerRepository $customerRepository;
 
 	/** @inject */
 	public PricelistRepository $pricelistRepository;
@@ -90,7 +94,9 @@ class MerchantPresenter extends BackendPresenter
 
 		$form->addDataSelect('customerGroup', 'Skupina zákazníků', $this->customerGroupRepository->getArrayForSelect())->setPrompt('Žádná');
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepository->getArrayForSelect());
-		$form->addCheckbox('extendedPermission', 'Rozšířená správa zákazníků')->setHtmlAttribute('data-info', 'Povoluje schvalovat zákazníky a nastavovat katalogové oprávnění.<br>Platí pouze v rámci přiřazené skupiny a pro přímo přiřazené zákazníky.');
+		$form->addDataMultiSelect('customers','Zákazníci', $this->customerRepository->getArrayForSelect());
+		$form->addCheckbox('customersPermission', 'Oprávnění: Správa zákazníků');
+		$form->addCheckbox('ordersPermission', 'Oprávnění: Správa objednávek');
 		$form->addCheckbox('customerEmailNotification', 'Posílat emailem informace o objednávkách přiřazených zákazníků.');
 
 		$form->addSubmits(!$this->getParameter('merchant'));
@@ -170,7 +176,7 @@ class MerchantPresenter extends BackendPresenter
 		/** @var Form $form */
 		$form = $this->getComponent('form');
 
-		$form->setDefaults($merchant->toArray(['pricelists']));
+		$form->setDefaults($merchant->toArray(['pricelists','customers']));
 	}
 
 	public function createComponentAccountForm()

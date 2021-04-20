@@ -38,7 +38,7 @@
                 </td>
 
                 <td class="p-4 pt-0 lg:pt-4 align-middle text-right">
-                    {$cartItem->getPriceSum()|price:$order->currency->code}
+                    {$cartItem->getPriceSum()|price:$order->purchase->currency->code}
                 </td>
             </tr>
 
@@ -50,14 +50,14 @@
                         </div>
 
                         <div class="leading-snug ml-6">
-                            <div class="font-bold text-main whitespace-pre-wrap">{$purchase->coupon->discount->name} ({if $purchase->coupon->discountPct}{-$purchase->coupon->discountPct}&nbsp;%{else}{-$purchase->coupon->discountValue|price:$order->currency->code}{/if})</div>
+                            <div class="font-bold text-main whitespace-pre-wrap">{$purchase->coupon->discount->name} ({if $purchase->coupon->discountPct}{-$purchase->coupon->discountPct}&nbsp;%{else}{-$purchase->coupon->discountValue|price:$order->purchase->currency->code}{/if})</div>
                             <div class="text-gray-dark text-sm">{$purchase->coupon->code}</div>
                         </div>
                     </div>
 
                 </td>
                 <td></td>
-                <td class="p-4 pt-0 lg:pt-4 align-middle text-right">{-$order->getDiscountPrice()|price:$order->currency->code}</td>
+                <td class="p-4 pt-0 lg:pt-4 align-middle text-right">{-$order->getDiscountPrice()|price:$order->purchase->currency->code}</td>
             </tr>
             </tbody>
             <tfoot>
@@ -71,7 +71,7 @@
                     </div>
                 </td>
 
-                <td class="pt-8 px-4 text-right">{$deliveryAndPaymentPrice|price:$order->currency->code}</td>
+                <td class="pt-8 px-4 text-right">{$deliveryAndPaymentPrice|price:$order->purchase->currency->code}</td>
             </tr>
             </tfoot>
         </table>
@@ -104,9 +104,9 @@
         <div class="text-right leading-tight lg:w-5/12 mt-6 lg:mt-0">
             <div class="ml-4"><span class="text-base">Hmotnost objednávky:</span> <strong>{$purchase->getSumWeight()} kg</strong></div>
             {*					<div class="ml-4"><span class="text-base">Celkem bez DPH:</span> <strong>{$priceSum|price:$order->currency->code}</strong></div>*}
-            <div class="ml-4"><span class="text-base">Celkem bez DPH:</span> <strong>{$order->getTotalPrice()|price:$order->currency->code}</strong></div>
+            <div class="ml-4"><span class="text-base">Celkem bez DPH:</span> <strong>{$order->getTotalPrice()|price:$order->purchase->currency->code}</strong></div>
 
-            <div class="ml-4 text-3xl font-bold mt-3"><span class="text-base">Celkem s DPH:</span> {$order->getTotalPriceVat()|price:$order->currency->code}</div>
+            <div class="ml-4 text-3xl font-bold mt-3"><span class="text-base">Celkem s DPH:</span> {$order->getTotalPriceVat()|price:$order->purchase->currency->code}</div>
         </div>
     </div>
 

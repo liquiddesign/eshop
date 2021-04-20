@@ -811,7 +811,7 @@ class CheckoutManager
 		$purchase = $this->purchaseRepository->syncOne($values, null, true);
 
 		if (!$values['uuid']) {
-			$this->getCart()->update(['purchase' => $purchase]);
+			$this->getCart()->update(['purchase' => $purchase->getPK()]);
 		}
 
 		return $purchase;
@@ -876,13 +876,12 @@ class CheckoutManager
 		$year = \date('Y');
 		$code = \vsprintf($this->shopper->getCountry()->orderCodeFormat, [$this->orderRepository->many()->where('YEAR(this.createdTs)', $year)->enum() + 1, $year]);
 
-		$order = $this->orderRepository->createOne(['code' => $code, 'purchase' => $purchase, 'customer' => $customer, 'currency' => $currency]);
+		$order = $this->orderRepository->createOne(['code' => $code, 'purchase' => $purchase]);
 
 		// @TODO: getDeliveryPrice se pocita z aktulaniho purchase ne z parametru a presunout do order repository jako create order
 		if ($purchase->deliveryType) {
 			$this->deliveryRepository->createOne([
 				'order' => $order,
-				'currency' => $currency,
 				'type' => $purchase->deliveryType,
 				'typeName' => $purchase->deliveryType->toArray()['name'],
 				'typeCode' => $purchase->deliveryType->code,

@@ -63,19 +63,13 @@ class AccountList extends Datalist
 				$user = $this->shopper->getMerchant() ?? $this->shopper->getCustomer();
 
 				$collection->join(['catalogpermission' => 'eshop_catalogpermission'], 'this.uuid = catalogpermission.fk_account')
-					->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogpermission.fk_customer');
+					->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogpermission.fk_customer')
+					->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'customer.uuid = nxn.fk_customer');
 
 				$collection->select(['customerFullname' => 'customer.fullname', 'customerCompany' => 'customer.company']);
 
 				if ($user instanceof Merchant) {
-					if ($user->customerGroup) {
-						$collection->where('customer.fk_group=:customerGroup OR customer.fk_merchant=:merchant', [
-							'customerGroup' => $user->customerGroup,
-							'merchant' => $user,
-						]);
-					} else {
-						$collection->where('customer.fk_merchant', $user);
-					}
+					$collection->where('nxn.fk_merchant', $user);
 				} else {
 					$collection->where('customer.fk_parentCustomer', $user->getPK());
 				}
@@ -138,11 +132,7 @@ class AccountList extends Datalist
 
 			$form = new Form();
 
-			$form->addSelect('catalogPermission', null, [
-				'none' => 'Žádné',
-				'catalog' => 'Katalogy',
-				'price' => 'Ceny'
-			])->setDefaultValue($catalogPerm->catalogPermission);
+			$form->addSelect('catalogPermission', null, Shopper::PERMISSIONS)->setDefaultValue($catalogPerm->catalogPermission);
 
 			$form->addCheckbox('buyAllowed')->setHtmlAttribute('onChange', 'this.form.submit()')->setDefaultValue($catalogPerm->buyAllowed);
 

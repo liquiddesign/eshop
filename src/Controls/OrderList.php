@@ -35,10 +35,8 @@ class OrderList extends Datalist
 			}
 
 			$collection->where($or, ['code' => $value, 'string' => '%' . $value . '%'])
-				->join(['purchase' => 'eshop_purchase'], 'purchase.uuid=this.fk_purchase')
 				->join(['carts' => 'eshop_cart'], 'purchase.uuid=carts.fk_purchase')
 				->join(['items' => 'eshop_cartitem'], 'carts.uuid=items.fk_cart')
-				->join(['customer' => 'eshop_customer'], 'customer.uuid=purchase.fk_customer')
 				->join(['account' => 'security_account'], 'account.uuid=purchase.fk_account');
 		}, '');
 

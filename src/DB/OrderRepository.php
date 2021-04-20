@@ -42,18 +42,14 @@ class OrderRepository extends \StORM\Repository
 	public function getFinishedOrders(?Customer $customer, ?Merchant $merchant = null): Collection
 	{
 		$collection = $this->many()->where('this.completedTs IS NOT NULL OR this.canceledTs IS NOT NULL');
+		$collection->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid');
+		$collection->join(['customer' => 'eshop_customer'], 'customer.uuid = purchase.fk_customer');
+		$collection->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'customer.uuid = nxn.fk_customer');
 
 		if ($customer) {
-			$collection->where('this.fk_customer', $customer);
+			$collection->where('purchase.fk_customer', $customer);
 		} else if ($merchant) {
-			if ($merchant->customerGroup) {
-				$collection->where('customer.fk_merchant=:merchant OR customer.fk_group=:group', [
-					'merchant' => $merchant,
-					'group' => $merchant->customerGroup,
-				]);
-			} else {
-				$collection->where('customer.fk_merchant', $merchant);
-			}
+			$collection->where('nxn.fk_merchant', $merchant);
 		}
 
 		return $collection;
@@ -66,24 +62,24 @@ class OrderRepository extends \StORM\Repository
 	 */
 	public function getNewOrdersByCustomer(string $customerId): Collection
 	{
-		return $this->many()->where('this.fk_customer', $customerId)->where('this.completedTs IS NULL AND this.canceledTs IS NULL');
+		return $this->many()
+			->join(['purchase' => 'eshop_purchase'], 'purchase.fk_purchase = purchase.uuid')
+			->join(['customer' => 'eshop_customer'], 'customer.uuid = purchase.fk_customer')
+			->where('this.fk_customer', $customerId)
+			->where('this.completedTs IS NULL AND this.canceledTs IS NULL');
 	}
 
 	public function getNewOrders(?Customer $customer, ?Merchant $merchant = null): Collection
 	{
 		$collection = $this->many()->where('this.completedTs IS NULL AND this.canceledTs IS NULL');
+		$collection->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid');
+		$collection->join(['customer' => 'eshop_customer'], 'customer.uuid = purchase.fk_customer');
+		$collection->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'customer.uuid = nxn.fk_customer');
 
 		if ($customer) {
-			$collection->where('this.fk_customer', $customer);
+			$collection->where('purchase.fk_customer', $customer);
 		} else if ($merchant) {
-			if ($merchant->customerGroup) {
-				$collection->where('customer.fk_merchant=:merchant OR customer.fk_group=:group', [
-					'merchant' => $merchant,
-					'group' => $merchant->customerGroup,
-				]);
-			} else {
-				$collection->where('customer.fk_merchant', $merchant);
-			}
+			$collection->where('nxn.fk_merchant', $merchant);
 		}
 
 		return $collection;
@@ -169,7 +165,7 @@ class OrderRepository extends \StORM\Repository
 	public function ediExport(Order $order): string
 	{
 		$gln = '8590804000006';
-		$user = $order->customer;
+		$user = $order->purchase->customer;
 		$created = new DateTime($order->createdTs);
 		$string = "";
 		$string .= "SYS" . \str_pad($gln, 14, " ", STR_PAD_RIGHT) . "ED  96AORDERSP\r\n";
@@ -409,9 +405,9 @@ class OrderRepository extends \StORM\Repository
 		$toString = $to->format('Y-m-d\TH:i:s');
 
 		$collection = $this->many()
-			->select(["date" => "DATE_FORMAT(createdTs, '%Y-%m')"])
-			->where('completedTs IS NOT NULL')
-			->where('createdTs >= :from AND createdTs <= :to', ['from' => $fromString, 'to' => $toString])
+			->select(["date" => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
+			->where('this.completedTs IS NOT NULL')
+			->where('this.createdTs >= :from AND this.createdTs <= :to', ['from' => $fromString, 'to' => $toString])
 			->orderBy(["date"]);
 
 		if ($user) {
@@ -421,7 +417,7 @@ class OrderRepository extends \StORM\Repository
 				$customers = $merchantRepo->getMerchantCustomers($user);
 			}
 
-			$collection->where('fk_customer', isset($customers) ? \array_values($customers) : $user->getPK());
+			$collection->where('purchase.fk_customer', isset($customers) ? \array_keys($customers->toArray()) : $user->getPK());
 		}
 
 		return $collection;
@@ -447,7 +443,7 @@ class OrderRepository extends \StORM\Repository
 
 		$values = [
 			'orderCode' => $order->code,
-			'currencyCode' => $order->currency->code,
+			'currencyCode' => $order->purchase->currency->code,
 			'desiredShippingDate' => $purchase->desiredShippingDate,
 			'internalOrderCode' => $purchase->internalOrderCode,
 			'phone' => $purchase->phone,
@@ -467,7 +463,7 @@ class OrderRepository extends \StORM\Repository
 			'deliveryAddress' => $purchase->deliveryAddress ? $purchase->deliveryAddress->jsonSerialize() : ($purchase->billAddress ? $purchase->billAddress->jsonSerialize() : []),
 			'totalPrice' => $this->shopper->getCatalogPermission() == 'price' ? $order->getTotalPrice() : null,
 			'totalPriceVat' => $this->shopper->getCatalogPermission() == 'price' ? $order->getTotalPriceVat() : null,
-			'currency' => $order->currency,
+			'currency' => $order->purchase->currency,
 			'shopper' => $this->shopper
 		];
 

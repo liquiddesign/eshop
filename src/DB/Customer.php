@@ -92,13 +92,6 @@ class Customer extends Entity implements IIdentity, IUser
 	public ?int $productRoundingPct = null;
 	
 	/**
-	 * Obchodník
-	 * @relation
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
-	 */
-	public ?Merchant $merchant;
-	
-	/**
 	 * Aktivní košík
 	 * @relation
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}

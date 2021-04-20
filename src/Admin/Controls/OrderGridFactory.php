@@ -45,15 +45,21 @@ class OrderGridFactory
 	private function getCollectionByState(string $state): Collection
 	{
 		if ($state === 'received') {
-			return $this->orderRepository->many()->where('this.completedTs IS NULL AND this.canceledTs IS NULL');
+			return $this->orderRepository->many()->where('this.completedTs IS NULL AND this.canceledTs IS NULL')
+				->join(['purchase'=>'eshop_purchase'],'this.fk_purchase = purchase.uuid')
+				->join(['customer'=>'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
 
 		if ($state === 'finished') {
-			return $this->orderRepository->many()->where('this.completedTs IS NOT NULL AND this.canceledTs IS NULL');
+			return $this->orderRepository->many()->where('this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
+				->join(['purchase','eshop_purchase'],'this.fk_purchase = purchase.uuid')
+				->join(['customer'=>'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
 
 		if ($state === 'canceled') {
-			return $this->orderRepository->many()->where('this.canceledTs IS NOT NULL');
+			return $this->orderRepository->many()->where('this.canceledTs IS NOT NULL')
+				->join(['purchase','eshop_purchase'],'this.fk_purchase = purchase.uuid')
+				->join(['customer'=>'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
 
 		throw new \DomainException("Invalid state: $state");
@@ -200,9 +206,9 @@ class OrderGridFactory
 	{
 		$address = $order->purchase->deliveryAddress ? $order->purchase->deliveryAddress->getFullAddress() : ($order->purchase->billAddress ? $order->purchase->billAddress->getFullAddress() : '');
 
-		if ($order->customer) {
-			$fullName = $order->customer && $order->customer->fullname ? $order->customer->fullname : ($order->purchase->fullname ?: '');
-			$link = $grid->getPresenter()->link(':Eshop:Admin:Customer:edit', [$order->customer]);
+		if ($order->purchase->customer) {
+			$fullName = $order->purchase->customer && $order->purchase->customer->fullname ? $order->purchase->customer->fullname : ($order->purchase->fullname ?: '');
+			$link = $grid->getPresenter()->link(':Eshop:Admin:Customer:edit', [$order->purchase->customer]);
 
 			return "<a href='$link' style='white-space: nowrap;'>$fullName</a><br><small>$address</small>";
 		}

@@ -64,20 +64,6 @@ class Order extends \StORM\Entity
 	public Purchase $purchase;
 
 	/**
-	 * Zákazník
-	 * @relation
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
-	 */
-	public ?Customer $customer;
-
-	/**
-	 * Měna
-	 * @relation
-	 * @constraint
-	 */
-	public Currency $currency;
-
-	/**
 	 * Platby
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\Payment>|\Eshop\DB\Payment[]

@@ -24,13 +24,13 @@ class MerchantRepository extends \StORM\Repository implements IUserRepository, I
 		return $this->getArrayForSelect();
 	}
 
-	public function getMerchantCustomers(Merchant $merchant): array
+	public function getMerchantCustomers(Merchant $merchant): Collection
 	{
 		$customerRepo = $this->getConnection()->findRepository(Customer::class);
 
 		return $customerRepo->many()
-			->where('fk_merchant', $merchant->getPK())
-			->toArray();
+			->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = nxn.fk_customer')
+			->where('nxn.fk_merchant', $merchant->getPK());
 	}
 
 	/**
@@ -50,15 +50,10 @@ class MerchantRepository extends \StORM\Repository implements IUserRepository, I
 			}
 		}
 
-		if ($customer->merchant) {
-			return [$customer->merchant];
-		}
-
-		if (!$customer->group) {
-			return [];
-		}
-
-		return $this->many()->where('fk_customerGroup', $customer->group->getPK())->toArray();
+		return $this->many()
+			->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = nxn.fk_merchant')
+			->where('nxn.fk_customer', $customer->getPK())
+			->toArray();
 	}
 
 	public function getArrayForSelect(bool $includeHidden = true): array
