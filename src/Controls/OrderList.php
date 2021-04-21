@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\Admin\Controls\OrderGridFactory;
+use Eshop\DB\Order;
 use Eshop\Shopper;
 use Eshop\DB\OrderRepository;
 use Grid\Datalist;
+use League\Csv\Writer;
+use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Form;
 use Nette\Localization\Translator;
 use StORM\Collection;
 use StORM\ICollection;
+use function Clue\StreamFilter\fun;
 
 /**
  * Class Products
@@ -24,6 +28,8 @@ class OrderList extends Datalist
 	private OrderGridFactory $orderGridFactory;
 
 	private OrderRepository $orderRepository;
+
+	private string $tempDir;
 
 	public function __construct(Translator $translator, OrderGridFactory $orderGridFactory, OrderRepository $orderRepository, Shopper $shopper, ?Collection $orders = null)
 	{
@@ -56,6 +62,11 @@ class OrderList extends Datalist
 		$this->orderRepository = $orderRepository;
 	}
 
+	public function setTempDir(string $tempDir): void
+	{
+		$this->tempDir = $tempDir;
+	}
+
 	public function render(): void
 	{
 		$this->template->paginator = $this->getPaginator();
@@ -70,23 +81,45 @@ class OrderList extends Datalist
 			$form->addCheckbox('check_' . $order->getPK());
 		}
 
-		$form->addSubmit('finish', $this->translator->translate('orderL.finish', 'Vyřídit vybrané'));
-		$form->addSubmit('cancel', $this->translator->translate('orderL.cancel', 'Stornovat vybrané'));
+		$form->addSubmit('finish', $this->translator->translate('orderL.finish', 'Vyřídit'))
+			->setHtmlAttribute('onClick', "return confirm('" . $this->translator->translate('.really?', 'Opravdu?') . "')");
+		$form->addSubmit('cancel', $this->translator->translate('orderL.cancel', 'Stornovat'))
+			->setHtmlAttribute('onClick', "return confirm('" . $this->translator->translate('.really?', 'Opravdu?') . "')");;
+		$form->addSubmit('export', $this->translator->translate('orderL.export', 'Exportovat'));
+		$form->addSubmit('exportAccounts', $this->translator->translate('orderL.exportAccounts', 'Exportovat (dle techniků)'));
+		$form->addSubmit('exportItems', $this->translator->translate('orderL.exportItems', 'Exportovat (položky)'));
 
 		$form->onSuccess[] = function (Form $form) {
 			$values = $form->getValues('array');
 
+			$values = \array_filter($values, function ($value) {
+				return $value;
+			});
+
+			if (\count($values) == 0) {
+				$values = $this->getFilteredSource()->toArray();
+			} else {
+				foreach ($values as $key => $value) {
+					$values[\explode('_', $key)[1]] = $this->orderRepository->one(\explode('_', $key)[1], true);
+					unset($values[$key]);
+				}
+			}
+
 			$submitName = $form->isSubmitted()->getName();
 
-			foreach ($values as $key => $value) {
-				$order = $this->orderRepository->one(\explode('_', $key)[1], true);
+			if ($submitName == 'export') {
+				$this->exportOrders($values);
+			} elseif ($submitName == 'exportAccounts') {
+				$this->exportOrdersAccounts($values);
+			} elseif ($submitName == 'exportItems') {
+				$this->exportOrdersItems($values);
+			}
 
-				if($value){
-					if ($submitName == 'finish') {
-						$this->orderGridFactory->completeOrder($order);
-					} else {
-						$this->orderGridFactory->cancelOrder($order);
-					}
+			foreach ($values as $key => $order) {
+				if ($submitName == 'finish') {
+					$this->orderGridFactory->completeOrder($order);
+				} elseif ($submitName == 'cancel') {
+					$this->orderGridFactory->cancelOrder($order);
 				}
 			}
 
@@ -94,5 +127,136 @@ class OrderList extends Datalist
 		};
 
 		return $form;
+	}
+
+	public function handleFinishOrder(string $orderId): void
+	{
+		$order = $this->orderRepository->one($orderId);
+		$this->orderGridFactory->completeOrder($order);
+	}
+
+	public function handleCancelOrder(string $orderId): void
+	{
+		$order = $this->orderRepository->one($orderId);
+		$this->orderGridFactory->cancelOrder($order);
+	}
+
+	public function handleExport(string $orderId): void
+	{
+		$object = $this->orderRepository->one($orderId, true);
+		$tempFilename = \tempnam($this->tempDir, "csv");
+		$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+			\unlink($tempFilename);
+		};
+		$this->orderRepository->csvExport($object, Writer::createFromPath($tempFilename, 'w+'));
+
+		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "objednavka-$object->code.csv", 'text/csv'));
+	}
+
+	/**
+	 * @param \Eshop\DB\Order[] $orders
+	 * @throws \League\Csv\CannotInsertRecord
+	 * @throws \League\Csv\InvalidArgument
+	 * @throws \Nette\Application\AbortException
+	 * @throws \Nette\Application\BadRequestException
+	 */
+	public function exportOrders(array $orders): void
+	{
+		$tempFilename = \tempnam($this->tempDir, "csv");
+		$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+			\unlink($tempFilename);
+		};
+
+		$this->orderRepository->csvExportOrders($orders, Writer::createFromPath($tempFilename, 'w+'));
+
+		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "orders.csv", 'text/csv'));
+	}
+
+	/**
+	 * @param \Eshop\DB\Order[] $orders
+	 * @throws \Nette\Application\AbortException
+	 * @throws \Nette\Application\BadRequestException
+	 */
+	public function exportOrdersAccounts(array $orders): void
+	{
+		$zip = new \ZipArchive();
+
+		$zipFilename = \tempnam($this->tempDir, "zip");
+
+		if ($zip->open($zipFilename, \ZipArchive::CREATE) !== TRUE) {
+			exit("cannot open <$zipFilename>\n");
+		}
+
+		$accountsInfo = [];
+		$accounts = [];
+
+		/** @var \Eshop\DB\Order $order */
+		foreach ($orders as $order) {
+			$account = $order->purchase->account;
+
+			if ($account) {
+				$accounts[$account->getPK()][] = $order;
+				$accountsInfo[$account->getPK()] = $account->fullname;
+			} elseif ($order->purchase->accountFullname) {
+				$accounts[$account][] = $order;
+				$accountsInfo[$account] = $order->purchase->accountFullname;
+			} else {
+				continue;
+			}
+		}
+
+		foreach ($accounts as $key => $orders) {
+			$tempFilename = \tempnam($this->tempDir, "csv");
+			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+				\unlink($tempFilename);
+			};
+
+			$this->orderRepository->csvExportOrders($orders, Writer::createFromPath($tempFilename, 'w+'));
+
+			$zip->addFile($tempFilename, $accountsInfo[$key] . '.csv');
+		}
+
+		$zip->close();
+
+		$this->getPresenter()->application->onShutdown[] = function () use ($zip, $zipFilename) {
+			\unlink($zipFilename);
+		};
+
+		$this->getPresenter()->sendResponse(new FileResponse($zipFilename, "orders.zip", 'application/zip'));
+	}
+
+	/**
+	 * @param \Eshop\DB\Order[] $orders
+	 * @throws \Nette\Application\AbortException
+	 * @throws \Nette\Application\BadRequestException
+	 */
+	public function exportOrdersItems(array $orders)
+	{
+		$zip = new \ZipArchive();
+
+		$zipFilename = \tempnam($this->tempDir, "zip");
+
+		if ($zip->open($zipFilename, \ZipArchive::CREATE) !== TRUE) {
+			exit("cannot open <$zipFilename>\n");
+		}
+
+		/** @var \Eshop\DB\Order $order */
+		foreach ($orders as $order) {
+			$tempFilename = \tempnam($this->tempDir, "csv");
+			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+				\unlink($tempFilename);
+			};
+			$this->orderRepository->csvExport($order, Writer::createFromPath($tempFilename, 'w+'));
+
+			$zip->addFile($tempFilename, $order->code . '_' . $order->purchase->accountFullname . '.csv');
+		}
+
+		$zip->close();
+
+		$this->getPresenter()->application->onShutdown[] = function () use ($zip, $zipFilename) {
+			\unlink($zipFilename);
+		};
+
+		$this->getPresenter()->sendResponse(new FileResponse($zipFilename, "orders.zip", 'application/zip'));
 	}
 }

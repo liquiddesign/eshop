@@ -117,7 +117,7 @@ class OrderRepository extends \StORM\Repository
 			'priceSum',
 			'priceVatSum',
 			'vatPct',
-			'note',
+			'note'
 		]);
 
 		foreach ($order->purchase->getItems() as $item) {
@@ -134,6 +134,47 @@ class OrderRepository extends \StORM\Repository
 				$item->getPriceVatSum(),
 				$item->vatPct,
 				$item->note
+			]);
+		}
+	}
+
+	/**
+	 * @param \Eshop\DB\Order[] $orders
+	 * @param \League\Csv\Writer $writer
+	 * @throws \League\Csv\CannotInsertRecord
+	 * @throws \League\Csv\InvalidArgument
+	 */
+	public function csvExportOrders(array $orders, Writer $writer)
+	{
+		$writer->setDelimiter(';');
+
+		$writer->insertOne([
+			'code',
+			'currency',
+			'createdTs',
+			'receivedTs',
+			'processedTs',
+			'completedTs',
+			'canceledTs',
+			'price',
+			'priceVat',
+			'customer',
+			'account'
+		]);
+
+		foreach ($orders as $order) {
+			$writer->insertOne([
+				$order->code,
+				$order->purchase->currency->code,
+				$order->createdTs,
+				$order->receivedTs,
+				$order->processedTs,
+				$order->completedTs,
+				$order->canceledTs,
+				$order->purchase->getSumPrice(),
+				$order->purchase->getSumPriceVat(),
+				$order->purchase->fullname,
+				$order->purchase->accountFullname
 			]);
 		}
 	}
