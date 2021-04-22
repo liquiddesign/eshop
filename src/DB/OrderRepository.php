@@ -10,6 +10,7 @@ use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Localization\Translator;
 use Nette\Utils\DateTime;
+use Security\DB\Account;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
@@ -43,7 +44,7 @@ class OrderRepository extends \StORM\Repository
 		return $this->getFinishedOrders(new Customer(['uuid' => $customerId]));
 	}
 
-	public function getFinishedOrders(?Customer $customer, ?Merchant $merchant = null): Collection
+	public function getFinishedOrders(?Customer $customer = null, ?Merchant $merchant = null, ?Account $account = null): Collection
 	{
 		$collection = $this->many()->where('this.completedTs IS NOT NULL AND this.canceledTs IS NULL');
 		$collection->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid');
@@ -54,6 +55,10 @@ class OrderRepository extends \StORM\Repository
 			$collection->where('purchase.fk_customer', $customer);
 		} else if ($merchant) {
 			$collection->where('nxn.fk_merchant', $merchant);
+		}
+
+		if($account){
+			$collection->where('purchase.fk_account', $account);
 		}
 
 		return $collection;
@@ -73,7 +78,7 @@ class OrderRepository extends \StORM\Repository
 			->where('this.completedTs IS NULL AND this.canceledTs IS NULL');
 	}
 
-	public function getNewOrders(?Customer $customer, ?Merchant $merchant = null): Collection
+	public function getNewOrders(?Customer $customer, ?Merchant $merchant = null, ?Account $account = null): Collection
 	{
 		$collection = $this->many()->where('this.completedTs IS NULL AND this.canceledTs IS NULL');
 		$collection->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid');
@@ -86,10 +91,14 @@ class OrderRepository extends \StORM\Repository
 			$collection->where('nxn.fk_merchant', $merchant);
 		}
 
+		if($account){
+			$collection->where('purchase.fk_account', $account);
+		}
+
 		return $collection;
 	}
 
-	public function getCanceledOrders(?Customer $customer, ?Merchant $merchant = null): Collection
+	public function getCanceledOrders(?Customer $customer, ?Merchant $merchant = null, ?Account $account = null): Collection
 	{
 		$collection = $this->many()->where('this.canceledTs IS NOT NULL');
 		$collection->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid');
@@ -100,6 +109,10 @@ class OrderRepository extends \StORM\Repository
 			$collection->where('purchase.fk_customer', $customer);
 		} else if ($merchant) {
 			$collection->where('nxn.fk_merchant', $merchant);
+		}
+
+		if($account){
+			$collection->where('purchase.fk_account', $account);
 		}
 
 		return $collection;

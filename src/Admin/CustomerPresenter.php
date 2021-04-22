@@ -442,46 +442,6 @@ class CustomerPresenter extends BackendPresenter
 			}
 
 			unset($values['merchants']);
-
-			/*
-			foreach ($this->catalogPermissionRepo->many()->where('fk_customer', $customer->getPK()) as $permission) {
-				if (Arrays::contains($values['accounts'], $permission->getValue('account'))) {
-					unset($values['accounts'][$permission->getValue('account')]);
-				} else {
-					$permission->delete();
-				}
-			}
-			
-			foreach ($values['accounts'] as $account) {
-				$permission = $this->catalogPermissionRepo->many()
-					->where('fk_account', $account)
-					->first();
-				
-				$realPermission = $this->catalogPermissionRepo->many()
-					->where('fk_account', $account)
-					->where('fk_customer', $customer->getPK())
-					->first();
-				
-				$newValues = [
-					'customer' => $customer->getPK(),
-					'account' => $account,
-				];
-				
-				if ($permission) {
-					$newValues += [
-						'catalogPermission' => $permission->catalogPermission,
-						'buyAllowed' => $permission->buyAllowed,
-						'orderAllowed' => $permission->orderAllowed,
-					];
-				}
-				
-				if ($realPermission) {
-					$realPermission->update($newValues);
-				} else {
-					$this->catalogPermissionRepo->createOne($newValues);
-				}
-			}
-			*/
 			unset($values['accounts']);
 
 			/** @var \Eshop\DB\Customer $customer */
@@ -528,6 +488,7 @@ class CustomerPresenter extends BackendPresenter
 			$container->addDataSelect('customer', 'Zákazník', $this->customerRepository->getArrayForSelect())->setPrompt('-Zvolte-')->setRequired();
 			$container->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setDefaultValue('price');
 			$container->addCheckbox('buyAllowed', 'Povolit nákup')->setDefaultValue(true);
+			$container->addCheckbox('viewAllOrders', 'Zobrazit všechny poptávky zákazníka')->setDefaultValue(false);
 		};
 
 		$form = $this->accountFormFactory->create(false, $callback, true, true);

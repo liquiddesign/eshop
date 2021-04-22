@@ -29,6 +29,12 @@ class CatalogPermission extends \StORM\Entity
 	 * @column
 	 */
 	public bool $orderAllowed = true;
+
+	/**
+	 * Oprávnění: vidět všechny objednávky zákazníka
+	 * @column
+	 */
+	public bool $viewAllOrders = false;
 	
 	/**
 	 * Zákazník

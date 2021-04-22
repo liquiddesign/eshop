@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\Admin\Controls\OrderGridFactory;
-use Eshop\DB\Order;
+use Eshop\DB\CatalogPermissionRepository;
 use Eshop\Shopper;
 use Eshop\DB\OrderRepository;
 use Grid\Datalist;
@@ -15,7 +15,6 @@ use Nette\Application\UI\Form;
 use Nette\Localization\Translator;
 use StORM\Collection;
 use StORM\ICollection;
-use function Clue\StreamFilter\fun;
 
 /**
  * Class Products
@@ -31,9 +30,14 @@ class OrderList extends Datalist
 
 	private string $tempDir;
 
-	public function __construct(Translator $translator, OrderGridFactory $orderGridFactory, OrderRepository $orderRepository, Shopper $shopper, ?Collection $orders = null)
+	public function __construct(Translator $translator, OrderGridFactory $orderGridFactory, OrderRepository $orderRepository, CatalogPermissionRepository $catalogPermissionRepository, Shopper $shopper, ?Collection $orders = null)
 	{
-		parent::__construct($orders ?? $orderRepository->getFinishedOrders($shopper->getCustomer(), $shopper->getMerchant()));
+		if (!$orders && $shopper->getCustomer()) {
+			/** @var \Eshop\DB\CatalogPermission $permission */
+			$permission = $catalogPermissionRepository->many()->where('fk_account', $shopper->getCustomer()->getAccount())->first();
+		}
+
+		parent::__construct($orders ?? $orderRepository->getFinishedOrders($shopper->getCustomer(), $shopper->getMerchant(), isset($permission) ? ($permission->viewAllOrders ? null : $shopper->getCustomer()->getAccount()) : null));
 
 		$this->setDefaultOnPage(10);
 		$this->setDefaultOrder('this.createdTs', 'DESC');
