@@ -8,6 +8,7 @@ use Eshop\Shopper;
 use League\Csv\Writer;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\Localization\Translator;
 use Nette\Utils\DateTime;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -22,11 +23,14 @@ class OrderRepository extends \StORM\Repository
 
 	private Shopper $shopper;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Storage $storage, Shopper $shopper)
+	private Translator $translator;
+
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Storage $storage, Shopper $shopper, Translator $translator)
 	{
 		parent::__construct($connection, $schemaManager);
 		$this->cache = new Cache($storage);
 		$this->shopper = $shopper;
+		$this->translator = $translator;
 	}
 
 	/**
@@ -144,20 +148,20 @@ class OrderRepository extends \StORM\Repository
 			$order->code
 		));
 		$writer->writeSheetRow($sheetName, array(
-			'Měna', $order->purchase->currency->code
+			$this->translator->translate('orderEE.currency', 'Měna'), $order->purchase->currency->code
 		));
 		$writer->writeSheetRow($sheetName, []);
 
 		$writer->writeSheetRow($sheetName, array(
-			'Název produktu',
-			'Kód produktu',
-			'Množství',
-			'Cena za kus',
-			'Cena za kus s DPH',
-			'Mezisoučet',
-			'Mezisoučet s DPH',
-			'Daň',
-			'Poznámka',
+			$this->translator->translate('orderEE.productName', 'Název produktu'),
+			$this->translator->translate('orderEE.productCode', 'Kód produktu'),
+			$this->translator->translate('orderEE.amount', 'Množství'),
+			$this->translator->translate('orderEE.pcsPrice', 'Cena za kus'),
+			$this->translator->translate('orderEE.pcsPriceVat', 'Cena za kus s DPH'),
+			$this->translator->translate('orderEE.sumPrice', 'Mezisoučet'),
+			$this->translator->translate('orderEE.sumPriceVat', 'Mezisoučet s DPH'),
+			$this->translator->translate('orderEE.vat', 'Daň'),
+			$this->translator->translate('orderEE.note', 'Poznámka'),
 		));
 
 		foreach ($order->purchase->getItems() as $item) {
@@ -176,10 +180,10 @@ class OrderRepository extends \StORM\Repository
 
 		$writer->writeSheetRow($sheetName, []);
 		$writer->writeSheetRow($sheetName, array(
-			'Celková cena', \str_replace(',', '.', (string)$order->getTotalPrice()),
+			$this->translator->translate('orderEE.totalPrice', 'Celková cena'), \str_replace(',', '.', (string)$order->getTotalPrice()),
 		));
 		$writer->writeSheetRow($sheetName, array(
-			'Celková cena s DPH', \str_replace(',', '.', (string)$order->getTotalPriceVat()),
+			$this->translator->translate('orderEE.totalPriceVat', 'Celková cena s DPH'), \str_replace(',', '.', (string)$order->getTotalPriceVat()),
 		));
 	}
 
