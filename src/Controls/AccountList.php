@@ -133,13 +133,14 @@ class AccountList extends Datalist
 			$form = new Form();
 
 			$form->addSelect('catalogPermission', null, Shopper::PERMISSIONS)->setDefaultValue($catalogPerm->catalogPermission);
-
 			$form->addCheckbox('buyAllowed')->setHtmlAttribute('onChange', 'this.form.submit()')->setDefaultValue($catalogPerm->buyAllowed);
+			$form->addCheckbox('viewAllOrders')->setHtmlAttribute('onChange', 'this.form.submit()')->setDefaultValue($catalogPerm->viewAllOrders);
 
 			$form->onSuccess[] = function ($form, $values) use ($catalogPerm): void {
 				$catalogPerm->update([
 					'catalogPermission' => $values->catalogPermission,
-					'buyAllowed' => $values->buyAllowed
+					'buyAllowed' => $values->buyAllowed,
+					'viewAllOrders' => $values->viewAllOrders
 				]);
 				$this->redirect('this');
 			};

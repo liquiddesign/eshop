@@ -95,7 +95,10 @@ class CustomerPresenter extends BackendPresenter
 			return $customer->company ?: $customer->fullname;
 		});
 		$grid->addColumn('Obchodníci', function (Customer $customer) {
-			return '';
+			return \implode(', ', $this->merchantRepository->many()
+				->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = merchantXcustomer.fk_merchant')
+				->where('fk_customer', $customer)
+				->toArrayOf('fullname'));
 		});
 		$grid->addColumnText('Skupina', 'group.name', '%s', 'group.name');
 		$grid->addColumnText('Telefon', 'phone', '<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
@@ -128,16 +131,17 @@ class CustomerPresenter extends BackendPresenter
 
 		$grid->addFilterTextInput('search', ['this.fullname', 'this.email', 'this.phone'], null, 'Jméno a příjmení, email, telefon');
 
-		if (\count($this->merchantRepository->getListForSelect()) > 0) {
+		if (\count($this->merchantRepository->getArrayForSelect()) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$source->where('fk_merchant', $value);
-			}, '', 'merchant', 'Obchodník', $this->merchantRepository->getListForSelect(), ['placeholder' => '- Obchodník -']);
+				$source->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = merchantXcustomer.fk_customer');
+				$source->where('merchantXcustomer.fk_merchant', $value);
+			}, '', 'merchant', 'Obchodník', $this->merchantRepository->getArrayForSelect(), ['placeholder' => '- Obchodník -']);
 		}
 
-		if (\count($this->groupsRepo->getListForSelect()) > 0) {
+		if (\count($this->groupsRepo->getArrayForSelect()) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$source->where('fk_group', $value);
-			}, '', 'group', 'Skupina', $this->groupsRepo->getListForSelect(), ['placeholder' => '- Skupina -']);
+			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(), ['placeholder' => '- Skupina -']);
 		}
 
 		$grid->addFilterCheckboxInput('newsletter', "newsletter = 1", 'Newsletter');
@@ -370,49 +374,13 @@ class CustomerPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
 
-			foreach ($values['merchants'] as $merchant) {
-				$this->storm->createRow('eshop_merchant_nxn_eshop_customer', ['fk_merchant' => $merchant, 'fk_customer' => $customer]);
-			}
-
-			unset($values['merchants']);
-
-			//$accounts = $values['accounts'];
-			//unset($values['accounts']);
+			$merchants = Arrays::pick($values, 'merchants');
 
 			$customer = $this->customerRepository->syncOne($values, null, true);
 
-			/*
-			foreach ($accounts as $account) {
-				
-				$permission = $this->catalogPermissionRepo->many()
-					->where('fk_account', $account)
-					->first();
-				
-				
-				$realPermission = $this->catalogPermissionRepo->many()
-					->where('fk_account', $account)
-					->where('fk_customer', $customer->getPK())
-					->first();
-				
-				$newValues = [
-					'customer' => $customer->getPK(),
-					'account' => $account,
-				];
-				
-				if ($permission) {
-					$newValues += [
-						'catalogPermission' => $permission->catalogPermission,
-						'buyAllowed' => $permission->buyAllowed,
-						'orderAllowed' => $permission->orderAllowed,
-					];
-				}
-				
-				if ($realPermission) {
-					$realPermission->update($newValues);
-				} else {
-					$this->catalogPermissionRepo->createOne($newValues);
-				}
-			}*/
+			foreach ($merchants as $merchant) {
+				$this->storm->createRow('eshop_merchant_nxn_eshop_customer', ['fk_merchant' => $merchant, 'fk_customer' => $customer]);
+			}
 
 			$this->flashMessage('Vytvořeno', 'success');
 			$form->processRedirect('edit', 'default', [$customer]);
