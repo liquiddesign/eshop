@@ -88,6 +88,8 @@ class OrderList extends Datalist
 		$form->addSubmit('export', $this->translator->translate('orderL.export', 'Exportovat'));
 		$form->addSubmit('exportAccounts', $this->translator->translate('orderL.exportAccounts', 'Exportovat (dle techniků)'));
 		$form->addSubmit('exportItems', $this->translator->translate('orderL.exportItems', 'Exportovat (položky)'));
+		$form->addSubmit('exportExcel', $this->translator->translate('orderL.exportExcel', 'Do objednávky'));
+		$form->addSubmit('exportExcelZip', $this->translator->translate('orderL.exportExcelZip', 'Do objednávky (zip)'));
 
 		$form->onSuccess[] = function (Form $form) {
 			$values = $form->getValues('array');
@@ -113,6 +115,10 @@ class OrderList extends Datalist
 				$this->exportOrdersAccounts($values);
 			} elseif ($submitName == 'exportItems') {
 				$this->exportOrdersItems($values);
+			} elseif ($submitName == 'exportExcel') {
+				$this->exportOrdersExcel($values);
+			} elseif ($submitName == 'exportExcelZip') {
+				$this->exportOrdersExcelZip($values);
 			}
 
 			foreach ($values as $key => $order) {
@@ -150,7 +156,7 @@ class OrderList extends Datalist
 		};
 		$this->orderRepository->csvExport($object, Writer::createFromPath($tempFilename, 'w+'));
 
-		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "objednavka-$object->code.csv", 'text/csv'));
+		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "order-$object->code.csv", 'text/csv'));
 	}
 
 	/**
@@ -253,10 +259,30 @@ class OrderList extends Datalist
 
 		$zip->close();
 
-		$this->getPresenter()->application->onShutdown[] = function () use ($zip, $zipFilename) {
+		$this->getPresenter()->application->onShutdown[] = function () use ($zipFilename) {
 			\unlink($zipFilename);
 		};
 
 		$this->getPresenter()->sendResponse(new FileResponse($zipFilename, "orders.zip", 'application/zip'));
+	}
+
+	public function exportOrdersExcel(array $orders)
+	{
+		$filename = \tempnam($this->tempDir, "xlsx");
+
+		$writer = new \XLSXWriter();
+		$writer->writeSheet($orders);
+		$writer->writeToFile($filename);
+
+		$this->getPresenter()->application->onShutdown[] = function () use ($filename) {
+			\unlink($filename);
+		};
+
+		$this->getPresenter()->sendResponse(new FileResponse($filename, "orders.xlsx", 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));
+	}
+
+	public function exportOrdersExcelZip(array $orders)
+	{
+
 	}
 }
