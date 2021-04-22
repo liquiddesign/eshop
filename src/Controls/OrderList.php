@@ -271,7 +271,9 @@ class OrderList extends Datalist
 		$filename = \tempnam($this->tempDir, "xlsx");
 
 		$writer = new \XLSXWriter();
-		$writer->writeSheet($orders);
+
+		$this->orderRepository->excelExportAll($orders, $writer);
+
 		$writer->writeToFile($filename);
 
 		$this->getPresenter()->application->onShutdown[] = function () use ($filename) {
@@ -283,6 +285,36 @@ class OrderList extends Datalist
 
 	public function exportOrdersExcelZip(array $orders)
 	{
+		$zip = new \ZipArchive();
 
+		$zipFilename = \tempnam($this->tempDir, "zip");
+
+		if ($zip->open($zipFilename, \ZipArchive::CREATE) !== TRUE) {
+			exit("cannot open <$zipFilename>\n");
+		}
+
+		/** @var \Eshop\DB\Order $order */
+		foreach ($orders as $order) {
+			$tempFilename = \tempnam($this->tempDir, "xlsx");
+			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+				\unlink($tempFilename);
+			};
+
+			$writer = new \XLSXWriter();
+
+			$this->orderRepository->excelExport($order, $writer, $order->code);
+
+			$writer->writeToFile($tempFilename);
+
+			$zip->addFile($tempFilename, $order->code . '_' . $order->purchase->accountFullname . '.xlsx');
+		}
+
+		$zip->close();
+
+		$this->getPresenter()->application->onShutdown[] = function () use ($zipFilename) {
+			\unlink($zipFilename);
+		};
+
+		$this->getPresenter()->sendResponse(new FileResponse($zipFilename, "orders.zip", 'application/zip'));
 	}
 }

@@ -138,6 +138,62 @@ class OrderRepository extends \StORM\Repository
 		}
 	}
 
+	public function excelExport(Order $order, \XLSXWriter $writer, string $sheetName = 'sheet')
+	{
+		$writer->writeSheetRow($sheetName, array(
+			$order->code
+		));
+		$writer->writeSheetRow($sheetName, array(
+			'Měna', $order->purchase->currency->code
+		));
+		$writer->writeSheetRow($sheetName, []);
+
+		$writer->writeSheetRow($sheetName, array(
+			'Název produktu',
+			'Kód produktu',
+			'Množství',
+			'Cena za kus',
+			'Cena za kus s DPH',
+			'Mezisoučet',
+			'Mezisoučet s DPH',
+			'Daň',
+			'Poznámka',
+		));
+
+		foreach ($order->purchase->getItems() as $item) {
+			$writer->writeSheetRow($sheetName, [
+				$item->productName,
+				$item->getFullCode(),
+				$item->amount,
+				$item->vatPct,
+				\str_replace(',', '.', (string)$item->price),
+				\str_replace(',', '.', (string)$item->priceVat),
+				\str_replace(',', '.', (string)$item->getPriceSum()),
+				\str_replace(',', '.', (string)$item->getPriceVatSum()),
+				$item->note
+			]);
+		}
+
+		$writer->writeSheetRow($sheetName, []);
+		$writer->writeSheetRow($sheetName, array(
+			'Celková cena', \str_replace(',', '.', (string)$order->getTotalPrice()),
+		));
+		$writer->writeSheetRow($sheetName, array(
+			'Celková cena s DPH', \str_replace(',', '.', (string)$order->getTotalPriceVat()),
+		));
+	}
+
+	/**
+	 * @param \Eshop\DB\Order[] $orders
+	 * @param \XLSXWriter $writer
+	 */
+	public function excelExportAll(array $orders, \XLSXWriter $writer)
+	{
+		foreach ($orders as $order) {
+			$this->excelExport($order, $writer, $order->code);
+		}
+	}
+
 	/**
 	 * @param \Eshop\DB\Order[] $orders
 	 * @param \League\Csv\Writer $writer
