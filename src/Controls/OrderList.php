@@ -167,7 +167,7 @@ class OrderList extends Datalist
 		$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
 			\unlink($tempFilename);
 		};
-		$this->orderRepository->csvExport($object, Writer::createFromPath($tempFilename, 'w+'));
+		$this->getPresenter()->csvOrderExportAPI($object, Writer::createFromPath($tempFilename, 'w+'));
 
 		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "order-$object->code.csv", 'text/csv'));
 	}
