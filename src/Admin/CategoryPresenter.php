@@ -20,7 +20,6 @@ use Nette\Utils\Random;
 use Pages\DB\PageRepository;
 use Pages\Helpers;
 use StORM\DIConnection;
-use StORM\Entity;
 
 class CategoryPresenter extends BackendPresenter
 {

@@ -57,7 +57,7 @@ class OrderRepository extends \StORM\Repository
 			$collection->where('nxn.fk_merchant', $merchant);
 		}
 
-		if($account){
+		if ($account) {
 			$collection->where('purchase.fk_account', $account);
 		}
 
@@ -91,7 +91,7 @@ class OrderRepository extends \StORM\Repository
 			$collection->where('nxn.fk_merchant', $merchant);
 		}
 
-		if($account){
+		if ($account) {
 			$collection->where('purchase.fk_account', $account);
 		}
 
@@ -111,7 +111,7 @@ class OrderRepository extends \StORM\Repository
 			$collection->where('nxn.fk_merchant', $merchant);
 		}
 
-		if($account){
+		if ($account) {
 			$collection->where('purchase.fk_account', $account);
 		}
 
@@ -160,22 +160,19 @@ class OrderRepository extends \StORM\Repository
 		$writer->writeSheetRow($sheetName, array(
 			$order->code
 		));
-		$writer->writeSheetRow($sheetName, array(
-			$this->translator->translate('orderEE.currency', 'Měna'), $order->purchase->currency->code
-		));
 		$writer->writeSheetRow($sheetName, []);
+
+		$styles4 = array('font-style' => 'bold');
 
 		$writer->writeSheetRow($sheetName, array(
 			$this->translator->translate('orderEE.productName', 'Název produktu'),
 			$this->translator->translate('orderEE.productCode', 'Kód produktu'),
 			$this->translator->translate('orderEE.amount', 'Množství'),
-			$this->translator->translate('orderEE.pcsPrice', 'Cena za kus'),
-			$this->translator->translate('orderEE.pcsPriceVat', 'Cena za kus s DPH'),
-			$this->translator->translate('orderEE.sumPrice', 'Mezisoučet'),
-			$this->translator->translate('orderEE.sumPriceVat', 'Mezisoučet s DPH'),
 			$this->translator->translate('orderEE.vat', 'Daň'),
+			$this->translator->translate('orderEE.pcsPrice', 'Cena za kus'),
+			$this->translator->translate('orderEE.sumPrice', 'Mezisoučet'),
 			$this->translator->translate('orderEE.note', 'Poznámka'),
-		));
+		), $styles4);
 
 		foreach ($order->purchase->getItems() as $item) {
 			$writer->writeSheetRow($sheetName, [
@@ -183,20 +180,15 @@ class OrderRepository extends \StORM\Repository
 				$item->getFullCode(),
 				$item->amount,
 				$item->vatPct,
-				\str_replace(',', '.', (string)$item->price),
-				\str_replace(',', '.', (string)$item->priceVat),
-				\str_replace(',', '.', (string)$item->getPriceSum()),
-				\str_replace(',', '.', (string)$item->getPriceVatSum()),
+				\str_replace(',', '.', (string)$this->shopper->filterPrice($item->price, $order->purchase->currency->code)),
+				\str_replace(',', '.', (string)$this->shopper->filterPrice($item->getPriceSum(), $order->purchase->currency->code)),
 				$item->note
 			]);
 		}
 
 		$writer->writeSheetRow($sheetName, []);
 		$writer->writeSheetRow($sheetName, array(
-			$this->translator->translate('orderEE.totalPrice', 'Celková cena'), \str_replace(',', '.', (string)$order->getTotalPrice()),
-		));
-		$writer->writeSheetRow($sheetName, array(
-			$this->translator->translate('orderEE.totalPriceVat', 'Celková cena s DPH'), \str_replace(',', '.', (string)$order->getTotalPriceVat()),
+			$this->translator->translate('orderEE.totalPrice', 'Celková cena'), \str_replace(',', '.', (string)$this->shopper->filterPrice($order->getTotalPrice(), $order->purchase->currency->code)),
 		));
 	}
 

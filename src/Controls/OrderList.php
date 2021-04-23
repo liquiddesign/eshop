@@ -13,6 +13,7 @@ use League\Csv\Writer;
 use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Form;
 use Nette\Localization\Translator;
+use Nette\Utils\Arrays;
 use StORM\Collection;
 use StORM\ICollection;
 
@@ -89,11 +90,11 @@ class OrderList extends Datalist
 			->setHtmlAttribute('onClick', "return confirm('" . $this->translator->translate('.really?', 'Opravdu?') . "')");
 		$form->addSubmit('cancel', $this->translator->translate('orderL.cancel', 'Stornovat'))
 			->setHtmlAttribute('onClick', "return confirm('" . $this->translator->translate('.really?', 'Opravdu?') . "')");;
-		$form->addSubmit('export', $this->translator->translate('orderL.export', 'Exportovat'));
-		$form->addSubmit('exportAccounts', $this->translator->translate('orderL.exportAccounts', 'Exportovat (dle techniků)'));
-		$form->addSubmit('exportItems', $this->translator->translate('orderL.exportItems', 'Exportovat (položky)'));
-		$form->addSubmit('exportExcel', $this->translator->translate('orderL.exportExcel', 'Do objednávky'));
-		$form->addSubmit('exportExcelZip', $this->translator->translate('orderL.exportExcelZip', 'Do objednávky (zip)'));
+		$form->addSubmit('export');
+		$form->addSubmit('exportAccounts');
+		$form->addSubmit('exportItems');
+		$form->addSubmit('exportExcel');
+		$form->addSubmit('exportExcelZip');
 
 		$form->onSuccess[] = function (Form $form) {
 			$values = $form->getValues('array');
@@ -289,6 +290,23 @@ class OrderList extends Datalist
 
 	public function exportOrdersExcelZip(array $orders)
 	{
+		if (\count($orders) == 1) {
+			$order = Arrays::first($orders);
+
+			$tempFilename = \tempnam($this->tempDir, "xlsx");
+			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+				\unlink($tempFilename);
+			};
+
+			$writer = new \XLSXWriter();
+
+			$this->orderRepository->excelExport($order, $writer, $order->code);
+
+			$writer->writeToFile($tempFilename);
+
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "$order->code.xlsx", 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));
+		}
+
 		$zip = new \ZipArchive();
 
 		$zipFilename = \tempnam($this->tempDir, "zip");
@@ -310,7 +328,7 @@ class OrderList extends Datalist
 
 			$writer->writeToFile($tempFilename);
 
-			$zip->addFile($tempFilename, $order->code . '_' . $order->purchase->accountFullname . '.xlsx');
+			$zip->addFile($tempFilename, $order->code . '.xlsx');
 		}
 
 		$zip->close();
