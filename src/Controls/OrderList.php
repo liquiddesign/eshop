@@ -72,6 +72,14 @@ class OrderList extends Datalist
 		$this->tempDir = $tempDir;
 	}
 
+	public function handleCancel()
+	{
+		$this->setFilters(null);
+		$this->setPage(1);
+
+		$this->getPresenter()->redirect('this');
+	}
+
 	public function render(): void
 	{
 		$this->template->paginator = $this->getPaginator();
