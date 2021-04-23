@@ -162,14 +162,18 @@ class OrderList extends Datalist
 
 	public function handleExport(string $orderId): void
 	{
-		$object = $this->orderRepository->one($orderId, true);
-		$tempFilename = \tempnam($this->tempDir, "csv");
-		$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
-			\unlink($tempFilename);
-		};
-		$this->getPresenter()->csvOrderExportAPI($object, Writer::createFromPath($tempFilename, 'w+'));
+		try {
+			$object = $this->orderRepository->one($orderId, true);
+			$tempFilename = \tempnam($this->tempDir, "csv");
+			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+				\unlink($tempFilename);
+			};
+			$this->getPresenter()->csvOrderExportAPI($object, Writer::createFromPath($tempFilename, 'w+'));
 
-		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "order-$object->code.csv", 'text/csv'));
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "order-$object->code.csv", 'text/csv'));
+		} catch (\Exception $e) {
+
+		}
 	}
 
 	/**
