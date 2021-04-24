@@ -82,7 +82,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 			$rows->join(['subs' => 'eshop_category'], 'subs.path LIKE CONCAT(this.path,"%")')
 				->join(['nxn' => 'eshop_product_nxn_eshop_category'], 'nxn.fk_category=subs.uuid')
-				->join(['product' => 'eshop_product'], "nxn.fk_product=product.uuid AND product.draft$suffix = 0 AND product.fk_alternative IS NULL")
+				->join(['product' => 'eshop_product'], "nxn.fk_product=product.uuid AND product.hidden = 0 AND product.fk_alternative IS NULL")
 				->setSelect(['count' => 'COUNT(product.uuid)'])
 				->setGroupBy(['this.uuid']);
 
