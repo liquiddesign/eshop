@@ -325,7 +325,7 @@ class CheckoutManager
 
 	public function canBuyProduct(Product $product): bool
 	{
-		return !$product->unavailable && !$product->draft && $product->price !== null;
+		return !$product->unavailable && $product->price !== null && $this->shopper->getBuyPermission();
 	}
 
 	public function disallowItemInCart(CartItem $item): void
