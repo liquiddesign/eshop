@@ -863,8 +863,8 @@ class CheckoutManager
 		$customer = $this->shopper->getCustomer();
 		$cart = $this->getCart();
 		$currency = $cart->currency;
-
-		$cart->update(['approved' => $customer->orderPermission == 'full' ? 'yes' : 'waiting']);
+		
+		$cart->update(['approved' => ($customer && $customer->orderPermission == 'full') || $customer ? 'yes' : 'waiting']);
 
 		// createAccount
 		if ($purchase->createAccount && !$customer) {
@@ -882,6 +882,7 @@ class CheckoutManager
 		if ($purchase->deliveryType) {
 			$this->deliveryRepository->createOne([
 				'order' => $order,
+				'currency' => $currency,
 				'type' => $purchase->deliveryType,
 				'typeName' => $purchase->deliveryType->toArray()['name'],
 				'typeCode' => $purchase->deliveryType->code,
