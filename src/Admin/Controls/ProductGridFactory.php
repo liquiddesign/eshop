@@ -163,8 +163,8 @@ class ProductGridFactory
 			}, '', 'pricelists', null, $ribbons, ['placeholder' => '- Ceníky -']);
 		}
 
-		$grid->addFilterCheckboxInput('this.hidden', "hidden = 1", 'Skryté');
-		$grid->addFilterCheckboxInput('this.unavailble', "unavailable = 1", 'Neprodejné');
+		$grid->addFilterCheckboxInput('hidden', "this.hidden = 1", 'Skryté');
+		$grid->addFilterCheckboxInput('unavailble', "this.unavailable = 1", 'Neprodejné');
 	}
 
 	public function onDelete(Product $product)
