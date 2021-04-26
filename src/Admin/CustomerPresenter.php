@@ -17,6 +17,7 @@ use Eshop\DB\Customer;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\MerchantRepository;
+use Eshop\FormValidators;
 use Eshop\Shopper;
 use Forms\Form;
 use Grid\Datagrid;
@@ -30,6 +31,7 @@ use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Connection;
 use StORM\ICollection;
+use function Clue\StreamFilter\fun;
 
 class CustomerPresenter extends BackendPresenter
 {
@@ -507,9 +509,85 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addFilterTextInput('search', ['this.login'], null, 'Login');
 		$grid->addFilterTextInput('company', ['customer.company', 'customer.fullname', 'customer.ic'], null, 'Zákazník, IČ');
 
+		$submit = $grid->getForm()->addSubmit('permBulkEdit', 'Hromadná úprava')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+		$submit->onClick[] = function () use ($grid) {
+			$grid->getPresenter()->redirect('permBulkEdit', [$grid->getSelectedIds()]);
+		};
 
 		$grid->addFilterButtons();
 
 		return $grid;
 	}
+
+	public function renderPermBulkEdit(array $ids)
+	{
+		$this->template->headerLabel = 'Hromadná úprava';
+		$this->template->headerTree = [
+			['Zákazníci', 'default'],
+			['Účty', 'default'],
+			['Hromadná úprava']
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('permBulkEditForm')];
+	}
+
+	public function createComponentPermBulkEditForm()
+	{
+		/** @var \Grid\Datagrid $grid */
+		$grid = $this->getComponent('accountGrid');
+
+		$ids = $this->getParameter('ids') ?: [];
+		$totalNo = $grid->getFilteredSource()->enum();
+		$selectedNo = \count($ids);
+
+		$form = $this->formFactory->create();
+		unset($form['uuid']);
+
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+		$form->addRadioList('bulkType', 'Upravit', [
+			'selected' => "vybrané ($selectedNo)",
+			'all' => "celý výsledek ($totalNo)",
+		])->setDefaultValue('selected');
+
+		$values = $form->addContainer('values');
+
+		$values->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setPrompt('Původní');
+		$values->addSelect('buyAllowed', 'Povolit nákup', [
+			false => 'Ne',
+			true => 'Ano'
+		])->setPrompt('Původní');
+		$values->addSelect('viewAllOrders', 'Zobrazit všechny poptávky zákazníka', [
+			false => 'Ne',
+			true => 'Ano'
+		])->setPrompt('Původní');
+
+		$form->addSubmits(false, false);
+
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid) {
+			$values = $form->getValues('array');
+
+			if (\count($values['values']) === 0) {
+				return;
+			}
+
+			foreach ($values['values'] as $key => $value) {
+				if ($value === null) {
+					unset($values['values'][$key]);
+				}
+			}
+
+			$ids = $values['bulkType'] === 'selected' ? $ids : $grid->getFilteredSource()->toArrayOf($grid->getSourceIdName());
+
+			foreach ($ids as $id) {
+				$this->catalogPermissionRepo->many()->where('fk_account', $id)->update($values['values']);
+			}
+
+			$this->getPresenter()->flashMessage('Uloženo', 'success');
+			$this->redirect('default');
+		};
+
+		return $form;
+	}
+
 }
