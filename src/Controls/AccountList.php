@@ -12,6 +12,9 @@ use Eshop\Shopper;
 use Grid\Datalist;
 use Nette\Application\UI\Form;
 use Nette\Application\UI\Multiplier;
+use Nette\Localization\Translator;
+use Nette\Utils\Arrays;
+use Nette\Utils\DateTime;
 use Security\DB\AccountRepository;
 use StORM\Collection;
 use StORM\ICollection;
@@ -30,17 +33,26 @@ class AccountList extends Datalist
 
 	private CustomerRepository $customerRepository;
 
-	public function __construct(Shopper $shopper, AccountRepository $accountRepository, CatalogPermissionRepository $catalogPermissionRepository, CustomerRepository $customerRepository, ?Collection $accounts = null)
+	private Translator $translator;
+
+	public function __construct(
+		Shopper $shopper,
+		AccountRepository $accountRepository,
+		CatalogPermissionRepository $catalogPermissionRepository,
+		CustomerRepository $customerRepository,
+		Translator $translator,
+		?Collection $accounts = null)
 	{
 		$this->shopper = $shopper;
 		$this->accountRepository = $accountRepository;
 		$this->catalogPermissionRepository = $catalogPermissionRepository;
 		$this->customerRepository = $customerRepository;
+		$this->translator = $translator;
 
 		parent::__construct($accounts ?? $this->accountRepository->many());
 
 		$this->setDefaultOnPage(20);
-		$this->setDefaultOrder('login');
+		$this->setDefaultOrder('tsRegistered', 'DESC');
 
 		$this->addFilterExpression('login', function (ICollection $collection, $value): void {
 			$collection->where('login LIKE :query OR this.fullname LIKE :query', ['query' => '%' . $value . '%']);
@@ -76,6 +88,11 @@ class AccountList extends Datalist
 			}
 		}, '');
 
+		$this->addFilterExpression('tsRegistered', function (ICollection $collection, $value): void {
+			$collection->where('DATE(tsRegistered)', $value);
+		}, '');
+
+		$this->getFilterForm()->addText('tsRegistered');
 		$this->getFilterForm()->addText('login');
 		$this->getFilterForm()->addSubmit('submit');
 	}
@@ -92,7 +109,7 @@ class AccountList extends Datalist
 
 	public function handleReset(): void
 	{
-		$this->setFilters(['login' => null]);
+		$this->setFilters(null);
 		$this->setOrder('login');
 		$this->getPresenter()->redirect('this');
 	}
@@ -118,7 +135,7 @@ class AccountList extends Datalist
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/accountList.latte');
 	}
 
-	public function createComponentChangePermForm(): Multiplier
+	public function createComponentChangePermFormMulti(): Multiplier
 	{
 		return new Multiplier(function ($itemId) {
 			/** @var \Security\DB\Account $account */
@@ -137,15 +154,90 @@ class AccountList extends Datalist
 			$form->addCheckbox('viewAllOrders')->setHtmlAttribute('onChange', 'this.form.submit()')->setDefaultValue($catalogPerm->viewAllOrders);
 
 			$form->onSuccess[] = function ($form, $values) use ($catalogPerm): void {
-				$catalogPerm->update([
-					'catalogPermission' => $values->catalogPermission,
-					'buyAllowed' => $values->buyAllowed,
-					'viewAllOrders' => $values->viewAllOrders
-				]);
+				$catalogPerm->update($values);
 				$this->redirect('this');
 			};
 
 			return $form;
 		});
+	}
+
+	public function createComponentChangePermForm(): Form
+	{
+		$form = new Form();
+
+		foreach ($this->getItemsOnPage() as $account) {
+			$container = $form->addContainer($account->getPK());
+
+			$container->addCheckbox('check');
+
+			/** @var \Eshop\DB\CatalogPermission $catalogPerm */
+			$catalogPerm = $this->catalogPermissionRepository->many()
+				->where('fk_account', $account->getPK())
+				->where('fk_customer', $this->getParameter('customer'))
+				->first();
+
+			$container->addSelect('catalogPermission', null, Shopper::PERMISSIONS)->setDefaultValue($catalogPerm->catalogPermission);
+			$container->addCheckbox('buyAllowed')->setDefaultValue($catalogPerm->buyAllowed);
+			$container->addCheckbox('viewAllOrders')->setDefaultValue($catalogPerm->viewAllOrders);
+		}
+
+		$form->addSelect('catalogPermission', null, [
+			'none' => $this->translator->translate('accountList.PermNone', 'Nezobrazeno'),
+			'catalog' => $this->translator->translate('accountList.PermCatalog', 'Bez cen'),
+			'price' => $this->translator->translate('accountList.PermPrice', 'S cenami'),
+		])->setPrompt($this->translator->translate('accountList.noChange', 'Původní'));
+		$form->addSelect('buyAllowed', null, [
+			false => $this->translator->translate('accountList.no', 'Ne'),
+			true => $this->translator->translate('accountList.yes', 'Ano')
+		])->setPrompt($this->translator->translate('accountList.noChange', 'Původní'));
+		$form->addSelect('viewAllOrders', null, [
+			false => $this->translator->translate('accountList.no', 'Ne'),
+			true => $this->translator->translate('accountList.yes', 'Ano')
+		])->setPrompt($this->translator->translate('accountList.noChange', 'Původní'));
+
+		$form->addSubmit('submitAll');
+		$form->addSubmit('submitBulk');
+
+		$form->onSuccess[] = function (Form $form): void {
+			$values = $form->getValues('array');
+
+			$bulkValues['catalogPermission'] = Arrays::pick($values, 'catalogPermission');
+			$bulkValues['buyAllowed'] = Arrays::pick($values, 'buyAllowed');
+			$bulkValues['viewAllOrders'] = Arrays::pick($values, 'viewAllOrders');
+
+			$submitName = $form->isSubmitted()->getName();
+
+			if ($submitName == 'submitAll') {
+				foreach ($values as $key => $value) {
+					unset($value['check']);
+					$this->catalogPermissionRepository->many()->where('fk_account', $key)->update($value);
+				}
+			} elseif ($submitName == 'submitBulk') {
+				$values = \array_filter($values, function ($value) {
+					return $value['check'];
+				});
+
+				if (\count($values) == 0) {
+					$values = $this->getFilteredSource()->toArray();
+				}
+
+				foreach ($bulkValues as $key => $value) {
+					if ($value === null) {
+						unset($bulkValues[$key]);
+					}
+				}
+
+				if (\count($bulkValues) > 0) {
+					foreach ($values as $key => $value) {
+						$this->catalogPermissionRepository->many()->where('fk_account', $key)->update($bulkValues);
+					}
+				}
+			}
+
+			$this->redirect('this');
+		};
+
+		return $form;
 	}
 }
