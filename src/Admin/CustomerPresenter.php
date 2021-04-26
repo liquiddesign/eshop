@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Eshop\Admin;
@@ -31,6 +32,7 @@ use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Connection;
 use StORM\ICollection;
+
 use function Clue\StreamFilter\fun;
 
 class CustomerPresenter extends BackendPresenter
@@ -98,23 +100,34 @@ class CustomerPresenter extends BackendPresenter
 		});
 		$grid->addColumn('Obchodníci', function (Customer $customer) {
 			return \implode(', ', $this->merchantRepository->many()
-				->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = merchantXcustomer.fk_merchant')
+				->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'],
+					'this.uuid = merchantXcustomer.fk_merchant')
 				->where('fk_customer', $customer)
 				->toArrayOf('fullname'));
 		});
 		$grid->addColumnText('Skupina', 'group.name', '%s', 'group.name');
-		$grid->addColumnText('Telefon', 'phone', '<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
-		$grid->addColumnText('Email', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
+		$grid->addColumnText('Telefon', 'phone',
+			'<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
+		$grid->addColumnText('Email', 'email',
+			'<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>')->onRenderCell[] = [
+			$grid,
+			'decoratorEmpty'
+		];
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('Feed', function (Customer $customer) use ($btnSecondary) {
-			return "<a class='$btnSecondary' target='_blank' href='" . $this->link('//:Eshop:Export:customer', $customer->getPK()) . "'><i class='fa fa-sm fa-rss'></i></a>";
+			return "<a class='$btnSecondary' target='_blank' href='" . $this->link('//:Eshop:Export:customer',
+					$customer->getPK()) . "'><i class='fa fa-sm fa-rss'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
 
 		$grid->addColumn('', function (Customer $object, Datagrid $datagrid) use ($btnSecondary) {
 			return \count($object->accounts) > 0 ?
-				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'accounts', 'accountGrid-company' => $object->company ?: $object->fullname]) . "'>Účty</a>" :
-				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('newAccount', $object) . "'>Vytvořit&nbsp;účet</a>";
+				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', [
+					'tab' => 'accounts',
+					'accountGrid-company' => $object->company ?: $object->fullname
+				]) . "'>Účty</a>" :
+				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('newAccount',
+					$object) . "'>Vytvořit&nbsp;účet</a>";
 		}, '%s', null, ['class' => 'minimal']);
 
 		$grid->addColumnLink('editAddress', 'Adresy');
@@ -131,13 +144,16 @@ class CustomerPresenter extends BackendPresenter
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
 		$submit->onClick[] = [$this, 'exportCustomers'];
 
-		$grid->addFilterTextInput('search', ['this.fullname', 'this.email', 'this.phone'], null, 'Jméno a příjmení, email, telefon');
+		$grid->addFilterTextInput('search', ['this.fullname', 'this.email', 'this.phone'], null,
+			'Jméno a příjmení, email, telefon');
 
 		if (\count($this->merchantRepository->getArrayForSelect()) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$source->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = merchantXcustomer.fk_customer');
+				$source->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'],
+					'this.uuid = merchantXcustomer.fk_customer');
 				$source->where('merchantXcustomer.fk_merchant', $value);
-			}, '', 'merchant', 'Obchodník', $this->merchantRepository->getArrayForSelect(), ['placeholder' => '- Obchodník -']);
+			}, '', 'merchant', 'Obchodník', $this->merchantRepository->getArrayForSelect(),
+				['placeholder' => '- Obchodník -']);
 		}
 
 		if (\count($this->groupsRepo->getArrayForSelect()) > 0) {
@@ -184,7 +200,10 @@ class CustomerPresenter extends BackendPresenter
 		if ($permission) {
 			$form['permission']->setDefaults($permission->toArray());
 
-			$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values) use ($permission, $form) {
+			$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values) use (
+				$permission,
+				$form
+			) {
 				$permission->update($values['permission']);
 				$this->flashMessage('Uloženo', 'success');
 				$form->processRedirect('editAccount', 'default', [$account]);
@@ -230,7 +249,8 @@ class CustomerPresenter extends BackendPresenter
 		$form->addText('phone', 'Telefon');
 
 		$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired();
-		$form->addText('ccEmails', 'Kopie emailů')->setHtmlAttribute('data-info', 'Zadejte emailové adresy oddělené středníkem (;).');
+		$form->addText('ccEmails', 'Kopie emailů')->setHtmlAttribute('data-info',
+			'Zadejte emailové adresy oddělené středníkem (;).');
 		$form->addCheckbox('newsletter', 'Přihlášen k newsletteru');
 
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->many()->toArrayOf('name'))
@@ -251,15 +271,21 @@ class CustomerPresenter extends BackendPresenter
 			'fullWithApproval' => 'Pouze se schválením',
 			'full' => 'Povoleno',
 		])->setDefaultValue('full');
-		$form->addDataSelect('preferredCurrency', 'Preferovaná měna nákupu', $this->currencyRepo->getArrayForSelect())->setPrompt('Žádný');
-		$form->addDataSelect('preferredPaymentType', 'Preferovaná platba', $this->paymentTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
-		$form->addDataSelect('preferredDeliveryType', 'Preferovaná doprava', $this->deliveryTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
-		$form->addDataMultiSelect('exclusivePaymentTypes', 'Povolené exkluzivní platby', $this->paymentTypeRepo->many()->toArrayOf('code'))
+		$form->addDataSelect('preferredCurrency', 'Preferovaná měna nákupu',
+			$this->currencyRepo->getArrayForSelect())->setPrompt('Žádný');
+		$form->addDataSelect('preferredPaymentType', 'Preferovaná platba',
+			$this->paymentTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
+		$form->addDataSelect('preferredDeliveryType', 'Preferovaná doprava',
+			$this->deliveryTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
+		$form->addDataMultiSelect('exclusivePaymentTypes', 'Povolené exkluzivní platby',
+			$this->paymentTypeRepo->many()->toArrayOf('code'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
-		$form->addDataMultiSelect('exclusiveDeliveryTypes', 'Povolené exkluzivní dopravy', $this->deliveryTypeRepo->many()->toArrayOf('code'))
+		$form->addDataMultiSelect('exclusiveDeliveryTypes', 'Povolené exkluzivní dopravy',
+			$this->deliveryTypeRepo->many()->toArrayOf('code'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 		$form->addInteger('discountLevelPct', 'Slevová hladina (%)')->setDefaultValue(0)->setRequired();
-		$form->addText('productRoundingPct', 'Zokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
+		$form->addText('productRoundingPct',
+			'Zokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
 		$form->addGroup('Exporty');
 		$form->addCheckbox('allowExport', 'Feed povolen');
 		$form->addText('ediCompany', 'EDI: Identifikátor firmy')
@@ -293,7 +319,10 @@ class CustomerPresenter extends BackendPresenter
 		$deliveryAddress->addText('zipcode', 'PSČ');
 		$deliveryAddress->addText('state', 'Stát');
 
-		$form->bind(null, ['deliveryAddress' => $this->addressRepo->getStructure(), 'billAddress' => $this->addressRepo->getStructure()]);
+		$form->bind(null, [
+			'deliveryAddress' => $this->addressRepo->getStructure(),
+			'billAddress' => $this->addressRepo->getStructure()
+		]);
 
 		$form->addSubmits();
 
@@ -381,7 +410,8 @@ class CustomerPresenter extends BackendPresenter
 			$customer = $this->customerRepository->syncOne($values, null, true);
 
 			foreach ($merchants as $merchant) {
-				$this->storm->createRow('eshop_merchant_nxn_eshop_customer', ['fk_merchant' => $merchant, 'fk_customer' => $customer]);
+				$this->storm->createRow('eshop_merchant_nxn_eshop_customer',
+					['fk_merchant' => $merchant, 'fk_customer' => $customer]);
 			}
 
 			$this->flashMessage('Vytvořeno', 'success');
@@ -400,7 +430,12 @@ class CustomerPresenter extends BackendPresenter
 			->where('fk_customer', $customer)
 			->toArray();
 
-		$form->setDefaults($customer->toArray(['pricelists', 'exclusivePaymentTypes', 'exclusiveDeliveryTypes', 'accounts']) + ['merchants' => $merchants]);
+		$form->setDefaults($customer->toArray([
+				'pricelists',
+				'exclusivePaymentTypes',
+				'exclusiveDeliveryTypes',
+				'accounts'
+			]) + ['merchants' => $merchants]);
 
 		$form->onSuccess[] = function (AdminForm $form) use ($customer) {
 			$values = $form->getValues('array');
@@ -408,7 +443,8 @@ class CustomerPresenter extends BackendPresenter
 			$this->storm->rows(['eshop_merchant_nxn_eshop_customer'])->where('fk_customer', $customer)->delete();
 
 			foreach ($values['merchants'] as $merchant) {
-				$this->storm->createRow('eshop_merchant_nxn_eshop_customer', ['fk_merchant' => $merchant, 'fk_customer' => $customer]);
+				$this->storm->createRow('eshop_merchant_nxn_eshop_customer',
+					['fk_merchant' => $merchant, 'fk_customer' => $customer]);
 			}
 
 			unset($values['merchants']);
@@ -452,10 +488,10 @@ class CustomerPresenter extends BackendPresenter
 	public function createComponentAccountForm(): AdminForm
 	{
 		$callback = function (Form $form) {
-
 			$form->addGroup('Oprávnění a zákazník');
 			$container = $form->addContainer('permission');
-			$container->addDataSelect('customer', 'Zákazník', $this->customerRepository->getArrayForSelect())->setPrompt('-Zvolte-')->setRequired();
+			$container->addDataSelect('customer', 'Zákazník',
+				$this->customerRepository->getArrayForSelect())->setPrompt('-Zvolte-')->setRequired();
 			$container->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setDefaultValue('price');
 			$container->addCheckbox('buyAllowed', 'Povolit nákup')->setDefaultValue(true);
 			$container->addCheckbox('viewAllOrders', 'Zobrazit všechny poptávky zákazníka')->setDefaultValue(false);
@@ -473,7 +509,10 @@ class CustomerPresenter extends BackendPresenter
 			->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogPermission.fk_customer')
 			->where('customer.uuid IS NOT NULL')
 			->select(['company' => 'customer.company', 'customerFullname' => 'customer.fullname'])
-			->select(['permission' => 'catalogPermission.catalogPermission', 'buyAllowed' => 'catalogPermission.buyAllowed']);
+			->select([
+				'permission' => 'catalogPermission.catalogPermission',
+				'buyAllowed' => 'catalogPermission.buyAllowed'
+			]);
 
 		$grid = $this->gridFactory->create($collection, 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
@@ -507,9 +546,11 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addButtonDeleteSelected();
 
 		$grid->addFilterTextInput('search', ['this.login'], null, 'Login');
-		$grid->addFilterTextInput('company', ['customer.company', 'customer.fullname', 'customer.ic'], null, 'Zákazník, IČ');
+		$grid->addFilterTextInput('company', ['customer.company', 'customer.fullname', 'customer.ic'], null,
+			'Zákazník, IČ');
 
-		$submit = $grid->getForm()->addSubmit('permBulkEdit', 'Hromadná úprava')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+		$submit = $grid->getForm()->addSubmit('permBulkEdit', 'Hromadná úprava')->setHtmlAttribute('class',
+			'btn btn-outline-primary btn-sm');
 
 		$submit->onClick[] = function () use ($grid) {
 			$grid->getPresenter()->redirect('permBulkEdit', [$grid->getSelectedIds()]);
