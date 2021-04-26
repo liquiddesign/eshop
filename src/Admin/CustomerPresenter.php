@@ -242,7 +242,7 @@ class CustomerPresenter extends BackendPresenter
 
 		$form->addDataSelect('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->setPrompt('Žádná');
 		$form->addDataMultiSelect('merchants', 'Obchodníci', $this->merchantRepository->getArrayForSelect());
-		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getRegisteredGroupsArray())->setPrompt('Žádná');
+		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getArrayForSelect())->setPrompt('Žádná');
 
 		$form->addGroup('Nákup a preference');
 		$form->addSelect('orderPermission', 'Objednání', [
