@@ -101,8 +101,6 @@ class ProductGridFactory
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this, 'onDelete']);
 
-		$btnSecondary = 'btn btn-sm btn-outline-primary';
-
 		$grid->addButtonBulkEdit('productForm', ['producer', 'categories', 'tags', 'ribbons', 'displayAmount', 'displayDelivery', 'vatRate', 'taxes', 'hidden', 'unavailable'], 'productGrid');
 		$submit = $grid->getForm()->addSubmit('newsletterExport', 'Newsletter export')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
@@ -110,25 +108,6 @@ class ProductGridFactory
 			$grid->getPresenter()->redirect('newsletterExportSelect', [$grid->getSelectedIds()]);
 		};
 
-		/*$submit = $grid->getForm()->addSubmit('completeMultiple2');
-		$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')
-			->setHtml('<i class="far fa-arrow-alt-circle-down"></i> Import produktů');
-		$submit->onClick[] = [$this, 'completeOrderMultiple'];
-		
-		$submit = $grid->getForm()->addSubmit('completeMultiple');
-		$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')
-			->setHtml('<i class="far fa-arrow-alt-circle-up"></i> Export produktů');
-		$submit->onClick[] = [$this, 'completeOrderMultiple'];
-		
-		$submit = $grid->getForm()->addSubmit('ccc');
-		$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')
-			->setHtml('<i class="far fa-arrow-alt-circle-down"></i> Import cen');
-		$submit->onClick[] = [$this, 'completeOrderMultiple'];
-		
-		$submit = $grid->getForm()->addSubmit('aaaa');
-		$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')
-			->setHtml('<i class="far fa-arrow-alt-circle-up"></i> Export cen');
-		$submit->onClick[] = [$this, 'completeOrderMultiple'];*/
 
 		$this->addFilters($grid);
 		$grid->addFilterButtons();
@@ -184,8 +163,8 @@ class ProductGridFactory
 			}, '', 'pricelists', null, $ribbons, ['placeholder' => '- Ceníky -']);
 		}
 
-		$grid->addFilterCheckboxInput('hidden', "hidden = 1", 'Skryté');
-		$grid->addFilterCheckboxInput('unavailble', "unavailable = 1", 'Neprodejné');
+		$grid->addFilterCheckboxInput('hidden', "this.hidden = 1", 'Skryté');
+		$grid->addFilterCheckboxInput('unavailble', "this.unavailable = 1", 'Neprodejné');
 	}
 
 	public function onDelete(Product $product)

@@ -36,9 +36,9 @@ class NoteForm extends \Nette\Application\UI\Form
 	{
 		$values = $this->getValues();
 		$values['desiredShippingDate'] = $values['desiredShippingDate'] ?: null;
-
-		$values['account'] = $this->shopper->getCustomer()->getAccount();
-		$values['accountFullname'] = $values['account']->fullname;
+		
+		$values['account'] = $this->shopper->getCustomer() ? $this->shopper->getCustomer()->getAccount() : null;
+		$values['accountFullname'] = $values['account'] ? $values['account']->fullname : null;
 		$values['currency'] = $this->shopper->getCurrency();
 		
 		$this->checkoutManager->syncPurchase($values);
