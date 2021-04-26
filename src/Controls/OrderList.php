@@ -103,6 +103,7 @@ class OrderList extends Datalist
 		$form->addSubmit('exportItems');
 		$form->addSubmit('exportExcel');
 		$form->addSubmit('exportExcelZip');
+		$form->addSubmit('exportCsvApi');
 
 		$form->onSuccess[] = function (Form $form) {
 			$values = $form->getValues('array');
@@ -132,6 +133,8 @@ class OrderList extends Datalist
 				$this->exportOrdersExcel($values);
 			} elseif ($submitName == 'exportExcelZip') {
 				$this->exportOrdersExcelZip($values);
+			} elseif ($submitName == 'exportCsvApi') {
+				$this->exportCsvApi($values);
 			}
 
 			foreach ($values as $key => $order) {
@@ -174,6 +177,19 @@ class OrderList extends Datalist
 		} catch (\Exception $e) {
 
 		}
+	}
+
+	public function exportCsvApi(array $orders): void
+	{
+
+			$tempFilename = \tempnam($this->tempDir, "csv");
+			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+				\unlink($tempFilename);
+			};
+			$this->getPresenter()->csvOrderExportItemsAPI($orders, Writer::createFromPath($tempFilename, 'w+'));
+
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "orders.csv", 'text/csv'));
+
 	}
 
 	/**

@@ -162,24 +162,22 @@ class OrderRepository extends \StORM\Repository
 		));
 		$writer->writeSheetRow($sheetName, []);
 
-		$styles4 = array('font-style' => 'bold');
+		$styles = array('font-style' => 'bold');
 
 		$writer->writeSheetRow($sheetName, array(
 			$this->translator->translate('orderEE.productName', 'Název produktu'),
 			$this->translator->translate('orderEE.productCode', 'Kód produktu'),
 			$this->translator->translate('orderEE.amount', 'Množství'),
-			$this->translator->translate('orderEE.vat', 'Daň'),
 			$this->translator->translate('orderEE.pcsPrice', 'Cena za kus'),
 			$this->translator->translate('orderEE.sumPrice', 'Mezisoučet'),
 			$this->translator->translate('orderEE.note', 'Poznámka'),
-		), $styles4);
+		), $styles);
 
 		foreach ($order->purchase->getItems() as $item) {
 			$writer->writeSheetRow($sheetName, [
 				$item->productName,
 				$item->getFullCode(),
 				$item->amount,
-				$item->vatPct,
 				\str_replace(',', '.', (string)$this->shopper->filterPrice($item->price, $order->purchase->currency->code)),
 				\str_replace(',', '.', (string)$this->shopper->filterPrice($item->getPriceSum(), $order->purchase->currency->code)),
 				$item->note
@@ -198,9 +196,45 @@ class OrderRepository extends \StORM\Repository
 	 */
 	public function excelExportAll(array $orders, \XLSXWriter $writer)
 	{
+		$styles = array('font-style' => 'bold');
+
+		$sheetName = $this->translator->translate('orderEE.orders', 'Objednávky');
+
+		$writer->writeSheetRow($sheetName, array(
+			$this->translator->translate('orderEE.order', 'Objednávka'),
+			$this->translator->translate('orderEE.productName', 'Název produktu'),
+			$this->translator->translate('orderEE.productCode', 'Kód produktu'),
+			$this->translator->translate('orderEE.amount', 'Množství'),
+			$this->translator->translate('orderEE.pcsPrice', 'Cena za kus'),
+			$this->translator->translate('orderEE.sumPrice', 'Mezisoučet'),
+			$this->translator->translate('orderEE.note', 'Poznámka'),
+			$this->translator->translate('orderEE.account', 'Servisní technik'),
+		), $styles);
+
+		$sumPrice = 0;
+
 		foreach ($orders as $order) {
-			$this->excelExport($order, $writer, $order->code);
+			$sumPrice += $order->getTotalPrice();
+
+			foreach ($order->purchase->getItems() as $item) {
+				$writer->writeSheetRow($sheetName, [
+					$order->code,
+					$item->productName,
+					$item->getFullCode(),
+					$item->amount,
+					\str_replace(',', '.', (string)$this->shopper->filterPrice($item->price, $order->purchase->currency->code)),
+					\str_replace(',', '.', (string)$this->shopper->filterPrice($item->getPriceSum(), $order->purchase->currency->code)),
+					$item->note,
+					$order->purchase->account ? $order->purchase->account->fullname : $order->purchase->accountFullname
+				]);
+
+			}
 		}
+
+		$writer->writeSheetRow($sheetName, []);
+		$writer->writeSheetRow($sheetName, array(
+			$this->translator->translate('orderEE.totalPrice', 'Celková cena'), \str_replace(',', '.', (string)$this->shopper->filterPrice($sumPrice, $order->purchase->currency->code)),
+		));
 	}
 
 	/**
