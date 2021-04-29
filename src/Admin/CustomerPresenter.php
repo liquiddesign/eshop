@@ -36,6 +36,15 @@ use function Clue\StreamFilter\fun;
 
 class CustomerPresenter extends BackendPresenter
 {
+	protected const CONFIGURATIONS = [
+		'labels' => [
+			'merchants' => 'Obchodníci',
+		],
+		'branches' => true,
+		'deliveryPayment' => true,
+		'edi' => true,
+	];
+	
 	/** @inject */
 	public AccountFormFactory $accountFormFactory;
 
@@ -91,13 +100,15 @@ class CustomerPresenter extends BackendPresenter
 
 	public function createComponentCustomers()
 	{
+		$lableMerchants = static::CONFIGURATIONS['labels']['merchants'];
+		
 		$grid = $this->gridFactory->create($this->customerRepository->many(), 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Registrace', "createdTs|date", '%s', 'createdTs', ['class' => 'fit']);
 		$grid->addColumn('Název / Jméno', function (Customer $customer) {
 			return $customer->company ?: $customer->fullname;
 		});
-		$grid->addColumn('Obchodníci', function (Customer $customer) {
+		$grid->addColumn($lableMerchants, function (Customer $customer) {
 			return \implode(', ', $this->merchantRepository->many()
 				->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = merchantXcustomer.fk_merchant')
 				->where('fk_customer', $customer)
@@ -138,7 +149,7 @@ class CustomerPresenter extends BackendPresenter
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$source->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = merchantXcustomer.fk_customer');
 				$source->where('merchantXcustomer.fk_merchant', $value);
-			}, '', 'merchant', 'Obchodník', $this->merchantRepository->getArrayForSelect(), ['placeholder' => '- Obchodník -']);
+			}, '', 'merchant', $lableMerchants, $this->merchantRepository->getArrayForSelect(), ['placeholder' => "- $lableMerchants -"]);
 		}
 
 		if (\count($this->groupsRepo->getArrayForSelect()) > 0) {
@@ -222,6 +233,8 @@ class CustomerPresenter extends BackendPresenter
 
 	public function createComponentForm()
 	{
+		$lableMerchants = static::CONFIGURATIONS['labels']['merchants'];
+		
 		$form = $this->formFactory->create();
 
 		$form->addText('fullname', 'Jméno a příjmení');
@@ -244,29 +257,46 @@ class CustomerPresenter extends BackendPresenter
 		}
 
 		$form->addDataSelect('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->setPrompt('Žádná');
-		$form->addDataMultiSelect('merchants', 'Obchodníci', $this->merchantRepository->getArrayForSelect());
-		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getArrayForSelect())->setPrompt('Žádná');
-
+		$form->addDataMultiSelect('merchants', $lableMerchants, $this->merchantRepository->getArrayForSelect());
+		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getRegisteredGroupsArray())->setPrompt('Žádná');
+		
 		$form->addGroup('Nákup a preference');
-		$form->addSelect('orderPermission', 'Objednání', [
-			'fullWithApproval' => 'Pouze se schválením',
-			'full' => 'Povoleno',
-		])->setDefaultValue('full');
-		$form->addDataSelect('preferredCurrency', 'Preferovaná měna nákupu', $this->currencyRepo->getArrayForSelect())->setPrompt('Žádný');
-		$form->addDataSelect('preferredPaymentType', 'Preferovaná platba', $this->paymentTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
-		$form->addDataSelect('preferredDeliveryType', 'Preferovaná doprava', $this->deliveryTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
-		$form->addDataMultiSelect('exclusivePaymentTypes', 'Povolené exkluzivní platby', $this->paymentTypeRepo->many()->toArrayOf('code'))
-			->setHtmlAttribute('placeholder', 'Vyberte položky...');
-		$form->addDataMultiSelect('exclusiveDeliveryTypes', 'Povolené exkluzivní dopravy', $this->deliveryTypeRepo->many()->toArrayOf('code'))
-			->setHtmlAttribute('placeholder', 'Vyberte položky...');
+		
+		if (static::CONFIGURATIONS['branches']) {
+			$form->addDataSelect('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->setPrompt('Žádná');
+			$form->addSelect('orderPermission', 'Objednání', [
+				'fullWithApproval' => 'Pouze se schválením',
+				'full' => 'Povoleno',
+			])->setDefaultValue('full');
+		}
+		
+		$form->addDataSelect('preferredCurrency', 'Preferovaná měna nákupu',
+			$this->currencyRepo->getArrayForSelect())->setPrompt('Žádný');
+		
+		if (static::CONFIGURATIONS['deliveryPayment']) {
+			$form->addDataSelect('preferredPaymentType', 'Preferovaná platba',
+				$this->paymentTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
+			$form->addDataSelect('preferredDeliveryType', 'Preferovaná doprava',
+				$this->deliveryTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
+			$form->addDataMultiSelect('exclusivePaymentTypes', 'Povolené exkluzivní platby',
+				$this->paymentTypeRepo->many()->toArrayOf('code'))
+				->setHtmlAttribute('placeholder', 'Vyberte položky...');
+			$form->addDataMultiSelect('exclusiveDeliveryTypes', 'Povolené exkluzivní dopravy',
+				$this->deliveryTypeRepo->many()->toArrayOf('code'))
+				->setHtmlAttribute('placeholder', 'Vyberte položky...');
+		}
 		$form->addInteger('discountLevelPct', 'Slevová hladina (%)')->setDefaultValue(0)->setRequired();
-		$form->addText('productRoundingPct', 'Zokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
+		$form->addText('productRoundingPct',
+			'Zokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
 		$form->addGroup('Exporty');
 		$form->addCheckbox('allowExport', 'Feed povolen');
-		$form->addText('ediCompany', 'EDI: Identifikátor firmy')
-			->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
-		$form->addText('ediBranch', 'EDI: Identifikátor pobočky')
-			->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
+		
+		if (static::CONFIGURATIONS['edi']) {
+			$form->addText('ediCompany', 'EDI: Identifikátor firmy')
+				->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
+			$form->addText('ediBranch', 'EDI: Identifikátor pobočky')
+				->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
+		}
 
 		//$form->bind($this->customerRepository->getStructure(), []);
 
