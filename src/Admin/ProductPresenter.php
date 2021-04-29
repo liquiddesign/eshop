@@ -383,12 +383,14 @@ class ProductPresenter extends BackendPresenter
 		$form->setDefaults($product->toArray(['categories', 'tags', 'ribbons', 'parameterGroups', 'taxes']));
 		$form['alternative']->setDefaultValue($product->alternative ? $product->alternative->getFullCode() : null);
 		
-		$upsells = [];
-		foreach ($product->upsells as $upsell) {
-			$upsells[] = $upsell->getFullCode();
+		if (isset($form['upsells'])) {
+			$upsells = [];
+			foreach ($product->upsells as $upsell) {
+				$upsells[] = $upsell->getFullCode();
+			}
+			
+			$form['upsells']->setDefaultValue(\implode(';', $upsells));
 		}
-		
-		$form['upsells']->setDefaultValue(\implode(';', $upsells));
 		
 		if (isset($form['tonerForPrinters'])) {
 			try {
