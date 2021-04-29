@@ -369,7 +369,7 @@ class CustomerPresenter extends BackendPresenter
 
 	public function renderEdit(): void
 	{
-		$this->template->headerLabel = 'Detail zákazníka - ' . $this->getParameter('customer')->fullname;
+		$this->template->headerLabel = 'Detail zákazníka - ' . $this->getParameter('customer')->getName();
 		$this->template->headerTree = [
 			['Zákazníci', 'default'],
 			['Detail zákazníka'],
@@ -380,7 +380,7 @@ class CustomerPresenter extends BackendPresenter
 
 	public function renderEditAddress(): void
 	{
-		$this->template->headerLabel = 'Detail adresy zákazníka - ' . $this->getParameter('customer')->fullname;
+		$this->template->headerLabel = 'Detail adresy zákazníka - ' . $this->getParameter('customer')->getName();
 		$this->template->headerTree = [
 			['Zákazníci', 'default'],
 			['Detail adresy'],
