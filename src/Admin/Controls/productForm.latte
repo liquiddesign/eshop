@@ -144,7 +144,7 @@
 					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError content-cs}</span></td>
 			</tr>
 
-			<tr class="m-0 mt-1 has-danger">
+			<tr n:if="$configuration['suppliers']" class="m-0 mt-1 has-danger">
 				<th class="col-label col-form-label col">{label supplierContent/}</th>
 
 				<td class="align-middle">{input supplierContent class=>"form-control form-control-sm", style=>'max-width: 260px;'}

@@ -213,9 +213,10 @@ class ProductForm extends Control
 				->setNullable()
 				->addCondition($form::FILLED)
 				->addRule([FormValidators::class, 'isMultipleProductsExists'], 'Chybný formát nebo nebyl nalezen některý ze zadaných produktů!', [$productRepository]);
-			$form->addText('alternative', 'Alternativa k produktu')
-				->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$productRepository]);
 		}
+		
+		$form->addText('alternative', 'Alternativa k produktu')
+			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$productRepository]);
 		
 		$prices = $form->addContainer('prices');
 		
