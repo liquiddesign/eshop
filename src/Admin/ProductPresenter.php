@@ -33,6 +33,14 @@ use StORM\DIConnection;
 
 class ProductPresenter extends BackendPresenter
 {
+	protected const CONFIGURATION = [
+		'sets' => true,
+		'realations' => true,
+		'parameters' => true,
+		'taxes' => true,
+		'upsells' => true,
+	];
+	
 	/** @inject */
 	public ProductGridFactory $productGridFactory;
 
@@ -74,12 +82,12 @@ class ProductPresenter extends BackendPresenter
 
 	public function createComponentProductGrid()
 	{
-		return $this->productGridFactory->create();
+		return $this->productGridFactory->create(static::CONFIGURATION);
 	}
 
 	public function createComponentProductForm()
 	{
-		return $this->productFormFatory->create($this->getParameter('product'));
+		return $this->productFormFatory->create($this->getParameter('product'), static::CONFIGURATION);
 	}
 
 	public function createComponentPhotoGrid()

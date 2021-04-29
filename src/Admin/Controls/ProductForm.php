@@ -59,6 +59,8 @@ class ProductForm extends Control
 	
 	private ?Product $product;
 	
+	private array $configuration;
+	
 	public function __construct(
 		Container $container,
 		AdminFormFactory $adminFormFactory,
@@ -79,7 +81,8 @@ class ProductForm extends Control
 		TaxRepository $taxRepository,
 		RelatedRepository $relatedRepository,
 		SetRepository $setRepository,
-		$product = null
+		$product = null,
+		array $configuration = []
 	)
 	{
 		$this->product = $product = $productRepository->get($product);
@@ -94,6 +97,7 @@ class ProductForm extends Control
 		$this->relatedRepository = $relatedRepository;
 		$this->adminFormFactory = $adminFormFactory;
 		$this->setRepository = $setRepository;
+		$this->configuration = $configuration;
 		
 		$form = $adminFormFactory->create();
 		
@@ -122,7 +126,11 @@ class ProductForm extends Control
 		$form->addSelect('vatRate', 'Úroveň DPH', $vatRateRepository->getDefaultVatRates());
 		$form->addDataMultiSelect('categories', 'Kategorie', $categoryRepository->getTreeArrayForSelect());
 		$form->addDataSelect('producer', 'Výrobce', $producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
-		$form->addDataMultiSelect('parameterGroups', 'Skupiny parametrů', $parameterGroupRepository->getArrayForSelect());
+		
+		if ($configuration['parameters']) {
+			$form->addDataMultiSelect('parameterGroups', 'Skupiny parametrů', $parameterGroupRepository->getArrayForSelect());
+		}
+		
 		$form->addDataMultiSelect('tags', 'Tagy', $tagRepository->getArrayForSelect());
 		$form->addDataMultiSelect('ribbons', 'Štítky', $ribbonRepository->getArrayForSelect());
 		
@@ -131,22 +139,28 @@ class ProductForm extends Control
 		$form->addLocalePerexEdit('perex', 'Popisek');
 		$form->addLocaleRichEdit('content', 'Obsah');
 		
-		$locks = [];
 		
-		if ($product) {
-			foreach ($supplierRepository->many()->join(['products' => 'eshop_supplierproduct'], 'products.fk_supplier=this.uuid')->where('products.fk_product', $product) as $supplier) {
-				$locks[$supplier->getPK()] = $supplier->name;
+		if ($configuration['suppliers']) {
+			$locks = [];
+			
+			if ($product) {
+				foreach ($supplierRepository->many()->join(['products' => 'eshop_supplierproduct'], 'products.fk_supplier=this.uuid')->where('products.fk_product', $product) as $supplier) {
+					$locks[$supplier->getPK()] = $supplier->name;
+				}
 			}
+			
+			$locks[0] = '! Nikdy nepřebírat';
+			
+			$form->addSelect('supplierContent', 'Přebírat obsah', $locks)->setPrompt('S nejvyšší prioritou');
 		}
-		
-		$locks[0] = '! Nikdy nepřebírat';
-		
-		$form->addSelect('supplierContent', 'Přebírat obsah', $locks)->setPrompt('S nejvyšší prioritou');
 		
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('recommended', 'Doporučeno');
-		$form->addCheckbox('productsSet', 'Set produktů');
+		
+		if ($configuration['sets']) {
+			$form->addCheckbox('productsSet', 'Set produktů');
+		}
 		
 		$form->addGroup('Nákup');
 		$form->addText('unit', 'Prodejní jednotka')
@@ -169,31 +183,39 @@ class ProductForm extends Control
 			->addRule([FormValidators::class, 'isPercentNoMax'], 'Neplatná hodnota!');
 		$form->addCheckbox('unavailable', 'Neprodejné');
 		
-		/** @var \Eshop\DB\Category $printerCategory */
-		$printerCategory = $categoryRepository->one('printers');
 		
-		if ($printerCategory) {
-			$printers = $productRepository->many()
-				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'this.uuid = nxnCategory.fk_product')
-				->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
-				->where('category.path LIKE :categoryPath', ['categoryPath' => $printerCategory->path . '%']);
+		if ($configuration['relations']) {
+			/** @var \Eshop\DB\Category $printerCategory */
+			$printerCategory = $categoryRepository->one('printers');
 			
-			if ($product) {
-				$printers->where('this.uuid != :thisProduct', ['thisProduct' => $product->getPK()]);
-			}
-			
-			if (\count($printers) > 0) {
-				$form->addDataMultiSelect('tonerForPrinters', 'Toner pro tiskárny', $printers->orderBy(['name_cs'])->toArrayOf('name'));
+			if ($printerCategory) {
+				$printers = $productRepository->many()
+					->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'this.uuid = nxnCategory.fk_product')
+					->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
+					->where('category.path LIKE :categoryPath', ['categoryPath' => $printerCategory->path . '%']);
+				
+				if ($product) {
+					$printers->where('this.uuid != :thisProduct', ['thisProduct' => $product->getPK()]);
+				}
+				
+				if (\count($printers) > 0) {
+					$form->addDataMultiSelect('tonerForPrinters', 'Toner pro tiskárny', $printers->orderBy(['name_cs'])->toArrayOf('name'));
+				}
 			}
 		}
 		
-		$form->addDataMultiSelect('taxes', 'Poplatky a daně', $taxRepository->getArrayForSelect());
-		$form->addText('upsells', 'Upsell pro produkty')
-			->setNullable()
-			->addCondition($form::FILLED)
-			->addRule([FormValidators::class, 'isMultipleProductsExists'], 'Chybný formát nebo nebyl nalezen některý ze zadaných produktů!', [$productRepository]);
-		$form->addText('alternative', 'Alternativa k produktu')
-			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$productRepository]);
+		if ($configuration['taxes']) {
+			$form->addDataMultiSelect('taxes', 'Poplatky a daně', $taxRepository->getArrayForSelect());
+		}
+		
+		if ($configuration['upsells']) {
+			$form->addText('upsells', 'Upsell pro produkty')
+				->setNullable()
+				->addCondition($form::FILLED)
+				->addRule([FormValidators::class, 'isMultipleProductsExists'], 'Chybný formát nebo nebyl nalezen některý ze zadaných produktů!', [$productRepository]);
+			$form->addText('alternative', 'Alternativa k produktu')
+				->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$productRepository]);
+		}
 		
 		$prices = $form->addContainer('prices');
 		
@@ -207,39 +229,43 @@ class ProductForm extends Control
 		
 		$form->addPageContainer('product_detail', ['product' => null], $nameInput);
 		
-		$setItems = $this->product ? $this->productRepository->getSetProducts($this->product) : [];
-		
-		$setItemsContainer = $form->addContainer('setItems');
-		
-		if (\count($setItems) > 0) {
-			foreach ($setItems as $item) {
-				$itemContainer = $setItemsContainer->addContainer($item->getPK());
-				$itemContainer->addText('product')
-					->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$this->productRepository])
-					->setRequired()
-					->setDefaultValue($item->product->getFullCode());
-				$itemContainer->addInteger('priority')->setRequired()->setDefaultValue($item->priority);
-				$itemContainer->addInteger('amount')->setRequired()->setDefaultValue($item->amount);
-				$itemContainer->addText('discountPct')->setRequired()->setDefaultValue($item->discountPct)
-					->addRule($form::FLOAT)
-					->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
+		if ($configuration['sets']) {
+			$setItems = $this->product ? $this->productRepository->getSetProducts($this->product) : [];
+			
+			$setItemsContainer = $form->addContainer('setItems');
+			
+			if (\count($setItems) > 0) {
+				foreach ($setItems as $item) {
+					$itemContainer = $setItemsContainer->addContainer($item->getPK());
+					$itemContainer->addText('product')
+						->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$this->productRepository])
+						->setRequired()
+						->setDefaultValue($item->product->getFullCode());
+					$itemContainer->addInteger('priority')->setRequired()->setDefaultValue($item->priority);
+					$itemContainer->addInteger('amount')->setRequired()->setDefaultValue($item->amount);
+					$itemContainer->addText('discountPct')->setRequired()->setDefaultValue($item->discountPct)
+						->addRule($form::FLOAT)
+						->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
+				}
 			}
+			
+			$itemContainer = $setItemsContainer->addContainer('new');
+			$itemContainer->addText('product')
+				->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$this->productRepository]);
+			$itemContainer->addText('priority')->setDefaultValue(1)->addConditionOn($itemContainer['product'], $form::FILLED)->addRule($form::INTEGER)->setRequired();
+			$itemContainer->addText('amount')->addConditionOn($itemContainer['product'], $form::FILLED)->addRule($form::INTEGER)->setRequired();
+			$itemContainer->addText('discountPct')->setDefaultValue(0)
+				->addConditionOn($itemContainer['product'], $form::FILLED)
+				->setRequired()
+				->addRule($form::FLOAT)
+				->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
 		}
 		
-		$itemContainer = $setItemsContainer->addContainer('new');
-		$itemContainer->addText('product')
-			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$this->productRepository]);
-		$itemContainer->addText('priority')->setDefaultValue(1)->addConditionOn($itemContainer['product'], $form::FILLED)->addRule($form::INTEGER)->setRequired();
-		$itemContainer->addText('amount')->addConditionOn($itemContainer['product'], $form::FILLED)->addRule($form::INTEGER)->setRequired();
-		$itemContainer->addText('discountPct')->setDefaultValue(0)
-			->addConditionOn($itemContainer['product'], $form::FILLED)
-			->setRequired()
-			->addRule($form::FLOAT)
-			->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
-		
-		
 		$form->addSubmits(!$product);
-		$form->addSubmit('submitSet');
+		
+		if ($configuration['sets']) {
+			$form->addSubmit('submitSet');
+		}
 		
 		$form->onValidate[] = [$this, 'validate'];
 		$form->onSuccess[] = [$this, 'submit'];
@@ -311,7 +337,7 @@ class ProductForm extends Control
 		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
 		$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
 		
-		if ($values['upsells']) {
+		if ($values['upsells'] ?? null) {
 			$upsells = [];
 			foreach (\explode(';', $values['upsells']) as $upsell) {
 				$upsells[] = $this->productRepository->getProductByCodeOrEAN($upsell)->getPK();
@@ -322,18 +348,20 @@ class ProductForm extends Control
 		
 		$values['alternative'] = $values['alternative'] ? $this->productRepository->getProductByCodeOrEAN($values['alternative']) : null;
 		
-		if ($values['supplierContent'] === 0) {
-			$values['supplierContentLock'] = true;
-			$values['supplierContent'] = null;
-		} else {
-			$values['supplierContentLock'] = false;
+		if (isset($values['supplierContent'])) {
+			if ($values['supplierContent'] === 0) {
+				$values['supplierContentLock'] = true;
+				$values['supplierContent'] = null;
+			} else {
+				$values['supplierContentLock'] = false;
+			}
 		}
 		
 		$product = $this->productRepository->syncOne($values, null, true);
 		
 		$this->setRepository->many()->where('fk_set', $product->getPK())->delete();
 		
-		if ($values['productsSet']) {
+		if ($values['productsSet'] ?? null) {
 			if ($values['setItems']['new']['product']) {
 				$newItemValues = $values['setItems']['new'];
 				$newItemValues['set'] = $product->getPK();
@@ -437,6 +465,7 @@ class ProductForm extends Control
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->pricelistRepository->getDefaultPricelists();
 		$this->template->supplierProducts = [];
+		$this->template->configuration = $this->configuration;
 		
 		/*
 		 * TEST products

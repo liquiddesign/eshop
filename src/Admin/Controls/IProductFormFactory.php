@@ -8,7 +8,8 @@ interface IProductFormFactory
 {
 	/**
 	 * @param \Eshop\DB\Product|string|null $product
+	 * @param mixed[] $configuration
 	 * @return \Eshop\Admin\Controls\ProductForm
 	 */
-	public function create($product = null): ProductForm;
+	public function create($product = null, array $configuration = []): ProductForm;
 }

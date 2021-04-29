@@ -70,7 +70,7 @@ class ProductGridFactory
 		$this->pricelistRepository = $pricelistRepository;
 	}
 
-	public function create(): Datagrid
+	public function create(array $configuration): Datagrid
 	{
 		$grid = $this->gridFactory->create($this->productRepository->many(), 20, 'this.priority', 'ASC', true);
 		$grid->addColumnSelector();
@@ -90,7 +90,10 @@ class ProductGridFactory
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 		$grid->addColumnInputCheckbox('<i title="Neprodejné" class="fas fa-ban"></i>', 'unavailable', '', '', 'unavailable');
 
-		$grid->addColumnLink('Parameters', 'Parametry');
+		if ($configuration['parameters']) {
+			$grid->addColumnLink('Parameters', 'Parametry');
+		}
+		
 		$grid->addColumnLink('Prices', 'Ceny');
 		$grid->addColumnLink('Photos', '<i title="Obrázky" class="far fa-file-image"></i>');
 		$grid->addColumnLink('Files', '<i title="Soubory" class="far fa-file"></i>');
