@@ -99,7 +99,7 @@ class ProductForm extends Control
 		$this->setRepository = $setRepository;
 		$this->configuration = $configuration;
 		
-		$form = $adminFormFactory->create();
+		$form = $adminFormFactory->create(true);
 		
 		$form->addGroup('Hlavní atributy');
 		
