@@ -520,7 +520,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($collection, 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Vytvořen', 'tsRegistered|date', '%s', 'tsRegistered', ['class' => 'fit']);
-		$grid->addColumnText('Login', 'login', '%s', 'login', ['class' => 'fit']);
+		$grid->addColumnText('Login', 'login', '%s', 'login', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname', ['class' => 'fit']);
 		$grid->addColumn('Zákazník', function (Account $account) {
 			return $account->company ?: $account->customerFullname;
