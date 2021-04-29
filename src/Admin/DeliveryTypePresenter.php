@@ -93,7 +93,7 @@ class DeliveryTypePresenter extends BackendPresenter
 	
 	public function createComponentNewForm(): Form
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 		
 		$form->addText('code', 'Kód')->setRequired();
 		

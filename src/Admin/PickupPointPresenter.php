@@ -246,7 +246,7 @@ class PickupPointPresenter extends BackendPresenter
 
 	public function createComponentTypeForm(): AdminForm
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 
 		$form->addLocaleText('name', 'Název');
 
@@ -295,7 +295,7 @@ class PickupPointPresenter extends BackendPresenter
 
 	public function createComponentPointForm(): AdminForm
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 
 		$form->addLocaleText('name', 'Název');
 

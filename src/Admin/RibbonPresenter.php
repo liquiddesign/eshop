@@ -59,7 +59,7 @@ class RibbonPresenter extends BackendPresenter
 
 	public function createComponentNewForm(): Form
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 
 		$form->addLocaleText('name', 'Název');
 		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [

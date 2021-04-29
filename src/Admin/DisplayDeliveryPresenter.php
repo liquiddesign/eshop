@@ -39,7 +39,7 @@ class DisplayDeliveryPresenter extends BackendPresenter
 	
 	public function createComponentNewForm(): AdminForm
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 		
 		$form->addLocaleText('label', 'Popisek');
 		$form->addIntegerNullable('daysFrom', 'Dní od');

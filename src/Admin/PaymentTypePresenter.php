@@ -83,7 +83,7 @@ class PaymentTypePresenter extends BackendPresenter
 	
 	public function createComponentPaymentTypeForm(): Form
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 		
 		/** @var PaymentType $paymentType */
 		$paymentType = $this->getParameter('paymentType');

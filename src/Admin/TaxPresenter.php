@@ -52,7 +52,7 @@ class TaxPresenter extends BackendPresenter
 	
 	public function createComponentNewForm(): AdminForm
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 		$form->addLocaleText('name', 'Název');
 		$form->addDataSelect('currency', 'Měna', $this->currencyRepository->getArrayForSelect());
 		$form->addText('price', 'Cena')->addRule($form::FLOAT)->setNullable();

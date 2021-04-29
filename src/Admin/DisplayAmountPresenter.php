@@ -42,7 +42,7 @@ class DisplayAmountPresenter extends BackendPresenter
 	
 	public function createComponentNewForm(): Form
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 		
 		$form->addLocaleText('label', 'Popisek');
 		$form->addIntegerNullable('amountFrom', 'Množství od');

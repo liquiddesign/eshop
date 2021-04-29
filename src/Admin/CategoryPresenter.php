@@ -109,7 +109,7 @@ class CategoryPresenter extends BackendPresenter
 
 	public function createComponentCategoryNewForm(): Form
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 
 		$form->addText('code', 'Kód');
 

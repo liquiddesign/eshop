@@ -30,7 +30,7 @@ class PhotoPresenter extends BackendPresenter
 	
 	public function createComponentNewForm(): Form
 	{
-		$form = $this->formFactory->createForm();
+		$form = $this->formFactory->createForm(true);
 		
 		$form->addText('fileName', 'Název soboru');
 		$form->addLocaleText('label', 'Popisek');

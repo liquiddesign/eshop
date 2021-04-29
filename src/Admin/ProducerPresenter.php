@@ -60,7 +60,7 @@ class ProducerPresenter extends BackendPresenter
 
 	public function createComponentNewForm(): Form
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 		$nameInput = $form->addLocaleText('name', 'Název');
 		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
 			Producer::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,

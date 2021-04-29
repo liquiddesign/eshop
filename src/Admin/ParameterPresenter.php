@@ -91,7 +91,7 @@ class ParameterPresenter extends BackendPresenter
 
 	public function createComponentNewForm(): Form
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 
 		$form->addLocaleText('name', 'Název');
 
@@ -274,7 +274,7 @@ class ParameterPresenter extends BackendPresenter
 
 	public function createComponentGroupNewForm(): Form
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 
 		$form->addLocaleText('name', 'Název');
 		$form->addText('internalName', 'Interní název')->setNullable();
@@ -305,7 +305,7 @@ class ParameterPresenter extends BackendPresenter
 
 	public function createComponentParameterCategoryForm(): Form
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 
 		$form->addLocaleText('name', 'Název');
 		$form->addText('priority', 'Priorita')

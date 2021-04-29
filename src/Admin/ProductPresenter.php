@@ -193,7 +193,7 @@ class ProductPresenter extends BackendPresenter
 	
 	public function createComponentFileForm(): Form
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 		
 		if (!$this->getParameter('file')) {
 			$form->addFilePicker('fileName', 'Vybrat soubor', \DIRECTORY_SEPARATOR . Product::FILE_DIR)->setRequired();
@@ -231,7 +231,7 @@ class ProductPresenter extends BackendPresenter
 	
 	public function createComponentPhotoForm(): Form
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 		
 		$imagePicker = $form->addImagePicker('fileName', 'Obrázek', [
 			Product::GALLERY_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,

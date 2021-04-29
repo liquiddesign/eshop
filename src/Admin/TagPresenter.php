@@ -58,7 +58,7 @@ class TagPresenter extends BackendPresenter
 
 	public function createComponentNewForm(): AdminForm
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 		
 		$nameInput = $form->addLocaleText('name', 'Název');
 
