@@ -15,6 +15,10 @@ use Forms\Form;
 
 class CustomerGroupPresenter extends BackendPresenter
 {
+	protected const CONFIGURATIONS = [
+		'unregistred' => true,
+	];
+	
 	/** @inject */
 	public CustomerRepository $customerRepo;
 
@@ -26,6 +30,12 @@ class CustomerGroupPresenter extends BackendPresenter
 
 	public function createComponentGrid()
 	{
+		if (static::CONFIGURATIONS['unregistred']) {
+			$this->userGroupRepo->many();
+		} else {
+			$this->userGroupRepo->many()->where('uuid != :s', ['s' => CustomerGroupRepository::UNREGISTERED_PK]);
+		}
+		
 		$grid = $this->gridFactory->create($this->userGroupRepo->many(), 20, 'name', 'ASC', true);
 		$grid->addColumnSelector();
 
