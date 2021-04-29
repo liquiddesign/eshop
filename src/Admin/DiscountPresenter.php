@@ -91,7 +91,7 @@ class DiscountPresenter extends BackendPresenter
 
 	public function createComponentNewForm(): Form
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(true);
 
 		$form->addLocaleText('name', 'Název');
 		$form->addDatetime('validFrom', 'Platný od')->setNullable(true);
