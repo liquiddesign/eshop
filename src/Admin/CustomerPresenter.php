@@ -256,7 +256,6 @@ class CustomerPresenter extends BackendPresenter
 			unset($customersForSelect[$customer->getPK()]);
 		}
 
-		$form->addDataSelect('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->setPrompt('Žádná');
 		$form->addDataMultiSelect('merchants', $lableMerchants, $this->merchantRepository->getArrayForSelect());
 		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getRegisteredGroupsArray())->setPrompt('Žádná');
 		
