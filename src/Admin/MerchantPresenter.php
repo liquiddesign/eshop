@@ -22,6 +22,10 @@ use Security\DB\AccountRepository;
 
 class MerchantPresenter extends BackendPresenter
 {
+	protected const CONFIGURATIONS = [
+		'customers' => true
+	];
+
 	/** @inject */
 	public AccountFormFactory $accountFormFactory;
 
@@ -53,18 +57,25 @@ class MerchantPresenter extends BackendPresenter
 
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit']);
 		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname');
-		$grid->addColumnText('Email', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
+		$grid->addColumnText('Email', 'email',
+			'<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>')->onRenderCell[] = [
+			$grid,
+			'decoratorEmpty'
+		];
 		$grid->addColumnText('Skupina', 'customerGroup.name', '%s', 'customerGroup.name');
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('', function (Merchant $object, Datagrid $datagrid) use ($btnSecondary) {
 			return $object->accounts->clear()->first() != null ?
-				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('editAccount', $object) . "'>Detail&nbsp;účtu</a>" :
-				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('newAccount', $object) . "'>Vytvořit&nbsp;účet</a>";
+				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('editAccount',
+					$object) . "'>Detail&nbsp;účtu</a>" :
+				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('newAccount',
+					$object) . "'>Vytvořit&nbsp;účet</a>";
 		}, '%s', null, ['class' => 'minimal']);
 
 		$grid->addColumn('Login', function (Merchant $object, Datagrid $grid) use ($btnSecondary) {
-			$link = $object->accounts->clear()->first() ? $grid->getPresenter()->link('loginMerchant!', [$object->accounts->clear()->first()->login]) : '#';
+			$link = $object->accounts->clear()->first() ? $grid->getPresenter()->link('loginMerchant!',
+				[$object->accounts->clear()->first()->login]) : '#';
 
 			return "<a class='" . ($object->accounts->clear()->first() ? '' : 'disabled') . " $btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
@@ -92,12 +103,16 @@ class MerchantPresenter extends BackendPresenter
 			$this->accountFormFactory->addContainer($form);
 		}
 
-		$form->addDataSelect('customerGroup', 'Skupina zákazníků', $this->customerGroupRepository->getArrayForSelect())->setPrompt('Žádná');
+		$form->addDataSelect('customerGroup', 'Skupina zákazníků',
+			$this->customerGroupRepository->getArrayForSelect())->setPrompt('Žádná');
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepository->getArrayForSelect());
-		$form->addDataMultiSelect('customers','Zákazníci', $this->customerRepository->getArrayForSelect());
+		if ($this::CONFIGURATIONS['customers']) {
+			$form->addDataMultiSelect('customers', 'Zákazníci', $this->customerRepository->getArrayForSelect());
+		}
 		$form->addCheckbox('customersPermission', 'Oprávnění: Správa zákazníků');
 		$form->addCheckbox('ordersPermission', 'Oprávnění: Správa objednávek');
-		$form->addCheckbox('customerEmailNotification', 'Posílat emailem informace o objednávkách přiřazených zákazníků.');
+		$form->addCheckbox('customerEmailNotification',
+			'Posílat emailem informace o objednávkách přiřazených zákazníků.');
 
 		$form->addSubmits(!$this->getParameter('merchant'));
 
@@ -176,7 +191,12 @@ class MerchantPresenter extends BackendPresenter
 		/** @var Form $form */
 		$form = $this->getComponent('form');
 
-		$form->setDefaults($merchant->toArray(['pricelists','customers']));
+		$relations = ['pricelists'];
+		if ($this::CONFIGURATIONS['customers']) {
+			$relations[] = 'customers';
+		}
+
+		$form->setDefaults($merchant->toArray($relations));
 	}
 
 	public function createComponentAccountForm()
