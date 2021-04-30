@@ -403,14 +403,16 @@ class ProductPresenter extends BackendPresenter
 		if ($product->supplierContentLock) {
 			$form['supplierContent']->setDefaultValue(0);
 		}
-		
-		if ($page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product])) {
-			$form['page']->setDefaults($page->toArray());
-			
-			$form['page']['url']->forAll(function (TextInput $text, $mutation) use ($page, $form) {
-				$text->getRules()->reset();
-				$text->addRule([$form, 'validateUrl'], 'URL již existuje', [$this->pageRepository, $mutation, $page->getPK()]);
-			});
+
+		if($form->getPrettyPages()){
+			if ($page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product])) {
+				$form['page']->setDefaults($page->toArray());
+
+				$form['page']['url']->forAll(function (TextInput $text, $mutation) use ($page, $form) {
+					$text->getRules()->reset();
+					$text->addRule([$form, 'validateUrl'], 'URL již existuje', [$this->pageRepository, $mutation, $page->getPK()]);
+				});
+			}
 		}
 	}
 	

@@ -163,7 +163,7 @@
 			</tr>
 
 			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label priority/}</th>
+				<th class="col-label col-form-label col">{label priority 'class' => 'required'}</th>
 
 				<td class="align-middle" >{input priority  class => 'form-control form-control-sm col-label max-number'}
 					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError priority}</span></td>
@@ -407,12 +407,13 @@
 		</table>
 	</fieldset>
 	<fieldset>
-		<legend>URL A SEO</legend>
+		{if \count($form['page']->getComponents()) > 0}
+			<legend>URL A SEO</legend>
 
-		<table class="mt-1 mb-1">
-			{$renderer->renderControls($form['page'])|noescape}
-
-		</table>
+			<table class="mt-1 mb-1">
+				{$renderer->renderControls($form['page'])|noescape}
+			</table>
+		{/if}
 	</fieldset>
 
 	<fieldset>

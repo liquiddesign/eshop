@@ -16,6 +16,8 @@ use Pages\Helpers;
 use StORM\DIConnection;
 use StORM\Entity;
 
+use function Clue\StreamFilter\fun;
+
 class ProducerPresenter extends BackendPresenter
 {
 	/** @inject */
@@ -35,12 +37,16 @@ class ProducerPresenter extends BackendPresenter
 		$grid->addColumnImage('imageFileName', Producer::IMAGE_DIR);
 
 		$grid->addColumn('Název', function (Producer $producer, $grid) {
-			return [$grid->getPresenter()->link(':Eshop:Product:list', ['producer' => (string)$producer]), $producer->name];
+			return [
+				$grid->getPresenter()->link(':Eshop:Product:list', ['producer' => (string)$producer]),
+				$producer->name
+			];
 		}, '<a href="%s" target="_blank"> %s</a>', 'name');
 
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
-		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
+		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '',
+			'recommended');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('Detail');
@@ -101,9 +107,10 @@ class ProducerPresenter extends BackendPresenter
 
 			$producer = $this->producerRepository->syncOne($values, null, true);
 
-			$values['page']['params'] = Helpers::serializeParameters(['producer' => $producer->getPK()]);
-
-			$this->pageRepository->syncOne($values['page']);
+			$form->syncPages(function () use ($producer, $values) {
+				$values['page']['params'] = Helpers::serializeParameters(['producer' => $producer->getPK()]);
+				$this->pageRepository->syncOne($values['page']);
+			});
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$producer]);

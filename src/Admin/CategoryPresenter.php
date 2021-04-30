@@ -45,14 +45,16 @@ class CategoryPresenter extends BackendPresenter
 
 	public function createComponentCategoryGrid()
 	{
-		$grid = $this->gridFactory->create($this->categoryRepository->many()->where('this.fk_type', $this->tab), null, 'this.priority', 'ASC', true);
+		$grid = $this->gridFactory->create($this->categoryRepository->many()->where('this.fk_type', $this->tab), null,
+			'this.priority', 'ASC', true);
 
 		$grid->setNestingCallback(static function ($source, $parent) {
 			if (!$parent) {
 				return $source->where('LENGTH(path)=4');
 			}
 
-			return $source->where('path!=:parent AND path LIKE :path', ['path' => $parent->path . '%', 'parent' => $parent->path]);
+			return $source->where('path!=:parent AND path LIKE :path',
+				['path' => $parent->path . '%', 'parent' => $parent->path]);
 		});
 
 		$grid->addColumnSelector();
@@ -61,20 +63,28 @@ class CategoryPresenter extends BackendPresenter
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 
 		$grid->addColumn('Název', function (Category $category, $grid) {
-			return [$grid->getPresenter()->link(':Eshop:Product:list', ['category' => (string)$category]), $category->name];
-		}, '<a href="%s" target="_blank"> %s</a>', 'name')->onRenderCell[] = function (\Nette\Utils\Html $td, Category $object) {
+			return [
+				$grid->getPresenter()->link(':Eshop:Product:list', ['category' => (string)$category]),
+				$category->name
+			];
+		}, '<a href="%s" target="_blank"> %s</a>', 'name')->onRenderCell[] = function (
+			\Nette\Utils\Html $td,
+			Category $object
+		) {
 			$level = \strlen($object->path) / 4 - 1;
 			$td->setHtml(\str_repeat('- - ', $level) . $td->getHtml());
 		};
 
 		$grid->addColumn('Kategorie parametrů', function (Category $object, $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Parameter:parameterCategoryDetail') && $object->parameterCategory ? $datagrid->getPresenter()->link(':Eshop:Admin:Parameter:parameterCategoryDetail', [$object->parameterCategory, 'backLink' => $this->storeRequest()]) : '#';
+			$link = $this->admin->isAllowed(':Eshop:Admin:Parameter:parameterCategoryDetail') && $object->parameterCategory ? $datagrid->getPresenter()->link(':Eshop:Admin:Parameter:parameterCategoryDetail',
+				[$object->parameterCategory, 'backLink' => $this->storeRequest()]) : '#';
 
 			return $object->parameterCategory ? "<a href='$link'>" . $object->parameterCategory->name . "</a>" : '';
 		}, '%s');
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'this.priority', [], true);
-		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
+		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '',
+			'recommended');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('Detail');
@@ -89,13 +99,17 @@ class CategoryPresenter extends BackendPresenter
 			return false;
 		});
 
-		$grid->addButtonBulkEdit('categoryNewForm', ['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
+		$grid->addButtonBulkEdit('categoryNewForm',
+			['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
 
 		$grid->addFilterTextInput('search', ['code', 'name_cs'], null, 'Kód, Název');
 		$grid->addFilterButtons();
 
 		$grid->onDelete[] = function (Category $object) {
-			foreach ($this->categoryRepository->many()->where('path LIKE :q', ['q' => "$object->path%"])->toArray() as $subCategory) {
+			foreach (
+				$this->categoryRepository->many()->where('path LIKE :q',
+					['q' => "$object->path%"])->toArray() as $subCategory
+			) {
 				$this->onDeleteImage($subCategory);
 				$this->onDeletePage($subCategory);
 				$subCategory->delete();
@@ -156,8 +170,10 @@ class CategoryPresenter extends BackendPresenter
 		}
 
 		$form->addDataSelect('ancestor', 'Nadřazená kategorie', $categories)->setPrompt('Žádná');
-		$form->addDataSelect('parameterCategory', 'Kategorie parametrů', $this->parameterCategoryRepository->getArrayForSelect())->setPrompt('Žádná')
-			->setHtmlAttribute('data-info', '&nbsp;Pokud nebude kategorie parametrů nastavena, bude získána kategorie parametrů z nadřazené kategorie.');
+		$form->addDataSelect('parameterCategory', 'Kategorie parametrů',
+			$this->parameterCategoryRepository->getArrayForSelect())->setPrompt('Žádná')
+			->setHtmlAttribute('data-info',
+				'&nbsp;Pokud nebude kategorie parametrů nastavena, bude získána kategorie parametrů z nadřazené kategorie.');
 		$form->addText('exportGoogleCategory', 'Exportní název pro Google');
 		$form->addText('exportHeurekaCategory', 'Export název pro Heuréku');
 		$form->addText('exportZboziCategory', 'Export název pro Zbozi');
@@ -196,8 +212,10 @@ class CategoryPresenter extends BackendPresenter
 
 			$this->categoryRepository->updateCategoryChildrenPath($category);
 
-			$values['page']['params'] = Helpers::serializeParameters(['category' => $category->getPK()]);
-			$this->pageRepository->syncOne($values['page']);
+			$form->syncPages(function () use ($category, $values) {
+				$values['page']['params'] = Helpers::serializeParameters(['category' => $category->getPK()]);
+				$this->pageRepository->syncOne($values['page']);
+			});
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$category]);
@@ -329,7 +347,6 @@ class CategoryPresenter extends BackendPresenter
 
 	public function actionCategoryTypeNew()
 	{
-
 	}
 
 	public function renderCategoryTypeNew()

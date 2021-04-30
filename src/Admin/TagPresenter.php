@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Eshop\Admin;
@@ -18,7 +19,7 @@ class TagPresenter extends BackendPresenter
 {
 	/** @inject */
 	public TagRepository $tagRepository;
-	
+
 	/** @inject */
 	public PageRepository $pageRepository;
 
@@ -31,13 +32,14 @@ class TagPresenter extends BackendPresenter
 		$grid->addColumnSelector();
 
 		$grid->addColumnImage('imageFileName', Tag::IMAGE_DIR);
-		
+
 		$grid->addColumn('Název', function (Tag $tag, $grid) {
-			return [$grid->getPresenter()->link(':Eshop:Product:list', ['tag' => (string) $tag]), $tag->name];
+			return [$grid->getPresenter()->link(':Eshop:Product:list', ['tag' => (string)$tag]), $tag->name];
 		}, '<a href="%s" target="_blank"> %s</a>', 'name');
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
-		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
+		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '',
+			'recommended');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('Detail');
@@ -59,7 +61,7 @@ class TagPresenter extends BackendPresenter
 	public function createComponentNewForm(): AdminForm
 	{
 		$form = $this->formFactory->create(true);
-		
+
 		$nameInput = $form->addLocaleText('name', 'Název');
 
 		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
@@ -86,26 +88,28 @@ class TagPresenter extends BackendPresenter
 		$form->addCheckbox('recommended', 'Doporučeno');
 
 		$form->addDataMultiSelect('similar', 'Podobné tagy', $this->tagRepository->getArrayForSelect());
-		
+
 		$form->addPageContainer('product_list', ['tag' => $this->getParameter('tag')], $nameInput);
-		
+
 		$form->addSubmits(!$tag);
 
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
 
 			$this->createImageDirs(Tag::IMAGE_DIR);
-			
+
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
 			}
-		
+
 			$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
 
 			$tag = $this->tagRepository->syncOne($values, null, true);
-			
-			$values['page']['params'] = Helpers::serializeParameters(['tag' => $tag->getPK()]);
-			$this->pageRepository->syncOne($values['page']);
+
+			$form->syncPages(function () use ($tag, $values) {
+				$values['page']['params'] = Helpers::serializeParameters(['tag' => $tag->getPK()]);
+				$this->pageRepository->syncOne($values['page']);
+			});
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$tag]);
