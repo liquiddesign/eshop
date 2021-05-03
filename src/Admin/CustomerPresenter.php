@@ -538,7 +538,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumn('Login', function (Account $object, Datagrid $grid) use ($btnSecondary) {
 			$link = $grid->getPresenter()->link('loginCustomer!', [$object->login]);
 
-			return "<a class='$btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>";
+			return $object->isActive() ? "<a class='$btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>" : "<a class='$btnSecondary disabled' href='#'><i class='fa fa-sign-in-alt'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
 		$grid->addColumnLinkDetail('editAccount');
 

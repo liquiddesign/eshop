@@ -25,6 +25,12 @@ class Purchase extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $accountFullname;
+
+	/**
+	 * Email účtu
+	 * @column
+	 */
+	public ?string $accountEmail = null;
 	
 	/**
 	 * Telefon
