@@ -62,6 +62,8 @@ class Shopper
 	 */
 	private array $vatRates = [];
 
+	private bool $showVat;
+
 	/**
 	 * @var \Eshop\DB\Currency[]
 	 */
@@ -115,6 +117,16 @@ class Shopper
 		$this->merchantRepository = $merchantRepository;
 		$this->customerGroupRepository = $customerGroupRepository;
 		$this->minimalOrderValueRepository = $minimalOrderValueRepository;
+	}
+
+	public function setShowVat(bool $showVat): void
+	{
+		$this->showVat = $showVat;
+	}
+
+	public function getShowVat(): bool
+	{
+		return $this->showVat;
 	}
 
 	public function setRegistrationConfiguration(array $configuration): void

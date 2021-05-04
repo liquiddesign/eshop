@@ -36,7 +36,7 @@
     <section class="content">
         <div class="container-fluid">
             <div class="row">
-                <div class="col-md-8">
+                <div class="col-md-8" n:if="$presenter->admin->isAllowed(':Eshop:Admin:Order:detail')">
                     <div class="card">
                         <div class="card-header border-transparent">
                             <h3 class="card-title">Objednávky / Poptávky</h3>
@@ -86,7 +86,7 @@
                         <!-- /.card-footer -->
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-4" n:if="$presenter->admin->isAllowed(':Eshop:Admin:Customer:edit') && $presenter->admin->isAllowed(':Eshop:Admin:Merchant:detail')">
                     <div class="card">
                         <div class="card-header border-transparent">
                             <h3 class="card-title">Neschválení uživatelé</h3>
@@ -169,7 +169,7 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-md-8">
+                <div class="col-md-8" n:if="$presenter->admin->isAllowed(':Eshop:Admin:Discount:detail')">
                     <div class="card">
                         <div class="card-header border-transparent">
                             <h3 class="card-title">Aktivní akce</h3>
@@ -191,8 +191,12 @@
                                         <td>{$discount->name}</td>
                                         <td>{$discount->validFrom|date}</td>
                                         <td>{$discount->validTo|date}</td>
-                                        <td><a href="{plink :Eshop:Admin:Discount:detail, $discount}"><i
-                                                        class="fa fa-external-link-alt fa-sm"></i>&nbsp;Detail</a></td>
+                                        <td>{if $presenter->admin->isAllowed(':Eshop:Admin:Discount:detail')}
+                                                <a href="{plink :Eshop:Admin:Discount:detail, $discount}"><i class="fa fa-external-link-alt fa-sm"></i>&nbsp;Detail</a>
+                                            {else}
+                                                <a class="disabled"><i class="fa fa-external-link-alt fa-sm"></i>&nbsp;Detail</a>
+                                            {/if}
+                                        </td>
                                     </tr>
                                     </tbody>
                                     <tbody n:inner-if="count($discounts) == 0">
@@ -206,8 +210,11 @@
                         </div>
                         <!-- /.card-body -->
                         <div class="card-footer clearfix">
-                            <a href="{plink :Eshop:Admin:Discount:default}"
-                               class="btn btn-sm btn-secondary float-right">Zobrazit všechny akce</a>
+                            {if $presenter->admin->isAllowed(':Eshop:Admin:Discount:default')}
+                                <a href="{plink :Eshop:Admin:Discount:default}" class="btn btn-sm btn-secondary float-right">Zobrazit všechny akce</a>
+                            {else}
+                                <a class="btn btn-sm btn-secondary float-right disabled">Zobrazit všechny akce</a>
+                            {/if}
                         </div>
                         <!-- /.card-footer -->
                     </div>

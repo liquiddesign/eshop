@@ -32,6 +32,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 				'deliveryPayment',
 				'summary',
 			]),
+			'showVat' => Expect::bool(true)
 		]);
 	}
 	
@@ -51,6 +52,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$shopper->addSetup('setRegistrationConfiguration',[(array) $config['registration']]);
 		$shopper->addSetup('setCountry',[$config['country']]);
 		$shopper->addSetup('setCurrency',[$config['currency']]);
+		$shopper->addSetup('setShowVat',[$config['showVat']]);
 		$cartManager->addSetup('setCheckoutSequence',[$config['checkoutSequence']]);
 		
 		return;
