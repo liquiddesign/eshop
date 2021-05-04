@@ -118,6 +118,7 @@ class StatsControl extends Control
 	{
 		$this->statsFrom = null;
 		$this->statsTo = null;
+		$this->merchant = null;
 		$this->redirect('this');
 	}
 }
