@@ -12,6 +12,7 @@ use Eshop\DB\ProductRepository;
 use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\TagRepository;
+use Eshop\Shopper;
 use Grid\Datalist;
 use Nette\Http\Session;
 use StORM\Expression;
@@ -45,6 +46,8 @@ class ProductGridFactory
 
 	private PricelistRepository $pricelistRepository;
 
+	private Shopper $shopper;
+
 	public function __construct(
 		\Admin\Controls\AdminGridFactory $gridFactory,
 		Container $container,
@@ -55,7 +58,8 @@ class ProductGridFactory
 		CategoryRepository $categoryRepository,
 		RibbonRepository $ribbonRepository,
 		TagRepository $tagRepository,
-		PricelistRepository $pricelistRepository
+		PricelistRepository $pricelistRepository,
+		Shopper $shopper
 	)
 	{
 		$this->productRepository = $productRepository;
