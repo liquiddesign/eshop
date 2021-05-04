@@ -24,6 +24,7 @@ use Eshop\DB\TagRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
+use Eshop\Shopper;
 use Nette\Utils\Arrays;
 use Web\DB\PageRepository;
 use Forms\Form;
@@ -61,6 +62,8 @@ class ProductForm extends Control
 
 	private ?Product $product;
 
+	private Shopper $shopper;
+
 	private array $configuration;
 
 	public function __construct(
@@ -83,6 +86,7 @@ class ProductForm extends Control
 		TaxRepository $taxRepository,
 		RelatedRepository $relatedRepository,
 		SetRepository $setRepository,
+		Shopper $shopper,
 		$product = null,
 		array $configuration = []
 	) {
@@ -99,6 +103,7 @@ class ProductForm extends Control
 		$this->adminFormFactory = $adminFormFactory;
 		$this->setRepository = $setRepository;
 		$this->configuration = $configuration;
+		$this->shopper = $shopper;
 
 		$form = $adminFormFactory->create(true);
 
@@ -414,6 +419,8 @@ class ProductForm extends Control
 		}
 
 		foreach ($values['prices'] as $pricelistId => $prices) {
+			$prices['priceVat'] = $prices['priceVat'] ?? 0;
+
 			$conditions = [
 				'fk_pricelist' => $pricelistId,
 				'fk_product' => $values['uuid'],
@@ -483,6 +490,7 @@ class ProductForm extends Control
 		$this->template->pricelists = $this->pricelistRepository->getDefaultPricelists();
 		$this->template->supplierProducts = [];
 		$this->template->configuration = $this->configuration;
+		$this->template->shopper = $this->shopper;
 
 		/*
 		 * TEST products

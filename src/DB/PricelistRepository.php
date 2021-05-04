@@ -23,10 +23,10 @@ class PricelistRepository extends \StORM\Repository
 			->where('this.uuid', \array_values($pks))
 			->where('fk_currency', $currency->getPK())
 			->where('fk_country', $country->getPK());
-		
+
 		return $collection->orderBy(['priority']);
 	}
-	
+
 	/**
 	 * @return \Storm\Collection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
 	 */
@@ -39,7 +39,7 @@ class PricelistRepository extends \StORM\Repository
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL  OR discount.validTo >= DATE(now()))')
 			->where('fk_currency ', $currency->getPK())
 			->where('fk_country', $country->getPK());
-		
+
 		return $collection->orderBy(['priority']);
 	}
 
@@ -58,7 +58,7 @@ class PricelistRepository extends \StORM\Repository
 
 		return $collection->orderBy(['priority']);
 	}
-	
+
 	public function removeCustomerPricelist(Customer $customer, Pricelist $pricelist): void
 	{
 		$this->connection->rows(['eshop_customer_nxn_eshop_pricelist'])
@@ -66,7 +66,7 @@ class PricelistRepository extends \StORM\Repository
 			->where('fk_pricelist', $pricelist->getPK())
 			->delete();
 	}
-	
+
 	public function getPricelistCustomers(Pricelist $pricelist): array
 	{
 		return $this->getConnection()->findRepository(Customer::class)->many()
@@ -74,7 +74,7 @@ class PricelistRepository extends \StORM\Repository
 			->where('nxn.fk_pricelist', $pricelist->getPK())
 			->toArray();
 	}
-	
+
 	public function getPricelistCustomersCount(Pricelist $pricelist): int
 	{
 		return $this->many()
@@ -82,14 +82,14 @@ class PricelistRepository extends \StORM\Repository
 			->where('nxn.fk_pricelist', $pricelist->getPK())
 			->count();
 	}
-	
+
 	public function removeAllCustomersFromPricelist(Pricelist $pricelist): void
 	{
 		$this->getConnection()->rows(['nxn' => 'eshop_customer_nxn_eshop_pricelist'])
 			->where('nxn.fk_pricelist', $pricelist->getPK())
 			->delete();
 	}
-	
+
 	public function addCustomerToPricelist(Customer $customer, Pricelist $pricelist): void
 	{
 		$this->getConnection()->createRow('eshop_customer_nxn_eshop_pricelist', [
@@ -97,14 +97,14 @@ class PricelistRepository extends \StORM\Repository
 			'fk_pricelist' => $pricelist->getPK(),
 		]);
 	}
-	
+
 	public function copyPrices(Pricelist $from, Pricelist $to, float $modificator, int $roundPrecision, bool $overwrite = false, bool $fillBeforePrices = false, bool $quantityPrices = false)
 	{
 		$priceRepository = $this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class);
-		
+
 		/** @var Price[] $originalPrices */
 		$originalPrices = $priceRepository->many()->where('fk_pricelist', $from->getPK());
-		
+
 		foreach ($originalPrices as $originalPrice) {
 			$values = [
 				'pricelist' => $to->getPK(),
@@ -112,22 +112,22 @@ class PricelistRepository extends \StORM\Repository
 				'price' => \round($originalPrice->price * $modificator, $roundPrecision),
 				'priceVat' => \round($originalPrice->priceVat * $modificator, $roundPrecision),
 			];
-			
+
 			if ($quantityPrices) {
 				$values['validFrom'] = $originalPrice->validFrom;
 			}
-			
+
 			if ($fillBeforePrices && !$quantityPrices) {
 				$values += [
 					'priceBefore' => $originalPrice->price,
 					'priceVatBefore' => $originalPrice->priceVat,
 				];
 			}
-			
+
 			$priceRepository->syncOne($values, $overwrite ? null : []);
 		}
 	}
-	
+
 	public function getArrayForSelect():array
 	{
 		return $this->many()->toArrayOf('name');
@@ -137,26 +137,24 @@ class PricelistRepository extends \StORM\Repository
 	{
 		return $this->many()->toArray();
 	}
-	
-	
+
 	public function getDefaultPricelists(): Collection
 	{
 		$collection = $this->getConnection()->findRepository(CustomerGroup::class)->many();
 		// @TODO: refactor to one SQL
 		$pricelists = [];
-		
+
 		foreach ($collection->where('this.uuid = :unregistred OR defaultAfterRegistration=1', ['unregistred' => CustomerGroupRepository::UNREGISTERED_PK]) as $group) {
 			$pricelists = \array_merge($pricelists, $group->defaultPricelists->toArrayOf('uuid', [], true));
 		}
-	
-		return $this->many()->where('this.uuid', $pricelists);
+
+		return $this->many()->where('this.uuid', $pricelists)->orderBy(['this.priority']);
 	}
-		
-		
-		public function csvExport(Pricelist $priceList, \League\Csv\Writer $writer, bool $quantityPrices = false)
+
+	public function csvExport(Pricelist $priceList, \League\Csv\Writer $writer, bool $quantityPrices = false)
 	{
 		$writer->setDelimiter(';');
-		
+
 		$values = [
 			'product',
 			'price',
@@ -164,66 +162,66 @@ class PricelistRepository extends \StORM\Repository
 			'priceBefore',
 			'priceVatBefore',
 		];
-		
+
 		if ($quantityPrices) {
 			$values[] = 'validFrom';
 		}
-		
+
 		$writer->insertOne($values);
-		
+
 		foreach ($this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class)->many()->where('fk_pricelist', $priceList) as $row) {
 			$values = [
 				$row->product->getFullCode(),
 				$row->price,
 				$row->priceVat,
 			];
-			
+
 			if ($quantityPrices) {
 				$values[] = $row->validFrom;
 			} else {
 				$values[] = $row->priceBefore;
 				$values[] = $row->priceVatBefore;
 			}
-			
+
 			$writer->insertOne($values);
 		}
 	}
-	
+
 	public function csvImport(Pricelist $pricelist, Reader $reader, bool $quantityPrices = false)
 	{
 		$reader->setDelimiter(';');
 		$reader->setHeaderOffset(0);
-		
+
 		$iterator = $reader->getRecords();
-		
+
 		foreach ($iterator as $offset => $value) {
 			$fullCode = \explode('.', $value['product']);
 			$products = $this->getConnection()->findRepository(Product::class)->many()->where('this.code', $fullCode[0]);
-			
+
 			if (isset($fullCode[1])) {
 				$products->where('this.subcode', $fullCode[1]);
 			}
-			
+
 			if (!$product = $products->first()) {
 				continue;
 			}
-			
+
 			$values = [
 				'product' => $product->getPK(),
 				'pricelist' => $pricelist->getPK(),
 				'price' => $value['price'] !== '' ? (float) $value['price'] : null,
 				'priceVat' => $value['priceVat'] !== '' ? (float) $value['priceVat'] : null,
 			];
-			
+
 			if ($quantityPrices) {
 				$values['validFrom'] = $value['validFrom'] !== '' ? (int) $value['validFrom'] : null;
 			} else {
 				$values['priceBefore'] = $value['priceBefore'] !== '' ? (float) $value['priceBefore'] : null;
 				$values['priceVatBefore'] = $value['priceVatBefore'] !== '' ? (float) $value['priceVatBefore'] : null;
 			}
-			
+
 			$this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class)->syncOne($values);
 		}
 	}
-	
+
 }
