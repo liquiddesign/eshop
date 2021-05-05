@@ -10,7 +10,9 @@
 
 		<table class="mt-1 mb-1">
 
-			{$renderer->renderPair($form['__MUTATION_SELECTOR'])|noescape}
+			{if isset($form['__MUTATION_SELECTOR'])}
+				{$renderer->renderPair($form['__MUTATION_SELECTOR'])|noescape}
+			{/if}
 
 			<tr class="m-0 mt-1 has-danger">
 				<th class="col-label col-form-label col">{label code/}</th>
