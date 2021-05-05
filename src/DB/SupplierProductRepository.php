@@ -54,7 +54,12 @@ class SupplierProductRepository extends \StORM\Repository
 			$updates = [];
 		}
 		
-		foreach ($supplierProductRepository->many()->where('fk_supplier', $supplier)->where('active', true) as $draft) {
+		$drafts = $supplierProductRepository->many()
+			->where('this.fk_supplier', $supplier)
+			->where('category.fk_category IS NOT NULL')
+			->where('this.active', true);
+		
+		foreach ($drafts as $draft) {
 			$category = $draft->category ? $draft->category->getValue('category') : null;
 			
 			if (!$category) {
