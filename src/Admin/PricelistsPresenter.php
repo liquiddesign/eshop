@@ -119,7 +119,7 @@ class PricelistsPresenter extends BackendPresenter
 	public function createComponentPriceListItems()
 	{
 		$grid = $this->gridFactory->create($this->priceRepository->getPricesByPriceList($this->getParameter('priceList')),
-			20, 'price', 'ASC');
+			20, 'product.code', 'ASC');
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Kód', 'product.code', '%s', 'product.code', ['class' => 'fit']);
@@ -196,7 +196,8 @@ class PricelistsPresenter extends BackendPresenter
 
 		$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll($this->shopper->getShowVat() ? ['priceVat', 'validFrom'] : ['validFrom'], $processTypes);
+		$grid->addButtonSaveAll($this->shopper->getShowVat() ? ['priceVat', 'validFrom'] : ['validFrom'],
+			$processTypes);
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 
 		$grid->addFilterTextInput('search', ['product.code', 'product.name_cs'], null, 'Kód, název');
@@ -349,7 +350,7 @@ class PricelistsPresenter extends BackendPresenter
 		$tempFilename = \tempnam($this->tempDir, "csv");
 
 		$this->priceListRepository->csvExport($this->priceListRepository->one($pricelistId),
-			Writer::createFromPath($tempFilename, 'w+'), $type === 'quantity');
+			Writer::createFromPath($tempFilename, 'w+'), $type === 'quantity', $this->shopper->getShowVat());
 
 		$response = new FileResponse($tempFilename, "cenik.csv", 'text/csv');
 		$this->sendResponse($response);
