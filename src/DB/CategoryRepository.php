@@ -209,7 +209,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 	public function getTreeArrayForSelect(bool $includeHidden = true, string $type = null): array
 	{
-		$collection = $this->getCategories()->where('LENGTH(path) <= 40');
+		$collection = $this->getCategories($includeHidden)->where('LENGTH(path) <= 40');
 
 		if ($type) {
 			$collection->where('fk_type', $type);
@@ -259,13 +259,14 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	}
 
 	/**
+	 * @param bool $includeHidden
 	 * @return \StORM\Collection<\Eshop\DB\Category>|\Eshop\DB\Category[]
 	 */
-	public function getCategories(): Collection
+	public function getCategories(bool $includeHidden = false): Collection
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
 
-		return $this->many()->where('hidden', false)->orderBy(['priority', "name$suffix"]);
+		return $this->many()->where('hidden', $includeHidden)->orderBy(['priority', "name$suffix"]);
 	}
 
 	public function getRootCategoryOfCategory(Category $category): Category
