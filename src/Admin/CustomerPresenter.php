@@ -195,13 +195,18 @@ class CustomerPresenter extends BackendPresenter
 
 		if ($permission) {
 			$form['permission']->setDefaults($permission->toArray());
-
-			$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values) use ($permission, $form) {
-				$permission->update($values['permission']);
-				$this->flashMessage('Uloženo', 'success');
-				$form->processRedirect('editAccount', 'default', [$account]);
-			};
 		}
+
+		$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values) use ($permission, $form) {
+			if ($permission) {
+				$permission->update($values['permission']);
+			} else {
+				$this->catalogPermissionRepo->createOne($values['permission'] + ['account' => $account->getPK()]);
+			}
+
+			$this->flashMessage('Uloženo', 'success');
+			$form->processRedirect('editAccount', 'default', [$account]);
+		};
 	}
 
 	public function actionNewAccount(?Customer $customer = null)
@@ -509,7 +514,8 @@ class CustomerPresenter extends BackendPresenter
 		$collection = $this->accountRepository->many()
 			->join(['catalogPermission' => 'eshop_catalogpermission'], 'catalogPermission.fk_account = this.uuid')
 			->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogPermission.fk_customer')
-			->where('customer.uuid IS NOT NULL')
+			->join(['admin' => 'admin_administrator_nxn_security_account'], 'this.uuid = admin.fk_account')
+			->where('admin.fk_account IS NULL')
 			->select(['company' => 'customer.company', 'customerFullname' => 'customer.fullname'])
 			->select([
 				'permission' => 'catalogPermission.catalogPermission',
@@ -522,9 +528,13 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnText('Login', 'login', '%s', 'login', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname', ['class' => 'fit']);
 		$grid->addColumn('Zákazník', function (Account $account) {
-			return $account->company ?: $account->customerFullname;
+			return $account->company ?: ($account->customerFullname ?: '');
 		});
 		$grid->addColumn('Oprávnění', function (Account $account) {
+			if (!$account->permission) {
+				return '';
+			}
+
 			$label = Shopper::PERMISSIONS;
 
 			return '' . $label[$account->permission] . ' + ' . ($account->buyAllowed ? 'nákup' : 'bez nákupu');
@@ -538,7 +548,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumn('Login', function (Account $object, Datagrid $grid) use ($btnSecondary) {
 			$link = $grid->getPresenter()->link('loginCustomer!', [$object->login]);
 
-			return $object->isActive() ? "<a class='$btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>" : "<a class='$btnSecondary disabled' href='#'><i class='fa fa-sign-in-alt'></i></a>";
+			return $object->isActive() && $object->customerFullname ? "<a class='$btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>" : "<a class='$btnSecondary disabled' href='#'><i class='fa fa-sign-in-alt'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
 		$grid->addColumnLinkDetail('editAccount');
 
