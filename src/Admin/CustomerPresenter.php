@@ -44,7 +44,7 @@ class CustomerPresenter extends BackendPresenter
 		'deliveryPayment' => true,
 		'edi' => true,
 	];
-	
+
 	/** @inject */
 	public AccountFormFactory $accountFormFactory;
 
@@ -101,7 +101,7 @@ class CustomerPresenter extends BackendPresenter
 	public function createComponentCustomers()
 	{
 		$lableMerchants = static::CONFIGURATIONS['labels']['merchants'];
-		
+
 		$grid = $this->gridFactory->create($this->customerRepository->many(), 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Registrace', "createdTs|date", '%s', 'createdTs', ['class' => 'fit']);
@@ -234,7 +234,7 @@ class CustomerPresenter extends BackendPresenter
 	public function createComponentForm()
 	{
 		$lableMerchants = static::CONFIGURATIONS['labels']['merchants'];
-		
+
 		$form = $this->formFactory->create();
 
 		$form->addText('fullname', 'Jméno a příjmení');
@@ -258,9 +258,9 @@ class CustomerPresenter extends BackendPresenter
 
 		$form->addDataMultiSelect('merchants', $lableMerchants, $this->merchantRepository->getArrayForSelect());
 		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getRegisteredGroupsArray())->setPrompt('Žádná');
-		
+
 		$form->addGroup('Nákup a preference');
-		
+
 		if (static::CONFIGURATIONS['branches']) {
 			$form->addDataSelect('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->setPrompt('Žádná');
 			$form->addSelect('orderPermission', 'Objednání', [
@@ -268,10 +268,10 @@ class CustomerPresenter extends BackendPresenter
 				'full' => 'Povoleno',
 			])->setDefaultValue('full');
 		}
-		
+
 		$form->addDataSelect('preferredCurrency', 'Preferovaná měna nákupu',
 			$this->currencyRepo->getArrayForSelect())->setPrompt('Žádný');
-		
+
 		if (static::CONFIGURATIONS['deliveryPayment']) {
 			$form->addDataSelect('preferredPaymentType', 'Preferovaná platba',
 				$this->paymentTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
@@ -289,7 +289,7 @@ class CustomerPresenter extends BackendPresenter
 			'Zokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
 		$form->addGroup('Exporty');
 		$form->addCheckbox('allowExport', 'Feed povolen');
-		
+
 		if (static::CONFIGURATIONS['edi']) {
 			$form->addText('ediCompany', 'EDI: Identifikátor firmy')
 				->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');

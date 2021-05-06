@@ -26,7 +26,8 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		SchemaManager $schemaManager,
 		Shopper $shopper,
 		Storage $storage
-	) {
+	)
+	{
 		parent::__construct($connection, $schemaManager);
 		$this->cache = new Cache($storage);
 		$this->shopper = $shopper;
@@ -41,29 +42,38 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 	/**
 	 * @param string|null $typeId
+	 * @param bool $cache
 	 * @return \Eshop\DB\Category[]
 	 * @throws \Throwable
 	 */
-	public function getTree(?string $typeId = null): array
+	public function getTree(?string $typeId = null, bool $cache = true): array
 	{
 		$repository = $this;
 
 		// @TODO: jen viditelne kategorie pro daneho uzivatele, cistit cache po prihlaseni, take dle jazyku (muze byt jine poradi)
 
-		return $this->cache->load("categoryTree-" . ($typeId ?: ''),
-			static function (&$dependencies) use ($repository, $typeId) {
-				$dependencies = [
-					Cache::TAGS => 'categories',
-				];
+		if ($cache) {
+			return $this->cache->load("categoryTree-" . ($typeId ?: ''), function (&$dependencies) use ($repository, $typeId) {
+					$dependencies = [
+						Cache::TAGS => 'categories',
+					];
 
-				$collection = $repository->getCategories()->where('LENGTH(path) <= 40');
+					return $this->getTreeHelper($typeId, $repository);
+				});
+		} else {
+			return $this->getTreeHelper($typeId, $repository);
+		}
+	}
 
-				if ($typeId) {
-					$collection->where('this.fk_type', $typeId);
-				}
+	private function getTreeHelper($typeId, $repository)
+	{
+		$collection = $repository->getCategories()->where('LENGTH(path) <= 40');
 
-				return $repository->buildTree($collection->toArray(), null);
-			});
+		if ($typeId) {
+			$collection->where('this.fk_type', $typeId);
+		}
+
+		return $repository->buildTree($collection->toArray(), null);
 	}
 
 	public function getCounts(array $pricelists = []): array
