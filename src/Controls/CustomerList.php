@@ -31,7 +31,7 @@ class CustomerList extends Datalist
 		$this->setDefaultOrder('fullname');
 
 		$this->addFilterExpression('name', function (ICollection $collection, $value): void {
-			$collection->where('company LIKE :query OR fullname LIKE :query', ['query' => '%' . $value . '%']);
+			$collection->where('company LIKE :query OR fullname LIKE :query OR email LIKE :query', ['query' => '%' . $value . '%']);
 		}, '');
 
 		$this->getFilterForm()->addText('name');

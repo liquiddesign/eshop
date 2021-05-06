@@ -382,7 +382,7 @@ class ProductPresenter extends BackendPresenter
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('productForm')['form'];
 
-		$prices = $this->pricelistRepository->getDefaultPricelists()
+		$prices = $this->pricelistRepository->many()->orderBy(['this.priority'])
 			->join(['prices' => 'eshop_price'], 'prices.fk_product=:product AND prices.fk_pricelist=this.uuid', ['product' => $product])
 			->select([
 				'price' => 'prices.price',

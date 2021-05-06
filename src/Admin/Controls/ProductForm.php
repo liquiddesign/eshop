@@ -234,7 +234,7 @@ class ProductForm extends Control
 
 		$prices = $form->addContainer('prices');
 
-		foreach ($pricelistRepository->getDefaultPricelists() as $prc) {
+		foreach ($pricelistRepository->many() as $prc) {
 			$pricelist = $prices->addContainer($prc->getPK());
 			$pricelist->addText('price')->setNullable()->addCondition(Form::FILLED)->addRule(Form::FLOAT);
 			$pricelist->addText('priceVat')->setNullable()->addCondition(Form::FILLED)->addRule(Form::FLOAT);
@@ -487,7 +487,7 @@ class ProductForm extends Control
 	public function render()
 	{
 		$this->template->product = $this->getPresenter()->getParameter('product');
-		$this->template->pricelists = $this->pricelistRepository->getDefaultPricelists();
+		$this->template->pricelists = $this->pricelistRepository->many()->orderBy(['this.priority']);
 		$this->template->supplierProducts = [];
 		$this->template->configuration = $this->configuration;
 		$this->template->shopper = $this->shopper;
