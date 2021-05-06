@@ -446,7 +446,7 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		$rootCategories[null] = [
-			'name' => 'Nepřiřazeno',
+			'name' => $this->translator->translate('.notAssigned', 'Nepřiřazeno'),
 			'amount' => 0
 		];
 

@@ -21,7 +21,12 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 	private Shopper $shopper;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Shopper $shopper, Storage $storage)
+	public function __construct(
+		DIConnection $connection,
+		SchemaManager $schemaManager,
+		Shopper $shopper,
+		Storage $storage
+	)
 	{
 		parent::__construct($connection, $schemaManager);
 		$this->cache = new Cache($storage);
@@ -34,31 +39,41 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			Cache::TAGS => ['categories'],
 		]);
 	}
-	
+
 	/**
 	 * @param string|null $typeId
+	 * @param bool $cache
 	 * @return \Eshop\DB\Category[]
 	 * @throws \Throwable
 	 */
-	public function getTree(?string $typeId = null): array
+	public function getTree(?string $typeId = null, bool $cache = true): array
 	{
 		$repository = $this;
-		
+
 		// @TODO: jen viditelne kategorie pro daneho uzivatele, cistit cache po prihlaseni, take dle jazyku (muze byt jine poradi)
-		
-		return $this->cache->load("categoryTree-" . ($typeId ?: ''), static function (&$dependencies) use ($repository, $typeId) {
-			$dependencies = [
-				Cache::TAGS => 'categories',
-			];
-			
-			$collection = $repository->getCategories()->where('LENGTH(path) <= 40');
-			
-			if ($typeId) {
-				$collection->where('this.fk_type', $typeId);
-			}
-			
-			return $repository->buildTree($collection->toArray(), null);
-		});
+
+		if ($cache) {
+			return $this->cache->load("categoryTree-" . ($typeId ?: ''), function (&$dependencies) use ($repository, $typeId) {
+					$dependencies = [
+						Cache::TAGS => 'categories',
+					];
+
+					return $this->getTreeHelper($typeId, $repository);
+				});
+		} else {
+			return $this->getTreeHelper($typeId, $repository);
+		}
+	}
+
+	private function getTreeHelper($typeId, $repository)
+	{
+		$collection = $repository->getCategories()->where('LENGTH(path) <= 40');
+
+		if ($typeId) {
+			$collection->where('this.fk_type', $typeId);
+		}
+
+		return $repository->buildTree($collection->toArray(), null);
 	}
 
 	public function getCounts(array $pricelists = []): array
@@ -82,14 +97,16 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 			$rows->join(['subs' => 'eshop_category'], 'subs.path LIKE CONCAT(this.path,"%")')
 				->join(['nxn' => 'eshop_product_nxn_eshop_category'], 'nxn.fk_category=subs.uuid')
-				->join(['product' => 'eshop_product'], "nxn.fk_product=product.uuid AND product.hidden = 0 AND product.fk_alternative IS NULL")
+				->join(['product' => 'eshop_product'],
+					"nxn.fk_product=product.uuid AND product.hidden = 0 AND product.fk_alternative IS NULL")
 				->setSelect(['count' => 'COUNT(product.uuid)'])
 				->setGroupBy(['this.uuid']);
 
 			$priceWhere = [];
 
 			foreach ($pricelists as $id => $pricelist) {
-				$rows->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=product.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
+				$rows->join(["prices$id" => 'eshop_price'],
+					"prices$id.fk_product=product.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
 				$priceWhere[] = "prices$id.price IS NOT NULL";
 			}
 
@@ -266,7 +283,13 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
 
-		return $this->many()->where('hidden', $includeHidden)->orderBy(['priority', "name$suffix"]);
+		$collection = $this->many()->orderBy(['priority', "name$suffix"]);
+
+		if (!$includeHidden) {
+			$collection->where('hidden', false);
+		}
+
+		return $collection;
 	}
 
 	public function getRootCategoryOfCategory(Category $category): Category
