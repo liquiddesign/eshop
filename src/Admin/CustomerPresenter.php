@@ -257,7 +257,7 @@ class CustomerPresenter extends BackendPresenter
 		}
 
 		$form->addDataMultiSelect('merchants', $lableMerchants, $this->merchantRepository->getArrayForSelect());
-		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getRegisteredGroupsArray())->setPrompt('Žádná');
+		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getArrayForSelect())->setPrompt('Žádná');
 
 		$form->addGroup('Nákup a preference');
 
