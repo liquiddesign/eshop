@@ -54,7 +54,7 @@ class ProductList extends Datalist
 		$this->setAllowedOrderColumns(['price' => 'price']);
 		$this->setItemCountCallback(function (ICollection $filteredSource) {
 			// @TODO: cache?
-			return $filteredSource->count();
+			return $filteredSource->setOrderBy([])->count();
 		});
 
 		$this->addOrderExpression('crossSellOrder', function (ICollection $collection, $value): void {
