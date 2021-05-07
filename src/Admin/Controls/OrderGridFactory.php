@@ -222,7 +222,7 @@ class OrderGridFactory
 		$grid = $button->lookup(Datagrid::class);
 
 		foreach ($grid->getSelectedIds() as $id) {
-			$grid->getSource()->where($grid->getSourceIdName(), $id)->update(['canceledTs' => new DateTime()]);
+			$grid->getSource()->where('this.uuid', $id)->update(['canceledTs' => new DateTime()]);
 
 			$order = $this->orderRepository->one($id, true);
 
@@ -269,7 +269,7 @@ class OrderGridFactory
 		$grid = $button->lookup(Datagrid::class);
 
 		foreach ($grid->getSelectedIds() as $id) {
-			$this->completeOrder($grid->getSource()->where($grid->getSourceIdName(), $id)->first(), $grid, false);
+			$this->completeOrder($grid->getSource()->where('this.uuid', $id)->first(), $grid, false);
 		}
 
 		$grid->getPresenter()->flashMessage('Provedeno', 'success');

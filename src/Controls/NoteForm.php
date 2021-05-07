@@ -11,37 +11,40 @@ use Eshop\Shopper;
 class NoteForm extends \Nette\Application\UI\Form
 {
 	private CheckoutManager $checkoutManager;
-	
+
 	private OrderRepository $orderRepository;
 
 	private Shopper $shopper;
-	
+
 	public function __construct(CheckoutManager $checkoutManager, OrderRepository $orderRepository, Shopper $shopper)
 	{
 		parent::__construct();
-		
+
 		$this->checkoutManager = $checkoutManager;
 		$this->orderRepository = $orderRepository;
 		$this->shopper = $shopper;
-		
+
 		$this->addTextArea('note');
 		$this->addText('internalOrderCode');
 		$this->addText('desiredShippingDate')->setHtmlType('date');
-		
+
 		$this->addSubmit('submit');
 		$this->onSuccess[] = [$this, 'success'];
 	}
-	
+
 	public function success(NoteForm $form): void
 	{
 		$values = $this->getValues();
 		$values['desiredShippingDate'] = $values['desiredShippingDate'] ?: null;
-		
-		$values['account'] = $this->shopper->getCustomer() ? $this->shopper->getCustomer()->getAccount() : null;
-		$values['accountFullname'] = $values['account'] ? $values['account']->fullname : null;
-		$values['accountEmail'] = $values['account'] && \filter_var($values['account']->login,FILTER_VALIDATE_EMAIL) !== false ? $values['account']->login : null;
+
+		$account = $this->shopper->getCustomer() && $this->shopper->getCustomer()->getAccount() ? $this->shopper->getCustomer()->getAccount() : null;
+
+		$values['customer'] = $this->shopper->getCustomer() ? $this->shopper->getCustomer()->getPK() : null;
+		$values['account'] = $account ? $account->getPK() : null;
+		$values['accountFullname'] = $account ? $account->fullname : null;
+		$values['accountEmail'] = $account && \filter_var($account->login, FILTER_VALIDATE_EMAIL) !== false ? $account->login : null;
 		$values['currency'] = $this->shopper->getCurrency();
-		
+
 		$this->checkoutManager->syncPurchase($values);
 	}
 }
