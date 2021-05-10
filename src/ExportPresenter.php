@@ -54,7 +54,7 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 
 	protected Cache $cache;
 
-	protected const ERROR_MSG = 'Invalid export settings! No pricelist selected! You can set pricelist in admin web settings.';
+	protected const ERROR_MSG = 'Invalid export settings! No price list selected! You can set price lists in admin web settings.';
 
 	public function __construct(Storage $storage)
 	{
@@ -68,7 +68,12 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 		$this->template->productImageUrl = $this->request->getUrl()->withoutUserInfo()->getBaseUrl() . 'userfiles/' . Product::IMAGE_DIR . '/thumb/';
 	}
 
-	private function getPricelistFromSetting(string $settingName): Pricelist
+	/**
+	 * @param string $settingName
+	 * @return Pricelist[]
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	private function getPricelistFromSetting(string $settingName): array
 	{
 		/** @var \Web\DB\Setting $setting */
 		$setting = $this->settingRepo->one(['name' => $settingName]);
@@ -77,24 +82,32 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 			throw new \Exception($this::ERROR_MSG);
 		}
 
-		if (!$pricelist = $this->priceListRepo->one($setting->value)) {
+		$pricelistKeys = \explode(';', $setting->value);
+
+		if(\count($pricelistKeys) == 0){
 			throw new \Exception($this::ERROR_MSG);
 		}
 
-		return $pricelist;
+		$pricelists = [];
+
+		foreach ($pricelistKeys as $pricelist){
+			$pricelists[] = $this->priceListRepo->one($pricelist);
+		}
+
+		return $pricelists;
 	}
 
 	private function export(string $name)
 	{
 		$this->template->setFile(__DIR__ . "/templates/export/$name.latte");
 
-		$this->template->pricelist = $pricelist = $this->getPricelistFromSetting($name . 'ExportPricelist');
+		$this->template->pricelist = $pricelists = $this->getPricelistFromSetting($name . 'ExportPricelist');
 
-		$this->template->products = $this->cache->load("export_$name", function (&$dependencies) use ($pricelist) {
+		$this->template->products = $this->cache->load("export_$name", function (&$dependencies) use ($pricelists) {
 			$dependencies[Cache::TAGS] = ['export', 'categories'];
 			$dependencies[Cache::EXPIRE] = '1 day';
 
-			return $this->productRepo->getProducts([$pricelist])->where('this.hidden', false)->toArray();
+			return $this->productRepo->getProducts($pricelists)->where('this.hidden', false)->toArray();
 		});
 	}
 

@@ -25,7 +25,7 @@ class CustomerGroupRepository extends \StORM\Repository implements IGeneralRepos
 
 	public function getDefaultRegistrationGroup(): ?CustomerGroup
 	{
-		return $this->defaultRegistrationGroup ??= $this->many()->where('defaultAfterRegistration = 1')->fetch();
+		return $this->defaultRegistrationGroup ??= $this->many()->where('defaultAfterRegistration = 1')->first();
 	}
 
 	public function getRegisteredGroupsArray(): array

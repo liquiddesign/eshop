@@ -12,6 +12,12 @@ class NewsletterType extends \StORM\Entity
 {
 	/**
 	 * Popis
+	 * @column{"mutations":true}
+	 */
+	public ?string $name;
+
+	/**
+	 * Popis
 	 * @column
 	 */
 	public ?string $description;

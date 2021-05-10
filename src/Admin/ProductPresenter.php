@@ -150,7 +150,7 @@ class ProductPresenter extends BackendPresenter
 			->join(['prices' => 'eshop_price'], 'prices.fk_pricelist=this.uuid AND prices.fk_product=:product', ['product' => $product])
 			->join(['rates' => 'eshop_vatrate'], 'rates.uuid = :rate AND rates.fk_country=this.fk_country', ['rate' => $product->vatRate]);
 
-		$grid = $this->gridFactory->create($collection, 20, 'code', 'ASC');
+		$grid = $this->gridFactory->create($collection, 20, 'priority', 'ASC');
 
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumnText('Ceník', 'name', '%s', 'name');
@@ -175,16 +175,16 @@ class ProductPresenter extends BackendPresenter
 				}
 
 				$newData = [
-					'price' => (float)$data['price'],
-					'priceBefore' => isset($data['priceBefore']) ? (float)$data['priceBefore'] : null,
+					'price' => isset($data['price']) ? \floatval(\str_replace(',', '.', $data['price'])) : 0,
+					'priceBefore' => isset($data['priceBefore']) ? \floatval(\str_replace(',', '.', $data['priceBefore'])) : null,
 					'product' => $product,
 					'pricelist' => $id,
 				];
 
 				if ($this->shopper->getShowVat()) {
 					$newData += [
-						'priceVat' => isset($data['priceVat']) ? (float)$data['priceVat'] : null,
-						'priceVatBefore' => isset($data['priceVatBefore']) ? (float)$data['priceVatBefore'] : null,
+						'priceVat' => isset($data['priceVat']) ? \floatval(\str_replace(',', '.', $data['priceVat'])) : ($data['price'] + ($data['price'] * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 100))),
+						'priceVatBefore' => isset($data['priceVatBefore']) ? \floatval(\str_replace(',', '.', $data['priceVatBefore'])) : null,
 					];
 				}
 
@@ -196,7 +196,7 @@ class ProductPresenter extends BackendPresenter
 		};
 
 		$grid->addFilterTextInput('search', ['code'], null, 'Kód ceníku');
-		$grid->addFilterButtons(['productFiles', $this->getParameter('product')]);
+		$grid->addFilterButtons(['prices', $product]);
 
 		return $grid;
 	}
@@ -419,7 +419,7 @@ class ProductPresenter extends BackendPresenter
 			$form['supplierContent']->setDefaultValue(0);
 		}
 
-		if($form->getPrettyPages()){
+		if ($form->getPrettyPages()) {
 			if ($page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product])) {
 				$form['page']->setDefaults($page->toArray());
 
@@ -589,7 +589,7 @@ class ProductPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
 		$form->addRadioList('bulkType', 'Upravit', [
-			'selected' => "vybrané ($selectedNo)",
+			'selected' => "vybrané",
 			'all' => "celý výsledek ($totalNo)",
 		])->setDefaultValue('selected');
 
@@ -601,27 +601,31 @@ class ProductPresenter extends BackendPresenter
 		$form->addSelect('type', 'Typ šablony', $this->newsletterTypeRepository->getArrayForSelect());
 		$form->addLocalePerexEdit('text', 'Textový obsah');
 
-		$form->addSubmits(false);
+		$form->addSubmit('submit', 'Stáhnout');
 
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid) {
 			$values = $form->getValues('array');
 
 			$functionName = 'newsletterExport' . \ucfirst($values['type']);
 
-			try {
-				if ($values['bulkType'] == 'selected') {
-					$products = [];
-					foreach (\explode(';', $values['products']) as $product) {
-						$products[] = $this->productRepository->getProductByCodeOrEAN($product)->getPK();
-					}
-
-					$this->$functionName($products, $values['text']);
-				} else {
-					$this->$functionName(\array_keys($productGrid->getFilteredSource()->toArrayOf('uuid')), $values['text']);
+//			try {
+			if ($values['bulkType'] == 'selected') {
+				if (!$values['products']) {
+					return;
 				}
-			} catch (\Exception $e) {
 
+				$products = [];
+				foreach (\explode(';', $values['products']) as $product) {
+					$products[] = $this->productRepository->getProductByCodeOrEAN($product)->getPK();
+				}
+
+				$this->$functionName($products, $values['text']);
+			} else {
+				$this->$functionName(\array_keys($productGrid->getFilteredSource()->toArrayOf('uuid')), $values['text']);
 			}
+//			} catch (\Exception $e) {
+//				bdump($e);
+//			}
 		};
 
 		return $form;

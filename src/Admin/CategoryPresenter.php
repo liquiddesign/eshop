@@ -20,6 +20,7 @@ use Nette\Utils\Random;
 use Pages\DB\PageRepository;
 use Pages\Helpers;
 use StORM\DIConnection;
+use StORM\Entity;
 
 class CategoryPresenter extends BackendPresenter
 {
@@ -67,10 +68,7 @@ class CategoryPresenter extends BackendPresenter
 				$grid->getPresenter()->link(':Eshop:Product:list', ['category' => (string)$category]),
 				$category->name
 			];
-		}, '<a href="%s" target="_blank"> %s</a>', 'name')->onRenderCell[] = function (
-			\Nette\Utils\Html $td,
-			Category $object
-		) {
+		}, '<a href="%s" target="_blank"> %s</a>', 'name')->onRenderCell[] = function (\Nette\Utils\Html $td, Category $object) {
 			$level = \strlen($object->path) / 4 - 1;
 			$td->setHtml(\str_repeat('- - ', $level) . $td->getHtml());
 		};
@@ -91,7 +89,7 @@ class CategoryPresenter extends BackendPresenter
 		$grid->addColumnActionDeleteSystemic();
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected(null, false, function ($object) {
+		$grid->addButtonDeleteSelected(null, true, function ($object) {
 			if ($object) {
 				return !$object->isSystemic();
 			}
@@ -99,17 +97,13 @@ class CategoryPresenter extends BackendPresenter
 			return false;
 		});
 
-		$grid->addButtonBulkEdit('categoryNewForm',
-			['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
+		$grid->addButtonBulkEdit('categoryNewForm', ['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
 
 		$grid->addFilterTextInput('search', ['code', 'name_cs'], null, 'Kód, Název');
 		$grid->addFilterButtons();
 
 		$grid->onDelete[] = function (Category $object) {
-			foreach (
-				$this->categoryRepository->many()->where('path LIKE :q',
-					['q' => "$object->path%"])->toArray() as $subCategory
-			) {
+			foreach ($this->categoryRepository->many()->where('path LIKE :q', ['q' => "$object->path%"])->toArray() as $subCategory) {
 				$this->onDeleteImage($subCategory);
 				$this->onDeletePage($subCategory);
 				$subCategory->delete();
@@ -119,6 +113,13 @@ class CategoryPresenter extends BackendPresenter
 		};
 
 		return $grid;
+	}
+
+	protected function onDeletePage(Entity $object)
+	{
+		if ($page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['category' => $object])) {
+			$page->delete();
+		}
 	}
 
 	public function createComponentCategoryNewForm(): Form

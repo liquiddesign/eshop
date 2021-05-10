@@ -64,6 +64,8 @@ class ProductForm extends Control
 
 	private Shopper $shopper;
 
+	private VatRateRepository $vatRateRepository;
+
 	private array $configuration;
 
 	public function __construct(
@@ -104,6 +106,7 @@ class ProductForm extends Control
 		$this->setRepository = $setRepository;
 		$this->configuration = $configuration;
 		$this->shopper = $shopper;
+		$this->vatRateRepository = $vatRateRepository;
 
 		$form = $adminFormFactory->create(true);
 
@@ -419,8 +422,6 @@ class ProductForm extends Control
 		}
 
 		foreach ($values['prices'] as $pricelistId => $prices) {
-			$prices['priceVat'] = $prices['priceVat'] ?? 0;
-
 			$conditions = [
 				'fk_pricelist' => $pricelistId,
 				'fk_product' => $values['uuid'],
@@ -430,6 +431,8 @@ class ProductForm extends Control
 				$this->priceRepository->many()->match($conditions)->delete();
 				continue;
 			}
+
+			$prices['priceVat'] = $prices['priceVat'] ? \floatval(\str_replace(',', '.', $prices['priceVat'])) : ($prices['price'] + ($prices['price'] * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 100)));
 
 			$conditions = [
 				'pricelist' => $pricelistId,

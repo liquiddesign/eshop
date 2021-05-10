@@ -6,6 +6,7 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Eshop\DB\PricelistRepository;
+use Nette\Utils\Arrays;
 use Web\DB\SettingRepository;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
@@ -27,7 +28,26 @@ class ExportPresenter extends BackendPresenter
 		$form = $this->getComponent('settingForm');
 
 		$values = $this->settingsRepo->many()->setIndex('name')->toArrayOf('value');
-		$form->setDefaults($values);
+
+		$keys = [
+			'heurekaExportPricelist',
+			'zboziExportPricelist',
+			'googleExportPricelist'
+		];
+
+		$defaults = [];
+
+		foreach ($values as $key => $value) {
+			if (Arrays::contains($keys, $key) && $value && \count(\explode(';', $value)) > 0) {
+				$defaults[$key] = \explode(';', $value);
+			}
+		}
+
+		try {
+			$form->setDefaults($defaults);
+		} catch (\InvalidArgumentException $e) {
+
+		}
 
 		$this->template->headerTree = [
 			['Exporty'],
@@ -54,17 +74,18 @@ class ExportPresenter extends BackendPresenter
 			]
 		];
 
-		$this->template->setFile(__DIR__. \DIRECTORY_SEPARATOR . 'templates' . \DIRECTORY_SEPARATOR . 'Export.default.latte');
+		$this->template->setFile(__DIR__ . \DIRECTORY_SEPARATOR . 'templates' . \DIRECTORY_SEPARATOR . 'Export.default.latte');
 	}
 
 	public function createComponentSettingForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
 
+		$form->removeComponent($form['uuid']);
 		$form->addGroup('');
-		$form->addDataSelect('heurekaExportPricelist', 'Ceník exportu pro Heureku', $this->priceListRepo->getArrayForSelect())->setPrompt('Žádný');
-		$form->addDataSelect('zboziExportPricelist', 'Ceník exportu pro Zboží', $this->priceListRepo->getArrayForSelect())->setPrompt('Žádný');
-		$form->addDataSelect('googleExportPricelist', 'Ceník exportu pro Google Nákupy', $this->priceListRepo->getArrayForSelect())->setPrompt('Žádný');
+		$form->addDataMultiSelect('heurekaExportPricelist', 'Ceník exportu pro Heureku', $this->priceListRepo->getArrayForSelect(false));
+		$form->addDataMultiSelect('zboziExportPricelist', 'Ceník exportu pro Zboží', $this->priceListRepo->getArrayForSelect(false));
+		$form->addDataMultiSelect('googleExportPricelist', 'Ceník exportu pro Google Nákupy', $this->priceListRepo->getArrayForSelect(false));
 
 		$form->addSubmit('submit', 'Uložit');
 
@@ -75,11 +96,11 @@ class ExportPresenter extends BackendPresenter
 				$setting = $this->settingsRepo->one(['name' => $key]);
 
 				if ($setting) {
-					$setting->update(['value' => $value]);
+					$setting->update(['value' => \implode(';', $value)]);
 				} else {
 					$this->settingsRepo->createOne([
 						'name' => $key,
-						'value' => $value
+						'value' => \implode(';', $value)
 					]);
 				}
 			}

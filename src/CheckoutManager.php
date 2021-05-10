@@ -14,6 +14,9 @@ use Eshop\DB\DiscountCouponRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\Set;
+use Eshop\DB\SetItemRepository;
+use Eshop\DB\SetRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\Variant;
 use Eshop\DB\Address;
@@ -29,6 +32,8 @@ use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentRepository;
 use Eshop\DB\Purchase;
 use Eshop\DB\PurchaseRepository;
+use Eshop\DB\VatRate;
+use Eshop\DB\VatRateRepository;
 use GuzzleHttp\Client;
 use Nette\Http\Request;
 use Nette\Http\Response;
@@ -137,6 +142,12 @@ class CheckoutManager
 
 	private CartItemTaxRepository $cartItemTaxRepository;
 
+	private SetRepository $setRepository;
+
+	private SetItemRepository $setItemRepository;
+
+	private VatRateRepository $vatRateRepository;
+
 	public function __construct(
 		Shopper $shopper,
 		CartRepository $cartRepository,
@@ -156,7 +167,10 @@ class CheckoutManager
 		Response $response,
 		TaxRepository $taxRepository,
 		CartItemTaxRepository $cartItemTaxRepository,
-		SettingRepository $settingRepository
+		SettingRepository $settingRepository,
+		SetRepository $setRepository,
+		SetItemRepository $setItemRepository,
+		VatRateRepository $vatRateRepository
 	)
 	{
 		$this->customer = $shopper->getCustomer();
@@ -178,6 +192,9 @@ class CheckoutManager
 		$this->taxRepository = $taxRepository;
 		$this->cartItemTaxRepository = $cartItemTaxRepository;
 		$this->settingRepository = $settingRepository;
+		$this->setRepository = $setRepository;
+		$this->setItemRepository = $setItemRepository;
+		$this->vatRateRepository = $vatRateRepository;
 
 		if (!$request->getCookie('cartToken') && !$this->customer) {
 			$this->cartToken = DIConnection::generateUuid();
@@ -350,6 +367,40 @@ class CheckoutManager
 		$this->itemRepository->syncItem($this->getCart(), $item, $product, $variant, $amount);
 	}
 
+	public function createSetItems(CartItem $cartItem)
+	{
+		$setProduct = $cartItem->product;
+
+		if ($setProduct->productsSet) {
+			/** @var Product[] $products */
+			$products = $this->productRepository->getProducts()->join(['setT' => 'eshop_set'], 'this.uuid = setT.fk_product')->where('setT.fk_set', $setProduct->getPK())->toArray();
+
+			foreach ($products as $product){
+				/** @var \Eshop\DB\VatRate $vat */
+				$vat = $this->vatRateRepository->one($product->vatRate);
+
+				$vatPct = $vat ? $vat->rate : 0;
+
+				/** @var Set $set */
+				$set = $this->setRepository->many()->where('fk_set',$setProduct->getPK())->where('fk_product',$product->getPK())->first();
+
+				$this->setItemRepository->createOne([
+					'cartItem' => $cartItem->getPK(),
+					'productSet' => $set->getPK(),
+					'productName' => $product->toArray()['name'],
+					'productCode' => $product->code,
+					'productSubCode' => $product->subCode,
+					'productWeight' => $product->weight,
+					'amount' => $set->amount,
+					'price' => $product->getPrice($set->amount) - ($product->getPrice($set->amount) * ($set->discountPct / 100 )),
+					'priceVat' => $product->getPriceVat($set->amount) - ($product->getPriceVat($set->amount) * ($set->discountPct / 100 )),
+					'vatPct' => (float) $vatPct,
+					'discountPct' => $set->discountPct
+				]);
+			}
+		}
+	}
+
 	/**
 	 * @param \Eshop\DB\Product $product
 	 * @param \Eshop\DB\Variant|null $variant
@@ -357,7 +408,10 @@ class CheckoutManager
 	 * @param bool $replaceMode
 	 * @param bool $checkInvalidAmount
 	 * @param bool $checkCanBuy
-	 * @throws \Eshop\BuyException
+	 * @param Cart|null $cart
+	 * @return CartItem
+	 * @throws BuyException
+	 * @throws NotFoundException
 	 */
 	public function addItemToCart(Product $product, ?Variant $variant = null, int $amount = 1, bool $replaceMode = false, bool $checkInvalidAmount = true, bool $checkCanBuy = true, ?Cart $cart = null): CartItem
 	{
@@ -400,6 +454,8 @@ class CheckoutManager
 		}
 
 		$this->refreshSumProperties();
+
+		$this->createSetItems($cartItem);
 
 		return $cartItem;
 	}
@@ -857,13 +913,31 @@ class CheckoutManager
 		]);
 	}
 
+	public function convertSetsToItems(Cart $cart)
+	{
+		/** @var CartItem[] $cartItems */
+		$cartItems = $cart->items->where('isItemsSet', true)->toArray();
+
+		foreach ($cartItems as $item) {
+			$products = $this->productRepository->getProducts()->join(['setT' => 'eshop_set'], 'this.uuid=setT.fk_product')->where('setT.fk_product', $item->product->getPK())->toArray();
+
+			foreach ($products as $product) {
+
+			}
+
+			$item->delete();
+		}
+	}
+
 	public function createOrder(?Purchase $purchase = null): void
 	{
 		$purchase = $purchase ?: $this->getPurchase();
 		$customer = $this->shopper->getCustomer();
 		$cart = $this->getCart();
 		$currency = $cart->currency;
-		
+
+		$this->convertSetsToItems($cart);
+
 		$cart->update(['approved' => ($customer && $customer->orderPermission == 'full') || $customer ? 'yes' : 'waiting']);
 
 		// createAccount

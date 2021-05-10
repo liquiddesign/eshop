@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Common\DB\IGeneralRepository;
 use League\Csv\Reader;
 use StORM\Collection;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Pricelist>
  */
-class PricelistRepository extends \StORM\Repository
+class PricelistRepository extends \StORM\Repository implements IGeneralRepository
 {
 	/**
 	 * @return \Storm\Collection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
@@ -135,9 +136,9 @@ class PricelistRepository extends \StORM\Repository
 		}
 	}
 
-	public function getArrayForSelect(): array
+	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		return $this->many()->toArrayOf('name');
+		return $this->getCollection($includeHidden)->toArrayOf('name');
 	}
 
 	public function getAllPricelists(): array
@@ -245,4 +246,14 @@ class PricelistRepository extends \StORM\Repository
 		}
 	}
 
+	public function getCollection(bool $includeHidden = false): Collection
+	{
+		$collection = $this->many();
+
+		if (!$includeHidden) {
+			$collection->where('isActive', true);
+		}
+
+		return $collection->orderBy(['priority', "name"]);
+	}
 }

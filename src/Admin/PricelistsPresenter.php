@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
+use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Admin\Controls\AdminForm;
 use Eshop\DB\CountryRepository;
@@ -65,6 +66,9 @@ class PricelistsPresenter extends BackendPresenter
 
 	/** @inject */
 	public Shopper $shopper;
+
+	/** @inject */
+	public VatRateRepository $vatRateRepository;
 
 	public function createComponentPriceLists()
 	{
@@ -156,7 +160,27 @@ class PricelistsPresenter extends BackendPresenter
 
 		$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll($nullColumns, $saveAllTypes);
+		$grid->addButtonSaveAll($nullColumns, $saveAllTypes, null, false, function ($key, &$data, $type, Price $object) {
+			if ($key == 'price' && !isset($data['price'])) {
+				$data['price'] = 0;
+				return;
+			}
+
+			if ($key == 'priceVat' && !isset($data['priceVat'])) {
+				$newValue = \floatval($data['price']) + (\floatval($data['price']) * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$object->product->vatRate]), 100));
+			} else {
+				$newValue = $data[$key];
+			}
+
+			if ($type == 'float') {
+				$data[$key] = \floatval(\str_replace(',', '.', $newValue));
+				return;
+			}
+
+			$data[$key] = \settype($newValue, $type) ? $newValue : null;
+
+			return;
+		});
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 
 		$grid->addFilterTextInput('search', ['product.code', 'product.name_cs'], null, 'Kód, název');

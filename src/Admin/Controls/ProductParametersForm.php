@@ -70,7 +70,7 @@ class ProductParametersForm extends Control
 			$parameters = $parameterRepository->many()
 				->where('fk_group', $group->getPK());
 
-			$form->addGroup($group->name ?? ' ');
+			$form->addGroup($group->name ?? $group->internalName);
 			$groupContainer = $form->addContainer($group->getPK());
 
 			foreach ($parameters as $parameter) {
