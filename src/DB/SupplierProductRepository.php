@@ -79,7 +79,7 @@ class SupplierProductRepository extends \StORM\Repository
 				'content' => [$mutation => $draft->content],
 				'unit' => $draft->unit,
 				'unavailable' => $draft->unavailable,
-				'hidden' => true,
+				'hidden' => $supplier->defaultHiddenProduct,
 				'imageFileName' => $draft->fileName,
 				'vatRate' => $vatLevels[(int) $draft->vatRate] ?? 'standard',
 				'producer' => $draft->producer ? $draft->producer->getValue('producer') : null,
