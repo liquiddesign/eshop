@@ -6,6 +6,8 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Eshop\DB\DisplayAmountRepository;
+use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\Supplier;
 use Eshop\DB\SupplierProductRepository;
@@ -24,6 +26,12 @@ class SupplierPresenter extends BackendPresenter
 	
 	/** @inject */
 	public PricelistRepository $pricelistRepository;
+	
+	/** @inject */
+	public DisplayAmountRepository $displayAmountRepository;
+	
+	/** @inject */
+	public DisplayDeliveryRepository $displayDeliveryRepository;
 	
 	/** @inject */
 	public AddressRepository $addressRepository;
@@ -58,8 +66,8 @@ class SupplierPresenter extends BackendPresenter
 		$form->addText('name', 'Název')->setRequired();
 		
 		$form->addText('productCodePrefix', 'Prefix kód produktů');
-		$form->addText('defaultDisplayAmount', 'Defaultní množství');
-		$form->addText('defaultDisplayDelivery', 'Defaultní doručení');
+		$form->addSelect('defaultDisplayAmount', 'Defaultní množství', $this->displayAmountRepository->getArrayForSelect());
+		$form->addSelect('defaultDisplayDelivery', 'Defaultní doručení', $this->displayDeliveryRepository->getArrayForSelect());
 		
 		
 		$form->addInteger('importPriority', 'Priorita');
