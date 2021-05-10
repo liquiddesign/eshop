@@ -59,6 +59,18 @@ class Supplier extends \StORM\Entity
 	public string $updatedTs;
 	
 	/**
+	 * Poslední import
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $lastImportTs;
+	
+	/**
+	 * Poslední update z importu
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $lastUpdateTs;
+	
+	/**
 	 * Defaultní zobrazení množství
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
