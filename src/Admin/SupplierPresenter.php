@@ -64,11 +64,13 @@ class SupplierPresenter extends BackendPresenter
 		$form->addGroup('Obecné');
 		$form->addText('code', 'Kód');
 		$form->addText('name', 'Název')->setRequired();
-		
+		$form->addGroup('Defaultní hodnoty');
 		$form->addText('productCodePrefix', 'Prefix kód produktů');
-		$form->addSelect('defaultDisplayAmount', 'Defaultní množství', $this->displayAmountRepository->getArrayForSelect())->setPrompt('-zvolte-');
-		$form->addSelect('defaultDisplayDelivery', 'Defaultní doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('-zvolte-');
+		$form->addSelect('defaultDisplayAmount', 'Zobrazované množství', $this->displayAmountRepository->getArrayForSelect())->setPrompt('-zvolte-');
+		$form->addSelect('defaultDisplayDelivery', 'Zobrazované doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('-zvolte-');
+		$form->addCheckbox('defaultHiddenProduct', 'Skryté produkty');
 		
+		$form->addGroup('Nastavení importu');
 		$form->addInteger('importPriority', 'Priorita');
 		$form->addInteger('importPriceRatio', 'Procentuální změna ceny');
 		$form->addCheckbox('isImportActive', 'Automaticky');

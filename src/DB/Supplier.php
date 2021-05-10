@@ -71,6 +71,18 @@ class Supplier extends \StORM\Entity
 	public ?string $lastUpdateTs;
 	
 	/**
+	 * Rozdělí při importu ceníky na dostupné a nedostupné
+	 * @column
+	 */
+	public bool $splitPricelists = true;
+	
+	/**
+	 * Defaultně skryté produkty
+	 * @column
+	 */
+	public bool $defaultHiddenProduct = true;
+	
+	/**
 	 * Defaultní zobrazení množství
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
