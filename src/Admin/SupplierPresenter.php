@@ -66,9 +66,8 @@ class SupplierPresenter extends BackendPresenter
 		$form->addText('name', 'Název')->setRequired();
 		
 		$form->addText('productCodePrefix', 'Prefix kód produktů');
-		$form->addSelect('defaultDisplayAmount', 'Defaultní množství', $this->displayAmountRepository->getArrayForSelect());
-		$form->addSelect('defaultDisplayDelivery', 'Defaultní doručení', $this->displayDeliveryRepository->getArrayForSelect());
-		
+		$form->addSelect('defaultDisplayAmount', 'Defaultní množství', $this->displayAmountRepository->getArrayForSelect())->setPrompt('-zvolte-');
+		$form->addSelect('defaultDisplayDelivery', 'Defaultní doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('-zvolte-');
 		
 		$form->addInteger('importPriority', 'Priorita');
 		$form->addInteger('importPriceRatio', 'Procentuální změna ceny');
