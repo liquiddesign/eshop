@@ -165,9 +165,9 @@ class SupplierProduct extends \StORM\Entity
 	
 	/**
 	 * Aktualizován
-	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
+	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP","extra":"on update CURRENT_TIMESTAMP"}
 	 */
-	public string $updatedTs;
+	public string $updateTs;
 	
 	/**
 	 * Vytvořen

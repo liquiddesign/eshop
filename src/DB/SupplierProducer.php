@@ -32,6 +32,12 @@ class SupplierProducer extends \StORM\Entity
 	public Supplier $supplier;
 	
 	/**
+	 * Aktualizován
+	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP","extra":"on update CURRENT_TIMESTAMP"}
+	 */
+	public string $updateTs;
+	
+	/**
 	 * Vytvořen
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
