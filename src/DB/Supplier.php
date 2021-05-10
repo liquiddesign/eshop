@@ -17,6 +17,12 @@ class Supplier extends \StORM\Entity
 	public ?string $code;
 	
 	/**
+	 * Prefix kódu produktu
+	 * @column{"unique":true}
+	 */
+	public ?string $productCodePrefix;
+	
+	/**
 	 * Název
 	 * @column
 	 */
@@ -51,4 +57,18 @@ class Supplier extends \StORM\Entity
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
 	public string $updatedTs;
+	
+	/**
+	 * Defaultní zobrazení množství
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public ?DisplayAmount $defaultDisplayAmount;
+	
+	/**
+	 * Defaultní zobrazení doručení
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public ?DisplayDelivery $defaultDisplayDelivery;
 }
