@@ -66,7 +66,7 @@ class SupplierPresenter extends BackendPresenter
 		$form->addText('code', 'Kód');
 		$form->addText('name', 'Název')->setRequired();
 		$form->addGroup('Defaultní hodnoty');
-		$form->addText('productCodePrefix', 'Prefix kódu produktů')->setHtmlAttribute('readonly', 'readonly');
+		$form->addText('productCodePrefix', 'Prefix kódu produktů')->setNullable()->setHtmlAttribute('readonly', 'readonly');
 		$form->addSelect('defaultDisplayAmount', 'Zobrazované množství', $this->displayAmountRepository->getArrayForSelect())->setPrompt('-zvolte-');
 		$form->addSelect('defaultDisplayDelivery', 'Zobrazované doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('-zvolte-');
 		$form->addCheckbox('defaultHiddenProduct', 'Produkty budou skryté');
