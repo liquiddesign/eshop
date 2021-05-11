@@ -943,30 +943,12 @@ class CheckoutManager
 		]);
 	}
 
-	public function convertSetsToItems(Cart $cart)
-	{
-		/** @var CartItem[] $cartItems */
-		$cartItems = $cart->items->where('isItemsSet', true)->toArray();
-
-		foreach ($cartItems as $item) {
-			$products = $this->productRepository->getProducts()->join(['setT' => 'eshop_set'], 'this.uuid=setT.fk_product')->where('setT.fk_product', $item->product->getPK())->toArray();
-
-			foreach ($products as $product) {
-
-			}
-
-			$item->delete();
-		}
-	}
-
 	public function createOrder(?Purchase $purchase = null): void
 	{
 		$purchase = $purchase ?: $this->getPurchase();
 		$customer = $this->shopper->getCustomer();
 		$cart = $this->getCart();
 		$currency = $cart->currency;
-
-		$this->convertSetsToItems($cart);
 
 		$cart->update(['approved' => ($customer && $customer->orderPermission == 'full') || $customer ? 'yes' : 'waiting']);
 
