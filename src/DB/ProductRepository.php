@@ -541,6 +541,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			/** @var \Eshop\DB\Product $upsell */
 			if (!$upsellWithPrice = $this->getProducts()->where('this.uuid', $upsell->getPK())->first()) {
 				if ($cartItem->product->dependedValue) {
+					$upsell->name = $cartItem->productName . ' - ' . $upsell->name;
 					$upsell->price = $cartItem->getPriceSum() * ($cartItem->product->dependedValue / 100);
 					$upsell->priceVat = $cartItem->getPriceVatSum() * ($cartItem->product->dependedValue / 100);
 					$upsell->currencyCode = $this->shopper->getCurrency()->code;
@@ -548,6 +549,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 				}
 			} else {
 				if ($upsellWithPrice->getPriceVat()) {
+					$upsellWithPrice->name = $cartItem->productName . ' - ' . $upsellWithPrice->name;
 					$upsellWithPrice->price = $cartItem->amount * $upsellWithPrice->getPrice();
 					$upsellWithPrice->priceVat = $cartItem->amount * $upsellWithPrice->getPriceVat();
 					$upsells[$upsellWithPrice->getPK()] = $upsellWithPrice;
