@@ -53,18 +53,6 @@ class SetItem extends \StORM\Entity
 	public ?int $realAmount;
 
 	/**
-	 * Cena
-	 * @column
-	 */
-	public float $price;
-
-	/**
-	 * Cena s DPH
-	 * @column
-	 */
-	public ?float $priceVat;
-
-	/**
 	 * DPH
 	 * @column
 	 */
@@ -88,6 +76,11 @@ class SetItem extends \StORM\Entity
 	 */
 	public float $discountPct = 0;
 
+	/**
+	 * Pořadí v setu
+	 * @column
+	 */
+	public int $priority;
 	
 	/**
 	 * @relation

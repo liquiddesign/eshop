@@ -392,10 +392,9 @@ class CheckoutManager
 					'productSubCode' => $product->subCode,
 					'productWeight' => $product->weight,
 					'amount' => $set->amount,
-					'price' => $product->getPrice($set->amount) - ($product->getPrice($set->amount) * ($set->discountPct / 100 )),
-					'priceVat' => $product->getPriceVat($set->amount) - ($product->getPriceVat($set->amount) * ($set->discountPct / 100 )),
 					'vatPct' => (float) $vatPct,
-					'discountPct' => $set->discountPct
+					'discountPct' => $set->discountPct,
+					'priority' => $set->priority
 				]);
 			}
 		}
