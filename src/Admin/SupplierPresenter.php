@@ -40,14 +40,15 @@ class SupplierPresenter extends BackendPresenter
 	{
 		$grid = $this->gridFactory->create($this->supplierRepository->many(), 20, 'name', 'ASC', true);
 		$grid->addColumnSelector();
-		$grid->addColumnText('Aktualizace', "updatedTs|date:'d.m.Y'", '%s', 'updatedTs', ['class' => 'fit']);
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
+		$grid->addColumnText('Posl. import', "lastImportTs|date:'d.m.Y'", '%s', 'lastImportTs', ['class' => 'fit']);
+		$grid->addColumnText('Posl. aktualizace', "lastUpdateTs|date:'d.m.Y'", '%s', 'lastUpdateTs', ['class' => 'fit']);
 		
 		$grid->addColumnInputText('Priorita', 'importPriority');
 		$grid->addColumnInputCheckbox('Automaticky', 'isImportActive', '', '', 'isImportActive');
 		
-		$grid->addColumnLink('pair', '<i class="fa fa-play"></i> Ruční import');
+		$grid->addColumnLink('pair', '<i class="fa fa-play"></i> Ruční aktualizace');
 		$grid->addColumnLinkDetail();
 		
 		$grid->addFilterTextInput('search', ['name', 'code'], null, 'Název, kód');
@@ -65,15 +66,16 @@ class SupplierPresenter extends BackendPresenter
 		$form->addText('code', 'Kód');
 		$form->addText('name', 'Název')->setRequired();
 		$form->addGroup('Defaultní hodnoty');
-		$form->addText('productCodePrefix', 'Prefix kód produktů');
+		$form->addText('productCodePrefix', 'Prefix kódu produktů')->setHtmlAttribute('readonly', 'readonly');
 		$form->addSelect('defaultDisplayAmount', 'Zobrazované množství', $this->displayAmountRepository->getArrayForSelect())->setPrompt('-zvolte-');
 		$form->addSelect('defaultDisplayDelivery', 'Zobrazované doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('-zvolte-');
-		$form->addCheckbox('defaultHiddenProduct', 'Skryté produkty');
+		$form->addCheckbox('defaultHiddenProduct', 'Produkty budou skryté');
 		
 		$form->addGroup('Nastavení importu');
 		$form->addInteger('importPriority', 'Priorita');
 		$form->addInteger('importPriceRatio', 'Procentuální změna ceny');
-		$form->addCheckbox('isImportActive', 'Automaticky');
+		$form->addCheckbox('splitPricelists', 'Rozdělit ceníky (dostupné / nedostupné)');
+		$form->addCheckbox('isImportActive', 'Spouštět automaticky každý den');
 		
 		$form->addSubmits(!$this->getParameter('supplier'));
 		
@@ -110,44 +112,21 @@ class SupplierPresenter extends BackendPresenter
 			
 			$this->supplierProductRepository->syncProducts($supplier, $mutation, $country, !$values['only_new']);
 			
-			$pricelist = $this->pricelistRepository->syncOne([
-				'uuid' => DIConnection::generateUuid($supplier->getPK(), 'available'),
-				'code' => $supplier->code . '2',
-				'name' => $supplier->name,
-				'isActive' => true,
-				'currency' => $currency,
-				'country' => $country,
-				'supplier' => $supplier,
-				'priority' => 3,
-			], ['currency', 'country']);
+			if ($supplier->splitPricelists) {
+				$pricelist = $this->supplierRepository->syncPricelist($supplier, $currency, $country, '2', 3, true);
+				$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unavailable', false), $supplier, $pricelist);
+				
+				$pricelist = $this->supplierRepository->syncPricelist($supplier, $currency, $country, '1', 4, true, 'Nedostupné');
+				$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unavailable', true), $supplier, $pricelist);
+			} else {
+				$pricelist = $this->supplierRepository->syncPricelist($supplier, $currency, $country, '0', 3, true,);
+				$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier), $supplier, $pricelist);
+			}
 			
-			$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unavailable', false), $supplier, $pricelist);
-			
-			$pricelist = $this->pricelistRepository->syncOne([
-				'uuid' => DIConnection::generateUuid($supplier->getPK(), 'unavailable'),
-				'code' => $supplier->code . '1',
-				'name' => $supplier->name . " (Nedostupné)",
-				'isActive' => true,
-				'currency' => $currency,
-				'country' => $country,
-				'supplier' => $supplier,
-				'priority' => 4,
-			], ['currency', 'country']);
-			
-			$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unavailable', true), $supplier, $pricelist);
-			
-			$pricelist = $this->pricelistRepository->syncOne([
-				'uuid' => DIConnection::generateUuid($supplier->getPK(), 'purchase'),
-				'code' => $supplier->code . '0',
-				'name' => $supplier->name . " (Nákupní)",
-				'isActive' => false,
-				'currency' => $currency,
-				'country' => $country,
-				'supplier' => $supplier,
-				'priority' => 9,
-			], ['currency', 'country']);
-			
-			$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unavailable', true), $supplier, $pricelist, 'purchasePrice');
+			if (!$this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('purchasePrice IS NOT NULL')->isEmpty()) {
+				$pricelist = $this->supplierRepository->syncPricelist($supplier, $currency, $country, '3', 3, false, 'Nákupní');
+				$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('purchasePrice IS NOT NULL'), $supplier, $pricelist);
+			}
 			
 			$this->flashMessage('Uloženo', 'success');
 			$form->getPresenter()->redirect('default');
