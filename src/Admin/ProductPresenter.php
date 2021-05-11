@@ -401,7 +401,7 @@ class ProductPresenter extends BackendPresenter
 		if (isset($form['upsells'])) {
 			$upsells = [];
 			foreach ($product->upsells as $upsell) {
-				$upsells[] = $upsell->getFullCode();
+				$upsells[] = $upsell->getFullCode() ?? $upsell->ean;
 			}
 
 			$form['upsells']->setDefaultValue(\implode(';', $upsells));

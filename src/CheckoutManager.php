@@ -467,6 +467,33 @@ class CheckoutManager
 
 		$this->itemRepository->updateItemAmount($cart ?: $this->getCart(), $variant, $product, $amount);
 		$this->refreshSumProperties();
+
+		if($cartItem = $this->itemRepository->getItem($cart ?: $this->getCart(), $product, $variant)){
+			foreach ($this->productRepository->getUpsellsForCartItem($cartItem) as $upsell){
+				if($this->itemRepository->isUpsellActive($cartItem->getPK(), $upsell->getPK())){
+					$upsellCartItem = $this->itemRepository->many()->where('fk_upsell',$cartItem->getPK())->where('product.uuid',$upsell->getPK())->first();
+
+					/** @var \Eshop\DB\Product $upsell */
+					if (!$upsellWithPrice = $this->productRepository->getProducts()->where('this.uuid', $upsell->getPK())->first()) {
+						if ($cartItem->product->dependedValue) {
+							$upsell->price = $cartItem->getPriceSum() * ($cartItem->product->dependedValue / 100);
+							$upsell->priceVat = $cartItem->getPriceVatSum() * ($cartItem->product->dependedValue / 100);
+							$upsell->currencyCode = $this->shopper->getCurrency()->code;
+						}
+					} else {
+						if ($upsellWithPrice->getPriceVat()) {
+							$upsell->price = $cartItem->amount * $upsellWithPrice->getPrice();
+							$upsell->priceVat = $cartItem->amount * $upsellWithPrice->getPriceVat();
+						}
+					}
+
+					$upsellCartItem->update([
+						'price' => $upsell->price,
+						'priceVat' => $upsell->priceVat
+					]);
+				}
+			}
+		}
 	}
 
 	public function deleteItem(CartItem $item): void
@@ -584,6 +611,10 @@ class CheckoutManager
 
 		/** @var \Eshop\DB\CartItem $cartItem */
 		foreach ($this->getItems() as $cartItem) {
+			if ($cartItem->upsell) {
+				continue;
+			}
+
 			if (!$cartItem->isAvailable()) {
 				$incorrectItems[] = [
 					'object' => $cartItem,

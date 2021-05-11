@@ -113,6 +113,13 @@ class CartItem extends \StORM\Entity
 	 * @relation
 	 */
 	public Cart $cart;
+
+	/**
+	 * Upsell pro položku
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * @relation
+	 */
+	public ?CartItem $upsell;
 	
 	public function getProduct(): ?Product
 	{

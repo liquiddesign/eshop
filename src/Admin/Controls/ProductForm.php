@@ -91,7 +91,8 @@ class ProductForm extends Control
 		Shopper $shopper,
 		$product = null,
 		array $configuration = []
-	) {
+	)
+	{
 		$this->product = $product = $productRepository->get($product);
 		$this->productRepository = $productRepository;
 		$this->container = $container;
@@ -225,7 +226,7 @@ class ProductForm extends Control
 		}
 
 		if ($configuration['upsells']) {
-			$form->addText('upsells', 'Upsell pro produkty')
+			$form->addText('upsells', 'Upsell produkty')
 				->setNullable()
 				->addCondition($form::FILLED)
 				->addRule([FormValidators::class, 'isMultipleProductsExists'],
