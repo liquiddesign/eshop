@@ -46,7 +46,7 @@ class ProfileForm extends \Nette\Application\UI\Form
 		$this->addText('phone', 'profileForm.phone');
 		$this->addText('company', 'profileForm.company');
 		$this->addText('ic', 'profileForm.ic')->addRule($this::MAX_LENGTH, 'Maximální délka je 8 číslic.', 8);
-		$this->addText('dic', 'profileForm.dic')->addRule($this::MAX_LENGTH, 'Maximální délka je 10 číslic.', 10);
+		$this->addText('dic', 'profileForm.dic')->addRule($this::MAX_LENGTH, 'Maximální délka je 10 znaků.', 10);
 		$this->addText('bankAccount', 'AddressesForm.bankAccount');
 		$this->addText('bankAccountCode', 'AddressesForm.bankAccountCode');
 		$this->addText('bankSpecificSymbol', 'AddressesForm.bankSpecificSymbol');
