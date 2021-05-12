@@ -137,7 +137,13 @@ class AccountList extends Datalist
 
 	public function createComponentChangePermFormMulti(): Multiplier
 	{
-		return new Multiplier(function ($itemId) {
+		$catalogPermission = [
+			'none' => $this->translator->translate('catalogPermission.notShown', 'Nezobrazeno'),
+			'catalog' => $this->translator->translate('catalogPermission.withoutPrice', 'Bez cen'),
+			'price' => $this->translator->translate('catalogPermission.withPrice', 'S cenami'),
+		];
+
+		return new Multiplier(function ($itemId) use ($catalogPermission) {
 			/** @var \Security\DB\Account $account */
 			$account = $this->getItemsOnPage()[$itemId];
 
@@ -149,7 +155,7 @@ class AccountList extends Datalist
 
 			$form = new Form();
 
-			$form->addSelect('catalogPermission', null, Shopper::PERMISSIONS)->setDefaultValue($catalogPerm->catalogPermission);
+			$form->addSelect('catalogPermission', null, $catalogPermission)->setDefaultValue($catalogPerm->catalogPermission);
 			$form->addCheckbox('buyAllowed')->setHtmlAttribute('onChange', 'this.form.submit()')->setDefaultValue($catalogPerm->buyAllowed);
 			$form->addCheckbox('viewAllOrders')->setHtmlAttribute('onChange', 'this.form.submit()')->setDefaultValue($catalogPerm->viewAllOrders);
 
@@ -164,6 +170,12 @@ class AccountList extends Datalist
 
 	public function createComponentChangePermForm(): Form
 	{
+		$catalogPermission = [
+			'none' => $this->translator->translate('catalogPermission.notShown', 'Nezobrazeno'),
+			'catalog' => $this->translator->translate('catalogPermission.withoutPrice', 'Bez cen'),
+			'price' => $this->translator->translate('catalogPermission.withPrice', 'S cenami'),
+		];
+
 		$form = new Form();
 
 		foreach ($this->getItemsOnPage() as $account) {
@@ -177,7 +189,7 @@ class AccountList extends Datalist
 				->where('fk_customer', $this->getParameter('customer'))
 				->first();
 
-			$container->addSelect('catalogPermission', null, Shopper::PERMISSIONS)->setDefaultValue($catalogPerm->catalogPermission);
+			$container->addSelect('catalogPermission', null, $catalogPermission)->setDefaultValue($catalogPerm->catalogPermission);
 			$container->addCheckbox('buyAllowed')->setDefaultValue($catalogPerm->buyAllowed);
 			$container->addCheckbox('viewAllOrders')->setDefaultValue($catalogPerm->viewAllOrders);
 		}
