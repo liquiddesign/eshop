@@ -14,6 +14,12 @@ use StORM\RelationCollection;
  */
 class Order extends \StORM\Entity
 {
+	public const STATE = [
+		'received',
+		'finished',
+		'canceled'
+	];
+
 	/**
 	 * Kód
 	 * @column
@@ -138,6 +144,10 @@ class Order extends \StORM\Entity
 		return (bool)$this->ic;
 	}
 
+	/**
+	 * @deprecated Use repository method getState()
+	 * @return string
+	 */
 	public function getState(): string
 	{
 		return ($this->completedTs || $this->canceledTs) ? 'Vyřízeno' : 'Zpracovává se';

@@ -56,7 +56,7 @@ class OrderRepository extends \StORM\Repository
 
 		if ($customer) {
 			$collection->where('purchase.fk_customer', $customer);
-		} else if ($merchant) {
+		} elseif ($merchant) {
 			$collection->where('nxn.fk_merchant', $merchant);
 		}
 
@@ -90,7 +90,7 @@ class OrderRepository extends \StORM\Repository
 
 		if ($customer) {
 			$collection->where('purchase.fk_customer', $customer);
-		} else if ($merchant) {
+		} elseif ($merchant) {
 			$collection->where('nxn.fk_merchant', $merchant);
 		}
 
@@ -110,7 +110,7 @@ class OrderRepository extends \StORM\Repository
 
 		if ($customer) {
 			$collection->where('purchase.fk_customer', $customer);
-		} else if ($merchant) {
+		} elseif ($merchant) {
 			$collection->where('nxn.fk_merchant', $merchant);
 		}
 
@@ -719,5 +719,33 @@ class OrderRepository extends \StORM\Repository
 			->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
 			->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid')
 			->where('customer.uuid', \array_keys($customers));
+	}
+
+	/**
+	 * @param $order
+	 * @return string|null Order::STATE
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function getState($order): ?string
+	{
+		if (!$order instanceof Order) {
+			if (!$order = $this->one($order)) {
+				return null;
+			}
+		}
+
+		if (!$order->completedTs && !$order->canceledTs) {
+			return 'received';
+		}
+
+		if ($order->completedTs && !$order->canceledTs) {
+			return 'finished';
+		}
+
+		if ($order->canceledTs) {
+			return 'canceled';
+		}
+
+		return null;
 	}
 }
