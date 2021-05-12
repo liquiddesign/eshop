@@ -514,8 +514,7 @@ class CustomerPresenter extends BackendPresenter
 		$collection = $this->accountRepository->many()
 			->join(['catalogPermission' => 'eshop_catalogpermission'], 'catalogPermission.fk_account = this.uuid')
 			->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogPermission.fk_customer')
-			->join(['admin' => 'admin_administrator_nxn_security_account'], 'this.uuid = admin.fk_account')
-			->where('admin.fk_account IS NULL')
+			->where('catalogPermission.fk_customer IS NOT NULL')
 			->select(['company' => 'customer.company', 'customerFullname' => 'customer.fullname'])
 			->select([
 				'permission' => 'catalogPermission.catalogPermission',
