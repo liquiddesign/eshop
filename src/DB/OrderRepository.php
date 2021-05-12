@@ -26,12 +26,15 @@ class OrderRepository extends \StORM\Repository
 
 	private Translator $translator;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Storage $storage, Shopper $shopper, Translator $translator)
+	private MerchantRepository $merchantRepository;
+
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Storage $storage, Shopper $shopper, Translator $translator, MerchantRepository $merchantRepository)
 	{
 		parent::__construct($connection, $schemaManager);
 		$this->cache = new Cache($storage);
 		$this->shopper = $shopper;
 		$this->translator = $translator;
+		$this->merchantRepository = $merchantRepository;
 	}
 
 	/**
@@ -695,5 +698,26 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		return true;
+	}
+
+	public function hasMerchantUnfinishedOrders($merchant): bool
+	{
+		return $this->getMerchantUnfinishedOrders($merchant)->count() > 0;
+	}
+
+	public function getMerchantUnfinishedOrders($merchant): ?Collection
+	{
+		if (!$merchant instanceof Merchant) {
+			if (!$merchant = $this->merchantRepository->one($merchant)) {
+				return null;
+			}
+		}
+
+		$customers = $this->merchantRepository->getMerchantCustomers($merchant)->toArray();
+
+		return $this->many()->where('this.completedTs IS NULL AND this.canceledTs IS NULL')
+			->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+			->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid')
+			->where('customer.uuid', \array_keys($customers));
 	}
 }
