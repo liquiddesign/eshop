@@ -181,14 +181,13 @@ class OrderList extends Datalist
 
 	public function exportCsvApi(array $orders): void
 	{
+		$tempFilename = \tempnam($this->tempDir, "csv");
+		$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+			\unlink($tempFilename);
+		};
+		$this->getPresenter()->csvOrderExportItemsAPI($orders, Writer::createFromPath($tempFilename, 'w+'));
 
-			$tempFilename = \tempnam($this->tempDir, "csv");
-			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
-				\unlink($tempFilename);
-			};
-			$this->getPresenter()->csvOrderExportItemsAPI($orders, Writer::createFromPath($tempFilename, 'w+'));
-
-			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "orders.csv", 'text/csv'));
+		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "orders.csv", 'text/csv'));
 
 	}
 
