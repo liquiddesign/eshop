@@ -341,7 +341,7 @@ class OrderRepository extends \StORM\Repository
 		foreach ($order->getGroupedItems() as $i) {
 			$string .= "LIN"
 				. \str_pad((string)$line, 6, " ", STR_PAD_LEFT)
-				. \str_pad($i->product->ean, 25, " ", STR_PAD_RIGHT)
+				. \str_pad($i->product ? $i->product->getFullCode() : $i->getFullCode(), 25, " ", STR_PAD_RIGHT)
 				. \str_pad("", 25, " ", STR_PAD_RIGHT)
 				. \str_pad(\number_format($i->amount, 3, ".", ""), 12, " ", STR_PAD_LEFT)
 				. \str_pad("", 15, " ")

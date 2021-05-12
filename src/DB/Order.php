@@ -143,6 +143,9 @@ class Order extends \StORM\Entity
 		return ($this->completedTs || $this->canceledTs) ? 'Vyřízeno' : 'Zpracovává se';
 	}
 
+	/**
+	 * @return CartItem[]
+	 */
 	public function getGroupedItems(): array
 	{
 		$grouped = [];
