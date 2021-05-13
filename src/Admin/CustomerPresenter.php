@@ -525,7 +525,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnSelector();
 		$grid->addColumnText('Vytvořen', 'tsRegistered|date', '%s', 'tsRegistered', ['class' => 'fit']);
 		$grid->addColumnText('Login', 'login', '%s', 'login', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
-		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname', ['class' => 'fit']);
+		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname');
 		$grid->addColumn('Zákazník', function (Account $account) {
 			return $account->company ?: ($account->customerFullname ?: '');
 		});
