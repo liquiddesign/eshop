@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
+use Eshop\Admin\CustomerGroupPresenter;
 use StORM\Collection;
 
 /**
- * @extends \StORM\Repository<\Eshop\DB\UserGroup>
+ * @extends \StORM\Repository<\Eshop\DB\CustomerGroup>
  */
 class CustomerGroupRepository extends \StORM\Repository implements IGeneralRepository
 {
@@ -41,9 +42,15 @@ class CustomerGroupRepository extends \StORM\Repository implements IGeneralRepos
 		return $this->many()->toArrayOf('name');
 	}
 
-	public function getArrayForSelect(bool $includeHidden = true): array
+	public function getArrayForSelect(bool $includeHidden = true, bool $showUnregistered = true): array
 	{
-		return $this->getCollection($includeHidden)->toArrayOf('name');
+		$collection = $this->getCollection($includeHidden);
+
+		if(!$showUnregistered){
+			$collection->where('uuid != :s', ['s' => self::UNREGISTERED_PK]);
+		}
+
+		return $collection->toArrayOf('name');
 	}
 
 	public function getCollection(bool $includeHidden = false): Collection

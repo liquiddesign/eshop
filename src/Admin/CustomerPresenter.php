@@ -43,6 +43,7 @@ class CustomerPresenter extends BackendPresenter
 		'branches' => true,
 		'deliveryPayment' => true,
 		'edi' => true,
+		'showUnregisteredGroup' => true
 	];
 
 	/** @inject */
@@ -152,10 +153,10 @@ class CustomerPresenter extends BackendPresenter
 			}, '', 'merchant', $lableMerchants, $this->merchantRepository->getArrayForSelect(), ['placeholder' => "- $lableMerchants -"]);
 		}
 
-		if (\count($this->groupsRepo->getArrayForSelect()) > 0) {
+		if (\count($this->groupsRepo->getArrayForSelect(true, static::CONFIGURATIONS['showUnregisteredGroup'])) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$source->where('fk_group', $value);
-			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(), ['placeholder' => '- Skupina -']);
+			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, static::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
 		}
 
 		$grid->addFilterCheckboxInput('newsletter', "newsletter = 1", 'Newsletter');
@@ -262,7 +263,7 @@ class CustomerPresenter extends BackendPresenter
 		}
 
 		$form->addDataMultiSelect('merchants', $lableMerchants, $this->merchantRepository->getArrayForSelect());
-		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getArrayForSelect())->setPrompt('Žádná');
+		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, static::CONFIGURATIONS['showUnregisteredGroup']))->setPrompt('Žádná');
 
 		$form->addGroup('Nákup a preference');
 

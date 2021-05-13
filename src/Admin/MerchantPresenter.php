@@ -23,7 +23,8 @@ use Security\DB\AccountRepository;
 class MerchantPresenter extends BackendPresenter
 {
 	protected const CONFIGURATIONS = [
-		'customers' => true
+		'customers' => true,
+		'showUnregisteredGroup' => true
 	];
 
 	/** @inject */
@@ -104,7 +105,7 @@ class MerchantPresenter extends BackendPresenter
 		}
 
 		$form->addDataSelect('customerGroup', 'Skupina zákazníků',
-			$this->customerGroupRepository->getArrayForSelect())->setPrompt('Žádná');
+			$this->customerGroupRepository->getArrayForSelect(true, static::CONFIGURATIONS['showUnregisteredGroup']))->setPrompt('Žádná');
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepository->getArrayForSelect());
 		if ($this::CONFIGURATIONS['customers']) {
 			$form->addDataMultiSelect('customers', 'Zákazníci', $this->customerRepository->getArrayForSelect());
