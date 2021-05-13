@@ -6,6 +6,7 @@ namespace Eshop\Controls;
 
 use Eshop\DB\CatalogPermission;
 use Eshop\DB\CatalogPermissionRepository;
+use Eshop\DB\Customer;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
 use Eshop\Shopper;
@@ -15,6 +16,7 @@ use Nette\Application\UI\Multiplier;
 use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
+use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Collection;
 use StORM\ICollection;
@@ -99,10 +101,16 @@ class AccountList extends Datalist
 
 	public function handleLogin(string $account): void
 	{
-		$customer = $this->customerRepository->many()->join(['catalogpermission' => 'eshop_catalogpermission'], 'this.uuid = catalogpermission.fk_account')->first();
+		/** @var Account $account */
+		$account = $this->accountRepository->one($account, true);
 
-		$this->shopper->getMerchant()->update(['activeCustomer' => $this->getPresenter()->getParameter('customer') ?? $customer]);
-		$this->shopper->getMerchant()->update(['activeCustomerAccount' => $account]);
+		$customer = $this->customerRepository->many()
+			->join(['catalogpermission' => 'eshop_catalogpermission'], 'this.uuid = catalogpermission.fk_customer')
+			->where('catalogpermission.fk_account', $account->getPK())
+			->first();
+
+		$this->shopper->getMerchant()->update(['activeCustomer' => $customer->getPK()]);
+		$this->shopper->getMerchant()->update(['activeCustomerAccount' => $account->getPK()]);
 
 		$this->getPresenter()->redirect(':Web:Index:default');
 	}
