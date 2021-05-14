@@ -6,6 +6,7 @@ namespace Eshop\Controls;
 
 use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\DB\CatalogPermissionRepository;
+use Eshop\DB\Order;
 use Eshop\Shopper;
 use Eshop\DB\OrderRepository;
 use Grid\Datalist;
@@ -30,6 +31,8 @@ class OrderList extends Datalist
 	private OrderRepository $orderRepository;
 
 	private string $tempDir;
+
+	private Shopper $shopper;
 
 	public function __construct(Translator $translator, OrderGridFactory $orderGridFactory, OrderRepository $orderRepository, CatalogPermissionRepository $catalogPermissionRepository, Shopper $shopper, ?Collection $orders = null)
 	{
@@ -65,6 +68,7 @@ class OrderList extends Datalist
 		$this->translator = $translator;
 		$this->orderGridFactory = $orderGridFactory;
 		$this->orderRepository = $orderRepository;
+		$this->shopper = $shopper;
 	}
 
 	public function setTempDir(string $tempDir): void
@@ -101,6 +105,7 @@ class OrderList extends Datalist
 		$form->addSubmit('export');
 		$form->addSubmit('exportAccounts');
 		$form->addSubmit('exportItems');
+		$form->addSubmit('exportCsv');
 		$form->addSubmit('exportExcel');
 		$form->addSubmit('exportExcelZip');
 		$form->addSubmit('exportCsvApi');
@@ -135,6 +140,8 @@ class OrderList extends Datalist
 				$this->exportOrdersExcelZip($values);
 			} elseif ($submitName == 'exportCsvApi') {
 				$this->exportCsvApi($values);
+			} elseif ($submitName == 'exportCsv') {
+				$this->exportCsv($values);
 			}
 
 			foreach ($values as $key => $order) {
@@ -165,18 +172,14 @@ class OrderList extends Datalist
 
 	public function handleExport(string $orderId): void
 	{
-		try {
-			$object = $this->orderRepository->one($orderId, true);
-			$tempFilename = \tempnam($this->tempDir, "csv");
-			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
-				\unlink($tempFilename);
-			};
-			$this->getPresenter()->csvOrderExportAPI($object, Writer::createFromPath($tempFilename, 'w+'));
+		$object = $this->orderRepository->one($orderId, true);
+		$tempFilename = \tempnam($this->tempDir, "csv");
+		$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+			\unlink($tempFilename);
+		};
+		$this->getPresenter()->csvOrderExportAPI($object, Writer::createFromPath($tempFilename, 'w+'));
 
-			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "order-$object->code.csv", 'text/csv'));
-		} catch (\Exception $e) {
-
-		}
+		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "order-$object->code.csv", 'text/csv'));
 	}
 
 	public function exportCsvApi(array $orders): void
@@ -188,7 +191,82 @@ class OrderList extends Datalist
 		$this->getPresenter()->csvOrderExportItemsAPI($orders, Writer::createFromPath($tempFilename, 'w+'));
 
 		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "orders.csv", 'text/csv'));
+	}
 
+	/**
+	 * @param Order[] $orders
+	 */
+	public function exportCsv(array $orders): void
+	{
+		$tempFilename = \tempnam($this->tempDir, "csv");
+		$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+			\unlink($tempFilename);
+		};
+
+		$writer = Writer::createFromPath($tempFilename, 'w+');
+		$showVat = $this->shopper->getShowVat();
+
+		$writer->setDelimiter(';');
+
+		if ($showVat) {
+			$writer->insertOne([
+				'order',
+				'productName',
+				'productCode',
+				'amount',
+				'price',
+				'priceVat',
+				'priceSum',
+				'priceVatSum',
+				'vatPct',
+				'note',
+				'account'
+			]);
+		} else {
+			$writer->insertOne([
+				'order',
+				'productName',
+				'productCode',
+				'amount',
+				'price',
+				'priceSum',
+				'note',
+				'account'
+			]);
+		}
+
+		foreach ($orders as $order) {
+			foreach ($order->purchase->getItems() as $item) {
+				if ($showVat) {
+					$writer->insertOne([
+						$order->code,
+						$item->productName,
+						$item->getFullCode(),
+						$item->amount,
+						$item->price,
+						$item->priceVat,
+						$item->getPriceSum(),
+						$item->getPriceVatSum(),
+						$item->vatPct,
+						$item->note,
+						$order->purchase->accountFullname
+					]);
+				} else {
+					$writer->insertOne([
+						$order->code,
+						$item->productName,
+						$item->getFullCode(),
+						$item->amount,
+						$item->price,
+						$item->getPriceSum(),
+						$item->note,
+						$order->purchase->accountFullname
+					]);
+				}
+			}
+		}
+
+		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "orders.csv", 'text/csv'));
 	}
 
 	/**
