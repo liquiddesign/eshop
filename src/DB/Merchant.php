@@ -73,6 +73,12 @@ class Merchant extends \StORM\Entity implements IIdentity, IUser
 	public bool $customerEmailNotification = false;
 
 	/**
+	 * Preferovaná mutace
+	 * @column
+	 */
+	public ?string $preferredMutation;
+
+	/**
 	 * Ceníky
 	 * @relationNxN
 	 * @var \Eshop\DB\Pricelist[]|\StORM\RelationCollection<\Eshop\DB\Pricelist>

@@ -43,7 +43,9 @@ class CustomerPresenter extends BackendPresenter
 		'branches' => true,
 		'deliveryPayment' => true,
 		'edi' => true,
-		'showUnregisteredGroup' => true
+		'showUnregisteredGroup' => true,
+		'showAuthorized' => true,
+		'sendEmailAccountActivated' => false
 	];
 
 	/** @inject */
@@ -198,11 +200,18 @@ class CustomerPresenter extends BackendPresenter
 			$form['permission']->setDefaults($permission->toArray());
 		}
 
-		$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values) use ($permission, $form) {
+		$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values, array $oldValues) use ($permission, $form) {
 			if ($permission) {
 				$permission->update($values['permission']);
 			} else {
 				$this->catalogPermissionRepo->createOne($values['permission'] + ['account' => $account->getPK()]);
+			}
+
+			if (static::CONFIGURATIONS['sendEmailAccountActivated']) {
+				if (!$oldValues['active'] && $values['account']['active'] == true) {
+					$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login);
+					$this->mailer->send($mail);
+				}
 			}
 
 			$this->flashMessage('Uloženo', 'success');
@@ -275,19 +284,15 @@ class CustomerPresenter extends BackendPresenter
 			])->setDefaultValue('full');
 		}
 
-		$form->addDataSelect('preferredCurrency', 'Preferovaná měna nákupu',
-			$this->currencyRepo->getArrayForSelect())->setPrompt('Žádný');
+		$form->addDataSelect('preferredMutation', 'Preferovaný jazyk', \array_combine($this->formFactory->formFactory->getDefaultMutations(), $this->formFactory->formFactory->getDefaultMutations()))->setPrompt('Automaticky');
+		$form->addDataSelect('preferredCurrency', 'Preferovaná měna nákupu', $this->currencyRepo->getArrayForSelect())->setPrompt('Žádný');
 
 		if (static::CONFIGURATIONS['deliveryPayment']) {
-			$form->addDataSelect('preferredPaymentType', 'Preferovaná platba',
-				$this->paymentTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
-			$form->addDataSelect('preferredDeliveryType', 'Preferovaná doprava',
-				$this->deliveryTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
-			$form->addDataMultiSelect('exclusivePaymentTypes', 'Povolené exkluzivní platby',
-				$this->paymentTypeRepo->many()->toArrayOf('code'))
+			$form->addDataSelect('preferredPaymentType', 'Preferovaná platba', $this->paymentTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
+			$form->addDataSelect('preferredDeliveryType', 'Preferovaná doprava', $this->deliveryTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
+			$form->addDataMultiSelect('exclusivePaymentTypes', 'Povolené exkluzivní platby', $this->paymentTypeRepo->many()->toArrayOf('code'))
 				->setHtmlAttribute('placeholder', 'Vyberte položky...');
-			$form->addDataMultiSelect('exclusiveDeliveryTypes', 'Povolené exkluzivní dopravy',
-				$this->deliveryTypeRepo->many()->toArrayOf('code'))
+			$form->addDataMultiSelect('exclusiveDeliveryTypes', 'Povolené exkluzivní dopravy', $this->deliveryTypeRepo->many()->toArrayOf('code'))
 				->setHtmlAttribute('placeholder', 'Vyberte položky...');
 		}
 		$form->addInteger('discountLevelPct', 'Slevová hladina (%)')->setDefaultValue(0)->setRequired();
@@ -496,6 +501,7 @@ class CustomerPresenter extends BackendPresenter
 	public function createComponentAccountForm(): AdminForm
 	{
 		$callback = function (Form $form) {
+//			$form->addDataSelect('preferredMutation', 'Preferovaný jazyk', \array_combine($this->formFactory->formFactory->getDefaultMutations(),$this->formFactory->formFactory->getDefaultMutations()))->setPrompt('Automaticky');
 
 			$form->addGroup('Oprávnění a zákazník');
 			$container = $form->addContainer('permission');
@@ -543,7 +549,12 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnText('Aktivní od', 'activeFrom', '%s', 'activeFrom', ['class' => 'fit']);
 		$grid->addColumnText('Aktivní do', 'activeTo', '%s', 'activeTo', ['class' => 'fit']);
 		$grid->addColumnInputCheckbox('Aktivní', 'active');
-		$grid->addColumnInputCheckbox('Autorizovaný', 'authorized');
+
+
+		if (static::CONFIGURATIONS['showAuthorized']) {
+			$grid->addColumnInputCheckbox('Autorizovaný', 'authorized');
+		}
+
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('Login', function (Account $object, Datagrid $grid) use ($btnSecondary) {
 			$link = $grid->getPresenter()->link('loginCustomer!', [$object->login]);
@@ -554,7 +565,16 @@ class CustomerPresenter extends BackendPresenter
 
 		$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll();
+		$grid->addButtonSaveAll([], [], null, false, null, function ($id, $data) {
+			/** @var Account $account */
+			$account = $this->accountRepository->one($id);
+
+			if (!$account->active && $data['active'] == true) {
+				$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login);
+				$this->mailer->send($mail);
+			}
+		});
+
 		$grid->addButtonDeleteSelected();
 
 		$grid->addFilterTextInput('search', ['this.login'], null, 'Login');
