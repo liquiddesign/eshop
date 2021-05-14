@@ -284,7 +284,7 @@ class ProductForm extends Control
 				->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
 		}
 
-		$form->addSubmits(!$product);
+		$form->addSubmits((bool)$product);
 
 		if ($configuration['sets']) {
 			$form->addSubmit('submitSet');

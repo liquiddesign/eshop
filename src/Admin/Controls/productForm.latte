@@ -423,9 +423,9 @@
 	<fieldset>
 		<table class="mt-1 mb-1">
 			{ifset $form['submitAndContinue']}
-				{$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndBack']])|noescape}
+				{$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
 			{else}
-				{$renderer->renderPairMulti([$form['submit'], $form['submitAndBack']])|noescape}
+				{$renderer->renderPairMulti([$form['submit'], $form['submitAndNext']])|noescape}
 			{/ifset}
 		</table>
 	</fieldset>
