@@ -79,6 +79,8 @@ class SupplierMappingPresenter extends BackendPresenter
 			return $supplierMapping->supplier ? "<a href='$link'>" . ($supplierMapping->supplier->name ?: 'Detail dodavatele') . '</a>' : 'Nenamapováno';
 		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		
+		$grid->addColumnText('Importováno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		$grid->addColumnText('Změněno', "updateTs|date:'d.m.Y G:i'", '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		
 		
 		if ($this->tab === 'category') {
@@ -138,6 +140,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			$grid->addFilterTextInput('search', ['name'], null, 'Název');
 		}
 		
+		
 		$grid->addColumn('', function ($object, $datagrid) {
 			return $datagrid->getPresenter()->link('detail', $object->getPK());
 		}, '<a class="btn btn-primary btn-sm text-xs" href="%s" title="Upravit"><i class="far fa-edit"></i></a>', null, ['class' => 'minimal']);
@@ -157,7 +160,16 @@ class SupplierMappingPresenter extends BackendPresenter
 			}, null, 'supplier', null, $suppliers, ['placeholder' => '- Dodavatel -']);
 		}
 		
+		$grid->addFilterDatetime(function (ICollection $source, $value) {
+			$source->where('this.createdTs >= :created_from', ['created_from' => $value]);
+		}, '', 'date_from', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Importováno od');
+		
+		$grid->addFilterDatetime(function (ICollection $source, $value) {
+			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
+		}, '', 'created_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Importováno do');
+		
 		$grid->addFilterCheckboxInput('notmapped', "fk_$property IS NOT NULL", 'Napárované');
+		
 		
 		$grid->addFilterButtons();
 		
