@@ -158,7 +158,7 @@ class AccountList extends Datalist
 			/** @var \Eshop\DB\CatalogPermission $catalogPerm */
 			$catalogPerm = $this->catalogPermissionRepository->many()
 				->where('fk_account', $account->getPK())
-				->where('fk_customer', $this->getParameter('customer'))
+				->where('fk_customer', $this->getPresenter()->getParameter('selectedCustomer'))
 				->first();
 
 			$form = new Form();
@@ -194,12 +194,17 @@ class AccountList extends Datalist
 			/** @var \Eshop\DB\CatalogPermission $catalogPerm */
 			$catalogPerm = $this->catalogPermissionRepository->many()
 				->where('fk_account', $account->getPK())
-				->where('fk_customer', $this->getParameter('customer'))
 				->first();
 
-			$container->addSelect('catalogPermission', null, $catalogPermission)->setDefaultValue($catalogPerm->catalogPermission);
-			$container->addCheckbox('buyAllowed')->setDefaultValue($catalogPerm->buyAllowed);
-			$container->addCheckbox('viewAllOrders')->setDefaultValue($catalogPerm->viewAllOrders);
+			$container->addSelect('catalogPermission', null, $catalogPermission);
+			$container->addCheckbox('buyAllowed');
+			$container->addCheckbox('viewAllOrders');
+
+			if ($catalogPerm) {
+				$container['catalogPermission']->setDefaultValue($catalogPerm->catalogPermission);
+				$container['buyAllowed']->setDefaultValue($catalogPerm->buyAllowed);
+				$container['viewAllOrders']->setDefaultValue($catalogPerm->viewAllOrders);
+			}
 		}
 
 		$form->addSelect('catalogPermission', null, [

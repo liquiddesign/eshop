@@ -508,7 +508,7 @@ class CustomerPresenter extends BackendPresenter
 			$container->addDataSelect('customer', 'Zákazník', $this->customerRepository->getArrayForSelect())->setPrompt('-Zvolte-')->setRequired();
 			$container->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setDefaultValue('price');
 			$container->addCheckbox('buyAllowed', 'Povolit nákup')->setDefaultValue(true);
-			$container->addCheckbox('viewAllOrders', 'Zobrazit všechny poptávky zákazníka')->setDefaultValue(false);
+			$container->addCheckbox('viewAllOrders', 'Zobrazit všechny objednávky zákazníka')->setDefaultValue(false);
 		};
 
 		$form = $this->accountFormFactory->create(false, $callback, true, true);
@@ -630,7 +630,7 @@ class CustomerPresenter extends BackendPresenter
 			false => 'Ne',
 			true => 'Ano'
 		])->setPrompt('Původní');
-		$values->addSelect('viewAllOrders', 'Zobrazit všechny poptávky zákazníka', [
+		$values->addSelect('viewAllOrders', 'Zobrazit všechny objednávky zákazníka', [
 			false => 'Ne',
 			true => 'Ano'
 		])->setPrompt('Původní');

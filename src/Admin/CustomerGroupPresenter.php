@@ -101,6 +101,7 @@ class CustomerGroupPresenter extends BackendPresenter
 
 		$form->addSelect('defaultCatalogPermission', 'Katalogové oprávnění', Shopper::PERMISSIONS);
 		$form->addCheckbox('defaultBuyAllowed', 'Povolený nákup');
+		$form->addCheckbox('defaultViewAllOrders', 'Účet vidí všechny objednávky zákazníka');
 		$form->addDataMultiSelect('defaultPricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 

@@ -50,6 +50,12 @@ class CustomerGroup extends \StORM\Entity
 	public bool $defaultAfterRegistration = false;
 
 	/**
+	 * Oprávnění: vidět všechny objednávky zákazníka
+	 * @column
+	 */
+	public bool $defaultViewAllOrders = false;
+
+	/**
 	 * Automaticky potvrdit zákazníky
 	 * @column
 	 */
