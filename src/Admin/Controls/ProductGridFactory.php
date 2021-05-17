@@ -129,8 +129,7 @@ class ProductGridFactory
 	
 	private function addFilters(Datagrid $grid)
 	{
-		$grid->addFilterTextInput('code', ['this.code', 'this.ean'], null, 'EAN, kód', '', '%s%%');
-		$grid->addFilterTextInput('search', ['this.name_cs'], null, 'Název');
+		$grid->addFilterTextInput('code', ['this.code', 'this.ean', 'this.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
 		
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
 			$grid->addFilterDataSelect(function (Collection $source, $value) {
@@ -182,7 +181,12 @@ class ProductGridFactory
 			}, '', 'pricelists', null, $ribbons, ['placeholder' => '- Ceníky -']);
 		}
 		
-		$grid->addFilterCheckboxInput('hidden', "this.hidden = 1", 'Skryté');
+		
+		$grid->addFilterDataSelect(function (ICollection $source, $value) {
+			$source->where('this.hidden', (bool) $value);
+		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
+		
+		
 		$grid->addFilterCheckboxInput('unavailble', "this.unavailable = 1", 'Neprodejné');
 	}
 	

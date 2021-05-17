@@ -6,9 +6,11 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\PricelistRepository;
+use Eshop\DB\ProductRepository;
 use Eshop\DB\Supplier;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
@@ -36,16 +38,50 @@ class SupplierPresenter extends BackendPresenter
 	/** @inject */
 	public AddressRepository $addressRepository;
 	
+	/** @inject */
+	public ProductRepository $productRepository;
+	
+	/** @inject */
+	public CustomerGroupRepository $customerGroupRepository;
+	
+	
 	public function createComponentGrid()
 	{
+		$pricelists = $this->customerGroupRepository->one(CustomerGroupRepository::UNREGISTERED_PK, true)->defaultPricelists->toArrayOf('uuid', [], true);
+		
+		
 		$grid = $this->gridFactory->create($this->supplierRepository->many(), 20, 'name', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
-		$grid->addColumnText('Posl. import', "lastImportTs|date:'d.m.Y'", '%s', 'lastImportTs', ['class' => 'fit']);
-		$grid->addColumnText('Posl. aktualizace', "lastUpdateTs|date:'d.m.Y'", '%s', 'lastUpdateTs', ['class' => 'fit']);
+		$grid->addColumnText('Import', "lastImportTs|date:'d.m.Y'", '%s', null, ['class' => 'fit']);
+		$grid->addColumnText('Aktualizace', "lastUpdateTs|date:'d.m.Y'", '%s', null, ['class' => 'fit']);
 		
-		$grid->addColumnInputText('Priorita', 'importPriority');
+		$grid->addColumn('K dispozici', function(Supplier $supplier) {
+			return $this->formatNumber($this->supplierProductRepository->many()->where('this.fk_supplier', $supplier)->enum());
+		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		
+		$grid->addColumn('Mapováno', function(Supplier $supplier) {
+			return $this->formatNumber($this->supplierProductRepository->many()->where('this.fk_supplier', $supplier)->where('category.fk_category IS NOT NULL')->enum());
+		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		
+		$grid->addColumn('V katalogu', function(Supplier $supplier) {
+			return $this->formatNumber($this->supplierProductRepository->many()->where('this.fk_supplier', $supplier)->where('fk_product IS NOT NULL')->enum());
+		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		
+		$grid->addColumn('Jako zdroj', function(Supplier $supplier) {
+			return $this->formatNumber($this->productRepository->many()->where('fk_supplierSource', $supplier)->enum());
+		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		
+		$grid->addColumn('Viditelných', function(Supplier $supplier) use ($pricelists) {
+			return $this->formatNumber($this->productRepository->many()
+				->where('this.fk_supplierSource', $supplier)
+				->where('hidden', false)
+				->join(['prices' => 'eshop_price'], 'prices.fk_product=this.uuid')
+				->where('prices.fk_pricelist', $pricelists)
+				->enum());
+		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		
 		$grid->addColumnInputCheckbox('Automaticky', 'isImportActive', '', '', 'isImportActive');
 		
 		$grid->addColumnLink('pair', '<i class="fa fa-play"></i> Ruční aktualizace');
@@ -63,7 +99,7 @@ class SupplierPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 		
 		$form->addGroup('Obecné');
-		$form->addText('code', 'Kód');
+		$form->addText('code', 'Kód')->setHtmlAttribute('readonly', 'readonly');
 		$form->addText('name', 'Název')->setRequired();
 		$form->addGroup('Defaultní hodnoty');
 		$form->addText('productCodePrefix', 'Prefix kódu produktů')->setNullable()->setHtmlAttribute('readonly', 'readonly');
@@ -202,5 +238,10 @@ class SupplierPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('importForm')];
+	}
+	
+	private function formatNumber($number): string
+	{
+		return \number_format($number, 0, '.', ' ');
 	}
 }
