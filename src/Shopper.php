@@ -326,13 +326,21 @@ class Shopper
 
 	public function showPricesWithVat(): bool
 	{
+		if (!$this->getShowVat()) {
+			return false;
+		}
+
 		$customer = $this->getCustomer();
 
 		if ($this->getMerchant() && !$customer) {
 			return false;
 		}
 
-		return $customer ? $customer->pricesWithVat : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricesWithVat;
+		if ($customer) {
+			$catalogPerm = $customer->getCatalogPermission();
+		}
+
+		return $customer ? $catalogPerm->showPricesWithVat : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricesWithVat;
 	}
 
 	/**

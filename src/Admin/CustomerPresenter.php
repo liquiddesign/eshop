@@ -93,6 +93,9 @@ class CustomerPresenter extends BackendPresenter
 	/** @inject */
 	public Connection $storm;
 
+	/** @inject */
+	public Shopper $shopper;
+
 	public const TABS = [
 		'customers' => 'Zákazníci',
 		'accounts' => 'Účty',
@@ -298,6 +301,7 @@ class CustomerPresenter extends BackendPresenter
 		$form->addInteger('discountLevelPct', 'Slevová hladina (%)')->setDefaultValue(0)->setRequired();
 		$form->addText('productRoundingPct',
 			'Zokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
+
 		$form->addGroup('Exporty');
 		$form->addCheckbox('allowExport', 'Feed povolen');
 
@@ -509,6 +513,9 @@ class CustomerPresenter extends BackendPresenter
 			$container->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setDefaultValue('price');
 			$container->addCheckbox('buyAllowed', 'Povolit nákup')->setDefaultValue(true);
 			$container->addCheckbox('viewAllOrders', 'Zobrazit všechny objednávky zákazníka')->setDefaultValue(false);
+			if ($this->shopper->getShowVat()) {
+				$container->addCheckbox('showPricesWithVat', 'Zobrazit ceny s daní');
+			}
 		};
 
 		$form = $this->accountFormFactory->create(false, $callback, true, true);
