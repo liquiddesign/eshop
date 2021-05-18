@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Nette\Application\ApplicationException;
+
 /**
  * Výrobce
  * @table
@@ -53,4 +55,13 @@ class Producer extends \StORM\Entity
 	 * @column
 	 */
 	public bool $hidden = false;
+
+	public function getPreviewImage(string $basePath, string $size = 'detail'): string
+	{
+		if (!\in_array($size, ['origin', 'detail', 'thumb'])) {
+			throw new ApplicationException('Invalid product image size: ' . $size);
+		}
+
+		return $this->imageFileName ? $basePath . '/userfiles/' . self::IMAGE_DIR . '/' . $size . '/' . $this->imageFileName : $basePath . '/public/img/no-image.png';
+	}
 }
