@@ -100,13 +100,13 @@ class Purchase extends \StORM\Entity
 
 	/**
 	 * Výdejní místo - ID
-	 * @column{"type":"text"}
+	 * @column
 	 */
 	public ?string $pickupPointId;
 
 	/**
 	 * Výdejní místo - jméno
-	 * @column{"type":"text"}
+	 * @column
 	 */
 	public ?string $pickupPointName;
 

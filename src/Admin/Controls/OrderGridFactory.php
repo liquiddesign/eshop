@@ -192,6 +192,14 @@ class OrderGridFactory
 
 		$date = $delivery->shippingDate ? '<i style=\'color: gray;\' class=\'fa fa-shipping-fast\'></i> ' . $grid->template->getLatte()->invokeFilter('date', [$delivery->shippingDate]) : '';
 
+		if ($order->purchase->pickupPointId) {
+			if ($order->purchase->pickupPoint) {
+				return "<a href='$link'>" . $delivery->getTypeName() . "</a> - " . $order->purchase->pickupPoint->name . " <small> $date</small>" . $deliveryInfo;
+			}
+
+			return "<a href='$link'>" . $delivery->getTypeName() . "</a> - " . $order->purchase->pickupPointName . " <small> $date</small>" . $deliveryInfo;
+		}
+
 		return "<a href='$link'>" . $delivery->getTypeName() . "</a> <small> $date</small>" . $deliveryInfo;
 	}
 

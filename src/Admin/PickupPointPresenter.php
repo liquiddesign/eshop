@@ -297,6 +297,7 @@ class PickupPointPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create(true);
 
+		$form->addText('code', 'Kód')->setRequired();
 		$form->addLocaleText('name', 'Název');
 
 		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
