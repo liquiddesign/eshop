@@ -121,6 +121,14 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form->addDataSelect('exclusive', 'Exkluzivní pro skupinu uživatelů', $this->groupRepo->getListForSelect())->setPrompt('Žádná');
 		$form->addDataMultiSelect('allowedPaymentTypes', 'Povolené typy plateb', $this->paymentTypeRepo->many()->toArrayOf('code'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
+		$form->addText('maxWeight', 'Maximální váha')
+			->setNullable()
+			->addCondition($form::FILLED)
+			->addRule($form::FLOAT);
+		$form->addText('maxDimension', 'Maximální rozměr')
+			->setNullable()
+			->addCondition($form::FILLED)
+			->addRule($form::FLOAT);
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
@@ -194,12 +202,13 @@ class DeliveryTypePresenter extends BackendPresenter
 			->join(['country' => 'eshop_country'], 'country.uuid = this.fk_country')
 			->join(['rates' => 'eshop_vatrate'], 'rates.uuid = country.deliveryVatRate AND rates.fk_country=this.fk_country');
 		
-		$grid = $this->gridFactory->create($collection, 20, 'price', 'ASC');
+		$grid = $this->gridFactory->create($collection, 20, 'weightTo', 'ASC');
 		$grid->addColumnSelector();
 		
 		$grid->addColumnInputPrice('Cena', 'price');
 		$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
 		$grid->addColumnInputFloat('Dostupné do váhy kg (včetně)', 'weightTo', '', '', 'weightTo');
+		$grid->addColumnInputFloat('Dostupné do rozměru (včetně)', 'dimensionTo', '', '', 'dimensionTo');
 		
 		$grid->addColumnText('Měna', 'currency.code', '%s');
 		
@@ -224,6 +233,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form->addText('price', 'Cena')->addRule($form::FLOAT)->setRequired();
 		$form->addText('priceVat', 'Cena s DPH')->addRule($form::FLOAT)->setRequired();
 		$form->addText('weightTo', 'Dostupné do váhy kg (včetně)')->setNullable(true)->addCondition(Form::FILLED)->addRule($form::FLOAT);
+		$form->addText('dimensionTo', 'Dostupné do rozměru (včetně)')->setNullable(true)->addCondition(Form::FILLED)->addRule($form::FLOAT);
 		$form->addHidden('deliveryType', (string) $this->getParameter('deliveryType'));
 		
 		$form->addSubmits();

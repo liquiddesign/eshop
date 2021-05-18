@@ -41,6 +41,7 @@ class ProductPresenter extends BackendPresenter
 		'taxes' => true,
 		'upsells' => true,
 		'suppliers' => true,
+		'weightAndDimension' => false
 	];
 
 	/** @inject */

@@ -37,6 +37,12 @@ class CartItem extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $productWeight;
+
+	/**
+	 * Rozměr produktu
+	 * @column
+	 */
+	public ?float $productDimension;
 	
 	/**
 	 * Název varianty

@@ -167,6 +167,12 @@ class Product extends \StORM\Entity
 	public ?float $weight;
 
 	/**
+	 * Rozměr
+	 * @column
+	 */
+	public ?float $dimension;
+
+	/**
 	 * Slevová hladina
 	 * @column
 	 */

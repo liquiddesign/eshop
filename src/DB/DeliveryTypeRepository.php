@@ -29,16 +29,18 @@ class DeliveryTypeRepository extends \StORM\Repository implements IGeneralReposi
 		return $collection->orderBy(['priority DESC', "name$suffix"]);
 	}
 	
-	public function getDeliveryTypes(Currency $currency, ?Customer $customer, ?CustomerGroup $customerGroup, ?DeliveryDiscount $deliveryDiscount, float $weight): Collection
+	public function getDeliveryTypes(Currency $currency, ?Customer $customer, ?CustomerGroup $customerGroup, ?DeliveryDiscount $deliveryDiscount, float $weight, float $dimension): Collection
 	{
 		$allowedDeliveries = $customer ? $customer->exclusiveDeliveryTypes->toArrayOf('uuid', [], true) : null;
 		
 		$collection = $this->many()
 			->join(['prices' => 'eshop_deliverytypeprice'], 'prices.fk_deliveryType=this.uuid AND prices.fk_currency=:currency', ['currency' => $currency])
-			
-			->where('prices.weightTo IS NULL OR prices.weightTo <= :weightTo', ['weightTo' => $weight])
+			->where('prices.weightTo IS NULL OR prices.weightTo >= :weightTo', ['weightTo' => $weight])
+			->where('prices.dimensionTo IS NULL OR prices.dimensionTo >= :dimensionTo', ['dimensionTo' => $dimension])
+			->where('this.maxWeight IS NULL OR this.maxWeight >= :weight', ['weight' => $weight])
+			->where('this.maxDimension IS NULL OR this.maxDimension >= :dimension', ['dimension' => $dimension])
 			->where('hidden', false)
-			->orderBy(['priority']);
+			->orderBy(['priority' => 'ASC', 'weightTo' => 'DESC', 'dimensionTo' => 'DESC']);
 		
 		if ($deliveryDiscount) {
 			$collection->select([

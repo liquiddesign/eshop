@@ -199,6 +199,16 @@ class ProductForm extends Control
 			->addRule([FormValidators::class, 'isPercentNoMax'], 'Neplatná hodnota!');
 		$form->addCheckbox('unavailable', 'Neprodejné');
 
+		if ($configuration['weightAndDimension']) {
+			$form->addText('weight', 'Váha')
+				->setNullable()
+				->addCondition($form::FILLED)
+				->addRule($form::FLOAT);
+			$form->addText('dimension', 'Rozměr')
+				->setNullable()
+				->addCondition($form::FILLED)
+				->addRule($form::FLOAT);
+		}
 
 		if ($configuration['relations']) {
 			/** @var \Eshop\DB\Category $printerCategory */

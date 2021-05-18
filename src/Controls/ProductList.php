@@ -27,7 +27,7 @@ class ProductList extends Datalist
 
 	private WatcherRepository $watcherRepository;
 
-	private Shopper $shopper;
+	public Shopper $shopper;
 
 	private ?array $templateFilters = null;
 

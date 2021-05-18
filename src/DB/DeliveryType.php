@@ -68,6 +68,18 @@ class DeliveryType extends \StORM\Entity
 	 * @column
 	 */
 	public bool $recommended = false;
+
+	/**
+	 * Max váha
+	 * @column
+	 */
+	public ?float $maxWeight;
+
+	/**
+	 * Max rozměr
+	 * @column
+	 */
+	public ?float $maxDimension;
 	
 	/**
 	 * @relationNxN

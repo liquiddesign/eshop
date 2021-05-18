@@ -16,7 +16,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 {
 	private CheckoutManager $checkoutManager;
 
-	private Shopper $shopper;
+	public Shopper $shopper;
 
 	private DeliveryTypeRepository $deliveryTypeRepository;
 
