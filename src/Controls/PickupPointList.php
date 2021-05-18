@@ -73,6 +73,7 @@ class PickupPointList extends \Grid\Datalist
 		});
 
 		$this->setDefaultOrder('distance');
+		$this->setDefaultOnPage(100);
 
 		$cities = $pickupPointRepository->getCitiesArrayForSelect();
 

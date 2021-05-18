@@ -86,4 +86,11 @@ class DeliveryType extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\PaymentType>|\Eshop\DB\PaymentType[]
 	 */
 	public RelationCollection $allowedPaymentTypes;
+
+	/**
+	 * Výdejní typ
+	 * @relation
+	 * @constraint
+	 */
+	public ?PickupPointType $pickupPointType;
 }

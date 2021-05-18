@@ -9,10 +9,18 @@ use StORM\RelationCollection;
 /**
  * Výdejní místo
  * @table
+ * @index{"name":"point_code","unique":true,"columns":["code"]}
  */
 class PickupPoint extends \StORM\Entity
 {
 	public const IMAGE_DIR = 'pickupPoint_images';
+
+	/**
+	 * Kod
+	 * @unique
+	 * @column
+	 */
+	public ?string $code;
 
 	/**
 	 * Název

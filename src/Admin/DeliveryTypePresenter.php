@@ -14,6 +14,7 @@ use Eshop\DB\DeliveryTypePrice;
 use Eshop\DB\DeliveryTypePriceRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\PaymentTypeRepository;
+use Eshop\DB\PickupPointTypeRepository;
 use Eshop\Shopper;
 use Eshop\DB\CustomerGroupRepository;
 use Forms\Form;
@@ -41,6 +42,9 @@ class DeliveryTypePresenter extends BackendPresenter
 	
 	/** @inject */
 	public CustomerGroupRepository $groupRepo;
+
+	/** @inject */
+	public PickupPointTypeRepository $pointTypeRepo;
 	
 	/** @inject */
 	public Shopper $shopper;
@@ -118,7 +122,8 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form->addLocaleText('name', 'Název');
 		$form->addLocalePerexEdit('perex', 'Perex');
 		$form->addText('trackingLink', 'Odkaz pro sledování zásilky');
-		$form->addDataSelect('exclusive', 'Exkluzivní pro skupinu uživatelů', $this->groupRepo->getListForSelect())->setPrompt('Žádná');
+		$form->addDataSelect('exclusive', 'Exkluzivní pro skupinu uživatelů', $this->groupRepo->getArrayForSelect())->setPrompt('Žádná');
+		$form->addDataSelect('pickupPointType', 'Typ výdejních míst', $this->pointTypeRepo->getArrayForSelect())->setPrompt('Žádný');
 		$form->addDataMultiSelect('allowedPaymentTypes', 'Povolené typy plateb', $this->paymentTypeRepo->many()->toArrayOf('code'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 		$form->addText('maxWeight', 'Maximální váha')

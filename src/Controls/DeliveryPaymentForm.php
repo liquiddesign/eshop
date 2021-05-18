@@ -33,6 +33,8 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 
 		$deliveriesList = $this->addRadioList('deliveries', 'deliveryPaymentForm.payments', $checkoutManager->getDeliveryTypes()->toArrayOf('name'));
 		$paymentsList = $this->addRadioList('payments', 'deliveryPaymentForm.payments', $checkoutManager->getPaymentTypes()->toArrayOf('name'));
+
+		$pickupPoint = $this->addSelect('pickupPoint');
 		$this->addHidden('zasilkovnaId');
 		$deliveriesList->setRequired();
 		$paymentsList->setRequired();
