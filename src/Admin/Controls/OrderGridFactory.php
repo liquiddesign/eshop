@@ -234,7 +234,9 @@ class OrderGridFactory
 
 			$order = $this->orderRepository->one($id, true);
 
-			$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $order->code], $order->purchase->email);
+			$accountMutation = $order->purchase->account ? $order->purchase->account->getPreferredMutation() : null;
+
+			$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $order->code], $order->purchase->email, null, null, $accountMutation);
 			$this->mailer->send($mail);
 		}
 
@@ -262,7 +264,9 @@ class OrderGridFactory
 	{
 		$object->update(['canceledTs' => (string)new DateTime(), 'completedTs' => null]);
 
-		$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $object->code], $object->purchase->email);
+		$accountMutation = $object->purchase->account ? $object->purchase->account->getPreferredMutation() : null;
+
+		$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $object->code], $object->purchase->email, null, null, $accountMutation);
 		$this->mailer->send($mail);
 
 		if ($grid) {
@@ -288,6 +292,8 @@ class OrderGridFactory
 	{
 		$object->update(['completedTs' => (string)new DateTime(), 'canceledTs' => null]);
 
+		$accountMutation = $object->purchase->account ? $object->purchase->account->getPreferredMutation() : null;
+
 		foreach ($object->purchase->getItems() as $item) {
 			if (!$item->product) {
 				continue;
@@ -299,7 +305,7 @@ class OrderGridFactory
 		$mail = $this->templateRepository->createMessage('order.changed', [
 			'orderCode' => $object->code,
 			'orderState' => $this->translator->translate('order.statusCompleted', 'vyřízena')
-		], $object->purchase->email);
+		], $object->purchase->email, null, null, $accountMutation);
 
 		$this->mailer->send($mail);
 
