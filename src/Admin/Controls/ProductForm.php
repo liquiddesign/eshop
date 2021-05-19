@@ -199,7 +199,7 @@ class ProductForm extends Control
 			->addRule([FormValidators::class, 'isPercentNoMax'], 'Neplatná hodnota!');
 		$form->addCheckbox('unavailable', 'Neprodejné');
 
-		if ($configuration['weightAndDimension']) {
+		if (isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']) {
 			$form->addText('weight', 'Váha')
 				->setNullable()
 				->addCondition($form::FILLED)
