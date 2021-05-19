@@ -287,4 +287,9 @@ class Customer extends Entity implements IIdentity, IUser
 	{
 		return (string) $this->company ?: $this->fullname;
 	}
+
+	public function getPreferredMutation(): ?string
+	{
+		return $this->account && $this->account->getPreferredMutation() ? $this->account->getPreferredMutation() : $this->preferredMutation;
+	}
 }

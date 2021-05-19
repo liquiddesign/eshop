@@ -207,6 +207,13 @@ class Shopper
 		return null;
 	}
 
+	public function getUserPreferredMutation(): ?string
+	{
+		$user = $this->getCustomer() ?? $this->getMerchant();
+
+		return $user ? $user->getPreferredMutation() : null;
+	}
+
 	/**
 	 * Nastaví zákazníka
 	 * @param Customer $customer
@@ -261,7 +268,7 @@ class Shopper
 		$unregisteredPricelists = $unregistredGroup->defaultPricelists->toArrayOf('uuid');
 		$repo = $this->pricelistRepository;
 
-		if(!$customer && $merchant){
+		if (!$customer && $merchant) {
 			return $this->pricelists = $repo->getMerchantPricelists($merchant, $currency ?: $this->getCurrency(), $this->getCountry());
 		}
 

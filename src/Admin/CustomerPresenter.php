@@ -505,8 +505,6 @@ class CustomerPresenter extends BackendPresenter
 	public function createComponentAccountForm(): AdminForm
 	{
 		$callback = function (Form $form) {
-//			$form->addDataSelect('preferredMutation', 'Preferovaný jazyk', \array_combine($this->formFactory->formFactory->getDefaultMutations(),$this->formFactory->formFactory->getDefaultMutations()))->setPrompt('Automaticky');
-
 			$form->addGroup('Oprávnění a zákazník');
 			$container = $form->addContainer('permission');
 			$container->addDataSelect('customer', 'Zákazník', $this->customerRepository->getArrayForSelect())->setPrompt('-Zvolte-')->setRequired();

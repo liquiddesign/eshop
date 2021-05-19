@@ -119,4 +119,9 @@ class Merchant extends \StORM\Entity implements IIdentity, IUser
 	{
 		$this->account = $account;
 	}
+
+	public function getPreferredMutation(): ?string
+	{
+		return $this->preferredMutation;
+	}
 }
