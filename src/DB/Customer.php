@@ -232,7 +232,11 @@ class Customer extends Entity implements IIdentity, IUser
 	 */
 	public RelationCollection $accounts;
 	
-	protected ?Account $account = null;
+	/**
+	 * @relation
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 */
+	public ?Account $account = null;
 	
 	protected ?CatalogPermission $catalogPermission;
 	
