@@ -19,6 +19,8 @@ use Eshop\DB\MerchantRepository;
 use Nette\Application\Application;
 use Nette\Application\UI\ITemplate;
 use Nette\Security\User;
+use Security\DB\Account;
+use Security\DB\AccountRepository;
 use StORM\Collection;
 
 /**
@@ -93,6 +95,8 @@ class Shopper
 
 	private ?CustomerGroup $customerGroup;
 
+	private AccountRepository $accountRepository;
+
 	public function __construct(
 		User $user,
 		PricelistRepository $pricelistRepository,
@@ -103,14 +107,15 @@ class Shopper
 		CustomerGroupRepository $customerGroupRepository,
 		MinimalOrderValueRepository $minimalOrderValueRepository,
 		Application $application,
-		\Nette\Localization\Translator $translator)
+		\Nette\Localization\Translator $translator,
+		AccountRepository $accountRepository)
 	{
 
 
 		$this->user = $user;
 		$this->pricelistRepository = $pricelistRepository;
 		$this->application = $application;
-
+		$this->accountRepository = $accountRepository;
 		$this->countryRepository = $countryRepository;
 		$this->currencyRepository = $currencyRepository;
 		$this->customerRepository = $customerRepository;
@@ -380,5 +385,34 @@ class Shopper
 		$formatted = \number_format((float)$number, $currency->formatDecimals, $currency->formatDecimalSeparator, \str_replace(' ', $nbsp, $currency->formatThousandsSeparator));
 
 		return ($currency->formatSymbolPosition !== 'after' ? $currency->symbol : '') . $formatted . $nbsp . ($currency->formatSymbolPosition === 'after' ? $currency->symbol : '');
+	}
+
+	public function getPreferredMutationByAccount($account):?string
+	{
+		if (!$account instanceof Account) {
+			if (!$product = $this->accountRepository->one($account)) {
+				return null;
+			}
+		}
+
+		$mutation = $account->getPreferredMutation();
+
+		if ($mutation) {
+			return $mutation;
+		}
+
+		$customer = $this->customerRepository->getByAccountLogin($account->getPK());
+
+		if ($customer) {
+			return $customer->getPreferredMutation();
+		}
+
+		$merchant = $this->merchantRepository->getByAccountLogin($account->getPK());
+
+		if ($merchant) {
+			return $merchant->getPreferredMutation();
+		}
+
+		return null;
 	}
 }
