@@ -27,4 +27,11 @@ class ParameterCategory extends \StORM\Entity
 	 * @column
 	 */
 	public bool $hidden = false;
+	
+	/**
+	 * Dodavatel / externí
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 */
+	public ?Supplier $supplier;
 }

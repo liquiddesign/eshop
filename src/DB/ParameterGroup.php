@@ -45,6 +45,13 @@ class ParameterGroup extends \StORM\Entity
 	 * @relation
 	 */
 	public ParameterCategory $parameterCategory;
+	
+	/**
+	 * Dodavatel / externí
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 */
+	public ?Supplier $supplier;
 
 	public function isSystemic(): bool
 	{
