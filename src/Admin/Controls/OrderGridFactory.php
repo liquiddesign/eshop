@@ -192,6 +192,14 @@ class OrderGridFactory
 
 		$date = $delivery->shippingDate ? '<i style=\'color: gray;\' class=\'fa fa-shipping-fast\'></i> ' . $grid->template->getLatte()->invokeFilter('date', [$delivery->shippingDate]) : '';
 
+		if ($order->purchase->pickupPointId) {
+			if ($order->purchase->pickupPoint) {
+				return "<a href='$link'>" . $delivery->getTypeName() . "</a> - " . $order->purchase->pickupPoint->name . " <small> $date</small>" . $deliveryInfo;
+			}
+
+			return "<a href='$link'>" . $delivery->getTypeName() . "</a> - " . $order->purchase->pickupPointName . " <small> $date</small>" . $deliveryInfo;
+		}
+
 		return "<a href='$link'>" . $delivery->getTypeName() . "</a> <small> $date</small>" . $deliveryInfo;
 	}
 
@@ -226,7 +234,17 @@ class OrderGridFactory
 
 			$order = $this->orderRepository->one($id, true);
 
-			$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $order->code], $order->purchase->email);
+			$accountMutation = null;
+
+			if($order->purchase->account){
+				if(!$accountMutation = $order->purchase->account->getPreferredMutation()){
+					if($order->purchase->customer){
+						$accountMutation = $order->purchase->customer->getPreferredMutation();
+					}
+				}
+			}
+
+			$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $order->code], $order->purchase->email, null, null, $accountMutation);
 			$this->mailer->send($mail);
 		}
 
@@ -254,7 +272,17 @@ class OrderGridFactory
 	{
 		$object->update(['canceledTs' => (string)new DateTime(), 'completedTs' => null]);
 
-		$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $object->code], $object->purchase->email);
+		$accountMutation = null;
+
+		if($object->purchase->account){
+			if(!$accountMutation = $object->purchase->account->getPreferredMutation()){
+				if($object->purchase->customer){
+					$accountMutation = $object->purchase->customer->getPreferredMutation();
+				}
+			}
+		}
+
+		$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $object->code], $object->purchase->email, null, null, $accountMutation);
 		$this->mailer->send($mail);
 
 		if ($grid) {
@@ -280,6 +308,16 @@ class OrderGridFactory
 	{
 		$object->update(['completedTs' => (string)new DateTime(), 'canceledTs' => null]);
 
+		$accountMutation = null;
+
+		if($object->purchase->account){
+			if(!$accountMutation = $object->purchase->account->getPreferredMutation()){
+				if($object->purchase->customer){
+					$accountMutation = $object->purchase->customer->getPreferredMutation();
+				}
+			}
+		}
+
 		foreach ($object->purchase->getItems() as $item) {
 			if (!$item->product) {
 				continue;
@@ -291,7 +329,7 @@ class OrderGridFactory
 		$mail = $this->templateRepository->createMessage('order.changed', [
 			'orderCode' => $object->code,
 			'orderState' => $this->translator->translate('order.statusCompleted', 'vyřízena')
-		], $object->purchase->email);
+		], $object->purchase->email, null, null, $accountMutation);
 
 		$this->mailer->send($mail);
 

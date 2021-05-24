@@ -93,6 +93,9 @@ class CustomerPresenter extends BackendPresenter
 	/** @inject */
 	public Connection $storm;
 
+	/** @inject */
+	public Shopper $shopper;
+
 	public const TABS = [
 		'customers' => 'Zákazníci',
 		'accounts' => 'Účty',
@@ -209,7 +212,7 @@ class CustomerPresenter extends BackendPresenter
 
 			if (static::CONFIGURATIONS['sendEmailAccountActivated']) {
 				if (!$oldValues['active'] && $values['account']['active'] == true) {
-					$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login);
+					$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login, null, null, $account->getPreferredMutation());
 					$this->mailer->send($mail);
 				}
 			}
@@ -298,6 +301,7 @@ class CustomerPresenter extends BackendPresenter
 		$form->addInteger('discountLevelPct', 'Slevová hladina (%)')->setDefaultValue(0)->setRequired();
 		$form->addText('productRoundingPct',
 			'Zokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
+
 		$form->addGroup('Exporty');
 		$form->addCheckbox('allowExport', 'Feed povolen');
 
@@ -501,14 +505,15 @@ class CustomerPresenter extends BackendPresenter
 	public function createComponentAccountForm(): AdminForm
 	{
 		$callback = function (Form $form) {
-//			$form->addDataSelect('preferredMutation', 'Preferovaný jazyk', \array_combine($this->formFactory->formFactory->getDefaultMutations(),$this->formFactory->formFactory->getDefaultMutations()))->setPrompt('Automaticky');
-
 			$form->addGroup('Oprávnění a zákazník');
 			$container = $form->addContainer('permission');
 			$container->addDataSelect('customer', 'Zákazník', $this->customerRepository->getArrayForSelect())->setPrompt('-Zvolte-')->setRequired();
 			$container->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setDefaultValue('price');
 			$container->addCheckbox('buyAllowed', 'Povolit nákup')->setDefaultValue(true);
-			$container->addCheckbox('viewAllOrders', 'Zobrazit všechny poptávky zákazníka')->setDefaultValue(false);
+			$container->addCheckbox('viewAllOrders', 'Zobrazit všechny objednávky zákazníka')->setDefaultValue(false);
+			if ($this->shopper->getShowVat()) {
+				$container->addCheckbox('showPricesWithVat', 'Zobrazit ceny s daní');
+			}
 		};
 
 		$form = $this->accountFormFactory->create(false, $callback, true, true);
@@ -566,12 +571,14 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnActionDelete();
 
 		$grid->addButtonSaveAll([], [], null, false, null, function ($id, $data) {
-			/** @var Account $account */
-			$account = $this->accountRepository->one($id);
+			if (static::CONFIGURATIONS['sendEmailAccountActivated']) {
+				/** @var Account $account */
+				$account = $this->accountRepository->one($id);
 
-			if (!$account->active && $data['active'] == true) {
-				$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login);
-				$this->mailer->send($mail);
+				if (!$account->active && $data['active'] == true) {
+					$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login, null, null, $account->getPreferredMutation());
+					$this->mailer->send($mail);
+				}
 			}
 		});
 
@@ -630,7 +637,7 @@ class CustomerPresenter extends BackendPresenter
 			false => 'Ne',
 			true => 'Ano'
 		])->setPrompt('Původní');
-		$values->addSelect('viewAllOrders', 'Zobrazit všechny poptávky zákazníka', [
+		$values->addSelect('viewAllOrders', 'Zobrazit všechny objednávky zákazníka', [
 			false => 'Ne',
 			true => 'Ano'
 		])->setPrompt('Původní');

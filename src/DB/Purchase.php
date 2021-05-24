@@ -99,7 +99,27 @@ class Purchase extends \StORM\Entity
 	public ?string $note;
 
 	/**
+	 * Výdejní místo - ID
+	 * @column
+	 */
+	public ?string $pickupPointId;
+
+	/**
+	 * Výdejní místo - jméno
+	 * @column
+	 */
+	public ?string $pickupPointName;
+
+	/**
+	 * Výdejní místo
+	 * @relation
+	 * @constraint
+	 */
+	public ?PickupPoint $pickupPoint;
+
+	/**
 	 * ID pobočky zásilkovny
+	 * @deprecated use pickupPointId
 	 * @column{"type":"text"}
 	 */
 	public ?string $zasilkovnaId;

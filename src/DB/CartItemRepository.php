@@ -90,6 +90,7 @@ class CartItemRepository extends \StORM\Repository
 			'productCode' => $product->code,
 			'productSubCode' => $product->subCode,
 			'productWeight' => $product->weight,
+			'productDimension' => $product->dimension,
 			'variantName' => $variant ? $variant->toArray()['name'] : [],
 			'amount' => $amount,
 			'price' => $product->getPrice($amount),

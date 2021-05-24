@@ -68,10 +68,29 @@ class DeliveryType extends \StORM\Entity
 	 * @column
 	 */
 	public bool $recommended = false;
+
+	/**
+	 * Max váha
+	 * @column
+	 */
+	public ?float $maxWeight;
+
+	/**
+	 * Max rozměr
+	 * @column
+	 */
+	public ?float $maxDimension;
 	
 	/**
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\PaymentType>|\Eshop\DB\PaymentType[]
 	 */
 	public RelationCollection $allowedPaymentTypes;
+
+	/**
+	 * Výdejní typ
+	 * @relation
+	 * @constraint
+	 */
+	public ?PickupPointType $pickupPointType;
 }

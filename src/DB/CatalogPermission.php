@@ -35,7 +35,13 @@ class CatalogPermission extends \StORM\Entity
 	 * @column
 	 */
 	public bool $viewAllOrders = false;
-	
+
+	/**
+	 * Oprávnění: vidět ceny s daní
+	 * @column
+	 */
+	public bool $showPricesWithVat = false;
+
 	/**
 	 * Zákazník
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}

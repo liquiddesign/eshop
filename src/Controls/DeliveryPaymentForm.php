@@ -8,6 +8,8 @@ use Eshop\CheckoutManager;
 use Eshop\DB\DeliveryType;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\PaymentType;
+use Eshop\DB\PickupPoint;
+use Eshop\DB\PickupPointRepository;
 use Eshop\Shopper;
 use Nette;
 use StORM\Collection;
@@ -16,13 +18,15 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 {
 	private CheckoutManager $checkoutManager;
 
-	private Shopper $shopper;
+	public Shopper $shopper;
 
 	private DeliveryTypeRepository $deliveryTypeRepository;
 
 	private Nette\Localization\Translator $translator;
 
-	public function __construct(Shopper $shopper, CheckoutManager $checkoutManager, DeliveryTypeRepository $deliveryTypeRepository, Nette\Localization\Translator $translator)
+	private PickupPointRepository $pickupPointRepository;
+
+	public function __construct(Shopper $shopper, CheckoutManager $checkoutManager, DeliveryTypeRepository $deliveryTypeRepository, Nette\Localization\Translator $translator, PickupPointRepository $pickupPointRepository)
 	{
 		parent::__construct();
 
@@ -30,9 +34,30 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		$this->shopper = $shopper;
 		$this->deliveryTypeRepository = $deliveryTypeRepository;
 		$this->translator = $translator;
+		$this->pickupPointRepository = $pickupPointRepository;
 
-		$deliveriesList = $this->addRadioList('deliveries', 'deliveryPaymentForm.payments', $checkoutManager->getDeliveryTypes()->toArrayOf('name'));
+		$deliveriesList = $this->addRadioList('deliveries', 'deliveryPaymentForm.payments', $checkoutManager->getDeliveryTypes()->toArrayOf('name'))
+			->setHtmlAttribute('onChange=updatePoints(this)');
 		$paymentsList = $this->addRadioList('payments', 'deliveryPaymentForm.payments', $checkoutManager->getPaymentTypes()->toArrayOf('name'));
+
+		$pickupPoint = $this->addSelect('pickupPoint');
+
+		$allPoints = [];
+
+		/** @var DeliveryType $deliveryType */
+		foreach ($checkoutManager->getDeliveryTypes()->toArray() as $deliveryType) {
+			$pickupPoints = $this->pickupPointRepository->many()
+				->join(['type' => 'eshop_pickuppointtype'], 'this.fk_pickupPointType = type.uuid')
+				->join(['delivery' => 'eshop_deliverytype'], 'delivery.fk_pickupPointType = type.uuid')
+				->where('delivery.uuid', $deliveryType->getPK())->toArrayOf('name');
+
+			$allPoints += $pickupPoints;
+
+			$pickupPoint->setHtmlAttribute('data-' . $deliveryType->getPK(), Nette\Utils\Json::encode($pickupPoints));
+		}
+
+		$pickupPoint->setItems($allPoints);
+
 		$this->addHidden('zasilkovnaId');
 		$deliveriesList->setRequired();
 		$paymentsList->setRequired();
@@ -45,7 +70,6 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		$this->onValidate[] = [$this, 'validateForm'];
 		$this->onSuccess[] = [$this, 'success'];
 
-
 		$deliveriesList->setDefaultValue($this->getSelectedDeliveryType());
 		$paymentsList->setDefaultValue($this->getSelectedPaymentType());
 	}
@@ -54,7 +78,24 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 	{
 		$values = $form->getValues();
 
-		$this->checkoutManager->syncPurchase(['deliveryType' => $values->deliveries, 'paymentType' => $values->payments, 'zasilkovnaId' => $values->zasilkovnaId]);
+		$newValues = [
+			'deliveryType' => $values->deliveries,
+			'paymentType' => $values->payments,
+			'zasilkovnaId' => $values->zasilkovnaId,
+		];
+
+		if (isset($values['pickupPoint'])) {
+			/** @var PickupPoint $pickupPoint */
+			$pickupPoint = $this->pickupPointRepository->one($values['pickupPoint']);
+
+			$newValues += [
+				'pickupPointId' => $pickupPoint->code,
+				'pickupPointName' => $pickupPoint->name,
+				'pickupPoint' => $pickupPoint->getPK()
+			];
+		}
+
+		$this->checkoutManager->syncPurchase($newValues);
 	}
 
 	private function addCombinationRules(Nette\Forms\Controls\RadioList $deliveriesList, Nette\Forms\Controls\RadioList $paymentsList, Collection $deliveryTypes): void

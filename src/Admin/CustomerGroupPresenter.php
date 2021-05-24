@@ -29,6 +29,9 @@ class CustomerGroupPresenter extends BackendPresenter
 	/** @inject */
 	public PricelistRepository $pricelistRepo;
 
+	/** @inject */
+	public Shopper $shopper;
+
 	public function createComponentGrid()
 	{
 		if (static::CONFIGURATION['unregistred']) {
@@ -101,6 +104,12 @@ class CustomerGroupPresenter extends BackendPresenter
 
 		$form->addSelect('defaultCatalogPermission', 'Katalogové oprávnění', Shopper::PERMISSIONS);
 		$form->addCheckbox('defaultBuyAllowed', 'Povolený nákup');
+		$form->addCheckbox('defaultViewAllOrders', 'Účet vidí všechny objednávky zákazníka');
+
+		if ($this->shopper->getShowVat()) {
+			$form->addCheckbox('defaultPricesWithVat', 'Zobrazit ceny s daní');
+		}
+
 		$form->addDataMultiSelect('defaultPricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 

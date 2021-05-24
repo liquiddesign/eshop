@@ -25,7 +25,7 @@ class CartItemList extends Datalist
 
 	private CartItemRepository $cartItemsRepository;
 
-	private Shopper $shopper;
+	public Shopper $shopper;
 
 	private ProductRepository $productRepository;
 

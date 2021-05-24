@@ -232,7 +232,11 @@ class Customer extends Entity implements IIdentity, IUser
 	 */
 	public RelationCollection $accounts;
 	
-	protected ?Account $account = null;
+	/**
+	 * @relation
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 */
+	public ?Account $account = null;
 	
 	protected ?CatalogPermission $catalogPermission;
 	
@@ -286,5 +290,10 @@ class Customer extends Entity implements IIdentity, IUser
 	public function getName(): string
 	{
 		return (string) $this->company ?: $this->fullname;
+	}
+
+	public function getPreferredMutation(): ?string
+	{
+		return $this->account && $this->account->getPreferredMutation() ? $this->account->getPreferredMutation() : $this->preferredMutation;
 	}
 }

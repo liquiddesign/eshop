@@ -27,6 +27,12 @@ class DeliveryTypePrice extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $weightTo;
+
+	/**
+	 * Dostupné do rozměru (včetně)
+	 * @column
+	 */
+	public ?float $dimensionTo;
 	
 	/**
 	 * Měna

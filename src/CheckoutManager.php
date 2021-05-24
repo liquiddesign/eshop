@@ -121,6 +121,8 @@ class CheckoutManager
 
 	private ?float $sumWeight = null;
 
+	private ?float $sumDimension = null;
+
 	private ?int $sumPoints = null;
 
 	/**
@@ -283,6 +285,15 @@ class CheckoutManager
 		}
 
 		return $this->sumWeight ??= $this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'productWeight');
+	}
+
+	public function getSumDimension(): float
+	{
+		if (!$this->cartExists()) {
+			return 0.0;
+		}
+
+		return $this->sumDimension ??= $this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'productDimension');
 	}
 
 	public function getSumPoints(): int
@@ -561,7 +572,7 @@ class CheckoutManager
 
 	public function getDeliveryTypes(): Collection
 	{
-		return $this->deliveryTypes ??= $this->deliveryTypeRepository->getDeliveryTypes($this->shopper->getCurrency(), $this->customer, $this->shopper->getCustomerGroup(), $this->getDeliveryDiscount(), $this->getSumWeight());
+		return $this->deliveryTypes ??= $this->deliveryTypeRepository->getDeliveryTypes($this->shopper->getCurrency(), $this->customer, $this->shopper->getCustomerGroup(), $this->getDeliveryDiscount(), $this->getSumWeight(), $this->getSumDimension());
 	}
 
 	public function checkDiscountCoupon(): bool
@@ -840,10 +851,10 @@ class CheckoutManager
 	public function setDiscountCoupon(?DiscountCoupon $coupon): void
 	{
 		if (!$this->getPurchase()) {
-			$this->syncPurchase([]);
+			$purchase = $this->syncPurchase([]);
 		}
 
-		$this->getPurchase()->update(['coupon' => $coupon]);
+		($purchase ?? $this->getPurchase())->update(['coupon' => $coupon]);
 	}
 
 	public function getDiscountPrice(): float
@@ -893,11 +904,16 @@ class CheckoutManager
 	{
 		$values['uuid'] = $this->getCart()->getValue('purchase');
 
-		/** @var Purchase $purchase */
-		$purchase = $this->purchaseRepository->syncOne($values, null, true);
-
 		if (!$values['uuid']) {
+			$values['currency'] = $this->getCart()->currency->getPK();
+
+			/** @var Purchase $purchase */
+			$purchase = $this->purchaseRepository->createOne($values);
+
 			$this->getCart()->update(['purchase' => $purchase->getPK()]);
+		}else{
+			/** @var Purchase $purchase */
+			$purchase = $this->purchaseRepository->syncOne($values, null, true);
 		}
 
 		return $purchase;
@@ -1020,6 +1036,7 @@ class CheckoutManager
 		$this->sumAmount = null;
 		$this->sumWeight = null;
 		$this->sumPoints = null;
+		$this->sumDimension = null;
 	}
 
 	/**

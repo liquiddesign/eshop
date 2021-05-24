@@ -231,8 +231,8 @@ class DiscountPresenter extends BackendPresenter
 
 		$form->addText('code', 'Kód')->setRequired();
 		$form->addText('label', 'Popisek');
-		$form->addDataSelect('exclusiveCustomer', 'Jen pro zákazníka', $this->customerRepository->getListForSelect())->setPrompt('Žádný');
-		$form->addText('discountPct', 'Sleva (%)')->addRule($form::FLOAT)->addRule(CustomValidators::IS_PERCENT,'Hodnota není platné procento!');
+		$form->addDataSelect('exclusiveCustomer', 'Jen pro zákazníka', $this->customerRepository->getArrayForSelect())->setPrompt('Žádný');
+		$form->addText('discountPct', 'Sleva (%)')->addRule($form::FLOAT)->addRule([FormValidators::class, 'isPercent'],'Hodnota není platné procento!');
 		$form->addGroup('Absolutní sleva');
 		$form->addDataSelect('currency', 'Měna', $this->currencyRepo->getArrayForSelect());
 		$form->addText('discountValue', 'Sleva')->setHtmlAttribute('data-info','Zadejte hodnotu ve zvolené měně.')->addCondition(Form::FILLED)->addRule($form::FLOAT);
