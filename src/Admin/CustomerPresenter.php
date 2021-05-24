@@ -212,7 +212,7 @@ class CustomerPresenter extends BackendPresenter
 
 			if (static::CONFIGURATIONS['sendEmailAccountActivated']) {
 				if (!$oldValues['active'] && $values['account']['active'] == true) {
-					$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login);
+					$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login, null, null, $account->getPreferredMutation());
 					$this->mailer->send($mail);
 				}
 			}
@@ -571,12 +571,14 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnActionDelete();
 
 		$grid->addButtonSaveAll([], [], null, false, null, function ($id, $data) {
-			/** @var Account $account */
-			$account = $this->accountRepository->one($id);
+			if (static::CONFIGURATIONS['sendEmailAccountActivated']) {
+				/** @var Account $account */
+				$account = $this->accountRepository->one($id);
 
-			if (!$account->active && $data['active'] == true) {
-				$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login);
-				$this->mailer->send($mail);
+				if (!$account->active && $data['active'] == true) {
+					$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login, null, null, $account->getPreferredMutation());
+					$this->mailer->send($mail);
+				}
 			}
 		});
 
