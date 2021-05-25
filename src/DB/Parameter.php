@@ -15,7 +15,13 @@ class Parameter extends \StORM\Entity
 	 * @column{"mutations":true}
 	 */
 	public ?string $name;
-
+	
+	/**
+	 * Kód
+	 * @column
+	 */
+	public ?string $code;
+	
 	/**
 	 * Popisek
 	 * @column{"mutations":true}
