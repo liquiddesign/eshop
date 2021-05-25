@@ -53,7 +53,7 @@ class AccountList extends Datalist
 
 		parent::__construct($accounts ?? $this->accountRepository->many());
 
-		$this->setDefaultOnPage(20);
+		$this->setDefaultOnPage(10);
 		$this->setDefaultOrder('tsRegistered', 'DESC');
 
 		$this->addFilterExpression('login', function (ICollection $collection, $value): void {

@@ -6,6 +6,7 @@ namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
 use League\Csv\Writer;
+use Nette\Utils\Validators;
 use Security\DB\IUserRepository;
 use Security\DB\UserRepositoryTrait;
 use StORM\Collection;
@@ -38,19 +39,29 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 			'fk_pricelist' => $pricelist->getPK(),
 		]);
 	}
-	
+
 	public function csvExport(ICollection $customers, Writer $writer): void
 	{
 		$writer->setDelimiter(';');
-		
-		$writer->insertOne(['email', 'fullname']);
-		
+
 		foreach ($customers as $customer) {
-			
+
 			$writer->insertOne([
-				$customer->email,
-				$customer->fullname
+				$customer->email
 			]);
+		}
+	}
+
+	public function csvExportAccounts(ICollection $accounts, Writer $writer): void
+	{
+		$writer->setDelimiter(';');
+
+		foreach ($accounts->toArray() as $account) {
+			if (Validators::isEmail($account->login)) {
+				$writer->insertOne([
+					$account->login,
+				]);
+			}
 		}
 	}
 
@@ -61,14 +72,14 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 	{
 		return $this->getArrayForSelect();
 	}
-	
+
 	public function getEmailVariables(Customer $customer)
 	{
 		return [
 			'login' => $customer->email,
 		];
 	}
-	
+
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->select(['name' => 'IF(this.company != "",this.company,this.fullname)'])->toArrayOf('name');

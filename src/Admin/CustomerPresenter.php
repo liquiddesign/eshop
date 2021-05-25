@@ -166,7 +166,7 @@ class CustomerPresenter extends BackendPresenter
 
 		if (\count($this->pricelistRepo->getArrayForSelect(true)) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$source->join(['pricelistNxN' => 'eshop_customer_nxn_eshop_pricelist'],'this.uuid = pricelistNxN.fk_customer');
+				$source->join(['pricelistNxN' => 'eshop_customer_nxn_eshop_pricelist'], 'this.uuid = pricelistNxN.fk_customer');
 				$source->where('pricelistNxN.fk_pricelist', $value);
 			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
 		}
@@ -187,7 +187,20 @@ class CustomerPresenter extends BackendPresenter
 		$collection = $grid->getSource()->where($grid->getSourceIdName(), $grid->getSelectedIds());
 		$this->customerRepository->csvExport($collection, Writer::createFromPath($tempFilename, 'w+'));
 
-		$response = new FileResponse($tempFilename, "zakaznici.csv", 'text/csv');
+		$response = new FileResponse($tempFilename, "customers.csv", 'text/csv');
+		$this->sendResponse($response);
+	}
+
+	public function exportAccounts(Button $button)
+	{
+		/** @var \Grid\Datagrid $grid */
+		$grid = $button->lookup(Datagrid::class);
+
+		$tempFilename = \tempnam($this->tempDir, "csv");
+		$collection = $grid->getSource()->where('this.' . $grid->getSourceIdName(), $grid->getSelectedIds());
+		$this->customerRepository->csvExportAccounts($collection, Writer::createFromPath($tempFilename, 'w+'));
+
+		$response = new FileResponse($tempFilename, "accounts.csv", 'text/csv');
 		$this->sendResponse($response);
 	}
 
@@ -611,7 +624,7 @@ class CustomerPresenter extends BackendPresenter
 
 		if (\count($this->pricelistRepo->getArrayForSelect(true)) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$source->join(['pricelistNxN' => 'eshop_customer_nxn_eshop_pricelist'],'customer.uuid = pricelistNxN.fk_customer');
+				$source->join(['pricelistNxN' => 'eshop_customer_nxn_eshop_pricelist'], 'customer.uuid = pricelistNxN.fk_customer');
 				$source->where('pricelistNxN.fk_pricelist', $value);
 			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
 		}
@@ -622,6 +635,10 @@ class CustomerPresenter extends BackendPresenter
 		$submit->onClick[] = function () use ($grid) {
 			$grid->getPresenter()->redirect('permBulkEdit', [$grid->getSelectedIds()]);
 		};
+
+		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů');
+		$submit->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
+		$submit->onClick[] = [$this, 'exportAccounts'];
 
 		$grid->addFilterButtons();
 
