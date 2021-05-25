@@ -166,7 +166,7 @@ class CustomerPresenter extends BackendPresenter
 
 		if (\count($this->pricelistRepo->getArrayForSelect(true)) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$source->join(['pricelistNxN' => 'eshop_customer_nxn_eshop_pricelist'],'customer.uuid = pricelistNxN.fk_customer');
+				$source->join(['pricelistNxN' => 'eshop_customer_nxn_eshop_pricelist'],'this.uuid = pricelistNxN.fk_customer');
 				$source->where('pricelistNxN.fk_pricelist', $value);
 			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
 		}
@@ -607,6 +607,13 @@ class CustomerPresenter extends BackendPresenter
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$source->where('customer.fk_group', $value);
 			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, static::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
+		}
+
+		if (\count($this->pricelistRepo->getArrayForSelect(true)) > 0) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+				$source->join(['pricelistNxN' => 'eshop_customer_nxn_eshop_pricelist'],'customer.uuid = pricelistNxN.fk_customer');
+				$source->where('pricelistNxN.fk_pricelist', $value);
+			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
 		}
 
 		$submit = $grid->getForm()->addSubmit('permBulkEdit', 'Hromadná úprava')->setHtmlAttribute('class',
