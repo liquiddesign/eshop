@@ -108,6 +108,7 @@ class SupplierProductRepository extends \StORM\Repository
 				$parameterValueRepository->syncOne([
 					'parameter' => $parameterValue->parameter,
 					'product' => $product,
+					'metaValue' => '1',
 				]);
 			}
 			
