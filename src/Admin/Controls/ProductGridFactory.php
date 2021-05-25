@@ -186,8 +186,10 @@ class ProductGridFactory
 			$source->where('this.hidden', (bool) $value);
 		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
 		
+		$grid->addFilterDataSelect(function (ICollection $source, $value) {
+			$source->where('this.unavailble', (bool) $value);
+		}, '', 'unavailble', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
 		
-		$grid->addFilterCheckboxInput('unavailble', "this.unavailable = 1", 'Neprodejné');
 	}
 	
 	public function onDelete(Product $product)
