@@ -5,7 +5,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
-use Admin\Admin\Controls\AccountFormFactory;
+use Eshop\Admin\Controls\IAccountFormFactory;
 use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\DeliveryTypeRepository;
@@ -49,7 +49,7 @@ class CustomerPresenter extends BackendPresenter
 	];
 
 	/** @inject */
-	public AccountFormFactory $accountFormFactory;
+	public IAccountFormFactory $accountFormFactory;
 
 	/** @inject */
 	public CustomerRepository $customerRepository;
@@ -143,7 +143,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder']);
 
-		$grid->addButtonBulkEdit('form', ['pricelists', 'merchant', 'group', 'newsletter'], 'customers');
+		$grid->addButtonBulkEdit('form', ['pricelists', 'merchant', 'group', 'newsletter', 'newsletterGroup'], 'customers');
 
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů');
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
@@ -283,7 +283,9 @@ class CustomerPresenter extends BackendPresenter
 
 		$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired();
 		$form->addText('ccEmails', 'Kopie emailů')->setHtmlAttribute('data-info', 'Zadejte emailové adresy oddělené středníkem (;).');
-		$form->addCheckbox('newsletter', 'Přihlášen k newsletteru');
+
+		$form->addCheckbox('newsletter', 'Přihlášen k newsletteru')->addCondition($form::EQUAL, true)->toggle('frm-form-newsletterGroup-toogle');
+		$form->addText('newsletterGroup', 'Skupina pro newsletter');
 
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->many()->toArrayOf('name'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
@@ -522,7 +524,7 @@ class CustomerPresenter extends BackendPresenter
 		$this->renderEditAddress();
 	}
 
-	public function createComponentAccountForm(): AdminForm
+	public function createComponentAccountForm()
 	{
 		$callback = function (Form $form) {
 			$form->addGroup('Oprávnění a zákazník');
@@ -536,7 +538,7 @@ class CustomerPresenter extends BackendPresenter
 			}
 		};
 
-		$form = $this->accountFormFactory->create(false, $callback, true, true);
+		$form = $this->accountFormFactory->create()->create(false, $callback, true, true);
 
 		return $form;
 	}
@@ -629,8 +631,7 @@ class CustomerPresenter extends BackendPresenter
 			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
 		}
 
-		$submit = $grid->getForm()->addSubmit('permBulkEdit', 'Hromadná úprava')->setHtmlAttribute('class',
-			'btn btn-outline-primary btn-sm');
+		$submit = $grid->getForm()->addSubmit('permBulkEdit', 'Hromadná úprava')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
 		$submit->onClick[] = function () use ($grid) {
 			$grid->getPresenter()->redirect('permBulkEdit', [$grid->getSelectedIds()]);
@@ -675,6 +676,13 @@ class CustomerPresenter extends BackendPresenter
 			'all' => "celý výsledek ($totalNo)",
 		])->setDefaultValue('selected');
 
+		$account = $form->addContainer('account');
+
+		$account->addCheckbox('newsletterCheck', 'Původní')->setDefaultValue(true);
+		$account->addCheckbox('newsletter', 'Přihlášen k newsletteru');
+		$account->addCheckbox('newsletterGroupCheck', 'Původní')->setDefaultValue(true);
+		$account->addText('newsletterGroup', 'Skupina pro newsletter');
+
 		$values = $form->addContainer('values');
 
 		$values->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setPrompt('Původní');
@@ -705,7 +713,23 @@ class CustomerPresenter extends BackendPresenter
 			$ids = $values['bulkType'] === 'selected' ? $ids : $grid->getFilteredSource()->toArrayOf($grid->getSourceIdName());
 
 			foreach ($ids as $id) {
-				$this->catalogPermissionRepo->many()->where('fk_account', $id)->update($values['values']);
+				if (\count($values['values']) > 0) {
+					$this->catalogPermissionRepo->many()->where('fk_account', $id)->update($values['values']);
+				}
+
+				$accountValues = [];
+
+				if (!$values['account']['newsletterCheck']) {
+					$accountValues['newsletter'] = $values['account']['newsletter'];
+				}
+
+				if (!$values['account']['newsletterGroupCheck']) {
+					$accountValues['newsletterGroup'] = $values['account']['newsletterGroup'];
+				}
+
+				if (\count($accountValues) > 0) {
+					$this->accountRepository->one($id)->update($accountValues);
+				}
 			}
 
 			$this->getPresenter()->flashMessage('Uloženo', 'success');
@@ -714,5 +738,6 @@ class CustomerPresenter extends BackendPresenter
 
 		return $form;
 	}
+
 
 }

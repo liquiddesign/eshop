@@ -31,7 +31,8 @@
 		"guzzlehttp/guzzle": "^7.0",
 		"mailerlite/mailerlite-api-v2-php-sdk": "^0.3.0",
       	"ext-zip": "*",
-		"mk-j/php_xlsxwriter": "^0.38.0"
+		"mk-j/php_xlsxwriter": "^0.38.0",
+        "ext-simplexml": "*"
     },
 	"require-dev": 
 	{
