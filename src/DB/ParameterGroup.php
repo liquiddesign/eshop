@@ -15,6 +15,12 @@ class ParameterGroup extends \StORM\Entity
 	 * @column{"mutations":true}
 	 */
 	public ?string $name;
+	
+	/**
+	 * Kód
+	 * @column
+	 */
+	public ?string $code;
 
 	/**
 	 * Interní název
