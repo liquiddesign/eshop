@@ -164,6 +164,13 @@ class CustomerPresenter extends BackendPresenter
 			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, static::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
 		}
 
+		if (\count($this->pricelistRepo->getArrayForSelect(true)) > 0) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+				$source->join(['pricelistNxN' => 'eshop_customer_nxn_eshop_pricelist'],'customer.uuid = pricelistNxN.fk_customer');
+				$source->where('pricelistNxN.fk_pricelist', $value);
+			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
+		}
+
 		$grid->addFilterCheckboxInput('newsletter', "newsletter = 1", 'Newsletter');
 
 		$grid->addFilterButtons();
@@ -523,6 +530,8 @@ class CustomerPresenter extends BackendPresenter
 
 	public function createComponentAccountGrid()
 	{
+		$lableMerchants = static::CONFIGURATIONS['labels']['merchants'];
+
 		$collection = $this->accountRepository->many()
 			->join(['catalogPermission' => 'eshop_catalogpermission'], 'catalogPermission.fk_account = this.uuid')
 			->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogPermission.fk_customer')
@@ -585,8 +594,20 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addButtonDeleteSelected();
 
 		$grid->addFilterTextInput('search', ['this.login'], null, 'Login');
-		$grid->addFilterTextInput('company', ['customer.company', 'customer.fullname', 'customer.ic'], null,
-			'Zákazník, IČ');
+		$grid->addFilterTextInput('company', ['customer.company', 'customer.fullname', 'customer.ic'], null, 'Zákazník, IČ');
+
+		if (\count($this->merchantRepository->getArrayForSelect()) > 0) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+				$source->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'customer.uuid = merchantXcustomer.fk_customer');
+				$source->where('merchantXcustomer.fk_merchant', $value);
+			}, '', 'merchant', $lableMerchants, $this->merchantRepository->getArrayForSelect(), ['placeholder' => "- $lableMerchants -"]);
+		}
+
+		if (\count($this->groupsRepo->getArrayForSelect(true, static::CONFIGURATIONS['showUnregisteredGroup'])) > 0) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+				$source->where('customer.fk_group', $value);
+			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, static::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
+		}
 
 		$submit = $grid->getForm()->addSubmit('permBulkEdit', 'Hromadná úprava')->setHtmlAttribute('class',
 			'btn btn-outline-primary btn-sm');
