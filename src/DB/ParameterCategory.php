@@ -17,6 +17,12 @@ class ParameterCategory extends \StORM\Entity
 	public ?string $name;
 	
 	/**
+	 * Kód
+	 * @column
+	 */
+	public ?string $code;
+	
+	/**
 	 * Priorita
 	 * @column
 	 */
