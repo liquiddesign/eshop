@@ -23,6 +23,12 @@ class ParameterGroup extends \StORM\Entity
 	public ?string $internalName;
 	
 	/**
+	 * Operator skupiny
+	 * @column
+	 */
+	public ?string $filterOperator;
+	
+	/**
 	 * Priorita
 	 * @column
 	 */
