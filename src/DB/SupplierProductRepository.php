@@ -38,7 +38,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$productRepository = $this->getConnection()->findRepository(Product::class);
 		$pagesRepository = $this->getConnection()->findRepository(Page::class);
 		$supplierId = $supplier->getPK();
-		
+		$parameterValueRepository = $this->getConnection()->findRepository(ParameterValue::class);
 		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$mutation];
 		
 		if ($overwrite) {
@@ -104,6 +104,13 @@ class SupplierProductRepository extends \StORM\Repository
 				}
 			}
 			
+			foreach ($this->getConnection()->findRepository(SupplierParameterValue::class)->many()->where('fk_supplierProduct', $draft) as $parameterValue) {
+				$parameterValueRepository->syncOne([
+					'parameter' => $parameterValue->parameter,
+					'product' => $product,
+				]);
+			}
+			
 			if ($draft->getValue('product') !== $uuid && \is_string($uuid)) {
 				try {
 					$draft->update(['product' => $uuid]);
@@ -119,12 +126,12 @@ class SupplierProductRepository extends \StORM\Repository
 			$mtime = \filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 			
 			if (!$updated && $overwrite && $draft->fileName && $mtime !== @\filemtime($targetImageDirectory .  $sep . 'origin' . $sep . $draft->fileName)) {
-				\copy($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $targetImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
-				\copy($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $targetImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
-				\copy($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $targetImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
-				\touch($targetImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $mtime);
-				\touch($targetImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $mtime);
-				\touch($targetImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $mtime);
+				@\copy($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $targetImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
+				@\copy($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $targetImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
+				@\copy($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $targetImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
+				@\touch($targetImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $mtime);
+				@\touch($targetImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $mtime);
+				@\touch($targetImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $mtime);
 			}
 			
 			$pagesRepository->syncOne([
