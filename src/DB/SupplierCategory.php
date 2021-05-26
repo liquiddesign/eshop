@@ -12,6 +12,12 @@ namespace Eshop\DB;
 class SupplierCategory extends \StORM\Entity
 {
 	/**
+	 * Kód
+	 * @column
+	 */
+	public ?string $code;
+	
+	/**
 	 * Vzor na mapování 1
 	 * @column{"length":128}
 	 */
