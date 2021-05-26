@@ -5,7 +5,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
-use Eshop\Admin\Controls\IAccountFormFactory;
+use Admin\Admin\Controls\AccountFormFactory;
 use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\DeliveryTypeRepository;
@@ -17,7 +17,6 @@ use Eshop\DB\Customer;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\MerchantRepository;
-use Eshop\FormValidators;
 use Eshop\Shopper;
 use Forms\Form;
 use Grid\Datagrid;
@@ -31,8 +30,6 @@ use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Connection;
 use StORM\ICollection;
-
-use function Clue\StreamFilter\fun;
 
 class CustomerPresenter extends BackendPresenter
 {
@@ -49,7 +46,7 @@ class CustomerPresenter extends BackendPresenter
 	];
 
 	/** @inject */
-	public IAccountFormFactory $accountFormFactory;
+	public AccountFormFactory $accountFormFactory;
 
 	/** @inject */
 	public CustomerRepository $customerRepository;
@@ -538,7 +535,7 @@ class CustomerPresenter extends BackendPresenter
 			}
 		};
 
-		$form = $this->accountFormFactory->create()->create(false, $callback, true, true);
+		$form = $this->accountFormFactory->create(false, $callback, true, true);
 
 		return $form;
 	}
