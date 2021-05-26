@@ -7,21 +7,10 @@ namespace Eshop\DB;
 /**
  * Skupina parametrů
  * @table
+ * @index{"name":"value_unique","unique":true,"columns":["fk_product","fk_value"]}
  */
 class ParameterValue extends \StORM\Entity
 {
-	/**
-	 * Hodnota přetypová string
-	 * @column{"mutations":true}
-	 */
-	public ?string $content;
-	
-	/**
-	 * Doprovodná hodnota, napřiklad barva pro zobrazení, css třída apod.
-	 * @column
-	 */
-	public ?string $metaValue;
-
 	/**
 	 * Priorita
 	 * @column
@@ -33,10 +22,10 @@ class ParameterValue extends \StORM\Entity
 	 * @relation
 	 */
 	public Product $product;
-	
+
 	/**
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
-	public Parameter $parameter;
+	public ParameterAvailableValue $value;
 }

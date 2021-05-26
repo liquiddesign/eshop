@@ -10,6 +10,11 @@ namespace Eshop\DB;
  */
 class Parameter extends \StORM\Entity
 {
+	public const FILTER_TYPES = [
+		'and' => 'AND',
+		'or' => 'OR'
+	];
+
 	/**
 	 * Název
 	 * @column{"mutations":true}
@@ -33,18 +38,12 @@ class Parameter extends \StORM\Entity
 	 * @column{"type":"enum","length":"'text','bool','list'"}
 	 */
 	public string $type;
-	
+
 	/**
-	 * Povolené hodnoty, klíče
-	 * @column
+	 * Typ pro filtr
+	 * @column{"type":"enum","length":"'and','or'"}
 	 */
-	public ?string $allowedKeys;
-	
-	/**
-	 * Povolené hodnoty, textově
-	 * @column{"mutations":true}
-	 */
-	public ?string $allowedValues;
+	public string $filterType = 'and';
 	
 	/**
 	 * @column

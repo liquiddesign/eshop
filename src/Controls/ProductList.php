@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
+use Eshop\DB\ParameterAvailableValueRepository;
 use Eshop\DB\ParameterRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\Shopper;
@@ -37,6 +38,8 @@ class ProductList extends Datalist
 
 	private ParameterRepository $parameterRepository;
 
+	private ParameterAvailableValueRepository $parameterAvailableValueRepository;
+
 	public function __construct(
 		ProductRepository $productRepository,
 		WatcherRepository $watcherRepository,
@@ -44,7 +47,8 @@ class ProductList extends Datalist
 		CheckoutManager $checkoutManager,
 		Shopper $shopper,
 		Translator $translator,
-		FormFactory $formFactory
+		FormFactory $formFactory,
+		ParameterAvailableValueRepository $parameterAvailableValueRepository
 	)
 	{
 		parent::__construct($productRepository->getProducts()->where('this.hidden', false));
@@ -108,6 +112,7 @@ class ProductList extends Datalist
 		$this->translator = $translator;
 		$this->formFactory = $formFactory;
 		$this->parameterRepository = $parameterRepository;
+		$this->parameterAvailableValueRepository = $parameterAvailableValueRepository;
 	}
 
 	public function handleWatchIt(string $product): void
@@ -209,7 +214,9 @@ class ProductList extends Datalist
 						continue;
 					}
 
-					$allowed = \array_combine(\explode(';', $parameters[$pKey]->allowedKeys), \explode(';', $parameters[$pKey]->allowedValues));
+					$allowedKeys = \array_values($this->parameterAvailableValueRepository->many()->where('fk_parameter', $parameters[$pKey]->getPK())->toArrayOf('allowedKey'));
+					$allowedValues = \array_values($this->parameterAvailableValueRepository->many()->where('fk_parameter', $parameters[$pKey]->getPK())->toArrayOf('allowedValue'));
+					$allowed = \array_combine($allowedKeys, $allowedValues);
 					foreach ($parameter as $pvKey => $item) {
 						$parameter[$pvKey] = $allowed[$item];
 					}

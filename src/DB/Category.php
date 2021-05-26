@@ -119,18 +119,18 @@ class Category extends \StORM\Entity
 	public ?Category $ancestor;
 
 	/**
-	 * Kategorie parametrů
-	 * @relation
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
-	 */
-	public ?ParameterCategory $parameterCategory;
-
-	/**
 	 * Zařazení do menu
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public CategoryType $type;
+
+	/**
+	 * Kategorie
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\ParameterCategory>|\Eshop\DB\ParameterCategory[]
+	 */
+	public RelationCollection $parameterCategories;
 
 	public function isBottom()
 	{

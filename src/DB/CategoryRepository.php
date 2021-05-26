@@ -303,15 +303,21 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			->first();
 	}
 
-	public function getParameterCategoryOfCategory(Category $category): ?ParameterCategory
+	public function getParameterCategoriesOfCategory($category): ?Collection
 	{
+		if (!$category instanceof Category) {
+			if (!$category = $this->one($category)) {
+				return null;
+			}
+		}
+
 		if ($category->ancestor == null) {
-			return $category->parameterCategory;
+			return $category->parameterCategories;
 		}
 
 		do {
-			if ($category->parameterCategory) {
-				return $category->parameterCategory;
+			if (\count($category->parameterCategories->toArray()) > 0) {
+				return $category->parameterCategories;
 			}
 
 			$category = $category->ancestor;

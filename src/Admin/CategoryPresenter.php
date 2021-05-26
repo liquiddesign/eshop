@@ -47,7 +47,7 @@ class CategoryPresenter extends BackendPresenter
 	public function createComponentCategoryGrid()
 	{
 		$grid = $this->gridFactory->create($this->categoryRepository->many()->where('this.fk_type', $this->tab), null,
-			'this.priority', 'ASC', true);
+			null, 'ASC', true);
 
 		$grid->setNestingCallback(static function ($source, $parent) {
 			if (!$parent) {
@@ -74,15 +74,22 @@ class CategoryPresenter extends BackendPresenter
 		};
 
 		$grid->addColumn('Kategorie parametrů', function (Category $object, $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Parameter:parameterCategoryDetail') && $object->parameterCategory ? $datagrid->getPresenter()->link(':Eshop:Admin:Parameter:parameterCategoryDetail',
-				[$object->parameterCategory, 'backLink' => $this->storeRequest()]) : '#';
+			$string = '';
 
-			return $object->parameterCategory ? "<a href='$link'>" . $object->parameterCategory->name . "</a>" : '';
+			if ($parameterCategories = $this->categoryRepository->getParameterCategoriesOfCategory($object)) {
+				foreach ($parameterCategories as $parameterCategory) {
+					$link = $this->admin->isAllowed(':Eshop:Admin:Parameter:parameterCategoryDetail') ?
+						$datagrid->getPresenter()->link(':Eshop:Admin:Parameter:parameterCategoryDetail', [$parameterCategory, 'backLink' => $this->storeRequest()]) : '#';
+
+					$string .= "<a href='$link'>" . $parameterCategory->name . "</a>, ";
+				}
+			}
+
+			return \substr($string, 0, -2);
 		}, '%s');
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'this.priority', [], true);
-		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '',
-			'recommended');
+		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('Detail');
@@ -171,10 +178,8 @@ class CategoryPresenter extends BackendPresenter
 		}
 
 		$form->addDataSelect('ancestor', 'Nadřazená kategorie', $categories)->setPrompt('Žádná');
-		$form->addDataSelect('parameterCategory', 'Kategorie parametrů',
-			$this->parameterCategoryRepository->getArrayForSelect())->setPrompt('Žádná')
-			->setHtmlAttribute('data-info',
-				'&nbsp;Pokud nebude kategorie parametrů nastavena, bude získána kategorie parametrů z nadřazené kategorie.');
+		$form->addDataMultiSelect('parameterCategories', 'Kategorie parametrů', $this->parameterCategoryRepository->getArrayForSelect())
+			->setHtmlAttribute('data-info', '&nbsp;Pokud nebude kategorie parametrů nastavena, bude získána kategorie parametrů z nadřazené kategorie.');
 		$form->addText('exportGoogleCategory', 'Exportní název pro Google');
 		$form->addText('exportHeurekaCategory', 'Export název pro Heuréku');
 		$form->addText('exportZboziCategory', 'Export název pro Zbozi');
@@ -285,7 +290,7 @@ class CategoryPresenter extends BackendPresenter
 	{
 		/** @var Form $form */
 		$form = $this->getComponent('categoryNewForm');
-		$form->setDefaults($category->toArray());
+		$form->setDefaults($category->toArray(['parameterCategories']));
 	}
 
 	public function createComponentCategoryTypeGrid(): AdminGrid

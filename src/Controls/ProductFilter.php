@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\ParameterAvailableValueRepository;
 use Eshop\DB\ParameterCategory;
 use Eshop\DB\ParameterCategoryRepository;
 use Eshop\DB\ParameterGroupRepository;
@@ -28,9 +29,11 @@ class ProductFilter extends Control
 
 	private CategoryRepository $categoryRepository;
 
-	private ?ParameterCategory $selectedCategory;
-
 	private ProductRepository $productRepository;
+
+	private ParameterAvailableValueRepository $parameterAvailableValueRepository;
+
+	private ?array $selectedCategory;
 
 	public function __construct(
 		ParameterRepository $parameterRepository,
@@ -39,7 +42,8 @@ class ProductFilter extends Control
 		ParameterCategoryRepository $parameterCategoryRepository,
 		FormFactory $formFactory,
 		CategoryRepository $categoryRepository,
-		ProductRepository $productRepository
+		ProductRepository $productRepository,
+		ParameterAvailableValueRepository $parameterAvailableValueRepository
 	)
 	{
 		$this->parameterRepository = $parameterRepository;
@@ -49,17 +53,18 @@ class ProductFilter extends Control
 		$this->formFactory = $formFactory;
 		$this->categoryRepository = $categoryRepository;
 		$this->productRepository = $productRepository;
+		$this->parameterAvailableValueRepository = $parameterAvailableValueRepository;
 	}
 
 	/**
-	 * @return \Eshop\DB\ParameterCategory|null
+	 * @return \StORM\Entity[]
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getSelectedCategory(): ?ParameterCategory
+	public function getSelectedCategories(): array
 	{
 		$category = $this->getParent()->getFilters()['category'] ?? null;
 
-		return $this->selectedCategory ??= $category ? $this->categoryRepository->getParameterCategoryOfCategory($this->categoryRepository->one(['path' => $category])) : null;
+		return $this->selectedCategory ??= $category ? $this->categoryRepository->getParameterCategoriesOfCategory($this->categoryRepository->one(['path' => $category]))->toArray() : null;
 	}
 
 	public function render(): void
@@ -67,7 +72,7 @@ class ProductFilter extends Control
 		$collection = $this->getParent()->getSource()->setSelect(['this.uuid']);
 
 		$this->template->parameterCounts = $this->parameterRepository->getCounts($collection);
-		
+
 		$this->template->groups = $this->parameterGroupRepository->getCollection();
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
@@ -82,13 +87,11 @@ class ProductFilter extends Control
 		$parametersContainer = $filterForm->addContainer('parameters');
 
 		/** @var \Eshop\DB\ParameterGroup[] $groups */
-		$groups = $this->parameterGroupRepository->getCollection()
-			->where('fk_parametercategory', $this->getSelectedCategory());
+		$groups = $this->parameterGroupRepository->getCollection()->where('fk_parametercategory', \array_keys($this->getSelectedCategories()));
 
 		foreach ($groups as $group) {
 			/** @var \Eshop\DB\Parameter[] $parameters */
-			$parameters = $this->parameterRepository->many()
-				->where('fk_group', $group->getPK());
+			$parameters = $this->parameterRepository->getCollection()->where('fk_group', $group->getPK());
 
 			$groupContainer = $parametersContainer->addContainer($group->getPK());
 
@@ -96,8 +99,8 @@ class ProductFilter extends Control
 				if ($parameter->type == 'bool') {
 					$groupContainer->addCheckbox($parameter->getPK(), $parameter->name);
 				} elseif ($parameter->type == 'list') {
-					$allowedKeys = \explode(';', $parameter->allowedKeys ?? '');
-					$allowedValues = \explode(';', $parameter->allowedValues ?? '');
+					$allowedKeys = \array_values($this->parameterAvailableValueRepository->many()->where('fk_parameter', $parameter->getPK())->toArrayOf('allowedKey'));
+					$allowedValues = \array_values($this->parameterAvailableValueRepository->many()->where('fk_parameter', $parameter->getPK())->toArrayOf('allowedValue'));
 					$groupContainer->addCheckboxList($parameter->getPK(), $parameter->name, \array_combine($allowedKeys, $allowedValues));
 				} else {
 					$groupContainer->addText($parameter->getPK(), $parameter->name);
@@ -125,6 +128,9 @@ class ProductFilter extends Control
 				$parameters["$parent-$name"] = $values;
 			}
 
+			//@TODO nefunguje filtrace ceny
+			unset($parameters['products-priceFrom']);
+			unset($parameters['products-priceTo']);
 
 			$this->getPresenter()->redirect('this', $parameters);
 		};
