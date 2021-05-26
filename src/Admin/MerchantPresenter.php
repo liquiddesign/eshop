@@ -6,7 +6,6 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
-use Admin\Controls\AdminFormFactory;
 use Admin\Admin\Controls\AccountFormFactory;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;

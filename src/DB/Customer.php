@@ -165,6 +165,12 @@ class Customer extends Entity implements IIdentity, IUser
 	 * @column
 	 */
 	public bool $newsletter = false;
+
+	/**
+	 * Newsletter skupina
+	 * @column
+	 */
+	public ?string $newsletterGroup;
 	
 	/**
 	 * Body
