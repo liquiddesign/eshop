@@ -70,7 +70,16 @@ class ProductAttributesForm extends Control
 			foreach ($attributes as $attribute) {
 				$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
 
-				$form->addDataMultiSelect($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
+				$select = $form->addDataMultiSelect($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
+
+				$existingValues = $this->attributeRelationRepository->many()
+					->join(['attributeValue' => 'eshop_attributevalue'],'this.fk_value = attributeValue.uuid')
+					->where('fk_product', $this->product->getPK())
+					->where('fk_value', \array_keys($attributeValues))
+					->select(['existingValues' => 'attributeValue.uuid'])
+					->toArrayOf('existingValues');
+
+				$select->setDefaultValue(\array_values($existingValues));
 			}
 		}
 
@@ -85,19 +94,22 @@ class ProductAttributesForm extends Control
 
 	public function validate(AdminForm $form)
 	{
-		// Check for relations
+
 	}
 
 	public function submit(AdminForm $form)
 	{
 		$values = $form->getValues('array');
 
-		bdump($values);
-
 		$this->attributeRelationRepository->many()->where('fk_product', $this->product->getPK())->delete();
 
-		foreach ($values as $containerKey => $container) {
-
+		foreach ($values as $attributeKey => $attributeValues) {
+			foreach ($attributeValues as $attributeValueKey) {
+				$this->attributeRelationRepository->syncOne([
+					'product' => $this->product->getPK(),
+					'value' => $attributeValueKey
+				]);
+			}
 		}
 
 		$this->redirect('this');
