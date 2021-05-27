@@ -132,6 +132,13 @@ class Category extends \StORM\Entity
 	 */
 	public RelationCollection $parameterCategories;
 
+	/**
+	 * Kategorie
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\AttributeCategory>|\Eshop\DB\AttributeCategory[]
+	 */
+	public RelationCollection $attributeCategories;
+
 	public function isBottom()
 	{
 		return $this->getRepository()->many()->where('fk_ancestor', $this->uuid)->isEmpty();
