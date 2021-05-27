@@ -7,7 +7,7 @@ namespace Eshop\DB;
 /**
  * AttributeRelation
  * @table
- * @index{"name":"uniq","unique":true,"columns":["fk_product","fk_value"]}
+ * @index{"name":"attributeRelation_unique","unique":true,"columns":["fk_product","fk_value"]}
  */
 class AttributeRelation extends \StORM\Entity
 {

@@ -23,10 +23,34 @@ class AttributeValue extends \StORM\Entity
 	public ?string $label;
 
 	/**
+	 * Dodatečné informace pro front, např.: na otazník
+	 * @column{"mutations":true, "type":"longtext"}
+	 */
+	public ?string $note;
+
+	/**
+	 * Dodatečná hodnota, např.: barva
+	 * @column
+	 */
+	public ?string $metaValue;
+
+	/**
 	 * Číselná reprezentace
 	 * @column
 	 */
 	public ?float $number;
+
+	/**
+	 * Priorita
+	 * @column
+	 */
+	public int $priority = 10;
+
+	/**
+	 * Skryto
+	 * @column
+	 */
+	public bool $hidden = false;
 
 	/**
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}

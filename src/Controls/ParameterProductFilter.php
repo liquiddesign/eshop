@@ -3,19 +3,27 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\DB\AttributeCategoryRepository;
-use Eshop\DB\AttributeRepository;
-use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\ParameterAvailableValueRepository;
+use Eshop\DB\ParameterCategory;
+use Eshop\DB\ParameterCategoryRepository;
+use Eshop\DB\ParameterGroupRepository;
+use Eshop\DB\ParameterRepository;
 use Eshop\DB\ProductRepository;
 use Nette\Application\UI\Control;
 use Translator\DB\TranslationRepository;
 use Forms\FormFactory;
 use Forms\Form;
 
-class ProductFilter extends Control
+class ParameterProductFilter extends Control
 {
+	private ParameterRepository $parameterRepository;
+
 	private TranslationRepository $translator;
+
+	private ParameterGroupRepository $parameterGroupRepository;
+
+	private ParameterCategoryRepository $parameterCategoryRepository;
 
 	private FormFactory $formFactory;
 
@@ -23,31 +31,29 @@ class ProductFilter extends Control
 
 	private ProductRepository $productRepository;
 
-	private AttributeRepository $attributeRepository;
-
-	private AttributeCategoryRepository $attributeCategoryRepository;
-
-	private AttributeValueRepository $attributeValueRepository;
+	private ParameterAvailableValueRepository $parameterAvailableValueRepository;
 
 	private ?array $selectedCategory;
 
 	public function __construct(
-		FormFactory $formFactory,
+		ParameterRepository $parameterRepository,
 		TranslationRepository $translator,
+		ParameterGroupRepository $parameterGroupRepository,
+		ParameterCategoryRepository $parameterCategoryRepository,
+		FormFactory $formFactory,
 		CategoryRepository $categoryRepository,
 		ProductRepository $productRepository,
-		AttributeRepository $attributeRepository,
-		AttributeCategoryRepository $attributeCategoryRepository,
-		AttributeValueRepository $attributeValueRepository
+		ParameterAvailableValueRepository $parameterAvailableValueRepository
 	)
 	{
+		$this->parameterRepository = $parameterRepository;
 		$this->translator = $translator;
+		$this->parameterGroupRepository = $parameterGroupRepository;
+		$this->parameterCategoryRepository = $parameterCategoryRepository;
 		$this->formFactory = $formFactory;
 		$this->categoryRepository = $categoryRepository;
 		$this->productRepository = $productRepository;
-		$this->attributeRepository = $attributeRepository;
-		$this->attributeCategoryRepository = $attributeCategoryRepository;
-		$this->attributeValueRepository = $attributeValueRepository;
+		$this->parameterAvailableValueRepository = $parameterAvailableValueRepository;
 	}
 
 	/**
@@ -58,15 +64,16 @@ class ProductFilter extends Control
 	{
 		$category = $this->getParent()->getFilters()['category'] ?? null;
 
-		return $this->selectedCategory ??= $category ? $this->categoryRepository->getAttributeCategoriesOfCategory($this->categoryRepository->one(['path' => $category]))->toArray() : null;
+		return $this->selectedCategory ??= $category ? $this->categoryRepository->getParameterCategoriesOfCategory($this->categoryRepository->one(['path' => $category]))->toArray() : null;
 	}
 
 	public function render(): void
 	{
 		$collection = $this->getParent()->getSource()->setSelect(['this.uuid']);
 
-		$this->template->attributeCounts = $this->attributeRepository->getCounts($collection);
+		$this->template->parameterCounts = $this->parameterRepository->getCounts($collection);
 
+		$this->template->groups = $this->parameterGroupRepository->getCollection();
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
 
@@ -79,28 +86,29 @@ class ProductFilter extends Control
 
 		$parametersContainer = $filterForm->addContainer('parameters');
 
-		foreach ($this->getSelectedCategories() as $attributeCategory) {
-			$attributes = $this->attributeRepository->getAttributes($attributeCategory);
+		/** @var \Eshop\DB\ParameterGroup[] $groups */
+		$groups = $this->parameterGroupRepository->getCollection()->where('fk_parametercategory', \array_keys($this->getSelectedCategories()));
 
-			if (\count($attributes) == 0) {
+		foreach ($groups as $group) {
+			/** @var \Eshop\DB\Parameter[] $parameters */
+			$parameters = $this->parameterRepository->getCollection()->where('fk_group', $group->getPK());
+
+			if (\count($parameters) == 0) {
 				continue;
 			}
 
-			$filterForm->addGroup($attributeCategory->name ?? $attributeCategory->code);
+			$groupContainer = $parametersContainer->addContainer($group->getPK());
 
-			foreach ($attributes as $attribute) {
-				$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
-
-				$select = $form->addDataMultiSelect($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
-
-				$existingValues = $this->attributeRelationRepository->many()
-					->join(['attributeValue' => 'eshop_attributevalue'],'this.fk_value = attributeValue.uuid')
-					->where('fk_product', $this->product->getPK())
-					->where('fk_value', \array_keys($attributeValues))
-					->select(['existingValues' => 'attributeValue.uuid'])
-					->toArrayOf('existingValues');
-
-				$select->setDefaultValue(\array_values($existingValues));
+			foreach ($parameters as $parameter) {
+				if ($parameter->type == 'bool') {
+					$groupContainer->addCheckbox($parameter->getPK(), $parameter->name);
+				} elseif ($parameter->type == 'list') {
+					$allowedKeys = \array_values($this->parameterAvailableValueRepository->many()->where('fk_parameter', $parameter->getPK())->toArrayOf('allowedKey'));
+					$allowedValues = \array_values($this->parameterAvailableValueRepository->many()->where('fk_parameter', $parameter->getPK())->toArrayOf('allowedValue'));
+					$groupContainer->addCheckboxList($parameter->getPK(), $parameter->name, \array_combine($allowedKeys, $allowedValues));
+				} else {
+					$groupContainer->addText($parameter->getPK(), $parameter->name);
+				}
 			}
 		}
 

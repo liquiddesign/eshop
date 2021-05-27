@@ -183,6 +183,8 @@ class AttributePresenter extends BackendPresenter
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumnText('Popisek', 'label', '%s', 'label');
 		$grid->addColumnText('Číselná reprezentace', 'number', '%s', 'number');
+		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
+		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('valueDetail');
 		$grid->addColumnActionDelete();
@@ -202,7 +204,14 @@ class AttributePresenter extends BackendPresenter
 
 		$form->addText('code', 'Kód')->setRequired();
 		$form->addLocaleText('label', 'Popisek');
+		$form->addLocaleText('note', 'Dodatečné informace');
+		$form->addText('metaValue', 'Doprovodná hodnota');
 		$form->addText('number', 'Číselná reprezentace')->addFilter('floatval')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
+		$form->addText('priority', 'Priorita')
+			->addRule($form::INTEGER)
+			->setRequired()
+			->setDefaultValue(10);
+		$form->addCheckbox('hidden', 'Skryto');
 
 		$form->addSubmits(!$this->getParameter('attributeValue'));
 
