@@ -28,4 +28,36 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 
 		return $collection->orderBy(['priority', "name$suffix",]);
 	}
+
+	public function getAttributes($category): Collection
+	{
+		/** @var AttributeCategoryRepository $attributeCategoryRepository */
+		$attributeCategoryRepository = $this->getConnection()->findRepository(AttributeCategory::class);
+
+		$emptyCollection = $attributeCategoryRepository->many()->where('1 = 0');
+
+		if (!$category instanceof AttributeCategory) {
+			if (!$category = $attributeCategoryRepository->one($category)) {
+				return $emptyCollection;
+			}
+		}
+
+		return $this->many()->where('fk_category', $category->getPK());
+	}
+
+	public function getAttributeValues($attribute): Collection
+	{
+		/** @var AttributeValueRepository $attributeValueRepository */
+		$attributeValueRepository = $this->getConnection()->findRepository(AttributeValue::class);
+
+		$emptyCollection = $attributeValueRepository->many()->where('1 = 0');
+
+		if (!$attribute instanceof Attribute) {
+			if (!$attribute = $this->one($attribute)) {
+				return $emptyCollection;
+			}
+		}
+
+		return $attributeValueRepository->many()->where('fk_attribute', $attribute->getPK());
+	}
 }
