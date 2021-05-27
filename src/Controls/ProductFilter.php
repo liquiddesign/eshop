@@ -93,6 +93,10 @@ class ProductFilter extends Control
 			/** @var \Eshop\DB\Parameter[] $parameters */
 			$parameters = $this->parameterRepository->getCollection()->where('fk_group', $group->getPK());
 
+			if (\count($parameters) == 0) {
+				continue;
+			}
+
 			$groupContainer = $parametersContainer->addContainer($group->getPK());
 
 			foreach ($parameters as $parameter) {

@@ -2,13 +2,13 @@
 
 namespace Eshop\Integration;
 
+use Eshop\DB\CatalogPermission;
+use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\Shopper;
 use MailerLiteApi\Api\Groups;
+use MailerLiteApi\Api\Subscribers;
 use MailerLiteApi\MailerLite as MailerLiteApi;
-use Eshop\DB\Customer;
-use Nette\Forms\Validator;
-use Nette\Utils\Arrays;
 use Nette\Utils\Validators;
 use Web\DB\SettingRepository;
 
@@ -20,16 +20,21 @@ class MailerLite
 
 	private CustomerRepository $customerRepository;
 
+	private CatalogPermissionRepository $catalogPermissionRepository;
+
 	private Groups $groupsApi;
+
+	private Subscribers $subscribersApi;
 
 	private array $groups;
 
 	private array $subscribers;
 
-	public function __construct(SettingRepository $settingRepository, Shopper $shopper, CustomerRepository $customerRepository)
+	public function __construct(SettingRepository $settingRepository, Shopper $shopper, CustomerRepository $customerRepository, CatalogPermissionRepository $catalogPermissionRepository)
 	{
 		if ($apiKey = $settingRepository->many()->where('name = "mailerLiteApiKey"')->first()) {
 			$this->apiKey = $apiKey->value;
+			$this->subscribersApi = (new MailerLiteApi($this->apiKey))->subscribers();
 			$this->groupsApi = (new MailerLiteApi($this->apiKey))->groups();
 			$groups = $this->groupsApi->get()->toArray();
 
@@ -41,6 +46,7 @@ class MailerLite
 
 		$this->shopper = $shopper;
 		$this->customerRepository = $customerRepository;
+		$this->catalogPermissionRepository = $catalogPermissionRepository;
 	}
 
 	private function checkApi()
@@ -119,11 +125,23 @@ class MailerLite
 		}
 	}
 
+	public function unsubscribeAllFromAllGroups()
+	{
+		foreach ($this->groups as $group) {
+			$subscribers = $this->getSubscribers($group->name);
+
+			foreach ($subscribers as $subscriber) {
+				$this->groupsApi->removeSubscriber($group->id, $subscriber->id);
+			}
+		}
+	}
+
 	public function syncCustomers()
 	{
+		$this->unsubscribeAllFromAllGroups();
+
 		foreach ($this->customerRepository->many() as $customer) {
 			/** @var \Eshop\DB\Customer $customer */
-			$this->unsubscribeFromAllGroups($customer->email);
 
 			if ($customer->newsletter && $customer->newsletterGroup) {
 				$this->subscribe($customer->email, $customer->fullname, $customer->newsletterGroup);
@@ -134,10 +152,11 @@ class MailerLite
 					continue;
 				}
 
-				$this->unsubscribeFromAllGroups($account->login);
+				/** @var CatalogPermission $catalogPerm */
+				$catalogPerm = $this->catalogPermissionRepository->many()->where('fk_account', $account->getPK())->first();
 
-				if ($account->newsletter && $account->newsletterGroup) {
-					$this->subscribe($account->login, $account->fullname, $account->newsletterGroup);
+				if ($catalogPerm->newsletter && $catalogPerm->getNewsletterGroup()) {
+					$this->subscribe($account->login, $account->fullname, $catalogPerm->getNewsletterGroup());
 				}
 			}
 		}
