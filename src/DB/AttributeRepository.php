@@ -65,8 +65,8 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	{
 		$collection = $this->getCollection()
 			->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attribute = this.uuid')
-			->join(['attributeRelation' => 'eshop_attributerelation'], 'attributeRelation.fk_value = attributeValue.uuid')
-			->join(['product' => $collection], 'product.uuid=attributeRelation.fk_product', $collection->getVars())
+			->join(['attributeAssign' => 'eshop_attributeassign'], 'attributeAssign.fk_value = attributeValue.uuid')
+			->join(['product' => $collection], 'product.uuid=attributeAssign.fk_product', $collection->getVars())
 			->setSelect(['count' => 'COUNT(product.uuid)'])
 			->setIndex('this.uuid')
 			->setGroupBy(['this.uuid']);

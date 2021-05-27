@@ -80,7 +80,7 @@ class ProductFilter extends Control
 		$attributesContainer = $filterForm->addContainer('attributes');
 
 		foreach ($this->getSelectedCategories() as $attributeCategory) {
-			$attributes = $this->attributeRepository->getAttributes($attributeCategory);
+			$attributes = $this->attributeRepository->getAttributes($attributeCategory)->where('showFilter', true);
 
 			if (\count($attributes) == 0) {
 				continue;
