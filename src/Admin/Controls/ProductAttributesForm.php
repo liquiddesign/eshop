@@ -6,7 +6,7 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
-use Eshop\DB\AttributeRelationRepository;
+use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
@@ -21,7 +21,7 @@ class ProductAttributesForm extends Control
 
 	private AttributeValueRepository $attributeValueRepository;
 
-	private AttributeRelationRepository $attributeRelationRepository;
+	private AttributeAssignRepository $attributeAssignRepository;
 
 	private ?string $error = null;
 
@@ -30,14 +30,14 @@ class ProductAttributesForm extends Control
 		AdminFormFactory $adminFormFactory,
 		AttributeRepository $attributeRepository,
 		AttributeValueRepository $attributeValueRepository,
-		AttributeRelationRepository $attributeRelationRepository,
+		AttributeAssignRepository $attributeAssignRepository,
 		CategoryRepository $categoryRepository
 	)
 	{
 		$this->product = $product;
 		$this->attributeRepository = $attributeRepository;
 		$this->attributeValueRepository = $attributeValueRepository;
-		$this->attributeRelationRepository = $attributeRelationRepository;
+		$this->attributeAssignRepository = $attributeAssignRepository;
 
 		$form = $adminFormFactory->create();
 		$form->removeComponent($form->getComponent('uuid'));
@@ -72,7 +72,7 @@ class ProductAttributesForm extends Control
 
 				$select = $form->addDataMultiSelect($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
 
-				$existingValues = $this->attributeRelationRepository->many()
+				$existingValues = $this->attributeAssignRepository->many()
 					->join(['attributeValue' => 'eshop_attributevalue'],'this.fk_value = attributeValue.uuid')
 					->where('fk_product', $this->product->getPK())
 					->where('fk_value', \array_keys($attributeValues))
@@ -101,11 +101,11 @@ class ProductAttributesForm extends Control
 	{
 		$values = $form->getValues('array');
 
-		$this->attributeRelationRepository->many()->where('fk_product', $this->product->getPK())->delete();
+		$this->attributeAssignRepository->many()->where('fk_product', $this->product->getPK())->delete();
 
 		foreach ($values as $attributeKey => $attributeValues) {
 			foreach ($attributeValues as $attributeValueKey) {
-				$this->attributeRelationRepository->syncOne([
+				$this->attributeAssignRepository->syncOne([
 					'product' => $this->product->getPK(),
 					'value' => $attributeValueKey
 				]);
