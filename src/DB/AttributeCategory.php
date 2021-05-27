@@ -11,16 +11,16 @@ namespace Eshop\DB;
 class AttributeCategory extends \StORM\Entity
 {
 	/**
-	 * Název
-	 * @column{"mutations":true}
-	 */
-	public ?string $name;
-
-	/**
 	 * Kód
 	 * @column
 	 */
 	public ?string $code;
+
+	/**
+	 * Název
+	 * @column{"mutations":true}
+	 */
+	public ?string $name;
 
 	/**
 	 * Dodavatel / externí
