@@ -23,9 +23,9 @@ class AttributeValueRepository extends \StORM\Repository implements IGeneralRepo
 		$collection = $this->many();
 
 		if (!$includeHidden) {
-			$collection->where('hidden', false);
+			$collection->where('this.hidden', false);
 		}
 
-		return $collection->orderBy(['priority', "label$suffix",]);
+		return $collection->orderBy(['this.priority', "this.label$suffix",]);
 	}
 }

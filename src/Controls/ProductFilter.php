@@ -77,7 +77,7 @@ class ProductFilter extends Control
 		$filterForm->addInteger('priceFrom')->setRequired()->setDefaultValue(0);
 		$filterForm->addInteger('priceTo')->setRequired()->setDefaultValue(100000);
 
-		$parametersContainer = $filterForm->addContainer('parameters');
+		$attributesContainer = $filterForm->addContainer('attributes');
 
 		foreach ($this->getSelectedCategories() as $attributeCategory) {
 			$attributes = $this->attributeRepository->getAttributes($attributeCategory);
@@ -86,21 +86,10 @@ class ProductFilter extends Control
 				continue;
 			}
 
-			$filterForm->addGroup($attributeCategory->name ?? $attributeCategory->code);
-
 			foreach ($attributes as $attribute) {
 				$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
 
-				$select = $form->addDataMultiSelect($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
-
-				$existingValues = $this->attributeRelationRepository->many()
-					->join(['attributeValue' => 'eshop_attributevalue'],'this.fk_value = attributeValue.uuid')
-					->where('fk_product', $this->product->getPK())
-					->where('fk_value', \array_keys($attributeValues))
-					->select(['existingValues' => 'attributeValue.uuid'])
-					->toArrayOf('existingValues');
-
-				$select->setDefaultValue(\array_values($existingValues));
+				$attributesContainer->addCheckboxList($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
 			}
 		}
 

@@ -59,7 +59,7 @@ class ProductAttributesForm extends Control
 		}
 
 		foreach ($attributeCategories as $attributeCategory) {
-			$attributes = $this->attributeRepository->getAttributes($attributeCategory);
+			$attributes = $this->attributeRepository->getAttributes($attributeCategory, true);
 
 			if (\count($attributes) == 0) {
 				continue;
@@ -68,7 +68,7 @@ class ProductAttributesForm extends Control
 			$form->addGroup($attributeCategory->name ?? $attributeCategory->code);
 
 			foreach ($attributes as $attribute) {
-				$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
+				$attributeValues = $this->attributeRepository->getAttributeValues($attribute, true)->toArrayOf('label');
 
 				$select = $form->addDataMultiSelect($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
 

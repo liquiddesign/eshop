@@ -23,13 +23,13 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		$collection = $this->many();
 
 		if (!$includeHidden) {
-			$collection->where('hidden', false);
+			$collection->where('this.hidden', false);
 		}
 
-		return $collection->orderBy(['priority', "name$suffix",]);
+		return $collection->orderBy(['this.priority', "this.name$suffix",]);
 	}
 
-	public function getAttributes($category): Collection
+	public function getAttributes($category, bool $includeHidden = false): Collection
 	{
 		/** @var AttributeCategoryRepository $attributeCategoryRepository */
 		$attributeCategoryRepository = $this->getConnection()->findRepository(AttributeCategory::class);
@@ -42,10 +42,10 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			}
 		}
 
-		return $this->getCollection()->where('fk_category', $category->getPK());
+		return $this->getCollection($includeHidden)->where('fk_category', $category->getPK());
 	}
 
-	public function getAttributeValues($attribute): Collection
+	public function getAttributeValues($attribute, bool $includeHidden = false): Collection
 	{
 		/** @var AttributeValueRepository $attributeValueRepository */
 		$attributeValueRepository = $this->getConnection()->findRepository(AttributeValue::class);
@@ -58,7 +58,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			}
 		}
 
-		return $attributeValueRepository->getCollection()->where('fk_attribute', $attribute->getPK());
+		return $attributeValueRepository->getCollection($includeHidden)->where('fk_attribute', $attribute->getPK());
 	}
 
 	public function getCounts(Collection $collection): array
