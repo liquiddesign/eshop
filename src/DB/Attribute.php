@@ -69,6 +69,13 @@ class Attribute extends \StORM\Entity
 	 * @relation
 	 */
 	public AttributeCategory $category;
+	
+	/**
+	 * Dodavatel / externí
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 */
+	public ?Supplier $supplier;
 
 	public function isSystemic(): bool
 	{
