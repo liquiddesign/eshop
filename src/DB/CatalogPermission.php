@@ -17,13 +17,13 @@ class CatalogPermission extends \StORM\Entity
 	 * @column{"type":"enum","length":"'none','catalog','price'"}
 	 */
 	public string $catalogPermission = 'price';
-	
+
 	/**
 	 * Oprávnění: nákup
 	 * @column
 	 */
 	public bool $buyAllowed = true;
-	
+
 	/**
 	 * Oprávnění: objednávka
 	 * @column
@@ -43,16 +43,33 @@ class CatalogPermission extends \StORM\Entity
 	public bool $showPricesWithVat = false;
 
 	/**
+	 * Přihlášen k newsletteru
+	 * @column
+	 */
+	public bool $newsletter = false;
+
+	/**
+	 * Newsletter skupina
+	 * @column
+	 */
+	public ?string $newsletterGroup;
+
+	/**
 	 * Zákazník
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public Customer $customer;
-	
+
 	/**
 	 * Účet
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public Account $account;
+
+	public function getNewsletterGroup(): ?string
+	{
+		return $this->newsletterGroup && $this->newsletterGroup != '' ? $this->newsletterGroup : $this->customer->newsletterGroup;
+	}
 }

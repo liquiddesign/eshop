@@ -281,7 +281,7 @@ class CustomerPresenter extends BackendPresenter
 		$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired();
 		$form->addText('ccEmails', 'Kopie emailů')->setHtmlAttribute('data-info', 'Zadejte emailové adresy oddělené středníkem (;).');
 
-		$form->addCheckbox('newsletter', 'Přihlášen k newsletteru')->addCondition($form::EQUAL, true)->toggle('frm-form-newsletterGroup-toogle');
+		$form->addCheckbox('newsletter', 'Přihlášen k newsletteru');
 		$form->addText('newsletterGroup', 'Skupina pro newsletter');
 
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->many()->toArrayOf('name'))
@@ -533,6 +533,9 @@ class CustomerPresenter extends BackendPresenter
 			if ($this->shopper->getShowVat()) {
 				$container->addCheckbox('showPricesWithVat', 'Zobrazit ceny s daní');
 			}
+
+			$container->addCheckbox('newsletter', 'Přihlášen k newsletteru')->addCondition($form::EQUAL, true)->toggle('frm-accountForm-permission-newsletterGroup-toogle');
+			$container->addText('newsletterGroup', 'Skupina pro newsletter')->setHtmlAttribute('data-info', 'Pokud nebude vyplněno, tak bude vybrána skupina zákazníka.');
 		};
 
 		$form = $this->accountFormFactory->create(false, $callback, true, true);
@@ -673,13 +676,6 @@ class CustomerPresenter extends BackendPresenter
 			'all' => "celý výsledek ($totalNo)",
 		])->setDefaultValue('selected');
 
-		$account = $form->addContainer('account');
-
-		$account->addCheckbox('newsletterCheck', 'Původní')->setDefaultValue(true);
-		$account->addCheckbox('newsletter', 'Přihlášen k newsletteru');
-		$account->addCheckbox('newsletterGroupCheck', 'Původní')->setDefaultValue(true);
-		$account->addText('newsletterGroup', 'Skupina pro newsletter');
-
 		$values = $form->addContainer('values');
 
 		$values->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setPrompt('Původní');
@@ -691,6 +687,12 @@ class CustomerPresenter extends BackendPresenter
 			false => 'Ne',
 			true => 'Ano'
 		])->setPrompt('Původní');
+		$values->addSelect('newsletter', 'Přihlášen k newsletteru', [
+			false => 'Ne',
+			true => 'Ano'
+		])->setPrompt('Původní');
+		$values->addCheckbox('newsletterGroupCheck', 'Původní')->setDefaultValue(true);
+		$values->addText('newsletterGroup', 'Skupina pro newsletter');
 
 		$form->addSubmits(false, false);
 
@@ -700,6 +702,12 @@ class CustomerPresenter extends BackendPresenter
 			if (\count($values['values']) === 0) {
 				return;
 			}
+
+			if ($values['values']['newsletterGroupCheck']) {
+				unset($values['values']['newsletterGroup']);
+			}
+
+			unset($values['values']['newsletterGroupCheck']);
 
 			foreach ($values['values'] as $key => $value) {
 				if ($value === null) {
@@ -712,20 +720,6 @@ class CustomerPresenter extends BackendPresenter
 			foreach ($ids as $id) {
 				if (\count($values['values']) > 0) {
 					$this->catalogPermissionRepo->many()->where('fk_account', $id)->update($values['values']);
-				}
-
-				$accountValues = [];
-
-				if (!$values['account']['newsletterCheck']) {
-					$accountValues['newsletter'] = $values['account']['newsletter'];
-				}
-
-				if (!$values['account']['newsletterGroupCheck']) {
-					$accountValues['newsletterGroup'] = $values['account']['newsletterGroup'];
-				}
-
-				if (\count($accountValues) > 0) {
-					$this->accountRepository->one($id)->update($accountValues);
 				}
 			}
 
