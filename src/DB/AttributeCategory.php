@@ -28,4 +28,16 @@ class AttributeCategory extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public ?Supplier $supplier;
+
+	/**
+	 * Systemic
+	 * @column
+	 */
+	public bool $systemic = false;
+
+	public function isSystemic(): bool
+	{
+		return $this->systemic;
+	}
+
 }

@@ -7,6 +7,7 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\DB\AttributeCategoryRepository;
 use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryType;
@@ -35,6 +36,9 @@ class CategoryPresenter extends BackendPresenter
 
 	/** @inject */
 	public ParameterCategoryRepository $parameterCategoryRepository;
+
+	/** @inject */
+	public AttributeCategoryRepository $attributeCategoryRepository;
 
 	/** @inject */
 	public CategoryTypeRepository $categoryTypeRepository;
@@ -73,13 +77,28 @@ class CategoryPresenter extends BackendPresenter
 			$td->setHtml(\str_repeat('- - ', $level) . $td->getHtml());
 		};
 
-		$grid->addColumn('Kategorie parametrů', function (Category $object, $datagrid) {
+//		$grid->addColumn('Kategorie parametrů', function (Category $object, $datagrid) {
+//			$string = '';
+//
+//			if ($parameterCategories = $this->categoryRepository->getParameterCategoriesOfCategory($object)) {
+//				foreach ($parameterCategories as $parameterCategory) {
+//					$link = $this->admin->isAllowed(':Eshop:Admin:Parameter:parameterCategoryDetail') ?
+//						$datagrid->getPresenter()->link(':Eshop:Admin:Parameter:parameterCategoryDetail', [$parameterCategory, 'backLink' => $this->storeRequest()]) : '#';
+//
+//					$string .= "<a href='$link'>" . $parameterCategory->name . "</a>, ";
+//				}
+//			}
+//
+//			return \substr($string, 0, -2);
+//		}, '%s');
+
+		$grid->addColumn('Kategorie atributů', function (Category $object, $datagrid) {
 			$string = '';
 
-			if ($parameterCategories = $this->categoryRepository->getParameterCategoriesOfCategory($object)) {
+			if ($parameterCategories = $this->categoryRepository->getAttributeCategoriesOfCategory($object)) {
 				foreach ($parameterCategories as $parameterCategory) {
-					$link = $this->admin->isAllowed(':Eshop:Admin:Parameter:parameterCategoryDetail') ?
-						$datagrid->getPresenter()->link(':Eshop:Admin:Parameter:parameterCategoryDetail', [$parameterCategory, 'backLink' => $this->storeRequest()]) : '#';
+					$link = $this->admin->isAllowed(':Eshop:Admin:Attribute:categoryDetail') ?
+						$datagrid->getPresenter()->link(':Eshop:Admin:Attribute:categoryDetail', [$parameterCategory, 'backLink' => $this->storeRequest()]) : '#';
 
 					$string .= "<a href='$link'>" . $parameterCategory->name . "</a>, ";
 				}
@@ -178,8 +197,10 @@ class CategoryPresenter extends BackendPresenter
 		}
 
 		$form->addDataSelect('ancestor', 'Nadřazená kategorie', $categories)->setPrompt('Žádná');
-		$form->addDataMultiSelect('parameterCategories', 'Kategorie parametrů', $this->parameterCategoryRepository->getArrayForSelect())
-			->setHtmlAttribute('data-info', '&nbsp;Pokud nebude kategorie parametrů nastavena, bude získána kategorie parametrů z nadřazené kategorie.');
+//		$form->addDataMultiSelect('parameterCategories', 'Kategorie parametrů', $this->parameterCategoryRepository->getArrayForSelect())
+//			->setHtmlAttribute('data-info', '&nbsp;Pokud nebude kategorie parametrů nastavena, bude získána kategorie parametrů z nadřazené kategorie.');
+		$form->addDataMultiSelect('attributeCategories', 'Kategorie atributů', $this->attributeCategoryRepository->getArrayForSelect())
+			->setHtmlAttribute('data-info', '&nbsp;Pokud nebude kategorie atributů nastavena, bude získána kategorie atributů z nadřazené kategorie.');
 		$form->addText('exportGoogleCategory', 'Exportní název pro Google');
 		$form->addText('exportHeurekaCategory', 'Export název pro Heuréku');
 		$form->addText('exportZboziCategory', 'Export název pro Zbozi');

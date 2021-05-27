@@ -325,4 +325,27 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		return null;
 	}
+
+	public function getAttributeCategoriesOfCategory($category): ?Collection
+	{
+		if (!$category instanceof Category) {
+			if (!$category = $this->one($category)) {
+				return null;
+			}
+		}
+
+		if ($category->ancestor == null) {
+			return $category->attributeCategories;
+		}
+
+		do {
+			if (\count($category->attributeCategories->toArray()) > 0) {
+				return $category->attributeCategories;
+			}
+
+			$category = $category->ancestor;
+		} while ($category != null);
+
+		return null;
+	}
 }

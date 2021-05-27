@@ -17,7 +17,7 @@ class AttributeValue extends \StORM\Entity
 	public string $code;
 
 	/**
-	 * Popisky pro front
+	 * Popisek pro front
 	 * @column{"mutations":true}
 	 */
 	public ?string $label;
