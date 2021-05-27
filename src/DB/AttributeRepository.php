@@ -68,8 +68,8 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			->join(['attributeAssign' => 'eshop_attributeassign'], 'attributeAssign.fk_value = attributeValue.uuid')
 			->join(['product' => $collection], 'product.uuid=attributeAssign.fk_product', $collection->getVars())
 			->setSelect(['count' => 'COUNT(product.uuid)'])
-			->setIndex('this.uuid')
-			->setGroupBy(['this.uuid']);
+			->setIndex('attributeValue.uuid')
+			->setGroupBy(['attributeValue.uuid']);
 
 		$collection->setFetchClass(\stdClass::class);
 

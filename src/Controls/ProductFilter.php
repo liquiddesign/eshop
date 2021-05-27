@@ -65,7 +65,7 @@ class ProductFilter extends Control
 	{
 		$collection = $this->getParent()->getSource()->setSelect(['this.uuid']);
 
-		$this->template->attributeCounts = $this->attributeRepository->getCounts($collection);
+		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($collection);
 
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
@@ -82,18 +82,23 @@ class ProductFilter extends Control
 		foreach ($this->getSelectedCategories() as $attributeCategory) {
 			$attributes = $this->attributeRepository->getAttributes($attributeCategory)->where('showFilter', true);
 
-			if (\count($attributes) == 0) {
-				continue;
-			}
-
 			foreach ($attributes as $attribute) {
 				$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
+
+				if (\count($attributeValues) == 0) {
+					continue;
+				}
 
 				$attributesContainer->addCheckboxList($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
 			}
 		}
 
 		$filterForm->addSubmit('submit', $this->translator->translate('filter.showProducts', 'Zobrazit produkty'));
+
+		/** @var ProductList $parent */
+		$parent = $this->getParent();
+
+		$filterForm->setDefaults($parent->getFilters()['attributes'] ?? []);
 
 		$filterForm->onValidate[] = function (Form $form) {
 			$values = $form->getValues();
@@ -128,23 +133,30 @@ class ProductFilter extends Control
 	{
 		$parent = $this->getParent()->getName();
 
-		$this->getPresenter()->redirect('this', ["$parent-priceFrom" => null, "$parent-priceTo" => null, "$parent-parameters" => null]);
+		$this->getPresenter()->redirect('this', ["$parent-priceFrom" => null, "$parent-priceTo" => null, "$parent-attributes" => null]);
 	}
 
-	public function handleClearFilter($filter): void
+	public function handleClearFilter($searchedAttributeKey, $searchedAttributeValueKey = null): void
 	{
-		$filtersParameters = $this->getParent()->getFilters()['parameters'];
+		$filtersParameters = $this->getParent()->getFilters()['attributes'];
 		$parent = $this->getParent()->getName();
 
-		foreach ($filtersParameters as $key => $group) {
-			foreach ($group as $pKey => $parameter) {
-				if ($pKey == $filter) {
-					unset($filtersParameters[$key][$pKey]);
+		foreach ($filtersParameters as $attributeKey => $attributeValues) {
+			if ($attributeKey == $searchedAttributeKey) {
+				if ($searchedAttributeValueKey) {
+					$foundKey = \array_search($searchedAttributeValueKey, $attributeValues);
+					unset($filtersParameters[$attributeKey][$foundKey]);
+					$filtersParameters[$attributeKey] = \array_values($filtersParameters[$attributeKey]);
+
 					break;
 				}
+			} else {
+				unset($filtersParameters[$attributeKey]);
+
+				break;
 			}
 		}
 
-		$this->getPresenter()->redirect('this', ["$parent-parameters" => $filtersParameters]);
+		$this->getPresenter()->redirect('this', ["$parent-attributes" => $filtersParameters]);
 	}
 }

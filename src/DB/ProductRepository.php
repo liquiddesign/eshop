@@ -361,6 +361,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 	}
 
+	public function filterAttributes($attributes, ICollection $collection)
+	{
+
+	}
+
 	private function sqlExplode(string $expression, string $delimiter, int $position): string
 	{
 		return "REPLACE(SUBSTRING(SUBSTRING_INDEX($expression, '$delimiter', $position),
