@@ -54,12 +54,12 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		if ($cache) {
 			return $this->cache->load("categoryTree-" . ($typeId ?: ''), function (&$dependencies) use ($repository, $typeId) {
-					$dependencies = [
-						Cache::TAGS => 'categories',
-					];
+				$dependencies = [
+					Cache::TAGS => 'categories',
+				];
 
-					return $this->getTreeHelper($typeId, $repository);
-				});
+				return $this->getTreeHelper($typeId, $repository);
+			});
 		} else {
 			return $this->getTreeHelper($typeId, $repository);
 		}
@@ -301,6 +301,28 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		return $this->many()
 			->where('path', \substr($category->path, 0, 4))
 			->first();
+	}
+
+	public function getBranch($category): array
+	{
+		if (!$category instanceof Category) {
+			if (!$category = $this->one($category)) {
+				return [];
+			}
+		}
+
+		if ($category->ancestor == null) {
+			return [$category->getPK() => $category];
+		}
+
+		$categories = [];
+
+		do {
+			$categories[$category->getPK()] = $category;
+			$category = $category->ancestor;
+		} while ($category != null);
+
+		return \array_reverse($categories);;
 	}
 
 	public function getParameterCategoriesOfCategory($category): ?Collection

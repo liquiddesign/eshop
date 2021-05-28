@@ -29,20 +29,31 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		return $collection->orderBy(['this.priority', "this.name$suffix",]);
 	}
 
-	public function getAttributes($category, bool $includeHidden = false): Collection
+	public function getAttributesByCategories($categories, bool $includeHidden = false)
 	{
-		/** @var AttributeCategoryRepository $attributeCategoryRepository */
-		$attributeCategoryRepository = $this->getConnection()->findRepository(AttributeCategory::class);
+		/** @var CategoryRepository $categoryRepository */
+		$categoryRepository = $this->getConnection()->findRepository(Category::class);
 
-		$emptyCollection = $attributeCategoryRepository->many()->where('1 = 0');
+		$categories = \is_array($categories) ? $categories : [$categories];
 
-		if (!$category instanceof AttributeCategory) {
-			if (!$category = $attributeCategoryRepository->one($category)) {
-				return $emptyCollection;
+		$query = '';
+
+		foreach ($categories as $category) {
+			if (!$category instanceof Category) {
+				if (!$category = $categoryRepository->one($category)) {
+					continue;
+				}
 			}
+
+			$query .= "categories.path LIKE \"$category->path%\" OR ";
 		}
 
-		return $this->getCollection($includeHidden)->where('fk_category', $category->getPK());
+		$query = \substr($query, 0, -3);
+
+		return $this->getCollection($includeHidden)
+			->join(['nxn' => 'eshop_attribute_nxn_eshop_category'], 'this.uuid = nxn.fk_attribute')
+			->join(['category' => 'eshop_category'], 'category.uuid = nxn.fk_category')
+			->where($query);
 	}
 
 	public function getAttributeValues($attribute, bool $includeHidden = false): Collection

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use StORM\RelationCollection;
+
 /**
  * Attribute
  * @table
@@ -64,11 +66,11 @@ class Attribute extends \StORM\Entity
 	public bool $systemic = false;
 
 	/**
-	 * Kategorie atributů
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
-	 * @relation
+	 * Kategorie
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\Category>|\Eshop\DB\Category[]
 	 */
-	public AttributeCategory $category;
+	public RelationCollection $categories;
 	
 	/**
 	 * Dodavatel / externí

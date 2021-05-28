@@ -49,13 +49,6 @@ class SupplierCategory extends \StORM\Entity
 	public ?ParameterCategory $parameterCategory;
 	
 	/**
-	 * Mapování atributu kategorií, jestli je zadáno
-	 * @relation
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
-	 */
-	public ?AttributeCategory $attributeCategory;
-	
-	/**
 	 * Mapování kategorií, jestli je zadáno
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
