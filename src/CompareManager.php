@@ -55,13 +55,6 @@ class CompareManager
 		return $section;
 	}
 
-	public function getAttributes(?string $category = null): array
-	{
-		$parsedProducts = $this->getParsedProductsWithPrimaryCategories($category);
-
-		return $parsedProducts;
-	}
-
 	public function getParsedProductsWithPrimaryCategories(?string $categoryPK = null): array
 	{
 		$resultCategories = [];
@@ -70,12 +63,31 @@ class CompareManager
 			$product = $this->productRepository->one($productKey);
 
 			if ($category = $product->getPrimaryCategory()) {
-				if (!$categoryPK || $category->getPK() == $categoryPK) {
-					$resultCategories[$category->getPK()]['products'][] = $product;
+				if (!isset($resultCategories[$category->getPK()]) && (!$categoryPK || $category->getPK() == $categoryPK)) {
+					$attributes = $this->attributeRepository->getAttributesByCategories($category);
+
+					$resultCategories[$category->getPK()]['products'][$productKey]['product'] = $product;
+
+					foreach ($attributes as $attributeKey => $attribute) {
+						$values = $this->attributeValueRepository->many()
+							->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value')
+							->where('assign.fk_product', $product->getPK())
+							->toArray();
+
+						if (\count($values) == 0) {
+							continue;
+						}
+
+						$resultCategories[$category->getPK()]['products'][$productKey]['attributes'][$attributeKey]['attribute'] = $attribute;
+						$resultCategories[$category->getPK()]['products'][$productKey]['attributes'][$attributeKey]['values'] = $values;
+					}
+
 					$resultCategories[$category->getPK()]['category'] = $category;
 				}
 			}
 		}
+
+		bdump($resultCategories);
 
 		return $resultCategories;
 	}
