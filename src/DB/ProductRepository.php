@@ -498,6 +498,43 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $groupedParameters;
 	}
 
+	public function getActiveProductAttributes($product): array
+	{
+		if (!$product instanceof Product) {
+			if (!$product = $this->one($product)) {
+				return [];
+			}
+		}
+
+		/** @var \Eshop\DB\CategoryRepository $categoryRepo */
+		$categoryRepo = $this->getConnection()->findRepository(Category::class);
+
+		/** @var \Eshop\DB\AttributeRepository $attributeRepository */
+		$attributeRepository = $this->getConnection()->findRepository(Attribute::class);
+
+		/** @var \Eshop\DB\AttributeValueRepository $attributeValueRepository */
+		$attributeValueRepository = $this->getConnection()->findRepository(AttributeValue::class);
+
+		$productCategory = $product->getPrimaryCategory();
+
+		$categories = $categoryRepo->getBranch($productCategory);
+
+		$attributes = $attributeRepository->getAttributesByCategories(\array_values($categories))->toArray();
+		$attributesList = [];
+
+		foreach ($attributes as $attributeKey => $attribute) {
+			$attributeArray = ['attribute' => $attribute];
+			$attributeArray['values'] = $attributeValueRepository->many()
+				->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value')
+				->where('assign.fk_product', $product->getPK())
+				->toArray();
+
+			$attributesList[$attributeKey] = $attributeArray;
+		}
+
+		return $attributesList;
+	}
+
 	public function isProductInCategory($product, $category): bool
 	{
 		/** @var \Eshop\DB\CategoryRepository $categoryRepo */

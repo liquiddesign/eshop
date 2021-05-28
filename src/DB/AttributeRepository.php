@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
+use Nette\Utils\Arrays;
 use StORM\Collection;
 
 /**
@@ -45,7 +46,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 				}
 			}
 
-			$query .= "categories.path LIKE \"$category->path%\" OR ";
+			$query .= "categories.path = \"$category->path\" OR ";
 		}
 
 		$query = \substr($query, 0, -3);
@@ -72,12 +73,14 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		return $attributeValueRepository->getCollection($includeHidden)->where('fk_attribute', $attribute->getPK());
 	}
 
-	public function getCounts(Collection $collection): array
+	public function getCounts(Collection $collection, array $categories): array
 	{
 		$collection = $this->getCollection()
 			->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attribute = this.uuid')
 			->join(['attributeAssign' => 'eshop_attributeassign'], 'attributeAssign.fk_value = attributeValue.uuid')
 			->join(['product' => $collection], 'product.uuid=attributeAssign.fk_product', $collection->getVars())
+			->join(['attributeXcategory' => 'eshop_attribute_nxn_eshop_category'], 'this.uuid = attributeXcategory.fk_attribute')
+			->where('attributeXcategory.fk_category', \array_keys($categories))
 			->setSelect(['count' => 'COUNT(product.uuid)'])
 			->setIndex('attributeValue.uuid')
 			->setGroupBy(['attributeValue.uuid']);

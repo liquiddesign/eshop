@@ -26,7 +26,7 @@ class ProductFilter extends Control
 
 	private AttributeValueRepository $attributeValueRepository;
 
-	private ?array $selectedCategory;
+	private ?array $selectedCategories;
 
 	public function __construct(
 		FormFactory $formFactory,
@@ -57,20 +57,20 @@ class ProductFilter extends Control
 			return [];
 		}
 
-		$attributeCategories = $this->categoryRepository->getAttributeCategoriesOfCategory($this->categoryRepository->one(['path' => $category]));
+		$categories = $this->categoryRepository->getBranch($this->categoryRepository->one(['path' => $category]));
 
-		if (!$attributeCategories) {
+		if (!$categories) {
 			return [];
 		}
 
-		return $this->selectedCategory ??= $attributeCategories->toArray();
+		return $this->selectedCategories ??= $categories;
 	}
 
 	public function render(): void
 	{
 		$collection = $this->getParent()->getSource()->setSelect(['this.uuid']);
 
-		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($collection);
+		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($collection, $this->getSelectedCategories());
 
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
@@ -84,18 +84,16 @@ class ProductFilter extends Control
 
 		$attributesContainer = $filterForm->addContainer('attributes');
 
-		foreach ($this->getSelectedCategories() as $attributeCategory) {
-			$attributes = $this->attributeRepository->getAttributes($attributeCategory)->where('showFilter', true);
+		$attributes = $this->attributeRepository->getAttributesByCategories($this->getSelectedCategories())->where('showFilter', true);
 
-			foreach ($attributes as $attribute) {
-				$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
+		foreach ($attributes as $attribute) {
+			$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
 
-				if (\count($attributeValues) == 0) {
-					continue;
-				}
-
-				$attributesContainer->addCheckboxList($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
+			if (\count($attributeValues) == 0) {
+				continue;
 			}
+
+			$attributesContainer->addCheckboxList($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
 		}
 
 		$filterForm->addSubmit('submit', $this->translator->translate('filter.showProducts', 'Zobrazit produkty'));

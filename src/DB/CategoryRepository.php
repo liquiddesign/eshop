@@ -322,7 +322,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			$category = $category->ancestor;
 		} while ($category != null);
 
-		return \array_reverse($categories);;
+		return \array_reverse($categories);
 	}
 
 	public function getParameterCategoriesOfCategory($category): ?Collection
@@ -340,29 +340,6 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		do {
 			if (\count($category->parameterCategories->toArray()) > 0) {
 				return $category->parameterCategories;
-			}
-
-			$category = $category->ancestor;
-		} while ($category != null);
-
-		return null;
-	}
-
-	public function getAttributeCategoriesOfCategory($category): ?Collection
-	{
-		if (!$category instanceof Category) {
-			if (!$category = $this->one($category)) {
-				return null;
-			}
-		}
-
-		if ($category->ancestor == null) {
-			return $category->attributeCategories;
-		}
-
-		do {
-			if (\count($category->attributeCategories->toArray()) > 0) {
-				return $category->attributeCategories;
 			}
 
 			$category = $category->ancestor;
