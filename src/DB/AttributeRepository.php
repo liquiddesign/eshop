@@ -45,7 +45,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 				}
 			}
 
-			$query .= "categories.path LIKE \"$category->path%\" OR ";
+			$query .= "categories.path = \"$category->path\" OR ";
 		}
 
 		$query = \substr($query, 0, -3);
