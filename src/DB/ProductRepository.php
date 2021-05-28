@@ -529,6 +529,10 @@ class ProductRepository extends Repository implements IGeneralRepository
 				->where('assign.fk_product', $product->getPK())
 				->toArray();
 
+			if (\count($attributeArray['values']) == 0) {
+				continue;
+			}
+
 			$attributesList[$attributeKey] = $attributeArray;
 		}
 
