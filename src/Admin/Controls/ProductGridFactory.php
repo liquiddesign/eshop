@@ -100,7 +100,7 @@ class ProductGridFactory
 		$grid->addColumnInputCheckbox('<i title="Neprodejné" class="fas fa-ban"></i>', 'unavailable', '', '', 'unavailable');
 		
 		if ($configuration['parameters']) {
-			$grid->addColumnLink('Parameters', 'Parametry');
+			$grid->addColumnLink('Parameters', 'Atributy');
 		}
 		
 		$grid->addColumnLink('Prices', 'Ceny');
