@@ -100,13 +100,7 @@ class SupplierProductRepository extends \StORM\Repository
 				$product->categories->unrelateAll();
 				
 				if ($draft->category->getValue('category')) {
-					// $draft->category->parameterCategory;
-					/*
-					 * TODO prirazeni k vice kategoriim
-					if ($draft->category->parameterCategory) {
-						$draft->category->parameterCategory->categories->relate([$category]);
-					}
-					*/
+					
 					$product->categories->relate([$category], false);
 				}
 			}
