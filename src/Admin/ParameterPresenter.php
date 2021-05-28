@@ -8,11 +8,13 @@ use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\Parameter;
+use Eshop\DB\ParameterAvailableValueRepository;
 use Eshop\DB\ParameterCategory;
 use Eshop\DB\ParameterCategoryRepository;
 use Eshop\DB\ParameterGroup;
 use Eshop\DB\ParameterGroupRepository;
 use Eshop\DB\ParameterRepository;
+use Eshop\DB\ParameterValueRepository;
 use Forms\Form;
 use StORM\DIConnection;
 use StORM\ICollection;
@@ -28,6 +30,9 @@ class ParameterPresenter extends BackendPresenter
 	/** @inject */
 	public ParameterCategoryRepository $parameterCategoryRepo;
 
+	/** @inject */
+	public ParameterAvailableValueRepository $parameterAvailableValueRepository;
+
 	public const TABS = [
 		'groups' => 'Skupiny',
 		'categories' => 'Kategorie',
@@ -39,7 +44,7 @@ class ParameterPresenter extends BackendPresenter
 	protected const TYPES = [
 		'bool' => 'Ano / Ne',
 		'list' => 'Seznam',
-		'text' => 'Text',
+//		'text' => 'Text',
 	];
 
 	public function createComponentGrid(): AdminGrid
@@ -98,16 +103,19 @@ class ParameterPresenter extends BackendPresenter
 		/** @var Parameter $parameter */
 		$parameter = $this->getParameter('parameter');
 
-		$form->addLocaleTextArea('description','Popisek');
+		$form->addLocaleTextArea('description', 'Popisek');
 
-		$form->addSelect('type', 'Typ', $this::TYPES)->setHtmlAttribute('onchange', 'onTypeChange(this)');
+		$form->addSelect('type', 'Typ', $this::TYPES)->setHtmlAttribute('onchange', 'onTypeChange(this)')
+			->setHtmlAttribute('data-info', 'Pozor! Pokud změníte typ a existují již vazby tohoto parametru a produktů, tak budou veškeré vazby a hodnoty smazány!');
 
 		$form->addText('allowedKeys', 'Povolené klíče')
-			->setHtmlAttribute('data-info', 'Zadejte hodnoty oddělené středníkem. Např.: "red; blue". Počet položek musí být stejný jako v poli "Povolené hodnoty"');
+			->setHtmlAttribute('data-info', "Zadejte hodnoty oddělené středníkem. Např.: \"red; blue\". Počet položek musí být stejný jako v poli \"Povolené hodnoty\"<br>
+			Pozor! Pokud změníte jakkoliv klíče, dojde k smazání všech vazeb mezi parametrem a produkty!");
 
 		$localeContainer = $form->addLocaleText('allowedValues', 'Povolené hodnoty');
 		$localeContainer->getComponents()['cs']->setHtmlAttribute('data-info', 'Zadejte hodnoty oddělené středníkem. Např.: "Červená; Modrá". Počet položek musí být stejný jako v poli "Povolené klíče"');
 
+		$form->addSelect('filterType', 'Typ filtru', Parameter::FILTER_TYPES);
 		$form->addText('priority', 'Priorita')
 			->addRule($form::INTEGER)
 			->setRequired()
@@ -117,17 +125,24 @@ class ParameterPresenter extends BackendPresenter
 
 		$form->addSubmits(!$parameter);
 
-		$form->onValidate[] = function (AdminForm $form)  {
+		$form->onValidate[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
 
-			$keysCount = \count(\explode(';',$values['allowedKeys']));
+			if ($values['type'] == 'list' && (!$values['allowedKeys'] || !$values['allowedValues'])) {
+				$form['allowedKeys']->addError('Toto pole je povinné!');
+				$form['allowedValues']->addError('Toto pole je povinné!');
+			}
 
-			foreach ($form->getMutations() as $mutation){
-				if($keysCount != \count(\explode(';',$values['allowedValues'][$mutation]))){
-					$form['allowedKeys']->addError('Nesprávný počet položek!');
+			if ($values['allowedKeys'] && $values['allowedValues']) {
+				$keysCount = \count(\explode(';', $values['allowedKeys']));
 
-					break;
-				};
+				foreach ($form->getMutations() as $mutation) {
+					if ($keysCount != \count(\explode(';', $values['allowedValues'][$mutation]))) {
+						$form['allowedKeys']->addError('Nesprávný počet položek!');
+
+						break;
+					}
+				}
 			}
 		};
 
@@ -136,11 +151,69 @@ class ParameterPresenter extends BackendPresenter
 
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
+				$oldParameter = null;
+			} else {
+				/** @var Parameter $oldParameter */
+				$oldParameter = $this->parameterRepository->one($values['uuid']);
+
+				if ($values['type'] != $oldParameter->type) {
+					$this->parameterAvailableValueRepository->many()->where('fk_parameter', $values['uuid'])->delete();
+				}
 			}
 
 			$values['group'] = $this->getParameter('group') ? $this->getParameter('group')->getPK() : $parameter->group->getPK();
 
 			$parameter = $this->parameterRepository->syncOne($values, null, true);
+
+			if ($values['type'] == 'bool') {
+				if (!$existingValue = $this->parameterAvailableValueRepository->many()->where('allowedKey', '0')->where('fk_parameter', $parameter->getPK())->first()) {
+					$this->parameterAvailableValueRepository->createOne([
+						'allowedKey' => '0',
+						'parameter' => $parameter->getPK()
+					]);
+				}
+
+				if (!$existingValue = $this->parameterAvailableValueRepository->many()->where('allowedKey', '1')->where('fk_parameter', $parameter->getPK())->first()) {
+					$this->parameterAvailableValueRepository->createOne([
+						'allowedKey' => '1',
+						'parameter' => $parameter->getPK()
+					]);
+				}
+			} elseif ($values['type'] == 'list') {
+				$oldKeys = \array_values($this->parameterAvailableValueRepository->many()->where('fk_parameter', $values['uuid'])->toArrayOf('allowedKey'));
+				$keys = \explode(';', $values['allowedKeys']);
+
+				if (!(\count(\array_diff(\array_merge($oldKeys, $keys), \array_intersect($oldKeys, $keys))) === 0)) {
+					$this->parameterAvailableValueRepository->many()->where('fk_parameter', $values['uuid'])->delete();
+				}
+
+				$parameterValues = [];
+
+				foreach ($form->getMutations() as $mutation) {
+					$mutationValues = \explode(';', $values['allowedValues'][$mutation]);
+					$i = 0;
+
+					foreach ($keys as $key) {
+						$parameterValues[$key][$mutation] = $mutationValues[$i++];
+					}
+				}
+
+				foreach ($keys as $key) {
+					if (!$existingValue = $this->parameterAvailableValueRepository->many()->where('allowedKey', $key)->where('fk_parameter', $parameter->getPK())->first()) {
+						$this->parameterAvailableValueRepository->syncOne([
+							'allowedKey' => $key,
+							'allowedValue' => $parameterValues[$key],
+							'parameter' => $parameter->getPK()
+						]);
+					} else {
+						$existingValue->update([
+							'allowedValue' => $parameterValues[$key]
+						]);
+					}
+				}
+			} elseif ($values['type'] == 'text') {
+
+			}
 
 			$form->getPresenter()->flashMessage('Uloženo', 'success');
 
@@ -155,7 +228,7 @@ class ParameterPresenter extends BackendPresenter
 
 	public function renderDefault(ParameterGroup $group, ?string $backLink = null)
 	{
-		$this->template->headerLabel = 'Parametry skupiny: ' . $group->internalName;
+		$this->template->headerLabel = 'Parametry skupiny: ' . ($group->name ?? $group->internalName);
 		$this->template->headerTree = [
 			['Skupiny parametrů', 'groupDefault'],
 			['Parametry'],
@@ -237,7 +310,31 @@ class ParameterPresenter extends BackendPresenter
 		/** @var Form $form */
 		$form = $this->getComponent('newForm');
 
-		$form->setDefaults($parameter->toArray());
+		$values = $parameter->toArray();
+
+		if ($parameter->type == 'list') {
+			$allowedKeys = \array_values($this->parameterAvailableValueRepository->many()->where('fk_parameter', $values['uuid'])->toArrayOf('allowedKey'));
+			$values['allowedKeys'] = \implode(';', $allowedKeys);
+			$values['allowedValues'] = [];
+
+			foreach ($allowedKeys as $key) {
+				$availableValue = $this->parameterAvailableValueRepository->many()->where('fk_parameter', $values['uuid'])->where('allowedKey', $key)->first();
+
+				foreach ($form->getMutations() as $mutation) {
+					if (isset($values['allowedValues'][$mutation])) {
+						$values['allowedValues'][$mutation] .= $availableValue->getValue('allowedValue', $mutation) . ';';
+					} else {
+						$values['allowedValues'][$mutation] = $availableValue->getValue('allowedValue', $mutation) . ';';
+					}
+				}
+			}
+
+			foreach ($form->getMutations() as $mutation) {
+				$values['allowedValues'][$mutation] = \substr($values['allowedValues'][$mutation], 0, -1);
+			}
+		}
+
+		$form->setDefaults($values);
 	}
 
 	public function createComponentGroupGrid(): AdminGrid

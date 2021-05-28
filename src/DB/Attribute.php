@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use StORM\RelationCollection;
+
 /**
- * Parameter produktu
+ * Attribute
  * @table
  */
-class Parameter extends \StORM\Entity
+class Attribute extends \StORM\Entity
 {
 	public const FILTER_TYPES = [
 		'and' => 'AND',
@@ -16,46 +18,41 @@ class Parameter extends \StORM\Entity
 	];
 
 	/**
-	 * Název
-	 * @column{"mutations":true}
-	 */
-	public ?string $name;
-	
-	/**
 	 * Kód
 	 * @column
 	 */
 	public ?string $code;
-	
-	/**
-	 * Popisek
-	 * @column{"mutations":true}
-	 */
-	public ?string $description;
-	
-	/**
-	 * Typ
-	 * @column{"type":"enum","length":"'text','bool','list'"}
-	 */
-	public string $type;
 
 	/**
-	 * Typ pro filtr
+	 * Název
+	 * @column{"mutations":true}
+	 */
+	public ?string $name;
+
+	/**
+	 * Typ pro filtraci
 	 * @column{"type":"enum","length":"'and','or'"}
 	 */
 	public string $filterType = 'and';
-	
+
 	/**
+	 * Zobrazit ve filtrech
 	 * @column
 	 */
-	public bool $isPreview = true;
-	
+	public bool $showFilter = true;
+
+	/**
+	 * Zobrazit u produktu
+	 * @column
+	 */
+	public bool $showProduct = true;
+
 	/**
 	 * Priorita
 	 * @column
 	 */
 	public int $priority = 10;
-	
+
 	/**
 	 * Skryto
 	 * @column
@@ -67,13 +64,20 @@ class Parameter extends \StORM\Entity
 	 * @column
 	 */
 	public bool $systemic = false;
+
+	/**
+	 * Kategorie
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\Category>|\Eshop\DB\Category[]
+	 */
+	public RelationCollection $categories;
 	
 	/**
-	 * Skupina parametrů
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * Dodavatel / externí
 	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
-	public ParameterGroup $group;
+	public ?Supplier $supplier;
 
 	public function isSystemic(): bool
 	{

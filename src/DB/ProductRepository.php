@@ -20,16 +20,16 @@ class ProductRepository extends Repository implements IGeneralRepository
 {
 	private Shopper $shopper;
 
-	private ParameterRepository $parameterRepository;
+	private AttributeRepository $attributeRepository;
 
 	private SetRepository $setRepository;
 
-	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager, ParameterRepository $parameterRepository, SetRepository $setRepository)
+	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager, AttributeRepository $attributeRepository, SetRepository $setRepository)
 	{
 		parent::__construct($connection, $schemaManager);
 
 		$this->shopper = $shopper;
-		$this->parameterRepository = $parameterRepository;
+		$this->attributeRepository = $attributeRepository;
 		$this->setRepository = $setRepository;
 	}
 
@@ -120,8 +120,9 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 			$collection->select(['vatPct' => "IF(vatRate = 'standard'," . ($vatRates['standard'] ?? 0) . ",IF(vatRate = 'reduced-high'," . ($vatRates['reduced-high'] ?? 0) . ",IF(vatRate = 'reduced-low'," . ($vatRates['reduced-low'] ?? 0) . ",0)))"]);
 
-			$subSelect = $this->getConnection()->rows(['eshop_parametervalue'], ["GROUP_CONCAT(CONCAT_WS('$sep', eshop_parametervalue.uuid, content$suffix, metavalue, fk_parameter))"])
-				->join(['eshop_parameter'], 'eshop_parameter.uuid = eshop_parametervalue.fk_parameter')
+			$subSelect = $this->getConnection()->rows(['eshop_parametervalue'], ["GROUP_CONCAT(CONCAT_WS('$sep', eshop_parametervalue.uuid, fk_parameter))"])
+				->join(['eshop_parameteravailablevalue'], 'eshop_parameteravailablevalue.uuid = eshop_parametervalue.fk_value')
+				->join(['eshop_parameter'], 'eshop_parameter.uuid = eshop_parameteravailablevalue.fk_parameter')
 				->where('eshop_parameter.isPreview=1')
 				->where('eshop_parametervalue.fk_product=this.uuid');
 			$collection->select(['parameters' => $subSelect]);
@@ -298,47 +299,97 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	public function filterParameters($groups, ICollection $collection)
 	{
-		$suffix = $collection->getConnection()->getMutationSuffix();
+//		$suffix = $collection->getConnection()->getMutationSuffix();
+//
+//		/** @var \Eshop\DB\Parameter[] $parameters */
+//		$parameters = $this->parameterRepository->getCollection()->toArray();
+//
+//		if ($groups) {
+//			$query = '';
+//
+//			foreach ($groups as $key => $group) {
+//				foreach ($group as $pKey => $parameter) {
+//					if ($parameters[$pKey]->type == 'list') {
+//						// list
+//						$parameter = \is_array($parameter) ? $parameter : [$parameter];
+//
+//						if (\count($parameter) == 0) {
+//							continue;
+//						}
+//
+//						$operator = \strtoupper($parameters[$pKey]->filterType);
+//
+////						if ($parameters[$pKey]->filterType == 'and') {
+////							$implodedValues = "'" . \implode("','", $parameter) . "'";
+////							$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND parametervalue.metaValue IN ($implodedValues))";
+////							$query .= ' OR ';
+////						} elseif ($parameters[$pKey]->filterType == 'or') {
+////
+////						}
+//
+//						$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND (";
+//
+//						foreach ($parameter as $parameterItem) {
+//							$query .= "parameteravailablevalue.allowedKey = '$parameterItem'";
+//							$query .= " $operator ";
+//						}
+//
+//						$query = \substr($query, 0, -4);
+//						$query .= ')) OR ';
+//					} elseif ($parameters[$pKey]->type == 'bool') {
+//						if ($parameter === '1') {
+//							$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND parameteravailablevalue.allowedKey = '1')";
+//							$query .= ' OR ';
+//						}
+//					} else {
+//						// text
+////						$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND parametervalue.content$suffix = '$parameter')";
+////						$query .= ' OR ';
+//					}
+//				}
+//			}
+//
+//			if (\strlen($query) > 0) {
+//				$query = \substr($query, 0, -3);
+//
+//				$collection
+//					->join(['parametervalue' => 'eshop_parametervalue'], 'this.uuid = parametervalue.fk_product')
+//					->join(['parameteravailablevalue' => 'eshop_parameteravailablevalue'], 'parameteravailablevalue.uuid = parametervalue.fk_value')
+//					->where($query);
+//
+//			}
+//		}
+	}
 
-		/** @var \Eshop\DB\Parameter[] $parameters */
-		$parameters = $this->parameterRepository->getCollection()->toArray();
+	public function filterAttributes($attributes, ICollection $collection)
+	{
+		$query = '';
 
-		if ($groups) {
-			$query = '';
+		foreach ($attributes as $attributeKey => $attributeValues) {
+			/** @var Attribute $attribute */
+			$attribute = $this->attributeRepository->one($attributeKey);
 
-			foreach ($groups as $key => $group) {
-				foreach ($group as $pKey => $parameter) {
-					if ($parameters[$pKey]->type == 'list') {
-						$parameter = \is_array($parameter) ? $parameter : [$parameter];
-
-						if (\count($parameter) == 0) {
-							continue;
-						}
-						// list
-						$implodedValues = "'" . \implode("','", $parameter) . "'";
-						$query .= "(parametervalue.fk_parameter = '$pKey' AND parametervalue.metaValue IN ($implodedValues))";
-						$query .= ' OR ';
-					} elseif ($parameters[$pKey]->type == 'bool') {
-						if ($parameter === '1') {
-							$query .= "(parametervalue.fk_parameter = '$pKey' AND parametervalue.metaValue = '1')";
-							$query .= ' OR ';
-						}
-					} else {
-						// text
-						$query .= "(parametervalue.fk_parameter = '$pKey' AND parametervalue.content$suffix = '$parameter')";
-						$query .= ' OR ';
-					}
-				}
+			if (\count($attributeValues) == 0) {
+				continue;
 			}
 
-			if (\strlen($query) > 0) {
-				$query = \substr($query, 0, -3);
+			$query .= "(attributeValue.fk_attribute = \"$attributeKey\" AND (";
 
-				$collection
-					->join(['parametervalue' => 'eshop_parametervalue'], 'this.uuid = parametervalue.fk_product')
-					->where($query);
-
+			foreach ($attributeValues as $attributeValue) {
+				$query .= "attributeValue.uuid = \"$attributeValue\" $attribute->filterType ";
 			}
+
+			$query = \substr($query, 0, $attribute->filterType == 'and' ? -4 : -3) . ')) AND ';
+		}
+
+		if (\strlen($query) > 0) {
+			$query = \substr($query, 0, -4);
+
+			$collection
+				->join(['attributeAssign' => 'eshop_attributeassign'], 'this.uuid = attributeAssign.fk_product')
+				->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.uuid = attributeAssign.fk_value')
+				->where($query);
+
 		}
 	}
 
@@ -435,9 +486,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		/** @var \Eshop\DB\Parameter[] $parameters */
 		$parameters = $paramRepo->many()
-			->join(['value' => 'eshop_parametervalue'], 'this.uuid = value.fk_parameter')
-			->select(['content' => "value.content$suffix"])
-			->select(['metaValue' => "value.metaValue"])
+			->join(['availableValue' => 'eshop_parameteravailablevalue'], 'availableValue.fk_parameter = this.uuid')
+			->join(['value' => 'eshop_parametervalue'], 'availableValue.uuid = this.fk_value')
 			->where('fk_product', $product->getPK());
 
 		foreach ($parameters as $parameter) {
@@ -446,6 +496,47 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 
 		return $groupedParameters;
+	}
+
+	public function getActiveProductAttributes($product): array
+	{
+		if (!$product instanceof Product) {
+			if (!$product = $this->one($product)) {
+				return [];
+			}
+		}
+
+		/** @var \Eshop\DB\CategoryRepository $categoryRepo */
+		$categoryRepo = $this->getConnection()->findRepository(Category::class);
+
+		/** @var \Eshop\DB\AttributeRepository $attributeRepository */
+		$attributeRepository = $this->getConnection()->findRepository(Attribute::class);
+
+		/** @var \Eshop\DB\AttributeValueRepository $attributeValueRepository */
+		$attributeValueRepository = $this->getConnection()->findRepository(AttributeValue::class);
+
+		$productCategory = $product->getPrimaryCategory();
+
+		$categories = $categoryRepo->getBranch($productCategory);
+
+		$attributes = $attributeRepository->getAttributesByCategories(\array_values($categories))->toArray();
+		$attributesList = [];
+
+		foreach ($attributes as $attributeKey => $attribute) {
+			$attributeArray = ['attribute' => $attribute];
+			$attributeArray['values'] = $attributeValueRepository->many()
+				->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value')
+				->where('assign.fk_product', $product->getPK())
+				->toArray();
+
+			if (\count($attributeArray['values']) == 0) {
+				continue;
+			}
+
+			$attributesList[$attributeKey] = $attributeArray;
+		}
+
+		return $attributesList;
 	}
 
 	public function isProductInCategory($product, $category): bool

@@ -138,7 +138,6 @@ class MailerLite
 
 	public function syncCustomers()
 	{
-		$this->checkApi();
 		$this->unsubscribeAllFromAllGroups();
 
 		foreach ($this->customerRepository->many() as $customer) {

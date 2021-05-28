@@ -3,11 +3,9 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Eshop\DB\AttributeRepository;
+use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
-use Eshop\DB\ParameterCategory;
-use Eshop\DB\ParameterCategoryRepository;
-use Eshop\DB\ParameterGroupRepository;
-use Eshop\DB\ParameterRepository;
 use Eshop\DB\ProductRepository;
 use Nette\Application\UI\Control;
 use Translator\DB\TranslationRepository;
@@ -16,59 +14,64 @@ use Forms\Form;
 
 class ProductFilter extends Control
 {
-	private ParameterRepository $parameterRepository;
-
 	private TranslationRepository $translator;
-
-	private ParameterGroupRepository $parameterGroupRepository;
-
-	private ParameterCategoryRepository $parameterCategoryRepository;
 
 	private FormFactory $formFactory;
 
 	private CategoryRepository $categoryRepository;
 
-	private ?ParameterCategory $selectedCategory;
-
 	private ProductRepository $productRepository;
 
+	private AttributeRepository $attributeRepository;
+
+	private AttributeValueRepository $attributeValueRepository;
+
+	private ?array $selectedCategories;
+
 	public function __construct(
-		ParameterRepository $parameterRepository,
-		TranslationRepository $translator,
-		ParameterGroupRepository $parameterGroupRepository,
-		ParameterCategoryRepository $parameterCategoryRepository,
 		FormFactory $formFactory,
+		TranslationRepository $translator,
 		CategoryRepository $categoryRepository,
-		ProductRepository $productRepository
+		ProductRepository $productRepository,
+		AttributeRepository $attributeRepository,
+		AttributeValueRepository $attributeValueRepository
 	)
 	{
-		$this->parameterRepository = $parameterRepository;
 		$this->translator = $translator;
-		$this->parameterGroupRepository = $parameterGroupRepository;
-		$this->parameterCategoryRepository = $parameterCategoryRepository;
 		$this->formFactory = $formFactory;
 		$this->categoryRepository = $categoryRepository;
 		$this->productRepository = $productRepository;
+		$this->attributeRepository = $attributeRepository;
+		$this->attributeValueRepository = $attributeValueRepository;
 	}
 
 	/**
-	 * @return \Eshop\DB\ParameterCategory|null
+	 * @return \StORM\Entity[]
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getSelectedCategory(): ?ParameterCategory
+	public function getSelectedCategories(): array
 	{
 		$category = $this->getParent()->getFilters()['category'] ?? null;
 
-		return $this->selectedCategory ??= $category ? $this->categoryRepository->getParameterCategoryOfCategory($this->categoryRepository->one(['path' => $category])) : null;
+		if (!$category) {
+			return [];
+		}
+
+		$categories = $this->categoryRepository->getBranch($this->categoryRepository->one(['path' => $category]));
+
+		if (!$categories) {
+			return [];
+		}
+
+		return $this->selectedCategories ??= $categories;
 	}
 
 	public function render(): void
 	{
 		$collection = $this->getParent()->getSource()->setSelect(['this.uuid']);
 
-		$this->template->parameterCounts = $this->parameterRepository->getCounts($collection);
-		
-		$this->template->groups = $this->parameterGroupRepository->getCollection();
+		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($collection, $this->getSelectedCategories());
+
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
 
@@ -79,37 +82,26 @@ class ProductFilter extends Control
 		$filterForm->addInteger('priceFrom')->setRequired()->setDefaultValue(0);
 		$filterForm->addInteger('priceTo')->setRequired()->setDefaultValue(100000);
 
-		$parametersContainer = $filterForm->addContainer('parameters');
+		$attributesContainer = $filterForm->addContainer('attributes');
 
-		/** @var \Eshop\DB\ParameterGroup[] $groups */
-		$groups = $this->parameterGroupRepository->getCollection()
-			->where('fk_parametercategory', $this->getSelectedCategory());
+		$attributes = $this->attributeRepository->getAttributesByCategories($this->getSelectedCategories())->where('showFilter', true);
 
-		foreach ($groups as $group) {
-			/** @var \Eshop\DB\Parameter[] $parameters */
-			$parameters = $this->parameterRepository->many()
-				->where('fk_group', $group->getPK());
+		foreach ($attributes as $attribute) {
+			$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
 
-			if (\count($parameters) == 0) {
+			if (\count($attributeValues) == 0) {
 				continue;
 			}
 
-			$groupContainer = $parametersContainer->addContainer($group->getPK());
-
-			foreach ($parameters as $parameter) {
-				if ($parameter->type == 'bool') {
-					$groupContainer->addCheckbox($parameter->getPK(), $parameter->name);
-				} elseif ($parameter->type == 'list') {
-					$allowedKeys = \explode(';', $parameter->allowedKeys ?? '');
-					$allowedValues = \explode(';', $parameter->allowedValues ?? '');
-					$groupContainer->addCheckboxList($parameter->getPK(), $parameter->name, \array_combine($allowedKeys, $allowedValues));
-				} else {
-					$groupContainer->addText($parameter->getPK(), $parameter->name);
-				}
-			}
+			$attributesContainer->addCheckboxList($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
 		}
 
 		$filterForm->addSubmit('submit', $this->translator->translate('filter.showProducts', 'Zobrazit produkty'));
+
+		/** @var ProductList $parent */
+		$parent = $this->getParent();
+
+		$filterForm->setDefaults($parent->getFilters()['attributes'] ?? []);
 
 		$filterForm->onValidate[] = function (Form $form) {
 			$values = $form->getValues();
@@ -129,6 +121,9 @@ class ProductFilter extends Control
 				$parameters["$parent-$name"] = $values;
 			}
 
+			//@TODO nefunguje filtrace ceny
+			unset($parameters['products-priceFrom']);
+			unset($parameters['products-priceTo']);
 
 			$this->getPresenter()->redirect('this', $parameters);
 		};
@@ -141,23 +136,30 @@ class ProductFilter extends Control
 	{
 		$parent = $this->getParent()->getName();
 
-		$this->getPresenter()->redirect('this', ["$parent-priceFrom" => null, "$parent-priceTo" => null, "$parent-parameters" => null]);
+		$this->getPresenter()->redirect('this', ["$parent-priceFrom" => null, "$parent-priceTo" => null, "$parent-attributes" => null]);
 	}
 
-	public function handleClearFilter($filter): void
+	public function handleClearFilter($searchedAttributeKey, $searchedAttributeValueKey = null): void
 	{
-		$filtersParameters = $this->getParent()->getFilters()['parameters'];
+		$filtersParameters = $this->getParent()->getFilters()['attributes'];
 		$parent = $this->getParent()->getName();
 
-		foreach ($filtersParameters as $key => $group) {
-			foreach ($group as $pKey => $parameter) {
-				if ($pKey == $filter) {
-					unset($filtersParameters[$key][$pKey]);
+		foreach ($filtersParameters as $attributeKey => $attributeValues) {
+			if ($attributeKey == $searchedAttributeKey) {
+				if ($searchedAttributeValueKey) {
+					$foundKey = \array_search($searchedAttributeValueKey, $attributeValues);
+					unset($filtersParameters[$attributeKey][$foundKey]);
+					$filtersParameters[$attributeKey] = \array_values($filtersParameters[$attributeKey]);
+
 					break;
 				}
+			} else {
+				unset($filtersParameters[$attributeKey]);
+
+				break;
 			}
 		}
 
-		$this->getPresenter()->redirect('this', ["$parent-parameters" => $filtersParameters]);
+		$this->getPresenter()->redirect('this', ["$parent-attributes" => $filtersParameters]);
 	}
 }

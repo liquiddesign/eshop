@@ -7,6 +7,7 @@ namespace Eshop\Admin\Controls;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\ParameterAvailableValueRepository;
 use Eshop\DB\ParameterGroupRepository;
 use Eshop\DB\ParameterRepository;
 use Eshop\DB\ParameterValueRepository;
@@ -24,6 +25,8 @@ class ProductParametersForm extends Control
 
 	private ParameterValueRepository $parameterValueRepository;
 
+	private ParameterAvailableValueRepository $parameterAvailableValueRepository;
+
 	private ?string $error = null;
 
 	public function __construct(
@@ -32,18 +35,18 @@ class ProductParametersForm extends Control
 		ParameterRepository $parameterRepository,
 		ParameterGroupRepository $parameterGroupRepository,
 		ParameterValueRepository $parameterValueRepository,
-		CategoryRepository $categoryRepository
+		CategoryRepository $categoryRepository,
+		ParameterAvailableValueRepository $parameterAvailableValueRepository
 	)
 	{
 		$this->product = $product;
 		$this->parameterRepository = $parameterRepository;
 		$this->parameterGroupRepository = $parameterGroupRepository;
 		$this->parameterValueRepository = $parameterValueRepository;
+		$this->parameterAvailableValueRepository = $parameterAvailableValueRepository;
 
 		$form = $adminFormFatory->create();
 		$form->removeComponent($form->getComponent('uuid'));
-
-		$mutation = 'cs';
 
 		$productCategory = $product->getPrimaryCategory();
 
@@ -53,52 +56,54 @@ class ProductParametersForm extends Control
 			return;
 		}
 
-		$parameterCategory = $categoryRepository->getParameterCategoryOfCategory($productCategory);
+		$parameterCategories = $categoryRepository->getParameterCategoriesOfCategory($productCategory);
 
-		if (!$parameterCategory) {
+		if (!$parameterCategories) {
 			$this->error = 'Nenalezena kategorie parametrů!';
 
 			return;
 		}
 
-		/** @var \Eshop\DB\ParameterGroup[] $groups */
-		$groups = $parameterGroupRepository->getCollection()
-			->where('fk_parameterCategory', $parameterCategory);
+		foreach ($parameterCategories as $parameterCategory) {
+			/** @var \Eshop\DB\ParameterGroup[] $groups */
+			$groups = $parameterGroupRepository->getCollection()
+				->where('fk_parameterCategory', $parameterCategory->getPK());
 
-		foreach ($groups as $group) {
-			/** @var \Eshop\DB\Parameter[] $parameters */
-			$parameters = $parameterRepository->many()
-				->where('fk_group', $group->getPK());
+			foreach ($groups as $group) {
+				/** @var \Eshop\DB\Parameter[] $parameters */
+				$parameters = $parameterRepository->getCollection()
+					->where('fk_group', $group->getPK());
 
-			$form->addGroup($group->name ?? $group->internalName);
-			$groupContainer = $form->addContainer($group->getPK());
-
-			foreach ($parameters as $parameter) {
-				if ($parameter->type == 'bool') {
-					$input = $groupContainer->addCheckbox($parameter->getPK(), $parameter->name);
-				} elseif ($parameter->type == 'list') {
-					$allowedKeys = \explode(';', $parameter->allowedKeys ?? '');
-					$allowedValues = \explode(';', $parameter->allowedValues ?? '');
-					$input = $groupContainer->addDataMultiSelect($parameter->getPK(), $parameter->name, \array_combine($allowedKeys, $allowedValues));
-				} else {
-					$input = $groupContainer->addLocaleText($parameter->getPK(), $parameter->name);
+				if (\count($parameters) == 0) {
+					continue;
 				}
 
-				/** @var \Eshop\DB\ParameterValue $paramValue */
-				$paramValue = $parameterValueRepository->many()->where('fk_product', $product->getPK())->where('fk_parameter', $parameter->getPK())->first();
+				$form->addGroup($group->name ?? $group->internalName);
+				$groupContainer = $form->addContainer($group->getPK());
 
-				if ($paramValue && ($paramValue->content || $paramValue->metaValue)) {
-					$content = $paramValue->jsonSerialize()['content'];
-					$metaValue = $paramValue->jsonSerialize()['metaValue'];
-
-					if ($paramValue->parameter->type == 'list' && $metaValue) {
-						$metaValue = \explode(';', $metaValue);
+				foreach ($parameters as $parameter) {
+					if ($parameter->type == 'bool') {
+						$input = $groupContainer->addCheckbox($parameter->getPK(), $parameter->name);
+					} elseif ($parameter->type == 'list') {
+						$allowedKeys = \array_values($this->parameterAvailableValueRepository->many()->where('fk_parameter', $parameter->getPK())->toArrayOf('allowedKey'));
+						$allowedValues = \array_values($this->parameterAvailableValueRepository->many()->where('fk_parameter', $parameter->getPK())->toArrayOf('allowedValue'));
+						$input = $groupContainer->addDataMultiSelect($parameter->getPK(), $parameter->name, \array_combine($allowedKeys, $allowedValues));
+					} else {
+//						$input = $groupContainer->addLocaleText($parameter->getPK(), $parameter->name);
 					}
 
-					if ($parameter->type == 'bool' || $parameter->type == 'list') {
-						$input->setDefaultValue($metaValue);
-					} else {
-						$input->setDefaults($content);
+					if ($parameter->type == 'bool') {
+						if ($paramValue = $parameterValueRepository->many()->where('fk_product', $product->getPK())->where('value.fk_parameter', $parameter->getPK())->first()) {
+							$input->setDefaultValue($paramValue->value->allowedKey);
+						}
+					} elseif ($parameter->type == 'list') {
+						/** @var \Eshop\DB\ParameterValue[] $paramValue */
+						$paramValues = $parameterValueRepository->many()
+							->where('fk_product', $product->getPK())
+							->where('value.fk_parameter', $parameter->getPK())
+							->select(['allowedKey' => 'value.allowedKey'])
+							->toArrayOf('allowedKey');
+						$input->setDefaultValue(\array_values($paramValues));
 					}
 				}
 			}
@@ -122,44 +127,25 @@ class ProductParametersForm extends Control
 	{
 		$values = $form->getValues('array');
 
-		$mutations = $this->parameterValueRepository->getConnection()->getAvailableMutations();
+		$this->parameterValueRepository->many()->where('fk_product', $this->product->getPK())->delete();
 
 		foreach ($values as $containerKey => $container) {
 			foreach ($container as $itemKey => $itemValue) {
 				/** @var \Eshop\DB\Parameter $parameter */
 				$parameter = $this->parameterRepository->one($itemKey);
 
-				if (!\is_array($itemValue)) {
-					$tempValue = [];
+				$itemValue = \is_array($itemValue) ? $itemValue : [$itemValue];
 
-					foreach ($mutations as $mutationKey => $mutationValue) {
-						$tempValue[$mutationKey] = $itemValue;
-					}
+				foreach ($itemValue as $itemValueKey) {
+					$availableValue = $this->parameterAvailableValueRepository->many()
+						->where('fk_parameter', $parameter->getPK())
+						->where('allowedKey', $itemValueKey)
+						->first();
 
-					$itemValue = $tempValue;
-				}
-
-				foreach ($itemValue as $k => $v) {
-					$itemValue[$k] = \is_array($v) ? \implode(';', $v) : $v;
-				}
-
-				$updateValues = [];
-
-				if ($parameter->type == 'list') {
-					$updateValues['metaValue'] = \implode(';', $itemValue);
-				} elseif ($parameter->type == 'bool') {
-					$updateValues['metaValue'] = (string)Arrays::first($itemValue);
-				} else {
-					$updateValues['content'] = $itemValue;
-				}
-
-				if ($paramValue = $this->parameterValueRepository->many()->where('fk_product', $this->product->getPK())->where('fk_parameter', $itemKey)->first()) {
-					$paramValue->update($updateValues);
-				} else {
 					$this->parameterValueRepository->createOne([
-							'product' => $this->product->getPK(),
-							'parameter' => $itemKey
-						] + $updateValues);
+						'product' => $this->product->getPK(),
+						'value' => $availableValue->getPK()
+					]);
 				}
 			}
 		}

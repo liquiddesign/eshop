@@ -66,7 +66,7 @@ class SupplierProductRepository extends \StORM\Repository
 				continue;
 			}
 			
-			$code = $draft->productCode ?: $supplier->code . $draft->code;
+			$code = $draft->productCode ?: ($supplier->productCodePrefix ?: $supplier->code) . $draft->code;
 			$uuid = ProductRepository::generateUuid($draft->ean, $draft->getProductFullCode() ?: $supplier->code . '-' . $draft->code);
 			$values = [
 				'uuid' => $uuid,
@@ -100,13 +100,7 @@ class SupplierProductRepository extends \StORM\Repository
 				$product->categories->unrelateAll();
 				
 				if ($draft->category->getValue('category')) {
-					// $draft->category->parameterCategory;
-					/*
-					 * TODO prirazeni k vice kategoriim
-					if ($draft->category->parameterCategory) {
-						$draft->category->parameterCategory->categories->relate([$category]);
-					}
-					*/
+					
 					$product->categories->relate([$category], false);
 				}
 			}

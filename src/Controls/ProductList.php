@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
+use Eshop\DB\Attribute;
+use Eshop\DB\AttributeRepository;
+use Eshop\DB\AttributeValue;
+use Eshop\DB\AttributeValueRepository;
+use Eshop\DB\ParameterAvailableValueRepository;
 use Eshop\DB\ParameterRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\Shopper;
@@ -35,16 +40,19 @@ class ProductList extends Datalist
 
 	private FormFactory $formFactory;
 
-	private ParameterRepository $parameterRepository;
+	private AttributeRepository $attributeRepository;
+
+	private AttributeValueRepository $attributeValueRepository;
 
 	public function __construct(
 		ProductRepository $productRepository,
 		WatcherRepository $watcherRepository,
-		ParameterRepository $parameterRepository,
 		CheckoutManager $checkoutManager,
 		Shopper $shopper,
 		Translator $translator,
-		FormFactory $formFactory
+		FormFactory $formFactory,
+		AttributeRepository $attributeRepository,
+		AttributeValueRepository $attributeValueRepository
 	)
 	{
 		parent::__construct($productRepository->getProducts()->where('this.hidden', false));
@@ -96,10 +104,12 @@ class ProductList extends Datalist
 		$this->addFilterExpression('similarProducts', function (ICollection $collection, $value): void {
 			$this->productRepository->filterSimilarProducts($value, $collection);
 		});
+		$this->addFilterExpression('attributes', function (ICollection $collection, $attributes): void {
+			$this->productRepository->filterAttributes($attributes, $collection);
+		});
 		$this->addFilterExpression('parameters', function (ICollection $collection, $groups): void {
 			$this->productRepository->filterParameters($groups, $collection);
 		});
-
 
 		$this->productRepository = $productRepository;
 		$this->watcherRepository = $watcherRepository;
@@ -107,7 +117,8 @@ class ProductList extends Datalist
 		$this->checkoutManager = $checkoutManager;
 		$this->translator = $translator;
 		$this->formFactory = $formFactory;
-		$this->parameterRepository = $parameterRepository;
+		$this->attributeRepository = $attributeRepository;
+		$this->attributeValueRepository = $attributeValueRepository;
 	}
 
 	public function handleWatchIt(string $product): void
@@ -194,38 +205,17 @@ class ProductList extends Datalist
 
 	private function getFiltersForTemplate(): array
 	{
-		$filters = $this->getFilters()['parameters'] ?? [];
+		$filters = $this->getFilters()['attributes'] ?? [];
 		$templateFilters = [];
 
-		/** @var \Eshop\DB\Parameter[] $parameters */
-		$parameters = $this->parameterRepository->getCollection()->toArray();
+		foreach ($filters as $attributeKey => $attributeValues) {
+			/** @var Attribute $attribute */
+			$attribute = $this->attributeRepository->one($attributeKey);
 
-		foreach ($filters as $key => $group) {
-			foreach ($group as $pKey => $parameter) {
-				if ($parameters[$pKey]->type == 'list') {
-					$parameter = \is_array($parameter) ? $parameter : [$parameter];
-					// list
-					if (\count($parameter) == 0) {
-						continue;
-					}
+			$attributeValues = $this->attributeValueRepository->many()->where('uuid', $attributeValues)->toArrayOf('label');
 
-					$allowed = \array_combine(\explode(';', $parameters[$pKey]->allowedKeys), \explode(';', $parameters[$pKey]->allowedValues));
-					foreach ($parameter as $pvKey => $item) {
-						$parameter[$pvKey] = $allowed[$item];
-					}
-
-					$templateFilters[$pKey] = $parameters[$pKey]->name . ': ' . \implode(', ', $parameter);
-				} elseif ($parameters[$pKey]->type == 'bool') {
-					// bool
-					if ($parameter === '1') {
-						$templateFilters[$pKey] = $parameters[$pKey]->name;
-					}
-				} else {
-					// text
-					if ($parameter) {
-						$templateFilters[$pKey] = $parameters[$pKey]->name . ': ' . $parameter;
-					}
-				}
+			foreach ($attributeValues as $attributeValueKey => $attributeValueLabel) {
+				$templateFilters[$attributeKey][$attributeValueKey] = "$attribute->name: $attributeValueLabel";
 			}
 		}
 

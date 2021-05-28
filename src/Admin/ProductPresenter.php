@@ -6,6 +6,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Eshop\Admin\Controls\IProductAttributesFormFactory;
 use Eshop\Admin\Controls\IProductFormFactory;
 use Eshop\Admin\Controls\IProductParametersFormFactory;
 use Eshop\Admin\Controls\ProductGridFactory;
@@ -52,6 +53,9 @@ class ProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public IProductParametersFormFactory $productParametersFormFatory;
+
+	/** @inject */
+	public IProductAttributesFormFactory  $productAttributesFormFactory;
 
 	/** @inject */
 	public PhotoRepository $photoRepository;
@@ -299,7 +303,7 @@ class ProductPresenter extends BackendPresenter
 
 	public function createComponentParameterForm()
 	{
-		return $this->productParametersFormFatory->create($this->getParameter('product'));
+		return $this->productAttributesFormFactory->create($this->getParameter('product'));
 	}
 
 	public function actionDetailFile(File $file)
