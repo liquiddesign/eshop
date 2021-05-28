@@ -29,6 +29,33 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		return $collection->orderBy(['this.priority', "this.name$suffix",]);
 	}
 
+	public function getAttributesByCategories($categories, bool $includeHidden = false)
+	{
+		/** @var CategoryRepository $categoryRepository */
+		$categoryRepository = $this->getConnection()->findRepository(Category::class);
+
+		$categories = \is_array($categories) ? $categories : [$categories];
+
+		$query = '';
+
+		foreach ($categories as $category) {
+			if (!$category instanceof Category) {
+				if (!$category = $categoryRepository->one($category)) {
+					continue;
+				}
+			}
+
+			$query .= "categories.path LIKE \"$category->path%\" OR ";
+		}
+
+		$query = \substr($query, 0, -3);
+
+		return $this->getCollection($includeHidden)
+			->join(['nxn' => 'eshop_attribute_nxn_eshop_category'], 'this.uuid = nxn.fk_attribute')
+			->join(['category' => 'eshop_category'], 'category.uuid = nxn.fk_category')
+			->where($query);
+	}
+
 	public function getAttributeValues($attribute, bool $includeHidden = false): Collection
 	{
 		/** @var AttributeValueRepository $attributeValueRepository */

@@ -50,37 +50,29 @@ class ProductAttributesForm extends Control
 			return;
 		}
 
-		$attributeCategories = $categoryRepository->getAttributeCategoriesOfCategory($productCategory);
+		$categories = $categoryRepository->getBranch($productCategory);
 
-		if (!$attributeCategories) {
-			$this->error = 'Nenalezena kategorie atributů!';
+		$attributes = $this->attributeRepository->getAttributesByCategories(\array_values($categories), true);
+
+		if (\count($attributes) == 0) {
+			$this->error = 'Produkt nemá žádné atributy!';
 
 			return;
 		}
 
-		foreach ($attributeCategories as $attributeCategory) {
-			$attributes = $this->attributeRepository->getAttributes($attributeCategory, true);
+		foreach ($attributes as $attribute) {
+			$attributeValues = $this->attributeRepository->getAttributeValues($attribute, true)->toArrayOf('label');
 
-			if (\count($attributes) == 0) {
-				continue;
-			}
+			$select = $form->addDataMultiSelect($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
 
-			$form->addGroup($attributeCategory->name ?? $attributeCategory->code);
+			$existingValues = $this->attributeAssignRepository->many()
+				->join(['attributeValue' => 'eshop_attributevalue'], 'this.fk_value = attributeValue.uuid')
+				->where('fk_product', $this->product->getPK())
+				->where('fk_value', \array_keys($attributeValues))
+				->select(['existingValues' => 'attributeValue.uuid'])
+				->toArrayOf('existingValues');
 
-			foreach ($attributes as $attribute) {
-				$attributeValues = $this->attributeRepository->getAttributeValues($attribute, true)->toArrayOf('label');
-
-				$select = $form->addDataMultiSelect($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
-
-				$existingValues = $this->attributeAssignRepository->many()
-					->join(['attributeValue' => 'eshop_attributevalue'],'this.fk_value = attributeValue.uuid')
-					->where('fk_product', $this->product->getPK())
-					->where('fk_value', \array_keys($attributeValues))
-					->select(['existingValues' => 'attributeValue.uuid'])
-					->toArrayOf('existingValues');
-
-				$select->setDefaultValue(\array_values($existingValues));
-			}
+			$select->setDefaultValue(\array_values($existingValues));
 		}
 
 		$form->addSubmit('submit', 'Uložit');
