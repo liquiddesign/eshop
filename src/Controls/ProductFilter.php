@@ -58,7 +58,17 @@ class ProductFilter extends Control
 	{
 		$category = $this->getParent()->getFilters()['category'] ?? null;
 
-		return $this->selectedCategory ??= $category ? $this->categoryRepository->getAttributeCategoriesOfCategory($this->categoryRepository->one(['path' => $category]))->toArray() : null;
+		if (!$category) {
+			return [];
+		}
+
+		$attributeCategories = $this->categoryRepository->getAttributeCategoriesOfCategory($this->categoryRepository->one(['path' => $category]));
+
+		if (!$attributeCategories) {
+			return [];
+		}
+
+		return $this->selectedCategory ??= $attributeCategories->toArray();
 	}
 
 	public function render(): void
