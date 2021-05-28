@@ -94,10 +94,6 @@ class ProductFilter extends Control
 				continue;
 			}
 
-			if (\count($parameters) == 0) {
-				continue;
-			}
-
 			$groupContainer = $parametersContainer->addContainer($group->getPK());
 
 			foreach ($parameters as $parameter) {
