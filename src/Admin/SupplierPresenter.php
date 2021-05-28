@@ -54,33 +54,6 @@ class SupplierPresenter extends BackendPresenter
 		$grid->addColumnSelector();
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
-		$grid->addColumnText('Import', "lastImportTs|date:'d.m.Y'", '%s', null, ['class' => 'fit']);
-		$grid->addColumnText('Aktualizace', "lastUpdateTs|date:'d.m.Y'", '%s', null, ['class' => 'fit']);
-		
-		$grid->addColumn('K dispozici', function(Supplier $supplier) {
-			return $this->formatNumber($this->supplierProductRepository->many()->where('this.fk_supplier', $supplier)->enum());
-		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		
-		$grid->addColumn('Mapováno', function(Supplier $supplier) {
-			return $this->formatNumber($this->supplierProductRepository->many()->where('this.fk_supplier', $supplier)->where('category.fk_category IS NOT NULL')->enum());
-		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		
-		$grid->addColumn('V katalogu', function(Supplier $supplier) {
-			return $this->formatNumber($this->supplierProductRepository->many()->where('this.fk_supplier', $supplier)->where('fk_product IS NOT NULL')->enum());
-		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		
-		$grid->addColumn('Jako zdroj', function(Supplier $supplier) {
-			return $this->formatNumber($this->productRepository->many()->where('fk_supplierSource', $supplier)->enum());
-		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		
-		$grid->addColumn('Viditelných', function(Supplier $supplier) use ($pricelists) {
-			return $this->formatNumber($this->productRepository->many()
-				->where('this.fk_supplierSource', $supplier)
-				->where('hidden', false)
-				->join(['prices' => 'eshop_price'], 'prices.fk_product=this.uuid')
-				->where('prices.fk_pricelist', $pricelists)
-				->enum());
-		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		
 		$grid->addColumnInputCheckbox('Automaticky', 'isImportActive', '', '', 'isImportActive');
 		
