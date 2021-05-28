@@ -7,9 +7,9 @@ namespace Eshop\DB;
 /**
  * Přiřazení dodavatelských hodnot atributů
  * @table
- * @index{"name":"supplier_attribute_assign","unique":true,"columns":["fk_attributeValue","fk_supplierProduct"]}
+ * @index{"name":"supplier_attribute_value_assign","unique":true,"columns":["fk_attributeValue","fk_supplierProduct"]}
  */
-class SupplierAttributeAssign extends \StORM\Entity
+class SupplierAttributeValueAssign extends \StORM\Entity
 {
 	/**
 	 * Hodnota atributu
