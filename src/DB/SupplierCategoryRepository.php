@@ -23,8 +23,6 @@ class SupplierCategoryRepository extends \StORM\Repository
 				'fk_attributeCategory' => $supplierCategory->getValue('attributeCategory'),
 			]);
 		}
-		
-		return;
 	}
 	
 	public function getArrayForSelect(?bool $mapped = null): array
