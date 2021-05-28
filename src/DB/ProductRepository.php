@@ -20,16 +20,16 @@ class ProductRepository extends Repository implements IGeneralRepository
 {
 	private Shopper $shopper;
 
-	private ParameterRepository $parameterRepository;
+	private AttributeRepository $attributeRepository;
 
 	private SetRepository $setRepository;
 
-	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager, ParameterRepository $parameterRepository, SetRepository $setRepository)
+	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager, AttributeRepository $attributeRepository, SetRepository $setRepository)
 	{
 		parent::__construct($connection, $schemaManager);
 
 		$this->shopper = $shopper;
-		$this->parameterRepository = $parameterRepository;
+		$this->attributeRepository = $attributeRepository;
 		$this->setRepository = $setRepository;
 	}
 
@@ -299,71 +299,98 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	public function filterParameters($groups, ICollection $collection)
 	{
-		$suffix = $collection->getConnection()->getMutationSuffix();
-
-		/** @var \Eshop\DB\Parameter[] $parameters */
-		$parameters = $this->parameterRepository->getCollection()->toArray();
-
-		if ($groups) {
-			$query = '';
-
-			foreach ($groups as $key => $group) {
-				foreach ($group as $pKey => $parameter) {
-					if ($parameters[$pKey]->type == 'list') {
-						// list
-						$parameter = \is_array($parameter) ? $parameter : [$parameter];
-
-						if (\count($parameter) == 0) {
-							continue;
-						}
-
-						$operator = \strtoupper($parameters[$pKey]->filterType);
-
-//						if ($parameters[$pKey]->filterType == 'and') {
-//							$implodedValues = "'" . \implode("','", $parameter) . "'";
-//							$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND parametervalue.metaValue IN ($implodedValues))";
-//							$query .= ' OR ';
-//						} elseif ($parameters[$pKey]->filterType == 'or') {
+//		$suffix = $collection->getConnection()->getMutationSuffix();
 //
+//		/** @var \Eshop\DB\Parameter[] $parameters */
+//		$parameters = $this->parameterRepository->getCollection()->toArray();
+//
+//		if ($groups) {
+//			$query = '';
+//
+//			foreach ($groups as $key => $group) {
+//				foreach ($group as $pKey => $parameter) {
+//					if ($parameters[$pKey]->type == 'list') {
+//						// list
+//						$parameter = \is_array($parameter) ? $parameter : [$parameter];
+//
+//						if (\count($parameter) == 0) {
+//							continue;
 //						}
-
-						$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND (";
-
-						foreach ($parameter as $parameterItem) {
-							$query .= "parameteravailablevalue.allowedKey = '$parameterItem'";
-							$query .= " $operator ";
-						}
-
-						$query = \substr($query, 0, -4);
-						$query .= ')) OR ';
-					} elseif ($parameters[$pKey]->type == 'bool') {
-						if ($parameter === '1') {
-							$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND parameteravailablevalue.allowedKey = '1')";
-							$query .= ' OR ';
-						}
-					} else {
-						// text
-//						$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND parametervalue.content$suffix = '$parameter')";
-//						$query .= ' OR ';
-					}
-				}
-			}
-
-			if (\strlen($query) > 0) {
-				$query = \substr($query, 0, -3);
-
-				$collection
-					->join(['parametervalue' => 'eshop_parametervalue'], 'this.uuid = parametervalue.fk_product')
-					->join(['parameteravailablevalue' => 'eshop_parameteravailablevalue'], 'parameteravailablevalue.uuid = parametervalue.fk_value')
-					->where($query);
-
-			}
-		}
+//
+//						$operator = \strtoupper($parameters[$pKey]->filterType);
+//
+////						if ($parameters[$pKey]->filterType == 'and') {
+////							$implodedValues = "'" . \implode("','", $parameter) . "'";
+////							$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND parametervalue.metaValue IN ($implodedValues))";
+////							$query .= ' OR ';
+////						} elseif ($parameters[$pKey]->filterType == 'or') {
+////
+////						}
+//
+//						$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND (";
+//
+//						foreach ($parameter as $parameterItem) {
+//							$query .= "parameteravailablevalue.allowedKey = '$parameterItem'";
+//							$query .= " $operator ";
+//						}
+//
+//						$query = \substr($query, 0, -4);
+//						$query .= ')) OR ';
+//					} elseif ($parameters[$pKey]->type == 'bool') {
+//						if ($parameter === '1') {
+//							$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND parameteravailablevalue.allowedKey = '1')";
+//							$query .= ' OR ';
+//						}
+//					} else {
+//						// text
+////						$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND parametervalue.content$suffix = '$parameter')";
+////						$query .= ' OR ';
+//					}
+//				}
+//			}
+//
+//			if (\strlen($query) > 0) {
+//				$query = \substr($query, 0, -3);
+//
+//				$collection
+//					->join(['parametervalue' => 'eshop_parametervalue'], 'this.uuid = parametervalue.fk_product')
+//					->join(['parameteravailablevalue' => 'eshop_parameteravailablevalue'], 'parameteravailablevalue.uuid = parametervalue.fk_value')
+//					->where($query);
+//
+//			}
+//		}
 	}
 
 	public function filterAttributes($attributes, ICollection $collection)
 	{
+		$query = '';
 
+		foreach ($attributes as $attributeKey => $attributeValues) {
+			/** @var Attribute $attribute */
+			$attribute = $this->attributeRepository->one($attributeKey);
+
+			if (\count($attributeValues) == 0) {
+				continue;
+			}
+
+			$query .= "(attributeValue.fk_attribute = \"$attributeKey\" AND (";
+
+			foreach ($attributeValues as $attributeValue) {
+				$query .= "attributeValue.uuid = \"$attributeValue\" $attribute->filterType ";
+			}
+
+			$query = \substr($query, 0, $attribute->filterType == 'and' ? -4 : -3) . ')) AND ';
+		}
+
+		if (\strlen($query) > 0) {
+			$query = \substr($query, 0, -4);
+
+			$collection
+				->join(['attributeAssign' => 'eshop_attributeassign'], 'this.uuid = attributeAssign.fk_product')
+				->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.uuid = attributeAssign.fk_value')
+				->where($query);
+
+		}
 	}
 
 	private function sqlExplode(string $expression, string $delimiter, int $position): string
