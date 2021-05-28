@@ -29,22 +29,6 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		return $collection->orderBy(['this.priority', "this.name$suffix",]);
 	}
 
-	public function getAttributes($category, bool $includeHidden = false): Collection
-	{
-		/** @var AttributeCategoryRepository $attributeCategoryRepository */
-		$attributeCategoryRepository = $this->getConnection()->findRepository(AttributeCategory::class);
-
-		$emptyCollection = $attributeCategoryRepository->many()->where('1 = 0');
-
-		if (!$category instanceof AttributeCategory) {
-			if (!$category = $attributeCategoryRepository->one($category)) {
-				return $emptyCollection;
-			}
-		}
-
-		return $this->getCollection($includeHidden)->where('fk_category', $category->getPK());
-	}
-
 	public function getAttributeValues($attribute, bool $includeHidden = false): Collection
 	{
 		/** @var AttributeValueRepository $attributeValueRepository */

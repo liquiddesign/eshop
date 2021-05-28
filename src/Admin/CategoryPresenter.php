@@ -38,9 +38,6 @@ class CategoryPresenter extends BackendPresenter
 	public ParameterCategoryRepository $parameterCategoryRepository;
 
 	/** @inject */
-	public AttributeCategoryRepository $attributeCategoryRepository;
-
-	/** @inject */
 	public CategoryTypeRepository $categoryTypeRepository;
 
 	private array $tabs = [];
@@ -92,20 +89,20 @@ class CategoryPresenter extends BackendPresenter
 //			return \substr($string, 0, -2);
 //		}, '%s');
 
-		$grid->addColumn('Kategorie atributů', function (Category $object, $datagrid) {
-			$string = '';
-
-			if ($parameterCategories = $this->categoryRepository->getAttributeCategoriesOfCategory($object)) {
-				foreach ($parameterCategories as $parameterCategory) {
-					$link = $this->admin->isAllowed(':Eshop:Admin:Attribute:categoryDetail') ?
-						$datagrid->getPresenter()->link(':Eshop:Admin:Attribute:categoryDetail', [$parameterCategory, 'backLink' => $this->storeRequest()]) : '#';
-
-					$string .= "<a href='$link'>" . $parameterCategory->name . "</a>, ";
-				}
-			}
-
-			return \substr($string, 0, -2);
-		}, '%s');
+//		$grid->addColumn('Kategorie atributů', function (Category $object, $datagrid) {
+//			$string = '';
+//
+//			if ($parameterCategories = $this->categoryRepository->getAttributeCategoriesOfCategory($object)) {
+//				foreach ($parameterCategories as $parameterCategory) {
+//					$link = $this->admin->isAllowed(':Eshop:Admin:Attribute:categoryDetail') ?
+//						$datagrid->getPresenter()->link(':Eshop:Admin:Attribute:categoryDetail', [$parameterCategory, 'backLink' => $this->storeRequest()]) : '#';
+//
+//					$string .= "<a href='$link'>" . $parameterCategory->name . "</a>, ";
+//				}
+//			}
+//
+//			return \substr($string, 0, -2);
+//		}, '%s');
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'this.priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
@@ -199,8 +196,8 @@ class CategoryPresenter extends BackendPresenter
 		$form->addDataSelect('ancestor', 'Nadřazená kategorie', $categories)->setPrompt('Žádná');
 //		$form->addDataMultiSelect('parameterCategories', 'Kategorie parametrů', $this->parameterCategoryRepository->getArrayForSelect())
 //			->setHtmlAttribute('data-info', '&nbsp;Pokud nebude kategorie parametrů nastavena, bude získána kategorie parametrů z nadřazené kategorie.');
-		$form->addDataMultiSelect('attributeCategories', 'Kategorie atributů', $this->attributeCategoryRepository->getArrayForSelect())
-			->setHtmlAttribute('data-info', '&nbsp;Pokud nebude kategorie atributů nastavena, bude získána kategorie atributů z nadřazené kategorie.');
+//		$form->addDataMultiSelect('attributeCategories', 'Kategorie atributů', $this->attributeCategoryRepository->getArrayForSelect())
+//			->setHtmlAttribute('data-info', '&nbsp;Pokud nebude kategorie atributů nastavena, bude získána kategorie atributů z nadřazené kategorie.');
 		$form->addText('exportGoogleCategory', 'Exportní název pro Google');
 		$form->addText('exportHeurekaCategory', 'Export název pro Heuréku');
 		$form->addText('exportZboziCategory', 'Export název pro Zbozi');

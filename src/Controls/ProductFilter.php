@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\DB\AttributeCategoryRepository;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
@@ -25,8 +24,6 @@ class ProductFilter extends Control
 
 	private AttributeRepository $attributeRepository;
 
-	private AttributeCategoryRepository $attributeCategoryRepository;
-
 	private AttributeValueRepository $attributeValueRepository;
 
 	private ?array $selectedCategory;
@@ -37,7 +34,6 @@ class ProductFilter extends Control
 		CategoryRepository $categoryRepository,
 		ProductRepository $productRepository,
 		AttributeRepository $attributeRepository,
-		AttributeCategoryRepository $attributeCategoryRepository,
 		AttributeValueRepository $attributeValueRepository
 	)
 	{
@@ -46,7 +42,6 @@ class ProductFilter extends Control
 		$this->categoryRepository = $categoryRepository;
 		$this->productRepository = $productRepository;
 		$this->attributeRepository = $attributeRepository;
-		$this->attributeCategoryRepository = $attributeCategoryRepository;
 		$this->attributeValueRepository = $attributeValueRepository;
 	}
 

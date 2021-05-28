@@ -7,12 +7,13 @@ use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\Attribute;
-use Eshop\DB\AttributeCategory;
-use Eshop\DB\AttributeCategoryRepository;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValue;
 use Eshop\DB\AttributeValueRepository;
+use Eshop\DB\CategoryRepository;
 use Forms\Form;
+use Grid\Datagrid;
+use StORM\Collection;
 use StORM\DIConnection;
 
 class AttributePresenter extends BackendPresenter
@@ -21,20 +22,20 @@ class AttributePresenter extends BackendPresenter
 	public AttributeRepository $attributeRepository;
 
 	/** @inject */
-	public AttributeCategoryRepository $attributeCategoryRepository;
+	public AttributeValueRepository $attributeValueRepository;
 
 	/** @inject */
-	public AttributeValueRepository $attributeValueRepository;
+	public CategoryRepository $categoryRepository;
 
 	public const TABS = [
 		'attributes' => 'Atributy',
-		'categories' => 'Kategorie',
+		'values' => 'Hodnoty',
 	];
 
 	/** @persistent */
 	public string $tab = 'attributes';
 
-	public function actionDefault()
+	public function renderDefault()
 	{
 		$this->template->headerLabel = 'Atributy';
 		$this->template->headerTree = [
@@ -45,9 +46,9 @@ class AttributePresenter extends BackendPresenter
 		if ($this->tab == 'attributes') {
 			$this->template->displayButtons = [$this->createNewItemButton('attributeNew')];
 			$this->template->displayControls = [$this->getComponent('attributeGrid')];
-		} elseif ($this->tab == 'categories') {
-			$this->template->displayButtons = [$this->createNewItemButton('categoryNew')];
-			$this->template->displayControls = [$this->getComponent('categoryGrid')];
+		} elseif ($this->tab == 'values') {
+			$this->template->displayButtons = [$this->createNewItemButton('valueNew')];
+			$this->template->displayControls = [$this->getComponent('valuesGrid')];
 		}
 
 		$this->template->tabs = self::TABS;
@@ -60,14 +61,16 @@ class AttributePresenter extends BackendPresenter
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 
-		$grid->addColumn('Kategorie atributů', function (Attribute $object, $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Attribute:categoryDetail') ?
-				$datagrid->getPresenter()->link(':Eshop:Admin:Attribute:categoryDetail', [$object->category, 'backLink' => $this->storeRequest()]) : '#';
+		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
-			return "<a href='$link'>" . $object->category->name . "</a>";
-		}, '%s');
+		$grid->addColumn('', function (Attribute $object, Datagrid $datagrid) use ($btnSecondary) {
+			$attributeValues = $this->attributeRepository->getAttributeValues($object, true);
 
-		$grid->addColumnLink('values', 'Hodnoty');
+			return \count($attributeValues) > 0 ?
+				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'values', 'valuesGrid-attribute' => $object->code]) . "'>Hodnoty</a>" :
+				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('valueNew', $object) . "'>Vytvořit&nbsp;hodnotu</a>";
+		}, '%s', null, ['class' => 'minimal']);
+
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('Filtrace', 'showFilter', '', '', 'showFilter');
 		$grid->addColumnInputCheckbox('Náhled', 'showProduct', '', '', 'showProduct');
@@ -85,32 +88,16 @@ class AttributePresenter extends BackendPresenter
 			return false;
 		});
 
-		$grid->addFilterTextInput('search', ['name_cs', 'code'], null, 'Kód, název');
-		$grid->addFilterButtons(['default']);
+		$grid->addFilterTextInput('code', ['this.name_cs', 'this.code'], null, 'Kód, název');
 
-		return $grid;
-	}
+		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
+			$grid->addFilterDataSelect(function (Collection $source, $value) {
+				$source->join(['nxn' => 'eshop_attribute_nxn_eshop_category'], 'this.uuid = nxn.fk_attribute');
+				$source->join(['category' => 'eshop_category'], 'category.uuid = nxn.fk_category');
+				$source->where('category.uuid', $value);
+			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
+		}
 
-	public function createComponentCategoryGrid(): AdminGrid
-	{
-		$grid = $this->gridFactory->create($this->attributeCategoryRepository->many(), 20, 'code', 'ASC', true);
-		$grid->addColumnSelector();
-		$grid->addColumnText('Kód', 'code', '%s', 'code');
-		$grid->addColumnText('Název', 'name', '%s', 'name');
-
-		$grid->addColumnLinkDetail('categoryDetail');
-		$grid->addColumnActionDeleteSystemic();
-
-		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected(null, true, function ($object) {
-			if ($object) {
-				return !$object->isSystemic();
-			}
-
-			return false;
-		});
-
-		$grid->addFilterTextInput('search', ['name_cs', 'code'], null, 'Kód, název');
 		$grid->addFilterButtons(['default']);
 
 		return $grid;
@@ -122,8 +109,8 @@ class AttributePresenter extends BackendPresenter
 
 		$form->addText('code', 'Kód');
 		$form->addLocaleText('name', 'Název');
-		$form->addDataSelect('category', 'Kategorie atributů', $this->attributeCategoryRepository->getArrayForSelect())->setRequired();
 
+		$form->addDataMultiSelect('categories', 'Kategorie', $this->categoryRepository->getArrayForSelect());
 		$form->addSelect('filterType', 'Typ filtru', Attribute::FILTER_TYPES);
 		$form->addCheckbox('showProduct', 'Náhled')->setHtmlAttribute('data-info', 'Parametr se zobrazí v náhledu produktu.');
 		$form->addCheckbox('showFilter', 'Filtr')->setHtmlAttribute('data-info', 'Parametr se zobrazí při filtrování.');
@@ -151,31 +138,6 @@ class AttributePresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function createComponentCategoryForm()
-	{
-		$form = $this->formFactory->create(true);
-
-		$form->addText('code', 'Kód');
-		$form->addLocaleText('name', 'Název');
-
-		$form->addSubmits(!$this->getParameter('category'));
-
-		$form->onSuccess[] = function (AdminForm $form) {
-			$values = $form->getValues('array');
-
-			if (!$values['uuid']) {
-				$values['uuid'] = DIConnection::generateUuid();
-			}
-
-			$object = $this->attributeCategoryRepository->syncOne($values, null, true);
-
-			$this->flashMessage('Uloženo', 'success');
-			$form->processRedirect('categoryDetail', 'default', [$object]);
-		};
-
-		return $form;
-	}
-
 	public function createComponentValuesGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->attributeValueRepository->many(), 20, 'code', 'ASC', true);
@@ -192,8 +154,10 @@ class AttributePresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected();
 
-		$grid->addFilterTextInput('search', ['label_cs', 'code'], null, 'Kód, popisek');
-		$grid->addFilterButtons(['values', $this->getParameter('attribute')]);
+
+		$grid->addFilterTextInput('search', ['this.code', 'this.label_cs'], null, 'Kód, popisek');
+		$grid->addFilterTextInput('attribute', ['attribute.code'], null, 'Kód atributu');
+		$grid->addFilterButtons(['default']);
 
 		return $grid;
 	}
@@ -203,6 +167,13 @@ class AttributePresenter extends BackendPresenter
 		$form = $this->formFactory->create(true);
 
 		$form->addText('code', 'Kód')->setRequired();
+
+		$attributeInput = $form->addDataSelect('attribute', 'Atribut', $this->attributeRepository->getArrayForSelect())->setRequired();
+
+		if ($attribute = $this->getParameter('attribute')) {
+			$attributeInput->setDefaultValue($attribute->getPK());
+		}
+
 		$form->addLocaleText('label', 'Popisek');
 		$form->addLocaleText('note', 'Dodatečné informace');
 		$form->addText('metaValue', 'Doprovodná hodnota');
@@ -233,22 +204,10 @@ class AttributePresenter extends BackendPresenter
 			$object = $this->attributeValueRepository->syncOne($values, null, true);
 
 			$this->flashMessage('Uloženo', 'success');
-			$form->processRedirect('valueDetail', 'values', [$object], [$object->attribute]);
+			$form->processRedirect('valueDetail', 'default', [$object]);
 		};
 
 		return $form;
-	}
-
-	public function actionCategoryNew()
-	{
-	}
-
-	public function actionCategoryDetail(AttributeCategory $category)
-	{
-		/** @var Form $form */
-		$form = $this->getComponent('categoryForm');
-
-		$form->setDefaults($category->toArray());
 	}
 
 	public function actionAttributeNew()
@@ -260,30 +219,7 @@ class AttributePresenter extends BackendPresenter
 		/** @var Form $form */
 		$form = $this->getComponent('attributeForm');
 
-		$form->setDefaults($attribute->toArray());
-	}
-
-	public function renderCategoryNew()
-	{
-		$this->template->headerLabel = 'Nová položka';
-		$this->template->headerTree = [
-			['Atributy', 'default'],
-			['Nová položka'],
-		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('categoryForm')];
-	}
-
-	public function renderCategoryDetail(AttributeCategory $category)
-	{
-		$this->template->headerLabel = 'Detail';
-		$this->template->headerTree = [
-			['Atributy', 'default'],
-			['Kategorie', 'default'],
-			['Detail'],
-		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('categoryForm')];
+		$form->setDefaults($attribute->toArray(['categories']));
 	}
 
 	public function renderAttributeNew()
@@ -308,36 +244,20 @@ class AttributePresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('attributeForm')];
 	}
 
-	public function actionValues(Attribute $attribute)
+	public function actionValueNew(?Attribute $attribute = null)
 	{
 
 	}
 
-	public function renderValues(Attribute $attribute)
-	{
-		$this->template->headerLabel = 'Hodnoty atributu: ' . $attribute->name;
-		$this->template->headerTree = [
-			['Atributy', 'default'],
-			['Hodnoty'],
-		];
-		$this->template->displayButtons = [$this->createBackButton('default'), $this->createNewItemButton('valueNew', [$attribute])];
-		$this->template->displayControls = [$this->getComponent('valuesGrid')];
-	}
-
-	public function actionValueNew(Attribute $attribute)
-	{
-
-	}
-
-	public function renderValueNew(Attribute $attribute)
+	public function renderValueNew(?Attribute $attribute = null)
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
 			['Atributy', 'default'],
-			['Hodnoty', 'values', $attribute],
+			['Hodnoty', 'default'],
 			['Nová položka'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('values', [$attribute])];
+		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('valuesForm')];
 	}
 
@@ -354,10 +274,10 @@ class AttributePresenter extends BackendPresenter
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Atributy', 'default'],
-			['Hodnoty', 'values', $attributeValue->attribute],
+			['Hodnoty', 'default'],
 			['Detail'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('values', [$attributeValue->attribute])];
+		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('valuesForm')];
 	}
 }
