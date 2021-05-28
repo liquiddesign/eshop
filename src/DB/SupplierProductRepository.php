@@ -38,7 +38,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$productRepository = $this->getConnection()->findRepository(Product::class);
 		$pagesRepository = $this->getConnection()->findRepository(Page::class);
 		$supplierId = $supplier->getPK();
-		$parameterValueRepository = $this->getConnection()->findRepository(ParameterValue::class);
+		$attributeAssignRepository = $this->getConnection()->findRepository(AttributeAssign::class);
 		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$mutation];
 		
 		if ($overwrite) {
@@ -49,7 +49,6 @@ class SupplierProductRepository extends \StORM\Repository
 			foreach (\array_keys($updates) as $name) {
 				$updates[$name] = new Literal("IF((supplierContentLock = 0 && VALUES(supplierLock) >= supplierLock) || fk_supplierContent='$supplierId', VALUES($name), $name)");
 			}
-			
 		} else {
 			$updates = [];
 		}
@@ -100,16 +99,14 @@ class SupplierProductRepository extends \StORM\Repository
 				$product->categories->unrelateAll();
 				
 				if ($draft->category->getValue('category')) {
-					
 					$product->categories->relate([$category], false);
 				}
 			}
 			
-			foreach ($this->getConnection()->findRepository(SupplierParameterValue::class)->many()->where('fk_supplierProduct', $draft) as $parameterValue) {
-				$parameterValueRepository->syncOne([
-					'parameter' => $parameterValue->parameter,
+			foreach ($this->getConnection()->findRepository(SupplierAttributeValueAssign::class)->many()->where('fk_supplierProduct', $draft) as $attributeValue) {
+				$attributeAssignRepository->syncOne([
+					'value' => $attributeValue->getValue('attributeValue'),
 					'product' => $product,
-					'metaValue' => '1',
 				]);
 			}
 			
