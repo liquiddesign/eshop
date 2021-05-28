@@ -12,6 +12,7 @@ use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\Supplier;
+use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\AddressRepository;
@@ -22,6 +23,9 @@ class SupplierPresenter extends BackendPresenter
 {
 	/** @inject */
 	public SupplierRepository $supplierRepository;
+	
+	/** @inject */
+	public SupplierCategoryRepository $supplierCategoryRepository;
 	
 	/** @inject */
 	public SupplierProductRepository $supplierProductRepository;
