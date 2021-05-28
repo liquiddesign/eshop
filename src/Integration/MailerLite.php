@@ -42,6 +42,8 @@ class MailerLite
 				$this->groups[$group->id] = $group;
 				$this->subscribers[$group->id] = $this->groupsApi->getSubscribers($group->id);
 			}
+		} else {
+			throw new \Exception();
 		}
 
 		$this->shopper = $shopper;
