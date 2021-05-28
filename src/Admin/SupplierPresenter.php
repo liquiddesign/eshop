@@ -137,6 +137,8 @@ class SupplierPresenter extends BackendPresenter
 				$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('purchasePrice IS NOT NULL'), $supplier, $pricelist);
 			}
 			
+			$this->supplierCategoryRepository->syncAttributeCategoryAssigns($supplier);
+			
 			$this->flashMessage('Uloženo', 'success');
 			$form->getPresenter()->redirect('default');
 		};

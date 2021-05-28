@@ -9,19 +9,15 @@ namespace Eshop\DB;
  */
 class SupplierCategoryRepository extends \StORM\Repository
 {
-	public function syncAttributeCategories(string $supplierId): void
+	public function syncAttributeCategoryAssigns(Supplier $supplier): void
 	{
-		$this->getConnection()->rows(['this' => 'eshop_category_nxn_eshop_attributecategory'])
-			->join(['attributeCategory' => 'eshop_attributecategory'], 'this.fk_attributeCategory=attributeCategory.uuid')
-			->where('attributeCategory.fk_supplier', $supplierId)
-			->delete();
-		
-		foreach ($this->many()->where('this.fk_supplier', $supplierId)->where('fk_category IS NOT NULL AND fk_attributeCategory IS NOT NULL') as $supplierCategory) {
-			
-			$this->connection->syncRow('eshop_category_nxn_eshop_attributecategory', [
-				'fk_category' => $supplierCategory->getValue('category'),
-				'fk_attributeCategory' => $supplierCategory->getValue('attributeCategory'),
-			]);
+		foreach ($this->many()->where('this.fk_supplier', $supplier)->where('fk_category IS NOT NULL') as $supplierCategory) {
+			foreach ($this->getConnection()->findRepository(SupplierAttributeCategoryAssign::class)->many()->where('fk_supplierCategory', $supplierCategory) as $nxn) {
+				$this->connection->syncRow('eshop_attribute_nxn_eshop_category', [
+					'fk_category' => $supplierCategory->getValue('category'),
+					'fk_attribute' => $nxn->getValue('attribute'),
+				]);
+			}
 		}
 	}
 	
