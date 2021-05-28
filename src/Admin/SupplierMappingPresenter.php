@@ -94,8 +94,6 @@ class SupplierMappingPresenter extends BackendPresenter
 				return $mapping->category ? "<a href='$link'>" . ($mapping->category->name ?: 'Detail kategorie') . '</a>' : '-';
 			});
 			
-			$grid->addColumnText('Kategorie atributů', 'attributeCategory.name', '%s');
-			
 			$property = 'category';
 			$grid->addFilterText(function (ICollection $source, $value) {
 				$parsed = \explode('>', $value);
