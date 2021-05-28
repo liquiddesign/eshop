@@ -3,12 +3,10 @@ declare(strict_types=1);
 
 namespace Eshop;
 
+use Eshop\DB\AttributeRepository;
+use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\ParameterCategory;
-use Eshop\DB\ParameterCategoryRepository;
-use Eshop\DB\ParameterGroupRepository;
-use Eshop\DB\ParameterRepository;
-use Eshop\DB\ParameterValueRepository;
 use Eshop\DB\ProductRepository;
 use Nette\Http\Session;
 use Nette\Http\SessionSection;
@@ -22,35 +20,27 @@ class CompareManager
 
 	private CategoryRepository $categoryRepository;
 
-	private ParameterCategoryRepository $parameterCategoryRepository;
-
-	private ParameterValueRepository $parameterValueRepository;
-
 	private TranslationRepository $translator;
 
-	private ParameterGroupRepository $parameterGroupRepository;
+	private AttributeRepository $attributeRepository;
 
-	private ParameterRepository $parameterRepository;
+	private AttributeValueRepository $attributeValueRepository;
 
 	public function __construct(
 		Session $session,
 		ProductRepository $productRepository,
 		CategoryRepository $categoryRepository,
-		ParameterCategoryRepository $parameterCategoryRepository,
-		ParameterValueRepository $parameterValueRepository,
 		TranslationRepository $translator,
-		ParameterGroupRepository $parameterGroupRepository,
-		ParameterRepository $parameterRepository
+		AttributeRepository $attributeRepository,
+		AttributeValueRepository $attributeValueRepository
 	)
 	{
 		$this->session = $session;
 		$this->productRepository = $productRepository;
 		$this->categoryRepository = $categoryRepository;
-		$this->parameterCategoryRepository = $parameterCategoryRepository;
-		$this->parameterValueRepository = $parameterValueRepository;
 		$this->translator = $translator;
-		$this->parameterGroupRepository = $parameterGroupRepository;
-		$this->parameterRepository = $parameterRepository;
+		$this->attributeRepository = $attributeRepository;
+		$this->attributeValueRepository = $attributeValueRepository;
 	}
 
 	public function getCompareList(): array
