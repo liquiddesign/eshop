@@ -440,16 +440,18 @@ class OrderRepository extends \StORM\Repository
 		/** @var CartRepository $cartRepo */
 		$cartRepo = $this->getConnection()->findRepository(Cart::class);
 
-		$rootCategories = $categoryRepo->many()
-			->where('fk_ancestor IS NULL')
-			->toArrayOf('name');
+		$rootCategories = [];
 
-		foreach ($rootCategories as $key => $category) {
-			$rootCategories[$key] = [
-				'name' => $category,
-				'amount' => 0
-			];
-		}
+//		$rootCategories = $categoryRepo->many()
+//			->where('fk_ancestor IS NULL')
+//			->toArrayOf('name');
+
+//		foreach ($rootCategories as $key => $category) {
+//			$rootCategories[$key] = [
+//				'name' => $category,
+//				'amount' => 0
+//			];
+//		}
 
 		$rootCategories[null] = [
 			'name' => $this->translator->translate('.notAssigned', 'Nepřiřazeno'),
@@ -478,6 +480,14 @@ class OrderRepository extends \StORM\Repository
 				}
 
 				$root = $categoryRepo->getRootCategoryOfCategory($category);
+
+				if (!isset($rootCategories[$root->getPK()])) {
+					$rootCategories[$root->getPK()] = [
+						'name' => $root,
+						'amount' => 0
+					];
+				}
+
 				$rootCategories[$root->getPK()]['amount'] += $item->amount;
 			}
 		}
