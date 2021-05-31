@@ -28,13 +28,16 @@ class OrderRepository extends \StORM\Repository
 
 	private MerchantRepository $merchantRepository;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Storage $storage, Shopper $shopper, Translator $translator, MerchantRepository $merchantRepository)
+	private CatalogPermissionRepository $catalogPermissionRepository;
+
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Storage $storage, Shopper $shopper, Translator $translator, MerchantRepository $merchantRepository, CatalogPermissionRepository $catalogPermissionRepository)
 	{
 		parent::__construct($connection, $schemaManager);
 		$this->cache = new Cache($storage);
 		$this->shopper = $shopper;
 		$this->translator = $translator;
 		$this->merchantRepository = $merchantRepository;
+		$this->catalogPermissionRepository = $catalogPermissionRepository;
 	}
 
 	/**
@@ -358,9 +361,9 @@ class OrderRepository extends \StORM\Repository
 	 * @param \Eshop\DB\Customer|\Eshop\DB\Merchant|null $users
 	 * @param DateTime $from
 	 * @param DateTime $to
+	 * @param Currency $currency
 	 * @return array
 	 * @throws \Exception
-	 *
 	 */
 	public function getCustomerGroupedOrdersPrices($users, DateTime $from, DateTime $to, Currency $currency): array
 	{
@@ -576,8 +579,13 @@ class OrderRepository extends \StORM\Repository
 				$customers = $merchantRepo->getMerchantCustomers($user);
 
 				$collection->where('purchase.fk_customer', \array_keys($customers->toArray()));
-			} else {
-				if ($user->getAccount() && $this->shopper->getCatalogPermission()) {
+			} elseif ($user->getAccount()) {
+				/** @var CatalogPermission $perm */
+				$perm = $this->catalogPermissionRepository->many()->where('fk_account', $user->getAccount()->getPK())->first();
+
+				if ($perm->viewAllOrders) {
+					$collection->where('purchase.fk_customer', $user->getPK());
+				} else {
 					$collection->where('purchase.fk_account', $user->getAccount()->getPK());
 				}
 			}
