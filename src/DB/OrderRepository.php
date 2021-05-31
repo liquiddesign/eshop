@@ -483,7 +483,7 @@ class OrderRepository extends \StORM\Repository
 
 				if (!isset($rootCategories[$root->getPK()])) {
 					$rootCategories[$root->getPK()] = [
-						'name' => $root,
+						'name' => $root->name,
 						'amount' => 0
 					];
 				}
