@@ -574,9 +574,13 @@ class OrderRepository extends \StORM\Repository
 				/** @var MerchantRepository $merchantRepo */
 				$merchantRepo = $this->getConnection()->findRepository(Merchant::class);
 				$customers = $merchantRepo->getMerchantCustomers($user);
-			}
 
-			$collection->where('purchase.fk_customer', isset($customers) ? \array_keys($customers->toArray()) : $user->getPK());
+				$collection->where('purchase.fk_customer', \array_keys($customers->toArray()));
+			} else {
+				if ($user->getAccount() && $this->shopper->getCatalogPermission()) {
+					$collection->where('purchase.fk_account', $user->getAccount()->getPK());
+				}
+			}
 		}
 
 		return $collection;

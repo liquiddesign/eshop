@@ -281,8 +281,8 @@ class CustomerPresenter extends BackendPresenter
 		$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired();
 		$form->addText('ccEmails', 'Kopie emailů')->setHtmlAttribute('data-info', 'Zadejte emailové adresy oddělené středníkem (;).');
 
-		$form->addCheckbox('newsletter', 'Přihlášen k newsletteru');
-		$form->addText('newsletterGroup', 'Skupina pro newsletter');
+		$form->addCheckbox('newsletter', 'Přihlášen k newsletteru')->addCondition($form::EQUAL, true)->toggle('frm-form-newsletterGroup-toogle');
+		$form->addText('newsletterGroup', 'Skupina pro newsletter')->addConditionOn($form['newsletter'],$form::EQUAL,true)->addRule($form::REQUIRED);
 
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->many()->toArrayOf('name'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
@@ -535,7 +535,7 @@ class CustomerPresenter extends BackendPresenter
 			}
 
 			$container->addCheckbox('newsletter', 'Přihlášen k newsletteru')->addCondition($form::EQUAL, true)->toggle('frm-accountForm-permission-newsletterGroup-toogle');
-			$container->addText('newsletterGroup', 'Skupina pro newsletter')->setHtmlAttribute('data-info', 'Pokud nebude vyplněno, tak bude vybrána skupina zákazníka.');
+			$container->addText('newsletterGroup', 'Skupina pro newsletter')->addConditionOn($container['newsletter'],$form::EQUAL,true)->addRule($form::REQUIRED);
 		};
 
 		$form = $this->accountFormFactory->create(false, $callback, true, true);

@@ -67,9 +67,4 @@ class CatalogPermission extends \StORM\Entity
 	 * @relation
 	 */
 	public Account $account;
-
-	public function getNewsletterGroup(): ?string
-	{
-		return $this->newsletterGroup && $this->newsletterGroup != '' ? $this->newsletterGroup : $this->customer->newsletterGroup;
-	}
 }

@@ -10,6 +10,8 @@ use Eshop\Admin\Controls\IProductAttributesFormFactory;
 use Eshop\Admin\Controls\IProductFormFactory;
 use Eshop\Admin\Controls\IProductParametersFormFactory;
 use Eshop\Admin\Controls\ProductGridFactory;
+use Eshop\DB\CatalogPermission;
+use Eshop\DB\Customer;
 use Eshop\DB\File;
 use Eshop\DB\FileRepository;
 use Eshop\DB\NewsletterTypeRepository;
@@ -26,6 +28,8 @@ use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
 use Forms\Form;
+use Nette\Application\Responses\FileResponse;
+use Nette\Caching\Cache;
 use Nette\Forms\Controls\TextInput;
 use Nette\InvalidArgumentException;
 use Nette\Utils\FileSystem;
@@ -45,6 +49,8 @@ class ProductPresenter extends BackendPresenter
 		'weightAndDimension' => false
 	];
 
+	protected const DEFAULT_TEMPLATE = __DIR__ . '/../../_data/newsletterTemplates/newsletter.latte';
+
 	/** @inject */
 	public ProductGridFactory $productGridFactory;
 
@@ -55,7 +61,7 @@ class ProductPresenter extends BackendPresenter
 	public IProductParametersFormFactory $productParametersFormFatory;
 
 	/** @inject */
-	public IProductAttributesFormFactory  $productAttributesFormFactory;
+	public IProductAttributesFormFactory $productAttributesFormFactory;
 
 	/** @inject */
 	public PhotoRepository $photoRepository;
@@ -557,7 +563,7 @@ class ProductPresenter extends BackendPresenter
 	public function actionNewsletterExportSelect(array $ids)
 	{
 		/** @var \Forms\Form $form */
-		$form = $this->getComponent('newsletterExportForm');
+		$form = $this->getComponent('newsletterExportProducts');
 
 		$products = '';
 		foreach ($ids as $id) {
@@ -579,7 +585,7 @@ class ProductPresenter extends BackendPresenter
 			['Export pro newsletter']
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('newsletterExportForm')];
+		$this->template->displayControls = [$this->getComponent('newsletterExportProducts')];
 	}
 
 	public function createComponentNewsletterExportForm()
@@ -603,7 +609,7 @@ class ProductPresenter extends BackendPresenter
 			->setNullable()
 			->addCondition($form::FILLED)
 			->addRule([FormValidators::class, 'isMultipleProductsExists'], 'Chybný formát nebo nebyl nalezen některý ze zadaných produktů!', [$this->productRepository]);
-		$form->addSelect('type', 'Typ šablony', $this->newsletterTypeRepository->getArrayForSelect());
+		$form->addSelect('type', 'Typ šablony', $this->newsletterTypeRepository->getArrayForSelect())->setRequired();
 		$form->addLocalePerexEdit('text', 'Textový obsah');
 
 		$form->addSubmit('submit', 'Stáhnout');
@@ -611,7 +617,7 @@ class ProductPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid) {
 			$values = $form->getValues('array');
 
-			$functionName = 'newsletterExport' . \ucfirst($values['type']);
+			$functionName = 'newsletterExport' . (\ucfirst($values['type']));
 
 //			try {
 			if ($values['bulkType'] == 'selected') {
@@ -620,6 +626,7 @@ class ProductPresenter extends BackendPresenter
 				}
 
 				$products = [];
+
 				foreach (\explode(';', $values['products']) as $product) {
 					$products[] = $this->productRepository->getProductByCodeOrEAN($product)->getPK();
 				}
@@ -631,6 +638,64 @@ class ProductPresenter extends BackendPresenter
 //			} catch (\Exception $e) {
 //				bdump($e);
 //			}
+		};
+
+		return $form;
+	}
+
+	public function createComponentNewsletterExportProducts()
+	{
+		/** @var \Grid\Datagrid $productGrid */
+		$productGrid = $this->getComponent('productGrid');
+
+		$ids = $this->getParameter('ids') ?: [];
+		$totalNo = $productGrid->getFilteredSource()->enum();
+		$selectedNo = \count($ids);
+
+		$form = $this->formFactory->create();
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+		$form->addRadioList('bulkType', 'Upravit', [
+			'selected' => "vybrané",
+			'all' => "celý výsledek ($totalNo)",
+		])->setDefaultValue('selected');
+
+		$form->addText('products', 'Produkty')
+			->setHtmlAttribute('data-info', 'EAN nebo kódy oddělené středníky.')
+			->setNullable()
+			->addCondition($form::FILLED)
+			->addRule([FormValidators::class, 'isMultipleProductsExists'], 'Chybný formát nebo nebyl nalezen některý ze zadaných produktů!', [$this->productRepository]);
+		$form->addSelect('mutation', 'Jazyk', \array_combine($this->formFactory->getMutations(), $this->formFactory->getMutations()))->setRequired();
+		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepository->getArrayForSelect())->setRequired();
+		$form->addPerexEdit('text', 'Textový obsah')->setHtmlAttribute('data-info', 'Můžete využít i proměnné systému MailerLite. Např.: "{$email}". Více informací <a href="http://help.mailerlite.com/article/show/29194-what-custom-variables-can-i-use-in-my-campaigns" target="_blank">zde</a>.');
+
+		$form->addSubmit('submit', 'Stáhnout');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid) {
+			$values = $form->getValues('array');
+
+			$products = $this->productRepository->getProducts($this->pricelistRepository->many()->where('this.uuid', $values['pricelists'])->toArray())->where('this.uuid', $ids)->toArray();
+
+			$this->translator->setMutation($values['mutation']);
+			$this->getTemplate()->setTranslator($this->translator);
+
+			$html = $this->getTemplate()->renderToString($this::DEFAULT_TEMPLATE, [
+				'type' => 'products',
+				'text' => $values['text'],
+				'args' => [
+					'products' => $products
+				],
+			]);
+
+			$tempFilename = \tempnam($this->tempDir, "html");
+			$this->application->onShutdown[] = function () use ($tempFilename) {
+				if (\is_file($tempFilename)) {
+					\unlink($tempFilename);
+				}
+			};
+
+			FileSystem::write($tempFilename, $html);
+
+			$this->sendResponse(new FileResponse($tempFilename, "newsletter.html", 'application/zip'));
 		};
 
 		return $form;

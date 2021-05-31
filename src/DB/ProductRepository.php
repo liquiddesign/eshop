@@ -120,12 +120,12 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 			$collection->select(['vatPct' => "IF(vatRate = 'standard'," . ($vatRates['standard'] ?? 0) . ",IF(vatRate = 'reduced-high'," . ($vatRates['reduced-high'] ?? 0) . ",IF(vatRate = 'reduced-low'," . ($vatRates['reduced-low'] ?? 0) . ",0)))"]);
 
-			$subSelect = $this->getConnection()->rows(['eshop_parametervalue'], ["GROUP_CONCAT(CONCAT_WS('$sep', eshop_parametervalue.uuid, fk_parameter))"])
-				->join(['eshop_parameteravailablevalue'], 'eshop_parameteravailablevalue.uuid = eshop_parametervalue.fk_value')
-				->join(['eshop_parameter'], 'eshop_parameter.uuid = eshop_parameteravailablevalue.fk_parameter')
-				->where('eshop_parameter.isPreview=1')
-				->where('eshop_parametervalue.fk_product=this.uuid');
-			$collection->select(['parameters' => $subSelect]);
+//			$subSelect = $this->getConnection()->rows(['eshop_parametervalue'], ["GROUP_CONCAT(CONCAT_WS('$sep', eshop_parametervalue.uuid, fk_parameter))"])
+//				->join(['eshop_parameteravailablevalue'], 'eshop_parameteravailablevalue.uuid = eshop_parametervalue.fk_value')
+//				->join(['eshop_parameter'], 'eshop_parameter.uuid = eshop_parameteravailablevalue.fk_parameter')
+//				->where('eshop_parameter.isPreview=1')
+//				->where('eshop_parametervalue.fk_product=this.uuid');
+//			$collection->select(['parameters' => $subSelect]);
 
 			$subSelect = $this->getConnection()->rows(['eshop_ribbon'], ['GROUP_CONCAT(uuid)'])
 				->join(['nxn' => 'eshop_product_nxn_eshop_ribbon'], 'eshop_ribbon.uuid = nxn.fk_ribbon')

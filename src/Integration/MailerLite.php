@@ -38,6 +38,8 @@ class MailerLite
 			$this->groupsApi = (new MailerLiteApi($this->apiKey))->groups();
 			$groups = $this->groupsApi->get()->toArray();
 
+			$this->groups = [];
+
 			foreach ($groups as $group) {
 				$this->groups[$group->id] = $group;
 				$this->subscribers[$group->id] = $this->groupsApi->getSubscribers($group->id);
@@ -140,25 +142,18 @@ class MailerLite
 	{
 		$this->unsubscribeAllFromAllGroups();
 
-		foreach ($this->customerRepository->many() as $customer) {
+		foreach ($this->customerRepository->many()->where('newsletter', true)->where('newsletterGroup != "" AND newsletterGroup IS NOT NULL') as $customer) {
 			/** @var \Eshop\DB\Customer $customer */
 
-			if ($customer->newsletter && $customer->newsletterGroup) {
-				$this->subscribe($customer->email, $customer->fullname, $customer->newsletterGroup);
+			$this->subscribe($customer->email, $customer->fullname, $customer->newsletterGroup);
+		}
+
+		foreach ($this->catalogPermissionRepository->many()->where('newsletter', true)->where('newsletterGroup != "" AND newsletterGroup IS NOT NULL') as $catalogPerm) {
+			if (!Validators::isEmail($catalogPerm->account->login)) {
+				continue;
 			}
 
-			foreach ($customer->accounts as $account) {
-				if (!Validators::isEmail($account->login)) {
-					continue;
-				}
-
-				/** @var CatalogPermission $catalogPerm */
-				$catalogPerm = $this->catalogPermissionRepository->many()->where('fk_account', $account->getPK())->first();
-
-				if ($catalogPerm->newsletter && $catalogPerm->getNewsletterGroup()) {
-					$this->subscribe($account->login, $account->fullname, $catalogPerm->getNewsletterGroup());
-				}
-			}
+			$this->subscribe($catalogPerm->account->login, $catalogPerm->account->fullname, $catalogPerm->newsletterGroup);
 		}
 	}
 
