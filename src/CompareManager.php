@@ -63,6 +63,12 @@ class CompareManager
 			$product = $this->productRepository->one($productKey);
 
 			if ($category = $product->getPrimaryCategory()) {
+				if (!isset($resultCategories[$category->getPK()])) {
+					$resultCategories[$category->getPK()]['attributes'] = [];
+					$resultCategories[$category->getPK()]['products'] = [];
+					$resultCategories[$category->getPK()]['category'] = $category;
+				}
+
 				if (!$categoryPK || $category->getPK() == $categoryPK) {
 					$attributes = $this->attributeRepository->getAttributesByCategories($category);
 
@@ -83,8 +89,6 @@ class CompareManager
 						$resultCategories[$category->getPK()]['attributes'][$attributeKey] = $attribute;
 						$resultCategories[$category->getPK()]['products'][$productKey]['attributes'][$attributeKey] = $values;
 					}
-
-					$resultCategories[$category->getPK()]['category'] = $category;
 				}
 			}
 		}

@@ -526,7 +526,10 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$attributeArray = ['attribute' => $attribute];
 			$attributeArray['values'] = $attributeValueRepository->many()
 				->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value')
+				->join(['attribute' => 'eshop_attribute'], 'attribute.uuid = this.fk_attribute')
+				->where('this.fk_attribute', $attributeKey)
 				->where('assign.fk_product', $product->getPK())
+				->where('attribute.showProduct', true)
 				->toArray();
 
 			if (\count($attributeArray['values']) == 0) {
