@@ -675,6 +675,7 @@ class ProductPresenter extends BackendPresenter
 
 			$products = $this->productRepository->getProducts($this->pricelistRepository->many()->where('this.uuid', $values['pricelists'])->toArray())->where('this.uuid', $ids)->toArray();
 
+			$this->productRepository->getConnection()->setMutation($values['mutation']);
 			$this->translator->setMutation($values['mutation']);
 			$this->getTemplate()->setTranslator($this->translator);
 
@@ -682,7 +683,8 @@ class ProductPresenter extends BackendPresenter
 				'type' => 'products',
 				'text' => $values['text'],
 				'args' => [
-					'products' => $products
+					'products' => $products,
+					'lang' => $values['mutation']
 				],
 			]);
 
@@ -693,9 +695,25 @@ class ProductPresenter extends BackendPresenter
 				}
 			};
 
+			$zip = new \ZipArchive();
+
+			$zipFilename = \tempnam($this->tempDir, "zip");
+
+			if ($zip->open($zipFilename, \ZipArchive::CREATE) !== TRUE) {
+				exit("cannot open <$zipFilename>\n");
+			}
+
 			FileSystem::write($tempFilename, $html);
 
-			$this->sendResponse(new FileResponse($tempFilename, "newsletter.html", 'application/zip'));
+			$zip->addFile($tempFilename, 'newsletter.html');
+
+			$zip->close();
+
+			$this->getPresenter()->application->onShutdown[] = function () use ($zipFilename) {
+				\unlink($zipFilename);
+			};
+
+			$this->sendResponse(new FileResponse($zipFilename, "newsletter.zip", 'application/zip'));
 		};
 
 		return $form;
