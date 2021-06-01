@@ -187,8 +187,8 @@ class ProductGridFactory
 		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
 		
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
-			$source->where('this.unavailble', (bool) $value);
-		}, '', 'unavailble', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
+			$source->where('this.unavailable', (bool) $value);
+		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
 		
 	}
 	

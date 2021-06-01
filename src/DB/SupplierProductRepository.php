@@ -43,12 +43,14 @@ class SupplierProductRepository extends \StORM\Repository
 		
 		if ($overwrite) {
 			//  "perex$mutationSuffix",
-			$updates = ["name$mutationSuffix", "content$mutationSuffix", "unit", 'imageFileName', 'vatRate', 'fk_producer', 'fk_primaryCategory', 'fk_displayAmount'];
+			$updates = ["name$mutationSuffix", "content$mutationSuffix", "unit", 'imageFileName', 'vatRate', 'fk_displayAmount'];
 			$updates = \array_fill_keys($updates, null);
 			
 			foreach (\array_keys($updates) as $name) {
 				$updates[$name] = new Literal("IF((supplierContentLock = 0 && VALUES(supplierLock) >= supplierLock) || fk_supplierContent='$supplierId', VALUES($name), $name)");
 			}
+			
+			$updates['categories'] = 'categories';
 		} else {
 			$updates = [];
 		}
@@ -94,14 +96,6 @@ class SupplierProductRepository extends \StORM\Repository
 			$product = $productRepository->syncOne($values, $updates, false, null, ['categories' => false]);
 			
 			$updated = $product->getParent() instanceof ICollection && $product->getParent()->getAffectedNumber() === InsertResult::UPDATE_AFFECTED_COUNT;
-			
-			if ($overwrite && $updated) {
-				$product->categories->unrelateAll();
-				
-				if ($draft->category->getValue('category')) {
-					$product->categories->relate([$category], false);
-				}
-			}
 			
 			foreach ($this->getConnection()->findRepository(SupplierAttributeValueAssign::class)->many()->where('fk_supplierProduct', $draft) as $attributeValue) {
 				$attributeAssignRepository->syncOne([

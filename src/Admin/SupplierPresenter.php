@@ -51,9 +51,6 @@ class SupplierPresenter extends BackendPresenter
 	
 	public function createComponentGrid()
 	{
-		$pricelists = $this->customerGroupRepository->one(CustomerGroupRepository::UNREGISTERED_PK, true)->defaultPricelists->toArrayOf('uuid', [], true);
-		
-		
 		$grid = $this->gridFactory->create($this->supplierRepository->many(), 20, 'name', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
