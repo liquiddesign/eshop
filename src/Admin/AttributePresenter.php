@@ -15,6 +15,7 @@ use Forms\Form;
 use Grid\Datagrid;
 use StORM\Collection;
 use StORM\DIConnection;
+use function Clue\StreamFilter\fun;
 
 class AttributePresenter extends BackendPresenter
 {
@@ -145,15 +146,19 @@ class AttributePresenter extends BackendPresenter
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumnText('Popisek', 'label', '%s', 'label');
 		$grid->addColumnText('Číselná reprezentace', 'number', '%s', 'number');
+		$grid->addColumnText('Atribut', 'attribute.name', '%s', 'attribute.name');
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('valueDetail');
-		$grid->addColumnActionDelete();
+		$grid->addColumnActionDelete(null, false, function (AttributeValue $attributeValue) {
+			return !$this->attributeValueRepository->isValuePairedWithProducts($attributeValue);
+		});
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected();
-
+		$grid->addButtonDeleteSelected(null, false, function (AttributeValue $attributeValue) {
+			return !$this->attributeValueRepository->isValuePairedWithProducts($attributeValue);
+		});
 
 		$grid->addFilterTextInput('search', ['this.code', 'this.label_cs'], null, 'Kód, popisek');
 		$grid->addFilterTextInput('attribute', ['attribute.code'], null, 'Kód atributu');
@@ -168,10 +173,12 @@ class AttributePresenter extends BackendPresenter
 
 		$form->addText('code', 'Kód')->setRequired();
 
-		$attributeInput = $form->addDataSelect('attribute', 'Atribut', $this->attributeRepository->getArrayForSelect())->setRequired();
+		if (!($this->getParameter('attributeValue') && $this->attributeValueRepository->isValuePairedWithProducts($this->getParameter('attributeValue')))) {
+			$attributeInput = $form->addDataSelect('attribute', 'Atribut', $this->attributeRepository->getArrayForSelect())->setRequired();
 
-		if ($attribute = $this->getParameter('attribute')) {
-			$attributeInput->setDefaultValue($attribute->getPK());
+			if ($attribute = $this->getParameter('attribute')) {
+				$attributeInput->setDefaultValue($attribute->getPK());
+			}
 		}
 
 		$form->addLocaleText('label', 'Popisek');

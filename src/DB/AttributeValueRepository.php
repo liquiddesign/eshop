@@ -28,4 +28,18 @@ class AttributeValueRepository extends \StORM\Repository implements IGeneralRepo
 
 		return $collection->orderBy(['this.priority', "this.label$suffix",]);
 	}
+
+	public function isValuePairedWithProducts($value): bool
+	{
+		if (!$value instanceof AttributeValue) {
+			if (!$value = $this->one($value)) {
+				return false;
+			}
+		}
+
+		return $this->many()
+				->join(['attributeAssign' => 'eshop_attributeassign'], 'this.uuid = attributeAssign.fk_value')
+				->where('attributeAssign.fk_value', $value->getPK())
+				->count() > 0;
+	}
 }

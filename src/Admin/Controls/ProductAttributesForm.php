@@ -86,7 +86,6 @@ class ProductAttributesForm extends Control
 
 	public function validate(AdminForm $form)
 	{
-
 	}
 
 	public function submit(AdminForm $form)
