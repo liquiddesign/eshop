@@ -75,6 +75,12 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 
 	public function getCounts(Collection $collection, array $categories): array
 	{
+		bdump($categories);
+
+		$collection->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=this.uuid');
+		$collection->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
+		$collection->where('categories.uuid', Arrays::last($categories)->getPK());
+
 		$collection = $this->getCollection()
 			->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attribute = this.uuid')
 			->join(['attributeAssign' => 'eshop_attributeassign'], 'attributeAssign.fk_value = attributeValue.uuid')
