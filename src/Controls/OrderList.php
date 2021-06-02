@@ -32,7 +32,7 @@ class OrderList extends Datalist
 
 	private string $tempDir;
 
-	private Shopper $shopper;
+	public Shopper $shopper;
 
 	public function __construct(Translator $translator, OrderGridFactory $orderGridFactory, OrderRepository $orderRepository, CatalogPermissionRepository $catalogPermissionRepository, Shopper $shopper, ?Collection $orders = null)
 	{

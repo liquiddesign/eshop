@@ -66,6 +66,8 @@ class Shopper
 
 	private bool $showVat;
 
+	private bool $showWithoutVat;
+
 	/**
 	 * @var \Eshop\DB\Currency[]
 	 */
@@ -132,6 +134,16 @@ class Shopper
 	public function getShowVat(): bool
 	{
 		return $this->showVat;
+	}
+
+	public function setShowWithoutVat(bool $showWithoutVat): void
+	{
+		$this->showWithoutVat = $showWithoutVat;
+	}
+
+	public function getShowWithoutVat(): bool
+	{
+		return $this->showWithoutVat;
 	}
 
 	public function setRegistrationConfiguration(array $configuration): void
@@ -353,6 +365,40 @@ class Shopper
 		}
 
 		return $customer ? $catalogPerm->showPricesWithVat : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricesWithVat;
+	}
+
+	public function showPricesWithoutVat(): bool
+	{
+		if (!$this->getShowWithoutVat()) {
+			return false;
+		}
+
+		$customer = $this->getCustomer();
+
+		if ($this->getMerchant() && !$customer) {
+			return false;
+		}
+
+		if ($customer) {
+			$catalogPerm = $customer->getCatalogPermission();
+		}
+
+		return $customer ? $catalogPerm->showPricesWithoutVat : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricesWithoutVat;
+	}
+
+	public function showPriorityPrices(): ?string
+	{
+		$customer = $this->getCustomer();
+
+		if ($this->getMerchant() && !$customer) {
+			return null;
+		}
+
+		if ($customer) {
+			$catalogPerm = $customer->getCatalogPermission();
+		}
+
+		return $customer ? $catalogPerm->priorityPrice : $this->customerGroupRepository->getUnregisteredGroup()->defaultPriorityPrice;
 	}
 
 	/**

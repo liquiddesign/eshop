@@ -244,6 +244,14 @@ class Purchase extends \StORM\Entity
 		
 		return $cartItemRepository->getSumProperty($this->getCartIds(), 'productWeight');
 	}
+
+	public function getSumDimension(): float
+	{
+		/** @var \Eshop\DB\CartItemRepository $cartItemRepository */
+		$cartItemRepository = $this->getConnection()->findRepository(CartItem::class);
+
+		return $cartItemRepository->getSumProperty($this->getCartIds(), 'productDimension');
+	}
 	
 	/**
 	 * @return string[]

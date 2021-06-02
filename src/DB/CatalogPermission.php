@@ -37,10 +37,22 @@ class CatalogPermission extends \StORM\Entity
 	public bool $viewAllOrders = false;
 
 	/**
+	 * Oprávnění: vidět ceny
+	 * @column
+	 */
+	public bool $showPricesWithoutVat = false;
+
+	/**
 	 * Oprávnění: vidět ceny s daní
 	 * @column
 	 */
 	public bool $showPricesWithVat = false;
+
+	/**
+	 * Formát ceny
+	 * @column{"type":"enum","length":"'withoutVat','withVat'"}
+	 */
+	public string $priorityPrice = 'withoutVat';
 
 	/**
 	 * Přihlášen k newsletteru

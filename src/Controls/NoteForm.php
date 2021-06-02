@@ -39,6 +39,8 @@ class NoteForm extends \Nette\Application\UI\Form
 
 		$account = $this->shopper->getCustomer() && $this->shopper->getCustomer()->getAccount() ? $this->shopper->getCustomer()->getAccount() : null;
 
+		unset($values['couponActive']);
+
 		$values['customer'] = $this->shopper->getCustomer() ? $this->shopper->getCustomer()->getPK() : null;
 		$values['account'] = $account ? $account->getPK() : null;
 		$values['accountFullname'] = $account ? $account->fullname : null;

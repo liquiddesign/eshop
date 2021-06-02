@@ -25,6 +25,18 @@ class CustomerGroup extends \StORM\Entity
 	public bool $defaultPricesWithVat = false;
 
 	/**
+	 * Ukazovat ceny bez DPH
+	 * @column
+	 */
+	public bool $defaultPricesWithoutVat = false;
+
+	/**
+	 * Formát ceny
+	 * @column{"type":"enum","length":"'withoutVat','withVat'"}
+	 */
+	public string $defaultPriorityPrice = 'withoutVat';
+
+	/**
 	 * Defaultní oprávnění: katalog
 	 * @column{"type":"enum","length":"'none','catalog','price'"}
 	 */

@@ -17,7 +17,8 @@ class CustomerGroupPresenter extends BackendPresenter
 {
 	protected const CONFIGURATION = [
 		'unregistred' => true,
-		'defaultAfterRegistration' => true
+		'defaultAfterRegistration' => true,
+		'prices' => true
 	];
 
 	/** @inject */
@@ -74,9 +75,21 @@ class CustomerGroupPresenter extends BackendPresenter
 			}, '%s', null, ['class' => 'fit']);
 		}
 
+//		if (isset(static::CONFIGURATION['prices']) && static::CONFIGURATION['prices']) {
+//			if ($this->shopper->getShowWithoutVat()) {
+//				$grid->addColumnInputCheckbox('Zobrazit cenu bez daně', 'defaultPricesWithoutVat', '', '', 'defaultPricesWithoutVat');
+//			}
+//
+//			if ($this->shopper->getShowVat()) {
+//				$grid->addColumnInputCheckbox('Zobrazit cenu s daní', 'defaultPricesWithVat', '', '', 'defaultPricesWithVat');
+//			}
+//		}
+
 		$grid->addColumnLinkDetail('Detail');
 		$grid->addColumnActionDeleteSystemic();
 
+
+		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected(null, false, function (CustomerGroup $customerGroup) {
 			return !$customerGroup->isSystemic();
 		});
@@ -102,14 +115,32 @@ class CustomerGroupPresenter extends BackendPresenter
 
 		$form->addText('name', 'Název')->setRequired();
 
-		$form->addSelect('defaultCatalogPermission', 'Katalogové oprávnění', Shopper::PERMISSIONS);
-		$form->addCheckbox('defaultBuyAllowed', 'Povolený nákup');
-		$form->addCheckbox('defaultViewAllOrders', 'Účet vidí všechny objednávky zákazníka');
+		$form->addSelect('defaultCatalogPermission', 'Katalogové oprávnění', Shopper::PERMISSIONS)->addCondition($form::EQUAL, 'price')
+			->toggle('frm-newForm-defaultPricesWithoutVat-toogle')
+			->toggle('frm-newForm-defaultPricesWithVat-toogle');
 
-		if ($this->shopper->getShowVat()) {
-			$form->addCheckbox('defaultPricesWithVat', 'Zobrazit ceny s daní');
+		if (isset(static::CONFIGURATION['prices']) && static::CONFIGURATION['prices']) {
+			if ($this->shopper->getShowWithoutVat()) {
+				$form->addCheckbox('defaultPricesWithoutVat', 'Zobrazit ceny bez daně');
+			}
+
+			if ($this->shopper->getShowVat()) {
+				$form->addCheckbox('defaultPricesWithVat', 'Zobrazit ceny s daní');
+			}
+
+			if ($this->shopper->getShowWithoutVat() && $this->shopper->getShowVat()) {
+				$form->addSelect('defaultPriorityPrice', 'Prioritní cena', [
+					'withoutVat' => 'Bez daně',
+					'withVat' => 'S daní'
+				])->addConditionOn($form['defaultCatalogPermission'], $form::EQUAL, 'price')
+					->addConditionOn($form['defaultPricesWithoutVat'], $form::EQUAL, true)
+					->addConditionOn($form['defaultPricesWithVat'], $form::EQUAL, true)
+					->toggle('frm-newForm-defaultPriorityPrice-toogle');
+			}
 		}
 
+		$form->addCheckbox('defaultBuyAllowed', 'Povolený nákup');
+		$form->addCheckbox('defaultViewAllOrders', 'Účet vidí všechny objednávky zákazníka');
 		$form->addDataMultiSelect('defaultPricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 

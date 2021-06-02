@@ -43,20 +43,26 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		$pickupPoint = $this->addSelect('pickupPoint');
 
 		$allPoints = [];
+		$typesWithPoints = [];
 
 		/** @var DeliveryType $deliveryType */
 		foreach ($checkoutManager->getDeliveryTypes()->toArray() as $deliveryType) {
 			$pickupPoints = $this->pickupPointRepository->many()
 				->join(['type' => 'eshop_pickuppointtype'], 'this.fk_pickupPointType = type.uuid')
 				->join(['delivery' => 'eshop_deliverytype'], 'delivery.fk_pickupPointType = type.uuid')
-				->where('delivery.uuid', $deliveryType->getPK())->toArrayOf('name');
+				->where('delivery.uuid', $deliveryType->getPK())
+				->toArrayOf('name');
+
+			if (\count($pickupPoints) > 0) {
+				$typesWithPoints[] = $deliveryType->getPK();
+			}
 
 			$allPoints += $pickupPoints;
 
 			$pickupPoint->setHtmlAttribute('data-' . $deliveryType->getPK(), Nette\Utils\Json::encode($pickupPoints));
 		}
 
-		$pickupPoint->setItems($allPoints);
+		$pickupPoint->setItems($allPoints)->setPrompt('Vyberte výdejní místo')->addConditionOn($this['deliveries'], $this::IS_IN, $typesWithPoints)->addRule($this::REQUIRED);
 
 		$this->addHidden('zasilkovnaId');
 		$deliveriesList->setRequired();
