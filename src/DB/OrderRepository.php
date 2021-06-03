@@ -609,6 +609,8 @@ class OrderRepository extends \StORM\Repository
 		$purchase = $order->purchase;
 		$items = [];
 
+
+
 		/** @var \Eshop\DB\CartItem $cartItem */
 		foreach ($purchase->getItems() as $cartItem) {
 			$items[$cartItem->getPK()] = $cartItem->toArray();
@@ -663,7 +665,12 @@ class OrderRepository extends \StORM\Repository
 			'totalPrice' => $this->shopper->getCatalogPermission() == 'price' ? $order->getTotalPrice() : null,
 			'totalPriceVat' => $this->shopper->getCatalogPermission() == 'price' ? $order->getTotalPriceVat() : null,
 			'currency' => $order->purchase->currency,
-			'shopper' => $this->shopper
+			'discountCoupon' => $order->getDiscountCoupon(),
+			'order' => $order,
+			'withVat' => false,
+			'withoutVat' => false,
+			'catalogPermission' => $this->shopper->getCatalogPermission(),
+			'priorityPrices' => $this->shopper->showPriorityPrices()
 		];
 
 		if($this->shopper->getCatalogPermission() == 'price'){
@@ -672,22 +679,26 @@ class OrderRepository extends \StORM\Repository
 					$values['totalDeliveryPricePref'] = $totalDeliveryPriceVat;
 					$values['paymentPricePref'] = $order->payments->firstValue('priceVat');
 					$values['totalPricePref'] = $order->getTotalPriceVat();
+					$values['withVat'] = true;
 				} else {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPrice;
 					$values['paymentPricePref'] = $order->payments->firstValue('price');
 					$values['totalPricePref'] = $order->getTotalPrice();
+					$values['withoutVat'] = true;
 				}
 			} else {
 				if ($this->shopper->getShowVat()) {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPriceVat;
 					$values['paymentPricePref'] = $order->payments->firstValue('priceVat');
 					$values['totalPricePref'] = $order->getTotalPriceVat();
+					$values['withVat'] = true;
 				}
 
 				if ($this->shopper->getShowWithoutVat()) {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPrice;
 					$values['paymentPricePref'] = $order->payments->firstValue('price');
 					$values['totalPricePref'] = $order->getTotalPrice();
+					$values['withoutVat'] = true;
 				}
 			}
 		}
