@@ -59,7 +59,7 @@ class ProductList extends Datalist
 
 		$this->setDefaultOnPage(20);
 		$this->setDefaultOrder('priority');
-		$this->setAllowedOrderColumns(['price' => 'price']);
+		$this->setAllowedOrderColumns(['price' => 'price', 'priority' => 'priority']);
 		$this->setItemCountCallback(function (ICollection $filteredSource) {
 			// @TODO: cache?
 			return $filteredSource->setOrderBy([])->count();
