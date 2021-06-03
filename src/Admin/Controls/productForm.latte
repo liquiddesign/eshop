@@ -18,8 +18,10 @@
 				<th class="col-label col-form-label col">{label code/}</th>
 
 				<td class="align-middle form-inline">
-					{input code class => 'form-control form-control-sm col-label'} {input subCode class => 'ml-2 form-control form-control-sm col-label max-number'}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError code}</span>
+					{input code class => 'form-control form-control-sm col-label'}
+					<span class="form-control-feedback text-danger text-sm ml-2" n:ifcontent>{inputError code}</span>
+					{input subCode class => 'ml-2 form-control form-control-sm col-label max-number'}
+					<span class="form-control-feedback text-danger text-sm ml-2" n:ifcontent>{inputError subCode}</span>
 				</td>
 			</tr>
 

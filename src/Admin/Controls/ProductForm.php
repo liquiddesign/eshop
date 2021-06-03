@@ -113,7 +113,7 @@ class ProductForm extends Control
 
 		$form->addGroup('Hlavní atributy');
 
-		$form->addText('code', 'Kód a podsklad')->setNullable();
+		$form->addText('code', 'Kód a podsklad')->setRequired();
 		$form->addText('subCode', 'Kód podskladu')->setNullable();
 		$form->addText('ean', 'EAN')->setNullable();
 		$nameInput = $form->addLocaleText('name', 'Název');
