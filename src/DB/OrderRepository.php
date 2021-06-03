@@ -615,6 +615,24 @@ class OrderRepository extends \StORM\Repository
 			$items[$cartItem->getPK()]['fullCode'] = $cartItem->getFullCode();
 			$items[$cartItem->getPK()]['totalPrice'] = $cartItem->getPriceSum();
 			$items[$cartItem->getPK()]['totalPriceVat'] = $cartItem->getPriceVatSum();
+
+			if($this->shopper->getCatalogPermission() == 'price'){
+				if ($this->shopper->getShowVat() && $this->shopper->getShowWithoutVat()) {
+					if ($this->shopper->showPriorityPrices() == 'withVat') {
+						$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceVatSum();
+					} else {
+						$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceSum();
+					}
+				} else {
+					if ($this->shopper->getShowVat()) {
+						$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceVatSum();
+					}
+
+					if ($this->shopper->getShowWithoutVat()) {
+						$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceSum();
+					}
+				}
+			}
 		}
 
 		$deliveryPrice = $order->getDeliveryPriceVatSum();
@@ -647,6 +665,32 @@ class OrderRepository extends \StORM\Repository
 			'currency' => $order->purchase->currency,
 			'shopper' => $this->shopper
 		];
+
+		if($this->shopper->getCatalogPermission() == 'price'){
+			if ($this->shopper->getShowVat() && $this->shopper->getShowWithoutVat()) {
+				if ($this->shopper->showPriorityPrices() == 'withVat') {
+					$values['totalDeliveryPricePref'] = $totalDeliveryPriceVat;
+					$values['paymentPricePref'] = $order->payments->firstValue('priceVat');
+					$values['totalPricePref'] = $order->getTotalPriceVat();
+				} else {
+					$values['totalDeliveryPricePref'] = $totalDeliveryPrice;
+					$values['paymentPricePref'] = $order->payments->firstValue('price');
+					$values['totalPricePref'] = $order->getTotalPrice();
+				}
+			} else {
+				if ($this->shopper->getShowVat()) {
+					$values['totalDeliveryPricePref'] = $totalDeliveryPriceVat;
+					$values['paymentPricePref'] = $order->payments->firstValue('priceVat');
+					$values['totalPricePref'] = $order->getTotalPriceVat();
+				}
+
+				if ($this->shopper->getShowWithoutVat()) {
+					$values['totalDeliveryPricePref'] = $totalDeliveryPrice;
+					$values['paymentPricePref'] = $order->payments->firstValue('price');
+					$values['totalPricePref'] = $order->getTotalPrice();
+				}
+			}
+		}
 
 		return $values;
 	}
