@@ -49,19 +49,10 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			$query .= "categories.path = \"$category->path\" OR ";
 		}
 
-		if (\strlen($query) > 0) {
-			$query = \substr($query, 0, -3);
-
-			return $this->getCollection($includeHidden)
-				->join(['nxn' => 'eshop_attribute_nxn_eshop_category'], 'this.uuid = nxn.fk_attribute')
-				->join(['category' => 'eshop_category'], 'category.uuid = nxn.fk_category')
-				->where($query);
-		}
-
 		return $this->getCollection($includeHidden)
 			->join(['nxn' => 'eshop_attribute_nxn_eshop_category'], 'this.uuid = nxn.fk_attribute')
 			->join(['category' => 'eshop_category'], 'category.uuid = nxn.fk_category')
-			->where('1=0');
+			->where(\strlen($query) > 0 ? \substr($query, 0, -3) : '1=0');
 	}
 
 	public function getAttributeValues($attribute, bool $includeHidden = false): Collection
