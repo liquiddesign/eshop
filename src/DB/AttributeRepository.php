@@ -49,12 +49,19 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			$query .= "categories.path = \"$category->path\" OR ";
 		}
 
-		$query = \substr($query, 0, -3);
+		if (\strlen($query) > 0) {
+			$query = \substr($query, 0, -3);
+
+			return $this->getCollection($includeHidden)
+				->join(['nxn' => 'eshop_attribute_nxn_eshop_category'], 'this.uuid = nxn.fk_attribute')
+				->join(['category' => 'eshop_category'], 'category.uuid = nxn.fk_category')
+				->where($query);
+		}
 
 		return $this->getCollection($includeHidden)
 			->join(['nxn' => 'eshop_attribute_nxn_eshop_category'], 'this.uuid = nxn.fk_attribute')
 			->join(['category' => 'eshop_category'], 'category.uuid = nxn.fk_category')
-			->where($query);
+			->where('1=0');
 	}
 
 	public function getAttributeValues($attribute, bool $includeHidden = false): Collection
@@ -75,7 +82,9 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 
 	public function getCounts(Collection $collection, array $categories): array
 	{
-		bdump($categories);
+		if (\count($categories) == 0) {
+			return [];
+		}
 
 		$collection->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=this.uuid');
 		$collection->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
