@@ -88,7 +88,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			$dir = \explode('-', $this->getHttpRequest()->getQuery('grid-order') ?? '')[1] ?? 'ASC';
 			$grid->setSecondaryOrder(['categoryNameL2' => $dir, 'categoryNameL3' => $dir, 'categoryNameL4' => $dir]);
 			
-			$grid->addColumn('Kategorie', function (SupplierCategory $mapping) {
+			$grid->addColumn('Napárovano', function (SupplierCategory $mapping) {
 				$link = $mapping->category && $this->admin->isAllowed(':Eshop:Admin:Category:detail') ? $this->link(':Eshop:Admin:Category:detail', [$mapping->category, 'backLink' => $this->storeRequest(),]) : '#';
 				
 				return $mapping->category ? "<a href='$link'>" . ($mapping->category->name ?: 'Detail kategorie') . '</a>' : '-';
@@ -118,7 +118,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		
 		if ($this->tab === 'producer') {
 			$grid->addColumnText('Název', 'name', '%s', 'name');
-			$grid->addColumn('Výrobce', function (SupplierProducer $mapping) {
+			$grid->addColumn('Napárovano', function (SupplierProducer $mapping) {
 				$link = $mapping->producer && $this->admin->isAllowed(':Eshop:Admin:Producer:detail') ? $this->link(':Eshop:Admin:Producer:detail', [$mapping->producer, 'backLink' => $this->storeRequest(),]) : '#';
 				
 				return $mapping->producer ? "<a href='$link'>" . ($mapping->producer->name ?: 'Detail výrobce') . '</a>' : '-';
@@ -130,7 +130,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		
 		if ($this->tab === 'amount') {
 			$grid->addColumnText('Hodnota', 'name', '%s', 'name');
-			$grid->addColumn('Dostupnost', function (SupplierDisplayAmount $mapping) {
+			$grid->addColumn('Napárovano', function (SupplierDisplayAmount $mapping) {
 				$link = $mapping->displayAmount && $this->admin->isAllowed(':Eshop:Admin:DisplayAmount:detail') ? $this->link(':Eshop:Admin:DisplayAmount:detail', [$mapping->displayAmount, 'backLink' => $this->storeRequest(),]) : '#';
 				
 				return $mapping->displayAmount ? "<a href='$link'>" . ($mapping->displayAmount->label ?: 'Detail dostupnosti') . '</a>' : '-';
