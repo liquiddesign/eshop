@@ -85,14 +85,27 @@ class ProductGridFactory
 		$grid->addColumnSelector();
 		$grid->addColumnImage('imageFileName', Product::IMAGE_DIR);
 		
-		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
+		$grid->addColumn('Kód a EAN', function (Product $product) {
+			return $product->getFullCode() . ($product->ean ? "<br><small>EAN $product->ean</small>" : '');
+		}, '%s', 'code', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
+		
 		$grid->addColumn('Název', function (Product $product, $grid) {
-			return [$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]), $product->name];
-		}, '<a href="%s" target="_blank"> %s</a>', 'name');
+			$suppliers = [];
+			
+			foreach ($product->supplierProducts as $supplierProduct) {
+				$supplier = $supplierProduct->getValue('supplier');
+				$code = $supplierProduct->code;
+				$link = $grid->getPresenter()->link(':Eshop:Admin:SupplierProduct:default', ['tab' => $supplier, 'grid-search' => $code]);
+				$suppliers[] = "<a href='$link' class='badge badge-light' style='font-weight: normal;' target='_blank'>$supplier</a>";
+			}
+			
+			return [$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]), $product->name, \implode(' &nbsp;',$suppliers)];
+		}, '<a href="%s" target="_blank"> %s</a> <a href="" class="badge badge-light" style="font-weight: normal;">%s</a>', 'name');
 		
 		$grid->addColumnText('Výrobce', 'producer.name', '%s', 'producer.name_cs');
 		$grid->addColumn('Kategorie', function (Product $product) {
-			return \implode(', ', $product->categories->toArrayOf('name'));
+			return $product->primaryCategory->name;
+			//return \implode('&nbsp;|&nbsp;', $product->categories->toArrayOf('name'));
 		});
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
@@ -163,11 +176,11 @@ class ProductGridFactory
 			
 		}
 		
-		if ($tags = $this->tagRepository->getListForSelect()) {
+		/*if ($tags = $this->tagRepository->getListForSelect()) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$this->productRepository->filterTag($value, $source);
 			}, '', 'tags', null, $tags, ['placeholder' => '- Tagy -']);
-		}
+		}*/
 		
 		if ($ribbons = $this->ribbonRepository->getArrayForSelect()) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
@@ -181,6 +194,9 @@ class ProductGridFactory
 			}, '', 'pricelists', null, $ribbons, ['placeholder' => '- Ceníky -']);
 		}
 		
+		$grid->addFilterDataSelect(function (ICollection $source, $value) {
+			!$value ? $source->where('this.imageFileName IS NULL') : $source->where('this.imageFileName IS NOT NULL');
+		}, '', 'image', null, ['1' => 'S obrázkem', '0' => 'Bez obrázku'])->setPrompt('- Obrázek -');
 		
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
 			$source->where('this.hidden', (bool) $value);
@@ -189,6 +205,8 @@ class ProductGridFactory
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
 			$source->where('this.unavailable', (bool) $value);
 		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
+		
+		
 		
 	}
 	

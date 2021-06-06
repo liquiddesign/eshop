@@ -61,25 +61,29 @@ class SupplierProductPresenter extends BackendPresenter
 	{
 		$grid = $this->gridFactory->create($this->supplierProductRepository->many()->where('this.fk_supplier', $this->tab), 20, 'this.createdTs', 'ASC', true);
 		$grid->addColumnSelector();
-		$grid->addColumn('Identifikátor', function (SupplierProduct $product) {
-			return $product->productCode ? ('Kód: ' . $product->getProductFullCode()) : ($product->ean ? ('EAN: ' . $product->ean) : '-');
+		$grid->addColumn('Kód a EAN', function (SupplierProduct $product) {
+			return $product->code . ($product->ean ? "<br><small>EAN $product->ean</small>" : '');
 		}, '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		
-		$grid->addColumnText('Název', "name", '%s', 'updatedTs');
-		$grid->addColumnText('Výrobce', "producer.name", '%s', 'updatedTs');
-		$grid->addColumnText('Kategorie', 'category.getNameTree', '%s');
+		$grid->addColumnText('Název', "name", '%s', 'name');
+		$grid->addColumnText('Výrobce', "producer.name", '%s');
+		$grid->addColumnText('Kategorie', ['category.getNameTree', 'producer.name'], '%s | %s');
 		
-		$grid->addColumn('Katalog', function (SupplierProduct $supplierProduct, AdminGrid $datagrid) {
+		$grid->addColumn('Spárováno', function (SupplierProduct $supplierProduct, AdminGrid $datagrid) {
 			$link = $supplierProduct->product && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$supplierProduct->product, 'backLink' => $this->storeRequest(),]) : '#';
 			
-			return $supplierProduct->product ? "<a href='$link'>".$supplierProduct->product->getFullCode()."</a>" : "-";
+			return $supplierProduct->product ? "<a href='$link'>".$supplierProduct->product->getFullCode()."</a>" : "-ne-";
 		}, '%s', 'product');
 		
 		
 		$grid->addColumnInputCheckbox('<span title="Aktivní">Aktivní</span>', 'active', 'active', '', 'this.active');
 		
-		$grid->addColumnLinkDetail('Detail');
 		
+		$grid->addColumn('', function ($object, $grid) {
+			return $grid->getPresenter()->link('detail', $object);
+		}, '<a href="%s" class="btn btn-sm btn-outline-primary">Spárovat</a>');
+		
+		//$grid->addColumnLinkDetail('detail');
 		$grid->addButtonSaveAll();
 		
 		$grid->addFilterTextInput('search', ['this.ean', 'this.code'], null, 'EAN, kód');
@@ -99,7 +103,7 @@ class SupplierProductPresenter extends BackendPresenter
 			
 		}, '', 'category')->setHtmlAttribute('placeholder', 'Kategorie, výrobce')->setHtmlAttribute('class', 'form-control form-control-sm');
 		
-		$grid->addFilterCheckboxInput('notmapped', "fk_product IS NOT NULL", 'Importované');
+		$grid->addFilterCheckboxInput('notmapped', "fk_product IS NOT NULL", 'Spárované');
 		
 		$grid->addButtonBulkEdit('form', ['active']);
 		
@@ -111,30 +115,36 @@ class SupplierProductPresenter extends BackendPresenter
 	public function createComponentForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
+		$form->addCheckbox('active', 'Aktivní');
+		
+		return $form;
+	}
+	
+	public function createComponentPairForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
 		$form->addText('productFullCode', 'Párovat k produktu')
 			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
-			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [
-				$this->productRepository,
-				$this->supplierProductRepository,
-				$form
-			])
+			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$this->productRepository, $this->supplierProductRepository, $form])
 			->setNullable();
-		$form->addCheckbox('active', 'Aktivní');
 		
 		$form->addSubmits(false, false);
 		
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
+			$supplierProduct = $this->getParameter('supplierProduct');
+			$product = $this->productRepository->getProductByCodeOrEAN($values['productFullCode']);
 			
-			if ($values['productFullCode']) {
-				$parsed = \explode('.', (string) $values['productFullCode']);
-				$values['productCode'] = $parsed[0] ?? null;
-				$values['productSubCode'] = $parsed[1] ?? null;
+			$update = [
+				'productCode' => $product->code,
+				'product' => $product,
+			];
+			
+			if ($product->ean) {
+				$update['ean'] = $product->ean;
 			}
 			
-			$supplierProduct = $this->getParameter('supplierProduct');
-			
-			$supplierProduct->update($values);
+			$supplierProduct->update($update);
 			
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$supplierProduct]);
@@ -178,16 +188,10 @@ class SupplierProductPresenter extends BackendPresenter
 			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('form')];
+		$this->template->displayControls = [$this->getComponent('pairForm')];
 	}
 	
 	public function actionDetail(SupplierProduct $supplierProduct)
 	{
-		/** @var Form $form */
-		$form = $this->getComponent('form');
-		
-		$values = $supplierProduct->toArray();
-		$values['product'] = $supplierProduct->getProductFullCode();
-		$form->setDefaults($values);
 	}
 }
