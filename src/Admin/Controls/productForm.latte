@@ -216,7 +216,7 @@
 			</tr>
 
 			<tr class="m-0 mt-1 has-danger" n:if="$pricelists">
-				<th class="col-label col-form-label col"><i class="fa fa-sort-numeric-up mr-1"></i>Název</th>
+				<th class="col-label col-form-label col"></th>
 				<th class="">Cena bez DPH</th>
 				<th class="pl-2" n:if="$shopper->getShowVat()">Cena s DPH</th>
 				<th class="pl-2">Původní bez DPH</th>
@@ -224,7 +224,7 @@
 			</tr>
 			{foreach $pricelists as $id => $pricelist}
 				<tr class="m-0 mt-1 has-danger" style="{if !$pricelist->isActive}background-color: #E9ECEF;{/if}">
-					<th class="col-label col-form-label col">{$pricelist->priority}. {$pricelist->name}</th>
+					<th class="col-label col-form-label col">{$pricelist->name} <i class="fa fa-sort-numeric-up mr-1"></i> {$pricelist->priority}</th>
 
 					<td class="align-middle">{input prices-$id-price class => 'form-control form-control-sm col-label max-number'}
 						<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
