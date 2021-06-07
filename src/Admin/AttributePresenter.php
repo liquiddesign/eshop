@@ -110,7 +110,7 @@ class AttributePresenter extends BackendPresenter
 
 		$form->addText('code', 'Kód');
 		$form->addLocaleText('name', 'Název');
-
+		$form->addLocaleTextArea('note', 'Dodatečné informace');
 		$form->addDataMultiSelect('categories', 'Kategorie', $this->categoryRepository->getArrayForSelect());
 		$form->addSelect('filterType', 'Typ filtru', Attribute::FILTER_TYPES);
 		$form->addCheckbox('showProduct', 'Náhled')->setHtmlAttribute('data-info', 'Parametr se zobrazí v náhledu produktu.');
@@ -182,7 +182,7 @@ class AttributePresenter extends BackendPresenter
 		}
 
 		$form->addLocaleText('label', 'Popisek');
-		$form->addLocaleText('note', 'Dodatečné informace');
+		$form->addLocaleTextArea('note', 'Dodatečné informace');
 		$form->addText('metaValue', 'Doprovodná hodnota');
 		$form->addText('number', 'Číselná reprezentace')->addFilter('floatval')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->addText('priority', 'Priorita')

@@ -28,6 +28,12 @@ class Attribute extends \StORM\Entity
 	 * @column{"mutations":true}
 	 */
 	public ?string $name;
+	
+	/**
+	 * Dodatečné informace pro front, např.: na otazník
+	 * @column{"mutations":true, "type":"longtext"}
+	 */
+	public ?string $note;
 
 	/**
 	 * Typ pro filtraci
