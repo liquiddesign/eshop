@@ -50,7 +50,6 @@ class SupplierProductRepository extends \StORM\Repository
 				$updates[$name] = new Literal("IF((supplierContentLock = 0 && VALUES(supplierLock) >= supplierLock) || fk_supplierContent='$supplierId', VALUES($name), $name)");
 			}
 			
-			$updates['categories'] = 'categories';
 		} else {
 			$updates = [];
 		}
