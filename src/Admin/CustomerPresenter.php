@@ -141,7 +141,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder']);
 
-		$grid->addButtonBulkEdit('form', ['pricelists', 'merchant', 'group', 'newsletter', 'newsletterGroup'], 'customers');
+		$grid->addButtonBulkEdit('form', ['pricelists', 'merchant', 'group'], 'customers');
 
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů');
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
@@ -168,8 +168,6 @@ class CustomerPresenter extends BackendPresenter
 				$source->where('pricelistNxN.fk_pricelist', $value);
 			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
 		}
-
-		$grid->addFilterCheckboxInput('newsletter', "newsletter = 1", 'Newsletter');
 
 		$grid->addFilterButtons();
 
@@ -281,9 +279,6 @@ class CustomerPresenter extends BackendPresenter
 
 		$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired();
 		$form->addText('ccEmails', 'Kopie emailů')->setHtmlAttribute('data-info', 'Zadejte emailové adresy oddělené středníkem (;).');
-
-		$form->addCheckbox('newsletter', 'Přihlášen k newsletteru')->addCondition($form::EQUAL, true)->toggle('frm-form-newsletterGroup-toogle');
-		$form->addText('newsletterGroup', 'Skupina pro newsletter')->addConditionOn($form['newsletter'], $form::EQUAL, true)->addRule($form::REQUIRED);
 
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->many()->toArrayOf('name'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
@@ -651,6 +646,11 @@ class CustomerPresenter extends BackendPresenter
 				$source->where('pricelistNxN.fk_pricelist', $value);
 			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
 		}
+
+		$grid->addFilterSelectInput('newsletter', "catalogPermission.newsletter = :nQ", 'Newsletter','- Newsletter -',null,[
+			'0' => 'Ne',
+			'1' => 'Ano'
+		],'nQ');
 
 		$submit = $grid->getForm()->addSubmit('permBulkEdit', 'Hromadná úprava')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
