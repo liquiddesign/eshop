@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
+use Eshop\DB\CategoryRepository;
+use Eshop\DB\ProducerRepository;
+use Eshop\DB\RibbonRepository;
+use Eshop\DB\SupplierCategoryRepository;
+use Eshop\DB\TagRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Admin\Controls\AdminForm;
@@ -26,8 +31,11 @@ use Grid\Datagrid;
 use League\Csv\Reader;
 use League\Csv\Writer;
 use Nette\Application\Responses\FileResponse;
+use StORM\Collection;
 use StORM\Connection;
 use Nette;
+use StORM\Expression;
+use StORM\ICollection;
 
 class PricelistsPresenter extends BackendPresenter
 {
@@ -51,6 +59,24 @@ class PricelistsPresenter extends BackendPresenter
 
 	/** @inject */
 	public CustomerRepository $customerRepository;
+
+	/** @inject */
+	public CategoryRepository $categoryRepository;
+
+	/** @inject */
+	public ProducerRepository $producerRepository;
+
+	/** @inject */
+	public SupplierRepository $supplierRepository;
+
+	/** @inject */
+	public SupplierCategoryRepository $supplierCategoryRepository;
+
+	/** @inject */
+	public TagRepository $tagRepository;
+
+	/** @inject */
+	public RibbonRepository $ribbonRepository;
 
 	/** @inject */
 	public Connection $storm;
@@ -183,8 +209,47 @@ class PricelistsPresenter extends BackendPresenter
 		});
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 
-		$grid->addFilterTextInput('search', ['product.code', 'product.name_cs'], null, 'Kód, název');
 		$grid->addFilterButtons(['priceListItems', $this->getParameter('priceList')]);
+
+		$grid->addFilterTextInput('code', ['products.code', 'products.ean', 'products.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
+
+		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
+			$grid->addFilterDataSelect(function (Collection $source, $value) {
+				$categoryPath = $this->categoryRepository->one($value)->path;
+				$source->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=products.uuid');
+				$source->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
+				$source->where('categories.path LIKE :category', ['category' => "$categoryPath%"]);
+			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
+		}
+
+		if ($producers = $this->producerRepository->getArrayForSelect()) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+				$source->where('products.fk_producer', $value);
+			}, '', 'producers', null, $producers, ['placeholder' => '- Výrobci -']);
+		}
+
+		if ($tags = $this->tagRepository->getArrayForSelect()) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+				$source->join(['tags' => 'eshop_product_nxn_eshop_tag'], 'tags.fk_product=products.uuid');
+				$source->where('tags.fk_tag', $value);
+			}, '', 'tags', null, $tags, ['placeholder' => '- Tagy -']);
+		}
+
+		if ($ribbons = $this->ribbonRepository->getArrayForSelect()) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+				$source->join(['ribbons' => 'eshop_product_nxn_eshop_ribbon'], 'ribbons.fk_product=products.uuid');
+				$source->where('ribbons.fk_ribbon', $value);
+			}, '', 'ribbons', null, $ribbons, ['placeholder' => '- Štítky -']);
+		}
+
+		$grid->addFilterDataSelect(function (ICollection $source, $value) {
+			$source->where('products.hidden', (bool) $value);
+		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
+
+		$grid->addFilterDataSelect(function (ICollection $source, $value) {
+			$source->where('products.unavailable', (bool) $value);
+		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
+
 
 		return $grid;
 	}
