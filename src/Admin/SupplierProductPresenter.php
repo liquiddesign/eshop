@@ -67,7 +67,7 @@ class SupplierProductPresenter extends BackendPresenter
 		
 		$grid->addColumnText('Název', "name", '%s', 'name');
 		$grid->addColumnText('Výrobce', "producer.name", '%s');
-		$grid->addColumnText('Kategorie', ['category.getNameTree', 'producer.name'], '%s | %s');
+		$grid->addColumnText('Kategorie', ['category.getNameTree'], '%s');
 		
 		$grid->addColumn('Napárovano', function (SupplierProduct $supplierProduct, AdminGrid $datagrid) {
 			$link = $supplierProduct->product && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$supplierProduct->product, 'backLink' => $this->storeRequest(),]) : '#';
