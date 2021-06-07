@@ -181,7 +181,11 @@ class ProductForm extends Control
 		$form->addGroup('Nákup');
 		$form->addText('unit', 'Prodejní jednotka')
 			->setHtmlAttribute('data-info', 'Např.: ks, ml, ...');
-		$form->addInteger('discountLevelPct', 'Slevová hladina (%)')->setDefaultValue(0);
+
+		if (isset($configuration['discountLevel']) && $configuration['discountLevel']) {
+			$form->addInteger('discountLevelPct', 'Slevová hladina (%)')->setDefaultValue(0);
+		}
+
 		$form->addInteger('defaultBuyCount', 'Předdefinované množství')->setRequired()->setDefaultValue(1);
 		$form->addInteger('minBuyCount', 'Minimální množství')->setRequired()->setDefaultValue(1);
 		$form->addIntegerNullable('maxBuyCount', 'Maximální množství');
@@ -189,9 +193,13 @@ class ProductForm extends Control
 		$form->addIntegerNullable('inPackage', 'Počet v balení');
 		$form->addIntegerNullable('inCarton', 'Počet v kartónu');
 		$form->addIntegerNullable('inPalett', 'Počet v paletě');
-		$form->addIntegerNullable('roundingPackagePct', 'Zokrouhlení balení (%)');
-		$form->addIntegerNullable('roundingCartonPct', 'Zokrouhlení karton (%)');
-		$form->addIntegerNullable('roundingPalletPct', 'Zokrouhlení paletu (%)');
+
+		if (isset($configuration['rounding']) && $configuration['rounding']) {
+			$form->addIntegerNullable('roundingPackagePct', 'Zokrouhlení balení (%)');
+			$form->addIntegerNullable('roundingCartonPct', 'Zokrouhlení karton (%)');
+			$form->addIntegerNullable('roundingPalletPct', 'Zokrouhlení paletu (%)');
+		}
+
 		$form->addText('dependedValue', 'Závislá cena (%)')
 			->setNullable()
 			->addCondition($form::FILLED)
