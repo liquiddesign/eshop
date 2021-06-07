@@ -104,8 +104,8 @@ class ProductGridFactory
 		
 		$grid->addColumnText('Výrobce', 'producer.name', '%s', 'producer.name_cs');
 		$grid->addColumn('Kategorie', function (Product $product) {
-			return $product->primaryCategory->name;
-			//return \implode('&nbsp;|&nbsp;', $product->categories->toArrayOf('name'));
+			//return $product->primaryCategory->name;
+			return \implode('&nbsp;|&nbsp;', $product->categories->toArrayOf('name'));
 		});
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
