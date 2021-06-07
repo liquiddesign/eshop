@@ -208,12 +208,14 @@
 				<td colspan="3"></td>
 
 			</tr>
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label discountLevelPct/}</th>
+			{ifset $form['discountLevelPct']}
+				<tr class="m-0 mt-1 has-danger">
+					<th class="col-label col-form-label col">{label discountLevelPct/}</th>
 
-				<td colspan="4"  class="align-middle">{input discountLevelPct  class => 'form-control form-control-sm col-label max-number'}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError discountLevelPct}</span></td>
-			</tr>
+					<td colspan="4"  class="align-middle">{input discountLevelPct  class => 'form-control form-control-sm col-label max-number'}
+						<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError discountLevelPct}</span></td>
+				</tr>
+			{/ifset}
 
 			<tr class="m-0 mt-1 has-danger" n:if="$pricelists">
 				<th class="col-label col-form-label col"></th>
@@ -292,6 +294,7 @@
 				</td>
 			</tr>
 
+			{ifset $form['roundingPackagePct']}
 			<tr class="m-0 mt-1 has-danger">
 				<th class="col-label col-form-label col">Zokrouhlení balení / kartón / paleta (%)</th>
 
@@ -303,8 +306,10 @@
 					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError roundingPackagePct}</span>
 					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError roundingCartonPct}</span>
 					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError roundingPalletPct}</span>
+
 				</td>
 			</tr>
+			{/ifset}
 
 
 			<tr n:if="isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']" class="m-0 mt-1 has-danger">
@@ -404,8 +409,8 @@
 										<td class="pr-2">
 											{input discountPct class => 'form-control form-control-sm'}
 											<span class="form-control-feedback text-danger text-sm" n:ifcontent>
-                                                    {inputError discountPct}
-                                                </span>
+													{inputError discountPct}
+												</span>
 										</td>
 									{/formContainer}
 								</tr>

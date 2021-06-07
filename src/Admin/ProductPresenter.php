@@ -43,7 +43,9 @@ class ProductPresenter extends BackendPresenter
 		'taxes' => true,
 		'upsells' => true,
 		'suppliers' => true,
-		'weightAndDimension' => false
+		'weightAndDimension' => false,
+		'discountLevel' => true,
+		'rounding' => true
 	];
 
 	protected const DEFAULT_TEMPLATE = __DIR__ . '/../../_data/newsletterTemplates/newsletter.latte';
