@@ -2,7 +2,6 @@
 
 namespace Eshop\Integration;
 
-use Eshop\DB\CatalogPermission;
 use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\Shopper;
@@ -14,13 +13,15 @@ use Web\DB\SettingRepository;
 
 class MailerLite
 {
-	private ?string $apiKey;
+	private ?string $apiKey = null;
 
 	private Shopper $shopper;
 
 	private CustomerRepository $customerRepository;
 
 	private CatalogPermissionRepository $catalogPermissionRepository;
+
+	private SettingRepository $settingRepository;
 
 	private Groups $groupsApi;
 
@@ -32,29 +33,38 @@ class MailerLite
 
 	public function __construct(SettingRepository $settingRepository, Shopper $shopper, CustomerRepository $customerRepository, CatalogPermissionRepository $catalogPermissionRepository)
 	{
-		if ($apiKey = $settingRepository->many()->where('name = "mailerLiteApiKey"')->first()) {
+		$this->shopper = $shopper;
+		$this->customerRepository = $customerRepository;
+		$this->catalogPermissionRepository = $catalogPermissionRepository;
+		$this->settingRepository = $settingRepository;
+	}
+
+	private function initApi()
+	{
+		if ($apiKey = $this->settingRepository->many()->where('name = "mailerLiteApiKey"')->first()) {
 			$this->apiKey = $apiKey->value;
 			$this->subscribersApi = (new MailerLiteApi($this->apiKey))->subscribers();
 			$this->groupsApi = (new MailerLiteApi($this->apiKey))->groups();
 			$groups = $this->groupsApi->get()->toArray();
 
 			$this->groups = [];
+			$this->subscribers = [];
 
 			foreach ($groups as $group) {
 				$this->groups[$group->id] = $group;
 				$this->subscribers[$group->id] = $this->groupsApi->getSubscribers($group->id);
 			}
 		}
-
-		$this->shopper = $shopper;
-		$this->customerRepository = $customerRepository;
-		$this->catalogPermissionRepository = $catalogPermissionRepository;
 	}
 
 	private function checkApi()
 	{
 		if (!$this->apiKey) {
-			throw new \Exception('API connection error! Check API key.');
+			$this->initApi();
+
+			if (!$this->apiKey) {
+				throw new \Exception('API connection error! Check API key.');
+			}
 		}
 	}
 
@@ -129,6 +139,8 @@ class MailerLite
 
 	public function unsubscribeAllFromAllGroups()
 	{
+		$this->checkApi();
+
 		foreach ($this->groups as $group) {
 			$subscribers = $this->getSubscribers($group->name);
 
@@ -140,13 +152,9 @@ class MailerLite
 
 	public function syncCustomers()
 	{
+		$this->checkApi();
+
 		$this->unsubscribeAllFromAllGroups();
-
-		foreach ($this->customerRepository->many()->where('newsletter', true)->where('newsletterGroup != "" AND newsletterGroup IS NOT NULL') as $customer) {
-			/** @var \Eshop\DB\Customer $customer */
-
-			$this->subscribe($customer->email, $customer->fullname, $customer->newsletterGroup);
-		}
 
 		foreach ($this->catalogPermissionRepository->many()->where('newsletter', true)->where('newsletterGroup != "" AND newsletterGroup IS NOT NULL') as $catalogPerm) {
 			if (!Validators::isEmail($catalogPerm->account->login)) {
