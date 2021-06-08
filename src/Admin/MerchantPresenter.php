@@ -103,7 +103,7 @@ class MerchantPresenter extends BackendPresenter
 			$this->accountFormFactory->addContainer($form);
 		}
 
-		$form->addDataSelect('preferredMutation', 'Preferovaný jazyk', \array_combine($this->formFactory->formFactory->getDefaultMutations(),$this->formFactory->formFactory->getDefaultMutations()))->setPrompt('Automaticky');
+//		$form->addDataSelect('preferredMutation', 'Preferovaný jazyk', \array_combine($this->formFactory->formFactory->getDefaultMutations(),$this->formFactory->formFactory->getDefaultMutations()))->setPrompt('Automaticky');
 		$form->addDataSelect('customerGroup', 'Skupina zákazníků',
 			$this->customerGroupRepository->getArrayForSelect(true, static::CONFIGURATIONS['showUnregisteredGroup']))->setPrompt('Žádná');
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepository->getArrayForSelect());

@@ -453,12 +453,6 @@ class Shopper
 			return $customer->getPreferredMutation();
 		}
 
-		$merchant = $this->merchantRepository->getByAccountLogin($account->getPK());
-
-		if ($merchant) {
-			return $merchant->getPreferredMutation();
-		}
-
 		return null;
 	}
 }
