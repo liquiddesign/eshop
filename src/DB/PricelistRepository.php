@@ -136,6 +136,43 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		}
 	}
 
+	public function copyPricesArray(
+		array $ids,
+		Pricelist $to,
+		float $modificator,
+		int $roundPrecision,
+		bool $overwrite = false,
+		bool $fillBeforePrices = false,
+		bool $quantityPrices = false
+	) {
+		$priceRepository = $this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class);
+
+		/** @var Price[] $originalPrices */
+		$originalPrices = $priceRepository->many()->where('uuid', $ids);
+
+		foreach ($originalPrices as $originalPrice) {
+			$values = [
+				'pricelist' => $to->getPK(),
+				'product' => $originalPrice->getValue('product'),
+				'price' => \round($originalPrice->price * $modificator, $roundPrecision),
+				'priceVat' => \round($originalPrice->priceVat * $modificator, $roundPrecision),
+			];
+
+			if ($quantityPrices) {
+				$values['validFrom'] = $originalPrice->validFrom;
+			}
+
+			if ($fillBeforePrices && !$quantityPrices) {
+				$values += [
+					'priceBefore' => $originalPrice->price,
+					'priceVatBefore' => $originalPrice->priceVat,
+				];
+			}
+
+			$priceRepository->syncOne($values, $overwrite ? null : []);
+		}
+	}
+
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('name');
