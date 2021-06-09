@@ -579,7 +579,7 @@ class PricelistsPresenter extends BackendPresenter
 				(float)$values['percent'] / 100,
 				$values['roundPrecision'],
 				$values['overwrite'],
-				$values['beforePrices'],
+				$values['beforePrices'] ?? false,
 				$quantity
 			);
 
