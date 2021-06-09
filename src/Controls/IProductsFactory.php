@@ -6,5 +6,5 @@ namespace Eshop\Controls;
 
 interface IProductsFactory
 {
-	public function create(): ProductList;
+	public function create(array $order = null): ProductList;
 }

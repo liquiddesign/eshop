@@ -52,13 +52,21 @@ class ProductList extends Datalist
 		Translator $translator,
 		FormFactory $formFactory,
 		AttributeRepository $attributeRepository,
-		AttributeValueRepository $attributeValueRepository
+		AttributeValueRepository $attributeValueRepository,
+		array $order = null
 	)
 	{
-		parent::__construct($productRepository->getProducts()->where('this.hidden', false));
+		$source = $productRepository->getProducts()->where('this.hidden', false);
+
+		if ($order) {
+			$source->orderBy($order);
+		}
+
+		parent::__construct($source);
 
 		$this->setDefaultOnPage(20);
 		$this->setDefaultOrder('priority');
+
 		$this->setAllowedOrderColumns(['price' => 'price', 'priority' => 'priority']);
 		$this->setItemCountCallback(function (ICollection $filteredSource) {
 			// @TODO: cache?
