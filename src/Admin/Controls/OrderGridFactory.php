@@ -200,6 +200,10 @@ class OrderGridFactory
 			return "<a href='$link'>" . $delivery->getTypeName() . "</a> - " . $order->purchase->pickupPointName . " <small> $date</small>" . $deliveryInfo;
 		}
 
+		if ($order->purchase->zasilkovnaId) {
+			return "<a href='$link'>" . $delivery->getTypeName() . "</a> - " . $order->purchase->zasilkovnaId . " <small> $date</small>" . $deliveryInfo;
+		}
+
 		return "<a href='$link'>" . $delivery->getTypeName() . "</a> <small> $date</small>" . $deliveryInfo;
 	}
 
@@ -236,9 +240,9 @@ class OrderGridFactory
 
 			$accountMutation = null;
 
-			if($order->purchase->account){
-				if(!$accountMutation = $order->purchase->account->getPreferredMutation()){
-					if($order->purchase->customer){
+			if ($order->purchase->account) {
+				if (!$accountMutation = $order->purchase->account->getPreferredMutation()) {
+					if ($order->purchase->customer) {
 						$accountMutation = $order->purchase->customer->getPreferredMutation();
 					}
 				}
@@ -274,9 +278,9 @@ class OrderGridFactory
 
 		$accountMutation = null;
 
-		if($object->purchase->account){
-			if(!$accountMutation = $object->purchase->account->getPreferredMutation()){
-				if($object->purchase->customer){
+		if ($object->purchase->account) {
+			if (!$accountMutation = $object->purchase->account->getPreferredMutation()) {
+				if ($object->purchase->customer) {
 					$accountMutation = $object->purchase->customer->getPreferredMutation();
 				}
 			}
@@ -310,9 +314,9 @@ class OrderGridFactory
 
 		$accountMutation = null;
 
-		if($object->purchase->account){
-			if(!$accountMutation = $object->purchase->account->getPreferredMutation()){
-				if($object->purchase->customer){
+		if ($object->purchase->account) {
+			if (!$accountMutation = $object->purchase->account->getPreferredMutation()) {
+				if ($object->purchase->customer) {
 					$accountMutation = $object->purchase->customer->getPreferredMutation();
 				}
 			}
