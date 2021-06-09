@@ -84,7 +84,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		$grid->addColumnActionDelete();
 		
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 		
 		$grid->addFilterTextInput('search', ['name_cs', 'code'], null, 'Kód, název');
 		
@@ -220,7 +220,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		$grid->addColumnActionDelete();
 
 		$grid->addButtonSaveAll(['weightTo'], [], 'this.uuid');
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 		
 		$grid->addFilterSelectInput('search', 'fk_currency = :q', 'Měna', '- Měna -', null, $this->currencyRepo->getArrayForSelect());
 		

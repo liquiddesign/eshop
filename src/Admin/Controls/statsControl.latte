@@ -103,15 +103,15 @@
                 labels: MONTHS,
                 datasets: [{
                     label: 'Cena',
-                    backgroundColor: '#d35a22',
-                    borderColor: '#d35a22',
+                    backgroundColor: '#4791ed',
+                    borderColor: '#4791ed',
                     borderWidth: 1,
                     data: [{foreach $monthlyOrders as $key => $value}{$value['price']},{/foreach}]
                 },
                     {
                         label: 'Cena s daní',
-                        backgroundColor: '#a9481b',
-                        borderColor: '#a9481b',
+                        backgroundColor: '#2970C9',
+                        borderColor: '#2970C9',
                         borderWidth: 1,
                         data: [{foreach $monthlyOrders as $key => $value}{$value['priceVat']},{/foreach}]
                     }
