@@ -594,7 +594,7 @@ class PricelistsPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderCopyToPricelist(array $ids, Pricelist $pricelist, string $type = 'standard')
+	public function renderCopyToPricelist(array $ids, Pricelist $pricelist, string $type)
 	{
 		$this->template->headerLabel = 'Kopírovat ceny';
 		$this->template->headerTree = [
@@ -608,7 +608,7 @@ class PricelistsPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('copyToPricelistForm')];
 	}
 
-	public function actionCopyToPricelist(array $ids, Pricelist $pricelist, string $type = 'standard')
+	public function actionCopyToPricelist(array $ids, Pricelist $pricelist, string $type)
 	{
 //		/** @var \Forms\Form $form */
 //		$form = $this->getComponent('newsletterExportProducts');
