@@ -14,6 +14,10 @@ use Eshop\DB\RelatedRepository;
 use Eshop\DB\RelatedType;
 use Eshop\DB\RelatedTypeRepository;
 use Forms\Form;
+use League\Csv\Reader;
+use League\Csv\Writer;
+use Nette\Application\Application;
+use Nette\Application\Responses\FileResponse;
 use StORM\DIConnection;
 use StORM\ICollection;
 
@@ -27,6 +31,9 @@ class RelatedPresenter extends BackendPresenter
 
 	/** @inject */
 	public ProductRepository $productRepository;
+
+	/** @inject */
+	public Application $application;
 
 	public const TABS = [
 		'relations' => 'Vazby',
@@ -79,6 +86,12 @@ class RelatedPresenter extends BackendPresenter
 		$grid->addFilterTextInput('slave', ['slave.code', 'slave.ean', 'slave.name_cs'], null, 'Slave: EAN, kód, název', '', '%s%%');
 
 		$grid->addFilterButtons();
+
+		$submit = $grid->getForm()->addSubmit('export', 'Exportovat ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+		$submit->onClick[] = function ($button) use ($grid) {
+			$grid->getPresenter()->redirect('export', [$grid->getSelectedIds()]);
+		};
 
 		return $grid;
 	}
@@ -142,8 +155,11 @@ class RelatedPresenter extends BackendPresenter
 		];
 
 		if ($this->tab == 'relations') {
-			$this->template->displayButtons = [$this->createNewItemButton('newRelation')];
-			$this->template->displayControls = [$this->getComponent('relationGrid')];
+			$this->template->displayButtons = [
+				$this->createNewItemButton('newRelation'),
+				$this->createButtonWithClass('import', '<i class="fas fa-file-import"></i> Import', 'btn btn-outline-primary btn-sm')
+			];
+			$this->template->displayControls = [$this->getComponent('relationGrid'),];
 		} elseif ($this->tab == 'types') {
 			$this->template->displayButtons = [$this->createNewItemButton('newType')];
 			$this->template->displayControls = [$this->getComponent('typeGrid')];
@@ -189,6 +205,7 @@ class RelatedPresenter extends BackendPresenter
 	{
 		$grid = $this->gridFactory->create($this->relatedTypeRepository->many(), 20, 'name_cs', 'ASC', true);
 		$grid->addColumnSelector();
+		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumnInputCheckbox('Podobný produkt', 'similar', '', '', 'similar');
 
@@ -198,7 +215,7 @@ class RelatedPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected();
 
-		$grid->addFilterTextInput('name', ['name_cs'], 'Název', 'Název');
+		$grid->addFilterTextInput('name', ['name_cs', 'code'], 'Kód, název', 'Kód, název');
 		$grid->addFilterButtons();
 
 		return $grid;
@@ -208,10 +225,19 @@ class RelatedPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
+		$form->addText('code', 'Kód')->setRequired();
 		$form->addLocaleText('name', 'Název');
 		$form->addCheckbox('similar', 'Podobné')->setHtmlAttribute('data-info', 'Produkty v této vazbě budou zobrazeny v detailu produktu jako podobné produkty. Na pořadí nezáleží.');
 
 		$form->addSubmits(!$this->getParameter('relatedType'));
+
+		$form->onValidate[] = function (AdminForm $form) {
+			$values = $form->getValues('array');
+
+			if ($this->relatedTypeRepository->many()->where('code', $values['code'])->first()) {
+				$form['code']->addError('Již existuje typ s tímto kódem!');
+			}
+		};
 
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
@@ -257,6 +283,95 @@ class RelatedPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('typeForm')];
+	}
+
+	public function actionExport(array $ids)
+	{
+	}
+
+
+	public function renderExport(array $ids)
+	{
+		$this->template->headerLabel = 'Exportovat';
+		$this->template->headerTree = [
+			['Vazby', 'default'],
+			['Export']
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('exportForm')];
+	}
+
+	public function createComponentExportForm()
+	{
+		/** @var \Grid\Datagrid $productGrid */
+		$grid = $this->getComponent('relationGrid');
+
+		$ids = $this->getParameter('ids') ?: [];
+		$totalNo = $grid->getFilteredSource()->enum();
+		$selectedNo = \count($ids);
+
+		$form = $this->formFactory->create();
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+		$form->addRadioList('bulkType', 'Upravit', [
+			'selected' => "vybrané ($selectedNo)",
+			'all' => "celý výsledek ($totalNo)",
+		])->setDefaultValue('selected');
+
+		$form->addSubmit('submit', 'Exportovat');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid) {
+			$values = $form->getValues('array');
+
+			/** @var Related[] $relations */
+			$relations = $values['bulkType'] == 'selected' ? $this->relatedRepository->many()->where('uuid', $ids) : $grid->getFilteredSource();
+
+			$tempFilename = \tempnam($this->tempDir, "csv");
+
+			$this->application->onShutdown[] = function () use ($tempFilename) {
+				\unlink($tempFilename);
+			};
+
+			$this->relatedRepository->exportCsv(Writer::createFromPath($tempFilename, 'w+'), $relations);
+
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "relations.csv", 'text/csv'));
+		};
+
+		return $form;
+	}
+
+	public function actionImport()
+	{
+	}
+
+
+	public function renderImport()
+	{
+		$this->template->headerLabel = 'Importovat';
+		$this->template->headerTree = [
+			['Vazby', 'default'],
+			['Import']
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('importForm')];
+	}
+
+	public function createComponentImportForm()
+	{
+		$form = $this->formFactory->create();
+		$form->addUpload('file', 'CSV soubor')->setRequired();
+		$form->addSubmit('submit', 'Uložit');
+
+		$form->onSuccess[] = function (Form $form) {
+			/** @var \Nette\Http\FileUpload $file */
+			$file = $form->getValues()->file;
+
+			$this->relatedRepository->importCsv(Reader::createFromString($file->getContents()));
+
+			$form->getPresenter()->flashMessage('Uloženo', 'success');
+			$form->getPresenter()->redirect('default');
+		};
+
+		return $form;
 	}
 
 }
