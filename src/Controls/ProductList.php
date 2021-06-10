@@ -118,6 +118,9 @@ class ProductList extends Datalist
 		$this->addFilterExpression('parameters', function (ICollection $collection, $groups): void {
 			$this->productRepository->filterParameters($groups, $collection);
 		});
+		$this->addFilterExpression('attributeValue', function (ICollection $collection, $value): void {
+			$this->productRepository->filterAttributeValue($value, $collection);
+		});
 
 		$this->productRepository = $productRepository;
 		$this->watcherRepository = $watcherRepository;

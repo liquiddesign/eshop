@@ -133,7 +133,6 @@ class ProductGridFactory
 			$grid->getPresenter()->redirect('newsletterExportSelect', [$grid->getSelectedIds()]);
 		};
 		
-		
 		$this->addFilters($grid);
 		$grid->addFilterButtons();
 		

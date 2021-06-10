@@ -297,6 +297,13 @@ class ProductRepository extends Repository implements IGeneralRepository
 			->where('this.uuid != :currentRelationProduct', ['currentRelationProduct' => $value]);
 	}
 
+	public function filterAttributeValue($value, ICollection $collection)
+	{
+		$collection
+			->join(['attributeAssign' => 'eshop_attributeassign'], 'this.uuid = attributeAssign.fk_product')
+			->where('attributeAssign.fk_value', $value);
+	}
+
 	public function filterParameters($groups, ICollection $collection)
 	{
 //		$suffix = $collection->getConnection()->getMutationSuffix();
