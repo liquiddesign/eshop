@@ -1,0 +1,105 @@
+<form n:name="setForm">
+    <fieldset id="setItems">
+        <legend>Položky setu</legend>
+
+        <table class="mt-1 mb-1">
+            <tr class="m-0 mt-1 has-danger" >
+                <th class="col-label col-form-label col"></th>
+
+                <td class="align-middle">
+                    <table style="width: auto;">
+                        <thead>
+                        <tr>
+                            <th class="pr-2">Položka</th>
+                            <th class="pr-2">Pořadí</th>
+                            <th class="pr-2">Množství</th>
+                            <th class="pr-2">Sleva v rámci setu</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {formContainer setItems}
+                            {do $components = $formContainer->getComponents()}
+                            {foreach $components as $component}
+                                <tr>
+                                    {formContainer $component->getName()}
+                                        <td class="pr-2">
+                                            {input product class => 'form-control form-control-sm', placeholder => 'EAN nebo kód'}
+                                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+												{inputError product}
+											</span>
+                                        </td>
+                                        <td class="pr-2">
+                                            {input priority class => 'form-control form-control-sm'}
+                                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+												{inputError priority}
+											</span>
+                                        </td>
+                                        <td class="pr-2">
+                                            {input amount class => 'form-control form-control-sm'}
+                                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+												{inputError amount}
+											</span>
+                                        </td>
+                                        <td class="pr-2">
+                                            {input discountPct class => 'form-control form-control-sm'}
+                                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+												{inputError discountPct}
+											</span>
+                                        </td>
+                                        <td class="pr-2">
+                                            <a href="{plink deleteSetItem! $component->getName()}"
+                                               class="btn btn-danger btn-xs text-xs" title="Smazat"><i
+                                                        class="far fa-trash-alt"></i></a>
+                                        </td>
+                                    {/formContainer}
+
+{*									{if $iterator->isLast()}*}
+{*										<td class="pr-2">*}
+{*											<button n:name="submitSet" class="btn btn-primary btn-xs text-xs"><i class="fas fa-plus"></i></button>*}
+{*										</td>*}
+{*									{/if}*}
+                                </tr>
+                            {/foreach}
+                        {/formContainer}
+
+
+						{formContainer newRow}
+                            <tr>
+                                <td class="pr-2">
+                                    {input product class => 'form-control form-control-sm', placeholder => 'EAN nebo kód'}
+                                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+										{inputError product}
+									</span>
+                                </td>
+                                <td class="pr-2">
+                                    {input priority class => 'form-control form-control-sm'}
+                                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+										{inputError priority}
+									</span>
+                                </td>
+                                <td class="pr-2">
+                                    {input amount class => 'form-control form-control-sm'}
+                                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+										{inputError amount}
+									</span>
+                                </td>
+                                <td class="pr-2">
+                                    {input discountPct class => 'form-control form-control-sm'}
+                                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+										{inputError discountPct}
+									</span>
+                                </td>
+                                <td class="pr-2">
+                                    <button n:name="submitSet" class="btn btn-primary btn-xs text-xs"><i
+                                                class="fas fa-plus"></i></button>
+                                </td>
+                            </tr>
+                        {/formContainer}
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </fieldset>
+</form>

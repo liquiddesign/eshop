@@ -1,536 +1,538 @@
-<form n:name="form">
-	{var $activeMutation = $form->getActiveMutation()}
+
+    <form n:name="form">
+        {var $activeMutation = $form->getActiveMutation()}
 	{var $renderer = $form->getRenderer()}
-	<ul class="error" n:ifcontent>
-		<li n:foreach="$form->getOwnErrors() as $error">{$error}</li>
-	</ul>
+        <ul class="error" n:ifcontent>
+            <li n:foreach="$form->getOwnErrors() as $error">{$error}</li>
+        </ul>
 
-	<fieldset>
-		<legend>Hlavní atributy</legend>
+        <fieldset>
+            <legend>Hlavní atributy</legend>
 
-		<table class="mt-1 mb-1">
+            <table class="mt-1 mb-1">
 
-			{if isset($form['__MUTATION_SELECTOR'])}
-				{$renderer->renderPair($form['__MUTATION_SELECTOR'])|noescape}
-			{/if}
+                {if isset($form['__MUTATION_SELECTOR'])}
+                    {$renderer->renderPair($form['__MUTATION_SELECTOR'])|noescape}
+                {/if}
 
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label code/}</th>
 
-				<td class="align-middle form-inline">
-					{input code class => 'form-control form-control-sm col-label'}
+                <tr class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label code/}</th>
+
+                    <td class="align-middle form-inline">
+                        {input code class => 'form-control form-control-sm col-label'}
 					<span class="form-control-feedback text-danger text-sm ml-2" n:ifcontent>{inputError code}</span>
 					{input subCode class => 'ml-2 form-control form-control-sm col-label max-number'}
-					<span class="form-control-feedback text-danger text-sm ml-2" n:ifcontent>{inputError subCode}</span>
-				</td>
-			</tr>
+                        <span class="form-control-feedback text-danger text-sm ml-2" n:ifcontent>{inputError subCode}</span>
+                    </td>
+                </tr>
 
-			<tr n:ifset="$form['supplierCode']" class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label supplierCode/}{if isset($form['externalCode'])} a {label externalCode/}{/if}</th>
 
-				<td class="align-middle form-inline">
-					{input supplierCode class => 'form-control form-control-sm col-label'} {if isset($form['externalCode'])}{input externalCode class => 'ml-2 form-control form-control-sm col-label'}{/if}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError supplierCode}</span>
-				</td>
-			</tr>
+                <tr n:ifset="$form['supplierCode']" class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label supplierCode/}{if isset($form['externalCode'])} a {label externalCode/}{/if}</th>
 
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label ean/}</th>
+                    <td class="align-middle form-inline">
+                        {input supplierCode class => 'form-control form-control-sm col-label'} {if isset($form['externalCode'])}{input externalCode class => 'ml-2 form-control form-control-sm col-label'}{/if}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError supplierCode}</span>
+                    </td>
+                </tr>
 
-				<td class="align-middle">
-					{input ean class => 'form-control form-control-sm col-label'}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError ean}</span>
-				</td>
-			</tr>
+
+                <tr class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label ean/}</th>
+
+                    <td class="align-middle">
+                        {input ean class => 'form-control form-control-sm col-label'}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError ean}</span>
+                    </td>
+                </tr>
 
 			{foreach $form['name']->getComponents() as $key => $element}
-				<tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}" id="{$element->getHtmlId()}" data-mutation="{$key}">
-					{$renderer->renderLabel($element)|noescape}
+                    <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
+                        id="{$element->getHtmlId()}" data-mutation="{$key}">
+                        {$renderer->renderLabel($element)|noescape}
 
-					<td class="align-middle">
-						<div class="d-flex">
-							{input name-$key class => 'form-control form-control-sm'}
-							<!-- COPY BUTTON -->
-							<button type="button" class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal" data-target="#modal-name">
-								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-								</svg>
-							</button>
-						</div>
+                        <td class="align-middle">
+                            <div class="d-flex">
+                                {input name-$key class => 'form-control form-control-sm'}
+                                <!-- COPY BUTTON -->
+                                <button type="button" class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal"
+                                        data-target="#modal-name">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                         stroke="currentColor" style="width: 18px; height: 18px;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+                                    </svg>
+                                </button>
+                            </div>
 
-						<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError name-$key}</span></td>
-				</tr>
-			{/foreach}
-
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label imageFileName/}</th>
-
-				{$renderer->renderControl($form['imageFileName'])|noescape}
-
-
-				<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError imageFileName}</span>
-			</tr>
-
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label categories/}</th>
-
-				<td class="align-middle">{input categories}
-
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError categories}</span></td>
-			</tr>
-
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label producer/}</th>
-
-				<td class="align-middle">{input producer}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError producer}</span></td>
-			</tr>
-
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label tags/}</th>
-
-				<td class="align-middle">{input tags}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError tags}</span></td>
-			</tr>
-
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label ribbons/}</th>
-
-				<td class="align-middle">{input ribbons}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError ribbons}</span></td>
-			</tr>
-
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label displayAmount/}</th>
-
-				<td class="align-middle">{input displayAmount}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError displayAmount}</span></td>
-			</tr>
-
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label displayDelivery/}</th>
-
-				<td class="align-middle">{input displayDelivery}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError displayDelivery}</span></td>
-			</tr>
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError name-$key}</span>
+                        </td>
+                    </tr>
+                {/foreach}
 
 
-			<tr n:if="$configuration['taxes']" class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label taxes/}</th>
+                <tr class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label imageFileName/}</th>
 
-				<td class="align-middle">{input taxes}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError taxes}</span></td>
-			</tr>
+                    {$renderer->renderControl($form['imageFileName'])|noescape}
+
+
+                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError imageFileName}</span>
+                </tr>
+
+
+                <tr class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label categories/}</th>
+
+                    <td class="align-middle">{input categories}
+
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError categories}</span>
+                    </td>
+                </tr>
+
+
+                <tr class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label producer/}</th>
+
+                    <td class="align-middle">{input producer}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError producer}</span>
+                    </td>
+                </tr>
+
+
+                <tr class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label tags/}</th>
+
+                    <td class="align-middle">{input tags}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError tags}</span>
+                    </td>
+                </tr>
+
+
+                <tr class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label ribbons/}</th>
+
+                    <td class="align-middle">{input ribbons}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError ribbons}</span>
+                    </td>
+                </tr>
+
+
+                <tr class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label displayAmount/}</th>
+
+                    <td class="align-middle">{input displayAmount}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError displayAmount}</span>
+                    </td>
+                </tr>
+
+
+                <tr class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label displayDelivery/}</th>
+
+                    <td class="align-middle">{input displayDelivery}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError displayDelivery}</span>
+                    </td>
+                </tr>
+
+
+
+                <tr n:if="$configuration['taxes']" class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label taxes/}</th>
+
+                    <td class="align-middle">{input taxes}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError taxes}</span>
+                    </td>
+                </tr>
 
 			{foreach $form['perex']->getComponents() as $key => $element}
-				<tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"  data-mutation="{$key}">
-					{$renderer->renderLabel($element)|noescape}
+                    <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
+                        data-mutation="{$key}">
+                        {$renderer->renderLabel($element)|noescape}
 
-					<td class="align-middle">
-						<div class="d-flex">
-							{input perex-$key}
-							<!-- COPY BUTTON -->
-							<button type="button" style="margin: 4px 0px 8px;" class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal" data-target="#modal-perex">
-								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-								</svg>
-							</button>
-						</div>
-						<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError perex-$key}</span>
-					</td>
-				</tr>
-			{/foreach}
+                        <td class="align-middle">
+                            <div class="d-flex">
+                                {input perex-$key}
+                                <!-- COPY BUTTON -->
+                                <button type="button" style="margin: 4px 0px 8px;"
+                                        class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal"
+                                        data-target="#modal-perex">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                         stroke="currentColor" style="width: 18px; height: 18px;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError perex-$key}</span>
+                        </td>
+                    </tr>
+                {/foreach}
 
 			{foreach $form['content']->getComponents() as $key => $element}
-				<tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"  data-mutation="{$key}">
-					{$renderer->renderLabel($element)|noescape}
+                    <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
+                        data-mutation="{$key}">
+                        {$renderer->renderLabel($element)|noescape}
 
-					<td class="align-middle">
-						<div class="d-flex">
-							{input content-$key}
-							<!-- COPY BUTTON -->
-							<button type="button" style="margin: 4px 0px 8px;" class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal" data-target="#modal-content">
-								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px;">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-								</svg>
-							</button>
-						</div>
-						<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError content-$key}</span></td>
-				</tr>
-			{/foreach}
+                        <td class="align-middle">
+                            <div class="d-flex">
+                                {input content-$key}
+                                <!-- COPY BUTTON -->
+                                <button type="button" style="margin: 4px 0px 8px;"
+                                        class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal"
+                                        data-target="#modal-content">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                         stroke="currentColor" style="width: 18px; height: 18px;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError content-$key}</span>
+                        </td>
+                    </tr>
+                {/foreach}
 
-			<tr n:if="$configuration['suppliers']" class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label supplierContent/}</th>
 
-				<td class="align-middle">{input supplierContent class=>"form-control form-control-sm", style=>'max-width: 260px;'}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError supplierContent}</span></td>
-			</tr>
+                <tr n:if="$configuration['suppliers']" class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label supplierContent/}</th>
 
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label priority 'class' => 'required'}</th>
+                    <td class="align-middle">{input supplierContent class=>"form-control form-control-sm", style=>'max-width: 260px;'}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError supplierContent}</span>
+                    </td>
+                </tr>
 
-				<td class="align-middle" >{input priority  class => 'form-control form-control-sm col-label max-number'}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError priority}</span></td>
-			</tr>
+
+                <tr class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label priority 'class' => 'required'}</th>
+
+                    <td class="align-middle">{input priority  class => 'form-control form-control-sm col-label max-number'}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError priority}</span>
+                    </td>
+                </tr>
 
 			{ifset $form['tonerForPrinters']}
-				<tr class="m-0 mt-1 has-danger">
-					<th class="col-label col-form-label col">{label tonerForPrinters/}</th>
+                    <tr class="m-0 mt-1 has-danger">
+                        <th class="col-label col-form-label col">{label tonerForPrinters/}</th>
 
-					<td class="align-middle">{input tonerForPrinters}
-						<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError tonerForPrinters}</span>
+                        <td class="align-middle">{input tonerForPrinters}
+
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError tonerForPrinters}</span>
 						{do $dataError = $form['tonerForPrinters']->getControlPrototype()->getAttribute('data-error')}
 						{if $dataError}
-							<span class="text-danger text-sm">{$dataError}</span>
-						{/if}
-					</td>
-				</tr>
-			{/ifset}
+                                <span class="text-danger text-sm">{$dataError}</span>
+                            {/if}
+                        </td>
+                    </tr>
+                {/ifset}
 
 			{$renderer->renderPair($form['hidden'])|noescape}
 
 			{$renderer->renderPair($form['recommended'])|noescape}
 
 
-		</table>
-	</fieldset>
+            </table>
+        </fieldset>
 
-	<fieldset>
-		<legend>Ceny</legend>
+        <fieldset>
+            <legend>Ceny</legend>
 
-		<table class="mt-1 mb-1" style="width: auto;">
+            <table class="mt-1 mb-1" style="width: auto;">
 
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label vatRate/}</th>
+                <tr class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label vatRate/}</th>
 
-				<td class="align-middle">{input vatRate class=>'form-control form-control-sm '}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError vatRate}</span></td>
-				<td colspan="3"></td>
+                    <td class="align-middle">{input vatRate class=>'form-control form-control-sm '}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError vatRate}</span>
+                    </td>
+                    <td colspan="3"></td>
 
-			</tr>
-			{ifset $form['discountLevelPct']}
-				<tr class="m-0 mt-1 has-danger">
-					<th class="col-label col-form-label col">{label discountLevelPct/}</th>
+                </tr>
+                {ifset $form['discountLevelPct']}
+                    <tr class="m-0 mt-1 has-danger">
+                        <th class="col-label col-form-label col">{label discountLevelPct/}</th>
 
-					<td colspan="4"  class="align-middle">{input discountLevelPct  class => 'form-control form-control-sm col-label max-number'}
-						<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError discountLevelPct}</span></td>
-				</tr>
-			{/ifset}
+                        <td colspan="4"
+                            class="align-middle">{input discountLevelPct  class => 'form-control form-control-sm col-label max-number'}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError discountLevelPct}</span>
+                        </td>
+                    </tr>
+                {/ifset}
 
-			<tr class="m-0 mt-1 has-danger" n:if="$pricelists">
-				<th class="col-label col-form-label col"></th>
-				<th class="">Cena bez DPH</th>
-				<th class="pl-2" n:if="$shopper->getShowVat()">Cena s DPH</th>
-				<th class="pl-2">Původní bez DPH</th>
-				<th class="pl-2" n:if="$shopper->getShowVat()">Původní s DPH</th>
-			</tr>
+
+                <tr class="m-0 mt-1 has-danger" n:if="$pricelists">
+                    <th class="col-label col-form-label col"></th>
+                    <th class="">Cena bez DPH</th>
+                    <th class="pl-2" n:if="$shopper->getShowVat()">Cena s DPH</th>
+                    <th class="pl-2">Původní bez DPH</th>
+                    <th class="pl-2" n:if="$shopper->getShowVat()">Původní s DPH</th>
+                </tr>
 			{foreach $pricelists as $id => $pricelist}
-				<tr class="m-0 mt-1 has-danger" style="{if !$pricelist->isActive}background-color: #E9ECEF;{/if}">
-					<th class="col-label col-form-label col">{$pricelist->name} <i class="fa fa-sort-numeric-up mr-1"></i> {$pricelist->priority}</th>
+                    <tr class="m-0 mt-1 has-danger" style="{if !$pricelist->isActive}background-color: #E9ECEF;{/if}">
+                        <th class="col-label col-form-label col">{$pricelist->name} <i
+                                    class="fa fa-sort-numeric-up mr-1"></i> {$pricelist->priority}</th>
 
-					<td class="align-middle">{input prices-$id-price class => 'form-control form-control-sm col-label max-number'}
-						<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
-					</td>
+                        <td class="align-middle">{input prices-$id-price class => 'form-control form-control-sm col-label max-number'}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
+                        </td>
 
-					<td n:if="$shopper->getShowVat()" class="align-middle">{input prices-$id-priceVat class => 'ml-2 form-control form-control-sm col-label max-number'}
-						<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
-					</td>
+                        <td n:if="$shopper->getShowVat()"
+                                class="align-middle">{input prices-$id-priceVat class => 'ml-2 form-control form-control-sm col-label max-number'}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
+                        </td>
 
-					<td class="align-middle">{input prices-$id-priceBefore class => 'ml-2 form-control form-control-sm col-label max-number'}
-						<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
-					</td>
+                        <td class="align-middle">{input prices-$id-priceBefore class => 'ml-2 form-control form-control-sm col-label max-number'}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
+                        </td>
 
-					<td n:if="$shopper->getShowVat()" class="align-middle">{input prices-$id-priceVatBefore class => 'ml-2 form-control form-control-sm col-label max-number'}
-						<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
-					</td>
-				</tr>
-			{/foreach}
+                        <td n:if="$shopper->getShowVat()"
+                                class="align-middle">{input prices-$id-priceVatBefore class => 'ml-2 form-control form-control-sm col-label max-number'}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
+                        </td>
+                    </tr>
+                {/foreach}
 
-		</table>
-	</fieldset>
-	<fieldset>
-		<legend>Nákup</legend>
+            </table>
+        </fieldset>
+        <fieldset>
+            <legend>Nákup</legend>
 
-		<table class="mt-1 mb-1">
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label unit/}</th>
+            <table class="mt-1 mb-1">
+                <tr class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label unit/}</th>
 
-				<td class="align-middle">{input unit class => 'form-control form-control-sm col-label max-number'}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span></td>
-			</tr>
+                    <td class="align-middle">{input unit class => 'form-control form-control-sm col-label max-number'}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
+                    </td>
+                </tr>
 
-			<tr class="m-0 mt-1  required has-danger">
-				<th class="col-label col-form-label col">Základní / krokové množství</th>
+                <tr class="m-0 mt-1  required has-danger">
+                    <th class="col-label col-form-label col">Základní / krokové množství</th>
 
-				<td class="align-middle form-inline">
-					{input defaultBuyCount class => 'form-control form-control-sm col-label max-number mr-2'} /
-					{input buyStep class => 'form-control form-control-sm col-label max-number ml-2'}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError defaultBuyCount}</span>
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError buyStep}</span>
-				</td>
-			</tr>
+                    <td class="align-middle form-inline">
+                        {input defaultBuyCount class => 'form-control form-control-sm col-label max-number mr-2'} /
+                        {input buyStep class => 'form-control form-control-sm col-label max-number ml-2'}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError defaultBuyCount}</span>
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError buyStep}</span>
+                    </td>
+                </tr>
 
-			<tr class="m-0 mt-1 required has-danger">
-				<th class="col-label col-form-label col">Minimální / maximální množství</th>
-				<td class="align-middle form-inline">
-					{input minBuyCount class => 'form-control form-control-sm col-label max-number mr-2'} /
-					{input maxBuyCount class => 'form-control form-control-sm col-label max-number ml-2'}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError minBuyCount}</span>
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError maxBuyCount}</span>
-				</td>
-			</tr>
+                <tr class="m-0 mt-1 required has-danger">
+                    <th class="col-label col-form-label col">Minimální / maximální množství</th>
+                    <td class="align-middle form-inline">
+                        {input minBuyCount class => 'form-control form-control-sm col-label max-number mr-2'} /
+                        {input maxBuyCount class => 'form-control form-control-sm col-label max-number ml-2'}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError minBuyCount}</span>
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError maxBuyCount}</span>
+                    </td>
+                </tr>
 
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">Počet v balení / kartón / paleta</th>
+                <tr class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">Počet v balení / kartón / paleta</th>
 
-				<td class="align-middle form-inline">
-					{input inPackage class => 'form-control form-control-sm col-label max-number mr-2'} /
-					{input inCarton class => 'form-control form-control-sm col-label max-number ml-2 mr-2'} /
-					{input inPalett class => 'form-control form-control-sm col-label max-number ml-2'}
+                    <td class="align-middle form-inline">
+                        {input inPackage class => 'form-control form-control-sm col-label max-number mr-2'} /
+                        {input inCarton class => 'form-control form-control-sm col-label max-number ml-2 mr-2'} /
+                        {input inPalett class => 'form-control form-control-sm col-label max-number ml-2'}
 
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError inPackage}</span>
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError inCarton}</span>
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError inPalett}</span>
-				</td>
-			</tr>
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError inPackage}</span>
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError inCarton}</span>
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError inPalett}</span>
+                    </td>
+                </tr>
 
-			{ifset $form['roundingPackagePct']}
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">Zokrouhlení balení / kartón / paleta (%)</th>
+                {ifset $form['roundingPackagePct']}
+                    <tr class="m-0 mt-1 has-danger">
+                        <th class="col-label col-form-label col">Zokrouhlení balení / kartón / paleta (%)</th>
 
-				<td class="align-middle form-inline">
-					{input roundingPackagePct class => 'form-control form-control-sm col-label max-number mr-2'} /
-					{input roundingCartonPct class => 'form-control form-control-sm col-label max-number ml-2 mr-2'} /
-					{input roundingPalletPct class => 'form-control form-control-sm col-label max-number ml-2'}
+                        <td class="align-middle form-inline">
+                            {input roundingPackagePct class => 'form-control form-control-sm col-label max-number mr-2'} /
+                            {input roundingCartonPct class => 'form-control form-control-sm col-label max-number ml-2 mr-2'} /
+                            {input roundingPalletPct class => 'form-control form-control-sm col-label max-number ml-2'}
 
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError roundingPackagePct}</span>
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError roundingCartonPct}</span>
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError roundingPalletPct}</span>
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError roundingPackagePct}</span>
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError roundingCartonPct}</span>
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError roundingPalletPct}</span>
 
-				</td>
-			</tr>
-			{/ifset}
+                        </td>
+                    </tr>
+                {/ifset}
 
 
-			<tr n:if="isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']" class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label weight/}</th>
 
-				<td class="align-middle">{input weight class => 'form-control form-control-sm col-label max-number'}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError weight}</span></td>
-			</tr>
+                <tr n:if="isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']"
+                        class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label weight/}</th>
 
-			<tr n:if="isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']" class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label dimension/}</th>
+                    <td class="align-middle">{input weight class => 'form-control form-control-sm col-label max-number'}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError weight}</span>
+                    </td>
+                </tr>
 
-				<td class="align-middle">{input dimension class => 'form-control form-control-sm col-label max-number'}
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError dimension}</span></td>
-			</tr>
+
+                <tr n:if="isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']"
+                        class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label dimension/}</th>
+
+                    <td class="align-middle">{input dimension class => 'form-control form-control-sm col-label max-number'}
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError dimension}</span>
+                    </td>
+                </tr>
 
 			{$renderer->renderPair($form['unavailable'])|noescape}
-		</table>
-	</fieldset>
-	<fieldset>
-		<legend>Rozšířené</legend>
-		<table class="mt-1 mb-1" style="width: auto;">
+            </table>
+        </fieldset>
 
-			<tr n:if="$configuration['upsells']" class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label upsells/}</th>
+        <fieldset>
+            {if \count($form['page']->getComponents()) > 0}
+                <legend>URL A SEO</legend>
 
-				<td class="align-middle" >
-					{input upsells  class => 'form-control form-control-sm col-label', style=> 'display:inline-block;'}
-					&nbsp; <i class="fa fa-arrow-right"></i> {input dependedValue class => 'form-control form-control-sm max-number col-label', style=> 'display:inline-block;'} %<br>
-					<span id="data-info" class="text-gray text-sm">EAN nebo kódy oddělené středníky <i class="fa fa-arrow-right"></i> Pokud neexistuje cena, vypočítá se procentuálně</span>
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError upsells}</span>
-				</td>
-			</tr>
-			<tr class="m-0 mt-1 has-danger">
-				<th class="col-label col-form-label col">{label alternative/}</th>
+                <table class="mt-1 mb-1">
+                    {$renderer->renderControls($form['page'])|noescape}
+                </table>
+            {/if}
+        </fieldset>
 
-				<td class="align-middle" >
-					{input alternative  class => 'form-control form-control-sm col-label'}
-					<span id="data-info" class="text-gray text-sm">EAN nebo kód. Produkt nebude zobrazen ve výpisu, ale pod mateřskou kartou.</span>
-					<span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError alternative}</span>
-				</td>
-			</tr>
+        <fieldset>
+            <legend>Rozšířené</legend>
+            <table class="mt-1 mb-1" style="width: auto;">
 
-			{if $configuration['sets']}
-			{$renderer->renderPair($form['productsSet'])|noescape}
+                <tr n:if="$configuration['upsells']" class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label upsells/}</th>
 
-			<tr class="m-0 mt-1 has-danger" id="setItems">
-				<th class="col-label col-form-label col">Položky setu</th>
+                    <td class="align-middle">
+                        {input upsells  class => 'form-control form-control-sm col-label', style=> 'display:inline-block;'}
+                        &nbsp; <i
+                                class="fa fa-arrow-right"></i> {input dependedValue class => 'form-control form-control-sm max-number col-label', style=> 'display:inline-block;'}
+                        %<br>
+                        <span id="data-info" class="text-gray text-sm">EAN nebo kódy oddělené středníky <i
+                                    class="fa fa-arrow-right"></i> Pokud neexistuje cena, vypočítá se procentuálně</span>
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError upsells}</span>
+                    </td>
+                </tr>
+                <tr class="m-0 mt-1 has-danger">
+                    <th class="col-label col-form-label col">{label alternative/}</th>
 
-				<td class="align-middle">
-					<table style="width: auto;">
-						<thead>
-						<tr>
-							<th></th>
-							<th class="pr-2">Položka</th>
-							<th class="pr-2">Pořadí</th>
-							<th class="pr-2">Množství</th>
-							<th class="pr-2">Sleva v rámci setu</th>
-						</tr>
-						</thead>
-						<tbody>
-						{formContainer setItems}
-							{foreach $form->getComponent('setItems')->getComponents() as $component}
-								<tr>
-									{formContainer $component->getName()}
-										<td {if !$iterator->isLast()}class="pr-2"{/if}>
-											{if !$iterator->isLast()}
-												<a href="{link deleteSetItem! $component->getName()}">
-													<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
-														 fill="none" width="20" height="20" viewBox="0 0 24 24"
-														 stroke="currentColor">
-														<path stroke-linecap="round" stroke-linejoin="round"
-															  stroke-width="2"
-															  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-													</svg>
-												</a>
-											{/if}
-										</td>
-										<td class="pr-2">
-											{input product class => 'form-control form-control-sm', placeholder => 'EAN nebo kód'}
-											<span class="form-control-feedback text-danger text-sm" n:ifcontent>
-                                                    {inputError product}
-                                                </span>
-										</td>
-										<td class="pr-2">
-											{input priority class => 'form-control form-control-sm'}
-											<span class="form-control-feedback text-danger text-sm" n:ifcontent>
-                                                    {inputError priority}
-                                                </span>
-										</td>
-										<td class="pr-2">
-											{input amount class => 'form-control form-control-sm'}
-											<span class="form-control-feedback text-danger text-sm" n:ifcontent>
-                                                    {inputError amount}
-                                                </span>
-										</td>
-										<td class="pr-2">
-											{input discountPct class => 'form-control form-control-sm'}
-											<span class="form-control-feedback text-danger text-sm" n:ifcontent>
-													{inputError discountPct}
-												</span>
-										</td>
-									{/formContainer}
-								</tr>
-							{/foreach}
-						{/formContainer}
-						</tbody>
-					</table>
-					<label>
-						<input n:name="submitSet" style="display: none;">
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" width="20" height="20"
-							 fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-								  d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
-						</svg>
-					</label>
-				</td>
-				{/if}
-			</tr>
-		</table>
-	</fieldset>
-	<fieldset>
-		{if \count($form['page']->getComponents()) > 0}
-			<legend>URL A SEO</legend>
+                    <td class="align-middle">
+                        {input alternative  class => 'form-control form-control-sm col-label'}
+                        <span id="data-info" class="text-gray text-sm">EAN nebo kód. Produkt nebude zobrazen ve výpisu, ale pod mateřskou kartou.</span>
+                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError alternative}</span>
+                    </td>
+                </tr>
+                <tr>
+                    {if $configuration['sets']}
+                        {$renderer->renderPair($form['productsSet'])|noescape}
+                    {/if}
+                </tr>
+            </table>
+        </fieldset>
 
-			<table class="mt-1 mb-1">
-				{$renderer->renderControls($form['page'])|noescape}
-			</table>
-		{/if}
-	</fieldset>
-
-	<fieldset>
-		<table class="mt-1 mb-1">
-			{ifset $form['submitAndNext']}
-				{$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
-			{else}
-				{$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
-			{/ifset}
-		</table>
-	</fieldset>
+        <fieldset>
+            <table class="mt-1 mb-1">
+                <tr>
+                    {ifset $form['submitAndNext']}
+                        {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
+                    {else}
+                        {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
+                    {/ifset}
+                </tr>
+            </table>
+        </fieldset>
 
 
+    </form>
 
-</form>
-<!-- Modal -->
-{foreach $modals as $property => $elementName}
-	<div class="modal fade" id="modal-{$property}" tabindex="-1" role="dialog" aria-labelledby="modal-{$property}" aria-hidden="true">
-		<div class="modal-dialog" role="document">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title" id="exampleModalLabel">Vyberte z ...</h5>
-					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-						<span aria-hidden="true">&times;</span>
-					</button>
-				</div>
-				<div class="modal-body">
-					<nav style="width: 100%; overflow-x: auto;">
-						<div class="nav nav-tabs" id="nav-tab" role="tablist">
-							{foreach $supplierProducts as $supId => $supProduct}
-								<a class="nav-item nav-link {if $iterator->isFirst()}active{/if}" id="window-{$property}-{$supId}-tab" data-toggle="tab" href="#window-{$property}-{$supId}" role="tab" aria-selected="{if $iterator->isFirst()}true{else}false{/if}">{$supProduct->supplier->name}</a> {* @todo dulezite je menit aj to href *}
-							{/foreach}
-						</div>
-					</nav>
+{snippet form}
+    {control setForm-0}
+{/snippet}
+    <!-- Modal -->
+    {foreach $modals as $property => $elementName}
+        <div class="modal fade" id="modal-{$property}" tabindex="-1" role="dialog" aria-labelledby="modal-{$property}"
+             aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel">Vyberte z ...</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <nav style="width: 100%; overflow-x: auto;">
+                            <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                                {foreach $supplierProducts as $supId => $supProduct}
+                                    <a class="nav-item nav-link {if $iterator->isFirst()}active{/if}"
+                                       id="window-{$property}-{$supId}-tab" data-toggle="tab"
+                                       href="#window-{$property}-{$supId}" role="tab"
+                                       aria-selected="{if $iterator->isFirst()}true{else}false{/if}">{$supProduct->supplier->name}</a> {* @todo dulezite je menit aj to href *}
+                                {/foreach}
+                            </div>
+                        </nav>
 
-					<div class="tab-content">
-						{foreach $supplierProducts as $supId => $supProduct}
-							<div class="tab-pane fade show  {if $iterator->isFirst()}active{/if}" id="window-{$property}-{$supId}" role="tabpanel" aria-labelledby="window-{$property}-{$supId}-tab">
-								<div class="px-2 py-4">
-									<textarea class="w-100 px-2 form-control form-control-sm" name="" id="" cols="30" rows="3">{$supProduct->$property}</textarea>
+                        <div class="tab-content">
+                            {foreach $supplierProducts as $supId => $supProduct}
+                                <div class="tab-pane fade show  {if $iterator->isFirst()}active{/if}"
+                                     id="window-{$property}-{$supId}" role="tabpanel"
+                                     aria-labelledby="window-{$property}-{$supId}-tab">
+                                    <div class="px-2 py-4">
+                                        <textarea class="w-100 px-2 form-control form-control-sm" name="" id=""
+                                                  cols="30" rows="3">{$supProduct->$property}</textarea>
 
-									<button type="button" data-for="{$elementName}" class="btn btn-primary btn-sm mt-2 product-loader">
-										Vložit
-									</button>
-								</div>
-							</div>
-						{/foreach}
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-{/foreach}
-<script>
-    $(function() {
-        $('.product-loader').click(function(event) {
+                                        <button type="button" data-for="{$elementName}"
+                                                class="btn btn-primary btn-sm mt-2 product-loader">
+                                            Vložit
+                                        </button>
+                                    </div>
+                                </div>
+                            {/foreach}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {/foreach}
+    <script>
+        $(function () {
+            $('.product-loader').click(function (event) {
 
-            var value = $(this).prev().val();
+                var value = $(this).prev().val();
 
-            $('#' + $(this).data('for')).val(value);
+                $('#' + $(this).data('for')).val(value);
 
-            // if target has class
-            // hide main container
-            // change img and show
+                // if target has class
+                // hide main container
+                // change img and show
 
 
-            if (polyfills[$(this).data('for')]) {
-                polyfills[$(this).data('for')].options.select(value, "#");
-            }
+                if (polyfills[$(this).data('for')]) {
+                    polyfills[$(this).data('for')].options.select(value, "#");
+                }
 
-            if (tinymce.get($(this).data('for'))) {
-                tinymce.get($(this).data('for')).execCommand('mceInsertContent', false, value);
-            }
-            event.preventDefault();
+                if (tinymce.get($(this).data('for'))) {
+                    tinymce.get($(this).data('for')).execCommand('mceInsertContent', false, value);
+                }
+                event.preventDefault();
 
-            $(this).parents('.modal').modal('hide');
-        });
+                $(this).parents('.modal').modal('hide');
+            });
 
-        $('#frm-productForm-form-productsSet').change(function () {
-            if (!this.checked) {
-                $('#setItems').hide();
-            } else {
-                $('#setItems').show();
-            }
-        });
+            $('#frm-productForm-form-productsSet').change(function () {
+                if (!this.checked) {
+                    $('#setItems').hide();
+                } else {
+                    $('#setItems').show();
+                }
+            });
 
-        $( document ).ready(function() {
-            if(document.getElementById('frm-productForm-form-productsSet').checked){
-                $('#setItems').show();
-            }else{
-                $('#setItems').hide();
-            }
-        });
-    })
-</script>
+            $(document).ready(function () {
+                if (document.getElementById('frm-productForm-form-productsSet').checked) {
+                    $('#setItems').show();
+                } else {
+                    $('#setItems').hide();
+                }
+            });
+        })
+    </script>
+
+

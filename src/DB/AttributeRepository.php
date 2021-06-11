@@ -71,7 +71,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		return $attributeValueRepository->getCollection($includeHidden)->where('fk_attribute', $attribute->getPK());
 	}
 
-	public function getCounts(Collection $collection, array $categories): array
+	public function getCounts(Collection $collection, array $categories, array $selectedValues = []): array
 	{
 		if (\count($categories) == 0) {
 			return [];

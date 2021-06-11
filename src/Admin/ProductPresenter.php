@@ -22,6 +22,8 @@ use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\SetRepository;
+use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
@@ -87,10 +89,16 @@ class ProductPresenter extends BackendPresenter
 	public PageRepository $pageRepository;
 
 	/** @inject */
+	public SupplierProductRepository $supplierProductRepository;
+
+	/** @inject */
 	public ProductRepository $productRepository;
 
 	/** @inject */
 	public NewsletterTypeRepository $newsletterTypeRepository;
+
+	/** @inject */
+	public SetRepository $setRepository;
 
 	/** @inject */
 	public Shopper $shopper;
@@ -713,6 +721,72 @@ class ProductPresenter extends BackendPresenter
 			};
 
 			$this->sendResponse(new FileResponse($zipFilename, "newsletter.zip", 'application/zip'));
+		};
+
+		return $form;
+	}
+
+	public function handleDeleteSetItem($uuid)
+	{
+		$this->setRepository->many()->where('uuid', $uuid)->delete();
+
+//		if ($this->getPresenter()->isAjax()) {
+//			$this->redrawControl('wrapper');
+//			$this->redrawControl('form');
+//		} else {
+		$this->redirect('this');
+//		}
+	}
+
+	public function actionJoinSelect(array $ids)
+	{
+
+	}
+
+	public function renderJoinSelect(array $ids)
+	{
+		$this->template->headerLabel = 'Sloučení produktů';
+		$this->template->headerTree = [
+			['Produkty', 'default'],
+			['Sloučení produktů']
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('joinForm')];
+	}
+
+	public function createComponentJoinForm()
+	{
+		/** @var \Grid\Datagrid $productGrid */
+		$productGrid = $this->getComponent('productGrid');
+
+		$ids = $this->getParameter('ids') ?: [];
+
+		$form = $this->formFactory->create();
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+
+		$form->addRadioList('mainProduct', 'Hlavní produkt', $this->productRepository->many()->where('this.uuid', $ids)->toArrayOf('name'))->setRequired();
+
+		$form->addSubmit('submit', 'Uložit');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid) {
+			$values = $form->getValues('array');
+
+			/** @var Product[] $products */
+			$products = $this->productRepository->many()->where('this.uuid', $ids)->whereNot('this.uuid',$values['mainProduct'])->toArray();
+
+			foreach ($products as $product) {
+				$this->supplierProductRepository->many()
+					->where('fk_product', $product->getPK())
+					->update(['fk_product' => $values['mainProduct']]);
+
+				try {
+					$product->delete();
+				} catch (\Exception $e) {
+
+				}
+			}
+
+			$this->redirect('default');
 		};
 
 		return $form;
