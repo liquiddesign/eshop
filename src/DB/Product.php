@@ -39,6 +39,12 @@ class Product extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $imageFileName;
+	
+	/**
+	 * Obrázek má malé rozlišení, je poškozený nebo neexistuje
+	 * @column
+	 */
+	public bool $imageNeedFix = false;
 
 	/**
 	 * Hlavní kód

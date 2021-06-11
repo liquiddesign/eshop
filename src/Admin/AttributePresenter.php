@@ -111,7 +111,7 @@ class AttributePresenter extends BackendPresenter
 
 		return $grid;
 	}
-
+	
 	public function createComponentAttributeForm()
 	{
 		$form = $this->formFactory->create(true);

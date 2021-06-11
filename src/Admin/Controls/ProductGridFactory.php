@@ -194,8 +194,51 @@ class ProductGridFactory
 		}
 		
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
-			!$value ? $source->where('this.imageFileName IS NULL') : $source->where('this.imageFileName IS NOT NULL');
-		}, '', 'image', null, ['1' => 'S obrázkem', '0' => 'Bez obrázku'])->setPrompt('- Obrázek -');
+			if ($value === 'image') {
+				$source->where('this.imageFileName IS NOT NULL');
+			}
+			
+			if ($value === 'noimage') {
+				$source->where('this.imageFileName IS NULL');
+			}
+			
+			if ($value === 'fiximage') {
+				$source->where('this.imageFileName IS NOT NULL AND this.imageNeedFix = 1');
+			}
+			
+			if ($value === 'ean') {
+				$source->where('this.ean IS NOT NULL');
+			}
+			
+			if ($value === 'noean') {
+				$source->where('this.ean IS NULL');
+			}
+			
+			if ($value === 'content') {
+				$source->where("this.content_cs IS NULL OR this.content_cs=''");
+			}
+			
+			if ($value === 'fixcontent') {
+				$thresholdLength = 600;
+				$suffix = '_cs';
+				$expression = new Expression();
+				$expression->add('AND', "LOCATE(%s, this.content$suffix)=0", ['<div>']);
+				$expression->add('AND', "LOCATE(%s, this.content$suffix)=0", ['<br>']);
+				$expression->add('AND', "LOCATE(%s, this.content$suffix)=0", ['<p>']);
+				$expression->add('AND', "LOCATE(%s, this.content$suffix)=0", ['<table>']);
+				
+				$source->where("LENGTH(this.content$suffix)", $thresholdLength)->where($expression->getSql(), $expression->getVars());
+			}
+		}, '', 'image', null, [
+			'image' => 'S obrázkem',
+			'noimage' => 'Bez obrázku',
+			'fiximage' => 'Obrazek s nizkým rozlišením',
+			'ean' => 'S EANem',
+			'noean' => 'Bez EANu',
+			'content' => 'S obsahem',
+			'nocontent' => 'Bez obsahu',
+			'fixcontent' => 'Jednolitý text',
+		])->setPrompt('- Obsah -');
 		
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
 			$source->where('this.hidden', (bool) $value);
