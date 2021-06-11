@@ -219,7 +219,7 @@ class ProductGridFactory
 			}
 			
 			if ($value === 'fixcontent') {
-				$thresholdLength = 600;
+				$thresholdLength = 1000;
 				$suffix = '_cs';
 				$expression = new Expression();
 				$expression->add('AND', "LOCATE(%s, this.content$suffix)=0", ['<div>']);
