@@ -79,15 +79,12 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 
 		$collection->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=this.uuid');
 		$collection->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
-		$collection->where('categories.uuid', Arrays::last($categories)->getPK());
+		$collection->where('categories.path LIKE :pLike', ['pLike' => Arrays::last($categories)->path . '%']);
 
 		$collection = $this->getCollection()
 			->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attribute = this.uuid')
 			->join(['attributeAssign' => 'eshop_attributeassign'], 'attributeAssign.fk_value = attributeValue.uuid')
 			->join(['product' => $collection], 'product.uuid=attributeAssign.fk_product', $collection->getVars())
-			->join(['attributeXcategory' => 'eshop_attribute_nxn_eshop_category'], 'this.uuid = attributeXcategory.fk_attribute')
-			->join(['category' => 'eshop_category'], 'category.uuid = attributeXcategory.fk_category')
-			->where('category.path LIKE :cLike', ['cLike' => Arrays::last($categories)->path . '%'])
 			->setSelect(['count' => 'COUNT(product.uuid)'])
 			->setIndex('attributeValue.uuid')
 			->setGroupBy(['attributeValue.uuid']);
