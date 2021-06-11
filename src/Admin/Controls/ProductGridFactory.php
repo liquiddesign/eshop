@@ -227,17 +227,17 @@ class ProductGridFactory
 				$expression->add('AND', "LOCATE(%s, this.content$suffix)=0", ['<p>']);
 				$expression->add('AND', "LOCATE(%s, this.content$suffix)=0", ['<table>']);
 				
-				$source->where("LENGTH(this.content$suffix)", $thresholdLength)->where($expression->getSql(), $expression->getVars());
+				$source->where("LENGTH(this.content$suffix) > :length", ['length' => $thresholdLength])->where($expression->getSql(), $expression->getVars());
 			}
 		}, '', 'image', null, [
 			'image' => 'S obrázkem',
 			'noimage' => 'Bez obrázku',
-			'fiximage' => 'Obrazek s nizkým rozlišením',
+			'fiximage' => 'Chybný obrázek',
 			'ean' => 'S EANem',
 			'noean' => 'Bez EANu',
 			'content' => 'S obsahem',
 			'nocontent' => 'Bez obsahu',
-			'fixcontent' => 'Jednolitý text',
+			'fixcontent' => 'Chybný text',
 		])->setPrompt('- Obsah -');
 		
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
