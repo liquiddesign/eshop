@@ -403,6 +403,10 @@ class ProductForm extends Control
 			$this->pageRepository->syncOne($values['page']);
 		});
 
+		if (!$values['productsSet']) {
+			$this->setRepository->many()->where('fk_set', $this->product->getPK())->delete();
+		}
+
 		$this->getPresenter()->flashMessage('Uloženo', 'success');
 		$this['form']->processRedirect('edit', 'default', [$product]);
 	}
@@ -465,14 +469,14 @@ class ProductForm extends Control
 		$this->template->render(__DIR__ . '/productForm.latte');
 	}
 
-	public function createComponentSetForm(): Multiplier
+	public function createComponentSetForm()
 	{
-		return new Multiplier(function ($id) {
-			if ($this->product && $this->configuration['sets']) {
-				return $this->productSetFormFactory->create($this->product);
-			}
+//		return new Multiplier(function ($id) {
+		if ($this->product && $this->configuration['sets']) {
+			return $this->productSetFormFactory->create($this->product);
+		}
 
-			return $this->adminFormFactory->create();
-		});
+		return $this->adminFormFactory->create();
+//		});
 	}
 }

@@ -726,18 +726,6 @@ class ProductPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function handleDeleteSetItem($uuid)
-	{
-		$this->setRepository->many()->where('uuid', $uuid)->delete();
-
-//		if ($this->getPresenter()->isAjax()) {
-//			$this->redrawControl('wrapper');
-//			$this->redrawControl('form');
-//		} else {
-		$this->redirect('this');
-//		}
-	}
-
 	public function actionJoinSelect(array $ids)
 	{
 

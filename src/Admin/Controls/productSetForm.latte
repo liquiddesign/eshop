@@ -1,4 +1,11 @@
-<form n:name="setForm">
+{snippet setFormSnippet}
+    {foreach $existingSets as $set}
+        <form n:name="setItemForm-$set->uuid"></form>
+    {/foreach}
+
+    <form n:name="setItemForm-null"></form>
+
+<form n:name="setForm" class="ajax">
     <fieldset id="setItems">
         <legend>Položky setu</legend>
 
@@ -48,8 +55,8 @@
 											</span>
                                         </td>
                                         <td class="pr-2">
-                                            <a href="{plink deleteSetItem! $component->getName()}"
-                                               class="btn btn-danger btn-xs text-xs" title="Smazat"><i
+                                            <a href="{link deleteSetItem! $component->getName()}"
+                                               class="btn btn-danger btn-xs text-xs ajax" title="Smazat"><i
                                                         class="far fa-trash-alt"></i></a>
                                         </td>
                                     {/formContainer}
@@ -91,7 +98,7 @@
 									</span>
                                 </td>
                                 <td class="pr-2">
-                                    <button n:name="submitSet" class="btn btn-primary btn-xs text-xs"><i
+                                    <button n:name="submitSet" class="btn btn-primary btn-xs text-xs ajax"><i
                                                 class="fas fa-plus"></i></button>
                                 </td>
                             </tr>
@@ -101,5 +108,26 @@
                 </td>
             </tr>
         </table>
+
+        <table class="mt-1 mb-1">
+            <tbody>
+            <tr>
+
+            </tr>
+
+            <tr class="m-0 mt-1">
+                <th class="col-label col-form-label col"></th>
+
+                <td class="d-inline-flex align-middle">
+                    <div class="pl-0 m-0">
+                        <button type="submit" n:name="submitSet"
+                                class="btn btn-outline-primary btn-sm button ajax">Uložit set
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
     </fieldset>
 </form>
+{/snippet}
