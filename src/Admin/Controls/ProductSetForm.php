@@ -166,7 +166,6 @@ class ProductSetForm extends Control
 					$form::FILLED)->addRule($form::INTEGER);
 				$newRowContainer->addText('discountPct')->setDefaultValue(0)
 					->addConditionOn($newRowContainer['product'], $form::FILLED)
-
 					->addRule($form::FLOAT)
 					->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
 
@@ -181,7 +180,6 @@ class ProductSetForm extends Control
 				$itemContainer->addText('product')
 					->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!',
 						[$this->productRepository])
-
 					->setDefaultValue($item->product->getFullCode());
 				$itemContainer->addInteger('priority')->setDefaultValue($item->priority);
 				$itemContainer->addInteger('amount')->setDefaultValue($item->amount);
