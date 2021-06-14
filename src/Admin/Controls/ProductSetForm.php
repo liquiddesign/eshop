@@ -107,25 +107,32 @@ class ProductSetForm extends Control
 
 			$this->setRepository->many()->where('fk_set', $this->product->getPK())->delete();
 
-			if ($values['newRow']['product'] ?? false) {
+			if (isset($values['newRow']['product'])) {
 				$newItemValues = $values['newRow'];
-				$newItemValues['set'] = $this->product->getPK();
-				$newItemValues['product'] = $this->productRepository->getProductByCodeOrEAN($newItemValues['product']);
-				$newItemValues['amount'] = isset($newItemValues['amount']) ? \intval($newItemValues['amount']) : 1;
-				$newItemValues['priority'] = isset($newItemValues['priority']) ? \intval($newItemValues['priority']) : 1;
-				$newItemValues['discountPct'] = isset($newItemValues['discountPct']) ? \floatval(\str_replace(',', '.', $newItemValues['discountPct'])) : 0;
+				if ($product = $this->productRepository->getProductByCodeOrEAN($newItemValues['product'])) {
+					$newItemValues['set'] = $this->product->getPK();
+					$newItemValues['product'] = $this->productRepository->getProductByCodeOrEAN($newItemValues['product']);
+					$newItemValues['amount'] = isset($newItemValues['amount']) ? \intval($newItemValues['amount']) : 1;
+					$newItemValues['priority'] = isset($newItemValues['priority']) ? \intval($newItemValues['priority']) : 1;
+					$newItemValues['discountPct'] = isset($newItemValues['discountPct']) ? \floatval(\str_replace(',', '.', $newItemValues['discountPct'])) : 0;
 
-				unset($newItemValues['submitSet']);
+					unset($newItemValues['submitSet']);
 
-				$this->setRepository->createOne($newItemValues);
+					$this->setRepository->createOne($newItemValues);
+				}
 			}
 
 			unset($values['newRow']);
 
 			foreach ($values['setItems'] ?? [] as $key => $item) {
+				$item['product'] = $this->productRepository->getProductByCodeOrEAN($item['product']);
+
+				if (!$item['product']) {
+					continue;
+				}
+
 				$item['uuid'] = $key;
 				$item['set'] = $this->product->getPK();
-				$item['product'] = $this->productRepository->getProductByCodeOrEAN($item['product']);
 				$item['amount'] = isset($item['amount']) ? \intval($item['amount']) : 1;
 				$item['priority'] = isset($item['priority']) ? \intval($item['priority']) : 1;
 				$item['discountPct'] = isset($item['discountPct']) ? \floatval(\str_replace(',', '.', $item['discountPct'])) : 0;
