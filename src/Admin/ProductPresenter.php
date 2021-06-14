@@ -760,20 +760,37 @@ class ProductPresenter extends BackendPresenter
 			$values = $form->getValues('array');
 
 			/** @var Product[] $products */
-			$products = $this->productRepository->many()->where('this.uuid', $ids)->whereNot('this.uuid',$values['mainProduct'])->toArray();
+			$products = $this->productRepository->many()->where('this.uuid', $ids)->whereNot('this.uuid', $values['mainProduct'])->toArray();
+
+			$error1 = false;
+			$error2 = false;
 
 			foreach ($products as $product) {
-				$this->supplierProductRepository->many()
-					->where('fk_product', $product->getPK())
-					->update(['fk_product' => $values['mainProduct']]);
+				try {
+					$this->supplierProductRepository->many()
+						->where('fk_product', $product->getPK())
+						->update(['fk_product' => $values['mainProduct']]);
+				} catch (\Exception $e) {
+					$error1 = 'Některé produkty již mají namapovaného stejného dodavatele! Mapování těchto dodavatelů nebylo změněno.';
+				}
 
 				try {
 					$product->delete();
 				} catch (\Exception $e) {
-
+					$error2 = 'Některé produkty nebyly smazány! Smazání pravděpodobně blokují vazby s jinými produkty.';
 				}
 			}
 
+
+			if ($error1) {
+				$this->flashMessage($error1, 'warning');
+			}
+
+			if ($error2) {
+				$this->flashMessage($error2, 'warning');
+			}
+
+			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('default');
 		};
 
