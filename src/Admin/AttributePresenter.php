@@ -11,7 +11,6 @@ use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValue;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
-use Eshop\FormValidators;
 use Forms\Form;
 use Grid\Datagrid;
 use Nette\Forms\Controls\TextArea;
@@ -22,7 +21,6 @@ use Pages\DB\PageRepository;
 use Pages\Helpers;
 use StORM\Collection;
 use StORM\DIConnection;
-use function Clue\StreamFilter\fun;
 
 class AttributePresenter extends BackendPresenter
 {
