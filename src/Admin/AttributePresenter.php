@@ -179,7 +179,7 @@ class AttributePresenter extends BackendPresenter
 		});
 
 		$grid->addFilterTextInput('search', ['this.code', 'this.label_cs'], null, 'Kód, popisek');
-		$grid->addFilterTextInput('attribute', ['attribute.code'], null, 'Kód atributu');
+		$grid->addFilterTextInput('attribute', ['attribute.code'], null, 'Kód atributu',null, '%s');
 		$grid->addFilterButtons(['default']);
 
 		if ($this->formFactory->getPrettyPages()) {

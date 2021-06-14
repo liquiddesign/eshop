@@ -6,12 +6,14 @@ namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
 use Eshop\Shopper;
+use Pages\Pages;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Entity;
 use StORM\ICollection;
 use StORM\Repository;
 use StORM\SchemaManager;
+use Web\DB\PageRepository;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Product>
@@ -24,13 +26,19 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	private SetRepository $setRepository;
 
-	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager, AttributeRepository $attributeRepository, SetRepository $setRepository)
+	private Pages $pages;
+
+	private PageRepository $pageRepository;
+
+	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager, AttributeRepository $attributeRepository, SetRepository $setRepository, Pages $pages, PageRepository $pageRepository)
 	{
 		parent::__construct($connection, $schemaManager);
 
 		$this->shopper = $shopper;
 		$this->attributeRepository = $attributeRepository;
 		$this->setRepository = $setRepository;
+		$this->pages = $pages;
+		$this->pageRepository = $pageRepository;
 	}
 
 	static public function generateUuid(?string $ean, ?string $fullCode)
@@ -540,6 +548,10 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 			if (\count($attributeArray['values']) == 0) {
 				continue;
+			}
+
+			foreach ($attributeArray['values'] as $attributeValueKey => $attributeValue) {
+				$attributeArray['values'][$attributeValueKey]->page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValue->getPK()]);
 			}
 
 			$attributesList[$attributeKey] = $attributeArray;
