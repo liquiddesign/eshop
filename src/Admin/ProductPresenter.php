@@ -781,7 +781,6 @@ class ProductPresenter extends BackendPresenter
 				}
 			}
 
-
 			if ($error1) {
 				$this->flashMessage($error1, 'warning');
 			}
