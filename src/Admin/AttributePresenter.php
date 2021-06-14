@@ -113,7 +113,7 @@ class AttributePresenter extends BackendPresenter
 
 		return $grid;
 	}
-	
+
 	public function createComponentAttributeForm()
 	{
 		$form = $this->formFactory->create(true);
@@ -154,7 +154,7 @@ class AttributePresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($this->attributeValueRepository->many(), 20, 'code', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
-		$grid->addColumn('Popisek', function (AttributeValue $attributeValue, $grid) {
+		$grid->addColumn('Hodnota', function (AttributeValue $attributeValue, $grid) {
 			$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValue->getPK()]);
 
 			if (!$page) {
@@ -183,10 +183,16 @@ class AttributePresenter extends BackendPresenter
 		$grid->addFilterButtons(['default']);
 
 		if ($this->formFactory->getPrettyPages()) {
-			$submit = $grid->getForm()->addSubmit('createPages', 'Hromadná úprava stránek')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+			$submit = $grid->getForm()->addSubmit('createPages', 'Vytvořit stránky')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
 			$submit->onClick[] = function ($button) use ($grid) {
-				$grid->getPresenter()->redirect('createPages', [$grid->getSelectedIds()]);
+				$grid->getPresenter()->redirect('createPages', [$grid->getSelectedIds(), true]);
+			};
+
+			$submit = $grid->getForm()->addSubmit('deletePages', 'Smazat stránky')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+			$submit->onClick[] = function ($button) use ($grid) {
+				$grid->getPresenter()->redirect('createPages', [$grid->getSelectedIds(), false]);
 			};
 		}
 
@@ -255,7 +261,7 @@ class AttributePresenter extends BackendPresenter
 						$page->delete();
 					}
 				}
-			}else{
+			} else {
 				$values['page']['type'] = 'product_list';
 				$values['page']['params'] = Helpers::serializeParameters(['attributeValue' => $object->getPK()]);
 
@@ -485,12 +491,12 @@ class AttributePresenter extends BackendPresenter
 		return $string;
 	}
 
-	public function actionCreatePages(array $ids)
+	public function actionCreatePages(array $ids, bool $createOrDelete)
 	{
 	}
 
 
-	public function renderCreatePages(array $ids)
+	public function renderCreatePages(array $ids, bool $createOrDelete)
 	{
 		$this->template->headerLabel = 'Vytvořit stránky';
 		$this->template->headerTree = [
@@ -517,17 +523,20 @@ class AttributePresenter extends BackendPresenter
 			'all' => "celý výsledek ($totalNo)",
 		])->setDefaultValue('selected');
 
-		$form->addLocaleText('title', 'Titulek')->forAll(function (TextInput $text) {
-			$text->setHtmlAttribute('data-characters', 70);
-		});
+		if ($this->getParameter('createOrDelete')) {
+			$form->addLocaleText('title', 'Titulek')->forAll(function (TextInput $text) {
+				$text->setHtmlAttribute('data-characters', 70);
+			});
 
-		$form->addLocaleTextArea('description', 'Popisek')->forAll(function (TextArea $text) {
-			$text->setHtmlAttribute('style', 'width: 862px !important;')
-				->setHtmlAttribute('data-characters', 150);
-		});
+			$form->addLocaleTextArea('description', 'Popisek')->forAll(function (TextArea $text) {
+				$text->setHtmlAttribute('style', 'width: 862px !important;')
+					->setHtmlAttribute('data-characters', 150);
+			});
 
-		$form->addSubmit('submit', 'Vytvořit / Upravit');
-		$form->addSubmit('delete', 'Smazat')->setHtmlAttribute('class', 'btn btn-danger btn-sm ml-0 mt-1 mb-1 mr-1');
+			$form->addSubmit('submit', 'Vytvořit / Upravit');
+		} else {
+			$form->addSubmit('delete', 'Smazat')->setHtmlAttribute('class', 'btn btn-danger btn-sm ml-0 mt-1 mb-1 mr-1');
+		}
 
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid) {
 			$values = $form->getValues('array');
