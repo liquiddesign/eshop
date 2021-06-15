@@ -14,10 +14,12 @@ use Eshop\DB\ParameterRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\Shopper;
 use Eshop\DB\WatcherRepository;
+use Forms\Form;
 use Forms\FormFactory;
 use Grid\Datalist;
 use Nette\Application\UI\Multiplier;
 use Nette\Localization\Translator;
+use StORM\Collection;
 use StORM\ICollection;
 
 /**
@@ -53,10 +55,11 @@ class ProductList extends Datalist
 		FormFactory $formFactory,
 		AttributeRepository $attributeRepository,
 		AttributeValueRepository $attributeValueRepository,
-		array $order = null
+		array $order = null,
+		?Collection $source = null
 	)
 	{
-		$source = $productRepository->getProducts()->where('this.hidden', false);
+		$source = $source ?? $productRepository->getProducts()->where('this.hidden', false);
 
 		if ($order) {
 			$source->orderBy($order);
@@ -232,4 +235,25 @@ class ProductList extends Datalist
 
 		return $templateFilters;
 	}
+
+	public function createComponentInternalSearchForm()
+	{
+		$form = $this->formFactory->create();
+
+		$form->addText('query');
+		$form->addSubmit('submit');
+
+		$form->onSuccess[] = function (Form $form) {
+			$values = $form->getValues();
+
+			bdump($values);
+
+			if ($values->query) {
+				$this->getPresenter()->redirect(':Eshop:Product:list', ['queryInternal' => $values->query]);
+			}
+		};
+
+		return $form;
+	}
+
 }
