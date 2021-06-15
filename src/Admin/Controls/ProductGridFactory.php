@@ -132,6 +132,12 @@ class ProductGridFactory
 		$submit->onClick[] = function ($button) use ($grid) {
 			$grid->getPresenter()->redirect('newsletterExportSelect', [$grid->getSelectedIds()]);
 		};
+
+		$submit = $grid->getForm()->addSubmit('join', 'Sloučit')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+		$submit->onClick[] = function ($button) use ($grid) {
+			$grid->getPresenter()->redirect('joinSelect', [$grid->getSelectedIds()]);
+		};
 		
 		$this->addFilters($grid);
 		$grid->addFilterButtons();
@@ -153,7 +159,6 @@ class ProductGridFactory
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$source->where('this.fk_producer', $value);
 			}, '', 'producers', null, $producers, ['placeholder' => '- Výrobci -']);
-			
 		}
 		
 		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
@@ -247,9 +252,6 @@ class ProductGridFactory
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
 			$source->where('this.unavailable', (bool) $value);
 		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
-		
-		
-		
 	}
 	
 	public function onDelete(Product $product)

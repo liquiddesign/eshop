@@ -6,12 +6,14 @@ namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
 use Eshop\Shopper;
+use Pages\Pages;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Entity;
 use StORM\ICollection;
 use StORM\Repository;
 use StORM\SchemaManager;
+use Web\DB\PageRepository;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Product>
@@ -24,13 +26,19 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	private SetRepository $setRepository;
 
-	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager, AttributeRepository $attributeRepository, SetRepository $setRepository)
+	private Pages $pages;
+
+	private PageRepository $pageRepository;
+
+	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager, AttributeRepository $attributeRepository, SetRepository $setRepository, Pages $pages, PageRepository $pageRepository)
 	{
 		parent::__construct($connection, $schemaManager);
 
 		$this->shopper = $shopper;
 		$this->attributeRepository = $attributeRepository;
 		$this->setRepository = $setRepository;
+		$this->pages = $pages;
+		$this->pageRepository = $pageRepository;
 	}
 
 	static public function generateUuid(?string $ean, ?string $fullCode)
@@ -370,9 +378,9 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	public function filterAttributes($attributes, ICollection $collection)
 	{
-		$query = '';
-
 		foreach ($attributes as $attributeKey => $attributeValues) {
+			$query = '';
+
 			/** @var Attribute $attribute */
 			$attribute = $this->attributeRepository->one($attributeKey);
 
@@ -380,23 +388,22 @@ class ProductRepository extends Repository implements IGeneralRepository
 				continue;
 			}
 
-			$query .= "(attributeValue.fk_attribute = \"$attributeKey\" AND (";
+			$subSelect = $this->getConnection()->rows(['eshop_attributevalue'])
+				->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
+				->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
+				->where('eshop_attributeassign.fk_product=this.uuid');
+
+			$query .= "(eshop_attributevalue.fk_attribute = \"$attributeKey\" AND (";
 
 			foreach ($attributeValues as $attributeValue) {
-				$query .= "attributeValue.uuid = \"$attributeValue\" $attribute->filterType ";
+				$query .= "eshop_attributevalue.uuid = \"$attributeValue\" $attribute->filterType ";
 			}
 
-			$query = \substr($query, 0, $attribute->filterType == 'and' ? -4 : -3) . ')) AND ';
-		}
+			$query = \substr($query, 0, $attribute->filterType == 'and' ? -4 : -3) . '))';
 
-		if (\strlen($query) > 0) {
-			$query = \substr($query, 0, -4);
+			$subSelect->where($query);
 
-			$collection
-				->join(['attributeAssign' => 'eshop_attributeassign'], 'this.uuid = attributeAssign.fk_product')
-				->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.uuid = attributeAssign.fk_value')
-				->where($query);
-
+			$collection->where('EXISTS (' . $subSelect->getSql() . ')');
 		}
 	}
 
@@ -541,6 +548,10 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 			if (\count($attributeArray['values']) == 0) {
 				continue;
+			}
+
+			foreach ($attributeArray['values'] as $attributeValueKey => $attributeValue) {
+				$attributeArray['values'][$attributeValueKey]->page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValue->getPK()]);
 			}
 
 			$attributesList[$attributeKey] = $attributeArray;

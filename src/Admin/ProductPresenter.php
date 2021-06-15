@@ -22,6 +22,8 @@ use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\SetRepository;
+use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
@@ -87,10 +89,16 @@ class ProductPresenter extends BackendPresenter
 	public PageRepository $pageRepository;
 
 	/** @inject */
+	public SupplierProductRepository $supplierProductRepository;
+
+	/** @inject */
 	public ProductRepository $productRepository;
 
 	/** @inject */
 	public NewsletterTypeRepository $newsletterTypeRepository;
+
+	/** @inject */
+	public SetRepository $setRepository;
 
 	/** @inject */
 	public Shopper $shopper;
@@ -713,6 +721,76 @@ class ProductPresenter extends BackendPresenter
 			};
 
 			$this->sendResponse(new FileResponse($zipFilename, "newsletter.zip", 'application/zip'));
+		};
+
+		return $form;
+	}
+
+	public function actionJoinSelect(array $ids)
+	{
+
+	}
+
+	public function renderJoinSelect(array $ids)
+	{
+		$this->template->headerLabel = 'Sloučení produktů';
+		$this->template->headerTree = [
+			['Produkty', 'default'],
+			['Sloučení produktů']
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('joinForm')];
+	}
+
+	public function createComponentJoinForm()
+	{
+		/** @var \Grid\Datagrid $productGrid */
+		$productGrid = $this->getComponent('productGrid');
+
+		$ids = $this->getParameter('ids') ?: [];
+
+		$form = $this->formFactory->create();
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+
+		$form->addRadioList('mainProduct', 'Hlavní produkt', $this->productRepository->many()->where('this.uuid', $ids)->toArrayOf('name'))->setRequired();
+
+		$form->addSubmit('submit', 'Uložit');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid) {
+			$values = $form->getValues('array');
+
+			/** @var Product[] $products */
+			$products = $this->productRepository->many()->where('this.uuid', $ids)->whereNot('this.uuid', $values['mainProduct'])->toArray();
+
+			$error1 = false;
+			$error2 = false;
+
+			foreach ($products as $product) {
+				try {
+					$this->supplierProductRepository->many()
+						->where('fk_product', $product->getPK())
+						->update(['fk_product' => $values['mainProduct']]);
+				} catch (\Exception $e) {
+					$error1 = 'Některé produkty již mají namapovaného stejného dodavatele! Mapování těchto dodavatelů nebylo změněno.';
+				}
+
+				try {
+					$product->delete();
+				} catch (\Exception $e) {
+					$error2 = 'Některé produkty nebyly smazány! Smazání pravděpodobně blokují vazby s jinými produkty.';
+				}
+			}
+
+			if ($error1) {
+				$this->flashMessage($error1, 'warning');
+			}
+
+			if ($error2) {
+				$this->flashMessage($error2, 'warning');
+			}
+
+			$this->flashMessage('Provedeno', 'success');
+			$this->redirect('default');
 		};
 
 		return $form;

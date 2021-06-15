@@ -70,7 +70,8 @@ class ProductFilter extends Control
 	{
 		$collection = $this->getParent()->getSource()->setSelect(['this.uuid']);
 
-		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($collection, $this->getSelectedCategories());
+		$this->template->attributes = $this->attributeRepository->getAttributesByCategories($this->getSelectedCategories())->where('showFilter', true)->toArray();
+		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($collection, $this->getSelectedCategories(), $this->getParent()->getFilters()['attributes'] ?? []);
 
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}

@@ -11,16 +11,16 @@ use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValue;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
-use Eshop\FormValidators;
 use Forms\Form;
 use Grid\Datagrid;
+use Nette\Forms\Controls\TextArea;
+use Nette\Forms\Controls\TextInput;
 use Nette\Utils\Arrays;
 use Nette\Utils\Random;
 use Pages\DB\PageRepository;
 use Pages\Helpers;
 use StORM\Collection;
 use StORM\DIConnection;
-use function Clue\StreamFilter\fun;
 
 class AttributePresenter extends BackendPresenter
 {
@@ -111,7 +111,7 @@ class AttributePresenter extends BackendPresenter
 
 		return $grid;
 	}
-	
+
 	public function createComponentAttributeForm()
 	{
 		$form = $this->formFactory->create(true);
@@ -152,7 +152,7 @@ class AttributePresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($this->attributeValueRepository->many(), 20, 'code', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
-		$grid->addColumn('Popisek', function (AttributeValue $attributeValue, $grid) {
+		$grid->addColumn('Hodnota', function (AttributeValue $attributeValue, $grid) {
 			$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValue->getPK()]);
 
 			if (!$page) {
@@ -177,14 +177,20 @@ class AttributePresenter extends BackendPresenter
 		});
 
 		$grid->addFilterTextInput('search', ['this.code', 'this.label_cs'], null, 'Kód, popisek');
-		$grid->addFilterTextInput('attribute', ['attribute.code'], null, 'Kód atributu');
+		$grid->addFilterTextInput('attribute', ['attribute.code'], null, 'Kód atributu',null, '%s');
 		$grid->addFilterButtons(['default']);
 
 		if ($this->formFactory->getPrettyPages()) {
-			$submit = $grid->getForm()->addSubmit('createPages', 'Úprava stránek')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+			$submit = $grid->getForm()->addSubmit('createPages', 'Vytvořit stránky')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
 			$submit->onClick[] = function ($button) use ($grid) {
-				$grid->getPresenter()->redirect('createPages', [$grid->getSelectedIds()]);
+				$grid->getPresenter()->redirect('createPages', [$grid->getSelectedIds(), true]);
+			};
+
+			$submit = $grid->getForm()->addSubmit('deletePages', 'Smazat stránky')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+			$submit->onClick[] = function ($button) use ($grid) {
+				$grid->getPresenter()->redirect('createPages', [$grid->getSelectedIds(), false]);
 			};
 		}
 
@@ -217,12 +223,12 @@ class AttributePresenter extends BackendPresenter
 		$form->addCheckbox('hidden', 'Skryto');
 
 		if ($form->getPrettyPages()) {
-			$form->addCheckbox('standalonePage', 'Samostatná stránka');
+//			$form->addCheckbox('standalonePage', 'Samostatná stránka');
 
-			if ($this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $this->getParameter('attributeValue')])) {
-				$form['standalonePage']->setDefaultValue(true);
-				$form->addPageContainer('product_list', ['attributeValue' => $this->getParameter('attributeValue')], $nameInput);
-			}
+//			if ($this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $this->getParameter('attributeValue')])) {
+//				$form['standalonePage']->setDefaultValue(true);
+			$form->addPageContainer('product_list', ['attributeValue' => null], $nameInput, false, false);
+//			}
 		}
 
 		$form->addSubmits(!$this->getParameter('attributeValue'));
@@ -245,32 +251,7 @@ class AttributePresenter extends BackendPresenter
 			/** @var AttributeValue $object */
 			$object = $this->attributeValueRepository->syncOne($values, null, true);
 
-			if (isset($values['standalonePage']) && $values['standalonePage']) {
-				$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $this->getParameter('attributeValue')]);
-				$object = $this->attributeValueRepository->one($object->getPK());
-
-				if (!$page) {
-					$values['page']['type'] = 'product_list';
-
-					$url = \strtolower($this->removeAccents($object->attribute->name . '-' . $object->label));
-					$url = \preg_replace('~[^a-z0-9_/-]+~', '-', $url);
-					$url = \preg_replace('~-+~', '-', $url);
-					$url = \preg_replace('~^-~', '', $url);
-					$url = \preg_replace('~-$~', '', $url);
-					$url = \urlencode($url);
-
-					if (!$this->pageRepository->isUrlAvailable($url, Arrays::first($this->formFactory->getMutations()))) {
-						$url = Random::generate(4, '0-9') . '-' . $url;
-					}
-
-					$values['page']['url'][Arrays::first($this->formFactory->getMutations())] = $url;
-					$values['page']['title'][Arrays::first($this->formFactory->getMutations())] = $object->attribute->name . ' - ' . $object->label;
-				}
-
-				$values['page']['params'] = Helpers::serializeParameters(['attributeValue' => $object->getPK()]);
-
-				$this->pageRepository->syncOne($values['page']);
-			} else {
+			if (!$values['page']['url'][Arrays::first($this->formFactory->getMutations())]) {
 				foreach ($this->pageRepository->getConnection()->getAvailableMutations() as $mutation => $suffix) {
 					$page = $this->pageRepository->getPageByTypeAndParams('product_list', $mutation, ['attributeValue' => $this->getParameter('attributeValue')]);
 
@@ -278,7 +259,39 @@ class AttributePresenter extends BackendPresenter
 						$page->delete();
 					}
 				}
+			} else {
+				$values['page']['type'] = 'product_list';
+				$values['page']['params'] = Helpers::serializeParameters(['attributeValue' => $object->getPK()]);
+
+				$this->pageRepository->syncOne($values['page']);
 			}
+
+//			if (isset($values['standalonePage']) && $values['standalonePage']) {
+//				$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $this->getParameter('attributeValue')]);
+//				$object = $this->attributeValueRepository->one($object->getPK());
+//
+//				if (!$page) {
+//					$values['page']['type'] = 'product_list';
+//
+//					$url = \strtolower($this->removeAccents($object->attribute->name . '-' . $object->label));
+//					$url = \preg_replace('~[^a-z0-9_/-]+~', '-', $url);
+//					$url = \preg_replace('~-+~', '-', $url);
+//					$url = \preg_replace('~^-~', '', $url);
+//					$url = \preg_replace('~-$~', '', $url);
+//					$url = \urlencode($url);
+//
+//					if (!$this->pageRepository->isUrlAvailable($url, Arrays::first($this->formFactory->getMutations()))) {
+//						$url = Random::generate(4, '0-9') . '-' . $url;
+//					}
+//
+//					$values['page']['url'][Arrays::first($this->formFactory->getMutations())] = $url;
+//					$values['page']['title'][Arrays::first($this->formFactory->getMutations())] = $object->attribute->name . ' - ' . $object->label;
+//				}
+//
+//				$values['page']['params'] = Helpers::serializeParameters(['attributeValue' => $object->getPK()]);
+//
+//				$this->pageRepository->syncOne($values['page']);
+//			}
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('valueDetail', 'default', [$object]);
@@ -344,6 +357,17 @@ class AttributePresenter extends BackendPresenter
 		$form = $this->getComponent('valuesForm');
 
 		$form->setDefaults($attributeValue->toArray());
+
+		if ($form->getPrettyPages()) {
+			if ($page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValue->getPK()])) {
+				$form['page']->setDefaults($page->toArray());
+
+				$form['page']['url']->forAll(function (TextInput $text, $mutation) use ($page, $form) {
+					$text->getRules()->reset();
+					$text->addRule([$form, 'validateUrl'], 'URL již existuje', [$this->pageRepository, $mutation, $page->getPK()]);
+				});
+			}
+		}
 	}
 
 	public function renderValueDetail(AttributeValue $attributeValue)
@@ -465,12 +489,12 @@ class AttributePresenter extends BackendPresenter
 		return $string;
 	}
 
-	public function actionCreatePages(array $ids)
+	public function actionCreatePages(array $ids, bool $createOrDelete)
 	{
 	}
 
 
-	public function renderCreatePages(array $ids)
+	public function renderCreatePages(array $ids, bool $createOrDelete)
 	{
 		$this->template->headerLabel = 'Vytvořit stránky';
 		$this->template->headerTree = [
@@ -497,8 +521,20 @@ class AttributePresenter extends BackendPresenter
 			'all' => "celý výsledek ($totalNo)",
 		])->setDefaultValue('selected');
 
-		$form->addSubmit('submit', 'Vytvořit');
-		$form->addSubmit('delete', 'Smazat');
+		if ($this->getParameter('createOrDelete')) {
+			$form->addLocaleText('title', 'Titulek')->forAll(function (TextInput $text) {
+				$text->setHtmlAttribute('data-characters', 70);
+			});
+
+			$form->addLocaleTextArea('description', 'Popisek')->forAll(function (TextArea $text) {
+				$text->setHtmlAttribute('style', 'width: 862px !important;')
+					->setHtmlAttribute('data-characters', 150);
+			});
+
+			$form->addSubmit('submit', 'Vytvořit / Upravit');
+		} else {
+			$form->addSubmit('delete', 'Smazat')->setHtmlAttribute('class', 'btn btn-danger btn-sm ml-0 mt-1 mb-1 mr-1');
+		}
 
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid) {
 			$values = $form->getValues('array');
@@ -514,8 +550,6 @@ class AttributePresenter extends BackendPresenter
 
 					if (!$page) {
 						foreach ($form->getMutations() as $mutation) {
-
-
 							$attributeName = $attributeValue->attribute->getValue('name', $mutation);
 							$attributeValueLabel = $attributeValue->getValue('label', $mutation);
 
@@ -536,13 +570,24 @@ class AttributePresenter extends BackendPresenter
 
 							$pageValues['url'][$mutation] = $url;
 							$pageValues['title'][$mutation] = $attributeName . ' - ' . $attributeValueLabel;
+
+						}
+					}
+
+					foreach ($form->getMutations() as $mutation) {
+						if ($values['title'][$mutation]) {
+							$pageValues['title'][$mutation] = $values['title'][$mutation];
 						}
 
-						$pageValues['type'] = 'product_list';
-						$pageValues['params'] = Helpers::serializeParameters(['attributeValue' => $attributeValue->getPK()]);
-
-						$this->pageRepository->syncOne($pageValues);
+						if ($values['description'][$mutation]) {
+							$pageValues['description'][$mutation] = $values['description'][$mutation];
+						}
 					}
+
+					$pageValues['type'] = 'product_list';
+					$pageValues['params'] = Helpers::serializeParameters(['attributeValue' => $attributeValue->getPK()]);
+
+					$this->pageRepository->syncOne($pageValues);
 				}
 			} elseif ($submitName == 'delete') {
 				foreach ($attributeValues as $attributeValue) {

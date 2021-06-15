@@ -15,6 +15,7 @@ class Related extends \StORM\Entity
 {
 	/**
 	 * @relation
+	 * @constraint
 	 */
 	public RelatedType $type;
 
@@ -33,12 +34,14 @@ class Related extends \StORM\Entity
 	/**
 	 * Master produkt
 	 * @relation
+	 * @constraint
 	 */
 	public Product $master;
 
 	/**
 	 * Slave produkt
 	 * @relation
+	 * @constraint
 	 */
 	public Product $slave;
 }

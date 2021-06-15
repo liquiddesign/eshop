@@ -25,6 +25,7 @@ use Eshop\DB\TaxRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
+use Nette\Application\UI\Multiplier;
 use Nette\Utils\Arrays;
 use Web\DB\PageRepository;
 use Forms\Form;
@@ -66,6 +67,8 @@ class ProductForm extends Control
 
 	private VatRateRepository $vatRateRepository;
 
+	private IProductSetFormFactory $productSetFormFactory;
+
 	private array $configuration;
 
 	public function __construct(
@@ -89,6 +92,7 @@ class ProductForm extends Control
 		RelatedRepository $relatedRepository,
 		SetRepository $setRepository,
 		Shopper $shopper,
+		IProductSetFormFactory $productSetFormFactory,
 		$product = null,
 		array $configuration = []
 	)
@@ -108,6 +112,7 @@ class ProductForm extends Control
 		$this->configuration = $configuration;
 		$this->shopper = $shopper;
 		$this->vatRateRepository = $vatRateRepository;
+		$this->productSetFormFactory = $productSetFormFactory;
 
 		$form = $adminFormFactory->create(true);
 
@@ -266,47 +271,7 @@ class ProductForm extends Control
 
 		$form->addPageContainer('product_detail', ['product' => null], $nameInput);
 
-		if ($configuration['sets']) {
-			$setItems = $this->product ? $this->productRepository->getSetProducts($this->product) : [];
-
-			$setItemsContainer = $form->addContainer('setItems');
-
-			if (\count($setItems) > 0) {
-				foreach ($setItems as $item) {
-					$itemContainer = $setItemsContainer->addContainer($item->getPK());
-					$itemContainer->addText('product')
-						->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!',
-							[$this->productRepository])
-						->setRequired()
-						->setDefaultValue($item->product->getFullCode());
-					$itemContainer->addInteger('priority')->setRequired()->setDefaultValue($item->priority);
-					$itemContainer->addInteger('amount')->setRequired()->setDefaultValue($item->amount);
-					$itemContainer->addText('discountPct')->setRequired()->setDefaultValue($item->discountPct)
-						->addRule($form::FLOAT)
-						->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
-				}
-			}
-
-			$itemContainer = $setItemsContainer->addContainer('new');
-			$itemContainer->addText('product')
-				->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!',
-					[$this->productRepository]);
-			$itemContainer->addText('priority')->setDefaultValue(1)->addConditionOn($itemContainer['product'],
-				$form::FILLED)->addRule($form::INTEGER)->setRequired();
-			$itemContainer->addText('amount')->addConditionOn($itemContainer['product'],
-				$form::FILLED)->addRule($form::INTEGER)->setRequired();
-			$itemContainer->addText('discountPct')->setDefaultValue(0)
-				->addConditionOn($itemContainer['product'], $form::FILLED)
-				->setRequired()
-				->addRule($form::FLOAT)
-				->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
-		}
-
 		$form->addSubmits(!$product);
-
-		if ($configuration['sets']) {
-			$form->addSubmit('submitSet');
-		}
 
 		$form->onValidate[] = [$this, 'validate'];
 		$form->onSuccess[] = [$this, 'submit'];
@@ -357,12 +322,6 @@ class ProductForm extends Control
 		}
 	}
 
-	public function handleDeleteSetItem($uuid)
-	{
-		$this->setRepository->many()->where('uuid', $uuid)->delete();
-		$this->redirect('this');
-	}
-
 	public function submit(AdminForm $form)
 	{
 		$values = $form->getValues('array');
@@ -400,30 +359,6 @@ class ProductForm extends Control
 		}
 
 		$product = $this->productRepository->syncOne($values, null, true);
-
-		$this->setRepository->many()->where('fk_set', $product->getPK())->delete();
-
-		if ($values['productsSet'] ?? null) {
-			if ($values['setItems']['new']['product']) {
-				$newItemValues = $values['setItems']['new'];
-				$newItemValues['set'] = $product->getPK();
-				$newItemValues['product'] = $this->productRepository->getProductByCodeOrEAN($newItemValues['product']);
-
-				$this->setRepository->createOne($newItemValues);
-			}
-
-			unset($values['setItems']['new']);
-
-			foreach ($values['setItems'] as $key => $item) {
-				$item['uuid'] = $key;
-				$item['set'] = $product->getPK();
-				$item['product'] = $this->productRepository->getProductByCodeOrEAN($item['product']);
-
-				$this->setRepository->syncOne($item);
-			}
-		}
-
-		unset($values['setItems']);
 
 		if (isset($values['tonerForPrinters'])) {
 			$this->relatedRepository->many()
@@ -468,12 +403,11 @@ class ProductForm extends Control
 			$this->pageRepository->syncOne($values['page']);
 		});
 
-		$this->getPresenter()->flashMessage('Uloženo', 'success');
-
-		if ($form->isSubmitted()->getName() == 'submitSet') {
-			$this->getPresenter()->redirect('this');
+		if (!$values['productsSet']) {
+			$this->setRepository->many()->where('fk_set', $this->product->getPK())->delete();
 		}
 
+		$this->getPresenter()->flashMessage('Uloženo', 'success');
 		$this['form']->processRedirect('edit', 'default', [$product]);
 	}
 
@@ -521,7 +455,7 @@ class ProductForm extends Control
 				'0001705f7c395fe2513ffd39e630f896',
 				'0001b97b90863d5f26f45518d5c35a5e',
 			];
-			
+
 			$this->template->supplierProducts = $this->supplierProductRepository->many()->where('uuid', $test)->toArray();
 			*/
 		$this->template->modals = [
@@ -533,5 +467,16 @@ class ProductForm extends Control
 		$this->template->supplierProducts = $this->getPresenter()->getParameter('product') ? $this->supplierProductRepository->many()->where('fk_product',
 			$this->getPresenter()->getParameter('product'))->toArray() : [];
 		$this->template->render(__DIR__ . '/productForm.latte');
+	}
+
+	public function createComponentSetForm()
+	{
+//		return new Multiplier(function ($id) {
+		if ($this->product && $this->configuration['sets']) {
+			return $this->productSetFormFactory->create($this->product);
+		}
+
+		return $this->adminFormFactory->create();
+//		});
 	}
 }
