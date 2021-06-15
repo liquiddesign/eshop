@@ -246,8 +246,6 @@ class ProductList extends Datalist
 		$form->onSuccess[] = function (Form $form) {
 			$values = $form->getValues();
 
-			bdump($values);
-
 			if ($values->query) {
 				$this->getPresenter()->redirect(':Eshop:Product:list', ['queryInternal' => $values->query]);
 			}
