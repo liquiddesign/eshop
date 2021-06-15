@@ -105,6 +105,7 @@ class ProductSetForm extends Control
 			$values = $this->request->getPost();
 			bdump($values, 'success');
 
+			$this->product->update(['productsSet' => true]);
 			$this->setRepository->many()->where('fk_set', $this->product->getPK())->delete();
 
 			if (isset($values['newRow']['product'])) {
