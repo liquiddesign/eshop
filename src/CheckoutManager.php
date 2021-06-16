@@ -386,14 +386,14 @@ class CheckoutManager
 			/** @var Product[] $products */
 			$products = $this->productRepository->getProducts()->join(['setT' => 'eshop_set'], 'this.uuid = setT.fk_product')->where('setT.fk_set', $setProduct->getPK())->toArray();
 
-			foreach ($products as $product){
+			foreach ($products as $product) {
 				/** @var \Eshop\DB\VatRate $vat */
 				$vat = $this->vatRateRepository->one($product->vatRate);
 
 				$vatPct = $vat ? $vat->rate : 0;
 
 				/** @var Set $set */
-				$set = $this->setRepository->many()->where('fk_set',$setProduct->getPK())->where('fk_product',$product->getPK())->first();
+				$set = $this->setRepository->many()->where('fk_set', $setProduct->getPK())->where('fk_product', $product->getPK())->first();
 
 				$this->setItemRepository->createOne([
 					'cartItem' => $cartItem->getPK(),
@@ -403,7 +403,7 @@ class CheckoutManager
 					'productSubCode' => $product->subCode,
 					'productWeight' => $product->weight,
 					'amount' => $set->amount,
-					'vatPct' => (float) $vatPct,
+					'vatPct' => (float)$vatPct,
 					'discountPct' => $set->discountPct,
 					'priority' => $set->priority
 				]);
@@ -479,10 +479,10 @@ class CheckoutManager
 		$this->itemRepository->updateItemAmount($cart ?: $this->getCart(), $variant, $product, $amount);
 		$this->refreshSumProperties();
 
-		if($cartItem = $this->itemRepository->getItem($cart ?: $this->getCart(), $product, $variant)){
-			foreach ($this->productRepository->getUpsellsForCartItem($cartItem) as $upsell){
-				if($this->itemRepository->isUpsellActive($cartItem->getPK(), $upsell->getPK())){
-					$upsellCartItem = $this->itemRepository->many()->where('fk_upsell',$cartItem->getPK())->where('product.uuid',$upsell->getPK())->first();
+		if ($cartItem = $this->itemRepository->getItem($cart ?: $this->getCart(), $product, $variant)) {
+			foreach ($this->productRepository->getUpsellsForCartItem($cartItem) as $upsell) {
+				if ($this->itemRepository->isUpsellActive($cartItem->getPK(), $upsell->getPK())) {
+					$upsellCartItem = $this->itemRepository->many()->where('fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first();
 
 					/** @var \Eshop\DB\Product $upsell */
 					if (!$upsellWithPrice = $this->productRepository->getProducts()->where('this.uuid', $upsell->getPK())->first()) {
@@ -911,7 +911,7 @@ class CheckoutManager
 			$purchase = $this->purchaseRepository->createOne($values);
 
 			$this->getCart()->update(['purchase' => $purchase->getPK()]);
-		}else{
+		} else {
 			/** @var Purchase $purchase */
 			$purchase = $this->purchaseRepository->syncOne($values, null, true);
 		}
@@ -978,7 +978,16 @@ class CheckoutManager
 		$year = \date('Y');
 		$code = \vsprintf($this->shopper->getCountry()->orderCodeFormat, [$this->orderRepository->many()->where('YEAR(this.createdTs)', $year)->enum() + 1, $year]);
 
-		$order = $this->orderRepository->createOne(['code' => $code, 'purchase' => $purchase]);
+		$orderValues = [
+			'code' => $code,
+			'purchase' => $purchase
+		];
+
+		if ($this->shopper->getEditOrderAfterCreation()) {
+			$orderValues['createdTs'] = null;
+		}
+
+		$order = $this->orderRepository->createOne($orderValues);
 
 		// @TODO: getDeliveryPrice se pocita z aktulaniho purchase ne z parametru a presunout do order repository jako create order
 		if ($purchase->deliveryType) {

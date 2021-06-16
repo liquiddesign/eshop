@@ -420,12 +420,70 @@
                         <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError alternative}</span>
                     </td>
                 </tr>
-                <tr>
-                    {if $configuration['sets']}
-                        {$renderer->renderPair($form['productsSet'])|noescape}
-                    {/if}
-                </tr>
-            </table>
+
+                {if $configuration['sets']}
+
+                    {$renderer->renderPair($form['productsSet'])|noescape}
+
+                    <tr class="m-0 mt-1 has-danger" id="setItems">
+                        <th class="col-label col-form-label col">Položky setu</th>
+
+                        <td class="align-middle">
+                            <table style="width: auto;">
+                                <thead>
+                                <tr>
+                                    <th class="pr-2">Položka</th>
+                                    <th class="pr-2">Pořadí</th>
+                                    <th class="pr-2">Množství</th>
+                                    <th class="pr-2">Sleva v rámci setu</th>
+                                    <th></th>
+                                </tr>
+                                </thead>
+
+                                <tbody>
+                                {formContainer setItems}
+                                    {foreach $form->getComponent('setItems')->getComponents() as $component}
+                                        <tr>
+                                            {formContainer $component->getName()}
+                                                <td class="pr-2">
+                                                    {input product class => 'form-control form-control-sm', placeholder => 'EAN nebo kód'}
+                                                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+                                                        {inputError product}
+                                                    </span>
+                                                </td>
+                                                <td class="pr-2">
+                                                    {input priority class => 'form-control form-control-sm'}
+                                                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+                                                        {inputError priority}
+                                                    </span>
+                                                </td>
+                                                <td class="pr-2">
+                                                    {input amount class => 'form-control form-control-sm'}
+                                                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+                                                        {inputError amount}
+                                                    </span>
+                                                </td>
+                                                <td class="pr-2">
+                                                    {input discountPct class => 'form-control form-control-sm'}
+                                                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>
+                                                        {inputError discountPct}
+                                                    </span>
+                                                </td>
+                                                <td class="pr-2">
+                                                    {if $component['product']->getValue() != null && !$component['product']->hasErrors() && !$component['amount']->hasErrors() && !$component['priority']->hasErrors() && !$component['discountPct']->hasErrors()}
+                                                    <a href="{link deleteSetItem! $component['product']->getValue()}"
+                                                       class="btn btn-danger btn-xs text-xs" title="Smazat"><i
+                                                                class="far fa-trash-alt"></i></a>
+                                                    {/if}
+                                                </td>
+                                            {/formContainer}
+                                        </tr>
+                                    {/foreach}
+                                {/formContainer}
+                                </tbody>
+                        </table>
+                    </tr>
+                {/if}
         </fieldset>
 
         <fieldset>
@@ -442,8 +500,6 @@
 
 
     </form>
-
-    {control setForm}
 
     <!-- Modal -->
     {foreach $modals as $property => $elementName}
@@ -514,22 +570,6 @@
                 event.preventDefault();
 
                 $(this).parents('.modal').modal('hide');
-            });
-
-            $('#frm-productForm-form-productsSet').change(function () {
-                if (!this.checked) {
-                    $('#setItems').hide();
-                } else {
-                    $('#setItems').show();
-                }
-            });
-
-            $(document).ready(function () {
-                if (document.getElementById('frm-productForm-form-productsSet').checked) {
-                    $('#setItems').show();
-                } else {
-                    $('#setItems').hide();
-                }
             });
         })
     </script>

@@ -30,7 +30,7 @@ class Order extends \StORM\Entity
 	 * Vytvořen
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
-	public string $createdTs;
+	public ?string $createdTs;
 
 	/**
 	 * Obdržena
