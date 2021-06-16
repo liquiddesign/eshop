@@ -1,0 +1,17 @@
+{varType array $breadcrumb}
+
+<script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {foreach $breadcrumb as $item}
+            {
+                "@type": "ListItem",
+                "position": {$iterator->getCounter()},
+                "name": {$item->name},
+                "item": {$item->link}
+            }{if !$iterator->isLast()},{/if}
+            {/foreach}
+    }
+</script>

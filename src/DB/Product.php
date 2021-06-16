@@ -251,6 +251,12 @@ class Product extends \StORM\Entity
 	public ?float $dependedValue = null;
 
 	/**
+	 * Hodnocení
+	 * @column
+	 */
+	public ?float $rating = null;
+
+	/**
 	 * Nejvyšší priorita dodavatele
 	 * @column
 	 */
