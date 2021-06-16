@@ -194,7 +194,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		if ($this->tab === 'amount') {
 			$form->addText('name', 'Název / hodnota')->setHtmlAttribute('readonly', 'readonly');
 			$form->addDataSelect('displayAmount', 'Dostupnost', $this->displayAmountRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
-			$form->addText('storeAmount', 'Skladová zásoba')->setNullable();
+			$form->addInteger('storeAmount', 'Skladová zásoba')->setNullable();
 		}
 		
 		$form->addHidden('supplier');
