@@ -227,7 +227,7 @@ class AttributePresenter extends BackendPresenter
 
 //			if ($this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $this->getParameter('attributeValue')])) {
 //				$form['standalonePage']->setDefaultValue(true);
-			$form->addPageContainer('product_list', ['attributeValue' => null], $nameInput, false, false);
+			$form->addPageContainer('product_list', ['attributeValue' => null], $nameInput, false, false, true, 'Stránka');
 //			}
 		}
 

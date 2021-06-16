@@ -17,6 +17,7 @@ use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\RelatedRepository;
 use Eshop\DB\RibbonRepository;
+use Eshop\DB\Set;
 use Eshop\DB\SetRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
@@ -180,7 +181,7 @@ class ProductForm extends Control
 		$form->addCheckbox('recommended', 'Doporučeno');
 
 		if ($configuration['sets']) {
-			$form->addCheckbox('productsSet', 'Set produktů');
+			$form->addCheckbox('productsSet', 'Set produktů')->addCondition($form::EQUAL, true)->toggle('setItems');
 		}
 
 		$form->addGroup('Nákup');
@@ -267,6 +268,48 @@ class ProductForm extends Control
 			$pricelist->addText('priceVat')->setNullable()->addCondition(Form::FILLED)->addRule(Form::FLOAT);
 			$pricelist->addText('priceBefore')->setNullable()->addCondition(Form::FILLED)->addRule(Form::FLOAT);
 			$pricelist->addText('priceVatBefore')->setNullable()->addCondition(Form::FILLED)->addRule(Form::FLOAT);
+		}
+
+		$setItemsContainer = $form->addContainer('setItems');
+
+		for ($i = 0; $i < 5; $i++) {
+			$itemContainer = $setItemsContainer->addContainer("s$i");
+			$itemContainer->addText('product')
+				->addCondition($form::FILLED)
+				->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$this->productRepository]);
+			$itemContainer->addInteger('priority')
+				->setDefaultValue(1)
+				->addConditionOn($itemContainer['product'], $form::FILLED)
+				->setRequired();
+			$itemContainer->addInteger('amount')
+				->setDefaultValue(1)
+				->addConditionOn($itemContainer['product'], $form::FILLED)
+				->setRequired()
+				->addRule($form::MIN, 'Množství musí být větší než 0!', 1);
+			$itemContainer->addText('discountPct')
+				->setDefaultValue(0)
+				->addConditionOn($itemContainer['product'], $form::FILLED)
+				->setRequired()
+				->addRule($form::FLOAT)
+				->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
+		}
+
+		$i = 0;
+
+		foreach ($this->productRepository->getSetProducts($this->product) as $setItem) {
+			bdump($setItem);
+			$itemContainer = $form['setItems']['s' . $i++];
+
+			$itemContainer->setDefaults([
+				'product' => $setItem->product->getFullCode(),
+				'priority' => $setItem->priority,
+				'amount' => $setItem->amount,
+				'discountPct' => $setItem->discountPct
+			]);
+
+			if ($i == 5) {
+				break;
+			}
 		}
 
 		$form->addPageContainer('product_detail', ['product' => null], $nameInput);
@@ -403,8 +446,25 @@ class ProductForm extends Control
 			$this->pageRepository->syncOne($values['page']);
 		});
 
-		if (!$values['productsSet']) {
-			$this->setRepository->many()->where('fk_set', $this->product->getPK())->delete();
+		$this->setRepository->many()->where('fk_set', $this->product->getPK())->delete();
+
+		if ($values['productsSet']) {
+			foreach ($values['setItems'] as $setItem) {
+				if ($setItem['product'] === '') {
+					continue;
+				}
+
+				$setItem['product'] = $this->productRepository->getProductByCodeOrEAN($setItem['product']);
+
+				if (!$setItem['product']) {
+					continue;
+				}
+
+				$setItem['product'] = $setItem['product']->getPK();
+				$setItem['set'] = $this->product->getPK();
+
+				$this->setRepository->syncOne($setItem);
+			}
 		}
 
 		$this->getPresenter()->flashMessage('Uloženo', 'success');
@@ -448,16 +508,6 @@ class ProductForm extends Control
 		$this->template->configuration = $this->configuration;
 		$this->template->shopper = $this->shopper;
 
-		/*
-		 * TEST products
-			$test = [
-				'00010eea25ba58fce37020fa0b8d83fe',
-				'0001705f7c395fe2513ffd39e630f896',
-				'0001b97b90863d5f26f45518d5c35a5e',
-			];
-
-			$this->template->supplierProducts = $this->supplierProductRepository->many()->where('uuid', $test)->toArray();
-			*/
 		$this->template->modals = [
 			'name' => 'frm-productForm-form-name-cs',
 			'perex' => 'frm-perex-cs',
@@ -471,12 +521,19 @@ class ProductForm extends Control
 
 	public function createComponentSetForm()
 	{
-//		return new Multiplier(function ($id) {
 		if ($this->product && $this->configuration['sets']) {
 			return $this->productSetFormFactory->create($this->product);
 		}
 
 		return $this->adminFormFactory->create();
-//		});
+	}
+
+	public function handleDeleteSetItem($setItem)
+	{
+		if ($setItem = $this->productRepository->getProductByCodeOrEAN($setItem)) {
+			$this->setRepository->many()->where('fk_product', $setItem->getPK())->where('fk_set', $this->product->getPK())->delete();
+		}
+
+		$this->redirect('this');
 	}
 }
