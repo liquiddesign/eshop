@@ -34,6 +34,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			]),
 			'showWithoutVat' => Expect::bool(true),
 			'showVat' => Expect::bool(true),
+			'editOrderAfterCreation' => Expect::bool(false),
 		]);
 	}
 	
@@ -55,6 +56,8 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$shopper->addSetup('setCurrency',[$config['currency']]);
 		$shopper->addSetup('setShowWithoutVat',[$config['showWithoutVat']]);
 		$shopper->addSetup('setShowVat',[$config['showVat']]);
+		$shopper->addSetup('setEditOrderAfterCreation',[$config['editOrderAfterCreation']]);
+
 		$cartManager->addSetup('setCheckoutSequence',[$config['checkoutSequence']]);
 		
 		return;

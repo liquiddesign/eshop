@@ -235,23 +235,4 @@ class ProductList extends Datalist
 
 		return $templateFilters;
 	}
-
-	public function createComponentInternalSearchForm()
-	{
-		$form = $this->formFactory->create();
-
-		$form->addText('query');
-		$form->addSubmit('submit');
-
-		$form->onSuccess[] = function (Form $form) {
-			$values = $form->getValues();
-
-			if ($values->query) {
-				$this->getPresenter()->redirect(':Eshop:Product:list', ['queryInternal' => $values->query]);
-			}
-		};
-
-		return $form;
-	}
-
 }

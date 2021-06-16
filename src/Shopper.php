@@ -93,6 +93,8 @@ class Shopper
 
 	private string $projectUrl;
 
+	private bool $editOrderAfterCreation;
+
 	private ?Customer $customer = null;
 
 	private ?CustomerGroup $customerGroup;
@@ -124,6 +126,16 @@ class Shopper
 		$this->merchantRepository = $merchantRepository;
 		$this->customerGroupRepository = $customerGroupRepository;
 		$this->minimalOrderValueRepository = $minimalOrderValueRepository;
+	}
+
+	public function setEditOrderAfterCreation(bool $editOrderAfterCreation): void
+	{
+		$this->editOrderAfterCreation = $editOrderAfterCreation;
+	}
+
+	public function getEditOrderAfterCreation(): bool
+	{
+		return $this->editOrderAfterCreation;
 	}
 
 	public function setShowVat(bool $showVat): void
@@ -433,7 +445,7 @@ class Shopper
 		return ($currency->formatSymbolPosition !== 'after' ? $currency->symbol : '') . $formatted . $nbsp . ($currency->formatSymbolPosition === 'after' ? $currency->symbol : '');
 	}
 
-	public function getPreferredMutationByAccount($account):?string
+	public function getPreferredMutationByAccount($account): ?string
 	{
 		if (!$account instanceof Account) {
 			if (!$product = $this->accountRepository->one($account)) {
