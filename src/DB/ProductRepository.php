@@ -270,7 +270,14 @@ class ProductRepository extends Repository implements IGeneralRepository
 				->where('fk_displayAmount IS NULL OR displayAmount.isSold = 0');
 		}
 	}
-
+	
+	public function filterDisplayAmount($value, ICollection $collection)
+	{
+		if ($value) {
+			$collection->where('this.fk_displayAmount', $value);
+		}
+	}
+	
 	public function filterQuery($value, ICollection $collection)
 	{
 		$collection->filter(['q' => $value]);

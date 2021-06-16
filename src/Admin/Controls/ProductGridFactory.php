@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Admin\Controls;
 
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
@@ -49,6 +50,8 @@ class ProductGridFactory
 	
 	private PricelistRepository $pricelistRepository;
 	
+	private DisplayAmountRepository $displayAmountRepository;
+	
 	private Shopper $shopper;
 	
 	public function __construct(
@@ -63,6 +66,7 @@ class ProductGridFactory
 		RibbonRepository $ribbonRepository,
 		TagRepository $tagRepository,
 		PricelistRepository $pricelistRepository,
+		DisplayAmountRepository $displayAmountRepository,
 		Shopper $shopper
 	)
 	{
@@ -77,6 +81,7 @@ class ProductGridFactory
 		$this->pageRepository = $pageRepository;
 		$this->container = $container;
 		$this->pricelistRepository = $pricelistRepository;
+		$this->displayAmountRepository = $displayAmountRepository;
 	}
 	
 	public function create(array $configuration): Datagrid
@@ -244,6 +249,17 @@ class ProductGridFactory
 			'nocontent' => 'Bez obsahu',
 			'fixcontent' => 'Chybný text',
 		])->setPrompt('- Obsah -');
+		
+		if ($displayAmounts = $this->displayAmountRepository->getArrayForSelect()) {
+			$displayAmounts += ['X' => 'X - nepřiřazená'];
+			$grid->addFilterDataSelect(function (ICollection $source, $value) {
+				if ($value === 'X') {
+					$source->where('this.fk_displayAmount IS NULL');
+				} else {
+					$this->productRepository->filterDisplayAmount($value, $source);
+				}
+			}, '', 'displayAmount', null, $displayAmounts)->setPrompt('- Viditelnost -');
+		}
 		
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
 			$source->where('this.hidden', (bool) $value);
