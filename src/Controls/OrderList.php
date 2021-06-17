@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\Admin\Controls\OrderGridFactory;
+use Eshop\CheckoutManager;
 use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\Order;
 use Eshop\Shopper;
@@ -13,6 +14,7 @@ use Grid\Datalist;
 use League\Csv\Writer;
 use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Form;
+use Nette\Application\UI\Multiplier;
 use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
 use StORM\Collection;
@@ -30,11 +32,13 @@ class OrderList extends Datalist
 
 	private OrderRepository $orderRepository;
 
+	private CheckoutManager $checkoutManager;
+
 	private string $tempDir;
 
 	public Shopper $shopper;
 
-	public function __construct(Translator $translator, OrderGridFactory $orderGridFactory, OrderRepository $orderRepository, CatalogPermissionRepository $catalogPermissionRepository, Shopper $shopper, ?Collection $orders = null)
+	public function __construct(Translator $translator, OrderGridFactory $orderGridFactory, OrderRepository $orderRepository, CatalogPermissionRepository $catalogPermissionRepository, Shopper $shopper, CheckoutManager $checkoutManager, ?Collection $orders = null)
 	{
 		if (!$orders && $shopper->getCustomer()) {
 			/** @var \Eshop\DB\CatalogPermission $permission */
@@ -69,6 +73,7 @@ class OrderList extends Datalist
 		$this->orderGridFactory = $orderGridFactory;
 		$this->orderRepository = $orderRepository;
 		$this->shopper = $shopper;
+		$this->checkoutManager = $checkoutManager;
 	}
 
 	public function setTempDir(string $tempDir): void

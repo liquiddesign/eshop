@@ -32,9 +32,7 @@ use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentRepository;
 use Eshop\DB\Purchase;
 use Eshop\DB\PurchaseRepository;
-use Eshop\DB\VatRate;
 use Eshop\DB\VatRateRepository;
-use GuzzleHttp\Client;
 use Nette\Http\Request;
 use Nette\Http\Response;
 use Nette\SmartObject;
@@ -980,12 +978,9 @@ class CheckoutManager
 
 		$orderValues = [
 			'code' => $code,
-			'purchase' => $purchase
+			'purchase' => $purchase,
+			'receivedTs' => $this->shopper->getEditOrderAfterCreation() ? null : (new DateTime())
 		];
-
-		if ($this->shopper->getEditOrderAfterCreation()) {
-			$orderValues['createdTs'] = null;
-		}
 
 		$order = $this->orderRepository->createOne($orderValues);
 

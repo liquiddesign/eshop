@@ -17,7 +17,6 @@ use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\RelatedRepository;
 use Eshop\DB\RibbonRepository;
-use Eshop\DB\Set;
 use Eshop\DB\SetRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
@@ -26,7 +25,6 @@ use Eshop\DB\TaxRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
-use Nette\Application\UI\Multiplier;
 use Nette\Utils\Arrays;
 use Web\DB\PageRepository;
 use Forms\Form;
@@ -35,8 +33,6 @@ use Nette\DI\Container;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Pages\Helpers;
-
-use function Clue\StreamFilter\fun;
 
 class ProductForm extends Control
 {
