@@ -610,7 +610,6 @@ class OrderRepository extends \StORM\Repository
 		$items = [];
 
 
-
 		/** @var \Eshop\DB\CartItem $cartItem */
 		foreach ($purchase->getItems() as $cartItem) {
 			$items[$cartItem->getPK()] = $cartItem->toArray();
@@ -618,7 +617,7 @@ class OrderRepository extends \StORM\Repository
 			$items[$cartItem->getPK()]['totalPrice'] = $cartItem->getPriceSum();
 			$items[$cartItem->getPK()]['totalPriceVat'] = $cartItem->getPriceVatSum();
 
-			if($this->shopper->getCatalogPermission() == 'price'){
+			if ($this->shopper->getCatalogPermission() == 'price') {
 				if ($this->shopper->getShowVat() && $this->shopper->getShowWithoutVat()) {
 					if ($this->shopper->showPriorityPrices() == 'withVat') {
 						$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceVatSum();
@@ -673,7 +672,7 @@ class OrderRepository extends \StORM\Repository
 			'priorityPrices' => $this->shopper->showPriorityPrices()
 		];
 
-		if($this->shopper->getCatalogPermission() == 'price'){
+		if ($this->shopper->getCatalogPermission() == 'price') {
 			if ($this->shopper->getShowVat() && $this->shopper->getShowWithoutVat()) {
 				if ($this->shopper->showPriorityPrices() == 'withVat') {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPriceVat;
@@ -809,6 +808,10 @@ class OrderRepository extends \StORM\Repository
 			if (!$order = $this->one($order)) {
 				return null;
 			}
+		}
+
+		if ($this->shopper->getEditOrderAfterCreation() && !$order->receivedTs) {
+			return 'open';
 		}
 
 		if (!$order->completedTs && !$order->canceledTs) {
