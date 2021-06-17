@@ -156,4 +156,21 @@ class SupplierProductRepository extends \StORM\Repository
 			]);
 		}
 	}
+	
+	public function syncAmounts(Collection $products, Store $store)
+	{
+		$amountRepository = $this->getConnection()->findRepository(Amount::class);
+		
+		foreach ($products as $draft) {
+			if ($draft->amount === null || $draft->amount === 0) {
+				continue;
+			}
+			
+			$amountRepository->syncOne([
+				'product' => $draft->getValue('product'),
+				'store' => $store,
+				'inStock' => $draft->amount,
+			]);
+		}
+	}
 }

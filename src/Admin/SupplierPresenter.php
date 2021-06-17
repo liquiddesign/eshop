@@ -138,6 +138,11 @@ class SupplierPresenter extends BackendPresenter
 				$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('purchasePrice IS NOT NULL'), $supplier, $pricelist);
 			}
 			
+			if (!$this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('amount IS NOT NULL')->isEmpty()) {
+				$store = $this->supplierRepository->syncStore($supplier, $mutation);
+				$this->supplierProductRepository->syncAmounts($this->supplierProductRepository->many()->where('fk_supplier', $supplier), $store);
+			}
+			
 			$this->supplierCategoryRepository->syncAttributeCategoryAssigns($supplier);
 			
 			$this->flashMessage('Uloženo', 'success');

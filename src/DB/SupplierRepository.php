@@ -44,4 +44,16 @@ class SupplierRepository extends \StORM\Repository implements IGeneralRepository
 			'priority' => $priority,
 		], ['currency', 'country']);
 	}
+	
+	public function syncStore(Supplier $supplier, string $mutation, string $id = '1', ?string $label = null): Store
+	{
+		$storeRepository = $this->getConnection()->findRepository(Store::class);
+		
+		return $storeRepository->syncOne([
+			'uuid' => DIConnection::generateUuid($supplier->getPK(), $id),
+			'code' => "$supplier->code-$id",
+			'name' => [$mutation => $supplier->name . ($label === null ? '' : " ($label)")],
+			'supplier' => $supplier,
+		], []);
+	}
 }
