@@ -45,17 +45,26 @@ class OrderItemList extends Datalist
 
 	public function handleDeleteItem(string $itemId): void
 	{
-		$this->checkoutManager->deleteItem(new CartItem(['uuid' => $itemId], $this->cartItemsRepository));
+		/** @var CartItem $cartItem */
+		$cartItem = $this->cartItemsRepository->one($itemId);
+
+		$this->cartItemsRepository->deleteItem($cartItem->cart, $cartItem);
+
+		$this->redirect('this');
 	}
 
 	public function handleDeleteAll(): void
 	{
-		$this->checkoutManager->deleteCart();
+		$this->selectedOrder->purchase->carts->delete();
+
+		$this->redirect('this');
 	}
 
-	public function handleRemoveDiscountCoupon(string $couponId): void
+	public function handleRemoveDiscountCoupon(): void
 	{
-		$this->checkoutManager->setDiscountCoupon(null);
+		$this->selectedOrder->purchase->coupon = null;
+
+		$this->redirect('this');
 	}
 
 	public function createComponentChangeAmountForm(): Multiplier
@@ -90,7 +99,9 @@ class OrderItemList extends Datalist
 					$amount = 1;
 				}
 
-				$checkoutManager->changeItemAmount($product, $cartItem->variant, $amount, false);
+				$checkoutManager->changeItemAmount($product, $cartItem->variant, $amount, false, $cartItem->cart);
+
+				$this->redirect('this');
 			};
 
 			return $form;
@@ -108,7 +119,9 @@ class OrderItemList extends Datalist
 			$amount = 1;
 		}
 
-		$this->checkoutManager->changeItemAmount($cartItem->getProduct(), $cartItem->variant, $amount, false);
+		$this->checkoutManager->changeItemAmount($cartItem->getProduct(), $cartItem->variant, $amount, false, $cartItem->cart);
+
+		$this->redirect('this');
 	}
 
 	public function handleChangeUpsell($cartItem, $upsell)
@@ -121,7 +134,7 @@ class OrderItemList extends Datalist
 		if ($this->isUpsellActive($cartItem->getPK(), $upsell->getPK())) {
 			$this->checkoutManager->deleteItem($this->checkoutManager->getItems()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first());
 		} else {
-			$this->checkoutManager->addItemToCart($upsell, null, 1, false, false, false)->update(['upsell' => $cartItem->getPK()]);
+			$this->checkoutManager->addItemToCart($upsell, null, 1, false, false, false, $cartItem->cart)->update(['upsell' => $cartItem->getPK()]);
 		}
 
 		$this->redirect('this');
@@ -139,13 +152,29 @@ class OrderItemList extends Datalist
 
 	public function render(): void
 	{
-		$this->template->cartCurrency = $this->checkoutManager->getCartCurrencyCode();
-		$this->template->cartItems = $this->checkoutManager->getItems();
-		$this->template->discountCoupon = $this->checkoutManager->getDiscountCoupon();
-		$this->template->discountPrice = $this->checkoutManager->getDiscountPrice();
-		$this->template->discountPriceVat = $this->checkoutManager->getDiscountPriceVat();
+		$this->template->cartCurrency = $this->selectedOrder->purchase->currency;
+		$this->template->cartItems = $this->selectedOrder->purchase->getItems();
+		$this->template->discountCoupon = $this->selectedOrder->getDiscountCoupon();
+		$this->template->discountPrice = $this->selectedOrder->getDiscountPrice();
+		$this->template->discountPriceVat = $this->selectedOrder->getDiscountPriceVat();
 		$this->template->upsells = $this->productRepository->getUpsellsForCartItems($this->getItemsOnPage());
 
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/cartItemList.latte');
+	}
+
+	public function handleAddItem(string $product)
+	{
+		$product = $this->productRepository->getProducts()->where('this.uuid',$product)->first();
+
+		$this->checkoutManager->addItemToCart($product, null, 1, false, true, true, $this->selectedOrder->purchase->carts->first());
+
+		$this->redirect('this');
+	}
+
+	public function handleDeleteOrder()
+	{
+		$this->selectedOrder->delete();
+
+		$this->redirect('this');
 	}
 }

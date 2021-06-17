@@ -14,7 +14,6 @@ use Grid\Datalist;
 use League\Csv\Writer;
 use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Form;
-use Nette\Application\UI\Multiplier;
 use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
 use StORM\Collection;
@@ -30,7 +29,7 @@ class OrderList extends Datalist
 
 	private OrderGridFactory $orderGridFactory;
 
-	private OrderRepository $orderRepository;
+	public OrderRepository $orderRepository;
 
 	private CheckoutManager $checkoutManager;
 
