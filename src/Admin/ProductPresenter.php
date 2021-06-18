@@ -6,6 +6,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Cassandra\Date;
 use Eshop\Admin\Controls\IProductAttributesFormFactory;
 use Eshop\Admin\Controls\IProductFormFactory;
 use Eshop\Admin\Controls\IProductParametersFormFactory;
@@ -30,11 +31,14 @@ use Eshop\Shopper;
 use Forms\Form;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
+use Nette\Http\FileUpload;
 use Nette\InvalidArgumentException;
+use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Pages\DB\PageRepository;
 use StORM\DIConnection;
+use Web\DB\SettingRepository;
 
 class ProductPresenter extends BackendPresenter
 {
@@ -47,7 +51,8 @@ class ProductPresenter extends BackendPresenter
 		'suppliers' => true,
 		'weightAndDimension' => false,
 		'discountLevel' => true,
-		'rounding' => true
+		'rounding' => true,
+		'importButton' => false
 	];
 
 	protected const DEFAULT_TEMPLATE = __DIR__ . '/../../_data/newsletterTemplates/newsletter.latte';
@@ -102,6 +107,10 @@ class ProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public Shopper $shopper;
+
+	/** @inject */
+	public SettingRepository $settingRepository;
+
 
 	public function createComponentProductGrid()
 	{
@@ -517,7 +526,7 @@ class ProductPresenter extends BackendPresenter
 		$this->template->headerTree = [
 			['Produkty'],
 		];
-		$this->template->displayButtons = [$this->createNewItemButton('new')];
+		$this->template->displayButtons = [$this->createNewItemButton('new'), $this->createButton('importExcel', '<i class="fas fa-file-upload m-1"></i>Import')];
 		$this->template->displayControls = [$this->getComponent('productGrid')];
 	}
 
@@ -791,6 +800,62 @@ class ProductPresenter extends BackendPresenter
 
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('default');
+		};
+
+		return $form;
+	}
+
+	public function renderImportExcel()
+	{
+		$this->template->headerLabel = 'Import zdrojového souboru';
+		$this->template->headerTree = [
+			['Produkty', 'default'],
+			['Import zdrojového souboru']
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('importExcelForm')];
+	}
+
+	public function createComponentImportExcelForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+
+		$lastUpdate = $this->settingRepository->many()->where('name','lastProductFileUpload')->first();
+
+		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? $lastUpdate->value : null);
+
+		$form->addFilePicker('file', 'Soubor (CSV)')
+			->setRequired()
+			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/csv');
+
+		$form->addSubmit('submit', 'Uložit');
+
+		$form->onValidate[] = function (AdminForm $form) {
+			$values = $form->getValues('array');
+
+			/** @var FileUpload $file */
+			$file = $values['file'];
+
+			if (!$file->hasFile()) {
+				$form['file']->addError('Neplatný soubor!');
+			}
+		};
+
+		$form->onSuccess[] = function (AdminForm $form) {
+			$values = $form->getValues('array');
+
+			/** @var FileUpload $file */
+			$file = $values['file'];
+
+			$file->move(\dirname(__DIR__, 5) . '/userfiles/products.csv');
+
+			$this->settingRepository->syncOne([
+				'name' => 'lastProductFileUpload',
+				'value' => (string)(new DateTime())
+			]);
+
+			$this->flashMessage('Provedeno', 'success');
+			$this->redirect('this');
 		};
 
 		return $form;
