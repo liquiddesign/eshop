@@ -820,9 +820,9 @@ class ProductPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
-		$lastUpdate = \gmdate('d.m.Y G:i',\filemtime(\dirname(__DIR__, 5) . '/userfiles/products.csv'));
+		$lastUpdate = \filemtime(\dirname(__DIR__, 5) . '/userfiles/products.csv');
 
-		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ?? null);
+		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? \gmdate('d.m.Y G:i', $lastUpdate) : null);
 
 		$form->addFilePicker('file', 'Soubor (CSV)')
 			->setRequired()
