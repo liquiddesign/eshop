@@ -820,9 +820,9 @@ class ProductPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
-		$lastUpdate = $this->settingRepository->many()->where('name','lastProductFileUpload')->first();
+		$lastUpdate = \gmdate('d.m.Y G:i',\filemtime(\dirname(__DIR__, 5) . '/userfiles/products.csv'));
 
-		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? $lastUpdate->value : null);
+		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ?? null);
 
 		$form->addFilePicker('file', 'Soubor (CSV)')
 			->setRequired()
@@ -848,11 +848,6 @@ class ProductPresenter extends BackendPresenter
 			$file = $values['file'];
 
 			$file->move(\dirname(__DIR__, 5) . '/userfiles/products.csv');
-
-			$this->settingRepository->syncOne([
-				'name' => 'lastProductFileUpload',
-				'value' => (string)(new DateTime())
-			]);
 
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('this');
