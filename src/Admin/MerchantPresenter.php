@@ -131,7 +131,6 @@ class MerchantPresenter extends BackendPresenter
 				$this->accountFormFactory->onCreateAccount[] = function ($account) use ($merchant) {
 					$merchant->accounts->relate([$account->getPK()]);
 				};
-				$this->accountFormFactory->success($form, 'merchant.register.successAdmin');
 			}
 
 			$this->flashMessage('Uloženo', 'success');
