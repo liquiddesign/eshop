@@ -45,12 +45,12 @@ class DashboardPresenter extends BackendPresenter
 		$this->template->recievedOrders = $this->orderRepo->many()->where('this.completedTs IS NULL AND this.canceledTs IS NULL')->orderBy(['createdTs DESC'])->setTake(10);
 		
 		/** @var \Security\DB\Account[] $accounts */
-		$accounts = $this->accountRepo->many()->orderBy(['tsRegistered']);
+		$accounts = $this->accountRepo->many()->orderBy(['tsRegistered' => 'DESC']);
 		
 		$counter = 0;
 		$this->template->nonActiveUsers = [];
+
 		foreach ($accounts as $account) {
-			
 			if ($counter == 10) {
 				break;
 			}
@@ -58,24 +58,9 @@ class DashboardPresenter extends BackendPresenter
 			if ($account->isActive()) {
 				continue;
 			}
-			
-			$customer = $this->customerRepo->many()->where('fk_account', $account->getPK())->fetch();
-			
-			if ($customer) {
-				$this->template->nonActiveUsers[] = $customer;
-				$counter++;
-				continue;
-			}
-			
-			$merchant = $this->merchantRepo->many()->where('fk_account', $account->getPK())->fetch();
-			
-			if ($merchant) {
-				$this->template->nonActiveUsers[] = $merchant;
-				$counter++;
-				continue;
-			}
-			
-			//$this->template->nonActiveUsers[] = $account;
+
+			$this->template->nonActiveUsers[] = $account;
+			$counter++;
 		}
 		
 		$this->template->discounts = $this->discountRepo->getActiveDiscounts();

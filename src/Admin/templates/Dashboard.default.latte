@@ -99,7 +99,7 @@
                 <div class="col-md-4" n:if="$presenter->admin->isAllowed(':Eshop:Admin:Customer:edit') && $presenter->admin->isAllowed(':Eshop:Admin:Merchant:detail')">
                     <div class="card">
                         <div class="card-header border-transparent">
-                            <h3 class="card-title">Neschválení uživatelé</h3>
+                            <h3 class="card-title">Neschválené účty</h3>
                         </div>
                         <!-- /.card-header -->
                         <div class="card-body p-0">
@@ -107,7 +107,7 @@
                                 <table class="table m-0">
                                     <thead>
                                     <tr>
-                                        <th>Uživatel</th>
+                                        <th>Účet</th>
                                         <th>Datum registrace</th>
                                         <th></th>
                                     </tr>
@@ -115,42 +115,15 @@
                                     <tbody n:inner-foreach="$nonActiveUsers as $nonActiveUser">
                                     <tr>
                                         <td>
-                                            {if $nonActiveUser instanceOf Eshop\DB\Customer}
-                                                <a href="{plink :Eshop:Admin:Customer:edit, $nonActiveUser}">
-                                                    <i class="fa fa-external-link-alt"></i>
-                                                {ifset $nonActiveUser->fullname}
-                                                    {$nonActiveUser->fullname}
-                                                {else}
-                                                    {$nonActiveUser->email}
-                                                {/ifset}
-                                                </a>
-                                                <div><small>zákazník</small></div>
-                                            {elseif $nonActiveUser instanceOf Eshop\DB\Merchant}
-                                                <a href="{plink :Eshop:Admin:Merchant:detail, $nonActiveUser}">
-                                                    <i class="fa fa-external-link-alt"></i> {$nonActiveUser->fullName}
-                                                </a>
-                                                <div><small>obchodník</small></div>
-                                            {else}
-                                                {$nonActiveUser->login}
-                                            {/if}
+                                            {$nonActiveUser->fullname}({$nonActiveUser->login})
                                         </td>
                                         <td>
-                                            {if $nonActiveUser instanceOf Eshop\DB\Customer || $nonActiveUser instanceOf Eshop\DB\Merchant}
-                                                {$nonActiveUser->getAccount()->tsRegistered|date}
-                                            {else}
-                                                {$nonActiveUser->tsRegistered|date}
-                                            {/if}
+                                            {$nonActiveUser->tsRegistered|date}
                                         </td>
                                         <td>
-                                            {if $nonActiveUser instanceOf Eshop\DB\Customer}
-                                                <a href="{plink :Eshop:Admin:Customer:editAccount, $nonActiveUser}">
-                                                    <i class="far fa-edit"></i> Detail
-                                                </a>
-                                            {elseif $nonActiveUser instanceOf Eshop\DB\Merchant}
-                                                <a href="{plink :Eshop:Admin:Merchant:editAccount, $nonActiveUser}">
-                                                    <i class="far fa-edit"></i> Detail
-                                                </a>
-                                            {/if}
+                                            <a href="{plink :Eshop:Admin:Customer:editAccount, $nonActiveUser}">
+                                                <i class="far fa-edit"></i> Detail
+                                            </a>
                                         </td>
                                     </tr>
                                     </tbody>
@@ -165,13 +138,9 @@
                         </div>
                         <!-- /.card-body -->
                         <div class="card-footer clearfix">
-                            <a href="{plink :Eshop:Admin:Customer:default}"
+                            <a href="{plink :Eshop:Admin:Customer:default, ['tab' => 'accounts']}"
                                class="btn btn-sm btn-secondary float-right m-1">
-                                Zobrazit všechny zákazníky
-                            </a>
-                            <a href="{plink :Eshop:Admin:Merchant:default}"
-                               class="btn btn-sm btn-secondary float-right m-1">
-                                Zobrazit všechny obchodníky
+                                Zobrazit všechny účty
                             </a>
                         </div>
                         <!-- /.card-footer -->
