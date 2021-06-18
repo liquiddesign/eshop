@@ -43,7 +43,9 @@ class CustomerPresenter extends BackendPresenter
 		'showUnregisteredGroup' => true,
 		'showAuthorized' => true,
 		'sendEmailAccountActivated' => false,
-		'prices' => true
+		'prices' => true,
+		'discountLevel' => true,
+		'rounding' => true
 	];
 
 	/** @inject */
@@ -313,9 +315,14 @@ class CustomerPresenter extends BackendPresenter
 			$form->addDataMultiSelect('exclusiveDeliveryTypes', 'Povolené exkluzivní dopravy', $this->deliveryTypeRepo->many()->toArrayOf('code'))
 				->setHtmlAttribute('placeholder', 'Vyberte položky...');
 		}
-		$form->addInteger('discountLevelPct', 'Slevová hladina (%)')->setDefaultValue(0)->setRequired();
-		$form->addText('productRoundingPct',
-			'Zokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
+
+		if (isset(static::CONFIGURATIONS['discountLevel']) && static::CONFIGURATIONS['discountLevel']) {
+			$form->addInteger('discountLevelPct', 'Slevová hladina (%)')->setDefaultValue(0)->setRequired();
+		}
+
+		if (isset(static::CONFIGURATIONS['rounding']) && static::CONFIGURATIONS['rounding']) {
+			$form->addText('productRoundingPct', 'Zokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
+		}
 
 		$form->addGroup('Exporty');
 		$form->addCheckbox('allowExport', 'Feed povolen');
@@ -647,10 +654,10 @@ class CustomerPresenter extends BackendPresenter
 			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
 		}
 
-		$grid->addFilterSelectInput('newsletter', "catalogPermission.newsletter = :nQ", 'Newsletter','- Newsletter -',null,[
+		$grid->addFilterSelectInput('newsletter', "catalogPermission.newsletter = :nQ", 'Newsletter', '- Newsletter -', null, [
 			'0' => 'Ne',
 			'1' => 'Ano'
-		],'nQ');
+		], 'nQ');
 
 		$submit = $grid->getForm()->addSubmit('permBulkEdit', 'Hromadná úprava')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
