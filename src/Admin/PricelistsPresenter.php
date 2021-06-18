@@ -143,6 +143,12 @@ class PricelistsPresenter extends BackendPresenter
 			$this->currencyRepo->getArrayForSelect(), 's');
 		$grid->addFilterButtons();
 
+		$submit = $grid->getForm()->addSubmit('aggregate', 'Agregovat ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+		$submit->onClick[] = function ($button) use ($grid) {
+			$grid->getPresenter()->redirect('aggregate', [$grid->getSelectedIds()]);
+		};
+
 		return $grid;
 	}
 
@@ -206,7 +212,7 @@ class PricelistsPresenter extends BackendPresenter
 			$data[$key] = \settype($newValue, $type) ? $newValue : null;
 
 			return;
-		},null, false);
+		}, null, false);
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 
 		$grid->addFilterButtons(['priceListItems', $this->getParameter('pricelist')]);
@@ -623,5 +629,111 @@ class PricelistsPresenter extends BackendPresenter
 //		}
 //
 //		$form->setDefaults(['products' => $products]);
+	}
+
+	public function actionAggregate(array $ids)
+	{
+
+	}
+
+	public function renderAggregate(array $ids)
+	{
+		$this->template->headerLabel = 'Agregace ceníků';
+		$this->template->headerTree = [
+			['Ceníky', 'default'],
+			['Agregace ceníků'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('aggregateForm')];
+	}
+
+	public function createComponentAggregateForm(): AdminForm
+	{
+		/** @var \Grid\Datagrid $grid */
+		$grid = $this->getComponent('priceLists');
+
+		$ids = $this->getParameter('ids') ?: [];
+		$totalNo = $grid->getFilteredSource()->enum();
+		$selectedNo = \count($ids);
+
+		$idsPricelists = $this->priceListRepository->many()->where('this.uuid', $ids)->toArray();
+		$collectionPricelists = $grid->getFilteredSource()->toArray();
+
+		$idsPricelistsCurrency = $this->priceListRepository->checkSameCurrency($idsPricelists);
+		$collectionPricelistsCurrency = $this->priceListRepository->checkSameCurrency($collectionPricelists);
+
+		$form = $this->formFactory->create();
+
+		$bulkTypeOptions = [];
+
+		if ($idsPricelistsCurrency) {
+			$bulkTypeOptions['selected'] = "vybrané ($selectedNo)";
+		}
+
+		if ($collectionPricelistsCurrency) {
+			$bulkTypeOptions['all'] = "celý výsledek ($totalNo)";
+		}
+
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+		$form->addRadioList('bulkType', 'Upravit', $bulkTypeOptions)->setDefaultValue('selected');
+
+		$form->addDataSelect('targetPricelist', 'Cílový ceník', $this->priceListRepository->getArrayForSelect());
+		$form->addSelect('aggregateFunction', 'Agregační funkce', [
+			'min' => 'Minimum',
+			'max' => 'Maximum',
+			'avg' => 'Průměr',
+			'med' => 'Medián'
+		]);
+
+		$form->addText('percentageChange', 'Procentuální změna')
+			->setHtmlAttribute('data-info', 'Zadejte hodnotu v procentech (%).')
+			->setDefaultValue(100)
+			->setRequired()
+			->addRule($form::FLOAT)
+			->addRule([FormValidators::class, 'isPercentNoMax'], 'Neplatná hodnota!');
+
+		$form->addInteger('roundingAccuracy', 'Procentuální změna')
+			->setDefaultValue(2)
+			->setRequired()
+			->addRule($form::MIN, 'Zadejte číslo větší nebo rovné 0!', 0);
+
+		$form->addCheckbox('overwriteExisting', 'Přepsat existující ceny')->setDefaultValue(true);
+		$form->addCheckbox('usePriority', 'Počítat s prioritou ceníků')->setDefaultValue(true);
+
+		$form->addSubmit('submit', 'Uložit');
+
+		$form->onValidate[] = function (AdminForm $form) use ($idsPricelists, $collectionPricelists, $idsPricelistsCurrency, $collectionPricelistsCurrency, $grid) {
+			$values = $form->getValues('array');
+
+			/** @var Pricelist $targetPricelist */
+			$targetPricelist = $this->priceListRepository->one($values['targetPricelist']);
+
+			if ($values['bulkType'] == 'selected') {
+				if ($targetPricelist->currency->getPK() != $idsPricelistsCurrency->getPK()) {
+					$form['targetPricelist']->addError('Ceník nemá stejnou měnu jako vybrané ceníky!');
+				}
+			} elseif ($targetPricelist->currency->getPK() != $collectionPricelistsCurrency->getPK()) {
+				$form['targetPricelist']->addError('Ceník nemá stejnou měnu jako vybrané ceníky!');
+			}
+		};
+
+		$form->onSuccess[] = function (AdminForm $form) use ($idsPricelists, $collectionPricelists, $idsPricelistsCurrency, $collectionPricelistsCurrency, $grid) {
+			$values = $form->getValues('array');
+
+			$this->priceListRepository->aggregatePricelists(
+				$values['bulkType'] == 'selected' ? $idsPricelists : $collectionPricelists,
+				$this->priceListRepository->one($values['targetPricelist']),
+				$values['aggregateFunction'],
+				$values['percentageChange'],
+				$values['roundingAccuracy'],
+				$values['overwriteExisting'],
+				$values['usePriority'],
+			);
+
+			$this->flashMessage('Uloženo', 'success');
+			$this->redirect('this');
+		};
+
+		return $form;
 	}
 }

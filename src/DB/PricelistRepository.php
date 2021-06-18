@@ -6,13 +6,25 @@ namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
 use League\Csv\Reader;
+use Nette\Utils\Arrays;
 use StORM\Collection;
+use StORM\DIConnection;
+use StORM\SchemaManager;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Pricelist>
  */
 class PricelistRepository extends \StORM\Repository implements IGeneralRepository
 {
+	private PriceRepository $priceRepository;
+
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, PriceRepository $priceRepository)
+	{
+		parent::__construct($connection, $schemaManager);
+
+		$this->priceRepository = $priceRepository;
+	}
+
 	/**
 	 * @return \Storm\Collection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
 	 */
@@ -107,7 +119,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		bool $overwrite = false,
 		bool $fillBeforePrices = false,
 		bool $quantityPrices = false
-	) {
+	)
+	{
 		$priceRepository = $this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class);
 
 		/** @var Price[] $originalPrices */
@@ -144,7 +157,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		bool $overwrite = false,
 		bool $fillBeforePrices = false,
 		bool $quantityPrices = false
-	) {
+	)
+	{
 		$priceRepository = $this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class);
 
 		/** @var Price[] $originalPrices */
@@ -204,7 +218,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		\League\Csv\Writer $writer,
 		bool $quantityPrices = false,
 		bool $showVat = true
-	) {
+	)
+	{
 		$writer->setDelimiter(';');
 		$writer->insertOne([
 			'product',
@@ -292,5 +307,177 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		}
 
 		return $collection->orderBy(['priority', "name"]);
+	}
+
+	/**
+	 * @param Pricelist[] $pricelists
+	 * @return Currency|null
+	 */
+	public function checkSameCurrency(array $pricelists): ?Currency
+	{
+		if (\count($pricelists) == 0) {
+			return null;
+		}
+
+		/** @var Currency $currency */
+		$currency = Arrays::first($pricelists)->currency;
+
+		foreach ($pricelists as $pricelist) {
+			if ($pricelist->currency->getPK() != $currency->getPK()) {
+				return null;
+			}
+		}
+
+		return $currency;
+	}
+
+	/**
+	 * @param Pricelist[] $pricelists
+	 * @return array
+	 */
+	public function getTopPriorityPricelists(array $pricelists): array
+	{
+		$topPriority = PHP_INT_MAX;
+		$result = [];
+
+		foreach ($pricelists as $pricelist) {
+			if ($pricelist->priority <= $topPriority) {
+				$topPriority = $pricelist->priority;
+				$result[$topPriority][$pricelist->getPK()] = $pricelist;
+			}
+		}
+
+		return $result[$topPriority] ?? [];
+	}
+
+	/**
+	 * Expecting pricelists with same currency!
+	 * @param Pricelist[] $sourcePricelists
+	 * @param Pricelist $targetPricelist
+	 * @param string $aggregateFunction
+	 * @param float $percentageChange
+	 * @param int $roundingAccuracy
+	 * @param bool $overwriteExisting
+	 * @param bool $usePriority
+	 */
+	public function aggregatePricelists(
+		array $sourcePricelists,
+		Pricelist $targetPricelist,
+		string $aggregateFunction,
+		float $percentageChange = 100.0,
+		int $roundingAccuracy = 2,
+		bool $overwriteExisting = true,
+		bool $usePriority = true
+	)
+	{
+		$aggregateFunctions = ['min', 'max', 'avg', 'med'];
+
+		if (!Arrays::contains($aggregateFunctions, $aggregateFunction)) {
+			throw new \Exception("Unknown aggregate function '$aggregateFunction'!");
+		}
+
+		if ($usePriority) {
+			$sourcePricelists = $this->getTopPriorityPricelists($sourcePricelists);
+		}
+
+		$prices = [];
+
+		foreach ($sourcePricelists as $sourcePricelist) {
+			/** @var Price[] $localPrices */
+			$localPrices = $this->priceRepository->many()->where('fk_pricelist', $sourcePricelist->getPK())->toArray();
+
+			foreach ($localPrices as $localPrice) {
+				if (isset($prices[$localPrice->product->getPK()])) {
+					$currentPrice = $prices[$localPrice->product->getPK()];
+
+					if ($aggregateFunction == 'min') {
+						if ($localPrice->price < $currentPrice['price']) {
+							$currentPrice['price'] = $localPrice->price;
+						}
+
+						if ($localPrice->priceVat < $currentPrice['priceVat']) {
+							$currentPrice['priceVat'] = $localPrice->priceVat;
+						}
+					} elseif ($aggregateFunction == 'max') {
+						if ($localPrice->price > $currentPrice['price']) {
+							$currentPrice['price'] = $localPrice->price;
+						}
+
+						if ($localPrice->priceVat > $currentPrice['priceVat']) {
+							$currentPrice['priceVat'] = $localPrice->priceVat;
+						}
+					} elseif ($aggregateFunction == 'avg') {
+						$currentPrice['price'] += $localPrice->price;
+						$currentPrice['priceVat'] += $localPrice->priceVat;
+						$currentPrice['count']++;
+					} elseif ($aggregateFunction == 'med') {
+						$currentPrice['priceArray'][] = $localPrice->price;
+						$currentPrice['priceVatArray'][] = $localPrice->priceVat;
+						$currentPrice['count']++;
+					}
+
+					$prices[$localPrice->product->getPK()] = $currentPrice;
+				} else {
+					$prices[$localPrice->product->getPK()] = [
+						'price' => $localPrice->price,
+						'priceVat' => $localPrice->priceVat,
+						'count' => 1,
+						'priceArray' => [$localPrice->price],
+						'priceVatArray' => [$localPrice->priceVat]
+					];
+				}
+			}
+		}
+
+		foreach ($prices as $productKey => $priceArray) {
+			$existingPrice = $this->priceRepository->many()
+				->where('fk_pricelist', $targetPricelist->getPK())
+				->where('fk_product', $productKey)
+				->first();
+
+			if ($existingPrice && !$overwriteExisting) {
+				continue;
+			}
+
+			$newValues = [
+				'product' => $productKey,
+				'pricelist' => $targetPricelist->getPK()
+			];
+
+			if ($aggregateFunction == 'min' || $aggregateFunction == 'max') {
+				$newValues['price'] = \round($priceArray['price'] * ($percentageChange / 100.0), $roundingAccuracy);
+				$newValues['priceVat'] = \round($priceArray['priceVat'] * ($percentageChange / 100.0), $roundingAccuracy);
+			} elseif ($aggregateFunction == 'avg') {
+				$newValues['price'] = \round(((float)$priceArray['price'] / $priceArray['count']) * ($percentageChange / 100.0), $roundingAccuracy);
+				$newValues['priceVat'] = \round(((float)$priceArray['priceVat'] / $priceArray['count']) * ($percentageChange / 100.0), $roundingAccuracy);
+			} elseif ($aggregateFunction == 'med') {
+				if (\count($priceArray['priceArray']) == 1) {
+					$newValues['price'] = $priceArray['priceArray'][0];
+					$newValues['priceVat'] = $priceArray['priceVatArray'][0];
+				} else {
+					\sort($priceArray['priceArray']);
+					\sort($priceArray['priceVatArray']);
+
+					if (\fmod($priceArray['count'], 2) !== 0.00) {
+						$middle = ($priceArray['count'] / 2) - 1;
+
+						$newValues['price'] = $priceArray['priceArray'][$middle];
+						$newValues['priceVat'] = $priceArray['priceVatArray'][$middle];
+					} else {
+						$middle1 = ($priceArray['count'] / 2.0) - 1;
+						$middle2 = ($priceArray['count'] / 2.0) + 1 - 1;
+
+						$newValues['price'] = \round((($priceArray['priceArray'][$middle1] + $priceArray['priceArray'][$middle2]) / 2.0) * ($percentageChange / 100.0), $roundingAccuracy);
+						$newValues['priceVat'] = \round((($priceArray['priceVatArray'][$middle1] + $priceArray['priceVatArray'][$middle2]) / 2.0) * ($percentageChange / 100.0), $roundingAccuracy);
+					}
+				}
+			}
+
+			if ($existingPrice) {
+				$existingPrice->update($newValues);
+			} else {
+				$this->priceRepository->createOne($newValues);
+			}
+		}
 	}
 }
