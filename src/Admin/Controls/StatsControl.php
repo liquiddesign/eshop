@@ -23,7 +23,7 @@ class StatsControl extends Control
 
 	private FormFactory $formFactory;
 
-	private Shopper $shopper;
+	public Shopper $shopper;
 
 	private OrderRepository $orderRepository;
 

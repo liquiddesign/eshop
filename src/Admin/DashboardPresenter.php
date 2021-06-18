@@ -9,6 +9,7 @@ use Eshop\DB\DiscountRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\OrderRepository;
+use Eshop\Shopper;
 use Security\DB\AccountRepository;
 
 class DashboardPresenter extends BackendPresenter
@@ -27,6 +28,9 @@ class DashboardPresenter extends BackendPresenter
 	
 	/** @inject */
 	public DiscountRepository $discountRepo;
+
+	/** @inject */
+	public Shopper $shopper;
 	
 	public function renderDefault()
 	{

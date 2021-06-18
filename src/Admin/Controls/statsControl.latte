@@ -53,8 +53,12 @@
                             <th>Kód</th>
                             <th>Název</th>
                             <th>Počet</th>
-                            <th>Cena bez DPH</th>
-                            <th>Cena s DPH</th>
+                            {if $control->shopper->getShowVat()}
+                                <th>Cena s DPH</th>
+                            {/if}
+                            {if $control->shopper->getShowWithoutVat()}
+                                <th>Cena bez DPH</th>
+                            {/if}
                         </tr>
                         </thead>
 
@@ -78,8 +82,12 @@
                                     <td>{$row['item']->productName}</td>
                                 {/ifset}
                                 <td>{$row['amount']}</td>
-                                <td>{$row['priceSum']|price}</td>
-                                <td>{$row['priceSumVat']|price}</td>
+                                {if $control->shopper->getShowVat()}
+                                    <td>{$row['priceSumVat']|price}</td>
+                                {/if}
+                                {if $control->shopper->getShowWithoutVat()}
+                                    <td>{$row['priceSum']|price}</td>
+                                {/if}
                             </tr>
                         {/if}
                         </tbody>
@@ -101,20 +109,25 @@
 
             const barData = {
                 labels: MONTHS,
-                datasets: [{
-                    label: 'Cena',
-                    backgroundColor: '#4791ed',
-                    borderColor: '#4791ed',
-                    borderWidth: 1,
-                    data: [{foreach $monthlyOrders as $key => $value}{$value['price']},{/foreach}]
-                },
+                datasets: [
+                    {if $control->shopper->getShowWithoutVat()}
+                    {
+                        label: 'Cena',
+                        backgroundColor: '#4791ed',
+                        borderColor: '#4791ed',
+                        borderWidth: 1,
+                        data: [{foreach $monthlyOrders as $key => $value}{$value['price']},{/foreach}]
+                    },
+                    {/if}
+                    {if $control->shopper->getShowVat()}
                     {
                         label: 'Cena s daní',
                         backgroundColor: '#2970C9',
                         borderColor: '#2970C9',
                         borderWidth: 1,
                         data: [{foreach $monthlyOrders as $key => $value}{$value['priceVat']},{/foreach}]
-                    }
+                    },
+                    {/if}
                 ],
             }
 

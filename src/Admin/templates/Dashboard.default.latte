@@ -49,7 +49,12 @@
                                     <tr>
                                         <th class="minimal">Číslo</th>
                                         <th class="minimal">Datum</th>
-                                        <th>Cena (s DPH)</th>
+                                        {if $presenter->shopper->getShowVat()}
+                                            <th>Cena (s DPH)</th>
+                                        {/if}
+                                        {if $presenter->shopper->getShowWithoutVat()}
+                                            <th>Cena (bez DPH)</th>
+                                        {/if}
                                         <th>Zákazník</th>
                                         <th>Stav</th>
                                         <th></th>
@@ -59,7 +64,12 @@
                                     <tr>
                                         <td>{$order->code}</td>
                                         <td>{$order->createdTs|date}</td>
-                                        <td>{$order->purchase->getSumPriceVat()|price}</td>
+                                        {if $presenter->shopper->getShowVat()}
+                                            <td>{$order->purchase->getSumPriceVat()|price}</td>
+                                        {/if}
+                                        {if $presenter->shopper->getShowWithoutVat()}
+                                            <td>{$order->purchase->getSumPrice()|price}</td>
+                                        {/if}
                                         <td>{ifset $order->purchase->customer}<a
                                                     href="{plink :Eshop:Admin:Customer:edit, $order->purchase->customer}"><i
                                                         class="fa fa-external-link-alt fa-sm"></i>&nbsp;{$order->purchase->customer->fullname ?? ($order->purchase->customer->email ?? '')}
