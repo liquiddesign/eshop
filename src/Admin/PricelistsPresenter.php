@@ -33,12 +33,14 @@ use League\Csv\Writer;
 use Nette\Application\Responses\FileResponse;
 use StORM\Collection;
 use StORM\Connection;
-use Nette;
-use StORM\Expression;
 use StORM\ICollection;
 
 class PricelistsPresenter extends BackendPresenter
 {
+	protected const CONFIGURATION = [
+		'aggregate' => false,
+	];
+
 	/** @inject */
 	public PricelistRepository $priceListRepository;
 
@@ -143,11 +145,14 @@ class PricelistsPresenter extends BackendPresenter
 			$this->currencyRepo->getArrayForSelect(), 's');
 		$grid->addFilterButtons();
 
-		$submit = $grid->getForm()->addSubmit('aggregate', 'Agregovat ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+		if (isset(static::CONFIGURATION['aggregate']) && static::CONFIGURATION['aggregate']) {
 
-		$submit->onClick[] = function ($button) use ($grid) {
-			$grid->getPresenter()->redirect('aggregate', [$grid->getSelectedIds()]);
-		};
+			$submit = $grid->getForm()->addSubmit('aggregate', 'Agregovat ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+			$submit->onClick[] = function ($button) use ($grid) {
+				$grid->getPresenter()->redirect('aggregate', [$grid->getSelectedIds()]);
+			};
+		}
 
 		return $grid;
 	}

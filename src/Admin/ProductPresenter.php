@@ -6,7 +6,6 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
-use Cassandra\Date;
 use Eshop\Admin\Controls\IProductAttributesFormFactory;
 use Eshop\Admin\Controls\IProductFormFactory;
 use Eshop\Admin\Controls\IProductParametersFormFactory;
@@ -33,7 +32,6 @@ use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\FileUpload;
 use Nette\InvalidArgumentException;
-use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Pages\DB\PageRepository;
