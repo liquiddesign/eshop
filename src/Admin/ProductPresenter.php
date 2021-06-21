@@ -26,6 +26,7 @@ use Eshop\DB\SetRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
+use Eshop\ImportManager;
 use Eshop\Shopper;
 use Forms\Form;
 use Nette\Application\Responses\FileResponse;
@@ -109,6 +110,8 @@ class ProductPresenter extends BackendPresenter
 	/** @inject */
 	public SettingRepository $settingRepository;
 
+	/** @inject */
+	public ImportManager $importManager;
 
 	public function createComponentProductGrid()
 	{
@@ -524,7 +527,7 @@ class ProductPresenter extends BackendPresenter
 		$this->template->headerTree = [
 			['Produkty'],
 		];
-		$this->template->displayButtons = [$this->createNewItemButton('new'), $this->createButton('importExcel', '<i class="fas fa-file-upload m-1"></i>Import')];
+		$this->template->displayButtons = [$this->createNewItemButton('new'), $this->createButton('importExcel', '<i class="fas fa-file-upload mr-1"></i>Import')];
 		$this->template->displayControls = [$this->getComponent('productGrid')];
 	}
 
@@ -818,7 +821,12 @@ class ProductPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
-		$lastUpdate = \filemtime(\dirname(__DIR__, 5) . '/userfiles/products.csv');
+		$lastUpdate = null;
+		$path = \dirname(__DIR__, 5) . '/userfiles/products.csv';
+
+		if (\file_exists($path)) {
+			$lastUpdate = \filemtime($path);
+		}
 
 		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? \gmdate('d.m.Y G:i', $lastUpdate) : null);
 
@@ -826,7 +834,7 @@ class ProductPresenter extends BackendPresenter
 			->setRequired()
 			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/csv');
 
-		$form->addSubmit('submit', 'Uložit');
+		$form->addSubmit('submit', 'Importovat');
 
 		$form->onValidate[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
@@ -847,7 +855,13 @@ class ProductPresenter extends BackendPresenter
 
 			$file->move(\dirname(__DIR__, 5) . '/userfiles/products.csv');
 
-			$this->flashMessage('Provedeno', 'success');
+			try {
+				$this->importManager->import();
+				$this->flashMessage('Provedeno', 'success');
+			} catch (\Exception $e) {
+				$this->flashMessage('Import dat se nezdařil!', 'error');
+			}
+
 			$this->redirect('this');
 		};
 

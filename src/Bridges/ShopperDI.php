@@ -6,6 +6,7 @@ namespace Eshop\Bridges;
 
 use Eshop\CheckoutManager;
 use Eshop\CompareManager;
+use Eshop\ImportManager;
 use Eshop\Shopper;
 use Nette\Schema\Expect;
 use Nette\Schema\Schema;
@@ -57,6 +58,8 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$shopper->addSetup('setShowWithoutVat',[$config['showWithoutVat']]);
 		$shopper->addSetup('setShowVat',[$config['showVat']]);
 		$shopper->addSetup('setEditOrderAfterCreation',[$config['editOrderAfterCreation']]);
+
+		$builder->addDefinition($this->prefix('importManager'))->setType(ImportManager::class);
 
 		$cartManager->addSetup('setCheckoutSequence',[$config['checkoutSequence']]);
 		

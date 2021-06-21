@@ -15,8 +15,6 @@ use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\TagRepository;
 use Eshop\Shopper;
-use Grid\Datalist;
-use Nette\Http\Session;
 use StORM\Expression;
 use Web\DB\PageRepository;
 use Grid\Datagrid;
