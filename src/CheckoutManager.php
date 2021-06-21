@@ -978,9 +978,12 @@ class CheckoutManager
 
 		$orderValues = [
 			'code' => $code,
-			'purchase' => $purchase,
-			'receivedTs' => $this->shopper->getEditOrderAfterCreation() ? null : (new DateTime())
+			'purchase' => $purchase
 		];
+
+		if ($this->shopper->getEditOrderAfterCreation()) {
+			$orderValues['receivedTs'] = null;
+		}
 
 		$order = $this->orderRepository->createOne($orderValues);
 
