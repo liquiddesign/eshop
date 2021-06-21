@@ -38,7 +38,7 @@ use StORM\ICollection;
 class PricelistsPresenter extends BackendPresenter
 {
 	protected const CONFIGURATION = [
-		'aggregate' => false,
+		'aggregate' => true,
 	];
 
 	/** @inject */
