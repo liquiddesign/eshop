@@ -680,7 +680,7 @@ class PricelistsPresenter extends BackendPresenter
 		}
 
 		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
-		$form->addRadioList('bulkType', 'Upravit', $bulkTypeOptions)->setDefaultValue('selected');
+		$form->addRadioList('bulkType', 'Upravit', $bulkTypeOptions)->setDefaultValue($idsPricelistsCurrency ? 'selected' : 'all');
 
 		$form->addDataSelect('targetPricelist', 'Cílový ceník', $this->priceListRepository->getArrayForSelect());
 		$form->addSelect('aggregateFunction', 'Agregační funkce', [
