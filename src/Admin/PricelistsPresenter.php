@@ -692,7 +692,7 @@ class PricelistsPresenter extends BackendPresenter
 			->addRule($form::FLOAT)
 			->addRule([FormValidators::class, 'isPercentNoMax'], 'Neplatná hodnota!');
 
-		$form->addInteger('roundingAccuracy', 'Procentuální změna')
+		$form->addInteger('roundingAccuracy', 'Přesnost zaokrouhlení')
 			->setDefaultValue(2)
 			->setRequired()
 			->addRule($form::MIN, 'Zadejte číslo větší nebo rovné 0!', 0);
