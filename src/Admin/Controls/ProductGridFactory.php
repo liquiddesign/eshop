@@ -257,7 +257,7 @@ class ProductGridFactory
 				} else {
 					$this->productRepository->filterDisplayAmount($value, $source);
 				}
-			}, '', 'displayAmount', null, $displayAmounts)->setPrompt('- Viditelnost -');
+			}, '', 'displayAmount', null, $displayAmounts)->setPrompt('- Dostupnost -');
 		}
 		
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
