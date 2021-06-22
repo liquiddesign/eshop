@@ -206,7 +206,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	public function filterProducer($value, ICollection $collection)
 	{
-		$collection->where('this.fk_producer', $value);
+		$value === false ? $collection->where('this.fk_producer IS NULL') : $collection->where('this.fk_producer', $value);
 	}
 
 	public function filterRecommended($value, ICollection $collection)

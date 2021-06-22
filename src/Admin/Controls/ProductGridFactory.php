@@ -161,8 +161,8 @@ class ProductGridFactory
 		
 		if ($producers = $this->producerRepository->getArrayForSelect()) {
 			$producers += ['X' => 'X - bez výrobce'];
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$value === 'X' ? $source->where('this.fk_producer IS NULL') : $source->where('this.fk_producer', $value);
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value) {
+				$source->filter(['producer' => $value]);
 			}, '', 'producers', null, $producers, ['placeholder' => '- Výrobci -']);
 		}
 		
