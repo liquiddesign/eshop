@@ -195,10 +195,11 @@ class ProductGridFactory
 			}, '', 'ribbons', null, $ribbons, ['placeholder' => '- Štítky -']);
 		}
 		
-		if ($ribbons = $this->pricelistRepository->getArrayForSelect()) {
+		if ($pricelists = $this->pricelistRepository->getArrayForSelect()) {
+			$pricelists += ['X' => 'X - bez ceniků'];
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$this->productRepository->filterPricelist($value, $source);
-			}, '', 'pricelists', null, $ribbons, ['placeholder' => '- Ceníky -']);
+				$this->productRepository->filterPricelist($value === 'X' ? false : $value, $source);
+			}, '', 'pricelists', null, $pricelists, ['placeholder' => '- Ceníky -']);
 		}
 		
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {

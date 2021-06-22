@@ -198,7 +198,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 	public function filterPricelist($value, ICollection $collection)
 	{
 		$collection->join(['prices' => 'eshop_price'], 'prices.fk_product=this.uuid');
-		$collection->where('prices.fk_pricelist', $value);
+		
+		$value === false ? $collection->where('prices.fk_pricelist IS NULL') : $collection->where('prices.fk_pricelist', $value);
 	}
 
 	public function filterProducer($value, ICollection $collection)
