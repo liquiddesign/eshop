@@ -26,13 +26,13 @@ use Eshop\DB\SetRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
-use Eshop\ImportManager;
 use Eshop\Shopper;
 use Forms\Form;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\FileUpload;
 use Nette\InvalidArgumentException;
+use Nette\NotImplementedException;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Pages\DB\PageRepository;
@@ -109,9 +109,6 @@ class ProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public SettingRepository $settingRepository;
-
-	/** @inject */
-	public ImportManager $importManager;
 
 	public function createComponentProductGrid()
 	{
@@ -527,7 +524,12 @@ class ProductPresenter extends BackendPresenter
 		$this->template->headerTree = [
 			['Produkty'],
 		];
-		$this->template->displayButtons = [$this->createNewItemButton('new'), $this->createButton('importExcel', '<i class="fas fa-file-upload mr-1"></i>Import')];
+		$this->template->displayButtons = [$this->createNewItemButton('new')];
+
+		if (isset(static::CONFIGURATION['importButton']) && static::CONFIGURATION['importButton']) {
+			$this->template->displayButtons[] = $this->createButton('importCsv', '<i class="fas fa-file-upload mr-1"></i>Import');
+		}
+
 		$this->template->displayControls = [$this->getComponent('productGrid')];
 	}
 
@@ -806,7 +808,7 @@ class ProductPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderImportExcel()
+	public function renderImportCsv()
 	{
 		$this->template->headerLabel = 'Import zdrojového souboru';
 		$this->template->headerTree = [
@@ -814,10 +816,10 @@ class ProductPresenter extends BackendPresenter
 			['Import zdrojového souboru']
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('importExcelForm')];
+		$this->template->displayControls = [$this->getComponent('importCsvForm')];
 	}
 
-	public function createComponentImportExcelForm(): AdminForm
+	public function createComponentImportCsvForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
 
@@ -856,7 +858,9 @@ class ProductPresenter extends BackendPresenter
 			$file->move(\dirname(__DIR__, 5) . '/userfiles/products.csv');
 
 			try {
-				$this->importManager->import();
+				// @TODO genericky import
+				throw new NotImplementedException();
+
 				$this->flashMessage('Provedeno', 'success');
 			} catch (\Exception $e) {
 				FileSystem::delete(\dirname(__DIR__, 5) . '/userfiles/products.csv');

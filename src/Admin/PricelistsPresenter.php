@@ -679,6 +679,11 @@ class PricelistsPresenter extends BackendPresenter
 			$bulkTypeOptions['all'] = "celý výsledek ($totalNo)";
 		}
 
+		if (\count($bulkTypeOptions) == 0) {
+			$this->flashMessage('Provedeno', 'warning');
+			$this->redirect('default');
+		}
+
 		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
 		$form->addRadioList('bulkType', 'Upravit', $bulkTypeOptions)->setDefaultValue($idsPricelistsCurrency ? 'selected' : 'all');
 
@@ -705,9 +710,13 @@ class PricelistsPresenter extends BackendPresenter
 		$form->addCheckbox('overwriteExisting', 'Přepsat existující ceny')->setDefaultValue(true);
 		$form->addCheckbox('usePriority', 'Počítat s prioritou ceníků')->setDefaultValue(true);
 
-		$form->addSubmit('submit', 'Uložit');
+		$form->addSubmit('submit', 'Provést');
 
 		$form->onValidate[] = function (AdminForm $form) use ($idsPricelists, $collectionPricelists, $idsPricelistsCurrency, $collectionPricelistsCurrency, $grid) {
+			if ($form->hasErrors()) {
+				return;
+			}
+
 			$values = $form->getValues('array');
 
 			/** @var Pricelist $targetPricelist */
@@ -735,7 +744,7 @@ class PricelistsPresenter extends BackendPresenter
 				$values['usePriority'],
 			);
 
-			$this->flashMessage('Uloženo', 'success');
+			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('this');
 		};
 

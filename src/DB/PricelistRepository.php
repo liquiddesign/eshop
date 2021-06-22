@@ -373,7 +373,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		$aggregateFunctions = ['min', 'max', 'avg', 'med'];
 
 		if (!Arrays::contains($aggregateFunctions, $aggregateFunction)) {
-			throw new \Exception("Unknown aggregate function '$aggregateFunction'!");
+			throw new \InvalidArgumentException("Unknown aggregate function '$aggregateFunction'!");
 		}
 
 		if ($usePriority) {
@@ -445,11 +445,11 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			];
 
 			if ($aggregateFunction == 'min' || $aggregateFunction == 'max') {
-				$newValues['price'] = \round($priceArray['price'] * ($percentageChange / 100.0), $roundingAccuracy);
-				$newValues['priceVat'] = \round($priceArray['priceVat'] * ($percentageChange / 100.0), $roundingAccuracy);
+				$newValues['price'] = $priceArray['price'];
+				$newValues['priceVat'] = $priceArray['priceVat'];
 			} elseif ($aggregateFunction == 'avg') {
-				$newValues['price'] = \round(((float)$priceArray['price'] / $priceArray['count']) * ($percentageChange / 100.0), $roundingAccuracy);
-				$newValues['priceVat'] = \round(((float)$priceArray['priceVat'] / $priceArray['count']) * ($percentageChange / 100.0), $roundingAccuracy);
+				$newValues['price'] = ((float)$priceArray['price'] / $priceArray['count']);
+				$newValues['priceVat'] = ((float)$priceArray['priceVat'] / $priceArray['count']);
 			} elseif ($aggregateFunction == 'med') {
 				if (\count($priceArray['priceArray']) == 1) {
 					$newValues['price'] = $priceArray['priceArray'][0];
@@ -467,11 +467,14 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 						$middle1 = ($priceArray['count'] / 2.0) - 1;
 						$middle2 = ($priceArray['count'] / 2.0) + 1 - 1;
 
-						$newValues['price'] = \round((($priceArray['priceArray'][$middle1] + $priceArray['priceArray'][$middle2]) / 2.0) * ($percentageChange / 100.0), $roundingAccuracy);
-						$newValues['priceVat'] = \round((($priceArray['priceVatArray'][$middle1] + $priceArray['priceVatArray'][$middle2]) / 2.0) * ($percentageChange / 100.0), $roundingAccuracy);
+						$newValues['price'] = ($priceArray['priceArray'][$middle1] + $priceArray['priceArray'][$middle2]) / 2.0;
+						$newValues['priceVat'] = ($priceArray['priceVatArray'][$middle1] + $priceArray['priceVatArray'][$middle2]) / 2.0;
 					}
 				}
 			}
+
+			$newValues['price'] = \round($newValues['price'] * ($percentageChange / 100.0), $roundingAccuracy);
+			$newValues['priceVat'] = \round($newValues['priceVat'] * ($percentageChange / 100.0), $roundingAccuracy);
 
 			if ($existingPrice) {
 				$existingPrice->update($newValues);
