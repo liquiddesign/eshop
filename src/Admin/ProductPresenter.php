@@ -859,6 +859,7 @@ class ProductPresenter extends BackendPresenter
 				$this->importManager->import();
 				$this->flashMessage('Provedeno', 'success');
 			} catch (\Exception $e) {
+				FileSystem::delete(\dirname(__DIR__, 5) . '/userfiles/products.csv');
 				$this->flashMessage('Import dat se nezdařil!', 'error');
 			}
 

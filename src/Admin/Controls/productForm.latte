@@ -385,16 +385,6 @@
         </fieldset>
 
         <fieldset>
-            {if \count($form['page']->getComponents()) > 0}
-                <legend>URL A SEO</legend>
-
-                <table class="mt-1 mb-1">
-                    {$renderer->renderControls($form['page'])|noescape}
-                </table>
-            {/if}
-        </fieldset>
-
-        <fieldset>
             <legend>Rozšířené</legend>
             <table class="mt-1 mb-1" style="width: auto;">
 
@@ -471,9 +461,9 @@
                                                 </td>
                                                 <td class="pr-2">
                                                     {if $component['product']->getValue() != null && !$component['product']->hasErrors() && !$component['amount']->hasErrors() && !$component['priority']->hasErrors() && !$component['discountPct']->hasErrors()}
-                                                    <a href="{link deleteSetItem! $component['product']->getValue()}"
-                                                       class="btn btn-danger btn-xs text-xs" title="Smazat"><i
-                                                                class="far fa-trash-alt"></i></a>
+                                                        <a href="{link deleteSetItem! $component['product']->getValue()}"
+                                                           class="btn btn-danger btn-xs text-xs" title="Smazat"><i
+                                                                    class="far fa-trash-alt"></i></a>
                                                     {/if}
                                                 </td>
                                             {/formContainer}
@@ -481,9 +471,20 @@
                                     {/foreach}
                                 {/formContainer}
                                 </tbody>
-                        </table>
+                            </table>
                     </tr>
                 {/if}
+            </table>
+        </fieldset>
+
+        <fieldset>
+            {if \count($form['page']->getComponents()) > 0}
+                <legend>URL A SEO</legend>
+
+                <table class="mt-1 mb-1">
+                    {$renderer->renderControls($form['page'])|noescape}
+                </table>
+            {/if}
         </fieldset>
 
         <fieldset>
@@ -497,8 +498,6 @@
                 </tr>
             </table>
         </fieldset>
-
-
     </form>
 
     <!-- Modal -->
