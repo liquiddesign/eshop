@@ -692,7 +692,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid = $this->getComponent('accountGrid');
 
 		$ids = $this->getParameter('ids') ?: [];
-		$totalNo = $grid->getFilteredSource()->enum();
+		$totalNo = $grid->getFilteredSource()->setGroupBy([])->enum($grid->getFilteredSource()->getPrefix(true) . $grid->getSourceIdName());
 		$selectedNo = \count($ids);
 
 		$form = $this->formFactory->create();

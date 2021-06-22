@@ -170,7 +170,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 	{
 		$collection->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=this.uuid');
 		$collection->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
-		$collection->where('categories.path LIKE :category', ['category' => "$value%"]);
+		
+		$value === false ? $collection->where('categories.uuid IS NULL') : $collection->where('categories.path LIKE :category', ['category' => "$value%"]);
 	}
 
 	public function filterPriceFrom($value, ICollection $collection)
@@ -192,7 +193,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 	public function filterRibbon($value, ICollection $collection)
 	{
 		$collection->join(['ribbons' => 'eshop_product_nxn_eshop_ribbon'], 'ribbons.fk_product=this.uuid');
-		$collection->where('ribbons.fk_ribbon', $value);
+		
+		$value === false ? $collection->where('ribbons.fk_ribbon IS NULL') : $collection->where('ribbons.fk_ribbon', $value);
 	}
 
 	public function filterPricelist($value, ICollection $collection)

@@ -153,14 +153,16 @@ class ProductGridFactory
 		$grid->addFilterTextInput('code', ['this.code', 'this.ean', 'this.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
 		
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
+			$categories += ['X' => 'X - bez kategorie'];
 			$grid->addFilterDataSelect(function (Collection $source, $value) {
 				$source->filter(['category' => $this->categoryRepository->one($value)->path]);
 			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
 		}
 		
 		if ($producers = $this->producerRepository->getArrayForSelect()) {
+			$producers += ['X' => 'X - bez výrobce'];
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$source->where('this.fk_producer', $value);
+				$value === 'X' ? $source->where('this.fk_producer IS NULL') : $source->where('this.fk_producer', $value);
 			}, '', 'producers', null, $producers, ['placeholder' => '- Výrobci -']);
 		}
 		
@@ -190,6 +192,7 @@ class ProductGridFactory
 		}*/
 		
 		if ($ribbons = $this->ribbonRepository->getArrayForSelect()) {
+			$ribbons += ['X' => 'X - bez štítků'];
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$this->productRepository->filterRibbon($value, $source);
 			}, '', 'ribbons', null, $ribbons, ['placeholder' => '- Štítky -']);
