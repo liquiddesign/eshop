@@ -59,8 +59,6 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$shopper->addSetup('setShowVat',[$config['showVat']]);
 		$shopper->addSetup('setEditOrderAfterCreation',[$config['editOrderAfterCreation']]);
 
-		$builder->addDefinition($this->prefix('importManager'))->setType(ImportManager::class);
-
 		$cartManager->addSetup('setCheckoutSequence',[$config['checkoutSequence']]);
 		
 		return;
