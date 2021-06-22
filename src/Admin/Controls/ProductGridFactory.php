@@ -148,21 +148,26 @@ class ProductGridFactory
 		return $grid;
 	}
 	
+	private static function replaceArrayValue(array $array, $value, $replace): array
+	{
+		return \array_replace($array, \array_fill_keys(\array_keys($array, $value), $replace));
+	}
+	
 	private function addFilters(Datagrid $grid)
 	{
 		$grid->addFilterTextInput('code', ['this.code', 'this.ean', 'this.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
 		
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
-			$categories += ['X' => 'X - bez kategorie'];
+			$categories += ['0' => 'X - bez kategorie'];
 			$grid->addFilterDataSelect(function (Collection $source, $value) {
-				$source->filter(['category' => $this->categoryRepository->one($value)->path]);
+				$source->filter(['category' => $value === '0' ? false : $this->categoryRepository->one($value)->path]);
 			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
 		}
 		
 		if ($producers = $this->producerRepository->getArrayForSelect()) {
-			$producers += ['X' => 'X - bez výrobce'];
+			$producers += ['0' => 'X - bez výrobce'];
 			$grid->addFilterDataMultiSelect(function (Collection $source, $value) {
-				$source->filter(['producer' => $value]);
+				$source->filter(['producer' => self::replaceArrayValue($value, '0', null)]);
 			}, '', 'producers', null, $producers, ['placeholder' => '- Výrobci -']);
 		}
 		
@@ -192,16 +197,16 @@ class ProductGridFactory
 		}*/
 		
 		if ($ribbons = $this->ribbonRepository->getArrayForSelect()) {
-			$ribbons += ['X' => 'X - bez štítků'];
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$this->productRepository->filterRibbon($value, $source);
+			$ribbons += ['0' => 'X - bez štítků'];
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value) {
+				$source->filter(['ribbon' => self::replaceArrayValue($value, '0', null)]);
 			}, '', 'ribbons', null, $ribbons, ['placeholder' => '- Štítky -']);
 		}
 		
 		if ($pricelists = $this->pricelistRepository->getArrayForSelect()) {
-			$pricelists += ['X' => 'X - bez ceniků'];
+			$pricelists += ['0' => 'X - bez ceniků'];
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$this->productRepository->filterPricelist($value === 'X' ? false : $value, $source);
+				$source->filter(['pricelist' => self::replaceArrayValue($value, '0', null)]);
 			}, '', 'pricelists', null, $pricelists, ['placeholder' => '- Ceníky -']);
 		}
 		
@@ -253,13 +258,9 @@ class ProductGridFactory
 		])->setPrompt('- Obsah -');
 		
 		if ($displayAmounts = $this->displayAmountRepository->getArrayForSelect()) {
-			$displayAmounts += ['X' => 'X - nepřiřazená'];
-			$grid->addFilterDataSelect(function (ICollection $source, $value) {
-				if ($value === 'X') {
-					$source->where('this.fk_displayAmount IS NULL');
-				} else {
-					$this->productRepository->filterDisplayAmount($value, $source);
-				}
+			$displayAmounts += ['0' => 'X - nepřiřazená'];
+			$grid->addFilterDataSelect(function (Collection $source, $value) {
+				$source->filter(['displayAmount' => $value === '0' ? false : $value]);
 			}, '', 'displayAmount', null, $displayAmounts)->setPrompt('- Dostupnost -');
 		}
 		
