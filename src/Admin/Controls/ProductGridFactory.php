@@ -84,7 +84,7 @@ class ProductGridFactory
 	
 	public function create(array $configuration): Datagrid
 	{
-		$grid = $this->gridFactory->create($this->productRepository->many(), 20, 'this.priority', 'ASC', true);
+		$grid = $this->gridFactory->create($this->productRepository->many()->setGroupBy(['this.uuid']), 20, 'this.priority', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnImage('imageFileName', Product::IMAGE_DIR);
 		
