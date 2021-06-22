@@ -292,19 +292,21 @@ class ProductForm extends Control
 
 		$i = 0;
 
-		foreach ($this->productRepository->getSetProducts($this->product) as $setItem) {
-			bdump($setItem);
-			$itemContainer = $form['setItems']['s' . $i++];
-
-			$itemContainer->setDefaults([
-				'product' => $setItem->product->getFullCode(),
-				'priority' => $setItem->priority,
-				'amount' => $setItem->amount,
-				'discountPct' => $setItem->discountPct
-			]);
-
-			if ($i == 5) {
-				break;
+		if ($this->product) {
+			foreach ($this->productRepository->getSetProducts($this->product) as $setItem) {
+				bdump($setItem);
+				$itemContainer = $form['setItems']['s' . $i++];
+				
+				$itemContainer->setDefaults([
+					'product' => $setItem->product->getFullCode(),
+					'priority' => $setItem->priority,
+					'amount' => $setItem->amount,
+					'discountPct' => $setItem->discountPct
+				]);
+				
+				if ($i == 5) {
+					break;
+				}
 			}
 		}
 
