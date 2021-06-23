@@ -61,9 +61,20 @@ class ProductPresenter extends BackendPresenter
 			'recommended' => 'Doporučeno',
 			'hidden' => 'Skryto'
 		],
-		'exportAttributes' => null,
-		'defaultExportColumns' => [],
-		'defaultExportAttributes' => []
+		'exportAttributes' => [],
+		'defaultExportColumns' => [
+			'code'
+		],
+		'defaultExportAttributes' => [],
+		'importColumns' => [
+			'code' => 'Kód',
+			'name' => 'Název',
+			'perex' => 'Popisek',
+			'priority' => 'Priorita',
+			'recommended' => 'Doporučeno',
+			'hidden' => 'Skryto'
+		],
+		'importAttributes' => [],
 	];
 
 	protected const DEFAULT_TEMPLATE = __DIR__ . '/../../_data/newsletterTemplates/newsletter.latte';
@@ -851,6 +862,16 @@ class ProductPresenter extends BackendPresenter
 			->setRequired()
 			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/csv');
 
+		$form->addSelect('delimiter', 'Oddělovač', [
+			';' => 'Středník (;)',
+			',' => 'Čárka (,)',
+			'	' => 'Tab (\t)',
+			' ' => 'Mezera ( )',
+			'|' => 'Pipe (|)',
+		]);
+
+		$form->addCheckbox('addNew', 'Vytvářet nové záznamy');
+
 		$form->addSubmit('submit', 'Importovat');
 
 		$form->onValidate[] = function (AdminForm $form) {
@@ -872,12 +893,19 @@ class ProductPresenter extends BackendPresenter
 
 			$file->move(\dirname(__DIR__, 5) . '/userfiles/products.csv');
 
-			try {
-				$this->importCsv(\dirname(__DIR__, 5) . '/userfiles/products.csv');
+			$connection = $this->productRepository->getConnection();
 
+			$connection->getLink()->beginTransaction();
+
+			try {
+				$this->importCsv(\dirname(__DIR__, 5) . '/userfiles/products.csv', $values['delimiter'], $values['addNew']);
+
+				$connection->getLink()->commit();
 				$this->flashMessage('Provedeno', 'success');
 			} catch (\Exception $e) {
 				FileSystem::delete(\dirname(__DIR__, 5) . '/userfiles/products.csv');
+				$connection->getLink()->rollBack();
+
 				$this->flashMessage('Import dat se nezdařil!', 'error');
 			}
 
@@ -984,7 +1012,7 @@ class ProductPresenter extends BackendPresenter
 		return $form;
 	}
 
-	protected function importCsv(string $filePath)
+	protected function importCsv(string $filePath, string $delimiter = ';', bool $addNew = false)
 	{
 		//@TODO implement
 	}

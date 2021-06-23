@@ -759,6 +759,9 @@ class ProductRepository extends Repository implements IGeneralRepository
 					$row[] = $priceMin ? $priceMin->price : '';
 				} elseif ($column == 'maxPrice') {
 					$row[] = $priceMax ? $priceMax->price : '';
+				} elseif ($column == 'perex') {
+					$value = $product->getValue($column);
+					$row[] = $value ? \strip_tags($value) : null;
 				} else {
 					$value = $product->getValue($column);
 					$row[] = $value === false ? '0' : $value;
