@@ -28,11 +28,12 @@ use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
 use Forms\Form;
+use League\Csv\Writer;
+use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\FileUpload;
 use Nette\InvalidArgumentException;
-use Nette\NotImplementedException;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Pages\DB\PageRepository;
@@ -51,7 +52,18 @@ class ProductPresenter extends BackendPresenter
 		'weightAndDimension' => false,
 		'discountLevel' => true,
 		'rounding' => true,
-		'importButton' => false
+		'importButton' => false,
+		'exportColumns' => [
+			'code' => 'Kód',
+			'name' => 'Název',
+			'perex' => 'Popisek',
+			'priority' => 'Priorita',
+			'recommended' => 'Doporučeno',
+			'hidden' => 'Skryto'
+		],
+		'exportAttributes' => null,
+		'defaultExportColumns' => [],
+		'defaultExportAttributes' => []
 	];
 
 	protected const DEFAULT_TEMPLATE = __DIR__ . '/../../_data/newsletterTemplates/newsletter.latte';
@@ -109,6 +121,9 @@ class ProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public SettingRepository $settingRepository;
+
+	/** @inject */
+	public Application $application;
 
 	public function createComponentProductGrid()
 	{
@@ -858,8 +873,7 @@ class ProductPresenter extends BackendPresenter
 			$file->move(\dirname(__DIR__, 5) . '/userfiles/products.csv');
 
 			try {
-				// @TODO genericky import
-				throw new NotImplementedException();
+				$this->importCsv(\dirname(__DIR__, 5) . '/userfiles/products.csv');
 
 				$this->flashMessage('Provedeno', 'success');
 			} catch (\Exception $e) {
@@ -871,5 +885,107 @@ class ProductPresenter extends BackendPresenter
 		};
 
 		return $form;
+	}
+
+	public function actionExport(array $ids)
+	{
+
+	}
+
+	public function renderExport(array $ids)
+	{
+		$this->template->headerLabel = 'Export produktů do CSV';
+		$this->template->headerTree = [
+			['Produkty', 'default'],
+			['Export produktů']
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('exportForm')];
+	}
+
+	public function createComponentExportForm()
+	{
+		/** @var \Grid\Datagrid $productGrid */
+		$productGrid = $this->getComponent('productGrid');
+
+		$ids = $this->getParameter('ids') ?: [];
+		$totalNo = $productGrid->getFilteredSource()->enum();
+		$selectedNo = \count($ids);
+
+		$form = $this->formFactory->create();
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+		$form->addRadioList('bulkType', 'Upravit', [
+			'selected' => "vybrané ($selectedNo)",
+			'all' => "celý výsledek ($totalNo)",
+		])->setDefaultValue('selected');
+
+		$form->addSelect('delimiter', 'Oddělovač', [
+			';' => 'Středník (;)',
+			',' => 'Čárka (,)',
+			'\t' => 'Tab (\t)',
+			' ' => 'Mezera ( )',
+			'|' => 'Pipe (|)',
+		]);
+		$form->addCheckbox('header', 'Hlavička');
+
+		$columns = $form->addDataMultiSelect('columns', 'Sloupce');
+
+		$items = [];
+		$defaultItems = [];
+
+		if (isset(static::CONFIGURATION['exportColumns'])) {
+			$items += static::CONFIGURATION['exportColumns'];
+
+			if (isset(static::CONFIGURATION['defaultExportColumns'])) {
+				$defaultItems = \array_merge($defaultItems, static::CONFIGURATION['defaultExportColumns']);
+			}
+		}
+		if (isset(static::CONFIGURATION['exportAttributes'])) {
+			$items += static::CONFIGURATION['exportAttributes'];
+
+			if (isset(static::CONFIGURATION['defaultExportAttributes'])) {
+				$defaultItems = \array_merge($defaultItems, static::CONFIGURATION['defaultExportAttributes']);
+			}
+		}
+
+		$columns->setItems($items);
+		$columns->setDefaultValue($defaultItems);
+
+		$form->addSubmit('submit', 'Exportovat');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid, $items) {
+			$values = $form->getValues('array');
+
+			$products = $values['bulkType'] == 'selected' ? $this->productRepository->many()->where('uuid', $ids) : $productGrid->getFilteredSource();
+
+			$tempFilename = \tempnam($this->tempDir, "csv");
+			$this->application->onShutdown[] = function () use ($tempFilename) {
+				\unlink($tempFilename);
+			};
+
+			$selectedColumns = \array_map('strval', $values['columns']);
+
+			$columns = \array_filter($items, function ($key) use ($selectedColumns) {
+				return \in_array((string)$key, $selectedColumns);
+			}, ARRAY_FILTER_USE_KEY);
+
+			$this->productRepository->csvExport(
+				$products,
+				Writer::createFromPath($tempFilename),
+				static::CONFIGURATION,
+				\array_keys($columns),
+				$values['delimiter'],
+				$values['header'] ? \array_values($columns) : null
+			);
+
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "products.csv", 'text/csv'));
+		};
+
+		return $form;
+	}
+
+	protected function importCsv(string $filePath)
+	{
+		//@TODO implement
 	}
 }

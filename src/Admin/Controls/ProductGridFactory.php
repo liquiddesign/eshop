@@ -128,18 +128,25 @@ class ProductGridFactory
 		
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this, 'onDelete']);
-		
+
 		$grid->addButtonBulkEdit('productForm', ['producer', 'categories', 'tags', 'ribbons', 'displayAmount', 'displayDelivery', 'vatRate', 'taxes', 'hidden', 'unavailable'], 'productGrid');
-		$submit = $grid->getForm()->addSubmit('newsletterExport', 'Newsletter export')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
-		
-		$submit->onClick[] = function ($button) use ($grid) {
-			$grid->getPresenter()->redirect('newsletterExportSelect', [$grid->getSelectedIds()]);
-		};
 
 		$submit = $grid->getForm()->addSubmit('join', 'Sloučit')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
 		$submit->onClick[] = function ($button) use ($grid) {
 			$grid->getPresenter()->redirect('joinSelect', [$grid->getSelectedIds()]);
+		};
+
+		$submit = $grid->getForm()->addSubmit('export', 'Exportovat (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+		$submit->onClick[] = function ($button) use ($grid) {
+			$grid->getPresenter()->redirect('export', [$grid->getSelectedIds()]);
+		};
+
+		$submit = $grid->getForm()->addSubmit('newsletterExport', 'Newsletter export')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+		$submit->onClick[] = function ($button) use ($grid) {
+			$grid->getPresenter()->redirect('newsletterExportSelect', [$grid->getSelectedIds()]);
 		};
 		
 		$this->addFilters($grid);
