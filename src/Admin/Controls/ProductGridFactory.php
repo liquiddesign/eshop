@@ -27,31 +27,31 @@ use Admin\Controls\AdminGridFactory;
 class ProductGridFactory
 {
 	private ProductRepository $productRepository;
-	
+
 	private AdminGridFactory $gridFactory;
-	
+
 	private ProducerRepository $producerRepository;
-	
+
 	private SupplierRepository $supplierRepository;
-	
+
 	private SupplierCategoryRepository $supplierCategoryRepository;
-	
+
 	private CategoryRepository $categoryRepository;
-	
+
 	private RibbonRepository $ribbonRepository;
-	
+
 	private TagRepository $tagRepository;
-	
+
 	private PageRepository $pageRepository;
-	
+
 	private Container $container;
-	
+
 	private PricelistRepository $pricelistRepository;
-	
+
 	private DisplayAmountRepository $displayAmountRepository;
-	
+
 	private Shopper $shopper;
-	
+
 	public function __construct(
 		\Admin\Controls\AdminGridFactory $gridFactory,
 		Container $container,
@@ -81,30 +81,30 @@ class ProductGridFactory
 		$this->pricelistRepository = $pricelistRepository;
 		$this->displayAmountRepository = $displayAmountRepository;
 	}
-	
+
 	public function create(array $configuration): Datagrid
 	{
 		$grid = $this->gridFactory->create($this->productRepository->many()->setGroupBy(['this.uuid']), 20, 'this.priority', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnImage('imageFileName', Product::IMAGE_DIR);
-		
+
 		$grid->addColumn('Kód a EAN', function (Product $product) {
 			return $product->getFullCode() . ($product->ean ? "<br><small>EAN $product->ean</small>" : '');
 		}, '%s', 'code', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
-		
+
 		$grid->addColumn('Název', function (Product $product, $grid) {
 			$suppliers = [];
-			
+
 			foreach ($product->supplierProducts as $supplierProduct) {
 				$supplier = $supplierProduct->getValue('supplier');
 				$code = $supplierProduct->code;
 				$link = $grid->getPresenter()->link(':Eshop:Admin:SupplierProduct:default', ['tab' => $supplier, 'grid-search' => $code]);
 				$suppliers[] = "<a href='$link' class='badge badge-light' style='font-weight: normal;' target='_blank'>$supplier</a>";
 			}
-			
-			return [$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]), $product->name, \implode(' &nbsp;',$suppliers)];
+
+			return [$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]), $product->name, \implode(' &nbsp;', $suppliers)];
 		}, '<a href="%s" target="_blank"> %s</a> <a href="" class="badge badge-light" style="font-weight: normal;">%s</a>', 'name');
-		
+
 		$grid->addColumnText('Výrobce', 'producer.name', '%s', 'producer.name_cs');
 		$grid->addColumn('Kategorie', function (Product $product) {
 			//return $product->primaryCategory->name;
@@ -114,18 +114,18 @@ class ProductGridFactory
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 		$grid->addColumnInputCheckbox('<i title="Neprodejné" class="fas fa-ban"></i>', 'unavailable', '', '', 'unavailable');
-		
+
 		if ($configuration['parameters']) {
 			$grid->addColumnLink('Parameters', 'Atributy');
 		}
-		
+
 		$grid->addColumnLink('Prices', 'Ceny');
 		$grid->addColumnLink('Photos', '<i title="Obrázky" class="far fa-file-image"></i>');
 		$grid->addColumnLink('Files', '<i title="Soubory" class="far fa-file"></i>');
-		
+
 		$grid->addColumnLinkDetail('edit');
 		$grid->addColumnActionDelete([$this, 'onDelete']);
-		
+
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this, 'onDelete']);
 
@@ -137,111 +137,113 @@ class ProductGridFactory
 			$grid->getPresenter()->redirect('joinSelect', [$grid->getSelectedIds()]);
 		};
 
-		$submit = $grid->getForm()->addSubmit('export', 'Exportovat (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+		if (isset($configuration['exportButton']) && $configuration['exportButton']) {
+			$submit = $grid->getForm()->addSubmit('export', 'Exportovat (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-		$submit->onClick[] = function ($button) use ($grid) {
-			$grid->getPresenter()->redirect('export', [$grid->getSelectedIds()]);
-		};
+			$submit->onClick[] = function ($button) use ($grid) {
+				$grid->getPresenter()->redirect('export', [$grid->getSelectedIds()]);
+			};
+		}
 
 		$submit = $grid->getForm()->addSubmit('newsletterExport', 'Newsletter export')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
 		$submit->onClick[] = function ($button) use ($grid) {
 			$grid->getPresenter()->redirect('newsletterExportSelect', [$grid->getSelectedIds()]);
 		};
-		
+
 		$this->addFilters($grid);
 		$grid->addFilterButtons();
-		
+
 		return $grid;
 	}
-	
+
 	private static function replaceArrayValue(array $array, $value, $replace): array
 	{
 		return \array_replace($array, \array_fill_keys(\array_keys($array, $value), $replace));
 	}
-	
+
 	private function addFilters(Datagrid $grid)
 	{
 		$grid->addFilterTextInput('code', ['this.code', 'this.ean', 'this.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
-		
+
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
 			$categories += ['0' => 'X - bez kategorie'];
 			$grid->addFilterDataSelect(function (Collection $source, $value) {
 				$source->filter(['category' => $value === '0' ? false : $this->categoryRepository->one($value)->path]);
 			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
 		}
-		
+
 		if ($producers = $this->producerRepository->getArrayForSelect()) {
 			$producers += ['0' => 'X - bez výrobce'];
 			$grid->addFilterDataMultiSelect(function (Collection $source, $value) {
 				$source->filter(['producer' => self::replaceArrayValue($value, '0', null)]);
 			}, '', 'producers', null, $producers, ['placeholder' => '- Výrobci -']);
 		}
-		
+
 		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$expression = new Expression();
-				
+
 				foreach ($value as $supplier) {
 					$expression->add('OR', 'supplierProducts.fk_supplier=%1$s OR fk_supplierSource=%1$s', [$supplier]);
 				}
-				
+
 				$source->where($expression->getSql(), $expression->getVars());
 			}, '', 'suppliers', null, $suppliers, ['placeholder' => '- Zdroje -']);
 		}
-		
+
 		if ($supplierCategories = $this->supplierCategoryRepository->getArrayForSelect(true)) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$source->where('supplierProducts.fk_category', $value);
 			}, '', 'supplier_categories', null, $supplierCategories, ['placeholder' => '- Rozřazení -']);
-			
+
 		}
-		
+
 		/*if ($tags = $this->tagRepository->getListForSelect()) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$this->productRepository->filterTag($value, $source);
 			}, '', 'tags', null, $tags, ['placeholder' => '- Tagy -']);
 		}*/
-		
+
 		if ($ribbons = $this->ribbonRepository->getArrayForSelect()) {
 			$ribbons += ['0' => 'X - bez štítků'];
 			$grid->addFilterDataMultiSelect(function (Collection $source, $value) {
 				$source->filter(['ribbon' => self::replaceArrayValue($value, '0', null)]);
 			}, '', 'ribbons', null, $ribbons, ['placeholder' => '- Štítky -']);
 		}
-		
+
 		if ($pricelists = $this->pricelistRepository->getArrayForSelect()) {
 			$pricelists += ['0' => 'X - bez ceniků'];
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$source->filter(['pricelist' => self::replaceArrayValue($value, '0', null)]);
 			}, '', 'pricelists', null, $pricelists, ['placeholder' => '- Ceníky -']);
 		}
-		
+
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
 			if ($value === 'image') {
 				$source->where('this.imageFileName IS NOT NULL');
 			}
-			
+
 			if ($value === 'noimage') {
 				$source->where('this.imageFileName IS NULL');
 			}
-			
+
 			if ($value === 'fiximage') {
 				$source->where('this.imageFileName IS NOT NULL AND this.imageNeedFix = 1');
 			}
-			
+
 			if ($value === 'ean') {
 				$source->where('this.ean IS NOT NULL');
 			}
-			
+
 			if ($value === 'noean') {
 				$source->where('this.ean IS NULL');
 			}
-			
+
 			if ($value === 'content') {
 				$source->where("this.content_cs IS NULL OR this.content_cs=''");
 			}
-			
+
 			if ($value === 'fixcontent') {
 				$thresholdLength = 1000;
 				$suffix = '_cs';
@@ -250,7 +252,7 @@ class ProductGridFactory
 				$expression->add('AND', "LOCATE(%s, this.content$suffix)=0", ['<br>']);
 				$expression->add('AND', "LOCATE(%s, this.content$suffix)=0", ['<p>']);
 				$expression->add('AND', "LOCATE(%s, this.content$suffix)=0", ['<table>']);
-				
+
 				$source->where("LENGTH(this.content$suffix) > :length", ['length' => $thresholdLength])->where($expression->getSql(), $expression->getVars());
 			}
 		}, '', 'image', null, [
@@ -263,41 +265,41 @@ class ProductGridFactory
 			'nocontent' => 'Bez obsahu',
 			'fixcontent' => 'Chybný text',
 		])->setPrompt('- Obsah -');
-		
+
 		if ($displayAmounts = $this->displayAmountRepository->getArrayForSelect()) {
 			$displayAmounts += ['0' => 'X - nepřiřazená'];
 			$grid->addFilterDataSelect(function (Collection $source, $value) {
 				$source->filter(['displayAmount' => $value === '0' ? false : $value]);
 			}, '', 'displayAmount', null, $displayAmounts)->setPrompt('- Dostupnost -');
 		}
-		
+
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
-			$source->where('this.hidden', (bool) $value);
+			$source->where('this.hidden', (bool)$value);
 		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
-		
+
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
-			$source->where('this.unavailable', (bool) $value);
+			$source->where('this.unavailable', (bool)$value);
 		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
 	}
-	
+
 	public function onDelete(Product $product)
 	{
 		if ($page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product])) {
 			$page->delete();
 		}
-		
+
 		if (!$product->imageFileName) {
 			return;
 		}
-		
+
 		$subDirs = ['origin', 'detail', 'thumb'];
 		$dir = Product::IMAGE_DIR;
-		
+
 		foreach ($subDirs as $subDir) {
 			$rootDir = $this->container->parameters['wwwDir'] . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
 			FileSystem::delete($rootDir . \DIRECTORY_SEPARATOR . $subDir . \DIRECTORY_SEPARATOR . $product->imageFileName);
 		}
-		
+
 		$product->update(['imageFileName' => null]);
 	}
 }

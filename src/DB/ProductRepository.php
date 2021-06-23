@@ -15,6 +15,7 @@ use StORM\Entity;
 use StORM\ICollection;
 use StORM\Repository;
 use StORM\SchemaManager;
+use Tracy\Debugger;
 use Web\DB\PageRepository;
 
 /**
@@ -731,12 +732,23 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$exportAttributes = \array_combine(\array_map('strval', \array_keys($configuration['exportAttributes'])), \array_values($configuration['exportAttributes']));
 
+		$mutationSuffix = $this->getConnection()->getMutationSuffix();
+
+		$products->setGroupBy(['this.uuid'])
+			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
+			->select([
+				'priceMin' => 'MIN(price.price)',
+				'priceMax' => 'MAX(price.price)'
+			])
+			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
+			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value= attributeValue.uuid')
+			->join(['attribute' => 'eshop_attribute'], 'attributeValue.fk_attribute = attribute.uuid')
+			->select(["attribute.name$mutationSuffix", "attributeValue.label$mutationSuffix"]);
+
 		/** @var Product $product */
-		foreach ($products->toArray() as $product) {
+		while ($product = $products->fetch()) {
 			$row = [];
 			$attributes = $this->getActiveProductAttributes($product);
-			$priceMin = $this->priceRepository->many()->where('fk_product', $product->getPK())->orderBy(['price'])->first();
-			$priceMax = $this->priceRepository->many()->where('fk_product', $product->getPK())->orderBy(['price' => 'DESC'])->first();
 
 			foreach ($columns as $column) {
 				if (Arrays::get($exportAttributes, $column, null)) {
@@ -748,17 +760,26 @@ class ProductRepository extends Repository implements IGeneralRepository
 					if (isset($attributes[$attribute->getPK()])) {
 						/** @var AttributeValue $attributeValue */
 						foreach ($attributes[$attribute->getPK()]['values'] as $attributeValue) {
-							$attributeValues[] = $attributeValue->code;
+							$attributeValues[] = $attributeValue->label;
 						}
 
 						$row[] = \implode(',', $attributeValues);
 					} else {
 						$row[] = '';
 					}
+
 				} elseif ($column == 'minPrice') {
-					$row[] = $priceMin ? $priceMin->price : '';
+					try {
+						$row[] = $product->getValue('priceMin');
+					} catch (\Exception $e) {
+						$row[] = '';
+					}
 				} elseif ($column == 'maxPrice') {
-					$row[] = $priceMax ? $priceMax->price : '';
+					try {
+						$row[] = $product->getValue('priceMax');
+					} catch (\Exception $e) {
+						$row[] = '';
+					}
 				} elseif ($column == 'perex') {
 					$value = $product->getValue($column);
 					$row[] = $value ? \strip_tags($value) : null;

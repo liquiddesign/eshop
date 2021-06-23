@@ -10,6 +10,7 @@ use Eshop\Admin\Controls\IProductAttributesFormFactory;
 use Eshop\Admin\Controls\IProductFormFactory;
 use Eshop\Admin\Controls\IProductParametersFormFactory;
 use Eshop\Admin\Controls\ProductGridFactory;
+use Eshop\DB\AttributeRepository;
 use Eshop\DB\File;
 use Eshop\DB\FileRepository;
 use Eshop\DB\NewsletterTypeRepository;
@@ -53,6 +54,7 @@ class ProductPresenter extends BackendPresenter
 		'discountLevel' => true,
 		'rounding' => true,
 		'importButton' => false,
+		'exportButton' => false,
 		'exportColumns' => [
 			'code' => 'Kód',
 			'name' => 'Název',
@@ -132,6 +134,9 @@ class ProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public SettingRepository $settingRepository;
+
+	/** @inject */
+	public AttributeRepository $attributeRepository;
 
 	public function createComponentProductGrid()
 	{
@@ -903,7 +908,7 @@ class ProductPresenter extends BackendPresenter
 				FileSystem::delete(\dirname(__DIR__, 5) . '/userfiles/products.csv');
 				$connection->getLink()->rollBack();
 
-				$this->flashMessage('Import dat se nezdařil!', 'error');
+				$this->flashMessage($e->getMessage() != '' ? $e->getMessage() : 'Import dat se nezdařil!', 'error');
 			}
 
 			$this->redirect('this');
@@ -934,12 +939,12 @@ class ProductPresenter extends BackendPresenter
 		$productGrid = $this->getComponent('productGrid');
 
 		$ids = $this->getParameter('ids') ?: [];
-		$totalNo = $productGrid->getFilteredSource()->enum();
+		$totalNo = $productGrid->getPaginator()->getItemCount();
 		$selectedNo = \count($ids);
 
 		$form = $this->formFactory->create();
 		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
-		$form->addRadioList('bulkType', 'Upravit', [
+		$form->addRadioList('bulkType', 'Exportovat', [
 			'selected' => "vybrané ($selectedNo)",
 			'all' => "celý výsledek ($totalNo)",
 		])->setDefaultValue('selected');
@@ -966,10 +971,11 @@ class ProductPresenter extends BackendPresenter
 			}
 		}
 		if (isset(static::CONFIGURATION['exportAttributes'])) {
-			$items += static::CONFIGURATION['exportAttributes'];
-
-			if (isset(static::CONFIGURATION['defaultExportAttributes'])) {
-				$defaultItems = \array_merge($defaultItems, static::CONFIGURATION['defaultExportAttributes']);
+			foreach (static::CONFIGURATION['exportAttributes'] as $key => $value) {
+				if ($attribute = $this->attributeRepository->many()->where('code', $key)->first()) {
+					$items[$key] = $value;
+					$defaultItems[] = $key;
+				}
 			}
 		}
 
@@ -981,10 +987,9 @@ class ProductPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid, $items) {
 			$values = $form->getValues('array');
 
-			$products = $values['bulkType'] == 'selected' ? $this->productRepository->many()->where('uuid', $ids) : $productGrid->getFilteredSource();
+			$products = $values['bulkType'] == 'selected' ? $this->productRepository->many()->where('this.uuid', $ids) : $productGrid->getFilteredSource();
 
 			$tempFilename = \tempnam($this->tempDir, "csv");
-
 
 			$selectedColumns = \array_map('strval', $values['columns']);
 
