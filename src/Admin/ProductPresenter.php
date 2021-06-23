@@ -922,7 +922,7 @@ class ProductPresenter extends BackendPresenter
 		$form->addSelect('delimiter', 'Oddělovač', [
 			';' => 'Středník (;)',
 			',' => 'Čárka (,)',
-			'\t' => 'Tab (\t)',
+			'	' => 'Tab (\t)',
 			' ' => 'Mezera ( )',
 			'|' => 'Pipe (|)',
 		]);
