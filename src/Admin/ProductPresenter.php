@@ -926,7 +926,7 @@ class ProductPresenter extends BackendPresenter
 			' ' => 'Mezera ( )',
 			'|' => 'Pipe (|)',
 		]);
-		$form->addCheckbox('header', 'Hlavička');
+		$form->addCheckbox('header', 'Hlavička')->setDefaultValue(true);
 
 		$columns = $form->addDataMultiSelect('columns', 'Sloupce');
 
