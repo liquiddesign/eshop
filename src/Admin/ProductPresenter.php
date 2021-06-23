@@ -133,9 +133,6 @@ class ProductPresenter extends BackendPresenter
 	/** @inject */
 	public SettingRepository $settingRepository;
 
-	/** @inject */
-	public Application $application;
-
 	public function createComponentProductGrid()
 	{
 		return $this->productGridFactory->create(static::CONFIGURATION);
@@ -987,9 +984,7 @@ class ProductPresenter extends BackendPresenter
 			$products = $values['bulkType'] == 'selected' ? $this->productRepository->many()->where('uuid', $ids) : $productGrid->getFilteredSource();
 
 			$tempFilename = \tempnam($this->tempDir, "csv");
-			$this->application->onShutdown[] = function () use ($tempFilename) {
-				\unlink($tempFilename);
-			};
+
 
 			$selectedColumns = \array_map('strval', $values['columns']);
 
