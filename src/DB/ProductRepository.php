@@ -547,6 +547,10 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$productCategory = $product->getPrimaryCategory();
 
+		if (!$productCategory) {
+			return [];
+		}
+
 		$categories = $categoryRepo->getBranch($productCategory);
 
 		$attributes = $attributeRepository->getAttributesByCategories(\array_values($categories))->toArray();
@@ -739,11 +743,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 			->select([
 				'priceMin' => 'MIN(price.price)',
 				'priceMax' => 'MAX(price.price)'
-			])
-			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
-			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value= attributeValue.uuid')
-			->join(['attribute' => 'eshop_attribute'], 'attributeValue.fk_attribute = attribute.uuid')
-			->select(["attribute.name$mutationSuffix", "attributeValue.label$mutationSuffix"]);
+			]);
+//			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
+//			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value= attributeValue.uuid')
+//			->join(['attribute' => 'eshop_attribute'], 'attributeValue.fk_attribute = attribute.uuid')
+//			->select(["attribute.name$mutationSuffix", "attributeValue.label$mutationSuffix"]);
 
 		/** @var Product $product */
 		while ($product = $products->fetch()) {
