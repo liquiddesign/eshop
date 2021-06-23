@@ -756,9 +756,9 @@ class ProductRepository extends Repository implements IGeneralRepository
 						$row[] = '';
 					}
 				} elseif ($column == 'minPrice') {
-					$row[] = $priceMin->price;
+					$row[] = $priceMin ? $priceMin->price : '';
 				} elseif ($column == 'maxPrice') {
-					$row[] = $priceMax->price;
+					$row[] = $priceMax ? $priceMax->price : '';
 				} else {
 					$value = $product->getValue($column);
 					$row[] = $value === false ? '0' : $value;
