@@ -30,7 +30,6 @@ use Eshop\FormValidators;
 use Eshop\Shopper;
 use Forms\Form;
 use League\Csv\Writer;
-use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\FileUpload;
@@ -77,6 +76,7 @@ class ProductPresenter extends BackendPresenter
 			'hidden' => 'Skryto'
 		],
 		'importAttributes' => [],
+		'importExampleFile' => null
 	];
 
 	protected const DEFAULT_TEMPLATE = __DIR__ . '/../../_data/newsletterTemplates/newsletter.latte';
@@ -858,11 +858,15 @@ class ProductPresenter extends BackendPresenter
 			$lastUpdate = \filemtime($path);
 		}
 
-		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? \gmdate('d.m.Y G:i', $lastUpdate) : null);
+		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? \date('d.m.Y G:i', $lastUpdate) : null);
 
-		$form->addFilePicker('file', 'Soubor (CSV)')
+		$filePicker = $form->addFilePicker('file', 'Soubor (CSV)')
 			->setRequired()
 			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/csv');
+
+		if (isset(static::CONFIGURATION['importExampleFile']) && static::CONFIGURATION['importExampleFile']) {
+			$filePicker->setHtmlAttribute('data-info', 'Vzorový soubor: <a href="' . $this->link('downloadImportExampleFile!') . '">' . static::CONFIGURATION['importExampleFile'] . '</a>');
+		}
 
 		$form->addSelect('delimiter', 'Oddělovač', [
 			';' => 'Středník (;)',
@@ -894,6 +898,7 @@ class ProductPresenter extends BackendPresenter
 			$file = $values['file'];
 
 			$file->move(\dirname(__DIR__, 5) . '/userfiles/products.csv');
+			\touch(\dirname(__DIR__, 5) . '/userfiles/products.csv');
 
 			$connection = $this->productRepository->getConnection();
 
@@ -1015,5 +1020,12 @@ class ProductPresenter extends BackendPresenter
 	protected function importCsv(string $filePath, string $delimiter = ';', bool $addNew = false)
 	{
 		//@TODO implement
+	}
+
+	public function handleDownloadImportExampleFile()
+	{
+		if (isset(static::CONFIGURATION['importExampleFile']) && static::CONFIGURATION['importExampleFile']) {
+			$this->getPresenter()->sendResponse(new FileResponse($this->wwwDir . '/userfiles/' . static::CONFIGURATION['importExampleFile'], "example.csv", 'text/csv'));
+		}
 	}
 }
