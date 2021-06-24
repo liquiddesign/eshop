@@ -26,6 +26,7 @@ use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
 use Nette\Utils\Arrays;
+use StORM\ICollection;
 use Web\DB\PageRepository;
 use Forms\Form;
 use Nette\Application\UI\Control;
@@ -296,14 +297,14 @@ class ProductForm extends Control
 			foreach ($this->productRepository->getSetProducts($this->product) as $setItem) {
 				bdump($setItem);
 				$itemContainer = $form['setItems']['s' . $i++];
-				
+
 				$itemContainer->setDefaults([
 					'product' => $setItem->product->getFullCode(),
 					'priority' => $setItem->priority,
 					'amount' => $setItem->amount,
 					'discountPct' => $setItem->discountPct
 				]);
-				
+
 				if ($i == 5) {
 					break;
 				}
@@ -399,7 +400,22 @@ class ProductForm extends Control
 			}
 		}
 
+		/** @var Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
+
+		$changeColumns = ['name', 'perex', 'content'];
+
+		if ($product->getParent() instanceof ICollection && $product->getParent()->getAffectedNumber() > 0) {
+			foreach ($form->getMutations() as $mutation) {
+				foreach ($changeColumns as $column) {
+					if ($this->product->getValue($column, $mutation) != $values[$column][$mutation]) {
+						$product->update(['supplierContentLock' => true]);
+
+						break 2;
+					}
+				}
+			}
+		}
 
 		if (isset($values['tonerForPrinters'])) {
 			$this->relatedRepository->many()
