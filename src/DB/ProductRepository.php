@@ -738,8 +738,6 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 
-		$concatDelimiter = $delimiter == ';' ? ',' : ';';
-
 		$products->setGroupBy(['this.uuid'])
 			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
 			->select([
@@ -759,7 +757,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$attributes = [];
 
 			if ($product->attributes) {
-				$tmp = \explode($concatDelimiter, $product->attributes);
+				$tmp = \explode(',', $product->attributes);
 
 				foreach ($tmp as $value) {
 					$tmpExplode = \explode(':', $value);
