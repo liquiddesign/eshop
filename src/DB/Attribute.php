@@ -19,6 +19,7 @@ class Attribute extends \StORM\Entity
 
 	/**
 	 * Kód
+	 * @unique
 	 * @column
 	 */
 	public ?string $code;

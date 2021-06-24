@@ -6,6 +6,8 @@ namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
 use Eshop\Shopper;
+use League\Csv\Writer;
+use Nette\Utils\Arrays;
 use Pages\Pages;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -13,6 +15,7 @@ use StORM\Entity;
 use StORM\ICollection;
 use StORM\Repository;
 use StORM\SchemaManager;
+use Tracy\Debugger;
 use Web\DB\PageRepository;
 
 /**
@@ -30,7 +33,9 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	private PageRepository $pageRepository;
 
-	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager, AttributeRepository $attributeRepository, SetRepository $setRepository, Pages $pages, PageRepository $pageRepository)
+	private PriceRepository $priceRepository;
+
+	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager, AttributeRepository $attributeRepository, SetRepository $setRepository, Pages $pages, PageRepository $pageRepository, PriceRepository $priceRepository)
 	{
 		parent::__construct($connection, $schemaManager);
 
@@ -39,6 +44,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$this->setRepository = $setRepository;
 		$this->pages = $pages;
 		$this->pageRepository = $pageRepository;
+		$this->priceRepository = $priceRepository;
 	}
 
 	static public function generateUuid(?string $ean, ?string $fullCode)
@@ -170,7 +176,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 	{
 		$collection->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=this.uuid');
 		$collection->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
-		
+
 		$value === false ? $collection->where('categories.uuid IS NULL') : $collection->where('categories.path LIKE :category', ['category' => "$value%"]);
 	}
 
@@ -193,14 +199,14 @@ class ProductRepository extends Repository implements IGeneralRepository
 	public function filterRibbon($value, ICollection $collection)
 	{
 		$collection->join(['ribbons' => 'eshop_product_nxn_eshop_ribbon'], 'ribbons.fk_product=this.uuid');
-		
+
 		$value === false ? $collection->where('ribbons.fk_ribbon IS NULL') : $collection->where('ribbons.fk_ribbon', $value);
 	}
 
 	public function filterPricelist($value, ICollection $collection)
 	{
 		$collection->join(['prices' => 'eshop_price'], 'prices.fk_product=this.uuid');
-		
+
 		$value === false ? $collection->where('prices.fk_pricelist IS NULL') : $collection->where('prices.fk_pricelist', $value);
 	}
 
@@ -273,14 +279,14 @@ class ProductRepository extends Repository implements IGeneralRepository
 				->where('fk_displayAmount IS NULL OR displayAmount.isSold = 0');
 		}
 	}
-	
+
 	public function filterDisplayAmount($value, ICollection $collection)
 	{
 		if ($value) {
 			$collection->where('this.fk_displayAmount', $value);
 		}
 	}
-	
+
 	public function filterQuery($value, ICollection $collection)
 	{
 		$collection->filter(['q' => $value]);
@@ -541,6 +547,10 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$productCategory = $product->getPrimaryCategory();
 
+		if (!$productCategory) {
+			return [];
+		}
+
 		$categories = $categoryRepo->getBranch($productCategory);
 
 		$attributes = $attributeRepository->getAttributesByCategories(\array_values($categories))->toArray();
@@ -714,5 +724,76 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 
 		return $this->setRepository->many()->join(['product' => 'eshop_product'], 'product.uuid=this.fk_set')->orderBy(['priority'])->toArray();
+	}
+
+	public function csvExport(ICollection $products, Writer $writer, array $configuration, array $columns, string $delimiter = ';', ?array $header = null): void
+	{
+		$writer->setDelimiter($delimiter);
+
+		if ($header) {
+			$writer->insertOne($header);
+		}
+
+		$exportAttributes = \array_combine(\array_map('strval', \array_keys($configuration['exportAttributes'])), \array_values($configuration['exportAttributes']));
+
+		$mutationSuffix = $this->getConnection()->getMutationSuffix();
+
+		$products->setGroupBy(['this.uuid'])
+			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
+			->select([
+				'priceMin' => 'MIN(price.price)',
+				'priceMax' => 'MAX(price.price)'
+			]);
+//			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
+//			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value= attributeValue.uuid')
+//			->join(['attribute' => 'eshop_attribute'], 'attributeValue.fk_attribute = attribute.uuid')
+//			->select(["attribute.name$mutationSuffix", "attributeValue.label$mutationSuffix"]);
+
+		/** @var Product $product */
+		while ($product = $products->fetch()) {
+			$row = [];
+			$attributes = $this->getActiveProductAttributes($product);
+
+			foreach ($columns as $column) {
+				if (Arrays::get($exportAttributes, $column, null)) {
+					/** @var Attribute $attribute */
+					$attribute = $this->attributeRepository->many()->where('code', $column)->first();
+
+					$attributeValues = [];
+
+					if (isset($attributes[$attribute->getPK()])) {
+						/** @var AttributeValue $attributeValue */
+						foreach ($attributes[$attribute->getPK()]['values'] as $attributeValue) {
+							$attributeValues[] = $attributeValue->label;
+						}
+
+						$row[] = \implode(',', $attributeValues);
+					} else {
+						$row[] = '';
+					}
+
+				} elseif ($column == 'minPrice') {
+					try {
+						$row[] = $product->getValue('priceMin');
+					} catch (\Exception $e) {
+						$row[] = '';
+					}
+				} elseif ($column == 'maxPrice') {
+					try {
+						$row[] = $product->getValue('priceMax');
+					} catch (\Exception $e) {
+						$row[] = '';
+					}
+				} elseif ($column == 'perex') {
+					$value = $product->getValue($column);
+					$row[] = $value ? \strip_tags($value) : null;
+				} else {
+					$value = $product->getValue($column);
+					$row[] = $value === false ? '0' : $value;
+				}
+			}
+
+			$writer->insertOne($row);
+		}
 	}
 }

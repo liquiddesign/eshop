@@ -10,6 +10,7 @@ use Eshop\Admin\Controls\IProductAttributesFormFactory;
 use Eshop\Admin\Controls\IProductFormFactory;
 use Eshop\Admin\Controls\IProductParametersFormFactory;
 use Eshop\Admin\Controls\ProductGridFactory;
+use Eshop\DB\AttributeRepository;
 use Eshop\DB\File;
 use Eshop\DB\FileRepository;
 use Eshop\DB\NewsletterTypeRepository;
@@ -28,11 +29,12 @@ use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
 use Forms\Form;
+use League\Csv\Writer;
+use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\FileUpload;
 use Nette\InvalidArgumentException;
-use Nette\NotImplementedException;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Pages\DB\PageRepository;
@@ -51,7 +53,30 @@ class ProductPresenter extends BackendPresenter
 		'weightAndDimension' => false,
 		'discountLevel' => true,
 		'rounding' => true,
-		'importButton' => false
+		'importButton' => false,
+		'exportButton' => false,
+		'exportColumns' => [
+			'code' => 'Kód',
+			'name' => 'Název',
+			'perex' => 'Popisek',
+			'priority' => 'Priorita',
+			'recommended' => 'Doporučeno',
+			'hidden' => 'Skryto'
+		],
+		'exportAttributes' => [],
+		'defaultExportColumns' => [
+			'code'
+		],
+		'defaultExportAttributes' => [],
+		'importColumns' => [
+			'code' => 'Kód',
+			'name' => 'Název',
+			'perex' => 'Popisek',
+			'priority' => 'Priorita',
+			'recommended' => 'Doporučeno',
+			'hidden' => 'Skryto'
+		],
+		'importAttributes' => [],
 	];
 
 	protected const DEFAULT_TEMPLATE = __DIR__ . '/../../_data/newsletterTemplates/newsletter.latte';
@@ -109,6 +134,9 @@ class ProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public SettingRepository $settingRepository;
+
+	/** @inject */
+	public AttributeRepository $attributeRepository;
 
 	public function createComponentProductGrid()
 	{
@@ -836,6 +864,16 @@ class ProductPresenter extends BackendPresenter
 			->setRequired()
 			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/csv');
 
+		$form->addSelect('delimiter', 'Oddělovač', [
+			';' => 'Středník (;)',
+			',' => 'Čárka (,)',
+			'	' => 'Tab (\t)',
+			' ' => 'Mezera ( )',
+			'|' => 'Pipe (|)',
+		]);
+
+		$form->addCheckbox('addNew', 'Vytvářet nové záznamy');
+
 		$form->addSubmit('submit', 'Importovat');
 
 		$form->onValidate[] = function (AdminForm $form) {
@@ -857,19 +895,125 @@ class ProductPresenter extends BackendPresenter
 
 			$file->move(\dirname(__DIR__, 5) . '/userfiles/products.csv');
 
-			try {
-				// @TODO genericky import
-				throw new NotImplementedException();
+			$connection = $this->productRepository->getConnection();
 
+			$connection->getLink()->beginTransaction();
+
+			try {
+				$this->importCsv(\dirname(__DIR__, 5) . '/userfiles/products.csv', $values['delimiter'], $values['addNew']);
+
+				$connection->getLink()->commit();
 				$this->flashMessage('Provedeno', 'success');
 			} catch (\Exception $e) {
 				FileSystem::delete(\dirname(__DIR__, 5) . '/userfiles/products.csv');
-				$this->flashMessage('Import dat se nezdařil!', 'error');
+				$connection->getLink()->rollBack();
+
+				$this->flashMessage($e->getMessage() != '' ? $e->getMessage() : 'Import dat se nezdařil!', 'error');
 			}
 
 			$this->redirect('this');
 		};
 
 		return $form;
+	}
+
+	public function actionExport(array $ids)
+	{
+
+	}
+
+	public function renderExport(array $ids)
+	{
+		$this->template->headerLabel = 'Export produktů do CSV';
+		$this->template->headerTree = [
+			['Produkty', 'default'],
+			['Export produktů']
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('exportForm')];
+	}
+
+	public function createComponentExportForm()
+	{
+		/** @var \Grid\Datagrid $productGrid */
+		$productGrid = $this->getComponent('productGrid');
+
+		$ids = $this->getParameter('ids') ?: [];
+		$totalNo = $productGrid->getPaginator()->getItemCount();
+		$selectedNo = \count($ids);
+
+		$form = $this->formFactory->create();
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+		$form->addRadioList('bulkType', 'Exportovat', [
+			'selected' => "vybrané ($selectedNo)",
+			'all' => "celý výsledek ($totalNo)",
+		])->setDefaultValue('selected');
+
+		$form->addSelect('delimiter', 'Oddělovač', [
+			';' => 'Středník (;)',
+			',' => 'Čárka (,)',
+			'	' => 'Tab (\t)',
+			' ' => 'Mezera ( )',
+			'|' => 'Pipe (|)',
+		]);
+		$form->addCheckbox('header', 'Hlavička')->setDefaultValue(true);
+
+		$columns = $form->addDataMultiSelect('columns', 'Sloupce');
+
+		$items = [];
+		$defaultItems = [];
+
+		if (isset(static::CONFIGURATION['exportColumns'])) {
+			$items += static::CONFIGURATION['exportColumns'];
+
+			if (isset(static::CONFIGURATION['defaultExportColumns'])) {
+				$defaultItems = \array_merge($defaultItems, static::CONFIGURATION['defaultExportColumns']);
+			}
+		}
+		if (isset(static::CONFIGURATION['exportAttributes'])) {
+			foreach (static::CONFIGURATION['exportAttributes'] as $key => $value) {
+				if ($attribute = $this->attributeRepository->many()->where('code', $key)->first()) {
+					$items[$key] = $value;
+					$defaultItems[] = $key;
+				}
+			}
+		}
+
+		$columns->setItems($items);
+		$columns->setDefaultValue($defaultItems);
+
+		$form->addSubmit('submit', 'Exportovat');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid, $items) {
+			$values = $form->getValues('array');
+
+			$products = $values['bulkType'] == 'selected' ? $this->productRepository->many()->where('this.uuid', $ids) : $productGrid->getFilteredSource();
+
+			$tempFilename = \tempnam($this->tempDir, "csv");
+
+			$selectedColumns = \array_map('strval', $values['columns']);
+
+			$columns = \array_filter($items, function ($key) use ($selectedColumns) {
+				return \in_array((string)$key, $selectedColumns);
+			}, ARRAY_FILTER_USE_KEY);
+
+			$this->productRepository->csvExport(
+				$products,
+				Writer::createFromPath($tempFilename),
+				static::CONFIGURATION,
+				\array_keys($columns),
+				$values['delimiter'],
+				$values['header'] ? \array_values($columns) : null
+			);
+
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "products.csv", 'text/csv'));
+		};
+
+		return $form;
+	}
+
+	protected function importCsv(string $filePath, string $delimiter = ';', bool $addNew = false)
+	{
+		//@TODO implement
 	}
 }
