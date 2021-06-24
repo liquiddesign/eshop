@@ -21,6 +21,7 @@ use Pages\DB\PageRepository;
 use Pages\Helpers;
 use StORM\Collection;
 use StORM\DIConnection;
+use Pages\DB\PageTemplateRepository;
 
 class AttributePresenter extends BackendPresenter
 {
@@ -35,6 +36,9 @@ class AttributePresenter extends BackendPresenter
 
 	/** @inject */
 	public PageRepository $pageRepository;
+
+	/** @inject */
+	public PageTemplateRepository $pageTemplateRepository;
 
 	public const TABS = [
 		'attributes' => 'Atributy',
@@ -177,7 +181,7 @@ class AttributePresenter extends BackendPresenter
 		});
 
 		$grid->addFilterTextInput('search', ['this.code', 'this.label_cs'], null, 'Kód, popisek');
-		$grid->addFilterTextInput('attribute', ['attribute.code'], null, 'Kód atributu',null, '%s');
+		$grid->addFilterTextInput('attribute', ['attribute.code'], null, 'Kód atributu', null, '%s');
 		$grid->addFilterButtons(['default']);
 
 		if ($this->formFactory->getPrettyPages()) {
@@ -522,6 +526,12 @@ class AttributePresenter extends BackendPresenter
 		])->setDefaultValue('selected');
 
 		if ($this->getParameter('createOrDelete')) {
+			$form->addSelect('pageTemplate', 'Šablona stránky', $this->pageTemplateRepository->getArrayForSelect(true, 'product_list'))->setPrompt('Žádná')
+				->addCondition($form::BLANK)
+				->toggle('frm-createPagesForm-hidden');
+
+			$form->addGroup('Stránka')->setOption('id', 'frm-createPagesForm-hidden');
+
 			$form->addLocaleText('title', 'Titulek')->forAll(function (TextInput $text) {
 				$text->setHtmlAttribute('data-characters', 70);
 			});
@@ -530,6 +540,8 @@ class AttributePresenter extends BackendPresenter
 				$text->setHtmlAttribute('style', 'width: 862px !important;')
 					->setHtmlAttribute('data-characters', 150);
 			});
+
+			$form->addGroup();
 
 			$form->addSubmit('submit', 'Vytvořit / Upravit');
 		} else {
@@ -542,7 +554,10 @@ class AttributePresenter extends BackendPresenter
 
 			/** @var AttributeValue[] $attributeValues */
 			$attributeValues = $values['bulkType'] == 'selected' ? $this->attributeValueRepository->many()->where('uuid', $ids) : $productGrid->getFilteredSource();
+
 			if ($submitName == 'submit') {
+				$pageTemplate = $values['pageTemplate'] ? $this->pageTemplateRepository->one($values['pageTemplate']) : null;
+
 				foreach ($attributeValues as $attributeValue) {
 					$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValue->getPK()]);
 
@@ -570,17 +585,18 @@ class AttributePresenter extends BackendPresenter
 
 							$pageValues['url'][$mutation] = $url;
 							$pageValues['title'][$mutation] = $attributeName . ' - ' . $attributeValueLabel;
-
 						}
 					}
 
-					foreach ($form->getMutations() as $mutation) {
-						if ($values['title'][$mutation]) {
-							$pageValues['title'][$mutation] = $values['title'][$mutation];
-						}
+					$properties = ['title', 'description'];
 
-						if ($values['description'][$mutation]) {
-							$pageValues['description'][$mutation] = $values['description'][$mutation];
+					foreach ($form->getMutations() as $mutation) {
+						foreach ($properties as $property) {
+							if ($pageTemplate) {
+								$pageValues[$property][$mutation] = $pageTemplate->getValue($property, $mutation);
+							} elseif ($values[$property][$mutation]) {
+								$pageValues[$property][$mutation] = $values[$property][$mutation];
+							}
 						}
 					}
 
