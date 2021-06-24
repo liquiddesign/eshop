@@ -103,7 +103,10 @@ class PricelistsPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($this->priceListRepository->many(), 20, 'priority', 'ASC');
 		$grid->addColumnSelector();
 
-		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit']);
+		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit'])->onRenderCell[] = [
+			$grid,
+			'decoratorNowrap'
+		];
 		$grid->addColumnText('Měna', "currency.code'", '%s', null, ['class' => 'fit'])->onRenderCell[] = [
 			$grid,
 			'decoratorNowrap'
