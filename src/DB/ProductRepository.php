@@ -738,40 +738,47 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 
+		$concatDelimiter = $delimiter == ';' ? ',' : ';';
+
 		$products->setGroupBy(['this.uuid'])
 			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
 			->select([
 				'priceMin' => 'MIN(price.price)',
 				'priceMax' => 'MAX(price.price)'
-			]);
-//			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
-//			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value= attributeValue.uuid')
-//			->join(['attribute' => 'eshop_attribute'], 'attributeValue.fk_attribute = attribute.uuid')
-//			->select(["attribute.name$mutationSuffix", "attributeValue.label$mutationSuffix"]);
+			])
+			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
+			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value= attributeValue.uuid')
+			->select(['attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute,':',attributeValue.label$mutationSuffix) SEPARATOR  ',')"]);
+
+		$exportAttributesWithPK = $this->attributeRepository->many()->where('code', \array_keys($configuration['exportAttributes']))->toArrayOf('code');
 
 		/** @var Product $product */
 		while ($product = $products->fetch()) {
 			$row = [];
-			$attributes = $this->getActiveProductAttributes($product);
+
+			$attributes = [];
+
+			if ($product->attributes) {
+				$tmp = \explode($concatDelimiter, $product->attributes);
+
+				foreach ($tmp as $value) {
+					$tmpExplode = \explode(':', $value);
+
+					if (\count($tmpExplode) != 2) {
+						continue;
+					}
+
+					$attributes[$tmpExplode[0]] = $tmpExplode[1];
+				}
+			}
 
 			foreach ($columns as $column) {
 				if (Arrays::get($exportAttributes, $column, null)) {
-					/** @var Attribute $attribute */
-					$attribute = $this->attributeRepository->many()->where('code', $column)->first();
+					$attributePK = \array_search($column, $exportAttributesWithPK);
 
-					$attributeValues = [];
-
-					if (isset($attributes[$attribute->getPK()])) {
-						/** @var AttributeValue $attributeValue */
-						foreach ($attributes[$attribute->getPK()]['values'] as $attributeValue) {
-							$attributeValues[] = $attributeValue->label;
-						}
-
-						$row[] = \implode(',', $attributeValues);
-					} else {
-						$row[] = '';
+					if ($product->attributes && isset($attributes[$attributePK])) {
+						$row[] = $attributes[$attributePK];
 					}
-
 				} elseif ($column == 'minPrice') {
 					try {
 						$row[] = $product->getValue('priceMin');
