@@ -24,7 +24,7 @@ class SupplierProduct extends \StORM\Entity
 	 * Podkód produktu k napárování
 	 * @column
 	 */
-	public ?string $productSubCode;
+	public string $productSubCode = '';
 	
 	public function getProductFullCode(): ?string
 	{

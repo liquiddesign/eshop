@@ -56,7 +56,7 @@ class Product extends \StORM\Entity
 	 * Kód podskladu
 	 * @column
 	 */
-	public ?string $subCode;
+	public string $subCode = '';
 
 	/**
 	 * EAN
