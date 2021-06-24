@@ -746,7 +746,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			])
 			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
 			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value= attributeValue.uuid')
-			->select(['attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute,':',attributeValue.label$mutationSuffix) SEPARATOR  ',')"]);
+			->select(['attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute,':',attributeValue.label$mutationSuffix))"]);
 
 		$exportAttributesWithPK = $this->attributeRepository->many()->where('code', \array_keys($configuration['exportAttributes']))->toArrayOf('code');
 
@@ -777,24 +777,10 @@ class ProductRepository extends Repository implements IGeneralRepository
 					if ($product->attributes && isset($attributes[$attributePK])) {
 						$row[] = $attributes[$attributePK];
 					}
-				} elseif ($column == 'minPrice') {
-					try {
-						$row[] = $product->getValue('priceMin');
-					} catch (\Exception $e) {
-						$row[] = '';
-					}
-				} elseif ($column == 'maxPrice') {
-					try {
-						$row[] = $product->getValue('priceMax');
-					} catch (\Exception $e) {
-						$row[] = '';
-					}
-				} elseif ($column == 'perex') {
-					$value = $product->getValue($column);
-					$row[] = $value ? \strip_tags($value) : null;
+				} elseif ($column === 'perex') {
+					$row[] = $product->getValue($column) ? \strip_tags($product->getValue($column)) : null;
 				} else {
-					$value = $product->getValue($column);
-					$row[] = $value === false ? '0' : $value;
+					$row[] = $product->getValue($column) === false ? '0' : $product->getValue($column);
 				}
 			}
 
