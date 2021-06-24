@@ -124,10 +124,10 @@ class SupplierPresenter extends BackendPresenter
 			
 			if ($supplier->splitPricelists) {
 				$pricelist = $this->supplierRepository->syncPricelist($supplier, $currency, $country, '2', 3, true);
-				$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unavailable', false), $supplier, $pricelist);
+				$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('amount IS NULL OR amount > 0'), $supplier, $pricelist);
 				
 				$pricelist = $this->supplierRepository->syncPricelist($supplier, $currency, $country, '1', 4, true, 'Nedostupné');
-				$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('unavailable', true), $supplier, $pricelist);
+				$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('amount = 0'), $supplier, $pricelist);
 			} else {
 				$pricelist = $this->supplierRepository->syncPricelist($supplier, $currency, $country, '0', 3, true,);
 				$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier), $supplier, $pricelist);
