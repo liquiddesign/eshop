@@ -6,11 +6,13 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Eshop\DB\AmountRepository;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\StoreRepository;
 use Eshop\DB\Supplier;
 use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierProductRepository;
@@ -34,10 +36,16 @@ class SupplierPresenter extends BackendPresenter
 	public PricelistRepository $pricelistRepository;
 	
 	/** @inject */
-	public DisplayAmountRepository $displayAmountRepository;
+	public AmountRepository $amountRepository;
+	
+	/** @inject */
+	public StoreRepository $storeRepository;
 	
 	/** @inject */
 	public DisplayDeliveryRepository $displayDeliveryRepository;
+	
+	/** @inject */
+	public DisplayAmountRepository $displayAmountRepository;
 	
 	/** @inject */
 	public AddressRepository $addressRepository;
@@ -122,6 +130,8 @@ class SupplierPresenter extends BackendPresenter
 			
 			$this->supplierProductRepository->syncProducts($supplier, $mutation, $country, !$values['only_new']);
 			
+			$this->pricelistRepository->many()->where('fk_supplier', $supplier)->delete();
+			
 			if ($supplier->splitPricelists) {
 				$pricelist = $this->supplierRepository->syncPricelist($supplier, $currency, $country, '2', 3, true);
 				$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('amount IS NULL OR amount > 0'), $supplier, $pricelist);
@@ -137,6 +147,8 @@ class SupplierPresenter extends BackendPresenter
 				$pricelist = $this->supplierRepository->syncPricelist($supplier, $currency, $country, '3', 3, false, 'Nákupní');
 				$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('purchasePrice IS NOT NULL'), $supplier, $pricelist);
 			}
+			
+			$this->storeRepository->many()->where('fk_supplier', $supplier)->delete();
 			
 			if (!$this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('amount IS NOT NULL')->isEmpty()) {
 				$store = $this->supplierRepository->syncStore($supplier, $mutation);
