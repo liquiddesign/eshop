@@ -82,6 +82,7 @@ class CompareManager
 							->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
 							->where('assign.fk_product', $product->getPK())
 							->where('attribute.uuid', $attributeKey)
+							->where('attribute.showProduct', true)
 							->toArray();
 
 						$resultCategories[$category->getPK()]['attributes'][$attributeKey] = $attribute;
