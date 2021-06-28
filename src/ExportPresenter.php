@@ -22,6 +22,11 @@ use Web\DB\SettingRepository;
 
 abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 {
+	protected const CONFIGURATION = [
+		'customLabel_1' => false,
+		'customLabel_2' => false
+	];
+
 	/** @inject */
 	public ProductRepository $productRepo;
 
@@ -65,6 +70,7 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 
 	public function beforeRender()
 	{
+		$this->template->configuration = static::CONFIGURATION;
 		$this->template->productImageUrl = $this->request->getUrl()->withoutUserInfo()->getBaseUrl() . 'userfiles/' . Product::IMAGE_DIR . '/thumb/';
 	}
 
@@ -84,24 +90,18 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 
 		$pricelistKeys = \explode(';', $setting->value);
 
-		if(\count($pricelistKeys) == 0){
+		if (\count($pricelistKeys) == 0) {
 			throw new \Exception($this::ERROR_MSG);
 		}
 
-		$pricelists = [];
-
-		foreach ($pricelistKeys as $pricelist){
-			$pricelists[] = $this->priceListRepo->one($pricelist);
-		}
-
-		return $pricelists;
+		return $this->priceListRepo->many()->where('this.uuid', $pricelistKeys)->toArray();
 	}
 
 	private function export(string $name)
 	{
 		$this->template->setFile(__DIR__ . "/templates/export/$name.latte");
 
-		$this->template->pricelist = $pricelists = $this->getPricelistFromSetting($name . 'ExportPricelist');
+		$this->template->pricelists = $pricelists = $this->getPricelistFromSetting($name . 'ExportPricelist');
 
 		$this->template->products = $this->cache->load("export_$name", function (&$dependencies) use ($pricelists) {
 			$dependencies[Cache::TAGS] = ['export', 'categories'];
