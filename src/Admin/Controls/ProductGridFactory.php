@@ -129,13 +129,27 @@ class ProductGridFactory
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this, 'onDelete']);
 
-		$grid->addButtonBulkEdit('productForm', ['producer', 'categories', 'tags', 'ribbons', 'displayAmount', 'displayDelivery', 'vatRate', 'taxes', 'hidden', 'unavailable'], 'productGrid');
+		$bulkColumns = ['producer', 'categories', 'tags', 'ribbons', 'displayAmount', 'displayDelivery', 'vatRate', 'taxes', 'hidden', 'unavailable'];
+
+		if (isset($configuration['buyCount']) && $configuration['buyCount']) {
+			$bulkColumns = \array_merge($bulkColumns, ['buyCount']);
+		}
+
+		$grid->addButtonBulkEdit('productForm', $bulkColumns, 'productGrid');
 
 		$submit = $grid->getForm()->addSubmit('join', 'Sloučit')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
 		$submit->onClick[] = function ($button) use ($grid) {
 			$grid->getPresenter()->redirect('joinSelect', [$grid->getSelectedIds()]);
 		};
+
+		if (isset($configuration['buyCount']) && $configuration['buyCount']) {
+			$submit = $grid->getForm()->addSubmit('generateRandomBuyCounts', 'Generovat zakoupení')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+			$submit->onClick[] = function ($button) use ($grid) {
+				$grid->getPresenter()->redirect('generateRandomBuyCounts', [$grid->getSelectedIds()]);
+			};
+		}
 
 		if (isset($configuration['exportButton']) && $configuration['exportButton']) {
 			$submit = $grid->getForm()->addSubmit('export', 'Exportovat (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');

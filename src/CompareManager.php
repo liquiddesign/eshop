@@ -63,6 +63,8 @@ class CompareManager
 			$product = $this->productRepository->one($productKey);
 
 			if ($category = $product->getPrimaryCategory()) {
+				$categories = $this->categoryRepository->getBranch($category);
+
 				if (!isset($resultCategories[$category->getPK()])) {
 					$resultCategories[$category->getPK()]['attributes'] = [];
 					$resultCategories[$category->getPK()]['products'] = [];
@@ -70,7 +72,7 @@ class CompareManager
 				}
 
 				if (!$categoryPK || $category->getPK() == $categoryPK) {
-					$attributes = $this->attributeRepository->getAttributesByCategories($category);
+					$attributes = $this->attributeRepository->getAttributesByCategories(\array_values($categories));
 
 					$resultCategories[$category->getPK()]['products'][$productKey]['product'] = $product;
 
@@ -80,13 +82,15 @@ class CompareManager
 							->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
 							->where('assign.fk_product', $product->getPK())
 							->where('attribute.uuid', $attributeKey)
+							->where('attribute.showProduct', true)
 							->toArray();
+
+						$resultCategories[$category->getPK()]['attributes'][$attributeKey] = $attribute;
 
 						if (\count($values) == 0) {
 							continue;
 						}
 
-						$resultCategories[$category->getPK()]['attributes'][$attributeKey] = $attribute;
 						$resultCategories[$category->getPK()]['products'][$productKey]['attributes'][$attributeKey] = $values;
 					}
 				}
@@ -115,7 +119,31 @@ class CompareManager
 
 	public function getCategoriesNames(): array
 	{
-		return $this->getCategories('name');
+		$resultCategories = [];
+
+		foreach ($this->getCompareList() as $productKey => $product) {
+			$product = $this->productRepository->one($productKey);
+
+			if (!$category = $product->getPrimaryCategory()) {
+				continue;
+			}
+
+			$branch = $this->categoryRepository->getBranch($category);
+
+			if (!isset($resultCategories[$category->getPK()])) {
+				$resultCategories[$category->getPK()] = '';
+
+				foreach ($branch as $branchCategory) {
+					$resultCategories[$category->getPK()] .= $branchCategory->name . ' -> ';
+				}
+
+				if (\strlen($resultCategories[$category->getPK()]) > 0) {
+					$resultCategories[$category->getPK()] = \substr($resultCategories[$category->getPK()], 0, -3);
+				}
+			}
+		}
+
+		return $resultCategories;
 	}
 
 	public function addProductToCompare(string $product): void

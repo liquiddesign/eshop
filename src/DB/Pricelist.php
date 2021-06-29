@@ -46,6 +46,13 @@ class Pricelist extends \StORM\Entity
 	 * @column
 	 */
 	public int $priority = 0;
+
+	/**
+	 * Custom label
+	 * @column
+	 * @unique
+	 */
+	public ?string $customLabel;
 	
 	/**
 	 * Měna

@@ -369,7 +369,7 @@ class Shopper
 		$customer = $this->getCustomer();
 
 		if ($this->getMerchant() && !$customer) {
-			return false;
+			return true;
 		}
 
 		if ($customer) {
@@ -388,7 +388,7 @@ class Shopper
 		$customer = $this->getCustomer();
 
 		if ($this->getMerchant() && !$customer) {
-			return false;
+			return true;
 		}
 
 		if ($customer) {

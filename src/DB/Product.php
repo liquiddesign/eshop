@@ -236,7 +236,7 @@ class Product extends \StORM\Entity
 	 * Kolik bylo koupeno
 	 * @column
 	 */
-	public int $buyCount = 0;
+	public ?int $buyCount;
 
 	/**
 	 * Zařazeno do katalogu

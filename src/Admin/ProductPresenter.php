@@ -76,7 +76,8 @@ class ProductPresenter extends BackendPresenter
 			'hidden' => 'Skryto'
 		],
 		'importAttributes' => [],
-		'importExampleFile' => null
+		'importExampleFile' => null,
+		'buyCount' => false
 	];
 
 	protected const DEFAULT_TEMPLATE = __DIR__ . '/../../_data/newsletterTemplates/newsletter.latte';
@@ -1027,5 +1028,61 @@ class ProductPresenter extends BackendPresenter
 		if (isset(static::CONFIGURATION['importExampleFile']) && static::CONFIGURATION['importExampleFile']) {
 			$this->getPresenter()->sendResponse(new FileResponse($this->wwwDir . '/userfiles/' . static::CONFIGURATION['importExampleFile'], "example.csv", 'text/csv'));
 		}
+	}
+
+	public function actionGenerateRandomBuyCounts(array $ids)
+	{
+
+	}
+
+	public function renderGenerateRandomBuyCounts(array $ids)
+	{
+		$this->template->headerLabel = 'Generovat náhodný počet zakoupení';
+		$this->template->headerTree = [
+			['Produkty', 'default'],
+			['Generovat náhodný počet zakoupení']
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('generateRandomBuyCountsForm')];
+	}
+
+	public function createComponentGenerateRandomBuyCountsForm(): AdminForm
+	{
+		/** @var \Grid\Datagrid $productGrid */
+		$productGrid = $this->getComponent('productGrid');
+
+		$ids = $this->getParameter('ids') ?: [];
+		$totalNo = $productGrid->getPaginator()->getItemCount();
+		$selectedNo = \count($ids);
+
+		$form = $this->formFactory->create();
+
+
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+		$form->addRadioList('bulkType', 'Produkty', [
+			'selected' => "vybrané ($selectedNo)",
+			'all' => "celý výsledek ($totalNo)",
+		])->setDefaultValue('selected');
+
+
+		$form->addInteger('from', 'Od')->setDefaultValue(5)->setRequired()->addRule($form::MIN, 'Zadejte číslo rovné nebo větší než 0!', 0);
+		$form->addInteger('to', 'Do')->setDefaultValue(30)->setRequired();
+
+		$form->addSubmit('submitAndBack', 'Uložit a zpět')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid) {
+			$values = $form->getValues('array');
+
+			$products = $values['bulkType'] == 'selected' ? $this->productRepository->many()->where('this.uuid', $ids) : $productGrid->getFilteredSource();
+
+			foreach ($products as $product) {
+				$product->update(['buyCount' => \rand($values['from'], $values['to'])]);
+			}
+
+			$this->flashMessage('Provedeno', 'success');
+			$this->redirect('default');
+		};
+
+		return $form;
 	}
 }

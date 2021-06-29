@@ -39,6 +39,7 @@ class PricelistsPresenter extends BackendPresenter
 {
 	protected const CONFIGURATION = [
 		'aggregate' => true,
+		'customLabel' => false
 	];
 
 	/** @inject */
@@ -334,6 +335,12 @@ class PricelistsPresenter extends BackendPresenter
 		$form->addCheckbox('allowDiscountLevel', 'Povolit slevovou hladinu');
 		$form->addCheckbox('isPurchase', 'Nákupní');
 		$form->addCheckbox('isActive', 'Aktivní');
+
+		if (isset(static::CONFIGURATION['customLabel']) && static::CONFIGURATION['customLabel']) {
+			$form->addText('customLabel', 'Vlastní štítek')
+				->setHtmlAttribute('data-info', 'Použitý při exportu XML produktů pro Google jako "custom_label_0".')
+				->addCondition($form::FILLED)->addRule($form::MAX_LENGTH, 'Maximálně 100 znaků!', 100);
+		}
 
 		$form->addSubmits(!$this->getParameter('pricelist'));
 
