@@ -70,10 +70,26 @@
                                         {if $presenter->shopper->getShowWithoutVat()}
                                             <td>{$order->purchase->getSumPrice()|price}</td>
                                         {/if}
-                                        <td>{ifset $order->purchase->customer}<a
-                                                    href="{plink :Eshop:Admin:Customer:edit, $order->purchase->customer}"><i
-                                                        class="fa fa-external-link-alt fa-sm"></i>&nbsp;{$order->purchase->customer->fullname ?? ($order->purchase->customer->email ?? '')}
-                                            </a>{else}{$order->purchase->fullname}{/ifset}</td>
+                                        <td>
+                                            {if $order->purchase->customer && $order->purchase->account}
+                                                <a href="{plink :Eshop:Admin:Customer:editAccount, $order->purchase->account}">
+                                                    <i class="fa fa-external-link-alt fa-sm"></i>&nbsp;
+                                                    {$order->purchase->customer->fullname ?? $order->purchase->customer->email} - {$order->purchase->account->fullname ?? $order->purchase->account->login}
+                                                </a>
+                                            {elseif $order->purchase->customer}
+                                                <a href="{plink :Eshop:Admin:Customer:edit, $order->purchase->customer}">
+                                                    <i class="fa fa-external-link-alt fa-sm"></i>&nbsp;{$order->purchase->customer->fullname ?? $order->purchase->customer->email}
+                                                </a>
+                                            {elseif $order->purchase->account}
+                                                <a href="{plink :Eshop:Admin:Customer:editAccount, $order->purchase->account}">
+                                                    <i class="fa fa-external-link-alt fa-sm"></i>&nbsp;{$order->purchase->account->fullname ?? $order->purchase->account->login}
+                                                </a>
+                                            {else}
+                                                {$order->purchase->fullname ?? $order->purchase->email}
+                                                {if $order->purchase->accountFullname && $order->purchase->fullname} - {/if}
+                                                {$order->purchase->accountFullname ?? $order->purchase->accountEmail}
+                                            {/if}
+                                        </td>
                                         <td>{$order->getState()}</td>
                                         <td><a href="{plink :Eshop:Admin:Order:detail, $order}"><i
                                                         class="fa fa-external-link-alt fa-sm"></i>&nbsp;Detail</a></td>
