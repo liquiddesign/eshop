@@ -25,6 +25,11 @@ use Pages\DB\PageTemplateRepository;
 
 class AttributePresenter extends BackendPresenter
 {
+	protected const CONFIGURATIONS = [
+		'wizard' => false,
+		'wizardSteps' => []
+	];
+
 	/** @inject */
 	public AttributeRepository $attributeRepository;
 
@@ -124,14 +129,23 @@ class AttributePresenter extends BackendPresenter
 		$form->addLocaleText('name', 'Název');
 		$form->addLocaleTextArea('note', 'Dodatečné informace');
 		$form->addDataMultiSelect('categories', 'Kategorie', $this->categoryRepository->getArrayForSelect());
-		$form->addSelect('filterType', 'Typ filtru', Attribute::FILTER_TYPES);
-		$form->addCheckbox('showProduct', 'Náhled')->setHtmlAttribute('data-info', 'Atribut se zobrazí v náhledu produktu.');
-		$form->addCheckbox('showFilter', 'Filtr')->setHtmlAttribute('data-info', 'Atribut se zobrazí při filtrování.');
 		$form->addText('priority', 'Priorita')
 			->addRule($form::INTEGER)
 			->setRequired()
 			->setDefaultValue(10);
+		$form->addCheckbox('showProduct', 'Náhled')->setHtmlAttribute('data-info', 'Atribut se zobrazí v náhledu produktu.');
 		$form->addCheckbox('hidden', 'Skryto');
+
+		$form->addGroup('Filtr');
+		$form->addCheckbox('showFilter', 'Filtr')->setHtmlAttribute('data-info', 'Atribut se zobrazí při filtrování.');
+		$form->addSelect('filterType', 'Typ filtru', Attribute::FILTER_TYPES);
+
+		if (isset(static::CONFIGURATIONS['wizard']) && static::CONFIGURATIONS['wizard']) {
+			$form->addGroup('Průvodce');
+			$form->addCheckbox('showWizard', 'Zobrazit v průvodci');
+			$form->addSelect('wizardStep', 'Pozice v průvodci (krok)', static::CONFIGURATIONS['wizardSteps']);
+			$form->addText('wizardLabel', 'Název v průvodci')->setNullable()->setHtmlAttribute('data-info', 'Pokud necháte prázdné, použije se název atributu.');
+		}
 
 		$form->addSubmits(!$this->getParameter('attribute'));
 
@@ -225,6 +239,12 @@ class AttributePresenter extends BackendPresenter
 			->setRequired()
 			->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
+
+		if (isset(static::CONFIGURATIONS['wizard']) && static::CONFIGURATIONS['wizard']) {
+			$form->addGroup('Průvodce');
+			$form->addCheckbox('showWizard', 'Zobrazit v průvodci');
+//			$form->addText('wizardLabel', 'Název v průvodci')->setNullable()->setHtmlAttribute('data-info', 'Pokud necháte prázdné, použije se popisek.');
+		}
 
 		if ($form->getPrettyPages()) {
 //			$form->addCheckbox('standalonePage', 'Samostatná stránka');

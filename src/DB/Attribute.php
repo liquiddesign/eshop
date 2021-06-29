@@ -55,6 +55,24 @@ class Attribute extends \StORM\Entity
 	public bool $showProduct = true;
 
 	/**
+	 * Zobrazit v pruvodci
+	 * @column
+	 */
+	public bool $showWizard = false;
+
+	/**
+	 * Pozice v pruvodci (krok)
+	 * @column
+	 */
+	public ?int $wizardStep = null;
+
+	/**
+	 * Nazev v pruvodci
+	 * @column
+	 */
+	public ?string $wizardLabel = null;
+
+	/**
 	 * Priorita
 	 * @column
 	 */

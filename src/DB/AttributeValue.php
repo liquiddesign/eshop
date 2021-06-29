@@ -53,6 +53,12 @@ class AttributeValue extends \StORM\Entity
 	public bool $hidden = false;
 
 	/**
+	 * Zobrazit v pruvodci
+	 * @column
+	 */
+	public bool $showWizard = true;
+
+	/**
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
