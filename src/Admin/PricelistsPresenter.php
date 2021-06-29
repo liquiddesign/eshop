@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
-use Admin\BackendPresenter;
+use Eshop\BackendPresenter;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\RibbonRepository;
@@ -513,11 +513,17 @@ class PricelistsPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
-		$form->addText('product', 'Produkt')
-			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
-			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje nebo neplatná hodnota!',
-				[$this->productRepository])
-			->setRequired();
+		$form->addSelect2('product', 'Product', [], [
+			'ajax' => [
+				'url' => $this->link('getProductsForSelect2!')
+			]
+		]);
+
+//		$form->addText('product', 'Produkt')
+//			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
+//			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje nebo neplatná hodnota!',
+//				[$this->productRepository])
+//			->setRequired();
 
 		$form->addText('price', 'Cena')->addRule($form::FLOAT)->setRequired();
 		$form->addText('priceVat', 'Cena s daní')->addRule($form::FLOAT);
@@ -530,7 +536,7 @@ class PricelistsPresenter extends BackendPresenter
 			$values = $form->getValues();
 
 			$values['priceVat'] = $values['priceVat'] !== '' ?: 0;
-			$values['product'] = $this->productRepository->getProductByCodeOrEAN($values['product'])->getPK();
+			$values['product'] = $form->getHttpData(Form::DATA_TEXT, 'product');
 
 			$this->quantityPriceRepo->syncOne($values, null, true);
 
