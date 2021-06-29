@@ -59,6 +59,7 @@ class SupplierProductRepository extends \StORM\Repository
 			->where('category.fk_category IS NOT NULL')
 			->where('this.active', true);
 		
+		/** @var \Eshop\DB\SupplierProduct $draft */
 		foreach ($drafts as $draft) {
 			$category = $draft->category ? $draft->category->getValue('category') : null;
 			
@@ -107,11 +108,11 @@ class SupplierProductRepository extends \StORM\Repository
 				try {
 					$draft->update(['product' => $uuid]);
 				} catch (\PDOException $x) {
-					;
+					unset($x);
 				}
 			}
 			
-			if (!is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
+			if (!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
 				continue;
 			}
 			
