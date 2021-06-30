@@ -377,12 +377,23 @@ class ProductForm extends Control
 		if (!$values['uuid']) {
 			$values['uuid'] = ProductRepository::generateUuid($values['ean'],
 				$values['subCode'] ? $values['code'] . '.' . $values['subCode'] : $values['code'], null);
+		}else{
+			$this->product->upsells->unrelateAll();
 		}
 
 		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
 		$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
 
 		$values['alternative'] = $values['alternative'] ? $this->productRepository->one($form->getHttpData(Form::DATA_TEXT, 'alternative')) : null;
+
+		if ($values['upsells'] ?? null) {
+			$upsells = [];
+			foreach (\explode(';', $values['upsells']) as $upsell) {
+				$upsells[] = $this->productRepository->getProductByCodeOrEAN($upsell)->getPK();
+			}
+
+			$this->product->upsells->relate($upsells);
+		}
 
 		if (isset($values['supplierContent'])) {
 			if ($values['supplierContent'] === 0) {
@@ -395,12 +406,6 @@ class ProductForm extends Control
 
 		/** @var Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
-
-		$this->product->upsells->unrelateAll();
-
-		if (\count($form->getHttpData()['upsells'] ?? []) > 0) {
-			$this->product->upsells->relate($form->getHttpData()['upsells']);
-		}
 
 		$changeColumns = ['name', 'perex', 'content'];
 
@@ -416,7 +421,7 @@ class ProductForm extends Control
 			}
 		}
 
-		if ($tonerForPrinters = $form->getHttpData()['tonerForPrinters'] ?? []) {
+		if (isset($values['tonerForPrinters'])) {
 			$this->relatedRepository->many()
 				->where('fk_master', $product->getPK())
 				->where('fk_type', 'tonerForPrinter')
