@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
-use Admin\BackendPresenter;
+use Eshop\BackendPresenter;
 use Admin\Controls\AdminGrid;
 use Eshop\FormValidators;
 use Admin\Controls\AdminForm;
@@ -108,29 +108,25 @@ class RelatedPresenter extends BackendPresenter
 			->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
 
-		$form->addText('master', 'První produkt')
-			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
-			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [
-				$this->productRepository,
-				$form
-			])
-			->setRequired();
+		$form->addSelect2('master', 'První produkt', [], [
+			'ajax' => [
+				'url' => $this->link('getProductsForSelect2!')
+			]
+		])->setRequired()->checkDefaultValue(false);;
 
-		$form->addText('slave', 'Druhý produkt')
-			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
-			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [
-				$this->productRepository,
-				$form
-			])
-			->setRequired();
+		$form->addSelect2('slave', 'Druhý produkt', [], [
+			'ajax' => [
+				'url' => $this->link('getProductsForSelect2!')
+			]
+		])->setRequired()->checkDefaultValue(false);;
 
 		$form->addSubmits(!$this->getParameter('relation'));
 
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
 
-			$values['master'] = $this->productRepository->getProductByCodeOrEAN($values['master'])->getPK();
-			$values['slave'] = $this->productRepository->getProductByCodeOrEAN($values['slave'])->getPK();
+			$values['master'] = $this->productRepository->one($form->getHttpData(Form::DATA_TEXT, 'master'))->getPK();
+			$values['slave'] = $this->productRepository->one($form->getHttpData(Form::DATA_TEXT, 'slave'))->getPK();
 
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();

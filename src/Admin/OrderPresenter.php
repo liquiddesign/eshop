@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
-use Admin\BackendPresenter;
-use Eshop\FormValidators;
+use Eshop\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\DB\CurrencyRepository;
@@ -43,16 +42,16 @@ class OrderPresenter extends BackendPresenter
 
 	/** @inject */
 	public CartRepository $cartRepository;
-	
+
 	/** @inject */
 	public DeliveryRepository $deliveryRepository;
 
 	/** @inject */
 	public PaymentRepository $paymentRepository;
-	
+
 	/** @inject */
 	public DeliveryTypeRepository $deliveryTypeRepository;
-	
+
 	/** @inject */
 	public PaymentTypeRepository $paymentTypeRepository;
 
@@ -64,7 +63,7 @@ class OrderPresenter extends BackendPresenter
 
 	/** @inject */
 	public CurrencyRepository $currencyRepository;
-	
+
 	/** @inject */
 	public OrderGridFactory $orderGridFactory;
 
@@ -82,22 +81,22 @@ class OrderPresenter extends BackendPresenter
 
 	/** @inject */
 	public ProductRepository $productRepo;
-	
+
 	/** @inject */
 	public SupplierRepository $supplierRepository;
-	
+
 	/** @inject */
 	public AddressRepository $addressRepository;
-	
+
 	/** @inject */
 	public PackageItemRepository $packageItemRepository;
-	
+
 	/** @inject */
 	public TemplateRepository $templateRepository;
-	
+
 	/** @inject */
 	public Mailer $mailer;
-	
+
 	/** @persistent */
 	public string $tab = 'received';
 
@@ -105,74 +104,74 @@ class OrderPresenter extends BackendPresenter
 	{
 		return $this->orderGridFactory->create($this->tab);
 	}
-	
+
 	public function createComponentDeliveryGrid()
 	{
 		$grid = $this->gridFactory->create($this->getParameter('order')->deliveries, 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
-		
+
 		$grid->addColumnText('Doprava', 'getTypeName()', '%s', null)->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Dropshipping', 'supplier.name', '%s', null)->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Externí číslo', 'externalId', '%s');
 		$grid->addColumnText('Expedováno', "shippedTs|date:'d.m.Y G:i'", '%s', 'shshippedTsippingDate', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Den doručování', "shippingDate|date:'d.m.Y'", '%s', 'shippingDate', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		
+
 		$grid->addColumnText('Cena bez DPH', 'price|price:currency.code', '%s', 'price', ['class' => 'fit text-right'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Cena s DPH', 'priceVat|price:currency.code', '%s', 'priceVat', ['class' => 'fit text-right'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		
-		$grid->addColumnLink('deliveryItems','Balík', null, ['class' => 'minimal']);
-		
+
+		$grid->addColumnLink('deliveryItems', 'Balík', null, ['class' => 'minimal']);
+
 		$grid->addColumnLinkDetail('detailDelivery');
 		$grid->addColumnActionDelete();
-		
+
 		$grid->addButtonDeleteSelected();
-		
+
 		return $grid;
 	}
-	
+
 	public function createComponentPackageGrid()
 	{
 		$collection = $this->cartItemRepo->many()
-			->select(['amount' => 'SUM(this.amount)','packageAmount' => 'IFNULL(package.amount, 0)'])
+			->select(['amount' => 'SUM(this.amount)', 'packageAmount' => 'IFNULL(package.amount, 0)'])
 			->join(['package' => 'eshop_packageItem'], 'package.fk_cartItem =this.uuid AND package.fk_delivery = :delivery', ['delivery' => $this->getParameter('delivery')])
 			->join(['cart' => 'eshop_cart'], 'cart.uuid = this.fk_cart')
 			->where('cart.fk_purchase', $this->getParameter('delivery')->order->getValue('purchase'))
 			->setGroupBy(['this.productCode']);
-			
-		
+
+
 		$grid = $this->gridFactory->create($collection, 20, 'createdTs', 'DESC');
 		$grid->addColumnSelector();
-		$grid->addColumnImage('product.imageFileName' , Product::IMAGE_DIR);
+		$grid->addColumnImage('product.imageFileName', Product::IMAGE_DIR);
 		$grid->addColumnText('Kód', 'getFullCode', '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Název', 'productName', '%s');
-	
+
 		$grid->addColumnInput('Množství', 'packageAmount', function ($id) use ($grid) {
 			$textbox = new TextInput();
-			
+
 			if ($item = $grid->getItemsOnPage()[$id] ?? null) {
 				$textbox->addRule(Form::MAX, null, $grid->getItemsOnPage()[$id]->amount);
 			}
-			$textbox->addRule(Form::MIN,  null,0);
+			$textbox->addRule(Form::MIN, null, 0);
 			$textbox->setHtmlAttribute('class', 'form-control form-control-sm');
 			$textbox->addRule(Form::INTEGER);
 			$textbox->setRequired();
-			
+
 			return $textbox;
 		}, '', '0', null, ['class' => 'minimal']);
-		
+
 		$grid->addColumnText('Objednáno', 'amount', '%s ks', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		
+
 		$submit = $grid->getForm()->addSubmit('completeMultiple', 'Uložit');
-		$submit->setHtmlAttribute('class','btn btn-sm btn-primary');
+		$submit->setHtmlAttribute('class', 'btn btn-sm btn-primary');
 		$submit->onClick[] = [$this, 'modifyPackage'];
-		
+
 		return $grid;
 	}
-	
+
 	public function createComponentDeliveryForm(): Form
 	{
 		$order = $this->getParameter('order') ?: $this->getParameter('delivery')->order;
-		
+
 		$form = $this->formFactory->create();
 		$form->addSelect('type', 'Doprava', $this->deliveryTypeRepository->getArrayForSelect())->setRequired();
 		$form->addDataSelect('supplier', 'Dropshipping', $this->supplierRepository->getArrayForSelect());
@@ -184,51 +183,51 @@ class OrderPresenter extends BackendPresenter
 		$form->addText('priceVat', 'Cena s DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
 		$form->addGroup('Stav');
 		$form->addDatetime('shippedTs', 'Expedováno')->setNullable(true);
-		
-		$form->addHidden('order', (string) $order);
-		
+
+		$form->addHidden('order', (string)$order);
+
 		$form->addSubmits(!$this->getParameter('delivery'));
-		
+
 		$form->onSuccess[] = function (AdminForm $form) use ($order) {
 			$values = $form->getValues('array');
-			
+
 			$type = $this->deliveryTypeRepository->one($values['type'])->toArray();
 			$values['typeCode'] = $type['code'];
 			$values['typeName'] = $type['name'];
-			
+
 			$delivery = $this->deliveryRepository->syncOne($values);
-			
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detailDelivery', 'delivery', [$delivery], [$order]);
 		};
-		
+
 		return $form;
 	}
-	
+
 	public function createComponentEmailForm(): Form
 	{
 		$order = $this->getParameter('order');
-		
+
 		$form = $this->formFactory->create();
-		
+
 		$templates = ['order.created', 'order.canceled', 'order.changed', 'order.created', 'order.payed', 'order.shipped'];
-		
+
 		$form->addSelect('template', 'Šablona', $this->templateRepository->many()->where('uuid', $templates)->toArrayOf('name'))->setRequired();
 		$form->addText('email', 'Email')->setRequired();
 		$form->addText('ccEmails', 'Kopie emailů')->setNullable();
-		
+
 		$form->addSubmit('submit', 'Odeslat');
-		
-		$form->onSuccess[] = function (AdminForm $form) use($order) {
+
+		$form->onSuccess[] = function (AdminForm $form) use ($order) {
 			$values = $form->getValues('array');
-			
+
 			$mail = $this->templateRepository->createMessage($values['template'], $this->orderRepository->getEmailVariables($order), $values['email'], $values['ccEmails']);
 			$this->mailer->send($mail);
-			
+
 			$this->flashMessage('Odesláno', 'success');
 			$this->redirect('this');
 		};
-		
+
 		return $form;
 	}
 
@@ -251,7 +250,7 @@ class OrderPresenter extends BackendPresenter
 		$billAddress->addText('city', 'Město');
 		$billAddress->addText('zipcode', 'PSČ');
 		$billAddress->addText('state', 'Stát');
-		
+
 		$form->addGroup('Doručovací adresa');
 		$deliveryAddress = $form->addContainer('deliveryAddress');
 		$deliveryAddress->addHidden('uuid')->setNullable();
@@ -263,31 +262,31 @@ class OrderPresenter extends BackendPresenter
 		$form->addDate('desiredShippingDate', 'Požadované datum doručení')->setNullable(true);
 		$form->addText('internalOrderCode', 'Interní číslo objednávky')->setNullable(true);
 		$form->addTextArea('note', 'Poznámka')->setNullable(true);
-		
+
 
 		$form->addSubmits(!$this->getParameter('order'));
 
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
-			
+
 			unset($values['uuid']);
-			
+
 			/** @var Order $order */
 			$order = $this->getParameter('order');
 			$order->update($values, true);
-			
-			$values['billAddress'] = (string)  $this->addressRepository->syncOne($values['billAddress']);
-			
+
+			$values['billAddress'] = (string)$this->addressRepository->syncOne($values['billAddress']);
+
 			if ($values['deliveryAddress']['street'] && $values['deliveryAddress']['city']) {
-				$values['deliveryAddress'] = (string) $this->addressRepository->syncOne($values['deliveryAddress']);
+				$values['deliveryAddress'] = (string)$this->addressRepository->syncOne($values['deliveryAddress']);
 			} elseif ($values['deliveryAddress']['uuid']) {
 				$values['deliveryAddress'] = null;
 			} else {
 				unset($values['deliveryAddress']);
 			}
-			
+
 			$order->purchase->update($values, true);
-			
+
 			$this->flashMessage('Uloženo', 'success');
 
 			$form->processRedirect('detail', 'default', [$order]);
@@ -295,11 +294,11 @@ class OrderPresenter extends BackendPresenter
 
 		return $form;
 	}
-	
+
 	public function createComponentPaymentForm(): Form
 	{
 		$form = $this->formFactory->create();
-		
+
 		$form->addSelect('type', 'Platba', $this->paymentTypeRepository->getArrayForSelect())->setRequired();
 		$form->addSelect('currency', 'Měna', $this->currencyRepository->getArrayForSelect())->setRequired();
 		$form->addText('price', 'Cena bez DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
@@ -308,24 +307,24 @@ class OrderPresenter extends BackendPresenter
 		$form->addDatetime('paidTs', 'Datum a čas')->setNullable(true);
 		$form->addText('paidPrice', 'Částka bez DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
 		$form->addText('paidPriceVat', 'Částka s DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
-		$form->addHidden('order', (string) $this->getParameter('order'));
-		
+		$form->addHidden('order', (string)$this->getParameter('order'));
+
 		$form->addSubmits(!$this->getParameter('order'));
-		
+
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
-			
+
 			$type = $this->paymentTypeRepository->one($values['type'])->toArray();
 			$values['typeCode'] = $type['code'];
 			$values['typeName'] = $type['name'];
-		
+
 			$this->paymentRepository->syncOne($values);
-			
+
 			$this->flashMessage('Uloženo', 'success');
-			
+
 			$form->processRedirect('payment', 'default', [$this->getParameter('order')], []);
 		};
-		
+
 		return $form;
 	}
 
@@ -336,12 +335,12 @@ class OrderPresenter extends BackendPresenter
 			'finished' => 'Zpracované',
 			'canceled' => 'Stornované',
 		];
-		
+
 		$this->template->headerLabel = "Objednávky";
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
 		];
-		
+
 		$this->template->displayControls = [$this->getComponent('ordersGrid')];
 	}
 
@@ -355,10 +354,10 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
-	
+
 	public function renderDeliveryItems(Delivery $delivery)
 	{
-		$this->template->headerLabel = 'Balík: '. $delivery->order->code;
+		$this->template->headerLabel = 'Balík: ' . $delivery->order->code;
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
 			['Doprava'],
@@ -366,7 +365,7 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('delivery', [$delivery->order])];
 		$this->template->displayControls = [$this->getComponent('packageGrid')];
 	}
-	
+
 	public function renderNewDelivery(Order $order)
 	{
 		$this->template->headerLabel = 'Položky dopravy';
@@ -377,7 +376,7 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('delivery', [$order])];
 		$this->template->displayControls = [$this->getComponent('deliveryForm')];
 	}
-	
+
 	public function renderDetailDelivery(Delivery $delivery)
 	{
 		$this->template->headerLabel = 'Položky dopravy';
@@ -388,18 +387,18 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('delivery', [$delivery->order])];
 		$this->template->displayControls = [$this->getComponent('deliveryForm')];
 	}
-	
+
 	public function actionDetailDelivery(Delivery $delivery)
 	{
 		/** @var Form $form */
 		$form = $this->getComponent('deliveryForm');
-		
+
 		$form->setDefaults($delivery->toArray());
 	}
-	
+
 	public function renderDelivery(Order $order)
 	{
-		$this->template->headerLabel = 'Doprava: '. $order->code;
+		$this->template->headerLabel = 'Doprava: ' . $order->code;
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
 			['Doprava'],
@@ -407,7 +406,7 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default'), $this->createNewItemButton('NewDelivery', [$order])];
 		$this->template->displayControls = [$this->getComponent('deliveryGrid')];
 	}
-	
+
 	public function renderPayment(Order $order)
 	{
 		$this->template->headerLabel = 'Detail';
@@ -418,15 +417,15 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('paymentForm')];
 	}
-	
-	
+
+
 	public function actionDetail(Order $order)
 	{
 		/** @var Form $form */
 		$form = $this->getComponent('form');
-		
+
 		$form->setDefaults($order->purchase->toArray(['billAddress', 'deliveryAddress']));
-		
+
 		$form->setDefaults($order->toArray());
 	}
 
@@ -435,23 +434,23 @@ class OrderPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($this->getParameter('order')->purchase->getItems(), 20, 'code', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Košik', 'cart.id', '#%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		$grid->addColumnImage('product.imageFileName' , Product::IMAGE_DIR);
+		$grid->addColumnImage('product.imageFileName', Product::IMAGE_DIR);
 		$grid->addColumnText('Kód', 'getFullCode', '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Název', 'productName', '%s');
 		$grid->addColumn('Doprava / Dropshipping', [$this, 'renderDeliveryColumn']);
 		$grid->addColumnText('Množství', 'amount', '%s ks', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Cena bez DPH', 'getPriceSum|price:cart.currency.code', '%s', null, ['class' => 'fit text-right'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Cena s DPH', 'getPriceVatSum|price:cart.currency.code', '%s', null, ['class' => 'fit text-right'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		
+
 		$grid->addColumnLinkDetail('detailOrderItem', ['order' => $this->getParameter('order')]);
 		$grid->addColumnActionDelete();
-		
+
 		$grid->addButtonDeleteSelected();
-		
+
 		$searchExpressions = ['productCode', 'productName_cs',];
 		$grid->addFilterTextInput('q', $searchExpressions, null, 'Kód, název');
 		$grid->addFilterButtons(['default']);
-		
+
 		return $grid;
 	}
 
@@ -470,26 +469,27 @@ class OrderPresenter extends BackendPresenter
 	{
 		/** @var \Eshop\DB\Cart $order */
 		$order = $this->getParameter('order');
-		
+
 		$form = $this->formFactory->create();
 
-		$form->addText('product', 'Produkt')
-			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
-			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje nebo již existuje záznam pro tento produkt!', [$this->productRepo])
-			->setRequired();
-		
+		$form->addSelect2('product', 'Produkt', [], [
+			'ajax' => [
+				'url' => $this->link('getProductsForSelect2!')
+			]
+		])->setRequired()->checkDefaultValue(false);;
+
 		$form->addSelect('cart', 'Košík č.', $order->purchase->carts->toArrayOf('id'))->setRequired();
 		$form->addSelect('delivery', 'Doprava', $order->deliveries->where('shippedTs IS NULL')->toArrayOf('typeName'))->setRequired();
-		
+
 		$form->addInteger('amount', 'Množství')->setDefaultValue(1)->setRequired();
 
 		$form->addSubmits(false);
-		
+
 		$form->onValidate[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
-			$product = $this->productRepo->getProductByCodeOrEAN($values['product']);
-			$exists = $product ? $this->productRepo->getProduct((string) $product) : null;
-			
+			$product = $this->productRepo->one($form->getHttpData(Form::DATA_TEXT, 'product'));
+			$exists = $product ? $this->productRepo->getProduct((string)$product) : null;
+
 			if (!$exists) {
 				$form['product']->addError('Daný produkt není pro uživatele dostupný');
 			}
@@ -500,19 +500,19 @@ class OrderPresenter extends BackendPresenter
 
 			/** @var Cart $cart */
 			$cart = $this->cartRepository->one($values['cart']);
-			
+
 			if ($order->purchase->customer) {
 				$this->shopper->setCustomer($order->purchase->customer);
 				$this->checkoutManager->setCustomer($order->purchase->customer);
 			}
 
 			/** @var Product $product */
-			$product = $this->productRepo->getProduct((string) $this->productRepo->getProductByCodeOrEAN($values['product']));
-			
+			$product = $this->productRepo->getProduct((string)$this->productRepo->getProductByCodeOrEAN($values['product']));
+
 			$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], false, false, false, $cart);
-			
-			$amount = (int) $this->packageItemRepository->many()->where('fk_delivery', $values['delivery'])->where('fk_cartItem', $cartItem)->firstValue('amount');
-			
+
+			$amount = (int)$this->packageItemRepository->many()->where('fk_delivery', $values['delivery'])->where('fk_cartItem', $cartItem)->firstValue('amount');
+
 			$this->packageItemRepository->syncOne([
 				'amount' => $values['amount'] + $amount,
 				'delivery' => $values['delivery'],
@@ -545,14 +545,14 @@ class OrderPresenter extends BackendPresenter
 
 		return $form;
 	}
-	
+
 	public function actionOrderEmail(Order $order): void
 	{
 		/** @var Form $form */
 		$form = $this->getComponent('emailForm');
 		$form->setDefaults($order->purchase->toArray());
 	}
-	
+
 	public function renderOrderEmail(Order $order): void
 	{
 		$this->template->headerLabel = 'Poslání emailu: ' . $order->code;
@@ -583,11 +583,11 @@ class OrderPresenter extends BackendPresenter
 		$form = $this->getComponent('detailOrderItemForm');
 		$form->setDefaults($cartItem->toArray());
 	}
-	
+
 	public function actionPayment(Order $order): void
 	{
 		$payment = $order->getPayment();
-		
+
 		/** @var Form $form */
 		$form = $this->getComponent('paymentForm');
 		$form->setDefaults($payment ? $payment->toArray() : []);
@@ -604,14 +604,14 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('orderItems', $order)];
 		$this->template->displayControls = [$this->getComponent('detailOrderItemForm')];
 	}
-	
+
 	public function handleChangePayment(string $payment, bool $paid, bool $email = false)
 	{
 		/** @var \Eshop\DB\Payment $payment */
 		$payment = $this->paymentRepository->one($payment, true);
-		
+
 		$values = [
-			'paidTs' => $paid ? (string) new DateTime() : null,
+			'paidTs' => $paid ? (string)new DateTime() : null,
 			'paidPrice' => $paid ? $payment->order->getTotalPrice() : 0,
 			'paidPriceVat' => $paid ? $payment->order->getTotalPriceVat() : 0,
 		];
@@ -621,19 +621,19 @@ class OrderPresenter extends BackendPresenter
 			$mail = $this->templateRepository->createMessage('order.payed', ['orderCode' => $payment->order->code], $payment->order->purchase->email);
 			$this->mailer->send($mail);
 		}
-		
+
 		$this->flashMessage($paid ? 'Zaplaceno' : 'Zaplacení zrušeno', 'success');
-		
+
 		$this->redirect('this');
 	}
-	
+
 	public function handleChangeDelivery(string $delivery, bool $shipped, bool $email = false)
 	{
 		/** @var \Eshop\DB\Delivery $delivery */
 		$delivery = $this->deliveryRepository->one($delivery, true);
-		
+
 		$values = [
-			'shippedTs' => $shipped ? (string) new DateTime() : null,
+			'shippedTs' => $shipped ? (string)new DateTime() : null,
 		];
 		$delivery->update($values);
 
@@ -641,52 +641,52 @@ class OrderPresenter extends BackendPresenter
 			$mail = $this->templateRepository->createMessage('order.shipped', ['orderCode' => $delivery->order->code], $delivery->order->purchase->email);
 			$this->mailer->send($mail);
 		}
-		
+
 		$this->flashMessage($shipped ? 'Expedováno' : 'Expedice zrušena', 'success');
-		
+
 		$this->redirect('this');
 	}
-	
+
 	public function modifyPackage(Button $button)
 	{
 		$grid = $button->lookup(Datagrid::class);
 		$delivery = $this->getParameter('delivery');
-		
+
 		foreach ($grid->getInputData() as $id => $data) {
 			if (!$data) {
 				$this->packageItemRepository->many()->where('fk_cartItem', $id)->where('fk_delivery', $delivery)->delete();
 				continue;
 			}
-			
+
 			$values = [
-				'amount' => (int) $data['packageAmount'],
+				'amount' => (int)$data['packageAmount'],
 				'cartItem' => $id,
 				'delivery' => $delivery,
 			];
 			$this->packageItemRepository->syncOne($values);
 		}
-		
+
 		$this->flashMessage('Balík upraven', 'success');
-		
+
 		$this->redirect('this');
 	}
-	
+
 	public function renderDeliveryColumn(CartItem $item, Datagrid $grid)
 	{
 		/** @var Delivery[] $deliveries */
 		$deliveries = $item->getDeliveries()->toArray();
 		$types = [];
-		
+
 		if (!$deliveries) {
 			return '-';
 		}
-		
+
 		foreach ($deliveries as $delivery) {
 			$date = $delivery->shippingDate ? '<i style=\'color: gray;\' class=\'fa fa-shipping-fast\'></i> ' . $grid->template->getLatte()->invokeFilter('date', [$delivery->shippingDate]) : '';
 			$dropshipping = $delivery->supplier ? ' (' . $delivery->supplier->name . ')' : '';
 			$types[] = $delivery->getTypeName() . "$dropshipping <small>$date</small>";
 		}
-		
+
 		return \implode(', ', $types);
 	}
 }

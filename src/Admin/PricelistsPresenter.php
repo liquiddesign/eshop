@@ -513,17 +513,11 @@ class PricelistsPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
-		$form->addSelect2('product', 'Product', [], [
+		$form->addSelect2('product', 'Produkt', [], [
 			'ajax' => [
 				'url' => $this->link('getProductsForSelect2!')
 			]
-		]);
-
-//		$form->addText('product', 'Produkt')
-//			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
-//			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje nebo neplatná hodnota!',
-//				[$this->productRepository])
-//			->setRequired();
+		])->setRequired()->checkDefaultValue(false);;
 
 		$form->addText('price', 'Cena')->addRule($form::FLOAT)->setRequired();
 		$form->addText('priceVat', 'Cena s daní')->addRule($form::FLOAT);
