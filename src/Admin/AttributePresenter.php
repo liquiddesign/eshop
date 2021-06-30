@@ -94,7 +94,6 @@ class AttributePresenter extends BackendPresenter
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumnText('Kategorie', 'categoriesNames', '%s');
 		$grid->addColumnText('Zdroj', 'supplier.name', '%s', 'supplier.name');
-		$grid->addColumnText('Zdroj', 'assignCount', '%s');
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
