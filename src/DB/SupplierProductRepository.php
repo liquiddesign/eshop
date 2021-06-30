@@ -129,7 +129,7 @@ class SupplierProductRepository extends \StORM\Repository
 
 			$currentTargetImageDirectory = $primary ? $targetImageDirectory : $galleryImageDirectory;
 
-			if (!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
+			if (!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName) || $product->supplierContentLock) {
 				continue;
 			}
 
