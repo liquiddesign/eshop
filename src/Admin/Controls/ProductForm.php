@@ -25,15 +25,16 @@ use Eshop\DB\TaxRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
+use Nette\Application\UI\Control;
+use Nette\Application\UI\Presenter;
 use Nette\Utils\Arrays;
 use StORM\ICollection;
 use Web\DB\PageRepository;
-use Forms\Form;
-use Nette\Application\UI\Control;
 use Nette\DI\Container;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Pages\Helpers;
+use Forms\Form;
 
 class ProductForm extends Control
 {
@@ -376,23 +377,12 @@ class ProductForm extends Control
 		if (!$values['uuid']) {
 			$values['uuid'] = ProductRepository::generateUuid($values['ean'],
 				$values['subCode'] ? $values['code'] . '.' . $values['subCode'] : $values['code'], null);
-		} else {
-			$this->product->upsells->unrelateAll();
 		}
 
 		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
 		$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
 
-		if ($values['upsells'] ?? null) {
-			$upsells = [];
-			foreach (\explode(';', $values['upsells']) as $upsell) {
-				$upsells[] = $this->productRepository->getProductByCodeOrEAN($upsell)->getPK();
-			}
-
-			$this->product->upsells->relate($upsells);
-		}
-
-		$values['alternative'] = $values['alternative'] ? $this->productRepository->getProductByCodeOrEAN($values['alternative']) : null;
+		$values['alternative'] = $values['alternative'] ? $this->productRepository->one($form->getHttpData(Form::DATA_TEXT, 'alternative')) : null;
 
 		if (isset($values['supplierContent'])) {
 			if ($values['supplierContent'] === 0) {
@@ -405,6 +395,12 @@ class ProductForm extends Control
 
 		/** @var Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
+
+		$this->product->upsells->unrelateAll();
+
+		if (\count($form->getHttpData()['upsells'] ?? []) > 0) {
+			$this->product->upsells->relate($form->getHttpData()['upsells']);
+		}
 
 		$changeColumns = ['name', 'perex', 'content'];
 
@@ -420,7 +416,7 @@ class ProductForm extends Control
 			}
 		}
 
-		if (isset($values['tonerForPrinters'])) {
+		if ($tonerForPrinters = $form->getHttpData()['tonerForPrinters'] ?? []) {
 			$this->relatedRepository->many()
 				->where('fk_master', $product->getPK())
 				->where('fk_type', 'tonerForPrinter')
