@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
-use Admin\BackendPresenter;
+use Eshop\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Eshop\Admin\Controls\IProductAttributesFormFactory;
 use Eshop\Admin\Controls\IProductFormFactory;
@@ -25,6 +25,7 @@ use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\SetRepository;
 use Eshop\DB\SupplierProductRepository;
+use Eshop\DB\SupplierRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
@@ -36,7 +37,9 @@ use Nette\Http\FileUpload;
 use Nette\InvalidArgumentException;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
+use Nette\Utils\Random;
 use Pages\DB\PageRepository;
+use StORM\Collection;
 use StORM\DIConnection;
 use Web\DB\SettingRepository;
 
@@ -139,6 +142,9 @@ class ProductPresenter extends BackendPresenter
 	/** @inject */
 	public AttributeRepository $attributeRepository;
 
+	/** @inject */
+	public SupplierRepository $supplierRepository;
+
 	public function createComponentProductGrid()
 	{
 		return $this->productGridFactory->create(static::CONFIGURATION);
@@ -155,11 +161,19 @@ class ProductPresenter extends BackendPresenter
 		$grid->addColumnImage('fileName', Photo::IMAGE_DIR);
 
 		$grid->addColumnText('Popisek', 'label_cs', '%s', 'label_cs');
+		$grid->addColumnText('Zdroj', 'supplier.name', '%s', 'supplier.name');
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 		$grid->addColumnLinkDetail('detailPhoto');
 		$grid->addColumnActionDelete([$this, 'deleteGalleryPhoto']);
 		$grid->addFilterTextInput('search', ['fileName'], null, 'Název');
+
+		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
+			$grid->addFilterDataSelect(function (Collection $source, $value) {
+				$source->where('supplier.uuid', $value);
+			}, '', 'supplier', null, $suppliers)->setPrompt('- Zdroj -');
+		}
+
 		$grid->addFilterButtons(['productPhotos', $this->getParameter('product')]);
 
 		$grid->addButtonSaveAll();
@@ -394,7 +408,7 @@ class ProductPresenter extends BackendPresenter
 			['Fotografie', 'photos', $photo->product],
 			['Detail'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('photos', $photo->product)];
+		$this->template->displayButtons = [$this->createBackButton('photos', $photo->product), $this->createButtonWithClass('makePhotoPrimary!', '<i class="fas fa-star"></i>  Převést obrázek na hlavní', 'btn btn-sm btn-outline-primary', $photo)];
 		$this->template->displayControls = [$this->getComponent('photoForm')];
 	}
 
@@ -429,7 +443,6 @@ class ProductPresenter extends BackendPresenter
 		$form = $this->getComponent('photoForm');
 		$form->setDefaults($photo->toArray());
 	}
-
 
 	public function actionEdit(Product $product)
 	{
@@ -1084,5 +1097,23 @@ class ProductPresenter extends BackendPresenter
 		};
 
 		return $form;
+	}
+
+	public function handleMakePhotoPrimary(Photo $photo)
+	{
+		$subDirs = ['origin', 'detail', 'thumb'];
+		$imageDir = $this->wwwDir . '/' . 'userfiles' . '/' . Product::IMAGE_DIR;
+		$galleryDir = $this->wwwDir . '/' . 'userfiles' . '/' . Product::GALLERY_DIR;
+
+		$tempFilename = Random::generate();
+
+		foreach ($subDirs as $subDir) {
+			FileSystem::rename($imageDir . '/' . $subDir . '/' . $photo->product->imageFileName, $galleryDir . '/' . $subDir . '/' . $tempFilename);
+			FileSystem::rename($galleryDir . '/' . $subDir . '/' . $photo->fileName, $imageDir . '/' . $subDir . '/' . $photo->product->imageFileName);
+			FileSystem::rename($galleryDir . '/' . $subDir . '/' . $tempFilename, $galleryDir . '/' . $subDir . '/' . $photo->fileName);
+		}
+
+		$this->flashMessage('Provedeno', 'success');
+		$this->redirect('this');
 	}
 }

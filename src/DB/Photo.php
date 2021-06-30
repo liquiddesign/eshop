@@ -49,6 +49,13 @@ class Photo extends \StORM\Entity
 	 * @relation
 	 */
 	public Product $product;
+
+	/**
+	 * Dodavatel / externí
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 */
+	public ?Supplier $supplier;
 	
 	public function getImagePath(string $basePath, string $size = 'detail'): string
 	{
