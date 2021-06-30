@@ -11,6 +11,7 @@ use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValue;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\SupplierRepository;
 use Forms\Form;
 use Grid\Datagrid;
 use Nette\Forms\Controls\TextArea;
@@ -45,6 +46,9 @@ class AttributePresenter extends BackendPresenter
 	/** @inject */
 	public PageTemplateRepository $pageTemplateRepository;
 
+	/** @inject */
+	public SupplierRepository $supplierRepository;
+
 	public const TABS = [
 		'attributes' => 'Atributy',
 		'values' => 'Hodnoty',
@@ -74,10 +78,23 @@ class AttributePresenter extends BackendPresenter
 
 	public function createComponentAttributeGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->attributeRepository->many(), 20, 'priority', 'ASC', true);
+		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
+
+		$source = $this->attributeRepository->many()->setGroupBy(['this.uuid'])
+			->select(['categoriesNames' => "GROUP_CONCAT(DISTINCT category.name$mutationSuffix SEPARATOR ', ')"])
+			->select(['assignCount' => 'COUNT(assign.uuid)'])
+			->join(['attributeXcategory' => 'eshop_attribute_nxn_eshop_category'], 'attributeXcategory.fk_attribute = this.uuid')
+			->join(['category' => 'eshop_category'], 'attributeXcategory.fk_category = category.uuid')
+			->join(['attributeValue' => 'eshop_attributevalue'], 'this.uuid = attributeValue.fk_attribute')
+			->join(['assign' => 'eshop_attributeassign'], 'attributeValue.uuid = assign.fk_value');
+
+		$grid = $this->gridFactory->create($source, 20, null, null, true);
 		$grid->addColumnSelector();
-		$grid->addColumnText('Kód', 'code', '%s', 'code');
+		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
+		$grid->addColumnText('Kategorie', 'categoriesNames', '%s');
+		$grid->addColumnText('Zdroj', 'supplier.name', '%s', 'supplier.name');
+		$grid->addColumnText('Zdroj', 'assignCount', '%s');
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
@@ -110,11 +127,23 @@ class AttributePresenter extends BackendPresenter
 
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
 			$grid->addFilterDataSelect(function (Collection $source, $value) {
-				$source->join(['nxn' => 'eshop_attribute_nxn_eshop_category'], 'this.uuid = nxn.fk_attribute');
-				$source->join(['category' => 'eshop_category'], 'category.uuid = nxn.fk_category');
 				$source->where('category.uuid', $value);
 			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
 		}
+
+		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
+			$grid->addFilterDataSelect(function (Collection $source, $value) {
+				$source->where('supplier.uuid', $value);
+			}, '', 'supplier', null, $suppliers)->setPrompt('- Zdroj -');
+		}
+
+		$grid->addFilterDataSelect(function (Collection $source, $value) {
+			if ($value === null) {
+				$source->setGroupBy(['this.uuid']);
+			} else {
+				$source->setGroupBy(['this.uuid'], $value == 1 ? 'assignCount != 0' : 'assignCount = 0');
+			}
+		}, '', 'assign', null, [0 => 'Pouze nepřiřazené', 1 => 'Pouze přiřazené'])->setPrompt('- Přiřazené -');
 
 		$grid->addFilterButtons(['default']);
 
@@ -167,7 +196,13 @@ class AttributePresenter extends BackendPresenter
 
 	public function createComponentValuesGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->attributeValueRepository->many(), 20, 'code', 'ASC', true);
+		$source = $this->attributeValueRepository->many()->setGroupBy(['this.uuid'])
+			->select(['assignCount' => 'COUNT(assign.uuid)', 'supplierName' => 'supplier.name'])
+			->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
+			->join(['supplier' => 'eshop_supplier'], 'attribute.fk_supplier = supplier.uuid')
+			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value');
+
+		$grid = $this->gridFactory->create($source, 20, 'code', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumn('Hodnota', function (AttributeValue $attributeValue, $grid) {
@@ -181,6 +216,7 @@ class AttributePresenter extends BackendPresenter
 		}, '%s', 'label');
 		$grid->addColumnText('Číselná reprezentace', 'number', '%s', 'number');
 		$grid->addColumnText('Atribut', 'attribute.name', '%s', 'attribute.name');
+		$grid->addColumnText('Zdroj', 'supplierName', '%s', 'supplierName');
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
@@ -196,6 +232,21 @@ class AttributePresenter extends BackendPresenter
 
 		$grid->addFilterTextInput('search', ['this.code', 'this.label_cs'], null, 'Kód, popisek');
 		$grid->addFilterTextInput('attribute', ['attribute.code'], null, 'Kód atributu', null, '%s');
+
+		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
+			$grid->addFilterDataSelect(function (Collection $source, $value) {
+				$source->where('supplier.uuid', $value);
+			}, '', 'supplier', null, $suppliers)->setPrompt('- Zdroj -');
+		}
+
+		$grid->addFilterDataSelect(function (Collection $source, $value) {
+			if ($value === null) {
+				$source->setGroupBy(['this.uuid']);
+			} else {
+				$source->setGroupBy(['this.uuid'], $value == 1 ? 'assignCount != 0' : 'assignCount = 0');
+			}
+		}, '', 'assign', null, [0 => 'Pouze nepřiřazené', 1 => 'Pouze přiřazené'])->setPrompt('- Přiřazené -');
+
 		$grid->addFilterButtons(['default']);
 
 		if ($this->formFactory->getPrettyPages()) {
