@@ -70,6 +70,8 @@ class SupplierProductRepository extends \StORM\Repository
 				continue;
 			}
 
+			// imageFilename
+
 			$code = $draft->productCode ?: ($supplier->productCodePrefix ?: $supplier->code) . $draft->code;
 			$uuid = ProductRepository::generateUuid($draft->ean, $draft->getProductFullCode() ?: $supplier->code . '-' . $draft->code);
 			$values = [
@@ -84,6 +86,7 @@ class SupplierProductRepository extends \StORM\Repository
 				'unit' => $draft->unit,
 				'unavailable' => $draft->unavailable,
 				'hidden' => $supplier->defaultHiddenProduct,
+				'imageFileName' => $draft->fileName,
 				'vatRate' => $vatLevels[(int)$draft->vatRate] ?? 'standard',
 				'producer' => $draft->producer ? $draft->producer->getValue('producer') : null,
 				'displayDelivery' => $supplier->getValue('defaultDisplayDelivery'),
@@ -122,31 +125,26 @@ class SupplierProductRepository extends \StORM\Repository
 				'type' => 'product_detail',
 			], []);
 
-			/** @var SupplierProduct[] $supplierProducts */
-			$supplierProducts = $product->supplierProducts->setTake(1)->toArray();
-
-			$primary = \count($supplierProducts) > 0 ? (Arrays::first($supplierProducts)->getValue('supplier') == $supplierId) : true;
+			$primary = $product->supplierSource ? ($product->getValue('supplierSource') == $supplierId) : true;
 
 			$currentTargetImageDirectory = $primary ? $targetImageDirectory : $galleryImageDirectory;
 
-			if (!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName) || $product->supplierContentLock) {
+			if (!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
 				continue;
 			}
 
 			$mtime = \filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 
-			if (!$primary) {
-				$photoRepository->syncOne([
-					'uuid' => $uuid,
-					'product' => $product->getPK(),
-					'supplier' => $supplierId,
-					'fileName' => $draft->fileName
-				]);
-			} else {
-				$product->update(['imageFileName' => $draft->fileName]);
-			}
-
 			if (!$updated && $overwrite && $draft->fileName && $mtime !== @\filemtime($currentTargetImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
+				if (!$primary) {
+					$photoRepository->syncOne([
+						'uuid' => $draft->getPK(),
+						'product' => $product->getPK(),
+						'supplier' => $supplierId,
+						'fileName' => $draft->fileName
+					]);
+				}
+
 				@\copy($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $currentTargetImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 				@\copy($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $currentTargetImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
 				@\copy($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $currentTargetImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
