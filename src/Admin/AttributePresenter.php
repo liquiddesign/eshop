@@ -23,6 +23,8 @@ use Pages\Helpers;
 use StORM\Collection;
 use StORM\DIConnection;
 use Pages\DB\PageTemplateRepository;
+use StORM\ICollection;
+use function Clue\StreamFilter\fun;
 
 class AttributePresenter extends BackendPresenter
 {
@@ -89,11 +91,21 @@ class AttributePresenter extends BackendPresenter
 			->join(['assign' => 'eshop_attributeassign'], 'attributeValue.uuid = assign.fk_value');
 
 		$grid = $this->gridFactory->create($source, 20, null, null, true);
+
+		$grid->setItemCountCallback(function (ICollection $filteredSource) {
+			return (int)Arrays::first($this->attributeRepository->getConnection()->rows()->setSelect(['count' => 'count(*)'])->from(['derived' => $filteredSource->setSelect(['uuid' => 'this.uuid', 'assignCount' => 'COUNT(assign.uuid)'])], $filteredSource->getVars())->toArray())->count;
+		});
+
 		$grid->addColumnSelector();
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumnText('Kategorie', 'categoriesNames', '%s');
 		$grid->addColumnText('Zdroj', 'supplier.name', '%s', 'supplier.name');
+
+		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
+		$grid->addColumnInputCheckbox('Filtrace', 'showFilter', '', '', 'showFilter');
+		$grid->addColumnInputCheckbox('Náhled', 'showProduct', '', '', 'showProduct');
+		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
@@ -104,11 +116,6 @@ class AttributePresenter extends BackendPresenter
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'values', 'valuesGrid-attribute' => $object->code]) . "'>Hodnoty</a>" :
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('valueNew', $object) . "'>Vytvořit&nbsp;hodnotu</a>";
 		}, '%s', null, ['class' => 'minimal']);
-
-		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
-		$grid->addColumnInputCheckbox('Filtrace', 'showFilter', '', '', 'showFilter');
-		$grid->addColumnInputCheckbox('Náhled', 'showProduct', '', '', 'showProduct');
-		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('attributeDetail');
 		$grid->addColumnActionDeleteSystemic();
@@ -202,6 +209,11 @@ class AttributePresenter extends BackendPresenter
 			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value');
 
 		$grid = $this->gridFactory->create($source, 20, 'code', 'ASC', true);
+
+		$grid->setItemCountCallback(function (ICollection $filteredSource) {
+			return (int)Arrays::first($this->attributeRepository->getConnection()->rows()->setSelect(['count' => 'count(*)'])->from(['derived' => $filteredSource->setSelect(['uuid' => 'this.uuid', 'assignCount' => 'COUNT(assign.uuid)'])], $filteredSource->getVars())->toArray())->count;
+		});
+
 		$grid->addColumnSelector();
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumn('Hodnota', function (AttributeValue $attributeValue, $grid) {
