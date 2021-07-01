@@ -70,8 +70,6 @@ class SupplierProductRepository extends \StORM\Repository
 				continue;
 			}
 
-			// imageFilename
-
 			$code = $draft->productCode ?: ($supplier->productCodePrefix ?: $supplier->code) . $draft->code;
 			$uuid = ProductRepository::generateUuid($draft->ean, $draft->getProductFullCode() ?: $supplier->code . '-' . $draft->code);
 			$values = [
@@ -86,7 +84,6 @@ class SupplierProductRepository extends \StORM\Repository
 				'unit' => $draft->unit,
 				'unavailable' => $draft->unavailable,
 				'hidden' => $supplier->defaultHiddenProduct,
-				'imageFileName' => $draft->fileName,
 				'vatRate' => $vatLevels[(int)$draft->vatRate] ?? 'standard',
 				'producer' => $draft->producer ? $draft->producer->getValue('producer') : null,
 				'displayDelivery' => $supplier->getValue('defaultDisplayDelivery'),
@@ -143,6 +140,8 @@ class SupplierProductRepository extends \StORM\Repository
 						'supplier' => $supplierId,
 						'fileName' => $draft->fileName
 					]);
+				} else {
+					$product->update(['imageFileName' => $draft->fileName]);
 				}
 
 				@\copy($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $currentTargetImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
