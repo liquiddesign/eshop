@@ -80,7 +80,8 @@ class AttributePresenter extends BackendPresenter
 
 	public function createComponentAttributeGrid(): AdminGrid
 	{
-		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
+		$connection = $this->attributeRepository->getConnection();
+		$mutationSuffix = $connection->getMutationSuffix();
 
 		$source = $this->attributeRepository->many()->setGroupBy(['this.uuid'])
 			->select(['categoriesNames' => "GROUP_CONCAT(DISTINCT category.name$mutationSuffix SEPARATOR ', ')"])
@@ -92,8 +93,8 @@ class AttributePresenter extends BackendPresenter
 
 		$grid = $this->gridFactory->create($source, 20, null, null, true);
 
-		$grid->setItemCountCallback(function (ICollection $filteredSource) {
-			return (int)Arrays::first($this->attributeRepository->getConnection()->rows()->setSelect(['count' => 'count(*)'])->from(['derived' => $filteredSource->setSelect(['uuid' => 'this.uuid', 'assignCount' => 'COUNT(assign.uuid)'])], $filteredSource->getVars())->toArray())->count;
+		$grid->setItemCountCallback(function (ICollection $filteredSource) use ($connection) {
+			return (int)$connection->rows()->select(['count' => 'count(*)'])->from(['derived' => $filteredSource->setSelect(['uuid' => 'this.uuid', 'assignCount' => 'COUNT(assign.uuid)'])], $filteredSource->getVars())->firstValue('count');
 		});
 
 		$grid->addColumnSelector();
@@ -211,7 +212,7 @@ class AttributePresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($source, 20, 'code', 'ASC', true);
 
 		$grid->setItemCountCallback(function (ICollection $filteredSource) {
-			return (int)Arrays::first($this->attributeRepository->getConnection()->rows()->setSelect(['count' => 'count(*)'])->from(['derived' => $filteredSource->setSelect(['uuid' => 'this.uuid', 'assignCount' => 'COUNT(assign.uuid)'])], $filteredSource->getVars())->toArray())->count;
+			return (int)$this->attributeRepository->getConnection()->rows()->select(['count' => 'count(*)'])->from(['derived' => $filteredSource->setSelect(['uuid' => 'this.uuid', 'assignCount' => 'COUNT(assign.uuid)'])], $filteredSource->getVars())->firstValue('count');
 		});
 
 		$grid->addColumnSelector();
