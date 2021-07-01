@@ -24,7 +24,6 @@ use StORM\Collection;
 use StORM\DIConnection;
 use Pages\DB\PageTemplateRepository;
 use StORM\ICollection;
-use function Clue\StreamFilter\fun;
 
 class AttributePresenter extends BackendPresenter
 {

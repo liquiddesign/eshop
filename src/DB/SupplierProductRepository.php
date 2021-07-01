@@ -57,6 +57,13 @@ class SupplierProductRepository extends \StORM\Repository
 			$updates = [];
 		}
 
+//		$microtime = \microtime(true);
+		$productsWithSupplierSources = $productRepository->many()->setSelect(['supplierSourcePK' => 'fk_supplierSource'])->setIndex('uuid')->toArrayOf('supplierSourcePK');
+		$productsWithSupplierContentLock = $productRepository->many()->setSelect(['supplierContentLock'])->setIndex('uuid')->toArrayOf('supplierContentLock');
+//		echo \microtime(true) - $microtime;
+//		bdump($productsWithSupplierContentLock);
+//		die();
+
 		$drafts = $supplierProductRepository->many()
 			->where('this.fk_supplier', $supplier)
 			->where('category.fk_category IS NOT NULL')
@@ -65,6 +72,7 @@ class SupplierProductRepository extends \StORM\Repository
 		/** @var \Eshop\DB\SupplierProduct $draft */
 		foreach ($drafts as $draft) {
 			$category = $draft->category ? $draft->category->getValue('category') : null;
+			$currentUpdates = $updates;
 
 			if (!$category) {
 				continue;
@@ -72,6 +80,8 @@ class SupplierProductRepository extends \StORM\Repository
 
 			$code = $draft->productCode ?: ($supplier->productCodePrefix ?: $supplier->code) . $draft->code;
 			$uuid = ProductRepository::generateUuid($draft->ean, $draft->getProductFullCode() ?: $supplier->code . '-' . $draft->code);
+			$primary = isset($productsWithSupplierSources[$uuid]) ? ($productsWithSupplierSources[$uuid] == $supplierId) : false;
+
 			$values = [
 				'uuid' => $uuid,
 				'ean' => $draft->ean ?: null,
@@ -94,8 +104,14 @@ class SupplierProductRepository extends \StORM\Repository
 				'supplierSource' => $supplier,
 			];
 
+			if ($primary) {
+				$values['imageFileName'] = $draft->fileName;
+			} else {
+				unset($currentUpdates['imageFileName']);
+			}
+
 			/** @var \Eshop\DB\Product $product */
-			$product = $productRepository->syncOne($values, $updates, false, null, ['categories' => false]);
+			$product = $productRepository->syncOne($values, $currentUpdates, false, null, ['categories' => false]);
 
 			$updated = $product->getParent() instanceof ICollection && $product->getParent()->getAffectedNumber() === InsertResult::UPDATE_AFFECTED_COUNT;
 
@@ -122,28 +138,24 @@ class SupplierProductRepository extends \StORM\Repository
 				'type' => 'product_detail',
 			], []);
 
-			$primary = $product->supplierSource ? ($product->getValue('supplierSource') == $supplierId) : true;
-
-			$currentTargetImageDirectory = $primary ? $targetImageDirectory : $galleryImageDirectory;
-
-			if (!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
+			if (!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName) || !isset($productsWithSupplierContentLock[$uuid]) || $productsWithSupplierContentLock[$uuid]) {
 				continue;
 			}
 
+			$currentTargetImageDirectory = $primary ? $targetImageDirectory : $galleryImageDirectory;
+
 			$mtime = \filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 
-			if (!$updated && $overwrite && $draft->fileName && $mtime !== @\filemtime($currentTargetImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
-				if (!$primary) {
-					$photoRepository->syncOne([
-						'uuid' => $draft->getPK(),
-						'product' => $product->getPK(),
-						'supplier' => $supplierId,
-						'fileName' => $draft->fileName
-					]);
-				} else {
-					$product->update(['imageFileName' => $draft->fileName]);
-				}
+			if (!$primary) {
+				$photoRepository->syncOne([
+					'uuid' => $draft->getPK(),
+					'product' => $product->getPK(),
+					'supplier' => $supplierId,
+					'fileName' => $draft->fileName
+				]);
+			}
 
+			if ($overwrite && $draft->fileName && $mtime !== @\filemtime($currentTargetImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
 				@\copy($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $currentTargetImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 				@\copy($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $currentTargetImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
 				@\copy($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $currentTargetImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
