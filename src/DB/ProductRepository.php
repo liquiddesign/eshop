@@ -778,9 +778,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 				if (Arrays::get($exportAttributes, $column, null)) {
 					$attributePK = \array_search($column, $exportAttributesWithPK);
 
-					if ($product->attributes && isset($attributes[$attributePK])) {
-						$row[] = $attributes[$attributePK];
-					}
+					$row[] = $product->attributes && isset($attributes[$attributePK]) ? $attributes[$attributePK] : null;
 				} elseif ($column === 'perex') {
 					$row[] = $product->getValue($column) ? \strip_tags($product->getValue($column)) : null;
 				} else {
