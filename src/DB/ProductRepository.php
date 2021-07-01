@@ -668,6 +668,10 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	public function getUpsellsForCartItem(CartItem $cartItem): array
 	{
+		if (!$cartItem->product) {
+			return [];
+		}
+
 		$upsells = [];
 
 		foreach ($cartItem->product->upsells->orderBy(['priority']) as $upsell) {

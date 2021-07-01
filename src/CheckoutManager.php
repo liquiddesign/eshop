@@ -620,6 +620,12 @@ class CheckoutManager
 
 		/** @var \Eshop\DB\CartItem $cartItem */
 		foreach ($this->getItems() as $cartItem) {
+			if (!$cartItem->product) {
+				$cartItem->delete();
+
+				continue;
+			}
+
 			if ($cartItem->upsell) {
 				continue;
 			}
@@ -649,12 +655,18 @@ class CheckoutManager
 				];
 			}
 
-			if (!$this->checkCartItemPrice($cartItem)) {
-				$incorrectItems[] = [
-					'object' => $cartItem,
-					'reason' => 'incorrect-price',
-					'correctValue' => \floatval($this->productRepository->getProduct($cartItem->product->getPK())->getPrice($cartItem->amount)),
-				];
+			try {
+				if (!$this->checkCartItemPrice($cartItem)) {
+					$incorrectItems[] = [
+						'object' => $cartItem,
+						'reason' => 'incorrect-price',
+						'correctValue' => \floatval($this->productRepository->getProduct($cartItem->product->getPK())->getPrice($cartItem->amount)),
+					];
+				}
+			} catch (\Exception $e) {
+				$cartItem->delete();
+
+				continue;
 			}
 
 			$productRoundAmount = $this->getProductRoundAmount($cartItem->amount, $cartItem->product);
