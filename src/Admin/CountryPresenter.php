@@ -163,7 +163,7 @@ class CountryPresenter extends BackendPresenter
 			['Výše DPH', 'default'],
 			['Detail'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayButtons = [$this->createBackButton('vats', ['country' => $vat->country])];
 		$this->template->displayControls = [$this->getComponent('vatForm')];
 	}
 	
