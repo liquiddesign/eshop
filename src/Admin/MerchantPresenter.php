@@ -57,7 +57,7 @@ class MerchantPresenter extends BackendPresenter
 
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit']);
 		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname');
-		$grid->addColumnText('Email', 'email',
+		$grid->addColumnText('E-mail', 'email',
 			'<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>')->onRenderCell[] = [
 			$grid,
 			'decoratorEmpty'
@@ -85,7 +85,7 @@ class MerchantPresenter extends BackendPresenter
 
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder']);
 
-		$grid->addFilterTextInput('search', ['code', 'fullName', 'email'], null, 'Jméno, kód, email');
+		$grid->addFilterTextInput('search', ['code', 'fullName', 'email'], null, 'Jméno, kód, e-mail');
 		$grid->addFilterButtons();
 
 		return $grid;
@@ -97,7 +97,7 @@ class MerchantPresenter extends BackendPresenter
 
 		$form->addText('code', 'Kód');
 		$form->addText('fullname', 'Jméno a příjmení')->setRequired();
-		$form->addEmail('email', 'Email')->setRequired();
+		$form->addEmail('email', 'E-mail')->setRequired();
 
 		if (!$this->getParameter('merchant')) {
 			$this->accountFormFactory->addContainer($form);
@@ -113,7 +113,7 @@ class MerchantPresenter extends BackendPresenter
 		$form->addCheckbox('customersPermission', 'Oprávnění: Správa zákazníků');
 		$form->addCheckbox('ordersPermission', 'Oprávnění: Správa objednávek');
 		$form->addCheckbox('customerEmailNotification',
-			'Posílat emailem informace o objednávkách přiřazených zákazníků.');
+			'Posílat e-mailem informace o objednávkách přiřazených zákazníků.');
 
 		$form->addSubmits(!$this->getParameter('merchant'));
 

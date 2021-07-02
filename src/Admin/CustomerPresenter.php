@@ -122,7 +122,7 @@ class CustomerPresenter extends BackendPresenter
 		});
 		$grid->addColumnText('Skupina', 'group.name', '%s', 'group.name');
 		$grid->addColumnText('Telefon', 'phone', '<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
-		$grid->addColumnText('Email', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
+		$grid->addColumnText('E-mail', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('Feed', function (Customer $customer) use ($btnSecondary) {
@@ -149,7 +149,7 @@ class CustomerPresenter extends BackendPresenter
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
 		$submit->onClick[] = [$this, 'exportCustomers'];
 
-		$grid->addFilterTextInput('search', ['this.fullname', 'this.email', 'this.phone'], null, 'Jméno a příjmení, email, telefon');
+		$grid->addFilterTextInput('search', ['this.fullname', 'this.email', 'this.phone'], null, 'Jméno a příjmení, e-mail, telefon');
 
 		if (\count($this->merchantRepository->getArrayForSelect()) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
@@ -280,7 +280,7 @@ class CustomerPresenter extends BackendPresenter
 		$form->addText('phone', 'Telefon');
 
 		$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired();
-		$form->addText('ccEmails', 'Kopie emailů')->setHtmlAttribute('data-info', 'Zadejte emailové adresy oddělené středníkem (;).');
+		$form->addText('ccEmails', 'Kopie e-mailů')->setHtmlAttribute('data-info', 'Zadejte e-mailové adresy oddělené středníkem (;).');
 
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->many()->toArrayOf('name'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');

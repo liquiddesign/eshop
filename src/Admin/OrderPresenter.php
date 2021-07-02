@@ -213,8 +213,8 @@ class OrderPresenter extends BackendPresenter
 		$templates = ['order.created', 'order.canceled', 'order.changed', 'order.created', 'order.payed', 'order.shipped'];
 
 		$form->addSelect('template', 'Šablona', $this->templateRepository->many()->where('uuid', $templates)->toArrayOf('name'))->setRequired();
-		$form->addText('email', 'Email')->setRequired();
-		$form->addText('ccEmails', 'Kopie emailů')->setNullable();
+		$form->addText('email', 'E-mail')->setRequired();
+		$form->addText('ccEmails', 'Kopie e-mailů')->setNullable();
 
 		$form->addSubmit('submit', 'Odeslat');
 
@@ -241,8 +241,8 @@ class OrderPresenter extends BackendPresenter
 		$form->addDatetime('canceledTs', 'Zrušeno')->setNullable(true);
 		$form->addGroup('Kontakty');
 		$form->addText('phone', 'Telefon')->setNullable(true);
-		$form->addText('email', 'Email')->setNullable(true);
-		$form->addText('ccEmails', 'Email (Kopie)')->setNullable(true);
+		$form->addText('email', 'E-mail')->setNullable(true);
+		$form->addText('ccEmails', 'E-mail (Kopie)')->setNullable(true);
 		$form->addGroup('Fakturační adresa');
 		$billAddress = $form->addContainer('billAddress');
 		$billAddress->addHidden('uuid')->setNullable();
@@ -555,7 +555,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function renderOrderEmail(Order $order): void
 	{
-		$this->template->headerLabel = 'Poslání emailu: ' . $order->code;
+		$this->template->headerLabel = 'Poslání e-mailu: ' . $order->code;
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
 			['Položky'],

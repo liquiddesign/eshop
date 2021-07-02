@@ -114,7 +114,7 @@ class OrderGridFactory
 		// filters
 		$grid->addFilterTextInput('search_order', ['this.code'], null, 'Č. objednávky');
 		$searchExpressions = ['customer.fullname', 'purchase.fullname', 'customer.ic', 'purchase.ic', 'customer.email', 'purchase.email', 'customer.phone', 'purchase.phone',];
-		$grid->addFilterTextInput('search_q', $searchExpressions, null, 'Jméno zákazníka, IČO, email, telefon');
+		$grid->addFilterTextInput('search_q', $searchExpressions, null, 'Jméno zákazníka, IČO, e-mail, telefon');
 		$grid->addFilterButtons(['default']);
 
 		$grid->addFilterDatetime(function (ICollection $source, $value) {
@@ -163,7 +163,7 @@ class OrderGridFactory
 			$date = $grid->template->getLatte()->invokeFilter('date', [$payment->paidTs]);
 			$paymentInfo = "<br><small title='Zaplaceno'><i class='fas fa-check fa-xs' style='color: green;'></i> $date <a href='$linkCancel'><i class='far fa-times-circle'></i></a></small>";
 		} else {
-			$paymentInfo = "<br><small title='Nezaplaceno'><i class='fas fa-stop fa-xs' style='color: gray'></i> <a href='$linkPay'>Zaplatit</a> | <a href='$linkPayPlusEmail'>Zaplatit + email</a></small>";
+			$paymentInfo = "<br><small title='Nezaplaceno'><i class='fas fa-stop fa-xs' style='color: gray'></i> <a href='$linkPay'>Zaplatit</a> | <a href='$linkPayPlusEmail'>Zaplatit + e-mail</a></small>";
 		}
 
 		return "<a href='$link'>" . $payment->getTypeName() . "</a>" . $paymentInfo;
@@ -187,7 +187,7 @@ class OrderGridFactory
 			$date = $grid->template->getLatte()->invokeFilter('date', [$delivery->shippedTs]);
 			$deliveryInfo = "<br><small title='Expedováno'><i class='fas fa-play fa-xs' style='color: gray;'></i> $from / $to | $date <a href='$linkCancel'><i class='far fa-times-circle'></i></a></small>";
 		} else {
-			$deliveryInfo = "<br><small title='Neexpedováno'><i class='fas fa-stop fa-xs' style='color: gray'></i> <a href='$linkShip'>Expedovat</a>  | <a href='$linkShipPlusEmail'>Expedovat + email</a></small>";
+			$deliveryInfo = "<br><small title='Neexpedováno'><i class='fas fa-stop fa-xs' style='color: gray'></i> <a href='$linkShip'>Expedovat</a>  | <a href='$linkShipPlusEmail'>Expedovat + e-mail</a></small>";
 		}
 
 		$date = $delivery->shippingDate ? '<i style=\'color: gray;\' class=\'fa fa-shipping-fast\'></i> ' . $grid->template->getLatte()->invokeFilter('date', [$delivery->shippingDate]) : '';
