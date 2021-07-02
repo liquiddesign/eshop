@@ -196,7 +196,7 @@ class ProductPresenter extends BackendPresenter
 
 		$grid->addButtonSaveAll();
 
-		$grid->addFilterTextInput('search', ['fileName'], null, 'Jmébo souboru');
+		$grid->addFilterTextInput('search', ['fileName'], null, 'Jméno souboru');
 		$grid->addFilterButtons(['productFiles', $this->getParameter('product')]);
 
 		return $grid;
