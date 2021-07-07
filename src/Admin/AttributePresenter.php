@@ -93,7 +93,7 @@ class AttributePresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($source, 20, null, null, true);
 
 		$grid->setItemCountCallback(function (ICollection $filteredSource) use ($connection) {
-			return (int)$connection->rows()->select(['count' => 'count(*)'])->from(['derived' => $filteredSource->setSelect(['uuid' => 'this.uuid', 'assignCount' => 'COUNT(assign.uuid)'])], $filteredSource->getVars())->firstValue('count');
+			return (int) $connection->rows()->select(['count' => 'count(*)'])->from(['derived' => $filteredSource->select(['assignCount' => 'COUNT(assign.uuid)'])], $filteredSource->getVars())->firstValue('count');
 		});
 
 		$grid->addColumnSelector();
