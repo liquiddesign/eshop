@@ -255,11 +255,13 @@ class ProductForm extends Control
 					'Chybný formát nebo nebyl nalezen některý ze zadaných produktů!', [$productRepository]);
 		}
 
-		$form->addSelect2('alternative', 'Alternativa k produktu', [], [
-			'ajax' => [
-				'url' => $this->getPresenter()->link('getProductsForSelect2!')
-			]
-		])->checkDefaultValue(false);
+		$this->monitor(Presenter::class, function () use ($form): void {
+			$form->addSelect2('alternative', 'Alternativa k produktu', [], [
+				'ajax' => [
+					'url' => $this->getPresenter()->link('getProductsForSelect2!')
+				]
+			])->checkDefaultValue(false);
+		});
 
 		$prices = $form->addContainer('prices');
 
@@ -390,7 +392,7 @@ class ProductForm extends Control
 		if (!$values['uuid']) {
 			$values['uuid'] = ProductRepository::generateUuid($values['ean'],
 				$values['subCode'] ? $values['code'] . '.' . $values['subCode'] : $values['code'], null);
-		}else{
+		} else {
 			$this->product->upsells->unrelateAll();
 		}
 
