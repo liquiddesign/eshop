@@ -15,7 +15,6 @@ use Tracy\Debugger;
 
 class Comgate
 {
-	/** @inject */
 	public CheckoutManager $checkoutManager;
 
 	/** @inject */
@@ -26,6 +25,11 @@ class Comgate
 
 	/** @inject */
 	public OrderRepository $orderRepository;
+
+	public function __construct(CheckoutManager $checkoutManager)
+	{
+		$this->checkoutManager = $checkoutManager;
+	}
 
 	public function processPayment(): void
 	{
