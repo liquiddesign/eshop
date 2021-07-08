@@ -34,7 +34,8 @@
       	"ext-zip": "*",
 		"mk-j/php_xlsxwriter": "^0.38.0",
         "ext-simplexml": "*",
-		"erusev/parsedown": "^1.7"
+		"erusev/parsedown": "^1.7",
+		"contributte/comgate": "^0.2.0"
     },
 	"require-dev": 
 	{

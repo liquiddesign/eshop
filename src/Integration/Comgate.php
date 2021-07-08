@@ -2,138 +2,74 @@
 
 namespace Eshop\Integration;
 
+use Brick\Money\Money;
+use Contributte\Comgate\Entity\Codes\PaymentMethodCode;
+use Contributte\Comgate\Entity\Payment;
+use Contributte\Comgate\Entity\PaymentStatus;
+use Contributte\Comgate\Gateway\PaymentService;
+use Eshop\CheckoutManager;
+use Eshop\DB\ComgateRepository;
+use Eshop\DB\Order;
+use Eshop\DB\OrderRepository;
+use Tracy\Debugger;
+
 class Comgate
 {
-	private array $config;
+	/** @inject */
+	public CheckoutManager $checkoutManager;
 
-	private string $paymentUrl = 'https://payments.comgate.cz/v1.0/create';
+	/** @inject */
+	public PaymentService $paymentService;
 
-	private ?string $transactionId = null;
+	/** @inject */
+	public ComgateRepository $comgateRepository;
 
-	private ?string $redirectUrl = null;
+	/** @inject */
+	public OrderRepository $orderRepository;
 
-	private array $statusParams = array();
-
-	public function setConfig(array $config): void
+	public function processPayment(): void
 	{
-		$this->config = $config;
+		$this->checkoutManager->onOrderCreate[] = function (Order $order): void {
+			/** @var \Eshop\DB\Order $order */
+			$order = $this->orderRepository->one($order->getPK(), true);
+
+			if ($order->getPayment()->type->code === 'CG') {
+				$response = $this->createPayment($order);
+				Debugger::log($response);
+				\bdump($response);
+
+				if ($response['code'] === '0') {
+					$this->comgateRepository->saveTransaction($response['transId'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, 'PENDING', $order);
+					\header('location: ' . $response['redirect']);
+					exit;
+				}
+			}
+		};
 	}
 
-	private function encodeParams()
+	public function createPayment(Order $order): array
 	{
-		$data = '';
+		$price = $order->getTotalPriceVat();
+		$currency = $order->getPayment()->currency->code;
+		$customer = $order->purchase->email;
+		$payment = Payment::of(
+			Money::of($price ?? 50, $currency ?? 'CZK'),
+			$order->code,
+			$order->code,
+			$customer,
+			PaymentMethodCode::ALL
+		);
 
-		foreach ($this->config as $key => $val) {
-			$data .= ($data === '' ? '' : '&') . \urlencode($key) . '=' . \urlencode((string)$val);
-		}
+		$res = $this->paymentService->create($payment);
 
-		return $data;
+		// $res->isOk();
+		return $res->getData();
 	}
 
-	private function decodeParams($data)
+	public function getStatus(string $transaction): array
 	{
-		$encodedParams = \explode('&', $data);
-		$params = array();
+		$res = $this->paymentService->status(PaymentStatus::of($transaction));
 
-		foreach ($encodedParams as $encodedParam) {
-			$encodedPair = \explode('=', $encodedParam);
-			$paramName = \urlencode($encodedPair[0]);
-			$paramValue = (\count($encodedPair) == 2 ? \urldecode($encodedPair[1]) : '');
-			$params[$paramName] = $paramValue;
-		}
-
-		return $params;
-	}
-
-	private function checkParam($params, $paramName)
-	{
-		if (!isset($params[$paramName])) {
-			throw new \Exception('Missing response parameter: ' . $paramName);
-		}
-
-		return $params[$paramName];
-	}
-
-	public function doHttpPost($url, $data)
-	{
-		$c = \curl_init();
-		\curl_setopt($c, CURLOPT_URL, $url);
-		\curl_setopt($c, CURLOPT_POST, 1);
-		\curl_setopt($c, CURLOPT_RETURNTRANSFER, 1);
-		\curl_setopt($c, CURLOPT_HEADER, 0);
-		\curl_setopt($c, CURLOPT_POSTFIELDS, $data);
-		$responseBody = curl_exec($c);
-		\curl_close($c);
-
-		return $responseBody;
-	}
-
-	public function createTransaction(float $price, string $label, string $orderNumber, string $productName): void
-	{
-		$this->config['price'] = $price;
-		$this->config['label'] = $label;
-		$this->config['refId'] = $orderNumber;
-		$this->config['name'] = $productName;
-
-		$requestBody = $this->encodeParams();
-		bdump($requestBody);
-		$responseBody = $this->doHttpPost($this->paymentUrl, $requestBody);
-
-		bdump($responseBody);
-		$responseParams = $this->decodeParams($responseBody);
-		$responseCode = $this->checkParam($responseParams, 'code');
-		$responseMessage = $this->checkParam($responseParams, 'message');
-
-		if ($responseCode != '0' || $responseMessage !== 'OK') {
-			throw new \Exception('Transaction creation error ' . $responseCode . ': ' . $responseMessage);
-		}
-
-		$this->transactionId = $this->checkParam($responseParams, 'transId');
-		$this->redirectUrl = $this->checkParam($responseParams, 'redirect');
-	}
-
-	public function checkTransactionStatus($params)
-	{
-		$this->statusParams = array();
-
-		if (
-			!isset($params) ||
-			!\is_array($params) ||
-			!isset($params['merchant']) || $params['merchant'] === '' ||
-			!isset($params['test']) || $params['test'] === '' ||
-			!isset($params['price']) || $params['price'] === '' ||
-			!isset($params['curr']) || $params['curr'] === '' ||
-			!isset($params['refId']) || $params['refId'] === '' ||
-			!isset($params['transId']) || $params['transId'] === '' ||
-			!isset($params['secret']) || $params['secret'] === '' ||
-			!isset($params['status']) || $params['status'] === ''
-		) {
-			throw new \Exception('Missing parameters');
-		}
-
-		if (
-			$params['merchant'] !== $this->_merchant ||
-			$params['test'] !== ($this->_test ? 'true' : 'false') ||
-			$params['secret'] !== $this->_secret
-		) {
-			throw new \Exception('Invalid merchant identification');
-		}
-
-		$this->statusParams = $params;
-	}
-
-	public function getTransactionId(): string
-	{
-		return $this->transactionId;
-	}
-
-	public function getRedirectUrl(): string
-	{
-		return $this->redirectUrl;
-	}
-
-	public function getTransactionStatus(): string
-	{
-		return $this->statusParams['status'];
+		return $res->getData();
 	}
 }
