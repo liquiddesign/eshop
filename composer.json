@@ -28,6 +28,7 @@
 		"liquiddesign/common": "@dev",
 		"ext-pdo": "*",
 		"ext-intl": "*",
+		"ext-curl": "*",
 		"guzzlehttp/guzzle": "^7.0",
 		"mailerlite/mailerlite-api-v2-php-sdk": "^0.3.0"
 	},
