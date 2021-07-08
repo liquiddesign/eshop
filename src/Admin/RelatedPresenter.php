@@ -112,13 +112,13 @@ class RelatedPresenter extends BackendPresenter
 			'ajax' => [
 				'url' => $this->link('getProductsForSelect2!')
 			]
-		])->setRequired()->checkDefaultValue(false);;
+		])->setRequired()->checkDefaultValue(false);
 
 		$form->addSelect2('slave', 'Druhý produkt', [], [
 			'ajax' => [
 				'url' => $this->link('getProductsForSelect2!')
 			]
-		])->setRequired()->checkDefaultValue(false);;
+		])->setRequired()->checkDefaultValue(false);
 
 		$form->addSubmits(!$this->getParameter('relation'));
 

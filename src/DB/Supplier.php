@@ -51,6 +51,12 @@ class Supplier extends \StORM\Entity
 	 * @column
 	 */
 	public ?bool $isImportActive;
+
+	/**
+	 * Import obrázků
+	 * @column
+	 */
+	public bool $importImages = true;
 	
 	/**
 	 * Aktualizován

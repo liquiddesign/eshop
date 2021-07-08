@@ -476,7 +476,7 @@ class OrderPresenter extends BackendPresenter
 			'ajax' => [
 				'url' => $this->link('getProductsForSelect2!')
 			]
-		])->setRequired()->checkDefaultValue(false);;
+		])->setRequired()->checkDefaultValue(false);
 
 		$form->addSelect('cart', 'Košík č.', $order->purchase->carts->toArrayOf('id'))->setRequired();
 		$form->addSelect('delivery', 'Doprava', $order->deliveries->where('shippedTs IS NULL')->toArrayOf('typeName'))->setRequired();
