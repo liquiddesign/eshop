@@ -20,15 +20,15 @@ class Comgate
 	/** @inject */
 	public PaymentService $paymentService;
 
-	/** @inject */
 	public ComgateRepository $comgateRepository;
 
-	/** @inject */
 	public OrderRepository $orderRepository;
 
-	public function __construct(CheckoutManager $checkoutManager)
+	public function __construct(CheckoutManager $checkoutManager, ComgateRepository $comgateRepository, OrderRepository $orderRepository)
 	{
 		$this->checkoutManager = $checkoutManager;
+		$this->comgateRepository = $comgateRepository;
+		$this->orderRepository = $orderRepository;
 	}
 
 	public function processPayment(): void
