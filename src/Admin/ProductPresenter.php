@@ -463,7 +463,7 @@ class ProductPresenter extends BackendPresenter
 		}
 
 		$form->setDefaults($product->toArray(['categories', 'tags', 'ribbons', 'parameterGroups', 'taxes']));
-		$form['alternative']->setDefaultValue($product->alternative ? $product->alternative->getFullCode() : null);
+		$form['alternative']->setValue($product->alternative ? $product->getValue('alternative') : null);
 
 		if (isset($form['upsells'])) {
 			$upsells = [];

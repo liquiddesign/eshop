@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Nette\Utils\Arrays;
 use StORM\Collection;
 use Web\DB\Page;
 use Nette\DI\Container;
@@ -28,7 +27,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$this->container = $container;
 	}
 
-	public function syncProducts(Supplier $supplier, string $mutation, string $country, bool $overwrite): void
+	public function syncProducts(Supplier $supplier, string $mutation, string $country, bool $overwrite, bool $importImages = false): void
 	{
 		$sep = \DIRECTORY_SEPARATOR;
 		$sourceImageDirectory = $this->container->parameters['wwwDir'] . $sep . 'userfiles' . $sep . 'supplier_images';
@@ -138,7 +137,7 @@ class SupplierProductRepository extends \StORM\Repository
 				'type' => 'product_detail',
 			], []);
 
-			if (!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName) || !isset($productsWithSupplierContentLock[$uuid]) || $productsWithSupplierContentLock[$uuid]) {
+			if (!$importImages || !$supplier->importImages || !\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName) || !isset($productsWithSupplierContentLock[$uuid]) || $productsWithSupplierContentLock[$uuid]) {
 				continue;
 			}
 
