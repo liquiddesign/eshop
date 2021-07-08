@@ -7,6 +7,7 @@ namespace Eshop\Bridges;
 use Eshop\CheckoutManager;
 use Eshop\CompareManager;
 use Eshop\ImportManager;
+use Eshop\Integration\Comgate;
 use Eshop\Shopper;
 use Nette\Schema\Expect;
 use Nette\Schema\Schema;
@@ -48,6 +49,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		
 		$shopper = $builder->addDefinition($this->prefix('shopper'))->setType(Shopper::class);
 		$cartManager = $builder->addDefinition($this->prefix('cartManager'))->setType(CheckoutManager::class);
+		$builder->addDefinition($this->prefix('comgate'))->setType(Comgate::class);
 		$builder->addDefinition($this->prefix('compareManager'))->setType(CompareManager::class);
 		$builder->getDefinition('latte.templateFactory')->addSetup('$onCreate[]', [['@shopper.shopper', 'addFilters']]);
 
