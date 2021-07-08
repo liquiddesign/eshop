@@ -750,6 +750,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			])
 			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
 			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value= attributeValue.uuid')
+			->join(['producer' => 'eshop_producer'], 'producer.uuid= this.fk_producer')
 			->select(['attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute,':',attributeValue.label$mutationSuffix))"]);
 
 		$exportAttributesWithPK = $this->attributeRepository->many()->where('code', \array_keys($configuration['exportAttributes']))->toArrayOf('code');
@@ -781,6 +782,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 					$row[] = $product->attributes && isset($attributes[$attributePK]) ? $attributes[$attributePK] : null;
 				} elseif ($column === 'perex') {
 					$row[] = $product->getValue($column) ? \strip_tags($product->getValue($column)) : null;
+				} elseif ($column === 'producer') {
+					$row[] = $product->producer ? $product->producer->name : null;
 				} else {
 					$row[] = $product->getValue($column) === false ? '0' : $product->getValue($column);
 				}
