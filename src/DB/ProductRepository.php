@@ -730,15 +730,13 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $this->setRepository->many()->join(['product' => 'eshop_product'], 'product.uuid=this.fk_set')->orderBy(['priority'])->toArray();
 	}
 
-	public function csvExport(ICollection $products, Writer $writer, array $configuration, array $columns, string $delimiter = ';', ?array $header = null): void
+	public function csvExport(ICollection $products, Writer $writer, array $columns = [], array $attributes = [], string $delimiter = ';', ?array $header = null): void
 	{
 		$writer->setDelimiter($delimiter);
 
 		if ($header) {
 			$writer->insertOne($header);
 		}
-
-		$exportAttributes = \array_combine(\array_map('strval', \array_keys($configuration['exportAttributes'])), \array_values($configuration['exportAttributes']));
 
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 
@@ -750,15 +748,14 @@ class ProductRepository extends Repository implements IGeneralRepository
 			])
 			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
 			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value= attributeValue.uuid')
+			->join(['producer' => 'eshop_producer'], 'producer.uuid= this.fk_producer')
 			->select(['attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute,':',attributeValue.label$mutationSuffix))"]);
-
-		$exportAttributesWithPK = $this->attributeRepository->many()->where('code', \array_keys($configuration['exportAttributes']))->toArrayOf('code');
 
 		/** @var Product $product */
 		while ($product = $products->fetch()) {
 			$row = [];
 
-			$attributes = [];
+			$productAttributes = [];
 
 			if ($product->attributes) {
 				$tmp = \explode(',', $product->attributes);
@@ -770,20 +767,22 @@ class ProductRepository extends Repository implements IGeneralRepository
 						continue;
 					}
 
-					$attributes[$tmpExplode[0]] = $tmpExplode[1];
+					$productAttributes[$tmpExplode[0]] = $tmpExplode[1];
 				}
 			}
 
-			foreach ($columns as $column) {
-				if (Arrays::get($exportAttributes, $column, null)) {
-					$attributePK = \array_search($column, $exportAttributesWithPK);
-
-					$row[] = $product->attributes && isset($attributes[$attributePK]) ? $attributes[$attributePK] : null;
-				} elseif ($column === 'perex') {
-					$row[] = $product->getValue($column) ? \strip_tags($product->getValue($column)) : null;
+			foreach ($columns as $columnKey => $columnValue) {
+				if ($columnKey === 'perex') {
+					$row[] = $product->getValue($columnKey) ? \strip_tags($product->getValue($columnKey)) : null;
+				} elseif ($columnKey === 'producer') {
+					$row[] = $product->producer ? $product->producer->name : null;
 				} else {
-					$row[] = $product->getValue($column) === false ? '0' : $product->getValue($column);
+					$row[] = $product->getValue($columnKey) === false ? '0' : $product->getValue($columnKey);
 				}
+			}
+
+			foreach ($attributes as $attributePK => $attributeName) {
+				$row[] = isset($productAttributes[$attributePK]) && $product->attributes ? $productAttributes[$attributePK] : null;
 			}
 
 			$writer->insertOne($row);

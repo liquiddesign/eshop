@@ -42,6 +42,7 @@ use Pages\DB\PageRepository;
 use StORM\Collection;
 use StORM\DIConnection;
 use Web\DB\SettingRepository;
+use function Couchbase\basicDecoderV1;
 
 class ProductPresenter extends BackendPresenter
 {
@@ -474,13 +475,13 @@ class ProductPresenter extends BackendPresenter
 			$form['upsells']->setDefaultValue(\implode(';', $upsells));
 		}
 
-		if (isset($form['tonerForPrinters'])) {
-			try {
-				$form['tonerForPrinters']->setDefaultValue($this->productRepository->getSlaveProductsByRelationAndMaster('tonerForPrinter', $product)->setSelect(['this.uuid'])->toArray());
-			} catch (InvalidArgumentException $e) {
-				$form['tonerForPrinters']->setHtmlAttribute('data-error', 'Byla detekována chybná vazba! Vyberte, prosím, tiskárny znovu.');
-			}
-		}
+//		if (isset($form['tonerForPrinters'])) {
+//			try {
+//				$form['tonerForPrinters']->setDefaultValue($this->productRepository->getSlaveProductsByRelationAndMaster('tonerForPrinter', $product)->setSelect(['this.uuid'])->toArray());
+//			} catch (InvalidArgumentException $e) {
+//				$form['tonerForPrinters']->setHtmlAttribute('data-error', 'Byla detekována chybná vazba! Vyberte, prosím, tiskárny znovu.');
+//			}
+//		}
 
 		if ($product->supplierContentLock) {
 			$form['supplierContent']->setDefaultValue(0);
@@ -960,6 +961,7 @@ class ProductPresenter extends BackendPresenter
 		$ids = $this->getParameter('ids') ?: [];
 		$totalNo = $productGrid->getPaginator()->getItemCount();
 		$selectedNo = \count($ids);
+		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
 
 		$form = $this->formFactory->create();
 		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
@@ -977,7 +979,8 @@ class ProductPresenter extends BackendPresenter
 		]);
 		$form->addCheckbox('header', 'Hlavička')->setDefaultValue(true);
 
-		$columns = $form->addDataMultiSelect('columns', 'Sloupce');
+		$headerColumns = $form->addDataMultiSelect('columns', 'Sloupce');
+		$attributesColumns = $form->addDataMultiSelect('attributes', 'Atributy');
 
 		$items = [];
 		$defaultItems = [];
@@ -989,40 +992,58 @@ class ProductPresenter extends BackendPresenter
 				$defaultItems = \array_merge($defaultItems, static::CONFIGURATION['defaultExportColumns']);
 			}
 		}
+
+		$headerColumns->setItems($items);
+		$headerColumns->setDefaultValue($defaultItems);
+
+		$attributes = [];
+		$defaultAttributes = [];
+
 		if (isset(static::CONFIGURATION['exportAttributes'])) {
 			foreach (static::CONFIGURATION['exportAttributes'] as $key => $value) {
 				if ($attribute = $this->attributeRepository->many()->where('code', $key)->first()) {
-					$items[$key] = $value;
-					$defaultItems[] = $key;
+					$attributes[$attribute->getPK()] = $value;
+					$defaultAttributes[] = $attribute->getPK();
 				}
 			}
+
+			$attributes += $this->attributeRepository->many()
+				->whereNot('this.code', \array_keys(static::CONFIGURATION['exportAttributes']))
+				->join(['attributeValue' => 'eshop_attributevalue'], 'this.uuid = attributeValue.fk_attribute')
+				->join(['assign' => 'eshop_attributeassign'], 'attributeValue.uuid = assign.fk_value')
+				->where('assign.uuid IS NOT NULL')
+				->where('this.hidden', false)
+				->orderBy(["this.name$mutationSuffix"])
+				->toArrayOf('name');
 		}
 
-		$columns->setItems($items);
-		$columns->setDefaultValue($defaultItems);
+		$attributesColumns->setItems($attributes);
+		$attributesColumns->setDefaultValue($defaultAttributes);
 
 		$form->addSubmit('submit', 'Exportovat');
 
-		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid, $items) {
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid, $items, $attributes) {
 			$values = $form->getValues('array');
 
 			$products = $values['bulkType'] == 'selected' ? $this->productRepository->many()->where('this.uuid', $ids) : $productGrid->getFilteredSource();
 
 			$tempFilename = \tempnam($this->tempDir, "csv");
 
-			$selectedColumns = \array_map('strval', $values['columns']);
+			$headerColumns = \array_filter($items, function ($item) use ($values) {
+				return \in_array($item, $values['columns']);
+			}, ARRAY_FILTER_USE_KEY);
 
-			$columns = \array_filter($items, function ($key) use ($selectedColumns) {
-				return \in_array((string)$key, $selectedColumns);
+			$attributeColumns = \array_filter($attributes, function ($item) use ($values) {
+				return \in_array($item, $values['attributes']);
 			}, ARRAY_FILTER_USE_KEY);
 
 			$this->productRepository->csvExport(
 				$products,
 				Writer::createFromPath($tempFilename),
-				static::CONFIGURATION,
-				\array_keys($columns),
+				$headerColumns,
+				$attributeColumns,
 				$values['delimiter'],
-				$values['header'] ? \array_values($columns) : null
+				$values['header'] ? \array_merge(\array_values($headerColumns), \array_values($attributeColumns)) : null
 			);
 
 			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "products.csv", 'text/csv'));
