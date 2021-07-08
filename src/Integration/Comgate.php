@@ -17,18 +17,18 @@ class Comgate
 {
 	public CheckoutManager $checkoutManager;
 
-	/** @inject */
 	public PaymentService $paymentService;
 
 	public ComgateRepository $comgateRepository;
 
 	public OrderRepository $orderRepository;
 
-	public function __construct(CheckoutManager $checkoutManager, ComgateRepository $comgateRepository, OrderRepository $orderRepository)
+	public function __construct(CheckoutManager $checkoutManager, ComgateRepository $comgateRepository, OrderRepository $orderRepository, PaymentService $paymentService)
 	{
 		$this->checkoutManager = $checkoutManager;
 		$this->comgateRepository = $comgateRepository;
 		$this->orderRepository = $orderRepository;
+		$this->paymentService = $paymentService;
 	}
 
 	public function processPayment(): void
