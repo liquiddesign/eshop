@@ -15,7 +15,7 @@ class ComgateRepository extends Repository
 			'price' => $price,
 			'currency' => $currency,
 			'status' => $status,
-			'fk_order' => $order->getPK(),
+			'order' => $order->getPK(),
 		]);
 	}
 }
