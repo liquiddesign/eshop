@@ -255,8 +255,11 @@ class ProductForm extends Control
 					'Chybný formát nebo nebyl nalezen některý ze zadaných produktů!', [$productRepository]);
 		}
 
-		$form->addText('alternative', 'Alternativa k produktu')
-			->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$productRepository]);
+		$form->addSelect2('alternative', 'Alternativa k produktu', [], [
+			'ajax' => [
+				'url' => $this->getPresenter()->link('getProductsForSelect2!')
+			]
+		])->checkDefaultValue(false);
 
 		$prices = $form->addContainer('prices');
 
@@ -271,25 +274,35 @@ class ProductForm extends Control
 		$setItemsContainer = $form->addContainer('setItems');
 
 		for ($i = 0; $i < 5; $i++) {
-			$itemContainer = $setItemsContainer->addContainer("s$i");
-			$itemContainer->addText('product')
-				->addCondition($form::FILLED)
-				->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$this->productRepository]);
-			$itemContainer->addInteger('priority')
-				->setDefaultValue(1)
-				->addConditionOn($itemContainer['product'], $form::FILLED)
-				->setRequired();
-			$itemContainer->addInteger('amount')
-				->setDefaultValue(1)
-				->addConditionOn($itemContainer['product'], $form::FILLED)
-				->setRequired()
-				->addRule($form::MIN, 'Množství musí být větší než 0!', 1);
-			$itemContainer->addText('discountPct')
-				->setDefaultValue(0)
-				->addConditionOn($itemContainer['product'], $form::FILLED)
-				->setRequired()
-				->addRule($form::FLOAT)
-				->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
+			$this->monitor(Presenter::class, function () use ($setItemsContainer, $i, $form): void {
+				$itemContainer = $setItemsContainer->addContainer("s$i");
+
+				$itemContainer->addText('product')
+					->addCondition($form::FILLED)
+					->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$this->productRepository]);
+//				$itemContainer->addSelect2('product', null, [], [
+//					'ajax' => [
+//						'url' => $this->getPresenter()->link('getProductsForSelect2!')
+//					]
+//				]);
+
+
+				$itemContainer->addInteger('priority')
+					->setDefaultValue(1)
+					->addConditionOn($itemContainer['product'], $form::FILLED)
+					->setRequired();
+				$itemContainer->addInteger('amount')
+					->setDefaultValue(1)
+					->addConditionOn($itemContainer['product'], $form::FILLED)
+					->setRequired()
+					->addRule($form::MIN, 'Množství musí být větší než 0!', 1);
+				$itemContainer->addText('discountPct')
+					->setDefaultValue(0)
+					->addConditionOn($itemContainer['product'], $form::FILLED)
+					->setRequired()
+					->addRule($form::FLOAT)
+					->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
+			});
 		}
 
 		$i = 0;
@@ -421,6 +434,7 @@ class ProductForm extends Control
 			}
 		}
 
+		//gethttpdata['tonerForPrinters']
 		if (isset($values['tonerForPrinters'])) {
 			$this->relatedRepository->many()
 				->where('fk_master', $product->getPK())

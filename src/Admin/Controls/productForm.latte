@@ -406,8 +406,7 @@
                         &nbsp; <i
                                 class="fa fa-arrow-right"></i> {input dependedValue class => 'form-control form-control-sm max-number col-label', style=> 'display:inline-block;'}
                         %<br>
-                        <span id="data-info" class="text-gray text-sm">EAN nebo kódy oddělené středníky <i
-                                    class="fa fa-arrow-right"></i> Pokud neexistuje cena, vypočítá se procentuálně</span>
+                        <span id="data-info" class="text-gray text-sm"><i class="fa fa-arrow-right"></i> Pokud neexistuje cena, vypočítá se procentuálně</span>
                         <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError upsells}</span>
                     </td>
                 </tr>
@@ -416,7 +415,7 @@
 
                     <td class="align-middle">
                         {input alternative  class => 'form-control form-control-sm col-label'}
-                        <span id="data-info" class="text-gray text-sm">EAN nebo kód. Produkt nebude zobrazen ve výpisu, ale pod mateřskou kartou.</span>
+                        <span id="data-info" class="text-gray text-sm"> Produkt nebude zobrazen ve výpisu, ale pod mateřskou kartou.</span>
                         <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError alternative}</span>
                     </td>
                 </tr>
