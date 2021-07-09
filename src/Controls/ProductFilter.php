@@ -6,8 +6,10 @@ namespace Eshop\Controls;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\ProductRepository;
 use Nette\Application\UI\Control;
+use StORM\Collection;
 use Translator\DB\TranslationRepository;
 use Forms\FormFactory;
 use Forms\Form;
@@ -26,6 +28,8 @@ class ProductFilter extends Control
 
 	private AttributeValueRepository $attributeValueRepository;
 
+	private DisplayAmountRepository $displayAmountRepository;
+
 	private ?array $selectedCategories;
 
 	public function __construct(
@@ -34,7 +38,9 @@ class ProductFilter extends Control
 		CategoryRepository $categoryRepository,
 		ProductRepository $productRepository,
 		AttributeRepository $attributeRepository,
-		AttributeValueRepository $attributeValueRepository
+		AttributeValueRepository $attributeValueRepository,
+		DisplayAmountRepository $displayAmountRepository,
+		array $configuration = []
 	)
 	{
 		$this->translator = $translator;
@@ -43,6 +49,7 @@ class ProductFilter extends Control
 		$this->productRepository = $productRepository;
 		$this->attributeRepository = $attributeRepository;
 		$this->attributeValueRepository = $attributeValueRepository;
+		$this->displayAmountRepository = $displayAmountRepository;
 	}
 
 	/**
@@ -68,8 +75,15 @@ class ProductFilter extends Control
 
 	public function render(): void
 	{
-		$collection = $this->getParent()->getSource()->setSelect(['this.uuid']);
+		/** @var Collection $collection */
+		$collection = $this->getParent()->getSource()->setSelect(['this.uuid', 'this.fk_displayAmount']);
 
+		$displayAmountCounts = $this->displayAmountRepository->many()->setGroupBy(['this.uuid'])
+			->join(['product' => $collection], 'product.fk_displayAmount= this.uuid', $collection->getVars())
+			->select(['count' => 'COUNT(DISTINCT product.uuid)'])
+			->toArray();
+
+		$this->template->displayAmountCounts = $displayAmountCounts;
 		$this->template->attributes = $this->attributeRepository->getAttributesByCategories($this->getSelectedCategories())->where('showFilter', true)->toArray();
 		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($collection, $this->getSelectedCategories(), $this->getParent()->getFilters()['attributes'] ?? []);
 
@@ -82,6 +96,7 @@ class ProductFilter extends Control
 
 		$filterForm->addInteger('priceFrom')->setRequired()->setDefaultValue(0);
 		$filterForm->addInteger('priceTo')->setRequired()->setDefaultValue(100000);
+		$filterForm->addCheckboxList('availability', null, $this->displayAmountRepository->getArrayForSelect());
 
 		$attributesContainer = $filterForm->addContainer('attributes');
 

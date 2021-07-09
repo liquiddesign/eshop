@@ -226,6 +226,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$collection->whereNot('this.uuid', $values['uuid'])->where('this.fk_primaryCategory = :category', ['category' => $values['category']]);
 	}
 
+	public function filterAvailability($values, ICollection $collection)
+	{
+		$collection->where('this.fk_displayAmount', $values);
+	}
+
 	public function filterQ($value, ICollection $collection): ICollection
 	{
 		$langSuffix = $this->getConnection()->getMutationSuffix();

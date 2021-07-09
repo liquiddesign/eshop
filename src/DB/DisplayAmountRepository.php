@@ -9,8 +9,10 @@ namespace Eshop\DB;
  */
 class DisplayAmountRepository extends \StORM\Repository
 {
-	public function getArrayForSelect():array
+	public function getArrayForSelect(): array
 	{
-		return $this->many()->orderBy(['label'])->toArrayOf('label');
+		$mutationSuffix = $this->getConnection()->getMutationSuffix();
+
+		return $this->many()->orderBy(['priority', "label$mutationSuffix"])->toArrayOf('label');
 	}
 }
