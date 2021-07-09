@@ -84,7 +84,13 @@ class ProductGridFactory
 
 	public function create(array $configuration): Datagrid
 	{
-		$grid = $this->gridFactory->create($this->productRepository->many()->setGroupBy(['this.uuid']), 20, 'this.priority', 'ASC', true);
+		$source = $this->productRepository->many()->setGroupBy(['this.uuid'])
+			->join(['photo' => 'eshop_photo'], 'this.uuid = photo.fk_product')
+			->join(['file' => 'eshop_file'], 'this.uuid = file.fk_product')
+			->select(['photoCount' => "COUNT(DISTINCT photo.uuid)"])
+			->select(['fileCount' => "COUNT(DISTINCT file.uuid)"]);
+
+		$grid = $this->gridFactory->create($source, 20, 'this.priority', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnImage('imageFileName', Product::IMAGE_DIR);
 
@@ -120,8 +126,12 @@ class ProductGridFactory
 		}
 
 		$grid->addColumnLink('Prices', 'Ceny');
-		$grid->addColumnLink('Photos', '<i title="Obrázky" class="far fa-file-image"></i>');
-		$grid->addColumnLink('Files', '<i title="Soubory" class="far fa-file"></i>');
+		$grid->addColumn(null, function (Product $product, $grid) {
+			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' . $grid->getPresenter()->link('photos', $product) . '"><i title="Obrázky" class="far fa-file-image"></i>&nbsp;' . $product->photoCount . '</a>';
+		});
+		$grid->addColumn(null, function (Product $product, $grid) {
+			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' . $grid->getPresenter()->link('files', $product) . '"><i title="Soubory" class="far fa-file"></i>&nbsp;' . $product->fileCount . '</a>';
+		});
 
 		$grid->addColumnLinkDetail('edit');
 		$grid->addColumnActionDelete([$this, 'onDelete']);
