@@ -82,6 +82,12 @@ class Order extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Delivery>|\Eshop\DB\Delivery[]
 	 */
 	public RelationCollection $deliveries;
+	
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\Comgate>|\Eshop\DB\Comgate[]
+	 */
+	public RelationCollection $comgate;
 
 	public function getDeliveryPriceSum(): float
 	{
