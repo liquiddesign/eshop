@@ -11,6 +11,7 @@ use Eshop\CheckoutManager;
 use Eshop\DB\ComgateRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
+use Nette\Utils\DateTime;
 use Tracy\Debugger;
 
 class Comgate
@@ -39,8 +40,8 @@ class Comgate
 
 			if ($order->getPayment()->type->code === 'CG') {
 				$response = $this->createPayment($order);
-				Debugger::log($response);
-				\bdump($response);
+				$order->receivedTs = new DateTime();
+				$order->update(['receivedTs' => new DateTime()]);
 
 				if ($response['code'] === '0') {
 					$this->comgateRepository->saveTransaction($response['transId'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, 'PENDING', $order);
