@@ -40,7 +40,6 @@ class Comgate
 
 			if ($order->getPayment()->type->code === 'CG') {
 				$response = $this->createPayment($order);
-				$order->receivedTs = new DateTime();
 				$order->update(['receivedTs' => new DateTime()]);
 
 				if ($response['code'] === '0') {
