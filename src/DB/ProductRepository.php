@@ -9,6 +9,7 @@ use Eshop\Shopper;
 use League\Csv\Writer;
 use Nette\Utils\Arrays;
 use Pages\Pages;
+use Security\DB\Account;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Entity;
@@ -223,6 +224,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 	public function filterRelated($values, ICollection $collection)
 	{
 		$collection->whereNot('this.uuid', $values['uuid'])->where('this.fk_primaryCategory = :category', ['category' => $values['category']]);
+	}
+
+	public function filterAvailability($values, ICollection $collection)
+	{
+		$collection->where('this.fk_displayAmount', $values);
 	}
 
 	public function filterQ($value, ICollection $collection): ICollection
@@ -625,13 +631,16 @@ class ProductRepository extends Repository implements IGeneralRepository
 	}
 
 	/**
-	 * @param \Eshop\DB\Customer|\Eshop\DB\Merchant $user
+	 * @param Account|string $account
 	 * @return \StORM\Collection|\StORM\GenericCollection|array
+	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getBoughtPrintersByUser($user)
+	public function getBoughtPrintersByUser($account)
 	{
-		if (!$user instanceof Customer && !$user instanceof Merchant) {
-			return [];
+		if (!$account instanceof Account) {
+			if (!$account = $this->getConnection()->findRepository(Account::class)->one($account)) {
+				return [];
+			}
 		}
 
 		return $this->many()
@@ -640,7 +649,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			->join(['cart' => 'eshop_cart'], 'cartitem.fk_cart = cart.uuid')
 			->join(['purchase' => 'eshop_purchase'], 'cart.fk_purchase = purchase.uuid')
 			->join(['orderTable' => 'eshop_order'], 'orderTable.fk_purchase = purchase.uuid')
-			->where('orderTable.fk_customer', $user->getPK())
+			->where('purchase.fk_account', $account->getPK())
 			->where('relation.fk_type', 'tonerForPrinter')
 			->where('orderTable.completedTs IS NOT NULL')
 			->orderBy(['orderTable.completedTs' => 'DESC']);

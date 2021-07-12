@@ -34,7 +34,6 @@ use League\Csv\Writer;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\FileUpload;
-use Nette\InvalidArgumentException;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Nette\Utils\Random;
@@ -42,7 +41,6 @@ use Pages\DB\PageRepository;
 use StORM\Collection;
 use StORM\DIConnection;
 use Web\DB\SettingRepository;
-use function Couchbase\basicDecoderV1;
 
 class ProductPresenter extends BackendPresenter
 {
