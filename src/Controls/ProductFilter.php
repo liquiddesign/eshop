@@ -152,7 +152,12 @@ class ProductFilter extends Control
 	{
 		$parent = $this->getParent()->getName();
 
-		$this->getPresenter()->redirect('this', ["$parent-priceFrom" => null, "$parent-priceTo" => null, "$parent-attributes" => null]);
+		$this->getPresenter()->redirect('this', [
+			"$parent-priceFrom" => null,
+			"$parent-priceTo" => null,
+			"$parent-attributes" => null,
+			"$parent-availability" => null
+		]);
 	}
 
 	public function handleClearFilter($searchedAttributeKey, $searchedAttributeValueKey = null): void
