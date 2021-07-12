@@ -40,7 +40,7 @@ class Comgate
 
 			if ($order->getPayment()->type->code === 'CG') {
 				$response = $this->createPayment($order);
-				$order->update(['receivedTs' => (new DateTime())->getTimestamp()]);
+				$order->update(['receivedTs' => (new DateTime())->__toString()]);
 
 				if ($response['code'] === '0') {
 					$this->comgateRepository->saveTransaction($response['transId'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, 'PENDING', $order);
