@@ -127,6 +127,9 @@ class ProductList extends Datalist
 		$this->addFilterExpression('availability', function (ICollection $collection, $value): void {
 			$this->productRepository->filterAvailability($value, $collection);
 		});
+		$this->addFilterExpression('delivery', function (ICollection $collection, $value): void {
+			$this->productRepository->filterDelivery($value, $collection);
+		});
 
 		$this->productRepository = $productRepository;
 		$this->watcherRepository = $watcherRepository;
