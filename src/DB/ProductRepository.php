@@ -231,6 +231,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$collection->where('this.fk_displayAmount', $values);
 	}
 
+	public function filterDelivery($values, ICollection $collection)
+	{
+		$collection->where('this.fk_displayDelivery', $values);
+	}
+
 	public function filterQ($value, ICollection $collection): ICollection
 	{
 		$langSuffix = $this->getConnection()->getMutationSuffix();
