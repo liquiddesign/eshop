@@ -517,7 +517,7 @@ class PricelistsPresenter extends BackendPresenter
 			'ajax' => [
 				'url' => $this->link('getProductsForSelect2!')
 			]
-		])->setRequired()->checkDefaultValue(false);;
+		]);
 
 		$form->addText('price', 'Cena')->addRule($form::FLOAT)->setRequired();
 		$form->addText('priceVat', 'Cena s daní')->addRule($form::FLOAT);
@@ -526,10 +526,18 @@ class PricelistsPresenter extends BackendPresenter
 
 		$form->addSubmits();
 
+		$form->onValidate[] = function (AdminForm $form) {
+			$data = $this->getHttpRequest()->getPost();
+
+			if (!isset($data['product'])) {
+				$form['product']->addError('Toto pole je povinné!');
+			}
+		};
+
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues();
 
-			$values['priceVat'] = $values['priceVat'] !== '' ?: 0;
+			$values['priceVat'] = $values['priceVat'] !== '' ? $values['priceVat'] : 0;
 			$values['product'] = $form->getHttpData(Form::DATA_TEXT, 'product');
 
 			$this->quantityPriceRepo->syncOne($values, null, true);

@@ -34,6 +34,7 @@ use League\Csv\Writer;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\FileUpload;
+use Nette\InvalidArgumentException;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Nette\Utils\Random;
@@ -465,21 +466,16 @@ class ProductPresenter extends BackendPresenter
 		$form['alternative']->setValue($product->alternative ? $product->getValue('alternative') : null);
 
 		if (isset($form['upsells'])) {
-			$upsells = [];
-			foreach ($product->upsells as $upsell) {
-				$upsells[] = $upsell->getFullCode() ?? $upsell->ean;
-			}
-
-			$form['upsells']->setDefaultValue(\implode(';', $upsells));
+			$this->template->select2AjaxDefaults[$form['upsells']->getHtmlId()] = $product->upsells->toArrayOf('name');
 		}
 
-//		if (isset($form['tonerForPrinters'])) {
-//			try {
-//				$form['tonerForPrinters']->setDefaultValue($this->productRepository->getSlaveProductsByRelationAndMaster('tonerForPrinter', $product)->setSelect(['this.uuid'])->toArray());
-//			} catch (InvalidArgumentException $e) {
-//				$form['tonerForPrinters']->setHtmlAttribute('data-error', 'Byla detekována chybná vazba! Vyberte, prosím, tiskárny znovu.');
-//			}
-//		}
+		if (isset($form['tonerForPrinters'])) {
+			try {
+				$this->template->select2AjaxDefaults[$form['tonerForPrinters']->getHtmlId()] = $this->productRepository->getSlaveProductsByRelationAndMaster('tonerForPrinter', $product)->toArrayOf('name');
+			} catch (InvalidArgumentException $e) {
+				$form['tonerForPrinters']->setHtmlAttribute('data-error', 'Byla detekována chybná vazba! Vyberte, prosím, tiskárny znovu.');
+			}
+		}
 
 		if ($product->supplierContentLock) {
 			$form['supplierContent']->setDefaultValue(0);

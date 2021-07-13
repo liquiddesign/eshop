@@ -124,9 +124,17 @@ class SupplierProductPresenter extends BackendPresenter
 			'ajax' => [
 				'url' => $this->link('getProductsForSelect2!')
 			]
-		])->checkDefaultValue(false);;
+		]);
 
 		$form->addSubmits(false, false);
+
+		$form->onValidate[] = function (AdminForm $form) {
+			$data = $this->getHttpRequest()->getPost();
+
+			if (!isset($data['productFullCode'])) {
+				$form['productFullCode']->addError('Toto pole je povinné!');
+			}
+		};
 
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');

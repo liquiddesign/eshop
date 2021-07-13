@@ -45,19 +45,19 @@ class OrderGridFactory
 	private function getCollectionByState(string $state): Collection
 	{
 		if ($state === 'received') {
-			return $this->orderRepository->many()->where('this.receivedTs IS NOT NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
+			return $this->orderRepository->many()->where('this.completedTs IS NULL AND this.canceledTs IS NULL')
 				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
 				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
 
 		if ($state === 'finished') {
-			return $this->orderRepository->many()->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
+			return $this->orderRepository->many()->where('this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
 				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
 				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
 
 		if ($state === 'canceled') {
-			return $this->orderRepository->many()->where('this.receivedTs IS NOT NULL AND this.canceledTs IS NOT NULL')
+			return $this->orderRepository->many()->where('this.canceledTs IS NOT NULL')
 				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
 				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
