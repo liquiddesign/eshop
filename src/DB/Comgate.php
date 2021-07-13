@@ -49,7 +49,7 @@ class Comgate extends Entity
 	/**
 	 * Objednávka
 	 * @relation
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @constraint
 	 */
-	public Order $order;
+	public ?Order $order;
 }
