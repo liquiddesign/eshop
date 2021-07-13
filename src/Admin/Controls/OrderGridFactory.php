@@ -44,20 +44,26 @@ class OrderGridFactory
 
 	private function getCollectionByState(string $state): Collection
 	{
+		if ($state === 'open') {
+			return $this->orderRepository->many()->where('this.receivedTs IS NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
+				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
+		}
+
 		if ($state === 'received') {
-			return $this->orderRepository->many()->where('this.completedTs IS NULL AND this.canceledTs IS NULL')
+			return $this->orderRepository->many()->where('this.receivedTs IS NOT NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
 				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
 				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
 
 		if ($state === 'finished') {
-			return $this->orderRepository->many()->where('this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
+			return $this->orderRepository->many()->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
 				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
 				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
 
 		if ($state === 'canceled') {
-			return $this->orderRepository->many()->where('this.canceledTs IS NOT NULL')
+			return $this->orderRepository->many()->where('this.receivedTs IS NOT NULL AND this.canceledTs IS NOT NULL')
 				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
 				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
@@ -84,14 +90,19 @@ class OrderGridFactory
 		$properties = ["getTotalPrice|price:currency.code", 'getTotalPriceVat|price:currency.code'];
 		$grid->addColumnText('Cena', $properties, '%s<br><small>%s s DPH</small>', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
-		if ($state !== 'finished') {
+		if ($state === 'open') {
+			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Uzavřít úpravy'><i class='fa fa-sm fa-check'></i></a>";
+			$grid->addColumnAction('', $actionIco, [$this, 'closeOrder'], [], null, ['class' => 'minimal']);
+		}
+
+		if ($state !== 'finished' && $state !== 'open') {
 			$grid->addColumn('Schváleno', [$this, 'renderApprovalColumn'], '%s', null, ['class' => 'minimal']);
 
 			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Zpracovat'><i class='fa fa-sm fa-check'></i></a>";
 			$grid->addColumnAction('', $actionIco, [$this, 'completeOrder'], [], null, ['class' => 'minimal']);
 		}
 
-		if ($state !== 'canceled') {
+		if ($state !== 'canceled' && $state !== 'open') {
 			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Stornovat'><i class='fa fa-sm fa-times'></i></a>";
 			$grid->addColumnAction('', $actionIco, [$this, 'cancelOrder'], [], null, ['class' => 'minimal']);
 		}
@@ -128,13 +139,19 @@ class OrderGridFactory
 
 		$grid->addButtonBulkEdit('form', ['completedTs', 'canceledTs'], 'ordersGrid');
 
-		if ($state !== 'finished') {
+		if ($state === 'open') {
+			$submit = $grid->getForm()->addSubmit('closeMultiple');
+			$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')->setHtml('<i class="fa fa-check"></i> Uzavřít úpravy');
+			$submit->onClick[] = [$this, 'closeOrderMultiple'];
+		}
+
+		if ($state !== 'finished' && $state !== 'open') {
 			$submit = $grid->getForm()->addSubmit('completeMultiple');
 			$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')->setHtml('<i class="fa fa-check"></i> Zpracovat');
 			$submit->onClick[] = [$this, 'completeOrderMultiple'];
 		}
 
-		if ($state !== 'canceled') {
+		if ($state !== 'canceled' && $state !== 'open') {
 			$submit = $grid->getForm()->addSubmit('cancelMultiple');
 			$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')->setHtml('<i class="fa fa-times"></i> Stornovat');
 			$submit->onClick[] = [$this, 'cancelOrderMultiple'];
@@ -336,6 +353,29 @@ class OrderGridFactory
 		], $object->purchase->email, null, null, $accountMutation);
 
 		$this->mailer->send($mail);
+
+		if ($grid && $redirectAfter) {
+			$grid->getPresenter()->flashMessage('Provedeno', 'success');
+			$grid->getPresenter()->redirect('this');
+		}
+	}
+
+	public function closeOrderMultiple(Button $button)
+	{
+		/** @var \Grid\Datagrid $grid */
+		$grid = $button->lookup(Datagrid::class);
+
+		foreach ($grid->getSelectedIds() as $id) {
+			$this->closeOrder($grid->getSource()->where('this.uuid', $id)->first(), $grid, false);
+		}
+
+		$grid->getPresenter()->flashMessage('Provedeno', 'success');
+		$grid->getPresenter()->redirect('this');
+	}
+
+	public function closeOrder(Order $object, ?Datagrid $grid = null, bool $redirectAfter = true)
+	{
+		$object->update(['receivedTs' => (string)new DateTime()]);
 
 		if ($grid && $redirectAfter) {
 			$grid->getPresenter()->flashMessage('Provedeno', 'success');

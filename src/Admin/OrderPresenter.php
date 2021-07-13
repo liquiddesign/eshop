@@ -330,11 +330,17 @@ class OrderPresenter extends BackendPresenter
 
 	public function renderDefault()
 	{
-		$this->template->tabs = [
+		$tabs = [
 			'received' => 'Aktuální',
 			'finished' => 'Zpracované',
 			'canceled' => 'Stornované',
 		];
+
+		if ($this->shopper->getEditOrderAfterCreation()) {
+			$tabs = \array_merge(['open' => 'Otevřené'], $tabs);
+		}
+
+		$this->template->tabs = $tabs;
 
 		$this->template->headerLabel = "Objednávky";
 		$this->template->headerTree = [
