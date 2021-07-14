@@ -82,7 +82,7 @@ class Pricelist extends \StORM\Entity
 	 */
 	public ?Supplier $supplier;
 	
-	/**
+	/** více štítků
 	 * Štítek
 	 * @relation
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}

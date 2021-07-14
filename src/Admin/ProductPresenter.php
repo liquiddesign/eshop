@@ -974,7 +974,7 @@ class ProductPresenter extends BackendPresenter
 		$form->addCheckbox('header', 'Hlavička')->setDefaultValue(true);
 
 		$headerColumns = $form->addDataMultiSelect('columns', 'Sloupce');
-		$attributesColumns = $form->addDataMultiSelect('attributes', 'Atributy');
+		$attributesColumns = $form->addDataMultiSelect('attributes', 'Atributy')->setHtmlAttribute('data-info', 'Zobrazují se pouze atributy, které mají alespoň jeden přiřazený produkt.');
 
 		$items = [];
 		$defaultItems = [];

@@ -81,26 +81,28 @@ class ProductFilter extends Control
 	public function render(): void
 	{
 		/** @var Collection $collection */
-		$collection = $this->getParent()->getSource()->setSelect(['this.uuid', 'this.fk_displayAmount']);
+		$collection = $this->getParent()->getFilteredSource()->setSelect(['this.uuid', 'this.fk_displayAmount', 'this.priority'])->setOrderBy(['this.priority']);
 
 		$displayAmountCounts = $this->displayAmountRepository->many()->setGroupBy(['this.uuid'])
 			->join(['product' => $collection], 'product.fk_displayAmount= this.uuid', $collection->getVars())
 			->select(['count' => 'COUNT(DISTINCT product.uuid)'])
+			->setOrderBy(['this.priority'])
 			->toArray();
 
 		$this->template->displayAmountCounts = $displayAmountCounts;
 
 		/** @var Collection $collection */
-		$collection = $this->getParent()->getSource()->setSelect(['this.uuid', 'this.fk_displayDelivery']);
+		$collection = $this->getParent()->getFilteredSource()->setSelect(['this.uuid', 'this.fk_displayDelivery', 'this.priority'])->setOrderBy(['this.priority']);
 
 		$displayDeliveryCounts = $this->displayDeliveryRepository->many()->setGroupBy(['this.uuid'])
 			->join(['product' => $collection], 'product.fk_displayDelivery= this.uuid', $collection->getVars())
 			->select(['count' => 'COUNT(DISTINCT product.uuid)'])
+			->setOrderBy(['this.priority'])
 			->toArray();
 
 		$this->template->displayDeliveryCounts = $displayDeliveryCounts;
 		$this->template->attributes = $this->attributeRepository->getAttributesByCategories($this->getSelectedCategories())->where('showFilter', true)->toArray();
-		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($collection, $this->getSelectedCategories(), $this->getParent()->getFilters()['attributes'] ?? []);
+		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($this->getParent()->getSource(), $this->getSelectedCategories(), $this->getParent()->getFilters()['attributes'] ?? []);
 
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
