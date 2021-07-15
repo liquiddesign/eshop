@@ -223,24 +223,31 @@ class ProductForm extends Control
 		}
 
 		if ($configuration['relations']) {
-			/** @var \Eshop\DB\Category $printerCategory */
-			$printerCategory = $categoryRepository->one('printers');
+//			/** @var \Eshop\DB\Category $printerCategory */
+//			$printerCategory = $categoryRepository->one('printers');
+			$this->monitor(Presenter::class, function () use ($form): void {
+				$form->addMultiSelect2('tonerForPrinters', 'Toner pro tiskárny', [], [
+					'ajax' => [
+						'url' => $this->getPresenter()->link('getTonerProductsForSelect2!')
+					]
+				])->checkDefaultValue(false);
+			});
 
-			if ($printerCategory) {
-				$printers = $productRepository->many()
-					->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'this.uuid = nxnCategory.fk_product')
-					->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
-					->where('category.path LIKE :categoryPath', ['categoryPath' => $printerCategory->path . '%']);
-
-				if ($product) {
-					$printers->where('this.uuid != :thisProduct', ['thisProduct' => $product->getPK()]);
-				}
-
-				if (\count($printers) > 0) {
-					$form->addDataMultiSelect('tonerForPrinters', 'Toner pro tiskárny',
-						$printers->orderBy(['name_cs'])->toArrayOf('name'));
-				}
-			}
+//			if ($printerCategory) {
+//				$printers = $productRepository->many()
+//					->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'this.uuid = nxnCategory.fk_product')
+//					->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
+//					->where('category.path LIKE :categoryPath', ['categoryPath' => $printerCategory->path . '%']);
+//
+//				if ($product) {
+//					$printers->where('this.uuid != :thisProduct', ['thisProduct' => $product->getPK()]);
+//				}
+//
+//				if (\count($printers) > 0) {
+//					$form->addDataMultiSelect('tonerForPrinters', 'Toner pro tiskárny',
+//						$printers->orderBy(['name_cs'])->toArrayOf('name'));
+//				}
+//			}
 		}
 
 		if ($configuration['taxes']) {
@@ -248,19 +255,27 @@ class ProductForm extends Control
 		}
 
 		if ($configuration['upsells']) {
-			$form->addText('upsells', 'Upsell produkty')
-				->setNullable()
-				->addCondition($form::FILLED)
-				->addRule([FormValidators::class, 'isMultipleProductsExists'],
-					'Chybný formát nebo nebyl nalezen některý ze zadaných produktů!', [$productRepository]);
+			$this->monitor(Presenter::class, function () use ($form): void {
+				$form->addMultiSelect2('upsells', 'Upsell produkty', [], [
+					'ajax' => [
+						'url' => $this->getPresenter()->link('getProductsForSelect2!')
+					]
+				])->checkDefaultValue(false);
+			});
 		}
 
 		$this->monitor(Presenter::class, function () use ($form): void {
-			$form->addSelect2('alternative', 'Alternativa k produktu', [], [
+			$alternative = $form->addSelect2('alternative', 'Alternativa k produktu', [], [
 				'ajax' => [
 					'url' => $this->getPresenter()->link('getProductsForSelect2!')
-				]
+				],
+				'allowClear' => true,
+				'placeholder' => "Nepřiřazeno",
 			])->checkDefaultValue(false);
+
+			if ($this->product && $this->product->getValue('alternative')) {
+				$this->getPresenter()->template->select2AjaxDefaults[$alternative->getHtmlId()] = [$this->product->getValue('alternative') => $this->product->alternative->name];
+			}
 		});
 
 		$prices = $form->addContainer('prices');
@@ -385,6 +400,7 @@ class ProductForm extends Control
 
 	public function submit(AdminForm $form)
 	{
+		$data = $this->getPresenter()->getHttpRequest()->getPost();
 		$values = $form->getValues('array');
 
 		$this->createImageDirs();
@@ -399,16 +415,7 @@ class ProductForm extends Control
 		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
 		$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
 
-		$values['alternative'] = $values['alternative'] ? $this->productRepository->one($form->getHttpData(Form::DATA_TEXT, 'alternative')) : null;
-
-		if ($values['upsells'] ?? null) {
-			$upsells = [];
-			foreach (\explode(';', $values['upsells']) as $upsell) {
-				$upsells[] = $this->productRepository->getProductByCodeOrEAN($upsell)->getPK();
-			}
-
-			$this->product->upsells->relate($upsells);
-		}
+		$values['alternative'] = isset($data['alternative']) ? $this->productRepository->one($data['alternative']) : null;
 
 		if (isset($values['supplierContent'])) {
 			if ($values['supplierContent'] === 0) {
@@ -421,6 +428,10 @@ class ProductForm extends Control
 
 		/** @var Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
+
+		if (isset($data['upsells'])) {
+			$this->product->upsells->relate($data['upsells']);
+		}
 
 		$changeColumns = ['name', 'perex', 'content'];
 
@@ -436,14 +447,13 @@ class ProductForm extends Control
 			}
 		}
 
-		//gethttpdata['tonerForPrinters']
-		if (isset($values['tonerForPrinters'])) {
-			$this->relatedRepository->many()
-				->where('fk_master', $product->getPK())
-				->where('fk_type', 'tonerForPrinter')
-				->delete();
+		$this->relatedRepository->many()
+			->where('fk_master', $product->getPK())
+			->where('fk_type', 'tonerForPrinter')
+			->delete();
 
-			foreach ($values['tonerForPrinters'] as $value) {
+		if (isset($data['tonerForPrinters'])) {
+			foreach ($data['tonerForPrinters'] as $value) {
 				$this->relatedRepository->syncOne([
 					'master' => $product->getPK(),
 					'slave' => $value,

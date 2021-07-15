@@ -143,6 +143,10 @@ class AttributePresenter extends BackendPresenter
 			}, '', 'supplier', null, $suppliers)->setPrompt('- Zdroj -');
 		}
 
+		$grid->addFilterDataSelect(function (ICollection $source, $value) {
+			$source->where('this.hidden', (bool)$value);
+		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
+
 		$grid->addFilterDataSelect(function (Collection $source, $value) {
 			if ($value === null) {
 				$source->setGroupBy(['this.uuid']);
@@ -160,7 +164,7 @@ class AttributePresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create(true);
 
-		$form->addText('code', 'Kód');
+		$form->addText('code', 'Kód')->setRequired();
 		$form->addLocaleText('name', 'Název');
 		$form->addLocaleTextArea('note', 'Dodatečné informace');
 		$form->addDataMultiSelect('categories', 'Kategorie', $this->categoryRepository->getArrayForSelect());
@@ -249,6 +253,10 @@ class AttributePresenter extends BackendPresenter
 				$source->where('supplier.uuid', $value);
 			}, '', 'supplier', null, $suppliers)->setPrompt('- Zdroj -');
 		}
+
+		$grid->addFilterDataSelect(function (ICollection $source, $value) {
+			$source->where('this.hidden', (bool)$value);
+		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
 
 		$grid->addFilterDataSelect(function (Collection $source, $value) {
 			if ($value === null) {

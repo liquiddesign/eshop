@@ -6,7 +6,6 @@ namespace Eshop\Admin;
 
 use Eshop\BackendPresenter;
 use Admin\Controls\AdminGrid;
-use Eshop\FormValidators;
 use Admin\Controls\AdminForm;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\Related;
@@ -100,7 +99,7 @@ class RelatedPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
-		$form->addDataSelect('type', 'Typ', $this->relatedTypeRepository->getArrayForSelect())->setRequired();
+		$form->addSelect2('type', 'Typ', $this->relatedTypeRepository->getArrayForSelect())->setRequired();
 
 		$form->addText('priority', 'Priorita')
 			->addRule($form::INTEGER)
@@ -108,19 +107,37 @@ class RelatedPresenter extends BackendPresenter
 			->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
 
-		$form->addSelect2('master', 'První produkt', [], [
+		$master = $form->addSelect2('master', 'První produkt', null, [
 			'ajax' => [
 				'url' => $this->link('getProductsForSelect2!')
 			]
-		])->setRequired()->checkDefaultValue(false);
+		])->checkDefaultValue(false);
 
-		$form->addSelect2('slave', 'Druhý produkt', [], [
+		$slave = $form->addSelect2('slave', 'Druhý produkt', null, [
 			'ajax' => [
 				'url' => $this->link('getProductsForSelect2!')
 			]
-		])->setRequired()->checkDefaultValue(false);
+		])->checkDefaultValue(false);
+
+		/** @var Related $relation */
+		if ($relation = $this->getParameter('relation')) {
+			$this->template->select2AjaxDefaults[$master->getHtmlId()] = [$relation->getValue('master') => $relation->master->name];
+			$this->template->select2AjaxDefaults[$slave->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->name];
+		}
 
 		$form->addSubmits(!$this->getParameter('relation'));
+
+		$form->onValidate[] = function (AdminForm $form) {
+			$data = $this->getHttpRequest()->getPost();
+
+			if (!isset($data['master'])) {
+				$form['master']->addError('Toto pole je povinné!');
+			}
+
+			if (!isset($data['slave'])) {
+				$form['slave']->addError('Toto pole je povinné!');
+			}
+		};
 
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
@@ -182,8 +199,6 @@ class RelatedPresenter extends BackendPresenter
 		$form['type']->setDefaultValue($relation->type);
 		$form['hidden']->setDefaultValue($relation->hidden);
 		$form['priority']->setDefaultValue($relation->priority);
-		$form['master']->setDefaultValue($relation->master->getFullCode() ?? $relation->master->ean);
-		$form['slave']->setDefaultValue($relation->slave->getFullCode() ?? $relation->slave->ean);
 	}
 
 	public function renderDetailRelation(Related $relation)

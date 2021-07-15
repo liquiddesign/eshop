@@ -7,6 +7,7 @@ use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\DisplayAmountRepository;
+use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProductRepository;
 use Nette\Application\UI\Control;
 use StORM\Collection;
@@ -30,6 +31,8 @@ class ProductFilter extends Control
 
 	private DisplayAmountRepository $displayAmountRepository;
 
+	private DisplayDeliveryRepository $displayDeliveryRepository;
+
 	private ?array $selectedCategories;
 
 	public function __construct(
@@ -40,6 +43,7 @@ class ProductFilter extends Control
 		AttributeRepository $attributeRepository,
 		AttributeValueRepository $attributeValueRepository,
 		DisplayAmountRepository $displayAmountRepository,
+		DisplayDeliveryRepository $displayDeliveryRepository,
 		array $configuration = []
 	)
 	{
@@ -50,6 +54,7 @@ class ProductFilter extends Control
 		$this->attributeRepository = $attributeRepository;
 		$this->attributeValueRepository = $attributeValueRepository;
 		$this->displayAmountRepository = $displayAmountRepository;
+		$this->displayDeliveryRepository = $displayDeliveryRepository;
 	}
 
 	/**
@@ -76,16 +81,28 @@ class ProductFilter extends Control
 	public function render(): void
 	{
 		/** @var Collection $collection */
-		$collection = $this->getParent()->getSource()->setSelect(['this.uuid', 'this.fk_displayAmount']);
+		$collection = $this->getParent()->getFilteredSource()->setSelect(['this.uuid', 'this.fk_displayAmount', 'this.priority'])->setOrderBy(['this.priority']);
 
 		$displayAmountCounts = $this->displayAmountRepository->many()->setGroupBy(['this.uuid'])
 			->join(['product' => $collection], 'product.fk_displayAmount= this.uuid', $collection->getVars())
 			->select(['count' => 'COUNT(DISTINCT product.uuid)'])
+			->setOrderBy(['this.priority'])
 			->toArray();
 
 		$this->template->displayAmountCounts = $displayAmountCounts;
+
+		/** @var Collection $collection */
+		$collection = $this->getParent()->getFilteredSource()->setSelect(['this.uuid', 'this.fk_displayDelivery', 'this.priority'])->setOrderBy(['this.priority']);
+
+		$displayDeliveryCounts = $this->displayDeliveryRepository->many()->setGroupBy(['this.uuid'])
+			->join(['product' => $collection], 'product.fk_displayDelivery= this.uuid', $collection->getVars())
+			->select(['count' => 'COUNT(DISTINCT product.uuid)'])
+			->setOrderBy(['this.priority'])
+			->toArray();
+
+		$this->template->displayDeliveryCounts = $displayDeliveryCounts;
 		$this->template->attributes = $this->attributeRepository->getAttributesByCategories($this->getSelectedCategories())->where('showFilter', true)->toArray();
-		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($collection, $this->getSelectedCategories(), $this->getParent()->getFilters()['attributes'] ?? []);
+		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($this->getParent()->getSource(), $this->getSelectedCategories(), $this->getParent()->getFilters()['attributes'] ?? []);
 
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
@@ -97,6 +114,7 @@ class ProductFilter extends Control
 		$filterForm->addInteger('priceFrom')->setRequired()->setDefaultValue(0);
 		$filterForm->addInteger('priceTo')->setRequired()->setDefaultValue(100000);
 		$filterForm->addCheckboxList('availability', null, $this->displayAmountRepository->getArrayForSelect());
+		$filterForm->addCheckboxList('delivery', null, $this->displayDeliveryRepository->getArrayForSelect());
 
 		$attributesContainer = $filterForm->addContainer('attributes');
 
@@ -152,7 +170,13 @@ class ProductFilter extends Control
 	{
 		$parent = $this->getParent()->getName();
 
-		$this->getPresenter()->redirect('this', ["$parent-priceFrom" => null, "$parent-priceTo" => null, "$parent-attributes" => null]);
+		$this->getPresenter()->redirect('this', [
+			"$parent-priceFrom" => null,
+			"$parent-priceTo" => null,
+			"$parent-attributes" => null,
+			"$parent-availability" => null,
+			"$parent-delivery" => null
+		]);
 	}
 
 	public function handleClearFilter($searchedAttributeKey, $searchedAttributeValueKey = null): void

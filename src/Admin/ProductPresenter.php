@@ -34,6 +34,8 @@ use League\Csv\Writer;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\FileUpload;
+use Nette\InvalidArgumentException;
+use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Nette\Utils\Random;
@@ -465,21 +467,16 @@ class ProductPresenter extends BackendPresenter
 		$form['alternative']->setValue($product->alternative ? $product->getValue('alternative') : null);
 
 		if (isset($form['upsells'])) {
-			$upsells = [];
-			foreach ($product->upsells as $upsell) {
-				$upsells[] = $upsell->getFullCode() ?? $upsell->ean;
-			}
-
-			$form['upsells']->setDefaultValue(\implode(';', $upsells));
+			$this->template->select2AjaxDefaults[$form['upsells']->getHtmlId()] = $product->upsells->toArrayOf('name');
 		}
 
-//		if (isset($form['tonerForPrinters'])) {
-//			try {
-//				$form['tonerForPrinters']->setDefaultValue($this->productRepository->getSlaveProductsByRelationAndMaster('tonerForPrinter', $product)->setSelect(['this.uuid'])->toArray());
-//			} catch (InvalidArgumentException $e) {
-//				$form['tonerForPrinters']->setHtmlAttribute('data-error', 'Byla detekována chybná vazba! Vyberte, prosím, tiskárny znovu.');
-//			}
-//		}
+		if (isset($form['tonerForPrinters'])) {
+			try {
+				$this->template->select2AjaxDefaults[$form['tonerForPrinters']->getHtmlId()] = $this->productRepository->getSlaveProductsByRelationAndMaster('tonerForPrinter', $product)->toArrayOf('name');
+			} catch (InvalidArgumentException $e) {
+				$form['tonerForPrinters']->setHtmlAttribute('data-error', 'Byla detekována chybná vazba! Vyberte, prosím, tiskárny znovu.');
+			}
+		}
 
 		if ($product->supplierContentLock) {
 			$form['supplierContent']->setDefaultValue(0);
@@ -975,10 +972,10 @@ class ProductPresenter extends BackendPresenter
 			' ' => 'Mezera ( )',
 			'|' => 'Pipe (|)',
 		]);
-		$form->addCheckbox('header', 'Hlavička')->setDefaultValue(true);
+		$form->addCheckbox('header', 'Hlavička')->setDefaultValue(true)->setHtmlAttribute('data-info', 'Pokud tuto možnost nepoužijete tak nebude možné tento soubor použít pro import!');
 
 		$headerColumns = $form->addDataMultiSelect('columns', 'Sloupce');
-		$attributesColumns = $form->addDataMultiSelect('attributes', 'Atributy');
+		$attributesColumns = $form->addDataMultiSelect('attributes', 'Atributy')->setHtmlAttribute('data-info', 'Zobrazují se pouze atributy, které mají alespoň jeden přiřazený produkt.');
 
 		$items = [];
 		$defaultItems = [];
@@ -1000,7 +997,7 @@ class ProductPresenter extends BackendPresenter
 		if (isset(static::CONFIGURATION['exportAttributes'])) {
 			foreach (static::CONFIGURATION['exportAttributes'] as $key => $value) {
 				if ($attribute = $this->attributeRepository->many()->where('code', $key)->first()) {
-					$attributes[$attribute->getPK()] = $value;
+					$attributes[$attribute->getPK()] = "$value#$key";
 					$defaultAttributes[] = $attribute->getPK();
 				}
 			}
@@ -1012,13 +1009,22 @@ class ProductPresenter extends BackendPresenter
 				->where('assign.uuid IS NOT NULL')
 				->where('this.hidden', false)
 				->orderBy(["this.name$mutationSuffix"])
-				->toArrayOf('name');
+				->select(['nameAndCode' => "CONCAT(this.name$mutationSuffix, '#', this.code)"])
+				->toArrayOf('nameAndCode');
 		}
 
 		$attributesColumns->setItems($attributes);
 		$attributesColumns->setDefaultValue($defaultAttributes);
 
 		$form->addSubmit('submit', 'Exportovat');
+
+		$form->onValidate[] = function (AdminForm $form) use ($ids, $productGrid, $items, $attributes) {
+			$values = $form->getValues();
+
+			if(!Arrays::contains($values['columns'], 'code') && !Arrays::contains($values['columns'], 'ean')){
+				$form['columns']->addError('Je nutné vybrat "Kód" nebo "EAN" pro jednoznačné označení produktu.');
+			}
+		};
 
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid, $items, $attributes) {
 			$values = $form->getValues('array');

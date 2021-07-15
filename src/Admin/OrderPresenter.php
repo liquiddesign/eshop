@@ -330,11 +330,17 @@ class OrderPresenter extends BackendPresenter
 
 	public function renderDefault()
 	{
-		$this->template->tabs = [
+		$tabs = [
 			'received' => 'Aktuální',
 			'finished' => 'Zpracované',
 			'canceled' => 'Stornované',
 		];
+
+		if ($this->shopper->getEditOrderAfterCreation()) {
+			$tabs = \array_merge(['open' => 'Otevřené'], $tabs);
+		}
+
+		$this->template->tabs = $tabs;
 
 		$this->template->headerLabel = "Objednávky";
 		$this->template->headerTree = [
@@ -476,7 +482,7 @@ class OrderPresenter extends BackendPresenter
 			'ajax' => [
 				'url' => $this->link('getProductsForSelect2!')
 			]
-		])->setRequired()->checkDefaultValue(false);
+		]);
 
 		$form->addSelect('cart', 'Košík č.', $order->purchase->carts->toArrayOf('id'))->setRequired();
 		$form->addSelect('delivery', 'Doprava', $order->deliveries->where('shippedTs IS NULL')->toArrayOf('typeName'))->setRequired();
@@ -486,12 +492,16 @@ class OrderPresenter extends BackendPresenter
 		$form->addSubmits(false);
 
 		$form->onValidate[] = function (AdminForm $form) {
-			$values = $form->getValues('array');
-			$product = $this->productRepo->one($form->getHttpData(Form::DATA_TEXT, 'product'));
-			$exists = $product ? $this->productRepo->getProduct((string)$product) : null;
+			$data = $this->getHttpRequest()->getPost();
 
-			if (!$exists) {
-				$form['product']->addError('Daný produkt není pro uživatele dostupný');
+			if (!isset($data['product'])) {
+				$form['product']->addError('Toto pole je povinné!');
+
+				return;
+			}
+
+			if (!$this->productRepo->getProduct($data['product'])) {
+				$form['product']->addError('Daný produkt nebyl nalezen nebo není dostupný');
 			}
 		};
 
@@ -507,7 +517,7 @@ class OrderPresenter extends BackendPresenter
 			}
 
 			/** @var Product $product */
-			$product = $this->productRepo->getProduct((string)$this->productRepo->getProductByCodeOrEAN($values['product']));
+			$product = $this->productRepo->getProduct($form->getHttpData(Form::DATA_TEXT, 'product'));
 
 			$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], false, false, false, $cart);
 

@@ -9,6 +9,7 @@ use StORM\RelationCollection;
 /**
  * Attribute
  * @table
+ * @index{"name":"attribute_code_unique","unique":true,"columns":["code"]}
  */
 class Attribute extends \StORM\Entity
 {
