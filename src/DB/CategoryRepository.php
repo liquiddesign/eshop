@@ -82,6 +82,10 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$pricelists = $pricelists ? $pricelists : \array_values($this->shopper->getPricelists($currency->isConversionEnabled() ? $currency->convertCurrency : null)->toArray());
 
+		if (\count($pricelists) == 0) {
+			return [];
+		}
+
 		$cacheIndex = "catagories_counts$suffix";
 
 		foreach ($pricelists as $pricelist) {
