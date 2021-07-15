@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
+use Eshop\DB\Ribbon;
+use Eshop\DB\RibbonRepository;
 use Eshop\FormValidators;
 use Admin\Controls\AdminForm;
 use Eshop\DB\CurrencyRepository;
@@ -19,6 +21,7 @@ use Eshop\DB\CustomerRepository;
 use Forms\Form;
 use Grid\Datagrid;
 use StORM\Connection;
+use StORM\ICollection;
 
 class DiscountPresenter extends BackendPresenter
 {
@@ -42,6 +45,9 @@ class DiscountPresenter extends BackendPresenter
 
 	/** @inject */
 	public TagRepository $tagRepo;
+
+	/** @inject */
+	public RibbonRepository $ribbonRepository;
 
 	/** @inject */
 	public Connection $storm;
@@ -84,6 +90,14 @@ class DiscountPresenter extends BackendPresenter
 		$grid->addButtonDeleteSelected();
 
 		$grid->addFilterTextInput('search', ['name_cs'], null, 'Název');
+
+		if ($ribbons = $this->ribbonRepository->getArrayForSelect()) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+				$source->join(['nxn' => 'eshop_discount_nxn_eshop_ribbon'], 'nxn.fk_discount=this.uuid');
+				$source->where('nxn.fk_ribbon', $value);
+			}, '', 'ribbons', null, $ribbons, ['placeholder' => '- Štítky -']);
+		}
+
 		$grid->addFilterButtons();
 
 		return $grid;
@@ -109,7 +123,8 @@ class DiscountPresenter extends BackendPresenter
 
 		$pricelists = $discount ? $this->priceListRepository->many()->where('fk_discount IS NULL OR fk_discount = :q', ['q' => $discount->getPK()]) : $this->priceListRepository->many()->where('fk_discount IS NULL');
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $pricelists->toArrayOf('name'))->setHtmlAttribute('placeholder', 'Vyberte položky...');
-		
+		$form->addDataMultiSelect('ribbons', 'Štítky', $this->ribbonRepository->getCollection(true)->where('this.dynamic',true)->toArrayOf('name'))->setHtmlAttribute('placeholder', 'Vyberte položky...');
+
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addSubmits(!$discount);
 
@@ -172,7 +187,7 @@ class DiscountPresenter extends BackendPresenter
 		/** @var Form $form */
 		$form = $this->getComponent('newForm');
 		
-		$form->setDefaults($discount->toArray(['pricelists']));
+		$form->setDefaults($discount->toArray(['pricelists', 'ribbons']));
 	}
 
 	public function createComponentCouponsGrid()
@@ -190,8 +205,6 @@ class DiscountPresenter extends BackendPresenter
 		$grid->addColumnText('Sleva (%)', 'discountPct', '%s %%', 'discountPct', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Sleva', "discountValue|price:currency.code",'%s','discountValue', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Sleva s DPH', "discountValueVat|price:currency.code",'%s','discountValueVat', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		
-		
 
 		$grid->addColumnLinkDetail('couponsDetail');
 		$grid->addColumnActionDelete();

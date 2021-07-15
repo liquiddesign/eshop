@@ -68,4 +68,11 @@ class Discount extends \StORM\Entity
 	 * @var RelationCollection<\Eshop\DB\Tag>|\Eshop\DB\Tag[]
 	 */
 	public RelationCollection $limitCouponsForTags;
+
+	/**
+	 * Štítky
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\Ribbon>|\Eshop\DB\Ribbon[]
+	 */
+	public RelationCollection $ribbons;
 }
