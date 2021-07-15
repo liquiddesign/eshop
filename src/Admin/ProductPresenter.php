@@ -10,7 +10,10 @@ use Eshop\Admin\Controls\IProductAttributesFormFactory;
 use Eshop\Admin\Controls\IProductFormFactory;
 use Eshop\Admin\Controls\IProductParametersFormFactory;
 use Eshop\Admin\Controls\ProductGridFactory;
+use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
+use Eshop\DB\AttributeValueRepository;
+use Eshop\DB\CustomerRepository;
 use Eshop\DB\File;
 use Eshop\DB\FileRepository;
 use Eshop\DB\NewsletterTypeRepository;
@@ -21,6 +24,7 @@ use Eshop\DB\PhotoRepository;
 use Eshop\DB\Pricelist;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
+use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\SetRepository;
@@ -30,7 +34,9 @@ use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
 use Forms\Form;
+use League\Csv\Reader;
 use League\Csv\Writer;
+use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\FileUpload;
@@ -39,6 +45,7 @@ use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Nette\Utils\Random;
+use Nette\Utils\Strings;
 use Pages\DB\PageRepository;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -145,6 +152,21 @@ class ProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public SupplierRepository $supplierRepository;
+
+	/** @inject */
+	public CustomerRepository $customerRepository;
+
+	/** @inject */
+	public ProducerRepository $producerRepository;
+
+	/** @inject */
+	public AttributeValueRepository $attributeValueRepository;
+
+	/** @inject */
+	public AttributeAssignRepository $attributeAssignRepository;
+
+	/** @inject */
+	public Application $application;
 
 	public function createComponentProductGrid()
 	{
@@ -870,6 +892,12 @@ class ProductPresenter extends BackendPresenter
 
 		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? \date('d.m.Y G:i', $lastUpdate) : null);
 
+		$allowedColumns = '';
+
+		foreach (static::CONFIGURATION['importColumns'] as $key => $value) {
+			$allowedColumns .= "$key, $value<br>";
+		}
+
 		$filePicker = $form->addFilePicker('file', 'Soubor (CSV)')
 			->setRequired()
 			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/csv');
@@ -887,6 +915,13 @@ class ProductPresenter extends BackendPresenter
 		]);
 
 		$form->addCheckbox('addNew', 'Vytvářet nové záznamy');
+		$form->addCheckbox('overwriteExisting', 'Přepisovat existující záznamy')->setDefaultValue(true);
+		$form->addCheckbox('updateAttributes', 'Aktualizovat atributy')->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
+Soubor <b>musí obsahovat</b> hlavičku a jeden ze sloupců "Kód" nebo "EAN" pro jednoznačné rozlišení produktů. Jako prioritní se hledá kód a pokud není nalezen tak EAN.<br><br>
+Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
+' . $allowedColumns . '<br>
+Atributy a výrobce musí být zadány jako kód (např.: "001") nebo jako kombinace názvu a kódu(např.: "Tisková technologie#001).<br>
+Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že jich lze více oddělit pomocí ":". Např.: "Inkoustová#462:9549"');
 
 		$form->addSubmit('submit', 'Importovat');
 
@@ -915,7 +950,12 @@ class ProductPresenter extends BackendPresenter
 			$connection->getLink()->beginTransaction();
 
 			try {
-				$this->importCsv(\dirname(__DIR__, 5) . '/userfiles/products.csv', $values['delimiter'], $values['addNew']);
+				$this->importCsv(\dirname(__DIR__, 5) . '/userfiles/products.csv',
+					$values['delimiter'],
+					$values['addNew'],
+					$values['overwriteExisting'],
+					$values['updateAttributes'],
+				);
 
 				$connection->getLink()->commit();
 				$this->flashMessage('Provedeno', 'success');
@@ -1021,7 +1061,7 @@ class ProductPresenter extends BackendPresenter
 		$form->onValidate[] = function (AdminForm $form) use ($ids, $productGrid, $items, $attributes) {
 			$values = $form->getValues();
 
-			if(!Arrays::contains($values['columns'], 'code') && !Arrays::contains($values['columns'], 'ean')){
+			if (!Arrays::contains($values['columns'], 'code') && !Arrays::contains($values['columns'], 'ean')) {
 				$form['columns']->addError('Je nutné vybrat "Kód" nebo "EAN" pro jednoznačné označení produktu.');
 			}
 		};
@@ -1056,9 +1096,164 @@ class ProductPresenter extends BackendPresenter
 		return $form;
 	}
 
-	protected function importCsv(string $filePath, string $delimiter = ';', bool $addNew = false)
+	protected function importCsv(string $filePath, string $delimiter = ';', bool $addNew = false, bool $overwriteExisting = true, bool $updateAttributes = false)
 	{
-		//@TODO implement
+		$reader = Reader::createFromPath($filePath);
+		$reader->setDelimiter($delimiter);
+		$reader->setHeaderOffset(0);
+		$mutation = $this->productRepository->getConnection()->getMutation();
+		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
+
+		$producers = $this->producerRepository->many()->setIndex('code')->toArrayOf('uuid');
+
+		$header = $reader->getHeader();
+		$parsedHeader = [];
+
+		foreach ($header as $headerItem) {
+			if (isset(static::CONFIGURATION['importColumns'][$headerItem])) {
+				$parsedHeader[$headerItem] = $headerItem;
+			} elseif ($key = \array_search($headerItem, static::CONFIGURATION['importColumns'])) {
+				$parsedHeader[$key] = $headerItem;
+			} else {
+				if (Strings::contains($headerItem, '#')) {
+					$attributeCode = \explode('#', $headerItem);
+
+					if (\count($attributeCode) != 2) {
+						continue;
+					}
+
+					$attributeCode = $attributeCode[1];
+				} else {
+					$attributeCode = $headerItem;
+				}
+
+				if ($attribute = $this->attributeRepository->many()->where("code", $attributeCode)->first()) {
+					$attributes[$attribute->getPK()] = $attribute;
+					$parsedHeader[$attribute->getPK()] = $headerItem;
+
+					continue;
+				}
+			}
+		}
+
+		if (\count($parsedHeader) == 0) {
+			throw new \Exception('Soubor neobsahuje hlavičku nebo nebyl nalezen žádný použitelný sloupec!');
+		}
+
+		if (!isset($parsedHeader['code']) && !isset($parsedHeader['ean'])) {
+			throw new \Exception('Soubor neobsahuje kód ani EAN!');
+		}
+
+		foreach ($reader->getRecords() as $record) {
+			$newValues = [];
+			$product = null;
+
+			if (isset($parsedHeader['code']) && ($code = Arrays::pick($record, $parsedHeader['code'], null))) {
+				$product = $this->productRepository->getProductByCodeOrEAN(Strings::trim($code));
+
+				$newValues['code'] = $code;
+			}
+
+			if (isset($parsedHeader['ean']) && ($ean = Arrays::pick($record, $parsedHeader['ean'], null))) {
+				$product = $this->productRepository->getProductByCodeOrEAN(Strings::trim($ean));
+
+				$newValues['ean'] = $ean;
+			}
+
+			if ((!isset($newValues['code']) && !isset($newValues['ean'])) || (!$product && !$addNew) || ($product && !$overwriteExisting)) {
+				continue;
+			}
+
+			foreach ($record as $key => $value) {
+				$key = \array_search($key, $parsedHeader);
+
+				if (!$key) {
+					continue;
+				}
+
+				if ($key == 'producer') {
+					if (Strings::contains($value, '#')) {
+						$producerCode = \explode('#', $value);
+
+						if (\count($producerCode) != 2) {
+							continue;
+						}
+
+						$producerCode = $producerCode[1];
+					} else {
+						$producerCode = $value;
+					}
+
+					if (isset($producers[$producerCode])) {
+						$newValues[$key] = $producers[$producerCode];
+					}
+				} elseif ($key == 'name' || $key == 'perex') {
+					$newValues[$key][$mutation] = $value;
+				} elseif ($key == 'priority') {
+					$newValues[$key] = \intval($value);
+				} elseif ($key == 'recommended' || $key == 'hidden' || $key == 'unavailable') {
+					$newValues[$key] = $value == '1';
+				} elseif (!isset($attributes[$key])) {
+					$newValues[$key] = $value;
+				}
+			}
+
+			try {
+				if ($product) {
+					if (\count($newValues) > 0) {
+						$newValues['uuid'] = $product->getPK();
+
+						if ($newValues['name'][$mutation] != $product->name || $newValues['perex'][$mutation] != $product->perex) {
+							$newValues['supplierContentLock'] = true;
+						}
+
+						$product->update($newValues);
+					}
+				} elseif (\count($newValues) > 0) {
+					$this->productRepository->createOne($newValues);
+				}
+			} catch (\Exception $e) {
+				throw new \Exception('Chyba při zpracování dat!');
+			}
+
+			if (!$updateAttributes) {
+				continue;
+			}
+
+			$this->attributeAssignRepository->many()->where('fk_product', $product->getPK())->delete();
+
+			foreach ($record as $key => $value) {
+				$key = \array_search($key, $parsedHeader);
+
+				if (!isset($attributes[$key]) || \strlen($value) === 0) {
+					continue;
+				}
+
+				$attributes = Strings::contains($value, ':') ? \explode(':', $value) : [$value];
+
+				foreach ($attributes as $attributeString) {
+					if (Strings::contains($attributeString, '#')) {
+						$attributeValueCode = \explode('#', $attributeString);
+
+						if (\count($attributeValueCode) != 2) {
+							continue;
+						}
+
+						$attributeValueCode = $attributeValueCode[1];
+					} else {
+						$attributeValueCode = $attributeString;
+					}
+
+					if ($attributeValue = $this->attributeValueRepository->many()->where("code", $attributeValueCode)->firstValue('uuid')) {
+						$this->attributeAssignRepository->syncOne([
+							'product' => $product->getPK(),
+							'value' => $attributeValue
+						]);
+
+					}
+				}
+			}
+		}
 	}
 
 	public function handleDownloadImportExampleFile()

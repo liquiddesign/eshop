@@ -9,11 +9,19 @@ use Nette\Application\ApplicationException;
 /**
  * Výrobce
  * @table
+ * @index{"name":"producer_code_unique","unique":true,"columns":["code"]}
  */
 class Producer extends \StORM\Entity
 {
 	public const IMAGE_DIR = 'producer_images';
-	
+
+	/**
+	 * Kód
+	 * @column
+	 * @unique
+	 */
+	public ?string $code;
+
 	/**
 	 * Název
 	 * @column{"mutations":true}

@@ -35,6 +35,7 @@ class ProducerPresenter extends BackendPresenter
 		$grid->addColumnSelector();
 
 		$grid->addColumnImage('imageFileName', Producer::IMAGE_DIR);
+		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 
 		$grid->addColumn('Název', function (Producer $producer, $grid) {
 			return [
@@ -55,7 +56,7 @@ class ProducerPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected();
 
-		$grid->addFilterTextInput('search', ['name_cs'], null, 'Název');
+		$grid->addFilterTextInput('search', ['name_cs', 'this.code'], null, 'Kód, název');
 
 		$grid->addFilterButtons();
 
@@ -67,6 +68,7 @@ class ProducerPresenter extends BackendPresenter
 	public function createComponentNewForm(): Form
 	{
 		$form = $this->formFactory->create(true);
+		$form->addText('code', 'Kód')->setRequired();
 		$nameInput = $form->addLocaleText('name', 'Název');
 		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
 			Producer::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
