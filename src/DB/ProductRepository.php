@@ -165,9 +165,9 @@ class ProductRepository extends Repository implements IGeneralRepository
 	 * Get default SELECT modifier array for new collection
 	 * @return string[]
 	 */
-	public function getDefaultSelect(?string $mutation = null): array
+	public function getDefaultSelect(?string $mutation = null, ?array $fallbackColumns = null): array
 	{
-		$selects = parent::getDefaultSelect();
+		$selects = parent::getDefaultSelect($mutation, $fallbackColumns);
 		unset($selects['fk_watcher']);
 
 		return $selects;
