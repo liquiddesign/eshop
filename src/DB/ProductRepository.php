@@ -109,7 +109,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$priorityLpad = '3';
 		$priceLpad = (string)($prec + 9);
 		$priceSelects = $priceWhere = [];
-		$collection = $this->many(null, true, false);
+		$collection = $this->many()->setSmartJoin(false);
 
 		foreach ($pricelists as $id => $pricelist) {
 			if ($selects) {
