@@ -53,4 +53,22 @@ class Ribbon extends \StORM\Entity
 	 * @column
 	 */
 	public bool $hidden = false;
+
+	/**
+	 * Dynamický štítek
+	 * @column
+	 */
+	public bool $dynamic = false;
+
+	/**
+	 * Dynamický štítek - prodejnost
+	 * @column
+	 */
+	public ?string $saleability;
+
+	/**
+	 * Dynamický štítek - maximální počet produktů
+	 * @column
+	 */
+	public ?int $maxProducts;
 }

@@ -7,12 +7,14 @@ namespace Eshop\DB;
 /**
  * AttributeValue
  * @table
+ * @index{"name":"attributeValue_code_unique","unique":true,"columns":["code"]}
  */
 class AttributeValue extends \StORM\Entity
 {
 	/**
 	 * Kód
 	 * @column
+	 * @unique
 	 */
 	public string $code;
 

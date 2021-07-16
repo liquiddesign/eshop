@@ -761,9 +761,12 @@ class ProductRepository extends Repository implements IGeneralRepository
 				'priceMax' => 'MAX(price.price)'
 			])
 			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
-			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value= attributeValue.uuid')
-			->join(['producer' => 'eshop_producer'], 'producer.uuid= this.fk_producer')
-			->select(['attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute,':',attributeValue.label$mutationSuffix))"]);
+			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value = attributeValue.uuid')
+			->join(['producer' => 'eshop_producer'], 'producer.uuid = this.fk_producer')
+			->select([
+				'attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute, ':', CONCAT(COALESCE(attributeValue.label$mutationSuffix), '#', attributeValue.code)))",
+				'producerCodeName' => "CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, ''))",
+			]);
 
 		/** @var Product $product */
 		while ($product = $products->fetch()) {
@@ -781,22 +784,40 @@ class ProductRepository extends Repository implements IGeneralRepository
 						continue;
 					}
 
-					$productAttributes[$tmpExplode[0]] = $tmpExplode[1];
+					$attributeValue = \explode('#', $tmpExplode[1]);
+
+					if (\count($attributeValue) != 2) {
+						continue;
+					}
+
+					$productAttributes[$tmpExplode[0]][$attributeValue[1]] = $attributeValue[0];
 				}
 			}
 
 			foreach ($columns as $columnKey => $columnValue) {
 				if ($columnKey === 'perex') {
 					$row[] = $product->getValue($columnKey) ? \strip_tags($product->getValue($columnKey)) : null;
-				} elseif ($columnKey === 'producer') {
-					$row[] = $product->producer ? $product->producer->name : null;
+				} elseif ($columnKey == 'producer') {
+					$row[] = $product->producerCodeName;
 				} else {
 					$row[] = $product->getValue($columnKey) === false ? '0' : $product->getValue($columnKey);
 				}
 			}
 
 			foreach ($attributes as $attributePK => $attributeName) {
-				$row[] = isset($productAttributes[$attributePK]) && $product->attributes ? $productAttributes[$attributePK] : null;
+				if (!isset($productAttributes[$attributePK]) || !$product->attributes || !\is_array($productAttributes[$attributePK])) {
+					$row[] = null;
+
+					continue;
+				}
+
+				$tmp = '';
+
+				foreach ($productAttributes[$attributePK] as $attributeValueCode => $attributeValueLabel) {
+					$tmp .= "$attributeValueLabel#$attributeValueCode:";
+				}
+
+				$row[] = \strlen($tmp) > 0 ? \substr($tmp, 0, -1) : null;
 			}
 
 			$writer->insertOne($row);

@@ -250,13 +250,6 @@ class PricelistsPresenter extends BackendPresenter
 			}, '', 'tags', null, $tags, ['placeholder' => '- Tagy -']);
 		}
 
-		if ($ribbons = $this->ribbonRepository->getArrayForSelect()) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$source->join(['ribbons' => 'eshop_product_nxn_eshop_ribbon'], 'ribbons.fk_product=products.uuid');
-				$source->where('ribbons.fk_ribbon', $value);
-			}, '', 'ribbons', null, $ribbons, ['placeholder' => '- Štítky -']);
-		}
-
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
 			$source->where('products.hidden', (bool)$value);
 		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
