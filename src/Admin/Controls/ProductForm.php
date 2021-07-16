@@ -229,7 +229,8 @@ class ProductForm extends Control
 				$form->addMultiSelect2('tonerForPrinters', 'Toner pro tiskárny', [], [
 					'ajax' => [
 						'url' => $this->getPresenter()->link('getTonerProductsForSelect2!')
-					]
+					],
+					'placeholder' => 'Zvolte produkty'
 				])->checkDefaultValue(false);
 			});
 
@@ -259,7 +260,8 @@ class ProductForm extends Control
 				$form->addMultiSelect2('upsells', 'Upsell produkty', [], [
 					'ajax' => [
 						'url' => $this->getPresenter()->link('getProductsForSelect2!')
-					]
+					],
+					'placeholder' => 'Zvolte produkty'
 				])->checkDefaultValue(false);
 			});
 		}
@@ -492,7 +494,7 @@ class ProductForm extends Control
 
 		$this->setRepository->many()->where('fk_set', $this->product->getPK())->delete();
 
-		if ($values['productsSet']) {
+		if (isset($values['productsSet']) && $values['productsSet']) {
 			foreach ($values['setItems'] as $setItem) {
 				if ($setItem['product'] === '') {
 					continue;

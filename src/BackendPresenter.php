@@ -17,7 +17,7 @@ class BackendPresenter extends \Admin\BackendPresenter
 
 	public function handleGetProductsForSelect2(?string $q = null)
 	{
-		if (!$q || \strlen($q) < 3) {
+		if (!$q) {
 			$this->payload->result = [];
 			$this->sendPayload();
 		}
@@ -25,7 +25,11 @@ class BackendPresenter extends \Admin\BackendPresenter
 		$suffix = $this->productRepository->getConnection()->getMutationSuffix();
 
 		/** @var Product[] $products */
-		$products = $this->productRepository->getCollection(true)->where("this.name$suffix LIKE :q", ['q' => "%$q%"])->setTake(5)->toArray();
+		$products = $this->productRepository->getCollection(true)
+			->where("this.name$suffix LIKE :q OR this.code = :exact OR this.ean = :exact", ['q' => "%$q%", 'exact' => $q])
+			->setTake(5)
+			->toArray();
+
 		$payload = [];
 
 		foreach ($products as $product) {
@@ -41,7 +45,7 @@ class BackendPresenter extends \Admin\BackendPresenter
 
 	public function handleGetTonerProductsForSelect2(?string $q = null, ?Product $product = null)
 	{
-		if (!$q || \strlen($q) < 3) {
+		if (!$q) {
 			$this->payload->result = [];
 			$this->sendPayload();
 		}
@@ -55,7 +59,7 @@ class BackendPresenter extends \Admin\BackendPresenter
 			->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'this.uuid = nxnCategory.fk_product')
 			->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
 			->where('category.path LIKE :categoryPath', ['categoryPath' => $printerCategory->path . '%'])
-			->where("this.name$suffix LIKE :q", ['q' => "%$q%"])
+			->where("this.name$suffix LIKE :q OR this.code = :exact OR this.ean = :exact", ['q' => "%$q%", 'exact' => $q])
 			->setTake(5);
 
 		if ($product) {

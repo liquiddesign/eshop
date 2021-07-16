@@ -481,7 +481,8 @@ class OrderPresenter extends BackendPresenter
 		$form->addSelect2('product', 'Produkt', [], [
 			'ajax' => [
 				'url' => $this->link('getProductsForSelect2!')
-			]
+			],
+			'placeholder' => 'Zvolte produkt'
 		]);
 
 		$form->addSelect('cart', 'Košík č.', $order->purchase->carts->toArrayOf('id'))->setRequired();

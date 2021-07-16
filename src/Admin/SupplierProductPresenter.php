@@ -123,7 +123,8 @@ class SupplierProductPresenter extends BackendPresenter
 		$form->addSelect2('productFullCode', 'Párovat k produktu', [], [
 			'ajax' => [
 				'url' => $this->link('getProductsForSelect2!')
-			]
+			],
+			'placeholder' => 'Zvolte produkt'
 		]);
 
 		$form->addSubmits(false, false);

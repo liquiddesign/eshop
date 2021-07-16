@@ -509,7 +509,8 @@ class PricelistsPresenter extends BackendPresenter
 		$form->addSelect2('product', 'Produkt', [], [
 			'ajax' => [
 				'url' => $this->link('getProductsForSelect2!')
-			]
+			],
+			'placeholder' => 'Zvolte produkt'
 		]);
 
 		$form->addText('price', 'Cena')->addRule($form::FLOAT)->setRequired();
