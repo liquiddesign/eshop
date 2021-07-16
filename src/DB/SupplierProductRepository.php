@@ -167,7 +167,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$price = $property;
 		$priceVat = $property . 'Vat';
 
-		foreach ($products as $draft) {
+		while ($draft = $products->fetch()) {
 			if ($draft->$price === null) {
 				continue;
 			}
@@ -184,8 +184,8 @@ class SupplierProductRepository extends \StORM\Repository
 	public function syncAmounts(Collection $products, Store $store)
 	{
 		$amountRepository = $this->getConnection()->findRepository(Amount::class);
-
-		foreach ($products as $draft) {
+		
+		while ($draft = $products->fetch()) {
 			if ($draft->amount === null || $draft->amount === 0) {
 				continue;
 			}
