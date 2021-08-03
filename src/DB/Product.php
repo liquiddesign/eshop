@@ -478,7 +478,7 @@ class Product extends \StORM\Entity
 
 	public function inStock(): bool
 	{
-		return !$this->displayAmount || !$this->displayAmount->isSold;
+		return $this->displayAmount === null || !$this->displayAmount->isSold;
 	}
 
 	public function getPrice(int $amount = 1): float

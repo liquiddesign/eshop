@@ -292,9 +292,9 @@ class ProductGridFactory
 
 		if ($displayAmounts = $this->displayAmountRepository->getArrayForSelect()) {
 			$displayAmounts += ['0' => 'X - nepřiřazená'];
-			$grid->addFilterDataSelect(function (Collection $source, $value) {
-				$source->filter(['displayAmount' => $value === '0' ? false : $value]);
-			}, '', 'displayAmount', null, $displayAmounts)->setPrompt('- Dostupnost -');
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value) {
+				$source->filter(['displayAmount' => self::replaceArrayValue($value, '0', null)]);
+			}, '', 'displayAmount', null, $displayAmounts, ['placeholder' => '- Dostupnost -']);
 		}
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
