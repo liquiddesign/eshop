@@ -145,7 +145,7 @@ class ProductGridFactory
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this, 'onDelete']);
 
-		$bulkColumns = ['producer', 'categories', 'tags', 'ribbons', 'internalRibbons', 'displayAmount', 'displayDelivery', 'vatRate', 'taxes', 'hidden', 'unavailable'];
+		$bulkColumns = ['producer', 'categories', 'ribbons', 'internalRibbons', 'displayAmount', 'displayDelivery', 'vatRate', 'taxes', 'hidden', 'unavailable'];
 
 		if (isset($configuration['buyCount']) && $configuration['buyCount']) {
 			$bulkColumns = \array_merge($bulkColumns, ['buyCount']);

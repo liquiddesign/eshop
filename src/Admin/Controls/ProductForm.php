@@ -148,7 +148,7 @@ class ProductForm extends Control
 				$parameterGroupRepository->getArrayForSelect());
 		}
 
-		$form->addDataMultiSelect('tags', 'Tagy', $tagRepository->getArrayForSelect());
+		//$form->addDataMultiSelect('tags', 'Tagy', $tagRepository->getArrayForSelect());
 		$form->addDataMultiSelect('ribbons', 'Veřejné štítky', $ribbonRepository->getArrayForSelect());
 		$form->addDataMultiSelect('internalRibbons', 'Interní štítky', $internalRibbonRepository->getArrayForSelect());
 

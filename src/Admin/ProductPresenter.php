@@ -485,7 +485,7 @@ class ProductPresenter extends BackendPresenter
 			$container->setDefaults($prices[$pricelistId]->toArray());
 		}
 
-		$form->setDefaults($product->toArray(['categories', 'tags', 'ribbons', 'internalRibbons', 'parameterGroups', 'taxes']));
+		$form->setDefaults($product->toArray(['categories', 'ribbons', 'internalRibbons', 'parameterGroups', 'taxes']));
 		$form['alternative']->setValue($product->alternative ? $product->getValue('alternative') : null);
 
 		if (isset($form['upsells'])) {
