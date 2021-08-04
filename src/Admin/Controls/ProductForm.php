@@ -9,6 +9,7 @@ use Admin\Controls\AdminFormFactory;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
+use Eshop\DB\InternalRibbonRepository;
 use Eshop\DB\ParameterGroupRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
@@ -82,6 +83,7 @@ class ProductForm extends Control
 		CategoryRepository $categoryRepository,
 		TagRepository $tagRepository,
 		RibbonRepository $ribbonRepository,
+		InternalRibbonRepository $internalRibbonRepository,
 		ProducerRepository $producerRepository,
 		ParameterGroupRepository $parameterGroupRepository,
 		VatRateRepository $vatRateRepository,
@@ -147,7 +149,8 @@ class ProductForm extends Control
 		}
 
 		$form->addDataMultiSelect('tags', 'Tagy', $tagRepository->getArrayForSelect());
-		$form->addDataMultiSelect('ribbons', 'Štítky', $ribbonRepository->getArrayForSelect());
+		$form->addDataMultiSelect('ribbons', 'Veřejné štítky', $ribbonRepository->getArrayForSelect());
+		$form->addDataMultiSelect('internalRibbons', 'Interní štítky', $internalRibbonRepository->getArrayForSelect());
 
 		$form->addDataSelect('displayAmount', 'Dostupnost',
 			$displayAmountRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
