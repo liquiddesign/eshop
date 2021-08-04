@@ -203,6 +203,13 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$value === false ? $collection->where('ribbons.fk_ribbon IS NULL') : $collection->where('ribbons.fk_ribbon', $value);
 	}
+	
+	public function filterInternalRibbon($value, ICollection $collection)
+	{
+		$collection->join(['internalRibbons' => 'eshop_product_nxn_eshop_internalribbon'], 'internalRibbons.fk_product=this.uuid');
+		
+		$value === false ? $collection->where('internalRibbons.fk_internalribbon IS NULL') : $collection->where('internalRibbons.fk_internalribbon', $value);
+	}
 
 	public function filterPricelist($value, ICollection $collection)
 	{

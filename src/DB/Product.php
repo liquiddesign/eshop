@@ -357,7 +357,14 @@ class Product extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Ribbon>|\Eshop\DB\Ribbon[]
 	 */
 	public RelationCollection $ribbons;
-
+	
+	/**
+	 * Interní stužky
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\InternalRibbon>|\Eshop\DB\InternalRibbon[]
+	 */
+	public RelationCollection $internalRibbons;
+	
 	/**
 	 * Varianty
 	 * @relation

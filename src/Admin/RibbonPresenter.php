@@ -7,6 +7,8 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Eshop\DB\DiscountRepository;
+use Eshop\DB\InternalRibbon;
+use Eshop\DB\InternalRibbonRepository;
 use Eshop\DB\Ribbon;
 use Eshop\DB\RibbonRepository;
 use Forms\Form;
@@ -30,6 +32,9 @@ class RibbonPresenter extends BackendPresenter
 
 	/** @inject */
 	public RibbonRepository $ribbonRepository;
+	
+	/** @inject */
+	public InternalRibbonRepository $internalRibbonRepository;
 
 	/** @inject */
 	public DiscountRepository $discountRepository;
@@ -41,7 +46,18 @@ class RibbonPresenter extends BackendPresenter
 		'normal' => 'Běžný',
 		'onlyImage' => 'Pouze obrázek'
 	];
-
+	
+	public function beforeRender()
+	{
+		parent::beforeRender();
+		
+		$this->template->tabs = [
+			'@default' => 'Veřejné',
+			'@internal' => 'Interní',
+		];
+	}
+	
+	
 	public function createComponentGrid()
 	{
 		$grid = $this->gridFactory->create($this->ribbonRepository->many(), 20, 'priority');
@@ -76,8 +92,57 @@ class RibbonPresenter extends BackendPresenter
 
 		return $grid;
 	}
-
-	public function createComponentNewForm(): Form
+	
+	public function createComponentInternalGrid()
+	{
+		$grid = $this->gridFactory->create($this->internalRibbonRepository->many(), 20, 'priority');
+		$grid->addColumnSelector();
+		$grid->addColumnText('Popisek', 'name', '%s', 'name');
+		$columnText = $grid->addColumnText('Barva textu', 'color', '%s', 'color');
+		$columnBackground = $grid->addColumnText('Barva pozadí', 'backgroundColor', '%s', 'backgroundColor');
+		$grid->addColumnLinkDetail('InternalDetail');
+		$grid->addColumnActionDelete();
+		
+		$grid->addButtonSaveAll();
+		$grid->addButtonDeleteSelected();
+		
+		$grid->onRenderRow[] = function (\Nette\Utils\Html $tr, InternalRibbon $object) use ($columnText, $columnBackground) {
+			$tr[$columnText->getId()]->setAttribute('style', "color: $object->color");
+			$tr[$columnBackground->getId()]->setAttribute('style', "color: $object->backgroundColor");
+		};
+		
+		$grid->addFilterTextInput('search', ['name_cs'], null, 'Popisek');
+		$grid->addFilterButtons();
+		
+		return $grid;
+	}
+	
+	public function createComponentInternalForm(): Form
+	{
+		$form = $this->formFactory->create(true);
+		
+		$form->addText('name', 'Název')->setRequired(true);
+		
+		$ribbon = $this->getParameter('ribbon');
+		
+		$form->addColor('color', 'Barva textu');
+		$form->addColor('backgroundColor', 'Barva pozadí');
+		
+		$form->addSubmits(!$ribbon);
+		
+		$form->onSuccess[] = function (AdminForm $form) {
+			$values = $form->getValues('array');
+			
+			$ribbon = $this->ribbonRepository->syncOne($values);
+			
+			$this->flashMessage('Uloženo', 'success');
+			$form->processRedirect('detail', 'default', [$ribbon]);
+		};
+		
+		return $form;
+	}
+	
+	public function createComponentForm(): Form
 	{
 		$form = $this->formFactory->create(true);
 
@@ -155,40 +220,83 @@ class RibbonPresenter extends BackendPresenter
 
 	public function renderDefault()
 	{
-		$this->template->headerLabel = 'Štítky';
+		$this->template->headerLabel = 'Veřejné štítky';
 		$this->template->headerTree = [
-			['Štítky'],
+			['Veřejné štítky'],
 		];
 		$this->template->displayButtons = [$this->createNewItemButton('new')];
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
-
+	
+	public function renderInternal()
+	{
+		$this->template->headerLabel = 'Interní štítky';
+		$this->template->headerTree = [
+			['Interní štítky'],
+		];
+		$this->template->displayButtons = [$this->createNewItemButton('internalNew')];
+		$this->template->displayControls = [$this->getComponent('internalGrid')];
+	}
+	
 	public function renderNew()
 	{
-		$this->template->headerLabel = 'Nový štítek';
+		$this->template->headerLabel = 'Nový veřejný štítek';
 		$this->template->headerTree = [
-			['Štítky', 'default'],
+			['Veřejné štítky', 'default'],
 			['Nový štítek'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('newForm')];
+		$this->template->displayControls = [$this->getComponent('form')];
+		$this->template->activeTab = 'default';
 	}
-
+	
+	public function renderInternalNew()
+	{
+		$this->template->headerLabel = 'Nový interní štítek';
+		$this->template->headerTree = [
+			['Interní štítky', 'default'],
+			['Nový títek'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('internal')];
+		$this->template->displayControls = [$this->getComponent('internalForm')];
+		$this->template->activeTab = 'internal';
+	}
+	
 	public function renderDetail()
 	{
-		$this->template->headerLabel = 'Detail štítku';
+		$this->template->headerLabel = 'Detail veřejného štítku';
 		$this->template->headerTree = [
-			['Štítky', 'default'],
+			['Veřejné štítky', 'default'],
 			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('newForm')];
+		$this->template->displayControls = [$this->getComponent('form')];
+		$this->template->activeTab = 'default';
+	}
+
+	public function renderInternalDetail()
+	{
+		$this->template->headerLabel = 'Detail interního štítku';
+		$this->template->headerTree = [
+			['Interní štítky', 'default'],
+			['Detail'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('internal')];
+		$this->template->displayControls = [$this->getComponent('internalForm')];
+		$this->template->activeTab = 'internal';
+	}
+	
+	public function actionInternalDetail(InternalRibbon $ribbon)
+	{
+		/** @var Form $form */
+		$form = $this->getComponent('internalForm');
+		$form->setDefaults($ribbon->toArray());
 	}
 
 	public function actionDetail(Ribbon $ribbon)
 	{
 		/** @var Form $form */
-		$form = $this->getComponent('newForm');
+		$form = $this->getComponent('form');
 
 		$form->setDefaults($ribbon->toArray() + [
 				'discounts' => \array_values($this->storm->rows(['eshop_discount_nxn_eshop_ribbon'])

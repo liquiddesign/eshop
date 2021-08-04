@@ -6,6 +6,8 @@ namespace Eshop\Admin\Controls;
 
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\DisplayAmountRepository;
+use Eshop\DB\InternalRibbon;
+use Eshop\DB\InternalRibbonRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
@@ -39,6 +41,8 @@ class ProductGridFactory
 	private CategoryRepository $categoryRepository;
 
 	private RibbonRepository $ribbonRepository;
+	
+	private InternalRibbonRepository $internalRibbonRepository;
 
 	private TagRepository $tagRepository;
 
@@ -62,6 +66,7 @@ class ProductGridFactory
 		SupplierCategoryRepository $supplierCategoryRepository,
 		CategoryRepository $categoryRepository,
 		RibbonRepository $ribbonRepository,
+		InternalRibbonRepository $internalRibbonRepository,
 		TagRepository $tagRepository,
 		PricelistRepository $pricelistRepository,
 		DisplayAmountRepository $displayAmountRepository,
@@ -75,6 +80,7 @@ class ProductGridFactory
 		$this->supplierCategoryRepository = $supplierCategoryRepository;
 		$this->categoryRepository = $categoryRepository;
 		$this->ribbonRepository = $ribbonRepository;
+		$this->internalRibbonRepository = $internalRibbonRepository;
 		$this->tagRepository = $tagRepository;
 		$this->pageRepository = $pageRepository;
 		$this->container = $container;
@@ -233,7 +239,14 @@ class ProductGridFactory
 			$ribbons += ['0' => 'X - bez štítků'];
 			$grid->addFilterDataMultiSelect(function (Collection $source, $value) {
 				$source->filter(['ribbon' => self::replaceArrayValue($value, '0', null)]);
-			}, '', 'ribbons', null, $ribbons, ['placeholder' => '- Štítky -']);
+			}, '', 'ribbons', null, $ribbons, ['placeholder' => '- Veř. štítky -']);
+		}
+		
+		if ($ribbons = $this->internalRibbonRepository->getArrayForSelect()) {
+			$ribbons += ['0' => 'X - bez štítků'];
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value) {
+				$source->filter(['internalRibbon' => self::replaceArrayValue($value, '0', null)]);
+			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
 		}
 
 		if ($pricelists = $this->pricelistRepository->getArrayForSelect()) {
