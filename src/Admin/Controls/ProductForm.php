@@ -495,7 +495,7 @@ class ProductForm extends Control
 			$this->pageRepository->syncOne($values['page']);
 		});
 
-		$this->setRepository->many()->where('fk_set', $this->product->getPK())->delete();
+		$this->setRepository->many()->where('fk_set', $product->getPK())->delete();
 
 		if (isset($values['productsSet']) && $values['productsSet']) {
 			foreach ($values['setItems'] as $setItem) {
