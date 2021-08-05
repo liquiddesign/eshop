@@ -16,6 +16,7 @@ use Forms\Form;
 use Grid\Datagrid;
 use Messages\DB\TemplateRepository;
 use Nette\Mail\Mailer;
+use Security\Authenticator;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
 
@@ -125,12 +126,26 @@ class MerchantPresenter extends BackendPresenter
 				unset($values['account']);
 			}
 
+			/** @var Merchant $merchant */
 			$merchant = $this->merchantRepository->syncOne($values, null, true);
 
 			if (isset($form['account'])) {
-				$this->accountFormFactory->onCreateAccount[] = function ($account) use ($merchant) {
-					$merchant->accounts->relate([$account->getPK()]);
-				};
+				$valuesAccount = $form->getValues('array')['account'];
+
+				if ($valuesAccount['password']) {
+					$valuesAccount['password'] = Authenticator::setCredentialTreatment($valuesAccount['password']);
+				} else {
+					unset($valuesAccount['password']);
+				}
+
+				if (!$valuesAccount['uuid']) {
+					$account = $this->accountRepository->createOne($valuesAccount, true);
+				} else {
+					$account = $this->accountRepository->one($valuesAccount['uuid'], true);
+					$account->update($valuesAccount);
+				}
+
+				$merchant->accounts->relate([$account->getPK()]);
 			}
 
 			$this->flashMessage('Uloženo', 'success');
