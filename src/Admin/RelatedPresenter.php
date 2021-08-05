@@ -234,7 +234,7 @@ class RelatedPresenter extends BackendPresenter
 		$form->addSubmits(!$this->getParameter('relatedType'));
 
 		$form->onValidate[] = function (AdminForm $form) {
-			$values = $form->getValues('array');
+			$values = $form->getUnsafeValues('array');
 
 			if ($this->relatedTypeRepository->many()->where('code', $values['code'])->first()) {
 				$form['code']->addError('Již existuje typ s tímto kódem!');
