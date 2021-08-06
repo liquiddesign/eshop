@@ -560,7 +560,7 @@ class CustomerPresenter extends BackendPresenter
 			$container->addText('newsletterGroup', 'Skupina pro newsletter')->addConditionOn($container['newsletter'], $form::EQUAL, true)->addRule($form::REQUIRED);
 		};
 
-		$form = $this->accountFormFactory->create(false, $callback, true, true);
+		$form = $this->accountFormFactory->create(false, $callback, true, true, true);
 
 		return $form;
 	}
