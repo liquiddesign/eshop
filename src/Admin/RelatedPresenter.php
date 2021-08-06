@@ -360,7 +360,12 @@ class RelatedPresenter extends BackendPresenter
 	public function createComponentImportForm()
 	{
 		$form = $this->formFactory->create();
-		$form->addUpload('file', 'CSV soubor')->setRequired();
+		$form->addUpload('file', 'CSV soubor')->setRequired()->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
+Povinné sloupce:<br>
+type - Kód typu vazby<br>
+master - Kód hlavního produktu vazby<br>
+slave - Kód sekundárního produktu vazby<br><br>
+Pokud nebude nalezen typ vazby nebo některý z produktů tak se daný řádek ignoruje.');
 		$form->addSubmit('submit', 'Uložit');
 
 		$form->onSuccess[] = function (Form $form) {
