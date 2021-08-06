@@ -345,7 +345,7 @@ class AttributePresenter extends BackendPresenter
 			/** @var AttributeValue $object */
 			$object = $this->attributeValueRepository->syncOne($values, null, true);
 
-			if (!$values['page']['url'][Arrays::first($this->formFactory->getMutations())]) {
+			if (isset($values['page']) && isset($values['page']['url']) && !$values['page']['url'][Arrays::first($this->formFactory->getMutations())]) {
 				foreach ($this->pageRepository->getConnection()->getAvailableMutations() as $mutation => $suffix) {
 					$page = $this->pageRepository->getPageByTypeAndParams('product_list', $mutation, ['attributeValue' => $this->getParameter('attributeValue')]);
 
