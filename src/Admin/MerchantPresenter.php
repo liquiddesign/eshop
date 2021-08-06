@@ -196,10 +196,10 @@ class MerchantPresenter extends BackendPresenter
 
 	public function renderDetail(Merchant $merchant)
 	{
-		$this->template->headerLabel = 'Detail obchodníka - ' . $merchant->fullname;
+		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Obchodníci', 'default'],
-			['Detail obchodníka'],
+			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('form')];

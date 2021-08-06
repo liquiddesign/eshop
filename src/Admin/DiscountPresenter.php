@@ -173,10 +173,10 @@ class DiscountPresenter extends BackendPresenter
 
 	public function renderDetail(Discount $discount)
 	{
-		$this->template->headerLabel = 'Detail akce - ' . $discount->name;
+		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Akce', 'default'],
-			['Detail akce'],
+			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('newForm')];

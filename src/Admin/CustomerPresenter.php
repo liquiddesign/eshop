@@ -406,10 +406,10 @@ class CustomerPresenter extends BackendPresenter
 
 	public function renderEdit(): void
 	{
-		$this->template->headerLabel = 'Detail zákazníka - ' . $this->getParameter('customer')->getName();
+		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Zákazníci', 'default'],
-			['Detail zákazníka'],
+			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('form')];
@@ -417,10 +417,10 @@ class CustomerPresenter extends BackendPresenter
 
 	public function renderEditAddress(): void
 	{
-		$this->template->headerLabel = 'Detail adresy zákazníka - ' . $this->getParameter('customer')->getName();
+		$this->template->headerLabel = 'Adresy';
 		$this->template->headerTree = [
 			['Zákazníci', 'default'],
-			['Detail adresy'],
+			['Adresy'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('editAddress')];
@@ -428,11 +428,10 @@ class CustomerPresenter extends BackendPresenter
 
 	public function renderEditAccount(Account $account): void
 	{
-		$this->template->headerLabel = 'Detail účtu - ' . $account->login;
+		$this->template->headerLabel = 'Účet';
 		$this->template->headerTree = [
 			['Zákazníci', 'default'],
-			['Účty', 'default'],
-			['Detail účtu'],
+			['Účet'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('accountForm')];

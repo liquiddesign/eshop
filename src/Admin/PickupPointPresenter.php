@@ -73,7 +73,7 @@ class PickupPointPresenter extends BackendPresenter
 
 	public function renderTypeNew(): void
 	{
-		$this->template->headerLabel = 'Výdejní místa - typy';
+		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
 			['Výdejní místa', 'default'],
 			['Typy'],
@@ -94,11 +94,11 @@ class PickupPointPresenter extends BackendPresenter
 
 	public function renderTypeDetail(PickupPointType $pickupPointType): void
 	{
-		$this->template->headerLabel = 'Výdejní místa - typy';
+		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Výdejní místa', 'default'],
 			['Typy'],
-			['Detail položky']
+			['Detail']
 		];
 
 		$this->template->displayButtons = [$this->createBackButton('default')];
@@ -107,7 +107,7 @@ class PickupPointPresenter extends BackendPresenter
 
 	public function renderPointNew(): void
 	{
-		$this->template->headerLabel = 'Výdejní místa';
+		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
 			['Výdejní místa', 'default'],
 			['Místa'],
@@ -129,11 +129,11 @@ class PickupPointPresenter extends BackendPresenter
 
 	public function renderPointDetail(PickupPoint $pickupPoint): void
 	{
-		$this->template->headerLabel = 'Výdejní místa';
+		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Výdejní místa', 'default'],
 			['Místa'],
-			['Detail položky']
+			['Detail']
 		];
 
 		$this->template->displayButtons = [$this->createBackButton('default')];
@@ -384,7 +384,7 @@ class PickupPointPresenter extends BackendPresenter
 		/** @var PickupPoint $pickupPoint */
 		$pickupPoint = $this->pickupPointRepo->one($this->selectedPickupPoint, true);
 
-		$this->template->headerLabel = 'Mimořádná otevírací doba místa: ' . $pickupPoint->name;
+		$this->template->headerLabel = 'Nová mimořádná otevírací doba místa: ' . $pickupPoint->name;
 		$this->template->headerTree = [
 			['Výdejní místa', 'default'],
 			['Místa'],

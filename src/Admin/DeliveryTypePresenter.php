@@ -183,10 +183,10 @@ class DeliveryTypePresenter extends BackendPresenter
 	
 	public function renderDetail(DeliveryType $deliveryType)
 	{
-		$this->template->headerLabel = 'Detail typu dopravy';
+		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Typy dopravy', 'default'],
-			['Detail typu dopravy'],
+			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('newForm')];

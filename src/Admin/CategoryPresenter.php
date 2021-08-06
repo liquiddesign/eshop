@@ -293,10 +293,10 @@ class CategoryPresenter extends BackendPresenter
 
 	public function renderDetail(Category $category)
 	{
-		$this->template->headerLabel = 'Detail kategorie';
+		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Kategorie', 'default'],
-			['Detail kategorie'],
+			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [
@@ -393,10 +393,11 @@ class CategoryPresenter extends BackendPresenter
 
 	public function renderCategoryTypeDetail(CategoryType $categoryType)
 	{
-		$this->template->headerLabel = 'Detail typu kategorie';
+		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Kategorie', 'default'],
-			['Typy']
+			['Typy', 'default'],
+			['Detail']
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('categoryTypeForm')];

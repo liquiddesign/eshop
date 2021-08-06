@@ -606,11 +606,11 @@ class OrderPresenter extends BackendPresenter
 
 	public function renderDetailOrderItem(CartItem $cartItem, Order $order): void
 	{
-		$this->template->headerLabel = 'Detail položky objednávky';
+		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
 			['Položky', 'orderItems', $order],
-			['Detail položky']
+			['Detail']
 		];
 		$this->template->displayButtons = [$this->createBackButton('orderItems', $order)];
 		$this->template->displayControls = [$this->getComponent('detailOrderItemForm')];

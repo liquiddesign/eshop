@@ -385,7 +385,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 	public function renderPriceListDetail(Pricelist $pricelist): void
 	{
-		$this->template->headerLabel = 'Detail ceníku';
+		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Ceníky', 'default'],
 			['Detail'],

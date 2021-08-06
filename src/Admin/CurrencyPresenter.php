@@ -91,10 +91,10 @@ class CurrencyPresenter extends BackendPresenter
 
 	public function renderDetail(Currency $currency)
 	{
-		$this->template->headerLabel = 'Detail měny - ' . $currency->code;
+		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Měny', 'default'],
-			['Detail měny'],
+			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('newForm')];

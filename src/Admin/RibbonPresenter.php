@@ -127,16 +127,16 @@ class RibbonPresenter extends BackendPresenter
 		
 		$form->addColor('color', 'Barva textu');
 		$form->addColor('backgroundColor', 'Barva pozadí');
-		
+		;
 		$form->addSubmits(!$ribbon);
 		
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
 			
-			$ribbon = $this->ribbonRepository->syncOne($values);
+			$ribbon = $this->internalRibbonRepository->syncOne($values);
 			
 			$this->flashMessage('Uloženo', 'success');
-			$form->processRedirect('detail', 'default', [$ribbon]);
+			$form->processRedirect('internalDetail', 'internal', [$ribbon]);
 		};
 		
 		return $form;

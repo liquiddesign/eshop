@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
-use Admin\BackendPresenter;
-use Eshop\FormValidators;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\Amount;
@@ -16,7 +14,7 @@ use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierRepository;
 use Forms\Form;
 
-class StorePresenter extends BackendPresenter
+class StorePresenter extends \Eshop\BackendPresenter
 {
 	/** @inject */
 	public StoreRepository $storeRepository;
@@ -155,10 +153,21 @@ class StorePresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 		
-		$form->addText('product', 'Produkt')
-			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
-			->addRule([FormValidators::class, 'amountProductCheck'], 'Produkt neexistuje nebo již existuje záznam pro tento produkt!', [$this->productRepo, $this->amountRepo, $this->getParameter('store')])
-			->setRequired();
+//		$form->addText('product', 'Produkt')
+//			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
+//			->addRule([FormValidators::class, 'amountProductCheck'], 'Produkt neexistuje nebo již existuje záznam pro tento produkt!', [$this->productRepo, $this->amountRepo, $this->getParameter('store')])
+//			->setRequired();
+
+		$product = $form->addSelect2('product', 'Produkt', [], [
+			'ajax' => [
+				'url' => $this->getPresenter()->link('getProductsForSelect2!')
+			],
+			'placeholder' => "Zvolte produkt",
+		])->checkDefaultValue(false);
+
+		if ($this->getParameter('amount')) {
+			$this->getPresenter()->template->select2AjaxDefaults[$product->getHtmlId()] = [$this->getParameter('amount')->getValue('product') => $this->getParameter('amount')->product->name];
+		}
 		
 		$form->addInteger('inStock', 'Naskladněno');
 		$form->addIntegerNullable('reserved', 'Rezervováno');
@@ -168,12 +177,22 @@ class StorePresenter extends BackendPresenter
 		
 		$form->addSubmits();
 
+		$form->onValidate[] = function (AdminForm $form) {
+			$data = $this->getHttpRequest()->getPost();
+
+			if (!isset($data['product'])) {
+				$form['product']->addError('Toto pole je povinné!');
+			}
+		};
+
 		$form->onSuccess[] = function (AdminForm $form) {
+			$data = $this->getPresenter()->getHttpRequest()->getPost();
 			$values = $form->getValues();
 
-			$values['product'] = $this->productRepo->getProductByCodeOrEAN($values['product']);
+			$values['product'] = isset($data['product']) ? $this->productRepository->one($data['product']) : null;
+			$values['store'] = $this->getParameter('store');
 			
-			$this->amountRepo->createOne($values);
+			$this->amountRepo->syncOne($values);
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('this', 'amounts', [$this->getParameter('store')], [$this->getParameter('store')]);
