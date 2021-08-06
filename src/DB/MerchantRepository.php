@@ -34,12 +34,16 @@ class MerchantRepository extends \StORM\Repository implements IUserRepository, I
 	}
 
 	/**
-	 * @param \Eshop\DB\Customer|string $customer
+	 * @param \Eshop\DB\Customer|string|null $customer
 	 * @return \Eshop\DB\Merchant[]
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getMerchantsByCustomer($customer): array
+	public function getMerchantsByCustomer($customer = null): array
 	{
+		if ($customer === null) {
+			return [];
+		}
+
 		/** @var \Eshop\DB\CustomerRepository $customerRepository */
 		$customerRepository = $this->getConnection()->findRepository(Customer::class);
 
