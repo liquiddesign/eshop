@@ -94,15 +94,19 @@ class MerchantPresenter extends BackendPresenter
 
 	public function createComponentForm(): Form
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(false, false, false, false, false);
 
+		$form->addGroup('Obchodník');
 		$form->addText('code', 'Kód');
 		$form->addText('fullname', 'Jméno a příjmení')->setRequired();
 		$form->addEmail('email', 'E-mail')->setRequired();
 
 		if (!$this->getParameter('merchant')) {
+			$form->addGroup('Účet');
 			$this->accountFormFactory->addContainer($form);
 		}
+
+		$form->addGroup('Další možnosti');
 
 //		$form->addDataSelect('preferredMutation', 'Preferovaný jazyk', \array_combine($this->formFactory->formFactory->getDefaultMutations(),$this->formFactory->formFactory->getDefaultMutations()))->setPrompt('Automaticky');
 		$form->addDataSelect('customerGroup', 'Skupina zákazníků',
