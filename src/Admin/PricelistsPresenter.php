@@ -352,7 +352,9 @@ class PricelistsPresenter extends BackendPresenter
 	public function createComponentImportPriceList()
 	{
 		$form = $this->formFactory->create();
-		$form->addUpload('file', 'CSV soubor')->setRequired();
+		$form->addUpload('file', 'CSV soubor')->setRequired()->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
+Povinné sloupce:<br>
+product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefore - Předchozí cena<br>priceVatBefore - Předchozí cena s daní<br>');
 		$form->addSubmit('submit', 'Uložit');
 
 		$form->onSuccess[] = function (Form $form) {

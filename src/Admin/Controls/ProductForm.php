@@ -347,7 +347,7 @@ class ProductForm extends Control
 		}
 
 		if (isset($configuration['buyCount']) && $configuration['buyCount']) {
-			$form->addIntegerNullable('buyCount', 'Počet prodaných')->addCondition($form::FILLED)->addRule($form::MIN, 'Zadejte číslo rovné nebo větší než 0!', 0);
+			$form->addIntegerNullable('buyCount', 'Počet prodaných')->addFilter('intval')->addCondition($form::FILLED)->addRule($form::MIN, 'Zadejte číslo rovné nebo větší než 0!', 0);
 		}
 
 		$form->addPageContainer('product_detail', ['product' => null], $nameInput);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
+use Common\NumbersHelper;
 use League\Csv\Reader;
 use Nette\Utils\Arrays;
 use StORM\Collection;
@@ -283,15 +284,15 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			$values = [
 				'product' => $product->getPK(),
 				'pricelist' => $pricelist->getPK(),
-				'price' => $value['price'] !== '' ? \floatval(\str_replace(',', '.', \str_replace('.', '', $value['price']))) : 0,
-				'priceVat' => $value['priceVat'] !== '' ? \floatval(\str_replace(',', '.', \str_replace('.', '', $value['priceVat']))) : 0,
+				'price' => $value['price'] !== '' ? NumbersHelper::strToFloat($value['price']) : 0,
+				'priceVat' => $value['priceVat'] !== '' ? NumbersHelper::strToFloat($value['priceVat']) : 0,
 			];
 
 			if ($quantityPrices) {
-				$values['validFrom'] = $value['validFrom'] !== '' ? (int)$value['validFrom'] : null;
+				$values['validFrom'] = $value['validFrom'] != '' ? (int)$value['validFrom'] : null;
 			} else {
-				$values['priceBefore'] = $value['priceBefore'] !== '' ? \floatval(\str_replace(',', '.', \str_replace('.', '', $value['priceBefore']))) : null;
-				$values['priceVatBefore'] = $value['priceVatBefore'] !== '' ? \floatval(\str_replace(',', '.', \str_replace('.', '', $value['priceVatBefore']))) : null;
+				$values['priceBefore'] = $value['priceBefore'] != '' ? NumbersHelper::strToFloat($value['priceBefore']) : null;
+				$values['priceVatBefore'] = $value['priceVatBefore'] != '' ? NumbersHelper::strToFloat($value['priceVatBefore']) : null;
 			}
 
 			$this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class)->syncOne($values);
