@@ -46,6 +46,7 @@ use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
+use Onnov\DetectEncoding\EncodingDetector;
 use Pages\DB\PageRepository;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -904,7 +905,8 @@ class ProductPresenter extends BackendPresenter
 			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/csv');
 
 		if (isset(static::CONFIGURATION['importExampleFile']) && static::CONFIGURATION['importExampleFile']) {
-			$filePicker->setHtmlAttribute('data-info', 'Vzorový soubor: <a href="' . $this->link('downloadImportExampleFile!') . '">' . static::CONFIGURATION['importExampleFile'] . '</a>');
+			$filePicker->setHtmlAttribute('data-info', 'Vzorový soubor: <a href="' . $this->link('downloadImportExampleFile!') . '">' . static::CONFIGURATION['importExampleFile'] . '</a><br
+>Podporuje <b>pouze</b> formátování Windows a Linux (UTF-8)!');
 		}
 
 		$form->addSelect('delimiter', 'Oddělovač', [
@@ -922,7 +924,9 @@ Soubor <b>musí obsahovat</b> hlavičku a jeden ze sloupců "Kód" nebo "EAN" pr
 Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 ' . $allowedColumns . '<br>
 Atributy a výrobce musí být zadány jako kód (např.: "001") nebo jako kombinace názvu a kódu(např.: "Tisková technologie#001).<br>
-Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že jich lze více oddělit pomocí ":". Např.: "Inkoustová#462:9549"');
+Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že jich lze více oddělit pomocí ":". Např.: "Inkoustová#462:9549"<br>
+<br>
+<b>Pozor!</b> Pokud pracujete se souborem na zařízeních Apple, ujistětě se, že vždy při ukládání použijete možnost uložit do formátu Windows nebo Linux (UTF-8)!');
 
 		$form->addSubmit('submit', 'Importovat');
 
@@ -1103,7 +1107,26 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 			\ini_set("auto_detect_line_endings", '1');
 		}
 
-		$reader = Reader::createFromPath($filePath);
+		$csvData = FileSystem::read($filePath);
+
+		$detector = new EncodingDetector();
+
+		$detector->disableEncoding([
+			EncodingDetector::ISO_8859_5,
+			EncodingDetector::KOI8_R
+		]);
+
+		$encoding = $detector->getEncoding($csvData);
+
+		if ($encoding !== 'utf-8') {
+			$csvData = \iconv('windows-1250', 'utf-8', $csvData);
+			$reader = Reader::createFromString($csvData);
+			unset($csvData);
+		} else {
+			unset($csvData);
+			$reader = Reader::createFromPath($filePath);
+		}
+
 		$reader->setDelimiter($delimiter);
 		$reader->setHeaderOffset(0);
 		$mutation = $this->productRepository->getConnection()->getMutation();
