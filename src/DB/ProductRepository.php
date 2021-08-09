@@ -6,8 +6,8 @@ namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
 use Eshop\Shopper;
+use League\Csv\EncloseField;
 use League\Csv\Writer;
-use Nette\Utils\Arrays;
 use Pages\Pages;
 use Security\DB\Account;
 use StORM\Collection;
@@ -16,7 +16,6 @@ use StORM\Entity;
 use StORM\ICollection;
 use StORM\Repository;
 use StORM\SchemaManager;
-use Tracy\Debugger;
 use Web\DB\PageRepository;
 
 /**
@@ -754,6 +753,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 	public function csvExport(ICollection $products, Writer $writer, array $columns = [], array $attributes = [], string $delimiter = ';', ?array $header = null): void
 	{
 		$writer->setDelimiter($delimiter);
+
+		EncloseField::addTo($writer, "\t\22");
 
 		if ($header) {
 			$writer->insertOne($header);
