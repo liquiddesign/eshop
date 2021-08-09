@@ -93,8 +93,12 @@ class ProductGridFactory
 		$source = $this->productRepository->many()->setGroupBy(['this.uuid'])
 			->join(['photo' => 'eshop_photo'], 'this.uuid = photo.fk_product')
 			->join(['file' => 'eshop_file'], 'this.uuid = file.fk_product')
-			->select(['photoCount' => "COUNT(DISTINCT photo.uuid)"])
-			->select(['fileCount' => "COUNT(DISTINCT file.uuid)"]);
+			->join(['comment' => 'eshop_internalcommentproduct'], 'this.uuid = comment.fk_product')
+			->select([
+				'photoCount' => "COUNT(DISTINCT photo.uuid)",
+				'fileCount' => "COUNT(DISTINCT file.uuid)",
+				'commentCount' => 'COUNT(DISTINCT comment.uuid)'
+			]);
 
 		$grid = $this->gridFactory->create($source, 20, 'this.priority', 'ASC', true);
 		$grid->addColumnSelector();
@@ -137,6 +141,9 @@ class ProductGridFactory
 		});
 		$grid->addColumn(null, function (Product $product, $grid) {
 			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' . $grid->getPresenter()->link('files', $product) . '"><i title="Soubory" class="far fa-file"></i>&nbsp;' . $product->fileCount . '</a>';
+		});
+		$grid->addColumn(null, function (Product $product, $grid) {
+			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' . $grid->getPresenter()->link('comments', $product) . '"><i title="Komentáře" class="far fa-comment"></i>&nbsp;' . $product->commentCount . '</a>';
 		});
 
 		$grid->addColumnLinkDetail('edit');

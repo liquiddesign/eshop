@@ -9,6 +9,7 @@ use Admin\Controls\AdminForm;
 use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\DeliveryTypeRepository;
+use Eshop\DB\InternalCommentOrderRepository;
 use Eshop\DB\PackageItemRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\Product;
@@ -96,6 +97,9 @@ class OrderPresenter extends BackendPresenter
 
 	/** @inject */
 	public Mailer $mailer;
+
+	/** @inject */
+	public InternalCommentOrderRepository $commentRepository;
 
 	/** @persistent */
 	public string $tab = 'received';
@@ -699,5 +703,48 @@ class OrderPresenter extends BackendPresenter
 		}
 
 		return \implode(', ', $types);
+	}
+
+	public function actionComments(Order $order)
+	{
+		$this->template->headerLabel = 'Komentáře - ' . $order->code;
+		$this->template->headerTree = [
+			['Objednávky', 'default'],
+			['Komentáře']
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+	}
+
+	public function renderComments(Order $order)
+	{
+		$this->template->comments = $this->commentRepository->many()->where('fk_order', $order->getPK())->orderBy(['createdTs'])->toArray();
+		$this->template->setFile(__DIR__ . '/templates/comments.latte');
+	}
+
+	public function createComponentNewComment()
+	{
+
+		$form = $this->formFactory->create(true, false, false, false, false);
+
+		$form->addGroup('Nový komentář');
+		$form->addTextArea('text', 'Text komentáře');
+
+		$form->addSubmit('send', 'Odeslat');
+
+		$form->onSuccess[] = function (Form $form) {
+			$values = $form->getValues('array');
+
+			$this->commentRepository->createOne([
+				'order' => $this->getParameter('order')->getPK(),
+				'text' => $values['text'],
+				'administrator' => $this->admin->getIdentity()->getPK(),
+				'adminFullname' => $this->admin->getIdentity()->fullName
+			]);
+
+			$this->flashMessage('Uloženo', 'success');
+			$this->redirect('comments', $this->getParameter('order'));
+		};
+
+		return $form;
 	}
 }

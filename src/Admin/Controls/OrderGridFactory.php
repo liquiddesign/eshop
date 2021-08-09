@@ -75,7 +75,11 @@ class OrderGridFactory
 	{
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
-		$grid = $this->gridFactory->create($this->getCollectionByState($state), 20, 'this.createdTs', 'DESC', true);
+		$grid = $this->gridFactory->create($this->getCollectionByState($state)
+			->setGroupBy(['this.uuid'])
+			->join(['comment' => 'eshop_internalcommentorder'], 'this.uuid = comment.fk_order')
+			->select(['commentCount' => 'COUNT(DISTINCT comment.uuid)']),
+			20, 'this.createdTs', 'DESC', true);
 
 		$grid->addColumnSelector();
 		$grid->addColumnText('Číslo a datum', ['code', "createdTs|date:'d.m.Y G:i"], '%s<br><small>%s</small>', 'this.code', ['class' => 'fit']);
@@ -119,6 +123,9 @@ class OrderGridFactory
 			return $grid->getPresenter()->link(':Eshop:Order:order', $order->getPK());
 		}, "<a class='$btnSecondary' href='%s' target='_blank'><i class='fa fa-print'></i> Detail</a>", null, ['class' => 'minimal']);
 
+		$grid->addColumn(null, function ($object, $grid) {
+			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' . $grid->getPresenter()->link('comments', $object) . '"><i title="Komentáře" class="far fa-comment"></i>&nbsp;' . $object->commentCount . '</a>';
+		});
 
 		$grid->addColumnLink('detail', '<i class="fa fa-edit"></i>', null, ['class' => 'minimal']);
 

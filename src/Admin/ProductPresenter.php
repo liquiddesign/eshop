@@ -16,6 +16,7 @@ use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\File;
 use Eshop\DB\FileRepository;
+use Eshop\DB\InternalCommentProductRepository;
 use Eshop\DB\NewsletterTypeRepository;
 use Eshop\DB\ParameterRepository;
 use Eshop\DB\ParameterValueRepository;
@@ -166,6 +167,9 @@ class ProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public AttributeAssignRepository $attributeAssignRepository;
+
+	/** @inject */
+	public InternalCommentProductRepository $commentRepository;
 
 	/** @inject */
 	public Application $application;
@@ -1372,5 +1376,48 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 
 		$this->flashMessage('Provedeno', 'success');
 		$this->redirect('this');
+	}
+
+	public function actionComments(Product $product)
+	{
+		$this->template->headerLabel = 'Komentáře - ' . $product->name;
+		$this->template->headerTree = [
+			['Produkty', 'default'],
+			['Komentáře']
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+	}
+
+	public function renderComments(Product $product)
+	{
+		$this->template->comments = $this->commentRepository->many()->where('fk_product', $product->getPK())->orderBy(['createdTs'])->toArray();
+		$this->template->setFile(__DIR__ . '/templates/comments.latte');
+	}
+
+	public function createComponentNewComment()
+	{
+
+		$form = $this->formFactory->create(true, false, false, false, false);
+
+		$form->addGroup('Nový komentář');
+		$form->addTextArea('text', 'Text komentáře');
+
+		$form->addSubmit('send', 'Odeslat');
+
+		$form->onSuccess[] = function (Form $form) {
+			$values = $form->getValues('array');
+
+			$this->commentRepository->createOne([
+				'product' => $this->getParameter('product')->getPK(),
+				'text' => $values['text'],
+				'administrator' => $this->admin->getIdentity()->getPK(),
+				'adminFullname' => $this->admin->getIdentity()->fullName
+			]);
+
+			$this->flashMessage('Uloženo', 'success');
+			$this->redirect('comments', $this->getParameter('product'));
+		};
+
+		return $form;
 	}
 }
