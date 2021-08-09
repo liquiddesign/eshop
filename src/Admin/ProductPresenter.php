@@ -49,6 +49,7 @@ use Nette\Utils\Strings;
 use Pages\DB\PageRepository;
 use StORM\Collection;
 use StORM\DIConnection;
+use StORM\Expression;
 use Web\DB\SettingRepository;
 
 class ProductPresenter extends BackendPresenter
@@ -1151,21 +1152,29 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 		foreach ($reader->getRecords() as $record) {
 			$newValues = [];
 			$product = null;
+			$expression = new Expression();
+			$code = false;
+			$ean = false;
 
-			//@TODO optimalizovat na jeden select
 			if (isset($parsedHeader['code']) && ($code = Arrays::pick($record, $parsedHeader['code'], null))) {
-				$product = $this->productRepository->getProductByCodeOrEAN(Strings::trim($code));
+				$codeBase = Strings::trim($code);
+				$codePrefix = Strings::trim('00' . $code);
 
-				$newValues['code'] = $code;
+				$expression->add('OR', 'code = %s OR CONCAT(code,".",subCode) = %s', [$codeBase, $codeBase]);
+				$expression->add('OR', 'code = %s OR CONCAT(code,".",subCode) = %s', [$codePrefix, $codePrefix]);
+
+				$code = true;
 			}
 
 			if (isset($parsedHeader['ean']) && ($ean = Arrays::pick($record, $parsedHeader['ean'], null))) {
-				$product = $this->productRepository->getProductByCodeOrEAN(Strings::trim($ean));
+				$expression->add('OR', 'ean = %s', [Strings::trim($ean)]);
 
-				$newValues['ean'] = $ean;
+				$ean = true;
 			}
 
-			if ((!isset($newValues['code']) && !isset($newValues['ean'])) || (!$product && !$addNew) || ($product && !$overwriteExisting)) {
+			$product = $this->productRepository->many()->where($expression->getSql(), $expression->getVars())->first();
+
+			if ((!$code && !$ean) || (!$product && !$addNew) || ($product && !$overwriteExisting)) {
 				continue;
 			}
 
