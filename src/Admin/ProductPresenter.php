@@ -1098,6 +1098,10 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 
 	protected function importCsv(string $filePath, string $delimiter = ';', bool $addNew = false, bool $overwriteExisting = true, bool $updateAttributes = false)
 	{
+		if (!\ini_get("auto_detect_line_endings")) {
+			\ini_set("auto_detect_line_endings", '1');
+		}
+
 		$reader = Reader::createFromPath($filePath);
 		$reader->setDelimiter($delimiter);
 		$reader->setHeaderOffset(0);
@@ -1148,6 +1152,7 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 			$newValues = [];
 			$product = null;
 
+			//@TODO optimalizovat na jeden select
 			if (isset($parsedHeader['code']) && ($code = Arrays::pick($record, $parsedHeader['code'], null))) {
 				$product = $this->productRepository->getProductByCodeOrEAN(Strings::trim($code));
 
