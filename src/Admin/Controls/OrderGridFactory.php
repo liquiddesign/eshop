@@ -120,7 +120,7 @@ class OrderGridFactory
 		$grid->addColumnLink('orderItems', 'Položky', null, ['class' => 'minimal']);
 
 		$grid->addColumn('', function (Order $order) use ($grid) {
-			return $grid->getPresenter()->link(':Eshop:Order:order', $order->getPK());
+			return $grid->getPresenter()->link('printDetail', $order);
 		}, "<a class='$btnSecondary' href='%s' target='_blank'><i class='fa fa-print'></i> Detail</a>", null, ['class' => 'minimal']);
 
 		$grid->addColumn(null, function ($object, $grid) {

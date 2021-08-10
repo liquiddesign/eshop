@@ -747,4 +747,22 @@ class OrderPresenter extends BackendPresenter
 
 		return $form;
 	}
+
+	public function actionPrintDetail(Order $order)
+	{
+
+	}
+
+	public function renderPrintDetail(Order $order)
+	{
+		$this->template->order = $order;
+		$this->template->purchase = $order->purchase;
+		$this->template->billingAddress = $order->purchase->billAddress;
+		$this->template->deliveryAddress = $order->purchase->deliveryAddress;
+		$this->template->headerTree = [
+			['Objednávky', 'default'],
+			['Detail']
+		];
+		$this->template->setFile(__DIR__ . '/templates/Order.printDetail.latte');
+	}
 }
