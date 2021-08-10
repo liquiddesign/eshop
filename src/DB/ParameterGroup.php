@@ -7,6 +7,7 @@ namespace Eshop\DB;
 /**
  * Skupina parametrů
  * @table
+ * @deprecated
  */
 class ParameterGroup extends \StORM\Entity
 {

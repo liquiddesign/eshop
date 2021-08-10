@@ -69,6 +69,8 @@ class ProductForm extends Control
 
 	private IProductSetFormFactory $productSetFormFactory;
 
+	private IProductAttributesFormFactory $attributesFormFactory;
+
 	private array $configuration;
 
 	public function __construct(
@@ -94,6 +96,7 @@ class ProductForm extends Control
 		SetRepository $setRepository,
 		Shopper $shopper,
 		IProductSetFormFactory $productSetFormFactory,
+		IProductAttributesFormFactory $attributesFormFactory,
 		$product = null,
 		array $configuration = []
 	)
@@ -114,6 +117,7 @@ class ProductForm extends Control
 		$this->shopper = $shopper;
 		$this->vatRateRepository = $vatRateRepository;
 		$this->productSetFormFactory = $productSetFormFactory;
+		$this->attributesFormFactory = $attributesFormFactory;
 
 		$form = $adminFormFactory->create(true);
 

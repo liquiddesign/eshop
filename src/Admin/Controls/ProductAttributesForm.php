@@ -39,8 +39,9 @@ class ProductAttributesForm extends Control
 		$this->attributeValueRepository = $attributeValueRepository;
 		$this->attributeAssignRepository = $attributeAssignRepository;
 
-		$form = $adminFormFactory->create();
+		$form = $adminFormFactory->create(false, false, false, false, false);
 		$form->removeComponent($form->getComponent('uuid'));
+		$form->addGroup('Atributy');
 
 		$productCategory = $product->getPrimaryCategory();
 
@@ -75,7 +76,7 @@ class ProductAttributesForm extends Control
 			$select->setDefaultValue(\array_values($existingValues));
 		}
 
-		$form->addSubmit('submit', 'Uložit');
+		$form->addSubmits(false, true);
 
 		$form->onValidate[] = [$this, 'validate'];
 
@@ -103,7 +104,7 @@ class ProductAttributesForm extends Control
 			}
 		}
 
-		$this->redirect('this');
+		$form->processRedirect('edit', 'default', [$this->product]);
 	}
 
 	public function render()

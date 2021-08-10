@@ -131,9 +131,9 @@ class ProductGridFactory
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 		$grid->addColumnInputCheckbox('<i title="Neprodejné" class="fas fa-ban"></i>', 'unavailable', '', '', 'unavailable');
 
-		if ($configuration['parameters']) {
-			$grid->addColumnLink('Parameters', 'Atributy');
-		}
+//		if ($configuration['parameters']) {
+//			$grid->addColumnLink('Parameters', 'Atributy');
+//		}
 
 		$grid->addColumnLink('Prices', 'Ceny');
 		$grid->addColumn(null, function (Product $product, $grid) {

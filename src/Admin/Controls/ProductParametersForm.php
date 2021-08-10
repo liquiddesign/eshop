@@ -15,6 +15,11 @@ use Eshop\DB\Product;
 use Nette\Application\UI\Control;
 use Nette\Utils\Arrays;
 
+/**
+ * Class ProductParametersForm
+ * @package Eshop\Admin\Controls
+ * @deprecated
+ */
 class ProductParametersForm extends Control
 {
 	private Product $product;

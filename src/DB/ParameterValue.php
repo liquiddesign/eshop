@@ -8,6 +8,7 @@ namespace Eshop\DB;
  * Skupina parametrů
  * @table
  * @index{"name":"value_unique","unique":true,"columns":["fk_product","fk_value"]}
+ * @deprecated
  */
 class ParameterValue extends \StORM\Entity
 {

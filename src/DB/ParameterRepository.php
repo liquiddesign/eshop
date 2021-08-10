@@ -9,6 +9,7 @@ use StORM\Collection;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Parameter>
+ * @deprecated 
  */
 class ParameterRepository extends \StORM\Repository implements IGeneralRepository
 {

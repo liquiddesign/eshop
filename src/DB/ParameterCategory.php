@@ -9,6 +9,7 @@ use StORM\RelationCollection;
 /**
  * Kategorie parametrů
  * @table
+ * @deprecated
  */
 class ParameterCategory extends \StORM\Entity
 {

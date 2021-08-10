@@ -7,6 +7,7 @@ namespace Eshop\DB;
 /**
  * Parameter produktu
  * @table
+ * @deprecated
  */
 class Parameter extends \StORM\Entity
 {

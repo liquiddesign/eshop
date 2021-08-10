@@ -544,8 +544,12 @@ class ProductPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [
-			$this->getComponent('productForm'),
+			$this->getComponent('productForm')
 		];
+
+		if (isset($this::CONFIGURATION['parameters']) && $this::CONFIGURATION['parameters'] && $this->getParameter('product')) {
+			$this->template->displayControls[] = $this->getComponent('parameterForm');
+		}
 	}
 
 	public function actionParameters(Product $product)

@@ -8,6 +8,7 @@ namespace Eshop\DB;
  * Hodnota parametru
  * @table
  * @index{"name":"allowed_unique","unique":true,"columns":["allowedKey","fk_parameter"]}
+ * @deprecated
  */
 class ParameterAvailableValue extends \StORM\Entity
 {
