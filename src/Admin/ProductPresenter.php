@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Common\NumbersHelper;
 use Eshop\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Eshop\Admin\Controls\IProductAttributesFormFactory;
@@ -78,7 +79,8 @@ class ProductPresenter extends BackendPresenter
 		],
 		'exportAttributes' => [],
 		'defaultExportColumns' => [
-			'code'
+			'code',
+			'name'
 		],
 		'defaultExportAttributes' => [],
 		'importColumns' => [
@@ -91,7 +93,18 @@ class ProductPresenter extends BackendPresenter
 		],
 		'importAttributes' => [],
 		'importExampleFile' => null,
-		'buyCount' => false
+		'importSetExampleFile' => null,
+		'buyCount' => false,
+	];
+
+	protected const IMPORT_SET_COLUMNS = [
+		'setCode' => 'Kód setu',
+		'setEan' => 'EAN setu',
+		'productCode' => 'Kód produktu',
+		'productEan' => 'EAN produktu',
+		'amount' => 'Množství',
+		'discountPct' => 'Sleva',
+		'priority' => 'Priorita'
 	];
 
 	protected const DEFAULT_TEMPLATE = __DIR__ . '/../../_data/newsletterTemplates/newsletter.latte';
@@ -594,6 +607,10 @@ class ProductPresenter extends BackendPresenter
 
 		if (isset(static::CONFIGURATION['importButton']) && static::CONFIGURATION['importButton']) {
 			$this->template->displayButtons[] = $this->createButton('importCsv', '<i class="fas fa-file-upload mr-1"></i>Import');
+		}
+
+		if (isset(static::CONFIGURATION['sets']) && static::CONFIGURATION['sets']) {
+			$this->template->displayButtons[] = $this->createButton('importSetCsv', '<i class="fas fa-file-upload mr-1"></i>Import setů');
 		}
 
 		$this->template->displayControls = [$this->getComponent('productGrid')];
@@ -1297,10 +1314,153 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 		}
 	}
 
+	protected function importSetCsv(string $filePath, string $delimiter = ';', bool $addNew = false, bool $overwriteExisting = true, bool $autoSet = false)
+	{
+		if (!\ini_get("auto_detect_line_endings")) {
+			\ini_set("auto_detect_line_endings", '1');
+		}
+
+		$csvData = FileSystem::read($filePath);
+
+		$detector = new EncodingDetector();
+
+		$detector->disableEncoding([
+			EncodingDetector::ISO_8859_5,
+			EncodingDetector::KOI8_R
+		]);
+
+		$encoding = $detector->getEncoding($csvData);
+
+		if ($encoding !== 'utf-8') {
+			$csvData = \iconv('windows-1250', 'utf-8', $csvData);
+			$reader = Reader::createFromString($csvData);
+			unset($csvData);
+		} else {
+			unset($csvData);
+			$reader = Reader::createFromPath($filePath);
+		}
+
+		$reader->setDelimiter($delimiter);
+		$reader->setHeaderOffset(0);
+		$mutation = $this->productRepository->getConnection()->getMutation();
+		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
+
+		$header = $reader->getHeader();
+		$parsedHeader = [];
+
+		foreach ($header as $headerItem) {
+			if (isset($this::IMPORT_SET_COLUMNS[$headerItem])) {
+				$parsedHeader[$headerItem] = $headerItem;
+			} elseif ($key = \array_search($headerItem, $this::IMPORT_SET_COLUMNS)) {
+				$parsedHeader[$key] = $headerItem;
+			}
+		}
+
+		if (\count($parsedHeader) == 0) {
+			throw new \Exception('Soubor neobsahuje hlavičku nebo nebyl nalezen žádný použitelný sloupec!');
+		}
+
+		if (!isset($parsedHeader['setCode']) && !isset($parsedHeader['setEan'])) {
+			throw new \Exception('Soubor neobsahuje kód ani EAN setu!');
+		}
+
+		if (!isset($parsedHeader['productCode']) && !isset($parsedHeader['productEan'])) {
+			throw new \Exception('Soubor neobsahuje kód ani EAN produktu!');
+		}
+
+		foreach ($reader->getRecords() as $record) {
+			$newValues = [];
+			$setProduct = null;
+			$expression = new Expression();
+
+			if (isset($parsedHeader['setCode']) && ($code = Arrays::pick($record, $parsedHeader['setCode'], null))) {
+				$codeBase = Strings::trim($code);
+				$codePrefix = Strings::trim('00' . $code);
+
+				$expression->add('OR', 'code = %s OR CONCAT(code,".",subCode) = %s', [$codeBase, $codeBase]);
+				$expression->add('OR', 'code = %s OR CONCAT(code,".",subCode) = %s', [$codePrefix, $codePrefix]);
+			}
+
+			if (isset($parsedHeader['setEan']) && ($ean = Arrays::pick($record, $parsedHeader['setEan'], null))) {
+				$expression->add('OR', 'ean = %s', [Strings::trim($ean)]);
+			}
+
+			/** @var Product $setProduct */
+			if (!$setProduct = $this->productRepository->many()->where($expression->getSql(), $expression->getVars())->first()) {
+				continue;
+			}
+
+			if (!$setProduct->productsSet) {
+				if ($autoSet) {
+					$setProduct->update(['productsSet' => true]);
+				} else {
+					continue;
+				}
+			}
+
+			$product = null;
+
+			foreach ($record as $key => $value) {
+				$key = \array_search($key, $parsedHeader);
+
+				if (!$key) {
+					continue;
+				}
+
+				if ($key == 'productCode' || $key == 'productEan') {
+					if ($product) {
+						continue;
+					}
+
+					$product = $this->productRepository->getProductByCodeOrEAN($value);
+				} elseif ($key == 'discountPct') {
+					$newValues[$key] = NumbersHelper::strToFloat($value);
+				} elseif ($key == 'amount' || $key == 'priority') {
+					$newValues[$key] = \intval($value);
+				}
+			}
+
+			if (!$product || !isset($newValues['amount'])) {
+				continue;
+			}
+
+			$set = $this->setRepository->many()
+				->where('fk_set', $setProduct->getPK())
+				->where('fk_product', $product->getPK())
+				->first();
+
+			if ((!$set && !$addNew) || ($set && !$overwriteExisting)) {
+				continue;
+			}
+
+			try {
+				if (\count($newValues) > 0) {
+					if ($set) {
+						$set->update($newValues);
+					} else {
+						$newValues['set'] = $setProduct->getPK();
+						$newValues['product'] = $product->getPK();
+
+						$this->setRepository->createOne($newValues);
+					}
+				}
+			} catch (\Exception $e) {
+				throw new \Exception('Chyba při zpracování dat!');
+			}
+		}
+	}
+
 	public function handleDownloadImportExampleFile()
 	{
 		if (isset(static::CONFIGURATION['importExampleFile']) && static::CONFIGURATION['importExampleFile']) {
 			$this->getPresenter()->sendResponse(new FileResponse($this->wwwDir . '/userfiles/' . static::CONFIGURATION['importExampleFile'], "example.csv", 'text/csv'));
+		}
+	}
+
+	public function handleDownloadImportSetExampleFile()
+	{
+		if (isset(static::CONFIGURATION['importSetExampleFile']) && static::CONFIGURATION['importSetExampleFile']) {
+			$this->getPresenter()->sendResponse(new FileResponse($this->wwwDir . '/userfiles/' . static::CONFIGURATION['importSetExampleFile'], "example_set.csv", 'text/csv'));
 		}
 	}
 
@@ -1416,6 +1576,111 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 
 			$this->flashMessage('Uloženo', 'success');
 			$this->redirect('comments', $this->getParameter('product'));
+		};
+
+		return $form;
+	}
+
+	public function renderImportSetCsv()
+	{
+		$this->template->headerLabel = 'Import zdrojového souboru';
+		$this->template->headerTree = [
+			['Produkty', 'default'],
+			['Import zdrojového souboru']
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('importSetCsvForm')];
+	}
+
+	public function createComponentImportSetCsvForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+
+		$lastUpdate = null;
+		$path = \dirname(__DIR__, 5) . '/userfiles/sets.csv';
+
+		if (\file_exists($path)) {
+			$lastUpdate = \filemtime($path);
+		}
+
+		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? \date('d.m.Y G:i', $lastUpdate) : null);
+
+		$allowedColumns = '';
+
+		foreach ($this::IMPORT_SET_COLUMNS as $key => $value) {
+			$allowedColumns .= "$key, $value<br>";
+		}
+
+		$filePicker = $form->addFilePicker('file', 'Soubor (CSV)')
+			->setRequired()
+			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/csv');
+
+		if (isset(static::CONFIGURATION['importSetExampleFile']) && static::CONFIGURATION['importSetExampleFile']) {
+			$filePicker->setHtmlAttribute('data-info', 'Vzorový soubor: <a href="' . $this->link('downloadImportSetExampleFile!') . '">' . static::CONFIGURATION['importSetExampleFile'] . '</a><br
+>Podporuje <b>pouze</b> formátování Windows a Linux (UTF-8)!');
+		}
+
+		$form->addSelect('delimiter', 'Oddělovač', [
+			';' => 'Středník (;)',
+			',' => 'Čárka (,)',
+			'	' => 'Tab (\t)',
+			' ' => 'Mezera ( )',
+			'|' => 'Pipe (|)',
+		]);
+
+		$form->addCheckbox('autoSet', 'Automaticky převést na set')->setHtmlAttribute('data-info', 'Pokud zaškrtnete, tak se produkty, které nejsou označeny jako set automaticky označí. V opačném případě bude takový záznam přeskočen.');
+		$form->addCheckbox('addNew', 'Vytvářet nové záznamy')->setDefaultValue(true);
+		$form->addCheckbox('overwriteExisting', 'Přepisovat existující záznamy')->setDefaultValue(true)->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
+Soubor <b>musí obsahovat</b> hlavičku, jeden ze sloupců "Kód setu" nebo "EAN setu" resp. "Kód produktu" nebo "EAN produktu" pro jednoznačné rozlišení setů a produktů a sloupec Množství. Jako prioritní se hledá kód a pokud není nalezen tak EAN.<br><br>
+Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
+' . $allowedColumns . '<br>
+<br>
+<b>Pozor!</b> Pokud pracujete se souborem na zařízeních Apple, ujistětě se, že vždy při ukládání použijete možnost uložit do formátu Windows nebo Linux (UTF-8)!');;
+
+		$form->addSubmit('submit', 'Importovat');
+
+		$form->onValidate[] = function (AdminForm $form) {
+			$values = $form->getValues('array');
+
+			/** @var FileUpload $file */
+			$file = $values['file'];
+
+			if (!$file->hasFile()) {
+				$form['file']->addError('Neplatný soubor!');
+			}
+		};
+
+		$form->onSuccess[] = function (AdminForm $form) {
+			$values = $form->getValues('array');
+
+			/** @var FileUpload $file */
+			$file = $values['file'];
+
+			$file->move(\dirname(__DIR__, 5) . '/userfiles/sets.csv');
+			\touch(\dirname(__DIR__, 5) . '/userfiles/sets.csv');
+
+			$connection = $this->productRepository->getConnection();
+
+			$connection->getLink()->beginTransaction();
+
+			try {
+				$this->importSetCsv(\dirname(__DIR__, 5) . '/userfiles/sets.csv',
+					$values['delimiter'],
+					$values['addNew'],
+					$values['overwriteExisting'],
+					$values['autoSet']
+				);
+
+				$connection->getLink()->commit();
+				$this->flashMessage('Provedeno', 'success');
+			} catch (\Exception $e) {
+				FileSystem::delete(\dirname(__DIR__, 5) . '/userfiles/sets.csv');
+				$connection->getLink()->rollBack();
+
+				$this->flashMessage($e->getMessage() != '' ? $e->getMessage() : 'Import dat se nezdařil!', 'error');
+			}
+
+			$this->redirect('this');
 		};
 
 		return $form;

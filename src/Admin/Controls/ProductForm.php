@@ -295,8 +295,9 @@ class ProductForm extends Control
 
 		$setItemsContainer = $form->addContainer('setItems');
 
-		for ($i = 0; $i < 5; $i++) {
-			$this->monitor(Presenter::class, function () use ($setItemsContainer, $i, $form): void {
+
+		$this->monitor(Presenter::class, function () use ($setItemsContainer, $form): void {
+			for ($i = 0; $i < 6; $i++) {
 				$itemContainer = $setItemsContainer->addContainer("s$i");
 
 				$itemContainer->addText('product')
@@ -324,27 +325,27 @@ class ProductForm extends Control
 					->setRequired()
 					->addRule($form::FLOAT)
 					->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
-			});
-		}
 
-		$i = 0;
-
-		if ($this->product) {
-			foreach ($this->productRepository->getSetProducts($this->product) as $setItem) {
-				$itemContainer = $form['setItems']['s' . $i++];
-
-				$itemContainer->setDefaults([
-					'product' => $setItem->product->getFullCode(),
-					'priority' => $setItem->priority,
-					'amount' => $setItem->amount,
-					'discountPct' => $setItem->discountPct
-				]);
-
-				if ($i == 5) {
-					break;
-				}
 			}
-		}
+				$i = 0;
+
+				if ($this->product) {
+					foreach ($this->productRepository->getSetProducts($this->product) as $setItem) {
+						$itemContainer = $form['setItems']['s' . $i++];
+
+						$itemContainer->setDefaults([
+							'product' => $setItem->product->getFullCode(),
+							'priority' => $setItem->priority,
+							'amount' => $setItem->amount,
+							'discountPct' => $setItem->discountPct
+						]);
+
+						if ($i == 6) {
+							break;
+						}
+					}
+				}
+		});
 
 		if (isset($configuration['buyCount']) && $configuration['buyCount']) {
 			$form->addIntegerNullable('buyCount', 'Počet prodaných')->addFilter('intval')->addCondition($form::FILLED)->addRule($form::MIN, 'Zadejte číslo rovné nebo větší než 0!', 0);
