@@ -82,7 +82,7 @@ class OrderGridFactory
 			20, 'this.createdTs', 'DESC', true);
 
 		$grid->addColumnSelector();
-		$grid->addColumnText('Číslo a datum', ['code', "createdTs|date:'d.m.Y G:i"], '%s<br><small>%s</small>', 'this.code', ['class' => 'fit']);
+		$grid->addColumnText('Číslo a datum', ['uuid', 'code', "createdTs|date:'d.m.Y G:i"], '<a id="%s" href="javascript:void(0);">%s</a><br><small>%s</small>', 'this.code', ['class' => 'fit']);
 		$grid->addColumn('Zákazník a adresa', [$this, 'renderCustomerColumn']);
 		$contacts = '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a><br><small><a href="tel:%2$s"><i class="fa fa-phone-alt"></i> %2$s</a></small>';
 		$grid->addColumnText('Kontakt', ['purchase.email', 'purchase.phone'], $contacts)->onRenderCell[] = [$grid, 'decoratorEmpty'];

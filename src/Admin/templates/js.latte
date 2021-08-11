@@ -1,0 +1,164 @@
+<script src="https://cdn.jsdelivr.net/gh/StephanWagner/jBox@v1.3.2/dist/jBox.all.min.js"></script>
+
+{varType Eshop\DB\Order $order}
+{varType Eshop\DB\Purchase $purchase}
+{ifset $ordersForJBOX}
+
+        {foreach $ordersForJBOX as $order}
+            {do $purchase = $order->purchase}
+            {do $billingAddress = $purchase->billAddress}
+            {do $deliveryAddress = $purchase->deliveryAddress}
+            {do $delivery = $order->getLastDelivery()}
+            {do $payment = $order->getPayment()}
+
+            <div style="display: none" id="content-{$order->getPK()}">
+                <div class="row">
+                    <div class="col-3">
+                        Fakturační údaje
+                        <address class="mt-2">
+                            <strong>{$purchase->fullname}</strong><br>
+                            <div n:if="$purchase->ic">IČ: <strong>{$purchase->ic}</strong><br></div>
+                            <div n:if="$purchase->dic">DIČ: <strong>{$purchase->dic}</strong><br></div>
+                            <div n:if="$billingAddress">{$billingAddress->street},<br></div>
+                            <div n:if="$billingAddress">{$billingAddress->zipcode} {$billingAddress->city}<br></div>
+                            <div>{$purchase->email}<br></div>
+                            <div>{$purchase->phone}</div>
+                        </address>
+                    </div>
+                    <div class="col-3">
+                        Dodací adresa
+                        <address n:if="$deliveryAddress" class="mt-2">
+                            {$deliveryAddress->street},<br>
+                                {$deliveryAddress->zipcode} {$deliveryAddress->city}<br>
+                        </address>
+                        <address n:if="!$deliveryAddress" class="mt-2">
+                            Stejná jako fakturační
+                        </address>
+                    </div>
+                    <div class="col-3">
+                        Zákazník
+                        <address class="mt-2">
+                            <div n:if="$purchase->customer">
+                                <strong>{$purchase->customer->fullname}</strong><br>
+                                <div n:if="$purchase->customer->ic">IČ: <strong>{$purchase->customer->ic}</strong><br></div>
+                                <div n:if="$purchase->customer->dic">DIČ: <strong>{$purchase->customer->dic}</strong><br></div>
+                                {$purchase->customer->email}<br>
+                                    {$purchase->customer->phone}
+                            </div>
+                            <div n:if="!$purchase->customer">
+                                <strong>{$purchase->fullname}</strong><br>
+                                <div n:if="$purchase->ic">IČ: <strong>{$purchase->ic}</strong><br></div>
+                                <div n:if="$purchase->dic">DIČ: <strong>{$purchase->dic}</strong><br></div>
+                                {$purchase->email}<br>
+                                    {$purchase->phone}
+                            </div>
+                        </address>
+                    </div>
+                    <div class="col-3">
+                        Účet
+                        <address class="mt-2">
+                            <div n:if="$purchase->account">
+                                <strong>{$purchase->account->fullname}</strong><br>
+                                {$purchase->account->login}
+                            </div>
+                            <div n:if="!$purchase->account">
+                                {if !$purchase->accountFullname && !$purchase->accountEmail}
+                                    Bez účtu
+                                {else}
+                                    <strong>{$purchase->accountFullname}</strong><br>
+                                    {$purchase->accountEmail}
+                                {/if}
+                            </div>
+                        </address>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row">
+                    <div class="col-6">
+                        <p class="lead">Doprava:</p>
+
+                        <div class="d-flex align-items-center">
+                            <img n:if="$purchase->deliveryType->imageFileName" src="{$userUrl|noescape}/deliverytype_images/thumb/{$purchase->deliveryType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
+                            {$purchase->deliveryType ? $purchase->deliveryType->name : null} - {$delivery->shippedTs ? 'Expedováno' : 'Čeká na expedici'}
+                        </div>
+
+                        <p class="lead mt-4">Platební metoda:</p>
+
+                        <div class="d-flex align-items-center">
+                            <img n:if="$purchase->paymentType->imageFileName" src="{$userUrl|noescape}/paymenttype_images/thumb/{$purchase->paymentType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
+                            {$purchase->paymentType ? $purchase->paymentType->name : null} - {$payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
+                        </div>
+
+                        <p class="text-muted well well-sm shadow-none" style="margin-top: 10px;">
+                            {$order->purchase->note}
+                        </p>
+                    </div>
+                    <div class="col-6">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <tbody>
+                                {if $presenter->shopper->getShowVat()}
+                                    <tr>
+                                        <th>Mezisoučet:</th>
+                                        <td>{$order->purchase->getSumPrice()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Doprava:</th>
+                                        <td>{$order->getDeliveryPriceSum()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Poplatek platební metody:</th>
+                                        <td>{$order->getPaymentPriceSum()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Daň</th>
+                                        <td>{($order->getTotalPriceVat() - $order->getTotalPrice())|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Celkem:</th>
+                                        <td>{$order->getTotalPriceVat()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                {elseif $presenter->shopper->getShowWithoutVat()}
+                                    <tr>
+                                        <th>Mezisoučet:</th>
+                                        <td>{$order->purchase->getSumPrice()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Doprava:</th>
+                                        <td>{$order->getDeliveryPriceSum()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Poplatek platební metody:</th>
+                                        <td>{$order->getPaymentPriceSum()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Celkem:</th>
+                                        <td>{$order->getTotalPrice()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                {/if}
+                                </tbody></table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                new jBox('Tooltip', {
+                    attach: '#{$order->getPK()|noescape}',
+                    position: {
+                        x: 'right',
+                        y: 'center'
+                    },
+                    outside: 'x',
+                    closeOnMouseleave: true,
+                    content: $('#content-{$order->getPK()|noescape}'),
+                    responsiveWidth: true,
+                    minWidth: 1000
+                });
+
+            </script>
+        {/foreach}
+
+{/ifset}

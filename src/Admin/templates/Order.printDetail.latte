@@ -1,6 +1,12 @@
 {varType Eshop\DB\Order $order}
 {varType Eshop\DB\Purchase $purchase}
 
+{do $purchase = $order->purchase}
+{do $billingAddress = $purchase->billAddress}
+{do $deliveryAddress = $purchase->deliveryAddress}
+{do $delivery = $order->getLastDelivery()}
+{do $payment = $order->getPayment()}
+
 {block content}
     <section class="content-header">
         <div class="container-fluid">
@@ -39,7 +45,7 @@
                     <!-- info row -->
                     <div class="row invoice-info">
                         <div class="col-sm-3 invoice-col">
-                            Fakturační adresa
+                            Fakturační údaje
                             <address class="mt-2">
                                 <strong>{$purchase->fullname}</strong><br>
                                 <div n:if="$purchase->ic">IČ: <strong>{$purchase->ic}</strong><br></div>
@@ -163,12 +169,18 @@
                         <!-- accepted payments column -->
                         <div class="col-6">
                             <p class="lead">Doprava:</p>
-                            <img n:if="$purchase->deliveryType->imageFileName" src="{$userUrl|noescape}/deliverytype_images/thumb/{$purchase->deliveryType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
-                            {$purchase->deliveryType ? $purchase->deliveryType->name : null}
+
+                            <div class="d-flex align-items-center">
+                                <img n:if="$purchase->deliveryType->imageFileName" src="{$userUrl|noescape}/deliverytype_images/thumb/{$purchase->deliveryType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
+                                {$purchase->deliveryType ? $purchase->deliveryType->name : null} - {$delivery->shippedTs ? 'Expedováno' : 'Čeká na expedici'}
+                            </div>
 
                             <p class="lead mt-4">Platební metoda:</p>
-                            <img n:if="$purchase->paymentType->imageFileName" src="{$userUrl|noescape}/paymenttype_images/thumb/{$purchase->paymentType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
-                            {$purchase->paymentType ? $purchase->paymentType->name : null}
+
+                            <div class="d-flex align-items-center">
+                                <img n:if="$purchase->paymentType->imageFileName" src="{$userUrl|noescape}/paymenttype_images/thumb/{$purchase->paymentType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
+                                {$purchase->paymentType ? $purchase->paymentType->name : null} - {$payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
+                            </div>
 
                             <p class="text-muted well well-sm shadow-none" style="margin-top: 10px;">
                                 {$order->purchase->note}

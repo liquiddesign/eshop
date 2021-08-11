@@ -352,6 +352,7 @@ class OrderPresenter extends BackendPresenter
 		];
 
 		$this->template->displayControls = [$this->getComponent('ordersGrid')];
+		$this->template->ordersForJBOX = $this->getComponent('ordersGrid')->getItemsOnPage();
 	}
 
 	public function renderDetail(Order $order)
@@ -756,9 +757,6 @@ class OrderPresenter extends BackendPresenter
 	public function renderPrintDetail(Order $order)
 	{
 		$this->template->order = $order;
-		$this->template->purchase = $order->purchase;
-		$this->template->billingAddress = $order->purchase->billAddress;
-		$this->template->deliveryAddress = $order->purchase->deliveryAddress;
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
 			['Detail']
