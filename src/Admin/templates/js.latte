@@ -14,6 +14,14 @@
             <div style="display: none" id="content-{$order->getPK()}">
                 <div class="row">
                     <div class="col-3">
+                        #{$order->code}&nbsp;&nbsp;<small>{$order->createdTs|date:'d.m.Y G:i'}</small>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row">
+                    <div class="col-3">
                         Fakturační údaje
                         <address class="mt-2">
                             <strong>{$purchase->fullname}</strong><br>
