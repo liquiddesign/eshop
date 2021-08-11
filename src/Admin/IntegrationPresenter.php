@@ -14,9 +14,13 @@ use Web\DB\SettingRepository;
 
 class IntegrationPresenter extends BackendPresenter
 {
+	protected const CONFIGURATION = [
+		'supportBox' => false
+	];
+
 	/** @inject */
 	public SettingRepository $settingsRepo;
-	
+
 	/** @inject */
 	public ContactItemRepository $contactItemRepo;
 
@@ -28,26 +32,30 @@ class IntegrationPresenter extends BackendPresenter
 
 	/** @inject */
 	public OrderRepository $orderRepository;
-	
+
 	public function beforeRender()
 	{
 		parent::beforeRender();
-		
+
 		$this->template->tabs = [
 			'@default' => 'Měření a nástroje',
 			'@zasilkovna' => 'Zásilkovna',
 			'@mailerLite' => 'MailerLite',
 		];
+
+		if (isset(static::CONFIGURATION['supportBox']) && static::CONFIGURATION['supportBox']) {
+			$this->template->tabs['@supportBox'] = 'SupportBox';
+		}
 	}
-	
+
 	public function actionDefault()
 	{
 		/** @var AdminForm $form */
 		$form = $this->getComponent('form');
-		
+
 		$form->setDefaults($this->settingsRepo->many()->setIndex('name')->toArrayOf('value'));
 	}
-	
+
 	public function renderDefault()
 	{
 		$this->template->headerLabel = 'Integrace';
@@ -57,25 +65,25 @@ class IntegrationPresenter extends BackendPresenter
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
-	
+
 	public function createComponentForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
 		$form->addText('integrationGTM', 'GTM (Google Tag Manager)')->setNullable();
-		
+
 		$form->addSubmit('submit', 'Uložit');
-		
+
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
-			
+
 			foreach ($values as $key => $value) {
 				$this->settingsRepo->syncOne(['name' => $key, 'value' => $value]);
 			}
-			
+
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$form->processRedirect('default');
 		};
-		
+
 		return $form;
 	}
 
@@ -83,6 +91,14 @@ class IntegrationPresenter extends BackendPresenter
 	{
 		/** @var AdminForm $form */
 		$form = $this->getComponent('zasilkovnaForm');
+
+		$form->setDefaults($this->settingsRepo->many()->setIndex('name')->toArrayOf('value'));
+	}
+
+	public function actionSupportbox()
+	{
+		/** @var AdminForm $form */
+		$form = $this->getComponent('supportboxForm');
 
 		$form->setDefaults($this->settingsRepo->many()->setIndex('name')->toArrayOf('value'));
 	}
@@ -137,6 +153,39 @@ class IntegrationPresenter extends BackendPresenter
 
 		return $form;
 	}
+
+	public function createComponentSupportboxForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+		$form->addText('supportBoxApiKey', 'Klíč API')->setNullable();
+
+		$form->addSubmit('submit', 'Uložit');
+
+		$form->onSuccess[] = function (AdminForm $form) {
+			$values = $form->getValues('array');
+
+			foreach ($values as $key => $value) {
+				$this->settingsRepo->syncOne(['name' => $key, 'value' => $value]);
+			}
+
+			$this->flashMessage('Nastavení uloženo', 'success');
+			$form->processRedirect('supportBox');
+		};
+
+		return $form;
+	}
+
+	public function renderSupportbox()
+	{
+		$this->template->headerLabel = 'Integrace';
+		$this->template->headerTree = [
+			['Integrace'],
+			['SupportBox']
+		];
+		$this->template->displayButtons = [];
+		$this->template->displayControls = [$this->getComponent('supportboxForm')];
+	}
+
 
 	public function renderZasilkovna()
 	{

@@ -2,6 +2,8 @@
 
 namespace Eshop;
 
+use Eshop\DB\CatalogPermission;
+use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\Customer;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
@@ -14,10 +16,14 @@ use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VatRateRepository;
 use Nette\Application\Responses\FileResponse;
+use Nette\Application\Responses\JsonResponse;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\Http\IResponse;
 use Nette\Http\Request;
+use Security\DB\Account;
 use Security\DB\AccountRepository;
+use Web\DB\Setting;
 use Web\DB\SettingRepository;
 
 abstract class ExportPresenter extends \Nette\Application\UI\Presenter
@@ -50,6 +56,9 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 
 	/** @inject */
 	public VatRateRepository $vatRateRepo;
+
+	/** @inject */
+	public CatalogPermissionRepository $catalogPermRepo;
 
 	/** @inject */
 	public Shopper $shopper;
@@ -206,5 +215,86 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 			unlink($tmpfname);
 		};
 		$this->sendResponse(new FileResponse($tmpfname, 'order.txt', 'text/plain'));
+	}
+
+	public function actionSupportbox()
+	{
+		/** @var Setting $setting */
+		$setting = $this->settingRepo->many()->where('name', 'supportBoxApiKey')->first(true);
+
+		$auth = $this->getHttpRequest()->getHeader('Authorization');
+
+		if (!$auth || $auth !== 'Basic ' . $setting->value) {
+			$this->error('Auth error!', IResponse::S401_UNAUTHORIZED);
+		}
+
+		$email = $this->getParameter('email');
+
+		if (!$email) {
+			$this->error('Email parameter not found!');
+		}
+
+		/** @var Customer $customer */
+		$customer = $this->customerRepo->many()->where('email', $email)->first();
+
+		$account = null;
+
+		if (!$customer) {
+			/** @var Account $account */
+			$account = $this->accountRepo->many()->where('login', $email)->first();
+
+			if (!$account) {
+				$this->error('User not found!');
+			}
+
+			/** @var CatalogPermission $perm */
+			$perm = $this->catalogPermRepo->many()->where('fk_account', $account->getPK())->first();
+
+			if (!$perm) {
+				$this->error('Invalid account found!');
+			}
+
+			$customer = $perm->customer;
+		}
+
+		/** @var Order[] $orders */
+		$orders = $this->orderRepo->getOrdersByUser($customer);
+
+		$data = [
+			'email' => $email,
+			'first_name' => $account && $account->fullname ? $account->fullname : $customer->fullname,
+			'last_name' => null,
+			'phone' => $customer->phone,
+			'street' => $customer->billAddress ? $customer->billAddress->street : null,
+			'city' => $customer->billAddress ? $customer->billAddress->city : null,
+			'zip' => $customer->billAddress ? $customer->billAddress->zipcode : null,
+			'company_name' => $customer->company,
+			'company_ico' => $customer->ic,
+			'company_dic' => $customer->dic,
+			'orders' => [],
+		];
+
+
+		foreach ($orders as $order) {
+			$orderItems = [];
+
+			foreach ($order->purchase->getItems() as $cartItem) {
+				$orderItems[] = [
+					'price' => $cartItem->getPriceVatSum(),
+					'name' => $cartItem->productName,
+				];
+			}
+
+			$data['orders'][] = [
+				'number' => $order->code,
+				'total' => $order->getTotalPriceVat(),
+				'state' => $this->orderRepo->getState($order),
+				'completed_at' => $order->completedTs, //'2015-08-27T13:56:16.000+02:00'
+				'edit_url' => $this->link(':Eshop:Admin:Order:printDetail', $order),
+				'order_items' => $orderItems,
+			];
+		}
+
+		$this->sendJson($data);
 	}
 }

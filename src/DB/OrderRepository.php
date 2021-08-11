@@ -604,6 +604,34 @@ class OrderRepository extends \StORM\Repository
 		return $collection;
 	}
 
+	public function getOrdersByUser($user): ?Collection
+	{
+		$collection = $this->many()
+			->where('this.completedTs IS NOT NULL')
+			->orderBy(["this.createdTs"]);
+
+		if ($user) {
+			if ($user instanceof Merchant) {
+				/** @var MerchantRepository $merchantRepo */
+				$merchantRepo = $this->getConnection()->findRepository(Merchant::class);
+				$customers = $merchantRepo->getMerchantCustomers($user);
+
+				$collection->where('purchase.fk_customer', \array_keys($customers->toArray()));
+			} elseif ($user->getAccount()) {
+				/** @var CatalogPermission $perm */
+				$perm = $this->catalogPermissionRepository->many()->where('fk_account', $user->getAccount()->getPK())->first();
+
+				if ($perm->viewAllOrders) {
+					$collection->where('purchase.fk_customer', $user->getPK());
+				} else {
+					$collection->where('purchase.fk_account', $user->getAccount()->getPK());
+				}
+			}
+		}
+
+		return $collection;
+	}
+
 	public function getEmailVariables(Order $order): array
 	{
 		$purchase = $order->purchase;
