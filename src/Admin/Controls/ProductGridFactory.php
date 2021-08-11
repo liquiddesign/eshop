@@ -41,7 +41,7 @@ class ProductGridFactory
 	private CategoryRepository $categoryRepository;
 
 	private RibbonRepository $ribbonRepository;
-	
+
 	private InternalRibbonRepository $internalRibbonRepository;
 
 	private TagRepository $tagRepository;
@@ -236,6 +236,12 @@ class ProductGridFactory
 
 		}
 
+		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
+			$grid->addFilterDataSelect(function (ICollection $source, $value) {
+				$source->where('this.supplierContentLock', $value === 'locked');
+			}, '', 'supplierContentLock', null, ['unlocked' => 'Odemknutý', 'locked' => 'Zamknutý'])->setPrompt('- Zámek obsahu -');
+		}
+
 		/*if ($tags = $this->tagRepository->getListForSelect()) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
 				$this->productRepository->filterTag($value, $source);
@@ -248,7 +254,7 @@ class ProductGridFactory
 				$source->filter(['ribbon' => self::replaceArrayValue($value, '0', null)]);
 			}, '', 'ribbons', null, $ribbons, ['placeholder' => '- Veř. štítky -']);
 		}
-		
+
 		if ($ribbons = $this->internalRibbonRepository->getArrayForSelect()) {
 			$ribbons += ['0' => 'X - bez štítků'];
 			$grid->addFilterDataMultiSelect(function (Collection $source, $value) {
