@@ -227,19 +227,21 @@ class ProductGridFactory
 
 				$source->where($expression->getSql(), $expression->getVars());
 			}, '', 'suppliers', null, $suppliers, ['placeholder' => '- Zdroje -']);
-		}
 
-		if ($supplierCategories = $this->supplierCategoryRepository->getArrayForSelect(true)) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$source->where('supplierProducts.fk_category', $value);
-			}, '', 'supplier_categories', null, $supplierCategories, ['placeholder' => '- Rozřazení -']);
+			if ($supplierCategories = $this->supplierCategoryRepository->getArrayForSelect(true)) {
+				$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+					$source->where('supplierProducts.fk_category', $value);
+				}, '', 'supplier_categories', null, $supplierCategories, ['placeholder' => '- Rozřazení -']);
 
-		}
+			}
 
-		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
 			$grid->addFilterDataSelect(function (ICollection $source, $value) {
-				$source->where('this.supplierContentLock', $value === 'locked');
-			}, '', 'supplierContentLock', null, ['unlocked' => 'Odemknutý', 'locked' => 'Zamknutý'])->setPrompt('- Zámek obsahu -');
+				if ($value == 'locked') {
+					$source->where('this.supplierLock IS NOT NULL AND this.supplierLock != 0');
+				} else {
+					$source->where('this.supplierLock IS NULL OR this.supplierLock = 0');
+				}
+			}, '', 'supplierLock', null, ['unlocked' => 'Odemknuté', 'locked' => 'Zamknuté'])->setPrompt('- Zámek -');
 		}
 
 		/*if ($tags = $this->tagRepository->getListForSelect()) {

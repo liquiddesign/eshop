@@ -164,7 +164,7 @@ class ProductForm extends Control
 		$form->addLocaleRichEdit('content', 'Obsah');
 
 
-		if ($configuration['suppliers']) {
+		if ($configuration['suppliers'] && $this->supplierRepository->many()->count() > 0) {
 			$locks = [];
 
 			if ($product) {
