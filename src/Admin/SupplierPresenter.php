@@ -69,7 +69,7 @@ class SupplierPresenter extends BackendPresenter
 		
 		$this->template->tabs = [
 			'@default' => 'Zdroje',
-			'@history' => 'Historie importů',
+			'@history' => 'Historie importů a zápisů',
 		];
 	}
 
@@ -80,9 +80,9 @@ class SupplierPresenter extends BackendPresenter
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 
-		$grid->addColumnInputCheckbox('Automaticky', 'isImportActive', '', '', 'isImportActive');
+		//$grid->addColumnInputCheckbox('Automaticky', 'isImportActive', '', '', 'isImportActive');
 
-		$grid->addColumnLink('pair', '<i class="fa fa-play"></i> Ruční aktualizace');
+		$grid->addColumnLink('pair', '<i class="fa fa-play"></i> Zapsat do katalogu');
 		$grid->addColumnLinkDetail();
 
 		$grid->addFilterTextInput('search', ['name', 'code'], null, 'Název, kód');
@@ -157,7 +157,6 @@ class SupplierPresenter extends BackendPresenter
 		$form->addInteger('importPriority', 'Priorita');
 		$form->addInteger('importPriceRatio', 'Procentuální změna ceny');
 		$form->addCheckbox('splitPricelists', 'Rozdělit ceníky (dostupné / nedostupné)');
-		$form->addCheckbox('isImportActive', 'Spouštět automaticky každý den');
 		$form->addCheckbox('importImages', 'Importovat obrázky');
 
 		$form->addSubmits(!$this->getParameter('supplier'));
@@ -268,7 +267,7 @@ class SupplierPresenter extends BackendPresenter
 	
 	public function renderHistory()
 	{
-		$this->template->headerLabel = 'Historie importů';
+		$this->template->headerLabel = 'Historie importů a zápisů';
 		$this->template->headerTree = [
 			['Historie importů', 'default'],
 		];

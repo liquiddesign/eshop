@@ -188,7 +188,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$price = $property;
 		$priceVat = $property . 'Vat';
 		
-		$products->setBuffedQuery(false);
+		$products->setBufferedQuery(false);
 		
 		while ($draft = $products->fetch()) {
 			if ($draft->$price === null) {
@@ -212,7 +212,7 @@ class SupplierProductRepository extends \StORM\Repository
 	{
 		$i = 0;
 		$amountRepository = $this->getConnection()->findRepository(Amount::class);
-		$products->setBuffedQuery(false);
+		$products->setBufferedQuery(false);
 		
 		while ($draft = $products->fetch()) {
 			if ($draft->amount === null || $draft->amount === 0) {

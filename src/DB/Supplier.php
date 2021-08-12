@@ -45,12 +45,6 @@ class Supplier extends \StORM\Entity
 	 * @column
 	 */
 	public int $importPriceRatio = 100;
-	
-	/**
-	 * Je importu aktivní
-	 * @column
-	 */
-	public ?bool $isImportActive;
 
 	/**
 	 * Import obrázků
