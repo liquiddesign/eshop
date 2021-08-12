@@ -27,8 +27,15 @@ class SupplierProductRepository extends \StORM\Repository
 		$this->container = $container;
 	}
 	
-	public function syncProducts(Supplier $supplier, string $mutation, string $country, bool $overwrite, bool $importImages = false): void
+	public function syncProducts(Supplier $supplier, string $mutation, string $country, bool $overwrite, bool $importImages = false): array
 	{
+		$result = [
+			'updated' => 0,
+			'locked' => 0,
+			'inserted' => 0,
+			'images' => 0,
+		];
+		
 		$sep = \DIRECTORY_SEPARATOR;
 		$sourceImageDirectory = $this->container->parameters['wwwDir'] . $sep . 'userfiles' . $sep . 'supplier_images';
 		$targetImageDirectory = $this->container->parameters['wwwDir'] . $sep . 'userfiles' . $sep . 'product_images';
@@ -60,7 +67,8 @@ class SupplierProductRepository extends \StORM\Repository
 		$drafts = $supplierProductRepository->many()
 			->where('this.fk_supplier', $supplier)
 			->where('category.fk_category IS NOT NULL')
-			->where('this.active', true);
+			->where('this.active', true)
+			->setBuffedQuery(false);
 		
 		while ($draft = $drafts->fetch()) {
 			$category = $draft->category ? $draft->category->getValue('category') : null;
@@ -105,7 +113,17 @@ class SupplierProductRepository extends \StORM\Repository
 			/** @var \Eshop\DB\Product $product */
 			$product = $productRepository->syncOne($values, $currentUpdates, false, null, ['categories' => false]);
 			
-			$updated = $product->getParent() instanceof ICollection && $product->getParent()->getAffectedNumber() === InsertResult::UPDATE_AFFECTED_COUNT;
+			$updated = $product->getParent() instanceof ICollection;
+			
+			if ($updated) {
+				$result['updated']++;
+			} else {
+				$result['inserted']++;
+			}
+			
+			if (isset($productsMap[$uuid]) && $productsMap[$uuid]->contentLock) {
+				$result['locked']++;
+			}
 			
 			foreach ($this->getConnection()->findRepository(SupplierAttributeValueAssign::class)->many()->where('fk_supplierProduct', $draft) as $attributeValue) {
 				$attributeAssignRepository->syncOne([
@@ -158,32 +176,43 @@ class SupplierProductRepository extends \StORM\Repository
 				@\touch($currentTargetImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $mtime);
 			}
 		}
+		
+		return $result;
 	}
 
-	public function syncPrices(Collection $products, Supplier $supplier, Pricelist $pricelist, string $property = 'price', int $precision = 2): void
+	public function syncPrices(Collection $products, Supplier $supplier, Pricelist $pricelist, string $property = 'price', int $precision = 2): int
 	{
 		$priceRepository = $this->getConnection()->findRepository(Price::class);
 
+		$i = 0;
 		$price = $property;
 		$priceVat = $property . 'Vat';
-
+		
+		$products->setBuffedQuery(false);
+		
 		while ($draft = $products->fetch()) {
 			if ($draft->$price === null) {
 				continue;
 			}
-
+			
 			$priceRepository->syncOne([
 				'product' => $draft->getValue('product'),
 				'pricelist' => $pricelist,
 				'price' => \round($draft->$price * ($supplier->importPriceRatio / 100), $precision),
 				'priceVat' => \round($draft->$priceVat * ($supplier->importPriceRatio / 100), $precision),
 			]);
+			
+			$i++;
 		}
+		
+		return $i;
 	}
 
-	public function syncAmounts(Collection $products, Store $store)
+	public function syncAmounts(Collection $products, Store $store): int
 	{
+		$i = 0;
 		$amountRepository = $this->getConnection()->findRepository(Amount::class);
+		$products->setBuffedQuery(false);
 		
 		while ($draft = $products->fetch()) {
 			if ($draft->amount === null || $draft->amount === 0) {
@@ -195,6 +224,8 @@ class SupplierProductRepository extends \StORM\Repository
 				'store' => $store,
 				'inStock' => $draft->amount,
 			]);
+			
+			$i++;
 		}
 	}
 }
