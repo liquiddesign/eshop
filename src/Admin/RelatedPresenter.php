@@ -217,7 +217,7 @@ class RelatedPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected();
 
-		$grid->addFilterTextInput('name', ['name_cs', 'code'], 'Kód, název', 'Kód, název');
+		$grid->addFilterTextInput('search', ['name_cs', 'code'], 'Kód, název', 'Kód, název');
 		$grid->addFilterButtons();
 
 		return $grid;
