@@ -20,7 +20,7 @@ use StORM\SchemaManager;
 class SupplierProductRepository extends \StORM\Repository
 {
 	private Container $container;
-
+	
 	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Container $container)
 	{
 		parent::__construct($connection, $schemaManager);
@@ -41,7 +41,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$targetImageDirectory = $this->container->parameters['wwwDir'] . $sep . 'userfiles' . $sep . 'product_images';
 		$galleryImageDirectory = $this->container->parameters['wwwDir'] . $sep . 'userfiles' . $sep . 'product_gallery_images';
 		
-		$vatLevels = $this->getConnection()->findRepository(VatRate::class)->many()->where('fk_country', $country)->setIndex('rate')->toArrayOf('uuid');
+		$vatLevels = $this->getConnection()->findRepository(VatRate::class)->many()->where('fk_country', $country)->setBufferedQuery(false)->setIndex('rate')->toArrayOf('uuid');
 		$supplierProductRepository = $this->getConnection()->findRepository(SupplierProduct::class);
 		$productRepository = $this->getConnection()->findRepository(Product::class);
 		$pagesRepository = $this->getConnection()->findRepository(Page::class);
@@ -62,16 +62,23 @@ class SupplierProductRepository extends \StORM\Repository
 			$updates = [];
 		}
 		
-		$productsMap = $productRepository->many()->setSelect(['contentLock' => 'supplierContentLock', 'sourcePK' => 'fk_supplierSource'], [], true)->setFetchClass(\stdClass::class)->toArray();
+		$productsMap = $productRepository->many()->setSelect(['contentLock' => 'supplierContentLock', 'sourcePK' => 'fk_supplierSource'], [], true)->setBufferedQuery(false)->setFetchClass(\stdClass::class)->toArray();
 		
 		$drafts = $supplierProductRepository->many()
+			->select(['realCategory' => 'category.fk_category'])
+			->select(['realDisplayAmount' => 'displayAmount.fk_displayAmount'])
+			->select(['realProducer' => 'producer.fk_producer'])
 			->where('this.fk_supplier', $supplier)
 			->where('category.fk_category IS NOT NULL')
-			->where('this.active', true)
-			->setBufferedQuery(false);
+			->where('this.active', true);
+		
+		$i = 0;
 		
 		while ($draft = $drafts->fetch()) {
-			$category = $draft->category ? $draft->category->getValue('category') : null;
+			
+			$category = $draft->realCategory;
+			$displayAmount = $draft->realDisplayAmount;
+			$producer = $draft->realProducer;
 			$currentUpdates = $updates;
 			
 			if (!$category) {
@@ -95,9 +102,9 @@ class SupplierProductRepository extends \StORM\Repository
 				'unavailable' => $draft->unavailable,
 				'hidden' => $supplier->defaultHiddenProduct,
 				'vatRate' => $vatLevels[(int)$draft->vatRate] ?? 'standard',
-				'producer' => $draft->producer ? $draft->producer->getValue('producer') : null,
+				'producer' => $producer,
 				'displayDelivery' => $supplier->getValue('defaultDisplayDelivery'),
-				'displayAmount' => $draft->displayAmount ? $draft->displayAmount->getValue('displayAmount') : $supplier->getValue('defaultDisplayAmount'),
+				'displayAmount' => $displayAmount ?: $supplier->getValue('defaultDisplayAmount'),
 				'categories' => $category ? [$category] : [],
 				'primaryCategory' => $category,
 				'supplierLock' => $supplier->importPriority,
@@ -110,7 +117,6 @@ class SupplierProductRepository extends \StORM\Repository
 				unset($currentUpdates['imageFileName']);
 			}
 			
-			/** @var \Eshop\DB\Product $product */
 			$product = $productRepository->syncOne($values, $currentUpdates, false, null, ['categories' => false]);
 			
 			$updated = $product->getParent() instanceof ICollection;
@@ -148,8 +154,6 @@ class SupplierProductRepository extends \StORM\Repository
 				'type' => 'product_detail',
 			], []);
 			
-			//dump(memory_get_usage(true));
-			
 			if (!$importImages || !$supplier->importImages || !\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName) || !isset($productsMap[$uuid]) || $productsMap[$uuid]->contentLock) {
 				continue;
 			}
@@ -175,57 +179,62 @@ class SupplierProductRepository extends \StORM\Repository
 				@\touch($currentTargetImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $mtime);
 				@\touch($currentTargetImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $mtime);
 			}
+			
+			$i++;
 		}
 		
 		return $result;
 	}
-
+	
 	public function syncPrices(Collection $products, Supplier $supplier, Pricelist $pricelist, string $property = 'price', int $precision = 2): int
 	{
 		$priceRepository = $this->getConnection()->findRepository(Price::class);
-
-		$i = 0;
+		
 		$price = $property;
 		$priceVat = $property . 'Vat';
 		
 		$products->setBufferedQuery(false);
+		$array = [];
 		
 		while ($draft = $products->fetch()) {
-			if ($draft->$price === null) {
+			if ($draft->$price === null || $draft->getValue('product') === null)  {
 				continue;
 			}
 			
-			$priceRepository->syncOne([
+			$array[] = [
 				'product' => $draft->getValue('product'),
-				'pricelist' => $pricelist,
+				'pricelist' => $pricelist->getPK(),
 				'price' => \round($draft->$price * ($supplier->importPriceRatio / 100), $precision),
 				'priceVat' => \round($draft->$priceVat * ($supplier->importPriceRatio / 100), $precision),
-			]);
-			
-			$i++;
+			];
 		}
 		
-		return $i;
+		
+		$priceRepository->syncMany($array);
+		
+		return \count($array);
 	}
-
+	
 	public function syncAmounts(Collection $products, Store $store): int
 	{
-		$i = 0;
 		$amountRepository = $this->getConnection()->findRepository(Amount::class);
 		$products->setBufferedQuery(false);
+		$array = [];
 		
 		while ($draft = $products->fetch()) {
-			if ($draft->amount === null || $draft->amount === 0) {
+			if ($draft->amount === null || $draft->amount === 0 || $draft->getValue('product') === null) {
 				continue;
 			}
-
-			$amountRepository->syncOne([
+			
+			$array[] = [
 				'product' => $draft->getValue('product'),
 				'store' => $store,
 				'inStock' => $draft->amount,
-			]);
-			
-			$i++;
+			];
 		}
+		
+		$amountRepository->syncMany($array);
+		
+		return \count($array);
 	}
 }

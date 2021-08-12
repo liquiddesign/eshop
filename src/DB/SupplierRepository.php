@@ -93,9 +93,6 @@ class SupplierRepository extends \StORM\Repository implements IGeneralRepository
 		
 		$this->pricelistRepository->many()->where('fk_supplier', $supplier)->delete();
 		
-		$this->importResultRepository->log("Pricelists deleted");
-		
-		
 		if ($supplier->splitPricelists) {
 			$pricelist = $this->syncPricelist($supplier, $currency, $country, '2', 3, true);
 			$availablePriceCount = $this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('amount IS NULL OR amount > 0'), $supplier, $pricelist);
@@ -113,8 +110,6 @@ class SupplierRepository extends \StORM\Repository implements IGeneralRepository
 		}
 		
 		$this->importResultRepository->log("Pricelist entered: available: $availablePriceCount, unavailable: $unavailablePriceCount");
-		
-		die();
 		
 		$this->storeRepository->many()->where('fk_supplier', $supplier)->delete();
 		
