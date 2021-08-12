@@ -68,7 +68,7 @@ class SupplierProductRepository extends \StORM\Repository
 			->where('this.fk_supplier', $supplier)
 			->where('category.fk_category IS NOT NULL')
 			->where('this.active', true)
-			->setBuffedQuery(false);
+			->setBufferedQuery(false);
 		
 		while ($draft = $drafts->fetch()) {
 			$category = $draft->category ? $draft->category->getValue('category') : null;
