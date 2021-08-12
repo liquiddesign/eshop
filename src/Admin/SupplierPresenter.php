@@ -176,22 +176,22 @@ class SupplierPresenter extends BackendPresenter
 	
 	public function createComponentPairForm(): AdminForm
 	{
+		/** @var \Eshop\DB\Supplier $supplier */
+		$supplier = $this->getParameter('supplier');
+		
 		$form = $this->formFactory->create();
 		
 		$form->addCheckbox('only_new', 'Jen nové produkty')->setDefaultValue(false);
-		$form->addCheckbox('allowImportImages', 'Importovat obrázky')->setDefaultValue(false);
+		$form->addCheckbox('allowImportImages', 'Kopírovat obrázky')->setDefaultValue($supplier->importImages);
 		
 		$form->addSubmit('submit', 'Potvrdit');
 		
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form) use ($supplier) {
 			$values = $form->getValues('array');
-			
-			/** @var \Eshop\DB\Supplier $supplier */
-			$supplier = $this->getParameter('supplier');
 			
 			$this->supplierRepository->catalogEntry($supplier, $this->tempDir . '/log/import', $values['only_new'], $values['allowImportImages']);
 			
-			$this->flashMessage('Uloženo', 'success');
+			$this->flashMessage('Zapsáno do katalogu', 'success');
 			$form->getPresenter()->redirect('default');
 		};
 		
