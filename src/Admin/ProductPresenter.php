@@ -51,6 +51,7 @@ use Nette\Utils\Strings;
 use Onnov\DetectEncoding\EncodingDetector;
 use Pages\DB\PageRepository;
 use StORM\Collection;
+use StORM\Connection;
 use StORM\DIConnection;
 use StORM\Expression;
 use Web\DB\SettingRepository;
@@ -586,8 +587,30 @@ class ProductPresenter extends BackendPresenter
 			['Produkty', 'default'],
 			['Fotografie'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default'), $this->createNewItemButton('newPhoto', [$product])];
-		$this->template->displayControls = [$this->getComponent('photoGrid')];
+
+//		$this->template->displayButtons = [$this->createBackButton('default'), $this->createNewItemButton('newPhoto', [$product])];
+//		$this->template->displayControls = [$this->getComponent('photoGrid')];
+
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [];
+
+		$this->template->setFile(__DIR__ . '/templates/productPhotosDropzone.latte');
+
+		$data = [];
+		/** @var Photo[] $photos */
+		$photos = $this->photoRepository->many()->where('fk_product', $this->getParameter('product')->getPK());
+
+		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR . '/origin/';
+
+		foreach ($photos as $photo) {
+			$row = [];
+			$row['name'] = $photo->fileName;
+			$row['size'] = \file_exists($basePath . $photo->fileName) ? \filesize($basePath . $photo->fileName) : 0;
+
+			$data[] = $row;
+		}
+
+		$this->template->photos = $data;
 	}
 
 	public function renderFiles(Product $product)
@@ -1571,12 +1594,14 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 		$form->onSuccess[] = function (Form $form) {
 			$values = $form->getValues('array');
 
-			$this->commentRepository->createOne([
+			$data = [
 				'product' => $this->getParameter('product')->getPK(),
 				'text' => $values['text'],
 				'administrator' => $this->admin->getIdentity()->getPK(),
-				'adminFullname' => $this->admin->getIdentity()->fullName
-			]);
+				'adminFullname' => $this->admin->getIdentity()->fullName ?? ($this->admin->getIdentity()->getAccount() ? ($this->admin->getIdentity()->getAccount()->fullname ?? $this->admin->getIdentity()->getAccount()->login) : null)
+			];
+
+			$this->commentRepository->createOne($data);
 
 			$this->flashMessage('Uloženo', 'success');
 			$this->redirect('comments', $this->getParameter('product'));
@@ -1688,5 +1713,74 @@ Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 		};
 
 		return $form;
+	}
+
+	public function handleDropzoneGetPhotos()
+	{
+		$data = [];
+		/** @var Photo[] $photos */
+		$photos = $this->photoRepository->many()->where('fk_product', $this->getParameter('product')->getPK());
+
+		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR . '/origin/';
+
+		foreach ($photos as $photo) {
+			$row = [];
+			$row['name'] = $photo->fileName;
+			$row['size'] = \file_exists($basePath . $photo->fileName) ? \filesize($basePath . $photo->fileName) : 0;
+
+			$data[] = $row;
+		}
+
+		$this->sendJson($data);
+	}
+
+	public function handleDropzoneRemovePhoto()
+	{
+		$filename = $this->getPresenter()->getParameter('file');
+
+		/** @var Photo $photo */
+		$photo = $this->photoRepository->many()->where('fileName', $filename)->first();
+
+		if (!$photo) {
+			return;
+		}
+
+		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR;
+		FileSystem::delete($basePath . '/origin/' . $photo->fileName);
+		FileSystem::delete($basePath . '/detail/' . $photo->fileName);
+		FileSystem::delete($basePath . '/thumb/' . $photo->fileName);
+
+		$photo->delete();
+	}
+
+	public function handleDropzoneUploadPhoto()
+	{
+		/** @var Product $product */
+		$product = $this->getParameter('product');
+
+		/** @var FileUpload $fileUpload */
+		$fileUpload = $this->getPresenter()->getHttpRequest()->getFile('file');
+		$uuid = Connection::generateUuid();
+		$filename = $uuid . '.' . $fileUpload->getImageFileExtension();
+
+		$photo = $this->photoRepository->createOne([
+			'uuid' => $uuid,
+			'product' => $product->getPK(),
+			'fileName' => $filename
+		]);
+
+		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR;
+
+		$fileUpload->move($basePath . '/origin/' . $filename);
+		$imageD = Image::fromFile($basePath . '/origin/' . $filename);
+		$imageT = Image::fromFile($basePath . '/origin/' . $filename);
+		$imageD->resize(600, null);
+		$imageT->resize(300, null);
+
+		try {
+			$imageD->save($basePath . '/detail/' . $filename);
+			$imageT->save($basePath . '/thumb/' . $filename);
+		} catch (\Exception $e) {
+		}
 	}
 }
