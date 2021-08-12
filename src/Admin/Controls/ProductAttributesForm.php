@@ -25,19 +25,23 @@ class ProductAttributesForm extends Control
 
 	private ?string $error = null;
 
+	private bool $errorEnabled;
+
 	public function __construct(
 		Product $product,
 		AdminFormFactory $adminFormFactory,
 		AttributeRepository $attributeRepository,
 		AttributeValueRepository $attributeValueRepository,
 		AttributeAssignRepository $attributeAssignRepository,
-		CategoryRepository $categoryRepository
+		CategoryRepository $categoryRepository,
+		bool $errorEnabled = true
 	)
 	{
 		$this->product = $product;
 		$this->attributeRepository = $attributeRepository;
 		$this->attributeValueRepository = $attributeValueRepository;
 		$this->attributeAssignRepository = $attributeAssignRepository;
+		$this->errorEnabled = $errorEnabled;
 
 		$form = $adminFormFactory->create(false, false, false, false, false);
 		$form->removeComponent($form->getComponent('uuid'));
@@ -109,7 +113,8 @@ class ProductAttributesForm extends Control
 
 	public function render()
 	{
+		$this->template->errorEnabled = $this->errorEnabled;
 		$this->template->error = $this->error;
-		$this->template->render(__DIR__ . '/productParametersForm.latte');
+		$this->template->render(__DIR__ . '/productAttributesForm.latte');
 	}
 }

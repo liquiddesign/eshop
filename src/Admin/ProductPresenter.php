@@ -408,7 +408,7 @@ class ProductPresenter extends BackendPresenter
 
 	public function createComponentParameterForm()
 	{
-		return $this->productAttributesFormFactory->create($this->getParameter('product'));
+		return $this->productAttributesFormFactory->create($this->getParameter('product'), false);
 	}
 
 	public function actionDetailFile(File $file)

@@ -56,14 +56,16 @@
                             <div class="d-flex">
                                 {input name-$key class => 'form-control form-control-sm'}
                                 <!-- COPY BUTTON -->
-                                <button type="button" class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal"
-                                        data-target="#modal-name">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                         stroke="currentColor" style="width: 18px; height: 18px;">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
-                                    </svg>
-                                </button>
+                                {if isset($supplierProducts) && \count($supplierProducts) > 0}
+                                    <button type="button" class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal"
+                                            data-target="#modal-name">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                             stroke="currentColor" style="width: 18px; height: 18px;">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+                                        </svg>
+                                    </button>
+                                {/if}
                             </div>
 
                             <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError name-$key}</span>
@@ -162,15 +164,17 @@
                             <div class="d-flex">
                                 {input perex-$key}
                                 <!-- COPY BUTTON -->
-                                <button type="button" style="margin: 4px 0px 8px;"
-                                        class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal"
-                                        data-target="#modal-perex">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                         stroke="currentColor" style="width: 18px; height: 18px;">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
-                                    </svg>
-                                </button>
+                                {if isset($supplierProducts) && \count($supplierProducts) > 0}
+                                    <button type="button" style="margin: 4px 0px 8px;"
+                                            class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal"
+                                            data-target="#modal-perex">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                             stroke="currentColor" style="width: 18px; height: 18px;">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+                                        </svg>
+                                    </button>
+                                {/if}
                             </div>
                             <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError perex-$key}</span>
                         </td>
@@ -186,15 +190,18 @@
                             <div class="d-flex">
                                 {input content-$key}
                                 <!-- COPY BUTTON -->
-                                <button type="button" style="margin: 4px 0px 8px;"
-                                        class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal"
-                                        data-target="#modal-content">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                         stroke="currentColor" style="width: 18px; height: 18px;">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
-                                    </svg>
-                                </button>
+
+                                {if isset($supplierProducts) && \count($supplierProducts) > 0}
+                                    <button type="button" style="margin: 4px 0px 8px;"
+                                            class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal"
+                                            data-target="#modal-content">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                             stroke="currentColor" style="width: 18px; height: 18px;">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+                                        </svg>
+                                    </button>
+                                {/if}
                             </div>
                             <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError content-$key}</span>
                         </td>
@@ -202,7 +209,7 @@
                 {/foreach}
 
 
-                <tr n:if="$configuration['suppliers']" class="m-0 mt-1 has-danger">
+                <tr n:if="$configuration['suppliers'] && isset($form['supplierContent'])" class="m-0 mt-1 has-danger">
                     <th class="col-label col-form-label col">{label supplierContent/}</th>
 
                     <td class="align-middle">{input supplierContent class=>"form-control form-control-sm", style=>'max-width: 260px;'}

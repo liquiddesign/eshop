@@ -1,5 +1,7 @@
 {ifset $error}
-    {$error}
+    {if $errorEnabled}
+        {$error}
+    {/if}
 {else}
     {control form}
 {/ifset}

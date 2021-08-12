@@ -8,5 +8,5 @@ use Eshop\DB\Product;
 
 interface IProductAttributesFormFactory
 {
-	public function create(Product $product): ProductAttributesForm;
+	public function create(Product $product, bool $errorEnabled = true): ProductAttributesForm;
 }
