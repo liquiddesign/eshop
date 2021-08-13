@@ -25,8 +25,8 @@
                         Fakturační údaje
                         <address class="mt-2">
                             <strong>{$purchase->fullname}</strong><br>
-                            <div n:if="$purchase->ic">IČ: <strong>{$purchase->ic}</strong><br></div>
-                            <div n:if="$purchase->dic">DIČ: <strong>{$purchase->dic}</strong><br></div>
+                            <div n:if="$purchase->ic">IČ: {$purchase->ic}<br></div>
+                            <div n:if="$purchase->dic">DIČ: {$purchase->dic}<br></div>
                             <div n:if="$billingAddress">{$billingAddress->street},<br></div>
                             <div n:if="$billingAddress">{$billingAddress->zipcode} {$billingAddress->city}<br></div>
                             <div>{$purchase->email}<br></div>
@@ -48,15 +48,15 @@
                         <address class="mt-2">
                             <div n:if="$purchase->customer">
                                 <strong>{$purchase->customer->fullname}</strong><br>
-                                <div n:if="$purchase->customer->ic">IČ: <strong>{$purchase->customer->ic}</strong><br></div>
-                                <div n:if="$purchase->customer->dic">DIČ: <strong>{$purchase->customer->dic}</strong><br></div>
+                                <div n:if="$purchase->customer->ic">IČ: {$purchase->customer->ic}<br></div>
+                                <div n:if="$purchase->customer->dic">DIČ: {$purchase->customer->dic}<br></div>
                                 {$purchase->customer->email}<br>
                                     {$purchase->customer->phone}
                             </div>
                             <div n:if="!$purchase->customer">
                                 <strong>{$purchase->fullname}</strong><br>
-                                <div n:if="$purchase->ic">IČ: <strong>{$purchase->ic}</strong><br></div>
-                                <div n:if="$purchase->dic">DIČ: <strong>{$purchase->dic}</strong><br></div>
+                                <div n:if="$purchase->ic">IČ: {$purchase->ic}<br></div>
+                                <div n:if="$purchase->dic">DIČ: {$purchase->dic}<br></div>
                                 {$purchase->email}<br>
                                     {$purchase->phone}
                             </div>

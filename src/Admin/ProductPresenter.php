@@ -1554,7 +1554,7 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 
 	public function renderComments(Product $product)
 	{
-		$this->template->comments = $this->commentRepository->many()->where('fk_product', $product->getPK())->orderBy(['createdTs'])->toArray();
+		$this->template->comments = $this->commentRepository->many()->where('fk_product', $product->getPK())->orderBy(['createdTs' => 'DESC'])->toArray();
 		$this->template->setFile(__DIR__ . '/templates/comments.latte');
 	}
 
@@ -1564,7 +1564,7 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 		$form = $this->formFactory->create(true, false, false, false, false);
 
 		$form->addGroup('Nový komentář');
-		$form->addTextArea('text', 'Text komentáře');
+		$form->addTextArea('text', 'Komentáře');
 
 		$form->addSubmit('send', 'Odeslat');
 

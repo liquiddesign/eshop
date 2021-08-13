@@ -718,7 +718,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function renderComments(Order $order)
 	{
-		$this->template->comments = $this->commentRepository->many()->where('fk_order', $order->getPK())->orderBy(['createdTs'])->toArray();
+		$this->template->comments = $this->commentRepository->many()->where('fk_order', $order->getPK())->orderBy(['createdTs' => 'DESC'])->toArray();
 		$this->template->setFile(__DIR__ . '/templates/comments.latte');
 	}
 
@@ -728,7 +728,7 @@ class OrderPresenter extends BackendPresenter
 		$form = $this->formFactory->create(true, false, false, false, false);
 
 		$form->addGroup('Nový komentář');
-		$form->addTextArea('text', 'Text komentáře');
+		$form->addTextArea('text', 'Komentáře');
 
 		$form->addSubmit('send', 'Odeslat');
 
