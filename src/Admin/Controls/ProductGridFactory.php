@@ -202,11 +202,21 @@ class ProductGridFactory
 	private function addFilters(Datagrid $grid)
 	{
 		$grid->addFilterTextInput('code', ['this.code', 'this.ean', 'this.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
-
+		
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
+			$exactCategories = $categories;
 			$categories += ['0' => 'X - bez kategorie'];
+			
+			foreach ($exactCategories as $key => $value) {
+				$categories += ['.'. $key => $value . ' (bez podkategorí)'];
+			}
+			
 			$grid->addFilterDataSelect(function (Collection $source, $value) {
-				$source->filter(['category' => $value === '0' ? false : $this->categoryRepository->one($value)->path]);
+				if (\substr($value, 0, 1) === '.') {
+					$source->where('categories.uuid', \substr($value, 1) );
+				} else {
+					$source->filter(['category' => $value === '0' ? false : $this->categoryRepository->one($value)->path]);
+				}
 			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
 		}
 
