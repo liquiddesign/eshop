@@ -247,9 +247,9 @@ class ProductGridFactory
 
 			$grid->addFilterDataSelect(function (ICollection $source, $value) {
 				if ($value == 'locked') {
-					$source->where('this.supplierLock IS NOT NULL AND this.supplierLock != 0');
+					$source->where('this.supplierContentLock = 1');
 				} else {
-					$source->where('this.supplierLock IS NULL OR this.supplierLock = 0');
+					$source->where('this.supplierContentLock != 1');
 				}
 			}, '', 'supplierLock', null, ['unlocked' => 'Odemknuté', 'locked' => 'Zamknuté'])->setPrompt('- Zámek -');
 		}

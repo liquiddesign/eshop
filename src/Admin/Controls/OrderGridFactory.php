@@ -121,7 +121,7 @@ class OrderGridFactory
 
 		$grid->addColumn('', function (Order $order) use ($grid) {
 			return $grid->getPresenter()->link('printDetail', $order);
-		}, "<a class='$btnSecondary' href='%s' target='_blank'><i class='fa fa-print'></i> Detail</a>", null, ['class' => 'minimal']);
+		}, "<a class='$btnSecondary' href='%s'><i class='fa fa-print'></i> Detail</a>", null, ['class' => 'minimal']);
 
 		$grid->addColumn(null, function ($object, $grid) {
 			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' . $grid->getPresenter()->link('comments', $object) . '"><i title="Komentáře" class="far fa-comment"></i>&nbsp;' . $object->commentCount . '</a>';
