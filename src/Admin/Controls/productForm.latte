@@ -586,6 +586,10 @@
                     polyfills[$(this).data('for')].options.select(value, "#");
                 }
 
+                value = value.replace(/(?:\r\n|\r|\n)/g, '<br>');
+
+                console.log(value)
+
                 if (tinymce.get($(this).data('for'))) {
                     tinymce.get($(this).data('for')).execCommand('mceInsertContent', false, value);
                 }
