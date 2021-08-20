@@ -601,7 +601,7 @@ class ProductPresenter extends BackendPresenter
 
 		$data = [];
 		/** @var Photo[] $photos */
-		$photos = $this->photoRepository->many()->where('fk_product', $product->getPK());
+		$photos = $this->photoRepository->many()->where('fk_product', $product->getPK())->orderBy(['priority']);
 
 		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR . '/origin/';
 
@@ -1783,6 +1783,21 @@ Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 		}
 
 		$photo->product->update(['imageFileName' => $filename]);
+
+		$this->redirect('this');
+	}
+
+	public function handleDropzoneSetOrder()
+	{
+		$items = $this->getHttpRequest()->getPost();
+
+		if (!$items) {
+			return;
+		}
+
+		foreach ($items as $uuid => $priority) {
+			$this->photoRepository->many()->where('uuid', $uuid)->update(['priority' => (int)$priority]);
+		}
 
 		$this->redirect('this');
 	}

@@ -86,7 +86,7 @@
 
 {/block}
 {block scripts}
-    <script n:if="$flashes" src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
     {foreach $flashes as $flash}
         <script>
             toastr.{$flash->type|noescape}({$flash->message});
@@ -134,10 +134,46 @@
             removedfile: function (file) {
                 $.post({link dropzoneRemovePhoto!}, { file: file.name}).done(function (data){
                     file.previewElement.remove();
+                    toastr.success('Provedeno');
                 });
             },
         };
 
-        sortable('.dropzone');
+
+        sortable('.dropzone')[0].addEventListener('sortupdate', function(e) {
+            let items = e.detail.destination.items;
+            items.shift();
+
+            if(items.length === 0){
+                return;
+            }
+
+            let i = 1;
+            let data = {};
+
+            items.forEach(function (element){
+                let image = element.getElementsByClassName('dz-image');
+
+                if(image.length === 0){
+                    return;
+                }
+
+                let imageElement = image[0].children[0];
+                let alt = imageElement.alt.split('.')[0];
+
+                data[String(alt)] = i++;
+            });
+
+            console.log(data)
+
+            $.ajax({
+                method: "POST",
+                url: {plink dropzoneSetOrder!},
+                data: data
+            })
+                .done(function( msg ) {
+                    toastr.success('Provedeno');
+                });
+        });
     </script>
 {/block}
