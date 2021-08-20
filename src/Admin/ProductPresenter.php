@@ -596,9 +596,12 @@ class ProductPresenter extends BackendPresenter
 
 		$this->template->setFile(__DIR__ . '/templates/productPhotosDropzone.latte');
 
+		/** @var Product $product */
+		$product = $this->getParameter('product');
+
 		$data = [];
 		/** @var Photo[] $photos */
-		$photos = $this->photoRepository->many()->where('fk_product', $this->getParameter('product')->getPK());
+		$photos = $this->photoRepository->many()->where('fk_product', $product->getPK());
 
 		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR . '/origin/';
 
@@ -606,8 +609,9 @@ class ProductPresenter extends BackendPresenter
 			$row = [];
 			$row['name'] = $photo->fileName;
 			$row['size'] = \file_exists($basePath . $photo->fileName) ? \filesize($basePath . $photo->fileName) : 0;
+			$row['main'] = $product->imageFileName === $photo->fileName;
 
-			$data[] = $row;
+			$data[$photo->fileName] = $row;
 		}
 
 		$this->template->photos = $data;
@@ -1715,25 +1719,6 @@ Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 		return $form;
 	}
 
-	public function handleDropzoneGetPhotos()
-	{
-		$data = [];
-		/** @var Photo[] $photos */
-		$photos = $this->photoRepository->many()->where('fk_product', $this->getParameter('product')->getPK());
-
-		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR . '/origin/';
-
-		foreach ($photos as $photo) {
-			$row = [];
-			$row['name'] = $photo->fileName;
-			$row['size'] = \file_exists($basePath . $photo->fileName) ? \filesize($basePath . $photo->fileName) : 0;
-
-			$data[] = $row;
-		}
-
-		$this->sendJson($data);
-	}
-
 	public function handleDropzoneRemovePhoto()
 	{
 		$filename = $this->getPresenter()->getParameter('file');
@@ -1782,5 +1767,23 @@ Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 			$imageT->save($basePath . '/thumb/' . $filename);
 		} catch (\Exception $e) {
 		}
+	}
+
+	public function handleDropzoneSetMain(?string $filename)
+	{
+		if (!$filename) {
+			return;
+		}
+
+		/** @var Photo $photo */
+		$photo = $this->photoRepository->many()->where('filename', $filename)->first();
+
+		if (!$photo) {
+			return;
+		}
+
+		$photo->product->update(['imageFileName' => $filename]);
+
+		$this->redirect('this');
 	}
 }
