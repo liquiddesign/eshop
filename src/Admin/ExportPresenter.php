@@ -74,6 +74,14 @@ class ExportPresenter extends BackendPresenter
 			]
 		];
 
+		if ($this->settingsRepo->many()->where('name', 'supportBoxApiKey')->first()) {
+			$this->template->exports[] =
+				(object)[
+					'name' => 'Export pro SupportBox',
+					'link' => $this->link('//:Eshop:Export:supportbox')
+				];
+		}
+
 		$this->template->setFile(__DIR__ . \DIRECTORY_SEPARATOR . 'templates' . \DIRECTORY_SEPARATOR . 'Export.default.latte');
 	}
 
