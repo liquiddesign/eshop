@@ -109,6 +109,12 @@
             init: function () {
                 this.on("complete",function(file){
                     var newNode = document.createElement('a');
+                    newNode.className = 'btn btn-primary btn-xs dz-main-2';
+                    newNode.href = 'javascript:void(0);'
+                    newNode.innerHTML = '<i class="fas fa-arrows-alt"></i>';
+                    file.previewTemplate.appendChild(newNode);
+
+                    newNode = document.createElement('a');
                     newNode.className = 'btn btn-primary btn-xs dz-main';
                     newNode.href = {plink dropzoneSetMain!} + '&filename=' + file.name
                     newNode.innerHTML = '<i class=" ' + (mainPhotos[file.name] ? 'fas' : 'far') + ' fa-star"></i>';
