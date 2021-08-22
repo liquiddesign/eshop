@@ -138,6 +138,8 @@
                 {/foreach}
             },
             removedfile: function (file) {
+                $('.dz-default.dz-message').hide();
+
                 $.post({link dropzoneRemovePhoto!}, { file: file.name}).done(function (data){
                     file.previewElement.remove();
                     toastr.success('Provedeno');
