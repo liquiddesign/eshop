@@ -1751,7 +1751,8 @@ Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 		$photo = $this->photoRepository->createOne([
 			'uuid' => $uuid,
 			'product' => $product->getPK(),
-			'fileName' => $filename
+			'fileName' => $filename,
+			'priority' => 999
 		]);
 
 		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR;
