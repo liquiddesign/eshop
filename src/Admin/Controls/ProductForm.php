@@ -128,20 +128,20 @@ class ProductForm extends Control
 		$form->addText('ean', 'EAN')->setNullable();
 		$nameInput = $form->addLocaleText('name', 'Název');
 
-		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
-			Product::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
-			Product::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => static function (Image $image): void {
-				$image->resize(600, null);
-			},
-			Product::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
-				$image->resize(300, null);
-			},
-		]);
-
-		$imagePicker->onDelete[] = function (array $directories, $filename) {
-			$this->deleteImages();
-			$this->redirect('this');
-		};
+//		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
+//			Product::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
+//			Product::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => static function (Image $image): void {
+//				$image->resize(600, null);
+//			},
+//			Product::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
+//				$image->resize(300, null);
+//			},
+//		]);
+//
+//		$imagePicker->onDelete[] = function (array $directories, $filename) {
+//			$this->deleteImages();
+//			$this->redirect('this');
+//		};
 
 		$form->addSelect('vatRate', 'Úroveň DPH (%)', $vatRateRepository->getDefaultVatRates());
 		$form->addDataMultiSelect('categories', 'Kategorie', $categoryRepository->getTreeArrayForSelect());
@@ -423,7 +423,7 @@ class ProductForm extends Control
 		}
 
 		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
-		$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
+//		$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
 
 		$values['alternative'] = isset($data['alternative']) ? $this->productRepository->one($data['alternative']) : null;
 
