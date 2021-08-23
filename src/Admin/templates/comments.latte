@@ -76,7 +76,7 @@
                         <tbody>
                         <tr n:foreach="$comments as $comment">
                             <td class="fit">{$comment->createdTs|date:'d.m.Y G:i'}</td>
-                            <td class="fit">{$comment->administrator ? $comment->administrator->fullName : $comment->adminFullname}</td>
+                            <td class="fit">{$comment->adminFullname}</td>
                             <td>{$comment->text}</td>
                         </tr>
                         <tr n:if="\count($comments) == 0">

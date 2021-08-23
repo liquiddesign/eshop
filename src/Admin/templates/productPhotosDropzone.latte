@@ -1,0 +1,206 @@
+{varType Eshop\DB\Photo[] $photos}
+
+{block content}
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-1">
+                <div class="col-sm-6">
+                    <h1>{@$headerLabel}</h1>
+                    {if @$displayLabels}
+                        {foreach $displayLabels as $label}
+                            <h2>{$label|noescape}</h2>
+                        {/foreach}
+                    {/if}
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{plink :Eshop:Admin:Dashboard:default}">Domů</a></li>
+                        {ifset $headerTree}
+                            {foreach $headerTree as $item}
+                                <li class="breadcrumb-item {if $iterator->isLast()}active{/if}">
+                                    {ifset $item[1]}
+                                        {ifset $item[2]}
+                                            <a href="{plink $item[1], $item[2]}">{$item[0]}</a>
+                                        {else}
+                                            <a href="{plink $item[1]}">{$item[0]}</a>
+                                        {/ifset}
+                                    {else}
+                                        {$item[0]}
+                                    {/ifset}
+                                </li>
+                            {/foreach}
+                        {/ifset}
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card card-primary card-outline card-outline-tabs">
+                    <div n:if="@$tabs" class="card-header p-0 border-bottom-0">
+                        <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
+                            {foreach $tabs as $tab => $label}
+                                <li class="nav-item">
+                                    {if substr($tab, 0, 1) === '@'}
+                                        {do $tab = substr($tab, 1)}
+                                        <a class="nav-link {if $tab === $presenter->getAction() || $tab === @$activeTab}active{/if}"
+                                           id="custom-tabs-one-home-tab" data-toggle="pill" href="{plink $tab}"
+                                           role="tab">{$label|noescape}</a>
+                                    {else}
+                                        <a class="nav-link {if $tab === $presenter->getParameter('tab') || $tab === @$activeTab}active{/if}"
+                                           id="custom-tabs-one-home-tab" data-toggle="pill"
+                                           href="{plink $presenter->getAction() tab=>$tab}"
+                                           role="tab">{$label|noescape}</a>
+                                    {/if}
+
+                                </li>
+                            {/foreach}
+                        </ul>
+                    </div>
+
+                    {if @$displayButtons}
+                        <div class="card-header p-3">
+                            <div class="row">
+                                <div class="col-lg-6 col-md-12">
+                                    {foreach $displayButtons as $button}
+                                        {$button|noescape}
+                                    {/foreach}
+                                </div>
+                            </div>
+                        </div>
+                    {/if}
+                    <div class="card-body p-3">
+                        <form action="{link dropzoneUploadPhoto!}" class="dropzone" id="photosDropzone">
+                            <div class="dz-default dz-message" data-dz-message="">
+                                <span>Přesuňte soubory sem pro nahrávání</span>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+{/block}
+{block scripts}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+    {foreach $flashes as $flash}
+        <script>
+            toastr.{$flash->type|noescape}({$flash->message});
+        </script>
+    {/foreach}
+
+    <script>
+        let mainPhotos = [];
+
+        {foreach $photos as $photo}
+            mainPhotos[{$photo['name']}] = {$photo['main'] ? true : false}
+        {/foreach}
+
+        Dropzone.options.photosDropzone = {
+            addRemoveLinks: true,
+            dictRemoveFile : '<button class="btn btn-xs btn-danger"><i class="fas fa-trash"></i></button>',
+            dictCancelUpload: null,
+            thumbnailWidth: 400,
+            thumbnailHeight: null,
+            init: function () {
+                this.on("complete",function(file){
+                    var newNode = document.createElement('a');
+                    newNode.className = 'btn btn-primary btn-xs dz-main-2';
+                    newNode.href = 'javascript:void(0);'
+                    newNode.innerHTML = '<i class="fas fa-arrows-alt"></i>';
+                    file.previewTemplate.appendChild(newNode);
+
+                    newNode = document.createElement('a');
+
+                    let id = file.name.split('.')[0];
+
+                    newNode.id = 'main-' + id;
+                    newNode.className = 'btn btn-primary btn-xs dz-main';
+                    newNode.href = 'javascript:void(0);'
+                    newNode.onclick = function () {
+                        $.ajax({
+                            method: "POST",
+                            url: {plink dropzoneSetMain!} + '&filename=' + file.name,
+                        })
+                            .done(function( msg ) {
+                                var mainElement =  $('a.dz-main > i.fas');
+                                mainElement.removeClass('fas')
+                                mainElement.addClass('far')
+
+                                mainElement =  $('#main-' + id + ' > i.far');
+                                mainElement.removeClass('far')
+                                mainElement.addClass('fas')
+
+                                toastr.success('Provedeno');
+                            });
+                    }
+                    newNode.innerHTML = '<i class=" ' + (mainPhotos[file.name] ? 'fas' : 'far') + ' fa-star"></i>';
+                    file.previewTemplate.appendChild(newNode);
+
+                    $('[data-dz-thumbnail]').css('height', '120');
+                    $('[data-dz-thumbnail]').css('width', '120');
+                    $('[data-dz-thumbnail]').css('object-fit', 'cover');
+                });
+
+                var thisDropzone = this;
+
+                {foreach $photos as $photo}
+                    var mockFile = { name: {$photo['name']}, size: {$photo['size']}};
+
+                    thisDropzone.options.addedfile.call(thisDropzone, mockFile);
+
+                    thisDropzone.options.thumbnail.call(thisDropzone, mockFile, {$baseUrl}+'/userfiles/product_gallery_images/thumb/{$photo['name']|noescape}');
+
+                    thisDropzone.emit("complete", mockFile);
+                {/foreach}
+            },
+            removedfile: function (file) {
+                $('.dz-default.dz-message').hide();
+
+                $.post({link dropzoneRemovePhoto!}, { file: file.name}).done(function (data){
+                    file.previewElement.remove();
+                    toastr.success('Provedeno');
+                });
+            },
+        };
+
+
+        sortable('.dropzone')[0].addEventListener('sortupdate', function(e) {
+            let items = e.detail.destination.items;
+            items.shift();
+
+            if(items.length === 0){
+                return;
+            }
+
+            let i = 1;
+            let data = {};
+
+            items.forEach(function (element){
+                let image = element.getElementsByClassName('dz-image');
+
+                if(image.length === 0){
+                    return;
+                }
+
+                let imageElement = image[0].children[0];
+                let alt = imageElement.alt.split('.')[0];
+
+                data[String(alt)] = i++;
+            });
+
+            $.ajax({
+                method: "POST",
+                url: {plink dropzoneSetOrder!},
+                data: data
+            })
+                .done(function( msg ) {
+                    toastr.success('Provedeno');
+                });
+        });
+    </script>
+{/block}
