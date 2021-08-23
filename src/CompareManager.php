@@ -10,6 +10,7 @@ use Eshop\DB\ProductRepository;
 use Nette\Http\Session;
 use Nette\Http\SessionSection;
 use Translator\DB\TranslationRepository;
+use Web\DB\PageRepository;
 
 class CompareManager
 {
@@ -25,13 +26,16 @@ class CompareManager
 
 	private AttributeValueRepository $attributeValueRepository;
 
+	private PageRepository $pageRepository;
+
 	public function __construct(
 		Session $session,
 		ProductRepository $productRepository,
 		CategoryRepository $categoryRepository,
 		TranslationRepository $translator,
 		AttributeRepository $attributeRepository,
-		AttributeValueRepository $attributeValueRepository
+		AttributeValueRepository $attributeValueRepository,
+		PageRepository $pageRepository
 	)
 	{
 		$this->session = $session;
@@ -40,6 +44,7 @@ class CompareManager
 		$this->translator = $translator;
 		$this->attributeRepository = $attributeRepository;
 		$this->attributeValueRepository = $attributeValueRepository;
+		$this->pageRepository = $pageRepository;
 	}
 
 	public function getCompareList(): array
@@ -92,6 +97,10 @@ class CompareManager
 						}
 
 						$resultCategories[$category->getPK()]['products'][$productKey]['attributes'][$attributeKey] = $values;
+
+						foreach ($values as $attributeValueKey => $attributeValue) {
+							$resultCategories[$category->getPK()]['products'][$productKey]['attributes'][$attributeKey][$attributeValueKey]->page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValueKey]);
+						}
 					}
 				}
 			}
