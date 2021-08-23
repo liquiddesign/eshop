@@ -1748,6 +1748,7 @@ Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 		$uuid = Connection::generateUuid();
 		$filename = $uuid . '.' . $fileUpload->getImageFileExtension();
 
+		/** @var Photo $photo */
 		$photo = $this->photoRepository->createOne([
 			'uuid' => $uuid,
 			'product' => $product->getPK(),
@@ -1768,6 +1769,12 @@ Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 			$imageT->save($basePath . '/thumb/' . $filename);
 		} catch (\Exception $e) {
 		}
+
+		$row = [];
+		$row['name'] = $photo->fileName;
+		$row['size'] = \file_exists($basePath . '/origin/' . $photo->fileName) ? \filesize($basePath . '/origin/' . $photo->fileName) : 0;
+
+		$this->sendJson($row);
 	}
 
 	public function handleDropzoneSetMain(?string $filename)

@@ -8,6 +8,7 @@ use Eshop\DB\CategoryRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\InternalRibbon;
 use Eshop\DB\InternalRibbonRepository;
+use Eshop\DB\Photo;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
@@ -102,7 +103,7 @@ class ProductGridFactory
 
 		$grid = $this->gridFactory->create($source, 20, 'this.priority', 'ASC', true);
 		$grid->addColumnSelector();
-		$grid->addColumnImage('imageFileName', Product::IMAGE_DIR);
+		$grid->addColumnImage('imageFileName', Product::GALLERY_DIR);
 
 		$grid->addColumn('Kód a EAN', function (Product $product) {
 			return $product->getFullCode() . ($product->ean ? "<br><small>EAN $product->ean</small>" : '');
