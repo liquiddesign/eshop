@@ -65,8 +65,10 @@ class ProductAttributesForm extends Control
 			return;
 		}
 
+		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
+
 		foreach ($attributes as $attribute) {
-			$attributeValues = $this->attributeRepository->getAttributeValues($attribute, true)->toArrayOf('label');
+			$attributeValues = $this->attributeRepository->getAttributeValues($attribute, true)->select(['internalLabel' => 'IFNULL(internalName, label' . $mutationSuffix . ')'])->toArrayOf('internalLabel');
 
 			$select = $form->addDataMultiSelect($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
 

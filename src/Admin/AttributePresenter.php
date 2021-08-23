@@ -220,6 +220,7 @@ class AttributePresenter extends BackendPresenter
 
 		$grid->addColumnSelector();
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
+		$grid->addColumnText('Interní název', 'internalName', '%s', 'internalName');
 		$grid->addColumn('Hodnota', function (AttributeValue $attributeValue, $grid) {
 			$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValue->getPK()]);
 
@@ -299,6 +300,7 @@ class AttributePresenter extends BackendPresenter
 			}
 		}
 
+		$form->addText('internalName', 'Interní název');
 		$nameInput = $form->addLocaleText('label', 'Popisek');
 
 		$form->addLocaleTextArea('note', 'Dodatečné informace');

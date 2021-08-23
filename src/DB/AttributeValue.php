@@ -19,6 +19,12 @@ class AttributeValue extends \StORM\Entity
 	public string $code;
 
 	/**
+	 * Interní název
+	 * @column
+	 */
+	public ?string $internalName;
+
+	/**
 	 * Popisek pro front
 	 * @column{"mutations":true}
 	 */
