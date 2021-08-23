@@ -524,7 +524,7 @@ class Product extends \StORM\Entity
 		$category = $this->getPrimaryCategory();
 		$fallbackImage = $category ? $category->getFallbackImage() : null;
 
-		return $this->imageFileName ? $basePath . '/userfiles/' . self::IMAGE_DIR . '/' . $size . '/' . $this->imageFileName :
+		return $this->imageFileName ? $basePath . '/userfiles/' . Photo::IMAGE_DIR . '/' . $size . '/' . $this->imageFileName :
 			($fallbackImage ? $basePath . '/userfiles/' . Category::IMAGE_DIR . '/' . $size . '/' . $fallbackImage :
 				$basePath . '/public/img/no-image.png');
 	}
