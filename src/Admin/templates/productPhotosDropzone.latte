@@ -115,8 +115,29 @@
                     file.previewTemplate.appendChild(newNode);
 
                     newNode = document.createElement('a');
+
+                    let id = file.name.split('.')[0];
+
+                    newNode.id = 'main-' + id;
                     newNode.className = 'btn btn-primary btn-xs dz-main';
-                    newNode.href = {plink dropzoneSetMain!} + '&filename=' + file.name
+                    newNode.href = 'javascript:void(0);'
+                    newNode.onclick = function () {
+                        $.ajax({
+                            method: "POST",
+                            url: {plink dropzoneSetMain!} + '&filename=' + file.name,
+                        })
+                            .done(function( msg ) {
+                                var mainElement =  $('a.dz-main > i.fas');
+                                mainElement.removeClass('fas')
+                                mainElement.addClass('far')
+
+                                mainElement =  $('#main-' + id + ' > i.far');
+                                mainElement.removeClass('far')
+                                mainElement.addClass('fas')
+
+                                toastr.success('Provedeno');
+                            });
+                    }
                     newNode.innerHTML = '<i class=" ' + (mainPhotos[file.name] ? 'fas' : 'far') + ' fa-star"></i>';
                     file.previewTemplate.appendChild(newNode);
 
