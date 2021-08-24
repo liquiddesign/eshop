@@ -8,6 +8,7 @@ use App\Eshop\Providers\SupplierProvider;
 use Nette\Application\ApplicationException;
 use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
+use Nette\Utils\Helpers;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use StORM\Literal;
@@ -87,11 +88,11 @@ class ImportResultRepository extends \StORM\Repository
 		$this->importResult->update([
 			'status' => 'received',
 			'receivedTs' => (string) (new DateTime()),
-			'importSize' => \filesize($this->logDirectory . '/data/' . $importFile),
+			'importSize' => Helpers::falseToNull(\filesize($this->logDirectory . '/data/' . $importFile)),
 			'importFile' => $importFile,
 		]);
 		
-		$this->log('Import data received: '. $importFile . ' (' . \filesize($this->logDirectory . '/data/' . $importFile) . ')');
+		$this->log('Import data received: '. $importFile . ' (' . Helpers::falseToNull(\filesize($this->logDirectory . '/data/' . $importFile)) . ')');
 	}
 	
 	public function markAsImported(SupplierProvider $provider)
