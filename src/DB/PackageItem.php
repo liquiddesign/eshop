@@ -16,6 +16,12 @@ class PackageItem extends \StORM\Entity
 	 * @column
 	 */
 	public int $amount = 0;
+	
+	/**
+	 * Smazáno
+	 * @column
+	 */
+	public bool $deleted = false;
 
 	/**
 	 * Status

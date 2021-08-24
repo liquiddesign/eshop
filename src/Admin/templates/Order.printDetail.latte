@@ -108,7 +108,7 @@
                                 </tr></thead>
                                 <tbody>
 
-                                <tr n:foreach="$package->items as $packageItem" {if $packageItem->cartItem->deleted}style="text-decoration: line-through"{/if}>
+                                <tr n:foreach="$package->items as $packageItem" {if $packageItem->deleted}style="text-decoration: line-through"{/if}>
                                     {var $item = $packageItem->cartItem}
                                     <td>
                                         {dump $item->getPK()}
