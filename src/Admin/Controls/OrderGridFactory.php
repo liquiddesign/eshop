@@ -79,7 +79,7 @@ class OrderGridFactory
 			->setGroupBy(['this.uuid'])
 			->join(['comment' => 'eshop_internalcommentorder'], 'this.uuid = comment.fk_order')
 			->select(['commentCount' => 'COUNT(DISTINCT comment.uuid)']),
-			20, 'this.createdTs', 'DESC', true);
+			20, 'this.code', 'DESC', true);
 		
 		$grid->addColumnSelector();
 		$grid->addColumnText('Číslo a datum', ['uuid', 'code', "createdTs|date:'d.m.Y G:i"], '<a id="%s" href="javascript:void(0);">%s</a><br><small>%s</small>', 'this.code', ['class' => 'fit']);

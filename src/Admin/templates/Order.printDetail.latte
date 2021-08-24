@@ -146,7 +146,7 @@
                                         <a class="btn btn-primary btn-sm text-xs modalDetailOrderItemForm" data-values="{json_encode($item->toArray())}" data-toggle="modal" data-target="#modal-detailOrderItemForm" href="#" title="Upravit"><i class="far fa-edit"></i></a>
                                     </td>
                                     <td class="d-print-none">
-                                        <a href="{plink toggleDeleteOrderItem! $item->getPK()}" class="btn btn-danger btn-sm text-xs" title="Smazat" onclick="return confirm('Opravdu?')"><i class="{if $item->deleted}fa fa-trash-restore-alt{else}far fa-trash-alt{/if}"></i></a>
+                                        <a href="{plink toggleDeleteOrderItem! $item->getPK()}" class="btn btn-danger btn-sm text-xs" title="Smazat" onclick="return confirm('Opravdu?')"><i class="{if $packageItem->deleted}fa fa-trash-restore-alt{else}far fa-trash-alt{/if}"></i></a>
                                     </td>
                                 </tr>
 

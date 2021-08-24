@@ -38,6 +38,7 @@ use Nette\Forms\Controls\Button;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\Request;
 use Nette\Mail\Mailer;
+use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
 use StORM\Literal;
 
@@ -216,69 +217,6 @@ class OrderPresenter extends BackendPresenter
 		return $form;
 	}
 	
-	public function createComponentForm(): Form
-	{
-		$form = $this->formFactory->create();
-		
-		$form->addText('code', 'Kód')->setRequired();
-		$form->addGroup('Stav');
-		$form->addDatetime('completedTs', 'Zpracované')->setNullable(true);
-		$form->addDatetime('canceledTs', 'Zrušeno')->setNullable(true);
-		$form->addGroup('Kontakty');
-		$form->addText('phone', 'Telefon')->setNullable(true);
-		$form->addText('email', 'E-mail')->setNullable(true);
-		$form->addText('ccEmails', 'E-mail (Kopie)')->setNullable(true);
-		$form->addGroup('Fakturační adresa');
-		$billAddress = $form->addContainer('billAddress');
-		$billAddress->addHidden('uuid')->setNullable();
-		$billAddress->addText('street', 'Ulice');
-		$billAddress->addText('city', 'Město');
-		$billAddress->addText('zipcode', 'PSČ');
-		$billAddress->addText('state', 'Stát');
-		
-		$form->addGroup('Doručovací adresa');
-		$deliveryAddress = $form->addContainer('deliveryAddress');
-		$deliveryAddress->addHidden('uuid')->setNullable();
-		$deliveryAddress->addText('street', 'Ulice');
-		$deliveryAddress->addText('city', 'Město');
-		$deliveryAddress->addText('zipcode', 'PSČ');
-		$deliveryAddress->addText('state', 'Stát');
-		$form->addGroup('Ostatní');
-		$form->addDate('desiredShippingDate', 'Požadované datum doručení')->setNullable(true);
-		$form->addText('internalOrderCode', 'Interní číslo objednávky')->setNullable(true);
-		$form->addTextArea('note', 'Poznámka')->setNullable(true);
-		
-		
-		$form->addSubmits(!$this->getParameter('order'));
-		
-		$form->onSuccess[] = function (AdminForm $form) {
-			$values = $form->getValues('array');
-			
-			unset($values['uuid']);
-			
-			/** @var Order $order */
-			$order = $this->getParameter('order');
-			$order->update($values, true);
-			
-			$values['billAddress'] = (string)$this->addressRepository->syncOne($values['billAddress']);
-			
-			if ($values['deliveryAddress']['street'] && $values['deliveryAddress']['city']) {
-				$values['deliveryAddress'] = (string)$this->addressRepository->syncOne($values['deliveryAddress']);
-			} elseif ($values['deliveryAddress']['uuid']) {
-				$values['deliveryAddress'] = null;
-			} else {
-				unset($values['deliveryAddress']);
-			}
-			
-			$order->purchase->update($values, true);
-			
-			$this->flashMessage('Uloženo', 'success');
-			
-			$form->processRedirect('detail', 'default', [$order]);
-		};
-		
-		return $form;
-	}
 	
 	public function createComponentPaymentForm(): Form
 	{
@@ -775,27 +713,42 @@ class OrderPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 		
-		$form->addText('code', 'Kód')->setRequired();
 		$form->addGroup('Kontakty');
 		$form->addText('phone', 'Telefon')->setNullable(true);
 		$form->addText('email', 'E-mail')->setNullable(true);
-		$form->addText('ccEmails', 'E-mail (Kopie)')->setNullable(true);
-		$form->addGroup('Ostatní');
-		$form->addDate('desiredShippingDate', 'Požadované datum doručení')->setNullable(true);
-		$form->addText('internalOrderCode', 'Interní číslo objednávky')->setNullable(true);
-		$form->addTextArea('note', 'Poznámka')->setNullable(true);
+		$form->addGroup('Fakturační adresa');
+		$billAddress = $form->addContainer('billAddress');
+		$billAddress->addHidden('uuid')->setNullable();
+		$billAddress->addText('street', 'Ulice');
+		$billAddress->addText('city', 'Město');
+		$billAddress->addText('zipcode', 'PSČ');
 		
+		$form->addGroup('Doručovací adresa');
+		$deliveryAddress = $form->addContainer('deliveryAddress');
+		$deliveryAddress->addHidden('uuid')->setNullable();
+		$deliveryAddress->addText('street', 'Ulice');
+		$deliveryAddress->addText('city', 'Město');
+		$deliveryAddress->addText('zipcode', 'PSČ');
+		$form->addGroup('Ostatní');
+		$form->addDate('desiredShippingDate', 'Požadované doručení')->setNullable(true);
+		$form->addText('internalOrderCode', 'Interní číslo')->setNullable(true);
+		$form->addTextArea('note', 'Poznámka')->setNullable(true);
 		
 		$form->addSubmits(!$this->getParameter('order'));
 		
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
-			
 			unset($values['uuid']);
+			
+			foreach (['deliveryAddress', 'billAddress'] as $address) {
+				if ($values[$address]['uuid'] === null) {
+					unset($values[$address]);
+				}
+			}
 			
 			/** @var Order $order */
 			$order = $this->getParameter('order');
-			$order->update($values, true);
+			
 			$order->purchase->update($values, true);
 			
 			$this->flashMessage('Uloženo', 'success');
@@ -841,7 +794,9 @@ class OrderPresenter extends BackendPresenter
 	
 	public function actionPrintDetail(Order $order)
 	{
-		$this->getComponent('orderForm')->setDefaults($order->toArray());
+		$array = $order->purchase->toArray(['billAddress', 'deliveryAddress']) + $order->toArray();
+		
+		$this->getComponent('orderForm')->setDefaults($array);
 	}
 	
 	public function renderPrintDetail(Order $order)
@@ -860,8 +815,10 @@ class OrderPresenter extends BackendPresenter
 		$this->template->setFile(__DIR__ . '/templates/Order.printDetail.latte');
 		
 		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayButtons[] = $this->createButtonWithClass('importCsv', '<i class="fas fa-check mr-1"></i>Zpracovat', 'btn btn-sm btn-success');
-		$this->template->displayButtons[] = $this->createButtonWithClass('importCsv', '<i class="fas fa-times mr-1"></i>Storno', 'btn btn-sm btn-danger');
+		
+		$this->template->displayButtonsRight = [];
+		$this->template->displayButtonsRight[] = $this->createButtonWithClass('importCsv', '<i class="fas fa-check mr-1"></i>Zpracovat', 'btn btn-sm btn-success');
+		$this->template->displayButtonsRight[] = $this->createButtonWithClass('importCsv', '<i class="fas fa-times mr-1"></i>Storno', 'btn btn-sm btn-danger');
 		$this->template->displayButtons[] = '<a href="#" data-toggle="modal" data-target="#modal-orderForm"><button class="btn btn-sm btn-primary"><i class="fas fa-edit mr-1"></i> Editovat</button></a>';
 		$this->template->displayButtons[] = '<a href="#" data-toggle="modal" data-target="#modal-mergeOrderForm"><button class="btn btn-sm btn-primary"><i class="fas fa-compress mr-1"></i> Spojit</button></a>';
 		$this->template->displayButtons[] = '<a href="#" onclick="window.print();"><button class="btn btn-sm btn-primary"><i class="fas fa-print mr-1"></i> Tisk</button></a>';
