@@ -24,6 +24,7 @@ use Nette\Forms\Controls\HiddenField;
 use Nette\Forms\Controls\MultiSelectBox;
 use Nette\Forms\Controls\SelectBox;
 use Nette\Http\Session;
+use Nette\Utils\Arrays;
 use Web\DB\PageRepository;
 use Grid\Datagrid;
 use Nette\DI\Container;
@@ -145,7 +146,7 @@ class ProductAttributesGridFactory
 				$values = $this->attributeRepository->getAttributeValues($attribute, true);
 
 				$grid->addColumnInput($attribute->name, $attribute->getPK(), function () use ($values, $grid, $attribute) {
-					$selectBox = new MultiSelectBox(null, $values->toArrayOf('internalLabel'));
+					$selectBox = new MultiSelectBox(null, [null => '---Vymazat---'] + $values->toArrayOf('internalLabel'));
 					$selectBox->setHtmlAttribute('class', 'form-control form-control-sm');
 					$selectBox->setHtmlAttribute('style', 'max-width: 50px;');
 					$selectBox->checkDefaultValue(false);
@@ -172,11 +173,13 @@ class ProductAttributesGridFactory
 				foreach ($row as $product => $values) {
 					$this->attributeAssignRepository->many()->where('fk_product', $product)->where('fk_value', \array_keys($possibleValues))->delete();
 
-					foreach ($values as $value) {
-						$this->attributeAssignRepository->syncOne([
-							'value' => $value,
-							'product' => $product
-						]);
+					if(!Arrays::contains($values, '')){
+						foreach ($values as $value) {
+							$this->attributeAssignRepository->syncOne([
+								'value' => $value,
+								'product' => $product
+							]);
+						}
 					}
 				}
 			}
