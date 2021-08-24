@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Common\NumbersHelper;
+use Eshop\Admin\Controls\ProductAttributesGridFactory;
 use Eshop\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Eshop\Admin\Controls\IProductAttributesFormFactory;
@@ -96,6 +97,7 @@ class ProductPresenter extends BackendPresenter
 		'importExampleFile' => null,
 		'importSetExampleFile' => null,
 		'buyCount' => false,
+		'attributeTab' => false
 	];
 
 	protected const IMPORT_SET_COLUMNS = [
@@ -186,11 +188,27 @@ class ProductPresenter extends BackendPresenter
 	public InternalCommentProductRepository $commentRepository;
 
 	/** @inject */
+	public ProductAttributesGridFactory $productAttributesGridFactory;
+
+	/** @inject */
 	public Application $application;
+
+	private array $tabs = [
+		'products' => 'Katalog',
+		'attributes' => 'Atributy'
+	];
+
+	/** @persistent */
+	public string $tab = 'products';
 
 	public function createComponentProductGrid()
 	{
 		return $this->productGridFactory->create(static::CONFIGURATION);
+	}
+
+	public function createComponentProductAttributesGrid()
+	{
+		return $this->productAttributesGridFactory->create(static::CONFIGURATION);
 	}
 
 	public function createComponentProductForm()
@@ -630,21 +648,39 @@ class ProductPresenter extends BackendPresenter
 
 	public function renderDefault(): void
 	{
-		$this->template->headerLabel = 'Produkty';
-		$this->template->headerTree = [
-			['Produkty'],
-		];
-		$this->template->displayButtons = [$this->createNewItemButton('new')];
-
-		if (isset(static::CONFIGURATION['importButton']) && static::CONFIGURATION['importButton']) {
-			$this->template->displayButtons[] = $this->createButton('importCsv', '<i class="fas fa-file-upload mr-1"></i>Import');
+		if (isset(static::CONFIGURATION['attributeTab']) && static::CONFIGURATION['attributeTab']) {
+			$this->template->tabs = $this->tabs;
 		}
 
-		if (isset(static::CONFIGURATION['sets']) && static::CONFIGURATION['sets']) {
-			$this->template->displayButtons[] = $this->createButton('importSetCsv', '<i class="fas fa-file-upload mr-1"></i>Import setů');
+		if ($this->tab == 'attributes' && isset(static::CONFIGURATION['attributeTab']) && static::CONFIGURATION['attributeTab']) {
+			$this->template->headerLabel = 'Produkty';
+			$this->template->headerTree = [
+				['Produkty', 'default'],
+				['Atributy']
+			];
+			$this->template->displayButtons = [];
+			$this->template->displayControls = [$this->getComponent('productAttributesGrid')];
+			$this->template->setFile(__DIR__ . '/templates/productAttributesGrid.latte');
+		} else {
+			$this->template->headerLabel = 'Produkty';
+			$this->template->headerTree = [
+				['Produkty', 'default'],
+				['Katalog']
+			];
+			$this->template->displayButtons = [$this->createNewItemButton('new')];
+
+			if (isset(static::CONFIGURATION['importButton']) && static::CONFIGURATION['importButton']) {
+				$this->template->displayButtons[] = $this->createButton('importCsv', '<i class="fas fa-file-upload mr-1"></i>Import');
+			}
+
+			if (isset(static::CONFIGURATION['sets']) && static::CONFIGURATION['sets']) {
+				$this->template->displayButtons[] = $this->createButton('importSetCsv', '<i class="fas fa-file-upload mr-1"></i>Import setů');
+			}
+
+			$this->template->displayControls = [$this->getComponent('productGrid')];
 		}
 
-		$this->template->displayControls = [$this->getComponent('productGrid')];
+
 	}
 
 	public function deleteFile(File $file)

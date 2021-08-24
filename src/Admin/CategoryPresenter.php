@@ -7,7 +7,6 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
-use Eshop\DB\AttributeCategoryRepository;
 use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryType;

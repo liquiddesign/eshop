@@ -202,11 +202,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$value === false ? $collection->where('ribbons.fk_ribbon IS NULL') : $collection->where('ribbons.fk_ribbon', $value);
 	}
-	
+
 	public function filterInternalRibbon($value, ICollection $collection)
 	{
 		$collection->join(['internalRibbons' => 'eshop_product_nxn_eshop_internalribbon'], 'internalRibbons.fk_product=this.uuid');
-		
+
 		$value === false ? $collection->where('internalRibbons.fk_internalribbon IS NULL') : $collection->where('internalRibbons.fk_internalribbon', $value);
 	}
 
@@ -545,7 +545,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $groupedParameters;
 	}
 
-	public function getActiveProductAttributes($product): array
+	public function getActiveProductAttributes($product, bool $showAll = false): array
 	{
 		if (!$product instanceof Product) {
 			if (!$product = $this->one($product)) {
@@ -570,18 +570,23 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$categories = $categoryRepo->getBranch($productCategory);
 
-		$attributes = $attributeRepository->getAttributesByCategories(\array_values($categories))->toArray();
+		$attributes = $attributeRepository->getAttributesByCategories(\array_values($categories), $showAll)->toArray();
 		$attributesList = [];
 
 		foreach ($attributes as $attributeKey => $attribute) {
 			$attributeArray = ['attribute' => $attribute];
-			$attributeArray['values'] = $attributeValueRepository->many()
+
+			$collection = $attributeValueRepository->many()
 				->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value')
 				->join(['attribute' => 'eshop_attribute'], 'attribute.uuid = this.fk_attribute')
 				->where('this.fk_attribute', $attributeKey)
-				->where('assign.fk_product', $product->getPK())
-				->where('attribute.showProduct', true)
-				->toArray();
+				->where('assign.fk_product', $product->getPK());
+
+			if (!$showAll) {
+				$collection->where('attribute.showProduct', true);
+			}
+
+			$attributeArray['values'] = $collection->toArray();
 
 			if (\count($attributeArray['values']) == 0) {
 				continue;

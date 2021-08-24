@@ -68,7 +68,9 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			}
 		}
 
-		return $attributeValueRepository->getCollection($includeHidden)->where('fk_attribute', $attribute->getPK());
+		$mutationSuffix = $attributeValueRepository->getConnection()->getMutationSuffix();
+
+		return $attributeValueRepository->getCollection($includeHidden)->where('fk_attribute', $attribute->getPK())->select(['internalLabel' => 'IFNULL(internalName, label' . $mutationSuffix . ')']);
 	}
 
 	public function getCounts(Collection $collection, array $categories, array $selectedValues = []): array
