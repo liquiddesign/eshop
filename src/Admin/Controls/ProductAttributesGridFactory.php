@@ -19,17 +19,13 @@ use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\TagRepository;
-use Nette\Application\UI\Presenter;
-use Nette\Forms\Controls\HiddenField;
 use Nette\Forms\Controls\MultiSelectBox;
-use Nette\Forms\Controls\SelectBox;
 use Nette\Http\Session;
 use Nette\Utils\Arrays;
 use Web\DB\PageRepository;
 use Grid\Datagrid;
 use Nette\DI\Container;
 use Admin\Controls\AdminGridFactory;
-use function Clue\StreamFilter\fun;
 
 class ProductAttributesGridFactory
 {

@@ -97,6 +97,7 @@ class ProductPresenter extends BackendPresenter
 		'importExampleFile' => null,
 		'importSetExampleFile' => null,
 		'buyCount' => false,
+		'attributeTab' => false
 	];
 
 	protected const IMPORT_SET_COLUMNS = [
@@ -647,9 +648,11 @@ class ProductPresenter extends BackendPresenter
 
 	public function renderDefault(): void
 	{
-		$this->template->tabs = $this->tabs;
+		if (isset(static::CONFIGURATION['attributeTab']) && static::CONFIGURATION['attributeTab']) {
+			$this->template->tabs = $this->tabs;
+		}
 
-		if ($this->tab == 'attributes') {
+		if ($this->tab == 'attributes' && isset(static::CONFIGURATION['attributeTab']) && static::CONFIGURATION['attributeTab']) {
 			$this->template->headerLabel = 'Produkty';
 			$this->template->headerTree = [
 				['Produkty', 'default'],
