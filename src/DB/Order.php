@@ -68,6 +68,12 @@ class Order extends \StORM\Entity
 	 * @constraint{"onUpdate":"RESTRICT","onDelete":"RESTRICT"}
 	 */
 	public Purchase $purchase;
+	
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\Package>|\Eshop\DB\Package[]
+	 */
+	public RelationCollection $packages;
 
 	/**
 	 * Platby

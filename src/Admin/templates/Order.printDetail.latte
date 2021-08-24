@@ -6,260 +6,409 @@
 {do $deliveryAddress = $purchase->deliveryAddress}
 {do $delivery = $order->getLastDelivery()}
 {do $payment = $order->getPayment()}
+{import '../../../../../../app/Admin/templates/content.latte'}
 
-{block content}
-    <section class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-1">
-                <div class="col-sm-6">
-                    <h1>Objednávka <small>#{$order->code}</small></h1>
-                </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{plink :Eshop:Admin:Dashboard:default}">Domů</a></li>
-                        {ifset $headerTree}
-                            {foreach $headerTree as $item}
-                                <li class="breadcrumb-item {if $iterator->isLast()}active{/if}">
-                                    {ifset $item[1]}
-                                        {ifset $item[2]}
-                                            <a href="{plink $item[1], $item[2]}">{$item[0]}</a>
-                                        {else}
-                                            <a href="{plink $item[1]}">{$item[0]}</a>
-                                        {/ifset}
-                                    {else}
-                                        {$item[0]}
-                                    {/ifset}
-                                </li>
-                            {/foreach}
-                        {/ifset}
-                    </ol>
-                </div>
-            </div>
-        </div>
-    </section>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <!-- Main content -->
-                <div class="invoice p-3 mb-3">
-                    <!-- info row -->
-                    <div class="row invoice-info">
-                        <div class="col-sm-3 invoice-col">
-                            Fakturační údaje
-                            <address class="mt-2">
-                                <strong>{$purchase->fullname}</strong><br>
+{define content}
+    {include content-header}
+    <section class="content">
+        <div class="card card-primary card-outline card-outline-tabs">
+            {include content-buttons}
+            <div class="card-body p-3">
+                <!-- info row -->
+                <div class="row invoice-info">
+
+                    <div class="col-sm-3 invoice-col">
+                        <p class="lead mb-1">Zákazník</p>
+                        <address class="mt-2">
+                            <div n:if="$purchase->customer">
+                                <a n:tag-if="$purchase->account && $admin->isAllowed(':Eshop:Admin:Customer:default')" href="{plink :Eshop:Admin:Customer:default, tab=>'accounts', accountGrid-search=>$purchase->account->login}" target="_blank">
+                                    <i n:if="$purchase->account" class="far fa-user" aria-hidden="true"></i> {$purchase->customer->fullname} </a><br>
+                                <div n:if="$purchase->customer->ic">IČ: <strong>{$purchase->customer->ic}</strong><br></div>
+                                <div n:if="$purchase->customer->dic">DIČ: <strong>{$purchase->customer->dic}</strong><br></div>
+                                <div><a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}</a><br></div>
+                                <div><a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a></div>
+                            </div>
+                            <div n:if="!$purchase->customer">
+                                {$purchase->fullname} <br>
                                 <div n:if="$purchase->ic">IČ: <strong>{$purchase->ic}</strong><br></div>
                                 <div n:if="$purchase->dic">DIČ: <strong>{$purchase->dic}</strong><br></div>
-                                <div n:if="$billingAddress">{$billingAddress->street},<br></div>
-                                <div n:if="$billingAddress">{$billingAddress->zipcode} {$billingAddress->city}<br></div>
-                                <div>{$purchase->email}<br></div>
-                                <div>{$purchase->phone}</div>
-                            </address>
-                        </div>
-                        <!-- /.col -->
-                        <div class="col-sm-3 invoice-col">
-                            Dodací adresa
-                            <address n:if="$deliveryAddress" class="mt-2">
-                                {$deliveryAddress->street},<br>
-                                {$deliveryAddress->zipcode} {$deliveryAddress->city}<br>
-                            </address>
-                            <address n:if="!$deliveryAddress" class="mt-2">
-                                Stejná jako fakturační
-                            </address>
-                        </div>
-                        <!-- /.col -->
-                        <div class="col-sm-3 invoice-col">
-                            Zákazník
-                            <address class="mt-2">
-                                <div n:if="$purchase->customer">
-                                    <strong>{$purchase->customer->fullname}</strong><br>
-                                    <div n:if="$purchase->customer->ic">IČ: <strong>{$purchase->customer->ic}</strong><br></div>
-                                    <div n:if="$purchase->customer->dic">DIČ: <strong>{$purchase->customer->dic}</strong><br></div>
-                                    {$purchase->customer->email}<br>
-                                    {$purchase->customer->phone}
-                                </div>
-                                <div n:if="!$purchase->customer">
-                                    <strong>{$purchase->fullname}</strong><br>
-                                    <div n:if="$purchase->ic">IČ: <strong>{$purchase->ic}</strong><br></div>
-                                    <div n:if="$purchase->dic">DIČ: <strong>{$purchase->dic}</strong><br></div>
-                                    {$purchase->email}<br>
-                                    {$purchase->phone}
-                                </div>
-                            </address>
-                        </div>
-                        <div class="col-sm-3 invoice-col">
-                            Účet
-                            <address class="mt-2">
-                                <div n:if="$purchase->account">
-                                    <strong>{$purchase->account->fullname}</strong><br>
-                                    {$purchase->account->login}
-                                </div>
-                                <div n:if="!$purchase->account">
-                                    {if !$purchase->accountFullname && !$purchase->accountEmail}
-                                        Bez účtu
-                                    {else}
-                                        <strong>{$purchase->accountFullname}</strong><br>
-                                        {$purchase->accountEmail}
-                                    {/if}
-                                </div>
-                            </address>
-                        </div>
-                        <!-- /.col -->
+                                <div><a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}</a><br></div>
+                                <div><a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a></div>
+                            </div>
+                        </address>
                     </div>
-                    <!-- /.row -->
 
+                    <div class="col-sm-3 invoice-col">
+                        <p class="lead mb-1">Fakturační adresa</p>
+                        <address class="mt-2">
+                            {$purchase->fullname}<br>
+                            <div n:if="$purchase->ic">IČ: {$purchase->ic}<br></div>
+                            <div n:if="$purchase->dic">DIČ: {$purchase->dic}<br></div>
+                            <div n:if="$billingAddress">{$billingAddress->street}<br></div>
+                            <div n:if="$billingAddress">{$billingAddress->zipcode} {$billingAddress->city}<br></div>
+
+                        </address>
+                    </div>
+                    <!-- /.col -->
+                    <div class="col-sm-3 invoice-col">
+                        <p class="lead mb-1">Dodací adresa</p>
+                        <address n:if="$deliveryAddress" class="mt-2">
+                            {$deliveryAddress->street},<br>
+                                {$deliveryAddress->zipcode} {$deliveryAddress->city}<br>
+                        </address>
+                        <address n:if="!$deliveryAddress" class="">
+                            <i>Stejná jako fakturační</i>
+                        </address>
+                    </div>
+                    <!-- /.col -->
+
+                    <div class="col-sm-3 invoice-col">
+
+                        <table class="table table-sm lqd-table ">
+                            <tbody>
+                            <tr><th>Kód</th><td>{$order->code}</td></tr>
+                            <tr><th>Vytvořená</th><td>{$order->createdTs|date:'d.m.Y G:i'}</td></tr>
+                            <tr><th>Požadované datum doručení</th><td>{$order->purchase->desiredShippingDate|date:'d.m.Y'}</td></tr>
+                            <tr><th>Interní číslo objednávky</th><td>{$order->purchase->internalOrderCode}</td></tr>
+                            <tr><td colspan="2">{if $order->purchase->note}{$order->purchase->note}{else}-{/if}</tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- /.col -->
+                </div>
+                <!-- /.row -->
+                <br>
+                <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
+                    <li n:foreach="$packages as $package" class="nav-item">
+                        <a class="nav-link active" id="custom-tabs-one-home-tab" href="/rajtiskaren/admin/eshop/customer">Balík #{$package->id}</a>
+                    </li>
+                    {*
+					<li class="nav-item">
+						<a class="nav-link " id="custom-tabs-one-home-tab" href="/rajtiskaren/admin/eshop/customer?tab=accounts"><i class="fa fa-plus-square"></i> Další balík</a>
+					</li>
+					*}
+                </ul>
+                <br>
+
+                {foreach $packages as $package}
                     <!-- Table row -->
                     <div class="row">
-                        <div class="col-12 table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Pořadí</th>
-                                        <th>Náhled</th>
-                                        <th>Kód</th>
-                                        <th>Název</th>
-                                        <th>Počet</th>
-                                        {if $presenter->shopper->getShowWithoutVat()}
-                                            <th>Cena bez DPH</th>
-                                        {/if}
-                                        {if $presenter->shopper->getShowVat()}
-                                            <th>Cena s DPH</th>
-                                        {/if}
-                                    </tr>
-                                </thead>
+                        <div class="col-12 table-responsive table-striped">
+                            <table class="table table-sm lqd-table">
+                                <thead class="admin-head">
+                                <tr>
+                                    <th class="minimal"></th>
+                                    <th>Kód</th>
+                                    <th>Název</th>
+                                    <th>Množství</th>
+                                    <th>Sklad</th>
+                                    <th style="text-align: right">Cena za kus</th>
+                                    <th style="text-align: right">Cena celkem</th>
+                                    <th class="minimal d-print-none"></th>
+                                    <th class="minimal d-print-none"></th>
+                                    <th class="minimal d-print-none"></th>
+                                </tr></thead>
                                 <tbody>
-                                    {do $orderItems = $order->purchase->getItems()->toArray()}
-                                    {if \count($orderItems) == 0}
-                                        <tr>
-                                            <td colspan="7">Žádné položky</td>
-                                        </tr>
-                                    {else}
-                                        <tr n:foreach="$orderItems as $item">
-                                            <td>{$iterator->getCounter()}.</td>
-                                            {if $item->product}
-                                                <td>
-                                                    <a n:href=":Eshop:Admin:Product:edit $item->product">
-                                                        <img data-src="{$item->product->getPreviewImage($baseUrl,'thumb')}" loading="lazy" alt="" style="height:32px;">
-                                                    </a>
-                                                </td>
-                                                <td>{$item->product->getFullCode()}</td>
-                                                <td><a href="{plink :Eshop:Admin:Product:edit, $item->product}">{$item->product->name}</a></td>
-                                            {else}
-                                                <td></td>
-                                                <td>{$item->getFullCode()}</td>
-                                                <td>{$item->productName}</td>
-                                            {/if}
-                                            <td>{$item->amount}</td>
-                                            {if $presenter->shopper->getShowWithoutVat()}
-                                                <td>{$item->getPriceSum()|price}</td>
-                                            {/if}
-                                            {if $presenter->shopper->getShowVat()}
-                                                <td>{$item->getPriceVatSum()|price}</td>
-                                            {/if}
-                                        </tr>
-                                    {/if}
+
+                                <tr n:foreach="$package->items as $packageItem" {if $packageItem->cartItem->deleted}style="text-decoration: line-through"{/if}>
+                                    {var $item = $packageItem->cartItem}
+                                    <td>
+                                        {dump $item->getPK()}
+                                        <a n:if="$item->product" href="#">
+                                            <img data-src="{$item->product->getPreviewImage($baseUrl,'thumb')}" loading="lazy" alt="" style="height:32px;">
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {$item->product ? $item->product->getFullCode() : $item->getFullCode()}
+									{if $item->product && $item->product->ean}<br><small>EAN: {$item->product->ean}</small>{/if}
+                                    </td>
+                                    <td>
+                                        <a n:tag-if="$admin->isAllowed(':Eshop:Admin:Product:default')" href="{plink :Eshop:Admin:Product:default, productGrid-code=>$item->productCode}" target="_blank">
+                                            {$item->product ? $item->product->name : $item->productName}
+                                        </a>
+                                        <i n:if="$item->note" title="{$item->note}" class="far fa-sticky-note"></i>
+                                    </td>
+                                    <td>{$packageItem->amount}</td>
+                                    <td>
+                                        {if $packageItem->store}{$packageItem->store->name}{/if}
+                                        <a n:if="$item->product" class="modalStoreOrderItemForm d-print-none" data-toggle="modal" data-target="#modal-storeOrderItemForm" data-values="{json_encode(['uuid' => $item->getPK(), 'store' => $packageItem->store->getPK(), 'amounts' => $item->product->getStoreAmounts(), 'prices' => $item->product->getSupplierPrices()])}" href="#"><i class="far fa-edit"></i></a><br>
+                                        <span n:if="$packageItem->status === 'waiting'" class="text-secondary"><i class="far fa-square"></i> Nepotrvzeno</span>
+                                        <span n:if="$packageItem->status === 'reserved'" class="text-success"><i class="fa fa-check"></i> Rezervovano</span>
+                                    </td>
+                                    <td style="text-align: right">
+                                        {$item->priceVat|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price|price} bez DPH</small>{/if}
+                                    </td>
+                                    <td style="text-align: right">
+                                        {$item->getPriceVatSum()|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->getPriceSum()|price} bez DPH</small>{/if}
+                                    </td>
+                                    <td class="d-print-none">
+                                        <a class="btn btn-outline-primary btn-sm text-xs modalSplitOrderItemForm" data-values="{json_encode(['uuid' => $packageItem->getPK()])}" data-toggle="modal" data-target="#modal-splitOrderItemForm" href="#" title="Rozdělit"><i class="fa fa-columns"></i></a>
+                                    </td>
+                                    <td class="d-print-none">
+                                        <a class="btn btn-primary btn-sm text-xs modalDetailOrderItemForm" data-values="{json_encode($item->toArray())}" data-toggle="modal" data-target="#modal-detailOrderItemForm" href="#" title="Upravit"><i class="far fa-edit"></i></a>
+                                    </td>
+                                    <td class="d-print-none">
+                                        <a href="{plink toggleDeleteOrderItem! $item->getPK()}" class="btn btn-danger btn-sm text-xs" title="Smazat" onclick="return confirm('Opravdu?')"><i class="{if $item->deleted}fa fa-trash-restore-alt{else}far fa-trash-alt{/if}"></i></a>
+                                    </td>
+                                </tr>
+
                                 </tbody>
                             </table>
                         </div>
-                        <!-- /.col -->
                     </div>
-                    <!-- /.row -->
+                {/foreach}
 
-                    <div class="row">
-                        <!-- accepted payments column -->
-                        <div class="col-6">
-                            <p class="lead">Doprava:</p>
+                <br>
 
-                            <div class="d-flex align-items-center">
-                                <img n:if="$purchase->deliveryType->imageFileName" src="{$userUrl|noescape}/deliverytype_images/thumb/{$purchase->deliveryType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
-                                {$purchase->deliveryType ? $purchase->deliveryType->name : null} - {$delivery->shippedTs ? 'Expedováno' : 'Čeká na expedici'}
-                            </div>
+                <div class="row">
+                    <!-- accepted payments column -->
+                    <div class="col-6">
+                        <p class="lead">Doprava:</p>
 
-                            <p class="lead mt-4">Platební metoda:</p>
-
-                            <div class="d-flex align-items-center">
-                                <img n:if="$purchase->paymentType->imageFileName" src="{$userUrl|noescape}/paymenttype_images/thumb/{$purchase->paymentType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
-                                {$purchase->paymentType ? $purchase->paymentType->name : null} - {$payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
-                            </div>
-
-                            <p class="text-muted well well-sm shadow-none" style="margin-top: 10px;">
-                                {$order->purchase->note}
-                            </p>
+                        <div class="d-flex align-items-center">
+                            <img n:if="$purchase->deliveryType->imageFileName" src="{$userUrl|noescape}/deliverytype_images/thumb/{$purchase->deliveryType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
+                            {$purchase->deliveryType ? $purchase->deliveryType->name : null} - {$delivery->shippedTs ? 'Expedováno' : 'Čeká na expedici'}
                         </div>
-                        <!-- /.col -->
-                        <div class="col-6">
-                            <div class="table-responsive">
-                                <table class="table">
-                                    <tbody>
-                                    {if $presenter->shopper->getShowVat()}
-                                        <tr>
-                                            <th>Mezisoučet:</th>
-                                            <td>{$order->purchase->getSumPrice()|price:$purchase->currency->code}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Doprava:</th>
-                                            <td>{$order->getDeliveryPriceSum()|price:$purchase->currency->code}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Poplatek platební metody:</th>
-                                            <td>{$order->getPaymentPriceSum()|price:$purchase->currency->code}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Daň</th>
-                                            <td>{($order->getTotalPriceVat() - $order->getTotalPrice())|price:$purchase->currency->code}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Celkem:</th>
-                                            <td>{$order->getTotalPriceVat()|price:$purchase->currency->code}</td>
-                                        </tr>
-                                    {elseif $presenter->shopper->getShowWithoutVat()}
-                                        <tr>
-                                            <th>Mezisoučet:</th>
-                                            <td>{$order->purchase->getSumPrice()|price:$purchase->currency->code}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Doprava:</th>
-                                            <td>{$order->getDeliveryPriceSum()|price:$purchase->currency->code}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Poplatek platební metody:</th>
-                                            <td>{$order->getPaymentPriceSum()|price:$purchase->currency->code}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Celkem:</th>
-                                            <td>{$order->getTotalPrice()|price:$purchase->currency->code}</td>
-                                        </tr>
-                                    {/if}
-                                    </tbody></table>
-                            </div>
+
+                        <p class="lead mt-4">Platební metoda:</p>
+
+                        <div class="d-flex align-items-center">
+                            <img n:if="$purchase->paymentType->imageFileName" src="{$userUrl|noescape}/paymenttype_images/thumb/{$purchase->paymentType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
+                            {$purchase->paymentType ? $purchase->paymentType->name : null} - {$payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
                         </div>
-                        <!-- /.col -->
+
+                        <p class="text-muted well well-sm shadow-none" style="margin-top: 10px;">
+                            {$order->purchase->note}
+                        </p>
                     </div>
-                    <!-- /.row -->
-
-                    <!-- this row will not appear when printing -->
-                    <div class="row no-print">
-                        <div class="col-12">
-                            <a href="javascript:void(0);" onclick="window.print();" rel="noopener" target="_blank" class="btn btn-default"><i class="fas fa-print"></i> Tisk</a>
-{*                            <button type="button" class="btn btn-success float-right"><i class="far fa-credit-card"></i> Submit*}
-{*                                Payment*}
-{*                            </button>*}
-{*                            <button type="button" class="btn btn-primary float-right" style="margin-right: 5px;">*}
-{*                                <i class="fas fa-download"></i> Generate PDF*}
-{*                            </button>*}
+                    <!-- /.col -->
+                    <div class="col-6">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tbody>
+                                {if $presenter->shopper->getShowVat()}
+                                    <tr>
+                                        <th>Mezisoučet:</th>
+                                        <td>{$order->purchase->getSumPrice()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Doprava:</th>
+                                        <td>{$order->getDeliveryPriceSum()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Poplatek platební metody:</th>
+                                        <td>{$order->getPaymentPriceSum()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Daň</th>
+                                        <td>{($order->getTotalPriceVat() - $order->getTotalPrice())|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
+                                        <th><span style="font-size: large">Celkem:</span></th>
+                                        <td><span style="font-size: large">{$order->getTotalPriceVat()|price:$purchase->currency->code}</span></td>
+                                    </tr>
+                                {elseif $presenter->shopper->getShowWithoutVat()}
+                                    <tr>
+                                        <th>Mezisoučet:</th>
+                                        <td>{$order->purchase->getSumPrice()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Doprava:</th>
+                                        <td>{$order->getDeliveryPriceSum()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Poplatek platební metody:</th>
+                                        <td>{$order->getPaymentPriceSum()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
+                                        <th><span style="font-size: large">Celkem:</span></th>
+                                        <td><span style="font-size: large">{$order->getTotalPrice()|price:$purchase->currency->code}</span></td>
+                                    </tr>
+                                {/if}
+                                </tbody></table>
                         </div>
                     </div>
+                    <!-- /.col -->
                 </div>
-                <!-- /.invoice -->
-            </div><!-- /.col -->
-        </div><!-- /.row -->
+                <!-- /.row -->
+
+            </div>
+
+        </div>
+    </section>
+
+
+    <div class="modal fade" id="modal-orderForm" tabindex="-1" role="dialog" aria-labelledby="modal-orderForm" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Editace objednávky</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    {control orderForm}
+                </div>
+            </div>
+        </div>
     </div>
-{/block}
+
+    <div class="modal fade" id="modal-splitOrderItemForm" tabindex="-1" role="dialog" aria-labelledby="modal-splitOrderItemForm" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Rozdělit položku</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    {control splitOrderItemForm}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-storeOrderItemForm" tabindex="-1" role="dialog" aria-labelledby="modal-storeOrderItemForm" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Zvolte sklad položky</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    {form storeOrderItemForm}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Sklad</th>
+                                    <th style="text-align: right">Množství</th>
+                                    <th>Dodavatel</th>
+                                    <th style="text-align: right">Cena</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr n:foreach="$stores as $store" id="store-{$store->getPK()}" class="store {if $store->supplier}supplier-{$store->supplier->getPK()}{/if}">
+                                    <td>{input store:$store->getPK()}</td>
+                                    <td>{$store->name}</td>
+                                    <td class="input-amount" style="text-align: right"></td>
+                                    <td>{if $store->supplier}{$store->supplier->name}{else}-{/if}</td>
+                                    <td class="input-price" style="text-align: right"></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <input type="submit" n:name="submit" value="Uložit" class="btn btn-primary btn-sm ml-0 mt-1 mb-1 mr-1">
+                    {/form}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-detailOrderItemForm" tabindex="-1" role="dialog" aria-labelledby="modal-detailOrderItemForm" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Editace položky</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    {control detailOrderItemForm}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modal-mergeOrderForm" tabindex="-1" role="dialog" aria-labelledby="modal-mergeOrderForm" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Spojit objednávky</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    {control mergeOrderForm}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {*embed modal test:'emailForm'}{block body}{control emailForm:noHeader}{/block}{/embed*}
+
+    <div class="modal fade" id="modal-emailForm" tabindex="-1" role="dialog" aria-labelledby="modal-emailForm" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Poslat email</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    {control emailForm:noHeader}
+                </div>
+            </div>
+        </div>
+    </div>
+
+{/define}
 {block scripts}
+    <style>
+        @media print {
+            a { text-decoration: none !important; color: #000 }
+            i.fa,i.far,i.fas { display:none; }
+        }
+    </style>
     <script n:if="$flashes" src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
     {foreach $flashes as $flash}
         <script>
             toastr.{$flash->type|noescape}({$flash->message});
         </script>
     {/foreach}
+    <script>
+        $( "a.modalStoreOrderItemForm").click(function() {
+            var values = $(this).data('values');
+
+            $('#modal-storeOrderItemForm td.input-amount').html('-');
+            $('#modal-storeOrderItemForm td.input-price').html('-');
+            $('#modal-storeOrderItemForm tr.store ').addClass('disabled');
+
+            Object.keys(values.amounts).forEach(key => {
+                $('#modal-storeOrderItemForm tr#store-' + key).removeClass('disabled');
+                $('#modal-storeOrderItemForm tr#store-' + key + ' td.input-amount').html(values.amounts[key]);
+            });
+
+            Object.keys(values.prices).forEach(key => {
+                $('#modal-storeOrderItemForm tr.supplier-' + key + ' td.input-price').html(values.prices[key]);
+            });
+
+            $('#modal-storeOrderItemForm input[type="radio"]').prop('checked', false);
+            $('#modal-storeOrderItemForm input[value="' + values.store + '"]').prop('checked', true);
+
+            $('#modal-storeOrderItemForm input[name="uuid"]').val(values.uuid);
+        });
+
+        $( "a.modalSplitOrderItemForm").click(function() {
+            var values = $(this).data('values');
+
+            $('#modal-splitOrderItemForm form input[name="uuid"]').val(values['uuid']);
+        });
+
+        $( "a.modalDetailOrderItemForm").click(function() {
+            var values = $(this).data('values');
+
+            Object.keys(values).forEach(key => {
+                $('#modal-detailOrderItemForm form input[name="'+ key +'"]').val(values[key]);
+            });
+        });
+    </script>
 {/block}

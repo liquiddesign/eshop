@@ -475,6 +475,16 @@ class Product extends \StORM\Entity
 
 		return null;
 	}
+	
+	public function getStoreAmounts()
+	{
+		return $this->getConnection()->findRepository(Amount::class)->many()->where('fk_product', $this->getPK())->setIndex('fk_store')->toArrayOf('inStock');
+	}
+	
+	public function getSupplierPrices(string $property = 'price')
+	{
+		return $this->getConnection()->findRepository(Price::class)->many()->where('pricelist.fk_supplier IS NOT NULL')->where('fk_product', $this->getPK())->setIndex('pricelist.fk_supplier')->toArrayOf($property);
+	}
 
 	public function getPrimaryCategory(): ?Category
 	{

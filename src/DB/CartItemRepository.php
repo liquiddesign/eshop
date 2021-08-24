@@ -16,14 +16,14 @@ use StORM\SchemaManager;
 class CartItemRepository extends \StORM\Repository
 {
 	private ProductRepository $productRepository;
-
+	
 	public function __construct(DIConnection $connection, SchemaManager $schemaManager, ProductRepository $productRepository)
 	{
 		parent::__construct($connection, $schemaManager);
-
+		
 		$this->productRepository = $productRepository;
 	}
-
+	
 	public function getSumProperty(array $cartIds, ?string $property): float
 	{
 		return (float) $this->many()->where('fk_cart', $cartIds)->sum($property === 'amount' ? 'this.amount' : "this.$property * this.amount");
@@ -75,7 +75,7 @@ class CartItemRepository extends \StORM\Repository
 		return $this->many()->where('fk_cart', $cart)->where('this.uuid', $item)->delete();
 	}
 	
-	public function syncItem(Cart $cart, ?CartItem $item, Product $product, ?Variant $variant, int $amount): CartItem
+	public function syncItem(Cart $cart, ?CartItem $item, Product $product, ?Variant $variant, int $amount, bool $disabled = false): CartItem
 	{
 		/** @var \Eshop\DB\VatRateRepository $vatRepo */
 		$vatRepo = $this->getConnection()->findRepository(VatRate::class);
@@ -96,7 +96,7 @@ class CartItemRepository extends \StORM\Repository
 			'price' => $product->getPrice($amount),
 			'priceVat' => $product->getPriceVat($amount),
 			'vatPct' => (float) $vatPct,
-			'product' => $product->getPK(),
+			'product' => !$disabled ? $product->getPK() : null,
 			'pricelist' => isset($product->pricelist) ? $product->pricelist : null,
 			'variant' => $variant ? $variant->getPK() : null,
 			'cart' => $cart->getPK(),
@@ -131,15 +131,15 @@ class CartItemRepository extends \StORM\Repository
 		
 		return \intval($amount);
 	}
-
+	
 	public function isUpsellActive($cartItem, $upsell): bool
 	{
 		/** @var \Eshop\DB\CartItem $cartItem */
 		$cartItem = $this->one($cartItem, true);
-
+		
 		/** @var \Eshop\DB\Product $upsell */
 		$upsell = $this->productRepository->one($upsell);
-
+		
 		return (bool)$this->many()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->count() > 0;
 	}
 }

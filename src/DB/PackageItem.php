@@ -7,7 +7,7 @@ namespace Eshop\DB;
 /**
  * Položka balíčku
  * @table
- * @index{"name":"package_item","unique":true,"columns":["fk_delivery","fk_cartItem"]}
+ * @index{"name":"package_item","unique":true,"columns":["fk_store","fk_package","fk_cartItem"]}
  */
 class PackageItem extends \StORM\Entity
 {
@@ -16,13 +16,26 @@ class PackageItem extends \StORM\Entity
 	 * @column
 	 */
 	public int $amount = 0;
+
+	/**
+	 * Status
+	 * @column{"type":"enum","length":"'waiting','reserved'"}
+	 */
+	public string $status = 'waiting';
 	
 	/**
-	 * Doručení
+	 * Sklad
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @relation
+	 */
+	public ?Store $store;
+	
+	/**
+	 * Balík
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
-	public Delivery $delivery;
+	public Package $package;
 	
 	/**
 	 * Položka košíku
