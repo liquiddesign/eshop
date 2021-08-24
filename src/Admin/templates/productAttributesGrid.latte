@@ -1,0 +1,19 @@
+{block scripts}
+    <script>
+        let elements = $('select[id^="frm-productAttributesGrid-form-"]')
+
+        elements.each(function (index, element) {
+            tail.select("#" + element.id, {
+                "search": true,
+                "descriptions": true,
+                "hideSelected": true,
+                "hideDisabled": true,
+                "multiLimit": "99999",
+                "multiShowCount": false,
+                "multiContainer": true,
+                "locale": "cs"
+            });
+        })
+
+    </script>
+{/block}

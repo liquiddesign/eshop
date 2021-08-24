@@ -300,7 +300,7 @@ class AttributePresenter extends BackendPresenter
 			}
 		}
 
-		$form->addText('internalName', 'Interní název');
+		$form->addText('internalName', 'Interní název')->setNullable();
 		$nameInput = $form->addLocaleText('label', 'Popisek');
 
 		$form->addLocaleTextArea('note', 'Dodatečné informace');
