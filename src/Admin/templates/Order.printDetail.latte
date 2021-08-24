@@ -68,10 +68,8 @@
                             <tbody>
                             <tr><th>Kód</th><td>{$order->code}</td></tr>
                             <tr><th>Vytvořená</th><td>{$order->createdTs|date:'d.m.Y G:i'}</td></tr>
-                            <tr><th>Požadované datum doručení</th><td>{$order->purchase->desiredShippingDate|date:'d.m.Y'}</td></tr>
-                            <tr><th>Interní číslo objednávky</th><td>{$order->purchase->internalOrderCode}</td></tr>
-                            <tr><td colspan="2">{if $order->purchase->note}{$order->purchase->note}{else}-{/if}</tr>
-                            </tbody>
+                            <tr><th>Požadované doručení</th><td>{$order->purchase->desiredShippingDate|date:'d.m.Y'}</td></tr>
+                            <tr><th>Interní číslo</th><td>{$order->purchase->internalOrderCode}</td></tr>
                         </table>
                     </div>
                     <!-- /.col -->
@@ -164,14 +162,12 @@
                     <!-- accepted payments column -->
                     <div class="col-6">
                         <p class="lead">Doprava:</p>
-
                         <div class="d-flex align-items-center">
                             <img n:if="$purchase->deliveryType->imageFileName" src="{$userUrl|noescape}/deliverytype_images/thumb/{$purchase->deliveryType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
                             {$purchase->deliveryType ? $purchase->deliveryType->name : null} - {$delivery->shippedTs ? 'Expedováno' : 'Čeká na expedici'}
                         </div>
 
                         <p class="lead mt-4">Platební metoda:</p>
-
                         <div class="d-flex align-items-center">
                             <img n:if="$purchase->paymentType->imageFileName" src="{$userUrl|noescape}/paymenttype_images/thumb/{$purchase->paymentType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
                             {$purchase->paymentType ? $purchase->paymentType->name : null} - {$payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
@@ -231,134 +227,65 @@
                     <!-- /.col -->
                 </div>
                 <!-- /.row -->
-
             </div>
-
         </div>
     </section>
 
+    {embed modal id:'orderForm'}
+        {block modal-header}Editace objednávky{/block}
+        {block modal-body}{control orderForm:noHeader}{/block}
+    {/embed}
 
-    <div class="modal fade" id="modal-orderForm" tabindex="-1" role="dialog" aria-labelledby="modal-orderForm" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Editace objednávky</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    {control orderForm}
-                </div>
-            </div>
-        </div>
-    </div>
+    {embed modal id:'splitOrderItemForm'}
+        {block modal-header}Rozdělení položky{/block}
+        {block modal-body}{control splitOrderItemForm:noHeader}{/block}
+    {/embed}
 
-    <div class="modal fade" id="modal-splitOrderItemForm" tabindex="-1" role="dialog" aria-labelledby="modal-splitOrderItemForm" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Rozdělit položku</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+    {embed modal id:'detailOrderItemForm'}
+        {block modal-header}Zvolte sklad položky{/block}
+        {block modal-body}
+            {form storeOrderItemForm}
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                        <tr>
+                            <th></th>
+                            <th>Sklad</th>
+                            <th style="text-align: right">Množství</th>
+                            <th>Dodavatel</th>
+                            <th style="text-align: right">Cena</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr n:foreach="$stores as $store" id="store-{$store->getPK()}" class="store {if $store->supplier}supplier-{$store->supplier->getPK()}{/if}">
+                            <td>{input store:$store->getPK()}</td>
+                            <td>{$store->name}</td>
+                            <td class="input-amount" style="text-align: right"></td>
+                            <td>{if $store->supplier}{$store->supplier->name}{else}-{/if}</td>
+                            <td class="input-price" style="text-align: right"></td>
+                        </tr>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="modal-body">
-                    {control splitOrderItemForm}
-                </div>
-            </div>
-        </div>
-    </div>
+                <input type="submit" n:name="submit" value="Uložit" class="btn btn-primary btn-sm ml-0 mt-1 mb-1 mr-1">
+            {/form}
+        {/block}
+    {/embed}
 
-    <div class="modal fade" id="modal-storeOrderItemForm" tabindex="-1" role="dialog" aria-labelledby="modal-storeOrderItemForm" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Zvolte sklad položky</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    {form storeOrderItemForm}
-                        <div class="table-responsive">
-                            <table class="table table-sm table-striped">
-                                <thead>
-                                <tr>
-                                    <th></th>
-                                    <th>Sklad</th>
-                                    <th style="text-align: right">Množství</th>
-                                    <th>Dodavatel</th>
-                                    <th style="text-align: right">Cena</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr n:foreach="$stores as $store" id="store-{$store->getPK()}" class="store {if $store->supplier}supplier-{$store->supplier->getPK()}{/if}">
-                                    <td>{input store:$store->getPK()}</td>
-                                    <td>{$store->name}</td>
-                                    <td class="input-amount" style="text-align: right"></td>
-                                    <td>{if $store->supplier}{$store->supplier->name}{else}-{/if}</td>
-                                    <td class="input-price" style="text-align: right"></td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <input type="submit" n:name="submit" value="Uložit" class="btn btn-primary btn-sm ml-0 mt-1 mb-1 mr-1">
-                    {/form}
-                </div>
-            </div>
-        </div>
-    </div>
+    {embed modal id:'detailOrderItemForm'}
+        {block modal-header}Editace položky{/block}
+        {block modal-body}{control detailOrderItemForm:noHeader}{/block}
+    {/embed}
 
-    <div class="modal fade" id="modal-detailOrderItemForm" tabindex="-1" role="dialog" aria-labelledby="modal-detailOrderItemForm" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Editace položky</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    {control detailOrderItemForm}
-                </div>
-            </div>
-        </div>
-    </div>
+    {embed modal id:'mergeOrderForm'}
+        {block modal-header}Zvolte objednávku{/block}
+        {block modal-body}{control mergeOrderForm:noHeader}{/block}
+    {/embed}
 
-    <div class="modal fade" id="modal-mergeOrderForm" tabindex="-1" role="dialog" aria-labelledby="modal-mergeOrderForm" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Spojit objednávky</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    {control mergeOrderForm}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {*embed modal test:'emailForm'}{block body}{control emailForm:noHeader}{/block}{/embed*}
-
-    <div class="modal fade" id="modal-emailForm" tabindex="-1" role="dialog" aria-labelledby="modal-emailForm" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Poslat email</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    {control emailForm:noHeader}
-                </div>
-            </div>
-        </div>
-    </div>
+    {embed modal id:'emailForm'}
+        {block modal-header}Zvolte email{/block}
+        {block modal-body}{control emailForm:noHeader}{/block}
+    {/embed}
 
 {/define}
 {block scripts}
