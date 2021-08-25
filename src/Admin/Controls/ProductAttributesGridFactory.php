@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin\Controls;
 
+use Admin\Controls\AdminGrid;
 use Eshop\DB\Attribute;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
@@ -22,6 +23,7 @@ use Eshop\DB\TagRepository;
 use Nette\Forms\Controls\MultiSelectBox;
 use Nette\Http\Session;
 use Nette\Utils\Arrays;
+use Nette\Utils\Html;
 use Web\DB\PageRepository;
 use Grid\Datagrid;
 use Nette\DI\Container;
@@ -64,6 +66,8 @@ class ProductAttributesGridFactory
 	private AttributeAssignRepository $attributeAssignRepository;
 
 	private Session $session;
+
+	public ?string $category;
 
 	public function __construct(
 		\Admin\Controls\AdminGridFactory $gridFactory,
@@ -126,10 +130,15 @@ class ProductAttributesGridFactory
 			return [$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]), $product->name];
 		}, '<a style="" href="%s" target="_blank"> %s</a>', 'name')->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
+		$grid->onAnchor[] = function (AdminGrid $grid): void {
+			$grid->template->setFile(__DIR__ . '/productAttributesGrid.latte');
+		};
+
 		$grid->onLoadState[] = function (Datagrid $grid, array $params) {
 			$filters = $this->session->getSection('admingrid-' . $grid->getPresenter()->getName() . $grid->getName())->filters;
 
-			$category = $grid->getPresenter()->getHttpRequest()->getQuery('productAttributesGrid-category') ?? ($filters['category'] ?? null);
+			$this->category = $category = $grid->getPresenter()->getHttpRequest()->getQuery('productAttributesGrid-category') ?? ($filters['category'] ?? null);
+			$grid->template->category = $category;
 
 			if (!$category) {
 				return;
@@ -169,7 +178,7 @@ class ProductAttributesGridFactory
 				foreach ($row as $product => $values) {
 					$this->attributeAssignRepository->many()->where('fk_product', $product)->where('fk_value', \array_keys($possibleValues))->delete();
 
-					if(!Arrays::contains($values, '')){
+					if (!Arrays::contains($values, '')) {
 						foreach ($values as $value) {
 							$this->attributeAssignRepository->syncOne([
 								'value' => $value,
