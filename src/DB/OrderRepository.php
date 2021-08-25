@@ -9,6 +9,7 @@ use League\Csv\Writer;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Localization\Translator;
+use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
 use Security\DB\Account;
 use StORM\Collection;
@@ -855,5 +856,22 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		return null;
+	}
+	
+	public function changeState(Order $order, string $status)
+	{
+		// in array
+		if (1) {
+		
+		}
+		
+		$order->update([$status . 'Ts' => (string)new DateTime()]);
+		
+		Arrays::invoke($this->onChangeState);
+	}
+	
+	public function sendStateEmail(Order $order)
+	{
+	
 	}
 }
