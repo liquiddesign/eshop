@@ -1008,7 +1008,7 @@ class ProductPresenter extends BackendPresenter
 		$form->addCheckbox('addNew', 'Vytvářet nové záznamy');
 		$form->addCheckbox('overwriteExisting', 'Přepisovat existující záznamy')->setDefaultValue(true);
 		$form->addCheckbox('updateAttributes', 'Aktualizovat atributy')->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
-Soubor <b>musí obsahovat</b> hlavičku a jeden ze sloupců "Kód" nebo "EAN" pro jednoznačné rozlišení produktů. Jako prioritní se hledá kód a pokud není nalezen tak EAN.<br><br>
+Soubor <b>musí obsahovat</b> hlavičku a jeden ze sloupců "Kód" nebo "EAN" pro jednoznačné rozlišení produktů. Jako prioritní se hledá kód a pokud není nalezen tak EAN. Kód a EAN se ukládají jen při vytváření nových záznamů.<br><br>
 Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 ' . $allowedColumns . '<br>
 Atributy a výrobce musí být zadány jako kód (např.: "001") nebo jako kombinace názvu a kódu(např.: "Tisková technologie#001).<br>
@@ -1328,13 +1328,24 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 					if (\count($newValues) > 0) {
 						$newValues['uuid'] = $product->getPK();
 
-						if ($newValues['name'][$mutation] != $product->name || $newValues['perex'][$mutation] != $product->perex) {
+						if (isset($newValues['name'][$mutation]) && $newValues['name'][$mutation] != $product->name) {
+							$newValues['supplierContentLock'] = true;
+						}
+
+						if (isset($newValues['perex'][$mutation]) && $newValues['perex'][$mutation] != $product->perex) {
 							$newValues['supplierContentLock'] = true;
 						}
 
 						$product->update($newValues);
 					}
 				} elseif (\count($newValues) > 0) {
+					if (!$code && !$ean) {
+						continue;
+					}
+
+					$newValues['ean'] = $ean;
+					$newValues['code'] = $code;
+
 					$this->productRepository->createOne($newValues);
 				}
 			} catch (\Exception $e) {
