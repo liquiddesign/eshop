@@ -150,7 +150,7 @@ class ProductGridFactory
 		$grid->addColumnActionDelete([$this, 'onDelete']);
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected([$this, 'onDelete']);
+		$grid->addButtonDeleteSelected([$this, 'onDelete'], false, null, 'this.uuid');
 
 		$bulkColumns = ['producer', 'categories', 'ribbons', 'internalRibbons', 'displayAmount', 'displayDelivery', 'vatRate', 'taxes', 'hidden', 'unavailable'];
 

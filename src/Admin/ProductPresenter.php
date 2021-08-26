@@ -1264,8 +1264,8 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 			$newValues = [];
 			$product = null;
 			$expression = new Expression();
-			$code = false;
-			$ean = false;
+			$code = null;
+			$ean = null;
 
 			if (isset($parsedHeader['code']) && ($code = Arrays::pick($record, $parsedHeader['code'], null))) {
 				$codeBase = Strings::trim($code);
@@ -1274,13 +1274,13 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 				$expression->add('OR', 'code = %s OR CONCAT(code,".",subCode) = %s', [$codeBase, $codeBase]);
 				$expression->add('OR', 'code = %s OR CONCAT(code,".",subCode) = %s', [$codePrefix, $codePrefix]);
 
-				$code = true;
+				$code = $codeBase;
 			}
 
 			if (isset($parsedHeader['ean']) && ($ean = Arrays::pick($record, $parsedHeader['ean'], null))) {
 				$expression->add('OR', 'ean = %s', [Strings::trim($ean)]);
 
-				$ean = true;
+				$ean = Strings::trim($ean);
 			}
 
 			$product = $this->productRepository->many()->where($expression->getSql(), $expression->getVars())->first();
