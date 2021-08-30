@@ -1782,6 +1782,10 @@ Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 		FileSystem::delete($basePath . '/detail/' . $photo->fileName);
 		FileSystem::delete($basePath . '/thumb/' . $photo->fileName);
 
+		if ($photo->product->imageFileName === $photo->fileName) {
+			$photo->product->update(['imageFileName' => null]);
+		}
+
 		$photo->delete();
 	}
 
@@ -1793,7 +1797,7 @@ Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 		/** @var FileUpload $fileUpload */
 		$fileUpload = $this->getPresenter()->getHttpRequest()->getFile('file');
 		$uuid = Connection::generateUuid();
-		$filename = $uuid . '.' . $fileUpload->getImageFileExtension();
+		$filename = $fileUpload->getSanitizedName();
 
 		/** @var Photo $photo */
 		$photo = $this->photoRepository->createOne([

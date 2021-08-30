@@ -100,12 +100,35 @@
             mainPhotos[{$photo['name']}] = {$photo['main'] ? true : false}
         {/foreach}
 
+        function primary(fileName){
+            $.ajax({
+                method: "POST",
+                url: {plink dropzoneSetMain!} + '&filename=' + fileName,
+            })
+                .done(function( msg ) {
+                    let id = fileName.split('.')[0];
+
+                    var mainElement =  $('a.dz-main > i.fas');
+                    mainElement.removeClass('fas')
+                    mainElement.addClass('far')
+
+                    mainElement =  $('#main-' + id + ' > i.far');
+                    mainElement.removeClass('far')
+                    mainElement.addClass('fas')
+
+                    toastr.success('Provedeno');
+                });
+        }
+
         Dropzone.options.photosDropzone = {
             addRemoveLinks: true,
             dictRemoveFile : '<button class="btn btn-xs btn-danger"><i class="fas fa-trash"></i></button>',
             dictCancelUpload: null,
             thumbnailWidth: 400,
             thumbnailHeight: null,
+            success: function( file, response ) {
+
+            },
             init: function () {
                 this.on("complete",function(file){
                     var newNode = document.createElement('a');
@@ -121,23 +144,7 @@
                     newNode.id = 'main-' + id;
                     newNode.className = 'btn btn-primary btn-xs dz-main';
                     newNode.href = 'javascript:void(0);'
-                    newNode.onclick = function () {
-                        $.ajax({
-                            method: "POST",
-                            url: {plink dropzoneSetMain!} + '&filename=' + file.name,
-                        })
-                            .done(function( msg ) {
-                                var mainElement =  $('a.dz-main > i.fas');
-                                mainElement.removeClass('fas')
-                                mainElement.addClass('far')
-
-                                mainElement =  $('#main-' + id + ' > i.far');
-                                mainElement.removeClass('far')
-                                mainElement.addClass('fas')
-
-                                toastr.success('Provedeno');
-                            });
-                    }
+                    newNode.setAttribute('onclick', 'primary("' + file.name + '")')
                     newNode.innerHTML = '<i class=" ' + (mainPhotos[file.name] ? 'fas' : 'far') + ' fa-star"></i>';
                     file.previewTemplate.appendChild(newNode);
 
