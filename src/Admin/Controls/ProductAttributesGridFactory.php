@@ -150,7 +150,7 @@ class ProductAttributesGridFactory
 			foreach ($attributes as $attribute) {
 				$values = $this->attributeRepository->getAttributeValues($attribute, true);
 
-				$grid->addColumnInput($attribute->name, $attribute->getPK(), function () use ($values, $grid, $attribute) {
+				$column = $grid->addColumnInput($attribute->name, $attribute->getPK(), function () use ($values, $grid, $attribute) {
 					$selectBox = new MultiSelectBox(null, [null => '---Vymazat---'] + $values->toArrayOf('internalLabel'));
 					$selectBox->setHtmlAttribute('class', 'form-control form-control-sm');
 					$selectBox->setHtmlAttribute('style', 'max-width: 50px;');
@@ -162,6 +162,16 @@ class ProductAttributesGridFactory
 						$selectBox->setDefaultValue(\explode(',', $product->attributeValues));
 					}
 				});
+
+//				$column->onRenderCell[] = function (\Nette\Utils\Html $td, $object) {
+//					$el = $td->getChildren()[0];
+//					$td->removeChildren();
+//					$startPos = \strpos($el, 'name="');
+//					$endPos = \strpos($el, '"', $startPos + 6);
+//					$name = \substr($el, $startPos + 6, $endPos - $startPos - 6);
+//					$td->addHtml('<input type="hidden" value="" name="' . $name . '">');
+//					$td->addHtml($el);
+//				};
 			}
 		};
 

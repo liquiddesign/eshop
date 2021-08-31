@@ -7,6 +7,7 @@ namespace Eshop\Controls;
 use Eshop\CheckoutManager;
 use Eshop\Shopper;
 use Nette\Application\UI\Form;
+use Nette\Localization\Translator;
 use Security\Authenticator;
 use Security\DB\AccountRepository;
 
@@ -16,7 +17,7 @@ class AddressesForm extends Form
 	
 	private AccountRepository $accountRepository;
 	
-	public function __construct(Shopper $shopper, CheckoutManager $checkoutManager, AccountRepository $accountRepository)
+	public function __construct(Shopper $shopper, CheckoutManager $checkoutManager, AccountRepository $accountRepository, Translator $translator)
 	{
 		parent::__construct();
 		
@@ -26,13 +27,13 @@ class AddressesForm extends Form
 		$this->addText('email', 'AddressesForm.email')->setRequired()->addRule($this::EMAIL);
 		$this->addText('ccEmails', 'AddressesForm.ccEmails');
 		$this->addText('fullname', 'AddressesForm.fullname')->setRequired()->setMaxLength(32);
-		$this->addText('phone', 'AddressesForm.phone');
+		$this->addText('phone', 'AddressesForm.phone')->addRule(static::PATTERN, $translator->translate('AddressesForm.phonePattern', 'Pouze čísla a znak "+" na začátku!'), '^\+?[0-9]+$');;
 		
 		// address bill
 		$billAddressBox = $this->addContainer('billAddress');
 		$billAddressBox->addText('street', 'AddressesForm.bill_street')->setRequired();
 		$billAddressBox->addText('city', 'AddressesForm.bill_city')->setRequired();
-		$billAddressBox->addText('zipcode', 'AddressesForm.bill_zipcode');
+		$billAddressBox->addText('zipcode', 'AddressesForm.bill_zipcode')->addRule(static::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
 		$billAddressBox->addText('state', 'AddressesForm.bill_state');
 		
 		$this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool)$this->checkoutManager->getPurchase()->deliveryAddress);
@@ -52,7 +53,8 @@ class AddressesForm extends Form
 		$deliveryAddressBox->addText('name', 'AddressesForm.delivery_name')->addConditionOn($this['otherAddress'], $this::EQUAL, true)->setRequired();
 		$deliveryAddressBox->addText('street', 'AddressesForm.delivery_street')->addConditionOn($this['otherAddress'], $this::EQUAL, true)->setRequired();
 		$deliveryAddressBox->addText('city', 'AddressesForm.delivery_city')->addConditionOn($this['otherAddress'], $this::EQUAL, true)->setRequired();
-		$deliveryAddressBox->addText('zipcode', 'AddressesForm.delivery_zipcode')->addConditionOn($this['otherAddress'], $this::EQUAL, true)->setRequired();
+		$deliveryAddressBox->addText('zipcode', 'AddressesForm.delivery_zipcode')->addConditionOn($this['otherAddress'], $this::EQUAL, true)->setRequired()
+			->addRule(static::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
 		$deliveryAddressBox->addText('state', 'AddressesForm.delivery_state');
 		
 		// company

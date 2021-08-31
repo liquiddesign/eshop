@@ -27,7 +27,7 @@ class ProfileForm extends \Nette\Application\UI\Form
 
 	private Shopper $shopper;
 
-	public function __construct(Shopper $shopper, Nette\Mail\Mailer $mailer, TemplateRepository $templateRepository, Nette\Security\User $user)
+	public function __construct(Shopper $shopper, Nette\Mail\Mailer $mailer, TemplateRepository $templateRepository, Nette\Security\User $user, Nette\Localization\Translator $translator)
 	{
 		parent::__construct();
 
@@ -43,7 +43,8 @@ class ProfileForm extends \Nette\Application\UI\Form
 		$this->addText('email', 'profileForm.email')->addRule($this::EMAIL)->setRequired();
 		// @TODO: validace na regexp
 		$this->addText('ccEmails', 'profileForm.ccEmail');
-		$this->addText('phone', 'profileForm.phone');
+		$this->addText('phone', 'profileForm.phone')
+			->addRule(static::PATTERN, $translator->translate('AddressesForm.phonePattern', 'Pouze čísla a znak "+" na začátku!'), '^\+?[0-9]+$');
 		$this->addText('company', 'profileForm.company');
 		$this->addText('ic', 'profileForm.ic')->addRule($this::MAX_LENGTH, 'Maximální délka je 8 číslic.', 8);
 		$this->addText('dic', 'profileForm.dic')->addRule($this::MAX_LENGTH, 'Maximální délka je 10 znaků.', 10);
@@ -55,14 +56,16 @@ class ProfileForm extends \Nette\Application\UI\Form
 		$billAddressBox = $this->addContainer('billAddress');
 		$billAddressBox->addText('street', 'billAddress.street')->setRequired();
 		$billAddressBox->addText('city', 'billAddress.city')->setRequired();
-		$billAddressBox->addText('zipcode', 'billAddress.zipcode')->setRequired()->setMaxLength(5);
+		$billAddressBox->addText('zipcode', 'billAddress.zipcode')->setRequired()
+			->addRule(static::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
 
 		$this->addGroup('Doručovací adresa');
 		$deliveryAddressBox = $this->addContainer('deliveryAddress');
 		$deliveryAddressBox->addText('name', 'deliveryAddress.street')->setRequired();
 		$deliveryAddressBox->addText('street', 'deliveryAddress.street')->setRequired();
 		$deliveryAddressBox->addText('city', 'deliveryAddress.city')->setRequired();
-		$deliveryAddressBox->addText('zipcode', 'deliveryAddress.zipcode')->setRequired()->setMaxLength(5);
+		$deliveryAddressBox->addText('zipcode', 'deliveryAddress.zipcode')->setRequired()
+			->addRule(static::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
 
 		$this->addGroup('Potvrzení');
 		$this->addSubmit('submit', 'profileForm.submit');
