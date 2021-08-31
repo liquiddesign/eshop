@@ -71,7 +71,7 @@ class OrderGridFactory
 		throw new \DomainException("Invalid state: $state");
 	}
 	
-	public function create(string $state): Datagrid
+	public function create(string $state, array $configuration = []): Datagrid
 	{
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		
@@ -167,6 +167,14 @@ class OrderGridFactory
 		$submit = $grid->getForm()->addSubmit('exportZasilkovna');
 		$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')->setHtml('<i class="fa fa-download"></i> Export pro Zásilkovnu');
 		$submit->onClick[] = [$this, 'exportZasilkovna'];
+
+		if (isset($configuration['exportPPC']) && $configuration['exportPPC']) {
+			$submit = $grid->getForm()->addSubmit('export', 'Exportovat pro PPC (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+			$submit->onClick[] = function ($button) use ($grid) {
+				$grid->getPresenter()->redirect('exportPPC', [$grid->getSelectedIds()]);
+			};
+		}
 		
 		return $grid;
 	}

@@ -44,6 +44,12 @@ use StORM\Literal;
 
 class OrderPresenter extends BackendPresenter
 {
+	protected const CONFIGURATION = [
+		'exportPPC' => false,
+		'exportPPC_columns' => [],
+		'defaultExportPPC_columns' => []
+	];
+
 	/** @inject */
 	public OrderRepository $orderRepository;
 	
@@ -118,7 +124,7 @@ class OrderPresenter extends BackendPresenter
 	
 	public function createComponentOrdersGrid()
 	{
-		return $this->orderGridFactory->create($this->tab);
+		return $this->orderGridFactory->create($this->tab, static::CONFIGURATION);
 	}
 	
 	public function createComponentDeliveryGrid()
@@ -707,6 +713,85 @@ class OrderPresenter extends BackendPresenter
 			['Komentáře']
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
+	}
+
+	public function actionExportPPC(array $ids)
+	{
+		$this->template->headerLabel = 'Export pro PPC';
+		$this->template->headerTree = [
+			['Objednávky', 'default'],
+			['Export pro PPC']
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('exportPPCForm')];
+	}
+
+	public function createComponentExportPPCForm()
+	{
+		/** @var \Grid\Datagrid $grid */
+		$grid = $this->getComponent('ordersGrid');
+
+		$ids = $this->getParameter('ids') ?: [];
+		$totalNo = $grid->getPaginator()->getItemCount();
+		$selectedNo = \count($ids);
+		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
+
+		$form = $this->formFactory->create();
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+		$form->addRadioList('bulkType', 'Exportovat', [
+			'selected' => "vybrané ($selectedNo)",
+			'all' => "celý výsledek ($totalNo)",
+		])->setDefaultValue('selected');
+
+		$form->addSelect('delimiter', 'Oddělovač', [
+			';' => 'Středník (;)',
+			',' => 'Čárka (,)',
+			'	' => 'Tab (\t)',
+			' ' => 'Mezera ( )',
+			'|' => 'Pipe (|)',
+		]);
+		$form->addCheckbox('header', 'Hlavička')->setDefaultValue(true)->setHtmlAttribute('data-info', 'Pokud tuto možnost nepoužijete tak nebude možné tento soubor použít pro import!');
+
+		$headerColumns = $form->addDataMultiSelect('columns', 'Sloupce');
+
+		$items = [];
+		$defaultItems = [];
+
+		if (isset(static::CONFIGURATION['exportPPC_columns'])) {
+			$items += static::CONFIGURATION['exportPPC_columns'];
+
+			if (isset(static::CONFIGURATION['defaultExportPPC_columns'])) {
+				$defaultItems = \array_merge($defaultItems, static::CONFIGURATION['defaultExportPPC_columns']);
+			}
+		}
+
+		$headerColumns->setItems($items);
+		$headerColumns->setDefaultValue($defaultItems);
+
+		$form->addSubmit('submit', 'Exportovat');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid, $items) {
+			$values = $form->getValues('array');
+
+			$selectedItems = $values['bulkType'] == 'selected' ? $this->orderRepository->many()->where('this.uuid', $ids) : $grid->getFilteredSource();
+
+			$tempFilename = \tempnam($this->tempDir, "csv");
+			$headerColumns = \array_filter($items, function ($item) use ($values) {
+				return \in_array($item, $values['columns']);
+			}, ARRAY_FILTER_USE_KEY);
+
+			$this->orderRepository->csvPPCExport(
+				$selectedItems,
+				Writer::createFromPath($tempFilename),
+				$headerColumns,
+				$values['delimiter'],
+				$values['header'] ? \array_values($headerColumns) : null
+			);
+
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "orders.csv", 'text/csv'));
+		};
+
+		return $form;
 	}
 	
 	public function createComponentOrderForm(): Form

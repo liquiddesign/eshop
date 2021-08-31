@@ -121,6 +121,7 @@ class ProductAttributesGridFactory
 			->select(['attributeValues' => "GROUP_CONCAT(DISTINCT attributeValue.uuid SEPARATOR ',')"]);
 
 		$grid = $this->gridFactory->create($source, 20, 'this.priority', 'ASC', false);
+		$grid->setItemsPerPage([5, 10, 20, 50, 100]);
 
 //		$grid->addColumn('Kód a EAN', function (Product $product) {
 //			return $product->getFullCode() . ($product->ean ? "<br><small>EAN $product->ean</small>" : '');

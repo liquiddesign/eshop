@@ -3,7 +3,8 @@
         let elements = $('select[id^="frm-productAttributesGrid-form-"]')
 
         elements.each(function (index, element) {
-            tail.select("#" + element.id, {
+            let newElement = tail.select("#" + element.id, {
+                "placeholder": "- Vyberte -",
                 "search": true,
                 "descriptions": true,
                 "hideSelected": true,

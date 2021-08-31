@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Eshop\Shopper;
+use League\Csv\EncloseField;
 use League\Csv\Writer;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
@@ -14,6 +15,7 @@ use Nette\Utils\DateTime;
 use Security\DB\Account;
 use StORM\Collection;
 use StORM\DIConnection;
+use StORM\ICollection;
 use StORM\SchemaManager;
 
 /**
@@ -123,6 +125,52 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		return $collection;
+	}
+
+	public function csvPPCExport(ICollection $orders, Writer $writer, array $columns = [], string $delimiter = ';', ?array $header = null): void
+	{
+		$writer->setDelimiter($delimiter);
+
+		EncloseField::addTo($writer, "\t\22");
+
+		if ($header) {
+			$writer->insertOne($header);
+		}
+
+		$mutationSuffix = $this->getConnection()->getMutationSuffix();
+
+		/** @var Order $order */
+		while ($order = $orders->fetch()) {
+			$row = [];
+
+			foreach ($order->purchase->getItems() as $item) {
+				foreach ($columns as $columnKey => $columnValue) {
+					if ($columnKey == 'customer') {
+						$row[] = $order->purchase->account ? $order->purchase->account->login : ($order->purchase->accountEmail ?? $order->purchase->email);
+					} elseif ($columnKey == 'state') {
+						$row[] = $this->getState($order);
+					} elseif ($columnKey == 'totalPriceVat') {
+						$row[] = $item->getPriceVatSum();
+					} elseif ($columnKey == 'productPrice') {
+						$row[] = $item->price;
+					} elseif ($columnKey == 'productPriceVat') {
+						$row[] = $item->priceVat;
+					} elseif ($columnKey == 'productVat') {
+						$row[] = $item->vatPct;
+					} elseif ($columnKey == 'shippingName') {
+						$row[] = $order->purchase->deliveryType ? $order->purchase->deliveryType->name : null;
+					} elseif ($columnKey == 'shippingPriceVat') {
+						$row[] = $order->getDeliveryPriceVatSum();
+					} elseif ($columnKey == 'paymentMethod') {
+						$row[] = $order->getPayment() ? $order->getPayment()->getTypeName() : null;
+					} else {
+						$row[] = $order->getValue($columnKey) === false ? '0' : $order->getValue($columnKey);
+					}
+				}
+
+				$writer->insertOne($row);
+			}
+		}
 	}
 
 	public function csvExport(Order $order, Writer $writer)
@@ -857,21 +905,21 @@ class OrderRepository extends \StORM\Repository
 
 		return null;
 	}
-	
+
 	public function changeState(Order $order, string $status)
 	{
 		// in array
 		if (1) {
-		
+
 		}
-		
+
 		$order->update([$status . 'Ts' => (string)new DateTime()]);
-		
+
 		Arrays::invoke($this->onChangeState);
 	}
-	
+
 	public function sendStateEmail(Order $order)
 	{
-	
+
 	}
 }
