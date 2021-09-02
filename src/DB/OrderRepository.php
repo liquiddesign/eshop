@@ -151,6 +151,8 @@ class OrderRepository extends \StORM\Repository
 						$row[] = $this->getState($order);
 					} elseif ($columnKey == 'totalPriceVat') {
 						$row[] = $item->getPriceVatSum();
+					} elseif ($columnKey == 'productName') {
+						$row[] = $item->productName;
 					} elseif ($columnKey == 'productPrice') {
 						$row[] = $item->price;
 					} elseif ($columnKey == 'productPriceVat') {
