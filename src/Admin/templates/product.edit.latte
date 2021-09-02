@@ -1,0 +1,125 @@
+{varType Eshop\DB\Photo[] $photos}
+
+{block content}
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-1">
+                <div class="col-sm-6">
+                    <h1>{@$headerLabel}</h1>
+                    {if @$displayLabels}
+                        {foreach $displayLabels as $label}
+                            <h2>{$label|noescape}</h2>
+                        {/foreach}
+                    {/if}
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{plink :Eshop:Admin:Dashboard:default}">Domů</a></li>
+                        {ifset $headerTree}
+                            {foreach $headerTree as $item}
+                                <li class="breadcrumb-item {if $iterator->isLast()}active{/if}">
+                                    {ifset $item[1]}
+                                        {ifset $item[2]}
+                                            <a href="{plink $item[1], $item[2]}">{$item[0]}</a>
+                                        {else}
+                                            <a href="{plink $item[1]}">{$item[0]}</a>
+                                        {/ifset}
+                                    {else}
+                                        {$item[0]}
+                                    {/ifset}
+                                </li>
+                            {/foreach}
+                        {/ifset}
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card card-primary card-outline card-outline-tabs">
+                    <div class="card-header p-0 border-bottom-0">
+                        <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
+                            <li class="nav-item">
+                                <a class="nav-link {$editTab == 'menu0' ? 'active show' : ''} productForm-tab"
+                                   id="menu0" data-toggle="pill"
+                                   href="#menu0-content"
+                                   role="tab">Hlavní údaje</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {$editTab == 'menu1' ? 'active show' : ''} productForm-tab"
+                                   id="menu1" data-toggle="pill"
+                                   href="#menu1-content"
+                                   role="tab">Ceníky</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {$editTab == 'menu2' ? 'active show' : ''} productForm-tab"
+                                   id="menu2" data-toggle="pill"
+                                   href="#menu2-content"
+                                   role="tab">Řazení</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {$editTab == 'menu3' ? 'active show' : ''} productForm-tab"
+                                   id="menu3" data-toggle="pill"
+                                   href="#menu3-content"
+                                   role="tab">Ostatní</a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    {if @$displayButtons}
+                        <div class="card-header p-3">
+                            <div class="row">
+                                <div class="col-lg-6 col-md-12">
+                                    {foreach $displayButtons as $button}
+                                        {$button|noescape}
+                                    {/foreach}
+                                </div>
+                            </div>
+                        </div>
+                    {/if}
+                    <div class="card-body p-3">
+                        {if @$displayControls}
+                            {foreach $displayControls as $ctr}
+                                {$ctr->render()}
+                            {/foreach}
+                        {/if}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+{/block}
+{block scripts}
+    <script>
+        document.addEventListener("DOMContentLoaded", function(event) {
+            $('.productForm-tab').click(function() {
+                var url = new URL($(this)[0].href);
+
+                var search_params = url.searchParams;
+                search_params.set('editTab', $(this)[0].id);
+                url.search = search_params.toString();
+
+                var nextURL = url.toString();
+
+                const nextTitle = '';
+                const nextState = { additionalInformation: '' };
+
+                window.history.replaceState(nextState, nextTitle, nextURL);
+
+                if(search_params.get('editTab') === 'menu2'){
+                    $('#frm-parameterForm-form').show();
+                }else{
+                    $('#frm-parameterForm-form').hide();
+                }
+
+                $('input[name="editTab"]').val(search_params.get('editTab'))
+            });
+
+            $('#frm-parameterForm-form').hide();
+        });
+    </script>
+{/block}

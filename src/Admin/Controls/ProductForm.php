@@ -33,7 +33,6 @@ use StORM\ICollection;
 use Web\DB\PageRepository;
 use Nette\DI\Container;
 use Nette\Utils\FileSystem;
-use Nette\Utils\Image;
 use Pages\Helpers;
 use Forms\Form;
 
@@ -72,6 +71,9 @@ class ProductForm extends Control
 	private IProductAttributesFormFactory $attributesFormFactory;
 
 	private array $configuration;
+
+	/** @persistent */
+	public string $tab = 'menu0';
 
 	public function __construct(
 		Container $container,
@@ -120,6 +122,10 @@ class ProductForm extends Control
 		$this->attributesFormFactory = $attributesFormFactory;
 
 		$form = $adminFormFactory->create(true);
+
+		$this->monitor(Presenter::class, function () use ($form): void {
+			$form->addHidden('editTab')->setDefaultValue($form->getPresenter()->editTab);
+		});
 
 		$form->addGroup('Hlavní atributy');
 
@@ -412,6 +418,7 @@ class ProductForm extends Control
 	{
 		$data = $this->getPresenter()->getHttpRequest()->getPost();
 		$values = $form->getValues('array');
+		$editTab = Arrays::pick($values, 'editTab', null);
 
 		$this->createImageDirs();
 
@@ -522,7 +529,7 @@ class ProductForm extends Control
 		}
 
 		$this->getPresenter()->flashMessage('Uloženo', 'success');
-		$this['form']->processRedirect('edit', 'default', [$product]);
+		$this['form']->processRedirect('edit', 'default', ['product' => $product, 'editTab' => $editTab]);
 	}
 
 	protected function deleteImages()
@@ -570,6 +577,7 @@ class ProductForm extends Control
 
 		$this->template->supplierProducts = $this->getPresenter()->getParameter('product') ? $this->supplierProductRepository->many()->where('fk_product',
 			$this->getPresenter()->getParameter('product'))->toArray() : [];
+
 		$this->template->render(__DIR__ . '/productForm.latte');
 	}
 

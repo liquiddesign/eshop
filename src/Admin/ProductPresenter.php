@@ -201,6 +201,9 @@ class ProductPresenter extends BackendPresenter
 	/** @persistent */
 	public string $tab = 'products';
 
+	/** @persistent */
+	public string $editTab = 'menu0';
+
 	public function createComponentProductGrid()
 	{
 		return $this->productGridFactory->create(static::CONFIGURATION);
@@ -569,6 +572,9 @@ class ProductPresenter extends BackendPresenter
 		if (isset($this::CONFIGURATION['parameters']) && $this::CONFIGURATION['parameters'] && $this->getParameter('product')) {
 			$this->template->displayControls[] = $this->getComponent('parameterForm');
 		}
+
+		$this->template->editTab = $this->editTab;
+		$this->template->setFile(__DIR__ . '/templates/product.edit.latte');
 	}
 
 	public function actionParameters(Product $product)
@@ -1797,7 +1803,7 @@ Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 		/** @var FileUpload $fileUpload */
 		$fileUpload = $this->getPresenter()->getHttpRequest()->getFile('file');
 		$uuid = Connection::generateUuid();
-		$filename = $fileUpload->getSanitizedName();
+		$filename = $uuid . '.' . $fileUpload->getImageFileExtension();
 
 		/** @var Photo $photo */
 		$photo = $this->photoRepository->createOne([
