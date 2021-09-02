@@ -574,6 +574,7 @@ class ProductPresenter extends BackendPresenter
 		}
 
 		$this->template->editTab = $this->editTab;
+		$this->template->comments = $this->commentRepository->many()->where('fk_product', $product->getPK())->orderBy(['createdTs' => 'DESC'])->toArray();
 		$this->template->setFile(__DIR__ . '/templates/product.edit.latte');
 	}
 
@@ -1661,7 +1662,7 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 			$this->commentRepository->createOne($data);
 
 			$this->flashMessage('Uloženo', 'success');
-			$this->redirect('comments', $this->getParameter('product'));
+			$this->redirect('edit', ['product' => $this->getParameter('product'), 'editTab' => 'comments']);
 		};
 
 		return $form;

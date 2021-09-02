@@ -193,6 +193,18 @@
                     </table>
                 {/if}
             </fieldset>
+
+            <fieldset>
+                <table class="mt-1 mb-1">
+                    <tr>
+                        {ifset $form['submitAndNext']}
+                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
+                        {else}
+                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
+                        {/ifset}
+                    </tr>
+                </table>
+            </fieldset>
         </div>
         <div id="menu1-content" class="tab-pane {$presenter->editTab == 'menu1' ? 'active show' : ''}">
             <fieldset>
@@ -232,6 +244,17 @@
 
                 </table>
             </fieldset>
+            <fieldset>
+                <table class="mt-1 mb-1">
+                    <tr>
+                        {ifset $form['submitAndNext']}
+                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
+                        {else}
+                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
+                        {/ifset}
+                    </tr>
+                </table>
+            </fieldset>
         </div>
         <div id="menu2-content" class="tab-pane {$presenter->editTab == 'menu2' ? 'active show' : ''}">
             <fieldset>
@@ -268,6 +291,17 @@
                         <td class="align-middle">{input internalRibbons}
                             <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError internalRibbons}</span>
                         </td>
+                    </tr>
+                </table>
+            </fieldset>
+            <fieldset>
+                <table class="mt-1 mb-1">
+                    <tr>
+                        {ifset $form['submitAndNext']}
+                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
+                        {else}
+                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
+                        {/ifset}
                     </tr>
                 </table>
             </fieldset>
@@ -514,21 +548,22 @@
                     {/if}
                 </table>
             </fieldset>
+            <fieldset>
+                <table class="mt-1 mb-1">
+                    <tr>
+                        {ifset $form['submitAndNext']}
+                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
+                        {else}
+                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
+                        {/ifset}
+                    </tr>
+                </table>
+            </fieldset>
+        </div>
+        <div id="comments-content" class="tab-pane {$presenter->editTab == 'comments' ? 'active show' : ''}">
         </div>
     </div>
 
-
-    <fieldset>
-        <table class="mt-1 mb-1">
-            <tr>
-                {ifset $form['submitAndNext']}
-                    {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
-                {else}
-                    {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
-                {/ifset}
-            </tr>
-        </table>
-    </fieldset>
 </form>
 
 <!-- Modal -->

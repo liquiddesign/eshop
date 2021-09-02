@@ -65,6 +65,12 @@
                                    href="#menu3-content"
                                    role="tab">Ostatní</a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link {$editTab == 'comments' ? 'active show' : ''} productForm-tab"
+                                   id="comments" data-toggle="pill"
+                                   href="#comments-content"
+                                   role="tab">Komentáře</a>
+                            </li>
                         </ul>
                     </div>
 
@@ -85,6 +91,25 @@
                                 {$ctr->render()}
                             {/foreach}
                         {/if}
+
+                        <div id="comments-r-content" style="display: none">
+                            {control newComment}
+
+                            <div class="table-responsive mailbox-messages mt-2">
+                                <table class="table table-hover table-striped">
+                                    <tbody>
+                                    <tr n:foreach="$comments as $comment">
+                                        <td class="fit">{$comment->createdTs|date:'d.m.Y G:i'}</td>
+                                        <td class="fit">{$comment->adminFullname}</td>
+                                        <td>{$comment->text}</td>
+                                    </tr>
+                                    <tr n:if="\count($comments) == 0">
+                                        <td>Žádné komentáře</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -116,10 +141,22 @@
                     $('#frm-parameterForm-form').hide();
                 }
 
+                if(search_params.get('editTab') === 'comments'){
+                    $('#comments-r-content').show();
+                }else{
+                    $('#comments-r-content').hide();
+                }
+
                 $('input[name="editTab"]').val(search_params.get('editTab'))
             });
 
-            $('#frm-parameterForm-form').hide();
+            {if $editTab !== 'menu2'}
+                $('#frm-parameterForm-form').hide();
+            {/if}
+
+             {if $editTab === 'comments'}
+                $('#comments-r-content').show();
+            {/if}
         });
     </script>
 {/block}
