@@ -259,15 +259,18 @@
         <div id="menu2-content" class="tab-pane {$presenter->editTab == 'menu2' ? 'active show' : ''}">
             <fieldset>
                 <table class="mt-1 mb-1">
-                    <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label categories/}</th>
+                    {formContainer categories}
+                        {foreach $form['categories']->getComponents() as $categoryTypeInput}
+                            <tr class="m-0 mt-1 has-danger">
+                                <th class="col-label col-form-label col">{label $categoryTypeInput->getName()/}</th>
 
-                        <td class="align-middle">{input categories}
+                                <td class="align-middle">{input $categoryTypeInput->getName()}
 
-                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError categories}</span>
-                        </td>
-                    </tr>
-
+                                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError $categoryTypeInput->getName()}</span>
+                                </td>
+                            </tr>
+                        {/foreach}
+                    {/formContainer}
                     <tr class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label producer/}</th>
 
@@ -559,6 +562,8 @@
                     </tr>
                 </table>
             </fieldset>
+        </div>
+        <div id="gallery-content" class="tab-pane {$presenter->editTab == 'gallery' ? 'active show' : ''}">
         </div>
         <div id="comments-content" class="tab-pane {$presenter->editTab == 'comments' ? 'active show' : ''}">
         </div>

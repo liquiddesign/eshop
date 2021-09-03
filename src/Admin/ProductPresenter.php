@@ -15,6 +15,9 @@ use Eshop\Admin\Controls\ProductGridFactory;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
+use Eshop\DB\Category;
+use Eshop\DB\CategoryType;
+use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\File;
 use Eshop\DB\FileRepository;
@@ -189,6 +192,9 @@ class ProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public ProductAttributesGridFactory $productAttributesGridFactory;
+
+	/** @inject */
+	public CategoryTypeRepository $categoryTypeRepository;
 
 	/** @inject */
 	public Application $application;
@@ -526,7 +532,25 @@ class ProductPresenter extends BackendPresenter
 			$container->setDefaults($prices[$pricelistId]->toArray());
 		}
 
-		$form->setDefaults($product->toArray(['categories', 'ribbons', 'internalRibbons', 'parameterGroups', 'taxes']));
+		/** @var CategoryType[] $categoryTypes */
+		$categoryTypes = $this->categoryTypeRepository->getCollection(true)->toArray();
+
+		/** @var Category[] $selectedCategories */
+		$selectedCategories = (clone $product->categories)->toArray();
+
+		foreach ($categoryTypes as $categoryType) {
+			$defaults = [];
+
+			foreach ($selectedCategories as $selectedCategory) {
+				if ($selectedCategory->getValue('type') == $categoryType->getPK()) {
+					$defaults = $selectedCategory->getPK();
+				}
+			}
+
+			$form['categories'][$categoryType->getPK()]->setDefaultValue($defaults);
+		}
+
+		$form->setDefaults($product->toArray(['ribbons', 'internalRibbons', 'parameterGroups', 'taxes']));
 		$form['alternative']->setValue($product->alternative ? $product->getValue('alternative') : null);
 
 		if (isset($form['upsells'])) {
@@ -559,7 +583,7 @@ class ProductPresenter extends BackendPresenter
 
 	public function renderEdit(Product $product)
 	{
-		$this->template->headerLabel = 'Detail';
+		$this->template->headerLabel = 'Detail - ' . $product->name;
 		$this->template->headerTree = [
 			['Produkty', 'default'],
 			['Detail'],
@@ -575,6 +599,24 @@ class ProductPresenter extends BackendPresenter
 
 		$this->template->editTab = $this->editTab;
 		$this->template->comments = $this->commentRepository->many()->where('fk_product', $product->getPK())->orderBy(['createdTs' => 'DESC'])->toArray();
+
+		$data = [];
+		/** @var Photo[] $photos */
+		$photos = $this->photoRepository->many()->where('fk_product', $product->getPK())->orderBy(['priority']);
+
+		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR . '/origin/';
+
+		foreach ($photos as $photo) {
+			$row = [];
+			$row['name'] = $photo->fileName;
+			$row['size'] = \file_exists($basePath . $photo->fileName) ? \filesize($basePath . $photo->fileName) : 0;
+			$row['main'] = $product->imageFileName === $photo->fileName;
+
+			$data[$photo->fileName] = $row;
+		}
+
+		$this->template->photos = $data;
+
 		$this->template->setFile(__DIR__ . '/templates/product.edit.latte');
 	}
 
@@ -686,8 +728,6 @@ class ProductPresenter extends BackendPresenter
 
 			$this->template->displayControls = [$this->getComponent('productGrid')];
 		}
-
-
 	}
 
 	public function deleteFile(File $file)

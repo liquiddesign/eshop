@@ -6,7 +6,10 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
+use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\CategoryType;
+use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\InternalRibbonRepository;
@@ -70,6 +73,8 @@ class ProductForm extends Control
 
 	private IProductAttributesFormFactory $attributesFormFactory;
 
+	private CategoryTypeRepository $categoryTypeRepository;
+
 	private array $configuration;
 
 	/** @persistent */
@@ -99,6 +104,7 @@ class ProductForm extends Control
 		Shopper $shopper,
 		IProductSetFormFactory $productSetFormFactory,
 		IProductAttributesFormFactory $attributesFormFactory,
+		CategoryTypeRepository $categoryTypeRepository,
 		$product = null,
 		array $configuration = []
 	)
@@ -120,6 +126,7 @@ class ProductForm extends Control
 		$this->vatRateRepository = $vatRateRepository;
 		$this->productSetFormFactory = $productSetFormFactory;
 		$this->attributesFormFactory = $attributesFormFactory;
+		$this->categoryTypeRepository = $categoryTypeRepository;
 
 		$form = $adminFormFactory->create(true);
 
@@ -150,7 +157,17 @@ class ProductForm extends Control
 //		};
 
 		$form->addSelect('vatRate', 'Úroveň DPH (%)', $vatRateRepository->getDefaultVatRates());
-		$form->addDataMultiSelect('categories', 'Kategorie', $categoryRepository->getTreeArrayForSelect());
+//		$form->addDataMultiSelect('categories', 'Kategorie', $categoryRepository->getTreeArrayForSelect());
+
+		/** @var CategoryType[] $categoryTypes */
+		$categoryTypes = $this->categoryTypeRepository->getCollection(true)->toArray();
+
+		$categoriesContainer = $form->addContainer('categories');
+
+		foreach ($categoryTypes as $categoryType) {
+			$categoriesContainer->addDataMultiSelect($categoryType->getPK(), 'Kategorie: ' . $categoryType->name, $categoryRepository->getTreeArrayForSelect(true, $categoryType->getPK()));
+		}
+
 		$form->addDataSelect('producer', 'Výrobce', $producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 
 		if ($configuration['parameters']) {
@@ -337,24 +354,24 @@ class ProductForm extends Control
 					->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
 
 			}
-				$i = 0;
+			$i = 0;
 
-				if ($this->product) {
-					foreach ($this->productRepository->getSetProducts($this->product) as $setItem) {
-						$itemContainer = $form['setItems']['s' . $i++];
+			if ($this->product) {
+				foreach ($this->productRepository->getSetProducts($this->product) as $setItem) {
+					$itemContainer = $form['setItems']['s' . $i++];
 
-						$itemContainer->setDefaults([
-							'product' => $setItem->product->getFullCode(),
-							'priority' => $setItem->priority,
-							'amount' => $setItem->amount,
-							'discountPct' => $setItem->discountPct
-						]);
+					$itemContainer->setDefaults([
+						'product' => $setItem->product->getFullCode(),
+						'priority' => $setItem->priority,
+						'amount' => $setItem->amount,
+						'discountPct' => $setItem->discountPct
+					]);
 
-						if ($i == 6) {
-							break;
-						}
+					if ($i == 6) {
+						break;
 					}
 				}
+			}
 		});
 
 		if (isset($configuration['buyCount']) && $configuration['buyCount']) {
@@ -428,6 +445,18 @@ class ProductForm extends Control
 		} else {
 			$this->product->upsells->unrelateAll();
 		}
+
+		$newCategories = [];
+
+		if (\count($values['categories']) > 0) {
+			foreach ($values['categories'] as $categoryType => $categories) {
+				foreach ($categories as $category) {
+					$newCategories[] = $category;
+				}
+			}
+		}
+
+		$values['categories'] = $newCategories;
 
 		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
 //		$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
