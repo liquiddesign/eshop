@@ -71,4 +71,10 @@ class AttributeValue extends \StORM\Entity
 	 * @relation
 	 */
 	public Attribute $attribute;
+
+	/**
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @relation
+	 */
+	public ?AttributeValueRange $attributeValueRange;
 }

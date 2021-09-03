@@ -9,6 +9,8 @@ use Admin\Controls\AdminGrid;
 use Eshop\DB\Attribute;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValue;
+use Eshop\DB\AttributeValueRange;
+use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\SupplierRepository;
@@ -50,9 +52,13 @@ class AttributePresenter extends BackendPresenter
 	/** @inject */
 	public SupplierRepository $supplierRepository;
 
+	/** @inject */
+	public AttributeValueRangeRepository $attributeValueRangeRepository;
+
 	public const TABS = [
 		'attributes' => 'Atributy',
 		'values' => 'Hodnoty',
+		'ranges' => 'Rozsahy'
 	];
 
 	/** @persistent */
@@ -72,6 +78,9 @@ class AttributePresenter extends BackendPresenter
 		} elseif ($this->tab == 'values') {
 			$this->template->displayButtons = [$this->createNewItemButton('valueNew')];
 			$this->template->displayControls = [$this->getComponent('valuesGrid')];
+		} elseif ($this->tab == 'ranges') {
+			$this->template->displayButtons = [$this->createNewItemButton('rangeNew')];
+			$this->template->displayControls = [$this->getComponent('rangesGrid')];
 		}
 
 		$this->template->tabs = self::TABS;
@@ -93,7 +102,7 @@ class AttributePresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($source, 20, null, null, true);
 
 		$grid->setItemCountCallback(function (ICollection $filteredSource) use ($connection) {
-			return (int) $connection->rows()->select(['count' => 'count(*)'])->from(['derived' => $filteredSource->select(['assignCount' => 'COUNT(assign.uuid)'])], $filteredSource->getVars())->firstValue('count');
+			return (int)$connection->rows()->select(['count' => 'count(*)'])->from(['derived' => $filteredSource->select(['assignCount' => 'COUNT(assign.uuid)'])], $filteredSource->getVars())->firstValue('count');
 		});
 
 		$grid->addColumnSelector();
@@ -174,6 +183,7 @@ class AttributePresenter extends BackendPresenter
 			->setDefaultValue(10);
 		$form->addCheckbox('showProduct', 'Náhled')->setHtmlAttribute('data-info', 'Atribut se zobrazí v náhledu produktu.');
 		$form->addCheckbox('hidden', 'Skryto');
+		$form->addCheckbox('showRange', 'Zobrazit jako rozsahy')->setHtmlAttribute('data-info', 'Hodnoty atributu nebudou zobrazeny jako jednotlivé položky, ale souhrnně dle nastavení rozsahů.');
 
 		$form->addGroup('Filtr');
 		$form->addCheckbox('showFilter', 'Filtr')->setHtmlAttribute('data-info', 'Atribut se zobrazí při filtrování.');
@@ -301,7 +311,7 @@ class AttributePresenter extends BackendPresenter
 		}
 
 		$form->addText('internalName', 'Interní název')->setNullable()
-		->setHtmlAttribute('data-info', 'Používá se pro lepší přehlednost v adminu. Pokud není vyplněn, tak se použije "Popisek".');
+			->setHtmlAttribute('data-info', 'Používá se pro lepší přehlednost v adminu. Pokud není vyplněn, tak se použije "Popisek".');
 		$nameInput = $form->addLocaleText('label', 'Popisek');
 
 		$form->addLocaleTextArea('note', 'Dodatečné informace');
@@ -312,6 +322,12 @@ class AttributePresenter extends BackendPresenter
 			->setRequired()
 			->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
+
+		$mutationSuffix = $this->attributeValueRangeRepository->getConnection()->getMutationSuffix();
+
+		$form->addDataSelect('attributeValueRange', 'Rozsah', $this->attributeValueRangeRepository->getCollection(true)->select(['internalLabel' => 'IFNULL(internalName, name' . $mutationSuffix . ')'])->toArrayOf('internalLabel'))
+			->setPrompt('Nepřiřazeno')
+			->setHtmlAttribute('data-info', 'Pokud má atribut aktivní možnost "Zobrazit jako rozsahy", tak bude tato hodnota zobrazena jako zvolený rozsah.');
 
 		if (isset(static::CONFIGURATIONS['wizard']) && static::CONFIGURATIONS['wizard']) {
 			$form->addGroup('Průvodce');
@@ -395,6 +411,62 @@ class AttributePresenter extends BackendPresenter
 		};
 
 		return $form;
+	}
+
+	public function createComponentRangeForm()
+	{
+		$form = $this->formFactory->create(true);
+
+		$form->addLocaleText('name', 'Název')->forPrimary(function ($input) {
+			$input->setRequired();
+		});
+		$form->addText('internalName', 'Interní název')->setNullable()
+			->setHtmlAttribute('data-info', 'Používá se pro lepší přehlednost v adminu. Pokud není vyplněn, tak se použije "Název".');
+
+//		$form->addDataMultiSelect('attributeValues', 'Přiřazené hodnoty', $this->attributeValueRepository->getArrayForSelect());
+
+		$form->addSubmits(!$this->getParameter('attribute'));
+
+		$form->onSuccess[] = function (AdminForm $form) {
+			$values = $form->getValues('array');
+
+			if (!$values['uuid']) {
+				$values['uuid'] = DIConnection::generateUuid();
+			}
+
+			$object = $this->attributeValueRangeRepository->syncOne($values, null, true);
+
+			$this->flashMessage('Uloženo', 'success');
+			$form->processRedirect('rangeDetail', 'default', [$object]);
+		};
+
+		return $form;
+	}
+
+	public function createComponentRangesGrid(): AdminGrid
+	{
+		$source = $this->attributeValueRangeRepository->many()
+			->join(['attributeValue' => 'eshop_attributevalue'], 'this.uuid = attributeValue.fk_attributeValueRange')
+			->join(['attribute' => 'eshop_attribute'], 'attributeValue.fk_attribute = attribute.uuid');
+
+		$grid = $this->gridFactory->create($source, 20, 'internalName', 'ASC', true);
+
+		$grid->addColumnSelector();
+
+		$grid->addColumnText('Interní název', 'internalName', '%s', 'internalName');
+		$grid->addColumnText('Název', 'name', '%s', 'name');
+
+		$grid->addColumnLinkDetail('rangeDetail');
+		$grid->addColumnActionDelete();
+
+		$grid->addButtonSaveAll();
+		$grid->addButtonDeleteSelected();
+
+		$grid->addFilterTextInput('search', ['this.name_cs', 'this.internalName'], null, 'Název, interní název');
+		$grid->addFilterTextInput('attribute', ['attribute.code'], null, 'Kód atributu', null, '%s');
+		$grid->addFilterButtons();
+
+		return $grid;
 	}
 
 	public function actionAttributeNew()
@@ -713,4 +785,41 @@ class AttributePresenter extends BackendPresenter
 
 		return $form;
 	}
+
+	public function actionRangeNew()
+	{
+	}
+
+	public function actionRangeDetail(AttributeValueRange $attributeValueRange)
+	{
+		/** @var Form $form */
+		$form = $this->getComponent('rangeForm');
+
+		$form->setDefaults($attributeValueRange->toArray(['attributeValues']));
+	}
+
+	public function renderRangeNew()
+	{
+		$this->template->headerLabel = 'Nová položka';
+		$this->template->headerTree = [
+			['Atributy', 'default'],
+			['Rozsahy', 'default'],
+			['Nová položka'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('rangeForm')];
+	}
+
+	public function renderRangeDetail(AttributeValueRange $attributeValueRange)
+	{
+		$this->template->headerLabel = 'Detail';
+		$this->template->headerTree = [
+			['Atributy', 'default'],
+			['Rozsahy', 'default'],
+			['Detail'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('rangeForm')];
+	}
+
 }

@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Eshop\DB\Attribute;
 use Eshop\DB\AttributeRepository;
+use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\DisplayAmountRepository;
@@ -33,6 +35,8 @@ class ProductFilter extends Control
 
 	private DisplayDeliveryRepository $displayDeliveryRepository;
 
+	private AttributeValueRangeRepository $attributeValueRangeRepository;
+
 	private ?array $selectedCategories;
 
 	public function __construct(
@@ -44,6 +48,7 @@ class ProductFilter extends Control
 		AttributeValueRepository $attributeValueRepository,
 		DisplayAmountRepository $displayAmountRepository,
 		DisplayDeliveryRepository $displayDeliveryRepository,
+		AttributeValueRangeRepository $attributeValueRangeRepository,
 		array $configuration = []
 	)
 	{
@@ -55,6 +60,7 @@ class ProductFilter extends Control
 		$this->attributeValueRepository = $attributeValueRepository;
 		$this->displayAmountRepository = $displayAmountRepository;
 		$this->displayDeliveryRepository = $displayDeliveryRepository;
+		$this->attributeValueRangeRepository = $attributeValueRangeRepository;
 	}
 
 	/**
@@ -103,7 +109,6 @@ class ProductFilter extends Control
 		$this->template->displayDeliveryCounts = $displayDeliveryCounts;
 		$this->template->attributes = $this->attributeRepository->getAttributesByCategories($this->getSelectedCategories())->where('showFilter', true)->toArray();
 		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($this->getParent()->getSource(), $this->getSelectedCategories(), $this->getParent()->getFilters()['attributes'] ?? []);
-
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
 
@@ -118,10 +123,16 @@ class ProductFilter extends Control
 
 		$attributesContainer = $filterForm->addContainer('attributes');
 
+		/** @var Attribute[] $attributes */
 		$attributes = $this->attributeRepository->getAttributesByCategories($this->getSelectedCategories())->where('showFilter', true);
 
 		foreach ($attributes as $attribute) {
-			$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
+			$attributeValues = $attribute->showRange ?
+				$this->attributeValueRangeRepository->many()
+					->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attributeValueRange = this.uuid')
+					->join(['attribute' => 'eshop_attribute'], 'attributeValue.fk_attribute = attribute.uuid')
+					->toArrayOf('name') :
+				$this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
 
 			if (\count($attributeValues) == 0) {
 				continue;
@@ -193,10 +204,6 @@ class ProductFilter extends Control
 
 					break;
 				}
-			} else {
-				unset($filtersParameters[$attributeKey]);
-
-				break;
 			}
 		}
 

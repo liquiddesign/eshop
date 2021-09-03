@@ -8,6 +8,7 @@ use Eshop\CheckoutManager;
 use Eshop\DB\Attribute;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValue;
+use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\ParameterAvailableValueRepository;
 use Eshop\DB\ParameterRepository;
@@ -46,6 +47,8 @@ class ProductList extends Datalist
 
 	private AttributeValueRepository $attributeValueRepository;
 
+	private AttributeValueRangeRepository $attributeValueRangeRepository;
+
 	public function __construct(
 		ProductRepository $productRepository,
 		WatcherRepository $watcherRepository,
@@ -55,6 +58,7 @@ class ProductList extends Datalist
 		FormFactory $formFactory,
 		AttributeRepository $attributeRepository,
 		AttributeValueRepository $attributeValueRepository,
+		AttributeValueRangeRepository $attributeValueRangeRepository,
 		array $order = null,
 		?Collection $source = null
 	)
@@ -139,6 +143,7 @@ class ProductList extends Datalist
 		$this->formFactory = $formFactory;
 		$this->attributeRepository = $attributeRepository;
 		$this->attributeValueRepository = $attributeValueRepository;
+		$this->attributeValueRangeRepository = $attributeValueRangeRepository;
 	}
 
 	public function handleWatchIt(string $product): void
@@ -232,7 +237,13 @@ class ProductList extends Datalist
 			/** @var Attribute $attribute */
 			$attribute = $this->attributeRepository->one($attributeKey);
 
-			$attributeValues = $this->attributeValueRepository->many()->where('uuid', $attributeValues)->toArrayOf('label');
+			$attributeValues = $attribute->showRange ?
+				$this->attributeValueRangeRepository->many()
+					->where('this.uuid', $attributeValues)
+					->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attributeValueRange = this.uuid')
+					->join(['attribute' => 'eshop_attribute'], 'attributeValue.fk_attribute = attribute.uuid')
+					->toArrayOf('name') :
+				$this->attributeValueRepository->many()->where('uuid', $attributeValues)->toArrayOf('label');
 
 			foreach ($attributeValues as $attributeValueKey => $attributeValueLabel) {
 				$templateFilters[$attributeKey][$attributeValueKey] = "$attribute->name: $attributeValueLabel";

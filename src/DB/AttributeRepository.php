@@ -7,6 +7,7 @@ namespace Eshop\DB;
 use Common\DB\IGeneralRepository;
 use Nette\Utils\Arrays;
 use StORM\Collection;
+use Tracy\Debugger;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Attribute>
@@ -89,6 +90,13 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 				continue;
 			}
 
+			if ($attribute->showRange) {
+				$attributeValues = $this->getConnection()->rows(['eshop_attributevalue'])
+					->where('eshop_attributevalue.fk_attributevaluerange', $attributeValues)
+					->where('eshop_attributevalue.fk_attribute', $attribute->getPK())
+					->toArrayOf('uuid');
+			}
+
 			$subSelect = $this->getConnection()->rows(['eshop_attributevalue'])
 				->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
 				->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
@@ -115,12 +123,37 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attribute = this.uuid')
 			->join(['attributeAssign' => 'eshop_attributeassign'], 'attributeAssign.fk_value = attributeValue.uuid')
 			->join(['product' => $collection], 'product.uuid=attributeAssign.fk_product', $collection->getVars())
-			->setSelect(['count' => 'COUNT(product.uuid)'])
+			->setSelect([
+				'count' => 'COUNT(product.uuid)',
+				'showRange' => 'this.showRange',
+				'valueRange' => 'attributeValue.fk_attributevaluerange'
+			])
 			->setIndex('attributeValue.uuid')
 			->setGroupBy(['attributeValue.uuid']);
 
 		$collection->setFetchClass(\stdClass::class);
 
-		return $collection->toArrayOf('count');
+		$result = $collection->toArray();
+		$finalResult = [];
+
+		foreach ($result as $key => $std) {
+			if (!$std->showRange) {
+				$finalResult[$key] = $std->count;
+
+				continue;
+			}
+
+			if (!$std->valueRange) {
+				continue;
+			}
+
+			if (isset($finalResult[$std->valueRange])) {
+				$finalResult[$std->valueRange] += $std->count;
+			} else {
+				$finalResult[$std->valueRange] = $std->count;
+			}
+		}
+
+		return $finalResult;
 	}
 }

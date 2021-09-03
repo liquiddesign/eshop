@@ -92,6 +92,12 @@ class Attribute extends \StORM\Entity
 	public bool $systemic = false;
 
 	/**
+	 * Zobrazit jako range
+	 * @column
+	 */
+	public bool $showRange = false;
+
+	/**
 	 * Kategorie
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\Category>|\Eshop\DB\Category[]
