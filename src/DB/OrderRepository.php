@@ -141,9 +141,9 @@ class OrderRepository extends \StORM\Repository
 
 		/** @var Order $order */
 		while ($order = $orders->fetch()) {
-			$row = [];
-
 			foreach ($order->purchase->getItems() as $item) {
+				$row = [];
+
 				foreach ($columns as $columnKey => $columnValue) {
 					if ($columnKey == 'customer') {
 						$row[] = $order->purchase->account ? $order->purchase->account->login : ($order->purchase->accountEmail ?? $order->purchase->email);
