@@ -126,6 +126,10 @@ class AttributePresenter extends BackendPresenter
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('valueNew', $object) . "'>Vytvořit&nbsp;hodnotu</a>";
 		}, '%s', null, ['class' => 'minimal']);
 
+		$grid->addColumn('', function (Attribute $object, Datagrid $datagrid) use ($btnSecondary) {
+			return "<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'ranges', 'rangesGrid-attribute' => $object->code]) . "'>Rozsahy</a>";
+		}, '%s', null, ['class' => 'minimal']);
+
 		$grid->addColumnLinkDetail('attributeDetail');
 		$grid->addColumnActionDeleteSystemic();
 
