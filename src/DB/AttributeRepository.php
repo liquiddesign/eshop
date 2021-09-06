@@ -90,29 +90,51 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 				continue;
 			}
 
-			if ($attribute->showRange) {
-				$attributeValues = $this->getConnection()->rows(['eshop_attributevalue'])
-					->where('eshop_attributevalue.fk_attributevaluerange', $attributeValues)
-					->where('eshop_attributevalue.fk_attribute', $attribute->getPK())
-					->toArrayOf('uuid');
+			if ($attribute->filterType == 'and') {
+				foreach ($attributeValues as $attributeValue) {
+					if ($attribute->showRange) {
+						$subSelect = $this->getConnection()->rows(['eshop_attributevalue'])
+							->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
+							->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
+							->where('eshop_attributeassign.fk_product=this.uuid')
+							->where("eshop_attributevalue.fk_attributevaluerange = '$attributeKey'")
+							->where("eshop_attributevalue.uuid = '$attributeValue'");
+					} else {
+						$subSelect = $this->getConnection()->rows(['eshop_attributevalue'])
+							->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
+							->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
+							->where('eshop_attributeassign.fk_product=this.uuid')
+							->where("eshop_attributevalue.fk_attribute = '$attributeKey'")
+							->where("eshop_attributevalue.uuid = '$attributeValue'");
+					}
+
+					$collection->where('EXISTS (' . $subSelect->getSql() . ')');
+				}
+			} else {
+				if ($attribute->showRange) {
+					$attributeValues = $this->getConnection()->rows(['eshop_attributevalue'])
+						->where('eshop_attributevalue.fk_attributevaluerange', $attributeValues)
+						->where('eshop_attributevalue.fk_attribute', $attribute->getPK())
+						->toArrayOf('uuid');
+				}
+
+				$subSelect = $this->getConnection()->rows(['eshop_attributevalue'])
+					->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
+					->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
+					->where('eshop_attributeassign.fk_product=this.uuid');
+
+				$query .= "(eshop_attributevalue.fk_attribute = \"$attributeKey\" AND (";
+
+				foreach ($attributeValues as $attributeValue) {
+					$query .= "eshop_attributevalue.uuid = \"$attributeValue\" $attribute->filterType ";
+				}
+
+				$query = \substr($query, 0, $attribute->filterType == 'and' ? -4 : -3) . '))';
+
+				$subSelect->where($query);
+
+				$collection->where('EXISTS (' . $subSelect->getSql() . ')');
 			}
-
-			$subSelect = $this->getConnection()->rows(['eshop_attributevalue'])
-				->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
-				->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
-				->where('eshop_attributeassign.fk_product=this.uuid');
-
-			$query .= "(eshop_attributevalue.fk_attribute = \"$attributeKey\" AND (";
-
-			foreach ($attributeValues as $attributeValue) {
-				$query .= "eshop_attributevalue.uuid = \"$attributeValue\" $attribute->filterType ";
-			}
-
-			$query = \substr($query, 0, $attribute->filterType == 'and' ? -4 : -3) . '))';
-
-			$subSelect->where($query);
-
-			$collection->where('EXISTS (' . $subSelect->getSql() . ')');
 		}
 
 		$collection->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=this.uuid');
