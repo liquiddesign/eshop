@@ -565,7 +565,7 @@ class ProductPresenter extends BackendPresenter
 			}
 		}
 
-		if ($product->supplierContentLock) {
+		if ($product->supplierContentLock && isset($form['supplierContent'])) {
 			$form['supplierContent']->setDefaultValue(0);
 		}
 
