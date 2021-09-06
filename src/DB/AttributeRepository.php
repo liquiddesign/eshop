@@ -97,8 +97,8 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 							->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
 							->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
 							->where('eshop_attributeassign.fk_product=this.uuid')
-							->where("eshop_attributevalue.fk_attributevaluerange = '$attributeKey'")
-							->where("eshop_attributevalue.uuid = '$attributeValue'");
+							->where("eshop_attributevalue.fk_attribute = '$attributeKey'")
+							->where("eshop_attributevalue.fk_attributevaluerange = '$attributeValue'");
 					} else {
 						$subSelect = $this->getConnection()->rows(['eshop_attributevalue'])
 							->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
