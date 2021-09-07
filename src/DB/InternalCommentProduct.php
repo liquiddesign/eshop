@@ -40,7 +40,7 @@ class InternalCommentProduct extends \StORM\Entity
 	/**
 	 * Produkt
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
-	public ?Product $product;
+	public Product $product;
 }

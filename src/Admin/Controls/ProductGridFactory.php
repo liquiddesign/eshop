@@ -135,16 +135,16 @@ class ProductGridFactory
 //			$grid->addColumnLink('Parameters', 'Atributy');
 //		}
 
-		$grid->addColumnLink('Prices', 'Ceny');
+		/*$grid->addColumnLink('Prices', 'Ceny');
 		$grid->addColumn(null, function (Product $product, $grid) {
 			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' . $grid->getPresenter()->link('photos', $product) . '"><i title="Obrázky" class="far fa-file-image"></i>&nbsp;' . $product->photoCount . '</a>';
 		});
 		$grid->addColumn(null, function (Product $product, $grid) {
 			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' . $grid->getPresenter()->link('files', $product) . '"><i title="Soubory" class="far fa-file"></i>&nbsp;' . $product->fileCount . '</a>';
 		});
-//		$grid->addColumn(null, function (Product $product, $grid) {
-//			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' . $grid->getPresenter()->link('comments', $product) . '"><i title="Komentáře" class="far fa-comment"></i>&nbsp;' . $product->commentCount . '</a>';
-//		});
+		$grid->addColumn(null, function (Product $product, $grid) {
+			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' . $grid->getPresenter()->link('comments', $product) . '"><i title="Komentáře" class="far fa-comment"></i>&nbsp;' . $product->commentCount . '</a>';
+		});*/
 
 		$grid->addColumnLinkDetail('edit');
 		$grid->addColumnActionDelete([$this, 'onDelete']);
