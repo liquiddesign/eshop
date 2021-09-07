@@ -40,7 +40,7 @@ class InternalCommentOrder extends \StORM\Entity
 	/**
 	 * Objednávky
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
-	public ?Order $order;
+	public Order $order;
 }
