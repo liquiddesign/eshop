@@ -5,14 +5,19 @@
 <style>
     .dz-remove {
         display: inline-block !important;
-        width: 1.2em;
-        height: 1.2em;
 
         position: absolute;
         top: 5px;
         right: 5px;
         z-index: 1000;
+    }
 
+    .dz-remove > .btn-danger:hover {
+        cursor: pointer;
+    }
+
+    .dz-remove > .btn-danger > i:hover {
+        cursor: pointer;
     }
 
     .dz-main {
@@ -24,6 +29,22 @@
         z-index: 1000;
     }
 
+    .dz-main:hover {
+        cursor: pointer;
+    }
+
+    .dz-main > i:hover {
+        cursor: pointer;
+    }
+
+    .dz-main-2:hover {
+        cursor: move;
+    }
+
+    .dz-main-2 > i:hover {
+        cursor: move;
+    }
+
     .dz-main-2 {
         display: inline-block !important;
 
@@ -31,5 +52,11 @@
         top: 5px;
         right: 60px;
         z-index: 1000;
+    }
+
+    .dz-image {
+        border-style: dashed;
+        border-width: 1px;
+        border-color: rgba(0, 0, 0, 0.3);;
     }
 </style>

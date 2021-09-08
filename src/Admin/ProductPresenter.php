@@ -1871,6 +1871,7 @@ Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 		$row = [];
 		$row['name'] = $photo->fileName;
 		$row['size'] = \file_exists($basePath . '/origin/' . $photo->fileName) ? \filesize($basePath . '/origin/' . $photo->fileName) : 0;
+		$row['src'] = $this->getHttpRequest()->getUrl()->withoutUserInfo()->getBaseUrl() . 'userfiles/' . Product::GALLERY_DIR . '/thumb/' . $filename;
 
 		$this->sendJson($row);
 	}
