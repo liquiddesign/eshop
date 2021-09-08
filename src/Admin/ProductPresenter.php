@@ -1856,7 +1856,12 @@ Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 
 		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR;
 
-		$fileUpload->move($basePath . '/origin/' . $filename);
+		try {
+			$fileUpload->move($basePath . '/origin/' . $filename);
+		} catch (\Exception $e) {
+			$this->error('Wrong file!', 500);
+		}
+
 		$imageD = Image::fromFile($basePath . '/origin/' . $filename);
 		$imageT = Image::fromFile($basePath . '/origin/' . $filename);
 		$imageD->resize(600, null);
