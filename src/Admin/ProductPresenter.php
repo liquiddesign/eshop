@@ -267,7 +267,7 @@ class ProductPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 
 		$grid->addFilterTextInput('search', ['fileName'], null, 'Jméno souboru');
-		$grid->addFilterButtons(['files', $this->getParameter('product')]);
+		$grid->addFilterButtons(['this', $this->getParameter('product')]);
 
 		return $grid;
 	}
@@ -346,19 +346,21 @@ class ProductPresenter extends BackendPresenter
 
 	public function createComponentFileForm(): Form
 	{
-		$form = $this->formFactory->create(true);
+		$form = $this->formFactory->create(true, false, false, false, false);
 
 		if (!$this->getParameter('file')) {
 			$form->addFilePicker('fileName', 'Vybrat soubor', \DIRECTORY_SEPARATOR . Product::FILE_DIR)->setRequired();
 		}
 
-		$form->addLocaleText('label', 'Popisek');
+		$form->addLocaleText('label', 'Popisek')->forPrimary(function ($input) {
+			$input->setRequired();
+		});
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
 
 		$form->addHidden('product', (string)$this->getParameter('product'));
 
-		$form->addSubmits(false, false);
+		$form->addSubmit('submit', 'Uložit');
 
 		$form->onSuccess[] = function (Form $form) {
 			$values = $form->getValues('array');
@@ -376,7 +378,7 @@ class ProductPresenter extends BackendPresenter
 			$file = $this->fileRepository->syncOne($values);
 
 			$this->flashMessage('Uloženo', 'success');
-			$this->redirect('files', [new Product(['uuid' => $values['product']])]);
+			$this->redirect('edit', [new Product(['uuid' => $values['product']])]);
 		};
 
 		return $form;
@@ -451,10 +453,10 @@ class ProductPresenter extends BackendPresenter
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
 			['Produkty', 'default'],
-			['Soubory', 'files', $file->product],
+			['Soubory', 'edit', $file->product],
 			['Detail'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('files', $file->product)];
+		$this->template->displayButtons = [$this->createBackButton('edit', $file->product)];
 		$this->template->displayControls = [$this->getComponent('fileForm')];
 	}
 
@@ -463,10 +465,10 @@ class ProductPresenter extends BackendPresenter
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
 			['Produkty', 'default'],
-			['Soubory', 'files', $product],
-			['Nová položka'],
+			['Soubory', 'edit', $product],
+			['Nový soubor'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('files', $product)];
+		$this->template->displayButtons = [$this->createBackButton('edit', $product)];
 		$this->template->displayControls = [$this->getComponent('fileForm')];
 	}
 
@@ -583,6 +585,7 @@ class ProductPresenter extends BackendPresenter
 
 	public function renderEdit(Product $product)
 	{
+		$this->template->product = $product;
 		$this->template->headerLabel = 'Detail - ' . $product->name;
 		$this->template->headerTree = [
 			['Produkty', 'default'],

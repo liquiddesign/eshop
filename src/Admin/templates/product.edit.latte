@@ -72,6 +72,12 @@
                                    role="tab">Galerie</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link {$editTab == 'files' ? 'active show' : ''} productForm-tab"
+                                   id="files" data-toggle="pill"
+                                   href="#files-content"
+                                   role="tab">Soubory</a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link {$editTab == 'comments' ? 'active show' : ''} productForm-tab"
                                    id="comments" data-toggle="pill"
                                    href="#comments-content"
@@ -87,6 +93,8 @@
                                     {foreach $displayButtons as $button}
                                         {$button|noescape}
                                     {/foreach}
+
+                                    <a id="files-new" style="display:none;"><button class="btn btn-success btn-sm"><i class="fa fa-sm fa-plus m-1"></i>Nový soubor</button></a>
                                 </div>
                             </div>
                         </div>
@@ -115,6 +123,15 @@
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+
+                        <div id="files-r-content" style="display: none">
+                            <div id="files-form" style="display:none;">
+                                {control fileForm}
+                                <hr>
+                            </div>
+
+                            {control fileGrid}
                         </div>
 
                         <div id="gallery-r-content" style="display: none">
@@ -179,6 +196,14 @@
                     $('#gallery-r-content').hide();
                 }
 
+                if(search_params.get('editTab') === 'files'){
+                    $('#files-r-content').show();
+                    $('#files-new').show();
+                }else{
+                    $('#files-r-content').hide();
+                    $('#files-new').hide();
+                }
+
                 $('input[name="editTab"]').val(search_params.get('editTab'))
             });
 
@@ -193,6 +218,15 @@
             {if $editTab === 'gallery'}
                 $('#gallery-r-content').show();
             {/if}
+
+            {if $editTab === 'files'}
+                $('#files-r-content').show();
+                $('#files-new').show();
+            {/if}
+
+            $('#files-new').click(function (){
+               $('#files-form').toggle();
+            });
         });
     </script>
 
