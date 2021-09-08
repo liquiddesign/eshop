@@ -108,7 +108,7 @@ class ProductAttributesForm extends Control
 			}
 		}
 
-		$form->processRedirect('edit', 'default', [$this->product]);
+		$form->processRedirect('this', 'default', [$this->product]);
 	}
 
 	public function render()
