@@ -90,14 +90,14 @@
                         <p class="lead">Doprava:</p>
 
                         <div class="d-flex align-items-center">
-                            <img n:if="$purchase->deliveryType->imageFileName" src="{$userUrl|noescape}/deliverytype_images/thumb/{$purchase->deliveryType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
+                            <img n:if="$purchase->deliveryType && $purchase->deliveryType->imageFileName" src="{$userUrl|noescape}/deliverytype_images/thumb/{$purchase->deliveryType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
                             {$purchase->deliveryType ? $purchase->deliveryType->name : null} - {$delivery->shippedTs ? 'Expedováno' : 'Čeká na expedici'}
                         </div>
 
                         <p class="lead mt-4">Platební metoda:</p>
 
                         <div class="d-flex align-items-center">
-                            <img n:if="$purchase->paymentType->imageFileName" src="{$userUrl|noescape}/paymenttype_images/thumb/{$purchase->paymentType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
+                            <img n:if="$purchase->paymentType && $purchase->paymentType->imageFileName" src="{$userUrl|noescape}/paymenttype_images/thumb/{$purchase->paymentType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
                             {$purchase->paymentType ? $purchase->paymentType->name : null} - {$payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
                         </div>
 
