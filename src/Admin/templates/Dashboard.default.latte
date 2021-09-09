@@ -36,7 +36,7 @@
     <section class="content">
         <div class="container-fluid">
             <div class="row">
-                <div class="col-md-8" n:if="$presenter->admin->isAllowed(':Eshop:Admin:Order:detail')">
+                <div class="col-md-8" n:if="$presenter->admin->isAllowed(':Eshop:Admin:Order:printDetail')">
                     <div class="card">
                         <div class="card-header border-transparent">
                             <h3 class="card-title">Objednávky / Poptávky</h3>
@@ -91,7 +91,7 @@
                                             {/if}
                                         </td>
                                         <td>{$order->getState()}</td>
-                                        <td><a href="{plink :Eshop:Admin:Order:detail, $order}"><i
+                                        <td><a href="{plink :Eshop:Admin:Order:printDetail, $order}"><i
                                                         class="fa fa-external-link-alt fa-sm"></i>&nbsp;Detail</a></td>
                                     </tr>
                                     </tbody>
