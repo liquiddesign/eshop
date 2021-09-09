@@ -147,24 +147,24 @@ class OrderGridFactory
 		$grid->addButtonBulkEdit('form', ['completedTs', 'canceledTs'], 'ordersGrid');
 		
 		if ($state === 'open') {
-			$submit = $grid->getForm()->addSubmit('closeMultiple');
+			$submit = $grid->getForm()->addSubmit('closeMultiple', 'Uzavřít úpravy');
 			$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')->setHtml('<i class="fa fa-check"></i> Uzavřít úpravy');
 			$submit->onClick[] = [$this, 'closeOrderMultiple'];
 		}
 		
 		if ($state !== 'finished' && $state !== 'open') {
-			$submit = $grid->getForm()->addSubmit('completeMultiple');
+			$submit = $grid->getForm()->addSubmit('completeMultiple', 'Zpracovat');
 			$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')->setHtml('<i class="fa fa-check"></i> Zpracovat');
 			$submit->onClick[] = [$this, 'completeOrderMultiple'];
 		}
 		
 		if ($state !== 'canceled' && $state !== 'open') {
-			$submit = $grid->getForm()->addSubmit('cancelMultiple');
+			$submit = $grid->getForm()->addSubmit('cancelMultiple', 'Stornovat');
 			$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')->setHtml('<i class="fa fa-times"></i> Stornovat');
 			$submit->onClick[] = [$this, 'cancelOrderMultiple'];
 		}
 		
-		$submit = $grid->getForm()->addSubmit('exportZasilkovna');
+		$submit = $grid->getForm()->addSubmit('exportZasilkovna', 'Export pro Zásilkovnu');
 		$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')->setHtml('<i class="fa fa-download"></i> Export pro Zásilkovnu');
 		$submit->onClick[] = [$this, 'exportZasilkovna'];
 
