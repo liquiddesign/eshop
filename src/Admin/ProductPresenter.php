@@ -1841,6 +1841,8 @@ Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 
 	public function handleDropzoneUploadPhoto()
 	{
+		$this->createDirectories();
+
 		/** @var Product $product */
 		$product = $this->getParameter('product');
 
