@@ -69,6 +69,8 @@ class ProductAttributesGridFactory
 
 	public ?string $category;
 
+	private array $attributes = [];
+
 	public function __construct(
 		\Admin\Controls\AdminGridFactory $gridFactory,
 		Container $container,
@@ -146,13 +148,13 @@ class ProductAttributesGridFactory
 			}
 
 			/** @var Attribute[] $attributes */
-			$attributes = $this->attributeRepository->getAttributesByCategories([$category], true);
+			$this->attributes = $attributes = $this->attributeRepository->getAttributesByCategories([$category], true)->toArray();
 
 			foreach ($attributes as $attribute) {
 				$values = $this->attributeRepository->getAttributeValues($attribute, true);
 
 				$column = $grid->addColumnInput($attribute->name, $attribute->getPK(), function () use ($values, $grid, $attribute) {
-					$selectBox = new MultiSelectBox(null, [null => '---Vymazat---'] + $values->toArrayOf('internalLabel'));
+					$selectBox = new MultiSelectBox(null, $values->toArrayOf('internalLabel'));
 					$selectBox->setHtmlAttribute('class', 'form-control form-control-sm');
 					$selectBox->setHtmlAttribute('style', 'max-width: 50px;');
 					$selectBox->checkDefaultValue(false);
@@ -184,18 +186,26 @@ class ProductAttributesGridFactory
 					continue;
 				}
 
-				$possibleValues = $this->attributeValueRepository->many()->where('fk_attribute', $column)->toArray();
+				foreach ($row as $product => $values) {
+					$this->attributeAssignRepository->many()
+						->join(['attributeValues' => 'eshop_attributevalue'], 'this.fk_value = attributeValues.uuid')
+						->where('this.fk_product', $product)
+						->where('attributeValues.fk_attribute', \array_keys($this->attributes))
+						->delete();
+				}
+			}
+
+			foreach ($data as $column => $row) {
+				if (!\is_array($row)) {
+					continue;
+				}
 
 				foreach ($row as $product => $values) {
-					$this->attributeAssignRepository->many()->where('fk_product', $product)->where('fk_value', \array_keys($possibleValues))->delete();
-
-					if (!Arrays::contains($values, '')) {
-						foreach ($values as $value) {
-							$this->attributeAssignRepository->syncOne([
-								'value' => $value,
-								'product' => $product
-							]);
-						}
+					foreach ($values as $value) {
+						$this->attributeAssignRepository->syncOne([
+							'value' => $value,
+							'product' => $product
+						]);
 					}
 				}
 			}
