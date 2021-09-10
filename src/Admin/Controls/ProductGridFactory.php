@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Eshop\Admin\Controls;
 
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\CategoryType;
+use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\InternalRibbonRepository;
 use Eshop\DB\PricelistRepository;
@@ -16,6 +18,7 @@ use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\TagRepository;
 use Eshop\Shopper;
+use StORM\Connection;
 use Web\DB\PageRepository;
 use Grid\Datagrid;
 use Nette\DI\Container;
@@ -54,6 +57,10 @@ class ProductGridFactory
 
 	private ProductGridFiltersFactory $productGridFiltersFactory;
 
+	private CategoryTypeRepository $categoryTypeRepository;
+
+	private Connection $connection;
+
 	public function __construct(
 		\Admin\Controls\AdminGridFactory $gridFactory,
 		Container $container,
@@ -69,7 +76,9 @@ class ProductGridFactory
 		PricelistRepository $pricelistRepository,
 		DisplayAmountRepository $displayAmountRepository,
 		Shopper $shopper,
-		ProductGridFiltersFactory $productGridFiltersFactory
+		ProductGridFiltersFactory $productGridFiltersFactory,
+		CategoryTypeRepository $categoryTypeRepository,
+		Connection $connection
 	)
 	{
 		$this->productRepository = $productRepository;
@@ -86,6 +95,8 @@ class ProductGridFactory
 		$this->pricelistRepository = $pricelistRepository;
 		$this->displayAmountRepository = $displayAmountRepository;
 		$this->productGridFiltersFactory = $productGridFiltersFactory;
+		$this->categoryTypeRepository = $categoryTypeRepository;
+		$this->connection = $connection;
 	}
 
 	public function create(array $configuration): Datagrid
@@ -158,7 +169,33 @@ class ProductGridFactory
 			$bulkColumns = \array_merge($bulkColumns, ['buyCount']);
 		}
 
-		$grid->addButtonBulkEdit('productForm', $bulkColumns, 'productGrid');
+		$grid->addButtonBulkEdit('productForm', $bulkColumns, 'productGrid', 'bulkEdit', 'Hromadná úprava', 'bulkEdit', 'default', null,
+			function ($id, Product $object, $values, $relations) {
+				foreach ($relations as $relationName => $categories) {
+					$name = \explode('_', $relationName);
+
+					if (\count($name) !== 2 || $name[0] !== 'categories') {
+						continue;
+					}
+
+					$this->connection->rows(['nxn' => 'eshop_product_nxn_eshop_category'])
+						->join(['category' => 'eshop_category'], 'nxn.fk_category = category.uuid')
+						->where('category.fk_type', $name[1])
+						->where('nxn.fk_product', $id)
+						->delete();
+
+					unset($relations[$relationName]);
+
+					if (\count($categories) === 0) {
+						continue;
+					}
+
+					$object->categories->relate($categories);
+				}
+
+				return [$values, $relations];
+			}
+		);
 
 		$submit = $grid->getForm()->addSubmit('join', 'Sloučit')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 

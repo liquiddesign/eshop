@@ -537,22 +537,15 @@ class ProductPresenter extends BackendPresenter
 		/** @var CategoryType[] $categoryTypes */
 		$categoryTypes = $this->categoryTypeRepository->getCollection(true)->toArray();
 
-		/** @var Category[] $selectedCategories */
-		$selectedCategories = (clone $product->categories)->toArray();
+		$productData = $product->toArray(['ribbons', 'internalRibbons', 'parameterGroups', 'taxes', 'categories']);
 
 		foreach ($categoryTypes as $categoryType) {
-			$defaults = [];
-
-			foreach ($selectedCategories as $selectedCategory) {
-				if ($selectedCategory->getValue('type') == $categoryType->getPK()) {
-					$defaults = $selectedCategory->getPK();
-				}
-			}
-
-			$form['categories'][$categoryType->getPK()]->setDefaultValue($defaults);
+			$form['categories'][$categoryType->getPK()]
+				->checkDefaultValue(false)
+				->setDefaultValue($productData['categories']);
 		}
 
-		$form->setDefaults($product->toArray(['ribbons', 'internalRibbons', 'parameterGroups', 'taxes']));
+		$form->setDefaults($productData);
 		$form['alternative']->setValue($product->alternative ? $product->getValue('alternative') : null);
 
 		if (isset($form['upsells'])) {
