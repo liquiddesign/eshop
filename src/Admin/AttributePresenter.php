@@ -259,6 +259,7 @@ class AttributePresenter extends BackendPresenter
 		$grid->addButtonDeleteSelected(null, false, function (AttributeValue $attributeValue) {
 			return !$this->attributeValueRepository->isValuePairedWithProducts($attributeValue);
 		});
+		$grid->addButtonBulkEdit('valuesForm',['attributeValueRange'],'valuesGrid');
 
 		$grid->addFilterTextInput('search', ['this.code', 'this.label_cs'], null, 'Kód, popisek');
 		$grid->addFilterTextInput('attribute', ['attribute.code'], null, 'Kód atributu', null, '%s');
