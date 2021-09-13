@@ -32,7 +32,7 @@ class RibbonPresenter extends BackendPresenter
 
 	/** @inject */
 	public RibbonRepository $ribbonRepository;
-	
+
 	/** @inject */
 	public InternalRibbonRepository $internalRibbonRepository;
 
@@ -46,18 +46,18 @@ class RibbonPresenter extends BackendPresenter
 		'normal' => 'Běžný',
 		'onlyImage' => 'Pouze obrázek'
 	];
-	
+
 	public function beforeRender()
 	{
 		parent::beforeRender();
-		
+
 		$this->template->tabs = [
 			'@default' => 'Veřejné',
 			'@internal' => 'Interní',
 		];
 	}
-	
-	
+
+
 	public function createComponentGrid()
 	{
 		$grid = $this->gridFactory->create($this->ribbonRepository->many(), 20, 'priority');
@@ -92,7 +92,7 @@ class RibbonPresenter extends BackendPresenter
 
 		return $grid;
 	}
-	
+
 	public function createComponentInternalGrid()
 	{
 		$grid = $this->gridFactory->create($this->internalRibbonRepository->many(), 20, 'priority');
@@ -101,47 +101,52 @@ class RibbonPresenter extends BackendPresenter
 		$columnText = $grid->addColumnText('Barva textu', 'color', '%s', 'color');
 		$columnBackground = $grid->addColumnText('Barva pozadí', 'backgroundColor', '%s', 'backgroundColor');
 		$grid->addColumnLinkDetail('InternalDetail');
-		$grid->addColumnActionDelete();
-		
+		$grid->addColumnActionDeleteSystemic();
+
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected();
-		
+		$grid->addButtonDeleteSelected(null, false, function ($object) {
+			if ($object) {
+				return !$object->isSystemic();
+			}
+
+			return false;
+		});
+
 		$grid->onRenderRow[] = function (\Nette\Utils\Html $tr, InternalRibbon $object) use ($columnText, $columnBackground) {
 			$tr[$columnText->getId()]->setAttribute('style', "color: $object->color");
 			$tr[$columnBackground->getId()]->setAttribute('style', "color: $object->backgroundColor");
 		};
-		
+
 		$grid->addFilterTextInput('search', ['name_cs'], null, 'Popisek');
 		$grid->addFilterButtons();
-		
+
 		return $grid;
 	}
-	
+
 	public function createComponentInternalForm(): Form
 	{
 		$form = $this->formFactory->create(true);
-		
+
 		$form->addText('name', 'Název')->setRequired(true);
-		
+
 		$ribbon = $this->getParameter('ribbon');
-		
+
 		$form->addColor('color', 'Barva textu');
-		$form->addColor('backgroundColor', 'Barva pozadí');
-		;
+		$form->addColor('backgroundColor', 'Barva pozadí');;
 		$form->addSubmits(!$ribbon);
-		
+
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
-			
+
 			$ribbon = $this->internalRibbonRepository->syncOne($values);
-			
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('internalDetail', 'internal', [$ribbon]);
 		};
-		
+
 		return $form;
 	}
-	
+
 	public function createComponentForm(): Form
 	{
 		$form = $this->formFactory->create(true);
@@ -227,7 +232,7 @@ class RibbonPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createNewItemButton('new')];
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
-	
+
 	public function renderInternal()
 	{
 		$this->template->headerLabel = 'Interní štítky';
@@ -237,7 +242,7 @@ class RibbonPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createNewItemButton('internalNew')];
 		$this->template->displayControls = [$this->getComponent('internalGrid')];
 	}
-	
+
 	public function renderNew()
 	{
 		$this->template->headerLabel = 'Nový veřejný štítek';
@@ -249,7 +254,7 @@ class RibbonPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('form')];
 		$this->template->activeTab = 'default';
 	}
-	
+
 	public function renderInternalNew()
 	{
 		$this->template->headerLabel = 'Nový interní štítek';
@@ -261,7 +266,7 @@ class RibbonPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('internalForm')];
 		$this->template->activeTab = 'internal';
 	}
-	
+
 	public function renderDetail()
 	{
 		$this->template->headerLabel = 'Detail veřejného štítku';
@@ -285,7 +290,7 @@ class RibbonPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('internalForm')];
 		$this->template->activeTab = 'internal';
 	}
-	
+
 	public function actionInternalDetail(InternalRibbon $ribbon)
 	{
 		/** @var Form $form */

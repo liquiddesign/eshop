@@ -126,6 +126,15 @@ class SupplierProductRepository extends \StORM\Repository
 			} else {
 				$result['inserted']++;
 			}
+
+			try {
+				$productRepository->getConnection()->syncRow('eshop_product_nxn_eshop_internalribbon', [
+					'fk_product' => $product->getPK(),
+					'fk_internalribbon' => 'novy_import'
+				]);
+			} catch (\Exception $e) {
+
+			}
 			
 			if (isset($productsMap[$uuid]) && $productsMap[$uuid]->contentLock) {
 				$result['locked']++;

@@ -27,4 +27,15 @@ class InternalRibbon extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $backgroundColor;
+
+	/**
+	 * Systemic
+	 * @column
+	 */
+	public bool $systemic = false;
+
+	public function isSystemic(): bool
+	{
+		return $this->systemic;
+	}
 }
