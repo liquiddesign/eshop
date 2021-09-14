@@ -16,7 +16,7 @@ class CountryPresenter extends BackendPresenter
 {
 	/** @inject */
 	public CountryRepository $countryRepository;
-	
+
 	/** @inject */
 	public VatRateRepository $vatRateRepository;
 
@@ -30,43 +30,47 @@ class CountryPresenter extends BackendPresenter
 
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit']);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
-		
+
 		$grid->addColumnLink('vats', 'DPH');
 		$grid->addColumnLinkDetail('Detail');
 
 		//$grid->addButtonSaveAll();
 
-		$grid->addFilterTextInput('search', ['name','code'], null, 'Název, kód');
+		$grid->addFilterTextInput('search', ['name', 'code'], null, 'Název, kód');
 		$grid->addFilterButtons();
 
 		return $grid;
 	}
-	
+
 	public function createComponentVatGrid()
 	{
 		$grid = $this->gridFactory->create($this->vatRateRepository->many()->where('fk_country', $this->getParameter('country')), 20, 'priority', 'ASC', true);
 		$grid->addColumnSelector();
-		
+
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumnText('Výše', 'rate', '%s %%', 'rate');
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
-		
+
 		$grid->addColumnLinkDetail('vatDetail');
-		
+
 		$grid->addButtonSaveAll();
-		
+
 		$grid->addFilterTextInput('search', ['this.name'], null, 'Název');
 		$grid->addFilterButtons();
-		
+
 		return $grid;
 	}
-	
+
 	public function createComponentNewForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
 
 		$form->addText('code', 'Kód');
 		$form->addText('name', 'Název');
+		$form->addInteger('orderCodeStartNumber', 'Počáteční číslo objednávek')
+			->setDefaultValue(1)
+			->setRequired()
+			->setHtmlAttribute('data-info', 'Např.: pokud bude nastaveno na 5 tak první objednávka bude mít kód #X202100005.');
 		$form->addSubmits();
 
 		$form->onSuccess[] = function (AdminForm $form) {
@@ -80,29 +84,29 @@ class CountryPresenter extends BackendPresenter
 
 		return $form;
 	}
-	
+
 	public function createComponentVatForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
-		
+
 		$form->addText('name', 'Název');
 		$form->addText('rate', 'Výše')->addRule($form::FLOAT)->setRequired();
-		$form->addHidden('country', (string) $this->getParameter('vat')->country);
+		$form->addHidden('country', (string)$this->getParameter('vat')->country);
 		$form->addText('priority', 'Priorita')
 			->addRule($form::INTEGER)
 			->setRequired()
 			->setDefaultValue(10);
 		$form->addSubmits(false, false);
-		
+
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
-			
+
 			$this->vatRateRepository->syncOne($values, null, true);
-			
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('vats', 'vats', [], [$this->getParameter('vat')->country]);
 		};
-		
+
 		return $form;
 	}
 
@@ -115,7 +119,7 @@ class CountryPresenter extends BackendPresenter
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
-	
+
 	public function renderVats(Country $country)
 	{
 		$this->template->headerLabel = 'Země a DPH: ' . $country->name;
@@ -155,7 +159,7 @@ class CountryPresenter extends BackendPresenter
 
 		$form->setDefaults($country->toArray());
 	}
-	
+
 	public function renderVatDetail(VatRate $vat)
 	{
 		$this->template->headerLabel = 'Detail';
@@ -166,12 +170,12 @@ class CountryPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('vats', ['country' => $vat->country])];
 		$this->template->displayControls = [$this->getComponent('vatForm')];
 	}
-	
+
 	public function actionVatDetail(VatRate $vat)
 	{
 		/** @var Form $form */
 		$form = $this->getComponent('vatForm');
-		
+
 		$form->setDefaults($vat->toArray());
 	}
 }

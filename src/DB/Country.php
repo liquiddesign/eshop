@@ -30,6 +30,12 @@ class Country extends \StORM\Entity
 	 * @column
 	 */
 	public string $orderCodeFormat = 'X%2$s%1$05d';
+
+	/**
+	 * Prefix kódu objednávky
+	 * @column
+	 */
+	public int $orderCodeStartNumber = 1;
 	
 	/**
 	 * Úroveň DPH pro dopravy

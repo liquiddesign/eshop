@@ -994,7 +994,7 @@ class CheckoutManager
 		}
 		
 		$year = \date('Y');
-		$code = \vsprintf($this->shopper->getCountry()->orderCodeFormat, [$this->orderRepository->many()->where('YEAR(this.createdTs)', $year)->enum() + 1, $year]);
+		$code = \vsprintf($this->shopper->getCountry()->orderCodeFormat, [$this->orderRepository->many()->where('YEAR(this.createdTs)', $year)->enum() + $this->shopper->getCountry()->orderCodeStartNumber, $year]);
 		
 		$orderValues = [
 			'code' => $code,
