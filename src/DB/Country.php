@@ -32,7 +32,7 @@ class Country extends \StORM\Entity
 	public string $orderCodeFormat = 'X%2$s%1$05d';
 
 	/**
-	 * Prefix kódu objednávky
+	 * Počáteční číslo kódu objednávky
 	 * @column
 	 */
 	public int $orderCodeStartNumber = 1;
