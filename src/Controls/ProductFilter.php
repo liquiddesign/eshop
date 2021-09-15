@@ -40,16 +40,16 @@ class ProductFilter extends Control
 	private ?array $selectedCategories;
 
 	public function __construct(
-		FormFactory $formFactory,
-		TranslationRepository $translator,
-		CategoryRepository $categoryRepository,
-		ProductRepository $productRepository,
-		AttributeRepository $attributeRepository,
-		AttributeValueRepository $attributeValueRepository,
-		DisplayAmountRepository $displayAmountRepository,
-		DisplayDeliveryRepository $displayDeliveryRepository,
+		FormFactory                   $formFactory,
+		TranslationRepository         $translator,
+		CategoryRepository            $categoryRepository,
+		ProductRepository             $productRepository,
+		AttributeRepository           $attributeRepository,
+		AttributeValueRepository      $attributeValueRepository,
+		DisplayAmountRepository       $displayAmountRepository,
+		DisplayDeliveryRepository     $displayDeliveryRepository,
 		AttributeValueRangeRepository $attributeValueRangeRepository,
-		array $configuration = []
+		array                         $configuration = []
 	)
 	{
 		$this->translator = $translator;
@@ -126,6 +126,11 @@ class ProductFilter extends Control
 		/** @var Attribute[] $attributes */
 		$attributes = $this->attributeRepository->getAttributesByCategories($this->getSelectedCategories())->where('showFilter', true);
 
+		/** @var ProductList $parent */
+		$parent = $this->getParent();
+
+		$defaults = $parent->getFilters()['attributes'] ?? [];
+
 		foreach ($attributes as $attribute) {
 			$attributeValues = $attribute->showRange ?
 				$this->attributeValueRangeRepository->many()
@@ -138,15 +143,14 @@ class ProductFilter extends Control
 				continue;
 			}
 
-			$attributesContainer->addCheckboxList($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
+			$checkboxList = $attributesContainer->addCheckboxList($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
+
+			if (isset($defaults[$attribute->getPK()])) {
+				$checkboxList->setDefaultValue($defaults[$attribute->getPK()]);
+			}
 		}
 
 		$filterForm->addSubmit('submit', $this->translator->translate('filter.showProducts', 'Zobrazit produkty'));
-
-		/** @var ProductList $parent */
-		$parent = $this->getParent();
-
-		$filterForm->setDefaults($parent->getFilters()['attributes'] ?? []);
 
 		$filterForm->onValidate[] = function (Form $form) {
 			$values = $form->getValues();
