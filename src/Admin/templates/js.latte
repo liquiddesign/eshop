@@ -86,20 +86,20 @@
                         <b>Doprava:</b>
 
                         <div class="d-flex align-items-center">
-                            <img n:if="$purchase->deliveryType && $purchase->deliveryType->imageFileName"
-                                    src="{$userUrl|noescape}/deliverytype_images/thumb/{$purchase->deliveryType->imageFileName}"
+                            <img n:if="$delivery && $delivery->type && $delivery->type->imageFileName"
+                                    src="{$userUrl|noescape}/deliverytype_images/thumb/{$delivery->type->imageFileName}"
                                     loading="lazy" alt="" style="height: 32px;"/>
-                            {$purchase->deliveryType ? $purchase->deliveryType->name : null} - {$delivery->shippedTs ? 'Expedováno' : 'Čeká na expedici'}
+                            {$delivery ? $delivery->typeName : null}{if $delivery}{$delivery->shippedTs ? ' - Expedováno' : ' - Čeká na expedici'}{else}<i>Nezadáno</i>{/if}
                         </div>
                     </div>
                     <div class="mt-2">
                         <b>Platební metoda:</b>
 
                         <div class="d-flex align-items-center">
-                            <img n:if="$purchase->paymentType && $purchase->paymentType->imageFileName"
-                                    src="{$userUrl|noescape}/paymenttype_images/thumb/{$purchase->paymentType->imageFileName}"
+                            <img n:if="$payment && $payment->type && $payment->type->imageFileName"
+                                    src="{$userUrl|noescape}/paymenttype_images/thumb/{$payment->type->imageFileName}"
                                     loading="lazy" alt="" style="height: 32px;"/>
-                            {$purchase->paymentType ? $purchase->paymentType->name : null} - {$payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
+                            {$payment ? $payment->typeName : null}{if $payment}{$payment->paidTs ? ' - Zaplaceno' : ' - Čeká na zaplacení'}{else}<i>Nezadáno</i>{/if}
                         </div>
                     </div>
 

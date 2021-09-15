@@ -129,7 +129,7 @@
                                     <td>{$packageItem->amount}</td>
                                     <td>
                                         {if $packageItem->store}{$packageItem->store->name}{/if}
-                                        <a n:if="$item->product" class="modalStoreOrderItemForm d-print-none" data-toggle="modal" data-target="#modal-storeOrderItemForm" data-values="{json_encode(['uuid' => $item->getPK(), 'store' => $packageItem->store->getPK(), 'amounts' => $item->product->getStoreAmounts(), 'prices' => $item->product->getSupplierPrices()])}" href="#"><i class="far fa-edit"></i></a><br>
+                                        <a n:if="$item->product" class="modalStoreOrderItemForm d-print-none" data-toggle="modal" data-target="#modal-storeOrderItemForm" data-values="{json_encode(['uuid' => $item->getPK(), 'store' => $packageItem->store ? $packageItem->store->getPK() : null, 'amounts' => $item->product->getStoreAmounts(), 'prices' => $item->product->getSupplierPrices()])}" href="#"><i class="far fa-edit"></i></a><br>
                                         <span n:if="$packageItem->status === 'waiting'" class="text-secondary"><i class="far fa-square"></i> Nepotrvzeno</span>
                                         <span n:if="$packageItem->status === 'reserved'" class="text-success"><i class="fa fa-check"></i> Rezervovano</span>
                                     </td>
