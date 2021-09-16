@@ -1,11 +1,10 @@
-<script src="https://cdn.jsdelivr.net/gh/StephanWagner/jBox@v1.3.2/dist/jBox.all.min.js"></script>
 <script src="{$baseUrl}/vendor/liquiddesign/eshop/src/assets/dropzone/dropzone.min.js"></script>
 <script src="{$baseUrl}/vendor/liquiddesign/eshop/src/assets/html5sortable/html5sortable.min.js"></script>
 
 {varType Eshop\DB\Order $order}
 {varType Eshop\DB\Purchase $purchase}
 {ifset $ordersForJBOX}
-
+    <script src="https://cdn.jsdelivr.net/gh/StephanWagner/jBox@v1.3.2/dist/jBox.all.min.js"></script>
     {foreach $ordersForJBOX as $order}
         {do $purchase = $order->purchase}
         {do $billingAddress = $purchase->billAddress}
