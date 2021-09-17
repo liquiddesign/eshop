@@ -7,6 +7,7 @@ namespace Eshop\DB;
 /**
  * Skladové množství
  * @table
+ * @index{"name":"amount_unique_product_store","unique":true,"columns":["fk_product","fk_store"]}
  */
 class Amount extends \StORM\Entity
 {
