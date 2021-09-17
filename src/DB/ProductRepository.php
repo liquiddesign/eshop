@@ -155,8 +155,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 
 		$collection->where(\implode(' OR ', $priceWhere));
-		$collection->where("this.draft$suffix = 0 AND this.fk_alternative IS NULL");
-
+		
 		return $collection;
 	}
 
