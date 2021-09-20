@@ -26,6 +26,12 @@ class Related extends \StORM\Entity
 	public int $priority = 10;
 
 	/**
+	 * Množství
+	 * @column
+	 */
+	public int $amount = 1;
+
+	/**
 	 * Skryto
 	 * @column
 	 */
