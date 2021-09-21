@@ -63,6 +63,10 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 
 	public function importCsv(Reader $reader)
 	{
+		if (!\ini_get("auto_detect_line_endings")) {
+			\ini_set("auto_detect_line_endings", '1');
+		}
+
 		$reader->setDelimiter(';');
 		$reader->setHeaderOffset(0);
 

@@ -68,10 +68,16 @@ class RelatedPresenter extends BackendPresenter
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'this.hidden');
 
 		$grid->addColumnLinkDetail('detailRelation');
-		$grid->addColumnActionDelete();
+		$grid->addColumnActionDeleteSystemic();
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(null, false, function ($object) {
+			if ($object) {
+				return !$object->isSystemic();
+			}
+
+			return false;
+		});
 
 		$types = $this->relatedTypeRepository->getArrayForSelect();
 
@@ -215,7 +221,13 @@ class RelatedPresenter extends BackendPresenter
 		$grid->addColumnActionDeleteSystemic();
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(null, false, function ($object) {
+			if ($object) {
+				return !$object->isSystemic();
+			}
+
+			return false;
+		});
 
 		$grid->addFilterTextInput('search', ['name_cs', 'code'], 'Kód, název', 'Kód, název');
 		$grid->addFilterButtons();

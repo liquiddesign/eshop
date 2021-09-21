@@ -38,6 +38,18 @@ class Related extends \StORM\Entity
 	public bool $hidden = false;
 
 	/**
+	 * Systemic
+	 * @column
+	 */
+	public bool $systemic = false;
+
+	/**
+	 * Readonly
+	 * @column
+	 */
+	public bool $readonly = false;
+
+	/**
 	 * Master produkt
 	 * @relation
 	 * @constraint
@@ -50,4 +62,9 @@ class Related extends \StORM\Entity
 	 * @constraint
 	 */
 	public Product $slave;
+
+	public function isSystemic(): bool
+	{
+		return $this->systemic;
+	}
 }

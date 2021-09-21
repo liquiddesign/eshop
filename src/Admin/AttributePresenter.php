@@ -134,7 +134,7 @@ class AttributePresenter extends BackendPresenter
 		$grid->addColumnActionDeleteSystemic();
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected(null, true, function ($object) {
+		$grid->addButtonDeleteSelected(null, false, function ($object) {
 			if ($object) {
 				return !$object->isSystemic();
 			}
