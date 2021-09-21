@@ -54,6 +54,7 @@ use Web\DB\SettingRepository;
  * @method onCustomerCreate(\Eshop\DB\Customer $customer)
  * @method onOrderCreate(\Eshop\DB\Order $order)
  * @method onCartItemDelete()
+ * @method onCartItemCreate(\Eshop\DB\CartItem $cartItem)
  * @package Eshop
  */
 class CheckoutManager
@@ -74,6 +75,11 @@ class CheckoutManager
 	 * @var callable[]&callable(): void; Occurs after cart item delete
 	 */
 	public $onCartItemDelete;
+
+	/**
+	 * @var callable[]&callable(\Eshop\DB\CartItem): void; Occurs after cart item create
+	 */
+	public $onCartItemCreate;
 
 	private ?string $cartToken;
 
@@ -466,6 +472,10 @@ class CheckoutManager
 		if ($item = $this->itemRepository->getItem($cart ?? $this->getCart(), $product, $variant)) {
 			$this->changeItemAmount($product, $variant, $replaceMode ? $amount : $item->amount + $amount, $checkInvalidAmount, $cart);
 
+			if ($this->onCartItemCreate) {
+				$this->onCartItemCreate($item);
+			}
+
 			return $item;
 		}
 
@@ -488,6 +498,10 @@ class CheckoutManager
 		$this->refreshSumProperties();
 
 		$this->createSetItems($cartItem);
+
+		if ($this->onCartItemCreate) {
+			$this->onCartItemCreate($cartItem);
+		}
 
 		return $cartItem;
 	}
