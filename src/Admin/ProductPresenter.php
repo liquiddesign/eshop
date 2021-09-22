@@ -1399,8 +1399,6 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 				continue;
 			}
 
-			$this->attributeAssignRepository->many()->where('fk_product', $product->getPK())->delete();
-
 			foreach ($record as $key => $value) {
 				$key = \array_search($key, $parsedHeader);
 
@@ -1408,9 +1406,15 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 					continue;
 				}
 
-				$attributes = Strings::contains($value, ':') ? \explode(':', $value) : [$value];
+				$this->attributeAssignRepository->many()
+					->join(['eshop_attributevalue'], 'this.fk_value = eshop_attributevalue.uuid')
+					->where('this.fk_product', $product->getPK())
+					->where('eshop_attributevalue.fk_attribute', $key)
+					->delete();
 
-				foreach ($attributes as $attributeString) {
+				$attributeValues = Strings::contains($value, ':') ? \explode(':', $value) : [$value];
+
+				foreach ($attributeValues as $attributeString) {
 					if (Strings::contains($attributeString, '#')) {
 						$attributeValueCode = \explode('#', $attributeString);
 
