@@ -7,19 +7,16 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\Admin\Controls\ICategoryFormFactory;
 use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
-use Eshop\DB\ParameterCategoryRepository;
 use Forms\Form;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;
-use Nette\Utils\Image;
-use Nette\Utils\Random;
-use Pages\DB\PageRepository;
-use Pages\Helpers;
-use StORM\DIConnection;
+use Nette\Utils\FileSystem;
+use Web\DB\PageRepository;
 use StORM\Entity;
 
 class CategoryPresenter extends BackendPresenter
@@ -34,15 +31,18 @@ class CategoryPresenter extends BackendPresenter
 	public PageRepository $pageRepository;
 
 	/** @inject */
-	public ParameterCategoryRepository $parameterCategoryRepository;
+	public CategoryTypeRepository $categoryTypeRepository;
 
 	/** @inject */
-	public CategoryTypeRepository $categoryTypeRepository;
+	public ICategoryFormFactory $categoryFormFactory;
 
 	private array $tabs = [];
 
 	/** @persistent */
 	public string $tab = 'none';
+
+	/** @persistent */
+	public string $editTab = 'menu0';
 
 	public function createComponentCategoryGrid()
 	{
@@ -72,36 +72,6 @@ class CategoryPresenter extends BackendPresenter
 			$level = \strlen($object->path) / 4 - 1;
 			$td->setHtml(\str_repeat('- - ', $level) . $td->getHtml());
 		};
-
-//		$grid->addColumn('Kategorie parametrů', function (Category $object, $datagrid) {
-//			$string = '';
-//
-//			if ($parameterCategories = $this->categoryRepository->getParameterCategoriesOfCategory($object)) {
-//				foreach ($parameterCategories as $parameterCategory) {
-//					$link = $this->admin->isAllowed(':Eshop:Admin:Parameter:parameterCategoryDetail') ?
-//						$datagrid->getPresenter()->link(':Eshop:Admin:Parameter:parameterCategoryDetail', [$parameterCategory, 'backLink' => $this->storeRequest()]) : '#';
-//
-//					$string .= "<a href='$link'>" . $parameterCategory->name . "</a>, ";
-//				}
-//			}
-//
-//			return \substr($string, 0, -2);
-//		}, '%s');
-
-//		$grid->addColumn('Kategorie atributů', function (Category $object, $datagrid) {
-//			$string = '';
-//
-//			if ($parameterCategories = $this->categoryRepository->getAttributeCategoriesOfCategory($object)) {
-//				foreach ($parameterCategories as $parameterCategory) {
-//					$link = $this->admin->isAllowed(':Eshop:Admin:Attribute:categoryDetail') ?
-//						$datagrid->getPresenter()->link(':Eshop:Admin:Attribute:categoryDetail', [$parameterCategory, 'backLink' => $this->storeRequest()]) : '#';
-//
-//					$string .= "<a href='$link'>" . $parameterCategory->name . "</a>, ";
-//				}
-//			}
-//
-//			return \substr($string, 0, -2);
-//		}, '%s');
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'this.priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
@@ -144,107 +114,9 @@ class CategoryPresenter extends BackendPresenter
 		}
 	}
 
-	public function createComponentCategoryNewForm(): Form
+	public function createComponentCategoryForm(): Controls\CategoryForm
 	{
-		$form = $this->formFactory->create(true);
-
-		$form->addText('code', 'Kód');
-
-		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
-			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
-			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => static function (Image $image): void {
-				$image->resize(600, null);
-			},
-			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
-				$image->resize(300, null);
-			},
-		]);
-
-		$category = $this->getParameter('category');
-
-		$imagePicker->onDelete[] = function (array $directories, $filename) use ($category) {
-			$this->onDeleteImage($category);
-			$this->redirect('this');
-		};
-
-		$imagePicker = $form->addImagePicker('productFallbackImageFileName', 'Placeholder produktů', [
-			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
-			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => static function (Image $image): void {
-				$image->resize(600, null);
-			},
-			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
-				$image->resize(300, null);
-			},
-		]);
-
-		$imagePicker->onDelete[] = function (array $directories, $filename) use ($category) {
-			$this->onDeleteImage($category, 'productFallbackImageFileName');
-			$this->redirect('this');
-		};
-
-		$nameInput = $form->addLocaleText('name', 'Název');
-		$form->addLocalePerexEdit('perex', 'Perex');
-		$form->addLocaleRichEdit('content', 'Obsah');
-
-		$categories = $this->categoryRepository->getTreeArrayForSelect(false, $this->tab);
-
-		if ($this->getParameter('category')) {
-			unset($categories[$this->getParameter('category')->getPK()]);
-		}
-
-		$form->addDataSelect('ancestor', 'Nadřazená kategorie', $categories)->setPrompt('Žádná');
-//		$form->addDataMultiSelect('parameterCategories', 'Kategorie parametrů', $this->parameterCategoryRepository->getArrayForSelect())
-//			->setHtmlAttribute('data-info', '&nbsp;Pokud nebude kategorie parametrů nastavena, bude získána kategorie parametrů z nadřazené kategorie.');
-//		$form->addDataMultiSelect('attributeCategories', 'Kategorie atributů', $this->attributeCategoryRepository->getArrayForSelect())
-//			->setHtmlAttribute('data-info', '&nbsp;Pokud nebude kategorie atributů nastavena, bude získána kategorie atributů z nadřazené kategorie.');
-		$form->addText('exportGoogleCategory', 'Exportní název pro Google');
-		$form->addText('exportHeurekaCategory', 'Export název pro Heuréku');
-		$form->addText('exportZboziCategory', 'Export název pro Zbozi');
-		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
-		$form->addCheckbox('hidden', 'Skryto');
-		$form->addCheckbox('recommended', 'Doporučeno');
-
-		$form->addPageContainer('product_list', ['category' => $this->getParameter('category')], $nameInput);
-
-		$form->addSubmits(!$category);
-
-		$form->onSuccess[] = function (AdminForm $form) {
-			$values = $form->getValues('array');
-
-			$this->createImageDirs(Category::IMAGE_DIR);
-
-			if (!$values['uuid']) {
-				$values['uuid'] = DIConnection::generateUuid();
-				$values['type'] = $this->tab;
-			}
-
-			$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
-			$values['productFallbackImageFileName'] = $form['productFallbackImageFileName']->upload($values['uuid'] . '_fallback.%2$s');
-
-			$prefix = $values['ancestor'] ? $this->categoryRepository->one($values['ancestor'])->path : '';
-			$random = null;
-
-			do {
-				$random = $prefix . Random::generate(4, '0-9a-z');
-				$tempCategory = $this->categoryRepository->many()->where('path', $random)->first();
-			} while ($tempCategory);
-
-			$values['path'] = $random;
-
-			$category = $this->categoryRepository->syncOne($values, null, true);
-
-			$this->categoryRepository->updateCategoryChildrenPath($category);
-
-			$form->syncPages(function () use ($category, $values) {
-				$values['page']['params'] = Helpers::serializeParameters(['category' => $category->getPK()]);
-				$this->pageRepository->syncOne($values['page']);
-			});
-
-			$this->flashMessage('Uloženo', 'success');
-			$form->processRedirect('detail', 'default', [$category]);
-		};
-
-		return $form;
+		return $this->categoryFormFactory->create($this->getParameter('category'));
 	}
 
 	public function actionDefault()
@@ -274,9 +146,24 @@ class CategoryPresenter extends BackendPresenter
 			$this->template->headerTree = [
 				['Kategorie', 'default'],
 			];
-			$this->template->displayButtons = [$this->createNewItemButton('categoryNew')];
+			$this->template->displayButtons = [
+				$this->createNewItemButton('categoryNew'),
+				$this->createButtonWithClass('generateCategoryProducerPages!', '<i class="fa fa-sync"></i>  Generovat stránky výrobců', 'btn btn-sm btn-outline-primary')
+			];
 			$this->template->displayControls = [$this->getComponent('categoryGrid')];
 		}
+	}
+
+	public function handleGenerateCategoryProducerPages()
+	{
+		try {
+			$this->categoryRepository->generateCategoryProducerPages();
+			$this->flashMessage('Provedeno', 'success');
+		} catch (\Throwable $exception) {
+			$this->flashMessage('Chyba!', 'error');
+		}
+
+		$this->redirect('this');
 	}
 
 	public function renderCategoryNew()
@@ -299,15 +186,18 @@ class CategoryPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [
-			$this->getComponent('categoryNewForm'),
+			$this->getComponent('categoryForm'),
 		];
+
+		$this->template->editTab = $this->editTab;
+		$this->template->setFile(__DIR__ . '/templates/category.edit.latte');
 	}
 
 	public function actionDetail(Category $category, ?string $backLink = null)
 	{
-		/** @var Form $form */
-		$form = $this->getComponent('categoryNewForm');
-		$form->setDefaults($category->toArray(['parameterCategories']));
+		/** @var \Forms\Form $form */
+		$form = $this->getComponent('categoryForm')['form'];
+		$form->setDefaults($category->toArray());
 	}
 
 	public function createComponentCategoryTypeGrid(): AdminGrid
@@ -400,5 +290,16 @@ class CategoryPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('categoryTypeForm')];
+	}
+
+	public function createImageDirs(string $dir)
+	{
+		$subDirs = ['origin', 'detail', 'thumb'];
+		$rootDir = $this->container->parameters['wwwDir'] . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
+		FileSystem::createDir($rootDir);
+
+		foreach ($subDirs as $subDir) {
+			FileSystem::createDir($rootDir . \DIRECTORY_SEPARATOR . $subDir);
+		}
 	}
 }
