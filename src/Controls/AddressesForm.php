@@ -68,7 +68,7 @@ class AddressesForm extends Form
 		$customer = $shopper->getCustomer();
 		
 		if ($customer && !$checkoutManager->getPurchase()->email) {
-			$this->setDefaults($customer->jsonSerialize());
+			$this->setDefaults($customer->toArray(['billAddress','deliveryAddress']));
 			
 			if ($customer->billAddress) {
 				$billAddressBox->setDefaults($customer->billAddress->jsonSerialize());

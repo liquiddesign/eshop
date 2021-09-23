@@ -76,7 +76,7 @@ class ProfileForm extends \Nette\Application\UI\Form
 	protected function beforeRender()
 	{
 		parent::beforeRender();
-		$this->setDefaults($this->shopper->getCustomer()->jsonSerialize());
+		$this->setDefaults($this->shopper->getCustomer()->toArray(['billAddress','deliveryAddress']));
 	}
 
 	public function success(ProfileForm $form)
