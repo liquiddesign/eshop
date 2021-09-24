@@ -18,6 +18,8 @@ use Eshop\DB\Merchant;
 use Eshop\DB\MerchantRepository;
 use Nette\Application\Application;
 use Nette\Application\UI\ITemplate;
+use Nette\Application\UI\Template;
+use Nette\Application\UI\TemplateFactory;
 use Nette\Security\User;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
@@ -100,6 +102,8 @@ class Shopper
 	private ?CustomerGroup $customerGroup;
 	
 	private AccountRepository $accountRepository;
+	
+	private ?string $mutation = null;
 	
 	public function __construct(
 		User $user,
@@ -414,9 +418,9 @@ class Shopper
 	}
 	
 	/**
-	 * @param \Nette\Application\UI\ITemplate|\stdClass $template
+	 * @param \Nette\Application\UI\Template|\stdClass $template
 	 */
-	public function addFilters(ITemplate $template)
+	public function addFilters(Template $template)
 	{
 		$template->addFilter('price', function ($number, string $currencyCode = null) {
 			return $this->filterPrice($number, $currencyCode);
@@ -434,9 +438,8 @@ class Shopper
 		$currency = $this->getCurrency($currencyCode);
 		
 		if ($currency->formatDecimals === null) {
-			$formatter = new \NumberFormatter($this->application->getMutation(), \NumberFormatter::CURRENCY);
-			
-			return $formatter->formatCurrency((float)$number, $currency->code);
+			$locale_info = localeconv();
+			$currency->formatDecimals = (int) $locale_info['frac_digits'] ?? 0;
 		}
 		
 		$nbsp = \html_entity_decode('&nbsp;');
