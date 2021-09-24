@@ -15,7 +15,6 @@ use Eshop\DB\CustomerGroup;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
-use Nette\Application\Application;
 use Nette\Application\UI\Template;
 use Nette\Security\User;
 use Security\DB\Account;
@@ -96,8 +95,6 @@ class Shopper
 	
 	private AccountRepository $accountRepository;
 	
-	private ?string $mutation = null;
-	
 	public function __construct(
 		User $user,
 		PricelistRepository $pricelistRepository,
@@ -106,15 +103,12 @@ class Shopper
 		CustomerRepository $customerRepository,
 		CustomerGroupRepository $customerGroupRepository,
 		MinimalOrderValueRepository $minimalOrderValueRepository,
-		Application $application,
-		\Nette\Localization\Translator $translator,
 		AccountRepository $accountRepository)
 	{
 		
 		
 		$this->user = $user;
 		$this->pricelistRepository = $pricelistRepository;
-		$this->application = $application;
 		$this->accountRepository = $accountRepository;
 		$this->countryRepository = $countryRepository;
 		$this->currencyRepository = $currencyRepository;
