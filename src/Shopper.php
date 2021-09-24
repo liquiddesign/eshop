@@ -15,11 +15,8 @@ use Eshop\DB\CustomerGroup;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
-use Eshop\DB\MerchantRepository;
 use Nette\Application\Application;
-use Nette\Application\UI\ITemplate;
 use Nette\Application\UI\Template;
-use Nette\Application\UI\TemplateFactory;
 use Nette\Security\User;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
@@ -75,15 +72,11 @@ class Shopper
 	 */
 	private array $altCurrencies = [];
 	
-	private Application $application;
-	
 	private CurrencyRepository $currencyRepository;
 	
 	private CountryRepository $countryRepository;
 	
 	private CustomerRepository $customerRepository;
-	
-	private MerchantRepository $merchantRepository;
 	
 	private CustomerGroupRepository $customerGroupRepository;
 	
@@ -111,7 +104,6 @@ class Shopper
 		CurrencyRepository $currencyRepository,
 		CountryRepository $countryRepository,
 		CustomerRepository $customerRepository,
-		MerchantRepository $merchantRepository,
 		CustomerGroupRepository $customerGroupRepository,
 		MinimalOrderValueRepository $minimalOrderValueRepository,
 		Application $application,
@@ -127,7 +119,6 @@ class Shopper
 		$this->countryRepository = $countryRepository;
 		$this->currencyRepository = $currencyRepository;
 		$this->customerRepository = $customerRepository;
-		$this->merchantRepository = $merchantRepository;
 		$this->customerGroupRepository = $customerGroupRepository;
 		$this->minimalOrderValueRepository = $minimalOrderValueRepository;
 	}
