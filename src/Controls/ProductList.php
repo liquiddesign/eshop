@@ -212,6 +212,8 @@ class ProductList extends Datalist
 		$this->template->templateFilters = $this->getFiltersForTemplate();
 		$this->template->display = $display === 'card' ? 'Card' : 'Row';
 		$this->template->paginator = $this->getPaginator();
+		$this->template->shopper = $this->shopper;
+		$this->template->checkoutManager = $this->checkoutManager;
 
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productList.latte');
 	}
