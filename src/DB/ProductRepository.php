@@ -131,21 +131,24 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$collection->select(['priceVatBefore' => $this->sqlExplode($expression, $sep, 5)]);
 			$collection->select(['pricelist' => $this->sqlExplode($expression, $sep, 6)]);
 			$collection->select(['currencyCode' => "'" . $currency->code . "'"]);
-
+			
 			$collection->select(['vatPct' => "IF(vatRate = 'standard'," . ($vatRates['standard'] ?? 0) . ",IF(vatRate = 'reduced-high'," . ($vatRates['reduced-high'] ?? 0) . ",IF(vatRate = 'reduced-low'," . ($vatRates['reduced-low'] ?? 0) . ",0)))"]);
-
+			
 			$subSelect = $this->getConnection()->rows(['eshop_attributevalue'], ["GROUP_CONCAT(CONCAT_WS('$sep', eshop_attributevalue.uuid, fk_attribute))"])
 				->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
 				->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
 				->where('eshop_attribute.showProduct=1')
 				->where('eshop_attributeassign.fk_product=this.uuid');
 			$collection->select(['parameters' => $subSelect]);
-
+			
 			$subSelect = $this->getConnection()->rows(['eshop_ribbon'], ['GROUP_CONCAT(uuid)'])
 				->join(['nxn' => 'eshop_product_nxn_eshop_ribbon'], 'eshop_ribbon.uuid = nxn.fk_ribbon')
 				->where('nxn.fk_product=this.uuid');
 			$collection->select(['ribbonsIds' => $subSelect]);
-
+			
+			$collection->join(['primaryCategory' => 'eshop_category'], 'primaryCategory.uuid=this.fk_primaryCategory');
+			$collection->select(['fallbackImage' => 'primaryCategory.productFallbackImageFileName']);
+			
 			if ($customer) {
 				$subSelect = $this->getConnection()->rows(['eshop_watcher'], ['uuid'])
 					->where('eshop_watcher.fk_customer= :test')

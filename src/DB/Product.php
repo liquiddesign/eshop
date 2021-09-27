@@ -524,18 +524,16 @@ class Product extends \StORM\Entity
 			->orderBy(['validFrom' => 'DESC'])
 			->firstValue($property);
 	}
-
+	
 	public function getPreviewImage(string $basePath, string $size = 'detail'): string
 	{
 		if (!\in_array($size, ['origin', 'detail', 'thumb'])) {
 			throw new ApplicationException('Invalid product image size: ' . $size);
 		}
-
-		$category = $this->getPrimaryCategory();
-		$fallbackImage = $category ? $category->getFallbackImage() : null;
-
-		return $this->imageFileName ? $basePath . '/userfiles/' . Product::GALLERY_DIR . '/' . $size . '/' . $this->imageFileName :
-			($fallbackImage ? $basePath . '/userfiles/' . Category::IMAGE_DIR . '/' . $size . '/' . $fallbackImage :
-				$basePath . '/public/img/no-image.png');
+		
+		$image = $this->imageFileName ?: ($this->__isset('fallbackImage') ? $this->fallbackImage : null);
+		$dir = $this->imageFileName ? Product::GALLERY_DIR : Category::IMAGE_DIR;
+		
+		return $image ?  "$basePath/userfiles/$dir/$size/$image" : "$basePath/public/img/no-image.png";
 	}
 }
