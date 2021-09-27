@@ -532,8 +532,7 @@ class ProductForm extends Control
 		unset($values['prices']);
 
 		$form->syncPages(function () use ($product, $values) {
-			$values['page']['params'] = Helpers::serializeParameters(['product' => $product->getPK()]);
-			$this->pageRepository->syncOne($values['page']);
+			$this->pageRepository->syncPage($values['page'], ['product' => $product->getPK()]);
 		});
 
 		$this->setRepository->many()->where('fk_set', $product->getPK())->delete();
