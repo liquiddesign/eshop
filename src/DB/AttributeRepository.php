@@ -30,7 +30,20 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 
 		return $collection->orderBy(['this.priority', "this.name$suffix",]);
 	}
-
+	
+	public function getAttributesByCategory(string $categoryPath, bool $includeHidden = false)
+	{
+		$subselect = $this->getConnection()->rows(['eshop_category'])->setSelect(['uuid'])->where('path LIKE :path', ['path' => $categoryPath]);
+		
+		return $this->getCollection($includeHidden)
+			->join(['nxn' => 'eshop_attribute_nxn_eshop_category'], 'this.uuid = nxn.fk_attribute')
+			->join(['category' => 'eshop_category'], 'category.uuid = nxn.fk_category')
+			->where('category.uuid IN ('.$subselect->getSql().')', $subselect->getVars());
+	}
+	
+	/**
+	 * @deprecated User getAttributesByCategory instead
+	 */
 	public function getAttributesByCategories($categories, bool $includeHidden = false)
 	{
 		/** @var CategoryRepository $categoryRepository */
