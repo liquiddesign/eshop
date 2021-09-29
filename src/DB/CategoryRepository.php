@@ -8,6 +8,7 @@ use Common\DB\IGeneralRepository;
 use Eshop\Shopper;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\Utils\Arrays;
 use Nette\Utils\Random;
 use Pages\Helpers;
 use StORM\Expression;
@@ -53,16 +54,20 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		]);
 	}
 
-	public function getProducerPages(): array
+	public function getProducerPages(bool $includeInactive = true): array
 	{
-		return $this->cache->load('categoryProducerPages', function (&$dependencies) {
+		return $this->cache->load('categoryProducerPages', function (&$dependencies) use ($includeInactive) {
 			$dependencies = [
 				Cache::TAGS => 'categories',
 			];
 
 			$mutationSuffix = $this->pageRepository->getConnection()->getMutationSuffix();
 
-			$pages = $this->pageRepository->many()->where('type', 'product_list')->where("active$mutationSuffix", true)->setOrderBy(['this.priority']);
+			$pages = $this->pageRepository->many()->where('type', 'product_list')->setOrderBy(['this.priority']);
+
+			if (!$includeInactive) {
+				$pages->where("active$mutationSuffix", true);
+			}
 
 			$producerPages = [];
 
@@ -116,27 +121,27 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		return $repository->buildTree($collection->toArray(), null);
 	}
-	
+
 	public function getCountsByAttributes(array $filters = [], ?array $pricelists = null)
 	{
 		if ($pricelists === null) {
 			$pricelists = $this->shopper->getPricelists()->toArray();
 		}
-		
+
 		\ksort($filters);
 		$cacheIndex = \implode('_', \array_keys($pricelists)) . \http_build_query($filters);
 		$rows = $this->many();
 		$productRepository = $this->getConnection()->findRepository(Product::class);
-		
+
 		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($rows, $productRepository, $pricelists, $filters) {
 			$dependencies = [
 				Cache::TAGS => ['categories', 'products', 'pricelists', 'attributes'],
 			];
-			
+
 			$rows->setFrom(['category' => 'eshop_category']);
 			$rows->setSmartJoin(false);
 			$rows->setFetchClass(\stdClass::class);
-			
+
 			$rows->join(['subs' => 'eshop_category'], 'subs.path LIKE CONCAT(category.path,"%")')
 				->join(['nxn' => 'eshop_product_nxn_eshop_category'], 'nxn.fk_category=subs.uuid')
 				->join(['this' => 'eshop_product'],
@@ -145,38 +150,38 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 					"assign.fk_product=this.uuid")
 				->setSelect(['category' => 'category.uuid', 'attributeValue' => 'assign.fk_value', 'count' => 'COUNT(this.uuid)'])
 				->setGroupBy(['category.uuid', 'assign.fk_value']);
-			
+
 			$priceWhere = new Expression();
-			
+
 			foreach (\array_keys($pricelists) as $id => $pricelist) {
 				$rows->join(["prices$id" => 'eshop_price'],
 					"prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist . "'");
 				$priceWhere->add('OR', "prices$id.price IS NOT NULL");
 			}
-			
+
 			if ($priceWhere->getSql()) {
 				$rows->where($priceWhere->getSql());
 			}
-			
+
 			$productRepository->filter($rows, $filters);
-			
+
 			$results = [];
-			
+
 			foreach ($rows->toArray() as $result) {
 				$results[$result->category]['total'] ??= 0;
 				$results[$result->category]['attributes'] ??= [];
-				
+
 				$results[$result->category]['total'] += $result->count;
-				
+
 				if ($result->attributeValue) {
 					$results[$result->category]['attributes'][$result->attributeValue] = $result->count;
 				}
 			}
-			
+
 			return $results;
 		});
 	}
-	
+
 	/**
 	 * @deprecated User getCountsByAttributes instead
 	 */
@@ -452,7 +457,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		return null;
 	}
 
-	public function generateCategoryProducerPages()
+	public function generateCategoryProducerPages(?array $activeProducers = null)
 	{
 		/** @var Category[] $categories */
 		$categories = $this->getCollection(true);
@@ -473,9 +478,9 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 				$values = [];
 
+				$activeProducer = \array_search($producer->code, $activeProducers);
+
 				foreach ($this->getConnection()->getAvailableMutations() as $mutation => $suffix) {
-
-
 					$urlMutation = $category->getValue('name', $mutation) && $producer->getValue('name', $mutation) ?
 						$category->getValue('name', $mutation) . '-' . $producer->getValue('name', $mutation) :
 						$category->name . '-' . $producer->name;
@@ -498,11 +503,12 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 					$values['name'][$mutation] = $nameTitle;
 					$values['title'][$mutation] = $nameTitle;
-					$values['active'][$mutation] = true;
+					$values['active'][$mutation] = $activeProducers === null || $activeProducer !== false;
 				}
 
+
 				$values['type'] = 'product_list';
-				$values['priority'] = 10;
+				$values['priority'] = $activeProducers === null || $activeProducer === false ? 10 : $activeProducer;
 				$values['params'] = Helpers::serializeParameters(['category' => $category->getPK(), 'producer' => $producer->getPK()]);
 
 				$this->pageRepository->syncOne($values);
