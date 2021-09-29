@@ -157,7 +157,22 @@ class Category extends \StORM\Entity
 	{
 		return \substr($this->path, 0, 4 * ($level + 1));
 	}
-
+	
+	public function getProductCount(?AttributeValue $attributeValue = null): ?int
+	{
+		/** @var \Eshop\DB\CategoryRepository $repository */
+		$repository = $this->getRepository();
+		
+		if ($attributeValue) {
+			return $this->getRepository()->getCountsByAttributes()[$this->getPK()]['attributes'][$attributeValue->getPK()] ?? null;
+		}
+		
+		return $this->getRepository()->getCountsByAttributes()[$this->getPK()]['total'] ?? null;
+	}
+	
+	/**
+	 * @deprecated User property instead
+	 */
 	public function getFallbackImage(?Category $category = null): ?string
 	{
 		if (!$category) {
