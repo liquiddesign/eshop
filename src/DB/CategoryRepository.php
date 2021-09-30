@@ -133,7 +133,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$rows = $this->many();
 		$productRepository = $this->getConnection()->findRepository(Product::class);
 		
-		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($rows, $productRepository, $pricelists, $filters) {
+		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($rows, $groupBy, $productRepository, $pricelists, $filters) {
 			$dependencies = [
 				Cache::TAGS => ['categories', 'products', 'pricelists', 'attributes'],
 			];
@@ -144,8 +144,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			
 			$rows->join(['subs' => 'eshop_category'], 'subs.path LIKE CONCAT(category.path,"%")')
 				->join(['nxn' => 'eshop_product_nxn_eshop_category'], 'nxn.fk_category=subs.uuid')
-				->join(['this' => 'eshop_product'],
-					"nxn.fk_product=this.uuid AND this.hidden = 0")
+				->join(['this' => 'eshop_product'], "nxn.fk_product=this.uuid AND this.hidden = 0")
 				->setSelect(['category' => 'category.uuid', 'grouped' => $groupBy, 'count' => 'COUNT(this.uuid)'])
 				->setGroupBy(['category.uuid', $groupBy]);
 			
@@ -170,6 +169,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			
 			$results = [];
 			
+			/** @var \stdClass $result */
 			foreach ($rows->toArray() as $result) {
 				$results[$result->category]['total'] ??= 0;
 				$results[$result->category]['grouped'] ??= [];
@@ -620,7 +620,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			chr(197) . chr(184) => 'Y', chr(197) . chr(185) => 'Z',
 			chr(197) . chr(186) => 'z', chr(197) . chr(187) => 'Z',
 			chr(197) . chr(188) => 'z', chr(197) . chr(189) => 'Z',
-			chr(197) . chr(190) => 'z', chr(197) . chr(191) => 's'
+			chr(197) . chr(190) => 'z', chr(197) . chr(191) => 's',
 		);
 
 		$string = strtr($string, $chars);
