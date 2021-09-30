@@ -121,63 +121,66 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		return $repository->buildTree($collection->toArray(), null);
 	}
-
-	public function getCountsByAttributes(array $filters = [], ?array $pricelists = null)
+	
+	public function getCountsGrouped(string $groupBy, array $filters = [], ?array $pricelists = null): array
 	{
 		if ($pricelists === null) {
 			$pricelists = $this->shopper->getPricelists()->toArray();
 		}
-
+		
 		\ksort($filters);
-		$cacheIndex = \implode('_', \array_keys($pricelists)) . \http_build_query($filters);
+		$cacheIndex = $groupBy . \implode('_', \array_keys($pricelists)) . \http_build_query($filters);
 		$rows = $this->many();
 		$productRepository = $this->getConnection()->findRepository(Product::class);
-
+		
 		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($rows, $productRepository, $pricelists, $filters) {
 			$dependencies = [
 				Cache::TAGS => ['categories', 'products', 'pricelists', 'attributes'],
 			];
-
+			
 			$rows->setFrom(['category' => 'eshop_category']);
-			$rows->setSmartJoin(false);
+			$rows->setSmartJoin(true, Product::class);
 			$rows->setFetchClass(\stdClass::class);
-
+			
 			$rows->join(['subs' => 'eshop_category'], 'subs.path LIKE CONCAT(category.path,"%")')
 				->join(['nxn' => 'eshop_product_nxn_eshop_category'], 'nxn.fk_category=subs.uuid')
 				->join(['this' => 'eshop_product'],
 					"nxn.fk_product=this.uuid AND this.hidden = 0")
-				->join(['assign' => 'eshop_attributeassign'],
-					"assign.fk_product=this.uuid")
-				->setSelect(['category' => 'category.uuid', 'attributeValue' => 'assign.fk_value', 'count' => 'COUNT(this.uuid)'])
-				->setGroupBy(['category.uuid', 'assign.fk_value']);
-
+				->setSelect(['category' => 'category.uuid', 'grouped' => $groupBy, 'count' => 'COUNT(this.uuid)'])
+				->setGroupBy(['category.uuid', $groupBy]);
+			
+			if ($groupBy === 'assign.fk_value') {
+				$rows->join(['assign' => 'eshop_attributeassign'],
+					"assign.fk_product=this.uuid");
+			}
+			
 			$priceWhere = new Expression();
-
+			
 			foreach (\array_keys($pricelists) as $id => $pricelist) {
 				$rows->join(["prices$id" => 'eshop_price'],
 					"prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist . "'");
 				$priceWhere->add('OR', "prices$id.price IS NOT NULL");
 			}
-
+			
 			if ($priceWhere->getSql()) {
 				$rows->where($priceWhere->getSql());
 			}
-
+			
 			$productRepository->filter($rows, $filters);
-
+			
 			$results = [];
-
+			
 			foreach ($rows->toArray() as $result) {
 				$results[$result->category]['total'] ??= 0;
-				$results[$result->category]['attributes'] ??= [];
-
+				$results[$result->category]['grouped'] ??= [];
+				
 				$results[$result->category]['total'] += $result->count;
-
-				if ($result->attributeValue) {
-					$results[$result->category]['attributes'][$result->attributeValue] = $result->count;
+				
+				if ($result->grouped) {
+					$results[$result->category]['grouped'][$result->grouped] = $result->count;
 				}
 			}
-
+			
 			return $results;
 		});
 	}
