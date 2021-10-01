@@ -174,12 +174,30 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $selects;
 	}
 
-	public function filterCategory($value, ICollection $collection)
+	/*public function filterCategory($value, ICollection $collection)
 	{
 		$collection->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=this.uuid');
 		$collection->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
 
 		$value === false ? $collection->where('categories.uuid IS NULL') : $collection->where('categories.path LIKE :category', ['category' => "$value%"]);
+	}*/
+	
+	public function filterCategory($value, ICollection $collection)
+	{
+		if ($value === false) {
+			$collection->where('this.fk_primaryCategory IS NULL');
+			
+			return;
+		}
+		
+		$id = $this->getConnection()->findRepository(Category::class)->many()->match(['path' => $value])->firstValue('uuid');
+		
+		if (!$id) {
+			$collection->where('1=0');
+		} else {
+			$subSelect = $this->getConnection()->rows(['eshop_product_nxn_eshop_category'], ['fk_product'])->join(['eshop_category'], 'eshop_category.uuid=eshop_product_nxn_eshop_category.fk_category')->where('eshop_category.path LIKE :path', ['path' => "$value%"]);
+			$collection->where('this.fk_primaryCategory = :category OR this.uuid IN (' . $subSelect->getSql() . ')', ['category' => $id] + $subSelect->getVars());
+		}
 	}
 
 	public function filterPriceFrom($value, ICollection $collection)

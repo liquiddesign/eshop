@@ -33,12 +33,10 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	
 	public function getAttributesByCategory(string $categoryPath, bool $includeHidden = false): Collection
 	{
-		$subselect = $this->getConnection()->rows(['eshop_category'])->setSelect(['uuid'])->where('path LIKE :path', ['path' => $categoryPath]);
-		
 		return $this->getCollection($includeHidden)
 			->join(['nxn' => 'eshop_attribute_nxn_eshop_category'], 'this.uuid = nxn.fk_attribute')
 			->join(['category' => 'eshop_category'], 'category.uuid = nxn.fk_category')
-			->where('category.uuid IN ('.$subselect->getSql().')', $subselect->getVars());
+			->where(":path LIKE CONCAT(category.path,'%')", ['path' => $categoryPath]);
 	}
 	
 	/**
