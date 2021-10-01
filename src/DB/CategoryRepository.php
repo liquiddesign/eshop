@@ -128,6 +128,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			$pricelists = $this->shopper->getPricelists()->toArray();
 		}
 		
+		unset($filters['category']);
 		\ksort($filters);
 		$cacheIndex = $groupBy . \implode('_', \array_keys($pricelists)) . \http_build_query($filters);
 		$rows = $this->many();

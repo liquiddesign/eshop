@@ -10,6 +10,7 @@ use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValue;
 use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
+use Eshop\DB\CategoryRepository;
 use Eshop\DB\ParameterAvailableValueRepository;
 use Eshop\DB\ParameterRepository;
 use Eshop\DB\ProductRepository;
@@ -51,6 +52,7 @@ class ProductList extends Datalist
 
 	public function __construct(
 		ProductRepository $productRepository,
+		CategoryRepository $categoryRepository,
 		WatcherRepository $watcherRepository,
 		CheckoutManager $checkoutManager,
 		Shopper $shopper,
@@ -75,8 +77,10 @@ class ProductList extends Datalist
 		$this->setDefaultOrder('priority');
 
 		$this->setAllowedOrderColumns(['price' => 'price', 'priority' => 'priority']);
-		$this->setItemCountCallback(function (ICollection $filteredSource) {
-			// @TODO: cache?
+		$this->setItemCountCallback(function (ICollection $filteredSource) use ($categoryRepository) {
+			if (isset($this->getFilters()['category'])) {
+				return $categoryRepository->getCountsGrouped('assign.fk_value', $this->getFilters())[$this->getFilters()['category']]['total'] ?? 0;
+			}
 			return $filteredSource->setOrderBy([])->count();
 		});
 

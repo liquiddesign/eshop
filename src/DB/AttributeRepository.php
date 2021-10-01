@@ -31,7 +31,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		return $collection->orderBy(['this.priority', "this.name$suffix",]);
 	}
 	
-	public function getAttributesByCategory(string $categoryPath, bool $includeHidden = false)
+	public function getAttributesByCategory(string $categoryPath, bool $includeHidden = false): Collection
 	{
 		$subselect = $this->getConnection()->rows(['eshop_category'])->setSelect(['uuid'])->where('path LIKE :path', ['path' => $categoryPath]);
 		

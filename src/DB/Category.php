@@ -164,10 +164,10 @@ class Category extends \StORM\Entity
 		$repository = $this->getRepository();
 		
 		if ($attributeValue) {
-			return $repository->getCountsGrouped('assign.fk_value')[$this->getPK()]['grouped'][$attributeValue->getPK()] ?? null;
+			return $repository->getCountsGrouped('assign.fk_value')[$this->path]['grouped'][$attributeValue->getPK()] ?? null;
 		}
 		
-		return $repository->getCountsGrouped('assign.fk_value')[$this->getPK()]['total'] ?? null;
+		return $repository->getCountsGrouped('assign.fk_value')[$this->path]['total'] ?? null;
 	}
 	
 	/**
