@@ -11,6 +11,7 @@ use Nette\Caching\Storage;
 use Nette\Utils\Arrays;
 use Nette\Utils\Random;
 use Pages\Helpers;
+use StORM\ArrayWrapper;
 use StORM\Expression;
 use Web\DB\Page;
 use Web\DB\PageRepository;
@@ -24,13 +25,13 @@ use StORM\SchemaManager;
 class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 {
 	private Cache $cache;
-
+	
 	private Shopper $shopper;
-
+	
 	private PageRepository $pageRepository;
-
+	
 	private ProducerRepository $producerRepository;
-
+	
 	public function __construct(
 		DIConnection       $connection,
 		SchemaManager      $schemaManager,
@@ -46,79 +47,78 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$this->pageRepository = $pageRepository;
 		$this->producerRepository = $producerRepository;
 	}
-
+	
 	public function clearCategoriesCache()
 	{
 		$this->cache->clean([
 			Cache::TAGS => ['categories'],
 		]);
 	}
-
+	
 	public function getProducerPages(bool $includeInactive = true): array
 	{
 		return $this->cache->load('categoryProducerPages', function (&$dependencies) use ($includeInactive) {
 			$dependencies = [
 				Cache::TAGS => 'categories',
 			];
-
+			
 			$mutationSuffix = $this->pageRepository->getConnection()->getMutationSuffix();
-
+			
 			$pages = $this->pageRepository->many()->where('type', 'product_list')->setOrderBy(['this.priority']);
-
+			
 			if (!$includeInactive) {
 				$pages->where("active$mutationSuffix", true);
 			}
-
+			
 			$producerPages = [];
-
+			
 			/** @var Page $page */
 			while ($page = $pages->fetch()) {
 				$params = $page->getParsedParameters();
-
+				
 				if (!isset($params['category']) || !isset($params['producer'])) {
 					continue;
 				}
-
+				
 				$producerPages[$params['category']][] = [$page, $this->producerRepository->one($params['producer'])];
 			}
-
+			
 			return $producerPages;
 		});
 	}
-
+	
 	/**
 	 * @param string|null $typeId
 	 * @param bool $cache
 	 * @return \Eshop\DB\Category[]
 	 * @throws \Throwable
 	 */
-	public function getTree(?string $typeId = null, bool $cache = true, bool $includeHidden = false): array
+	public function getTree(?string $typeId = null, bool $cache = true, bool $includeHidden = false)
 	{
 		$repository = $this;
-
-		// @TODO: jen viditelne kategorie pro daneho uzivatele, cistit cache po prihlaseni, take dle jazyku (muze byt jine poradi)
-
-		if ($cache) {
-			return $this->cache->load("categoryTree-" . ($typeId ?: ''), function (&$dependencies) use ($repository, $typeId, $includeHidden) {
-				$dependencies = [
-					Cache::TAGS => 'categories',
-				];
-
-				return $this->getTreeHelper($typeId, $repository, $includeHidden);
-			});
-		} else {
+		
+		$result = $this->cache->load("categoryTree-$typeId", function (&$dependencies) use ($repository, $typeId, $includeHidden) {
+			$dependencies = [
+				Cache::TAGS => 'categories',
+			];
+			
 			return $this->getTreeHelper($typeId, $repository, $includeHidden);
-		}
+		});
+		
+		$result = new ArrayWrapper($result, $this->getRepository(), ['children' => $this->getRepository()], true);
+		
+		return $result;
+		
 	}
-
+	
 	private function getTreeHelper($typeId, CategoryRepository $repository, bool $includeHidden = false)
 	{
 		$collection = $repository->getCategories($includeHidden)->where('LENGTH(path) <= 40');
-
+		
 		if ($typeId) {
 			$collection->where('this.fk_type', $typeId);
 		}
-
+		
 		return $repository->buildTree($collection->toArray(), null);
 	}
 	
@@ -190,59 +190,59 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			return $results;
 		});
 	}
-
+	
 	/**
-	 * @deprecated use getCountGrouped instead
+	 * @deprecated User getCountsByAttributes instead
 	 */
 	public function getCounts(array $pricelists = []): array
 	{
 		$currency = $this->shopper->getCurrency();
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$pricelists = $pricelists ? $pricelists : \array_values($this->shopper->getPricelists($currency->isConversionEnabled() ? $currency->convertCurrency : null)->toArray());
-
+		
 		if (\count($pricelists) == 0) {
 			return [];
 		}
-
+		
 		$cacheIndex = "catagories_counts$suffix";
-
+		
 		foreach ($pricelists as $pricelist) {
 			$cacheIndex .= '_' . $pricelist->getPK();
 		}
-
+		
 		$rows = $this->many();
-
+		
 		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($rows, $suffix, $pricelists) {
 			$dependencies = [
 				Cache::TAGS => ['categories', 'products', 'pricelists'],
 			];
-
+			
 			$rows->join(['subs' => 'eshop_category'], 'subs.path LIKE CONCAT(this.path,"%")')
 				->join(['nxn' => 'eshop_product_nxn_eshop_category'], 'nxn.fk_category=subs.uuid')
 				->join(['product' => 'eshop_product'],
 					"nxn.fk_product=product.uuid AND product.hidden = 0 AND product.fk_alternative IS NULL")
 				->setSelect(['count' => 'COUNT(product.uuid)'])
 				->setGroupBy(['this.uuid']);
-
+			
 			$priceWhere = [];
-
+			
 			foreach ($pricelists as $id => $pricelist) {
 				$rows->join(["prices$id" => 'eshop_price'],
 					"prices$id.fk_product=product.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
 				$priceWhere[] = "prices$id.price IS NOT NULL";
 			}
-
+			
 			if ($priceWhere) {
 				$rows->where(\implode(' OR ', $priceWhere));
 			}
-
+			
 			$rows->setIndex('this.uuid');
 			$rows->setFetchClass(\stdClass::class);
-
+			
 			return $rows->toArrayOf('count');
 		});
 	}
-
+	
 	/**
 	 * Updates all paths of children of category.
 	 * @param \Eshop\DB\Category $category
@@ -251,68 +251,68 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	public function updateCategoryChildrenPath(Category $category): void
 	{
 		$tree = $this->getTree(null, false, true);
-
+		
 		foreach ($tree as $item) {
 			if ($item->getPK() == $category->getPK()) {
 				$startCategory = $item;
 				break;
 			}
-
+			
 			if (\str_contains($category->path, $item->path)) {
 				$startCategory = $this->findCategoryInTree($item, $category);
-
+				
 				if ($startCategory) {
 					break;
 				}
 			}
 		}
-
+		
 		if (isset($startCategory)) {
 			$startCategory->setParent($this);
 			$startCategory->update(['path' => $category->path]);
-
+			
 			foreach ($startCategory->children as $child) {
 				$child->setParent($this);
 				$child->update(['path' => $startCategory->path . \substr($child->path, -4)]);
-
+				
 				if (\count($child->children) > 0) {
 					$this->doUpdateCategoryChildrenPath($child);
 				}
 			}
 		}
-
+		
 		$this->clearCategoriesCache();
 	}
-
+	
 	private function findCategoryInTree(Category $category, Category $targetCategory): ?Category
 	{
 		foreach ($category->children as $child) {
 			if ($child->getPK() == $targetCategory->getPK()) {
 				return $child;
 			}
-
+			
 			$returnCategory = $this->findCategoryInTree($child, $targetCategory);
-
+			
 			if ($returnCategory) {
 				return $returnCategory;
 			}
 		}
-
+		
 		return null;
 	}
-
+	
 	private function doUpdateCategoryChildrenPath(Category $category): void
 	{
 		foreach ($category->children as $child) {
 			$child->setParent($this);
 			$child->update(['path' => $category->path . \substr($child->path, -4)]);
-
+			
 			if (\count($child->children) > 0) {
 				$this->doUpdateCategoryChildrenPath($child);
 			}
 		}
 	}
-
+	
 	/**
 	 * @param \Eshop\DB\Category[] $elements
 	 * @param string|null $ancestorId
@@ -321,41 +321,41 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	private function buildTree(array $elements, ?string $ancestorId = null): array
 	{
 		$branch = [];
-
+		
 		foreach ($elements as $element) {
 			if ($element->getValue('ancestor') === $ancestorId) {
 				if ($children = $this->buildTree($elements, $element->getPK())) {
 					$element->children = $children;
 				}
-
+				
 				$branch[] = $element;
 			}
 		}
-
+		
 		return $branch;
 	}
-
+	
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
-
+		
 		return $this->many()->orderBy(["name$suffix"])->toArrayOf('name');
 	}
-
+	
 	public function getTreeArrayForSelect(bool $includeHidden = true, string $type = null): array
 	{
 		$collection = $this->getCategories($includeHidden)->where('LENGTH(path) <= 40');
-
+		
 		if ($type) {
 			$collection->where('fk_type', $type);
 		}
-
+		
 		$list = [];
 		$this->buildTreeArrayForSelect($collection->toArray(), null, $list);
-
+		
 		return $list;
 	}
-
+	
 	/**
 	 * @param \Eshop\DB\Category[] $elements
 	 * @param string|null $ancestorId
@@ -365,34 +365,34 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	private function buildTreeArrayForSelect(array $elements, ?string $ancestorId = null, array &$list = []): array
 	{
 		$branch = [];
-
+		
 		foreach ($elements as $element) {
 			if ($element->getValue('ancestor') === $ancestorId) {
 				$list[$element->getPK()] = \str_repeat('--', (\strlen($element->path) / 4) - 1) . " $element->name";
-
+				
 				if ($children = $this->buildTreeArrayForSelect($elements, $element->getPK(), $list)) {
 					$element->children = $children;
 				}
-
+				
 				$branch[] = $element;
 			}
 		}
-
+		
 		return $branch;
 	}
-
+	
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$collection = $this->many();
-
+		
 		if (!$includeHidden) {
 			$collection->where('hidden', false);
 		}
-
+		
 		return $collection->orderBy(['priority', "name$suffix"]);
 	}
-
+	
 	/**
 	 * @param bool $includeHidden
 	 * @return \StORM\Collection<\Eshop\DB\Category>|\Eshop\DB\Category[]
@@ -400,27 +400,27 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	public function getCategories(bool $includeHidden = false): Collection
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
-
+		
 		$collection = $this->many()->orderBy(['priority', "name$suffix"]);
-
+		
 		if (!$includeHidden) {
 			$collection->where('hidden', false);
 		}
-
+		
 		return $collection;
 	}
-
+	
 	public function getRootCategoryOfCategory(Category $category): Category
 	{
 		if ($category->ancestor == null) {
 			return $category;
 		}
-
+		
 		return $this->many()
 			->where('path', \substr($category->path, 0, 4))
 			->first();
 	}
-
+	
 	public function getBranch($category): array
 	{
 		if (!$category instanceof Category) {
@@ -428,21 +428,21 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 				return [];
 			}
 		}
-
+		
 		if ($category->ancestor == null) {
 			return [$category->getPK() => $category];
 		}
-
+		
 		$categories = [];
-
+		
 		do {
 			$categories[$category->getPK()] = $category;
 			$category = $category->ancestor;
 		} while ($category != null);
-
+		
 		return \array_reverse($categories);
 	}
-
+	
 	public function getParameterCategoriesOfCategory($category): ?Collection
 	{
 		if (!$category instanceof Category) {
@@ -450,45 +450,45 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 				return null;
 			}
 		}
-
+		
 		if ($category->ancestor == null) {
 			return $category->parameterCategories;
 		}
-
+		
 		do {
 			if (\count($category->parameterCategories->toArray()) > 0) {
 				return $category->parameterCategories;
 			}
-
+			
 			$category = $category->ancestor;
 		} while ($category != null);
-
+		
 		return null;
 	}
-
+	
 	public function generateCategoryProducerPages(?array $activeProducers = null)
 	{
 		/** @var Category[] $categories */
 		$categories = $this->getCollection(true);
-
+		
 		foreach ($categories as $category) {
 			/** @var Producer[] $producers */
 			$producers = $this->producerRepository->many()
 				->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid')
 				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid')
 				->where('nxnCategory.fk_category', \array_keys($this->getBranch($category)));
-
+			
 			foreach ($producers as $producer) {
 				$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['category' => $category->getPK(), 'producer' => $producer->getPK()]);
-
+				
 				if ($page) {
 					continue;
 				}
-
+				
 				$values = [];
-
+				
 				$activeProducer = \array_search($producer->code, $activeProducers);
-
+				
 				foreach ($this->getConnection()->getAvailableMutations() as $mutation => $suffix) {
 					$urlMutation = $category->getValue('name', $mutation) && $producer->getValue('name', $mutation) ?
 						$category->getValue('name', $mutation) . '-' . $producer->getValue('name', $mutation) :
@@ -499,39 +499,39 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 					$urlMutation = \preg_replace('~^-~', '', $urlMutation);
 					$urlMutation = \preg_replace('~-$~', '', $urlMutation);
 					$urlMutation = \urlencode($urlMutation);
-
+					
 					while (!$this->pageRepository->isUrlAvailable($urlMutation, $mutation)) {
 						$urlMutation .= '-' . Random::generate(4);
 					}
-
+					
 					$values['url'][$mutation] = $urlMutation;
-
+					
 					$nameTitle = $category->getValue('name', $mutation) && $producer->getValue('name', $mutation) ?
 						$category->getValue('name', $mutation) . ' ' . $producer->getValue('name', $mutation) :
 						$category->name . '-' . $producer->name;
-
+					
 					$values['name'][$mutation] = $nameTitle;
 					$values['title'][$mutation] = $nameTitle;
 					$values['active'][$mutation] = $activeProducers === null || $activeProducer !== false;
 				}
-
-
+				
+				
 				$values['type'] = 'product_list';
 				$values['priority'] = $activeProducers === null || $activeProducer === false ? 10 : $activeProducer;
 				$values['params'] = Helpers::serializeParameters(['category' => $category->getPK(), 'producer' => $producer->getPK()]);
-
+				
 				$this->pageRepository->syncOne($values);
 			}
 		}
-
+		
 		$this->clearCategoriesCache();
 	}
-
+	
 	protected function removeAccents(string $string): string
 	{
 		if (!preg_match('/[\x80-\xff]/', $string))
 			return $string;
-
+		
 		$chars = array(
 			// Decompositions for Latin-1 Supplement
 			chr(195) . chr(128) => 'A', chr(195) . chr(129) => 'A',
@@ -628,9 +628,9 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			chr(197) . chr(188) => 'z', chr(197) . chr(189) => 'Z',
 			chr(197) . chr(190) => 'z', chr(197) . chr(191) => 's',
 		);
-
+		
 		$string = strtr($string, $chars);
-
+		
 		return $string;
 	}
 }
