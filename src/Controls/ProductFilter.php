@@ -91,9 +91,9 @@ class ProductFilter extends Control
 		
 		$this->template->attributes = $this->getAttributes()->toArray();
 		
-		$this->template->displayAmountCounts = $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayAmount', $this->getProductList()->getFilters())[$category]['grouped'] ?? [] : [];
-		$this->template->displayDeliveryCounts = $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayDelivery', $this->getProductList()->getFilters())[$category]['grouped'] ?? []  : [];
-		$this->template->attributesValuesCounts = $category ? $this->categoryRepository->getCountsGrouped('assign.fk_value', $this->getProductList()->getFilters())[$category]['grouped'] ?? []  : [];
+		$this->template->displayAmountCounts = $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayAmount', $this->getProductList()->getFilters())[$category] ?? [] : [];
+		$this->template->displayDeliveryCounts = $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayDelivery', $this->getProductList()->getFilters())[$category] ?? []  : [];
+		$this->template->attributesValuesCounts = $category ? $this->categoryRepository->getCountsGrouped('assign.fk_value', $this->getProductList()->getFilters())[$category] ?? []  : [];
 		
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}

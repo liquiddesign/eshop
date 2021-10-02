@@ -158,16 +158,12 @@ class Category extends \StORM\Entity
 		return \substr($this->path, 0, 4 * ($level + 1));
 	}
 	
-	public function getProductCount(?AttributeValue $attributeValue = null): ?int
+	public function getProductCount(): int
 	{
 		/** @var \Eshop\DB\CategoryRepository $repository */
 		$repository = $this->getRepository();
 		
-		if ($attributeValue) {
-			return $repository->getCountsGrouped('assign.fk_value')[$this->path]['grouped'][$attributeValue->getPK()] ?? null;
-		}
-		
-		return $repository->getCountsGrouped('assign.fk_value')[$this->path]['total'] ?? null;
+		return (int) ($repository->getCountsGrouped()[$this->path] ?? 0);
 	}
 	
 	/**

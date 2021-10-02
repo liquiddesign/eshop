@@ -122,7 +122,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		return $repository->buildTree($collection->toArray(), null);
 	}
 	
-	public function getCountsGrouped(string $groupBy, array $filters = [], ?array $pricelists = null): array
+	public function getCountsGrouped(?string $groupBy = null, array $filters = [], ?array $pricelists = null): array
 	{
 		if ($pricelists === null) {
 			$pricelists = $this->shopper->getPricelists()->toArray();
@@ -143,11 +143,19 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			$rows->setSmartJoin(true, Product::class);
 			$rows->setFetchClass(\stdClass::class);
 			
-			$rows->join(['subs' => 'eshop_category'], 'subs.path LIKE CONCAT(category.path,"%")')
-				->join(['nxn' => 'eshop_product_nxn_eshop_category'], 'nxn.fk_category=subs.uuid')
-				->join(['this' => 'eshop_product'], "nxn.fk_product=this.uuid AND this.hidden = 0")
-				->setSelect(['category' => 'category.uuid', 'grouped' => $groupBy, 'count' => 'COUNT(this.uuid)'])
-				->setGroupBy(['category.uuid', $groupBy]);
+			$groupByClause = ['category.uuid'];
+			$selectClause = ['category' => 'category.path', 'count' => 'COUNT(this.uuid)'];
+			
+			if ($groupBy) {
+				$selectClause['grouped'] = $groupBy;
+				$groupByClause[] = $groupBy;
+			}
+			
+			$subSelect = "SELECT fk_product FROM eshop_product_nxn_eshop_category JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_category WHERE eshop_category.path LIKE CONCAT(category.path,'%')";
+			$rows->join(['this' => 'eshop_product'], "this.fk_primaryCategory=category.uuid OR this.uuid IN ($subSelect)")
+				->setSelect($selectClause)
+				->setGroupBy($groupByClause)
+				->where('this.hidden=0');
 			
 			if ($groupBy === 'assign.fk_value') {
 				$rows->join(['assign' => 'eshop_attributeassign'],
@@ -157,8 +165,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			$priceWhere = new Expression();
 			
 			foreach (\array_keys($pricelists) as $id => $pricelist) {
-				$rows->join(["prices$id" => 'eshop_price'],
-					"prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist . "'");
+				$rows->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist . "'");
 				$priceWhere->add('OR', "prices$id.price IS NOT NULL");
 			}
 			
@@ -168,18 +175,16 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			
 			$productRepository->filter($rows, $filters);
 			
+			if ($groupBy === null) {
+				return $rows->setIndex('category')->toArrayOf('count');
+			}
+			
 			$results = [];
 			
 			/** @var \stdClass $result */
 			foreach ($rows->toArray() as $result) {
-				$results[$result->category]['total'] ??= 0;
-				$results[$result->category]['grouped'] ??= [];
-				
-				$results[$result->category]['total'] += $result->count;
-				
-				if ($result->grouped) {
-					$results[$result->category]['grouped'][$result->grouped] = $result->count;
-				}
+				$results[$result->category] ??= [];
+				$results[$result->category][$result->grouped] = (int) $result->count;
 			}
 			
 			return $results;
@@ -187,7 +192,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	}
 
 	/**
-	 * @deprecated User getCountsByAttributes instead
+	 * @deprecated use getCountGrouped instead
 	 */
 	public function getCounts(array $pricelists = []): array
 	{
