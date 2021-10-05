@@ -50,6 +50,8 @@ class ProductList extends Datalist
 
 	private AttributeValueRangeRepository $attributeValueRangeRepository;
 
+	private IBuyFormFactory $buyFormFactory;
+
 	public function __construct(
 		ProductRepository $productRepository,
 		CategoryRepository $categoryRepository,
@@ -61,6 +63,7 @@ class ProductList extends Datalist
 		AttributeRepository $attributeRepository,
 		AttributeValueRepository $attributeValueRepository,
 		AttributeValueRangeRepository $attributeValueRangeRepository,
+		IBuyFormFactory $buyFormFactory,
 		array $order = null,
 		?Collection $source = null
 	)
@@ -149,6 +152,7 @@ class ProductList extends Datalist
 		$this->attributeRepository = $attributeRepository;
 		$this->attributeValueRepository = $attributeValueRepository;
 		$this->attributeValueRangeRepository = $attributeValueRangeRepository;
+		$this->buyFormFactory = $buyFormFactory;
 	}
 
 	public function handleWatchIt(string $product): void
@@ -194,15 +198,13 @@ class ProductList extends Datalist
 
 	public function createComponentBuyForm(): Multiplier
 	{
-		$shopper = $this->shopper;
-		$checkoutManager = $this->checkoutManager;
 		$productRepository = $this->productRepository;
 
-		return new Multiplier(function ($itemId) use ($checkoutManager, $shopper, $productRepository) {
+		return new Multiplier(function ($itemId) use ($productRepository) {
 			/** @var \Eshop\DB\Product $product */
 			$product = $this->itemsOnPage !== null ? ($this->itemsOnPage[$itemId] ?? null) : $productRepository->getProduct($itemId);
 
-			$form = new BuyForm($product, $shopper, $checkoutManager, $this->translator);
+			$form = $this->buyFormFactory->create($product);
 			$form->onSuccess[] = function ($form, $values): void {
 				$form->getPresenter()->redirect('this');
 				// @TODO call event

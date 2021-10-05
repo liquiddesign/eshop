@@ -17,6 +17,7 @@ use Nette\Forms\IControl;
 
 /**
  * Class Products
+ * @method onDeleteAll()
  * @package Eshop\Controls
  */
 class CartItemList extends Datalist
@@ -28,6 +29,11 @@ class CartItemList extends Datalist
 	public Shopper $shopper;
 
 	private ProductRepository $productRepository;
+
+	/**
+	 * @var callable[]&callable(): void; Occurs after cart item delete
+	 */
+	public $onDeleteAll;
 
 	public function __construct(CartItemRepository $cartItemsRepository, CheckoutManager $checkoutManager, Shopper $shopper, ProductRepository $productRepository)
 	{
@@ -47,6 +53,8 @@ class CartItemList extends Datalist
 	public function handleDeleteAll(): void
 	{
 		$this->checkoutManager->deleteCart();
+
+		$this->onDeleteAll();
 	}
 
 	public function handleRemoveDiscountCoupon(string $couponId): void
