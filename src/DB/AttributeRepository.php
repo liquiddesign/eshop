@@ -30,7 +30,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 
 		return $collection->orderBy(['this.priority', "this.name$suffix",]);
 	}
-	
+
 	public function getAttributesByCategory(string $categoryPath, bool $includeHidden = false): Collection
 	{
 		return $this->getCollection($includeHidden)
@@ -38,7 +38,30 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			->join(['category' => 'eshop_category'], 'category.uuid = nxn.fk_category')
 			->where(":path LIKE CONCAT(category.path,'%')", ['path' => $categoryPath]);
 	}
-	
+
+	public function getAttributesForAdminAjax(string $query, ?int $page = null, int $onPage = 5): array
+	{
+		$mutationSuffix = $this->getConnection()->getMutationSuffix();
+
+		$attributes = $this->getCollection(true)->where("name$mutationSuffix LIKE :q", ['q' => "%$query%"])
+			->setPage($page ?? 1, $onPage)
+			->toArrayOf('name');
+
+		$payload = [];
+		$payload['results'] = [];
+
+		foreach ($attributes as $pk => $name) {
+			$payload['results'][] = [
+				'id' => $pk,
+				'text' => $name
+			];
+		}
+
+		$payload['pagination'] = ['more' => \count($attributes) === $onPage];
+
+		return $payload;
+	}
+
 	/**
 	 * @deprecated User getAttributesByCategory instead
 	 */

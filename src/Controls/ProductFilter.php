@@ -116,7 +116,7 @@ class ProductFilter extends Control
 			$attributeValues = $attribute->showRange ?
 				$this->attributeValueRangeRepository->many()
 					->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attributeValueRange = this.uuid')
-					->join(['attribute' => 'eshop_attribute'], 'attributeValue.fk_attribute = attribute.uuid')
+					->where('attributeValue.fk_attribute', $attribute->getPK())
 					->toArrayOf('name') :
 				$this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
 			

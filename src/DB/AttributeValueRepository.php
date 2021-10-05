@@ -29,6 +29,32 @@ class AttributeValueRepository extends \StORM\Repository implements IGeneralRepo
 		return $collection->orderBy(['this.priority', "this.label$suffix",]);
 	}
 
+	public function getAttributesForAdminAjax(string $query, ?int $page = null, int $onPage = 5): array
+	{
+		$mutationSuffix = $this->getConnection()->getMutationSuffix();
+
+		$attributes = $this->getCollection(true)
+			->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
+			->where("this.label$mutationSuffix LIKE :q OR attribute.name$mutationSuffix LIKE :q ", ['q' => "%$query%"])
+			->setPage($page ?? 1, $onPage)
+			->select(['fullname' => "CONCAT(attribute.name$mutationSuffix, ' - ', this.label$mutationSuffix)"])
+			->toArrayOf('fullname');
+
+		$payload = [];
+		$payload['results'] = [];
+
+		foreach ($attributes as $pk => $label) {
+			$payload['results'][] = [
+				'id' => $pk,
+				'text' => $label
+			];
+		}
+
+		$payload['pagination'] = ['more' => \count($attributes) === $onPage];
+
+		return $payload;
+	}
+
 	public function isValuePairedWithProducts($value): bool
 	{
 		if (!$value instanceof AttributeValue) {
