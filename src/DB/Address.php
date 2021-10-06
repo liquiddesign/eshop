@@ -14,13 +14,13 @@ class Address extends \StORM\Entity
 	 * Název
 	 * @column
 	 */
-	public ?string $name;
+	public ?string $name = null;
 
 	/**
 	 * Poznámka
 	 * @column{"type":"text"}
 	 */
-	public ?string $note;
+	public ?string $note = null;
 
 	/**
 	 * Ulice
