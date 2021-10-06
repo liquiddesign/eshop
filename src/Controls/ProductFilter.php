@@ -18,6 +18,9 @@ use Translator\DB\TranslationRepository;
 use Forms\FormFactory;
 use Forms\Form;
 
+/**
+ * @method onFormSuccess(array $parameters)
+ */
 class ProductFilter extends Control
 {
 	private TranslationRepository $translator;
@@ -41,6 +44,11 @@ class ProductFilter extends Control
 	private Collection $attributes;
 	
 	private ?array $selectedCategories;
+
+	/**
+	 * @var callable[]&callable(): void; Occurs after product filter form success
+	 */
+	public $onFormSuccess;
 	
 	public function __construct(
 		FormFactory                   $formFactory,
@@ -155,7 +163,7 @@ class ProductFilter extends Control
 			unset($parameters['products-priceFrom']);
 			unset($parameters['products-priceTo']);
 
-			$this->getPresenter()->redirect('this', $parameters);
+			$this->onFormSuccess($parameters);
 		};
 		
 		return $filterForm;
