@@ -944,24 +944,14 @@ class CheckoutManager
 	{
 		return $this->lastOrderToken ? $this->orderRepository->one($this->lastOrderToken) : null;
 	}
-
+	
 	public function syncPurchase($values): Purchase
 	{
-		$values['uuid'] = $this->getCart()->getValue('purchase');
-
-		if (!$values['uuid']) {
-			$values['currency'] = $this->getCart()->currency->getPK();
-
-			/** @var Purchase $purchase */
-			$purchase = $this->purchaseRepository->createOne($values);
-
-			$this->getCart()->update(['purchase' => $purchase->getPK()]);
-		} else {
-			/** @var Purchase $purchase */
-			$purchase = $this->purchaseRepository->syncOne($values, null, true);
+		if (!$this->getCart()->getValue('purchase')) {
+			$values['currency'] = $this->getCart()->getValue('currency');
 		}
-
-		return $purchase;
+		
+		return $this->getCart()->syncRelated('purchase', $values);
 	}
 
 	public function getPurchase(bool $needed = false): ?Purchase
