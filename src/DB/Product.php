@@ -524,6 +524,14 @@ class Product extends \StORM\Entity
 			->orderBy(['validFrom' => 'DESC'])
 			->firstValue($property);
 	}
+
+	/**
+	 * @return QuantityPrice[]
+	 */
+	public function getQuantityPrices(): array
+	{
+		return $this->quantityPrices->where('validFrom IS NOT NULL')->orderBy(['validFrom' => 'ASC'])->toArray();
+	}
 	
 	public function getPreviewImage(string $basePath, string $size = 'detail'): string
 	{

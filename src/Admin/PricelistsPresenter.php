@@ -297,8 +297,7 @@ class PricelistsPresenter extends BackendPresenter
 
 		$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll($this->shopper->getShowVat() ? ['priceVat', 'validFrom'] : ['validFrom'],
-			$processTypes);
+		$grid->addButtonSaveAll($this->shopper->getShowVat() ? ['priceVat', 'validFrom'] : ['validFrom'], $processTypes, null, false, null, null, false);
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 
 		$grid->addFilterTextInput('search', ['product.code', 'product.name_cs'], null, 'Kód, název');
