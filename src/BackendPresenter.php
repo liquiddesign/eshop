@@ -15,10 +15,10 @@ class BackendPresenter extends \Admin\BackendPresenter
 	/** @inject */
 	public CategoryRepository $categoryRepository;
 
-	public function handleGetProductsForSelect2(?string $q = null)
+	public function handleGetProductsForSelect2(?string $q = null, ?int $page = null)
 	{
 		if (!$q) {
-			$this->payload->result = [];
+			$this->payload->results = [];
 			$this->sendPayload();
 		}
 
@@ -27,23 +27,25 @@ class BackendPresenter extends \Admin\BackendPresenter
 		/** @var Product[] $products */
 		$products = $this->productRepository->getCollection(true)
 			->where("this.name$suffix LIKE :q OR this.code = :exact OR this.ean = :exact", ['q' => "%$q%", 'exact' => $q])
-			->setTake(5)
-			->toArray();
+			->setPage($page ?? 1, 5)
+			->toArrayOf('name');
 
-		$payload = [];
+		$results = [];
 
-		foreach ($products as $product) {
-			$payload[] = [
-				'id' => $product->getPK(),
-				'text' => $product->name
+		foreach ($products as $pk => $name) {
+			$results[] = [
+				'id' => $pk,
+				'text' => $name
 			];
 		}
 
-		$this->payload->results = $payload;
+		$this->payload->results = $results;
+		$this->payload->pagination = ['more' => \count($products) === 5];
+
 		$this->sendPayload();
 	}
 
-	public function handleGetTonerProductsForSelect2(?string $q = null, ?Product $product = null)
+	public function handleGetTonerProductsForSelect2(?string $q = null, ?Product $product = null, ?int $page = null)
 	{
 		if (!$q) {
 			$this->payload->result = [];

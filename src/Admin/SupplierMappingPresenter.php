@@ -288,7 +288,7 @@ class SupplierMappingPresenter extends BackendPresenter
 	public function handleGetAttributes(string $q = null, ?int $page = null): void
 	{
 		if (!$q) {
-			$this->payload->result = [];
+			$this->payload->results = [];
 			$this->sendPayload();
 		}
 
