@@ -89,7 +89,9 @@ class ProductFilter extends Control
 	
 	private function getAttributes(): Collection
 	{
-		return $this->attributes ??= $this->attributeRepository->getAttributesByCategory($this->getCategoryPath())->where('showFilter', true);
+		$categoryPath = $this->getCategoryPath();
+
+		return $this->attributes ??= ($categoryPath ? $this->attributeRepository->getAttributesByCategory($categoryPath)->where('showFilter', true) :  $this->attributeRepository->many()->where('1=0'));
 	}
 	
 	public function render(): void
