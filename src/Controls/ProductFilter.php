@@ -154,7 +154,8 @@ class ProductFilter extends Control
 			//@TODO nefunguje filtrace ceny
 			unset($parameters['products-priceFrom']);
 			unset($parameters['products-priceTo']);
-			
+
+			$this->getPresenter()->redirect('this', $parameters);
 		};
 		
 		return $filterForm;
