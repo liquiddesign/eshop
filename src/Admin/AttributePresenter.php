@@ -188,6 +188,7 @@ class AttributePresenter extends BackendPresenter
 		$form->addCheckbox('showProduct', 'Náhled')->setHtmlAttribute('data-info', 'Atribut se zobrazí v náhledu produktu.');
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('showRange', 'Zobrazit jako rozsahy')->setHtmlAttribute('data-info', 'Hodnoty atributu nebudou zobrazeny jako jednotlivé položky, ale souhrnně dle nastavení rozsahů.');
+		$form->addCheckbox('showCollapsed', 'Skrýty položky při načtení')->setHtmlAttribute('data-info', 'Hodnoty atributu budou při načtení skryté a bude je možné zobrazit tlačítkem "Zobrazit položky".');
 
 		$form->addGroup('Filtr');
 		$form->addCheckbox('showFilter', 'Filtr')->setHtmlAttribute('data-info', 'Atribut se zobrazí při filtrování.');

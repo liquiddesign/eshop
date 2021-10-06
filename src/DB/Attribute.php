@@ -56,6 +56,12 @@ class Attribute extends \StORM\Entity
 	public bool $showProduct = true;
 
 	/**
+	 * Zobrazit skryté
+	 * @column
+	 */
+	public bool $showCollapsed = false;
+
+	/**
 	 * Zobrazit v pruvodci
 	 * @column
 	 */
