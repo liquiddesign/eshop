@@ -496,7 +496,7 @@ class Product extends \StORM\Entity
 	
 	public function getCategoryTree(string $property, bool $reversed = false): array
 	{
-		if (!isset($this->primaryCategoryPath)) {
+		if (!isset($this->primaryCategoryPath) || !$this->primaryCategoryPath) {
 			return [];
 		}
 		
