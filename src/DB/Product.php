@@ -485,12 +485,42 @@ class Product extends \StORM\Entity
 	{
 		return $this->getConnection()->findRepository(Price::class)->many()->where('pricelist.fk_supplier IS NOT NULL')->where('fk_product', $this->getPK())->setIndex('pricelist.fk_supplier')->toArrayOf($property);
 	}
-
+	
+	/**
+	 * @deprecated use property primaryCategory instead
+	 */
 	public function getPrimaryCategory(): ?Category
 	{
-		//@TODO: monza nacashovat
-
-		return $this->primaryCategory ?: $this->categories->first();
+		return $this->primaryCategory;
+	}
+	
+	public function getCategoryTree(string $property, bool $reversed = false): array
+	{
+		if (!isset($this->primaryCategoryPath)) {
+			return [];
+		}
+		
+		/** @var \Eshop\DB\CategoryRepository $categoryRepository */
+		$categoryRepository = $this->getConnection()->findRepository(Category::class);
+		
+		$tree = [];
+		$type = 'main';
+		
+		if ($categoryRepository->isTreeBuild($type)) {
+			for ($i = 4; $i <= \strlen($this->primaryCategoryPath); $i += 4) {
+				if ($category = $categoryRepository->getCategoryByPath($type, \substr($this->primaryCategoryPath, 0, $i))) {
+					$tree[] = $category->$property;
+				}
+			}
+			
+			if ($reversed) {
+				$tree = \array_reverse($tree);
+			}
+			
+			return $tree;
+		}
+		
+		return $categoryRepository->many()->where('path LIKE :path', ['path' => $this->primaryCategoryPath])->orderBy(['LENGTH(path)' => $reversed ? 'DESC' : 'ASC'])->toArrayOf($tree, [], true);
 	}
 
 	public function inStock(): bool
@@ -514,6 +544,16 @@ class Product extends \StORM\Entity
 		}
 
 		return (float)($this->getQuantityPrice($amount, 'priceVat') ?: $this->priceVat);
+	}
+	
+	public function getPriceBefore(): ?float
+	{
+		return $this->priceBefore !== null ? (float) $this->priceBefore : null;
+	}
+	
+	public function getPriceVatBefore(): ?float
+	{
+		return $this->priceVatBefore !== null ? (float) $this->priceVatBefore : null;
 	}
 
 	private function getQuantityPrice(int $amount, string $property): ?float

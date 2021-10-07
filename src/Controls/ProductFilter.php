@@ -41,10 +41,10 @@ class ProductFilter extends Control
 	
 	private AttributeValueRangeRepository $attributeValueRangeRepository;
 	
-	private Collection $attributes;
+	private array $attributes;
 	
 	private ?array $selectedCategories;
-
+	
 	/**
 	 * @var callable[]&callable(): void; Occurs after product filter form success
 	 */
@@ -87,11 +87,9 @@ class ProductFilter extends Control
 		return $this->getProductList()->getFilters()['category'] ?? null;
 	}
 	
-	private function getAttributes(): Collection
+	private function getAttributes(): array
 	{
-		$categoryPath = $this->getCategoryPath();
-
-		return $this->attributes ??= ($categoryPath ? $this->attributeRepository->getAttributesByCategory($categoryPath)->where('showFilter', true) :  $this->attributeRepository->many()->where('1=0'));
+		return $this->attributes ??= $this->getCategoryPath() ? $this->attributeRepository->getAttributesByCategory($this->getCategoryPath())->where('showFilter', true)->toArray() : [];
 	}
 	
 	public function render(): void
@@ -99,7 +97,7 @@ class ProductFilter extends Control
 		// @TODO: fixed for non category based, not for UUID a encapsule to entity
 		$category = $this->getCategoryPath();
 		
-		$this->template->attributes = $this->getAttributes()->toArray();
+		$this->template->attributes = $this->getAttributes();
 		
 		$this->template->displayAmountCounts = $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayAmount', $this->getProductList()->getFilters())[$category] ?? [] : [];
 		$this->template->displayDeliveryCounts = $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayDelivery', $this->getProductList()->getFilters())[$category] ?? []  : [];
@@ -164,7 +162,7 @@ class ProductFilter extends Control
 			//@TODO nefunguje filtrace ceny
 			unset($parameters['products-priceFrom']);
 			unset($parameters['products-priceTo']);
-
+			
 			$this->onFormSuccess($parameters);
 		};
 		

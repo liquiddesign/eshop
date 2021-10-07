@@ -32,6 +32,8 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	
 	private ProducerRepository $producerRepository;
 	
+	public array $categoryMap;
+	
 	public function __construct(
 		DIConnection       $connection,
 		SchemaManager      $schemaManager,
@@ -87,13 +89,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		});
 	}
 	
-	/**
-	 * @param string|null $typeId
-	 * @param bool $cache
-	 * @return \Eshop\DB\Category[]
-	 * @throws \Throwable
-	 */
-	public function getTree(?string $typeId = null, bool $cache = true, bool $includeHidden = false)
+	public function getTree(string $typeId = 'main', bool $cache = true, bool $includeHidden = false): ArrayWrapper
 	{
 		$repository = $this;
 		
@@ -102,13 +98,15 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 				Cache::TAGS => 'categories',
 			];
 			
-			return $this->getTreeHelper($typeId, $repository, $includeHidden);
+			return [
+				'tree' => $this->getTreeHelper($typeId, $repository, $includeHidden),
+				'map' => $this->categoryMap[$typeId],
+			];
 		});
-		
-		$result = new ArrayWrapper($result, $this->getRepository(), ['children' => $this->getRepository()], true);
+		$this->categoryMap[$typeId] ??= $result['map'];
+		$result = new ArrayWrapper($result['tree'], $this->getRepository(), ['children' => $this->getRepository()], true);
 		
 		return $result;
-		
 	}
 	
 	private function getTreeHelper($typeId, CategoryRepository $repository, bool $includeHidden = false)
@@ -119,7 +117,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			$collection->where('this.fk_type', $typeId);
 		}
 		
-		return $repository->buildTree($collection->toArray(), null);
+		return $repository->buildTree($collection->toArray(), null, $typeId);
 	}
 	
 	public function getCountsGrouped(?string $groupBy = null, array $filters = [], ?array $pricelists = null): array
@@ -318,21 +316,33 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	 * @param string|null $ancestorId
 	 * @return \Eshop\DB\Category[]
 	 */
-	private function buildTree(array $elements, ?string $ancestorId = null): array
+	private function buildTree(array $elements, ?string $ancestorId, string $typeId): array
 	{
 		$branch = [];
 		
 		foreach ($elements as $element) {
 			if ($element->getValue('ancestor') === $ancestorId) {
-				if ($children = $this->buildTree($elements, $element->getPK())) {
+				if ($children = $this->buildTree($elements, $element->getPK(), $typeId)) {
 					$element->children = $children;
 				}
 				
 				$branch[] = $element;
+				$this->categoryMap[$typeId] ??= [];
+				$this->categoryMap[$typeId][$element->path] = $element;
 			}
 		}
 		
 		return $branch;
+	}
+	
+	public function getCategoryByPath(string $typeId, string $path): ?Category
+	{
+		return $this->categoryMap[$typeId][$path] ?? null;
+	}
+	
+	public function isTreeBuild(string $typeId): bool
+	{
+		return isset($this->categoryMap[$typeId]);
 	}
 	
 	public function getArrayForSelect(bool $includeHidden = true): array

@@ -147,7 +147,10 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$collection->select(['ribbonsIds' => $subSelect]);
 			
 			$collection->join(['primaryCategory' => 'eshop_category'], 'primaryCategory.uuid=this.fk_primaryCategory');
-			$collection->select(['fallbackImage' => 'primaryCategory.productFallbackImageFileName']);
+			$collection->select([
+				'fallbackImage' => 'primaryCategory.productFallbackImageFileName',
+				'primaryCategoryPath' => 'primaryCategory.path',
+			]);
 			
 			if ($customer) {
 				$subSelect = $this->getConnection()->rows(['eshop_watcher'], ['uuid'])
