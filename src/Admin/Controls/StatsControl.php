@@ -103,7 +103,7 @@ class StatsControl extends Control
 		$statsTo = $this->state['statsTo'] ?? null;
 		$merchant = $this->state['merchant'] ?? null;
 		/** @var Currency $currency */
-		$currency = isset($this->state['currency']) ? $this->currencyRepository->one($this->state['currency'], true) : null;
+		$currency = isset($this->state['currency']) ? $this->currencyRepository->one($this->state['currency'], true) : $this->currencyRepository->many()->first();
 
 		$form->setDefaults($this->state);
 
