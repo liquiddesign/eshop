@@ -13,6 +13,7 @@ use Security\DB\Account;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Entity;
+use StORM\Expression;
 use StORM\ICollection;
 use StORM\Repository;
 use StORM\SchemaManager;
@@ -202,15 +203,29 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$collection->where('this.fk_primaryCategory = :category OR this.uuid IN (' . $subSelect->getSql() . ')', ['category' => $id] + $subSelect->getVars());
 		}
 	}
-
+	
 	public function filterPriceFrom($value, ICollection $collection)
 	{
-		$collection->where('price >= :priceFrom', ['priceFrom' => (float)$value]);
+		$no = \count($this->shopper->getPricelists()->toArray());
+		$expression = new Expression();
+		
+		for ($i = 0; $i != $no; $i++) {
+			$expression->add('OR', "prices$i.price >= :priceFrom");
+		}
+		
+		$collection->where($expression->getSql(), ['priceFrom' => (float)$value]);
 	}
-
+	
 	public function filterPriceTo($value, ICollection $collection)
 	{
-		$collection->where('price <= :priceTo', ['priceTo' => (float)$value]);
+		$no = \count($this->shopper->getPricelists()->toArray());
+		$expression = new Expression();
+		
+		for ($i = 0; $i != $no; $i++) {
+			$expression->add('OR', "prices$i.price <= :priceTo");
+		}
+		
+		$collection->where($expression->getSql(), ['priceTo' => (float)$value]);
 	}
 
 	public function filterTag($value, ICollection $collection)

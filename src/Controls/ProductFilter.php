@@ -159,10 +159,6 @@ class ProductFilter extends Control
 				$parameters["$parent-$name"] = $values;
 			}
 			
-			//@TODO nefunguje filtrace ceny
-			unset($parameters['products-priceFrom']);
-			unset($parameters['products-priceTo']);
-			
 			$this->onFormSuccess($parameters);
 		};
 		
