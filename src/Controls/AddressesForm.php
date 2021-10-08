@@ -8,6 +8,7 @@ use Eshop\CheckoutManager;
 use Eshop\Shopper;
 use Nette\Application\UI\Form;
 use Nette\Localization\Translator;
+use Nette\Security\Passwords;
 use Security\Authenticator;
 use Security\DB\AccountRepository;
 
@@ -17,7 +18,9 @@ class AddressesForm extends Form
 	
 	private AccountRepository $accountRepository;
 	
-	public function __construct(Shopper $shopper, CheckoutManager $checkoutManager, AccountRepository $accountRepository, Translator $translator)
+	private Passwords $passwords;
+	
+	public function __construct(Shopper $shopper, CheckoutManager $checkoutManager, AccountRepository $accountRepository, Translator $translator, Passwords $passwords)
 	{
 		parent::__construct();
 		
@@ -96,6 +99,7 @@ class AddressesForm extends Form
 		$this->addSubmit('submit');
 		$this->onSuccess[] = [$this, 'success'];
 		$this->onValidate[] = [$this, 'validateForm'];
+		$this->passwords = $passwords;
 	}
 	
 	public function validateForm(AddressesForm $form): void
@@ -113,7 +117,7 @@ class AddressesForm extends Form
 	{
 		$values = $form->getValues();
 		
-		$values->password = $values->createAccount && $values->password ? Authenticator::setCredentialTreatment($values->password) : null;
+		$values->password = $values->createAccount && $values->password ? $this->passwords->hash($values->password) : null;
 		
 		if (!$values->otherAddress) {
 			$values->deliveryAddress = null;

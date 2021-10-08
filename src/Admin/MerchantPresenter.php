@@ -16,6 +16,7 @@ use Forms\Form;
 use Grid\Datagrid;
 use Messages\DB\TemplateRepository;
 use Nette\Mail\Mailer;
+use Nette\Security\Passwords;
 use Security\Authenticator;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
@@ -50,6 +51,9 @@ class MerchantPresenter extends BackendPresenter
 
 	/** @inject */
 	public Mailer $mailer;
+	
+	/** @inject */
+	public Passwords $passwords;
 
 	public function createComponentGrid()
 	{
@@ -122,7 +126,9 @@ class MerchantPresenter extends BackendPresenter
 
 		$form->addSubmits(!$this->getParameter('merchant'));
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$passwords = $this->passwords;
+		
+		$form->onSuccess[] = function (AdminForm $form) use ($passwords) {
 			$values = $form->getValues('array');
 
 			if (isset($form['account'])) {
@@ -137,7 +143,7 @@ class MerchantPresenter extends BackendPresenter
 				$valuesAccount = $form->getValues('array')['account'];
 
 				if ($valuesAccount['password']) {
-					$valuesAccount['password'] = Authenticator::setCredentialTreatment($valuesAccount['password']);
+					$valuesAccount['password'] = $passwords->hash($valuesAccount['password']);
 				} else {
 					unset($valuesAccount['password']);
 				}
