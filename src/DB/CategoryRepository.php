@@ -33,6 +33,8 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 	private ProducerRepository $producerRepository;
 
+	private ProductRepository $productRepository;
+
 	public array $categoryMap;
 
 	public function __construct(
@@ -41,7 +43,8 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		Shopper            $shopper,
 		Storage            $storage,
 		PageRepository     $pageRepository,
-		ProducerRepository $producerRepository
+		ProducerRepository $producerRepository,
+		ProductRepository  $productRepository
 	)
 	{
 		parent::__construct($connection, $schemaManager);
@@ -49,6 +52,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$this->shopper = $shopper;
 		$this->pageRepository = $pageRepository;
 		$this->producerRepository = $producerRepository;
+		$this->productRepository = $productRepository;
 	}
 
 	public function clearCategoriesCache()
@@ -555,6 +559,74 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 				$values['params'] = Helpers::serializeParameters(['category' => $category->getPK(), 'producer' => $producer->getPK()]);
 
 				$this->pageRepository->syncOne($values);
+			}
+		}
+
+		$this->clearCategoriesCache();
+	}
+
+	public function generateProducerCategories(array $categories, ?array $activeProducers = null)
+	{
+		$connection = $this->getConnection();
+		$mutations = $connection->getAvailableMutations();
+
+		/** @var Category[] $categories */
+		$categories = $this->many()->where('uuid', $categories);
+
+		foreach ($categories as $category) {
+			/** @var Producer[] $producers */
+			$producers = $this->producerRepository->many()
+				->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid', [], 'INNER')
+				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid')
+				->where('nxnCategory.fk_category', $category->getPK())
+				->toArray();
+
+			foreach ($producers as $producer) {
+				$values = [];
+
+				$activeProducer = \array_search($producer->code, $activeProducers);
+
+				foreach ($mutations as $mutation => $suffix) {
+					$urlMutation = null;
+
+					if ($category->getValue('name', $mutation) && $producer->getValue('name', $mutation)) {
+						$urlMutation = Strings::webalize($category->getValue('name', $mutation) . '-' . $producer->getValue('name', $mutation));
+
+						while (!$this->pageRepository->isUrlAvailable($urlMutation, $mutation)) {
+							$urlMutation .= '-' . Random::generate(4);
+						}
+					}
+
+					$values['url'][$mutation] = $urlMutation;
+					$values['title'][$mutation] = $category->getValue('name', $mutation) && $producer->getValue('name', $mutation) ? $category->getValue('name', $mutation) . ' ' . $producer->getValue('name', $mutation) : null;
+					$values['active'][$mutation] = true;
+				}
+
+				/** @var Category $producerCategory */
+				$producerCategory = $this->syncOne([
+					'code' => $category->code && $producer->code ? $category->code . '-' . $producer->code : null,
+					'path' => $this->generateUniquePath($category->path),
+					'ancestor' => $category->getPK(),
+					'name' => $values['title'],
+					'hidden' => !($activeProducers === null || $activeProducer !== false),
+					'type' => $category->getValue('type')
+				], null, true);
+
+				$values['type'] = 'product_list';
+				$values['params'] = Helpers::serializeParameters(['category' => $producerCategory->getPK()]);
+
+				$this->pageRepository->syncOne($values);
+
+				/** @var Product[] $products */
+				$products = $this->productRepository->many()
+					->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = this.uuid')
+					->where('nxnCategory.fk_category', $category->getPK())
+					->where('this.fk_producer', $producer->getPK())
+					->toArray();
+
+				foreach ($products as $product) {
+					$product->categories->relate([$producerCategory->getPK()]);
+				}
 			}
 		}
 
