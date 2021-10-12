@@ -8,7 +8,6 @@ use Common\DB\IGeneralRepository;
 use Eshop\Shopper;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
-use Nette\Utils\Arrays;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use Pages\Helpers;
@@ -565,7 +564,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$this->clearCategoriesCache();
 	}
 
-	public function generateProducerCategories(array $categories, ?array $activeProducers = null)
+	public function generateProducerCategories(array $categories, bool $deep = false)
 	{
 		$connection = $this->getConnection();
 		$mutations = $connection->getAvailableMutations();
@@ -574,17 +573,20 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$categories = $this->many()->where('uuid', $categories);
 
 		foreach ($categories as $category) {
-			/** @var Producer[] $producers */
 			$producers = $this->producerRepository->many()
 				->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid', [], 'INNER')
-				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid')
-				->where('nxnCategory.fk_category', $category->getPK())
-				->toArray();
+				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid');
 
+			if ($deep) {
+				$producers->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
+					->where('category.path LIKE :s', ['s' => $category->path . '%']);
+			} else {
+				$producers->where('nxnCategory.fk_category', $category->getPK());
+			}
+
+			/** @var Producer[] $producers */
 			foreach ($producers as $producer) {
 				$values = [];
-
-				$activeProducer = \array_search($producer->code, $activeProducers);
 
 				foreach ($mutations as $mutation => $suffix) {
 					$urlMutation = null;
@@ -604,28 +606,38 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 				/** @var Category $producerCategory */
 				$producerCategory = $this->syncOne([
-					'code' => $category->code && $producer->code ? $category->code . '-' . $producer->code : null,
+					'uuid' => DIConnection::generateUuid($category->getPK(), $producer->getPK()),
 					'path' => $this->generateUniquePath($category->path),
 					'ancestor' => $category->getPK(),
 					'name' => $values['title'],
-					'hidden' => !($activeProducers === null || $activeProducer !== false),
 					'type' => $category->getValue('type')
-				], null, true);
+				], [], true);
 
 				$values['type'] = 'product_list';
 				$values['params'] = Helpers::serializeParameters(['category' => $producerCategory->getPK()]);
 
-				$this->pageRepository->syncOne($values);
+				$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['category' => $producerCategory->getPK()]);
 
-				/** @var Product[] $products */
+				if (!$page) {
+					$this->pageRepository->syncOne($values);
+				}
+
 				$products = $this->productRepository->many()
 					->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = this.uuid')
-					->where('nxnCategory.fk_category', $category->getPK())
-					->where('this.fk_producer', $producer->getPK())
-					->toArray();
+					->where('this.fk_producer', $producer->getPK());
 
-				foreach ($products as $product) {
-					$product->categories->relate([$producerCategory->getPK()]);
+				if ($deep) {
+					$products->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
+						->where('category.path LIKE :s', ['s' => $category->path . '%']);
+				} else {
+					$products->where('nxnCategory.fk_category', $category->getPK());
+				}
+
+				foreach ($products->toArrayOf('uuid') as $product) {
+					$this->connection->syncRow('eshop_product_nxn_eshop_category', [
+						'fk_category' => $producerCategory->getPK(),
+						'fk_product' => $product
+					]);
 				}
 			}
 		}

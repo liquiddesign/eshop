@@ -191,12 +191,14 @@ class CategoryPresenter extends BackendPresenter
 			'all' => "celý výsledek ($totalNo)",
 		])->setDefaultValue('selected');
 
+		$form->addCheckbox('deep', 'Párovat produkty z podkategorií?');
+
 		$form->addSubmit('submit', 'Generovat');
 
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid) {
 			$values = $form->getValues('array');
 
-			$this->categoryRepository->generateProducerCategories($values['bulkType'] == 'selected' ? $ids : \array_keys($grid->getFilteredSource()->toArray()), static::CONFIGURATION['activeProducers']);
+			$this->categoryRepository->generateProducerCategories($values['bulkType'] == 'selected' ? $ids : \array_keys($grid->getFilteredSource()->toArray()), $values['deep']);
 
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('default');
