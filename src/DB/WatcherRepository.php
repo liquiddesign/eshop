@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Security\DB\Account;
 use StORM\ICollection;
 
 /**
@@ -11,11 +12,11 @@ use StORM\ICollection;
  */
 class WatcherRepository extends \StORM\Repository
 {
-	public function getWatchersByCustomer(Customer $customer): ICollection
+	public function getWatchersByAccount(Account $account): ICollection
 	{
 		return $this->many()
 			->join(['products' => 'eshop_product'], 'this.fk_product=products.uuid')
-			->where('this.fk_customer', $customer->getPK());
+			->where('this.fk_account', $account->getPK());
 	}
 
 	/**
@@ -24,23 +25,39 @@ class WatcherRepository extends \StORM\Repository
 	 * Second array (nonActive): changed watchers in negative way, for example: watchedPrice=40, beforePrice=38, currentPrice=42
 	 * Watchers without change will not be returned.
 	 * @return array[] [Watcher[], Watcher[]]
+	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function getChangedWatchers(): array
 	{
-		/** @var Watcher[] $watchers */
-		$watchers = $this->many();
-
 		/** @var ProductRepository $productRepo */
 		$productRepo = $this->getConnection()->findRepository(Product::class);
+
+		/** @var PricelistRepository $pricelistRepo */
+		$pricelistRepo = $this->getConnection()->findRepository(Pricelist::class);
 
 		/** @var Watcher[] $activeWatchers */
 		$activeWatchers = [];
 		/** @var Watcher[] $nonActiveWatchers */
 		$nonActiveWatchers = [];
 
-		foreach ($watchers as $watcher) {
+		$pricelistsByAccounts = [];
+
+		$watchers = $this->many();
+
+		/** @var Watcher $watcher */
+		while ($watcher = $watchers->fetch()) {
+			if (!isset($pricelistsByAccounts[$watcher->getValue('account')])) {
+				$pricelistsByAccounts[$watcher->getValue('account')] = $pricelistRepo->getCollection()
+					->join(['nxnCustomer' => 'eshop_customer_nxn_eshop_pricelist'], 'this.uuid = nxnCustomer.fk_pricelist')
+					->join(['nxnCatalog' => 'eshop_catalogpermission'], 'nxnCustomer.fk_customer = nxnCatalog.fk_customer')
+					->where('nxnCatalog.fk_account', $watcher->getValue('account'))
+					->toArray();
+			}
+
 			/** @var Product $product */
-			$product = $productRepo->getProducts($watcher->customer->pricelists->toArray(), $watcher->customer)->where('this.uuid', $watcher->product->getPK())->fetch();
+			$product = $productRepo->getProducts($pricelistsByAccounts[$watcher->getValue('account')])
+				->where('this.uuid', $watcher->getValue('product'))
+				->first();
 
 			if (!$product) {
 				continue;
