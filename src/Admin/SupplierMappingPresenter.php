@@ -416,9 +416,17 @@ class SupplierMappingPresenter extends BackendPresenter
 							$supplierAttribute->attribute->update(['name' => ['cs' => $supplierAttribute->name, 'en' => null]]);
 						}
 					} else {
+						$tempAttribute = $supplierAttribute->code ? $this->attributeRepository->many()->where('code', $supplierAttribute->code)->first() : true;
+						$code = $tempAttribute ? '' : $supplierAttribute->code;
+
+						while ($tempAttribute !== null) {
+							$code .= Random::generate(4, '0-9');
+							$tempAttribute = $this->attributeRepository->many()->where('code', $code)->first();
+						}
+
 						/** @var \Eshop\DB\Attribute $attribute */
 						$attribute = $this->attributeRepository->createOne([
-							'code' => Random::generate(10,'0-9'),
+							'code' => $code,
 							'name' => ['cs' => $supplierAttribute->name, 'en' => null]
 						]);
 						
@@ -442,9 +450,17 @@ class SupplierMappingPresenter extends BackendPresenter
 							$supplierAttributeValue->attributeValue->update(['label' => ['cs' => $supplierAttributeValue->label, 'en' => null]]);
 						}
 					} else {
+						$tempAttribute = $supplierAttributeValue->code ? $this->attributeValueRepository->many()->where('code', $supplierAttributeValue->code)->first() : true;
+						$code = $tempAttribute ? '' : $supplierAttributeValue->code;
+
+						while ($tempAttribute !== null) {
+							$code .= Random::generate(4, '0-9');
+							$tempAttribute = $this->attributeValueRepository->many()->where('code', $code)->first();
+						}
+
 						/** @var \Eshop\DB\AttributeValue $attributeValue */
 						$attributeValue = $this->attributeValueRepository->createOne([
-							'code' => $supplierAttributeValue->code ?: Random::generate(16,'0-9'),
+							'code' => $code,
 							'label' => ['cs' => $supplierAttributeValue->label, 'en' => null],
 							'attribute' => $attribute
 						]);
