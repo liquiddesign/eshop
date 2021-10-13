@@ -11,9 +11,9 @@ use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
+use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Nette\Application\UI\Control;
-use StORM\Collection;
 use Translator\DB\TranslationRepository;
 use Forms\FormFactory;
 use Forms\Form;
@@ -40,6 +40,8 @@ class ProductFilter extends Control
 	private DisplayDeliveryRepository $displayDeliveryRepository;
 	
 	private AttributeValueRangeRepository $attributeValueRangeRepository;
+
+	private ProducerRepository $producerRepository;
 	
 	private array $attributes;
 	
@@ -60,6 +62,7 @@ class ProductFilter extends Control
 		DisplayAmountRepository       $displayAmountRepository,
 		DisplayDeliveryRepository     $displayDeliveryRepository,
 		AttributeValueRangeRepository $attributeValueRangeRepository,
+		ProducerRepository 			  $producerRepository,
 		array                         $configuration = []
 	)
 	{
@@ -72,6 +75,7 @@ class ProductFilter extends Control
 		$this->displayAmountRepository = $displayAmountRepository;
 		$this->displayDeliveryRepository = $displayDeliveryRepository;
 		$this->attributeValueRangeRepository = $attributeValueRangeRepository;
+		$this->producerRepository = $producerRepository;
 	}
 	
 	private function getProductList(): ProductList
@@ -102,6 +106,7 @@ class ProductFilter extends Control
 		$this->template->displayAmountCounts = $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayAmount', $this->getProductList()->getFilters())[$category] ?? [] : [];
 		$this->template->displayDeliveryCounts = $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayDelivery', $this->getProductList()->getFilters())[$category] ?? []  : [];
 		$this->template->attributesValuesCounts = $category ? $this->categoryRepository->getCountsGrouped('assign.fk_value', $this->getProductList()->getFilters())[$category] ?? []  : [];
+		$this->template->producersCount = $category ? $this->categoryRepository->getCountsGrouped('this.fk_producer', $this->getProductList()->getFilters())[$category] ?? []  : [];
 		
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
@@ -114,6 +119,12 @@ class ProductFilter extends Control
 		$filterForm->addInteger('priceTo')->setRequired()->setDefaultValue(100000);
 		$filterForm->addCheckboxList('availability', null, $this->displayAmountRepository->getArrayForSelect());
 		$filterForm->addCheckboxList('delivery', null, $this->displayDeliveryRepository->getArrayForSelect());
+		$filterForm->addCheckboxList('producers', null, $this->producerRepository->getCollection()
+			->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid', [], 'INNER')
+			->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid')
+			->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
+			->where('category.path LIKE :s', ['s' => ($this->getCategoryPath() ?? '') . '%'])
+			->toArrayOf('name'));
 		
 		$attributesContainer = $filterForm->addContainer('attributes');
 		

@@ -260,6 +260,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$value === false ? $collection->where('this.fk_producer IS NULL') : $collection->where('this.fk_producer', $value);
 	}
 
+	public function filterProducers($value, ICollection $collection)
+	{
+		$collection->where('this.fk_producer', $value);
+	}
+
 	public function filterRecommended($value, ICollection $collection)
 	{
 		$collection->where('this.recommended', $value);
@@ -383,68 +388,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 			->where('attributeAssign.fk_value', $value);
 	}
 
+	/**
+	 * @deprecated
+	 */
 	public function filterParameters($groups, ICollection $collection)
 	{
-//		$suffix = $collection->getConnection()->getMutationSuffix();
-//
-//		/** @var \Eshop\DB\Parameter[] $parameters */
-//		$parameters = $this->parameterRepository->getCollection()->toArray();
-//
-//		if ($groups) {
-//			$query = '';
-//
-//			foreach ($groups as $key => $group) {
-//				foreach ($group as $pKey => $parameter) {
-//					if ($parameters[$pKey]->type == 'list') {
-//						// list
-//						$parameter = \is_array($parameter) ? $parameter : [$parameter];
-//
-//						if (\count($parameter) == 0) {
-//							continue;
-//						}
-//
-//						$operator = \strtoupper($parameters[$pKey]->filterType);
-//
-////						if ($parameters[$pKey]->filterType == 'and') {
-////							$implodedValues = "'" . \implode("','", $parameter) . "'";
-////							$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND parametervalue.metaValue IN ($implodedValues))";
-////							$query .= ' OR ';
-////						} elseif ($parameters[$pKey]->filterType == 'or') {
-////
-////						}
-//
-//						$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND (";
-//
-//						foreach ($parameter as $parameterItem) {
-//							$query .= "parameteravailablevalue.allowedKey = '$parameterItem'";
-//							$query .= " $operator ";
-//						}
-//
-//						$query = \substr($query, 0, -4);
-//						$query .= ')) OR ';
-//					} elseif ($parameters[$pKey]->type == 'bool') {
-//						if ($parameter === '1') {
-//							$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND parameteravailablevalue.allowedKey = '1')";
-//							$query .= ' OR ';
-//						}
-//					} else {
-//						// text
-////						$query .= "(parameteravailablevalue.fk_parameter = '$pKey' AND parametervalue.content$suffix = '$parameter')";
-////						$query .= ' OR ';
-//					}
-//				}
-//			}
-//
-//			if (\strlen($query) > 0) {
-//				$query = \substr($query, 0, -3);
-//
-//				$collection
-//					->join(['parametervalue' => 'eshop_parametervalue'], 'this.uuid = parametervalue.fk_product')
-//					->join(['parameteravailablevalue' => 'eshop_parameteravailablevalue'], 'parameteravailablevalue.uuid = parametervalue.fk_value')
-//					->where($query);
-//
-//			}
-//		}
 	}
 
 	public function filterAttributes($attributes, ICollection $collection)

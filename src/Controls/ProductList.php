@@ -109,6 +109,9 @@ class ProductList extends Datalist
 		$this->addFilterExpression('producer', function (ICollection $collection, $value): void {
 			$this->productRepository->filterProducer($value, $collection);
 		}, '');
+		$this->addFilterExpression('producers', function (ICollection $collection, $value): void {
+			$this->productRepository->filterProducers($value, $collection);
+		}, '');
 		$this->addFilterExpression('inStock', function (ICollection $collection, $value): void {
 			$this->productRepository->filterInStock($value, $collection);
 		});

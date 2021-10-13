@@ -138,7 +138,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($rows, $groupBy, $productRepository, $pricelists, $filters) {
 			$dependencies = [
-				Cache::TAGS => ['categories', 'products', 'pricelists', 'attributes'],
+				Cache::TAGS => ['categories', 'products', 'pricelists', 'attributes', 'producers'],
 			];
 
 			$rows->setFrom(['category' => 'eshop_category']);
