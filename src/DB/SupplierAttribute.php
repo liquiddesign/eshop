@@ -18,6 +18,18 @@ class SupplierAttribute extends \StORM\Entity
 	public string $name;
 	
 	/**
+	 * Kód
+	 * @column
+	 */
+	public ?string $code = null;
+	
+	/**
+	 * Typ pro filtraci
+	 * @column{"type":"enum","length":"'and','or'"}
+	 */
+	public string $filterType = 'and';
+	
+	/**
 	 * Mapování atributu, jestli je zadáno
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}

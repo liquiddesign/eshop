@@ -7,7 +7,7 @@ namespace Eshop\DB;
 /**
  * Přiřazení dodavatelských hodnot atributů
  * @table
- * @index{"name":"supplier_attribute_value_assign","unique":true,"columns":["fk_attributeValue","fk_supplierProduct"]}
+ * @index{"name":"supplier_attribute_value_assign","unique":true,"columns":["fk_supplierAttributeValue","fk_supplierProduct"]}
  */
 class SupplierAttributeValueAssign extends \StORM\Entity
 {
@@ -16,7 +16,7 @@ class SupplierAttributeValueAssign extends \StORM\Entity
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
-	public AttributeValue $attributeValue;
+	public SupplierAttributeValue $supplierAttributeValue;
 	
 	/**
 	 * Dodavatelský produkt

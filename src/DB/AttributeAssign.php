@@ -16,9 +16,9 @@ class AttributeAssign extends \StORM\Entity
 	 * @relation
 	 */
 	public Product $product;
-
+	
 	/**
-	 * @constraint{"onUpdate":"RESTRICT","onDelete":"RESTRICT"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public AttributeValue $value;

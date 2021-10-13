@@ -5,17 +5,36 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 /**
- * Mapování atributu
+ * Mapování hodnoty atributu
  * @table
- * @index{"name":"supplier_attribute_value_name","unique":true,"columns":["name","fk_supplier"]}
+ * @index{"name":"supplier_attribute_code_name","unique":true,"columns":["code","fk_supplier"]}
  */
 class SupplierAttributeValue extends \StORM\Entity
 {
 	/**
-	 * Vzor na mapování
+	 * Kód
 	 * @column
 	 */
-	public string $name;
+	public ?string $code = null;
+	
+	/**
+	 * Popisek pro front
+	 * @column
+	 */
+	public ?string $label = null;
+	
+	/**
+	 * Priorita
+	 * @column
+	 */
+	public int $priority = 10;
+	
+	/**
+	 * Atribut
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 */
+	public ?SupplierAttribute $supplierAttribute;
 	
 	/**
 	 * Mapování atributu, jestli je zadáno
