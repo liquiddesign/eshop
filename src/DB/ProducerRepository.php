@@ -15,7 +15,7 @@ class ProducerRepository extends Repository implements IGeneralRepository
 {
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		return $this->getCollection($includeHidden)->setOrderBy(['name'])->toArrayOf('name');
+		return $this->getCollection($includeHidden)->setOrderBy(['this.name'])->toArrayOf('name');
 	}
 	
 	public function getCollection(bool $includeHidden = false): Collection
@@ -24,10 +24,10 @@ class ProducerRepository extends Repository implements IGeneralRepository
 		$collection = $this->many();
 		
 		if (!$includeHidden) {
-			$collection->where('hidden', false);
+			$collection->where('this.hidden', false);
 		}
 		
-		return $collection->orderBy(['priority', "name$suffix"]);
+		return $collection->orderBy(['this.priority', "this.name$suffix"]);
 	}
 	
 	/**
@@ -35,6 +35,6 @@ class ProducerRepository extends Repository implements IGeneralRepository
 	 */
 	public function getProducers(): Collection
 	{
-		return $this->many()->where('hidden', false);
+		return $this->many()->where('this.hidden', false);
 	}
 }

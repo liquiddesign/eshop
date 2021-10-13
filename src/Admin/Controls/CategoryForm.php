@@ -177,19 +177,11 @@ class CategoryForm extends Control
 			
 			$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
 			$values['productFallbackImageFileName'] = $form['productFallbackImageFileName']->upload($values['uuid'] . '_fallback.%2$s');
-			
-			$prefix = $values['ancestor'] ? $this->categoryRepository->one($values['ancestor'])->path : '';
-			$random = null;
-			
-			do {
-				$random = $prefix . Random::generate(4, '0-9a-z');
-				$tempCategory = $this->categoryRepository->many()->where('path', $random)->first();
-			} while ($tempCategory);
-			
-			$values['path'] = $random;
-			
+			$values['path'] = $this->categoryRepository->generateUniquePath($values['ancestor'] ? $this->categoryRepository->one($values['ancestor'])->path : '');
+
+			/** @var Category $category */
 			$category = $this->categoryRepository->syncOne($values, null, true);
-			
+
 			$this->categoryRepository->updateCategoryChildrenPath($category);
 			
 			$form->syncPages(function () use ($category, $values) {

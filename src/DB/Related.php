@@ -52,14 +52,14 @@ class Related extends \StORM\Entity
 	/**
 	 * Master produkt
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public Product $master;
 
 	/**
 	 * Slave produkt
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public Product $slave;
 

@@ -947,21 +947,26 @@ class ProductPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('joinForm')];
 	}
 
-	public function createComponentJoinForm()
+	public function createComponentJoinForm(): AdminForm
 	{
-		/** @var \Grid\Datagrid $productGrid */
-		$productGrid = $this->getComponent('productGrid');
-
 		$ids = $this->getParameter('ids') ?: [];
 
 		$form = $this->formFactory->create();
 		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
 
-		$form->addRadioList('mainProduct', 'Hlavní produkt', $this->productRepository->many()->where('this.uuid', $ids)->toArrayOf('name'))->setRequired();
+		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
+
+		$form->addRadioList('mainProduct',
+			'Hlavní produkt',
+			$this->productRepository->many()
+				->where('this.uuid', $ids)
+				->select(['customName' => "CONCAT(this.name$mutationSuffix, ' (', this.code, ')')"])
+				->toArrayOf('customName'))
+			->setRequired();
 
 		$form->addSubmit('submit', 'Uložit');
 
-		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid) {
+		$form->onSuccess[] = function (AdminForm $form) use ($ids) {
 			$values = $form->getValues('array');
 
 			/** @var Product[] $products */
@@ -976,12 +981,16 @@ class ProductPresenter extends BackendPresenter
 						->where('fk_product', $product->getPK())
 						->update(['fk_product' => $values['mainProduct']]);
 				} catch (\Exception $e) {
+					bdump($e);
+
 					$error1 = 'Některé produkty již mají namapovaného stejného dodavatele! Mapování těchto dodavatelů nebylo změněno.';
 				}
 
 				try {
 					$product->delete();
 				} catch (\Exception $e) {
+					bdump($e);
+
 					$error2 = 'Některé produkty nebyly smazány! Smazání pravděpodobně blokují vazby s jinými produkty.';
 				}
 			}

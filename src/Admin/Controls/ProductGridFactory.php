@@ -160,7 +160,9 @@ class ProductGridFactory
 		$grid->addColumnLinkDetail('edit');
 		$grid->addColumnActionDelete([$this, 'onDelete']);
 
-		$grid->addButtonSaveAll();
+		$grid->addButtonSaveAll([], [], null, false, null, null, true, null, function (){
+			$this->categoryRepository->clearCategoriesCache();
+		});
 		$grid->addButtonDeleteSelected([$this, 'onDelete'], false, null, 'this.uuid');
 
 		$bulkColumns = ['producer', 'categories', 'ribbons', 'internalRibbons', 'displayAmount', 'displayDelivery', 'vatRate', 'taxes', 'hidden', 'unavailable'];
@@ -250,5 +252,7 @@ class ProductGridFactory
 		}
 
 		$product->update(['imageFileName' => null]);
+
+		$this->categoryRepository->clearCategoriesCache();
 	}
 }

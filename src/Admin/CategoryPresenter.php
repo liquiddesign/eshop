@@ -12,6 +12,7 @@ use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
+use Eshop\FormValidators;
 use Forms\Form;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;
@@ -21,8 +22,12 @@ use StORM\Entity;
 
 class CategoryPresenter extends BackendPresenter
 {
+	public const PRODUCER_PAGES = 0;
+	public const PRODUCER_CATEGORY = 1;
+
 	protected const CONFIGURATION = [
-		'activeProducers' => null
+		'activeProducers' => null,
+		'producerPagesType' => self::PRODUCER_CATEGORY
 	];
 
 	/** @inject */
@@ -95,6 +100,14 @@ class CategoryPresenter extends BackendPresenter
 
 		$grid->addButtonBulkEdit('categoryForm', ['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
 
+		if (isset(static::CONFIGURATION['producerPagesType']) && static::CONFIGURATION['producerPagesType'] === self::PRODUCER_CATEGORY) {
+			$submit = $grid->getForm()->addSubmit('generateProducerCategories', 'Generovat kategorie výrobců')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+			$submit->onClick[] = function ($button) use ($grid) {
+				$grid->getPresenter()->redirect('generateProducerCategories', [$grid->getSelectedIds()]);
+			};
+		}
+
 		$grid->addFilterTextInput('search', ['code', 'name_cs'], null, 'Kód, Název');
 		$grid->addFilterButtons();
 
@@ -152,10 +165,62 @@ class CategoryPresenter extends BackendPresenter
 			];
 			$this->template->displayButtons = [
 				$this->createNewItemButton('categoryNew'),
-				$this->createButtonWithClass('generateCategoryProducerPages!', '<i class="fa fa-sync"></i>  Generovat stránky výrobců', 'btn btn-sm btn-outline-primary')
 			];
+
+			if (isset(static::CONFIGURATION['producerPagesType']) && static::CONFIGURATION['producerPagesType'] === self::PRODUCER_PAGES) {
+				$this->template->displayButtons[] = $this->createButtonWithClass('generateCategoryProducerPages!', '<i class="fa fa-sync"></i>  Generovat stránky výrobců', 'btn btn-sm btn-outline-primary');
+			}
+
 			$this->template->displayControls = [$this->getComponent('categoryGrid')];
 		}
+	}
+
+	public function createComponentGenerateProducerCategoriesForm(): AdminForm
+	{
+		/** @var \Grid\Datagrid $grid */
+		$grid = $this->getComponent('categoryGrid');
+
+		$ids = $this->getParameter('ids') ?: [];
+		$totalNo = $grid->getFilteredSource()->enum();
+		$selectedNo = \count($ids);
+
+		$form = $this->formFactory->create();
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+		$form->addRadioList('bulkType', 'Generovat', [
+			'selected' => "vybrané ($selectedNo)",
+			'all' => "celý výsledek ($totalNo)",
+		])->setDefaultValue('selected');
+
+		$form->addCheckbox('deep', 'Párovat produkty z podkategorií?');
+
+		$form->addSubmit('submit', 'Generovat');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid) {
+			$values = $form->getValues('array');
+
+			$this->categoryRepository->generateProducerCategories($values['bulkType'] == 'selected' ? $ids : \array_keys($grid->getFilteredSource()->toArray()), $values['deep']);
+
+			$this->flashMessage('Provedeno', 'success');
+			$this->redirect('default');
+		};
+
+		return $form;
+	}
+
+	public function actionGenerateProducerCategories(array $ids)
+	{
+
+	}
+
+	public function renderGenerateProducerCategories(array $ids)
+	{
+		$this->template->headerLabel = 'Generovat kategorie vůrobců';
+		$this->template->headerTree = [
+			['Kategorie', 'default'],
+			['Generovat výrobce'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('generateProducerCategoriesForm')];
 	}
 
 	public function handleGenerateCategoryProducerPages()
