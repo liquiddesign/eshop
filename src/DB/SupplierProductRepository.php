@@ -49,6 +49,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$attributeAssignRepository = $this->getConnection()->findRepository(AttributeAssign::class);
 		$photoRepository = $this->getConnection()->findRepository(Photo::class);
 		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$mutation];
+		$riboonId = 'novy_import';
 		
 		if ($overwrite) {
 			$updates = ["name$mutationSuffix", "content$mutationSuffix", "unit", 'imageFileName', 'vatRate', 'fk_displayAmount'];
@@ -125,15 +126,11 @@ class SupplierProductRepository extends \StORM\Repository
 				$result['updated']++;
 			} else {
 				$result['inserted']++;
-			}
-
-			try {
+				
 				$productRepository->getConnection()->syncRow('eshop_product_nxn_eshop_internalribbon', [
 					'fk_product' => $product->getPK(),
-					'fk_internalribbon' => 'novy_import'
+					'fk_internalribbon' => $riboonId,
 				]);
-			} catch (\Exception $e) {
-
 			}
 			
 			if (isset($productsMap[$uuid]) && $productsMap[$uuid]->contentLock) {
