@@ -201,9 +201,6 @@ class SupplierMappingPresenter extends BackendPresenter
 			return $datagrid->getPresenter()->link('detail', $object->getPK());
 		}, '<a class="btn btn-primary btn-sm text-xs" href="%s" title="Upravit"><i class="far fa-edit"></i></a>', null, ['class' => 'minimal']);
 
-
-
-
 		$grid->addButtonBulkEdit('form', [$property], 'grid', 'bulkEdit', 'Hromadná úprava', 'bulkEdit', 'default', null, null, $property === 'attribute' || $property === 'attributeValue' ? [$property => $property] : []);
 		//		$grid->addButtonBulkEdit('mappingForm', [], 'grid', 'bulkMapping', 'Vytvořit strukturu');
 		
