@@ -137,7 +137,10 @@ class SupplierProductRepository extends \StORM\Repository
 				$result['locked']++;
 			}
 			
-			foreach ($this->getConnection()->findRepository(SupplierAttributeValueAssign::class)->many()->where('fk_supplierProduct', $draft) as $attributeValue) {
+			foreach ($this->getConnection()->findRepository(SupplierAttributeValue::class)->many()
+				->join(['assign' => 'eshop_supplierattributevalueassign'], 'assign.fk_supplierAttributeValue=this.uuid')
+				->where('assign.fk_supplierProduct', $draft)
+				->where('this.fk_attributeValue IS NOT NULL') as $attributeValue) {
 				$attributeAssignRepository->syncOne([
 					'value' => $attributeValue->getValue('attributeValue'),
 					'product' => $product,
