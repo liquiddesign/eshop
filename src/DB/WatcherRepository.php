@@ -34,8 +34,8 @@ class WatcherRepository extends \StORM\Repository
 
 	/**
 	 * Return two arrays.
-	 * First array (active): changed watchers in positive way, for example: watchedPrice=40, beforePrice=42, currentPrice=38
-	 * Second array (nonActive): changed watchers in negative way, for example: watchedPrice=40, beforePrice=38, currentPrice=42
+	 * First array (active): changed watchers in positive way, for example: amountFrom=1, beforeAmountFrom=0, currentAmount=1
+	 * Second array (nonActive): changed watchers in negative way, for example: amountFrom=1, beforeAmountFrom=1, currentAmount=0
 	 * Watchers without change will not be returned.
 	 * @return \Eshop\DB\Watcher[][]
 	 */
