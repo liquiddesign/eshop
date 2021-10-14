@@ -25,7 +25,6 @@ use Eshop\DB\SupplierProducer;
 use Eshop\DB\SupplierProducerRepository;
 use Eshop\DB\SupplierRepository;
 use Forms\Form;
-use Nette\Application\Helpers;
 use Nette\Http\Session;
 use Nette\Utils\Arrays;
 use Nette\Utils\Random;
@@ -114,8 +113,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		
 		$grid->addColumnText('Importováno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Změněno', "updateTs|date:'d.m.Y G:i'", '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		
-		
+
 		if ($this->tab === 'category') {
 			$grid->addColumnText('Název', 'getNameTree', '%s', 'categoryNameL1');
 			$dir = \explode('-', $this->getHttpRequest()->getQuery('grid-order') ?? '')[1] ?? 'ASC';
@@ -202,8 +200,8 @@ class SupplierMappingPresenter extends BackendPresenter
 		$grid->addColumn('', function ($object, $datagrid) {
 			return $datagrid->getPresenter()->link('detail', $object->getPK());
 		}, '<a class="btn btn-primary btn-sm text-xs" href="%s" title="Upravit"><i class="far fa-edit"></i></a>', null, ['class' => 'minimal']);
-		
-		$grid->addButtonBulkEdit('form', [$property]);
+
+		$grid->addButtonBulkEdit('form', [$property], 'grid', 'bulkEdit', 'Hromadná úprava', 'bulkEdit', 'default', null, null, $property === 'attribute' || $property === 'attributeValue' ? [$property => $property] : []);
 		//		$grid->addButtonBulkEdit('mappingForm', [], 'grid', 'bulkMapping', 'Vytvořit strukturu');
 		
 		$submit = $grid->getForm()->addSubmit('submit', 'Vytvořit strukturu')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
@@ -254,7 +252,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		}
 		
 		if ($this->tab === 'attributeValue') {
-			$form->addText('name', 'Název / hodnota')->setHtmlAttribute('readonly', 'readonly');
+			$form->addText('label', 'Popisek')->setHtmlAttribute('readonly', 'readonly');
 			$form->addSelect2Ajax('attributeValue', $this->link('getAttributeValues!'), 'Hodnota', [], 'Nepřiřazeno')->setPrompt('Nepřiřazeno');
 		}
 		
@@ -348,7 +346,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			
 			$rawValues = $this->getHttpRequest()->getPost();
 			
-			if (!isset($rawValues['attribute'])) {
+			if (!isset($rawValues['attribute']) && isset($form['attribute'])) {
 				$form['attribute']->addError('Toto pole je povinné!');
 			}
 		};
@@ -418,9 +416,17 @@ class SupplierMappingPresenter extends BackendPresenter
 							$supplierAttribute->attribute->update(['name' => ['cs' => $supplierAttribute->name, 'en' => null]]);
 						}
 					} else {
+						$tempAttribute = $supplierAttribute->code ? $this->attributeRepository->many()->where('code', $supplierAttribute->code)->first() : true;
+						$code = $tempAttribute ? '' : $supplierAttribute->code;
+
+						while ($tempAttribute !== null) {
+							$code .= Random::generate(4, '0-9');
+							$tempAttribute = $this->attributeRepository->many()->where('code', $code)->first();
+						}
+
 						/** @var \Eshop\DB\Attribute $attribute */
 						$attribute = $this->attributeRepository->createOne([
-							'code' => Random::generate(10,'0-9'),
+							'code' => $code,
 							'name' => ['cs' => $supplierAttribute->name, 'en' => null]
 						]);
 						
@@ -435,19 +441,27 @@ class SupplierMappingPresenter extends BackendPresenter
 					/** @var \Eshop\DB\SupplierAttributeValue $supplierAttributeValue */
 					$supplierAttributeValue = $this->supplierAttributeValueRepository->one($uuid);
 					
-					if (!$supplierAttributeValue->name) {
+					if (!$supplierAttributeValue->label) {
 						continue;
 					}
 					
 					if ($supplierAttributeValue->attributeValue) {
 						if ($overwrite) {
-							$supplierAttributeValue->attributeValue->update(['label' => ['cs' => $supplierAttributeValue->name, 'en' => null]]);
+							$supplierAttributeValue->attributeValue->update(['label' => ['cs' => $supplierAttributeValue->label, 'en' => null]]);
 						}
 					} else {
+						$tempAttribute = $supplierAttributeValue->code ? $this->attributeValueRepository->many()->where('code', $supplierAttributeValue->code)->first() : true;
+						$code = $tempAttribute ? '' : $supplierAttributeValue->code;
+
+						while ($tempAttribute !== null) {
+							$code .= Random::generate(4, '0-9');
+							$tempAttribute = $this->attributeValueRepository->many()->where('code', $code)->first();
+						}
+
 						/** @var \Eshop\DB\AttributeValue $attributeValue */
 						$attributeValue = $this->attributeValueRepository->createOne([
-							'code' => Random::generate(10,'0-9'),
-							'label' => ['cs' => $supplierAttributeValue->name, 'en' => null],
+							'code' => $code,
+							'label' => ['cs' => $supplierAttributeValue->label, 'en' => null],
 							'attribute' => $attribute
 						]);
 						

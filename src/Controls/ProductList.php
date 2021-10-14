@@ -163,7 +163,7 @@ class ProductList extends Datalist
 		if ($customer = $this->shopper->getCustomer()) {
 			$this->watcherRepository->createOne([
 				'product' => $product,
-				'customer' => $customer,
+				'account' => $customer->getAccount()->getPK(),
 				'amountFrom' => 1,
 				'beforeAmountFrom' => 0
 			]);
@@ -179,7 +179,7 @@ class ProductList extends Datalist
 		if ($customer = $this->shopper->getCustomer()) {
 			$this->watcherRepository->many()
 				->where('fk_product', $product)
-				->where('fk_customer', $customer)
+				->where('fk_account', $customer->getAccount()->getPK())
 				->delete();
 		}
 

@@ -153,11 +153,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 				'primaryCategoryPath' => 'primaryCategory.path',
 			]);
 			
-			if ($customer) {
+			if ($customer && $customer->getAccount()) {
 				$subSelect = $this->getConnection()->rows(['eshop_watcher'], ['uuid'])
-					->where('eshop_watcher.fk_customer= :test')
+					->where('eshop_watcher.fk_account= :test')
 					->where('eshop_watcher.fk_product=this.uuid');
-				$collection->select(['fk_watcher' => $subSelect], ['test' => $customer->getPK()]);
+				$collection->select(['fk_watcher' => $subSelect], ['test' => $customer->getAccount()->getPK()]);
 			}
 		}
 
@@ -352,6 +352,9 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$collection->filter(['q' => $value]);
 	}
 
+	/**
+	 * @deprecated
+	 */
 	public function filterRelatedSlave($value, ICollection $collection)
 	{
 		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave');

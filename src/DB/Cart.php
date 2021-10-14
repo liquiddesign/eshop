@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Security\DB\Account;
 use StORM\RelationCollection;
 
 /**
@@ -67,8 +68,23 @@ class Cart extends \StORM\Entity
 	 * Zákazník
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * @deprecated
 	 */
 	public ?Customer $customer;
+
+	/**
+	 * Zákazník
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * @deprecated
+	 */
+	public ?Account $account;
+
+	/**
+	 * Ztracený košík
+	 * @column
+	 */
+	public bool $lostMark = false;
 	
 	/**
 	 * Položky košíku

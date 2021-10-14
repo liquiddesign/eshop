@@ -358,7 +358,8 @@ class CheckoutManager
 			'uuid' => $this->customer ? null : $this->cartToken,
 			'id' => $id,
 			'active' => $activate,
-			'customer' => $this->customer ? $this->customer : null,
+			'customer' => $this->customer ?: null,
+			'account' => $this->customer && $this->customer->getAccount() ? $this->customer->getAccount() : null,
 			'currency' => $this->shopper->getCurrency(),
 			'expirationTs' => $this->customer ? null : (string)new DateTime('+' . $this->cartExpiration . ' days'),
 		]);

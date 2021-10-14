@@ -15,7 +15,9 @@ class ProducerRepository extends Repository implements IGeneralRepository
 {
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		return $this->getCollection($includeHidden)->setOrderBy(['this.name'])->toArrayOf('name');
+		$suffix = $this->getConnection()->getMutationSuffix();
+
+		return $this->getCollection($includeHidden)->setOrderBy(["this.name$suffix"])->toArrayOf('name');
 	}
 	
 	public function getCollection(bool $includeHidden = false): Collection
