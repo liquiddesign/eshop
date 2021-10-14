@@ -71,18 +71,15 @@ class WatcherRepository extends \StORM\Repository
 						$watcher->delete();
 						continue;
 					}
-
-					$watcher->update([
-						'beforeAmountFrom' => $product->displayAmount->amountFrom
-					]);
 				}
 
 				if ($product->displayAmount->amountFrom < $watcher->amountFrom && $product->displayAmount->amountFrom < $watcher->beforeAmountFrom) {
 					$nonActiveWatchers[] = $watcher;
-					$watcher->update([
-						'beforeAmountFrom' => $product->displayAmount->amountFrom
-					]);
 				}
+
+				$watcher->update([
+					'beforeAmountFrom' => $product->displayAmount->amountFrom
+				]);
 			}
 
 			if ($watcher->priceFrom !== null) {
