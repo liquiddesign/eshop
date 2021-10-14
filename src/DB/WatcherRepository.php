@@ -63,8 +63,8 @@ class WatcherRepository extends \StORM\Repository
 				continue;
 			}
 
-			if ($product->displayAmount && $product->displayAmount->amountFrom && $watcher->amountFrom) {
-				if ($product->displayAmount->amountFrom >= $watcher->amountFrom && $watcher->amountFrom >= $watcher->beforeAmountFrom) {
+			if ($product->displayAmount !== null && $product->displayAmount->amountFrom !== null && $watcher->amountFrom !== null) {
+				if ($product->displayAmount->amountFrom >= $watcher->amountFrom && $watcher->amountFrom > $watcher->beforeAmountFrom) {
 					$activeWatchers[] = $watcher;
 
 					if (!$watcher->keepAfterNotify) {
@@ -85,8 +85,8 @@ class WatcherRepository extends \StORM\Repository
 				}
 			}
 
-			if ($watcher->priceFrom) {
-				if ($watcher->priceFrom <= $watcher->beforePriceFrom && $product->price <= $watcher->priceFrom) {
+			if ($watcher->priceFrom !== null) {
+				if ($watcher->priceFrom < $watcher->beforePriceFrom && $product->price <= $watcher->priceFrom) {
 					$activeWatchers[] = $watcher;
 
 					if (!$watcher->keepAfterNotify) {
