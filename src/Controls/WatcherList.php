@@ -21,7 +21,7 @@ class WatcherList extends Datalist
 	
 	public function __construct(WatcherRepository $watcherRepository, Shopper $shopper, DIConnection $connection)
 	{
-		parent::__construct($watcherRepository->getWatchersByAccount($shopper->getCustomer()->getAccount()));
+		parent::__construct($watcherRepository->getWatchersByCustomer($shopper->getCustomer()));
 	
 		$this->watcherRepository = $watcherRepository;
 		$this->setDefaultOnPage(20);

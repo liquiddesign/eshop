@@ -152,12 +152,12 @@ class ProductRepository extends Repository implements IGeneralRepository
 				'fallbackImage' => 'primaryCategory.productFallbackImageFileName',
 				'primaryCategoryPath' => 'primaryCategory.path',
 			]);
-			
-			if ($customer && $customer->getAccount()) {
+
+			if ($customer) {
 				$subSelect = $this->getConnection()->rows(['eshop_watcher'], ['uuid'])
-					->where('eshop_watcher.fk_account= :test')
+					->where('eshop_watcher.fk_customer= :test')
 					->where('eshop_watcher.fk_product=this.uuid');
-				$collection->select(['fk_watcher' => $subSelect], ['test' => $customer->getAccount()->getPK()]);
+				$collection->select(['fk_watcher' => $subSelect], ['test' => $customer->getPK()]);
 			}
 		}
 

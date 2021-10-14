@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Security\DB\Account;
 
 /**
  * Hlidací pes
  * @table
- * @index{"name":"product_watchlist","unique":true,"columns":["fk_product","fk_account"]}
+ * @index{"name":"product_watchlist","unique":true,"columns":["fk_product","fk_customer"]}
  */
 class Watcher extends \StORM\Entity
 {
@@ -48,7 +47,7 @@ class Watcher extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
-	public Account $account;
+	public Customer $customer;
 
 	/**
 	 * Produkt

@@ -13,6 +13,8 @@ use StORM\RelationCollection;
  */
 class Cart extends \StORM\Entity
 {
+	public const EXPIRATION_DAYS = 30;
+
 	/**
 	 * Číslo košíku
 	 * @column
@@ -68,17 +70,8 @@ class Cart extends \StORM\Entity
 	 * Zákazník
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
-	 * @deprecated
 	 */
 	public ?Customer $customer;
-
-	/**
-	 * Zákazník
-	 * @relation
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
-	 * @deprecated
-	 */
-	public ?Account $account;
 
 	/**
 	 * Ztracený košík
