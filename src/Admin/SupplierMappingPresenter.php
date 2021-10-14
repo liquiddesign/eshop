@@ -25,6 +25,7 @@ use Eshop\DB\SupplierProducer;
 use Eshop\DB\SupplierProducerRepository;
 use Eshop\DB\SupplierRepository;
 use Forms\Form;
+use Grid\Datagrid;
 use Nette\Http\Session;
 use Nette\Utils\Arrays;
 use Nette\Utils\Random;
@@ -160,6 +161,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		}
 
 		if ($this->tab === 'attribute') {
+			$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 			$grid->addColumnText('Název', 'name', '%s', 'name');
 			$grid->addColumn('Napárovano', function (SupplierAttribute $mapping) {
 				$link = $mapping->attribute && $this->admin->isAllowed(':Eshop:Admin:Attribute:attributeDetail') ? $this->link(':Eshop:Admin:Attribute:attributeDetail', [$mapping->attribute, 'backLink' => $this->storeRequest(),]) : '#';
@@ -177,7 +179,6 @@ class SupplierMappingPresenter extends BackendPresenter
 
 				return $mapping->supplierAttribute ? "<a href='$link'>" . ($mapping->supplierAttribute->name ?: 'Detail atributu') . '</a>' : '-';
 			});
-			$grid->addColumnText('Atribut', 'supplierAttribute.name', '%s', 'supplierAttribute');
 			$grid->addColumnText('Název', 'label', '%s', 'label');
 			$grid->addColumn('Napárovano', function (SupplierAttributeValue $mapping) {
 				$link = $mapping->attributeValue && $this->admin->isAllowed(':Eshop:Admin:Attribute:valueDetail') ? $this->link(':Eshop:Admin:Attribute:valueDetail', [$mapping->attributeValue, 'backLink' => $this->storeRequest(),]) : '#';
@@ -223,9 +224,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		}
 
 		if ($this->tab === 'attributeValue' && $attributes = $this->supplierAttributeRepository->many()->toArrayOf('name')) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$source->where('fk_supplierAttribute', $value);
-			}, null, 'supplierAttribute', null, $attributes, ['placeholder' => '- Atribut -']);
+			$grid->addFilterTextInput('supplierAttributeCode', ['supplierAttribute.code'], null, 'Kód atributu', null, '%s');
 		}
 
 		$grid->addFilterDatetime(function (ICollection $source, $value) {
