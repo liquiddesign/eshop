@@ -12,10 +12,13 @@ class SupplierCategoryRepository extends \StORM\Repository
 	public function syncAttributeCategoryAssigns(Supplier $supplier): void
 	{
 		foreach ($this->many()->where('this.fk_supplier', $supplier)->where('fk_category IS NOT NULL') as $supplierCategory) {
-			foreach ($this->getConnection()->findRepository(SupplierAttributeCategoryAssign::class)->many()->where('fk_supplierCategory', $supplierCategory) as $nxn) {
+			foreach ($this->getConnection()->findRepository(SupplierAttribute::class)->many()
+				->join(['assign' => 'eshop_supplierattributecategoryassign'], 'assign.fk_supplierAttribute=this.uuid')
+				->where('assign.fk_supplierCategory', $supplierCategory)
+				->where('fk_attribute IS NOT NULL') as $supplierAttribute) {
 				$this->connection->syncRow('eshop_attribute_nxn_eshop_category', [
 					'fk_category' => $supplierCategory->getValue('category'),
-					'fk_attribute' => $nxn->getValue('attribute'),
+					'fk_attribute' => $supplierAttribute->getValue('attribute'),
 				]);
 			}
 		}
