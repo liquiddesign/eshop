@@ -15,7 +15,7 @@ class SupplierCategoryRepository extends \StORM\Repository
 			foreach ($this->getConnection()->findRepository(SupplierAttribute::class)->many()
 				->join(['assign' => 'eshop_supplierattributecategoryassign'], 'assign.fk_supplierAttribute=this.uuid')
 				->where('assign.fk_supplierCategory', $supplierCategory)
-				->where('fk_attribute IS NOT NULL') as $supplierAttribute) {
+				->where('this.fk_attribute IS NOT NULL') as $supplierAttribute) {
 				$this->connection->syncRow('eshop_attribute_nxn_eshop_category', [
 					'fk_category' => $supplierCategory->getValue('category'),
 					'fk_attribute' => $supplierAttribute->getValue('attribute'),
