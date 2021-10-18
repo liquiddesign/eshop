@@ -58,7 +58,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 	{
 		$form = $this->formFactory->create();
 		
-		$form->addText('code', 'Kód')->setNullable();
+		$form->addText('code', 'Kód')->setRequired();
 		$form->addLocaleText('name', 'Název');
 		$form->addDataSelect('supplier', 'Zdroj', $this->supplierRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 

@@ -36,7 +36,9 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	private PriceRepository $priceRepository;
 
-	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager, AttributeRepository $attributeRepository, SetRepository $setRepository, Pages $pages, PageRepository $pageRepository, PriceRepository $priceRepository)
+	private AmountRepository $amountRepository;
+
+	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager, AttributeRepository $attributeRepository, SetRepository $setRepository, Pages $pages, PageRepository $pageRepository, PriceRepository $priceRepository, AmountRepository $amountRepository)
 	{
 		parent::__construct($connection, $schemaManager);
 
@@ -46,6 +48,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$this->pages = $pages;
 		$this->pageRepository = $pageRepository;
 		$this->priceRepository = $priceRepository;
+		$this->amountRepository = $amountRepository;
 	}
 
 	static public function generateUuid(?string $ean, ?string $fullCode)
@@ -132,21 +135,21 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$collection->select(['priceVatBefore' => $this->sqlExplode($expression, $sep, 5)]);
 			$collection->select(['pricelist' => $this->sqlExplode($expression, $sep, 6)]);
 			$collection->select(['currencyCode' => "'" . $currency->code . "'"]);
-			
+
 			$collection->select(['vatPct' => "IF(vatRate = 'standard'," . ($vatRates['standard'] ?? 0) . ",IF(vatRate = 'reduced-high'," . ($vatRates['reduced-high'] ?? 0) . ",IF(vatRate = 'reduced-low'," . ($vatRates['reduced-low'] ?? 0) . ",0)))"]);
-			
+
 			$subSelect = $this->getConnection()->rows(['eshop_attributevalue'], ["GROUP_CONCAT(CONCAT_WS('$sep', eshop_attributevalue.uuid, fk_attribute))"])
 				->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
 				->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
 				->where('eshop_attribute.showProduct=1')
 				->where('eshop_attributeassign.fk_product=this.uuid');
 			$collection->select(['parameters' => $subSelect]);
-			
+
 			$subSelect = $this->getConnection()->rows(['eshop_ribbon'], ['GROUP_CONCAT(uuid)'])
 				->join(['nxn' => 'eshop_product_nxn_eshop_ribbon'], 'eshop_ribbon.uuid = nxn.fk_ribbon')
 				->where('nxn.fk_product=this.uuid');
 			$collection->select(['ribbonsIds' => $subSelect]);
-			
+
 			$collection->join(['primaryCategory' => 'eshop_category'], 'primaryCategory.uuid=this.fk_primaryCategory');
 			$collection->select([
 				'fallbackImage' => 'primaryCategory.productFallbackImageFileName',
@@ -162,7 +165,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 
 		$collection->where(\implode(' OR ', $priceWhere));
-		
+
 		return $collection;
 	}
 
@@ -185,17 +188,17 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$value === false ? $collection->where('categories.uuid IS NULL') : $collection->where('categories.path LIKE :category', ['category' => "$value%"]);
 	}*/
-	
+
 	public function filterCategory($value, ICollection $collection)
 	{
 		if ($value === false) {
 			$collection->where('this.fk_primaryCategory IS NULL');
-			
+
 			return;
 		}
-		
+
 		$id = $this->getConnection()->findRepository(Category::class)->many()->match(['path' => $value])->firstValue('uuid');
-		
+
 		if (!$id) {
 			$collection->where('1=0');
 		} else {
@@ -203,28 +206,28 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$collection->where('this.fk_primaryCategory = :category OR this.uuid IN (' . $subSelect->getSql() . ')', ['category' => $id] + $subSelect->getVars());
 		}
 	}
-	
+
 	public function filterPriceFrom($value, ICollection $collection)
 	{
 		$no = \count($this->shopper->getPricelists()->toArray());
 		$expression = new Expression();
-		
+
 		for ($i = 0; $i != $no; $i++) {
 			$expression->add('OR', "prices$i.price >= :priceFrom");
 		}
-		
+
 		$collection->where($expression->getSql(), ['priceFrom' => (float)$value]);
 	}
-	
+
 	public function filterPriceTo($value, ICollection $collection)
 	{
 		$no = \count($this->shopper->getPricelists()->toArray());
 		$expression = new Expression();
-		
+
 		for ($i = 0; $i != $no; $i++) {
 			$expression->add('OR', "prices$i.price <= :priceTo");
 		}
-		
+
 		$collection->where($expression->getSql(), ['priceTo' => (float)$value]);
 	}
 
@@ -792,9 +795,15 @@ class ProductRepository extends Repository implements IGeneralRepository
 			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
 			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value = attributeValue.uuid')
 			->join(['producer' => 'eshop_producer'], 'producer.uuid = this.fk_producer')
+			->join(['storeAmount' => 'eshop_amount'], 'storeAmount.fk_product = this.uuid')
+			->join(['store' => 'eshop_store'], 'storeAmount.fk_store = store.uuid')
+			->join(['categoryAssign' => 'eshop_product_nxn_eshop_category'], 'this.uuid = categoryAssign.fk_product')
+			->join(['category' => 'eshop_category'], 'categoryAssign.fk_category = category.uuid')
 			->select([
 				'attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute, ':', CONCAT(COALESCE(attributeValue.label$mutationSuffix), '#', attributeValue.code)))",
 				'producerCodeName' => "CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, ''))",
+				'amounts' => "GROUP_CONCAT(DISTINCT CONCAT(storeAmount.inStock, '#', store.code))",
+				'groupedCategories' => "GROUP_CONCAT(DISTINCT CONCAT(category.name$mutationSuffix, '#', IF(category.code IS NULL OR category.code = '', category.uuid, category.code)) ORDER BY LENGTH(category.path))",
 			]);
 
 		/** @var Product $product */
@@ -824,10 +833,14 @@ class ProductRepository extends Repository implements IGeneralRepository
 			}
 
 			foreach ($columns as $columnKey => $columnValue) {
-				if ($columnKey === 'perex') {
+				if ($columnKey === 'perex' || $columnKey === 'content') {
 					$row[] = $product->getValue($columnKey) ? \strip_tags($product->getValue($columnKey)) : null;
 				} elseif ($columnKey == 'producer') {
 					$row[] = $product->producerCodeName;
+				} elseif ($columnKey == 'storeAmount') {
+					$row[] = $product->amounts;
+				} elseif ($columnKey == 'categories') {
+					$row[] = $product->groupedCategories;
 				} else {
 					$row[] = $product->getValue($columnKey) === false ? '0' : $product->getValue($columnKey);
 				}
