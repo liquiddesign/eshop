@@ -196,7 +196,10 @@ class AttributePresenter extends BackendPresenter
 
 		if (isset(static::CONFIGURATIONS['wizard']) && static::CONFIGURATIONS['wizard']) {
 			$form->addGroup('Průvodce');
-			$form->addCheckbox('showWizard', 'Zobrazit v průvodci');
+			$form->addCheckbox('showWizard', 'Zobrazit v průvodci')
+				->addCondition($form::FILLED)
+				->toggle('frm-attributeForm-wizardStep-toogle')
+				->toggle('frm-attributeForm-wizardLabel-toogle');
 			$form->addSelect('wizardStep', 'Pozice v průvodci (krok)', static::CONFIGURATIONS['wizardSteps']);
 			$form->addText('wizardLabel', 'Název v průvodci')->setNullable()->setHtmlAttribute('data-info', 'Pokud necháte prázdné, použije se název atributu.');
 		}
@@ -337,7 +340,10 @@ class AttributePresenter extends BackendPresenter
 
 		if (isset(static::CONFIGURATIONS['wizard']) && static::CONFIGURATIONS['wizard']) {
 			$form->addGroup('Průvodce');
-			$form->addCheckbox('showWizard', 'Zobrazit v průvodci');
+			$form->addCheckbox('showWizard', 'Zobrazit v průvodci')
+				->addCondition($form::FILLED)
+				->toggle('frm-valuesForm-defaultWizard-toogle');
+			$form->addCheckbox('defaultWizard', 'Výchozí hodnota (zaškrtnuté)');
 //			$form->addText('wizardLabel', 'Název v průvodci')->setNullable()->setHtmlAttribute('data-info', 'Pokud necháte prázdné, použije se popisek.');
 		}
 
