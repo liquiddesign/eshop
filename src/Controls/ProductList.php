@@ -7,20 +7,20 @@ namespace Eshop\Controls;
 use Eshop\CheckoutManager;
 use Eshop\DB\Attribute;
 use Eshop\DB\AttributeRepository;
-use Eshop\DB\AttributeValue;
 use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
-use Eshop\DB\ParameterAvailableValueRepository;
-use Eshop\DB\ParameterRepository;
+use Eshop\DB\DisplayAmountRepository;
+use Eshop\DB\DisplayDeliveryRepository;
+use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\Shopper;
 use Eshop\DB\WatcherRepository;
-use Forms\Form;
 use Forms\FormFactory;
 use Grid\Datalist;
 use Nette\Application\UI\Multiplier;
 use Nette\Localization\Translator;
+use Nette\Utils\Arrays;
 use StORM\Collection;
 use StORM\ICollection;
 
@@ -52,20 +52,29 @@ class ProductList extends Datalist
 
 	private IBuyFormFactory $buyFormFactory;
 
+	private ProducerRepository $producerRepository;
+
+	private DisplayAmountRepository $displayAmountRepository;
+
+	private DisplayDeliveryRepository $displayDeliveryRepository;
+
 	public function __construct(
-		ProductRepository $productRepository,
-		CategoryRepository $categoryRepository,
-		WatcherRepository $watcherRepository,
-		CheckoutManager $checkoutManager,
-		Shopper $shopper,
-		Translator $translator,
-		FormFactory $formFactory,
-		AttributeRepository $attributeRepository,
-		AttributeValueRepository $attributeValueRepository,
+		ProductRepository             $productRepository,
+		CategoryRepository            $categoryRepository,
+		WatcherRepository             $watcherRepository,
+		CheckoutManager               $checkoutManager,
+		Shopper                       $shopper,
+		Translator                    $translator,
+		FormFactory                   $formFactory,
+		AttributeRepository           $attributeRepository,
+		AttributeValueRepository      $attributeValueRepository,
 		AttributeValueRangeRepository $attributeValueRangeRepository,
-		IBuyFormFactory $buyFormFactory,
-		array $order = null,
-		?Collection $source = null
+		IBuyFormFactory               $buyFormFactory,
+		ProducerRepository            $producerRepository,
+		DisplayAmountRepository       $displayAmountRepository,
+		DisplayDeliveryRepository     $displayDeliveryRepository,
+		array                         $order = null,
+		?Collection                   $source = null
 	)
 	{
 		$source = $source ?? $productRepository->getProducts()->where('this.hidden', false);
@@ -82,9 +91,9 @@ class ProductList extends Datalist
 		$this->setAllowedOrderColumns(['price' => 'price', 'priority' => 'priority']);
 		$this->setItemCountCallback(function (ICollection $filteredSource) use ($categoryRepository) {
 			if (isset($this->getFilters()['category'])) {
-				return (int) ($categoryRepository->getCountsGrouped(null, $this->getFilters())[$this->getFilters()['category']] ?? 0);
+				return (int)($categoryRepository->getCountsGrouped(null, $this->getFilters())[$this->getFilters()['category']] ?? 0);
 			}
-			
+
 			return $filteredSource->setOrderBy([])->count();
 		});
 
@@ -156,6 +165,9 @@ class ProductList extends Datalist
 		$this->attributeValueRepository = $attributeValueRepository;
 		$this->attributeValueRangeRepository = $attributeValueRangeRepository;
 		$this->buyFormFactory = $buyFormFactory;
+		$this->producerRepository = $producerRepository;
+		$this->displayAmountRepository = $displayAmountRepository;
+		$this->displayDeliveryRepository = $displayDeliveryRepository;
 	}
 
 	public function handleWatchIt(string $product): void
@@ -242,10 +254,10 @@ class ProductList extends Datalist
 
 	private function getFiltersForTemplate(): array
 	{
-		$filters = $this->getFilters()['attributes'] ?? [];
+		$filters = $this->getFilters();
 		$templateFilters = [];
 
-		foreach ($filters as $attributeKey => $attributeValues) {
+		foreach (Arrays::pick($filters, 'attributes', []) as $attributeKey => $attributeValues) {
 			/** @var Attribute $attribute */
 			$attribute = $this->attributeRepository->one($attributeKey);
 
@@ -259,6 +271,24 @@ class ProductList extends Datalist
 
 			foreach ($attributeValues as $attributeValueKey => $attributeValueLabel) {
 				$templateFilters[$attributeKey][$attributeValueKey] = "$attribute->name: $attributeValueLabel";
+			}
+		}
+
+		if (isset($filters['producers'])) {
+			foreach ($this->producerRepository->many()->where('this.uuid', $filters['producers']) as $producer) {
+				$templateFilters['producers'][$producer->getPK()] = $this->translator->translate('.producer', 'Výrobce') . ": $producer->name";
+			}
+		}
+
+		if (isset($filters['availability'])) {
+			foreach ($this->displayAmountRepository->many()->where('this.uuid', $filters['availability']) as $displayAmount) {
+				$templateFilters['availability'][$displayAmount->getPK()] = $this->translator->translate('.availability', 'Dostupnost') . ": $displayAmount->label";
+			}
+		}
+
+		if (isset($filters['delivery'])) {
+			foreach ($this->displayDeliveryRepository->many()->where('this.uuid', $filters['delivery']) as $displayDelivery) {
+				$templateFilters['delivery'][$displayDelivery->getPK()] = $this->translator->translate('.delivery', 'Doprava') . ": $displayDelivery->label";
 			}
 		}
 
