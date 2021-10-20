@@ -201,7 +201,10 @@ class AttributePresenter extends BackendPresenter
 				->toggle('frm-attributeForm-wizardStep-toogle')
 				->toggle('frm-attributeForm-wizardLabel-toogle');
 			$form->addSelect('wizardStep', 'Pozice v průvodci (krok)', static::CONFIGURATIONS['wizardSteps']);
-			$form->addText('wizardLabel', 'Název v průvodci')->setNullable()->setHtmlAttribute('data-info', 'Pokud necháte prázdné, použije se název atributu.');
+			$form->addLocaleText('wizardLabel', 'Název v průvodci')
+				->forAll(function ($input) {
+					$input->setNullable()->setHtmlAttribute('data-info', 'Pokud necháte prázdné, použije se název atributu.');
+				});
 		}
 
 		$form->addSubmits(!$this->getParameter('attribute'));
@@ -263,7 +266,7 @@ class AttributePresenter extends BackendPresenter
 		$grid->addButtonDeleteSelected(null, false, function (AttributeValue $attributeValue) {
 			return !$this->attributeValueRepository->isValuePairedWithProducts($attributeValue);
 		});
-		$grid->addButtonBulkEdit('valuesForm',['attributeValueRange'],'valuesGrid');
+		$grid->addButtonBulkEdit('valuesForm', ['attributeValueRange'], 'valuesGrid');
 
 		$grid->addFilterTextInput('search', ['this.code', 'this.label_cs'], null, 'Kód, popisek');
 		$grid->addFilterTextInput('attribute', ['attribute.code'], null, 'Kód atributu', null, '%s');

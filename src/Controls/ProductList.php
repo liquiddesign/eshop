@@ -104,7 +104,7 @@ class ProductList extends Datalist
 			$collection->orderBy(['LENGTH(categories.path)' => $value]);
 		});
 
-		$this->setAllowedRepositoryFilters(['category', 'tag', 'producer', 'related', 'recommended', 'q']);
+		$this->setAllowedRepositoryFilters(['category', 'tag', 'producer', 'related', 'recommended', 'q', 'hidden']);
 
 		$this->addFilterExpression('crossSellFilter', function (ICollection $collection, $value): void {
 			$this->productRepository->filterCrossSellFilter($value, $collection);

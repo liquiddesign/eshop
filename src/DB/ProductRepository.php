@@ -273,6 +273,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$collection->where('this.recommended', $value);
 	}
 
+	public function filterHidden($value, ICollection $collection)
+	{
+		$collection->where('this.hidden', $value);
+	}
+
 	public function filterRelated($values, ICollection $collection)
 	{
 		$collection->whereNot('this.uuid', $values['uuid'])->where('this.fk_primaryCategory = :category', ['category' => $values['category']]);
@@ -833,9 +838,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			}
 
 			foreach ($columns as $columnKey => $columnValue) {
-				if ($columnKey === 'perex' || $columnKey === 'content') {
-					$row[] = $product->getValue($columnKey) ? \strip_tags($product->getValue($columnKey)) : null;
-				} elseif ($columnKey == 'producer') {
+				if ($columnKey == 'producer') {
 					$row[] = $product->producerCodeName;
 				} elseif ($columnKey == 'storeAmount') {
 					$row[] = $product->amounts;

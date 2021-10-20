@@ -7,13 +7,24 @@ namespace Eshop\DB;
 use Common\DB\IGeneralRepository;
 use Nette\Utils\Arrays;
 use StORM\Collection;
-use Tracy\Debugger;
+use StORM\DIConnection;
+use StORM\SchemaManager;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Attribute>
  */
 class AttributeRepository extends \StORM\Repository implements IGeneralRepository
 {
+	private AttributeValueRepository $attributeValueRepository;
+
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, AttributeValueRepository $attributeValueRepository)
+	{
+		parent::__construct($connection, $schemaManager);
+
+		$this->attributeValueRepository = $attributeValueRepository;
+	}
+
+
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('name');
@@ -211,5 +222,35 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		}
 
 		return $finalResult;
+	}
+
+	public function getWizardAttributes(): array
+	{
+		$mutationSuffix = $this->getConnection()->getMutationSuffix();
+
+		return $this->getCollection()
+			->where('this.showWizard', true)
+			->select(['realLabel' => "COALESCE(this.wizardLabel$mutationSuffix, this.name$mutationSuffix)"])
+			->toArrayOf('realLabel');
+	}
+
+	/**
+	 * @param int $step
+	 * @return \Eshop\DB\AttributeValue[][]
+	 */
+	public function getWizardAttributesValues(int $step): array
+	{
+		$items = [];
+
+		foreach ($this->attributeValueRepository->getCollection()
+					 ->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
+					 ->where('attribute.showWizard', true)
+					 ->where('this.showWizard', true)
+					 ->where('attribute.wizardStep', $step) as $attributeValue) {
+
+			$items[$attributeValue->getValue('attribute')][$attributeValue->getPK()] = $attributeValue;
+		}
+
+		return $items;
 	}
 }

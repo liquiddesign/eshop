@@ -75,7 +75,7 @@ class Attribute extends \StORM\Entity
 
 	/**
 	 * Nazev v pruvodci
-	 * @column
+	 * @column{"mutations":true}
 	 */
 	public ?string $wizardLabel = null;
 
