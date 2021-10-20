@@ -587,6 +587,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			/** @var Producer[] $producers */
 			foreach ($producers as $producer) {
 				$values = [];
+				$categoryValues = [];
 
 				foreach ($mutations as $mutation => $suffix) {
 					$urlMutation = null;
@@ -600,8 +601,10 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 					}
 
 					$values['url'][$mutation] = $urlMutation;
-					$values['title'][$mutation] = $category->getValue('name', $mutation) && $producer->getValue('name', $mutation) ? $category->getValue('name', $mutation) . ' ' . $producer->getValue('name', $mutation) : null;
 					$values['active'][$mutation] = true;
+					$values['title'][$mutation] = $category->getValue('name', $mutation) && $producer->getValue('name', $mutation) ? $category->getValue('name', $mutation) . ' ' . $producer->getValue('name', $mutation) : null;
+					$categoryValues['name'][$mutation] = $producer->getValue('name', $mutation);
+					$categoryValues['perex'][$mutation] = '<h1>' . $values['title'][$mutation] . '</h1>';
 				}
 
 				/** @var Category $producerCategory */
@@ -609,8 +612,9 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 					'uuid' => DIConnection::generateUuid($category->getPK(), $producer->getPK()),
 					'path' => $this->generateUniquePath($category->path),
 					'ancestor' => $category->getPK(),
-					'name' => $values['title'],
-					'type' => $category->getValue('type')
+					'name' => $categoryValues['name'] ?? [],
+					'type' => $category->getValue('type'),
+					'perex' => $categoryValues['perex'] ?? []
 				], [], true);
 
 				$values['type'] = 'product_list';
