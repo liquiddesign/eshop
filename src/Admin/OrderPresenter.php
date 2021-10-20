@@ -49,7 +49,7 @@ class OrderPresenter extends BackendPresenter
 		'exportPPC_columns' => [],
 		'defaultExportPPC_columns' => []
 	];
-
+	
 	/** @inject */
 	public OrderRepository $orderRepository;
 	
@@ -466,13 +466,15 @@ class OrderPresenter extends BackendPresenter
 	public function createComponentStoreOrderItemForm()
 	{
 		$form = $this->formFactory->create();
-		$form->addRadioList('store', $this->storeRepository->many()->toArrayOf('name'));
+		
+		$form->addRadioList('store', null, $this->storeRepository->many()->toArrayOf('name'));
+		
 		$form->addSubmits(false, false);
 		$form->onSuccess[] = function (AdminForm $form) {
 			$values = $form->getValues('array');
 			
 			/** @var \Eshop\DB\CartItem $item */
-			$item = $this->cartItemRepo->one($values['uuid'], true)->update($values);
+			$item = $this->packageItemRepository->one($values['uuid'], true)->update(['store' => $values['store']]);
 			
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('this');
@@ -714,7 +716,7 @@ class OrderPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 	}
-
+	
 	public function actionExportPPC(array $ids)
 	{
 		$this->template->headerLabel = 'Export pro PPC';
@@ -725,24 +727,24 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('exportPPCForm')];
 	}
-
+	
 	public function createComponentExportPPCForm()
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $this->getComponent('ordersGrid');
-
+		
 		$ids = $this->getParameter('ids') ?: [];
 		$totalNo = $grid->getPaginator()->getItemCount();
 		$selectedNo = \count($ids);
 		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
-
+		
 		$form = $this->formFactory->create();
 		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
 		$form->addRadioList('bulkType', 'Exportovat', [
 			'selected' => "vybrané ($selectedNo)",
 			'all' => "celý výsledek ($totalNo)",
 		])->setDefaultValue('selected');
-
+		
 		$form->addSelect('delimiter', 'Oddělovač', [
 			';' => 'Středník (;)',
 			',' => 'Čárka (,)',
@@ -751,35 +753,35 @@ class OrderPresenter extends BackendPresenter
 			'|' => 'Pipe (|)',
 		]);
 		$form->addCheckbox('header', 'Hlavička')->setDefaultValue(true)->setHtmlAttribute('data-info', 'Pokud tuto možnost nepoužijete tak nebude možné tento soubor použít pro import!');
-
+		
 		$headerColumns = $form->addDataMultiSelect('columns', 'Sloupce');
-
+		
 		$items = [];
 		$defaultItems = [];
-
+		
 		if (isset(static::CONFIGURATION['exportPPC_columns'])) {
 			$items += static::CONFIGURATION['exportPPC_columns'];
-
+			
 			if (isset(static::CONFIGURATION['defaultExportPPC_columns'])) {
 				$defaultItems = \array_merge($defaultItems, static::CONFIGURATION['defaultExportPPC_columns']);
 			}
 		}
-
+		
 		$headerColumns->setItems($items);
 		$headerColumns->setDefaultValue($defaultItems);
-
+		
 		$form->addSubmit('submit', 'Exportovat');
-
+		
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid, $items) {
 			$values = $form->getValues('array');
-
+			
 			$selectedItems = $values['bulkType'] == 'selected' ? $this->orderRepository->many()->where('this.uuid', $ids) : $grid->getFilteredSource();
-
+			
 			$tempFilename = \tempnam($this->tempDir, "csv");
 			$headerColumns = \array_filter($items, function ($item) use ($values) {
 				return \in_array($item, $values['columns']);
 			}, ARRAY_FILTER_USE_KEY);
-
+			
 			$this->orderRepository->csvPPCExport(
 				$selectedItems,
 				Writer::createFromPath($tempFilename),
@@ -787,10 +789,10 @@ class OrderPresenter extends BackendPresenter
 				$values['delimiter'],
 				$values['header'] ? \array_values($headerColumns) : null
 			);
-
+			
 			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "orders.csv", 'text/csv'));
 		};
-
+		
 		return $form;
 	}
 	

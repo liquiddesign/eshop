@@ -129,7 +129,7 @@
                                     <td>{$packageItem->amount}</td>
                                     <td>
                                         {if $packageItem->store}{$packageItem->store->name}{/if}
-                                        <a n:if="$item->product" class="modalStoreOrderItemForm d-print-none" data-toggle="modal" data-target="#modal-storeOrderItemForm" data-values="{json_encode(['uuid' => $item->getPK(), 'store' => $packageItem->store ? $packageItem->store->getPK() : null, 'amounts' => $item->product->getStoreAmounts(), 'prices' => $item->product->getSupplierPrices()])}" href="#"><i class="far fa-edit"></i></a><br>
+                                        <a n:if="$item->product" class="modalStoreOrderItemForm d-print-none" data-toggle="modal" data-target="#modal-storeOrderItemForm" data-values="{json_encode(['uuid' => $packageItem->getPK(), 'store' => $packageItem->getValue('store'), 'amounts' => $item->product->getStoreAmounts(), 'prices' => $item->product->getSupplierPrices()])}" href="#"><i class="far fa-edit"></i></a><br>
                                         <span n:if="$packageItem->status === 'waiting'" class="text-secondary"><i class="far fa-square"></i> Nepotrvzeno</span>
                                         <span n:if="$packageItem->status === 'reserved'" class="text-success"><i class="fa fa-check"></i> Rezervovano</span>
                                     </td>
@@ -241,8 +241,8 @@
         {block modal-body}{control splitOrderItemForm:noHeader}{/block}
     {/embed}
 
-    {embed modal id:'detailOrderItemForm'}
-        {block modal-header}Zvolte sklad položky{/block}
+    {embed modal id:'storeOrderItemForm'}
+        {block modal-header}Sklad položky{/block}
         {block modal-body}
             {form storeOrderItemForm}
                 <div class="table-responsive">
@@ -257,7 +257,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr n:foreach="$stores as $store" id="store-{$store->getPK()}" class="store {if $store->supplier}supplier-{$store->supplier->getPK()}{/if}">
+                        <tr n:foreach="$stores as $store" id="store-{$store->supplier->getPK()}" class="store {if $store->supplier}supplier-{$store->supplier->getPK()}{/if}">
                             <td>{input store:$store->getPK()}</td>
                             <td>{$store->name}</td>
                             <td class="input-amount" style="text-align: right"></td>
@@ -315,6 +315,7 @@
             });
 
             Object.keys(values.prices).forEach(key => {
+                $('#modal-storeOrderItemForm tr#store-' + key).removeClass('disabled');
                 $('#modal-storeOrderItemForm tr.supplier-' + key + ' td.input-price').html(values.prices[key]);
             });
 

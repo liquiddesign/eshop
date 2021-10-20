@@ -115,8 +115,9 @@ class SupplierRepository extends \StORM\Repository implements IGeneralRepository
 		
 		$total = 0;
 		
+		$store = $this->syncStore($supplier, $mutation);
+		
 		if (!$this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('amount IS NOT NULL')->isEmpty()) {
-			$store = $this->syncStore($supplier, $mutation);
 			$total = $this->supplierProductRepository->syncAmounts($this->supplierProductRepository->many()->where('fk_supplier', $supplier), $store);
 		}
 		
