@@ -12,7 +12,6 @@ use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
-use Eshop\FormValidators;
 use Forms\Form;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;

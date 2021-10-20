@@ -153,67 +153,67 @@
                 </table>
             </fieldset>
         </div>
-        <div id="menu1-content" class="tab-pane {$presenter->editTab == 'menu1' ? 'active show' : ''}">
-            <fieldset>
-                <table class="mt-1 mb-1" style="width: auto;">
-                    <tr class="m-0 mt-1 has-danger">
-                        <th class="col-form-label">Aktivní</th>
-                        <th class="col-form-label pl-2">Výrobce</th>
-                        <th class="col-label col-form-label col">Název</th>
-                        <th class="col-label col-form-label col">Priorita</th>
-                        <th></th>
-                    </tr>
+{*        <div id="menu1-content" class="tab-pane {$presenter->editTab == 'menu1' ? 'active show' : ''}">*}
+{*            <fieldset>*}
+{*                <table class="mt-1 mb-1" style="width: auto;">*}
+{*                    <tr class="m-0 mt-1 has-danger">*}
+{*                        <th class="col-form-label">Aktivní</th>*}
+{*                        <th class="col-form-label pl-2">Výrobce</th>*}
+{*                        <th class="col-label col-form-label col">Název</th>*}
+{*                        <th class="col-label col-form-label col">Priorita</th>*}
+{*                        <th></th>*}
+{*                    </tr>*}
 
-                    <tr n:if="\count($producerPages) == 0">
-                        <td colspan="4">Žádné stránky k dispozici. Stránky je nutné generovat pomocí tlačítka 'Generovat stránky výrobců' na seznamu kategorií.</td>
-                    </tr>
+{*                    <tr n:if="\count($producerPages) == 0">*}
+{*                        <td colspan="4">Žádné stránky k dispozici. Stránky je nutné generovat pomocí tlačítka 'Generovat stránky výrobců' na seznamu kategorií.</td>*}
+{*                    </tr>*}
 
-                    {foreach $producerPages as $id => [$page, $producer]}
-                        <tr class="m-0 mt-1 has-danger">
-                            <td class="col-form-label">
-                                {input categoryProducerPages-$page-active class => 'form-control form-control-sm col-label'}
-                            </td>
+{*                    {foreach $producerPages as $id => [$page, $producer]}*}
+{*                        <tr class="m-0 mt-1 has-danger">*}
+{*                            <td class="col-form-label">*}
+{*                                {input categoryProducerPages-$page-active class => 'form-control form-control-sm col-label'}*}
+{*                            </td>*}
 
-                            <td class="col-form-label pl-2"">
-                                <a href="{$baseUrl . '/' . $page->url}" target="_blank">{$producer->name}</a>
-                            </td>
+{*                            <td class="col-form-label pl-2"">*}
+{*                                <a href="{$baseUrl . '/' . $page->url}" target="_blank">{$producer->name}</a>*}
+{*                            </td>*}
 
-                            <td class="align-middle">
-                                {input categoryProducerPages-$page-name class => 'ml-2 form-control form-control-sm col-label'}
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError categoryProducerPages-$page-name}</span>
-                            </td>
+{*                            <td class="align-middle">*}
+{*                                {input categoryProducerPages-$page-name class => 'ml-2 form-control form-control-sm col-label'}*}
+{*                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError categoryProducerPages-$page-name}</span>*}
+{*                            </td>*}
 
-                            <td class="align-middle">
-                                {input categoryProducerPages-$page-priority class => 'ml-2 form-control form-control-sm col-label'}
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError categoryProducerPages-$page-priority}</span>
-                            </td>
+{*                            <td class="align-middle">*}
+{*                                {input categoryProducerPages-$page-priority class => 'ml-2 form-control form-control-sm col-label'}*}
+{*                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError categoryProducerPages-$page-priority}</span>*}
+{*                            </td>*}
 
 {*                            <td class="align-middle">*}
 {*                                <a class="btn btn-primary btn-sm text-xs ml-2" href="{plink :Web:Admin:Menu:pageDetail, $page}" title="Upravit"><i class="far fa-edit"></i></a>*}
 {*                            </td>*}
-                        </tr>
-                    {/foreach}
+{*                        </tr>*}
+{*                    {/foreach}*}
 
-                </table>
+{*                </table>*}
 
-                <br>
+{*                <br>*}
 
-                <span class="text-sm">
-                    Stránky se generují jen pro kombinace kategorie-výrobce, které mají alespoň jeden produkt. Pokud vám nějaká stránka po změně chybí, vygenerujte kombinace znovu.
-                </span>
-            </fieldset>
-            <fieldset>
-                <table class="mt-1 mb-1">
-                    <tr>
-                        {ifset $form['submitAndNext']}
-                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
-                        {else}
-                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
-                        {/ifset}
-                    </tr>
-                </table>
-            </fieldset>
-        </div>
+{*                <span class="text-sm">*}
+{*                    Stránky se generují jen pro kombinace kategorie-výrobce, které mají alespoň jeden produkt. Pokud vám nějaká stránka po změně chybí, vygenerujte kombinace znovu.*}
+{*                </span>*}
+{*            </fieldset>*}
+{*            <fieldset>*}
+{*                <table class="mt-1 mb-1">*}
+{*                    <tr>*}
+{*                        {ifset $form['submitAndNext']}*}
+{*                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}*}
+{*                        {else}*}
+{*                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}*}
+{*                        {/ifset}*}
+{*                    </tr>*}
+{*                </table>*}
+{*            </fieldset>*}
+{*        </div>*}
     </div>
 
 </form>
