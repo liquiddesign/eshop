@@ -69,9 +69,9 @@ class Attribute extends \StORM\Entity
 
 	/**
 	 * Pozice v pruvodci (krok)
-	 * @column
+	 * @column{"type":"set","length":"'1','2','3','4'"}
 	 */
-	public ?int $wizardStep = null;
+	public ?string $wizardStep = null;
 
 	/**
 	 * Nazev v pruvodci

@@ -196,11 +196,8 @@ class AttributePresenter extends BackendPresenter
 
 		if (isset(static::CONFIGURATIONS['wizard']) && static::CONFIGURATIONS['wizard']) {
 			$form->addGroup('Průvodce');
-			$form->addCheckbox('showWizard', 'Zobrazit v průvodci')
-				->addCondition($form::FILLED)
-				->toggle('frm-attributeForm-wizardStep-toogle')
-				->toggle('frm-attributeForm-wizardLabel-toogle');
-			$form->addSelect('wizardStep', 'Pozice v průvodci (krok)', static::CONFIGURATIONS['wizardSteps']);
+			$form->addCheckbox('showWizard', 'Zobrazit v průvodci');
+			$form->addDataMultiSelect('wizardStep', 'Pozice v průvodci (krok)', static::CONFIGURATIONS['wizardSteps']);
 			$form->addLocaleText('wizardLabel', 'Název v průvodci')
 				->forAll(function ($input) {
 					$input->setNullable()->setHtmlAttribute('data-info', 'Pokud necháte prázdné, použije se název atributu.');
@@ -215,6 +212,8 @@ class AttributePresenter extends BackendPresenter
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
 			}
+
+			$values['wizardStep'] = \count($values['wizardStep'] ?? []) > 0 ? \implode(',', $values['wizardStep']) : null;
 
 			$object = $this->attributeRepository->syncOne($values, null, true);
 
@@ -346,7 +345,7 @@ class AttributePresenter extends BackendPresenter
 			$form->addCheckbox('showWizard', 'Zobrazit v průvodci')
 				->addCondition($form::FILLED)
 				->toggle('frm-valuesForm-defaultWizard-toogle');
-			$form->addCheckbox('defaultWizard', 'Výchozí hodnota (zaškrtnuté)');
+			$form->addDataMultiSelect('defaultWizard', 'Výchozí hodnota (zaškrtnuté) v krocích', static::CONFIGURATIONS['wizardSteps']);
 //			$form->addText('wizardLabel', 'Název v průvodci')->setNullable()->setHtmlAttribute('data-info', 'Pokud necháte prázdné, použije se popisek.');
 		}
 
@@ -375,6 +374,8 @@ class AttributePresenter extends BackendPresenter
 			if ($this->getParameter('attribute')) {
 				$values['attribute'] = $this->getParameter('attribute')->getPK();
 			}
+
+			$values['defaultWizard'] = \count($values['defaultWizard'] ?? []) > 0 ? \implode(',', $values['defaultWizard']) : null;
 
 			/** @var AttributeValue $object */
 			$object = $this->attributeValueRepository->syncOne($values, null, true);
@@ -493,7 +494,10 @@ class AttributePresenter extends BackendPresenter
 		/** @var Form $form */
 		$form = $this->getComponent('attributeForm');
 
-		$form->setDefaults($attribute->toArray(['categories']));
+		$defaults = $attribute->toArray(['categories']);
+		$defaults['wizardStep'] = $defaults['wizardStep'] ? \explode(',', $defaults['wizardStep']) : null;
+
+		$form->setDefaults($defaults);
 	}
 
 	public function renderAttributeNew()
@@ -540,7 +544,10 @@ class AttributePresenter extends BackendPresenter
 		/** @var Form $form */
 		$form = $this->getComponent('valuesForm');
 
-		$form->setDefaults($attributeValue->toArray());
+		$defaults = $attributeValue->toArray();
+		$defaults['defaultWizard'] = $defaults['defaultWizard'] ? \explode(',', $defaults['defaultWizard']) : null;
+
+		$form->setDefaults($defaults);
 
 		if ($form->getPrettyPages()) {
 			if ($page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValue->getPK()])) {

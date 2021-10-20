@@ -68,9 +68,9 @@ class AttributeValue extends \StORM\Entity
 
 	/**
 	 * Výchozí hodnota v průvodci
-	 * @column
+	 * @column{"type":"set","length":"'1','2','3','4'"}
 	 */
-	public bool $defaultWizard = false;
+	public ?string $defaultWizard = null;
 
 	/**
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}

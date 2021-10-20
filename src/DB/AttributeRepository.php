@@ -246,7 +246,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 					 ->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
 					 ->where('attribute.showWizard', true)
 					 ->where('this.showWizard', true)
-					 ->where('attribute.wizardStep', $step) as $attributeValue) {
+					 ->where('FIND_IN_SET(:s, attribute.wizardStep)', ['s' => $step]) as $attributeValue) {
 
 			$items[$attributeValue->getValue('attribute')][$attributeValue->getPK()] = $attributeValue;
 		}
