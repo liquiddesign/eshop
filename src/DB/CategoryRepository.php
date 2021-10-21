@@ -61,6 +61,12 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		]);
 	}
 
+	/**
+	 * @param bool $includeInactive
+	 * @return array
+	 * @throws \Throwable
+	 * @deprecated use category generator
+	 */
 	public function getProducerPages(bool $includeInactive = true): array
 	{
 		return $this->cache->load('categoryProducerPages', function (&$dependencies) use ($includeInactive) {
@@ -93,17 +99,17 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		});
 	}
 
-	public function getTree(string $typeId = 'main', bool $cache = true, bool $includeHidden = false): ArrayWrapper
+	public function getTree(string $typeId = 'main', bool $cache = true, bool $includeHidden = false, bool $onlyMenu = false): ArrayWrapper
 	{
 		$repository = $this;
 
-		$result = $this->cache->load("categoryTree-$typeId", function (&$dependencies) use ($repository, $typeId, $includeHidden) {
+		$result = $this->cache->load("categoryTree-$typeId", function (&$dependencies) use ($repository, $typeId, $includeHidden, $onlyMenu) {
 			$dependencies = [
 				Cache::TAGS => 'categories',
 			];
 
 			return [
-				'tree' => $this->getTreeHelper($typeId, $repository, $includeHidden),
+				'tree' => $this->getTreeHelper($typeId, $repository, $includeHidden, $onlyMenu),
 				'map' => $this->categoryMap[$typeId],
 			];
 		});
@@ -113,9 +119,13 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		return $result;
 	}
 
-	private function getTreeHelper($typeId, CategoryRepository $repository, bool $includeHidden = false)
+	private function getTreeHelper($typeId, CategoryRepository $repository, bool $includeHidden = false, bool $onlyMenu = false)
 	{
 		$collection = $repository->getCategories($includeHidden)->where('LENGTH(path) <= 40');
+
+		if ($onlyMenu) {
+			$collection->where('this.showInMenu', true);
+		}
 
 		if ($typeId) {
 			$collection->where('this.fk_type', $typeId);

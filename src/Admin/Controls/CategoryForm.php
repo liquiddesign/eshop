@@ -101,6 +101,7 @@ class CategoryForm extends Control
 		$form->addText('exportZboziCategory', 'Export název pro Zbozi');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
 		$form->addCheckbox('hidden', 'Skryto');
+		$form->addCheckbox('showInMenu', 'Zobrazit v menu');
 		$form->addCheckbox('recommended', 'Doporučeno');
 		
 		$form->addPageContainer('product_list', ['category' => $category], $nameInput);

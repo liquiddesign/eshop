@@ -94,6 +94,12 @@ class Category extends \StORM\Entity
 	 * @column
 	 */
 	public bool $hidden = false;
+
+	/**
+	 * Zobrazit v menu
+	 * @column
+	 */
+	public bool $showInMenu = true;
 	
 	/**
 	 * Systémová

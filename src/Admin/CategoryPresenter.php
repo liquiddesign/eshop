@@ -84,17 +84,22 @@ class CategoryPresenter extends BackendPresenter
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'this.priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
+		$grid->addColumnInputCheckbox('<i title="Zobrazit v menu" class="fas fa-bars"></i>', 'showInMenu', '', '', 'showInMenu');
 
 		$grid->addColumnLinkDetail('Detail');
 		$grid->addColumnActionDeleteSystemic();
 
-		$grid->addButtonSaveAll();
+		$grid->addButtonSaveAll([], [], null, false, null, null, true, null, function () {
+			$this->categoryRepository->clearCategoriesCache();
+		});
 		$grid->addButtonDeleteSelected(null, true, function ($object) {
 			if ($object) {
-				return !$object->isSystemic();
+				return !$object->isSyemic();
 			}
 
 			return false;
+		}, null, function () {
+			$this->categoryRepository->clearCategoriesCache();
 		});
 
 		$grid->addButtonBulkEdit('categoryForm', ['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
@@ -123,7 +128,7 @@ class CategoryPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	protected function onDeletePage(Entity $object)
+	public function onDeletePage(Entity $object)
 	{
 		if ($page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['category' => $object])) {
 			$page->delete();
