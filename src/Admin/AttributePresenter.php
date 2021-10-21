@@ -162,7 +162,7 @@ class AttributePresenter extends BackendPresenter
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
 			$source->where('this.recommended', (bool)$value);
-		}, '', 'hidden', null, ['1' => 'Doporučené', '0' => 'Normální'])->setPrompt('- Doporučené -');
+		}, '', 'recommended', null, ['1' => 'Doporučené', '0' => 'Normální'])->setPrompt('- Doporučené -');
 
 		$grid->addFilterDataSelect(function (Collection $source, $value) {
 			if ($value === null) {
