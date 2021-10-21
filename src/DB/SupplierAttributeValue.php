@@ -7,7 +7,7 @@ namespace Eshop\DB;
 /**
  * Mapování hodnoty atributu
  * @table
- * @index{"name":"supplier_attribute_code_name","unique":true,"columns":["code","fk_supplier"]}
+ * @index{"name":"supplier_attribute_code_supplier","unique":true,"columns":["code","fk_supplier"]}
  */
 class SupplierAttributeValue extends \StORM\Entity
 {

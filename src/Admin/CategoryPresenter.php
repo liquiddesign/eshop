@@ -55,7 +55,7 @@ class CategoryPresenter extends BackendPresenter
 	public function createComponentCategoryGrid()
 	{
 		$grid = $this->gridFactory->create($this->categoryRepository->many()->where('this.fk_type', $this->tab), null,
-			null, 'ASC', true);
+			'path', 'ASC', true);
 
 		$grid->setNestingCallback(static function ($source, $parent) {
 			if (!$parent) {

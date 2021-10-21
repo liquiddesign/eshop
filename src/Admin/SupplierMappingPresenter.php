@@ -13,6 +13,7 @@ use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\SupplierAttribute;
+use Eshop\DB\SupplierAttributeCategoryAssignRepository;
 use Eshop\DB\SupplierAttributeRepository;
 use Eshop\DB\SupplierAttributeValue;
 use Eshop\DB\SupplierAttributeValueRepository;
@@ -25,7 +26,6 @@ use Eshop\DB\SupplierProducer;
 use Eshop\DB\SupplierProducerRepository;
 use Eshop\DB\SupplierRepository;
 use Forms\Form;
-use Grid\Datagrid;
 use Nette\Http\Session;
 use Nette\Utils\Arrays;
 use Nette\Utils\Random;
@@ -75,6 +75,9 @@ class SupplierMappingPresenter extends BackendPresenter
 
 	/** @inject */
 	public SupplierAttributeValueRepository $supplierAttributeValueRepository;
+
+	/** @inject */
+	public SupplierAttributeCategoryAssignRepository $supplierAttributeCategoryAssignRepository;
 
 	/** @inject */
 	public AttributeRepository $attributeRepository;
@@ -421,15 +424,28 @@ class SupplierMappingPresenter extends BackendPresenter
 			} elseif ($this->tab == 'attribute') {
 				foreach ($data as $uuid) {
 					/** @var \Eshop\DB\SupplierAttribute $supplierAttribute */
-					$supplierAttribute = $this->supplierAttributeRepository->one($uuid);
+					$supplierAttribute = $this->supplierAttributeRepository->many()
+						->join(['assign' => 'eshop_supplierattributecategoryassign'], 'this.uuid = assign.fk_supplierAttribute')
+						->join(['supplierCategory' => 'eshop_suppliercategory'], 'assign.fk_supplierCategory = supplierCategory.uuid')
+						->select(['categoryPK' => 'supplierCategory.fk_category'])
+						->where('this.uuid', $uuid)
+						->first();
 
 					if (!$supplierAttribute->name) {
 						continue;
 					}
 
+
 					if ($supplierAttribute->attribute) {
+						if ($supplierAttribute->categoryPK) {
+							$supplierAttribute->attribute->categories->relate([$supplierAttribute->categoryPK]);
+						}
+
 						if ($overwrite) {
-							$supplierAttribute->attribute->update(['name' => ['cs' => $supplierAttribute->name, 'en' => null]]);
+							$supplierAttribute->attribute->update([
+								'name' => ['cs' => $supplierAttribute->name],
+								'supplier' => $supplierAttribute->getValue('supplier')
+							]);
 						}
 					} else {
 						$tempAttribute = $supplierAttribute->code ? $this->attributeRepository->many()->where('code', $supplierAttribute->code)->first() : true;
@@ -440,11 +456,17 @@ class SupplierMappingPresenter extends BackendPresenter
 							$tempAttribute = $this->attributeRepository->many()->where('code', $code)->first();
 						}
 
+
 						/** @var \Eshop\DB\Attribute $attribute */
 						$attribute = $this->attributeRepository->createOne([
 							'code' => $code,
-							'name' => ['cs' => $supplierAttribute->name, 'en' => null]
+							'name' => ['cs' => $supplierAttribute->name, 'en' => null],
+							'supplier' => $supplierAttribute->getValue('supplier')
 						]);
+
+						if ($supplierAttribute->categoryPK) {
+							$attribute->categories->relate([$supplierAttribute->categoryPK]);
+						}
 
 						$supplierAttribute->update(['attribute' => $attribute->getPK()]);
 
