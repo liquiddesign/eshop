@@ -12,6 +12,7 @@ use Eshop\Admin\Controls\IProductAttributesFormFactory;
 use Eshop\Admin\Controls\IProductFormFactory;
 use Eshop\Admin\Controls\IProductParametersFormFactory;
 use Eshop\Admin\Controls\ProductGridFactory;
+use Eshop\DB\AmountRepository;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
@@ -34,6 +35,7 @@ use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\SetRepository;
+use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\VatRateRepository;
@@ -76,11 +78,19 @@ class ProductPresenter extends BackendPresenter
 		'exportButton' => false,
 		'exportColumns' => [
 			'code' => 'Kód',
+			'ean' => 'EAN',
 			'name' => 'Název',
 			'perex' => 'Popisek',
 			'priority' => 'Priorita',
 			'recommended' => 'Doporučeno',
-			'hidden' => 'Skryto'
+			'hidden' => 'Skryto',
+			'unavailable' => 'Neprodejné',
+			'priceMin' => 'Minimální nákupní cena',
+			'priceMax' => 'Maximální nákupní cena',
+			'producer' => 'Výrobce',
+			'content' => 'Obsah',
+			'storeAmount' => 'Skladová dostupnost',
+			'categories' => 'Kategorie'
 		],
 		'exportAttributes' => [],
 		'defaultExportColumns' => [
@@ -90,11 +100,17 @@ class ProductPresenter extends BackendPresenter
 		'defaultExportAttributes' => [],
 		'importColumns' => [
 			'code' => 'Kód',
+			'ean' => 'EAN',
 			'name' => 'Název',
 			'perex' => 'Popisek',
 			'priority' => 'Priorita',
 			'recommended' => 'Doporučeno',
-			'hidden' => 'Skryto'
+			'hidden' => 'Skryto',
+			'unavailable' => 'Neprodejné',
+			'producer' => 'Výrobce',
+			'content' => 'Obsah',
+			'storeAmount' => 'Skladová dostupnost',
+			'categories' => 'Kategorie'
 		],
 		'importAttributes' => [],
 		'importExampleFile' => null,
@@ -195,6 +211,12 @@ class ProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public CategoryTypeRepository $categoryTypeRepository;
+
+	/** @inject */
+	public StoreRepository $storeRepository;
+
+	/** @inject */
+	public AmountRepository $amountRepository;
 
 	/** @inject */
 	public Application $application;
@@ -1273,6 +1295,9 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
 
 		$producers = $this->producerRepository->many()->setIndex('code')->toArrayOf('uuid');
+		$stores = $this->storeRepository->many()->setIndex('code')->toArrayOf('uuid');
+		$categories = $this->categoryRepository->many()->toArrayOf('uuid');
+		$categoriesCodes = $this->categoryRepository->many()->setIndex('code')->toArrayOf('uuid');
 
 		$header = $reader->getHeader();
 		$parsedHeader = [];
@@ -1298,8 +1323,6 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 				if ($attribute = $this->attributeRepository->many()->where("code", $attributeCode)->first()) {
 					$attributes[$attribute->getPK()] = $attribute;
 					$parsedHeader[$attribute->getPK()] = $headerItem;
-
-					continue;
 				}
 			}
 		}
@@ -1364,7 +1387,56 @@ Hodnoty atributů se zadávají ve stejném formátu jako atributy s tím že ji
 					if (isset($producers[$producerCode])) {
 						$newValues[$key] = $producers[$producerCode];
 					}
-				} elseif ($key == 'name' || $key == 'perex') {
+				} elseif ($key == 'storeAmount') {
+					$amounts = \explode(':', $value);
+
+					foreach ($amounts as $amount) {
+						$amount = \explode('#', $amount);
+
+						if (\count($amount) != 2) {
+							continue;
+						}
+
+						if (!isset($stores[$amount[1]])) {
+							continue;
+						}
+
+						$this->amountRepository->syncOne([
+							'store' => $stores[$amount[1]],
+							'product' => $product->getPK(),
+							'inStock' => \intval($amount[0])
+						]);
+					}
+				} elseif ($key == 'categories') {
+					$this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
+						->where('fk_product', $product->getPK())
+						->delete();
+
+					$valueCategories = \explode(':', $value);
+
+					foreach ($valueCategories as $category) {
+						$category = \explode('#', $category);
+
+						if (\count($category) != 2) {
+							continue;
+						}
+
+						$category = $category[1];
+
+						if (isset($categories[$category])) {
+							$category = $categories[$category];
+						} elseif (isset($categoriesCodes[$category])) {
+							$category = $categoriesCodes[$category];
+						} else {
+							continue;
+						}
+
+						$this->categoryRepository->getConnection()->createRow('eshop_product_nxn_eshop_category', [
+							'fk_product' => $product->getPK(),
+							'fk_category' => $category
+						]);
+					}
+				} elseif ($key == 'name' || $key == 'perex' || $key == 'content') {
 					$newValues[$key][$mutation] = $value;
 				} elseif ($key == 'priority') {
 					$newValues[$key] = \intval($value);
