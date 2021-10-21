@@ -160,6 +160,10 @@ class AttributePresenter extends BackendPresenter
 			$source->where('this.hidden', (bool)$value);
 		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
 
+		$grid->addFilterDataSelect(function (ICollection $source, $value) {
+			$source->where('this.recommended', (bool)$value);
+		}, '', 'hidden', null, ['1' => 'Doporučené', '0' => 'Normální'])->setPrompt('- Doporučené -');
+
 		$grid->addFilterDataSelect(function (Collection $source, $value) {
 			if ($value === null) {
 				$source->setGroupBy(['this.uuid']);
