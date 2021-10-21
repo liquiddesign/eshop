@@ -206,6 +206,10 @@ class ProductGridFiltersFactory
 		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value) {
+			$source->where('this.recommended', (bool)$value);
+		}, '', 'recommended', null, ['1' => 'Doporučené', '0' => 'Normální'])->setPrompt('- Doporučené -');
+
+		$grid->addFilterDataSelect(function (ICollection $source, $value) {
 			$source->where('this.unavailable', (bool)$value);
 		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
 	}
