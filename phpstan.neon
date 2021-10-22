@@ -1,7 +1,7 @@
 parameters:
 	level: 5
 	paths:
-		- src
+		- src/Admin/RibbonPresenter.php
 	excludes_analyse:
 		- src/assets/*
 		- src/templates/*

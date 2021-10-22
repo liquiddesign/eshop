@@ -6,6 +6,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\DiscountRepository;
 use Eshop\DB\InternalRibbon;
 use Eshop\DB\InternalRibbonRepository;
@@ -19,6 +20,11 @@ use StORM\DIConnection;
 
 class RibbonPresenter extends BackendPresenter
 {
+	public const TYPES = [
+		'normal' => 'Běžný',
+		'onlyImage' => 'Pouze obrázek',
+	];
+
 	protected const CONFIGURATION = [
 		'dynamicRibbonSaleability' => [
 			'day' => 'Den',
@@ -26,8 +32,8 @@ class RibbonPresenter extends BackendPresenter
 			'14day' => '14 dní',
 			'month' => 'Měsíc',
 			'halfYear' => 'Půl roku',
-			'year' => 'Rok'
-		]
+			'year' => 'Rok',
+		],
 	];
 
 	/** @inject */
@@ -42,12 +48,7 @@ class RibbonPresenter extends BackendPresenter
 	/** @inject */
 	public Connection $storm;
 
-	public const TYPES = [
-		'normal' => 'Běžný',
-		'onlyImage' => 'Pouze obrázek'
-	];
-
-	public function beforeRender()
+	public function beforeRender(): void
 	{
 		parent::beforeRender();
 
@@ -57,8 +58,7 @@ class RibbonPresenter extends BackendPresenter
 		];
 	}
 
-
-	public function createComponentGrid()
+	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->ribbonRepository->many(), 20, 'priority');
 		$grid->addColumnSelector();
@@ -78,7 +78,7 @@ class RibbonPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected();
 
-		$grid->onRenderRow[] = function (\Nette\Utils\Html $tr, Ribbon $object) use ($columnText, $columnBackground) {
+		$grid->onRenderRow[] = function (\Nette\Utils\Html $tr, Ribbon $object) use ($columnText, $columnBackground): void {
 			$tr[$columnText->getId()]->setAttribute('style', "color: $object->color");
 			$tr[$columnBackground->getId()]->setAttribute('style', "color: $object->backgroundColor");
 		};
@@ -93,7 +93,7 @@ class RibbonPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentInternalGrid()
+	public function createComponentInternalGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->internalRibbonRepository->many(), 20, 'priority');
 		$grid->addColumnSelector();
@@ -112,7 +112,7 @@ class RibbonPresenter extends BackendPresenter
 			return false;
 		});
 
-		$grid->onRenderRow[] = function (\Nette\Utils\Html $tr, InternalRibbon $object) use ($columnText, $columnBackground) {
+		$grid->onRenderRow[] = function (\Nette\Utils\Html $tr, InternalRibbon $object) use ($columnText, $columnBackground): void {
 			$tr[$columnText->getId()]->setAttribute('style', "color: $object->color");
 			$tr[$columnBackground->getId()]->setAttribute('style', "color: $object->backgroundColor");
 		};
@@ -132,10 +132,10 @@ class RibbonPresenter extends BackendPresenter
 		$ribbon = $this->getParameter('ribbon');
 
 		$form->addColor('color', 'Barva textu');
-		$form->addColor('backgroundColor', 'Barva pozadí');;
+		$form->addColor('backgroundColor', 'Barva pozadí');
 		$form->addSubmits(!$ribbon);
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$ribbon = $this->internalRibbonRepository->syncOne($values);
@@ -164,7 +164,7 @@ class RibbonPresenter extends BackendPresenter
 
 		$ribbon = $this->getParameter('ribbon');
 
-		$imagePicker->onDelete[] = function () use ($ribbon) {
+		$imagePicker->onDelete[] = function () use ($ribbon): void {
 			$this->onDelete($ribbon);
 			$this->redirect('this');
 		};
@@ -181,18 +181,18 @@ class RibbonPresenter extends BackendPresenter
 			->toggle('frm-saleability-toogle')
 			->toggle('frm-newForm-maxProducts-toogle');
 
-		$form->addSelect2('saleability', 'Prodejnost za období', static::CONFIGURATION['dynamicRibbonSaleability'])
-			->addConditionOn($form['dynamic'], $form::EQUAL, true)
+		$form->addSelect2('saleability', 'Prodejnost za období', $this::CONFIGURATION['dynamicRibbonSaleability'])
+			->addConditionOn($form->getComponent('dynamic'), $form::EQUAL, true)
 			->setRequired();
 		$form->addInteger('maxProducts', 'Maximum přiřazených produktů')
-			->addConditionOn($form['dynamic'], $form::EQUAL, true)
+			->addConditionOn($form->getComponent('dynamic'), $form::EQUAL, true)
 			->setRequired();
 
 		$form->addDataMultiSelect('discounts', 'Akce', $this->discountRepository->getArrayForSelect())->setHtmlAttribute('placeholder', 'Vyberte položky...');
 
 		$form->addSubmits(!$ribbon);
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$this->createImageDirs(Ribbon::IMAGE_DIR);
@@ -205,14 +205,17 @@ class RibbonPresenter extends BackendPresenter
 
 			$discounts = Arrays::pick($values, 'discounts');
 
-			$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
+			/** @var \Forms\Controls\UploadImage $imageUpload */
+			$imageUpload = $form['imageFileName'];
+
+			$values['imageFileName'] = $imageUpload->upload($values['uuid'] . '.%2$s');
 
 			$ribbon = $this->ribbonRepository->syncOne($values);
 
 			foreach ($discounts as $discountKey) {
 				$this->storm->createRow('eshop_discount_nxn_eshop_ribbon', [
 					'fk_ribbon' => $ribbon->getPK(),
-					'fk_discount' => $discountKey
+					'fk_discount' => $discountKey,
 				]);
 			}
 
@@ -223,7 +226,7 @@ class RibbonPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Veřejné štítky';
 		$this->template->headerTree = [
@@ -233,7 +236,7 @@ class RibbonPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
 
-	public function renderInternal()
+	public function renderInternal(): void
 	{
 		$this->template->headerLabel = 'Interní štítky';
 		$this->template->headerTree = [
@@ -243,7 +246,7 @@ class RibbonPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('internalGrid')];
 	}
 
-	public function renderNew()
+	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nový veřejný štítek';
 		$this->template->headerTree = [
@@ -255,7 +258,7 @@ class RibbonPresenter extends BackendPresenter
 		$this->template->activeTab = 'default';
 	}
 
-	public function renderInternalNew()
+	public function renderInternalNew(): void
 	{
 		$this->template->headerLabel = 'Nový interní štítek';
 		$this->template->headerTree = [
@@ -267,7 +270,7 @@ class RibbonPresenter extends BackendPresenter
 		$this->template->activeTab = 'internal';
 	}
 
-	public function renderDetail()
+	public function renderDetail(): void
 	{
 		$this->template->headerLabel = 'Detail veřejného štítku';
 		$this->template->headerTree = [
@@ -279,7 +282,7 @@ class RibbonPresenter extends BackendPresenter
 		$this->template->activeTab = 'default';
 	}
 
-	public function renderInternalDetail()
+	public function renderInternalDetail(): void
 	{
 		$this->template->headerLabel = 'Detail interního štítku';
 		$this->template->headerTree = [
@@ -291,23 +294,23 @@ class RibbonPresenter extends BackendPresenter
 		$this->template->activeTab = 'internal';
 	}
 
-	public function actionInternalDetail(InternalRibbon $ribbon)
+	public function actionInternalDetail(InternalRibbon $ribbon): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('internalForm');
 		$form->setDefaults($ribbon->toArray());
 	}
 
-	public function actionDetail(Ribbon $ribbon)
+	public function actionDetail(Ribbon $ribbon): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('form');
 
 		$form->setDefaults($ribbon->toArray() + [
 				'discounts' => \array_values($this->storm->rows(['eshop_discount_nxn_eshop_ribbon'])
 					->where('fk_ribbon', $ribbon->getPK())
-					->select(['discountKey' => 'fk_discount'])
-					->toArrayOf('discountKey'))
+					->select(['discountKey' => 'fk_discount',])
+					->toArrayOf('discountKey')),
 			]);
 	}
 }
