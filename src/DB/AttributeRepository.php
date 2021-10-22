@@ -236,20 +236,23 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 
 	/**
 	 * @param int $step
-	 * @return \Eshop\DB\AttributeValue[][]
+	 * @return array<string, array<string, \Eshop\DB\AttributeValue>>
 	 */
 	public function getWizardAttributesValues(int $step): array
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$items = [];
 
-		foreach ($this->attributeValueRepository->getCollection()
-					 ->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
-					 ->where('attribute.showWizard', true)
-					 ->where('this.showWizard', true)
-					 ->where('FIND_IN_SET(:s, attribute.wizardStep)', ['s' => $step])
-					 ->setOrderBy(['attribute.priority', 'this.priority', "this.label$suffix"]) as $attributeValue) {
+		/** @var \Eshop\DB\AttributeValue[] $attributeValues */
+		$attributeValues = $this->attributeValueRepository->getCollection()
+			->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
+			->where('attribute.showWizard', true)
+			->where('this.showWizard', true)
+			->where('FIND_IN_SET(:s, attribute.wizardStep)', ['s' => $step])
+			->setOrderBy(['attribute.priority', 'this.priority', "this.label$suffix"])
+			->toArray();
 
+		foreach ($attributeValues as $attributeValue) {
 			$items[$attributeValue->getValue('attribute')][$attributeValue->getPK()] = $attributeValue;
 		}
 

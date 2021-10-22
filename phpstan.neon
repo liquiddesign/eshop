@@ -3,6 +3,7 @@ parameters:
     paths:
         - src/Admin/RibbonPresenter.php
         - src/Admin/AttributePresenter.php
+        - src/DB/AttributeRepository.php
     excludes_analyse:
         - src/assets/*
         - src/templates/*
