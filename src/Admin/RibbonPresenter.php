@@ -180,7 +180,7 @@ class RibbonPresenter extends BackendPresenter
 
 		$dynamicControl->addCondition($form::EQUAL, true)
 			->toggle('frm-saleability-toogle')
-			->toggle('frm-newForm-maxProducts-toogle')
+			->toggle('frm-form-maxProducts-toogle')
 			->endCondition();
 
 		$form->addSelect2('saleability', 'Prodejnost za období', $this::CONFIGURATION['dynamicRibbonSaleability'])
