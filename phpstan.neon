@@ -4,6 +4,7 @@ parameters:
         - src/Admin/RibbonPresenter.php
         - src/Admin/AttributePresenter.php
         - src/DB/AttributeRepository.php
+        - src/BackendPresenter.php
     excludes_analyse:
         - src/assets/*
         - src/templates/*
