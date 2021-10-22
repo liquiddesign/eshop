@@ -114,7 +114,7 @@ class RelatedPresenter extends BackendPresenter
 		$form->addCheckbox('hidden', 'Skryto');
 
 		$master = $form->addSelect2Ajax('master', $this->link('getProductsForSelect2!'), 'První produkt', [], 'Zvolte produkt');
-		$slave = $form->addSelect2Ajax('slave', $this->link('getProductsForSelect2!'), 'První produkt', [], 'Zvolte produkt');
+		$slave = $form->addSelect2Ajax('slave', $this->link('getProductsForSelect2!'), 'Druhý produkt', [], 'Zvolte produkt');
 
 		/** @var Related $relation */
 		if ($relation = $this->getParameter('relation')) {
