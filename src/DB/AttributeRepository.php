@@ -90,7 +90,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	 */
 	public function getAttributesByCategories($categories, bool $includeHidden = false): Collection
 	{
-		/** @var CategoryRepository $categoryRepository */
+		/** @var \Eshop\DB\CategoryRepository $categoryRepository */
 		$categoryRepository = $this->getConnection()->findRepository(Category::class);
 
 		$categories = \is_array($categories) ? $categories : [$categories];
