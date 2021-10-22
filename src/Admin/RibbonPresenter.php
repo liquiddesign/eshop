@@ -176,16 +176,18 @@ class RibbonPresenter extends BackendPresenter
 		$form->addCheckbox('hidden', 'Skryto');
 
 		$form->addGroup('Dynamický štítek');
-		$form->addCheckbox('dynamic', 'Aktivní')
-			->addCondition($form::EQUAL, true)
+		$dynamicControl = $form->addCheckbox('dynamic', 'Aktivní');
+
+		$dynamicControl->addCondition($form::EQUAL, true)
 			->toggle('frm-saleability-toogle')
-			->toggle('frm-newForm-maxProducts-toogle');
+			->toggle('frm-newForm-maxProducts-toogle')
+			->endCondition();
 
 		$form->addSelect2('saleability', 'Prodejnost za období', $this::CONFIGURATION['dynamicRibbonSaleability'])
-			->addConditionOn($form->getComponent('dynamic'), $form::EQUAL, true)
+			->addConditionOn($dynamicControl, $form::EQUAL, true)
 			->setRequired();
 		$form->addInteger('maxProducts', 'Maximum přiřazených produktů')
-			->addConditionOn($form->getComponent('dynamic'), $form::EQUAL, true)
+			->addConditionOn($dynamicControl, $form::EQUAL, true)
 			->setRequired();
 
 		$form->addDataMultiSelect('discounts', 'Akce', $this->discountRepository->getArrayForSelect())->setHtmlAttribute('placeholder', 'Vyberte položky...');

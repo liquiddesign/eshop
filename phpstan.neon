@@ -1,7 +1,8 @@
 parameters:
-	level: 5
-	paths:
-		- src/Admin/RibbonPresenter.php
-	excludes_analyse:
-		- src/assets/*
-		- src/templates/*
+    level: 5
+    paths:
+        - src/Admin/RibbonPresenter.php
+        - src/Admin/AttributePresenter.php
+    excludes_analyse:
+        - src/assets/*
+        - src/templates/*
