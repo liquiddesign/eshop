@@ -17,18 +17,14 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 {
 	private AttributeValueRepository $attributeValueRepository;
 
-	private CategoryRepository $categoryRepository;
-
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		AttributeValueRepository $attributeValueRepository,
-		CategoryRepository $categoryRepository
+		AttributeValueRepository $attributeValueRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
 		$this->attributeValueRepository = $attributeValueRepository;
-		$this->categoryRepository = $categoryRepository;
 	}
 
 	/**
@@ -94,13 +90,16 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	 */
 	public function getAttributesByCategories($categories, bool $includeHidden = false): Collection
 	{
+		/** @var CategoryRepository $categoryRepository */
+		$categoryRepository = $this->getConnection()->findRepository(Category::class);
+
 		$categories = \is_array($categories) ? $categories : [$categories];
 
 		$query = '';
 
 		foreach ($categories as $category) {
 			if (!$category instanceof Category) {
-				if (!$category = $this->categoryRepository->one($category)) {
+				if (!$category = $categoryRepository->one($category)) {
 					continue;
 				}
 			}
