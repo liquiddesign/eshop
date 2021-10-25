@@ -79,6 +79,7 @@ class RibbonPresenter extends BackendPresenter
 		$grid->addButtonDeleteSelected();
 
 		$grid->onRenderRow[] = function (\Nette\Utils\Html $tr, Ribbon $object) use ($columnText, $columnBackground): void {
+			/** @var \Nette\Utils\Html[] $tr */
 			$tr[$columnText->getId()]->setAttribute('style', "color: $object->color");
 			$tr[$columnBackground->getId()]->setAttribute('style', "color: $object->backgroundColor");
 		};
@@ -113,6 +114,7 @@ class RibbonPresenter extends BackendPresenter
 		});
 
 		$grid->onRenderRow[] = function (\Nette\Utils\Html $tr, InternalRibbon $object) use ($columnText, $columnBackground): void {
+			/** @var \Nette\Utils\Html[] $tr */
 			$tr[$columnText->getId()]->setAttribute('style', "color: $object->color");
 			$tr[$columnBackground->getId()]->setAttribute('style', "color: $object->backgroundColor");
 		};
