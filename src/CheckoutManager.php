@@ -610,10 +610,10 @@ class CheckoutManager
 
 	public function checkDiscountCoupon(): bool
 	{
-		/** @var \Eshop\DB\DiscountCoupon $discountCoupon */
+		/** @var \Eshop\DB\DiscountCoupon|null $discountCoupon */
 		$discountCoupon = $this->getDiscountCoupon();
 
-		if (!$discountCoupon) {
+		if ($discountCoupon === null) {
 			return true;
 		}
 
@@ -944,13 +944,13 @@ class CheckoutManager
 	{
 		return $this->lastOrderToken ? $this->orderRepository->one($this->lastOrderToken) : null;
 	}
-	
+
 	public function syncPurchase($values): Purchase
 	{
 		if (!$this->getCart()->getValue('purchase')) {
 			$values['currency'] = $this->getCart()->getValue('currency');
 		}
-		
+
 		return $this->getCart()->syncRelated('purchase', $values);
 	}
 
@@ -1001,7 +1001,7 @@ class CheckoutManager
 		$cart = $this->getCart();
 		$currency = $cart->currency;
 
-		$cart->update(['approved' => ($customer && $customer->orderPermission == 'full') || $customer ? 'yes' : 'waiting']);
+		$cart->update(['approved' => ($customer && $customer->orderPermission === 'full') || !$customer ? 'yes' : 'waiting']);
 
 		// createAccount
 		if ($purchase->createAccount && !$customer) {
@@ -1011,21 +1011,24 @@ class CheckoutManager
 		}
 
 		$year = \date('Y');
-		$code = \vsprintf($this->shopper->getCountry()->orderCodeFormat, [$this->orderRepository->many()->where('YEAR(this.createdTs)', $year)->enum() + $this->shopper->getCountry()->orderCodeStartNumber, $year]);
+		$code = \vsprintf(
+			$this->shopper->getCountry()->orderCodeFormat,
+			[$this->orderRepository->many()->where('YEAR(this.createdTs)', $year)->enum() + $this->shopper->getCountry()->orderCodeStartNumber, $year],
+		);
 
 		$orderValues = [
 			'code' => $code,
-			'purchase' => $purchase
+			'purchase' => $purchase,
 		];
 
 		$orderValues['receivedTs'] = $this->shopper->getEditOrderAfterCreation() ? null : (string)new DateTime();
 
-		/** @var Order $order */
+		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->createOne($orderValues);
 
 		// @TODO: getDeliveryPrice se pocita z aktulaniho purchase ne z parametru a presunout do order repository jako create order
 		if ($purchase->deliveryType) {
-			/** @var Delivery $delivery */
+			/** @var \Eshop\DB\Delivery $delivery */
 			$delivery = $this->deliveryRepository->createOne([
 				'order' => $order,
 				'currency' => $currency,
@@ -1033,27 +1036,25 @@ class CheckoutManager
 				'typeName' => $purchase->deliveryType->toArray()['name'],
 				'typeCode' => $purchase->deliveryType->code,
 				'price' => $this->getDeliveryPrice(),
-				'priceVat' => $this->getDeliveryPriceVat()
+				'priceVat' => $this->getDeliveryPriceVat(),
 			]);
 
 			// @TODO predchozi sync-databse vytvoril not null sloupec ktery se uz nepouziva, odebrat try az bude opraveno na vsech projektech
 			try {
-				/** @var Package $package */
+				/** @var \Eshop\DB\Package $package */
 				$package = $this->packageRepository->createOne([
 					'order' => $order->getPK(),
-					'delivery' => $delivery->getPK()
+					'delivery' => $delivery->getPK(),
 				]);
 
 				foreach ($purchase->getItems() as $cartItem) {
-					/** @var PackageItem $packageItem */
-					$packageItem = $this->packageItemRepository->createOne([
+					$this->packageItemRepository->createOne([
 						'package' => $package->getPK(),
 						'cartItem' => $cartItem->getPK(),
-						'amount' => $cartItem->amount
+						'amount' => $cartItem->amount,
 					]);
 				}
 			} catch (\Exception $e) {
-
 			}
 		}
 
@@ -1087,6 +1088,15 @@ class CheckoutManager
 		$this->onOrderCreate($order);
 	}
 
+	/**
+	 * @param \Eshop\DB\Customer $customer
+	 * @deprecated TODO: redesign to $this->shooper->getCustomer();
+	 */
+	public function setCustomer(Customer $customer): void
+	{
+		$this->customer = $customer;
+	}
+
 	private function checkCurrency(Product $product): bool
 	{
 		return $product->currencyCode === $this->getCart()->currency->code;
@@ -1101,14 +1111,5 @@ class CheckoutManager
 		$this->sumWeight = null;
 		$this->sumPoints = null;
 		$this->sumDimension = null;
-	}
-
-	/**
-	 * @param \Eshop\DB\Customer $customer
-	 * @deprecated TODO: redesign to $this->shooper->getCustomer();
-	 */
-	public function setCustomer(Customer $customer): void
-	{
-		$this->customer = $customer;
 	}
 }

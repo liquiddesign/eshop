@@ -25,7 +25,11 @@ class RibbonRepository extends \StORM\Repository implements IGeneralRepository
 	{
 		return $this->textRibbons ??= $this->many()->where('type', 'normal')->where('hidden', false)->orderBy(['priority']);
 	}
-	
+
+	/**
+	 * @param bool $includeHidden
+	 * @return array<string, string>
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('name');
@@ -33,6 +37,13 @@ class RibbonRepository extends \StORM\Repository implements IGeneralRepository
 	
 	public function getCollection(bool $includeHidden = false): Collection
 	{
-		return $this->many()->orderBy(['priority', 'name']);
+		$suffix = $this->getConnection()->getMutationSuffix();
+		$collection = $this->many();
+
+		if (!$includeHidden) {
+			$collection->where('this.hidden', false);
+		}
+
+		return $collection->orderBy(['this.priority', "this.name$suffix",]);
 	}
 }

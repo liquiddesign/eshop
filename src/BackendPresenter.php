@@ -15,7 +15,7 @@ class BackendPresenter extends \Admin\BackendPresenter
 	/** @inject */
 	public CategoryRepository $categoryRepository;
 
-	public function handleGetProductsForSelect2(?string $q = null, ?int $page = null)
+	public function handleGetProductsForSelect2(?string $q = null, ?int $page = null): void
 	{
 		if (!$q) {
 			$this->payload->results = [];
@@ -24,9 +24,9 @@ class BackendPresenter extends \Admin\BackendPresenter
 
 		$suffix = $this->productRepository->getConnection()->getMutationSuffix();
 
-		/** @var Product[] $products */
+		/** @var \Eshop\DB\Product[] $products */
 		$products = $this->productRepository->getCollection(true)
-			->where("this.name$suffix LIKE :q OR this.code = :exact OR this.ean = :exact", ['q' => "%$q%", 'exact' => $q])
+			->where("this.name$suffix LIKE :q OR this.code = :exact OR this.ean = :exact", ['q' => "%$q%", 'exact' => $q,])
 			->setPage($page ?? 1, 5)
 			->toArrayOf('name');
 
@@ -35,7 +35,7 @@ class BackendPresenter extends \Admin\BackendPresenter
 		foreach ($products as $pk => $name) {
 			$results[] = [
 				'id' => $pk,
-				'text' => $name
+				'text' => $name,
 			];
 		}
 
@@ -45,7 +45,11 @@ class BackendPresenter extends \Admin\BackendPresenter
 		$this->sendPayload();
 	}
 
-	public function handleGetTonerProductsForSelect2(?string $q = null, ?Product $product = null, ?int $page = null)
+	/**
+	 * @throws \Nette\Application\AbortException
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function handleGetTonerProductsForSelect2(?string $q = null, ?Product $product = null, ?int $page = null): void
 	{
 		if (!$q) {
 			$this->payload->result = [];
@@ -61,8 +65,8 @@ class BackendPresenter extends \Admin\BackendPresenter
 			->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'this.uuid = nxnCategory.fk_product')
 			->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
 			->where('category.path LIKE :categoryPath', ['categoryPath' => $printerCategory->path . '%'])
-			->where("this.name$suffix LIKE :q OR this.code = :exact OR this.ean = :exact", ['q' => "%$q%", 'exact' => $q])
-			->setTake(5);
+			->where("this.name$suffix LIKE :q OR this.code = :exact OR this.ean = :exact", ['q' => "%$q%", 'exact' => $q,])
+			->setPage($page ?? 1, 5);
 
 		if ($product) {
 			$printers->where('this.uuid != :thisProduct', ['thisProduct' => $product->getPK()]);
@@ -70,10 +74,11 @@ class BackendPresenter extends \Admin\BackendPresenter
 
 		$payload = [];
 
-		foreach ($printers as $product) {
+		/** @var \Eshop\DB\Product $printer */
+		foreach ($printers as $printer) {
 			$payload[] = [
-				'id' => $product->getPK(),
-				'text' => $product->name
+				'id' => $printer->getPK(),
+				'text' => $printer->name,
 			];
 		}
 

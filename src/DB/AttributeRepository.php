@@ -17,14 +17,20 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 {
 	private AttributeValueRepository $attributeValueRepository;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, AttributeValueRepository $attributeValueRepository)
-	{
+	public function __construct(
+		DIConnection $connection,
+		SchemaManager $schemaManager,
+		AttributeValueRepository $attributeValueRepository
+	) {
 		parent::__construct($connection, $schemaManager);
 
 		$this->attributeValueRepository = $attributeValueRepository;
 	}
 
-
+	/**
+	 * @param bool $includeHidden
+	 * @return string[]
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('name');
@@ -50,6 +56,12 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			->where(":path LIKE CONCAT(category.path,'%')", ['path' => $categoryPath]);
 	}
 
+	/**
+	 * @param string $query
+	 * @param int|null $page
+	 * @param int $onPage
+	 * @return array<string, array<int|string, array<string, mixed>|bool>>
+	 */
 	public function getAttributesForAdminAjax(string $query, ?int $page = null, int $onPage = 5): array
 	{
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
@@ -64,7 +76,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		foreach ($attributes as $pk => $name) {
 			$payload['results'][] = [
 				'id' => $pk,
-				'text' => $name
+				'text' => $name,
 			];
 		}
 
@@ -76,9 +88,9 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	/**
 	 * @deprecated User getAttributesByCategory instead
 	 */
-	public function getAttributesByCategories($categories, bool $includeHidden = false)
+	public function getAttributesByCategories($categories, bool $includeHidden = false): Collection
 	{
-		/** @var CategoryRepository $categoryRepository */
+		/** @var \Eshop\DB\CategoryRepository $categoryRepository */
 		$categoryRepository = $this->getConnection()->findRepository(Category::class);
 
 		$categories = \is_array($categories) ? $categories : [$categories];
@@ -101,12 +113,12 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			->where(\strlen($query) > 0 ? \substr($query, 0, -3) : '1=0');
 	}
 
+	/**
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function getAttributeValues($attribute, bool $includeHidden = false): Collection
 	{
-		/** @var AttributeValueRepository $attributeValueRepository */
-		$attributeValueRepository = $this->getConnection()->findRepository(AttributeValue::class);
-
-		$emptyCollection = $attributeValueRepository->many()->where('1 = 0');
+		$emptyCollection = $this->attributeValueRepository->many()->where('1 = 0');
 
 		if (!$attribute instanceof Attribute) {
 			if (!$attribute = $this->one($attribute)) {
@@ -114,44 +126,50 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			}
 		}
 
-		$mutationSuffix = $attributeValueRepository->getConnection()->getMutationSuffix();
+		$mutationSuffix = $this->attributeValueRepository->getConnection()->getMutationSuffix();
 
-		return $attributeValueRepository->getCollection($includeHidden)->where('fk_attribute', $attribute->getPK())->select(['internalLabel' => 'IFNULL(internalName, label' . $mutationSuffix . ')']);
+		return $this->attributeValueRepository->getCollection($includeHidden)
+			->where('fk_attribute', $attribute->getPK())
+			->select(['internalLabel' => 'IFNULL(internalName, label' . $mutationSuffix . ')']);
 	}
 
+	/**
+	 * @param \StORM\Collection $collection
+	 * @param array $categories
+	 * @param array $selectedValues
+	 * @return array<string, int>
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function getCounts(Collection $collection, array $categories, array $selectedValues = []): array
 	{
-		if (\count($categories) == 0) {
+		if (\count($categories) === 0) {
 			return [];
 		}
 
 		foreach ($selectedValues as $attributeKey => $attributeValues) {
 			$query = '';
 
-			/** @var Attribute $attribute */
+			/** @var \Eshop\DB\Attribute $attribute */
 			$attribute = $this->one($attributeKey);
 
-			if (\count($attributeValues) == 0) {
+			if (\count($attributeValues) === 0) {
 				continue;
 			}
 
-			if ($attribute->filterType == 'and') {
+			if ($attribute->filterType === 'and') {
 				foreach ($attributeValues as $attributeValue) {
-					if ($attribute->showRange) {
-						$subSelect = $this->getConnection()->rows(['eshop_attributevalue'])
-							->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
-							->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
-							->where('eshop_attributeassign.fk_product=this.uuid')
-							->where("eshop_attributevalue.fk_attribute = '$attributeKey'")
-							->where("eshop_attributevalue.fk_attributevaluerange = '$attributeValue'");
-					} else {
-						$subSelect = $this->getConnection()->rows(['eshop_attributevalue'])
+					$subSelect = $attribute->showRange ? $this->getConnection()->rows(['eshop_attributevalue'])
+						->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
+						->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
+						->where('eshop_attributeassign.fk_product=this.uuid')
+						->where("eshop_attributevalue.fk_attribute = '$attributeKey'")
+						->where("eshop_attributevalue.fk_attributevaluerange = '$attributeValue'") :
+						$this->getConnection()->rows(['eshop_attributevalue'])
 							->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
 							->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
 							->where('eshop_attributeassign.fk_product=this.uuid')
 							->where("eshop_attributevalue.fk_attribute = '$attributeKey'")
 							->where("eshop_attributevalue.uuid = '$attributeValue'");
-					}
 
 					$collection->where('EXISTS (' . $subSelect->getSql() . ')');
 				}
@@ -174,7 +192,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 					$query .= "eshop_attributevalue.uuid = \"$attributeValue\" $attribute->filterType ";
 				}
 
-				$query = \substr($query, 0, $attribute->filterType == 'and' ? -4 : -3) . '))';
+				$query = \substr($query, 0, $attribute->filterType === 'and' ? -4 : -3) . '))';
 
 				$subSelect->where($query);
 
@@ -193,7 +211,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			->setSelect([
 				'count' => 'COUNT(product.uuid)',
 				'showRange' => 'this.showRange',
-				'valueRange' => 'attributeValue.fk_attributevaluerange'
+				'valueRange' => 'attributeValue.fk_attributevaluerange',
 			])
 			->setIndex('attributeValue.uuid')
 			->setGroupBy(['attributeValue.uuid']);
@@ -224,6 +242,9 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		return $finalResult;
 	}
 
+	/**
+	 * @return array<string, string>
+	 */
 	public function getWizardAttributes(): array
 	{
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
@@ -236,20 +257,23 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 
 	/**
 	 * @param int $step
-	 * @return \Eshop\DB\AttributeValue[][]
+	 * @return array<string, array<string, \Eshop\DB\AttributeValue>>
 	 */
 	public function getWizardAttributesValues(int $step): array
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$items = [];
 
-		foreach ($this->attributeValueRepository->getCollection()
-					 ->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
-					 ->where('attribute.showWizard', true)
-					 ->where('this.showWizard', true)
-					 ->where('FIND_IN_SET(:s, attribute.wizardStep)', ['s' => $step])
-					 ->setOrderBy(['attribute.priority', 'this.priority', "this.label$suffix"]) as $attributeValue) {
+		/** @var \Eshop\DB\AttributeValue[] $attributeValues */
+		$attributeValues = $this->attributeValueRepository->getCollection()
+			->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
+			->where('attribute.showWizard', true)
+			->where('this.showWizard', true)
+			->where('FIND_IN_SET(:s, attribute.wizardStep)', ['s' => $step])
+			->setOrderBy(['attribute.priority', 'this.priority', "this.label$suffix"])
+			->toArray();
 
+		foreach ($attributeValues as $attributeValue) {
 			$items[$attributeValue->getValue('attribute')][$attributeValue->getPK()] = $attributeValue;
 		}
 
