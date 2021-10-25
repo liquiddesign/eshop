@@ -431,6 +431,9 @@ class Product extends \StORM\Entity
 		return \array_intersect_key($riboons->toArray(), \array_flip(\explode(',', $ids ?? '')));
 	}
 
+	/**
+	 * @return array<string, array<int, array<string, string>>>
+	 */
 	public function getPreviewParameters(): array
 	{
 		if (!$this->getValue('parameters')) {
@@ -442,19 +445,20 @@ class Product extends \StORM\Entity
 		foreach (\explode(',', $this->getValue('parameters')) as $parameterSerialized) {
 			$parameter = \explode('|', $parameterSerialized);
 
-			if (!isset($parameter[2])) {
+			if (!isset($parameter[3])) {
 				continue;
 			}
 
-			if (!isset($parameters[$parameter[2]])) {
-				$parameters[$parameter[2]] = [];
+			if (!isset($parameters[$parameter[1]])) {
+				$parameters[$parameter[1]] = [];
 			}
 
-			$parameters[$parameter[2]][] = new ParameterValue([
+			$parameters[$parameter[1]][] = [
 				'uuid' => $parameter[0],
-				'value' => $parameter[1],
-				'fk_parameter' => $parameter[2],
-			], $this->getConnection()->findRepository(ParameterValue::class));
+				'fk_parameter' => $parameter[1],
+				'label' => $parameter[2],
+				'metaValue' => $parameter[3],
+			];
 		}
 
 		return $parameters;
