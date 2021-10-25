@@ -9,7 +9,7 @@ use StORM\RelationCollection;
 /**
  * Produkty ve vztahu
  * @table
- * @index{"name":"products","unique":true,"columns":["fk_master","fk_slave"]}
+ * @index{"name":"products_related_unique","unique":true,"columns":["fk_master","fk_slave"]}
  */
 class Related extends \StORM\Entity
 {

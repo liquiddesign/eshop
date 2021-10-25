@@ -252,9 +252,8 @@ class ProductForm extends Control
 				->addRule($form::FLOAT);
 		}
 
+		//@TODO pryc z balicku, neni univerzalni
 		if ($configuration['relations']) {
-//			/** @var \Eshop\DB\Category $printerCategory */
-//			$printerCategory = $categoryRepository->one('printers');
 			$this->monitor(Presenter::class, function () use ($form): void {
 				$form->addMultiSelect2('tonerForPrinters', 'Toner pro tiskárny', [], [
 					'ajax' => [
@@ -263,22 +262,6 @@ class ProductForm extends Control
 					'placeholder' => 'Zvolte produkty'
 				])->checkDefaultValue(false);
 			});
-
-//			if ($printerCategory) {
-//				$printers = $productRepository->many()
-//					->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'this.uuid = nxnCategory.fk_product')
-//					->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
-//					->where('category.path LIKE :categoryPath', ['categoryPath' => $printerCategory->path . '%']);
-//
-//				if ($product) {
-//					$printers->where('this.uuid != :thisProduct', ['thisProduct' => $product->getPK()]);
-//				}
-//
-//				if (\count($printers) > 0) {
-//					$form->addDataMultiSelect('tonerForPrinters', 'Toner pro tiskárny',
-//						$printers->orderBy(['name_cs'])->toArrayOf('name'));
-//				}
-//			}
 		}
 
 		if ($configuration['taxes']) {

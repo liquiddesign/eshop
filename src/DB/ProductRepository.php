@@ -355,7 +355,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 	}
 
-	public function filterQuery($value, ICollection $collection)
+	public function filterQuery($value, ICollection $collection): void
 	{
 		$collection->filter(['q' => $value]);
 	}
@@ -363,25 +363,45 @@ class ProductRepository extends Repository implements IGeneralRepository
 	/**
 	 * @deprecated
 	 */
-	public function filterRelatedSlave($value, ICollection $collection)
+	public function filterRelatedSlave($value, ICollection $collection): void
 	{
 		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave');
 		$collection->where('related.fk_type', $value[0]);
 		$collection->where('related.fk_master', $value[1]);
 	}
 
-	public function filterToners($value, ICollection $collection)
+	/**
+	 * @deprecated
+	 */
+	public function filterToners($value, ICollection $collection): void
 	{
 		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_master');
 		$collection->where('related.fk_slave', $value);
 		$collection->where('related.fk_type = "tonerForPrinter"');
 	}
 
-	public function filterCompatiblePrinters($value, ICollection $collection)
+	/**
+	 * @deprecated
+	 */
+	public function filterCompatiblePrinters($value, ICollection $collection): void
 	{
 		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave');
 		$collection->where('related.fk_master', $value);
 		$collection->where('related.fk_type = "tonerForPrinter"');
+	}
+
+	public function filterRelatedTypeMaster(array $value, ICollection $collection): void
+	{
+		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave', [], 'LEFT');
+		$collection->where('related.fk_master', $value[0]);
+		$collection->where('related.fk_type', $value[1]);
+	}
+
+	public function filterRelatedTypeSlave(array $value, ICollection $collection): void
+	{
+		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_master', [], 'LEFT');
+		$collection->where('related.fk_slave', $value[0]);
+		$collection->where('related.fk_type', $value[1]);
 	}
 
 	public function filterSimilarProducts($value, ICollection $collection)
