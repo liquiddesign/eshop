@@ -7,6 +7,7 @@ parameters:
         - src/DB/AttributeRepository.php
         - src/BackendPresenter.php
         - src/CheckoutManager.php
+        - src/DB/ProductRepository.php
     excludes_analyse:
         - src/assets/*
         - src/templates/*

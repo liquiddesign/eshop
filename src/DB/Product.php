@@ -39,7 +39,7 @@ class Product extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $imageFileName;
-	
+
 	/**
 	 * Obrázek má malé rozlišení, je poškozený nebo neexistuje
 	 * @column
@@ -357,14 +357,14 @@ class Product extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Ribbon>|\Eshop\DB\Ribbon[]
 	 */
 	public RelationCollection $ribbons;
-	
+
 	/**
 	 * Interní stužky
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\InternalRibbon>|\Eshop\DB\InternalRibbon[]
 	 */
 	public RelationCollection $internalRibbons;
-	
+
 	/**
 	 * Varianty
 	 * @relation
@@ -475,17 +475,17 @@ class Product extends \StORM\Entity
 
 		return null;
 	}
-	
+
 	public function getStoreAmounts()
 	{
 		return $this->getConnection()->findRepository(Amount::class)->many()->where('fk_product', $this->getPK())->setIndex('fk_store')->toArrayOf('inStock');
 	}
-	
+
 	public function getSupplierPrices(string $property = 'price')
 	{
 		return $this->getConnection()->findRepository(Price::class)->many()->where('pricelist.fk_supplier IS NOT NULL')->where('fk_product', $this->getPK())->setIndex('pricelist.fk_supplier')->toArrayOf($property);
 	}
-	
+
 	/**
 	 * @deprecated use property primaryCategory instead
 	 */
@@ -493,33 +493,33 @@ class Product extends \StORM\Entity
 	{
 		return $this->primaryCategory;
 	}
-	
+
 	public function getCategoryTree(string $property, bool $reversed = false): array
 	{
 		if (!isset($this->primaryCategoryPath) || !$this->primaryCategoryPath) {
 			return [];
 		}
-		
+
 		/** @var \Eshop\DB\CategoryRepository $categoryRepository */
 		$categoryRepository = $this->getConnection()->findRepository(Category::class);
-		
+
 		$tree = [];
 		$type = 'main';
-		
+
 		if ($categoryRepository->isTreeBuild($type)) {
 			for ($i = 4; $i <= \strlen($this->primaryCategoryPath); $i += 4) {
 				if ($category = $categoryRepository->getCategoryByPath($type, \substr($this->primaryCategoryPath, 0, $i))) {
 					$tree[] = $category->$property;
 				}
 			}
-			
+
 			if ($reversed) {
 				$tree = \array_reverse($tree);
 			}
-			
+
 			return $tree;
 		}
-		
+
 		return $categoryRepository->many()->where('path LIKE :path', ['path' => $this->primaryCategoryPath])->orderBy(['LENGTH(path)' => $reversed ? 'DESC' : 'ASC'])->toArrayOf($tree, [], true);
 	}
 
@@ -545,15 +545,15 @@ class Product extends \StORM\Entity
 
 		return (float)($this->getQuantityPrice($amount, 'priceVat') ?: $this->priceVat);
 	}
-	
+
 	public function getPriceBefore(): ?float
 	{
-		return $this->priceBefore !== null ? (float) $this->priceBefore : null;
+		return $this->priceBefore !== null ? (float)$this->priceBefore : null;
 	}
-	
+
 	public function getPriceVatBefore(): ?float
 	{
-		return $this->priceVatBefore !== null ? (float) $this->priceVatBefore : null;
+		return $this->priceVatBefore !== null ? (float)$this->priceVatBefore : null;
 	}
 
 	private function getQuantityPrice(int $amount, string $property): ?float
@@ -572,16 +572,16 @@ class Product extends \StORM\Entity
 	{
 		return $this->quantityPrices->where('validFrom IS NOT NULL')->orderBy(['validFrom' => 'ASC'])->toArray();
 	}
-	
+
 	public function getPreviewImage(string $basePath, string $size = 'detail'): string
 	{
 		if (!\in_array($size, ['origin', 'detail', 'thumb'])) {
 			throw new ApplicationException('Invalid product image size: ' . $size);
 		}
-		
+
 		$image = $this->imageFileName ?: ($this->__isset('fallbackImage') ? $this->fallbackImage : null);
 		$dir = $this->imageFileName ? Product::GALLERY_DIR : Category::IMAGE_DIR;
-		
-		return $image ?  "$basePath/userfiles/$dir/$size/$image" : "$basePath/public/img/no-image.png";
+
+		return $image ? "$basePath/userfiles/$dir/$size/$image" : "$basePath/public/img/no-image.png";
 	}
 }
