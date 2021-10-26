@@ -63,7 +63,7 @@ class SupplierPresenter extends BackendPresenter
 	/** @inject */
 	public CustomerGroupRepository $customerGroupRepository;
 	
-	public function beforeRender()
+	public function beforeRender(): void
 	{
 		parent::beforeRender();
 		

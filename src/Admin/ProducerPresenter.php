@@ -160,7 +160,7 @@ class ProducerPresenter extends BackendPresenter
 		$form->setDefaults($producer->toArray());
 	}
 
-	protected function onDelete(Entity $object)
+	protected function onDelete(Entity $object): void
 	{
 		$this->onDeleteImage($object);
 		$this->onDeletePage($object);

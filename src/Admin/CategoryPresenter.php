@@ -365,7 +365,7 @@ class CategoryPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('categoryTypeForm')];
 	}
 
-	public function createImageDirs(string $dir)
+	public function createImageDirs(string $dir): void
 	{
 		$subDirs = ['origin', 'detail', 'thumb'];
 		$rootDir = $this->container->parameters['wwwDir'] . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;

@@ -47,7 +47,7 @@ class SupplierProductPresenter extends BackendPresenter
 		}
 	}
 
-	public function beforeRender()
+	public function beforeRender(): void
 	{
 		parent::beforeRender();
 

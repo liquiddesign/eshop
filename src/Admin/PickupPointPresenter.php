@@ -16,6 +16,7 @@ use Forms\Form;
 use Nette\Utils\Arrays;
 use Nette\Utils\Image;
 use StORM\DIConnection;
+use StORM\Entity;
 use StORM\ICollection;
 
 class PickupPointPresenter extends BackendPresenter
@@ -490,7 +491,7 @@ class PickupPointPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function onDelete($object)
+	public function onDelete(Entity $object): void
 	{
 		parent::onDelete($object);
 		$this->pickupPointRepo->clearCache();

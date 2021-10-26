@@ -33,7 +33,7 @@ class IntegrationPresenter extends BackendPresenter
 	/** @inject */
 	public OrderRepository $orderRepository;
 
-	public function beforeRender()
+	public function beforeRender(): void
 	{
 		parent::beforeRender();
 
