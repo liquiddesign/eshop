@@ -22,7 +22,7 @@
 		"liquiddesign/messages": "@dev",
 		"liquiddesign/translator": "@dev",
 		"liquiddesign/pages": "@dev",
-		"liquiddesign/admin": "v2.x-dev",
+		"liquiddesign/admin": "@dev",
 		"liquiddesign/web": "v2.x-dev",
 		"liquiddesign/grid": "@dev",
 		"liquiddesign/common": "@dev",
