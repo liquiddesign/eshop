@@ -26,7 +26,7 @@ class CategoryPresenter extends BackendPresenter
 
 	protected const CONFIGURATION = [
 		'activeProducers' => null,
-		'producerPagesType' => self::PRODUCER_CATEGORY
+		'producerPagesType' => self::PRODUCER_CATEGORY,
 	];
 
 	/** @inject */
@@ -44,26 +44,39 @@ class CategoryPresenter extends BackendPresenter
 	/** @inject */
 	public ICategoryFormFactory $categoryFormFactory;
 
-	private array $tabs = [];
-
 	/** @persistent */
 	public string $tab = 'none';
 
 	/** @persistent */
 	public string $editTab = 'menu0';
 
-	public function createComponentCategoryGrid()
+	/**
+	 * @var string[]
+	 */
+	private array $tabs = [];
+
+	public function createComponentCategoryGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->categoryRepository->many()->where('this.fk_type', $this->tab), null,
-			null, 'ASC', true);
+		$grid = $this->gridFactory->create(
+			$this->categoryRepository->many()->where('this.fk_type', $this->tab),
+			null,
+			'path',
+			'ASC',
+			true,
+		);
 
 		$grid->setNestingCallback(static function ($source, $parent) {
 			if (!$parent) {
 				return $source->where('LENGTH(path)=4');
 			}
 
-			return $source->where('path!=:parent AND path LIKE :path',
-				['path' => $parent->path . '%', 'parent' => $parent->path]);
+			return $source->where(
+				'path!=:parent AND path LIKE :path',
+				[
+					'path' => $parent->path . '%',
+					'parent' => $parent->path,
+				],
+			);
 		});
 
 		$grid->addColumnSelector();
@@ -74,9 +87,9 @@ class CategoryPresenter extends BackendPresenter
 		$grid->addColumn('Název', function (Category $category, $grid) {
 			return [
 				$grid->getPresenter()->link(':Eshop:Product:list', ['category' => (string)$category]),
-				$category->name
+				$category->name,
 			];
-		}, '<a href="%s" target="_blank"> %s</a>', 'name')->onRenderCell[] = function (\Nette\Utils\Html $td, Category $object) {
+		}, '<a href="%s" target="_blank"> %s</a>', 'name')->onRenderCell[] = function (\Nette\Utils\Html $td, Category $object): void {
 			$level = \strlen($object->path) / 4 - 1;
 			$td->setHtml(\str_repeat('- - ', $level) . $td->getHtml());
 		};
@@ -89,7 +102,7 @@ class CategoryPresenter extends BackendPresenter
 		$grid->addColumnLinkDetail('Detail');
 		$grid->addColumnActionDeleteSystemic();
 
-		$grid->addButtonSaveAll([], [], null, false, null, null, true, null, function () {
+		$grid->addButtonSaveAll([], [], null, false, null, null, true, null, function (): void {
 			$this->categoryRepository->clearCategoriesCache();
 		});
 		$grid->addButtonDeleteSelected(null, true, function ($object) {
@@ -98,24 +111,24 @@ class CategoryPresenter extends BackendPresenter
 			}
 
 			return false;
-		}, null, function () {
+		}, null, function (): void {
 			$this->categoryRepository->clearCategoriesCache();
 		});
 
 		$grid->addButtonBulkEdit('categoryForm', ['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
 
-		if (isset(static::CONFIGURATION['producerPagesType']) && static::CONFIGURATION['producerPagesType'] === self::PRODUCER_CATEGORY) {
+		if (isset(self::CONFIGURATION['producerPagesType']) && self::CONFIGURATION['producerPagesType'] === self::PRODUCER_CATEGORY) {
 			$submit = $grid->getForm()->addSubmit('generateProducerCategories', 'Generovat kategorie výrobců')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-			$submit->onClick[] = function ($button) use ($grid) {
+			$submit->onClick[] = function ($button) use ($grid): void {
 				$grid->getPresenter()->redirect('generateProducerCategories', [$grid->getSelectedIds()]);
 			};
 		}
 
 		$grid->addFilterTextInput('search', ['code', 'name_cs'], null, 'Kód, Název');
-		$grid->addFilterButtons();
+		$grid->addFilterButtons(['default', ['categoryGrid-order' => 'path-ASC']]);
 
-		$grid->onDelete[] = function (Category $object) {
+		$grid->onDelete[] = function (Category $object): void {
 			foreach ($this->categoryRepository->many()->where('path LIKE :q', ['q' => "$object->path%"])->toArray() as $subCategory) {
 				$this->onDeleteImage($subCategory);
 				$this->onDeletePage($subCategory);
@@ -128,7 +141,7 @@ class CategoryPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function onDeletePage(Entity $object)
+	public function onDeletePage(Entity $object): void
 	{
 		if ($page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['category' => $object])) {
 			$page->delete();
@@ -140,7 +153,7 @@ class CategoryPresenter extends BackendPresenter
 		return $this->categoryFormFactory->create($this->getParameter('category'));
 	}
 
-	public function actionDefault()
+	public function actionDefault(): void
 	{
 		$this->tabs = $this->categoryTypeRepository->getArrayForSelect();
 		$this->tabs['types'] = '<i class="fa fa-bars"></i> Typy';
@@ -150,15 +163,15 @@ class CategoryPresenter extends BackendPresenter
 		}
 	}
 
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->tabs = $this->tabs;
 
-		if ($this->tab == 'types') {
+		if ($this->tab === 'types') {
 			$this->template->headerLabel = 'Typy kategorií';
 			$this->template->headerTree = [
 				['Kategorie', 'default'],
-				['Typy']
+				['Typy'],
 			];
 			$this->template->displayButtons = [$this->createNewItemButton('categoryTypeNew')];
 			$this->template->displayControls = [$this->getComponent('categoryTypeGrid')];
@@ -171,8 +184,12 @@ class CategoryPresenter extends BackendPresenter
 				$this->createNewItemButton('categoryNew'),
 			];
 
-			if (isset(static::CONFIGURATION['producerPagesType']) && static::CONFIGURATION['producerPagesType'] === self::PRODUCER_PAGES) {
-				$this->template->displayButtons[] = $this->createButtonWithClass('generateCategoryProducerPages!', '<i class="fa fa-sync"></i>  Generovat stránky výrobců', 'btn btn-sm btn-outline-primary');
+			if (isset(self::CONFIGURATION['producerPagesType']) && self::CONFIGURATION['producerPagesType'] === self::PRODUCER_PAGES) {
+				$this->template->displayButtons[] = $this->createButtonWithClass(
+					'generateCategoryProducerPages!',
+					'<i class="fa fa-sync"></i>  Generovat stránky výrobců',
+					'btn btn-sm btn-outline-primary',
+				);
 			}
 
 			$this->template->displayControls = [$this->getComponent('categoryGrid')];
@@ -199,7 +216,7 @@ class CategoryPresenter extends BackendPresenter
 
 		$form->addSubmit('submit', 'Generovat');
 
-		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid) {
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid): void {
 			$values = $form->getValues('array');
 
 			$this->categoryRepository->generateProducerCategories($values['bulkType'] == 'selected' ? $ids : \array_keys($grid->getFilteredSource()->toArray()), $values['deep']);
