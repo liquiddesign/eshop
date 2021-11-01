@@ -6,66 +6,72 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\DisplayAmount;
 use Eshop\DB\DisplayAmountRepository;
+use Eshop\DB\DisplayDeliveryRepository;
 use Forms\Form;
 
 class DisplayAmountPresenter extends BackendPresenter
 {
 	/** @inject */
 	public DisplayAmountRepository $displayAmountRepository;
-	
-	public function createComponentGrid()
+
+	/** @inject */
+	public DisplayDeliveryRepository $displayDeliveryRepository;
+
+	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->displayAmountRepository->many(), 20, 'priority', 'ASC', true);
-		
+
 		$grid->addColumnSelector();
-		
+
 		$grid->addColumnText('Popisek', 'label', '%s', 'label');
 		$grid->addColumnText('Množství od', 'amountFrom', '%s', 'amountFrom', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Množství do', 'amountTo', '%s', 'amountTo', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		
+
 		$grid->addColumnInputCheckbox('Vyprodáno', 'isSold', '', '', 'isSold');
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
-		
+
 		$grid->addColumnLinkDetail('detail');
 		$grid->addColumnActionDelete();
-		
+
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected();
-		
+
 		$grid->addFilterTextInput('search', ['label_cs'], null, 'Popisek');
 		$grid->addFilterButtons();
-		
+
 		return $grid;
 	}
-	
+
 	public function createComponentNewForm(): Form
 	{
 		$form = $this->formFactory->create(true);
-		
+
 		$form->addLocaleText('label', 'Popisek');
 		$form->addIntegerNullable('amountFrom', 'Množství od');
 		$form->addIntegerNullable('amountTo', 'Množství do');
-		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
+		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
+		$form->addSelect2('displayDelivery', 'Doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 		$form->addCheckbox('isSold', 'Označit jako vyprodáno');
-		
+
 		$form->addSubmits(!$this->getParameter('displayAmount'));
-		
-		$form->onSuccess[] = function (AdminForm $form) {
+
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
-			
+
 			$displayAmount = $this->displayAmountRepository->syncOne($values);
-			
+
 			$this->flashMessage('Uloženo', 'success');
-			
+
 			$form->processRedirect('detail', 'default', [$displayAmount]);
 		};
-		
+
 		return $form;
 	}
-	
-	public function renderDefault()
+
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Dostupnost';
 		$this->template->headerTree = [
@@ -74,8 +80,8 @@ class DisplayAmountPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createNewItemButton('new')];
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
-	
-	public function renderNew()
+
+	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -85,8 +91,8 @@ class DisplayAmountPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
-	
-	public function renderDetail()
+
+	public function renderDetail(): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -96,12 +102,11 @@ class DisplayAmountPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
-	
-	public function actionDetail(DisplayAmount $displayAmount)
+
+	public function actionDetail(DisplayAmount $displayAmount): void
 	{
-		/** @var AdminForm $form */
+		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('newForm');
 		$form->setDefaults($displayAmount->jsonSerialize());
 	}
-	
 }

@@ -15,19 +15,25 @@ class DisplayDelivery extends \StORM\Entity
 	 * @column{"mutations":true}
 	 */
 	public ?string $label;
-	
+
 	/**
-	 * Dní od
-	 * @column
+	 * Casovy prah
+	 * @column{"type":"datetime"}
 	 */
-	public ?int $daysFrom;
-	
+	public ?string $timeThreshold;
+
 	/**
-	 * Dní do
-	 * @column
+	 * Popisek pred casovym prahem
+	 * @column{"mutations":true}
 	 */
-	public ?int $daysTo;
-	
+	public ?string $beforeTimeThresholdLabel;
+
+	/**
+	 * Popisek po casovem prahu
+	 * @column{"mutations":true}
+	 */
+	public ?string $afterTimeThresholdLabel;
+
 	/**
 	 * Priorita
 	 * @column

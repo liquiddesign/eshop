@@ -39,4 +39,11 @@ class DisplayAmount extends \StORM\Entity
 	 * @column
 	 */
 	public int $priority = 10;
+
+	/**
+	 * Doprava
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @relation
+	 */
+	public ?DisplayDelivery $displayDelivery;
 }

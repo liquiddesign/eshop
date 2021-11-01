@@ -6,14 +6,12 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
-use Eshop\DB\Category;
+use Eshop\Admin\ProductPresenter;
 use Eshop\DB\CategoryRepository;
-use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\InternalRibbonRepository;
-use Eshop\DB\ParameterGroupRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
@@ -24,23 +22,25 @@ use Eshop\DB\RibbonRepository;
 use Eshop\DB\SetRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
-use Eshop\DB\TagRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
+use Forms\Form;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
+use Nette\DI\Container;
+use Nette\Forms\Form as FormAlias;
 use Nette\Utils\Arrays;
+use Nette\Utils\FileSystem;
 use StORM\ICollection;
 use Web\DB\PageRepository;
-use Nette\DI\Container;
-use Nette\Utils\FileSystem;
-use Pages\Helpers;
-use Forms\Form;
 
 class ProductForm extends Control
 {
+	/** @persistent */
+	public string $tab = 'menu0';
+
 	private ProductRepository $productRepository;
 
 	private Container $container;
@@ -54,8 +54,6 @@ class ProductForm extends Control
 	private SupplierProductRepository $supplierProductRepository;
 
 	private PageRepository $pageRepository;
-
-	private TaxRepository $taxRepository;
 
 	private RelatedRepository $relatedRepository;
 
@@ -71,14 +69,9 @@ class ProductForm extends Control
 
 	private IProductSetFormFactory $productSetFormFactory;
 
-	private IProductAttributesFormFactory $attributesFormFactory;
-
 	private CategoryTypeRepository $categoryTypeRepository;
 
 	private array $configuration;
-
-	/** @persistent */
-	public string $tab = 'menu0';
 
 	public function __construct(
 		Container $container,
@@ -90,11 +83,9 @@ class ProductForm extends Control
 		SupplierRepository $supplierRepository,
 		SupplierProductRepository $supplierProductRepository,
 		CategoryRepository $categoryRepository,
-		TagRepository $tagRepository,
 		RibbonRepository $ribbonRepository,
 		InternalRibbonRepository $internalRibbonRepository,
 		ProducerRepository $producerRepository,
-		ParameterGroupRepository $parameterGroupRepository,
 		VatRateRepository $vatRateRepository,
 		DisplayAmountRepository $displayAmountRepository,
 		DisplayDeliveryRepository $displayDeliveryRepository,
@@ -103,12 +94,10 @@ class ProductForm extends Control
 		SetRepository $setRepository,
 		Shopper $shopper,
 		IProductSetFormFactory $productSetFormFactory,
-		IProductAttributesFormFactory $attributesFormFactory,
 		CategoryTypeRepository $categoryTypeRepository,
 		$product = null,
 		array $configuration = []
-	)
-	{
+	) {
 		$this->product = $product = $productRepository->get($product);
 		$this->productRepository = $productRepository;
 		$this->container = $container;
@@ -117,7 +106,6 @@ class ProductForm extends Control
 		$this->supplierRepository = $supplierRepository;
 		$this->supplierProductRepository = $supplierProductRepository;
 		$this->pageRepository = $pageRepository;
-		$this->taxRepository = $taxRepository;
 		$this->relatedRepository = $relatedRepository;
 		$this->adminFormFactory = $adminFormFactory;
 		$this->setRepository = $setRepository;
@@ -125,13 +113,12 @@ class ProductForm extends Control
 		$this->shopper = $shopper;
 		$this->vatRateRepository = $vatRateRepository;
 		$this->productSetFormFactory = $productSetFormFactory;
-		$this->attributesFormFactory = $attributesFormFactory;
 		$this->categoryTypeRepository = $categoryTypeRepository;
 
 		$form = $adminFormFactory->create(true);
 
-		$this->monitor(Presenter::class, function () use ($form): void {
-			$form->addHidden('editTab')->setDefaultValue($form->getPresenter()->editTab);
+		$this->monitor(Presenter::class, function (ProductPresenter $productPresenter) use ($form): void {
+			$form->addHidden('editTab')->setDefaultValue($productPresenter->editTab);
 		});
 
 		$form->addGroup('Hlavní atributy');
@@ -141,25 +128,9 @@ class ProductForm extends Control
 		$form->addText('ean', 'EAN')->setNullable();
 		$nameInput = $form->addLocaleText('name', 'Název');
 
-//		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
-//			Product::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
-//			Product::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => static function (Image $image): void {
-//				$image->resize(600, null);
-//			},
-//			Product::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
-//				$image->resize(300, null);
-//			},
-//		]);
-//
-//		$imagePicker->onDelete[] = function (array $directories, $filename) {
-//			$this->deleteImages();
-//			$this->redirect('this');
-//		};
-
 		$form->addSelect('vatRate', 'Úroveň DPH (%)', $vatRateRepository->getDefaultVatRates());
-//		$form->addDataMultiSelect('categories', 'Kategorie', $categoryRepository->getTreeArrayForSelect());
 
-		/** @var CategoryType[] $categoryTypes */
+		/** @var \Eshop\DB\CategoryType[] $categoryTypes */
 		$categoryTypes = $this->categoryTypeRepository->getCollection(true)->toArray();
 
 		$categoriesContainer = $form->addContainer('categories');
@@ -168,33 +139,30 @@ class ProductForm extends Control
 			$categoriesContainer->addDataMultiSelect($categoryType->getPK(), 'Kategorie: ' . $categoryType->name, $categoryRepository->getTreeArrayForSelect(true, $categoryType->getPK()));
 		}
 
-		$form->addDataSelect('producer', 'Výrobce', $producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
+		$form->addSelect2('producer', 'Výrobce', $producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 
-		if ($configuration['parameters']) {
-			$form->addDataMultiSelect('parameterGroups', 'Skupiny parametrů',
-				$parameterGroupRepository->getArrayForSelect());
-		}
-
-		//$form->addDataMultiSelect('tags', 'Tagy', $tagRepository->getArrayForSelect());
 		$form->addDataMultiSelect('ribbons', 'Veřejné štítky', $ribbonRepository->getArrayForSelect());
 		$form->addDataMultiSelect('internalRibbons', 'Interní štítky', $internalRibbonRepository->getArrayForSelect());
 
-		$form->addDataSelect('displayAmount', 'Dostupnost',
-			$displayAmountRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
-		$form->addDataSelect('displayDelivery', 'Doručení',
-			$displayDeliveryRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
+		$form->addSelect2(
+			'displayAmount',
+			'Dostupnost',
+			$displayAmountRepository->getArrayForSelect(),
+		)->setPrompt('Nepřiřazeno');
+		$form->addSelect2(
+			'displayDelivery',
+			'Doručení',
+			$displayDeliveryRepository->getArrayForSelect(),
+		)->setPrompt('Automaticky');
 		$form->addLocalePerexEdit('perex', 'Popisek');
 		$form->addLocaleRichEdit('content', 'Obsah');
-
 
 		if ($configuration['suppliers'] && $this->supplierRepository->many()->count() > 0) {
 			$locks = [];
 
 			if ($product) {
-				foreach (
-					$supplierRepository->many()->join(['products' => 'eshop_supplierproduct'],
-						'products.fk_supplier=this.uuid')->where('products.fk_product', $product) as $supplier
-				) {
+				/** @var \Eshop\DB\Supplier $supplier */
+				foreach ($supplierRepository->many()->join(['products' => 'eshop_supplierproduct'], 'products.fk_supplier=this.uuid')->where('products.fk_product', $product) as $supplier) {
 					$locks[$supplier->getPK()] = $supplier->name;
 				}
 			}
@@ -257,9 +225,9 @@ class ProductForm extends Control
 			$this->monitor(Presenter::class, function () use ($form): void {
 				$form->addMultiSelect2('tonerForPrinters', 'Toner pro tiskárny', [], [
 					'ajax' => [
-						'url' => $this->getPresenter()->link('getTonerProductsForSelect2!')
+						'url' => $this->getPresenter()->link('getTonerProductsForSelect2!'),
 					],
-					'placeholder' => 'Zvolte produkty'
+					'placeholder' => 'Zvolte produkty',
 				])->checkDefaultValue(false);
 			});
 		}
@@ -272,9 +240,9 @@ class ProductForm extends Control
 			$this->monitor(Presenter::class, function () use ($form): void {
 				$form->addMultiSelect2('upsells', 'Upsell produkty', [], [
 					'ajax' => [
-						'url' => $this->getPresenter()->link('getProductsForSelect2!')
+						'url' => $this->getPresenter()->link('getProductsForSelect2!'),
 					],
-					'placeholder' => 'Zvolte produkty'
+					'placeholder' => 'Zvolte produkty',
 				])->checkDefaultValue(false);
 			});
 		}
@@ -282,15 +250,17 @@ class ProductForm extends Control
 		$this->monitor(Presenter::class, function () use ($form): void {
 			$alternative = $form->addSelect2('alternative', 'Alternativa k produktu', [], [
 				'ajax' => [
-					'url' => $this->getPresenter()->link('getProductsForSelect2!')
+					'url' => $this->getPresenter()->link('getProductsForSelect2!'),
 				],
 				'allowClear' => true,
 				'placeholder' => "Nepřiřazeno",
 			])->checkDefaultValue(false);
 
-			if ($this->product && $this->product->getValue('alternative')) {
-				$this->getPresenter()->template->select2AjaxDefaults[$alternative->getHtmlId()] = [$this->product->getValue('alternative') => $this->product->alternative->name];
+			if (!$this->product || !$this->product->getValue('alternative')) {
+				return;
 			}
+
+			$this->getPresenter()->template->select2AjaxDefaults[$alternative->getHtmlId()] = [$this->product->getValue('alternative') => $this->product->alternative->name];
 		});
 
 		$prices = $form->addContainer('prices');
@@ -335,24 +305,26 @@ class ProductForm extends Control
 					->setRequired()
 					->addRule($form::FLOAT)
 					->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
-
 			}
+
 			$i = 0;
 
-			if ($this->product) {
-				foreach ($this->productRepository->getSetProducts($this->product) as $setItem) {
-					$itemContainer = $form['setItems']['s' . $i++];
+			if (!$this->product) {
+				return;
+			}
 
-					$itemContainer->setDefaults([
-						'product' => $setItem->product->getFullCode(),
-						'priority' => $setItem->priority,
-						'amount' => $setItem->amount,
-						'discountPct' => $setItem->discountPct
-					]);
+			foreach ($this->productRepository->getSetProducts($this->product) as $setItem) {
+				$itemContainer = $form['setItems']['s' . $i++];
 
-					if ($i == 6) {
-						break;
-					}
+				$itemContainer->setDefaults([
+					'product' => $setItem->product->getFullCode(),
+					'priority' => $setItem->priority,
+					'amount' => $setItem->amount,
+					'discountPct' => $setItem->discountPct,
+				]);
+
+				if ($i === 6) {
+					break;
 				}
 			}
 		});
@@ -371,7 +343,7 @@ class ProductForm extends Control
 		$this->addComponent($form, 'form');
 	}
 
-	public function validate(AdminForm $form)
+	public function validate(AdminForm $form): void
 	{
 		if (!$form->isValid()) {
 			return;
@@ -382,7 +354,7 @@ class ProductForm extends Control
 		if ($values['ean']) {
 			if ($product = $this->productRepository->many()->where('ean', $values['ean'])->first()) {
 				if ($this->product) {
-					if ($product->getPK() != $this->product->getPK()) {
+					if ($product->getPK() !== $this->product->getPK()) {
 						$form['ean']->addError('Již existuje produkt s tímto EAN');
 					}
 				} else {
@@ -403,18 +375,20 @@ class ProductForm extends Control
 
 		$product = $product->first();
 
-		if (($values['code'] || $values['subCode']) && $product) {
-			if ($this->product) {
-				if ($product->getPK() != $this->product->getPK()) {
-					$form['code']->addError('Již existuje produkt s touto kombinací kódu a subkódu');
-				}
-			} else {
+		if ((!$values['code'] && !$values['subCode']) || !$product) {
+			return;
+		}
+
+		if ($this->product) {
+			if ($product->getPK() !== $this->product->getPK()) {
 				$form['code']->addError('Již existuje produkt s touto kombinací kódu a subkódu');
 			}
+		} else {
+			$form['code']->addError('Již existuje produkt s touto kombinací kódu a subkódu');
 		}
 	}
 
-	public function submit(AdminForm $form)
+	public function submit(AdminForm $form): void
 	{
 		$data = $this->getPresenter()->getHttpRequest()->getPost();
 		$values = $form->getValues('array');
@@ -423,8 +397,11 @@ class ProductForm extends Control
 		$this->createImageDirs();
 
 		if (!$values['uuid']) {
-			$values['uuid'] = ProductRepository::generateUuid($values['ean'],
-				$values['subCode'] ? $values['code'] . '.' . $values['subCode'] : $values['code'], null);
+			$values['uuid'] = ProductRepository::generateUuid(
+				$values['ean'],
+				$values['subCode'] ? $values['code'] . '.' . $values['subCode'] : $values['code'],
+				null,
+			);
 		} else {
 			$this->product->upsells->unrelateAll();
 		}
@@ -432,7 +409,7 @@ class ProductForm extends Control
 		$newCategories = [];
 
 		if (\count($values['categories']) > 0) {
-			foreach ($values['categories'] as $categoryType => $categories) {
+			foreach ($values['categories'] as $categories) {
 				foreach ($categories as $category) {
 					$newCategories[] = $category;
 				}
@@ -455,7 +432,7 @@ class ProductForm extends Control
 			}
 		}
 
-		/** @var Product $product */
+		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
 
 		if (isset($data['upsells'])) {
@@ -467,7 +444,7 @@ class ProductForm extends Control
 		if ($product->getParent() instanceof ICollection && $product->getParent()->getAffectedNumber() > 0) {
 			foreach ($form->getMutations() as $mutation) {
 				foreach ($changeColumns as $column) {
-					if ($this->product->getValue($column, $mutation) != $values[$column][$mutation]) {
+					if ($this->product->getValue($column, $mutation) !== $values[$column][$mutation]) {
 						$product->update(['supplierContentLock' => true]);
 
 						break 2;
@@ -486,7 +463,7 @@ class ProductForm extends Control
 				$this->relatedRepository->syncOne([
 					'master' => $product->getPK(),
 					'slave' => $value,
-					'type' => 'tonerForPrinter'
+					'type' => 'tonerForPrinter',
 				]);
 			}
 		}
@@ -499,10 +476,12 @@ class ProductForm extends Control
 
 			if ($prices['price'] === null) {
 				$this->priceRepository->many()->match($conditions)->delete();
+
 				continue;
 			}
 
-			$prices['priceVat'] = $prices['priceVat'] ? \floatval(\str_replace(',', '.', $prices['priceVat'])) : ($prices['price'] + ($prices['price'] * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 100)));
+			$prices['priceVat'] = $prices['priceVat'] ? \floatval(\str_replace(',', '.', $prices['priceVat'])) :
+				$prices['price'] + ($prices['price'] * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 100));
 
 			$conditions = [
 				'pricelist' => $pricelistId,
@@ -514,7 +493,7 @@ class ProductForm extends Control
 
 		unset($values['prices']);
 
-		$form->syncPages(function () use ($product, $values) {
+		$form->syncPages(function () use ($product, $values): void {
 			$this->pageRepository->syncPage($values['page'], ['product' => $product->getPK()]);
 		});
 
@@ -540,39 +519,10 @@ class ProductForm extends Control
 		}
 
 		$this->getPresenter()->flashMessage('Uloženo', 'success');
-		$this['form']->processRedirect('edit', 'default', ['product' => $product, 'editTab' => $editTab]);
+		$form->processRedirect('edit', 'default', ['product' => $product, 'editTab' => $editTab]);
 	}
 
-	protected function deleteImages()
-	{
-		$product = $this->getPresenter()->getParameter('product');
-
-		if ($product->imageFileName) {
-			$subDirs = ['origin', 'detail', 'thumb'];
-			$dir = Product::IMAGE_DIR;
-
-			foreach ($subDirs as $subDir) {
-				$rootDir = $this->container->parameters['wwwDir'] . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
-				FileSystem::delete($rootDir . \DIRECTORY_SEPARATOR . $subDir . \DIRECTORY_SEPARATOR . $product->imageFileName);
-			}
-
-			$product->update(['imageFileName' => null]);
-		}
-	}
-
-	private function createImageDirs()
-	{
-		$subDirs = ['origin', 'detail', 'thumb'];
-		$dir = Product::IMAGE_DIR;
-		$rootDir = $this->container->parameters['wwwDir'] . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
-		FileSystem::createDir($rootDir);
-
-		foreach ($subDirs as $subDir) {
-			FileSystem::createDir($rootDir . \DIRECTORY_SEPARATOR . $subDir);
-		}
-	}
-
-	public function render()
+	public function render(): void
 	{
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->pricelistRepository->many()->orderBy(['this.priority']);
@@ -586,13 +536,15 @@ class ProductForm extends Control
 			'content' => 'frm-content-cs',
 		];
 
-		$this->template->supplierProducts = $this->getPresenter()->getParameter('product') ? $this->supplierProductRepository->many()->where('fk_product',
-			$this->getPresenter()->getParameter('product'))->toArray() : [];
+		$this->template->supplierProducts = $this->getPresenter()->getParameter('product') ? $this->supplierProductRepository->many()->where(
+			'fk_product',
+			$this->getPresenter()->getParameter('product'),
+		)->toArray() : [];
 
 		$this->template->render(__DIR__ . '/productForm.latte');
 	}
 
-	public function createComponentSetForm()
+	public function createComponentSetForm(): AdminForm
 	{
 		if ($this->product && $this->configuration['sets']) {
 			return $this->productSetFormFactory->create($this->product);
@@ -601,12 +553,43 @@ class ProductForm extends Control
 		return $this->adminFormFactory->create();
 	}
 
-	public function handleDeleteSetItem($setItem)
+	public function handleDeleteSetItem($setItem): void
 	{
 		if ($setItem = $this->productRepository->getProductByCodeOrEAN($setItem)) {
 			$this->setRepository->many()->where('fk_product', $setItem->getPK())->where('fk_set', $this->product->getPK())->delete();
 		}
 
 		$this->redirect('this');
+	}
+
+	protected function deleteImages(): void
+	{
+		$product = $this->getPresenter()->getParameter('product');
+
+		if (!$product->imageFileName) {
+			return;
+		}
+
+		$subDirs = ['origin', 'detail', 'thumb'];
+		$dir = Product::IMAGE_DIR;
+
+		foreach ($subDirs as $subDir) {
+			$rootDir = $this->container->parameters['wwwDir'] . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
+			FileSystem::delete($rootDir . \DIRECTORY_SEPARATOR . $subDir . \DIRECTORY_SEPARATOR . $product->imageFileName);
+		}
+
+		$product->update(['imageFileName' => null]);
+	}
+
+	private function createImageDirs(): void
+	{
+		$subDirs = ['origin', 'detail', 'thumb'];
+		$dir = Product::IMAGE_DIR;
+		$rootDir = $this->container->parameters['wwwDir'] . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
+		FileSystem::createDir($rootDir);
+
+		foreach ($subDirs as $subDir) {
+			FileSystem::createDir($rootDir . \DIRECTORY_SEPARATOR . $subDir);
+		}
 	}
 }

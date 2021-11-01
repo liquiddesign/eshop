@@ -73,37 +73,26 @@
                             </td>
                         </tr>
                     {/foreach}
-
-
-{*                <tr class="m-0 mt-1 has-danger">*}
-{*                    <th class="col-label col-form-label col">{label imageFileName/}</th>*}
-
-{*                    {$renderer->renderControl($form['imageFileName'])|noescape}*}
-
-
-{*                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError imageFileName}</span>*}
-{*                </tr>*}
-
-
                     <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label displayAmount/}</th>
+                            <th class="col-label col-form-label col">{label displayAmount/}</th>
 
-                        <td class="align-middle">{input displayAmount}
-                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError displayAmount}</span>
-                        </td>
+                            <td class="align-middle">
+                                {input displayAmount  class => 'form-control form-control-sm col-label'}
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError displayAmount}</span>
+                            </td>
                     </tr>
 
-
-
                     <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label displayDelivery/}</th>
+                            <th class="col-label col-form-label col">{label displayDelivery/}</th>
 
-                        <td class="align-middle">{input displayDelivery}
-                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError displayDelivery}</span>
-                        </td>
+                            <td class="align-middle">
+                                {input displayDelivery  class => 'form-control form-control-sm col-label'}
+                                <span id="data-info" class="text-gray text-sm">Pokud bude nastaveno na automaticky, tak bude použito doručení napárované s dostupností.</span>
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError displayDelivery}</span>
+                            </td>
                     </tr>
 
-			{foreach $form['perex']->getComponents() as $key => $element}
+                    {foreach $form['perex']->getComponents() as $key => $element}
                         <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
                             data-mutation="{$key}">
                             {$renderer->renderLabel($element)|noescape}
@@ -129,7 +118,7 @@
                         </tr>
                     {/foreach}
 
-			{foreach $form['content']->getComponents() as $key => $element}
+			        {foreach $form['content']->getComponents() as $key => $element}
                         <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
                             data-mutation="{$key}">
                             {$renderer->renderLabel($element)|noescape}
@@ -156,8 +145,6 @@
                         </tr>
                     {/foreach}
 
-
-
                     <tr n:if="$configuration['suppliers'] && isset($form['supplierContent'])"
                             class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label supplierContent/}</th>
@@ -167,8 +154,6 @@
                         </td>
                     </tr>
 
-
-
                     <tr class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label priority 'class' => 'required'}</th>
 
@@ -177,11 +162,9 @@
                         </td>
                     </tr>
 
-			{$renderer->renderPair($form['hidden'])|noescape}
+                    {$renderer->renderPair($form['hidden'])|noescape}
 
-			{$renderer->renderPair($form['recommended'])|noescape}
-
-
+                    {$renderer->renderPair($form['recommended'])|noescape}
                 </table>
             </fieldset>
             <fieldset>
@@ -274,7 +257,8 @@
                     <tr class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label producer/}</th>
 
-                        <td class="align-middle">{input producer}
+                        <td class="align-middle">
+                            {input producer  class => 'form-control form-control-sm col-label'}
                             <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError producer}</span>
                         </td>
                     </tr>
