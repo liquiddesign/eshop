@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Nette\Application\ApplicationException;
+use Nette\Utils\DateTime;
 use StORM\RelationCollection;
 
 /**
@@ -25,7 +26,7 @@ class Product extends \StORM\Entity
 		'fullCode',
 		'code',
 		'externalCode',
-		'supplierCode'
+		'supplierCode',
 	];
 
 	/**
@@ -466,14 +467,20 @@ class Product extends \StORM\Entity
 
 	public function getFullCode(string $type = 'fullCode'): ?string
 	{
-		if ($type == 'fullCode') {
+		if ($type === 'fullCode') {
 			//@TODO code-subcode delimeter (tečka) by mel jit nastavit
 			return $this->subCode ? $this->code . '.' . $this->subCode : $this->code;
-		} elseif ($type == 'code') {
+		}
+
+		if ($type === 'code') {
 			return $this->code;
-		} elseif ($type == 'supplierCode') {
+		}
+
+		if ($type === 'supplierCode') {
 			return $this->supplierCode;
-		} elseif ($type == 'externalCode') {
+		}
+
+		if ($type === 'externalCode') {
 			return $this->externalCode;
 		}
 
@@ -541,6 +548,15 @@ class Product extends \StORM\Entity
 		return (float)($this->getQuantityPrice($amount, 'price') ?: $this->price);
 	}
 
+	private function getQuantityPrice(int $amount, string $property): ?float
+	{
+		return (float)$this->getConnection()->findRepository(QuantityPrice::class)->many()
+			->match(['fk_product' => $this->getPK(), 'fk_pricelist' => $this->pricelist])
+			->where('validFrom <= :amount', ['amount' => $amount])
+			->orderBy(['validFrom' => 'DESC'])
+			->firstValue($property);
+	}
+
 	public function getPriceVat(int $amount = 1): float
 	{
 		if ($amount === 1) {
@@ -560,17 +576,8 @@ class Product extends \StORM\Entity
 		return $this->priceVatBefore !== null ? (float)$this->priceVatBefore : null;
 	}
 
-	private function getQuantityPrice(int $amount, string $property): ?float
-	{
-		return (float)$this->getConnection()->findRepository(QuantityPrice::class)->many()
-			->match(['fk_product' => $this->getPK(), 'fk_pricelist' => $this->pricelist])
-			->where('validFrom <= :amount', ['amount' => $amount])
-			->orderBy(['validFrom' => 'DESC'])
-			->firstValue($property);
-	}
-
 	/**
-	 * @return QuantityPrice[]
+	 * @return \Eshop\DB\QuantityPrice[]
 	 */
 	public function getQuantityPrices(): array
 	{
@@ -587,5 +594,26 @@ class Product extends \StORM\Entity
 		$dir = $this->imageFileName ? Product::GALLERY_DIR : Category::IMAGE_DIR;
 
 		return $image ? "$basePath/userfiles/$dir/$size/$image" : "$basePath/public/img/no-image.png";
+	}
+
+	public function getDynamicDelivery(): ?string
+	{
+		if ($this->displayDelivery !== null) {
+			return $this->displayDelivery->label;
+		}
+
+		if ($this->displayAmount === null || $this->displayAmount->displayDelivery === null) {
+			return null;
+		}
+
+		$displayDelivery = $this->displayAmount->displayDelivery;
+
+		if ($displayDelivery->timeThreshold === null) {
+			return $displayDelivery->label;
+		}
+		
+		$nowThresholdTime = DateTime::createFromFormat('G:i', $displayDelivery->timeThreshold);
+
+		return $nowThresholdTime > (new DateTime()) ? $displayDelivery->beforeTimeThresholdLabel : $displayDelivery->afterTimeThresholdLabel;
 	}
 }
