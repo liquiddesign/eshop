@@ -33,14 +33,26 @@ class OrderRepository extends \StORM\Repository
 
 	private CatalogPermissionRepository $catalogPermissionRepository;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Storage $storage, Shopper $shopper, Translator $translator, MerchantRepository $merchantRepository, CatalogPermissionRepository $catalogPermissionRepository)
-	{
+	private PackageRepository $packageRepository;
+
+	public function __construct(
+		DIConnection $connection,
+		SchemaManager $schemaManager,
+		Storage $storage,
+		Shopper $shopper,
+		Translator $translator,
+		MerchantRepository $merchantRepository,
+		CatalogPermissionRepository $catalogPermissionRepository,
+		PackageRepository $packageRepository
+	) {
 		parent::__construct($connection, $schemaManager);
+
 		$this->cache = new Cache($storage);
 		$this->shopper = $shopper;
 		$this->translator = $translator;
 		$this->merchantRepository = $merchantRepository;
 		$this->catalogPermissionRepository = $catalogPermissionRepository;
+		$this->packageRepository = $packageRepository;
 	}
 
 	/**
@@ -139,31 +151,31 @@ class OrderRepository extends \StORM\Repository
 
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 
-		/** @var Order $order */
+		/** @var \Eshop\DB\Order $order */
 		while ($order = $orders->fetch()) {
 			foreach ($order->purchase->getItems() as $item) {
 				$row = [];
 
 				foreach ($columns as $columnKey => $columnValue) {
-					if ($columnKey == 'customer') {
+					if ($columnKey === 'customer') {
 						$row[] = $order->purchase->account ? $order->purchase->account->login : ($order->purchase->accountEmail ?? $order->purchase->email);
-					} elseif ($columnKey == 'state') {
+					} elseif ($columnKey === 'state') {
 						$row[] = $this->getState($order);
-					} elseif ($columnKey == 'totalPriceVat') {
+					} elseif ($columnKey === 'totalPriceVat') {
 						$row[] = $item->getPriceVatSum();
-					} elseif ($columnKey == 'productName') {
+					} elseif ($columnKey === 'productName') {
 						$row[] = $item->productName;
-					} elseif ($columnKey == 'productPrice') {
+					} elseif ($columnKey === 'productPrice') {
 						$row[] = $item->price;
-					} elseif ($columnKey == 'productPriceVat') {
+					} elseif ($columnKey === 'productPriceVat') {
 						$row[] = $item->priceVat;
-					} elseif ($columnKey == 'productVat') {
+					} elseif ($columnKey === 'productVat') {
 						$row[] = $item->vatPct;
-					} elseif ($columnKey == 'shippingName') {
+					} elseif ($columnKey === 'shippingName') {
 						$row[] = $order->purchase->deliveryType ? $order->purchase->deliveryType->name : null;
-					} elseif ($columnKey == 'shippingPriceVat') {
+					} elseif ($columnKey === 'shippingPriceVat') {
 						$row[] = $order->getDeliveryPriceVatSum();
-					} elseif ($columnKey == 'paymentMethod') {
+					} elseif ($columnKey === 'paymentMethod') {
 						$row[] = $order->getPayment() ? $order->getPayment()->getTypeName() : null;
 					} else {
 						$row[] = $order->getValue($columnKey) === false ? '0' : $order->getValue($columnKey);
@@ -175,7 +187,7 @@ class OrderRepository extends \StORM\Repository
 		}
 	}
 
-	public function csvExport(Order $order, Writer $writer)
+	public function csvExport(Order $order, Writer $writer): void
 	{
 		$writer->setDelimiter(';');
 
@@ -191,7 +203,7 @@ class OrderRepository extends \StORM\Repository
 			'priceSum',
 			'priceVatSum',
 			'vatPct',
-			'note'
+			'note',
 		]);
 
 		foreach ($order->purchase->getItems() as $item) {
@@ -207,12 +219,12 @@ class OrderRepository extends \StORM\Repository
 				$item->getPriceSum(),
 				$item->getPriceVatSum(),
 				$item->vatPct,
-				$item->note
+				$item->note,
 			]);
 		}
 	}
 
-	public function excelExport(Order $order, \XLSXWriter $writer, string $sheetName = 'sheet')
+	public function excelExport(Order $order, \XLSXWriter $writer, string $sheetName = 'sheet'): void
 	{
 		$writer->writeSheetRow($sheetName, array(
 			$order->code
@@ -237,7 +249,7 @@ class OrderRepository extends \StORM\Repository
 				$item->amount,
 				\str_replace(',', '.', (string)$this->shopper->filterPrice($item->price, $order->purchase->currency->code)),
 				\str_replace(',', '.', (string)$this->shopper->filterPrice($item->getPriceSum(), $order->purchase->currency->code)),
-				$item->note
+				$item->note,
 			]);
 		}
 
@@ -251,7 +263,7 @@ class OrderRepository extends \StORM\Repository
 	 * @param \Eshop\DB\Order[] $orders
 	 * @param \XLSXWriter $writer
 	 */
-	public function excelExportAll(array $orders, \XLSXWriter $writer)
+	public function excelExportAll(array $orders, \XLSXWriter $writer): void
 	{
 		$styles = array('font-style' => 'bold');
 
@@ -282,9 +294,8 @@ class OrderRepository extends \StORM\Repository
 					\str_replace(',', '.', (string)$this->shopper->filterPrice($item->price, $order->purchase->currency->code)),
 					\str_replace(',', '.', (string)$this->shopper->filterPrice($item->getPriceSum(), $order->purchase->currency->code)),
 					$item->note,
-					$order->purchase->account ? $order->purchase->account->fullname : $order->purchase->accountFullname
+					$order->purchase->account ? $order->purchase->account->fullname : $order->purchase->accountFullname,
 				]);
-
 			}
 		}
 
@@ -300,7 +311,7 @@ class OrderRepository extends \StORM\Repository
 	 * @throws \League\Csv\CannotInsertRecord
 	 * @throws \League\Csv\InvalidArgument
 	 */
-	public function csvExportOrders(array $orders, Writer $writer)
+	public function csvExportOrders(array $orders, Writer $writer): void
 	{
 		$writer->setDelimiter(';');
 
@@ -315,7 +326,7 @@ class OrderRepository extends \StORM\Repository
 			'price',
 			'priceVat',
 			'customer',
-			'account'
+			'account',
 		]);
 
 		foreach ($orders as $order) {
@@ -330,7 +341,7 @@ class OrderRepository extends \StORM\Repository
 				$order->purchase->getSumPrice(),
 				$order->purchase->getSumPriceVat(),
 				$order->purchase->fullname,
-				$order->purchase->accountFullname
+				$order->purchase->accountFullname,
 			]);
 		}
 	}
@@ -365,12 +376,12 @@ class OrderRepository extends \StORM\Repository
 				'',
 				$purchase->email,
 				$purchase->phone,
-				$payment->typeCode == 'dob' ? $order->getTotalPriceVat() : '',
+				$payment->typeCode === 'dob' ? $order->getTotalPriceVat() : '',
 				$this->shopper->getCurrency(),
 				$order->getTotalPriceVat(),
 				'',
 				$purchase->zasilkovnaId,
-				$this->shopper->getProjectUrl()
+				$this->shopper->getProjectUrl(),
 			]);
 		}
 	}
@@ -381,47 +392,49 @@ class OrderRepository extends \StORM\Repository
 		$user = $order->purchase->customer;
 		$created = new DateTime($order->createdTs);
 		$string = "";
-		$string .= "SYS" . \str_pad($gln, 14, " ", STR_PAD_RIGHT) . "ED  96AORDERSP\r\n";
+		$string .= "SYS" . \str_pad($gln, 14, " ", \STR_PAD_RIGHT) . "ED  96AORDERSP\r\n";
 		$string .= "HDR"
-			. \str_pad($order->code, 15, " ", STR_PAD_RIGHT)
+			. \str_pad($order->code, 15, " ", \STR_PAD_RIGHT)
 			. $created->format('Ymd')
 			. \str_pad($user && $user->ediCompany ? $user->ediCompany : $gln, 17, " ")
 			. \str_pad($user && $user->ediBranch ? $user->ediBranch : $gln, 17, " ")
 			. \str_pad($user && $user->ediBranch ? $user->ediBranch : $gln, 17, " ")
-			. \str_pad($gln, 17, " ", STR_PAD_RIGHT)
-			. \str_pad(" ", 17, " ", STR_PAD_RIGHT)
+			. \str_pad($gln, 17, " ", \STR_PAD_RIGHT)
+			. \str_pad(" ", 17, " ", \STR_PAD_RIGHT)
 			. \str_pad((\date('Ymd', \strtotime($order->canceledTs ?? $order->createdTs))) . "0000", 17, " ")
 			//."!!!".$order->note."!!!************>>"
 			. "" . $order->purchase->note . ""
 			. "\r\n";
 		$line = 1;
+
 		foreach ($order->getGroupedItems() as $i) {
 			$string .= "LIN"
-				. \str_pad((string)$line, 6, " ", STR_PAD_LEFT)
-				. \str_pad($i->product ? $i->product->getFullCode() : $i->getFullCode(), 25, " ", STR_PAD_RIGHT)
-				. \str_pad("", 25, " ", STR_PAD_RIGHT)
-				. \str_pad(\number_format($i->amount, 3, ".", ""), 12, " ", STR_PAD_LEFT)
+				. \str_pad((string)$line, 6, " ", \STR_PAD_LEFT)
+				. \str_pad($i->product ? $i->product->getFullCode() : $i->getFullCode(), 25, " ", \STR_PAD_RIGHT)
+				. \str_pad("", 25, " ", \STR_PAD_RIGHT)
+				. \str_pad(\number_format($i->amount, 3, ".", ""), 12, " ", \STR_PAD_LEFT)
 				. \str_pad("", 15, " ")
 				. "\r\n";
 			$line++;
 		}
+
 		return $string;
 	}
 
 	/**
 	 * @param \Eshop\DB\Customer|\Eshop\DB\Merchant|null $users
-	 * @param DateTime $from
-	 * @param DateTime $to
-	 * @param Currency $currency
+	 * @param \Nette\Utils\DateTime $from
+	 * @param \Nette\Utils\DateTime $to
+	 * @param \Eshop\DB\Currency $currency
 	 * @return array
 	 * @throws \Exception
 	 */
 	public function getCustomerGroupedOrdersPrices($users, DateTime $from, DateTime $to, Currency $currency): array
 	{
-		/** @var Order[] $orders */
+		/** @var \Eshop\DB\Order[] $orders */
 		$orders = $this->getOrdersByUserInRange($users, $from, $to)->toArray();
 
-		/** @var CartRepository $cartRepo */
+		/** @var \Eshop\DB\CartRepository $cartRepo */
 		$cartRepo = $this->getConnection()->findRepository(Cart::class);
 
 		$data = [];
@@ -430,7 +443,7 @@ class OrderRepository extends \StORM\Repository
 		while ($from <= $to) {
 			$data[$from->format('Y-m')] = [
 				'price' => 0,
-				'priceVat' => 0
+				'priceVat' => 0,
 			];
 
 			$from->modify('+1 month');
@@ -441,17 +454,17 @@ class OrderRepository extends \StORM\Repository
 		$priceVat = 0;
 
 		foreach ($orders as $order) {
-			/** @var Cart $cart */
+			/** @var \Eshop\DB\Cart $cart */
 			$cart = $cartRepo->many()->where('fk_purchase', $order->purchase->getPK())->fetch();
 
-			if (!$cart || $cart->currency->getPK() != $currency->getPK()) {
+			if (!$cart || $cart->currency->getPK() !== $currency->getPK()) {
 				continue;
 			}
 
-			if ((new DateTime($order->createdTs))->format('Y-m') != $prevDate) {
+			if ((new DateTime($order->createdTs))->format('Y-m') !== $prevDate) {
 				$data[$prevDate] = [
 					'price' => $price,
-					'priceVat' => $priceVat
+					'priceVat' => $priceVat,
 				];
 
 				$price = 0;
@@ -466,7 +479,7 @@ class OrderRepository extends \StORM\Repository
 		if (isset($order)) {
 			$data[$prevDate] = [
 				'price' => $price,
-				'priceVat' => $priceVat
+				'priceVat' => $priceVat,
 			];
 		}
 
@@ -475,20 +488,20 @@ class OrderRepository extends \StORM\Repository
 
 	/**
 	 * @param \Eshop\DB\Customer|\Eshop\DB\Merchant|null $users
-	 * @param DateTime $from
-	 * @param DateTime $to
-	 * @param Currency $currency
+	 * @param \Nette\Utils\DateTime $from
+	 * @param \Nette\Utils\DateTime $to
+	 * @param \Eshop\DB\Currency $currency
 	 * @return array
 	 */
 	public function getCustomerOrdersCategoriesGroupedByAmountPercentage($users, DateTime $from, DateTime $to, Currency $currency): array
 	{
-		/** @var Order[] $orders */
+		/** @var \Eshop\DB\Order[] $orders */
 		$orders = $this->getOrdersByUserInRange($users, $from, $to)->toArray();
 
-		/** @var CategoryRepository $categoryRepo */
+		/** @var \Eshop\DB\CategoryRepository $categoryRepo */
 		$categoryRepo = $this->getConnection()->findRepository(Category::class);
 
-		/** @var CartRepository $cartRepo */
+		/** @var \Eshop\DB\CartRepository $cartRepo */
 		$cartRepo = $this->getConnection()->findRepository(Cart::class);
 
 		$rootCategories = [];
@@ -506,16 +519,16 @@ class OrderRepository extends \StORM\Repository
 
 		$rootCategories[null] = [
 			'name' => $this->translator->translate('.notAssigned', 'Nepřiřazeno'),
-			'amount' => 0
+			'amount' => 0,
 		];
 
 		$sum = 0;
 
 		foreach ($orders as $order) {
-			/** @var Cart $cart */
+			/** @var \Eshop\DB\Cart $cart */
 			$cart = $cartRepo->many()->where('fk_purchase', $order->purchase->getPK())->fetch();
 
-			if (!$cart || $cart->currency->getPK() != $currency->getPK()) {
+			if (!$cart || $cart->currency->getPK() !== $currency->getPK()) {
 				continue;
 			}
 
@@ -527,6 +540,7 @@ class OrderRepository extends \StORM\Repository
 
 				if (!$category) {
 					$rootCategories[null]['amount'] += $item->amount;
+
 					continue;
 				}
 
@@ -535,7 +549,7 @@ class OrderRepository extends \StORM\Repository
 				if (!isset($rootCategories[$root->getPK()])) {
 					$rootCategories[$root->getPK()] = [
 						'name' => $root->name,
-						'amount' => 0
+						'amount' => 0,
 					];
 				}
 
@@ -546,7 +560,7 @@ class OrderRepository extends \StORM\Repository
 		$empty = true;
 
 		foreach ($rootCategories as $key => $category) {
-			if ($sum != 0) {
+			if ($sum !== 0) {
 				$empty = false;
 				$rootCategories[$key]['share'] = \round($category['amount'] / (float)$sum * 100);
 			} else {
@@ -559,26 +573,26 @@ class OrderRepository extends \StORM\Repository
 
 	/**
 	 * @param \Eshop\DB\Customer|\Eshop\DB\Merchant|null $users
-	 * @param DateTime $from
-	 * @param DateTime $to
-	 * @param Currency $currency
+	 * @param \Nette\Utils\DateTime $from
+	 * @param \Nette\Utils\DateTime $to
+	 * @param \Eshop\DB\Currency $currency
 	 * @return array
 	 */
 	public function getCustomerOrdersTopProductsByAmount($users, DateTime $from, DateTime $to, Currency $currency): array
 	{
-		/** @var Order[] $orders */
+		/** @var \Eshop\DB\Order[] $orders */
 		$orders = $this->getOrdersByUserInRange($users, $from, $to)->toArray();
 
-		/** @var CartRepository $cartRepo */
+		/** @var \Eshop\DB\CartRepository $cartRepo */
 		$cartRepo = $this->getConnection()->findRepository(Cart::class);
 
 		$data = [];
 
 		foreach ($orders as $order) {
-			/** @var Cart $cart */
+			/** @var \Eshop\DB\Cart $cart */
 			$cart = $cartRepo->many()->where('fk_purchase', $order->purchase->getPK())->fetch();
 
-			if (!$cart || $cart->currency->getPK() != $currency->getPK()) {
+			if (!$cart || $cart->currency->getPK() !== $currency->getPK()) {
 				continue;
 			}
 
@@ -604,7 +618,7 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		\uasort($data, function ($a, $b) {
-			if ($a['amount'] == $b['amount']) {
+			if ($a['amount'] === $b['amount']) {
 				return 0;
 			}
 
@@ -618,7 +632,6 @@ class OrderRepository extends \StORM\Repository
 	 * @param \Eshop\DB\Customer|\Eshop\DB\Merchant|null $user
 	 * @param \Nette\Utils\DateTime $from
 	 * @param \Nette\Utils\DateTime $to
-	 * @return \StORM\Collection
 	 */
 	public function getOrdersByUserInRange($user, DateTime $from, DateTime $to): ?Collection
 	{
@@ -635,13 +648,13 @@ class OrderRepository extends \StORM\Repository
 
 		if ($user) {
 			if ($user instanceof Merchant) {
-				/** @var MerchantRepository $merchantRepo */
+				/** @var \Eshop\DB\MerchantRepository $merchantRepo */
 				$merchantRepo = $this->getConnection()->findRepository(Merchant::class);
 				$customers = $merchantRepo->getMerchantCustomers($user);
 
 				$collection->where('purchase.fk_customer', \array_keys($customers->toArray()));
 			} elseif ($user->getAccount()) {
-				/** @var CatalogPermission $perm */
+				/** @var \Eshop\DB\CatalogPermission $perm */
 				$perm = $this->catalogPermissionRepository->many()->where('fk_account', $user->getAccount()->getPK())->first();
 
 				if ($perm->viewAllOrders) {
@@ -663,13 +676,13 @@ class OrderRepository extends \StORM\Repository
 
 		if ($user) {
 			if ($user instanceof Merchant) {
-				/** @var MerchantRepository $merchantRepo */
+				/** @var \Eshop\DB\MerchantRepository $merchantRepo */
 				$merchantRepo = $this->getConnection()->findRepository(Merchant::class);
 				$customers = $merchantRepo->getMerchantCustomers($user);
 
 				$collection->where('purchase.fk_customer', \array_keys($customers->toArray()));
 			} elseif ($user->getAccount()) {
-				/** @var CatalogPermission $perm */
+				/** @var \Eshop\DB\CatalogPermission $perm */
 				$perm = $this->catalogPermissionRepository->many()->where('fk_account', $user->getAccount()->getPK())->first();
 
 				if ($perm->viewAllOrders) {
@@ -688,7 +701,6 @@ class OrderRepository extends \StORM\Repository
 		$purchase = $order->purchase;
 		$items = [];
 
-
 		/** @var \Eshop\DB\CartItem $cartItem */
 		foreach ($purchase->getItems() as $cartItem) {
 			$items[$cartItem->getPK()] = $cartItem->toArray();
@@ -696,21 +708,19 @@ class OrderRepository extends \StORM\Repository
 			$items[$cartItem->getPK()]['totalPrice'] = $cartItem->getPriceSum();
 			$items[$cartItem->getPK()]['totalPriceVat'] = $cartItem->getPriceVatSum();
 
-			if ($this->shopper->getCatalogPermission() == 'price') {
-				if ($this->shopper->getShowVat() && $this->shopper->getShowWithoutVat()) {
-					if ($this->shopper->showPriorityPrices() == 'withVat') {
-						$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceVatSum();
-					} else {
-						$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceSum();
-					}
-				} else {
-					if ($this->shopper->getShowVat()) {
-						$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceVatSum();
-					}
+			if ($this->shopper->getCatalogPermission() !== 'price') {
+				continue;
+			}
 
-					if ($this->shopper->getShowWithoutVat()) {
-						$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceSum();
-					}
+			if ($this->shopper->getShowVat() && $this->shopper->getShowWithoutVat()) {
+				$items[$cartItem->getPK()]['totalPricePref'] = $this->shopper->showPriorityPrices() === 'withVat' ? $cartItem->getPriceVatSum() : $cartItem->getPriceSum();
+			} else {
+				if ($this->shopper->getShowVat()) {
+					$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceVatSum();
+				}
+
+				if ($this->shopper->getShowWithoutVat()) {
+					$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceSum();
 				}
 			}
 		}
@@ -740,20 +750,20 @@ class OrderRepository extends \StORM\Repository
 			'billName' => $purchase->fullname,
 			'billingAddress' => $purchase->billAddress ? $purchase->billAddress->jsonSerialize() : [],
 			'deliveryAddress' => $purchase->deliveryAddress ? $purchase->deliveryAddress->jsonSerialize() : ($purchase->billAddress ? $purchase->billAddress->jsonSerialize() : []),
-			'totalPrice' => $this->shopper->getCatalogPermission() == 'price' ? $order->getTotalPrice() : null,
-			'totalPriceVat' => $this->shopper->getCatalogPermission() == 'price' ? $order->getTotalPriceVat() : null,
+			'totalPrice' => $this->shopper->getCatalogPermission() === 'price' ? $order->getTotalPrice() : null,
+			'totalPriceVat' => $this->shopper->getCatalogPermission() === 'price' ? $order->getTotalPriceVat() : null,
 			'currency' => $order->purchase->currency,
 			'discountCoupon' => $order->getDiscountCoupon(),
 			'order' => $order,
 			'withVat' => false,
 			'withoutVat' => false,
 			'catalogPermission' => $this->shopper->getCatalogPermission(),
-			'priorityPrices' => $this->shopper->showPriorityPrices()
+			'priorityPrices' => $this->shopper->showPriorityPrices(),
 		];
 
-		if ($this->shopper->getCatalogPermission() == 'price') {
+		if ($this->shopper->getCatalogPermission() === 'price') {
 			if ($this->shopper->getShowVat() && $this->shopper->getShowWithoutVat()) {
-				if ($this->shopper->showPriorityPrices() == 'withVat') {
+				if ($this->shopper->showPriorityPrices() === 'withVat') {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPriceVat;
 					$values['paymentPricePref'] = $order->payments->firstValue('priceVat');
 					$values['totalPricePref'] = $order->getTotalPriceVat();
@@ -822,7 +832,6 @@ class OrderRepository extends \StORM\Repository
 
 	/**
 	 * @param \Eshop\DB\Order|string $order
-	 * @return bool|null
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function isOrderApproved($order): ?bool
@@ -843,11 +852,11 @@ class OrderRepository extends \StORM\Repository
 			->where('orders.uuid', $order->getPK());
 
 		foreach ($carts as $cart) {
-			if ($cart->approved == 'no') {
+			if ($cart->approved === 'no') {
 				return false;
 			}
 
-			if ($cart->approved == 'waiting') {
+			if ($cart->approved === 'waiting') {
 				return null;
 			}
 		}
@@ -908,11 +917,11 @@ class OrderRepository extends \StORM\Repository
 		return null;
 	}
 
-	public function changeState(Order $order, string $status)
+	// @TODO?
+	public function changeState(Order $order, string $status): void
 	{
 		// in array
 		if (1) {
-
 		}
 
 		$order->update([$status . 'Ts' => (string)new DateTime()]);
@@ -920,8 +929,13 @@ class OrderRepository extends \StORM\Repository
 		Arrays::invoke($this->onChangeState);
 	}
 
-	public function sendStateEmail(Order $order)
+	// @TODO?
+	public function sendStateEmail(Order $order): void
 	{
+	}
 
+	public function getFirstPackageByPurchase(Purchase $purchase): ?Package
+	{
+		return $this->packageRepository->many()->where('order.fk_purchase', $purchase->getPK())->orderBy(['this.id' => 'ASC'])->first();
 	}
 }

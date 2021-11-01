@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
+use Eshop\DB\CartItemRepository;
 use Eshop\DB\Order;
-use Eshop\DB\Product;
+use Eshop\DB\OrderRepository;
+use Eshop\DB\PackageItemRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\Shopper;
-use Eshop\DB\CartItem;
-use Eshop\DB\CartItemRepository;
 use Grid\Datalist;
 use Nette\Application\UI\Form;
 use Nette\Application\UI\Multiplier;
@@ -24,28 +24,41 @@ class OrderItemList extends Datalist
 {
 	public CheckoutManager $checkoutManager;
 
-	private CartItemRepository $cartItemsRepository;
-
 	public Shopper $shopper;
+
+	private CartItemRepository $cartItemsRepository;
 
 	private ProductRepository $productRepository;
 
+	private OrderRepository $orderRepository;
+
+	private PackageItemRepository $packageItemRepository;
+
 	private Order $selectedOrder;
 
-	public function __construct(CartItemRepository $cartItemsRepository, CheckoutManager $checkoutManager, Shopper $shopper, ProductRepository $productRepository, Order $order)
-	{
+	public function __construct(
+		CartItemRepository $cartItemsRepository,
+		CheckoutManager $checkoutManager,
+		Shopper $shopper,
+		ProductRepository $productRepository,
+		Order $order,
+		OrderRepository $orderRepository,
+		PackageItemRepository $packageItemRepository
+	) {
 		$this->checkoutManager = $checkoutManager;
 		$this->cartItemsRepository = $cartItemsRepository;
 		$this->shopper = $shopper;
 		$this->productRepository = $productRepository;
 		$this->selectedOrder = $order;
+		$this->orderRepository = $orderRepository;
+		$this->packageItemRepository = $packageItemRepository;
 
 		parent::__construct($order->purchase->getItems());
 	}
 
 	public function handleDeleteItem(string $itemId): void
 	{
-		/** @var CartItem $cartItem */
+		/** @var \Eshop\DB\CartItem $cartItem */
 		$cartItem = $this->cartItemsRepository->one($itemId);
 
 		$this->cartItemsRepository->deleteItem($cartItem->cart, $cartItem);
@@ -71,26 +84,15 @@ class OrderItemList extends Datalist
 	{
 		$checkoutManager = $this->checkoutManager;
 		$cartItemRepository = $this->cartItemsRepository;
-		$shopper = $this->shopper;
 
-		return new Multiplier(function ($itemId) use ($checkoutManager, $cartItemRepository, $shopper) {
+		return new Multiplier(function ($itemId) use ($checkoutManager, $cartItemRepository) {
 			/** @var \Eshop\DB\CartItem $cartItem */
 			$cartItem = $cartItemRepository->one($itemId);
 			$product = $cartItem->getProduct();
 
 
 			$form = new Form();
-
-			//			$maxCount = $product->maxBuyCount ?? $shopper->getMaxBuyCount();
-			$amountInput = $form->addInteger('amount');
-			//
-			//			if ($maxCount !== null) {
-			//				$amountInput->addRule($form::MAX, 'Překročeno povolené množství', $product->maxBuyCount ?? $shopper->getMaxBuyCount());
-			//			}
-			//
-			//			if ($product->buyStep !== null) {
-			//				$amountInput->addRule([$this, 'validateNumber'], 'Není to násobek', $product->buyStep);
-			//			}
+			$form->addInteger('amount');
 
 			$form->onSuccess[] = function ($form, $values) use ($cartItem, $product, $checkoutManager): void {
 				$amount = \intval($values->amount);
@@ -108,7 +110,7 @@ class OrderItemList extends Datalist
 		});
 	}
 
-	public function handleChangeAmount($cartItem, $amount)
+	public function handleChangeAmount($cartItem, $amount): void
 	{
 		/** @var \Eshop\DB\CartItem $cartItem */
 		$cartItem = $this->cartItemsRepository->one($cartItem, true);
@@ -124,7 +126,7 @@ class OrderItemList extends Datalist
 		$this->redirect('this');
 	}
 
-	public function handleChangeUpsell($cartItem, $upsell)
+	public function handleChangeUpsell($cartItem, $upsell): void
 	{
 		/** @var \Eshop\DB\CartItem $cartItem */
 		$cartItem = $this->cartItemsRepository->one($cartItem, true);
@@ -162,16 +164,27 @@ class OrderItemList extends Datalist
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/cartItemList.latte');
 	}
 
-	public function handleAddItem(string $product)
+	public function handleAddItem(string $product): void
 	{
-		$product = $this->productRepository->getProducts()->where('this.uuid',$product)->first();
+		/** @var \Eshop\DB\Product $product */
+		$product = $this->productRepository->getProducts()->where('this.uuid', $product)->first();
 
-		$this->checkoutManager->addItemToCart($product, null, 1, false, true, true, $this->selectedOrder->purchase->carts->first());
+		$cartItem = $this->checkoutManager->addItemToCart($product, null, 1, false, true, true, $this->selectedOrder->purchase->carts->first());
+
+		if ($cartItem->cart->purchase) {
+			if ($package = $this->orderRepository->getFirstPackageByPurchase($cartItem->cart->purchase)) {
+				$this->packageItemRepository->createOne([
+					'amount' => $cartItem->amount,
+					'package' => $package->getPK(),
+					'cartItem' => $cartItem->getPK(),
+				]);
+			}
+		}
 
 		$this->redirect('this');
 	}
 
-	public function handleDeleteOrder()
+	public function handleDeleteOrder(): void
 	{
 		$this->selectedOrder->delete();
 

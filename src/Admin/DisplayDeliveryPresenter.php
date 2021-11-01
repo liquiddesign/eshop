@@ -10,7 +10,6 @@ use Admin\Controls\AdminGrid;
 use Eshop\DB\DisplayDelivery;
 use Eshop\DB\DisplayDeliveryRepository;
 use Nette\Forms\Form;
-use Nette\Utils\DateTime;
 
 class DisplayDeliveryPresenter extends BackendPresenter
 {

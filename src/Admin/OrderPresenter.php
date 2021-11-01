@@ -897,7 +897,7 @@ class OrderPresenter extends BackendPresenter
 		$this->template->stores = $this->storeRepository->many();
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
-			['Detail']
+			['Detail'],
 		];
 		$this->template->setFile(__DIR__ . '/templates/Order.printDetail.latte');
 		
