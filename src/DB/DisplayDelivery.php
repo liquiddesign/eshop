@@ -18,7 +18,7 @@ class DisplayDelivery extends \StORM\Entity
 
 	/**
 	 * Casovy prah
-	 * @column{"type":"datetime"}
+	 * @column
 	 */
 	public ?string $timeThreshold;
 

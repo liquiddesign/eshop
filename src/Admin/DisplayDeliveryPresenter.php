@@ -10,6 +10,7 @@ use Admin\Controls\AdminGrid;
 use Eshop\DB\DisplayDelivery;
 use Eshop\DB\DisplayDeliveryRepository;
 use Nette\Forms\Form;
+use Nette\Utils\DateTime;
 
 class DisplayDeliveryPresenter extends BackendPresenter
 {
@@ -23,7 +24,7 @@ class DisplayDeliveryPresenter extends BackendPresenter
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Popisek', 'label', '%s', 'label');
-		$grid->addColumnText('Časový práh', 'timeThreshold', '%s', 'timeThreshold');
+		$grid->addColumnText('Časový práh', "timeThreshold", '%s', 'timeThreshold');
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 
 		$grid->addColumnLinkDetail();
@@ -44,7 +45,7 @@ class DisplayDeliveryPresenter extends BackendPresenter
 
 		$form->addLocaleText('label', 'Popisek');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
-		$timeThreshold = $form->addTime('timeThreshold', 'Časový práh')
+		$timeThreshold = $form->addText('timeThreshold', 'Časový práh')->setHtmlType('time')
 			->setNullable()
 			->setHtmlAttribute('data-info', 'Pokud nastavíte u produktu doručení na automatické a zvolíte časový práh, tak se bude zobrazovat popisek před a po v závislosti na skutečném čase.')
 			->addCondition(Form::FILLED);
