@@ -422,36 +422,31 @@ class ProductRepository extends Repository implements IGeneralRepository
 	{
 		//@TODO performance
 
-		foreach ($attributes as $attributeKey => $attributeValues) {
-			$query = '';
+		foreach ($attributes as $attributeKey => $selectedAttributeValues) {
+			if (\count($selectedAttributeValues) === 0) {
+				continue;
+			}
 
 			/** @var \Eshop\DB\Attribute $attribute */
 			$attribute = $this->attributeRepository->one($attributeKey);
 
-			if (\count($attributeValues) === 0) {
-				continue;
-			}
-
 			if ($attribute->filterType === 'and') {
-				foreach ($attributeValues as $attributeValue) {
+				foreach ($selectedAttributeValues as $attributeValue) {
 					$subSelect = $this->getConnection()->rows(['eshop_attributevalue'])
 						->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
 						->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
 						->where('eshop_attributeassign.fk_product=this.uuid')
-						->where("eshop_attributevalue.fk_attribute = '$attributeKey'");
-
-					if ($attribute->showRange) {
-						$subSelect->where("eshop_attributevalue.fk_attributevaluerange = '$attributeValue'");
-					} else {
-						$subSelect->where("eshop_attributevalue.uuid = '$attributeValue'");
-					}
+						->where("eshop_attributevalue.fk_attribute = '$attributeKey'")
+						->where($attribute->showRange ? "eshop_attributevalue.fk_attributevaluerange = '$attributeValue'" : "eshop_attributevalue.uuid = '$attributeValue'");
 
 					$collection->where('EXISTS (' . $subSelect->getSql() . ')');
 				}
 			} else {
+				$query = '';
+
 				if ($attribute->showRange) {
-					$attributeValues = $this->getConnection()->rows(['eshop_attributevalue'])
-						->where('eshop_attributevalue.fk_attributevaluerange', $attributeValues)
+					$selectedAttributeValues = $this->getConnection()->rows(['eshop_attributevalue'])
+						->where('eshop_attributevalue.fk_attributevaluerange', $selectedAttributeValues)
 						->where('eshop_attributevalue.fk_attribute', $attribute->getPK())
 						->toArrayOf('uuid');
 				}
@@ -463,11 +458,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 				$query .= "(eshop_attributevalue.fk_attribute = \"$attributeKey\" AND (";
 
-				foreach ($attributeValues as $attributeValue) {
-					$query .= "eshop_attributevalue.uuid = \"$attributeValue\" $attribute->filterType ";
+				foreach ($selectedAttributeValues as $attributeValue) {
+					$query .= "eshop_attributevalue.uuid = \"$attributeValue\" OR ";
 				}
 
-				$query = \substr($query, 0, $attribute->filterType === 'and' ? -4 : -3) . '))';
+				$query = \substr($query, 0, -3) . '))';
 
 				$subSelect->where($query);
 
