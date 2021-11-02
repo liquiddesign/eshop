@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use StORM\Collection;
 use StORM\RelationCollection;
 
 /**
@@ -15,9 +14,10 @@ use StORM\RelationCollection;
 class Order extends \StORM\Entity
 {
 	public const STATE = [
+		'open',
 		'received',
 		'finished',
-		'canceled'
+		'canceled',
 	];
 
 	/**

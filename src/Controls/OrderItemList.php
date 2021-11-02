@@ -9,6 +9,7 @@ use Eshop\DB\CartItemRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PackageItemRepository;
+use Eshop\DB\PackageRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\Shopper;
 use Grid\Datalist;
@@ -32,6 +33,8 @@ class OrderItemList extends Datalist
 
 	private OrderRepository $orderRepository;
 
+	private PackageRepository $packageRepository;
+
 	private PackageItemRepository $packageItemRepository;
 
 	private Order $selectedOrder;
@@ -43,7 +46,8 @@ class OrderItemList extends Datalist
 		ProductRepository $productRepository,
 		Order $order,
 		OrderRepository $orderRepository,
-		PackageItemRepository $packageItemRepository
+		PackageItemRepository $packageItemRepository,
+		PackageRepository $packageRepository
 	) {
 		$this->checkoutManager = $checkoutManager;
 		$this->cartItemsRepository = $cartItemsRepository;
@@ -52,6 +56,7 @@ class OrderItemList extends Datalist
 		$this->selectedOrder = $order;
 		$this->orderRepository = $orderRepository;
 		$this->packageItemRepository = $packageItemRepository;
+		$this->packageRepository = $packageRepository;
 
 		parent::__construct($order->purchase->getItems());
 	}
@@ -103,6 +108,25 @@ class OrderItemList extends Datalist
 
 				$checkoutManager->changeItemAmount($product, $cartItem->variant, $amount, false, $cartItem->cart);
 
+				if ($cartItem->cart->purchase) {
+					$packageItem = $this->orderRepository->getFirstPackageItemByCartItem($cartItem);
+
+					if ($packageItem === null) {
+						$package = $this->packageRepository->createOne([
+							'order' => $this->selectedOrder->getPK(),
+							'delivery' => $this->selectedOrder->getLastDelivery(),
+						]);
+
+						$this->packageItemRepository->createOne([
+							'amount' => $cartItem->amount,
+							'package' => $package->getPK(),
+							'cartItem' => $cartItem->getPK(),
+						]);
+					} else {
+						$packageItem->update(['amount' => $packageItem->amount + $amount - $cartItem->amount]);
+					}
+				}
+
 				$this->redirect('this');
 			};
 
@@ -122,6 +146,25 @@ class OrderItemList extends Datalist
 		}
 
 		$this->checkoutManager->changeItemAmount($cartItem->getProduct(), $cartItem->variant, $amount, false, $cartItem->cart);
+
+		if ($cartItem->cart->purchase) {
+			$packageItem = $this->orderRepository->getFirstPackageItemByCartItem($cartItem);
+
+			if ($packageItem === null) {
+				$package = $this->packageRepository->createOne([
+					'order' => $this->selectedOrder->getPK(),
+					'delivery' => $this->selectedOrder->getLastDelivery(),
+				]);
+
+				$this->packageItemRepository->createOne([
+					'amount' => $cartItem->amount,
+					'package' => $package->getPK(),
+					'cartItem' => $cartItem->getPK(),
+				]);
+			} else {
+				$packageItem->update(['amount' => $packageItem->amount + $amount - $cartItem->amount]);
+			}
+		}
 
 		$this->redirect('this');
 	}
@@ -172,13 +215,17 @@ class OrderItemList extends Datalist
 		$cartItem = $this->checkoutManager->addItemToCart($product, null, 1, false, true, true, $this->selectedOrder->purchase->carts->first());
 
 		if ($cartItem->cart->purchase) {
-			if ($package = $this->orderRepository->getFirstPackageByPurchase($cartItem->cart->purchase)) {
-				$this->packageItemRepository->createOne([
-					'amount' => $cartItem->amount,
-					'package' => $package->getPK(),
-					'cartItem' => $cartItem->getPK(),
+			$package = $this->orderRepository->getFirstPackageByCartItem($cartItem) ??
+				$this->packageRepository->createOne([
+					'order' => $this->selectedOrder->getPK(),
+					'delivery' => $this->selectedOrder->getLastDelivery(),
 				]);
-			}
+
+			$this->packageItemRepository->createOne([
+				'amount' => $cartItem->amount,
+				'package' => $package->getPK(),
+				'cartItem' => $cartItem->getPK(),
+			]);
 		}
 
 		$this->redirect('this');

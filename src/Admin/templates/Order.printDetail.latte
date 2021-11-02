@@ -143,7 +143,7 @@
                                         <a class="btn btn-outline-primary btn-sm text-xs modalSplitOrderItemForm" data-values="{json_encode(['uuid' => $packageItem->getPK()])}" data-toggle="modal" data-target="#modal-splitOrderItemForm" href="#" title="Rozdělit"><i class="fa fa-columns"></i></a>
                                     </td>
                                     <td class="d-print-none">
-                                        <a class="btn btn-primary btn-sm text-xs modalDetailOrderItemForm" data-values="{json_encode($item->toArray())}" data-toggle="modal" data-target="#modal-detailOrderItemForm" href="#" title="Upravit"><i class="far fa-edit"></i></a>
+                                        <a class="btn btn-primary btn-sm text-xs modalDetailOrderItemForm" data-values="{json_encode($item->toArray() + ['packageItem' => $packageItem->getPK()])}" data-toggle="modal" data-target="#modal-detailOrderItemForm" href="#" title="Upravit"><i class="far fa-edit"></i></a>
                                     </td>
                                     <td class="d-print-none">
                                         <a href="{plink toggleDeleteOrderItem! $item->getPK()}" class="btn btn-danger btn-sm text-xs" title="Smazat" onclick="return confirm('Opravdu?')"><i class="{if $packageItem->deleted}fa fa-trash-restore-alt{else}far fa-trash-alt{/if}"></i></a>

@@ -35,6 +35,8 @@ class OrderRepository extends \StORM\Repository
 
 	private PackageRepository $packageRepository;
 
+	private PackageItemRepository $packageItemRepository;
+
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
@@ -43,7 +45,8 @@ class OrderRepository extends \StORM\Repository
 		Translator $translator,
 		MerchantRepository $merchantRepository,
 		CatalogPermissionRepository $catalogPermissionRepository,
-		PackageRepository $packageRepository
+		PackageRepository $packageRepository,
+		PackageItemRepository $packageItemRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -53,6 +56,7 @@ class OrderRepository extends \StORM\Repository
 		$this->merchantRepository = $merchantRepository;
 		$this->catalogPermissionRepository = $catalogPermissionRepository;
 		$this->packageRepository = $packageRepository;
+		$this->packageItemRepository = $packageItemRepository;
 	}
 
 	/**
@@ -886,7 +890,7 @@ class OrderRepository extends \StORM\Repository
 	}
 
 	/**
-	 * @param $order
+	 * @param string|\Eshop\DB\Order|null $order
 	 * @return string|null Order::STATE
 	 * @throws \StORM\Exception\NotFoundException
 	 */
@@ -932,6 +936,20 @@ class OrderRepository extends \StORM\Repository
 	// @TODO?
 	public function sendStateEmail(Order $order): void
 	{
+	}
+
+	public function getFirstPackageByCartItem(CartItem $cartItem): ?Package
+	{
+		return $this->packageRepository->many()
+			->join(['packageItem' => 'eshop_packageitem'], 'this.uuid = packageItem.fk_package')
+			->where('packageItem.fk_cartItem', $cartItem->getPK())
+			->orderBy(['this.id' => 'ASC'])
+			->first();
+	}
+
+	public function getFirstPackageItemByCartItem(CartItem $cartItem): ?PackageItem
+	{
+		return $this->packageItemRepository->many()->where('this.fk_cartItem', $cartItem->getPK())->first();
 	}
 
 	public function getFirstPackageByPurchase(Purchase $purchase): ?Package

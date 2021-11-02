@@ -90,7 +90,18 @@
                                                 {$order->purchase->accountFullname ?? $order->purchase->accountEmail}
                                             {/if}
                                         </td>
-                                        <td>{$order->getState()}</td>
+                                        <td>
+                                            {switch $control->orderRepo->getState($order)}
+                                                {case 'finished'}
+                                                    {_'order.done','Vyřízeno'}
+                                                {case 'received'}
+                                                    {_'order.process','Zpracovává se'}
+                                                {case 'canceled'}
+                                                    {_'order.canceled','Stornováno'}
+                                                {default }
+                                                    {_'order.open','Otevřeno k úpravám'}
+                                            {/switch}
+                                        </td>
                                         <td><a href="{plink :Eshop:Admin:Order:printDetail, $order}"><i
                                                         class="fa fa-external-link-alt fa-sm"></i>&nbsp;Detail</a></td>
                                     </tr>
