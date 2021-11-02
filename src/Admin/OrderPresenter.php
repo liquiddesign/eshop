@@ -922,7 +922,7 @@ class OrderPresenter extends BackendPresenter
 	
 	public function handleToggleDeleteOrderItem(string $itemId)
 	{
-		$this->cartItemRepo->many()->where('this.uuid', $itemId)->update(['deleted' => new Literal('NOT deleted')]);
+		$this->cartItemRepo->many()->where('this.uuid', $itemId)->update(['this.deleted' => new Literal('NOT deleted')]);
 		
 		$this->redirect('this');
 	}
