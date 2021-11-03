@@ -83,4 +83,9 @@ class AttributeValue extends \StORM\Entity
 	 * @relation
 	 */
 	public ?AttributeValueRange $attributeValueRange;
+
+	public function getInternalName(): string
+	{
+		return $this->internalName ?? $this->label;
+	}
 }

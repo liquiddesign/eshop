@@ -432,6 +432,13 @@ class CategoryPresenter extends BackendPresenter
 			return $value !== '' && $value !== null;
 		});
 
+		if (isset($parameters['attributeValue'])) {
+			/** @var \Eshop\DB\AttributeValue $attributeValue */
+			$attributeValue = $this->attributeValueRepository->one($parameters['attributeValue']);
+
+			$this->template->select2AjaxDefaults[$form['parameters']['attributeValue']->getHtmlId()] = [$parameters['attributeValue'] => ($attributeValue->attribute->name ?? $attributeValue->attribute->code) . ' - ' . ($attributeValue->label ?? $attributeValue->code)];
+		}
+
 		$form['parameters']->setDefaults($parameters);
 	}
 
@@ -512,6 +519,9 @@ class CategoryPresenter extends BackendPresenter
 			}
 
 			$values = $form->getValues('array');
+			$rawValues = $this->getHttpRequest()->getPost();
+
+			$values['parameters']['attributeValue'] = $rawValues['parameters']['attributeValue'] ?? null;
 
 			$values['page']['params'] = \array_filter($values['parameters'], function ($value) {
 				return $value !== '' && $value !== null;
@@ -536,6 +546,9 @@ class CategoryPresenter extends BackendPresenter
 
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
+			$rawValues = $this->getHttpRequest()->getPost();
+
+			$values['parameters']['attributeValue'] = $rawValues['parameters']['attributeValue'] ?? null;
 
 			$values['page']['type'] = 'product_list';
 
