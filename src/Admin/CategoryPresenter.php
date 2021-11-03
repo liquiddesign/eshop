@@ -510,6 +510,7 @@ class CategoryPresenter extends BackendPresenter
 		$parametersContainer->addSelect2('category', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('Nepřiřazeno');
 		$parametersContainer->addSelect2('producer', 'Výrobce', $this->producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 		$parametersContainer->addSelect2Ajax('attributeValue', $this->link('getAttributeValues!'), 'Hodnota atributu', [], 'Nepřiřazeno')->setPrompt('Nepřiřazeno');
+		$parametersContainer->addText('priceFrom', 'Cena od')->addRule($form::FLOAT);
 
 		$form->addSubmits(!$dynamicCategory);
 
