@@ -46,7 +46,7 @@ class AttributeValueRepository extends \StORM\Repository implements IGeneralRepo
 		foreach ($attributes as $pk => $label) {
 			$payload['results'][] = [
 				'id' => $pk,
-				'text' => $label
+				'text' => $label,
 			];
 		}
 

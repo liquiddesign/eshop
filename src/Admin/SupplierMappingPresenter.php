@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
-use Admin\BackendPresenter;
+use Eshop\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Eshop\DB\Attribute;
 use Eshop\DB\AttributeRepository;
@@ -305,21 +305,6 @@ class SupplierMappingPresenter extends BackendPresenter
 		}
 
 		$payload = $this->attributeRepository->getAttributesForAdminAjax($q, $page);
-
-		$this->payload->results = $payload['results'];
-		$this->payload->pagination = $payload['pagination'];
-
-		$this->sendPayload();
-	}
-
-	public function handleGetAttributeValues(string $q = null, ?int $page = null): void
-	{
-		if (!$q) {
-			$this->payload->result = [];
-			$this->sendPayload();
-		}
-
-		$payload = $this->attributeValueRepository->getAttributesForAdminAjax($q, $page);
 
 		$this->payload->results = $payload['results'];
 		$this->payload->pagination = $payload['pagination'];

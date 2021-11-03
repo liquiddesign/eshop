@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
-use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\Admin\Controls\ICategoryFormFactory;
+use Eshop\BackendPresenter;
 use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
-use Forms\Form;
+use Eshop\DB\ProducerRepository;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
-use Web\DB\PageRepository;
 use StORM\Entity;
+use Web\DB\Page;
+use Web\DB\PageRepository;
 
 class CategoryPresenter extends BackendPresenter
 {
@@ -27,6 +28,7 @@ class CategoryPresenter extends BackendPresenter
 	protected const CONFIGURATION = [
 		'activeProducers' => null,
 		'producerPagesType' => self::PRODUCER_CATEGORY,
+		'dynamicCategories' => false,
 	];
 
 	/** @inject */
@@ -43,6 +45,9 @@ class CategoryPresenter extends BackendPresenter
 
 	/** @inject */
 	public ICategoryFormFactory $categoryFormFactory;
+
+	/** @inject */
+	public ProducerRepository $producerRepository;
 
 	/** @persistent */
 	public string $tab = 'none';
@@ -158,9 +163,15 @@ class CategoryPresenter extends BackendPresenter
 		$this->tabs = $this->categoryTypeRepository->getArrayForSelect();
 		$this->tabs['types'] = '<i class="fa fa-bars"></i> Typy';
 
-		if ($this->tab == 'none') {
-			$this->tab = \count($this->tabs) > 1 ? Arrays::first(\array_keys($this->tabs)) : 'types';
+		if (isset($this::CONFIGURATION['dynamicCategories']) && $this::CONFIGURATION['dynamicCategories']) {
+			$this->tabs['dynamicCategories'] = 'Dynamické kategorie';
 		}
+
+		if ($this->tab !== 'none') {
+			return;
+		}
+
+		$this->tab = \count($this->tabs) > 1 ? Arrays::first(\array_keys($this->tabs)) : 'types';
 	}
 
 	public function renderDefault(): void
@@ -175,6 +186,14 @@ class CategoryPresenter extends BackendPresenter
 			];
 			$this->template->displayButtons = [$this->createNewItemButton('categoryTypeNew')];
 			$this->template->displayControls = [$this->getComponent('categoryTypeGrid')];
+		} elseif ($this->tab === 'dynamicCategories') {
+			$this->template->headerLabel = 'Dynamické kategorie';
+			$this->template->headerTree = [
+				['Kategorie', 'default'],
+				['Dynamické'],
+			];
+			$this->template->displayButtons = [$this->createNewItemButton('dynamicCategoryNew')];
+			$this->template->displayControls = [$this->getComponent('dynamicCategoriesGrid')];
 		} else {
 			$this->template->headerLabel = 'Kategorie - ' . $this->tabs[$this->tab];
 			$this->template->headerTree = [
@@ -219,7 +238,7 @@ class CategoryPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid): void {
 			$values = $form->getValues('array');
 
-			$this->categoryRepository->generateProducerCategories($values['bulkType'] == 'selected' ? $ids : \array_keys($grid->getFilteredSource()->toArray()), $values['deep']);
+			$this->categoryRepository->generateProducerCategories($values['bulkType'] === 'selected' ? $ids : \array_keys($grid->getFilteredSource()->toArray()), $values['deep']);
 
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('default');
@@ -228,12 +247,11 @@ class CategoryPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function actionGenerateProducerCategories(array $ids)
+	public function actionGenerateProducerCategories(array $ids): void
 	{
-
 	}
 
-	public function renderGenerateProducerCategories(array $ids)
+	public function renderGenerateProducerCategories(array $ids): void
 	{
 		$this->template->headerLabel = 'Generovat kategorie vůrobců';
 		$this->template->headerTree = [
@@ -244,10 +262,10 @@ class CategoryPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('generateProducerCategoriesForm')];
 	}
 
-	public function handleGenerateCategoryProducerPages()
+	public function handleGenerateCategoryProducerPages(): void
 	{
 		try {
-			$this->categoryRepository->generateCategoryProducerPages(static::CONFIGURATION['activeProducers'] ?? null);
+			$this->categoryRepository->generateCategoryProducerPages(self::CONFIGURATION['activeProducers'] ?? null);
 			$this->flashMessage('Provedeno', 'success');
 		} catch (\Throwable $exception) {
 			$this->flashMessage('Chyba!', 'error');
@@ -256,7 +274,7 @@ class CategoryPresenter extends BackendPresenter
 		$this->redirect('this');
 	}
 
-	public function renderCategoryNew()
+	public function renderCategoryNew(): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -267,7 +285,7 @@ class CategoryPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('categoryForm')];
 	}
 
-	public function renderDetail(Category $category)
+	public function renderDetail(Category $category): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -283,7 +301,7 @@ class CategoryPresenter extends BackendPresenter
 		$this->template->setFile(__DIR__ . '/templates/category.edit.latte');
 	}
 
-	public function actionDetail(Category $category, ?string $backLink = null)
+	public function actionDetail(Category $category, ?string $backLink = null): void
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('categoryForm')['form'];
@@ -317,7 +335,7 @@ class CategoryPresenter extends BackendPresenter
 		$grid->addFilterTextInput('search', ['name'], null, 'Název');
 		$grid->addFilterButtons();
 
-		$grid->onDelete[] = function (CategoryType $object) {
+		$grid->onDelete[] = function (CategoryType $object): void {
 			$this->categoryRepository->clearCategoriesCache();
 		};
 
@@ -336,7 +354,7 @@ class CategoryPresenter extends BackendPresenter
 
 		$form->addSubmits(!$categoryType);
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$categoryType = $this->categoryTypeRepository->syncOne($values);
@@ -348,35 +366,35 @@ class CategoryPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function actionCategoryTypeNew()
+	public function actionCategoryTypeNew(): void
 	{
 	}
 
-	public function renderCategoryTypeNew()
+	public function renderCategoryTypeNew(): void
 	{
 		$this->template->headerLabel = 'Nový typ kategorie';
 		$this->template->headerTree = [
 			['Kategorie', 'default'],
-			['Typy']
+			['Typy'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('categoryTypeForm')];
 	}
 
-	public function actionCategoryTypeDetail(CategoryType $categoryType)
+	public function actionCategoryTypeDetail(CategoryType $categoryType): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('categoryTypeForm');
 		$form->setDefaults($categoryType->toArray());
 	}
 
-	public function renderCategoryTypeDetail(CategoryType $categoryType)
+	public function renderCategoryTypeDetail(CategoryType $categoryType): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Kategorie', 'default'],
 			['Typy', 'default'],
-			['Detail']
+			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('categoryTypeForm')];
@@ -391,5 +409,144 @@ class CategoryPresenter extends BackendPresenter
 		foreach ($subDirs as $subDir) {
 			FileSystem::createDir($rootDir . \DIRECTORY_SEPARATOR . $subDir);
 		}
+	}
+
+	public function renderDynamicCategoryNew(): void
+	{
+		$this->template->headerLabel = 'Dynamické kategorie';
+		$this->template->headerTree = [
+			['Kategorie', 'default'],
+			['Dynamické', 'default'],
+			['Nová položka'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('dynamicCategoryForm')];
+	}
+
+	public function actionDynamicCategoryDetail(Page $dynamicCategory): void
+	{
+		/** @var \Admin\Controls\AdminForm $form */
+		$form = $this->getComponent('dynamicCategoryForm');
+
+		$parameters = \array_filter($dynamicCategory->getParsedParameters(), function ($value) {
+			return $value !== '' && $value !== null;
+		});
+
+		$form['parameters']->setDefaults($parameters);
+	}
+
+	public function renderDynamicCategoryDetail(): void
+	{
+		$this->template->headerLabel = 'Dynamické kategorie';
+		$this->template->headerTree = [
+			['Kategorie', 'default'],
+			['Dynamické', 'default'],
+			['Detail'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('dynamicCategoryForm')];
+	}
+
+	public function createComponentDynamicCategoriesGrid(): AdminGrid
+	{
+		$collection = $this->pageRepository->many()->where('type', 'product_list')
+			->where("params != ''")
+			->where("params REGEXP '^(category|producer|attributeValue|tag)={1}[A-Za-z0-9]+&{1}$' = 0");
+
+		$grid = $this->gridFactory->create($collection, 20, 'title', 'ASC', true);
+		$grid->addColumnSelector();
+
+		$grid->addColumnText('Titulek', 'title', '%s', 'title');
+		$grid->addColumn('URL', function (Page $page) {
+			$url = $this->getHttpRequest()->getUrl()->getBaseUrl() . $page->url;
+
+			return [$url, $url];
+		}, "<a href='%s' target=_blank>%s</a>");
+
+		$grid->addColumnInputCheckbox('<i title="Offline" class="far fa-eye-slash"></i>', 'isOffline', '', '', 'isOffline');
+
+		$grid->addColumnLinkDetail('dynamicCategoryDetail');
+		$grid->addColumnActionDeleteSystemic();
+
+		$grid->addButtonSaveAll();
+		$grid->addButtonDeleteSelected(null, false, function ($object) {
+			if ($object) {
+				return !$object->isSystemic();
+			}
+
+			return false;
+		});
+
+		$grid->addButtonBulkEdit('dynamicCategoryDetail', ['isOffline'], 'dynamicCategoriesGrid');
+
+		$grid->addFilterTextInput('search', ['title_cs', 'url'], null, 'Název, URL');
+		$grid->addFilterButtons();
+
+		$grid->onDelete[] = function (CategoryType $object): void {
+			$this->categoryRepository->clearCategoriesCache();
+		};
+
+		return $grid;
+	}
+
+	public function createComponentDynamicCategoryForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+
+		/** @var \Web\DB\Page|null $dynamicCategory */
+		$dynamicCategory = $this->getParameter('dynamicCategory');
+
+		$form->addPageContainer('product_list', $dynamicCategory ? $dynamicCategory->getParsedParameters() : ['category' => null], null, false, true, true, 'URL a SEO', false, true);
+		$form->addGroup('Parametry');
+		$parametersContainer = $form->addContainer('parameters');
+
+		$parametersContainer->addSelect2('category', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('Nepřiřazeno');
+		$parametersContainer->addSelect2('producer', 'Výrobce', $this->producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
+		$parametersContainer->addSelect2Ajax('attributeValue', $this->link('getAttributeValues!'), 'Hodnota atributu', [], 'Nepřiřazeno')->setPrompt('Nepřiřazeno');
+
+		$form->addSubmits(!$dynamicCategory);
+
+		$form->onValidate[] = function (AdminForm $form) use ($dynamicCategory): void {
+			if ($form->isValid() === false) {
+				return;
+			}
+
+			$values = $form->getValues('array');
+
+			$values['page']['params'] = \array_filter($values['parameters'], function ($value) {
+				return $value !== '' && $value !== null;
+			});
+
+			if (\count($values['page']['params']) < 2) {
+				$form->addError('Je nutné vyplnit alespoň 2 parametry!');
+
+				return;
+			}
+
+			/** @var \Web\DB\Page|null $page */
+			$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, $values['page']['params']);
+
+			if ($page === null || ($dynamicCategory !== null && $dynamicCategory->getPK() === $page->getPK())) {
+				return;
+			}
+
+			$form->addError('Stránka s danými parametry již existuje!');
+		};
+
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			$values = $form->getValues('array');
+
+			$values['page']['type'] = 'product_list';
+
+			$page = $this->pageRepository->syncPage($values['page'], \array_filter($values['parameters'], function ($value) {
+				return $value !== '' && $value !== null;
+			}));
+
+			$this->flashMessage('Uloženo', 'success');
+			$form->processRedirect('dynamicCategoryDetail', 'default', [$page]);
+		};
+
+		return $form;
 	}
 }

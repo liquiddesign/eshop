@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Eshop;
 
+use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
@@ -14,6 +15,9 @@ class BackendPresenter extends \Admin\BackendPresenter
 
 	/** @inject */
 	public CategoryRepository $categoryRepository;
+
+	/** @inject */
+	public AttributeValueRepository $attributeValueRepository;
 
 	public function handleGetProductsForSelect2(?string $q = null, ?int $page = null): void
 	{
@@ -83,6 +87,21 @@ class BackendPresenter extends \Admin\BackendPresenter
 		}
 
 		$this->payload->results = $payload;
+		$this->sendPayload();
+	}
+
+	public function handleGetAttributeValues(?string $q = null, ?int $page = null): void
+	{
+		if (!$q) {
+			$this->payload->result = [];
+			$this->sendPayload();
+		}
+
+		$payload = $this->attributeValueRepository->getAttributesForAdminAjax($q, $page);
+
+		$this->payload->results = $payload['results'];
+		$this->payload->pagination = $payload['pagination'];
+
 		$this->sendPayload();
 	}
 }
