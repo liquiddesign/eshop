@@ -3,20 +3,22 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\Admin\Controls\AccountFormFactory;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
-use Admin\Admin\Controls\AccountFormFactory;
+use Admin\Controls\AdminGrid;
+use Eshop\DB\AddressRepository;
 use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CurrencyRepository;
-use Eshop\DB\DeliveryTypeRepository;
-use Eshop\DB\PaymentTypeRepository;
-use Eshop\DB\PricelistRepository;
-use Eshop\DB\ProductRepository;
-use Eshop\DB\AddressRepository;
 use Eshop\DB\Customer;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
+use Eshop\DB\DeliveryTypeRepository;
+use Eshop\DB\LoyaltyProgramRepository;
 use Eshop\DB\MerchantRepository;
+use Eshop\DB\PaymentTypeRepository;
+use Eshop\DB\PricelistRepository;
+use Eshop\DB\ProductRepository;
 use Eshop\Shopper;
 use Forms\Form;
 use Grid\Datagrid;
@@ -33,6 +35,11 @@ use StORM\ICollection;
 
 class CustomerPresenter extends BackendPresenter
 {
+	public const TABS = [
+		'customers' => 'Zákazníci',
+		'accounts' => 'Účty',
+	];
+
 	protected const CONFIGURATIONS = [
 		'labels' => [
 			'merchants' => 'Obchodníci',
@@ -45,8 +52,12 @@ class CustomerPresenter extends BackendPresenter
 		'sendEmailAccountActivated' => false,
 		'prices' => true,
 		'discountLevel' => true,
-		'rounding' => true
+		'rounding' => true,
+		'loyaltyProgram' => false,
 	];
+
+	/** @persistent */
+	public string $tab = 'customers';
 
 	/** @inject */
 	public AccountFormFactory $accountFormFactory;
@@ -96,17 +107,12 @@ class CustomerPresenter extends BackendPresenter
 	/** @inject */
 	public Shopper $shopper;
 
-	public const TABS = [
-		'customers' => 'Zákazníci',
-		'accounts' => 'Účty',
-	];
+	/** @inject */
+	public LoyaltyProgramRepository $loyaltyProgramRepository;
 
-	/** @persistent */
-	public string $tab = 'customers';
-
-	public function createComponentCustomers()
+	public function createComponentCustomers(): AdminGrid
 	{
-		$lableMerchants = static::CONFIGURATIONS['labels']['merchants'];
+		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
 
 		$grid = $this->gridFactory->create($this->customerRepository->many(), 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
@@ -169,6 +175,12 @@ class CustomerPresenter extends BackendPresenter
 				$source->join(['pricelistNxN' => 'eshop_customer_nxn_eshop_pricelist'], 'this.uuid = pricelistNxN.fk_customer');
 				$source->where('pricelistNxN.fk_pricelist', $value);
 			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
+		}
+
+		if ($loyaltyPrograms = $this->loyaltyProgramRepository->getArrayForSelect()) {
+			$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+				$source->where('this.fk_loyaltyProgram', $value);
+			}, '', 'loyaltyPrograms', 'Věrnostní program', $loyaltyPrograms)->setPrompt('- Věrnostní program -');
 		}
 
 		$grid->addFilterButtons();
@@ -287,16 +299,18 @@ class CustomerPresenter extends BackendPresenter
 
 		$customersForSelect = $this->customerRepository->getArrayForSelect();
 
+		/** @var \Eshop\DB\Customer $customer */
 		if ($customer = $this->getParameter('customer')) {
 			unset($customersForSelect[$customer->getPK()]);
 		}
 
 		$form->addDataMultiSelect('merchants', $lableMerchants, $this->merchantRepository->getArrayForSelect());
-		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, static::CONFIGURATIONS['showUnregisteredGroup']))->setPrompt('Žádná');
+		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']))
+			->setPrompt('Žádná');
 
 		$form->addGroup('Nákup a preference');
 
-		if (static::CONFIGURATIONS['branches']) {
+		if (isset($this::CONFIGURATIONS['branches']) && $this::CONFIGURATIONS['branches']) {
 			$form->addDataSelect('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->setPrompt('Žádná');
 			$form->addSelect('orderPermission', 'Objednání', [
 				'fullWithApproval' => 'Pouze se schválením',
@@ -304,10 +318,11 @@ class CustomerPresenter extends BackendPresenter
 			])->setDefaultValue('full');
 		}
 
-		$form->addDataSelect('preferredMutation', 'Preferovaný jazyk', \array_combine($this->formFactory->formFactory->getDefaultMutations(), $this->formFactory->formFactory->getDefaultMutations()))->setPrompt('Automaticky');
+		$form->addDataSelect('preferredMutation', 'Preferovaný jazyk', \array_combine($this->formFactory->formFactory->getDefaultMutations(), $this->formFactory->formFactory->getDefaultMutations()))
+			->setPrompt('Automaticky');
 		$form->addDataSelect('preferredCurrency', 'Preferovaná měna nákupu', $this->currencyRepo->getArrayForSelect())->setPrompt('Žádný');
 
-		if (static::CONFIGURATIONS['deliveryPayment']) {
+		if (isset($this::CONFIGURATIONS['deliveryPayment']) && $this::CONFIGURATIONS['deliveryPayment']) {
 			$form->addDataSelect('preferredPaymentType', 'Preferovaná platba', $this->paymentTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
 			$form->addDataSelect('preferredDeliveryType', 'Preferovaná doprava', $this->deliveryTypeRepo->many()->toArrayOf('code'))->setPrompt('Žádná');
 			$form->addDataMultiSelect('exclusivePaymentTypes', 'Povolené exkluzivní platby', $this->paymentTypeRepo->many()->toArrayOf('code'))
@@ -316,18 +331,26 @@ class CustomerPresenter extends BackendPresenter
 				->setHtmlAttribute('placeholder', 'Vyberte položky...');
 		}
 
-		if (isset(static::CONFIGURATIONS['discountLevel']) && static::CONFIGURATIONS['discountLevel']) {
+		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
+			$form->addSelect2('loyaltyProgram', 'Věrnostní program', $this->loyaltyProgramRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
+
+			if ($customer->getValue('loyaltyProgram')) {
+				$form->addText('loyaltyProgramPoints', 'Stav věrnostního konta')->setDisabled()->setDefaultValue((string)$customer->getLoyaltyProgramPoints());
+			}
+		}
+
+		if (isset($this::CONFIGURATIONS['discountLevel']) && $this::CONFIGURATIONS['discountLevel']) {
 			$form->addInteger('discountLevelPct', 'Slevová hladina (%)')->setDefaultValue(0)->setRequired();
 		}
 
-		if (isset(static::CONFIGURATIONS['rounding']) && static::CONFIGURATIONS['rounding']) {
+		if (isset($this::CONFIGURATIONS['rounding']) && $this::CONFIGURATIONS['rounding']) {
 			$form->addText('productRoundingPct', 'Zokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
 		}
 
 		$form->addGroup('Exporty');
 		$form->addCheckbox('allowExport', 'Feed povolen');
 
-		if (static::CONFIGURATIONS['edi']) {
+		if ($this::CONFIGURATIONS['edi']) {
 			$form->addText('ediCompany', 'EDI: Identifikátor firmy')
 				->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
 			$form->addText('ediBranch', 'EDI: Identifikátor pobočky')

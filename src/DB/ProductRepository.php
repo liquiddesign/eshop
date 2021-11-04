@@ -8,6 +8,7 @@ use Common\DB\IGeneralRepository;
 use Eshop\Shopper;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
+use Nette\Utils\DateTime;
 use Pages\Pages;
 use Security\DB\Account;
 use StORM\Collection;
@@ -40,8 +41,24 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	private DeliveryDiscountRepository $deliveryDiscountRepository;
 
-	public function __construct(Shopper $shopper, DIConnection $connection, SchemaManager $schemaManager, AttributeRepository $attributeRepository, SetRepository $setRepository, Pages $pages, PageRepository $pageRepository, PriceRepository $priceRepository, AmountRepository $amountRepository, DeliveryDiscountRepository $deliveryDiscountRepository)
-	{
+	private LoyaltyProgramDiscountLevelRepository $loyaltyProgramDiscountLevelRepository;
+
+	private OrderRepository $orderRepository;
+
+	public function __construct(
+		Shopper $shopper,
+		DIConnection $connection,
+		SchemaManager $schemaManager,
+		AttributeRepository $attributeRepository,
+		SetRepository $setRepository,
+		Pages $pages,
+		PageRepository $pageRepository,
+		PriceRepository $priceRepository,
+		AmountRepository $amountRepository,
+		DeliveryDiscountRepository $deliveryDiscountRepository,
+		LoyaltyProgramDiscountLevelRepository $loyaltyProgramDiscountLevelRepository,
+		OrderRepository $orderRepository
+	) {
 		parent::__construct($connection, $schemaManager);
 
 		$this->shopper = $shopper;
@@ -52,11 +69,37 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$this->priceRepository = $priceRepository;
 		$this->amountRepository = $amountRepository;
 		$this->deliveryDiscountRepository = $deliveryDiscountRepository;
+		$this->loyaltyProgramDiscountLevelRepository = $loyaltyProgramDiscountLevelRepository;
+		$this->orderRepository = $orderRepository;
 	}
 
 	public function getProduct(string $productUuid): Product
 	{
 		return $this->getProducts()->where('this.uuid', $productUuid)->first(true);
+	}
+
+	public function getBestDiscountLevel(Customer $customer): int
+	{
+		$loyaltyProgram = $customer->loyaltyProgram;
+
+		if ($loyaltyProgram === null || $loyaltyProgram->isActive() === false) {
+			return $customer->discountLevelPct;
+		}
+
+		$customerTurnover = $this->orderRepository->getCustomerTotalTurnover($customer, $loyaltyProgram->turnoverFrom ? new DateTime($loyaltyProgram->turnoverFrom) : null, new DateTime());
+
+		$maxDiscountLevel = 0;
+
+		/** @var \Eshop\DB\LoyaltyProgramDiscountLevel[] $discountLevels */
+		$discountLevels = $this->loyaltyProgramDiscountLevelRepository->many()
+			->where('this.fk_loyaltyProgram', $loyaltyProgram)
+			->where('this.priceThreshold <= :turnover', ['turnover' => (string)$customerTurnover]);
+
+		foreach ($discountLevels as $discountLevel) {
+			$maxDiscountLevel = $discountLevel->discountLevel > $maxDiscountLevel ? $discountLevel->discountLevel : $maxDiscountLevel;
+		}
+
+		return $maxDiscountLevel > $customer->discountLevelPct ? $maxDiscountLevel : $customer->discountLevelPct;
 	}
 
 	/**
@@ -75,7 +118,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists($currency->isConversionEnabled() ? $currency->convertCurrency : null)->toArray());
 		$customer ??= $this->shopper->getCustomer();
-		$discountLevelPct = $customer ? $customer->discountLevelPct : 0;
+		$discountLevelPct = $customer ? $this->getBestDiscountLevel($customer) : 0;
 		$vatRates = $this->shopper->getVatRates();
 		$prec = $currency->calculationPrecision;
 
@@ -893,7 +936,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$pricelists = \implode(',', \array_map(function ($value) {
 				return "'$value'";
 			}, $generalPricelistIds));
-			$expression = "IF($alias.fk_pricelist IN ($pricelists), ROUND($expression * ((100 - IF(this.discountLevelPct < $levelDiscountPct,this.discountLevelPct,$levelDiscountPct)) / 100),$prec), $expression)";
+			$expression = "IF($alias.fk_pricelist IN ($pricelists), ROUND($expression * ((100 - IF(this.discountLevelPct > $levelDiscountPct,this.discountLevelPct,$levelDiscountPct)) / 100),$prec), $expression)";
 		}
 
 		return $expression;

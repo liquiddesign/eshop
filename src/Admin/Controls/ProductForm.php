@@ -12,6 +12,8 @@ use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\InternalRibbonRepository;
+use Eshop\DB\LoyaltyProgramProductRepository;
+use Eshop\DB\LoyaltyProgramRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
@@ -30,7 +32,6 @@ use Forms\Form;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\DI\Container;
-use Nette\Forms\Form as FormAlias;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use StORM\ICollection;
@@ -71,6 +72,10 @@ class ProductForm extends Control
 
 	private CategoryTypeRepository $categoryTypeRepository;
 
+	private LoyaltyProgramRepository $loyaltyProgramRepository;
+
+	private LoyaltyProgramProductRepository $loyaltyProgramProductRepository;
+
 	private array $configuration;
 
 	public function __construct(
@@ -95,6 +100,8 @@ class ProductForm extends Control
 		Shopper $shopper,
 		IProductSetFormFactory $productSetFormFactory,
 		CategoryTypeRepository $categoryTypeRepository,
+		LoyaltyProgramRepository $loyaltyProgramRepository,
+		LoyaltyProgramProductRepository $loyaltyProgramProductRepository,
 		$product = null,
 		array $configuration = []
 	) {
@@ -114,6 +121,8 @@ class ProductForm extends Control
 		$this->vatRateRepository = $vatRateRepository;
 		$this->productSetFormFactory = $productSetFormFactory;
 		$this->categoryTypeRepository = $categoryTypeRepository;
+		$this->loyaltyProgramRepository = $loyaltyProgramRepository;
+		$this->loyaltyProgramProductRepository = $loyaltyProgramProductRepository;
 
 		$form = $adminFormFactory->create(true);
 
@@ -230,6 +239,26 @@ class ProductForm extends Control
 					'placeholder' => 'Zvolte produkty',
 				])->checkDefaultValue(false);
 			});
+		}
+
+		if (isset($configuration['loyaltyProgram']) && $configuration['loyaltyProgram']) {
+			$loyaltyProgramContainer = $form->addContainer('loyaltyProgram');
+
+			if ($this->product !== null) {
+				$productLoyaltyPrograms = $this->loyaltyProgramProductRepository->many()->setIndex('fk_loyaltyProgram')->where('fk_product', $this->product->getPK())->toArrayOf('points');
+			}
+
+			/** @var \Eshop\DB\LoyaltyProgram $loyaltyProgram */
+			foreach ($this->loyaltyProgramRepository->many() as $loyaltyProgram) {
+				$input = $loyaltyProgramContainer->addText($loyaltyProgram->getPK(), $loyaltyProgram->name)->setNullable();
+				$input->addCondition($form::FILLED)->addRule($form::FLOAT)->endCondition();
+
+				if (!isset($productLoyaltyPrograms[$loyaltyProgram->getPK()])) {
+					continue;
+				}
+
+				$input->setDefaultValue($productLoyaltyPrograms[$loyaltyProgram->getPK()]);
+			}
 		}
 
 		if ($configuration['taxes']) {
@@ -414,6 +443,20 @@ class ProductForm extends Control
 					$newCategories[] = $category;
 				}
 			}
+		}
+
+		$this->loyaltyProgramProductRepository->many()->where('fk_product', $values['uuid'])->delete();
+
+		foreach (Arrays::pick($values, 'loyaltyProgram', []) as $loyaltyProgram => $points) {
+			if ($points === null) {
+				continue;
+			}
+
+			$this->loyaltyProgramProductRepository->createOne([
+				'points' => $points,
+				'product' => $values['uuid'],
+				'loyaltyProgram' => $loyaltyProgram,
+			]);
 		}
 
 		$values['categories'] = $newCategories;

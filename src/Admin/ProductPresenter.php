@@ -90,12 +90,12 @@ class ProductPresenter extends BackendPresenter
 			'producer' => 'Výrobce',
 			'content' => 'Obsah',
 			'storeAmount' => 'Skladová dostupnost',
-			'categories' => 'Kategorie'
+			'categories' => 'Kategorie',
 		],
 		'exportAttributes' => [],
 		'defaultExportColumns' => [
 			'code',
-			'name'
+			'name',
 		],
 		'defaultExportAttributes' => [],
 		'importColumns' => [
@@ -110,13 +110,14 @@ class ProductPresenter extends BackendPresenter
 			'producer' => 'Výrobce',
 			'content' => 'Obsah',
 			'storeAmount' => 'Skladová dostupnost',
-			'categories' => 'Kategorie'
+			'categories' => 'Kategorie',
 		],
 		'importAttributes' => [],
 		'importExampleFile' => null,
 		'importSetExampleFile' => null,
 		'buyCount' => false,
-		'attributeTab' => false
+		'attributeTab' => false,
+		'loyaltyProgram' => false,
 	];
 
 	protected const IMPORT_SET_COLUMNS = [
@@ -126,7 +127,7 @@ class ProductPresenter extends BackendPresenter
 		'productEan' => 'EAN produktu',
 		'amount' => 'Množství',
 		'discountPct' => 'Sleva',
-		'priority' => 'Priorita'
+		'priority' => 'Priorita',
 	];
 
 	protected const DEFAULT_TEMPLATE = __DIR__ . '/../../_data/newsletterTemplates/newsletter.latte';

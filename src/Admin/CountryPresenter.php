@@ -71,6 +71,9 @@ class CountryPresenter extends BackendPresenter
 			->setDefaultValue(1)
 			->setRequired()
 			->setHtmlAttribute('data-info', 'Např.: pokud bude nastaveno na 5 tak první objednávka bude mít kód #X202100005.');
+
+		$form->addCheckbox('cashback', 'Cashback')->setHtmlAttribute('data-info', 'Měna může být použitá pro věrnostní programy.');
+
 		$form->addSubmits();
 
 		$form->onSuccess[] = function (AdminForm $form) {

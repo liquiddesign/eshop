@@ -77,8 +77,14 @@ class Currency extends \StORM\Entity
 	 * @column
 	 */
 	public bool $enableConversion = false;
+
+	/**
+	 * Cashback měna
+	 * @column
+	 */
+	public bool $cashback = false;
 	
-	public function isConversionEnabled()
+	public function isConversionEnabled(): bool
 	{
 		return $this->enableConversion && $this->convertCurrency && $this->convertRatio;
 	}

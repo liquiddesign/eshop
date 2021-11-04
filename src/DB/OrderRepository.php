@@ -37,6 +37,8 @@ class OrderRepository extends \StORM\Repository
 
 	private PackageItemRepository $packageItemRepository;
 
+	private CurrencyRepository $currencyRepository;
+
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
@@ -46,7 +48,8 @@ class OrderRepository extends \StORM\Repository
 		MerchantRepository $merchantRepository,
 		CatalogPermissionRepository $catalogPermissionRepository,
 		PackageRepository $packageRepository,
-		PackageItemRepository $packageItemRepository
+		PackageItemRepository $packageItemRepository,
+		CurrencyRepository $currencyRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -57,6 +60,7 @@ class OrderRepository extends \StORM\Repository
 		$this->catalogPermissionRepository = $catalogPermissionRepository;
 		$this->packageRepository = $packageRepository;
 		$this->packageItemRepository = $packageItemRepository;
+		$this->currencyRepository = $currencyRepository;
 	}
 
 	/**
@@ -423,6 +427,33 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		return $string;
+	}
+
+	public function getCustomerTotalTurnover(Customer $customer, ?DateTime $from = null, ?DateTime $to = null): float
+	{
+		$from ??= new DateTime('1970-01-01');
+		$to ??= new DateTime();
+
+		$orders = $this->getOrdersByUserInRange($customer, $from, $to);
+
+		$total = 0.0;
+
+		$vat = false;
+
+		if ($this->shopper->getShowPrice() === 'withVat') {
+			$vat = true;
+		}
+
+		/** @var \Eshop\DB\Order $order */
+		while ($order = $orders->fetch()) {
+			$price = $vat ? $order->getTotalPriceVat() : $order->getTotalPrice();
+
+			$currency = $order->purchase->currency;
+
+			$total += $currency->isConversionEnabled() ? \round($price * $currency->convertRatio, $currency->calculationPrecision) : $price;
+		}
+
+		return $total;
 	}
 
 	/**

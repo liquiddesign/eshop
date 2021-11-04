@@ -30,11 +30,6 @@ class Discount extends \StORM\Entity
 	 */
 	public ?string $validTo;
 	
-	public function isActive()
-	{
-		return ($this->validFrom === null || \strtotime($this->validFrom) <= \time()) && ($this->validTo === null || \strtotime($this->validTo) >= \time());
-	}
-	
 	/**
 	 * Doporučeno
 	 * @column
@@ -75,4 +70,9 @@ class Discount extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Ribbon>|\Eshop\DB\Ribbon[]
 	 */
 	public RelationCollection $ribbons;
+
+	public function isActive(): bool
+	{
+		return ($this->validFrom === null || \strtotime($this->validFrom) <= \time()) && ($this->validTo === null || \strtotime($this->validTo) >= \time());
+	}
 }

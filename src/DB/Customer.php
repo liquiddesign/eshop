@@ -225,6 +225,13 @@ class Customer extends Entity implements IIdentity, IUser
 	 * @column
 	 */
 	public ?string $customField1;
+
+	/**
+	 * Věrnostní program
+	 * @relation
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 */
+	public ?LoyaltyProgram $loyaltyProgram = null;
 	
 	/**
 	 * Vytvořen
@@ -297,5 +304,16 @@ class Customer extends Entity implements IIdentity, IUser
 	public function getPreferredMutation(): ?string
 	{
 		return $this->account && $this->account->getPreferredMutation() ? $this->account->getPreferredMutation() : $this->preferredMutation;
+	}
+
+	public function getLoyaltyProgramPoints(): ?float
+	{
+		if ($this->loyaltyProgram === null) {
+			return null;
+		}
+
+		$points = $this->loyaltyProgram->histories->match(['fk_customer' => $this->getPK()])->select(['totalPoints' => 'SUM(points)'])->first();
+
+		return $points ? \floatval($points->totalPoints) : 0;
 	}
 }

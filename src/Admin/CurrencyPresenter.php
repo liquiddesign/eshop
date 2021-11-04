@@ -6,16 +6,21 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\Currency;
 use Eshop\DB\CurrencyRepository;
 use Forms\Form;
 
 class CurrencyPresenter extends BackendPresenter
 {
+	protected const CONFIGURATIONS = [
+		'loyaltyProgram' => false,
+	];
+
 	/** @inject */
 	public CurrencyRepository $currencyRepository;
 
-	public function createComponentGrid()
+	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->currencyRepository->many(), 20, 'code', 'ASC', true);
 
@@ -45,7 +50,7 @@ class CurrencyPresenter extends BackendPresenter
 		$form->addText('formatThousandsSeparator', 'Oddělovač tisícovek')->setMaxLength(1);
 		$form->addSelect('formatSymbolPosition', 'Pozice symbolu', [
 			'before' => 'Před',
-			'after' => 'Za'
+			'after' => 'Za',
 		]);
 		$form->addGroup('Přepočet');
 		$form->addText('convertRatio', 'Kurz')->setHtmlAttribute('data-info', 'Zádávejte násobitel. Např. CZK -> EUR = 0.04')
@@ -63,6 +68,10 @@ class CurrencyPresenter extends BackendPresenter
 			->setRequired()
 			->setHtmlAttribute('data-info', 'Počet desetiných míst, např. při výpočtu slev');
 		$form->addCheckbox('enableConversion', 'Konverze')->setHtmlAttribute('data-info', 'Nebudou fungovat ceníky a zvolí se přepočet');
+
+		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
+			$form->addCheckbox('cashback', 'Cashback měna')->setHtmlAttribute('data-info', 'Měna může být použita pro věrnostní program.');
+		}
 
 		$form->addSubmits();
 

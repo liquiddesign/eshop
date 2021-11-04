@@ -101,7 +101,7 @@ class PickupPointRepository extends \StORM\Repository implements IGeneralReposit
 
 	}
 
-	public function clearCache(?string $name = 'pickupPoints')
+	public function clearCache(?string $name = 'pickupPoints'): void
 	{
 		$this->cache->clean([
 			Cache::TAGS => [$name],

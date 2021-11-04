@@ -8,13 +8,13 @@ use Eshop\DB\Country;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\Currency;
 use Eshop\DB\CurrencyRepository;
-use Eshop\DB\MinimalOrderValueRepository;
-use Eshop\DB\PricelistRepository;
 use Eshop\DB\Customer;
 use Eshop\DB\CustomerGroup;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
+use Eshop\DB\MinimalOrderValueRepository;
+use Eshop\DB\PricelistRepository;
 use Nette\Application\UI\Template;
 use Nette\Security\User;
 use Security\DB\Account;
@@ -400,6 +400,23 @@ class Shopper
 		}
 		
 		return $customer ? $catalogPerm->priorityPrice : $this->customerGroupRepository->getUnregisteredGroup()->defaultPriorityPrice;
+	}
+
+	public function getShowPrice(): ?string
+	{
+		if ($this->showPricesWithoutVat() && $this->showPricesWithVat()) {
+			return $this->showPriorityPrices();
+		}
+
+		if ($this->showPricesWithoutVat()) {
+			return 'withoutVat';
+		}
+
+		if ($this->showPricesWithVat()) {
+			return 'withVat';
+		}
+
+		return null;
 	}
 	
 	/**

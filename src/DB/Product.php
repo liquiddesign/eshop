@@ -409,6 +409,13 @@ class Product extends \StORM\Entity
 	public RelationCollection $upsells;
 
 	/**
+	 * Věrnostní programy
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\LoyaltyProgramProduct>|\Eshop\DB\LoyaltyProgramProduct[]
+	 */
+	public RelationCollection $loyaltyPrograms;
+
+	/**
 	 * @return \Eshop\DB\Ribbon[]
 	 */
 	public function getImageRibbons(): array
@@ -611,9 +618,18 @@ class Product extends \StORM\Entity
 		if ($displayDelivery->timeThreshold === null) {
 			return $displayDelivery->label;
 		}
-		
+
 		$nowThresholdTime = DateTime::createFromFormat('G:i', $displayDelivery->timeThreshold);
 
 		return $nowThresholdTime > (new DateTime()) ? $displayDelivery->beforeTimeThresholdLabel : $displayDelivery->afterTimeThresholdLabel;
+	}
+
+	public function getLoyaltyProgramPointsGain(LoyaltyProgram $loyaltyProgram): float
+	{
+		if ($loyaltyProduct = $this->loyaltyPrograms->match(['fk_loyaltyProgram' => $loyaltyProgram->getPK()])->first()) {
+			return $loyaltyProduct->points;
+		}
+
+		return 0;
 	}
 }

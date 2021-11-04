@@ -534,6 +534,27 @@
                         </tr>
                     {/if}
                 </table>
+
+                {ifset $form['loyaltyProgram']}
+                    <legend>Věrnostní programy</legend>
+                    <span class="text-gray text-sm">Zadejte zisk "bodů" při nákupu pro jednotlivé věrnostní programy.</span>
+
+                    <table class="mt-2 mb-1" style="width: auto;">
+                        {formContainer loyaltyProgram}
+                            {foreach $form['loyaltyProgram']->getControls() as $input}
+                                <tr class="m-0 mt-1 has-danger">
+                                    <th class="col-label col-form-label col">{label $input->getName()/}</th>
+
+                                    <td class="align-middle">
+                                        {input $input->getName()  class => 'form-control form-control-sm col-label'}
+                                        <span id="data-info" class="text-gray text-sm"></span>
+                                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError $input->getName()}</span>
+                                    </td>
+                                </tr>
+                            {/foreach}
+                        {/formContainer}
+                    </table>
+                {/ifset}
             </fieldset>
             <fieldset>
                 <table class="mt-1 mb-1">

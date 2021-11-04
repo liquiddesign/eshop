@@ -122,7 +122,7 @@ class CategoryPresenter extends BackendPresenter
 
 		$grid->addButtonBulkEdit('categoryForm', ['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
 
-		if (isset(self::CONFIGURATION['producerPagesType']) && self::CONFIGURATION['producerPagesType'] === self::PRODUCER_CATEGORY) {
+		if (isset($this::CONFIGURATION['producerPagesType']) && $this::CONFIGURATION['producerPagesType'] === $this::PRODUCER_CATEGORY) {
 			$submit = $grid->getForm()->addSubmit('generateProducerCategories', 'Generovat kategorie výrobců')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
 			$submit->onClick[] = function ($button) use ($grid): void {
@@ -203,7 +203,7 @@ class CategoryPresenter extends BackendPresenter
 				$this->createNewItemButton('categoryNew'),
 			];
 
-			if (isset(self::CONFIGURATION['producerPagesType']) && self::CONFIGURATION['producerPagesType'] === self::PRODUCER_PAGES) {
+			if (isset($this::CONFIGURATION['producerPagesType']) && $this::CONFIGURATION['producerPagesType'] === $this::PRODUCER_PAGES) {
 				$this->template->displayButtons[] = $this->createButtonWithClass(
 					'generateCategoryProducerPages!',
 					'<i class="fa fa-sync"></i>  Generovat stránky výrobců',
@@ -433,10 +433,15 @@ class CategoryPresenter extends BackendPresenter
 		});
 
 		if (isset($parameters['attributeValue'])) {
-			/** @var \Eshop\DB\AttributeValue $attributeValue */
-			$attributeValue = $this->attributeValueRepository->one($parameters['attributeValue']);
+			foreach (\explode(';', $parameters['attributeValue']) as $attributeValue) {
+				/** @var \Eshop\DB\AttributeValue $attributeValue */
+				$attributeValue = $this->attributeValueRepository->one($attributeValue);
 
-			$this->template->select2AjaxDefaults[$form['parameters']['attributeValue']->getHtmlId()] = [$parameters['attributeValue'] => ($attributeValue->attribute->name ?? $attributeValue->attribute->code) . ' - ' . ($attributeValue->label ?? $attributeValue->code)];
+				$this->template->select2AjaxDefaults[$form['parameters']['attributeValue']->getHtmlId()][$attributeValue->getPK()] =
+					($attributeValue->attribute->name ?? $attributeValue->attribute->code) .
+					' - ' .
+					($attributeValue->label ?? $attributeValue->code);
+			}
 		}
 
 		$form['parameters']->setDefaults($parameters);
@@ -463,7 +468,7 @@ class CategoryPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($collection, 20, 'title', 'ASC', true);
 		$grid->addColumnSelector();
 
-		$grid->addColumnText('Titulek', 'title', '%s', 'title');
+		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumn('URL', function (Page $page) {
 			$url = $this->getHttpRequest()->getUrl()->getBaseUrl() . $page->url;
 
@@ -503,14 +508,19 @@ class CategoryPresenter extends BackendPresenter
 		/** @var \Web\DB\Page|null $dynamicCategory */
 		$dynamicCategory = $this->getParameter('dynamicCategory');
 
-		$form->addPageContainer('product_list', $dynamicCategory ? $dynamicCategory->getParsedParameters() : ['category' => null], null, false, true, true, 'URL a SEO', false, true);
+		$form->addLocaleText('name', 'Název');
+		$form->addLocaleRichEdit('content', 'Obsah');
+
+		$form->addPageContainer('product_list', $dynamicCategory ? $dynamicCategory->getParsedParameters() : ['category' => null], null, false, true, false, 'URL a SEO', false, true);
 		$form->addGroup('Parametry');
 		$parametersContainer = $form->addContainer('parameters');
 
 		$parametersContainer->addSelect2('category', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('Nepřiřazeno');
 		$parametersContainer->addSelect2('producer', 'Výrobce', $this->producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
-		$parametersContainer->addSelect2Ajax('attributeValue', $this->link('getAttributeValues!'), 'Hodnota atributu', [], 'Nepřiřazeno')->setPrompt('Nepřiřazeno');
-		$parametersContainer->addText('priceFrom', 'Cena od')->addRule($form::FLOAT);
+		$parametersContainer->addMultiSelect2Ajax('attributeValue', $this->link('getAttributeValues!'), 'Hodnoty atributu', [], 'Nepřiřazeno');
+		$parametersContainer->addText('priceFrom', 'Cena od')->addCondition($form::FILLED)->addRule($form::FLOAT);
+		$parametersContainer->addText('priceTo', 'Cena do')->addCondition($form::FILLED)->addRule($form::FLOAT);
+		$parametersContainer->addText('query', 'Query');
 
 		$form->addSubmits(!$dynamicCategory);
 
@@ -522,7 +532,7 @@ class CategoryPresenter extends BackendPresenter
 			$values = $form->getValues('array');
 			$rawValues = $this->getHttpRequest()->getPost();
 
-			$values['parameters']['attributeValue'] = $rawValues['parameters']['attributeValue'] ?? null;
+			$values['parameters']['attributeValue'] = isset($rawValues['parameters']['attributeValue']) ? \implode(';', $rawValues['parameters']['attributeValue']) : null;
 
 			$values['page']['params'] = \array_filter($values['parameters'], function ($value) {
 				return $value !== '' && $value !== null;
@@ -549,7 +559,7 @@ class CategoryPresenter extends BackendPresenter
 			$values = $form->getValues('array');
 			$rawValues = $this->getHttpRequest()->getPost();
 
-			$values['parameters']['attributeValue'] = $rawValues['parameters']['attributeValue'] ?? null;
+			$values['parameters']['attributeValue'] = isset($rawValues['parameters']['attributeValue']) ? \implode(';', $rawValues['parameters']['attributeValue']) : null;
 
 			$values['page']['type'] = 'product_list';
 
