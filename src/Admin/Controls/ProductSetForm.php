@@ -1,8 +1,6 @@
 <?php
 
-
 namespace Eshop\Admin\Controls;
-
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
@@ -11,7 +9,6 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\RelatedRepository;
-use Eshop\DB\Set;
 use Eshop\DB\SetRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
@@ -27,6 +24,8 @@ use Web\DB\PageRepository;
 
 class ProductSetForm extends Control
 {
+	public array $sets = [];
+
 	private ProductRepository $productRepository;
 
 	private Container $container;
@@ -57,8 +56,6 @@ class ProductSetForm extends Control
 
 	private Request $request;
 
-	public array $sets = [];
-
 	public function __construct(
 		Container $container,
 		AdminFormFactory $adminFormFactory,
@@ -75,8 +72,7 @@ class ProductSetForm extends Control
 		Shopper $shopper,
 		Request $request,
 		Product $product
-	)
-	{
+	) {
 		$this->product = $product;
 		$this->productRepository = $productRepository;
 		$this->container = $container;
@@ -92,7 +88,7 @@ class ProductSetForm extends Control
 		$this->shopper = $shopper;
 		$this->vatRateRepository = $vatRateRepository;
 		$this->request = $request;
-		bdump('constructor');
+		\bdump('constructor');
 
 		$form = $this->adminFormFactory->create();
 
@@ -101,15 +97,16 @@ class ProductSetForm extends Control
 
 		$form->addSubmit('submitSet');
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $this->request->getPost();
-			bdump($values, 'success');
+			\bdump($values, 'success');
 
 			$this->product->update(['productsSet' => true]);
 			$this->setRepository->many()->where('fk_set', $this->product->getPK())->delete();
 
 			if (isset($values['newRow']['product'])) {
 				$newItemValues = $values['newRow'];
+
 				if ($product = $this->productRepository->getProductByCodeOrEAN($newItemValues['product'])) {
 					$newItemValues['set'] = $this->product->getPK();
 					$newItemValues['product'] = $this->productRepository->getProductByCodeOrEAN($newItemValues['product']);
@@ -156,9 +153,9 @@ class ProductSetForm extends Control
 	public function createComponentSetItemForm()
 	{
 		return new Multiplier(function ($id) {
-			bdump($id);
+			\bdump($id);
 
-			/** @var AdminForm $form */
+			/** @var \Admin\Controls\AdminForm $form */
 			$form = $this->getComponent('setForm');
 
 			if ($id === 'null') {
@@ -166,12 +163,19 @@ class ProductSetForm extends Control
 				$newRowContainer = $form->getComponent('newRow');
 
 				$newRowContainer->addText('product')
-					->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!',
-						[$this->productRepository]);
-				$newRowContainer->addText('priority')->setDefaultValue(1)->addConditionOn($newRowContainer['product'],
-					$form::FILLED)->addRule($form::INTEGER);
-				$newRowContainer->addText('amount')->addConditionOn($newRowContainer['product'],
-					$form::FILLED)->addRule($form::INTEGER);
+					->addRule(
+						[FormValidators::class, 'isProductExists'],
+						'Produkt neexistuje!',
+						[$this->productRepository],
+					);
+				$newRowContainer->addText('priority')->setDefaultValue(1)->addConditionOn(
+					$newRowContainer['product'],
+					$form::FILLED,
+				)->addRule($form::INTEGER);
+				$newRowContainer->addText('amount')->addConditionOn(
+					$newRowContainer['product'],
+					$form::FILLED,
+				)->addRule($form::INTEGER);
 				$newRowContainer->addText('discountPct')->setDefaultValue(0)
 					->addConditionOn($newRowContainer['product'], $form::FILLED)
 					->addRule($form::FLOAT)
@@ -181,13 +185,16 @@ class ProductSetForm extends Control
 			} else {
 				$setItemsContainer = $form->getComponent('setItems');
 
-				/** @var Set $item */
+				/** @var \Eshop\DB\Set $item */
 				$item = $this->setRepository->one($id);
 
 				$itemContainer = $setItemsContainer->addContainer($item->getPK());
 				$itemContainer->addText('product')
-					->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!',
-						[$this->productRepository])
+					->addRule(
+						[FormValidators::class, 'isProductExists'],
+						'Produkt neexistuje!',
+						[$this->productRepository],
+					)
 					->setDefaultValue($item->product->getFullCode());
 				$itemContainer->addInteger('priority')->setDefaultValue($item->priority);
 				$itemContainer->addInteger('amount')->setDefaultValue($item->amount);
@@ -200,16 +207,16 @@ class ProductSetForm extends Control
 		});
 	}
 
-	public function render()
+	public function render(): void
 	{
-		bdump('render');
+		\bdump('render');
 		$this->template->existingSets = $this->productRepository->getSetProducts($this->product);
 		$this->template->render(__DIR__ . '/productSetForm.latte');
 	}
 
-	public function handleDeleteSetItem($uuid)
+	public function handleDeleteSetItem($uuid): void
 	{
-		bdump('handle');
+		\bdump('handle');
 		$this->setRepository->many()->where('uuid', $uuid)->delete();
 
 		if ($this->getPresenter()->isAjax()) {

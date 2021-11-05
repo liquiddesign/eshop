@@ -58,6 +58,7 @@ class WatcherRepository extends \StORM\Repository
 
 				if (!$watcher->keepAfterNotify) {
 					$watcher->delete();
+
 					continue;
 				}
 			}
@@ -67,13 +68,13 @@ class WatcherRepository extends \StORM\Repository
 			}
 
 			$watcher->update([
-				'beforeAmountFrom' => $watcher->product->displayAmount->amountFrom
+				'beforeAmountFrom' => $watcher->product->displayAmount->amountFrom,
 			]);
 		}
 
 		return [
 			'active' => $activeWatchers,
-			'nonActive' => $nonActiveWatchers
+			'nonActive' => $nonActiveWatchers,
 		];
 	}
 
@@ -107,7 +108,9 @@ class WatcherRepository extends \StORM\Repository
 			}
 
 			/** @var \Eshop\DB\Product $product */
-			if (!$product = $this->productRepository->getProducts($pricelistsByCustomers[$watcher->getValue('customer')])->where('this.uuid', $watcher->getValue('product'))->first()) {
+			$product = $this->productRepository->getProducts($pricelistsByCustomers[$watcher->getValue('customer')])->where('this.uuid', $watcher->getValue('product'))->first();
+
+			if (!$product) {
 				continue;
 			}
 
@@ -116,6 +119,7 @@ class WatcherRepository extends \StORM\Repository
 
 				if (!$watcher->keepAfterNotify) {
 					$watcher->delete();
+
 					continue;
 				}
 			}
@@ -125,14 +129,13 @@ class WatcherRepository extends \StORM\Repository
 			}
 
 			$watcher->update([
-				'beforePriceFrom' => $product->getPrice()
+				'beforePriceFrom' => $product->getPrice(),
 			]);
 		}
 
 		return [
 			'active' => $activeWatchers,
-			'nonActive' => $nonActiveWatchers
+			'nonActive' => $nonActiveWatchers,
 		];
 	}
-
 }

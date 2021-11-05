@@ -9,6 +9,9 @@ namespace Eshop\DB;
  */
 class DisplayAmountRepository extends \StORM\Repository
 {
+	/**
+	 * @return string[]
+	 */
 	public function getArrayForSelect(): array
 	{
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();

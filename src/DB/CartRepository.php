@@ -9,7 +9,7 @@ namespace Eshop\DB;
  */
 class CartRepository extends \StORM\Repository
 {
-	public function deleteCart(Cart $cart)
+	public function deleteCart(Cart $cart): void
 	{
 		$this->many()->where('this.uuid', $cart)->delete();
 	}
@@ -25,7 +25,7 @@ class CartRepository extends \StORM\Repository
 	/**
 	 * Return lost carts if they have user info.
 	 * @param bool $mark mark carts as lost, will not return this carts next time
-	 * @return array
+	 * @return \Eshop\DB\Cart[]
 	 */
 	public function getLostCarts(bool $mark = false): array
 	{

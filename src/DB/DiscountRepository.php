@@ -12,8 +12,13 @@ use StORM\Collection;
  */
 class DiscountRepository extends \StORM\Repository implements IGeneralRepository
 {
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
+		unset($includeHidden);
+
 		return $this->many()->orderBy(['name'])->toArrayOf('name');
 	}
 	
@@ -22,11 +27,13 @@ class DiscountRepository extends \StORM\Repository implements IGeneralRepository
 		return $this->getConnection()->rows(['eshop_discount_nxn_eshop_tag'])
 				->where('fk_discount', $discount->getPK())
 				->where('fk_tag', $tag->getPK())
-				->count() == 1;
+				->count() === 1;
 	}
 	
 	public function getCollection(bool $includeHidden = false): Collection
 	{
+		unset($includeHidden);
+
 		return $this->many()->orderBy(['validTo', 'validFrom', 'name']);
 	}
 	

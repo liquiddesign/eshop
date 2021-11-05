@@ -508,6 +508,8 @@ class AttributePresenter extends BackendPresenter
 
 	public function renderValueNew(?Attribute $attribute = null): void
 	{
+		unset($attribute);
+
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
 			['Atributy', 'default',],
@@ -561,6 +563,9 @@ class AttributePresenter extends BackendPresenter
 
 	public function renderCreatePages(array $ids, bool $createOrDelete): void
 	{
+		unset($ids);
+		unset($createOrDelete);
+
 		$this->template->headerLabel = 'Vytvořit stránky';
 		$this->template->headerTree = [
 			['Atributy', 'default',],

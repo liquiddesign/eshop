@@ -1,37 +1,32 @@
 <?php
 
-
 namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
 use Eshop\DB\CartRepository;
-use Eshop\Shopper;
 use StORM\Collection;
 use StORM\ICollection;
 
 class CartList extends \Grid\Datalist
 {
-	private Shopper $shopper;
-
 	private CheckoutManager $checkoutManager;
 
 	private CartRepository $cartRepository;
 
-	public function __construct(Collection $carts, Shopper $shopper, CheckoutManager $checkoutManager, CartRepository $cartRepository)
+	public function __construct(Collection $carts, CheckoutManager $checkoutManager, CartRepository $cartRepository)
 	{
 		parent::__construct($carts);
 
 		$this->setDefaultOnPage(20);
 
 		$this->addFilterExpression('customer', function (ICollection $collection, $value): void {
-			$collection->join(['customerTable' => 'eshop_customer'],'this.fk_customer = customerTable.uuid');
+			$collection->join(['customerTable' => 'eshop_customer'], 'this.fk_customer = customerTable.uuid');
 			$collection->where('customerTable.fullname LIKE :query OR customerTable.email LIKE :query', ['query' => '%' . $value . '%']);
 		}, '');
 
 		$this->getFilterForm()->addText('customer');
 		$this->getFilterForm()->addSubmit('submit');
 
-		$this->shopper = $shopper;
 		$this->checkoutManager = $checkoutManager;
 		$this->cartRepository = $cartRepository;
 	}
@@ -49,21 +44,21 @@ class CartList extends \Grid\Datalist
 		$this->getPresenter()->redirect('this');
 	}
 
-	public function handleApprove($cart)
+	public function handleApprove($cart): void
 	{
 		$cart = $this->cartRepository->one($cart, true);
 		$cart->update(['approved' => 'yes']);
 		$this->redirect('this');
 	}
 
-	public function handleDeny($cart)
+	public function handleDeny($cart): void
 	{
 		$cart = $this->cartRepository->one($cart, true);
 		$cart->update(['approved' => 'no']);
 		$this->redirect('this');
 	}
 
-	public function handleInsertIntoMyCart($cart)
+	public function handleInsertIntoMyCart($cart): void
 	{
 		$cart = $this->cartRepository->one($cart, true);
 		$this->checkoutManager->addItemsFromCart($cart);

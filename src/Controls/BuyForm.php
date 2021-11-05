@@ -38,14 +38,16 @@ class BuyForm extends Form
 		$this->addHidden('variant');
 		$this->addSubmit('submit', 'Přidat do košíku')->setDisabled(!$shopper->getBuyPermission());
 
-		if ($shopper->getBuyPermission() && $product) {
-			$this->onSuccess[] = function ($form, $values) use ($product, $checkoutManager) {
-				$checkoutManager->addItemToCart($product, $values->variant ?: null, intval($values->amount));
-			};
+		if (!$shopper->getBuyPermission() || !$product) {
+			return;
 		}
+
+		$this->onSuccess[] = function ($form, $values) use ($product, $checkoutManager): void {
+			$checkoutManager->addItemToCart($product, $values->variant ?: null, \intval($values->amount));
+		};
 	}
 
-	public function validateNumber(Nette\Forms\IControl $control, int $cislo)
+	public function validateNumber(Nette\Forms\IControl $control, int $cislo): bool
 	{
 		return $control->getValue() % $cislo === 0;
 	}

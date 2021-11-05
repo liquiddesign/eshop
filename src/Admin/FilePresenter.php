@@ -18,10 +18,11 @@ class FilePresenter extends BackendPresenter
 	
 	private string $productFilesPath;
 	
-	public function startup()
+	public function startup(): void
 	{
 		parent::startup();
-		$this->productFilesPath = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . Product::FILE_DIR;
+
+		$this->productFilesPath = \dirname(__DIR__, 3) . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . Product::FILE_DIR;
 	}
 	
 	public function createComponentNewForm(): Form
@@ -37,7 +38,7 @@ class FilePresenter extends BackendPresenter
 		return $form;
 	}
 	
-	public function renderDetail(File $file, Product $product)
+	public function renderDetail(File $file, Product $product): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -48,33 +49,36 @@ class FilePresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 	
-	public function actionDetail(File $file, Product $product)
+	public function actionDetail(File $file, Product $product): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
 		
 		$values = $file->toArray();
 		$values['hidden'] = (int)$values['hidden'];
 		$form->setDefaults($values);
 		
-		$form->onSuccess[] = function (Form $form) use ($file, $product) {
+		$form->onSuccess[] = function (Form $form) use ($file, $product): void {
 			$values = $form->getValues();
+
 			foreach ($values as $key => $value) {
-				$values[$key] = $values[$key] != '' ? $values[$key] : null;
+				$values[$key] = $values[$key] !== '' ? $values[$key] : null;
 			}
-			if ($file->fileName != $values['fileName']) {
+
+			if ($file->fileName !== $values['fileName']) {
 				if ($this->fileRepository->one(['fileName' => $values['fileName']])) {
 					$this->flashMessage('Chyba: Soubor s tímto názvem již existuje!', 'error');
 					$this->redirect('this');
 				}
-				FileSystem::rename($this->productFilesPath . DIRECTORY_SEPARATOR . $file->fileName, $this->productFilesPath . DIRECTORY_SEPARATOR . $values['fileName']);
+
+				FileSystem::rename($this->productFilesPath . \DIRECTORY_SEPARATOR . $file->fileName, $this->productFilesPath . \DIRECTORY_SEPARATOR . $values['fileName']);
 			}
+
 			$values['hidden'] = (bool)$values['hidden'];
-			$values['priority'] = $values['priority'] != '' ? $values['priority'] : 10;
+			$values['priority'] = $values['priority'] !== '' ? $values['priority'] : 10;
 			$file->update($values);
 			$this->flashMessage('Uloženo', 'success');
 			$this->redirect(':Eshop:Admin:Product:productFiles', $product);
 		};
 	}
-	
 }

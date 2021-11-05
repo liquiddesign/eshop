@@ -13,6 +13,9 @@ use StORM\Collection;
  */
 class ParameterValueRepository extends \StORM\Repository implements IGeneralRepository
 {
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
@@ -22,6 +25,8 @@ class ParameterValueRepository extends \StORM\Repository implements IGeneralRepo
 
 	public function getCollection(bool $includeHidden = false): Collection
 	{
+		unset($includeHidden);
+
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$collection = $this->many();
 

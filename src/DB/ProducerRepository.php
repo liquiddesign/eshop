@@ -13,6 +13,9 @@ use StORM\Repository;
  */
 class ProducerRepository extends Repository implements IGeneralRepository
 {
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();

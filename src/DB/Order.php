@@ -158,19 +158,19 @@ class Order extends \StORM\Entity
 
 	/**
 	 * @deprecated Use repository method getState()
-	 * @return string
 	 */
 	public function getState(): string
 	{
-		return ($this->completedTs || $this->canceledTs) ? 'Vyřízeno' : 'Zpracovává se';
+		return $this->completedTs || $this->canceledTs ? 'Vyřízeno' : 'Zpracovává se';
 	}
 
 	/**
-	 * @return CartItem[]
+	 * @return \Eshop\DB\CartItem[]
 	 */
 	public function getGroupedItems(): array
 	{
 		$grouped = [];
+
 		foreach ($this->purchase->getItems() as $item) {
 			if (isset($grouped[$item->getFullCode()])) {
 				$grouped[$item->getFullCode()]->amount += $item->amount;

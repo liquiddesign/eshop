@@ -9,12 +9,11 @@ use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\CurrencyRepository;
+use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\PaymentType;
-use Eshop\DB\PaymentTypePrice;
 use Eshop\DB\PaymentTypePriceRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\Shopper;
-use Eshop\DB\CustomerGroupRepository;
 use Forms\Form;
 use Nette\Http\Request;
 use Nette\Utils\Image;
@@ -54,7 +53,7 @@ class PaymentTypePresenter extends BackendPresenter
 		
 		$code = $this->currencyRepo->many()->firstValue('uuid');
 		$grid->addColumn("Celková cena ($code)", function (PaymentType $paymentType, AdminGrid $dataGrid) use ($code) {
-			/** @var PaymentTypePrice $price */
+			/** @var \Eshop\DB\PaymentTypePrice $price */
 			$price = $this->paymentPriceRepo->one(['fk_paymentType' => $paymentType, 'fk_currency' => $code]);
 			
 			return $price ? $this->shopper->filterPrice($price->priceVat, $code) : '';
@@ -85,7 +84,7 @@ class PaymentTypePresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create(true);
 		
-		/** @var PaymentType $paymentType */
+		/** @var \Eshop\DB\PaymentType $paymentType */
 		$paymentType = $this->getParameter('paymentType');
 		
 		$form->addText('code', 'Kód')->setRequired();
@@ -100,7 +99,7 @@ class PaymentTypePresenter extends BackendPresenter
 			},
 		]);
 
-		$imagePicker->onDelete[] = function (array $directories, $filename) use($paymentType) {
+		$imagePicker->onDelete[] = function (array $directories, $filename) use ($paymentType): void {
 			$this->onDelete($paymentType);
 			$this->redirect('this');
 		};
@@ -114,7 +113,7 @@ class PaymentTypePresenter extends BackendPresenter
 		
 		$form->addSubmits(!$paymentType);
 		
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 			
 			if (!$values['uuid']) {
@@ -134,7 +133,7 @@ class PaymentTypePresenter extends BackendPresenter
 		return $form;
 	}
 	
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Typy plateb';
 		$this->template->headerTree = [
@@ -144,7 +143,7 @@ class PaymentTypePresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
 	
-	public function renderNew()
+	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -155,7 +154,7 @@ class PaymentTypePresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('paymentTypeForm')];
 	}
 	
-	public function renderDetail()
+	public function renderDetail(): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -166,9 +165,9 @@ class PaymentTypePresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('paymentTypeForm')];
 	}
 	
-	public function actionDetail(PaymentType $paymentType)
+	public function actionDetail(PaymentType $paymentType): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('paymentTypeForm');
 		
 		$form->setDefaults($paymentType->toArray());
@@ -214,7 +213,7 @@ class PaymentTypePresenter extends BackendPresenter
 		
 		$form->addSubmits();
 		
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 			
 			$this->paymentPriceRepo->syncOne($values, null, true);
@@ -226,7 +225,7 @@ class PaymentTypePresenter extends BackendPresenter
 		return $form;
 	}
 	
-	public function renderPrices(PaymentType $paymentType)
+	public function renderPrices(PaymentType $paymentType): void
 	{
 		$this->template->headerLabel = 'Ceník typu platby - ' . $paymentType->name;
 		$this->template->headerTree = [
@@ -241,9 +240,8 @@ class PaymentTypePresenter extends BackendPresenter
 		
 		$this->template->displayControls = [$this->getComponent('pricesGrid')];
 	}
-	
-	
-	public function renderPricesNew(PaymentType $paymentType)
+
+	public function renderPricesNew(PaymentType $paymentType): void
 	{
 		$this->template->headerLabel = 'Ceník typu platby';
 		$this->template->headerTree = [

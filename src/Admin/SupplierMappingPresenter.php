@@ -3,9 +3,8 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
-use Eshop\BackendPresenter;
 use Admin\Controls\AdminForm;
-use Eshop\DB\Attribute;
+use Eshop\BackendPresenter;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
@@ -25,7 +24,6 @@ use Eshop\DB\SupplierMappingRepository;
 use Eshop\DB\SupplierProducer;
 use Eshop\DB\SupplierProducerRepository;
 use Eshop\DB\SupplierRepository;
-use Forms\Form;
 use Nette\Http\Session;
 use Nette\Utils\Arrays;
 use Nette\Utils\Random;
@@ -37,7 +35,7 @@ use StORM\Repository;
 class SupplierMappingPresenter extends BackendPresenter
 {
 	protected const CONFIGURATION = [
-		'attributes' => false
+		'attributes' => false,
 	];
 
 	public array $TABS = [
@@ -94,16 +92,6 @@ class SupplierMappingPresenter extends BackendPresenter
 	/** @persistent */
 	public string $tab = 'category';
 
-	protected function startup()
-	{
-		parent::startup();
-
-		if (isset(static::CONFIGURATION['attributes']) && static::CONFIGURATION['attributes']) {
-			$this->TABS['attribute'] = 'Atributy';
-			$this->TABS['attributeValue'] = 'Hodnoty atributů';
-		}
-	}
-
 	public function createComponentGrid()
 	{
 		$grid = $this->gridFactory->create($this->getMappingRepository()->many(), 20, 'createdTs', 'ASC');
@@ -130,25 +118,23 @@ class SupplierMappingPresenter extends BackendPresenter
 			});
 
 			$property = 'category';
-			$grid->addFilterText(function (ICollection $source, $value) {
+			$grid->addFilterText(function (ICollection $source, $value): void {
 				$parsed = \explode('>', $value);
 				$expression = new Expression();
 				$orExpression = '';
 
-				for ($i = 1; $i != 5; $i++) {
+				for ($i = 1; $i !== 5; $i++) {
 					if (isset($parsed[$i - 1])) {
 						$expression->add('AND', "categoryNameL$i=%s", [\trim($parsed[$i - 1])]);
 					}
 				}
 
-				for ($i = 1; $i != 5; $i++) {
+				for ($i = 1; $i !== 5; $i++) {
 					$orExpression .= " OR categoryNameL$i LIKE :value";
 				}
 
 				$source->where($expression->getSql() . $orExpression, $expression->getVars() + ['value' => "$value%"]);
-
 			}, '', 'category')->setHtmlAttribute('placeholder', 'Název')->setHtmlAttribute('class', 'form-control form-control-sm');
-
 		}
 
 		if ($this->tab === 'producer') {
@@ -206,22 +192,21 @@ class SupplierMappingPresenter extends BackendPresenter
 			$grid->addFilterTextInput('search', ['name'], null, 'Název');
 		}
 
-
 		$grid->addColumn('', function ($object, $datagrid) {
 			return $datagrid->getPresenter()->link('detail', $object->getPK());
 		}, '<a class="btn btn-primary btn-sm text-xs" href="%s" title="Upravit"><i class="far fa-edit"></i></a>', null, ['class' => 'minimal']);
 
 		$grid->addButtonBulkEdit('form', [$property], 'grid', 'bulkEdit', 'Hromadná úprava', 'bulkEdit', 'default', null, null, $property === 'attribute' || $property === 'attributeValue' ? [$property => $property] : []);
-		//		$grid->addButtonBulkEdit('mappingForm', [], 'grid', 'bulkMapping', 'Vytvořit strukturu');
+		//      $grid->addButtonBulkEdit('mappingForm', [], 'grid', 'bulkMapping', 'Vytvořit strukturu');
 
 		$submit = $grid->getForm()->addSubmit('submit', 'Vytvořit strukturu')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
-		$submit->onClick[] = function ($button) use ($grid) {
+		$submit->onClick[] = function ($button) use ($grid): void {
 			$this->session->getSection('bulkEdit')->totalIds = \array_keys($grid->getFilteredSource()->toArray());
 			$this->redirect('mapping', \serialize($grid->getSelectedIds()));
 		};
 
 		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->where('fk_supplier', $value);
 			}, null, 'supplier', null, $suppliers, ['placeholder' => '- Dodavatel -']);
 		}
@@ -230,11 +215,11 @@ class SupplierMappingPresenter extends BackendPresenter
 			$grid->addFilterTextInput('supplierAttributeCode', ['supplierAttribute.code'], null, 'Kód atributu', null, '%s');
 		}
 
-		$grid->addFilterDatetime(function (ICollection $source, $value) {
+		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs >= :created_from', ['created_from' => $value]);
 		}, '', 'date_from', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Importováno od');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value) {
+		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
 		}, '', 'created_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Importováno do');
 
@@ -249,7 +234,6 @@ class SupplierMappingPresenter extends BackendPresenter
 	public function createComponentForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
-
 
 		if ($this->tab === 'category') {
 			$form->addDataSelect('category', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('Nepřiřazeno');
@@ -280,7 +264,7 @@ class SupplierMappingPresenter extends BackendPresenter
 
 		$form->addSubmits(false, false);
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			if ($this->tab === 'attribute' || $this->tab === 'attributeValue') {
@@ -297,7 +281,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function handleGetAttributes(string $q = null, ?int $page = null): void
+	public function handleGetAttributes(?string $q = null, ?int $page = null): void
 	{
 		if (!$q) {
 			$this->payload->results = [];
@@ -328,41 +312,43 @@ class SupplierMappingPresenter extends BackendPresenter
 
 		$form->addCheckbox('overwrite', 'Přepsat');
 
-		if ($this->tab == 'category') {
+		if ($this->tab === 'category') {
 			$form->addDataSelect('category', 'Nadřazená kategorie', $this->categoryRepository->getArrayForSelect())->setPrompt('Žádná');
 		}
 
-		if ($this->tab == 'attribute') {
+		if ($this->tab === 'attribute') {
 			$form->addCheckbox('mapValues', 'Přiřadit hodnoty');
 			$form->addCheckbox('overwriteValues', 'Přepsat hodnoty');
 		}
 
-		if ($this->tab == 'attributeValue') {
+		if ($this->tab === 'attributeValue') {
 			$form->addSelect2Ajax('attribute', $this->link('getAttributes!'), 'Atribut');
 		}
 
 		$form->addSubmits(false, false);
 
-		$form->onValidate[] = function (AdminForm $form) use ($ids, $totalIds) {
+		$form->onValidate[] = function (AdminForm $form): void {
 			if ($form->hasErrors()) {
 				return;
 			}
 
 			$rawValues = $this->getHttpRequest()->getPost();
 
-			if (!isset($rawValues['attribute']) && isset($form['attribute'])) {
-				$form['attribute']->addError('Toto pole je povinné!');
+			if (isset($rawValues['attribute']) || !isset($form['attribute'])) {
+				return;
 			}
+
+			$form['attribute']->addError('Toto pole je povinné!');
 		};
 
-		$form->onSuccess[] = function (AdminForm $form) use ($ids, $totalIds) {
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $totalIds): void {
 			$values = $form->getValues('array');
 			$rawValues = $this->getHttpRequest()->getPost();
 
 			$overwrite = $values['overwrite'];
-			$data = $values['bulkType'] == 'selected' ? $ids : $totalIds;
+			$data = $values['bulkType'] === 'selected' ? $ids : $totalIds;
 
-			if ($this->tab == 'producer') {
+			if ($this->tab === 'producer') {
 				foreach ($data as $uuid) {
 					/** @var \Eshop\DB\SupplierProducer $supplierProducer */
 					$supplierProducer = $this->supplierProducerRepository->one($uuid);
@@ -378,13 +364,13 @@ class SupplierMappingPresenter extends BackendPresenter
 					} else {
 						/** @var \Eshop\DB\Producer $producer */
 						$producer = $this->producerRepository->createOne([
-							'name' => ['cs' => $supplierProducer->name, 'en' => null]
+							'name' => ['cs' => $supplierProducer->name, 'en' => null],
 						]);
 
 						$supplierProducer->update(['producer' => $producer->getPK()]);
 					}
 				}
-			} elseif ($this->tab == 'amount') {
+			} elseif ($this->tab === 'amount') {
 				foreach ($data as $uuid) {
 					/** @var \Eshop\DB\SupplierDisplayAmount $supplierAmount */
 					$supplierAmount = $this->supplierDisplayAmountRepository->one($uuid);
@@ -400,13 +386,13 @@ class SupplierMappingPresenter extends BackendPresenter
 					} else {
 						/** @var \Eshop\DB\DisplayAmount $displayAmount */
 						$displayAmount = $this->displayAmountRepository->createOne([
-							'label' => ['cs' => $supplierAmount->name, 'en' => null]
+							'label' => ['cs' => $supplierAmount->name, 'en' => null],
 						]);
 
 						$supplierAmount->update(['displayAmount' => $displayAmount->getPK()]);
 					}
 				}
-			} elseif ($this->tab == 'attribute') {
+			} elseif ($this->tab === 'attribute') {
 				foreach ($data as $uuid) {
 					/** @var \Eshop\DB\SupplierAttribute $supplierAttribute */
 					$supplierAttribute = $this->supplierAttributeRepository->many()
@@ -420,7 +406,6 @@ class SupplierMappingPresenter extends BackendPresenter
 						continue;
 					}
 
-
 					if ($supplierAttribute->attribute) {
 						if ($supplierAttribute->categoryPK) {
 							$supplierAttribute->attribute->categories->relate([$supplierAttribute->categoryPK]);
@@ -429,7 +414,7 @@ class SupplierMappingPresenter extends BackendPresenter
 						if ($overwrite) {
 							$supplierAttribute->attribute->update([
 								'name' => ['cs' => $supplierAttribute->name],
-								'supplier' => $supplierAttribute->getValue('supplier')
+								'supplier' => $supplierAttribute->getValue('supplier'),
 							]);
 						}
 					} else {
@@ -441,12 +426,11 @@ class SupplierMappingPresenter extends BackendPresenter
 							$tempAttribute = $this->attributeRepository->many()->where('code', $code)->first();
 						}
 
-
 						/** @var \Eshop\DB\Attribute $attribute */
 						$attribute = $this->attributeRepository->createOne([
 							'code' => $code,
 							'name' => ['cs' => $supplierAttribute->name, 'en' => null],
-							'supplier' => $supplierAttribute->getValue('supplier')
+							'supplier' => $supplierAttribute->getValue('supplier'),
 						]);
 
 						if ($supplierAttribute->categoryPK) {
@@ -456,7 +440,7 @@ class SupplierMappingPresenter extends BackendPresenter
 						$supplierAttribute->update(['attribute' => $attribute->getPK()]);
 
 						if ($values['mapValues']) {
-							/** @var SupplierAttributeValue $supplierAttributeValue */
+							/** @var \Eshop\DB\SupplierAttributeValue $supplierAttributeValue */
 							foreach ($this->supplierAttributeValueRepository->many()->where('fk_supplierAttribute', $supplierAttribute->getPK()) as $supplierAttributeValue) {
 								if ($supplierAttributeValue->attributeValue) {
 									if ($values['overwriteValues']) {
@@ -475,7 +459,7 @@ class SupplierMappingPresenter extends BackendPresenter
 									$attributeValue = $this->attributeValueRepository->createOne([
 										'code' => $code,
 										'label' => ['cs' => $supplierAttributeValue->label, 'en' => null],
-										'attribute' => $attribute
+										'attribute' => $attribute,
 									]);
 
 									$supplierAttributeValue->update(['attributeValue' => $attributeValue->getPK()]);
@@ -484,8 +468,8 @@ class SupplierMappingPresenter extends BackendPresenter
 						}
 					}
 				}
-			} elseif ($this->tab == 'attributeValue') {
-				/** @var Attribute $attribute */
+			} elseif ($this->tab === 'attributeValue') {
+				/** @var \Eshop\DB\Attribute $attribute */
 				$attribute = $this->attributeRepository->one($rawValues['attribute'], true);
 
 				foreach ($data as $uuid) {
@@ -513,13 +497,13 @@ class SupplierMappingPresenter extends BackendPresenter
 						$attributeValue = $this->attributeValueRepository->createOne([
 							'code' => $code,
 							'label' => ['cs' => $supplierAttributeValue->label, 'en' => null],
-							'attribute' => $attribute
+							'attribute' => $attribute,
 						]);
 
 						$supplierAttributeValue->update(['attributeValue' => $attributeValue->getPK()]);
 					}
 				}
-			} elseif ($this->tab == 'category') {
+			} elseif ($this->tab === 'category') {
 				/** @var \Eshop\DB\Category $insertToCategory */
 				$insertToCategory = $values['category'] ? $this->categoryRepository->one($values['category']) : null;
 				$type = $insertToCategory->getValue('type');
@@ -567,15 +551,15 @@ class SupplierMappingPresenter extends BackendPresenter
 							'name' => ['cs' => $cKey, 'en' => null],
 							'path' => $path,
 							'ancestor' => $currentCategory ? $currentCategory->getPK() : null,
-							'type' => $type
+							'type' => $type,
 						];
 
 						if ($existingCategory) {
 							$existingCategory->update($newCategoryData);
 							$currentCategory = $existingCategory;
 						} else {
-							if ($supplierCategory->category && Arrays::last($newTree) == $cKey) {
-								if ($supplierCategory->category->ancestor->getPK() == $newCategoryData['ancestor']) {
+							if ($supplierCategory->category && Arrays::last($newTree) === $cKey) {
+								if ($supplierCategory->category->ancestor->getPK() === $newCategoryData['ancestor']) {
 									if (!$overwrite) {
 										unset($newCategoryData['name']);
 									}
@@ -592,10 +576,12 @@ class SupplierMappingPresenter extends BackendPresenter
 							}
 						}
 
-						if ($first) {
-							$newFirstCategory = $currentCategory;
-							$first = false;
+						if (!$first) {
+							continue;
 						}
+
+						$newFirstCategory = $currentCategory;
+						$first = false;
 					}
 
 					$supplierCategory->update(['category' => $currentCategory->getPK()]);
@@ -613,11 +599,11 @@ class SupplierMappingPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function actionMapping($selectedIds)
+	public function actionMapping($selectedIds): void
 	{
 	}
 
-	public function renderMapping($selectedIds)
+	public function renderMapping($selectedIds): void
 	{
 		$this->template->headerLabel = 'Vytvořit strukturu';
 		$this->template->headerTree = [
@@ -628,7 +614,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('mappingForm')];
 	}
 
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Rozřazení';
 		$this->template->headerTree = [
@@ -638,7 +624,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		$this->template->tabs = $this->TABS;
 		$this->template->displayButtons = [];
 
-		if ($this->tab == 'mapping') {
+		if ($this->tab === 'mapping') {
 			$this->template->displayControls = [$this->getComponent('mappingGrid')];
 			$this->template->displayButtons = [$this->createNewItemButton('newMapping')];
 		} else {
@@ -646,7 +632,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		}
 	}
 
-	public function renderNew()
+	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -657,7 +643,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
 
-	public function renderDetail(string $uuid)
+	public function renderDetail(string $uuid): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -668,9 +654,9 @@ class SupplierMappingPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
 
-	public function actionDetail(string $uuid)
+	public function actionDetail(string $uuid): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('form');
 
 		$object = $this->getMappingRepository()->one($uuid);
@@ -684,6 +670,18 @@ class SupplierMappingPresenter extends BackendPresenter
 		}
 
 		$form->setDefaults($object->toArray());
+	}
+
+	protected function startup(): void
+	{
+		parent::startup();
+
+		if (!isset(self::CONFIGURATION['attributes']) || !self::CONFIGURATION['attributes']) {
+			return;
+		}
+
+		$this->TABS['attribute'] = 'Atributy';
+		$this->TABS['attributeValue'] = 'Hodnoty atributů';
 	}
 
 	private function getMappingRepository(): Repository

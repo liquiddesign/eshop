@@ -26,12 +26,6 @@ class SupplierProduct extends \StORM\Entity
 	 */
 	public string $productSubCode = '';
 	
-	public function getProductFullCode(): ?string
-	{
-		//@TODO code-subcode delimeter (tečka) by mel jit nastavit
-		return $this->productSubCode ? $this->productCode . '.' . $this->productSubCode : $this->productCode;
-	}
-	
 	/**
 	 * EAN
 	 * @column
@@ -174,4 +168,10 @@ class SupplierProduct extends \StORM\Entity
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
 	public string $createdTs;
+
+	public function getProductFullCode(): ?string
+	{
+		//@TODO code-subcode delimeter (tečka) by mel jit nastavit
+		return $this->productSubCode ? $this->productCode . '.' . $this->productSubCode : $this->productCode;
+	}
 }

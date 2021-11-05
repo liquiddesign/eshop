@@ -6,12 +6,12 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\DB\AddressRepository;
 use Eshop\DB\OpeningHoursRepository;
 use Eshop\DB\PickupPoint;
 use Eshop\DB\PickupPointRepository;
 use Eshop\DB\PickupPointType;
 use Eshop\DB\PickupPointTypeRepository;
-use Eshop\DB\AddressRepository;
 use Forms\Form;
 use Nette\Utils\Arrays;
 use Nette\Utils\Image;
@@ -21,18 +21,6 @@ use StORM\ICollection;
 
 class PickupPointPresenter extends BackendPresenter
 {
-	/** @inject */
-	public PickupPointTypeRepository $pickupPointTypeRepo;
-
-	/** @inject */
-	public PickupPointRepository $pickupPointRepo;
-
-	/** @inject */
-	public OpeningHoursRepository $openingHoursRepo;
-
-	/** @inject */
-	public AddressRepository $addressRepository;
-
 	public const TABS = [
 		'points' => 'Místa',
 		'types' => 'Typy',
@@ -45,8 +33,20 @@ class PickupPointPresenter extends BackendPresenter
 		4 => 'Čtvrtek',
 		5 => 'Pátek',
 		6 => 'Sobota',
-		7 => 'Neděle'
+		7 => 'Neděle',
 	];
+
+	/** @inject */
+	public PickupPointTypeRepository $pickupPointTypeRepo;
+
+	/** @inject */
+	public PickupPointRepository $pickupPointRepo;
+
+	/** @inject */
+	public OpeningHoursRepository $openingHoursRepo;
+
+	/** @inject */
+	public AddressRepository $addressRepository;
 
 	/** @persistent */
 	public string $tab = 'points';
@@ -58,13 +58,13 @@ class PickupPointPresenter extends BackendPresenter
 	{
 		$this->template->headerLabel = 'Výdejní místa';
 		$this->template->headerTree = [
-			['Výdejní místa']
+			['Výdejní místa'],
 		];
 
-		if ($this->tab == 'types') {
+		if ($this->tab === 'types') {
 			$this->template->displayButtons = [$this->createNewItemButton('typeNew')];
 			$this->template->displayControls = [$this->getComponent('typeGrid')];
-		} elseif ($this->tab == 'points') {
+		} elseif ($this->tab === 'points') {
 			$this->template->displayButtons = [$this->createNewItemButton('pointNew')];
 			$this->template->displayControls = [$this->getComponent('pointGrid')];
 		}
@@ -78,7 +78,7 @@ class PickupPointPresenter extends BackendPresenter
 		$this->template->headerTree = [
 			['Výdejní místa', 'default'],
 			['Typy'],
-			['Nová položka']
+			['Nová položka'],
 		];
 
 		$this->template->displayButtons = [$this->createBackButton('default')];
@@ -87,7 +87,7 @@ class PickupPointPresenter extends BackendPresenter
 
 	public function actionTypeDetail(PickupPointType $pickupPointType): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('typeForm');
 
 		$form->setDefaults($pickupPointType->toArray());
@@ -99,7 +99,7 @@ class PickupPointPresenter extends BackendPresenter
 		$this->template->headerTree = [
 			['Výdejní místa', 'default'],
 			['Typy'],
-			['Detail']
+			['Detail'],
 		];
 
 		$this->template->displayButtons = [$this->createBackButton('default')];
@@ -112,7 +112,7 @@ class PickupPointPresenter extends BackendPresenter
 		$this->template->headerTree = [
 			['Výdejní místa', 'default'],
 			['Místa'],
-			['Nová položka']
+			['Nová položka'],
 		];
 
 		$this->template->displayButtons = [$this->createBackButton('default')];
@@ -121,7 +121,7 @@ class PickupPointPresenter extends BackendPresenter
 
 	public function actionPointDetail(PickupPoint $pickupPoint): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('pointForm');
 
 		$form->setDefaults($pickupPoint->toArray());
@@ -134,7 +134,7 @@ class PickupPointPresenter extends BackendPresenter
 		$this->template->headerTree = [
 			['Výdejní místa', 'default'],
 			['Místa'],
-			['Detail']
+			['Detail'],
 		];
 
 		$this->template->displayButtons = [$this->createBackButton('default')];
@@ -150,7 +150,7 @@ class PickupPointPresenter extends BackendPresenter
 		$this->template->headerTree = [
 			['Výdejní místa', 'default'],
 			['Místa'],
-			['Otevírací doba']
+			['Otevírací doba'],
 		];
 
 		$this->template->setFile(__DIR__ . \DIRECTORY_SEPARATOR . 'templates' . \DIRECTORY_SEPARATOR . 'PickupPoint.pointHours.latte');
@@ -212,7 +212,7 @@ class PickupPointPresenter extends BackendPresenter
 		$grid->addFilterTextInput('search', ['name_cs'], null, 'Název');
 
 		if (\count($this->pickupPointTypeRepo->getArrayForSelect()) > 0) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->where('fk_pickupPointType', $value);
 			}, '', 'type', 'Typ', $this->pickupPointTypeRepo->getArrayForSelect(), ['placeholder' => '- Typ -']);
 		}
@@ -225,7 +225,7 @@ class PickupPointPresenter extends BackendPresenter
 
 	public function createComponentSpecialHoursGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->openingHoursRepo->getCollection()->where('fk_pickupPoint', ($this->getParameter('pickupPoint') ? $this->getParameter('pickupPoint') : $this->pickupPointRepo->one($this->selectedPickupPoint, true))->getPK())->where('date IS NOT NULL'), 20, 'date');
+		$grid = $this->gridFactory->create($this->openingHoursRepo->getCollection()->where('fk_pickupPoint', ($this->getParameter('pickupPoint') ?: $this->pickupPointRepo->one($this->selectedPickupPoint, true))->getPK())->where('date IS NOT NULL'), 20, 'date');
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Datum', "date|date:'d.m.Y'", '%s', 'date', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
@@ -261,7 +261,7 @@ class PickupPointPresenter extends BackendPresenter
 			},
 		]);
 
-		$imagePicker->onDelete[] = function (array $directories, $filename) {
+		$imagePicker->onDelete[] = function (array $directories, $filename): void {
 			$this->onDelete($this->getParameter('pickupPointType'));
 			$this->pickupPointRepo->clearCache();
 			$this->redirect('this');
@@ -273,7 +273,7 @@ class PickupPointPresenter extends BackendPresenter
 
 		$form->addSubmits(!$this->getParameter('pickupPointType'));
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$this->createImageDirs(PickupPointType::IMAGE_DIR);
@@ -311,7 +311,7 @@ class PickupPointPresenter extends BackendPresenter
 			},
 		]);
 
-		$imagePicker->onDelete[] = function (array $directories, $filename) {
+		$imagePicker->onDelete[] = function (array $directories, $filename): void {
 			$this->onDelete($this->getParameter('pickupPoint'));
 			$this->redirect('this');
 		};
@@ -342,7 +342,7 @@ class PickupPointPresenter extends BackendPresenter
 
 		$form->addSubmits(!$this->getParameter('pickupPoint'));
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			if (!$values['addressContainer']['uuid']) {
@@ -377,12 +377,11 @@ class PickupPointPresenter extends BackendPresenter
 
 	public function actionSpecialHoursNew(): void
 	{
-
 	}
 
 	public function renderSpecialHoursNew(): void
 	{
-		/** @var PickupPoint $pickupPoint */
+		/** @var \Eshop\DB\PickupPoint $pickupPoint */
 		$pickupPoint = $this->pickupPointRepo->one($this->selectedPickupPoint, true);
 
 		$this->template->headerLabel = 'Nová mimořádná otevírací doba místa: ' . $pickupPoint->name;
@@ -390,7 +389,7 @@ class PickupPointPresenter extends BackendPresenter
 			['Výdejní místa', 'default'],
 			['Místa'],
 			['Otevírací doba', 'pointHours'],
-			['Nová položka']
+			['Nová položka'],
 		];
 
 		$this->template->displayButtons = [$this->createBackButton('pointHours')];
@@ -407,18 +406,20 @@ class PickupPointPresenter extends BackendPresenter
 		$form->addText('pauseTo', 'Pauza do')->setHtmlType('time')->setNullable();
 		$form->addText('openTo', 'Otevřeno do')->setHtmlType('time')->setNullable();
 
-		$form->onValidate[] = function (AdminForm $form) {
+		$form->onValidate[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
-			if ($this->openingHoursRepo->many()
+			if (!$this->openingHoursRepo->many()
 				->where('date', $values['date'])
 				->first()
 			) {
-				$form['date']->addError('Mimořádná otevírací doba pro tento den již existuje!');
+				return;
 			}
+
+			$form['date']->addError('Mimořádná otevírací doba pro tento den již existuje!');
 		};
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			if (!$values['uuid']) {
@@ -445,7 +446,7 @@ class PickupPointPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 
 		/** @var \Eshop\DB\PickupPoint $pickupPoint */
-		$pickupPoint = $this->getParameter('pickupPoint') ? $this->getParameter('pickupPoint') : $this->pickupPointRepo->one($this->selectedPickupPoint, true);
+		$pickupPoint = $this->getParameter('pickupPoint') ?: $this->pickupPointRepo->one($this->selectedPickupPoint, true);
 
 		foreach ($this::WEEK_DAYS as $key => $day) {
 			/** @var \Eshop\DB\OpeningHours $openingHour */
@@ -464,7 +465,7 @@ class PickupPointPresenter extends BackendPresenter
 
 		$form->addSubmit('submit', 'Uložit');
 
-		$form->onSuccess[] = function (AdminForm $form) use ($pickupPoint) {
+		$form->onSuccess[] = function (AdminForm $form) use ($pickupPoint): void {
 			$values = $form->getValues('array');
 
 			foreach ($this::WEEK_DAYS as $key => $day) {
@@ -479,7 +480,7 @@ class PickupPointPresenter extends BackendPresenter
 					'pauseTo' => $values[$key . '_pauseTo'],
 					'openTo' => $values[$key . '_openTo'],
 					'pickupPoint' => $pickupPoint->getPK(),
-					'day' => $key
+					'day' => $key,
 				]);
 			}
 
@@ -494,6 +495,7 @@ class PickupPointPresenter extends BackendPresenter
 	public function onDelete(Entity $object): void
 	{
 		parent::onDelete($object);
+
 		$this->pickupPointRepo->clearCache();
 	}
 }

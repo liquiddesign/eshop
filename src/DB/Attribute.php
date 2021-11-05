@@ -15,7 +15,7 @@ class Attribute extends \StORM\Entity
 {
 	public const FILTER_TYPES = [
 		'and' => 'AND',
-		'or' => 'OR'
+		'or' => 'OR',
 	];
 
 	/**

@@ -25,6 +25,9 @@ class PickupPointRepository extends \StORM\Repository implements IGeneralReposit
 		$this->cache = new Cache($storage);
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('name');
@@ -42,7 +45,6 @@ class PickupPointRepository extends \StORM\Repository implements IGeneralReposit
 		return $collection->orderBy(['priority', "name$suffix"]);
 	}
 
-
 	public function filterName(string $q, Collection $collection): void
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
@@ -54,6 +56,9 @@ class PickupPointRepository extends \StORM\Repository implements IGeneralReposit
 		$collection->where("address.city LIKE :q", "%$q%");
 	}
 
+	/**
+	 * @return string[]
+	 */
 	public function getCitiesArrayForSelect(): array
 	{
 		/** @var \Eshop\DB\AddressRepository $addressRepo */
@@ -65,6 +70,10 @@ class PickupPointRepository extends \StORM\Repository implements IGeneralReposit
 			->toArrayOf('city');
 	}
 
+	/**
+	 * @return \Eshop\DB\OpeningHours[]
+	 * @throws \Throwable
+	 */
 	public function getAllOpeningHours(): array
 	{
 		/** @var \Eshop\DB\OpeningHoursRepository $openingHoursRepo */
@@ -79,7 +88,7 @@ class PickupPointRepository extends \StORM\Repository implements IGeneralReposit
 
 			$openingHours = [];
 
-			foreach ($repository->many() as $key => $point) {
+			foreach ($repository->many()->toArrayOf('uuid') as $key) {
 				$openingHours[$key]['normal'] = $openingHoursRepo->many()
 					->setIndex('day')
 					->where('fk_pickupPoint', $key)
@@ -97,8 +106,6 @@ class PickupPointRepository extends \StORM\Repository implements IGeneralReposit
 
 			return $openingHours;
 		});
-
-
 	}
 
 	public function clearCache(?string $name = 'pickupPoints'): void

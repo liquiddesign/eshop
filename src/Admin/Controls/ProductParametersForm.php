@@ -13,7 +13,6 @@ use Eshop\DB\ParameterRepository;
 use Eshop\DB\ParameterValueRepository;
 use Eshop\DB\Product;
 use Nette\Application\UI\Control;
-use Nette\Utils\Arrays;
 
 /**
  * Class ProductParametersForm
@@ -42,8 +41,7 @@ class ProductParametersForm extends Control
 		ParameterValueRepository $parameterValueRepository,
 		CategoryRepository $categoryRepository,
 		ParameterAvailableValueRepository $parameterAvailableValueRepository
-	)
-	{
+	) {
 		$this->product = $product;
 		$this->parameterRepository = $parameterRepository;
 		$this->parameterGroupRepository = $parameterGroupRepository;
@@ -79,7 +77,7 @@ class ProductParametersForm extends Control
 				$parameters = $parameterRepository->getCollection()
 					->where('fk_group', $group->getPK());
 
-				if (\count($parameters) == 0) {
+				if (\count($parameters) === 0) {
 					continue;
 				}
 
@@ -87,9 +85,9 @@ class ProductParametersForm extends Control
 				$groupContainer = $form->addContainer($group->getPK());
 
 				foreach ($parameters as $parameter) {
-					if ($parameter->type == 'bool') {
+					if ($parameter->type === 'bool') {
 						$input = $groupContainer->addCheckbox($parameter->getPK(), $parameter->name);
-					} elseif ($parameter->type == 'list') {
+					} elseif ($parameter->type === 'list') {
 						$allowedKeys = \array_values($this->parameterAvailableValueRepository->many()->where('fk_parameter', $parameter->getPK())->toArrayOf('allowedKey'));
 						$allowedValues = \array_values($this->parameterAvailableValueRepository->many()->where('fk_parameter', $parameter->getPK())->toArrayOf('allowedValue'));
 						$input = $groupContainer->addDataMultiSelect($parameter->getPK(), $parameter->name, \array_combine($allowedKeys, $allowedValues));
@@ -97,11 +95,11 @@ class ProductParametersForm extends Control
 //						$input = $groupContainer->addLocaleText($parameter->getPK(), $parameter->name);
 					}
 
-					if ($parameter->type == 'bool') {
+					if ($parameter->type === 'bool') {
 						if ($paramValue = $parameterValueRepository->many()->where('fk_product', $product->getPK())->where('value.fk_parameter', $parameter->getPK())->first()) {
 							$input->setDefaultValue($paramValue->value->allowedKey);
 						}
-					} elseif ($parameter->type == 'list') {
+					} elseif ($parameter->type === 'list') {
 						/** @var \Eshop\DB\ParameterValue[] $paramValue */
 						$paramValues = $parameterValueRepository->many()
 							->where('fk_product', $product->getPK())
@@ -123,12 +121,11 @@ class ProductParametersForm extends Control
 		$this->addComponent($form, 'form');
 	}
 
-	public function validate(AdminForm $form)
+	public function validate(AdminForm $form): void
 	{
-
 	}
 
-	public function submit(AdminForm $form)
+	public function submit(AdminForm $form): void
 	{
 		$values = $form->getValues('array');
 
@@ -149,7 +146,7 @@ class ProductParametersForm extends Control
 
 					$this->parameterValueRepository->createOne([
 						'product' => $this->product->getPK(),
-						'value' => $availableValue->getPK()
+						'value' => $availableValue->getPK(),
 					]);
 				}
 			}
@@ -158,7 +155,7 @@ class ProductParametersForm extends Control
 		$this->redirect('this');
 	}
 
-	public function render()
+	public function render(): void
 	{
 		$this->template->error = $this->error;
 		$this->template->render(__DIR__ . '/productParametersForm.latte');

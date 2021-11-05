@@ -9,5 +9,4 @@ namespace Eshop\DB;
  */
 class PaymentTypePriceRepository extends \StORM\Repository
 {
-	
 }

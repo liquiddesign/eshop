@@ -81,6 +81,10 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			->delete();
 	}
 
+	/**
+	 * @param \Eshop\DB\Pricelist $pricelist
+	 * @return \Eshop\DB\Customer[]
+	 */
 	public function getPricelistCustomers(Pricelist $pricelist): array
 	{
 		return $this->getConnection()->findRepository(Customer::class)->many()
@@ -120,11 +124,10 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		bool $overwrite = false,
 		bool $fillBeforePrices = false,
 		bool $quantityPrices = false
-	)
-	{
+	): void {
 		$priceRepository = $this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class);
 
-		/** @var Price[] $originalPrices */
+		/** @var \Eshop\DB\Price[] $originalPrices */
 		$originalPrices = $priceRepository->many()->where('fk_pricelist', $from->getPK());
 
 		foreach ($originalPrices as $originalPrice) {
@@ -158,11 +161,10 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		bool $overwrite = false,
 		bool $fillBeforePrices = false,
 		bool $quantityPrices = false
-	)
-	{
+	): void {
 		$priceRepository = $this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class);
 
-		/** @var Price[] $originalPrices */
+		/** @var \Eshop\DB\Price[] $originalPrices */
 		$originalPrices = $priceRepository->many()->where('uuid', $ids);
 
 		foreach ($originalPrices as $originalPrice) {
@@ -188,11 +190,17 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		}
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('name');
 	}
 
+	/**
+	 * @return \Eshop\DB\Pricelist[]
+	 */
 	public function getAllPricelists(): array
 	{
 		return $this->many()->toArray();
@@ -204,9 +212,10 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		// @TODO: refactor to one SQL
 		$pricelists = [];
 
-		foreach (
-			$collection->where('this.uuid = :unregistred OR defaultAfterRegistration=1',
-				['unregistred' => CustomerGroupRepository::UNREGISTERED_PK]) as $group
+		foreach ($collection->where(
+			'this.uuid = :unregistred OR defaultAfterRegistration=1',
+			['unregistred' => CustomerGroupRepository::UNREGISTERED_PK],
+		) as $group
 		) {
 			$pricelists = \array_merge($pricelists, $group->defaultPricelists->toArrayOf('uuid', [], true));
 		}
@@ -219,24 +228,24 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		\League\Csv\Writer $writer,
 		bool $quantityPrices = false,
 		bool $showVat = true
-	)
-	{
+	): void {
 		$writer->setDelimiter(';');
 		$writer->insertOne([
 			'product',
 			'price',
 			'priceVat',
 			'priceBefore',
-			'priceVatBefore'
+			'priceVatBefore',
 		]);
 
-		foreach (
-			$this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class)->many()->where('fk_pricelist',
-				$priceList) as $row
+		foreach ($this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class)->many()->where(
+			'fk_pricelist',
+			$priceList,
+		) as $row
 		) {
 			$values = [
 				$row->product->getFullCode(),
-				$row->price
+				$row->price,
 			];
 
 			$values[] = $showVat ? $row->priceVat : 0;
@@ -255,7 +264,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		}
 	}
 
-	public function csvImport(Pricelist $pricelist, Reader $reader, bool $quantityPrices = false)
+	public function csvImport(Pricelist $pricelist, Reader $reader, bool $quantityPrices = false): void
 	{
 		$reader->setDelimiter(';');
 		$reader->setHeaderOffset(0);
@@ -265,13 +274,15 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			'price',
 			'priceVat',
 			'priceBefore',
-			'priceVatBefore'
+			'priceVatBefore',
 		]);
 
-		foreach ($iterator as $offset => $value) {
+		foreach ($iterator as $value) {
 			$fullCode = \explode('.', $value['product']);
-			$products = $this->getConnection()->findRepository(Product::class)->many()->where('this.code',
-				$fullCode[0]);
+			$products = $this->getConnection()->findRepository(Product::class)->many()->where(
+				'this.code',
+				$fullCode[0],
+			);
 
 			if (isset($fullCode[1])) {
 				$products->where('this.subcode', $fullCode[1]);
@@ -289,10 +300,10 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			];
 
 			if ($quantityPrices) {
-				$values['validFrom'] = $value['validFrom'] != '' ? (int)$value['validFrom'] : null;
+				$values['validFrom'] = $value['validFrom'] !== '' ? (int)$value['validFrom'] : null;
 			} else {
-				$values['priceBefore'] = $value['priceBefore'] != '' ? NumbersHelper::strToFloat($value['priceBefore']) : null;
-				$values['priceVatBefore'] = $value['priceVatBefore'] != '' ? NumbersHelper::strToFloat($value['priceVatBefore']) : null;
+				$values['priceBefore'] = $value['priceBefore'] !== '' ? NumbersHelper::strToFloat($value['priceBefore']) : null;
+				$values['priceVatBefore'] = $value['priceVatBefore'] !== '' ? NumbersHelper::strToFloat($value['priceVatBefore']) : null;
 			}
 
 			$this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class)->syncOne($values);
@@ -311,20 +322,19 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	}
 
 	/**
-	 * @param Pricelist[] $pricelists
-	 * @return Currency|null
+	 * @param \Eshop\DB\Pricelist[] $pricelists
 	 */
 	public function checkSameCurrency(array $pricelists): ?Currency
 	{
-		if (\count($pricelists) == 0) {
+		if (\count($pricelists) === 0) {
 			return null;
 		}
 
-		/** @var Currency $currency */
+		/** @var \Eshop\DB\Currency $currency */
 		$currency = Arrays::first($pricelists)->currency;
 
 		foreach ($pricelists as $pricelist) {
-			if ($pricelist->currency->getPK() != $currency->getPK()) {
+			if ($pricelist->currency->getPK() !== $currency->getPK()) {
 				return null;
 			}
 		}
@@ -333,12 +343,12 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	}
 
 	/**
-	 * @param Pricelist[] $pricelists
-	 * @return array
+	 * @param \Eshop\DB\Pricelist[] $pricelists
+	 * @return \Eshop\DB\Pricelist[]
 	 */
 	public function getTopPriorityPricelists(array $pricelists): array
 	{
-		$topPriority = PHP_INT_MAX;
+		$topPriority = \PHP_INT_MAX;
 		$result = [];
 
 		foreach ($pricelists as $pricelist) {
@@ -353,8 +363,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 	/**
 	 * Expecting pricelists with same currency!
-	 * @param Pricelist[] $sourcePricelists
-	 * @param Pricelist $targetPricelist
+	 * @param \Eshop\DB\Pricelist[] $sourcePricelists
+	 * @param \Eshop\DB\Pricelist $targetPricelist
 	 * @param string $aggregateFunction
 	 * @param float $percentageChange
 	 * @param int $roundingAccuracy
@@ -369,8 +379,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		int $roundingAccuracy = 2,
 		bool $overwriteExisting = true,
 		bool $usePriority = true
-	)
-	{
+	): void {
 		$aggregateFunctions = ['min', 'max', 'avg', 'med'];
 
 		if (!Arrays::contains($aggregateFunctions, $aggregateFunction)) {
@@ -384,14 +393,14 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		$prices = [];
 
 		foreach ($sourcePricelists as $sourcePricelist) {
-			/** @var Price[] $localPrices */
+			/** @var \Eshop\DB\Price[] $localPrices */
 			$localPrices = $this->priceRepository->many()->where('fk_pricelist', $sourcePricelist->getPK())->toArray();
 
 			foreach ($localPrices as $localPrice) {
 				if (isset($prices[$localPrice->product->getPK()])) {
 					$currentPrice = $prices[$localPrice->product->getPK()];
 
-					if ($aggregateFunction == 'min') {
+					if ($aggregateFunction === 'min') {
 						if ($localPrice->price < $currentPrice['price']) {
 							$currentPrice['price'] = $localPrice->price;
 						}
@@ -399,7 +408,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 						if ($localPrice->priceVat < $currentPrice['priceVat']) {
 							$currentPrice['priceVat'] = $localPrice->priceVat;
 						}
-					} elseif ($aggregateFunction == 'max') {
+					} elseif ($aggregateFunction === 'max') {
 						if ($localPrice->price > $currentPrice['price']) {
 							$currentPrice['price'] = $localPrice->price;
 						}
@@ -407,11 +416,11 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 						if ($localPrice->priceVat > $currentPrice['priceVat']) {
 							$currentPrice['priceVat'] = $localPrice->priceVat;
 						}
-					} elseif ($aggregateFunction == 'avg') {
+					} elseif ($aggregateFunction === 'avg') {
 						$currentPrice['price'] += $localPrice->price;
 						$currentPrice['priceVat'] += $localPrice->priceVat;
 						$currentPrice['count']++;
-					} elseif ($aggregateFunction == 'med') {
+					} elseif ($aggregateFunction === 'med') {
 						$currentPrice['priceArray'][] = $localPrice->price;
 						$currentPrice['priceVatArray'][] = $localPrice->priceVat;
 						$currentPrice['count']++;
@@ -424,7 +433,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 						'priceVat' => $localPrice->priceVat,
 						'count' => 1,
 						'priceArray' => [$localPrice->price],
-						'priceVatArray' => [$localPrice->priceVat]
+						'priceVatArray' => [$localPrice->priceVat],
 					];
 				}
 			}
@@ -442,17 +451,17 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 			$newValues = [
 				'product' => $productKey,
-				'pricelist' => $targetPricelist->getPK()
+				'pricelist' => $targetPricelist->getPK(),
 			];
 
-			if ($aggregateFunction == 'min' || $aggregateFunction == 'max') {
+			if ($aggregateFunction === 'min' || $aggregateFunction === 'max') {
 				$newValues['price'] = $priceArray['price'];
 				$newValues['priceVat'] = $priceArray['priceVat'];
-			} elseif ($aggregateFunction == 'avg') {
-				$newValues['price'] = ((float)$priceArray['price'] / $priceArray['count']);
-				$newValues['priceVat'] = ((float)$priceArray['priceVat'] / $priceArray['count']);
-			} elseif ($aggregateFunction == 'med') {
-				if (\count($priceArray['priceArray']) == 1) {
+			} elseif ($aggregateFunction === 'avg') {
+				$newValues['price'] = (float)$priceArray['price'] / $priceArray['count'];
+				$newValues['priceVat'] = (float)$priceArray['priceVat'] / $priceArray['count'];
+			} elseif ($aggregateFunction === 'med') {
+				if (\count($priceArray['priceArray']) === 1) {
 					$newValues['price'] = $priceArray['priceArray'][0];
 					$newValues['priceVat'] = $priceArray['priceVatArray'][0];
 				} else {
@@ -474,8 +483,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 				}
 			}
 
-			$newValues['price'] = \round($newValues['price'] * ($percentageChange / 100.0), $roundingAccuracy);
-			$newValues['priceVat'] = \round($newValues['priceVat'] * ($percentageChange / 100.0), $roundingAccuracy);
+			$newValues['price'] = \round($newValues['price'] * $percentageChange / 100.0, $roundingAccuracy);
+			$newValues['priceVat'] = \round($newValues['priceVat'] * $percentageChange / 100.0, $roundingAccuracy);
 
 			if ($existingPrice) {
 				$existingPrice->update($newValues);

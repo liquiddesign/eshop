@@ -23,7 +23,11 @@ class SupplierCategoryRepository extends \StORM\Repository
 			}
 		}
 	}
-	
+
+	/**
+	 * @param bool|null $mapped
+	 * @return string[]
+	 */
 	public function getArrayForSelect(?bool $mapped = null): array
 	{
 		$collection = $this->many();

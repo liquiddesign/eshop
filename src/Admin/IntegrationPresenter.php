@@ -15,7 +15,7 @@ use Web\DB\SettingRepository;
 class IntegrationPresenter extends BackendPresenter
 {
 	protected const CONFIGURATION = [
-		'supportBox' => false
+		'supportBox' => false,
 	];
 
 	/** @inject */
@@ -43,20 +43,22 @@ class IntegrationPresenter extends BackendPresenter
 			'@mailerLite' => 'MailerLite',
 		];
 
-		if (isset(static::CONFIGURATION['supportBox']) && static::CONFIGURATION['supportBox']) {
-			$this->template->tabs['@supportBox'] = 'SupportBox';
+		if (!isset(self::CONFIGURATION['supportBox']) || !self::CONFIGURATION['supportBox']) {
+			return;
 		}
+
+		$this->template->tabs['@supportBox'] = 'SupportBox';
 	}
 
-	public function actionDefault()
+	public function actionDefault(): void
 	{
-		/** @var AdminForm $form */
+		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('form');
 
 		$form->setDefaults($this->settingsRepo->many()->setIndex('name')->toArrayOf('value'));
 	}
 
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Integrace';
 		$this->template->headerTree = [
@@ -73,7 +75,7 @@ class IntegrationPresenter extends BackendPresenter
 
 		$form->addSubmit('submit', 'Uložit');
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			foreach ($values as $key => $value) {
@@ -87,17 +89,17 @@ class IntegrationPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function actionZasilkovna()
+	public function actionZasilkovna(): void
 	{
-		/** @var AdminForm $form */
+		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('zasilkovnaForm');
 
 		$form->setDefaults($this->settingsRepo->many()->setIndex('name')->toArrayOf('value'));
 	}
 
-	public function actionSupportbox()
+	public function actionSupportbox(): void
 	{
-		/** @var AdminForm $form */
+		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('supportboxForm');
 
 		$form->setDefaults($this->settingsRepo->many()->setIndex('name')->toArrayOf('value'));
@@ -111,7 +113,7 @@ class IntegrationPresenter extends BackendPresenter
 
 		$form->addSubmit('submit', 'Uložit');
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			foreach ($values as $key => $value) {
@@ -125,9 +127,9 @@ class IntegrationPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function actionMailerLite()
+	public function actionMailerLite(): void
 	{
-		/** @var AdminForm $form */
+		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('mailerLiteForm');
 
 		$form->setDefaults($this->settingsRepo->many()->setIndex('name')->toArrayOf('value'));
@@ -140,7 +142,7 @@ class IntegrationPresenter extends BackendPresenter
 
 		$form->addSubmit('submit', 'Uložit');
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			foreach ($values as $key => $value) {
@@ -161,7 +163,7 @@ class IntegrationPresenter extends BackendPresenter
 
 		$form->addSubmit('submit', 'Uložit');
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			foreach ($values as $key => $value) {
@@ -175,33 +177,32 @@ class IntegrationPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderSupportbox()
+	public function renderSupportbox(): void
 	{
 		$this->template->headerLabel = 'Integrace';
 		$this->template->headerTree = [
 			['Integrace'],
-			['SupportBox']
+			['SupportBox'],
 		];
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('supportboxForm')];
 	}
 
-
-	public function renderZasilkovna()
+	public function renderZasilkovna(): void
 	{
 		$this->template->headerLabel = 'Integrace';
 		$this->template->headerTree = [
 			['Integrace'],
-			['Zásilkovna']
+			['Zásilkovna'],
 		];
 		$this->template->displayButtons = [
 			'<a href="' . $this->link('syncZasilkovnaPoints!') . '" onclick="return confirm(\'Opravdu? Tato operace může trvat až 5 minut.\')"><button class="btn btn-sm btn-outline-primary"><i class="fa fa-sync"></i>  Synchronizovat výdejní místa</button></a>',
-			$this->createButtonWithClass('syncZasilkovnaOrders!', '<i class="fa fa-sync"></i>  Synchronizovat objednávky', 'btn btn-sm btn-outline-primary')
+			$this->createButtonWithClass('syncZasilkovnaOrders!', '<i class="fa fa-sync"></i>  Synchronizovat objednávky', 'btn btn-sm btn-outline-primary'),
 		];
 		$this->template->displayControls = [$this->getComponent('zasilkovnaForm')];
 	}
 
-	public function handleSyncZasilkovnaPoints()
+	public function handleSyncZasilkovnaPoints(): void
 	{
 		try {
 			$this->zasilkovnaProvider->syncPickupPoints();
@@ -213,14 +214,13 @@ class IntegrationPresenter extends BackendPresenter
 		$this->redirect('this');
 	}
 
-	public function handleSyncZasilkovnaOrders()
+	public function handleSyncZasilkovnaOrders(): void
 	{
 		try {
 			$this->zasilkovnaProvider->syncOrders($this->orderRepository->many()
 				->where('this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
 				->where('purchase.zasilkovnaId IS NOT NULL')
-				->where('zasilkovnaCompleted', false)
-			);
+				->where('zasilkovnaCompleted', false));
 			$this->flashMessage('Provedeno', 'success');
 		} catch (\Exception $e) {
 			$this->flashMessage('Chyba! Zkontrolujte API klíč.', 'error');
@@ -229,18 +229,18 @@ class IntegrationPresenter extends BackendPresenter
 		$this->redirect('this');
 	}
 
-	public function renderMailerLite()
+	public function renderMailerLite(): void
 	{
 		$this->template->headerLabel = 'Integrace';
 		$this->template->headerTree = [
 			['Integrace'],
-			['MailerLite']
+			['MailerLite'],
 		];
 		$this->template->displayButtons = [$this->createButtonWithClass('syncMailerLite!', '<i class="fa fa-sync"></i>  Synchronizovat s MailerLite', 'btn btn-sm btn-outline-primary')];
 		$this->template->displayControls = [$this->getComponent('mailerLiteForm')];
 	}
 
-	public function handleSyncMailerLite()
+	public function handleSyncMailerLite(): void
 	{
 		try {
 			$this->mailerLite->syncCustomers();

@@ -88,6 +88,4 @@ class Currency extends \StORM\Entity
 	{
 		return $this->enableConversion && $this->convertCurrency && $this->convertRatio;
 	}
-
-
 }

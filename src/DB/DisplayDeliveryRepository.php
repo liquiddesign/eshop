@@ -9,7 +9,10 @@ namespace Eshop\DB;
  */
 class DisplayDeliveryRepository extends \StORM\Repository
 {
-	public function getArrayForSelect():array
+	/**
+	 * @return string[]
+	 */
+	public function getArrayForSelect(): array
 	{
 		return $this->many()->orderBy(['label'])->toArrayOf('label');
 	}

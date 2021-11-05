@@ -35,8 +35,7 @@ class ProductAttributesForm extends Control
 		AttributeAssignRepository $attributeAssignRepository,
 		CategoryRepository $categoryRepository,
 		bool $errorEnabled = true
-	)
-	{
+	) {
 		$this->product = $product;
 		$this->attributeRepository = $attributeRepository;
 		$this->attributeValueRepository = $attributeValueRepository;
@@ -59,7 +58,7 @@ class ProductAttributesForm extends Control
 
 		$attributes = $this->attributeRepository->getAttributesByCategories(\array_values($categories), true);
 
-		if (\count($attributes) == 0) {
+		if (\count($attributes) === 0) {
 			$this->error = 'Produkt nemá žádné atributy!';
 
 			return;
@@ -89,11 +88,11 @@ class ProductAttributesForm extends Control
 		$this->addComponent($form, 'form');
 	}
 
-	public function validate(AdminForm $form)
+	public function validate(AdminForm $form): void
 	{
 	}
 
-	public function submit(AdminForm $form)
+	public function submit(AdminForm $form): void
 	{
 		$values = $form->getValues('array');
 
@@ -103,7 +102,7 @@ class ProductAttributesForm extends Control
 			foreach ($attributeValues as $attributeValueKey) {
 				$this->attributeAssignRepository->syncOne([
 					'product' => $this->product->getPK(),
-					'value' => $attributeValueKey
+					'value' => $attributeValueKey,
 				]);
 			}
 		}
@@ -111,7 +110,7 @@ class ProductAttributesForm extends Control
 		$form->processRedirect('this', 'default', [$this->product]);
 	}
 
-	public function render()
+	public function render(): void
 	{
 		$this->template->errorEnabled = $this->errorEnabled;
 		$this->template->error = $this->error;

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
-use Eshop\BackendPresenter;
-use Admin\Controls\AdminGrid;
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
+use Eshop\BackendPresenter;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\Related;
 use Eshop\DB\RelatedRepository;
@@ -22,6 +22,11 @@ use StORM\ICollection;
 
 class RelatedPresenter extends BackendPresenter
 {
+	public const TABS = [
+		'relations' => 'Vazby',
+		'types' => 'Typy',
+	];
+
 	/** @inject */
 	public RelatedRepository $relatedRepository;
 
@@ -33,11 +38,6 @@ class RelatedPresenter extends BackendPresenter
 
 	/** @inject */
 	public Application $application;
-
-	public const TABS = [
-		'relations' => 'Vazby',
-		'types' => 'Typy',
-	];
 
 	/** @persistent */
 	public string $tab = 'relations';
@@ -82,7 +82,7 @@ class RelatedPresenter extends BackendPresenter
 		$types = $this->relatedTypeRepository->getArrayForSelect();
 
 		if (\count($types) > 0) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->where('fk_type', $value);
 			}, '- Typ -', 'type', 'Typ', $this->relatedTypeRepository->getArrayForSelect(), ['placeholder' => '- Typ -']);
 		}
@@ -94,7 +94,7 @@ class RelatedPresenter extends BackendPresenter
 
 		$submit = $grid->getForm()->addSubmit('export', 'Exportovat ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-		$submit->onClick[] = function ($button) use ($grid) {
+		$submit->onClick[] = function ($button) use ($grid): void {
 			$grid->getPresenter()->redirect('export', [$grid->getSelectedIds()]);
 		};
 
@@ -116,7 +116,7 @@ class RelatedPresenter extends BackendPresenter
 		$master = $form->addSelect2Ajax('master', $this->link('getProductsForSelect2!'), 'První produkt', [], 'Zvolte produkt');
 		$slave = $form->addSelect2Ajax('slave', $this->link('getProductsForSelect2!'), 'Druhý produkt', [], 'Zvolte produkt');
 
-		/** @var Related $relation */
+		/** @var \Eshop\DB\Related $relation */
 		if ($relation = $this->getParameter('relation')) {
 			$this->template->select2AjaxDefaults[$master->getHtmlId()] = [$relation->getValue('master') => $relation->master->name];
 			$this->template->select2AjaxDefaults[$slave->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->name];
@@ -124,19 +124,21 @@ class RelatedPresenter extends BackendPresenter
 
 		$form->addSubmits(!$this->getParameter('relation'));
 
-		$form->onValidate[] = function (AdminForm $form) {
+		$form->onValidate[] = function (AdminForm $form): void {
 			$data = $this->getHttpRequest()->getPost();
 
 			if (!isset($data['master'])) {
 				$form['master']->addError('Toto pole je povinné!');
 			}
 
-			if (!isset($data['slave'])) {
-				$form['slave']->addError('Toto pole je povinné!');
+			if (isset($data['slave'])) {
+				return;
 			}
+
+			$form['slave']->addError('Toto pole je povinné!');
 		};
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$values['master'] = $this->productRepository->one($form->getHttpData(Form::DATA_TEXT, 'master'))->getPK();
@@ -155,28 +157,28 @@ class RelatedPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->tabs = $this::TABS;
 		$this->template->headerLabel = 'Vazby';
 		$this->template->headerTree = [
 			['Vazby'],
-			[$this::TABS[$this->tab]]
+			[$this::TABS[$this->tab]],
 		];
 
-		if ($this->tab == 'relations') {
+		if ($this->tab === 'relations') {
 			$this->template->displayButtons = [
 				$this->createNewItemButton('newRelation'),
-				$this->createButtonWithClass('import', '<i class="fas fa-file-import"></i> Import', 'btn btn-outline-primary btn-sm')
+				$this->createButtonWithClass('import', '<i class="fas fa-file-import"></i> Import', 'btn btn-outline-primary btn-sm'),
 			];
 			$this->template->displayControls = [$this->getComponent('relationGrid'),];
-		} elseif ($this->tab == 'types') {
+		} elseif ($this->tab === 'types') {
 			$this->template->displayButtons = [$this->createNewItemButton('newType')];
 			$this->template->displayControls = [$this->getComponent('typeGrid')];
 		}
 	}
 
-	public function renderNewRelation()
+	public function renderNewRelation(): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -187,7 +189,7 @@ class RelatedPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('relationForm')];
 	}
 
-	public function actionDetailRelation(Related $relation)
+	public function actionDetailRelation(Related $relation): void
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('relationForm');
@@ -198,12 +200,12 @@ class RelatedPresenter extends BackendPresenter
 		$form['priority']->setDefaultValue($relation->priority);
 	}
 
-	public function renderDetailRelation(Related $relation)
+	public function renderDetailRelation(Related $relation): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Vazby', 'default'],
-			['Detail']
+			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('relationForm')];
@@ -245,15 +247,17 @@ class RelatedPresenter extends BackendPresenter
 
 		$form->addSubmits(!$this->getParameter('relatedType'));
 
-		$form->onValidate[] = function (AdminForm $form) {
+		$form->onValidate[] = function (AdminForm $form): void {
 			$values = $form->getUnsafeValues('array');
 
-			if ($this->relatedTypeRepository->many()->where('code', $values['code'])->first()) {
-				$form['code']->addError('Již existuje typ s tímto kódem!');
+			if (!$this->relatedTypeRepository->many()->where('code', $values['code'])->first()) {
+				return;
 			}
+
+			$form['code']->addError('Již existuje typ s tímto kódem!');
 		};
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			if (!$values['uuid']) {
@@ -269,7 +273,7 @@ class RelatedPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderNewType()
+	public function renderNewType(): void
 	{
 		$this->template->headerLabel = 'Nový typ';
 		$this->template->headerTree = [
@@ -280,7 +284,7 @@ class RelatedPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('typeForm')];
 	}
 
-	public function actionDetailType(RelatedType $relatedType)
+	public function actionDetailType(RelatedType $relatedType): void
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('typeForm');
@@ -288,28 +292,27 @@ class RelatedPresenter extends BackendPresenter
 		$form->setDefaults($relatedType->toArray());
 	}
 
-	public function renderDetailType(RelatedType $relatedType)
+	public function renderDetailType(RelatedType $relatedType): void
 	{
 		$this->template->headerLabel = 'Detail typu';
 		$this->template->headerTree = [
 			['Vazby', 'default'],
-			['Detail typu']
+			['Detail typu'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('typeForm')];
 	}
 
-	public function actionExport(array $ids)
+	public function actionExport(array $ids): void
 	{
 	}
 
-
-	public function renderExport(array $ids)
+	public function renderExport(array $ids): void
 	{
 		$this->template->headerLabel = 'Exportovat';
 		$this->template->headerTree = [
 			['Vazby', 'default'],
-			['Export']
+			['Export'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('exportForm')];
@@ -333,15 +336,15 @@ class RelatedPresenter extends BackendPresenter
 
 		$form->addSubmit('submit', 'Exportovat');
 
-		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid) {
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid): void {
 			$values = $form->getValues('array');
 
-			/** @var Related[] $relations */
-			$relations = $values['bulkType'] == 'selected' ? $this->relatedRepository->many()->where('uuid', $ids) : $grid->getFilteredSource();
+			/** @var \Eshop\DB\Related[] $relations */
+			$relations = $values['bulkType'] === 'selected' ? $this->relatedRepository->many()->where('uuid', $ids) : $grid->getFilteredSource();
 
 			$tempFilename = \tempnam($this->tempDir, "csv");
 
-			$this->application->onShutdown[] = function () use ($tempFilename) {
+			$this->application->onShutdown[] = function () use ($tempFilename): void {
 				\unlink($tempFilename);
 			};
 
@@ -353,17 +356,16 @@ class RelatedPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function actionImport()
+	public function actionImport(): void
 	{
 	}
 
-
-	public function renderImport()
+	public function renderImport(): void
 	{
 		$this->template->headerLabel = 'Importovat';
 		$this->template->headerTree = [
 			['Vazby', 'default'],
-			['Import']
+			['Import'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('importForm')];
@@ -380,7 +382,7 @@ slave - Kód sekundárního produktu vazby<br><br>
 Pokud nebude nalezen typ vazby nebo některý z produktů tak se daný řádek ignoruje.');
 		$form->addSubmit('submit', 'Uložit');
 
-		$form->onSuccess[] = function (Form $form) {
+		$form->onSuccess[] = function (Form $form): void {
 			/** @var \Nette\Http\FileUpload $file */
 			$file = $form->getValues()->file;
 
@@ -392,5 +394,4 @@ Pokud nebude nalezen typ vazby nebo některý z produktů tak se daný řádek i
 
 		return $form;
 	}
-
 }

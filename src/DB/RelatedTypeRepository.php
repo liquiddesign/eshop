@@ -12,6 +12,9 @@ use StORM\Collection;
  */
 class RelatedTypeRepository extends \StORM\Repository implements IGeneralRepository
 {
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('name');
@@ -19,12 +22,10 @@ class RelatedTypeRepository extends \StORM\Repository implements IGeneralReposit
 
 	public function getCollection(bool $includeHidden = false): Collection
 	{
+		unset($includeHidden);
+
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$collection = $this->many();
-
-//		if (!$includeHidden) {
-//			$collection->where('hidden', false);
-//		}
 
 		return $collection->orderBy(["name$suffix"]);
 	}

@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop;
 
-use Eshop\DB\ProductRepository;
 use Nette\Forms\IControl;
 
 class FormValidators
 {
 	public static function isPercent(IControl $control): bool
 	{
-		return ($control->getValue() >= 0 && $control->getValue() <= 100);
+		return $control->getValue() >= 0 && $control->getValue() <= 100;
 	}
 
 	public static function isPercentNoMax(IControl $control): bool
@@ -21,7 +20,7 @@ class FormValidators
 
 	public static function isProductExists(IControl $control, array $args): bool
 	{
-		/** @var ProductRepository $repository */
+		/** @var \Eshop\DB\ProductRepository $repository */
 		[$repository] = $args;
 		$value = $control->getValue();
 
@@ -31,7 +30,6 @@ class FormValidators
 	/**
 	 * @param \Nette\Forms\IControl $control
 	 * @param array $args Repository on index 0
-	 * @return bool
 	 */
 	public static function isMultipleProductsExists(IControl $control, array $args): bool
 	{
@@ -41,7 +39,7 @@ class FormValidators
 			return false;
 		}
 
-		/** @var ProductRepository $repository */
+		/** @var \Eshop\DB\ProductRepository $repository */
 		[$repository] = $args;
 
 		foreach ($values as $value) {
@@ -55,7 +53,7 @@ class FormValidators
 
 	public static function amountProductCheck(IControl $control, array $args): bool
 	{
-		/** @var ProductRepository $repository */
+		/** @var \Eshop\DB\ProductRepository $repository */
 		[$repository, $amountRepo, $store] = $args;
 		$value = $control->getValue();
 
@@ -65,15 +63,9 @@ class FormValidators
 			return false;
 		}
 
-		$available = $amountRepo->many()
+		return $amountRepo->many()
 				->where('fk_product', $product->getPK())
 				->where('fk_store', $store->getPK())
-				->count() == 0;
-
-		if (!$available) {
-			return false;
-		}
-
-		return true;
+				->count() === 0;
 	}
 }

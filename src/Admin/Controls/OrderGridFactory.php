@@ -42,44 +42,20 @@ class OrderGridFactory
 		$this->application = $application;
 	}
 
-	private function getCollectionByState(string $state): Collection
-	{
-		if ($state === 'open') {
-			return $this->orderRepository->many()->where('this.receivedTs IS NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
-				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
-				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
-		}
-
-		if ($state === 'received') {
-			return $this->orderRepository->many()->where('this.receivedTs IS NOT NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
-				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
-				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
-		}
-
-		if ($state === 'finished') {
-			return $this->orderRepository->many()->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
-				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
-				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
-		}
-
-		if ($state === 'canceled') {
-			return $this->orderRepository->many()->where('this.receivedTs IS NOT NULL AND this.canceledTs IS NOT NULL')
-				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
-				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
-		}
-
-		throw new \DomainException("Invalid state: $state");
-	}
-
 	public function create(string $state, array $configuration = []): Datagrid
 	{
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
-		$grid = $this->gridFactory->create($this->getCollectionByState($state)
+		$grid = $this->gridFactory->create(
+			$this->getCollectionByState($state)
 			->setGroupBy(['this.uuid'])
 			->join(['comment' => 'eshop_internalcommentorder'], 'this.uuid = comment.fk_order')
 			->select(['commentCount' => 'COUNT(DISTINCT comment.uuid)']),
-			20, 'this.code', 'DESC', true);
+			20,
+			'this.code',
+			'DESC',
+			true,
+		);
 
 		$grid->addColumnSelector();
 		$grid->addColumn('Číslo a datum', function (Order $order, $grid) {
@@ -136,11 +112,11 @@ class OrderGridFactory
 		$grid->addFilterTextInput('search_q', $searchExpressions, null, 'Jméno zákazníka, IČO, e-mail, telefon');
 		$grid->addFilterButtons(['default']);
 
-		$grid->addFilterDatetime(function (ICollection $source, $value) {
+		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs >= :created_from', ['created_from' => $value]);
 		}, '', 'date_from', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value) {
+		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
 		}, '', 'created_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
 
@@ -172,7 +148,7 @@ class OrderGridFactory
 		if (isset($configuration['exportPPC']) && $configuration['exportPPC']) {
 			$submit = $grid->getForm()->addSubmit('export', 'Exportovat pro PPC (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-			$submit->onClick[] = function ($button) use ($grid) {
+			$submit->onClick[] = function ($button) use ($grid): void {
 				$grid->getPresenter()->redirect('exportPPC', [$grid->getSelectedIds()]);
 			};
 		}
@@ -261,7 +237,7 @@ class OrderGridFactory
 		return $order->purchase->fullname ? "<span style='white-space: nowrap;'>" . $order->purchase->fullname . "</span><br><small>$address</small>" : '';
 	}
 
-	public function cancelOrderMultiple(Button $button)
+	public function cancelOrderMultiple(Button $button): void
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
@@ -289,7 +265,7 @@ class OrderGridFactory
 		$grid->getPresenter()->redirect('this');
 	}
 
-	public function exportZasilkovna(Button $button)
+	public function exportZasilkovna(Button $button): void
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
@@ -297,7 +273,7 @@ class OrderGridFactory
 		$presenter = $grid->getPresenter();
 
 		$tempFilename = \tempnam($presenter->tempDir, "csv");
-		$this->application->onShutdown[] = function () use ($tempFilename) {
+		$this->application->onShutdown[] = function () use ($tempFilename): void {
 			\unlink($tempFilename);
 		};
 		$this->orderRepository->csvExportZasilkovna($grid->getSelectedIds(), Writer::createFromPath($tempFilename, 'w+'));
@@ -305,7 +281,7 @@ class OrderGridFactory
 		$presenter->sendResponse($response);
 	}
 
-	public function cancelOrder(Order $object, ?Datagrid $grid = null)
+	public function cancelOrder(Order $object, ?Datagrid $grid = null): void
 	{
 		$object->update(['canceledTs' => (string)new DateTime(), 'completedTs' => null]);
 
@@ -322,13 +298,15 @@ class OrderGridFactory
 		$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $object->code], $object->purchase->email, null, null, $accountMutation);
 		$this->mailer->send($mail);
 
-		if ($grid) {
-			$grid->getPresenter()->flashMessage('Provedeno', 'success');
-			$grid->getPresenter()->redirect('this');
+		if (!$grid) {
+			return;
 		}
+
+		$grid->getPresenter()->flashMessage('Provedeno', 'success');
+		$grid->getPresenter()->redirect('this');
 	}
 
-	public function completeOrderMultiple(Button $button)
+	public function completeOrderMultiple(Button $button): void
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
@@ -341,7 +319,7 @@ class OrderGridFactory
 		$grid->getPresenter()->redirect('this');
 	}
 
-	public function completeOrder(Order $object, ?Datagrid $grid = null, bool $redirectAfter = true)
+	public function completeOrder(Order $object, ?Datagrid $grid = null, bool $redirectAfter = true): void
 	{
 		$object->update(['completedTs' => (string)new DateTime(), 'canceledTs' => null]);
 
@@ -365,18 +343,20 @@ class OrderGridFactory
 
 		$mail = $this->templateRepository->createMessage('order.changed', [
 			'orderCode' => $object->code,
-			'orderState' => $this->translator->translate('order.statusCompleted', 'vyřízena')
+			'orderState' => $this->translator->translate('order.statusCompleted', 'vyřízena'),
 		], $object->purchase->email, null, null, $accountMutation);
 
 		$this->mailer->send($mail);
 
-		if ($grid && $redirectAfter) {
-			$grid->getPresenter()->flashMessage('Provedeno', 'success');
-			$grid->getPresenter()->redirect('this');
+		if (!$grid || !$redirectAfter) {
+			return;
 		}
+
+		$grid->getPresenter()->flashMessage('Provedeno', 'success');
+		$grid->getPresenter()->redirect('this');
 	}
 
-	public function closeOrderMultiple(Button $button)
+	public function closeOrderMultiple(Button $button): void
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
@@ -389,23 +369,54 @@ class OrderGridFactory
 		$grid->getPresenter()->redirect('this');
 	}
 
-	public function closeOrder(Order $object, ?Datagrid $grid = null, bool $redirectAfter = true)
+	public function closeOrder(Order $object, ?Datagrid $grid = null, bool $redirectAfter = true): void
 	{
 		$object->update(['receivedTs' => (string)new DateTime()]);
 
-		if ($grid && $redirectAfter) {
-			$grid->getPresenter()->flashMessage('Provedeno', 'success');
-			$grid->getPresenter()->redirect('this');
+		if (!$grid || !$redirectAfter) {
+			return;
 		}
+
+		$grid->getPresenter()->flashMessage('Provedeno', 'success');
+		$grid->getPresenter()->redirect('this');
 	}
 
-	public function downloadEdi(Order $object, Datagrid $grid)
+	public function downloadEdi(Order $object, Datagrid $grid): void
 	{
 		$grid->getPresenter()->handleExportEdi($object->getPK());
 	}
 
-	public function downloadCsv(Order $object, Datagrid $grid)
+	public function downloadCsv(Order $object, Datagrid $grid): void
 	{
 		$grid->getPresenter()->handleExporCsv($object->getPK());
+	}
+
+	private function getCollectionByState(string $state): Collection
+	{
+		if ($state === 'open') {
+			return $this->orderRepository->many()->where('this.receivedTs IS NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
+				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
+		}
+
+		if ($state === 'received') {
+			return $this->orderRepository->many()->where('this.receivedTs IS NOT NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
+				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
+		}
+
+		if ($state === 'finished') {
+			return $this->orderRepository->many()->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
+				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
+		}
+
+		if ($state === 'canceled') {
+			return $this->orderRepository->many()->where('this.receivedTs IS NOT NULL AND this.canceledTs IS NOT NULL')
+				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
+		}
+
+		throw new \DomainException("Invalid state: $state");
 	}
 }

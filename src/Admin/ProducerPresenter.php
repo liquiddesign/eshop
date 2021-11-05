@@ -16,8 +16,6 @@ use Pages\Helpers;
 use StORM\DIConnection;
 use StORM\Entity;
 
-use function Clue\StreamFilter\fun;
-
 class ProducerPresenter extends BackendPresenter
 {
 	/** @inject */
@@ -40,14 +38,19 @@ class ProducerPresenter extends BackendPresenter
 		$grid->addColumn('Název', function (Producer $producer, $grid) {
 			return [
 				$grid->getPresenter()->link(':Eshop:Product:list', ['producer' => (string)$producer]),
-				$producer->name
+				$producer->name,
 			];
 		}, '<a href="%s" target="_blank"> %s</a>', 'name');
 
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
-		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '',
-			'recommended');
+		$grid->addColumnInputCheckbox(
+			'<i title="Doporučeno" class="far fa-thumbs-up"></i>',
+			'recommended',
+			'',
+			'',
+			'recommended',
+		);
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('Detail');
@@ -82,7 +85,7 @@ class ProducerPresenter extends BackendPresenter
 
 		$producer = $this->getParameter('producer');
 
-		$imagePicker->onDelete[] = function () use ($producer) {
+		$imagePicker->onDelete[] = function () use ($producer): void {
 			$this->onDeleteImage($producer);
 			$this->redirect('this');
 		};
@@ -96,7 +99,7 @@ class ProducerPresenter extends BackendPresenter
 
 		$form->addSubmits(!$producer);
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$this->createImageDirs(Producer::IMAGE_DIR);
@@ -109,7 +112,7 @@ class ProducerPresenter extends BackendPresenter
 
 			$producer = $this->producerRepository->syncOne($values, null, true);
 
-			$form->syncPages(function () use ($producer, $values) {
+			$form->syncPages(function () use ($producer, $values): void {
 				$values['page']['params'] = Helpers::serializeParameters(['producer' => $producer->getPK()]);
 				$this->pageRepository->syncOne($values['page']);
 			});
@@ -121,7 +124,7 @@ class ProducerPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Výrobci';
 		$this->template->headerTree = [
@@ -131,7 +134,7 @@ class ProducerPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
 
-	public function renderNew()
+	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -142,7 +145,7 @@ class ProducerPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 
-	public function renderDetail()
+	public function renderDetail(): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -153,9 +156,9 @@ class ProducerPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 
-	public function actionDetail(Producer $producer)
+	public function actionDetail(Producer $producer): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
 		$form->setDefaults($producer->toArray());
 	}

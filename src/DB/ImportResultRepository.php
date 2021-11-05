@@ -10,8 +10,6 @@ use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Helpers;
 use Nette\Utils\Random;
-use Nette\Utils\Strings;
-use StORM\Literal;
 use Tracy\Logger;
 
 /**
@@ -25,7 +23,7 @@ class ImportResultRepository extends \StORM\Repository
 	
 	private string $logDirectory;
 	
-	public function createLog(Supplier $supplier, string $directory, string $type = 'import')
+	public function createLog(Supplier $supplier, string $directory, string $type = 'import'): void
 	{
 		$id = (new DateTime())->format('Y-m-d-g-i-s') . '-' . $supplier->code . '-' . Random::generate(4);
 		$this->importResult = $this->createOne([
@@ -40,16 +38,17 @@ class ImportResultRepository extends \StORM\Repository
 		$this->log($type === 'import' ? 'Import started' : 'Entry started');
 	}
 	
-	public function log($message)
+	public function log($message): void
 	{
 		$line = Logger::formatLogLine($message . ' (' . \round(\memory_get_usage(true) / 1024 / 1024, 2) . ' MB)');
 		
-		if (!@\file_put_contents($this->getLogFilePath(), $line . \PHP_EOL, \FILE_APPEND | \LOCK_EX)) { // @ is escalated to exception
+		// @ is escalated to exception
+		if (!@\file_put_contents($this->getLogFilePath(), $line . \PHP_EOL, \FILE_APPEND | \LOCK_EX)) {
 			throw new \RuntimeException('Unable to write to log file '. $this->getLogFilePath() . '. Is directory writable?');
 		}
 	}
 	
-	public function markAsError(string $message)
+	public function markAsError(string $message): void
 	{
 		if (!isset($this->importResult)) {
 			throw new ApplicationException('Result is not set. Call createLog first.');
@@ -64,7 +63,7 @@ class ImportResultRepository extends \StORM\Repository
 		$this->log('Import fatal error: ' . $message);
 	}
 	
-	public function markAsReceived($data, ?string $extension = null, string $suffix = '')
+	public function markAsReceived($data, ?string $extension = null, string $suffix = ''): void
 	{
 		if (!isset($this->importResult)) {
 			throw new ApplicationException('Result is not set. Call createLog first.');
@@ -76,8 +75,8 @@ class ImportResultRepository extends \StORM\Repository
 			$extension = 'xml';
 			$importFile = $this->importResult->id. $suffix . ".$extension";
 			$data->asXML($this->logDirectory . '/data/' . $importFile);
-		} else if ($extension === null) {
-			$extension = \pathinfo($data, PATHINFO_EXTENSION);
+		} elseif ($extension === null) {
+			$extension = \pathinfo($data, \PATHINFO_EXTENSION);
 			$importFile = $this->importResult->id. ".$extension";
 			\copy($data, $this->logDirectory . '/data/' . $importFile);
 		} else {
@@ -95,7 +94,7 @@ class ImportResultRepository extends \StORM\Repository
 		$this->log('Import data received: '. $importFile . ' (' . Helpers::falseToNull(\filesize($this->logDirectory . '/data/' . $importFile)) . ')');
 	}
 	
-	public function markAsImported(SupplierProvider $provider)
+	public function markAsImported(SupplierProvider $provider): void
 	{
 		if (!isset($this->importResult)) {
 			throw new ApplicationException('Result is not set. Call createLog first.');
@@ -110,12 +109,15 @@ class ImportResultRepository extends \StORM\Repository
 			'imageErrorCount' => $provider->imageErrorCount,
 		]);
 		
-		$this->log("inserted: $provider->insertedCount, updated: $provider->updatedCount, skipped: $provider->skippedCount, images: $provider->imageDownloadCount, images errors: $provider->imageErrorCount ");
+		$this->log("inserted: $provider->insertedCount, updated: $provider->updatedCount, skipped: $provider->skippedCount, 
+		images: $provider->imageDownloadCount, images errors: $provider->imageErrorCount ");
 		$this->log('Import finished ok');
 	}
 	
-	public function markAsEntered(int $insertedCount, int $updatedCount, int $lockedCount, int $imagesCount)
+	public function markAsEntered(int $insertedCount, int $updatedCount, int $lockedCount, int $imagesCount): void
 	{
+		unset($lockedCount);
+
 		if (!isset($this->importResult)) {
 			throw new ApplicationException('Result is not set. Call createLog first.');
 		}
@@ -136,7 +138,7 @@ class ImportResultRepository extends \StORM\Repository
 		return isset($this->importResult);
 	}
 	
-	private function getLogFilePath()
+	private function getLogFilePath(): string
 	{
 		if (!isset($this->logFilePath)) {
 			throw new ApplicationException('Log file is not set. Call createLog first.');

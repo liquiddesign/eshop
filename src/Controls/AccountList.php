@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\DB\CatalogPermission;
 use Eshop\DB\CatalogPermissionRepository;
-use Eshop\DB\Customer;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
 use Eshop\Shopper;
@@ -15,8 +13,6 @@ use Nette\Application\UI\Form;
 use Nette\Application\UI\Multiplier;
 use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
-use Nette\Utils\DateTime;
-use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Collection;
 use StORM\ICollection;
@@ -43,8 +39,8 @@ class AccountList extends Datalist
 		CatalogPermissionRepository $catalogPermissionRepository,
 		CustomerRepository $customerRepository,
 		Translator $translator,
-		?Collection $accounts = null)
-	{
+		?Collection $accounts = null
+	) {
 		$this->shopper = $shopper;
 		$this->accountRepository = $accountRepository;
 		$this->catalogPermissionRepository = $catalogPermissionRepository;
@@ -101,7 +97,7 @@ class AccountList extends Datalist
 
 	public function handleLogin(string $account): void
 	{
-		/** @var Account $account */
+		/** @var \Security\DB\Account $account */
 		$account = $this->accountRepository->one($account, true);
 
 		$customer = $this->customerRepository->many()
@@ -122,13 +118,13 @@ class AccountList extends Datalist
 		$this->getPresenter()->redirect('this');
 	}
 
-	public function handleDeactivateAccount($account)
+	public function handleDeactivateAccount($account): void
 	{
 		$this->accountRepository->one($account)->update(['active' => false]);
 		$this->redirect('this');
 	}
 
-	public function handleActivateAccount($account)
+	public function handleActivateAccount($account): void
 	{
 		$this->accountRepository->one($account)->update(['active' => true]);
 		$this->redirect('this');
@@ -200,11 +196,13 @@ class AccountList extends Datalist
 			$container->addCheckbox('buyAllowed');
 			$container->addCheckbox('viewAllOrders');
 
-			if ($catalogPerm) {
-				$container['catalogPermission']->setDefaultValue($catalogPerm->catalogPermission);
-				$container['buyAllowed']->setDefaultValue($catalogPerm->buyAllowed);
-				$container['viewAllOrders']->setDefaultValue($catalogPerm->viewAllOrders);
+			if (!$catalogPerm) {
+				continue;
 			}
+
+			$container['catalogPermission']->setDefaultValue($catalogPerm->catalogPermission);
+			$container['buyAllowed']->setDefaultValue($catalogPerm->buyAllowed);
+			$container['viewAllOrders']->setDefaultValue($catalogPerm->viewAllOrders);
 		}
 
 		$form->addSelect('catalogPermission', null, [
@@ -214,11 +212,11 @@ class AccountList extends Datalist
 		])->setPrompt($this->translator->translate('accountList.noChange', 'Původní'));
 		$form->addSelect('buyAllowed', null, [
 			false => $this->translator->translate('accountList.no', 'Ne'),
-			true => $this->translator->translate('accountList.yes', 'Ano')
+			true => $this->translator->translate('accountList.yes', 'Ano'),
 		])->setPrompt($this->translator->translate('accountList.noChange', 'Původní'));
 		$form->addSelect('viewAllOrders', null, [
 			false => $this->translator->translate('accountList.no', 'Ne'),
-			true => $this->translator->translate('accountList.yes', 'Ano')
+			true => $this->translator->translate('accountList.yes', 'Ano'),
 		])->setPrompt($this->translator->translate('accountList.noChange', 'Původní'));
 
 		$form->addSubmit('submitAll');
@@ -227,23 +225,25 @@ class AccountList extends Datalist
 		$form->onSuccess[] = function (Form $form): void {
 			$values = $form->getValues('array');
 
+			$bulkValues = [];
+
 			$bulkValues['catalogPermission'] = Arrays::pick($values, 'catalogPermission');
 			$bulkValues['buyAllowed'] = Arrays::pick($values, 'buyAllowed');
 			$bulkValues['viewAllOrders'] = Arrays::pick($values, 'viewAllOrders');
 
 			$submitName = $form->isSubmitted()->getName();
 
-			if ($submitName == 'submitAll') {
+			if ($submitName === 'submitAll') {
 				foreach ($values as $key => $value) {
 					unset($value['check']);
 					$this->catalogPermissionRepository->many()->where('fk_account', $key)->update($value);
 				}
-			} elseif ($submitName == 'submitBulk') {
+			} elseif ($submitName === 'submitBulk') {
 				$values = \array_filter($values, function ($value) {
 					return $value['check'];
 				});
 
-				if (\count($values) == 0) {
+				if (\count($values) === 0) {
 					$values = $this->getFilteredSource()->toArray();
 				}
 
@@ -254,7 +254,7 @@ class AccountList extends Datalist
 				}
 
 				if (\count($bulkValues) > 0) {
-					foreach ($values as $key => $value) {
+					foreach (\array_keys($values) as $key) {
 						$this->catalogPermissionRepository->many()->where('fk_account', $key)->update($bulkValues);
 					}
 				}

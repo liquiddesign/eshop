@@ -158,20 +158,20 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addFilterTextInput('search', ['this.fullname', 'this.email', 'this.phone'], null, 'Jméno a příjmení, e-mail, telefon');
 
 		if (\count($this->merchantRepository->getArrayForSelect()) > 0) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = merchantXcustomer.fk_customer');
 				$source->where('merchantXcustomer.fk_merchant', $value);
 			}, '', 'merchant', $lableMerchants, $this->merchantRepository->getArrayForSelect(), ['placeholder' => "- $lableMerchants -"]);
 		}
 
-		if (\count($this->groupsRepo->getArrayForSelect(true, static::CONFIGURATIONS['showUnregisteredGroup'])) > 0) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+		if (\count($this->groupsRepo->getArrayForSelect(true, self::CONFIGURATIONS['showUnregisteredGroup'])) > 0) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->where('fk_group', $value);
-			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, static::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
+			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, self::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
 		}
 
 		if (\count($this->pricelistRepo->getArrayForSelect(true)) > 0) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->join(['pricelistNxN' => 'eshop_customer_nxn_eshop_pricelist'], 'this.uuid = pricelistNxN.fk_customer');
 				$source->where('pricelistNxN.fk_pricelist', $value);
 			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
@@ -188,7 +188,7 @@ class CustomerPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function exportCustomers(Button $button)
+	public function exportCustomers(Button $button): void
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
@@ -201,7 +201,7 @@ class CustomerPresenter extends BackendPresenter
 		$this->sendResponse($response);
 	}
 
-	public function exportAccounts(Button $button)
+	public function exportAccounts(Button $button): void
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
@@ -214,7 +214,7 @@ class CustomerPresenter extends BackendPresenter
 		$this->sendResponse($response);
 	}
 
-	public function handleLoginCustomer($login)
+	public function handleLoginCustomer($login): void
 	{
 		$this->user->login($login, '', [Customer::class], true);
 
@@ -223,7 +223,7 @@ class CustomerPresenter extends BackendPresenter
 
 	public function actionEditAccount(Account $account): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('accountForm');
 		$form['account']->setDefaults($account->toArray());
 
@@ -233,15 +233,15 @@ class CustomerPresenter extends BackendPresenter
 			$form['permission']->setDefaults($permission->toArray());
 		}
 
-		$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values, array $oldValues) use ($permission, $form) {
+		$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values, array $oldValues) use ($permission, $form): void {
 			if ($permission) {
 				$permission->update($values['permission']);
 			} else {
 				$this->catalogPermissionRepo->createOne($values['permission'] + ['account' => $account->getPK()]);
 			}
 
-			if (static::CONFIGURATIONS['sendEmailAccountActivated']) {
-				if (!$oldValues['active'] && $values['account']['active'] == true) {
+			if (self::CONFIGURATIONS['sendEmailAccountActivated']) {
+				if (!$oldValues['active'] && $values['account']['active'] === true) {
 					$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login, null, null, $account->getPreferredMutation());
 					$this->mailer->send($mail);
 				}
@@ -252,7 +252,7 @@ class CustomerPresenter extends BackendPresenter
 		};
 	}
 
-	public function actionNewAccount(?Customer $customer = null)
+	public function actionNewAccount(?Customer $customer = null): void
 	{
 		$form = $this->getComponent('accountForm');
 		$form['account']['password']->setRequired();
@@ -261,7 +261,7 @@ class CustomerPresenter extends BackendPresenter
 			$form['permission']['customer']->setDefaultValue($customer);
 		}
 
-		$this->accountFormFactory->onCreateAccount[] = function (Account $account, array $values) use ($form) {
+		$this->accountFormFactory->onCreateAccount[] = function (Account $account, array $values) use ($form): void {
 			$this->catalogPermissionRepo->createOne($values['permission'] + ['account' => $account]);
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('editAccount', 'default', [$account]);
@@ -281,7 +281,7 @@ class CustomerPresenter extends BackendPresenter
 
 	public function createComponentForm()
 	{
-		$lableMerchants = static::CONFIGURATIONS['labels']['merchants'];
+		$lableMerchants = self::CONFIGURATIONS['labels']['merchants'];
 
 		$form = $this->formFactory->create();
 
@@ -385,7 +385,7 @@ class CustomerPresenter extends BackendPresenter
 
 		$form->bind(null, [
 			'deliveryAddress' => $this->addressRepo->getStructure(),
-			'billAddress' => $this->addressRepo->getStructure()
+			'billAddress' => $this->addressRepo->getStructure(),
 		]);
 
 		$form->addSubmits();
@@ -393,27 +393,26 @@ class CustomerPresenter extends BackendPresenter
 		return $form;
 	}
 
-
 	public function renderDefault(?Customer $customer = null): void
 	{
-		if ($this->tab == 'customers') {
+		if ($this->tab === 'customers') {
 			$this->template->headerLabel = 'Zákazníci';
 			$this->template->headerTree = [
 				['Zákazníci', 'default'],
 			];
 			$this->template->displayButtons = [$this->createNewItemButton('new')];
 			$this->template->displayControls = [$this->getComponent('customers')];
-		} elseif ($this->tab == 'accounts') {
+		} elseif ($this->tab === 'accounts') {
 			$this->template->headerLabel = 'Účty';
 			$this->template->headerTree = [
 				['Zákazníci', 'default'],
-				['Účty']
+				['Účty'],
 			];
 			$this->template->displayButtons = [$this->createNewItemButton('newAccount')];
 			$this->template->displayControls = [$this->getComponent('accountGrid')];
 		}
 
-		$this->template->tabs = static::TABS;
+		$this->template->tabs = self::TABS;
 	}
 
 	public function renderNew(): void
@@ -460,12 +459,12 @@ class CustomerPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('accountForm')];
 	}
 
-	public function actionNew()
+	public function actionNew(): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('form');
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$merchants = Arrays::pick($values, 'merchants');
@@ -481,7 +480,7 @@ class CustomerPresenter extends BackendPresenter
 		};
 	}
 
-	public function actionEdit(Customer $customer)
+	public function actionEdit(Customer $customer): void
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('form');
@@ -496,10 +495,10 @@ class CustomerPresenter extends BackendPresenter
 				'pricelists',
 				'exclusivePaymentTypes',
 				'exclusiveDeliveryTypes',
-				'accounts'
+				'accounts',
 			]) + ['merchants' => $merchants]);
 
-		$form->onSuccess[] = function (AdminForm $form) use ($customer) {
+		$form->onSuccess[] = function (AdminForm $form) use ($customer): void {
 			$values = $form->getValues('array');
 
 			$this->storm->rows(['eshop_merchant_nxn_eshop_customer'])->where('fk_customer', $customer)->delete();
@@ -528,7 +527,7 @@ class CustomerPresenter extends BackendPresenter
 
 		$form->setDefaults($customer->jsonSerialize());
 
-		$form->onSuccess[] = function (AdminForm $form) use ($customer) {
+		$form->onSuccess[] = function (AdminForm $form) use ($customer): void {
 			$values = $form->getValues('array');
 
 			$bill = $this->addressRepo->syncOne($values['billAddress']);
@@ -548,7 +547,7 @@ class CustomerPresenter extends BackendPresenter
 
 	public function createComponentAccountForm()
 	{
-		$callback = function (Form $form) {
+		$callback = function (Form $form): void {
 			$form->addGroup('Oprávnění a zákazník');
 			$container = $form->addContainer('permission');
 			$container->addDataSelect('customer', 'Zákazník', $this->customerRepository->getArrayForSelect())->setPrompt('-Zvolte-')->setRequired();
@@ -556,7 +555,7 @@ class CustomerPresenter extends BackendPresenter
 				->toggle('frm-accountForm-permission-showPricesWithoutVat-toogle')
 				->toggle('frm-accountForm-permission-showPricesWithVat-toogle');
 
-			if (isset(static::CONFIGURATIONS['prices']) && static::CONFIGURATIONS['prices']) {
+			if (isset(self::CONFIGURATIONS['prices']) && self::CONFIGURATIONS['prices']) {
 				if ($this->shopper->getShowWithoutVat()) {
 					$container->addCheckbox('showPricesWithoutVat', 'Zobrazit ceny bez daně');
 				}
@@ -568,7 +567,7 @@ class CustomerPresenter extends BackendPresenter
 				if ($this->shopper->getShowWithoutVat() && $this->shopper->getShowVat()) {
 					$container->addSelect('priorityPrice', 'Prioritní cena', [
 						'withoutVat' => 'Bez daně',
-						'withVat' => 'S daní'
+						'withVat' => 'S daní',
 					])->addConditionOn($container['catalogPermission'], $form::EQUAL, 'price')
 						->addConditionOn($container['showPricesWithoutVat'], $form::EQUAL, true)
 						->addConditionOn($container['showPricesWithVat'], $form::EQUAL, true)
@@ -583,14 +582,12 @@ class CustomerPresenter extends BackendPresenter
 			$container->addText('newsletterGroup', 'Skupina pro newsletter')->addConditionOn($container['newsletter'], $form::EQUAL, true)->addRule($form::REQUIRED);
 		};
 
-		$form = $this->accountFormFactory->create(false, $callback, true, true, true);
-
-		return $form;
+		return $this->accountFormFactory->create(false, $callback, true, true, true);
 	}
 
 	public function createComponentAccountGrid()
 	{
-		$lableMerchants = static::CONFIGURATIONS['labels']['merchants'];
+		$lableMerchants = self::CONFIGURATIONS['labels']['merchants'];
 
 		$collection = $this->accountRepository->many()
 			->join(['catalogPermission' => 'eshop_catalogpermission'], 'catalogPermission.fk_account = this.uuid')
@@ -599,7 +596,7 @@ class CustomerPresenter extends BackendPresenter
 			->select(['company' => 'customer.company', 'customerFullname' => 'customer.fullname'])
 			->select([
 				'permission' => 'catalogPermission.catalogPermission',
-				'buyAllowed' => 'catalogPermission.buyAllowed'
+				'buyAllowed' => 'catalogPermission.buyAllowed',
 			]);
 
 		$grid = $this->gridFactory->create($collection, 20, 'createdTs', 'DESC', true);
@@ -624,8 +621,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnText('Aktivní do', "activeTo|date:'d.m.Y G:i'", '%s', 'activeTo', ['class' => 'fit']);
 		$grid->addColumnInputCheckbox('Aktivní', 'active');
 
-
-		if (static::CONFIGURATIONS['showAuthorized']) {
+		if (self::CONFIGURATIONS['showAuthorized']) {
 			$grid->addColumnInputCheckbox('Autorizovaný', 'authorized');
 		}
 
@@ -639,12 +635,12 @@ class CustomerPresenter extends BackendPresenter
 
 		$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll([], [], null, false, null, function ($id, $data) {
-			if (static::CONFIGURATIONS['sendEmailAccountActivated']) {
-				/** @var Account $account */
+		$grid->addButtonSaveAll([], [], null, false, null, function ($id, $data): void {
+			if (self::CONFIGURATIONS['sendEmailAccountActivated']) {
+				/** @var \Security\DB\Account $account */
 				$account = $this->accountRepository->one($id);
 
-				if (!$account->active && $data['active'] == true) {
+				if (!$account->active && $data['active'] === true) {
 					$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login, null, null, $account->getPreferredMutation());
 					$this->mailer->send($mail);
 				}
@@ -657,20 +653,20 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addFilterTextInput('company', ['customer.company', 'customer.fullname', 'customer.ic'], null, 'Zákazník, IČ');
 
 		if (\count($this->merchantRepository->getArrayForSelect()) > 0) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'customer.uuid = merchantXcustomer.fk_customer');
 				$source->where('merchantXcustomer.fk_merchant', $value);
 			}, '', 'merchant', $lableMerchants, $this->merchantRepository->getArrayForSelect(), ['placeholder' => "- $lableMerchants -"]);
 		}
 
-		if (\count($this->groupsRepo->getArrayForSelect(true, static::CONFIGURATIONS['showUnregisteredGroup'])) > 0) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+		if (\count($this->groupsRepo->getArrayForSelect(true, self::CONFIGURATIONS['showUnregisteredGroup'])) > 0) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->where('customer.fk_group', $value);
-			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, static::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
+			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, self::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
 		}
 
 		if (\count($this->pricelistRepo->getArrayForSelect(true)) > 0) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->join(['pricelistNxN' => 'eshop_customer_nxn_eshop_pricelist'], 'customer.uuid = pricelistNxN.fk_customer');
 				$source->where('pricelistNxN.fk_pricelist', $value);
 			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
@@ -678,12 +674,12 @@ class CustomerPresenter extends BackendPresenter
 
 		$grid->addFilterSelectInput('newsletter', "catalogPermission.newsletter = :nQ", 'Newsletter', '- Newsletter -', null, [
 			'0' => 'Ne',
-			'1' => 'Ano'
+			'1' => 'Ano',
 		], 'nQ');
 
 		$submit = $grid->getForm()->addSubmit('permBulkEdit', 'Hromadná úprava')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-		$submit->onClick[] = function () use ($grid) {
+		$submit->onClick[] = function () use ($grid): void {
 			$grid->getPresenter()->redirect('permBulkEdit', [$grid->getSelectedIds()]);
 		};
 
@@ -696,13 +692,13 @@ class CustomerPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function renderPermBulkEdit(array $ids)
+	public function renderPermBulkEdit(array $ids): void
 	{
 		$this->template->headerLabel = 'Hromadná úprava';
 		$this->template->headerTree = [
 			['Zákazníci', 'default'],
 			['Účty', 'default'],
-			['Hromadná úprava']
+			['Hromadná úprava'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('permBulkEditForm')];
@@ -731,22 +727,22 @@ class CustomerPresenter extends BackendPresenter
 		$values->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setPrompt('Původní');
 		$values->addSelect('buyAllowed', 'Povolit nákup', [
 			false => 'Ne',
-			true => 'Ano'
+			true => 'Ano',
 		])->setPrompt('Původní');
 		$values->addSelect('viewAllOrders', 'Zobrazit všechny objednávky zákazníka', [
 			false => 'Ne',
-			true => 'Ano'
+			true => 'Ano',
 		])->setPrompt('Původní');
 		$values->addSelect('newsletter', 'Přihlášen k newsletteru', [
 			false => 'Ne',
-			true => 'Ano'
+			true => 'Ano',
 		])->setPrompt('Původní');
 		$values->addCheckbox('newsletterGroupCheck', 'Původní')->setDefaultValue(true);
 		$values->addText('newsletterGroup', 'Skupina pro newsletter');
 
 		$form->addSubmits(false, false);
 
-		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid) {
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid): void {
 			$values = $form->getValues('array');
 
 			if (\count($values['values']) === 0) {
@@ -779,6 +775,4 @@ class CustomerPresenter extends BackendPresenter
 
 		return $form;
 	}
-
-
 }

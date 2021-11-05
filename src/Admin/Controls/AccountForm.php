@@ -8,6 +8,6 @@ class AccountForm extends \Admin\Admin\Controls\AccountFormFactory
 {
 	protected const CONFIGURATIONS = [
 		'preferredMutation' => false,
-		'newsletter' => true
+		'newsletter' => true,
 	];
 }

@@ -11,7 +11,6 @@ namespace Eshop\DB;
  */
 class LoyaltyProgramProduct extends \StORM\Entity
 {
-
 	/**
 	 * Počet získaných "bodů" při nákupu
 	 * @column

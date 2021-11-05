@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\Admin\Controls;
 
+use Admin\Controls\AdminGridFactory;
 use Eshop\DB\CategoryRepository;
-use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\InternalRibbonRepository;
@@ -18,12 +18,11 @@ use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\TagRepository;
 use Eshop\Shopper;
-use StORM\Connection;
-use Web\DB\PageRepository;
 use Grid\Datagrid;
 use Nette\DI\Container;
 use Nette\Utils\FileSystem;
-use Admin\Controls\AdminGridFactory;
+use StORM\Connection;
+use Web\DB\PageRepository;
 
 class ProductGridFactory
 {
@@ -79,8 +78,7 @@ class ProductGridFactory
 		ProductGridFiltersFactory $productGridFiltersFactory,
 		CategoryTypeRepository $categoryTypeRepository,
 		Connection $connection
-	)
-	{
+	) {
 		$this->productRepository = $productRepository;
 		$this->gridFactory = $gridFactory;
 		$this->producerRepository = $producerRepository;
@@ -108,7 +106,7 @@ class ProductGridFactory
 			->select([
 				'photoCount' => "COUNT(DISTINCT photo.uuid)",
 				'fileCount' => "COUNT(DISTINCT file.uuid)",
-				'commentCount' => 'COUNT(DISTINCT comment.uuid)'
+				'commentCount' => 'COUNT(DISTINCT comment.uuid)',
 			]);
 
 		$grid = $this->gridFactory->create($source, 20, 'this.priority', 'ASC', true);
@@ -160,7 +158,7 @@ class ProductGridFactory
 		$grid->addColumnLinkDetail('edit');
 		$grid->addColumnActionDelete([$this, 'onDelete']);
 
-		$grid->addButtonSaveAll([], [], null, false, null, null, true, null, function (){
+		$grid->addButtonSaveAll([], [], null, false, null, null, true, null, function (): void {
 			$this->categoryRepository->clearCategoriesCache();
 		});
 		$grid->addButtonDeleteSelected([$this, 'onDelete'], false, null, 'this.uuid');
@@ -171,7 +169,15 @@ class ProductGridFactory
 			$bulkColumns = \array_merge($bulkColumns, ['buyCount']);
 		}
 
-		$grid->addButtonBulkEdit('productForm', $bulkColumns, 'productGrid', 'bulkEdit', 'Hromadná úprava', 'bulkEdit', 'default', null,
+		$grid->addButtonBulkEdit(
+			'productForm',
+			$bulkColumns,
+			'productGrid',
+			'bulkEdit',
+			'Hromadná úprava',
+			'bulkEdit',
+			'default',
+			null,
 			function ($id, Product $object, $values, $relations) {
 				foreach ($relations as $relationName => $categories) {
 					$name = \explode('_', $relationName);
@@ -196,19 +202,19 @@ class ProductGridFactory
 				}
 
 				return [$values, $relations];
-			}
+			},
 		);
 
 		$submit = $grid->getForm()->addSubmit('join', 'Sloučit')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-		$submit->onClick[] = function ($button) use ($grid) {
+		$submit->onClick[] = function ($button) use ($grid): void {
 			$grid->getPresenter()->redirect('joinSelect', [$grid->getSelectedIds()]);
 		};
 
 		if (isset($configuration['buyCount']) && $configuration['buyCount']) {
 			$submit = $grid->getForm()->addSubmit('generateRandomBuyCounts', 'Generovat zakoupení')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-			$submit->onClick[] = function ($button) use ($grid) {
+			$submit->onClick[] = function ($button) use ($grid): void {
 				$grid->getPresenter()->redirect('generateRandomBuyCounts', [$grid->getSelectedIds()]);
 			};
 		}
@@ -216,14 +222,14 @@ class ProductGridFactory
 		if (isset($configuration['exportButton']) && $configuration['exportButton']) {
 			$submit = $grid->getForm()->addSubmit('export', 'Exportovat (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-			$submit->onClick[] = function ($button) use ($grid) {
+			$submit->onClick[] = function ($button) use ($grid): void {
 				$grid->getPresenter()->redirect('export', [$grid->getSelectedIds()]);
 			};
 		}
 
 		$submit = $grid->getForm()->addSubmit('newsletterExport', 'Newsletter export')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-		$submit->onClick[] = function ($button) use ($grid) {
+		$submit->onClick[] = function ($button) use ($grid): void {
 			$grid->getPresenter()->redirect('newsletterExportSelect', [$grid->getSelectedIds()]);
 		};
 
@@ -233,7 +239,7 @@ class ProductGridFactory
 		return $grid;
 	}
 
-	public function onDelete(Product $product)
+	public function onDelete(Product $product): void
 	{
 		if ($page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product])) {
 			$page->delete();

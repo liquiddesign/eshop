@@ -9,7 +9,6 @@ use Eshop\DB\CategoryRepository;
 use Eshop\DB\ProductRepository;
 use Nette\Http\Session;
 use Nette\Http\SessionSection;
-use Translator\DB\TranslationRepository;
 use Web\DB\PageRepository;
 
 class CompareManager
@@ -19,8 +18,6 @@ class CompareManager
 	private ProductRepository $productRepository;
 
 	private CategoryRepository $categoryRepository;
-
-	private TranslationRepository $translator;
 
 	private AttributeRepository $attributeRepository;
 
@@ -32,34 +29,31 @@ class CompareManager
 		Session $session,
 		ProductRepository $productRepository,
 		CategoryRepository $categoryRepository,
-		TranslationRepository $translator,
 		AttributeRepository $attributeRepository,
 		AttributeValueRepository $attributeValueRepository,
 		PageRepository $pageRepository
-	)
-	{
+	) {
 		$this->session = $session;
 		$this->productRepository = $productRepository;
 		$this->categoryRepository = $categoryRepository;
-		$this->translator = $translator;
 		$this->attributeRepository = $attributeRepository;
 		$this->attributeValueRepository = $attributeValueRepository;
 		$this->pageRepository = $pageRepository;
 	}
 
+	/**
+	 * @return \Eshop\DB\Product[]
+	 */
 	public function getCompareList(): array
 	{
 		return $this->getSessionSection()->list;
 	}
 
-	private function getSessionSection(): SessionSection
-	{
-		$section = $this->session->getSection('compare');
-		$section->list ??= [];
-
-		return $section;
-	}
-
+	/**
+	 * @param string|null $categoryPK
+	 * @return object[]
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function getParsedProductsWithPrimaryCategories(?string $categoryPK = null): array
 	{
 		$resultCategories = [];
@@ -67,41 +61,46 @@ class CompareManager
 		foreach ($this->getCompareList() as $productKey => $product) {
 			$product = $this->productRepository->one($productKey);
 
-			if ($category = $product->getPrimaryCategory()) {
-				$categories = $this->categoryRepository->getBranch($category);
+			if (!$category = $product->getPrimaryCategory()) {
+				continue;
+			}
 
-				if (!isset($resultCategories[$category->getPK()])) {
-					$resultCategories[$category->getPK()]['attributes'] = [];
-					$resultCategories[$category->getPK()]['products'] = [];
-					$resultCategories[$category->getPK()]['category'] = $category;
+			$categories = $this->categoryRepository->getBranch($category);
+
+			if (!isset($resultCategories[$category->getPK()])) {
+				$resultCategories[$category->getPK()]['attributes'] = [];
+				$resultCategories[$category->getPK()]['products'] = [];
+				$resultCategories[$category->getPK()]['category'] = $category;
+			}
+
+			if ($categoryPK && $category->getPK() !== $categoryPK) {
+				continue;
+			}
+
+			$attributes = $this->attributeRepository->getAttributesByCategories(\array_values($categories));
+
+			$resultCategories[$category->getPK()]['products'][$productKey]['product'] = $product;
+
+			foreach ($attributes as $attributeKey => $attribute) {
+				$values = $this->attributeValueRepository->getCollection()
+					->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value')
+					->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
+					->where('assign.fk_product', $product->getPK())
+					->where('attribute.uuid', $attributeKey)
+					->where('attribute.showProduct', true)
+					->toArray();
+
+				$resultCategories[$category->getPK()]['attributes'][$attributeKey] = $attribute;
+
+				if (\count($values) === 0) {
+					continue;
 				}
 
-				if (!$categoryPK || $category->getPK() == $categoryPK) {
-					$attributes = $this->attributeRepository->getAttributesByCategories(\array_values($categories));
+				$resultCategories[$category->getPK()]['products'][$productKey]['attributes'][$attributeKey] = $values;
 
-					$resultCategories[$category->getPK()]['products'][$productKey]['product'] = $product;
-
-					foreach ($attributes as $attributeKey => $attribute) {
-						$values = $this->attributeValueRepository->getCollection()
-							->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value')
-							->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
-							->where('assign.fk_product', $product->getPK())
-							->where('attribute.uuid', $attributeKey)
-							->where('attribute.showProduct', true)
-							->toArray();
-
-						$resultCategories[$category->getPK()]['attributes'][$attributeKey] = $attribute;
-
-						if (\count($values) == 0) {
-							continue;
-						}
-
-						$resultCategories[$category->getPK()]['products'][$productKey]['attributes'][$attributeKey] = $values;
-
-						foreach ($values as $attributeValueKey => $attributeValue) {
-							$resultCategories[$category->getPK()]['products'][$productKey]['attributes'][$attributeKey][$attributeValueKey]->page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValueKey]);
-						}
-					}
+				foreach (\array_keys($values) as $attributeValueKey) {
+					$resultCategories[$category->getPK()]['products'][$productKey]['attributes'][$attributeKey][$attributeValueKey]->page =
+						$this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValueKey]);
 				}
 			}
 		}
@@ -109,6 +108,11 @@ class CompareManager
 		return $resultCategories;
 	}
 
+	/**
+	 * @param string|null $parameterName
+	 * @return string[]|\Eshop\DB\Category[]
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function getCategories(?string $parameterName = null): array
 	{
 		$resultCategories = [];
@@ -126,6 +130,10 @@ class CompareManager
 		return $resultCategories;
 	}
 
+	/**
+	 * @return string[]
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function getCategoriesNames(): array
 	{
 		$resultCategories = [];
@@ -139,17 +147,21 @@ class CompareManager
 
 			$branch = $this->categoryRepository->getBranch($category);
 
-			if (!isset($resultCategories[$category->getPK()])) {
-				$resultCategories[$category->getPK()] = '';
-
-				foreach ($branch as $branchCategory) {
-					$resultCategories[$category->getPK()] .= $branchCategory->name . ' -> ';
-				}
-
-				if (\strlen($resultCategories[$category->getPK()]) > 0) {
-					$resultCategories[$category->getPK()] = \substr($resultCategories[$category->getPK()], 0, -3);
-				}
+			if (isset($resultCategories[$category->getPK()])) {
+				continue;
 			}
+
+			$resultCategories[$category->getPK()] = '';
+
+			foreach ($branch as $branchCategory) {
+				$resultCategories[$category->getPK()] .= $branchCategory->name . ' -> ';
+			}
+
+			if (\strlen($resultCategories[$category->getPK()]) <= 0) {
+				continue;
+			}
+
+			$resultCategories[$category->getPK()] = \substr($resultCategories[$category->getPK()], 0, -3);
 		}
 
 		return $resultCategories;
@@ -162,7 +174,7 @@ class CompareManager
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->one($product, true);
 
-		if (!$productCategory = $product->getPrimaryCategory()) {
+		if (!$product->getPrimaryCategory()) {
 			return;
 		}
 
@@ -185,11 +197,7 @@ class CompareManager
 	{
 		$section = $this->getCompareList();
 
-		if (\Nette\Utils\Arrays::contains(\array_keys($section), $searchedProduct)) {
-			return true;
-		}
-
-		return false;
+		return \Nette\Utils\Arrays::contains(\array_keys($section), $searchedProduct);
 	}
 
 	public function getProductsInListCount(): int
@@ -197,5 +205,13 @@ class CompareManager
 		$section = $this->getCompareList();
 
 		return \count($section);
+	}
+
+	private function getSessionSection(): SessionSection
+	{
+		$section = $this->session->getSection('compare');
+		$section->list ??= [];
+
+		return $section;
 	}
 }

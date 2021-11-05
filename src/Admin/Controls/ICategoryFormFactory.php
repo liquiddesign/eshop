@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Eshop\Admin\Controls;
 
+use Eshop\DB\Category;
+
 interface ICategoryFormFactory
 {
 	/**
 	 * @param \Eshop\DB\Category|null $category
-	 * @param mixed[] $configuration
-	 * @return \Eshop\Admin\Controls\CategoryForm
 	 */
-	public function create(?\Eshop\DB\Category $category = null, array $configuration = []): CategoryForm;
+	public function create(?Category $category = null): CategoryForm;
 }
