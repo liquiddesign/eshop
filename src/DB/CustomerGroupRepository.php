@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
-use Eshop\Admin\CustomerGroupPresenter;
 use StORM\Collection;
 
 /**
@@ -29,6 +28,9 @@ class CustomerGroupRepository extends \StORM\Repository implements IGeneralRepos
 		return $this->defaultRegistrationGroup ??= $this->many()->where('defaultAfterRegistration = 1')->first();
 	}
 
+	/**
+	 * @return string[]
+	 */
 	public function getRegisteredGroupsArray(): array
 	{
 		return $this->many()->where('uuid != :s', ['s' => self::UNREGISTERED_PK])->toArrayOf('name');
@@ -36,17 +38,21 @@ class CustomerGroupRepository extends \StORM\Repository implements IGeneralRepos
 
 	/**
 	 * @deprecated use getArrayForSelect()
+	 * @return string[]
 	 */
 	public function getListForSelect(): array
 	{
 		return $this->many()->toArrayOf('name');
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true, bool $showUnregistered = true): array
 	{
 		$collection = $this->getCollection($includeHidden);
 
-		if(!$showUnregistered){
+		if (!$showUnregistered) {
 			$collection->where('uuid != :s', ['s' => self::UNREGISTERED_PK]);
 		}
 
@@ -55,8 +61,8 @@ class CustomerGroupRepository extends \StORM\Repository implements IGeneralRepos
 
 	public function getCollection(bool $includeHidden = false): Collection
 	{
-		$collection = $this->many();
+		unset($includeHidden);
 
-		return $collection->orderBy(["name"]);
+		return $this->many()->orderBy(["name"]);
 	}
 }

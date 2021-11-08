@@ -62,17 +62,17 @@ class Tag extends \StORM\Entity
 	 */
 	public bool $hidden = false;
 
-	public function isSystemic(): bool
-	{
-		return $this->systemic;
-	}
-	
 	/**
 	 * Podobné tagy
 	 * @relationNxN{"sourceViaKey":"fk_tag","targetViaKey":"fk_similar"}
 	 * @var \Eshop\DB\Tag[]|\StORM\RelationCollection<\Eshop\DB\Tag>
 	 */
 	public RelationCollection $similar;
+
+	public function isSystemic(): bool
+	{
+		return $this->systemic;
+	}
 	
 	public function getImageFileName(string $basePath): string
 	{

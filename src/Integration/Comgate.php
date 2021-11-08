@@ -12,7 +12,6 @@ use Eshop\DB\ComgateRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Nette\Utils\DateTime;
-use Tracy\Debugger;
 
 class Comgate
 {
@@ -38,15 +37,17 @@ class Comgate
 			/** @var \Eshop\DB\Order $order */
 			$order = $this->orderRepository->one($order->getPK(), true);
 
-			if ($order->getPayment()->type->code === 'CG') {
-				$response = $this->createPayment($order);
-				$order->update(['receivedTs' => (new DateTime())->__toString()]);
+			if ($order->getPayment()->type->code !== 'CG') {
+				return;
+			}
 
-				if ($response['code'] === '0') {
-					$this->comgateRepository->saveTransaction($response['transId'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, 'PENDING', $order);
-					\header('location: ' . $response['redirect']);
-					exit;
-				}
+			$response = $this->createPayment($order);
+			$order->update(['receivedTs' => (new DateTime())->__toString()]);
+
+			if ($response['code'] === '0') {
+				$this->comgateRepository->saveTransaction($response['transId'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, 'PENDING', $order);
+				\header('location: ' . $response['redirect']);
+				exit;
 			}
 		};
 	}
@@ -61,7 +62,7 @@ class Comgate
 			$order->code,
 			$order->code,
 			$customer,
-			PaymentMethodCode::ALL
+			PaymentMethodCode::ALL,
 		);
 
 		$res = $this->paymentService->create($payment);

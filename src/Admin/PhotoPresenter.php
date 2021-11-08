@@ -22,10 +22,11 @@ class PhotoPresenter extends BackendPresenter
 	
 	private string $productPhotosPath;
 	
-	public function startup()
+	public function startup(): void
 	{
 		parent::startup();
-		$this->productPhotosPath = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . Product::IMAGE_DIR;
+
+		$this->productPhotosPath = \dirname(__DIR__, 3) . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . Product::IMAGE_DIR;
 	}
 	
 	public function createComponentNewForm(): Form
@@ -42,7 +43,7 @@ class PhotoPresenter extends BackendPresenter
 		return $form;
 	}
 	
-	public function renderDetail(Photo $photo, Product $product = null)
+	public function renderDetail(Photo $photo, ?Product $product = null): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -53,33 +54,36 @@ class PhotoPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 	
-	public function actionDetail(Photo $photo, Product $product = null)
+	public function actionDetail(Photo $photo, ?Product $product = null): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
 		
 		$values = $photo->toArray();
 		$values['hidden'] = (int)$values['hidden'];
 		$form->setDefaults($values);
 		
-		$form->onSuccess[] = function (Form $form) use ($photo, $product) {
+		$form->onSuccess[] = function (Form $form) use ($photo): void {
 			$values = $form->getValues();
+
 			foreach ($values as $key => $value) {
-				$values[$key] = $values[$key] != '' ? $values[$key] : null;
+				$values[$key] = $values[$key] !== '' ? $values[$key] : null;
 			}
-			if ($photo->fileName != $values['fileName']) {
+
+			if ($photo->fileName !== $values['fileName']) {
 				if ($this->photoRepository->one(['fileName' => $values['fileName']])) {
 					$this->flashMessage('Chyba: Soubor s tímto názvem již existuje!', 'error');
 					$this->redirect('this');
 				}
-				FileSystem::rename($this->productPhotosPath . DIRECTORY_SEPARATOR . $photo->fileName, $this->productPhotosPath . DIRECTORY_SEPARATOR . $values['fileName']);
+
+				FileSystem::rename($this->productPhotosPath . \DIRECTORY_SEPARATOR . $photo->fileName, $this->productPhotosPath . \DIRECTORY_SEPARATOR . $values['fileName']);
 			}
+
 			$values['hidden'] = (bool)$values['hidden'];
-			$values['priority'] = $values['priority'] != '' ? $values['priority'] : 10;
+			$values['priority'] = $values['priority'] !== '' ? $values['priority'] : 10;
 			$photo->update($values);
 			$this->flashMessage('Uloženo', 'success');
 			$this->redirect('this');
 		};
 	}
-	
 }

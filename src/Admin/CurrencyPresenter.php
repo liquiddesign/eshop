@@ -75,7 +75,7 @@ class CurrencyPresenter extends BackendPresenter
 
 		$form->addSubmits();
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$this->currencyRepository->syncOne($values);
@@ -88,7 +88,7 @@ class CurrencyPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Měny';
 		$this->template->headerTree = [
@@ -98,7 +98,7 @@ class CurrencyPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
 
-	public function renderDetail(Currency $currency)
+	public function renderDetail(Currency $currency): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -109,9 +109,9 @@ class CurrencyPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 
-	public function actionDetail(Currency $currency)
+	public function actionDetail(Currency $currency): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
 
 		$form->setDefaults($currency->toArray());

@@ -5,23 +5,19 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
-use Eshop\DB\OrderRepository;
 use Eshop\Shopper;
 
 class NoteForm extends \Nette\Application\UI\Form
 {
 	private CheckoutManager $checkoutManager;
 
-	private OrderRepository $orderRepository;
-
 	private Shopper $shopper;
 
-	public function __construct(CheckoutManager $checkoutManager, OrderRepository $orderRepository, Shopper $shopper)
+	public function __construct(CheckoutManager $checkoutManager, Shopper $shopper)
 	{
 		parent::__construct();
 
 		$this->checkoutManager = $checkoutManager;
-		$this->orderRepository = $orderRepository;
 		$this->shopper = $shopper;
 
 		$this->addTextArea('note');
@@ -34,6 +30,8 @@ class NoteForm extends \Nette\Application\UI\Form
 
 	public function success(NoteForm $form): void
 	{
+		unset($form);
+
 		$values = $this->getValues();
 		$values['desiredShippingDate'] = $values['desiredShippingDate'] ?: null;
 
@@ -44,7 +42,7 @@ class NoteForm extends \Nette\Application\UI\Form
 		$values['customer'] = $this->shopper->getCustomer() ? $this->shopper->getCustomer()->getPK() : null;
 		$values['account'] = $account ? $account->getPK() : null;
 		$values['accountFullname'] = $account ? $account->fullname : null;
-		$values['accountEmail'] = $account && \filter_var($account->login, FILTER_VALIDATE_EMAIL) !== false ? $account->login : null;
+		$values['accountEmail'] = $account && \filter_var($account->login, \FILTER_VALIDATE_EMAIL) !== false ? $account->login : null;
 		$values['currency'] = $this->shopper->getCurrency();
 
 		$this->checkoutManager->syncPurchase($values);

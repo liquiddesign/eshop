@@ -13,6 +13,9 @@ use StORM\Collection;
  */
 class ParameterAvailableValueRepository extends \StORM\Repository implements IGeneralRepository
 {
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('value');
@@ -20,9 +23,8 @@ class ParameterAvailableValueRepository extends \StORM\Repository implements IGe
 
 	public function getCollection(bool $includeHidden = false): Collection
 	{
-		$suffix = $this->getConnection()->getMutationSuffix();
-		$collection = $this->many();
+		unset($includeHidden);
 
-		return $collection;
+		return $this->many();
 	}
 }

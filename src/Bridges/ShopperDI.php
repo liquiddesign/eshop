@@ -6,7 +6,6 @@ namespace Eshop\Bridges;
 
 use Eshop\CheckoutManager;
 use Eshop\CompareManager;
-use Eshop\ImportManager;
 use Eshop\Integration\Comgate;
 use Eshop\Shopper;
 use Nette\Schema\Expect;
@@ -24,7 +23,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			'country' => Expect::string('CZ'),
 			'currency' => Expect::string('CZK'),
 			'registration' => Expect::structure([
-				'enabled' =>  Expect::bool(true),
+				'enabled' => Expect::bool(true),
 				'confirmation' => Expect::bool(true),
 				'emailAuthorization' => Expect::bool(true),
 			]),
@@ -53,15 +52,15 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$builder->addDefinition($this->prefix('compareManager'))->setType(CompareManager::class);
 		$builder->getDefinition('latte.templateFactory')->addSetup('$onCreate[]', [['@shopper.shopper', 'addFilters']]);
 
-		$shopper->addSetup('setProjectUrl',[$config['projectUrl']]);
-		$shopper->addSetup('setRegistrationConfiguration',[(array) $config['registration']]);
-		$shopper->addSetup('setCountry',[$config['country']]);
-		$shopper->addSetup('setCurrency',[$config['currency']]);
-		$shopper->addSetup('setShowWithoutVat',[$config['showWithoutVat']]);
-		$shopper->addSetup('setShowVat',[$config['showVat']]);
-		$shopper->addSetup('setEditOrderAfterCreation',[$config['editOrderAfterCreation']]);
+		$shopper->addSetup('setProjectUrl', [$config['projectUrl']]);
+		$shopper->addSetup('setRegistrationConfiguration', [(array) $config['registration']]);
+		$shopper->addSetup('setCountry', [$config['country']]);
+		$shopper->addSetup('setCurrency', [$config['currency']]);
+		$shopper->addSetup('setShowWithoutVat', [$config['showWithoutVat']]);
+		$shopper->addSetup('setShowVat', [$config['showVat']]);
+		$shopper->addSetup('setEditOrderAfterCreation', [$config['editOrderAfterCreation']]);
 
-		$cartManager->addSetup('setCheckoutSequence',[$config['checkoutSequence']]);
+		$cartManager->addSetup('setCheckoutSequence', [$config['checkoutSequence']]);
 		
 		return;
 	}

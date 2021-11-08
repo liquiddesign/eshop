@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Eshop\Integration;
 
 class ZasilkovnaException extends \Exception

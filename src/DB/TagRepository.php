@@ -14,12 +14,17 @@ class TagRepository extends \StORM\Repository implements IGeneralRepository
 {
 	/**
 	 * @deprecated
+	 * @return string[]
 	 */
-	public function getListForSelect():array
+	public function getListForSelect(): array
 	{
 		return $this->getArrayForSelect();
 	}
-	
+
+	/**
+	 * @param bool $includeHidden
+	 * @return string[]
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('name');

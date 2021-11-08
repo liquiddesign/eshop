@@ -12,7 +12,10 @@ use StORM\Collection;
  */
 class DeliveryTypeRepository extends \StORM\Repository implements IGeneralRepository
 {
-	public function getArrayForSelect(bool $includeHidden = true):array
+	/**
+	 * @inheritDoc
+	 */
+	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('name');
 	}
@@ -45,7 +48,8 @@ class DeliveryTypeRepository extends \StORM\Repository implements IGeneralReposi
 		if ($deliveryDiscount) {
 			$collection->select([
 				'price' => 'IF(prices.price IS NULL, 0, IF(:discountPct, prices.price * ((100 - :discountPct) / 100), IF(:discountValue > prices.price, 0, prices.price - :discountValue)))',
-				'priceVat' => 'IF(prices.price IS NULL, 0, IF(:discountPct, prices.priceVat * ((100 - :discountPct) / 100), IF(:discountValueVat > prices.priceVat, 0, prices.priceVat - :discountValueVat)))',
+				'priceVat' => 'IF(prices.price IS NULL, 0, IF(:discountPct, prices.priceVat * ((100 - :discountPct) / 100), 
+				IF(:discountValueVat > prices.priceVat, 0, prices.priceVat - :discountValueVat)))',
 				'priceBefore' => 'prices.price',
 				'priceBeforeVat' => 'prices.priceVat',
 			], [

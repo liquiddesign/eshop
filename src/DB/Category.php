@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use StORM\ArrayWrapper;
 use StORM\Collection;
+use StORM\ICollection;
 use StORM\RelationCollection;
 
 /**
@@ -107,11 +107,6 @@ class Category extends \StORM\Entity
 	 */
 	public bool $systemic = false;
 	
-	public function isSystemic(): bool
-	{
-		return $this->systemic;
-	}
-	
 	/**
 	 * Pomocí repositářové metody getTree(array $orderBy)
 	 * @var \Eshop\DB\Category[]
@@ -138,8 +133,13 @@ class Category extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\ParameterCategory>|\Eshop\DB\ParameterCategory[]
 	 */
 	public RelationCollection $parameterCategories;
+
+	public function isSystemic(): bool
+	{
+		return $this->systemic;
+	}
 	
-	public function isBottom()
+	public function isBottom(): bool
 	{
 		return $this->getRepository()->many()->where('fk_ancestor', $this->uuid)->isEmpty();
 	}
@@ -149,7 +149,7 @@ class Category extends \StORM\Entity
 		return $this->getRepository()->many()->where(":path LIKE CONCAT(this.path,'%')", ['path' => $this->path])->orderBy(['LENGTH(path)' => $asc ? 'ASC' : 'DESC']);
 	}
 	
-	public function getDescendants(?int $level = null)
+	public function getDescendants(?int $level = null): ICollection
 	{
 		$collection = $this->getRepository()->many()->where("this.path LIKE :path", ['path' => $this->path . '%'])->whereNot('this.uuid', $this->getPK());
 		
@@ -160,7 +160,7 @@ class Category extends \StORM\Entity
 		return $collection->orderBy(['LENGTH(path)' => 'ASC']);
 	}
 	
-	public function getParentPath(int $level)
+	public function getParentPath(int $level): string
 	{
 		return \substr($this->path, 0, 4 * ($level + 1));
 	}

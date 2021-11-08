@@ -8,5 +8,5 @@ use StORM\Collection;
 
 interface IProductsFactory
 {
-	public function create(array $order = null, ?Collection $source = null): ProductList;
+	public function create(?array $order = null, ?Collection $source = null): ProductList;
 }

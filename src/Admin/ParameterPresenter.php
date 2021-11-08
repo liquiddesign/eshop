@@ -14,13 +14,23 @@ use Eshop\DB\ParameterCategoryRepository;
 use Eshop\DB\ParameterGroup;
 use Eshop\DB\ParameterGroupRepository;
 use Eshop\DB\ParameterRepository;
-use Eshop\DB\ParameterValueRepository;
 use Forms\Form;
 use StORM\DIConnection;
 use StORM\ICollection;
 
 class ParameterPresenter extends BackendPresenter
 {
+	public const TABS = [
+		'groups' => 'Skupiny',
+		'categories' => 'Kategorie',
+	];
+
+	protected const TYPES = [
+		'bool' => 'Ano / Ne',
+		'list' => 'Seznam',
+//      'text' => 'Text',
+	];
+
 	/** @inject */
 	public ParameterRepository $parameterRepository;
 
@@ -33,19 +43,8 @@ class ParameterPresenter extends BackendPresenter
 	/** @inject */
 	public ParameterAvailableValueRepository $parameterAvailableValueRepository;
 
-	public const TABS = [
-		'groups' => 'Skupiny',
-		'categories' => 'Kategorie',
-	];
-
 	/** @persistent */
 	public string $tab = 'groups';
-
-	protected const TYPES = [
-		'bool' => 'Ano / Ne',
-		'list' => 'Seznam',
-//		'text' => 'Text',
-	];
 
 	public function createComponentGrid(): AdminGrid
 	{
@@ -66,7 +65,7 @@ class ParameterPresenter extends BackendPresenter
 		$grid->addButtonDeleteSelected();
 
 		$grid->addFilterTextInput('search', ['name_cs'], null, 'Název');
-		$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+		$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 			$source->where('type', $value);
 		}, '', 'type', 'Typ', $this::TYPES, ['placeholder' => '- Typ -']);
 		$grid->addFilterButtons(['default', $this->getParameter('group')]);
@@ -100,7 +99,7 @@ class ParameterPresenter extends BackendPresenter
 
 		$form->addLocaleText('name', 'Název');
 
-		/** @var Parameter $parameter */
+		/** @var \Eshop\DB\Parameter $parameter */
 		$parameter = $this->getParameter('parameter');
 
 		$form->addLocaleTextArea('description', 'Popisek');
@@ -125,38 +124,40 @@ class ParameterPresenter extends BackendPresenter
 
 		$form->addSubmits(!$parameter);
 
-		$form->onValidate[] = function (AdminForm $form) {
+		$form->onValidate[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
-			if ($values['type'] == 'list' && (!$values['allowedKeys'] || !$values['allowedValues'])) {
+			if ($values['type'] === 'list' && (!$values['allowedKeys'] || !$values['allowedValues'])) {
 				$form['allowedKeys']->addError('Toto pole je povinné!');
 				$form['allowedValues']->addError('Toto pole je povinné!');
 			}
 
-			if ($values['allowedKeys'] && $values['allowedValues']) {
-				$keysCount = \count(\explode(';', $values['allowedKeys']));
+			if (!$values['allowedKeys'] || !$values['allowedValues']) {
+				return;
+			}
 
-				foreach ($form->getMutations() as $mutation) {
-					if ($keysCount != \count(\explode(';', $values['allowedValues'][$mutation]))) {
-						$form['allowedKeys']->addError('Nesprávný počet položek!');
+			$keysCount = \count(\explode(';', $values['allowedKeys']));
 
-						break;
-					}
+			foreach ($form->getMutations() as $mutation) {
+				if ($keysCount !== \count(\explode(';', $values['allowedValues'][$mutation]))) {
+					$form['allowedKeys']->addError('Nesprávný počet položek!');
+
+					break;
 				}
 			}
 		};
 
-		$form->onSuccess[] = function (AdminForm $form) use ($parameter) {
+		$form->onSuccess[] = function (AdminForm $form) use ($parameter): void {
 			$values = $form->getValues('array');
 
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
 				$oldParameter = null;
 			} else {
-				/** @var Parameter $oldParameter */
+				/** @var \Eshop\DB\Parameter $oldParameter */
 				$oldParameter = $this->parameterRepository->one($values['uuid']);
 
-				if ($values['type'] != $oldParameter->type) {
+				if ($values['type'] !== $oldParameter->type) {
 					$this->parameterAvailableValueRepository->many()->where('fk_parameter', $values['uuid'])->delete();
 				}
 			}
@@ -165,21 +166,21 @@ class ParameterPresenter extends BackendPresenter
 
 			$parameter = $this->parameterRepository->syncOne($values, null, true);
 
-			if ($values['type'] == 'bool') {
+			if ($values['type'] === 'bool') {
 				if (!$existingValue = $this->parameterAvailableValueRepository->many()->where('allowedKey', '0')->where('fk_parameter', $parameter->getPK())->first()) {
 					$this->parameterAvailableValueRepository->createOne([
 						'allowedKey' => '0',
-						'parameter' => $parameter->getPK()
+						'parameter' => $parameter->getPK(),
 					]);
 				}
 
 				if (!$existingValue = $this->parameterAvailableValueRepository->many()->where('allowedKey', '1')->where('fk_parameter', $parameter->getPK())->first()) {
 					$this->parameterAvailableValueRepository->createOne([
 						'allowedKey' => '1',
-						'parameter' => $parameter->getPK()
+						'parameter' => $parameter->getPK(),
 					]);
 				}
-			} elseif ($values['type'] == 'list') {
+			} elseif ($values['type'] === 'list') {
 				$oldKeys = \array_values($this->parameterAvailableValueRepository->many()->where('fk_parameter', $values['uuid'])->toArrayOf('allowedKey'));
 				$keys = \explode(';', $values['allowedKeys']);
 
@@ -203,21 +204,22 @@ class ParameterPresenter extends BackendPresenter
 						$this->parameterAvailableValueRepository->syncOne([
 							'allowedKey' => $key,
 							'allowedValue' => $parameterValues[$key],
-							'parameter' => $parameter->getPK()
+							'parameter' => $parameter->getPK(),
 						]);
 					} else {
 						$existingValue->update([
-							'allowedValue' => $parameterValues[$key]
+							'allowedValue' => $parameterValues[$key],
 						]);
 					}
 				}
-			} elseif ($values['type'] == 'text') {
-
+			} elseif ($values['type'] === 'text') {
 			}
 
 			$form->getPresenter()->flashMessage('Uloženo', 'success');
 
-			$form->processRedirect('detail', 'default',
+			$form->processRedirect(
+				'detail',
+				'default',
 				['parameter' => $parameter, 'group' => $this->getParameter('group')],
 				['group' => $this->getParameter('group')],
 			);
@@ -226,7 +228,7 @@ class ParameterPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderDefault(ParameterGroup $group, ?string $backLink = null)
+	public function renderDefault(ParameterGroup $group, ?string $backLink = null): void
 	{
 		$this->template->headerLabel = 'Parametry skupiny: ' . ($group->name ?? $group->internalName);
 		$this->template->headerTree = [
@@ -237,7 +239,7 @@ class ParameterPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
 
-	public function renderNew(ParameterGroup $group, ?string $backLink = null)
+	public function renderNew(ParameterGroup $group, ?string $backLink = null): void
 	{
 		$this->template->setFile(__DIR__ . \DIRECTORY_SEPARATOR . 'templates' . \DIRECTORY_SEPARATOR . '_parameters-js.latte');
 		$this->template->headerLabel = 'Nová položka';
@@ -250,7 +252,7 @@ class ParameterPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 
-	public function renderDetail(Parameter $parameter, ?string $backLink = null)
+	public function renderDetail(Parameter $parameter, ?string $backLink = null): void
 	{
 		$this->template->setFile(__DIR__ . \DIRECTORY_SEPARATOR . 'templates' . \DIRECTORY_SEPARATOR . '_parameters-js.latte');
 		$this->template->headerLabel = 'Detail';
@@ -263,7 +265,7 @@ class ParameterPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 
-	public function renderParameterCategoryNew()
+	public function renderParameterCategoryNew(): void
 	{
 		$this->template->setFile(__DIR__ . \DIRECTORY_SEPARATOR . 'templates' . \DIRECTORY_SEPARATOR . '_parameters-js.latte');
 		$this->template->headerLabel = 'Nová položka';
@@ -276,15 +278,15 @@ class ParameterPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('parameterCategoryForm')];
 	}
 
-	public function actionParameterCategoryDetail(ParameterCategory $parameterCategory, ?string $backLink = null)
+	public function actionParameterCategoryDetail(ParameterCategory $parameterCategory, ?string $backLink = null): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('parameterCategoryForm');
 
 		$form->setDefaults($parameterCategory->toArray());
 	}
 
-	public function renderParameterCategoryDetail(ParameterCategory $parameterCategory, ?string $backLink = null)
+	public function renderParameterCategoryDetail(ParameterCategory $parameterCategory, ?string $backLink = null): void
 	{
 		$this->template->setFile(__DIR__ . \DIRECTORY_SEPARATOR . 'templates' . \DIRECTORY_SEPARATOR . '_parameters-js.latte');
 		$this->template->headerLabel = 'Detail';
@@ -297,22 +299,22 @@ class ParameterPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('parameterCategoryForm')];
 	}
 
-	public function actionDefault(?ParameterGroup $group, ?string $backLink = null)
+	public function actionDefault(?ParameterGroup $group, ?string $backLink = null): void
 	{
 	}
 
-	public function actionNew(ParameterGroup $group, ?string $backLink = null)
+	public function actionNew(ParameterGroup $group, ?string $backLink = null): void
 	{
 	}
 
-	public function actionDetail(Parameter $parameter, ParameterGroup $group, ?string $backLink = null)
+	public function actionDetail(Parameter $parameter, ParameterGroup $group, ?string $backLink = null): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
 
 		$values = $parameter->toArray();
 
-		if ($parameter->type == 'list') {
+		if ($parameter->type === 'list') {
 			$allowedKeys = \array_values($this->parameterAvailableValueRepository->many()->where('fk_parameter', $values['uuid'])->toArrayOf('allowedKey'));
 			$values['allowedKeys'] = \implode(';', $allowedKeys);
 			$values['allowedValues'] = [];
@@ -361,7 +363,7 @@ class ParameterPresenter extends BackendPresenter
 		$grid->addButtonDeleteSelected();
 
 		$grid->addFilterTextInput('search', ['name_cs'], null, 'Název');
-		$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+		$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 			$source->where('fk_parameterCategory', $value);
 		}, '', 'category', 'Kategorie parametrů', $this->parameterCategoryRepo->getArrayForSelect(), ['placeholder' => '- Kategorie parametrů -']);
 		$grid->addFilterButtons(['groupDefault']);
@@ -384,7 +386,7 @@ class ParameterPresenter extends BackendPresenter
 
 		$form->addSubmits(!$this->getParameter('group'));
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			if (!$values['uuid']) {
@@ -413,7 +415,7 @@ class ParameterPresenter extends BackendPresenter
 
 		$form->addSubmits(!$this->getParameter('parameterCategory'));
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			if (!$values['uuid']) {
@@ -429,18 +431,18 @@ class ParameterPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderGroupDefault()
+	public function renderGroupDefault(): void
 	{
 		$this->template->headerLabel = 'Parametry';
 		$this->template->headerTree = [
 			['Parametry', 'this'],
-			[self::TABS[$this->tab]]
+			[self::TABS[$this->tab]],
 		];
 
-		if ($this->tab == 'groups') {
+		if ($this->tab === 'groups') {
 			$this->template->displayButtons = [$this->createNewItemButton('groupNew')];
 			$this->template->displayControls = [$this->getComponent('groupGrid')];
-		} elseif ($this->tab == 'categories') {
+		} elseif ($this->tab === 'categories') {
 			$this->template->displayButtons = [$this->createNewItemButton('parameterCategoryNew')];
 			$this->template->displayControls = [$this->getComponent('parameterCategoriesGrid')];
 		}
@@ -448,7 +450,7 @@ class ParameterPresenter extends BackendPresenter
 		$this->template->tabs = self::TABS;
 	}
 
-	public function renderGroupNew()
+	public function renderGroupNew(): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -459,7 +461,7 @@ class ParameterPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('groupNewForm')];
 	}
 
-	public function renderGroupDetail(ParameterGroup $group, ?string $backLink = null)
+	public function renderGroupDetail(ParameterGroup $group, ?string $backLink = null): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -470,12 +472,11 @@ class ParameterPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('groupNewForm')];
 	}
 
-	public function actionGroupDetail(ParameterGroup $group, $back = null)
+	public function actionGroupDetail(ParameterGroup $group, $back = null): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('groupNewForm');
 
 		$form->setDefaults($group->toArray());
 	}
-
 }

@@ -12,6 +12,9 @@ use StORM\Collection;
  */
 class TaxRepository extends \StORM\Repository implements IGeneralRepository
 {
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('name');
@@ -19,12 +22,20 @@ class TaxRepository extends \StORM\Repository implements IGeneralRepository
 
 	public function getCollection(bool $includeHidden = false): Collection
 	{
+		unset($includeHidden);
+
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$collection = $this->many();
 
 		return $collection->orderBy(["name$suffix"]);
 	}
 
+	/**
+	 * @param $product
+	 * @param $currency
+	 * @return \Eshop\DB\Tax[]
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function getTaxesForProduct($product, $currency): array
 	{
 		/** @var \Eshop\DB\ProductRepository $productRepository */

@@ -15,8 +15,8 @@ use StORM\Collection;
 class MerchantRepository extends \StORM\Repository implements IUserRepository, IGeneralRepository
 {
 	use UserRepositoryTrait;
-
 	/**
+	 * @return string[]
 	 * @deprecated use getArrayForSelect()
 	 */
 	public function getListForSelect(): array
@@ -47,7 +47,6 @@ class MerchantRepository extends \StORM\Repository implements IUserRepository, I
 		/** @var \Eshop\DB\CustomerRepository $customerRepository */
 		$customerRepository = $this->getConnection()->findRepository(Customer::class);
 
-		/** @var \Eshop\DB\Customer $customer */
 		if (!$customer instanceof Customer) {
 			if ($customer = $customerRepository->one($customer)) {
 				return [];
@@ -60,6 +59,9 @@ class MerchantRepository extends \StORM\Repository implements IUserRepository, I
 			->toArray();
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('fullname');
@@ -67,8 +69,8 @@ class MerchantRepository extends \StORM\Repository implements IUserRepository, I
 
 	public function getCollection(bool $includeHidden = false): Collection
 	{
-		$collection = $this->many();
+		unset($includeHidden);
 
-		return $collection->orderBy(['fullname']);
+		return $this->many()->orderBy(['fullname']);
 	}
 }

@@ -9,21 +9,29 @@ use StORM\Collection;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Parameter>
- * @deprecated 
+ * @deprecated
  */
 class ParameterRepository extends \StORM\Repository implements IGeneralRepository
 {
-	public function getListForSelect():array
+	/**
+	 * @return string[]
+	 * @deprecated
+	 */
+	public function getListForSelect(): array
 	{
 		$data = $this->many()->toArray();
 		$array = [];
-		foreach ($data as $key => $value)
-		{
+
+		foreach ($data as $key => $value) {
 			$array[$key] = $value->name ?: $value->getPK();
 		}
+
 		return $array;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('name');
@@ -40,7 +48,12 @@ class ParameterRepository extends \StORM\Repository implements IGeneralRepositor
 
 		return $collection->orderBy(['priority', "name$suffix"]);
 	}
-	
+
+	/**
+	 * @param \StORM\Collection $collection
+	 * @return string[]
+	 * @deprecated
+	 */
 	public function getCounts(Collection $collection): array
 	{
 		$collection = $this->many()

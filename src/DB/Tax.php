@@ -27,5 +27,4 @@ class Tax extends \StORM\Entity
 	 * @relation
 	 */
 	public Currency $currency;
-
 }

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\Shopper;
 use Eshop\DB\WatcherRepository;
+use Eshop\Shopper;
 use Grid\Datalist;
 use StORM\DIConnection;
 use StORM\Exception\NotFoundException;

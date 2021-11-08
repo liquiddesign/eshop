@@ -1,8 +1,6 @@
 <?php
 
-
 namespace Eshop\Integration;
-
 
 use Eshop\DB\AddressRepository;
 use Eshop\DB\OpeningHoursRepository;
@@ -12,16 +10,24 @@ use Eshop\DB\PickupPointTypeRepository;
 use Eshop\DB\PurchaseRepository;
 use Eshop\Shopper;
 use GuzzleHttp\Client;
-use Nette\Caching\Cache;
-use Nette\Caching\Storage;
 use Nette\Localization\Translator;
+use Nette\Utils\Json;
 use Nette\Utils\JsonException;
 use SimpleXMLElement;
 use Web\DB\SettingRepository;
-use Nette\Utils\Json;
 
 class Zasilkovna
 {
+	public const DAYS = [
+		1 => 'monday',
+		2 => 'tuesday',
+		3 => 'wednesday',
+		4 => 'thursday',
+		5 => 'friday',
+		6 => 'saturday',
+		7 => 'sunday',
+	];
+
 	private PickupPointTypeRepository $pickupPointTypeRepository;
 
 	private PickupPointRepository $pickupPointRepository;
@@ -32,23 +38,11 @@ class Zasilkovna
 
 	private OpeningHoursRepository $openingHoursRepository;
 
-	private Cache $cache;
-
 	private Translator $translator;
 
 	private PurchaseRepository $purchaseRepository;
 
 	private Shopper $shopper;
-
-	private const DAYS = [
-		1 => 'monday',
-		2 => 'tuesday',
-		3 => 'wednesday',
-		4 => 'thursday',
-		5 => 'friday',
-		6 => 'saturday',
-		7 => 'sunday'
-	];
 
 	public function __construct(
 		PickupPointTypeRepository $pickupPointTypeRepository,
@@ -56,18 +50,15 @@ class Zasilkovna
 		SettingRepository $settingRepository,
 		AddressRepository $addressRepository,
 		OpeningHoursRepository $openingHoursRepository,
-		Storage $storage,
 		Translator $translator,
 		PurchaseRepository $purchaseRepository,
 		Shopper $shopper
-	)
-	{
+	) {
 		$this->pickupPointRepository = $pickupPointRepository;
 		$this->pickupPointTypeRepository = $pickupPointTypeRepository;
 		$this->settingRepository = $settingRepository;
 		$this->addressRepository = $addressRepository;
 		$this->openingHoursRepository = $openingHoursRepository;
-		$this->cache = new Cache($storage);
 		$this->translator = $translator;
 		$this->purchaseRepository = $purchaseRepository;
 		$this->shopper = $shopper;
@@ -90,7 +81,7 @@ class Zasilkovna
 
 		$response = $client->request('GET');
 
-		if ($response->getStatusCode() != 200) {
+		if ($response->getStatusCode() !== 200) {
 			throw new ZasilkovnaException('Invalid response from API!', ZasilkovnaException::INVALID_RESPONSE);
 		}
 
@@ -100,14 +91,14 @@ class Zasilkovna
 			throw new ZasilkovnaException('Response JSON parse error!', ZasilkovnaException::JSON_PARSE_ERROR);
 		}
 
-		foreach ($responseContent['data'] as $key => $value) {
+		foreach ($responseContent['data'] as $value) {
 			$address = $this->addressRepository->syncOne([
 				'uuid' => 'zasilkovna_' . $value['id'],
 				'street' => $value['street'],
 				'city' => $value['city'],
 				'zipcode' => $value['zip'],
 				'state' => $value['country'],
-				'note' => $value['special'] ?? null
+				'note' => $value['special'] ?? null,
 			]);
 
 			$open = true;
@@ -132,15 +123,16 @@ class Zasilkovna
 				'uuid' => 'zasilkovna_' . $value['id'],
 				'pickupPointType' => $zasilkovnaType->getPK(),
 				'name' => [
-					'cs' => $value['place']
+					'cs' => $value['place'],
 				],
 				'address' => $address->getPK(),
 				'gpsN' => \floatval($value['latitude']),
 				'gpsE' => \floatval($value['longitude']),
 				'hidden' => !$open,
 				'description' => [
-					'cs' => $this->translator->translate('.status', 'Stav') . ': ' . $value['status']['description'] . '  ' . (\is_array($value['directions']) ? null : \trim(\strip_tags($value['directions'])))
-				]
+					'cs' => $this->translator->translate('.status', 'Stav') . ': ' . $value['status']['description'] . '  ' .
+						(\is_array($value['directions']) ? null : \trim(\strip_tags($value['directions']))),
+				],
 			]);
 
 			$openingHours = $value['openingHours'];
@@ -168,12 +160,11 @@ class Zasilkovna
 					} else {
 						$newOpeningHours += [
 							'pickupPoint' => $point->getPK(),
-							'day' => $dayIndex
+							'day' => $dayIndex,
 						];
 
 						$this->openingHoursRepository->createOne($newOpeningHours);
 					}
-
 				}
 			}
 
@@ -187,7 +178,6 @@ class Zasilkovna
 				$exceptions = \is_array($exceptions) ? $exceptions : [$exceptions];
 
 				foreach ($exceptions as $exception) {
-
 					$date = $exception['date'] ?? null;
 
 					if (!$date) {
@@ -200,7 +190,7 @@ class Zasilkovna
 						'openFrom' => null,
 						'openTo' => null,
 						'pauseFrom' => null,
-						'pauseTo' => null
+						'pauseTo' => null,
 					];
 
 					if ($hours = ($exception['hours'] ?? null)) {
@@ -223,14 +213,33 @@ class Zasilkovna
 		$this->pickupPointRepository->clearCache();
 	}
 
+	/**
+	 * @param \Eshop\DB\Order[] $orders
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function syncOrders($orders): void
+	{
+		if (!$zasilkovnaApiPassword = $this->settingRepository->many()->where('name = "zasilkovnaApiPassword"')->first()) {
+			return;
+		}
+
+		foreach ($orders as $order) {
+			$this->createZasilkovnaPackage($order, $zasilkovnaApiPassword);
+		}
+	}
+
+	/**
+	 * @param string $openingHours
+	 * @return array<string, string|null>|null
+	 */
 	private function processOpeningHours(string $openingHours): ?array
 	{
 		$openingHours = \explode(',', $openingHours);
 
-		if (\count($openingHours) == 2) {
+		if (\count($openingHours) === 2) {
 			[$openFrom, $pauseFrom] = \explode('–', $openingHours[0]);
 			[$pauseTo, $openTo] = \explode('–', $openingHours[1]);
-		} elseif (\count($openingHours) == 1) {
+		} elseif (\count($openingHours) === 1) {
 			[$openFrom, $openTo] = \explode('–', $openingHours[0]);
 		} else {
 			return null;
@@ -244,28 +253,14 @@ class Zasilkovna
 		];
 	}
 
-	/**
-	 * @param \Eshop\DB\Order[] $orders
-	 */
-	public function syncOrders($orders)
-	{
-		if (!$zasilkovnaApiPassword = $this->settingRepository->many()->where('name = "zasilkovnaApiPassword"')->first()) {
-			return;
-		}
-
-		foreach ($orders as $order){
-			$this->createZasilkovnaPackage($order, $zasilkovnaApiPassword);
-		}
-	}
-
-	private function createZasilkovnaPackage(Order $order, $zasilkovnaApiPassword)
+	private function createZasilkovnaPackage(Order $order, $zasilkovnaApiPassword): void
 	{
 		$purchase = $this->purchaseRepository->many()->join(['orders' => 'eshop_order'], 'this.uuid = orders.fk_purchase')->where('orders.uuid', $order->getPK())->first();
 
 		$client = new Client([
 			'base_uri' => 'https://www.zasilkovna.cz/api/rest',
 			'timeout' => 5.0,
-			'verify' => false
+			'verify' => false,
 		]);
 
 		$xml = '
@@ -279,7 +274,7 @@ class Zasilkovna
 			        <addressId>' . $purchase->zasilkovnaId . '</addressId>
 			        <currency>' . $order->purchase->currency->code . '</currency>
 			        <value>' . $order->getTotalPriceVat() . '</value>
-			        ' . ($order->getPayment()->typeCode == 'dob' ? '<cod>' . $order->getTotalPriceVat() . '</cod>' : null) . '
+			        ' . ($order->getPayment()->typeCode === 'dob' ? '<cod>' . $order->getTotalPriceVat() . '</cod>' : null) . '
 			        <eshop>' . $this->shopper->getProjectUrl() . '</eshop>
 			    </packetAttributes>
 			</createPacket>
@@ -295,10 +290,10 @@ class Zasilkovna
 		$response = $client->request('POST', '', $options);
 		$xmlResponse = new SimpleXMLElement($response->getBody()->getContents());
 
-		if($xmlResponse->status == 'ok'){
+		if ($xmlResponse->status === 'ok') {
 			$order->update(['zasilkovnaCompleted' => true]);
 		}
 
-		bdump($xmlResponse);
+		\bdump($xmlResponse);
 	}
 }

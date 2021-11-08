@@ -6,11 +6,11 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
-use Eshop\DB\PricelistRepository;
-use Eshop\Shopper;
 use Eshop\DB\CustomerGroup;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
+use Eshop\DB\PricelistRepository;
+use Eshop\Shopper;
 use Forms\Form;
 
 class CustomerGroupPresenter extends BackendPresenter
@@ -18,7 +18,7 @@ class CustomerGroupPresenter extends BackendPresenter
 	protected const CONFIGURATION = [
 		'unregistred' => true,
 		'defaultAfterRegistration' => true,
-		'prices' => true
+		'prices' => true,
 	];
 
 	/** @inject */
@@ -35,11 +35,7 @@ class CustomerGroupPresenter extends BackendPresenter
 
 	public function createComponentGrid()
 	{
-		if (static::CONFIGURATION['unregistred']) {
-			$collection = $this->userGroupRepo->many();
-		} else {
-			$collection = $this->userGroupRepo->many()->where('uuid != :s', ['s' => CustomerGroupRepository::UNREGISTERED_PK]);
-		}
+		$collection = self::CONFIGURATION['unregistred'] ? $this->userGroupRepo->many() : $this->userGroupRepo->many()->where('uuid != :s', ['s' => CustomerGroupRepository::UNREGISTERED_PK]);
 
 		$grid = $this->gridFactory->create($collection, 20, 'name', 'ASC', true);
 		$grid->addColumnSelector();
@@ -51,6 +47,7 @@ class CustomerGroupPresenter extends BackendPresenter
 
 			foreach ($group->defaultPricelists as $pricelist) {
 				$link = ':Eshop:Admin:Pricelists:priceListDetail';
+
 				if (!$this->admin->isAllowed($link)) {
 					$resultString .= $pricelist->name . ', ';
 				} else {
@@ -69,7 +66,7 @@ class CustomerGroupPresenter extends BackendPresenter
 			return $group->defaultBuyAllowed ? 'Ano' : 'Ne';
 		}, '%s', null, ['class' => 'fit']);
 
-		if (static::CONFIGURATION['defaultAfterRegistration']) {
+		if (self::CONFIGURATION['defaultAfterRegistration']) {
 			$grid->addColumn('Výchozí po registraci', function (CustomerGroup $group) {
 				return $group->defaultAfterRegistration ? 'Ano' : 'Ne';
 			}, '%s', null, ['class' => 'fit']);
@@ -97,7 +94,7 @@ class CustomerGroupPresenter extends BackendPresenter
 		$grid->addFilterTextInput('search', ['name'], null, 'Název');
 		$grid->addFilterButtons();
 
-		$grid->onRenderRow[] = function (\Nette\Utils\Html $row, CustomerGroup $object) {
+		$grid->onRenderRow[] = function (\Nette\Utils\Html $row, CustomerGroup $object): void {
 			if ($object->getPK() === CustomerGroupRepository::UNREGISTERED_PK) {
 				$row->appendAttribute('style', 'background-color: lavender;');
 			}
@@ -110,7 +107,7 @@ class CustomerGroupPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
-		/** @var CustomerGroup $group */
+		/** @var \Eshop\DB\CustomerGroup $group */
 		$group = $this->getParameter('group');
 
 		$form->addText('name', 'Název')->setRequired();
@@ -119,7 +116,7 @@ class CustomerGroupPresenter extends BackendPresenter
 			->toggle('frm-newForm-defaultPricesWithoutVat-toogle')
 			->toggle('frm-newForm-defaultPricesWithVat-toogle');
 
-		if (isset(static::CONFIGURATION['prices']) && static::CONFIGURATION['prices']) {
+		if (isset(self::CONFIGURATION['prices']) && self::CONFIGURATION['prices']) {
 			if ($this->shopper->getShowWithoutVat()) {
 				$form->addCheckbox('defaultPricesWithoutVat', 'Zobrazit ceny bez daně');
 			}
@@ -131,7 +128,7 @@ class CustomerGroupPresenter extends BackendPresenter
 			if ($this->shopper->getShowWithoutVat() && $this->shopper->getShowVat()) {
 				$form->addSelect('defaultPriorityPrice', 'Prioritní cena', [
 					'withoutVat' => 'Bez daně',
-					'withVat' => 'S daní'
+					'withVat' => 'S daní',
 				])->addConditionOn($form['defaultCatalogPermission'], $form::EQUAL, 'price')
 					->addConditionOn($form['defaultPricesWithoutVat'], $form::EQUAL, true)
 					->addConditionOn($form['defaultPricesWithVat'], $form::EQUAL, true)
@@ -144,7 +141,7 @@ class CustomerGroupPresenter extends BackendPresenter
 		$form->addDataMultiSelect('defaultPricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 
-		if (static::CONFIGURATION['defaultAfterRegistration']) {
+		if (self::CONFIGURATION['defaultAfterRegistration']) {
 			$form->addCheckbox('defaultAfterRegistration', 'Výchozí po registraci');
 		}
 
@@ -152,7 +149,7 @@ class CustomerGroupPresenter extends BackendPresenter
 
 		$form->addSubmits(!$group);
 
-		$form->onSuccess[] = function (AdminForm $form) use ($group) {
+		$form->onSuccess[] = function (AdminForm $form) use ($group): void {
 			$values = $form->getValues('array');
 
 			if (isset($values['defaultAfterRegistration']) && $values['defaultAfterRegistration']) {
@@ -168,7 +165,7 @@ class CustomerGroupPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Skupiny zákazníků';
 		$this->template->headerTree = [
@@ -178,7 +175,7 @@ class CustomerGroupPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
 
-	public function renderNew()
+	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nový';
 		$this->template->headerTree = [
@@ -189,7 +186,7 @@ class CustomerGroupPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 
-	public function renderDetail()
+	public function renderDetail(): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -200,9 +197,9 @@ class CustomerGroupPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 
-	public function actionDetail(CustomerGroup $group)
+	public function actionDetail(CustomerGroup $group): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
 		$values = $group->toArray();
 		$values['defaultPricelists'] = \array_keys($group->defaultPricelists->toArray());

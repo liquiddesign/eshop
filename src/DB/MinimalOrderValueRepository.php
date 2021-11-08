@@ -9,7 +9,7 @@ namespace Eshop\DB;
  */
 class MinimalOrderValueRepository extends \StORM\Repository
 {
-	public function getMinimalOrderValue(CustomerGroup $group, Currency $currency)
+	public function getMinimalOrderValue(CustomerGroup $group, Currency $currency): ?MinimalOrderValue
 	{
 		return $this->one(['fk_customerGroup' => $group, 'fk_currency' => $currency], false);
 	}

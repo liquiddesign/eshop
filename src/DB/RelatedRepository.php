@@ -25,6 +25,9 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 		$this->relatedTypeRepository = $relatedTypeRepository;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('CONCAT(master.name,"-",slave.name)');
@@ -32,7 +35,6 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 
 	public function getCollection(bool $includeHidden = false): Collection
 	{
-		$suffix = $this->getConnection()->getMutationSuffix();
 		$collection = $this->many();
 
 		if (!$includeHidden) {
@@ -42,26 +44,26 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 		return $collection->orderBy(['priority']);
 	}
 
-	public function exportCsv(Writer $writer, $items = null)
+	public function exportCsv(Writer $writer, $items = null): void
 	{
 		$writer->setDelimiter(';');
 
 		$writer->insertOne([
 			'type',
 			'master',
-			'slave'
+			'slave',
 		]);
 
 		foreach ($items ?? $this->many() as $related) {
 			$writer->insertOne([
 				$related->type->code,
 				$related->master->getFullCode(),
-				$related->slave->getFullCode()
+				$related->slave->getFullCode(),
 			]);
 		}
 	}
 
-	public function importCsv(Reader $reader)
+	public function importCsv(Reader $reader): void
 	{
 		if (!\ini_get("auto_detect_line_endings")) {
 			\ini_set("auto_detect_line_endings", '1');
@@ -73,10 +75,10 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 		$iterator = $reader->getRecords([
 			'type',
 			'master',
-			'slave'
+			'slave',
 		]);
 
-		foreach ($iterator as $offset => $value) {
+		foreach ($iterator as $value) {
 			$relatedType = $this->relatedTypeRepository->many()->where('code', $value['type'])->first();
 
 			if (!$relatedType) {
@@ -108,7 +110,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			$this->syncOne([
 				'type' => $relatedType->getPK(),
 				'master' => $master->getPK(),
-				'slave' => $slave->getPK()
+				'slave' => $slave->getPK(),
 			]);
 		}
 	}

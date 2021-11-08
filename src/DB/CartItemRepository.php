@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Eshop\BuyException;
 use StORM\Collection;
 use StORM\DIConnection;
-use StORM\Entity;
 use StORM\SchemaManager;
 
 /**
@@ -97,7 +95,7 @@ class CartItemRepository extends \StORM\Repository
 			'priceVat' => $product->getPriceVat($amount),
 			'vatPct' => (float) $vatPct,
 			'product' => !$disabled ? $product->getPK() : null,
-			'pricelist' => isset($product->pricelist) ? $product->pricelist : null,
+			'pricelist' => $product->pricelist ?? null,
 			'variant' => $variant ? $variant->getPK() : null,
 			'cart' => $cart->getPK(),
 		]);
@@ -107,7 +105,6 @@ class CartItemRepository extends \StORM\Repository
 	 * Vrací další násobek počtu kusů
 	 * @param int $amount
 	 * @param int $multiple
-	 * @return int
 	 */
 	public function roundUpToNextMultiple(int $amount, int $multiple): int
 	{
@@ -119,11 +116,10 @@ class CartItemRepository extends \StORM\Repository
 	 * @param int $amount
 	 * @param float $prAmount
 	 * @param int $multiple
-	 * @return int
 	 */
 	public function roundUpToProductRoundAmount(int $amount, float $prAmount, int $multiple): int
 	{
-		$nextMultiple = (\ceil($amount) % $multiple === 0) ? \ceil($amount) : \round(($amount + $multiple / 2) / $multiple) * $multiple;
+		$nextMultiple = \ceil($amount) % $multiple === 0 ? \ceil($amount) : \round(($amount + $multiple / 2) / $multiple) * $multiple;
 		
 		if ($prAmount >= $nextMultiple) {
 			$amount = $nextMultiple;

@@ -28,4 +28,3 @@ class LoyaltyProgramDiscountLevel extends \StORM\Entity
 	 */
 	public LoyaltyProgram $loyaltyProgram;
 }
-

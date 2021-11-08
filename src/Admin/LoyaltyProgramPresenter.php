@@ -21,7 +21,6 @@ use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use StORM\Collection;
 use StORM\DIConnection;
-use StORM\Entity;
 
 class LoyaltyProgramPresenter extends BackendPresenter
 {

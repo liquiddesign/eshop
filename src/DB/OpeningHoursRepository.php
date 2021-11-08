@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-
 use Common\DB\IGeneralRepository;
 use StORM\Collection;
 
@@ -13,6 +12,9 @@ use StORM\Collection;
  */
 class OpeningHoursRepository extends \StORM\Repository implements IGeneralRepository
 {
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('day');
@@ -20,6 +22,8 @@ class OpeningHoursRepository extends \StORM\Repository implements IGeneralReposi
 
 	public function getCollection(bool $includeHidden = false): Collection
 	{
+		unset($includeHidden);
+
 		return $this->many()->orderBy(['day']);
 	}
 }

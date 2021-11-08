@@ -6,9 +6,8 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
-use Eshop\DB\AmountRepository;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\CustomerGroupRepository;
-use Eshop\DB\Discount;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ImportResult;
@@ -20,10 +19,7 @@ use Eshop\DB\Supplier;
 use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
-use Eshop\DB\AddressRepository;
-use Forms\Form;
 use Grid\Datagrid;
-use StORM\Entity;
 
 class SupplierPresenter extends BackendPresenter
 {
@@ -43,9 +39,6 @@ class SupplierPresenter extends BackendPresenter
 	public PricelistRepository $pricelistRepository;
 	
 	/** @inject */
-	public AmountRepository $amountRepository;
-	
-	/** @inject */
 	public StoreRepository $storeRepository;
 	
 	/** @inject */
@@ -53,9 +46,6 @@ class SupplierPresenter extends BackendPresenter
 	
 	/** @inject */
 	public DisplayAmountRepository $displayAmountRepository;
-	
-	/** @inject */
-	public AddressRepository $addressRepository;
 	
 	/** @inject */
 	public ProductRepository $productRepository;
@@ -73,7 +63,7 @@ class SupplierPresenter extends BackendPresenter
 		];
 	}
 	
-	public function createComponentSupplierGrid()
+	public function createComponentSupplierGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->supplierRepository->many(), 20, 'name', 'ASC', true);
 		$grid->addColumnSelector();
@@ -92,14 +82,16 @@ class SupplierPresenter extends BackendPresenter
 		return $grid;
 	}
 	
-	public function createComponentHistoryGrid()
+	public function createComponentHistoryGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->importResultRepository->many(), 20, 'startedTs', 'DESC', true);
 		$grid->addColumnSelector();
 		$grid->addColumn('', function (ImportResult $object, Datagrid $datagrid) {
+			unset($datagrid);
+
 			if ($object->status === 'error') {
 				$color = 'danger';
-			} else if ($object->status === 'ok') {
+			} elseif ($object->status === 'ok') {
 				$color = 'success';
 			} else {
 				$color = 'info';
@@ -114,13 +106,13 @@ class SupplierPresenter extends BackendPresenter
 		$grid->addColumn('Popis', function (ImportResult $object, Datagrid $datagrid) {
 			if ($object->status === 'error') {
 				return '<span style="color: red;">Import zastaven, nastala chyba <i style="color: #dc3545;" title="'. $object->errorMessage .'" class="fa fa-info-circle"></i></span>';
-			} else if ($object->status === 'ok') {
-				return $object->type === 'import' ? 'Import doběhl v pořádku' : 'Zápis do katalogu doběhl v pořádku';
-			} else {
-				return $object->type === 'import' ? 'Import běží / nedokončen' : 'Zápis do katalogu běží / nedokončen';
 			}
-			
-			
+
+			if ($object->status === 'ok') {
+				return $object->type === 'import' ? 'Import doběhl v pořádku' : 'Zápis do katalogu doběhl v pořádku';
+			}
+
+			return $object->type === 'import' ? 'Import běží / nedokončen' : 'Zápis do katalogu běží / nedokončen';
 		}, '%s', null);
 		
 		$grid->addColumnText('Nových', 'insertedCount', '%s', 'insertedCount', ['class' => 'minimal'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
@@ -161,10 +153,10 @@ class SupplierPresenter extends BackendPresenter
 		
 		$form->addSubmits(!$this->getParameter('supplier'));
 		
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 			
-			/** @var Supplier $supplier */
+			/** @var \Eshop\DB\Supplier $supplier */
 			$supplier = $this->supplierRepository->syncOne($values, null, true);
 			
 			$this->flashMessage('Uloženo', 'success');
@@ -186,7 +178,7 @@ class SupplierPresenter extends BackendPresenter
 		
 		$form->addSubmit('submit', 'Potvrdit');
 		
-		$form->onSuccess[] = function (AdminForm $form) use ($supplier) {
+		$form->onSuccess[] = function (AdminForm $form) use ($supplier): void {
 			$values = $form->getValues('array');
 			
 			$this->supplierRepository->catalogEntry($supplier, $this->tempDir . '/log/import', $values['only_new'], $values['allowImportImages']);
@@ -198,7 +190,7 @@ class SupplierPresenter extends BackendPresenter
 		return $form;
 	}
 	
-	public function actionPair(Supplier $supplier)
+	public function actionPair(Supplier $supplier): void
 	{
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('pairForm');
@@ -206,7 +198,7 @@ class SupplierPresenter extends BackendPresenter
 		$form->setDefaults($supplier->toArray());
 	}
 	
-	public function renderPair(Supplier $supplier)
+	public function renderPair(): void
 	{
 		$this->template->headerLabel = 'Import';
 		$this->template->headerTree = [
@@ -217,14 +209,14 @@ class SupplierPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('pairForm')];
 	}
 	
-	public function actionLogItems(ImportResult $importResult)
+	public function actionLogItems(ImportResult $importResult): void
 	{
 		echo \nl2br(\file_get_contents($this->tempDir . '/log/import/' . $importResult->id . '.log'));
 		
 		$this->terminate();
 	}
 	
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Přehled zdrojů';
 		$this->template->headerTree = [
@@ -234,7 +226,7 @@ class SupplierPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('supplierGrid')];
 	}
 	
-	public function renderHistory()
+	public function renderHistory(): void
 	{
 		$this->template->headerLabel = 'Historie importů a zápisů';
 		$this->template->headerTree = [
@@ -244,7 +236,7 @@ class SupplierPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('historyGrid')];
 	}
 	
-	public function renderDetail(Supplier $supplier)
+	public function renderDetail(): void
 	{
 		$this->template->headerLabel = 'Detail zdroje';
 		$this->template->headerTree = [
@@ -257,23 +249,23 @@ class SupplierPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
 	
-	public function actionDetail(Supplier $supplier)
+	public function actionDetail(Supplier $supplier): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('form');
 		
 		$form->setDefaults($supplier->toArray());
 	}
 	
-	public function actionImport(Supplier $supplier)
+	public function actionImport(Supplier $supplier): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('importForm');
 		
 		$form->setDefaults($supplier->toArray());
 	}
 	
-	public function renderImport(Supplier $supplier)
+	public function renderImport(): void
 	{
 		$this->template->headerLabel = 'Import';
 		$this->template->headerTree = [
@@ -282,10 +274,5 @@ class SupplierPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('importForm')];
-	}
-	
-	private function formatNumber($number): string
-	{
-		return \number_format($number, 0, '.', ' ');
 	}
 }

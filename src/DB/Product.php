@@ -494,14 +494,25 @@ class Product extends \StORM\Entity
 		return null;
 	}
 
-	public function getStoreAmounts()
+	/**
+	 * @return string[]
+	 */
+	public function getStoreAmounts(): array
 	{
 		return $this->getConnection()->findRepository(Amount::class)->many()->where('fk_product', $this->getPK())->setIndex('fk_store')->toArrayOf('inStock');
 	}
 
-	public function getSupplierPrices(string $property = 'price')
+	/**
+	 * @param string $property
+	 * @return string[]
+	 */
+	public function getSupplierPrices(string $property = 'price'): array
 	{
-		return $this->getConnection()->findRepository(Price::class)->many()->where('pricelist.fk_supplier IS NOT NULL')->where('fk_product', $this->getPK())->setIndex('pricelist.fk_supplier')->toArrayOf($property);
+		return $this->getConnection()->findRepository(Price::class)->many()
+			->where('pricelist.fk_supplier IS NOT NULL')
+			->where('fk_product', $this->getPK())
+			->setIndex('pricelist.fk_supplier')
+			->toArrayOf($property);
 	}
 
 	/**
@@ -512,6 +523,11 @@ class Product extends \StORM\Entity
 		return $this->primaryCategory;
 	}
 
+	/**
+	 * @param string $property
+	 * @param bool $reversed
+	 * @return string[]
+	 */
 	public function getCategoryTree(string $property, bool $reversed = false): array
 	{
 		if (!isset($this->primaryCategoryPath) || !$this->primaryCategoryPath) {
@@ -553,15 +569,6 @@ class Product extends \StORM\Entity
 		}
 
 		return (float)($this->getQuantityPrice($amount, 'price') ?: $this->price);
-	}
-
-	private function getQuantityPrice(int $amount, string $property): ?float
-	{
-		return (float)$this->getConnection()->findRepository(QuantityPrice::class)->many()
-			->match(['fk_product' => $this->getPK(), 'fk_pricelist' => $this->pricelist])
-			->where('validFrom <= :amount', ['amount' => $amount])
-			->orderBy(['validFrom' => 'DESC'])
-			->firstValue($property);
 	}
 
 	public function getPriceVat(int $amount = 1): float
@@ -631,5 +638,14 @@ class Product extends \StORM\Entity
 		}
 
 		return 0;
+	}
+
+	private function getQuantityPrice(int $amount, string $property): ?float
+	{
+		return (float)$this->getConnection()->findRepository(QuantityPrice::class)->many()
+			->match(['fk_product' => $this->getPK(), 'fk_pricelist' => $this->pricelist])
+			->where('validFrom <= :amount', ['amount' => $amount])
+			->orderBy(['validFrom' => 'DESC'])
+			->firstValue($property);
 	}
 }

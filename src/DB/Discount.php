@@ -39,28 +39,28 @@ class Discount extends \StORM\Entity
 	/**
 	 * Akční ceníky
 	 * @relation
-	 * @var RelationCollection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
 	 */
 	public RelationCollection $pricelists;
 	
 	/**
 	 * Slevy na dopravu
 	 * @relation
-	 * @var RelationCollection<\Eshop\DB\DeliveryDiscount>|\Eshop\DB\DeliveryDiscount[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\DeliveryDiscount>|\Eshop\DB\DeliveryDiscount[]
 	 */
 	public RelationCollection $deliveryDiscounts;
 	
 	/**
 	 * Kůpony
 	 * @relation
-	 * @var RelationCollection<\Eshop\DB\DiscountCoupon>|\Eshop\DB\DiscountCoupon[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\DiscountCoupon>|\Eshop\DB\DiscountCoupon[]
 	 */
 	public RelationCollection $coupons;
 	
 	/**
 	 * Limitovani kuponů jen pro učité tagy
 	 * @relationNxN
-	 * @var RelationCollection<\Eshop\DB\Tag>|\Eshop\DB\Tag[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Tag>|\Eshop\DB\Tag[]
 	 */
 	public RelationCollection $limitCouponsForTags;
 

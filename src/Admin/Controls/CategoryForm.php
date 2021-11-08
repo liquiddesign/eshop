@@ -12,10 +12,8 @@ use Eshop\DB\ProducerRepository;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Image;
-use Nette\Utils\Random;
 use Pages\Helpers;
 use StORM\DIConnection;
-use Web\DB\Page;
 use Web\DB\PageRepository;
 
 class CategoryForm extends Control
@@ -28,16 +26,15 @@ class CategoryForm extends Control
 	
 	private ProducerRepository $producerRepository;
 	
-	private ?Category $category = null;
+	private ?Category $category;
 	
 	public function __construct(
 		CategoryRepository $categoryRepository,
-		AdminFormFactory   $formFactory,
-		PageRepository     $pageRepository,
+		AdminFormFactory $formFactory,
+		PageRepository $pageRepository,
 		ProducerRepository $producerRepository,
-		?Category          $category,
-		array              $configuration = [])
-	{
+		?Category $category
+	) {
 		$this->category = $category;
 		$this->categoryRepository = $categoryRepository;
 		$this->pageRepository = $pageRepository;
@@ -59,7 +56,7 @@ class CategoryForm extends Control
 		]);
 		
 		$this->monitor(Presenter::class, function ($presenter) use ($imagePicker, $category): void {
-			$imagePicker->onDelete[] = function (array $directories, $filename) use ($category, $presenter) {
+			$imagePicker->onDelete[] = function (array $directories, $filename) use ($category, $presenter): void {
 				$presenter->onDeleteImage($category);
 				$presenter->redirect('this');
 			};
@@ -76,7 +73,7 @@ class CategoryForm extends Control
 		]);
 		
 		$this->monitor(Presenter::class, function ($presenter) use ($imagePicker, $category): void {
-			$imagePicker->onDelete[] = function (array $directories, $filename) use ($category, $presenter) {
+			$imagePicker->onDelete[] = function (array $directories, $filename) use ($category, $presenter): void {
 				$presenter->onDeleteImage($category, 'productFallbackImageFileName');
 				$presenter->redirect('this');
 			};
@@ -111,7 +108,7 @@ class CategoryForm extends Control
 		if ($category) {
 			$pages = $this->pageRepository->many()->where('type', 'product_list');
 			
-			/** @var Page $page */
+			/** @var \Web\DB\Page $page */
 			while ($page = $pages->fetch()) {
 				$params = $page->getParsedParameters();
 				
@@ -141,7 +138,7 @@ class CategoryForm extends Control
 		
 		$form->addSubmits(!$category);
 		
-		$form->onSuccess[] = function (AdminForm $form) use ($pagesCategoryAll) {
+		$form->onSuccess[] = function (AdminForm $form) use ($pagesCategoryAll): void {
 			$values = $form->getValues('array');
 			
 			$this->getPresenter()->createImageDirs(Category::IMAGE_DIR);
@@ -163,7 +160,7 @@ class CategoryForm extends Control
 					$pageActive = $pageValues['active'];
 					unset($pageValues['active']);
 					
-					foreach ($this->categoryRepository->getConnection()->getAvailableMutations() as $mutation => $suffix) {
+					foreach (\array_keys($this->categoryRepository->getConnection()->getAvailableMutations()) as $mutation) {
 						$pageValues['name'][$mutation] = $pageTitle;
 					}
 					
@@ -180,12 +177,12 @@ class CategoryForm extends Control
 			$values['productFallbackImageFileName'] = $form['productFallbackImageFileName']->upload($values['uuid'] . '_fallback.%2$s');
 			$values['path'] = $this->categoryRepository->generateUniquePath($values['ancestor'] ? $this->categoryRepository->one($values['ancestor'])->path : '');
 
-			/** @var Category $category */
+			/** @var \Eshop\DB\Category $category */
 			$category = $this->categoryRepository->syncOne($values, null, true);
 
 			$this->categoryRepository->updateCategoryChildrenPath($category);
 			
-			$form->syncPages(function () use ($category, $values) {
+			$form->syncPages(function () use ($category, $values): void {
 				$values['page']['params'] = Helpers::serializeParameters(['category' => $category->getPK()]);
 				$this->pageRepository->syncOne($values['page']);
 			});
@@ -197,7 +194,7 @@ class CategoryForm extends Control
 		$this->addComponent($form, 'form');
 	}
 	
-	public function render()
+	public function render(): void
 	{
 		$this->template->category = $this->category;
 		

@@ -47,7 +47,7 @@ class Payment extends \StORM\Entity
 	public float $paidPriceVat = 0.0;
 	
 	/**
-     * Zaplaceno
+	 * Zaplaceno
 	 * @column{"type":"timestamp"}
 	 */
 	public ?string $paidTs;

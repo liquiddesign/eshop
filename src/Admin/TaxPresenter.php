@@ -5,11 +5,11 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\Tag;
 use Eshop\DB\Tax;
 use Eshop\DB\TaxRepository;
-use Forms\Form;
 use Nette\Http\Request;
 use Pages\DB\PageRepository;
 use StORM\DIConnection;
@@ -28,7 +28,7 @@ class TaxPresenter extends BackendPresenter
 	/** @inject */
 	public Request $request;
 	
-	public function createComponentGrid()
+	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->taxRepository->many(), 20, 'name', 'ASC', true);
 		$grid->addColumnSelector();
@@ -61,7 +61,7 @@ class TaxPresenter extends BackendPresenter
 		
 		$form->addSubmits(!$tax);
 		
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 			
 			$this->createImageDirs(Tag::IMAGE_DIR);
@@ -69,6 +69,7 @@ class TaxPresenter extends BackendPresenter
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
 			}
+
 			$tax = $this->taxRepository->syncOne($values, null, true);
 			
 			$this->flashMessage('Uloženo', 'success');
@@ -78,7 +79,7 @@ class TaxPresenter extends BackendPresenter
 		return $form;
 	}
 	
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Poplatky a daně';
 		$this->template->headerTree = [
@@ -88,7 +89,7 @@ class TaxPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
 	
-	public function renderNew()
+	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -99,7 +100,7 @@ class TaxPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 	
-	public function renderDetail()
+	public function renderDetail(): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -110,9 +111,9 @@ class TaxPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 	
-	public function actionDetail(Tax $tax)
+	public function actionDetail(Tax $tax): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
 		
 		$form->setDefaults($tax->toArray());

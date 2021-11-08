@@ -288,7 +288,9 @@ class Customer extends Entity implements IIdentity, IUser
 	
 	public function getCatalogPermission(): ?CatalogPermission
 	{
-		return $this->catalogPermission ??= $this->account ? $this->getConnection()->findRepository(CatalogPermission::class)->one(['fk_customer' => $this, 'fk_account' => $this->account], false) : null;
+		return $this->catalogPermission ??= $this->account ?
+			$this->getConnection()->findRepository(CatalogPermission::class)->one(['fk_customer' => $this, 'fk_account' => $this->account], false) :
+			null;
 	}
 	
 	public function isCompany(): bool

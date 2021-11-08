@@ -6,5 +6,5 @@ namespace Eshop\Controls;
 
 interface IProductsFilterFactory
 {
-	public function create(array $configuration = []): ProductFilter;
+	public function create(): ProductFilter;
 }
