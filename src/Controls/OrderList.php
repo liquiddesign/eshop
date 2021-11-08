@@ -24,8 +24,14 @@ use StORM\ICollection;
  */
 class OrderList extends Datalist
 {
+	/**
+	 * Don't remove! Using in template.
+	 */
 	public CheckoutManager $checkoutManager;
 
+	/**
+	 * Don't remove! Using in template.
+	 */
 	public OrderRepository $orderRepository;
 
 	public Shopper $shopper;
