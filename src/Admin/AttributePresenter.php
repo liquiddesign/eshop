@@ -25,6 +25,7 @@ use Pages\DB\PageTemplateRepository;
 use Pages\Helpers;
 use StORM\Collection;
 use StORM\DIConnection;
+use StORM\Entity;
 use StORM\ICollection;
 
 class AttributePresenter extends BackendPresenter
@@ -311,6 +312,8 @@ class AttributePresenter extends BackendPresenter
 			};
 		}
 
+		$grid->onDelete[] = [$this, 'onDelete'];
+
 		return $grid;
 	}
 
@@ -368,7 +371,7 @@ class AttributePresenter extends BackendPresenter
 
 //			if ($this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $this->getParameter('attributeValue')])) {
 //				$form['standalonePage']->setDefaultValue(true);
-			$form->addPageContainer('product_list', ['attributeValue' => null], $nameInput, false, false, true, 'Stránka');
+			$form->addPageContainer('product_list', ['attributeValue' => $this->getParameter('attributeValue') ? $this->getParameter('attributeValue')->getPK() : null], $nameInput, false, false, true, 'Stránka');
 //			}
 		}
 
@@ -407,9 +410,8 @@ class AttributePresenter extends BackendPresenter
 				}
 			} else {
 				$values['page']['type'] = 'product_list';
-				$values['page']['params'] = Helpers::serializeParameters(['attributeValue' => $object->getPK()]);
 
-				$this->pageRepository->syncOne($values['page']);
+				$this->pageRepository->syncPage($values['page'], ['attributeValue' => $object->getPK()]);
 			}
 
 			$this->flashMessage('Uloženo', 'success');
@@ -718,5 +720,15 @@ class AttributePresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('rangeForm')];
+	}
+
+	protected function onDelete(Entity $object): void
+	{
+		/** @var \Web\DB\Page $page */
+		if (!$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $object->getPK()])) {
+			return;
+		}
+
+		$page->delete();
 	}
 }
