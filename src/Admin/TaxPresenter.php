@@ -7,9 +7,11 @@ use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\CurrencyRepository;
+use Eshop\DB\Price;
 use Eshop\DB\Tag;
 use Eshop\DB\Tax;
 use Eshop\DB\TaxRepository;
+use Nette\Forms\Controls\TextInput;
 use Nette\Http\Request;
 use Pages\DB\PageRepository;
 use StORM\DIConnection;
@@ -39,8 +41,8 @@ class TaxPresenter extends BackendPresenter
 		
 		$grid->addColumnLinkDetail('Detail');
 		$grid->addColumnActionDelete();
-		
-		$grid->addButtonSaveAll();
+
+		$grid->addButtonSaveAll(['price'], ['price' => 'float'], null, false, null, null, false);
 		$grid->addButtonDeleteSelected();
 		
 		$grid->addFilterTextInput('search', ['name_cs'], null, 'Název');
@@ -53,7 +55,9 @@ class TaxPresenter extends BackendPresenter
 	public function createComponentNewForm(): AdminForm
 	{
 		$form = $this->formFactory->create(true);
-		$form->addLocaleText('name', 'Název');
+		$form->addLocaleText('name', 'Název')->forPrimary(function (TextInput $input): void {
+			$input->setRequired();
+		});
 		$form->addDataSelect('currency', 'Měna', $this->currencyRepository->getArrayForSelect());
 		$form->addText('price', 'Cena')->addRule($form::FLOAT)->setNullable();
 		

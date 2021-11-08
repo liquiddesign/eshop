@@ -5,6 +5,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\Country;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\VatRate;
@@ -22,7 +23,7 @@ class CountryPresenter extends BackendPresenter
 	/** @inject */
 	public Request $request;
 
-	public function createComponentGrid()
+	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->countryRepository->many(), 20, 'code', 'ASC', true);
 		$grid->addColumnSelector();
@@ -41,7 +42,7 @@ class CountryPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentVatGrid()
+	public function createComponentVatGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->vatRateRepository->many()->where('fk_country', $this->getParameter('country')), 20, 'priority', 'ASC', true);
 		$grid->addColumnSelector();
@@ -55,7 +56,7 @@ class CountryPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 
 		$grid->addFilterTextInput('search', ['this.name'], null, 'Název');
-		$grid->addFilterButtons();
+		$grid->addFilterButtons(['vats', $this->getParameter('country')]);
 
 		return $grid;
 	}
