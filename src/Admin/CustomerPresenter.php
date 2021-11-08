@@ -279,7 +279,7 @@ class CustomerPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('accountForm')];
 	}
 
-	public function createComponentForm()
+	public function createComponentForm(): AdminForm
 	{
 		$lableMerchants = self::CONFIGURATIONS['labels']['merchants'];
 
@@ -334,7 +334,7 @@ class CustomerPresenter extends BackendPresenter
 		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
 			$form->addSelect2('loyaltyProgram', 'Věrnostní program', $this->loyaltyProgramRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 
-			if ($customer->getValue('loyaltyProgram')) {
+			if ($customer && $customer->getValue('loyaltyProgram')) {
 				$form->addText('loyaltyProgramPoints', 'Stav věrnostního konta')->setDisabled()->setDefaultValue((string)$customer->getLoyaltyProgramPoints());
 			}
 		}
@@ -364,7 +364,7 @@ class CustomerPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function createComponentEditAddress()
+	public function createComponentEditAddress(): AdminForm
 	{
 		$form = $this->formFactory->create();
 
@@ -525,7 +525,7 @@ class CustomerPresenter extends BackendPresenter
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('editAddress');
 
-		$form->setDefaults($customer->jsonSerialize());
+		$form->setDefaults($customer->toArray(['billAddress', 'deliveryAddress']));
 
 		$form->onSuccess[] = function (AdminForm $form) use ($customer): void {
 			$values = $form->getValues('array');
