@@ -99,9 +99,10 @@ class LoyaltyProgramPresenter extends BackendPresenter
 
 		$form->addDatetime('validFrom', 'Platný od')->setNullable(true);
 		$form->addDatetime('validTo', 'Platný do')->setNullable(true);
-		$form->addDatetime('turnoverFrom', 'Obrat od')->setNullable(true)->setHtmlAttribute('Pokud nevyplníte, bude brán v potaz veškerý obrat zákazníka.');
+		$form->addDatetime('turnoverFrom', 'Obrat od')->setNullable(true)->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude brán v potaz veškerý obrat zákazníka.');
 
-		$form->addSelect2('currency', 'Měna', $this->currencyRepository->getArrayForSelectFromCollection($this->currencyRepository->getCollection(true)->where('cashback', true)))->setRequired();
+		$form->addSelect2('currency', 'Měna', $this->currencyRepository->getArrayForSelectFromCollection($this->currencyRepository->getCollection(true)->where('cashback', true)))->setRequired()
+			->setHtmlAttribute('data-info', 'Zobrazuje pouze měny označené jako "Cashback".');
 
 		$form->addSubmits(!$object);
 
