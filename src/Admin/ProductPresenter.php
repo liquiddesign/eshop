@@ -385,6 +385,20 @@ class ProductPresenter extends BackendPresenter
 
 		$form->addSubmit('submit', 'Uložit');
 
+		$form->onValidate[] = function (Form $form): void {
+			if (!$form->isValid()) {
+				return;
+			}
+
+			$values = $form->getValues('array');
+
+			if (isset($values['fileName']) && $values['fileName']->isOK()) {
+				return;
+			}
+
+			$form->addError('Je nutné přiložit soubor!');
+		};
+
 		$form->onSuccess[] = function (Form $form): void {
 			$values = $form->getValues('array');
 
@@ -398,7 +412,7 @@ class ProductPresenter extends BackendPresenter
 				$values['fileName'] = $form['fileName']->upload($values['uuid'] . '.%2$s');
 			}
 
-			$file = $this->fileRepository->syncOne($values);
+			$this->fileRepository->syncOne($values);
 
 			$this->flashMessage('Uloženo', 'success');
 			$this->redirect('edit', [new Product(['uuid' => $values['product']])]);
