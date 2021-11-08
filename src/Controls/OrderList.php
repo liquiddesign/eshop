@@ -24,6 +24,8 @@ use StORM\ICollection;
  */
 class OrderList extends Datalist
 {
+	public CheckoutManager $checkoutManager;
+
 	public OrderRepository $orderRepository;
 
 	public Shopper $shopper;
