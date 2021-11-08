@@ -6,6 +6,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\Producer;
 use Eshop\DB\ProducerRepository;
 use Forms\Form;
@@ -27,7 +28,7 @@ class ProducerPresenter extends BackendPresenter
 	/** @inject */
 	public Request $request;
 
-	public function createComponentGrid()
+	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->producerRepository->many(), 20, 'priority', 'ASC', true);
 		$grid->addColumnSelector();
@@ -166,6 +167,12 @@ class ProducerPresenter extends BackendPresenter
 	protected function onDelete(Entity $object): void
 	{
 		$this->onDeleteImage($object);
-		$this->onDeletePage($object);
+
+		/** @var \Web\DB\Page $page */
+		if (!$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['producer' => $object->getPK()])) {
+			return;
+		}
+
+		$page->delete();
 	}
 }
