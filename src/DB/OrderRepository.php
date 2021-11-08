@@ -973,8 +973,21 @@ class OrderRepository extends \StORM\Repository
 		return $this->packageItemRepository->many()->where('this.fk_cartItem', $cartItem->getPK())->first();
 	}
 
-	public function getFirstPackageByPurchase(Purchase $purchase): ?Package
+	public function getLoyaltyProgramPointsGainByOrderAndCustomer(Order $order, Customer $customer): ?float
 	{
-		return $this->packageRepository->many()->where('order.fk_purchase', $purchase->getPK())->orderBy(['this.id' => 'ASC'])->first();
+		if (!$loyaltyProgram = $customer->getValue('loyaltyProgram')) {
+			return null;
+		}
+
+		$pointsGain = 0.0;
+
+		/** @var \Eshop\DB\CartItem $cartItem */
+		foreach ($order->purchase->getItems()->join(['loyaltyProgramProduct' => 'eshop_loyaltyprogramproduct'], 'this.fk_product = loyaltyProgramProduct.fk_product')
+					 ->where('loyaltyProgramProduct.fk_loyaltyProgram', $loyaltyProgram)
+					 ->select(['pointsGain' => 'loyaltyProgramProduct.points']) as $cartItem) {
+			$pointsGain += $cartItem->amount * $cartItem->pointsGain;
+		}
+
+		return $pointsGain;
 	}
 }

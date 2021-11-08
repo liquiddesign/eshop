@@ -231,22 +231,22 @@ class ProductPresenter extends BackendPresenter
 		'attributes' => 'Atributy',
 	];
 
-	public function createComponentProductGrid()
+	public function createComponentProductGrid(): \Grid\Datagrid
 	{
-		return $this->productGridFactory->create(self::CONFIGURATION);
+		return $this->productGridFactory->create($this::CONFIGURATION);
 	}
 
-	public function createComponentProductAttributesGrid()
+	public function createComponentProductAttributesGrid(): \Grid\Datagrid
 	{
-		return $this->productAttributesGridFactory->create(self::CONFIGURATION);
+		return $this->productAttributesGridFactory->create($this::CONFIGURATION);
 	}
 
-	public function createComponentProductForm()
+	public function createComponentProductForm(): Controls\ProductForm
 	{
-		return $this->productFormFatory->create($this->getParameter('product'), self::CONFIGURATION);
+		return $this->productFormFatory->create($this->getParameter('product'), $this::CONFIGURATION);
 	}
 
-	public function createComponentPhotoGrid()
+	public function createComponentPhotoGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->photoRepository->many()->where('fk_product', $this->getParameter('product')->getPK()), 20, 'priority', 'ASC', true);
 		$grid->addColumnImage('fileName', Photo::IMAGE_DIR);

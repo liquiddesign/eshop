@@ -19,6 +19,7 @@ use Eshop\DB\DeliveryRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\DiscountCoupon;
 use Eshop\DB\DiscountCouponRepository;
+use Eshop\DB\LoyaltyProgramHistoryRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PackageItemRepository;
@@ -152,6 +153,8 @@ class CheckoutManager
 
 	private PackageItemRepository $packageItemRepository;
 
+	private LoyaltyProgramHistoryRepository $loyaltyProgramHistoryRepository;
+
 	public function __construct(
 		Shopper $shopper,
 		CartRepository $cartRepository,
@@ -174,7 +177,8 @@ class CheckoutManager
 		SetItemRepository $setItemRepository,
 		VatRateRepository $vatRateRepository,
 		PackageRepository $packageRepository,
-		PackageItemRepository $packageItemRepository
+		PackageItemRepository $packageItemRepository,
+		LoyaltyProgramHistoryRepository $loyaltyProgramHistoryRepository
 	) {
 		$this->customer = $shopper->getCustomer();
 		$this->shopper = $shopper;
@@ -198,6 +202,7 @@ class CheckoutManager
 		$this->vatRateRepository = $vatRateRepository;
 		$this->packageRepository = $packageRepository;
 		$this->packageItemRepository = $packageItemRepository;
+		$this->loyaltyProgramHistoryRepository = $loyaltyProgramHistoryRepository;
 
 		if (!$request->getCookie('cartToken') && !$this->customer) {
 			$this->cartToken = DIConnection::generateUuid();
@@ -1036,6 +1041,16 @@ class CheckoutManager
 		if (!$this->customer) {
 			$this->cartToken = DIConnection::generateUuid();
 			$this->response->setCookie('cartToken', $this->cartToken, $this->cartExpiration . ' days');
+		}
+
+		if ($customer) {
+			if ($pointsGain = $this->orderRepository->getLoyaltyProgramPointsGainByOrderAndCustomer($order, $customer)) {
+				$this->loyaltyProgramHistoryRepository->createOne([
+					'points' => $pointsGain,
+					'customer' => $customer,
+					'loyaltyProgram' => $customer->getValue('loyaltyProgram'),
+				]);
+			}
 		}
 
 		$this->createCart();
