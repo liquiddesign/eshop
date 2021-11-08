@@ -119,7 +119,7 @@ class RibbonPresenter extends BackendPresenter
 			$tr[$columnBackground->getId()]->setAttribute('style', "color: $object->backgroundColor");
 		};
 
-		$grid->addFilterTextInput('search', ['name_cs'], null, 'Popisek');
+		$grid->addFilterTextInput('search', ['name'], null, 'Popisek');
 		$grid->addFilterButtons();
 
 		return $grid;
