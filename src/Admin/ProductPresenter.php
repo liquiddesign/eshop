@@ -751,7 +751,7 @@ class ProductPresenter extends BackendPresenter
 				['Produkty', 'default'],
 				['Katalog'],
 			];
-			$this->template->displayButtons = [$this->createNewItemButton('new')];
+			$this->template->displayButtons = [$this->createNewItemButton('new', ['editTab' => null])];
 
 			if (isset(self::CONFIGURATION['importButton']) && self::CONFIGURATION['importButton']) {
 				$this->template->displayButtons[] = $this->createButton('importCsv', '<i class="fas fa-file-upload mr-1"></i>Import');
