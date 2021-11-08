@@ -24,10 +24,28 @@ class RelatedType extends \StORM\Entity
 	public ?string $name;
 
 	/**
-	 * Zobrazovat jako podobné
+	 * Zobrazovat v detailu produktu
 	 * @column
 	 */
 	public bool $similar = false;
+
+	/**
+	 * Název master produktů
+	 * @column
+	 */
+	public ?string $masterName;
+
+	/**
+	 * Název slave produktů
+	 * @column
+	 */
+	public ?string $slaveName;
+
+	/**
+	 * Výchozí sleva %
+	 * @column
+	 */
+	public float $defaultDiscountPct = 0;
 
 	/**
 	 * Systemic
@@ -38,5 +56,15 @@ class RelatedType extends \StORM\Entity
 	public function isSystemic(): bool
 	{
 		return $this->systemic;
+	}
+
+	public function getMasterInternalName(): ?string
+	{
+		return $this->masterName ?? 'Master produkty';
+	}
+
+	public function getSlaveInternalName(): ?string
+	{
+		return $this->slaveName ?? 'Slave produkty';
 	}
 }

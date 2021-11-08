@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use StORM\RelationCollection;
+
 /**
  * Produkty ve vztahu
  * @table
- * @index{"name":"products_related_unique","unique":true,"columns":["fk_master","fk_slave"]}
  */
 class Related extends \StORM\Entity
 {
@@ -24,12 +25,6 @@ class Related extends \StORM\Entity
 	public int $priority = 10;
 
 	/**
-	 * Množství
-	 * @column
-	 */
-	public int $amount = 1;
-
-	/**
 	 * Skryto
 	 * @column
 	 */
@@ -42,24 +37,16 @@ class Related extends \StORM\Entity
 	public bool $systemic = false;
 
 	/**
-	 * Readonly
-	 * @column
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedMaster>|\Eshop\DB\RelatedMaster[]
 	 */
-	public bool $readonly = false;
+	public RelationCollection $masters;
 
 	/**
-	 * Master produkt
 	 * @relation
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedSlave>|\Eshop\DB\RelatedSlave[]
 	 */
-	public Product $master;
-
-	/**
-	 * Slave produkt
-	 * @relation
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
-	 */
-	public Product $slave;
+	public RelationCollection $slaves;
 
 	public function isSystemic(): bool
 	{
