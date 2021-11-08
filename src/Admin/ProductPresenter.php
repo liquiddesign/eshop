@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Common\NumbersHelper;
 use Eshop\Admin\Controls\IProductAttributesFormFactory;
 use Eshop\Admin\Controls\IProductFormFactory;
@@ -271,9 +272,9 @@ class ProductPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentFileGrid()
+	public function createComponentFileGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->fileRepository->many()->where('fk_product', $this->getParameter('product')->getPK()), 20, 'priority', 'ASC', true);
+		$grid = $this->gridFactory->create($this->fileRepository->many()->where('fk_product', $this->getParameter('product')), 20, 'priority', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Popisek', 'label_cs', '%s', 'label_cs');
 
@@ -292,7 +293,7 @@ class ProductPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentPriceGrid()
+	public function createComponentPriceGrid(): AdminGrid
 	{
 		$product = $this->getParameter('product');
 		$countryCode = 'CZ';
@@ -534,6 +535,8 @@ class ProductPresenter extends BackendPresenter
 
 	public function renderNew(): void
 	{
+		$this->template->editTab = $this->editTab;
+
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Produkty', 'default'],
@@ -543,6 +546,11 @@ class ProductPresenter extends BackendPresenter
 		$this->template->displayControls = [
 			$this->getComponent('productForm'),
 		];
+
+		$this->template->comments = [];
+		$this->template->photos = [];
+
+		$this->template->setFile(__DIR__ . '/templates/product.edit.latte');
 	}
 
 	public function actionDetailPhoto(Photo $photo): void
