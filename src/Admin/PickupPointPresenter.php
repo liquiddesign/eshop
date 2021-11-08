@@ -93,7 +93,7 @@ class PickupPointPresenter extends BackendPresenter
 		$form->setDefaults($pickupPointType->toArray());
 	}
 
-	public function renderTypeDetail(PickupPointType $pickupPointType): void
+	public function renderTypeDetail(): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -158,7 +158,7 @@ class PickupPointPresenter extends BackendPresenter
 
 	public function createComponentTypeGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->pickupPointTypeRepo->getCollection(), 20, 'priority');
+		$grid = $this->gridFactory->create($this->pickupPointTypeRepo->many(), 20, 'priority');
 		$grid->addColumnSelector();
 
 		$grid->addColumnImage('imageFileName', PickupPointType::IMAGE_DIR);
@@ -185,7 +185,7 @@ class PickupPointPresenter extends BackendPresenter
 
 	public function createComponentPointGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->pickupPointRepo->getCollection(), 20, 'priority');
+		$grid = $this->gridFactory->create($this->pickupPointRepo->many(), 20, 'priority');
 		$grid->addColumnSelector();
 
 		$grid->addColumnImage('imageFileName', PickupPoint::IMAGE_DIR);
@@ -225,7 +225,7 @@ class PickupPointPresenter extends BackendPresenter
 
 	public function createComponentSpecialHoursGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->openingHoursRepo->getCollection()->where('fk_pickupPoint', ($this->getParameter('pickupPoint') ?: $this->pickupPointRepo->one($this->selectedPickupPoint, true))->getPK())->where('date IS NOT NULL'), 20, 'date');
+		$grid = $this->gridFactory->create($this->openingHoursRepo->many()->where('fk_pickupPoint', ($this->getParameter('pickupPoint') ?: $this->pickupPointRepo->one($this->selectedPickupPoint, true))->getPK())->where('date IS NOT NULL'), 20, 'date');
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Datum', "date|date:'d.m.Y'", '%s', 'date', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];

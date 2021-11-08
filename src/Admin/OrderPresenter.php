@@ -837,7 +837,7 @@ class OrderPresenter extends BackendPresenter
 
 			$this->flashMessage('Uloženo', 'success');
 
-			$form->processRedirect('detail', 'default', [$order]);
+			$form->processRedirect('printDetail', 'default', [$order]);
 		};
 
 		return $form;

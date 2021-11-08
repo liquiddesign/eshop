@@ -100,8 +100,8 @@ class StatsControl extends Control
 		/** @var \Nette\Application\UI\Form $form */
 		$form = $this->getComponent('statsFilterForm');
 
-		$statsFrom = $this->state['statsFrom'] ?? null;
-		$statsTo = $this->state['statsTo'] ?? null;
+		$statsFrom = $this->state['from'] ?? null;
+		$statsTo = $this->state['to'] ?? null;
 		$merchant = $this->state['merchant'] ?? null;
 		/** @var \Eshop\DB\Currency $currency */
 		$currency = isset($this->state['currency']) ? $this->currencyRepository->one($this->state['currency'], true) : $this->currencyRepository->many()->first();

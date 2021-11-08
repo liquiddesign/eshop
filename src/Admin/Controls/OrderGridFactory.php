@@ -121,7 +121,7 @@ class OrderGridFactory
 		}, '', 'created_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
 
 
-		$grid->addButtonBulkEdit('form', ['completedTs', 'canceledTs'], 'ordersGrid');
+//		$grid->addButtonBulkEdit('form', ['completedTs', 'canceledTs'], 'ordersGrid');
 
 		if ($state === 'open') {
 			$submit = $grid->getForm()->addSubmit('closeMultiple', 'Uzavřít úpravy');
@@ -243,7 +243,7 @@ class OrderGridFactory
 		$grid = $button->lookup(Datagrid::class);
 
 		foreach ($grid->getSelectedIds() as $id) {
-			$grid->getSource()->where('this.uuid', $id)->update(['canceledTs' => new DateTime()]);
+			$grid->getSource()->where('this.uuid', $id)->setGroupBy([])->update(['canceledTs' => new DateTime()]);
 
 			$order = $this->orderRepository->one($id, true);
 
@@ -388,7 +388,7 @@ class OrderGridFactory
 
 	public function downloadCsv(Order $object, Datagrid $grid): void
 	{
-		$grid->getPresenter()->handleExporCsv($object->getPK());
+		$grid->getPresenter()->handleExportCsv($object->getPK());
 	}
 
 	private function getCollectionByState(string $state): Collection
