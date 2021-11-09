@@ -24,6 +24,7 @@ use League\Csv\Writer;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Utils\Arrays;
+use Nette\Utils\Random;
 use StORM\DIConnection;
 
 class RelatedPresenter extends BackendPresenter
@@ -348,6 +349,8 @@ class RelatedPresenter extends BackendPresenter
 
 	public function renderExport(array $ids): void
 	{
+		unset($ids);
+
 		$this->template->headerLabel = 'Exportovat';
 		$this->template->headerTree = [
 			['Vazby', 'default'],
@@ -409,21 +412,36 @@ class RelatedPresenter extends BackendPresenter
 	public function createComponentImportForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
-		$form->addUpload('file', 'CSV soubor')->setRequired()->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
+		$form->addUpload('file', 'CSV soubor')->setRequired();
+		$form->addCheckbox('overwrite', 'Přepisovat existující vazby')->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
 Povinné sloupce:<br>
-type - Kód typu vazby<br>
-master - Kód hlavního produktu vazby<br>
-slave - Kód sekundárního produktu vazby<br><br>
-Pokud nebude nalezen typ vazby nebo některý z produktů tak se daný řádek ignoruje.');
+related - Kód vazby - důležitý pro spojení produktů do vazby<br>
+master/slave - Může být "m" nebo "s". Určuje jestli je produkt master nebo slave.<br>
+productCode - Kód produktu<br><br>
+Pokud nebude nalezen produkt tak se daný řádek ignoruje. V případě chyby nedojde k žádným změnám.');
 		$form->addSubmit('submit', 'Uložit');
 
 		$form->onSuccess[] = function (Form $form): void {
+			$values = $form->getValues('array');
+
 			/** @var \Nette\Http\FileUpload $file */
 			$file = $form->getValues()->file;
 
-			$this->relatedRepository->importCsv(Reader::createFromString($file->getContents()));
+			$connection = $this->productRepository->getConnection();
 
-			$form->getPresenter()->flashMessage('Uloženo', 'success');
+			$connection->getLink()->beginTransaction();
+
+			try {
+				$this->relatedRepository->importCsv($file->getContents(), $this->relatedType, $values['overwrite']);
+
+				$connection->getLink()->commit();
+				$this->flashMessage('Provedeno', 'success');
+			} catch (\Exception $e) {
+				$connection->getLink()->rollBack();
+
+				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Import dat se nezdařil!', 'error');
+			}
+
 			$form->getPresenter()->redirect('default');
 		};
 
@@ -573,7 +591,13 @@ Pokud nebude nalezen typ vazby nebo některý z produktů tak se daný řádek i
 
 			if (!isset($values['related'])) {
 				$newRelated = true;
-				$values['related'] = $this->relatedRepository->createOne(['type' => $this->relatedType]);
+
+				do {
+					$code = Random::generate(32);
+					$existing = $this->relatedRepository->one(['code' => $code]);
+				} while ($existing);
+
+				$values['related'] = $this->relatedRepository->createOne(['type' => $this->relatedType, 'code' => $code]);
 			}
 
 			/** @var \Eshop\DB\RelatedMaster $relatedMaster */

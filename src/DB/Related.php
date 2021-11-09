@@ -9,6 +9,7 @@ use StORM\RelationCollection;
 /**
  * Produkty ve vztahu
  * @table
+ * @index{"name":"related_code","unique":true,"columns":["code"]}
  */
 class Related extends \StORM\Entity
 {
@@ -17,6 +18,12 @@ class Related extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public RelatedType $type;
+
+	/**
+	 * Kód
+	 * @column
+	 */
+	public string $code;
 
 	/**
 	 * Priorita
