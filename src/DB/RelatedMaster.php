@@ -19,13 +19,13 @@ class RelatedMaster extends \StORM\Entity
 
 	/**
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public Related $related;
 
 	/**
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public Product $product;
 }

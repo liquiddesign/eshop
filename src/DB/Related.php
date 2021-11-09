@@ -14,7 +14,7 @@ class Related extends \StORM\Entity
 {
 	/**
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public RelatedType $type;
 

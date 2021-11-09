@@ -30,6 +30,18 @@ class RelatedType extends \StORM\Entity
 	public bool $similar = false;
 
 	/**
+	 * Výchozí množství master produktů
+	 * @column
+	 */
+	public int $masterDefaultAmount = 1;
+
+	/**
+	 * Výchozí množství slave produktů
+	 * @column
+	 */
+	public int $slaveDefaultAmount = 1;
+
+	/**
 	 * Název master produktů
 	 * @column
 	 */
