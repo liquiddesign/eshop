@@ -58,7 +58,12 @@ class RelatedPresenter extends BackendPresenter
 
 	public function createComponentRelationGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->relatedRepository->many()->where('this.fk_type', $this->tab), 20, 'this.priority', 'ASC', true);
+		$grid = $this->gridFactory->create($this->relatedRepository->many()
+			->join(['masters' => 'eshop_relatedmaster'], 'this.uuid = masters.fk_related')
+			->join(['slaves' => 'eshop_relatedslave'], 'this.uuid = slaves.fk_related')
+			->join(['productMasters' => 'eshop_product'], 'masters.fk_product = productMasters.uuid')
+			->join(['productSlaves' => 'eshop_product'], 'slaves.fk_product = productMasters.uuid')
+			->where('this.fk_type', $this->tab), 20, 'this.priority', 'ASC', true);
 		$grid->addColumnSelector();
 
 		$grid->addColumn($this->relatedType->getMasterInternalName(), function (Related $object, $datagrid) {
@@ -116,8 +121,12 @@ class RelatedPresenter extends BackendPresenter
 			return false;
 		});
 
-		$grid->addFilterTextInput('master', ['master.code', 'master.ean', 'master.name_cs'], null, 'Master: EAN, kód, název', '', '%s%%');
-		$grid->addFilterTextInput('slave', ['slave.code', 'slave.ean', 'slave.name_cs'], null, 'Slave: EAN, kód, název', '', '%s%%');
+		$mutationSuffix = $this->relatedTypeRepository->getConnection()->getMutationSuffix();
+
+		$grid->addFilterTextInput('master', ['productMasters.code', 'productMasters.ean', "productMasters.name$mutationSuffix"], null, $this->relatedType->getMasterInternalName() .
+			': EAN, kód, název', '', '%s%%');
+		$grid->addFilterTextInput('slave', ['productSlaves.code', 'productSlaves.ean', "productSlaves.name$mutationSuffix"], null, $this->relatedType->getSlaveInternalName() .
+			': EAN, kód, název', '', '%s%%');
 
 		$grid->addFilterButtons();
 
