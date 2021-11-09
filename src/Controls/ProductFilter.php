@@ -96,6 +96,8 @@ class ProductFilter extends Control
 			->where('category.path LIKE :s', ['s' => ($this->getCategoryPath() ?? '') . '%'])
 			->toArrayOf('name'));
 
+		$filterForm->setDefaults($this->getProductList()->getFilters());
+
 		$attributesContainer = $filterForm->addContainer('attributes');
 
 		$defaults = $this->getProductList()->getFilters()['attributes'] ?? [];
