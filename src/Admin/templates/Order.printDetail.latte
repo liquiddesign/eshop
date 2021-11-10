@@ -257,7 +257,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr n:foreach="$stores as $store" id="store-{$store->supplier->getPK()}" class="store {if $store->supplier}supplier-{$store->supplier->getPK()}{/if}">
+                        <tr n:foreach="$stores as $store" id="store-{$store->getValue('supplier') ? $store->supplier->getPK() : $store->getPK()}" class="store {if $store->supplier}supplier-{$store->supplier->getPK()}{/if}">
                             <td>{input store:$store->getPK()}</td>
                             <td>{$store->name}</td>
                             <td class="input-amount" style="text-align: right"></td>

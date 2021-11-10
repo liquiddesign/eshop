@@ -37,6 +37,8 @@ class OrderRepository extends \StORM\Repository
 
 	private PackageItemRepository $packageItemRepository;
 
+	private BannedEmailRepository $bannedEmailRepository;
+
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
@@ -46,7 +48,8 @@ class OrderRepository extends \StORM\Repository
 		MerchantRepository $merchantRepository,
 		CatalogPermissionRepository $catalogPermissionRepository,
 		PackageRepository $packageRepository,
-		PackageItemRepository $packageItemRepository
+		PackageItemRepository $packageItemRepository,
+		BannedEmailRepository $bannedEmailRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -57,6 +60,7 @@ class OrderRepository extends \StORM\Repository
 		$this->catalogPermissionRepository = $catalogPermissionRepository;
 		$this->packageRepository = $packageRepository;
 		$this->packageItemRepository = $packageItemRepository;
+		$this->bannedEmailRepository = $bannedEmailRepository;
 	}
 
 	/**
@@ -989,5 +993,27 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		return $pointsGain;
+	}
+
+	public function cancelOrder(Order $order): void
+	{
+		$order->update(['canceledTs' => (string)new DateTime()]);
+	}
+
+	public function cancelOrderById(string $orderId): void
+	{
+		$this->cancelOrder($this->one($orderId, true));
+	}
+
+	public function banOrder(Order $order): void
+	{
+		$this->cancelOrder($order);
+
+		$this->bannedEmailRepository->syncOne(['email' => $order->purchase->email]);
+	}
+
+	public function banOrderById(string $orderId): void
+	{
+		$this->banOrder($this->one($orderId, true));
 	}
 }

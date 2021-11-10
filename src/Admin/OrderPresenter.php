@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\BackendPresenter;
 use Eshop\DB\AddressRepository;
 use Eshop\DB\AutoshipRepository;
+use Eshop\DB\BannedEmailRepository;
 use Eshop\DB\CartItem;
 use Eshop\DB\CartItemRepository;
 use Eshop\DB\CartRepository;
@@ -111,6 +113,9 @@ class OrderPresenter extends BackendPresenter
 	public TemplateRepository $templateRepository;
 
 	/** @inject */
+	public BannedEmailRepository $bannedEmailRepository;
+
+	/** @inject */
 	public Mailer $mailer;
 
 	/** @inject */
@@ -119,12 +124,12 @@ class OrderPresenter extends BackendPresenter
 	/** @persistent */
 	public string $tab = 'received';
 
-	public function createComponentOrdersGrid()
+	public function createComponentOrdersGrid(): Datagrid
 	{
 		return $this->orderGridFactory->create($this->tab, self::CONFIGURATION);
 	}
 
-	public function createComponentDeliveryGrid()
+	public function createComponentDeliveryGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->getParameter('order')->deliveries, 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
@@ -142,6 +147,24 @@ class OrderPresenter extends BackendPresenter
 		$grid->addColumnActionDelete();
 
 		$grid->addButtonDeleteSelected();
+
+		return $grid;
+	}
+
+	public function createComponentBannedEmailGrid(): AdminGrid
+	{
+		$grid = $this->gridFactory->create($this->bannedEmailRepository->many(), 20, 'createdTs', 'DESC', true);
+		$grid->addColumnSelector();
+
+		$grid->addColumnText('Vytvořen', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
+		$grid->addColumnText('E-mail', 'email', '%s', 'email');
+
+		$grid->addColumnActionDelete();
+
+		$grid->addButtonDeleteSelected();
+
+		$grid->addFilterTextInput('email', ['email'], null, 'E-mail');
+		$grid->addFilterButtons(['default']);
 
 		return $grid;
 	}
@@ -258,6 +281,7 @@ class OrderPresenter extends BackendPresenter
 			'received' => 'Přijaté',
 			'finished' => 'Odeslané',
 			'canceled' => 'Stornované',
+			'bannedEmails' => 'Blokované e-maily',
 		];
 
 		if ($this->shopper->getEditOrderAfterCreation()) {
@@ -265,6 +289,17 @@ class OrderPresenter extends BackendPresenter
 		}
 
 		$this->template->tabs = $tabs;
+
+		if ($this->tab === 'bannedEmails') {
+			$this->template->headerLabel = "Blokované e-maily";
+			$this->template->headerTree = [
+				['Blokované e-maily', 'default'],
+			];
+
+			$this->template->displayControls = [$this->getComponent('bannedEmailGrid')];
+
+			return;
+		}
 
 		$this->template->headerLabel = "Objednávky";
 		$this->template->headerTree = [
@@ -913,11 +948,29 @@ class OrderPresenter extends BackendPresenter
 				$order->getPK(),
 			);
 			$this->template->displayButtonsRight[] = $this->createButtonWithClass('cancelOrder!', '<i class="fas fa-times mr-1"></i>Storno', 'btn btn-sm btn-danger', $order->getPK());
+			$this->template->displayButtonsRight[] = $this->createButtonWithClass(
+				'banOrder!',
+				'<i class="fas fa-exclamation mr-1"></i>Problémová objednávka',
+				'btn btn-sm btn-warning',
+				$order->getPK(),
+			);
 		} elseif ($state === 'received') {
 			$this->template->displayButtonsRight[] = $this->createButtonWithClass('completeOrder!', '<i class="fas fa-check mr-1"></i>Zpracovat', 'btn btn-sm btn-success', $order->getPK());
 			$this->template->displayButtonsRight[] = $this->createButtonWithClass('cancelOrder!', '<i class="fas fa-times mr-1"></i>Storno', 'btn btn-sm btn-danger', $order->getPK());
+			$this->template->displayButtonsRight[] = $this->createButtonWithClass(
+				'banOrder!',
+				'<i class="fas fa-exclamation mr-1"></i>Problémová objednávka',
+				'btn btn-sm btn-warning',
+				$order->getPK(),
+			);
 		} elseif ($state === 'finished') {
 			$this->template->displayButtonsRight[] = $this->createButtonWithClass('cancelOrder!', '<i class="fas fa-times mr-1"></i>Storno', 'btn btn-sm btn-danger', $order->getPK());
+			$this->template->displayButtonsRight[] = $this->createButtonWithClass(
+				'banOrder!',
+				'<i class="fas fa-exclamation mr-1"></i>Problémová objednávka',
+				'btn btn-sm btn-warning',
+				$order->getPK(),
+			);
 		} elseif ($state === 'canceled') {
 			$this->template->displayButtonsRight[] = $this->createButtonWithClass('completeOrder!', '<i class="fas fa-check mr-1"></i>Zpracovat', 'btn btn-sm btn-success', $order->getPK());
 		}
@@ -966,9 +1019,14 @@ class OrderPresenter extends BackendPresenter
 
 	public function handleCancelOrder(string $orderId): void
 	{
-		/** @var \Eshop\DB\Order $order */
-		$order = $this->orderRepository->one($orderId, true);
-		$order->update(['canceledTs' => (string)new DateTime()]);
+		$this->orderRepository->cancelOrderById($orderId);
+
+		$this->redirect('this');
+	}
+
+	public function handleBanOrder(string $orderId): void
+	{
+		$this->orderRepository->banOrderById($orderId);
 
 		$this->redirect('this');
 	}
