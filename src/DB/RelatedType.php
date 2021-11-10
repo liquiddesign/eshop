@@ -27,19 +27,25 @@ class RelatedType extends \StORM\Entity
 	 * Zobrazovat v detailu produktu
 	 * @column
 	 */
-	public bool $similar = false;
+	public bool $showDetail = false;
 
 	/**
-	 * Výchozí množství master produktů
+	 * Zobrazovat v košíku
 	 * @column
 	 */
-	public int $masterDefaultAmount = 1;
+	public bool $showCart = false;
 
 	/**
-	 * Výchozí množství slave produktů
+	 * Zobrazovat v našeptávači
 	 * @column
 	 */
-	public int $slaveDefaultAmount = 1;
+	public bool $showSearch = false;
+
+	/**
+	 * Výchozí množství produktu
+	 * @column
+	 */
+	public int $defaultAmount = 1;
 
 	/**
 	 * Název master produktů
@@ -57,7 +63,13 @@ class RelatedType extends \StORM\Entity
 	 * Výchozí sleva %
 	 * @column
 	 */
-	public float $defaultDiscountPct = 0;
+	public ?float $defaultDiscountPct;
+
+	/**
+	 * Výchozí výpočet ceny z masteru v %, např.: pro upsell
+	 * @column
+	 */
+	public ?float $defaultMasterPct;
 
 	/**
 	 * Systemic

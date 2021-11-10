@@ -22,25 +22,17 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 {
 	private RelatedTypeRepository $relatedTypeRepository;
 
-	private RelatedMasterRepository $relatedMasterRepository;
-
-	private RelatedSlaveRepository $relatedSlaveRepository;
-
 	private ProductRepository $productRepository;
 
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
 		RelatedTypeRepository $relatedTypeRepository,
-		RelatedMasterRepository $relatedMasterRepository,
-		RelatedSlaveRepository $relatedSlaveRepository,
 		ProductRepository $productRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
 		$this->relatedTypeRepository = $relatedTypeRepository;
-		$this->relatedMasterRepository = $relatedMasterRepository;
-		$this->relatedSlaveRepository = $relatedSlaveRepository;
 		$this->productRepository = $productRepository;
 	}
 

@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use StORM\RelationCollection;
-
 /**
  * Produkty ve vztahu
  * @table
- * @index{"name":"related_code","unique":true,"columns":["code"]}
+ * @index{"name":"related_code","unique":true,"columns":["fk_master","fk_slave","amount","discountPct","masterPct"]}
  */
 class Related extends \StORM\Entity
 {
@@ -20,16 +18,28 @@ class Related extends \StORM\Entity
 	public RelatedType $type;
 
 	/**
-	 * Kód
-	 * @column
-	 */
-	public string $code;
-
-	/**
 	 * Priorita
 	 * @column
 	 */
 	public int $priority = 10;
+
+	/**
+	 * Množství
+	 * @column
+	 */
+	public int $amount = 1;
+
+	/**
+	 * Sleva %, např.: pro set
+	 * @column
+	 */
+	public ?float $discountPct;
+
+	/**
+	 * Ceny z masteru v %, např.: pro upsell
+	 * @column
+	 */
+	public ?float $masterPct;
 
 	/**
 	 * Skryto
@@ -44,16 +54,18 @@ class Related extends \StORM\Entity
 	public bool $systemic = false;
 
 	/**
+	 * Master produkt
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedMaster>|\Eshop\DB\RelatedMaster[]
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
-	public RelationCollection $masters;
+	public Product $master;
 
 	/**
+	 * Slave produkt
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedSlave>|\Eshop\DB\RelatedSlave[]
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
-	public RelationCollection $slaves;
+	public Product $slave;
 
 	public function isSystemic(): bool
 	{

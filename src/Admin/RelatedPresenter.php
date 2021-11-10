@@ -9,17 +9,12 @@ use Admin\Controls\AdminGrid;
 use Eshop\BackendPresenter;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\Related;
-use Eshop\DB\RelatedMaster;
-use Eshop\DB\RelatedMasterRepository;
 use Eshop\DB\RelatedRepository;
-use Eshop\DB\RelatedSlave;
-use Eshop\DB\RelatedSlaveRepository;
 use Eshop\DB\RelatedType;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\FormValidators;
 use Forms\Form;
 use Grid\Datagrid;
-use League\Csv\Reader;
 use League\Csv\Writer;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
@@ -39,12 +34,6 @@ class RelatedPresenter extends BackendPresenter
 	public ProductRepository $productRepository;
 
 	/** @inject */
-	public RelatedMasterRepository $relatedMasterRepository;
-
-	/** @inject */
-	public RelatedSlaveRepository $relatedSlaveRepository;
-
-	/** @inject */
 	public Application $application;
 
 	/** @persistent */
@@ -59,53 +48,28 @@ class RelatedPresenter extends BackendPresenter
 
 	public function createComponentRelationGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->relatedRepository->many()
-			->join(['masters' => 'eshop_relatedmaster'], 'this.uuid = masters.fk_related')
-			->join(['slaves' => 'eshop_relatedslave'], 'this.uuid = slaves.fk_related')
-			->join(['productMasters' => 'eshop_product'], 'masters.fk_product = productMasters.uuid')
-			->join(['productSlaves' => 'eshop_product'], 'slaves.fk_product = productMasters.uuid')
-			->where('this.fk_type', $this->tab), 20, 'this.priority', 'ASC', true);
+		$grid = $this->gridFactory->create($this->relatedRepository->many()->where('this.fk_type', $this->tab), 20, 'this.priority', 'ASC', true);
 		$grid->addColumnSelector();
 
 		$grid->addColumn($this->relatedType->getMasterInternalName(), function (Related $object, $datagrid) {
-			$result = '';
+			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$object->master, 'backLink' => $this->storeRequest()]) : '#';
 
-			foreach ($object->masters as $relatedProduct) {
-				$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ?
-					$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$relatedProduct->product, 'backLink' => $this->storeRequest()]) : '#';
-
-				$result .= (\strlen($relatedProduct->product->name) > 15 ? "<abbr title='" . $relatedProduct->product->name . "'>" : '') .
-					"<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" .
-					(\strlen($relatedProduct->product->name) > 15 ? \substr($relatedProduct->product->name, 0, 15) . '...' . "(" . $relatedProduct->amount . ")" :
-						($relatedProduct->product->name . "(" . $relatedProduct->amount . ")")) .
-					"</a>" . (\strlen($relatedProduct->product->name) > 15 ? "</abbr>" : '') .
-					",&nbsp;";
-			}
-
-			return \strlen($result) > 0 ? \substr($result, 0, -7) : $result;
+			return $object->master ? "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->master->name . "</a>" : '';
 		}, '%s');
 
 		$grid->addColumn($this->relatedType->getSlaveInternalName(), function (Related $object, $datagrid) {
-			$result = '';
+			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$object->slave, 'backLink' => $this->storeRequest()]) : '#';
 
-			foreach ($object->slaves as $relatedProduct) {
-				$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ?
-					$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$relatedProduct->product, 'backLink' => $this->storeRequest()]) : '#';
-
-				$result .= (\strlen($relatedProduct->product->name) > 15 ? "<abbr title='" . $relatedProduct->product->name . "'>" : '') .
-					"<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" .
-					(\strlen($relatedProduct->product->name) > 15 ?
-						\substr($relatedProduct->product->name, 0, 15) . '...' . "(" . $relatedProduct->amount . ", " . $relatedProduct->discountPct . "%)" :
-						($relatedProduct->product->name . "(" . $relatedProduct->amount . ", " . $relatedProduct->discountPct . "%)")) .
-					"</a>" . (\strlen($relatedProduct->product->name) > 15 ? "</abbr>" : '') .
-					",&nbsp;";
-			}
-
-			return \strlen($result) > 0 ? \substr($result, 0, -7) : $result;
+			return $object->slave ? "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->slave->name . "</a>" : '';
 		}, '%s');
 
-		$grid->addColumnLink('masters', $this->relatedType->getMasterInternalName());
-		$grid->addColumnLink('slaves', $this->relatedType->getSlaveInternalName());
+		$grid->addColumnInputInteger('Množství', 'amount', '', '', 'this.amount', [], true);
+
+		if ($this->relatedType->defaultDiscountPct) {
+			$grid->addColumnInputFloat('Sleva (%)', 'discountPct', '', '', 'discountPct');
+		} elseif ($this->relatedType->defaultMasterPct) {
+			$grid->addColumnInputFloat('Procentuální cena (%)', 'masterPct', '', '', 'masterPct');
+		}
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'this.priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'this.hidden');
@@ -113,7 +77,28 @@ class RelatedPresenter extends BackendPresenter
 		$grid->addColumnLinkDetail('detailRelation');
 		$grid->addColumnActionDeleteSystemic();
 
-		$grid->addButtonSaveAll();
+		$grid->addButtonSaveAll([], [], null, false, null, function ($id, &$data): void {
+			if (!isset($data['amount']) || $data['amount'] === '') {
+				$data['amount'] = 1;
+			}
+
+			if ($this->relatedType->defaultDiscountPct) {
+				if (!isset($data['discountPct']) || $data['discountPct'] === '' || $data['discountPct'] < 0 || $data['discountPct'] > 100) {
+					$data['discountPct'] = 0;
+				}
+			} else {
+				$data['discountPct'] = null;
+			}
+
+			if ($this->relatedType->defaultMasterPct) {
+				if (!isset($data['masterPct']) || $data['masterPct'] === '' || $data['masterPct'] < 0) {
+					$data['masterPct'] = 0;
+				}
+			} else {
+				$data['masterPct'] = null;
+			}
+		}, false);
+
 		$grid->addButtonDeleteSelected(null, false, function ($object) {
 			if ($object) {
 				return !$object->isSystemic();
@@ -124,9 +109,9 @@ class RelatedPresenter extends BackendPresenter
 
 		$mutationSuffix = $this->relatedTypeRepository->getConnection()->getMutationSuffix();
 
-		$grid->addFilterTextInput('master', ['productMasters.code', 'productMasters.ean', "productMasters.name$mutationSuffix"], null, $this->relatedType->getMasterInternalName() .
+		$grid->addFilterTextInput('master', ['master.code', 'master.ean', "master.name$mutationSuffix"], null, $this->relatedType->getMasterInternalName() .
 			': EAN, kód, název', '', '%s%%');
-		$grid->addFilterTextInput('slave', ['productSlaves.code', 'productSlaves.ean', "productSlaves.name$mutationSuffix"], null, $this->relatedType->getSlaveInternalName() .
+		$grid->addFilterTextInput('slave', ['slave.code', 'slave.ean', "slave.name$mutationSuffix"], null, $this->relatedType->getSlaveInternalName() .
 			': EAN, kód, název', '', '%s%%');
 
 		$grid->addFilterButtons();
@@ -155,11 +140,52 @@ class RelatedPresenter extends BackendPresenter
 			->setRequired()
 			->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
+		$form->addInteger('amount', 'Množství')->setRequired()->setDefaultValue($this->relatedType->defaultAmount);
 
-		$form->addSubmit('submit', 'Uložit');
+		if ($this->relatedType->defaultDiscountPct) {
+			$form->addText('discountPct', 'Sleva (%)')
+				->setDefaultValue($this->relatedType->defaultDiscountPct)
+				->addRule($form::REQUIRED)
+				->addRule($form::FLOAT)
+				->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
+		} elseif ($this->relatedType->defaultMasterPct) {
+			$form->addText('defaultMasterPct', 'Procento ceny z ' . $this->relatedType->getMasterInternalName() . ' (%)')
+				->setDefaultValue($this->relatedType->defaultMasterPct)
+				->addRule($form::REQUIRED)
+				->addRule($form::FLOAT)
+				->addRule([FormValidators::class, 'isPercentNoMax'], 'Zadaná hodnota není procento!');
+		}
+
+		$master = $form->addSelect2Ajax('master', $this->link('getProductsForSelect2!'), $this->relatedType->getMasterInternalName(), [], 'Zvolte produkt');
+		$slave = $form->addSelect2Ajax('slave', $this->link('getProductsForSelect2!'), $this->relatedType->getSlaveInternalName(), [], 'Zvolte produkt');
+
+		/** @var \Eshop\DB\Related $relation */
+		if ($relation = $this->getParameter('relation')) {
+			$this->template->select2AjaxDefaults[$master->getHtmlId()] = [$relation->getValue('master') => $relation->master->name];
+			$this->template->select2AjaxDefaults[$slave->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->name];
+		}
+
+		$form->addSubmits(!$this->getParameter('relation'));
+
+		$form->onValidate[] = function (AdminForm $form): void {
+			$data = $this->getHttpRequest()->getPost();
+
+			if (!isset($data['master'])) {
+				$form['master']->addError('Toto pole je povinné!');
+			}
+
+			if (isset($data['slave'])) {
+				return;
+			}
+
+			$form['slave']->addError('Toto pole je povinné!');
+		};
 
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
+
+			$values['master'] = $this->productRepository->one($form->getHttpData()['master'])->getPK();
+			$values['slave'] = $this->productRepository->one($form->getHttpData()['slave'])->getPK();
 
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
@@ -169,7 +195,7 @@ class RelatedPresenter extends BackendPresenter
 			$related = $this->relatedRepository->syncOne($values);
 
 			$this->flashMessage('Uloženo', 'success');
-			$this->redirect('masterNew', $related);
+			$form->processRedirect('detailRelation', 'default', [$related]);
 		};
 
 		return $form;
@@ -199,9 +225,14 @@ class RelatedPresenter extends BackendPresenter
 		if ($this->tab === 'types') {
 			$this->template->displayButtons = [$this->createNewItemButton('newType')];
 			$this->template->displayControls = [$this->getComponent('typeGrid')];
+
+			$this->template->headerTree = [
+				['Vazby'],
+				['Typy'],
+			];
 		} else {
 			$this->template->displayButtons = [
-				$this->createNewItemButton('masterNew'),
+				$this->createNewItemButton('newRelation'),
 				$this->createButtonWithClass('import', '<i class="fas fa-file-import"></i> Import', 'btn btn-outline-primary btn-sm'),
 			];
 			$this->template->displayControls = [$this->getComponent('relationGrid'),];
@@ -244,7 +275,9 @@ class RelatedPresenter extends BackendPresenter
 		$grid->addColumnSelector();
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumnText('Název', 'name', '%s', 'name');
-		$grid->addColumnInputCheckbox('Podobný produkt', 'similar', '', '', 'similar');
+		$grid->addColumnInputCheckbox('Zobrazit v detailu', 'showDetail', '', '', 'showDetail');
+		$grid->addColumnInputCheckbox('Zobrazit v košíku', 'showCart', '', '', 'showCart');
+		$grid->addColumnInputCheckbox('Zobrazit v našeptávači', 'showSearch', '', '', 'showSearch');
 
 		$grid->addColumnLinkDetail('detailType');
 		$grid->addColumnActionDeleteSystemic();
@@ -271,17 +304,36 @@ class RelatedPresenter extends BackendPresenter
 		$form->addText('code', 'Kód')->setRequired();
 		$form->addLocaleText('name', 'Název');
 
-		$form->addText('masterName', 'Název master produktů');
-		$form->addText('slaveName', 'Název slave produktů')->setHtmlAttribute('data-info', 'Slouží pro lepší rozpoznání v administraci.');
+		$form->addText('masterName', 'Název master produktu');
+		$form->addText('slaveName', 'Název slave produktu')->setHtmlAttribute('data-info', 'Slouží pro lepší rozpoznání v administraci.');
 
-		$form->addInteger('masterDefaultAmount', 'Výchozí počet master produktů')->setRequired()->setDefaultValue(1);
-		$form->addInteger('slaveDefaultAmount', 'Výchozí poče produktů')->setRequired()->setDefaultValue(1);
+		$form->addInteger('defaultAmount', 'Výchozí množství')->setRequired()->setDefaultValue(1);
+		$typeInput = $form->addSelect('type', 'Typ přepočtu ceny', ['none' => 'Žádný', 'discount' => 'Sleva', 'master' => 'Procento z master produktu']);
+
 		$form->addText('defaultDiscountPct', 'Výchozí sleva (%)')
-			->setRequired()
-			->setDefaultValue(0)
+			->setNullable()
+			->addConditionOn($form['type'], $form::EQUAL, 'discount')
+			->addRule($form::REQUIRED)
 			->addRule($form::FLOAT)
 			->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
-		$form->addCheckbox('similar', 'Podobné')->setHtmlAttribute('data-info', 'Produkty v této vazbě budou zobrazeny v detailu produktu.');
+		$form->addText('defaultMasterPct', 'Výchozí výpočet ceny z master produktu (%)')
+			->setNullable()
+			->addConditionOn($form['type'], $form::EQUAL, 'master')
+			->addRule($form::REQUIRED)
+			->addRule($form::FLOAT)
+			->addRule([FormValidators::class, 'isPercentNoMax'], 'Zadaná hodnota není procento!');
+
+		$typeInput->addCondition($form::EQUAL, 'discount')
+			->toggle('frm-typeForm-defaultDiscountPct-toogle')
+			->endCondition();
+
+		$typeInput->addCondition($form::EQUAL, 'master')
+			->toggle('frm-typeForm-defaultMasterPct-toogle')
+			->endCondition();
+
+		$form->addCheckbox('showDetail', 'Zobrazit v detailu produktu');
+		$form->addCheckbox('showCart', 'Zobrazit v košíku');
+		$form->addCheckbox('showSearch', 'Zobrazit v našeptávači');
 
 		$form->addSubmits(!$this->getParameter('relatedType'));
 
@@ -304,9 +356,14 @@ class RelatedPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
+			$type = Arrays::pick($values, 'type');
+
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
 			}
+
+			$values['defaultDiscountPct'] = $type === 'discount' ? $values['defaultDiscountPct'] : null;
+			$values['defaultMasterPct'] = $type === 'master' ? $values['defaultMasterPct'] : null;
 
 			$relatedType = $this->relatedTypeRepository->syncOne($values);
 
