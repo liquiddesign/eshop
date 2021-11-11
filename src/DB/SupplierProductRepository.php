@@ -86,7 +86,7 @@ class SupplierProductRepository extends \StORM\Repository
 				continue;
 			}
 			
-			$code = $draft->productCode ?: ($supplier->productCodePrefix ?: $supplier->code) . $draft->code;
+			$code = $draft->productCode ?: ($supplier->productCodePrefix ?: '') . $draft->code;
 			$uuid = ProductRepository::generateUuid($draft->ean, $draft->getProductFullCode() ?: $supplier->code . '-' . $draft->code);
 			$primary = isset($productsMap[$uuid]) ? $productsMap[$uuid]->sourcePK === $supplierId : false;
 			
