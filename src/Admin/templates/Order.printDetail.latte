@@ -221,8 +221,19 @@
                                         <td><span style="font-size: large">{$order->getTotalPrice()|price:$purchase->currency->code}</span></td>
                                     </tr>
                                 {/if}
-                                </tbody></table>
+                                </tbody>
+                            </table>
                         </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row">
+                    <div class="col-12 mt-4">
+                        <h4>Historie operací</h4>
+
+                        {control orderLogGrid}
                     </div>
                     <!-- /.col -->
                 </div>

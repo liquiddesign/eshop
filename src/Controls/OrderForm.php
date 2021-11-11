@@ -4,12 +4,21 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Eshop\BuyException;
 use Eshop\CheckoutManager;
 
+/**
+ * @method onBuyError(int $code)
+ */
 class OrderForm extends \Nette\Application\UI\Form
 {
 	public CheckoutManager $checkoutManager;
-	
+
+	/**
+	 * @var callable[]
+	 */
+	public array $onBuyError = [];
+
 	public function __construct(CheckoutManager $checkoutManager)
 	{
 		parent::__construct();
@@ -29,9 +38,13 @@ class OrderForm extends \Nette\Application\UI\Form
 			$this->addError('Objednávku nelze odeslat');
 		}
 	}
-	
+
 	public function success(): void
 	{
-		$this->checkoutManager->createOrder();
+		try {
+			$this->checkoutManager->createOrder();
+		} catch (BuyException $exception) {
+			$this->onBuyError($exception->getCode());
+		}
 	}
 }

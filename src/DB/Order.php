@@ -13,12 +13,10 @@ use StORM\RelationCollection;
  */
 class Order extends \StORM\Entity
 {
-	public const STATE = [
-		'open',
-		'received',
-		'finished',
-		'canceled',
-	];
+	public const STATE_OPEN = 'open';
+	public const STATE_RECEIVED = 'received';
+	public const STATE_COMPLETED = 'finished';
+	public const STATE_CANCELED = 'canceled';
 
 	/**
 	 * Kód

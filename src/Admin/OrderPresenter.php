@@ -21,6 +21,8 @@ use Eshop\DB\DeliveryRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\InternalCommentOrderRepository;
 use Eshop\DB\Order;
+use Eshop\DB\OrderLogItem;
+use Eshop\DB\OrderLogItemRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PackageItemRepository;
 use Eshop\DB\PaymentRepository;
@@ -121,6 +123,9 @@ class OrderPresenter extends BackendPresenter
 	/** @inject */
 	public InternalCommentOrderRepository $commentRepository;
 
+	/** @inject */
+	public OrderLogItemRepository $orderLogItemRepository;
+
 	/** @persistent */
 	public string $tab = 'received';
 
@@ -169,6 +174,35 @@ class OrderPresenter extends BackendPresenter
 		return $grid;
 	}
 
+	public function createComponentOrderLogGrid(): AdminGrid
+	{
+		$grid = $this->gridFactory->create($this->orderLogItemRepository->many()->where('fk_order', $this->getParameter('order')), 20, 'createdTs', 'DESC', true);
+
+		$grid->addColumnText('Vytvořena', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
+		$grid->addColumnText('Operace', 'operation', '%s');
+		$grid->addColumnText('Doplňující zpráva', 'message', '%s');
+		$grid->addColumn('Administrátor', function (OrderLogItem $orderLogItem, AdminGrid $datagrid): string {
+			if ($orderLogItem->administrator) {
+				$link = $this->admin->isAllowed(':Admin:Admin:Administrator:detail') && $orderLogItem->administrator->getPK() !== 'servis' ?
+					$datagrid->getPresenter()->link(':Admin:Admin:Administrator:detail', [$orderLogItem->administrator, 'backLink' => $this->storeRequest()]) :
+					'#';
+
+				return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $orderLogItem->administrator->fullName . "</a>";
+			}
+
+			if ($orderLogItem->administratorFullName) {
+				return $orderLogItem->administratorFullName;
+			}
+
+			return '';
+		});
+
+		$grid->addFilterTextInput('search', ['administratorFullName', 'administrator.fullName'], null, 'Administrátor');
+		$grid->addFilterButtons(['printDetail', $this->getParameter('order')]);
+
+		return $grid;
+	}
+
 	public function createComponentChangeForm(): Form
 	{
 		$order = $this->getParameter('order') ?: $this->getParameter('delivery')->order;
@@ -208,6 +242,8 @@ class OrderPresenter extends BackendPresenter
 
 			$delivery = $this->deliveryRepository->syncOne($values);
 
+			$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::DELIVERY_CHANGED, $delivery->getTypeName(), $this->admin->getIdentity());
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detailDelivery', 'delivery', [$delivery], [$order]);
 		};
@@ -231,6 +267,11 @@ class OrderPresenter extends BackendPresenter
 
 		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValues('array');
+
+			/** @var \Messages\DB\Template $template */
+			$template = $this->templateRepository->one($values['template']);
+
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, $template->name, $this->admin->getIdentity());
 
 			$mail = $this->templateRepository->createMessage($values['template'], $this->orderRepository->getEmailVariables($order), $values['email'], $values['ccEmails']);
 			$this->mailer->send($mail);
@@ -265,7 +306,9 @@ class OrderPresenter extends BackendPresenter
 			$values['typeCode'] = $type['code'];
 			$values['typeName'] = $type['name'];
 
-			$this->paymentRepository->syncOne($values);
+			$payment = $this->paymentRepository->syncOne($values);
+
+			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYMENT_CHANGED, $payment->getTypeName(), $this->admin->getIdentity());
 
 			$this->flashMessage('Uloženo', 'success');
 
@@ -312,6 +355,8 @@ class OrderPresenter extends BackendPresenter
 
 	public function renderDetail(Order $order): void
 	{
+		unset($order);
+
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
@@ -353,6 +398,8 @@ class OrderPresenter extends BackendPresenter
 
 	public function renderPayment(Order $order): void
 	{
+		unset($order);
+
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
@@ -643,6 +690,8 @@ class OrderPresenter extends BackendPresenter
 
 	public function renderDetailOrderItem(CartItem $cartItem, Order $order): void
 	{
+		unset($cartItem);
+
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
@@ -665,9 +714,17 @@ class OrderPresenter extends BackendPresenter
 		];
 		$payment->update($values);
 
-		if ($paid && $email) {
-			$mail = $this->templateRepository->createMessage('order.payed', ['orderCode' => $payment->order->code], $payment->order->purchase->email);
-			$this->mailer->send($mail);
+		if ($paid) {
+			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED, null, $this->admin->getIdentity());
+
+			if ($email) {
+				$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::PAYED, $this->admin->getIdentity());
+
+				$mail = $this->templateRepository->createMessage('order.payed', ['orderCode' => $payment->order->code], $payment->order->purchase->email);
+				$this->mailer->send($mail);
+			}
+		} else {
+			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED_CANCELED, null, $this->admin->getIdentity());
 		}
 
 		$this->flashMessage($paid ? 'Zaplaceno' : 'Zaplacení zrušeno', 'success');
@@ -683,11 +740,20 @@ class OrderPresenter extends BackendPresenter
 		$values = [
 			'shippedTs' => $shipped ? (string)new DateTime() : null,
 		];
+
 		$delivery->update($values);
 
-		if ($email && $shipped) {
-			$mail = $this->templateRepository->createMessage('order.shipped', ['orderCode' => $delivery->order->code], $delivery->order->purchase->email);
-			$this->mailer->send($mail);
+		if ($shipped) {
+			$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::SHIPPED, null, $this->admin->getIdentity());
+
+			if ($email) {
+				$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::EMAIL_SENT, OrderLogItem::SHIPPED, $this->admin->getIdentity());
+
+				$mail = $this->templateRepository->createMessage('order.shipped', ['orderCode' => $delivery->order->code], $delivery->order->purchase->email);
+				$this->mailer->send($mail);
+			}
+		} else {
+			$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::SHIPPED_CANCELED, null, $this->admin->getIdentity());
 		}
 
 		$this->flashMessage($shipped ? 'Expedováno' : 'Expedice zrušena', 'success');
@@ -1021,12 +1087,16 @@ class OrderPresenter extends BackendPresenter
 	{
 		$this->orderRepository->cancelOrderById($orderId);
 
+		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::CANCELED, null, $this->admin->getIdentity());
+
 		$this->redirect('this');
 	}
 
 	public function handleBanOrder(string $orderId): void
 	{
 		$this->orderRepository->banOrderById($orderId);
+
+		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::BAN_CANCELED, null, $this->admin->getIdentity());
 
 		$this->redirect('this');
 	}
@@ -1048,6 +1118,8 @@ class OrderPresenter extends BackendPresenter
 
 		$order->update(['completedTs' => (string)new DateTime(), 'canceledTs' => null]);
 
+		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::COMPLETED, null, $this->admin->getIdentity());
+
 		$this->redirect('this');
 	}
 
@@ -1056,6 +1128,8 @@ class OrderPresenter extends BackendPresenter
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->one($orderId, true);
 		$order->update(['receivedTs' => (string)new DateTime(), 'canceledTs' => null]);
+
+		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::RECEIVED, null, $this->admin->getIdentity());
 
 		$this->redirect('this');
 	}
@@ -1077,6 +1151,9 @@ class OrderPresenter extends BackendPresenter
 
 			$item->product->update(['buyCount' => $item->product->buyCount + $item->amount]);
 		}
+
+		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::RECEIVED, null, $this->admin->getIdentity());
+		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::COMPLETED, null, $this->admin->getIdentity());
 
 		$this->redirect('this');
 	}

@@ -755,6 +755,7 @@ class OrderRepository extends \StORM\Repository
 
 		$values = [
 			'orderCode' => $order->code,
+			'orderState' => $this->getState($order),
 			'currencyCode' => $order->purchase->currency->code,
 			'desiredShippingDate' => $purchase->desiredShippingDate,
 			'internalOrderCode' => $purchase->internalOrderCode,
@@ -922,19 +923,19 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		if ($this->shopper->getEditOrderAfterCreation() && !$order->receivedTs) {
-			return 'open';
+			return Order::STATE_OPEN;
 		}
 
 		if (!$order->completedTs && !$order->canceledTs) {
-			return 'received';
+			return Order::STATE_RECEIVED;
 		}
 
 		if ($order->completedTs && !$order->canceledTs) {
-			return 'finished';
+			return Order::STATE_COMPLETED;
 		}
 
 		if ($order->canceledTs) {
-			return 'canceled';
+			return Order::STATE_CANCELED;
 		}
 
 		return null;
