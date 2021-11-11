@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
-use Eshop\DB\Attribute;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
@@ -14,8 +13,8 @@ use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
-use Eshop\Shopper;
 use Eshop\DB\WatcherRepository;
+use Eshop\Shopper;
 use Forms\FormFactory;
 use Grid\Datalist;
 use Nette\Application\UI\Multiplier;
@@ -32,13 +31,11 @@ class ProductList extends Datalist
 {
 	public CheckoutManager $checkoutManager;
 
+	public Shopper $shopper;
+
 	private ProductRepository $productRepository;
 
 	private WatcherRepository $watcherRepository;
-
-	public Shopper $shopper;
-
-	private ?array $templateFilters = null;
 
 	private Translator $translator;
 
@@ -59,25 +56,24 @@ class ProductList extends Datalist
 	private DisplayDeliveryRepository $displayDeliveryRepository;
 
 	public function __construct(
-		ProductRepository             $productRepository,
-		CategoryRepository            $categoryRepository,
-		WatcherRepository             $watcherRepository,
-		CheckoutManager               $checkoutManager,
-		Shopper                       $shopper,
-		Translator                    $translator,
-		FormFactory                   $formFactory,
-		AttributeRepository           $attributeRepository,
-		AttributeValueRepository      $attributeValueRepository,
+		ProductRepository $productRepository,
+		CategoryRepository $categoryRepository,
+		WatcherRepository $watcherRepository,
+		CheckoutManager $checkoutManager,
+		Shopper $shopper,
+		Translator $translator,
+		FormFactory $formFactory,
+		AttributeRepository $attributeRepository,
+		AttributeValueRepository $attributeValueRepository,
 		AttributeValueRangeRepository $attributeValueRangeRepository,
-		IBuyFormFactory               $buyFormFactory,
-		ProducerRepository            $producerRepository,
-		DisplayAmountRepository       $displayAmountRepository,
-		DisplayDeliveryRepository     $displayDeliveryRepository,
-		array                         $order = null,
-		?Collection                   $source = null
-	)
-	{
-		$source = $source ?? $productRepository->getProducts()->where('this.hidden', false);
+		IBuyFormFactory $buyFormFactory,
+		ProducerRepository $producerRepository,
+		DisplayAmountRepository $displayAmountRepository,
+		DisplayDeliveryRepository $displayDeliveryRepository,
+		?array $order = null,
+		?Collection $source = null
+	) {
+		$source ??= $productRepository->getProducts()->where('this.hidden', false);
 
 		if ($order) {
 			$source->orderBy($order);
@@ -183,7 +179,7 @@ class ProductList extends Datalist
 				'product' => $product,
 				'customer' => $customer,
 				'amountFrom' => 1,
-				'beforeAmountFrom' => 0
+				'beforeAmountFrom' => 0,
 			]);
 		}
 
@@ -258,13 +254,17 @@ class ProductList extends Datalist
 		return $filterForm;
 	}
 
+	/**
+	 * @return string[]
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	private function getFiltersForTemplate(): array
 	{
 		$filters = $this->getFilters();
 		$templateFilters = [];
 
 		foreach (Arrays::pick($filters, 'attributes', []) as $attributeKey => $attributeValues) {
-			/** @var Attribute $attribute */
+			/** @var \Eshop\DB\Attribute $attribute */
 			$attribute = $this->attributeRepository->one($attributeKey);
 
 			$attributeValues = $attribute->showRange ?

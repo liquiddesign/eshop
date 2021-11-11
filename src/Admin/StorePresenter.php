@@ -64,7 +64,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 
 		$form->addSubmits(!$this->getParameter('store'));
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$store = $this->storeRepository->syncOne($values, null, true);
@@ -77,7 +77,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 		return $form;
 	}
 
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Sklady';
 		$this->template->headerTree = [
@@ -87,7 +87,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
 
-	public function renderNew()
+	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nový';
 		$this->template->headerTree = [
@@ -98,7 +98,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 
-	public function renderDetail()
+	public function renderDetail(): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -109,9 +109,9 @@ class StorePresenter extends \Eshop\BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 	
-	public function actionDetail(Store $store)
+	public function actionDetail(Store $store): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
 
 		$form->setDefaults($store->toArray());
@@ -160,7 +160,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 
 		$product = $form->addSelect2('product', 'Produkt', [], [
 			'ajax' => [
-				'url' => $this->getPresenter()->link('getProductsForSelect2!')
+				'url' => $this->getPresenter()->link('getProductsForSelect2!'),
 			],
 			'placeholder' => "Zvolte produkt",
 		])->checkDefaultValue(false);
@@ -177,15 +177,17 @@ class StorePresenter extends \Eshop\BackendPresenter
 		
 		$form->addSubmits();
 
-		$form->onValidate[] = function (AdminForm $form) {
+		$form->onValidate[] = function (AdminForm $form): void {
 			$data = $this->getHttpRequest()->getPost();
 
-			if (!isset($data['product'])) {
-				$form['product']->addError('Toto pole je povinné!');
+			if (isset($data['product'])) {
+				return;
 			}
+
+			$form['product']->addError('Toto pole je povinné!');
 		};
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$data = $this->getPresenter()->getHttpRequest()->getPost();
 			$values = $form->getValues();
 
@@ -196,13 +198,12 @@ class StorePresenter extends \Eshop\BackendPresenter
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('this', 'amounts', [$this->getParameter('store')], [$this->getParameter('store')]);
-
 		};
 
 		return $form;
 	}
 
-	public function renderAmountNew(Store $store)
+	public function renderAmountNew(Store $store): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -214,7 +215,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 		$this->template->displayControls = [$this->getComponent('amountForm')];
 	}
 
-	public function renderAmounts(Store $store)
+	public function renderAmounts(Store $store): void
 	{
 		$this->template->headerLabel = 'Skladové množství';
 		$this->template->headerTree = [

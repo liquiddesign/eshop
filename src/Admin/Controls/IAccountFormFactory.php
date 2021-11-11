@@ -1,8 +1,6 @@
 <?php
 
-
 namespace Eshop\Admin\Controls;
-
 
 interface IAccountFormFactory
 {

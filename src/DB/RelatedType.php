@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use StORM\RelationCollection;
-
 /**
  * Typ vztahu produktů
  * @table

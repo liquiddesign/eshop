@@ -2,7 +2,6 @@
 
 namespace Eshop\DB;
 
-use Eshop\DB\Order;
 use StORM\Entity;
 
 /**

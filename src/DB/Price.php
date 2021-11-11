@@ -44,7 +44,7 @@ class Price extends \StORM\Entity
 	
 	/**
 	 * Ceník
-     * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public Pricelist $pricelist;

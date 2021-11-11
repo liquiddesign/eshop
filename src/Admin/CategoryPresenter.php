@@ -13,6 +13,7 @@ use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\ProducerRepository;
+use Nette\Forms\Controls\TextInput;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
@@ -445,6 +446,10 @@ class CategoryPresenter extends BackendPresenter
 		}
 
 		$form['parameters']->setDefaults($parameters);
+
+		$defaults = $dynamicCategory->toArray();
+		$form['name']->setDefaults($defaults['name'] ?? []);
+		$form['content']->setDefaults($defaults['content'] ?? []);
 	}
 
 	public function renderDynamicCategoryDetail(): void
@@ -508,7 +513,9 @@ class CategoryPresenter extends BackendPresenter
 		/** @var \Web\DB\Page|null $dynamicCategory */
 		$dynamicCategory = $this->getParameter('dynamicCategory');
 
-		$form->addLocaleText('name', 'Název');
+		$form->addLocaleText('name', 'Název')->forPrimary(function (TextInput $input): void {
+			$input->setRequired();
+		});
 		$form->addLocaleRichEdit('content', 'Obsah');
 
 		$form->addPageContainer('product_list', $dynamicCategory ? $dynamicCategory->getParsedParameters() : ['category' => null], null, false, true, false, 'URL a SEO', false, true);
@@ -561,6 +568,8 @@ class CategoryPresenter extends BackendPresenter
 
 			$values['parameters']['attributeValue'] = isset($rawValues['parameters']['attributeValue']) ? \implode(';', $rawValues['parameters']['attributeValue']) : null;
 
+			$values['page']['name'] = Arrays::pick($values, 'name', []);
+			$values['page']['content'] = Arrays::pick($values, 'content', []);
 			$values['page']['type'] = 'product_list';
 
 			$page = $this->pageRepository->syncPage($values['page'], \array_filter($values['parameters'], function ($value) {

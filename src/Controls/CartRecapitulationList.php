@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
-use Eshop\Shopper;
-use Eshop\DB\CartItemRepository;
 use Grid\Datalist;
 use StORM\ICollection;
 
@@ -18,23 +16,17 @@ class CartRecapitulationList extends Datalist
 {
 	public CheckoutManager $checkoutManager;
 
-	private CartItemRepository $cartItemsRepository;
-
-	private Shopper $shopper;
-
-	public function __construct(CartItemRepository $cartItemsRepository, CheckoutManager $checkoutManager, Shopper $shopper, ?ICollection $items = null)
+	public function __construct(CheckoutManager $checkoutManager, ?ICollection $items = null)
 	{
 		$this->checkoutManager = $checkoutManager;
-		$this->cartItemsRepository = $cartItemsRepository;
-		$this->shopper = $shopper;
 
 		parent::__construct($items ?? $this->checkoutManager->getItems());
 	}
 
 	public function render(): void
 	{
-		$this->template->deliveryAndPaymentPrice = $this->checkoutManager->getDeliveryPrice() +  $this->checkoutManager->getPaymentPrice();
-		$this->template->deliveryAndPaymentPriceVat = $this->checkoutManager->getDeliveryPriceVat() +  $this->checkoutManager->getPaymentPriceVat();
+		$this->template->deliveryAndPaymentPrice = $this->checkoutManager->getDeliveryPrice() + $this->checkoutManager->getPaymentPrice();
+		$this->template->deliveryAndPaymentPriceVat = $this->checkoutManager->getDeliveryPriceVat() + $this->checkoutManager->getPaymentPriceVat();
 		$this->template->cartCurrency = $this->checkoutManager->getCartCurrencyCode();
 		$this->template->cartItems = $this->checkoutManager->getItems();
 		$this->template->discountCoupon = $this->checkoutManager->getDiscountCoupon();

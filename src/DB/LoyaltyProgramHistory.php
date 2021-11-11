@@ -43,4 +43,3 @@ class LoyaltyProgramHistory extends \StORM\Entity
 	 */
 	public LoyaltyProgram $loyaltyProgram;
 }
-

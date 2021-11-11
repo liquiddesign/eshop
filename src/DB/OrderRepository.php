@@ -37,8 +37,6 @@ class OrderRepository extends \StORM\Repository
 
 	private PackageItemRepository $packageItemRepository;
 
-	private CurrencyRepository $currencyRepository;
-
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
@@ -48,8 +46,7 @@ class OrderRepository extends \StORM\Repository
 		MerchantRepository $merchantRepository,
 		CatalogPermissionRepository $catalogPermissionRepository,
 		PackageRepository $packageRepository,
-		PackageItemRepository $packageItemRepository,
-		CurrencyRepository $currencyRepository
+		PackageItemRepository $packageItemRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -60,7 +57,6 @@ class OrderRepository extends \StORM\Repository
 		$this->catalogPermissionRepository = $catalogPermissionRepository;
 		$this->packageRepository = $packageRepository;
 		$this->packageItemRepository = $packageItemRepository;
-		$this->currencyRepository = $currencyRepository;
 	}
 
 	/**
@@ -157,14 +153,12 @@ class OrderRepository extends \StORM\Repository
 			$writer->insertOne($header);
 		}
 
-		$mutationSuffix = $this->getConnection()->getMutationSuffix();
-
 		/** @var \Eshop\DB\Order $order */
 		while ($order = $orders->fetch()) {
 			foreach ($order->purchase->getItems() as $item) {
 				$row = [];
 
-				foreach ($columns as $columnKey => $columnValue) {
+				foreach (\array_keys($columns) as $columnKey) {
 					if ($columnKey === 'customer') {
 						$row[] = $order->purchase->account ? $order->purchase->account->login : ($order->purchase->accountEmail ?? $order->purchase->email);
 					} elseif ($columnKey === 'state') {
@@ -357,10 +351,6 @@ class OrderRepository extends \StORM\Repository
 	public function csvExportZasilkovna(array $orders, Writer $writer): void
 	{
 		$writer->setDelimiter(';');
-
-		/** @var \Eshop\DB\DeliveryRepository $deliveryRepository */
-		$deliveryRepository = $this->getConnection()->findRepository(Delivery::class);
-
 		$writer->insertOne(['version 6']);
 		$writer->insertOne([]);
 
@@ -461,7 +451,7 @@ class OrderRepository extends \StORM\Repository
 	 * @param \Nette\Utils\DateTime $from
 	 * @param \Nette\Utils\DateTime $to
 	 * @param \Eshop\DB\Currency $currency
-	 * @return array
+	 * @return array<string, array<string, float>>
 	 * @throws \Exception
 	 */
 	public function getCustomerGroupedOrdersPrices($users, DateTime $from, DateTime $to, Currency $currency): array
@@ -526,7 +516,7 @@ class OrderRepository extends \StORM\Repository
 	 * @param \Nette\Utils\DateTime $from
 	 * @param \Nette\Utils\DateTime $to
 	 * @param \Eshop\DB\Currency $currency
-	 * @return array
+	 * @return array<string, array<string, float|string>>
 	 */
 	public function getCustomerOrdersCategoriesGroupedByAmountPercentage($users, DateTime $from, DateTime $to, Currency $currency): array
 	{
@@ -540,17 +530,6 @@ class OrderRepository extends \StORM\Repository
 		$cartRepo = $this->getConnection()->findRepository(Cart::class);
 
 		$rootCategories = [];
-
-//		$rootCategories = $categoryRepo->many()
-//			->where('fk_ancestor IS NULL')
-//			->toArrayOf('name');
-
-//		foreach ($rootCategories as $key => $category) {
-//			$rootCategories[$key] = [
-//				'name' => $category,
-//				'amount' => 0
-//			];
-//		}
 
 		$rootCategories[null] = [
 			'name' => $this->translator->translate('.notAssigned', 'Nepřiřazeno'),
@@ -611,7 +590,7 @@ class OrderRepository extends \StORM\Repository
 	 * @param \Nette\Utils\DateTime $from
 	 * @param \Nette\Utils\DateTime $to
 	 * @param \Eshop\DB\Currency $currency
-	 * @return array
+	 * @return array<string, array<string, object|string>>
 	 */
 	public function getCustomerOrdersTopProductsByAmount($users, DateTime $from, DateTime $to, Currency $currency): array
 	{
@@ -731,6 +710,11 @@ class OrderRepository extends \StORM\Repository
 		return $collection;
 	}
 
+	/**
+	 * @param \Eshop\DB\Order $order
+	 * @return string[]
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function getEmailVariables(Order $order): array
 	{
 		$purchase = $order->purchase;
@@ -964,9 +948,15 @@ class OrderRepository extends \StORM\Repository
 		Arrays::invoke($this->onChangeState);
 	}
 
-	// @TODO?
+	/**
+	 * @param \Eshop\DB\Order $order
+	 * @todo
+	 */
 	public function sendStateEmail(Order $order): void
 	{
+		unset($order);
+
+		// @TODO
 	}
 
 	public function getFirstPackageByCartItem(CartItem $cartItem): ?Package
@@ -983,8 +973,21 @@ class OrderRepository extends \StORM\Repository
 		return $this->packageItemRepository->many()->where('this.fk_cartItem', $cartItem->getPK())->first();
 	}
 
-	public function getFirstPackageByPurchase(Purchase $purchase): ?Package
+	public function getLoyaltyProgramPointsGainByOrderAndCustomer(Order $order, Customer $customer): ?float
 	{
-		return $this->packageRepository->many()->where('order.fk_purchase', $purchase->getPK())->orderBy(['this.id' => 'ASC'])->first();
+		if (!$loyaltyProgram = $customer->getValue('loyaltyProgram')) {
+			return null;
+		}
+
+		$pointsGain = 0.0;
+
+		/** @var \Eshop\DB\CartItem $cartItem */
+		foreach ($order->purchase->getItems()->join(['loyaltyProgramProduct' => 'eshop_loyaltyprogramproduct'], 'this.fk_product = loyaltyProgramProduct.fk_product')
+					 ->where('loyaltyProgramProduct.fk_loyaltyProgram', $loyaltyProgram)
+					 ->select(['pointsGain' => 'loyaltyProgramProduct.points']) as $cartItem) {
+			$pointsGain += $cartItem->amount * $cartItem->pointsGain;
+		}
+
+		return $pointsGain;
 	}
 }

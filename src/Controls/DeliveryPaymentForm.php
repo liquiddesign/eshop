@@ -8,7 +8,6 @@ use Eshop\CheckoutManager;
 use Eshop\DB\DeliveryType;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\PaymentType;
-use Eshop\DB\PickupPoint;
 use Eshop\DB\PickupPointRepository;
 use Eshop\Shopper;
 use Nette;
@@ -16,9 +15,9 @@ use StORM\Collection;
 
 class DeliveryPaymentForm extends Nette\Application\UI\Form
 {
-	private CheckoutManager $checkoutManager;
-
 	public Shopper $shopper;
+
+	private CheckoutManager $checkoutManager;
 
 	private DeliveryTypeRepository $deliveryTypeRepository;
 
@@ -26,8 +25,13 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 
 	private PickupPointRepository $pickupPointRepository;
 
-	public function __construct(Shopper $shopper, CheckoutManager $checkoutManager, DeliveryTypeRepository $deliveryTypeRepository, Nette\Localization\Translator $translator, PickupPointRepository $pickupPointRepository)
-	{
+	public function __construct(
+		Shopper $shopper,
+		CheckoutManager $checkoutManager,
+		DeliveryTypeRepository $deliveryTypeRepository,
+		Nette\Localization\Translator $translator,
+		PickupPointRepository $pickupPointRepository
+	) {
 		parent::__construct();
 
 		$this->checkoutManager = $checkoutManager;
@@ -45,7 +49,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		$allPoints = [];
 		$typesWithPoints = [];
 
-		/** @var DeliveryType $deliveryType */
+		/** @var \Eshop\DB\DeliveryType $deliveryType */
 		foreach ($checkoutManager->getDeliveryTypes()->toArray() as $deliveryType) {
 			$pickupPoints = $this->pickupPointRepository->many()
 				->join(['type' => 'eshop_pickuppointtype'], 'this.fk_pickupPointType = type.uuid')
@@ -91,17 +95,31 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		];
 
 		if (isset($values['pickupPoint'])) {
-			/** @var PickupPoint $pickupPoint */
+			/** @var \Eshop\DB\PickupPoint $pickupPoint */
 			$pickupPoint = $this->pickupPointRepository->one($values['pickupPoint']);
 
 			$newValues += [
 				'pickupPointId' => $pickupPoint->code,
 				'pickupPointName' => $pickupPoint->name,
-				'pickupPoint' => $pickupPoint->getPK()
+				'pickupPoint' => $pickupPoint->getPK(),
 			];
 		}
 
 		$this->checkoutManager->syncPurchase($newValues);
+	}
+
+	public function validateForm(DeliveryPaymentForm $form): void
+	{
+		$values = $form->getValues();
+
+		/** @var \Eshop\DB\DeliveryType|null $deliveryType */
+		$deliveryType = $this->deliveryTypeRepository->one($values->deliveries);
+
+		if (!$deliveryType || $deliveryType->code !== 'zasilkovna' || $values->zasilkovnaId) {
+			return;
+		}
+
+		$form['deliveries']->addError($this->translator->translate('deliveryPaymentForm.missingZasil', 'Pro dopravu Zásilkovna je nutné zvolit výdejní místo.'));
 	}
 
 	private function addCombinationRules(Nette\Forms\Controls\RadioList $deliveriesList, Nette\Forms\Controls\RadioList $paymentsList, Collection $deliveryTypes): void
@@ -124,7 +142,11 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 				return;
 			}
 
-			$paymentsCondition->addRule($this::IS_IN, $this->translator->translate('deliveryPaymentForm.badCombo', 'Nesprávná kombinace dopravy a platby. Vyberte prosím jinou platbu.'), $allowedPaymentTypes);
+			$paymentsCondition->addRule(
+				$this::IS_IN,
+				$this->translator->translate('deliveryPaymentForm.badCombo', 'Nesprávná kombinace dopravy a platby. Vyberte prosím jinou platbu.'),
+				$allowedPaymentTypes,
+			);
 		}
 	}
 
@@ -150,17 +172,5 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		}
 
 		return $purchase->paymentType;
-	}
-
-	public function validateForm(DeliveryPaymentForm $form): void
-	{
-		$values = $form->getValues();
-
-		/** @var \Eshop\DB\DeliveryType|null $deliveryType */
-		$deliveryType = $this->deliveryTypeRepository->one($values->deliveries);
-
-		if ($deliveryType && $deliveryType->code === 'zasilkovna' && !$values->zasilkovnaId) {
-			$form['deliveries']->addError($this->translator->translate('deliveryPaymentForm.missingZasil', 'Pro dopravu Zásilkovna je nutné zvolit výdejní místo.'));
-		}
 	}
 }

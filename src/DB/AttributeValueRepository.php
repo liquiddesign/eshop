@@ -12,6 +12,9 @@ use StORM\Collection;
  */
 class AttributeValueRepository extends \StORM\Repository implements IGeneralRepository
 {
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('label');
@@ -29,6 +32,12 @@ class AttributeValueRepository extends \StORM\Repository implements IGeneralRepo
 		return $collection->orderBy(['this.priority', "this.label$suffix",]);
 	}
 
+	/**
+	 * @param string $query
+	 * @param int|null $page
+	 * @param int $onPage
+	 * @return string[]
+	 */
 	public function getAttributesForAdminAjax(string $query, ?int $page = null, int $onPage = 5): array
 	{
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();

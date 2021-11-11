@@ -2,14 +2,13 @@
 
 namespace Eshop\Admin\Controls;
 
-use Eshop\DB\Currency;
 use Eshop\DB\CurrencyRepository;
-use Eshop\Shopper;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\OrderRepository;
-use Nette;
+use Eshop\Shopper;
 use Forms\Form;
 use Forms\FormFactory;
+use Nette;
 use Nette\Application\UI\Control;
 
 class StatsControl extends Control
@@ -17,9 +16,9 @@ class StatsControl extends Control
 	/** @persistent */
 	public array $state = [];
 
-	private FormFactory $formFactory;
-
 	public Shopper $shopper;
+
+	private FormFactory $formFactory;
 
 	private OrderRepository $orderRepository;
 
@@ -73,19 +72,21 @@ class StatsControl extends Control
 
 		$form->addSubmit('submit', 'Zobrazit');
 
-		$form->onValidate[] = function (Form $form) {
+		$form->onValidate[] = function (Form $form): void {
 			if (!$form->isValid()) {
 				return;
 			}
 
 			$values = $form->getValues();
 
-			if ($values->from > $values->to) {
-				$form->addError('Neplatný rozsah!');
+			if ($values->from <= $values->to) {
+				return;
 			}
+
+			$form->addError('Neplatný rozsah!');
 		};
 
-		$form->onSuccess[] = function (Form $form) {
+		$form->onSuccess[] = function (Form $form): void {
 			$this->state = $form->getValues('array');
 
 			$this->redirect('this');
@@ -94,15 +95,15 @@ class StatsControl extends Control
 		return $form;
 	}
 
-	public function render()
+	public function render(): void
 	{
-		/** @var Nette\Application\UI\Form $form */
+		/** @var \Nette\Application\UI\Form $form */
 		$form = $this->getComponent('statsFilterForm');
 
-		$statsFrom = $this->state['statsFrom'] ?? null;
-		$statsTo = $this->state['statsTo'] ?? null;
+		$statsFrom = $this->state['from'] ?? null;
+		$statsTo = $this->state['to'] ?? null;
 		$merchant = $this->state['merchant'] ?? null;
-		/** @var Currency $currency */
+		/** @var \Eshop\DB\Currency $currency */
 		$currency = isset($this->state['currency']) ? $this->currencyRepository->one($this->state['currency'], true) : $this->currencyRepository->many()->first();
 
 		$form->setDefaults($this->state);
@@ -127,7 +128,7 @@ class StatsControl extends Control
 		$this->template->render($this->template->getFile() ?: __DIR__ . \DIRECTORY_SEPARATOR . 'statsControl.latte');
 	}
 
-	public function handleResetStatsFilter()
+	public function handleResetStatsFilter(): void
 	{
 		$this->state = [];
 

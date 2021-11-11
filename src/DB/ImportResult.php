@@ -108,6 +108,6 @@ class ImportResult extends \StORM\Entity
 		$started = (new DateTime($this->startedTs))->getTimestamp();
 		$finished = $this->finishedTs ? (new DateTime($this->finishedTs))->getTimestamp() : null;
 		
-		return $finished ? \round(($finished - $started) / 60,2) : null;
+		return $finished ? \round(($finished - $started) / 60, 2) : null;
 	}
 }

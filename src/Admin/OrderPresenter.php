@@ -9,7 +9,6 @@ use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\BackendPresenter;
 use Eshop\DB\AddressRepository;
 use Eshop\DB\AutoshipRepository;
-use Eshop\DB\Cart;
 use Eshop\DB\CartItem;
 use Eshop\DB\CartItemRepository;
 use Eshop\DB\CartRepository;
@@ -24,7 +23,6 @@ use Eshop\DB\OrderRepository;
 use Eshop\DB\PackageItemRepository;
 use Eshop\DB\PaymentRepository;
 use Eshop\DB\PaymentTypeRepository;
-use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierRepository;
@@ -46,7 +44,7 @@ class OrderPresenter extends BackendPresenter
 	protected const CONFIGURATION = [
 		'exportPPC' => false,
 		'exportPPC_columns' => [],
-		'defaultExportPPC_columns' => []
+		'defaultExportPPC_columns' => [],
 	];
 
 	/** @inject */
@@ -123,7 +121,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function createComponentOrdersGrid()
 	{
-		return $this->orderGridFactory->create($this->tab, static::CONFIGURATION);
+		return $this->orderGridFactory->create($this->tab, self::CONFIGURATION);
 	}
 
 	public function createComponentDeliveryGrid()
@@ -156,7 +154,6 @@ class OrderPresenter extends BackendPresenter
 		$form->addRadioList('Sklad', 'store', ['asda' => 'asdasd']);
 
 		return $form;
-
 	}
 
 	public function createComponentDeliveryForm(): Form
@@ -179,7 +176,7 @@ class OrderPresenter extends BackendPresenter
 
 		$form->addSubmits(!$this->getParameter('delivery'));
 
-		$form->onSuccess[] = function (AdminForm $form) use ($order) {
+		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValues('array');
 
 			$type = $this->deliveryTypeRepository->one($values['type'])->toArray();
@@ -209,7 +206,7 @@ class OrderPresenter extends BackendPresenter
 
 		$form->addSubmit('submit', 'Odeslat');
 
-		$form->onSuccess[] = function (AdminForm $form) use ($order) {
+		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValues('array');
 
 			$mail = $this->templateRepository->createMessage($values['template'], $this->orderRepository->getEmailVariables($order), $values['email'], $values['ccEmails']);
@@ -221,7 +218,6 @@ class OrderPresenter extends BackendPresenter
 
 		return $form;
 	}
-
 
 	public function createComponentPaymentForm(): Form
 	{
@@ -239,7 +235,7 @@ class OrderPresenter extends BackendPresenter
 
 		$form->addSubmits(!$this->getParameter('order'));
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$type = $this->paymentTypeRepository->one($values['type'])->toArray();
@@ -256,7 +252,7 @@ class OrderPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$tabs = [
 			'received' => 'Přijaté',
@@ -279,7 +275,7 @@ class OrderPresenter extends BackendPresenter
 		$this->template->ordersForJBOX = $this->getComponent('ordersGrid')->getItemsOnPage();
 	}
 
-	public function renderDetail(Order $order)
+	public function renderDetail(Order $order): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -290,8 +286,7 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
 
-
-	public function renderDetailDelivery(Delivery $delivery)
+	public function renderDetailDelivery(Delivery $delivery): void
 	{
 		$this->template->headerLabel = 'Položky dopravy';
 		$this->template->headerTree = [
@@ -302,15 +297,15 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('deliveryForm')];
 	}
 
-	public function actionDetailDelivery(Delivery $delivery)
+	public function actionDetailDelivery(Delivery $delivery): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('deliveryForm');
 
 		$form->setDefaults($delivery->toArray());
 	}
 
-	public function renderDelivery(Order $order)
+	public function renderDelivery(Order $order): void
 	{
 		$this->template->headerLabel = 'Doprava: ' . $order->code;
 		$this->template->headerTree = [
@@ -321,7 +316,7 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('deliveryGrid')];
 	}
 
-	public function renderPayment(Order $order)
+	public function renderPayment(Order $order): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -332,17 +327,15 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('paymentForm')];
 	}
 
-
-	public function actionDetail(Order $order)
+	public function actionDetail(Order $order): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('form');
 
 		$form->setDefaults($order->purchase->toArray(['billAddress', 'deliveryAddress']));
 
 		$form->setDefaults($order->toArray());
 	}
-
 
 	public function createComponentNewOrderItemForm(): AdminForm
 	{
@@ -353,9 +346,9 @@ class OrderPresenter extends BackendPresenter
 
 		$form->addSelect2('product', 'Produkt', [], [
 			'ajax' => [
-				'url' => $this->link('getProductsForSelect2!')
+				'url' => $this->link('getProductsForSelect2!'),
 			],
-			'placeholder' => 'Zvolte produkt'
+			'placeholder' => 'Zvolte produkt',
 		]);
 
 		$form->addSelect('cart', 'Košík č.', $order->purchase->carts->toArrayOf('id'))->setRequired();
@@ -365,7 +358,7 @@ class OrderPresenter extends BackendPresenter
 
 		$form->addSubmits(false);
 
-		$form->onValidate[] = function (AdminForm $form) {
+		$form->onValidate[] = function (AdminForm $form): void {
 			$data = $this->getHttpRequest()->getPost();
 
 			if (!isset($data['product'])) {
@@ -374,15 +367,17 @@ class OrderPresenter extends BackendPresenter
 				return;
 			}
 
-			if (!$this->productRepo->getProduct($data['product'])) {
-				$form['product']->addError('Daný produkt nebyl nalezen nebo není dostupný');
+			if ($this->productRepo->getProduct($data['product'])) {
+				return;
 			}
+
+			$form['product']->addError('Daný produkt nebyl nalezen nebo není dostupný');
 		};
 
-		$form->onSuccess[] = function (AdminForm $form) use ($order) {
+		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValues('array');
 
-			/** @var Cart $cart */
+			/** @var \Eshop\DB\Cart $cart */
 			$cart = $this->cartRepository->one($values['cart']);
 
 			if ($order->purchase->customer) {
@@ -390,7 +385,7 @@ class OrderPresenter extends BackendPresenter
 				$this->checkoutManager->setCustomer($order->purchase->customer);
 			}
 
-			/** @var Product $product */
+			/** @var \Eshop\DB\Product $product */
 			$product = $this->productRepo->getProduct($form->getHttpData(Form::DATA_TEXT, 'product'));
 
 			$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], false, false, false, $cart);
@@ -409,7 +404,6 @@ class OrderPresenter extends BackendPresenter
 
 		return $form;
 	}
-
 
 	public function createComponentSplitOrderItemForm(): AdminForm
 	{
@@ -488,11 +482,11 @@ class OrderPresenter extends BackendPresenter
 
 		$form = $this->formFactory->create();
 
-		$form->addText('code', 'Kód objednávky')->addRule(function (TextInput $value) use ($orderRepository, $form) {
+		$form->addText('code', 'Kód objednávky')->addRule(function (TextInput $value) use ($orderRepository) {
 			return !$orderRepository->many()->where('code', $value->value)->isEmpty();
 		}, 'Tato objednávka neexistuje')->setRequired();
 		$form->addSubmits(false, false);
-		$form->onSuccess[] = function (AdminForm $form) use ($order) {
+		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValues('array');
 
 			/** @var \Eshop\DB\Order $order */
@@ -525,7 +519,6 @@ class OrderPresenter extends BackendPresenter
 				$product = $this->productRepo->getProduct($item->getValue('product'));
 				$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], false, false, false, $newCart);
 			}
-
 
 			$orderOld->update(['canceledTs' => new DateTime()]);
 
@@ -579,7 +572,7 @@ class OrderPresenter extends BackendPresenter
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
 			['Položky'],
-			['Nová položka']
+			['Nová položka'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('emailForm')];
@@ -591,7 +584,7 @@ class OrderPresenter extends BackendPresenter
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
 			['Položky'],
-			['Nová položka']
+			['Nová položka'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('orderItems', $order)];
 		$this->template->displayControls = [$this->getComponent('newOrderItemForm')];
@@ -599,7 +592,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function actionDetailOrderItem(CartItem $cartItem, Order $order): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('detailOrderItemForm');
 		$form->setDefaults($cartItem->toArray());
 	}
@@ -608,7 +601,7 @@ class OrderPresenter extends BackendPresenter
 	{
 		$payment = $order->getPayment();
 
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('paymentForm');
 		$form->setDefaults($payment ? $payment->toArray() : []);
 	}
@@ -619,13 +612,13 @@ class OrderPresenter extends BackendPresenter
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
 			['Položky', 'orderItems', $order],
-			['Detail']
+			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('orderItems', $order)];
 		$this->template->displayControls = [$this->getComponent('detailOrderItemForm')];
 	}
 
-	public function handleChangePayment(string $payment, bool $paid, bool $email = false)
+	public function handleChangePayment(string $payment, bool $paid, bool $email = false): void
 	{
 		/** @var \Eshop\DB\Payment $payment */
 		$payment = $this->paymentRepository->one($payment, true);
@@ -647,7 +640,7 @@ class OrderPresenter extends BackendPresenter
 		$this->redirect('this');
 	}
 
-	public function handleChangeDelivery(string $delivery, bool $shipped, bool $email = false)
+	public function handleChangeDelivery(string $delivery, bool $shipped, bool $email = false): void
 	{
 		/** @var \Eshop\DB\Delivery $delivery */
 		$delivery = $this->deliveryRepository->one($delivery, true);
@@ -667,7 +660,7 @@ class OrderPresenter extends BackendPresenter
 		$this->redirect('this');
 	}
 
-	public function modifyPackage(Button $button)
+	public function modifyPackage(Button $button): void
 	{
 		$grid = $button->lookup(Datagrid::class);
 		$delivery = $this->getParameter('delivery');
@@ -675,6 +668,7 @@ class OrderPresenter extends BackendPresenter
 		foreach ($grid->getInputData() as $id => $data) {
 			if (!$data) {
 				$this->packageItemRepository->many()->where('fk_cartItem', $id)->where('fk_delivery', $delivery)->delete();
+
 				continue;
 			}
 
@@ -693,7 +687,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function renderDeliveryColumn(CartItem $item, Datagrid $grid)
 	{
-		/** @var Delivery[] $deliveries */
+		/** @var \Eshop\DB\Delivery[] $deliveries */
 		$deliveries = $item->getDeliveries()->toArray();
 		$types = [];
 
@@ -710,22 +704,22 @@ class OrderPresenter extends BackendPresenter
 		return \implode(', ', $types);
 	}
 
-	public function actionComments(Order $order)
+	public function actionComments(Order $order): void
 	{
 		$this->template->headerLabel = 'Komentáře - ' . $order->code;
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
-			['Komentáře']
+			['Komentáře'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 	}
 
-	public function actionExportPPC(array $ids)
+	public function actionExportPPC(array $ids): void
 	{
 		$this->template->headerLabel = 'Export pro PPC';
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
-			['Export pro PPC']
+			['Export pro PPC'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('exportPPCForm')];
@@ -762,11 +756,11 @@ class OrderPresenter extends BackendPresenter
 		$items = [];
 		$defaultItems = [];
 
-		if (isset(static::CONFIGURATION['exportPPC_columns'])) {
-			$items += static::CONFIGURATION['exportPPC_columns'];
+		if (isset(self::CONFIGURATION['exportPPC_columns'])) {
+			$items += self::CONFIGURATION['exportPPC_columns'];
 
-			if (isset(static::CONFIGURATION['defaultExportPPC_columns'])) {
-				$defaultItems = \array_merge($defaultItems, static::CONFIGURATION['defaultExportPPC_columns']);
+			if (isset(self::CONFIGURATION['defaultExportPPC_columns'])) {
+				$defaultItems = \array_merge($defaultItems, self::CONFIGURATION['defaultExportPPC_columns']);
 			}
 		}
 
@@ -775,22 +769,22 @@ class OrderPresenter extends BackendPresenter
 
 		$form->addSubmit('submit', 'Exportovat');
 
-		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid, $items) {
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid, $items): void {
 			$values = $form->getValues('array');
 
-			$selectedItems = $values['bulkType'] == 'selected' ? $this->orderRepository->many()->where('this.uuid', $ids) : $grid->getFilteredSource();
+			$selectedItems = $values['bulkType'] === 'selected' ? $this->orderRepository->many()->where('this.uuid', $ids) : $grid->getFilteredSource();
 
 			$tempFilename = \tempnam($this->tempDir, "csv");
 			$headerColumns = \array_filter($items, function ($item) use ($values) {
 				return \in_array($item, $values['columns']);
-			}, ARRAY_FILTER_USE_KEY);
+			}, \ARRAY_FILTER_USE_KEY);
 
 			$this->orderRepository->csvPPCExport(
 				$selectedItems,
 				Writer::createFromPath($tempFilename),
 				$headerColumns,
 				$values['delimiter'],
-				$values['header'] ? \array_values($headerColumns) : null
+				$values['header'] ? \array_values($headerColumns) : null,
 			);
 
 			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "orders.csv", 'text/csv'));
@@ -826,7 +820,7 @@ class OrderPresenter extends BackendPresenter
 
 		$form->addSubmits(!$this->getParameter('order'));
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 			unset($values['uuid']);
 
@@ -836,20 +830,20 @@ class OrderPresenter extends BackendPresenter
 				}
 			}
 
-			/** @var Order $order */
+			/** @var \Eshop\DB\Order $order */
 			$order = $this->getParameter('order');
 
 			$order->purchase->update($values, true);
 
 			$this->flashMessage('Uloženo', 'success');
 
-			$form->processRedirect('detail', 'default', [$order]);
+			$form->processRedirect('printDetail', 'default', [$order]);
 		};
 
 		return $form;
 	}
 
-	public function renderComments(Order $order)
+	public function renderComments(Order $order): void
 	{
 		$this->template->comments = $this->commentRepository->many()->where('fk_order', $order->getPK())->orderBy(['createdTs' => 'DESC'])->toArray();
 		$this->template->setFile(__DIR__ . '/templates/comments.latte');
@@ -865,14 +859,14 @@ class OrderPresenter extends BackendPresenter
 
 		$form->addSubmit('send', 'Odeslat');
 
-		$form->onSuccess[] = function (Form $form) {
+		$form->onSuccess[] = function (Form $form): void {
 			$values = $form->getValues('array');
 
 			$this->commentRepository->createOne([
 				'order' => $this->getParameter('order')->getPK(),
 				'text' => $values['text'],
 				'administrator' => $this->admin->getIdentity()->getPK(),
-				'adminFullname' => $this->admin->getIdentity()->fullName
+				'adminFullname' => $this->admin->getIdentity()->fullName,
 			]);
 
 			$this->flashMessage('Uloženo', 'success');
@@ -882,14 +876,14 @@ class OrderPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function actionPrintDetail(Order $order)
+	public function actionPrintDetail(Order $order): void
 	{
 		$array = $order->purchase->toArray(['billAddress', 'deliveryAddress']) + $order->toArray();
 
 		$this->getComponent('orderForm')->setDefaults($array);
 	}
 
-	public function renderPrintDetail(Order $order)
+	public function renderPrintDetail(Order $order): void
 	{
 		$this->template->headerLabel = 'Objednávka - ' . $order->code;
 
@@ -1035,7 +1029,7 @@ class OrderPresenter extends BackendPresenter
 		$object = $this->orderRepository->one($orderId, true);
 
 		$tempFilename = \tempnam($presenter->tempDir, "csv");
-		$this->application->onShutdown[] = function () use ($tempFilename) {
+		$this->application->onShutdown[] = function () use ($tempFilename): void {
 			\unlink($tempFilename);
 		};
 		$this->orderRepository->csvExport($object, Writer::createFromPath($tempFilename, 'w+'));
@@ -1043,7 +1037,7 @@ class OrderPresenter extends BackendPresenter
 		$presenter->sendResponse($response);
 	}
 
-	public function handleExportEdi(string $orderId)
+	public function handleExportEdi(string $orderId): void
 	{
 		$presenter = $this;
 		$object = $this->orderRepository->one($orderId, true);
@@ -1052,8 +1046,8 @@ class OrderPresenter extends BackendPresenter
 		$fh = \fopen($tempFilename, 'w+');
 		\fwrite($fh, $this->orderRepository->ediExport($object));
 		\fclose($fh);
-		$this->application->onShutdown[] = function () use ($tempFilename) {
-			unlink($tempFilename);
+		$this->application->onShutdown[] = function () use ($tempFilename): void {
+			\unlink($tempFilename);
 		};
 		$this->sendResponse(new FileResponse($tempFilename, 'order.txt', 'text/plain'));
 	}

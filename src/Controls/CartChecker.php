@@ -41,9 +41,11 @@ class CartChecker extends Control
 				continue;
 			}
 			
-			if ($cartItem['reason'] === 'unavailable') {
-				$this->checkoutManager->deleteItem($cartItem['object']);
+			if ($cartItem['reason'] !== 'unavailable') {
+				continue;
 			}
+
+			$this->checkoutManager->deleteItem($cartItem['object']);
 		}
 		
 		$this->redirect('this');

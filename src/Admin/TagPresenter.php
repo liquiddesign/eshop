@@ -6,9 +6,9 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\Tag;
 use Eshop\DB\TagRepository;
-use Forms\Form;
 use Nette\Http\Request;
 use Nette\Utils\Image;
 use Pages\DB\PageRepository;
@@ -26,7 +26,7 @@ class TagPresenter extends BackendPresenter
 	/** @inject */
 	public Request $request;
 
-	public function createComponentGrid()
+	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->tagRepository->many(), 20, 'priority', 'ASC', true);
 		$grid->addColumnSelector();
@@ -38,8 +38,13 @@ class TagPresenter extends BackendPresenter
 		}, '<a href="%s" target="_blank"> %s</a>', 'name');
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
-		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '',
-			'recommended');
+		$grid->addColumnInputCheckbox(
+			'<i title="Doporučeno" class="far fa-thumbs-up"></i>',
+			'recommended',
+			'',
+			'',
+			'recommended',
+		);
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('Detail');
@@ -76,7 +81,7 @@ class TagPresenter extends BackendPresenter
 
 		$tag = $this->getParameter('tag');
 
-		$imagePicker->onDelete[] = function () use ($tag) {
+		$imagePicker->onDelete[] = function () use ($tag): void {
 			$this->onDelete($tag);
 			$this->redirect('this');
 		};
@@ -93,7 +98,7 @@ class TagPresenter extends BackendPresenter
 
 		$form->addSubmits(!$tag);
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$this->createImageDirs(Tag::IMAGE_DIR);
@@ -106,7 +111,7 @@ class TagPresenter extends BackendPresenter
 
 			$tag = $this->tagRepository->syncOne($values, null, true);
 
-			$form->syncPages(function () use ($tag, $values) {
+			$form->syncPages(function () use ($tag, $values): void {
 				$values['page']['params'] = Helpers::serializeParameters(['tag' => $tag->getPK()]);
 				$this->pageRepository->syncOne($values['page']);
 			});
@@ -118,7 +123,7 @@ class TagPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Tagy';
 		$this->template->headerTree = [
@@ -128,7 +133,7 @@ class TagPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
 
-	public function renderNew()
+	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -139,7 +144,7 @@ class TagPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 
-	public function renderDetail()
+	public function renderDetail(): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -150,9 +155,9 @@ class TagPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 
-	public function actionDetail(Tag $tag)
+	public function actionDetail(Tag $tag): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
 
 		$form->setDefaults($tag->toArray(['similar']));

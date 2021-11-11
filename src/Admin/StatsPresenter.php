@@ -15,9 +15,7 @@ class StatsPresenter extends BackendPresenter
 
 	public function createComponentStats(): StatsControl
 	{
-		$control = $this->statsControlFactory->create();
-
-		return $control;
+		return $this->statsControlFactory->create();
 	}
 
 	public function renderDefault(): void

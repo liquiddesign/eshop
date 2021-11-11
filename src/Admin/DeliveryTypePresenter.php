@@ -9,16 +9,14 @@ use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\CurrencyRepository;
+use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\DeliveryType;
-use Eshop\DB\DeliveryTypePrice;
 use Eshop\DB\DeliveryTypePriceRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PickupPointTypeRepository;
 use Eshop\Shopper;
-use Eshop\DB\CustomerGroupRepository;
 use Forms\Form;
-use Nette\DI\Container;
 use Nette\Http\Request;
 use Nette\Utils\Image;
 use StORM\DIConnection;
@@ -63,7 +61,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		
 		$code = $this->currencyRepo->many()->firstValue('uuid');
 		$grid->addColumn('Celková cena', function (DeliveryType $deliveryType, AdminGrid $dataGrid) use ($code) {
-			/** @var DeliveryTypePrice $price */
+			/** @var \Eshop\DB\DeliveryTypePrice $price */
 			$price = $this->deliveryPriceRepo->many()
 				->where('fk_deliveryType', $deliveryType->getPK())
 				->where('fk_currency', $code)
@@ -101,7 +99,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		
 		$form->addText('code', 'Kód')->setRequired();
 		
-		/** @var DeliveryType $deliveryType */
+		/** @var \Eshop\DB\DeliveryType $deliveryType */
 		$deliveryType = $this->getParameter('deliveryType');
 		
 		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
@@ -114,7 +112,7 @@ class DeliveryTypePresenter extends BackendPresenter
 			},
 		]);
 
-		$imagePicker->onDelete[] = function (array $directories, $filename) use($deliveryType) {
+		$imagePicker->onDelete[] = function (array $directories, $filename) use ($deliveryType): void {
 			$this->onDelete($deliveryType);
 			$this->redirect('this');
 		};
@@ -140,7 +138,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		
 		$form->addSubmits(!$deliveryType);
 		
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 			
 			$this->createImageDirs(DeliveryType::IMAGE_DIR);
@@ -160,7 +158,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		return $form;
 	}
 	
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Typy dopravy';
 		$this->template->headerTree = [
@@ -170,7 +168,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
 	
-	public function renderNew()
+	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -181,7 +179,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 	
-	public function renderDetail(DeliveryType $deliveryType)
+	public function renderDetail(DeliveryType $deliveryType): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -192,9 +190,9 @@ class DeliveryTypePresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 	
-	public function actionDetail(DeliveryType $deliveryType)
+	public function actionDetail(DeliveryType $deliveryType): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
 		
 		$form->setDefaults($deliveryType->toArray(['allowedPaymentTypes']));
@@ -243,7 +241,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		
 		$form->addSubmits();
 		
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 			
 			$this->deliveryPriceRepo->syncOne($values, null, true);
@@ -255,7 +253,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		return $form;
 	}
 	
-	public function renderPrices(DeliveryType $deliveryType)
+	public function renderPrices(DeliveryType $deliveryType): void
 	{
 		$this->template->headerLabel = 'Ceník typu dopravy - ' . $deliveryType->name;
 		$this->template->headerTree = [
@@ -266,7 +264,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('pricesGrid')];
 	}
 	
-	public function renderPricesNew(DeliveryType $deliveryType)
+	public function renderPricesNew(DeliveryType $deliveryType): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [

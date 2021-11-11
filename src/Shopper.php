@@ -103,8 +103,8 @@ class Shopper
 		CustomerRepository $customerRepository,
 		CustomerGroupRepository $customerGroupRepository,
 		MinimalOrderValueRepository $minimalOrderValueRepository,
-		AccountRepository $accountRepository)
-	{
+		AccountRepository $accountRepository
+	) {
 		
 		
 		$this->user = $user;
@@ -168,7 +168,7 @@ class Shopper
 		return $this->projectUrl;
 	}
 	
-	public function getCountry()
+	public function getCountry(): Country
 	{
 		return $this->country ??= $this->countryRepository->one(['code' => $this->countryCode], true);
 	}
@@ -209,7 +209,6 @@ class Shopper
 		
 		if ($this->user->isLoggedIn()) {
 			if ($identity instanceof Customer) {
-				
 				return $identity;
 			}
 			
@@ -258,7 +257,7 @@ class Shopper
 		$this->customerGroup = $customerGroup;
 	}
 	
-	public function getMinimalOrderValue()
+	public function getMinimalOrderValue(): float
 	{
 		$group = $this->getCustomerGroup();
 		
@@ -289,13 +288,14 @@ class Shopper
 			return $this->pricelists = $repo->getMerchantPricelists($merchant, $currency ?: $this->getCurrency(), $this->getCountry());
 		}
 		
-		return $this->pricelists = $customer ? $repo->getCustomerPricelists($customer, $currency ?: $this->getCurrency(), $this->getCountry()) : $repo->getPricelists($unregisteredPricelists, $currency ?: $this->getCurrency(), $this->getCountry());
+		return $this->pricelists = $customer ? $repo->getCustomerPricelists($customer, $currency ?: $this->getCurrency(), $this->getCountry()) :
+			$repo->getPricelists($unregisteredPricelists, $currency ?: $this->getCurrency(), $this->getCountry());
 	}
 	
 	/**
 	 * @return mixed[]
 	 */
-	public function getRegistrationConfiguration()
+	public function getRegistrationConfiguration(): array
 	{
 		return $this->registrationConfiguration;
 	}
@@ -334,7 +334,6 @@ class Shopper
 		}
 		
 		if (!$catalogPermission = $customer->getCatalogPermission()) {
-			
 			return false;
 		}
 		
@@ -422,9 +421,9 @@ class Shopper
 	/**
 	 * @param \Nette\Application\UI\Template|\stdClass $template
 	 */
-	public function addFilters(Template $template)
+	public function addFilters(Template $template): void
 	{
-		$template->addFilter('price', function ($number, string $currencyCode = null) {
+		$template->addFilter('price', function ($number, ?string $currencyCode = null) {
 			return $this->filterPrice($number, $currencyCode);
 		});
 	}
@@ -433,15 +432,14 @@ class Shopper
 	 * Formátuje cenu
 	 * @param float|int $number
 	 * @param string|null $currencyCode
-	 * @return string
 	 */
 	public function filterPrice($number, ?string $currencyCode = null): string
 	{
 		$currency = $this->getCurrency($currencyCode);
 		
 		if ($currency->formatDecimals === null) {
-			$locale_info = localeconv();
-			$currency->formatDecimals = (int) $locale_info['frac_digits'] ?? 0;
+			$localeInfo = \localeconv();
+			$currency->formatDecimals = (int) $localeInfo['frac_digits'] ?? 0;
 		}
 		
 		$nbsp = \html_entity_decode('&nbsp;');
@@ -453,7 +451,7 @@ class Shopper
 	public function getPreferredMutationByAccount($account): ?string
 	{
 		if (!$account instanceof Account) {
-			if (!$product = $this->accountRepository->one($account)) {
+			if (!$account = $this->accountRepository->one($account)) {
 				return null;
 			}
 		}

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
-use Eshop\DB\DiscountRepository;
 use Eshop\DB\CustomerRepository;
+use Eshop\DB\DiscountRepository;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\Shopper;
@@ -32,7 +32,7 @@ class DashboardPresenter extends BackendPresenter
 	/** @inject */
 	public Shopper $shopper;
 	
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Nástěnka';
 		$this->template->headerTree = [
@@ -40,7 +40,7 @@ class DashboardPresenter extends BackendPresenter
 		];
 	}
 	
-	public function actionDefault()
+	public function actionDefault(): void
 	{
 		$this->template->recievedOrders = $this->orderRepo->many()->where('this.completedTs IS NULL AND this.canceledTs IS NULL')->orderBy(['createdTs DESC'])->setTake(10);
 		
@@ -51,7 +51,7 @@ class DashboardPresenter extends BackendPresenter
 		$this->template->nonActiveUsers = [];
 
 		foreach ($accounts as $account) {
-			if ($counter == 10) {
+			if ($counter === 10) {
 				break;
 			}
 			
@@ -65,6 +65,6 @@ class DashboardPresenter extends BackendPresenter
 		
 		$this->template->discounts = $this->discountRepo->getActiveDiscounts();
 		
-		$this->template->setFile(__DIR__ . \DIRECTORY_SEPARATOR . 'templates' .\DIRECTORY_SEPARATOR  . 'Dashboard.default.latte');
+		$this->template->setFile(__DIR__ . \DIRECTORY_SEPARATOR . 'templates' .\DIRECTORY_SEPARATOR . 'Dashboard.default.latte');
 	}
 }

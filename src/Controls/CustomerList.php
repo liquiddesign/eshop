@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\DB\CustomerRepository;
-use Eshop\DB\Merchant;
 use Eshop\Shopper;
 use Grid\Datalist;
 use Nette\Application\UI\Form;
@@ -21,9 +19,7 @@ class CustomerList extends Datalist
 {
 	private Shopper $shopper;
 
-	private CustomerRepository $customerRepository;
-
-	public function __construct(Collection $customers, Shopper $shopper, CustomerRepository $customerRepository)
+	public function __construct(Collection $customers, Shopper $shopper)
 	{
 		parent::__construct($customers);
 
@@ -38,7 +34,6 @@ class CustomerList extends Datalist
 		$this->getFilterForm()->addSubmit('submit');
 
 		$this->shopper = $shopper;
-		$this->customerRepository = $customerRepository;
 	}
 
 	public function handleReset(): void
@@ -50,7 +45,7 @@ class CustomerList extends Datalist
 
 	public function render(): void
 	{
-		$this->template->merchant = $merchant = $this->shopper->getMerchant() ?? $this->shopper->getCustomer();
+		$this->template->merchant = $this->shopper->getMerchant() ?? $this->shopper->getCustomer();
 		$this->template->customer = $this->shopper->getCustomer();
 		$this->template->paginator = $this->getPaginator();
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/customerList.latte');

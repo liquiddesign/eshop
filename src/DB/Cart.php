@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Security\DB\Account;
 use StORM\RelationCollection;
 
 /**

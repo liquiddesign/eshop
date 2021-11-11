@@ -9,14 +9,4 @@ namespace Eshop\DB;
  */
 class AutoshipRepository extends \StORM\Repository
 {
-	public function getListForSelect():array
-	{
-		$data = $this->many()->toArray();
-		$array = [];
-		foreach ($data as $key => $value)
-		{
-			$array[$key] = "$value->uuid";
-		}
-		return $array;
-	}
 }

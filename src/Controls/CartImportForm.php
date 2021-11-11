@@ -64,29 +64,33 @@ class CartImportForm extends Form
 		}
 		
 		/* produkty které nebyly nalezeny nebo byly chybně zadány se vloží zpět do pastArea */
-		if ($notFoundProducts) {
-			$form->addError('Některé z produktů nebyly nalezeny. Zkontrolujte prosím jejich zadání');
-			$form['pasteArea']->value = \implode("\n", $notFoundProducts);
+		if (!$notFoundProducts) {
+			return;
 		}
+
+		$form->addError('Některé z produktů nebyly nalezeny. Zkontrolujte prosím jejich zadání');
+		$form['pasteArea']->value = \implode("\n", $notFoundProducts);
 	}
 
 	private function parseCSVFile(FileUpload $importFile): void
 	{
 		$delimiter = $this->detectDelimiter($importFile->getTemporaryFile());
 		
-		if (($handle = \fopen($importFile->getTemporaryFile(), "r")) !== false) {
-			while (($data = \fgetcsv($handle, 1000, $delimiter)) !== false) {
-				[$productId, $amount] = $data;
-				
-				if (!$productId || !$amount) {
-					continue;
-				}
-				
-				$this->items[$productId] = isset($items[$productId]) ? $items[$productId] + $amount : $amount;
+		if (($handle = \fopen($importFile->getTemporaryFile(), "r")) === false) {
+			return;
+		}
+
+		while (($data = \fgetcsv($handle, 1000, $delimiter)) !== false) {
+			[$productId, $amount] = $data;
+			
+			if (!$productId || !$amount) {
+				continue;
 			}
 			
-			\fclose($handle);
+			$this->items[$productId] = isset($items[$productId]) ? $items[$productId] + $amount : $amount;
 		}
+		
+		\fclose($handle);
 	}
 	
 	private function parsePasteArea(string $pasteArea): void

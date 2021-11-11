@@ -18,7 +18,6 @@ use StORM\ICollection;
 class CustomerRepository extends \StORM\Repository implements IUserRepository, IGeneralRepository
 {
 	use UserRepositoryTrait;
-
 	public function createNew(array $values): ?Customer
 	{
 		return $this->createOne($values);
@@ -45,9 +44,8 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 		$writer->setDelimiter(';');
 
 		foreach ($customers as $customer) {
-
 			$writer->insertOne([
-				$customer->email
+				$customer->email,
 			]);
 		}
 	}
@@ -67,19 +65,27 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 
 	/**
 	 * @deprecated use getArrayForSelect()
+	 * @return string[]
 	 */
 	public function getListForSelect(): array
 	{
 		return $this->getArrayForSelect();
 	}
 
-	public function getEmailVariables(Customer $customer)
+	/**
+	 * @param \Eshop\DB\Customer $customer
+	 * @return string[]
+	 */
+	public function getEmailVariables(Customer $customer): array
 	{
 		return [
 			'login' => $customer->email,
 		];
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->select(['name' => 'IF(this.company != "",this.company,this.fullname)'])->toArrayOf('name');
@@ -87,8 +93,8 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 
 	public function getCollection(bool $includeHidden = false): Collection
 	{
-		$collection = $this->many();
+		unset($includeHidden);
 
-		return $collection->orderBy(['fullname']);
+		return $this->many()->orderBy(['fullname']);
 	}
 }

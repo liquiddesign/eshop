@@ -7,7 +7,6 @@ namespace Eshop\DB;
 use Common\DB\IGeneralRepository;
 use StORM\Collection;
 use StORM\DIConnection;
-use StORM\ICollection;
 use StORM\SchemaManager;
 
 /**

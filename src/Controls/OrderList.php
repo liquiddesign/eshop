@@ -7,9 +7,8 @@ namespace Eshop\Controls;
 use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\CheckoutManager;
 use Eshop\DB\CatalogPermissionRepository;
-use Eshop\DB\Order;
-use Eshop\Shopper;
 use Eshop\DB\OrderRepository;
+use Eshop\Shopper;
 use Grid\Datalist;
 use League\Csv\Writer;
 use Nette\Application\Responses\FileResponse;
@@ -25,26 +24,40 @@ use StORM\ICollection;
  */
 class OrderList extends Datalist
 {
+	/**
+	 * Don't remove! Using in template.
+	 */
+	public CheckoutManager $checkoutManager;
+
+	/**
+	 * Don't remove! Using in template.
+	 */
+	public OrderRepository $orderRepository;
+
+	public Shopper $shopper;
+
 	private Translator $translator;
 
 	private OrderGridFactory $orderGridFactory;
 
-	public OrderRepository $orderRepository;
-
-	private CheckoutManager $checkoutManager;
-
 	private string $tempDir;
 
-	public Shopper $shopper;
-
-	public function __construct(Translator $translator, OrderGridFactory $orderGridFactory, OrderRepository $orderRepository, CatalogPermissionRepository $catalogPermissionRepository, Shopper $shopper, CheckoutManager $checkoutManager, ?Collection $orders = null)
-	{
+	public function __construct(
+		Translator $translator,
+		OrderGridFactory $orderGridFactory,
+		OrderRepository $orderRepository,
+		CatalogPermissionRepository $catalogPermissionRepository,
+		Shopper $shopper,
+		CheckoutManager $checkoutManager,
+		?Collection $orders = null
+	) {
 		if (!$orders && $shopper->getCustomer()) {
 			/** @var \Eshop\DB\CatalogPermission $permission */
 			$permission = $catalogPermissionRepository->many()->where('fk_account', $shopper->getCustomer()->getAccount())->first();
 		}
 
-		parent::__construct($orders ?? $orderRepository->getFinishedOrders($shopper->getCustomer(), $shopper->getMerchant(), isset($permission) ? ($permission->viewAllOrders ? null : $shopper->getCustomer()->getAccount()) : null));
+		parent::__construct($orders ?? $orderRepository->getFinishedOrders($shopper->getCustomer(), $shopper->getMerchant(), isset($permission) ?
+				($permission->viewAllOrders ? null : $shopper->getCustomer()->getAccount()) : null));
 
 		$this->setDefaultOnPage(10);
 		$this->setDefaultOrder('this.createdTs', 'DESC');
@@ -80,7 +93,7 @@ class OrderList extends Datalist
 		$this->tempDir = $tempDir;
 	}
 
-	public function handleCancel()
+	public function handleCancel(): void
 	{
 		$this->setFilters(null);
 		$this->setPage(1);
@@ -94,7 +107,7 @@ class OrderList extends Datalist
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/orderList.latte');
 	}
 
-	public function createComponentSelectOrdersForm()
+	public function createComponentSelectOrdersForm(): Form
 	{
 		$form = new \Nette\Application\UI\Form();
 
@@ -105,7 +118,8 @@ class OrderList extends Datalist
 		$form->addSubmit('finish', $this->translator->translate('orderL.finish', 'Vyřídit'))
 			->setHtmlAttribute('onClick', "return confirm('" . $this->translator->translate('.really?', 'Opravdu?') . "')");
 		$form->addSubmit('cancel', $this->translator->translate('orderL.cancel', 'Stornovat'))
-			->setHtmlAttribute('onClick', "return confirm('" . $this->translator->translate('.really?', 'Opravdu?') . "')");;
+			->setHtmlAttribute('onClick', "return confirm('" . $this->translator->translate('.really?', 'Opravdu?') . "')");
+
 		$form->addSubmit('export');
 		$form->addSubmit('exportAccounts');
 		$form->addSubmit('exportItems');
@@ -114,17 +128,17 @@ class OrderList extends Datalist
 		$form->addSubmit('exportExcelZip');
 		$form->addSubmit('exportCsvApi');
 
-		$form->onSuccess[] = function (Form $form) {
+		$form->onSuccess[] = function (Form $form): void {
 			$values = $form->getValues('array');
 
 			$values = \array_filter($values, function ($value) {
 				return $value;
 			});
 
-			if (\count($values) == 0) {
+			if (\count($values) === 0) {
 				$values = $this->getFilteredSource()->toArray();
 			} else {
-				foreach ($values as $key => $value) {
+				foreach (\array_keys($values) as $key) {
 					$values[\explode('_', $key)[1]] = $this->orderRepository->one(\explode('_', $key)[1], true);
 					unset($values[$key]);
 				}
@@ -132,26 +146,26 @@ class OrderList extends Datalist
 
 			$submitName = $form->isSubmitted()->getName();
 
-			if ($submitName == 'export') {
+			if ($submitName === 'export') {
 				$this->exportOrders($values);
-			} elseif ($submitName == 'exportAccounts') {
+			} elseif ($submitName === 'exportAccounts') {
 				$this->exportOrdersAccounts($values);
-			} elseif ($submitName == 'exportItems') {
+			} elseif ($submitName === 'exportItems') {
 				$this->exportOrdersItems($values);
-			} elseif ($submitName == 'exportExcel') {
+			} elseif ($submitName === 'exportExcel') {
 				$this->exportOrdersExcel($values);
-			} elseif ($submitName == 'exportExcelZip') {
+			} elseif ($submitName === 'exportExcelZip') {
 				$this->exportOrdersExcelZip($values);
-			} elseif ($submitName == 'exportCsvApi') {
+			} elseif ($submitName === 'exportCsvApi') {
 				$this->exportCsvApi($values);
-			} elseif ($submitName == 'exportCsv') {
+			} elseif ($submitName === 'exportCsv') {
 				$this->exportCsv($values);
 			}
 
-			foreach ($values as $key => $order) {
-				if ($submitName == 'finish') {
+			foreach ($values as $order) {
+				if ($submitName === 'finish') {
 					$this->orderGridFactory->completeOrder($order);
-				} elseif ($submitName == 'cancel') {
+				} elseif ($submitName === 'cancel') {
 					$this->orderGridFactory->cancelOrder($order);
 				}
 			}
@@ -178,7 +192,7 @@ class OrderList extends Datalist
 	{
 		$object = $this->orderRepository->one($orderId, true);
 		$tempFilename = \tempnam($this->tempDir, "csv");
-		$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+		$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename): void {
 			\unlink($tempFilename);
 		};
 		$this->getPresenter()->csvOrderExportAPI($object, Writer::createFromPath($tempFilename, 'w+'));
@@ -189,7 +203,7 @@ class OrderList extends Datalist
 	public function exportCsvApi(array $orders): void
 	{
 		$tempFilename = \tempnam($this->tempDir, "csv");
-		$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+		$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename): void {
 			\unlink($tempFilename);
 		};
 		$this->getPresenter()->csvOrderExportItemsAPI($orders, Writer::createFromPath($tempFilename, 'w+'));
@@ -198,12 +212,12 @@ class OrderList extends Datalist
 	}
 
 	/**
-	 * @param Order[] $orders
+	 * @param \Eshop\DB\Order[] $orders
 	 */
 	public function exportCsv(array $orders): void
 	{
 		$tempFilename = \tempnam($this->tempDir, "csv");
-		$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+		$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename): void {
 			\unlink($tempFilename);
 		};
 
@@ -224,7 +238,7 @@ class OrderList extends Datalist
 				'priceVatSum',
 				'vatPct',
 				'note',
-				'account'
+				'account',
 			]);
 		} else {
 			$writer->insertOne([
@@ -235,7 +249,7 @@ class OrderList extends Datalist
 				'price',
 				'priceSum',
 				'note',
-				'account'
+				'account',
 			]);
 		}
 
@@ -253,7 +267,7 @@ class OrderList extends Datalist
 						$item->getPriceVatSum(),
 						$item->vatPct,
 						$item->note,
-						$order->purchase->accountFullname
+						$order->purchase->accountFullname,
 					]);
 				} else {
 					$writer->insertOne([
@@ -264,7 +278,7 @@ class OrderList extends Datalist
 						$item->price,
 						$item->getPriceSum(),
 						$item->note,
-						$order->purchase->accountFullname
+						$order->purchase->accountFullname,
 					]);
 				}
 			}
@@ -283,7 +297,7 @@ class OrderList extends Datalist
 	public function exportOrders(array $orders): void
 	{
 		$tempFilename = \tempnam($this->tempDir, "csv");
-		$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+		$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename): void {
 			\unlink($tempFilename);
 		};
 
@@ -303,7 +317,7 @@ class OrderList extends Datalist
 
 		$zipFilename = \tempnam($this->tempDir, "zip");
 
-		if ($zip->open($zipFilename, \ZipArchive::CREATE) !== TRUE) {
+		if ($zip->open($zipFilename, \ZipArchive::CREATE) !== true) {
 			exit("cannot open <$zipFilename>\n");
 		}
 
@@ -327,7 +341,7 @@ class OrderList extends Datalist
 
 		foreach ($accounts as $key => $orders) {
 			$tempFilename = \tempnam($this->tempDir, "csv");
-			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename): void {
 				\unlink($tempFilename);
 			};
 
@@ -338,7 +352,7 @@ class OrderList extends Datalist
 
 		$zip->close();
 
-		$this->getPresenter()->application->onShutdown[] = function () use ($zip, $zipFilename) {
+		$this->getPresenter()->application->onShutdown[] = function () use ($zipFilename): void {
 			\unlink($zipFilename);
 		};
 
@@ -350,20 +364,20 @@ class OrderList extends Datalist
 	 * @throws \Nette\Application\AbortException
 	 * @throws \Nette\Application\BadRequestException
 	 */
-	public function exportOrdersItems(array $orders)
+	public function exportOrdersItems(array $orders): void
 	{
 		$zip = new \ZipArchive();
 
 		$zipFilename = \tempnam($this->tempDir, "zip");
 
-		if ($zip->open($zipFilename, \ZipArchive::CREATE) !== TRUE) {
+		if ($zip->open($zipFilename, \ZipArchive::CREATE) !== true) {
 			exit("cannot open <$zipFilename>\n");
 		}
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
 			$tempFilename = \tempnam($this->tempDir, "csv");
-			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename): void {
 				\unlink($tempFilename);
 			};
 			$this->orderRepository->csvExport($order, Writer::createFromPath($tempFilename, 'w+'));
@@ -373,14 +387,14 @@ class OrderList extends Datalist
 
 		$zip->close();
 
-		$this->getPresenter()->application->onShutdown[] = function () use ($zipFilename) {
+		$this->getPresenter()->application->onShutdown[] = function () use ($zipFilename): void {
 			\unlink($zipFilename);
 		};
 
 		$this->getPresenter()->sendResponse(new FileResponse($zipFilename, "orders.zip", 'application/zip'));
 	}
 
-	public function exportOrdersExcel(array $orders)
+	public function exportOrdersExcel(array $orders): void
 	{
 		$filename = \tempnam($this->tempDir, "xlsx");
 
@@ -390,20 +404,20 @@ class OrderList extends Datalist
 
 		$writer->writeToFile($filename);
 
-		$this->getPresenter()->application->onShutdown[] = function () use ($filename) {
+		$this->getPresenter()->application->onShutdown[] = function () use ($filename): void {
 			\unlink($filename);
 		};
 
 		$this->getPresenter()->sendResponse(new FileResponse($filename, "orders.xlsx", 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));
 	}
 
-	public function exportOrdersExcelZip(array $orders)
+	public function exportOrdersExcelZip(array $orders): void
 	{
-		if (\count($orders) == 1) {
+		if (\count($orders) === 1) {
 			$order = Arrays::first($orders);
 
 			$tempFilename = \tempnam($this->tempDir, "xlsx");
-			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename): void {
 				\unlink($tempFilename);
 			};
 
@@ -420,14 +434,14 @@ class OrderList extends Datalist
 
 		$zipFilename = \tempnam($this->tempDir, "zip");
 
-		if ($zip->open($zipFilename, \ZipArchive::CREATE) !== TRUE) {
+		if ($zip->open($zipFilename, \ZipArchive::CREATE) !== true) {
 			exit("cannot open <$zipFilename>\n");
 		}
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
 			$tempFilename = \tempnam($this->tempDir, "xlsx");
-			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename) {
+			$this->getPresenter()->application->onShutdown[] = function () use ($tempFilename): void {
 				\unlink($tempFilename);
 			};
 
@@ -442,7 +456,7 @@ class OrderList extends Datalist
 
 		$zip->close();
 
-		$this->getPresenter()->application->onShutdown[] = function () use ($zipFilename) {
+		$this->getPresenter()->application->onShutdown[] = function () use ($zipFilename): void {
 			\unlink($zipFilename);
 		};
 

@@ -6,10 +6,10 @@ namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
 use Eshop\Shopper;
+use InvalidArgumentException;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
 use Nette\Utils\DateTime;
-use Pages\Pages;
 use Security\DB\Account;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -31,13 +31,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	private SetRepository $setRepository;
 
-	private Pages $pages;
-
 	private PageRepository $pageRepository;
-
-	private PriceRepository $priceRepository;
-
-	private AmountRepository $amountRepository;
 
 	private DeliveryDiscountRepository $deliveryDiscountRepository;
 
@@ -51,10 +45,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		SchemaManager $schemaManager,
 		AttributeRepository $attributeRepository,
 		SetRepository $setRepository,
-		Pages $pages,
 		PageRepository $pageRepository,
-		PriceRepository $priceRepository,
-		AmountRepository $amountRepository,
 		DeliveryDiscountRepository $deliveryDiscountRepository,
 		LoyaltyProgramDiscountLevelRepository $loyaltyProgramDiscountLevelRepository,
 		OrderRepository $orderRepository
@@ -64,10 +55,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$this->shopper = $shopper;
 		$this->attributeRepository = $attributeRepository;
 		$this->setRepository = $setRepository;
-		$this->pages = $pages;
 		$this->pageRepository = $pageRepository;
-		$this->priceRepository = $priceRepository;
-		$this->amountRepository = $amountRepository;
 		$this->deliveryDiscountRepository = $deliveryDiscountRepository;
 		$this->loyaltyProgramDiscountLevelRepository = $loyaltyProgramDiscountLevelRepository;
 		$this->orderRepository = $orderRepository;
@@ -76,30 +64,6 @@ class ProductRepository extends Repository implements IGeneralRepository
 	public function getProduct(string $productUuid): Product
 	{
 		return $this->getProducts()->where('this.uuid', $productUuid)->first(true);
-	}
-
-	public function getBestDiscountLevel(Customer $customer): int
-	{
-		$loyaltyProgram = $customer->loyaltyProgram;
-
-		if ($loyaltyProgram === null || $loyaltyProgram->isActive() === false) {
-			return $customer->discountLevelPct;
-		}
-
-		$customerTurnover = $this->orderRepository->getCustomerTotalTurnover($customer, $loyaltyProgram->turnoverFrom ? new DateTime($loyaltyProgram->turnoverFrom) : null, new DateTime());
-
-		$maxDiscountLevel = 0;
-
-		/** @var \Eshop\DB\LoyaltyProgramDiscountLevel[] $discountLevels */
-		$discountLevels = $this->loyaltyProgramDiscountLevelRepository->many()
-			->where('this.fk_loyaltyProgram', $loyaltyProgram)
-			->where('this.priceThreshold <= :turnover', ['turnover' => (string)$customerTurnover]);
-
-		foreach ($discountLevels as $discountLevel) {
-			$maxDiscountLevel = $discountLevel->discountLevel > $maxDiscountLevel ? $discountLevel->discountLevel : $maxDiscountLevel;
-		}
-
-		return $maxDiscountLevel > $customer->discountLevelPct ? $maxDiscountLevel : $customer->discountLevelPct;
 	}
 
 	/**
@@ -155,7 +119,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 				$priceVat = $this->sqlHandlePrice("prices$id", 'priceVat', $discountLevelPct, $generalPricelistIds, $prec, $convertRatio);
 				$priceBefore = $this->sqlHandlePrice("prices$id", 'priceBefore', 0, [], $prec, $convertRatio);
 				$priceVatBefore = $this->sqlHandlePrice("prices$id", 'priceVatBefore', 0, [], $prec, $convertRatio);
-				$priceSelects[] = "IF(prices$id.price IS NULL,'X',CONCAT_WS('$sep',LPAD(" . $pricelist->priority . ",$priorityLpad,'0'),LPAD(CAST($price AS DECIMAL($priceLpad,$prec)), $priceLpad, '0'),$priceVat,IFNULL($priceBefore,0),IFNULL($priceVatBefore,0),prices$id.fk_pricelist))";
+				$priceSelects[] = "IF(prices$id.price IS NULL,'X',CONCAT_WS('$sep',LPAD(" . $pricelist->priority .
+					",$priorityLpad,'0'),LPAD(CAST($price AS DECIMAL($priceLpad,$prec)), $priceLpad, '0'),$priceVat,IFNULL($priceBefore,0),IFNULL($priceVatBefore,0),prices$id.fk_pricelist))";
 			}
 
 			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
@@ -171,9 +136,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$collection->select(['pricelist' => $this->sqlExplode($expression, $sep, 6)]);
 			$collection->select(['currencyCode' => "'" . $currency->code . "'"]);
 
-			$collection->select(['vatPct' => "IF(vatRate = 'standard'," . ($vatRates['standard'] ?? 0) . ",IF(vatRate = 'reduced-high'," . ($vatRates['reduced-high'] ?? 0) . ",IF(vatRate = 'reduced-low'," . ($vatRates['reduced-low'] ?? 0) . ",0)))"]);
+			$collection->select(['vatPct' => "IF(vatRate = 'standard'," . ($vatRates['standard'] ?? 0) . ",IF(vatRate = 'reduced-high'," .
+				($vatRates['reduced-high'] ?? 0) . ",IF(vatRate = 'reduced-low'," . ($vatRates['reduced-low'] ?? 0) . ",0)))"]);
 
-			$subSelect = $this->getConnection()->rows(['eshop_attributevalue'], ["GROUP_CONCAT(CONCAT_WS('$sep', eshop_attributevalue.uuid, fk_attribute, eshop_attributevalue.label$suffix, eshop_attributevalue.metaValue))"])
+			$subSelect = $this->getConnection()
+				->rows(['eshop_attributevalue'], ["GROUP_CONCAT(CONCAT_WS('$sep', eshop_attributevalue.uuid, fk_attribute, eshop_attributevalue.label$suffix, eshop_attributevalue.metaValue))"])
 				->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
 				->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
 				->where('eshop_attribute.showProduct=1')
@@ -204,6 +171,30 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $collection;
 	}
 
+	public function getBestDiscountLevel(Customer $customer): int
+	{
+		$loyaltyProgram = $customer->loyaltyProgram;
+
+		if ($loyaltyProgram === null || $loyaltyProgram->isActive() === false) {
+			return $customer->discountLevelPct;
+		}
+
+		$customerTurnover = $this->orderRepository->getCustomerTotalTurnover($customer, $loyaltyProgram->turnoverFrom ? new DateTime($loyaltyProgram->turnoverFrom) : null, new DateTime());
+
+		/** @var \Eshop\DB\LoyaltyProgramDiscountLevel $discountLevel */
+		$discountLevel = $this->loyaltyProgramDiscountLevelRepository->many()
+			->where('this.fk_loyaltyProgram', $loyaltyProgram)
+			->where('this.priceThreshold <= :turnover', ['turnover' => (string)$customerTurnover])
+			->orderBy(['this.discountLevel' => 'DESC'])
+			->first();
+
+		if ($discountLevel) {
+			return $discountLevel->discountLevel > $customer->discountLevelPct ? $discountLevel->discountLevel : $customer->discountLevelPct;
+		}
+
+		return $customer->discountLevelPct;
+	}
+
 	/**
 	 * Get default SELECT modifier array for new collection
 	 * @return string[]
@@ -215,14 +206,6 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		return $selects;
 	}
-
-	/*public function filterCategory($value, ICollection $collection)
-	{
-		$collection->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=this.uuid');
-		$collection->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
-
-		$value === false ? $collection->where('categories.uuid IS NULL') : $collection->where('categories.path LIKE :category', ['category' => "$value%"]);
-	}*/
 
 	public function filterCategory($value, ICollection $collection): void
 	{
@@ -237,7 +220,9 @@ class ProductRepository extends Repository implements IGeneralRepository
 		if (!$id) {
 			$collection->where('1=0');
 		} else {
-			$subSelect = $this->getConnection()->rows(['eshop_product_nxn_eshop_category'], ['fk_product'])->join(['eshop_category'], 'eshop_category.uuid=eshop_product_nxn_eshop_category.fk_category')->where('eshop_category.path LIKE :path', ['path' => "$value%"]);
+			$subSelect = $this->getConnection()->rows(['eshop_product_nxn_eshop_category'], ['fk_product'])
+				->join(['eshop_category'], 'eshop_category.uuid=eshop_product_nxn_eshop_category.fk_category')
+				->where('eshop_category.path LIKE :path', ['path' => "$value%"]);
 			$collection->where('this.fk_primaryCategory = :category OR this.uuid IN (' . $subSelect->getSql() . ')', ['category' => $id] + $subSelect->getVars());
 		}
 	}
@@ -459,6 +444,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 	 */
 	public function filterParameters($groups, ICollection $collection): void
 	{
+		unset($groups);
+		unset($collection);
 	}
 
 	public function filterAttributes($attributes, ICollection $collection): void
@@ -514,8 +501,13 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
+		unset($includeHidden);
+
 		$suffix = $this->getConnection()->getMutationSuffix();
 
 		return $this->many()->orderBy(["name$suffix"])->toArrayOf('name');
@@ -565,6 +557,12 @@ class ProductRepository extends Repository implements IGeneralRepository
 			->where('this.uuid != :currentRelationProduct', ['currentRelationProduct' => $product->getPK()]);
 	}
 
+	/**
+	 * @param $product
+	 * @return \Eshop\DB\Parameter[]
+	 * @throws \StORM\Exception\NotFoundException
+	 * @deprecated
+	 */
 	public function getGroupedProductParameters($product): array
 	{
 		if (!$product instanceof Product) {
@@ -573,14 +571,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 			}
 		}
 
-		/** @var \Eshop\DB\ParameterGroupRepository $groupRepo */
-		$groupRepo = $this->getConnection()->findRepository(ParameterGroup::class);
 		/** @var \Eshop\DB\ParameterRepository $paramRepo */
 		$paramRepo = $this->getConnection()->findRepository(Parameter::class);
-		/** @var \Eshop\DB\ParameterValueRepository $paramValueRepo */
-		$paramValueRepo = $this->getConnection()->findRepository(ParameterValue::class);
-
-		$suffix = $this->getConnection()->getMutationSuffix();
 
 		$groupedParameters = [];
 
@@ -598,6 +590,12 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $groupedParameters;
 	}
 
+	/**
+	 * @param $product
+	 * @param bool $showAll
+	 * @return array<string, array<string, array<string, \Eshop\DB\AttributeValue>>>
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function getActiveProductAttributes($product, bool $showAll = false): array
 	{
 		if (!$product instanceof Product) {
@@ -676,7 +674,14 @@ class ProductRepository extends Repository implements IGeneralRepository
 			return false;
 		}
 
-		return $primaryCategory ? $categoryRepo->getRootCategoryOfCategory($primaryCategory) === $category->getPK() : false;
+		return $primaryCategory && $categoryRepo->getRootCategoryOfCategory($primaryCategory) === $category->getPK();
+	}
+
+	public function getSlaveProductsCountByRelationAndMaster($relation, $product): int
+	{
+		$result = $this->getSlaveProductsByRelationAndMaster($relation, $product);
+
+		return $result ? $result->enum() : 0;
 	}
 
 	public function getSlaveProductsByRelationAndMaster($relation, $product): ?ICollection
@@ -692,17 +697,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 			->where('related.fk_type', $relation);
 	}
 
-	public function getSlaveProductsCountByRelationAndMaster($relation, $product): int
-	{
-		$result = $this->getSlaveProductsByRelationAndMaster($relation, $product);
-
-		return $result ? $result->enum() : 0;
-	}
-
 	/**
 	 * @param \Security\DB\Account|string $account
-	 * @return \StORM\Collection|\StORM\GenericCollection|array
+	 * @return \StORM\Collection|\StORM\GenericCollection|\Eshop\DB\Product[]
 	 * @throws \StORM\Exception\NotFoundException
+	 * @deprecated Not universal! Cant be in eshop package
 	 */
 	public function getBoughtPrintersByUser($account)
 	{
@@ -728,7 +727,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 	 * @param \Eshop\DB\Product|string|null $product
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function get($product): ?\Eshop\DB\Product
+	public function get($product): ?Product
 	{
 		if (!$product) {
 			return null;
@@ -743,6 +742,27 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $product;
 	}
 
+	/**
+	 * @param \Eshop\DB\CartItem[] $cartItems
+	 * @return array<string, array<string, object>>
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function getUpsellsForCartItems(array $cartItems): array
+	{
+		$upsells = [];
+
+		foreach ($cartItems as $cartItem) {
+			$upsells[$cartItem->getPK()] = $this->getUpsellsForCartItem($cartItem);
+		}
+
+		return $upsells;
+	}
+
+	/**
+	 * @param \Eshop\DB\CartItem $cartItem
+	 * @return array<string, \Eshop\DB\Product>
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function getUpsellsForCartItem(CartItem $cartItem): array
 	{
 		if (!$cartItem->product) {
@@ -762,30 +782,13 @@ class ProductRepository extends Repository implements IGeneralRepository
 					$upsell->currencyCode = $this->shopper->getCurrency()->code;
 					$upsells[$upsell->getPK()] = $upsell;
 				}
-			} else {
-				if ($upsellWithPrice->getPriceVat()) {
-					$upsellWithPrice->shortName = $upsellWithPrice->name;
-					$upsellWithPrice->name = $cartItem->productName . ' - ' . $upsellWithPrice->name;
-					$upsellWithPrice->price = $cartItem->amount * $upsellWithPrice->getPrice();
-					$upsellWithPrice->priceVat = $cartItem->amount * $upsellWithPrice->getPriceVat();
-					$upsells[$upsellWithPrice->getPK()] = $upsellWithPrice;
-				}
+			} elseif ($upsellWithPrice->getPriceVat()) {
+				$upsellWithPrice->shortName = $upsellWithPrice->name;
+				$upsellWithPrice->name = $cartItem->productName . ' - ' . $upsellWithPrice->name;
+				$upsellWithPrice->price = $cartItem->amount * $upsellWithPrice->getPrice();
+				$upsellWithPrice->priceVat = $cartItem->amount * $upsellWithPrice->getPriceVat();
+				$upsells[$upsellWithPrice->getPK()] = $upsellWithPrice;
 			}
-		}
-
-		return $upsells;
-	}
-
-	/**
-	 * @param \Eshop\DB\CartItem[] $cartItems
-	 * @return array[]
-	 */
-	public function getUpsellsForCartItems(array $cartItems): array
-	{
-		$upsells = [];
-
-		foreach ($cartItems as $cartItem) {
-			$upsells[$cartItem->getPK()] = $this->getUpsellsForCartItem($cartItem);
 		}
 
 		return $upsells;
@@ -836,7 +839,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 				'attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute, ':', CONCAT(COALESCE(attributeValue.label$mutationSuffix), '#', attributeValue.code)))",
 				'producerCodeName' => "CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, ''))",
 				'amounts' => "GROUP_CONCAT(DISTINCT CONCAT(storeAmount.inStock, '#', store.code) SEPARATOR ':')",
-				'groupedCategories' => "GROUP_CONCAT(DISTINCT CONCAT(category.name$mutationSuffix, '#', IF(category.code IS NULL OR category.code = '', category.uuid, category.code)) ORDER BY LENGTH(category.path) SEPARATOR ':')",
+				'groupedCategories' => "GROUP_CONCAT(DISTINCT CONCAT(category.name$mutationSuffix, '#', 
+				IF(category.code IS NULL OR category.code = '', category.uuid, category.code)) ORDER BY LENGTH(category.path) SEPARATOR ':')",
 			]);
 
 		/** @var \Eshop\DB\Product $product */
@@ -865,7 +869,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 				}
 			}
 
-			foreach ($columns as $columnKey => $columnValue) {
+			foreach (\array_keys($columns) as $columnKey) {
 				if ($columnKey === 'producer') {
 					$row[] = $product->producerCodeName;
 				} elseif ($columnKey === 'storeAmount') {
@@ -877,7 +881,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 				}
 			}
 
-			foreach ($attributes as $attributePK => $attributeName) {
+			foreach (\array_keys($attributes) as $attributePK) {
 				if (!isset($productAttributes[$attributePK]) || !$product->attributes || !\is_array($productAttributes[$attributePK])) {
 					$row[] = null;
 
@@ -907,7 +911,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $this->isProductDeliveryFree($product, false);
 	}
 
-	public static function generateUuid(?string $ean, ?string $fullCode)
+	public static function generateUuid(?string $ean, ?string $fullCode): string
 	{
 		$namespace = 'product';
 
@@ -919,14 +923,16 @@ class ProductRepository extends Repository implements IGeneralRepository
 			return DIConnection::generateUuid($namespace, $fullCode);
 		}
 
-		throw new \InvalidArgumentException('There is no unique parameter');
+		throw new InvalidArgumentException('There is no unique parameter');
 	}
 
-	private function sqlExplode(string $expression, string $delimiter, int $position): string
+	/*public function filterCategory($value, ICollection $collection)
 	{
-		return "REPLACE(SUBSTRING(SUBSTRING_INDEX($expression, '$delimiter', $position),
-       LENGTH(SUBSTRING_INDEX($expression, '$delimiter', " . ($position - 1) . ")) + 1), '$delimiter', '')";
-	}
+		$collection->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=this.uuid');
+		$collection->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
+
+		$value === false ? $collection->where('categories.uuid IS NULL') : $collection->where('categories.path LIKE :category', ['category' => "$value%"]);
+	}*/
 
 	private function sqlHandlePrice(string $alias, string $priceExp, ?int $levelDiscountPct, array $generalPricelistIds, int $prec, ?float $rate): string
 	{
@@ -936,10 +942,19 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$pricelists = \implode(',', \array_map(function ($value) {
 				return "'$value'";
 			}, $generalPricelistIds));
-			$expression = "IF($alias.fk_pricelist IN ($pricelists), ROUND($expression * ((100 - IF(this.discountLevelPct > $levelDiscountPct,this.discountLevelPct,$levelDiscountPct)) / 100),$prec), $expression)";
+
+			$expression = "IF($alias.fk_pricelist IN ($pricelists), 
+			ROUND($expression * ((100 - IF(this.discountLevelPct > $levelDiscountPct,this.discountLevelPct,$levelDiscountPct)) / 100),$prec), 
+			$expression)";
 		}
 
 		return $expression;
+	}
+
+	private function sqlExplode(string $expression, string $delimiter, int $position): string
+	{
+		return "REPLACE(SUBSTRING(SUBSTRING_INDEX($expression, '$delimiter', $position),
+       LENGTH(SUBSTRING_INDEX($expression, '$delimiter', " . ($position - 1) . ")) + 1), '$delimiter', '')";
 	}
 
 	private function isProductDeliveryFree(Product $product, bool $vat): bool

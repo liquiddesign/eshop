@@ -4,27 +4,27 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
+use Admin\Controls\AdminForm;
 use Eshop\BackendPresenter;
 use Eshop\DB\CategoryRepository;
-use Eshop\DB\ProducerRepository;
-use Eshop\DB\RibbonRepository;
-use Eshop\DB\SupplierCategoryRepository;
-use Eshop\DB\TagRepository;
-use Eshop\DB\VatRateRepository;
-use Eshop\FormValidators;
-use Admin\Controls\AdminForm;
 use Eshop\DB\CountryRepository;
-use Eshop\DB\DiscountRepository;
-use Eshop\DB\QuantityPrice;
-use Eshop\DB\QuantityPriceRepository;
-use Eshop\DB\CustomerRepository;
 use Eshop\DB\CurrencyRepository;
+use Eshop\DB\CustomerRepository;
+use Eshop\DB\DiscountRepository;
 use Eshop\DB\Price;
 use Eshop\DB\Pricelist;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
+use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\QuantityPrice;
+use Eshop\DB\QuantityPriceRepository;
+use Eshop\DB\RibbonRepository;
+use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierRepository;
+use Eshop\DB\TagRepository;
+use Eshop\DB\VatRateRepository;
+use Eshop\FormValidators;
 use Eshop\Shopper;
 use Forms\Form;
 use Grid\Datagrid;
@@ -39,7 +39,7 @@ class PricelistsPresenter extends BackendPresenter
 {
 	protected const CONFIGURATION = [
 		'aggregate' => true,
-		'customLabel' => false
+		'customLabel' => false,
 	];
 
 	/** @inject */
@@ -106,28 +106,42 @@ class PricelistsPresenter extends BackendPresenter
 
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit'])->onRenderCell[] = [
 			$grid,
-			'decoratorNowrap'
+			'decoratorNowrap',
 		];
 		$grid->addColumnText('Měna', "currency.code'", '%s', null, ['class' => 'fit'])->onRenderCell[] = [
 			$grid,
-			'decoratorNowrap'
+			'decoratorNowrap',
 		];
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumn('Akce', function (Pricelist $object) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Discount:detail') && $object->discount ? $this->link(':Eshop:Admin:Discount:detail',
-				[$object->discount, 'backLink' => $this->storeRequest()]) : '#';
+			$link = $this->admin->isAllowed(':Eshop:Admin:Discount:detail') && $object->discount ? $this->link(
+				':Eshop:Admin:Discount:detail',
+				[$object->discount, 'backLink' => $this->storeRequest()],
+			) : '#';
 
 			return $object->discount ? "<a href='" . $link . "'>" . $object->discount->name . "</a>" : '';
 		}, '%s');
 
-		$grid->addColumnText('Akce od', "discount.validFrom|date:'d.m.Y G:i'", '%s', null,
-			['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
-		$grid->addColumnText('Akce do', "discount.validTo|date:'d.m.Y G:i'", '%s', null,
-			['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
+		$grid->addColumnText(
+			'Akce od',
+			"discount.validFrom|date:'d.m.Y G:i'",
+			'%s',
+			null,
+			['class' => 'fit'],
+		)->onRenderCell[] = [$grid, 'decoratorNowrap'];
+		$grid->addColumnText(
+			'Akce do',
+			"discount.validTo|date:'d.m.Y G:i'",
+			'%s',
+			null,
+			['class' => 'fit'],
+		)->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
 		$grid->addColumn('Zdroj', function (Pricelist $object) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') && $object->supplier ? $this->link(':Eshop:Admin:Supplier:detail',
-				[$object->supplier, 'backLink' => $this->storeRequest()]) : '#';
+			$link = $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') && $object->supplier ? $this->link(
+				':Eshop:Admin:Supplier:detail',
+				[$object->supplier, 'backLink' => $this->storeRequest()],
+			) : '#';
 
 			return $object->supplier ? "<a href='" . $link . "'>" . $object->supplier->name . "</a>" : '';
 		}, '%s');
@@ -145,15 +159,21 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addButtonDeleteSelected();
 
 		$grid->addFilterTextInput('search', ['name'], null, 'Název');
-		$grid->addFilterSelectInput('search2', 'fk_currency = :s', null, '- Měna -', null,
-			$this->currencyRepo->getArrayForSelect(), 's');
+		$grid->addFilterSelectInput(
+			'search2',
+			'fk_currency = :s',
+			null,
+			'- Měna -',
+			null,
+			$this->currencyRepo->getArrayForSelect(),
+			's',
+		);
 		$grid->addFilterButtons();
 
-		if (isset(static::CONFIGURATION['aggregate']) && static::CONFIGURATION['aggregate']) {
-
+		if (isset(self::CONFIGURATION['aggregate']) && self::CONFIGURATION['aggregate']) {
 			$submit = $grid->getForm()->addSubmit('aggregate', 'Agregovat ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-			$submit->onClick[] = function ($button) use ($grid) {
+			$submit->onClick[] = function ($button) use ($grid): void {
 				$grid->getPresenter()->redirect('aggregate', [$grid->getSelectedIds()]);
 			};
 		}
@@ -163,20 +183,27 @@ class PricelistsPresenter extends BackendPresenter
 
 	public function createComponentPriceListItems()
 	{
-		$grid = $this->gridFactory->create($this->priceRepository->getPricesByPriceList($this->getParameter('pricelist')),
-			20, 'product.code', 'ASC');
+		$grid = $this->gridFactory->create(
+			$this->priceRepository->getPricesByPriceList($this->getParameter('pricelist')),
+			20,
+			'product.code',
+			'ASC',
+		);
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Kód', 'product.code', '%s', 'product.code', ['class' => 'fit']);
 
 		$grid->addColumn('Produkt', function (Price $price, Datagrid $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') && $price->product ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit',
-				[$price->product, 'backLink' => $this->storeRequest()]) : '#';
+			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') && $price->product ? $datagrid->getPresenter()->link(
+				':Eshop:Admin:Product:edit',
+				[$price->product, 'backLink' => $this->storeRequest()],
+			) : '#';
 
 			return '<a href="' . $link . '">' . $price->product->name . '</a>';
 		}, '%s');
 
 		$grid->addColumnInputPrice('Cena', 'price');
+
 		if ($this->shopper->getShowVat()) {
 			$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
 		}
@@ -184,7 +211,7 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addColumnInputPrice('Cena před slevou', 'priceBefore');
 
 		$nullColumns = [
-			'priceBefore'
+			'priceBefore',
 		];
 
 		$saveAllTypes = [
@@ -201,20 +228,18 @@ class PricelistsPresenter extends BackendPresenter
 
 		$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll($nullColumns, $saveAllTypes, null, false, function ($key, &$data, $type, Price $object) {
-			if ($key == 'price' && !isset($data['price'])) {
+		$grid->addButtonSaveAll($nullColumns, $saveAllTypes, null, false, function ($key, &$data, $type, Price $object): void {
+			if ($key === 'price' && !isset($data['price'])) {
 				$data['price'] = 0;
+
 				return;
 			}
 
-			if ($key == 'priceVat' && !isset($data['priceVat'])) {
-				$newValue = \floatval($data['price']) + (\floatval($data['price']) * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$object->product->vatRate]), 100));
-			} else {
-				$newValue = $data[$key];
-			}
+			$newValue = $key === 'priceVat' && !isset($data['priceVat']) ? \floatval($data['price']) + (\floatval($data['price']) * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$object->product->vatRate]), 100)) : $data[$key];
 
-			if ($type == 'float') {
+			if ($type === 'float') {
 				$data[$key] = \floatval(\str_replace(',', '.', $newValue));
+
 				return;
 			}
 
@@ -229,7 +254,7 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addFilterTextInput('code', ['products.code', 'products.ean', 'products.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
 
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
-			$grid->addFilterDataSelect(function (Collection $source, $value) {
+			$grid->addFilterDataSelect(function (Collection $source, $value): void {
 				$categoryPath = $this->categoryRepository->one($value)->path;
 				$source->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=products.uuid');
 				$source->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
@@ -238,29 +263,29 @@ class PricelistsPresenter extends BackendPresenter
 		}
 
 		if ($producers = $this->producerRepository->getArrayForSelect()) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->where('products.fk_producer', $value);
 			}, '', 'producers', null, $producers, ['placeholder' => '- Výrobci -']);
 		}
 
 		if ($tags = $this->tagRepository->getArrayForSelect()) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->join(['tags' => 'eshop_product_nxn_eshop_tag'], 'tags.fk_product=products.uuid');
 				$source->where('tags.fk_tag', $value);
 			}, '', 'tags', null, $tags, ['placeholder' => '- Tagy -']);
 		}
 
-		$grid->addFilterDataSelect(function (ICollection $source, $value) {
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 			$source->where('products.hidden', (bool)$value);
 		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
 
-		$grid->addFilterDataSelect(function (ICollection $source, $value) {
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 			$source->where('products.unavailable', (bool)$value);
 		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
 
 		$submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-		$submit->onClick[] = function ($button) use ($grid) {
+		$submit->onClick[] = function ($button) use ($grid): void {
 			$grid->getPresenter()->redirect('copyToPricelist', [$grid->getSelectedIds(), $this->getParameter('pricelist'), 'standard']);
 		};
 
@@ -269,14 +294,20 @@ class PricelistsPresenter extends BackendPresenter
 
 	public function createComponentQuantityPricesGrid()
 	{
-		$grid = $this->gridFactory->create($this->quantityPriceRepo->getPricesByPriceList($this->getParameter('pricelist')),
-			20, 'price', 'ASC');
+		$grid = $this->gridFactory->create(
+			$this->quantityPriceRepo->getPricesByPriceList($this->getParameter('pricelist')),
+			20,
+			'price',
+			'ASC',
+		);
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Kód produktu', 'product.code', '%s', 'product.code', ['class' => 'fit']);
 		$grid->addColumn('Produkt', function (QuantityPrice $price, Datagrid $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') && $price->product ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit',
-				[$price->product, 'backLink' => $this->storeRequest()]) : '#';
+			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') && $price->product ? $datagrid->getPresenter()->link(
+				':Eshop:Admin:Product:edit',
+				[$price->product, 'backLink' => $this->storeRequest()],
+			) : '#';
 
 			return '<a href="' . $link . '">' . $price->product->name . '</a>';
 		}, '%s');
@@ -305,7 +336,7 @@ class PricelistsPresenter extends BackendPresenter
 
 		$submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-		$submit->onClick[] = function ($button) use ($grid) {
+		$submit->onClick[] = function ($button) use ($grid): void {
 			$grid->getPresenter()->redirect('copyToPricelist', [$grid->getSelectedIds(), $this->getParameter('pricelist'), 'quantity']);
 		};
 
@@ -328,7 +359,7 @@ class PricelistsPresenter extends BackendPresenter
 		$form->addCheckbox('isPurchase', 'Nákupní');
 		$form->addCheckbox('isActive', 'Aktivní');
 
-		if (isset(static::CONFIGURATION['customLabel']) && static::CONFIGURATION['customLabel']) {
+		if (isset(self::CONFIGURATION['customLabel']) && self::CONFIGURATION['customLabel']) {
 			$form->addText('customLabel', 'Vlastní štítek')
 				->setHtmlAttribute('data-info', 'Použitý při exportu XML produktů pro Google jako "custom_label_0".')
 				->addCondition($form::FILLED)->addRule($form::MAX_LENGTH, 'Maximálně 100 znaků!', 100);
@@ -336,7 +367,7 @@ class PricelistsPresenter extends BackendPresenter
 
 		$form->addSubmits(!$this->getParameter('pricelist'));
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$pricelist = $this->priceListRepository->syncOne($values, null, true);
@@ -356,15 +387,18 @@ Povinné sloupce:<br>
 product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefore - Předchozí cena<br>priceVatBefore - Předchozí cena s daní<br>');
 		$form->addSubmit('submit', 'Uložit');
 
-		$form->onSuccess[] = function (Form $form) {
+		$form->onSuccess[] = function (Form $form): void {
 			/** @var \Nette\Http\FileUpload $file */
 			$file = $form->getValues()->file;
 
 			$pricelist = $this->getParameter('pricelist');
 			$quantity = $this->getParameter('type') === 'quantity';
 
-			$this->priceListRepository->csvImport($pricelist, Reader::createFromString($file->getContents()),
-				$quantity);
+			$this->priceListRepository->csvImport(
+				$pricelist,
+				Reader::createFromString($file->getContents()),
+				$quantity,
+			);
 
 
 			$form->getPresenter()->flashMessage('Uloženo', 'success');
@@ -376,7 +410,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 	public function actionPriceListDetail(Pricelist $pricelist): void
 	{
-		/** @var AdminForm $priceListForm */
+		/** @var \Admin\Controls\AdminForm $priceListForm */
 		$priceListForm = $this->getComponent('priceListDetail');
 
 		$priceListForm->setDefaults($pricelist->toArray());
@@ -402,10 +436,18 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		];
 		$this->template->displayButtons = [
 			$this->createBackButton('default'),
-			$this->createButtonWithClass('importPriceList', '<i class="fas fa-file-import"></i> Import',
-				'btn btn-outline-primary btn-sm', $pricelist),
-			$this->createButtonWithClass('priceListExport!', '<i class="fas fa-file-export"></i> Export',
-				'btn btn-outline-primary btn-sm', $pricelist->getPK()),
+			$this->createButtonWithClass(
+				'importPriceList',
+				'<i class="fas fa-file-import"></i> Import',
+				'btn btn-outline-primary btn-sm',
+				$pricelist,
+			),
+			$this->createButtonWithClass(
+				'priceListExport!',
+				'<i class="fas fa-file-export"></i> Export',
+				'btn btn-outline-primary btn-sm',
+				$pricelist->getPK(),
+			),
 //			$this->createButtonWithClass('copyToPricelist', '<i class="far fa-copy"></i> Kopírovat do ...',
 //				'btn btn-outline-primary btn-sm', $pricelist),
 		];
@@ -444,12 +486,12 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 			['Import'],
 		];
 		$this->template->displayButtons = [
-			$this->createBackButton($type === 'standard' ? 'priceListItems' : 'quantityPrices', $pricelist)
+			$this->createBackButton($type === 'standard' ? 'priceListItems' : 'quantityPrices', $pricelist),
 		];
 		$this->template->displayControls = [$this->getComponent('importPriceList')];
 	}
 
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Ceníky';
 		$this->template->headerTree = [
@@ -459,18 +501,22 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		$this->template->displayControls = [$this->getComponent('priceLists')];
 	}
 
-	public function handlePriceListExport(string $pricelistId, string $type = 'standard')
+	public function handlePriceListExport(string $pricelistId, string $type = 'standard'): void
 	{
 		$tempFilename = \tempnam($this->tempDir, "csv");
 
-		$this->priceListRepository->csvExport($this->priceListRepository->one($pricelistId),
-			Writer::createFromPath($tempFilename, 'w+'), $type === 'quantity', $this->shopper->getShowVat());
+		$this->priceListRepository->csvExport(
+			$this->priceListRepository->one($pricelistId),
+			Writer::createFromPath($tempFilename, 'w+'),
+			$type === 'quantity',
+			$this->shopper->getShowVat(),
+		);
 
 		$response = new FileResponse($tempFilename, "cenik.csv", 'text/csv');
 		$this->sendResponse($response);
 	}
 
-	public function renderQuantityPrices(Pricelist $pricelist)
+	public function renderQuantityPrices(Pricelist $pricelist): void
 	{
 		$this->template->headerLabel = 'Množstevní ceny ceníku - ' . $pricelist->name . ' (' . $pricelist->currency->code . ')';
 		$this->template->headerTree = [
@@ -480,19 +526,29 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		$this->template->displayButtons = [
 			$this->createBackButton('default'),
 			$this->createNewItemButton('quantityPricesNew', [$pricelist]),
-			$this->createButtonWithClass('importPriceList', '<i class="fas fa-file-import"></i> Import',
-				'btn btn-outline-primary btn-sm', $pricelist, 'quantity'),
-			$this->createButtonWithClass('priceListExport!', '<i class="fas fa-file-export"></i> Export',
-				'btn btn-outline-primary btn-sm', $pricelist->getPK()),
+			$this->createButtonWithClass(
+				'importPriceList',
+				'<i class="fas fa-file-import"></i> Import',
+				'btn btn-outline-primary btn-sm',
+				$pricelist,
+				'quantity',
+			),
+			$this->createButtonWithClass(
+				'priceListExport!',
+				'<i class="fas fa-file-export"></i> Export',
+				'btn btn-outline-primary btn-sm',
+				$pricelist->getPK(),
+			),
 //			$this->createButtonWithClass('copyToPricelist', '<i class="far fa-copy"></i> Kopírovat do ...',
 //				'btn btn-outline-primary btn-sm', $pricelist, 'quantity'),
 		];
 		$this->template->displayControls = [$this->getComponent('quantityPricesGrid')];
 	}
 
-	public function renderQuantityPricesNew(Pricelist $pricelist)
+	public function renderQuantityPricesNew(Pricelist $pricelist): void
 	{
-		$this->template->headerLabel = 'Nová množstevní cena - ' . $pricelist->name . ' (' . $pricelist->currency->code . ')';;
+		$this->template->headerLabel = 'Nová množstevní cena - ' . $pricelist->name . ' (' . $pricelist->currency->code . ')';
+
 		$this->template->headerTree = [
 			['Ceníky', 'default'],
 			['Množstevní ceny', 'quantityPrices', $pricelist],
@@ -502,16 +558,15 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		$this->template->displayControls = [$this->getComponent('quantityPricesForm')];
 	}
 
-
 	public function createComponentQuantityPricesForm()
 	{
 		$form = $this->formFactory->create();
 
 		$form->addSelect2('product', 'Produkt', [], [
 			'ajax' => [
-				'url' => $this->link('getProductsForSelect2!')
+				'url' => $this->link('getProductsForSelect2!'),
 			],
-			'placeholder' => 'Zvolte produkt'
+			'placeholder' => 'Zvolte produkt',
 		]);
 
 		$form->addText('price', 'Cena')->addRule($form::FLOAT)->setRequired();
@@ -521,15 +576,17 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 		$form->addSubmits();
 
-		$form->onValidate[] = function (AdminForm $form) {
+		$form->onValidate[] = function (AdminForm $form): void {
 			$data = $this->getHttpRequest()->getPost();
 
-			if (!isset($data['product'])) {
-				$form['product']->addError('Toto pole je povinné!');
+			if (isset($data['product'])) {
+				return;
 			}
+
+			$form['product']->addError('Toto pole je povinné!');
 		};
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues();
 
 			$values['priceVat'] = $values['priceVat'] !== '' ? $values['priceVat'] : 0;
@@ -538,8 +595,12 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 			$this->quantityPriceRepo->syncOne($values, null, true);
 
 			$this->flashMessage('Uloženo', 'success');
-			$form->processRedirect('this', 'quantityPrices', [$this->getParameter('pricelist')],
-				[$this->getParameter('pricelist')]);
+			$form->processRedirect(
+				'this',
+				'quantityPrices',
+				[$this->getParameter('pricelist')],
+				[$this->getParameter('pricelist')],
+			);
 		};
 
 		return $form;
@@ -548,7 +609,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 	public function createComponentCopyToPricelistForm()
 	{
 		/** @var \Grid\Datagrid $grid */
-		$grid = $this->getComponent($this->getParameter('type') == 'standard' ? 'priceListItems' : 'quantityPricesGrid');
+		$grid = $this->getComponent($this->getParameter('type') === 'standard' ? 'priceListItems' : 'quantityPricesGrid');
 
 		$ids = $this->getParameter('ids') ?: [];
 		$totalNo = $grid->getFilteredSource()->enum();
@@ -561,7 +622,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 			'all' => "celý výsledek ($totalNo)",
 		])->setDefaultValue('selected');
 
-		/** @var Pricelist $originalPricelist */
+		/** @var \Eshop\DB\Pricelist $originalPricelist */
 		$originalPricelist = $this->getParameter('pricelist');
 		$pricelists = $this->priceListRepository->many()
 			->whereNot('uuid', $originalPricelist->getPK())
@@ -576,13 +637,17 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 		$form->addInteger('roundPrecision', 'Přesnost zaokrouhlení')
 			->setDefaultValue(2)->setRequired()
-			->setHtmlAttribute('data-info',
-				'Kladná čísla určují desetinnou část. Např.: přesnost 1 zaokrouhlí na 1 destinné místo. <br>Záporná čísla určují celou část. Např.: -2 zaokrouhlí na stovky.');
+			->setHtmlAttribute(
+				'data-info',
+				'Kladná čísla určují desetinnou část. Např.: přesnost 1 zaokrouhlí na 1 destinné místo. <br>Záporná čísla určují celou část. Např.: -2 zaokrouhlí na stovky.',
+			);
 
-		if ($this->getParameter('type') == 'standard') {
+		if ($this->getParameter('type') === 'standard') {
 			$form->addCheckbox('beforePrices', 'Importovat původní ceny')
-				->setHtmlAttribute('data-info',
-					'Původní cena bude zobrazena u produktu jako přeškrtnutá cena (cena před slevou)');
+				->setHtmlAttribute(
+					'data-info',
+					'Původní cena bude zobrazena u produktu jako přeškrtnutá cena (cena před slevou)',
+				);
 		}
 
 		$form->addCheckbox('overwrite', 'Přepsat existující ceny')
@@ -590,21 +655,21 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 		$form->addSubmits();
 
-		$form->onSuccess[] = function (AdminForm $form) use ($originalPricelist, $ids, $grid) {
+		$form->onSuccess[] = function (AdminForm $form) use ($originalPricelist, $ids, $grid): void {
 			$values = $form->getValues('array');
 
-			/** @var Pricelist $targetPricelist */
+			/** @var \Eshop\DB\Pricelist $targetPricelist */
 			$targetPricelist = $this->priceListRepository->one($values['targetPricelist']);
 			$quantity = $this->getParameter('type') === 'quantity';
 
 			$this->priceListRepository->copyPricesArray(
-				$values['bulkType'] == 'selected' ? $ids : array_keys($grid->getFilteredSource()->toArrayOf('uuid')),
+				$values['bulkType'] === 'selected' ? $ids : \array_keys($grid->getFilteredSource()->toArrayOf('uuid')),
 				$targetPricelist,
 				(float)$values['percent'] / 100,
 				$values['roundPrecision'],
 				$values['overwrite'],
 				$values['beforePrices'] ?? false,
-				$quantity
+				$quantity,
 			);
 
 			$this->flashMessage('Uloženo', 'success');
@@ -612,13 +677,14 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 				'this',
 				$quantity ? 'quantityPrices' : 'priceListItems',
 				[$ids, $originalPricelist, $this->getParameter('type')],
-				[$originalPricelist]);
+				[$originalPricelist],
+			);
 		};
 
 		return $form;
 	}
 
-	public function renderCopyToPricelist(array $ids, Pricelist $pricelist, string $type)
+	public function renderCopyToPricelist(array $ids, Pricelist $pricelist, string $type): void
 	{
 		$this->template->headerLabel = 'Kopírovat ceny';
 		$this->template->headerTree = [
@@ -627,12 +693,12 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 			['Kopírovat ceny'],
 		];
 		$this->template->displayButtons = [
-			$this->createBackButton($type === 'standard' ? 'priceListItems' : 'quantityPrices', $pricelist)
+			$this->createBackButton($type === 'standard' ? 'priceListItems' : 'quantityPrices', $pricelist),
 		];
 		$this->template->displayControls = [$this->getComponent('copyToPricelistForm')];
 	}
 
-	public function actionCopyToPricelist(array $ids, Pricelist $pricelist, string $type)
+	public function actionCopyToPricelist(array $ids, Pricelist $pricelist, string $type): void
 	{
 //		/** @var \Forms\Form $form */
 //		$form = $this->getComponent('newsletterExportProducts');
@@ -649,12 +715,11 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 //		$form->setDefaults(['products' => $products]);
 	}
 
-	public function actionAggregate(array $ids)
+	public function actionAggregate(array $ids): void
 	{
-
 	}
 
-	public function renderAggregate(array $ids)
+	public function renderAggregate(array $ids): void
 	{
 		$this->template->headerLabel = 'Agregace ceníků';
 		$this->template->headerTree = [
@@ -692,7 +757,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 			$bulkTypeOptions['all'] = "celý výsledek ($totalNo)";
 		}
 
-		if (\count($bulkTypeOptions) == 0) {
+		if (\count($bulkTypeOptions) === 0) {
 			$this->flashMessage('Provedeno', 'warning');
 			$this->redirect('default');
 		}
@@ -705,7 +770,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 			'min' => 'Minimum',
 			'max' => 'Maximum',
 			'avg' => 'Průměr',
-			'med' => 'Medián'
+			'med' => 'Medián',
 		]);
 
 		$form->addText('percentageChange', 'Procentuální změna')
@@ -725,30 +790,30 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 		$form->addSubmit('submit', 'Provést');
 
-		$form->onValidate[] = function (AdminForm $form) use ($idsPricelists, $collectionPricelists, $idsPricelistsCurrency, $collectionPricelistsCurrency, $grid) {
+		$form->onValidate[] = function (AdminForm $form) use ($idsPricelistsCurrency, $collectionPricelistsCurrency): void {
 			if ($form->hasErrors()) {
 				return;
 			}
 
 			$values = $form->getValues('array');
 
-			/** @var Pricelist $targetPricelist */
+			/** @var \Eshop\DB\Pricelist $targetPricelist */
 			$targetPricelist = $this->priceListRepository->one($values['targetPricelist']);
 
-			if ($values['bulkType'] == 'selected') {
-				if ($targetPricelist->currency->getPK() != $idsPricelistsCurrency->getPK()) {
+			if ($values['bulkType'] === 'selected') {
+				if ($targetPricelist->currency->getPK() !== $idsPricelistsCurrency->getPK()) {
 					$form['targetPricelist']->addError('Ceník nemá stejnou měnu jako vybrané ceníky!');
 				}
-			} elseif ($targetPricelist->currency->getPK() != $collectionPricelistsCurrency->getPK()) {
+			} elseif ($targetPricelist->currency->getPK() !== $collectionPricelistsCurrency->getPK()) {
 				$form['targetPricelist']->addError('Ceník nemá stejnou měnu jako vybrané ceníky!');
 			}
 		};
 
-		$form->onSuccess[] = function (AdminForm $form) use ($idsPricelists, $collectionPricelists, $idsPricelistsCurrency, $collectionPricelistsCurrency, $grid) {
+		$form->onSuccess[] = function (AdminForm $form) use ($idsPricelists, $collectionPricelists): void {
 			$values = $form->getValues('array');
 
 			$this->priceListRepository->aggregatePricelists(
-				$values['bulkType'] == 'selected' ? $idsPricelists : $collectionPricelists,
+				$values['bulkType'] === 'selected' ? $idsPricelists : $collectionPricelists,
 				$this->priceListRepository->one($values['targetPricelist']),
 				$values['aggregateFunction'],
 				$values['percentageChange'],

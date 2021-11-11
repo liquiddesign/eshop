@@ -12,7 +12,10 @@ use StORM\Collection;
  */
 class PaymentTypeRepository extends \StORM\Repository implements IGeneralRepository
 {
-	public function getArrayForSelect(bool $includeHidden = true):array
+	/**
+	 * @inheritDoc
+	 */
+	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('name');
 	}

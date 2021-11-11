@@ -4,20 +4,19 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
-use Common\NumbersHelper;
-use Eshop\Admin\Controls\ProductAttributesGridFactory;
-use Eshop\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
+use Common\NumbersHelper;
 use Eshop\Admin\Controls\IProductAttributesFormFactory;
 use Eshop\Admin\Controls\IProductFormFactory;
 use Eshop\Admin\Controls\IProductParametersFormFactory;
+use Eshop\Admin\Controls\ProductAttributesGridFactory;
 use Eshop\Admin\Controls\ProductGridFactory;
+use Eshop\BackendPresenter;
 use Eshop\DB\AmountRepository;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
-use Eshop\DB\Category;
-use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\File;
@@ -47,7 +46,6 @@ use League\Csv\Writer;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
-use Nette\Http\FileUpload;
 use Nette\InvalidArgumentException;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
@@ -222,33 +220,33 @@ class ProductPresenter extends BackendPresenter
 	/** @inject */
 	public Application $application;
 
-	private array $tabs = [
-		'products' => 'Katalog',
-		'attributes' => 'Atributy'
-	];
-
 	/** @persistent */
 	public string $tab = 'products';
 
 	/** @persistent */
 	public string $editTab = 'menu0';
 
-	public function createComponentProductGrid()
+	private array $tabs = [
+		'products' => 'Katalog',
+		'attributes' => 'Atributy',
+	];
+
+	public function createComponentProductGrid(): \Grid\Datagrid
 	{
-		return $this->productGridFactory->create(static::CONFIGURATION);
+		return $this->productGridFactory->create($this::CONFIGURATION);
 	}
 
-	public function createComponentProductAttributesGrid()
+	public function createComponentProductAttributesGrid(): \Grid\Datagrid
 	{
-		return $this->productAttributesGridFactory->create(static::CONFIGURATION);
+		return $this->productAttributesGridFactory->create($this::CONFIGURATION);
 	}
 
-	public function createComponentProductForm()
+	public function createComponentProductForm(): Controls\ProductForm
 	{
-		return $this->productFormFatory->create($this->getParameter('product'), static::CONFIGURATION);
+		return $this->productFormFatory->create($this->getParameter('product'), $this::CONFIGURATION);
 	}
 
-	public function createComponentPhotoGrid()
+	public function createComponentPhotoGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->photoRepository->many()->where('fk_product', $this->getParameter('product')->getPK()), 20, 'priority', 'ASC', true);
 		$grid->addColumnImage('fileName', Photo::IMAGE_DIR);
@@ -262,7 +260,7 @@ class ProductPresenter extends BackendPresenter
 		$grid->addFilterTextInput('search', ['fileName'], null, 'Název');
 
 		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
-			$grid->addFilterDataSelect(function (Collection $source, $value) {
+			$grid->addFilterDataSelect(function (Collection $source, $value): void {
 				$source->where('supplier.uuid', $value);
 			}, '', 'supplier', null, $suppliers)->setPrompt('- Zdroj -');
 		}
@@ -274,9 +272,9 @@ class ProductPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentFileGrid()
+	public function createComponentFileGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->fileRepository->many()->where('fk_product', $this->getParameter('product')->getPK()), 20, 'priority', 'ASC', true);
+		$grid = $this->gridFactory->create($this->fileRepository->many()->where('fk_product', $this->getParameter('product')), 20, 'priority', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Popisek', 'label_cs', '%s', 'label_cs');
 
@@ -295,7 +293,7 @@ class ProductPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentPriceGrid()
+	public function createComponentPriceGrid(): AdminGrid
 	{
 		$product = $this->getParameter('product');
 		$countryCode = 'CZ';
@@ -317,19 +315,22 @@ class ProductPresenter extends BackendPresenter
 		$grid->addColumnText('Ceník', 'name', '%s', 'name');
 		$grid->addColumnText('Měna', 'currency.code', '%s', 'currency.code');
 		$grid->addColumnInputPrice('Cena', 'price');
+
 		if ($this->shopper->getShowVat()) {
 			$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
 		}
 
 		$grid->addColumnInputPrice('Cena před slevou', 'priceBefore');
+
 		if ($this->shopper->getShowVat()) {
 			$grid->addColumnInputPrice('Cena před slevou s DPH', 'priceVatBefore');
 		}
+
 		$grid->addColumnActionDelete([$this, 'deletePrice'], true);
 
 		$submit = $grid->getForm()->addSubmit('submit', 'Uložit');
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-primary');
-		$submit->onClick[] = function ($button) use ($grid, $product) {
+		$submit->onClick[] = function ($button) use ($grid, $product): void {
 			foreach ($grid->getInputData() as $id => $data) {
 				if (!isset($data['price'])) {
 					continue;
@@ -344,7 +345,7 @@ class ProductPresenter extends BackendPresenter
 
 				if ($this->shopper->getShowVat()) {
 					$newData += [
-						'priceVat' => isset($data['priceVat']) ? \floatval(\str_replace(',', '.', $data['priceVat'])) : ($data['price'] + ($data['price'] * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 100))),
+						'priceVat' => isset($data['priceVat']) ? \floatval(\str_replace(',', '.', $data['priceVat'])) : $data['price'] + ($data['price'] * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 100)),
 						'priceVatBefore' => isset($data['priceVatBefore']) ? \floatval(\str_replace(',', '.', $data['priceVatBefore'])) : null,
 					];
 				}
@@ -362,7 +363,7 @@ class ProductPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function deletePrice(Pricelist $pricelist)
+	public function deletePrice(Pricelist $pricelist): void
 	{
 		$this->priceRepository->getPricesByPriceList($pricelist)->where('fk_product', $this->getParameter('product'))->delete();
 	}
@@ -375,7 +376,7 @@ class ProductPresenter extends BackendPresenter
 			$form->addFilePicker('fileName', 'Vybrat soubor', \DIRECTORY_SEPARATOR . Product::FILE_DIR)->setRequired();
 		}
 
-		$form->addLocaleText('label', 'Popisek')->forPrimary(function ($input) {
+		$form->addLocaleText('label', 'Popisek')->forPrimary(function ($input): void {
 			$input->setRequired();
 		});
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
@@ -385,7 +386,21 @@ class ProductPresenter extends BackendPresenter
 
 		$form->addSubmit('submit', 'Uložit');
 
-		$form->onSuccess[] = function (Form $form) {
+		$form->onValidate[] = function (Form $form): void {
+			if (!$form->isValid()) {
+				return;
+			}
+
+			$values = $form->getValues('array');
+
+			if (isset($values['fileName']) && $values['fileName']->isOK()) {
+				return;
+			}
+
+			$form->addError('Je nutné přiložit soubor!');
+		};
+
+		$form->onSuccess[] = function (Form $form): void {
 			$values = $form->getValues('array');
 
 			$this->createDirectories();
@@ -398,7 +413,7 @@ class ProductPresenter extends BackendPresenter
 				$values['fileName'] = $form['fileName']->upload($values['uuid'] . '.%2$s');
 			}
 
-			$file = $this->fileRepository->syncOne($values);
+			$this->fileRepository->syncOne($values);
 
 			$this->flashMessage('Uloženo', 'success');
 			$this->redirect('edit', [new Product(['uuid' => $values['product']])]);
@@ -427,7 +442,7 @@ class ProductPresenter extends BackendPresenter
 			foreach ($directories as $key => $directory) {
 				FileSystem::delete($this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $key . \DIRECTORY_SEPARATOR . $photo->fileName);
 			}
-			
+
 			$photo->delete();
 			$this->redirect('productPhotos', $product);
 		};*/
@@ -438,7 +453,7 @@ class ProductPresenter extends BackendPresenter
 
 		$form->addSubmits(false, false);
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$this->createDirectories();
@@ -453,7 +468,6 @@ class ProductPresenter extends BackendPresenter
 
 			$this->flashMessage('Uloženo', 'success');
 			$this->redirect('photos', [new Product(['uuid' => $values['product']])]);
-
 		};
 
 		return $form;
@@ -464,14 +478,14 @@ class ProductPresenter extends BackendPresenter
 		return $this->productAttributesFormFactory->create($this->getParameter('product'), false);
 	}
 
-	public function actionDetailFile(File $file)
+	public function actionDetailFile(File $file): void
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('fileForm');
 		$form->setDefaults($file->toArray());
 	}
 
-	public function renderDetailFile(File $file)
+	public function renderDetailFile(File $file): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -483,7 +497,7 @@ class ProductPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('fileForm')];
 	}
 
-	public function renderNewFile(Product $product)
+	public function renderNewFile(Product $product): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -495,7 +509,7 @@ class ProductPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('fileForm')];
 	}
 
-	public function renderDetailPhoto(Photo $photo)
+	public function renderDetailPhoto(Photo $photo): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -507,7 +521,7 @@ class ProductPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('photoForm')];
 	}
 
-	public function renderNewPhoto(Product $product)
+	public function renderNewPhoto(Product $product): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -519,8 +533,10 @@ class ProductPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('photoForm')];
 	}
 
-	public function renderNew()
+	public function renderNew(): void
 	{
+		$this->template->editTab = $this->editTab;
+
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Produkty', 'default'],
@@ -530,16 +546,21 @@ class ProductPresenter extends BackendPresenter
 		$this->template->displayControls = [
 			$this->getComponent('productForm'),
 		];
+
+		$this->template->comments = [];
+		$this->template->photos = [];
+
+		$this->template->setFile(__DIR__ . '/templates/product.edit.latte');
 	}
 
-	public function actionDetailPhoto(Photo $photo)
+	public function actionDetailPhoto(Photo $photo): void
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('photoForm');
 		$form->setDefaults($photo->toArray());
 	}
 
-	public function actionEdit(Product $product)
+	public function actionEdit(Product $product): void
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('productForm')['form'];
@@ -557,7 +578,7 @@ class ProductPresenter extends BackendPresenter
 			$container->setDefaults($prices[$pricelistId]->toArray());
 		}
 
-		/** @var CategoryType[] $categoryTypes */
+		/** @var \Eshop\DB\CategoryType[] $categoryTypes */
 		$categoryTypes = $this->categoryTypeRepository->getCollection(true)->toArray();
 
 		$productData = $product->toArray(['ribbons', 'internalRibbons', 'parameterGroups', 'taxes', 'categories']);
@@ -587,19 +608,23 @@ class ProductPresenter extends BackendPresenter
 			$form['supplierContent']->setDefaultValue(0);
 		}
 
-		if ($form->getPrettyPages()) {
-			if ($page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product])) {
-				$form['page']->setDefaults($page->toArray());
-
-				$form['page']['url']->forAll(function (TextInput $text, $mutation) use ($page, $form) {
-					$text->getRules()->reset();
-					$text->addRule([$form, 'validateUrl'], 'URL již existuje', [$this->pageRepository, $mutation, $page->getPK()]);
-				});
-			}
+		if (!$form->getPrettyPages()) {
+			return;
 		}
+
+		if (!$page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product])) {
+			return;
+		}
+
+		$form['page']->setDefaults($page->toArray());
+
+		$form['page']['url']->forAll(function (TextInput $text, $mutation) use ($page, $form): void {
+			$text->getRules()->reset();
+			$text->addRule([$form, 'validateUrl'], 'URL již existuje', [$this->pageRepository, $mutation, $page->getPK()]);
+		});
 	}
 
-	public function renderEdit(Product $product)
+	public function renderEdit(Product $product): void
 	{
 		$this->template->product = $product;
 		$this->template->headerLabel = 'Detail - ' . $product->name;
@@ -609,7 +634,7 @@ class ProductPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [
-			$this->getComponent('productForm')
+			$this->getComponent('productForm'),
 		];
 
 		if (isset($this::CONFIGURATION['parameters']) && $this::CONFIGURATION['parameters'] && $this->getParameter('product')) {
@@ -620,7 +645,7 @@ class ProductPresenter extends BackendPresenter
 		$this->template->comments = $this->commentRepository->many()->where('fk_product', $product->getPK())->orderBy(['createdTs' => 'DESC'])->toArray();
 
 		$data = [];
-		/** @var Photo[] $photos */
+		/** @var \Eshop\DB\Photo[] $photos */
 		$photos = $this->photoRepository->many()->where('fk_product', $product->getPK())->orderBy(['priority']);
 
 		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR . '/origin/';
@@ -639,12 +664,11 @@ class ProductPresenter extends BackendPresenter
 		$this->template->setFile(__DIR__ . '/templates/product.edit.latte');
 	}
 
-	public function actionParameters(Product $product)
+	public function actionParameters(Product $product): void
 	{
-
 	}
 
-	public function renderParameters(Product $product)
+	public function renderParameters(Product $product): void
 	{
 		$this->template->headerLabel = 'Parametery - ' . $product->name;
 		$this->template->headerTree = [
@@ -655,7 +679,7 @@ class ProductPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('parameterForm')];
 	}
 
-	public function renderPrices(Product $product)
+	public function renderPrices(Product $product): void
 	{
 		$this->template->headerLabel = 'Ceny - ' . $product->name;
 		$this->template->headerTree = [
@@ -666,7 +690,7 @@ class ProductPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('priceGrid')];
 	}
 
-	public function renderPhotos(Product $product)
+	public function renderPhotos(Product $product): void
 	{
 		$this->template->headerLabel = 'Fotografie - ' . $product->name;
 		$this->template->headerTree = [
@@ -682,11 +706,11 @@ class ProductPresenter extends BackendPresenter
 
 		$this->template->setFile(__DIR__ . '/templates/productPhotosDropzone.latte');
 
-		/** @var Product $product */
+		/** @var \Eshop\DB\Product $product */
 		$product = $this->getParameter('product');
 
 		$data = [];
-		/** @var Photo[] $photos */
+		/** @var \Eshop\DB\Photo[] $photos */
 		$photos = $this->photoRepository->many()->where('fk_product', $product->getPK())->orderBy(['priority']);
 
 		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR . '/origin/';
@@ -703,7 +727,7 @@ class ProductPresenter extends BackendPresenter
 		$this->template->photos = $data;
 	}
 
-	public function renderFiles(Product $product)
+	public function renderFiles(Product $product): void
 	{
 		$this->template->headerLabel = 'Soubory - ' . $product->name;
 		$this->template->headerTree = [
@@ -716,15 +740,15 @@ class ProductPresenter extends BackendPresenter
 
 	public function renderDefault(): void
 	{
-		if (isset(static::CONFIGURATION['attributeTab']) && static::CONFIGURATION['attributeTab']) {
+		if (isset(self::CONFIGURATION['attributeTab']) && self::CONFIGURATION['attributeTab']) {
 			$this->template->tabs = $this->tabs;
 		}
 
-		if ($this->tab == 'attributes' && isset(static::CONFIGURATION['attributeTab']) && static::CONFIGURATION['attributeTab']) {
+		if ($this->tab === 'attributes' && isset(self::CONFIGURATION['attributeTab']) && self::CONFIGURATION['attributeTab']) {
 			$this->template->headerLabel = 'Produkty';
 			$this->template->headerTree = [
 				['Produkty', 'default'],
-				['Atributy']
+				['Atributy'],
 			];
 			$this->template->displayButtons = [];
 			$this->template->displayControls = [$this->getComponent('productAttributesGrid')];
@@ -733,15 +757,15 @@ class ProductPresenter extends BackendPresenter
 			$this->template->headerLabel = 'Produkty';
 			$this->template->headerTree = [
 				['Produkty', 'default'],
-				['Katalog']
+				['Katalog'],
 			];
-			$this->template->displayButtons = [$this->createNewItemButton('new')];
+			$this->template->displayButtons = [$this->createNewItemButton('new', ['editTab' => null])];
 
-			if (isset(static::CONFIGURATION['importButton']) && static::CONFIGURATION['importButton']) {
+			if (isset(self::CONFIGURATION['importButton']) && self::CONFIGURATION['importButton']) {
 				$this->template->displayButtons[] = $this->createButton('importCsv', '<i class="fas fa-file-upload mr-1"></i>Import');
 			}
 
-			if (isset(static::CONFIGURATION['sets']) && static::CONFIGURATION['sets']) {
+			if (isset(self::CONFIGURATION['sets']) && self::CONFIGURATION['sets']) {
 				$this->template->displayButtons[] = $this->createButton('importSetCsv', '<i class="fas fa-file-upload mr-1"></i>Import setů');
 			}
 
@@ -749,7 +773,7 @@ class ProductPresenter extends BackendPresenter
 		}
 	}
 
-	public function deleteFile(File $file)
+	public function deleteFile(File $file): void
 	{
 		$dir = File::FILE_DIR;
 		$rootDir = $this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
@@ -761,7 +785,7 @@ class ProductPresenter extends BackendPresenter
 		FileSystem::delete($rootDir . \DIRECTORY_SEPARATOR . $file->fileName);
 	}
 
-	public function deleteGalleryPhoto(Photo $photo)
+	public function deleteGalleryPhoto(Photo $photo): void
 	{
 		$subDirs = ['origin', 'detail', 'thumb'];
 		$dir = Photo::IMAGE_DIR;
@@ -778,29 +802,13 @@ class ProductPresenter extends BackendPresenter
 		$photo->update(['fileName' => null]);
 	}
 
-	protected function createDirectories()
-	{
-		$subDirs = ['origin', 'detail', 'thumb'];
-		$dirs = [Product::IMAGE_DIR, Photo::IMAGE_DIR, Product::FILE_DIR];
-
-		foreach ($dirs as $dir) {
-			$rootDir = $this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
-			FileSystem::createDir($rootDir);
-
-			foreach ($subDirs as $subDir) {
-				FileSystem::createDir($rootDir . \DIRECTORY_SEPARATOR . $subDir);
-			}
-		}
-
-		FileSystem::createDir($this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . File::FILE_DIR);
-	}
-
-	public function actionNewsletterExportSelect(array $ids)
+	public function actionNewsletterExportSelect(array $ids): void
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newsletterExportProducts');
 
 		$products = '';
+
 		foreach ($ids as $id) {
 			$products .= $this->productRepository->one($id)->getFullCode() . ';';
 		}
@@ -812,12 +820,12 @@ class ProductPresenter extends BackendPresenter
 		$form->setDefaults(['products' => $products]);
 	}
 
-	public function renderNewsletterExportSelect(array $ids)
+	public function renderNewsletterExportSelect(array $ids): void
 	{
 		$this->template->headerLabel = 'Export pro newsletter';
 		$this->template->headerTree = [
 			['Produkty', 'default'],
-			['Export pro newsletter']
+			['Export pro newsletter'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('newsletterExportProducts')];
@@ -849,13 +857,13 @@ class ProductPresenter extends BackendPresenter
 
 		$form->addSubmit('submit', 'Stáhnout');
 
-		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid) {
+		$form->onSuccess[] = function (AdminForm $form) use ($productGrid): void {
 			$values = $form->getValues('array');
 
 			$functionName = 'newsletterExport' . (\ucfirst($values['type']));
 
-//			try {
-			if ($values['bulkType'] == 'selected') {
+//          try {
+			if ($values['bulkType'] === 'selected') {
 				if (!$values['products']) {
 					return;
 				}
@@ -870,9 +878,10 @@ class ProductPresenter extends BackendPresenter
 			} else {
 				$this->$functionName(\array_keys($productGrid->getFilteredSource()->toArrayOf('uuid')), $values['text']);
 			}
-//			} catch (\Exception $e) {
-//				bdump($e);
-//			}
+
+//          } catch (\Exception $e) {
+//              bdump($e);
+//          }
 		};
 
 		return $form;
@@ -905,7 +914,7 @@ class ProductPresenter extends BackendPresenter
 
 		$form->addSubmit('submit', 'Stáhnout');
 
-		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid) {
+		$form->onSuccess[] = function (AdminForm $form) use ($ids): void {
 			$values = $form->getValues('array');
 
 			$products = $this->productRepository->getProducts($this->pricelistRepository->many()->where('this.uuid', $values['pricelists'])->toArray())->where('this.uuid', $ids)->toArray();
@@ -919,12 +928,12 @@ class ProductPresenter extends BackendPresenter
 				'text' => $values['text'],
 				'args' => [
 					'products' => $products,
-					'lang' => $values['mutation']
+					'lang' => $values['mutation'],
 				],
 			]);
 
 			$tempFilename = \tempnam($this->tempDir, "html");
-			$this->application->onShutdown[] = function () use ($tempFilename) {
+			$this->application->onShutdown[] = function () use ($tempFilename): void {
 				if (\is_file($tempFilename)) {
 					\unlink($tempFilename);
 				}
@@ -934,7 +943,7 @@ class ProductPresenter extends BackendPresenter
 
 			$zipFilename = \tempnam($this->tempDir, "zip");
 
-			if ($zip->open($zipFilename, \ZipArchive::CREATE) !== TRUE) {
+			if ($zip->open($zipFilename, \ZipArchive::CREATE) !== true) {
 				exit("cannot open <$zipFilename>\n");
 			}
 
@@ -944,7 +953,7 @@ class ProductPresenter extends BackendPresenter
 
 			$zip->close();
 
-			$this->getPresenter()->application->onShutdown[] = function () use ($zipFilename) {
+			$this->getPresenter()->application->onShutdown[] = function () use ($zipFilename): void {
 				\unlink($zipFilename);
 			};
 
@@ -954,17 +963,16 @@ class ProductPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function actionJoinSelect(array $ids)
+	public function actionJoinSelect(array $ids): void
 	{
-
 	}
 
-	public function renderJoinSelect(array $ids)
+	public function renderJoinSelect(array $ids): void
 	{
 		$this->template->headerLabel = 'Sloučení produktů';
 		$this->template->headerTree = [
 			['Produkty', 'default'],
-			['Sloučení produktů']
+			['Sloučení produktů'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('joinForm')];
@@ -979,20 +987,22 @@ class ProductPresenter extends BackendPresenter
 
 		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
 
-		$form->addRadioList('mainProduct',
+		$form->addRadioList(
+			'mainProduct',
 			'Hlavní produkt',
 			$this->productRepository->many()
 				->where('this.uuid', $ids)
 				->select(['customName' => "CONCAT(this.name$mutationSuffix, ' (', this.code, ')')"])
-				->toArrayOf('customName'))
+			->toArrayOf('customName'),
+		)
 			->setRequired();
 
 		$form->addSubmit('submit', 'Uložit');
 
-		$form->onSuccess[] = function (AdminForm $form) use ($ids) {
+		$form->onSuccess[] = function (AdminForm $form) use ($ids): void {
 			$values = $form->getValues('array');
 
-			/** @var Product[] $products */
+			/** @var \Eshop\DB\Product[] $products */
 			$products = $this->productRepository->many()->where('this.uuid', $ids)->whereNot('this.uuid', $values['mainProduct'])->toArray();
 
 			$error1 = false;
@@ -1004,7 +1014,7 @@ class ProductPresenter extends BackendPresenter
 						->where('fk_product', $product->getPK())
 						->update(['fk_product' => $values['mainProduct']]);
 				} catch (\Exception $e) {
-					bdump($e);
+					\bdump($e);
 
 					$error1 = 'Některé produkty již mají namapovaného stejného dodavatele! Mapování těchto dodavatelů nebylo změněno.';
 				}
@@ -1012,7 +1022,7 @@ class ProductPresenter extends BackendPresenter
 				try {
 					$product->delete();
 				} catch (\Exception $e) {
-					bdump($e);
+					\bdump($e);
 
 					$error2 = 'Některé produkty nebyly smazány! Smazání pravděpodobně blokují vazby s jinými produkty.';
 				}
@@ -1033,12 +1043,12 @@ class ProductPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderImportCsv()
+	public function renderImportCsv(): void
 	{
 		$this->template->headerLabel = 'Import zdrojového souboru';
 		$this->template->headerTree = [
 			['Produkty', 'default'],
-			['Import zdrojového souboru']
+			['Import zdrojového souboru'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('importCsvForm')];
@@ -1059,7 +1069,7 @@ class ProductPresenter extends BackendPresenter
 
 		$allowedColumns = '';
 
-		foreach (static::CONFIGURATION['importColumns'] as $key => $value) {
+		foreach (self::CONFIGURATION['importColumns'] as $key => $value) {
 			$allowedColumns .= "$key, $value<br>";
 		}
 
@@ -1067,15 +1077,15 @@ class ProductPresenter extends BackendPresenter
 			->setRequired()
 			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/csv');
 
-		if (isset(static::CONFIGURATION['importExampleFile']) && static::CONFIGURATION['importExampleFile']) {
-			$filePicker->setHtmlAttribute('data-info', 'Vzorový soubor: <a href="' . $this->link('downloadImportExampleFile!') . '">' . static::CONFIGURATION['importExampleFile'] . '</a><br
+		if (isset(self::CONFIGURATION['importExampleFile']) && self::CONFIGURATION['importExampleFile']) {
+			$filePicker->setHtmlAttribute('data-info', 'Vzorový soubor: <a href="' . $this->link('downloadImportExampleFile!') . '">' . self::CONFIGURATION['importExampleFile'] . '</a><br
 >Podporuje <b>pouze</b> formátování Windows a Linux (UTF-8)!');
 		}
 
 		$form->addSelect('delimiter', 'Oddělovač', [
 			';' => 'Středník (;)',
 			',' => 'Čárka (,)',
-			'	' => 'Tab (\t)',
+			'   ' => 'Tab (\t)',
 			' ' => 'Mezera ( )',
 			'|' => 'Pipe (|)',
 		]);
@@ -1093,21 +1103,23 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 		$form->addSubmit('submit', 'Importovat');
 
-		$form->onValidate[] = function (AdminForm $form) {
+		$form->onValidate[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
-			/** @var FileUpload $file */
+			/** @var \Nette\Http\FileUpload $file */
 			$file = $values['file'];
 
-			if (!$file->hasFile()) {
-				$form['file']->addError('Neplatný soubor!');
+			if ($file->hasFile()) {
+				return;
 			}
+
+			$form['file']->addError('Neplatný soubor!');
 		};
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
-			/** @var FileUpload $file */
+			/** @var \Nette\Http\FileUpload $file */
 			$file = $values['file'];
 
 			$file->move(\dirname(__DIR__, 5) . '/userfiles/products.csv');
@@ -1118,7 +1130,8 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			$connection->getLink()->beginTransaction();
 
 			try {
-				$this->importCsv(\dirname(__DIR__, 5) . '/userfiles/products.csv',
+				$this->importCsv(
+					\dirname(__DIR__, 5) . '/userfiles/products.csv',
 					$values['delimiter'],
 					$values['addNew'],
 					$values['overwriteExisting'],
@@ -1131,7 +1144,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				FileSystem::delete(\dirname(__DIR__, 5) . '/userfiles/products.csv');
 				$connection->getLink()->rollBack();
 
-				$this->flashMessage($e->getMessage() != '' ? $e->getMessage() : 'Import dat se nezdařil!', 'error');
+				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Import dat se nezdařil!', 'error');
 			}
 
 			$this->redirect('this');
@@ -1140,17 +1153,16 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		return $form;
 	}
 
-	public function actionExport(array $ids)
+	public function actionExport(array $ids): void
 	{
-
 	}
 
-	public function renderExport(array $ids)
+	public function renderExport(array $ids): void
 	{
 		$this->template->headerLabel = 'Export produktů do CSV';
 		$this->template->headerTree = [
 			['Produkty', 'default'],
-			['Export produktů']
+			['Export produktů'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('exportForm')];
@@ -1176,7 +1188,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		$form->addSelect('delimiter', 'Oddělovač', [
 			';' => 'Středník (;)',
 			',' => 'Čárka (,)',
-			'	' => 'Tab (\t)',
+			'   ' => 'Tab (\t)',
 			' ' => 'Mezera ( )',
 			'|' => 'Pipe (|)',
 		]);
@@ -1188,11 +1200,11 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		$items = [];
 		$defaultItems = [];
 
-		if (isset(static::CONFIGURATION['exportColumns'])) {
-			$items += static::CONFIGURATION['exportColumns'];
+		if (isset(self::CONFIGURATION['exportColumns'])) {
+			$items += self::CONFIGURATION['exportColumns'];
 
-			if (isset(static::CONFIGURATION['defaultExportColumns'])) {
-				$defaultItems = \array_merge($defaultItems, static::CONFIGURATION['defaultExportColumns']);
+			if (isset(self::CONFIGURATION['defaultExportColumns'])) {
+				$defaultItems = \array_merge($defaultItems, self::CONFIGURATION['defaultExportColumns']);
 			}
 		}
 
@@ -1202,8 +1214,8 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		$attributes = [];
 		$defaultAttributes = [];
 
-		if (isset(static::CONFIGURATION['exportAttributes'])) {
-			foreach (static::CONFIGURATION['exportAttributes'] as $key => $value) {
+		if (isset(self::CONFIGURATION['exportAttributes'])) {
+			foreach (self::CONFIGURATION['exportAttributes'] as $key => $value) {
 				if ($attribute = $this->attributeRepository->many()->where('code', $key)->first()) {
 					$attributes[$attribute->getPK()] = "$value#$key";
 					$defaultAttributes[] = $attribute->getPK();
@@ -1211,7 +1223,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			}
 
 			$attributes += $this->attributeRepository->many()
-				->whereNot('this.code', \array_keys(static::CONFIGURATION['exportAttributes']))
+				->whereNot('this.code', \array_keys(self::CONFIGURATION['exportAttributes']))
 				->join(['attributeValue' => 'eshop_attributevalue'], 'this.uuid = attributeValue.fk_attribute')
 				->join(['assign' => 'eshop_attributeassign'], 'attributeValue.uuid = assign.fk_value')
 				->where('assign.uuid IS NOT NULL')
@@ -1226,28 +1238,30 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 		$form->addSubmit('submit', 'Exportovat');
 
-		$form->onValidate[] = function (AdminForm $form) use ($ids, $productGrid, $items, $attributes) {
+		$form->onValidate[] = function (AdminForm $form): void {
 			$values = $form->getValues();
 
-			if (!Arrays::contains($values['columns'], 'code') && !Arrays::contains($values['columns'], 'ean')) {
-				$form['columns']->addError('Je nutné vybrat "Kód" nebo "EAN" pro jednoznačné označení produktu.');
+			if (Arrays::contains($values['columns'], 'code') || Arrays::contains($values['columns'], 'ean')) {
+				return;
 			}
+
+			$form['columns']->addError('Je nutné vybrat "Kód" nebo "EAN" pro jednoznačné označení produktu.');
 		};
 
-		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid, $items, $attributes) {
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid, $items, $attributes): void {
 			$values = $form->getValues('array');
 
-			$products = $values['bulkType'] == 'selected' ? $this->productRepository->many()->where('this.uuid', $ids) : $productGrid->getFilteredSource();
+			$products = $values['bulkType'] === 'selected' ? $this->productRepository->many()->where('this.uuid', $ids) : $productGrid->getFilteredSource();
 
 			$tempFilename = \tempnam($this->tempDir, "csv");
 
 			$headerColumns = \array_filter($items, function ($item) use ($values) {
 				return \in_array($item, $values['columns']);
-			}, ARRAY_FILTER_USE_KEY);
+			}, \ARRAY_FILTER_USE_KEY);
 
 			$attributeColumns = \array_filter($attributes, function ($item) use ($values) {
 				return \in_array($item, $values['attributes']);
-			}, ARRAY_FILTER_USE_KEY);
+			}, \ARRAY_FILTER_USE_KEY);
 
 			$this->productRepository->csvExport(
 				$products,
@@ -1255,7 +1269,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				$headerColumns,
 				$attributeColumns,
 				$values['delimiter'],
-				$values['header'] ? \array_merge(\array_values($headerColumns), \array_values($attributeColumns)) : null
+				$values['header'] ? \array_merge(\array_values($headerColumns), \array_values($attributeColumns)) : null,
 			);
 
 			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "products.csv", 'text/csv'));
@@ -1264,7 +1278,368 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		return $form;
 	}
 
-	protected function importCsv(string $filePath, string $delimiter = ';', bool $addNew = false, bool $overwriteExisting = true, bool $updateAttributes = false)
+	public function handleDownloadImportExampleFile(): void
+	{
+		if (isset(self::CONFIGURATION['importExampleFile']) && self::CONFIGURATION['importExampleFile']) {
+			$this->getPresenter()->sendResponse(new FileResponse($this->wwwDir . '/userfiles/' . self::CONFIGURATION['importExampleFile'], "example.csv", 'text/csv'));
+		}
+	}
+
+	public function handleDownloadImportSetExampleFile(): void
+	{
+		if (isset(self::CONFIGURATION['importSetExampleFile']) && self::CONFIGURATION['importSetExampleFile']) {
+			$this->getPresenter()->sendResponse(new FileResponse($this->wwwDir . '/userfiles/' . self::CONFIGURATION['importSetExampleFile'], "example_set.csv", 'text/csv'));
+		}
+	}
+
+	public function actionGenerateRandomBuyCounts(array $ids): void
+	{
+	}
+
+	public function renderGenerateRandomBuyCounts(array $ids): void
+	{
+		$this->template->headerLabel = 'Generovat náhodný počet zakoupení';
+		$this->template->headerTree = [
+			['Produkty', 'default'],
+			['Generovat náhodný počet zakoupení'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('generateRandomBuyCountsForm')];
+	}
+
+	public function createComponentGenerateRandomBuyCountsForm(): AdminForm
+	{
+		/** @var \Grid\Datagrid $productGrid */
+		$productGrid = $this->getComponent('productGrid');
+
+		$ids = $this->getParameter('ids') ?: [];
+		$totalNo = $productGrid->getPaginator()->getItemCount();
+		$selectedNo = \count($ids);
+
+		$form = $this->formFactory->create();
+
+
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+		$form->addRadioList('bulkType', 'Produkty', [
+			'selected' => "vybrané ($selectedNo)",
+			'all' => "celý výsledek ($totalNo)",
+		])->setDefaultValue('selected');
+
+
+		$form->addInteger('from', 'Od')->setDefaultValue(5)->setRequired()->addRule($form::MIN, 'Zadejte číslo rovné nebo větší než 0!', 0);
+		$form->addInteger('to', 'Do')->setDefaultValue(30)->setRequired();
+
+		$form->addSubmit('submitAndBack', 'Uložit a zpět')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid): void {
+			$values = $form->getValues('array');
+
+			$products = $values['bulkType'] === 'selected' ? $this->productRepository->many()->where('this.uuid', $ids) : $productGrid->getFilteredSource();
+
+			foreach ($products as $product) {
+				$product->update(['buyCount' => \rand($values['from'], $values['to'])]);
+			}
+
+			$this->flashMessage('Provedeno', 'success');
+			$this->redirect('default');
+		};
+
+		return $form;
+	}
+
+	public function handleMakePhotoPrimary(Photo $photo): void
+	{
+		$subDirs = ['origin', 'detail', 'thumb'];
+		$imageDir = $this->wwwDir . '/' . 'userfiles' . '/' . Product::IMAGE_DIR;
+		$galleryDir = $this->wwwDir . '/' . 'userfiles' . '/' . Product::GALLERY_DIR;
+
+		$tempFilename = Random::generate();
+
+		foreach ($subDirs as $subDir) {
+			FileSystem::rename($imageDir . '/' . $subDir . '/' . $photo->product->imageFileName, $galleryDir . '/' . $subDir . '/' . $tempFilename);
+			FileSystem::rename($galleryDir . '/' . $subDir . '/' . $photo->fileName, $imageDir . '/' . $subDir . '/' . $photo->product->imageFileName);
+			FileSystem::rename($galleryDir . '/' . $subDir . '/' . $tempFilename, $galleryDir . '/' . $subDir . '/' . $photo->fileName);
+		}
+
+		$this->flashMessage('Provedeno', 'success');
+		$this->redirect('this');
+	}
+
+	public function actionComments(Product $product): void
+	{
+		$this->template->headerLabel = 'Komentáře - ' . $product->name;
+		$this->template->headerTree = [
+			['Produkty', 'default'],
+			['Komentáře'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+	}
+
+	public function renderComments(Product $product): void
+	{
+		$this->template->comments = $this->commentRepository->many()->where('fk_product', $product->getPK())->orderBy(['createdTs' => 'DESC'])->toArray();
+		$this->template->setFile(__DIR__ . '/templates/comments.latte');
+	}
+
+	public function createComponentNewComment()
+	{
+
+		$form = $this->formFactory->create(true, false, false, false, false);
+
+		$form->addGroup('Nový komentář');
+		$form->addTextArea('text', 'Komentáře');
+
+		$form->addSubmit('send', 'Odeslat');
+
+		$form->onSuccess[] = function (Form $form): void {
+			$values = $form->getValues('array');
+
+			$data = [
+				'product' => $this->getParameter('product')->getPK(),
+				'text' => $values['text'],
+				'administrator' => $this->admin->getIdentity()->getPK(),
+				'adminFullname' => $this->admin->getIdentity()->fullName ?? ($this->admin->getIdentity()->getAccount() ? ($this->admin->getIdentity()->getAccount()->fullname ?? $this->admin->getIdentity()->getAccount()->login) : null),
+			];
+
+			$this->commentRepository->createOne($data);
+
+			$this->flashMessage('Uloženo', 'success');
+			$this->redirect('edit', ['product' => $this->getParameter('product'), 'editTab' => 'comments']);
+		};
+
+		return $form;
+	}
+
+	public function renderImportSetCsv(): void
+	{
+		$this->template->headerLabel = 'Import zdrojového souboru';
+		$this->template->headerTree = [
+			['Produkty', 'default'],
+			['Import zdrojového souboru'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('importSetCsvForm')];
+	}
+
+	public function createComponentImportSetCsvForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+
+		$lastUpdate = null;
+		$path = \dirname(__DIR__, 5) . '/userfiles/sets.csv';
+
+		if (\file_exists($path)) {
+			$lastUpdate = \filemtime($path);
+		}
+
+		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? \date('d.m.Y G:i', $lastUpdate) : null);
+
+		$allowedColumns = '';
+
+		foreach ($this::IMPORT_SET_COLUMNS as $key => $value) {
+			$allowedColumns .= "$key, $value<br>";
+		}
+
+		$filePicker = $form->addFilePicker('file', 'Soubor (CSV)')
+			->setRequired()
+			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/csv');
+
+		if (isset(self::CONFIGURATION['importSetExampleFile']) && self::CONFIGURATION['importSetExampleFile']) {
+			$filePicker->setHtmlAttribute('data-info', 'Vzorový soubor: <a href="' . $this->link('downloadImportSetExampleFile!') . '">' . self::CONFIGURATION['importSetExampleFile'] . '</a><br
+>Podporuje <b>pouze</b> formátování Windows a Linux (UTF-8)!');
+		}
+
+		$form->addSelect('delimiter', 'Oddělovač', [
+			';' => 'Středník (;)',
+			',' => 'Čárka (,)',
+			'   ' => 'Tab (\t)',
+			' ' => 'Mezera ( )',
+			'|' => 'Pipe (|)',
+		]);
+
+		$form->addCheckbox('autoSet', 'Automaticky převést na set')->setHtmlAttribute('data-info', 'Pokud zaškrtnete, tak se produkty, které nejsou označeny jako set automaticky označí. V opačném případě bude takový záznam přeskočen.');
+		$form->addCheckbox('addNew', 'Vytvářet nové záznamy')->setDefaultValue(true);
+		$form->addCheckbox('overwriteExisting', 'Přepisovat existující záznamy')->setDefaultValue(true)->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
+Soubor <b>musí obsahovat</b> hlavičku, jeden ze sloupců "Kód setu" nebo "EAN setu" resp. "Kód produktu" nebo "EAN produktu" pro jednoznačné rozlišení setů a produktů a sloupec Množství. Jako prioritní se hledá kód a pokud není nalezen tak EAN.<br><br>
+Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
+' . $allowedColumns . '<br>
+<br>
+<b>Pozor!</b> Pokud pracujete se souborem na zařízeních Apple, ujistětě se, že vždy při ukládání použijete možnost uložit do formátu Windows nebo Linux (UTF-8)!');
+
+
+		$form->addSubmit('submit', 'Importovat');
+
+		$form->onValidate[] = function (AdminForm $form): void {
+			$values = $form->getValues('array');
+
+			/** @var \Nette\Http\FileUpload $file */
+			$file = $values['file'];
+
+			if ($file->hasFile()) {
+				return;
+			}
+
+			$form['file']->addError('Neplatný soubor!');
+		};
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			$values = $form->getValues('array');
+
+			/** @var \Nette\Http\FileUpload $file */
+			$file = $values['file'];
+
+			$file->move(\dirname(__DIR__, 5) . '/userfiles/sets.csv');
+			\touch(\dirname(__DIR__, 5) . '/userfiles/sets.csv');
+
+			$connection = $this->productRepository->getConnection();
+
+			$connection->getLink()->beginTransaction();
+
+			try {
+				$this->importSetCsv(
+					\dirname(__DIR__, 5) . '/userfiles/sets.csv',
+					$values['delimiter'],
+					$values['addNew'],
+					$values['overwriteExisting'],
+					$values['autoSet'],
+				);
+
+				$connection->getLink()->commit();
+				$this->flashMessage('Provedeno', 'success');
+			} catch (\Exception $e) {
+				FileSystem::delete(\dirname(__DIR__, 5) . '/userfiles/sets.csv');
+				$connection->getLink()->rollBack();
+
+				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Import dat se nezdařil!', 'error');
+			}
+
+			$this->redirect('this');
+		};
+
+		return $form;
+	}
+
+	public function handleDropzoneRemovePhoto(): void
+	{
+		$filename = $this->getPresenter()->getParameter('file');
+
+		/** @var \Eshop\DB\Photo $photo */
+		$photo = $this->photoRepository->many()->where('fileName', $filename)->first();
+
+		if (!$photo) {
+			return;
+		}
+
+		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR;
+		FileSystem::delete($basePath . '/origin/' . $photo->fileName);
+		FileSystem::delete($basePath . '/detail/' . $photo->fileName);
+		FileSystem::delete($basePath . '/thumb/' . $photo->fileName);
+
+		if ($photo->product->imageFileName === $photo->fileName) {
+			$photo->product->update(['imageFileName' => null]);
+		}
+
+		$photo->delete();
+	}
+
+	public function handleDropzoneUploadPhoto(): void
+	{
+		$this->createDirectories();
+
+		/** @var \Eshop\DB\Product $product */
+		$product = $this->getParameter('product');
+
+		/** @var \Nette\Http\FileUpload $fileUpload */
+		$fileUpload = $this->getPresenter()->getHttpRequest()->getFile('file');
+		$uuid = Connection::generateUuid();
+		$filename = $uuid . '.' . $fileUpload->getImageFileExtension();
+
+		/** @var \Eshop\DB\Photo $photo */
+		$photo = $this->photoRepository->createOne([
+			'uuid' => $uuid,
+			'product' => $product->getPK(),
+			'fileName' => $filename,
+			'priority' => 999,
+		]);
+
+		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR;
+
+		try {
+			$fileUpload->move($basePath . '/origin/' . $filename);
+		} catch (\Exception $e) {
+			$this->error('Wrong file!', 500);
+		}
+
+		$imageD = Image::fromFile($basePath . '/origin/' . $filename);
+		$imageT = Image::fromFile($basePath . '/origin/' . $filename);
+		$imageD->resize(600, null);
+		$imageT->resize(300, null);
+
+		try {
+			$imageD->save($basePath . '/detail/' . $filename);
+			$imageT->save($basePath . '/thumb/' . $filename);
+		} catch (\Exception $e) {
+		}
+
+		$row = [];
+		$row['name'] = $photo->fileName;
+		$row['size'] = \file_exists($basePath . '/origin/' . $photo->fileName) ? \filesize($basePath . '/origin/' . $photo->fileName) : 0;
+		$row['src'] = $this->getHttpRequest()->getUrl()->withoutUserInfo()->getBaseUrl() . 'userfiles/' . Product::GALLERY_DIR . '/thumb/' . $filename;
+
+		$this->sendJson($row);
+	}
+
+	public function handleDropzoneSetMain(?string $filename): void
+	{
+		if (!$filename) {
+			return;
+		}
+
+		/** @var \Eshop\DB\Photo $photo */
+		$photo = $this->photoRepository->many()->where('filename', $filename)->first();
+
+		if (!$photo) {
+			return;
+		}
+
+		$photo->product->update(['imageFileName' => $filename]);
+
+		$this->redirect('this');
+	}
+
+	public function handleDropzoneSetOrder(): void
+	{
+		$items = $this->getHttpRequest()->getPost();
+
+		if (!$items) {
+			return;
+		}
+
+		foreach ($items as $uuid => $priority) {
+			$this->photoRepository->many()->where('uuid', $uuid)->update(['priority' => (int)$priority]);
+		}
+
+		$this->redirect('this');
+	}
+
+	protected function createDirectories(): void
+	{
+		$subDirs = ['origin', 'detail', 'thumb'];
+		$dirs = [Product::IMAGE_DIR, Photo::IMAGE_DIR, Product::FILE_DIR];
+
+		foreach ($dirs as $dir) {
+			$rootDir = $this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
+			FileSystem::createDir($rootDir);
+
+			foreach ($subDirs as $subDir) {
+				FileSystem::createDir($rootDir . \DIRECTORY_SEPARATOR . $subDir);
+			}
+		}
+
+		FileSystem::createDir($this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . File::FILE_DIR);
+	}
+
+	protected function importCsv(string $filePath, string $delimiter = ';', bool $addNew = false, bool $overwriteExisting = true, bool $updateAttributes = false): void
 	{
 		if (!\ini_get("auto_detect_line_endings")) {
 			\ini_set("auto_detect_line_endings", '1');
@@ -1276,7 +1651,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 		$detector->disableEncoding([
 			EncodingDetector::ISO_8859_5,
-			EncodingDetector::KOI8_R
+			EncodingDetector::KOI8_R,
 		]);
 
 		$encoding = $detector->getEncoding($csvData);
@@ -1304,15 +1679,15 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		$parsedHeader = [];
 
 		foreach ($header as $headerItem) {
-			if (isset(static::CONFIGURATION['importColumns'][$headerItem])) {
+			if (isset(self::CONFIGURATION['importColumns'][$headerItem])) {
 				$parsedHeader[$headerItem] = $headerItem;
-			} elseif ($key = \array_search($headerItem, static::CONFIGURATION['importColumns'])) {
+			} elseif ($key = \array_search($headerItem, self::CONFIGURATION['importColumns'])) {
 				$parsedHeader[$key] = $headerItem;
 			} else {
 				if (Strings::contains($headerItem, '#')) {
 					$attributeCode = \explode('#', $headerItem);
 
-					if (\count($attributeCode) != 2) {
+					if (\count($attributeCode) !== 2) {
 						continue;
 					}
 
@@ -1328,7 +1703,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			}
 		}
 
-		if (\count($parsedHeader) == 0) {
+		if (\count($parsedHeader) === 0) {
 			throw new \Exception('Soubor neobsahuje hlavičku nebo nebyl nalezen žádný použitelný sloupec!');
 		}
 
@@ -1372,11 +1747,11 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 					continue;
 				}
 
-				if ($key == 'producer') {
+				if ($key === 'producer') {
 					if (Strings::contains($value, '#')) {
 						$producerCode = \explode('#', $value);
 
-						if (\count($producerCode) != 2) {
+						if (\count($producerCode) !== 2) {
 							continue;
 						}
 
@@ -1388,13 +1763,13 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 					if (isset($producers[$producerCode])) {
 						$newValues[$key] = $producers[$producerCode];
 					}
-				} elseif ($key == 'storeAmount') {
+				} elseif ($key === 'storeAmount') {
 					$amounts = \explode(':', $value);
 
 					foreach ($amounts as $amount) {
 						$amount = \explode('#', $amount);
 
-						if (\count($amount) != 2) {
+						if (\count($amount) !== 2) {
 							continue;
 						}
 
@@ -1405,10 +1780,10 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 						$this->amountRepository->syncOne([
 							'store' => $stores[$amount[1]],
 							'product' => $product->getPK(),
-							'inStock' => \intval($amount[0])
+							'inStock' => \intval($amount[0]),
 						]);
 					}
-				} elseif ($key == 'categories') {
+				} elseif ($key === 'categories') {
 					$this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
 						->where('fk_product', $product->getPK())
 						->delete();
@@ -1418,7 +1793,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 					foreach ($valueCategories as $category) {
 						$category = \explode('#', $category);
 
-						if (\count($category) != 2) {
+						if (\count($category) !== 2) {
 							continue;
 						}
 
@@ -1434,15 +1809,15 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 						$this->categoryRepository->getConnection()->createRow('eshop_product_nxn_eshop_category', [
 							'fk_product' => $product->getPK(),
-							'fk_category' => $category
+							'fk_category' => $category,
 						]);
 					}
-				} elseif ($key == 'name' || $key == 'perex' || $key == 'content') {
+				} elseif ($key === 'name' || $key === 'perex' || $key === 'content') {
 					$newValues[$key][$mutation] = $value;
-				} elseif ($key == 'priority') {
+				} elseif ($key === 'priority') {
 					$newValues[$key] = \intval($value);
-				} elseif ($key == 'recommended' || $key == 'hidden' || $key == 'unavailable') {
-					$newValues[$key] = $value == '1';
+				} elseif ($key === 'recommended' || $key === 'hidden' || $key === 'unavailable') {
+					$newValues[$key] = $value === '1';
 				} elseif (!isset($attributes[$key])) {
 					$newValues[$key] = $value;
 				}
@@ -1453,11 +1828,11 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 					if (\count($newValues) > 0) {
 						$newValues['uuid'] = $product->getPK();
 
-						if (isset($newValues['name'][$mutation]) && $newValues['name'][$mutation] != $product->name) {
+						if (isset($newValues['name'][$mutation]) && $newValues['name'][$mutation] !== $product->name) {
 							$newValues['supplierContentLock'] = true;
 						}
 
-						if (isset($newValues['perex'][$mutation]) && $newValues['perex'][$mutation] != $product->perex) {
+						if (isset($newValues['perex'][$mutation]) && $newValues['perex'][$mutation] !== $product->perex) {
 							$newValues['supplierContentLock'] = true;
 						}
 
@@ -1500,7 +1875,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 					if (Strings::contains($attributeString, '#')) {
 						$attributeValueCode = \explode('#', $attributeString);
 
-						if (\count($attributeValueCode) != 2) {
+						if (\count($attributeValueCode) !== 2) {
 							continue;
 						}
 
@@ -1509,19 +1884,20 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 						$attributeValueCode = $attributeString;
 					}
 
-					if ($attributeValue = $this->attributeValueRepository->many()->where("code", $attributeValueCode)->firstValue('uuid')) {
-						$this->attributeAssignRepository->syncOne([
-							'product' => $product->getPK(),
-							'value' => $attributeValue
-						]);
-
+					if (!$attributeValue = $this->attributeValueRepository->many()->where("code", $attributeValueCode)->firstValue('uuid')) {
+						continue;
 					}
+
+					$this->attributeAssignRepository->syncOne([
+						'product' => $product->getPK(),
+						'value' => $attributeValue,
+					]);
 				}
 			}
 		}
 	}
 
-	protected function importSetCsv(string $filePath, string $delimiter = ';', bool $addNew = false, bool $overwriteExisting = true, bool $autoSet = false)
+	protected function importSetCsv(string $filePath, string $delimiter = ';', bool $addNew = false, bool $overwriteExisting = true, bool $autoSet = false): void
 	{
 		if (!\ini_get("auto_detect_line_endings")) {
 			\ini_set("auto_detect_line_endings", '1');
@@ -1533,7 +1909,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 		$detector->disableEncoding([
 			EncodingDetector::ISO_8859_5,
-			EncodingDetector::KOI8_R
+			EncodingDetector::KOI8_R,
 		]);
 
 		$encoding = $detector->getEncoding($csvData);
@@ -1563,7 +1939,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			}
 		}
 
-		if (\count($parsedHeader) == 0) {
+		if (\count($parsedHeader) === 0) {
 			throw new \Exception('Soubor neobsahuje hlavičku nebo nebyl nalezen žádný použitelný sloupec!');
 		}
 
@@ -1592,17 +1968,17 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				$expression->add('OR', 'ean = %s', [Strings::trim($ean)]);
 			}
 
-			/** @var Product $setProduct */
+			/** @var \Eshop\DB\Product $setProduct */
 			if (!$setProduct = $this->productRepository->many()->where($expression->getSql(), $expression->getVars())->first()) {
 				continue;
 			}
 
 			if (!$setProduct->productsSet) {
-				if ($autoSet) {
-					$setProduct->update(['productsSet' => true]);
-				} else {
+				if (!$autoSet) {
 					continue;
 				}
+
+				$setProduct->update(['productsSet' => true]);
 			}
 
 			$product = null;
@@ -1614,15 +1990,15 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 					continue;
 				}
 
-				if ($key == 'productCode' || $key == 'productEan') {
+				if ($key === 'productCode' || $key === 'productEan') {
 					if ($product) {
 						continue;
 					}
 
 					$product = $this->productRepository->getProductByCodeOrEAN($value);
-				} elseif ($key == 'discountPct') {
+				} elseif ($key === 'discountPct') {
 					$newValues[$key] = NumbersHelper::strToFloat($value);
-				} elseif ($key == 'amount' || $key == 'priority') {
+				} elseif ($key === 'amount' || $key === 'priority') {
 					$newValues[$key] = \intval($value);
 				}
 			}
@@ -1655,346 +2031,5 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				throw new \Exception('Chyba při zpracování dat!');
 			}
 		}
-	}
-
-	public function handleDownloadImportExampleFile()
-	{
-		if (isset(static::CONFIGURATION['importExampleFile']) && static::CONFIGURATION['importExampleFile']) {
-			$this->getPresenter()->sendResponse(new FileResponse($this->wwwDir . '/userfiles/' . static::CONFIGURATION['importExampleFile'], "example.csv", 'text/csv'));
-		}
-	}
-
-	public function handleDownloadImportSetExampleFile()
-	{
-		if (isset(static::CONFIGURATION['importSetExampleFile']) && static::CONFIGURATION['importSetExampleFile']) {
-			$this->getPresenter()->sendResponse(new FileResponse($this->wwwDir . '/userfiles/' . static::CONFIGURATION['importSetExampleFile'], "example_set.csv", 'text/csv'));
-		}
-	}
-
-	public function actionGenerateRandomBuyCounts(array $ids)
-	{
-
-	}
-
-	public function renderGenerateRandomBuyCounts(array $ids)
-	{
-		$this->template->headerLabel = 'Generovat náhodný počet zakoupení';
-		$this->template->headerTree = [
-			['Produkty', 'default'],
-			['Generovat náhodný počet zakoupení']
-		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('generateRandomBuyCountsForm')];
-	}
-
-	public function createComponentGenerateRandomBuyCountsForm(): AdminForm
-	{
-		/** @var \Grid\Datagrid $productGrid */
-		$productGrid = $this->getComponent('productGrid');
-
-		$ids = $this->getParameter('ids') ?: [];
-		$totalNo = $productGrid->getPaginator()->getItemCount();
-		$selectedNo = \count($ids);
-
-		$form = $this->formFactory->create();
-
-
-		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
-		$form->addRadioList('bulkType', 'Produkty', [
-			'selected' => "vybrané ($selectedNo)",
-			'all' => "celý výsledek ($totalNo)",
-		])->setDefaultValue('selected');
-
-
-		$form->addInteger('from', 'Od')->setDefaultValue(5)->setRequired()->addRule($form::MIN, 'Zadejte číslo rovné nebo větší než 0!', 0);
-		$form->addInteger('to', 'Do')->setDefaultValue(30)->setRequired();
-
-		$form->addSubmit('submitAndBack', 'Uložit a zpět')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
-
-		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid) {
-			$values = $form->getValues('array');
-
-			$products = $values['bulkType'] == 'selected' ? $this->productRepository->many()->where('this.uuid', $ids) : $productGrid->getFilteredSource();
-
-			foreach ($products as $product) {
-				$product->update(['buyCount' => \rand($values['from'], $values['to'])]);
-			}
-
-			$this->flashMessage('Provedeno', 'success');
-			$this->redirect('default');
-		};
-
-		return $form;
-	}
-
-	public function handleMakePhotoPrimary(Photo $photo)
-	{
-		$subDirs = ['origin', 'detail', 'thumb'];
-		$imageDir = $this->wwwDir . '/' . 'userfiles' . '/' . Product::IMAGE_DIR;
-		$galleryDir = $this->wwwDir . '/' . 'userfiles' . '/' . Product::GALLERY_DIR;
-
-		$tempFilename = Random::generate();
-
-		foreach ($subDirs as $subDir) {
-			FileSystem::rename($imageDir . '/' . $subDir . '/' . $photo->product->imageFileName, $galleryDir . '/' . $subDir . '/' . $tempFilename);
-			FileSystem::rename($galleryDir . '/' . $subDir . '/' . $photo->fileName, $imageDir . '/' . $subDir . '/' . $photo->product->imageFileName);
-			FileSystem::rename($galleryDir . '/' . $subDir . '/' . $tempFilename, $galleryDir . '/' . $subDir . '/' . $photo->fileName);
-		}
-
-		$this->flashMessage('Provedeno', 'success');
-		$this->redirect('this');
-	}
-
-	public function actionComments(Product $product)
-	{
-		$this->template->headerLabel = 'Komentáře - ' . $product->name;
-		$this->template->headerTree = [
-			['Produkty', 'default'],
-			['Komentáře']
-		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
-	}
-
-	public function renderComments(Product $product)
-	{
-		$this->template->comments = $this->commentRepository->many()->where('fk_product', $product->getPK())->orderBy(['createdTs' => 'DESC'])->toArray();
-		$this->template->setFile(__DIR__ . '/templates/comments.latte');
-	}
-
-	public function createComponentNewComment()
-	{
-
-		$form = $this->formFactory->create(true, false, false, false, false);
-
-		$form->addGroup('Nový komentář');
-		$form->addTextArea('text', 'Komentáře');
-
-		$form->addSubmit('send', 'Odeslat');
-
-		$form->onSuccess[] = function (Form $form) {
-			$values = $form->getValues('array');
-
-			$data = [
-				'product' => $this->getParameter('product')->getPK(),
-				'text' => $values['text'],
-				'administrator' => $this->admin->getIdentity()->getPK(),
-				'adminFullname' => $this->admin->getIdentity()->fullName ?? ($this->admin->getIdentity()->getAccount() ? ($this->admin->getIdentity()->getAccount()->fullname ?? $this->admin->getIdentity()->getAccount()->login) : null)
-			];
-
-			$this->commentRepository->createOne($data);
-
-			$this->flashMessage('Uloženo', 'success');
-			$this->redirect('edit', ['product' => $this->getParameter('product'), 'editTab' => 'comments']);
-		};
-
-		return $form;
-	}
-
-	public function renderImportSetCsv()
-	{
-		$this->template->headerLabel = 'Import zdrojového souboru';
-		$this->template->headerTree = [
-			['Produkty', 'default'],
-			['Import zdrojového souboru']
-		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('importSetCsvForm')];
-	}
-
-	public function createComponentImportSetCsvForm(): AdminForm
-	{
-		$form = $this->formFactory->create();
-
-		$lastUpdate = null;
-		$path = \dirname(__DIR__, 5) . '/userfiles/sets.csv';
-
-		if (\file_exists($path)) {
-			$lastUpdate = \filemtime($path);
-		}
-
-		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? \date('d.m.Y G:i', $lastUpdate) : null);
-
-		$allowedColumns = '';
-
-		foreach ($this::IMPORT_SET_COLUMNS as $key => $value) {
-			$allowedColumns .= "$key, $value<br>";
-		}
-
-		$filePicker = $form->addFilePicker('file', 'Soubor (CSV)')
-			->setRequired()
-			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/csv');
-
-		if (isset(static::CONFIGURATION['importSetExampleFile']) && static::CONFIGURATION['importSetExampleFile']) {
-			$filePicker->setHtmlAttribute('data-info', 'Vzorový soubor: <a href="' . $this->link('downloadImportSetExampleFile!') . '">' . static::CONFIGURATION['importSetExampleFile'] . '</a><br
->Podporuje <b>pouze</b> formátování Windows a Linux (UTF-8)!');
-		}
-
-		$form->addSelect('delimiter', 'Oddělovač', [
-			';' => 'Středník (;)',
-			',' => 'Čárka (,)',
-			'	' => 'Tab (\t)',
-			' ' => 'Mezera ( )',
-			'|' => 'Pipe (|)',
-		]);
-
-		$form->addCheckbox('autoSet', 'Automaticky převést na set')->setHtmlAttribute('data-info', 'Pokud zaškrtnete, tak se produkty, které nejsou označeny jako set automaticky označí. V opačném případě bude takový záznam přeskočen.');
-		$form->addCheckbox('addNew', 'Vytvářet nové záznamy')->setDefaultValue(true);
-		$form->addCheckbox('overwriteExisting', 'Přepisovat existující záznamy')->setDefaultValue(true)->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
-Soubor <b>musí obsahovat</b> hlavičku, jeden ze sloupců "Kód setu" nebo "EAN setu" resp. "Kód produktu" nebo "EAN produktu" pro jednoznačné rozlišení setů a produktů a sloupec Množství. Jako prioritní se hledá kód a pokud není nalezen tak EAN.<br><br>
-Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
-' . $allowedColumns . '<br>
-<br>
-<b>Pozor!</b> Pokud pracujete se souborem na zařízeních Apple, ujistětě se, že vždy při ukládání použijete možnost uložit do formátu Windows nebo Linux (UTF-8)!');;
-
-		$form->addSubmit('submit', 'Importovat');
-
-		$form->onValidate[] = function (AdminForm $form) {
-			$values = $form->getValues('array');
-
-			/** @var FileUpload $file */
-			$file = $values['file'];
-
-			if (!$file->hasFile()) {
-				$form['file']->addError('Neplatný soubor!');
-			}
-		};
-
-		$form->onSuccess[] = function (AdminForm $form) {
-			$values = $form->getValues('array');
-
-			/** @var FileUpload $file */
-			$file = $values['file'];
-
-			$file->move(\dirname(__DIR__, 5) . '/userfiles/sets.csv');
-			\touch(\dirname(__DIR__, 5) . '/userfiles/sets.csv');
-
-			$connection = $this->productRepository->getConnection();
-
-			$connection->getLink()->beginTransaction();
-
-			try {
-				$this->importSetCsv(\dirname(__DIR__, 5) . '/userfiles/sets.csv',
-					$values['delimiter'],
-					$values['addNew'],
-					$values['overwriteExisting'],
-					$values['autoSet']
-				);
-
-				$connection->getLink()->commit();
-				$this->flashMessage('Provedeno', 'success');
-			} catch (\Exception $e) {
-				FileSystem::delete(\dirname(__DIR__, 5) . '/userfiles/sets.csv');
-				$connection->getLink()->rollBack();
-
-				$this->flashMessage($e->getMessage() != '' ? $e->getMessage() : 'Import dat se nezdařil!', 'error');
-			}
-
-			$this->redirect('this');
-		};
-
-		return $form;
-	}
-
-	public function handleDropzoneRemovePhoto()
-	{
-		$filename = $this->getPresenter()->getParameter('file');
-
-		/** @var Photo $photo */
-		$photo = $this->photoRepository->many()->where('fileName', $filename)->first();
-
-		if (!$photo) {
-			return;
-		}
-
-		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR;
-		FileSystem::delete($basePath . '/origin/' . $photo->fileName);
-		FileSystem::delete($basePath . '/detail/' . $photo->fileName);
-		FileSystem::delete($basePath . '/thumb/' . $photo->fileName);
-
-		if ($photo->product->imageFileName === $photo->fileName) {
-			$photo->product->update(['imageFileName' => null]);
-		}
-
-		$photo->delete();
-	}
-
-	public function handleDropzoneUploadPhoto()
-	{
-		$this->createDirectories();
-
-		/** @var Product $product */
-		$product = $this->getParameter('product');
-
-		/** @var FileUpload $fileUpload */
-		$fileUpload = $this->getPresenter()->getHttpRequest()->getFile('file');
-		$uuid = Connection::generateUuid();
-		$filename = $uuid . '.' . $fileUpload->getImageFileExtension();
-
-		/** @var Photo $photo */
-		$photo = $this->photoRepository->createOne([
-			'uuid' => $uuid,
-			'product' => $product->getPK(),
-			'fileName' => $filename,
-			'priority' => 999
-		]);
-
-		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR;
-
-		try {
-			$fileUpload->move($basePath . '/origin/' . $filename);
-		} catch (\Exception $e) {
-			$this->error('Wrong file!', 500);
-		}
-
-		$imageD = Image::fromFile($basePath . '/origin/' . $filename);
-		$imageT = Image::fromFile($basePath . '/origin/' . $filename);
-		$imageD->resize(600, null);
-		$imageT->resize(300, null);
-
-		try {
-			$imageD->save($basePath . '/detail/' . $filename);
-			$imageT->save($basePath . '/thumb/' . $filename);
-		} catch (\Exception $e) {
-		}
-
-		$row = [];
-		$row['name'] = $photo->fileName;
-		$row['size'] = \file_exists($basePath . '/origin/' . $photo->fileName) ? \filesize($basePath . '/origin/' . $photo->fileName) : 0;
-		$row['src'] = $this->getHttpRequest()->getUrl()->withoutUserInfo()->getBaseUrl() . 'userfiles/' . Product::GALLERY_DIR . '/thumb/' . $filename;
-
-		$this->sendJson($row);
-	}
-
-	public function handleDropzoneSetMain(?string $filename)
-	{
-		if (!$filename) {
-			return;
-		}
-
-		/** @var Photo $photo */
-		$photo = $this->photoRepository->many()->where('filename', $filename)->first();
-
-		if (!$photo) {
-			return;
-		}
-
-		$photo->product->update(['imageFileName' => $filename]);
-
-		$this->redirect('this');
-	}
-
-	public function handleDropzoneSetOrder()
-	{
-		$items = $this->getHttpRequest()->getPost();
-
-		if (!$items) {
-			return;
-		}
-
-		foreach ($items as $uuid => $priority) {
-			$this->photoRepository->many()->where('uuid', $uuid)->update(['priority' => (int)$priority]);
-		}
-
-		$this->redirect('this');
 	}
 }

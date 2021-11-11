@@ -5,11 +5,11 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\Country;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\VatRate;
 use Eshop\DB\VatRateRepository;
-use Forms\Form;
 use Nette\Http\Request;
 
 class CountryPresenter extends BackendPresenter
@@ -23,7 +23,7 @@ class CountryPresenter extends BackendPresenter
 	/** @inject */
 	public Request $request;
 
-	public function createComponentGrid()
+	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->countryRepository->many(), 20, 'code', 'ASC', true);
 		$grid->addColumnSelector();
@@ -42,7 +42,7 @@ class CountryPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentVatGrid()
+	public function createComponentVatGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->vatRateRepository->many()->where('fk_country', $this->getParameter('country')), 20, 'priority', 'ASC', true);
 		$grid->addColumnSelector();
@@ -56,7 +56,7 @@ class CountryPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 
 		$grid->addFilterTextInput('search', ['this.name'], null, 'Název');
-		$grid->addFilterButtons();
+		$grid->addFilterButtons(['vats', $this->getParameter('country')]);
 
 		return $grid;
 	}
@@ -76,7 +76,7 @@ class CountryPresenter extends BackendPresenter
 
 		$form->addSubmits();
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$country = $this->countryRepository->syncOne($values, null, true);
@@ -101,7 +101,7 @@ class CountryPresenter extends BackendPresenter
 			->setDefaultValue(10);
 		$form->addSubmits(false, false);
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$this->vatRateRepository->syncOne($values, null, true);
@@ -113,7 +113,7 @@ class CountryPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function renderDefault()
+	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Země a DPH';
 		$this->template->headerTree = [
@@ -123,7 +123,7 @@ class CountryPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
 
-	public function renderVats(Country $country)
+	public function renderVats(Country $country): void
 	{
 		$this->template->headerLabel = 'Země a DPH: ' . $country->name;
 		$this->template->headerTree = [
@@ -133,7 +133,7 @@ class CountryPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('vatGrid')];
 	}
 
-	public function renderNew()
+	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
@@ -144,7 +144,7 @@ class CountryPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 
-	public function renderDetail()
+	public function renderDetail(): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -155,15 +155,15 @@ class CountryPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 
-	public function actionDetail(Country $country)
+	public function actionDetail(Country $country): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
 
 		$form->setDefaults($country->toArray());
 	}
 
-	public function renderVatDetail(VatRate $vat)
+	public function renderVatDetail(VatRate $vat): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -174,9 +174,9 @@ class CountryPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('vatForm')];
 	}
 
-	public function actionVatDetail(VatRate $vat)
+	public function actionVatDetail(VatRate $vat): void
 	{
-		/** @var Form $form */
+		/** @var \Forms\Form $form */
 		$form = $this->getComponent('vatForm');
 
 		$form->setDefaults($vat->toArray());

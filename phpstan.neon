@@ -1,13 +1,7 @@
 parameters:
     level: 5
     paths:
-        - src/Admin/RibbonPresenter.php
-        - src/DB/RibbonRepository.php
-        - src/Admin/AttributePresenter.php
-        - src/DB/AttributeRepository.php
-        - src/BackendPresenter.php
-        - src/CheckoutManager.php
-        - src/DB/ProductRepository.php
-    excludes_analyse:
+        - src
+    excludePaths:
         - src/assets/*
         - src/templates/*

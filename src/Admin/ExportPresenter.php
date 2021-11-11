@@ -6,10 +6,10 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Eshop\DB\PricelistRepository;
-use Nette\Utils\Arrays;
-use Web\DB\SettingRepository;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\Utils\Arrays;
+use Web\DB\SettingRepository;
 
 class ExportPresenter extends BackendPresenter
 {
@@ -24,7 +24,7 @@ class ExportPresenter extends BackendPresenter
 
 	public function actionDefault(): void
 	{
-		/** @var AdminForm $form */
+		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('settingForm');
 
 		$values = $this->settingsRepo->many()->setIndex('name')->toArrayOf('value');
@@ -32,7 +32,7 @@ class ExportPresenter extends BackendPresenter
 		$keys = [
 			'heurekaExportPricelist',
 			'zboziExportPricelist',
-			'googleExportPricelist'
+			'googleExportPricelist',
 		];
 
 		$defaults = [];
@@ -46,7 +46,6 @@ class ExportPresenter extends BackendPresenter
 		try {
 			$form->setDefaults($defaults);
 		} catch (\InvalidArgumentException $e) {
-
 		}
 
 		$this->template->headerTree = [
@@ -58,27 +57,27 @@ class ExportPresenter extends BackendPresenter
 		$this->template->exports = [
 			(object)[
 				'name' => 'Export pro partnery',
-				'link' => $this->link('//:Eshop:Export:partnersExport')
+				'link' => $this->link('//:Eshop:Export:partnersExport'),
 			],
 			(object)[
 				'name' => 'Export pro Heureku',
-				'link' => $this->link('//:Eshop:Export:heurekaExport')
+				'link' => $this->link('//:Eshop:Export:heurekaExport'),
 			],
 			(object)[
 				'name' => 'Export pro Zboží',
-				'link' => $this->link('//:Eshop:Export:zboziExport')
+				'link' => $this->link('//:Eshop:Export:zboziExport'),
 			],
 			(object)[
 				'name' => 'Export pro Google Nákupy',
-				'link' => $this->link('//:Eshop:Export:googleExport')
-			]
+				'link' => $this->link('//:Eshop:Export:googleExport'),
+			],
 		];
 
 		if ($this->settingsRepo->many()->where('name', 'supportBoxApiKey')->first()) {
 			$this->template->exports[] =
 				(object)[
 					'name' => 'Export pro SupportBox',
-					'link' => $this->link('//:Eshop:Export:supportbox')
+					'link' => $this->link('//:Eshop:Export:supportbox'),
 				];
 		}
 
@@ -97,7 +96,7 @@ class ExportPresenter extends BackendPresenter
 
 		$form->addSubmit('submit', 'Uložit');
 
-		$form->onSuccess[] = function (AdminForm $form) {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			foreach ($values as $key => $value) {
@@ -108,7 +107,7 @@ class ExportPresenter extends BackendPresenter
 				} else {
 					$this->settingsRepo->createOne([
 						'name' => $key,
-						'value' => \implode(';', $value)
+						'value' => \implode(';', $value),
 					]);
 				}
 			}
@@ -124,5 +123,4 @@ class ExportPresenter extends BackendPresenter
 
 		return $form;
 	}
-
 }

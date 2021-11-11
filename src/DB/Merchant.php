@@ -100,12 +100,15 @@ class Merchant extends \StORM\Entity implements IIdentity, IUser
 	
 	protected ?Account $account = null;
 	
-	function getId()
+	public function getId(): string
 	{
 		return $this->getPK();
 	}
-	
-	function getRoles(): array
+
+	/**
+	 * @return object[]
+	 */
+	public function getRoles(): array
 	{
 		return [];
 	}

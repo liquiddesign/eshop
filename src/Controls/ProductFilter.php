@@ -6,33 +6,32 @@ namespace Eshop\Controls;
 
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRangeRepository;
-use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
-use Eshop\DB\ProductRepository;
+use Forms\Form;
+use Forms\FormFactory;
 use Nette\Application\UI\Control;
 use Translator\DB\TranslationRepository;
-use Forms\FormFactory;
-use Forms\Form;
 
 /**
  * @method onFormSuccess(array $parameters)
  */
 class ProductFilter extends Control
 {
+	/**
+	 * @var callable[]&callable(): void; Occurs after product filter form success
+	 */
+	public $onFormSuccess;
+
 	private TranslationRepository $translator;
 
 	private FormFactory $formFactory;
 
 	private CategoryRepository $categoryRepository;
 
-	private ProductRepository $productRepository;
-
 	private AttributeRepository $attributeRepository;
-
-	private AttributeValueRepository $attributeValueRepository;
 
 	private DisplayAmountRepository $displayAmountRepository;
 
@@ -42,57 +41,29 @@ class ProductFilter extends Control
 
 	private ProducerRepository $producerRepository;
 
+	/**
+	 * @var \Eshop\DB\Attribute[]
+	 */
 	private array $attributes;
 
-	private ?array $selectedCategories;
-
-	/**
-	 * @var callable[]&callable(): void; Occurs after product filter form success
-	 */
-	public $onFormSuccess;
-
 	public function __construct(
-		FormFactory                   $formFactory,
-		TranslationRepository         $translator,
-		CategoryRepository            $categoryRepository,
-		ProductRepository             $productRepository,
-		AttributeRepository           $attributeRepository,
-		AttributeValueRepository      $attributeValueRepository,
-		DisplayAmountRepository       $displayAmountRepository,
-		DisplayDeliveryRepository     $displayDeliveryRepository,
+		FormFactory $formFactory,
+		TranslationRepository $translator,
+		CategoryRepository $categoryRepository,
+		AttributeRepository $attributeRepository,
+		DisplayAmountRepository $displayAmountRepository,
+		DisplayDeliveryRepository $displayDeliveryRepository,
 		AttributeValueRangeRepository $attributeValueRangeRepository,
-		ProducerRepository            $producerRepository,
-		array                         $configuration = []
-	)
-	{
+		ProducerRepository $producerRepository
+	) {
 		$this->translator = $translator;
 		$this->formFactory = $formFactory;
 		$this->categoryRepository = $categoryRepository;
-		$this->productRepository = $productRepository;
 		$this->attributeRepository = $attributeRepository;
-		$this->attributeValueRepository = $attributeValueRepository;
 		$this->displayAmountRepository = $displayAmountRepository;
 		$this->displayDeliveryRepository = $displayDeliveryRepository;
 		$this->attributeValueRangeRepository = $attributeValueRangeRepository;
 		$this->producerRepository = $producerRepository;
-	}
-
-	private function getProductList(): ProductList
-	{
-		/** @var \Eshop\Controls\ProductList $parent */
-		$parent = $this->getParent();
-
-		return $parent;
-	}
-
-	private function getCategoryPath(): ?string
-	{
-		return $this->getProductList()->getFilters()['category'] ?? null;
-	}
-
-	private function getAttributes(): array
-	{
-		return $this->attributes ??= $this->getCategoryPath() ? $this->attributeRepository->getAttributesByCategory($this->getCategoryPath())->where('showFilter', true)->toArray() : [];
 	}
 
 	public function render(): void
@@ -125,6 +96,8 @@ class ProductFilter extends Control
 			->where('category.path LIKE :s', ['s' => ($this->getCategoryPath() ?? '') . '%'])
 			->toArrayOf('name'));
 
+		$filterForm->setDefaults($this->getProductList()->getFilters());
+
 		$attributesContainer = $filterForm->addContainer('attributes');
 
 		$defaults = $this->getProductList()->getFilters()['attributes'] ?? [];
@@ -144,23 +117,27 @@ class ProductFilter extends Control
 
 			$checkboxList = $attributesContainer->addCheckboxList($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
 
-			if (isset($defaults[$attribute->getPK()])) {
-				$checkboxList->setDefaultValue($defaults[$attribute->getPK()]);
+			if (!isset($defaults[$attribute->getPK()])) {
+				continue;
 			}
+
+			$checkboxList->setDefaultValue($defaults[$attribute->getPK()]);
 		}
 
 		$filterForm->addSubmit('submit', $this->translator->translate('filter.showProducts', 'Zobrazit produkty'));
 
-		$filterForm->onValidate[] = function (Form $form) {
+		$filterForm->onValidate[] = function (Form $form): void {
 			$values = $form->getValues();
 
-			if ($values['priceFrom'] > $values['priceTo']) {
-				$form['priceTo']->addError($this->translator->translate('filter.wrongPriceRange', 'Neplatný rozsah cen!'));
-				$this->flashMessage($this->translator->translate('form.submitError', 'Chybně vyplněný formulář!'), 'error');
+			if ($values['priceFrom'] <= $values['priceTo']) {
+				return;
 			}
+
+			$form['priceTo']->addError($this->translator->translate('filter.wrongPriceRange', 'Neplatný rozsah cen!'));
+			$this->flashMessage($this->translator->translate('form.submitError', 'Chybně vyplněný formulář!'), 'error');
 		};
 
-		$filterForm->onSuccess[] = function (Form $form) {
+		$filterForm->onSuccess[] = function (Form $form): void {
 			$parameters = [];
 
 			$parent = $this->getParent()->getName();
@@ -174,7 +151,6 @@ class ProductFilter extends Control
 
 		return $filterForm;
 	}
-
 
 	public function handleClearFilters(): void
 	{
@@ -208,7 +184,7 @@ class ProductFilter extends Control
 		}
 
 		foreach ($filtersAttributes as $attributeKey => $attributeValues) {
-			if ($attributeKey == $searchedAttributeKey) {
+			if ($attributeKey === $searchedAttributeKey) {
 				if ($searchedAttributeValueKey) {
 					$foundKey = \array_search($searchedAttributeValueKey, $attributeValues);
 					unset($filtersAttributes[$attributeKey][$foundKey]);
@@ -220,5 +196,26 @@ class ProductFilter extends Control
 		}
 
 		$this->getPresenter()->redirect('this', ["$parent-attributes" => $filtersAttributes,]);
+	}
+
+	private function getProductList(): ProductList
+	{
+		/** @var \Eshop\Controls\ProductList $parent */
+		$parent = $this->getParent();
+
+		return $parent;
+	}
+
+	private function getCategoryPath(): ?string
+	{
+		return $this->getProductList()->getFilters()['category'] ?? null;
+	}
+
+	/**
+	 * @return \Eshop\DB\Attribute[]
+	 */
+	private function getAttributes(): array
+	{
+		return $this->attributes ??= $this->getCategoryPath() ? $this->attributeRepository->getAttributesByCategory($this->getCategoryPath())->where('showFilter', true)->toArray() : [];
 	}
 }

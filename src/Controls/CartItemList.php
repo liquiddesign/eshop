@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
-use Eshop\DB\Product;
-use Eshop\DB\ProductRepository;
-use Eshop\Shopper;
 use Eshop\DB\CartItem;
 use Eshop\DB\CartItemRepository;
+use Eshop\DB\ProductRepository;
+use Eshop\Shopper;
 use Grid\Datalist;
 use Nette\Application\UI\Form;
 use Nette\Application\UI\Multiplier;
@@ -24,16 +23,16 @@ class CartItemList extends Datalist
 {
 	public CheckoutManager $checkoutManager;
 
-	private CartItemRepository $cartItemsRepository;
-
 	public Shopper $shopper;
-
-	private ProductRepository $productRepository;
 
 	/**
 	 * @var callable[]&callable(): void; Occurs after cart item delete
 	 */
 	public $onDeleteAll;
+
+	private CartItemRepository $cartItemsRepository;
+
+	private ProductRepository $productRepository;
 
 	public function __construct(CartItemRepository $cartItemsRepository, CheckoutManager $checkoutManager, Shopper $shopper, ProductRepository $productRepository)
 	{
@@ -59,6 +58,8 @@ class CartItemList extends Datalist
 
 	public function handleRemoveDiscountCoupon(string $couponId): void
 	{
+		unset($couponId);
+
 		$this->checkoutManager->setDiscountCoupon(null);
 	}
 
@@ -66,9 +67,8 @@ class CartItemList extends Datalist
 	{
 		$checkoutManager = $this->checkoutManager;
 		$cartItemRepository = $this->cartItemsRepository;
-		$shopper = $this->shopper;
 
-		return new Multiplier(function ($itemId) use ($checkoutManager, $cartItemRepository, $shopper) {
+		return new Multiplier(function ($itemId) use ($checkoutManager, $cartItemRepository) {
 			/** @var \Eshop\DB\CartItem $cartItem */
 			$cartItem = $cartItemRepository->one($itemId);
 			$product = $cartItem->getProduct();
@@ -77,8 +77,7 @@ class CartItemList extends Datalist
 			$form = new Form();
 
 			//			$maxCount = $product->maxBuyCount ?? $shopper->getMaxBuyCount();
-			$amountInput = $form->addInteger('amount');
-			//
+			$form->addInteger('amount');
 			//			if ($maxCount !== null) {
 			//				$amountInput->addRule($form::MAX, 'Překročeno povolené množství', $product->maxBuyCount ?? $shopper->getMaxBuyCount());
 			//			}
@@ -101,7 +100,7 @@ class CartItemList extends Datalist
 		});
 	}
 
-	public function handleChangeAmount($cartItem, $amount)
+	public function handleChangeAmount($cartItem, $amount): void
 	{
 		/** @var \Eshop\DB\CartItem $cartItem */
 		$cartItem = $this->cartItemsRepository->one($cartItem, true);
@@ -115,7 +114,7 @@ class CartItemList extends Datalist
 		$this->checkoutManager->changeItemAmount($cartItem->getProduct(), $cartItem->variant, $amount, false);
 	}
 
-	public function handleChangeUpsell($cartItem, $upsell)
+	public function handleChangeUpsell($cartItem, $upsell): void
 	{
 		/** @var \Eshop\DB\CartItem $cartItem */
 		$cartItem = $this->cartItemsRepository->one($cartItem, true);

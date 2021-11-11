@@ -74,7 +74,7 @@ class SupplierCategory extends \StORM\Entity
 	 */
 	public string $createdTs;
 	
-	public function getNameTree(string $glue = ' > ')
+	public function getNameTree(string $glue = ' > '): string
 	{
 		$str = $this->categoryNameL1;
 		
