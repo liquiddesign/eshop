@@ -551,6 +551,28 @@
                 </table>
             </fieldset>
         </div>
+
+        <div id="menu4-content" class="tab-pane {$presenter->editTab == 'menu4' ? 'active show' : ''}">
+            <fieldset>
+                <legend>2+1 zdarma</legend>
+
+                <table class="mt-1 mb-1" style="width: auto;">
+
+                </table>
+            </fieldset>
+            <fieldset>
+                <table class="mt-1 mb-1">
+                    <tr>
+                        {ifset $form['submitAndNext']}
+                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
+                        {else}
+                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
+                        {/ifset}
+                    </tr>
+                </table>
+            </fieldset>
+        </div>
+
         <div id="gallery-content" class="tab-pane {$presenter->editTab == 'gallery' ? 'active show' : ''}">
         </div>
         <div id="files-content" class="tab-pane {$presenter->editTab == 'files' ? 'active show' : ''}">

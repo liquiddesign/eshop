@@ -42,6 +42,12 @@ class RelatedType extends \StORM\Entity
 	public bool $showSearch = false;
 
 	/**
+	 * Zobrazovat v detailu produktu jako set (vypsat položky)
+	 * @column
+	 */
+	public bool $showAsSet = false;
+
+	/**
 	 * Výchozí množství produktu
 	 * @column
 	 */

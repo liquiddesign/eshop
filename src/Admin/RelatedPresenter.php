@@ -74,7 +74,6 @@ class RelatedPresenter extends BackendPresenter
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'this.priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'this.hidden');
 
-		$grid->addColumnLinkDetail('detailRelation');
 		$grid->addColumnActionDeleteSystemic();
 
 		$grid->addButtonSaveAll([], [], null, false, null, function ($id, &$data): void {
@@ -149,7 +148,7 @@ class RelatedPresenter extends BackendPresenter
 				->addRule($form::FLOAT)
 				->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
 		} elseif ($this->relatedType->defaultMasterPct) {
-			$form->addText('defaultMasterPct', 'Procento ceny z ' . $this->relatedType->getMasterInternalName() . ' (%)')
+			$form->addText('masterPct', 'Procento ceny z ' . $this->relatedType->getMasterInternalName() . ' (%)')
 				->setDefaultValue($this->relatedType->defaultMasterPct)
 				->addRule($form::REQUIRED)
 				->addRule($form::FLOAT)
@@ -275,9 +274,12 @@ class RelatedPresenter extends BackendPresenter
 		$grid->addColumnSelector();
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumnText('Název', 'name', '%s', 'name');
-		$grid->addColumnInputCheckbox('Zobrazit v detailu', 'showDetail', '', '', 'showDetail');
+		$grid->addColumnText('Název master produktu', 'masterName', '%s', 'masterName');
+		$grid->addColumnText('Název slave produktu', 'slaveName', '%s', 'slaveName');
 		$grid->addColumnInputCheckbox('Zobrazit v košíku', 'showCart', '', '', 'showCart');
 		$grid->addColumnInputCheckbox('Zobrazit v našeptávači', 'showSearch', '', '', 'showSearch');
+		$grid->addColumnInputCheckbox('Zobrazit v detailu', 'showDetail', '', '', 'showDetail');
+		$grid->addColumnInputCheckbox('Zobrazit jako set', 'showAsSet', '', '', 'showAsSet');
 
 		$grid->addColumnLinkDetail('detailType');
 		$grid->addColumnActionDeleteSystemic();
@@ -301,6 +303,9 @@ class RelatedPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create(true);
 
+		/** @var \Eshop\DB\RelatedType $relatedType */
+		$relatedType = $this->getParameter('relatedType');
+
 		$form->addText('code', 'Kód')->setRequired();
 		$form->addLocaleText('name', 'Název');
 
@@ -309,6 +314,10 @@ class RelatedPresenter extends BackendPresenter
 
 		$form->addInteger('defaultAmount', 'Výchozí množství')->setRequired()->setDefaultValue(1);
 		$typeInput = $form->addSelect('type', 'Typ přepočtu ceny', ['none' => 'Žádný', 'discount' => 'Sleva', 'master' => 'Procento z master produktu']);
+
+		if ($relatedType) {
+			$typeInput->setDefaultValue($relatedType->defaultDiscountPct ? 'discount' : ($relatedType->defaultMasterPct ? 'master' : 'none'));
+		}
 
 		$form->addText('defaultDiscountPct', 'Výchozí sleva (%)')
 			->setNullable()
@@ -331,11 +340,12 @@ class RelatedPresenter extends BackendPresenter
 			->toggle('frm-typeForm-defaultMasterPct-toogle')
 			->endCondition();
 
-		$form->addCheckbox('showDetail', 'Zobrazit v detailu produktu');
 		$form->addCheckbox('showCart', 'Zobrazit v košíku');
 		$form->addCheckbox('showSearch', 'Zobrazit v našeptávači');
+		$form->addCheckbox('showDetail', 'Zobrazit v detailu produktu')->setHtmlAttribute('data-info', 'Zobrazí v detailu produktu jako seznam produktů.');
+		$form->addCheckbox('showAsSet', 'Zobrazit jako set')->setHtmlAttribute('data-info', 'Zobrazí v detailu produktu odkazy na produkty setu.');
 
-		$form->addSubmits(!$this->getParameter('relatedType'));
+		$form->addSubmits(!$relatedType);
 
 		$form->onValidate[] = function (AdminForm $form): void {
 			if (!$form->isValid()) {
@@ -500,247 +510,6 @@ Pokud nebude nalezen produkt tak se daný řádek ignoruje. V případě chyby n
 			}
 
 			$form->getPresenter()->redirect('default');
-		};
-
-		return $form;
-	}
-
-	public function createComponentRelatedMasterGrid(): AdminGrid
-	{
-		$grid = $this->gridFactory->create($this->relatedMasterRepository->many()->where('fk_related', $this->getParameter('related')), 20, 'product', 'ASC', true);
-		$grid->addColumnSelector();
-
-		$grid->addColumnText('Kód', 'product.code', '%s', 'product.code');
-		$grid->addColumn('Produkt', function (RelatedMaster $relatedProduct, Datagrid $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') && $relatedProduct->product ? $datagrid->getPresenter()->link(
-				':Eshop:Admin:Product:edit',
-				[$relatedProduct->product, 'backLink' => $this->storeRequest()],
-			) : '#';
-
-			return '<a href="' . $link . '">' . $relatedProduct->product->name . '</a>';
-		}, '%s', 'product.name');
-		$grid->addColumnInputInteger('Množství', 'amount', '', 'amount');
-
-		$grid->addColumnActionDelete();
-
-		$grid->addButtonSaveAll([], [], null, false, null, function ($id, &$data): void {
-			if (!isset($data['amount']) || $data['amount'] === '') {
-				$data['amount'] = 1;
-			}
-		}, false);
-		$grid->addButtonDeleteSelected();
-
-		$mutationSuffix = $this->relatedTypeRepository->getConnection()->getMutationSuffix();
-
-		$grid->addFilterTextInput('search', ["product.name$mutationSuffix", "product.code"], 'Kód, název', 'Kód, název');
-		$grid->addFilterButtons(['masters', $this->getParameter('related')]);
-
-		return $grid;
-	}
-
-	public function createComponentRelatedSlaveGrid(): AdminGrid
-	{
-		$grid = $this->gridFactory->create($this->relatedSlaveRepository->many()->where('fk_related', $this->getParameter('related')), 20, 'product', 'ASC', true);
-		$grid->addColumnSelector();
-
-		$grid->addColumnText('Kód', 'product.code', '%s', 'product.code');
-		$grid->addColumn('Produkt', function (RelatedSlave $relatedProduct, Datagrid $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') && $relatedProduct->product ? $datagrid->getPresenter()->link(
-				':Eshop:Admin:Product:edit',
-				[$relatedProduct->product, 'backLink' => $this->storeRequest()],
-			) : '#';
-
-			return '<a href="' . $link . '">' . $relatedProduct->product->name . '</a>';
-		}, '%s', 'product.name');
-		$grid->addColumnInputInteger('Množství', 'amount', '', 'amount');
-		$grid->addColumnInputFloat('Sleva (%)', 'discountPct', '', 'discountPct');
-
-		$grid->addColumnActionDelete();
-
-		$grid->addButtonSaveAll([], [], null, false, null, function ($id, &$data): void {
-			if (!isset($data['amount']) || $data['amount'] === '') {
-				$data['amount'] = 1;
-			}
-
-			if (isset($data['discountPct']) && $data['discountPct'] !== '' && $data['discountPct'] >= 0 && $data['discountPct'] <= 100) {
-				return;
-			}
-
-			$data['discountPct'] = 0;
-		}, false);
-		$grid->addButtonDeleteSelected();
-
-		$mutationSuffix = $this->relatedTypeRepository->getConnection()->getMutationSuffix();
-
-		$grid->addFilterTextInput('search', ["product.name$mutationSuffix", "product.code"], 'Kód, název', 'Kód, název');
-		$grid->addFilterButtons(['slaves', $this->getParameter('related')]);
-
-		return $grid;
-	}
-
-	public function renderMasters(Related $related): void
-	{
-		$this->template->headerLabel = $related->type->getMasterInternalName();
-		$this->template->headerTree = [
-			['Vazby', 'default'],
-			[$related->type->getMasterInternalName()],
-		];
-		$this->template->displayButtons = [
-			$this->createBackButton('default'),
-			$this->createNewItemButton('masterNew', [$related]),
-			$this->createButtonWithClass('slaves', ($related->type->getSlaveInternalName() ?? 'Slave produkty') .
-				'&nbsp;<i class="fas fa-arrow-right"></i>', 'btn btn-sm btn-outline-primary', $related),
-		];
-		$this->template->displayControls = [$this->getComponent('relatedMasterGrid')];
-	}
-
-	public function renderMasterNew(?Related $related = null): void
-	{
-		$this->template->headerLabel = $related ? $related->type->getMasterInternalName() : $this->relatedType->getMasterInternalName();
-		$this->template->headerTree = [
-			['Vazby', 'default'],
-			[$related ? $related->type->getMasterInternalName() : $this->relatedType->getMasterInternalName()],
-		];
-		$this->template->displayButtons = [$related ? $this->createBackButton('masters', $related) : $this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('relatedMasterForm')];
-	}
-
-	public function createComponentRelatedMasterForm(): Form
-	{
-		$form = $this->formFactory->create();
-
-		/** @var \Eshop\DB\Related $related */
-		$related = $this->getParameter('related');
-
-		if ($related) {
-			$form->addHidden('related')->setDefaultValue($related->getPK());
-		}
-
-		$form->addSelect2Ajax('product', $this->link('getProductsForSelect2!'), $related ? $related->type->getMasterInternalName() : $this->relatedType->getMasterInternalName(), [], 'Zvolte produkt');
-		$form->addInteger('amount', 'Množství')->setRequired()->setDefaultValue($this->relatedType->masterDefaultAmount);
-
-		$form->addSubmits(true, false);
-
-		$form->onValidate[] = function (AdminForm $form): void {
-			if (!$form->isValid()) {
-				return;
-			}
-
-			$data = $form->getHttpData();
-
-			if (isset($data['product'])) {
-				return;
-			}
-
-			$form['product']->addError('Toto pole je povinné!');
-		};
-
-		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
-			$data = $form->getHttpData();
-			$values['product'] = $data['product'];
-
-			if (!$values['uuid']) {
-				$values['uuid'] = DIConnection::generateUuid();
-			}
-
-			$newRelated = false;
-
-			if (!isset($values['related'])) {
-				$newRelated = true;
-
-				do {
-					$code = Random::generate(32);
-					$existing = $this->relatedRepository->one(['code' => $code]);
-				} while ($existing);
-
-				$values['related'] = $this->relatedRepository->createOne(['type' => $this->relatedType, 'code' => $code]);
-			}
-
-			/** @var \Eshop\DB\RelatedMaster $relatedMaster */
-			$relatedMaster = $this->relatedMasterRepository->syncOne($values);
-
-			$this->flashMessage('Uloženo', 'success');
-			$form->processRedirect('', $newRelated ? 'slaveNew' : 'masters', [], [$relatedMaster->related], [$relatedMaster->related]);
-		};
-
-		return $form;
-	}
-
-	public function renderSlaves(Related $related): void
-	{
-		$this->template->headerLabel = $related->type->getSlaveInternalName();
-		$this->template->headerTree = [
-			['Vazby', 'default'],
-			[$related->type->getSlaveInternalName()],
-		];
-		$this->template->displayButtons = [
-			$this->createBackButton('default'),
-			$this->createNewItemButton('slaveNew', [$related]),
-			$this->createButtonWithClass('masters', ($related->type->getMasterInternalName() ?? 'Master produkty') .
-				'&nbsp;<i class="fas fa-arrow-right"></i>', 'btn btn-sm btn-outline-primary', $related),
-		];
-		$this->template->displayControls = [$this->getComponent('relatedSlaveGrid')];
-	}
-
-	public function renderSlaveNew(Related $related): void
-	{
-		$this->template->headerLabel = $related->type->getSlaveInternalName();
-		$this->template->headerTree = [
-			['Vazby', 'default'],
-			[$related->type->getSlaveInternalName()],
-		];
-		$this->template->displayButtons = [$this->createBackButton('slaves', $related)];
-		$this->template->displayControls = [$this->getComponent('relatedSlaveForm')];
-	}
-
-	public function createComponentRelatedSlaveForm(): Form
-	{
-		$form = $this->formFactory->create();
-
-		/** @var \Eshop\DB\Related $related */
-		$related = $this->getParameter('related');
-
-		$form->addHidden('related')->setDefaultValue($related->getPK());
-
-		$form->addSelect2Ajax('product', $this->link('getProductsForSelect2!'), $related->type->getSlaveInternalName(), [], 'Zvolte produkt');
-		$form->addInteger('amount', 'Množství')->setRequired()->setDefaultValue($this->relatedType->slaveDefaultAmount);
-		$form->addText('discountPct', 'Sleva (%)')
-			->setRequired()
-			->setDefaultValue($related->type->defaultDiscountPct)
-			->addRule($form::FLOAT)
-			->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
-
-		$form->addSubmits(true, false);
-
-		$form->onValidate[] = function (AdminForm $form): void {
-			if (!$form->isValid()) {
-				return;
-			}
-
-			$data = $form->getHttpData();
-
-			if (isset($data['product'])) {
-				return;
-			}
-
-			$form['product']->addError('Toto pole je povinné!');
-		};
-
-		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
-			$data = $form->getHttpData();
-			$values['product'] = $data['product'];
-
-			if (!$values['uuid']) {
-				$values['uuid'] = DIConnection::generateUuid();
-			}
-
-			/** @var \Eshop\DB\RelatedSlave $relatedSlave */
-			$relatedSlave = $this->relatedSlaveRepository->syncOne($values);
-
-			$this->flashMessage('Uloženo', 'success');
-			$form->processRedirect('', 'slaves', [], [$relatedSlave->related], [$relatedSlave->related]);
 		};
 
 		return $form;
