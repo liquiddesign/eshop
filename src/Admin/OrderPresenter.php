@@ -556,10 +556,8 @@ class OrderPresenter extends BackendPresenter
 		return $form;
 	}
 
-	/**
-	 * @TODO
-	 * @codingStandardsIgnoreStart
-	 */
+	//@TODO
+	//@codingStandardsIgnoreStart
 	public function createComponentMergeOrderForm(): AdminForm
 	{
 		$orderRepository = $this->orderRepository;

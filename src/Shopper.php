@@ -417,17 +417,14 @@ class Shopper
 
 		return null;
 	}
-	
-	/**
-	 * @param \Nette\Application\UI\Template|\stdClass $template
-	 */
+
 	public function addFilters(Template $template): void
 	{
 		$template->addFilter('price', function ($number, ?string $currencyCode = null) {
 			return $this->filterPrice($number, $currencyCode);
 		});
 	}
-	
+
 	/**
 	 * Formátuje cenu
 	 * @param float|int $number
@@ -439,7 +436,7 @@ class Shopper
 		
 		if ($currency->formatDecimals === null) {
 			$localeInfo = \localeconv();
-			$currency->formatDecimals = (int) $localeInfo['frac_digits'] ?? 0;
+			$currency->formatDecimals = (int) ($localeInfo['frac_digits'] ?? 0);
 		}
 		
 		$nbsp = \html_entity_decode('&nbsp;');
@@ -461,7 +458,8 @@ class Shopper
 		if ($mutation) {
 			return $mutation;
 		}
-		
+
+		/** @var \Eshop\DB\Customer|null $customer */
 		$customer = $this->customerRepository->getByAccountLogin($account->getPK());
 		
 		if ($customer) {

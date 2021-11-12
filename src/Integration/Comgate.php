@@ -63,7 +63,7 @@ class Comgate
 		$currency = $order->getPayment()->currency->code;
 		$customer = $order->purchase->email;
 		$payment = Payment::of(
-			Money::of($price ?? 50, $currency ?? 'CZK'),
+			Money::of($price, $currency),
 			$order->code,
 			$order->code,
 			$customer,

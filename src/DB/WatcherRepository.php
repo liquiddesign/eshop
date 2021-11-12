@@ -92,7 +92,7 @@ class WatcherRepository extends \StORM\Repository
 		$activeWatchers = [];
 		/** @var \Eshop\DB\Watcher[] $nonActiveWatchers */
 		$nonActiveWatchers = [];
-		/** @var \Eshop\DB\Pricelist[][] $pricelistsByCustomers */
+		/** @var array<string, \Eshop\DB\Pricelist[]> $pricelistsByCustomers */
 		$pricelistsByCustomers = [];
 
 		$watchers = $this->many()->where('priceFrom IS NOT NULL AND beforePriceFrom IS NOT NULL');
@@ -101,13 +101,16 @@ class WatcherRepository extends \StORM\Repository
 			/** @var \Eshop\DB\Watcher $watcher */
 
 			if (!isset($pricelistsByCustomers[$watcher->getValue('customer')])) {
-				$pricelistsByCustomers[$watcher->getValue('customer')] = $this->pricelistRepository->getCollection()
+				/** @var \Eshop\DB\Pricelist[] $pricelists */
+				$pricelists = $this->pricelistRepository->getCollection()
 					->join(['nxnCustomer' => 'eshop_customer_nxn_eshop_pricelist'], 'this.uuid = nxnCustomer.fk_pricelist')
 					->where('nxnCustomer.fk_customer', $watcher->getValue('customer'))
 					->toArray();
+
+				$pricelistsByCustomers[$watcher->getValue('customer')] = $pricelists;
 			}
 
-			/** @var \Eshop\DB\Product $product */
+			/** @var \Eshop\DB\Product|null $product */
 			$product = $this->productRepository->getProducts($pricelistsByCustomers[$watcher->getValue('customer')])->where('this.uuid', $watcher->getValue('product'))->first();
 
 			if (!$product) {

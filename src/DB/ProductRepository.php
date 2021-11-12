@@ -670,11 +670,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 			}
 		}
 
-		if (!$primaryCategory = $product->getPrimaryCategory()) {
+		if (!$primaryCategory = $product->primaryCategory) {
 			return false;
 		}
 
-		return $primaryCategory && $categoryRepo->getRootCategoryOfCategory($primaryCategory) === $category->getPK();
+		return $categoryRepo->getRootCategoryOfCategory($primaryCategory)->getPK() === $category->getPK();
 	}
 
 	public function getSlaveProductsCountByRelationAndMaster($relation, $product): int
@@ -695,32 +695,6 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $this->many()->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave')
 			->where('related.fk_master', $product->getPK())
 			->where('related.fk_type', $relation);
-	}
-
-	/**
-	 * @param \Security\DB\Account|string $account
-	 * @return \StORM\Collection|\StORM\GenericCollection|\Eshop\DB\Product[]
-	 * @throws \StORM\Exception\NotFoundException
-	 * @deprecated Not universal! Cant be in eshop package
-	 */
-	public function getBoughtPrintersByUser($account)
-	{
-		if (!$account instanceof Account) {
-			if (!$account = $this->getConnection()->findRepository(Account::class)->one($account)) {
-				return [];
-			}
-		}
-
-		return $this->many()
-			->join(['cartitem' => 'eshop_cartitem'], 'this.uuid = cartitem.fk_product')
-			->join(['relation' => 'eshop_related'], 'cartitem.fk_product = relation.fk_slave')
-			->join(['cart' => 'eshop_cart'], 'cartitem.fk_cart = cart.uuid')
-			->join(['purchase' => 'eshop_purchase'], 'cart.fk_purchase = purchase.uuid')
-			->join(['orderTable' => 'eshop_order'], 'orderTable.fk_purchase = purchase.uuid')
-			->where('purchase.fk_account', $account->getPK())
-			->where('relation.fk_type', 'tonerForPrinter')
-			->where('orderTable.completedTs IS NOT NULL')
-			->orderBy(['orderTable.completedTs' => 'DESC']);
 	}
 
 	/**
@@ -772,8 +746,12 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$upsells = [];
 
 		foreach ($cartItem->product->upsells->orderBy(['priority']) as $upsell) {
-			/** @var \Eshop\DB\Product $upsell */
-			if (!$upsellWithPrice = $this->getProducts()->where('this.uuid', $upsell->getPK())->first()) {
+			/** @var \Eshop\DB\Product|\stdClass $upsell */
+
+			/** @var \Eshop\DB\Product|\stdClass|null $upsellWithPrice */
+			$upsellWithPrice = $this->getProducts()->where('this.uuid', $upsell->getPK())->first();
+
+			if (!$upsellWithPrice) {
 				if ($cartItem->product->dependedValue) {
 					$upsell->shortName = $upsell->name;
 					$upsell->name = $cartItem->productName . ' - ' . $upsell->name;
@@ -795,7 +773,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 	}
 
 	/**
-	 * @param $set
+	 * @param \Eshop\DB\Product|string $set
 	 * @return \Eshop\DB\Set[]
 	 * @throws \StORM\Exception\NotFoundException
 	 */
@@ -843,8 +821,9 @@ class ProductRepository extends Repository implements IGeneralRepository
 				IF(category.code IS NULL OR category.code = '', category.uuid, category.code)) ORDER BY LENGTH(category.path) SEPARATOR ':')",
 			]);
 
-		/** @var \Eshop\DB\Product $product */
 		while ($product = $products->fetch()) {
+			/** @var \Eshop\DB\Product|\stdClass $product */
+
 			$row = [];
 
 			$productAttributes = [];
@@ -894,6 +873,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 					$tmp .= "$attributeValueLabel#$attributeValueCode:";
 				}
 
+				/** @phpstan-ignore-next-line Bug in phpstan https://github.com/phpstan/phpstan/issues/2889 */
 				$row[] = \strlen($tmp) > 0 ? \substr($tmp, 0, -1) : null;
 			}
 

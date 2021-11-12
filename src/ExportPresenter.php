@@ -13,6 +13,7 @@ use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VatRateRepository;
 use Nette\Application\Responses\FileResponse;
+use Nette\Application\UI\Presenter;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Http\IResponse;
@@ -20,7 +21,7 @@ use Nette\Http\Request;
 use Security\DB\AccountRepository;
 use Web\DB\SettingRepository;
 
-abstract class ExportPresenter extends \Nette\Application\UI\Presenter
+abstract class ExportPresenter extends Presenter
 {
 	protected const CONFIGURATION = [
 		'customLabel_1' => false,
@@ -133,13 +134,12 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 		}
 
 		if (!$uuid) {
-			$uuid = $this->user->getIdentity()->getPK();
+			/** @var \Eshop\DB\Customer $customer */
+			$customer = $this->getUser()->getIdentity();
+			$uuid = $customer->getPK();
 		}
 
-		/** @var \Eshop\DB\Customer $customer */
 		$customer = $this->customerRepo->one($uuid);
-
-		/** @var \Eshop\DB\Merchant $merchant */
 		$merchant = $this->merchantRepo->one($uuid);
 
 		if (!$customer && !$merchant) {
@@ -191,20 +191,20 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 			$this->error('Email parameter not found!');
 		}
 
-		/** @var \Eshop\DB\Customer $customer */
+		/** @var \Eshop\DB\Customer|null $customer */
 		$customer = $this->customerRepo->many()->where('email', $email)->first();
 
 		$account = null;
 
 		if (!$customer) {
-			/** @var \Security\DB\Account $account */
+			/** @var \Security\DB\Account|null $account */
 			$account = $this->accountRepo->many()->where('login', $email)->first();
 
 			if (!$account) {
 				$this->error('User not found!');
 			}
 
-			/** @var \Eshop\DB\CatalogPermission $perm */
+			/** @var \Eshop\DB\CatalogPermission|null $perm */
 			$perm = $this->catalogPermRepo->many()->where('fk_account', $account->getPK())->first();
 
 			if (!$perm) {
@@ -262,20 +262,14 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 	 */
 	private function getPricelistFromSetting(string $settingName): array
 	{
-		/** @var \Web\DB\Setting $setting */
+		/** @var \Web\DB\Setting|null $setting */
 		$setting = $this->settingRepo->one(['name' => $settingName]);
 
 		if (!$setting || !$setting->value) {
 			throw new \Exception($this::ERROR_MSG);
 		}
 
-		$pricelistKeys = \explode(';', $setting->value);
-
-		if (\count($pricelistKeys) === 0) {
-			throw new \Exception($this::ERROR_MSG);
-		}
-
-		return $this->priceListRepo->many()->where('this.uuid', $pricelistKeys)->toArray();
+		return $this->priceListRepo->many()->where('this.uuid', \explode(';', $setting->value))->toArray();
 	}
 
 	private function export(string $name): void

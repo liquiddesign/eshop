@@ -484,7 +484,7 @@ class CheckoutManager
 		$cartItem = $this->itemRepository->syncItem($cart ?? $this->getCart(), null, $product, $variant, $amount, $disabled);
 
 		if ($currency = $this->getCartCurrency()) {
-			$taxes = $this->taxRepository->getTaxesForProduct($product, $currency->getPK());
+			$taxes = $this->taxRepository->getTaxesForProduct($product, $currency);
 
 			foreach ($taxes as $tax) {
 				$tax = $tax->toArray();

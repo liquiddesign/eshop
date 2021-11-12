@@ -492,14 +492,14 @@ Pokud nebude nalezen produkt tak se daný řádek ignoruje. V případě chyby n
 			$values = $form->getValues('array');
 
 			/** @var \Nette\Http\FileUpload $file */
-			$file = $form->getValues()->file;
+			$file = $values['file'];
 
 			$connection = $this->productRepository->getConnection();
 
 			$connection->getLink()->beginTransaction();
 
 			try {
-				$this->relatedRepository->importCsv($file->getContents(), $this->relatedType, $values['overwrite']);
+				$this->relatedRepository->importCsv($file->getContents());
 
 				$connection->getLink()->commit();
 				$this->flashMessage('Provedeno', 'success');

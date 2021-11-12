@@ -28,12 +28,12 @@ class MailerLite
 	private Groups $groupsApi;
 
 	/**
-	 * @var \MailerLiteApi\Api\Groups[]
+	 * @var \stdClass[]
 	 */
 	private array $groups;
 
 	/**
-	 * @var \MailerLiteApi\Api\Subscribers[]
+	 * @var array<string, \stdClass[]>
 	 */
 	private array $subscribers;
 
@@ -88,6 +88,7 @@ class MailerLite
 
 		$this->unsubscribeAllFromAllGroups();
 
+		/** @var \Eshop\DB\CatalogPermission $catalogPerm */
 		foreach ($this->catalogPermissionRepository->many()->where('newsletter', true)->where('newsletterGroup != "" AND newsletterGroup IS NOT NULL') as $catalogPerm) {
 			if (!Validators::isEmail($catalogPerm->account->login)) {
 				continue;
@@ -187,9 +188,9 @@ class MailerLite
 
 	/**
 	 * @param string $groupName
-	 * @return \MailerLiteApi\Api\Subscribers|\MailerLiteApi\Api\Subscribers[]
+	 * @return \stdClass[]
 	 */
-	private function getSubscribers(string $groupName): Subscribers
+	private function getSubscribers(string $groupName): array
 	{
 		$group = $this->getGroupByName($groupName);
 

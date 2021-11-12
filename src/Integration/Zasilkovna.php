@@ -101,7 +101,7 @@ class Zasilkovna
 				'note' => $value['special'] ?? null,
 			]);
 
-			$open = true;
+//			$open = true;
 //			$openSince = isset($value['openSince']) ? new DateTime($value['openSince']) : null;
 //			$openUntil = isset($value['openUntil']) ? new DateTime($value['openUntil']) : null;
 //			$enterableUntil = isset($value['enterableUntil']) ? new DateTime($value['enterableUntil']) : null;
@@ -128,7 +128,7 @@ class Zasilkovna
 				'address' => $address->getPK(),
 				'gpsN' => \floatval($value['latitude']),
 				'gpsE' => \floatval($value['longitude']),
-				'hidden' => !$open,
+				'hidden' => false,
 				'description' => [
 					'cs' => $this->translator->translate('.status', 'Stav') . ': ' . $value['status']['description'] . '  ' .
 						(\is_array($value['directions']) ? null : \trim(\strip_tags($value['directions']))),
@@ -255,6 +255,7 @@ class Zasilkovna
 
 	private function createZasilkovnaPackage(Order $order, $zasilkovnaApiPassword): void
 	{
+		/** @var \Eshop\DB\Purchase $purchase */
 		$purchase = $this->purchaseRepository->many()->join(['orders' => 'eshop_order'], 'this.uuid = orders.fk_purchase')->where('orders.uuid', $order->getPK())->first();
 
 		$client = new Client([
@@ -290,7 +291,7 @@ class Zasilkovna
 		$response = $client->request('POST', '', $options);
 		$xmlResponse = new SimpleXMLElement($response->getBody()->getContents());
 
-		if ($xmlResponse->status === 'ok') {
+		if ((string)$xmlResponse->status === 'ok') {
 			$order->update(['zasilkovnaCompleted' => true]);
 		}
 

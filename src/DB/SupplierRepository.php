@@ -78,6 +78,9 @@ class SupplierRepository extends Repository implements IGeneralRepository
 
 		$this->pricelistRepository->many()->where('fk_supplier', $supplier)->delete();
 
+		$availablePriceCount = null;
+		$unavailablePriceCount = null;
+
 		if ($supplier->splitPricelists) {
 			$pricelist = $this->syncPricelist($supplier, $currency, $country, '2', 3, true);
 			$availablePriceCount = $this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)
@@ -117,6 +120,7 @@ class SupplierRepository extends Repository implements IGeneralRepository
 
 	public function syncPricelist(Supplier $supplier, string $currency, string $country, string $id, int $priority, bool $active, ?string $label = null): Pricelist
 	{
+		/** @var \Eshop\DB\PricelistRepository $pricelistRepository */
 		$pricelistRepository = $this->getConnection()->findRepository(Pricelist::class);
 
 		return $pricelistRepository->syncOne([
@@ -133,6 +137,7 @@ class SupplierRepository extends Repository implements IGeneralRepository
 
 	public function syncStore(Supplier $supplier, string $mutation, string $id = '1', ?string $label = null): Store
 	{
+		/** @var \Eshop\DB\StoreRepository $storeRepository */
 		$storeRepository = $this->getConnection()->findRepository(Store::class);
 
 		return $storeRepository->syncOne([

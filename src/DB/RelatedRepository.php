@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
+use Common\NumbersHelper;
 use League\Csv\Reader;
 use League\Csv\Writer;
 use Nette\Utils\FileSystem;
@@ -20,16 +21,16 @@ use StORM\SchemaManager;
  */
 class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 {
-	private ProductRepository $productRepository;
+	private RelatedTypeRepository $relatedTypeRepository;
 
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		ProductRepository $productRepository
+		RelatedTypeRepository $relatedTypeRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
-		$this->productRepository = $productRepository;
+		$this->relatedTypeRepository = $relatedTypeRepository;
 	}
 
 	/**
@@ -51,101 +52,94 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 		return $collection->orderBy(['priority']);
 	}
 
-	public function exportCsv(Writer $writer, ICollection $items): void
+	/**
+	 * @param \League\Csv\Writer $writer
+	 * @param \Eshop\DB\Related[] $items
+	 * @throws \League\Csv\CannotInsertRecord
+	 * @throws \League\Csv\InvalidArgument
+	 */
+	public function exportCsv(Writer $writer, array $items): void
 	{
 		$writer->setDelimiter(';');
 
 		$writer->insertOne([
-			'related',
-			'master/slave',
-			'productCode',
+			'type',
+			'master',
+			'slave',
 			'amount',
 			'discountPct',
+			'masterPct',
+			'priority',
+			'hidden',
 		]);
 
-		$relatedKeys = \array_values($items->toArrayOf('uuid'));
-
-		foreach ($this->relatedMasterRepository->many()
-					 ->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid')
-					 ->where('fk_related', $relatedKeys) as $master) {
+		foreach ($items as $related) {
 			$writer->insertOne([
-				$master->related->code,
-				'm',
-				$master->product->getFullCode(),
-				$master->amount,
-				'',
-			]);
-		}
-
-		foreach ($this->relatedSlaveRepository->many()
-					 ->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid')
-					 ->where('fk_related', $relatedKeys) as $slave) {
-			$writer->insertOne([
-				$slave->related->code,
-				's',
-				$slave->product->getFullCode(),
-				$slave->amount,
-				$slave->discountPct,
+				$related->type->code,
+				$related->master->getFullCode(),
+				$related->slave->getFullCode(),
+				$related->amount,
+				$related->discountPct,
+				$related->masterPct,
+				$related->priority,
+				$related->hidden ? '1' : '0',
 			]);
 		}
 	}
 
-	public function importCsv(string $content, RelatedType $relatedType, bool $overwrite = false): void
+	public function importCsv(string $content): void
 	{
 		$reader = $this->getReaderFromString($content);
 
 		$iterator = $reader->getRecords([
-			'related',
-			'master/slave',
-			'productCode',
+			'type',
+			'master',
+			'slave',
 			'amount',
 			'discountPct',
+			'masterPct',
+			'priority',
+			'hidden',
 		]);
 
 		foreach ($iterator as $value) {
-			$fullCode = \explode('.', $value['productCode']);
-			$products = $this->productRepository->many()->where('this.code', $fullCode[0]);
+			$relatedType = $this->relatedTypeRepository->many()->where('code', $value['type'])->first();
+
+			if (!$relatedType) {
+				continue;
+			}
+
+			$fullCode = \explode('.', $value['master']);
+			$products = $this->getConnection()->findRepository(Product::class)->many()->where('this.code', $fullCode[0]);
 
 			if (isset($fullCode[1])) {
 				$products->where('this.subcode', $fullCode[1]);
 			}
 
-			if (!$product = $products->first()) {
+			if (!$master = $products->first()) {
 				continue;
 			}
 
-			$related = $this->many()->where('code', $value['related'])->first();
+			$fullCode = \explode('.', $value['slave']);
+			$products = $this->getConnection()->findRepository(Product::class)->many()->where('this.code', $fullCode[0]);
 
-			if ($related && $overwrite) {
-				$value['master/slave'] === 'm' ?
-					$this->relatedMasterRepository->many()
-						->where('fk_related', $related->getPK())
-						->where('fk_product', $product->getPK())
-						->delete() :
-					$this->relatedSlaveRepository->many()
-						->where('fk_related', $related->getPK())
-						->where('fk_product', $product->getPK())
-						->delete();
+			if (isset($fullCode[1])) {
+				$products->where('this.subcode', $fullCode[1]);
 			}
 
-			if (($related && !$overwrite) || !$related) {
-				do {
-					$code = Random::generate(32);
-					$related = $this->one(['code' => $code]);
-				} while ($related);
-
-				$related = $this->createOne(['type' => $relatedType, 'code' => $code]);
+			if (!$slave = $products->first()) {
+				continue;
 			}
 
-			$value['master/slave'] === 'm' ? $this->relatedMasterRepository->syncOne([
-				'related' => $related,
-				'product' => $product,
-				'amount' => \intval($value['amount']),
-			]) : $this->relatedSlaveRepository->syncOne([
-				'related' => $related,
-				'product' => $product,
-				'amount' => \intval($value['amount']),
-				'discountPct' => \floatval(\str_replace(',', '.', $value['discountPct'])),
+			$this->syncOne([
+				'type' => $relatedType->getPK(),
+				'master' => $master->getPK(),
+				'slave' => $slave->getPK(),
+				'amount' => (int) $value['amount'],
+				'discountPct' => NumbersHelper::strToFloat($value['discountPct']),
+				'masterPct' => NumbersHelper::strToFloat($value['masterPct']),
+				'priority' => (int) $value['priority'],
+				'hidden' => (bool) $value['hidden'],
 			]);
 		}
 	}

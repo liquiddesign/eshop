@@ -87,6 +87,7 @@ class SupplierProductRepository extends \StORM\Repository
 			->where('this.active', true);
 
 		while ($draft = $drafts->fetch()) {
+			/** @var \stdClass|\Eshop\DB\SupplierProduct $draft */
 			$category = $draft->realCategory;
 			$displayAmount = $draft->realDisplayAmount;
 			$producer = $draft->realProducer;
@@ -98,7 +99,7 @@ class SupplierProductRepository extends \StORM\Repository
 
 			$code = $draft->productCode ?: ($supplier->productCodePrefix ?: '') . $draft->code;
 			$uuid = ProductRepository::generateUuid($draft->ean, $draft->getProductFullCode() ?: $supplier->code . '-' . $draft->code);
-			$primary = isset($productsMap[$uuid]) ? $productsMap[$uuid]->sourcePK === $supplierId : false;
+			$primary = isset($productsMap[$uuid]) && $productsMap[$uuid]->sourcePK === $supplierId;
 
 			$values = [
 				'uuid' => $uuid,
@@ -117,7 +118,7 @@ class SupplierProductRepository extends \StORM\Repository
 				'producer' => $producer,
 				'displayDelivery' => $supplier->getValue('defaultDisplayDelivery'),
 				'displayAmount' => $displayAmount ?: $supplier->getValue('defaultDisplayAmount'),
-				'categories' => $category ? [$category] : [],
+				'categories' => [$category],
 				'primaryCategory' => $category,
 				'supplierLock' => $supplier->importPriority,
 				'supplierSource' => $supplier,
@@ -252,6 +253,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$array = [];
 
 		while ($draft = $products->fetch()) {
+			/** @var \Eshop\DB\SupplierProduct $draft */
 			if ($draft->amount === null || $draft->amount === 0 || $draft->getValue('product') === null) {
 				continue;
 			}
