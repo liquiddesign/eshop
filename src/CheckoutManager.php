@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop;
 
 use Eshop\DB\Address;
+use Eshop\DB\BannedEmailRepository;
 use Eshop\DB\Cart;
 use Eshop\DB\CartItem;
 use Eshop\DB\CartItemRepository;
@@ -21,6 +22,8 @@ use Eshop\DB\DiscountCoupon;
 use Eshop\DB\DiscountCouponRepository;
 use Eshop\DB\LoyaltyProgramHistoryRepository;
 use Eshop\DB\Order;
+use Eshop\DB\OrderLogItem;
+use Eshop\DB\OrderLogItemRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PackageItemRepository;
 use Eshop\DB\PackageRepository;
@@ -155,6 +158,10 @@ class CheckoutManager
 
 	private LoyaltyProgramHistoryRepository $loyaltyProgramHistoryRepository;
 
+	private BannedEmailRepository $bannedEmailRepository;
+
+	private OrderLogItemRepository $orderLogItemRepository;
+
 	public function __construct(
 		Shopper $shopper,
 		CartRepository $cartRepository,
@@ -178,7 +185,9 @@ class CheckoutManager
 		VatRateRepository $vatRateRepository,
 		PackageRepository $packageRepository,
 		PackageItemRepository $packageItemRepository,
-		LoyaltyProgramHistoryRepository $loyaltyProgramHistoryRepository
+		LoyaltyProgramHistoryRepository $loyaltyProgramHistoryRepository,
+		BannedEmailRepository $bannedEmailRepository,
+		OrderLogItemRepository $orderLogItemRepository
 	) {
 		$this->customer = $shopper->getCustomer();
 		$this->shopper = $shopper;
@@ -203,6 +212,8 @@ class CheckoutManager
 		$this->packageRepository = $packageRepository;
 		$this->packageItemRepository = $packageItemRepository;
 		$this->loyaltyProgramHistoryRepository = $loyaltyProgramHistoryRepository;
+		$this->bannedEmailRepository = $bannedEmailRepository;
+		$this->orderLogItemRepository = $orderLogItemRepository;
 
 		if (!$request->getCookie('cartToken') && !$this->customer) {
 			$this->cartToken = DIConnection::generateUuid();
@@ -956,9 +967,18 @@ class CheckoutManager
 		]);
 	}
 
+	/**
+	 * @throws \Eshop\BuyException
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function createOrder(?Purchase $purchase = null): void
 	{
 		$purchase = $purchase ?: $this->getPurchase();
+
+		if ($this->bannedEmailRepository->isEmailBanned($purchase->email)) {
+			throw new BuyException('Banned email', BuyException::PERMISSION_DENIED);
+		}
+
 		$customer = $this->shopper->getCustomer();
 		$cart = $this->getCart();
 		$currency = $cart->currency;
@@ -1052,6 +1072,8 @@ class CheckoutManager
 				]);
 			}
 		}
+
+		$this->orderLogItemRepository->createLog($order, OrderLogItem::CREATED);
 
 		$this->createCart();
 

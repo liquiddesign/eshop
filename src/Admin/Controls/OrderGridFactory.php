@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Eshop\Admin\Controls;
 
 use Eshop\DB\Order;
+use Eshop\DB\OrderLogItem;
+use Eshop\DB\OrderLogItemRepository;
 use Eshop\DB\OrderRepository;
 use Grid\Datagrid;
 use League\Csv\Writer;
@@ -26,20 +28,30 @@ class OrderGridFactory
 
 	private TemplateRepository $templateRepository;
 
+	private OrderLogItemRepository $orderLogItemRepository;
+
 	private Mailer $mailer;
 
 	private Translator $translator;
 
 	private Application $application;
 
-	public function __construct(\Admin\Controls\AdminGridFactory $adminGridFactory, OrderRepository $orderRepository, Application $application, TemplateRepository $templateRepository, Mailer $mailer, Translator $translator)
-	{
+	public function __construct(
+		\Admin\Controls\AdminGridFactory $adminGridFactory,
+		OrderRepository $orderRepository,
+		Application $application,
+		TemplateRepository $templateRepository,
+		Mailer $mailer,
+		Translator $translator,
+		OrderLogItemRepository $orderLogItemRepository
+	) {
 		$this->orderRepository = $orderRepository;
 		$this->gridFactory = $adminGridFactory;
 		$this->templateRepository = $templateRepository;
 		$this->mailer = $mailer;
 		$this->translator = $translator;
 		$this->application = $application;
+		$this->orderLogItemRepository = $orderLogItemRepository;
 	}
 
 	public function create(string $state, array $configuration = []): Datagrid
@@ -59,8 +71,15 @@ class OrderGridFactory
 
 		$grid->addColumnSelector();
 		$grid->addColumn('Číslo a datum', function (Order $order, $grid) {
-			return \sprintf('<a id="%s" href="%s">%s</a><br><small>%s</small>', $order->getPK(), $grid->getPresenter()->link('printDetail', $order), $order->code, (new DateTime($order->createdTs))->format('d.m.Y G:i'));
+			return \sprintf(
+				'<a id="%s" href="%s">%s</a><br><small>%s</small>',
+				$order->getPK(),
+				$grid->getPresenter()->link('printDetail', $order),
+				$order->code,
+				(new DateTime($order->createdTs))->format('d.m.Y G:i'),
+			);
 		}, '%s', 'this.code', ['class' => 'fit']);
+
 		$grid->addColumn('Zákazník a adresa', [$this, 'renderCustomerColumn']);
 		$contacts = '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a><br><small><a href="tel:%2$s"><i class="fa fa-phone-alt"></i> %2$s</a></small>';
 		$grid->addColumnText('Kontakt', ['purchase.email', 'purchase.phone'], $contacts)->onRenderCell[] = [$grid, 'decoratorEmpty'];
@@ -247,6 +266,8 @@ class OrderGridFactory
 
 			$order = $this->orderRepository->one($id, true);
 
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::CANCELED, null, $grid->getPresenter()->admin->getIdentity());
+
 			$accountMutation = null;
 
 			if ($order->purchase->account) {
@@ -302,6 +323,8 @@ class OrderGridFactory
 			return;
 		}
 
+		$this->orderLogItemRepository->createLog($object, OrderLogItem::CANCELED, null, $grid->getPresenter()->admin->getIdentity());
+
 		$grid->getPresenter()->flashMessage('Provedeno', 'success');
 		$grid->getPresenter()->redirect('this');
 	}
@@ -348,7 +371,13 @@ class OrderGridFactory
 
 		$this->mailer->send($mail);
 
-		if (!$grid || !$redirectAfter) {
+		if (!$grid) {
+			return;
+		}
+
+		$this->orderLogItemRepository->createLog($object, OrderLogItem::COMPLETED, null, $grid->getPresenter()->admin->getIdentity());
+
+		if (!$redirectAfter) {
 			return;
 		}
 
@@ -373,7 +402,13 @@ class OrderGridFactory
 	{
 		$object->update(['receivedTs' => (string)new DateTime()]);
 
-		if (!$grid || !$redirectAfter) {
+		if (!$grid) {
+			return;
+		}
+
+		$this->orderLogItemRepository->createLog($object, OrderLogItem::RECEIVED, null, $grid->getPresenter()->admin->getIdentity());
+
+		if (!$redirectAfter) {
 			return;
 		}
 

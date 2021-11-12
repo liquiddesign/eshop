@@ -46,17 +46,20 @@ class ProductAttributesForm extends Control
 		$form->removeComponent($form->getComponent('uuid'));
 		$form->addGroup('Atributy');
 
-		$productCategory = $product->getPrimaryCategory();
+		/** @var \Eshop\DB\Category[] $productCategories */
+		$productCategories = $product->categories->toArray();
 
-		if (!$productCategory) {
+		if (\count($productCategories) === 0) {
 			$this->error = 'Produkt nemá žádnou kategorii!';
 
 			return;
 		}
 
-		$categories = $categoryRepository->getBranch($productCategory);
+		$attributes = [];
 
-		$attributes = $this->attributeRepository->getAttributesByCategories(\array_values($categories), true);
+		foreach ($productCategories as $category) {
+			$attributes += $this->attributeRepository->getAttributesByCategory($category->path, true)->toArray();
+		}
 
 		if (\count($attributes) === 0) {
 			$this->error = 'Produkt nemá žádné atributy!';

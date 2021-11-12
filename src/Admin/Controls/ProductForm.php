@@ -229,18 +229,6 @@ class ProductForm extends Control
 				->addRule($form::FLOAT);
 		}
 
-		//@TODO pryc z balicku, neni univerzalni
-		if ($configuration['relations']) {
-			$this->monitor(Presenter::class, function () use ($form): void {
-				$form->addMultiSelect2('tonerForPrinters', 'Toner pro tiskárny', [], [
-					'ajax' => [
-						'url' => $this->getPresenter()->link('getTonerProductsForSelect2!'),
-					],
-					'placeholder' => 'Zvolte produkty',
-				])->checkDefaultValue(false);
-			});
-		}
-
 		if (isset($configuration['loyaltyProgram']) && $configuration['loyaltyProgram']) {
 			$loyaltyProgramContainer = $form->addContainer('loyaltyProgram');
 
@@ -493,21 +481,6 @@ class ProductForm extends Control
 						break 2;
 					}
 				}
-			}
-		}
-
-		$this->relatedRepository->many()
-			->where('fk_master', $product->getPK())
-			->where('fk_type', 'tonerForPrinter')
-			->delete();
-
-		if (isset($data['tonerForPrinters'])) {
-			foreach ($data['tonerForPrinters'] as $value) {
-				$this->relatedRepository->syncOne([
-					'master' => $product->getPK(),
-					'slave' => $value,
-					'type' => 'tonerForPrinter',
-				]);
 			}
 		}
 

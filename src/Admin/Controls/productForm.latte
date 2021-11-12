@@ -5,17 +5,16 @@
         <li n:foreach="$form->getOwnErrors() as $error">{$error}</li>
     </ul>
 
-    {if isset($form['__MUTATION_SELECTOR'])}
-        <table class="mt-1 mb-1">
-            {$renderer->renderPair($form['__MUTATION_SELECTOR'])|noescape}
-        </table>
-    {/if}
-
     <div class="tab-content">
         <div id="menu0-content" class="tab-pane {$presenter->editTab == 'menu0' ? 'active show' : ''}">
+            {if isset($form['__MUTATION_SELECTOR'])}
+                <table>
+                    {$renderer->renderPair($form['__MUTATION_SELECTOR'])|noescape}
+                </table>
+            {/if}
+
             <fieldset>
                 <table class="mt-1 mb-1">
-
                     <tr class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label code/}</th>
 
@@ -199,7 +198,7 @@
                         <th class="pl-2">Původní bez DPH</th>
                         <th class="pl-2" n:if="$shopper->getShowVat()">Původní s DPH</th>
                     </tr>
-			{foreach $pricelists as $id => $pricelist}
+			        {foreach $pricelists as $id => $pricelist}
                         <tr class="m-0 mt-1 has-danger"
                             style="{if !$pricelist->isActive}background-color: #E9ECEF;{/if}">
                             <th class="col-label col-form-label col">{$pricelist->name} <i
@@ -444,22 +443,6 @@
                         </td>
                     </tr>
 
-{*                    {ifset $form['tonerForPrinters']}*}
-{*                        <tr class="m-0 mt-1 has-danger">*}
-{*                            <th class="col-label col-form-label col">{label tonerForPrinters/}</th>*}
-
-{*                            <td class="align-middle">{input tonerForPrinters}*}
-
-
-{*                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError tonerForPrinters}</span>*}
-{*						{do $dataError = $form['tonerForPrinters']->getControlPrototype()->getAttribute('data-error')}*}
-{*						{if $dataError}*}
-{*                                    <span class="text-danger text-sm">{$dataError}</span>*}
-{*                                {/if}*}
-{*                            </td>*}
-{*                        </tr>*}
-{*                    {/ifset}*}
-
                     <tr class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label alternative/}</th>
 
@@ -568,6 +551,28 @@
                 </table>
             </fieldset>
         </div>
+
+{*        <div id="menu4-content" class="tab-pane {$presenter->editTab == 'menu4' ? 'active show' : ''}">*}
+{*            <fieldset>*}
+{*                <legend>2+1 zdarma</legend>*}
+
+{*                <table class="mt-1 mb-1" style="width: auto;">*}
+
+{*                </table>*}
+{*            </fieldset>*}
+{*            <fieldset>*}
+{*                <table class="mt-1 mb-1">*}
+{*                    <tr>*}
+{*                        {ifset $form['submitAndNext']}*}
+{*                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}*}
+{*                        {else}*}
+{*                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}*}
+{*                        {/ifset}*}
+{*                    </tr>*}
+{*                </table>*}
+{*            </fieldset>*}
+{*        </div>*}
+
         <div id="gallery-content" class="tab-pane {$presenter->editTab == 'gallery' ? 'active show' : ''}">
         </div>
         <div id="files-content" class="tab-pane {$presenter->editTab == 'files' ? 'active show' : ''}">

@@ -7,13 +7,13 @@ namespace Eshop\DB;
 /**
  * Produkty ve vztahu
  * @table
- * @index{"name":"products_related_unique","unique":true,"columns":["fk_master","fk_slave"]}
+ * @index{"name":"related_code","unique":true,"columns":["fk_master","fk_slave","amount","discountPct","masterPct"]}
  */
 class Related extends \StORM\Entity
 {
 	/**
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public RelatedType $type;
 
@@ -30,6 +30,18 @@ class Related extends \StORM\Entity
 	public int $amount = 1;
 
 	/**
+	 * Sleva %, např.: pro set
+	 * @column
+	 */
+	public ?float $discountPct;
+
+	/**
+	 * Ceny z masteru v %, např.: pro upsell
+	 * @column
+	 */
+	public ?float $masterPct;
+
+	/**
 	 * Skryto
 	 * @column
 	 */
@@ -40,12 +52,6 @@ class Related extends \StORM\Entity
 	 * @column
 	 */
 	public bool $systemic = false;
-
-	/**
-	 * Readonly
-	 * @column
-	 */
-	public bool $readonly = false;
 
 	/**
 	 * Master produkt

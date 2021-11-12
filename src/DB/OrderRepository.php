@@ -37,6 +37,8 @@ class OrderRepository extends \StORM\Repository
 
 	private PackageItemRepository $packageItemRepository;
 
+	private BannedEmailRepository $bannedEmailRepository;
+
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
@@ -46,7 +48,8 @@ class OrderRepository extends \StORM\Repository
 		MerchantRepository $merchantRepository,
 		CatalogPermissionRepository $catalogPermissionRepository,
 		PackageRepository $packageRepository,
-		PackageItemRepository $packageItemRepository
+		PackageItemRepository $packageItemRepository,
+		BannedEmailRepository $bannedEmailRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -57,6 +60,7 @@ class OrderRepository extends \StORM\Repository
 		$this->catalogPermissionRepository = $catalogPermissionRepository;
 		$this->packageRepository = $packageRepository;
 		$this->packageItemRepository = $packageItemRepository;
+		$this->bannedEmailRepository = $bannedEmailRepository;
 	}
 
 	/**
@@ -751,6 +755,7 @@ class OrderRepository extends \StORM\Repository
 
 		$values = [
 			'orderCode' => $order->code,
+			'orderState' => $this->getState($order),
 			'currencyCode' => $order->purchase->currency->code,
 			'desiredShippingDate' => $purchase->desiredShippingDate,
 			'internalOrderCode' => $purchase->internalOrderCode,
@@ -918,19 +923,19 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		if ($this->shopper->getEditOrderAfterCreation() && !$order->receivedTs) {
-			return 'open';
+			return Order::STATE_OPEN;
 		}
 
 		if (!$order->completedTs && !$order->canceledTs) {
-			return 'received';
+			return Order::STATE_RECEIVED;
 		}
 
 		if ($order->completedTs && !$order->canceledTs) {
-			return 'finished';
+			return Order::STATE_COMPLETED;
 		}
 
 		if ($order->canceledTs) {
-			return 'canceled';
+			return Order::STATE_CANCELED;
 		}
 
 		return null;
@@ -989,5 +994,27 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		return $pointsGain;
+	}
+
+	public function cancelOrder(Order $order): void
+	{
+		$order->update(['canceledTs' => (string)new DateTime()]);
+	}
+
+	public function cancelOrderById(string $orderId): void
+	{
+		$this->cancelOrder($this->one($orderId, true));
+	}
+
+	public function banOrder(Order $order): void
+	{
+		$this->cancelOrder($order);
+
+		$this->bannedEmailRepository->syncOne(['email' => $order->purchase->email]);
+	}
+
+	public function banOrderById(string $orderId): void
+	{
+		$this->banOrder($this->one($orderId, true));
 	}
 }
