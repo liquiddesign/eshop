@@ -100,6 +100,8 @@ class CurrencyPresenter extends BackendPresenter
 
 	public function renderDetail(Currency $currency): void
 	{
+		unset($currency);
+
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Měny', 'default'],

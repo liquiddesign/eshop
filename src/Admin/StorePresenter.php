@@ -28,7 +28,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 	/** @inject */
 	public ProductRepository $productRepo;
 
-	public function createComponentGrid()
+	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->storeRepository->many(), 20, 'code', 'ASC', true);
 		$grid->addColumnSelector();
@@ -36,7 +36,8 @@ class StorePresenter extends \Eshop\BackendPresenter
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumn('Zdroj', function (Store $object, $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') && $object->supplier ? $datagrid->getPresenter()->link(':Eshop:Admin:Supplier:detail', [$object->supplier, 'backLink' => $this->storeRequest()]) : '#';
+			$link = $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') && $object->supplier ?
+				$datagrid->getPresenter()->link(':Eshop:Admin:Supplier:detail', [$object->supplier, 'backLink' => $this->storeRequest()]) : '#';
 			
 			return $object->supplier ? "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->supplier->name . "</a>" : '';
 		}, '%s');
@@ -117,7 +118,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 		$form->setDefaults($store->toArray());
 	}
 
-	public function createComponentAmountsGrid()
+	public function createComponentAmountsGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->amountRepo->many()->where('fk_store', $this->getParameter('store')->getPK()), 20, 'price', 'ASC', true);
 		$grid->addColumnSelector();
@@ -150,14 +151,9 @@ class StorePresenter extends \Eshop\BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentAmountForm()
+	public function createComponentAmountForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
-		
-//		$form->addText('product', 'Produkt')
-//			->setHtmlAttribute('data-info', 'Zadejte kód, subkód nebo EAN')
-//			->addRule([FormValidators::class, 'amountProductCheck'], 'Produkt neexistuje nebo již existuje záznam pro tento produkt!', [$this->productRepo, $this->amountRepo, $this->getParameter('store')])
-//			->setRequired();
 
 		$product = $form->addSelect2('product', 'Produkt', [], [
 			'ajax' => [

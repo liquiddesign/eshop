@@ -363,16 +363,18 @@ class AttributePresenter extends BackendPresenter
 				->addCondition($form::FILLED)
 				->toggle('frm-valuesForm-defaultWizard-toogle');
 			$form->addDataMultiSelect('defaultWizard', 'Výchozí hodnota (zaškrtnuté) v krocích', $this::CONFIGURATIONS['wizardSteps']);
-//			$form->addText('wizardLabel', 'Název v průvodci')->setNullable()->setHtmlAttribute('data-info', 'Pokud necháte prázdné, použije se popisek.');
 		}
 
 		if ($form->getPrettyPages()) {
-//			$form->addCheckbox('standalonePage', 'Samostatná stránka');
-
-//			if ($this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $this->getParameter('attributeValue')])) {
-//				$form['standalonePage']->setDefaultValue(true);
-			$form->addPageContainer('product_list', ['attributeValue' => $this->getParameter('attributeValue') ? $this->getParameter('attributeValue')->getPK() : null], $nameInput, false, false, true, 'Stránka');
-//			}
+			$form->addPageContainer(
+				'product_list',
+				['attributeValue' => $this->getParameter('attributeValue') ? $this->getParameter('attributeValue')->getPK() : null],
+				$nameInput,
+				false,
+				false,
+				true,
+				'Stránka',
+			);
 		}
 
 		$form->addSubmits(!$this->getParameter('attributeValue'));
@@ -725,7 +727,9 @@ class AttributePresenter extends BackendPresenter
 	protected function onDelete(Entity $object): void
 	{
 		/** @var \Web\DB\Page $page */
-		if (!$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $object->getPK()])) {
+		$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $object->getPK()]);
+
+		if (!$page) {
 			return;
 		}
 

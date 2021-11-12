@@ -131,7 +131,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function createComponentOrdersGrid(): Datagrid
 	{
-		return $this->orderGridFactory->create($this->tab, self::CONFIGURATION);
+		return $this->orderGridFactory->create($this->tab, $this::CONFIGURATION);
 	}
 
 	public function createComponentDeliveryGrid(): AdminGrid
@@ -205,7 +205,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function createComponentChangeForm(): Form
 	{
-		$order = $this->getParameter('order') ?: $this->getParameter('delivery')->order;
+		$this->getParameter('order') ?: $this->getParameter('delivery')->order;
 
 		$form = $this->formFactory->create();
 		$form->addRadioList('Sklad', 'store', ['asda' => 'asdasd']);
@@ -547,8 +547,7 @@ class OrderPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
-			/** @var \Eshop\DB\CartItem $item */
-			$item = $this->packageItemRepository->one($values['uuid'], true)->update(['store' => $values['store']]);
+			$this->packageItemRepository->one($values['uuid'], true)->update(['store' => $values['store']]);
 
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('this');
@@ -557,6 +556,10 @@ class OrderPresenter extends BackendPresenter
 		return $form;
 	}
 
+	/**
+	 * @TODO
+	 * @codingStandardsIgnoreStart
+	 */
 	public function createComponentMergeOrderForm(): AdminForm
 	{
 		$orderRepository = $this->orderRepository;
@@ -610,6 +613,7 @@ class OrderPresenter extends BackendPresenter
 
 		return $form;
 	}
+	//@codingStandardsIgnoreEnd
 
 	public function createComponentDetailOrderItemForm(): AdminForm
 	{
@@ -674,6 +678,8 @@ class OrderPresenter extends BackendPresenter
 
 	public function actionDetailOrderItem(CartItem $cartItem, Order $order): void
 	{
+		unset($order);
+
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('detailOrderItemForm');
 		$form->setDefaults($cartItem->toArray());
@@ -786,7 +792,7 @@ class OrderPresenter extends BackendPresenter
 		$this->redirect('this');
 	}
 
-	public function renderDeliveryColumn(CartItem $item, Datagrid $grid)
+	public function renderDeliveryColumn(CartItem $item, Datagrid $grid): string
 	{
 		/** @var \Eshop\DB\Delivery[] $deliveries */
 		$deliveries = $item->getDeliveries()->toArray();
@@ -817,6 +823,8 @@ class OrderPresenter extends BackendPresenter
 
 	public function actionExportPPC(array $ids): void
 	{
+		unset($ids);
+
 		$this->template->headerLabel = 'Export pro PPC';
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
@@ -826,7 +834,7 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('exportPPCForm')];
 	}
 
-	public function createComponentExportPPCForm()
+	public function createComponentExportPPCForm(): AdminForm
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $this->getComponent('ordersGrid');
@@ -834,7 +842,6 @@ class OrderPresenter extends BackendPresenter
 		$ids = $this->getParameter('ids') ?: [];
 		$totalNo = $grid->getPaginator()->getItemCount();
 		$selectedNo = \count($ids);
-		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
 
 		$form = $this->formFactory->create();
 		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
@@ -857,11 +864,11 @@ class OrderPresenter extends BackendPresenter
 		$items = [];
 		$defaultItems = [];
 
-		if (isset(self::CONFIGURATION['exportPPC_columns'])) {
-			$items += self::CONFIGURATION['exportPPC_columns'];
+		if (isset($this::CONFIGURATION['exportPPC_columns'])) {
+			$items += $this::CONFIGURATION['exportPPC_columns'];
 
-			if (isset(self::CONFIGURATION['defaultExportPPC_columns'])) {
-				$defaultItems = \array_merge($defaultItems, self::CONFIGURATION['defaultExportPPC_columns']);
+			if (isset($this::CONFIGURATION['defaultExportPPC_columns'])) {
+				$defaultItems = \array_merge($defaultItems, $this::CONFIGURATION['defaultExportPPC_columns']);
 			}
 		}
 
@@ -950,9 +957,8 @@ class OrderPresenter extends BackendPresenter
 		$this->template->setFile(__DIR__ . '/templates/comments.latte');
 	}
 
-	public function createComponentNewComment()
+	public function createComponentNewComment(): AdminForm
 	{
-
 		$form = $this->formFactory->create(true, false, false, false, false);
 
 		$form->addGroup('Nový komentář');
@@ -1041,11 +1047,15 @@ class OrderPresenter extends BackendPresenter
 			$this->template->displayButtonsRight[] = $this->createButtonWithClass('completeOrder!', '<i class="fas fa-check mr-1"></i>Zpracovat', 'btn btn-sm btn-success', $order->getPK());
 		}
 
-		$this->template->displayButtons[] = '<a href="#" data-toggle="modal" data-target="#modal-orderForm"><button class="btn btn-sm btn-primary"><i class="fas fa-edit mr-1"></i> Editovat</button></a>';
-		$this->template->displayButtons[] = '<a href="#" data-toggle="modal" data-target="#modal-mergeOrderForm"><button class="btn btn-sm btn-primary"><i class="fas fa-compress mr-1"></i> Spojit</button></a>';
-		$this->template->displayButtons[] = '<a href="#" onclick="window.print();"><button class="btn btn-sm btn-primary"><i class="fas fa-print mr-1"></i> Tisk</button></a>';
+		$this->template->displayButtons[] =
+			'<a href="#" data-toggle="modal" data-target="#modal-orderForm"><button class="btn btn-sm btn-primary"><i class="fas fa-edit mr-1"></i> Editovat</button></a>';
+		$this->template->displayButtons[] =
+			'<a href="#" data-toggle="modal" data-target="#modal-mergeOrderForm"><button class="btn btn-sm btn-primary"><i class="fas fa-compress mr-1"></i> Spojit</button></a>';
+		$this->template->displayButtons[] =
+			'<a href="#" onclick="window.print();"><button class="btn btn-sm btn-primary"><i class="fas fa-print mr-1"></i> Tisk</button></a>';
 		$this->template->displayButtons[] = $this->createButton('cloneOrder!', '<i class="far fa-clone mr-1"></i>Objednat znovu', [$order->getPK()]);
-		$this->template->displayButtons[] = '<a href="#" data-toggle="modal" data-target="#modal-emailForm"><button class="btn btn-sm btn-primary"><i class="fas fa-envelope mr-1"></i> Poslat e-mail</button></a>';
+		$this->template->displayButtons[] =
+			'<a href="#" data-toggle="modal" data-target="#modal-emailForm"><button class="btn btn-sm btn-primary"><i class="fas fa-envelope mr-1"></i> Poslat e-mail</button></a>';
 
 		$this->template->displayButtons[] = $this->createButton('exportEdi!', '<i class="fa fa-download mr-1"></i>EDI', [$order->getPK()]);
 		$this->template->displayButtons[] = $this->createButton('exportCsv!', '<i class="fa fa-download mr-1"></i>CSV', [$order->getPK()]);
@@ -1174,7 +1184,6 @@ class OrderPresenter extends BackendPresenter
 
 	public function handleExportEdi(string $orderId): void
 	{
-		$presenter = $this;
 		$object = $this->orderRepository->one($orderId, true);
 
 		$tempFilename = \tempnam($this->tempDir, "xml");

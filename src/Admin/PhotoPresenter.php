@@ -45,6 +45,8 @@ class PhotoPresenter extends BackendPresenter
 	
 	public function renderDetail(Photo $photo, ?Product $product = null): void
 	{
+		unset($photo);
+
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Fotky', 'default'],
@@ -56,6 +58,8 @@ class PhotoPresenter extends BackendPresenter
 	
 	public function actionDetail(Photo $photo, ?Product $product = null): void
 	{
+		unset($product);
+
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
 		
@@ -66,7 +70,7 @@ class PhotoPresenter extends BackendPresenter
 		$form->onSuccess[] = function (Form $form) use ($photo): void {
 			$values = $form->getValues();
 
-			foreach ($values as $key => $value) {
+			foreach (\array_keys($values) as $key) {
 				$values[$key] = $values[$key] !== '' ? $values[$key] : null;
 			}
 

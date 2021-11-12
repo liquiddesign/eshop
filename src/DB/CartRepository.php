@@ -13,13 +13,9 @@ use StORM\SchemaManager;
  */
 class CartRepository extends \StORM\Repository
 {
-	private CartItemRepository $cartItemRepository;
-
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, CartItemRepository $cartItemRepository)
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager)
 	{
 		parent::__construct($connection, $schemaManager);
-
-		$this->cartItemRepository = $cartItemRepository;
 	}
 
 	public function deleteCart(Cart $cart): void

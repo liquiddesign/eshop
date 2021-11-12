@@ -128,7 +128,7 @@ class PickupPointPresenter extends BackendPresenter
 		$form['addressContainer']->setDefaults($pickupPoint->address ? $pickupPoint->address->toArray() : []);
 	}
 
-	public function renderPointDetail(PickupPoint $pickupPoint): void
+	public function renderPointDetail(): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -195,7 +195,8 @@ class PickupPointPresenter extends BackendPresenter
 		$grid->addColumnText('Telefon', 'phone', '<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>', 'phone')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		$grid->addColumnText('Email', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>', 'email')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		$grid->addColumn('Typ místa', function (PickupPoint $object, $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:PickupPoint:typeDetail') && $object->pickupPointType ? $datagrid->getPresenter()->link(':Eshop:Admin:PickupPoint:typeDetail', [$object->pickupPointType, 'backLink' => $this->storeRequest()]) : '#';
+			$link = $this->admin->isAllowed(':Eshop:Admin:PickupPoint:typeDetail') && $object->pickupPointType ?
+				$datagrid->getPresenter()->link(':Eshop:Admin:PickupPoint:typeDetail', [$object->pickupPointType, 'backLink' => $this->storeRequest()]) : '#';
 
 			return $object->pickupPointType ? "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->pickupPointType->name . "</a>" : '';
 		});
@@ -225,7 +226,13 @@ class PickupPointPresenter extends BackendPresenter
 
 	public function createComponentSpecialHoursGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->openingHoursRepo->many()->where('fk_pickupPoint', ($this->getParameter('pickupPoint') ?: $this->pickupPointRepo->one($this->selectedPickupPoint, true))->getPK())->where('date IS NOT NULL'), 20, 'date');
+		$grid = $this->gridFactory->create(
+			$this->openingHoursRepo->many()
+				->where('fk_pickupPoint', ($this->getParameter('pickupPoint') ?: $this->pickupPointRepo->one($this->selectedPickupPoint, true))->getPK())
+				->where('date IS NOT NULL'),
+			20,
+			'date',
+		);
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Datum', "date|date:'d.m.Y'", '%s', 'date', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
@@ -375,10 +382,6 @@ class PickupPointPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function actionSpecialHoursNew(): void
-	{
-	}
-
 	public function renderSpecialHoursNew(): void
 	{
 		/** @var \Eshop\DB\PickupPoint $pickupPoint */
@@ -468,7 +471,7 @@ class PickupPointPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($pickupPoint): void {
 			$values = $form->getValues('array');
 
-			foreach ($this::WEEK_DAYS as $key => $day) {
+			foreach (\array_keys($this::WEEK_DAYS) as $key) {
 				if (!$values[$key . '_uuid']) {
 					$values[$key . '_uuid'] = DIConnection::generateUuid();
 				}

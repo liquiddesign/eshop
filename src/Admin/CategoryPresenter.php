@@ -250,10 +250,13 @@ class CategoryPresenter extends BackendPresenter
 
 	public function actionGenerateProducerCategories(array $ids): void
 	{
+		unset($ids);
 	}
 
 	public function renderGenerateProducerCategories(array $ids): void
 	{
+		unset($ids);
+
 		$this->template->headerLabel = 'Generovat kategorie vůrobců';
 		$this->template->headerTree = [
 			['Kategorie', 'default'],
@@ -266,7 +269,7 @@ class CategoryPresenter extends BackendPresenter
 	public function handleGenerateCategoryProducerPages(): void
 	{
 		try {
-			$this->categoryRepository->generateCategoryProducerPages(self::CONFIGURATION['activeProducers'] ?? null);
+			$this->categoryRepository->generateCategoryProducerPages($this::CONFIGURATION['activeProducers'] ?? null);
 			$this->flashMessage('Provedeno', 'success');
 		} catch (\Throwable $exception) {
 			$this->flashMessage('Chyba!', 'error');
@@ -288,6 +291,8 @@ class CategoryPresenter extends BackendPresenter
 
 	public function renderDetail(Category $category): void
 	{
+		unset($category);
+
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Kategorie', 'default'],
@@ -304,6 +309,8 @@ class CategoryPresenter extends BackendPresenter
 
 	public function actionDetail(Category $category, ?string $backLink = null): void
 	{
+		unset($backLink);
+
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('categoryForm')['form'];
 		$form->setDefaults($category->toArray());
@@ -367,10 +374,6 @@ class CategoryPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function actionCategoryTypeNew(): void
-	{
-	}
-
 	public function renderCategoryTypeNew(): void
 	{
 		$this->template->headerLabel = 'Nový typ kategorie';
@@ -389,7 +392,7 @@ class CategoryPresenter extends BackendPresenter
 		$form->setDefaults($categoryType->toArray());
 	}
 
-	public function renderCategoryTypeDetail(CategoryType $categoryType): void
+	public function renderCategoryTypeDetail(): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [

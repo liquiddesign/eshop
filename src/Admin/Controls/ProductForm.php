@@ -19,7 +19,6 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
-use Eshop\DB\RelatedRepository;
 use Eshop\DB\RibbonRepository;
 use Eshop\DB\SetRepository;
 use Eshop\DB\SupplierProductRepository;
@@ -56,8 +55,6 @@ class ProductForm extends Control
 
 	private PageRepository $pageRepository;
 
-	private RelatedRepository $relatedRepository;
-
 	private AdminFormFactory $adminFormFactory;
 
 	private SetRepository $setRepository;
@@ -76,6 +73,7 @@ class ProductForm extends Control
 
 	private LoyaltyProgramProductRepository $loyaltyProgramProductRepository;
 
+	/** @var string[] */
 	private array $configuration;
 
 	public function __construct(
@@ -95,7 +93,6 @@ class ProductForm extends Control
 		DisplayAmountRepository $displayAmountRepository,
 		DisplayDeliveryRepository $displayDeliveryRepository,
 		TaxRepository $taxRepository,
-		RelatedRepository $relatedRepository,
 		SetRepository $setRepository,
 		Shopper $shopper,
 		IProductSetFormFactory $productSetFormFactory,
@@ -113,7 +110,6 @@ class ProductForm extends Control
 		$this->supplierRepository = $supplierRepository;
 		$this->supplierProductRepository = $supplierProductRepository;
 		$this->pageRepository = $pageRepository;
-		$this->relatedRepository = $relatedRepository;
 		$this->adminFormFactory = $adminFormFactory;
 		$this->setRepository = $setRepository;
 		$this->configuration = $configuration;

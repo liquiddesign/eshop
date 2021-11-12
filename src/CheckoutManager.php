@@ -736,7 +736,7 @@ class CheckoutManager
 		$previousStep = $this->checkoutSequence[$sequence - 1] ?? null;
 
 		if ($previousStep === 'cart') {
-			return $this->getPurchase() && (bool)\count($this->getItems()) && empty($this->getIncorrectCartItems()) && $this->checkDiscountCoupon();
+			return $this->getPurchase() && (bool)\count($this->getItems()) && \count($this->getIncorrectCartItems()) === 0 && $this->checkDiscountCoupon();
 		}
 
 		if ($previousStep === 'addresses') {

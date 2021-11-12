@@ -9,11 +9,9 @@ use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\InternalRibbonRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProducerRepository;
-use Eshop\DB\ProductRepository;
 use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierRepository;
-use Eshop\DB\TagRepository;
 use Grid\Datagrid;
 use StORM\Collection;
 use StORM\Expression;
@@ -21,8 +19,6 @@ use StORM\ICollection;
 
 class ProductGridFiltersFactory
 {
-	private ProductRepository $productRepository;
-
 	private ProducerRepository $producerRepository;
 
 	private SupplierRepository $supplierRepository;
@@ -35,8 +31,6 @@ class ProductGridFiltersFactory
 
 	private InternalRibbonRepository $internalRibbonRepository;
 
-	private TagRepository $tagRepository;
-
 	private PricelistRepository $pricelistRepository;
 
 	private DisplayAmountRepository $displayAmountRepository;
@@ -48,7 +42,6 @@ class ProductGridFiltersFactory
 		CategoryRepository $categoryRepository,
 		RibbonRepository $ribbonRepository,
 		InternalRibbonRepository $internalRibbonRepository,
-		TagRepository $tagRepository,
 		PricelistRepository $pricelistRepository,
 		DisplayAmountRepository $displayAmountRepository
 	) {
@@ -58,7 +51,6 @@ class ProductGridFiltersFactory
 		$this->categoryRepository = $categoryRepository;
 		$this->ribbonRepository = $ribbonRepository;
 		$this->internalRibbonRepository = $internalRibbonRepository;
-		$this->tagRepository = $tagRepository;
 		$this->pricelistRepository = $pricelistRepository;
 		$this->displayAmountRepository = $displayAmountRepository;
 	}
@@ -213,6 +205,9 @@ class ProductGridFiltersFactory
 		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
 	}
 
+	/**
+	 * @return array<string, string|null>
+	 */
 	private static function replaceArrayValue(array $array, $value, $replace): array
 	{
 		return \array_replace($array, \array_fill_keys(\array_keys($array, $value), $replace));

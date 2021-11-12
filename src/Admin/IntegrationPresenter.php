@@ -43,7 +43,7 @@ class IntegrationPresenter extends BackendPresenter
 			'@mailerLite' => 'MailerLite',
 		];
 
-		if (!isset(self::CONFIGURATION['supportBox']) || !self::CONFIGURATION['supportBox']) {
+		if (!isset($this::CONFIGURATION['supportBox']) || !$this::CONFIGURATION['supportBox']) {
 			return;
 		}
 
@@ -196,7 +196,9 @@ class IntegrationPresenter extends BackendPresenter
 			['Zásilkovna'],
 		];
 		$this->template->displayButtons = [
-			'<a href="' . $this->link('syncZasilkovnaPoints!') . '" onclick="return confirm(\'Opravdu? Tato operace může trvat až 5 minut.\')"><button class="btn btn-sm btn-outline-primary"><i class="fa fa-sync"></i>  Synchronizovat výdejní místa</button></a>',
+			'<a href="' . $this->link('syncZasilkovnaPoints!') .
+			'" onclick="return confirm(\'Opravdu? Tato operace může trvat až 5 minut.\')">
+<button class="btn btn-sm btn-outline-primary"><i class="fa fa-sync"></i>  Synchronizovat výdejní místa</button></a>',
 			$this->createButtonWithClass('syncZasilkovnaOrders!', '<i class="fa fa-sync"></i>  Synchronizovat objednávky', 'btn btn-sm btn-outline-primary'),
 		];
 		$this->template->displayControls = [$this->getComponent('zasilkovnaForm')];

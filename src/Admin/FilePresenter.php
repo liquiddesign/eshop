@@ -40,6 +40,8 @@ class FilePresenter extends BackendPresenter
 	
 	public function renderDetail(File $file, Product $product): void
 	{
+		unset($file);
+
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Soubory', 'default'],
@@ -61,7 +63,7 @@ class FilePresenter extends BackendPresenter
 		$form->onSuccess[] = function (Form $form) use ($file, $product): void {
 			$values = $form->getValues();
 
-			foreach ($values as $key => $value) {
+			foreach (\array_keys($values) as $key) {
 				$values[$key] = $values[$key] !== '' ? $values[$key] : null;
 			}
 

@@ -13,7 +13,10 @@ use Nette\Application\UI\Control;
 
 class StatsControl extends Control
 {
-	/** @persistent */
+	/**
+	 * @persistent
+	 * @var string[]
+	 */
 	public array $state = [];
 
 	public Shopper $shopper;
@@ -26,16 +29,19 @@ class StatsControl extends Control
 
 	private CurrencyRepository $currencyRepository;
 
+	/**
+	 * @var \Eshop\DB\Customer|\Eshop\DB\Merchant|null
+	 */
 	private $user;
 
-	/**
-	 * StatsControl constructor.
-	 * @param \Forms\FormFactory $formFactory
-	 * @param \Eshop\Shopper $shopper
-	 * @param \Eshop\DB\Customer|\Eshop\DB\Merchant|null $user
-	 */
-	public function __construct(FormFactory $formFactory, Shopper $shopper, OrderRepository $orderRepository, MerchantRepository $merchantRepository, CurrencyRepository $currencyRepository, $user = null)
-	{
+	public function __construct(
+		FormFactory $formFactory,
+		Shopper $shopper,
+		OrderRepository $orderRepository,
+		MerchantRepository $merchantRepository,
+		CurrencyRepository $currencyRepository,
+		$user = null
+	) {
 		$this->formFactory = $formFactory;
 		$this->shopper = $shopper;
 		$this->user = $user;

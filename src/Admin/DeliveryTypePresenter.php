@@ -50,7 +50,7 @@ class DeliveryTypePresenter extends BackendPresenter
 	/** @inject */
 	public Request $request;
 	
-	public function createComponentGrid()
+	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->deliveryRepo->many(), 20, 'priority', 'ASC', true);
 		$grid->addColumnSelector();
@@ -181,6 +181,8 @@ class DeliveryTypePresenter extends BackendPresenter
 	
 	public function renderDetail(DeliveryType $deliveryType): void
 	{
+		unset($deliveryType);
+
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Typy dopravy', 'default'],
@@ -198,7 +200,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form->setDefaults($deliveryType->toArray(['allowedPaymentTypes']));
 	}
 	
-	public function createComponentPricesGrid()
+	public function createComponentPricesGrid(): AdminGrid
 	{
 		$collection = $this->deliveryPriceRepo->many()->where('fk_deliveryType', $this->getParameter('deliveryType')->getPK())
 			->select(['rate' => 'rates.rate'])
@@ -227,7 +229,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		return $grid;
 	}
 	
-	public function createComponentPricesForm()
+	public function createComponentPricesForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
 		$form->addSelect('currency', 'Měna', $this->currencyRepo->getArrayForSelect());

@@ -6,6 +6,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\CustomerGroup;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
@@ -33,9 +34,9 @@ class CustomerGroupPresenter extends BackendPresenter
 	/** @inject */
 	public Shopper $shopper;
 
-	public function createComponentGrid()
+	public function createComponentGrid(): AdminGrid
 	{
-		$collection = self::CONFIGURATION['unregistred'] ? $this->userGroupRepo->many() : $this->userGroupRepo->many()->where('uuid != :s', ['s' => CustomerGroupRepository::UNREGISTERED_PK]);
+		$collection = $this::CONFIGURATION['unregistred'] ? $this->userGroupRepo->many() : $this->userGroupRepo->many()->where('uuid != :s', ['s' => CustomerGroupRepository::UNREGISTERED_PK]);
 
 		$grid = $this->gridFactory->create($collection, 20, 'name', 'ASC', true);
 		$grid->addColumnSelector();
@@ -66,7 +67,7 @@ class CustomerGroupPresenter extends BackendPresenter
 			return $group->defaultBuyAllowed ? 'Ano' : 'Ne';
 		}, '%s', null, ['class' => 'fit']);
 
-		if (self::CONFIGURATION['defaultAfterRegistration']) {
+		if ($this::CONFIGURATION['defaultAfterRegistration']) {
 			$grid->addColumn('Výchozí po registraci', function (CustomerGroup $group) {
 				return $group->defaultAfterRegistration ? 'Ano' : 'Ne';
 			}, '%s', null, ['class' => 'fit']);
@@ -116,7 +117,7 @@ class CustomerGroupPresenter extends BackendPresenter
 			->toggle('frm-newForm-defaultPricesWithoutVat-toogle')
 			->toggle('frm-newForm-defaultPricesWithVat-toogle');
 
-		if (isset(self::CONFIGURATION['prices']) && self::CONFIGURATION['prices']) {
+		if (isset($this::CONFIGURATION['prices']) && $this::CONFIGURATION['prices']) {
 			if ($this->shopper->getShowWithoutVat()) {
 				$form->addCheckbox('defaultPricesWithoutVat', 'Zobrazit ceny bez daně');
 			}
@@ -141,7 +142,7 @@ class CustomerGroupPresenter extends BackendPresenter
 		$form->addDataMultiSelect('defaultPricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 
-		if (self::CONFIGURATION['defaultAfterRegistration']) {
+		if ($this::CONFIGURATION['defaultAfterRegistration']) {
 			$form->addCheckbox('defaultAfterRegistration', 'Výchozí po registraci');
 		}
 

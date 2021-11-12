@@ -73,7 +73,7 @@ abstract class ExportPresenter extends \Nette\Application\UI\Presenter
 
 	public function beforeRender(): void
 	{
-		$this->template->configuration = self::CONFIGURATION;
+		$this->template->configuration = $this::CONFIGURATION;
 		$this->template->productImageUrl = $this->request->getUrl()->withoutUserInfo()->getBaseUrl() . 'userfiles/' . Product::IMAGE_DIR . '/thumb/';
 	}
 

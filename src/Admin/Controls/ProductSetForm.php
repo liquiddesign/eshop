@@ -4,89 +4,37 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
-use Eshop\DB\PricelistRepository;
-use Eshop\DB\PriceRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
-use Eshop\DB\RelatedRepository;
 use Eshop\DB\SetRepository;
-use Eshop\DB\SupplierProductRepository;
-use Eshop\DB\SupplierRepository;
-use Eshop\DB\TaxRepository;
-use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
-use Eshop\Shopper;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Multiplier;
-use Nette\DI\Container;
 use Nette\Http\Request;
-use Web\DB\PageRepository;
 
 class ProductSetForm extends Control
 {
-	public array $sets = [];
-
 	private ProductRepository $productRepository;
-
-	private Container $container;
-
-	private PricelistRepository $pricelistRepository;
-
-	private PriceRepository $priceRepository;
-
-	private SupplierRepository $supplierRepository;
-
-	private SupplierProductRepository $supplierProductRepository;
-
-	private PageRepository $pageRepository;
-
-	private TaxRepository $taxRepository;
-
-	private RelatedRepository $relatedRepository;
 
 	private AdminFormFactory $adminFormFactory;
 
 	private SetRepository $setRepository;
-
-	private Shopper $shopper;
-
-	private VatRateRepository $vatRateRepository;
 
 	private Product $product;
 
 	private Request $request;
 
 	public function __construct(
-		Container $container,
 		AdminFormFactory $adminFormFactory,
-		PageRepository $pageRepository,
 		ProductRepository $productRepository,
-		PricelistRepository $pricelistRepository,
-		PriceRepository $priceRepository,
-		SupplierRepository $supplierRepository,
-		SupplierProductRepository $supplierProductRepository,
-		VatRateRepository $vatRateRepository,
-		TaxRepository $taxRepository,
-		RelatedRepository $relatedRepository,
 		SetRepository $setRepository,
-		Shopper $shopper,
 		Request $request,
 		Product $product
 	) {
 		$this->product = $product;
 		$this->productRepository = $productRepository;
-		$this->container = $container;
-		$this->pricelistRepository = $pricelistRepository;
-		$this->priceRepository = $priceRepository;
-		$this->supplierRepository = $supplierRepository;
-		$this->supplierProductRepository = $supplierProductRepository;
-		$this->pageRepository = $pageRepository;
-		$this->taxRepository = $taxRepository;
-		$this->relatedRepository = $relatedRepository;
 		$this->adminFormFactory = $adminFormFactory;
 		$this->setRepository = $setRepository;
-		$this->shopper = $shopper;
-		$this->vatRateRepository = $vatRateRepository;
 		$this->request = $request;
 		\bdump('constructor');
 
@@ -107,7 +55,7 @@ class ProductSetForm extends Control
 			if (isset($values['newRow']['product'])) {
 				$newItemValues = $values['newRow'];
 
-				if ($product = $this->productRepository->getProductByCodeOrEAN($newItemValues['product'])) {
+				if ($this->productRepository->getProductByCodeOrEAN($newItemValues['product'])) {
 					$newItemValues['set'] = $this->product->getPK();
 					$newItemValues['product'] = $this->productRepository->getProductByCodeOrEAN($newItemValues['product']);
 					$newItemValues['amount'] = isset($newItemValues['amount']) ? \intval($newItemValues['amount']) : 1;
@@ -150,7 +98,7 @@ class ProductSetForm extends Control
 		$this->addComponent($form, 'setForm');
 	}
 
-	public function createComponentSetItemForm()
+	public function createComponentSetItemForm(): Multiplier
 	{
 		return new Multiplier(function ($id) {
 			\bdump($id);

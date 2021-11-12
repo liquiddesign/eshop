@@ -164,10 +164,10 @@ class CustomerPresenter extends BackendPresenter
 			}, '', 'merchant', $lableMerchants, $this->merchantRepository->getArrayForSelect(), ['placeholder' => "- $lableMerchants -"]);
 		}
 
-		if (\count($this->groupsRepo->getArrayForSelect(true, self::CONFIGURATIONS['showUnregisteredGroup'])) > 0) {
+		if (\count($this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup'])) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->where('fk_group', $value);
-			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, self::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
+			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
 		}
 
 		if (\count($this->pricelistRepo->getArrayForSelect(true)) > 0) {
@@ -240,7 +240,7 @@ class CustomerPresenter extends BackendPresenter
 				$this->catalogPermissionRepo->createOne($values['permission'] + ['account' => $account->getPK()]);
 			}
 
-			if (self::CONFIGURATIONS['sendEmailAccountActivated']) {
+			if ($this::CONFIGURATIONS['sendEmailAccountActivated']) {
 				if (!$oldValues['active'] && $values['account']['active'] === true) {
 					$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login, null, null, $account->getPreferredMutation());
 					$this->mailer->send($mail);
@@ -270,6 +270,8 @@ class CustomerPresenter extends BackendPresenter
 
 	public function renderNewAccount(?Customer $customer = null): void
 	{
+		unset($customer);
+
 		$this->template->headerLabel = 'Nový účet zákazníka';
 		$this->template->headerTree = [
 			['Obchodníci', 'default'],
@@ -281,7 +283,7 @@ class CustomerPresenter extends BackendPresenter
 
 	public function createComponentForm(): AdminForm
 	{
-		$lableMerchants = self::CONFIGURATIONS['labels']['merchants'];
+		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
 
 		$form = $this->formFactory->create();
 
@@ -300,7 +302,9 @@ class CustomerPresenter extends BackendPresenter
 		$customersForSelect = $this->customerRepository->getArrayForSelect();
 
 		/** @var \Eshop\DB\Customer $customer */
-		if ($customer = $this->getParameter('customer')) {
+		$customer = $this->getParameter('customer');
+
+		if ($customer) {
 			unset($customersForSelect[$customer->getPK()]);
 		}
 
@@ -395,6 +399,8 @@ class CustomerPresenter extends BackendPresenter
 
 	public function renderDefault(?Customer $customer = null): void
 	{
+		unset($customer);
+
 		if ($this->tab === 'customers') {
 			$this->template->headerLabel = 'Zákazníci';
 			$this->template->headerTree = [
@@ -450,6 +456,8 @@ class CustomerPresenter extends BackendPresenter
 
 	public function renderEditAccount(Account $account): void
 	{
+		unset($account);
+
 		$this->template->headerLabel = 'Účet';
 		$this->template->headerTree = [
 			['Zákazníci', 'default'],
@@ -545,7 +553,7 @@ class CustomerPresenter extends BackendPresenter
 		$this->renderEditAddress();
 	}
 
-	public function createComponentAccountForm()
+	public function createComponentAccountForm(): AdminForm
 	{
 		$callback = function (Form $form): void {
 			$form->addGroup('Oprávnění a zákazník');
@@ -555,7 +563,7 @@ class CustomerPresenter extends BackendPresenter
 				->toggle('frm-accountForm-permission-showPricesWithoutVat-toogle')
 				->toggle('frm-accountForm-permission-showPricesWithVat-toogle');
 
-			if (isset(self::CONFIGURATIONS['prices']) && self::CONFIGURATIONS['prices']) {
+			if (isset($this::CONFIGURATIONS['prices']) && $this::CONFIGURATIONS['prices']) {
 				if ($this->shopper->getShowWithoutVat()) {
 					$container->addCheckbox('showPricesWithoutVat', 'Zobrazit ceny bez daně');
 				}
@@ -585,9 +593,9 @@ class CustomerPresenter extends BackendPresenter
 		return $this->accountFormFactory->create(false, $callback, true, true, true);
 	}
 
-	public function createComponentAccountGrid()
+	public function createComponentAccountGrid(): AdminGrid
 	{
-		$lableMerchants = self::CONFIGURATIONS['labels']['merchants'];
+		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
 
 		$collection = $this->accountRepository->many()
 			->join(['catalogPermission' => 'eshop_catalogpermission'], 'catalogPermission.fk_account = this.uuid')
@@ -621,7 +629,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnText('Aktivní do', "activeTo|date:'d.m.Y G:i'", '%s', 'activeTo', ['class' => 'fit']);
 		$grid->addColumnInputCheckbox('Aktivní', 'active');
 
-		if (self::CONFIGURATIONS['showAuthorized']) {
+		if ($this::CONFIGURATIONS['showAuthorized']) {
 			$grid->addColumnInputCheckbox('Autorizovaný', 'authorized');
 		}
 
@@ -629,14 +637,16 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumn('Login', function (Account $object, Datagrid $grid) use ($btnSecondary) {
 			$link = $grid->getPresenter()->link('loginCustomer!', [$object->login]);
 
-			return $object->isActive() ? "<a class='$btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>" : "<a class='$btnSecondary disabled' href='#'><i class='fa fa-sign-in-alt'></i></a>";
+			return $object->isActive() ?
+				"<a class='$btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>" :
+				"<a class='$btnSecondary disabled' href='#'><i class='fa fa-sign-in-alt'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
 		$grid->addColumnLinkDetail('editAccount');
 
 		$grid->addColumnActionDelete();
 
 		$grid->addButtonSaveAll([], [], null, false, null, function ($id, $data): void {
-			if (self::CONFIGURATIONS['sendEmailAccountActivated']) {
+			if ($this::CONFIGURATIONS['sendEmailAccountActivated']) {
 				/** @var \Security\DB\Account $account */
 				$account = $this->accountRepository->one($id);
 
@@ -659,10 +669,10 @@ class CustomerPresenter extends BackendPresenter
 			}, '', 'merchant', $lableMerchants, $this->merchantRepository->getArrayForSelect(), ['placeholder' => "- $lableMerchants -"]);
 		}
 
-		if (\count($this->groupsRepo->getArrayForSelect(true, self::CONFIGURATIONS['showUnregisteredGroup'])) > 0) {
+		if (\count($this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup'])) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->where('customer.fk_group', $value);
-			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, self::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
+			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
 		}
 
 		if (\count($this->pricelistRepo->getArrayForSelect(true)) > 0) {
@@ -694,6 +704,8 @@ class CustomerPresenter extends BackendPresenter
 
 	public function renderPermBulkEdit(array $ids): void
 	{
+		unset($ids);
+
 		$this->template->headerLabel = 'Hromadná úprava';
 		$this->template->headerTree = [
 			['Zákazníci', 'default'],
@@ -704,7 +716,7 @@ class CustomerPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('permBulkEditForm')];
 	}
 
-	public function createComponentPermBulkEditForm()
+	public function createComponentPermBulkEditForm(): AdminForm
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $this->getComponent('accountGrid');

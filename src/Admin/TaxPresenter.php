@@ -7,7 +7,6 @@ use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\CurrencyRepository;
-use Eshop\DB\Price;
 use Eshop\DB\Tag;
 use Eshop\DB\Tax;
 use Eshop\DB\TaxRepository;

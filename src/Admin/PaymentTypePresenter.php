@@ -14,7 +14,6 @@ use Eshop\DB\PaymentType;
 use Eshop\DB\PaymentTypePriceRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\Shopper;
-use Forms\Form;
 use Nette\Http\Request;
 use Nette\Utils\Image;
 use StORM\DIConnection;
@@ -42,7 +41,7 @@ class PaymentTypePresenter extends BackendPresenter
 	/** @inject */
 	public Shopper $shopper;
 	
-	public function createComponentGrid()
+	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->paymentTypeRepository->many(), 20, 'priority', 'ASC', true);
 		$grid->addColumnSelector();
@@ -80,7 +79,7 @@ class PaymentTypePresenter extends BackendPresenter
 		return $grid;
 	}
 	
-	public function createComponentPaymentTypeForm(): Form
+	public function createComponentPaymentTypeForm(): AdminForm
 	{
 		$form = $this->formFactory->create(true);
 		
@@ -173,7 +172,7 @@ class PaymentTypePresenter extends BackendPresenter
 		$form->setDefaults($paymentType->toArray());
 	}
 	
-	public function createComponentPricesGrid()
+	public function createComponentPricesGrid(): AdminGrid
 	{
 		$collection = $this->paymentPriceRepo->many()->where('fk_paymentType', $this->getParameter('paymentType')->getPK())
 			->select(['rate' => 'rates.rate'])
@@ -195,7 +194,7 @@ class PaymentTypePresenter extends BackendPresenter
 		return $grid;
 	}
 	
-	public function createComponentPricesForm()
+	public function createComponentPricesForm(): AdminForm
 	{
 		$availableCurrencies = $this->getAvailableCurrencies();
 		
@@ -235,7 +234,9 @@ class PaymentTypePresenter extends BackendPresenter
 		
 		$this->template->displayButtons = [
 			$this->createBackButton('default'),
-			\count($this->getAvailableCurrencies()) > 0 ? $this->createNewItemButton('pricesNew', [$paymentType]) : "<button class='btn btn-success btn-sm' disabled><i class='fa fa-sm fa-plus m-1'></i>Nová položka</button>",
+			\count($this->getAvailableCurrencies()) > 0 ?
+				$this->createNewItemButton('pricesNew', [$paymentType]) :
+				"<button class='btn btn-success btn-sm' disabled><i class='fa fa-sm fa-plus m-1'></i>Nová položka</button>",
 		];
 		
 		$this->template->displayControls = [$this->getComponent('pricesGrid')];
@@ -252,7 +253,10 @@ class PaymentTypePresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton(':Eshop:Admin:PaymentType:prices', $paymentType)];
 		$this->template->displayControls = [$this->getComponent('pricesForm')];
 	}
-	
+
+	/**
+	 * @return \Eshop\DB\Currency[]
+	 */
 	private function getAvailableCurrencies(): array
 	{
 		$usedCurrencies = \array_keys($this->currencyRepo->many()

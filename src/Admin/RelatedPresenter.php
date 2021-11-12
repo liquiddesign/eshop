@@ -14,12 +14,10 @@ use Eshop\DB\RelatedType;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\FormValidators;
 use Forms\Form;
-use Grid\Datagrid;
 use League\Csv\Writer;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Utils\Arrays;
-use Nette\Utils\Random;
 use StORM\DIConnection;
 
 class RelatedPresenter extends BackendPresenter
@@ -159,7 +157,9 @@ class RelatedPresenter extends BackendPresenter
 		$slave = $form->addSelect2Ajax('slave', $this->link('getProductsForSelect2!'), $this->relatedType->getSlaveInternalName(), [], 'Zvolte produkt');
 
 		/** @var \Eshop\DB\Related $relation */
-		if ($relation = $this->getParameter('relation')) {
+		$relation = $this->getParameter('relation');
+
+		if ($relation) {
 			$this->template->select2AjaxDefaults[$master->getHtmlId()] = [$relation->getValue('master') => $relation->master->name];
 			$this->template->select2AjaxDefaults[$slave->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->name];
 		}

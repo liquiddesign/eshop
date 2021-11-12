@@ -8,8 +8,6 @@ use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
-use Eshop\DB\AttributeValueRepository;
-use Eshop\DB\CategoryRepository;
 use Eshop\DB\Product;
 use Nette\Application\UI\Control;
 
@@ -18,8 +16,6 @@ class ProductAttributesForm extends Control
 	private Product $product;
 
 	private AttributeRepository $attributeRepository;
-
-	private AttributeValueRepository $attributeValueRepository;
 
 	private AttributeAssignRepository $attributeAssignRepository;
 
@@ -31,14 +27,11 @@ class ProductAttributesForm extends Control
 		Product $product,
 		AdminFormFactory $adminFormFactory,
 		AttributeRepository $attributeRepository,
-		AttributeValueRepository $attributeValueRepository,
 		AttributeAssignRepository $attributeAssignRepository,
-		CategoryRepository $categoryRepository,
 		bool $errorEnabled = true
 	) {
 		$this->product = $product;
 		$this->attributeRepository = $attributeRepository;
-		$this->attributeValueRepository = $attributeValueRepository;
 		$this->attributeAssignRepository = $attributeAssignRepository;
 		$this->errorEnabled = $errorEnabled;
 
@@ -84,15 +77,9 @@ class ProductAttributesForm extends Control
 
 		$form->addSubmits(false, true);
 
-		$form->onValidate[] = [$this, 'validate'];
-
 		$form->onSuccess[] = [$this, 'submit'];
 
 		$this->addComponent($form, 'form');
-	}
-
-	public function validate(AdminForm $form): void
-	{
 	}
 
 	public function submit(AdminForm $form): void
@@ -101,7 +88,7 @@ class ProductAttributesForm extends Control
 
 		$this->attributeAssignRepository->many()->where('fk_product', $this->product->getPK())->delete();
 
-		foreach ($values as $attributeKey => $attributeValues) {
+		foreach ($values as $attributeValues) {
 			foreach ($attributeValues as $attributeValueKey) {
 				$this->attributeAssignRepository->syncOne([
 					'product' => $this->product->getPK(),

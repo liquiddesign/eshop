@@ -52,6 +52,11 @@ class Comgate
 		};
 	}
 
+	/**
+	 * @param \Eshop\DB\Order $order
+	 * @return string[]
+	 * @throws \Brick\Money\Exception\UnknownCurrencyException
+	 */
 	public function createPayment(Order $order): array
 	{
 		$price = $order->getTotalPriceVat();
@@ -71,6 +76,10 @@ class Comgate
 		return $res->getData();
 	}
 
+	/**
+	 * @param string $transaction
+	 * @return string[]
+	 */
 	public function getStatus(string $transaction): array
 	{
 		$res = $this->paymentService->status(PaymentStatus::of($transaction));

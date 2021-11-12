@@ -28,12 +28,12 @@ class MailerLite
 	private Groups $groupsApi;
 
 	/**
-	 * @var array
+	 * @var \MailerLiteApi\Api\Groups[]
 	 */
 	private array $groups;
 
 	/**
-	 * @var array
+	 * @var \MailerLiteApi\Api\Subscribers[]
 	 */
 	private array $subscribers;
 
@@ -187,9 +187,9 @@ class MailerLite
 
 	/**
 	 * @param string $groupName
-	 * @return array
+	 * @return \MailerLiteApi\Api\Subscribers|\MailerLiteApi\Api\Subscribers[]
 	 */
-	private function getSubscribers(string $groupName): array
+	private function getSubscribers(string $groupName): Subscribers
 	{
 		$group = $this->getGroupByName($groupName);
 

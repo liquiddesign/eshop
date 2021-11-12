@@ -115,15 +115,14 @@ class OrderGridFactory
 		$grid->addColumnAction('CSV', $downloadIco, [$this, 'downloadCsv'], [], null, ['class' => 'minimal']);
 
 		$grid->addColumn(null, function ($object, $grid) {
-			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' . $grid->getPresenter()->link('comments', $object) . '"><i title="Komentáře" class="far fa-comment"></i>&nbsp;' . $object->commentCount . '</a>';
+			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' .
+				$grid->getPresenter()->link('comments', $object) . '"><i title="Komentáře" class="far fa-comment"></i>&nbsp;' . $object->commentCount .
+				'</a>';
 		});
 
 		$grid->addColumn('', function (Order $order) use ($grid) {
 			return $grid->getPresenter()->link('printDetail', $order);
 		}, "<a class='$btnSecondary' href='%s'><i class='fa fa-search'></i> Detail</a>", null, ['class' => 'minimal']);
-
-
-		//$grid->addColumnLink('detail', '<i class="fa fa-edit"></i>', null, ['class' => 'minimal']);
 
 		// filters
 		$grid->addFilterTextInput('search_order', ['this.code'], null, 'Č. objednávky');
@@ -138,9 +137,6 @@ class OrderGridFactory
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
 		}, '', 'created_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
-
-
-//		$grid->addButtonBulkEdit('form', ['completedTs', 'canceledTs'], 'ordersGrid');
 
 		if ($state === 'open') {
 			$submit = $grid->getForm()->addSubmit('closeMultiple', 'Uzavřít úpravy');
@@ -175,7 +171,7 @@ class OrderGridFactory
 		return $grid;
 	}
 
-	public function renderPaymentColumn(Order $order, Datagrid $grid)
+	public function renderPaymentColumn(Order $order, Datagrid $grid): string
 	{
 		$link = $grid->getPresenter()->link('payment', [$order]);
 
@@ -191,13 +187,14 @@ class OrderGridFactory
 			$date = $grid->template->getLatte()->invokeFilter('date', [$payment->paidTs]);
 			$paymentInfo = "<br><small title='Zaplaceno'><i class='fas fa-check fa-xs' style='color: green;'></i> $date <a href='$linkCancel'><i class='far fa-times-circle'></i></a></small>";
 		} else {
-			$paymentInfo = "<br><small title='Nezaplaceno'><i class='fas fa-stop fa-xs' style='color: gray'></i> <a href='$linkPay'>Zaplatit</a> | <a href='$linkPayPlusEmail'>Zaplatit + e-mail</a></small>";
+			$paymentInfo = "<br><small title='Nezaplaceno'><i class='fas fa-stop fa-xs' style='color: gray'></i> 
+<a href='$linkPay'>Zaplatit</a> | <a href='$linkPayPlusEmail'>Zaplatit + e-mail</a></small>";
 		}
 
 		return "<a href='$link'>" . $payment->getTypeName() . "</a>" . $paymentInfo;
 	}
 
-	public function renderDeliveryColumn(Order $order, Datagrid $grid)
+	public function renderDeliveryColumn(Order $order, Datagrid $grid): string
 	{
 		$link = $grid->getPresenter()->link('delivery', [$order]);
 
@@ -213,9 +210,11 @@ class OrderGridFactory
 			$from = $order->deliveries->clear(true)->where('shippedTs IS NOT NULL')->enum();
 			$to = $order->deliveries->clear(true)->enum();
 			$date = $grid->template->getLatte()->invokeFilter('date', [$delivery->shippedTs]);
-			$deliveryInfo = "<br><small title='Expedováno'><i class='fas fa-play fa-xs' style='color: gray;'></i> $from / $to | $date <a href='$linkCancel'><i class='far fa-times-circle'></i></a></small>";
+			$deliveryInfo = "<br><small title='Expedováno'><i class='fas fa-play fa-xs' style='color: gray;'>
+</i> $from / $to | $date <a href='$linkCancel'><i class='far fa-times-circle'></i></a></small>";
 		} else {
-			$deliveryInfo = "<br><small title='Neexpedováno'><i class='fas fa-stop fa-xs' style='color: gray'></i> <a href='$linkShip'>Expedovat</a>  | <a href='$linkShipPlusEmail'>Expedovat + e-mail</a></small>";
+			$deliveryInfo = "<br><small title='Neexpedováno'><i class='fas fa-stop fa-xs' style='color: gray'></i>
+ <a href='$linkShip'>Expedovat</a>  | <a href='$linkShipPlusEmail'>Expedovat + e-mail</a></small>";
 		}
 
 		$date = $delivery->shippingDate ? '<i style=\'color: gray;\' class=\'fa fa-shipping-fast\'></i> ' . $grid->template->getLatte()->invokeFilter('date', [$delivery->shippingDate]) : '';
@@ -235,14 +234,16 @@ class OrderGridFactory
 		return "<a href='$link'>" . $delivery->getTypeName() . "</a> <small> $date</small>" . $deliveryInfo;
 	}
 
-	public function renderApprovalColumn(Order $order, Datagrid $grid)
+	public function renderApprovalColumn(Order $order, Datagrid $grid): string
 	{
+		unset($grid);
+
 		$approved = $this->orderRepository->isOrderApproved($order);
 
 		return $approved === true ? 'Ano' : ($approved === false ? 'Ne' : 'Čeká');
 	}
 
-	public function renderCustomerColumn(Order $order, Datagrid $grid)
+	public function renderCustomerColumn(Order $order, Datagrid $grid): ?string
 	{
 		$address = $order->purchase->deliveryAddress ? $order->purchase->deliveryAddress->getFullAddress() : ($order->purchase->billAddress ? $order->purchase->billAddress->getFullAddress() : '');
 

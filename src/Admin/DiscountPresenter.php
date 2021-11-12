@@ -6,6 +6,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\DeliveryDiscountRepository;
@@ -51,7 +52,7 @@ class DiscountPresenter extends BackendPresenter
 	/** @inject */
 	public Connection $storm;
 
-	public function createComponentGrid()
+	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->discountRepository->many(), 20, 'name', 'ASC', true);
 		$grid->addColumnSelector();
@@ -122,9 +123,14 @@ class DiscountPresenter extends BackendPresenter
 				->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
 		}
 
-		$pricelists = $discount ? $this->priceListRepository->many()->where('fk_discount IS NULL OR fk_discount = :q', ['q' => $discount->getPK()]) : $this->priceListRepository->many()->where('fk_discount IS NULL');
+		$pricelists = $discount ?
+			$this->priceListRepository->many()->where('fk_discount IS NULL OR fk_discount = :q', ['q' => $discount->getPK()]) : $this->priceListRepository->many()->where('fk_discount IS NULL');
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $pricelists->toArrayOf('name'))->setHtmlAttribute('placeholder', 'Vyberte položky...');
-		$form->addDataMultiSelect('ribbons', 'Štítky', $this->ribbonRepository->getCollection(true)->where('this.dynamic', true)->toArrayOf('name'))->setHtmlAttribute('placeholder', 'Vyberte položky...');
+		$form->addDataMultiSelect(
+			'ribbons',
+			'Štítky',
+			$this->ribbonRepository->getCollection(true)->where('this.dynamic', true)->toArrayOf('name'),
+		)->setHtmlAttribute('placeholder', 'Vyberte položky...');
 
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addSubmits(!$discount);
@@ -174,6 +180,8 @@ class DiscountPresenter extends BackendPresenter
 
 	public function renderDetail(Discount $discount): void
 	{
+		unset($discount);
+
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Akce', 'default'],
@@ -191,14 +199,15 @@ class DiscountPresenter extends BackendPresenter
 		$form->setDefaults($discount->toArray(['pricelists', 'ribbons']));
 	}
 
-	public function createComponentCouponsGrid()
+	public function createComponentCouponsGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->getParameter('discount')->coupons, 20, 'code', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Vytvořen', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumn('Exkluzivně pro zákazníka', function (DiscountCoupon $object, Datagrid $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Customer:edit') && $object->exclusiveCustomer ? $datagrid->getPresenter()->link(':Eshop:Admin:Customer:edit', [$object->exclusiveCustomer, 'backLink' => $this->storeRequest()]) : '#';
+			$link = $this->admin->isAllowed(':Eshop:Admin:Customer:edit') && $object->exclusiveCustomer ?
+				$datagrid->getPresenter()->link(':Eshop:Admin:Customer:edit', [$object->exclusiveCustomer, 'backLink' => $this->storeRequest()]) : '#';
 			
 			return $object->exclusiveCustomer ? "<a href=\"" . $link . "\"><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->exclusiveCustomer->fullname . "</a>" : '';
 		});
@@ -218,7 +227,7 @@ class DiscountPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentDeliveryDiscountsGrid()
+	public function createComponentDeliveryDiscountsGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->getParameter('discount')->deliveryDiscounts, 20, 'email', 'ASC', true);
 		$grid->addColumnSelectorMinimal();
@@ -239,7 +248,7 @@ class DiscountPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentCouponsForm()
+	public function createComponentCouponsForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
 
@@ -259,7 +268,7 @@ class DiscountPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 	
-			$coupon = $this->couponRepository->syncOne($values, null, true);
+			$this->couponRepository->syncOne($values, null, true);
 
 			$this->flashMessage('Uloženo', 'success');
 
@@ -269,7 +278,7 @@ class DiscountPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function createComponentDeliveryDiscountsForm()
+	public function createComponentDeliveryDiscountsForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
 		
@@ -298,12 +307,16 @@ class DiscountPresenter extends BackendPresenter
 
 	public function actionCoupons(Discount $discount, ?string $backLink = null): void
 	{
+		unset($backLink);
+
 		$this->template->displayButtons = [$this->createBackButton('default'), $this->createNewItemButton('couponsCreate', [$discount])];
 		$this->template->displayControls = [$this->getComponent('couponsGrid')];
 	}
 
 	public function actionCouponsDetail(DiscountCoupon $discountCoupon, ?string $backLink = null): void
 	{
+		unset($backLink);
+
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('couponsForm');
 

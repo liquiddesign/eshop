@@ -6,18 +6,8 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminGridFactory;
 use Eshop\DB\CategoryRepository;
-use Eshop\DB\CategoryTypeRepository;
-use Eshop\DB\DisplayAmountRepository;
-use Eshop\DB\InternalRibbonRepository;
-use Eshop\DB\PricelistRepository;
-use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
-use Eshop\DB\RibbonRepository;
-use Eshop\DB\SupplierCategoryRepository;
-use Eshop\DB\SupplierRepository;
-use Eshop\DB\TagRepository;
-use Eshop\Shopper;
 use Grid\Datagrid;
 use Nette\DI\Container;
 use Nette\Utils\FileSystem;
@@ -30,33 +20,13 @@ class ProductGridFactory
 
 	private AdminGridFactory $gridFactory;
 
-	private ProducerRepository $producerRepository;
-
-	private SupplierRepository $supplierRepository;
-
-	private SupplierCategoryRepository $supplierCategoryRepository;
-
 	private CategoryRepository $categoryRepository;
-
-	private RibbonRepository $ribbonRepository;
-
-	private InternalRibbonRepository $internalRibbonRepository;
-
-	private TagRepository $tagRepository;
 
 	private PageRepository $pageRepository;
 
 	private Container $container;
 
-	private PricelistRepository $pricelistRepository;
-
-	private DisplayAmountRepository $displayAmountRepository;
-
-	private Shopper $shopper;
-
 	private ProductGridFiltersFactory $productGridFiltersFactory;
-
-	private CategoryTypeRepository $categoryTypeRepository;
 
 	private Connection $connection;
 
@@ -65,35 +35,16 @@ class ProductGridFactory
 		Container $container,
 		PageRepository $pageRepository,
 		ProductRepository $productRepository,
-		ProducerRepository $producerRepository,
-		SupplierRepository $supplierRepository,
-		SupplierCategoryRepository $supplierCategoryRepository,
 		CategoryRepository $categoryRepository,
-		RibbonRepository $ribbonRepository,
-		InternalRibbonRepository $internalRibbonRepository,
-		TagRepository $tagRepository,
-		PricelistRepository $pricelistRepository,
-		DisplayAmountRepository $displayAmountRepository,
-		Shopper $shopper,
 		ProductGridFiltersFactory $productGridFiltersFactory,
-		CategoryTypeRepository $categoryTypeRepository,
 		Connection $connection
 	) {
-		$this->productRepository = $productRepository;
 		$this->gridFactory = $gridFactory;
-		$this->producerRepository = $producerRepository;
-		$this->supplierRepository = $supplierRepository;
-		$this->supplierCategoryRepository = $supplierCategoryRepository;
 		$this->categoryRepository = $categoryRepository;
-		$this->ribbonRepository = $ribbonRepository;
-		$this->internalRibbonRepository = $internalRibbonRepository;
-		$this->tagRepository = $tagRepository;
 		$this->pageRepository = $pageRepository;
 		$this->container = $container;
-		$this->pricelistRepository = $pricelistRepository;
-		$this->displayAmountRepository = $displayAmountRepository;
 		$this->productGridFiltersFactory = $productGridFiltersFactory;
-		$this->categoryTypeRepository = $categoryTypeRepository;
+		$this->productRepository = $productRepository;
 		$this->connection = $connection;
 	}
 
@@ -139,21 +90,6 @@ class ProductGridFactory
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 		$grid->addColumnInputCheckbox('<i title="Neprodejné" class="fas fa-ban"></i>', 'unavailable', '', '', 'unavailable');
-
-//		if ($configuration['parameters']) {
-//			$grid->addColumnLink('Parameters', 'Atributy');
-//		}
-
-		/*$grid->addColumnLink('Prices', 'Ceny');
-		$grid->addColumn(null, function (Product $product, $grid) {
-			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' . $grid->getPresenter()->link('photos', $product) . '"><i title="Obrázky" class="far fa-file-image"></i>&nbsp;' . $product->photoCount . '</a>';
-		});
-		$grid->addColumn(null, function (Product $product, $grid) {
-			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' . $grid->getPresenter()->link('files', $product) . '"><i title="Soubory" class="far fa-file"></i>&nbsp;' . $product->fileCount . '</a>';
-		});
-		$grid->addColumn(null, function (Product $product, $grid) {
-			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' . $grid->getPresenter()->link('comments', $product) . '"><i title="Komentáře" class="far fa-comment"></i>&nbsp;' . $product->commentCount . '</a>';
-		});*/
 
 		$grid->addColumnLinkDetail('edit');
 		$grid->addColumnActionDelete([$this, 'onDelete']);

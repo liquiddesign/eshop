@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Eshop\BackendPresenter;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CountryRepository;
@@ -99,7 +100,7 @@ class PricelistsPresenter extends BackendPresenter
 	/** @inject */
 	public VatRateRepository $vatRateRepository;
 
-	public function createComponentPriceLists()
+	public function createComponentPriceLists(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->priceListRepository->many(), 20, 'priority', 'ASC');
 		$grid->addColumnSelector();
@@ -170,7 +171,7 @@ class PricelistsPresenter extends BackendPresenter
 		);
 		$grid->addFilterButtons();
 
-		if (isset(self::CONFIGURATION['aggregate']) && self::CONFIGURATION['aggregate']) {
+		if (isset($this::CONFIGURATION['aggregate']) && $this::CONFIGURATION['aggregate']) {
 			$submit = $grid->getForm()->addSubmit('aggregate', 'Agregovat ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
 			$submit->onClick[] = function ($button) use ($grid): void {
@@ -181,7 +182,7 @@ class PricelistsPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentPriceListItems()
+	public function createComponentPriceListItems(): AdminGrid
 	{
 		$grid = $this->gridFactory->create(
 			$this->priceRepository->getPricesByPriceList($this->getParameter('pricelist')),
@@ -235,7 +236,8 @@ class PricelistsPresenter extends BackendPresenter
 				return;
 			}
 
-			$newValue = $key === 'priceVat' && !isset($data['priceVat']) ? \floatval($data['price']) + (\floatval($data['price']) * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$object->product->vatRate]), 100)) : $data[$key];
+			$newValue = $key === 'priceVat' && !isset($data['priceVat']) ?
+				\floatval($data['price']) + (\floatval($data['price']) * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$object->product->vatRate]), 100)) : $data[$key];
 
 			if ($type === 'float') {
 				$data[$key] = \floatval(\str_replace(',', '.', $newValue));
@@ -292,7 +294,7 @@ class PricelistsPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentQuantityPricesGrid()
+	public function createComponentQuantityPricesGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create(
 			$this->quantityPriceRepo->getPricesByPriceList($this->getParameter('pricelist')),
@@ -343,7 +345,7 @@ class PricelistsPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentPriceListDetail()
+	public function createComponentPriceListDetail(): AdminForm
 	{
 		$form = $this->formFactory->create();
 
@@ -359,7 +361,7 @@ class PricelistsPresenter extends BackendPresenter
 		$form->addCheckbox('isPurchase', 'Nákupní');
 		$form->addCheckbox('isActive', 'Aktivní');
 
-		if (isset(self::CONFIGURATION['customLabel']) && self::CONFIGURATION['customLabel']) {
+		if (isset($this::CONFIGURATION['customLabel']) && $this::CONFIGURATION['customLabel']) {
 			$form->addText('customLabel', 'Vlastní štítek')
 				->setHtmlAttribute('data-info', 'Použitý při exportu XML produktů pro Google jako "custom_label_0".')
 				->addCondition($form::FILLED)->addRule($form::MAX_LENGTH, 'Maximálně 100 znaků!', 100);
@@ -379,7 +381,7 @@ class PricelistsPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function createComponentImportPriceList()
+	public function createComponentImportPriceList(): AdminForm
 	{
 		$form = $this->formFactory->create();
 		$form->addUpload('file', 'CSV soubor')->setRequired()->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
@@ -416,7 +418,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		$priceListForm->setDefaults($pricelist->toArray());
 	}
 
-	public function renderPriceListDetail(Pricelist $pricelist): void
+	public function renderPriceListDetail(): void
 	{
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -558,7 +560,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		$this->template->displayControls = [$this->getComponent('quantityPricesForm')];
 	}
 
-	public function createComponentQuantityPricesForm()
+	public function createComponentQuantityPricesForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
 
@@ -606,7 +608,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		return $form;
 	}
 
-	public function createComponentCopyToPricelistForm()
+	public function createComponentCopyToPricelistForm(): AdminForm
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $this->getComponent($this->getParameter('type') === 'standard' ? 'priceListItems' : 'quantityPricesGrid');
@@ -686,6 +688,8 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 	public function renderCopyToPricelist(array $ids, Pricelist $pricelist, string $type): void
 	{
+		unset($ids);
+
 		$this->template->headerLabel = 'Kopírovat ceny';
 		$this->template->headerTree = [
 			['Ceníky', 'default'],
@@ -700,6 +704,9 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 	public function actionCopyToPricelist(array $ids, Pricelist $pricelist, string $type): void
 	{
+		unset($ids);
+		unset($pricelist);
+		unset($type);
 //		/** @var \Forms\Form $form */
 //		$form = $this->getComponent('newsletterExportProducts');
 //
@@ -717,10 +724,13 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 	public function actionAggregate(array $ids): void
 	{
+		unset($ids);
 	}
 
 	public function renderAggregate(array $ids): void
 	{
+		unset($ids);
+
 		$this->template->headerLabel = 'Agregace ceníků';
 		$this->template->headerTree = [
 			['Ceníky', 'default'],

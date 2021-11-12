@@ -7,6 +7,7 @@ namespace Eshop\Admin;
 use Admin\Admin\Controls\AccountFormFactory;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
@@ -54,7 +55,7 @@ class MerchantPresenter extends BackendPresenter
 	/** @inject */
 	public Passwords $passwords;
 
-	public function createComponentGrid()
+	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->merchantRepository->many(), 20, 'code', 'ASC', true);
 		$grid->addColumnSelector();
@@ -120,11 +121,10 @@ class MerchantPresenter extends BackendPresenter
 
 		$form->addGroup('Další možnosti');
 
-//		$form->addDataSelect('preferredMutation', 'Preferovaný jazyk', \array_combine($this->formFactory->formFactory->getDefaultMutations(),$this->formFactory->formFactory->getDefaultMutations()))->setPrompt('Automaticky');
 		$form->addDataSelect(
 			'customerGroup',
 			'Skupina zákazníků',
-			$this->customerGroupRepository->getArrayForSelect(true, self::CONFIGURATIONS['showUnregisteredGroup']),
+			$this->customerGroupRepository->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']),
 		)->setPrompt('Žádná');
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepository->getArrayForSelect());
 
@@ -217,6 +217,8 @@ class MerchantPresenter extends BackendPresenter
 
 	public function renderDetail(Merchant $merchant): void
 	{
+		unset($merchant);
+
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Obchodníci', 'default'],
@@ -240,7 +242,7 @@ class MerchantPresenter extends BackendPresenter
 		$form->setDefaults($merchant->toArray($relations));
 	}
 
-	public function createComponentAccountForm()
+	public function createComponentAccountForm(): AdminForm
 	{
 		$merchant = $this->getParameter('merchant');
 
@@ -293,6 +295,8 @@ class MerchantPresenter extends BackendPresenter
 
 	public function renderNewAccount(Merchant $merchant): void
 	{
+		unset($merchant);
+
 		$this->template->headerLabel = 'Nový účet';
 		$this->template->headerTree = [
 			['Obchodníci', 'default'],

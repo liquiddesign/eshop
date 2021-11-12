@@ -20,19 +20,15 @@ use StORM\SchemaManager;
  */
 class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 {
-	private RelatedTypeRepository $relatedTypeRepository;
-
 	private ProductRepository $productRepository;
 
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		RelatedTypeRepository $relatedTypeRepository,
 		ProductRepository $productRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
-		$this->relatedTypeRepository = $relatedTypeRepository;
 		$this->productRepository = $productRepository;
 	}
 
@@ -184,6 +180,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 	}
 
 	/** @TODO přesunout pro jednotné použití všude */
+	/** @codingStandardsIgnoreStart  */
 	private function getReader(string $filePath): Reader
 	{
 		if (!\ini_get("auto_detect_line_endings")) {
@@ -215,4 +212,6 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 
 		return $reader;
 	}
+
+	/** @codingStandardsIgnoreEnd  */
 }

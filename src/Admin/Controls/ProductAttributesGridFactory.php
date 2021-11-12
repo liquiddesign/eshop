@@ -8,23 +8,11 @@ use Admin\Controls\AdminGrid;
 use Admin\Controls\AdminGridFactory;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
-use Eshop\DB\AttributeValueRepository;
-use Eshop\DB\CategoryRepository;
-use Eshop\DB\DisplayAmountRepository;
-use Eshop\DB\InternalRibbonRepository;
-use Eshop\DB\PricelistRepository;
-use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
-use Eshop\DB\RibbonRepository;
-use Eshop\DB\SupplierCategoryRepository;
-use Eshop\DB\SupplierRepository;
-use Eshop\DB\TagRepository;
 use Grid\Datagrid;
-use Nette\DI\Container;
 use Nette\Forms\Controls\MultiSelectBox;
 use Nette\Http\Session;
-use Web\DB\PageRepository;
 
 class ProductAttributesGridFactory
 {
@@ -34,84 +22,38 @@ class ProductAttributesGridFactory
 
 	private AdminGridFactory $gridFactory;
 
-	private ProducerRepository $producerRepository;
-
-	private SupplierRepository $supplierRepository;
-
-	private SupplierCategoryRepository $supplierCategoryRepository;
-
-	private CategoryRepository $categoryRepository;
-
-	private RibbonRepository $ribbonRepository;
-
-	private InternalRibbonRepository $internalRibbonRepository;
-
-	private TagRepository $tagRepository;
-
-	private PageRepository $pageRepository;
-
-	private Container $container;
-
-	private PricelistRepository $pricelistRepository;
-
-	private DisplayAmountRepository $displayAmountRepository;
-
 	private ProductGridFiltersFactory $productGridFiltersFactory;
 
 	private AttributeRepository $attributeRepository;
-
-	private AttributeValueRepository $attributeValueRepository;
 
 	private AttributeAssignRepository $attributeAssignRepository;
 
 	private Session $session;
 
+	/**
+	 * @var \Eshop\DB\Attribute[]
+	 */
 	private array $attributes = [];
 
 	public function __construct(
 		\Admin\Controls\AdminGridFactory $gridFactory,
-		Container $container,
-		PageRepository $pageRepository,
 		ProductRepository $productRepository,
-		ProducerRepository $producerRepository,
-		SupplierRepository $supplierRepository,
-		SupplierCategoryRepository $supplierCategoryRepository,
-		CategoryRepository $categoryRepository,
-		RibbonRepository $ribbonRepository,
-		InternalRibbonRepository $internalRibbonRepository,
-		TagRepository $tagRepository,
-		PricelistRepository $pricelistRepository,
-		DisplayAmountRepository $displayAmountRepository,
 		ProductGridFiltersFactory $productGridFiltersFactory,
 		AttributeRepository $attributeRepository,
-		AttributeValueRepository $attributeValueRepository,
 		Session $session,
 		AttributeAssignRepository $attributeAssignRepository
 	) {
 		$this->productRepository = $productRepository;
 		$this->gridFactory = $gridFactory;
-		$this->producerRepository = $producerRepository;
-		$this->supplierRepository = $supplierRepository;
-		$this->supplierCategoryRepository = $supplierCategoryRepository;
-		$this->categoryRepository = $categoryRepository;
-		$this->ribbonRepository = $ribbonRepository;
-		$this->internalRibbonRepository = $internalRibbonRepository;
-		$this->tagRepository = $tagRepository;
-		$this->pageRepository = $pageRepository;
-		$this->container = $container;
-		$this->pricelistRepository = $pricelistRepository;
-		$this->displayAmountRepository = $displayAmountRepository;
 		$this->productGridFiltersFactory = $productGridFiltersFactory;
 		$this->attributeRepository = $attributeRepository;
-		$this->attributeValueRepository = $attributeValueRepository;
 		$this->session = $session;
 		$this->attributeAssignRepository = $attributeAssignRepository;
 	}
 
 	public function create(array $configuration): Datagrid
 	{
-		$connection = $this->attributeRepository->getConnection();
-		$mutationSuffix = $connection->getMutationSuffix();
+		unset($configuration);
 
 		$source = $this->productRepository->many()->setGroupBy(['this.uuid'])
 			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
@@ -120,10 +62,6 @@ class ProductAttributesGridFactory
 
 		$grid = $this->gridFactory->create($source, 20, 'this.priority', 'ASC', false);
 		$grid->setItemsPerPage([5, 10, 20, 50, 100]);
-
-//		$grid->addColumn('Kód a EAN', function (Product $product) {
-//			return $product->getFullCode() . ($product->ean ? "<br><small>EAN $product->ean</small>" : '');
-//		}, '%s', 'code', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
 		$grid->addColumn('Název', function (Product $product, $grid) {
 			return [$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]), $product->name];
@@ -144,12 +82,12 @@ class ProductAttributesGridFactory
 			}
 
 			/** @var \Eshop\DB\Attribute[] $attributes */
-			$this->attributes = $attributes = $this->attributeRepository->getAttributesByCategories([$category], true)->toArray();
+			$attributes = $this->attributes = $this->attributeRepository->getAttributesByCategory($category->path, true)->toArray();
 
 			foreach ($attributes as $attribute) {
 				$values = $this->attributeRepository->getAttributeValues($attribute, true);
 
-				$column = $grid->addColumnInput($attribute->name, $attribute->getPK(), function () use ($values) {
+				$grid->addColumnInput($attribute->name, $attribute->getPK(), function () use ($values) {
 					$selectBox = new MultiSelectBox(null, $values->toArrayOf('internalLabel'));
 					$selectBox->setHtmlAttribute('class', 'form-control form-control-sm');
 					$selectBox->setHtmlAttribute('style', 'max-width: 50px;');
@@ -161,23 +99,13 @@ class ProductAttributesGridFactory
 						$selectBox->setDefaultValue(\explode(',', $product->attributeValues));
 					}
 				});
-
-//				$column->onRenderCell[] = function (\Nette\Utils\Html $td, $object) {
-//					$el = $td->getChildren()[0];
-//					$td->removeChildren();
-//					$startPos = \strpos($el, 'name="');
-//					$endPos = \strpos($el, '"', $startPos + 6);
-//					$name = \substr($el, $startPos + 6, $endPos - $startPos - 6);
-//					$td->addHtml('<input type="hidden" value="" name="' . $name . '">');
-//					$td->addHtml($el);
-//				};
 			}
 		};
 
 		$grid->addButtonSaveAll([], [], null, false, null, null, true, function () use ($grid): void {
 			$data = $grid->getPresenter()->getHttpRequest()->getPost();
 
-			foreach ($data as $column => $row) {
+			foreach ($data as $row) {
 				if (!\is_array($row)) {
 					continue;
 				}
@@ -191,7 +119,7 @@ class ProductAttributesGridFactory
 				}
 			}
 
-			foreach ($data as $column => $row) {
+			foreach ($data as $row) {
 				if (!\is_array($row)) {
 					continue;
 				}
