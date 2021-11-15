@@ -135,8 +135,10 @@ class CategoryForm extends Control
 		$this->monitor(Presenter::class, function ($presenter) use ($pagesCategoryAll): void {
 			$this->template->producerPages = $pagesCategoryAll;
 		});
-		
-		$form->addSubmits(!$category);
+
+		if (!$category || ($category && !$category->type->isReadOnly())) {
+			$form->addSubmits(!$category);
+		}
 		
 		$form->onSuccess[] = function (AdminForm $form) use ($pagesCategoryAll): void {
 			$values = $form->getValues('array');

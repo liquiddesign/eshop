@@ -144,7 +144,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 		}
 	}
 
-	/** @TODO přesunout pro jednotné použití všude */
+	/** @todo přesunout pro jednotné použití všude */
 	private function getReaderFromString(string $content): Reader
 	{
 		if (!\ini_get("auto_detect_line_endings")) {
@@ -173,7 +173,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 		return $reader;
 	}
 
-	/** @TODO přesunout pro jednotné použití všude */
+	/** @todo přesunout pro jednotné použití všude */
 	/** @codingStandardsIgnoreStart  */
 	private function getReader(string $filePath): Reader
 	{

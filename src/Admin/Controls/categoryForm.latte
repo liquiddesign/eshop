@@ -147,7 +147,7 @@
                     <tr>
                         {ifset $form['submitAndNext']}
                             {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
-                        {else}
+                        {elseif (isset($form['submit']))}
                             {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
                         {/ifset}
                     </tr>

@@ -31,8 +31,23 @@ class CategoryType extends \StORM\Entity
 	 */
 	public bool $systemic = false;
 
+	/**
+	 * Pouze ke čtení
+	 * @column
+	 */
+	public bool $readOnly = false;
+
 	public function isSystemic(): bool
 	{
+		if ($this->readOnly) {
+			return true;
+		}
+
 		return $this->systemic;
+	}
+
+	public function isReadOnly(): bool
+	{
+		return $this->readOnly;
 	}
 }

@@ -7,6 +7,9 @@ use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use League\Csv\Reader;
+use Nette\Utils\FileSystem;
+use Onnov\DetectEncoding\EncodingDetector;
 
 class BackendPresenter extends \Admin\BackendPresenter
 {
@@ -103,5 +106,65 @@ class BackendPresenter extends \Admin\BackendPresenter
 		$this->payload->pagination = $payload['pagination'];
 
 		$this->sendPayload();
+	}
+
+	public function getReaderFromString(string $content, string $delimiter = ';'): Reader
+	{
+		if (!\ini_get("auto_detect_line_endings")) {
+			\ini_set("auto_detect_line_endings", '1');
+		}
+
+		$detector = new EncodingDetector();
+
+		$detector->disableEncoding([
+			EncodingDetector::ISO_8859_5,
+			EncodingDetector::KOI8_R,
+		]);
+
+		$encoding = $detector->getEncoding($content);
+
+		if ($encoding !== 'utf-8') {
+			$content = \iconv('windows-1250', 'utf-8', $content);
+		}
+
+		$reader = Reader::createFromString($content);
+		unset($content);
+
+		$reader->setDelimiter($delimiter);
+		$reader->setHeaderOffset(0);
+
+		return $reader;
+	}
+
+	public function getReader(string $filePath, string $delimiter = ';'): Reader
+	{
+		if (!\ini_get("auto_detect_line_endings")) {
+			\ini_set("auto_detect_line_endings", '1');
+		}
+
+		$csvData = FileSystem::read($filePath);
+
+		$detector = new EncodingDetector();
+
+		$detector->disableEncoding([
+			EncodingDetector::ISO_8859_5,
+			EncodingDetector::KOI8_R,
+		]);
+
+		$encoding = $detector->getEncoding($csvData);
+
+		if ($encoding !== 'utf-8') {
+			$csvData = \iconv('windows-1250', 'utf-8', $csvData);
+			$reader = Reader::createFromString($csvData);
+			unset($csvData);
+		} else {
+			unset($csvData);
+			$reader = Reader::createFromPath($filePath);
+		}
+
+		$reader->setDelimiter($delimiter);
+		$reader->setHeaderOffset(0);
+
+		return $reader;
 	}
 }

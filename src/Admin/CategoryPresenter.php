@@ -13,6 +13,8 @@ use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\ProducerRepository;
+use League\Csv\Writer;
+use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;
@@ -55,6 +57,8 @@ class CategoryPresenter extends BackendPresenter
 
 	/** @persistent */
 	public string $editTab = 'menu0';
+
+	private ?CategoryType $categoryType;
 
 	/**
 	 * @var string[]
@@ -100,36 +104,59 @@ class CategoryPresenter extends BackendPresenter
 			$td->setHtml(\str_repeat('- - ', $level) . $td->getHtml());
 		};
 
-		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'this.priority', [], true);
-		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
-		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
-		$grid->addColumnInputCheckbox('<i title="Zobrazit v menu" class="fas fa-bars"></i>', 'showInMenu', '', '', 'showInMenu');
+		if ($this->categoryType && !$this->categoryType->isReadOnly()) {
+			$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'this.priority', [], true);
+			$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
+			$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
+			$grid->addColumnInputCheckbox('<i title="Zobrazit v menu" class="fas fa-bars"></i>', 'showInMenu', '', '', 'showInMenu');
+		} else {
+			$grid->addColumn('Priorita', function (Category $category) {
+				return '<input class="form-control form-control-sm" type="number" value="' . $category->priority . '" disabled>';
+			}, '%s', 'showInMenu', ['class' => 'minimal']);
+			$grid->addColumn('<i title="Doporučeno" class="far fa-thumbs-up"></i>', function (Category $category) {
+				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int)$category->recommended . '" disabled></label>';
+			}, '%s', 'showInMenu', ['class' => 'minimal']);
+			$grid->addColumn('<i title="Skryto" class="far fa-eye-slash"></i>', function (Category $category) {
+				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int)$category->hidden . '" disabled></label>';
+			}, '%s', 'showInMenu', ['class' => 'minimal']);
+			$grid->addColumn('<i title="Zobrazit v menu" class="fas fa-bars"></i>', function (Category $category) {
+				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int)$category->showInMenu . '" disabled></label>';
+			}, '%s', 'showInMenu', ['class' => 'minimal']);
+		}
 
 		$grid->addColumnLinkDetail('Detail');
 		$grid->addColumnActionDeleteSystemic();
 
-		$grid->addButtonSaveAll([], [], null, false, null, null, true, null, function (): void {
-			$this->categoryRepository->clearCategoriesCache();
-		});
-		$grid->addButtonDeleteSelected(null, true, function ($object) {
-			if ($object) {
-				return !$object->isSyemic();
+		if ($this->categoryType && !$this->categoryType->isReadOnly()) {
+			$grid->addButtonSaveAll([], [], null, false, null, null, true, null, function (): void {
+				$this->categoryRepository->clearCategoriesCache();
+			});
+			$grid->addButtonDeleteSelected(null, true, function ($object) {
+				if ($object) {
+					return !$object->isSyemic();
+				}
+
+				return false;
+			}, null, function (): void {
+				$this->categoryRepository->clearCategoriesCache();
+			});
+
+			$grid->addButtonBulkEdit('categoryForm', ['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
+
+			if (isset($this::CONFIGURATION['producerPagesType']) && $this::CONFIGURATION['producerPagesType'] === $this::PRODUCER_CATEGORY) {
+				$submit = $grid->getForm()->addSubmit('generateProducerCategories', 'Generovat kategorie výrobců')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+				$submit->onClick[] = function ($button) use ($grid): void {
+					$grid->getPresenter()->redirect('generateProducerCategories', [$grid->getSelectedIds()]);
+				};
 			}
-
-			return false;
-		}, null, function (): void {
-			$this->categoryRepository->clearCategoriesCache();
-		});
-
-		$grid->addButtonBulkEdit('categoryForm', ['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
-
-		if (isset($this::CONFIGURATION['producerPagesType']) && $this::CONFIGURATION['producerPagesType'] === $this::PRODUCER_CATEGORY) {
-			$submit = $grid->getForm()->addSubmit('generateProducerCategories', 'Generovat kategorie výrobců')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
-
-			$submit->onClick[] = function ($button) use ($grid): void {
-				$grid->getPresenter()->redirect('generateProducerCategories', [$grid->getSelectedIds()]);
-			};
 		}
+
+		$submit = $grid->getForm()->addSubmit('exportCategoryTree', 'Exportovat strom (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+		$submit->onClick[] = function ($button) use ($grid): void {
+			$grid->getPresenter()->redirect('exportCategoryTree', [$grid->getSelectedIds()]);
+		};
 
 		$grid->addFilterTextInput('search', ['code', 'name_cs'], null, 'Kód, Název');
 		$grid->addFilterButtons(['default', ['categoryGrid-order' => 'path-ASC']]);
@@ -149,9 +176,14 @@ class CategoryPresenter extends BackendPresenter
 
 	public function onDeletePage(Entity $object): void
 	{
-		if ($page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['category' => $object])) {
-			$page->delete();
+		/** @var \Web\DB\Page|null $page */
+		$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['category' => $object]);
+
+		if (!$page) {
+			return;
 		}
+
+		$page->delete();
 	}
 
 	public function createComponentCategoryForm(): Controls\CategoryForm
@@ -200,9 +232,18 @@ class CategoryPresenter extends BackendPresenter
 			$this->template->headerTree = [
 				['Kategorie', 'default'],
 			];
-			$this->template->displayButtons = [
-				$this->createNewItemButton('categoryNew'),
-			];
+
+			$this->template->displayButtons = [];
+
+			if ($this->categoryType && !$this->categoryType->isReadOnly()) {
+				$this->template->displayButtons[] = $this->createNewItemButton('categoryNew');
+			}
+
+			$this->template->displayButtons[] = $this->createButtonWithClass(
+				'importCategoryTree',
+				'<i class="fas fa-file-import"></i> Import stromu',
+				'btn btn-outline-primary btn-sm',
+			);
 
 			if (isset($this::CONFIGURATION['producerPagesType']) && $this::CONFIGURATION['producerPagesType'] === $this::PRODUCER_PAGES) {
 				$this->template->displayButtons[] = $this->createButtonWithClass(
@@ -584,5 +625,143 @@ class CategoryPresenter extends BackendPresenter
 		};
 
 		return $form;
+	}
+
+	public function renderImportCategoryTree(): void
+	{
+		$this->template->headerLabel = 'Import stromu kategorií';
+		$this->template->headerTree = [
+			['Kategorie', 'default'],
+			['Import stromu'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('importCategoryTreeForm')];
+	}
+
+	public function createComponentImportCategoryTreeForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+
+		$filePicker = $form->addFilePicker('file', 'Soubor (CSV)')
+			->setRequired()
+			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/csv');
+
+		$filePicker->setHtmlAttribute('data-info', 'Podporuje <b>pouze</b> formátování Windows a Linux (UTF-8)!');
+
+		$form->addSelect('delimiter', 'Oddělovač', [
+			';' => 'Středník (;)',
+			',' => 'Čárka (,)',
+			'   ' => 'Tab (\t)',
+			' ' => 'Mezera ( )',
+			'|' => 'Pipe (|)',
+		])->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
+Očekává se formát kategorií dle formátu Heuréky. Tedy "Subcategory 1" atd. až po úroveň 5.
+<br>
+<b>Pozor!</b> Pokud pracujete se souborem na zařízeních Apple, ujistětě se, že vždy při ukládání použijete možnost uložit do formátu Windows nebo Linux (UTF-8)!');
+
+		$form->addSubmit('submit', 'Importovat');
+
+		$form->onValidate[] = function ($form): void {
+			$values = $form->getValues('array');
+
+			/** @var \Nette\Http\FileUpload $file */
+			$file = $values['file'];
+
+			if ($file->hasFile()) {
+				return;
+			}
+
+			$form['file']->addError('Neplatný soubor!');
+		};
+
+		$form->onSuccess[] = function ($form): void {
+			$values = $form->getValues('array');
+
+			/** @var \Nette\Http\FileUpload $file */
+			$file = $values['file'];
+
+			$connection = $this->productRepository->getConnection();
+
+			$connection->getLink()->beginTransaction();
+
+			try {
+				$this->categoryRepository->importTreeCsv($this->getReaderFromString($file->getContents(), $values['delimiter']), $this->categoryType);
+
+				$connection->getLink()->commit();
+				$this->flashMessage('Provedeno', 'success');
+			} catch (\Exception $e) {
+				$connection->getLink()->rollBack();
+
+				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Import dat se nezdařil!', 'error');
+			}
+
+			$this->redirect('this');
+		};
+
+		return $form;
+	}
+
+	public function renderExportCategoryTree(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Export stromu kategorií';
+		$this->template->headerTree = [
+			['Kategorie', 'default'],
+			['Export stromu'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('exportCategoryTreeForm')];
+	}
+
+	public function createComponentExportCategoryTreeForm(): AdminForm
+	{
+		/** @var \Grid\Datagrid $grid */
+		$grid = $this->getComponent('categoryGrid');
+
+		$ids = $this->getParameter('ids') ?: [];
+		$totalNo = $grid->getPaginator()->getItemCount();
+		$selectedNo = \count($ids);
+
+		$form = $this->formFactory->create();
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+		$form->addRadioList('bulkType', 'Exportovat', [
+			'selected' => "vybrané ($selectedNo)",
+			'all' => "celý výsledek ($totalNo)",
+		])->setDefaultValue('selected');
+
+		$form->addSelect('delimiter', 'Oddělovač', [
+			';' => 'Středník (;)',
+			',' => 'Čárka (,)',
+			'   ' => 'Tab (\t)',
+			' ' => 'Mezera ( )',
+			'|' => 'Pipe (|)',
+		]);
+
+		$form->addSubmit('submit', 'Exportovat');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid): void {
+			$values = $form->getValues('array');
+
+			$items = $values['bulkType'] === 'selected' ? $this->categoryRepository->many()->where('this.uuid', $ids)->toArray() : $grid->getFilteredSource()->toArray();
+
+			$tempFilename = \tempnam($this->tempDir, "csv");
+
+			$this->categoryRepository->exportTreeCsv(
+				Writer::createFromPath($tempFilename),
+				$items,
+			);
+
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "categories.csv", 'text/csv'));
+		};
+
+		return $form;
+	}
+
+	protected function startup(): void
+	{
+		parent::startup();
+
+		$this->categoryType = $this->categoryTypeRepository->one($this->tab);
 	}
 }
