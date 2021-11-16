@@ -7,6 +7,7 @@ namespace Eshop\DB;
 /**
  * Slevový kupón
  * @table
+ * @index{"name":"discount_coupon_unique","unique":true,"columns":["code","fk_discount"]}
  */
 class DiscountCoupon extends \StORM\Entity
 {
@@ -33,24 +34,6 @@ class DiscountCoupon extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $discountValueVat;
-	
-	/**
-	 * Sleva na dopravu (%)
-	 * @column
-	 */
-	public ?float $deliveryDiscountPct;
-	
-	/**
-	 * Sleva na dopravu v měně
-	 * @column
-	 */
-	public ?float $deliveryDiscountValue;
-	
-	/**
-	 * Sleva na dopravu v měně s DPH
-	 * @column
-	 */
-	public ?float $deliveryDiscountValueVat;
 	
 	/**
 	 * Sleva (%)

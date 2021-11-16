@@ -181,7 +181,7 @@ class ProductForm extends Control
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('recommended', 'Doporučeno');
 
-		if ($configuration['sets']) {
+		if (isset($configuration['sets']) && $configuration['sets']) {
 			$form->addCheckbox('productsSet', 'Set produktů')->addCondition($form::EQUAL, true)->toggle('setItems');
 		}
 

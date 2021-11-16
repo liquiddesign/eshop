@@ -256,27 +256,30 @@ class DiscountPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
+		$discount = $this->getParameter('discount');
+
 		$form->addText('code', 'Kód')->setRequired();
 		$form->addText('label', 'Popisek');
 		$form->addDataSelect('exclusiveCustomer', 'Jen pro zákazníka', $this->customerRepository->getArrayForSelect())->setPrompt('Žádný');
 		$form->addText('discountPct', 'Sleva (%)')->addRule($form::FLOAT)->addRule([FormValidators::class, 'isPercent'], 'Hodnota není platné procento!');
+		$form->addInteger('usageLimit', 'Maximální počet použití')->setNullable();
 		$form->addGroup('Absolutní sleva');
 		$form->addDataSelect('currency', 'Měna', $this->currencyRepo->getArrayForSelect());
 		$form->addText('discountValue', 'Sleva')->setHtmlAttribute('data-info', 'Zadejte hodnotu ve zvolené měně.')->addCondition(Form::FILLED)->addRule($form::FLOAT);
 		$form->addText('discountValueVat', 'Sleva s DPH')->setHtmlAttribute('data-info', 'Zadejte hodnotu ve zvolené měně.')->addCondition(Form::FILLED)->addRule($form::FLOAT);
 		$form->bind($this->couponRepository->getStructure());
-		$form->addHidden('discount', (string)$this->getParameter('discount') ?? $this->getParameter('discountCoupon')->getValue('discount'));
+		$form->addHidden('discount', isset($discount) ? (string)$discount : $this->getParameter('discountCoupon')->getValue('discount'));
 
-		$form->addSubmits(false, false);
+		$form->addSubmits(!$this->getParameter('discountCoupon'));
 
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
-			$this->couponRepository->syncOne($values, null, true);
+			$coupon = $this->couponRepository->syncOne($values, null, true);
 
 			$this->flashMessage('Uloženo', 'success');
 
-			$form->processRedirect('coupons', 'coupons', [], [$this->getParameter('discount') ?? $this->getParameter('discountCoupon')->discount]);
+			$form->processRedirect('couponsDetail', 'coupons', [$coupon], [$this->getParameter('discount') ?? $this->getParameter('discountCoupon')->discount], [$this->getParameter('discount')]);
 		};
 
 		return $form;
