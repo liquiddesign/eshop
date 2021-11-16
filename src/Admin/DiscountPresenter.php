@@ -245,7 +245,11 @@ class DiscountPresenter extends BackendPresenter
 
 		$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll(['discountValue', 'discountPct', 'discountPriceFrom']);
+		$grid->addButtonSaveAll(['discountValue', 'discountPct', 'discountPriceFrom'],[],null,false, null, function ($id, &$data) {
+			if (!isset($data['discountPriceFrom'])) {
+				$data['discountPriceFrom'] = 0;
+			}
+		}, false);
 		$grid->addButtonDeleteSelected();
 
 		$grid->addFilterSelectInput('search', 'fk_currency = :q', 'Měna', '- Měna -', null, $this->currencyRepo->getArrayForSelect());
