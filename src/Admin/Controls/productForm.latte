@@ -359,19 +359,19 @@
                     </tr>
                 {/ifset}
 
-                    {ifset $form['discountLevelPct']}
-                        <tr class="m-0 mt-1 has-danger">
-                            <th class="col-label col-form-label col">{label discountLevelPct/}</th>
+                {ifset $form['discountLevelPct']}
+                    <tr class="m-0 mt-1 has-danger">
+                        <th class="col-label col-form-label col">{label discountLevelPct/}</th>
 
-                            <td colspan="4"
-                                class="align-middle">{input discountLevelPct  class => 'form-control form-control-sm col-label max-number'}
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError discountLevelPct}</span>
-                            </td>
-                        </tr>
-                    {/ifset}
+                        <td colspan="4"
+                            class="align-middle">{input discountLevelPct  class => 'form-control form-control-sm col-label max-number'}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError discountLevelPct}</span>
+                        </td>
+                    </tr>
+                {/ifset}
 
-                    <tr n:if="isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']"
-                        class="m-0 mt-1 has-danger">
+                <tr n:if="isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']"
+                    class="m-0 mt-1 has-danger">
                     <th class="col-label col-form-label col">{label weight/}</th>
 
                     <td class="align-middle">{input weight class => 'form-control form-control-sm col-label max-number'}
@@ -379,10 +379,8 @@
                     </td>
                 </tr>
 
-
-
-                    <tr n:if="isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']"
-                        class="m-0 mt-1 has-danger">
+                <tr n:if="isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']"
+                    class="m-0 mt-1 has-danger">
                     <th class="col-label col-form-label col">{label dimension/}</th>
 
                     <td class="align-middle">{input dimension class => 'form-control form-control-sm col-label max-number'}
@@ -518,7 +516,7 @@
                     {/if}
                 </table>
 
-                {ifset $form['loyaltyProgram']}
+                {if isset($form['loyaltyProgram'])}
                     <legend>Věrnostní programy</legend>
                     <span class="text-gray text-sm">Zadejte zisk "bodů" při nákupu pro jednotlivé věrnostní programy.</span>
 
@@ -537,7 +535,7 @@
                             {/foreach}
                         {/formContainer}
                     </table>
-                {/ifset}
+                {/if}
             </fieldset>
             <fieldset>
                 <table class="mt-1 mb-1">

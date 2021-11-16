@@ -847,14 +847,14 @@ class CheckoutManager
 	{
 		$currency = $this->cartExists() ? $this->getCart()->currency : $this->shopper->getCurrency();
 
-		return $this->deliveryDiscountRepository->getActiveDeliveryDiscount($currency, $this->getCartCheckoutPrice());
+		return $this->deliveryDiscountRepository->getActiveDeliveryDiscount($currency, $this->getCartCheckoutPrice(), $this->getSumWeight());
 	}
 
 	public function getPossibleDeliveryDiscount(): ?DeliveryDiscount
 	{
 		$currency = $this->cartExists() ? $this->getCart()->currency : $this->shopper->getCurrency();
 
-		return $this->deliveryDiscountRepository->getNextDeliveryDiscount($currency, $this->getCartCheckoutPrice());
+		return $this->deliveryDiscountRepository->getNextDeliveryDiscount($currency, $this->getCartCheckoutPrice(), $this->getSumWeight());
 	}
 
 	public function getDiscountCoupon(): ?DiscountCoupon
@@ -1008,7 +1008,7 @@ class CheckoutManager
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->createOne($orderValues);
 
-		// @TODO: getDeliveryPrice se pocita z aktulaniho purchase ne z parametru a presunout do order repository jako create order
+		//@todo getDeliveryPrice se pocita z aktulaniho purchase ne z parametru a presunout do order repository jako create order
 		if ($purchase->deliveryType) {
 			/** @var \Eshop\DB\Delivery $delivery */
 			$delivery = $this->deliveryRepository->createOne([
@@ -1021,7 +1021,7 @@ class CheckoutManager
 				'priceVat' => $this->getDeliveryPriceVat(),
 			]);
 
-			// @TODO predchozi sync-databse vytvoril not null sloupec ktery se uz nepouziva, odebrat try az bude opraveno na vsech projektech
+			//@todo predchozi sync-databse vytvoril not null sloupec ktery se uz nepouziva, odebrat try az bude opraveno na vsech projektech
 			try {
 				/** @var \Eshop\DB\Package $package */
 				$package = $this->packageRepository->createOne([
@@ -1071,6 +1071,12 @@ class CheckoutManager
 					'loyaltyProgram' => $customer->getValue('loyaltyProgram'),
 				]);
 			}
+		}
+
+		$discountCoupon = $this->getDiscountCoupon();
+
+		if ($discountCoupon && $discountCoupon->usageLimit) {
+			$discountCoupon->update(['usageCount' => $discountCoupon->usagesCount + 1]);
 		}
 
 		$this->orderLogItemRepository->createLog($order, OrderLogItem::CREATED);
