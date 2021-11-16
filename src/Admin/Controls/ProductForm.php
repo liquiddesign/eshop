@@ -162,7 +162,7 @@ class ProductForm extends Control
 		$form->addLocalePerexEdit('perex', 'Popisek');
 		$form->addLocaleRichEdit('content', 'Obsah');
 
-		if ($configuration['suppliers'] && $this->supplierRepository->many()->count() > 0) {
+		if (isset($configuration['suppliers']) && $configuration['suppliers'] && $this->supplierRepository->many()->count() > 0) {
 			$locks = [];
 
 			if ($product) {
@@ -245,11 +245,11 @@ class ProductForm extends Control
 			}
 		}
 
-		if ($configuration['taxes']) {
+		if (isset($configuration['taxes']) && $configuration['taxes']) {
 			$form->addDataMultiSelect('taxes', 'Poplatky a daně', $taxRepository->getArrayForSelect());
 		}
 
-		if ($configuration['upsells']) {
+		if (isset($configuration['upsells']) && $configuration['upsells']) {
 			$this->monitor(Presenter::class, function () use ($form): void {
 				$form->addMultiSelect2('upsells', 'Upsell produkty', [], [
 					'ajax' => [
