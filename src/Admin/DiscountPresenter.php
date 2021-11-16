@@ -268,7 +268,10 @@ class DiscountPresenter extends BackendPresenter
 		$form->addText('label', 'Popisek');
 		$form->addDataSelect('exclusiveCustomer', 'Jen pro zákazníka', $this->customerRepository->getArrayForSelect())->setPrompt('Žádný');
 		$form->addText('discountPct', 'Sleva (%)')->addRule($form::FLOAT)->addRule([FormValidators::class, 'isPercent'], 'Hodnota není platné procento!');
-		$form->addInteger('usageLimit', 'Maximální počet použití')->setNullable();
+		$form->addInteger('usageLimit', 'Maximální počet použití')->setNullable()->addCondition($form::FILLED)->toggle('frm-couponsForm-usagesCount-toogle');
+		$form->addInteger('usagesCount', 'Aktuální počet použití')
+			->setDefaultValue(0)
+			->setHtmlAttribute('data-info', 'Automaticky se zvyšuje při použití kupónu.');
 		$form->addGroup('Absolutní sleva');
 		$form->addDataSelect('currency', 'Měna', $this->currencyRepo->getArrayForSelect());
 		$form->addText('discountValue', 'Sleva')->setHtmlAttribute('data-info', 'Zadejte hodnotu ve zvolené měně.')->addCondition(Form::FILLED)->addRule($form::FLOAT);
@@ -280,6 +283,10 @@ class DiscountPresenter extends BackendPresenter
 
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
+
+			if (!$values['usagesCount']) {
+				$values['usagesCount'] = 0;
+			}
 
 			$coupon = $this->couponRepository->syncOne($values, null, true);
 

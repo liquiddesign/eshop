@@ -979,6 +979,12 @@ class CheckoutManager
 			throw new BuyException('Banned email', BuyException::PERMISSION_DENIED);
 		}
 
+		$discountCoupon = $this->getDiscountCoupon();
+
+		if ($discountCoupon && $discountCoupon->usageLimit && $discountCoupon->usagesCount >= $discountCoupon->usageLimit) {
+			throw new BuyException('Coupon invalid!', BuyException::PERMISSION_DENIED);
+		}
+
 		$customer = $this->shopper->getCustomer();
 		$cart = $this->getCart();
 		$currency = $cart->currency;
@@ -1073,10 +1079,8 @@ class CheckoutManager
 			}
 		}
 
-		$discountCoupon = $this->getDiscountCoupon();
-
 		if ($discountCoupon && $discountCoupon->usageLimit) {
-			$discountCoupon->update(['usageCount' => $discountCoupon->usagesCount + 1]);
+			$discountCoupon->update(['usagesCount' => $discountCoupon->usagesCount + 1]);
 		}
 
 		$this->orderLogItemRepository->createLog($order, OrderLogItem::CREATED);

@@ -58,11 +58,7 @@ class CartItemRepository extends \StORM\Repository
 			->where('fk_variant', [$variant])
 			->update(['note' => $note]);
 	}
-	
-	/**
-	 * @param array $cartIds
-	 * @return \StORM\Collection|\Eshop\DB\CartItem[]
-	 */
+
 	public function getItems(array $cartIds): Collection
 	{
 		return $this->many()->where('fk_cart', $cartIds);
@@ -77,7 +73,7 @@ class CartItemRepository extends \StORM\Repository
 	{
 		/** @var \Eshop\DB\VatRateRepository $vatRepo */
 		$vatRepo = $this->getConnection()->findRepository(VatRate::class);
-		/** @var \Eshop\DB\VatRate $vat */
+		/** @var \Eshop\DB\VatRate|null $vat */
 		$vat = $vatRepo->one($product->vatRate);
 		
 		$vatPct = $vat ? $vat->rate : 0;
