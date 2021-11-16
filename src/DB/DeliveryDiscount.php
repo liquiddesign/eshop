@@ -33,6 +33,18 @@ class DeliveryDiscount extends \StORM\Entity
 	 * @column
 	 */
 	public float $discountPriceFrom = 0.0;
+
+	/**
+	 * Od jaké váhy objednávky platí
+	 * @column
+	 */
+	public ?float $weightFrom;
+
+	/**
+	 * Do jaké váhy objednávky platí
+	 * @column
+	 */
+	public ?float $weightTo;
 	
 	/**
 	 * Měna

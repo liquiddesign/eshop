@@ -144,7 +144,7 @@
                         </tr>
                     {/foreach}
 
-                    <tr n:if="$configuration['suppliers'] && isset($form['supplierContent'])"
+                    <tr n:if="isset($configuration['suppliers']) && $configuration['suppliers'] && isset($form['supplierContent'])"
                             class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label supplierContent/}</th>
 
@@ -417,7 +417,7 @@
 
                     </tr>
 
-                    <tr n:if="$configuration['taxes']" class="m-0 mt-1 has-danger">
+                    <tr n:if="isset($configuration['taxes']) && $configuration['taxes']" class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label taxes/}</th>
 
                         <td class="align-middle">{input taxes}
@@ -430,7 +430,7 @@
 
                 <table class="mt-1 mb-1" style="width: auto;">
 
-                    <tr n:if="$configuration['upsells']" class="m-0 mt-1 has-danger">
+                    <tr n:if="isset($configuration['upsells']) && $configuration['upsells']" class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label upsells/}</th>
 
                         <td class="align-middle">
@@ -453,7 +453,7 @@
                         </td>
                     </tr>
 
-                    {if $configuration['sets']}
+                    {if isset($configuration['sets']) && $configuration['sets']}
 
                         {$renderer->renderPair($form['productsSet'])|noescape}
 

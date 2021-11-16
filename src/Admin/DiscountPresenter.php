@@ -234,12 +234,14 @@ class DiscountPresenter extends BackendPresenter
 	public function createComponentDeliveryDiscountsGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->getParameter('discount')->deliveryDiscounts, 20, 'email', 'ASC', true);
-		$grid->addColumnSelectorMinimal();
+		$grid->addColumnSelector();
 		$grid->addColumnText('Měna', 'currency.code', '%s', 'currency');
 		$grid->addColumnInputFloat('Sleva v měně', 'discountValue', '', '', 'discountValue');
 		$grid->addColumnInputFloat('Sleva s DPH', 'discountValueVat', '', '', 'discountValueVat');
 		$grid->addColumnInputFloat('Sleva v %', 'discountPct', '', '', 'discountPct');
 		$grid->addColumnInputFloat('Od ceny košíku', 'discountPriceFrom', '', '', 'discountPriceFrom');
+		$grid->addColumnInputFloat('Od váhy košíku', 'weightFrom', '', '', 'weightFrom');
+		$grid->addColumnInputFloat('Do váhy košíku', 'weightTo', '', '', 'weightTo');
 
 		$grid->addColumnActionDelete();
 
@@ -295,6 +297,8 @@ class DiscountPresenter extends BackendPresenter
 		$form->addSelect('currency', 'Měna', $this->currencyRepo->getArrayForSelect());
 		$form->addText('discountValue', 'Sleva v měně')->addCondition(Form::FILLED)->addRule($form::FLOAT);
 		$form->addText('discountValueVat', 'Sleva na měně s DPH')->addCondition(Form::FILLED)->addRule($form::FLOAT);
+		$form->addText('weightFrom', 'Od váhy košíku')->setNullable()->addCondition(Form::FILLED)->addRule($form::FLOAT);
+		$form->addText('weightTo', 'Do váhy košíku')->setNullable()->addCondition(Form::FILLED)->addRule($form::FLOAT);
 
 		$form->bind($this->deliveryRepo->getStructure());
 		$form->addHidden('discount', (string)$this->getParameter('discount') ?? $this->getParameter('deliveryDiscount')->getValue('discount'));

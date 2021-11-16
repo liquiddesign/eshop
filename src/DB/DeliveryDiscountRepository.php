@@ -18,26 +18,36 @@ class DeliveryDiscountRepository extends \StORM\Repository
 			->orderBy(['discountPriceFrom' => 'ASC'])
 			->first();
 	}
-	
-	public function getActiveDeliveryDiscount(Currency $currency, float $sumPrice): ?DeliveryDiscount
+
+	public function getActiveDeliveryDiscount(Currency $currency, float $sumPrice, ?float $cartWeight): ?DeliveryDiscount
 	{
-		return $this->many()
+		$collection = $this->many()
 			->where('fk_currency', $currency)
 			->where('discountPriceFrom <= :sumPrice', ['sumPrice' => $sumPrice])
 			->where('discount.validFrom IS NULL OR discount.validFrom <= now()')
 			->where('discount.validTo IS NULL OR discount.validTo >= now()')
-			->orderBy(['discountPriceFrom' => 'DESC'])
-			->first();
+			->orderBy(['discountPriceFrom' => 'DESC']);
+
+		if ($cartWeight) {
+			$collection->where('this.weightFrom <= :weight AND this.weightTo >= :weight', ['weight' => $cartWeight]);
+		}
+
+		return $collection->first();
 	}
-	
-	public function getNextDeliveryDiscount(Currency $currency, float $sumPrice): ?DeliveryDiscount
+
+	public function getNextDeliveryDiscount(Currency $currency, float $sumPrice, ?float $cartWeight): ?DeliveryDiscount
 	{
-		return $this->many()
+		$collection = $this->many()
 			->where('fk_currency', $currency)
 			->where('discountPriceFrom > :sumPrice', ['sumPrice' => $sumPrice])
 			->where('discount.validFrom IS NULL OR discount.validFrom <= now()')
 			->where('discount.validTo IS NULL OR discount.validTo >= now()')
-			->orderBy(['discountPriceFrom'])
-			->first();
+			->orderBy(['discountPriceFrom']);
+
+		if ($cartWeight) {
+			$collection->where('(this.weightFrom IS NULL OR this.weightFrom <= :weight) AND (this.weightTo IS NULL OR this.weightTo >= :weight)', ['weight' => $cartWeight]);
+		}
+
+		return $collection->first();
 	}
 }
