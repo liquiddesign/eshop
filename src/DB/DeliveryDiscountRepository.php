@@ -19,7 +19,7 @@ class DeliveryDiscountRepository extends \StORM\Repository
 			->first();
 	}
 
-	public function getActiveDeliveryDiscount(Currency $currency, float $sumPrice, ?float $cartWeight): ?DeliveryDiscount
+	public function getActiveDeliveryDiscount(Currency $currency, float $sumPrice, ?float $cartWeight = null): ?DeliveryDiscount
 	{
 		$collection = $this->many()
 			->where('fk_currency', $currency)
@@ -29,13 +29,13 @@ class DeliveryDiscountRepository extends \StORM\Repository
 			->orderBy(['discountPriceFrom' => 'DESC']);
 
 		if ($cartWeight) {
-			$collection->where('this.weightFrom <= :weight AND this.weightTo >= :weight', ['weight' => $cartWeight]);
+			$collection->where('(this.weightFrom IS NULL OR this.weightFrom <= :weight) AND (this.weightTo IS NULL OR this.weightTo >= :weight)', ['weight' => $cartWeight]);
 		}
 
 		return $collection->first();
 	}
 
-	public function getNextDeliveryDiscount(Currency $currency, float $sumPrice, ?float $cartWeight): ?DeliveryDiscount
+	public function getNextDeliveryDiscount(Currency $currency, float $sumPrice, ?float $cartWeight = null): ?DeliveryDiscount
 	{
 		$collection = $this->many()
 			->where('fk_currency', $currency)
