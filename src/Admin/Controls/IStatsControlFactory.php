@@ -6,8 +6,5 @@ namespace Eshop\Admin\Controls;
 
 interface IStatsControlFactory
 {
-	/**
-	 * @param \Eshop\DB\Customer|\Eshop\DB\Merchant|null $user
-	 */
-	public function create($user = null): StatsControl;
+	public function create(): StatsControl;
 }

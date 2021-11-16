@@ -9,6 +9,7 @@ use StORM\RelationCollection;
 /**
  * Tag
  * @table
+ * @deprecated
  */
 class Tag extends \StORM\Entity
 {

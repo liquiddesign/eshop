@@ -9,6 +9,7 @@ use StORM\Collection;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Tag>
+ * @deprecated
  */
 class TagRepository extends \StORM\Repository implements IGeneralRepository
 {

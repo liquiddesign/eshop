@@ -62,10 +62,10 @@ class DiscountPresenter extends BackendPresenter
 		$grid->addColumnText('Platnost od', "validFrom|date:'d.m.Y G:i'", '%s', 'validFrom', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Platnost od', "validTo|date:'d.m.Y G:i'", '%s', 'validTo', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Název', 'name', '%s', 'name');
-		
+
 		$grid->addColumn('Akční ceníky', function (Discount $object, $datagrid) {
 			$resultString = '';
-			
+
 			foreach ($object->pricelists as $pricelist) {
 				$link = ':Eshop:Admin:Pricelists:priceListDetail';
 
@@ -75,10 +75,10 @@ class DiscountPresenter extends BackendPresenter
 					$resultString .= '<a href=' . $this->link($link, [$pricelist, 'backlink' => $this->storeRequest()]) . '>' . $pricelist->name . '</a>, ';
 				}
 			}
-			
+
 			return \substr($resultString, 0, -2);
 		}, '%s');
-		
+
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 
 		$grid->addColumnLink('deliveryDiscounts', 'Slevy na dopravu');
@@ -86,7 +86,7 @@ class DiscountPresenter extends BackendPresenter
 
 		$grid->addColumnLinkDetail();
 		$grid->addColumnActionDelete();
-		
+
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected();
 
@@ -112,7 +112,7 @@ class DiscountPresenter extends BackendPresenter
 		$form->addDatetime('validFrom', 'Platný od')->setNullable(true);
 		$form->addDatetime('validTo', 'Platný do')->setNullable(true);
 
-		/** @var \Eshop\DB\Discount $discount */
+		/** @var \Eshop\DB\Discount|null $discount */
 		$discount = $this->getParameter('discount');
 
 		if (!$discount) {
@@ -135,11 +135,15 @@ class DiscountPresenter extends BackendPresenter
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addSubmits(!$discount);
 
-		$form->onSuccess[] = function (AdminForm $form): void {
+		$form->onSuccess[] = function (AdminForm $form) use ($discount): void {
 			$values = $form->getValues('array');
 
+			if ($discount) {
+				$this->priceListRepository->many()->where('fk_discount', $discount->getPK())->update(['discount' => null]);
+			}
+
 			$discount = $this->discountRepository->syncOne($values, null, true);
-			
+
 			if (isset($values['deliveryDiscount']) && $values['deliveryDiscount'] > 0) {
 				foreach ($this->currencyRepo->many() as $currency) {
 					$this->deliveryRepo->createOne([
@@ -195,7 +199,7 @@ class DiscountPresenter extends BackendPresenter
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
-		
+
 		$form->setDefaults($discount->toArray(['pricelists', 'ribbons']));
 	}
 
@@ -208,7 +212,7 @@ class DiscountPresenter extends BackendPresenter
 		$grid->addColumn('Exkluzivně pro zákazníka', function (DiscountCoupon $object, Datagrid $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Customer:edit') && $object->exclusiveCustomer ?
 				$datagrid->getPresenter()->link(':Eshop:Admin:Customer:edit', [$object->exclusiveCustomer, 'backLink' => $this->storeRequest()]) : '#';
-			
+
 			return $object->exclusiveCustomer ? "<a href=\"" . $link . "\"><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->exclusiveCustomer->fullname . "</a>" : '';
 		});
 		$grid->addColumnText('Měna', 'currency.code', '%s', 'currency', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
@@ -236,7 +240,7 @@ class DiscountPresenter extends BackendPresenter
 		$grid->addColumnInputFloat('Sleva s DPH', 'discountValueVat', '', '', 'discountValueVat');
 		$grid->addColumnInputFloat('Sleva v %', 'discountPct', '', '', 'discountPct');
 		$grid->addColumnInputFloat('Od ceny košíku', 'discountPriceFrom', '', '', 'discountPriceFrom');
-		
+
 		$grid->addColumnActionDelete();
 
 		$grid->addButtonSaveAll(['discountValue', 'discountPct', 'discountPriceFrom']);
@@ -261,13 +265,13 @@ class DiscountPresenter extends BackendPresenter
 		$form->addText('discountValue', 'Sleva')->setHtmlAttribute('data-info', 'Zadejte hodnotu ve zvolené měně.')->addCondition(Form::FILLED)->addRule($form::FLOAT);
 		$form->addText('discountValueVat', 'Sleva s DPH')->setHtmlAttribute('data-info', 'Zadejte hodnotu ve zvolené měně.')->addCondition(Form::FILLED)->addRule($form::FLOAT);
 		$form->bind($this->couponRepository->getStructure());
-		$form->addHidden('discount', (string) $this->getParameter('discount') ?? $this->getParameter('discountCoupon')->getValue('discount'));
-		
+		$form->addHidden('discount', (string)$this->getParameter('discount') ?? $this->getParameter('discountCoupon')->getValue('discount'));
+
 		$form->addSubmits(false, false);
 
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
-	
+
 			$this->couponRepository->syncOne($values, null, true);
 
 			$this->flashMessage('Uloženo', 'success');
@@ -281,21 +285,21 @@ class DiscountPresenter extends BackendPresenter
 	public function createComponentDeliveryDiscountsForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
-		
+
 		$form->addText('discountPriceFrom', 'Od jaké ceny košíku je sleva')->addCondition(Form::FILLED)->addRule($form::FLOAT);
 		$form->addText('discountPct', 'Sleva (%)')->addCondition(Form::FILLED)->addRule($form::FLOAT);
 		$form->addGroup('Absolutní sleva');
 		$form->addSelect('currency', 'Měna', $this->currencyRepo->getArrayForSelect());
 		$form->addText('discountValue', 'Sleva v měně')->addCondition(Form::FILLED)->addRule($form::FLOAT);
 		$form->addText('discountValueVat', 'Sleva na měně s DPH')->addCondition(Form::FILLED)->addRule($form::FLOAT);
-		
+
 		$form->bind($this->deliveryRepo->getStructure());
-		$form->addHidden('discount', (string) $this->getParameter('discount') ?? $this->getParameter('deliveryDiscount')->getValue('discount'));
+		$form->addHidden('discount', (string)$this->getParameter('discount') ?? $this->getParameter('deliveryDiscount')->getValue('discount'));
 		$form->addSubmits(false, false);
 
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
-			
+
 			$this->deliveryRepo->syncOne($values, null, true);
 
 			$this->flashMessage('Uloženo', 'success');
@@ -325,7 +329,7 @@ class DiscountPresenter extends BackendPresenter
 		$values['createdTs'] = $values['createdTs'] ? \date('Y-m-d\TH:i:s', \strtotime($values['createdTs'])) : '';
 		$form->setDefaults($values);
 	}
-	
+
 	public function renderCoupons(Discount $discount): void
 	{
 		$this->template->headerLabel = 'Kupóny akce - ' . $discount->name;

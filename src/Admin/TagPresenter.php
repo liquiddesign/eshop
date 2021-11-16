@@ -15,6 +15,9 @@ use Pages\DB\PageRepository;
 use Pages\Helpers;
 use StORM\DIConnection;
 
+/**
+ * @deprecated
+ */
 class TagPresenter extends BackendPresenter
 {
 	/** @inject */

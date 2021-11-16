@@ -7,7 +7,6 @@ use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\CurrencyRepository;
-use Eshop\DB\Tag;
 use Eshop\DB\Tax;
 use Eshop\DB\TaxRepository;
 use Nette\Forms\Controls\TextInput;
@@ -66,8 +65,6 @@ class TaxPresenter extends BackendPresenter
 		
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
-			
-			$this->createImageDirs(Tag::IMAGE_DIR);
 			
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();

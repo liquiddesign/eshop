@@ -41,15 +41,14 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	private ProductRepository $productRepository;
 
 	public function __construct(
-		DIConnection       $connection,
-		SchemaManager      $schemaManager,
-		Shopper            $shopper,
-		Storage            $storage,
-		PageRepository     $pageRepository,
+		DIConnection $connection,
+		SchemaManager $schemaManager,
+		Shopper $shopper,
+		Storage $storage,
+		PageRepository $pageRepository,
 		ProducerRepository $producerRepository,
-		ProductRepository  $productRepository
-	)
-	{
+		ProductRepository $productRepository
+	) {
 		parent::__construct($connection, $schemaManager);
 
 		$this->cache = new Cache($storage);
@@ -321,28 +320,6 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 	}
 
 	/**
-	 * @param $typeId
-	 * @param \Eshop\DB\CategoryRepository $repository
-	 * @param bool $includeHidden
-	 * @param bool $onlyMenu
-	 * @return \Eshop\DB\Category[]
-	 */
-	private function getTreeHelper($typeId, CategoryRepository $repository, bool $includeHidden = false, bool $onlyMenu = false): array
-	{
-		$collection = $repository->getCategories($includeHidden)->where('LENGTH(path) <= 40');
-
-		if ($onlyMenu) {
-			$collection->where('this.showInMenu', true);
-		}
-
-		if ($typeId) {
-			$collection->where('this.fk_type', $typeId);
-		}
-
-		return $repository->buildTree($collection->toArray(), null, $typeId);
-	}
-
-	/**
 	 * @param bool $includeHidden
 	 * @return \StORM\Collection<\Eshop\DB\Category>|\Eshop\DB\Category[]
 	 */
@@ -357,61 +334,6 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 		}
 
 		return $collection;
-	}
-
-	/**
-	 * @param \Eshop\DB\Category[] $elements
-	 * @param string|null $ancestorId
-	 * @return \Eshop\DB\Category[]
-	 */
-	private function buildTree(array $elements, ?string $ancestorId, string $typeId): array
-	{
-		$branch = [];
-
-		foreach ($elements as $element) {
-			if ($element->getValue('ancestor') === $ancestorId) {
-				if ($children = $this->buildTree($elements, $element->getPK(), $typeId)) {
-					$element->children = $children;
-				}
-
-				$branch[] = $element;
-				$this->categoryMap[$typeId] ??= [];
-				$this->categoryMap[$typeId][$element->path] = $element;
-			}
-		}
-
-		return $branch;
-	}
-
-	private function findCategoryInTree(Category $category, Category $targetCategory): ?Category
-	{
-		foreach ($category->children as $child) {
-			if ($child->getPK() === $targetCategory->getPK()) {
-				return $child;
-			}
-
-			$returnCategory = $this->findCategoryInTree($child, $targetCategory);
-
-			if ($returnCategory) {
-				return $returnCategory;
-			}
-		}
-
-		return null;
-	}
-
-	private function doUpdateCategoryChildrenPath(Category $category): void
-	{
-		foreach ($category->children as $child) {
-			$child->setParent($this);
-			$child->update(['path' => $category->path . \substr($child->path, -4)]);
-
-			if (\count($child->children) <= 0) {
-				continue;
-			}
-
-			$this->doUpdateCategoryChildrenPath($child);
-		}
 	}
 
 	public function clearCategoriesCache(): void
@@ -450,41 +372,24 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 	 */
 	public function getTreeArrayForSelect(bool $includeHidden = true, ?string $type = null): array
 	{
-		$collection = $this->getCategories($includeHidden)->where('LENGTH(path) <= 40');
+		$repository = $this;
 
-		if ($type) {
-			$collection->where('fk_type', $type);
-		}
+		return $this->cache->load(($includeHidden ? '1' : '0') . "_$type", static function (&$dependencies) use ($includeHidden, $type, $repository) {
+			$dependencies = [
+				Cache::TAGS => ['categories'],
+			];
 
-		$list = [];
-		$this->buildTreeArrayForSelect($collection->toArray(), null, $list);
+			$collection = $repository->getCategories($includeHidden)->where('LENGTH(path) <= 40');
 
-		return $list;
-	}
-
-	/**
-	 * @param \Eshop\DB\Category[] $elements
-	 * @param string|null $ancestorId
-	 * @param array $list
-	 * @return \Eshop\DB\Category[]
-	 */
-	private function buildTreeArrayForSelect(array $elements, ?string $ancestorId = null, array &$list = []): array
-	{
-		$branch = [];
-
-		foreach ($elements as $element) {
-			if ($element->getValue('ancestor') === $ancestorId) {
-				$list[$element->getPK()] = \str_repeat('--', (\strlen($element->path) / 4) - 1) . " $element->name";
-
-				if ($children = $this->buildTreeArrayForSelect($elements, $element->getPK(), $list)) {
-					$element->children = $children;
-				}
-
-				$branch[] = $element;
+			if ($type) {
+				$collection->where('fk_type', $type);
 			}
-		}
 
-		return $branch;
+			$list = [];
+			$repository->buildTreeArrayForSelect($collection->toArray(), null, $list);
+
+			return $list;
+		});
 	}
 
 	public function getRootCategoryOfCategory(Category $category): Category
@@ -785,5 +690,108 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 		}
 
 		$this->clearCategoriesCache();
+	}
+
+	/**
+	 * @param $typeId
+	 * @param \Eshop\DB\CategoryRepository $repository
+	 * @param bool $includeHidden
+	 * @param bool $onlyMenu
+	 * @return \Eshop\DB\Category[]
+	 */
+	private function getTreeHelper($typeId, CategoryRepository $repository, bool $includeHidden = false, bool $onlyMenu = false): array
+	{
+		$collection = $repository->getCategories($includeHidden)->where('LENGTH(path) <= 40');
+
+		if ($onlyMenu) {
+			$collection->where('this.showInMenu', true);
+		}
+
+		if ($typeId) {
+			$collection->where('this.fk_type', $typeId);
+		}
+
+		return $repository->buildTree($collection->toArray(), null, $typeId);
+	}
+
+	/**
+	 * @param \Eshop\DB\Category[] $elements
+	 * @param string|null $ancestorId
+	 * @return \Eshop\DB\Category[]
+	 */
+	private function buildTree(array $elements, ?string $ancestorId, string $typeId): array
+	{
+		$branch = [];
+
+		foreach ($elements as $element) {
+			if ($element->getValue('ancestor') === $ancestorId) {
+				if ($children = $this->buildTree($elements, $element->getPK(), $typeId)) {
+					$element->children = $children;
+				}
+
+				$branch[] = $element;
+				$this->categoryMap[$typeId] ??= [];
+				$this->categoryMap[$typeId][$element->path] = $element;
+			}
+		}
+
+		return $branch;
+	}
+
+	private function findCategoryInTree(Category $category, Category $targetCategory): ?Category
+	{
+		foreach ($category->children as $child) {
+			if ($child->getPK() === $targetCategory->getPK()) {
+				return $child;
+			}
+
+			$returnCategory = $this->findCategoryInTree($child, $targetCategory);
+
+			if ($returnCategory) {
+				return $returnCategory;
+			}
+		}
+
+		return null;
+	}
+
+	private function doUpdateCategoryChildrenPath(Category $category): void
+	{
+		foreach ($category->children as $child) {
+			$child->setParent($this);
+			$child->update(['path' => $category->path . \substr($child->path, -4)]);
+
+			if (\count($child->children) <= 0) {
+				continue;
+			}
+
+			$this->doUpdateCategoryChildrenPath($child);
+		}
+	}
+
+	/**
+	 * @param \Eshop\DB\Category[] $elements
+	 * @param string|null $ancestorId
+	 * @param array $list
+	 * @return \Eshop\DB\Category[]
+	 */
+	private function buildTreeArrayForSelect(array $elements, ?string $ancestorId = null, array &$list = []): array
+	{
+		$branch = [];
+
+		foreach ($elements as $element) {
+			if ($element->getValue('ancestor') === $ancestorId) {
+				$list[$element->getPK()] = $element->ancestor ?
+					\implode(' -> ', $element->ancestor->getFamilyTree()->toArrayOf('name')) . " -> $element->name" : "$element->name";
+
+				if ($children = $this->buildTreeArrayForSelect($elements, $element->getPK(), $list)) {
+					$element->children = $children;
+				}
+
+				$branch[] = $element;
+			}
+		}
+
+		return $branch;
 	}
 }

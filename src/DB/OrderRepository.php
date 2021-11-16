@@ -40,17 +40,18 @@ class OrderRepository extends \StORM\Repository
 	private BannedEmailRepository $bannedEmailRepository;
 
 	public function __construct(
-		DIConnection $connection,
-		SchemaManager $schemaManager,
-		Storage $storage,
-		Shopper $shopper,
-		Translator $translator,
-		MerchantRepository $merchantRepository,
+		DIConnection                $connection,
+		SchemaManager               $schemaManager,
+		Storage                     $storage,
+		Shopper                     $shopper,
+		Translator                  $translator,
+		MerchantRepository          $merchantRepository,
 		CatalogPermissionRepository $catalogPermissionRepository,
-		PackageRepository $packageRepository,
-		PackageItemRepository $packageItemRepository,
-		BannedEmailRepository $bannedEmailRepository
-	) {
+		PackageRepository           $packageRepository,
+		PackageItemRepository       $packageItemRepository,
+		BannedEmailRepository       $bannedEmailRepository
+	)
+	{
 		parent::__construct($connection, $schemaManager);
 
 		$this->cache = new Cache($storage);
@@ -191,6 +192,38 @@ class OrderRepository extends \StORM\Repository
 				$writer->insertOne($row);
 			}
 		}
+	}
+
+	/**
+	 * @param string|\Eshop\DB\Order|null $order
+	 * @return string|null Order::STATE
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function getState($order): ?string
+	{
+		if (!$order instanceof Order) {
+			if (!$order = $this->one($order)) {
+				return null;
+			}
+		}
+
+		if ($this->shopper->getEditOrderAfterCreation() && !$order->receivedTs) {
+			return Order::STATE_OPEN;
+		}
+
+		if (!$order->completedTs && !$order->canceledTs) {
+			return Order::STATE_RECEIVED;
+		}
+
+		if ($order->completedTs && !$order->canceledTs) {
+			return Order::STATE_COMPLETED;
+		}
+
+		if ($order->canceledTs) {
+			return Order::STATE_CANCELED;
+		}
+
+		return null;
 	}
 
 	public function csvExport(Order $order, Writer $writer): void
@@ -438,8 +471,9 @@ class OrderRepository extends \StORM\Repository
 			$vat = true;
 		}
 
-		/** @var \Eshop\DB\Order $order */
 		while ($order = $orders->fetch()) {
+			/** @var \Eshop\DB\Order $order */
+
 			$price = $vat ? $order->getTotalPriceVat() : $order->getTotalPrice();
 
 			$currency = $order->purchase->currency;
@@ -451,17 +485,60 @@ class OrderRepository extends \StORM\Repository
 	}
 
 	/**
-	 * @param \Eshop\DB\Customer|\Eshop\DB\Merchant|null $users
+	 * @param \Eshop\DB\Customer|\Eshop\DB\Merchant|null $user
+	 * @param \Nette\Utils\DateTime $from
+	 * @param \Nette\Utils\DateTime $to
+	 */
+	public function getOrdersByUserInRange($user, DateTime $from, DateTime $to): ?Collection
+	{
+		$from->setTime(0, 0);
+		$to->setTime(23, 59, 59);
+		$fromString = $from->format('Y-m-d\TH:i:s');
+		$toString = $to->format('Y-m-d\TH:i:s');
+
+		$collection = $this->many()
+			->select(["date" => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
+			->where('this.completedTs IS NOT NULL')
+			->where('this.createdTs >= :from AND this.createdTs <= :to', ['from' => $fromString, 'to' => $toString])
+			->orderBy(["date"]);
+
+		if ($user) {
+			if ($user instanceof Merchant) {
+				/** @var \Eshop\DB\MerchantRepository $merchantRepo */
+				$merchantRepo = $this->getConnection()->findRepository(Merchant::class);
+				$customers = $merchantRepo->getMerchantCustomers($user);
+
+				$collection->where('purchase.fk_customer', \array_keys($customers->toArray()));
+			} elseif ($user->getAccount()) {
+				/** @var \Eshop\DB\CatalogPermission $perm */
+				$perm = $this->catalogPermissionRepository->many()->where('fk_account', $user->getAccount()->getPK())->first();
+
+				if ($perm->viewAllOrders) {
+					$collection->where('purchase.fk_customer', $user->getPK());
+				} else {
+					$collection->where('purchase.fk_account', $user->getAccount()->getPK());
+				}
+			}
+		}
+
+		return $collection;
+	}
+
+	/**
+	 * @param \StORM\Collection $orders
 	 * @param \Nette\Utils\DateTime $from
 	 * @param \Nette\Utils\DateTime $to
 	 * @param \Eshop\DB\Currency $currency
 	 * @return array<string, array<string, float>>
 	 * @throws \Exception
 	 */
-	public function getCustomerGroupedOrdersPrices($users, DateTime $from, DateTime $to, Currency $currency): array
+	public function getGroupedOrdersPrices(Collection $orders, DateTime $from, DateTime $to, Currency $currency): array
 	{
+		$from = $from->modifyClone();
+		$to = $to->modifyClone();
+
+		$orders = $orders->toArray();
 		/** @var \Eshop\DB\Order[] $orders */
-		$orders = $this->getOrdersByUserInRange($users, $from, $to)->toArray();
 
 		/** @var \Eshop\DB\CartRepository $cartRepo */
 		$cartRepo = $this->getConnection()->findRepository(Cart::class);
@@ -483,7 +560,7 @@ class OrderRepository extends \StORM\Repository
 		$priceVat = 0;
 
 		foreach ($orders as $order) {
-			/** @var \Eshop\DB\Cart $cart */
+			/** @var \Eshop\DB\Cart|null $cart */
 			$cart = $cartRepo->many()->where('fk_purchase', $order->purchase->getPK())->fetch();
 
 			if (!$cart || $cart->currency->getPK() !== $currency->getPK()) {
@@ -516,17 +593,37 @@ class OrderRepository extends \StORM\Repository
 	}
 
 	/**
-	 * @param \Eshop\DB\Customer|\Eshop\DB\Merchant|null $users
-	 * @param \Nette\Utils\DateTime $from
-	 * @param \Nette\Utils\DateTime $to
+	 * @param \StORM\Collection $orders
+	 * @return float[]
+	 */
+	public function getAverageOrderPrice(Collection $orders): array
+	{
+		$orders->clear();
+
+		$total = 0;
+		$totalVat = 0;
+		$count = \count($orders);
+
+		if ($count === 0) {
+			return [0, 0];
+		}
+
+		while ($order = $orders->fetch()) {
+			/** @var \Eshop\DB\Order $order */
+			$total += $order->getTotalPrice();
+			$totalVat += $order->getTotalPriceVat();
+		}
+
+		return [$total / $count, $totalVat / $count];
+	}
+
+	/**
+	 * @param \StORM\Collection $orders
 	 * @param \Eshop\DB\Currency $currency
 	 * @return array<string, array<string, float|string>>
 	 */
-	public function getCustomerOrdersCategoriesGroupedByAmountPercentage($users, DateTime $from, DateTime $to, Currency $currency): array
+	public function getOrdersCategoriesGroupedByAmountPercentage(Collection $orders, Currency $currency): array
 	{
-		/** @var \Eshop\DB\Order[] $orders */
-		$orders = $this->getOrdersByUserInRange($users, $from, $to)->toArray();
-
 		/** @var \Eshop\DB\CategoryRepository $categoryRepo */
 		$categoryRepo = $this->getConnection()->findRepository(Category::class);
 
@@ -542,8 +639,9 @@ class OrderRepository extends \StORM\Repository
 
 		$sum = 0;
 
+		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
-			/** @var \Eshop\DB\Cart $cart */
+			/** @var \Eshop\DB\Cart|null $cart */
 			$cart = $cartRepo->many()->where('fk_purchase', $order->purchase->getPK())->fetch();
 
 			if (!$cart || $cart->currency->getPK() !== $currency->getPK()) {
@@ -590,24 +688,20 @@ class OrderRepository extends \StORM\Repository
 	}
 
 	/**
-	 * @param \Eshop\DB\Customer|\Eshop\DB\Merchant|null $users
-	 * @param \Nette\Utils\DateTime $from
-	 * @param \Nette\Utils\DateTime $to
+	 * @param \StORM\Collection $orders
 	 * @param \Eshop\DB\Currency $currency
-	 * @return array<string, array<string, object|string>>
+	 * @return array<string, array<string, \Eshop\DB\CartItem|\Eshop\DB\Product|float|int|null>>
 	 */
-	public function getCustomerOrdersTopProductsByAmount($users, DateTime $from, DateTime $to, Currency $currency): array
+	public function getOrdersTopProductsByAmount(Collection $orders, Currency $currency): array
 	{
-		/** @var \Eshop\DB\Order[] $orders */
-		$orders = $this->getOrdersByUserInRange($users, $from, $to)->toArray();
-
 		/** @var \Eshop\DB\CartRepository $cartRepo */
 		$cartRepo = $this->getConnection()->findRepository(Cart::class);
 
 		$data = [];
 
+		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
-			/** @var \Eshop\DB\Cart $cart */
+			/** @var \Eshop\DB\Cart|null $cart */
 			$cart = $cartRepo->many()->where('fk_purchase', $order->purchase->getPK())->fetch();
 
 			if (!$cart || $cart->currency->getPK() !== $currency->getPK()) {
@@ -644,46 +738,6 @@ class OrderRepository extends \StORM\Repository
 		});
 
 		return \array_slice($data, 0, 5);
-	}
-
-	/**
-	 * @param \Eshop\DB\Customer|\Eshop\DB\Merchant|null $user
-	 * @param \Nette\Utils\DateTime $from
-	 * @param \Nette\Utils\DateTime $to
-	 */
-	public function getOrdersByUserInRange($user, DateTime $from, DateTime $to): ?Collection
-	{
-		$from->setTime(0, 0);
-		$to->setTime(23, 59, 59);
-		$fromString = $from->format('Y-m-d\TH:i:s');
-		$toString = $to->format('Y-m-d\TH:i:s');
-
-		$collection = $this->many()
-			->select(["date" => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
-			->where('this.completedTs IS NOT NULL')
-			->where('this.createdTs >= :from AND this.createdTs <= :to', ['from' => $fromString, 'to' => $toString])
-			->orderBy(["date"]);
-
-		if ($user) {
-			if ($user instanceof Merchant) {
-				/** @var \Eshop\DB\MerchantRepository $merchantRepo */
-				$merchantRepo = $this->getConnection()->findRepository(Merchant::class);
-				$customers = $merchantRepo->getMerchantCustomers($user);
-
-				$collection->where('purchase.fk_customer', \array_keys($customers->toArray()));
-			} elseif ($user->getAccount()) {
-				/** @var \Eshop\DB\CatalogPermission $perm */
-				$perm = $this->catalogPermissionRepository->many()->where('fk_account', $user->getAccount()->getPK())->first();
-
-				if ($perm->viewAllOrders) {
-					$collection->where('purchase.fk_customer', $user->getPK());
-				} else {
-					$collection->where('purchase.fk_account', $user->getAccount()->getPK());
-				}
-			}
-		}
-
-		return $collection;
 	}
 
 	public function getOrdersByUser($user): ?Collection
@@ -909,39 +963,8 @@ class OrderRepository extends \StORM\Repository
 			->where('customer.uuid', \array_keys($customers));
 	}
 
-	/**
-	 * @param string|\Eshop\DB\Order|null $order
-	 * @return string|null Order::STATE
-	 * @throws \StORM\Exception\NotFoundException
-	 */
-	public function getState($order): ?string
-	{
-		if (!$order instanceof Order) {
-			if (!$order = $this->one($order)) {
-				return null;
-			}
-		}
-
-		if ($this->shopper->getEditOrderAfterCreation() && !$order->receivedTs) {
-			return Order::STATE_OPEN;
-		}
-
-		if (!$order->completedTs && !$order->canceledTs) {
-			return Order::STATE_RECEIVED;
-		}
-
-		if ($order->completedTs && !$order->canceledTs) {
-			return Order::STATE_COMPLETED;
-		}
-
-		if ($order->canceledTs) {
-			return Order::STATE_CANCELED;
-		}
-
-		return null;
-	}
-
 	// @TODO?
+
 	public function changeState(Order $order, string $status): void
 	{
 		// in array
@@ -996,14 +1019,19 @@ class OrderRepository extends \StORM\Repository
 		return $pointsGain;
 	}
 
+	public function cancelOrderById(string $orderId): void
+	{
+		$this->cancelOrder($this->one($orderId, true));
+	}
+
 	public function cancelOrder(Order $order): void
 	{
 		$order->update(['canceledTs' => (string)new DateTime()]);
 	}
 
-	public function cancelOrderById(string $orderId): void
+	public function banOrderById(string $orderId): void
 	{
-		$this->cancelOrder($this->one($orderId, true));
+		$this->banOrder($this->one($orderId, true));
 	}
 
 	public function banOrder(Order $order): void
@@ -1013,8 +1041,37 @@ class OrderRepository extends \StORM\Repository
 		$this->bannedEmailRepository->syncOne(['email' => $order->purchase->email]);
 	}
 
-	public function banOrderById(string $orderId): void
+	public function getLastOrder(): ?Order
 	{
-		$this->banOrder($this->one($orderId, true));
+		return $this->many()->orderBy(['this.createdTs' => 'DESC'])->first();
+	}
+
+	/**
+	 * @param \StORM\Collection $orders
+	 * @param \Eshop\DB\DiscountCoupon[] $discountCoupons
+	 * @return array<string, float>
+	 */
+	public function getDiscountCouponsUsage(Collection $orders, array $discountCoupons): array
+	{
+		$orders->clear();
+
+		$count = \count($orders);
+
+		$usedCoupons = [];
+
+		while ($order = $orders->fetch()) {
+			/** @var \Eshop\DB\Order $order */
+			if (!$discountCoupon = $order->getDiscountCoupon()) {
+				continue;
+			}
+
+			$usedCoupons[$discountCoupon->getPK()] = isset($usedCoupons[$discountCoupon->getPK()]) ? $usedCoupons[$discountCoupon->getPK()]++ : 1;
+		}
+
+		foreach ($discountCoupons as $discountCoupon) {
+			$usedCoupons[$discountCoupon->getPK()] = isset($usedCoupons[$discountCoupon->getPK()]) ? \round($usedCoupons[$discountCoupon->getPK()] / $count * 100, 2) : 0;
+		}
+
+		return $usedCoupons;
 	}
 }

@@ -13,9 +13,10 @@ class DiscountCouponRepository extends \StORM\Repository
 	{
 		$collection = $this->many()
 			->where('code', $code)
-			->where('fk_currency', $currency)
+			->where('fk_currency', $currency->getPK())
 			->where('discount.validFrom IS NULL OR discount.validFrom <= now()')
-			->where('discount.validTo IS NULL OR discount.validTo >= now()');
+			->where('discount.validTo IS NULL OR discount.validTo >= now()')
+			->where('this.usageLimit IS NULL OR (this.usagesCount < this.usageLimit)');
 		
 		if ($customer) {
 			$collection->where('fk_exclusiveCustomer IS NULL OR fk_exclusiveCustomer = :customer', ['customer' => $customer]);

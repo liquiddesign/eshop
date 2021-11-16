@@ -8,7 +8,7 @@ use Admin\BackendPresenter;
 
 /**
  * @deprecated
- * Remain only because existing projects
+ * Because existing projects
  */
 class ParameterPresenter extends BackendPresenter
 {
