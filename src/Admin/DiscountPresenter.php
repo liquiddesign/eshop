@@ -245,7 +245,7 @@ class DiscountPresenter extends BackendPresenter
 
 		$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll(['discountValue', 'discountPct', 'discountPriceFrom'],[],null,false, null, function ($id, &$data) {
+		$grid->addButtonSaveAll(['discountValue', 'discountPct', 'discountPriceFrom'], [], null, false, null, function ($id, &$data): void {
 			if (!isset($data['discountPriceFrom'])) {
 				$data['discountPriceFrom'] = 0;
 			}
