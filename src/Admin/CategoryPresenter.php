@@ -13,6 +13,7 @@ use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\ProducerRepository;
+use Forms\Form;
 use League\Csv\Writer;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
@@ -642,11 +643,18 @@ class CategoryPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
-		$filePicker = $form->addFilePicker('file', 'Soubor (CSV)')
+		$formatInput = $form->addSelect('format', 'Formát importu', ['xmlHeureka' => 'XML Heuréka', 'csvHeureka' => 'CSV Heuréka']);
+
+		$csvFilePicker = $form->addFilePicker('fileCsv', 'Soubor (CSV)')
 			->setRequired()
 			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/csv');
 
-		$filePicker->setHtmlAttribute('data-info', 'Podporuje <b>pouze</b> formátování Windows a Linux (UTF-8)!');
+		$xmlFilePicker = $form->addFilePicker('fileXml', 'Soubor (XML)')
+			->setRequired()
+			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/xml');
+
+		$csvFilePicker->setHtmlAttribute('data-info', 'Podporuje <b>pouze</b> formátování Windows a Linux (UTF-8)!');
+		$xmlFilePicker->setHtmlAttribute('data-info', 'Podporuje <b>pouze</b> formátování Windows a Linux (UTF-8)!');
 
 		$form->addSelect('delimiter', 'Oddělovač', [
 			';' => 'Středník (;)',
@@ -659,13 +667,24 @@ Očekává se formát kategorií dle formátu Heuréky. Tedy "Subcategory 1" atd
 <br>
 <b>Pozor!</b> Pokud pracujete se souborem na zařízeních Apple, ujistětě se, že vždy při ukládání použijete možnost uložit do formátu Windows nebo Linux (UTF-8)!');
 
+		$formatInput->addCondition($form::EQUAL, 'xmlHeureka')
+			->toggle($form['fileXml']->getHtmlId() . '-toogle');
+
+		$formatInput->addCondition($form::EQUAL, 'csvHeureka')
+			->toggle($form['fileCsv']->getHtmlId() . '-toogle')
+			->toggle($form['delimiter']->getHtmlId() . '-toogle');
+
 		$form->addSubmit('submit', 'Importovat');
 
-		$form->onValidate[] = function ($form): void {
+		$form->onValidate[] = function (Form $form): void {
+			if (!$form->isValid()) {
+				return;
+			}
+
 			$values = $form->getValues('array');
 
 			/** @var \Nette\Http\FileUpload $file */
-			$file = $values['file'];
+			$file = $values['file' . ($values['format'] === 'xmlHeureka' ? 'Xml' : 'Csv')];
 
 			if ($file->hasFile()) {
 				return;
@@ -678,14 +697,18 @@ Očekává se formát kategorií dle formátu Heuréky. Tedy "Subcategory 1" atd
 			$values = $form->getValues('array');
 
 			/** @var \Nette\Http\FileUpload $file */
-			$file = $values['file'];
+			$file = $values['file' . ($values['format'] === 'xmlHeureka' ? 'Xml' : 'Csv')];
 
 			$connection = $this->productRepository->getConnection();
 
 			$connection->getLink()->beginTransaction();
 
 			try {
-				$this->categoryRepository->importTreeCsv($this->getReaderFromString($file->getContents(), $values['delimiter']), $this->categoryType);
+				if ($values['format'] === 'xmlHeureka') {
+					$this->categoryRepository->importHeurekaTreeXml($file->getContents(), $this->categoryType);
+				} else {
+					$this->categoryRepository->importTreeCsv($this->getReaderFromString($file->getContents(), $values['delimiter']), $this->categoryType);
+				}
 
 				$connection->getLink()->commit();
 				$this->flashMessage('Provedeno', 'success');

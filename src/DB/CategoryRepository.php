@@ -693,6 +693,67 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 	}
 
 	/**
+	 * @throws \Exception
+	 */
+	public function importHeurekaTreeXml(string $content, CategoryType $categoryType): void
+	{
+		$xml = \simplexml_load_string($content);
+
+		if (!$xml || !isset($xml->CATEGORY)) {
+			throw new \Exception('Invalid XML!');
+		}
+
+		$this->iterateAndImportHeurekaTreeXml($xml->CATEGORY, $categoryType);
+
+		$this->clearCategoriesCache();
+	}
+
+	private function iterateAndImportHeurekaTreeXml(\SimpleXMLElement $tree, CategoryType $categoryType): void
+	{
+		foreach ($tree as $categoryXml) {
+			if (isset($categoryXml->CATEGORY)) {
+				$this->iterateAndImportHeurekaTreeXml($categoryXml->CATEGORY, $categoryType);
+			} else {
+				$this->updateMapAndImportHeurekaTreeCategory($categoryXml, $categoryType);
+			}
+		}
+	}
+
+	private function updateMapAndImportHeurekaTreeCategory(\SimpleXMLElement $element, CategoryType $categoryType): void
+	{
+		$defaultMutationSuffix = '_cs';
+		$previousCategory = null;
+
+		/** @codingStandardsIgnoreStart CATEGORY_FULLNAME is not valid name*/
+		foreach (\explode(' | ', (string)$element->CATEGORY_FULLNAME) as $categoryName) {
+			/** @codingStandardsIgnoreEnd */
+			if ($categoryName === 'Heureka.cz') {
+				continue;
+			}
+
+			$collection = $this->many()
+				->where('fk_type', $categoryType->getPK())
+				->where("name$defaultMutationSuffix", $categoryName);
+
+			if ($previousCategory) {
+				$collection->where('path LIKE :s', ['s' => "$previousCategory->path%"]);
+			} else {
+				$collection->where('fk_ancestor IS NULL');
+			}
+
+			$existingCategory = $collection->first();
+
+			$previousCategory = $existingCategory ?? $this->createOne([
+					'name' => ['cs' => $categoryName],
+					'path' => $this->generateUniquePath($previousCategory ? $previousCategory->path : ''),
+					'ancestor' => $previousCategory,
+					'type' => $categoryType->getPK(),
+					'code' => $element->CATEGORY_ID,
+				]);
+		}
+	}
+
+	/**
 	 * @param $typeId
 	 * @param \Eshop\DB\CategoryRepository $repository
 	 * @param bool $includeHidden

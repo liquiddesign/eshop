@@ -8,12 +8,9 @@ use Common\DB\IGeneralRepository;
 use Common\NumbersHelper;
 use League\Csv\Reader;
 use League\Csv\Writer;
-use Nette\Utils\FileSystem;
-use Nette\Utils\Random;
 use Onnov\DetectEncoding\EncodingDetector;
 use StORM\Collection;
 use StORM\DIConnection;
-use StORM\ICollection;
 use StORM\SchemaManager;
 
 /**
@@ -54,11 +51,11 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 
 	/**
 	 * @param \League\Csv\Writer $writer
-	 * @param \Eshop\DB\Related[] $items
+	 * @param \StORM\Collection $items
 	 * @throws \League\Csv\CannotInsertRecord
 	 * @throws \League\Csv\InvalidArgument
 	 */
-	public function exportCsv(Writer $writer, array $items): void
+	public function exportCsv(Writer $writer, Collection $items): void
 	{
 		$writer->setDelimiter(';');
 
@@ -144,7 +141,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 		}
 	}
 
-	/** @todo přesunout pro jednotné použití všude */
+	/** @todo použít univerzální funkci z backend */
 	private function getReaderFromString(string $content): Reader
 	{
 		if (!\ini_get("auto_detect_line_endings")) {
@@ -172,40 +169,4 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 
 		return $reader;
 	}
-
-	/** @todo přesunout pro jednotné použití všude */
-	/** @codingStandardsIgnoreStart  */
-	private function getReader(string $filePath): Reader
-	{
-		if (!\ini_get("auto_detect_line_endings")) {
-			\ini_set("auto_detect_line_endings", '1');
-		}
-
-		$csvData = FileSystem::read($filePath);
-
-		$detector = new EncodingDetector();
-
-		$detector->disableEncoding([
-			EncodingDetector::ISO_8859_5,
-			EncodingDetector::KOI8_R,
-		]);
-
-		$encoding = $detector->getEncoding($csvData);
-
-		if ($encoding !== 'utf-8') {
-			$csvData = \iconv('windows-1250', 'utf-8', $csvData);
-			$reader = Reader::createFromString($csvData);
-			unset($csvData);
-		} else {
-			unset($csvData);
-			$reader = Reader::createFromPath($filePath);
-		}
-
-		$reader->setDelimiter(';');
-		$reader->setHeaderOffset(0);
-
-		return $reader;
-	}
-
-	/** @codingStandardsIgnoreEnd  */
 }
