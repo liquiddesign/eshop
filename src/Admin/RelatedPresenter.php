@@ -276,6 +276,7 @@ class RelatedPresenter extends BackendPresenter
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumnText('Název master produktu', 'masterName', '%s', 'masterName');
 		$grid->addColumnText('Název slave produktu', 'slaveName', '%s', 'slaveName');
+		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 		$grid->addColumnInputCheckbox('Zobrazit v košíku', 'showCart', '', '', 'showCart');
 		$grid->addColumnInputCheckbox('Zobrazit v našeptávači', 'showSearch', '', '', 'showSearch');
 		$grid->addColumnInputCheckbox('Zobrazit v detailu', 'showDetail', '', '', 'showDetail');
@@ -303,11 +304,12 @@ class RelatedPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create(true);
 
-		/** @var \Eshop\DB\RelatedType $relatedType */
+		/** @var \Eshop\DB\RelatedType|null $relatedType */
 		$relatedType = $this->getParameter('relatedType');
 
 		$form->addText('code', 'Kód')->setRequired();
 		$form->addLocaleText('name', 'Název');
+		$form->addCheckbox('hidden', 'Skryto');
 
 		$form->addText('masterName', 'Název master produktu');
 		$form->addText('slaveName', 'Název slave produktu')->setHtmlAttribute('data-info', 'Slouží pro lepší rozpoznání v administraci.');
@@ -354,9 +356,10 @@ class RelatedPresenter extends BackendPresenter
 
 			$values = $form->getValues('array');
 
+			/** @var \Eshop\DB\RelatedType|null $existing */
 			$existing = $this->relatedTypeRepository->many()->where('code', $values['code'])->first();
 
-			if (!$existing || ($existing && $existing->getPK() === $values['uuid'])) {
+			if ($existing === null || ($existing->getPK() === $values['uuid'])) {
 				return;
 			}
 

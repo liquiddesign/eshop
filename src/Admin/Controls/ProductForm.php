@@ -19,6 +19,8 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\RelatedRepository;
+use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\RibbonRepository;
 use Eshop\DB\SetRepository;
 use Eshop\DB\SupplierProductRepository;
@@ -41,6 +43,8 @@ class ProductForm extends Control
 	/** @persistent */
 	public string $tab = 'menu0';
 
+	private ?Product $product;
+
 	private ProductRepository $productRepository;
 
 	private Container $container;
@@ -59,8 +63,6 @@ class ProductForm extends Control
 
 	private SetRepository $setRepository;
 
-	private ?Product $product;
-
 	private Shopper $shopper;
 
 	private VatRateRepository $vatRateRepository;
@@ -72,6 +74,15 @@ class ProductForm extends Control
 	private LoyaltyProgramRepository $loyaltyProgramRepository;
 
 	private LoyaltyProgramProductRepository $loyaltyProgramProductRepository;
+
+	private RelatedTypeRepository $relatedTypeRepository;
+
+	private RelatedRepository $relatedRepository;
+
+	/**
+	 * @var \Eshop\DB\RelatedType[]
+	 */
+	private array $relatedTypes;
 
 	/** @var string[] */
 	private array $configuration;
@@ -99,6 +110,8 @@ class ProductForm extends Control
 		CategoryTypeRepository $categoryTypeRepository,
 		LoyaltyProgramRepository $loyaltyProgramRepository,
 		LoyaltyProgramProductRepository $loyaltyProgramProductRepository,
+		RelatedTypeRepository $relatedTypeRepository,
+		RelatedRepository $relatedRepository,
 		$product = null,
 		array $configuration = []
 	) {
@@ -119,6 +132,8 @@ class ProductForm extends Control
 		$this->categoryTypeRepository = $categoryTypeRepository;
 		$this->loyaltyProgramRepository = $loyaltyProgramRepository;
 		$this->loyaltyProgramProductRepository = $loyaltyProgramProductRepository;
+		$this->relatedTypeRepository = $relatedTypeRepository;
+		$this->relatedRepository = $relatedRepository;
 
 		$form = $adminFormFactory->create(true);
 
@@ -249,6 +264,68 @@ class ProductForm extends Control
 			$form->addDataMultiSelect('taxes', 'Poplatky a daně', $taxRepository->getArrayForSelect());
 		}
 
+		// Relations
+		$this->monitor(Presenter::class, function ($presenter) use ($form): void {
+			$this->relatedTypes = $this->template->relatedTypes = $this->relatedTypeRepository->many()->toArray();
+
+			foreach ($this->relatedTypes as $relatedType) {
+				$relationsContainer = $form->addContainer('relatedType_' . $relatedType->getPK());
+
+				for ($i = 0; $i < 6; $i++) {
+					$relationsContainer->addSelect2Ajax("product_$i", $this->getPresenter()->link('getProductsForSelect2!'), null, [], 'Zvolte produkt');
+					$relationsContainer->addInteger("amount_$i")->setDefaultValue($relatedType->defaultAmount)->setNullable();
+					$relationsContainer->addInteger("priority_$i")->setDefaultValue(10)->setNullable();
+					$relationsContainer->addCheckbox("hidden_$i");
+
+					if ($relatedType->defaultDiscountPct) {
+						 $relationsContainer->addText("discountPct_$i")->setDefaultValue($relatedType->defaultDiscountPct)->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
+					}
+
+					if (!$relatedType->defaultMasterPct) {
+						continue;
+					}
+
+					$relationsContainer->addText("masterPct_$i")->setDefaultValue($relatedType->defaultMasterPct)->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
+				}
+
+				if (!$this->product) {
+					continue;
+				}
+
+				$relations = $this->relatedRepository->many()
+					->where('fk_master', $this->product->getPK())
+					->where('fk_type', $relatedType->getPK())
+					->toArray();
+
+				$i = 0;
+
+				/** @var \Eshop\DB\Related $relation
+				 */
+				foreach ($relations as $relation) {
+					$presenter->template->select2AjaxDefaults[$relationsContainer["product_$i"]->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->name];
+					$relationsContainer["amount_$i"]->setDefaultValue($relation->amount);
+					$relationsContainer["priority_$i"]->setDefaultValue($relation->priority);
+					$relationsContainer["hidden_$i"]->setDefaultValue($relation->hidden);
+
+					if ($relatedType->defaultDiscountPct) {
+						$relationsContainer["discountPct_$i"]->setDefaultValue($relation->discountPct);
+					}
+
+					if ($relatedType->defaultMasterPct) {
+						$relationsContainer["masterPct_$i"]->setDefaultValue($relation->masterPct);
+					}
+
+					$i++;
+
+					if ($i === 6) {
+						break;
+					}
+				}
+			}
+		});
+		// /Relations
+
+		/** @deprecated */
 		if (isset($configuration['upsells']) && $configuration['upsells']) {
 			$this->monitor(Presenter::class, function () use ($form): void {
 				$form->addMultiSelect2('upsells', 'Upsell produkty', [], [
@@ -260,6 +337,7 @@ class ProductForm extends Control
 			});
 		}
 
+		/** @deprecated */
 		$this->monitor(Presenter::class, function () use ($form): void {
 			$alternative = $form->addSelect2('alternative', 'Alternativa k produktu', [], [
 				'ajax' => [
@@ -275,6 +353,7 @@ class ProductForm extends Control
 
 			$this->getPresenter()->template->select2AjaxDefaults[$alternative->getHtmlId()] = [$this->product->getValue('alternative') => $this->product->alternative->name];
 		});
+		// /@deprecated
 
 		$prices = $form->addContainer('prices');
 
@@ -429,24 +508,9 @@ class ProductForm extends Control
 			}
 		}
 
-		$this->loyaltyProgramProductRepository->many()->where('fk_product', $values['uuid'])->delete();
-
-		foreach (Arrays::pick($values, 'loyaltyProgram', []) as $loyaltyProgram => $points) {
-			if ($points === null) {
-				continue;
-			}
-
-			$this->loyaltyProgramProductRepository->createOne([
-				'points' => $points,
-				'product' => $values['uuid'],
-				'loyaltyProgram' => $loyaltyProgram,
-			]);
-		}
-
 		$values['categories'] = $newCategories;
 
 		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
-//		$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
 
 		$values['alternative'] = isset($data['alternative']) ? $this->productRepository->one($data['alternative']) : null;
 
@@ -461,6 +525,61 @@ class ProductForm extends Control
 
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
+
+		$this->relatedRepository->many()->where('fk_master', $product->getPK())->delete();
+
+		// Relations
+		foreach ($this->relatedTypes as $relatedType) {
+			$relatedTypeValues = $values['relatedType_' . $relatedType->getPK()];
+
+			for ($i = 0; $i < 6; $i++) {
+				if (!isset($data['relatedType_' . $relatedType->getPK()]["product_$i"])) {
+					continue;
+				}
+
+				if ($relatedType->defaultDiscountPct) {
+					$relatedTypeValues["discountPct_$i"] ??= $relatedType->defaultDiscountPct;
+				}
+
+				if ($relatedType->defaultMasterPct) {
+					$relatedTypeValues["masterPct_$i"] ??= $relatedType->defaultMasterPct;
+				}
+
+				$this->relatedRepository->syncOne([
+					'type' => $relatedType->getPK(),
+					'master' => $product->getPK(),
+					'slave' => $data['relatedType_' . $relatedType->getPK()]["product_$i"],
+					'amount' => $relatedTypeValues["amount_$i"] ?? $relatedType->defaultAmount,
+					'priority' => $relatedTypeValues["priority_$i"] ?? 10,
+					'hidden' => $relatedTypeValues["hidden_$i"] ?? false,
+					'discountPct' => $relatedType->defaultDiscountPct ? ($relatedTypeValues["discountPct_$i"] ?? $relatedType->defaultDiscountPct) : null,
+					'masterPct' => $relatedType->defaultMasterPct ? ($relatedTypeValues["masterPct_$i"] ?? $relatedType->defaultMasterPct) : null,
+				]);
+			}
+		}
+
+		// /Relations
+
+		// Loyalty programs
+		$this->loyaltyProgramProductRepository->many()->where('fk_product', $product->getPK())->delete();
+
+		$loyaltyPrograms = Arrays::pick($values, 'loyaltyProgram', []);
+
+		if (\count($loyaltyPrograms) > 0) {
+			foreach ($loyaltyPrograms as $loyaltyProgram => $points) {
+				if ($points === null) {
+					continue;
+				}
+
+				$this->loyaltyProgramProductRepository->createOne([
+					'points' => $points,
+					'product' => $product->getPK(),
+					'loyaltyProgram' => $loyaltyProgram,
+				]);
+			}
+		}
+
+		// /Loyalty programs
 
 		if (isset($data['upsells'])) {
 			$this->product->upsells->relate($data['upsells']);

@@ -405,6 +405,7 @@ class Product extends \StORM\Entity
 	 * Upsell produkty
 	 * @relationNxN{"sourceViaKey":"fk_root","targetViaKey":"fk_upsell"}
 	 * @var \StORM\RelationCollection<\Eshop\DB\Product>|\Eshop\DB\Product[]
+	 * @deprecated
 	 */
 	public RelationCollection $upsells;
 

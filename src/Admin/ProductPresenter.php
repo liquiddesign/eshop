@@ -30,6 +30,7 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\SetRepository;
 use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierProductRepository;
@@ -202,6 +203,9 @@ class ProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public AmountRepository $amountRepository;
+
+	/** @inject */
+	public RelatedTypeRepository $relatedTypeRepository;
 
 	/** @inject */
 	public Application $application;
@@ -528,6 +532,7 @@ class ProductPresenter extends BackendPresenter
 	public function renderNew(): void
 	{
 		$this->template->editTab = $this->editTab;
+		$this->template->relatedTypes = $this->relatedTypeRepository->getArrayForSelect();
 
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
@@ -636,6 +641,7 @@ class ProductPresenter extends BackendPresenter
 
 		$this->template->editTab = $this->editTab;
 		$this->template->comments = $this->commentRepository->many()->where('fk_product', $product->getPK())->orderBy(['createdTs' => 'DESC'])->toArray();
+		$this->template->relatedTypes = $this->relatedTypeRepository->getArrayForSelect();
 
 		$data = [];
 		/** @var \Eshop\DB\Photo[] $photos */

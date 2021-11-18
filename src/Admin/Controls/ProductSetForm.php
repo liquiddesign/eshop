@@ -12,6 +12,7 @@ use Nette\Application\UI\Control;
 use Nette\Application\UI\Multiplier;
 use Nette\Http\Request;
 
+/** @deprecated */
 class ProductSetForm extends Control
 {
 	private ProductRepository $productRepository;

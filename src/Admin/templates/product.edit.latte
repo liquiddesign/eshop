@@ -59,12 +59,14 @@
                                    href="#menu2-content"
                                    role="tab">Řazení</a>
                             </li>
-{*                            <li class="nav-item">*}
-{*                                <a class="nav-link {$editTab == 'menu4' ? 'active show' : ''} productForm-tab"*}
-{*                                   id="menu4" data-toggle="pill"*}
-{*                                   href="#menu4-content"*}
-{*                                   role="tab">Vazby</a>*}
-{*                            </li>*}
+                            {if \count($relatedTypes) > 0}
+                                <li class="nav-item">
+                                    <a class="nav-link {$editTab == 'menu4' ? 'active show' : ''} productForm-tab"
+                                       id="menu4" data-toggle="pill"
+                                       href="#menu4-content"
+                                       role="tab">Vazby</a>
+                                </li>
+                            {/if}
                             <li class="nav-item">
                                 <a class="nav-link {$editTab == 'menu3' ? 'active show' : ''} productForm-tab"
                                    id="menu3" data-toggle="pill"

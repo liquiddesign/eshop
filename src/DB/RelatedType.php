@@ -78,6 +78,12 @@ class RelatedType extends \StORM\Entity
 	public ?float $defaultMasterPct;
 
 	/**
+	 * Skryto
+	 * @column
+	 */
+	public bool $hidden = false;
+
+	/**
 	 * Systemic
 	 * @column
 	 */

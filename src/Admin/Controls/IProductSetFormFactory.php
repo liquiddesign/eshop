@@ -5,6 +5,7 @@ namespace Eshop\Admin\Controls;
 
 use Eshop\DB\Product;
 
+/** @deprecated */
 interface IProductSetFormFactory
 {
 	public function create(Product $product): ProductSetForm;
