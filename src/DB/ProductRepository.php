@@ -530,6 +530,9 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $collection->orderBy(['priority', "name$suffix"]);
 	}
 
+	/**
+	 * @deprecated Use same method from DisplayAmountRepository.php
+	 */
 	public function getDisplayAmount(int $amount): ?Entity
 	{
 		return $this->getConnection()->findRepository(DisplayAmount::class)->many()->where('amountFrom <= :amount AND amountTo >= :amount', ['amount' => $amount])->orderBy(['priority'])->first();
