@@ -70,6 +70,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			'hidden',
 		]);
 
+		/** @var \Eshop\DB\Related $related */
 		foreach ($items as $related) {
 			$writer->insertOne([
 				$related->type->code,
