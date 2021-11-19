@@ -743,6 +743,7 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 
 			$existingCategory = $collection->first();
 
+			/** @codingStandardsIgnoreStart CATEGORY_ID */
 			$previousCategory = $existingCategory ?? $this->createOne([
 					'name' => ['cs' => $categoryName],
 					'path' => $this->generateUniquePath($previousCategory ? $previousCategory->path : ''),
@@ -750,6 +751,7 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 					'type' => $categoryType->getPK(),
 					'code' => $element->CATEGORY_ID,
 				]);
+			/** @codingStandardsIgnoreEnd */
 		}
 	}
 

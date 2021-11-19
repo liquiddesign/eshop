@@ -40,18 +40,17 @@ class OrderRepository extends \StORM\Repository
 	private BannedEmailRepository $bannedEmailRepository;
 
 	public function __construct(
-		DIConnection                $connection,
-		SchemaManager               $schemaManager,
-		Storage                     $storage,
-		Shopper                     $shopper,
-		Translator                  $translator,
-		MerchantRepository          $merchantRepository,
+		DIConnection $connection,
+		SchemaManager $schemaManager,
+		Storage $storage,
+		Shopper $shopper,
+		Translator $translator,
+		MerchantRepository $merchantRepository,
 		CatalogPermissionRepository $catalogPermissionRepository,
-		PackageRepository           $packageRepository,
-		PackageItemRepository       $packageItemRepository,
-		BannedEmailRepository       $bannedEmailRepository
-	)
-	{
+		PackageRepository $packageRepository,
+		PackageItemRepository $packageItemRepository,
+		BannedEmailRepository $bannedEmailRepository
+	) {
 		parent::__construct($connection, $schemaManager);
 
 		$this->cache = new Cache($storage);

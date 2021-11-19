@@ -23,7 +23,6 @@ use Eshop\DB\ProductRepository;
 use Eshop\DB\RelatedRepository;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\RibbonRepository;
-use Eshop\DB\SetRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\TaxRepository;
@@ -59,15 +58,9 @@ class ProductForm extends Control
 
 	private PageRepository $pageRepository;
 
-	private AdminFormFactory $adminFormFactory;
-
-	private SetRepository $setRepository;
-
 	private Shopper $shopper;
 
 	private VatRateRepository $vatRateRepository;
-
-	private IProductSetFormFactory $productSetFormFactory;
 
 	private CategoryTypeRepository $categoryTypeRepository;
 
@@ -104,9 +97,7 @@ class ProductForm extends Control
 		DisplayAmountRepository $displayAmountRepository,
 		DisplayDeliveryRepository $displayDeliveryRepository,
 		TaxRepository $taxRepository,
-		SetRepository $setRepository,
 		Shopper $shopper,
-		IProductSetFormFactory $productSetFormFactory,
 		CategoryTypeRepository $categoryTypeRepository,
 		LoyaltyProgramRepository $loyaltyProgramRepository,
 		LoyaltyProgramProductRepository $loyaltyProgramProductRepository,
@@ -123,12 +114,9 @@ class ProductForm extends Control
 		$this->supplierRepository = $supplierRepository;
 		$this->supplierProductRepository = $supplierProductRepository;
 		$this->pageRepository = $pageRepository;
-		$this->adminFormFactory = $adminFormFactory;
-		$this->setRepository = $setRepository;
 		$this->configuration = $configuration;
 		$this->shopper = $shopper;
 		$this->vatRateRepository = $vatRateRepository;
-		$this->productSetFormFactory = $productSetFormFactory;
 		$this->categoryTypeRepository = $categoryTypeRepository;
 		$this->loyaltyProgramRepository = $loyaltyProgramRepository;
 		$this->loyaltyProgramProductRepository = $loyaltyProgramProductRepository;
@@ -332,7 +320,6 @@ class ProductForm extends Control
 				])->checkDefaultValue(false);
 			});
 		}
-
 
 		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository): void {
 			$prices = $form->addContainer('prices');
@@ -551,27 +538,6 @@ class ProductForm extends Control
 		$form->syncPages(function () use ($product, $values): void {
 			$this->pageRepository->syncPage($values['page'], ['product' => $product->getPK()]);
 		});
-
-		$this->setRepository->many()->where('fk_set', $product->getPK())->delete();
-
-		if (isset($values['productsSet']) && $values['productsSet']) {
-			foreach ($values['setItems'] as $setItem) {
-				if ($setItem['product'] === '') {
-					continue;
-				}
-
-				$setItem['product'] = $this->productRepository->getProductByCodeOrEAN($setItem['product']);
-
-				if (!$setItem['product']) {
-					continue;
-				}
-
-				$setItem['product'] = $setItem['product']->getPK();
-				$setItem['set'] = $this->product->getPK();
-
-				$this->setRepository->syncOne($setItem);
-			}
-		}
 
 		$this->getPresenter()->flashMessage('Uloženo', 'success');
 		$form->processRedirect('edit', 'default', ['product' => $product, 'editTab' => $editTab]);

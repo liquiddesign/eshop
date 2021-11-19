@@ -9,5 +9,4 @@ namespace Eshop\DB;
  */
 class DiscountConditionRepository extends \StORM\Repository
 {
-
 }
