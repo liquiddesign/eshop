@@ -7,6 +7,7 @@ namespace Eshop\Admin\Controls;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
 use Eshop\Admin\ProductPresenter;
+use Eshop\BackendPresenter;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
@@ -29,7 +30,6 @@ use Eshop\DB\TaxRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
-use Forms\Form;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\DI\Container;
@@ -196,10 +196,6 @@ class ProductForm extends Control
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('recommended', 'Doporučeno');
 
-		if (isset($configuration['sets']) && $configuration['sets']) {
-			$form->addCheckbox('productsSet', 'Set produktů')->addCondition($form::EQUAL, true)->toggle('setItems');
-		}
-
 		$form->addGroup('Nákup');
 		$form->addText('unit', 'Prodejní jednotka')
 			->setHtmlAttribute('data-info', 'Např.: ks, ml, ...');
@@ -337,87 +333,18 @@ class ProductForm extends Control
 			});
 		}
 
-		/** @deprecated */
-		$this->monitor(Presenter::class, function () use ($form): void {
-			$alternative = $form->addSelect2('alternative', 'Alternativa k produktu', [], [
-				'ajax' => [
-					'url' => $this->getPresenter()->link('getProductsForSelect2!'),
-				],
-				'allowClear' => true,
-				'placeholder' => "Nepřiřazeno",
-			])->checkDefaultValue(false);
 
-			if (!$this->product || !$this->product->getValue('alternative')) {
-				return;
-			}
+		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository): void {
+			$prices = $form->addContainer('prices');
 
-			$this->getPresenter()->template->select2AjaxDefaults[$alternative->getHtmlId()] = [$this->product->getValue('alternative') => $this->product->alternative->name];
-		});
-		// /@deprecated
+			$pricesPermission = $presenter->admin->isAllowed(':Eshop:Admin:Pricelist:default');
 
-		$prices = $form->addContainer('prices');
-
-		foreach ($pricelistRepository->many() as $prc) {
-			$pricelist = $prices->addContainer($prc->getPK());
-			$pricelist->addText('price')->setNullable()->addCondition(Form::FILLED)->addRule(Form::FLOAT);
-			$pricelist->addText('priceVat')->setNullable()->addCondition(Form::FILLED)->addRule(Form::FLOAT);
-			$pricelist->addText('priceBefore')->setNullable()->addCondition(Form::FILLED)->addRule(Form::FLOAT);
-			$pricelist->addText('priceVatBefore')->setNullable()->addCondition(Form::FILLED)->addRule(Form::FLOAT);
-		}
-
-		$setItemsContainer = $form->addContainer('setItems');
-
-
-		$this->monitor(Presenter::class, function () use ($setItemsContainer, $form): void {
-			for ($i = 0; $i < 6; $i++) {
-				$itemContainer = $setItemsContainer->addContainer("s$i");
-
-				$itemContainer->addText('product')
-					->addCondition($form::FILLED)
-					->addRule([FormValidators::class, 'isProductExists'], 'Produkt neexistuje!', [$this->productRepository]);
-//				$itemContainer->addSelect2('product', null, [], [
-//					'ajax' => [
-//						'url' => $this->getPresenter()->link('getProductsForSelect2!')
-//					]
-//				]);
-
-
-				$itemContainer->addInteger('priority')
-					->setDefaultValue(1)
-					->addConditionOn($itemContainer['product'], $form::FILLED)
-					->setRequired();
-				$itemContainer->addInteger('amount')
-					->setDefaultValue(1)
-					->addConditionOn($itemContainer['product'], $form::FILLED)
-					->setRequired()
-					->addRule($form::MIN, 'Množství musí být větší než 0!', 1);
-				$itemContainer->addText('discountPct')
-					->setDefaultValue(0)
-					->addConditionOn($itemContainer['product'], $form::FILLED)
-					->setRequired()
-					->addRule($form::FLOAT)
-					->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
-			}
-
-			$i = 0;
-
-			if (!$this->product) {
-				return;
-			}
-
-			foreach ($this->productRepository->getSetProducts($this->product) as $setItem) {
-				$itemContainer = $form['setItems']['s' . $i++];
-
-				$itemContainer->setDefaults([
-					'product' => $setItem->product->getFullCode(),
-					'priority' => $setItem->priority,
-					'amount' => $setItem->amount,
-					'discountPct' => $setItem->discountPct,
-				]);
-
-				if ($i === 6) {
-					break;
-				}
+			foreach ($pricelistRepository->many() as $prc) {
+				$pricelist = $prices->addContainer($prc->getPK());
+				$pricelist->addText('price')->setNullable()->setDisabled(!$pricesPermission)->addCondition($form::FILLED)->addRule($form::FLOAT);
+				$pricelist->addText('priceVat')->setNullable()->setDisabled(!$pricesPermission)->addCondition($form::FILLED)->addRule($form::FLOAT);
+				$pricelist->addText('priceBefore')->setNullable()->setDisabled(!$pricesPermission)->addCondition($form::FILLED)->addRule($form::FLOAT);
+				$pricelist->addText('priceVatBefore')->setNullable()->setDisabled(!$pricesPermission)->addCondition($form::FILLED)->addRule($form::FLOAT);
 			}
 		});
 
@@ -509,10 +436,7 @@ class ProductForm extends Control
 		}
 
 		$values['categories'] = $newCategories;
-
 		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
-
-		$values['alternative'] = isset($data['alternative']) ? $this->productRepository->one($data['alternative']) : null;
 
 		if (isset($values['supplierContent'])) {
 			if ($values['supplierContent'] === 0) {
@@ -673,24 +597,6 @@ class ProductForm extends Control
 		)->toArray() : [];
 
 		$this->template->render(__DIR__ . '/productForm.latte');
-	}
-
-	public function createComponentSetForm(): AdminForm
-	{
-		if ($this->product && $this->configuration['sets']) {
-			return $this->productSetFormFactory->create($this->product);
-		}
-
-		return $this->adminFormFactory->create();
-	}
-
-	public function handleDeleteSetItem($setItem): void
-	{
-		if ($setItem = $this->productRepository->getProductByCodeOrEAN($setItem)) {
-			$this->setRepository->many()->where('fk_product', $setItem->getPK())->where('fk_set', $this->product->getPK())->delete();
-		}
-
-		$this->redirect('this');
 	}
 
 	protected function deleteImages(): void

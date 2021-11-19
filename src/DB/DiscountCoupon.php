@@ -64,6 +64,24 @@ class DiscountCoupon extends \StORM\Entity
 	 * @column
 	 */
 	public int $usagesCount = 0;
+
+	/**
+	 * Minimální objednávka
+	 * @column
+	 */
+	public ?float $minimalOrderPrice;
+
+	/**
+	 * Maximální objednávka
+	 * @column
+	 */
+	public ?float $maximalOrderPrice;
+
+	/**
+	 * Typ
+	 * @column{"type":"enum","length":"'or','and'"}
+	 */
+	public string $conditionsType;
 	
 	/**
 	 * Exkluzivně pro zákazníka

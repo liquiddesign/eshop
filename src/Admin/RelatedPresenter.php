@@ -451,7 +451,7 @@ class RelatedPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid): void {
 			$values = $form->getValues('array');
 
-			/** @var \Eshop\DB\Related[] $relations */
+			/** @var \StORM\Collection $relations */
 			$relations = $values['bulkType'] === 'selected' ? $this->relatedRepository->many()->where('uuid', $ids) : $grid->getFilteredSource();
 
 			$tempFilename = \tempnam($this->tempDir, "csv");

@@ -587,20 +587,6 @@ class ProductPresenter extends BackendPresenter
 		}
 
 		$form->setDefaults($productData);
-		$form['alternative']->setValue($product->alternative ? $product->getValue('alternative') : null);
-
-		if (isset($form['upsells'])) {
-			$this->template->select2AjaxDefaults[$form['upsells']->getHtmlId()] = $product->upsells->toArrayOf('name');
-		}
-
-		if (isset($form['tonerForPrinters'])) {
-			try {
-				$this->template->select2AjaxDefaults[$form['tonerForPrinters']->getHtmlId()] =
-					$this->productRepository->getSlaveProductsByRelationAndMaster('tonerForPrinter', $product)->toArrayOf('name');
-			} catch (InvalidArgumentException $e) {
-				$form['tonerForPrinters']->setHtmlAttribute('data-error', 'Byla detekována chybná vazba! Vyberte, prosím, tiskárny znovu.');
-			}
-		}
 
 		if ($product->supplierContentLock && isset($form['supplierContent'])) {
 			$form['supplierContent']->setDefaultValue(0);

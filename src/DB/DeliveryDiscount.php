@@ -45,6 +45,24 @@ class DeliveryDiscount extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $weightTo;
+
+	/**
+	 * Minimální objednávka
+	 * @column
+	 */
+	public ?float $minimalOrderPrice;
+
+	/**
+	 * Maximální objednávka
+	 * @column
+	 */
+	public ?float $maximalOrderPrice;
+
+	/**
+	 * Typ
+	 * @column{"type":"enum","length":"'or','and'"}
+	 */
+	public string $conditionsType;
 	
 	/**
 	 * Měna

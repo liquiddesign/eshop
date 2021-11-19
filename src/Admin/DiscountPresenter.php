@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
-use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\Admin\Controls\IDiscountCouponFormFactory;
+use Eshop\BackendPresenter;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\DeliveryDiscountRepository;
@@ -48,6 +49,9 @@ class DiscountPresenter extends BackendPresenter
 
 	/** @inject */
 	public RibbonRepository $ribbonRepository;
+
+	/** @inject */
+	public IDiscountCouponFormFactory $discountCouponFormFactory;
 
 	/** @inject */
 	public Connection $storm;
@@ -258,61 +262,29 @@ class DiscountPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentCouponsForm(): AdminForm
+	public function createComponentCouponsForm(): Controls\DiscountCouponForm
 	{
-		$form = $this->formFactory->create();
-
-		$discount = $this->getParameter('discount');
-
-		$form->addText('code', 'Kód')->setRequired();
-		$form->addText('label', 'Popisek');
-		$form->addDataSelect('exclusiveCustomer', 'Jen pro zákazníka', $this->customerRepository->getArrayForSelect())->setPrompt('Žádný');
-		$form->addText('discountPct', 'Sleva (%)')->addRule($form::FLOAT)->addRule([FormValidators::class, 'isPercent'], 'Hodnota není platné procento!');
-		$form->addInteger('usageLimit', 'Maximální počet použití')->setNullable()->addCondition($form::FILLED)->toggle('frm-couponsForm-usagesCount-toogle');
-		$form->addInteger('usagesCount', 'Aktuální počet použití')
-			->setDefaultValue(0)
-			->setHtmlAttribute('data-info', 'Automaticky se zvyšuje při použití kupónu.');
-		$form->addGroup('Absolutní sleva');
-		$form->addDataSelect('currency', 'Měna', $this->currencyRepo->getArrayForSelect());
-		$form->addText('discountValue', 'Sleva')->setHtmlAttribute('data-info', 'Zadejte hodnotu ve zvolené měně.')->addCondition(Form::FILLED)->addRule($form::FLOAT);
-		$form->addText('discountValueVat', 'Sleva s DPH')->setHtmlAttribute('data-info', 'Zadejte hodnotu ve zvolené měně.')->addCondition(Form::FILLED)->addRule($form::FLOAT);
-		$form->bind($this->couponRepository->getStructure());
-		$form->addHidden('discount', isset($discount) ? (string)$discount : $this->getParameter('discountCoupon')->getValue('discount'));
-
-		$form->addSubmits(!$this->getParameter('discountCoupon'));
-
-		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
-
-			if (!$values['usagesCount']) {
-				$values['usagesCount'] = 0;
-			}
-
-			$coupon = $this->couponRepository->syncOne($values, null, true);
-
-			$this->flashMessage('Uloženo', 'success');
-
-			$form->processRedirect('couponsDetail', 'coupons', [$coupon], [$this->getParameter('discount') ?? $this->getParameter('discountCoupon')->discount], [$this->getParameter('discount')]);
-		};
-
-		return $form;
+		return $this->discountCouponFormFactory->create($this->getParameter('discountCoupon'), $this->getParameter('discount'));
 	}
 
 	public function createComponentDeliveryDiscountsForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
 
-		$form->addText('discountPriceFrom', 'Od jaké ceny košíku je sleva')->addCondition(Form::FILLED)->addRule($form::FLOAT);
-		$form->addText('discountPct', 'Sleva (%)')->addCondition(Form::FILLED)->addRule($form::FLOAT);
+		/** @var \Eshop\DB\Discount|null $discount */
+		$discount = $this->getParameter('discount');
+
+		$form->addText('discountPriceFrom', 'Od jaké ceny košíku je sleva')->addCondition($form::FILLED)->addRule($form::FLOAT);
+		$form->addText('discountPct', 'Sleva (%)')->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->addGroup('Absolutní sleva');
 		$form->addSelect('currency', 'Měna', $this->currencyRepo->getArrayForSelect());
-		$form->addText('discountValue', 'Sleva v měně')->addCondition(Form::FILLED)->addRule($form::FLOAT);
-		$form->addText('discountValueVat', 'Sleva na měně s DPH')->addCondition(Form::FILLED)->addRule($form::FLOAT);
-		$form->addText('weightFrom', 'Od váhy košíku')->setNullable()->addCondition(Form::FILLED)->addRule($form::FLOAT);
-		$form->addText('weightTo', 'Do váhy košíku')->setNullable()->addCondition(Form::FILLED)->addRule($form::FLOAT);
+		$form->addText('discountValue', 'Sleva v měně')->addCondition($form::FILLED)->addRule($form::FLOAT);
+		$form->addText('discountValueVat', 'Sleva na měně s DPH')->addCondition($form::FILLED)->addRule($form::FLOAT);
+		$form->addText('weightFrom', 'Od váhy košíku')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
+		$form->addText('weightTo', 'Do váhy košíku')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
 
 		$form->bind($this->deliveryRepo->getStructure());
-		$form->addHidden('discount', (string)$this->getParameter('discount') ?? $this->getParameter('deliveryDiscount')->getValue('discount'));
+		$form->addHidden('discount', $discount ? (string)$discount : $this->getParameter('deliveryDiscount')->getValue('discount'));
 		$form->addSubmits(false, false);
 
 		$form->onSuccess[] = function (AdminForm $form): void {
@@ -340,7 +312,7 @@ class DiscountPresenter extends BackendPresenter
 		unset($backLink);
 
 		/** @var \Forms\Form $form */
-		$form = $this->getComponent('couponsForm');
+		$form = $this->getComponent('couponsForm')['form'];
 
 		$values = $discountCoupon->toArray();
 		$values['usedTs'] = $values['usedTs'] ? \date('Y-m-d\TH:i:s', \strtotime($values['usedTs'])) : '';
@@ -404,5 +376,6 @@ class DiscountPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('deliveryDiscounts', $discount)];
 		$this->template->displayControls = [$this->getComponent('deliveryDiscountsForm')];
+		$this->template->setFile(__DIR__ . '/templates/discountCouponForm.latte');
 	}
 }
