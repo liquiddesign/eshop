@@ -47,6 +47,10 @@ class CartChecker extends Control
 
 			$this->checkoutManager->deleteItem($cartItem['object']);
 		}
+
+		if (!$this->checkoutManager->checkDiscountCoupon()) {
+			$this->checkoutManager->setDiscountCoupon(null);
+		}
 		
 		$this->redirect('this');
 	}
