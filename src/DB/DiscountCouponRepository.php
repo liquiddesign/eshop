@@ -90,24 +90,23 @@ class DiscountCouponRepository extends \StORM\Repository
 		$productsInCart = \array_keys($this->cartItemRepository->many()->where('this.fk_cart', $cart->getPK())->setIndex('fk_product')->toArrayOf('product'));
 		$conditions = $this->discountConditionRepository->many()->where('this.fk_discountCoupon', $coupon->getPK());
 
-		$valid = true;
+		$conditionType = $coupon->conditionsType;
+		$valid = $conditionType === 'and';
 
 		/** @var \Eshop\DB\DiscountCondition $condition */
 		foreach ($conditions as $condition) {
+			$conditionValid = true;
+
 			$required = \array_values($condition->products->toArrayOf('uuid'));
 
 			if ($condition->cartCondition === 'isInCart') {
 				if ($condition->quantityCondition === 'all') {
 					foreach ($required as $requiredProduct) {
 						if (!Arrays::contains($productsInCart, $requiredProduct)) {
-							$valid = false;
+							$conditionValid = false;
 
 							break;
 						}
-					}
-
-					if (!$valid) {
-						break;
 					}
 				} elseif ($condition->quantityCondition === 'atLeastOne') {
 					$found = false;
@@ -121,23 +120,17 @@ class DiscountCouponRepository extends \StORM\Repository
 					}
 
 					if (!$found) {
-						$valid = false;
-
-						break;
+						$conditionValid = false;
 					}
 				}
 			} elseif ($condition->cartCondition === 'notInCart') {
 				if ($condition->quantityCondition === 'all') {
 					foreach ($required as $requiredProduct) {
 						if (Arrays::contains($productsInCart, $requiredProduct)) {
-							$valid = false;
+							$conditionValid = false;
 
 							break;
 						}
-					}
-
-					if (!$valid) {
-						break;
 					}
 				} elseif ($condition->quantityCondition === 'atLeastOne') {
 					$found = false;
@@ -151,12 +144,30 @@ class DiscountCouponRepository extends \StORM\Repository
 					}
 
 					if (!$found) {
-						$valid = false;
-
-						break;
+						$conditionValid = false;
 					}
 				}
 			}
+
+			if (!$conditionValid && $conditionType === 'and') {
+				$valid = false;
+
+				break;
+			}
+
+			if ($conditionValid && $conditionType === 'or') {
+				$valid = true;
+
+				break;
+			}
+
+			if ($conditionType === 'and') {
+				$valid = $valid && $conditionValid;
+
+				continue;
+			}
+
+			$valid = $valid || $conditionValid;
 		}
 
 		return $valid ? $coupon : null;
