@@ -15,7 +15,6 @@ use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
 use Eshop\DB\MinimalOrderValueRepository;
 use Eshop\DB\PricelistRepository;
-use Nette\Application\UI\Template;
 use Nette\Security\User;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
@@ -418,7 +417,7 @@ class Shopper
 		return null;
 	}
 
-	public function addFilters(Template $template): void
+	public function addFilters(\Nette\Bridges\ApplicationLatte\Template $template): void
 	{
 		$template->addFilter('price', function ($number, ?string $currencyCode = null) {
 			return $this->filterPrice($number, $currencyCode);

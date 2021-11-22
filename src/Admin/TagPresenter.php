@@ -110,7 +110,9 @@ class TagPresenter extends BackendPresenter
 				$values['uuid'] = DIConnection::generateUuid();
 			}
 
-			$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
+			/** @var \Forms\Controls\UploadImage $imageUpload */
+			$imageUpload = $form['imageFileName'];
+			$values['imageFileName'] = $imageUpload->upload($values['uuid'] . '.%2$s');
 
 			$tag = $this->tagRepository->syncOne($values, null, true);
 

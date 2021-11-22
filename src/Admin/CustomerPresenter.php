@@ -223,14 +223,19 @@ class CustomerPresenter extends BackendPresenter
 
 	public function actionEditAccount(Account $account): void
 	{
-		/** @var \Forms\Form $form */
+		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('accountForm');
-		$form['account']->setDefaults($account->toArray());
+
+		/** @var \Forms\Container $container */
+		$container = $form['account'];
+		$container->setDefaults($account->toArray());
 
 		$permission = $this->catalogPermissionRepo->many()->where('fk_account', $account->getPK())->first();
 
 		if ($permission) {
-			$form['permission']->setDefaults($permission->toArray());
+			/** @var \Forms\Container $container */
+			$container = $form['permission'];
+			$container->setDefaults($permission->toArray());
 		}
 
 		$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values, array $oldValues) use ($permission, $form): void {
@@ -254,6 +259,7 @@ class CustomerPresenter extends BackendPresenter
 
 	public function actionNewAccount(?Customer $customer = null): void
 	{
+		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('accountForm');
 		$form['account']['password']->setRequired();
 
@@ -590,7 +596,7 @@ class CustomerPresenter extends BackendPresenter
 			$container->addText('newsletterGroup', 'Skupina pro newsletter')->addConditionOn($container['newsletter'], $form::EQUAL, true)->addRule($form::REQUIRED);
 		};
 
-		return $this->accountFormFactory->create(false, $callback, true, true, true);
+		return $this->accountFormFactory->create(false, $callback, true, true);
 	}
 
 	public function createComponentAccountGrid(): AdminGrid
@@ -613,16 +619,16 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnText('Login', 'login', '%s', 'login', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname');
 		$grid->addColumn('Zákazník', function (Account $account) {
-			return $account->company ?: ($account->customerFullname ?: '');
+			return $account->getValue('company') ?: ($account->getValue('customerFullname') ?: '');
 		});
 		$grid->addColumn('Oprávnění', function (Account $account) {
-			if (!$account->permission) {
+			if (!$account->getValue('permission')) {
 				return '';
 			}
 
 			$label = Shopper::PERMISSIONS;
 
-			return '' . $label[$account->permission] . ' + ' . ($account->buyAllowed ? 'nákup' : 'bez nákupu');
+			return '' . $label[$account->getValue('permission')] . ' + ' . ($account->getValue('buyAllowed') ? 'nákup' : 'bez nákupu');
 		});
 
 		$grid->addColumnText('Aktivní od', "activeFrom|date:'d.m.Y G:i'", '%s', 'activeFrom', ['class' => 'fit']);

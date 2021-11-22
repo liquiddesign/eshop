@@ -58,8 +58,10 @@ class CouponForm extends \Nette\Application\UI\Form
 	{
 		unset($submit);
 
+		$values = $this->getValues('array');
+
 		$shopper = $this->shopper;
-		$code = (string) $this->getValues()->code;
+		$code = (string) $values['code'];
 		
 		if (!$coupon = $this->discountCouponRepository->getValidCoupon($code, $shopper->getCurrency(), $shopper->getCustomer())) {
 			return;

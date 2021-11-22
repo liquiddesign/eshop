@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin\Controls;
 
+use Admin\Controls\AdminGrid;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\InternalRibbonRepository;
@@ -12,7 +13,6 @@ use Eshop\DB\ProducerRepository;
 use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierRepository;
-use Grid\Datagrid;
 use StORM\Collection;
 use StORM\Expression;
 use StORM\ICollection;
@@ -55,7 +55,7 @@ class ProductGridFiltersFactory
 		$this->displayAmountRepository = $displayAmountRepository;
 	}
 
-	public function addFilters(Datagrid $grid): void
+	public function addFilters(AdminGrid $grid): void
 	{
 		$grid->addFilterTextInput('code', ['this.code', 'this.ean', 'this.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
 
@@ -109,12 +109,6 @@ class ProductGridFiltersFactory
 			}, '', 'supplierLock', null, ['unlocked' => 'Odemknuté', 'locked' => 'Zamknuté'])->setPrompt('- Zámek -');
 		}
 
-		/*if ($tags = $this->tagRepository->getListForSelect()) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value) {
-				$this->productRepository->filterTag($value, $source);
-			}, '', 'tags', null, $tags, ['placeholder' => '- Tagy -']);
-		}*/
-
 		if ($ribbons = $this->ribbonRepository->getArrayForSelect()) {
 			$ribbons += ['0' => 'X - bez štítků'];
 			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
@@ -131,7 +125,7 @@ class ProductGridFiltersFactory
 
 		if ($pricelists = $this->pricelistRepository->getArrayForSelect()) {
 			$pricelists += ['0' => 'X - bez ceniků'];
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
 				$source->filter(['pricelist' => self::replaceArrayValue($value, '0', null)]);
 			}, '', 'pricelists', null, $pricelists, ['placeholder' => '- Ceníky -']);
 		}

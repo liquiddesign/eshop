@@ -146,8 +146,11 @@ class DeliveryTypePresenter extends BackendPresenter
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
 			}
+
+			/** @var \Forms\Controls\UploadImage $upload */
+			$upload = $form['imageFileName'];
 			
-			$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
+			$values['imageFileName'] = $upload->upload($values['uuid'] . '.%2$s');
 			
 			$deliveryType = $this->deliveryRepo->syncOne($values, null, true);
 			

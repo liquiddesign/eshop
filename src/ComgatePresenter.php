@@ -21,7 +21,5 @@ class ComgatePresenter extends Presenter
 		}
 		
 		Debugger::log($data);
-		
-		$this->sendJson();
 	}
 }

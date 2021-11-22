@@ -15,6 +15,16 @@ use StORM\Collection;
 
 class DeliveryPaymentForm extends Nette\Application\UI\Form
 {
+	/**
+	 * @var array<callable(self, array|object): void|callable(array|object): void>
+	 */
+	public $onValidate = [];
+
+	/**
+	 * @var array<callable(self, array|object): void|callable(array|object): void>
+	 */
+	public $onSuccess = [];
+
 	public Shopper $shopper;
 
 	private CheckoutManager $checkoutManager;
@@ -66,7 +76,10 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 			$pickupPoint->setHtmlAttribute('data-' . $deliveryType->getPK(), Nette\Utils\Json::encode($pickupPoints));
 		}
 
-		$pickupPoint->setItems($allPoints)->setPrompt('Vyberte výdejní místo')->addConditionOn($this['deliveries'], $this::IS_IN, $typesWithPoints)->addRule($this::REQUIRED);
+		/** @var \Nette\Forms\Control $deliveries */
+		$deliveries = $this['deliveries'];
+
+		$pickupPoint->setItems($allPoints)->setPrompt('Vyberte výdejní místo')->addConditionOn($deliveries, $this::IS_IN, $typesWithPoints)->addRule($this::REQUIRED);
 
 		$this->addHidden('zasilkovnaId');
 		$deliveriesList->setRequired();
@@ -86,12 +99,12 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 
 	public function success(DeliveryPaymentForm $form): void
 	{
-		$values = $form->getValues();
+		$values = $form->getValues('array');
 
 		$newValues = [
-			'deliveryType' => $values->deliveries,
-			'paymentType' => $values->payments,
-			'zasilkovnaId' => $values->zasilkovnaId,
+			'deliveryType' => $values['deliveries'],
+			'paymentType' => $values['payments'],
+			'zasilkovnaId' => $values['zasilkovnaId'],
 		];
 
 		if (isset($values['pickupPoint'])) {
@@ -110,16 +123,19 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 
 	public function validateForm(DeliveryPaymentForm $form): void
 	{
-		$values = $form->getValues();
+		$values = $form->getValues('array');
 
 		/** @var \Eshop\DB\DeliveryType|null $deliveryType */
-		$deliveryType = $this->deliveryTypeRepository->one($values->deliveries);
+		$deliveryType = $this->deliveryTypeRepository->one($values['deliveries']);
 
-		if (!$deliveryType || $deliveryType->code !== 'zasilkovna' || $values->zasilkovnaId) {
+		if (!$deliveryType || $deliveryType->code !== 'zasilkovna' || $values['zasilkovnaId']) {
 			return;
 		}
 
-		$form['deliveries']->addError($this->translator->translate('deliveryPaymentForm.missingZasil', 'Pro dopravu Zásilkovna je nutné zvolit výdejní místo.'));
+		/** @var \Nette\Forms\Controls\RadioList $deliveries */
+		$deliveries = $form['deliveries'];
+
+		$deliveries->addError($this->translator->translate('deliveryPaymentForm.missingZasil', 'Pro dopravu Zásilkovna je nutné zvolit výdejní místo.'));
 	}
 
 	private function addCombinationRules(Nette\Forms\Controls\RadioList $deliveriesList, Nette\Forms\Controls\RadioList $paymentsList, Collection $deliveryTypes): void
@@ -130,7 +146,11 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		 */
 		foreach ($deliveryTypes as $deliveryId => $deliveryType) {
 			$deliveriesCondition = $deliveriesList->addCondition($this::EQUAL, $deliveryId);
-			$paymentsCondition = $paymentsList->addConditionOn($this['deliveries'], $this::EQUAL, $deliveryId);
+
+			/** @var \Nette\Forms\Control $deliveries */
+			$deliveries = $this['deliveries'];
+
+			$paymentsCondition = $paymentsList->addConditionOn($deliveries, $this::EQUAL, $deliveryId);
 
 			$allowedPaymentTypes = \array_keys($deliveryType->allowedPaymentTypes->toArray());
 

@@ -545,7 +545,9 @@ class AttributePresenter extends BackendPresenter
 			return;
 		}
 
-		$form['page']->setDefaults($page->toArray());
+		/** @var \Forms\Container $container */
+		$container = $form['page'];
+		$container->setDefaults($page->toArray());
 
 		$form['page']['url']->forAll(function (TextInput $text, $mutation) use ($page, $form): void {
 			$text->getRules()->reset();

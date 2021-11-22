@@ -36,7 +36,7 @@ class AttributeValueRepository extends \StORM\Repository implements IGeneralRepo
 	 * @param string $query
 	 * @param int|null $page
 	 * @param int $onPage
-	 * @return string[]
+	 * @return array<string, array<int|string, array<string, mixed>|bool>>
 	 */
 	public function getAttributesForAdminAjax(string $query, ?int $page = null, int $onPage = 5): array
 	{

@@ -6,6 +6,7 @@ namespace Eshop\Controls;
 use Eshop\DB\PickupPointRepository;
 use GuzzleHttp\Client;
 use Nette;
+use StORM\Collection;
 use StORM\ICollection;
 
 class PickupPointList extends \Grid\Datalist
@@ -53,7 +54,7 @@ class PickupPointList extends \Grid\Datalist
 			$source->where("address.city", $value);
 		}, '');
 
-		$this->addFilterExpression('name', function (ICollection $source, $value): void {
+		$this->addFilterExpression('name', function (Collection $source, $value): void {
 			$suffix = $source->getConnection()->getMutationSuffix();
 			$source->where("name$suffix LIKE :n", ['n' => "%$value%"]);
 		}, '');
@@ -69,10 +70,13 @@ class PickupPointList extends \Grid\Datalist
 
 		$cities = $pickupPointRepository->getCitiesArrayForSelect();
 
-		$this->getFilterForm()->addText('name', $translator->translate('pointList.name', 'Název'));
-		$this->getFilterForm()->addSelect('city', $translator->translate('pointList.city', 'Město'), \array_combine(\array_values($cities), \array_values($cities)))
+		/** @var \Forms\Form $form */
+		$form = $this->getFilterForm();
+
+		$form->addText('name', $translator->translate('pointList.name', 'Název'));
+		$form->addSelect('city', $translator->translate('pointList.city', 'Město'), \array_combine(\array_values($cities), \array_values($cities)))
 			->setPrompt($translator->translate('pointList.all', 'Vše'));
-		$this->getFilterForm()->addSubmit('submit', $translator->translate('pointList.showPlaces', 'Zobrazit místa'));
+		$form->addSubmit('submit', $translator->translate('pointList.showPlaces', 'Zobrazit místa'));
 	}
 
 	public function render(): void
@@ -131,7 +135,11 @@ class PickupPointList extends \Grid\Datalist
 		$this->template->openingHours = $openingHours;
 		$this->template->openingHoursTexts = $openingHoursTexts;
 		$this->template->paginator = $this->getPaginator();
-		$this->template->render($this->template->getFile() ?: __DIR__ . '/pickupPointList.latte');
+
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+
+		$template->render($this->template->getFile() ?: __DIR__ . '/pickupPointList.latte');
 	}
 
 	public function handleClearFilters(): void

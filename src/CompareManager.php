@@ -46,7 +46,7 @@ class CompareManager
 	 */
 	public function getCompareList(): array
 	{
-		return $this->getSessionSection()->list;
+		return $this->getSessionSection()->get('list');
 	}
 
 	/**
@@ -82,6 +82,7 @@ class CompareManager
 			$resultCategories[$category->getPK()]['products'][$productKey]['product'] = $product;
 
 			foreach ($attributes as $attributeKey => $attribute) {
+				/** @var \Eshop\DB\AttributeValue[] $values */
 				$values = $this->attributeValueRepository->getCollection()
 					->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value')
 					->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
@@ -99,8 +100,8 @@ class CompareManager
 				$resultCategories[$category->getPK()]['products'][$productKey]['attributes'][$attributeKey] = $values;
 
 				foreach (\array_keys($values) as $attributeValueKey) {
-					$resultCategories[$category->getPK()]['products'][$productKey]['attributes'][$attributeKey][$attributeValueKey]->page =
-						$this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValueKey]);
+					$resultCategories[$category->getPK()]['products'][$productKey]['attributes'][$attributeKey][$attributeValueKey]
+						->setValue('page', $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValueKey]));
 				}
 			}
 		}
@@ -178,19 +179,24 @@ class CompareManager
 			return;
 		}
 
-		$section->list[$product->getPK()] = $product;
+		$list = $section->get('list');
+		$list[$product->getPK()] = $product;
+		$section->set('list', $list);
 	}
 
 	public function clearCompareList(): void
 	{
-		$this->getSessionSection()->list = [];
+		$this->getSessionSection()->set('list', []);
 	}
 
 	public function removeProductFromCompare(string $searchedProduct): void
 	{
 		$section = $this->getSessionSection();
 
-		unset($section->list[$searchedProduct]);
+		$list = $section->get('list');
+		unset($list[$searchedProduct]);
+
+		$section->set('list', $list);
 	}
 
 	public function isProductInList(string $searchedProduct): bool

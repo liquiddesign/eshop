@@ -120,7 +120,7 @@ class ProductList extends Datalist
 		$this->addFilterExpression('inStock', function (ICollection $collection, $value): void {
 			$this->productRepository->filterInStock($value, $collection);
 		});
-		$this->addFilterExpression('query', function (ICollection $collection, $value): void {
+		$this->addFilterExpression('query', function (Collection $collection, $value): void {
 			$this->productRepository->filterQuery($value, $collection);
 		});
 		$this->addFilterExpression('relatedSlave', function (ICollection $collection, $value): void {
@@ -239,7 +239,10 @@ class ProductList extends Datalist
 		$this->template->shopper = $this->shopper;
 		$this->template->checkoutManager = $this->checkoutManager;
 
-		$this->template->render($this->template->getFile() ?: __DIR__ . '/productList.latte');
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+
+		$template->render($template->getFile() ?: __DIR__ . '/productList.latte');
 	}
 
 	protected function createComponentFilterForm(): \Forms\Form
@@ -281,18 +284,21 @@ class ProductList extends Datalist
 		}
 
 		if (isset($filters['producers'])) {
+			/** @var \Eshop\DB\Producer $producer */
 			foreach ($this->producerRepository->many()->where('this.uuid', $filters['producers']) as $producer) {
 				$templateFilters['producers'][$producer->getPK()] = $this->translator->translate('.producer', 'Výrobce') . ": $producer->name";
 			}
 		}
 
 		if (isset($filters['availability'])) {
+			/** @var \Eshop\DB\DisplayAmount $displayAmount */
 			foreach ($this->displayAmountRepository->many()->where('this.uuid', $filters['availability']) as $displayAmount) {
 				$templateFilters['availability'][$displayAmount->getPK()] = $this->translator->translate('.availability', 'Dostupnost') . ": $displayAmount->label";
 			}
 		}
 
 		if (isset($filters['delivery'])) {
+			/** @var \Eshop\DB\DisplayDelivery $displayDelivery */
 			foreach ($this->displayDeliveryRepository->many()->where('this.uuid', $filters['delivery']) as $displayDelivery) {
 				$templateFilters['delivery'][$displayDelivery->getPK()] = $this->translator->translate('.delivery', 'Doprava') . ": $displayDelivery->label";
 			}

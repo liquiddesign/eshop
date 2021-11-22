@@ -15,6 +15,12 @@ use Nette;
 class ProfileForm extends \Nette\Application\UI\Form
 {
 	/**
+	 * Occurs when the form is submitted and successfully validated
+	 * @var array<callable(self, array|object): void|callable(array|object): void>
+	 */
+	public $onSuccess = [];
+
+	/**
 	 * @var callable[]&callable(\Eshop\Controls\ProfileForm, string): void;
 	 */
 	public $onEmailChange;
@@ -83,23 +89,23 @@ class ProfileForm extends \Nette\Application\UI\Form
 
 		$emailChanged = $customer->email !== $email;
 
-		if ($emailChanged) {
-			$token = Nette\Utils\Random::generate(128);
-
-			$mail = $this->templateRepository->createMessage('profile.emailChanged', ['email' => $email, 'link' => $this->getPresenter()->link('//confirmUserEmail!', $token)], $email);
-			$this->mailer->send($mail);
-
-			$customer->update([
-				'confirmationToken' => $token,
-			]);
-			$customer->account->update([
-				'authorized' => false,
-			]);
-
-			$this->onEmailChange($this, $email);
-
+		if (!$emailChanged) {
 			return;
 		}
+
+		$token = Nette\Utils\Random::generate(128);
+
+		$mail = $this->templateRepository->createMessage('profile.emailChanged', ['email' => $email, 'link' => $this->getPresenter()->link('//confirmUserEmail!', $token)], $email);
+		$this->mailer->send($mail);
+
+		$customer->update([
+			'confirmationToken' => $token,
+		]);
+		$customer->account->update([
+			'authorized' => false,
+		]);
+
+		$this->onEmailChange($this, $email);
 	}
 
 	protected function beforeRender(): void

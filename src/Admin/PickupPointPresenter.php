@@ -125,7 +125,10 @@ class PickupPointPresenter extends BackendPresenter
 		$form = $this->getComponent('pointForm');
 
 		$form->setDefaults($pickupPoint->toArray());
-		$form['addressContainer']->setDefaults($pickupPoint->address ? $pickupPoint->address->toArray() : []);
+
+		/** @var \Forms\Container $input */
+		$input = $form['addressContainer'];
+		$input->setDefaults($pickupPoint->address ? $pickupPoint->address->toArray() : []);
 	}
 
 	public function renderPointDetail(): void
@@ -289,7 +292,10 @@ class PickupPointPresenter extends BackendPresenter
 				$values['uuid'] = DIConnection::generateUuid();
 			}
 
-			$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
+			/** @var \Forms\Controls\UploadImage $upload */
+			$upload = $form['imageFileName'];
+
+			$values['imageFileName'] = $upload->upload($values['uuid'] . '.%2$s');
 
 			$pickupPointType = $this->pickupPointTypeRepo->syncOne($values);
 			$this->pickupPointRepo->clearCache();
@@ -365,9 +371,11 @@ class PickupPointPresenter extends BackendPresenter
 				$values['uuid'] = DIConnection::generateUuid();
 			}
 
-			//@TODO refaktor
-			if ($form['imageFileName']->isFilled()) {
-				$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
+			/** @var \Forms\Controls\UploadImage $upload */
+			$upload = $form['imageFileName'];
+
+			if ($upload->isFilled()) {
+				$values['imageFileName'] = $upload->upload($values['uuid'] . '.%2$s');
 			} else {
 				unset($values['imageFileName']);
 			}
@@ -403,13 +411,13 @@ class PickupPointPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
-		$form->addText('date', 'Datum')->setHtmlType('date')->setRequired();
+		$dateInput = $form->addText('date', 'Datum')->setHtmlType('date')->setRequired();
 		$form->addText('openFrom', 'Otevřeno od')->setHtmlType('time')->setNullable();
 		$form->addText('pauseFrom', 'Pauza od')->setHtmlType('time')->setNullable();
 		$form->addText('pauseTo', 'Pauza do')->setHtmlType('time')->setNullable();
 		$form->addText('openTo', 'Otevřeno do')->setHtmlType('time')->setNullable();
 
-		$form->onValidate[] = function (AdminForm $form): void {
+		$form->onValidate[] = function (AdminForm $form) use ($dateInput): void {
 			$values = $form->getValues('array');
 
 			if (!$this->openingHoursRepo->many()
@@ -419,7 +427,7 @@ class PickupPointPresenter extends BackendPresenter
 				return;
 			}
 
-			$form['date']->addError('Mimořádná otevírací doba pro tento den již existuje!');
+			$dateInput->addError('Mimořádná otevírací doba pro tento den již existuje!');
 		};
 
 		$form->onSuccess[] = function (AdminForm $form): void {

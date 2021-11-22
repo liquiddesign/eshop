@@ -122,7 +122,10 @@ class CartItemList extends Datalist
 		$upsell = $this->productRepository->getUpsellsForCartItem($cartItem)[$upsell];
 
 		if ($this->isUpsellActive($cartItem->getPK(), $upsell->getPK())) {
-			$this->checkoutManager->deleteItem($this->checkoutManager->getItems()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first());
+			/** @var \Eshop\DB\CartItem $cartItem */
+			$cartItem = $this->checkoutManager->getItems()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first();
+
+			$this->checkoutManager->deleteItem($cartItem);
 		} else {
 			$this->checkoutManager->addItemToCart($upsell, null, 1, false, false, false)->update(['upsell' => $cartItem->getPK()]);
 		}
@@ -149,6 +152,9 @@ class CartItemList extends Datalist
 		$this->template->discountPriceVat = $this->checkoutManager->getDiscountPriceVat();
 		$this->template->upsells = $this->productRepository->getUpsellsForCartItems($this->getItemsOnPage());
 
-		$this->template->render($this->template->getFile() ?: __DIR__ . '/cartItemList.latte');
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+
+		$template->render($this->template->getFile() ?: __DIR__ . '/cartItemList.latte');
 	}
 }

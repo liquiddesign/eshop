@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use App\Eshop\Providers\SupplierProvider;
+use Eshop\Providers\SupplierProvider;
 use Nette\Application\ApplicationException;
 use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;

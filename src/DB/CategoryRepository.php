@@ -81,8 +81,9 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 			$producerPages = [];
 
-			/** @var \Web\DB\Page $page */
 			while ($page = $pages->fetch()) {
+				/** @var \Web\DB\Page $page */
+
 				$params = $page->getParsedParameters();
 
 				if (!isset($params['category']) || !isset($params['producer'])) {
@@ -212,7 +213,7 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 				->setSelect(['count' => 'COUNT(product.uuid)'])
 				->setGroupBy(['this.uuid']);
 
-			$priceWhere = [];
+			$priceWhere = null;
 
 			foreach ($pricelists as $id => $pricelist) {
 				$rows->join(
@@ -321,7 +322,7 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 
 	/**
 	 * @param bool $includeHidden
-	 * @return \StORM\Collection<\Eshop\DB\Category>|\Eshop\DB\Category[]
+	 * @return \StORM\Collection<\Eshop\DB\Category>
 	 */
 	public function getCategories(bool $includeHidden = false): Collection
 	{
@@ -494,7 +495,7 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 	}
 
 	/**
-	 * @param $category
+	 * @param \Eshop\DB\Category|string $category
 	 * @return array|\Eshop\DB\Category[]
 	 * @throws \StORM\Exception\NotFoundException
 	 */
@@ -756,13 +757,13 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 	}
 
 	/**
-	 * @param $typeId
+	 * @param string $typeId
 	 * @param \Eshop\DB\CategoryRepository $repository
 	 * @param bool $includeHidden
 	 * @param bool $onlyMenu
 	 * @return \Eshop\DB\Category[]
 	 */
-	private function getTreeHelper($typeId, CategoryRepository $repository, bool $includeHidden = false, bool $onlyMenu = false): array
+	private function getTreeHelper(string $typeId, CategoryRepository $repository, bool $includeHidden = false, bool $onlyMenu = false): array
 	{
 		$collection = $repository->getCategories($includeHidden)->where('LENGTH(path) <= 40');
 

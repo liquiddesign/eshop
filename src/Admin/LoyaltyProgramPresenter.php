@@ -126,31 +126,31 @@ class LoyaltyProgramPresenter extends BackendPresenter
 
 	public function renderDefault(): void
 	{
-		$this->getTemplate()->tabs = $this::TABS;
+		$this->template->tabs = $this::TABS;
 
 		if ($this->tab === 'programs') {
-			$this->getTemplate()->headerLabel = 'Věrnostní programy';
-			$this->getTemplate()->headerTree = [
+			$this->template->headerLabel = 'Věrnostní programy';
+			$this->template->headerTree = [
 				['Věrnostní programy'],
 			];
-			$this->getTemplate()->displayButtons = [$this->createNewItemButton('programNew')];
-			$this->getTemplate()->displayControls = [$this->getComponent('programGrid')];
+			$this->template->displayButtons = [$this->createNewItemButton('programNew')];
+			$this->template->displayControls = [$this->getComponent('programGrid')];
 		} elseif ($this->tab === 'levels') {
-			$this->getTemplate()->headerLabel = 'Slevové hladiny';
-			$this->getTemplate()->headerTree = [
+			$this->template->headerLabel = 'Slevové hladiny';
+			$this->template->headerTree = [
 				['Věrnostní programy'],
 				['Slevové hladiny'],
 			];
-			$this->getTemplate()->displayButtons = [$this->createNewItemButton('levelNew')];
-			$this->getTemplate()->displayControls = [$this->getComponent('levelGrid')];
+			$this->template->displayButtons = [$this->createNewItemButton('levelNew')];
+			$this->template->displayControls = [$this->getComponent('levelGrid')];
 		} elseif ($this->tab === 'history') {
-			$this->getTemplate()->headerLabel = 'Historie';
-			$this->getTemplate()->headerTree = [
+			$this->template->headerLabel = 'Historie';
+			$this->template->headerTree = [
 				['Věrnostní programy'],
 				['Historie'],
 			];
-			$this->getTemplate()->displayButtons = [$this->createNewItemButton('historyNew')];
-			$this->getTemplate()->displayControls = [$this->getComponent('historyGrid')];
+			$this->template->displayButtons = [$this->createNewItemButton('historyNew')];
+			$this->template->displayControls = [$this->getComponent('historyGrid')];
 		}
 	}
 

@@ -72,7 +72,7 @@ class ProductAttributesGridFactory
 		};
 
 		$grid->onLoadState[] = function (Datagrid $grid, array $params): void {
-			$filters = $this->session->getSection('admingrid-' . $grid->getPresenter()->getName() . $grid->getName())->filters;
+			$filters = $this->session->getSection('admingrid-' . $grid->getPresenter()->getName() . $grid->getName())->get('filters');
 
 			$this->category = $category = $grid->getPresenter()->getHttpRequest()->getQuery('productAttributesGrid-category') ?? ($filters['category'] ?? null);
 			$grid->template->category = $category;
@@ -95,8 +95,8 @@ class ProductAttributesGridFactory
 
 					return $selectBox;
 				}, function (MultiSelectBox $selectBox, Product $product): void {
-					if ($product->attributeValues) {
-						$selectBox->setDefaultValue(\explode(',', $product->attributeValues));
+					if ($product->getValue('attributeValues')) {
+						$selectBox->setDefaultValue(\explode(',', $product->getValue('attributeValues')));
 					}
 				});
 			}

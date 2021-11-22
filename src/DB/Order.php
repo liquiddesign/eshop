@@ -151,7 +151,7 @@ class Order extends \StORM\Entity
 
 	public function isCompany(): bool
 	{
-		return (bool)$this->ic;
+		return (bool)$this->getValue('ic');
 	}
 
 	/**
@@ -182,6 +182,7 @@ class Order extends \StORM\Entity
 
 	public function getPayment(): ?Payment
 	{
+		/** @var \StORM\Collection<\Eshop\DB\Payment> $payments */
 		$payments = clone $this->payments;
 
 		return $payments->orderBy(['createdTs' => 'DESC'])->first();
@@ -189,6 +190,7 @@ class Order extends \StORM\Entity
 
 	public function getLastDelivery(): ?Delivery
 	{
+		/** @var \StORM\Collection<\Eshop\DB\Delivery> $deliveries */
 		$deliveries = clone $this->deliveries;
 
 		return $deliveries->orderBy(['createdTs' => 'DESC'])->first();

@@ -59,6 +59,10 @@ class CartItemRepository extends \StORM\Repository
 			->update(['note' => $note]);
 	}
 
+	/**
+	 * @param array $cartIds
+	 * @return \StORM\Collection|\Eshop\DB\CartItem[]
+	 */
 	public function getItems(array $cartIds): Collection
 	{
 		return $this->many()->where('fk_cart', $cartIds);
@@ -91,7 +95,7 @@ class CartItemRepository extends \StORM\Repository
 			'priceVat' => $product->getPriceVat($amount),
 			'vatPct' => (float) $vatPct,
 			'product' => !$disabled ? $product->getPK() : null,
-			'pricelist' => $product->pricelist ?? null,
+			'pricelist' => $product->getValue('pricelist') ?? null,
 			'variant' => $variant ? $variant->getPK() : null,
 			'cart' => $cart->getPK(),
 		]);

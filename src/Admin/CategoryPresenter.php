@@ -490,11 +490,19 @@ class CategoryPresenter extends BackendPresenter
 			}
 		}
 
-		$form['parameters']->setDefaults($parameters);
+		/** @var \Forms\Container $container */
+		$container = $form['parameters'];
+		$container->setDefaults($parameters);
 
 		$defaults = $dynamicCategory->toArray();
-		$form['name']->setDefaults($defaults['name'] ?? []);
-		$form['content']->setDefaults($defaults['content'] ?? []);
+
+		/** @var \Forms\Container $container */
+		$container = $form['name'];
+		$container->setDefaults($defaults['name'] ?? []);
+
+		/** @var \Forms\Container $container */
+		$container = $form['content'];
+		$container->setDefaults($defaults['content'] ?? []);
 	}
 
 	public function renderDynamicCategoryDetail(): void
@@ -656,7 +664,7 @@ class CategoryPresenter extends BackendPresenter
 		$csvFilePicker->setHtmlAttribute('data-info', 'Podporuje <b>pouze</b> formátování Windows a Linux (UTF-8)!');
 		$xmlFilePicker->setHtmlAttribute('data-info', 'Podporuje <b>pouze</b> formátování Windows a Linux (UTF-8)!');
 
-		$form->addSelect('delimiter', 'Oddělovač', [
+		$delimiter = $form->addSelect('delimiter', 'Oddělovač', [
 			';' => 'Středník (;)',
 			',' => 'Čárka (,)',
 			'   ' => 'Tab (\t)',
@@ -668,11 +676,11 @@ Očekává se formát kategorií dle formátu Heuréky. Tedy "Subcategory 1" atd
 <b>Pozor!</b> Pokud pracujete se souborem na zařízeních Apple, ujistětě se, že vždy při ukládání použijete možnost uložit do formátu Windows nebo Linux (UTF-8)!');
 
 		$formatInput->addCondition($form::EQUAL, 'xmlHeureka')
-			->toggle($form['fileXml']->getHtmlId() . '-toogle');
+			->toggle($xmlFilePicker->getHtmlId() . '-toogle');
 
 		$formatInput->addCondition($form::EQUAL, 'csvHeureka')
-			->toggle($form['fileCsv']->getHtmlId() . '-toogle')
-			->toggle($form['delimiter']->getHtmlId() . '-toogle');
+			->toggle($csvFilePicker->getHtmlId() . '-toogle')
+			->toggle($delimiter->getHtmlId() . '-toogle');
 
 		$form->addSubmit('submit', 'Importovat');
 
@@ -690,7 +698,9 @@ Očekává se formát kategorií dle formátu Heuréky. Tedy "Subcategory 1" atd
 				return;
 			}
 
-			$form['file']->addError('Neplatný soubor!');
+			/** @var \Forms\Controls\UploadFile $file */
+			$file = $form['file' . ($values['format'] === 'xmlHeureka' ? 'Xml' : 'Csv')];
+			$file->addError('Neplatný soubor!');
 		};
 
 		$form->onSuccess[] = function ($form): void {

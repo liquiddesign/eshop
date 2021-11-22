@@ -267,7 +267,13 @@ class OrderGridFactory
 
 			$order = $this->orderRepository->one($id, true);
 
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::CANCELED, null, $grid->getPresenter()->admin->getIdentity());
+			/** @var \Eshop\BackendPresenter $presenter */
+			$presenter = $grid->getPresenter();
+
+			/** @var \Admin\DB\Administrator|null $admin */
+			$admin = $presenter->admin->getIdentity();
+
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::CANCELED, null, $admin);
 
 			$accountMutation = null;
 
@@ -292,6 +298,7 @@ class OrderGridFactory
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
 
+		/** @var \Eshop\BackendPresenter $presenter */
 		$presenter = $grid->getPresenter();
 
 		$tempFilename = \tempnam($presenter->tempDir, "csv");
@@ -324,7 +331,13 @@ class OrderGridFactory
 			return;
 		}
 
-		$this->orderLogItemRepository->createLog($object, OrderLogItem::CANCELED, null, $grid->getPresenter()->admin->getIdentity());
+		/** @var \Eshop\BackendPresenter $presenter */
+		$presenter = $grid->getPresenter();
+
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $presenter->admin->getIdentity();
+
+		$this->orderLogItemRepository->createLog($object, OrderLogItem::CANCELED, null, $admin);
 
 		$grid->getPresenter()->flashMessage('Provedeno', 'success');
 		$grid->getPresenter()->redirect('this');
@@ -376,7 +389,13 @@ class OrderGridFactory
 			return;
 		}
 
-		$this->orderLogItemRepository->createLog($object, OrderLogItem::COMPLETED, null, $grid->getPresenter()->admin->getIdentity());
+		/** @var \Eshop\BackendPresenter $presenter */
+		$presenter = $grid->getPresenter();
+
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $presenter->admin->getIdentity();
+
+		$this->orderLogItemRepository->createLog($object, OrderLogItem::COMPLETED, null, $admin);
 
 		if (!$redirectAfter) {
 			return;
@@ -407,7 +426,13 @@ class OrderGridFactory
 			return;
 		}
 
-		$this->orderLogItemRepository->createLog($object, OrderLogItem::RECEIVED, null, $grid->getPresenter()->admin->getIdentity());
+		/** @var \Eshop\BackendPresenter $presenter */
+		$presenter = $grid->getPresenter();
+
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $presenter->admin->getIdentity();
+
+		$this->orderLogItemRepository->createLog($object, OrderLogItem::RECEIVED, null, $admin);
 
 		if (!$redirectAfter) {
 			return;
@@ -417,14 +442,28 @@ class OrderGridFactory
 		$grid->getPresenter()->redirect('this');
 	}
 
+	/**
+	 * Can be called only from \Eshop\Admin\OrderPresenter|\Eshop\Admin\ExportPresenter
+	 * @param \Eshop\DB\Order $object
+	 * @param \Grid\Datagrid $grid
+	 */
 	public function downloadEdi(Order $object, Datagrid $grid): void
 	{
-		$grid->getPresenter()->handleExportEdi($object->getPK());
+		/** @var \Eshop\Admin\OrderPresenter|\Eshop\Admin\ExportPresenter $presenter */
+		$presenter = $grid->getPresenter();
+		$presenter->handleExportEdi($object->getPK());
 	}
 
+	/**
+	 * Can be called only from \Eshop\Admin\OrderPresenter
+	 * @param \Eshop\DB\Order $object
+	 * @param \Grid\Datagrid $grid
+	 */
 	public function downloadCsv(Order $object, Datagrid $grid): void
 	{
-		$grid->getPresenter()->handleExportCsv($object->getPK());
+		/** @var \Eshop\Admin\OrderPresenter $presenter */
+		$presenter = $grid->getPresenter();
+		$presenter->handleExportCsv($object->getPK());
 	}
 
 	private function getCollectionByState(string $state): Collection

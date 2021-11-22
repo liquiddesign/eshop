@@ -78,7 +78,10 @@ class ProductFilter extends Control
 		$this->template->attributesValuesCounts = $category ? $this->categoryRepository->getCountsGrouped('assign.fk_value', $this->getProductList()->getFilters())[$category] ?? [] : [];
 		$this->template->producersCount = $category ? $this->categoryRepository->getCountsGrouped('this.fk_producer', $this->getProductList()->getFilters())[$category] ?? [] : [];
 
-		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+
+		$template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
 
 	public function createComponentForm(): Form
@@ -102,7 +105,6 @@ class ProductFilter extends Control
 
 		$defaults = $this->getProductList()->getFilters()['attributes'] ?? [];
 
-		/** @var \Eshop\DB\Attribute $attribute */
 		foreach ($this->getAttributes() as $attribute) {
 			$attributeValues = $attribute->showRange ?
 				$this->attributeValueRangeRepository->many()
@@ -126,14 +128,17 @@ class ProductFilter extends Control
 
 		$filterForm->addSubmit('submit', $this->translator->translate('filter.showProducts', 'Zobrazit produkty'));
 
-		$filterForm->onValidate[] = function (Form $form): void {
-			$values = $form->getValues();
+		$filterForm->onValidate[] = function (\Nette\Forms\Container $form): void {
+			$values = $form->getValues('array');
 
 			if ($values['priceFrom'] <= $values['priceTo']) {
 				return;
 			}
 
-			$form['priceTo']->addError($this->translator->translate('filter.wrongPriceRange', 'Neplatný rozsah cen!'));
+			/** @var \Nette\Forms\Controls\TextInput $priceTo */
+			$priceTo = $form['priceTo'];
+
+			$priceTo->addError($this->translator->translate('filter.wrongPriceRange', 'Neplatný rozsah cen!'));
 			$this->flashMessage($this->translator->translate('form.submitError', 'Chybně vyplněný formulář!'), 'error');
 		};
 
@@ -168,8 +173,10 @@ class ProductFilter extends Control
 
 	public function handleClearFilter($searchedAttributeKey, $searchedAttributeValueKey = null): void
 	{
-		$parent = $this->getParent()->getName();
-		$filters = $this->getParent()->getFilters();
+		/** @var \Eshop\Controls\ProductList $parent */
+		$parent = $this->getParent();
+		$parentName = $parent->getName();
+		$filters = $parent->getFilters();
 
 		$filtersAttributes = $filters['attributes'] ?? [];
 		$simpleFilters = $filters[$searchedAttributeKey] ?? [];
@@ -180,7 +187,7 @@ class ProductFilter extends Control
 				$simpleFilters = \array_values($simpleFilters);
 			}
 
-			$this->getPresenter()->redirect('this', ["$parent-$searchedAttributeKey" => $simpleFilters]);
+			$this->getPresenter()->redirect('this', ["$parentName-$searchedAttributeKey" => $simpleFilters]);
 		}
 
 		foreach ($filtersAttributes as $attributeKey => $attributeValues) {
@@ -195,7 +202,7 @@ class ProductFilter extends Control
 			}
 		}
 
-		$this->getPresenter()->redirect('this', ["$parent-attributes" => $filtersAttributes,]);
+		$this->getPresenter()->redirect('this', ["$parentName-attributes" => $filtersAttributes,]);
 	}
 
 	private function getProductList(): ProductList

@@ -130,7 +130,9 @@ class SupplierProductPresenter extends BackendPresenter
 				return;
 			}
 
-			$form['productFullCode']->addError('Toto pole je povinné!');
+			/** @var \Nette\Forms\Controls\SelectBox $input */
+			$input = $form['productFullCode'];
+			$input->addError('Toto pole je povinné!');
 		};
 
 		$form->onSuccess[] = function (AdminForm $form): void {

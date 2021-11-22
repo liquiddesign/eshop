@@ -170,14 +170,18 @@ class RelatedPresenter extends BackendPresenter
 			$data = $this->getHttpRequest()->getPost();
 
 			if (!isset($data['master'])) {
-				$form['master']->addError('Toto pole je povinné!');
+				/** @var \Nette\Forms\Controls\SelectBox $input */
+				$input = $form['master'];
+				$input->addError('Toto pole je povinné!');
 			}
 
 			if (isset($data['slave'])) {
 				return;
 			}
 
-			$form['slave']->addError('Toto pole je povinné!');
+			/** @var \Nette\Forms\Controls\SelectBox $input */
+			$input = $form['slave'];
+			$input->addError('Toto pole je povinné!');
 		};
 
 		$form->onSuccess[] = function (AdminForm $form): void {
@@ -323,13 +327,13 @@ class RelatedPresenter extends BackendPresenter
 
 		$form->addText('defaultDiscountPct', 'Výchozí sleva (%)')
 			->setNullable()
-			->addConditionOn($form['type'], $form::EQUAL, 'discount')
+			->addConditionOn($typeInput, $form::EQUAL, 'discount')
 			->addRule($form::REQUIRED)
 			->addRule($form::FLOAT)
 			->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
 		$form->addText('defaultMasterPct', 'Výchozí výpočet ceny z master produktu (%)')
 			->setNullable()
-			->addConditionOn($form['type'], $form::EQUAL, 'master')
+			->addConditionOn($typeInput, $form::EQUAL, 'master')
 			->addRule($form::REQUIRED)
 			->addRule($form::FLOAT)
 			->addRule([FormValidators::class, 'isPercentNoMax'], 'Zadaná hodnota není procento!');
@@ -363,7 +367,9 @@ class RelatedPresenter extends BackendPresenter
 				return;
 			}
 
-			$form['code']->addError('Již existuje typ s tímto kódem!');
+			/** @var \Nette\Forms\Controls\TextInput $input */
+			$input = $form['code'];
+			$input->addError('Již existuje typ s tímto kódem!');
 		};
 
 		$form->onSuccess[] = function (AdminForm $form): void {

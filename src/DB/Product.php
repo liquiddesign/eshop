@@ -423,9 +423,10 @@ class Product extends \StORM\Entity
 	{
 		$ids = $this->getValue('ribbonsIds');
 
-		$riboons = $this->getConnection()->findRepository(Ribbon::class)->getImageRibbons();
+		/** @var \Eshop\DB\RibbonRepository $ribbonRepository */
+		$ribbonRepository = $this->getConnection()->findRepository(Ribbon::class);
 
-		return \array_intersect_key($riboons->toArray(), \array_flip(\explode(',', $ids ?? '')));
+		return \array_intersect_key($ribbonRepository->getImageRibbons()->toArray(), \array_flip(\explode(',', $ids ?? '')));
 	}
 
 	/**
@@ -435,9 +436,10 @@ class Product extends \StORM\Entity
 	{
 		$ids = $this->getValue('ribbonsIds');
 
-		$riboons = $this->getConnection()->findRepository(Ribbon::class)->getTextRibbons();
+		/** @var \Eshop\DB\RibbonRepository $ribbonRepository */
+		$ribbonRepository = $this->getConnection()->findRepository(Ribbon::class);
 
-		return \array_intersect_key($riboons->toArray(), \array_flip(\explode(',', $ids ?? '')));
+		return \array_intersect_key($ribbonRepository->getTextRibbons()->toArray(), \array_flip(\explode(',', $ids ?? '')));
 	}
 
 	/**
@@ -566,29 +568,29 @@ class Product extends \StORM\Entity
 	public function getPrice(int $amount = 1): float
 	{
 		if ($amount === 1) {
-			return (float)$this->price;
+			return (float)$this->getValue('price');
 		}
 
-		return (float)($this->getQuantityPrice($amount, 'price') ?: $this->price);
+		return (float)($this->getQuantityPrice($amount, 'price') ?: $this->getValue('price'));
 	}
 
 	public function getPriceVat(int $amount = 1): float
 	{
 		if ($amount === 1) {
-			return (float)$this->priceVat;
+			return (float)$this->getValue('priceVat');
 		}
 
-		return (float)($this->getQuantityPrice($amount, 'priceVat') ?: $this->priceVat);
+		return (float)($this->getQuantityPrice($amount, 'priceVat') ?: $this->getValue('priceVat'));
 	}
 
 	public function getPriceBefore(): ?float
 	{
-		return $this->priceBefore !== null ? (float)$this->priceBefore : null;
+		return $this->getValue('priceBefore') !== null ? (float)$this->getValue('priceBefore') : null;
 	}
 
 	public function getPriceVatBefore(): ?float
 	{
-		return $this->priceVatBefore !== null ? (float)$this->priceVatBefore : null;
+		return $this->getValue('priceVatBefore') !== null ? (float)$this->getValue('priceVatBefore') : null;
 	}
 
 	/**
@@ -605,7 +607,7 @@ class Product extends \StORM\Entity
 			throw new ApplicationException('Invalid product image size: ' . $size);
 		}
 
-		$image = $this->imageFileName ?: ($this->__isset('fallbackImage') ? $this->fallbackImage : null);
+		$image = $this->imageFileName ?: ($this->__isset('fallbackImage') ? $this->getValue('fallbackImage') : null);
 		$dir = $this->imageFileName ? Product::GALLERY_DIR : Category::IMAGE_DIR;
 
 		return $image ? "$basePath/userfiles/$dir/$size/$image" : "$basePath/public/img/no-image.png";
@@ -634,7 +636,10 @@ class Product extends \StORM\Entity
 
 	public function getLoyaltyProgramPointsGain(LoyaltyProgram $loyaltyProgram): float
 	{
-		if ($loyaltyProduct = $this->loyaltyPrograms->match(['fk_loyaltyProgram' => $loyaltyProgram->getPK()])->first()) {
+		/** @var \Eshop\DB\LoyaltyProgramProduct|null $loyaltyProduct */
+		$loyaltyProduct = $this->loyaltyPrograms->match(['fk_loyaltyProgram' => $loyaltyProgram->getPK()])->first();
+
+		if ($loyaltyProduct) {
 			return $loyaltyProduct->points;
 		}
 
@@ -644,7 +649,7 @@ class Product extends \StORM\Entity
 	private function getQuantityPrice(int $amount, string $property): ?float
 	{
 		return (float)$this->getConnection()->findRepository(QuantityPrice::class)->many()
-			->match(['fk_product' => $this->getPK(), 'fk_pricelist' => $this->pricelist])
+			->match(['fk_product' => $this->getPK(), 'fk_pricelist' => $this->getValue('pricelist')])
 			->where('validFrom <= :amount', ['amount' => $amount])
 			->orderBy(['validFrom' => 'DESC'])
 			->firstValue($property);

@@ -13,6 +13,16 @@ use Security\DB\AccountRepository;
 
 class AddressesForm extends Form
 {
+	/**
+	 * @var array<callable(self, array|object): void|callable(array|object): void>
+	 */
+	public $onValidate = [];
+
+	/**
+	 * @var array<callable(self, array|object): void|callable(array|object): void>
+	 */
+	public $onSuccess = [];
+
 	private CheckoutManager $checkoutManager;
 	
 	private AccountRepository $accountRepository;
@@ -39,29 +49,29 @@ class AddressesForm extends Form
 		$billAddressBox->addText('zipcode', 'AddressesForm.bill_zipcode')->addRule(self::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
 		$billAddressBox->addText('state', 'AddressesForm.bill_state');
 		
-		$this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool)$this->checkoutManager->getPurchase()->deliveryAddress);
-		$this->addCheckbox('isCompany', 'AddressesForm.isCompany')->setDefaultValue($shopper->getCustomer() && $shopper->getCustomer()->isCompany());
-		$this->addCheckbox('createAccount', 'AddressesForm.createAccount');
+		$otherAddress = $this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool)$this->checkoutManager->getPurchase()->deliveryAddress);
+		$isCompany = $this->addCheckbox('isCompany', 'AddressesForm.isCompany')->setDefaultValue($shopper->getCustomer() && $shopper->getCustomer()->isCompany());
+		$createAccount = $this->addCheckbox('createAccount', 'AddressesForm.createAccount');
 		$this->addPassword('password', 'AddressesForm.password')
-			->addConditionOn($this['createAccount'], $this::EQUAL, true)
+			->addConditionOn($createAccount, $this::EQUAL, true)
 			->setRequired();
 		$this->addPassword('passwordAgain', 'AddressesForm.passwordAgain')
-			->addConditionOn($this['createAccount'], $this::EQUAL, true)
+			->addConditionOn($createAccount, $this::EQUAL, true)
 			->addRule($this::EQUAL, 'Hesla se neshodují', $this['password'])
 			->setRequired();
 		$this->addCheckbox('sendNewsletters', 'AddressesForm.sendNewsletters');
 		
 		// address delivery
 		$deliveryAddressBox = $this->addContainer('deliveryAddress');
-		$deliveryAddressBox->addText('name', 'AddressesForm.delivery_name')->addConditionOn($this['otherAddress'], $this::EQUAL, true)->setRequired();
-		$deliveryAddressBox->addText('street', 'AddressesForm.delivery_street')->addConditionOn($this['otherAddress'], $this::EQUAL, true)->setRequired();
-		$deliveryAddressBox->addText('city', 'AddressesForm.delivery_city')->addConditionOn($this['otherAddress'], $this::EQUAL, true)->setRequired();
-		$deliveryAddressBox->addText('zipcode', 'AddressesForm.delivery_zipcode')->addConditionOn($this['otherAddress'], $this::EQUAL, true)->setRequired()
+		$deliveryAddressBox->addText('name', 'AddressesForm.delivery_name')->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired();
+		$deliveryAddressBox->addText('street', 'AddressesForm.delivery_street')->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired();
+		$deliveryAddressBox->addText('city', 'AddressesForm.delivery_city')->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired();
+		$deliveryAddressBox->addText('zipcode', 'AddressesForm.delivery_zipcode')->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired()
 			->addRule(self::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
 		$deliveryAddressBox->addText('state', 'AddressesForm.delivery_state');
 		
 		// company
-		$this->addText('ic', 'AddressesForm.ic')->addConditionOn($this['isCompany'], $this::EQUAL, true)->setRequired();
+		$this->addText('ic', 'AddressesForm.ic')->addConditionOn($isCompany, $this::EQUAL, true)->setRequired();
 		$this->addText('dic', 'AddressesForm.dic');
 		
 		$this->addText('bankAccount', 'AddressesForm.bankAccount');
@@ -104,9 +114,9 @@ class AddressesForm extends Form
 	
 	public function validateForm(AddressesForm $form): void
 	{
-		$values = $form->getValues();
+		$values = $form->getValues('array');
 		
-		if (!$values->createAccount || !$this->accountRepository->one(['login' => $values->email])) {
+		if (!$values['createAccount'] || !$this->accountRepository->one(['login' => $values['email']])) {
 			return;
 		}
 		
@@ -115,12 +125,12 @@ class AddressesForm extends Form
 	
 	public function success(AddressesForm $form): void
 	{
-		$values = $form->getValues();
+		$values = $form->getValues('array');
 		
-		$values->password = $values->createAccount && $values->password ? $this->passwords->hash($values->password) : null;
+		$values['password'] = $values['createAccount'] && $values['password'] ? $this->passwords->hash($values['password']) : null;
 		
-		if (!$values->otherAddress) {
-			$values->deliveryAddress = null;
+		if (!$values['otherAddress']) {
+			$values['deliveryAddress'] = null;
 		}
 		
 		$this->checkoutManager->syncPurchase($values);

@@ -47,6 +47,11 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		return $collection->orderBy(['this.priority', "this.name$suffix",]);
 	}
 
+	/**
+	 * @param string $categoryPath
+	 * @param bool $includeHidden
+	 * @return \StORM\Collection<\Eshop\DB\Attribute>
+	 */
 	public function getAttributesByCategory(string $categoryPath, bool $includeHidden = false): Collection
 	{
 		return $this->getCollection($includeHidden)

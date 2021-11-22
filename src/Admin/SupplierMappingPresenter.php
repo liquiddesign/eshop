@@ -101,15 +101,24 @@ class SupplierMappingPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($this->getMappingRepository()->many(), 20, 'createdTs', 'ASC');
 		$grid->addColumnSelector();
 
-		$grid->addColumn('Zdroj', function (Entity $supplierMapping) {
-			$link = $supplierMapping->supplier && $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') ?
-				$this->link(':Eshop:Admin:Supplier:detail', [$supplierMapping->supplier, 'backLink' => $this->storeRequest(),]) : '#';
+		$grid->addColumn(
+			'Zdroj',
+			function (Entity $supplierMapping) {
+				/** @var \Eshop\DB\SupplierMapping $supplierMapping */
+				$link = $supplierMapping->supplier && $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') ?
+					$this->link(':Eshop:Admin:Supplier:detail', [$supplierMapping->supplier, 'backLink' => $this->storeRequest(),]) : '#';
 
-			return $supplierMapping->supplier ? "<a href='$link'>" . ($supplierMapping->supplier->name ?: 'Detail dodavatele') . '</a>' : 'Nenamapováno';
-		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
+				return $supplierMapping->supplier ? "<a href='$link'>" . ($supplierMapping->supplier->name ?: 'Detail dodavatele') . '</a>' : 'Nenamapováno';
+			},
+			'%s',
+			null,
+			['class' => 'fit'],
+		)->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
 		$grid->addColumnText('Importováno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Změněno', "updateTs|date:'d.m.Y G:i'", '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+
+		$property = null;
 
 		if ($this->tab === 'category') {
 			$grid->addColumnText('Název', 'getNameTree', '%s', 'categoryNameL1');
@@ -227,7 +236,7 @@ class SupplierMappingPresenter extends BackendPresenter
 
 		$submit = $grid->getForm()->addSubmit('submit', 'Vytvořit strukturu')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 		$submit->onClick[] = function ($button) use ($grid): void {
-			$this->session->getSection('bulkEdit')->totalIds = \array_keys($grid->getFilteredSource()->toArray());
+			$this->session->getSection('bulkEdit')->set('totalIds', \array_keys($grid->getFilteredSource()->toArray()));
 			$this->redirect('mapping', \serialize($grid->getSelectedIds()));
 		};
 
@@ -326,7 +335,7 @@ class SupplierMappingPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
-		$totalIds = $this->session->getSection('bulkEdit')->totalIds;
+		$totalIds = $this->session->getSection('bulkEdit')->get('totalIds');
 		$ids = \unserialize($this->getParameter('selectedIds'));
 		$totalNo = \count($totalIds);
 		$selectedNo = \count($ids);
@@ -364,7 +373,9 @@ class SupplierMappingPresenter extends BackendPresenter
 				return;
 			}
 
-			$form['attribute']->addError('Toto pole je povinné!');
+			/** @var \Nette\Forms\Controls\SelectBox $attributeInput */
+			$attributeInput = $form['attribute'];
+			$attributeInput->addError('Toto pole je povinné!');
 		};
 
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $totalIds): void {
@@ -433,8 +444,8 @@ class SupplierMappingPresenter extends BackendPresenter
 					}
 
 					if ($supplierAttribute->attribute) {
-						if ($supplierAttribute->categoryPK) {
-							$supplierAttribute->attribute->categories->relate([$supplierAttribute->categoryPK]);
+						if ($supplierAttribute->getValue('categoryPK')) {
+							$supplierAttribute->attribute->categories->relate([$supplierAttribute->getValue('categoryPK')]);
 						}
 
 						if ($overwrite) {
@@ -459,8 +470,8 @@ class SupplierMappingPresenter extends BackendPresenter
 							'supplier' => $supplierAttribute->getValue('supplier'),
 						]);
 
-						if ($supplierAttribute->categoryPK) {
-							$attribute->categories->relate([$supplierAttribute->categoryPK]);
+						if ($supplierAttribute->getValue('categoryPK')) {
+							$attribute->categories->relate([$supplierAttribute->getValue('categoryPK')]);
 						}
 
 						$supplierAttribute->update(['attribute' => $attribute->getPK()]);
@@ -690,14 +701,20 @@ class SupplierMappingPresenter extends BackendPresenter
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('form');
 
+		/** @var \Eshop\DB\SupplierAttribute|\Eshop\DB\SupplierAttributeValue|\Eshop\DB\SupplierCategory|\Eshop\DB\SupplierProducer|\Eshop\DB\SupplierDisplayAmount|\Eshop\DB\SupplierMapping $object */
 		$object = $this->getMappingRepository()->one($uuid);
 
+		/** @var \Nette\Forms\Controls\SelectBox $attributeInput */
+		$attributeInput = $form['attribute'];
+		/** @var \Nette\Forms\Controls\SelectBox $attributeValueInput */
+		$attributeValueInput = $form['attributeValue'];
+
 		if ($this->tab === 'attribute' && $object->attribute) {
-			$this->getPresenter()->template->select2AjaxDefaults[$form['attribute']->getHtmlId()] = [$object->attribute->getPK() => $object->attribute->name ?? $object->attribute->code];
+			$this->getPresenter()->template->select2AjaxDefaults[$attributeInput->getHtmlId()] = [$object->attribute->getPK() => $object->attribute->name ?? $object->attribute->code];
 		}
 
 		if ($this->tab === 'attributeValue' && $object->attributeValue) {
-			$this->getPresenter()->template->select2AjaxDefaults[$form['attributeValue']->getHtmlId()] = [
+			$this->getPresenter()->template->select2AjaxDefaults[$attributeValueInput->getHtmlId()] = [
 				$object->attributeValue->getPK() => ($object->attributeValue->attribute->name ?? $object->attributeValue->attribute->code) .
 					' - ' .
 					($object->attributeValue->label ?? $object->attributeValue->code),

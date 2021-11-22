@@ -181,7 +181,9 @@ class StorePresenter extends \Eshop\BackendPresenter
 				return;
 			}
 
-			$form['product']->addError('Toto pole je povinné!');
+			/** @var \Nette\Forms\Controls\SelectBox $input */
+			$input = $form['product'];
+			$input->addError('Toto pole je povinné!');
 		};
 
 		$form->onSuccess[] = function (AdminForm $form): void {

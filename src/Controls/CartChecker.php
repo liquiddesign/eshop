@@ -69,7 +69,10 @@ class CartChecker extends Control
 		$this->template->incorrectCartItems = $this->checkoutManager->getIncorrectCartItems();
 		$this->template->discountCoupon = $this->checkoutManager->getDiscountCoupon();
 		$this->template->discountCouponValid = $this->checkoutManager->checkDiscountCoupon();
-		
-		$this->template->render($this->template->getFile() ?: __DIR__ . '/cartChecker.latte');
+
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+
+		$template->render($this->template->getFile() ?: __DIR__ . '/cartChecker.latte');
 	}
 }

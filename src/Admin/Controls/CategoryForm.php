@@ -107,9 +107,9 @@ class CategoryForm extends Control
 		
 		if ($category) {
 			$pages = $this->pageRepository->many()->where('type', 'product_list');
-			
-			/** @var \Web\DB\Page $page */
+
 			while ($page = $pages->fetch()) {
+				/** @var \Web\DB\Page $page */
 				$params = $page->getParsedParameters();
 				
 				if (!isset($params['category']) || !isset($params['producer']) || $params['category'] !== $category->getPK()) {
@@ -142,8 +142,11 @@ class CategoryForm extends Control
 		
 		$form->onSuccess[] = function (AdminForm $form) use ($pagesCategoryAll): void {
 			$values = $form->getValues('array');
-			
-			$this->getPresenter()->createImageDirs(Category::IMAGE_DIR);
+
+			/** @var \Eshop\Admin\CategoryPresenter $presenter */
+			$presenter = $this->getPresenter();
+
+			$presenter->createImageDirs(Category::IMAGE_DIR);
 			
 			$active = [];
 			$nonActive = [];
@@ -172,11 +175,18 @@ class CategoryForm extends Control
 			
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
-				$values['type'] = $this->getPresenter()->tab;
+				$values['type'] = $presenter->tab;
 			}
+
+			/** @var \Forms\Controls\UploadImage $upload */
+			$upload = $form['imageFileName'];
 			
-			$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
-			$values['productFallbackImageFileName'] = $form['productFallbackImageFileName']->upload($values['uuid'] . '_fallback.%2$s');
+			$values['imageFileName'] = $upload->upload($values['uuid'] . '.%2$s');
+
+			/** @var \Forms\Controls\UploadImage $upload */
+			$upload = $form['productFallbackImageFileName'];
+
+			$values['productFallbackImageFileName'] = $upload->upload($values['uuid'] . '_fallback.%2$s');
 			$values['path'] = $this->categoryRepository->generateUniquePath($values['ancestor'] ? $this->categoryRepository->one($values['ancestor'])->path : '');
 
 			/** @var \Eshop\DB\Category $category */
@@ -199,7 +209,9 @@ class CategoryForm extends Control
 	public function render(): void
 	{
 		$this->template->category = $this->category;
-		
-		$this->template->render(__DIR__ . '/categoryForm.latte');
+
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+		$template->render(__DIR__ . '/categoryForm.latte');
 	}
 }

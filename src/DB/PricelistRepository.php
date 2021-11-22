@@ -19,15 +19,26 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 {
 	private PriceRepository $priceRepository;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, PriceRepository $priceRepository)
-	{
+	private CustomerRepository $customerRepository;
+
+	private CustomerGroupRepository $customerGroupRepository;
+
+	public function __construct(
+		DIConnection $connection,
+		SchemaManager $schemaManager,
+		PriceRepository $priceRepository,
+		CustomerRepository $customerRepository,
+		CustomerGroupRepository $customerGroupRepository
+	) {
 		parent::__construct($connection, $schemaManager);
 
 		$this->priceRepository = $priceRepository;
+		$this->customerRepository = $customerRepository;
+		$this->customerGroupRepository = $customerGroupRepository;
 	}
 
 	/**
-	 * @return \Storm\Collection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
+	 * @return \StORM\Collection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
 	 */
 	public function getPricelists(array $pks, Currency $currency, Country $country): Collection
 	{
@@ -42,7 +53,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	}
 
 	/**
-	 * @return \Storm\Collection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
+	 * @return \StORM\Collection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
 	 */
 	public function getCustomerPricelists(Customer $customer, Currency $currency, Country $country): Collection
 	{
@@ -58,7 +69,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	}
 
 	/**
-	 * @return \Storm\Collection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
+	 * @return \StORM\Collection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
 	 */
 	public function getMerchantPricelists(Merchant $merchant, Currency $currency, Country $country): Collection
 	{
@@ -87,7 +98,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	 */
 	public function getPricelistCustomers(Pricelist $pricelist): array
 	{
-		return $this->getConnection()->findRepository(Customer::class)->many()
+		return $this->customerRepository->many()
 			->join(['nxn' => 'eshop_customer_nxn_eshop_pricelist'], 'this.uuid=nxn.fk_customer')
 			->where('nxn.fk_pricelist', $pricelist->getPK())
 			->toArray();
@@ -127,7 +138,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	): void {
 		$priceRepository = $this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class);
 
-		/** @var \Eshop\DB\Price[] $originalPrices */
+		/** @var \Eshop\DB\Price[]|\Eshop\DB\QuantityPrice[] $originalPrices */
 		$originalPrices = $priceRepository->many()->where('fk_pricelist', $from->getPK());
 
 		foreach ($originalPrices as $originalPrice) {
@@ -164,7 +175,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	): void {
 		$priceRepository = $this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class);
 
-		/** @var \Eshop\DB\Price[] $originalPrices */
+		/** @var \Eshop\DB\Price[]|\Eshop\DB\QuantityPrice[] $originalPrices */
 		$originalPrices = $priceRepository->many()->where('uuid', $ids);
 
 		foreach ($originalPrices as $originalPrice) {
@@ -208,10 +219,11 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 	public function getDefaultPricelists(): Collection
 	{
-		$collection = $this->getConnection()->findRepository(CustomerGroup::class)->many();
+		$collection = $this->customerGroupRepository->many();
 		// @TODO: refactor to one SQL
 		$pricelists = [];
 
+		/** @var \Eshop\DB\CustomerGroup $group */
 		foreach ($collection->where(
 			'this.uuid = :unregistred OR defaultAfterRegistration=1',
 			['unregistred' => CustomerGroupRepository::UNREGISTERED_PK],
@@ -238,6 +250,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			'priceVatBefore',
 		]);
 
+		/** @var \Eshop\DB\QuantityPrice|\Eshop\DB\Price $row */
 		foreach ($this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class)->many()->where(
 			'fk_pricelist',
 			$priceList,
@@ -254,10 +267,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 				$values[] = $row->validFrom;
 			} else {
 				$values[] = $row->priceBefore;
-
-				if ($showVat) {
-					$values[] = $showVat ? $row->priceVatBefore : null;
-				}
+				$values[] = $showVat ? $row->priceVatBefore : null;
 			}
 
 			$writer->insertOne($values);

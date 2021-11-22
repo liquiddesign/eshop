@@ -72,9 +72,16 @@ class DiscountCouponForm extends Control
 
 			/** @var \Eshop\DB\DiscountCondition $condition */
 			foreach ($conditions as $condition) {
-				$presenter->template->select2AjaxDefaults[$conditionsContainer["products_$i"]->getHtmlId()] = $condition->products->toArrayOf('name');
-				$conditionsContainer["cartCondition_$i"]->setDefaultValue($condition->cartCondition);
-				$conditionsContainer["quantityCondition_$i"]->setDefaultValue($condition->quantityCondition);
+				/** @var \Nette\Forms\Controls\MultiSelectBox $productsInput */
+				$productsInput = $conditionsContainer["products_$i"];
+				/** @var \Nette\Forms\Controls\SelectBox $cartConditionInput */
+				$cartConditionInput = $conditionsContainer["cartCondition_$i"];
+				/** @var \Nette\Forms\Controls\SelectBox $quantityConditionInput */
+				$quantityConditionInput = $conditionsContainer["quantityCondition_$i"];
+
+				$presenter->template->select2AjaxDefaults[$productsInput->getHtmlId()] = $condition->products->toArrayOf('name');
+				$cartConditionInput->setDefaultValue($condition->cartCondition);
+				$quantityConditionInput->setDefaultValue($condition->quantityCondition);
 
 				$i++;
 
@@ -123,6 +130,8 @@ class DiscountCouponForm extends Control
 
 	public function render(): void
 	{
-		$this->template->render(__DIR__ . '/discountCouponForm.latte');
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+		$template->render(__DIR__ . '/discountCouponForm.latte');
 	}
 }

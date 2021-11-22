@@ -37,8 +37,10 @@
 		"erusev/parsedown": "^1.7",
 		"contributte/comgate": "^0.2.0",
 		"onnov/detect-encoding": "^2.0",
-		"ext-iconv": "*"
-    },
+		"ext-iconv": "*",
+		"ext-json": "*",
+		"ext-soap": "*"
+	},
 	"require-dev": 
 	{
 		"nette/tester":"*",

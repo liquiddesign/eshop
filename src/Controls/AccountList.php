@@ -23,6 +23,11 @@ use StORM\ICollection;
  */
 class AccountList extends Datalist
 {
+	/**
+	 * @var array<callable(self, array|object): void|callable(array|object): void>
+	 */
+	public $onSuccess = [];
+
 	private Shopper $shopper;
 
 	private AccountRepository $accountRepository;
@@ -90,9 +95,12 @@ class AccountList extends Datalist
 			$collection->where('DATE(tsRegistered)', $value);
 		}, '');
 
-		$this->getFilterForm()->addText('tsRegistered');
-		$this->getFilterForm()->addText('login');
-		$this->getFilterForm()->addSubmit('submit');
+		/** @var \Forms\Form $form */
+		$form = $this->getFilterForm();
+
+		$form->addText('tsRegistered');
+		$form->addText('login');
+		$form->addSubmit('submit');
 	}
 
 	public function handleLogin(string $account): void
@@ -136,7 +144,11 @@ class AccountList extends Datalist
 		$this->template->isCustomer = $this->shopper->getCustomer();
 		$this->template->selectedCustomer = $this->getPresenter()->getParameter('selectedCustomer');
 		$this->template->paginator = $this->getPaginator();
-		$this->template->render($this->template->getFile() ?: __DIR__ . '/accountList.latte');
+
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+
+		$template->render($this->template->getFile() ?: __DIR__ . '/accountList.latte');
 	}
 
 	public function createComponentChangePermFormMulti(): Multiplier
@@ -187,22 +199,22 @@ class AccountList extends Datalist
 
 			$container->addCheckbox('check');
 
-			/** @var \Eshop\DB\CatalogPermission $catalogPerm */
+			/** @var \Eshop\DB\CatalogPermission|null $catalogPerm */
 			$catalogPerm = $this->catalogPermissionRepository->many()
 				->where('fk_account', $account->getPK())
 				->first();
 
-			$container->addSelect('catalogPermission', null, $catalogPermission);
-			$container->addCheckbox('buyAllowed');
-			$container->addCheckbox('viewAllOrders');
+			$catalogPermissionInput = $container->addSelect('catalogPermission', null, $catalogPermission);
+			$buyAllowed = $container->addCheckbox('buyAllowed');
+			$viewAllOrders = $container->addCheckbox('viewAllOrders');
 
 			if (!$catalogPerm) {
 				continue;
 			}
 
-			$container['catalogPermission']->setDefaultValue($catalogPerm->catalogPermission);
-			$container['buyAllowed']->setDefaultValue($catalogPerm->buyAllowed);
-			$container['viewAllOrders']->setDefaultValue($catalogPerm->viewAllOrders);
+			$catalogPermissionInput->setDefaultValue($catalogPerm->catalogPermission);
+			$buyAllowed->setDefaultValue($catalogPerm->buyAllowed);
+			$viewAllOrders->setDefaultValue($catalogPerm->viewAllOrders);
 		}
 
 		$form->addSelect('catalogPermission', null, [
@@ -222,7 +234,7 @@ class AccountList extends Datalist
 		$form->addSubmit('submitAll');
 		$form->addSubmit('submitBulk');
 
-		$form->onSuccess[] = function (Form $form): void {
+		$form->onSuccess[] = function (\Nette\Forms\Form $form): void {
 			$values = $form->getValues('array');
 
 			$bulkValues = [];
@@ -231,7 +243,9 @@ class AccountList extends Datalist
 			$bulkValues['buyAllowed'] = Arrays::pick($values, 'buyAllowed');
 			$bulkValues['viewAllOrders'] = Arrays::pick($values, 'viewAllOrders');
 
-			$submitName = $form->isSubmitted()->getName();
+			/** @var \Nette\Forms\Controls\SubmitButton $submitter */
+			$submitter = $form->isSubmitted();
+			$submitName = $submitter->getName();
 
 			if ($submitName === 'submitAll') {
 				foreach ($values as $key => $value) {

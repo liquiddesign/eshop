@@ -402,7 +402,10 @@ class ProductPresenter extends BackendPresenter
 			}
 
 			if (isset($values['fileName'])) {
-				$values['fileName'] = $form['fileName']->upload($values['uuid'] . '.%2$s');
+				/** @var \Forms\Controls\UploadFile $upload */
+				$upload = $form['fileName'];
+
+				$values['fileName'] = $upload->upload($values['uuid'] . '.%2$s');
 			}
 
 			$this->fileRepository->syncOne($values);
@@ -454,7 +457,10 @@ class ProductPresenter extends BackendPresenter
 				$values['uuid'] = DIConnection::generateUuid();
 			}
 
-			$values['fileName'] = $form['fileName']->upload($values['uuid'] . '.%2$s');
+			/** @var \Forms\Controls\UploadFile $upload */
+			$upload = $form['fileName'];
+
+			$values['fileName'] = $upload->upload($values['uuid'] . '.%2$s');
 
 			$this->photoRepository->syncOne($values);
 
@@ -551,14 +557,14 @@ class ProductPresenter extends BackendPresenter
 
 	public function actionDetailPhoto(Photo $photo): void
 	{
-		/** @var \Forms\Form $form */
+		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('photoForm');
 		$form->setDefaults($photo->toArray());
 	}
 
 	public function actionEdit(Product $product): void
 	{
-		/** @var \Forms\Form $form */
+		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('productForm')['form'];
 
 		$prices = $this->pricelistRepository->many()->orderBy(['this.priority'])
@@ -570,7 +576,14 @@ class ProductPresenter extends BackendPresenter
 				'priceVatBefore' => 'prices.priceVatBefore',
 			])->toArray();
 
-		foreach ($form['prices']->getComponents() as $pricelistId => $container) {
+		/** @var \Forms\Container $input */
+		$input = $form['prices'];
+
+		/**
+		 * @var string $pricelistId
+		 * @var \Forms\Container $container
+		 */
+		foreach ($input->getComponents() as $pricelistId => $container) {
 			$container->setDefaults($prices[$pricelistId]->toArray());
 		}
 
@@ -587,19 +600,28 @@ class ProductPresenter extends BackendPresenter
 
 		$form->setDefaults($productData);
 
-		if ($product->supplierContentLock && isset($form['supplierContent'])) {
-			$form['supplierContent']->setDefaultValue(0);
+		/** @var \Nette\Forms\Controls\SelectBox|null $input */
+		$input = $form['supplierContent'];
+
+		if ($product->supplierContentLock && isset($input)) {
+			$input->setDefaultValue(0);
 		}
 
 		if (!$form->getPrettyPages()) {
 			return;
 		}
 
-		if (!$page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product])) {
+		/** @var \Web\DB\Page $page */
+		$page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product]);
+
+		if (!$page) {
 			return;
 		}
 
-		$form['page']->setDefaults($page->toArray());
+		/** @var \Forms\Container $pageContainer */
+		$pageContainer = $form['page'];
+
+		$pageContainer->setDefaults($page->toArray());
 
 		$form['page']['url']->forAll(function (TextInput $text, $mutation) use ($page, $form): void {
 			$text->getRules()->reset();
@@ -886,10 +908,16 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 			$products = $this->productRepository->getProducts($this->pricelistRepository->many()->where('this.uuid', $values['pricelists'])->toArray())->where('this.uuid', $ids)->toArray();
 
 			$this->productRepository->getConnection()->setMutation($values['mutation']);
-			$this->translator->setMutation($values['mutation']);
-			$this->getTemplate()->setTranslator($this->translator);
 
-			$html = $this->getTemplate()->renderToString($this::DEFAULT_TEMPLATE, [
+			/** @var \Translator\DB\TranslationRepository $translator */
+			$translator = $this->translator;
+			$translator->setMutation($values['mutation']);
+
+			/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+			$template = $this->getTemplate();
+			$template->setTranslator($this->translator);
+
+			$html = $template->renderToString($this::DEFAULT_TEMPLATE, [
 				'type' => 'products',
 				'text' => $values['text'],
 				'args' => [
@@ -919,7 +947,7 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 
 			$zip->close();
 
-			$this->getPresenter()->application->onShutdown[] = function () use ($zipFilename): void {
+			$this->application->onShutdown[] = function () use ($zipFilename): void {
 				\unlink($zipFilename);
 			};
 
@@ -1073,7 +1101,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 		$form->addSubmit('submit', 'Importovat');
 
-		$form->onValidate[] = function (AdminForm $form): void {
+		$form->onValidate[] = function (AdminForm $form) use ($filePicker): void {
 			$values = $form->getValues('array');
 
 			/** @var \Nette\Http\FileUpload $file */
@@ -1083,7 +1111,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				return;
 			}
 
-			$form['file']->addError('Neplatný soubor!');
+			$filePicker->addError('Neplatný soubor!');
 		};
 
 		$form->onSuccess[] = function (AdminForm $form): void {
@@ -1211,14 +1239,14 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 		$form->addSubmit('submit', 'Exportovat');
 
-		$form->onValidate[] = function (AdminForm $form): void {
+		$form->onValidate[] = function (AdminForm $form) use ($headerColumns): void {
 			$values = $form->getValues();
 
 			if (Arrays::contains($values['columns'], 'code') || Arrays::contains($values['columns'], 'ean')) {
 				return;
 			}
 
-			$form['columns']->addError('Je nutné vybrat "Kód" nebo "EAN" pro jednoznačné označení produktu.');
+			$headerColumns->addError('Je nutné vybrat "Kód" nebo "EAN" pro jednoznačné označení produktu.');
 		};
 
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid, $items, $attributes): void {
@@ -1362,12 +1390,19 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		$form->onSuccess[] = function (Form $form): void {
 			$values = $form->getValues('array');
 
+			/** @var \Admin\DB\Administrator|null $admin */
+			$admin = $this->admin->getIdentity();
+
+			if (!$admin) {
+				return;
+			}
+
 			$data = [
 				'product' => $this->getParameter('product')->getPK(),
 				'text' => $values['text'],
-				'administrator' => $this->admin->getIdentity()->getPK(),
-				'adminFullname' => $this->admin->getIdentity()->fullName ??
-					($this->admin->getIdentity()->getAccount() ? ($this->admin->getIdentity()->getAccount()->fullname ?? $this->admin->getIdentity()->getAccount()->login) : null),
+				'administrator' => $admin->getPK(),
+				'adminFullname' => $admin->fullName ??
+					($admin->getAccount() ? ($admin->getAccount()->fullname ?? $admin->getAccount()->login) : null),
 			];
 
 			$this->commentRepository->createOne($data);

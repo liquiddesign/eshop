@@ -120,8 +120,11 @@ class PaymentTypePresenter extends BackendPresenter
 			}
 			
 			$this->createImageDirs(PaymentType::IMAGE_DIR);
-			
-			$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
+
+			/** @var \Forms\Controls\UploadImage $upload */
+			$upload = $form['imageFileName'];
+
+			$values['imageFileName'] = $upload->upload($values['uuid'] . '.%2$s');
 			
 			$paymentType = $this->paymentTypeRepository->syncOne($values, null, true);
 			

@@ -365,7 +365,7 @@ class CheckoutManager
 
 	public function canBuyProduct(Product $product): bool
 	{
-		return !$product->unavailable && $product->price !== null && $this->shopper->getBuyPermission();
+		return !$product->unavailable && $product->getValue('price') !== null && $this->shopper->getBuyPermission();
 	}
 
 	public function disallowItemInCart(CartItem $item): void
@@ -524,25 +524,28 @@ class CheckoutManager
 			return;
 		}
 
-		/** @var \Eshop\DB\Product $upsell */
+		/* @deprecated */
 		foreach ($this->productRepository->getUpsellsForCartItem($cartItem) as $upsell) {
 			if ($this->itemRepository->isUpsellActive($cartItem->getPK(), $upsell->getPK())) {
 				$upsellCartItem = $this->itemRepository->many()->where('fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first();
 
-				if (!$upsellWithPrice = $this->productRepository->getProducts()->where('this.uuid', $upsell->getPK())->first()) {
+				/** @var \Eshop\DB\Product|null $upsellWithPrice */
+				$upsellWithPrice = $this->productRepository->getProducts()->where('this.uuid', $upsell->getPK())->first();
+
+				if (!$upsellWithPrice) {
 					if ($cartItem->product->dependedValue) {
-						$upsell->price = $cartItem->getPriceSum() * $cartItem->product->dependedValue / 100;
-						$upsell->priceVat = $cartItem->getPriceVatSum() * $cartItem->product->dependedValue / 100;
-						$upsell->currencyCode = $this->shopper->getCurrency()->code;
+						$upsell->setValue('price', $cartItem->getPriceSum() * $cartItem->product->dependedValue / 100);
+						$upsell->setValue('priceVat', $cartItem->getPriceVatSum() * $cartItem->product->dependedValue / 100);
+						$upsell->setValue('currencyCode', $this->shopper->getCurrency()->code);
 					}
 				} elseif ($upsellWithPrice->getPriceVat()) {
-					$upsell->price = $cartItem->amount * $upsellWithPrice->getPrice();
-					$upsell->priceVat = $cartItem->amount * $upsellWithPrice->getPriceVat();
+					$upsell->setValue('price', $cartItem->amount * $upsellWithPrice->getPrice());
+					$upsell->setValue('priceVat', $cartItem->amount * $upsellWithPrice->getPriceVat());
 				}
 
 				$upsellCartItem->update([
-					'price' => $upsell->price,
-					'priceVat' => $upsell->priceVat,
+					'price' => $upsell->getValue('price'),
+					'priceVat' => $upsell->getValue('priceVat'),
 				]);
 			}
 		}
@@ -685,6 +688,8 @@ class CheckoutManager
 					$correctAmount = $cartItem->product->maxBuyCount;
 				} elseif ($cartItem->product->buyStep !== null && $cartItem->amount % $cartItem->product->buyStep !== 0) {
 					$correctAmount = $this->itemRepository->roundUpToNextMultiple($cartItem->amount, $cartItem->product->buyStep);
+				} else {
+					$correctAmount = null;
 				}
 
 				$incorrectItems[] = [
@@ -810,7 +815,7 @@ class CheckoutManager
 	public function getPaymentPrice(): float
 	{
 		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
-			return (float)$this->getPaymentTypes()[$this->getPurchase()->getValue('paymentType')]->price ?? 0.0;
+			return (float)$this->getPaymentTypes()[$this->getPurchase()->getValue('paymentType')]->getValue('price') ?? 0.0;
 		}
 
 		return 0.0;
@@ -819,7 +824,7 @@ class CheckoutManager
 	public function getPaymentPriceVat(): float
 	{
 		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
-			return (float)$this->getPaymentTypes()[$this->getPurchase()->getValue('paymentType')]->priceVat ?? 0.0;
+			return (float)$this->getPaymentTypes()[$this->getPurchase()->getValue('paymentType')]->getValue('priceVat') ?? 0.0;
 		}
 
 		return 0.0;
@@ -828,7 +833,7 @@ class CheckoutManager
 	public function getDeliveryPrice(): float
 	{
 		if ($this->getPurchase() && $this->getPurchase()->deliveryType) {
-			return (float)$this->getDeliveryTypes()[$this->getPurchase()->getValue('deliveryType')]->price ?? 0.0;
+			return (float)$this->getDeliveryTypes()[$this->getPurchase()->getValue('deliveryType')]->getValue('price') ?? 0.0;
 		}
 
 		return 0.0;
@@ -837,7 +842,7 @@ class CheckoutManager
 	public function getDeliveryPriceVat(): float
 	{
 		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
-			return (float)$this->getDeliveryTypes()[$this->getPurchase()->getValue('deliveryType')]->priceVat ?? 0.0;
+			return (float)$this->getDeliveryTypes()[$this->getPurchase()->getValue('deliveryType')]->getValue('priceVat') ?? 0.0;
 		}
 
 		return 0.0;
@@ -1147,7 +1152,7 @@ class CheckoutManager
 
 	private function checkCurrency(Product $product): bool
 	{
-		return $product->currencyCode === $this->getCart()->currency->code;
+		return $product->getValue('currencyCode') === $this->getCart()->currency->code;
 	}
 
 	private function refreshSumProperties(): void

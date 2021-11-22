@@ -60,7 +60,12 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$this->orderRepository = $orderRepository;
 	}
 
-	public function getProduct(string $productUuid): Product
+	/**
+	 * @param string $productUuid
+	 * @return mixed|object|\StORM\Entity|null|\Eshop\DB\Product
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function getProduct(string $productUuid)
 	{
 		return $this->getProducts()->where('this.uuid', $productUuid)->first(true);
 	}
@@ -87,6 +92,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$generalPricelistIds = $convertionPricelistIds = [];
 
+		/** @var \Eshop\DB\Pricelist $pricelist */
 		foreach ($pricelists as $pricelist) {
 			if ($pricelist->allowDiscountLevel) {
 				$generalPricelistIds[] = $pricelist->getPK();
@@ -112,6 +118,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$priceSelects = $priceWhere = [];
 		$collection = $this->many()->setSmartJoin(false);
 
+		/** @var \Eshop\DB\Pricelist $pricelist */
 		foreach ($pricelists as $id => $pricelist) {
 			if ($selects) {
 				$price = $this->sqlHandlePrice("prices$id", 'price', $discountLevelPct, $generalPricelistIds, $prec, $convertRatio);
@@ -180,7 +187,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$customerTurnover = $this->orderRepository->getCustomerTotalTurnover($customer, $loyaltyProgram->turnoverFrom ? new DateTime($loyaltyProgram->turnoverFrom) : null, new DateTime());
 
-		/** @var \Eshop\DB\LoyaltyProgramDiscountLevel $discountLevel */
+		/** @var \Eshop\DB\LoyaltyProgramDiscountLevel|null $discountLevel */
 		$discountLevel = $this->loyaltyProgramDiscountLevelRepository->many()
 			->where('this.fk_loyaltyProgram', $loyaltyProgram)
 			->where('this.priceThreshold <= :turnover', ['turnover' => (string)$customerTurnover])
@@ -374,7 +381,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 	}
 
-	public function filterQuery($value, ICollection $collection): void
+	public function filterQuery($value, Collection $collection): void
 	{
 		$collection->filter(['q' => $value]);
 	}
@@ -560,8 +567,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 	}
 
 	/**
-	 * @param $product
-	 * @return \Eshop\DB\Parameter[]
+	 * @param \Eshop\DB\Product|string $product
+	 * @return array<int|string, array<string, array<int, \Eshop\DB\Parameter>|\Eshop\DB\ParameterGroup>>
 	 * @throws \StORM\Exception\NotFoundException
 	 * @deprecated
 	 */
@@ -593,9 +600,9 @@ class ProductRepository extends Repository implements IGeneralRepository
 	}
 
 	/**
-	 * @param $product
+	 * @param \Eshop\DB\Product|string $product
 	 * @param bool $showAll
-	 * @return array<string, array<string, array<string, \Eshop\DB\AttributeValue>>>
+	 * @return array<array<string, array<\Eshop\DB\AttributeValue>|\StORM\Entity>>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function getActiveProductAttributes($product, bool $showAll = false): array
@@ -639,14 +646,17 @@ class ProductRepository extends Repository implements IGeneralRepository
 				$collection->where('attribute.showProduct', true);
 			}
 
-			$attributeArray['values'] = $collection->toArray();
+			/** @var \Eshop\DB\AttributeValue[] $attributeValues */
+			$attributeValues = $collection->toArray();
+
+			$attributeArray['values'] = $attributeValues;
 
 			if (\count($attributeArray['values']) === 0) {
 				continue;
 			}
 
 			foreach ($attributeArray['values'] as $attributeValueKey => $attributeValue) {
-				$attributeArray['values'][$attributeValueKey]->page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValue->getPK()]);
+				$attributeArray['values'][$attributeValueKey]->setValue('page', $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValue->getPK()]));
 			}
 
 			$attributesList[$attributeKey] = $attributeArray;
@@ -778,6 +788,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 	 * @param \Eshop\DB\Product|string $set
 	 * @return \Eshop\DB\Set[]
 	 * @throws \StORM\Exception\NotFoundException
+	 * @deprecated
 	 */
 	public function getSetProducts($set): array
 	{
@@ -875,8 +886,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 					$tmp .= "$attributeValueLabel#$attributeValueCode:";
 				}
 
-				/** @phpstan-ignore-next-line Bug in phpstan https://github.com/phpstan/phpstan/issues/2889 */
-				$row[] = \strlen($tmp) > 0 ? \substr($tmp, 0, -1) : null;
+				$row[] = \strlen($tmp) !== 0 ? \substr($tmp, 0, -1) : null;
 			}
 
 			$writer->insertOne($row);

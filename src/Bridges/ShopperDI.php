@@ -42,15 +42,17 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 	public function loadConfiguration(): void
 	{
 		$config = (array) $this->getConfig();
-		
-		/** @var \Nette\DI\ContainerBuilder $builder */
+
 		$builder = $this->getContainerBuilder();
 		
 		$shopper = $builder->addDefinition($this->prefix('shopper'))->setType(Shopper::class);
 		$cartManager = $builder->addDefinition($this->prefix('cartManager'))->setType(CheckoutManager::class);
 		$builder->addDefinition($this->prefix('comgate'))->setType(Comgate::class);
 		$builder->addDefinition($this->prefix('compareManager'))->setType(CompareManager::class);
-		$builder->getDefinition('latte.templateFactory')->addSetup('$onCreate[]', [['@shopper.shopper', 'addFilters']]);
+
+		/** @var \Nette\DI\Definitions\ServiceDefinition $latteDefinition */
+		$latteDefinition = $builder->getDefinition('latte.templateFactory');
+		$latteDefinition->addSetup('$onCreate[]', [['@shopper.shopper', 'addFilters']]);
 
 		$shopper->addSetup('setProjectUrl', [$config['projectUrl']]);
 		$shopper->addSetup('setRegistrationConfiguration', [(array) $config['registration']]);
@@ -61,7 +63,5 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$shopper->addSetup('setEditOrderAfterCreation', [$config['editOrderAfterCreation']]);
 
 		$cartManager->addSetup('setCheckoutSequence', [$config['checkoutSequence']]);
-		
-		return;
 	}
 }

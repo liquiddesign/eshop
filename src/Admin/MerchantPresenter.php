@@ -86,9 +86,12 @@ class MerchantPresenter extends BackendPresenter
 		}, '%s', null, ['class' => 'minimal']);
 
 		$grid->addColumn('Login', function (Merchant $object, Datagrid $grid) use ($btnSecondary) {
+			/** @var \Security\DB\Account $account */
+			$account = $object->accounts->clear()->first();
+
 			$link = $object->accounts->clear()->first() ? $grid->getPresenter()->link(
 				'loginMerchant!',
-				[$object->accounts->clear()->first()->login],
+				[$account->login],
 			) : '#';
 
 			return "<a class='" . ($object->accounts->clear()->first() ? '' : 'disabled') . " $btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>";
@@ -256,7 +259,9 @@ class MerchantPresenter extends BackendPresenter
 		$form['account']['email']->setDefaultValue($merchant->email);
 
 		if ($account = $merchant->accounts->clear()->first()) {
-			$form['account']->setDefaults($account->toArray());
+			/** @var \Forms\Container $accountForm */
+			$accountForm = $form['account'];
+			$accountForm->setDefaults($account->toArray());
 		}
 
 		$this->accountFormFactory->onUpdateAccount[] = function (): void {

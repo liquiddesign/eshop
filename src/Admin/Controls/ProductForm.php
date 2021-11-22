@@ -262,7 +262,7 @@ class ProductForm extends Control
 					$relationsContainer->addCheckbox("hidden_$i");
 
 					if ($relatedType->defaultDiscountPct) {
-						 $relationsContainer->addText("discountPct_$i")->setDefaultValue($relatedType->defaultDiscountPct)->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
+						$relationsContainer->addText("discountPct_$i")->setDefaultValue($relatedType->defaultDiscountPct)->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
 					}
 
 					if (!$relatedType->defaultMasterPct) {
@@ -286,17 +286,30 @@ class ProductForm extends Control
 				/** @var \Eshop\DB\Related $relation
 				 */
 				foreach ($relations as $relation) {
-					$presenter->template->select2AjaxDefaults[$relationsContainer["product_$i"]->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->name];
-					$relationsContainer["amount_$i"]->setDefaultValue($relation->amount);
-					$relationsContainer["priority_$i"]->setDefaultValue($relation->priority);
-					$relationsContainer["hidden_$i"]->setDefaultValue($relation->hidden);
+					/** @var \Nette\Forms\Controls\SelectBox $productInput */
+					$productInput = $relationsContainer["product_$i"];
+					/** @var \Nette\Forms\Controls\TextInput $amountInput */
+					$amountInput = $relationsContainer["amount_$i"];
+					/** @var \Nette\Forms\Controls\TextInput $priorityInput */
+					$priorityInput = $relationsContainer["priority_$i"];
+					/** @var \Nette\Forms\Controls\Checkbox $hiddenInput */
+					$hiddenInput = $relationsContainer["hidden_$i"];
+
+					$presenter->template->select2AjaxDefaults[$productInput->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->name];
+					$amountInput->setDefaultValue($relation->amount);
+					$priorityInput->setDefaultValue($relation->priority);
+					$hiddenInput->setDefaultValue($relation->hidden);
 
 					if ($relatedType->defaultDiscountPct) {
-						$relationsContainer["discountPct_$i"]->setDefaultValue($relation->discountPct);
+						/** @var \Nette\Forms\Controls\TextInput $discountPctInput */
+						$discountPctInput = $relationsContainer["discountPct_$i"];
+						$discountPctInput->setDefaultValue($relation->discountPct);
 					}
 
 					if ($relatedType->defaultMasterPct) {
-						$relationsContainer["masterPct_$i"]->setDefaultValue($relation->masterPct);
+						/** @var \Nette\Forms\Controls\TextInput $masterPctInput */
+						$masterPctInput = $relationsContainer["masterPct_$i"];
+						$masterPctInput->setDefaultValue($relation->masterPct);
 					}
 
 					$i++;
@@ -358,13 +371,16 @@ class ProductForm extends Control
 		$values = $form->getValues('array');
 
 		if ($values['ean']) {
+			/** @var \Nette\Forms\Controls\TextInput $eanInput */
+			$eanInput = $form['ean'];
+
 			if ($product = $this->productRepository->many()->where('ean', $values['ean'])->first()) {
 				if ($this->product) {
 					if ($product->getPK() !== $this->product->getPK()) {
-						$form['ean']->addError('Již existuje produkt s tímto EAN');
+						$eanInput->addError('Již existuje produkt s tímto EAN');
 					}
 				} else {
-					$form['ean']->addError('Již existuje produkt s tímto EAN');
+					$eanInput->addError('Již existuje produkt s tímto EAN');
 				}
 			}
 		}
@@ -385,12 +401,15 @@ class ProductForm extends Control
 			return;
 		}
 
+		/** @var \Nette\Forms\Controls\TextInput $codeInput */
+		$codeInput = $form['code'];
+
 		if ($this->product) {
 			if ($product->getPK() !== $this->product->getPK()) {
-				$form['code']->addError('Již existuje produkt s touto kombinací kódu a subkódu');
+				$codeInput->addError('Již existuje produkt s touto kombinací kódu a subkódu');
 			}
 		} else {
-			$form['code']->addError('Již existuje produkt s touto kombinací kódu a subkódu');
+			$codeInput->addError('Již existuje produkt s touto kombinací kódu a subkódu');
 		}
 	}
 
@@ -406,10 +425,7 @@ class ProductForm extends Control
 			$values['uuid'] = ProductRepository::generateUuid(
 				$values['ean'],
 				$values['subCode'] ? $values['code'] . '.' . $values['subCode'] : $values['code'],
-				null,
 			);
-		} else {
-			$this->product->upsells->unrelateAll();
 		}
 
 		$newCategories = [];
@@ -562,7 +578,9 @@ class ProductForm extends Control
 			$this->getPresenter()->getParameter('product'),
 		)->toArray() : [];
 
-		$this->template->render(__DIR__ . '/productForm.latte');
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+		$template->render(__DIR__ . '/productForm.latte');
 	}
 
 	protected function deleteImages(): void

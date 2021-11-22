@@ -109,7 +109,10 @@ class ProducerPresenter extends BackendPresenter
 				$values['uuid'] = DIConnection::generateUuid();
 			}
 
-			$values['imageFileName'] = $form['imageFileName']->upload($values['uuid'] . '.%2$s');
+			/** @var \Forms\Controls\UploadImage $upload */
+			$upload = $form['imageFileName'];
+
+			$values['imageFileName'] = $upload->upload($values['uuid'] . '.%2$s');
 
 			$producer = $this->producerRepository->syncOne($values, null, true);
 

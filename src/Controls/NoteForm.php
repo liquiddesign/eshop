@@ -9,6 +9,12 @@ use Eshop\Shopper;
 
 class NoteForm extends \Nette\Application\UI\Form
 {
+	/**
+	 * Occurs when the form is submitted and successfully validated
+	 * @var array<callable(self, array|object): void|callable(array|object): void>
+	 */
+	public $onSuccess = [];
+
 	private CheckoutManager $checkoutManager;
 
 	private Shopper $shopper;

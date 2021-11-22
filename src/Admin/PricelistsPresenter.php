@@ -391,7 +391,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 		$form->onSuccess[] = function (Form $form): void {
 			/** @var \Nette\Http\FileUpload $file */
-			$file = $form->getValues()->file;
+			$file = $form->getValues('array')['file'];
 
 			$pricelist = $this->getParameter('pricelist');
 			$quantity = $this->getParameter('type') === 'quantity';
@@ -564,7 +564,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 	{
 		$form = $this->formFactory->create();
 
-		$form->addSelect2('product', 'Produkt', [], [
+		$productInput = $form->addSelect2('product', 'Produkt', [], [
 			'ajax' => [
 				'url' => $this->link('getProductsForSelect2!'),
 			],
@@ -578,14 +578,14 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 		$form->addSubmits();
 
-		$form->onValidate[] = function (AdminForm $form): void {
+		$form->onValidate[] = function (AdminForm $form) use ($productInput): void {
 			$data = $this->getHttpRequest()->getPost();
 
 			if (isset($data['product'])) {
 				return;
 			}
 
-			$form['product']->addError('Toto pole je povinné!');
+			$productInput->addError('Toto pole je povinné!');
 		};
 
 		$form->onSuccess[] = function (AdminForm $form): void {
@@ -775,7 +775,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
 		$form->addRadioList('bulkType', 'Upravit', $bulkTypeOptions)->setDefaultValue($idsPricelistsCurrency ? 'selected' : 'all');
 
-		$form->addDataSelect('targetPricelist', 'Cílový ceník', $this->priceListRepository->getArrayForSelect());
+		$targetPricelistInput = $form->addDataSelect('targetPricelist', 'Cílový ceník', $this->priceListRepository->getArrayForSelect());
 		$form->addSelect('aggregateFunction', 'Agregační funkce', [
 			'min' => 'Minimum',
 			'max' => 'Maximum',
@@ -800,7 +800,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 		$form->addSubmit('submit', 'Provést');
 
-		$form->onValidate[] = function (AdminForm $form) use ($idsPricelistsCurrency, $collectionPricelistsCurrency): void {
+		$form->onValidate[] = function (AdminForm $form) use ($idsPricelistsCurrency, $collectionPricelistsCurrency, $targetPricelistInput): void {
 			if ($form->hasErrors()) {
 				return;
 			}
@@ -812,10 +812,10 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 			if ($values['bulkType'] === 'selected') {
 				if ($targetPricelist->currency->getPK() !== $idsPricelistsCurrency->getPK()) {
-					$form['targetPricelist']->addError('Ceník nemá stejnou měnu jako vybrané ceníky!');
+					$targetPricelistInput->addError('Ceník nemá stejnou měnu jako vybrané ceníky!');
 				}
 			} elseif ($targetPricelist->currency->getPK() !== $collectionPricelistsCurrency->getPK()) {
-				$form['targetPricelist']->addError('Ceník nemá stejnou měnu jako vybrané ceníky!');
+				$targetPricelistInput->addError('Ceník nemá stejnou měnu jako vybrané ceníky!');
 			}
 		};
 

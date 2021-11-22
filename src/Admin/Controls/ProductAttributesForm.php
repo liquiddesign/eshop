@@ -104,6 +104,9 @@ class ProductAttributesForm extends Control
 	{
 		$this->template->errorEnabled = $this->errorEnabled;
 		$this->template->error = $this->error;
-		$this->template->render(__DIR__ . '/productAttributesForm.latte');
+
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+		$template->render(__DIR__ . '/productAttributesForm.latte');
 	}
 }

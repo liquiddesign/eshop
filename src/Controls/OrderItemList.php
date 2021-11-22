@@ -177,7 +177,10 @@ class OrderItemList extends Datalist
 		$upsell = $this->productRepository->getUpsellsForCartItem($cartItem)[$upsell];
 
 		if ($this->isUpsellActive($cartItem->getPK(), $upsell->getPK())) {
-			$this->checkoutManager->deleteItem($this->checkoutManager->getItems()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first());
+			/** @var \Eshop\DB\CartItem $cartItem */
+			$cartItem = $this->checkoutManager->getItems()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first();
+
+			$this->checkoutManager->deleteItem($cartItem);
 		} else {
 			$this->checkoutManager->addItemToCart($upsell, null, 1, false, false, false, $cartItem->cart)->update(['upsell' => $cartItem->getPK()]);
 		}
@@ -204,7 +207,10 @@ class OrderItemList extends Datalist
 		$this->template->discountPriceVat = $this->selectedOrder->getDiscountPriceVat();
 		$this->template->upsells = $this->productRepository->getUpsellsForCartItems($this->getItemsOnPage());
 
-		$this->template->render($this->template->getFile() ?: __DIR__ . '/cartItemList.latte');
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+
+		$template->render($this->template->getFile() ?: __DIR__ . '/cartItemList.latte');
 	}
 
 	public function handleAddItem(string $product): void
@@ -212,7 +218,10 @@ class OrderItemList extends Datalist
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->getProducts()->where('this.uuid', $product)->first();
 
-		$cartItem = $this->checkoutManager->addItemToCart($product, null, 1, false, true, true, $this->selectedOrder->purchase->carts->first());
+		/** @var \Eshop\DB\Cart $cart */
+		$cart = $this->selectedOrder->purchase->carts->first();
+
+		$cartItem = $this->checkoutManager->addItemToCart($product, null, 1, false, true, true, $cart);
 
 		if ($cartItem->cart->purchase) {
 			$package = $this->orderRepository->getFirstPackageByCartItem($cartItem) ??

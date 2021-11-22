@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use StORM\Collection;
 use StORM\DIConnection;
-use StORM\ICollection;
 use StORM\SchemaManager;
 
 /**
@@ -52,7 +52,7 @@ class CartRepository extends \StORM\Repository
 		return $carts;
 	}
 
-	public function getLoyaltyProgramPointsGainByCartItemsAndCustomer(ICollection $cartItems, Customer $customer): ?float
+	public function getLoyaltyProgramPointsGainByCartItemsAndCustomer(Collection $cartItems, Customer $customer): ?float
 	{
 		if (!$loyaltyProgram = $customer->getValue('loyaltyProgram')) {
 			return null;
@@ -64,7 +64,7 @@ class CartRepository extends \StORM\Repository
 		foreach ($cartItems->join(['loyaltyProgramProduct' => 'eshop_loyaltyprogramproduct'], 'this.fk_product = loyaltyProgramProduct.fk_product')
 					 ->where('loyaltyProgramProduct.fk_loyaltyProgram', $loyaltyProgram)
 					 ->select(['pointsGain' => 'loyaltyProgramProduct.points']) as $cartItem) {
-			$pointsGain += $cartItem->amount * $cartItem->pointsGain;
+			$pointsGain += $cartItem->amount * $cartItem->getValue('pointsGain');
 		}
 
 		return $pointsGain;

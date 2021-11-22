@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
+use Admin\Controls\AdminFormFactory;
 use Eshop\DB\Photo;
 use Eshop\DB\PhotoRepository;
 use Eshop\DB\Product;
@@ -19,6 +20,9 @@ class PhotoPresenter extends BackendPresenter
 	
 	/** @inject */
 	public ProductRepository $productRepository;
+
+	/** @inject */
+	public AdminFormFactory $formFactory;
 	
 	private string $productPhotosPath;
 	
@@ -31,7 +35,7 @@ class PhotoPresenter extends BackendPresenter
 	
 	public function createComponentNewForm(): Form
 	{
-		$form = $this->formFactory->createForm(true);
+		$form = $this->formFactory->create(true);
 		
 		$form->addText('fileName', 'Název soboru');
 		$form->addLocaleText('label', 'Popisek');

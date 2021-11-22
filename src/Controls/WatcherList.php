@@ -31,9 +31,12 @@ class WatcherList extends Datalist
 		$this->addFilterExpression('productName', function (ICollection $collection, $value) use ($langSuffix): void {
 			$collection->where("products.name$langSuffix LIKE :query", ['query' => '%' . $value . '%']);
 		}, '');
-		
-		$this->getFilterForm()->addText('productName');
-		$this->getFilterForm()->addSubmit('submit');
+
+		/** @var \Forms\Form $filterForm */
+		$filterForm = $this->getFilterForm();
+
+		$filterForm->addText('productName');
+		$filterForm->addSubmit('submit');
 	}
 	
 	public function handleDeleteWatcher(string $watcherId): void
@@ -48,6 +51,8 @@ class WatcherList extends Datalist
 	
 	public function render(): void
 	{
-		$this->template->render($this->template->getFile() ?: __DIR__ . '/watcherList.latte');
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+		$template->render($template->getFile() ?: __DIR__ . '/watcherList.latte');
 	}
 }

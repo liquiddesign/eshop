@@ -182,9 +182,14 @@ class StatsControl extends Control
 		$this->template->ordersCount = \count($orders);
 		$this->template->discountCoupons = $discountCoupons = $this->discountCouponRepository->many()->where('fk_currency', $currency->getPK())->toArray();
 		$this->template->usageDiscountCoupons = $this->orderRepository->getDiscountCouponsUsage($orders, $discountCoupons);
-		$this->template->admin = $this->getPresenter()->admin;
 
-		$this->getTemplate()->render($this->template->getFile() ?: __DIR__ . \DIRECTORY_SEPARATOR . 'statsControl.latte');
+		/** @var \Eshop\Admin\StatsPresenter $presenter */
+		$presenter = $this->getPresenter();
+		$this->template->admin = $presenter->admin;
+
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+		$template->render($this->template->getFile() ?: __DIR__ . \DIRECTORY_SEPARATOR . 'statsControl.latte');
 	}
 
 	public function handleResetStatsFilter(): void

@@ -209,15 +209,15 @@ class Purchase extends \StORM\Entity
 	{
 		return (bool) $this->ic;
 	}
-	
+
 	/**
-	 * @return \StORM\Collection|\Eshop\DB\CartItem[]
+	 * @return \StORM\Collection<\Eshop\DB\CartItem>|\Eshop\DB\CartItem[]
 	 */
 	public function getItems(): Collection
 	{
 		/** @var \Eshop\DB\CartItemRepository $cartItemRepository */
 		$cartItemRepository = $this->getConnection()->findRepository(CartItem::class);
-		
+
 		return $cartItemRepository->getItems($this->getCartIds());
 	}
 	

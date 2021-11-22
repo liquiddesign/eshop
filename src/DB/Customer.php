@@ -245,7 +245,7 @@ class Customer extends Entity implements IIdentity, IUser
 	 */
 	public RelationCollection $accounts;
 	
-	protected ?Account $account = null;
+	public ?Account $account = null;
 	
 	protected ?CatalogPermission $catalogPermission;
 	
@@ -314,8 +314,9 @@ class Customer extends Entity implements IIdentity, IUser
 			return null;
 		}
 
+		/** @var \Eshop\DB\LoyaltyProgramHistory|null $points */
 		$points = $this->loyaltyProgram->histories->match(['fk_customer' => $this->getPK()])->select(['totalPoints' => 'SUM(points)'])->first();
 
-		return $points ? \floatval($points->totalPoints) : 0;
+		return $points ? \floatval($points->getValue('totalPoints')) : 0;
 	}
 }

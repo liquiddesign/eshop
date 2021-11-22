@@ -24,8 +24,11 @@ class CartList extends \Grid\Datalist
 			$collection->where('customerTable.fullname LIKE :query OR customerTable.email LIKE :query', ['query' => '%' . $value . '%']);
 		}, '');
 
-		$this->getFilterForm()->addText('customer');
-		$this->getFilterForm()->addSubmit('submit');
+		/** @var \Forms\Form $form */
+		$form = $this->getFilterForm();
+
+		$form->addText('customer');
+		$form->addSubmit('submit');
 
 		$this->checkoutManager = $checkoutManager;
 		$this->cartRepository = $cartRepository;
@@ -34,7 +37,11 @@ class CartList extends \Grid\Datalist
 	public function render(): void
 	{
 		$this->template->paginator = $this->getPaginator();
-		$this->template->render($this->template->getFile() ?: __DIR__ . '/cartList.latte');
+
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+
+		$template->render($this->template->getFile() ?: __DIR__ . '/cartList.latte');
 	}
 
 	public function handleReset(): void

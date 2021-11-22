@@ -30,8 +30,11 @@ class CustomerList extends Datalist
 			$collection->where('company LIKE :query OR fullname LIKE :query OR email LIKE :query', ['query' => '%' . $value . '%']);
 		}, '');
 
-		$this->getFilterForm()->addText('name');
-		$this->getFilterForm()->addSubmit('submit');
+		/** @var \Forms\Form $form */
+		$form = $this->getFilterForm();
+
+		$form->addText('name');
+		$form->addSubmit('submit');
 
 		$this->shopper = $shopper;
 	}
@@ -48,7 +51,11 @@ class CustomerList extends Datalist
 		$this->template->merchant = $this->shopper->getMerchant() ?? $this->shopper->getCustomer();
 		$this->template->customer = $this->shopper->getCustomer();
 		$this->template->paginator = $this->getPaginator();
-		$this->template->render($this->template->getFile() ?: __DIR__ . '/customerList.latte');
+
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+
+		$template->render($this->template->getFile() ?: __DIR__ . '/customerList.latte');
 	}
 
 	public function createComponentChangePermForm(): Multiplier

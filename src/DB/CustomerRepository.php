@@ -43,7 +43,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 	{
 		$writer->setDelimiter(';');
 
-		foreach ($customers as $customer) {
+		foreach ($customers->toArray() as $customer) {
 			$writer->insertOne([
 				$customer->email,
 			]);

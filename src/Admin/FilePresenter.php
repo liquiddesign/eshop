@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
+use Admin\Controls\AdminFormFactory;
 use Eshop\DB\File;
 use Eshop\DB\FileRepository;
 use Eshop\DB\Product;
@@ -15,6 +16,9 @@ class FilePresenter extends BackendPresenter
 {
 	/** @inject */
 	public FileRepository $fileRepository;
+
+	/** @inject */
+	public AdminFormFactory $formFactory;
 	
 	private string $productFilesPath;
 	
@@ -27,7 +31,7 @@ class FilePresenter extends BackendPresenter
 	
 	public function createComponentNewForm(): Form
 	{
-		$form = $this->formFactory->createForm();
+		$form = $this->formFactory->create();
 		
 		$form->addText('fileName', 'Název souboru');
 		$form->addLocaleText('label', 'Popisek');

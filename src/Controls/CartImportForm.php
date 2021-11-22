@@ -12,6 +12,11 @@ use Nette\Http\FileUpload;
 
 class CartImportForm extends Form
 {
+	/**
+	 * @var array<callable(self, array|object): void|callable(array|object): void>
+	 */
+	public $onValidate = [];
+
 	private CheckoutManager $checkoutManager;
 	
 	private ProductRepository $productRepository;
@@ -37,19 +42,20 @@ class CartImportForm extends Form
 	
 	public function importAttempt(Form $form): void
 	{
-		$values = $form->getValues();
+		$values = $form->getValues('array');
 		
-		if ($values->importFile->hasFile()) {
-			$this->parseCSVFile($values->importFile);
+		if ($values['importFile']->hasFile()) {
+			$this->parseCSVFile($values['importFile']);
 		}
 		
-		if ($values->pasteArea !== '') {
-			$this->parsePasteArea($values->pasteArea);
+		if ($values['pasteArea'] !== '') {
+			$this->parsePasteArea($values['pasteArea']);
 		}
 		
 		$notFoundProducts = [];
 		
 		foreach ($this->items as $code => $amount) {
+			/** @var \Eshop\DB\Product|null $product */
 			$product = $this->productRepository->getProducts()->where('IF(this.subCode, CONCAT(this.code,".",this.subCode), this.code) = :code OR this.ean = :code', ['code' => $code])->first();
 			
 			if ($product) {
@@ -69,7 +75,11 @@ class CartImportForm extends Form
 		}
 
 		$form->addError('Některé z produktů nebyly nalezeny. Zkontrolujte prosím jejich zadání');
-		$form['pasteArea']->value = \implode("\n", $notFoundProducts);
+
+		/** @var \Nette\Forms\Controls\TextArea $control */
+		$control = $form['pasteArea'];
+
+		$control->value = \implode("\n", $notFoundProducts);
 	}
 
 	private function parseCSVFile(FileUpload $importFile): void
@@ -87,7 +97,7 @@ class CartImportForm extends Form
 				continue;
 			}
 			
-			$this->items[$productId] = isset($items[$productId]) ? $items[$productId] + $amount : $amount;
+			$this->items[$productId] = isset($this->items[$productId]) ? (int)$this->items[$productId] + (int)$amount : $amount;
 		}
 		
 		\fclose($handle);
@@ -104,7 +114,7 @@ class CartImportForm extends Form
 				continue;
 			}
 			
-			$this->items[$productId] = isset($items[$productId]) ? $items[$productId] + $amount : $amount;
+			$this->items[$productId] = isset($this->items[$productId]) ? (int)$this->items[$productId] + (int)$amount : $amount;
 		}
 	}
 	

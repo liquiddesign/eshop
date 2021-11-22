@@ -15,6 +15,7 @@ use Eshop\DB\CartItem;
 use Eshop\DB\CartItemRepository;
 use Eshop\DB\CartRepository;
 use Eshop\DB\CurrencyRepository;
+use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Delivery;
 use Eshop\DB\DeliveryRepository;
@@ -107,6 +108,9 @@ class OrderPresenter extends BackendPresenter
 
 	/** @inject */
 	public AddressRepository $addressRepository;
+
+	/** @inject */
+	public CustomerGroupRepository $customerGroupRepository;
 
 	/** @inject */
 	public PackageItemRepository $packageItemRepository;
@@ -350,7 +354,10 @@ class OrderPresenter extends BackendPresenter
 		];
 
 		$this->template->displayControls = [$this->getComponent('ordersGrid')];
-		$this->template->ordersForJBOX = $this->getComponent('ordersGrid')->getItemsOnPage();
+
+		/** @var \Grid\Datagrid $grid */
+		$grid = $this->getComponent('ordersGrid');
+		$this->template->ordersForJBOX = $grid->getItemsOnPage();
 	}
 
 	public function renderDetail(Order $order): void
@@ -421,7 +428,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function createComponentNewOrderItemForm(): AdminForm
 	{
-		/** @var \Eshop\DB\Cart $order */
+		/** @var \Eshop\DB\Order $order */
 		$order = $this->getParameter('order');
 
 		$form = $this->formFactory->create();
@@ -443,8 +450,11 @@ class OrderPresenter extends BackendPresenter
 		$form->onValidate[] = function (AdminForm $form): void {
 			$data = $this->getHttpRequest()->getPost();
 
+			/** @var \Nette\Forms\Controls\SelectBox $productInput */
+			$productInput = $form['product'];
+
 			if (!isset($data['product'])) {
-				$form['product']->addError('Toto pole je povinné!');
+				$productInput->addError('Toto pole je povinné!');
 
 				return;
 			}
@@ -453,7 +463,7 @@ class OrderPresenter extends BackendPresenter
 				return;
 			}
 
-			$form['product']->addError('Daný produkt nebyl nalezen nebo není dostupný');
+			$productInput->addError('Daný produkt nebyl nalezen nebo není dostupný');
 		};
 
 		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
@@ -557,61 +567,59 @@ class OrderPresenter extends BackendPresenter
 	}
 
 	//@TODO
-	//@codingStandardsIgnoreStart
 	public function createComponentMergeOrderForm(): AdminForm
 	{
 		$orderRepository = $this->orderRepository;
-		$order = null;
+//		$order = null;
 
 		$form = $this->formFactory->create();
 
 		$form->addText('code', 'Kód objednávky')->addRule(function (TextInput $value) use ($orderRepository) {
 			return !$orderRepository->many()->where('code', $value->value)->isEmpty();
 		}, 'Tato objednávka neexistuje')->setRequired();
-		$form->addSubmits(false, false);
-		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
-			$values = $form->getValues('array');
-
-			/** @var \Eshop\DB\Order $order */
-			$order = $this->orderRepository->one(['code' => $values['code']], true);
-
-			// cancel the order
-			/** @var \Eshop\DB\Order $orderOld */
-			$orderOld = $this->orderRepository->one($orderId, true);
-
-			/** @var \Eshop\DB\Order $orderNew */
-			$orderNew = $this->orderRepository->one($orderId, true);
-
-			if ($orderOld->purchase->customer) {
-				$orderOld->purchase->customer->setAccount($orderOld->purchase->account);
-				$this->shopper->setCustomer($orderOld->purchase->customer);
-			} else {
-				$this->shopper->setCustomer(null);
-				$this->shopper->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
-			}
-
-			// add to cart and update order
-
-			$newCart = $orderOld->purchase->carts->first();
-
-			foreach ($orderOld->purchase->carts->first() as $item) {
-				if ($item->getValue('product') === null) {
-					// throw exception
-				}
-
-				$product = $this->productRepo->getProduct($item->getValue('product'));
-				$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], false, false, false, $newCart);
-			}
-
-			$orderOld->update(['canceledTs' => new DateTime()]);
-
-			$this->flashMessage('Provedeno', 'success');
-			$this->redirect('this');
-		};
+//		$form->addSubmits(false, false);
+//		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
+//			$values = $form->getValues('array');
+//
+//			/** @var \Eshop\DB\Order $order */
+//			$order = $this->orderRepository->one(['code' => $values['code']], true);
+//
+//			// cancel the order
+//			/** @var \Eshop\DB\Order $orderOld */
+//			$orderOld = $this->orderRepository->one($orderId, true);
+//
+//			/** @var \Eshop\DB\Order $orderNew */
+//			$orderNew = $this->orderRepository->one($orderId, true);
+//
+//			if ($orderOld->purchase->customer) {
+//				$orderOld->purchase->customer->setAccount($orderOld->purchase->account);
+//				$this->shopper->setCustomer($orderOld->purchase->customer);
+//			} else {
+//				$this->shopper->setCustomer(null);
+//				$this->shopper->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
+//			}
+//
+//			// add to cart and update order
+//
+//			$newCart = $orderOld->purchase->carts->first();
+//
+//			foreach ($orderOld->purchase->carts->first() as $item) {
+//				if ($item->getValue('product') === null) {
+//					// throw exception
+//				}
+//
+//				$product = $this->productRepo->getProduct($item->getValue('product'));
+//				$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], false, false, false, $newCart);
+//			}
+//
+//			$orderOld->update(['canceledTs' => new DateTime()]);
+//
+//			$this->flashMessage('Provedeno', 'success');
+//			$this->redirect('this');
+//		};
 
 		return $form;
 	}
-	//@codingStandardsIgnoreEnd
 
 	public function createComponentDetailOrderItemForm(): AdminForm
 	{
@@ -767,6 +775,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function modifyPackage(Button $button): void
 	{
+		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
 		$delivery = $this->getParameter('delivery');
 
@@ -967,11 +976,18 @@ class OrderPresenter extends BackendPresenter
 		$form->onSuccess[] = function (Form $form): void {
 			$values = $form->getValues('array');
 
+			/** @var \Admin\DB\Administrator|null $admin */
+			$admin = $this->admin->getIdentity();
+
+			if (!$admin) {
+				return;
+			}
+
 			$this->commentRepository->createOne([
 				'order' => $this->getParameter('order')->getPK(),
 				'text' => $values['text'],
-				'administrator' => $this->admin->getIdentity()->getPK(),
-				'adminFullname' => $this->admin->getIdentity()->fullName,
+				'administrator' => $admin->getPK(),
+				'adminFullname' => $admin->fullName,
 			]);
 
 			$this->flashMessage('Uloženo', 'success');
@@ -985,7 +1001,10 @@ class OrderPresenter extends BackendPresenter
 	{
 		$array = $order->purchase->toArray(['billAddress', 'deliveryAddress']) + $order->toArray();
 
-		$this->getComponent('orderForm')->setDefaults($array);
+		/** @var \Admin\Controls\AdminForm $form */
+		$form = $this->getComponent('orderForm');
+
+		$form->setDefaults($array);
 	}
 
 	public function renderPrintDetail(Order $order): void

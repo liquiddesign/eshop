@@ -10,7 +10,6 @@ use League\Csv\Writer;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Localization\Translator;
-use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
 use Security\DB\Account;
 use StORM\Collection;
@@ -157,7 +156,10 @@ class OrderRepository extends \StORM\Repository
 			$writer->insertOne($header);
 		}
 
-		/** @var \Eshop\DB\Order $order */
+		/**
+		 * @var \Eshop\DB\Order $order
+		 * @phpstan-ignore-next-line
+		 */
 		while ($order = $orders->fetch()) {
 			foreach ($order->purchase->getItems() as $item) {
 				$row = [];
@@ -319,6 +321,10 @@ class OrderRepository extends \StORM\Repository
 		), $styles);
 
 		$sumPrice = 0;
+
+		if (\count($orders) === 0) {
+			return;
+		}
 
 		foreach ($orders as $order) {
 			$sumPrice += $order->getTotalPrice();
@@ -769,7 +775,7 @@ class OrderRepository extends \StORM\Repository
 
 	/**
 	 * @param \Eshop\DB\Order $order
-	 * @return string[]
+	 * @return array<string, array|bool|\Eshop\DB\Currency|\Eshop\DB\DiscountCoupon|\Eshop\DB\Order|float|string|null>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function getEmailVariables(Order $order): array
@@ -962,17 +968,22 @@ class OrderRepository extends \StORM\Repository
 			->where('customer.uuid', \array_keys($customers));
 	}
 
-	// @TODO?
-
+	/**
+	 * @param \Eshop\DB\Order $order
+	 * @param string $status
+	 * @todo
+	 */
 	public function changeState(Order $order, string $status): void
 	{
+		unset($order);
+		unset($status);
 		// in array
-		if (1) {
-		}
-
-		$order->update([$status . 'Ts' => (string)new DateTime()]);
-
-		Arrays::invoke($this->onChangeState);
+//		if (1) {
+//		}
+//
+//		$order->update([$status . 'Ts' => (string)new DateTime()]);
+//
+//		Arrays::invoke($this->onChangeState);
 	}
 
 	/**
@@ -1012,7 +1023,7 @@ class OrderRepository extends \StORM\Repository
 		foreach ($order->purchase->getItems()->join(['loyaltyProgramProduct' => 'eshop_loyaltyprogramproduct'], 'this.fk_product = loyaltyProgramProduct.fk_product')
 					 ->where('loyaltyProgramProduct.fk_loyaltyProgram', $loyaltyProgram)
 					 ->select(['pointsGain' => 'loyaltyProgramProduct.points']) as $cartItem) {
-			$pointsGain += $cartItem->amount * $cartItem->pointsGain;
+			$pointsGain += $cartItem->amount * $cartItem->getValue('pointsGain');
 		}
 
 		return $pointsGain;

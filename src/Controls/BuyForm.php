@@ -38,7 +38,7 @@ class BuyForm extends Form
 		$this->addHidden('variant');
 		$this->addSubmit('submit', 'Přidat do košíku')->setDisabled(!$shopper->getBuyPermission());
 
-		if (!$shopper->getBuyPermission() || !$product) {
+		if (!$shopper->getBuyPermission()) {
 			return;
 		}
 
