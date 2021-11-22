@@ -632,7 +632,7 @@ class CheckoutManager
 			return true;
 		}
 
-		return (bool)$this->discountCouponRepository->getValidCoupon($discountCoupon->code, $discountCoupon->currency, $discountCoupon->exclusiveCustomer);
+		return (bool)$this->discountCouponRepository->getValidCouponByCart($discountCoupon->code, $this->getCart(), $discountCoupon->exclusiveCustomer);
 	}
 
 	public function checkOrder(): bool
@@ -1106,7 +1106,7 @@ class CheckoutManager
 		$this->customer = $customer;
 	}
 
-	private function getCart(): Cart
+	public function getCart(): Cart
 	{
 		if (!$this->cartExists()) {
 			return $this->createCart();

@@ -8,6 +8,7 @@ use Eshop\CheckoutManager;
 use Eshop\DB\DiscountCouponRepository;
 use Eshop\Shopper;
 use Nette;
+use Translator\DB\TranslationRepository;
 
 /**
  * @method onSet(\Eshop\DB\DiscountCoupon $coupon)
@@ -31,7 +32,7 @@ class CouponForm extends \Nette\Application\UI\Form
 	
 	private CheckoutManager $checkoutManager;
 	
-	public function __construct(Shopper $shopper, CheckoutManager $checkoutManager, DiscountCouponRepository $discountCouponRepository)
+	public function __construct(Shopper $shopper, CheckoutManager $checkoutManager, DiscountCouponRepository $discountCouponRepository, Nette\Localization\Translator $translator)
 	{
 		parent::__construct();
 
@@ -44,7 +45,11 @@ class CouponForm extends \Nette\Application\UI\Form
 		$this->addCheckbox('active');
 		$this->addText('code')
 			->setDefaultValue($discountCoupon ? $discountCoupon->code : null)
-			->addRule([$this, 'validateCoupon'], 'Slevový kupón není platný', [$shopper->getCurrency(), $shopper->getCustomer(), $discountCouponRepository]);
+			->addRule(
+				[$this, 'validateCoupon'],
+				$translator->translate('couponForm.invalid', 'Slevový kupón není platný'),
+				[$checkoutManager->getCart(), $shopper->getCustomer(), $discountCouponRepository],
+			);
 		$this->addSubmit('submit')->onClick[] = [$this, 'setCoupon'];
 		
 		if (!$discountCoupon) {
@@ -63,7 +68,7 @@ class CouponForm extends \Nette\Application\UI\Form
 		$shopper = $this->shopper;
 		$code = (string) $values['code'];
 		
-		if (!$coupon = $this->discountCouponRepository->getValidCoupon($code, $shopper->getCurrency(), $shopper->getCustomer())) {
+		if (!$coupon = $this->discountCouponRepository->getValidCouponByCart($code, $this->checkoutManager->getCart(), $shopper->getCustomer())) {
 			return;
 		}
 
@@ -83,8 +88,8 @@ class CouponForm extends \Nette\Application\UI\Form
 
 	public static function validateCoupon(Nette\Forms\Controls\TextInput $input, array $args): bool
 	{
-		[$currency, $customer, $repository] = $args;
+		[$cart, $customer, $repository] = $args;
 		
-		return (bool) $repository->getValidCoupon((string) $input->getValue(), $currency, $customer);
+		return (bool) $repository->getValidCouponByCart((string) $input->getValue(), $cart, $customer);
 	}
 }
