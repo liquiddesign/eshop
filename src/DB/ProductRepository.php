@@ -808,16 +808,14 @@ class ProductRepository extends Repository implements IGeneralRepository
 			/** @var \Eshop\DB\Product|\stdClass|null $upsellWithPrice */
 			$upsellWithPrice = $this->getProducts()->where('this.uuid', $upsell->getPK())->first();
 
-			if (!$upsellWithPrice) {
-				if ($masterPct = $upsell->getValue('masterPct')) {
-					$upsell->shortName = $upsell->name;
-					$upsell->name = $cartItem->productName . ' - ' . $upsell->name;
-					$upsell->price = $cartItem->getPriceSum() * $masterPct / 100;
-					$upsell->priceVat = $cartItem->getPriceVatSum() * $masterPct / 100;
-					$upsell->currencyCode = $this->shopper->getCurrency()->code;
-					$upsells[$upsell->getPK()] = $upsell;
-				}
-			} elseif ($upsellWithPrice->getPriceVat()) {
+			if ($masterPct = $upsell->getValue('masterPct')) {
+				$upsell->shortName = $upsell->name;
+				$upsell->name = $cartItem->productName . ' - ' . $upsell->name;
+				$upsell->price = $cartItem->getPriceSum() * $masterPct / 100;
+				$upsell->priceVat = $cartItem->getPriceVatSum() * $masterPct / 100;
+				$upsell->currencyCode = $this->shopper->getCurrency()->code;
+				$upsells[$upsell->getPK()] = $upsell;
+			} elseif ($upsellWithPrice && $upsellWithPrice->getPriceVat()) {
 				$upsellWithPrice->shortName = $upsellWithPrice->name;
 				$upsellWithPrice->name = $cartItem->productName . ' - ' . $upsellWithPrice->name;
 				$upsellWithPrice->price = $cartItem->amount * $upsellWithPrice->getPrice();
