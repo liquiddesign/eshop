@@ -798,7 +798,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		/** @var \Eshop\DB\Product|\stdClass $upsell */
 		foreach ($this->many()->join(['relation' => 'eshop_related'], 'this.uuid = relation.fk_slave')
-					 ->join(['relatedType' => 'eshop_relatedType'], 'relation.fk_type = relatedType.uuid')
+					 ->join(['relatedType' => 'eshop_relatedtype'], 'relation.fk_type = relatedType.uuid')
 					 ->where('relatedType. showCart', true)
 					 ->where('relatedType. hidden', false)
 					 ->where('relation.fk_master', $cartItem->getValue('product'))
