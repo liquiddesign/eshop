@@ -127,7 +127,7 @@ class CartItemList extends Datalist
 
 			$this->checkoutManager->deleteItem($cartItem);
 		} else {
-			$this->checkoutManager->addItemToCart($upsell, null, 1, false, false, false)->update(['upsell' => $cartItem->getPK()]);
+			$this->checkoutManager->addItemToCart($upsell, null, 1, false, false, true)->update(['upsell' => $cartItem->getPK()]);
 		}
 
 		$this->redirect('this');

@@ -95,7 +95,8 @@ class CartItemRepository extends \StORM\Repository
 			'priceVat' => $product->getPriceVat($amount),
 			'vatPct' => (float) $vatPct,
 			'product' => !$disabled ? $product->getPK() : null,
-			'pricelist' => $product->getValue('pricelist') ?? null,
+			/** @phpstan-ignore-next-line spadne při getValue na neexsitující, pricelist nemusí vždy existovat*/
+			'pricelist' => $product->pricelist ?? null,
 			'variant' => $variant ? $variant->getPK() : null,
 			'cart' => $cart->getPK(),
 		]);

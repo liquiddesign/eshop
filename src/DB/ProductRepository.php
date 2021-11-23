@@ -39,16 +39,17 @@ class ProductRepository extends Repository implements IGeneralRepository
 	private OrderRepository $orderRepository;
 
 	public function __construct(
-		Shopper $shopper,
-		DIConnection $connection,
-		SchemaManager $schemaManager,
-		AttributeRepository $attributeRepository,
-		SetRepository $setRepository,
-		PageRepository $pageRepository,
-		DeliveryDiscountRepository $deliveryDiscountRepository,
+		Shopper                               $shopper,
+		DIConnection                          $connection,
+		SchemaManager                         $schemaManager,
+		AttributeRepository                   $attributeRepository,
+		SetRepository                         $setRepository,
+		PageRepository                        $pageRepository,
+		DeliveryDiscountRepository            $deliveryDiscountRepository,
 		LoyaltyProgramDiscountLevelRepository $loyaltyProgramDiscountLevelRepository,
-		OrderRepository $orderRepository
-	) {
+		OrderRepository                       $orderRepository
+	)
+	{
 		parent::__construct($connection, $schemaManager);
 
 		$this->shopper = $shopper;
@@ -58,6 +59,21 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$this->deliveryDiscountRepository = $deliveryDiscountRepository;
 		$this->loyaltyProgramDiscountLevelRepository = $loyaltyProgramDiscountLevelRepository;
 		$this->orderRepository = $orderRepository;
+	}
+
+	public static function generateUuid(?string $ean, ?string $fullCode): string
+	{
+		$namespace = 'product';
+
+		if ($ean) {
+			return DIConnection::generateUuid($namespace, $ean);
+		}
+
+		if ($fullCode) {
+			return DIConnection::generateUuid($namespace, $fullCode);
+		}
+
+		throw new InvalidArgumentException('There is no unique parameter');
 	}
 
 	/**
@@ -199,6 +215,29 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 
 		return $customer->discountLevelPct;
+	}
+
+	private function sqlHandlePrice(string $alias, string $priceExp, ?int $levelDiscountPct, array $generalPricelistIds, int $prec, ?float $rate): string
+	{
+		$expression = $rate === null ? "$alias.$priceExp" : "ROUND($alias.$priceExp * $rate,$prec)";
+
+		if ($levelDiscountPct && $generalPricelistIds) {
+			$pricelists = \implode(',', \array_map(function ($value) {
+				return "'$value'";
+			}, $generalPricelistIds));
+
+			$expression = "IF($alias.fk_pricelist IN ($pricelists), 
+			ROUND($expression * ((100 - IF(this.discountLevelPct > $levelDiscountPct,this.discountLevelPct,$levelDiscountPct)) / 100),$prec), 
+			$expression)";
+		}
+
+		return $expression;
+	}
+
+	private function sqlExplode(string $expression, string $delimiter, int $position): string
+	{
+		return "REPLACE(SUBSTRING(SUBSTRING_INDEX($expression, '$delimiter', $position),
+       LENGTH(SUBSTRING_INDEX($expression, '$delimiter', " . ($position - 1) . ")) + 1), '$delimiter', '')";
 	}
 
 	/**
@@ -757,18 +796,24 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$upsells = [];
 
-		foreach ($cartItem->product->upsells->orderBy(['priority']) as $upsell) {
-			/** @var \Eshop\DB\Product|\stdClass $upsell */
-
+		/** @var \Eshop\DB\Product|\stdClass $upsell */
+		foreach ($this->many()->join(['relation' => 'eshop_related'], 'this.uuid = relation.fk_slave')
+					 ->join(['relatedType' => 'eshop_relatedType'], 'relation.fk_type = relatedType.uuid')
+					 ->where('relatedType. showCart', true)
+					 ->where('relatedType. hidden', false)
+					 ->where('relation.fk_master', $cartItem->getValue('product'))
+					 ->select(['masterPct' => 'relation.masterPct'])
+					 ->orderBy(['priority']) as $upsell
+		) {
 			/** @var \Eshop\DB\Product|\stdClass|null $upsellWithPrice */
 			$upsellWithPrice = $this->getProducts()->where('this.uuid', $upsell->getPK())->first();
 
 			if (!$upsellWithPrice) {
-				if ($cartItem->product->dependedValue) {
+				if ($masterPct = $upsell->getValue('masterPct')) {
 					$upsell->shortName = $upsell->name;
 					$upsell->name = $cartItem->productName . ' - ' . $upsell->name;
-					$upsell->price = $cartItem->getPriceSum() * $cartItem->product->dependedValue / 100;
-					$upsell->priceVat = $cartItem->getPriceVatSum() * $cartItem->product->dependedValue / 100;
+					$upsell->price = $cartItem->getPriceSum() * $masterPct / 100;
+					$upsell->priceVat = $cartItem->getPriceVatSum() * $masterPct / 100;
 					$upsell->currencyCode = $this->shopper->getCurrency()->code;
 					$upsells[$upsell->getPK()] = $upsell;
 				}
@@ -893,31 +938,6 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 	}
 
-	public function isProductDeliveryFreeVat(Product $product): bool
-	{
-		return $this->isProductDeliveryFree($product, true);
-	}
-
-	public function isProductDeliveryFreeWithoutVat(Product $product): bool
-	{
-		return $this->isProductDeliveryFree($product, false);
-	}
-
-	public static function generateUuid(?string $ean, ?string $fullCode): string
-	{
-		$namespace = 'product';
-
-		if ($ean) {
-			return DIConnection::generateUuid($namespace, $ean);
-		}
-
-		if ($fullCode) {
-			return DIConnection::generateUuid($namespace, $fullCode);
-		}
-
-		throw new InvalidArgumentException('There is no unique parameter');
-	}
-
 	/*public function filterCategory($value, ICollection $collection)
 	{
 		$collection->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=this.uuid');
@@ -926,27 +946,9 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$value === false ? $collection->where('categories.uuid IS NULL') : $collection->where('categories.path LIKE :category', ['category' => "$value%"]);
 	}*/
 
-	private function sqlHandlePrice(string $alias, string $priceExp, ?int $levelDiscountPct, array $generalPricelistIds, int $prec, ?float $rate): string
+	public function isProductDeliveryFreeVat(Product $product): bool
 	{
-		$expression = $rate === null ? "$alias.$priceExp" : "ROUND($alias.$priceExp * $rate,$prec)";
-
-		if ($levelDiscountPct && $generalPricelistIds) {
-			$pricelists = \implode(',', \array_map(function ($value) {
-				return "'$value'";
-			}, $generalPricelistIds));
-
-			$expression = "IF($alias.fk_pricelist IN ($pricelists), 
-			ROUND($expression * ((100 - IF(this.discountLevelPct > $levelDiscountPct,this.discountLevelPct,$levelDiscountPct)) / 100),$prec), 
-			$expression)";
-		}
-
-		return $expression;
-	}
-
-	private function sqlExplode(string $expression, string $delimiter, int $position): string
-	{
-		return "REPLACE(SUBSTRING(SUBSTRING_INDEX($expression, '$delimiter', $position),
-       LENGTH(SUBSTRING_INDEX($expression, '$delimiter', " . ($position - 1) . ")) + 1), '$delimiter', '')";
+		return $this->isProductDeliveryFree($product, true);
 	}
 
 	private function isProductDeliveryFree(Product $product, bool $vat): bool
@@ -963,5 +965,10 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 
 		return false;
+	}
+
+	public function isProductDeliveryFreeWithoutVat(Product $product): bool
+	{
+		return $this->isProductDeliveryFree($product, false);
 	}
 }
