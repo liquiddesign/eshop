@@ -786,14 +786,14 @@ class CheckoutManager
 
 	public function getCheckoutPrice(): float
 	{
-		$price = $this->getSumPrice() + $this->getDeliveryPrice() - $this->getDiscountPrice();
+		$price = $this->getSumPrice() + $this->getDeliveryPrice() + $this->getPaymentPrice() - $this->getDiscountPrice();
 
 		return (float)$price ?: 0.0;
 	}
 
 	public function getCheckoutPriceVat(): float
 	{
-		$priceVat = $this->getSumPriceVat() + $this->getDeliveryPriceVat() - $this->getDiscountPriceVat();
+		$priceVat = $this->getSumPriceVat() + $this->getDeliveryPriceVat() + $this->getPaymentPriceVat() - $this->getDiscountPriceVat();
 
 		return (float)$priceVat ?: 0.0;
 	}
