@@ -46,7 +46,7 @@ class DiscountCouponForm extends Control
 		$form->addText('maximalOrderPrice', 'Maximální cena objednávky')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->bind($discountCouponRepository->getStructure());
 		$form->addGroup('Podmínky');
-		$form->addSelect('conditionsType', 'Typ porovnávání', ['and' => 'AND', 'or' => 'OR']);
+		$form->addSelect('conditionsType', 'Typ porovnávání', ['and' => 'Všechny podmínky musí platit', 'or' => 'Alespoň jedna podmínka musí platit']);
 
 		$conditionsContainer = $form->addContainer('conditionsContainer');
 
