@@ -601,7 +601,7 @@ class ProductPresenter extends BackendPresenter
 		$form->setDefaults($productData);
 
 		/** @var \Nette\Forms\Controls\SelectBox|null $input */
-		$input = $form['supplierContent'];
+		$input = $form['supplierContent'] ?? null;
 
 		if ($product->supplierContentLock && isset($input)) {
 			$input->setDefaultValue(0);
@@ -611,7 +611,7 @@ class ProductPresenter extends BackendPresenter
 			return;
 		}
 
-		/** @var \Web\DB\Page $page */
+		/** @var \Web\DB\Page|null $page */
 		$page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product]);
 
 		if (!$page) {
