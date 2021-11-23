@@ -503,7 +503,7 @@ class OrderRepository extends \StORM\Repository
 
 		$collection = $this->many()
 			->select(["date" => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
-			->where('this.completedTs IS NOT NULL')
+			->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
 			->where('this.createdTs >= :from AND this.createdTs <= :to', ['from' => $fromString, 'to' => $toString])
 			->orderBy(["date"]);
 
@@ -748,7 +748,7 @@ class OrderRepository extends \StORM\Repository
 	public function getOrdersByUser($user): ?Collection
 	{
 		$collection = $this->many()
-			->where('this.completedTs IS NOT NULL')
+			->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
 			->orderBy(["this.createdTs"]);
 
 		if ($user) {
