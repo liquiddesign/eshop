@@ -983,22 +983,18 @@ class CheckoutManager
 				'priceVat' => $this->getDeliveryPriceVat(),
 			]);
 
-			//@todo predchozi sync-databse vytvoril not null sloupec ktery se uz nepouziva, odebrat try az bude opraveno na vsech projektech
-			try {
-				/** @var \Eshop\DB\Package $package */
-				$package = $this->packageRepository->createOne([
-					'order' => $order->getPK(),
-					'delivery' => $delivery->getPK(),
-				]);
+			/** @var \Eshop\DB\Package $package */
+			$package = $this->packageRepository->createOne([
+				'order' => $order->getPK(),
+				'delivery' => $delivery->getPK(),
+			]);
 
-				foreach ($purchase->getItems() as $cartItem) {
-					$this->packageItemRepository->createOne([
-						'package' => $package->getPK(),
-						'cartItem' => $cartItem->getPK(),
-						'amount' => $cartItem->amount,
-					]);
-				}
-			} catch (\Exception $e) {
+			foreach ($purchase->getItems() as $cartItem) {
+				$this->packageItemRepository->createOne([
+					'package' => $package->getPK(),
+					'cartItem' => $cartItem->getPK(),
+					'amount' => $cartItem->amount,
+				]);
 			}
 		}
 
