@@ -8,7 +8,6 @@ use Eshop\CheckoutManager;
 use Eshop\DB\DiscountCouponRepository;
 use Eshop\Shopper;
 use Nette;
-use Translator\DB\TranslationRepository;
 
 /**
  * @method onSet(\Eshop\DB\DiscountCoupon $coupon)

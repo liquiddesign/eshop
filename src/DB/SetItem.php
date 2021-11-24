@@ -7,6 +7,7 @@ namespace Eshop\DB;
 /**
  * Set produktu
  * @table
+ * @deprecated
  */
 class SetItem extends \StORM\Entity
 {

@@ -39,17 +39,16 @@ class ProductRepository extends Repository implements IGeneralRepository
 	private OrderRepository $orderRepository;
 
 	public function __construct(
-		Shopper                               $shopper,
-		DIConnection                          $connection,
-		SchemaManager                         $schemaManager,
-		AttributeRepository                   $attributeRepository,
-		SetRepository                         $setRepository,
-		PageRepository                        $pageRepository,
-		DeliveryDiscountRepository            $deliveryDiscountRepository,
+		Shopper $shopper,
+		DIConnection $connection,
+		SchemaManager $schemaManager,
+		AttributeRepository $attributeRepository,
+		SetRepository $setRepository,
+		PageRepository $pageRepository,
+		DeliveryDiscountRepository $deliveryDiscountRepository,
 		LoyaltyProgramDiscountLevelRepository $loyaltyProgramDiscountLevelRepository,
-		OrderRepository                       $orderRepository
-	)
-	{
+		OrderRepository $orderRepository
+	) {
 		parent::__construct($connection, $schemaManager);
 
 		$this->shopper = $shopper;
@@ -59,21 +58,6 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$this->deliveryDiscountRepository = $deliveryDiscountRepository;
 		$this->loyaltyProgramDiscountLevelRepository = $loyaltyProgramDiscountLevelRepository;
 		$this->orderRepository = $orderRepository;
-	}
-
-	public static function generateUuid(?string $ean, ?string $fullCode): string
-	{
-		$namespace = 'product';
-
-		if ($ean) {
-			return DIConnection::generateUuid($namespace, $ean);
-		}
-
-		if ($fullCode) {
-			return DIConnection::generateUuid($namespace, $fullCode);
-		}
-
-		throw new InvalidArgumentException('There is no unique parameter');
 	}
 
 	/**
@@ -215,29 +199,6 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 
 		return $customer->discountLevelPct;
-	}
-
-	private function sqlHandlePrice(string $alias, string $priceExp, ?int $levelDiscountPct, array $generalPricelistIds, int $prec, ?float $rate): string
-	{
-		$expression = $rate === null ? "$alias.$priceExp" : "ROUND($alias.$priceExp * $rate,$prec)";
-
-		if ($levelDiscountPct && $generalPricelistIds) {
-			$pricelists = \implode(',', \array_map(function ($value) {
-				return "'$value'";
-			}, $generalPricelistIds));
-
-			$expression = "IF($alias.fk_pricelist IN ($pricelists), 
-			ROUND($expression * ((100 - IF(this.discountLevelPct > $levelDiscountPct,this.discountLevelPct,$levelDiscountPct)) / 100),$prec), 
-			$expression)";
-		}
-
-		return $expression;
-	}
-
-	private function sqlExplode(string $expression, string $delimiter, int $position): string
-	{
-		return "REPLACE(SUBSTRING(SUBSTRING_INDEX($expression, '$delimiter', $position),
-       LENGTH(SUBSTRING_INDEX($expression, '$delimiter', " . ($position - 1) . ")) + 1), '$delimiter', '')";
 	}
 
 	/**
@@ -874,7 +835,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 				'producerCodeName' => "CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, ''))",
 				'amounts' => "GROUP_CONCAT(DISTINCT CONCAT(storeAmount.inStock, '#', store.code) SEPARATOR ':')",
 				'groupedCategories' => "GROUP_CONCAT(DISTINCT CONCAT(category.name$mutationSuffix, '#', 
-				IF(category.code IS NULL OR category.code = '', category.uuid, category.code)) ORDER BY LENGTH(category.path) SEPARATOR ':')",
+                IF(category.code IS NULL OR category.code = '', category.uuid, category.code)) ORDER BY LENGTH(category.path) SEPARATOR ':')",
 			]);
 
 		while ($product = $products->fetch()) {
@@ -949,6 +910,49 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $this->isProductDeliveryFree($product, true);
 	}
 
+	public function isProductDeliveryFreeWithoutVat(Product $product): bool
+	{
+		return $this->isProductDeliveryFree($product, false);
+	}
+
+	public static function generateUuid(?string $ean, ?string $fullCode): string
+	{
+		$namespace = 'product';
+
+		if ($ean) {
+			return DIConnection::generateUuid($namespace, $ean);
+		}
+
+		if ($fullCode) {
+			return DIConnection::generateUuid($namespace, $fullCode);
+		}
+
+		throw new InvalidArgumentException('There is no unique parameter');
+	}
+
+	private function sqlHandlePrice(string $alias, string $priceExp, ?int $levelDiscountPct, array $generalPricelistIds, int $prec, ?float $rate): string
+	{
+		$expression = $rate === null ? "$alias.$priceExp" : "ROUND($alias.$priceExp * $rate,$prec)";
+
+		if ($levelDiscountPct && $generalPricelistIds) {
+			$pricelists = \implode(',', \array_map(function ($value) {
+				return "'$value'";
+			}, $generalPricelistIds));
+
+			$expression = "IF($alias.fk_pricelist IN ($pricelists), 
+			ROUND($expression * ((100 - IF(this.discountLevelPct > $levelDiscountPct,this.discountLevelPct,$levelDiscountPct)) / 100),$prec), 
+			$expression)";
+		}
+
+		return $expression;
+	}
+
+	private function sqlExplode(string $expression, string $delimiter, int $position): string
+	{
+		return "REPLACE(SUBSTRING(SUBSTRING_INDEX($expression, '$delimiter', $position),
+       LENGTH(SUBSTRING_INDEX($expression, '$delimiter', " . ($position - 1) . ")) + 1), '$delimiter', '')";
+	}
+
 	private function isProductDeliveryFree(Product $product, bool $vat): bool
 	{
 		/** @var \Eshop\DB\DeliveryDiscount $deliveryDiscount */
@@ -963,10 +967,5 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 
 		return false;
-	}
-
-	public function isProductDeliveryFreeWithoutVat(Product $product): bool
-	{
-		return $this->isProductDeliveryFree($product, false);
 	}
 }

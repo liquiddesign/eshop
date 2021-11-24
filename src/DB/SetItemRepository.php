@@ -6,6 +6,7 @@ namespace Eshop\DB;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\SetItem>
+ * @deprecated
  */
 class SetItemRepository extends \StORM\Repository
 {

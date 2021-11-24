@@ -214,6 +214,8 @@ class OrderPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 		$form->addRadioList('Sklad', 'store', ['asda' => 'asdasd']);
 
+		//@todo log
+
 		return $form;
 	}
 
@@ -246,7 +248,14 @@ class OrderPresenter extends BackendPresenter
 
 			$delivery = $this->deliveryRepository->syncOne($values);
 
-			$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::DELIVERY_CHANGED, $delivery->getTypeName(), $this->admin->getIdentity());
+			/** @var \Admin\DB\Administrator|null $admin */
+			$admin = $this->admin->getIdentity();
+
+			if (!$admin) {
+				return;
+			}
+
+			$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::DELIVERY_CHANGED, $delivery->getTypeName(), $admin);
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detailDelivery', 'delivery', [$delivery], [$order]);
@@ -275,7 +284,14 @@ class OrderPresenter extends BackendPresenter
 			/** @var \Messages\DB\Template $template */
 			$template = $this->templateRepository->one($values['template']);
 
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, $template->name, $this->admin->getIdentity());
+			/** @var \Admin\DB\Administrator|null $admin */
+			$admin = $this->admin->getIdentity();
+
+			if (!$admin) {
+				return;
+			}
+
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, $template->name, $admin);
 
 			$mail = $this->templateRepository->createMessage($values['template'], $this->orderRepository->getEmailVariables($order), $values['email'], $values['ccEmails']);
 			$this->mailer->send($mail);
@@ -312,7 +328,14 @@ class OrderPresenter extends BackendPresenter
 
 			$payment = $this->paymentRepository->syncOne($values);
 
-			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYMENT_CHANGED, $payment->getTypeName(), $this->admin->getIdentity());
+			/** @var \Admin\DB\Administrator|null $admin */
+			$admin = $this->admin->getIdentity();
+
+			if (!$admin) {
+				return;
+			}
+
+			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYMENT_CHANGED, $payment->getTypeName(), $admin);
 
 			$this->flashMessage('Uloženo', 'success');
 
@@ -490,6 +513,15 @@ class OrderPresenter extends BackendPresenter
 				'cartItem' => $cartItem,
 			]);
 
+			/** @var \Admin\DB\Administrator|null $admin */
+			$admin = $this->admin->getIdentity();
+
+			if (!$admin) {
+				return;
+			}
+
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::NEW_ITEM, $cartItem->productName, $admin);
+
 			$this->flashMessage('Provedeno', 'success');
 			$form->processRedirect('newOrderItem', 'orderItems', [$order], [$order]);
 		};
@@ -540,6 +572,18 @@ class OrderPresenter extends BackendPresenter
 				]);
 			}
 
+			/** @var \Eshop\DB\Order $order */
+			$order = $this->getParameter('order');
+
+			/** @var \Admin\DB\Administrator|null $admin */
+			$admin = $this->admin->getIdentity();
+
+			if (!$admin) {
+				return;
+			}
+
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::SPLIT, $packageItem->cartItem->productName, $admin);
+
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('this');
 		};
@@ -557,7 +601,20 @@ class OrderPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
-			$this->packageItemRepository->one($values['uuid'], true)->update(['store' => $values['store']]);
+			/** @var \Eshop\DB\PackageItem $packageItem */
+			$packageItem = $this->packageItemRepository->one($values['uuid'], true)->update(['store' => $values['store']]);
+
+			/** @var \Eshop\DB\Order $order */
+			$order = $this->getParameter('order');
+
+			/** @var \Admin\DB\Administrator|null $admin */
+			$admin = $this->admin->getIdentity();
+
+			if (!$admin) {
+				return;
+			}
+
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::PACKAGE_CHANGED, $packageItem->cartItem->productName . ': Změna skladu - ' . $packageItem->store->name, $admin);
 
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('this');
@@ -644,6 +701,22 @@ class OrderPresenter extends BackendPresenter
 
 			$cartItem->update($values);
 
+			/** @var \Eshop\DB\Order|null $order */
+			$order = $this->getParameter('order');
+
+			if (!$order) {
+				return;
+			}
+
+			/** @var \Admin\DB\Administrator|null $admin */
+			$admin = $this->admin->getIdentity();
+
+			if (!$admin) {
+				return;
+			}
+
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::ITEM_EDITED, $cartItem->productName, $admin);
+
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('this');
 		};
@@ -726,17 +799,24 @@ class OrderPresenter extends BackendPresenter
 		];
 		$payment->update($values);
 
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $this->admin->getIdentity();
+
+		if (!$admin) {
+			return;
+		}
+
 		if ($paid) {
-			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED, null, $this->admin->getIdentity());
+			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED, null, $admin);
 
 			if ($email) {
-				$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::PAYED, $this->admin->getIdentity());
+				$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::PAYED, $admin);
 
 				$mail = $this->templateRepository->createMessage('order.payed', ['orderCode' => $payment->order->code], $payment->order->purchase->email);
 				$this->mailer->send($mail);
 			}
 		} else {
-			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED_CANCELED, null, $this->admin->getIdentity());
+			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED_CANCELED, null, $admin);
 		}
 
 		$this->flashMessage($paid ? 'Zaplaceno' : 'Zaplacení zrušeno', 'success');
@@ -753,19 +833,26 @@ class OrderPresenter extends BackendPresenter
 			'shippedTs' => $shipped ? (string)new DateTime() : null,
 		];
 
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $this->admin->getIdentity();
+
+		if (!$admin) {
+			return;
+		}
+
 		$delivery->update($values);
 
 		if ($shipped) {
-			$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::SHIPPED, null, $this->admin->getIdentity());
+			$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::SHIPPED, null, $admin);
 
 			if ($email) {
-				$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::EMAIL_SENT, OrderLogItem::SHIPPED, $this->admin->getIdentity());
+				$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::EMAIL_SENT, OrderLogItem::SHIPPED, $admin);
 
 				$mail = $this->templateRepository->createMessage('order.shipped', ['orderCode' => $delivery->order->code], $delivery->order->purchase->email);
 				$this->mailer->send($mail);
 			}
 		} else {
-			$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::SHIPPED_CANCELED, null, $this->admin->getIdentity());
+			$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::SHIPPED_CANCELED, null, $admin);
 		}
 
 		$this->flashMessage($shipped ? 'Expedováno' : 'Expedice zrušena', 'success');
@@ -950,6 +1037,15 @@ class OrderPresenter extends BackendPresenter
 
 			$order->purchase->update($values, true);
 
+			/** @var \Admin\DB\Administrator|null $admin */
+			$admin = $this->admin->getIdentity();
+
+			if (!$admin) {
+				return;
+			}
+
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::EDITED, null, $admin);
+
 			$this->flashMessage('Uloženo', 'success');
 
 			$form->processRedirect('printDetail', 'default', [$order]);
@@ -983,12 +1079,16 @@ class OrderPresenter extends BackendPresenter
 				return;
 			}
 
-			$this->commentRepository->createOne([
+			/** @var \Eshop\DB\InternalCommentOrder $comment */
+			$comment = $this->commentRepository->createOne([
 				'order' => $this->getParameter('order')->getPK(),
 				'text' => $values['text'],
 				'administrator' => $admin->getPK(),
 				'adminFullname' => $admin->fullName,
 			]);
+
+			$this->orderLogItemRepository->createLog($comment->order, OrderLogItem::NEW_COMMENT, $comment->text, $admin);
+
 
 			$this->flashMessage('Uloženo', 'success');
 			$this->redirect('comments', $this->getParameter('order'));
@@ -1082,7 +1182,22 @@ class OrderPresenter extends BackendPresenter
 
 	public function handleToggleDeleteOrderItem(string $itemId): void
 	{
+		/** @var \Eshop\DB\PackageItem $packageItem */
+		$packageItem = $this->packageItemRepository->many()->where('this.fk_cartItem', $itemId)->first(true);
 		$this->packageItemRepository->many()->where('this.fk_cartItem', $itemId)->update(['this.deleted' => new Literal('NOT deleted')]);
+
+		/** @var \Eshop\DB\Order $order */
+		$order = $this->getParameter('order');
+
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $this->admin->getIdentity();
+
+		if (!$admin) {
+			return;
+		}
+
+		$this->orderLogItemRepository->createLog($order, !$packageItem->deleted ? OrderLogItem::ITEM_DELETED : OrderLogItem::ITEM_RESTORED, $packageItem->cartItem->productName, $admin);
+
 
 		$this->redirect('this');
 	}
@@ -1102,10 +1217,22 @@ class OrderPresenter extends BackendPresenter
 			$this->shopper->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
 		}
 
-		$this->checkoutManager->addItemsFromCart($order->purchase->carts->first());
+		/** @var \Eshop\DB\Cart $cart */
+		$cart = $order->purchase->carts->first();
+
+		$this->checkoutManager->addItemsFromCart($cart);
 
 		$purchase = $this->checkoutManager->syncPurchase($order->purchase->toArray());
 		$this->checkoutManager->createOrder($purchase);
+
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $this->admin->getIdentity();
+
+		if (!$admin) {
+			return;
+		}
+
+		$this->orderLogItemRepository->createLog($order, OrderLogItem::CLONED, null, $admin);
 
 		$this->redirect('this');
 	}
@@ -1114,7 +1241,17 @@ class OrderPresenter extends BackendPresenter
 	{
 		$this->orderRepository->cancelOrderById($orderId);
 
-		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::CANCELED, null, $this->admin->getIdentity());
+		/** @var \Eshop\DB\Order $order */
+		$order = $this->orderRepository->one($orderId);
+
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $this->admin->getIdentity();
+
+		if (!$admin) {
+			return;
+		}
+
+		$this->orderLogItemRepository->createLog($order, OrderLogItem::CANCELED, null, $admin);
 
 		$this->redirect('this');
 	}
@@ -1123,7 +1260,17 @@ class OrderPresenter extends BackendPresenter
 	{
 		$this->orderRepository->banOrderById($orderId);
 
-		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::BAN_CANCELED, null, $this->admin->getIdentity());
+		/** @var \Eshop\DB\Order $order */
+		$order = $this->orderRepository->one($orderId);
+
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $this->admin->getIdentity();
+
+		if (!$admin) {
+			return;
+		}
+
+		$this->orderLogItemRepository->createLog($order, OrderLogItem::BAN_CANCELED, null, $admin);
 
 		$this->redirect('this');
 	}
@@ -1145,7 +1292,14 @@ class OrderPresenter extends BackendPresenter
 
 		$order->update(['completedTs' => (string)new DateTime(), 'canceledTs' => null]);
 
-		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::COMPLETED, null, $this->admin->getIdentity());
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $this->admin->getIdentity();
+
+		if (!$admin) {
+			return;
+		}
+
+		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::COMPLETED, null, $admin);
 
 		$this->redirect('this');
 	}
@@ -1156,7 +1310,14 @@ class OrderPresenter extends BackendPresenter
 		$order = $this->orderRepository->one($orderId, true);
 		$order->update(['receivedTs' => (string)new DateTime(), 'canceledTs' => null]);
 
-		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::RECEIVED, null, $this->admin->getIdentity());
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $this->admin->getIdentity();
+
+		if (!$admin) {
+			return;
+		}
+
+		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::RECEIVED, null, $admin);
 
 		$this->redirect('this');
 	}
@@ -1179,8 +1340,15 @@ class OrderPresenter extends BackendPresenter
 			$item->product->update(['buyCount' => $item->product->buyCount + $item->amount]);
 		}
 
-		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::RECEIVED, null, $this->admin->getIdentity());
-		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::COMPLETED, null, $this->admin->getIdentity());
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $this->admin->getIdentity();
+
+		if (!$admin) {
+			return;
+		}
+
+		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::RECEIVED, null, $admin);
+		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::COMPLETED, null, $admin);
 
 		$this->redirect('this');
 	}

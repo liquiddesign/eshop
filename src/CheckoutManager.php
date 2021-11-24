@@ -146,12 +146,6 @@ class CheckoutManager
 
 	private CartItemTaxRepository $cartItemTaxRepository;
 
-	private SetRepository $setRepository;
-
-	private SetItemRepository $setItemRepository;
-
-	private VatRateRepository $vatRateRepository;
-
 	private PackageRepository $packageRepository;
 
 	private PackageItemRepository $packageItemRepository;
@@ -180,9 +174,6 @@ class CheckoutManager
 		Response $response,
 		TaxRepository $taxRepository,
 		CartItemTaxRepository $cartItemTaxRepository,
-		SetRepository $setRepository,
-		SetItemRepository $setItemRepository,
-		VatRateRepository $vatRateRepository,
 		PackageRepository $packageRepository,
 		PackageItemRepository $packageItemRepository,
 		LoyaltyProgramHistoryRepository $loyaltyProgramHistoryRepository,
@@ -206,9 +197,6 @@ class CheckoutManager
 		$this->response = $response;
 		$this->taxRepository = $taxRepository;
 		$this->cartItemTaxRepository = $cartItemTaxRepository;
-		$this->setRepository = $setRepository;
-		$this->setItemRepository = $setItemRepository;
-		$this->vatRateRepository = $vatRateRepository;
 		$this->packageRepository = $packageRepository;
 		$this->packageItemRepository = $packageItemRepository;
 		$this->loyaltyProgramHistoryRepository = $loyaltyProgramHistoryRepository;
@@ -390,41 +378,6 @@ class CheckoutManager
 		$this->itemRepository->syncItem($this->getCart(), $item, $product, $variant, $amount);
 	}
 
-	public function createSetItems(CartItem $cartItem): void
-	{
-		$setProduct = $cartItem->product;
-
-		if (!$setProduct->productsSet) {
-			return;
-		}
-
-		/** @var \Eshop\DB\Product[] $products */
-		$products = $this->productRepository->getProducts()->join(['setT' => 'eshop_set'], 'this.uuid = setT.fk_product')->where('setT.fk_set', $setProduct->getPK())->toArray();
-
-		foreach ($products as $product) {
-			/** @var \Eshop\DB\VatRate $vat */
-			$vat = $this->vatRateRepository->one($product->vatRate);
-
-			$vatPct = $vat ? $vat->rate : 0;
-
-			/** @var \Eshop\DB\Set $set */
-			$set = $this->setRepository->many()->where('fk_set', $setProduct->getPK())->where('fk_product', $product->getPK())->first();
-
-			$this->setItemRepository->createOne([
-				'cartItem' => $cartItem->getPK(),
-				'productSet' => $set->getPK(),
-				'productName' => $product->toArray()['name'],
-				'productCode' => $product->code,
-				'productSubCode' => $product->subCode,
-				'productWeight' => $product->weight,
-				'amount' => $set->amount,
-				'vatPct' => (float)$vatPct,
-				'discountPct' => $set->discountPct,
-				'priority' => $set->priority,
-			]);
-		}
-	}
-
 	/**
 	 * @param \Eshop\DB\Product $product
 	 * @param \Eshop\DB\Variant|null $variant
@@ -497,8 +450,6 @@ class CheckoutManager
 		}
 
 		$this->refreshSumProperties();
-
-		$this->createSetItems($cartItem);
 
 		if ($this->onCartItemCreate) {
 			$this->onCartItemCreate($cartItem);

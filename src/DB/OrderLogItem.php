@@ -21,12 +21,19 @@ class OrderLogItem extends \StORM\Entity
 	public const PRICE_CHANGED = 'Cena objednávky změněna';
 	public const EMAIL_SENT = 'Odeslán email';
 	public const EDITED = 'Změna údajů';
+	public const ITEM_EDITED = 'Změna údajů položky';
+	public const ITEM_DELETED = 'Položka smazána';
+	public const ITEM_RESTORED = 'Položka obnovena';
 	public const SHIPPED = 'Expedováno';
 	public const SHIPPED_CANCELED = 'Expedice zrušena';
 	public const BAN_CANCELED = 'Problémová objednávka - stornováno';
 	public const DELIVERY_CHANGED = 'Změna způsobu dopravy';
 	public const PAYMENT_CHANGED = 'Změna způsobu platby';
 	public const PACKAGE_CHANGED = 'Úprava balíku/ů';
+	public const NEW_COMMENT = 'Nový komentář';
+	public const NEW_ITEM = 'Nová položka';
+	public const SPLIT = 'Rozděleno';
+	public const CLONED = 'Duplikováno';
 
 	/**
 	 * Operace
