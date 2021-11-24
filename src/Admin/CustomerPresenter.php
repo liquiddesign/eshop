@@ -216,7 +216,7 @@ class CustomerPresenter extends BackendPresenter
 
 	public function handleLoginCustomer($login): void
 	{
-		$this->user->login($login, '', [Customer::class], true);
+		$this->user->login($this->customerRepository->getByAccountLogin($login), null, [Customer::class]);
 
 		$this->presenter->redirect(':Web:Index:default');
 	}

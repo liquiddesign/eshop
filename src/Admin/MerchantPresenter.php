@@ -185,7 +185,7 @@ class MerchantPresenter extends BackendPresenter
 
 	public function handleLoginMerchant(string $login): void
 	{
-		$this->user->login($login, '', [Merchant::class], true);
+		$this->user->login($this->merchantRepository->getByAccountLogin($login), null, [Merchant::class]);
 
 		$this->presenter->redirect(':Web:Index:default');
 	}
