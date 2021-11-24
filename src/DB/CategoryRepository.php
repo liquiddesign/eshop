@@ -709,51 +709,46 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 		$this->clearCategoriesCache();
 	}
 
-	private function iterateAndImportHeurekaTreeXml(\SimpleXMLElement $tree, CategoryType $categoryType): void
+	private function iterateAndImportHeurekaTreeXml(\SimpleXMLElement $tree, CategoryType $categoryType, ?Category $ancestor = null): void
 	{
 		foreach ($tree as $categoryXml) {
-			if (isset($categoryXml->CATEGORY)) {
-				$this->iterateAndImportHeurekaTreeXml($categoryXml->CATEGORY, $categoryType);
-			} else {
-				$this->updateMapAndImportHeurekaTreeCategory($categoryXml, $categoryType);
-			}
-		}
-	}
+			$category = $this->saveImportHeurekaTreeCategory($categoryXml, $categoryType, $ancestor);
 
-	private function updateMapAndImportHeurekaTreeCategory(\SimpleXMLElement $element, CategoryType $categoryType): void
-	{
-		$defaultMutationSuffix = '_cs';
-		$previousCategory = null;
-
-		/** @codingStandardsIgnoreStart CATEGORY_FULLNAME is not valid name*/
-		foreach (\explode(' | ', (string)$element->CATEGORY_FULLNAME) as $categoryName) {
-			/** @codingStandardsIgnoreEnd */
-			if ($categoryName === 'Heureka.cz') {
+			if (!isset($categoryXml->CATEGORY)) {
 				continue;
 			}
 
-			$collection = $this->many()
-				->where('fk_type', $categoryType->getPK())
-				->where("name$defaultMutationSuffix", $categoryName);
-
-			if ($previousCategory) {
-				$collection->where('path LIKE :s', ['s' => "$previousCategory->path%"]);
-			} else {
-				$collection->where('fk_ancestor IS NULL');
-			}
-
-			$existingCategory = $collection->first();
-
-			/** @codingStandardsIgnoreStart CATEGORY_ID */
-			$previousCategory = $existingCategory ?? $this->createOne([
-					'name' => ['cs' => $categoryName],
-					'path' => $this->generateUniquePath($previousCategory ? $previousCategory->path : ''),
-					'ancestor' => $previousCategory,
-					'type' => $categoryType->getPK(),
-					'code' => $element->CATEGORY_ID,
-				]);
-			/** @codingStandardsIgnoreEnd */
+			$this->iterateAndImportHeurekaTreeXml($categoryXml->CATEGORY, $categoryType, $category);
 		}
+	}
+
+	private function saveImportHeurekaTreeCategory(\SimpleXMLElement $element, CategoryType $categoryType, ?Category $ancestor = null): ?Category
+	{
+		$elementArray = (array) $element;
+
+		if (!isset($elementArray['CATEGORY_NAME'])) {
+			return null;
+		}
+
+		$collection = $this->many()
+			->where('fk_type', $categoryType->getPK())
+			->where("code", $elementArray['CATEGORY_ID']);
+
+		if ($ancestor) {
+			$collection->where('path LIKE :s', ['s' => "$ancestor->path%"]);
+		} else {
+			$collection->where('fk_ancestor IS NULL');
+		}
+
+		$existingCategory = $collection->first();
+
+		return $existingCategory ?? $this->createOne([
+				'name' => ['cs' => $elementArray['CATEGORY_NAME']],
+				'path' => $this->generateUniquePath($ancestor ? $ancestor->path : ''),
+				'ancestor' => $ancestor,
+				'type' => $categoryType->getPK(),
+				'code' => $elementArray['CATEGORY_ID'] ?? null,
+			]);
 	}
 
 	/**
