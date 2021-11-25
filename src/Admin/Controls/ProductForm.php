@@ -566,6 +566,11 @@ class ProductForm extends Control
 		$this->template->supplierProducts = [];
 		$this->template->configuration = $this->configuration;
 		$this->template->shopper = $this->shopper;
+		$this->template->primaryCategory = $this->product && $this->product->primaryCategory ?
+			($this->product->primaryCategory->ancestor ?
+				\implode(' -> ', $this->product->primaryCategory->ancestor->getFamilyTree()->toArrayOf('name')) . " -> " . $this->product->primaryCategory->name :
+				$this->product->primaryCategory->name)
+			: '-';
 
 		$this->template->modals = [
 			'name' => 'frm-productForm-form-name-cs',
