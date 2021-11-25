@@ -767,6 +767,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 					 ->where('relatedType.showCart', true)
 					 ->where('relatedType.hidden', false)
 					 ->where('this.fk_master', $cartItem->getValue('product'))
+					 ->whereNot('this.fk_slave', $cartItem->getValue('product'))
 					 ->orderBy(['this.priority']) as $related
 		) {
 			if (isset($itemRelationsForCart[$related->getValue('slave')])) {
