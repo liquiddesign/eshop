@@ -75,7 +75,7 @@ class ProductGridFactory
 				$supplier = $supplierProduct->getValue('supplier');
 				$code = $supplierProduct->code;
 				$link = $grid->getPresenter()->link(':Eshop:Admin:SupplierProduct:default', ['tab' => $supplier, 'grid-search' => $code]);
-				$suppliers[] = "<a href='$link' class='badge badge-light' style='font-weight: normal;' target='_blank'>$supplier</a>";
+				$suppliers[] = "<a href='$link' class='badge badge-light' style='font-weight: normal;' target='_blank'>" . $supplierProduct->supplier->url ? $supplierProduct->supplier->name : $supplier . "</a>";
 			}
 
 			return [$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]), $product->name, \implode(' &nbsp;', $suppliers)];
