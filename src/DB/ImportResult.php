@@ -38,7 +38,7 @@ class ImportResult extends \StORM\Entity
 	
 	/**
 	 * Chyba
-	 * @column
+	 * @column{"type":"longtext"}
 	 */
 	public ?string $errorMessage;
 	

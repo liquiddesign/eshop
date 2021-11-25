@@ -48,7 +48,6 @@ class SupplierProductRepository extends \StORM\Repository
 
 		$sep = \DIRECTORY_SEPARATOR;
 		$sourceImageDirectory = $this->container->parameters['wwwDir'] . $sep . 'userfiles' . $sep . 'supplier_images';
-		$targetImageDirectory = $this->container->parameters['wwwDir'] . $sep . 'userfiles' . $sep . 'product_images';
 		$galleryImageDirectory = $this->container->parameters['wwwDir'] . $sep . 'userfiles' . $sep . 'product_gallery_images';
 
 		$vatLevels = $this->getConnection()->findRepository(VatRate::class)->many()->where('fk_country', $country)->setBufferedQuery(false)->setIndex('rate')->toArrayOf('uuid');
@@ -184,29 +183,25 @@ class SupplierProductRepository extends \StORM\Repository
 				continue;
 			}
 
-			$currentTargetImageDirectory = $primary ? $targetImageDirectory : $galleryImageDirectory;
-
 			$mtime = \filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 
-			if (!$primary) {
-				$photoRepository->syncOne([
-					'uuid' => $draft->getPK(),
-					'product' => $product->getPK(),
-					'supplier' => $supplierId,
-					'fileName' => $draft->fileName,
-				]);
-			}
+			$photoRepository->syncOne([
+				'uuid' => $draft->getPK(),
+				'product' => $product->getPK(),
+				'supplier' => $supplierId,
+				'fileName' => $draft->fileName,
+			]);
 
-			if (!$overwrite || !$draft->fileName || $mtime === @\filemtime($currentTargetImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
+			if (!$overwrite || !$draft->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
 				continue;
 			}
 
-			@\copy($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $currentTargetImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
-			@\copy($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $currentTargetImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
-			@\copy($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $currentTargetImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
-			@\touch($currentTargetImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $mtime);
-			@\touch($currentTargetImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $mtime);
-			@\touch($currentTargetImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $mtime);
+			@\copy($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
+			@\copy($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
+			@\copy($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
+			@\touch($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $mtime);
+			@\touch($galleryImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $mtime);
+			@\touch($galleryImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $mtime);
 		}
 
 		return $result;

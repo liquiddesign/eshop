@@ -19,10 +19,16 @@ use Eshop\DB\Supplier;
 use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
+use Eshop\FormValidators;
 use Grid\Datagrid;
+use Nette\Utils\Validators;
 
 class SupplierPresenter extends BackendPresenter
 {
+	protected const SUPPLIER_TYPES = [
+		\Eshop\Providers\HeurekaProvider::class => 'Heuréka',
+	];
+
 	/** @inject */
 	public SupplierRepository $supplierRepository;
 	
@@ -131,14 +137,77 @@ class SupplierPresenter extends BackendPresenter
 		
 		return $grid;
 	}
+
+	public function createComponentNewForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+
+		$form->addGroup('Obecné');
+		$form->addText('code', 'Kód')->setRequired();
+		$form->addText('name', 'Název')->setRequired();
+		$form->addSelect('providerClass', 'Typ', $this::SUPPLIER_TYPES)->setRequired();
+		$form->addText('url', 'Adresa feedu')->setRequired();
+		$form->addGroup('Defaultní hodnoty');
+		$form->addText('productCodePrefix', 'Prefix kódu produktů')->setNullable();
+		$form->addSelect('defaultDisplayAmount', 'Zobrazované množství', $this->displayAmountRepository->getArrayForSelect())->setPrompt('-zvolte-');
+		$form->addSelect('defaultDisplayDelivery', 'Zobrazované doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('-zvolte-');
+		$form->addCheckbox('defaultHiddenProduct', 'Produkty budou skryté');
+
+		$form->addGroup('Nastavení importu');
+		$form->addInteger('importPriority', 'Priorita')->setRequired()->setDefaultValue(0);
+		$form->addInteger('importPriceRatio', 'Procentuální změna ceny')
+			->setRequired()
+			->setDefaultValue(100)
+			->addRule([FormValidators::class, 'isPercentNoMax'], 'Neplatná hodnota!');
+		$form->addCheckbox('splitPricelists', 'Rozdělit ceníky (dostupné / nedostupné)');
+		$form->addCheckbox('importImages', 'Importovat obrázky');
+
+		$form->addSubmits(true);
+
+		$form->onValidate[] = function (AdminForm $form): void {
+			if (!$form->isValid()) {
+				return;
+			}
+
+			$values = $form->getValues('array');
+
+			if (Validators::isUrl($values['url'])) {
+				return;
+			}
+
+			/** @var \Nette\Forms\Controls\TextInput $input */
+			$input = $form['url'];
+			$input->addError('Nesprávný formát URL!');
+		};
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			$values = $form->getValues('array');
+
+			/** @var \Eshop\DB\Supplier $supplier */
+			$supplier = $this->supplierRepository->syncOne($values, null, true);
+
+			$this->flashMessage('Uloženo', 'success');
+			$form->processRedirect('detail', 'default', [$supplier]);
+		};
+
+		return $form;
+	}
 	
 	public function createComponentForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
-		
+
+		/** @var \Eshop\DB\Supplier|null $supplier */
+		$supplier = $this->getParameter('supplier');
+
 		$form->addGroup('Obecné');
 		$form->addText('code', 'Kód')->setHtmlAttribute('readonly', 'readonly');
 		$form->addText('name', 'Název')->setRequired();
+
+		if ($supplier->url) {
+			$form->addText('url', 'Adresa feedu')->setRequired()->setDefaultValue($supplier->url);
+		}
+
 		$form->addGroup('Defaultní hodnoty');
 		$form->addText('productCodePrefix', 'Prefix kódu produktů')->setNullable()->setHtmlAttribute('readonly', 'readonly');
 		$form->addSelect('defaultDisplayAmount', 'Zobrazované množství', $this->displayAmountRepository->getArrayForSelect())->setPrompt('-zvolte-');
@@ -146,12 +215,12 @@ class SupplierPresenter extends BackendPresenter
 		$form->addCheckbox('defaultHiddenProduct', 'Produkty budou skryté');
 		
 		$form->addGroup('Nastavení importu');
-		$form->addInteger('importPriority', 'Priorita');
-		$form->addInteger('importPriceRatio', 'Procentuální změna ceny');
+		$form->addInteger('importPriority', 'Priorita')->setRequired();
+		$form->addInteger('importPriceRatio', 'Procentuální změna ceny')->setRequired();
 		$form->addCheckbox('splitPricelists', 'Rozdělit ceníky (dostupné / nedostupné)');
 		$form->addCheckbox('importImages', 'Importovat obrázky');
 		
-		$form->addSubmits(!$this->getParameter('supplier'));
+		$form->addSubmits(!$supplier);
 		
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
@@ -222,8 +291,19 @@ class SupplierPresenter extends BackendPresenter
 		$this->template->headerTree = [
 			['Přehled zdrojů', 'default'],
 		];
-		$this->template->displayButtons = [];
+		$this->template->displayButtons = [$this->createNewItemButton('new', [], 'Přidat zdroj')];
 		$this->template->displayControls = [$this->getComponent('supplierGrid')];
+	}
+
+	public function renderNew(): void
+	{
+		$this->template->headerLabel = 'Nová položka';
+		$this->template->headerTree = [
+			['Přehled zdrojů', 'default'],
+			['Nová položka'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
 	
 	public function renderHistory(): void

@@ -134,7 +134,7 @@ class CategoryPresenter extends BackendPresenter
 			});
 			$grid->addButtonDeleteSelected(null, true, function ($object) {
 				if ($object) {
-					return !$object->isSyemic();
+					return !$object->isSystemic();
 				}
 
 				return false;
