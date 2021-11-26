@@ -37,9 +37,6 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		$this->customerGroupRepository = $customerGroupRepository;
 	}
 
-	/**
-	 * @return \StORM\Collection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
-	 */
 	public function getPricelists(array $pks, Currency $currency, Country $country): Collection
 	{
 		$collection = $this->many()
@@ -52,9 +49,6 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		return $collection->orderBy(['priority']);
 	}
 
-	/**
-	 * @return \StORM\Collection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
-	 */
 	public function getCustomerPricelists(Customer $customer, Currency $currency, Country $country): Collection
 	{
 		$collection = $this->many()
@@ -68,9 +62,6 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		return $collection->orderBy(['priority']);
 	}
 
-	/**
-	 * @return \StORM\Collection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
-	 */
 	public function getMerchantPricelists(Merchant $merchant, Currency $currency, Country $country): Collection
 	{
 		$collection = $this->many()

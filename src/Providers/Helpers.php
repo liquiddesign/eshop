@@ -45,6 +45,11 @@ abstract class Helpers
 		return \round($price * (100 + $vat) / 100, $rounding);
 	}
 
+	public static function getNoVatPrice(float $price, float $vat, int $rounding = 2): float
+	{
+		return \round($price * (100 - $vat) / 100, $rounding);
+	}
+
 	/**
 	 * @param mixed $item
 	 * @return string[]

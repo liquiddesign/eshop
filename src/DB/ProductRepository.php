@@ -38,6 +38,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	private OrderRepository $orderRepository;
 
+	private RelatedRepository $relatedRepository;
+
 	public function __construct(
 		Shopper $shopper,
 		DIConnection $connection,
@@ -47,7 +49,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 		PageRepository $pageRepository,
 		DeliveryDiscountRepository $deliveryDiscountRepository,
 		LoyaltyProgramDiscountLevelRepository $loyaltyProgramDiscountLevelRepository,
-		OrderRepository $orderRepository
+		OrderRepository $orderRepository,
+		RelatedRepository $relatedRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -58,6 +61,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$this->deliveryDiscountRepository = $deliveryDiscountRepository;
 		$this->loyaltyProgramDiscountLevelRepository = $loyaltyProgramDiscountLevelRepository;
 		$this->orderRepository = $orderRepository;
+		$this->relatedRepository = $relatedRepository;
 	}
 
 	/**
@@ -733,12 +737,12 @@ class ProductRepository extends Repository implements IGeneralRepository
 	 * @return array<string, array<string, object>>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getUpsellsForCartItems(array $cartItems): array
+	public function getCartItemsRelations(array $cartItems): array
 	{
 		$upsells = [];
 
 		foreach ($cartItems as $cartItem) {
-			$upsells[$cartItem->getPK()] = $this->getUpsellsForCartItem($cartItem);
+			$upsells[$cartItem->getPK()] = $this->getCartItemRelations($cartItem);
 		}
 
 		return $upsells;
@@ -749,43 +753,50 @@ class ProductRepository extends Repository implements IGeneralRepository
 	 * @return array<string, \Eshop\DB\Product>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getUpsellsForCartItem(CartItem $cartItem): array
+	public function getCartItemRelations(CartItem $cartItem): array
 	{
-		if (!$cartItem->product) {
+		if (!$cartItem->getValue('product')) {
 			return [];
 		}
 
-		$upsells = [];
+		$itemRelationsForCart = [];
 
-		/** @var \Eshop\DB\Product|\stdClass $upsell */
-		foreach ($this->many()->join(['relation' => 'eshop_related'], 'this.uuid = relation.fk_slave')
-					 ->join(['relatedType' => 'eshop_relatedtype'], 'relation.fk_type = relatedType.uuid')
-					 ->where('relatedType. showCart', true)
-					 ->where('relatedType. hidden', false)
-					 ->where('relation.fk_master', $cartItem->getValue('product'))
-					 ->select(['masterPct' => 'relation.masterPct'])
-					 ->orderBy(['priority']) as $upsell
+		/** @var \Eshop\DB\Related $related */
+		foreach ($this->relatedRepository->many()
+					 ->join(['relatedType' => 'eshop_relatedtype'], 'this.fk_type = relatedType.uuid')
+					 ->where('relatedType.showCart', true)
+					 ->where('relatedType.hidden', false)
+					 ->where('this.fk_master', $cartItem->getValue('product'))
+					 ->whereNot('this.fk_slave', $cartItem->getValue('product'))
+					 ->orderBy(['this.priority']) as $related
 		) {
-			/** @var \Eshop\DB\Product|\stdClass|null $upsellWithPrice */
-			$upsellWithPrice = $this->getProducts()->where('this.uuid', $upsell->getPK())->first();
-
-			if ($masterPct = $upsell->getValue('masterPct')) {
-				$upsell->shortName = $upsell->name;
-				$upsell->name = $cartItem->productName . ' - ' . $upsell->name;
-				$upsell->price = $cartItem->getPriceSum() * $masterPct / 100;
-				$upsell->priceVat = $cartItem->getPriceVatSum() * $masterPct / 100;
-				$upsell->currencyCode = $this->shopper->getCurrency()->code;
-				$upsells[$upsell->getPK()] = $upsell;
-			} elseif ($upsellWithPrice && $upsellWithPrice->getPriceVat()) {
-				$upsellWithPrice->shortName = $upsellWithPrice->name;
-				$upsellWithPrice->name = $cartItem->productName . ' - ' . $upsellWithPrice->name;
-				$upsellWithPrice->price = $cartItem->amount * $upsellWithPrice->getPrice();
-				$upsellWithPrice->priceVat = $cartItem->amount * $upsellWithPrice->getPriceVat();
-				$upsells[$upsellWithPrice->getPK()] = $upsellWithPrice;
+			if (isset($itemRelationsForCart[$related->getValue('slave')])) {
+				continue;
 			}
+
+			/** @var \Eshop\DB\Product|\stdClass|null $slaveProduct */
+			$slaveProduct = $this->getProducts()->where('this.uuid', $related->getValue('slave'))->first();
+
+			if (!$slaveProduct) {
+				continue;
+			}
+
+			$slaveProduct->shortName = $slaveProduct->name;
+			$slaveProduct->name = $cartItem->productName . ' - ' . $slaveProduct->name;
+			$slaveProduct->amount = $cartItem->amount * $related->amount;
+
+			if ($related->masterPct !== null) {
+				$slaveProduct->price = $cartItem->price * $related->masterPct / 100;
+				$slaveProduct->priceVat = $cartItem->priceVat * $related->masterPct / 100;
+			} elseif ($related->discountPct !== null) {
+				$slaveProduct->price = $slaveProduct->getPrice() - ($slaveProduct->getPrice() * $related->discountPct / 100);
+				$slaveProduct->priceVat = $slaveProduct->getPriceVat() - ($slaveProduct->getPriceVat() * $related->discountPct / 100);
+			}
+
+			$itemRelationsForCart[$slaveProduct->getPK()] = $slaveProduct;
 		}
 
-		return $upsells;
+		return $itemRelationsForCart;
 	}
 
 	/**

@@ -119,7 +119,7 @@ class CartItemList extends Datalist
 		/** @var \Eshop\DB\CartItem $cartItem */
 		$cartItem = $this->cartItemsRepository->one($cartItem, true);
 
-		$upsell = $this->productRepository->getUpsellsForCartItem($cartItem)[$upsell];
+		$upsell = $this->productRepository->getCartItemRelations($cartItem)[$upsell];
 
 		if ($this->isUpsellActive($cartItem->getPK(), $upsell->getPK())) {
 			/** @var \Eshop\DB\CartItem $cartItem */
@@ -127,7 +127,7 @@ class CartItemList extends Datalist
 
 			$this->checkoutManager->deleteItem($cartItem);
 		} else {
-			$this->checkoutManager->addItemToCart($upsell, null, 1, false, false, true)->update(['upsell' => $cartItem->getPK()]);
+			$this->checkoutManager->addItemToCart($upsell, null, $upsell->getValue('amount') ?? 1, false, false, true)->update(['upsell' => $cartItem->getPK()]);
 		}
 
 		$this->redirect('this');
@@ -150,7 +150,10 @@ class CartItemList extends Datalist
 		$this->template->discountCoupon = $this->checkoutManager->getDiscountCoupon();
 		$this->template->discountPrice = $this->checkoutManager->getDiscountPrice();
 		$this->template->discountPriceVat = $this->checkoutManager->getDiscountPriceVat();
-		$this->template->upsells = $this->productRepository->getUpsellsForCartItems($this->getItemsOnPage());
+
+		/** @var \Eshop\DB\CartItem[] $cartItems */
+		$cartItems = $this->getItemsOnPage();
+		$this->template->upsells = $this->productRepository->getCartItemsRelations($cartItems);
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;

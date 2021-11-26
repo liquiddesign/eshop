@@ -417,7 +417,7 @@ class Product extends \StORM\Entity
 	public RelationCollection $loyaltyPrograms;
 
 	/**
-	 * @return \Eshop\DB\Ribbon[]
+	 * @return \Eshop\DB\Ribbon[]|\StORM\Entity[]
 	 */
 	public function getImageRibbons(): array
 	{
@@ -430,7 +430,7 @@ class Product extends \StORM\Entity
 	}
 
 	/**
-	 * @return \Eshop\DB\Ribbon[]
+	 * @return \Eshop\DB\Ribbon[]|\StORM\Entity[]
 	 */
 	public function getTextRibbons(): array
 	{
@@ -594,7 +594,7 @@ class Product extends \StORM\Entity
 	}
 
 	/**
-	 * @return \Eshop\DB\QuantityPrice[]
+	 * @return \Eshop\DB\QuantityPrice[]|\StORM\Entity[]
 	 */
 	public function getQuantityPrices(): array
 	{

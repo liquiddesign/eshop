@@ -475,7 +475,7 @@ class CustomerPresenter extends BackendPresenter
 
 	public function actionNew(): void
 	{
-		/** @var \Forms\Form $form */
+		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('form');
 
 		$form->onSuccess[] = function (AdminForm $form): void {
@@ -496,7 +496,7 @@ class CustomerPresenter extends BackendPresenter
 
 	public function actionEdit(Customer $customer): void
 	{
-		/** @var \Forms\Form $form */
+		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('form');
 
 		$merchants = $this->merchantRepository->many()
@@ -536,7 +536,7 @@ class CustomerPresenter extends BackendPresenter
 
 	public function actionEditAddress(Customer $customer): void
 	{
-		/** @var \Forms\Form $form */
+		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('editAddress');
 
 		$form->setDefaults($customer->toArray(['billAddress', 'deliveryAddress']));

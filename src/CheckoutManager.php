@@ -32,11 +32,8 @@ use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\Purchase;
-use Eshop\DB\SetItemRepository;
-use Eshop\DB\SetRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\Variant;
-use Eshop\DB\VatRateRepository;
 use Nette\Http\Request;
 use Nette\Http\Response;
 use Nette\SmartObject;
@@ -460,7 +457,6 @@ class CheckoutManager
 
 	/**
 	 * @throws \Eshop\BuyException
-	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function changeItemAmount(Product $product, ?Variant $variant = null, int $amount = 1, bool $checkInvalidAmount = true, ?Cart $cart = null): void
 	{
@@ -475,28 +471,14 @@ class CheckoutManager
 			return;
 		}
 
-		/* @deprecated */
-		foreach ($this->productRepository->getUpsellsForCartItem($cartItem) as $upsell) {
+		foreach ($this->productRepository->getCartItemRelations($cartItem) as $upsell) {
 			if ($this->itemRepository->isUpsellActive($cartItem->getPK(), $upsell->getPK())) {
 				$upsellCartItem = $this->itemRepository->many()->where('fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first();
-
-				/** @var \Eshop\DB\Product|null $upsellWithPrice */
-				$upsellWithPrice = $this->productRepository->getProducts()->where('this.uuid', $upsell->getPK())->first();
-
-				if (!$upsellWithPrice) {
-					if ($cartItem->product->dependedValue) {
-						$upsell->setValue('price', $cartItem->getPriceSum() * $cartItem->product->dependedValue / 100);
-						$upsell->setValue('priceVat', $cartItem->getPriceVatSum() * $cartItem->product->dependedValue / 100);
-						$upsell->setValue('currencyCode', $this->shopper->getCurrency()->code);
-					}
-				} elseif ($upsellWithPrice->getPriceVat()) {
-					$upsell->setValue('price', $cartItem->amount * $upsellWithPrice->getPrice());
-					$upsell->setValue('priceVat', $cartItem->amount * $upsellWithPrice->getPriceVat());
-				}
 
 				$upsellCartItem->update([
 					'price' => $upsell->getValue('price'),
 					'priceVat' => $upsell->getValue('priceVat'),
+					'amount' => $upsell->getValue('amount'),
 				]);
 			}
 		}
@@ -548,6 +530,7 @@ class CheckoutManager
 
 		$products = $this->productRepository->getProducts()->where('this.uuid', $ids)->toArray();
 
+		/** @var \Eshop\DB\CartItem $item */
 		foreach ($this->itemRepository->getItems([$cart->getPK()]) as $item) {
 			if (!isset($products[$item->getValue('product')])) {
 				throw new BuyException('product not found');
@@ -605,7 +588,7 @@ class CheckoutManager
 	}
 
 	/**
-	 * @return \Eshop\DB\CartItem[]
+	 * @return array<int, array<string, \Eshop\DB\CartItem|float|int|string|null>>
 	 */
 	public function getIncorrectCartItems(): array
 	{
@@ -874,7 +857,11 @@ class CheckoutManager
 		return $this->lastOrderToken ? $this->orderRepository->one($this->lastOrderToken) : null;
 	}
 
-	public function syncPurchase($values): Purchase
+	/**
+	 * @param mixed $values
+	 * @return \Eshop\DB\Purchase|\StORM\Entity
+	 */
+	public function syncPurchase($values): \StORM\Entity
 	{
 		if (!$this->getCart()->getValue('purchase')) {
 			$values['currency'] = $this->getCart()->getValue('currency');

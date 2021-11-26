@@ -9,6 +9,7 @@ use Eshop\BackendPresenter;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
@@ -91,6 +92,9 @@ class SupplierMappingPresenter extends BackendPresenter
 	public SupplierRepository $supplierRepository;
 
 	/** @inject */
+	public CategoryTypeRepository $categoryTypeRepository;
+
+	/** @inject */
 	public Session $session;
 
 	/** @persistent */
@@ -123,7 +127,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		if ($this->tab === 'category') {
 			$grid->addColumnText('Název', 'getNameTree', '%s', 'categoryNameL1');
 			$dir = \explode('-', $this->getHttpRequest()->getQuery('grid-order') ?? '')[1] ?? 'ASC';
-			$grid->setSecondaryOrder(['categoryNameL2' => $dir, 'categoryNameL3' => $dir, 'categoryNameL4' => $dir]);
+			$grid->setSecondaryOrder(['categoryNameL2' => $dir, 'categoryNameL3' => $dir, 'categoryNameL4' => $dir, 'categoryNameL5' => $dir, 'categoryNameL6' => $dir]);
 
 			$grid->addColumn('Napárovano', function (SupplierCategory $mapping) {
 				$link = $mapping->category && $this->admin->isAllowed(':Eshop:Admin:Category:detail') ?
@@ -138,13 +142,13 @@ class SupplierMappingPresenter extends BackendPresenter
 				$expression = new Expression();
 				$orExpression = '';
 
-				for ($i = 1; $i !== 5; $i++) {
+				for ($i = 1; $i !== 7; $i++) {
 					if (isset($parsed[$i - 1])) {
 						$expression->add('AND', "categoryNameL$i=%s", [\trim($parsed[$i - 1])]);
 					}
 				}
 
-				for ($i = 1; $i !== 5; $i++) {
+				for ($i = 1; $i !== 7; $i++) {
 					$orExpression .= " OR categoryNameL$i LIKE :value";
 				}
 
@@ -309,6 +313,8 @@ class SupplierMappingPresenter extends BackendPresenter
 
 			$supplierMapping = $this->getMappingRepository()->syncOne($values, null, true);
 
+			$this->categoryRepository->clearCategoriesCache();
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$supplierMapping]);
 		};
@@ -348,7 +354,10 @@ class SupplierMappingPresenter extends BackendPresenter
 		$form->addCheckbox('overwrite', 'Přepsat');
 
 		if ($this->tab === 'category') {
-			$form->addDataSelect('category', 'Nadřazená kategorie', $this->categoryRepository->getArrayForSelect())->setPrompt('Žádná');
+			$categoryInput = $form->addDataSelect('category', 'Nadřazená kategorie', $this->categoryRepository->getArrayForSelect())->setPrompt('Žádná');
+			$categoryTypeInput = $form->addSelect('categoryType', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect());
+
+			$categoryInput->addCondition($form::BLANK)->toggle($categoryTypeInput->getHtmlId() . '-toogle');
 		}
 
 		if ($this->tab === 'attribute') {
@@ -541,9 +550,9 @@ class SupplierMappingPresenter extends BackendPresenter
 					}
 				}
 			} elseif ($this->tab === 'category') {
-				/** @var \Eshop\DB\Category $insertToCategory */
+				/** @var \Eshop\DB\Category|null $insertToCategory */
 				$insertToCategory = $values['category'] ? $this->categoryRepository->one($values['category']) : null;
-				$type = $insertToCategory->getValue('type');
+				$type = $insertToCategory ? $insertToCategory->getValue('type') : $values['categoryType'];
 
 				foreach ($data as $uuid) {
 					/** @var \Eshop\DB\SupplierCategory $supplierCategory */
@@ -567,20 +576,28 @@ class SupplierMappingPresenter extends BackendPresenter
 						$newTree[] = $supplierCategory->categoryNameL4;
 					}
 
+					if ($supplierCategory->categoryNameL5) {
+						$newTree[] = $supplierCategory->categoryNameL5;
+					}
+
+					if ($supplierCategory->categoryNameL6) {
+						$newTree[] = $supplierCategory->categoryNameL6;
+					}
+
 					$currentCategory = $insertToCategory;
 					$path = $insertToCategory ? $insertToCategory->path : null;
 					$first = true;
 
 					foreach ($newTree as $cKey) {
-						$originalPath = $currentCategory->path;
+						$originalPath = $currentCategory ? $currentCategory->path : '';
 
 						do {
 							$tempPath = $path . Random::generate(4, '0-9a-z');
 							$tempCategory = $this->categoryRepository->many()->where('path', $tempPath)->first();
 						} while ($tempCategory);
 
-						/** @var \Eshop\DB\Category $existingCategory */
-						$existingCategory = $this->categoryRepository->many()->where('path LIKE :s', ['s' => "$originalPath%"])->where('name_cs', $cKey)->first();
+						/** @var \Eshop\DB\Category|null $existingCategory */
+						$existingCategory = $this->categoryRepository->many()->where('fk_type', $type)->where('path LIKE :s', ['s' => "$originalPath%"])->where('name_cs', $cKey)->first();
 
 						$path = $existingCategory ? $existingCategory->path : $tempPath;
 
@@ -594,23 +611,21 @@ class SupplierMappingPresenter extends BackendPresenter
 						if ($existingCategory) {
 							$existingCategory->update($newCategoryData);
 							$currentCategory = $existingCategory;
-						} else {
-							if ($supplierCategory->category && Arrays::last($newTree) === $cKey) {
-								if ($supplierCategory->category->ancestor->getPK() === $newCategoryData['ancestor']) {
-									if (!$overwrite) {
-										unset($newCategoryData['name']);
-									}
-
-									$supplierCategory->category->update($newCategoryData);
-									$currentCategory = $supplierCategory->category;
-								} else {
-									$currentCategory = $this->categoryRepository->createOne($newCategoryData);
-									$supplierCategory->update(['category' => $currentCategory->getPK()]);
+						} elseif ($supplierCategory->category && Arrays::last($newTree) === $cKey) {
+							if ($supplierCategory->category->getValue('ancestor') && $supplierCategory->category->getValue('ancestor') === $newCategoryData['ancestor']) {
+								if (!$overwrite) {
+									unset($newCategoryData['name']);
 								}
+
+								$supplierCategory->category->update($newCategoryData);
+								$currentCategory = $supplierCategory->category;
 							} else {
-								/** @var \Eshop\DB\Category $currentCategory */
 								$currentCategory = $this->categoryRepository->createOne($newCategoryData);
+								$supplierCategory->update(['category' => $currentCategory->getPK()]);
 							}
+						} else {
+							/** @var \Eshop\DB\Category $currentCategory */
+							$currentCategory = $this->categoryRepository->createOne($newCategoryData);
 						}
 
 						if (!$first) {
@@ -627,6 +642,8 @@ class SupplierMappingPresenter extends BackendPresenter
 				if (isset($newFirstCategory)) {
 					$this->categoryRepository->updateCategoryChildrenPath($newFirstCategory);
 				}
+
+				$this->categoryRepository->clearCategoriesCache();
 			}
 
 			$this->flashMessage('Uloženo', 'success');
@@ -704,16 +721,17 @@ class SupplierMappingPresenter extends BackendPresenter
 		/** @var \Eshop\DB\SupplierAttribute|\Eshop\DB\SupplierAttributeValue|\Eshop\DB\SupplierCategory|\Eshop\DB\SupplierProducer|\Eshop\DB\SupplierDisplayAmount|\Eshop\DB\SupplierMapping $object */
 		$object = $this->getMappingRepository()->one($uuid);
 
-		/** @var \Nette\Forms\Controls\SelectBox $attributeInput */
-		$attributeInput = $form['attribute'];
-		/** @var \Nette\Forms\Controls\SelectBox $attributeValueInput */
-		$attributeValueInput = $form['attributeValue'];
-
 		if ($this->tab === 'attribute' && $object->attribute) {
+			/** @var \Nette\Forms\Controls\SelectBox $attributeInput */
+			$attributeInput = $form['attribute'];
+
 			$this->getPresenter()->template->select2AjaxDefaults[$attributeInput->getHtmlId()] = [$object->attribute->getPK() => $object->attribute->name ?? $object->attribute->code];
 		}
 
 		if ($this->tab === 'attributeValue' && $object->attributeValue) {
+			/** @var \Nette\Forms\Controls\SelectBox $attributeValueInput */
+			$attributeValueInput = $form['attributeValue'];
+
 			$this->getPresenter()->template->select2AjaxDefaults[$attributeValueInput->getHtmlId()] = [
 				$object->attributeValue->getPK() => ($object->attributeValue->attribute->name ?? $object->attributeValue->attribute->code) .
 					' - ' .
