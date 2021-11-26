@@ -95,7 +95,8 @@ class CustomerGroupPresenter extends BackendPresenter
 		$grid->addFilterTextInput('search', ['name'], null, 'Název');
 		$grid->addFilterButtons();
 
-		$grid->onRenderRow[] = function (\Nette\Utils\Html $row, CustomerGroup $object): void {
+		$grid->onRenderRow[] = function (\Nette\Utils\Html $row, $object): void {
+			/** @var \Eshop\DB\CustomerGroup $object */
 			if ($object->getPK() === CustomerGroupRepository::UNREGISTERED_PK) {
 				$row->appendAttribute('style', 'background-color: lavender;');
 			}

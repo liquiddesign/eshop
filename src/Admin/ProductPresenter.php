@@ -1331,6 +1331,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid): void {
 			$values = $form->getValues('array');
 
+			/** @var \StORM\Collection $products */
 			$products = $values['bulkType'] === 'selected' ? $this->productRepository->many()->where('this.uuid', $ids) : $productGrid->getFilteredSource();
 
 			foreach ($products as $product) {

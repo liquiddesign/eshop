@@ -68,7 +68,7 @@ class HeurekaProvider extends SupplierProvider
 	
 	public function getDataProperties(array &$data, array $item): void
 	{
-		$vat = isset($item['VAT']) ? Helpers::parsePrice($item['VAT']) : 21.0;
+		$vat = isset($item['VAT']) ? \round(Helpers::parsePrice($item['VAT']), self::ROUND_PRECISION) : 21.0;
 
 		$data[SupplierProduct::class] = [
 			'uuid' => DIConnection::generateUuid($this->getSupplierId(), $item['ITEM_ID']),
@@ -78,8 +78,8 @@ class HeurekaProvider extends SupplierProvider
 			'code' => $item['PRODUCTNO'],
 			'unit' => 'ks',
 			'vatRate' => $vat,
-			'price' => Helpers::getNoVatPrice(Helpers::parsePrice($item['PRICE_VAT']), $vat),
-			'priceVat' => Helpers::parsePrice($item['PRICE_VAT']),
+			'price' => \round(Helpers::getNoVatPrice(Helpers::parsePrice($item['PRICE_VAT']), $vat), self::ROUND_PRECISION),
+			'priceVat' => \round(Helpers::parsePrice($item['PRICE_VAT']), self::ROUND_PRECISION),
 			'unavailable' => false,
 			'supplier' => $this->getSupplierId(),
 		];
@@ -94,20 +94,22 @@ class HeurekaProvider extends SupplierProvider
 		
 		$catTree = \explode(' | ', $item['CATEGORYTEXT']);
 		
-		if ($catTree !== false && \count($catTree) > 1) {
-			\array_shift($catTree);
-
-			$data[SupplierCategory::class] = [
-				'uuid' => DIConnection::generateUuid($this->getSupplierId(), Arrays::last($catTree)),
-				'categoryNameL1' => $catTree[0],
-				'categoryNameL2' => $catTree[1] ?? null,
-				'categoryNameL3' => $catTree[2] ?? null,
-				'categoryNameL4' => $catTree[3] ?? null,
-				'categoryNameL5' => $catTree[4] ?? null,
-				'categoryNameL6' => $catTree[5] ?? null,
-				'supplier' => $this->getSupplierId(),
-			];
+		if (\count($catTree) <= 1) {
+			return;
 		}
+
+		\array_shift($catTree);
+
+		$data[SupplierCategory::class] = [
+			'uuid' => DIConnection::generateUuid($this->getSupplierId(), Arrays::last($catTree)),
+			'categoryNameL1' => $catTree[0],
+			'categoryNameL2' => $catTree[1] ?? null,
+			'categoryNameL3' => $catTree[2] ?? null,
+			'categoryNameL4' => $catTree[3] ?? null,
+			'categoryNameL5' => $catTree[4] ?? null,
+			'categoryNameL6' => $catTree[5] ?? null,
+			'supplier' => $this->getSupplierId(),
+		];
 	}
 	
 	public function getImageUrl(array $item): ?string

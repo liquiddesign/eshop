@@ -63,8 +63,6 @@ class OrderRepository extends \StORM\Repository
 	}
 
 	/**
-	 * @param string $customerId
-	 * @return \StORM\Collection|\Eshop\DB\Order[]
 	 * @deprecated use getFinishedOrders(new Customer(['uuid' => $customerId])) instead
 	 */
 	public function getFinishedOrdersByCustomer(string $customerId): Collection
@@ -93,8 +91,6 @@ class OrderRepository extends \StORM\Repository
 	}
 
 	/**
-	 * @param string $customerId
-	 * @return \StORM\Collection|\Eshop\DB\Order[]
 	 * @deprecated use getNewOrders(new Customer(['uuid' => $customerId])) instead
 	 */
 	public function getNewOrdersByCustomer(string $customerId): Collection
@@ -158,7 +154,7 @@ class OrderRepository extends \StORM\Repository
 
 		/**
 		 * @var \Eshop\DB\Order $order
-		 * @phpstan-ignore-next-line
+		 * @phpstan-ignore-next-line specific situation
 		 */
 		while ($order = $orders->fetch()) {
 			foreach ($order->purchase->getItems() as $item) {

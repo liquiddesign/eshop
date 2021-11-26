@@ -530,6 +530,7 @@ class CheckoutManager
 
 		$products = $this->productRepository->getProducts()->where('this.uuid', $ids)->toArray();
 
+		/** @var \Eshop\DB\CartItem $item */
 		foreach ($this->itemRepository->getItems([$cart->getPK()]) as $item) {
 			if (!isset($products[$item->getValue('product')])) {
 				throw new BuyException('product not found');
@@ -587,7 +588,7 @@ class CheckoutManager
 	}
 
 	/**
-	 * @return \Eshop\DB\CartItem[]
+	 * @return array<int, array<string, \Eshop\DB\CartItem|float|int|string|null>>
 	 */
 	public function getIncorrectCartItems(): array
 	{
@@ -856,7 +857,11 @@ class CheckoutManager
 		return $this->lastOrderToken ? $this->orderRepository->one($this->lastOrderToken) : null;
 	}
 
-	public function syncPurchase($values): Purchase
+	/**
+	 * @param mixed $values
+	 * @return \Eshop\DB\Purchase|\StORM\Entity
+	 */
+	public function syncPurchase($values): \StORM\Entity
 	{
 		if (!$this->getCart()->getValue('purchase')) {
 			$values['currency'] = $this->getCart()->getValue('currency');

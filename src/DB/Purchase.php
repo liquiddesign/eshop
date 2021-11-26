@@ -6,6 +6,7 @@ namespace Eshop\DB;
 
 use Security\DB\Account;
 use StORM\Collection;
+use StORM\ICollection;
 use StORM\RelationCollection;
 
 /**
@@ -211,13 +212,14 @@ class Purchase extends \StORM\Entity
 	}
 
 	/**
-	 * @return \StORM\Collection<\Eshop\DB\CartItem>|\Eshop\DB\CartItem[]
+	 * @return \Eshop\DB\CartItem[]|\StORM\Collection<\Eshop\DB\CartItem>
 	 */
 	public function getItems(): Collection
 	{
 		/** @var \Eshop\DB\CartItemRepository $cartItemRepository */
 		$cartItemRepository = $this->getConnection()->findRepository(CartItem::class);
 
+		/** @phpstan-ignore-next-line @todo generické typy */
 		return $cartItemRepository->getItems($this->getCartIds());
 	}
 	

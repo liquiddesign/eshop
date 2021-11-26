@@ -59,10 +59,6 @@ class CartItemRepository extends \StORM\Repository
 			->update(['note' => $note]);
 	}
 
-	/**
-	 * @param array $cartIds
-	 * @return \StORM\Collection|\Eshop\DB\CartItem[]
-	 */
 	public function getItems(array $cartIds): Collection
 	{
 		return $this->many()->where('fk_cart', $cartIds);

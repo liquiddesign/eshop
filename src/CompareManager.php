@@ -51,7 +51,7 @@ class CompareManager
 
 	/**
 	 * @param string|null $categoryPK
-	 * @return object[]
+	 * @return array<int|string, array<string, array<array<string, array<int|string, array<\Eshop\DB\AttributeValue>>|\Eshop\DB\Product|null>|\StORM\Entity|null>|\Eshop\DB\Category>>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function getParsedProductsWithPrimaryCategories(?string $categoryPK = null): array
