@@ -52,8 +52,8 @@ class PaymentTypePresenter extends BackendPresenter
 		
 		$code = $this->currencyRepo->many()->firstValue('uuid');
 		$grid->addColumn("Celková cena ($code)", function (PaymentType $paymentType, AdminGrid $dataGrid) use ($code) {
-			/** @var \Eshop\DB\PaymentTypePrice $price */
-			$price = $this->paymentPriceRepo->one(['fk_paymentType' => $paymentType, 'fk_currency' => $code]);
+			/** @var \Eshop\DB\PaymentTypePrice|null $price */
+			$price = $this->paymentPriceRepo->one(['fk_paymentType' => $paymentType->getPK(), 'fk_currency' => $code]);
 			
 			return $price ? $this->shopper->filterPrice($price->priceVat, $code) : '';
 		});
@@ -83,7 +83,7 @@ class PaymentTypePresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create(true);
 		
-		/** @var \Eshop\DB\PaymentType $paymentType */
+		/** @var \Eshop\DB\PaymentType|null $paymentType */
 		$paymentType = $this->getParameter('paymentType');
 		
 		$form->addText('code', 'Kód')->setRequired();

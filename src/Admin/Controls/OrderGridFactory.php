@@ -114,7 +114,7 @@ class OrderGridFactory
 		$grid->addColumnAction('EDI', $downloadIco, [$this, 'downloadEdi'], [], null, ['class' => 'minimal']);
 		$grid->addColumnAction('CSV', $downloadIco, [$this, 'downloadCsv'], [], null, ['class' => 'minimal']);
 
-		$grid->addColumn(null, function ($object, $grid) {
+		$grid->addColumn('', function ($object, $grid) {
 			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' .
 				$grid->getPresenter()->link('comments', $object) . '"><i title="Komentáře" class="far fa-comment"></i>&nbsp;' . $object->commentCount .
 				'</a>';
@@ -248,7 +248,7 @@ class OrderGridFactory
 		$address = $order->purchase->deliveryAddress ? $order->purchase->deliveryAddress->getFullAddress() : ($order->purchase->billAddress ? $order->purchase->billAddress->getFullAddress() : '');
 
 		if ($order->purchase->customer) {
-			$fullName = $order->purchase->customer && $order->purchase->customer->fullname ? $order->purchase->customer->fullname : ($order->purchase->fullname ?: '');
+			$fullName = $order->purchase->customer->fullname ?: ($order->purchase->fullname ?: '');
 			$link = $grid->getPresenter()->link(':Eshop:Admin:Customer:edit', [$order->purchase->customer]);
 
 			return "<a href='$link' style='white-space: nowrap;'>$fullName</a><br><small>$address</small>";
@@ -263,7 +263,7 @@ class OrderGridFactory
 		$grid = $button->lookup(Datagrid::class);
 
 		foreach ($grid->getSelectedIds() as $id) {
-			$grid->getSource()->where('this.uuid', $id)->setGroupBy([])->update(['canceledTs' => new DateTime()]);
+			$grid->getSource()->where('this.uuid', $id)->setGroupBy([])->update(['canceledTs' => (string)new DateTime()]);
 
 			$order = $this->orderRepository->one($id, true);
 

@@ -901,7 +901,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 					$tmp .= "$attributeValueLabel#$attributeValueCode:";
 				}
 
-				$row[] = \strlen($tmp) !== 0 ? \substr($tmp, 0, -1) : null;
+				$row[] = \substr($tmp, 0, -1);
 			}
 
 			$writer->insertOne($row);

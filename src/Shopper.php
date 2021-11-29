@@ -104,8 +104,6 @@ class Shopper
 		MinimalOrderValueRepository $minimalOrderValueRepository,
 		AccountRepository $accountRepository
 	) {
-		
-		
 		$this->user = $user;
 		$this->pricelistRepository = $pricelistRepository;
 		$this->accountRepository = $accountRepository;

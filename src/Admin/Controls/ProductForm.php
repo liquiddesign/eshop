@@ -490,6 +490,7 @@ class ProductForm extends Control
 		// Loyalty programs
 		$this->loyaltyProgramProductRepository->many()->where('fk_product', $product->getPK())->delete();
 
+		/** @var array<string, float|null> $loyaltyPrograms */
 		$loyaltyPrograms = Arrays::pick($values, 'loyaltyProgram', []);
 
 		if (\count($loyaltyPrograms) > 0) {
@@ -507,10 +508,6 @@ class ProductForm extends Control
 		}
 
 		// /Loyalty programs
-
-		if (isset($data['upsells'])) {
-			$this->product->upsells->relate($data['upsells']);
-		}
 
 		$changeColumns = ['name', 'perex', 'content'];
 

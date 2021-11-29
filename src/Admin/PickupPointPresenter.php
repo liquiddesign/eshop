@@ -198,10 +198,10 @@ class PickupPointPresenter extends BackendPresenter
 		$grid->addColumnText('Telefon', 'phone', '<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>', 'phone')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		$grid->addColumnText('Email', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>', 'email')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		$grid->addColumn('Typ místa', function (PickupPoint $object, $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:PickupPoint:typeDetail') && $object->pickupPointType ?
+			$link = $this->admin->isAllowed(':Eshop:Admin:PickupPoint:typeDetail') ?
 				$datagrid->getPresenter()->link(':Eshop:Admin:PickupPoint:typeDetail', [$object->pickupPointType, 'backLink' => $this->storeRequest()]) : '#';
 
-			return $object->pickupPointType ? "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->pickupPointType->name . "</a>" : '';
+			return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->pickupPointType->name . "</a>";
 		});
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
@@ -460,7 +460,7 @@ class PickupPointPresenter extends BackendPresenter
 		$pickupPoint = $this->getParameter('pickupPoint') ?: $this->pickupPointRepo->one($this->selectedPickupPoint, true);
 
 		foreach ($this::WEEK_DAYS as $key => $day) {
-			/** @var \Eshop\DB\OpeningHours $openingHour */
+			/** @var \Eshop\DB\OpeningHours|null $openingHour */
 			$openingHour = $this->openingHoursRepo->many()
 				->where('fk_pickupPoint', $pickupPoint->getPK())
 				->where('day', $key)

@@ -219,10 +219,14 @@ class IntegrationPresenter extends BackendPresenter
 	public function handleSyncZasilkovnaOrders(): void
 	{
 		try {
-			$this->zasilkovnaProvider->syncOrders($this->orderRepository->many()
+			/** @var \Eshop\DB\Order[] $orders */
+			$orders = $this->orderRepository->many()
 				->where('this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
 				->where('purchase.zasilkovnaId IS NOT NULL')
-				->where('zasilkovnaCompleted', false));
+				->where('zasilkovnaCompleted', false)
+				->toArray();
+
+			$this->zasilkovnaProvider->syncOrders($orders);
 			$this->flashMessage('Provedeno', 'success');
 		} catch (\Exception $e) {
 			$this->flashMessage('Chyba! Zkontrolujte API klíč.', 'error');

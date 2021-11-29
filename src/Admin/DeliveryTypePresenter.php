@@ -61,14 +61,14 @@ class DeliveryTypePresenter extends BackendPresenter
 		
 		$code = $this->currencyRepo->many()->firstValue('uuid');
 		$grid->addColumn('Celková cena', function (DeliveryType $deliveryType, AdminGrid $dataGrid) use ($code) {
-			/** @var \Eshop\DB\DeliveryTypePrice $price */
+			/** @var \Eshop\DB\DeliveryTypePrice|null $price */
 			$price = $this->deliveryPriceRepo->many()
 				->where('fk_deliveryType', $deliveryType->getPK())
 				->where('fk_currency', $code)
 				->where('weightTo IS NOT NULL')
 				->orderBy(['weightTo'])
 				->setTake(1)
-				->fetch();
+				->first();
 			
 			return $price ? $this->shopper->filterPrice($price->priceVat, $code) : '';
 		});
@@ -99,7 +99,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		
 		$form->addText('code', 'Kód')->setRequired();
 		
-		/** @var \Eshop\DB\DeliveryType $deliveryType */
+		/** @var \Eshop\DB\DeliveryType|null $deliveryType */
 		$deliveryType = $this->getParameter('deliveryType');
 		
 		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [

@@ -180,7 +180,7 @@ class ProductGridFactory
 
 	public function onDelete(Product $product): void
 	{
-		/** @var \Web\DB\Page $page */
+		/** @var \Web\DB\Page|null $page */
 		$page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product]);
 
 		if ($page) {

@@ -109,10 +109,10 @@ class SupplierMappingPresenter extends BackendPresenter
 			'Zdroj',
 			function (Entity $supplierMapping) {
 				/** @var \Eshop\DB\SupplierMapping $supplierMapping */
-				$link = $supplierMapping->supplier && $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') ?
+				$link = $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') ?
 					$this->link(':Eshop:Admin:Supplier:detail', [$supplierMapping->supplier, 'backLink' => $this->storeRequest(),]) : '#';
 
-				return $supplierMapping->supplier ? "<a href='$link'>" . ($supplierMapping->supplier->name ?: 'Detail dodavatele') . '</a>' : 'Nenamapováno';
+				return "<a href='$link'>" . ($supplierMapping->supplier->name ?: 'Detail dodavatele') . '</a>';
 			},
 			'%s',
 			null,

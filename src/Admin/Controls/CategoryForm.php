@@ -136,7 +136,7 @@ class CategoryForm extends Control
 			$this->template->producerPages = $pagesCategoryAll;
 		});
 
-		if (!$category || ($category && !$category->type->isReadOnly())) {
+		if (!$category || (!$category->type->isReadOnly())) {
 			$form->addSubmits(!$category);
 		}
 		

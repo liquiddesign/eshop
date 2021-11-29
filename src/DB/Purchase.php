@@ -6,7 +6,6 @@ namespace Eshop\DB;
 
 use Security\DB\Account;
 use StORM\Collection;
-use StORM\ICollection;
 use StORM\RelationCollection;
 
 /**
