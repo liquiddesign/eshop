@@ -487,7 +487,7 @@
                                 {if $relatedType->defaultMasterPct}<th class="p-2">Procento z ceny produktu: {$relatedType->getMasterInternalName()} (0-max%)</th>{/if}
                             </tr>
                             </thead>
-                            {for $i =0; $i < 6; $i++}
+                            {for $i =0; $i < $relationMaxItemsCount; $i++}
                                 <tr>
                                     <td class="p-2">{input product_$i class => "form-control form-control-sm"}</td>
                                     <td class="p-2">{input amount_$i class => "form-control form-control-sm"}</td>
