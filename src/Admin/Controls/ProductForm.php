@@ -465,7 +465,7 @@ class ProductForm extends Control
 					->where('fk_type', $relatedType->getPK())
 					->orderBy(['uuid' => 'asc'])
 					->setTake($this::RELATION_MAX_ITEMS_COUNT)
-					->toArrayOf('uuid'))
+					->toArrayOf('uuid')),
 			)->delete();
 		}
 
