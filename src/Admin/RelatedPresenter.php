@@ -280,11 +280,11 @@ class RelatedPresenter extends BackendPresenter
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumnText('Název master produktu', 'masterName', '%s', 'masterName');
 		$grid->addColumnText('Název slave produktu', 'slaveName', '%s', 'slaveName');
-		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 		$grid->addColumnInputCheckbox('Zobrazit v košíku', 'showCart', '', '', 'showCart');
 		$grid->addColumnInputCheckbox('Zobrazit v našeptávači', 'showSearch', '', '', 'showSearch');
 		$grid->addColumnInputCheckbox('Zobrazit v detailu', 'showDetail', '', '', 'showDetail');
 		$grid->addColumnInputCheckbox('Zobrazit jako set', 'showAsSet', '', '', 'showAsSet');
+		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('detailType');
 		$grid->addColumnActionDeleteSystemic();

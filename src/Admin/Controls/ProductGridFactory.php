@@ -10,6 +10,7 @@ use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Grid\Datagrid;
 use Nette\DI\Container;
+use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use StORM\Connection;
 use Web\DB\PageRepository;
@@ -118,6 +119,8 @@ class ProductGridFactory
 			'default',
 			null,
 			function ($id, Product $object, $values, $relations) {
+				$allCategories = [];
+
 				foreach ($relations as $relationName => $categories) {
 					$name = \explode('_', $relationName);
 
@@ -137,8 +140,12 @@ class ProductGridFactory
 						continue;
 					}
 
+					$allCategories += $categories;
+
 					$object->categories->relate($categories);
 				}
+
+				$values['values']['primaryCategory'] = \count($allCategories) > 0 ? Arrays::first($allCategories) : null;
 
 				return [$values, $relations];
 			},
