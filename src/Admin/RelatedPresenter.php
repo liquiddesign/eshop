@@ -488,12 +488,18 @@ class RelatedPresenter extends BackendPresenter
 	public function createComponentImportForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
-		$form->addUpload('file', 'CSV soubor')->setRequired();
-		$form->addCheckbox('overwrite', 'Přepisovat existující vazby')->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
+		$form->addUpload('file', 'CSV soubor')->setRequired()->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
 Povinné sloupce:<br>
-related - Kód vazby - důležitý pro spojení produktů do vazby<br>
-master/slave - Může být "m" nebo "s". Určuje jestli je produkt master nebo slave.<br>
-productCode - Kód produktu<br><br>
+type - Kód typu<br>
+			master - Kód/EAN master produktu<br>
+			slave - Kód/EAN slave produktu<br>
+			amount - Množství - celé číslo větší nebo rovno 1<br>
+			discountPct - Procentuální sleva - 0 až 100<br>
+			masterPct - Procentuální cena z master produktu - celé číslo větší než 0<br>
+			priority - Priorita - celé číslo<br>
+			hidden - Skryto - 0/1<br><br>
+			
+Sloupce discountPct a masterPct <b>nejsou</b> kombinovatelné a může být nastavený vždy maxímálně jeden nebo žádný.<br>
 Pokud nebude nalezen produkt tak se daný řádek ignoruje. V případě chyby nedojde k žádným změnám.');
 		$form->addSubmit('submit', 'Uložit');
 
