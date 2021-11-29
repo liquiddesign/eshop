@@ -37,8 +37,12 @@ class ExportPresenter extends BackendPresenter
 
 		$defaults = [];
 
+		/**
+		 * @var string $key
+		 * @var string $value
+		 */
 		foreach ($values as $key => $value) {
-			if (Arrays::contains($keys, $key) && $value && \count(\explode(';', $value)) > 0) {
+			if (Arrays::contains($keys, $key) && $value) {
 				$defaults[$key] = \explode(';', $value);
 			}
 		}

@@ -1419,7 +1419,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 	{
 		$filename = $this->getPresenter()->getParameter('file');
 
-		/** @var \Eshop\DB\Photo $photo */
+		/** @var \Eshop\DB\Photo|null $photo */
 		$photo = $this->photoRepository->many()->where('fileName', $filename)->first();
 
 		if (!$photo) {
@@ -1491,7 +1491,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			return;
 		}
 
-		/** @var \Eshop\DB\Photo $photo */
+		/** @var \Eshop\DB\Photo|null $photo */
 		$photo = $this->photoRepository->many()->where('filename', $filename)->first();
 
 		if (!$photo) {
@@ -1613,10 +1613,14 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			$expression = new Expression();
 			$code = null;
 			$ean = null;
+			/** @var string|null $codeFromRecord */
+			$codeFromRecord = Arrays::pick($record, $parsedHeader['code'], null);
+			/** @var string|null $eanFromRecord */
+			$eanFromRecord = Arrays::pick($record, $parsedHeader['ean'], null);
 
-			if (isset($parsedHeader['code']) && ($code = Arrays::pick($record, $parsedHeader['code'], null))) {
-				$codeBase = Strings::trim($code);
-				$codePrefix = Strings::trim('00' . $code);
+			if (isset($parsedHeader['code']) && $codeFromRecord) {
+				$codeBase = Strings::trim($codeFromRecord);
+				$codePrefix = Strings::trim('00' . $codeFromRecord);
 
 				$expression->add('OR', 'code = %s OR CONCAT(code,".",subCode) = %s', [$codeBase, $codeBase]);
 				$expression->add('OR', 'code = %s OR CONCAT(code,".",subCode) = %s', [$codePrefix, $codePrefix]);
@@ -1624,10 +1628,10 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				$code = $codeBase;
 			}
 
-			if (isset($parsedHeader['ean']) && ($ean = Arrays::pick($record, $parsedHeader['ean'], null))) {
-				$expression->add('OR', 'ean = %s', [Strings::trim($ean)]);
+			if (isset($parsedHeader['ean']) && $eanFromRecord) {
+				$expression->add('OR', 'ean = %s', [Strings::trim($eanFromRecord)]);
 
-				$ean = Strings::trim($ean);
+				$ean = Strings::trim($eanFromRecord);
 			}
 
 			$product = $this->productRepository->many()->where($expression->getSql(), $expression->getVars())->first();

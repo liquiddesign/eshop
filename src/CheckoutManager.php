@@ -42,7 +42,6 @@ use Security\DB\AccountRepository;
 use StORM\Collection;
 use StORM\Connection;
 use StORM\DIConnection;
-use StORM\Exception\NotFoundException;
 
 /**
  * Služba která zapouzdřuje košíky nakupujícího
@@ -71,7 +70,7 @@ class CheckoutManager
 	public $onCartItemDelete;
 
 	/**
-	 * @var callable[]&callable(\Eshop\DB\CartItem): void; Occurs after cart item create
+	 * @var array<callable(\Eshop\DB\CartItem): void>; Occurs after cart item create
 	 */
 	public $onCartItemCreate;
 
@@ -228,13 +227,13 @@ class CheckoutManager
 	public function cartExists(): bool
 	{
 		if ($this->customer) {
-			try {
-				return (bool)$this->customer->activeCart;
-			} catch (NotFoundException $x) {
-				$this->customer->activeCart = null;
-
-				return false;
+			if ($this->customer->activeCart) {
+				return true;
 			}
+
+			$this->customer->activeCart = null;
+
+			return false;
 		}
 
 		if (!\array_key_exists($this->cartToken, $this->unattachedCarts)) {
@@ -528,6 +527,7 @@ class CheckoutManager
 	{
 		$ids = $this->itemRepository->getItems([$cart->getPK()])->where('this.fk_product IS NOT NULL')->setSelect(['aux' => 'this.fk_product'])->toArrayOf('aux');
 
+		/** @var \Eshop\DB\Product[] $products */
 		$products = $this->productRepository->getProducts()->where('this.uuid', $ids)->toArray();
 
 		/** @var \Eshop\DB\CartItem $item */
@@ -749,7 +749,9 @@ class CheckoutManager
 	public function getPaymentPrice(): float
 	{
 		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
-			return (float)$this->getPaymentTypes()[$this->getPurchase()->getValue('paymentType')]->getValue('price') ?? 0.0;
+			$price = $this->getPaymentTypes()[$this->getPurchase()->getValue('paymentType')]->getValue('price');
+
+			return isset($price) ? (float)$price : 0.0;
 		}
 
 		return 0.0;
@@ -758,7 +760,9 @@ class CheckoutManager
 	public function getPaymentPriceVat(): float
 	{
 		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
-			return (float)$this->getPaymentTypes()[$this->getPurchase()->getValue('paymentType')]->getValue('priceVat') ?? 0.0;
+			$price = $this->getPaymentTypes()[$this->getPurchase()->getValue('paymentType')]->getValue('priceVat');
+
+			return isset($price) ? (float)$price : 0.0;
 		}
 
 		return 0.0;
@@ -767,7 +771,9 @@ class CheckoutManager
 	public function getDeliveryPrice(): float
 	{
 		if ($this->getPurchase() && $this->getPurchase()->deliveryType) {
-			return (float)$this->getDeliveryTypes()[$this->getPurchase()->getValue('deliveryType')]->getValue('price') ?? 0.0;
+			$price = $this->getDeliveryTypes()[$this->getPurchase()->getValue('deliveryType')]->getValue('price');
+
+			return isset($price) ? (float)$price : 0.0;
 		}
 
 		return 0.0;
@@ -776,7 +782,9 @@ class CheckoutManager
 	public function getDeliveryPriceVat(): float
 	{
 		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
-			return (float)$this->getDeliveryTypes()[$this->getPurchase()->getValue('deliveryType')]->getValue('priceVat') ?? 0.0;
+			$price = $this->getDeliveryTypes()[$this->getPurchase()->getValue('deliveryType')]->getValue('priceVat');
+
+			return isset($price) ? (float)$price : 0.0;
 		}
 
 		return 0.0;
@@ -859,15 +867,17 @@ class CheckoutManager
 
 	/**
 	 * @param mixed $values
-	 * @return \Eshop\DB\Purchase|\StORM\Entity
 	 */
-	public function syncPurchase($values): \StORM\Entity
+	public function syncPurchase($values): Purchase
 	{
 		if (!$this->getCart()->getValue('purchase')) {
 			$values['currency'] = $this->getCart()->getValue('currency');
 		}
 
-		return $this->getCart()->syncRelated('purchase', $values);
+		/** @var \Eshop\DB\Purchase $purchase */
+		$purchase = $this->getCart()->syncRelated('purchase', $values);
+
+		return $purchase;
 	}
 
 	public function getPurchase(bool $needed = false): ?Purchase

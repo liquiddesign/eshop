@@ -307,7 +307,7 @@ class CustomerPresenter extends BackendPresenter
 
 		$customersForSelect = $this->customerRepository->getArrayForSelect();
 
-		/** @var \Eshop\DB\Customer $customer */
+		/** @var \Eshop\DB\Customer|null $customer */
 		$customer = $this->getParameter('customer');
 
 		if ($customer) {
@@ -565,26 +565,28 @@ class CustomerPresenter extends BackendPresenter
 			$form->addGroup('Oprávnění a zákazník');
 			$container = $form->addContainer('permission');
 			$container->addDataSelect('customer', 'Zákazník', $this->customerRepository->getArrayForSelect())->setPrompt('-Zvolte-')->setRequired();
-			$container->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setDefaultValue('price')->addCondition($form::EQUAL, 'price')
+			$catalogInput = $container->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setDefaultValue('price');
+
+			$catalogInput->addCondition($form::EQUAL, 'price')
 				->toggle('frm-accountForm-permission-showPricesWithoutVat-toogle')
 				->toggle('frm-accountForm-permission-showPricesWithVat-toogle');
 
 			if (isset($this::CONFIGURATIONS['prices']) && $this::CONFIGURATIONS['prices']) {
 				if ($this->shopper->getShowWithoutVat()) {
-					$container->addCheckbox('showPricesWithoutVat', 'Zobrazit ceny bez daně');
+					$withoutVatInput = $container->addCheckbox('showPricesWithoutVat', 'Zobrazit ceny bez daně');
 				}
 
 				if ($this->shopper->getShowVat()) {
-					$container->addCheckbox('showPricesWithVat', 'Zobrazit ceny s daní');
+					$withVatInput = $container->addCheckbox('showPricesWithVat', 'Zobrazit ceny s daní');
 				}
 
-				if ($this->shopper->getShowWithoutVat() && $this->shopper->getShowVat()) {
+				if ($this->shopper->getShowWithoutVat() && $this->shopper->getShowVat() && isset($withoutVatInput) && isset($withVatInput)) {
 					$container->addSelect('priorityPrice', 'Prioritní cena', [
 						'withoutVat' => 'Bez daně',
 						'withVat' => 'S daní',
-					])->addConditionOn($container['catalogPermission'], $form::EQUAL, 'price')
-						->addConditionOn($container['showPricesWithoutVat'], $form::EQUAL, true)
-						->addConditionOn($container['showPricesWithVat'], $form::EQUAL, true)
+					])->addConditionOn($catalogInput, $form::EQUAL, 'price')
+						->addConditionOn($withoutVatInput, $form::EQUAL, true)
+						->addConditionOn($withVatInput, $form::EQUAL, true)
 						->toggle('frm-accountForm-permission-priorityPrice-toogle');
 				}
 			}
@@ -592,8 +594,9 @@ class CustomerPresenter extends BackendPresenter
 			$container->addCheckbox('buyAllowed', 'Povolit nákup')->setDefaultValue(true);
 			$container->addCheckbox('viewAllOrders', 'Zobrazit všechny objednávky zákazníka')->setDefaultValue(false);
 
-			$container->addCheckbox('newsletter', 'Přihlášen k newsletteru')->addCondition($form::EQUAL, true)->toggle('frm-accountForm-permission-newsletterGroup-toogle');
-			$container->addText('newsletterGroup', 'Skupina pro newsletter')->addConditionOn($container['newsletter'], $form::EQUAL, true)->addRule($form::REQUIRED);
+			$newsletterInput = $container->addCheckbox('newsletter', 'Přihlášen k newsletteru');
+			$newsletterInput->addCondition($form::EQUAL, true)->toggle('frm-accountForm-permission-newsletterGroup-toogle');
+			$container->addText('newsletterGroup', 'Skupina pro newsletter')->addConditionOn($newsletterInput, $form::EQUAL, true)->addRule($form::REQUIRED);
 		};
 
 		return $this->accountFormFactory->create(false, $callback, true, true);

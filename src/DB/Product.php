@@ -557,6 +557,7 @@ class Product extends \StORM\Entity
 			return $tree;
 		}
 
+		/** @phpstan-ignore-next-line */
 		return $categoryRepository->many()->where('path LIKE :path', ['path' => $this->primaryCategoryPath])->orderBy(['LENGTH(path)' => $reversed ? 'DESC' : 'ASC'])->toArrayOf($tree, [], true);
 	}
 
@@ -648,10 +649,13 @@ class Product extends \StORM\Entity
 
 	private function getQuantityPrice(int $amount, string $property): ?float
 	{
-		return (float)$this->getConnection()->findRepository(QuantityPrice::class)->many()
+		/** @var float|null $price */
+		$price = $this->getConnection()->findRepository(QuantityPrice::class)->many()
 			->match(['fk_product' => $this->getPK(), 'fk_pricelist' => $this->getValue('pricelist')])
 			->where('validFrom <= :amount', ['amount' => $amount])
 			->orderBy(['validFrom' => 'DESC'])
 			->firstValue($property);
+
+		return $price ? (float)$price : null;
 	}
 }

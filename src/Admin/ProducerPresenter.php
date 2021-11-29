@@ -171,7 +171,7 @@ class ProducerPresenter extends BackendPresenter
 	{
 		$this->onDeleteImage($object);
 
-		/** @var \Web\DB\Page $page */
+		/** @var \Web\DB\Page|null $page */
 		$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['producer' => $object->getPK()]);
 
 		if (!$page) {

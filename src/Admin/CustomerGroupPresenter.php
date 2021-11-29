@@ -109,31 +109,33 @@ class CustomerGroupPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
-		/** @var \Eshop\DB\CustomerGroup $group */
+		/** @var \Eshop\DB\CustomerGroup|null $group */
 		$group = $this->getParameter('group');
 
 		$form->addText('name', 'Název')->setRequired();
 
-		$form->addSelect('defaultCatalogPermission', 'Katalogové oprávnění', Shopper::PERMISSIONS)->addCondition($form::EQUAL, 'price')
+		$catalogPermInput = $form->addSelect('defaultCatalogPermission', 'Katalogové oprávnění', Shopper::PERMISSIONS);
+
+		$catalogPermInput->addCondition($form::EQUAL, 'price')
 			->toggle('frm-newForm-defaultPricesWithoutVat-toogle')
 			->toggle('frm-newForm-defaultPricesWithVat-toogle');
 
 		if (isset($this::CONFIGURATION['prices']) && $this::CONFIGURATION['prices']) {
 			if ($this->shopper->getShowWithoutVat()) {
-				$form->addCheckbox('defaultPricesWithoutVat', 'Zobrazit ceny bez daně');
+				$withoutVatInput = $form->addCheckbox('defaultPricesWithoutVat', 'Zobrazit ceny bez daně');
 			}
 
 			if ($this->shopper->getShowVat()) {
-				$form->addCheckbox('defaultPricesWithVat', 'Zobrazit ceny s daní');
+				$withVatInput = $form->addCheckbox('defaultPricesWithVat', 'Zobrazit ceny s daní');
 			}
 
-			if ($this->shopper->getShowWithoutVat() && $this->shopper->getShowVat()) {
+			if ($this->shopper->getShowWithoutVat() && $this->shopper->getShowVat() && isset($withoutVatInput) && isset($withVatInput)) {
 				$form->addSelect('defaultPriorityPrice', 'Prioritní cena', [
 					'withoutVat' => 'Bez daně',
 					'withVat' => 'S daní',
-				])->addConditionOn($form['defaultCatalogPermission'], $form::EQUAL, 'price')
-					->addConditionOn($form['defaultPricesWithoutVat'], $form::EQUAL, true)
-					->addConditionOn($form['defaultPricesWithVat'], $form::EQUAL, true)
+				])->addConditionOn($catalogPermInput, $form::EQUAL, 'price')
+					->addConditionOn($withoutVatInput, $form::EQUAL, true)
+					->addConditionOn($withVatInput, $form::EQUAL, true)
 					->toggle('frm-newForm-defaultPriorityPrice-toogle');
 			}
 		}

@@ -126,7 +126,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 		$grid->addColumnText('Kód', 'product.code', '%s');
 		
 		$grid->addColumn('Produkt', function (Amount $amount, AdminGrid $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') && $amount->product ?
+			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ?
 				$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$amount->product, 'backLink' => $this->storeRequest()]) : '#';
 			
 			return '<a href="' . $link . '">&nbsp;' . $amount->product->name . '</a>';

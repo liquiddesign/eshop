@@ -728,7 +728,7 @@ class AttributePresenter extends BackendPresenter
 
 	protected function onDelete(Entity $object): void
 	{
-		/** @var \Web\DB\Page $page */
+		/** @var \Web\DB\Page|null $page */
 		$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $object->getPK()]);
 
 		if (!$page) {
