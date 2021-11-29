@@ -311,7 +311,7 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 
 			return [
 				'tree' => $this->getTreeHelper($typeId, $repository, $includeHidden, $onlyMenu),
-				'map' => $this->categoryMap[$typeId],
+				'map' => $this->categoryMap[$typeId] ?? [],
 			];
 		});
 		$this->categoryMap[$typeId] ??= $result['map'];
