@@ -56,10 +56,10 @@ class Attribute extends \StORM\Entity
 	public bool $showProduct = true;
 
 	/**
-	 * Zobrazit skryté
+	 * Počet zobrazených
 	 * @column
 	 */
-	public bool $showCollapsed = false;
+	public ?int $showCount = null;
 
 	/**
 	 * Zobrazit v pruvodci
@@ -72,6 +72,13 @@ class Attribute extends \StORM\Entity
 	 * @column{"type":"set","length":"'1','2','3','4'"}
 	 */
 	public ?string $wizardStep = null;
+
+	/**
+	 * Zobrazit skryté
+	 * @column
+	 * @deprecated
+	 */
+	public bool $showCollapsed = false;
 
 	/**
 	 * Nazev v pruvodci
