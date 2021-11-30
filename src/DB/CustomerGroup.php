@@ -43,6 +43,12 @@ class CustomerGroup extends \StORM\Entity
 	public string $defaultCatalogPermission = 'price';
 
 	/**
+	 * Defaultní slevová hladina
+	 * @column
+	 */
+	public int $defaultDiscountLevelPct = 0;
+
+	/**
 	 * Defaultní oprávnění: nákup
 	 * @column
 	 */

@@ -39,6 +39,8 @@ use Web\DB\PageRepository;
 
 class ProductForm extends Control
 {
+	protected const RELATION_MAX_ITEMS_COUNT = 10;
+
 	/** @persistent */
 	public string $tab = 'menu0';
 
@@ -255,7 +257,7 @@ class ProductForm extends Control
 			foreach ($this->relatedTypes as $relatedType) {
 				$relationsContainer = $form->addContainer('relatedType_' . $relatedType->getPK());
 
-				for ($i = 0; $i < 6; $i++) {
+				for ($i = 0; $i < $this::RELATION_MAX_ITEMS_COUNT; $i++) {
 					$relationsContainer->addSelect2Ajax("product_$i", $this->getPresenter()->link('getProductsForSelect2!'), null, [], 'Zvolte produkt');
 					$relationsContainer->addInteger("amount_$i")->setDefaultValue($relatedType->defaultAmount)->setNullable();
 					$relationsContainer->addInteger("priority_$i")->setDefaultValue(10)->setNullable();
@@ -279,6 +281,7 @@ class ProductForm extends Control
 				$relations = $this->relatedRepository->many()
 					->where('fk_master', $this->product->getPK())
 					->where('fk_type', $relatedType->getPK())
+					->orderBy(['uuid' => 'asc'])
 					->toArray();
 
 				$i = 0;
@@ -314,7 +317,7 @@ class ProductForm extends Control
 
 					$i++;
 
-					if ($i === 6) {
+					if ($i === $this::RELATION_MAX_ITEMS_COUNT) {
 						break;
 					}
 				}
@@ -453,13 +456,24 @@ class ProductForm extends Control
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
 
-		$this->relatedRepository->many()->where('fk_master', $product->getPK())->delete();
+		foreach ($this->relatedTypes as $relatedType) {
+			$this->relatedRepository->many()->where(
+				'this.uuid',
+				\array_values($this->relatedRepository->many()
+					->setSelect(['uuid' => 'this.uuid'])
+					->where('fk_master', $this->product->getPK())
+					->where('fk_type', $relatedType->getPK())
+					->orderBy(['uuid' => 'asc'])
+					->setTake($this::RELATION_MAX_ITEMS_COUNT)
+					->toArrayOf('uuid')),
+			)->delete();
+		}
 
 		// Relations
 		foreach ($this->relatedTypes as $relatedType) {
 			$relatedTypeValues = $values['relatedType_' . $relatedType->getPK()];
 
-			for ($i = 0; $i < 6; $i++) {
+			for ($i = 0; $i < $this::RELATION_MAX_ITEMS_COUNT; $i++) {
 				if (!isset($data['relatedType_' . $relatedType->getPK()]["product_$i"])) {
 					continue;
 				}
@@ -558,6 +572,7 @@ class ProductForm extends Control
 
 	public function render(): void
 	{
+		$this->template->relationMaxItemsCount = $this::RELATION_MAX_ITEMS_COUNT;
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->pricelistRepository->many()->orderBy(['this.priority']);
 		$this->template->supplierProducts = [];

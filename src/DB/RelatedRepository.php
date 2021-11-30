@@ -108,7 +108,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			}
 
 			$fullCode = \explode('.', $value['master']);
-			$products = $this->getConnection()->findRepository(Product::class)->many()->where('this.code', $fullCode[0]);
+			$products = $this->getConnection()->findRepository(Product::class)->many()->where('this.code = :product OR this.ean = :product', ['product' => $fullCode[0]]);
 
 			if (isset($fullCode[1])) {
 				$products->where('this.subcode', $fullCode[1]);
@@ -119,7 +119,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			}
 
 			$fullCode = \explode('.', $value['slave']);
-			$products = $this->getConnection()->findRepository(Product::class)->many()->where('this.code', $fullCode[0]);
+			$products = $this->getConnection()->findRepository(Product::class)->many()->where('this.code = :product OR this.ean = :product', ['product' => $fullCode[0]]);
 
 			if (isset($fullCode[1])) {
 				$products->where('this.subcode', $fullCode[1]);
@@ -134,8 +134,8 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 				'master' => $master->getPK(),
 				'slave' => $slave->getPK(),
 				'amount' => (int) $value['amount'],
-				'discountPct' => NumbersHelper::strToFloat($value['discountPct']),
-				'masterPct' => NumbersHelper::strToFloat($value['masterPct']),
+				'discountPct' => isset($value['discountPct']) ? NumbersHelper::strToFloat($value['discountPct']) : null,
+				'masterPct' => isset($value['masterPct']) ? NumbersHelper::strToFloat($value['masterPct']) : null,
 				'priority' => (int) $value['priority'],
 				'hidden' => (bool) $value['hidden'],
 			]);
