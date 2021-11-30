@@ -9,6 +9,8 @@ use Eshop\Shopper;
 use InvalidArgumentException;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
+use Nette\Application\LinkGenerator;
+use Nette\Http\Request;
 use Nette\Utils\DateTime;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -40,6 +42,10 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	private RelatedRepository $relatedRepository;
 
+	private LinkGenerator $linkGenerator;
+
+	private Request $request;
+
 	public function __construct(
 		Shopper $shopper,
 		DIConnection $connection,
@@ -50,7 +56,9 @@ class ProductRepository extends Repository implements IGeneralRepository
 		DeliveryDiscountRepository $deliveryDiscountRepository,
 		LoyaltyProgramDiscountLevelRepository $loyaltyProgramDiscountLevelRepository,
 		OrderRepository $orderRepository,
-		RelatedRepository $relatedRepository
+		RelatedRepository $relatedRepository,
+		LinkGenerator $linkGenerator,
+		Request $request
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -62,6 +70,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$this->loyaltyProgramDiscountLevelRepository = $loyaltyProgramDiscountLevelRepository;
 		$this->orderRepository = $orderRepository;
 		$this->relatedRepository = $relatedRepository;
+		$this->linkGenerator = $linkGenerator;
+		$this->request = $request;
 	}
 
 	/**
@@ -883,6 +893,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 					$row[] = $product->amounts;
 				} elseif ($columnKey === 'categories') {
 					$row[] = $product->groupedCategories;
+				} elseif ($columnKey === 'adminUrl') {
+					$row[] = $this->linkGenerator->link('Eshop:Admin:Product:edit', [$product]);
+				} elseif ($columnKey === 'frontUrl') {
+					$page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product->getPK()]);
+					$row[] = $page ? $this->request->getUrl()->getBaseUrl() . $page->getUrl($this->getConnection()->getMutation()) : null;
 				} else {
 					$row[] = $product->getValue($columnKey) === false ? '0' : $product->getValue($columnKey);
 				}
