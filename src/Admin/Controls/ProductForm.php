@@ -340,7 +340,7 @@ class ProductForm extends Control
 		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository): void {
 			$prices = $form->addContainer('prices');
 
-			$pricesPermission = $presenter->admin->isAllowed(':Eshop:Admin:Pricelist:default');
+			$pricesPermission = $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default');
 
 			foreach ($pricelistRepository->many() as $prc) {
 				$pricelist = $prices->addContainer($prc->getPK());
