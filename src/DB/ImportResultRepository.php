@@ -94,7 +94,7 @@ class ImportResultRepository extends \StORM\Repository
 		$this->log('Import data received: '. $importFile . ' (' . Helpers::falseToNull(\filesize($this->logDirectory . '/data/' . $importFile)) . ')');
 	}
 	
-	public function markAsImported(SupplierProvider $provider): void
+	public function markAsImported($provider): void
 	{
 		if (!isset($this->importResult)) {
 			throw new ApplicationException('Result is not set. Call createLog first.');
