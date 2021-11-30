@@ -537,27 +537,34 @@ class ProductForm extends Control
 			}
 		}
 
-		foreach ($values['prices'] as $pricelistId => $prices) {
-			$conditions = [
-				'fk_pricelist' => $pricelistId,
-				'fk_product' => $values['uuid'],
-			];
+		/** @var \Eshop\BackendPresenter $presenter */
+		$presenter = $this->getPresenter();
 
-			if ($prices['price'] === null) {
-				$this->priceRepository->many()->match($conditions)->delete();
+		$pricesPermission = $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default');
 
-				continue;
+		if ($pricesPermission) {
+			foreach ($values['prices'] as $pricelistId => $prices) {
+				$conditions = [
+					'fk_pricelist' => $pricelistId,
+					'fk_product' => $values['uuid'],
+				];
+
+				if ($prices['price'] === null) {
+					$this->priceRepository->many()->match($conditions)->delete();
+
+					continue;
+				}
+
+				$prices['priceVat'] = $prices['priceVat'] ? \floatval(\str_replace(',', '.', $prices['priceVat'])) :
+					$prices['price'] + ($prices['price'] * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 100));
+
+				$conditions = [
+					'pricelist' => $pricelistId,
+					'product' => $values['uuid'],
+				];
+
+				$this->priceRepository->syncOne($conditions + $prices);
 			}
-
-			$prices['priceVat'] = $prices['priceVat'] ? \floatval(\str_replace(',', '.', $prices['priceVat'])) :
-				$prices['price'] + ($prices['price'] * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 100));
-
-			$conditions = [
-				'pricelist' => $pricelistId,
-				'product' => $values['uuid'],
-			];
-
-			$this->priceRepository->syncOne($conditions + $prices);
 		}
 
 		unset($values['prices']);
