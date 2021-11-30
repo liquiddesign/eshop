@@ -81,7 +81,11 @@ class CategoryForm extends Control
 		});
 
 		$nameInput = $form->addLocaleText('name', 'Název');
-		$form->addLocalePerexEdit('perex', 'Perex', ['toolbar2' => 'table', 'plugins' => 'table', 'menubar' => 'table',]);
+		$form->addLocalePerexEdit('perex', 'Perex', [
+			'toolbar1' => 'undo redo | styleselect | bold italic underline strikethrough | 
+			alignleft aligncenter alignright alignjustify | link unlink anchor | table | copy cut paste pastetext insertcontent code',
+			'plugins' => 'table code',
+		]);
 		$form->addLocaleRichEdit('content', 'Obsah');
 
 		$this->monitor(Presenter::class, function ($presenter) use ($form, $category): void {
