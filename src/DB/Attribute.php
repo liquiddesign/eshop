@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Eshop\Controls\ProductFilter;
+use Nette\Utils\Arrays;
 use StORM\RelationCollection;
 
 /**
@@ -127,5 +129,10 @@ class Attribute extends \StORM\Entity
 	public function isSystemic(): bool
 	{
 		return $this->systemic;
+	}
+
+	public function isHardSystemic(): bool
+	{
+		return $this->isSystemic() && Arrays::contains(\array_keys(ProductFilter::SYSTEMIC_ATTRIBUTES), $this->getPK());
 	}
 }

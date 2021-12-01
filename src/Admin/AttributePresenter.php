@@ -123,7 +123,7 @@ class AttributePresenter extends BackendPresenter
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
-		$grid->addColumn('', function (Attribute $object, Datagrid $datagrid) use ($btnSecondary) {
+		$column = $grid->addColumn('', function (Attribute $object, Datagrid $datagrid) use ($btnSecondary) {
 			$attributeValues = $this->attributeRepository->getAttributeValues($object, true);
 
 			return \count($attributeValues) > 0 ?
@@ -131,9 +131,21 @@ class AttributePresenter extends BackendPresenter
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('valueNew', $object) . "'>Vytvořit&nbsp;hodnotu</a>";
 		}, '%s', null, ['class' => 'minimal']);
 
-		$grid->addColumn('', function (Attribute $object, Datagrid $datagrid) use ($btnSecondary) {
+		$column->onRenderCell[] = function (\Nette\Utils\Html $td, Attribute $object): void {
+			if ($object->isHardSystemic()) {
+				$td[0] = '';
+			}
+		};
+
+		$column = $grid->addColumn('', function (Attribute $object, Datagrid $datagrid) use ($btnSecondary) {
 			return "<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'ranges', 'rangesGrid-attribute' => $object->code,]) . "'>Rozsahy</a>";
 		}, '%s', null, ['class' => 'minimal']);
+
+		$column->onRenderCell[] = function (\Nette\Utils\Html $td, Attribute $object): void {
+			if ($object->isHardSystemic()) {
+				$td[0] = '';
+			}
+		};
 
 		$grid->addColumnLinkDetail('attributeDetail');
 		$grid->addColumnActionDeleteSystemic();
@@ -184,6 +196,11 @@ class AttributePresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create(true);
 
+		/** @var \Eshop\DB\Attribute|null $attribute */
+		$attribute = $this->getParameter('attribute');
+
+		$hardSystemic = $attribute && $attribute->isHardSystemic();
+
 		$form->addText('code', 'Kód')->setRequired();
 		$form->addLocaleText('name', 'Název');
 		$form->addLocaleTextArea('note', 'Dodatečné informace');
@@ -192,24 +209,35 @@ class AttributePresenter extends BackendPresenter
 			->addRule($form::INTEGER)
 			->setRequired()
 			->setDefaultValue(10);
-		$form->addCheckbox('showProduct', 'Náhled')->setHtmlAttribute('data-info', 'Atribut se zobrazí v náhledu produktu.');
+
+		if (!$hardSystemic) {
+			$form->addCheckbox('showProduct', 'Náhled')->setHtmlAttribute('data-info', 'Atribut se zobrazí v náhledu produktu.');
+		}
+
 		$form->addCheckbox('hidden', 'Skryto');
-		$form->addCheckbox('showRange', 'Zobrazit jako rozsahy')->setHtmlAttribute('data-info', 'Hodnoty atributu nebudou zobrazeny jako jednotlivé položky, ale souhrnně dle nastavení rozsahů.');
+
+		if (!$hardSystemic) {
+			$form->addCheckbox('showRange', 'Zobrazit jako rozsahy')->setHtmlAttribute('data-info', 'Hodnoty atributu nebudou zobrazeny jako jednotlivé položky, ale souhrnně dle nastavení rozsahů.');
+		}
+
 		$form->addInteger('showCount', 'Počet položek zobrazených při načtení')->setNullable()
 			->setHtmlAttribute('data-info', 'Při načtení bude zobrazeno jen X zvolených položek. Ostatní lze zobrazit tlačítkem "Zobrazit položky". Pokud necháte prázdné, budou zobrazeny všechny.');
 
 		$form->addGroup('Filtr');
 		$form->addCheckbox('showFilter', 'Filtr')->setHtmlAttribute('data-info', 'Atribut se zobrazí při filtrování.');
-		$form->addSelect('filterType', 'Typ filtru', Attribute::FILTER_TYPES);
 
-		if (isset($this::CONFIGURATIONS['wizard']) && $this::CONFIGURATIONS['wizard']) {
-			$form->addGroup('Průvodce');
-			$form->addCheckbox('showWizard', 'Zobrazit v průvodci');
-			$form->addDataMultiSelect('wizardStep', 'Pozice v průvodci (krok)', $this::CONFIGURATIONS['wizardSteps']);
-			$form->addLocaleText('wizardLabel', 'Název v průvodci')
-				->forAll(function ($input): void {
-					$input->setNullable()->setHtmlAttribute('data-info', 'Pokud necháte prázdné, použije se název atributu.');
-				});
+		if (!$hardSystemic) {
+			$form->addSelect('filterType', 'Typ filtru', Attribute::FILTER_TYPES);
+
+			if (isset($this::CONFIGURATIONS['wizard']) && $this::CONFIGURATIONS['wizard']) {
+				$form->addGroup('Průvodce');
+				$form->addCheckbox('showWizard', 'Zobrazit v průvodci');
+				$form->addDataMultiSelect('wizardStep', 'Pozice v průvodci (krok)', $this::CONFIGURATIONS['wizardSteps']);
+				$form->addLocaleText('wizardLabel', 'Název v průvodci')
+					->forAll(function ($input): void {
+						$input->setNullable()->setHtmlAttribute('data-info', 'Pokud necháte prázdné, použije se název atributu.');
+					});
+			}
 		}
 
 		$form->addSubmits(!$this->getParameter('attribute'));

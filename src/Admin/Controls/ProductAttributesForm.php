@@ -62,8 +62,9 @@ class ProductAttributesForm extends Control
 			return;
 		}
 
+		/** @var \Eshop\DB\Attribute $attribute */
 		foreach ($attributes as $attribute) {
-			if (Arrays::contains(\array_keys(ProductFilter::SYSTEMIC_ATTRIBUTES), $attribute->getPK())) {
+			if ($attribute->isHardSystemic()) {
 				continue;
 			}
 

@@ -97,6 +97,10 @@ class ProductAttributesGridFactory
 			$attributes = $this->attributes = $this->attributeRepository->getAttributesByCategory($category->path, true)->toArray();
 
 			foreach ($attributes as $attribute) {
+				if ($attribute->isHardSystemic()) {
+					continue;
+				}
+
 				$values = $this->attributeRepository->getAttributeValues($attribute, true);
 
 				$grid->addColumnInput($attribute->name, $attribute->getPK(), function () use ($values) {
