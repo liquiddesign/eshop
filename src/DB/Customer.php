@@ -24,6 +24,12 @@ class Customer extends Entity implements IIdentity, IUser
 	public ?string $fullname;
 	
 	/**
+	 * Externí kód
+	 * @column
+	 */
+	public ?string $externalCode;
+	
+	/**
 	 * Externí ID
 	 * @column
 	 */
