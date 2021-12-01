@@ -6,6 +6,7 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\Controls\ProductFilter;
 use Eshop\DB\Attribute;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValue;
@@ -327,7 +328,8 @@ class AttributePresenter extends BackendPresenter
 		$form->addText('code', 'Kód')->setRequired();
 
 		if (!($this->getParameter('attributeValue') && $this->attributeValueRepository->isValuePairedWithProducts($this->getParameter('attributeValue')))) {
-			$attributeInput = $form->addDataSelect('attribute', 'Atribut', $this->attributeRepository->getArrayForSelect())->setRequired();
+			$attributeInput = $form->addDataSelect('attribute', 'Atribut', $this->attributeRepository->getArrayForSelect())->setRequired()
+				->setHtmlAttribute('data-info', 'Hodnoty systémových atributů "' . \implode(', ', ProductFilter::SYSTEMIC_ATTRIBUTES) . '" nebudou použity.');
 
 			if ($attribute = $this->getParameter('attribute')) {
 				$attributeInput->setDefaultValue($attribute->getPK());

@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
+use Eshop\Controls\ProductFilter;
 use Eshop\Shopper;
 use InvalidArgumentException;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
 use Nette\Application\LinkGenerator;
 use Nette\Http\Request;
+use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Entity;
@@ -474,6 +477,14 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		foreach ($attributes as $attributeKey => $selectedAttributeValues) {
 			if (\count($selectedAttributeValues) === 0) {
+				continue;
+			}
+
+			if (Arrays::contains(\array_keys(ProductFilter::SYSTEMIC_ATTRIBUTES), $attributeKey)) {
+				$funcName = 'filter' . Strings::firstUpper($attributeKey);
+
+				$this->$funcName($selectedAttributeValues, $collection);
+
 				continue;
 			}
 

@@ -32,19 +32,23 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		return $this->getCollection($includeHidden)->toArrayOf('name');
+		$mutationSuffix = $this->getConnection()->getMutationSuffix();
+
+		return $this->getCollection($includeHidden)
+			->select(['fullName' => "IF(this.systemic = 1, CONCAT(name$mutationSuffix, ' (systémový)'), name$mutationSuffix)"])
+			->toArrayOf('fullName');
 	}
 
 	public function getCollection(bool $includeHidden = false): Collection
 	{
-		$suffix = $this->getConnection()->getMutationSuffix();
+		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 		$collection = $this->many();
 
 		if (!$includeHidden) {
 			$collection->where('this.hidden', false);
 		}
 
-		return $collection->orderBy(['this.priority', "this.name$suffix",]);
+		return $collection->orderBy(['this.priority', "this.name$mutationSuffix",]);
 	}
 
 	/**
