@@ -76,7 +76,13 @@ class Product extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $supplierCode;
-
+	
+	/**
+	 * Dovataleské id
+	 * @column
+	 */
+	public ?string $supplierId;
+	
 	/**
 	 * Prodejní jednotka (kus)
 	 * @column
