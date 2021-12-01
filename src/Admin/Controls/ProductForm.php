@@ -149,7 +149,7 @@ class ProductForm extends Control
 			$categoriesContainer->addDataMultiSelect($categoryType->getPK(), 'Kategorie: ' . $categoryType->name, $categoryRepository->getTreeArrayForSelect(true, $categoryType->getPK()));
 		}
 
-		$form->addSelect2('producer', 'Výrobce', $producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
+		$form->addDataSelect('producer', 'Výrobce', $producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 
 		$form->addDataMultiSelect('ribbons', 'Veřejné štítky', $ribbonRepository->getArrayForSelect());
 		$form->addDataMultiSelect('internalRibbons', 'Interní štítky', $internalRibbonRepository->getArrayForSelect());
