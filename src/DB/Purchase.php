@@ -19,6 +19,18 @@ class Purchase extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $fullname;
+	
+	/**
+	 * Externí kód
+	 * @column
+	 */
+	public ?string $externalCode;
+	
+	/**
+	 * Externí ID
+	 * @column
+	 */
+	public ?string $externalId;
 
 	/**
 	 * Jméno účtu zákazníka
