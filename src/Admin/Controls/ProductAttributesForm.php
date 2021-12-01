@@ -6,10 +6,12 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
+use Eshop\Controls\ProductFilter;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\Product;
 use Nette\Application\UI\Control;
+use Nette\Utils\Arrays;
 
 class ProductAttributesForm extends Control
 {
@@ -61,6 +63,10 @@ class ProductAttributesForm extends Control
 		}
 
 		foreach ($attributes as $attribute) {
+			if (Arrays::contains(\array_keys(ProductFilter::SYSTEMIC_ATTRIBUTES), $attribute->getPK())) {
+				continue;
+			}
+
 			$attributeValues = $this->attributeRepository->getAttributeValues($attribute, true)->toArrayOf('internalLabel');
 
 			$select = $form->addDataMultiSelect($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
