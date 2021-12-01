@@ -295,7 +295,7 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 			}
 		}
 
-		$this->clearCategoriesCache();
+//		$this->clearCategoriesCache();
 	}
 
 	public function getTree(string $typeId = 'main', bool $cache = true, bool $includeHidden = false, bool $onlyMenu = false): ArrayWrapper
@@ -479,7 +479,7 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 			}
 		}
 
-		$this->clearCategoriesCache();
+//		$this->clearCategoriesCache();
 	}
 
 	public function getCollection(bool $includeHidden = false): Collection
@@ -690,7 +690,7 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 			}
 		}
 
-		$this->clearCategoriesCache();
+//		$this->clearCategoriesCache();
 	}
 
 	/**
@@ -706,7 +706,7 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 
 		$this->iterateAndImportHeurekaTreeXml($xml->CATEGORY, $categoryType);
 
-		$this->clearCategoriesCache();
+//		$this->clearCategoriesCache();
 	}
 
 	private function iterateAndImportHeurekaTreeXml(\SimpleXMLElement $tree, CategoryType $categoryType, ?Category $ancestor = null): void

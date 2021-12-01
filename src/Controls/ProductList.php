@@ -267,6 +267,33 @@ class ProductList extends Datalist
 		$templateFilters = [];
 
 		foreach (Arrays::pick($filters, 'attributes', []) as $attributeKey => $attributeValues) {
+			if ($attributeKey === 'producer') {
+				/** @var \Eshop\DB\Producer $producer */
+				foreach ($this->producerRepository->getCollection()->where('this.uuid', $attributeValues) as $producer) {
+					$templateFilters['producer'][$producer->getPK()] = $this->translator->translate('.producer', 'Výrobce') . ": $producer->name";
+				}
+
+				continue;
+			}
+
+			if ($attributeKey === 'availability') {
+				/** @var \Eshop\DB\DisplayAmount $displayAmount */
+				foreach ($this->displayAmountRepository->getCollection()->where('this.uuid', $attributeValues) as $displayAmount) {
+					$templateFilters['availability'][$displayAmount->getPK()] = $this->translator->translate('.availability', 'Dostupnost') . ": $displayAmount->label";
+				}
+
+				continue;
+			}
+
+			if ($attributeKey === 'delivery') {
+				/** @var \Eshop\DB\DisplayDelivery $displayDelivery */
+				foreach ($this->displayDeliveryRepository->getCollection()->where('this.uuid', $attributeValues) as $displayDelivery) {
+					$templateFilters['delivery'][$displayDelivery->getPK()] = $this->translator->translate('.delivery', 'Doprava') . ": $displayDelivery->label";
+				}
+
+				continue;
+			}
+
 			/** @var \Eshop\DB\Attribute $attribute */
 			$attribute = $this->attributeRepository->one($attributeKey);
 
@@ -280,27 +307,6 @@ class ProductList extends Datalist
 
 			foreach ($attributeValues as $attributeValueKey => $attributeValueLabel) {
 				$templateFilters[$attributeKey][$attributeValueKey] = "$attribute->name: $attributeValueLabel";
-			}
-		}
-
-		if (isset($filters['producers'])) {
-			/** @var \Eshop\DB\Producer $producer */
-			foreach ($this->producerRepository->many()->where('this.uuid', $filters['producers']) as $producer) {
-				$templateFilters['producers'][$producer->getPK()] = $this->translator->translate('.producer', 'Výrobce') . ": $producer->name";
-			}
-		}
-
-		if (isset($filters['availability'])) {
-			/** @var \Eshop\DB\DisplayAmount $displayAmount */
-			foreach ($this->displayAmountRepository->many()->where('this.uuid', $filters['availability']) as $displayAmount) {
-				$templateFilters['availability'][$displayAmount->getPK()] = $this->translator->translate('.availability', 'Dostupnost') . ": $displayAmount->label";
-			}
-		}
-
-		if (isset($filters['delivery'])) {
-			/** @var \Eshop\DB\DisplayDelivery $displayDelivery */
-			foreach ($this->displayDeliveryRepository->many()->where('this.uuid', $filters['delivery']) as $displayDelivery) {
-				$templateFilters['delivery'][$displayDelivery->getPK()] = $this->translator->translate('.delivery', 'Doprava') . ": $displayDelivery->label";
 			}
 		}
 

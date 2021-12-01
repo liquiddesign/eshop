@@ -6,6 +6,7 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\Controls\ProductFilter;
 use Eshop\DB\Attribute;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValue;
@@ -146,6 +147,8 @@ class AttributePresenter extends BackendPresenter
 			return false;
 		});
 
+		$grid->addButtonBulkEdit('attributeForm', ['showCount'], 'attributeGrid');
+
 		$grid->addFilterTextInput('code', ['this.name_cs', 'this.code'], null, 'Kód, název');
 
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
@@ -192,8 +195,8 @@ class AttributePresenter extends BackendPresenter
 		$form->addCheckbox('showProduct', 'Náhled')->setHtmlAttribute('data-info', 'Atribut se zobrazí v náhledu produktu.');
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('showRange', 'Zobrazit jako rozsahy')->setHtmlAttribute('data-info', 'Hodnoty atributu nebudou zobrazeny jako jednotlivé položky, ale souhrnně dle nastavení rozsahů.');
-		$form->addCheckbox('showCollapsed', 'Skrýty položky při načtení')
-			->setHtmlAttribute('data-info', 'Hodnoty atributu budou při načtení skryté a bude je možné zobrazit tlačítkem "Zobrazit položky".');
+		$form->addInteger('showCount', 'Počet položek zobrazených při načtení')->setNullable()
+			->setHtmlAttribute('data-info', 'Při načtení bude zobrazeno jen X zvolených položek. Ostatní lze zobrazit tlačítkem "Zobrazit položky". Pokud necháte prázdné, budou zobrazeny všechny.');
 
 		$form->addGroup('Filtr');
 		$form->addCheckbox('showFilter', 'Filtr')->setHtmlAttribute('data-info', 'Atribut se zobrazí při filtrování.');
@@ -218,6 +221,7 @@ class AttributePresenter extends BackendPresenter
 				$values['uuid'] = DIConnection::generateUuid();
 			}
 
+			$values['showCount'] = $values['showCount'] && $values['showCount'] < 0 ? null : $values['showCount'];
 			$values['wizardStep'] = \count($values['wizardStep'] ?? []) > 0 ? \implode(',', $values['wizardStep']) : null;
 
 			$object = $this->attributeRepository->syncOne($values, null, true);
@@ -324,7 +328,8 @@ class AttributePresenter extends BackendPresenter
 		$form->addText('code', 'Kód')->setRequired();
 
 		if (!($this->getParameter('attributeValue') && $this->attributeValueRepository->isValuePairedWithProducts($this->getParameter('attributeValue')))) {
-			$attributeInput = $form->addDataSelect('attribute', 'Atribut', $this->attributeRepository->getArrayForSelect())->setRequired();
+			$attributeInput = $form->addDataSelect('attribute', 'Atribut', $this->attributeRepository->getArrayForSelect())->setRequired()
+				->setHtmlAttribute('data-info', 'Hodnoty systémových atributů "' . \implode(', ', ProductFilter::SYSTEMIC_ATTRIBUTES) . '" nebudou použity.');
 
 			if ($attribute = $this->getParameter('attribute')) {
 				$attributeInput->setDefaultValue($attribute->getPK());

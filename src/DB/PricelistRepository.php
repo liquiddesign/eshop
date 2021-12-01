@@ -398,8 +398,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			$localPrices = $this->priceRepository->many()->where('fk_pricelist', $sourcePricelist->getPK())->toArray();
 
 			foreach ($localPrices as $localPrice) {
-				if (isset($prices[$localPrice->product->getPK()])) {
-					$currentPrice = $prices[$localPrice->product->getPK()];
+				if (isset($prices[$localPrice->getValue('product')])) {
+					$currentPrice = $prices[$localPrice->getValue('product')];
 
 					if ($aggregateFunction === 'min') {
 						if ($localPrice->price < $currentPrice['price']) {
@@ -427,9 +427,9 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 						$currentPrice['count']++;
 					}
 
-					$prices[$localPrice->product->getPK()] = $currentPrice;
+					$prices[$localPrice->getValue('product')] = $currentPrice;
 				} else {
-					$prices[$localPrice->product->getPK()] = [
+					$prices[$localPrice->getValue('product')] = [
 						'price' => $localPrice->price,
 						'priceVat' => $localPrice->priceVat,
 						'count' => 1,
@@ -440,13 +440,17 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			}
 		}
 
-		foreach ($prices as $productKey => $priceArray) {
-			$existingPrice = $this->priceRepository->many()
-				->where('fk_pricelist', $targetPricelist->getPK())
-				->where('fk_product', $productKey)
-				->first();
+		$existingPricesInTargetPricelist = $this->priceRepository->many()
+			->where('fk_pricelist', $targetPricelist->getPK())
+			->where('fk_product', \array_keys($prices))
+			->setIndex('fk_product')
+			->setSelect(['this.uuid', 'this.price', 'this.priceVat', 'this.fk_product'])
+			->toArray();
 
-			if ($existingPrice && !$overwriteExisting) {
+		$newPricesInTargetPricelist = [];
+
+		foreach ($prices as $productKey => $priceArray) {
+			if (isset($existingPricesInTargetPricelist[$productKey]) && !$overwriteExisting) {
 				continue;
 			}
 
@@ -487,11 +491,13 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			$newValues['price'] = \round($newValues['price'] * $percentageChange / 100.0, $roundingAccuracy);
 			$newValues['priceVat'] = \round($newValues['priceVat'] * $percentageChange / 100.0, $roundingAccuracy);
 
-			if ($existingPrice) {
-				$existingPrice->update($newValues);
-			} else {
-				$this->priceRepository->createOne($newValues);
-			}
+			$newPricesInTargetPricelist[] = $newValues;
 		}
+
+		if (\count($newPricesInTargetPricelist) === 0) {
+			return;
+		}
+
+		$this->priceRepository->syncMany($newPricesInTargetPricelist);
 	}
 }

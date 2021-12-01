@@ -85,6 +85,8 @@ class ProductPresenter extends BackendPresenter
 			'content' => 'Obsah',
 			'storeAmount' => 'Skladová dostupnost',
 			'categories' => 'Kategorie',
+			'adminUrl' => 'Admin URL',
+			'frontUrl' => 'Front URL',
 		],
 		'exportAttributes' => [],
 		'defaultExportColumns' => [

@@ -340,7 +340,7 @@ class ProductForm extends Control
 		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository): void {
 			$prices = $form->addContainer('prices');
 
-			$pricesPermission = $presenter->admin->isAllowed(':Eshop:Admin:Pricelist:default');
+			$pricesPermission = $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default');
 
 			foreach ($pricelistRepository->many() as $prc) {
 				$pricelist = $prices->addContainer($prc->getPK());
@@ -537,27 +537,34 @@ class ProductForm extends Control
 			}
 		}
 
-		foreach ($values['prices'] as $pricelistId => $prices) {
-			$conditions = [
-				'fk_pricelist' => $pricelistId,
-				'fk_product' => $values['uuid'],
-			];
+		/** @var \Eshop\BackendPresenter $presenter */
+		$presenter = $this->getPresenter();
 
-			if ($prices['price'] === null) {
-				$this->priceRepository->many()->match($conditions)->delete();
+		$pricesPermission = $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default');
 
-				continue;
+		if ($pricesPermission) {
+			foreach ($values['prices'] as $pricelistId => $prices) {
+				$conditions = [
+					'fk_pricelist' => $pricelistId,
+					'fk_product' => $values['uuid'],
+				];
+
+				if ($prices['price'] === null) {
+					$this->priceRepository->many()->match($conditions)->delete();
+
+					continue;
+				}
+
+				$prices['priceVat'] = $prices['priceVat'] ? \floatval(\str_replace(',', '.', $prices['priceVat'])) :
+					$prices['price'] + ($prices['price'] * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 100));
+
+				$conditions = [
+					'pricelist' => $pricelistId,
+					'product' => $values['uuid'],
+				];
+
+				$this->priceRepository->syncOne($conditions + $prices);
 			}
-
-			$prices['priceVat'] = $prices['priceVat'] ? \floatval(\str_replace(',', '.', $prices['priceVat'])) :
-				$prices['price'] + ($prices['price'] * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 100));
-
-			$conditions = [
-				'pricelist' => $pricelistId,
-				'product' => $values['uuid'],
-			];
-
-			$this->priceRepository->syncOne($conditions + $prices);
 		}
 
 		unset($values['prices']);

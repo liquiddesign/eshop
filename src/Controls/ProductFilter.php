@@ -13,6 +13,7 @@ use Eshop\DB\ProducerRepository;
 use Forms\Form;
 use Forms\FormFactory;
 use Nette\Application\UI\Control;
+use Nette\Utils\Arrays;
 use Translator\DB\TranslationRepository;
 
 /**
@@ -20,6 +21,12 @@ use Translator\DB\TranslationRepository;
  */
 class ProductFilter extends Control
 {
+	public const SYSTEMIC_ATTRIBUTES = [
+		'producer' => 'Výrobce',
+		'availability' => 'Dostupnost',
+		'delivery' => 'Doručení',
+	];
+
 	/**
 	 * @var callable[]&callable(): void; Occurs after product filter form success
 	 */
@@ -73,10 +80,13 @@ class ProductFilter extends Control
 
 		$this->template->attributes = $this->getAttributes();
 
-		$this->template->displayAmountCounts = $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayAmount', $this->getProductList()->getFilters())[$category] ?? [] : [];
-		$this->template->displayDeliveryCounts = $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayDelivery', $this->getProductList()->getFilters())[$category] ?? [] : [];
+		$this->template->systemicCounts = [
+			'availability' => $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayAmount', $this->getProductList()->getFilters())[$category] ?? [] : [],
+			'delivery' => $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayDelivery', $this->getProductList()->getFilters())[$category] ?? [] : [],
+			'producer' => $category ? $this->categoryRepository->getCountsGrouped('this.fk_producer', $this->getProductList()->getFilters())[$category] ?? [] : [],
+		];
+
 		$this->template->attributesValuesCounts = $category ? $this->categoryRepository->getCountsGrouped('assign.fk_value', $this->getProductList()->getFilters())[$category] ?? [] : [];
-		$this->template->producersCount = $category ? $this->categoryRepository->getCountsGrouped('this.fk_producer', $this->getProductList()->getFilters())[$category] ?? [] : [];
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;
@@ -90,14 +100,6 @@ class ProductFilter extends Control
 
 		$filterForm->addInteger('priceFrom')->setRequired()->setDefaultValue(0);
 		$filterForm->addInteger('priceTo')->setRequired()->setDefaultValue(100000);
-		$filterForm->addCheckboxList('availability', null, $this->displayAmountRepository->getArrayForSelect());
-		$filterForm->addCheckboxList('delivery', null, $this->displayDeliveryRepository->getArrayForSelect());
-		$filterForm->addCheckboxList('producers', null, $this->producerRepository->getCollection()
-			->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid', [], 'INNER')
-			->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid')
-			->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
-			->where('category.path LIKE :s', ['s' => ($this->getCategoryPath() ?? '') . '%'])
-			->toArrayOf('name'));
 
 		$filterForm->setDefaults($this->getProductList()->getFilters());
 
@@ -106,18 +108,24 @@ class ProductFilter extends Control
 		$defaults = $this->getProductList()->getFilters()['attributes'] ?? [];
 
 		foreach ($this->getAttributes() as $attribute) {
-			$attributeValues = $attribute->showRange ?
-				$this->attributeValueRangeRepository->many()
-					->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attributeValueRange = this.uuid')
-					->where('attributeValue.fk_attribute', $attribute->getPK())
-					->toArrayOf('name') :
-				$this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
+			$attributeValues = Arrays::contains(\array_keys($this::SYSTEMIC_ATTRIBUTES), $attribute->getPK()) ?
+				$this->getSystemicAttributeValues($attribute->getPK()) :
+				($attribute->showRange ?
+					$this->attributeValueRangeRepository->many()
+						->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attributeValueRange = this.uuid')
+						->where('attributeValue.fk_attribute', $attribute->getPK())
+						->toArrayOf('name') :
+					$this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label'));
 
 			if (!$attributeValues) {
 				continue;
 			}
 
-			$checkboxList = $attributesContainer->addCheckboxList($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
+			$checkboxList = $attributesContainer->addCheckboxList(
+				$attribute->getPK(),
+				$attribute->name ?? $attribute->code,
+				$attributeValues,
+			);
 
 			if (!isset($defaults[$attribute->getPK()])) {
 				continue;
@@ -165,9 +173,6 @@ class ProductFilter extends Control
 			"$parent-priceFrom" => null,
 			"$parent-priceTo" => null,
 			"$parent-attributes" => null,
-			"$parent-availability" => null,
-			"$parent-delivery" => null,
-			"$parent-producers" => null,
 		]);
 	}
 
@@ -179,16 +184,6 @@ class ProductFilter extends Control
 		$filters = $parent->getFilters();
 
 		$filtersAttributes = $filters['attributes'] ?? [];
-		$simpleFilters = $filters[$searchedAttributeKey] ?? [];
-
-		if (\array_search($searchedAttributeKey, ['producers', 'availability', 'delivery']) !== false) {
-			if (($index = \array_search($searchedAttributeValueKey, $simpleFilters)) !== false) {
-				unset($simpleFilters[$index]);
-				$simpleFilters = \array_values($simpleFilters);
-			}
-
-			$this->getPresenter()->redirect('this', ["$parentName-$searchedAttributeKey" => $simpleFilters]);
-		}
 
 		foreach ($filtersAttributes as $attributeKey => $attributeValues) {
 			if ($attributeKey === $searchedAttributeKey) {
@@ -224,5 +219,28 @@ class ProductFilter extends Control
 	private function getAttributes(): array
 	{
 		return $this->attributes ??= $this->getCategoryPath() ? $this->attributeRepository->getAttributesByCategory($this->getCategoryPath())->where('showFilter', true)->toArray() : [];
+	}
+
+	/**
+	 * @param string $uuid
+	 * @return array<string, string>
+	 */
+	private function getSystemicAttributeValues(string $uuid): array
+	{
+		switch ($uuid) {
+			case 'availability':
+				return $this->displayAmountRepository->getArrayForSelect(false);
+			case 'delivery':
+				return $this->displayDeliveryRepository->getArrayForSelect(false);
+			case 'producer':
+				return $this->producerRepository->getCollection()
+				->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid', [], 'INNER')
+				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid')
+				->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
+				->where('category.path LIKE :s', ['s' => ($this->getCategoryPath() ?? '') . '%'])
+				->toArrayOf('name');
+			default:
+				return [];
+		}
 	}
 }
