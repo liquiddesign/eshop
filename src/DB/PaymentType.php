@@ -19,6 +19,12 @@ class PaymentType extends \StORM\Entity
 	public string $code;
 	
 	/**
+	 * Externí ID
+	 * @column
+	 */
+	public ?string $externalId;
+	
+	/**
 	 * Název
 	 * @column{"mutations":true}
 	 */
