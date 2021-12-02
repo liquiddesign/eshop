@@ -34,8 +34,41 @@
     {/if}
 {/form}
 {if $category}
-<div class="table-responsive table-striped">
-    {form form}
+    <style>
+        .view {
+            margin: auto;
+            width: 100%;
+        }
+
+        .wrapper {
+            position: relative;
+            overflow: auto;
+            white-space: nowrap;
+        }
+
+        .sticky-col {
+            position: -webkit-sticky;
+            position: sticky;
+            background-color: white !important;
+        }
+
+        .first-col {
+            width: 100px;
+            min-width: 100px;
+            max-width: 100px;
+            left: 0px;
+        }
+
+        .second-col {
+            width: 200px;
+            min-width: 200px;
+            max-width: 200px;
+            left: 100px;
+        }
+    </style>
+{form form}
+    <div class="view">
+        <div class="wrapper table-striped">
         <table class="table table-sm lqd-table {$appendClass}">
             <thead class="admin-head">
             {foreach $columns as $column}
@@ -44,15 +77,19 @@
             </thead>
             {$control->getRows()}
         </table>
-        <div class="table-footer-components d-lg-flex align-items-lg-center">
+        </div>
+    </div>
+    <div>
+        <div class="table-footer-components d-lg-flex align-items-lg-center mt-3">
             <div class="table-footer-buttons d-lg-flex align-items-lg-center">
                 {foreach $form->getComponents(false, Nette\Forms\Controls\Button::class) as $component}
                     {$component->getControl()}
                 {/foreach}
             </div>
         </div>
-    {/form}
-</div>
+    </div>
+{/form}
+
 <div class="pagination ml-lg-auto" n:if="$showPaginator">
     {if $showItemsPerPage}
         <div class="col-12">

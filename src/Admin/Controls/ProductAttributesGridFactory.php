@@ -16,6 +16,7 @@ use Grid\Datagrid;
 use Nette\Forms\Controls\MultiSelectBox;
 use Nette\Http\Session;
 use Nette\Utils\Arrays;
+use Nette\Utils\Html;
 
 class ProductAttributesGridFactory
 {
@@ -68,9 +69,18 @@ class ProductAttributesGridFactory
 		$grid = $this->gridFactory->create($source, 20, 'this.priority', 'ASC', false);
 		$grid->setItemsPerPage([5, 10, 20, 50, 100]);
 
-		$grid->addColumn('Název', function (Product $product, $grid) {
+		$nameColumn = $grid->addColumn('Název', function (Product $product, $grid) {
 			return [$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]), $product->name];
-		}, '<a style="" href="%s" target="_blank"> %s</a>', 'name')->onRenderCell[] = [$grid, 'decoratorNowrap'];
+		}, '<a style="" href="%s" target="_blank"> %s</a>', 'name');
+
+		$nameColumn->onRenderCell[] = [$grid, 'decoratorNowrap'];
+		$nameColumn->onRender[] = function (Html $th): void {
+			$th->class($th->class . ' sticky-col first-col');
+		};
+		$nameColumn->onRenderCell[] = function (Html $td): void {
+			$td->class($td->class . ' sticky-col first-col');
+			$td->style('z-index: 100; white-space: normal;');
+		};
 
 		$grid->onAnchor[] = function (AdminGrid $grid): void {
 			$grid->template->setFile(__DIR__ . '/productAttributesGrid.latte');
