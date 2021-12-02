@@ -16,7 +16,6 @@ use Eshop\FormValidators;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Arrays;
-use Web\DB\PageRepository;
 
 class DiscountCouponForm extends Control
 {
@@ -40,7 +39,6 @@ class DiscountCouponForm extends Control
 
 					$codeInput->setHtmlAttribute('data-info', "Odkaz pro vložení: <a class='ml-2' href='$url' target='_blank'><i class='fas fa-external-link-alt'></i>$url</a>");
 				} catch (\Throwable $e) {
-
 				}
 			}
 		});
