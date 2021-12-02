@@ -26,7 +26,6 @@ class DiscountCouponForm extends Control
 		CurrencyRepository $currencyRepository,
 		DiscountCouponRepository $discountCouponRepository,
 		DiscountConditionRepository $discountConditionRepository,
-		PageRepository $pageRepository,
 		?DiscountCoupon $discountCoupon,
 		?Discount $discount = null
 	) {
@@ -34,7 +33,7 @@ class DiscountCouponForm extends Control
 
 		$codeInput = $form->addText('code', 'Kód')->setRequired();
 
-		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($codeInput, $discountCoupon, $pageRepository): void {
+		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($codeInput, $discountCoupon): void {
 			if ($discountCoupon) {
 				$url = $presenter->link('//:Eshop:Checkout:cart', ['coupon' => $discountCoupon->code]);
 
