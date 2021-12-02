@@ -35,9 +35,13 @@ class DiscountCouponForm extends Control
 
 		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($codeInput, $discountCoupon): void {
 			if ($discountCoupon) {
-				$url = $presenter->link('//:Eshop:Checkout:cart', ['coupon' => $discountCoupon->code]);
+				try {
+					$url = $presenter->link('//:Eshop:Checkout:cart', ['coupon' => $discountCoupon->code]);
 
-				$codeInput->setHtmlAttribute('data-info', "Odkaz pro vložení: <a class='ml-2' href='$url' target='_blank'><i class='fas fa-external-link-alt'></i>$url</a>");
+					$codeInput->setHtmlAttribute('data-info', "Odkaz pro vložení: <a class='ml-2' href='$url' target='_blank'><i class='fas fa-external-link-alt'></i>$url</a>");
+				} catch (\Throwable $e) {
+
+				}
 			}
 		});
 
