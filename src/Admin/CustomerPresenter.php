@@ -130,6 +130,20 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnText('Telefon', 'phone', '<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		$grid->addColumnText('E-mail', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 
+		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
+			$grid->addColumn('Věrnostní program', function (Customer $object) {
+				$link = $this->admin->isAllowed(':Eshop:Admin:LoyaltyProgram:programDetail') && $object->getValue('loyaltyProgram') ? $this->link(
+					':Eshop:Admin:LoyaltyProgram:programDetail',
+					[$object->loyaltyProgram, 'backLink' => $this->storeRequest()],
+				) : '#';
+
+				return $object->getValue('loyaltyProgram') ?
+					"<a href='" . $link . "'>" . $object->loyaltyProgram->name . "</a><small><br>Bodů: " . $object->getLoyaltyProgramPoints() .
+					" | Sleva: " . $this->productRepo->getBestDiscountLevel($object) . '%</small>' :
+					'';
+			}, '%s');
+		}
+
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('Feed', function (Customer $customer) use ($btnSecondary) {
 			return "<a class='$btnSecondary' target='_blank' href='" . $this->link('//:Eshop:Export:customer', $customer->getPK()) . "'><i class='fa fa-sm fa-rss'></i></a>";
@@ -149,7 +163,13 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder']);
 
-		$grid->addButtonBulkEdit('form', ['pricelists', 'merchant', 'group'], 'customers');
+		$bulkEdits = ['pricelists', 'merchant', 'group'];
+
+		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
+			$bulkEdits[] = 'loyaltyProgram';
+		}
+
+		$grid->addButtonBulkEdit('form', $bulkEdits, 'customers');
 
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů');
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
