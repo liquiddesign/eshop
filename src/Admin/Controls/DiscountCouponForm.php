@@ -4,6 +4,7 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
+use Eshop\BackendPresenter;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Discount;
@@ -15,6 +16,7 @@ use Eshop\FormValidators;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Arrays;
+use Web\DB\PageRepository;
 
 class DiscountCouponForm extends Control
 {
@@ -24,12 +26,22 @@ class DiscountCouponForm extends Control
 		CurrencyRepository $currencyRepository,
 		DiscountCouponRepository $discountCouponRepository,
 		DiscountConditionRepository $discountConditionRepository,
+		PageRepository $pageRepository,
 		?DiscountCoupon $discountCoupon,
 		?Discount $discount = null
 	) {
 		$form = $adminFormFactory->create();
 
-		$form->addText('code', 'Kód')->setRequired();
+		$codeInput = $form->addText('code', 'Kód')->setRequired();
+
+		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($codeInput, $discountCoupon, $pageRepository): void {
+			if ($discountCoupon) {
+				$url = $presenter->link('//:Eshop:Checkout:cart', ['coupon' => $discountCoupon->code]);
+
+				$codeInput->setHtmlAttribute('data-info', "Odkaz pro vložení: <a class='ml-2' href='$url' target='_blank'><i class='fas fa-external-link-alt'></i>$url</a>");
+			}
+		});
+
 		$form->addText('label', 'Popisek');
 		$form->addDataSelect('exclusiveCustomer', 'Jen pro zákazníka', $customerRepository->getArrayForSelect())->setPrompt('Žádný');
 		$form->addText('discountPct', 'Sleva (%)')->addRule($form::FLOAT)->addRule([FormValidators::class, 'isPercent'], 'Hodnota není platné procento!');
