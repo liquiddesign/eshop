@@ -346,6 +346,7 @@ class CustomerPresenter extends BackendPresenter
 
 			if ($customer && $customer->getValue('loyaltyProgram')) {
 				$form->addText('loyaltyProgramPoints', 'Stav věrnostního konta')->setDisabled()->setDefaultValue((string)$customer->getLoyaltyProgramPoints());
+				$form->addText('loyaltyProgramDiscountLevel', 'Sleva věrnostního programu (%)')->setDisabled()->setDefaultValue((string)$this->productRepo->getBestDiscountLevel($customer));
 			}
 		}
 
