@@ -329,6 +329,10 @@ class Customer extends Entity implements IIdentity, IUser
 			return null;
 		}
 
+		if ($this->loyaltyProgram->histories->count() === 0) {
+			return 0.0;
+		}
+
 		/** @var \Eshop\DB\LoyaltyProgramHistory|null $points */
 		$points = $this->loyaltyProgram->histories->match(['fk_customer' => $this->getPK()])->select(['totalPoints' => 'SUM(points)'])->first();
 
