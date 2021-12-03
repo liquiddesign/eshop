@@ -51,6 +51,7 @@
 		"phpstan/phpstan": "*"
 	},
 	"scripts": {
+		"phpstan-clear-cache": "phpstan clear-result-cache",
 		"phpstan": "phpstan analyse --memory-limit 1G -c phpstan.neon",
 		"phpcs": "phpcs --standard=ruleset.xml --ignore=assets src",
 		"phpcsfix": "phpcbf --standard=ruleset.xml --ignore=assets src",
