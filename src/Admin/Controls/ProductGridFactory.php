@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminGridFactory;
-use Eshop\DB\CategoryRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Grid\Datagrid;

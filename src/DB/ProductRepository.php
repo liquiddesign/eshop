@@ -92,7 +92,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 	 * @param \Eshop\DB\Customer|null $customer
 	 * @param bool $selects
 	 */
-	public function getProducts(?array $pricelists = null, ?Customer $customer = null, bool $selects = true, ?DiscountCoupon $activeCoupon = null): Collection
+	public function getProducts(?array $pricelists = null, ?Customer $customer = null, bool $selects = true): Collection
 	{
 		$currency = $this->shopper->getCurrency();
 		$convertRatio = null;
