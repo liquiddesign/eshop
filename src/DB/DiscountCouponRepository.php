@@ -67,12 +67,6 @@ class DiscountCouponRepository extends \StORM\Repository
 				'(this.minimalOrderPrice IS NULL OR this.minimalOrderPrice <= :cartPrice) AND (this.maximalOrderPrice IS NULL OR this.maximalOrderPrice >= :cartPrice)',
 				['cartPrice' => $this->cartItemRepository->getSumProperty([$cart->getPK()], $priceType)],
 			);
-//			->join(['conditions' => 'eshop_discountconditions'], 'this.uuid = conditions.fk_discountCoupon')
-//			->join(['conditionsProducts' => 'eshop_discountcondition_nxn_eshop_product'], 'conditions.uuid = conditionsProducts.fk_discountcondition')
-//			->join(['cartItems' => 'eshop_cartItem'], 'cartItems.fk_product = conditionsProducts.fk_product')
-//			->where('cartItems.fk_cart', $cart->getPK())
-//			->where('(conditions.cartCondition = "isInCart" AND ((conditions.quantityCondition = "all" AND ...) OR (conditions.quantityCondition = "atLeastOne" AND ...))) OR
-//			(conditions.cartCondition = "notInCart" AND ((conditions.quantityCondition = "all" AND ...) OR (conditions.quantityCondition = "atLeastOne" AND ...)))');
 
 		if ($customer) {
 			$collection->where('fk_exclusiveCustomer IS NULL OR fk_exclusiveCustomer = :customer', ['customer' => $customer]);

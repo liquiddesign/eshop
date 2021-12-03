@@ -16,7 +16,9 @@ use Nette\Forms\IControl;
 
 /**
  * Class Products
+ * @method onItemDelete()
  * @method onDeleteAll()
+ * @method onItemAmountChange()
  * @package Eshop\Controls
  */
 class CartItemList extends Datalist
@@ -26,7 +28,17 @@ class CartItemList extends Datalist
 	public Shopper $shopper;
 
 	/**
-	 * @var callable[]&callable(): void; Occurs after cart item delete
+	 * @var callable[]&callable(): void; Occurs on delete item or coupon
+	 */
+	public $onItemAmountChange;
+
+	/**
+	 * @var callable[]&callable(): void; Occurs on delete item or coupon
+	 */
+	public $onItemDelete;
+
+	/**
+	 * @var callable[]&callable(): void; Occurs on delete all items
 	 */
 	public $onDeleteAll;
 
@@ -47,6 +59,8 @@ class CartItemList extends Datalist
 	public function handleDeleteItem(string $itemId): void
 	{
 		$this->checkoutManager->deleteItem(new CartItem(['uuid' => $itemId], $this->cartItemsRepository));
+
+		$this->onItemDelete();
 	}
 
 	public function handleDeleteAll(): void
@@ -61,6 +75,8 @@ class CartItemList extends Datalist
 		unset($couponId);
 
 		$this->checkoutManager->setDiscountCoupon(null);
+
+		$this->onItemDelete();
 	}
 
 	public function createComponentChangeAmountForm(): Multiplier
@@ -94,6 +110,8 @@ class CartItemList extends Datalist
 				}
 
 				$checkoutManager->changeItemAmount($product, $cartItem->variant, $amount, false);
+
+				$this->onItemAmountChange();
 			};
 
 			return $form;

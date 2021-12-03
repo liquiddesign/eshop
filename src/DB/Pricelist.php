@@ -40,6 +40,12 @@ class Pricelist extends \StORM\Entity
 	 * @column
 	 */
 	public bool $allowDiscountLevel = false;
+
+	/**
+	 * Platí pouze s kuponem
+	 * @column
+	 */
+	public bool $activeOnlyWithCoupon = false;
 	
 	/**
 	 * Priorita

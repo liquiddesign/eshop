@@ -103,13 +103,13 @@
                 {if $control->shopper->getShowWithoutVat()}
                     <tr>
                         <td>Průměrná cena objednávky bez DPH</td>
-                        <td>{$averageOrderPrice[1]|price:$currency}</td>
+                        <td>{$averageOrderPrice[0]|price:$currency}</td>
                     </tr>
                 {/if}
                 {if $control->shopper->getShowVat()}
                     <tr>
                         <td>Průměrná cena objednávky s DPH</td>
-                        <td>{$averageOrderPrice[0]|price:$currency}</td>
+                        <td>{$averageOrderPrice[1]|price:$currency}</td>
                     </tr>
                 {/if}
                 </tbody>

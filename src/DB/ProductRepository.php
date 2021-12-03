@@ -92,7 +92,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 	 * @param \Eshop\DB\Customer|null $customer
 	 * @param bool $selects
 	 */
-	public function getProducts(?array $pricelists = null, ?Customer $customer = null, bool $selects = true): Collection
+	public function getProducts(?array $pricelists = null, ?Customer $customer = null, bool $selects = true, ?DiscountCoupon $activeCoupon = null): Collection
 	{
 		$currency = $this->shopper->getCurrency();
 		$convertRatio = null;
@@ -101,7 +101,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$convertRatio = $currency->convertRatio;
 		}
 
-		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists($currency->isConversionEnabled() ? $currency->convertCurrency : null)->toArray());
+		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists($currency->isConversionEnabled() ? $currency->convertCurrency : null, $activeCoupon)->toArray());
 		$customer ??= $this->shopper->getCustomer();
 		$discountLevelPct = $customer ? $this->getBestDiscountLevel($customer) : 0;
 		$vatRates = $this->shopper->getVatRates();

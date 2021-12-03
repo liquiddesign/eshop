@@ -21,8 +21,6 @@ class ProductGridFactory
 
 	private AdminGridFactory $gridFactory;
 
-	private CategoryRepository $categoryRepository;
-
 	private PageRepository $pageRepository;
 
 	private Container $container;

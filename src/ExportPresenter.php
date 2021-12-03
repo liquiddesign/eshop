@@ -18,6 +18,8 @@ use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Http\IResponse;
 use Nette\Http\Request;
+use Nette\Http\Response;
+use Nette\Security\AuthenticationException;
 use Security\DB\AccountRepository;
 use Web\DB\SettingRepository;
 
@@ -62,6 +64,9 @@ abstract class ExportPresenter extends Presenter
 
 	/** @inject */
 	public Request $request;
+
+	/** @inject */
+	public Response $response;
 
 	protected Cache $cache;
 
@@ -121,7 +126,9 @@ abstract class ExportPresenter extends Presenter
 
 	public function actionCustomer(?string $uuid = null): void
 	{
-		if (!isset($_SERVER['PHP_AUTH_USER']) && !$this->user->isLoggedIn() && !$uuid) {
+		$phpAuthUser = $this->request->getUrl()->getUser();
+
+		if (\strlen($phpAuthUser) === 0 && !$this->user->isLoggedIn() && !$uuid) {
 			\Header("WWW-Authenticate: Basic realm=\"Please, log in.\"");
 			\Header("HTTP/1.0 401 Unauthorized");
 			echo "401 Unauthorized\n";
@@ -129,12 +136,22 @@ abstract class ExportPresenter extends Presenter
 			exit;
 		}
 
-		if (isset($_SERVER['PHP_AUTH_USER'])) {
-			$this->user->login($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'], Customer::class);
+		$phpAuthPassword = $this->request->getUrl()->getPassword();
+
+		if (\strlen($phpAuthUser) > 0) {
+			try {
+				$this->user->login($phpAuthUser, $phpAuthPassword, Customer::class);
+			} catch (AuthenticationException $e) {
+				\Header("WWW-Authenticate: Basic realm=\"Invalid login.\"");
+				\Header("HTTP/1.0 401 Unauthorized");
+				echo "401 Unauthorized\n";
+				echo "Invalid login\n";
+				exit;
+			}
 		}
 
 		if (!$uuid) {
-			/** @var \Eshop\DB\Customer $customer */
+			/** @var \Eshop\DB\Customer|\Eshop\DB\Merchant $customer */
 			$customer = $this->getUser()->getIdentity();
 			$uuid = $customer->getPK();
 		}

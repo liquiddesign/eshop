@@ -217,6 +217,7 @@ class CheckoutManager
 		}
 
 		$this->lastOrderToken = $request->getCookie('lastOrderToken');
+		$this->shopper->setDiscountCoupon($this->getDiscountCoupon());
 	}
 
 	public function setCheckoutSequence(array $checkoutSequence): void

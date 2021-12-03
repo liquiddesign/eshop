@@ -12,6 +12,7 @@ use Eshop\DB\Customer;
 use Eshop\DB\CustomerGroup;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
+use Eshop\DB\DiscountCoupon;
 use Eshop\DB\Merchant;
 use Eshop\DB\MinimalOrderValueRepository;
 use Eshop\DB\PricelistRepository;
@@ -87,6 +88,8 @@ class Shopper
 	private string $projectUrl;
 	
 	private bool $editOrderAfterCreation;
+
+	private ?DiscountCoupon $discountCoupon = null;
 	
 	private ?Customer $customer = null;
 	
@@ -175,7 +178,12 @@ class Shopper
 		unset($this->currency);
 		$this->currencyCode = $currencyCode;
 	}
-	
+
+	public function setDiscountCoupon(?DiscountCoupon $discountCoupon): void
+	{
+		$this->discountCoupon = $discountCoupon;
+	}
+
 	/**
 	 * Vrací aktuální měnu, pokud zadáte kód vrací měnu dle kódu
 	 */
@@ -282,11 +290,11 @@ class Shopper
 		$repo = $this->pricelistRepository;
 		
 		if (!$customer && $merchant) {
-			return $this->pricelists = $repo->getMerchantPricelists($merchant, $currency ?: $this->getCurrency(), $this->getCountry());
+			return $this->pricelists = $repo->getMerchantPricelists($merchant, $currency ?: $this->getCurrency(), $this->getCountry(), $this->getDiscountCoupon());
 		}
 		
-		return $this->pricelists = $customer ? $repo->getCustomerPricelists($customer, $currency ?: $this->getCurrency(), $this->getCountry()) :
-			$repo->getPricelists($unregisteredPricelists, $currency ?: $this->getCurrency(), $this->getCountry());
+		return $this->pricelists = $customer ? $repo->getCustomerPricelists($customer, $currency ?: $this->getCurrency(), $this->getCountry(), $this->getDiscountCoupon()) :
+			$repo->getPricelists($unregisteredPricelists, $currency ?: $this->getCurrency(), $this->getCountry(), $this->getDiscountCoupon());
 	}
 	
 	/**
@@ -464,5 +472,10 @@ class Shopper
 		}
 		
 		return null;
+	}
+
+	private function getDiscountCoupon(): ?DiscountCoupon
+	{
+		return $this->discountCoupon ?? null;
 	}
 }

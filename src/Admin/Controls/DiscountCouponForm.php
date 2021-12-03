@@ -110,6 +110,10 @@ class DiscountCouponForm extends Control
 			$values = $form->getValues('array');
 			$data = $form->getHttpData();
 
+			if ($discount) {
+				$values['discount'] = $discount->getPK();
+			}
+
 			if ($values['usagesCount'] < 0) {
 				$values['usagesCount'] = 0;
 			}

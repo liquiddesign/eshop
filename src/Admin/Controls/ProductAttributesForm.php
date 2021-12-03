@@ -6,12 +6,10 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
-use Eshop\Controls\ProductFilter;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\Product;
 use Nette\Application\UI\Control;
-use Nette\Utils\Arrays;
 
 class ProductAttributesForm extends Control
 {

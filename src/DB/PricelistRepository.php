@@ -37,11 +37,12 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		$this->customerGroupRepository = $customerGroupRepository;
 	}
 
-	public function getPricelists(array $pks, Currency $currency, Country $country): Collection
+	public function getPricelists(array $pks, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
 	{
 		$collection = $this->many()
 			->where('isActive', true)
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
+			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'true' : 'false'))
 			->where('this.uuid', \array_values($pks))
 			->where('fk_currency', $currency->getPK())
 			->where('fk_country', $country->getPK());
@@ -49,26 +50,28 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		return $collection->orderBy(['priority']);
 	}
 
-	public function getCustomerPricelists(Customer $customer, Currency $currency, Country $country): Collection
+	public function getCustomerPricelists(Customer $customer, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
 	{
 		$collection = $this->many()
 			->join(['nxn' => 'eshop_customer_nxn_eshop_pricelist'], 'fk_pricelist=this.uuid')
 			->where('nxn.fk_customer', $customer->getPK())
 			->where('isActive', true)
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL  OR discount.validTo >= DATE(now()))')
+			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'true' : 'false'))
 			->where('fk_currency ', $currency->getPK())
 			->where('fk_country', $country->getPK());
 
 		return $collection->orderBy(['priority']);
 	}
 
-	public function getMerchantPricelists(Merchant $merchant, Currency $currency, Country $country): Collection
+	public function getMerchantPricelists(Merchant $merchant, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
 	{
 		$collection = $this->many()
 			->join(['nxn' => 'eshop_merchant_nxn_eshop_pricelist'], 'fk_pricelist=this.uuid')
 			->where('nxn.fk_merchant', $merchant->getPK())
 			->where('isActive', true)
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL  OR discount.validTo >= DATE(now()))')
+			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'true' : 'false'))
 			->where('fk_currency ', $currency->getPK())
 			->where('fk_country', $country->getPK());
 

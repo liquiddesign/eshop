@@ -30,12 +30,11 @@ class CategoryForm extends Control
 
 	public function __construct(
 		CategoryRepository $categoryRepository,
-		AdminFormFactory   $formFactory,
-		PageRepository     $pageRepository,
+		AdminFormFactory $formFactory,
+		PageRepository $pageRepository,
 		ProducerRepository $producerRepository,
-		?Category          $category
-	)
-	{
+		?Category $category
+	) {
 		$this->category = $category;
 		$this->categoryRepository = $categoryRepository;
 		$this->pageRepository = $pageRepository;

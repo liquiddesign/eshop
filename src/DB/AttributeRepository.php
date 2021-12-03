@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
-use Eshop\Controls\ProductFilter;
-use Nette\Utils\Arrays;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
