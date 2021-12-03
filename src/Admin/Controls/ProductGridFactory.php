@@ -34,12 +34,10 @@ class ProductGridFactory
 		Container $container,
 		PageRepository $pageRepository,
 		ProductRepository $productRepository,
-		CategoryRepository $categoryRepository,
 		ProductGridFiltersFactory $productGridFiltersFactory,
 		Connection $connection
 	) {
 		$this->gridFactory = $gridFactory;
-		$this->categoryRepository = $categoryRepository;
 		$this->pageRepository = $pageRepository;
 		$this->container = $container;
 		$this->productGridFiltersFactory = $productGridFiltersFactory;

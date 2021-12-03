@@ -101,7 +101,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$convertRatio = $currency->convertRatio;
 		}
 
-		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists($currency->isConversionEnabled() ? $currency->convertCurrency : null, $activeCoupon)->toArray());
+		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists($currency->isConversionEnabled() ? $currency->convertCurrency : null)->toArray());
 		$customer ??= $this->shopper->getCustomer();
 		$discountLevelPct = $customer ? $this->getBestDiscountLevel($customer) : 0;
 		$vatRates = $this->shopper->getVatRates();
