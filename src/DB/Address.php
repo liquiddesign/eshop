@@ -45,6 +45,24 @@ class Address extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $state;
+	
+	/**
+	 * Id
+	 * @column{"autoincrement":true}
+	 */
+	public int $id;
+	
+	/**
+	 * Externí kód
+	 * @column
+	 */
+	public ?string $externalCode;
+	
+	/**
+	 * Externí ID
+	 * @column
+	 */
+	public ?string $externalId;
 
 	public function getFullAddress(): string
 	{
