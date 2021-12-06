@@ -31,7 +31,6 @@ use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\RelatedTypeRepository;
-use Eshop\DB\SetRepository;
 use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
@@ -61,9 +60,7 @@ class ProductPresenter extends BackendPresenter
 {
 	protected const CONFIGURATION = [
 		'relations' => true,
-		'parameters' => true,
 		'taxes' => true,
-		'upsells' => true,
 		'suppliers' => true,
 		'weightAndDimension' => false,
 		'discountLevel' => true,
@@ -113,6 +110,11 @@ class ProductPresenter extends BackendPresenter
 		'buyCount' => false,
 		'attributeTab' => false,
 		'loyaltyProgram' => false,
+		'importImagesFromStorage' => [
+			'server' => '',
+			'login' => '',
+			'password' => '',
+		],
 	];
 
 	protected const IMPORT_SET_COLUMNS = [
@@ -162,9 +164,6 @@ class ProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public NewsletterTypeRepository $newsletterTypeRepository;
-
-	/** @inject */
-	public SetRepository $setRepository;
 
 	/** @inject */
 	public Shopper $shopper;
@@ -473,7 +472,7 @@ class ProductPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function createComponentParameterForm(): ProductAttributesForm
+	public function createComponentAttributesForm(): ProductAttributesForm
 	{
 		return $this->productAttributesFormFactory->create($this->getParameter('product'), false);
 	}
@@ -644,8 +643,8 @@ class ProductPresenter extends BackendPresenter
 			$this->getComponent('productForm'),
 		];
 
-		if (isset($this::CONFIGURATION['parameters']) && $this::CONFIGURATION['parameters'] && $this->getParameter('product')) {
-			$this->template->displayControls[] = $this->getComponent('parameterForm');
+		if ($this->getParameter('product')) {
+			$this->template->displayControls[] = $this->getComponent('attributesForm');
 		}
 
 		$this->template->editTab = $this->editTab;
@@ -1044,13 +1043,141 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 
 	public function renderImportCsv(): void
 	{
-		$this->template->headerLabel = 'Import zdrojového souboru';
+		$this->template->headerLabel = 'Import';
 		$this->template->headerTree = [
 			['Produkty', 'default'],
-			['Import zdrojového souboru'],
+			['Import'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('importCsvForm')];
+
+		if (!isset($this::CONFIGURATION['importImagesFromStorage']['server']) || !$this::CONFIGURATION['importImagesFromStorage']['server']) {
+			return;
+		}
+
+		$this->template->displayControls[] = $this->getComponent('importImagesForm');
+	}
+
+	public function createComponentImportImagesForm(): AdminForm
+	{
+		$form = $this->formFactory->create(false, false, false, false, false);
+
+		$form->addGroup('Obrázky z úložiště');
+		$form->addText('server', 'FTP server')->setDisabled()->setDefaultValue($this::CONFIGURATION['importImagesFromStorage']['server']);
+		$form->addText('username', 'Uživatelské jméno')->setDisabled()->setDefaultValue($this::CONFIGURATION['importImagesFromStorage']['login']);
+		$form->addText('password', 'Heslo')->setDisabled()->setDefaultValue($this::CONFIGURATION['importImagesFromStorage']['password']);
+		$form->addCheckbox('asMain', 'Nastavit jako hlavní obrázek')->setHtmlAttribute('data-info', 'Pro práci s FTP doporučejeme klient WinSCP dostupný zde: 
+<a target="_blank" href="https://winscp.net/eng/download.php">https://winscp.net/eng/download.php</a><br>
+Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název obrázků musí být kód daného produktu.');
+
+		$form->addSubmit('images', 'Importovat');
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			$values = $form->getValues('array');
+
+			$connection = $this->productRepository->getConnection();
+
+			$imagesPath = \dirname(__DIR__, 5) . '/userfiles/images';
+			$originalPath = \dirname(__DIR__, 5) . '/userfiles/product_gallery_images/origin';
+			$thumbPath = \dirname(__DIR__, 5) . '/userfiles/product_gallery_images/thumb';
+			$detailPath = \dirname(__DIR__, 5) . '/userfiles/product_gallery_images/detail';
+
+			FileSystem::createDir($imagesPath);
+			FileSystem::createDir($originalPath);
+			FileSystem::createDir($thumbPath);
+			FileSystem::createDir($detailPath);
+
+			$images = \scandir($imagesPath);
+			$existingImages = \scandir($thumbPath);
+
+			$products = $this->productRepository->many()->setIndex('code')->toArrayOf('uuid');
+
+			$filtered = \array_filter($images, function ($value) use ($products) {
+				$code = \explode('.', $value);
+
+				return Arrays::get($products, $code[0], null);
+			});
+
+			if (\count($filtered) === 0) {
+				$this->flashMessage('Nenalezen žádný odpovídající obrázek!', 'warning');
+				$this->redirect('this');
+			}
+
+			$connection->getLink()->beginTransaction();
+
+			$newPhotos = [];
+			$newProductsMainImages = [];
+
+			try {
+				foreach ($filtered as $fileName) {
+					$code = \explode('.', $fileName)[0];
+					$imageFileName = \trim($fileName);
+
+					if (!isset($products[$code])) {
+						continue;
+					}
+
+					$newPhotos[] = [
+						'product' => $products[$code],
+						'fileName' => $imageFileName,
+						'priority' => 999,
+					];
+
+					if ($values['asMain']) {
+						$newProductsMainImages[] = ['uuid' => $products[$code], 'imageFileName' => $imageFileName];
+					}
+
+					$currentExistingImages = \array_filter($existingImages, function ($value) use ($code) {
+						return \str_contains($value, $code);
+					});
+
+					if (\count($currentExistingImages) > 0) {
+						$existingImagePath = \trim(Arrays::first($currentExistingImages));
+						$existingTimestamp = \filemtime($thumbPath . '/' . $existingImagePath);
+						$imagesTimestamp = \filemtime($imagesPath . '/' . $imageFileName);
+
+						if ($existingTimestamp >= $imagesTimestamp) {
+							continue;
+						}
+
+						FileSystem::delete($originalPath . '/' . $existingImagePath);
+						FileSystem::delete($detailPath . '/' . $existingImagePath);
+						FileSystem::delete($thumbPath . '/' . $existingImagePath);
+					}
+
+					$imageD = Image::fromFile($imagesPath . '/' . $imageFileName);
+					$imageT = Image::fromFile($imagesPath . '/' . $imageFileName);
+					$imageD->resize(600, null);
+					$imageT->resize(300, null);
+
+					FileSystem::copy($imagesPath . '/' . $imageFileName, $originalPath . '/' . $imageFileName);
+
+					try {
+						$imageD->save($detailPath . '/' . $imageFileName);
+						$imageT->save($thumbPath . '/' . $imageFileName);
+					} catch (\Exception $e) {
+					}
+				}
+
+				$this->photoRepository->createMany($newPhotos);
+
+				if (\count($newProductsMainImages) > 0) {
+					$this->productRepository->syncMany($newProductsMainImages);
+				}
+
+				$this->flashMessage('Provedeno', 'success');
+
+				$connection->getLink()->commit();
+			} catch (\Throwable $e) {
+				$this->flashMessage('Při zpracovávání došlo k chybě!', 'error');
+
+				$connection->getLink()->rollBack();
+			}
+
+			$this->redirect('this');
+		};
+
+		return $form;
 	}
 
 	public function createComponentImportCsvForm(): AdminForm
@@ -1064,6 +1191,7 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 			$lastUpdate = \filemtime($path);
 		}
 
+		$form->addGroup('CSV soubor');
 		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? \date('d.m.Y G:i', $lastUpdate) : null);
 
 		$allowedColumns = '';

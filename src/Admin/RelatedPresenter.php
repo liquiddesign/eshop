@@ -495,7 +495,7 @@ type - Kód typu<br>
 			slave - Kód/EAN slave produktu<br>
 			amount - Množství - celé číslo větší nebo rovno 1<br>
 			discountPct - Procentuální sleva - 0 až 100<br>
-			masterPct - Procentuální cena z master produktu - celé číslo větší než 0<br>
+			masterPct - Procentuální cena z master produktu - číslo větší než 0<br>
 			priority - Priorita - celé číslo<br>
 			hidden - Skryto - 0/1<br><br>
 			

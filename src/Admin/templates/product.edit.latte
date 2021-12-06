@@ -187,9 +187,9 @@
                 window.history.replaceState(nextState, nextTitle, nextURL);
 
                 if(search_params.get('editTab') === 'menu2'){
-                    $('#frm-parameterForm-form').show();
+                    $('#frm-attributesForm-form').show();
                 }else{
-                    $('#frm-parameterForm-form').hide();
+                    $('#frm-attributesForm-form').hide();
                 }
 
                 if(search_params.get('editTab') === 'comments'){
@@ -216,7 +216,7 @@
             });
 
             {if $editTab !== 'menu2'}
-                $('#frm-parameterForm-form').hide();
+                $('#frm-attributesForm-form').hide();
             {/if}
 
              {if $editTab === 'comments'}
