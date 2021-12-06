@@ -6,6 +6,7 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
+use Eshop\Admin\CategoryPresenter;
 use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\ProducerRepository;
@@ -55,9 +56,9 @@ class CategoryForm extends Control
 			},
 		]);
 
-		$this->monitor(Presenter::class, function ($presenter) use ($imagePicker, $category): void {
+		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {
 			$imagePicker->onDelete[] = function (array $directories, $filename) use ($category, $presenter): void {
-				$presenter->onDeleteImage($category);
+				$presenter->onDeleteImagePublic($category);
 				$presenter->redirect('this');
 			};
 		});
@@ -72,9 +73,9 @@ class CategoryForm extends Control
 			},
 		]);
 
-		$this->monitor(Presenter::class, function ($presenter) use ($imagePicker, $category): void {
+		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {
 			$imagePicker->onDelete[] = function (array $directories, $filename) use ($category, $presenter): void {
-				$presenter->onDeleteImage($category, 'productFallbackImageFileName');
+				$presenter->onDeleteImagePublic($category, 'productFallbackImageFileName');
 				$presenter->redirect('this');
 			};
 		});

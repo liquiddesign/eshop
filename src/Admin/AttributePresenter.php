@@ -759,7 +759,7 @@ class AttributePresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('rangeForm')];
 	}
 
-	protected function onDelete(Entity $object): void
+	public function onDelete(Entity $object): void
 	{
 		/** @var \Web\DB\Page|null $page */
 		$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $object->getPK()]);

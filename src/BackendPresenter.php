@@ -10,6 +10,7 @@ use Eshop\DB\ProductRepository;
 use League\Csv\Reader;
 use Nette\Utils\FileSystem;
 use Onnov\DetectEncoding\EncodingDetector;
+use StORM\Entity;
 
 class BackendPresenter extends \Admin\BackendPresenter
 {
@@ -166,5 +167,10 @@ class BackendPresenter extends \Admin\BackendPresenter
 		$reader->setHeaderOffset(0);
 
 		return $reader;
+	}
+
+	public function onDeleteImagePublic(Entity $object, string $propertyName = 'imageFileName'): void
+	{
+		$this->onDeleteImage($object, $propertyName);
 	}
 }
