@@ -106,10 +106,10 @@ class ProductList extends Datalist
 			$this->productRepository->filterCrossSellFilter($value, $collection);
 		});
 		$this->addFilterExpression('priceFrom', function (ICollection $collection, $value): void {
-			$this->productRepository->filterPriceFrom($value, $collection);
+			$this->shopper->getShowPrice() === 'withVat' ? $this->productRepository->filterPriceVatFrom($value, $collection) : $this->productRepository->filterPriceFrom($value, $collection);
 		}, '');
 		$this->addFilterExpression('priceTo', function (ICollection $collection, $value): void {
-			$this->productRepository->filterPriceTo($value, $collection);
+			$this->shopper->getShowPrice() === 'withVat' ? $this->productRepository->filterPriceVatTo($value, $collection) : $this->productRepository->filterPriceTo($value, $collection);
 		}, '');
 		$this->addFilterExpression('producer', function (ICollection $collection, $value): void {
 			$this->productRepository->filterProducer($value, $collection);

@@ -274,6 +274,30 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$collection->where($expression->getSql(), ['priceTo' => (float)$value]);
 	}
 
+	public function filterPriceVatFrom($value, ICollection $collection): void
+	{
+		$no = \count($this->shopper->getPricelists()->toArray());
+		$expression = new Expression();
+
+		for ($i = 0; $i !== $no; $i++) {
+			$expression->add('OR', "prices$i.priceVat >= :priceVatFrom");
+		}
+
+		$collection->where($expression->getSql(), ['priceVatFrom' => (float)$value]);
+	}
+
+	public function filterPriceVatTo($value, ICollection $collection): void
+	{
+		$no = \count($this->shopper->getPricelists()->toArray());
+		$expression = new Expression();
+
+		for ($i = 0; $i !== $no; $i++) {
+			$expression->add('OR', "prices$i.priceVat <= :priceVatTo");
+		}
+
+		$collection->where($expression->getSql(), ['priceVatTo' => (float)$value]);
+	}
+
 	public function filterTag($value, ICollection $collection): void
 	{
 		$collection->join(['tags' => 'eshop_product_nxn_eshop_tag'], 'tags.fk_product=this.uuid');
