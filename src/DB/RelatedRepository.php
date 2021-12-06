@@ -138,6 +138,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 				'masterPct' => isset($value['masterPct']) ? NumbersHelper::strToFloat($value['masterPct']) : null,
 				'priority' => (int) $value['priority'],
 				'hidden' => (bool) $value['hidden'],
+				'systemic' => false,
 			]);
 		}
 	}
