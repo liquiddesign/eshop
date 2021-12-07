@@ -18,14 +18,7 @@
         <div id="menu0-content" class="tab-pane {$presenter->editTab == 'menu0' ? 'active show' : ''}">
             <fieldset>
                 <table class="mt-1 mb-1">
-                    <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label code/}</th>
-
-                        <td class="align-middle">
-                            {input code class => 'form-control form-control-sm col-label'}
-                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError code}</span>
-                        </td>
-                    </tr>
+                    {$renderer->renderPair($form['code'])|noescape}
 
                     <tr class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label imageFileName/}</th>

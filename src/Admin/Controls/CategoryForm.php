@@ -44,7 +44,7 @@ class CategoryForm extends Control
 
 		$form = $formFactory->create(true);
 
-		$form->addText('code', 'Kód');
+		$form->addText('code', 'Kód')->setRequired();
 
 		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
