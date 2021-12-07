@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminGridFactory;
+use Eshop\CheckoutManager;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Eshop\Shopper;
 use Grid\Datagrid;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
@@ -50,14 +52,43 @@ class ProductGridFactory
 			->join(['photo' => 'eshop_photo'], 'this.uuid = photo.fk_product')
 			->join(['file' => 'eshop_file'], 'this.uuid = file.fk_product')
 			->join(['comment' => 'eshop_internalcommentproduct'], 'this.uuid = comment.fk_product')
+			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
+			->join(['pricelist' => 'eshop_pricelist'], 'pricelist.uuid=price.fk_pricelist')
+			->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = this.uuid')
 			->select([
 				'photoCount' => "COUNT(DISTINCT photo.uuid)",
 				'fileCount' => "COUNT(DISTINCT file.uuid)",
 				'commentCount' => 'COUNT(DISTINCT comment.uuid)',
+				'priceCount' => 'COUNT(DISTINCT price.uuid)',
+				'categoryCount' => 'COUNT(DISTINCT nxnCategory.fk_category)',
+				'pricelistActive' => 'pricelist.isActive',
 			]);
 
 		$grid = $this->gridFactory->create($source, 20, 'this.priority', 'ASC', true);
 		$grid->addColumnSelector();
+		$grid->addColumn('', function (Product $object, Datagrid $datagrid) {
+			if ($object->hidden) {
+				$label = 'Neviditelný: Skrytý';
+				$color = 'danger';
+			} elseif ($object->unavailable) {
+				$label = 'Neviditelný: Neprodejný';
+				$color = 'danger';
+			} elseif ($object->getValue('priceCount') === '0') {
+				$label = 'Neviditelný: Bez ceny';
+				$color = 'danger';
+			} elseif ($object->getValue('pricelistActive') === false) {
+				$label = 'Viditelný: Neaktivní ceník';
+				$color = 'warning';
+			} elseif ($object->getValue('categoryCount') === '0') {
+				$label = 'Viditelný: Bez kategorie';
+				$color = 'warning';
+			} else {
+				$label = 'Viditelný';
+				$color = 'success';
+			}
+
+			return '<i title="' . $label . '" class="fa fa-circle fa-sm text-' . $color . '">';
+		}, '%s', null, ['class' => 'fit']);
 		$grid->addColumnImage('imageFileName', Product::GALLERY_DIR);
 
 		$grid->addColumn('Kód a EAN', function (Product $product) {
