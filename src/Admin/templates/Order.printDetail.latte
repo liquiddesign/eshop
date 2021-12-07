@@ -63,13 +63,14 @@
                     <!-- /.col -->
 
                     <div class="col-sm-3 invoice-col">
-
                         <table class="table table-sm lqd-table ">
                             <tbody>
                             <tr><th>Kód</th><td>{$order->code}</td></tr>
                             <tr><th>Vytvořená</th><td>{$order->createdTs|date:'d.m.Y G:i'}</td></tr>
-                            <tr><th>Požadované doručení</th><td>{$order->purchase->desiredShippingDate|date:'d.m.Y'}</td></tr>
-                            <tr><th>Interní číslo</th><td>{$order->purchase->internalOrderCode}</td></tr>
+                            <tr n:if="$order->purchase->desiredShippingDate"><th>Požadované doručení</th><td>{$order->purchase->desiredShippingDate|date:'d.m.Y'}</td></tr>
+                            <tr n:if="$order->purchase->internalOrderCode"><th>Interní číslo</th><td>{$order->purchase->internalOrderCode}</td></tr>
+                            <tr n:if="$order->externalId"><th>Externí číslo</th><td>{$order->externalId}</td></tr>
+                            <tr n:if="$order->externalCode"><th>Externí kód</th><td>{$order->externalCode}</td></tr>
                         </table>
                     </div>
                     <!-- /.col -->
