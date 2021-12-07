@@ -89,6 +89,8 @@ class Shopper
 	
 	private bool $editOrderAfterCreation;
 
+	private bool $alwaysCreateCustomerOnOrderCreated;
+
 	private ?DiscountCoupon $discountCoupon = null;
 	
 	private ?Customer $customer = null;
@@ -182,6 +184,16 @@ class Shopper
 	public function setDiscountCoupon(?DiscountCoupon $discountCoupon): void
 	{
 		$this->discountCoupon = $discountCoupon;
+	}
+
+	public function isAlwaysCreateCustomerOnOrderCreated(): bool
+	{
+		return $this->alwaysCreateCustomerOnOrderCreated;
+	}
+
+	public function setAlwaysCreateCustomerOnOrderCreated(bool $create): void
+	{
+		$this->alwaysCreateCustomerOnOrderCreated = $create;
 	}
 
 	/**

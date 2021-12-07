@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
+use Eshop\DB\CustomerRepository;
 use Eshop\Shopper;
 use Nette\Application\UI\Form;
 use Nette\Localization\Translator;
@@ -28,8 +29,10 @@ class AddressesForm extends Form
 	private AccountRepository $accountRepository;
 	
 	private Passwords $passwords;
+
+	private CustomerRepository $customerRepository;
 	
-	public function __construct(Shopper $shopper, CheckoutManager $checkoutManager, AccountRepository $accountRepository, Translator $translator, Passwords $passwords)
+	public function __construct(Shopper $shopper, CheckoutManager $checkoutManager, AccountRepository $accountRepository, Translator $translator, Passwords $passwords, CustomerRepository $customerRepository)
 	{
 		parent::__construct();
 		
@@ -110,13 +113,18 @@ class AddressesForm extends Form
 		$this->onSuccess[] = [$this, 'success'];
 		$this->onValidate[] = [$this, 'validateForm'];
 		$this->passwords = $passwords;
+		$this->customerRepository = $customerRepository;
 	}
 	
 	public function validateForm(AddressesForm $form): void
 	{
+		if (!$form->isValid()) {
+			return;
+		}
+
 		$values = $form->getValues('array');
 		
-		if (!$values['createAccount'] || !$this->accountRepository->one(['login' => $values['email']])) {
+		if (!$values['createAccount'] || !$this->accountRepository->one(['login' => $values['email']]) || !$this->customerRepository->one(['email' => $values['email']])) {
 			return;
 		}
 		

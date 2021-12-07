@@ -13,6 +13,7 @@ use StORM\RelationCollection;
 /**
  * Zákazník
  * @table
+ * @index{"name":"customer_unique_email","unique":true,"columns":["email"]}
  * @method array getData()
  */
 class Customer extends Entity implements IIdentity, IUser
@@ -192,6 +193,7 @@ class Customer extends Entity implements IIdentity, IUser
 	
 	/**
 	 * Ukazovat ceny s DPH
+	 * @deprecated
 	 * @column
 	 */
 	public bool $pricesWithVat = false;

@@ -11,8 +11,10 @@ use Eshop\DB\CartItem;
 use Eshop\DB\CartItemRepository;
 use Eshop\DB\CartItemTaxRepository;
 use Eshop\DB\CartRepository;
+use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\Currency;
 use Eshop\DB\Customer;
+use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\DeliveryDiscount;
 use Eshop\DB\DeliveryDiscountRepository;
@@ -34,6 +36,7 @@ use Eshop\DB\ProductRepository;
 use Eshop\DB\Purchase;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\Variant;
+use Nette;
 use Nette\Http\Request;
 use Nette\Http\Response;
 use Nette\SmartObject;
@@ -152,6 +155,12 @@ class CheckoutManager
 
 	private OrderLogItemRepository $orderLogItemRepository;
 
+	private Nette\Security\Passwords $passwords;
+
+	private CustomerGroupRepository $customerGroupRepository;
+
+	private CatalogPermissionRepository $catalogPermissionRepository;
+
 	public function __construct(
 		Shopper $shopper,
 		CartRepository $cartRepository,
@@ -174,7 +183,10 @@ class CheckoutManager
 		PackageItemRepository $packageItemRepository,
 		LoyaltyProgramHistoryRepository $loyaltyProgramHistoryRepository,
 		BannedEmailRepository $bannedEmailRepository,
-		OrderLogItemRepository $orderLogItemRepository
+		OrderLogItemRepository $orderLogItemRepository,
+		Nette\Security\Passwords $passwords,
+		CustomerGroupRepository $customerGroupRepository,
+		CatalogPermissionRepository $catalogPermissionRepository
 	) {
 		$this->customer = $shopper->getCustomer();
 		$this->shopper = $shopper;
@@ -198,6 +210,9 @@ class CheckoutManager
 		$this->loyaltyProgramHistoryRepository = $loyaltyProgramHistoryRepository;
 		$this->bannedEmailRepository = $bannedEmailRepository;
 		$this->orderLogItemRepository = $orderLogItemRepository;
+		$this->passwords = $passwords;
+		$this->customerGroupRepository = $customerGroupRepository;
+		$this->catalogPermissionRepository = $catalogPermissionRepository;
 
 		if (!$request->getCookie('cartToken') && !$this->customer) {
 			$this->cartToken = DIConnection::generateUuid();
@@ -897,28 +912,67 @@ class CheckoutManager
 		$this->getCart()->update(['deliveryAddress' => $address]);
 	}
 
-	public function createAccount(Purchase $purchase): Customer
+	public function createCustomer(Purchase $purchase, bool $createAccount = true): ?Customer
 	{
-		/** @var \Security\DB\Account $account */
-		$account = $this->accountRepository->createOne([
-			'uuid' => Connection::generateUuid(),
-			'login' => $purchase->email,
-			'password' => $purchase->password,
-			'active' => true,
-			'authorized' => true,
-			//          'confirmationToken' => $token,
-		]);
+		if ($createAccount) {
+			if (!$this->accountRepository->many()->match(['login' => $purchase->email])->isEmpty()) {
+				return null;
+			}
 
-		return $this->customerRepository->createNew([
-			'account' => $account,
-			'email' => $account->login,
+			/** @var \Security\DB\Account $account */
+			$account = $this->accountRepository->createOne([
+				'uuid' => Connection::generateUuid(),
+				'login' => $purchase->email,
+				'password' => $this->passwords->hash($purchase->password),
+				'active' => !$this->shopper->getRegistrationConfiguration()['confirmation'],
+				'authorized' => !$this->shopper->getRegistrationConfiguration()['emailAuthorization'],
+				'confirmationToken' => $this->shopper->getRegistrationConfiguration()['emailAuthorization'] ? Nette\Utils\Random::generate(128) : null,
+			]);
+		}
+
+		if (!$this->customerRepository->many()->match(['email' => $purchase->email])->isEmpty()) {
+			return null;
+		}
+
+		$defaultGroup = $this->customerGroupRepository->getDefaultRegistrationGroup();
+
+		$customer = $this->customerRepository->createNew([
+			'email' => $purchase->email,
 			'fullname' => $purchase->fullname,
 			'phone' => $purchase->phone,
 			'ic' => $purchase->ic,
 			'dic' => $purchase->dic,
 			'billAddress' => $purchase->billAddress,
 			'deliveryAddress' => $purchase->deliveryAddress,
+			'group' => $defaultGroup ? $defaultGroup->getPK() : null,
+			'discountLevelPct' => $defaultGroup ? $defaultGroup->defaultDiscountLevelPct : 0,
 		]);
+
+		if (!$customer) {
+			return null;
+		}
+
+		if ($createAccount) {
+			$customer->account = $account;
+
+			$this->catalogPermissionRepository->createOne([
+				'catalogPermission' => $defaultGroup ? $defaultGroup->defaultCatalogPermission : 'none',
+				'buyAllowed' => $defaultGroup ? $defaultGroup->defaultBuyAllowed : true,
+				'orderAllowed' => true,
+				'viewAllOrders' => $defaultGroup ? $defaultGroup->defaultViewAllOrders : false,
+				'showPricesWithoutVat' => $defaultGroup ? $defaultGroup->defaultPricesWithoutVat : false,
+				'showPricesWithVat' => $defaultGroup ? $defaultGroup->defaultPricesWithVat : false,
+				'priorityPrice' => $defaultGroup ? $defaultGroup->defaultPriorityPrice : 'withoutVat',
+				'customer' => $customer->getPK(),
+				'account' => $account->getPK(),
+			]);
+		}
+
+		if ($defaultGroup && \count($defaultGroup->defaultPricelists->toArray()) > 0) {
+			$customer->pricelists->relate(\array_keys($defaultGroup->defaultPricelists->toArray()));
+		}
+
+		return $customer;
 	}
 
 	/**
@@ -945,11 +999,21 @@ class CheckoutManager
 
 		$cart->update(['approved' => ($customer && $customer->orderPermission === 'full') || !$customer ? 'yes' : 'waiting']);
 
-		// createAccount
-		if ($purchase->createAccount && !$customer) {
-			$customer = $this->createAccount($purchase);
+		// create customer
+		if (!$customer) {
+			if ($purchase->createAccount) {
+				$customer = $this->createCustomer($purchase);
 
-			$this->onCustomerCreate($customer);
+				if ($customer) {
+					$purchase = $this->syncPurchase(['customer' => $customer->getPK()]);
+
+					$this->onCustomerCreate($customer);
+				}
+			} elseif ($this->shopper->isAlwaysCreateCustomerOnOrderCreated()) {
+				$customer = $this->createCustomer($purchase, false);
+
+				$purchase = $this->syncPurchase(['customer' => $customer ? $customer->getPK() : $this->customerRepository->many()->match(['email' => $purchase->email])->first()]);
+			}
 		}
 
 		$year = \date('Y');

@@ -79,7 +79,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 	public function getEmailVariables(Customer $customer): array
 	{
 		return [
-			'login' => $customer->email,
+			'email' => $customer->email,
 		];
 	}
 

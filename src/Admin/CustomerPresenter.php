@@ -203,6 +203,10 @@ class CustomerPresenter extends BackendPresenter
 			}, '', 'loyaltyPrograms', 'Věrnostní program', $loyaltyPrograms)->setPrompt('- Věrnostní program -');
 		}
 
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+			$source->where('accounts.uuid ' . ($value === '1' ? 'IS NOT NULL' : 'IS NULL'));
+		}, '', 'accountsAssigned', 'Účet', ['0' =>'Bez účtu', '1' => 'S účtem'])->setPrompt('- Účet -');
+
 		$grid->addFilterButtons();
 
 		return $grid;
