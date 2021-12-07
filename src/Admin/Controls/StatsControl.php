@@ -5,6 +5,7 @@ namespace Eshop\Admin\Controls;
 use Admin\Controls\AdminFormFactory;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CurrencyRepository;
+use Eshop\DB\Customer;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\DiscountCouponRepository;
 use Eshop\DB\MerchantRepository;
@@ -38,6 +39,8 @@ class StatsControl extends Control
 
 	private DiscountCouponRepository $discountCouponRepository;
 
+	private ?Customer $signedInCustomer;
+
 	public function __construct(
 		AdminFormFactory $formFactory,
 		Shopper $shopper,
@@ -46,7 +49,8 @@ class StatsControl extends Control
 		CurrencyRepository $currencyRepository,
 		CustomerRepository $customerRepository,
 		CategoryRepository $categoryRepository,
-		DiscountCouponRepository $discountCouponRepository
+		DiscountCouponRepository $discountCouponRepository,
+		?Customer $signedInCustomer = null
 	) {
 		$this->formFactory = $formFactory;
 		$this->shopper = $shopper;
@@ -56,6 +60,7 @@ class StatsControl extends Control
 		$this->customerRepository = $customerRepository;
 		$this->categoryRepository = $categoryRepository;
 		$this->discountCouponRepository = $discountCouponRepository;
+		$this->signedInCustomer = $signedInCustomer;
 	}
 
 	public function createComponentStatsFilterForm(): Form
@@ -74,8 +79,12 @@ class StatsControl extends Control
 			->setHtmlType('date')
 			->setRequired()
 			->setDefaultValue((new Nette\Utils\DateTime())->format('Y-m-d'));
-		$form->addDataSelect('customerType', 'Typ zákazníka', ['all' => '- Typ zákazníka -', 'new' => 'Nový', 'current' => 'Stávající']);
-		$form->addDataSelect('customer', 'Zákazník', $this->customerRepository->getArrayForSelect())->setPrompt('- Zákazník -');
+		$form->addDataSelect('customerType', 'Typ zákazníka', ['new' => 'Nový', 'current' => 'Stávající'])->setPrompt('- Všichni zákazníci -');
+		$form->addDataSelect(
+			'customer',
+			'Zákazník',
+			$this->customerRepository->getCollection(true)->select(['emailName' => 'CONCAT(fullName, " : ", email)'])->toArrayOf('emailName'),
+		)->setPrompt('- Zákazník -');
 		$form->addDataSelect('merchant', 'Obchodník', $this->merchantRepository->getArrayForSelect())->setPrompt('- Obchodník -');
 		$form->addDataSelect('category', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('- Kategorie -');
 
@@ -120,7 +129,7 @@ class StatsControl extends Control
 		$statsFrom = isset($this->state['from']) ? new Nette\Utils\DateTime($this->state['from']) : ((new Nette\Utils\DateTime())->modify('- 1 year'));
 		$statsTo = isset($this->state['to']) ? new Nette\Utils\DateTime($this->state['to']) : (new Nette\Utils\DateTime());
 		$customerType = $this->state['customerType'] ?? 'all';
-		$customer = isset($this->state['customer']) ? $this->customerRepository->one($this->state['customer']) : null;
+		$customer = $this->signedInCustomer ?? (isset($this->state['customer']) ? $this->customerRepository->one($this->state['customer']) : null);
 		$merchant = isset($this->state['merchant']) ? $this->merchantRepository->one($this->state['merchant']) : null;
 		$category = isset($this->state['category']) ? $this->categoryRepository->one($this->state['category']) : null;
 
@@ -173,6 +182,7 @@ class StatsControl extends Control
 				->where('category.path LIKE :s', ['s' => "$category->path%"]);
 		}
 
+		$this->template->shopper = $this->shopper;
 		$this->template->monthlyOrders = $this->orderRepository->getGroupedOrdersPrices($orders, $statsFrom, $statsTo, $currency);
 		$this->template->boughtCategories = $this->orderRepository->getOrdersCategoriesGroupedByAmountPercentage($orders, $currency);
 		$this->template->topProducts = $this->orderRepository->getOrdersTopProductsByAmount($orders, $currency);
