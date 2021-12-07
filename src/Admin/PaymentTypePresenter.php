@@ -106,6 +106,7 @@ class PaymentTypePresenter extends BackendPresenter
 		$form->addLocaleText('name', 'Název');
 		$form->addLocalePerexEdit('perex', 'Popisek');
 		$form->addDataSelect('exclusive', 'Exkluzivní pro skupinu zákazníků', $this->groupRepo->getListForSelect())->setPrompt('Žádná');
+		$form->addText('externalId', 'Externí ID')->setNullable();
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');

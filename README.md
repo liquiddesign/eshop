@@ -1,7 +1,5 @@
 # Ⓔ Eshop
 Služby, entity, administrace a kontroly pro eshop
- 
-![Travis](https://travis-ci.org/liquiddesign/eshop.svg?branch=master)
 
-## Dokumentace
-☞ [Dropbox paper](https://paper.dropbox.com/doc/E-Eshop--BGZLihaxZHQ3iGcTOQkPYfXrAg-eOMqwxUnWnQGWEGWGxnHl)
+![Actions](https://github.com/liquiddesign/eshop/actions/workflows/php.yml/badge.svg)
+![Release](https://img.shields.io/github/v/release/liquiddesign/eshop)
