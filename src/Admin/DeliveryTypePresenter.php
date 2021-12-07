@@ -132,6 +132,8 @@ class DeliveryTypePresenter extends BackendPresenter
 			->setNullable()
 			->addCondition($form::FILLED)
 			->addRule($form::FLOAT);
+		
+		$form->addText('externalId', 'Externí ID')->setNullable();
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
