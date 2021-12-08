@@ -35,7 +35,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 
 		return $this->getCollection($includeHidden)
-			->select(['fullName' => "IF(this.systemic = 1, CONCAT(name$mutationSuffix, ' (systémový)'), name$mutationSuffix)"])
+			->select(['fullName' => "IF(this.systemic = 1, CONCAT(name$mutationSuffix, ' (systémový)'), CONCAT(name$mutationSuffix, ' (', code, ')'))"])
 			->toArrayOf('fullName');
 	}
 
