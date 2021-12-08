@@ -32,8 +32,14 @@ class AddressesForm extends Form
 
 	private CustomerRepository $customerRepository;
 	
-	public function __construct(Shopper $shopper, CheckoutManager $checkoutManager, AccountRepository $accountRepository, Translator $translator, Passwords $passwords, CustomerRepository $customerRepository)
-	{
+	public function __construct(
+		Shopper $shopper,
+		CheckoutManager $checkoutManager,
+		AccountRepository $accountRepository,
+		Translator $translator,
+		Passwords $passwords,
+		CustomerRepository $customerRepository
+	) {
 		parent::__construct();
 		
 		$this->checkoutManager = $checkoutManager;
