@@ -17,7 +17,11 @@ class AttributeValueRangeRepository extends \StORM\Repository implements IGenera
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		return $this->getCollection($includeHidden)->toArrayOf('name');
+		$suffix = $this->getConnection()->getMutationSuffix();
+
+		return $this->getCollection($includeHidden)
+			->select(['computedInternalName' => "IFNULL(internalName, name$suffix)"])
+			->toArrayOf('computedInternalName');
 	}
 
 	public function getCollection(bool $includeHidden = false): Collection

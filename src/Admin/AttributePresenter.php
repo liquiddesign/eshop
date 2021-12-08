@@ -263,11 +263,18 @@ class AttributePresenter extends BackendPresenter
 
 	public function createComponentValuesGrid(): AdminGrid
 	{
+		$mutationSuffix = $this->attributeValueRepository->getConnection()->getMutationSuffix();
+
 		$source = $this->attributeValueRepository->many()->setGroupBy(['this.uuid'])
-			->select(['assignCount' => 'COUNT(assign.uuid)', 'supplierName' => 'supplier.name'])
+			->select([
+				'assignCount' => 'COUNT(assign.uuid)',
+				'supplierName' => 'supplier.name',
+				'rangeName' => "IF(valueRange.internalName IS NOT NULL, CONCAT(valueRange.internalName, ' (', valueRange.name$mutationSuffix, ')'), valueRange.name$mutationSuffix)",
+			])
 			->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
 			->join(['supplier' => 'eshop_supplier'], 'attribute.fk_supplier = supplier.uuid')
-			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value');
+			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value')
+			->join(['valueRange' => 'eshop_attributevaluerange'], 'this.fk_attributeValueRange = valueRange.uuid');
 
 		$grid = $this->gridFactory->create($source, 20, 'code', 'ASC', true);
 
@@ -293,6 +300,7 @@ class AttributePresenter extends BackendPresenter
 		$grid->addColumnText('Číselná reprezentace', 'number', '%s', 'number');
 		$grid->addColumnText('Atribut', 'attribute.name', '%s', 'attribute.name');
 		$grid->addColumnText('Zdroj', 'supplierName', '%s', 'supplierName');
+		$grid->addColumnText('Rozsah', 'rangeName', '%s');
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
@@ -327,6 +335,16 @@ class AttributePresenter extends BackendPresenter
 				$source->setGroupBy(['this.uuid'], $value === 1 ? 'assignCount != 0' : 'assignCount = 0');
 			}
 		}, '', 'assign', null, [0 => 'Pouze nepřiřazené', 1 => 'Pouze přiřazené'])->setPrompt('- Přiřazené -');
+
+		if ($options = $this->attributeValueRangeRepository->getArrayForSelect()) {
+			$grid->addFilterDataSelect(function (Collection $source, $value): void {
+				if ($value === '0') {
+					$source->where('this.fk_attributeValueRange IS NULL');
+				} else {
+					$source->where('this.fk_attributeValueRange', $value);
+				}
+			}, '', 'range', null, ['0' => 'X - bez rozsahu'] + $options)->setPrompt('- Rozsahy -');
+		}
 
 		$grid->addFilterButtons(['default']);
 
