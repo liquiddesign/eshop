@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminGridFactory;
-use Eshop\CheckoutManager;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
-use Eshop\Shopper;
 use Grid\Datagrid;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
