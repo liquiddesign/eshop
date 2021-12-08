@@ -76,11 +76,11 @@ class ProductGridFactory
 			} elseif ($object->getValue('priceCount') === '0') {
 				$label = 'Neviditelný: Bez ceny';
 				$color = 'danger';
-			} elseif ($object->getValue('pricelistActive') === false) {
-				$label = 'Viditelný: Neaktivní ceník';
-				$color = 'warning';
 			} elseif ($object->getValue('categoryCount') === '0') {
 				$label = 'Viditelný: Bez kategorie';
+				$color = 'warning';
+			} elseif ($object->getValue('pricelistActive') === false) {
+				$label = 'Viditelný: Neaktivní ceník u některé ceny';
 				$color = 'warning';
 			} else {
 				$label = 'Viditelný';

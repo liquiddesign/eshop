@@ -101,6 +101,12 @@ class Attribute extends \StORM\Entity
 	public bool $hidden = false;
 
 	/**
+	 * Skrýt hodnoty bez přiřazení na frontu
+	 * @column
+	 */
+	public bool $hideEmptyValues = false;
+
+	/**
 	 * Systemic
 	 * @column
 	 */

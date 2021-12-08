@@ -49,9 +49,8 @@ class Address extends \StORM\Entity
 	/**
 	 * Id
 	 * @column{"autoincrement":true}
-	 * @TODO nefunguje
 	 */
-//	public int $id;
+	public int $id;
 	
 	/**
 	 * Externí kód
