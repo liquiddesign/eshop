@@ -169,6 +169,7 @@ class ProductForm extends Control
 
 		if (isset($configuration['suppliers']) && $configuration['suppliers'] && $this->supplierRepository->many()->count() > 0) {
 			$locks = [];
+			$locks['length'] = 'S nejdelším obsahem';
 
 			if ($product) {
 				/** @var \Eshop\DB\Supplier $supplier */
@@ -177,9 +178,15 @@ class ProductForm extends Control
 				}
 			}
 
-			$locks[0] = '! Nikdy nepřebírat';
+			$locks['none'] = '! Nikdy nepřebírat';
 
-			$form->addSelect('supplierContent', 'Přebírat obsah', $locks)->setPrompt('S nejvyšší prioritou');
+			$form->addSelect('supplierContent', 'Přebírat obsah', $locks)->setPrompt('S nejvyšší prioritou')
+				->setHtmlAttribute('data-info', 'Nastavení přebírání obsahu ze zdrojů.<br><br>
+S nejvyšší prioritou: Zdroj s nejvyšší prioritou<br>
+S nejdelším obsahem: Převezme se obsah, který je nejdelší ze všech zdrojů<br>
+Nikdy nepřebírat: Obsah nebude nikdy přebírán<br>
+Ostatní: Přebírání ze zvoleného zdroje
+');
 		}
 
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
@@ -445,12 +452,22 @@ class ProductForm extends Control
 		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
 
 		if (isset($values['supplierContent'])) {
-			if ($values['supplierContent'] === 0) {
-				$values['supplierContentLock'] = true;
+			if ($values['supplierContent'] === 'none') {
 				$values['supplierContent'] = null;
+				$values['supplierContentLock'] = true;
+				$values['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_NONE;
+			} elseif ($values['supplierContent'] === 'length') {
+				$values['supplierContent'] = null;
+				$values['supplierContentLock'] = false;
+				$values['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_LENGTH;
 			} else {
 				$values['supplierContentLock'] = false;
+				$values['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_SUPPLIER;
 			}
+		} else {
+			$values['supplierContent'] = null;
+			$values['supplierContentLock'] = false;
+			$values['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_PRIORITY;
 		}
 
 		/** @var \Eshop\DB\Product $product */

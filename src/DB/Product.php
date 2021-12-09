@@ -29,6 +29,11 @@ class Product extends \StORM\Entity
 		'supplierCode',
 	];
 
+	public const SUPPLIER_CONTENT_MODE_NONE = 'none';
+	public const SUPPLIER_CONTENT_MODE_PRIORITY = 'priority';
+	public const SUPPLIER_CONTENT_MODE_LENGTH = 'length';
+	public const SUPPLIER_CONTENT_MODE_SUPPLIER = 'supplier';
+
 	/**
 	 * Název
 	 * @column{"mutations":true}
@@ -274,6 +279,12 @@ class Product extends \StORM\Entity
 	 * @column
 	 */
 	public bool $supplierContentLock = false;
+
+	/**
+	 * Režim přebírání obsahu, platí pouze pokud supplierContentLock === false
+	 * @column{"type":"enum","length":"'none','priority','length','supplier'"}
+	 */
+	public string $supplierContentMode = 'none';
 
 	/**
 	 * Přebírat obsah

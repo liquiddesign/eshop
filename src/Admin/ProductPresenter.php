@@ -604,8 +604,14 @@ class ProductPresenter extends BackendPresenter
 		/** @var \Nette\Forms\Controls\SelectBox|null $input */
 		$input = $form['supplierContent'] ?? null;
 
-		if ($product->supplierContentLock && isset($input)) {
-			$input->setDefaultValue(0);
+		if (isset($input)) {
+			if ($product->supplierContentLock) {
+				$input->setDefaultValue('none');
+			} elseif ($product->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_LENGTH) {
+				$input->setDefaultValue('length');
+			} elseif ($product->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_PRIORITY) {
+				$input->setDefaultValue(null);
+			}
 		}
 
 		if (!$form->getPrettyPages()) {
