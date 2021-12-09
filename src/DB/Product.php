@@ -33,6 +33,7 @@ class Product extends \StORM\Entity
 	public const SUPPLIER_CONTENT_MODE_PRIORITY = 'priority';
 	public const SUPPLIER_CONTENT_MODE_LENGTH = 'length';
 	public const SUPPLIER_CONTENT_MODE_SUPPLIER = 'supplier';
+	public const SUPPLIER_CONTENT_MODE_CUSTOM_CONTENT = 'content';
 
 	/**
 	 * Název

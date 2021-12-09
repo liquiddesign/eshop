@@ -606,9 +606,9 @@ class ProductPresenter extends BackendPresenter
 
 		if (isset($input)) {
 			if ($product->supplierContentLock) {
-				$input->setDefaultValue('none');
+				$input->setDefaultValue(Product::SUPPLIER_CONTENT_MODE_NONE);
 			} elseif ($product->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_LENGTH) {
-				$input->setDefaultValue('length');
+				$input->setDefaultValue(Product::SUPPLIER_CONTENT_MODE_LENGTH);
 			} elseif ($product->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_PRIORITY) {
 				$input->setDefaultValue(null);
 			}

@@ -169,7 +169,7 @@ class ProductForm extends Control
 
 		if (isset($configuration['suppliers']) && $configuration['suppliers'] && $this->supplierRepository->many()->count() > 0) {
 			$locks = [];
-			$locks['length'] = 'S nejdelším obsahem';
+			$locks[Product::SUPPLIER_CONTENT_MODE_LENGTH] = 'S nejdelším obsahem';
 
 			if ($product) {
 				/** @var \Eshop\DB\Supplier $supplier */
@@ -178,7 +178,7 @@ class ProductForm extends Control
 				}
 			}
 
-			$locks['none'] = '! Nikdy nepřebírat';
+			$locks[Product::SUPPLIER_CONTENT_MODE_NONE] = '! Nikdy nepřebírat';
 
 			$form->addSelect('supplierContent', 'Přebírat obsah', $locks)->setPrompt('S nejvyšší prioritou')
 				->setHtmlAttribute('data-info', 'Nastavení přebírání obsahu ze zdrojů.<br><br>
