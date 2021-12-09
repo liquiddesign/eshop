@@ -86,7 +86,15 @@ class ProductFilter extends Control
 			'producer' => $category ? $this->categoryRepository->getCountsGrouped('this.fk_producer', $this->getProductList()->getFilters())[$category] ?? [] : [],
 		];
 
-		$this->template->attributesValuesCounts = $category ? $this->categoryRepository->getCountsGrouped('assign.fk_value', $this->getProductList()->getFilters())[$category] ?? [] : [];
+		/** @var string[][][] $filters */
+		$filters = $this->getProductList()->getFilters();
+
+//		if (isset($filters['attributes'])) {
+//			$filters['attributes'] = $this->attributeRepository->transferAttributeValuesOrRangesToValuesOnly($filters['attributes']);
+//			bdump($filters['attributes']);
+//		}
+
+		$this->template->attributesValuesCounts = $category ? $this->categoryRepository->getCountsGrouped('assign.fk_value', $filters)[$category] ?? [] : [];
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;

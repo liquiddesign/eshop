@@ -178,4 +178,47 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 
 		return $items;
 	}
+
+	/**
+	 * @param array<string, array<string, string>> $attributes
+	 * @return array<string, array<string, string>>
+	 */
+	public function transferAttributeValuesOrRangesToValuesOnly(array $attributes): array
+	{
+		$targetAttributes = $this->getCollection()
+			->where('this.showRange', true)
+			->where('this.uuid', \array_keys($attributes))
+			->setSelect(['UUID' => 'this.uuid'])
+			->setIndex('UUID')
+			->toArrayOf('UUID');
+
+		$attributeValuesXAttributeValueRanges = $this->attributeValueRepository->getCollection()
+			->select(['attValRange' => 'this.fk_attributeValueRange'])
+			->where('this.fk_attributeValueRange IS NOT NULL')
+			->where('this.fk_attribute', \array_keys($targetAttributes))
+			->setIndex('this.uuid')
+			->toArrayOf('attValRange');
+
+		foreach ($attributes as $attributePK => $attributeValues) {
+			if (!isset($targetAttributes[$attributePK])) {
+				continue;
+			}
+
+			foreach ($attributeValues as $index => $attributeValuePK) {
+				$filtered = \array_filter($attributeValuesXAttributeValueRanges, function ($value) use ($attributeValuePK): bool {
+					return $value === $attributeValuePK;
+				});
+
+				if (\count($filtered) === 0) {
+					continue;
+				}
+
+				unset($attributes[$attributePK][$index]);
+
+				$attributes[$attributePK] = \array_merge($attributes[$attributePK], \array_keys($filtered));
+			}
+		}
+
+		return $attributes;
+	}
 }
