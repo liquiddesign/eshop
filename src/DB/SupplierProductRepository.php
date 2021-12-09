@@ -65,7 +65,19 @@ class SupplierProductRepository extends \StORM\Repository
 			$updates = \array_fill_keys($updates, null);
 
 			foreach (\array_keys($updates) as $name) {
-				$updates[$name] = new Literal("IF((supplierContentLock = 0 && VALUES(supplierLock) >= supplierLock) || fk_supplierContent='$supplierId', VALUES($name), $name)");
+				$updates[$name] = new Literal("IF
+				(
+					(
+						supplierContentLock = 0 && 
+						(
+							(VALUES(supplierLock) >= supplierLock && (supplierContentMode = 'priority' || (fk_supplierContent IS NULL && supplierContentMode = 'none'))) ||
+							(supplierContentMode = 'length' && LENGTH(VALUES(content$mutationSuffix)) > LENGTH(content$mutationSuffix))
+						)
+					)
+					|| fk_supplierContent='$supplierId',
+					VALUES($name),
+					$name
+				)");
 			}
 		} else {
 			$updates = [];

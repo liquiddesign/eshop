@@ -111,9 +111,33 @@ class ProductGridFactory
 
 		$grid->addColumnText('Výrobce', 'producer.name', '%s', 'producer.name_cs');
 		$grid->addColumn('Kategorie', function (Product $product) {
-			//return $product->primaryCategory->name;
 			return \implode('&nbsp;|&nbsp;', $product->categories->toArrayOf('name'));
 		});
+
+		$grid->addColumn('Obsah', function (Product $object, Datagrid $datagrid) {
+			if ($object->supplierContentLock && $object->content) {
+				$label = 'Vlastní obsah';
+				$icon = 'fas fa-file-alt';
+			} elseif ($object->supplierContentLock && !$object->content) {
+				$label = 'Žádný obsah';
+				$icon = 'fas fa-file-excel';
+			} elseif ($object->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_LENGTH) {
+				$label = 'Ze zdroje s nejdelším obsahem';
+				$icon = 'fas fa-file-import';
+			} elseif ($object->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_PRIORITY || (!$object->supplierContent && $object->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_NONE)) {
+				$label = 'Ze zdroje s nejvyšší prioritou';
+				$icon = 'fas fa-file-upload';
+			} elseif ($object->supplierContent) {
+				$label = 'Obsah z: ' . $object->supplierContent->name;
+				$icon = 'fas fa-file-download';
+			} else {
+				$label = 'Neznámý stav';
+				$icon = 'fas fa-question';
+			}
+
+			return '<i title="' . $label . '" class="' . $icon . ' fa-lg text-primary">';
+		}, '%s', null, ['class' => 'fit']);
+
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
@@ -133,6 +157,10 @@ class ProductGridFactory
 			$bulkColumns = \array_merge($bulkColumns, ['buyCount']);
 		}
 
+		if (isset($configuration['suppliers']) && $configuration['suppliers']) {
+			$bulkColumns = \array_merge($bulkColumns, ['supplierContent']);
+		}
+
 		$grid->addButtonBulkEdit(
 			'productForm',
 			$bulkColumns,
@@ -143,6 +171,21 @@ class ProductGridFactory
 			'default',
 			null,
 			function ($id, Product $object, $values, $relations) {
+				if ($values['keep']['supplierContent'] === false) {
+					if ($values['values']['supplierContent'] === 'none') {
+						$values['values']['supplierContent'] = null;
+						$values['values']['supplierContentLock'] = true;
+						$values['values']['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_NONE;
+					} elseif ($values['values']['supplierContent'] === 'length') {
+						$values['values']['supplierContent'] = null;
+						$values['values']['supplierContentLock'] = false;
+						$values['values']['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_LENGTH;
+					} else {
+						$values['values']['supplierContentLock'] = false;
+						$values['values']['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_PRIORITY;
+					}
+				}
+
 				$allCategories = [];
 
 				foreach ($relations as $relationName => $categories) {

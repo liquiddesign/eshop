@@ -10,6 +10,7 @@ use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\InternalRibbonRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProducerRepository;
+use Eshop\DB\Product;
 use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierRepository;
@@ -216,6 +217,38 @@ class ProductGridFiltersFactory
 				);
 			}
 		}, '', 'show', null, ['green' => 'Viditelné', 'orange' => 'Viditelné: bez kategorie', 'red' => 'Neviditelné'])->setPrompt('- Viditelnost v eshopu -');
+
+		if (!$suppliers) {
+			return;
+		}
+
+		$locks = [];
+		$locks[Product::SUPPLIER_CONTENT_MODE_PRIORITY] = 'S nejvyšší prioritou';
+		$locks[Product::SUPPLIER_CONTENT_MODE_LENGTH] = 'S nejdelším obsahem';
+		$locks += $suppliers;
+		$locks[Product::SUPPLIER_CONTENT_MODE_CUSTOM_CONTENT] = 'Nikdy nepřebírat: Vlastní obsah';
+		$locks[Product::SUPPLIER_CONTENT_MODE_NONE] = 'Nikdy nepřebírat: Žádný obsah';
+
+		$grid->addFilterDataSelect(function (Collection $source, $value): void {
+			$mutationSuffix = $source->getConnection()->getMutationSuffix();
+
+			if ($value === Product::SUPPLIER_CONTENT_MODE_PRIORITY) {
+				$source->where('this.supplierContentLock', false);
+				$source->where('this.supplierContentMode = "priority" OR (this.fk_supplierContent IS NULL AND this.supplierContentMode = "none")');
+			} elseif ($value === Product::SUPPLIER_CONTENT_MODE_LENGTH) {
+				$source->where('this.supplierContentLock', false);
+				$source->where('this.supplierContentMode', Product::SUPPLIER_CONTENT_MODE_LENGTH);
+			} elseif ($value === Product::SUPPLIER_CONTENT_MODE_CUSTOM_CONTENT) {
+				$source->where('this.supplierContentLock', true);
+				$source->where("this.content$mutationSuffix IS NOT NULL AND LENGTH(this.content$mutationSuffix) > 0");
+			} elseif ($value === Product::SUPPLIER_CONTENT_MODE_NONE) {
+				$source->where('this.supplierContentLock', true);
+				$source->where("this.content$mutationSuffix IS NULL OR LENGTH(this.content$mutationSuffix) = 0");
+			} else {
+				$source->where('this.supplierContentLock', false);
+				$source->where('this.fk_supplierContent', $value);
+			}
+		}, '', 'supplierContent', null, $locks)->setPrompt('- Přebírání obsahu -');
 	}
 
 	/**
