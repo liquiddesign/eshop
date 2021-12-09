@@ -70,7 +70,7 @@ class SupplierProductRepository extends \StORM\Repository
 					(
 						supplierContentLock = 0 && 
 						(
-							(VALUES(supplierLock) >= supplierLock && (supplierContentMode = 'length' || (fk_supplierContent IS NULL && supplierContentMode = 'none'))) ||
+							(VALUES(supplierLock) >= supplierLock && (supplierContentMode = 'priority' || (fk_supplierContent IS NULL && supplierContentMode = 'none'))) ||
 							(supplierContentMode = 'length' && LENGTH(VALUES(content$mutationSuffix)) > LENGTH(content$mutationSuffix))
 						)
 					)

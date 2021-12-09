@@ -111,19 +111,16 @@ class ProductGridFactory
 
 		$grid->addColumnText('Výrobce', 'producer.name', '%s', 'producer.name_cs');
 		$grid->addColumn('Kategorie', function (Product $product) {
-			//return $product->primaryCategory->name;
 			return \implode('&nbsp;|&nbsp;', $product->categories->toArrayOf('name'));
 		});
 
 		$grid->addColumn('Obsah', function (Product $object, Datagrid $datagrid) {
-			if ($object->supplierContentLock) {
-				if ($object->content) {
-					$label = 'Vlastní obsah';
-					$icon = 'fas fa-file-alt';
-				} else {
-					$label = 'Žádný obsah';
-					$icon = 'fas fa-file-excel';
-				}
+			if ($object->supplierContentLock && $object->content) {
+				$label = 'Vlastní obsah';
+				$icon = 'fas fa-file-alt';
+			} elseif ($object->supplierContentLock && !$object->content) {
+				$label = 'Žádný obsah';
+				$icon = 'fas fa-file-excel';
 			} elseif ($object->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_LENGTH) {
 				$label = 'Ze zdroje s nejdelším obsahem';
 				$icon = 'fas fa-file-import';
@@ -138,7 +135,7 @@ class ProductGridFactory
 				$icon = 'fas fa-question';
 			}
 
-			return '<i title="' . $label . '" class="' . $icon . ' fa-lg">';
+			return '<i title="' . $label . '" class="' . $icon . ' fa-lg text-primary">';
 		}, '%s', null, ['class' => 'fit']);
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
