@@ -31,6 +31,8 @@ class AddressesForm extends Form
 	private Passwords $passwords;
 
 	private CustomerRepository $customerRepository;
+
+	private Shopper $shopper;
 	
 	public function __construct(
 		Shopper $shopper,
@@ -120,8 +122,9 @@ class AddressesForm extends Form
 		$this->onValidate[] = [$this, 'validateForm'];
 		$this->passwords = $passwords;
 		$this->customerRepository = $customerRepository;
+		$this->shopper = $shopper;
 	}
-	
+
 	public function validateForm(AddressesForm $form): void
 	{
 		if (!$form->isValid()) {
@@ -130,10 +133,15 @@ class AddressesForm extends Form
 
 		$values = $form->getValues('array');
 		
-		if (!$values['createAccount'] || !$this->accountRepository->one(['login' => $values['email']]) || !$this->customerRepository->one(['email' => $values['email']])) {
+		if (!$values['createAccount'] || (
+			((!$this->accountRepository->one(['login' => $values['email']]) && !$this->customerRepository->one(['email' => $values['email']])) ||
+				$this->shopper->isAlwaysCreateCustomerOnOrderCreated())
+			&&
+			(!$this->accountRepository->one(['login' => $values['email']]) || !$this->shopper->isAlwaysCreateCustomerOnOrderCreated())
+			)) {
 			return;
 		}
-		
+
 		$form->addError('Účet s tímto e-mailem již existuje');
 	}
 	
