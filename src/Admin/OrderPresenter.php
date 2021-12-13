@@ -602,7 +602,8 @@ class OrderPresenter extends BackendPresenter
 			$values = $form->getValues('array');
 
 			/** @var \Eshop\DB\PackageItem $packageItem */
-			$packageItem = $this->packageItemRepository->one($values['uuid'], true)->update(['store' => $values['store']]);
+			$packageItem = $this->packageItemRepository->one($values['uuid'], true);
+			$packageItem->update(['store' => $values['store']]);
 
 			/** @var \Eshop\DB\Order $order */
 			$order = $this->getParameter('order');
