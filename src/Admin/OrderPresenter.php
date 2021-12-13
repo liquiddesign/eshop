@@ -623,31 +623,91 @@ class OrderPresenter extends BackendPresenter
 		return $form;
 	}
 
-	//@TODO
 	public function createComponentMergeOrderForm(): AdminForm
 	{
 		$orderRepository = $this->orderRepository;
-//		$order = null;
 
 		$form = $this->formFactory->create();
 
+		/** @var \Eshop\DB\Order $targetOrder */
+		$targetOrder = $this->getParameter('order');
+
 		$form->addText('code', 'Kód objednávky')->addRule(function (TextInput $value) use ($orderRepository) {
-			return !$orderRepository->many()->where('code', $value->value)->isEmpty();
+			return !$orderRepository->many()->where('code', $value->getValue())->isEmpty();
 		}, 'Tato objednávka neexistuje')->setRequired();
-//		$form->addSubmits(false, false);
-//		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
-//			$values = $form->getValues('array');
-//
-//			/** @var \Eshop\DB\Order $order */
-//			$order = $this->orderRepository->one(['code' => $values['code']], true);
-//
-//			// cancel the order
-//			/** @var \Eshop\DB\Order $orderOld */
-//			$orderOld = $this->orderRepository->one($orderId, true);
-//
-//			/** @var \Eshop\DB\Order $orderNew */
-//			$orderNew = $this->orderRepository->one($orderId, true);
-//
+		$form->addSubmit('submit', 'Sloučit');
+
+		$form->onValidate[] = function (AdminForm $form) use ($targetOrder): void {
+			if (!$form->isValid()) {
+				return;
+			}
+
+			$values = $form->getValues('array');
+
+			/** @var \Eshop\DB\Order $oldOrder */
+			$oldOrder = $this->orderRepository->one(['code' => $values['code']], true);
+
+			if ($oldOrder->getPK() !== $targetOrder->getPK()) {
+				return;
+			}
+
+			/** @var \Nette\Forms\Controls\TextInput $codeInput */
+			$codeInput = $form['code'];
+			$codeInput->addError('Nelze sloučit se stejnou objednávkou!');
+		};
+
+		$form->onSuccess[] = function (AdminForm $form) use ($targetOrder): void {
+			$values = $form->getValues('array');
+
+			$connection = $this->productRepository->getConnection();
+
+			$connection->getLink()->beginTransaction();
+
+			try {
+				/** @var \Eshop\DB\Cart $targetCart */
+				$targetCart = $targetOrder->purchase->carts->first();
+
+				/** @var \Eshop\DB\Order $oldOrder */
+				$oldOrder = $this->orderRepository->one(['code' => $values['code']], true);
+
+				/** @var \Eshop\DB\Cart $oldCart */
+				$oldCart = $oldOrder->purchase->carts->first();
+
+				/** @var \Eshop\DB\Package $package */
+				$package = $targetOrder->packages->first();
+
+				foreach ($oldCart->items as $item) {
+					if (($product = $item->getValue('product')) === null) {
+						throw new \Exception('Product not found');
+					}
+
+					if (!$product = $this->productRepository->getProduct($product)) {
+						throw new \Exception('Product not found');
+					}
+
+					$cartItem = $this->checkoutManager->addItemToCart($product, null, $item->amount, false, false, false, $targetCart);
+
+					$this->packageItemRepository->createOne([
+						'package' => $package->getPK(),
+						'cartItem' => $cartItem->getPK(),
+						'amount' => $cartItem->amount,
+					]);
+				}
+
+				$oldOrder->update(['canceledTs' => (string)(new DateTime())]);
+
+				/** @var \Admin\DB\Administrator|null $admin */
+				$admin = $this->admin->getIdentity();
+
+				$this->orderLogItemRepository->createLog($oldOrder, OrderLogItem::CANCELED, null, $admin);
+
+				$connection->getLink()->commit();
+			} catch (\Throwable $e) {
+				$connection->getLink()->rollBack();
+
+				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Spojení objednávek se nezdařilo!', 'error');
+			}
+
 //			if ($orderOld->purchase->customer) {
 //				$orderOld->purchase->customer->setAccount($orderOld->purchase->account);
 //				$this->shopper->setCustomer($orderOld->purchase->customer);
@@ -655,25 +715,10 @@ class OrderPresenter extends BackendPresenter
 //				$this->shopper->setCustomer(null);
 //				$this->shopper->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
 //			}
-//
-//			// add to cart and update order
-//
-//			$newCart = $orderOld->purchase->carts->first();
-//
-//			foreach ($orderOld->purchase->carts->first() as $item) {
-//				if ($item->getValue('product') === null) {
-//					// throw exception
-//				}
-//
-//				$product = $this->productRepo->getProduct($item->getValue('product'));
-//				$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], false, false, false, $newCart);
-//			}
-//
-//			$orderOld->update(['canceledTs' => new DateTime()]);
-//
-//			$this->flashMessage('Provedeno', 'success');
-//			$this->redirect('this');
-//		};
+
+			$this->flashMessage('Provedeno', 'success');
+			$this->redirect('this');
+		};
 
 		return $form;
 	}
@@ -683,7 +728,9 @@ class OrderPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 		$form->addHidden('packageItem');
 		$form->getCurrentGroup()->setOption('label', 'Nákup');
-		$form->addInteger('amount', 'Celkové množství')->setRequired();
+		$form->addInteger('amount', 'Celkové množství produktu v objednávce')->setRequired();
+		$form->addInteger('packageItemAmount', 'Celkové množství produktu v položce balíčku')->setRequired()
+		->setHtmlAttribute('data-info', 'Součet množství produktu ve všech balíčcích nemůže být větší než celkový počet produktů v objednávce.');
 		$form->addTextArea('note', 'Poznámka')->setNullable();
 		$form->addGroup('Cena za kus');
 		$form->addText('price', 'Cena bez DPH')->addRule(Form::FLOAT)->setRequired();
@@ -697,7 +744,7 @@ class OrderPresenter extends BackendPresenter
 			$cartItem = $this->cartItemRepo->one($values['uuid'], true);
 
 			$packageItem = $this->packageItemRepository->one($values['packageItem']);
-			$packageItem->update(['amount' => $packageItem->amount + $values['amount'] - $cartItem->amount]);
+			$packageItem->update(['amount' => $values['packageItemAmount']]);
 
 			$cartItem->update($values);
 
@@ -1183,8 +1230,8 @@ class OrderPresenter extends BackendPresenter
 	public function handleToggleDeleteOrderItem(string $itemId): void
 	{
 		/** @var \Eshop\DB\PackageItem $packageItem */
-		$packageItem = $this->packageItemRepository->many()->where('this.fk_cartItem', $itemId)->first(true);
-		$this->packageItemRepository->many()->where('this.fk_cartItem', $itemId)->update(['this.deleted' => new Literal('NOT deleted')]);
+		$packageItem = $this->packageItemRepository->one($itemId, true);
+		$packageItem->update(['deleted' => !$packageItem->deleted]);
 
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->getParameter('order');
@@ -1196,7 +1243,7 @@ class OrderPresenter extends BackendPresenter
 			return;
 		}
 
-		$this->orderLogItemRepository->createLog($order, !$packageItem->deleted ? OrderLogItem::ITEM_DELETED : OrderLogItem::ITEM_RESTORED, $packageItem->cartItem->productName, $admin);
+		$this->orderLogItemRepository->createLog($order, $packageItem->deleted ? OrderLogItem::ITEM_DELETED : OrderLogItem::ITEM_RESTORED, $packageItem->cartItem->productName, $admin);
 
 
 		$this->redirect('this');

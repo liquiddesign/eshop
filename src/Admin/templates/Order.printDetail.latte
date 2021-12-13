@@ -1,11 +1,12 @@
 {varType Eshop\DB\Order $order}
 {varType Eshop\DB\Purchase $purchase}
+{varType Admin\Administrator $admin}
 
-{do $purchase = $order->purchase}
-{do $billingAddress = $purchase->billAddress}
-{do $deliveryAddress = $purchase->deliveryAddress}
-{do $delivery = $order->getLastDelivery()}
-{do $payment = $order->getPayment()}
+{var $purchase = $order->purchase}
+{var $billingAddress = $purchase->billAddress}
+{var $deliveryAddress = $purchase->deliveryAddress}
+{var $delivery = $order->getLastDelivery()}
+{var $payment = $order->getPayment()}
 {import '../../../../../../app/Admin/templates/content.latte'}
 
 {define content}
@@ -110,9 +111,8 @@
                                 <tbody>
 
                                 <tr n:foreach="$package->items as $packageItem" {if $packageItem->deleted}style="text-decoration: line-through"{/if}>
-                                    {var $item = $packageItem->cartItem}
+                                    {var Eshop\DB\CartItem $item = $packageItem->cartItem}
                                     <td>
-                                        {dump $item->getPK()}
                                         <a n:if="$item->product" href="#">
                                             <img data-src="{$item->product->getPreviewImage($baseUrl,'thumb')}" loading="lazy" alt="" style="height:32px;">
                                         </a>
@@ -144,10 +144,10 @@
                                         <a class="btn btn-outline-primary btn-sm text-xs modalSplitOrderItemForm" data-values="{json_encode(['uuid' => $packageItem->getPK()])}" data-toggle="modal" data-target="#modal-splitOrderItemForm" href="#" title="Rozdělit"><i class="fa fa-columns"></i></a>
                                     </td>
                                     <td class="d-print-none">
-                                        <a class="btn btn-primary btn-sm text-xs modalDetailOrderItemForm" data-values="{json_encode($item->toArray() + ['packageItem' => $packageItem->getPK()])}" data-toggle="modal" data-target="#modal-detailOrderItemForm" href="#" title="Upravit"><i class="far fa-edit"></i></a>
+                                        <a class="btn btn-primary btn-sm text-xs modalDetailOrderItemForm" data-values="{json_encode($item->toArray() + ['packageItem' => $packageItem->getPK(), 'packageItemAmount' => $packageItem->amount])}" data-toggle="modal" data-target="#modal-detailOrderItemForm" href="#" title="Upravit"><i class="far fa-edit"></i></a>
                                     </td>
                                     <td class="d-print-none">
-                                        <a href="{plink toggleDeleteOrderItem! $item->getPK()}" class="btn btn-danger btn-sm text-xs" title="Smazat" onclick="return confirm('Opravdu?')"><i class="{if $packageItem->deleted}fa fa-trash-restore-alt{else}far fa-trash-alt{/if}"></i></a>
+                                        <a href="{plink toggleDeleteOrderItem! $packageItem->getPK()}" class="btn btn-danger btn-sm text-xs" title="Smazat" onclick="return confirm('Opravdu?')"><i class="{if $packageItem->deleted}fa fa-trash-restore-alt{else}far fa-trash-alt{/if}"></i></a>
                                     </td>
                                 </tr>
 
