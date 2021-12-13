@@ -157,7 +157,7 @@ class AttributePresenter extends BackendPresenter
 			}
 
 			return false;
-		});
+		}, 'this.uuid');
 
 		$grid->addButtonBulkEdit('attributeForm', ['showCount', 'hidden', 'hideEmptyValues', 'showRange', 'showFilter', 'showProduct'], 'attributeGrid');
 
@@ -313,7 +313,7 @@ class AttributePresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected(null, false, function (AttributeValue $attributeValue) {
 			return !$this->attributeValueRepository->isValuePairedWithProducts($attributeValue);
-		});
+		}, 'this.uuid');
 		$grid->addButtonBulkEdit('valuesForm', ['attributeValueRange'], 'valuesGrid');
 
 		$grid->addFilterTextInput('search', ['this.code', 'this.label_cs'], null, 'Kód, popisek');
@@ -520,7 +520,7 @@ class AttributePresenter extends BackendPresenter
 		$grid->addColumnActionDelete();
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 
 		$grid->addFilterTextInput('search', ['this.name_cs', 'this.internalName',], null, 'Název, interní název');
 		$grid->addFilterTextInput('attribute', ['attribute.code'], null, 'Kód atributu', null, '%s');
