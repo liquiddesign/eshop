@@ -173,12 +173,12 @@ class Order extends \StORM\Entity
 		return (bool)$this->getValue('ic');
 	}
 	
-	/**
-	 * @deprecated Use repository method getState()
-	 */
 	public function getState(): string
 	{
-		return $this->completedTs || $this->canceledTs ? 'Vyřízeno' : 'Zpracovává se';
+		/** @var \Eshop\DB\OrderRepository $repository */
+		$repository = $this->getRepository();
+		
+		return $repository->getState($this);
 	}
 	
 	public function getId(int $length): string
