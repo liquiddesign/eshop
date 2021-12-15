@@ -130,7 +130,7 @@ class CategoryPresenter extends BackendPresenter
 
 		if ($this->categoryType && !$this->categoryType->isReadOnly()) {
 			$grid->addButtonSaveAll([], [], null, false, null, null, true, null, function (): void {
-//				$this->categoryRepository->clearCategoriesCache();
+				$this->categoryRepository->clearCategoriesCache();
 			});
 			$grid->addButtonDeleteSelected(null, true, function ($object) {
 				if ($object) {
@@ -139,7 +139,7 @@ class CategoryPresenter extends BackendPresenter
 
 				return false;
 			}, null, function (): void {
-//				$this->categoryRepository->clearCategoriesCache();
+				$this->categoryRepository->clearCategoriesCache();
 			});
 
 			$grid->addButtonBulkEdit('categoryForm', ['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
@@ -169,7 +169,7 @@ class CategoryPresenter extends BackendPresenter
 				$subCategory->delete();
 			}
 
-//			$this->categoryRepository->clearCategoriesCache();
+			$this->categoryRepository->clearCategoriesCache();
 		};
 
 		return $grid;
@@ -386,7 +386,7 @@ class CategoryPresenter extends BackendPresenter
 		$grid->addFilterButtons();
 
 		$grid->onDelete[] = function (CategoryType $object): void {
-//			$this->categoryRepository->clearCategoriesCache();
+			$this->categoryRepository->clearCategoriesCache();
 		};
 
 		return $grid;
@@ -553,7 +553,7 @@ class CategoryPresenter extends BackendPresenter
 		$grid->addFilterButtons();
 
 		$grid->onDelete[] = function (CategoryType $object): void {
-//			$this->categoryRepository->clearCategoriesCache();
+			$this->categoryRepository->clearCategoriesCache();
 		};
 
 		return $grid;

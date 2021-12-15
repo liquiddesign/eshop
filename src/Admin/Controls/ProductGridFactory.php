@@ -147,7 +147,7 @@ class ProductGridFactory
 		$grid->addColumnActionDelete([$this, 'onDelete']);
 
 		$grid->addButtonSaveAll([], [], null, false, null, null, true, null, function (): void {
-//			$this->categoryRepository->clearCategoriesCache();
+			$this->categoryRepository->clearCategoriesCache();
 		});
 		$grid->addButtonDeleteSelected([$this, 'onDelete'], false, null, 'this.uuid');
 
@@ -275,6 +275,6 @@ class ProductGridFactory
 
 		$product->update(['imageFileName' => null]);
 
-//		$this->categoryRepository->clearCategoriesCache();
+		$this->categoryRepository->clearCategoriesCache();
 	}
 }

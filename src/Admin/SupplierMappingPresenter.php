@@ -313,7 +313,7 @@ class SupplierMappingPresenter extends BackendPresenter
 
 			$supplierMapping = $this->getMappingRepository()->syncOne($values, null, true);
 
-//			$this->categoryRepository->clearCategoriesCache();
+			$this->categoryRepository->clearCategoriesCache();
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$supplierMapping]);
@@ -643,7 +643,7 @@ class SupplierMappingPresenter extends BackendPresenter
 					$this->categoryRepository->updateCategoryChildrenPath($newFirstCategory);
 				}
 
-//				$this->categoryRepository->clearCategoriesCache();
+				$this->categoryRepository->clearCategoriesCache();
 			}
 
 			$this->flashMessage('Uloženo', 'success');
