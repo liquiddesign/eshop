@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminGridFactory;
+use Eshop\DB\CategoryRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Grid\Datagrid;
@@ -28,13 +29,16 @@ class ProductGridFactory
 
 	private Connection $connection;
 
+	private CategoryRepository $categoryRepository;
+
 	public function __construct(
 		\Admin\Controls\AdminGridFactory $gridFactory,
 		Container $container,
 		PageRepository $pageRepository,
 		ProductRepository $productRepository,
 		ProductGridFiltersFactory $productGridFiltersFactory,
-		Connection $connection
+		Connection $connection,
+		CategoryRepository $categoryRepository
 	) {
 		$this->gridFactory = $gridFactory;
 		$this->pageRepository = $pageRepository;
@@ -42,6 +46,7 @@ class ProductGridFactory
 		$this->productGridFiltersFactory = $productGridFiltersFactory;
 		$this->productRepository = $productRepository;
 		$this->connection = $connection;
+		$this->categoryRepository = $categoryRepository;
 	}
 
 	public function create(array $configuration): Datagrid
