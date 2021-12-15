@@ -7,6 +7,12 @@
 {var $deliveryAddress = $purchase->deliveryAddress}
 {var $delivery = $order->getLastDelivery()}
 {var $payment = $order->getPayment()}
+{var $states = [
+Eshop\DB\Order::STATE_CANCELED => 'Stornovaná',
+Eshop\DB\Order::STATE_COMPLETED => 'Odeslaná',
+Eshop\DB\Order::STATE_OPEN => 'Otevřená',
+Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
+]}
 {import '../../../../../../app/Admin/templates/content.latte'}
 
 {define content}
@@ -66,7 +72,7 @@
                     <div class="col-sm-3 invoice-col">
                         <table class="table table-sm lqd-table ">
                             <tbody>
-                            <tr><th>Kód</th><td>{$order->code}</td></tr>
+                            <tr><th>Stav</th><td style="text-decoration: underline">{$states[$order->getState()] ?? ''}</td></tr>
                             <tr><th>Vytvořená</th><td>{$order->createdTs|date:'d.m.Y G:i'}</td></tr>
                             <tr n:if="$order->purchase->desiredShippingDate"><th>Požadované doručení</th><td>{$order->purchase->desiredShippingDate|date:'d.m.Y'}</td></tr>
                             <tr n:if="$order->purchase->internalOrderCode"><th>Interní číslo</th><td>{$order->purchase->internalOrderCode}</td></tr>
