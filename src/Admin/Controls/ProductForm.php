@@ -8,6 +8,7 @@ use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
 use Eshop\Admin\ProductPresenter;
 use Eshop\BackendPresenter;
+use Eshop\DB\AmountRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
@@ -23,6 +24,7 @@ use Eshop\DB\ProductRepository;
 use Eshop\DB\RelatedRepository;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\RibbonRepository;
+use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\TaxRepository;
@@ -74,6 +76,10 @@ class ProductForm extends Control
 
 	private RelatedRepository $relatedRepository;
 
+	private StoreRepository $storeRepository;
+
+	private AmountRepository $amountRepository;
+
 	/**
 	 * @var \Eshop\DB\RelatedType[]
 	 */
@@ -105,6 +111,8 @@ class ProductForm extends Control
 		LoyaltyProgramProductRepository $loyaltyProgramProductRepository,
 		RelatedTypeRepository $relatedTypeRepository,
 		RelatedRepository $relatedRepository,
+		StoreRepository $storeRepository,
+		AmountRepository $amountRepository,
 		$product = null,
 		array $configuration = []
 	) {
@@ -124,6 +132,8 @@ class ProductForm extends Control
 		$this->loyaltyProgramProductRepository = $loyaltyProgramProductRepository;
 		$this->relatedTypeRepository = $relatedTypeRepository;
 		$this->relatedRepository = $relatedRepository;
+		$this->storeRepository = $storeRepository;
+		$this->amountRepository = $amountRepository;
 
 		$form = $adminFormFactory->create(true);
 
@@ -346,17 +356,28 @@ Ostatní: Přebírání ze zvoleného zdroje
 			});
 		}
 
-		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository): void {
+		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository, $storeRepository): void {
 			$prices = $form->addContainer('prices');
 
 			$pricesPermission = $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default');
 
+			/** @var \Eshop\DB\Price $prc */
 			foreach ($pricelistRepository->many() as $prc) {
 				$pricelist = $prices->addContainer($prc->getPK());
 				$pricelist->addText('price')->setNullable()->setDisabled(!$pricesPermission)->addCondition($form::FILLED)->addRule($form::FLOAT);
 				$pricelist->addText('priceVat')->setNullable()->setDisabled(!$pricesPermission)->addCondition($form::FILLED)->addRule($form::FLOAT);
 				$pricelist->addText('priceBefore')->setNullable()->setDisabled(!$pricesPermission)->addCondition($form::FILLED)->addRule($form::FLOAT);
 				$pricelist->addText('priceVatBefore')->setNullable()->setDisabled(!$pricesPermission)->addCondition($form::FILLED)->addRule($form::FLOAT);
+			}
+
+			$stores = $form->addContainer('stores');
+
+			/** @var \Eshop\DB\Store $store */
+			foreach ($storeRepository->many() as $store) {
+				$storeContainer = $stores->addContainer($store->getPK());
+				$storeContainer->addInteger('inStock')->setNullable();
+				$storeContainer->addInteger('reserved')->setNullable();
+				$storeContainer->addInteger('ordered')->setNullable();
 			}
 		});
 
@@ -593,6 +614,18 @@ Ostatní: Přebírání ze zvoleného zdroje
 
 		unset($values['prices']);
 
+		foreach ($values['stores'] as $storeId => $amount) {
+			if ($amount['inStock'] === null) {
+				$this->amountRepository->many()->where('fk_product', $product->getPK())->where('fk_store', $storeId)->delete();
+
+				continue;
+			}
+
+			$this->amountRepository->syncOne(['product' => $product->getPK(), 'store' => $storeId] + $amount);
+		}
+
+		unset($values['stores']);
+
 		$form->syncPages(function () use ($product, $values): void {
 			$this->pageRepository->syncPage($values['page'], ['product' => $product->getPK()]);
 		});
@@ -606,6 +639,7 @@ Ostatní: Přebírání ze zvoleného zdroje
 		$this->template->relationMaxItemsCount = $this::RELATION_MAX_ITEMS_COUNT;
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->pricelistRepository->many()->orderBy(['this.priority']);
+		$this->template->stores = $this->storeRepository->many()->orderBy(["this.name" . $this->storeRepository->getConnection()->getMutationSuffix()]);
 		$this->template->supplierProducts = [];
 		$this->template->configuration = $this->configuration;
 		$this->template->shopper = $this->shopper;

@@ -588,6 +588,23 @@ class ProductPresenter extends BackendPresenter
 			$container->setDefaults($prices[$pricelistId]->toArray());
 		}
 
+		$amounts = $this->amountRepository->many()
+			->where('fk_product', $product->getPK())
+			->select(['storeId' => 'fk_store'])
+			->setIndex('storeId')
+			->toArray();
+
+		/** @var \Forms\Container $input */
+		$input = $form['stores'];
+
+		/**
+		 * @var string $storeId
+		 * @var \Forms\Container $container
+		 */
+		foreach ($input->getComponents() as $storeId => $container) {
+			$container->setDefaults(isset($amounts[$storeId]) ? $amounts[$storeId]->toArray() : []);
+		}
+
 		/** @var \Eshop\DB\CategoryType[] $categoryTypes */
 		$categoryTypes = $this->categoryTypeRepository->getCollection(true)->toArray();
 
