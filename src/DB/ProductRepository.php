@@ -874,10 +874,10 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 
 		$products->setGroupBy(['this.uuid'])
-			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
+			->join(['priceTable' => 'eshop_price'], 'this.uuid = priceTable.fk_product')
 			->select([
-				'priceMin' => 'MIN(price.price)',
-				'priceMax' => 'MAX(price.price)',
+				'priceMin' => 'MIN(priceTable.price)',
+				'priceMax' => 'MAX(priceTable.price)',
 			])
 			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
 			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value = attributeValue.uuid')

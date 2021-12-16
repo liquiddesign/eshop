@@ -1796,7 +1796,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 						$producerCode = $value;
 					}
 
-					if (isset($producers[$producerCode])) {
+					if (isset($producers[$producerCode]) && \strlen($producerCode) > 0) {
 						$newValues[$key] = $producers[$producerCode];
 					}
 				} elseif ($key === 'storeAmount') {
@@ -1820,9 +1820,11 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 						]);
 					}
 				} elseif ($key === 'categories') {
-					$this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
-						->where('fk_product', $product->getPK())
-						->delete();
+					if ($product) {
+						$this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
+							->where('fk_product', $product->getPK())
+							->delete();
+					}
 
 					$valueCategories = \explode(':', $value);
 
@@ -1843,10 +1845,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 							continue;
 						}
 
-						$this->categoryRepository->getConnection()->createRow('eshop_product_nxn_eshop_category', [
-							'fk_product' => $product->getPK(),
-							'fk_category' => $category,
-						]);
+						$newValues['categories'][] = $category;
 					}
 				} elseif ($key === 'name' || $key === 'perex' || $key === 'content') {
 					$newValues[$key][$mutation] = $value;
