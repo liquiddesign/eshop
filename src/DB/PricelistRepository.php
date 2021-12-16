@@ -132,10 +132,23 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	): void {
 		$priceRepository = $this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class);
 
-		/** @var \Eshop\DB\Price[]|\Eshop\DB\QuantityPrice[] $originalPrices */
 		$originalPrices = $priceRepository->many()->where('fk_pricelist', $from->getPK());
 
-		foreach ($originalPrices as $originalPrice) {
+		$existingPricesInTargetPricelist = $this->priceRepository->many()
+			->where('fk_pricelist', $to->getPK())
+			->setIndex('fk_product')
+			->setSelect(['this.uuid', 'this.price', 'this.priceVat', 'this.fk_product'])
+			->toArray();
+
+		$newPrices = [];
+
+		while ($originalPrice = $originalPrices->fetch()) {
+			/** @var \Eshop\DB\Price|\Eshop\DB\QuantityPrice $originalPrice */
+
+			if (!$overwrite && isset($existingPricesInTargetPricelist[$originalPrice->getValue('product')])) {
+				continue;
+			}
+
 			$values = [
 				'pricelist' => $to->getPK(),
 				'product' => $originalPrice->getValue('product'),
@@ -154,8 +167,10 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 				];
 			}
 
-			$priceRepository->syncOne($values, $overwrite ? null : []);
+			$newPrices[] = $values;
 		}
+
+		$this->priceRepository->syncMany($newPrices);
 	}
 
 	public function copyPricesArray(
@@ -169,10 +184,23 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	): void {
 		$priceRepository = $this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class);
 
-		/** @var \Eshop\DB\Price[]|\Eshop\DB\QuantityPrice[] $originalPrices */
 		$originalPrices = $priceRepository->many()->where('uuid', $ids);
 
-		foreach ($originalPrices as $originalPrice) {
+		$existingPricesInTargetPricelist = $this->priceRepository->many()
+			->where('fk_pricelist', $to->getPK())
+			->setIndex('fk_product')
+			->setSelect(['this.uuid', 'this.price', 'this.priceVat', 'this.fk_product'])
+			->toArray();
+
+		$newPrices = [];
+
+		while ($originalPrice = $originalPrices->fetch()) {
+			/** @var \Eshop\DB\Price|\Eshop\DB\QuantityPrice $originalPrice */
+
+			if (!$overwrite && isset($existingPricesInTargetPricelist[$originalPrice->getValue('product')])) {
+				continue;
+			}
+
 			$values = [
 				'pricelist' => $to->getPK(),
 				'product' => $originalPrice->getValue('product'),
@@ -191,8 +219,10 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 				];
 			}
 
-			$priceRepository->syncOne($values, $overwrite ? null : []);
+			$newPrices[] = $values;
 		}
+
+		$this->priceRepository->syncMany($newPrices);
 	}
 
 	/**

@@ -220,14 +220,16 @@ Ostatní: Přebírání ze zvoleného zdroje
 			->addCondition($form::FILLED)
 			->addRule($form::FLOAT)
 			->addRule([FormValidators::class, 'isPercentNoMax'], 'Neplatná hodnota!');
-		$form->addCheckbox('unavailable', 'Neprodejné');
+		$form->addCheckbox('unavailable', 'Neprodejné')->setHtmlAttribute('data-info', 'Znemožňuje nákup produktu.');
 
 		if (isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']) {
 			$form->addText('weight', 'Váha')
+				->setHtmlAttribute('data-info', 'Celková váha produktu. Na jednotce nezáleží.')
 				->setNullable()
 				->addCondition($form::FILLED)
 				->addRule($form::FLOAT);
 			$form->addText('dimension', 'Rozměr')
+				->setHtmlAttribute('data-info', 'Celkový rozměr objednávky. Na jednotce nezáleží.')
 				->setNullable()
 				->addCondition($form::FILLED)
 				->addRule($form::FLOAT);
@@ -359,7 +361,12 @@ Ostatní: Přebírání ze zvoleného zdroje
 		});
 
 		if (isset($configuration['buyCount']) && $configuration['buyCount']) {
-			$form->addIntegerNullable('buyCount', 'Počet prodaných')->addFilter('intval')->addCondition($form::FILLED)->addRule($form::MIN, 'Zadejte číslo rovné nebo větší než 0!', 0);
+			$form->addIntegerNullable('buyCount', 'Počet prodaných')
+				->setHtmlAttribute(
+					'data-info',
+					'Pokud necháte prázdné tak se bude vypočítávat ze skutečných nákupů. Pokud chcete vygenerovat náhodné hodnoty, použijte tlačítko "Generovat zakoupení" na seznamu produktů.',
+				)
+				->addFilter('intval')->addCondition($form::FILLED)->addRule($form::MIN, 'Zadejte číslo rovné nebo větší než 0!', 0);
 		}
 
 		$form->addPageContainer('product_detail', ['product' => $product], $nameInput);

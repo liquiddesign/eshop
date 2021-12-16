@@ -382,35 +382,19 @@
                     </tr>
                 {/ifset}
 
-                <tr n:if="isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']"
-                    class="m-0 mt-1 has-danger">
-                    <th class="col-label col-form-label col">{label weight/}</th>
+                {ifset $form['weight']}
+                    {$renderer->renderPair($form['weight'])|noescape}
+                {/ifset}
 
-                    <td class="align-middle">{input weight class => 'form-control form-control-sm col-label max-number'}
-                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError weight}</span>
-                    </td>
-                </tr>
-
-                <tr n:if="isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']"
-                    class="m-0 mt-1 has-danger">
-                    <th class="col-label col-form-label col">{label dimension/}</th>
-
-                    <td class="align-middle">{input dimension class => 'form-control form-control-sm col-label max-number'}
-                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError dimension}</span>
-                    </td>
-                </tr>
+                {ifset $form['dimension']}
+                    {$renderer->renderPair($form['dimension'])|noescape}
+                {/ifset}
 
 			    {$renderer->renderPair($form['unavailable'])|noescape}
 
-                <tr n:if="isset($configuration['buyCount']) && $configuration['buyCount']"
-                        class="m-0 mt-1 has-danger">
-                    <th class="col-label col-form-label col">{label buyCount/}</th>
-
-                    <td class="align-middle">{input buyCount class=>"form-control form-control-sm col-label max-number"}
-                        <span id="data-info" class="text-gray text-sm">Pokud necháte prázdné tak se bude vypočítávat ze skutečných nákupů. Pokud chcete vygenerovat náhodné hodnoty, použijte tlačítko "Generovat zakoupení" na seznamu produktů.</span>
-                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError buyCount}</span>
-                    </td>
-                </tr>
+                {ifset $form['buyCount']}
+                    {$renderer->renderPair($form['buyCount'])|noescape}
+                {/ifset}
 
                 </table>
 
