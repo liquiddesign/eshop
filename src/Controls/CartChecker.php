@@ -10,6 +10,9 @@ use Nette\Application\UI\Control;
 
 class CartChecker extends Control
 {
+	/** @var array<callable(static): void> Occurs when component is attached to presenter */
+	public $onAnchor = [];
+
 	private CheckoutManager $checkoutManager;
 	
 	private ProductRepository $productRepository;

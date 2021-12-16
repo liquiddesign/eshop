@@ -32,6 +32,9 @@ class ProductFilter extends Control
 	 */
 	public $onFormSuccess;
 
+	/** @var array<callable(static): void> Occurs when component is attached to presenter */
+	public $onAnchor = [];
+
 	private TranslationRepository $translator;
 
 	private FormFactory $formFactory;
