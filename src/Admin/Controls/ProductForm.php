@@ -201,7 +201,8 @@ Ostatní: Přebírání ze zvoleného zdroje
 
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
-		$form->addCheckbox('recommended', 'Doporučeno');
+		$form->addCheckbox('recommended', 'Doporučeno')
+			->setHtmlAttribute('data-info', 'Zobrazí se na hlavní stránce.');
 
 		$form->addGroup('Nákup');
 		$form->addText('unit', 'Prodejní jednotka')

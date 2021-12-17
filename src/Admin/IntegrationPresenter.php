@@ -190,17 +190,28 @@ class IntegrationPresenter extends BackendPresenter
 
 	public function renderZasilkovna(): void
 	{
+		$active = ($setting = $this->settingsRepo->many()->where('name', 'zasilkovnaApiKey')->first()) !== null &&
+			$setting->getValue('value') !== null &&
+			$setting->getValue('value') !== '' &&
+			($setting = $this->settingsRepo->many()->where('name', 'zasilkovnaApiPassword')->first()) !== null &&
+			$setting->getValue('value') !== null &&
+			$setting->getValue('value') !== '';
+
 		$this->template->headerLabel = 'Integrace';
 		$this->template->headerTree = [
 			['Integrace'],
 			['Zásilkovna'],
 		];
-		$this->template->displayButtons = [
-			'<a href="' . $this->link('syncZasilkovnaPoints!') .
-			'" onclick="return confirm(\'Opravdu? Tato operace může trvat až 5 minut.\')">
-<button class="btn btn-sm btn-outline-primary"><i class="fa fa-sync"></i>  Synchronizovat výdejní místa</button></a>',
-			$this->createButtonWithClass('syncZasilkovnaOrders!', '<i class="fa fa-sync"></i>  Synchronizovat objednávky', 'btn btn-sm btn-outline-primary'),
-		];
+
+		if ($active) {
+			$this->template->displayButtons = [
+				'<a href="' . $this->link('syncZasilkovnaPoints!') .
+				'" onclick="return confirm(\'Opravdu? Tato operace může trvat až 5 minut.\')">
+					<button class="btn btn-sm btn-outline-primary"><i class="fa fa-sync"></i>  Synchronizovat výdejní místa</button></a>',
+				$this->createButtonWithClass('syncZasilkovnaOrders!', '<i class="fa fa-sync"></i>  Synchronizovat objednávky', 'btn btn-sm btn-outline-primary'),
+			];
+		}
+
 		$this->template->displayControls = [$this->getComponent('zasilkovnaForm')];
 	}
 
@@ -242,7 +253,15 @@ class IntegrationPresenter extends BackendPresenter
 			['Integrace'],
 			['MailerLite'],
 		];
-		$this->template->displayButtons = [$this->createButtonWithClass('syncMailerLite!', '<i class="fa fa-sync"></i>  Synchronizovat s MailerLite', 'btn btn-sm btn-outline-primary')];
+
+		$active = ($setting = $this->settingsRepo->many()->where('name', 'mailerLiteApiKey')->first()) !== null &&
+			$setting->getValue('value') !== null &&
+			$setting->getValue('value') !== '';
+
+		if ($active) {
+			$this->template->displayButtons = [$this->createButtonWithClass('syncMailerLite!', '<i class="fa fa-sync"></i>  Synchronizovat s MailerLite', 'btn btn-sm btn-outline-primary')];
+		}
+
 		$this->template->displayControls = [$this->getComponent('mailerLiteForm')];
 	}
 

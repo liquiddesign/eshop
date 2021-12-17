@@ -151,14 +151,9 @@
                         </tr>
                     {/foreach}
 
-                    <tr n:if="isset($configuration['suppliers']) && $configuration['suppliers'] && isset($form['supplierContent'])"
-                            class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label supplierContent/}</th>
-
-                        <td class="align-middle">{input supplierContent class=>"form-control form-control-sm", style=>'max-width: 260px;'}
-                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError supplierContent}</span>
-                        </td>
-                    </tr>
+                    {if isset($configuration['suppliers']) && $configuration['suppliers'] && isset($form['supplierContent'])}
+                        {$renderer->renderPair($form['supplierContent'])|noescape}
+                    {/if}
 
                     <tr class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label priority 'class' => 'required'}</th>
