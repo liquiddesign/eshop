@@ -17,6 +17,9 @@ use Nette\Application\UI\Control;
 
 class StatsControl extends Control
 {
+	/** @var array<callable(static): void> Occurs when component is attached to presenter */
+	public $onAnchor = [];
+
 	/**
 	 * @persistent
 	 * @var string[]
