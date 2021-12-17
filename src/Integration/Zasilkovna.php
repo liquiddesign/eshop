@@ -121,6 +121,7 @@ class Zasilkovna
 
 			$point = $this->pickupPointRepository->syncOne([
 				'uuid' => 'zasilkovna_' . $value['id'],
+				'code' => 'zasilkovna_' . $value['id'],
 				'pickupPointType' => $zasilkovnaType->getPK(),
 				'name' => [
 					'cs' => $value['place'],
@@ -139,7 +140,7 @@ class Zasilkovna
 
 			if ($regularOpeningHours = ($openingHours['regular'] ?? null)) {
 				foreach ($regularOpeningHours as $day => $hours) {
-					if (\is_array($hours)) {
+					if (\is_array($hours) || (\is_string($hours) && \strlen($hours) === 0)) {
 						continue;
 					}
 
@@ -194,8 +195,10 @@ class Zasilkovna
 					];
 
 					if ($hours = ($exception['hours'] ?? null)) {
-						if (!$openingHours += $this->processOpeningHours($exception['hours'])) {
-							continue;
+						$localOpeningHours = $this->processOpeningHours($hours);
+
+						if ($localOpeningHours) {
+							$openingHours += $localOpeningHours;
 						}
 					}
 
@@ -236,12 +239,16 @@ class Zasilkovna
 	{
 		$openingHours = \explode(',', $openingHours);
 
-		if (\count($openingHours) === 2) {
-			[$openFrom, $pauseFrom] = \explode('–', $openingHours[0]);
-			[$pauseTo, $openTo] = \explode('–', $openingHours[1]);
-		} elseif (\count($openingHours) === 1) {
-			[$openFrom, $openTo] = \explode('–', $openingHours[0]);
-		} else {
+		try {
+			if (\count($openingHours) === 2) {
+				[$openFrom, $pauseFrom] = \explode('–', $openingHours[0]);
+				[$pauseTo, $openTo] = \explode('–', $openingHours[1]);
+			} elseif (\count($openingHours) === 1) {
+				[$openFrom, $openTo] = \explode('–', $openingHours[0]);
+			} else {
+				return null;
+			}
+		} catch (\Throwable $e) {
 			return null;
 		}
 

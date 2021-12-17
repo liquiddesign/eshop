@@ -28,6 +28,7 @@ use Eshop\DB\OrderRepository;
 use Eshop\DB\PackageItemRepository;
 use Eshop\DB\PaymentRepository;
 use Eshop\DB\PaymentTypeRepository;
+use Eshop\DB\PickupPointRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierRepository;
@@ -129,6 +130,9 @@ class OrderPresenter extends BackendPresenter
 
 	/** @inject */
 	public OrderLogItemRepository $orderLogItemRepository;
+
+	/** @inject */
+	public PickupPointRepository $pickupPointRepository;
 
 	/** @persistent */
 	public string $tab = 'received';
@@ -1160,6 +1164,15 @@ class OrderPresenter extends BackendPresenter
 		$this->template->headerLabel = 'Objednávka - ' . $order->code;
 
 		$this->template->order = $order;
+
+		if ($order->purchase->zasilkovnaId) {
+			$this->template->pickupPoint = $this->pickupPointRepository->many()->where('code', "zasilkovna_" . $order->purchase->zasilkovnaId)->first();
+		} elseif ($order->purchase->pickupPoint) {
+			$this->template->pickupPoint = $order->purchase->pickupPoint;
+		} else {
+			$this->template->pickupPoint = null;
+		}
+
 		$this->template->orderItems = $order->purchase->getItems()->toArray();
 		$this->template->packages = $order->packages;
 

@@ -1,6 +1,7 @@
 {varType Eshop\DB\Order $order}
 {varType Eshop\DB\Purchase $purchase}
 {varType Admin\Administrator $admin}
+{varType Eshop\DB\PickupPoint|null $pickupPoint}
 
 {var $purchase = $order->purchase}
 {var $billingAddress = $purchase->billAddress}
@@ -171,7 +172,24 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                         <p class="lead">Doprava:</p>
                         <div class="d-flex align-items-center">
                             <img n:if="$purchase->deliveryType->imageFileName" src="{$userUrl|noescape}/deliverytype_images/thumb/{$purchase->deliveryType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
-                            {$purchase->deliveryType ? $purchase->deliveryType->name : null} - {$delivery->shippedTs ? 'Expedováno' : 'Čeká na expedici'}
+                            {$purchase->deliveryType ? $purchase->deliveryType->name : null}&nbsp;-&nbsp;{$delivery->shippedTs ? 'Expedováno' : 'Čeká na expedici'}<br>
+                            {$purchase->pickupPointId || $purchase->zasilkovnaId ? 'Výdejní místo: ' : null}
+                            {if $purchase->pickupPointId}
+                                {if $purchase->pickupPoint}
+                                    {$purchase->pickupPoint->name}
+                                {else}
+                                    {$purchase->pickupPointName}
+                                {/if}
+                            {elseif $purchase->zasilkovnaId}
+                                {if $pickupPoint}
+                                    {$pickupPoint->name} ({$purchase->zasilkovnaId})
+                                    {if $pickupPoint->address}
+                                       <br>{$pickupPoint->address->street}, {$pickupPoint->address->city} {$pickupPoint->address->zipcode}
+                                    {/if}
+                                {else}
+                                    {$purchase->zasilkovnaId}
+                                {/if}
+                            {/if}
                         </div>
 
                         <p class="lead mt-4">Platební metoda:</p>
