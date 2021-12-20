@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Nette\DI\Container;
+use Nette\Utils\FileSystem;
 use Nette\Utils\Strings;
 use PDOException;
 use StORM\Collection;
@@ -207,13 +208,13 @@ class SupplierProductRepository extends \StORM\Repository
 			if (!$overwrite || !$draft->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
 				continue;
 			}
-
-			@\copy($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
-			@\copy($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
-			@\copy($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
-			@\touch($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $mtime);
-			@\touch($galleryImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $mtime);
-			@\touch($galleryImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $mtime);
+			
+			$imageSizes = ['origin', 'detail', 'thumb'];
+			
+			foreach ($imageSizes as $imageSize) {
+				FileSystem::copy($sourceImageDirectory . $sep . $imageSize . $sep . $draft->fileName, $galleryImageDirectory . $sep . $imageSize . $sep . $draft->fileName);
+				@\touch($galleryImageDirectory . $sep . $imageSize . $sep . $draft->fileName, $mtime);
+			}
 		}
 
 		return $result;
