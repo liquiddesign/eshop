@@ -116,7 +116,21 @@ class ProductGridFactory
 
 		$grid->addColumnText('Výrobce', 'producer.name', '%s', 'producer.name_cs');
 		$grid->addColumn('Kategorie', function (Product $product) {
-			return \implode('&nbsp;|&nbsp;', $product->categories->toArrayOf('name'));
+			$categories = $this->categoryRepository->getTreeArrayForSelect();
+			/** @var \Eshop\DB\Category[] $productCategories */
+			$productCategories = $product->categories->toArrayOf('name');
+
+			$finalStr = '';
+			$last = Arrays::last(\array_keys($productCategories));
+
+			foreach ($productCategories as $productCategoryPK => $productCategoryName) {
+				$finalStr .= '<abbr title="' . $categories[$productCategoryPK] . '">';
+				$finalStr .= $productCategoryName;
+				$finalStr .= '</abbr>';
+				$finalStr .= $last !== $productCategoryPK ? '&nbsp;|&nbsp;' : null;
+			}
+
+			return $finalStr;
 		});
 
 		$grid->addColumn('Obsah', function (Product $object, Datagrid $datagrid) {
