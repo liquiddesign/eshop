@@ -99,6 +99,54 @@ class SupplierProduct extends \StORM\Entity
 	public ?int $amount;
 	
 	/**
+	 * Datum nejblišího naskladnění
+	 * @column
+	 */
+	public ?string $storageDate;
+	
+	/**
+	 * Předdefinované množství ke koupi
+	 * @column
+	 */
+	public int $defaultBuyCount = 1;
+	
+	/**
+	 * Minimální prodejní množství
+	 * @column
+	 */
+	public int $minBuyCount = 1;
+
+	/**
+	 * Krokové prodejní množství
+	 * @column
+	 */
+	public int $buyStep = 1;
+	
+	/**
+	 * Počet v balení
+	 * @column
+	 */
+	public ?int $inPackage;
+	
+	/**
+	 * Počet v kartónu
+	 * @column
+	 */
+	public ?int $inCarton;
+	
+	/**
+	 * Počet v paletě
+	 * @column
+	 */
+	public ?int $inPalett;
+	
+	/**
+	 * Váha
+	 * @column
+	 */
+	public ?float $weight;
+	
+	/**
 	 * Obrázek
 	 * @column
 	 */
