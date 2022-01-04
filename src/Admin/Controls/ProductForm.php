@@ -638,6 +638,8 @@ Ostatní: Přebírání ze zvoleného zdroje
 			$this->pageRepository->syncPage($values['page'], ['product' => $product->getPK()]);
 		});
 
+		$this->productRepository->clearCache();
+
 		$this->getPresenter()->flashMessage('Uloženo', 'success');
 		$form->processRedirect('edit', 'default', ['product' => $product, 'editTab' => $editTab]);
 	}

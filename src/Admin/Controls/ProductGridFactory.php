@@ -167,6 +167,7 @@ class ProductGridFactory
 
 		$grid->addButtonSaveAll([], [], null, false, null, null, true, null, function (): void {
 			$this->categoryRepository->clearCategoriesCache();
+			$this->productRepository->clearCache();
 		});
 		$grid->addButtonDeleteSelected([$this, 'onDelete'], false, null, 'this.uuid');
 

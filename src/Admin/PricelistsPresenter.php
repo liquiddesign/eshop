@@ -387,11 +387,22 @@ class PricelistsPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 		$form->addUpload('file', 'CSV soubor')->setRequired()->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
-Povinné sloupce:<br>
+<b>Povinné sloupce:</b><br>
 product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefore - Předchozí cena<br>priceVatBefore - Předchozí cena s daní<br>');
+
+		$form->addSelect('delimiter', 'Oddělovač', [
+			';' => 'Středník (;)',
+			',' => 'Čárka (,)',
+			'   ' => 'Tab (\t)',
+			' ' => 'Mezera ( )',
+			'|' => 'Pipe (|)',
+		]);
+
 		$form->addSubmit('submit', 'Uložit');
 
 		$form->onSuccess[] = function (Form $form): void {
+			$values = $form->getValues('array');
+
 			/** @var \Nette\Http\FileUpload $file */
 			$file = $form->getValues('array')['file'];
 
@@ -402,6 +413,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 				$pricelist,
 				Reader::createFromString($file->getContents()),
 				$quantity,
+				$values['delimiter'],
 			);
 
 
