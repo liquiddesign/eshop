@@ -601,7 +601,7 @@ Ostatní: Přebírání ze zvoleného zdroje
 					continue;
 				}
 
-				$prices['priceVat'] = $prices['priceVat'] ? \floatval(\str_replace(',', '.', $prices['priceVat'])) :
+				$prices['priceVat'] = $prices['priceVat'] ? \floatval(\str_replace(',', '.', \strval($prices['priceVat']))) :
 					$prices['price'] + ($prices['price'] * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 100));
 
 				$conditions = [
