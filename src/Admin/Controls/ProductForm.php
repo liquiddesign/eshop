@@ -467,19 +467,6 @@ Ostatní: Přebírání ze zvoleného zdroje
 			);
 		}
 
-		$newCategories = [];
-
-		if (\count($values['categories']) > 0) {
-			foreach ($values['categories'] as $categories) {
-				foreach ($categories as $category) {
-					$newCategories[] = $category;
-				}
-			}
-		}
-
-		$values['categories'] = $newCategories;
-		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
-
 		if (isset($values['supplierContent'])) {
 			if ($values['supplierContent'] === 'none') {
 				$values['supplierContent'] = null;
@@ -499,8 +486,25 @@ Ostatní: Přebírání ze zvoleného zdroje
 			$values['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_PRIORITY;
 		}
 
+		/** @var array $pickedCategories */
+		$pickedCategories = Arrays::pick($values, 'categories');
+		$newCategories = [];
+
+		if (\count($pickedCategories) > 0) {
+			foreach ($pickedCategories as $categories) {
+				foreach ($categories as $category) {
+					$newCategories[] = $category;
+				}
+			}
+		}
+
+		$values['primaryCategory'] = \count($newCategories) > 0 ? Arrays::first($newCategories) : null;
+
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
+
+		$product->categories->unrelateAll();
+		$product->categories->relate($newCategories);
 
 		foreach ($this->relatedTypes as $relatedType) {
 			$this->relatedRepository->many()->where(
