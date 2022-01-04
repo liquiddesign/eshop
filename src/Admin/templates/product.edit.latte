@@ -79,24 +79,26 @@
                                    href="#menu3-content"
                                    role="tab">Ostatní</a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link {$editTab == 'gallery' ? 'active show' : ''} productForm-tab"
-                                   id="gallery" data-toggle="pill"
-                                   href="#gallery-content"
-                                   role="tab">Galerie</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {$editTab == 'files' ? 'active show' : ''} productForm-tab"
-                                   id="files" data-toggle="pill"
-                                   href="#files-content"
-                                   role="tab">Soubory</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {$editTab == 'comments' ? 'active show' : ''} productForm-tab"
-                                   id="comments" data-toggle="pill"
-                                   href="#comments-content"
-                                   role="tab">Komentáře</a>
-                            </li>
+                            {ifset $product}
+                                <li class="nav-item">
+                                    <a class="nav-link {$editTab == 'gallery' ? 'active show' : ''} productForm-tab"
+                                       id="gallery" data-toggle="pill"
+                                       href="#gallery-content"
+                                       role="tab">Galerie</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {$editTab == 'files' ? 'active show' : ''} productForm-tab"
+                                       id="files" data-toggle="pill"
+                                       href="#files-content"
+                                       role="tab">Soubory</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {$editTab == 'comments' ? 'active show' : ''} productForm-tab"
+                                       id="comments" data-toggle="pill"
+                                       href="#comments-content"
+                                       role="tab">Komentáře</a>
+                                </li>
+                            {/ifset}
                         </ul>
                     </div>
 

@@ -504,7 +504,10 @@ Ostatní: Přebírání ze zvoleného zdroje
 		$product = $this->productRepository->syncOne($values, null, true);
 
 		$product->categories->unrelateAll();
-		$product->categories->relate($newCategories);
+
+		if (\count($newCategories) > 0) {
+			$product->categories->relate($newCategories);
+		}
 
 		foreach ($this->relatedTypes as $relatedType) {
 			$this->relatedRepository->many()->where(
