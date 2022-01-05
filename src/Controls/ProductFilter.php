@@ -83,19 +83,23 @@ class ProductFilter extends Control
 
 		$this->template->attributes = $this->getAttributes();
 
-		$this->template->systemicCounts = [
-			'availability' => $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayAmount', $this->getProductList()->getFilters())[$category] ?? [] : [],
-			'delivery' => $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayDelivery', $this->getProductList()->getFilters())[$category] ?? [] : [],
-			'producer' => $category ? $this->categoryRepository->getCountsGrouped('this.fk_producer', $this->getProductList()->getFilters())[$category] ?? [] : [],
-		];
-
 		/** @var string[][][] $filters */
 		$filters = $this->getProductList()->getFilters();
+
+		$this->template->systemicCounts = [
+			'availability' => $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayAmount', $filters)[$category] ?? [] : [],
+			'delivery' => $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayDelivery', $filters)[$category] ?? [] : [],
+			'producer' => $category ? $this->categoryRepository->getCountsGrouped('this.fk_producer', $filters)[$category] ?? [] : [],
+		];
+
+		\bdump($filters);
+		\bdump($category);
 
 //		if (isset($filters['attributes'])) {
 //			$filters['attributes'] = $this->attributeRepository->transferAttributeValuesOrRangesToValuesOnly($filters['attributes']);
 //			bdump($filters['attributes']);
 //		}
+		\bdump($this->categoryRepository->getCountsGrouped('assign.fk_value', $filters));
 
 		$this->template->attributesValuesCounts = $category ? $this->categoryRepository->getCountsGrouped('assign.fk_value', $filters)[$category] ?? [] : [];
 

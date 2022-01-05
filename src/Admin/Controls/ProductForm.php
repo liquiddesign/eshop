@@ -509,17 +509,19 @@ Ostatní: Přebírání ze zvoleného zdroje
 			$product->categories->relate($newCategories);
 		}
 
-		foreach ($this->relatedTypes as $relatedType) {
-			$this->relatedRepository->many()->where(
-				'this.uuid',
-				\array_values($this->relatedRepository->many()
-					->setSelect(['uuid' => 'this.uuid'])
-					->where('fk_master', $this->product->getPK())
-					->where('fk_type', $relatedType->getPK())
-					->orderBy(['uuid' => 'asc'])
-					->setTake($this::RELATION_MAX_ITEMS_COUNT)
-					->toArrayOf('uuid')),
-			)->delete();
+		if ($this->product) {
+			foreach ($this->relatedTypes as $relatedType) {
+				$this->relatedRepository->many()->where(
+					'this.uuid',
+					\array_values($this->relatedRepository->many()
+						->setSelect(['uuid' => 'this.uuid'])
+						->where('fk_master', $this->product->getPK())
+						->where('fk_type', $relatedType->getPK())
+						->orderBy(['uuid' => 'asc'])
+						->setTake($this::RELATION_MAX_ITEMS_COUNT)
+						->toArrayOf('uuid')),
+				)->delete();
+			}
 		}
 
 		// Relations
