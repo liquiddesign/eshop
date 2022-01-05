@@ -506,6 +506,7 @@ class AttributePresenter extends BackendPresenter
 	public function createComponentRangesGrid(): AdminGrid
 	{
 		$source = $this->attributeValueRangeRepository->many()
+			->setGroupBy(['this.uuid'])
 			->join(['attributeValue' => 'eshop_attributevalue'], 'this.uuid = attributeValue.fk_attributeValueRange')
 			->join(['attribute' => 'eshop_attribute'], 'attributeValue.fk_attribute = attribute.uuid');
 
