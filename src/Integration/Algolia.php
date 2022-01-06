@@ -99,9 +99,9 @@ class Algolia
 	/**
 	 * @param string $name
 	 * @param string $index
-	 * @return object[]
+	 * @return array<array<array<string>>>
 	 */
-	public function searchProduct(string $name, string $index): array
+	public function searchProduct(string $name, string $index = 'products'): array
 	{
 		if (!$this->client) {
 			return [];
