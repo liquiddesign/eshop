@@ -48,7 +48,7 @@ class Comgate extends Entity
 	/**
 	 * Objednávka
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public ?Order $order;
 }
