@@ -48,6 +48,18 @@ class Category extends \StORM\Entity
 	public ?string $content;
 
 	/**
+	 * Perex
+	 * @column{"type":"text","mutations":true}
+	 */
+	public ?string $defaultProductPerex;
+
+	/**
+	 * Obsah
+	 * @column{"type":"longtext","mutations":true}
+	 */
+	public ?string $defaultProductContent;
+
+	/**
 	 * Obrázek
 	 * @column
 	 */

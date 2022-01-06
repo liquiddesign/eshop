@@ -79,6 +79,12 @@ class CategoryForm extends Control
 			'plugins' => 'table code',
 		]);
 		$form->addLocaleRichEdit('content', 'Obsah');
+		$form->addLocalePerexEdit('defaultProductPerex', 'Výchozí perex produktů', [
+			'toolbar1' => 'undo redo | styleselect | bold italic underline strikethrough | 
+			alignleft aligncenter alignright alignjustify | link unlink anchor | table | copy cut paste pastetext insertcontent code',
+			'plugins' => 'table code',
+		]);
+		$form->addLocaleRichEdit('defaultProductContent', 'Výchozí obsah produktů');
 
 		$this->monitor(Presenter::class, function ($presenter) use ($form, $category): void {
 			$categories = $this->categoryRepository->getTreeArrayForSelect(true, $presenter->tab);

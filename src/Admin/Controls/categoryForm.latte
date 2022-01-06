@@ -74,6 +74,30 @@
                         </tr>
                     {/foreach}
 
+                    {foreach $form['defaultProductPerex']->getComponents() as $key => $element}
+                        <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}" data-mutation="{$key}">
+                            {$renderer->renderLabel($element)|noescape}
+
+                            <td class="align-middle">
+                                {input defaultProductPerex-$key}
+
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError defaultProductPerex-$key}</span>
+                            </td>
+                        </tr>
+                    {/foreach}
+
+                    {foreach $form['defaultProductContent']->getComponents() as $key => $element}
+                        <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}" data-mutation="{$key}">
+                            {$renderer->renderLabel($element)|noescape}
+
+                            <td class="align-middle">
+                                {input defaultProductContent-$key}
+
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError defaultProductContent-$key}</span>
+                            </td>
+                        </tr>
+                    {/foreach}
+
                     <tr class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label ancestor/}</th>
 

@@ -185,6 +185,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$collection->select([
 				'fallbackImage' => 'primaryCategory.productFallbackImageFileName',
 				'primaryCategoryPath' => 'primaryCategory.path',
+				"perex" => "COALESCE(this.perex$suffix, primaryCategory.defaultProductPerex$suffix)",
+				"content" => "COALESCE(this.content$suffix, primaryCategory.defaultProductContent$suffix)",
 			]);
 
 			if ($customer) {

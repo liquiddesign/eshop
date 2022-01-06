@@ -92,15 +92,6 @@ class ProductFilter extends Control
 			'producer' => $category ? $this->categoryRepository->getCountsGrouped('this.fk_producer', $filters)[$category] ?? [] : [],
 		];
 
-		\bdump($filters);
-		\bdump($category);
-
-//		if (isset($filters['attributes'])) {
-//			$filters['attributes'] = $this->attributeRepository->transferAttributeValuesOrRangesToValuesOnly($filters['attributes']);
-//			bdump($filters['attributes']);
-//		}
-		\bdump($this->categoryRepository->getCountsGrouped('assign.fk_value', $filters));
-
 		$this->template->attributesValuesCounts = $category ? $this->categoryRepository->getCountsGrouped('assign.fk_value', $filters)[$category] ?? [] : [];
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
