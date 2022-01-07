@@ -665,6 +665,16 @@ class Product extends \StORM\Entity
 		return 0;
 	}
 
+	/**
+	 * @return array<string>
+	 */
+	public function getFrontendData(): array
+	{
+		return [
+			'productName' => $this->name,
+		];
+	}
+
 	private function getQuantityPrice(int $amount, string $property): ?float
 	{
 		/** @var float|null $price */
