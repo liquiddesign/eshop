@@ -666,12 +666,41 @@ class Product extends \StORM\Entity
 	}
 
 	/**
-	 * @return array<string>
+	 * @return array<string|array>
 	 */
 	public function getFrontendData(): array
 	{
+		/** @var \Eshop\DB\ProductRepository $repository */
+		$repository = $this->getRepository();
+
+		$attributes = $repository->getActiveProductAttributes($this);
+
+		$productAttributesByCode = [];
+
+		foreach ($attributes as $attributeArray) {
+			/** @var \Eshop\DB\Attribute $attribute */
+			$attribute = $attributeArray['attribute'];
+
+			$tmp = '';
+
+			/** @var \Eshop\DB\AttributeValue $value */
+			foreach ($attributeArray['values'] as $value) {
+				$tmp .= $value->label . ', ';
+			}
+
+			if (\strlen($tmp) > 0) {
+				$tmp = \substr($tmp, 0, -2);
+			}
+
+			$productAttributesByCode[$attribute->code] = $tmp;
+		}
+
 		return [
-			'productName' => $this->name,
+			'name' => $this->name,
+			'producer' => $this->producer ? $this->producer->name : null,
+			'code' => $this->code,
+			'ean' => $this->ean,
+			'attributes' => $productAttributesByCode,
 		];
 	}
 
