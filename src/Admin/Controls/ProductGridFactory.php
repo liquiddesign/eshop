@@ -115,18 +115,22 @@ class ProductGridFactory
 		}, '<a href="%s" target="_blank"> %s</a> <a href="" class="badge badge-light" style="font-weight: normal;">%s</a>', 'name');
 
 		$grid->addColumnText('Výrobce', 'producer.name', '%s', 'producer.name_cs');
-		$grid->addColumn('Kategorie', function (Product $product) {
+		$grid->addColumn('Kategorie', function (Product $product, $grid) {
 			$categories = $this->categoryRepository->getTreeArrayForSelect();
-			/** @var \Eshop\DB\Category[] $productCategories */
+			/** @var string[] $productCategories */
 			$productCategories = $product->categories->toArrayOf('name');
 
 			$finalStr = '';
 			$last = Arrays::last(\array_keys($productCategories));
+			$primaryCategory = $product->getValue('primaryCategory');
 
 			foreach ($productCategories as $productCategoryPK => $productCategoryName) {
 				$finalStr .= '<abbr title="' . $categories[$productCategoryPK] . '">';
 				$finalStr .= $productCategoryName;
 				$finalStr .= '</abbr>';
+				$finalStr .= $productCategoryPK === $primaryCategory ?
+					'<i class="fas fa-star"></i>' :
+					'<a href="' . $grid->getPresenter()->link('makeProductCategoryPrimary!', ['product' => $product->getPK(), 'category' => $productCategoryPK]) . '"><i class="far fa-star"></i></a>';
 				$finalStr .= $last !== $productCategoryPK ? '&nbsp;|&nbsp;' : null;
 			}
 

@@ -1304,6 +1304,14 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		return $form;
 	}
 
+	public function handleMakeProductCategoryPrimary(string $product, string $category): void
+	{
+		$this->productRepository->one($product)->update(['primaryCategory' => $category]);
+
+		$this->flashMessage('Uloženo', 'success');
+		$this->redirect('this');
+	}
+
 	public function actionExport(array $ids): void
 	{
 		unset($ids);
