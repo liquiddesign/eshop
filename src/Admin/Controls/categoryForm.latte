@@ -94,6 +94,14 @@
                                 {input defaultProductContent-$key}
 
                                 <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError defaultProductContent-$key}</span>
+                                <span class="text-sm" n:syntax="off">
+                                    Ve výchozím perexu a obsahu můžete použít tyto proměnné:<br><br>
+                                    {$name} - Název produktu<br>
+                                    {$producer} - Název výrobce<br>
+                                    {$code} - Kód produktu<br>
+                                    {$ean} - EAN produktu<br>
+                                    {$attributes["KOD_ATRIBUTU"] ?? 'VYCHOZI_HODNOTA'} - Zobrazí hodnoty atributu daného produktu. Za KOD_ATRIBUTU doplňte kód atributu, který chcete zobrazit. Za VYCHOZI_HODNOTA doplňte text, který se zobrazí pokud daný produkt nemá tžádnou hodnotu daného atributu.
+                                </span>
                             </td>
                         </tr>
                     {/foreach}

@@ -18,9 +18,17 @@ class FrontendPresenter extends Presenter
 
 	protected Engine $latte;
 
-	public function compileLatte(string $string, array $params): string
+	public function compileLatte(?string $string, array $params): ?string
 	{
-		return $this->latte->renderToString($string, $params);
+		if ($string === null) {
+			return null;
+		}
+
+		try {
+			return $this->latte->renderToString($string, $params);
+		} catch (\Throwable $e) {
+			return null;
+		}
 	}
 
 	protected function startup(): void
