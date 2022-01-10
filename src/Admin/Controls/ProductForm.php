@@ -498,7 +498,9 @@ Ostatní: Přebírání ze zvoleného zdroje
 			}
 		}
 
-		$values['primaryCategory'] = \count($newCategories) > 0 ? Arrays::first($newCategories) : null;
+		if (!$this->product || !$this->product->getValue('primaryCategory')) {
+			$values['primaryCategory'] = \count($newCategories) > 0 ? Arrays::first($newCategories) : null;
+		}
 
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);

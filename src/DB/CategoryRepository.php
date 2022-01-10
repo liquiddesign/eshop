@@ -179,7 +179,7 @@ JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_c
 	/**
 	 * @return string[]
 	 * @throws \Throwable
-	 * @deprecated User getCountsByAttributes instead
+	 * @deprecated Use getCountsGrouped
 	 */
 	public function getCounts(array $pricelists = []): array
 	{
