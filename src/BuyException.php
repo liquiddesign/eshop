@@ -13,4 +13,6 @@ class BuyException extends \Exception
 	public const INVALID_AMOUNT = 2;
 	public const INVALID_CURRENCY = 3;
 	public const PERMISSION_DENIED = 4;
+	public const BANNED_EMAIL = 5;
+	public const INVALID_COUPON = 6;
 }

@@ -995,13 +995,13 @@ class CheckoutManager
 		$purchase = $purchase ?: $this->getPurchase();
 		
 		if ($this->bannedEmailRepository->isEmailBanned($purchase->email)) {
-			throw new BuyException('Banned email', BuyException::PERMISSION_DENIED);
+			throw new BuyException('Banned email', BuyException::BANNED_EMAIL);
 		}
 		
 		$discountCoupon = $this->getDiscountCoupon();
 		
 		if ($discountCoupon && $discountCoupon->usageLimit && $discountCoupon->usagesCount >= $discountCoupon->usageLimit) {
-			throw new BuyException('Coupon invalid!', BuyException::PERMISSION_DENIED);
+			throw new BuyException('Coupon invalid!', BuyException::INVALID_COUPON);
 		}
 		
 		$customer = $this->shopper->getCustomer();
