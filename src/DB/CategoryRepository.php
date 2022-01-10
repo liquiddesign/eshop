@@ -16,7 +16,6 @@ use Pages\Helpers;
 use StORM\ArrayWrapper;
 use StORM\Collection;
 use StORM\DIConnection;
-use StORM\Expression;
 use StORM\SchemaManager;
 use Web\DB\PageRepository;
 
@@ -106,74 +105,80 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	 */
 	public function getCountsGrouped(?string $groupBy = null, array $filters = [], ?array $pricelists = null): array
 	{
-		if ($pricelists === null) {
-			$pricelists = $this->shopper->getPricelists()->toArray();
-		}
+		unset($groupBy);
+		unset($filters);
+		unset($pricelists);
 
-		unset($filters['category']);
-		\ksort($filters);
-		$cacheIndex = $groupBy . \implode('_', \array_keys($pricelists)) . \http_build_query($filters);
-		$rows = $this->many();
-		$productRepository = $this->getConnection()->findRepository(Product::class);
+		return [];
 
-		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($rows, $groupBy, $productRepository, $pricelists, $filters) {
-			$dependencies = [
-				Cache::TAGS => ['categories', 'products', 'pricelists', 'attributes', 'producers'],
-			];
-
-			$rows->setFrom(['category' => 'eshop_category']);
-			$rows->setSmartJoin(true, Product::class);
-			$rows->setFetchClass(\stdClass::class);
-
-			$groupByClause = ['category.uuid'];
-			$selectClause = ['category' => 'category.path', 'count' => 'COUNT(this.uuid)'];
-
-			if ($groupBy) {
-				$selectClause['grouped'] = $groupBy;
-				$groupByClause[] = $groupBy;
-			}
-
-			$subSelect = "SELECT fk_product FROM eshop_product_nxn_eshop_category 
-JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_category WHERE eshop_category.path LIKE CONCAT(category.path,'%')";
-			$rows->join(['this' => 'eshop_product'], "this.fk_primaryCategory=category.uuid OR this.uuid IN ($subSelect)")
-				->setSelect($selectClause)
-				->setGroupBy($groupByClause)
-				->where('this.hidden=0');
-
-			if ($groupBy === 'assign.fk_value') {
-				$rows->join(
-					['assign' => 'eshop_attributeassign'],
-					"assign.fk_product=this.uuid",
-				);
-			}
-
-			$priceWhere = new Expression();
-
-			foreach (\array_keys($pricelists) as $id => $pricelist) {
-				$rows->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist . "'");
-				$priceWhere->add('OR', "prices$id.price IS NOT NULL");
-			}
-
-			if ($priceWhere->getSql()) {
-				$rows->where($priceWhere->getSql());
-			}
-
-			$productRepository->filter($rows, $filters);
-
-			if ($groupBy === null) {
-				return $rows->setIndex('category')->toArrayOf('count');
-			}
-
-			$results = [];
-
-			/** @var \stdClass $result */
-			foreach ($rows->toArray() as $result) {
-				$results[$result->category] ??= [];
-				$results[$result->category][$result->grouped] = (int)$result->count;
-			}
-
-			return $results;
-		});
+//		if ($pricelists === null) {
+//			$pricelists = $this->shopper->getPricelists()->toArray();
+//		}
+//
+//		unset($filters['category']);
+//		\ksort($filters);
+//		$cacheIndex = $groupBy . \implode('_', \array_keys($pricelists)) . \http_build_query($filters);
+//		$rows = $this->many();
+//		$productRepository = $this->getConnection()->findRepository(Product::class);
+//
+//		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($rows, $groupBy, $productRepository, $pricelists, $filters) {
+//			$dependencies = [
+//				Cache::TAGS => ['categories', 'products', 'pricelists', 'attributes', 'producers'],
+//			];
+//
+//			$rows->setFrom(['category' => 'eshop_category']);
+//			$rows->setSmartJoin(true, Product::class);
+//			$rows->setFetchClass(\stdClass::class);
+//
+//			$groupByClause = ['category.uuid'];
+//			$selectClause = ['category' => 'category.path', 'count' => 'COUNT(this.uuid)'];
+//
+//			if ($groupBy) {
+//				$selectClause['grouped'] = $groupBy;
+//				$groupByClause[] = $groupBy;
+//			}
+//
+//			$subSelect = "SELECT fk_product FROM eshop_product_nxn_eshop_category
+//JOIN eshop_category ON eshop_category.uuid=eshop_product_nxn_eshop_category.fk_category WHERE eshop_category.path LIKE CONCAT(category.path,'%')";
+//			$rows->join(['this' => 'eshop_product'], "this.fk_primaryCategory=category.uuid OR this.uuid IN ($subSelect)")
+//				->setSelect($selectClause)
+//				->setGroupBy($groupByClause)
+//				->where('this.hidden=0');
+//
+//			if ($groupBy === 'assign.fk_value') {
+//				$rows->join(
+//					['assign' => 'eshop_attributeassign'],
+//					"assign.fk_product=this.uuid",
+//				);
+//			}
+//
+//			$priceWhere = new Expression();
+//
+//			foreach (\array_keys($pricelists) as $id => $pricelist) {
+//				$rows->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist . "'");
+//				$priceWhere->add('OR', "prices$id.price IS NOT NULL");
+//			}
+//
+//			if ($priceWhere->getSql()) {
+//				$rows->where($priceWhere->getSql());
+//			}
+//
+//			$productRepository->filter($rows, $filters);
+//
+//			if ($groupBy === null) {
+//				return $rows->setIndex('category')->toArrayOf('count');
+//			}
+//
+//			$results = [];
+//
+//			/** @var \stdClass $result */
+//			foreach ($rows->toArray() as $result) {
+//				$results[$result->category] ??= [];
+//				$results[$result->category][$result->grouped] = (int)$result->count;
+//			}
+//
+//			return $results;
+//		});
 	}
 
 	/**
