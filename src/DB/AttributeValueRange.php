@@ -25,6 +25,30 @@ class AttributeValueRange extends \StORM\Entity
 	public ?string $name;
 
 	/**
+	 * Priorita
+	 * @column
+	 */
+	public int $priority = 10;
+
+	/**
+	 * Skryto
+	 * @column
+	 */
+	public bool $hidden = false;
+
+	/**
+	 * Zobrazit v pruvodci
+	 * @column
+	 */
+	public bool $showWizard = true;
+
+	/**
+	 * Výchozí hodnota v průvodci
+	 * @column{"type":"set","length":"'1','2','3','4'"}
+	 */
+	public ?string $defaultWizard = null;
+
+	/**
 	 * Hodnoty atributu
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\AttributeValue>|\Eshop\DB\AttributeValue[]

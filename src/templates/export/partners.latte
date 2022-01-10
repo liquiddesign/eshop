@@ -1,4 +1,9 @@
 {contentType application/xml}
+{var Eshop\DB\ProductRepository $products = $presenter->productRepo}
+{var Eshop\DB\PricelistRepository $pricelists = $presenter->priceListRepo}
+{varType Eshop\DB\Product $product}
+{varType string|null $error}
+{varType string[] $vatRates}
 {cache expire => '1 day', tags => ['export']}
 <?xml version="1.0" encoding="utf-8"?>
 {ifset $error}
@@ -6,8 +11,9 @@
     {$error}
 </error>
 {else}
+{do $products = $products->getProducts($pricelists->getAllPricelists())->where('this.hidden', false)}
 <SHOP>
-    <SHOPITEM n:foreach="$products as $product">
+    <SHOPITEM n:while="$product = $products->fetch()">
         <ITEM_ID>{$product->getPK()}</ITEM_ID>
         <PRODUCT><![CDATA[{$product->name}]]></PRODUCT>
         <CODE>{$product->code}</CODE>
@@ -26,6 +32,7 @@
         <INNER_PACKAGE>{$product->inCarton}</INNER_PACKAGE>
         <QUANTITY_PALLETE>{$product->inPalett}</QUANTITY_PALLETE>
         <PRODUCT_EN><![CDATA[{$product->name_en}]]></PRODUCT_EN>
+        {do unset($product)}
     </SHOPITEM>
 </SHOP>
 {/ifset}

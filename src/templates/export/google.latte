@@ -1,6 +1,8 @@
 {contentType application/xml}
-{varType array $configuration}
-{varType array $pricelists}
+{var Eshop\DB\ProductRepository $products = $presenter->productRepo}
+{varType Eshop\DB\Product $product}
+{varType string|null $error}
+
 {cache expire => '1 day', tags => ['export']}
 <?xml version="1.0" encoding="utf-8"?>
 {ifset $error}
@@ -8,35 +10,43 @@
     {$error}
 </error>
 {else}
-<rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
-<channel>
-    <item n:foreach="$products as $product">
-        {do $price = $product->priceVat ?? $product->price}
-        <g:id>{$product->getPK()}</g:id>
-        <g:title><![CDATA[{$product->name}]]></g:title>
-        <g:description n:if="$product->content"><![CDATA[{\strip_tags($product->content)}]]></g:description>
-        <g:link>{plink //:Eshop:Product:detail $product->getPK()}</g:link>
-        {ifset $product->imageFileName}<g:image_link>{$productImageUrl . $product->imageFileName}</g:image_link>{/ifset}
-        <g:condition>new</g:condition>
-        <g:availability>{if $product->inStock()}in stock{else}out of stock{/if}</g:availability>
-        <g:price>{$price} {$pricelists[$product->pricelist]->currency->code}</g:price>
-        <g:brand>{$product->producer ? $product->producer->name : null}</g:brand>
-        <g:gtin>{$product->ean}</g:gtin>
-        <g:adult>no</g:adult>
-        {ifset $product->displayDelivery}
-            <g:shipping>
-                <g:country>CS</g:country>
-            </g:shipping>
-        {/ifset}
-        {if isset($configuration['customLabel_1']) && $configuration['customLabel_1']}
-            <g:custom_label_1>{$pricelists[$product->pricelist]->customLabel}</g:custom_label_1>
-        {/if}
+{try}
+{do $pricelists = $presenter->getPricelistFromSetting('googleExportPricelist')}
+{do $products = $products->getProducts($pricelists)->where('this.hidden', false)}
+    <rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
+    <channel>
+        <item n:while="$product = $products->fetch()">
+            {do $price = $product->priceVat ?? $product->price}
+            <g:id>{$product->getPK()}</g:id>
+            <g:title><![CDATA[{$product->name}]]></g:title>
+            <g:description n:if="$product->content"><![CDATA[{\strip_tags($product->content)}]]></g:description>
+            <g:link>{plink //:Eshop:Product:detail $product->getPK()}</g:link>
+            {ifset $product->imageFileName}<g:image_link>{$productImageUrl . $product->imageFileName}</g:image_link>{/ifset}
+            <g:condition>new</g:condition>
+            <g:availability>{if $product->inStock()}in stock{else}out of stock{/if}</g:availability>
+            <g:price>{$price} {$pricelists[$product->pricelist]->currency->code}</g:price>
+            <g:brand>{$product->producer ? $product->producer->name : null}</g:brand>
+            <g:gtin>{$product->ean}</g:gtin>
+            <g:adult>no</g:adult>
+            {ifset $product->displayDelivery}
+                <g:shipping>
+                    <g:country>CS</g:country>
+                </g:shipping>
+            {/ifset}
+            {if isset($configuration['customLabel_1']) && $configuration['customLabel_1']}
+                <g:custom_label_1>{$pricelists[$product->pricelist]->customLabel}</g:custom_label_1>
+            {/if}
 
-        {if isset($configuration['customLabel_2']) && $configuration['customLabel_2']}
-            <g:custom_label_2>{if $price}{if $price < 500}0-499{elseif $price < 1000}500-999{elseif $price < 2000}1000-1999{elseif $price < 5000}2000-4999{elseif $price < 10000}5000-9999{else}10000+{/if}{/if}</g:custom_label_2>
-        {/if}
-    </item>
-</channel>
-</rss>
+            {if isset($configuration['customLabel_2']) && $configuration['customLabel_2']}
+                <g:custom_label_2>{if $price}{if $price < 500}0-499{elseif $price < 1000}500-999{elseif $price < 2000}1000-1999{elseif $price < 5000}2000-4999{elseif $price < 10000}5000-9999{else}10000+{/if}{/if}</g:custom_label_2>
+            {/if}
+        </item>
+    </channel>
+    </rss>
+    {else}
+    <error>
+        {\Eshop\ExportPresenter::ERROR_MSG}
+    </error>
+{/try}
 {/ifset}
 {/cache}

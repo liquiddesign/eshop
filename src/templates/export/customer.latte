@@ -1,12 +1,17 @@
 {contentType application/xml}
+{var Eshop\DB\ProductRepository $products = $presenter->productRepo}
+{varType Eshop\DB\Product $product}
+{varType string|null $error}
+
 <?xml version="1.0" encoding="utf-8"?>
 {ifset $error}
 <error>
     {$error}
 </error>
 {else}
+{do $products = $products->getProducts(null, ($customer ?? $merchant))}
 <SHOP>
-    <SHOPITEM n:foreach="$products as $product">
+    <SHOPITEM n:while="$product = $products->fetch()">
         <ITEM_ID>{$product->getPK()}</ITEM_ID>
         <PRODUCT><![CDATA[{$product->name}]]></PRODUCT>
         <CODE>{$product->code}</CODE>

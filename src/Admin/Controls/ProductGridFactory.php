@@ -114,11 +114,13 @@ class ProductGridFactory
 			return [$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]), $product->name, \implode(' &nbsp;', $suppliers)];
 		}, '<a href="%s" target="_blank"> %s</a> <a href="" class="badge badge-light" style="font-weight: normal;">%s</a>', 'name');
 
+		$mutationSuffix = $this->categoryRepository->getConnection()->getMutationSuffix();
+
 		$grid->addColumnText('Výrobce', 'producer.name', '%s', 'producer.name_cs');
-		$grid->addColumn('Kategorie', function (Product $product, $grid) {
+		$grid->addColumn('Kategorie', function (Product $product, $grid) use ($mutationSuffix) {
 			$categories = $this->categoryRepository->getTreeArrayForSelect();
 			/** @var string[] $productCategories */
-			$productCategories = $product->categories->toArrayOf('name');
+			$productCategories = $product->categories->orderBy(['LENGTH(this.path)', "this.name$mutationSuffix"])->toArrayOf('name');
 
 			$finalStr = '';
 			$last = Arrays::last(\array_keys($productCategories));
@@ -129,8 +131,9 @@ class ProductGridFactory
 				$finalStr .= $productCategoryName;
 				$finalStr .= '</abbr>';
 				$finalStr .= $productCategoryPK === $primaryCategory ?
-					'<i class="fas fa-star"></i>' :
-					'<a href="' . $grid->getPresenter()->link('makeProductCategoryPrimary!', ['product' => $product->getPK(), 'category' => $productCategoryPK]) . '"><i class="far fa-star"></i></a>';
+					'&nbsp;<i class="fas fa-star fa-sm"></i>' :
+					'&nbsp;<a title="Nastavit jako primární" href="' . $grid->getPresenter()->link('makeProductCategoryPrimary!', ['product' => $product->getPK(), 'category' => $productCategoryPK]) .
+					'"><i class="far fa-star fa-sm"></i></a>';
 				$finalStr .= $last !== $productCategoryPK ? '&nbsp;|&nbsp;' : null;
 			}
 

@@ -25,12 +25,12 @@ use Web\DB\SettingRepository;
 
 abstract class ExportPresenter extends Presenter
 {
+	public const ERROR_MSG = 'Invalid export settings! No price list selected! You can set price lists in admin web settings.';
+
 	protected const CONFIGURATION = [
 		'customLabel_1' => false,
 		'customLabel_2' => false,
 	];
-
-	protected const ERROR_MSG = 'Invalid export settings! No price list selected! You can set price lists in admin web settings.';
 
 	/** @inject */
 	public ProductRepository $productRepo;
@@ -86,14 +86,6 @@ abstract class ExportPresenter extends Presenter
 	public function renderPartnersExport(): void
 	{
 		$this->template->setFile(__DIR__ . '/templates/export/partners.latte');
-
-		$this->template->products = $this->cache->load('export_partners', function (&$dependencies) {
-			$dependencies[Cache::EXPIRE] = '1 day';
-			$dependencies[Cache::TAGS] = ['export', 'categories'];
-
-			return $this->productRepo->getProducts($this->priceListRepo->getAllPricelists())->where('this.hidden', false)->toArray();
-		});
-
 		$this->template->vatRates = $this->vatRateRepo->getVatRatesByCountry();
 	}
 
@@ -159,18 +151,11 @@ abstract class ExportPresenter extends Presenter
 		$customer = $this->customerRepo->one($uuid);
 		$merchant = $this->merchantRepo->one($uuid);
 
-		if (!$customer && !$merchant) {
-			$this->template->error = 'User not found!';
-
+		if ($customer || $merchant) {
 			return;
 		}
 
-		$this->template->products = $this->cache->load("export_customer_$uuid", function (&$dependencies) use ($customer, $merchant) {
-			$dependencies[Cache::TAGS] = ['export', 'categories'];
-			$dependencies[Cache::EXPIRE] = '1 day';
-
-			return $this->productRepo->getProducts(null, ($customer ?? $merchant))->toArray();
-		});
+		$this->template->error = 'User not found!';
 	}
 
 	public function renderCustomer(): void
@@ -277,7 +262,7 @@ abstract class ExportPresenter extends Presenter
 	 * @return \Eshop\DB\Pricelist[]
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	private function getPricelistFromSetting(string $settingName): array
+	public function getPricelistFromSetting(string $settingName): array
 	{
 		/** @var \Web\DB\Setting|null $setting */
 		$setting = $this->settingRepo->one(['name' => $settingName]);
@@ -292,14 +277,5 @@ abstract class ExportPresenter extends Presenter
 	private function export(string $name): void
 	{
 		$this->template->setFile(__DIR__ . "/templates/export/$name.latte");
-
-		$this->template->pricelists = $pricelists = $this->getPricelistFromSetting($name . 'ExportPricelist');
-
-		$this->template->products = $this->cache->load("export_$name", function (&$dependencies) use ($pricelists) {
-			$dependencies[Cache::TAGS] = ['export', 'categories'];
-			$dependencies[Cache::EXPIRE] = '1 day';
-
-			return $this->productRepo->getProducts($pricelists)->where('this.hidden', false)->toArray();
-		});
 	}
 }

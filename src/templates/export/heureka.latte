@@ -1,4 +1,8 @@
 {contentType application/xml}
+{var Eshop\DB\ProductRepository $products = $presenter->productRepo}
+{varType Eshop\DB\Product $product}
+{varType string|null $error}
+
 {cache expire => '1 day', tags => ['export']}
 <?xml version="1.0" encoding="utf-8"?>
 {ifset $error}
@@ -6,8 +10,11 @@
     {$error}
 </error>
 {else}
-<SHOP>
-    <SHOPITEM n:foreach="$products as $product">
+{try}
+    {do $pricelists = $presenter->getPricelistFromSetting('heurekaExportPricelist')}
+    {do $products = $products->getProducts($pricelists)->where('this.hidden', false)}
+    <SHOP>
+    <SHOPITEM n:while="$product = $products->fetch()">
         <ITEM_ID>{$product->getPK()}</ITEM_ID>
         <PRODUCT><![CDATA[{$product->name}]]></PRODUCT>
         <DESCRIPTION n:if="$product->content"><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
@@ -15,7 +22,7 @@
         {ifset $product->imageFileName}<IMGURL>{$productImageUrl . $product->imageFileName}</IMGURL>{/ifset}
         <PRICE>{$product->priceVat}</PRICE>
         <MANUFACTURER>{ifset $product->producer}{$product->producer->name}{/ifset}</MANUFACTURER>
-        {if ($category = $product->getPrimaryCategory()) !== null}
+        {if ($category = $product->primaryCategory) !== null}
             {do $categories = []}
             {while $category != null}
                 {do $categories[] = $category}
@@ -38,6 +45,11 @@
 {*        <QUANTITY_PALLETE>{$product->inPalett}</QUANTITY_PALLETE>*}
 {*        <PRODUCT_EN><![CDATA[{$product->name_en}]]></PRODUCT_EN>*}
     </SHOPITEM>
-</SHOP>
+    </SHOP>
+    {else}
+    <error>
+        {\Eshop\ExportPresenter::ERROR_MSG}
+    </error>
+{/try}
 {/ifset}
 {/cache}

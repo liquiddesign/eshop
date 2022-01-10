@@ -55,7 +55,9 @@ class SupplierProductPresenter extends BackendPresenter
 
 	public function createComponentGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->supplierProductRepository->many()->where('this.fk_supplier', $this->tab), 20, 'this.createdTs', 'ASC', true);
+		$supplier = $this->supplierRepository->one($this->tab, true);
+
+		$grid = $this->gridFactory->create($this->supplierProductRepository->many()->where('this.fk_supplier', $supplier->getPK()), 20, 'this.createdTs', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumn('Kód a EAN', function (SupplierProduct $product) {
 			return $product->code . ($product->ean ? "<br><small>EAN $product->ean</small>" : '');
@@ -72,15 +74,16 @@ class SupplierProductPresenter extends BackendPresenter
 			return $supplierProduct->product ? "<a href='$link'>" . $supplierProduct->product->getFullCode() . "</a>" : "-ne-";
 		}, '%s', 'product');
 
-		if ($this->algolia->isActive()) {
+		if ($this->algolia->isActive() && $supplier->pairWithAlgolia) {
 			$grid->addColumn('Návrh Algolia', function (SupplierProduct $supplierProduct, AdminGrid $datagrid) {
 				if (!$supplierProduct->name) {
 					return '-';
 				}
 
 				$hits = $this->algolia->searchProduct($supplierProduct->name)['hits'];
+				$hitsCount = \count($hits);
 
-				if (\count($hits) > 0) {
+				if ($hitsCount > 0) {
 					/** @var string[] $firstHit */
 					$firstHit = Arrays::first($hits);
 
@@ -89,7 +92,14 @@ class SupplierProductPresenter extends BackendPresenter
 					$link = $hitProduct && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ?
 						$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$hitProduct, 'backLink' => $this->storeRequest(),]) : '#';
 
-					return "<a href='$link'>$hitProduct->name (" . $hitProduct->getFullCode() . ")</a>";
+					$acceptLink = '<a class="ml-2" title="Napárovat" href="' .
+						$this->link('acceptAlgoliaSuggestion!', ['supplierProduct' => $supplierProduct->getPK(), 'product' => $hitProduct->getPK()])
+						. '"><i class="fas fa-check fa-sm"></i></a>';
+
+					$moreLink = '<a class="ml-2" title="Zobrazit další možnosti" href="' . $this->link('detailAlgolia', [$supplierProduct]) .
+						'"><i class="fas fa-cog fa-sm"></i>&nbsp;(' . $hitsCount . ')</a>';
+
+					return "<a href='$link'>$hitProduct->name (" . $hitProduct->getFullCode() . ")</a>" . $acceptLink . $moreLink;
 				}
 
 				return '-';
@@ -101,13 +111,6 @@ class SupplierProductPresenter extends BackendPresenter
 			return $grid->getPresenter()->link('detail', $object);
 		}, '<a href="%s" class="btn btn-sm btn-outline-primary">Napárovat ručně</a>');
 
-		if ($this->algolia->isActive()) {
-			$grid->addColumn('', function ($object, $grid) {
-				return $grid->getPresenter()->link('detailAlgolia', $object);
-			}, '<a href="%s" class="btn btn-sm btn-outline-primary">Napárovat Algolia</a>');
-		}
-
-		//$grid->addColumnLinkDetail('detail');
 		$grid->addButtonSaveAll();
 
 		$grid->addFilterTextInput('search', ['this.ean', 'this.code'], null, 'EAN, kód');
@@ -139,6 +142,14 @@ class SupplierProductPresenter extends BackendPresenter
 		$grid->addFilterButtons();
 
 		return $grid;
+	}
+
+	public function handleAcceptAlgoliaSuggestion(string $supplierProduct, string $product): void
+	{
+		$this->supplierRepository->one($supplierProduct)->update(['product' => $product]);
+
+		$this->flashMessage('Uloženo', 'success');
+		$this->redirect('this');
 	}
 
 	public function createComponentPairAlgoliaBulkForm(): AdminForm

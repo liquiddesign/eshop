@@ -26,11 +26,13 @@ class AttributeValueRangeRepository extends \StORM\Repository implements IGenera
 
 	public function getCollection(bool $includeHidden = false): Collection
 	{
-		unset($includeHidden);
-
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$collection = $this->many();
 
-		return $collection->orderBy(['this.internalName', "this.name$suffix",]);
+		if (!$includeHidden) {
+			$collection->where('this.hidden', false);
+		}
+
+		return $collection->orderBy(['this.priority', 'this.internalName', "this.name$suffix",]);
 	}
 }

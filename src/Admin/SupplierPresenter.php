@@ -152,6 +152,7 @@ class SupplierPresenter extends BackendPresenter
 		$form->addSelect('defaultDisplayAmount', 'Zobrazované množství', $this->displayAmountRepository->getArrayForSelect())->setPrompt('-zvolte-');
 		$form->addSelect('defaultDisplayDelivery', 'Zobrazované doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('-zvolte-');
 		$form->addCheckbox('defaultHiddenProduct', 'Produkty budou skryté');
+		$form->addCheckbox('pairWithAlgolia', 'Povolit párování pomocí Algolia')->setHtmlAttribute('data-info', 'Pro zobrazení je nutné mít v Integraci nastavené API.');
 
 		$form->addGroup('Nastavení importu');
 		$form->addInteger('importPriority', 'Priorita')->setRequired()->setDefaultValue(0);
@@ -213,6 +214,7 @@ class SupplierPresenter extends BackendPresenter
 		$form->addSelect('defaultDisplayAmount', 'Zobrazované množství', $this->displayAmountRepository->getArrayForSelect())->setPrompt('-zvolte-');
 		$form->addSelect('defaultDisplayDelivery', 'Zobrazované doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('-zvolte-');
 		$form->addCheckbox('defaultHiddenProduct', 'Produkty budou skryté');
+		$form->addCheckbox('pairWithAlgolia', 'Povolit párování pomocí Algolia')->setHtmlAttribute('data-info', 'Pro zobrazení je nutné mít v Integraci nastavené API.');
 		
 		$form->addGroup('Nastavení importu');
 		$form->addInteger('importPriority', 'Priorita')->setRequired();
