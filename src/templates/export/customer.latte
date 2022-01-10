@@ -9,7 +9,7 @@
     {$error}
 </error>
 {else}
-{do $products = $products->getProducts(null, ($customer ?? $merchant))}
+{do $products = $products->getProducts(null, ($customer ?? $merchant))->where('this.hidden', false)}
 <SHOP>
     <SHOPITEM n:while="$product = $products->fetch()">
         <ITEM_ID>{$product->getPK()}</ITEM_ID>
