@@ -146,7 +146,7 @@ class SupplierProductPresenter extends BackendPresenter
 
 	public function handleAcceptAlgoliaSuggestion(string $supplierProduct, string $product): void
 	{
-		$this->supplierRepository->one($supplierProduct)->update(['product' => $product]);
+		$this->supplierProductRepository->one($supplierProduct)->update(['product' => $product]);
 
 		$this->flashMessage('Uloženo', 'success');
 		$this->redirect('this');

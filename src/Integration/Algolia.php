@@ -68,7 +68,7 @@ class Algolia
 
 				if ($category) {
 					$records->join(['productXCategory' => 'eshop_product_nxn_eshop_category'], 'this.uuid = productXCategory.fk_product')
-						->join(['category' => 'eshop_category'], 'productXcategory.fk_category = category.uuid')
+						->join(['category' => 'eshop_category'], 'productXCategory.fk_category = category.uuid')
 						->where('category.path LIKE :s', ['s' => "$category->path%"]);
 				}
 
