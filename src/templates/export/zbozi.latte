@@ -1,10 +1,9 @@
 {contentType application/xml}
+<?xml version="1.0" encoding="utf-8"?>
 {var Eshop\DB\ProductRepository $products = $presenter->productRepo}
 {varType Eshop\DB\Product $product}
 {varType string|null $error}
-
 {cache expire => '1 day', tags => ['export']}
-<?xml version="1.0" encoding="utf-8"?>
 {ifset $error}
 <error>
     {$error}
