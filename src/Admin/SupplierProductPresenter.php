@@ -298,7 +298,7 @@ class SupplierProductPresenter extends BackendPresenter
 
 	public function createComponentPairAlgoliaForm(): AdminForm
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(false, false, false, false, false);
 
 		/** @var \Eshop\DB\SupplierProduct|null $supplierProduct */
 		$supplierProduct = $this->getParameter('supplierProduct');
@@ -309,6 +309,7 @@ class SupplierProductPresenter extends BackendPresenter
 			$results[$result['objectID']] = $result['name_cs'];
 		}
 
+		$form->addGroup($supplierProduct->name ? 'Hledaný produkt: ' . $supplierProduct->name : 'HLAVNÍ ÚDAJE');
 		$form->addSelect2('product', 'Párovat k produktu', $results)->setRequired();
 
 		$form->addSubmits(false, false);
