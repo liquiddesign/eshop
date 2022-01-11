@@ -1,6 +1,6 @@
 {contentType application/xml}
 <?xml version="1.0" encoding="utf-8"?>
-{var Eshop\DB\ProductRepository $products = $presenter->productRepo}
+{var Eshop\DB\ProductRepository $productRepo = $presenter->productRepo}
 {varType Eshop\DB\Product $product}
 {varType string|null $error}
 {cache expire => '1 day', tags => ['export']}
@@ -9,11 +9,21 @@
     {$error}
 </error>
 {else}
-{try}
+{*{try}*}
     {do $pricelists = $presenter->getPricelistFromSetting('heurekaExportPricelist')}
-    {do $products = $products->getProducts($pricelists)->where('this.hidden', false)}
+    {do $productsCount = $productRepo->getProducts($pricelists)->where('this.hidden', false)->select(['productCount' => 'COUNT(*)'])->first()->getValue('productCount')}
+    {do Tracy\Debugger::log($productsCount)}
+    {do $chunk = 1}
+{do $counter = 0}
     <SHOP>
-    <SHOPITEM n:while="$product = $products->fetch()">
+    {while $counter < $productsCount}
+        {do $products = $productRepo->getProducts($pricelists)->where('this.hidden', false)->setPage($chunk, 1000)->toArray()}
+    <SHOPITEM n:foreach="$products as $product">
+{*        {do $size=\memory_get_usage(true)}*}
+{*    {do $unit=array('b','kb','mb','gb','tb','pb')}*}
+{*    {do $memory = @round($size/pow(1024,($i=floor(log($size,1024)))),2).' '.$unit[$i];}*}
+{*    {do Tracy\Debugger::log($memory)}*}
+{*    {do unset($memory)}*}
         <ITEM_ID>{$product->getPK()}</ITEM_ID>
         <PRODUCT><![CDATA[{$product->name}]]></PRODUCT>
         <DESCRIPTION n:if="$product->content"><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
@@ -43,12 +53,17 @@
 {*        <INNER_PACKAGE>{$product->inCarton}</INNER_PACKAGE>*}
 {*        <QUANTITY_PALLETE>{$product->inPalett}</QUANTITY_PALLETE>*}
 {*        <PRODUCT_EN><![CDATA[{$product->name_en}]]></PRODUCT_EN>*}
+        {do $counter++}
+        {do unset($product)}
     </SHOPITEM>
+        {do $chunk++}
+        {do unset($products)}
+        {/while}
     </SHOP>
-    {else}
-    <error>
-        {\Eshop\ExportPresenter::ERROR_MSG}
-    </error>
-{/try}
+{*    {else}*}
+{*    <error>*}
+{*        {\Eshop\ExportPresenter::ERROR_MSG}*}
+{*    </error>*}
+{*{/try}*}
 {/ifset}
 {/cache}
