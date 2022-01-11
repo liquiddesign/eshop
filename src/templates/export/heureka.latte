@@ -11,7 +11,7 @@
 {else}
 {try}
     {do $pricelists = $presenter->getPricelistFromSetting('heurekaExportPricelist')}
-    {do $products = $products->getProducts($pricelists)->where('this.hidden', false)->setTake(10)}
+    {do $products = $products->getProducts($pricelists)->where('this.hidden', false)}
     <SHOP>
     <SHOPITEM n:while="$product = $products->fetch()">
         <ITEM_ID>{$product->getPK()}</ITEM_ID>
