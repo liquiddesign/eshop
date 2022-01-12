@@ -1016,7 +1016,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			}, $generalPricelistIds));
 
 			$expression = "IF($alias.fk_pricelist IN ($pricelists), 
-			ROUND($expression * ((100 - IF(this.discountLevelPct < $levelDiscountPct,this.discountLevelPct,$levelDiscountPct)) / 100),$prec),
+			ROUND($expression * ((100 - IF(this.discountLevelPct > $levelDiscountPct,this.discountLevelPct,$levelDiscountPct)) / 100),$prec),
 			$expression)";
 		}
 
