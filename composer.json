@@ -39,7 +39,8 @@
 		"onnov/detect-encoding": "^2.0",
 		"ext-iconv": "*",
 		"ext-json": "*",
-		"ext-soap": "*"
+		"ext-soap": "*",
+		"algolia/algoliasearch-client-php": "^3.1"
 	},
 	"require-dev": 
 	{

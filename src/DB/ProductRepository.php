@@ -11,6 +11,8 @@ use InvalidArgumentException;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
 use Nette\Application\LinkGenerator;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
@@ -49,6 +51,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	private Request $request;
 
+	private Cache $cache;
+
 	public function __construct(
 		Shopper $shopper,
 		DIConnection $connection,
@@ -61,7 +65,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 		OrderRepository $orderRepository,
 		RelatedRepository $relatedRepository,
 		LinkGenerator $linkGenerator,
-		Request $request
+		Request $request,
+		Storage $storage
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -75,6 +80,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$this->relatedRepository = $relatedRepository;
 		$this->linkGenerator = $linkGenerator;
 		$this->request = $request;
+		$this->cache = new Cache($storage);
 	}
 
 	/**
@@ -179,6 +185,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$collection->select([
 				'fallbackImage' => 'primaryCategory.productFallbackImageFileName',
 				'primaryCategoryPath' => 'primaryCategory.path',
+				"perex" => "COALESCE(this.perex$suffix, primaryCategory.defaultProductPerex$suffix)",
+				"content" => "COALESCE(this.content$suffix, primaryCategory.defaultProductContent$suffix)",
 			]);
 
 			if ($customer) {
@@ -974,6 +982,13 @@ class ProductRepository extends Repository implements IGeneralRepository
 	public function isProductDeliveryFreeWithoutVat(Product $product): bool
 	{
 		return $this->isProductDeliveryFree($product, false);
+	}
+
+	public function clearCache(): void
+	{
+		$this->cache->clean([
+			Cache::TAGS => ['products'],
+		]);
 	}
 
 	public static function generateUuid(?string $ean, ?string $fullCode): string

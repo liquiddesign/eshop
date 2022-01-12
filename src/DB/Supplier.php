@@ -87,6 +87,12 @@ class Supplier extends \StORM\Entity
 	 * @column
 	 */
 	public bool $defaultHiddenProduct = true;
+
+	/**
+	 * Povolit párování produktů pomocí Algolia
+	 * @column
+	 */
+	public bool $pairWithAlgolia = false;
 	
 	/**
 	 * Defaultní zobrazení množství

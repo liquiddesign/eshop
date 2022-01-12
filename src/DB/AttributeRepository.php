@@ -166,6 +166,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		/** @var \Eshop\DB\AttributeValue[] $attributeValues */
 		$attributeValues = $this->attributeValueRepository->getCollection()
 			->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
+			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value', [], 'INNER')
 			->where('attribute.showWizard', true)
 			->where('this.showWizard', true)
 			->where('FIND_IN_SET(:s, attribute.wizardStep)', ['s' => $step])

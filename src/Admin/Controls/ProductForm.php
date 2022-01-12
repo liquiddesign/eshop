@@ -467,19 +467,6 @@ Ostatní: Přebírání ze zvoleného zdroje
 			);
 		}
 
-		$newCategories = [];
-
-		if (\count($values['categories']) > 0) {
-			foreach ($values['categories'] as $categories) {
-				foreach ($categories as $category) {
-					$newCategories[] = $category;
-				}
-			}
-		}
-
-		$values['categories'] = $newCategories;
-		$values['primaryCategory'] = \count($values['categories']) > 0 ? Arrays::first($values['categories']) : null;
-
 		if (isset($values['supplierContent'])) {
 			if ($values['supplierContent'] === 'none') {
 				$values['supplierContent'] = null;
@@ -499,20 +486,44 @@ Ostatní: Přebírání ze zvoleného zdroje
 			$values['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_PRIORITY;
 		}
 
+		/** @var array $pickedCategories */
+		$pickedCategories = Arrays::pick($values, 'categories');
+		$newCategories = [];
+
+		if (\count($pickedCategories) > 0) {
+			foreach ($pickedCategories as $categories) {
+				foreach ($categories as $category) {
+					$newCategories[] = $category;
+				}
+			}
+		}
+
+		if (!$this->product || !$this->product->getValue('primaryCategory')) {
+			$values['primaryCategory'] = \count($newCategories) > 0 ? Arrays::first($newCategories) : null;
+		}
+
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
 
-		foreach ($this->relatedTypes as $relatedType) {
-			$this->relatedRepository->many()->where(
-				'this.uuid',
-				\array_values($this->relatedRepository->many()
-					->setSelect(['uuid' => 'this.uuid'])
-					->where('fk_master', $this->product->getPK())
-					->where('fk_type', $relatedType->getPK())
-					->orderBy(['uuid' => 'asc'])
-					->setTake($this::RELATION_MAX_ITEMS_COUNT)
-					->toArrayOf('uuid')),
-			)->delete();
+		$product->categories->unrelateAll();
+
+		if (\count($newCategories) > 0) {
+			$product->categories->relate($newCategories);
+		}
+
+		if ($this->product) {
+			foreach ($this->relatedTypes as $relatedType) {
+				$this->relatedRepository->many()->where(
+					'this.uuid',
+					\array_values($this->relatedRepository->many()
+						->setSelect(['uuid' => 'this.uuid'])
+						->where('fk_master', $this->product->getPK())
+						->where('fk_type', $relatedType->getPK())
+						->orderBy(['uuid' => 'asc'])
+						->setTake($this::RELATION_MAX_ITEMS_COUNT)
+						->toArrayOf('uuid')),
+				)->delete();
+			}
 		}
 
 		// Relations
@@ -630,6 +641,8 @@ Ostatní: Přebírání ze zvoleného zdroje
 		$form->syncPages(function () use ($product, $values): void {
 			$this->pageRepository->syncPage($values['page'], ['product' => $product->getPK()]);
 		});
+
+		$this->productRepository->clearCache();
 
 		$this->getPresenter()->flashMessage('Uloženo', 'success');
 		$form->processRedirect('edit', 'default', ['product' => $product, 'editTab' => $editTab]);

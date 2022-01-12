@@ -114,19 +114,26 @@ class ProductGridFactory
 			return [$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]), $product->name, \implode(' &nbsp;', $suppliers)];
 		}, '<a href="%s" target="_blank"> %s</a> <a href="" class="badge badge-light" style="font-weight: normal;">%s</a>', 'name');
 
+		$mutationSuffix = $this->categoryRepository->getConnection()->getMutationSuffix();
+
 		$grid->addColumnText('Výrobce', 'producer.name', '%s', 'producer.name_cs');
-		$grid->addColumn('Kategorie', function (Product $product) {
+		$grid->addColumn('Kategorie', function (Product $product, $grid) use ($mutationSuffix) {
 			$categories = $this->categoryRepository->getTreeArrayForSelect();
-			/** @var \Eshop\DB\Category[] $productCategories */
-			$productCategories = $product->categories->toArrayOf('name');
+			/** @var string[] $productCategories */
+			$productCategories = $product->categories->orderBy(['LENGTH(this.path)', "this.name$mutationSuffix"])->toArrayOf('name');
 
 			$finalStr = '';
 			$last = Arrays::last(\array_keys($productCategories));
+			$primaryCategory = $product->getValue('primaryCategory');
 
 			foreach ($productCategories as $productCategoryPK => $productCategoryName) {
 				$finalStr .= '<abbr title="' . $categories[$productCategoryPK] . '">';
 				$finalStr .= $productCategoryName;
 				$finalStr .= '</abbr>';
+				$finalStr .= $productCategoryPK === $primaryCategory ?
+					'&nbsp;<i class="fas fa-star fa-sm"></i>' :
+					'&nbsp;<a title="Nastavit jako primární" href="' . $grid->getPresenter()->link('makeProductCategoryPrimary!', ['product' => $product->getPK(), 'category' => $productCategoryPK]) .
+					'"><i class="far fa-star fa-sm"></i></a>';
 				$finalStr .= $last !== $productCategoryPK ? '&nbsp;|&nbsp;' : null;
 			}
 
@@ -167,6 +174,7 @@ class ProductGridFactory
 
 		$grid->addButtonSaveAll([], [], null, false, null, null, true, null, function (): void {
 			$this->categoryRepository->clearCategoriesCache();
+			$this->productRepository->clearCache();
 		});
 		$grid->addButtonDeleteSelected([$this, 'onDelete'], false, null, 'this.uuid');
 

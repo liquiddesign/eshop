@@ -77,7 +77,10 @@ class ExportPresenter extends BackendPresenter
 			],
 		];
 
-		if ($this->settingsRepo->many()->where('name', 'supportBoxApiKey')->first()) {
+		/** @var \Web\DB\Setting|null $setting */
+		$setting = $this->settingsRepo->many()->where('name', 'supportBoxApiKey')->first();
+
+		if ($setting && $setting->value) {
 			$this->template->exports[] =
 				(object)[
 					'name' => 'Export pro SupportBox',

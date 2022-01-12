@@ -1,43 +1,54 @@
 {contentType application/xml}
-{cache expire => '1 day', tags => ['export']}
 <?xml version="1.0" encoding="utf-8"?>
+{var Eshop\DB\ProductRepository $products = $presenter->productRepo}
+{varType Eshop\DB\Product $product}
+{varType string|null $error}
+{cache expire => '1 day', tags => ['export']}
 {ifset $error}
 <error>
     {$error}
 </error>
 {else}
-<SHOP xmlns="http://www.zbozi.cz/ns/offer/1.0">
-    <SHOPITEM n:foreach="$products as $product">
-        <ITEM_ID>{$product->getPK()}</ITEM_ID>
-        <PRODUCTNAME><![CDATA[{$product->name}]]></PRODUCTNAME>
-        <DESCRIPTION><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
-        <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
-        {ifset $product->imageFileName}<IMGURL>{$productImageUrl . $product->imageFileName}</IMGURL>{/ifset}
-        <PRICE_VAT>{$product->priceVat}</PRICE_VAT>
-        <MANUFACTURER>{ifset $product->producer}{$product->producer->name}{/ifset}</MANUFACTURER>
-        {if ($category = $product->getPrimaryCategory()) !== null}
-            {do $categories = []}
-            {while $category != null}
-                {do $categories[] = $category}
-                {do $category = $category->ancestor}
-            {/while}
-            {do $categories = \array_reverse($categories)}
-        <CATEGORYTEXT>{foreach $categories as $category}{$category->name|noescape}{if !$iterator->isLast()} | {/if}{/foreach}</CATEGORYTEXT>
-        {/if}
-        <EAN>{$product->ean}</EAN>
-        <DELIVERY_DATE>{$product->inStock() ? 0 : -1}</DELIVERY_DATE>
-{*        <CODE>{$product->code}</CODE>*}
-{*        <WEIGHT>{$product->weight}</WEIGHT>*}
-{*        <UNIT>{$product->unit}</UNIT>*}
-{*        <ITEM_TYPE>{$product->type}</ITEM_TYPE>*}
+{try}
+    {do $pricelists = $presenter->getPricelistFromSetting('zboziExportPricelist')}
+    {do $products = $products->getProducts($pricelists)->where('this.hidden', false)}
+    <SHOP xmlns="http://www.zbozi.cz/ns/offer/1.0">
+        <SHOPITEM n:while="$product = $products->fetch()">
+            <ITEM_ID>{$product->getPK()}</ITEM_ID>
+            <PRODUCTNAME><![CDATA[{$product->name}]]></PRODUCTNAME>
+            <DESCRIPTION><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
+            <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
+            {ifset $product->imageFileName}<IMGURL>{$productImageUrl . $product->imageFileName}</IMGURL>{/ifset}
+            <PRICE_VAT>{$product->priceVat}</PRICE_VAT>
+            <MANUFACTURER>{ifset $product->producer}{$product->producer->name}{/ifset}</MANUFACTURER>
+            {if ($category = $product->primaryCategory) !== null}
+                {do $categories = []}
+                {while $category != null}
+                    {do $categories[] = $category}
+                    {do $category = $category->ancestor}
+                {/while}
+                {do $categories = \array_reverse($categories)}
+            <CATEGORYTEXT>{foreach $categories as $category}{$category->name|noescape}{if !$iterator->isLast()} | {/if}{/foreach}</CATEGORYTEXT>
+            {/if}
+            <EAN>{$product->ean}</EAN>
+            <DELIVERY_DATE>{$product->inStock() ? 0 : -1}</DELIVERY_DATE>
+    {*        <CODE>{$product->code}</CODE>*}
+    {*        <WEIGHT>{$product->weight}</WEIGHT>*}
+    {*        <UNIT>{$product->unit}</UNIT>*}
+    {*        <ITEM_TYPE>{$product->type}</ITEM_TYPE>*}
 
-{*        <AVAILABLE></AVAILABLE>*}
-{*        <MOQ>{$product->minBuyCount}</MOQ>*}
-{*        <PACKAGE>{$product->inPackage}</PACKAGE>*}
-{*        <INNER_PACKAGE>{$product->inCarton}</INNER_PACKAGE>*}
-{*        <QUANTITY_PALLETE>{$product->inPalett}</QUANTITY_PALLETE>*}
-{*        <PRODUCT_EN><![CDATA[{$product->name_en}]]></PRODUCT_EN>*}
-    </SHOPITEM>
-</SHOP>
+    {*        <AVAILABLE></AVAILABLE>*}
+    {*        <MOQ>{$product->minBuyCount}</MOQ>*}
+    {*        <PACKAGE>{$product->inPackage}</PACKAGE>*}
+    {*        <INNER_PACKAGE>{$product->inCarton}</INNER_PACKAGE>*}
+    {*        <QUANTITY_PALLETE>{$product->inPalett}</QUANTITY_PALLETE>*}
+    {*        <PRODUCT_EN><![CDATA[{$product->name_en}]]></PRODUCT_EN>*}
+        </SHOPITEM>
+    </SHOP>
+    {else}
+    <error>
+        {\Eshop\ExportPresenter::ERROR_MSG}
+    </error>
+{/try}
 {/ifset}
 {/cache}

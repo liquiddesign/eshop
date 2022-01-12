@@ -485,6 +485,9 @@ class AttributePresenter extends BackendPresenter
 		$form->addText('internalName', 'Interní název')->setNullable()
 			->setHtmlAttribute('data-info', 'Používá se pro lepší přehlednost v adminu. Pokud není vyplněn, tak se použije "Název".');
 
+		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
+		$form->addCheckbox('hidden', 'Skryto');
+
 		$form->addSubmits(!$this->getParameter('attribute'));
 
 		$form->onSuccess[] = function (AdminForm $form): void {
@@ -506,16 +509,19 @@ class AttributePresenter extends BackendPresenter
 	public function createComponentRangesGrid(): AdminGrid
 	{
 		$source = $this->attributeValueRangeRepository->many()
+			->setGroupBy(['this.uuid'])
 			->join(['attributeValue' => 'eshop_attributevalue'], 'this.uuid = attributeValue.fk_attributeValueRange')
 			->join(['attribute' => 'eshop_attribute'], 'attributeValue.fk_attribute = attribute.uuid');
 
-		$grid = $this->gridFactory->create($source, 20, 'internalName', 'ASC', true);
+		$grid = $this->gridFactory->create($source, 20, 'priority', 'ASC', true);
 
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Interní název', 'internalName', '%s', 'internalName');
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 
+		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
+		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 		$grid->addColumnLinkDetail('rangeDetail');
 		$grid->addColumnActionDelete();
 

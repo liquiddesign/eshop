@@ -298,9 +298,9 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		}
 	}
 
-	public function csvImport(Pricelist $pricelist, Reader $reader, bool $quantityPrices = false): void
+	public function csvImport(Pricelist $pricelist, Reader $reader, bool $quantityPrices = false, string $delimiter = ';'): void
 	{
-		$reader->setDelimiter(';');
+		$reader->setDelimiter($delimiter);
 		$reader->setHeaderOffset(0);
 
 		$iterator = $reader->getRecords([
