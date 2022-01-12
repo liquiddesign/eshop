@@ -117,7 +117,7 @@ class ProductFilter extends Control
 			$attributeValues = Arrays::contains(\array_keys($this::SYSTEMIC_ATTRIBUTES), $attribute->getPK()) ?
 				$this->getSystemicAttributeValues($attribute->getPK()) :
 				($attribute->showRange ?
-					$this->attributeValueRangeRepository->many()
+					$this->attributeValueRangeRepository->getCollection()
 						->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attributeValueRange = this.uuid')
 						->where('attributeValue.fk_attribute', $attribute->getPK())
 						->toArrayOf('name') :

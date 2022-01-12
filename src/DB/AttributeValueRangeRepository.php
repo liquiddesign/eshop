@@ -33,6 +33,6 @@ class AttributeValueRangeRepository extends \StORM\Repository implements IGenera
 			$collection->where('this.hidden', false);
 		}
 
-		return $collection->orderBy(['this.priority', 'this.internalName', "this.name$suffix",]);
+		return $collection->orderBy(['this.priority', "this.name$suffix",]);
 	}
 }

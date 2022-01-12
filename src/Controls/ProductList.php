@@ -298,7 +298,7 @@ class ProductList extends Datalist
 			$attribute = $this->attributeRepository->one($attributeKey);
 
 			$attributeValues = $attribute->showRange ?
-				$this->attributeValueRangeRepository->many()
+				$this->attributeValueRangeRepository->getCollection()
 					->where('this.uuid', $attributeValues)
 					->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attributeValueRange = this.uuid')
 					->join(['attribute' => 'eshop_attribute'], 'attributeValue.fk_attribute = attribute.uuid')
