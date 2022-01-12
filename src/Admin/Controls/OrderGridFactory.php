@@ -64,7 +64,7 @@ class OrderGridFactory
 			->join(['comment' => 'eshop_internalcommentorder'], 'this.uuid = comment.fk_order')
 			->select(['commentCount' => 'COUNT(DISTINCT comment.uuid)']),
 			20,
-			'this.code',
+			'this.createdTs',
 			'DESC',
 			true,
 		);
@@ -78,7 +78,7 @@ class OrderGridFactory
 				$order->code,
 				(new DateTime($order->createdTs))->format('d.m.Y G:i'),
 			);
-		}, '%s', 'this.code', ['class' => 'fit']);
+		}, '%s', 'this.createdTs', ['class' => 'fit']);
 
 		$grid->addColumn('Zákazník a adresa', [$this, 'renderCustomerColumn']);
 		$contacts = '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a><br><small><a href="tel:%2$s"><i class="fa fa-phone-alt"></i> %2$s</a></small>';
