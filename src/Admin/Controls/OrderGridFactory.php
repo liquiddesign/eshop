@@ -14,7 +14,6 @@ use Messages\DB\TemplateRepository;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\Button;
-use Nette\Localization\Translator;
 use Nette\Mail\Mailer;
 use Nette\Utils\DateTime;
 use StORM\Collection;
@@ -32,8 +31,6 @@ class OrderGridFactory
 
 	private Mailer $mailer;
 
-	private Translator $translator;
-
 	private Application $application;
 
 	public function __construct(
@@ -42,14 +39,12 @@ class OrderGridFactory
 		Application $application,
 		TemplateRepository $templateRepository,
 		Mailer $mailer,
-		Translator $translator,
 		OrderLogItemRepository $orderLogItemRepository
 	) {
 		$this->orderRepository = $orderRepository;
 		$this->gridFactory = $adminGridFactory;
 		$this->templateRepository = $templateRepository;
 		$this->mailer = $mailer;
-		$this->translator = $translator;
 		$this->application = $application;
 		$this->orderLogItemRepository = $orderLogItemRepository;
 	}
@@ -378,9 +373,8 @@ class OrderGridFactory
 			$item->product->update(['buyCount' => $item->product->buyCount + $item->amount]);
 		}
 
-		$mail = $this->templateRepository->createMessage('order.changed', [
+		$mail = $this->templateRepository->createMessage('order.confirmed', [
 			'orderCode' => $object->code,
-			'orderState' => $this->translator->translate('order.statusCompleted', 'vyřízena'),
 		], $object->purchase->email, null, null, $accountMutation);
 
 		$this->mailer->send($mail);

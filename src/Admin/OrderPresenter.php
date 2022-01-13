@@ -275,9 +275,9 @@ class OrderPresenter extends BackendPresenter
 
 		$form = $this->formFactory->create();
 
-		$templates = ['order.created', 'order.canceled', 'order.changed', 'order.created', 'order.payed', 'order.shipped'];
+		$templates = ['order.created', 'order.confirmed', 'order.canceled', 'order.changed', 'order.created', 'order.payed', 'order.shipped'];
 
-		$form->addSelect('template', 'Šablona', $this->templateRepository->many()->where('uuid', $templates)->toArrayOf('name'))->setRequired();
+		$form->addSelect('template', 'Šablona', $this->templateRepository->many()->where('uuid', $templates)->orderBy(['name'])->toArrayOf('name'))->setRequired();
 		$form->addText('email', 'E-mail')->setRequired();
 		$form->addText('ccEmails', 'Kopie e-mailů')->setNullable();
 
@@ -1308,6 +1308,19 @@ class OrderPresenter extends BackendPresenter
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->one($orderId);
 
+		$accountMutation = null;
+
+		if ($order->purchase->account) {
+			if (!$accountMutation = $order->purchase->account->getPreferredMutation()) {
+				if ($order->purchase->customer) {
+					$accountMutation = $order->purchase->customer->getPreferredMutation();
+				}
+			}
+		}
+
+		$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $order->code], $order->purchase->email, null, null, $accountMutation);
+		$this->mailer->send($mail);
+
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
 
@@ -1356,6 +1369,22 @@ class OrderPresenter extends BackendPresenter
 
 		$order->update(['completedTs' => (string)new DateTime(), 'canceledTs' => null]);
 
+		$accountMutation = null;
+
+		if ($order->purchase->account) {
+			if (!$accountMutation = $order->purchase->account->getPreferredMutation()) {
+				if ($order->purchase->customer) {
+					$accountMutation = $order->purchase->customer->getPreferredMutation();
+				}
+			}
+		}
+
+		$mail = $this->templateRepository->createMessage('order.confirmed', [
+			'orderCode' => $order->code,
+		], $order->purchase->email, null, null, $accountMutation);
+
+		$this->mailer->send($mail);
+
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
 
@@ -1403,6 +1432,22 @@ class OrderPresenter extends BackendPresenter
 
 			$item->product->update(['buyCount' => $item->product->buyCount + $item->amount]);
 		}
+
+		$accountMutation = null;
+
+		if ($order->purchase->account) {
+			if (!$accountMutation = $order->purchase->account->getPreferredMutation()) {
+				if ($order->purchase->customer) {
+					$accountMutation = $order->purchase->customer->getPreferredMutation();
+				}
+			}
+		}
+
+		$mail = $this->templateRepository->createMessage('order.confirmed', [
+			'orderCode' => $order->code,
+		], $order->purchase->email, null, null, $accountMutation);
+
+		$this->mailer->send($mail);
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
