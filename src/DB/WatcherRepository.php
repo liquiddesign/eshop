@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Messages\DB\TemplateRepository;
+use Nette\Application\LinkGenerator;
+use Nette\Mail\Mailer;
+use Nette\Utils\Validators;
 use StORM\DIConnection;
 use StORM\ICollection;
 use StORM\SchemaManager;
@@ -17,12 +21,28 @@ class WatcherRepository extends \StORM\Repository
 
 	private PricelistRepository $pricelistRepository;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, ProductRepository $productRepository, PricelistRepository $pricelistRepository)
-	{
+	private Mailer $mailer;
+
+	private TemplateRepository $templateRepository;
+
+	private LinkGenerator $linkGenerator;
+
+	public function __construct(
+		DIConnection $connection,
+		SchemaManager $schemaManager,
+		ProductRepository $productRepository,
+		PricelistRepository $pricelistRepository,
+		Mailer $mailer,
+		TemplateRepository $templateRepository,
+		LinkGenerator $linkGenerator
+	) {
 		parent::__construct($connection, $schemaManager);
 
 		$this->productRepository = $productRepository;
 		$this->pricelistRepository = $pricelistRepository;
+		$this->mailer = $mailer;
+		$this->templateRepository = $templateRepository;
+		$this->linkGenerator = $linkGenerator;
 	}
 
 	public function getWatchersByCustomer(Customer $customer): ICollection
@@ -39,7 +59,7 @@ class WatcherRepository extends \StORM\Repository
 	 * Watchers without change will not be returned.
 	 * @return \Eshop\DB\Watcher[][]
 	 */
-	public function getChangedAmountWatchers(): array
+	public function getChangedAmountWatchers(bool $email = false): array
 	{
 		/** @var \Eshop\DB\Watcher[] $activeWatchers */
 		$activeWatchers = [];
@@ -55,6 +75,12 @@ class WatcherRepository extends \StORM\Repository
 			/** @var \Eshop\DB\Watcher $watcher */
 			if ($watcher->product->displayAmount->amountFrom >= $watcher->amountFrom && $watcher->amountFrom > $watcher->beforeAmountFrom) {
 				$activeWatchers[] = $watcher;
+
+				if ($email && Validators::isEmail($watcher->customer->email)) {
+					$mail = $this->templateRepository->createMessage('watchdog.changed', $this->getEmailVariables($watcher), $watcher->customer->email);
+
+					$this->mailer->send($mail);
+				}
 
 				if (!$watcher->keepAfterNotify) {
 					$watcher->delete();
@@ -86,7 +112,7 @@ class WatcherRepository extends \StORM\Repository
 	 * @return \Eshop\DB\Watcher[][]
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getChangedPriceWatchers(): array
+	public function getChangedPriceWatchers(bool $email = false): array
 	{
 		/** @var \Eshop\DB\Watcher[] $activeWatchers */
 		$activeWatchers = [];
@@ -120,6 +146,12 @@ class WatcherRepository extends \StORM\Repository
 			if ($watcher->priceFrom < $watcher->beforePriceFrom && $product->getPrice() <= $watcher->priceFrom) {
 				$activeWatchers[] = $watcher;
 
+				if ($email && Validators::isEmail($watcher->customer->email)) {
+					$mail = $this->templateRepository->createMessage('watchdog.changed', $this->getEmailVariables($watcher), $watcher->customer->email);
+
+					$this->mailer->send($mail);
+				}
+
 				if (!$watcher->keepAfterNotify) {
 					$watcher->delete();
 
@@ -140,5 +172,52 @@ class WatcherRepository extends \StORM\Repository
 			'active' => $activeWatchers,
 			'nonActive' => $nonActiveWatchers,
 		];
+	}
+
+	/**
+	 * @param \Eshop\DB\Watcher $watcher
+	 * @return array<string>
+	 */
+	public function getEmailVariables(Watcher $watcher): array
+	{
+		return [
+			'productName' => $watcher->product->name,
+			'link' => $this->linkGenerator->link('Eshop:Product:detail', [$watcher->product->getPK()]),
+		];
+	}
+
+	public function create(array $data, bool $email = false): ?Watcher
+	{
+		try {
+			$watcher = $this->createOne($data);
+
+			if ($email && Validators::isEmail($watcher->customer->email)) {
+				$mail = $this->templateRepository->createMessage('watchdog.created', $this->getEmailVariables($watcher), $watcher->customer->email);
+
+				$this->mailer->send($mail);
+			}
+
+			return $watcher;
+		} catch (\Throwable $e) {
+			return null;
+		}
+	}
+
+	public function delete(?Watcher $watcher, bool $email = false): void
+	{
+		if ($watcher === null) {
+			return;
+		}
+
+		try {
+			if ($email && Validators::isEmail($watcher->customer->email)) {
+				$mail = $this->templateRepository->createMessage('watchdog.removed', $this->getEmailVariables($watcher), $watcher->customer->email);
+
+				$this->mailer->send($mail);
+			}
+
+			$watcher->delete();
+		} catch (\Throwable $e) {
+		}
 	}
 }

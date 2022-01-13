@@ -44,6 +44,7 @@ use Nette\Http\Request;
 use Nette\Mail\Mailer;
 use Nette\Utils\DateTime;
 use StORM\Literal;
+use Tracy\Debugger;
 
 class OrderPresenter extends BackendPresenter
 {
@@ -708,9 +709,10 @@ class OrderPresenter extends BackendPresenter
 
 				$connection->getLink()->commit();
 			} catch (\Throwable $e) {
+				Debugger::log($e->getMessage());
 				$connection->getLink()->rollBack();
 
-				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Spojení objednávek se nezdařilo!', 'error');
+				$this->flashMessage('Spojení objednávek se nezdařilo!', 'error');
 			}
 
 //			if ($orderOld->purchase->customer) {

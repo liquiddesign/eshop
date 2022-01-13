@@ -18,10 +18,14 @@ use StORM\ICollection;
 class WatcherList extends Datalist
 {
 	private WatcherRepository $watcherRepository;
+
+	private bool $email;
 	
-	public function __construct(WatcherRepository $watcherRepository, Shopper $shopper, DIConnection $connection)
+	public function __construct(WatcherRepository $watcherRepository, Shopper $shopper, DIConnection $connection, bool $email = false)
 	{
 		parent::__construct($watcherRepository->getWatchersByCustomer($shopper->getCustomer()));
+
+		$this->email = $email;
 	
 		$this->watcherRepository = $watcherRepository;
 		$this->setDefaultOnPage(20);
@@ -42,7 +46,7 @@ class WatcherList extends Datalist
 	public function handleDeleteWatcher(string $watcherId): void
 	{
 		try {
-			$this->watcherRepository->one($watcherId)->delete();
+			$this->watcherRepository->delete($this->watcherRepository->one($watcherId), $this->email);
 		} catch (NotFoundException $e) {
 		}
 		

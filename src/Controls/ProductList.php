@@ -26,9 +26,21 @@ use StORM\ICollection;
 /**
  * Class Products
  * @package Eshop\Controls
+ * @method onWatcherCreated(\Eshop\DB\Watcher $watcher)
+ * @method onWatcherDeleted(\Eshop\DB\Watcher $watcher)
  */
 class ProductList extends Datalist
 {
+	/**
+	 * @var callable[]&callable(\Eshop\DB\Watcher): void; Occurs after order create
+	 */
+	public $onWatcherCreated;
+
+	/**
+	 * @var callable[]&callable(\Eshop\DB\Watcher): void; Occurs after order create
+	 */
+	public $onWatcherDeleted;
+
 	public CheckoutManager $checkoutManager;
 
 	public Shopper $shopper;
@@ -175,31 +187,33 @@ class ProductList extends Datalist
 	public function handleWatchIt(string $product): void
 	{
 		if ($customer = $this->shopper->getCustomer()) {
-			$this->watcherRepository->createOne([
+			$watcher = $this->watcherRepository->createOne([
 				'product' => $product,
 				'customer' => $customer,
 				'amountFrom' => 1,
 				'beforeAmountFrom' => 0,
 			]);
+
+			$this->onWatcherCreated($watcher);
 		}
 
 		$this->redirect('this');
-
-		// @TODO call event
 	}
 
 	public function handleUnWatchIt(string $product): void
 	{
 		if ($customer = $this->shopper->getCustomer()) {
-			$this->watcherRepository->many()
+			$watcher = $this->watcherRepository->many()
 				->where('fk_product', $product)
 				->where('fk_customer', $customer)
-				->delete();
+				->first();
+
+			$this->onWatcherDeleted($watcher);
+
+			$watcher->delete();
 		}
 
 		$this->redirect('this');
-
-		// @TODO call event
 	}
 
 	public function handleBuy(string $productId): void

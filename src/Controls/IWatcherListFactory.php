@@ -6,5 +6,5 @@ namespace Eshop\Controls;
 
 interface IWatcherListFactory
 {
-	public function create(): WatcherList;
+	public function create(bool $email = false): WatcherList;
 }
