@@ -706,6 +706,7 @@ class OrderPresenter extends BackendPresenter
 				$admin = $this->admin->getIdentity();
 
 				$this->orderLogItemRepository->createLog($oldOrder, OrderLogItem::CANCELED, null, $admin);
+				$this->orderLogItemRepository->createLog($targetOrder, OrderLogItem::MERGED, $oldOrder->code, $admin);
 
 				$connection->getLink()->commit();
 			} catch (\Throwable $e) {
