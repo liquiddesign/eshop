@@ -517,7 +517,7 @@ class Product extends \StORM\Entity
 		if ($this->supplierSource && $this->supplierSource->productCodePrefix && !$this->supplierSource->showCodeWithPrefix) {
 			$prefixLength = \strlen($this->supplierSource->productCodePrefix);
 
-			$code = \substr($code, $prefixLength - 1, \strlen($code) - $prefixLength + 1);
+			$code = \substr($code, $prefixLength, \strlen($code) - $prefixLength);
 		}
 
 		return $code;
