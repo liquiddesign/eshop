@@ -13,7 +13,7 @@
     <SHOPITEM n:while="$product = $products->fetch()">
         <ITEM_ID>{$product->getPK()}</ITEM_ID>
         <PRODUCT><![CDATA[{$product->name}]]></PRODUCT>
-        <CODE>{$product->code}</CODE>
+        <CODE>{$product->getFullCode()}</CODE>
         <WEIGHT>{$product->weight}</WEIGHT>
         <UNIT>{$product->unit}</UNIT>
         <EAN>{$product->ean}</EAN>

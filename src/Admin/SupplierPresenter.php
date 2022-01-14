@@ -149,6 +149,7 @@ class SupplierPresenter extends BackendPresenter
 		$form->addText('url', 'Adresa feedu')->setRequired();
 		$form->addGroup('Defaultní hodnoty');
 		$form->addText('productCodePrefix', 'Prefix kódu produktů')->setNullable();
+		$form->addCheckbox('showCodeWithPrefix', 'Zobrazovat kód produktu s prefixem');
 		$form->addSelect('defaultDisplayAmount', 'Zobrazované množství', $this->displayAmountRepository->getArrayForSelect())->setPrompt('-zvolte-');
 		$form->addSelect('defaultDisplayDelivery', 'Zobrazované doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('-zvolte-');
 		$form->addCheckbox('defaultHiddenProduct', 'Produkty budou skryté');
@@ -211,6 +212,7 @@ class SupplierPresenter extends BackendPresenter
 
 		$form->addGroup('Defaultní hodnoty');
 		$form->addText('productCodePrefix', 'Prefix kódu produktů')->setNullable()->setHtmlAttribute('readonly', 'readonly');
+		$form->addCheckbox('showCodeWithPrefix', 'Zobrazovat kód produktu s prefixem');
 		$form->addSelect('defaultDisplayAmount', 'Zobrazované množství', $this->displayAmountRepository->getArrayForSelect())->setPrompt('-zvolte-');
 		$form->addSelect('defaultDisplayDelivery', 'Zobrazované doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('-zvolte-');
 		$form->addCheckbox('defaultHiddenProduct', 'Produkty budou skryté');

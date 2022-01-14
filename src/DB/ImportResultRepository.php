@@ -79,8 +79,8 @@ class ImportResultRepository extends \StORM\Repository
 			$importFile = $this->importResult->id. ".$extension";
 			\copy($data, $this->logDirectory . '/data/' . $importFile);
 		} else {
-			$importFile = $this->importResult->id. $suffix . ".$extension";
-			\file_put_contents($importFile, $data);
+			$importFile = $this->importResult->id . $suffix . ".$extension";
+			\file_put_contents($this->logDirectory . '/data/' . $importFile, $data);
 		}
 		
 		$this->importResult->update([

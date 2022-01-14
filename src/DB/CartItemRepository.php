@@ -81,7 +81,7 @@ class CartItemRepository extends \StORM\Repository
 		return $this->syncOne([
 			'uuid' => $item,
 			'productName' => $product->toArray()['name'],
-			'productCode' => $product->code,
+			'productCode' => $product->getFullCode(),
 			'productSubCode' => $product->subCode,
 			'productWeight' => $product->weight,
 			'productDimension' => $product->dimension,

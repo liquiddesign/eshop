@@ -495,24 +495,32 @@ class Product extends \StORM\Entity
 
 	public function getFullCode(string $type = 'fullCode'): ?string
 	{
+		$code = null;
+
 		if ($type === 'fullCode') {
 			//@TODO code-subcode delimeter (tečka) by mel jit nastavit
-			return $this->subCode ? $this->code . '.' . $this->subCode : $this->code;
+			$code = $this->subCode ? $this->code . '.' . $this->subCode : $this->code;
 		}
 
 		if ($type === 'code') {
-			return $this->code;
+			$code = $this->code;
 		}
 
 		if ($type === 'supplierCode') {
-			return $this->supplierCode;
+			$code = $this->supplierCode;
 		}
 
 		if ($type === 'externalCode') {
-			return $this->externalCode;
+			$code = $this->externalCode;
 		}
 
-		return null;
+		if ($this->supplierSource && $this->supplierSource->productCodePrefix && !$this->supplierSource->showCodeWithPrefix) {
+			$prefixLength = \strlen($this->supplierSource->productCodePrefix);
+
+			$code = \substr($code, $prefixLength - 1, \strlen($code) - $prefixLength + 1);
+		}
+
+		return $code;
 	}
 
 	/**

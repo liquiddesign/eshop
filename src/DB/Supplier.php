@@ -93,6 +93,12 @@ class Supplier extends \StORM\Entity
 	 * @column
 	 */
 	public bool $pairWithAlgolia = false;
+
+	/**
+	 * Zobrazit kód na eshopu s prefixem
+	 * @column
+	 */
+	public bool $showCodeWithPrefix = true;
 	
 	/**
 	 * Defaultní zobrazení množství
