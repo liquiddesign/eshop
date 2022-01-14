@@ -953,7 +953,7 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 			$tempFilename = \tempnam($this->tempDir, "html");
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
 				if (\is_file($tempFilename)) {
-					\unlink($tempFilename);
+					FileSystem::delete($tempFilename);
 				}
 			};
 
@@ -972,7 +972,7 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 			$zip->close();
 
 			$this->application->onShutdown[] = function () use ($zipFilename): void {
-				\unlink($zipFilename);
+				FileSystem::delete($zipFilename);
 			};
 
 			$this->sendResponse(new FileResponse($zipFilename, "newsletter.zip", 'application/zip'));

@@ -16,6 +16,7 @@ use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Form;
 use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
+use Nette\Utils\FileSystem;
 use StORM\Collection;
 use StORM\ICollection;
 
@@ -214,7 +215,7 @@ class OrderList extends Datalist
 		$object = $this->orderRepository->one($orderId, true);
 		$tempFilename = \tempnam($this->tempDir, "csv");
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
-			\unlink($tempFilename);
+			FileSystem::delete($tempFilename);
 		};
 
 		/** @phpstan-ignore-next-line volá metodu presenteru, pozůstatek z Linde */
@@ -227,7 +228,7 @@ class OrderList extends Datalist
 	{
 		$tempFilename = \tempnam($this->tempDir, "csv");
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
-			\unlink($tempFilename);
+			FileSystem::delete($tempFilename);
 		};
 		/** @phpstan-ignore-next-line volá metodu presenteru, pozůstatek z Linde */
 		$this->getPresenter()->csvOrderExportItemsAPI($orders, Writer::createFromPath($tempFilename, 'w+'));
@@ -242,7 +243,7 @@ class OrderList extends Datalist
 	{
 		$tempFilename = \tempnam($this->tempDir, "csv");
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
-			\unlink($tempFilename);
+			FileSystem::delete($tempFilename);
 		};
 
 		$writer = Writer::createFromPath($tempFilename, 'w+');
@@ -322,7 +323,7 @@ class OrderList extends Datalist
 	{
 		$tempFilename = \tempnam($this->tempDir, "csv");
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
-			\unlink($tempFilename);
+			FileSystem::delete($tempFilename);
 		};
 
 		$this->orderRepository->csvExportOrders($orders, Writer::createFromPath($tempFilename, 'w+'));
@@ -366,7 +367,7 @@ class OrderList extends Datalist
 		foreach ($accounts as $key => $orders) {
 			$tempFilename = \tempnam($this->tempDir, "csv");
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
-				\unlink($tempFilename);
+				FileSystem::delete($tempFilename);
 			};
 
 			$this->orderRepository->csvExportOrders($orders, Writer::createFromPath($tempFilename, 'w+'));
@@ -377,7 +378,7 @@ class OrderList extends Datalist
 		$zip->close();
 
 		$this->application->onShutdown[] = function () use ($zipFilename): void {
-			\unlink($zipFilename);
+			FileSystem::delete($zipFilename);
 		};
 
 		$this->getPresenter()->sendResponse(new FileResponse($zipFilename, "orders.zip", 'application/zip'));
@@ -402,7 +403,7 @@ class OrderList extends Datalist
 		foreach ($orders as $order) {
 			$tempFilename = \tempnam($this->tempDir, "csv");
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
-				\unlink($tempFilename);
+				FileSystem::delete($tempFilename);
 			};
 			$this->orderRepository->csvExport($order, Writer::createFromPath($tempFilename, 'w+'));
 
@@ -412,7 +413,7 @@ class OrderList extends Datalist
 		$zip->close();
 
 		$this->application->onShutdown[] = function () use ($zipFilename): void {
-			\unlink($zipFilename);
+			FileSystem::delete($zipFilename);
 		};
 
 		$this->getPresenter()->sendResponse(new FileResponse($zipFilename, "orders.zip", 'application/zip'));
@@ -429,7 +430,7 @@ class OrderList extends Datalist
 		$writer->writeToFile($filename);
 
 		$this->application->onShutdown[] = function () use ($filename): void {
-			\unlink($filename);
+			FileSystem::delete($filename);
 		};
 
 		$this->getPresenter()->sendResponse(new FileResponse($filename, "orders.xlsx", 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));
@@ -442,7 +443,7 @@ class OrderList extends Datalist
 
 			$tempFilename = \tempnam($this->tempDir, "xlsx");
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
-				\unlink($tempFilename);
+				FileSystem::delete($tempFilename);
 			};
 
 			$writer = new \XLSXWriter();
@@ -466,7 +467,7 @@ class OrderList extends Datalist
 		foreach ($orders as $order) {
 			$tempFilename = \tempnam($this->tempDir, "xlsx");
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
-				\unlink($tempFilename);
+				FileSystem::delete($tempFilename);
 			};
 
 			$writer = new \XLSXWriter();
@@ -481,7 +482,7 @@ class OrderList extends Datalist
 		$zip->close();
 
 		$this->application->onShutdown[] = function () use ($zipFilename): void {
-			\unlink($zipFilename);
+			FileSystem::delete($zipFilename);
 		};
 
 		$this->getPresenter()->sendResponse(new FileResponse($zipFilename, "orders.zip", 'application/zip'));

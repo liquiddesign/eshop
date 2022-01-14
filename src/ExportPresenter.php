@@ -20,6 +20,7 @@ use Nette\Http\IResponse;
 use Nette\Http\Request;
 use Nette\Http\Response;
 use Nette\Security\AuthenticationException;
+use Nette\Utils\FileSystem;
 use Security\DB\AccountRepository;
 use Web\DB\SettingRepository;
 
@@ -171,7 +172,7 @@ abstract class ExportPresenter extends Presenter
 		\fwrite($fh, $this->orderRepo->ediExport($order));
 		\fclose($fh);
 		$this->context->getService('application')->onShutdown[] = function () use ($tmpfname): void {
-			\unlink($tmpfname);
+			FileSystem::delete($tmpfname);
 		};
 		$this->sendResponse(new FileResponse($tmpfname, 'order.txt', 'text/plain'));
 	}

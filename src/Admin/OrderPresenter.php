@@ -43,6 +43,7 @@ use Nette\Forms\Controls\TextInput;
 use Nette\Http\Request;
 use Nette\Mail\Mailer;
 use Nette\Utils\DateTime;
+use Nette\Utils\FileSystem;
 use StORM\Literal;
 use Tracy\Debugger;
 
@@ -1469,7 +1470,7 @@ class OrderPresenter extends BackendPresenter
 
 		$tempFilename = \tempnam($presenter->tempDir, "csv");
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
-			\unlink($tempFilename);
+			FileSystem::delete($tempFilename);
 		};
 		$this->orderRepository->csvExport($object, Writer::createFromPath($tempFilename, 'w+'));
 		$response = new FileResponse($tempFilename, "objednavka-$object->code.csv", 'text/csv');
@@ -1485,7 +1486,7 @@ class OrderPresenter extends BackendPresenter
 		\fwrite($fh, $this->orderRepository->ediExport($object));
 		\fclose($fh);
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
-			\unlink($tempFilename);
+			FileSystem::delete($tempFilename);
 		};
 		$this->sendResponse(new FileResponse($tempFilename, 'order.txt', 'text/plain'));
 	}

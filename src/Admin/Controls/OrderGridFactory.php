@@ -16,6 +16,7 @@ use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\Utils\DateTime;
+use Nette\Utils\FileSystem;
 use StORM\Collection;
 use StORM\ICollection;
 
@@ -298,7 +299,7 @@ class OrderGridFactory
 
 		$tempFilename = \tempnam($presenter->tempDir, "csv");
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
-			\unlink($tempFilename);
+			FileSystem::delete($tempFilename);
 		};
 		$this->orderRepository->csvExportZasilkovna($grid->getSelectedIds(), Writer::createFromPath($tempFilename, 'w+'));
 		$response = new FileResponse($tempFilename, "zasilkovna.csv", 'text/csv');

@@ -12,6 +12,7 @@ use Eshop\DB\SupplierProducer;
 use Eshop\DB\SupplierProduct;
 use Eshop\DB\SupplierRepository;
 use Nette\DI\Container;
+use Nette\IOException;
 use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
@@ -105,7 +106,13 @@ abstract class SupplierProvider
 					return $fileName;
 				}
 				
-				if ($filemtime === null || !@\copy($imageUrl, $origin)) {
+				if ($filemtime === null) {
+					return $fileName;
+				}
+				
+				try {
+					FileSystem::copy($imageUrl, $origin);
+				} catch (IOException $x) {
 					return $fileName;
 				}
 				

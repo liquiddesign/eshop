@@ -127,7 +127,7 @@ abstract class Helpers
 		
 		$openedTags = \array_reverse($openedTags);
 
-		for ($i=0; $i < $lenOpened; $i++) {
+		for ($i = 0; $i < $lenOpened; $i++) {
 			if (!\in_array($openedTags[$i], $closedTags)) {
 				$html .= '</'.$openedTags[$i].'>';
 			} else {

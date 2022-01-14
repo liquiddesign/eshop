@@ -205,7 +205,7 @@ class CustomerPresenter extends BackendPresenter
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 			$source->where('accounts.uuid ' . ($value === '1' ? 'IS NOT NULL' : 'IS NULL'));
-		}, '', 'accountsAssigned', 'Účet', ['0' =>'Bez účtu', '1' => 'S účtem'])->setPrompt('- Účet -');
+		}, '', 'accountsAssigned', 'Účet', ['0' => 'Bez účtu', '1' => 'S účtem'])->setPrompt('- Účet -');
 
 		$grid->addFilterButtons();
 

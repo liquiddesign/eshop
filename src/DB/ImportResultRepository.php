@@ -77,7 +77,7 @@ class ImportResultRepository extends \StORM\Repository
 		} elseif ($extension === null) {
 			$extension = \pathinfo($data, \PATHINFO_EXTENSION);
 			$importFile = $this->importResult->id. ".$extension";
-			\copy($data, $this->logDirectory . '/data/' . $importFile);
+			FileSystem::copy($data, $this->logDirectory . '/data/' . $importFile);
 		} else {
 			$importFile = $this->importResult->id . $suffix . ".$extension";
 			\file_put_contents($this->logDirectory . '/data/' . $importFile, $data);

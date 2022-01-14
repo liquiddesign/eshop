@@ -18,6 +18,7 @@ use League\Csv\Writer;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Utils\Arrays;
+use Nette\Utils\FileSystem;
 use StORM\DIConnection;
 
 class RelatedPresenter extends BackendPresenter
@@ -463,7 +464,7 @@ class RelatedPresenter extends BackendPresenter
 			$tempFilename = \tempnam($this->tempDir, "csv");
 
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
-				\unlink($tempFilename);
+				FileSystem::delete($tempFilename);
 			};
 
 			$this->relatedRepository->exportCsv(Writer::createFromPath($tempFilename, 'w+'), $relations);
