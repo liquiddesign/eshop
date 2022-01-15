@@ -208,7 +208,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 	{
 		$priceWhere = new Expression();
 		
-		foreach ($pricelists as $id => $pricelist) {
+		foreach (\array_values($pricelists) as $id => $pricelist) {
 			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
 			$priceWhere->add('OR', "prices$id.price IS NOT NULL");
 		}
