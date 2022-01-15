@@ -21,7 +21,6 @@ use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Entity;
 use StORM\Expression;
-use StORM\GenericCollection;
 use StORM\ICollection;
 use StORM\Repository;
 use StORM\SchemaManager;
@@ -204,7 +203,6 @@ class ProductRepository extends Repository implements IGeneralRepository
 	/**
 	 * @param \StORM\ICollection $collection
 	 * @param \Eshop\DB\Pricelist[] $pricelists
-	 * @return void
 	 */
 	public function setPriceConditions(ICollection $collection, array $pricelists): void
 	{
@@ -215,9 +213,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$priceWhere->add('OR', "prices$id.price IS NOT NULL");
 		}
 		
-		if ($sql = $priceWhere->getSql()) {
-			$collection->where($sql);
+		if (!$sql = $priceWhere->getSql()) {
+			return;
 		}
+
+		$collection->where($sql);
 	}
 
 	public function getBestDiscountLevel(Customer $customer): int
