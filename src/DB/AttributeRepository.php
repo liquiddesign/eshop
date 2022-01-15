@@ -222,4 +222,35 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 
 		return $attributes;
 	}
+	
+	/**
+	 * @param array<string, \Eshop\DB\Pricelist> $pricelists
+	 * @param array<int, string> $values
+	 * @param array<string, mixed> $filters
+	 * @return array<string, string>
+	 */
+	public function getCounts(array $pricelists, array $values, array $filters): array
+	{
+		/** @var \Eshop\DB\ProductRepository $productRepository */
+		$productRepository = $this->getConnection()->findRepository(Product::class);
+		
+		$assignRepository = $this->getConnection()->findRepository(AttributeAssign::class);
+		$rows = $assignRepository->many();
+		$rows->setFrom(['assign' => 'eshop_attributeassign'])
+			->setSmartJoin(true, Product::class)
+			->setFetchClass(\stdClass::class)
+			->setSelect(['count' => 'COUNT(assign.fk_product)'])
+			->setIndex('assign.fk_value')
+			->join(['this' => 'eshop_product'], 'this.uuid=assign.fk_product')
+			->where('fk_value', $values)
+			->setGroupBy(['assign.fk_value']);
+		
+		$productRepository->setPriceConditions($rows, $pricelists);
+		
+		$rows->where('this.hidden=0');
+		
+		$productRepository->filter($rows, $filters);
+		
+		return $rows->toArrayOf('count');
+	}
 }

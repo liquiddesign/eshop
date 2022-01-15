@@ -201,10 +201,10 @@ class ProductRepository extends Repository implements IGeneralRepository
 	}
 	
 	/**
-	 * @param \StORM\ICollection $collection
+	 * @param \StORM\Collection $collection
 	 * @param \Eshop\DB\Pricelist[] $pricelists
 	 */
-	public function setPriceConditions(ICollection $collection, array $pricelists): void
+	public function setPriceConditions(Collection $collection, array $pricelists): void
 	{
 		$priceWhere = new Expression();
 		

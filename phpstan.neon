@@ -1,6 +1,7 @@
 parameters:
 	universalObjectCratesClasses:
 		- Nette\Http\SessionSection
+		- Nette\Application\UI\Template
 	level: 5
 	paths:
 		- src

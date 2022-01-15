@@ -10,6 +10,7 @@ use Eshop\DB\CategoryRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
+use Eshop\Shopper;
 use Forms\Form;
 use Forms\FormFactory;
 use Nette\Application\UI\Control;
@@ -18,6 +19,7 @@ use Translator\DB\TranslationRepository;
 
 /**
  * @method onFormSuccess(array $parameters)
+ * @property-read \Nette\Bridges\ApplicationLatte\Template $template
  */
 class ProductFilter extends Control
 {
@@ -56,6 +58,8 @@ class ProductFilter extends Control
 	 */
 	private array $attributes;
 
+	private Shopper $shopper;
+	
 	public function __construct(
 		FormFactory $formFactory,
 		TranslationRepository $translator,
@@ -64,7 +68,8 @@ class ProductFilter extends Control
 		DisplayAmountRepository $displayAmountRepository,
 		DisplayDeliveryRepository $displayDeliveryRepository,
 		AttributeValueRangeRepository $attributeValueRangeRepository,
-		ProducerRepository $producerRepository
+		ProducerRepository $producerRepository,
+		Shopper $shopper
 	) {
 		$this->translator = $translator;
 		$this->formFactory = $formFactory;
@@ -74,14 +79,18 @@ class ProductFilter extends Control
 		$this->displayDeliveryRepository = $displayDeliveryRepository;
 		$this->attributeValueRangeRepository = $attributeValueRangeRepository;
 		$this->producerRepository = $producerRepository;
+		$this->shopper = $shopper;
 	}
 
 	public function render(): void
 	{
 		// @TODO: fixed for non category based, not for UUID a encapsule to entity
 		$category = $this->getCategoryPath();
+		
+		/** @var \Eshop\DB\Pricelist[] $pricelists */
+		$pricelists = $this->shopper->getPricelists()->toArray();
 
-		$this->template->attributes = $this->getAttributes();
+		$this->template->attributes = $attributes = $this->getAttributes();
 
 		/** @var string[][][] $filters */
 		$filters = $this->getProductList()->getFilters();
@@ -91,23 +100,32 @@ class ProductFilter extends Control
 			'delivery' => $category ? $this->categoryRepository->getCountsGrouped('this.fk_displayDelivery', $filters)[$category] ?? [] : [],
 			'producer' => $category ? $this->categoryRepository->getCountsGrouped('this.fk_producer', $filters)[$category] ?? [] : [],
 		];
-
-		$this->template->attributesValuesCounts = $category ? $this->categoryRepository->getCountsGrouped('assign.fk_value', $filters)[$category] ?? [] : [];
-
-		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
-		$template = $this->template;
-
-		$template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
+		
+		// @TODO: hodnoty se nacitaji 2x, zlepsit performance
+		$values = [];
+		
+		foreach ($attributes as $attribute) {
+			$values += $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('uuid', [], true);
+		}
+		
+		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($pricelists, $values, $filters);
+		
+		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
 
 	public function createComponentForm(): Form
 	{
 		$filterForm = $this->formFactory->create();
+		
+		/** @var \Grid\Datalist $datalist */
+		$datalist = $this->getParent();
+		
+		$datalist->makeFilterForm($filterForm);
+		
+		$filterForm->addInteger('priceFrom')->setHtmlAttribute('placeholder', 0);
+		$filterForm->addInteger('priceTo')->setHtmlAttribute('placeholder', 100000);
 
-		$filterForm->addInteger('priceFrom')->setRequired()->setDefaultValue(0);
-		$filterForm->addInteger('priceTo')->setRequired()->setDefaultValue(100000);
-
-		$filterForm->setDefaults($this->getProductList()->getFilters());
+		//$filterForm->setDefaults($this->getProductList()->getFilters());
 
 		$attributesContainer = $filterForm->addContainer('attributes');
 
