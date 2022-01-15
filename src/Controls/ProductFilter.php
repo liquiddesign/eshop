@@ -174,18 +174,6 @@ class ProductFilter extends Control
 			$this->flashMessage($this->translator->translate('form.submitError', 'Chybně vyplněný formulář!'), 'error');
 		};
 
-		$filterForm->onSuccess[] = function (Form $form): void {
-			$parameters = [];
-
-			$parent = $this->getParent()->getName();
-
-			foreach ($form->getValues('array') as $name => $values) {
-				$parameters["$parent-$name"] = $values;
-			}
-
-			$this->onFormSuccess($parameters);
-		};
-
 		return $filterForm;
 	}
 
