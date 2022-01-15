@@ -65,7 +65,7 @@ class ProductGridFiltersFactory
 			$categories += ['0' => 'X - bez kategorie'];
 
 			foreach ($exactCategories as $key => $value) {
-				$categories += ['.'. $key => $value . ' (bez podkategorií)'];
+				$categories += ['.' . $key => $value . ' (bez podkategorií)'];
 			}
 
 			$grid->addFilterDataSelect(function (Collection $source, $value): void {

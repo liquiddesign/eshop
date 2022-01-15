@@ -63,6 +63,6 @@ class CustomerGroupRepository extends \StORM\Repository implements IGeneralRepos
 	{
 		unset($includeHidden);
 
-		return $this->many()->orderBy(["name"]);
+		return $this->many()->orderBy(['name']);
 	}
 }

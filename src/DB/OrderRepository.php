@@ -427,29 +427,29 @@ class OrderRepository extends \StORM\Repository
 		$gln = '8590804000006';
 		$user = $order->purchase->customer;
 		$created = new DateTime($order->createdTs);
-		$string = "";
-		$string .= "SYS" . \str_pad($gln, 14, " ", \STR_PAD_RIGHT) . "ED  96AORDERSP\r\n";
-		$string .= "HDR"
-			. \str_pad($order->code, 15, " ", \STR_PAD_RIGHT)
+		$string = '';
+		$string .= 'SYS' . \str_pad($gln, 14, ' ', \STR_PAD_RIGHT) . "ED  96AORDERSP\r\n";
+		$string .= 'HDR'
+			. \str_pad($order->code, 15, ' ', \STR_PAD_RIGHT)
 			. $created->format('Ymd')
-			. \str_pad($user && $user->ediCompany ? $user->ediCompany : $gln, 17, " ")
-			. \str_pad($user && $user->ediBranch ? $user->ediBranch : $gln, 17, " ")
-			. \str_pad($user && $user->ediBranch ? $user->ediBranch : $gln, 17, " ")
-			. \str_pad($gln, 17, " ", \STR_PAD_RIGHT)
-			. \str_pad(" ", 17, " ", \STR_PAD_RIGHT)
-			. \str_pad((\date('Ymd', \strtotime($order->canceledTs ?? $order->createdTs))) . "0000", 17, " ")
+			. \str_pad($user && $user->ediCompany ? $user->ediCompany : $gln, 17, ' ')
+			. \str_pad($user && $user->ediBranch ? $user->ediBranch : $gln, 17, ' ')
+			. \str_pad($user && $user->ediBranch ? $user->ediBranch : $gln, 17, ' ')
+			. \str_pad($gln, 17, ' ', \STR_PAD_RIGHT)
+			. \str_pad(' ', 17, ' ', \STR_PAD_RIGHT)
+			. \str_pad((\date('Ymd', \strtotime($order->canceledTs ?? $order->createdTs))) . '0000', 17, ' ')
 			//."!!!".$order->note."!!!************>>"
-			. "" . $order->purchase->note . ""
+			. '' . $order->purchase->note . ''
 			. "\r\n";
 		$line = 1;
 
 		foreach ($order->getGroupedItems() as $i) {
-			$string .= "LIN"
-				. \str_pad((string)$line, 6, " ", \STR_PAD_LEFT)
-				. \str_pad($i->product ? $i->product->getFullCode() : $i->getFullCode(), 25, " ", \STR_PAD_RIGHT)
-				. \str_pad("", 25, " ", \STR_PAD_RIGHT)
-				. \str_pad(\number_format($i->amount, 3, ".", ""), 12, " ", \STR_PAD_LEFT)
-				. \str_pad("", 15, " ")
+			$string .= 'LIN'
+				. \str_pad((string)$line, 6, ' ', \STR_PAD_LEFT)
+				. \str_pad($i->product ? $i->product->getFullCode() : $i->getFullCode(), 25, ' ', \STR_PAD_RIGHT)
+				. \str_pad('', 25, ' ', \STR_PAD_RIGHT)
+				. \str_pad(\number_format($i->amount, 3, '.', ''), 12, ' ', \STR_PAD_LEFT)
+				. \str_pad('', 15, ' ')
 				. "\r\n";
 			$line++;
 		}
@@ -498,10 +498,10 @@ class OrderRepository extends \StORM\Repository
 		$toString = $to->format('Y-m-d\TH:i:s');
 
 		$collection = $this->many()
-			->select(["date" => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
+			->select(['date' => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
 			->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
 			->where('this.createdTs >= :from AND this.createdTs <= :to', ['from' => $fromString, 'to' => $toString])
-			->orderBy(["date"]);
+			->orderBy(['date']);
 
 		if ($user) {
 			if ($user instanceof Merchant) {
@@ -745,7 +745,7 @@ class OrderRepository extends \StORM\Repository
 	{
 		$collection = $this->many()
 			->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
-			->orderBy(["this.createdTs"]);
+			->orderBy(['this.createdTs']);
 
 		if ($user) {
 			if ($user instanceof Merchant) {
@@ -887,7 +887,7 @@ class OrderRepository extends \StORM\Repository
 			}
 		}
 
-		return $this->cache->load("uniqueOrderCount_" . $product->getPK(), function (&$dependencies) use ($product, $from, $to, $cartItemRepository) {
+		return $this->cache->load('uniqueOrderCount_' . $product->getPK(), function (&$dependencies) use ($product, $from, $to, $cartItemRepository) {
 			$dependencies = [
 				Cache::TAGS => 'stats',
 			];
@@ -901,7 +901,7 @@ class OrderRepository extends \StORM\Repository
 				->join(['cart' => 'eshop_cart'], 'this.fk_cart = cart.uuid')
 				->join(['purchase' => 'eshop_purchase'], 'cart.fk_purchase = purchase.uuid')
 				->join(['orderTable' => 'eshop_order'], 'orderTable.fk_purchase = purchase.uuid')
-				->select(["date" => "DATE_FORMAT(order.createdTs, '%Y-%m')"])
+				->select(['date' => "DATE_FORMAT(order.createdTs, '%Y-%m')"])
 				->where('orderTable.completedTs IS NOT NULL')
 				->where('orderTable.createdTs >= :from AND orderTable.createdTs <= :to', ['from' => $fromString, 'to' => $toString])
 				->where('this.fk_product', $product->getPK())

@@ -778,14 +778,14 @@ Očekává se formát kategorií dle formátu Heuréky. Tedy "Subcategory 1" atd
 
 			$items = $values['bulkType'] === 'selected' ? $this->categoryRepository->many()->where('this.uuid', $ids)->toArray() : $grid->getFilteredSource()->toArray();
 
-			$tempFilename = \tempnam($this->tempDir, "csv");
+			$tempFilename = \tempnam($this->tempDir, 'csv');
 
 			$this->categoryRepository->exportTreeCsv(
 				Writer::createFromPath($tempFilename),
 				$items,
 			);
 
-			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "categories.csv", 'text/csv'));
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'categories.csv', 'text/csv'));
 		};
 
 		return $form;

@@ -23,7 +23,7 @@ class DisplayDeliveryPresenter extends BackendPresenter
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Popisek', 'label', '%s', 'label');
-		$grid->addColumnText('Časový práh', "timeThreshold", '%s', 'timeThreshold');
+		$grid->addColumnText('Časový práh', 'timeThreshold', '%s', 'timeThreshold');
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 
 		$grid->addColumnLinkDetail();

@@ -167,10 +167,10 @@ class Category extends \StORM\Entity
 
 	public function getDescendants(?int $level = null): ICollection
 	{
-		$collection = $this->getRepository()->many()->where("this.path LIKE :path", ['path' => $this->path . '%'])->whereNot('this.uuid', $this->getPK());
+		$collection = $this->getRepository()->many()->where('this.path LIKE :path', ['path' => $this->path . '%'])->whereNot('this.uuid', $this->getPK());
 
 		if ($level !== null) {
-			$this->getRepository()->many()->where("LENGTH(path) / 4 >= :level", ['level' => $level + 1]);
+			$this->getRepository()->many()->where('LENGTH(path) / 4 >= :level', ['level' => $level + 1]);
 		}
 
 		return $collection->orderBy(['LENGTH(path)' => 'ASC']);

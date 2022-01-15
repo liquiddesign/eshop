@@ -121,7 +121,7 @@ class ExportPresenter extends BackendPresenter
 
 			$cache = new Cache($this->storage);
 			$cache->clean([
-				Cache::TAGS => ["export"],
+				Cache::TAGS => ['export'],
 			]);
 
 			$this->flashMessage('Nastavení uloženo', 'success');

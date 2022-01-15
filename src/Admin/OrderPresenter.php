@@ -197,7 +197,7 @@ class OrderPresenter extends BackendPresenter
 					$datagrid->getPresenter()->link(':Admin:Admin:Administrator:detail', [$orderLogItem->administrator, 'backLink' => $this->storeRequest()]) :
 					'#';
 
-				return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $orderLogItem->administrator->fullName . "</a>";
+				return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $orderLogItem->administrator->fullName . '</a>';
 			}
 
 			if ($orderLogItem->administratorFullName) {
@@ -367,7 +367,7 @@ class OrderPresenter extends BackendPresenter
 		$this->template->tabs = $tabs;
 
 		if ($this->tab === 'bannedEmails') {
-			$this->template->headerLabel = "Blokované e-maily";
+			$this->template->headerLabel = 'Blokované e-maily';
 			$this->template->headerTree = [
 				['Blokované e-maily', 'default'],
 			];
@@ -377,7 +377,7 @@ class OrderPresenter extends BackendPresenter
 			return;
 		}
 
-		$this->template->headerLabel = "Objednávky";
+		$this->template->headerLabel = 'Objednávky';
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
 		];
@@ -1032,7 +1032,7 @@ class OrderPresenter extends BackendPresenter
 
 			$selectedItems = $values['bulkType'] === 'selected' ? $this->orderRepository->many()->where('this.uuid', $ids) : $grid->getFilteredSource();
 
-			$tempFilename = \tempnam($this->tempDir, "csv");
+			$tempFilename = \tempnam($this->tempDir, 'csv');
 			$headerColumns = \array_filter($items, function ($item) use ($values) {
 				return \in_array($item, $values['columns']);
 			}, \ARRAY_FILTER_USE_KEY);
@@ -1045,7 +1045,7 @@ class OrderPresenter extends BackendPresenter
 				$values['header'] ? \array_values($headerColumns) : null,
 			);
 
-			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "orders.csv", 'text/csv'));
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'orders.csv', 'text/csv'));
 		};
 
 		return $form;
@@ -1170,7 +1170,7 @@ class OrderPresenter extends BackendPresenter
 		$this->template->order = $order;
 
 		if ($order->purchase->zasilkovnaId) {
-			$this->template->pickupPoint = $this->pickupPointRepository->many()->where('code', "zasilkovna_" . $order->purchase->zasilkovnaId)->first();
+			$this->template->pickupPoint = $this->pickupPointRepository->many()->where('code', 'zasilkovna_' . $order->purchase->zasilkovnaId)->first();
 		} elseif ($order->purchase->pickupPoint) {
 			$this->template->pickupPoint = $order->purchase->pickupPoint;
 		} else {
@@ -1468,7 +1468,7 @@ class OrderPresenter extends BackendPresenter
 		$presenter = $this;
 		$object = $this->orderRepository->one($orderId, true);
 
-		$tempFilename = \tempnam($presenter->tempDir, "csv");
+		$tempFilename = \tempnam($presenter->tempDir, 'csv');
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
 			FileSystem::delete($tempFilename);
 		};
@@ -1481,7 +1481,7 @@ class OrderPresenter extends BackendPresenter
 	{
 		$object = $this->orderRepository->one($orderId, true);
 
-		$tempFilename = \tempnam($this->tempDir, "xml");
+		$tempFilename = \tempnam($this->tempDir, 'xml');
 		$fh = \fopen($tempFilename, 'w+');
 		\fwrite($fh, $this->orderRepository->ediExport($object));
 		\fclose($fh);

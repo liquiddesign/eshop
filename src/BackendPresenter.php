@@ -111,8 +111,8 @@ class BackendPresenter extends \Admin\BackendPresenter
 
 	public function getReaderFromString(string $content, string $delimiter = ';'): Reader
 	{
-		if (!\ini_get("auto_detect_line_endings")) {
-			\ini_set("auto_detect_line_endings", '1');
+		if (!\ini_get('auto_detect_line_endings')) {
+			\ini_set('auto_detect_line_endings', '1');
 		}
 
 		$detector = new EncodingDetector();
@@ -139,8 +139,8 @@ class BackendPresenter extends \Admin\BackendPresenter
 
 	public function getReader(string $filePath, string $delimiter = ';'): Reader
 	{
-		if (!\ini_get("auto_detect_line_endings")) {
-			\ini_set("auto_detect_line_endings", '1');
+		if (!\ini_get('auto_detect_line_endings')) {
+			\ini_set('auto_detect_line_endings', '1');
 		}
 
 		$csvData = FileSystem::read($filePath);

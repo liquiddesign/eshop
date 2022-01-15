@@ -62,7 +62,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$riboonId = 'novy_import';
 
 		if ($overwrite) {
-			$updates = ["name$mutationSuffix", "content$mutationSuffix", "unit", 'imageFileName', 'vatRate', 'fk_displayAmount'];
+			$updates = ["name$mutationSuffix", "content$mutationSuffix", 'unit', 'imageFileName', 'vatRate', 'fk_displayAmount'];
 			$updates = \array_fill_keys($updates, null);
 
 			foreach (\array_keys($updates) as $name) {

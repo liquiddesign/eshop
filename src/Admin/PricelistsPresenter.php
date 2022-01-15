@@ -120,7 +120,7 @@ class PricelistsPresenter extends BackendPresenter
 				[$object->discount, 'backLink' => $this->storeRequest()],
 			) : '#';
 
-			return $object->discount ? "<a href='" . $link . "'>" . $object->discount->name . "</a>" : '';
+			return $object->discount ? "<a href='" . $link . "'>" . $object->discount->name . '</a>' : '';
 		}, '%s');
 
 		$grid->addColumnText(
@@ -144,7 +144,7 @@ class PricelistsPresenter extends BackendPresenter
 				[$object->supplier, 'backLink' => $this->storeRequest()],
 			) : '#';
 
-			return $object->supplier ? "<a href='" . $link . "'>" . $object->supplier->name . "</a>" : '';
+			return $object->supplier ? "<a href='" . $link . "'>" . $object->supplier->name . '</a>' : '';
 		}, '%s');
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
@@ -519,7 +519,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 	public function handlePriceListExport(string $pricelistId, string $type = 'standard'): void
 	{
-		$tempFilename = \tempnam($this->tempDir, "csv");
+		$tempFilename = \tempnam($this->tempDir, 'csv');
 
 		$this->priceListRepository->csvExport(
 			$this->priceListRepository->one($pricelistId),
@@ -528,7 +528,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 			$this->shopper->getShowVat(),
 		);
 
-		$response = new FileResponse($tempFilename, "cenik.csv", 'text/csv');
+		$response = new FileResponse($tempFilename, 'cenik.csv', 'text/csv');
 		$this->sendResponse($response);
 	}
 

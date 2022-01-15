@@ -84,7 +84,7 @@ class OrderGridFactory
 		$grid->addColumn('Doprava', [$this, 'renderDeliveryColumn']);
 		$grid->addColumn('Platba', [$this, 'renderPaymentColumn']);
 
-		$properties = ["getTotalPrice|price:currency.code", 'getTotalPriceVat|price:currency.code'];
+		$properties = ['getTotalPrice|price:currency.code', 'getTotalPriceVat|price:currency.code'];
 		$grid->addColumnText('Cena', $properties, '%s<br><small>%s s DPH</small>', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
 		if ($state === 'open') {
@@ -187,7 +187,7 @@ class OrderGridFactory
 <a href='$linkPay'>Zaplatit</a> | <a href='$linkPayPlusEmail'>Zaplatit + e-mail</a></small>";
 		}
 
-		return "<a href='$link'>" . $payment->getTypeName() . "</a>" . $paymentInfo;
+		return "<a href='$link'>" . $payment->getTypeName() . '</a>' . $paymentInfo;
 	}
 
 	public function renderDeliveryColumn(Order $order, Datagrid $grid): string
@@ -217,14 +217,14 @@ class OrderGridFactory
 
 		if ($order->purchase->pickupPointId) {
 			if ($order->purchase->pickupPoint) {
-				return "<a href='$link'>" . $delivery->getTypeName() . "</a> - " . $order->purchase->pickupPoint->name . " <small> $date</small>" . $deliveryInfo;
+				return "<a href='$link'>" . $delivery->getTypeName() . '</a> - ' . $order->purchase->pickupPoint->name . " <small> $date</small>" . $deliveryInfo;
 			}
 
-			return "<a href='$link'>" . $delivery->getTypeName() . "</a> - " . $order->purchase->pickupPointName . " <small> $date</small>" . $deliveryInfo;
+			return "<a href='$link'>" . $delivery->getTypeName() . '</a> - ' . $order->purchase->pickupPointName . " <small> $date</small>" . $deliveryInfo;
 		}
 
 		if ($order->purchase->zasilkovnaId) {
-			return "<a href='$link'>" . $delivery->getTypeName() . "</a> - " . $order->purchase->zasilkovnaId . " <small> $date</small>" . $deliveryInfo;
+			return "<a href='$link'>" . $delivery->getTypeName() . '</a> - ' . $order->purchase->zasilkovnaId . " <small> $date</small>" . $deliveryInfo;
 		}
 
 		return "<a href='$link'>" . $delivery->getTypeName() . "</a> <small> $date</small>" . $deliveryInfo;
@@ -297,12 +297,12 @@ class OrderGridFactory
 		/** @var \Eshop\BackendPresenter $presenter */
 		$presenter = $grid->getPresenter();
 
-		$tempFilename = \tempnam($presenter->tempDir, "csv");
+		$tempFilename = \tempnam($presenter->tempDir, 'csv');
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
 			FileSystem::delete($tempFilename);
 		};
 		$this->orderRepository->csvExportZasilkovna($grid->getSelectedIds(), Writer::createFromPath($tempFilename, 'w+'));
-		$response = new FileResponse($tempFilename, "zasilkovna.csv", 'text/csv');
+		$response = new FileResponse($tempFilename, 'zasilkovna.csv', 'text/csv');
 		$presenter->sendResponse($response);
 	}
 

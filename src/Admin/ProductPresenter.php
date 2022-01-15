@@ -851,7 +851,7 @@ class ProductPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
 		$form->addRadioList('bulkType', 'Upravit', [
-			'selected' => "vybrané",
+			'selected' => 'vybrané',
 			'all' => "celý výsledek ($totalNo)",
 		])->setDefaultValue('selected');
 
@@ -906,7 +906,7 @@ class ProductPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
 		$form->addRadioList('bulkType', 'Upravit', [
-			'selected' => "vybrané",
+			'selected' => 'vybrané',
 			'all' => "celý výsledek ($totalNo)",
 		])->setDefaultValue('selected');
 
@@ -950,7 +950,7 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 				],
 			]);
 
-			$tempFilename = \tempnam($this->tempDir, "html");
+			$tempFilename = \tempnam($this->tempDir, 'html');
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
 				if (\is_file($tempFilename)) {
 					FileSystem::delete($tempFilename);
@@ -959,7 +959,7 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 
 			$zip = new \ZipArchive();
 
-			$zipFilename = \tempnam($this->tempDir, "zip");
+			$zipFilename = \tempnam($this->tempDir, 'zip');
 
 			if ($zip->open($zipFilename, \ZipArchive::CREATE) !== true) {
 				exit("cannot open <$zipFilename>\n");
@@ -975,7 +975,7 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 				FileSystem::delete($zipFilename);
 			};
 
-			$this->sendResponse(new FileResponse($zipFilename, "newsletter.zip", 'application/zip'));
+			$this->sendResponse(new FileResponse($zipFilename, 'newsletter.zip', 'application/zip'));
 		};
 
 		return $form;
@@ -1415,7 +1415,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 			$products = $values['bulkType'] === 'selected' ? $this->productRepository->many()->where('this.uuid', $ids) : $productGrid->getFilteredSource();
 
-			$tempFilename = \tempnam($this->tempDir, "csv");
+			$tempFilename = \tempnam($this->tempDir, 'csv');
 
 			$headerColumns = \array_filter($items, function ($item) use ($values) {
 				return \in_array($item, $values['columns']);
@@ -1434,7 +1434,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				$values['header'] ? \array_merge(\array_values($headerColumns), \array_values($attributeColumns)) : null,
 			);
 
-			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "products.csv", 'text/csv'));
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'products.csv', 'text/csv'));
 		};
 
 		return $form;
@@ -1443,7 +1443,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 	public function handleDownloadImportExampleFile(): void
 	{
 		if (isset($this::CONFIGURATION['importExampleFile']) && $this::CONFIGURATION['importExampleFile']) {
-			$this->getPresenter()->sendResponse(new FileResponse($this->wwwDir . '/userfiles/' . $this::CONFIGURATION['importExampleFile'], "example.csv", 'text/csv'));
+			$this->getPresenter()->sendResponse(new FileResponse($this->wwwDir . '/userfiles/' . $this::CONFIGURATION['importExampleFile'], 'example.csv', 'text/csv'));
 		}
 	}
 
@@ -1698,8 +1698,8 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 	protected function importCsv(string $filePath, string $delimiter = ';', bool $addNew = false, bool $overwriteExisting = true, bool $updateAttributes = false): void
 	{
-		if (!\ini_get("auto_detect_line_endings")) {
-			\ini_set("auto_detect_line_endings", '1');
+		if (!\ini_get('auto_detect_line_endings')) {
+			\ini_set('auto_detect_line_endings', '1');
 		}
 
 		$csvData = FileSystem::read($filePath);
@@ -1753,7 +1753,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 					$attributeCode = $headerItem;
 				}
 
-				if ($attribute = $this->attributeRepository->many()->where("code", $attributeCode)->first()) {
+				if ($attribute = $this->attributeRepository->many()->where('code', $attributeCode)->first()) {
 					$attributes[$attribute->getPK()] = $attribute;
 					$parsedHeader[$attribute->getPK()] = $headerItem;
 				}
@@ -1944,7 +1944,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 						$attributeValueCode = $attributeString;
 					}
 
-					if (!$attributeValue = $this->attributeValueRepository->many()->where("code", $attributeValueCode)->firstValue('uuid')) {
+					if (!$attributeValue = $this->attributeValueRepository->many()->where('code', $attributeValueCode)->firstValue('uuid')) {
 						continue;
 					}
 

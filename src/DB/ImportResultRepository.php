@@ -43,7 +43,7 @@ class ImportResultRepository extends \StORM\Repository
 		
 		// @ is escalated to exception
 		if (!@\file_put_contents($this->getLogFilePath(), $line . \PHP_EOL, \FILE_APPEND | \LOCK_EX)) {
-			throw new \RuntimeException('Unable to write to log file '. $this->getLogFilePath() . '. Is directory writable?');
+			throw new \RuntimeException('Unable to write to log file ' . $this->getLogFilePath() . '. Is directory writable?');
 		}
 	}
 	
@@ -72,11 +72,11 @@ class ImportResultRepository extends \StORM\Repository
 		
 		if ($data instanceof \SimpleXMLElement) {
 			$extension = 'xml';
-			$importFile = $this->importResult->id. $suffix . ".$extension";
+			$importFile = $this->importResult->id . $suffix . ".$extension";
 			$data->asXML($this->logDirectory . '/data/' . $importFile);
 		} elseif ($extension === null) {
 			$extension = \pathinfo($data, \PATHINFO_EXTENSION);
-			$importFile = $this->importResult->id. ".$extension";
+			$importFile = $this->importResult->id . ".$extension";
 			FileSystem::copy($data, $this->logDirectory . '/data/' . $importFile);
 		} else {
 			$importFile = $this->importResult->id . $suffix . ".$extension";
@@ -90,7 +90,7 @@ class ImportResultRepository extends \StORM\Repository
 			'importFile' => $importFile,
 		]);
 		
-		$this->log('Import data received: '. $importFile . ' (' . Helpers::falseToNull(\filesize($this->logDirectory . '/data/' . $importFile)) . ')');
+		$this->log('Import data received: ' . $importFile . ' (' . Helpers::falseToNull(\filesize($this->logDirectory . '/data/' . $importFile)) . ')');
 	}
 	
 	public function markAsImported($provider): void

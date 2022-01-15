@@ -78,13 +78,13 @@ class Algolia
 
 					foreach ($properties as $property) {
 						$algoliaResults[$record->getPK()][$property] = ($property === 'page_url' ? $this->baseUrl : '') . $record->$property;
-						$algoliaResults[$record->getPK()]["not_" . $property] = (bool) !$record->$property;
+						$algoliaResults[$record->getPK()]['not_' . $property] = (bool) !$record->$property;
 					}
 
 					foreach ($mutationalProperties as $property) {
 						$prop = $property . '_' . $mutation;
-						$algoliaResults[$record->getPK()][$property.'_'.$mutation] = ($property === 'page_url' ? $this->baseUrl : '') . $record->$prop;
-						$algoliaResults[$record->getPK()]["not_".$property.'_'.$mutation] = (bool) !$record->$prop;
+						$algoliaResults[$record->getPK()][$property . '_' . $mutation] = ($property === 'page_url' ? $this->baseUrl : '') . $record->$prop;
+						$algoliaResults[$record->getPK()]['not_' . $property . '_' . $mutation] = (bool) !$record->$prop;
 					}
 				}
 			}

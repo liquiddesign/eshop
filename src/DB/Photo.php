@@ -60,9 +60,9 @@ class Photo extends \StORM\Entity
 	public function getImagePath(string $basePath, string $size = 'detail'): string
 	{
 		if (!\in_array($size, ['origin', 'detail', 'thumb'])) {
-			throw new ApplicationException('Invalid product image size: '. $size);
+			throw new ApplicationException('Invalid product image size: ' . $size);
 		}
 		
-		return $this->fileName ? $basePath .'/userfiles/' . self::IMAGE_DIR . '/' . $size . '/' . $this->fileName : $basePath . '/public/img/no-image.png';
+		return $this->fileName ? $basePath . '/userfiles/' . self::IMAGE_DIR . '/' . $size . '/' . $this->fileName : $basePath . '/public/img/no-image.png';
 	}
 }

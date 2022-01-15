@@ -53,7 +53,7 @@ class PickupPointRepository extends \StORM\Repository implements IGeneralReposit
 
 	public function filterCity(string $q, Collection $collection): void
 	{
-		$collection->where("address.city LIKE :q", "%$q%");
+		$collection->where('address.city LIKE :q', "%$q%");
 	}
 
 	/**

@@ -196,7 +196,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			return [];
 		}
 		
-		$cacheIndex = "catagories_counts";
+		$cacheIndex = 'catagories_counts';
 		
 		foreach ($pricelists as $pricelist) {
 			$cacheIndex .= '_' . $pricelist->getPK();
@@ -728,7 +728,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		$collection = $this->many()
 			->where('fk_type', $categoryType->getPK())
-			->where("code", $elementArray['CATEGORY_ID']);
+			->where('code', $elementArray['CATEGORY_ID']);
 
 		if ($ancestor) {
 			$collection->where('path LIKE :s', ['s' => "$ancestor->path%"]);

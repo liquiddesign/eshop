@@ -28,6 +28,6 @@ class CategoryTypeRepository extends \StORM\Repository implements IGeneralReposi
 			$collection->where('hidden', false);
 		}
 
-		return $collection->orderBy(['priority', "name"]);
+		return $collection->orderBy(['priority', 'name']);
 	}
 }

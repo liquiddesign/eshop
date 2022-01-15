@@ -24,6 +24,6 @@ class CountryRepository extends \StORM\Repository implements IGeneralRepository
 	{
 		unset($includeHidden);
 
-		return $this->many()->orderBy(['code', "name"]);
+		return $this->many()->orderBy(['code', 'name']);
 	}
 }

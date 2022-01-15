@@ -63,15 +63,15 @@ class SupplierProductPresenter extends BackendPresenter
 			return $product->code . ($product->ean ? "<br><small>EAN $product->ean</small>" : '');
 		}, '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
-		$grid->addColumnText('Název', "name", '%s', 'name');
-		$grid->addColumnText('Výrobce', "producer.name", '%s');
+		$grid->addColumnText('Název', 'name', '%s', 'name');
+		$grid->addColumnText('Výrobce', 'producer.name', '%s');
 		$grid->addColumnText('Kategorie', ['category.getNameTree'], '%s');
 
 		$grid->addColumn('Napárovano', function (SupplierProduct $supplierProduct, AdminGrid $datagrid) {
 			$link = $supplierProduct->product && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ?
 				$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$supplierProduct->product, 'backLink' => $this->storeRequest(),]) : '#';
 
-			return $supplierProduct->product ? "<a href='$link'>" . $supplierProduct->product->getFullCode() . "</a>" : "-ne-";
+			return $supplierProduct->product ? "<a href='$link'>" . $supplierProduct->product->getFullCode() . '</a>' : '-ne-';
 		}, '%s', 'product');
 
 		if ($this->algolia->isActive() && $supplier->pairWithAlgolia) {
@@ -99,7 +99,7 @@ class SupplierProductPresenter extends BackendPresenter
 					$moreLink = '<a class="ml-2" title="Zobrazit další možnosti" href="' . $this->link('detailAlgolia', [$supplierProduct]) .
 						'"><i class="fas fa-cog fa-sm"></i>&nbsp;(' . $hitsCount . ')</a>';
 
-					return "<a href='$link'>$hitProduct->name (" . $hitProduct->getFullCode() . ")</a>" . $acceptLink . $moreLink;
+					return "<a href='$link'>$hitProduct->name (" . $hitProduct->getFullCode() . ')</a>' . $acceptLink . $moreLink;
 				}
 
 				return '-';
@@ -129,7 +129,7 @@ class SupplierProductPresenter extends BackendPresenter
 			$source->where('(' . $expression->getSql() . ') OR producer.name=:producer', $expression->getVars() + ['producer' => $value]);
 		}, '', 'category')->setHtmlAttribute('placeholder', 'Kategorie, výrobce')->setHtmlAttribute('class', 'form-control form-control-sm');
 
-		$grid->addFilterCheckboxInput('notmapped', "fk_product IS NOT NULL", 'Napárované');
+		$grid->addFilterCheckboxInput('notmapped', 'fk_product IS NOT NULL', 'Napárované');
 
 		$grid->addButtonBulkEdit('form', ['active']);
 

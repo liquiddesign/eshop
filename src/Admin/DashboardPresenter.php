@@ -65,6 +65,6 @@ class DashboardPresenter extends BackendPresenter
 		
 		$this->template->discounts = $this->discountRepo->getActiveDiscounts();
 		
-		$this->template->setFile(__DIR__ . \DIRECTORY_SEPARATOR . 'templates' .\DIRECTORY_SEPARATOR . 'Dashboard.default.latte');
+		$this->template->setFile(__DIR__ . \DIRECTORY_SEPARATOR . 'templates' . \DIRECTORY_SEPARATOR . 'Dashboard.default.latte');
 	}
 }

@@ -59,8 +59,8 @@ class ProductGridFactory
 			->join(['pricelist' => 'eshop_pricelist'], 'pricelist.uuid=price.fk_pricelist')
 			->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = this.uuid')
 			->select([
-				'photoCount' => "COUNT(DISTINCT photo.uuid)",
-				'fileCount' => "COUNT(DISTINCT file.uuid)",
+				'photoCount' => 'COUNT(DISTINCT photo.uuid)',
+				'fileCount' => 'COUNT(DISTINCT file.uuid)',
 				'commentCount' => 'COUNT(DISTINCT comment.uuid)',
 				'priceCount' => 'COUNT(DISTINCT price.uuid)',
 				'categoryCount' => 'COUNT(DISTINCT nxnCategory.fk_category)',
@@ -108,7 +108,7 @@ class ProductGridFactory
 				$link = $grid->getPresenter()->link(':Eshop:Admin:SupplierProduct:default', ['tab' => $supplier, 'grid-search' => $code]);
 
 				$suppliers[] = "<a href='$link' class='badge badge-light' style='font-weight: normal;' target='_blank'>" .
-					($supplierProduct->supplier->url ? $supplierProduct->supplier->name : $supplier) . "</a>";
+					($supplierProduct->supplier->url ? $supplierProduct->supplier->name : $supplier) . '</a>';
 			}
 
 			return [$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]), $product->name, \implode(' &nbsp;', $suppliers)];

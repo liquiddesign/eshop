@@ -39,7 +39,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 			$link = $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') && $object->supplier ?
 				$datagrid->getPresenter()->link(':Eshop:Admin:Supplier:detail', [$object->supplier, 'backLink' => $this->storeRequest()]) : '#';
 			
-			return $object->supplier ? "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->supplier->name . "</a>" : '';
+			return $object->supplier ? "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->supplier->name . '</a>' : '';
 		}, '%s');
 
 		$grid->addColumnLink('amounts', 'Množství');
@@ -159,7 +159,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 			'ajax' => [
 				'url' => $this->getPresenter()->link('getProductsForSelect2!'),
 			],
-			'placeholder' => "Zvolte produkt",
+			'placeholder' => 'Zvolte produkt',
 		])->checkDefaultValue(false);
 
 		if ($this->getParameter('amount')) {

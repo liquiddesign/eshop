@@ -352,7 +352,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			$collection->where('isActive', true);
 		}
 
-		return $collection->orderBy(['priority', "name"]);
+		return $collection->orderBy(['priority', 'name']);
 	}
 
 	/**

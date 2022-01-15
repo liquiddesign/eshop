@@ -62,10 +62,10 @@ class CartImportForm extends Form
 				try {
 					$this->checkoutManager->addItemToCart($product, null, \intval($amount), false, false, false);
 				} catch (BuyException $exception) {
-					$notFoundProducts[] = $code . ' ' .$amount;
+					$notFoundProducts[] = $code . ' ' . $amount;
 				}
 			} else {
-				$notFoundProducts[] = $code . ' ' .$amount;
+				$notFoundProducts[] = $code . ' ' . $amount;
 			}
 		}
 		
@@ -86,7 +86,7 @@ class CartImportForm extends Form
 	{
 		$delimiter = $this->detectDelimiter($importFile->getTemporaryFile());
 		
-		if (($handle = \fopen($importFile->getTemporaryFile(), "r")) === false) {
+		if (($handle = \fopen($importFile->getTemporaryFile(), 'r')) === false) {
 			return;
 		}
 
@@ -124,10 +124,10 @@ class CartImportForm extends Form
 			';' => 0,
 			',' => 0,
 			"\t" => 0,
-			"|" => 0,
+			'|' => 0,
 		];
 		
-		$handle = \fopen($csvFile, "r");
+		$handle = \fopen($csvFile, 'r');
 		$firstLine = \fgets($handle);
 		$secondLine = \fgets($handle);
 		$line = $secondLine ?: $firstLine;

@@ -50,7 +50,7 @@ class SupplierRepository extends Repository implements IGeneralRepository
 	{
 		unset($includeHidden);
 
-		return $this->many()->orderBy(["name"])->toArrayOf('name');
+		return $this->many()->orderBy(['name'])->toArrayOf('name');
 	}
 
 	public function getCollection(bool $includeHidden = false): Collection
@@ -61,7 +61,7 @@ class SupplierRepository extends Repository implements IGeneralRepository
 			$collection->where('hidden', false);
 		}
 
-		return $collection->orderBy(['priority', "name"]);
+		return $collection->orderBy(['priority', 'name']);
 	}
 
 	public function catalogEntry(Supplier $supplier, $logDirectory, bool $onlyNew = false, bool $importImages = true): void

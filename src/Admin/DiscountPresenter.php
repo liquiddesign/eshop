@@ -217,12 +217,12 @@ class DiscountPresenter extends BackendPresenter
 			$link = $this->admin->isAllowed(':Eshop:Admin:Customer:edit') && $object->exclusiveCustomer ?
 				$datagrid->getPresenter()->link(':Eshop:Admin:Customer:edit', [$object->exclusiveCustomer, 'backLink' => $this->storeRequest()]) : '#';
 
-			return $object->exclusiveCustomer ? "<a href=\"" . $link . "\"><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->exclusiveCustomer->fullname . "</a>" : '';
+			return $object->exclusiveCustomer ? '<a href="' . $link . "\"><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->exclusiveCustomer->fullname . '</a>' : '';
 		});
 		$grid->addColumnText('Měna', 'currency.code', '%s', 'currency', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Sleva (%)', 'discountPct', '%s %%', 'discountPct', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		$grid->addColumnText('Sleva', "discountValue|price:currency.code", '%s', 'discountValue', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		$grid->addColumnText('Sleva s DPH', "discountValueVat|price:currency.code", '%s', 'discountValueVat', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		$grid->addColumnText('Sleva', 'discountValue|price:currency.code', '%s', 'discountValue', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		$grid->addColumnText('Sleva s DPH', 'discountValueVat|price:currency.code', '%s', 'discountValueVat', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
 		$grid->addColumnLinkDetail('couponsDetail');
 		$grid->addColumnActionDelete();

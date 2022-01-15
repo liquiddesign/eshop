@@ -267,14 +267,14 @@ class Customer extends Entity implements IIdentity, IUser
 	{
 		$deliveryAddress = $this->deliveryAddress;
 		
-		return $deliveryAddress ? $deliveryAddress->street. ', ' . $deliveryAddress->zipcode . ' ' . $deliveryAddress->city : '';
+		return $deliveryAddress ? $deliveryAddress->street . ', ' . $deliveryAddress->zipcode . ' ' . $deliveryAddress->city : '';
 	}
 	
 	public function getBillingAddressLine(): ?string
 	{
 		$billingAddress = $this->billAddress;
 		
-		return $billingAddress ? $billingAddress->street. ', ' . $billingAddress->zipcode . ' ' . $billingAddress->city : '';
+		return $billingAddress ? $billingAddress->street . ', ' . $billingAddress->zipcode . ' ' . $billingAddress->city : '';
 	}
 	
 	public function getId(): string

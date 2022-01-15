@@ -116,7 +116,7 @@ class CustomerPresenter extends BackendPresenter
 
 		$grid = $this->gridFactory->create($this->customerRepository->many(), 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
-		$grid->addColumnText('Registrace', "createdTs|date", '%s', 'createdTs', ['class' => 'fit']);
+		$grid->addColumnText('Registrace', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
 		$grid->addColumn('Název / Jméno', function (Customer $customer) {
 			return $customer->company ?: $customer->fullname;
 		});
@@ -138,8 +138,8 @@ class CustomerPresenter extends BackendPresenter
 				) : '#';
 
 				return $object->getValue('loyaltyProgram') ?
-					"<a href='" . $link . "'>" . $object->loyaltyProgram->name . "</a><small><br>Bodů: " . $object->getLoyaltyProgramPoints() .
-					" | Sleva: " . $this->productRepo->getBestDiscountLevel($object) . '%</small>' :
+					"<a href='" . $link . "'>" . $object->loyaltyProgram->name . '</a><small><br>Bodů: ' . $object->getLoyaltyProgramPoints() .
+					' | Sleva: ' . $this->productRepo->getBestDiscountLevel($object) . '%</small>' :
 					'';
 			}, '%s');
 		}
@@ -217,11 +217,11 @@ class CustomerPresenter extends BackendPresenter
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
 
-		$tempFilename = \tempnam($this->tempDir, "csv");
+		$tempFilename = \tempnam($this->tempDir, 'csv');
 		$collection = $grid->getSource()->where($grid->getSourceIdName(), $grid->getSelectedIds());
 		$this->customerRepository->csvExport($collection, Writer::createFromPath($tempFilename, 'w+'));
 
-		$response = new FileResponse($tempFilename, "customers.csv", 'text/csv');
+		$response = new FileResponse($tempFilename, 'customers.csv', 'text/csv');
 		$this->sendResponse($response);
 	}
 
@@ -230,11 +230,11 @@ class CustomerPresenter extends BackendPresenter
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
 
-		$tempFilename = \tempnam($this->tempDir, "csv");
+		$tempFilename = \tempnam($this->tempDir, 'csv');
 		$collection = $grid->getSource()->where('this.' . $grid->getSourceIdName(), $grid->getSelectedIds());
 		$this->customerRepository->csvExportAccounts($collection, Writer::createFromPath($tempFilename, 'w+'));
 
-		$response = new FileResponse($tempFilename, "accounts.csv", 'text/csv');
+		$response = new FileResponse($tempFilename, 'accounts.csv', 'text/csv');
 		$this->sendResponse($response);
 	}
 
@@ -716,7 +716,7 @@ class CustomerPresenter extends BackendPresenter
 			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
 		}
 
-		$grid->addFilterSelectInput('newsletter', "catalogPermission.newsletter = :nQ", 'Newsletter', '- Newsletter -', null, [
+		$grid->addFilterSelectInput('newsletter', 'catalogPermission.newsletter = :nQ', 'Newsletter', '- Newsletter -', null, [
 			'0' => 'Ne',
 			'1' => 'Ano',
 		], 'nQ');

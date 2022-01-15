@@ -111,7 +111,7 @@ class SupplierPresenter extends BackendPresenter
 		$grid->addColumnText('Zdroj', 'supplier.code', '%s', null, ['class' => 'minimal']);
 		$grid->addColumn('Popis', function (ImportResult $object, Datagrid $datagrid) {
 			if ($object->status === 'error') {
-				return '<span style="color: red;">Import zastaven, nastala chyba <i style="color: #dc3545;" title="'. $object->errorMessage .'" class="fa fa-info-circle"></i></span>';
+				return '<span style="color: red;">Import zastaven, nastala chyba <i style="color: #dc3545;" title="' . $object->errorMessage . '" class="fa fa-info-circle"></i></span>';
 			}
 
 			if ($object->status === 'ok') {

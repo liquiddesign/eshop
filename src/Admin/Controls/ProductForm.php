@@ -653,13 +653,13 @@ Ostatní: Přebírání ze zvoleného zdroje
 		$this->template->relationMaxItemsCount = $this::RELATION_MAX_ITEMS_COUNT;
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->pricelistRepository->many()->orderBy(['this.priority']);
-		$this->template->stores = $this->storeRepository->many()->orderBy(["this.name" . $this->storeRepository->getConnection()->getMutationSuffix()]);
+		$this->template->stores = $this->storeRepository->many()->orderBy(['this.name' . $this->storeRepository->getConnection()->getMutationSuffix()]);
 		$this->template->supplierProducts = [];
 		$this->template->configuration = $this->configuration;
 		$this->template->shopper = $this->shopper;
 		$this->template->primaryCategory = $this->product && $this->product->primaryCategory ?
 			($this->product->primaryCategory->ancestor ?
-				\implode(' -> ', $this->product->primaryCategory->ancestor->getFamilyTree()->toArrayOf('name')) . " -> " . $this->product->primaryCategory->name :
+				\implode(' -> ', $this->product->primaryCategory->ancestor->getFamilyTree()->toArrayOf('name')) . ' -> ' . $this->product->primaryCategory->name :
 				$this->product->primaryCategory->name)
 			: '-';
 

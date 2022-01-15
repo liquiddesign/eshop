@@ -43,6 +43,6 @@ class VatRateRepository extends \StORM\Repository implements IGeneralRepository
 
 		$collection = $this->many();
 
-		return $collection->orderBy(['priority', "name"]);
+		return $collection->orderBy(['priority', 'name']);
 	}
 }

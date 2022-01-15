@@ -122,8 +122,8 @@ abstract class ExportPresenter extends Presenter
 		$phpAuthUser = $this->request->getUrl()->getUser();
 
 		if (\strlen($phpAuthUser) === 0 && !$this->user->isLoggedIn() && !$uuid) {
-			\Header("WWW-Authenticate: Basic realm=\"Please, log in.\"");
-			\Header("HTTP/1.0 401 Unauthorized");
+			\Header('WWW-Authenticate: Basic realm="Please, log in."');
+			\Header('HTTP/1.0 401 Unauthorized');
 			echo "401 Unauthorized\n";
 			echo "Please, sign in through this page or login page.\n";
 			exit;
@@ -135,8 +135,8 @@ abstract class ExportPresenter extends Presenter
 			try {
 				$this->user->login($phpAuthUser, $phpAuthPassword, Customer::class);
 			} catch (AuthenticationException $e) {
-				\Header("WWW-Authenticate: Basic realm=\"Invalid login.\"");
-				\Header("HTTP/1.0 401 Unauthorized");
+				\Header('WWW-Authenticate: Basic realm="Invalid login."');
+				\Header('HTTP/1.0 401 Unauthorized');
 				echo "401 Unauthorized\n";
 				echo "Invalid login\n";
 				exit;
@@ -167,7 +167,7 @@ abstract class ExportPresenter extends Presenter
 
 	public function handleExportEdi(Order $order): void
 	{
-		$tmpfname = \tempnam($this->context->parameters['tempDir'], "xml");
+		$tmpfname = \tempnam($this->context->parameters['tempDir'], 'xml');
 		$fh = \fopen($tmpfname, 'w+');
 		\fwrite($fh, $this->orderRepo->ediExport($order));
 		\fclose($fh);

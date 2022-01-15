@@ -51,7 +51,7 @@ class PickupPointList extends \Grid\Datalist
 		parent::__construct($source, 100);
 
 		$this->addFilterExpression('city', function (ICollection $source, $value): void {
-			$source->where("address.city", $value);
+			$source->where('address.city', $value);
 		}, '');
 
 		$this->addFilterExpression('name', function (Collection $source, $value): void {

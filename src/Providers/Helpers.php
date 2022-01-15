@@ -105,12 +105,12 @@ abstract class Helpers
 	
 	public static function removeDuplicateBr(string $html): string
 	{
-		return \preg_replace("/(<br>\s*|<br \/>\s*|<\/br>\s*){3,}/i", '<br><br>', $html);
+		return \preg_replace('/(<br>\s*|<br \/>\s*|<\/br>\s*){3,}/i', '<br><br>', $html);
 	}
 	
 	public static function removeHtmlAttribute(string $html, $attribute): string
 	{
-		return \preg_replace('/(<[^>]+) '.$attribute.'=".*?"/i', '$1', $html);
+		return \preg_replace('/(<[^>]+) ' . $attribute . '=".*?"/i', '$1', $html);
 	}
 	
 	public static function fixUnclosedDivs(string $html): string
@@ -129,7 +129,7 @@ abstract class Helpers
 
 		for ($i = 0; $i < $lenOpened; $i++) {
 			if (!\in_array($openedTags[$i], $closedTags)) {
-				$html .= '</'.$openedTags[$i].'>';
+				$html .= '</' . $openedTags[$i] . '>';
 			} else {
 				unset($closedTags[\array_search($openedTags[$i], $closedTags)]);
 			}

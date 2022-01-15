@@ -201,7 +201,7 @@ class PickupPointPresenter extends BackendPresenter
 			$link = $this->admin->isAllowed(':Eshop:Admin:PickupPoint:typeDetail') ?
 				$datagrid->getPresenter()->link(':Eshop:Admin:PickupPoint:typeDetail', [$object->pickupPointType, 'backLink' => $this->storeRequest()]) : '#';
 
-			return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->pickupPointType->name . "</a>";
+			return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->pickupPointType->name . '</a>';
 		});
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');

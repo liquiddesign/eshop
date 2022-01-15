@@ -34,6 +34,6 @@ class CurrencyRepository extends \StORM\Repository implements IGeneralRepository
 	{
 		unset($includeHidden);
 
-		return $this->many()->orderBy(['code', "symbol"]);
+		return $this->many()->orderBy(['code', 'symbol']);
 	}
 }

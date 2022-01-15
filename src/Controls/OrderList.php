@@ -213,7 +213,7 @@ class OrderList extends Datalist
 	public function handleExport(string $orderId): void
 	{
 		$object = $this->orderRepository->one($orderId, true);
-		$tempFilename = \tempnam($this->tempDir, "csv");
+		$tempFilename = \tempnam($this->tempDir, 'csv');
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
 			FileSystem::delete($tempFilename);
 		};
@@ -226,14 +226,14 @@ class OrderList extends Datalist
 
 	public function exportCsvApi(array $orders): void
 	{
-		$tempFilename = \tempnam($this->tempDir, "csv");
+		$tempFilename = \tempnam($this->tempDir, 'csv');
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
 			FileSystem::delete($tempFilename);
 		};
 		/** @phpstan-ignore-next-line volá metodu presenteru, pozůstatek z Linde */
 		$this->getPresenter()->csvOrderExportItemsAPI($orders, Writer::createFromPath($tempFilename, 'w+'));
 
-		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "orders.csv", 'text/csv'));
+		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'orders.csv', 'text/csv'));
 	}
 
 	/**
@@ -241,7 +241,7 @@ class OrderList extends Datalist
 	 */
 	public function exportCsv(array $orders): void
 	{
-		$tempFilename = \tempnam($this->tempDir, "csv");
+		$tempFilename = \tempnam($this->tempDir, 'csv');
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
 			FileSystem::delete($tempFilename);
 		};
@@ -309,7 +309,7 @@ class OrderList extends Datalist
 			}
 		}
 
-		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "orders.csv", 'text/csv'));
+		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'orders.csv', 'text/csv'));
 	}
 
 	/**
@@ -321,14 +321,14 @@ class OrderList extends Datalist
 	 */
 	public function exportOrders(array $orders): void
 	{
-		$tempFilename = \tempnam($this->tempDir, "csv");
+		$tempFilename = \tempnam($this->tempDir, 'csv');
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
 			FileSystem::delete($tempFilename);
 		};
 
 		$this->orderRepository->csvExportOrders($orders, Writer::createFromPath($tempFilename, 'w+'));
 
-		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "orders.csv", 'text/csv'));
+		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'orders.csv', 'text/csv'));
 	}
 
 	/**
@@ -340,7 +340,7 @@ class OrderList extends Datalist
 	{
 		$zip = new \ZipArchive();
 
-		$zipFilename = \tempnam($this->tempDir, "zip");
+		$zipFilename = \tempnam($this->tempDir, 'zip');
 
 		if ($zip->open($zipFilename, \ZipArchive::CREATE) !== true) {
 			exit("cannot open <$zipFilename>\n");
@@ -365,7 +365,7 @@ class OrderList extends Datalist
 		}
 
 		foreach ($accounts as $key => $orders) {
-			$tempFilename = \tempnam($this->tempDir, "csv");
+			$tempFilename = \tempnam($this->tempDir, 'csv');
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
 				FileSystem::delete($tempFilename);
 			};
@@ -381,7 +381,7 @@ class OrderList extends Datalist
 			FileSystem::delete($zipFilename);
 		};
 
-		$this->getPresenter()->sendResponse(new FileResponse($zipFilename, "orders.zip", 'application/zip'));
+		$this->getPresenter()->sendResponse(new FileResponse($zipFilename, 'orders.zip', 'application/zip'));
 	}
 
 	/**
@@ -393,7 +393,7 @@ class OrderList extends Datalist
 	{
 		$zip = new \ZipArchive();
 
-		$zipFilename = \tempnam($this->tempDir, "zip");
+		$zipFilename = \tempnam($this->tempDir, 'zip');
 
 		if ($zip->open($zipFilename, \ZipArchive::CREATE) !== true) {
 			exit("cannot open <$zipFilename>\n");
@@ -401,7 +401,7 @@ class OrderList extends Datalist
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
-			$tempFilename = \tempnam($this->tempDir, "csv");
+			$tempFilename = \tempnam($this->tempDir, 'csv');
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
 				FileSystem::delete($tempFilename);
 			};
@@ -416,12 +416,12 @@ class OrderList extends Datalist
 			FileSystem::delete($zipFilename);
 		};
 
-		$this->getPresenter()->sendResponse(new FileResponse($zipFilename, "orders.zip", 'application/zip'));
+		$this->getPresenter()->sendResponse(new FileResponse($zipFilename, 'orders.zip', 'application/zip'));
 	}
 
 	public function exportOrdersExcel(array $orders): void
 	{
-		$filename = \tempnam($this->tempDir, "xlsx");
+		$filename = \tempnam($this->tempDir, 'xlsx');
 
 		$writer = new \XLSXWriter();
 
@@ -433,7 +433,7 @@ class OrderList extends Datalist
 			FileSystem::delete($filename);
 		};
 
-		$this->getPresenter()->sendResponse(new FileResponse($filename, "orders.xlsx", 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));
+		$this->getPresenter()->sendResponse(new FileResponse($filename, 'orders.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));
 	}
 
 	public function exportOrdersExcelZip(array $orders): void
@@ -441,7 +441,7 @@ class OrderList extends Datalist
 		if (\count($orders) === 1) {
 			$order = Arrays::first($orders);
 
-			$tempFilename = \tempnam($this->tempDir, "xlsx");
+			$tempFilename = \tempnam($this->tempDir, 'xlsx');
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
 				FileSystem::delete($tempFilename);
 			};
@@ -457,7 +457,7 @@ class OrderList extends Datalist
 
 		$zip = new \ZipArchive();
 
-		$zipFilename = \tempnam($this->tempDir, "zip");
+		$zipFilename = \tempnam($this->tempDir, 'zip');
 
 		if ($zip->open($zipFilename, \ZipArchive::CREATE) !== true) {
 			exit("cannot open <$zipFilename>\n");
@@ -465,7 +465,7 @@ class OrderList extends Datalist
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
-			$tempFilename = \tempnam($this->tempDir, "xlsx");
+			$tempFilename = \tempnam($this->tempDir, 'xlsx');
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
 				FileSystem::delete($tempFilename);
 			};
@@ -485,6 +485,6 @@ class OrderList extends Datalist
 			FileSystem::delete($zipFilename);
 		};
 
-		$this->getPresenter()->sendResponse(new FileResponse($zipFilename, "orders.zip", 'application/zip'));
+		$this->getPresenter()->sendResponse(new FileResponse($zipFilename, 'orders.zip', 'application/zip'));
 	}
 }

@@ -148,7 +148,7 @@ class StatsControl extends Control
 
 		$orders = $this->orderRepository->many()
 			->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
-			->select(["date" => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
+			->select(['date' => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
 			->where('this.createdTs >= :from AND this.createdTs <= :to', ['from' => $fromString, 'to' => $toString])
 			->join(['purchase' => 'eshop_purchase'], 'purchase.uuid = this.fk_purchase')
 			->where('purchase.fk_currency', $currency->getPK());
@@ -160,7 +160,7 @@ class StatsControl extends Control
 				->select(['customerCount' => 'COUNT(purchase.fk_customer)'])
 				->select(['customerUuid' => 'purchase.fk_customer'])
 				->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
-				->select(["date" => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
+				->select(['date' => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
 				->where('this.createdTs >= :from AND this.createdTs <= :to', ['from' => $fromString, 'to' => $toString])
 				->where('purchase.fk_currency', $currency->getPK());
 

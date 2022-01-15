@@ -21,6 +21,7 @@ use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Entity;
 use StORM\Expression;
+use StORM\GenericCollection;
 use StORM\ICollection;
 use StORM\Repository;
 use StORM\SchemaManager;
@@ -107,6 +108,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$convertRatio = $currency->convertRatio;
 		}
 
+		/** @var \Eshop\DB\Pricelist[] $pricelists */
 		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists($currency->isConversionEnabled() ? $currency->convertCurrency : null)->toArray());
 		$customer ??= $this->shopper->getCustomer();
 		$discountLevelPct = $customer ? $this->getBestDiscountLevel($customer) : 0;
@@ -151,9 +153,6 @@ class ProductRepository extends Repository implements IGeneralRepository
 				$priceSelects[] = "IF(prices$id.price IS NULL,'X',CONCAT_WS('$sep',LPAD(" . $pricelist->priority .
 					",$priorityLpad,'0'),LPAD(CAST($price AS DECIMAL($priceLpad,$prec)), $priceLpad, '0'),$priceVat,IFNULL($priceBefore,0),IFNULL($priceVatBefore,0),prices$id.fk_pricelist))";
 			}
-
-			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
-			$priceWhere[] = "prices$id.price IS NOT NULL";
 		}
 
 		if ($selects) {
@@ -166,7 +165,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$collection->select(['currencyCode' => "'" . $currency->code . "'"]);
 
 			$collection->select(['vatPct' => "IF(vatRate = 'standard'," . ($vatRates['standard'] ?? 0) . ",IF(vatRate = 'reduced-high'," .
-				($vatRates['reduced-high'] ?? 0) . ",IF(vatRate = 'reduced-low'," . ($vatRates['reduced-low'] ?? 0) . ",0)))"]);
+				($vatRates['reduced-high'] ?? 0) . ",IF(vatRate = 'reduced-low'," . ($vatRates['reduced-low'] ?? 0) . ',0)))']);
 
 			$subSelect = $this->getConnection()
 				->rows(['eshop_attributevalue'], ["GROUP_CONCAT(CONCAT_WS('$sep', eshop_attributevalue.uuid, fk_attribute, eshop_attributevalue.label$suffix, eshop_attributevalue.metaValue))"])
@@ -185,8 +184,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$collection->select([
 				'fallbackImage' => 'primaryCategory.productFallbackImageFileName',
 				'primaryCategoryPath' => 'primaryCategory.path',
-				"perex" => "COALESCE(this.perex$suffix, primaryCategory.defaultProductPerex$suffix)",
-				"content" => "COALESCE(this.content$suffix, primaryCategory.defaultProductContent$suffix)",
+				'perex' => "COALESCE(this.perex$suffix, primaryCategory.defaultProductPerex$suffix)",
+				'content' => "COALESCE(this.content$suffix, primaryCategory.defaultProductContent$suffix)",
 			]);
 
 			if ($customer) {
@@ -197,9 +196,28 @@ class ProductRepository extends Repository implements IGeneralRepository
 			}
 		}
 
-		$collection->where(\implode(' OR ', $priceWhere));
+		$this->setPriceConditions($collection, $pricelists);
 
 		return $collection;
+	}
+	
+	/**
+	 * @param \StORM\ICollection $collection
+	 * @param \Eshop\DB\Pricelist[] $pricelists
+	 * @return void
+	 */
+	public function setPriceConditions(ICollection $collection, array $pricelists): void
+	{
+		$priceWhere = new Expression();
+		
+		foreach ($pricelists as $id => $pricelist) {
+			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
+			$priceWhere->add('OR', "prices$id.price IS NOT NULL");
+		}
+		
+		if ($sql = $priceWhere->getSql()) {
+			$collection->where($sql);
+		}
 	}
 
 	public function getBestDiscountLevel(Customer $customer): int
@@ -394,8 +412,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $collection->orderBy([
 			"this.name$langSuffix LIKE :qlike" => 'DESC',
 			"this.name$langSuffix LIKE :qlikeq" => 'DESC',
-			"rel0" => 'DESC',
-			"this.code LIKE :qlike" => 'DESC',
+			'rel0' => 'DESC',
+			'this.code LIKE :qlike' => 'DESC',
 		]);
 	}
 
