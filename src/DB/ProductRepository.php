@@ -219,6 +219,25 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$collection->where($sql);
 	}
+	
+	/**
+	 * @param string $groupBy
+	 * @param array<string, \Eshop\DB\Pricelist> $pricelists
+	 * @param array<string, mixed> $filters
+	 * @return array<string, string>
+	 */
+	public function getCountGroupedBy(string $groupBy, $pricelists, $filters): array
+	{
+		$rows = $this->many();
+		$this->setPriceConditions($rows, $pricelists);
+		$this->filter($rows, $filters);
+		$rows->setSelect(['count' => "COUNT($groupBy)"])
+			->setIndex($groupBy)
+			->setGroupBy([$groupBy])
+			->where('this.hidden=0');
+		
+		return $rows->toArrayOf('count');
+	}
 
 	public function getBestDiscountLevel(Customer $customer): int
 	{
