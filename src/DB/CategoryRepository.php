@@ -223,7 +223,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 					->where('prices.price IS NOT NULL AND this.hidden=0')
 					->setGroupBy(['SUBSTR(category.path,1,:level)'], null, ['level' => $level * 4]);
 				
-				$result += $rows->setIndex('category.uuid')->toArrayOf('total');
+				$result += $rows->setIndex('category.path')->toArrayOf('total');
 			}
 			
 			return $result;

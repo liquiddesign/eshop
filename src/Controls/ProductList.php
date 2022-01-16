@@ -97,9 +97,9 @@ class ProductList extends Datalist
 		$this->setDefaultOrder('priority');
 
 		$this->setAllowedOrderColumns(['price' => 'price', 'priority' => 'priority']);
-		$this->setItemCountCallback(function (ICollection $filteredSource) use ($categoryRepository) {
-			if (isset($this->getFilters()['category'])) {
-				return (int)($categoryRepository->getCountsGrouped(null, $this->getFilters())[$this->getFilters()['category']] ?? 0);
+		$this->setItemCountCallback(function (ICollection $filteredSource) use ($categoryRepository, $shopper) {
+			if (isset($this->getFilters()['category']) && \count($this->getFilters()) === 1) {
+				return (int)($categoryRepository->getCounts($shopper->getPricelists()->toArray()))[$this->getFilters()['category']];
 			}
 
 			return $filteredSource->setOrderBy([])->count();

@@ -186,7 +186,7 @@ class Category extends \StORM\Entity
 		/** @var \Eshop\DB\CategoryRepository $repository */
 		$repository = $this->getRepository();
 
-		return (int)($repository->getCounts()[$this->getPK()] ?? 0);
+		return (int)($repository->getCounts()[$this->path] ?? 0);
 	}
 
 	/**
