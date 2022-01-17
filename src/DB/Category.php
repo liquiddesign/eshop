@@ -181,12 +181,12 @@ class Category extends \StORM\Entity
 		return \substr($this->path, 0, 4 * ($level + 1));
 	}
 
-	public function getProductCount(): int
+	public function getProductCount(): ?int
 	{
 		/** @var \Eshop\DB\CategoryRepository $repository */
 		$repository = $this->getRepository();
 
-		return (int)($repository->getCounts()[$this->path] ?? 0);
+		return $repository->getCounts($this->path);
 	}
 
 	/**

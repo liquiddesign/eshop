@@ -99,10 +99,10 @@ class ProductList extends Datalist
 		$this->setAllowedOrderColumns(['price' => 'price', 'priority' => 'priority']);
 		$this->setItemCountCallback(function (ICollection $filteredSource) use ($categoryRepository) {
 			if (isset($this->getFilters()['category']) && \count($this->getFilters()) === 1) {
-				return (int) ($categoryRepository->getCounts()[$this->getFilters()['category']] ?? 0);
+				$prefetchedCount = $categoryRepository->getCounts($this->getFilters()['category']);
 			}
 
-			return $filteredSource->setOrderBy([])->count();
+			return $prefetchedCount === null ? $filteredSource->setOrderBy([])->count() : $prefetchedCount;
 		});
 
 		$this->addOrderExpression('crossSellOrder', function (ICollection $collection, $value): void {

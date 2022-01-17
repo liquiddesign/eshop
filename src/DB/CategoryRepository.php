@@ -186,18 +186,18 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 //			return $results;
 //		});
 	}
-	
-	/**
-	 * @return string[]
-	 * @throws \Throwable
-	 */
-	public function getCounts(): array
+
+	public function getCounts(string $path): ?int
 	{
 		$levels = $this->preloadCategoryCounts;
 		$stm = $this->connection;
 		$productRepository = $this->productRepository;
 		
-		return $this->cache->load($this->shopper->getPriceCacheIndex('categories'), static function (&$dependencies) use ($stm, $productRepository, $levels) {
+		if (!\in_array(\strlen($path) / 4, $levels)) {
+			return null;
+		}
+		
+		$result = $this->cache->load($this->shopper->getPriceCacheIndex('categories'), static function (&$dependencies) use ($stm, $productRepository, $levels) {
 			$dependencies = [
 				Cache::TAGS => ['categories', 'products', 'pricelists'],
 			];
@@ -215,6 +215,8 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			
 			return $result;
 		});
+		
+		return (int) ($result[$path] ?? 0);
 	}
 
 	/**
