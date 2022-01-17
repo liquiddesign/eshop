@@ -245,7 +245,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		$index = $this->shopper->getPriceCacheIndex('attributes', $filters);
 		$cache = $index ? $this->cache : new Cache(new DevNullStorage());
 		/** @var \Eshop\DB\ProductRepository $productRepository */
-		$productRepository = $this->getConnection()->findRepository(ProductRepository::class);
+		$productRepository = $this->getConnection()->findRepository(Product::class);
 		$assignRepository = $this->getConnection()->findRepository(AttributeAssign::class);
 		
 		return $cache->load($index, static function (&$dependencies) use ($values, $filters, $assignRepository, $productRepository) {
