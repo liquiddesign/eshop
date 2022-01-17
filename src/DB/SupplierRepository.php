@@ -75,8 +75,11 @@ class SupplierRepository extends Repository implements IGeneralRepository
 		$result = $this->supplierProductRepository->syncProducts($supplier, $mutation, $country, !$onlyNew, $importImages);
 
 		$this->importResultRepository->log("Products entered: inserted: $result[inserted], updated: $result[updated], locked: $result[locked]");
-
-		$this->pricelistRepository->many()->where('fk_supplier', $supplier)->delete();
+		
+		$this->priceRepository->many()
+			->join(['pricelist' => 'eshop_pricelist'], 'pricelist.uuid=this.fk_pricelist')
+			->where('pricelist.fk_supplier', $supplier)
+			->delete();
 
 		$availablePriceCount = null;
 		$unavailablePriceCount = null;
