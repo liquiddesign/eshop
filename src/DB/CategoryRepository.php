@@ -43,14 +43,14 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	private array $preloadCategoryCounts;
 	
 	public function __construct(
-		array $preloadCategoryCounts,
 		DIConnection $connection,
 		SchemaManager $schemaManager,
 		Shopper $shopper,
 		Storage $storage,
 		PageRepository $pageRepository,
 		ProducerRepository $producerRepository,
-		ProductRepository $productRepository
+		ProductRepository $productRepository,
+		array $preloadCategoryCounts = []
 	) {
 		parent::__construct($connection, $schemaManager);
 
