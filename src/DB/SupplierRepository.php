@@ -16,8 +16,8 @@ use StORM\SchemaManager;
 class SupplierRepository extends Repository implements IGeneralRepository
 {
 	private SupplierProductRepository $supplierProductRepository;
-
-	private PricelistRepository $pricelistRepository;
+	
+	private PriceRepository $priceRepository;
 
 	private StoreRepository $storeRepository;
 
@@ -29,7 +29,7 @@ class SupplierRepository extends Repository implements IGeneralRepository
 		DIConnection $connection,
 		SchemaManager $schemaManager,
 		SupplierProductRepository $supplierProductRepository,
-		PricelistRepository $pricelistRepository,
+		PriceRepository $priceRepository,
 		StoreRepository $storeRepository,
 		SupplierCategoryRepository $supplierCategoryRepository,
 		ImportResultRepository $importResultRepository
@@ -37,7 +37,7 @@ class SupplierRepository extends Repository implements IGeneralRepository
 		$this->supplierCategoryRepository = $supplierCategoryRepository;
 		$this->supplierProductRepository = $supplierProductRepository;
 		$this->storeRepository = $storeRepository;
-		$this->pricelistRepository = $pricelistRepository;
+		$this->priceRepository = $priceRepository;
 		$this->importResultRepository = $importResultRepository;
 
 		parent::__construct($connection, $schemaManager);
