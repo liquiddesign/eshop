@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Eshop\DB\Attribute;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\DisplayAmountRepository;
@@ -13,6 +14,7 @@ use Forms\Form;
 use Forms\FormFactory;
 use Nette\Application\UI\Control;
 use Nette\Utils\Arrays;
+use StORM\Collection;
 use Translator\DB\TranslationRepository;
 
 /**
@@ -54,6 +56,16 @@ class ProductFilter extends Control
 	 */
 	private array $attributes;
 	
+	/**
+	 * @var string[]
+	 */
+	private array $attributeValues = [];
+	
+	/**
+	 * @var string[][]
+	 */
+	private array $rangeValues = [];
+	
 	public function __construct(
 		FormFactory $formFactory,
 		TranslationRepository $translator,
@@ -86,14 +98,14 @@ class ProductFilter extends Control
 		$this->template->attributes = $attributes = $this->getAttributes();
 		$this->template->clearLink = $this->presenter->link(':Eshop:Product:list', $this->getRootFilter());
 		
-		// @TODO: hodnoty se nacitaji 2x, zlepsit performance
-		$values = [];
+		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($this->attributeValues, $filters);
 		
-		foreach ($attributes as $attribute) {
-			$values += $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('uuid', [], true);
+		foreach ($this->rangeValues as $rangeId => $valuesIds) {
+			foreach ($valuesIds as $valueId) {
+				$this->template->attributesValuesCounts[$rangeId] ??= 0;
+				$this->template->attributesValuesCounts[$rangeId] += $this->template->attributesValuesCounts[$valueId] ?? 0;
+			}
 		}
-		
-		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($values, $filters);
 		
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
@@ -117,24 +129,27 @@ class ProductFilter extends Control
 		$defaults = $this->getProductList()->getFilters()['attributes'] ?? [];
 		
 		foreach ($this->getAttributes() as $attribute) {
-			$attributeValues = Arrays::contains(\array_keys($this::SYSTEMIC_ATTRIBUTES), $attribute->getPK()) ?
-				$this->getSystemicAttributeValues($attribute->getPK()) :
-				($attribute->showRange ?
-					$this->attributeValueRangeRepository->getCollection()
-						->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attributeValueRange = this.uuid')
-						->where('attributeValue.fk_attribute', $attribute->getPK())
-						->toArrayOf('name') :
-					$this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label'));
+			if (Arrays::contains(\array_keys($this::SYSTEMIC_ATTRIBUTES), $attribute->getPK())) {
+				$attributeValues = $this->getSystemicAttributeValues($attribute->getPK());
+				$this->attributeValues[] = $attribute->getPK();
+			} elseif (!$attribute->showRange) {
+				$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
+				$this->attributeValues[] = $attribute->getPK();
+			} else {
+				$attributeValues = [];
+
+				/** @var \Eshop\DB\AttributeValueRange $rangeAttribute */
+				foreach ($this->getRangeValues($attribute) as $rangeAttribute) {
+					$attributeValues[$rangeAttribute->getPK()] = $rangeAttribute->name;
+					$this->rangeValues[$rangeAttribute->getPK()] = \explode(',', $rangeAttribute->concatValues);
+				}
+			}
 			
 			if (!$attributeValues) {
 				continue;
 			}
 			
-			$checkboxList = $attributesContainer->addCheckboxList(
-				$attribute->getPK(),
-				$attribute->name ?? $attribute->code,
-				$attributeValues,
-			);
+			$checkboxList = $attributesContainer->addCheckboxList($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
 			
 			if (!isset($defaults[$attribute->getPK()])) {
 				continue;
@@ -181,6 +196,15 @@ class ProductFilter extends Control
 	private function getAttributes(): array
 	{
 		return $this->attributes ??= $this->getCategoryPath() ? $this->attributeRepository->getAttributesByCategory($this->getCategoryPath())->where('showFilter', true)->toArray() : [];
+	}
+	
+	private function getRangeValues(Attribute $attribute): Collection
+	{
+		return $this->attributeValueRangeRepository->getCollection()
+			->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attributeValueRange = this.uuid')
+			->where('attributeValue.fk_attribute', $attribute->getPK())
+			->select(['concatValues' => 'GROUP_CONCAT(attributeValue.uuid)'])
+			->setGroupBy(['this.uuid']);
 	}
 	
 	/**

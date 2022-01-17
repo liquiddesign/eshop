@@ -210,7 +210,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 					->setGroupBy(['SUBSTR(category.path,1,:level)'], null, ['level' => $level * 4]);
 				$productRepository->setProductsConditions($rows, false);
 				
-				$result += $rows->setIndex('SUBSTR(category.uuid,1,:level)')->toArrayOf('total');
+				$result += $rows->setIndex('SUBSTR(category.path,1,:level)')->toArrayOf('total');
 			}
 			
 			return $result;
