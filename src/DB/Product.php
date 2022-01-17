@@ -532,6 +532,18 @@ class Product extends \StORM\Entity
 	}
 
 	/**
+	 * @return string[]
+	 */
+	public function getSupplierStoreAmounts(): array
+	{
+		return $this->getConnection()->findRepository(Amount::class)->many()
+			->where('store.fk_supplier IS NOT NULL')
+			->where('fk_product', $this->getPK())
+			->setIndex('store.fk_supplier')
+			->toArrayOf('inStock');
+	}
+
+	/**
 	 * @param string $property
 	 * @return string[]
 	 */
