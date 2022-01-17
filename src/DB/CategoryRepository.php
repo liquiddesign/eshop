@@ -207,7 +207,6 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 				$rows = $stm->rows(['nxn' => 'eshop_product_nxn_eshop_category'], ['uuid' => 'nxn.fk_category', 'path' => 'category.path', 'total' => 'COUNT(DISTINCT nxn.fk_product)'])
 					->join(['this' => 'eshop_product'], 'this.uuid=nxn.fk_product')
 					->join(['category' => 'eshop_category'], 'category.uuid=nxn.fk_category')
-					->where('prices.price IS NOT NULL AND this.hidden=0')
 					->setGroupBy(['SUBSTR(category.path,1,:level)'], null, ['level' => $level * 4]);
 				$productRepository->setProductsConditions($rows, false);
 				
