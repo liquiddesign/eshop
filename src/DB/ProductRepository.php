@@ -13,6 +13,7 @@ use League\Csv\Writer;
 use Nette\Application\LinkGenerator;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\Caching\Storages\DevNullStorage;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
@@ -108,7 +109,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 
 		/** @var \Eshop\DB\Pricelist[] $pricelists */
-		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists($currency->isConversionEnabled() ? $currency->convertCurrency : null)->toArray());
+		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists()->toArray());
 		$customer ??= $this->shopper->getCustomer();
 		$discountLevelPct = $customer ? $this->getBestDiscountLevel($customer) : 0;
 		$vatRates = $this->shopper->getVatRates();
@@ -125,8 +126,6 @@ class ProductRepository extends Repository implements IGeneralRepository
 			if ($pricelist->getValue('currency') === $currency->getPK() || !$convertRatio) {
 				continue;
 			}
-
-			$convertionPricelistIds[] = $pricelist->getPK();
 		}
 
 		if (!$pricelists) {
@@ -195,22 +194,22 @@ class ProductRepository extends Repository implements IGeneralRepository
 			}
 		}
 
-		$this->setPriceConditions($collection, $pricelists);
+		$this->setProductsConditions($collection);
 
 		return $collection;
 	}
 	
-	/**
-	 * @param \StORM\Collection $collection
-	 * @param \Eshop\DB\Pricelist[] $pricelists
-	 */
-	public function setPriceConditions(Collection $collection, array $pricelists): void
+	public function setProductsConditions(ICollection $collection, bool $includeHidden = true): void
 	{
 		$priceWhere = new Expression();
 		
-		foreach (\array_values($pricelists) as $id => $pricelist) {
+		foreach (\array_values($this->shopper->getPricelists()->toArray()) as $id => $pricelist) {
 			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
 			$priceWhere->add('OR', "prices$id.price IS NOT NULL");
+		}
+		
+		if (!$includeHidden) {
+			$collection->where('this.hidden = 0');
 		}
 		
 		if (!$sql = $priceWhere->getSql()) {
@@ -222,21 +221,28 @@ class ProductRepository extends Repository implements IGeneralRepository
 	
 	/**
 	 * @param string $groupBy
-	 * @param array<string, \Eshop\DB\Pricelist> $pricelists
 	 * @param array<string, mixed> $filters
 	 * @return array<string, string>
 	 */
-	public function getCountGroupedBy(string $groupBy, $pricelists, $filters): array
+	public function getCountGroupedBy(string $groupBy, $filters): array
 	{
-		$rows = $this->many();
-		$this->setPriceConditions($rows, $pricelists);
-		$this->filter($rows, $filters);
-		$rows->setSelect(['count' => "COUNT($groupBy)"])
-			->setIndex($groupBy)
-			->setGroupBy([$groupBy])
-			->where('this.hidden=0');
+		$index = $this->shopper->getPriceCacheIndex($groupBy, $filters);
+		$cache = $index ? $this->cache : new Cache(new DevNullStorage());
+		$productRepository = $this;
 		
-		return $rows->toArrayOf('count');
+		return $cache->load($index, static function (&$dependencies) use ($groupBy, $filters, $productRepository) {
+			$dependencies = [
+				Cache::TAGS => ['categories', 'products', 'pricelists'],
+			];
+			$rows = $productRepository->many();
+			$rows->setSelect(['count' => "COUNT($groupBy)"])
+				->setIndex($groupBy)
+				->setGroupBy([$groupBy]);
+			$productRepository->setProductsConditions($rows, false);
+			$productRepository->filter($rows, $filters);
+			
+			return $rows->toArrayOf('count');
+		});
 	}
 
 	public function getBestDiscountLevel(Customer $customer): int

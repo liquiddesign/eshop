@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
+use Eshop\Shopper;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
+use Nette\Caching\Storages\DevNullStorage;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
@@ -16,14 +20,30 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 {
 	private AttributeValueRepository $attributeValueRepository;
 
+	private Shopper $shopper;
+
+	private ProductRepository $productRepository;
+
+	private AttributeAssignRepository $attributeAssignRepository;
+	
+	private Cache $cache;
+	
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		AttributeValueRepository $attributeValueRepository
+		Shopper $shopper,
+		ProductRepository $productRepository,
+		AttributeAssignRepository $attributeAssignRepository,
+		AttributeValueRepository $attributeValueRepository,
+		Storage $storage
 	) {
 		parent::__construct($connection, $schemaManager);
 
+		$this->shopper = $shopper;
+		$this->productRepository = $productRepository;
+		$this->attributeAssignRepository = $attributeAssignRepository;
 		$this->attributeValueRepository = $attributeValueRepository;
+		$this->cache = new Cache($storage);
 	}
 
 	/**
@@ -224,33 +244,33 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	}
 	
 	/**
-	 * @param array<string, \Eshop\DB\Pricelist> $pricelists
 	 * @param array<int, string> $values
 	 * @param array<string, mixed> $filters
 	 * @return array<string, string>
 	 */
-	public function getCounts(array $pricelists, array $values, array $filters): array
+	public function getCounts(array $values, array $filters): array
 	{
-		/** @var \Eshop\DB\ProductRepository $productRepository */
-		$productRepository = $this->getConnection()->findRepository(Product::class);
+		$index = $this->shopper->getPriceCacheIndex('attributes', $filters);
+		$cache = $index ? $this->cache : new Cache(new DevNullStorage());
+		$productRepository = $this->productRepository;
+		$assignRepository = $this->attributeAssignRepository;
 		
-		$assignRepository = $this->getConnection()->findRepository(AttributeAssign::class);
-		$rows = $assignRepository->many();
-		$rows->setFrom(['assign' => 'eshop_attributeassign'])
-			->setSmartJoin(true, Product::class)
-			->setFetchClass(\stdClass::class)
-			->setSelect(['count' => 'COUNT(assign.fk_product)'])
-			->setIndex('assign.fk_value')
-			->join(['this' => 'eshop_product'], 'this.uuid=assign.fk_product')
-			->where('fk_value', $values)
-			->setGroupBy(['assign.fk_value']);
-		
-		$productRepository->setPriceConditions($rows, $pricelists);
-		
-		$rows->where('this.hidden=0');
-		
-		$productRepository->filter($rows, $filters);
-		
-		return $rows->toArrayOf('count');
+		return $cache->load($index, static function (&$dependencies) use ($values, $filters, $assignRepository, $productRepository) {
+			$rows = $assignRepository->many();
+			$rows->setFrom(['assign' => 'eshop_attributeassign'])
+				->setSmartJoin(true, Product::class)
+				->setFetchClass(\stdClass::class)
+				->setSelect(['count' => 'COUNT(assign.fk_product)'])
+				->setIndex('assign.fk_value')
+				->join(['this' => 'eshop_product'], 'this.uuid=assign.fk_product')
+				->where('fk_value', $values)
+				->setGroupBy(['assign.fk_value']);
+			
+			$productRepository->setProductsConditions($rows, false);
+			
+			$productRepository->filter($rows, $filters);
+			
+			return $rows->toArrayOf('count');
+		});
 	}
 }

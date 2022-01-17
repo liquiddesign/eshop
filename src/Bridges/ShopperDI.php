@@ -22,6 +22,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			'projectUrl' => Expect::string('lqd.cz'),
 			'country' => Expect::string('CZ'),
 			'currency' => Expect::string('CZK'),
+			'preloadCategoryCounts' => Expect::array([2,3]),
 			'registration' => Expect::structure([
 				'enabled' => Expect::bool(true),
 				'confirmation' => Expect::bool(true),

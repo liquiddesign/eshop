@@ -16,7 +16,6 @@ use Pages\Helpers;
 use StORM\ArrayWrapper;
 use StORM\Collection;
 use StORM\DIConnection;
-use StORM\Expression;
 use StORM\SchemaManager;
 use Web\DB\PageRepository;
 
@@ -39,8 +38,12 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	private ProducerRepository $producerRepository;
 
 	private ProductRepository $productRepository;
-
+	
+	/** @var int[] */
+	private array $preloadCategoryCounts;
+	
 	public function __construct(
+		array $preloadCategoryCounts,
 		DIConnection $connection,
 		SchemaManager $schemaManager,
 		Shopper $shopper,
@@ -56,6 +59,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$this->pageRepository = $pageRepository;
 		$this->producerRepository = $producerRepository;
 		$this->productRepository = $productRepository;
+		$this->preloadCategoryCounts = $preloadCategoryCounts;
 	}
 
 	/**
@@ -187,43 +191,27 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	 * @return string[]
 	 * @throws \Throwable
 	 */
-	public function getCounts(array $pricelists = [], $levels = [2, 3]): array
+	public function getCounts(): array
 	{
-		$currency = $this->shopper->getCurrency();
-		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists($currency->isConversionEnabled() ? $currency->convertCurrency : null)->toArray());
-		
-		if (\count($pricelists) === 0) {
-			return [];
-		}
-		
-		$cacheIndex = 'catagories_counts';
-		
-		foreach ($pricelists as $pricelist) {
-			$cacheIndex .= '_' . $pricelist->getPK();
-		}
-		
+		$levels = $this->preloadCategoryCounts;
 		$stm = $this->connection;
+		$productRepository = $this->productRepository;
 		
-		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($stm, $pricelists, $levels) {
+		return $this->cache->load($this->shopper->getPriceCacheIndex('categories'), static function (&$dependencies) use ($stm, $productRepository, $levels) {
 			$dependencies = [
 				Cache::TAGS => ['categories', 'products', 'pricelists'],
 			];
 			$result = [];
-			$expression = new Expression();
-			
-			foreach ($pricelists as $priceList) {
-				$expression->add('OR', 'prices.fk_pricelist = %s', [$priceList]);
-			}
 			
 			foreach ($levels as $level) {
 				$rows = $stm->rows(['nxn' => 'eshop_product_nxn_eshop_category'], ['uuid' => 'nxn.fk_category', 'path' => 'category.path', 'total' => 'COUNT(DISTINCT nxn.fk_product)'])
 					->join(['this' => 'eshop_product'], 'this.uuid=nxn.fk_product')
 					->join(['category' => 'eshop_category'], 'category.uuid=nxn.fk_category')
-					->join(['prices' => 'eshop_price'], 'prices.fk_product=this.uuid AND (' . $expression->getSql() . ')', $expression->getVars())
 					->where('prices.price IS NOT NULL AND this.hidden=0')
 					->setGroupBy(['SUBSTR(category.path,1,:level)'], null, ['level' => $level * 4]);
+				$productRepository->setProductsConditions($rows, false);
 				
-				$result += $rows->setIndex('category.path')->toArrayOf('total');
+				$result += $rows->setIndex('SUBSTR(category.uuid,1,:level)')->toArrayOf('total');
 			}
 			
 			return $result;

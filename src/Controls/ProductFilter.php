@@ -9,7 +9,6 @@ use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
-use Eshop\Shopper;
 use Forms\Form;
 use Forms\FormFactory;
 use Nette\Application\UI\Control;
@@ -55,8 +54,6 @@ class ProductFilter extends Control
 	 */
 	private array $attributes;
 	
-	private Shopper $shopper;
-	
 	public function __construct(
 		FormFactory $formFactory,
 		TranslationRepository $translator,
@@ -64,8 +61,7 @@ class ProductFilter extends Control
 		DisplayAmountRepository $displayAmountRepository,
 		DisplayDeliveryRepository $displayDeliveryRepository,
 		AttributeValueRangeRepository $attributeValueRangeRepository,
-		ProducerRepository $producerRepository,
-		Shopper $shopper
+		ProducerRepository $producerRepository
 	) {
 		$this->translator = $translator;
 		$this->formFactory = $formFactory;
@@ -74,21 +70,17 @@ class ProductFilter extends Control
 		$this->displayDeliveryRepository = $displayDeliveryRepository;
 		$this->attributeValueRangeRepository = $attributeValueRangeRepository;
 		$this->producerRepository = $producerRepository;
-		$this->shopper = $shopper;
 	}
 	
 	public function render(): void
 	{
-		/** @var \Eshop\DB\Pricelist[] $pricelists */
-		$pricelists = $this->shopper->getPricelists()->toArray();
-		
 		/** @var string[][][] $filters */
 		$filters = $this->getProductList()->getFilters();
 		
 		$this->template->systemicCounts = [
-			'availability' => $this->displayAmountRepository->getCounts($pricelists, $filters),
-			//'delivery' => $this->displayDeliveryRepository->getCounts($pricelists, $filters),
-			'producer' => $this->producerRepository->getCounts($pricelists, $filters),
+			'availability' => $this->displayAmountRepository->getCounts($filters),
+			//'delivery' => $this->displayDeliveryRepository->getCounts($filters),
+			'producer' => $this->producerRepository->getCounts($filters),
 		];
 		
 		$this->template->attributes = $attributes = $this->getAttributes();
@@ -101,7 +93,7 @@ class ProductFilter extends Control
 			$values += $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('uuid', [], true);
 		}
 		
-		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($pricelists, $values, $filters);
+		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($values, $filters);
 		
 		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}

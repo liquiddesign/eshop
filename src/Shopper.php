@@ -286,13 +286,15 @@ class Shopper
 	}
 	
 	/**
-	 * Vrací kolekci aktuálních ceník, respektující uživatel i měnu
+	 * Vrací kolekci aktuálních ceník, respektující uživatel i měnu, cachuje se do proměnné pokud není zadána měna
 	 */
 	public function getPricelists(?Currency $currency = null): Collection
 	{
-		if ($this->pricelists !== null) {
+		if ($this->pricelists !== null && $currency === null) {
 			return $this->pricelists;
 		}
+		
+		$currency = $currency ?: ($this->getCurrency()->isConversionEnabled() ? $this->getCurrency()->convertCurrency : $this->getCurrency());
 		
 		$customer = $this->getCustomer();
 		$merchant = $this->getMerchant();
@@ -302,11 +304,20 @@ class Shopper
 		$repo = $this->pricelistRepository;
 		
 		if (!$customer && $merchant) {
-			return $this->pricelists = $repo->getMerchantPricelists($merchant, $currency ?: $this->getCurrency(), $this->getCountry(), $this->getDiscountCoupon());
+			return $this->pricelists = $repo->getMerchantPricelists($merchant, $currency, $this->getCountry(), $this->getDiscountCoupon());
 		}
 		
-		return $this->pricelists = $customer ? $repo->getCustomerPricelists($customer, $currency ?: $this->getCurrency(), $this->getCountry(), $this->getDiscountCoupon()) :
-			$repo->getPricelists($unregisteredPricelists, $currency ?: $this->getCurrency(), $this->getCountry(), $this->getDiscountCoupon());
+		return $this->pricelists = $customer ? $repo->getCustomerPricelists($customer, $currency, $this->getCountry(), $this->getDiscountCoupon()) :
+			$repo->getPricelists($unregisteredPricelists, $currency, $this->getCountry(), $this->getDiscountCoupon());
+	}
+	
+	public function getPriceCacheIndex(string $prefix, array $filters = []): ?string
+	{
+		if (\count($filters) > 1) {
+			return null;
+		}
+		
+		return $prefix . \implode('', $this->getPricelists()->toArrayOf('uuid')) . \http_build_query($filters);
 	}
 	
 	/**

@@ -42,12 +42,11 @@ class DisplayDeliveryRepository extends \StORM\Repository implements IGeneralRep
 	}
 	
 	/**
-	 * @param array<string, \Eshop\DB\Pricelist> $pricelists
 	 * @param array<string, mixed> $filters
 	 * @return array<string, string>
 	 */
-	public function getCounts(array $pricelists, array $filters): array
+	public function getCounts(array $filters): array
 	{
-		return $this->productRepository->getCountGroupedBy('this.fk_displayDelivery', $pricelists, $filters);
+		return $this->productRepository->getCountGroupedBy('this.fk_displayDelivery', $filters);
 	}
 }
