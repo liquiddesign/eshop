@@ -19,33 +19,25 @@ use StORM\SchemaManager;
 class AttributeRepository extends \StORM\Repository implements IGeneralRepository
 {
 	private AttributeValueRepository $attributeValueRepository;
-
-	private Shopper $shopper;
-
-	private ProductRepository $productRepository;
-
-	private AttributeAssignRepository $attributeAssignRepository;
 	
 	private Cache $cache;
+	
+	private Shopper $shopper;
 	
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		Shopper $shopper,
-		ProductRepository $productRepository,
-		AttributeAssignRepository $attributeAssignRepository,
 		AttributeValueRepository $attributeValueRepository,
+		Shopper $shopper,
 		Storage $storage
 	) {
 		parent::__construct($connection, $schemaManager);
-
-		$this->shopper = $shopper;
-		$this->productRepository = $productRepository;
-		$this->attributeAssignRepository = $attributeAssignRepository;
+		
 		$this->attributeValueRepository = $attributeValueRepository;
+		$this->shopper = $shopper;
 		$this->cache = new Cache($storage);
 	}
-
+	
 	/**
 	 * @param bool $includeHidden
 	 * @return string[]
@@ -53,24 +45,24 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
-
+		
 		return $this->getCollection($includeHidden)
 			->select(['fullName' => "IF(this.systemic = 1, CONCAT(name$mutationSuffix, ' (systémový)'), CONCAT(name$mutationSuffix, ' (', code, ')'))"])
 			->toArrayOf('fullName');
 	}
-
+	
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 		$collection = $this->many();
-
+		
 		if (!$includeHidden) {
 			$collection->where('this.hidden', false);
 		}
-
+		
 		return $collection->orderBy(['this.priority', "this.name$mutationSuffix",]);
 	}
-
+	
 	/**
 	 * @param string $categoryPath
 	 * @param bool $includeHidden
@@ -83,7 +75,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			->join(['category' => 'eshop_category'], 'category.uuid = nxn.fk_category')
 			->where(":path LIKE CONCAT(category.path,'%')", ['path' => $categoryPath]);
 	}
-
+	
 	/**
 	 * @param string $query
 	 * @param int|null $page
@@ -93,26 +85,26 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	public function getAttributesForAdminAjax(string $query, ?int $page = null, int $onPage = 5): array
 	{
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
-
+		
 		$attributes = $this->getCollection(true)->where("name$mutationSuffix LIKE :q", ['q' => "%$query%"])
 			->setPage($page ?? 1, $onPage)
 			->toArrayOf('name');
-
+		
 		$payload = [];
 		$payload['results'] = [];
-
+		
 		foreach ($attributes as $pk => $name) {
 			$payload['results'][] = [
 				'id' => $pk,
 				'text' => $name,
 			];
 		}
-
+		
 		$payload['pagination'] = ['more' => \count($attributes) === $onPage];
-
+		
 		return $payload;
 	}
-
+	
 	/**
 	 * @deprecated User getAttributesByCategory instead
 	 */
@@ -120,60 +112,60 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	{
 		/** @var \Eshop\DB\CategoryRepository $categoryRepository */
 		$categoryRepository = $this->getConnection()->findRepository(Category::class);
-
+		
 		$categories = \is_array($categories) ? $categories : [$categories];
-
+		
 		$query = '';
-
+		
 		foreach ($categories as $category) {
 			if (!$category instanceof Category) {
 				if (!$category = $categoryRepository->one($category)) {
 					continue;
 				}
 			}
-
+			
 			$query .= "categories.path = \"$category->path\" OR ";
 		}
-
+		
 		return $this->getCollection($includeHidden)
 			->join(['nxn' => 'eshop_attribute_nxn_eshop_category'], 'this.uuid = nxn.fk_attribute')
 			->join(['category' => 'eshop_category'], 'category.uuid = nxn.fk_category')
 			->where(\strlen($query) > 0 ? \substr($query, 0, -3) : '1=0');
 	}
-
+	
 	/**
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function getAttributeValues($attribute, bool $includeHidden = false): Collection
 	{
 		$emptyCollection = $this->attributeValueRepository->many()->where('1 = 0');
-
+		
 		if (!$attribute instanceof Attribute) {
 			if (!$attribute = $this->one($attribute)) {
 				return $emptyCollection;
 			}
 		}
-
+		
 		$mutationSuffix = $this->attributeValueRepository->getConnection()->getMutationSuffix();
-
+		
 		return $this->attributeValueRepository->getCollection($includeHidden)
 			->where('fk_attribute', $attribute->getPK())
 			->select(['internalLabel' => 'IFNULL(internalName, label' . $mutationSuffix . ')']);
 	}
-
+	
 	/**
 	 * @return array<string, string>
 	 */
 	public function getWizardAttributes(): array
 	{
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
-
+		
 		return $this->getCollection()
 			->where('this.showWizard', true)
 			->select(['realLabel' => "COALESCE(this.wizardLabel$mutationSuffix, this.name$mutationSuffix)"])
 			->toArrayOf('realLabel');
 	}
-
+	
 	/**
 	 * @param int $step
 	 * @return array<string, array<string, \Eshop\DB\AttributeValue>>
@@ -182,7 +174,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$items = [];
-
+		
 		/** @var \Eshop\DB\AttributeValue[] $attributeValues */
 		$attributeValues = $this->attributeValueRepository->getCollection()
 			->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
@@ -192,14 +184,14 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			->where('FIND_IN_SET(:s, attribute.wizardStep)', ['s' => $step])
 			->setOrderBy(['attribute.priority', 'this.priority', "this.label$suffix"])
 			->toArray();
-
+		
 		foreach ($attributeValues as $attributeValue) {
 			$items[$attributeValue->getValue('attribute')][$attributeValue->getPK()] = $attributeValue;
 		}
-
+		
 		return $items;
 	}
-
+	
 	/**
 	 * @param array<string, array<string, string>> $attributes
 	 * @return array<string, array<string, string>>
@@ -212,34 +204,34 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			->setSelect(['UUID' => 'this.uuid'])
 			->setIndex('UUID')
 			->toArrayOf('UUID');
-
+		
 		$attributeValuesXAttributeValueRanges = $this->attributeValueRepository->getCollection()
 			->select(['attValRange' => 'this.fk_attributeValueRange'])
 			->where('this.fk_attributeValueRange IS NOT NULL')
 			->where('this.fk_attribute', \array_keys($targetAttributes))
 			->setIndex('this.uuid')
 			->toArrayOf('attValRange');
-
+		
 		foreach ($attributes as $attributePK => $attributeValues) {
 			if (!isset($targetAttributes[$attributePK])) {
 				continue;
 			}
-
+			
 			foreach ($attributeValues as $index => $attributeValuePK) {
 				$filtered = \array_filter($attributeValuesXAttributeValueRanges, function ($value) use ($attributeValuePK): bool {
 					return $value === $attributeValuePK;
 				});
-
+				
 				if (\count($filtered) === 0) {
 					continue;
 				}
-
+				
 				unset($attributes[$attributePK][$index]);
-
+				
 				$attributes[$attributePK] = \array_merge($attributes[$attributePK], \array_keys($filtered));
 			}
 		}
-
+		
 		return $attributes;
 	}
 	
@@ -252,8 +244,9 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	{
 		$index = $this->shopper->getPriceCacheIndex('attributes', $filters);
 		$cache = $index ? $this->cache : new Cache(new DevNullStorage());
-		$productRepository = $this->productRepository;
-		$assignRepository = $this->attributeAssignRepository;
+		/** @var \Eshop\DB\ProductRepository $productRepository */
+		$productRepository = $this->getConnection()->findRepository(ProductRepository::class);
+		$assignRepository = $this->getConnection()->findRepository(AttributeAssign::class);
 		
 		return $cache->load($index, static function (&$dependencies) use ($values, $filters, $assignRepository, $productRepository) {
 			$rows = $assignRepository->many();
