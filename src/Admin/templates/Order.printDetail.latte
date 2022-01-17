@@ -20,7 +20,23 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
     {include content-header}
     <section class="content">
         <div class="card card-primary card-outline card-outline-tabs">
-            {include content-buttons}
+            {var $displayButtonsLeft = @$displayButtons}
+            {if @$displayButtonsLeft || @$displayButtonsRight}
+                <div class="card-header p-3 d-print-none">
+                    <div class="row">
+                        <div n:ifset="$displayButtonsLeft" class="col-lg-8 col-md-12">
+                            {foreach $displayButtonsLeft as $button}
+                                {$button|noescape}
+                            {/foreach}
+                        </div>
+                        <div n:ifset="$displayButtonsRight" class="col-lg-4 col-md-12 text-right">
+                            {foreach $displayButtonsRight as $button}
+                                {$button|noescape}
+                            {/foreach}
+                        </div>
+                    </div>
+                </div>
+            {/if}
             <div class="card-body p-3">
                 <!-- info row -->
                 <div class="row invoice-info">
@@ -137,7 +153,7 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                                     <td>{$packageItem->amount}</td>
                                     <td>
                                         {if $packageItem->store}{$packageItem->store->name}{/if}
-                                        <a n:if="$item->product" class="modalStoreOrderItemForm d-print-none" data-toggle="modal" data-target="#modal-storeOrderItemForm" data-values="{json_encode(['uuid' => $packageItem->getPK(), 'store' => $packageItem->getValue('store'), 'amounts' => $item->product->getStoreAmounts(), 'prices' => $item->product->getSupplierPrices()])}" href="#"><i class="far fa-edit"></i></a><br>
+                                        <a n:if="$item->product" class="modalStoreOrderItemForm d-print-none" data-toggle="modal" data-target="#modal-storeOrderItemForm" data-values="{json_encode(['uuid' => $packageItem->getPK(), 'store' => $packageItem->getValue('store'), 'amounts' => $item->product->getSupplierStoreAmounts(), 'prices' => $item->product->getSupplierPrices()])}" href="#"><i class="far fa-edit"></i></a><br>
                                         <span n:if="$packageItem->status === 'waiting'" class="text-secondary"><i class="far fa-square"></i> Nepotrvzeno</span>
                                         <span n:if="$packageItem->status === 'reserved'" class="text-success"><i class="fa fa-check"></i> Rezervovano</span>
                                     </td>
@@ -323,6 +339,13 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
         {block modal-body}{control emailForm:noHeader}{/block}
     {/embed}
 
+    {embed modal id:'sendToSuppliersForm'}
+        {block modal-header}Odeslat dodavatelům{/block}
+        {block modal-body}
+            Odešle objednané položky příslušným dodavatelům. Výsledek odeslání je zaznamenán do historie operací objednávky a v případě nějaké chyby můžete znovu odeslat pouze nedokončené.<br>
+            {control sendToSuppliersForm:noHeader}
+        {/block}
+    {/embed}
 {/define}
 {block scripts}
     <style>

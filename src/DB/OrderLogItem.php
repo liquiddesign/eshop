@@ -35,6 +35,7 @@ class OrderLogItem extends \StORM\Entity
 	public const SPLIT = 'Rozděleno';
 	public const MERGED = 'Spojeno';
 	public const CLONED = 'Duplikováno';
+	public const SUPPLIER_SENT = 'Odesláno dodavateli';
 
 	/**
 	 * Operace
@@ -70,7 +71,7 @@ class OrderLogItem extends \StORM\Entity
 	/**
 	 * Admin
 	 * @relation
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?Administrator $administrator;
 }

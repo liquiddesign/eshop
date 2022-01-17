@@ -309,6 +309,32 @@ class OrderPresenter extends BackendPresenter
 		return $form;
 	}
 
+	public function createComponentSendToSuppliersForm(): Form
+	{
+		/** @var \Eshop\DB\Order $order */
+		$order = $this->getParameter('order');
+
+		$form = $this->formFactory->create();
+
+		$form->addSelect('type', 'K jakým dodavatelům odeslat?', ['all' => 'Všem', 'onlyUncompleted' => 'Pouze nedokončeným']);
+		$form->addSubmit('submit', 'Odeslat');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
+			$values = $form->getValues('array');
+
+			if ($values['type'] === 'onlyUncompleted') {
+				$this->sendToSuppliersOnlyUncompleted($order);
+			} else {
+				$this->sendToSuppliersAll($order);
+			}
+
+			$this->flashMessage('Odesláno<br>Více informací naleznete v záznamech o objednávce', 'success');
+			$this->redirect('this');
+		};
+
+		return $form;
+	}
+
 	public function createComponentPaymentForm(): Form
 	{
 		$form = $this->formFactory->create();
@@ -717,13 +743,13 @@ class OrderPresenter extends BackendPresenter
 				$this->flashMessage('Spojení objednávek se nezdařilo!', 'error');
 			}
 
-//			if ($orderOld->purchase->customer) {
-//				$orderOld->purchase->customer->setAccount($orderOld->purchase->account);
-//				$this->shopper->setCustomer($orderOld->purchase->customer);
-//			} else {
-//				$this->shopper->setCustomer(null);
-//				$this->shopper->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
-//			}
+//          if ($orderOld->purchase->customer) {
+//              $orderOld->purchase->customer->setAccount($orderOld->purchase->account);
+//              $this->shopper->setCustomer($orderOld->purchase->customer);
+//          } else {
+//              $this->shopper->setCustomer(null);
+//              $this->shopper->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
+//          }
 
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('this');
@@ -1003,7 +1029,7 @@ class OrderPresenter extends BackendPresenter
 		$form->addSelect('delimiter', 'Oddělovač', [
 			';' => 'Středník (;)',
 			',' => 'Čárka (,)',
-			'	' => 'Tab (\t)',
+			'   ' => 'Tab (\t)',
 			' ' => 'Mezera ( )',
 			'|' => 'Pipe (|)',
 		]);
@@ -1489,5 +1515,15 @@ class OrderPresenter extends BackendPresenter
 			FileSystem::delete($tempFilename);
 		};
 		$this->sendResponse(new FileResponse($tempFilename, 'order.txt', 'text/plain'));
+	}
+
+	protected function sendToSuppliersAll(Order $order): void
+	{
+		unset($order);
+	}
+
+	protected function sendToSuppliersOnlyUncompleted(Order $order): void
+	{
+		unset($order);
 	}
 }
