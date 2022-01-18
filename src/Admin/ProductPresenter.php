@@ -1768,6 +1768,8 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			throw new \Exception('Soubor neobsahuje kód ani EAN!');
 		}
 
+		$valuesToUpdate = [];
+
 		foreach ($reader->getRecords() as $record) {
 			$newValues = [];
 			$product = null;
@@ -1775,9 +1777,9 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			$code = null;
 			$ean = null;
 			/** @var string|null $codeFromRecord */
-			$codeFromRecord = Arrays::pick($record, $parsedHeader['code'], null);
+			$codeFromRecord = isset($parsedHeader['code']) ? Arrays::pick($record, $parsedHeader['code'], null) : null;
 			/** @var string|null $eanFromRecord */
-			$eanFromRecord = Arrays::pick($record, $parsedHeader['ean'], null);
+			$eanFromRecord = isset($parsedHeader['ean']) ? Arrays::pick($record, $parsedHeader['ean'], null) : null;
 
 			if (isset($parsedHeader['code']) && $codeFromRecord) {
 				$codeBase = Strings::trim($codeFromRecord);
@@ -1896,7 +1898,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 							$newValues['supplierContentLock'] = true;
 						}
 
-						$product->update($newValues);
+						$valuesToUpdate[$product->getPK()] = $newValues;
 					}
 				} elseif (\count($newValues) > 0) {
 					if (!$code && !$ean) {
@@ -1955,5 +1957,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				}
 			}
 		}
+
+		$this->productRepository->syncMany($valuesToUpdate);
 	}
 }
