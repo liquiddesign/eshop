@@ -137,7 +137,7 @@ class OrderPresenter extends BackendPresenter
 	public PickupPointRepository $pickupPointRepository;
 
 	/** @persistent */
-	public string $tab = 'received';
+	public ?string $tab = null;
 
 	public function createComponentOrdersGrid(): Datagrid
 	{
@@ -1515,6 +1515,17 @@ class OrderPresenter extends BackendPresenter
 			FileSystem::delete($tempFilename);
 		};
 		$this->sendResponse(new FileResponse($tempFilename, 'order.txt', 'text/plain'));
+	}
+
+	protected function startup(): void
+	{
+		parent::startup();
+
+		if ($this->tab !== null) {
+			return;
+		}
+
+		$this->tab = $this->shopper->getEditOrderAfterCreation() ? Order::STATE_OPEN : Order::STATE_RECEIVED;
 	}
 
 	protected function sendToSuppliersAll(Order $order): void

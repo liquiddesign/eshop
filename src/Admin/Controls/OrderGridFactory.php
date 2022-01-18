@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin\Controls;
 
+use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderLogItem;
 use Eshop\DB\OrderLogItemRepository;
@@ -34,13 +35,16 @@ class OrderGridFactory
 
 	private Application $application;
 
+	private CustomerGroupRepository $customerGroupRepository;
+
 	public function __construct(
 		\Admin\Controls\AdminGridFactory $adminGridFactory,
 		OrderRepository $orderRepository,
 		Application $application,
 		TemplateRepository $templateRepository,
 		Mailer $mailer,
-		OrderLogItemRepository $orderLogItemRepository
+		OrderLogItemRepository $orderLogItemRepository,
+		CustomerGroupRepository $customerGroupRepository
 	) {
 		$this->orderRepository = $orderRepository;
 		$this->gridFactory = $adminGridFactory;
@@ -48,6 +52,7 @@ class OrderGridFactory
 		$this->mailer = $mailer;
 		$this->application = $application;
 		$this->orderLogItemRepository = $orderLogItemRepository;
+		$this->customerGroupRepository = $customerGroupRepository;
 	}
 
 	public function create(string $state, array $configuration = []): Datagrid
@@ -133,6 +138,17 @@ class OrderGridFactory
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
 		}, '', 'created_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
+
+		if ($customerGroups = $this->customerGroupRepository->getArrayForSelect()) {
+			$customerGroups += ['0' => 'X - bez skupiny'];
+			$grid->addFilterDataSelect(function (Collection $source, $value): void {
+				if ($value === '0') {
+					$source->where('purchase.fk_customer IS NULL OR customer.fk_group IS NULL');
+				} else {
+					$source->where('customer.fk_group', $value);
+				}
+			}, '', 'customerGroup', null, $customerGroups + [])->setPrompt('- Skupina zákazníků -');
+		}
 
 		if ($state === 'open') {
 			$submit = $grid->getForm()->addSubmit('closeMultiple', 'Uzavřít úpravy');
