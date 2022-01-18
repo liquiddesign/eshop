@@ -96,6 +96,7 @@ class ProductFilter extends Control
 		];
 		
 		$this->template->attributes = $attributes = $this->getAttributes();
+		
 		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($this->attributeValues, $filters);
 		
 		foreach ($this->rangeValues as $rangeId => $valuesIds) {
@@ -127,17 +128,18 @@ class ProductFilter extends Control
 		foreach ($this->getAttributes() as $attribute) {
 			if (Arrays::contains(\array_keys($this::SYSTEMIC_ATTRIBUTES), $attribute->getPK())) {
 				$attributeValues = $this->getSystemicAttributeValues($attribute->getPK());
-				$this->attributeValues[] = $attribute->getPK();
-			} elseif (!$attribute->showRange) {
-				$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
-				$this->attributeValues[] = $attribute->getPK();
 			} else {
-				$attributeValues = [];
+				$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
+				$this->attributeValues = \array_merge($this->attributeValues, \array_keys($attributeValues));
 				
-				/** @var \Eshop\DB\AttributeValueRange $rangeAttribute */
-				foreach ($this->getRangeValues($attribute) as $rangeAttribute) {
-					$attributeValues[$rangeAttribute->getPK()] = $rangeAttribute->name;
-					$this->rangeValues[$rangeAttribute->getPK()] = \explode(',', $rangeAttribute->concatValues);
+				if ($attribute->showRange) {
+					$attributeValues = [];
+					
+					/** @var \Eshop\DB\AttributeValueRange $rangeAttribute */
+					foreach ($this->getRangeValues($attribute) as $rangeAttribute) {
+						$attributeValues[$rangeAttribute->getPK()] = $rangeAttribute->name;
+						$this->rangeValues[$rangeAttribute->getPK()] = \explode(',', $rangeAttribute->concatValues);
+					}
 				}
 			}
 			
@@ -196,7 +198,7 @@ class ProductFilter extends Control
 		if ($valueIndex) {
 			unset($filters['attributes'][$rootIndex][$valueIndex]);
 			$key = \array_search($valueIndex, $filters['attributes'][$rootIndex]);
-
+			
 			if ($key !== false) {
 				unset($filters['attributes'][$rootIndex][$key]);
 			}
@@ -210,7 +212,7 @@ class ProductFilter extends Control
 		
 		return $filters;
 	}
-
+	
 	private function getProductList(): ProductList
 	{
 		/** @var \Eshop\Controls\ProductList $parent */
