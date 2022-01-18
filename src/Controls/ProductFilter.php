@@ -120,8 +120,6 @@ class ProductFilter extends Control
 		$filterForm->addInteger('priceFrom')->setHtmlAttribute('placeholder', 0);
 		$filterForm->addInteger('priceTo')->setHtmlAttribute('placeholder', 100000);
 		
-		//$filterForm->setDefaults($this->getProductList()->getFilters());
-		
 		$attributesContainer = $filterForm->addContainer('attributes');
 		
 		$defaults = $this->getProductList()->getFilters()['attributes'] ?? [];
