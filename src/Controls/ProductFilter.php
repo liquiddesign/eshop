@@ -96,8 +96,6 @@ class ProductFilter extends Control
 		];
 		
 		$this->template->attributes = $attributes = $this->getAttributes();
-		$this->template->clearLink = $this->presenter->link(':Eshop:Product:list', $this->getRootFilter());
-		
 		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($this->attributeValues, $filters);
 		
 		foreach ($this->rangeValues as $rangeId => $valuesIds) {
@@ -137,7 +135,7 @@ class ProductFilter extends Control
 				$this->attributeValues[] = $attribute->getPK();
 			} else {
 				$attributeValues = [];
-
+				
 				/** @var \Eshop\DB\AttributeValueRange $rangeAttribute */
 				foreach ($this->getRangeValues($attribute) as $rangeAttribute) {
 					$attributeValues[$rangeAttribute->getPK()] = $rangeAttribute->name;
@@ -177,6 +175,44 @@ class ProductFilter extends Control
 		return $filterForm;
 	}
 	
+	/**
+	 * @param string|null $rootIndex
+	 * @param string|null $valueIndex
+	 * @return mixed[]|mixed[][]|mixed[][][]
+	 */
+	public function getClearFilters(?string $rootIndex = null, ?string $valueIndex = null): array
+	{
+		if (!$rootIndex) {
+			foreach (['category', 'producer'] as $parameter) {
+				if ($this->presenter->getParameter($parameter)) {
+					return [$parameter => $this->presenter->getParameter($parameter)];
+				}
+			}
+			
+			return [];
+		}
+		
+		/** @var string[][][] $filters */
+		$filters = $this->getProductList()->getFilters();
+		
+		if ($valueIndex) {
+			unset($filters['attributes'][$rootIndex][$valueIndex]);
+			$key = \array_search($valueIndex, $filters['attributes'][$rootIndex]);
+
+			if ($key !== false) {
+				unset($filters['attributes'][$rootIndex][$key]);
+			}
+		} else {
+			unset($filters['attributes'][$rootIndex]);
+		}
+		
+		if (isset($filters['category'])) {
+			$filters['category'] = $this->presenter->getParameter('category');
+		}
+		
+		return $filters;
+	}
+
 	private function getProductList(): ProductList
 	{
 		/** @var \Eshop\Controls\ProductList $parent */
@@ -205,20 +241,6 @@ class ProductFilter extends Control
 			->where('attributeValue.fk_attribute', $attribute->getPK())
 			->select(['concatValues' => 'GROUP_CONCAT(attributeValue.uuid)'])
 			->setGroupBy(['this.uuid']);
-	}
-	
-	/**
-	 * @return string[]
-	 */
-	private function getRootFilter(): array
-	{
-		foreach (['category', 'producer'] as $parameter) {
-			if ($this->presenter->getParameter($parameter)) {
-				return [$parameter => $this->presenter->getParameter($parameter)];
-			}
-		}
-		
-		return [];
 	}
 	
 	/**
