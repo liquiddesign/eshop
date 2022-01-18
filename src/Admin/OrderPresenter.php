@@ -316,7 +316,7 @@ class OrderPresenter extends BackendPresenter
 
 		$form = $this->formFactory->create();
 
-		$form->addSelect('type', 'K jakým dodavatelům odeslat?', ['all' => 'Všem', 'onlyUncompleted' => 'Pouze nedokončeným']);
+		$form->addSelect('type', 'K jakým dodavatelům odeslat?', ['all' => 'Všem', 'onlyUncompleted' => 'Pouze nedokončeným'])->setDefaultValue('onlyUncompleted');
 		$form->addSubmit('submit', 'Odeslat');
 
 		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
@@ -635,7 +635,7 @@ class OrderPresenter extends BackendPresenter
 
 			/** @var \Eshop\DB\PackageItem $packageItem */
 			$packageItem = $this->packageItemRepository->one($values['uuid'], true);
-			$packageItem->update(['store' => $values['store']]);
+			$packageItem->update(['store' => $values['store'], 'status' => 'waiting']);
 
 			/** @var \Eshop\DB\Order $order */
 			$order = $this->getParameter('order');
@@ -1033,7 +1033,7 @@ class OrderPresenter extends BackendPresenter
 			' ' => 'Mezera ( )',
 			'|' => 'Pipe (|)',
 		]);
-		$form->addCheckbox('header', 'Hlavička')->setDefaultValue(true)->setHtmlAttribute('data-info', 'Pokud tuto možnost nepoužijete tak nebude možné tento soubor použít pro import!');
+		$form->addCheckbox('header', 'Hlavička')->setDefaultValue(true)->setHtmlAttribute('data-info', 'Pokud tuto možnost nepoužijete, tak nebude možné tento soubor použít pro import!');
 
 		$headerColumns = $form->addDataMultiSelect('columns', 'Sloupce');
 

@@ -155,7 +155,7 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                                         {if $packageItem->store}{$packageItem->store->name}{/if}
                                         <a n:if="$item->product" class="modalStoreOrderItemForm d-print-none" data-toggle="modal" data-target="#modal-storeOrderItemForm" data-values="{json_encode(['uuid' => $packageItem->getPK(), 'store' => $packageItem->getValue('store'), 'amounts' => $item->product->getSupplierStoreAmounts(), 'prices' => $item->product->getSupplierPrices()])}" href="#"><i class="far fa-edit"></i></a><br>
                                         <span n:if="$packageItem->status === 'waiting'" class="text-secondary"><i class="far fa-square"></i> Nepotrvzeno</span>
-                                        <span n:if="$packageItem->status === 'reserved'" class="text-success"><i class="fa fa-check"></i> Rezervovano</span>
+                                        <span n:if="$packageItem->status === 'reserved'" class="text-success"><i class="fa fa-check"></i> Rezervováno</span>
                                     </td>
                                     <td style="text-align: right">
                                         {$item->priceVat|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price|price} bez DPH</small>{/if}
@@ -319,6 +319,7 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                         </tbody>
                     </table>
                 </div>
+                <span>Změnou skladu dojde k vymazání stavu o odeslání dodavateli! Dodavatel nebude o změně automaticky informován!</span><br>
                 <input type="submit" n:name="submit" value="Uložit" class="btn btn-primary btn-sm ml-0 mt-1 mb-1 mr-1">
             {/form}
         {/block}

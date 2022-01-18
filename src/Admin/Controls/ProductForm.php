@@ -585,7 +585,7 @@ Ostatní: Přebírání ze zvoleného zdroje
 		if ($product->getParent() instanceof ICollection && $product->getParent()->getAffectedNumber() > 0) {
 			foreach ($form->getMutations() as $mutation) {
 				foreach ($changeColumns as $column) {
-					if ($this->product->getValue($column, $mutation) !== $values[$column][$mutation]) {
+					if ($product->getValue($column, $mutation) !== $values[$column][$mutation]) {
 						$product->update(['supplierContentLock' => true]);
 
 						break 2;
