@@ -475,7 +475,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	public function filterQuery($value, Collection $collection): void
 	{
-		$collection->filter(['q' => $value]);
+		$this->filterQ($value, $collection);
 	}
 
 	/**
