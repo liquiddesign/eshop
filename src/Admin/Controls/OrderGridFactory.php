@@ -297,8 +297,13 @@ class OrderGridFactory
 				}
 			}
 
-			$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $order->code], $order->purchase->email, null, null, $accountMutation);
-			$this->mailer->send($mail);
+			try {
+				$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $order->code], $order->purchase->email, null, null, $accountMutation);
+				$this->mailer->send($mail);
+
+				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
+			} catch (\Throwable $e) {
+			}
 		}
 
 		$grid->getPresenter()->flashMessage('Provedeno', 'success');
@@ -336,9 +341,6 @@ class OrderGridFactory
 			}
 		}
 
-		$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $object->code], $object->purchase->email, null, null, $accountMutation);
-		$this->mailer->send($mail);
-
 		if (!$grid) {
 			return;
 		}
@@ -350,6 +352,14 @@ class OrderGridFactory
 		$admin = $presenter->admin->getIdentity();
 
 		$this->orderLogItemRepository->createLog($object, OrderLogItem::CANCELED, null, $admin);
+
+		try {
+			$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $object->code], $object->purchase->email, null, null, $accountMutation);
+			$this->mailer->send($mail);
+
+			$this->orderLogItemRepository->createLog($object, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
+		} catch (\Throwable $e) {
+		}
 
 		$grid->getPresenter()->flashMessage('Provedeno', 'success');
 		$grid->getPresenter()->redirect('this');
@@ -390,12 +400,6 @@ class OrderGridFactory
 			$item->product->update(['buyCount' => $item->product->buyCount + $item->amount]);
 		}
 
-		$mail = $this->templateRepository->createMessage('order.confirmed', [
-			'orderCode' => $object->code,
-		], $object->purchase->email, null, null, $accountMutation);
-
-		$this->mailer->send($mail);
-
 		if (!$grid) {
 			return;
 		}
@@ -407,6 +411,17 @@ class OrderGridFactory
 		$admin = $presenter->admin->getIdentity();
 
 		$this->orderLogItemRepository->createLog($object, OrderLogItem::COMPLETED, null, $admin);
+
+		try {
+			$mail = $this->templateRepository->createMessage('order.confirmed', [
+				'orderCode' => $object->code,
+			], $object->purchase->email, null, null, $accountMutation);
+
+			$this->mailer->send($mail);
+
+			$this->orderLogItemRepository->createLog($object, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
+		} catch (\Throwable $e) {
+		}
 
 		if (!$redirectAfter) {
 			return;

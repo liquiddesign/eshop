@@ -287,20 +287,19 @@ class OrderPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValues('array');
 
-			/** @var \Messages\DB\Template $template */
-			$template = $this->templateRepository->one($values['template']);
+			try {
+				$mail = $this->templateRepository->createMessage($values['template'], $this->orderRepository->getEmailVariables($order), $values['email'], $values['ccEmails']);
+				$this->mailer->send($mail);
 
-			/** @var \Admin\DB\Administrator|null $admin */
-			$admin = $this->admin->getIdentity();
+				/** @var \Messages\DB\Template $template */
+				$template = $this->templateRepository->one($values['template']);
 
-			if (!$admin) {
-				return;
+				/** @var \Admin\DB\Administrator|null $admin */
+				$admin = $this->admin->getIdentity();
+
+				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, $template->name, $admin);
+			} catch (\Throwable $e) {
 			}
-
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, $template->name, $admin);
-
-			$mail = $this->templateRepository->createMessage($values['template'], $this->orderRepository->getEmailVariables($order), $values['email'], $values['ccEmails']);
-			$this->mailer->send($mail);
 
 			$this->flashMessage('Odesláno', 'success');
 			$this->redirect('this');
@@ -892,10 +891,13 @@ class OrderPresenter extends BackendPresenter
 			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED, null, $admin);
 
 			if ($email) {
-				$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::PAYED, $admin);
+				try {
+					$mail = $this->templateRepository->createMessage('order.payed', ['orderCode' => $payment->order->code], $payment->order->purchase->email);
+					$this->mailer->send($mail);
 
-				$mail = $this->templateRepository->createMessage('order.payed', ['orderCode' => $payment->order->code], $payment->order->purchase->email);
-				$this->mailer->send($mail);
+					$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::PAYED, $admin);
+				} catch (\Throwable $e) {
+				}
 			}
 		} else {
 			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED_CANCELED, null, $admin);
@@ -928,10 +930,13 @@ class OrderPresenter extends BackendPresenter
 			$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::SHIPPED, null, $admin);
 
 			if ($email) {
-				$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::EMAIL_SENT, OrderLogItem::SHIPPED, $admin);
+				try {
+					$mail = $this->templateRepository->createMessage('order.shipped', ['orderCode' => $delivery->order->code], $delivery->order->purchase->email);
+					$this->mailer->send($mail);
 
-				$mail = $this->templateRepository->createMessage('order.shipped', ['orderCode' => $delivery->order->code], $delivery->order->purchase->email);
-				$this->mailer->send($mail);
+					$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::EMAIL_SENT, OrderLogItem::SHIPPED, $admin);
+				} catch (\Throwable $e) {
+				}
 			}
 		} else {
 			$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::SHIPPED_CANCELED, null, $admin);
@@ -1345,14 +1350,19 @@ class OrderPresenter extends BackendPresenter
 			}
 		}
 
-		$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $order->code], $order->purchase->email, null, null, $accountMutation);
-		$this->mailer->send($mail);
-
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
 
 		if (!$admin) {
 			return;
+		}
+
+		try {
+			$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $order->code], $order->purchase->email, null, null, $accountMutation);
+			$this->mailer->send($mail);
+
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
+		} catch (\Throwable $e) {
 		}
 
 		$this->orderLogItemRepository->createLog($order, OrderLogItem::CANCELED, null, $admin);
@@ -1406,17 +1416,22 @@ class OrderPresenter extends BackendPresenter
 			}
 		}
 
-		$mail = $this->templateRepository->createMessage('order.confirmed', [
-			'orderCode' => $order->code,
-		], $order->purchase->email, null, null, $accountMutation);
-
-		$this->mailer->send($mail);
-
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
 
 		if (!$admin) {
 			return;
+		}
+
+		try {
+			$mail = $this->templateRepository->createMessage('order.confirmed', [
+				'orderCode' => $order->code,
+			], $order->purchase->email, null, null, $accountMutation);
+
+			$this->mailer->send($mail);
+
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
+		} catch (\Throwable $e) {
 		}
 
 		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::COMPLETED, null, $admin);
@@ -1470,17 +1485,22 @@ class OrderPresenter extends BackendPresenter
 			}
 		}
 
-		$mail = $this->templateRepository->createMessage('order.confirmed', [
-			'orderCode' => $order->code,
-		], $order->purchase->email, null, null, $accountMutation);
-
-		$this->mailer->send($mail);
-
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
 
 		if (!$admin) {
 			return;
+		}
+
+		try {
+			$mail = $this->templateRepository->createMessage('order.confirmed', [
+				'orderCode' => $order->code,
+			], $order->purchase->email, null, null, $accountMutation);
+
+			$this->mailer->send($mail);
+
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
+		} catch (\Throwable $e) {
 		}
 
 		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::RECEIVED, null, $admin);
