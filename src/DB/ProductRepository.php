@@ -195,16 +195,22 @@ class ProductRepository extends Repository implements IGeneralRepository
 			}
 		}
 
-		$this->setProductsConditions($collection);
+		$this->setProductsConditions($collection, true, $pricelists);
 
 		return $collection;
 	}
 	
-	public function setProductsConditions(ICollection $collection, bool $includeHidden = true): void
+	/**
+	 * @param \StORM\ICollection $collection
+	 * @param bool $includeHidden
+	 * @param \Eshop\DB\Pricelist[]|null $pricelists
+	 */
+	public function setProductsConditions(ICollection $collection, bool $includeHidden = true, ?array $pricelists = null): void
 	{
+		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists()->toArray());
 		$priceWhere = new Expression();
 		
-		foreach (\array_values($this->shopper->getPricelists()->toArray()) as $id => $pricelist) {
+		foreach ($pricelists as $id => $pricelist) {
 			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
 			$priceWhere->add('OR', "prices$id.price IS NOT NULL");
 		}
