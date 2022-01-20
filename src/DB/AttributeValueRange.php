@@ -9,6 +9,7 @@ use StORM\RelationCollection;
 /**
  * Adresa
  * @table
+ * @property-read string $concatValues
  */
 class AttributeValueRange extends \StORM\Entity
 {

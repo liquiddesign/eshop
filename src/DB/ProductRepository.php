@@ -109,7 +109,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 
 		/** @var \Eshop\DB\Pricelist[] $pricelists */
-		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists()->toArray());
+		$pricelists = $pricelists ?: $this->shopper->getPricelists()->toArray();
+		$pricelists = \array_values($pricelists);
 		$customer ??= $this->shopper->getCustomer();
 		$discountLevelPct = $customer ? $this->getBestDiscountLevel($customer) : 0;
 		$vatRates = $this->shopper->getVatRates();
@@ -194,16 +195,22 @@ class ProductRepository extends Repository implements IGeneralRepository
 			}
 		}
 
-		$this->setProductsConditions($collection);
+		$this->setProductsConditions($collection, true, $pricelists);
 
 		return $collection;
 	}
 	
-	public function setProductsConditions(ICollection $collection, bool $includeHidden = true): void
+	/**
+	 * @param \StORM\ICollection $collection
+	 * @param bool $includeHidden
+	 * @param \Eshop\DB\Pricelist[]|null $pricelists
+	 */
+	public function setProductsConditions(ICollection $collection, bool $includeHidden = true, ?array $pricelists = null): void
 	{
+		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists()->toArray());
 		$priceWhere = new Expression();
 		
-		foreach (\array_values($this->shopper->getPricelists()->toArray()) as $id => $pricelist) {
+		foreach ($pricelists as $id => $pricelist) {
 			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
 			$priceWhere->add('OR', "prices$id.price IS NOT NULL");
 		}
@@ -475,7 +482,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	public function filterQuery($value, Collection $collection): void
 	{
-		$collection->filter(['q' => $value]);
+		$this->filterQ($value, $collection);
 	}
 
 	/**

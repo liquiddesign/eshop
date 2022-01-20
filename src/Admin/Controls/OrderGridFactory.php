@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin\Controls;
 
+use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderLogItem;
 use Eshop\DB\OrderLogItemRepository;
@@ -34,13 +35,16 @@ class OrderGridFactory
 
 	private Application $application;
 
+	private CustomerGroupRepository $customerGroupRepository;
+
 	public function __construct(
 		\Admin\Controls\AdminGridFactory $adminGridFactory,
 		OrderRepository $orderRepository,
 		Application $application,
 		TemplateRepository $templateRepository,
 		Mailer $mailer,
-		OrderLogItemRepository $orderLogItemRepository
+		OrderLogItemRepository $orderLogItemRepository,
+		CustomerGroupRepository $customerGroupRepository
 	) {
 		$this->orderRepository = $orderRepository;
 		$this->gridFactory = $adminGridFactory;
@@ -48,6 +52,7 @@ class OrderGridFactory
 		$this->mailer = $mailer;
 		$this->application = $application;
 		$this->orderLogItemRepository = $orderLogItemRepository;
+		$this->customerGroupRepository = $customerGroupRepository;
 	}
 
 	public function create(string $state, array $configuration = []): Datagrid
@@ -133,6 +138,17 @@ class OrderGridFactory
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
 		}, '', 'created_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
+
+		if ($customerGroups = $this->customerGroupRepository->getArrayForSelect()) {
+			$customerGroups += ['0' => 'X - bez skupiny'];
+			$grid->addFilterDataSelect(function (Collection $source, $value): void {
+				if ($value === '0') {
+					$source->where('purchase.fk_customer IS NULL OR customer.fk_group IS NULL');
+				} else {
+					$source->where('customer.fk_group', $value);
+				}
+			}, '', 'customerGroup', null, $customerGroups + [])->setPrompt('- Skupina zákazníků -');
+		}
 
 		if ($state === 'open') {
 			$submit = $grid->getForm()->addSubmit('closeMultiple', 'Uzavřít úpravy');
@@ -281,8 +297,13 @@ class OrderGridFactory
 				}
 			}
 
-			$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $order->code], $order->purchase->email, null, null, $accountMutation);
-			$this->mailer->send($mail);
+			try {
+				$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $order->code], $order->purchase->email, null, null, $accountMutation);
+				$this->mailer->send($mail);
+
+				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
+			} catch (\Throwable $e) {
+			}
 		}
 
 		$grid->getPresenter()->flashMessage('Provedeno', 'success');
@@ -320,9 +341,6 @@ class OrderGridFactory
 			}
 		}
 
-		$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $object->code], $object->purchase->email, null, null, $accountMutation);
-		$this->mailer->send($mail);
-
 		if (!$grid) {
 			return;
 		}
@@ -334,6 +352,14 @@ class OrderGridFactory
 		$admin = $presenter->admin->getIdentity();
 
 		$this->orderLogItemRepository->createLog($object, OrderLogItem::CANCELED, null, $admin);
+
+		try {
+			$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $object->code], $object->purchase->email, null, null, $accountMutation);
+			$this->mailer->send($mail);
+
+			$this->orderLogItemRepository->createLog($object, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
+		} catch (\Throwable $e) {
+		}
 
 		$grid->getPresenter()->flashMessage('Provedeno', 'success');
 		$grid->getPresenter()->redirect('this');
@@ -374,12 +400,6 @@ class OrderGridFactory
 			$item->product->update(['buyCount' => $item->product->buyCount + $item->amount]);
 		}
 
-		$mail = $this->templateRepository->createMessage('order.confirmed', [
-			'orderCode' => $object->code,
-		], $object->purchase->email, null, null, $accountMutation);
-
-		$this->mailer->send($mail);
-
 		if (!$grid) {
 			return;
 		}
@@ -391,6 +411,17 @@ class OrderGridFactory
 		$admin = $presenter->admin->getIdentity();
 
 		$this->orderLogItemRepository->createLog($object, OrderLogItem::COMPLETED, null, $admin);
+
+		try {
+			$mail = $this->templateRepository->createMessage('order.confirmed', [
+				'orderCode' => $object->code,
+			], $object->purchase->email, null, null, $accountMutation);
+
+			$this->mailer->send($mail);
+
+			$this->orderLogItemRepository->createLog($object, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
+		} catch (\Throwable $e) {
+		}
 
 		if (!$redirectAfter) {
 			return;
