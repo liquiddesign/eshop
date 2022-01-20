@@ -109,7 +109,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 
 		/** @var \Eshop\DB\Pricelist[] $pricelists */
-		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists()->toArray());
+		$pricelists = $pricelists ?: $this->shopper->getPricelists()->toArray();
+		$pricelists = \array_values($pricelists);
 		$customer ??= $this->shopper->getCustomer();
 		$discountLevelPct = $customer ? $this->getBestDiscountLevel($customer) : 0;
 		$vatRates = $this->shopper->getVatRates();
