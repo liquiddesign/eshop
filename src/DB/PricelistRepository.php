@@ -233,14 +233,6 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		return $this->getCollection($includeHidden)->toArrayOf('name');
 	}
 
-	/**
-	 * @return \Eshop\DB\Pricelist[]
-	 */
-	public function getAllPricelists(): array
-	{
-		return $this->many()->toArray();
-	}
-
 	public function getDefaultPricelists(): Collection
 	{
 		$collection = $this->customerGroupRepository->many();
