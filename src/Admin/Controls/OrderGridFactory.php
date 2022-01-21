@@ -60,7 +60,7 @@ class OrderGridFactory
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
 		$grid = $this->gridFactory->create(
-			$this->getCollectionByState($state)
+			$this->orderRepository->getCollectionByState($state)
 			->setGroupBy(['this.uuid'])
 			->join(['comment' => 'eshop_internalcommentorder'], 'this.uuid = comment.fk_order')
 			->select(['commentCount' => 'COUNT(DISTINCT comment.uuid)']),
@@ -490,34 +490,5 @@ class OrderGridFactory
 		/** @var \Eshop\Admin\OrderPresenter $presenter */
 		$presenter = $grid->getPresenter();
 		$presenter->handleExportCsv($object->getPK());
-	}
-
-	private function getCollectionByState(string $state): Collection
-	{
-		if ($state === 'open') {
-			return $this->orderRepository->many()->where('this.receivedTs IS NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
-				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
-				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
-		}
-
-		if ($state === 'received') {
-			return $this->orderRepository->many()->where('this.receivedTs IS NOT NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
-				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
-				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
-		}
-
-		if ($state === 'finished') {
-			return $this->orderRepository->many()->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
-				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
-				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
-		}
-
-		if ($state === 'canceled') {
-			return $this->orderRepository->many()->where('this.receivedTs IS NOT NULL AND this.canceledTs IS NOT NULL')
-				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
-				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
-		}
-
-		throw new \DomainException("Invalid state: $state");
 	}
 }

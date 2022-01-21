@@ -223,6 +223,35 @@ class OrderRepository extends \StORM\Repository
 		return null;
 	}
 
+	public function getCollectionByState(string $state): Collection
+	{
+		if ($state === Order::STATE_OPEN) {
+			return $this->many()->where('this.receivedTs IS NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
+				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
+		}
+
+		if ($state === Order::STATE_RECEIVED) {
+			return $this->many()->where('this.receivedTs IS NOT NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
+				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
+		}
+
+		if ($state === Order::STATE_COMPLETED) {
+			return $this->many()->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
+				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
+		}
+
+		if ($state === Order::STATE_CANCELED) {
+			return $this->many()->where('this.receivedTs IS NOT NULL AND this.canceledTs IS NOT NULL')
+				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
+		}
+
+		throw new \DomainException("Invalid state: $state");
+	}
+
 	public function csvExport(Order $order, Writer $writer): void
 	{
 		$writer->setDelimiter(';');

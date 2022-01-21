@@ -8,6 +8,7 @@ use Admin\BackendPresenter;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\DiscountRepository;
 use Eshop\DB\MerchantRepository;
+use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\Shopper;
 use Security\DB\AccountRepository;
@@ -42,7 +43,9 @@ class DashboardPresenter extends BackendPresenter
 	
 	public function actionDefault(): void
 	{
-		$this->template->recievedOrders = $this->orderRepo->many()->where('this.completedTs IS NULL AND this.canceledTs IS NULL')->orderBy(['createdTs DESC'])->setTake(10);
+		$state = $this->shopper->getEditOrderAfterCreation() ? Order::STATE_OPEN : Order::STATE_RECEIVED;
+
+		$this->template->recievedOrders = $this->orderRepo->getCollectionByState($state)->orderBy(['createdTs DESC'])->setTake(10);
 		
 		/** @var \Security\DB\Account[] $accounts */
 		$accounts = $this->accountRepo->many()->orderBy(['tsRegistered' => 'DESC']);
