@@ -151,7 +151,7 @@ class CustomerPresenter extends BackendPresenter
 
 		$grid->addColumn('', function (Customer $object, Datagrid $datagrid) use ($btnSecondary) {
 			return \count($object->accounts) > 0 ?
-				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'accounts', 'accountGrid-company' => $object->company ?: $object->fullname]) . "'>Účty</a>" :
+				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'accounts', 'accountGrid-company' => $object->email]) . "'>Účty</a>" :
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('newAccount', $object) . "'>Vytvořit&nbsp;účet</a>";
 		}, '%s', null, ['class' => 'minimal']);
 
@@ -694,7 +694,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addButtonDeleteSelected();
 
 		$grid->addFilterTextInput('search', ['this.login'], null, 'Login');
-		$grid->addFilterTextInput('company', ['customer.company', 'customer.fullname', 'customer.ic'], null, 'Zákazník, IČ');
+		$grid->addFilterTextInput('company', ['customer.company', 'customer.fullname', 'customer.ic', 'customer.email'], null, 'Zákazník, IČ');
 
 		if (\count($this->merchantRepository->getArrayForSelect()) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
