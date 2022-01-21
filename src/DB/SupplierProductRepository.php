@@ -113,6 +113,10 @@ class SupplierProductRepository extends \StORM\Repository
 			$uuid = ProductRepository::generateUuid($draft->ean, $draft->getProductFullCode() ?: $supplier->code . '-' . $draft->code);
 			$primary = isset($productsMap[$uuid]) && $productsMap[$uuid]->sourcePK === $supplierId;
 
+//			if ($draft->getValue('product') && ($draft->getValue('product') !== $uuid || $draft->product->getValue('supplierSource') !== $supplier->getPK())) {
+//				continue;
+//			}
+
 			$values = [
 				'uuid' => $uuid,
 				'ean' => $draft->ean ?: null,

@@ -115,7 +115,14 @@ class SupplierPresenter extends BackendPresenter
 			}
 
 			if ($object->status === 'ok') {
-				return $object->type === 'import' ? 'Import doběhl v pořádku' : 'Zápis do katalogu doběhl v pořádku';
+				switch ($object->type) {
+					case 'import':
+						return 'Import doběhl v pořádku';
+					case 'importAmount':
+						return 'Import dosupnosti a skladů doběhl v požádku';
+					default:
+						return 'Zápis do katalogu doběhl v pořádku';
+				}
 			}
 
 			return $object->type === 'import' ? 'Import běží / nedokončen' : 'Zápis do katalogu běží / nedokončen';

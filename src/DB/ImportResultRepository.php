@@ -33,8 +33,23 @@ class ImportResultRepository extends \StORM\Repository
 		
 		$this->logDirectory = $directory;
 		$this->logFilePath = $directory . '/' . $id . '.log';
-		
-		$this->log($type === 'import' ? 'Import started' : 'Entry started');
+
+		switch ($type) {
+			case 'import':
+				$typeMsg = 'Import started';
+
+				break;
+			case 'importAmount':
+				$typeMsg = 'Import amount started';
+
+				break;
+			default:
+				$typeMsg = 'Entry started';
+
+				break;
+		}
+
+		$this->log($typeMsg);
 	}
 	
 	public function log($message): void
