@@ -81,7 +81,7 @@ abstract class ExportPresenter extends Presenter
 	public function beforeRender(): void
 	{
 		$this->template->configuration = $this::CONFIGURATION;
-		$this->template->productImageUrl = $this->request->getUrl()->withoutUserInfo()->getBaseUrl() . 'userfiles/' . Product::IMAGE_DIR . '/thumb/';
+		$this->template->productImageUrl = $this->request->getUrl()->withoutUserInfo()->getBaseUrl() . 'userfiles/' . Product::GALLERY_DIR . '/origin/';
 	}
 
 	public function renderPartnersExport(): void
