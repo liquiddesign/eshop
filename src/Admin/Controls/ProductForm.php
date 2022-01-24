@@ -154,10 +154,28 @@ class ProductForm extends Control
 		$categoryTypes = $this->categoryTypeRepository->getCollection(true)->toArray();
 
 		$categoriesContainer = $form->addContainer('categories');
+		$allCategories = [];
 
 		foreach ($categoryTypes as $categoryType) {
-			$categoriesContainer->addDataMultiSelect($categoryType->getPK(), 'Kategorie: ' . $categoryType->name, $categoryRepository->getTreeArrayForSelect(true, $categoryType->getPK()));
+			$categories = $categoryRepository->getTreeArrayForSelect(true, $categoryType->getPK());
+			$allCategories = \array_merge($allCategories, $categories);
+
+			$categoriesContainer->addDataMultiSelect($categoryType->getPK(), 'Kategorie: ' . $categoryType->name, $categories);
 		}
+
+		$productCategories = [];
+
+		if ($this->product) {
+			$assignedProductCategories = $this->product->categories->toArray();
+
+			$productCategories = \array_filter($allCategories, function ($key) use ($assignedProductCategories) {
+				return isset($assignedProductCategories[$key]);
+			}, \ARRAY_FILTER_USE_KEY);
+		}
+
+		$form->addSelect2('primaryCategory', 'Primární kategorie', $productCategories)->setPrompt('Automaticky')
+			->setHtmlAttribute('data-info', 'Primární kategorie je důležitá pro zobrazování drobečkovky produktu, výchozímu obsahu a obrázku a dalších. 
+		V případě zvolení kategorie do které již nepatří, se zvolí automaticky jedna z přiřazených.');
 
 		$form->addSelect2('producer', 'Výrobce', $producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 
@@ -498,9 +516,7 @@ Ostatní: Přebírání ze zvoleného zdroje
 			}
 		}
 
-		if (!$this->product || !$this->product->getValue('primaryCategory')) {
-			$values['primaryCategory'] = \count($newCategories) > 0 ? Arrays::first($newCategories) : null;
-		}
+		$values['primaryCategory'] = Arrays::contains($newCategories, $values['primaryCategory']) ? $values['primaryCategory'] : (\count($newCategories) > 0 ? Arrays::first($newCategories) : null);
 
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);

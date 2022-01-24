@@ -67,7 +67,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 		RelatedRepository $relatedRepository,
 		LinkGenerator $linkGenerator,
 		Request $request,
-		Storage $storage
+		Storage $storage,
+		SupplierProductRepository $supplierProductRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -82,6 +83,13 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$this->linkGenerator = $linkGenerator;
 		$this->request = $request;
 		$this->cache = new Cache($storage);
+
+		unset($supplierProductRepository);
+//		$this->onDelete[] = function (ProductRepository $productRepository, Collection $collection) use ($supplierProductRepository): void {
+//			$product = Arrays::first($collection->getVars());
+//
+//			\bdump($supplierProductRepository->many()->where('this.fk_product', $product)->update(['active' => false]));
+//		};
 	}
 
 	/**

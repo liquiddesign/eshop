@@ -256,13 +256,7 @@
                         {/foreach}
                     {/formContainer}
 
-                    <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">Primární kategorie</th>
-
-                        <td class="align-middle">
-                            <span id="data-info" class="text-sm">{$primaryCategory}</span>
-                        </td>
-                    </tr>
+                    {$renderer->renderPair($form['primaryCategory'])|noescape}
 
                     <tr class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label producer/}</th>

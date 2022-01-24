@@ -38,7 +38,7 @@ class Set extends \StORM\Entity
 	
 	/**
 	 * @relation
-	 * @constraint{"onUpdate":"RESTRICT","onDelete":"RESTRICT"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public Product $product;
 }

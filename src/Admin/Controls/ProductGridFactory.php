@@ -8,6 +8,7 @@ use Admin\Controls\AdminGridFactory;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\SupplierProductRepository;
 use Grid\Datagrid;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
@@ -31,6 +32,8 @@ class ProductGridFactory
 
 	private CategoryRepository $categoryRepository;
 
+	private SupplierProductRepository $supplierProductRepository;
+
 	public function __construct(
 		\Admin\Controls\AdminGridFactory $gridFactory,
 		Container $container,
@@ -38,7 +41,8 @@ class ProductGridFactory
 		ProductRepository $productRepository,
 		ProductGridFiltersFactory $productGridFiltersFactory,
 		Connection $connection,
-		CategoryRepository $categoryRepository
+		CategoryRepository $categoryRepository,
+		SupplierProductRepository $supplierProductRepository
 	) {
 		$this->gridFactory = $gridFactory;
 		$this->pageRepository = $pageRepository;
@@ -47,6 +51,7 @@ class ProductGridFactory
 		$this->productRepository = $productRepository;
 		$this->connection = $connection;
 		$this->categoryRepository = $categoryRepository;
+		$this->supplierProductRepository = $supplierProductRepository;
 	}
 
 	public function create(array $configuration): Datagrid
@@ -281,6 +286,10 @@ class ProductGridFactory
 
 	public function onDelete(Product $product): void
 	{
+		$this->categoryRepository->clearCategoriesCache();
+
+		$this->supplierProductRepository->many()->where('this.fk_product', $product->getPK())->update(['active' => false]);
+
 		/** @var \Web\DB\Page|null $page */
 		$page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product]);
 
@@ -301,7 +310,5 @@ class ProductGridFactory
 		}
 
 		$product->update(['imageFileName' => null]);
-
-		$this->categoryRepository->clearCategoriesCache();
 	}
 }

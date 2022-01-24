@@ -1026,18 +1026,26 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 			/** @var \Eshop\DB\Product[] $products */
 			$products = $this->productRepository->many()->where('this.uuid', $ids)->whereNot('this.uuid', $values['mainProduct'])->toArray();
 
-			$error1 = false;
-			$error2 = false;
+			$warning1 = null;
+			$warning2 = null;
+
+			/** @var \Eshop\DB\SupplierProduct[] $mainProductSupplierProducts */
+			$mainProductSupplierProducts = $this->supplierProductRepository->many()->where('fk_product', $values['mainProduct'])->setIndex('this.fk_supplier')->toArray();
 
 			foreach ($products as $product) {
-				try {
-					$this->supplierProductRepository->many()
-						->where('fk_product', $product->getPK())
-						->update(['fk_product' => $values['mainProduct']]);
-				} catch (\Exception $e) {
-					\bdump($e);
+				/** @var \Eshop\DB\SupplierProduct[] $productSupplierProducts */
+				$productSupplierProducts = $this->supplierProductRepository->many()->where('fk_product', $product->getPK())->setIndex('this.fk_supplier')->toArray();
 
-					$error1 = 'Některé produkty již mají namapovaného stejného dodavatele! Mapování těchto dodavatelů nebylo změněno.';
+				foreach ($productSupplierProducts as $supplierProduct) {
+					if (isset($mainProductSupplierProducts[$supplierProduct->getValue('supplier')])) {
+						$newSupplierProductValues = ['product' => null, 'active' => false];
+
+						$warning1 = 'Některé produkty již mají namapovaného stejného dodavatele! Mapování těchto dodavatelů bylo vymazáno.';
+					} else {
+						$newSupplierProductValues = ['product' => $values['mainProduct']];
+					}
+
+					$supplierProduct->update($newSupplierProductValues);
 				}
 
 				try {
@@ -1045,16 +1053,16 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 				} catch (\Exception $e) {
 					\bdump($e);
 
-					$error2 = 'Některé produkty nebyly smazány! Smazání pravděpodobně blokují vazby s jinými produkty.';
+					$warning2 = 'Některé produkty nebyly smazány! Smazání pravděpodobně blokují vazby s jinými produkty.';
 				}
 			}
 
-			if ($error1) {
-				$this->flashMessage($error1, 'warning');
+			if ($warning1) {
+				$this->flashMessage($warning1, 'warning');
 			}
 
-			if ($error2) {
-				$this->flashMessage($error2, 'warning');
+			if ($warning2) {
+				$this->flashMessage($warning2, 'warning');
 			}
 
 			$this->flashMessage('Provedeno', 'success');
