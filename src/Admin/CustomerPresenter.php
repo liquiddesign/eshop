@@ -359,9 +359,9 @@ class CustomerPresenter extends BackendPresenter
 		if (isset($this::CONFIGURATIONS['deliveryPayment']) && $this::CONFIGURATIONS['deliveryPayment']) {
 			$form->addDataSelect('preferredPaymentType', 'Preferovaná platba', $this->paymentTypeRepo->getArrayForSelect())->setPrompt('Žádná');
 			$form->addDataSelect('preferredDeliveryType', 'Preferovaná doprava', $this->deliveryTypeRepo->getArrayForSelect())->setPrompt('Žádná');
-			$form->addDataMultiSelect('exclusivePaymentTypes', 'Povolené exkluzivní platby', $this->paymentTypeRepo->many()->toArrayOf('code'))
+			$form->addDataMultiSelect('exclusivePaymentTypes', 'Povolené exkluzivní platby', $this->paymentTypeRepo->getArrayForSelect())
 				->setHtmlAttribute('placeholder', 'Vyberte položky...');
-			$form->addDataMultiSelect('exclusiveDeliveryTypes', 'Povolené exkluzivní dopravy', $this->deliveryTypeRepo->many()->toArrayOf('code'))
+			$form->addDataMultiSelect('exclusiveDeliveryTypes', 'Povolené exkluzivní dopravy', $this->deliveryTypeRepo->getArrayForSelect())
 				->setHtmlAttribute('placeholder', 'Vyberte položky...');
 		}
 
