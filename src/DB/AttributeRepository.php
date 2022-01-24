@@ -238,11 +238,12 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	/**
 	 * @param array<int, string> $values
 	 * @param array<string, mixed> $filters
+	 * @param string|null $cacheId
 	 * @return array<string, string>
 	 */
-	public function getCounts(array $values, array $filters): array
+	public function getCounts(array $values, array $filters, ?string $cacheId = null): array
 	{
-		$index = $this->shopper->getPriceCacheIndex('attributes', $filters);
+		$index = $cacheId ?? $this->shopper->getPriceCacheIndex('attributes', $filters);
 		$cache = $index ? $this->cache : new Cache(new DevNullStorage());
 		/** @var \Eshop\DB\ProductRepository $productRepository */
 		$productRepository = $this->getConnection()->findRepository(Product::class);
