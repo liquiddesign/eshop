@@ -202,8 +202,12 @@ class ProductFilter extends Control
 			if ($key !== false) {
 				unset($filters['attributes'][$rootIndex][$key]);
 			}
+
+			$filters['attributes'][$rootIndex] = \array_values($filters['attributes'][$rootIndex]);
 		} else {
 			unset($filters['attributes'][$rootIndex]);
+
+			$filters['attributes'] = \array_values($filters['attributes']);
 		}
 		
 		if (isset($filters['category'])) {
