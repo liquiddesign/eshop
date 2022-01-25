@@ -6,8 +6,12 @@ namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
 use Eshop\Shopper;
+use Latte\Loaders\StringLoader;
+use Latte\Sandbox\SecurityPolicy;
 use League\Csv\Reader;
 use League\Csv\Writer;
+use Nette\Bridges\ApplicationLatte\LatteFactory;
+use Nette\Bridges\ApplicationLatte\UIMacros;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Utils\Random;
@@ -38,6 +42,8 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	private ProducerRepository $producerRepository;
 
 	private ProductRepository $productRepository;
+
+	private LatteFactory $latteFactory;
 	
 	/** @var int[] */
 	private array $preloadCategoryCounts;
@@ -50,6 +56,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		PageRepository $pageRepository,
 		ProducerRepository $producerRepository,
 		ProductRepository $productRepository,
+		LatteFactory $latteFactory,
 		array $preloadCategoryCounts = []
 	) {
 		parent::__construct($connection, $schemaManager);
@@ -60,6 +67,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$this->producerRepository = $producerRepository;
 		$this->productRepository = $productRepository;
 		$this->preloadCategoryCounts = $preloadCategoryCounts;
+		$this->latteFactory = $latteFactory;
 	}
 
 	/**
@@ -692,6 +700,44 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$this->iterateAndImportHeurekaTreeXml($xml->CATEGORY, $categoryType);
 
 		$this->clearCategoriesCache();
+	}
+
+	/**
+	 * Used to check if default perex or default content of category is valid by Latte.
+	 * @param string|null $content
+	 */
+	public function isDefaultContentValid(?string $content): bool
+	{
+		if ($content === null) {
+			return false;
+		}
+
+		$policy = SecurityPolicy::createSafePolicy();
+		$policy->allowFilters(['price', 'date']);
+
+		$latte = $this->latteFactory->create();
+		UIMacros::install($latte->getCompiler());
+		$latte->setLoader(new StringLoader());
+		$latte->setPolicy($policy);
+		$latte->setSandboxMode();
+
+		$params = [
+			'name' => '',
+			'producer' => '',
+			'code' => '',
+			'ean' => '',
+			'attributes' => [],
+		];
+
+		try {
+			$latte->renderToString($content, $params);
+
+			return true;
+		} catch (\Throwable $e) {
+			\bdump($e);
+
+			return false;
+		}
 	}
 
 	private function iterateAndImportHeurekaTreeXml(\SimpleXMLElement $tree, CategoryType $categoryType, ?Category $ancestor = null): void

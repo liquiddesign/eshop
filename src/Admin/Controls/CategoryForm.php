@@ -143,6 +143,26 @@ class CategoryForm extends Control
 			$form->addSubmits(!$category);
 		}
 
+		$form->onValidate[] = function (AdminForm $form): void {
+			if (!$form->isValid()) {
+				return;
+			}
+
+			$values = $form->getValues('array');
+
+			$columnsToCheck = ['defaultProductPerex', 'defaultProductContent'];
+
+			foreach ($columnsToCheck as $column) {
+				foreach ($values[$column] as $mutation => $content) {
+					if (!$this->categoryRepository->isDefaultContentValid($content)) {
+						/** @var \Nette\Forms\Controls\TextInput $input */
+						$input = $form[$column][$mutation];
+						$input->addError('Neplatný text! Zkontrolujte správnost proměnných!');
+					}
+				}
+			}
+		};
+
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
