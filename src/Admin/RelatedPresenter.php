@@ -353,12 +353,25 @@ class RelatedPresenter extends BackendPresenter
 		$detailCheckbox = $form->addCheckbox('showDetail', 'Zobrazit v detailu produktu')
 			->setHtmlAttribute('data-info', 'Zobrazí se v detailu produktu jako seznam produktů. Platí pouze pokud není současně použito "Zobrazit jako set".');
 
-		$form->addLocaleText('frontName', 'Název pro eshop')->forAll(function (TextInput $input) use ($form, $detailCheckbox): void {
+		$form->addLocaleText('frontMasterName', 'Název pro eshop (master)')->forAll(function (TextInput $input) use ($form, $detailCheckbox): void {
+			$input->setNullable();
+
 			$detailCheckbox->addCondition($form::EQUAL, true)
 				->toggle($input->getHtmlId() . '-toogle')
 				->endCondition();
 
-			$input->setHtmlAttribute('data-info', ' Lze použít tyto proměnné:<br>
+			$input->setHtmlAttribute('data-info', 'Pokud nevyplníte tak nebude na této straně vazba zobrazena.<br>Lze použít tyto proměnné:<br>
+{$productName} - Název produktu<br>');
+		});
+
+		$form->addLocaleText('frontSlaveName', 'Název pro eshop (slave)')->forAll(function (TextInput $input) use ($form, $detailCheckbox): void {
+			$input->setNullable();
+
+			$detailCheckbox->addCondition($form::EQUAL, true)
+				->toggle($input->getHtmlId() . '-toogle')
+				->endCondition();
+
+			$input->setHtmlAttribute('data-info', 'Pokud nevyplníte tak nebude na této straně vazba zobrazena.<br>Lze použít tyto proměnné:<br>
 {$productName} - Název produktu<br>');
 		});
 
@@ -373,7 +386,7 @@ class RelatedPresenter extends BackendPresenter
 
 			$values = $form->getValues('array');
 
-			$columnsToCheck = ['frontName'];
+			$columnsToCheck = ['frontMasterName', 'frontSlaveName'];
 
 			foreach ($columnsToCheck as $column) {
 				foreach ($values[$column] as $mutation => $content) {

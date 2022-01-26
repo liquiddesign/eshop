@@ -87,7 +87,13 @@ class RelatedType extends \StORM\Entity
 	 * Název pro front s proměnnými (Latte)
 	 * @column{"mutations":true}
 	 */
-	public ?string $frontName;
+	public ?string $frontMasterName;
+
+	/**
+	 * Název pro front s proměnnými (Latte)
+	 * @column{"mutations":true}
+	 */
+	public ?string $frontSlaveName;
 
 	/**
 	 * Systemic
