@@ -106,39 +106,6 @@ class CategoryForm extends Control
 
 		$form->addPageContainer('product_list', ['category' => $category], $nameInput);
 
-//		$pagesCategoryAll = [];
-
-//		if ($category) {
-//			$pages = $this->pageRepository->many()->where('type', 'product_list');
-//
-//			while ($page = $pages->fetch()) {
-//				/** @var \Web\DB\Page $page */
-//				$params = $page->getParsedParameters();
-//
-//				if (!isset($params['category']) || !isset($params['producer']) || $params['category'] !== $category->getPK()) {
-//					continue;
-//				}
-//
-//				$pagesCategoryAll[$page->getPK()] = [$page, $this->producerRepository->one($params['producer'])];
-//			}
-//
-//			if (\count($pagesCategoryAll) > 0) {
-//				$mainContainer = $form->addContainer('categoryProducerPages');
-//
-//				foreach ($pagesCategoryAll as [$page, $producer]) {
-//					$pageContainer = $mainContainer->addContainer($page->getPK());
-//
-//					$pageContainer->addCheckbox('active')->setDefaultValue($page->active);
-//					$pageContainer->addText('name')->setDefaultValue($page->name);
-//					$pageContainer->addInteger('priority')->setRequired()->setDefaultValue($page->priority ?? 10);
-//				}
-//			}
-//		}
-
-//		$this->monitor(Presenter::class, function ($presenter) use ($pagesCategoryAll): void {
-//			$this->template->producerPages = $pagesCategoryAll;
-//		});
-
 		if (!$category || (!$category->type->isReadOnly())) {
 			$form->addSubmits(!$category);
 		}
@@ -170,31 +137,6 @@ class CategoryForm extends Control
 			$presenter = $this->getPresenter();
 
 			$presenter->createImageDirs(Category::IMAGE_DIR);
-
-//			$active = [];
-//			$nonActive = [];
-//
-//			foreach ($this->formFactory->getMutations() as $mutation) {
-//				$active[$mutation] = true;
-//				$nonActive[$mutation] = false;
-//			}
-//
-//			$this->pageRepository->many()->where('this.uuid', \array_keys($pagesCategoryAll))->update(['active' => $nonActive]);
-
-//			if (isset($values['categoryProducerPages'])) {
-//				foreach ($values['categoryProducerPages'] as $pagePK => $pageValues) {
-//					$pageTitle = $pageValues['name'];
-//					$pageValues['name'] = [];
-//					$pageActive = $pageValues['active'];
-//					unset($pageValues['active']);
-//
-//					foreach (\array_keys($this->categoryRepository->getConnection()->getAvailableMutations()) as $mutation) {
-//						$pageValues['name'][$mutation] = $pageTitle;
-//					}
-//
-//					$this->pageRepository->many()->where('this.uuid', $pagePK)->update(['active' => $pageActive ? $active : $nonActive] + $pageValues);
-//				}
-//			}
 
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
