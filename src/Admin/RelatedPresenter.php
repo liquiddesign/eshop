@@ -17,6 +17,7 @@ use Forms\Form;
 use League\Csv\Writer;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
+use Nette\Forms\Controls\TextInput;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use StORM\DIConnection;
@@ -316,8 +317,8 @@ class RelatedPresenter extends BackendPresenter
 		$form->addLocaleText('name', 'Název');
 		$form->addCheckbox('hidden', 'Skryto');
 
-		$form->addText('masterName', 'Název master produktu');
-		$form->addText('slaveName', 'Název slave produktu')->setHtmlAttribute('data-info', 'Slouží pro lepší rozpoznání v administraci.');
+		$form->addText('masterName', 'Název master produktu')->setNullable();
+		$form->addText('slaveName', 'Název slave produktu')->setNullable()->setHtmlAttribute('data-info', 'Slouží pro lepší rozpoznání v administraci.');
 
 		$form->addInteger('defaultAmount', 'Výchozí množství')->setRequired()->setDefaultValue(1);
 		$typeInput = $form->addSelect('type', 'Typ přepočtu ceny', ['none' => 'Žádný', 'discount' => 'Sleva', 'master' => 'Procento z master produktu']);
@@ -349,7 +350,18 @@ class RelatedPresenter extends BackendPresenter
 
 		$form->addCheckbox('showCart', 'Zobrazit v košíku');
 		$form->addCheckbox('showSearch', 'Zobrazit v našeptávači');
-		$form->addCheckbox('showDetail', 'Zobrazit v detailu produktu')->setHtmlAttribute('data-info', 'Zobrazí v detailu produktu jako seznam produktů.');
+		$detailCheckbox = $form->addCheckbox('showDetail', 'Zobrazit v detailu produktu')
+			->setHtmlAttribute('data-info', 'Zobrazí se v detailu produktu jako seznam produktů. Platí pouze pokud není současně použito "Zobrazit jako set".');
+
+		$form->addLocaleText('frontName', 'Název pro eshop')->forAll(function (TextInput $input) use ($form, $detailCheckbox): void {
+			$detailCheckbox->addCondition($form::EQUAL, true)
+				->toggle($input->getHtmlId() . '-toogle')
+				->endCondition();
+
+			$input->setHtmlAttribute('data-info', ' Lze použít tyto proměnné:<br>
+{$productName} - Název produktu<br>');
+		});
+
 		$form->addCheckbox('showAsSet', 'Zobrazit jako set')->setHtmlAttribute('data-info', 'Zobrazí v detailu produktu odkazy na produkty setu.');
 
 		$form->addSubmits(!$relatedType);
@@ -360,6 +372,18 @@ class RelatedPresenter extends BackendPresenter
 			}
 
 			$values = $form->getValues('array');
+
+			$columnsToCheck = ['frontName'];
+
+			foreach ($columnsToCheck as $column) {
+				foreach ($values[$column] as $mutation => $content) {
+					if (!$this->relatedTypeRepository->isDefaultContentValid($content)) {
+						/** @var \Nette\Forms\Controls\TextInput $input */
+						$input = $form[$column][$mutation];
+						$input->addError('Neplatný text! Zkontrolujte správnost proměnných!');
+					}
+				}
+			}
 
 			/** @var \Eshop\DB\RelatedType|null $existing */
 			$existing = $this->relatedTypeRepository->many()->where('code', $values['code'])->first();

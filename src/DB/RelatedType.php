@@ -84,6 +84,12 @@ class RelatedType extends \StORM\Entity
 	public bool $hidden = false;
 
 	/**
+	 * Název pro front s proměnnými (Latte)
+	 * @column{"mutations":true}
+	 */
+	public ?string $frontName;
+
+	/**
 	 * Systemic
 	 * @column
 	 */
@@ -96,11 +102,21 @@ class RelatedType extends \StORM\Entity
 
 	public function getMasterInternalName(): ?string
 	{
-		return $this->masterName ?? 'Master produkty';
+		return \is_string($this->masterName) && \strlen($this->masterName) > 0 ? $this->masterName : 'Master produkty';
 	}
 
 	public function getSlaveInternalName(): ?string
 	{
-		return $this->slaveName ?? 'Slave produkty';
+		return \is_string($this->slaveName) && \strlen($this->slaveName) > 0 ? $this->slaveName : 'Slave produkty';
+	}
+
+	/**
+	 * @return array<string|array>
+	 */
+	public function getFrontendData(Product $product): array
+	{
+		return [
+			'productName' => $product->name,
+		];
 	}
 }
