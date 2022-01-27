@@ -718,7 +718,7 @@ class Product extends \StORM\Entity
 		return [
 			'name' => $this->name,
 			'producer' => $this->producer ? $this->producer->name : null,
-			'code' => $this->code,
+			'code' => $this->getFullCode(),
 			'ean' => $this->ean,
 			'attributes' => $productAttributesByCode,
 		];
