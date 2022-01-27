@@ -74,7 +74,7 @@ class RelatedTypeRepository extends \StORM\Repository implements IGeneralReposit
 	public function isDefaultContentValid(?string $content): bool
 	{
 		if ($content === null) {
-			return false;
+			return true;
 		}
 
 		$policy = SecurityPolicy::createSafePolicy();
