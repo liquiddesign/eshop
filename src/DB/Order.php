@@ -56,12 +56,6 @@ class Order extends \StORM\Entity
 	public ?string $receivedTs;
 	
 	/**
-	 * Zpracována
-	 * @column{"type":"timestamp"}
-	 */
-	public ?string $processedTs;
-	
-	/**
 	 * Uzavřena
 	 * @column{"type":"timestamp"}
 	 */
