@@ -297,16 +297,13 @@ class ProductGridFactory
 			$page->delete();
 		}
 
-		if (!$product->imageFileName) {
-			return;
-		}
-
 		$subDirs = ['origin', 'detail', 'thumb'];
-		$dir = Product::IMAGE_DIR;
+		$dir = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR;
 
-		foreach ($subDirs as $subDir) {
-			$rootDir = $this->container->parameters['wwwDir'] . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
-			FileSystem::delete($rootDir . \DIRECTORY_SEPARATOR . $subDir . \DIRECTORY_SEPARATOR . $product->imageFileName);
+		foreach ($product->photos as $photo) {
+			foreach ($subDirs as $subDir) {
+				FileSystem::delete("$dir/$subDir/$photo->fileName");
+			}
 		}
 
 		$product->update(['imageFileName' => null]);

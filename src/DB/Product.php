@@ -16,8 +16,6 @@ use StORM\RelationCollection;
  */
 class Product extends \StORM\Entity
 {
-	public const IMAGE_DIR = 'product_images';
-
 	public const GALLERY_DIR = 'product_gallery_images';
 
 	public const FILE_DIR = 'product_files';
@@ -433,6 +431,13 @@ class Product extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\LoyaltyProgramProduct>|\Eshop\DB\LoyaltyProgramProduct[]
 	 */
 	public RelationCollection $loyaltyPrograms;
+
+	/**
+	 * Galerie
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\Photo>|\Eshop\DB\Photo[]
+	 */
+	public RelationCollection $photos;
 
 	/**
 	 * @return \Eshop\DB\Ribbon[]|\StORM\Entity[]

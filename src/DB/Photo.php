@@ -12,8 +12,6 @@ use Nette\Application\ApplicationException;
  */
 class Photo extends \StORM\Entity
 {
-	public const IMAGE_DIR = 'product_gallery_images';
-	
 	/**
 	 * Soubor
 	 * @column
@@ -63,6 +61,6 @@ class Photo extends \StORM\Entity
 			throw new ApplicationException('Invalid product image size: ' . $size);
 		}
 		
-		return $this->fileName ? $basePath . '/userfiles/' . self::IMAGE_DIR . '/' . $size . '/' . $this->fileName : $basePath . '/public/img/no-image.png';
+		return $this->fileName ? $basePath . '/userfiles/' . Product::GALLERY_DIR . '/' . $size . '/' . $this->fileName : $basePath . '/public/img/no-image.png';
 	}
 }

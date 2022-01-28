@@ -30,7 +30,7 @@ class PhotoPresenter extends BackendPresenter
 	{
 		parent::startup();
 
-		$this->productPhotosPath = \dirname(__DIR__, 3) . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . Product::IMAGE_DIR;
+		$this->productPhotosPath = \dirname(__DIR__, 3) . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . Product::GALLERY_DIR;
 	}
 	
 	public function createComponentNewForm(): Form

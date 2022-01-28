@@ -22,7 +22,6 @@ use Eshop\DB\File;
 use Eshop\DB\FileRepository;
 use Eshop\DB\InternalCommentProductRepository;
 use Eshop\DB\NewsletterTypeRepository;
-use Eshop\DB\Photo;
 use Eshop\DB\PhotoRepository;
 use Eshop\DB\Pricelist;
 use Eshop\DB\PricelistRepository;
@@ -46,11 +45,9 @@ use Nette\Forms\Controls\TextInput;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
-use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use Onnov\DetectEncoding\EncodingDetector;
 use Pages\DB\PageRepository;
-use StORM\Collection;
 use StORM\Connection;
 use StORM\DIConnection;
 use StORM\Expression;
@@ -239,32 +236,6 @@ class ProductPresenter extends BackendPresenter
 		return $this->productFormFatory->create($this->getParameter('product'), $this::CONFIGURATION);
 	}
 
-	public function createComponentPhotoGrid(): AdminGrid
-	{
-		$grid = $this->gridFactory->create($this->photoRepository->many()->where('fk_product', $this->getParameter('product')->getPK()), 20, 'priority', 'ASC', true);
-		$grid->addColumnImage('fileName', Photo::IMAGE_DIR);
-
-		$grid->addColumnText('Popisek', 'label_cs', '%s', 'label_cs');
-		$grid->addColumnText('Zdroj', 'supplier.name', '%s', 'supplier.name');
-		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
-		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
-		$grid->addColumnLinkDetail('detailPhoto');
-		$grid->addColumnActionDelete([$this, 'deleteGalleryPhoto']);
-		$grid->addFilterTextInput('search', ['fileName'], null, 'Název');
-
-		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
-			$grid->addFilterDataSelect(function (Collection $source, $value): void {
-				$source->where('supplier.uuid', $value);
-			}, '', 'supplier', null, $suppliers)->setPrompt('- Zdroj -');
-		}
-
-		$grid->addFilterButtons(['productPhotos', $this->getParameter('product')]);
-
-		$grid->addButtonSaveAll();
-
-		return $grid;
-	}
-
 	public function createComponentFileGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->fileRepository->many()->where('fk_product', $this->getParameter('product')), 20, 'priority', 'ASC', true);
@@ -418,60 +389,6 @@ class ProductPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function createComponentPhotoForm(): Form
-	{
-		$form = $this->formFactory->create(true);
-
-		$form->addImagePicker('fileName', 'Obrázek', [
-			Product::GALLERY_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
-			Product::GALLERY_DIR . \DIRECTORY_SEPARATOR . 'detail' => static function (Image $image): void {
-				$image->resize(600, null);
-			},
-			Product::GALLERY_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
-				$image->resize(300, null);
-			},
-		]);
-
-		$form->addLocaleText('label', 'Popisek');
-
-		/*$imagePicker->onDelete[] = function (array $directories, $filename) use ($product) {
-			foreach ($directories as $key => $directory) {
-				FileSystem::delete($this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $key . \DIRECTORY_SEPARATOR . $photo->fileName);
-			}
-
-			$photo->delete();
-			$this->redirect('productPhotos', $product);
-		};*/
-
-		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
-		$form->addCheckbox('hidden', 'Skryto');
-		$form->addHidden('product', (string)($this->getParameter('photo') ? $this->getParameter('photo')->product : $this->getParameter('product')));
-
-		$form->addSubmits(false, false);
-
-		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
-
-			$this->createDirectories();
-
-			if (!$values['uuid']) {
-				$values['uuid'] = DIConnection::generateUuid();
-			}
-
-			/** @var \Forms\Controls\UploadFile $upload */
-			$upload = $form['fileName'];
-
-			$values['fileName'] = $upload->upload($values['uuid'] . '.%2$s');
-
-			$this->photoRepository->syncOne($values);
-
-			$this->flashMessage('Uloženo', 'success');
-			$this->redirect('photos', [new Product(['uuid' => $values['product']])]);
-		};
-
-		return $form;
-	}
-
 	public function createComponentAttributesForm(): ProductAttributesForm
 	{
 		return $this->productAttributesFormFactory->create($this->getParameter('product'), false);
@@ -508,33 +425,6 @@ class ProductPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('fileForm')];
 	}
 
-	public function renderDetailPhoto(Photo $photo): void
-	{
-		$this->template->headerLabel = 'Nová položka';
-		$this->template->headerTree = [
-			['Produkty', 'default'],
-			['Fotografie', 'photos', $photo->product],
-			['Detail'],
-		];
-		$this->template->displayButtons = [
-			$this->createBackButton('photos', $photo->product),
-			$this->createButtonWithClass('makePhotoPrimary!', '<i class="fas fa-star"></i>  Převést obrázek na hlavní', 'btn btn-sm btn-outline-primary', $photo),
-		];
-		$this->template->displayControls = [$this->getComponent('photoForm')];
-	}
-
-	public function renderNewPhoto(Product $product): void
-	{
-		$this->template->headerLabel = 'Nová položka';
-		$this->template->headerTree = [
-			['Produkty', 'default'],
-			['Fotky', 'photos', $product],
-			['Nová položka'],
-		];
-		$this->template->displayButtons = [$this->createBackButton('photos', $product)];
-		$this->template->displayControls = [$this->getComponent('photoForm')];
-	}
-
 	public function renderNew(): void
 	{
 		$this->template->editTab = $this->editTab;
@@ -554,13 +444,6 @@ class ProductPresenter extends BackendPresenter
 		$this->template->photos = [];
 
 		$this->template->setFile(__DIR__ . '/templates/product.edit.latte');
-	}
-
-	public function actionDetailPhoto(Photo $photo): void
-	{
-		/** @var \Admin\Controls\AdminForm $form */
-		$form = $this->getComponent('photoForm');
-		$form->setDefaults($photo->toArray());
 	}
 
 	public function actionEdit(Product $product): void
@@ -705,40 +588,6 @@ class ProductPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('priceGrid')];
 	}
 
-	public function renderPhotos(Product $product): void
-	{
-		$this->template->headerLabel = 'Fotografie - ' . $product->name;
-		$this->template->headerTree = [
-			['Produkty', 'default'],
-			['Fotografie'],
-		];
-
-		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [];
-
-		$this->template->setFile(__DIR__ . '/templates/productPhotosDropzone.latte');
-
-		/** @var \Eshop\DB\Product $product */
-		$product = $this->getParameter('product');
-
-		$data = [];
-		/** @var \Eshop\DB\Photo[] $photos */
-		$photos = $this->photoRepository->many()->where('fk_product', $product->getPK())->orderBy(['priority']);
-
-		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR . '/origin/';
-
-		foreach ($photos as $photo) {
-			$row = [];
-			$row['name'] = $photo->fileName;
-			$row['size'] = \file_exists($basePath . $photo->fileName) ? \filesize($basePath . $photo->fileName) : 0;
-			$row['main'] = $product->imageFileName === $photo->fileName;
-
-			$data[$photo->fileName] = $row;
-		}
-
-		$this->template->photos = $data;
-	}
-
 	public function renderFiles(Product $product): void
 	{
 		$this->template->headerLabel = 'Soubory - ' . $product->name;
@@ -791,23 +640,6 @@ class ProductPresenter extends BackendPresenter
 		}
 
 		FileSystem::delete($rootDir . \DIRECTORY_SEPARATOR . $file->fileName);
-	}
-
-	public function deleteGalleryPhoto(Photo $photo): void
-	{
-		$subDirs = ['origin', 'detail', 'thumb'];
-		$dir = Photo::IMAGE_DIR;
-
-		if (!$photo->fileName) {
-			return;
-		}
-
-		foreach ($subDirs as $subDir) {
-			$rootDir = $this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
-			FileSystem::delete($rootDir . \DIRECTORY_SEPARATOR . $subDir . \DIRECTORY_SEPARATOR . $photo->fileName);
-		}
-
-		$photo->update(['fileName' => null]);
 	}
 
 	public function actionNewsletterExportSelect(array $ids): void
@@ -1109,9 +941,9 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 			$connection = $this->productRepository->getConnection();
 
 			$imagesPath = \dirname(__DIR__, 5) . '/userfiles/images';
-			$originalPath = \dirname(__DIR__, 5) . '/userfiles/product_gallery_images/origin';
-			$thumbPath = \dirname(__DIR__, 5) . '/userfiles/product_gallery_images/thumb';
-			$detailPath = \dirname(__DIR__, 5) . '/userfiles/product_gallery_images/detail';
+			$originalPath = \dirname(__DIR__, 5) . '/userfiles/' . Product::GALLERY_DIR . '/origin';
+			$thumbPath = \dirname(__DIR__, 5) . '/userfiles/' . Product::GALLERY_DIR . '/thumb';
+			$detailPath = \dirname(__DIR__, 5) . '/userfiles/' . Product::GALLERY_DIR . '/detail';
 
 			FileSystem::createDir($imagesPath);
 			FileSystem::createDir($originalPath);
@@ -1514,24 +1346,6 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		return $form;
 	}
 
-	public function handleMakePhotoPrimary(Photo $photo): void
-	{
-		$subDirs = ['origin', 'detail', 'thumb'];
-		$imageDir = $this->wwwDir . '/' . 'userfiles' . '/' . Product::IMAGE_DIR;
-		$galleryDir = $this->wwwDir . '/' . 'userfiles' . '/' . Product::GALLERY_DIR;
-
-		$tempFilename = Random::generate();
-
-		foreach ($subDirs as $subDir) {
-			FileSystem::rename($imageDir . '/' . $subDir . '/' . $photo->product->imageFileName, $galleryDir . '/' . $subDir . '/' . $tempFilename);
-			FileSystem::rename($galleryDir . '/' . $subDir . '/' . $photo->fileName, $imageDir . '/' . $subDir . '/' . $photo->product->imageFileName);
-			FileSystem::rename($galleryDir . '/' . $subDir . '/' . $tempFilename, $galleryDir . '/' . $subDir . '/' . $photo->fileName);
-		}
-
-		$this->flashMessage('Provedeno', 'success');
-		$this->redirect('this');
-	}
-
 	public function actionComments(Product $product): void
 	{
 		$this->template->headerLabel = 'Komentáře - ' . $product->name;
@@ -1690,7 +1504,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 	protected function createDirectories(): void
 	{
 		$subDirs = ['origin', 'detail', 'thumb'];
-		$dirs = [Product::IMAGE_DIR, Photo::IMAGE_DIR, Product::FILE_DIR];
+		$dirs = [Product::GALLERY_DIR, Product::FILE_DIR];
 
 		foreach ($dirs as $dir) {
 			$rootDir = $this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;

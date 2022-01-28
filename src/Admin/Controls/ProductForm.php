@@ -33,9 +33,7 @@ use Eshop\FormValidators;
 use Eshop\Shopper;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
-use Nette\DI\Container;
 use Nette\Utils\Arrays;
-use Nette\Utils\FileSystem;
 use StORM\ICollection;
 use Web\DB\PageRepository;
 
@@ -49,8 +47,6 @@ class ProductForm extends Control
 	private ?Product $product;
 
 	private ProductRepository $productRepository;
-
-	private Container $container;
 
 	private PricelistRepository $pricelistRepository;
 
@@ -89,7 +85,6 @@ class ProductForm extends Control
 	private array $configuration;
 
 	public function __construct(
-		Container $container,
 		AdminFormFactory $adminFormFactory,
 		PageRepository $pageRepository,
 		ProductRepository $productRepository,
@@ -118,7 +113,6 @@ class ProductForm extends Control
 	) {
 		$this->product = $product = $productRepository->get($product);
 		$this->productRepository = $productRepository;
-		$this->container = $container;
 		$this->pricelistRepository = $pricelistRepository;
 		$this->priceRepository = $priceRepository;
 		$this->supplierRepository = $supplierRepository;
@@ -476,8 +470,6 @@ Ostatní: Přebírání ze zvoleného zdroje
 		$values = $form->getValues('array');
 		$editTab = Arrays::pick($values, 'editTab', null);
 
-		$this->createImageDirs();
-
 		if (!$values['uuid']) {
 			$values['uuid'] = ProductRepository::generateUuid(
 				$values['ean'],
@@ -693,36 +685,5 @@ Ostatní: Přebírání ze zvoleného zdroje
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;
 		$template->render(__DIR__ . '/productForm.latte');
-	}
-
-	protected function deleteImages(): void
-	{
-		$product = $this->getPresenter()->getParameter('product');
-
-		if (!$product->imageFileName) {
-			return;
-		}
-
-		$subDirs = ['origin', 'detail', 'thumb'];
-		$dir = Product::IMAGE_DIR;
-
-		foreach ($subDirs as $subDir) {
-			$rootDir = $this->container->parameters['wwwDir'] . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
-			FileSystem::delete($rootDir . \DIRECTORY_SEPARATOR . $subDir . \DIRECTORY_SEPARATOR . $product->imageFileName);
-		}
-
-		$product->update(['imageFileName' => null]);
-	}
-
-	private function createImageDirs(): void
-	{
-		$subDirs = ['origin', 'detail', 'thumb'];
-		$dir = Product::IMAGE_DIR;
-		$rootDir = $this->container->parameters['wwwDir'] . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
-		FileSystem::createDir($rootDir);
-
-		foreach ($subDirs as $subDir) {
-			FileSystem::createDir($rootDir . \DIRECTORY_SEPARATOR . $subDir);
-		}
 	}
 }
