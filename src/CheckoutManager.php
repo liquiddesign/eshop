@@ -817,18 +817,38 @@ class CheckoutManager
 		return 0.0;
 	}
 	
-	public function getDeliveryDiscount(): ?DeliveryDiscount
+	public function getDeliveryDiscount(bool $vat = false): ?DeliveryDiscount
 	{
 		$currency = $this->cartExists() ? $this->getCart()->currency : $this->shopper->getCurrency();
 		
-		return $this->deliveryDiscountRepository->getActiveDeliveryDiscount($currency, $this->getCartCheckoutPrice(), $this->getSumWeight());
+		return $this->deliveryDiscountRepository->getActiveDeliveryDiscount($currency, $vat ? $this->getCheckoutPriceVat() : $this->getCartCheckoutPrice(), $this->getSumWeight());
 	}
 	
-	public function getPossibleDeliveryDiscount(): ?DeliveryDiscount
+	public function getPossibleDeliveryDiscount(bool $vat = false): ?DeliveryDiscount
 	{
 		$currency = $this->cartExists() ? $this->getCart()->currency : $this->shopper->getCurrency();
 		
-		return $this->deliveryDiscountRepository->getNextDeliveryDiscount($currency, $this->getCartCheckoutPrice(), $this->getSumWeight());
+		return $this->deliveryDiscountRepository->getNextDeliveryDiscount($currency, $vat ? $this->getCheckoutPriceVat() : $this->getCartCheckoutPrice(), $this->getSumWeight());
+	}
+
+	public function getPriceLeftToNextDeliveryDiscount(): ?float
+	{
+		return $this->getPossibleDeliveryDiscount() ? $this->getPossibleDeliveryDiscount()->discountPriceFrom - $this->getCartCheckoutPrice() : null;
+	}
+
+	public function getPriceVatLeftToNextDeliveryDiscount(): ?float
+	{
+		return $this->getPossibleDeliveryDiscount(true) ? $this->getPossibleDeliveryDiscount(true)->discountPriceFrom - $this->getCartCheckoutPriceVat() : null;
+	}
+
+	public function getDeliveryDiscountProgress(): ?float
+	{
+		return $this->getPossibleDeliveryDiscount() ? $this->getCartCheckoutPrice() / $this->getPossibleDeliveryDiscount()->discountPriceFrom * 100 : null;
+	}
+
+	public function getDeliveryDiscountProgressVat(): ?float
+	{
+		return $this->getPossibleDeliveryDiscount(true) ? $this->getCartCheckoutPriceVat() / $this->getPossibleDeliveryDiscount(true)->discountPriceFrom * 100 : null;
 	}
 	
 	public function getDiscountCoupon(): ?DiscountCoupon
