@@ -405,8 +405,8 @@ class OrderRepository extends \StORM\Repository
 				$order->receivedTs,
 				$order->completedTs,
 				$order->canceledTs,
-				$order->purchase->getSumPrice(),
-				$order->purchase->getSumPriceVat(),
+				$order->getTotalPrice(),
+				$order->getTotalPriceVat(),
 				$order->purchase->fullname,
 				$order->purchase->accountFullname,
 			]);
