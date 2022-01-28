@@ -6,10 +6,13 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
+use Eshop\Admin\ProductPresenter;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\Product;
 use Nette\Application\UI\Control;
+use Nette\Application\UI\Presenter;
+use Nette\Utils\Arrays;
 
 class ProductAttributesForm extends Control
 {
@@ -36,6 +39,11 @@ class ProductAttributesForm extends Control
 		$this->errorEnabled = $errorEnabled;
 
 		$form = $adminFormFactory->create(false, false, false, false, false);
+
+		$this->monitor(Presenter::class, function (ProductPresenter $productPresenter) use ($form): void {
+			$form->addHidden('editTab')->setDefaultValue($productPresenter->editTab);
+		});
+
 		$form->removeComponent($form->getComponent('uuid'));
 		$form->addGroup('Atributy');
 
@@ -93,6 +101,8 @@ class ProductAttributesForm extends Control
 
 		$this->attributeAssignRepository->many()->where('fk_product', $this->product->getPK())->delete();
 
+		$editTab = Arrays::pick($values, 'editTab', null);
+
 		foreach ($values as $attributeValues) {
 			foreach ($attributeValues as $attributeValueKey) {
 				$this->attributeAssignRepository->syncOne([
@@ -102,7 +112,7 @@ class ProductAttributesForm extends Control
 			}
 		}
 
-		$form->processRedirect('this', 'default', [$this->product]);
+		$form->processRedirect('this', 'default', ['product' => $this->product, 'editTab' => $editTab]);
 	}
 
 	public function render(): void

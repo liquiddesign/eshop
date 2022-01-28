@@ -437,7 +437,7 @@ class ProductPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [
-			$this->getComponent('productForm'),
+			'productForm' => $this->getComponent('productForm'),
 		];
 
 		$this->template->comments = [];
@@ -546,11 +546,11 @@ class ProductPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [
-			$this->getComponent('productForm'),
+			'productForm' => $this->getComponent('productForm'),
 		];
 
 		if ($this->getParameter('product')) {
-			$this->template->displayControls[] = $this->getComponent('attributesForm');
+			$this->template->displayControls['attributesForm'] = $this->getComponent('attributesForm');
 		}
 
 		$this->template->editTab = $this->editTab;

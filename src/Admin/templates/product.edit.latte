@@ -51,7 +51,7 @@
                                 <a class="nav-link {$editTab == 'menu1' ? 'active show' : ''} productForm-tab"
                                    id="menu1" data-toggle="pill"
                                    href="#menu1-content"
-                                   role="tab">Ceníky</a>
+                                   role="tab">Ceny</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link {$editTab == 'menu2' ? 'active show' : ''} productForm-tab"
@@ -59,7 +59,15 @@
                                    href="#menu2-content"
                                    role="tab">Řazení</a>
                             </li>
-                            {if \count($relatedTypes) > 0}
+                            {ifset $product}
+                            <li class="nav-item">
+                                <a class="nav-link {$editTab == 'attributes' ? 'active show' : ''} productForm-tab"
+                                   id="attributes" data-toggle="pill"
+                                   href="#attributes-content"
+                                   role="tab">Atributy</a>
+                            </li>
+                            {/ifset}
+                            {if isset($product) && \count($relatedTypes) > 0}
                                 <li class="nav-item">
                                     <a class="nav-link {$editTab == 'menu4' ? 'active show' : ''} productForm-tab"
                                        id="menu4" data-toggle="pill"
@@ -67,12 +75,14 @@
                                        role="tab">Vazby</a>
                                 </li>
                             {/if}
-                            <li class="nav-item">
-                                <a class="nav-link {$editTab == 'menuStores' ? 'active show' : ''} productForm-tab"
-                                   id="menuStores" data-toggle="pill"
-                                   href="#menuStores-content"
-                                   role="tab">Sklady</a>
-                            </li>
+                            {ifset $product}
+                                <li class="nav-item">
+                                    <a class="nav-link {$editTab == 'menuStores' ? 'active show' : ''} productForm-tab"
+                                       id="menuStores" data-toggle="pill"
+                                       href="#menuStores-content"
+                                       role="tab">Sklady</a>
+                                </li>
+                            {/ifset}
                             <li class="nav-item">
                                 <a class="nav-link {$editTab == 'menu3' ? 'active show' : ''} productForm-tab"
                                    id="menu3" data-toggle="pill"
@@ -117,9 +127,13 @@
                     {/if}
                     <div class="card-body p-3">
                         {if @$displayControls}
-                            {foreach $displayControls as $ctr}
-                                {$ctr->render()}
-                            {/foreach}
+                            {$displayControls['productForm']->render()}
+
+                            {ifset $displayControls['attributesForm']}
+                                <div id="attributes-r-content" style="display: none">
+                                    {$displayControls['attributesForm']->render()}
+                                </div>
+                            {/ifset}
                         {/if}
 
                         <div id="comments-r-content" style="display: none">
@@ -194,10 +208,10 @@
 
                 window.history.replaceState(nextState, nextTitle, nextURL);
 
-                if(search_params.get('editTab') === 'menu2'){
-                    $('#frm-attributesForm-form').show();
+                if(search_params.get('editTab') === 'attributes'){
+                    $('#attributes-r-content').show();
                 }else{
-                    $('#frm-attributesForm-form').hide();
+                    $('#attributes-r-content').hide();
                 }
 
                 if(search_params.get('editTab') === 'comments'){
@@ -223,8 +237,8 @@
                 $('input[name="editTab"]').val(search_params.get('editTab'))
             });
 
-            {if $editTab !== 'menu2'}
-                $('#frm-attributesForm-form').hide();
+            {if $editTab === 'attributes'}
+                $('#attributes-r-content').show();
             {/if}
 
              {if $editTab === 'comments'}

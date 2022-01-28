@@ -192,6 +192,8 @@
         </div>
         <div id="menu1-content" class="tab-pane {$presenter->editTab == 'menu1' ? 'active show' : ''}">
             <fieldset>
+                <legend>Ceníky</legend>
+
                 <table class="mt-1 mb-1" style="width: auto;">
                     <tr class="m-0 mt-1 has-danger" n:if="$pricelists">
                         <th class="col-label col-form-label col"></th>
@@ -225,9 +227,33 @@
                             </td>
                         </tr>
                     {/foreach}
-
                 </table>
             </fieldset>
+
+            <fieldset>
+                <legend>Daně</legend>
+
+                <table class="mt-1 mb-1" style="width: auto;">
+                    <tr class="m-0 mt-1 has-danger">
+                        <th class="col-label col-form-label col">{label vatRate/}</th>
+
+                        <td class="align-middle">{input vatRate class=>'form-control form-control-sm '}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError vatRate}</span>
+                        </td>
+                        <td colspan="3"></td>
+
+                    </tr>
+
+                    <tr n:if="isset($configuration['taxes']) && $configuration['taxes']" class="m-0 mt-1 has-danger">
+                        <th class="col-label col-form-label col">{label taxes/}</th>
+
+                        <td class="align-middle">{input taxes}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError taxes}</span>
+                        </td>
+                    </tr>
+                </table>
+            </fieldset>
+
             <fieldset>
                 <table class="mt-1 mb-1">
                     <tr>
@@ -429,28 +455,6 @@
 
                 </table>
 
-                <legend>Daně</legend>
-
-                <table class="mt-1 mb-1" style="width: auto;">
-                    <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label vatRate/}</th>
-
-                        <td class="align-middle">{input vatRate class=>'form-control form-control-sm '}
-                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError vatRate}</span>
-                        </td>
-                        <td colspan="3"></td>
-
-                    </tr>
-
-                    <tr n:if="isset($configuration['taxes']) && $configuration['taxes']" class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label taxes/}</th>
-
-                        <td class="align-middle">{input taxes}
-                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError taxes}</span>
-                        </td>
-                    </tr>
-                </table>
-
                 {if isset($form['loyaltyProgram'])}
                     <legend>Věrnostní programy</legend>
                     <span class="text-gray text-sm">Zadejte zisk "bodů" při nákupu pro jednotlivé věrnostní programy.</span>
@@ -534,6 +538,8 @@
         <div id="files-content" class="tab-pane {$presenter->editTab == 'files' ? 'active show' : ''}">
         </div>
         <div id="comments-content" class="tab-pane {$presenter->editTab == 'comments' ? 'active show' : ''}">
+        </div>
+        <div id="attributes-content" class="tab-pane {$presenter->editTab == 'attributes' ? 'active show' : ''}">
         </div>
     </div>
 
