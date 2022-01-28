@@ -30,6 +30,7 @@ class ExportPresenter extends BackendPresenter
 		$values = $this->settingsRepo->many()->setIndex('name')->toArrayOf('value');
 
 		$keys = [
+			'partnersExportPricelist',
 			'heurekaExportPricelist',
 			'zboziExportPricelist',
 			'googleExportPricelist',
@@ -59,19 +60,19 @@ class ExportPresenter extends BackendPresenter
 		$this->template->displayControls = [];
 
 		$this->template->exports = [
-			(object)[
-				'name' => 'Export pro partnery',
+			[
+				'name' => 'Export pro Partnery',
 				'link' => $this->link('//:Eshop:Export:partnersExport'),
 			],
-			(object)[
+			[
 				'name' => 'Export pro Heureku',
 				'link' => $this->link('//:Eshop:Export:heurekaExport'),
 			],
-			(object)[
+			[
 				'name' => 'Export pro Zboží',
 				'link' => $this->link('//:Eshop:Export:zboziExport'),
 			],
-			(object)[
+			[
 				'name' => 'Export pro Google Nákupy',
 				'link' => $this->link('//:Eshop:Export:googleExport'),
 			],
@@ -82,9 +83,15 @@ class ExportPresenter extends BackendPresenter
 
 		if ($setting && $setting->value) {
 			$this->template->exports[] =
-				(object)[
+				[
 					'name' => 'Export pro SupportBox',
 					'link' => $this->link('//:Eshop:Export:supportbox'),
+					'detail' => 'Je nutné specifikovat e-mail zákazníka a API klíč SupportBoxu shodný se zadaným API klíčem v adminu.<br><br>
+Příklad HTTP požadavku:<br>
+GET /rajtiskaren/json/supportbox?email=test@lqd.cz HTTP/1.1<br>
+Host: localhost:443<br>
+Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
+',
 				];
 		}
 
@@ -96,10 +103,11 @@ class ExportPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 
 		$form->removeComponent($form['uuid']);
-		$form->addGroup('');
-		$form->addDataMultiSelect('heurekaExportPricelist', 'Ceník exportu pro Heureku', $this->priceListRepo->getArrayForSelect(false));
-		$form->addDataMultiSelect('zboziExportPricelist', 'Ceník exportu pro Zboží', $this->priceListRepo->getArrayForSelect(false));
-		$form->addDataMultiSelect('googleExportPricelist', 'Ceník exportu pro Google Nákupy', $this->priceListRepo->getArrayForSelect(false));
+		$form->addGroup('Ceníky');
+		$form->addDataMultiSelect('partnersExportPricelist', 'Partneři', $this->priceListRepo->getArrayForSelect(false));
+		$form->addDataMultiSelect('heurekaExportPricelist', 'Heureka', $this->priceListRepo->getArrayForSelect(false));
+		$form->addDataMultiSelect('zboziExportPricelist', 'Zboží', $this->priceListRepo->getArrayForSelect(false));
+		$form->addDataMultiSelect('googleExportPricelist', 'Google Nákupy', $this->priceListRepo->getArrayForSelect(false));
 
 		$form->addSubmit('submit', 'Uložit');
 

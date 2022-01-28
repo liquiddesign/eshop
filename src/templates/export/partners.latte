@@ -1,49 +1,50 @@
 {contentType application/xml}
+<?xml version="1.0" encoding="utf-8"?>
 {var Eshop\DB\ProductRepository $products = $presenter->productRepo}
 {var Eshop\DB\PricelistRepository $pricelists = $presenter->priceListRepo}
 {varType Eshop\DB\Product $product}
-{varType string|null $error}
 {varType string[] $vatRates}
+{try}
+    {do $pricelists = $presenter->getPricelistFromSetting('partnersExportPricelist')}
 {cache expire => '1 day', tags => ['export']}
-<?xml version="1.0" encoding="utf-8"?>
-{ifset $error}
-<error>
-    {$error}
-</error>
-{else}
-{do $products = $products->getProducts($pricelists->getDefaultPricelists()->toArray())->where('this.hidden', false)}
-<SHOP>
-<SHOPITEM n:while="$product = $products->fetch()">
-    <ITEM_ID>{$product->getPK()}</ITEM_ID>
-    <PRODUCT><![CDATA[{$product->name}]]></PRODUCT>
-    <CODE>{$product->getFullCode()}</CODE>
-    <WEIGHT>{$product->weight}</WEIGHT>
-    <UNIT>{$product->unit}</UNIT>
-    <EAN>{$product->ean}</EAN>
-    <MANUFACTURER>{ifset $product->producer}{$product->producer->name}{/ifset}</MANUFACTURER>
-    <DESCRIPTION n:if="$product->content"><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
-    <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
-    {if ($category = $product->primaryCategory) !== null}
-        {do $categories = []}
-        {while $category != null}
-            {do $categories[] = $category}
-            {do $category = $category->ancestor}
-        {/while}
-        {do $categories = \array_reverse($categories)}
-        <CATEGORYTEXT><![CDATA[{foreach $categories as $category}{$category->name}{if !$iterator->isLast()} | {/if}{/foreach}]]></CATEGORYTEXT>
-    {/if}
-        {ifset $product->imageFileName}<IMGURL>{$productImageUrl . $product->imageFileName}</IMGURL>{/ifset}
-        <IN_STOCK>{(int) $product->inStock()}</IN_STOCK>
-        <STORAGE_DATE n:if="$product->storageDate">{$product->storageDate}</STORAGE_DATE>
-        <PRICE>{$product->getPrice()}</PRICE>
-        <PRICE_VAT>{$product->getPriceVat()}</PRICE_VAT>
-        <VAT>{$vatRates[$product->vatRate]}</VAT>
-        <MOQ>{$product->minBuyCount}</MOQ>
-        <PACKAGE>{$product->inPackage}</PACKAGE>
-        <INNER_PACKAGE>{$product->inCarton}</INNER_PACKAGE>
-        <QUANTITY_PALLETE>{$product->inPalett}</QUANTITY_PALLETE>
-        {do unset($product)}
-</SHOPITEM>
-</SHOP>
-{/ifset}
+    {do $products = $products->getProducts($pricelists)->where('this.hidden', false)}
+    <SHOP>
+    <SHOPITEM n:while="$product = $products->fetch()">
+        <ITEM_ID>{$product->getPK()}</ITEM_ID>
+        <PRODUCT><![CDATA[{$product->name}]]></PRODUCT>
+        <CODE>{$product->getFullCode()}</CODE>
+        <WEIGHT>{$product->weight}</WEIGHT>
+        <UNIT>{$product->unit}</UNIT>
+        <EAN>{$product->ean}</EAN>
+        <MANUFACTURER>{ifset $product->producer}{$product->producer->name}{/ifset}</MANUFACTURER>
+        <DESCRIPTION n:if="$product->content"><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
+        <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
+        {if ($category = $product->primaryCategory) !== null}
+            {do $categories = []}
+            {while $category != null}
+                {do $categories[] = $category}
+                {do $category = $category->ancestor}
+            {/while}
+            {do $categories = \array_reverse($categories)}
+            <CATEGORYTEXT><![CDATA[{foreach $categories as $category}{$category->name}{if !$iterator->isLast()} | {/if}{/foreach}]]></CATEGORYTEXT>
+        {/if}
+            {ifset $product->imageFileName}<IMGURL>{$productImageUrl . $product->imageFileName}</IMGURL>{/ifset}
+            <IN_STOCK>{(int) $product->inStock()}</IN_STOCK>
+            <STORAGE_DATE n:if="$product->storageDate">{$product->storageDate}</STORAGE_DATE>
+            <PRICE>{$product->getPrice()}</PRICE>
+            <PRICE_VAT>{$product->getPriceVat()}</PRICE_VAT>
+            <VAT>{$vatRates[$product->vatRate]}</VAT>
+            <MOQ>{$product->minBuyCount}</MOQ>
+            <PACKAGE>{$product->inPackage}</PACKAGE>
+            <INNER_PACKAGE>{$product->inCarton}</INNER_PACKAGE>
+            <QUANTITY_PALLETE>{$product->inPalett}</QUANTITY_PALLETE>
+            {do unset($product)}
+    </SHOPITEM>
+    </SHOP>
 {/cache}
+{else}
+    <error>
+        Invalid export settings! No price list selected! You can set price lists in admin web settings.
+    </error>
+{/try}
+
