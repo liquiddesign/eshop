@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin\Controls;
 
+use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGridFactory;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\Product;
@@ -183,7 +184,7 @@ class ProductGridFactory
 		});
 		$grid->addButtonDeleteSelected([$this, 'onDelete'], false, null, 'this.uuid');
 
-		$bulkColumns = ['producer', 'categories', 'ribbons', 'internalRibbons', 'displayAmount', 'displayDelivery', 'vatRate', 'taxes', 'hidden', 'unavailable', 'discountLevelPct'];
+		$bulkColumns = ['producer', 'categories', 'ribbons', 'internalRibbons', 'displayAmount', 'displayDelivery', 'vatRate', 'taxes', 'hidden', 'unavailable', 'discountLevelPct', 'primaryCategory'];
 
 		if (isset($configuration['buyCount']) && $configuration['buyCount']) {
 			$bulkColumns = \array_merge($bulkColumns, ['buyCount']);
@@ -218,8 +219,6 @@ class ProductGridFactory
 					}
 				}
 
-				$allCategories = [];
-
 				foreach ($relations as $relationName => $categories) {
 					$name = \explode('_', $relationName);
 
@@ -239,14 +238,34 @@ class ProductGridFactory
 						continue;
 					}
 
-					$allCategories += $categories;
-
 					$object->categories->relate($categories);
 				}
 
-				$values['values']['primaryCategory'] = \count($allCategories) > 0 ? Arrays::first($allCategories) : null;
+				/** @var string|null $newPrimaryCategory */
+				$newPrimaryCategory = Arrays::pick($values['values'], 'primaryCategory', null);
+
+				if ($values['keep']['primaryCategory'] === false && $newPrimaryCategory) {
+					$realProductCategories = $object->categories->toArray();
+
+					if (isset($realProductCategories[$newPrimaryCategory])) {
+						$values['values']['primaryCategory'] = $newPrimaryCategory;
+					} else {
+						unset($values['values']['primaryCategory']);
+					}
+				}
 
 				return [$values, $relations];
+			},
+			[],
+			function ($form): AdminForm {
+				/** @var \Nette\Forms\Controls\SelectBox $primaryCategorySelect */
+				$primaryCategorySelect = $form['values']['primaryCategory'];
+
+				$primaryCategorySelect->setItems($this->categoryRepository->getTreeArrayForSelect());
+				$primaryCategorySelect->setPrompt(false);
+				$primaryCategorySelect->setHtmlAttribute('data-info', 'Pokud produkt nemá zvolenou kategorii, nebude jeho primární kategorie změněna!');
+
+				return $form;
 			},
 		);
 
