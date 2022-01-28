@@ -124,4 +124,13 @@ class ProductAttributesForm extends Control
 		$template = $this->template;
 		$template->render(__DIR__ . '/productAttributesForm.latte');
 	}
+
+	public function getError(): ?string
+	{
+		if (!$this->errorEnabled) {
+			return null;
+		}
+
+		return $this->error;
+	}
 }
