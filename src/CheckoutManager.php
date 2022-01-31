@@ -118,8 +118,6 @@ class CheckoutManager
 	
 	private Collection $paymentTypes;
 	
-	private Collection $deliveryTypes;
-	
 	private ?float $sumPrice = null;
 	
 	private ?float $sumPriceVat = null;
@@ -572,13 +570,13 @@ class CheckoutManager
 		return $this->paymentTypes ??= $this->paymentTypeRepository->getPaymentTypes($this->shopper->getCurrency(), $this->customer, $this->shopper->getCustomerGroup());
 	}
 	
-	public function getDeliveryTypes(): Collection
+	public function getDeliveryTypes(bool $vat = false): Collection
 	{
-		return $this->deliveryTypes ??= $this->deliveryTypeRepository->getDeliveryTypes(
+		return $this->deliveryTypeRepository->getDeliveryTypes(
 			$this->shopper->getCurrency(),
 			$this->customer,
 			$this->shopper->getCustomerGroup(),
-			$this->getDeliveryDiscount(),
+			$this->getDeliveryDiscount($vat),
 			$this->getSumWeight(),
 			$this->getSumDimension(),
 		);
@@ -809,7 +807,7 @@ class CheckoutManager
 	public function getDeliveryPriceVat(): float
 	{
 		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
-			$price = $this->getDeliveryTypes()[$this->getPurchase()->getValue('deliveryType')]->getValue('priceVat');
+			$price = $this->getDeliveryTypes(true)[$this->getPurchase()->getValue('deliveryType')]->getValue('priceVat');
 			
 			return isset($price) ? (float)$price : 0.0;
 		}
@@ -821,14 +819,14 @@ class CheckoutManager
 	{
 		$currency = $this->cartExists() ? $this->getCart()->currency : $this->shopper->getCurrency();
 		
-		return $this->deliveryDiscountRepository->getActiveDeliveryDiscount($currency, $vat ? $this->getCheckoutPriceVat() : $this->getCartCheckoutPrice(), $this->getSumWeight());
+		return $this->deliveryDiscountRepository->getActiveDeliveryDiscount($currency, $vat ? $this->getCartCheckoutPriceVat() : $this->getCartCheckoutPrice(), $this->getSumWeight());
 	}
 	
 	public function getPossibleDeliveryDiscount(bool $vat = false): ?DeliveryDiscount
 	{
 		$currency = $this->cartExists() ? $this->getCart()->currency : $this->shopper->getCurrency();
 		
-		return $this->deliveryDiscountRepository->getNextDeliveryDiscount($currency, $vat ? $this->getCheckoutPriceVat() : $this->getCartCheckoutPrice(), $this->getSumWeight());
+		return $this->deliveryDiscountRepository->getNextDeliveryDiscount($currency, $vat ? $this->getCartCheckoutPriceVat() : $this->getCartCheckoutPrice(), $this->getSumWeight());
 	}
 
 	public function getPriceLeftToNextDeliveryDiscount(): ?float

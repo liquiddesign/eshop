@@ -35,7 +35,7 @@ class CartRecapitulationList extends Datalist
 		$this->template->deliveryType = $this->checkoutManager->getPurchase() ? $this->checkoutManager->getPurchase()->deliveryType : null;
 		$this->template->paymentType = $this->checkoutManager->getPurchase() ? $this->checkoutManager->getPurchase()->paymentType : null;
 		$this->template->cartCheckoutPrice = $this->checkoutManager->getCheckoutPrice();
-		$this->template->cartCheckoutPriceVat = $this->checkoutManager->getCartCheckoutPriceVat();
+		$this->template->cartCheckoutPriceVat = $this->checkoutManager->getCheckoutPriceVat();
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;
