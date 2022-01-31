@@ -176,12 +176,12 @@ class ProductForm extends Control
 		$form->addDataMultiSelect('ribbons', 'Veřejné štítky', $ribbonRepository->getArrayForSelect());
 		$form->addDataMultiSelect('internalRibbons', 'Interní štítky', $internalRibbonRepository->getArrayForSelect());
 
-		$form->addSelect2(
+		$form->addSelect(
 			'displayAmount',
 			'Dostupnost',
 			$displayAmountRepository->getArrayForSelect(),
 		)->setPrompt('Nepřiřazeno');
-		$form->addSelect2(
+		$form->addSelect(
 			'displayDelivery',
 			'Doručení',
 			$displayDeliveryRepository->getArrayForSelect(),
@@ -211,6 +211,7 @@ Ostatní: Přebírání ze zvoleného zdroje
 ');
 		}
 
+		$form->addText('storageDate', 'Nejbližší datum naskladnění')->setNullable(true)->setHtmlType('date');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('recommended', 'Doporučeno')

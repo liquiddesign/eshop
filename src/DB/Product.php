@@ -161,7 +161,7 @@ class Product extends \StORM\Entity
 
 	/**
 	 * Datum nejblišího naskladnění
-	 * @column
+	 * @column{"type":"date"}
 	 */
 	public ?string $storageDate;
 
