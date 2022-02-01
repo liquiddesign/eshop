@@ -69,9 +69,9 @@ class CheckoutManager
 	public $onOrderCreate;
 	
 	/**
-	 * @var callable[]&callable(\Eshop\DB\Cart): void; Occurs after cart create
+	 * @var callable[] Occurs after cart create
 	 */
-	public $onCartCreate;
+	public array $onCartCreate = [];
 	
 	/**
 	 * @var callable[]&callable(): void; Occurs after cart item delete
@@ -366,8 +366,10 @@ class CheckoutManager
 		]);
 		
 		$this->customer ? $this->customer->update(['activeCart' => $cart]) : $this->unattachedCarts[$this->cartToken] = $cart;
-		
-		Nette\Utils\Arrays::invoke($this->onCartCreate, $cart);
+
+		if (isset($this->onCartCreate)) {
+			Nette\Utils\Arrays::invoke($this->onCartCreate, $cart);
+		}
 		
 		return $cart;
 	}
@@ -747,28 +749,28 @@ class CheckoutManager
 	{
 		$price = $this->getSumPrice() + $this->getDeliveryPrice() + $this->getPaymentPrice() - $this->getDiscountPrice();
 		
-		return (float)$price ?: 0.0;
+		return $price ?: 0.0;
 	}
 	
 	public function getCheckoutPriceVat(): float
 	{
 		$priceVat = $this->getSumPriceVat() + $this->getDeliveryPriceVat() + $this->getPaymentPriceVat() - $this->getDiscountPriceVat();
 		
-		return (float)$priceVat ?: 0.0;
+		return $priceVat ?: 0.0;
 	}
 	
 	public function getCartCheckoutPrice(): float
 	{
 		$price = $this->getSumPrice() - $this->getDiscountPrice();
-		
-		return (float)$price ?: 0.0;
+
+		return $price ?: 0.0;
 	}
 	
 	public function getCartCheckoutPriceVat(): float
 	{
 		$priceVat = $this->getSumPriceVat() - $this->getDiscountPriceVat();
-		
-		return (float)$priceVat ?: 0.0;
+
+		return $priceVat ?: 0.0;
 	}
 	
 	public function getPaymentPrice(): float
