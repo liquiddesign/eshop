@@ -960,14 +960,11 @@ class CheckoutManager
 				'confirmationToken' => $this->shopper->getRegistrationConfiguration()['emailAuthorization'] ? Nette\Utils\Random::generate(128) : null,
 			]);
 		}
-		
-		if (!$this->customerRepository->many()->match(['email' => $purchase->email])->isEmpty()) {
-			return null;
-		}
-		
+
+		$customer = $this->customerRepository->one(['email' => $purchase->email]);
 		$defaultGroup = $this->customerGroupRepository->getDefaultRegistrationGroup();
-		
-		$customer = $this->customerRepository->createNew([
+
+		$customerValues = [
 			'email' => $purchase->email,
 			'fullname' => $purchase->fullname,
 			'phone' => $purchase->phone,
@@ -977,7 +974,14 @@ class CheckoutManager
 			'deliveryAddress' => $purchase->deliveryAddress,
 			'group' => $defaultGroup ? $defaultGroup->getPK() : null,
 			'discountLevelPct' => $defaultGroup ? $defaultGroup->defaultDiscountLevelPct : 0,
-		]);
+		];
+
+		if ($customer) {
+			$customerValues['uuid'] = $customer->getPK();
+		}
+
+		/** @var \Eshop\DB\Customer|null $customer */
+		$customer = $this->customerRepository->syncOne($customerValues);
 		
 		if (!$customer) {
 			return null;

@@ -137,11 +137,19 @@ class AddressesForm extends Form
 		$values = $form->getValues('array');
 		
 		if (!$values['createAccount'] || (
-			((!$this->accountRepository->one(['login' => $values['email']]) && !$this->customerRepository->one(['email' => $values['email']])) ||
-				$this->shopper->isAlwaysCreateCustomerOnOrderCreated())
-			&&
-			(!$this->accountRepository->one(['login' => $values['email']]) || !$this->shopper->isAlwaysCreateCustomerOnOrderCreated())
-			)) {
+				(
+					(
+						!$this->accountRepository->one(['login' => $values['email']]) &&
+						!$this->customerRepository->one(['email' => $values['email']])
+					) ||
+					$this->shopper->isAlwaysCreateCustomerOnOrderCreated()
+				) &&
+				(
+					!$this->accountRepository->one(['login' => $values['email']]) ||
+					!$this->shopper->isAlwaysCreateCustomerOnOrderCreated()
+				)
+			)
+		) {
 			return;
 		}
 

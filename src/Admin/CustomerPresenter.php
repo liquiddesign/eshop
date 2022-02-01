@@ -629,12 +629,15 @@ class CustomerPresenter extends BackendPresenter
 
 	public function createComponentAccountGrid(): AdminGrid
 	{
-		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
+		$merchantLabels = $this::CONFIGURATIONS['labels']['merchants'];
 
 		$collection = $this->accountRepository->many()
+			->join(['admin' => 'admin_administrator_nxn_security_account'], 'this.uuid = admin.fk_account')
+			->join(['merchant' => 'eshop_merchant_nxn_security_account'], 'this.uuid = merchant.fk_account')
+			->where('admin.fk_administrator IS NULL')
+			->where('merchant.fk_merchant IS NULL')
 			->join(['catalogPermission' => 'eshop_catalogpermission'], 'catalogPermission.fk_account = this.uuid')
 			->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogPermission.fk_customer')
-			->where('catalogPermission.fk_customer IS NOT NULL')
 			->select(['company' => 'customer.company', 'customerFullname' => 'customer.fullname'])
 			->select([
 				'permission' => 'catalogPermission.catalogPermission',
@@ -700,7 +703,7 @@ class CustomerPresenter extends BackendPresenter
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'customer.uuid = merchantXcustomer.fk_customer');
 				$source->where('merchantXcustomer.fk_merchant', $value);
-			}, '', 'merchant', $lableMerchants, $this->merchantRepository->getArrayForSelect(), ['placeholder' => "- $lableMerchants -"]);
+			}, '', 'merchant', $merchantLabels, $this->merchantRepository->getArrayForSelect(), ['placeholder' => "- $merchantLabels -"]);
 		}
 
 		if (\count($this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup'])) > 0) {
