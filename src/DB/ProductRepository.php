@@ -299,7 +299,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 	public function filterCategory($value, ICollection $collection): void
 	{
 		if ($value === false) {
-			$collection->where('this.fk_primaryCategory IS NULL');
+			$collection->where('categories.uuid IS NULL');
 
 			return;
 		}
