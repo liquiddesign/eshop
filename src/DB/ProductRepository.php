@@ -193,6 +193,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 				'primaryCategoryPath' => 'primaryCategory.path',
 				'perex' => "COALESCE(NULLIF(this.perex$suffix, ''), NULLIF(primaryCategory.defaultProductPerex$suffix, ''))",
 				'content' => "COALESCE(NULLIF(this.content$suffix, ''), NULLIF(primaryCategory.defaultProductContent$suffix, ''))",
+				'originalContent' => "this.content$suffix",
 			]);
 
 			if ($customer) {

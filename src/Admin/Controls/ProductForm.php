@@ -203,7 +203,7 @@ class ProductForm extends Control
 			$locks[Product::SUPPLIER_CONTENT_MODE_NONE] = '! Nikdy nepřebírat';
 
 			$form->addSelect('supplierContent', 'Přebírat obsah', $locks)->setPrompt('S nejvyšší prioritou')
-				->setHtmlAttribute('data-info', 'Nastavení přebírání obsahu ze zdrojů.<br><br>
+				->setHtmlAttribute('data-info', 'Nastavení přebírání obsahu (jméno, perex, obsah) ze zdrojů.<br><br>
 S nejvyšší prioritou: Zdroj s nejvyšší prioritou<br>
 S nejdelším obsahem: Převezme se obsah, který je nejdelší ze všech zdrojů<br>
 Nikdy nepřebírat: Obsah nebude nikdy přebírán<br>
@@ -471,6 +471,8 @@ Ostatní: Přebírání ze zvoleného zdroje
 		$values = $form->getValues('array');
 		$editTab = Arrays::pick($values, 'editTab', null);
 
+		$oldValues = $this->product ? $this->product->toArray() : [];
+
 		if (!$values['uuid']) {
 			$values['uuid'] = ProductRepository::generateUuid(
 				$values['ean'],
@@ -594,7 +596,7 @@ Ostatní: Přebírání ze zvoleného zdroje
 		if ($product->getParent() instanceof ICollection && $product->getParent()->getAffectedNumber() > 0) {
 			foreach ($form->getMutations() as $mutation) {
 				foreach ($changeColumns as $column) {
-					if ($product->getValue($column, $mutation) !== $values[$column][$mutation]) {
+					if (isset($oldValues[$column][$mutation]) && $oldValues[$column][$mutation] !== $values[$column][$mutation]) {
 						$product->update(['supplierContentLock' => true]);
 
 						break 2;

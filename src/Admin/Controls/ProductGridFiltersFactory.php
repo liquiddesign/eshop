@@ -153,6 +153,10 @@ class ProductGridFiltersFactory
 			}
 
 			if ($value === 'content') {
+				$source->where("this.content_cs IS NOT NULL AND this.content_cs != ''");
+			}
+
+			if ($value === 'nocontent') {
 				$source->where("this.content_cs IS NULL OR this.content_cs=''");
 			}
 
