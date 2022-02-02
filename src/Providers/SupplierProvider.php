@@ -74,6 +74,9 @@ abstract class SupplierProvider
 		$this->logDirectory = $container->parameters['tempDir'] . '/log/import';
 	}
 	
+	/**
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function initSupplier(): Supplier
 	{
 		FileSystem::createDir($this->imageDirectory . '/origin');
@@ -81,7 +84,7 @@ abstract class SupplierProvider
 		FileSystem::createDir($this->imageDirectory . '/thumb');
 		FileSystem::createDir($this->logDirectory);
 		
-		return $this->supplierRepository->syncOne([
+		$this->supplierRepository->syncOne([
 			'uuid' => $this->getSupplierId(),
 			'code' => $this->getSupplierId(),
 			'name' => $this->getName(),
@@ -89,6 +92,8 @@ abstract class SupplierProvider
 			'providerClass' => static::class,
 			'lastImportTs' => (new DateTime())->format('Y-m-d G:i'),
 		], ['uuid', 'lastImportTs', 'providerClass', 'productCodePrefix']);
+		
+		return $this->supplierRepository->one($this->getSupplierId(), true);
 	}
 	
 	public function importImage(string $imageUrl, string $id): ?string
