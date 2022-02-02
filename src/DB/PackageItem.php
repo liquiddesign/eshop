@@ -16,7 +16,7 @@ class PackageItem extends \StORM\Entity
 	 * @column
 	 */
 	public int $amount = 0;
-	
+
 	/**
 	 * Smazáno
 	 * @column
@@ -28,25 +28,30 @@ class PackageItem extends \StORM\Entity
 	 * @column{"type":"enum","length":"'waiting','reserved'"}
 	 */
 	public string $status = 'waiting';
-	
+
 	/**
 	 * Sklad
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 * @relation
 	 */
 	public ?Store $store;
-	
+
 	/**
 	 * Balík
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public Package $package;
-	
+
 	/**
 	 * Položka košíku
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public CartItem $cartItem;
+
+	public function getSupplierProduct(string $supplierCode): ?SupplierProduct
+	{
+		return $this->cartItem->product ? $this->cartItem->product->getSupplierProduct($supplierCode) : null;
+	}
 }

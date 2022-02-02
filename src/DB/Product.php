@@ -729,6 +729,17 @@ class Product extends \StORM\Entity
 		];
 	}
 
+	public function getSupplierProduct(string $supplierCode): ?SupplierProduct
+	{
+		/** @var \Eshop\DB\SupplierProductRepository $supplierProductRepository */
+		$supplierProductRepository = $this->getConnection()->findRepository(SupplierProduct::class);
+
+		return $supplierProductRepository->many()
+			->where('fk_product', $this->getPK())
+			->where('supplier.code', $supplierCode)
+			->first();
+	}
+
 	private function getQuantityPrice(int $amount, string $property): ?float
 	{
 		/** @var float|null $price */
