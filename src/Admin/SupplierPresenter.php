@@ -119,7 +119,7 @@ class SupplierPresenter extends BackendPresenter
 					case 'import':
 						return 'Import doběhl v pořádku';
 					case 'importAmount':
-						return 'Import dosupnosti a skladů doběhl v požádku';
+						return 'Import dosupností a skladů doběhl v pořádku';
 					default:
 						return 'Zápis do katalogu doběhl v pořádku';
 				}
