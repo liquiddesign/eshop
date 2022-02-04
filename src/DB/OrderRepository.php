@@ -758,11 +758,7 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		\uasort($data, function ($a, $b) {
-			if ($a['amount'] === $b['amount']) {
-				return 0;
-			}
-
-			return $a['amount'] < $b['amount'];
+			return $a['amount'] <=> $b['amount'];
 		});
 
 		return \array_slice($data, 0, 5);

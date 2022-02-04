@@ -80,26 +80,29 @@ class SupplierProductPresenter extends BackendPresenter
 					return '-';
 				}
 
-				$hits = $this->algolia->searchProduct($supplierProduct->name)['hits'];
-				$hitsCount = \count($hits);
+				try {
+					$hits = $this->algolia->searchProduct($supplierProduct->name)['hits'];
+					$hitsCount = \count($hits);
 
-				if ($hitsCount > 0) {
-					/** @var string[] $firstHit */
-					$firstHit = Arrays::first($hits);
+					if ($hitsCount > 0) {
+						/** @var string[] $firstHit */
+						$firstHit = Arrays::first($hits);
 
-					$hitProduct = $this->productRepository->one($firstHit['objectID']);
+						$hitProduct = $this->productRepository->one($firstHit['objectID']);
 
-					$link = $hitProduct && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ?
-						$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$hitProduct, 'backLink' => $this->storeRequest(),]) : '#';
+						$link = $hitProduct && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ?
+							$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$hitProduct, 'backLink' => $this->storeRequest(),]) : '#';
 
-					$acceptLink = '<a class="ml-2" title="Napárovat" href="' .
-						$this->link('acceptAlgoliaSuggestion!', ['supplierProduct' => $supplierProduct->getPK(), 'product' => $hitProduct->getPK()])
-						. '"><i class="fas fa-check fa-sm"></i></a>';
+						$acceptLink = '<a class="ml-2" title="Napárovat" href="' .
+							$this->link('acceptAlgoliaSuggestion!', ['supplierProduct' => $supplierProduct->getPK(), 'product' => $hitProduct->getPK()])
+							. '"><i class="fas fa-check fa-sm"></i></a>';
 
-					$moreLink = '<a class="ml-2" title="Zobrazit další možnosti" href="' . $this->link('detailAlgolia', [$supplierProduct]) .
-						'"><i class="fas fa-cog fa-sm"></i>&nbsp;(' . $hitsCount . ')</a>';
+						$moreLink = '<a class="ml-2" title="Zobrazit další možnosti" href="' . $this->link('detailAlgolia', [$supplierProduct]) .
+							'"><i class="fas fa-cog fa-sm"></i>&nbsp;(' . $hitsCount . ')</a>';
 
-					return "<a href='$link'>$hitProduct->name (" . $hitProduct->getFullCode() . ')</a>' . $acceptLink . $moreLink;
+						return "<a href='$link'>$hitProduct->name (" . $hitProduct->getFullCode() . ')</a>' . $acceptLink . $moreLink;
+					}
+				} catch (\Throwable $e) {
 				}
 
 				return '-';
