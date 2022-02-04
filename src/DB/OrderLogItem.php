@@ -45,7 +45,7 @@ class OrderLogItem extends \StORM\Entity
 
 	/**
 	 * Doplnující zpráva
-	 * @column
+	 * @column{"type":"longtext"}
 	 */
 	public ?string $message;
 
