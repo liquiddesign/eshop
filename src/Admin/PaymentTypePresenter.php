@@ -251,13 +251,12 @@ class PaymentTypePresenter extends BackendPresenter
 		$form->addText('price', 'Cena')->addRule($form::FLOAT)->setRequired();
 		$form->addText('priceVat', 'Cena s DPH')->addRule($form::FLOAT)->setRequired();
 		$form->addHidden('paymentType', (string) $this->getParameter('paymentType'));
-		
-		
+
 		$form->addSubmits();
 		
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
-			
+
 			$this->paymentPriceRepo->syncOne($values, null, true);
 			
 			$this->flashMessage('Uloženo', 'success');

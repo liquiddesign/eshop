@@ -7,7 +7,7 @@ namespace Eshop\DB;
 /**
  * Cena platby
  * @table
- * @index{"name":"paymenttypeprice_currency","unique":true,"columns":["fk_currency"]}
+ * @index{"name":"paymenttypeprice_currency","unique":true,"columns":["fk_currency", "fk_country", "fk_paymentType"]}
  */
 class PaymentTypePrice extends \StORM\Entity
 {
