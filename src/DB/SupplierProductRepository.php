@@ -289,4 +289,27 @@ class SupplierProductRepository extends \StORM\Repository
 
 		return \count($array);
 	}
+
+	/**
+	 * @param \Eshop\DB\Supplier $supplier
+	 * @return array<string, \stdClass>
+	 */
+	public function getBySupplierForImportAmount(Supplier $supplier): array
+	{
+		return $this->many()
+			->setFetchClass(\stdClass::class)
+			->where('this.fk_supplier', $supplier->getPK())
+			->setSelect([
+				'supplierProductPK' => 'this.uuid',
+				'supplierProductSupplier' => 'this.fk_supplier',
+				'supplierProductDisplayAmount' => 'this.fk_displayAmount',
+				'supplierProductDisplayAmountProductAmount' => 'displayAmount.fk_displayAmount',
+				'productPK' => 'product.uuid',
+				'productDisplayAmount' => 'product.fk_displayAmount',
+				'productSupplierContentLock' => 'product.supplierContentLock',
+				'productSupplierLock' => 'product.supplierLock',
+				'productSupplierContentMode' => 'product.supplierContentMode',
+				'productSupplierContent' => 'product.fk_supplierContent',
+			], [], true)->toArray();
+	}
 }
