@@ -215,16 +215,25 @@ class Purchase extends \StORM\Entity
 
 	private SupplierDeliveryTypeRepository $supplierDeliveryTypeRepository;
 
+	private SupplierPaymentTypeRepository $supplierPaymentTypeRepository;
+
 	/**
 	 * @var string[]
 	 */
 	private ?array $cartIds;
 
-	public function __construct(array $vars, SupplierDeliveryTypeRepository $supplierDeliveryTypeRepository, ?IEntityParent $parent = null, array $mutations = [], ?string $mutation = null)
-	{
+	public function __construct(
+		array $vars,
+		SupplierDeliveryTypeRepository $supplierDeliveryTypeRepository,
+		SupplierPaymentTypeRepository $supplierPaymentTypeRepository,
+		?IEntityParent $parent = null,
+		array $mutations = [],
+		?string $mutation = null
+	) {
 		parent::__construct($vars, $parent, $mutations, $mutation);
 
 		$this->supplierDeliveryTypeRepository = $supplierDeliveryTypeRepository;
+		$this->supplierPaymentTypeRepository = $supplierPaymentTypeRepository;
 	}
 	
 	public function isCompany(): bool
@@ -289,6 +298,21 @@ class Purchase extends \StORM\Entity
 			->first();
 
 		return $supplierDeliveryType->externalId ?? ($this->deliveryType->externalId ?? null);
+	}
+
+	public function getPaymentTypeExternalId(Supplier $supplier): ?string
+	{
+		if (!$this->getValue('paymentType')) {
+			return null;
+		}
+
+		/** @var \Eshop\DB\SupplierPaymentType $supplierPaymentType */
+		$supplierPaymentType = $this->supplierPaymentTypeRepository->many()
+			->where('this.fk_supplier', $supplier->getPK())
+			->where('this.fk_paymentType', $this->getValue('paymentType'))
+			->first();
+
+		return $supplierPaymentType->externalId ?? ($this->paymentType->externalId ?? null);
 	}
 
 	/**

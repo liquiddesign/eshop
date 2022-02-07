@@ -12,10 +12,14 @@ use StORM\SchemaManager;
  */
 class PurchaseRepository extends \StORM\Repository
 {
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, SupplierDeliveryTypeRepository $supplierDeliveryTypeRepository)
-	{
+	public function __construct(
+		DIConnection $connection,
+		SchemaManager $schemaManager,
+		SupplierDeliveryTypeRepository $supplierDeliveryTypeRepository,
+		SupplierPaymentTypeRepository $supplierPaymentTypeRepository
+	) {
 		parent::__construct($connection, $schemaManager);
 
-		$this->injectEntityArguments($supplierDeliveryTypeRepository);
+		$this->injectEntityArguments($supplierDeliveryTypeRepository, $supplierPaymentTypeRepository);
 	}
 }

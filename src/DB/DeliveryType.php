@@ -23,7 +23,6 @@ class DeliveryType extends \StORM\Entity
 	/**
 	 * Externí ID
 	 * @column
-	 * @deprecated
 	 */
 	public ?string $externalId;
 	

@@ -13,8 +13,11 @@ use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\PaymentType;
 use Eshop\DB\PaymentTypePriceRepository;
 use Eshop\DB\PaymentTypeRepository;
+use Eshop\DB\SupplierPaymentTypeRepository;
+use Eshop\DB\SupplierRepository;
 use Eshop\Shopper;
 use Nette\Http\Request;
+use Nette\Utils\Arrays;
 use Nette\Utils\Image;
 use StORM\DIConnection;
 
@@ -40,7 +43,13 @@ class PaymentTypePresenter extends BackendPresenter
 	
 	/** @inject */
 	public Shopper $shopper;
-	
+
+	/** @inject */
+	public SupplierRepository $supplierRepository;
+
+	/** @inject */
+	public SupplierPaymentTypeRepository $supplierPaymentTypeRepository;
+
 	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->paymentTypeRepository->many(), 20, 'priority', 'ASC', true);
@@ -106,11 +115,19 @@ class PaymentTypePresenter extends BackendPresenter
 		$form->addLocaleText('name', 'Název');
 		$form->addLocalePerexEdit('perex', 'Popisek');
 		$form->addDataSelect('exclusive', 'Exkluzivní pro skupinu zákazníků', $this->groupRepo->getListForSelect())->setPrompt('Žádná');
-		$form->addText('externalId', 'Externí ID')->setNullable();
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
-		
+
+		$form->addGroup('Externí ID');
+		$form->addText('externalId', 'Externí ID: Obecné')->setNullable();
+		$suppliersContainer = $form->addContainer('suppliers');
+
+		/** @var \Eshop\DB\Supplier $supplier */
+		foreach ($this->supplierRepository->many() as $supplierPK => $supplier) {
+			$suppliersContainer->addText($supplierPK, " Externí ID: $supplier->name")->setNullable();
+		}
+
 		$form->addSubmits(!$paymentType);
 		
 		$form->onSuccess[] = function (AdminForm $form): void {
@@ -126,8 +143,24 @@ class PaymentTypePresenter extends BackendPresenter
 			$upload = $form['imageFileName'];
 
 			$values['imageFileName'] = $upload->upload($values['uuid'] . '.%2$s');
+
+			$supplierExternalIDs = Arrays::pick($values, 'suppliers', []);
 			
 			$paymentType = $this->paymentTypeRepository->syncOne($values, null, true);
+
+			$this->supplierPaymentTypeRepository->many()->where('this.fk_paymentType', $paymentType->getPK())->delete();
+
+			foreach ($supplierExternalIDs as $supplierPK => $externalID) {
+				if ($externalID === null) {
+					continue;
+				}
+
+				$this->supplierPaymentTypeRepository->syncOne([
+					'paymentType' => $paymentType->getPK(),
+					'supplier' => $supplierPK,
+					'externalId' => $externalID,
+				]);
+			}
 			
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$paymentType]);
@@ -172,8 +205,14 @@ class PaymentTypePresenter extends BackendPresenter
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('paymentTypeForm');
+
+		$defaults = $paymentType->toArray();
+		$defaults['suppliers'] = $this->supplierPaymentTypeRepository->many()
+			->where('this.fk_paymentType', $paymentType->getPK())
+			->setIndex('this.fk_supplier')
+			->toArrayOf('externalId');
 		
-		$form->setDefaults($paymentType->toArray());
+		$form->setDefaults($defaults);
 	}
 	
 	public function createComponentPricesGrid(): AdminGrid
