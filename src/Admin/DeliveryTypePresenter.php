@@ -15,9 +15,12 @@ use Eshop\DB\DeliveryTypePriceRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PickupPointTypeRepository;
+use Eshop\DB\SupplierDeliveryTypeRepository;
+use Eshop\DB\SupplierRepository;
 use Eshop\Shopper;
 use Forms\Form;
 use Nette\Http\Request;
+use Nette\Utils\Arrays;
 use Nette\Utils\Image;
 use StORM\DIConnection;
 
@@ -49,6 +52,12 @@ class DeliveryTypePresenter extends BackendPresenter
 	
 	/** @inject */
 	public Request $request;
+
+	/** @inject */
+	public SupplierRepository $supplierRepository;
+
+	/** @inject */
+	public SupplierDeliveryTypeRepository $supplierDeliveryTypeRepository;
 	
 	public function createComponentGrid(): AdminGrid
 	{
@@ -132,11 +141,19 @@ class DeliveryTypePresenter extends BackendPresenter
 			->setNullable()
 			->addCondition($form::FILLED)
 			->addRule($form::FLOAT);
-		
-		$form->addText('externalId', 'Externí ID')->setNullable();
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
+
+		$form->addGroup('Externí ID');
+		$form->addText('externalId', 'Externí ID: Obecné')->setNullable();
+
+		$suppliersContainer = $form->addContainer('suppliers');
+
+		/** @var \Eshop\DB\Supplier $supplier */
+		foreach ($this->supplierRepository->many() as $supplierPK => $supplier) {
+			$suppliersContainer->addText($supplierPK, " Externí ID: $supplier->name")->setNullable();
+		}
 		
 		$form->addSubmits(!$deliveryType);
 		
@@ -153,8 +170,24 @@ class DeliveryTypePresenter extends BackendPresenter
 			$upload = $form['imageFileName'];
 			
 			$values['imageFileName'] = $upload->upload($values['uuid'] . '.%2$s');
+
+			$supplierExternalIDs = Arrays::pick($values, 'suppliers', []);
 			
 			$deliveryType = $this->deliveryRepo->syncOne($values, null, true);
+
+			$this->supplierDeliveryTypeRepository->many()->where('this.fk_deliveryType', $deliveryType->getPK())->delete();
+
+			foreach ($supplierExternalIDs as $supplierPK => $externalID) {
+				if ($externalID === null) {
+					continue;
+				}
+
+				$this->supplierDeliveryTypeRepository->syncOne([
+					'deliveryType' => $deliveryType->getPK(),
+					'supplier' => $supplierPK,
+					'externalId' => $externalID,
+				]);
+			}
 			
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$deliveryType]);
@@ -201,8 +234,14 @@ class DeliveryTypePresenter extends BackendPresenter
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
-		
-		$form->setDefaults($deliveryType->toArray(['allowedPaymentTypes']));
+
+		$defaults = $deliveryType->toArray(['allowedPaymentTypes']);
+		$defaults['suppliers'] = $this->supplierDeliveryTypeRepository->many()
+			->where('this.fk_deliveryType', $deliveryType->getPK())
+			->setIndex('this.fk_supplier')
+			->toArrayOf('externalId');
+
+		$form->setDefaults($defaults);
 	}
 	
 	public function createComponentPricesGrid(): AdminGrid

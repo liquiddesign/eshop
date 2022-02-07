@@ -6,6 +6,7 @@ namespace Eshop\DB;
 
 use Security\DB\Account;
 use StORM\Collection;
+use StORM\IEntityParent;
 use StORM\RelationCollection;
 
 /**
@@ -125,7 +126,7 @@ class Purchase extends \StORM\Entity
 	/**
 	 * Výdejní místo
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?PickupPoint $pickupPoint;
 
@@ -139,14 +140,14 @@ class Purchase extends \StORM\Entity
 	/**
 	 * Fakturační adresa
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Address $billAddress;
 	
 	/**
 	 * Doručovací adresa
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Address $deliveryAddress;
 	
@@ -160,35 +161,35 @@ class Purchase extends \StORM\Entity
 	/**
 	 * Vybraná doprava
 	 * @relation
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?DeliveryType $deliveryType;
 	
 	/**
 	 * Vybraná platba
 	 * @relation
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?PaymentType $paymentType;
 	
 	/**
 	 * Zákazník
 	 * @relation
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Customer $customer;
 
 	/**
 	 * Účet
 	 * @relation
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Account $account;
 	
 	/**
 	 * Obchodník
 	 * @relation
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Merchant $merchant;
 	
@@ -212,10 +213,19 @@ class Purchase extends \StORM\Entity
 	 */
 	public string $createdTs;
 
+	private SupplierDeliveryTypeRepository $supplierDeliveryTypeRepository;
+
 	/**
 	 * @var string[]
 	 */
 	private ?array $cartIds;
+
+	public function __construct(array $vars, SupplierDeliveryTypeRepository $supplierDeliveryTypeRepository, ?IEntityParent $parent = null, array $mutations = [], ?string $mutation = null)
+	{
+		parent::__construct($vars, $parent, $mutations, $mutation);
+
+		$this->supplierDeliveryTypeRepository = $supplierDeliveryTypeRepository;
+	}
 	
 	public function isCompany(): bool
 	{
@@ -266,6 +276,21 @@ class Purchase extends \StORM\Entity
 		return $cartItemRepository->getSumProperty($this->getCartIds(), 'productDimension');
 	}
 	
+	public function getDeliveryTypeExternalId(Supplier $supplier): ?string
+	{
+		if (!$this->getValue('deliveryType')) {
+			return null;
+		}
+
+		/** @var \Eshop\DB\SupplierDeliveryType $supplierDeliveryType */
+		$supplierDeliveryType = $this->supplierDeliveryTypeRepository->many()
+			->where('this.fk_supplier', $supplier->getPK())
+			->where('this.fk_deliveryType', $this->getValue('deliveryType'))
+			->first();
+
+		return $supplierDeliveryType->externalId ?? ($this->deliveryType->externalId ?? null);
+	}
+
 	/**
 	 * @return string[]
 	 */
