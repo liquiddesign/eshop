@@ -6,7 +6,6 @@ namespace Eshop\DB;
 
 use Security\DB\Account;
 use StORM\Collection;
-use StORM\IEntityParent;
 use StORM\RelationCollection;
 
 /**
@@ -213,28 +212,10 @@ class Purchase extends \StORM\Entity
 	 */
 	public string $createdTs;
 
-	private SupplierDeliveryTypeRepository $supplierDeliveryTypeRepository;
-
-	private SupplierPaymentTypeRepository $supplierPaymentTypeRepository;
-
 	/**
 	 * @var string[]
 	 */
 	private ?array $cartIds;
-
-	public function __construct(
-		array $vars,
-		SupplierDeliveryTypeRepository $supplierDeliveryTypeRepository,
-		SupplierPaymentTypeRepository $supplierPaymentTypeRepository,
-		?IEntityParent $parent = null,
-		array $mutations = [],
-		?string $mutation = null
-	) {
-		parent::__construct($vars, $parent, $mutations, $mutation);
-
-		$this->supplierDeliveryTypeRepository = $supplierDeliveryTypeRepository;
-		$this->supplierPaymentTypeRepository = $supplierPaymentTypeRepository;
-	}
 	
 	public function isCompany(): bool
 	{
@@ -291,8 +272,10 @@ class Purchase extends \StORM\Entity
 			return null;
 		}
 
+		$supplierDeliveryTypeRepository = $this->getConnection()->findRepository(SupplierDeliveryType::class);
+
 		/** @var \Eshop\DB\SupplierDeliveryType $supplierDeliveryType */
-		$supplierDeliveryType = $this->supplierDeliveryTypeRepository->many()
+		$supplierDeliveryType = $supplierDeliveryTypeRepository->many()
 			->where('this.fk_supplier', $supplier->getPK())
 			->where('this.fk_deliveryType', $this->getValue('deliveryType'))
 			->first();
@@ -306,8 +289,10 @@ class Purchase extends \StORM\Entity
 			return null;
 		}
 
+		$supplierPaymentTypeRepository = $this->getConnection()->findRepository(SupplierPaymentType::class);
+
 		/** @var \Eshop\DB\SupplierPaymentType $supplierPaymentType */
-		$supplierPaymentType = $this->supplierPaymentTypeRepository->many()
+		$supplierPaymentType = $supplierPaymentTypeRepository->many()
 			->where('this.fk_supplier', $supplier->getPK())
 			->where('this.fk_paymentType', $this->getValue('paymentType'))
 			->first();
