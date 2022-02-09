@@ -99,6 +99,12 @@ class Supplier extends \StORM\Entity
 	 * @column
 	 */
 	public bool $showCodeWithPrefix = true;
+
+	/**
+	 * Povoluje zařazení do katalogu
+	 * @column
+	 */
+	public bool $syncProductsAllowed = true;
 	
 	/**
 	 * Defaultní zobrazení množství

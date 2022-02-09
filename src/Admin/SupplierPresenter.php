@@ -75,10 +75,14 @@ class SupplierPresenter extends BackendPresenter
 		$grid->addColumnSelector();
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
-		
-		//$grid->addColumnInputCheckbox('Automaticky', 'isImportActive', '', '', 'isImportActive');
-		
-		$grid->addColumnLink('pair', '<i class="fa fa-play"></i> Zapsat do katalogu');
+
+		$grid->addColumn('', function (Supplier $supplier): string {
+			return'<a class="btn btn-outline-primary btn-sm text-xs ' . ($supplier->syncProductsAllowed ? '"' : 'disabled" role="button" aria-disabled="true"') .
+				' style="white-space: nowrap" href="' .
+				($supplier->syncProductsAllowed ? $this->link('pair', [$supplier]) : '#') .
+				'"><i class="fa fa-play"></i> Zapsat do katalogu</a>';
+		});
+//		$grid->addColumnLink('pair', '<i class="fa fa-play"></i> Zapsat do katalogu');
 		$grid->addColumnLinkDetail();
 		
 		$grid->addFilterTextInput('search', ['name', 'code'], null, 'Název, kód');
