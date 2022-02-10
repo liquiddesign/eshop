@@ -3,8 +3,11 @@
 namespace Eshop;
 
 use Eshop\DB\CatalogPermissionRepository;
+use Eshop\DB\CategoryRepository;
+use Eshop\DB\CurrencyRepository;
 use Eshop\DB\Customer;
 use Eshop\DB\CustomerRepository;
+use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
@@ -46,6 +49,9 @@ abstract class ExportPresenter extends Presenter
 	public CustomerRepository $customerRepo;
 
 	/** @inject */
+	public CategoryRepository $categoryRepository;
+
+	/** @inject */
 	public MerchantRepository $merchantRepo;
 
 	/** @inject */
@@ -58,7 +64,13 @@ abstract class ExportPresenter extends Presenter
 	public VatRateRepository $vatRateRepo;
 
 	/** @inject */
+	public DeliveryTypeRepository $deliveryTypeRepository;
+
+	/** @inject */
 	public CatalogPermissionRepository $catalogPermRepo;
+
+	/** @inject */
+	public CurrencyRepository $currencyRepository;
 
 	/** @inject */
 	public Shopper $shopper;
@@ -277,6 +289,10 @@ abstract class ExportPresenter extends Presenter
 
 	private function export(string $name): void
 	{
+		$currency = $this->currencyRepository->one('CZK');
+
+		$this->template->priceType = $this->shopper->getShowVat() ? true : ($this->shopper->getShowWithoutVat() ? false : null);
+		$this->template->deliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0);
 		$this->template->setFile(__DIR__ . "/templates/export/$name.latte");
 	}
 }

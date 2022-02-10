@@ -659,15 +659,25 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 			);
 
 		if ($this->getParameter('type') === 'standard') {
-			$form->addCheckbox('beforePrices', 'Importovat původní ceny')
+			$beforePricesInput = $form->addCheckbox('beforePrices', 'Importovat původní ceny')
 				->setHtmlAttribute(
 					'data-info',
 					'Původní cena bude zobrazena u produktu jako přeškrtnutá cena (cena před slevou)',
 				);
+
+			$beforePricesSourceInput = $form->addSelect('beforePricesSource', 'Zdroj původních cen', [
+				PricelistRepository::COPY_PRICES_BEFORE_PRICE_SOURCE => 'Zdrojový ceník',
+				PricelistRepository::COPY_PRICES_BEFORE_PRICE_TARGET => 'Cílový ceník',
+			])->setHtmlAttribute('data-info', 'Zdrojový ceník - Jako původní ceny budou použity normální ceny ze zdrojového ceníku.<br>
+Cílový ceník - Jako původní ceny budou použity normální ceny ze cílového ceníku.<br>
+<b>Řídí se nastavením "Přepsat existující ceny"!.</b>');
+
+			$beforePricesInput->addCondition($form::FILLED)
+				->toggle($beforePricesSourceInput->getHtmlId() . '-toogle');
 		}
 
 		$form->addCheckbox('overwrite', 'Přepsat existující ceny')
-			->setHtmlAttribute('data-info', 'Existující ceny v cílovém ceníku budou přepsány');
+			->setHtmlAttribute('data-info', 'Existující ceny v cílovém ceníku budou přepsány.');
 
 		$form->addSubmits();
 
@@ -686,6 +696,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 				$values['overwrite'],
 				$values['beforePrices'] ?? false,
 				$quantity,
+				$values['beforePricesSource'],
 			);
 
 			$this->flashMessage('Uloženo', 'success');

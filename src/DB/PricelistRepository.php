@@ -17,6 +17,9 @@ use StORM\SchemaManager;
  */
 class PricelistRepository extends \StORM\Repository implements IGeneralRepository
 {
+	public const COPY_PRICES_BEFORE_PRICE_SOURCE = 'from';
+	public const COPY_PRICES_BEFORE_PRICE_TARGET = 'target';
+
 	private PriceRepository $priceRepository;
 
 	private CustomerRepository $customerRepository;
@@ -136,8 +139,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 		$existingPricesInTargetPricelist = $this->priceRepository->many()
 			->where('fk_pricelist', $to->getPK())
-			->setIndex('fk_product')
 			->setSelect(['this.uuid', 'this.price', 'this.priceVat', 'this.fk_product'])
+			->setIndex('this.fk_product')
 			->toArray();
 
 		$newPrices = [];
@@ -145,7 +148,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		while ($originalPrice = $originalPrices->fetch()) {
 			/** @var \Eshop\DB\Price|\Eshop\DB\QuantityPrice $originalPrice */
 
-			if (!$overwrite && isset($existingPricesInTargetPricelist[$originalPrice->getValue('product')])) {
+			if ((!$overwrite && isset($existingPricesInTargetPricelist[$originalPrice->getValue('product')]))) {
 				continue;
 			}
 
@@ -180,7 +183,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		int $roundPrecision,
 		bool $overwrite = false,
 		bool $fillBeforePrices = false,
-		bool $quantityPrices = false
+		bool $quantityPrices = false,
+		string $beforePricesSource = self::COPY_PRICES_BEFORE_PRICE_SOURCE
 	): void {
 		$priceRepository = $this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class);
 
@@ -188,8 +192,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 		$existingPricesInTargetPricelist = $this->priceRepository->many()
 			->where('fk_pricelist', $to->getPK())
-			->setIndex('fk_product')
-			->setSelect(['this.uuid', 'this.price', 'this.priceVat', 'this.fk_product'])
+			->setSelect(['this.uuid', 'this.price', 'this.priceVat', 'this.fk_product', 'this.priceBefore', 'this.priceVatBefore'])
+			->setIndex('this.fk_product')
 			->toArray();
 
 		$newPrices = [];
@@ -197,7 +201,10 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		while ($originalPrice = $originalPrices->fetch()) {
 			/** @var \Eshop\DB\Price|\Eshop\DB\QuantityPrice $originalPrice */
 
-			if (!$overwrite && isset($existingPricesInTargetPricelist[$originalPrice->getValue('product')])) {
+			/** @var \Eshop\DB\Price|\Eshop\DB\QuantityPrice|null $targetPrice */
+			$targetPrice = $existingPricesInTargetPricelist[$originalPrice->getValue('product')] ?? null;
+
+			if ($targetPrice && !$overwrite) {
 				continue;
 			}
 
@@ -214,8 +221,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 			if ($fillBeforePrices && !$quantityPrices) {
 				$values += [
-					'priceBefore' => $originalPrice->price,
-					'priceVatBefore' => $originalPrice->priceVat,
+					'priceBefore' => $beforePricesSource === self::COPY_PRICES_BEFORE_PRICE_TARGET ? $targetPrice->price : $originalPrice->price,
+					'priceVatBefore' => $beforePricesSource === self::COPY_PRICES_BEFORE_PRICE_TARGET ? $targetPrice->priceVat : $originalPrice->priceVat,
 				];
 			}
 

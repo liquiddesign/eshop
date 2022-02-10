@@ -729,24 +729,19 @@ class ProductRepository extends Repository implements IGeneralRepository
 			}
 		}
 
-		/** @var \Eshop\DB\CategoryRepository $categoryRepo */
-		$categoryRepo = $this->getConnection()->findRepository(Category::class);
-
 		/** @var \Eshop\DB\AttributeRepository $attributeRepository */
 		$attributeRepository = $this->getConnection()->findRepository(Attribute::class);
 
 		/** @var \Eshop\DB\AttributeValueRepository $attributeValueRepository */
 		$attributeValueRepository = $this->getConnection()->findRepository(AttributeValue::class);
 
-		$productCategory = $product->getPrimaryCategory();
+		$productCategory = $product->primaryCategory;
 
 		if (!$productCategory) {
 			return [];
 		}
 
-		$categories = $categoryRepo->getBranch($productCategory);
-
-		$attributes = $attributeRepository->getAttributesByCategories(\array_values($categories), $showAll)->toArray();
+		$attributes = $attributeRepository->getAttributesByCategory($productCategory->path, $showAll)->toArray();
 		$attributesList = [];
 
 		foreach ($attributes as $attributeKey => $attribute) {

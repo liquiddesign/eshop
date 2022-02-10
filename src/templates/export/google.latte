@@ -1,51 +1,62 @@
 {contentType application/xml}
 <?xml version="1.0" encoding="utf-8"?>
+{varType Eshop\ExportPresenter $presenter}
 {var Eshop\DB\ProductRepository $products = $presenter->productRepo}
 {varType Eshop\DB\Product $product}
 {varType string|null $error}
-{cache expire => '1 day', tags => ['export']}
+{varType bool|null $priceType}
+{varType Eshop\DB\DeliveryType[] $deliveryTypes}
+
 {ifset $error}
 <error>
     {$error}
 </error>
 {else}
 {try}
-{do $pricelists = $presenter->getPricelistFromSetting('googleExportPricelist')}
-{do $products = $products->getProducts($pricelists)->where('this.hidden', false)}
-    <rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
-    <channel>
-        <item n:while="$product = $products->fetch()">
-            {do $price = $product->priceVat ?? $product->price}
-            <g:id>{$product->getPK()}</g:id>
-            <g:title><![CDATA[{$product->name}]]></g:title>
-            <g:description n:if="$product->content"><![CDATA[{\strip_tags($product->content)}]]></g:description>
-            <g:link>{plink //:Eshop:Product:detail $product->getPK()}</g:link>
-            {ifset $product->imageFileName}<g:image_link>{$productImageUrl . $product->imageFileName}</g:image_link>{/ifset}
-            <g:condition>new</g:condition>
-            <g:availability>{if $product->inStock()}in stock{else}out of stock{/if}</g:availability>
-            <g:price>{$price} {$pricelists[$product->pricelist]->currency->code}</g:price>
-            <g:brand>{$product->producer ? $product->producer->name : null}</g:brand>
-            <g:gtin>{$product->ean}</g:gtin>
-            <g:adult>no</g:adult>
-            {ifset $product->displayDelivery}
-                <g:shipping>
-                    <g:country>CS</g:country>
-                </g:shipping>
-            {/ifset}
-            {if isset($configuration['customLabel_1']) && $configuration['customLabel_1']}
-                <g:custom_label_1>{$pricelists[$product->pricelist]->customLabel}</g:custom_label_1>
-            {/if}
+    {cache expire => '1 day', tags => ['export']}
+        {var $pricelists = $presenter->getPricelistFromSetting('googleExportPricelist')}
+        {var $products = $products->getProducts($pricelists)->where('this.hidden', false)->setTake(10)}
+        <rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
+        <channel>
+            <item n:while="$product = $products->fetch()">
+                {var $price = $priceType ? $product->getPriceVat() : ($priceType === false ? $product->getPrice() : null)}
+                {var $priceBefore = $priceType ? $product->getPriceVatBefore() : ($priceType === false ? $product->getPriceBefore() : null)}
+                {var $attributes = $product->getPreviewParameters()}
+                <g:id>{$product->getPK()}</g:id>
+                <g:title><![CDATA[{$product->name}]]></g:title>
+                <g:description n:if="$product->content"><![CDATA[{$product->primaryCategory ? $product->primaryCategory->name : null} {\strip_tags($product->content)}]]></g:description>
+                <g:link>{plink //:Eshop:Product:detail $product->getPK()}</g:link>
+                {ifset $product->imageFileName}<g:image_link>{$productImageUrl . $product->imageFileName}</g:image_link>{/ifset}
+                <g:condition>new</g:condition>
+                <g:availability>{if $product->inStock()}in stock{else}out of stock{/if}</g:availability>
+                <g:price n:if="$price">{$priceBefore ?: $price} {$pricelists[$product->pricelist]->currency->code}</g:price>
+                <g:sale_price n:if="$priceBefore">{$price} {$pricelists[$product->pricelist]->currency->code}</g:sale_price>
+                <g:brand>{$product->producer ? $product->producer->name : null}</g:brand>
+                <g:gtin>{$product->ean}</g:gtin>
+                <g:adult>no</g:adult>
+                <g:color n:if="isset($attributes['colors']) && \count($attributes['colors']) > 0">{\Nette\Utils\Arrays::first($attributes['colors'])['label']}</g:color>
+                {foreach $deliveryTypes as $deliveryType}
+                    <g:shipping>
+                        <g:country>CZ</g:country>
+                        <g:service>{$deliveryType->name}</g:service>
+                        <g:price>{$deliveryType->getValue($priceType ? 'priceVat' : 'price')} CZK</g:price>
+                    </g:shipping>
+                {/foreach}
 
-            {if isset($configuration['customLabel_2']) && $configuration['customLabel_2']}
-                <g:custom_label_2>{if $price}{if $price < 500}0-499{elseif $price < 1000}500-999{elseif $price < 2000}1000-1999{elseif $price < 5000}2000-4999{elseif $price < 10000}5000-9999{else}10000+{/if}{/if}</g:custom_label_2>
-            {/if}
-        </item>
-    </channel>
-    </rss>
+                {if isset($configuration['customLabel_1']) && $configuration['customLabel_1']}
+                    <g:custom_label_1>{$pricelists[$product->pricelist]->customLabel}</g:custom_label_1>
+                {/if}
+
+                {if isset($configuration['customLabel_2']) && $configuration['customLabel_2']}
+                    <g:custom_label_2>{if $price}{if $price < 500}0-499{elseif $price < 1000}500-999{elseif $price < 2000}1000-1999{elseif $price < 5000}2000-4999{elseif $price < 10000}5000-9999{else}10000+{/if}{/if}</g:custom_label_2>
+                {/if}
+            </item>
+        </channel>
+        </rss>
+    {/cache}
     {else}
     <error>
         {\Eshop\ExportPresenter::ERROR_MSG}
     </error>
 {/try}
 {/ifset}
-{/cache}

@@ -376,6 +376,5 @@ class DiscountPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('deliveryDiscounts', $discount)];
 		$this->template->displayControls = [$this->getComponent('deliveryDiscountsForm')];
-		$this->template->setFile(__DIR__ . '/templates/discountCouponForm.latte');
 	}
 }
