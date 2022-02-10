@@ -37,6 +37,12 @@ class SupplierProduct extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $code;
+
+	/**
+	 * Kód výrobce - Manufacturer Part Number
+	 * @column
+	 */
+	public ?string $mpn;
 	
 	/**
 	 * Název

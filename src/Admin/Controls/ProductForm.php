@@ -140,6 +140,7 @@ class ProductForm extends Control
 		$form->addText('code', 'Kód a podsklad')->setRequired();
 		$form->addText('subCode', 'Kód podskladu');
 		$form->addText('ean', 'EAN')->setNullable();
+		$form->addText('mpn', 'P/N')->setNullable();
 		$nameInput = $form->addLocaleText('name', 'Název');
 
 		$form->addSelect('vatRate', 'Úroveň DPH (%)', $vatRateRepository->getDefaultVatRates());

@@ -70,6 +70,12 @@ class Product extends \StORM\Entity
 	public ?string $ean;
 
 	/**
+	 * Kód výrobce - Manufacturer Part Number
+	 * @column
+	 */
+	public ?string $mpn;
+
+	/**
 	 * Externí kód
 	 * @column
 	 */

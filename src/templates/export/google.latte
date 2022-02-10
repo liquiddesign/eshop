@@ -32,7 +32,8 @@
                 <g:price n:if="$price">{$priceBefore ?: $price} {$pricelists[$product->pricelist]->currency->code}</g:price>
                 <g:sale_price n:if="$priceBefore">{$price} {$pricelists[$product->pricelist]->currency->code}</g:sale_price>
                 <g:brand>{$product->producer ? $product->producer->name : null}</g:brand>
-                <g:gtin>{$product->ean}</g:gtin>
+                <g:gtin n:if="$product->ean">{$product->ean}</g:gtin>
+                <g:mpn n:if="$product->mpn">{$product->mpn}</g:mpn>
                 <g:adult>no</g:adult>
                 <g:color n:if="isset($attributes['colors']) && \count($attributes['colors']) > 0">{\Nette\Utils\Arrays::first($attributes['colors'])['label']}</g:color>
                 {foreach $deliveryTypes as $deliveryType}

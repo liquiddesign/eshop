@@ -60,7 +60,7 @@ class SupplierProductPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($this->supplierProductRepository->many()->where('this.fk_supplier', $supplier->getPK()), 20, 'this.createdTs', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumn('Kód a EAN', function (SupplierProduct $product) {
-			return $product->code . ($product->ean ? "<br><small>EAN $product->ean</small>" : '');
+			return $product->code . ($product->ean ? "<br><small>EAN $product->ean</small>" : '') . ($product->mpn ? "<br><small>P/N $product->mpn</small>" : '');
 		}, '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
 		$grid->addColumnText('Název', 'name', '%s', 'name');
@@ -116,7 +116,7 @@ class SupplierProductPresenter extends BackendPresenter
 
 		$grid->addButtonSaveAll();
 
-		$grid->addFilterTextInput('search', ['this.ean', 'this.code'], null, 'EAN, kód');
+		$grid->addFilterTextInput('search', ['this.ean', 'this.code', 'this.mpn'], null, 'EAN, kód, P/N');
 		$grid->addFilterTextInput('q', ['this.name'], null, 'Název produktu');
 
 		$grid->addFilterText(function (ICollection $source, $value): void {

@@ -53,6 +53,8 @@
                         </td>
                     </tr>
 
+                    {$renderer->renderPair($form['mpn'])|noescape}
+
                     {foreach $form['name']->getComponents() as $key => $element}
                         <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
                             id="{$element->getHtmlId()}" data-mutation="{$key}">
