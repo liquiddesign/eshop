@@ -15,7 +15,7 @@
 {try}
     {cache expire => '1 day', tags => ['export']}
         {var $pricelists = $presenter->getPricelistFromSetting('googleExportPricelist')}
-        {var $products = $products->getProducts($pricelists)->where('this.hidden', false)->setTake(10)}
+        {var $products = $products->getProducts($pricelists)->where('this.hidden', false)}
         <rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
         <channel>
             <item n:while="$product = $products->fetch()">
