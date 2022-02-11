@@ -115,6 +115,8 @@
                         </td>
                     </tr>
 
+
+
                     <tr class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label exportGoogleCategory/}</th>
 
@@ -133,14 +135,7 @@
                         </td>
                     </tr>
 
-                    <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label exportZboziCategory/}</th>
-
-                        <td class="align-middle">
-                            {input exportZboziCategory class => 'form-control form-control-sm col-label'}
-                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError exportZboziCategory}</span>
-                        </td>
-                    </tr>
+                    {$renderer->renderPair($form['exportZboziCategory'])|noescape}
 
                     <tr class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label priority 'class' => 'required'}</th>

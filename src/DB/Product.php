@@ -498,6 +498,7 @@ class Product extends \StORM\Entity
 				'fk_parameter' => $parameter[1],
 				'label' => $parameter[2],
 				'metaValue' => $parameter[3],
+				'attributeName' => $parameter[4],
 			];
 		}
 
@@ -735,10 +736,22 @@ class Product extends \StORM\Entity
 		];
 	}
 
-	public function getSupplierProduct(string $supplierCode): ?SupplierProduct
+	/**
+	 * @param string|null $supplierCode If null, take supplier with the highest priority
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function getSupplierProduct(?string $supplierCode = null): ?SupplierProduct
 	{
 		/** @var \Eshop\DB\SupplierProductRepository $supplierProductRepository */
 		$supplierProductRepository = $this->getConnection()->findRepository(SupplierProduct::class);
+
+		if ($supplierCode === null) {
+			return $supplierProductRepository->many()
+				->where('fk_product', $this->getPK())
+				->select(['importPriority' => 'supplier.importPriority'])
+				->setOrderBy(['importPriority'])
+				->first();
+		}
 
 		return $supplierProductRepository->many()
 			->where('fk_product', $this->getPK())

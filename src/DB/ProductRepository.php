@@ -175,7 +175,13 @@ class ProductRepository extends Repository implements IGeneralRepository
 				($vatRates['reduced-high'] ?? 0) . ",IF(vatRate = 'reduced-low'," . ($vatRates['reduced-low'] ?? 0) . ',0)))']);
 
 			$subSelect = $this->getConnection()
-				->rows(['eshop_attributevalue'], ["GROUP_CONCAT(CONCAT_WS('$sep', eshop_attributevalue.uuid, fk_attribute, eshop_attributevalue.label$suffix, eshop_attributevalue.metaValue))"])
+				->rows(
+					['eshop_attributevalue'],
+					["GROUP_CONCAT(CONCAT_WS('$sep', eshop_attributevalue.uuid, fk_attribute,
+					IFNULL(eshop_attributevalue.label$suffix, ''),
+					IFNULL(eshop_attributevalue.metaValue, ''),
+					IFNULL(eshop_attribute.name$suffix, '')))"],
+				)
 				->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
 				->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
 				->where('eshop_attribute.showProduct=1')

@@ -101,7 +101,7 @@ class ProductGridFactory
 		$grid->addColumnImage('imageFileName', Product::GALLERY_DIR);
 
 		$grid->addColumn('Kód a EAN', function (Product $product) {
-			return $product->getFullCode() . ($product->ean ? "<br><small>EAN $product->ean</small>" : '');
+			return $product->getFullCode() . ($product->ean ? "<br><small>EAN $product->ean</small>" : '') . ($product->mpn ? "<br><small>P/N $product->mpn</small>" : '');
 		}, '%s', 'code', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
 		$grid->addColumn('Název', function (Product $product, $grid) {

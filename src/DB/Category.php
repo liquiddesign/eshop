@@ -84,10 +84,11 @@ class Category extends \StORM\Entity
 	public ?string $exportHeurekaCategory;
 
 	/**
-	 * Export název pro Zbozi
-	 * @column
+	 * Kategorie zboží
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
-	public ?string $exportZboziCategory;
+	public ?Category $exportZboziCategory;
 
 	/**
 	 * Priorita

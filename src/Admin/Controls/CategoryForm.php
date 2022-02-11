@@ -15,6 +15,7 @@ use Nette\Utils\Image;
 use Pages\Helpers;
 use StORM\DIConnection;
 use Web\DB\PageRepository;
+use Web\DB\SettingRepository;
 
 class CategoryForm extends Control
 {
@@ -22,17 +23,21 @@ class CategoryForm extends Control
 
 	private PageRepository $pageRepository;
 
+	private SettingRepository $settingRepository;
+
 	private ?Category $category;
 
 	public function __construct(
 		CategoryRepository $categoryRepository,
 		AdminFormFactory $formFactory,
 		PageRepository $pageRepository,
+		SettingRepository $settingRepository,
 		?Category $category
 	) {
 		$this->category = $category;
 		$this->categoryRepository = $categoryRepository;
 		$this->pageRepository = $pageRepository;
+		$this->settingRepository = $settingRepository;
 
 		$form = $formFactory->create(true);
 
@@ -94,11 +99,24 @@ class CategoryForm extends Control
 			}
 
 			$form->addDataSelect('ancestor', 'Nadřazená kategorie', $categories)->setPrompt('Žádná');
+
+			/** @var \Web\DB\Setting|null $zboziTypeSetting */
+			$zboziTypeSetting = $this->settingRepository->many()->where('name', 'zboziCategoryTypeToParse')->first();
+
+			if ($zboziTypeSetting) {
+				$categories = $this->categoryRepository->getTreeArrayForSelect(true, $zboziTypeSetting->value);
+
+				if ($category) {
+					$form->addDataSelect('exportZboziCategory', 'Exportní kategorie pro Zboží', $categories)->setPrompt('Žádná');
+				}
+			} else {
+				$form->addSelect('exportZboziCategory', 'Exportní kategorie pro Zboží', $categories)->setPrompt('Žádná')->setDisabled()
+					->setHtmlAttribute('data-info', 'Nejprve zvolte v nastavení exportů typ kategorií pro Zboží.');
+			}
 		});
 
 		$form->addText('exportGoogleCategory', 'Exportní název pro Google');
 		$form->addText('exportHeurekaCategory', 'Export název pro Heuréku');
-		$form->addText('exportZboziCategory', 'Export název pro Zbozi');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('showInMenu', 'Zobrazit v menu');

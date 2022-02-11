@@ -5,6 +5,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\PricelistRepository;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
@@ -18,6 +19,9 @@ class ExportPresenter extends BackendPresenter
 
 	/** @inject */
 	public PricelistRepository $priceListRepo;
+
+	/** @inject */
+	public CategoryTypeRepository $categoryTypeRepository;
 
 	/** @inject */
 	public Storage $storage;
@@ -34,6 +38,7 @@ class ExportPresenter extends BackendPresenter
 			'heurekaExportPricelist',
 			'zboziExportPricelist',
 			'googleExportPricelist',
+			'zboziCategoryTypeToParse',
 		];
 
 		$defaults = [];
@@ -44,7 +49,8 @@ class ExportPresenter extends BackendPresenter
 		 */
 		foreach ($values as $key => $value) {
 			if (Arrays::contains($keys, $key) && $value) {
-				$defaults[$key] = \explode(';', $value);
+				$array = \explode(';', $value);
+				$defaults[$key] = \count($array) > 1 ? $array : $value;
 			}
 		}
 
@@ -108,6 +114,8 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 		$form->addDataMultiSelect('heurekaExportPricelist', 'Heureka', $this->priceListRepo->getArrayForSelect(false));
 		$form->addDataMultiSelect('zboziExportPricelist', 'Zboží', $this->priceListRepo->getArrayForSelect(false));
 		$form->addDataMultiSelect('googleExportPricelist', 'Google Nákupy', $this->priceListRepo->getArrayForSelect(false));
+		$form->addGroup('Zboží');
+		$form->addDataSelect('zboziCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect());
 
 		$form->addSubmit('submit', 'Uložit');
 
@@ -118,11 +126,11 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 				$setting = $this->settingsRepo->one(['name' => $key]);
 
 				if ($setting) {
-					$setting->update(['value' => \implode(';', $value)]);
+					$setting->update(['value' => \is_array($value) ? \implode(';', $value) : $value]);
 				} else {
 					$this->settingsRepo->createOne([
 						'name' => $key,
-						'value' => \implode(';', $value),
+						'value' => \is_array($value) ? \implode(';', $value) : $value,
 					]);
 				}
 			}

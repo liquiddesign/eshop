@@ -58,7 +58,7 @@ class ProductGridFiltersFactory
 
 	public function addFilters(AdminGrid $grid): void
 	{
-		$grid->addFilterTextInput('code', ['this.code', 'this.ean', 'this.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
+		$grid->addFilterTextInput('code', ['this.code', 'this.ean', 'this.name_cs', 'this.mpn'], null, 'Název, EAN, kód, P/N', '', '%s%%');
 
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
 			$exactCategories = $categories;

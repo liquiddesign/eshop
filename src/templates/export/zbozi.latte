@@ -9,19 +9,22 @@
     {$error}
 </error>
 {else}
-{try}
+{*{try}*}
     {do $pricelists = $presenter->getPricelistFromSetting('zboziExportPricelist')}
-    {do $products = $products->getProducts($pricelists)->where('this.hidden', false)}
+    {do $products = $products->getProducts($pricelists)->where('this.hidden', false)->setTake(10)}
     <SHOP xmlns="http://www.zbozi.cz/ns/offer/1.0">
         <SHOPITEM n:while="$product = $products->fetch()">
+            {var $attributes = $product->getPreviewParameters()}
             <ITEM_ID>{$product->getPK()}</ITEM_ID>
             <PRODUCTNAME><![CDATA[{$product->name}]]></PRODUCTNAME>
+            <PRODUCT n:if="$supplierProduct = $product->getSupplierProduct()"><![CDATA[{$supplierProduct->name}]]></PRODUCT>
             <DESCRIPTION><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
             <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
             {ifset $product->imageFileName}<IMGURL>{$productImageUrl . $product->imageFileName}</IMGURL>{/ifset}
-            <PRICE_VAT>{$product->priceVat}</PRICE_VAT>
+            <PRICE_VAT>{$product->getPriceVat()}</PRICE_VAT>
             <MANUFACTURER>{ifset $product->producer}{$product->producer->name}{/ifset}</MANUFACTURER>
-            {if ($category = $product->primaryCategory) !== null}
+            {var Eshop\DB\Category|null $category = $product->primaryCategory}
+            {if ($category = ($category->exportZboziCategory ?? null)) !== null}
                 {do $categories = []}
                 {while $category != null}
                     {do $categories[] = $category}
@@ -43,12 +46,21 @@
     {*        <INNER_PACKAGE>{$product->inCarton}</INNER_PACKAGE>*}
     {*        <QUANTITY_PALLETE>{$product->inPalett}</QUANTITY_PALLETE>*}
     {*        <PRODUCT_EN><![CDATA[{$product->name_en}]]></PRODUCT_EN>*}
+            {foreach $attributes as $attributeValues}
+                {foreach $attributeValues as $attributeValue}
+                    <PARAM>
+                        <PARAM_NAME>{$attributeValue['attributeName']}</PARAM_NAME>
+                        <VAL>{$attributeValue['label']}</VAL>
+                    </PARAM>
+                {/foreach}
+            {/foreach}
+
         </SHOPITEM>
     </SHOP>
-    {else}
-    <error>
-        {\Eshop\ExportPresenter::ERROR_MSG}
-    </error>
-{/try}
+{*    {else}*}
+{*    <error>*}
+{*        {\Eshop\ExportPresenter::ERROR_MSG}*}
+{*    </error>*}
+{*{/try}*}
 {/ifset}
 {/cache}

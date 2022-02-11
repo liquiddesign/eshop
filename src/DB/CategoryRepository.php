@@ -380,7 +380,23 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			}
 
 			$list = [];
-			$repository->buildTreeArrayForSelect($collection->toArray(), null, $list);
+
+			$categories = $collection->toArray();
+
+			/** @var \Eshop\DB\Category $category */
+			foreach ($categories as $category) {
+				$currentCategories = [];
+				$currentCategory = $category;
+
+				while ($currentCategory !== null) {
+					$currentCategories[] = $currentCategory->name;
+					$currentCategory = $currentCategory->ancestor;
+				}
+
+				$currentCategories = \array_reverse($currentCategories);
+
+				$list[$category->getPK()] = $category->type->name . ': ' . \implode(' -> ', $currentCategories);
+			}
 
 			return $list;
 		});
@@ -514,7 +530,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		return \array_reverse($categories);
 	}
 
-	public function importTreeCsv(Reader $reader, CategoryType $categoryType): void
+	public function importHeurekaTreeCsv(Reader $reader, CategoryType $categoryType): void
 	{
 		$columns = [
 			'Subcategory 1',
@@ -550,6 +566,46 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 				$previousCategory = $existingCategory ?? $this->createOne([
 						'name' => ['cs' => $value[$column]],
+						'path' => $this->generateUniquePath($previousCategory ? $previousCategory->path : ''),
+						'ancestor' => $previousCategory,
+						'type' => $categoryType->getPK(),
+					]);
+			}
+		}
+
+		$this->clearCategoriesCache();
+	}
+
+	public function importZboziTreeCsv(Reader $reader, CategoryType $categoryType): void
+	{
+		$columns = [
+			'id kategorie',
+			'Název kategorie',
+			'Celá cesta',
+		];
+
+		$iterator = $reader->getRecords($columns);
+
+		$defaultMutationSuffix = '_cs';
+
+		foreach ($iterator as $value) {
+			$previousCategory = null;
+
+			foreach (\explode(' | ', $value['Celá cesta']) as $category) {
+				$collection = $this->many()
+					->where('fk_type', $categoryType->getPK())
+					->where("name$defaultMutationSuffix", $category);
+
+				if ($previousCategory) {
+					$collection->where('path LIKE :s', ['s' => "$previousCategory->path%"]);
+				} else {
+					$collection->where('fk_ancestor IS NULL');
+				}
+
+				$existingCategory = $collection->first();
+
+				$previousCategory = $existingCategory ?? $this->createOne([
+						'name' => ['cs' => $category],
 						'path' => $this->generateUniquePath($previousCategory ? $previousCategory->path : ''),
 						'ancestor' => $previousCategory,
 						'type' => $categoryType->getPK(),
@@ -857,31 +913,5 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 			$this->doUpdateCategoryChildrenPath($child);
 		}
-	}
-
-	/**
-	 * @param \Eshop\DB\Category[] $elements
-	 * @param string|null $ancestorId
-	 * @param array $list
-	 * @return \Eshop\DB\Category[]
-	 */
-	private function buildTreeArrayForSelect(array $elements, ?string $ancestorId = null, array &$list = []): array
-	{
-		$branch = [];
-
-		foreach ($elements as $element) {
-			if ($element->getValue('ancestor') === $ancestorId) {
-				$list[$element->getPK()] = $element->ancestor ?
-					\implode(' -> ', $element->ancestor->getFamilyTree()->toArrayOf('name')) . " -> $element->name" : "$element->name";
-
-				if ($children = $this->buildTreeArrayForSelect($elements, $element->getPK(), $list)) {
-					$element->children = $children;
-				}
-
-				$branch[] = $element;
-			}
-		}
-
-		return $branch;
 	}
 }
