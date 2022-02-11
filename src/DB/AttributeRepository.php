@@ -150,7 +150,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		
 		return $this->attributeValueRepository->getCollection($includeHidden)
 			->where('fk_attribute', $attribute->getPK())
-			->select(['internalLabel' => 'IFNULL(internalName, label' . $mutationSuffix . ')']);
+			->select(['internalLabel' => 'CONCAT(IFNULL(internalName, label' . $mutationSuffix . '), " (", this.code, ")")']);
 	}
 	
 	/**
