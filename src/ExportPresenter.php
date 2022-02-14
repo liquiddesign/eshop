@@ -2,6 +2,8 @@
 
 namespace Eshop;
 
+use Eshop\DB\AttributeRepository;
+use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CurrencyRepository;
@@ -11,6 +13,7 @@ use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
+use Eshop\DB\PhotoRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
@@ -29,7 +32,7 @@ use Web\DB\SettingRepository;
 
 abstract class ExportPresenter extends Presenter
 {
-	public const ERROR_MSG = 'Invalid export settings! No price list selected! You can set price lists in admin web settings.';
+	public const ERROR_MSG = 'ERROR: Missing pricelists not set or other error.';
 
 	protected const CONFIGURATION = [
 		'customLabel_1' => false,
@@ -71,6 +74,15 @@ abstract class ExportPresenter extends Presenter
 
 	/** @inject */
 	public CurrencyRepository $currencyRepository;
+
+	/** @inject */
+	public AttributeRepository $attributeRepository;
+
+	/** @inject */
+	public AttributeValueRepository $attributeValueRepository;
+
+	/** @inject */
+	public PhotoRepository $photoRepository;
 
 	/** @inject */
 	public Shopper $shopper;

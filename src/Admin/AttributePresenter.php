@@ -224,6 +224,9 @@ class AttributePresenter extends BackendPresenter
 		$form->addInteger('showCount', 'Počet položek zobrazených při načtení')->setNullable()
 			->setHtmlAttribute('data-info', 'Při načtení bude zobrazeno jen X zvolených položek. Ostatní lze zobrazit tlačítkem "Zobrazit položky". Pokud necháte prázdné, budou zobrazeny všechny.');
 
+		$form->addGroup('Export');
+		$form->addText('zboziName', 'Název pro Zboží.cz')->setNullable();
+
 		$form->addGroup('Filtr');
 		$form->addCheckbox('showFilter', 'Filtr')->setHtmlAttribute('data-info', 'Atribut se zobrazí při filtrování.');
 
@@ -408,6 +411,9 @@ class AttributePresenter extends BackendPresenter
 		)
 			->setPrompt('Nepřiřazeno')
 			->setHtmlAttribute('data-info', 'Pokud má atribut aktivní možnost "Zobrazit jako rozsahy", tak bude tato hodnota zobrazena jako zvolený rozsah.');
+
+		$form->addGroup('Export');
+		$form->addText('zboziLabel', 'Název pro Zboží.cz')->setNullable();
 
 		if (isset($this::CONFIGURATIONS['wizard']) && $this::CONFIGURATIONS['wizard']) {
 			$form->addGroup('Průvodce');

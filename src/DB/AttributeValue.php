@@ -73,6 +73,12 @@ class AttributeValue extends \StORM\Entity
 	public ?string $defaultWizard = null;
 
 	/**
+	 * Jméno pro Zboží
+	 * @column
+	 */
+	public ?string $zboziLabel;
+
+	/**
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */

@@ -1,21 +1,24 @@
 {contentType application/xml}
 <?xml version="1.0" encoding="utf-8"?>
-{var Eshop\DB\ProductRepository $products = $presenter->productRepo}
 {varType Eshop\DB\Product $product}
 {varType string|null $error}
+{varType Eshop\ExportPresenter $presenter}
 {cache expire => '1 day', tags => ['export']}
 {ifset $error}
 <error>
     {$error}
 </error>
 {else}
-{*{try}*}
-    {do $pricelists = $presenter->getPricelistFromSetting('zboziExportPricelist')}
-    {do $products = $products->getProducts($pricelists)->where('this.hidden', false)->setTake(10)}
+{try}
+    {var $mutationSuffix = $presenter->attributeRepository->getConnection()->getMutationSuffix()}
+    {var $allAttributes = $presenter->attributeRepository->many()->select(["zbozi" => "IFNULL(zboziName,name$mutationSuffix)"])->toArrayOf('zbozi')}
+    {var $allAttributeValues = $presenter->attributeValueRepository->many()->select(["zbozi" => "IFNULL(zboziLabel,label$mutationSuffix)"])->toArrayOf('zbozi')}
+    {var $pricelists = $presenter->getPricelistFromSetting('zboziExportPricelist')}
+    {var $products = $presenter->productRepo->getProducts($pricelists)->where('this.hidden', false)}
     <SHOP xmlns="http://www.zbozi.cz/ns/offer/1.0">
-        <SHOPITEM n:while="$product = $products->fetch()">
+        <SHOPITEM n:foreach="$products as $product">
             {var $attributes = $product->getPreviewParameters()}
-            <ITEM_ID>{$product->getPK()}</ITEM_ID>
+            <ITEM_ID>{$product->getFullCode()}</ITEM_ID>
             <PRODUCTNAME><![CDATA[{$product->name}]]></PRODUCTNAME>
             <PRODUCT n:if="$supplierProduct = $product->getSupplierProduct()"><![CDATA[{$supplierProduct->name}]]></PRODUCT>
             <DESCRIPTION><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
@@ -25,12 +28,12 @@
             <MANUFACTURER>{ifset $product->producer}{$product->producer->name}{/ifset}</MANUFACTURER>
             {var Eshop\DB\Category|null $category = $product->primaryCategory}
             {if ($category = ($category->exportZboziCategory ?? null)) !== null}
-                {do $categories = []}
+                {var $categories = []}
                 {while $category != null}
-                    {do $categories[] = $category}
-                    {do $category = $category->ancestor}
+                    {var $categories[] = $category}
+                    {var $category = $category->ancestor}
                 {/while}
-                {do $categories = \array_reverse($categories)}
+                {var $categories = \array_reverse($categories)}
             <CATEGORYTEXT>{foreach $categories as $category}{$category->name|noescape}{if !$iterator->isLast()} | {/if}{/foreach}</CATEGORYTEXT>
             {/if}
             <EAN>{$product->ean}</EAN>
@@ -49,18 +52,19 @@
             {foreach $attributes as $attributeValues}
                 {foreach $attributeValues as $attributeValue}
                     <PARAM>
-                        <PARAM_NAME>{$attributeValue['attributeName']}</PARAM_NAME>
-                        <VAL>{$attributeValue['label']}</VAL>
+                        <PARAM_NAME>{$allAttributes[$attributeValue['fk_parameter']]}</PARAM_NAME>
+                        <VAL>{$allAttributeValues[$attributeValue['uuid']]}</VAL>
                     </PARAM>
                 {/foreach}
             {/foreach}
-
+            <CONDITION>new</CONDITION>
+            <PRODUCTNO n:if="$product->mpn">{$product->mpn}</PRODUCTNO>
         </SHOPITEM>
     </SHOP>
-{*    {else}*}
-{*    <error>*}
-{*        {\Eshop\ExportPresenter::ERROR_MSG}*}
-{*    </error>*}
-{*{/try}*}
+    {else}
+    <error>
+        {\Eshop\ExportPresenter::ERROR_MSG}
+    </error>
+{/try}
 {/ifset}
 {/cache}

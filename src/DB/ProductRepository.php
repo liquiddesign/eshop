@@ -177,7 +177,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			$subSelect = $this->getConnection()
 				->rows(
 					['eshop_attributevalue'],
-					["GROUP_CONCAT(CONCAT_WS('$sep', eshop_attributevalue.uuid, fk_attribute,
+					["GROUP_CONCAT(CONCAT_WS('$sep', eshop_attributevalue.uuid, eshop_attributevalue.fk_attribute,
 					IFNULL(eshop_attributevalue.label$suffix, ''),
 					IFNULL(eshop_attributevalue.metaValue, ''),
 					IFNULL(eshop_attribute.name$suffix, '')))"],

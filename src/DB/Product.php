@@ -498,7 +498,7 @@ class Product extends \StORM\Entity
 				'fk_parameter' => $parameter[1],
 				'label' => $parameter[2],
 				'metaValue' => $parameter[3],
-				'attributeName' => $parameter[4],
+				'attributeName' => $parameter[4] ?? null,
 			];
 		}
 

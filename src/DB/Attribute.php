@@ -119,6 +119,12 @@ class Attribute extends \StORM\Entity
 	public bool $showRange = false;
 
 	/**
+	 * Jméno pro Zboží
+	 * @column
+	 */
+	public ?string $zboziName;
+
+	/**
 	 * Kategorie
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\Category>|\Eshop\DB\Category[]
