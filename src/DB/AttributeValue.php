@@ -73,6 +73,12 @@ class AttributeValue extends \StORM\Entity
 	public ?string $defaultWizard = null;
 
 	/**
+	 * Jméno pro Heureku
+	 * @column
+	 */
+	public ?string $heurekaLabel;
+
+	/**
 	 * Jméno pro Zboží
 	 * @column
 	 */

@@ -119,6 +119,12 @@ class Attribute extends \StORM\Entity
 	public bool $showRange = false;
 
 	/**
+	 * Jméno pro Heureku
+	 * @column
+	 */
+	public ?string $heurekaName;
+
+	/**
 	 * Jméno pro Zboží
 	 * @column
 	 */
