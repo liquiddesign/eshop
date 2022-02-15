@@ -168,7 +168,7 @@ class ProductForm extends Control
 			}, \ARRAY_FILTER_USE_KEY);
 		}
 
-		$form->addDataSelect('primaryCategory', 'Primární kategorie', $productCategories)->setPrompt('Automaticky')
+		$form->addDataSelect('primaryCategory', 'Primární kategorie', $productCategories)->setPrompt('Automaticky')->checkDefaultValue(false)
 			->setHtmlAttribute('data-info', 'Primární kategorie je důležitá pro zobrazování drobečkovky produktu, výchozímu obsahu a obrázku a dalších. 
 		V případě zvolení kategorie do které již nepatří, se zvolí automaticky jedna z přiřazených.');
 
