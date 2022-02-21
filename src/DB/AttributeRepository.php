@@ -245,18 +245,14 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	{
 		$index = $cacheId ?? $this->shopper->getPriceCacheIndex('attributes', $filters);
 		$cache = $index ? $this->cache : new Cache(new DevNullStorage());
-		/** @var \Eshop\DB\ProductRepository $productRepository */
 		$productRepository = $this->getConnection()->findRepository(Product::class);
-		$assignRepository = $this->getConnection()->findRepository(AttributeAssign::class);
 		
-		return $cache->load($index, static function (&$dependencies) use ($values, $filters, $assignRepository, $productRepository) {
-			$rows = $assignRepository->many();
+		return $cache->load($index, static function (&$dependencies) use ($values, $filters, $productRepository) {
+			$rows = $productRepository->many();
 			$rows->setFrom(['assign' => 'eshop_attributeassign'])
-				->setSmartJoin(true, Product::class)
-				->setFetchClass(\stdClass::class)
+				->join(['this' => 'eshop_product'], 'this.uuid=assign.fk_product')
 				->setSelect(['count' => 'COUNT(assign.fk_product)'])
 				->setIndex('assign.fk_value')
-				->join(['this' => 'eshop_product'], 'this.uuid=assign.fk_product')
 				->where('fk_value', $values)
 				->setGroupBy(['assign.fk_value']);
 			
@@ -264,7 +260,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			
 			$productRepository->filter($rows, $filters);
 			
-			return $rows->toArrayOf('count');
+			return $rows->fetchColumns('count');
 		});
 	}
 }

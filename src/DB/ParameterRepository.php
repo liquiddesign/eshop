@@ -56,16 +56,13 @@ class ParameterRepository extends \StORM\Repository implements IGeneralRepositor
 	 */
 	public function getCounts(Collection $collection): array
 	{
-		$collection = $this->many()
+		return $this->many()
 			->join(['parameteravailablevalue' => 'eshop_parameteravailablevalue'], 'parameteravailablevalue.fk_parameter = this.uuid')
 			->join(['parametervalue' => 'eshop_parametervalue'], 'parametervalue.fk_value = parameteravailablevalue.uuid')
 			->join(['product' => $collection], 'product.uuid=parametervalue.fk_product', $collection->getVars())
 			->setSelect(['count' => 'COUNT(product.uuid)'])
 			->setIndex('this.uuid')
-			->setGroupBy(['this.uuid']);
-		
-		$collection->setFetchClass(\stdClass::class);
-		
-		return $collection->toArrayOf('count');
+			->setGroupBy(['this.uuid'])
+			->fetchColumns('count');
 	}
 }

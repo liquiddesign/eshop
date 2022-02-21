@@ -86,8 +86,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$productsMap = $productRepository->many()
 			->setSelect(['contentLock' => 'supplierContentLock', 'sourcePK' => 'fk_supplierSource'], [], true)
 			->setBufferedQuery(false)
-			->setFetchClass(\stdClass::class)
-			->toArray();
+			->fetchArray(\stdClass::class);
 
 		$drafts = $supplierProductRepository->many()
 			->select(['realCategory' => 'category.fk_category'])
@@ -110,7 +109,7 @@ class SupplierProductRepository extends \StORM\Repository
 
 			$code = $draft->productCode ?: ($supplier->productCodePrefix ?: '') . $draft->code;
 			$uuid = ProductRepository::generateUuid($draft->ean, $draft->getProductFullCode() ?: $supplier->code . '-' . $draft->code);
-			$primary = isset($productsMap[$uuid]) && $productsMap[$uuid]->getValue('sourcePK') === $supplierId;
+			$primary = isset($productsMap[$uuid]) && $productsMap[$uuid]->sourcePK === $supplierId;
 
 			if ($draft->getValue('product') && $draft->getValue('product') !== $uuid) {
 				$uuid = $draft->getValue('product');
@@ -169,7 +168,7 @@ class SupplierProductRepository extends \StORM\Repository
 				]);
 			}
 
-			if (isset($productsMap[$uuid]) && $productsMap[$uuid]->getValue('contentLock')) {
+			if (isset($productsMap[$uuid]) && $productsMap[$uuid]->contentLock) {
 				$result['locked']++;
 			}
 
@@ -203,7 +202,7 @@ class SupplierProductRepository extends \StORM\Repository
 				!$supplier->importImages ||
 				!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName) ||
 				!isset($productsMap[$uuid]) ||
-				$productsMap[$uuid]->getValue('contentLock')
+				$productsMap[$uuid]->contentLock
 			) {
 				continue;
 			}
@@ -296,9 +295,7 @@ class SupplierProductRepository extends \StORM\Repository
 	 */
 	public function getBySupplierForImportAmount(Supplier $supplier): array
 	{
-		/** @phpstan-ignore-next-line */
 		return $this->many()
-			->setFetchClass(\stdClass::class)
 			->where('this.fk_supplier', $supplier->getPK())
 			->setSelect([
 				'supplierProductPK' => 'this.uuid',
@@ -311,6 +308,6 @@ class SupplierProductRepository extends \StORM\Repository
 				'productSupplierLock' => 'product.supplierLock',
 				'productSupplierContentMode' => 'product.supplierContentMode',
 				'productSupplierContent' => 'product.fk_supplierContent',
-			], [], true)->toArray();
+			], [], true)->fetchArray(\stdClass::class);
 	}
 }
