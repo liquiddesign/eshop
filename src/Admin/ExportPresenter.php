@@ -51,6 +51,7 @@ class ExportPresenter extends BackendPresenter
 			'googleExportPricelist',
 			'googleColorAttribute',
 			'googleHighlightsAttribute',
+			'googleHighlightsMutation',
 		];
 
 		$defaults = [];
@@ -77,22 +78,24 @@ class ExportPresenter extends BackendPresenter
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [];
 
+		$primaryMutation = Arrays::first(\array_keys($this->settingsRepo->getConnection()->getAvailableMutations()));
+
 		$this->template->exports = [
 			[
 				'name' => 'Export pro Partnery',
-				'link' => $this->link('//:Eshop:Export:partnersExport'),
+				'link' => $this->link('//:Eshop:Export:partnersExport', ['lang' => $primaryMutation]),
 			],
 			[
 				'name' => 'Export pro Heureku',
-				'link' => $this->link('//:Eshop:Export:heurekaExport'),
+				'link' => $this->link('//:Eshop:Export:heurekaExport', ['lang' => $primaryMutation]),
 			],
 			[
 				'name' => 'Export pro Zboží',
-				'link' => $this->link('//:Eshop:Export:zboziExport'),
+				'link' => $this->link('//:Eshop:Export:zboziExport', ['lang' => $primaryMutation]),
 			],
 			[
 				'name' => 'Export pro Google Nákupy',
-				'link' => $this->link('//:Eshop:Export:googleExport'),
+				'link' => $this->link('//:Eshop:Export:googleExport', ['lang' => $primaryMutation]),
 			],
 		];
 
@@ -139,6 +142,14 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 			->setHtmlAttribute('data-info', 'Pro tag se použijí hodnoty atributu přiřazené danému produktu (max 3).');
 		$form->addSelect2('googleHighlightsAttribute', 'Atribut pro tag Představení produktu [product_highlight]', $this->attributeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -')
 		->setHtmlAttribute('data-info', 'Pro tag se použijí hodnoty atributu přiřazené danému produktu. (max 10)');
+
+		$mutations = \array_keys($this->attributeRepository->getConnection()->getAvailableMutations());
+
+		$form->addSelect2(
+			'googleHighlightsMutation',
+			'Jazyk tagu Představení produktu [product_highlight]',
+			\array_combine($mutations, $mutations),
+		)->setPrompt('- Primární -');
 
 		$form->addSubmit('submit', 'Uložit');
 

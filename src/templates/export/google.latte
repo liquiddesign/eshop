@@ -7,17 +7,19 @@
 {varType bool|null $priceType}
 {varType Eshop\DB\DeliveryType[] $deliveryTypes}
 
-{*{ifset $error}*}
-{*<error>*}
-{*    {$error}*}
-{*</error>*}
-{*{else}*}
-{*{try}*}
-{*    {cache expire => '1 day', tags => ['export']}*}
+{ifset $error}
+<error>
+    {$error}
+</error>
+{else}
+{try}
+    {cache expire => '1 day', tags => ['export']}
         {var $pricelists = $presenter->getPricelistFromSetting('googleExportPricelist')}
         {var $products = $products->getProducts($pricelists)->where('this.hidden', false)}
         {var Web\DB\Setting|null $colorAttribute = $presenter->settingRepo->many()->where('name', 'googleColorAttribute')->first()}
         {var Web\DB\Setting|null $highlightsAttribute = $presenter->settingRepo->many()->where('name', 'googleHighlightsAttribute')->first()}
+        {var Web\DB\Setting|null $highlightsMutation = $presenter->settingRepo->many()->where('name', 'googleHighlightsMutation')->first()}
+        {var Eshop\DB\AttributeValue[] $highlightsAttributeValues = $highlightsAttribute && $highlightsAttribute->value ? $presenter->attributeValueRepository->many()->where('fk_attribute', $highlightsAttribute->value)->toArray() : []}
         <rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
         <channel>
             <item n:while="$product = $products->fetch()">
@@ -49,8 +51,9 @@
                 {if $highlightsAttribute && $highlightsAttribute->value && isset($attributes[$highlightsAttribute->value]) && \count($attributes[$highlightsAttribute->value]) > 0}
                     {foreach $attributes[$highlightsAttribute->value] as $attribute}
                         {breakIf $iterator->getCounter0() === 10}
-                        <g:product_highlight>
-                            {$attribute['label']}
+                        {var ?string $value = $highlightsAttributeValues[$attribute['uuid']]->getValue('label', $highlightsMutation && $highlightsMutation->value ? $highlightsMutation->value : null)}
+                        <g:product_highlight n:if="$value">
+                            {$value}
                         </g:product_highlight>
                     {/foreach}
                 {/if}
@@ -65,10 +68,10 @@
             </item>
         </channel>
         </rss>
-{*    {/cache}*}
-{*    {else}*}
-{*    <error>*}
-{*        {\Eshop\ExportPresenter::ERROR_MSG}*}
-{*    </error>*}
-{*{/try}*}
-{*{/ifset}*}
+    {/cache}
+    {else}
+    <error>
+        {\Eshop\ExportPresenter::ERROR_MSG}
+    </error>
+{/try}
+{/ifset}
