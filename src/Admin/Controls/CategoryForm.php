@@ -98,7 +98,7 @@ class CategoryForm extends Control
 				unset($categories[$category->getPK()]);
 			}
 
-			$form->addDataSelect('ancestor', 'Nadřazená kategorie', $categories)->setPrompt('Žádná');
+			$form->addSelect2('ancestor', 'Nadřazená kategorie', $categories)->setPrompt('Žádná');
 
 			/** @var \Web\DB\Setting|null $categoryTypeSetting */
 			$categoryTypeSetting = $this->settingRepository->many()->where('name', 'zboziCategoryTypeToParse')->first();
@@ -107,10 +107,10 @@ class CategoryForm extends Control
 				$categories = $this->categoryRepository->getTreeArrayForSelect(true, $categoryTypeSetting->value);
 
 				if ($category) {
-					$form->addDataSelect('exportZboziCategory', 'Exportní kategorie pro Zboží', $categories)->setPrompt('Žádná');
+					$form->addSelect2('exportZboziCategory', 'Exportní kategorie pro Zboží', $categories)->setPrompt('Žádná');
 				}
 			} else {
-				$form->addSelect('exportZboziCategory', 'Exportní kategorie pro Zboží', $categories)->setPrompt('Žádná')->setDisabled()
+				$form->addSelect2('exportZboziCategory', 'Exportní kategorie pro Zboží', $categories)->setPrompt('Žádná')->setDisabled()
 					->setHtmlAttribute('data-info', 'Nejprve zvolte v nastavení exportů typ kategorií pro Zboží.');
 			}
 
@@ -121,10 +121,10 @@ class CategoryForm extends Control
 				$categories = $this->categoryRepository->getTreeArrayForSelect(true, $categoryTypeSetting->value);
 
 				if ($category) {
-					$form->addDataSelect('exportHeurekaCategory', 'Exportní kategorie pro Heuréku', $categories)->setPrompt('Žádná');
+					$form->addSelect2('exportHeurekaCategory', 'Exportní kategorie pro Heuréku', $categories)->setPrompt('Žádná');
 				}
 			} else {
-				$form->addSelect('exportHeurekaCategory', 'Exportní kategorie pro Heuréku', $categories)->setPrompt('Žádná')->setDisabled()
+				$form->addSelect2('exportHeurekaCategory', 'Exportní kategorie pro Heuréku', $categories)->setPrompt('Žádná')->setDisabled()
 					->setHtmlAttribute('data-info', 'Nejprve zvolte v nastavení exportů typ kategorií pro Heuréku.');
 			}
 		});

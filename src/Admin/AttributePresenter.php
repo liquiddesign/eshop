@@ -40,6 +40,7 @@ class AttributePresenter extends BackendPresenter
 	protected const CONFIGURATIONS = [
 		'wizard' => false,
 		'wizardSteps' => [],
+		'forceValueFormMutationSelector' => false,
 	];
 
 	/** @inject */
@@ -374,6 +375,10 @@ class AttributePresenter extends BackendPresenter
 
 	public function createComponentValuesForm(): AdminForm
 	{
+		if (isset($this::CONFIGURATIONS['forceValueFormMutationSelector']) && $this::CONFIGURATIONS['forceValueFormMutationSelector']) {
+			$this->formFactory->setMutations(\array_keys($this->attributeRepository->getConnection()->getAvailableMutations()));
+		}
+
 		$form = $this->formFactory->create(true);
 
 		$form->addText('code', 'Kód')->setRequired();
