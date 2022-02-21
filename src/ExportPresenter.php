@@ -32,7 +32,7 @@ use Web\DB\SettingRepository;
 
 abstract class ExportPresenter extends Presenter
 {
-	public const ERROR_MSG = 'ERROR: Pricelists not set or other error.';
+	public const ERROR_MSG = 'Pricelists not set or other error.';
 
 	protected const CONFIGURATION = [
 		'customLabel_1' => false,

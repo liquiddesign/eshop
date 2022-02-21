@@ -7,15 +7,17 @@
 {varType bool|null $priceType}
 {varType Eshop\DB\DeliveryType[] $deliveryTypes}
 
-{ifset $error}
-<error>
-    {$error}
-</error>
-{else}
-{try}
-    {cache expire => '1 day', tags => ['export']}
+{*{ifset $error}*}
+{*<error>*}
+{*    {$error}*}
+{*</error>*}
+{*{else}*}
+{*{try}*}
+{*    {cache expire => '1 day', tags => ['export']}*}
         {var $pricelists = $presenter->getPricelistFromSetting('googleExportPricelist')}
         {var $products = $products->getProducts($pricelists)->where('this.hidden', false)}
+        {var Web\DB\Setting|null $colorAttribute = $presenter->settingRepo->many()->where('name', 'googleColorAttribute')->first()}
+        {var Web\DB\Setting|null $highlightsAttribute = $presenter->settingRepo->many()->where('name', 'googleHighlightsAttribute')->first()}
         <rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
         <channel>
             <item n:while="$product = $products->fetch()">
@@ -35,7 +37,7 @@
                 <g:gtin n:if="$product->ean">{$product->ean}</g:gtin>
                 <g:mpn n:if="$product->mpn">{$product->mpn}</g:mpn>
                 <g:adult>no</g:adult>
-                <g:color n:if="isset($attributes['colors']) && \count($attributes['colors']) > 0">{\Nette\Utils\Arrays::first($attributes['colors'])['label']}</g:color>
+                <g:color n:if="$colorAttribute && $colorAttribute->value && isset($attributes[$colorAttribute->value]) && \count($attributes[$colorAttribute->value]) > 0">{foreach $attributes[$colorAttribute->value] as $attribute}{breakIf $iterator->getCounter0() === 3}{$attribute['label']}{sep}/{/sep}{/foreach}</g:color>
                 {foreach $deliveryTypes as $deliveryType}
                     <g:shipping>
                         <g:country>CZ</g:country>
@@ -43,6 +45,15 @@
                         <g:price>{$deliveryType->getValue($priceType ? 'priceVat' : 'price')} CZK</g:price>
                     </g:shipping>
                 {/foreach}
+
+                {if $highlightsAttribute && $highlightsAttribute->value && isset($attributes[$highlightsAttribute->value]) && \count($attributes[$highlightsAttribute->value]) > 0}
+                    {foreach $attributes[$highlightsAttribute->value] as $attribute}
+                        {breakIf $iterator->getCounter0() === 10}
+                        <g:product_highlight>
+                            {$attribute['label']}
+                        </g:product_highlight>
+                    {/foreach}
+                {/if}
 
                 {if isset($configuration['customLabel_1']) && $configuration['customLabel_1']}
                     <g:custom_label_1>{$pricelists[$product->pricelist]->customLabel}</g:custom_label_1>
@@ -54,10 +65,10 @@
             </item>
         </channel>
         </rss>
-    {/cache}
-    {else}
-    <error>
-        {\Eshop\ExportPresenter::ERROR_MSG}
-    </error>
-{/try}
-{/ifset}
+{*    {/cache}*}
+{*    {else}*}
+{*    <error>*}
+{*        {\Eshop\ExportPresenter::ERROR_MSG}*}
+{*    </error>*}
+{*{/try}*}
+{*{/ifset}*}

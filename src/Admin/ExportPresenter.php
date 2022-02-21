@@ -5,6 +5,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Eshop\DB\AttributeRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\RelatedTypeRepository;
@@ -28,6 +29,9 @@ class ExportPresenter extends BackendPresenter
 	public RelatedTypeRepository $relatedTypeRepository;
 
 	/** @inject */
+	public AttributeRepository $attributeRepository;
+
+	/** @inject */
 	public Storage $storage;
 
 	public function actionDefault(): void
@@ -40,11 +44,13 @@ class ExportPresenter extends BackendPresenter
 		$keys = [
 			'partnersExportPricelist',
 			'heurekaExportPricelist',
-			'zboziExportPricelist',
-			'googleExportPricelist',
-			'zboziCategoryTypeToParse',
 			'heurekaCategoryTypeToParse',
+			'zboziExportPricelist',
+			'zboziCategoryTypeToParse',
 			'zboziGroupRelation',
+			'googleExportPricelist',
+			'googleColorAttribute',
+			'googleHighlightsAttribute',
 		];
 
 		$defaults = [];
@@ -100,7 +106,7 @@ class ExportPresenter extends BackendPresenter
 					'link' => $this->link('//:Eshop:Export:supportbox'),
 					'detail' => 'Je nutné specifikovat e-mail zákazníka a API klíč SupportBoxu shodný se zadaným API klíčem v adminu.<br><br>
 Příklad HTTP požadavku:<br>
-GET /rajtiskaren/json/supportbox?email=test@lqd.cz HTTP/1.1<br>
+GET https://rajtiskaren.cz/json/supportbox?email=test@lqd.cz HTTP/1.1<br>
 Host: localhost:443<br>
 Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 ',
@@ -120,12 +126,20 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 		$form->addDataMultiSelect('heurekaExportPricelist', 'Heureka', $this->priceListRepo->getArrayForSelect(false));
 		$form->addDataMultiSelect('zboziExportPricelist', 'Zboží', $this->priceListRepo->getArrayForSelect(false));
 		$form->addDataMultiSelect('googleExportPricelist', 'Google Nákupy', $this->priceListRepo->getArrayForSelect(false));
+
+		$form->addGroup('Heuréka');
+		$form->addDataSelect('heurekaCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
+
 		$form->addGroup('Zboží');
 		$form->addDataSelect('zboziCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
 		$form->addDataSelect('zboziGroupRelation', 'Typ vazby pro ITEMGROUP_ID', $this->relatedTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
 
-		$form->addGroup('Heuréka');
-		$form->addDataSelect('heurekaCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
+		$form->addGroup('Google');
+		$form->addSelect2('googleColorAttribute', 'Atribut pro tag Barva [color]', $this->attributeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -')
+			->setHtmlAttribute('data-info', 'Pro tag se použijí hodnoty atributu přiřazené danému produktu (max 3).');
+		$form->addSelect2('googleHighlightsAttribute', 'Atribut pro tag Představení produktu [product_highlight]', $this->attributeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -')
+		->setHtmlAttribute('data-info', 'Pro tag se použijí hodnoty atributu přiřazené danému produktu. (max 10)');
+
 		$form->addSubmit('submit', 'Uložit');
 
 		$form->onSuccess[] = function (AdminForm $form): void {
