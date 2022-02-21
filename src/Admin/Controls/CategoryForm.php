@@ -100,11 +100,11 @@ class CategoryForm extends Control
 
 			$form->addDataSelect('ancestor', 'Nadřazená kategorie', $categories)->setPrompt('Žádná');
 
-			/** @var \Web\DB\Setting|null $zboziTypeSetting */
-			$zboziTypeSetting = $this->settingRepository->many()->where('name', 'zboziCategoryTypeToParse')->first();
+			/** @var \Web\DB\Setting|null $categoryTypeSetting */
+			$categoryTypeSetting = $this->settingRepository->many()->where('name', 'zboziCategoryTypeToParse')->first();
 
-			if ($zboziTypeSetting) {
-				$categories = $this->categoryRepository->getTreeArrayForSelect(true, $zboziTypeSetting->value);
+			if ($categoryTypeSetting && $categoryTypeSetting->value) {
+				$categories = $this->categoryRepository->getTreeArrayForSelect(true, $categoryTypeSetting->value);
 
 				if ($category) {
 					$form->addDataSelect('exportZboziCategory', 'Exportní kategorie pro Zboží', $categories)->setPrompt('Žádná');
@@ -113,10 +113,23 @@ class CategoryForm extends Control
 				$form->addSelect('exportZboziCategory', 'Exportní kategorie pro Zboží', $categories)->setPrompt('Žádná')->setDisabled()
 					->setHtmlAttribute('data-info', 'Nejprve zvolte v nastavení exportů typ kategorií pro Zboží.');
 			}
+
+			/** @var \Web\DB\Setting|null $categoryTypeSetting */
+			$categoryTypeSetting = $this->settingRepository->many()->where('name', 'heurekaCategoryTypeToParse')->first();
+
+			if ($categoryTypeSetting && $categoryTypeSetting->value) {
+				$categories = $this->categoryRepository->getTreeArrayForSelect(true, $categoryTypeSetting->value);
+
+				if ($category) {
+					$form->addDataSelect('exportHeurekaCategory', 'Exportní kategorie pro Heuréku', $categories)->setPrompt('Žádná');
+				}
+			} else {
+				$form->addSelect('exportHeurekaCategory', 'Exportní kategorie pro Heuréku', $categories)->setPrompt('Žádná')->setDisabled()
+					->setHtmlAttribute('data-info', 'Nejprve zvolte v nastavení exportů typ kategorií pro Heuréku.');
+			}
 		});
 
 		$form->addText('exportGoogleCategory', 'Exportní název pro Google');
-		$form->addText('exportHeurekaCategory', 'Export název pro Heuréku');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('showInMenu', 'Zobrazit v menu');

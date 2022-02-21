@@ -32,7 +32,7 @@ use Web\DB\SettingRepository;
 
 abstract class ExportPresenter extends Presenter
 {
-	public const ERROR_MSG = 'ERROR: Missing pricelists not set or other error.';
+	public const ERROR_MSG = 'ERROR: Pricelists not set or other error.';
 
 	protected const CONFIGURATION = [
 		'customLabel_1' => false,
@@ -125,6 +125,22 @@ abstract class ExportPresenter extends Presenter
 
 	public function renderZboziExport(): void
 	{
+		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
+		$this->template->allAttributes = $this->attributeRepository->many()->select(['zbozi' => "IFNULL(zboziName,name$mutationSuffix)"])->toArrayOf('zbozi');
+		$this->template->allAttributeValues = $this->attributeValueRepository->many()->select(['zbozi' => "IFNULL(zboziLabel,label$mutationSuffix)"])->toArrayOf('zbozi');
+
+		/** @var \Web\DB\Setting|null $groupIdRelationType */
+		$groupIdRelationType = $this->settingRepo->many()->where('name', 'zboziGroupRelation')->first();
+
+		$this->template->groupIdMasterProducts = $groupIdRelationType ?
+			$this->productRepo->many()->join(['rel' => 'eshop_related'], 'rel.fk_master = this.uuid')
+				->setIndex('rel.fk_slave')
+				->where('rel.fk_type', $groupIdRelationType->value)
+				->toArray() : [];
+
+		$pricelists = $this->getPricelistFromSetting('zboziExportPricelist');
+		$this->template->products = $this->productRepo->getProducts($pricelists)->where('this.hidden', false);
+
 		try {
 			$this->export('zbozi');
 		} catch (\Exception $e) {
@@ -241,7 +257,7 @@ abstract class ExportPresenter extends Presenter
 			$customer = $perm->customer;
 		}
 
-		/** @var \Eshop\DB\Order[] $orders */
+		/** @var array<\Eshop\DB\Order> $orders */
 		$orders = $this->orderRepo->getOrdersByUser($customer);
 
 		$data = [
@@ -284,7 +300,7 @@ abstract class ExportPresenter extends Presenter
 
 	/**
 	 * @param string $settingName
-	 * @return \Eshop\DB\Pricelist[]
+	 * @return array<\Eshop\DB\Pricelist>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function getPricelistFromSetting(string $settingName): array

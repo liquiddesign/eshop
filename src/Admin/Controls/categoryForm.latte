@@ -115,27 +115,17 @@
                         </td>
                     </tr>
 
-
-
-                    <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label exportGoogleCategory/}</th>
-
-                        <td class="align-middle">
-                            {input exportGoogleCategory class => 'form-control form-control-sm col-label'}
-                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError exportGoogleCategory}</span>
-                        </td>
-                    </tr>
-
-                    <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label exportHeurekaCategory/}</th>
-
-                        <td class="align-middle">
-                            {input exportHeurekaCategory class => 'form-control form-control-sm col-label'}
-                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError exportHeurekaCategory}</span>
-                        </td>
-                    </tr>
-
+                    {$renderer->renderPair($form['exportHeurekaCategory'])|noescape}
                     {$renderer->renderPair($form['exportZboziCategory'])|noescape}
+
+                    <tr class="m-0 mt-1 has-danger">
+                            <th class="col-label col-form-label col">{label exportGoogleCategory/}</th>
+
+                            <td class="align-middle">
+                                {input exportGoogleCategory class => 'form-control form-control-sm col-label'}
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError exportGoogleCategory}</span>
+                            </td>
+                    </tr>
 
                     <tr class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label priority 'class' => 'required'}</th>

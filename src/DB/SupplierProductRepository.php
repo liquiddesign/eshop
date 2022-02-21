@@ -7,7 +7,6 @@ namespace Eshop\DB;
 use Nette\DI\Container;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Strings;
-use PDOException;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\ICollection;
@@ -111,7 +110,7 @@ class SupplierProductRepository extends \StORM\Repository
 
 			$code = $draft->productCode ?: ($supplier->productCodePrefix ?: '') . $draft->code;
 			$uuid = ProductRepository::generateUuid($draft->ean, $draft->getProductFullCode() ?: $supplier->code . '-' . $draft->code);
-			$primary = isset($productsMap[$uuid]) && $productsMap[$uuid]->sourcePK === $supplierId;
+			$primary = isset($productsMap[$uuid]) && $productsMap[$uuid]->getValue('sourcePK') === $supplierId;
 
 			if ($draft->getValue('product') && $draft->getValue('product') !== $uuid) {
 				$uuid = $draft->getValue('product');
@@ -170,7 +169,7 @@ class SupplierProductRepository extends \StORM\Repository
 				]);
 			}
 
-			if (isset($productsMap[$uuid]) && $productsMap[$uuid]->contentLock) {
+			if (isset($productsMap[$uuid]) && $productsMap[$uuid]->getValue('contentLock')) {
 				$result['locked']++;
 			}
 
@@ -187,7 +186,7 @@ class SupplierProductRepository extends \StORM\Repository
 			if ($draft->getValue('product') !== $uuid && \is_string($uuid)) {
 				try {
 					$draft->update(['product' => $uuid]);
-				} catch (PDOException $x) {
+				} catch (\Throwable $x) {
 					unset($x);
 				}
 			}
@@ -204,7 +203,7 @@ class SupplierProductRepository extends \StORM\Repository
 				!$supplier->importImages ||
 				!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName) ||
 				!isset($productsMap[$uuid]) ||
-				$productsMap[$uuid]->contentLock
+				$productsMap[$uuid]->getValue('contentLock')
 			) {
 				continue;
 			}

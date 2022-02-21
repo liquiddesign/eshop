@@ -78,10 +78,11 @@ class Category extends \StORM\Entity
 	public ?string $exportGoogleCategory;
 
 	/**
-	 * Export název pro Heuréku
-	 * @column
+	 * Kategorie pro Heuréku
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
-	public ?string $exportHeurekaCategory;
+	public ?Category $exportHeurekaCategory;
 
 	/**
 	 * Kategorie zboží

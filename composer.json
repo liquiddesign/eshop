@@ -16,7 +16,7 @@
 		"nette/http":"^3.0",
 		"nette/utils":"^3.0",
 		"league/csv": "^9.0",
-		"liquiddesign/storm": "~1.0",
+		"liquiddesign/storm": "v1.0.23",
 		"liquiddesign/forms": "@dev",
 		"liquiddesign/security": "~1.0",
 		"liquiddesign/messages": "@dev",
@@ -49,7 +49,7 @@
 		"composer/composer": "*",
 		"liquiddesign/codestyle": "~1.0",
 		"liquiddesign/migrator": "~1.0",
-		"phpstan/phpstan": "*"
+		"phpstan/phpstan-nette": "~1.0"
 	},
 	"scripts": {
 		"check-code": "phpcbf --standard=ruleset.xml --ignore=assets src && phpcs --standard=ruleset.xml --ignore=assets src && phpstan analyse --memory-limit 1G -c phpstan.neon",

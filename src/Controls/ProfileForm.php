@@ -83,8 +83,13 @@ class ProfileForm extends \Nette\Application\UI\Form
 		$customer = $this->shopper->getCustomer();
 		$email = $values['email'];
 
-		$customer->syncRelated('billAddress', Nette\Utils\Arrays::pick($values, 'billAddress'));
-		$customer->syncRelated('deliveryAddress', Nette\Utils\Arrays::pick($values, 'deliveryAddress'));
+		$billAddress = Nette\Utils\Arrays::pick($values, 'billAddress');
+		$customer->syncRelated('billAddress', $billAddress);
+
+		/** @var array<string, string> $deliveryAddress */
+		$deliveryAddress = Nette\Utils\Arrays::pick($values, 'deliveryAddress');
+		$customer->syncRelated('deliveryAddress', $deliveryAddress);
+
 		$customer->update($values);
 
 		$emailChanged = $customer->email !== $email;

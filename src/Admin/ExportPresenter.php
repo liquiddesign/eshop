@@ -7,6 +7,7 @@ use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\PricelistRepository;
+use Eshop\DB\RelatedTypeRepository;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Utils\Arrays;
@@ -24,6 +25,9 @@ class ExportPresenter extends BackendPresenter
 	public CategoryTypeRepository $categoryTypeRepository;
 
 	/** @inject */
+	public RelatedTypeRepository $relatedTypeRepository;
+
+	/** @inject */
 	public Storage $storage;
 
 	public function actionDefault(): void
@@ -39,6 +43,8 @@ class ExportPresenter extends BackendPresenter
 			'zboziExportPricelist',
 			'googleExportPricelist',
 			'zboziCategoryTypeToParse',
+			'heurekaCategoryTypeToParse',
+			'zboziGroupRelation',
 		];
 
 		$defaults = [];
@@ -115,8 +121,11 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 		$form->addDataMultiSelect('zboziExportPricelist', 'Zboží', $this->priceListRepo->getArrayForSelect(false));
 		$form->addDataMultiSelect('googleExportPricelist', 'Google Nákupy', $this->priceListRepo->getArrayForSelect(false));
 		$form->addGroup('Zboží');
-		$form->addDataSelect('zboziCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect());
+		$form->addDataSelect('zboziCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
+		$form->addDataSelect('zboziGroupRelation', 'Typ vazby pro ITEMGROUP_ID', $this->relatedTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
 
+		$form->addGroup('Heuréka');
+		$form->addDataSelect('heurekaCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
 		$form->addSubmit('submit', 'Uložit');
 
 		$form->onSuccess[] = function (AdminForm $form): void {

@@ -10,11 +10,6 @@
 </error>
 {else}
 {try}
-    {var $mutationSuffix = $presenter->attributeRepository->getConnection()->getMutationSuffix()}
-    {var $allAttributes = $presenter->attributeRepository->many()->select(["zbozi" => "IFNULL(zboziName,name$mutationSuffix)"])->toArrayOf('zbozi')}
-    {var $allAttributeValues = $presenter->attributeValueRepository->many()->select(["zbozi" => "IFNULL(zboziLabel,label$mutationSuffix)"])->toArrayOf('zbozi')}
-    {var $pricelists = $presenter->getPricelistFromSetting('zboziExportPricelist')}
-    {var $products = $presenter->productRepo->getProducts($pricelists)->where('this.hidden', false)}
     <SHOP xmlns="http://www.zbozi.cz/ns/offer/1.0">
         <SHOPITEM n:foreach="$products as $product">
             {var $attributes = $product->getPreviewParameters()}
@@ -59,6 +54,7 @@
             {/foreach}
             <CONDITION>new</CONDITION>
             <PRODUCTNO n:if="$product->mpn">{$product->mpn}</PRODUCTNO>
+            <ITEMGROUP_ID n:ifset="$groupIdMasterProducts[$product->getPK()]">{$groupIdMasterProducts[$product->getPK()]->getFullCode()}</ITEMGROUP_ID>
         </SHOPITEM>
     </SHOP>
     {else}
