@@ -252,7 +252,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		return $cache->load($index, static function (&$dependencies) use ($values, $filters, $assignRepository, $productRepository) {
 			$rows = $assignRepository->many();
 			$rows->setFrom(['assign' => 'eshop_attributeassign'])
-				->setSmartJoin(true, Product::class)
+				->setSmartJoin(true)
 				->setFetchClass(\stdClass::class)
 				->setSelect(['count' => 'COUNT(assign.fk_product)'])
 				->setIndex('assign.fk_value')
