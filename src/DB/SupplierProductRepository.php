@@ -296,6 +296,7 @@ class SupplierProductRepository extends \StORM\Repository
 	 */
 	public function getBySupplierForImportAmount(Supplier $supplier): array
 	{
+		/** @phpstan-ignore-next-line */
 		return $this->many()
 			->setFetchClass(\stdClass::class)
 			->where('this.fk_supplier', $supplier->getPK())

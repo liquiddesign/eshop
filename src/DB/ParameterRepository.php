@@ -50,7 +50,7 @@ class ParameterRepository extends \StORM\Repository implements IGeneralRepositor
 	}
 
 	/**
-	 * @param \StORM\Collection $collection
+	 * @param \StORM\Collection<\Eshop\DB\Product> $collection
 	 * @return string[]
 	 * @deprecated
 	 */

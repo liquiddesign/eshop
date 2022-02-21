@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
-use Eshop\DB\CartItem;
 use Eshop\DB\CartItemRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\Shopper;
@@ -58,7 +57,7 @@ class CartItemList extends Datalist
 
 	public function handleDeleteItem(string $itemId): void
 	{
-		$this->checkoutManager->deleteItem(new CartItem(['uuid' => $itemId], $this->cartItemsRepository));
+		$this->checkoutManager->deleteItem($this->cartItemsRepository->createEntityInstance(['uuid' => $itemId]));
 
 		$this->onItemDelete();
 	}
