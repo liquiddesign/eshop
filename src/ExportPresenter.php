@@ -15,6 +15,7 @@ use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PhotoRepository;
 use Eshop\DB\PricelistRepository;
+use Eshop\DB\PriceRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VatRateRepository;
@@ -53,6 +54,9 @@ abstract class ExportPresenter extends Presenter
 
 	/** @inject */
 	public CategoryRepository $categoryRepository;
+
+	/** @inject */
+	public PriceRepository $priceRepository;
 
 	/** @inject */
 	public MerchantRepository $merchantRepo;
@@ -150,6 +154,13 @@ abstract class ExportPresenter extends Presenter
 
 	public function renderGoogleExport(): void
 	{
+		/** @var \Web\DB\Setting|null $discountPricelist */
+		$discountPricelist = $this->settingRepo->many()->where('name', 'googleSalePricelist')->first();
+
+		$this->template->discountPrices = $discountPricelist && $discountPricelist->value ?
+			$this->priceRepository->many()->where('fk_pricelist', $discountPricelist->value)->setIndex('this.fk_product')->toArray() :
+			[];
+
 		try {
 			$this->export('google');
 		} catch (\Exception $e) {

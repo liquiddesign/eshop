@@ -52,6 +52,7 @@ class ExportPresenter extends BackendPresenter
 			'googleColorAttribute',
 			'googleHighlightsAttribute',
 			'googleHighlightsMutation',
+			'googleSalePricelist',
 		];
 
 		$defaults = [];
@@ -141,7 +142,9 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 		$form->addSelect2('googleColorAttribute', 'Atribut pro tag Barva [color]', $this->attributeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -')
 			->setHtmlAttribute('data-info', 'Pro tag se použijí hodnoty atributu přiřazené danému produktu (max 3).');
 		$form->addSelect2('googleHighlightsAttribute', 'Atribut pro tag Představení produktu [product_highlight]', $this->attributeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -')
-		->setHtmlAttribute('data-info', 'Pro tag se použijí hodnoty atributu přiřazené danému produktu. (max 10)');
+		->setHtmlAttribute('data-info', 'Pro tag se použijí hodnoty atributu přiřazené danému produktu (max 10).');
+		$form->addSelect2('googleSalePricelist', 'Ceník pro tag Cena v akci [sale_price]', $this->priceListRepo->getArrayForSelect())->setPrompt('- Nepřiřazeno -')
+			->setHtmlAttribute('data-info', 'Zvolený ceník se použije pro zobrazení ceny v akci, pokud je nižší než cena dle zvolených ceníků pro export.');
 
 		$mutations = \array_keys($this->attributeRepository->getConnection()->getAvailableMutations());
 

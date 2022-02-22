@@ -1,11 +1,12 @@
 {contentType application/xml}
 <?xml version="1.0" encoding="utf-8"?>
 {varType Eshop\ExportPresenter $presenter}
-{var Eshop\DB\ProductRepository $products = $presenter->productRepo}
 {varType Eshop\DB\Product $product}
 {varType string|null $error}
+{varType string|null $productImageUrl}
 {varType bool|null $priceType}
 {varType Eshop\DB\DeliveryType[] $deliveryTypes}
+{varType Eshop\DB\Price[] $discountPrices}
 
 {ifset $error}
 <error>
@@ -15,7 +16,7 @@
 {try}
     {cache expire => '1 day', tags => ['export']}
         {var $pricelists = $presenter->getPricelistFromSetting('googleExportPricelist')}
-        {var $products = $products->getProducts($pricelists)->where('this.hidden', false)}
+        {var $products = $presenter->productRepo->getProducts($pricelists)->where('this.hidden', false)}
         {var Web\DB\Setting|null $colorAttribute = $presenter->settingRepo->many()->where('name', 'googleColorAttribute')->first()}
         {var Web\DB\Setting|null $highlightsAttribute = $presenter->settingRepo->many()->where('name', 'googleHighlightsAttribute')->first()}
         {var Web\DB\Setting|null $highlightsMutation = $presenter->settingRepo->many()->where('name', 'googleHighlightsMutation')->first()}
@@ -23,8 +24,8 @@
         <rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
         <channel>
             <item n:while="$product = $products->fetch()">
-                {var $price = $priceType ? $product->getPriceVat() : ($priceType === false ? $product->getPrice() : null)}
-                {var $priceBefore = $priceType ? $product->getPriceVatBefore() : ($priceType === false ? $product->getPriceBefore() : null)}
+                {var $mainPrice = $priceType ? $product->getPriceVat() : ($priceType === false ? $product->getPrice() : null)}
+                {var $discountPrice = isset($discountPrices[$product->getPK()]) ? ($priceType ? $discountPrices[$product->getPK()]->priceVat : ($priceType === false ? $discountPrices[$product->getPK()]->price : null)) : null}
                 {var $attributes = $product->getPreviewParameters()}
                 <g:id>{$product->getFullCode()}</g:id>
                 <g:title><![CDATA[{$product->name}]]></g:title>
@@ -33,8 +34,8 @@
                 {ifset $product->imageFileName}<g:image_link>{$productImageUrl . $product->imageFileName}</g:image_link>{/ifset}
                 <g:condition>new</g:condition>
                 <g:availability>{if $product->inStock()}in stock{else}out of stock{/if}</g:availability>
-                <g:price n:if="$price">{$priceBefore ?: $price} {$pricelists[$product->pricelist]->currency->code}</g:price>
-                <g:sale_price n:if="$priceBefore">{$price} {$pricelists[$product->pricelist]->currency->code}</g:sale_price>
+                <g:price n:if="$mainPrice">{$mainPrice} {$pricelists[$product->pricelist]->currency->code}</g:price>
+                <g:sale_price n:if="$discountPrice && $mainPrice && $discountPrice < $mainPrice">{$discountPrice} {$pricelists[$product->pricelist]->currency->code}</g:sale_price>
                 <g:brand>{$product->producer ? $product->producer->name : null}</g:brand>
                 <g:gtin n:if="$product->ean">{$product->ean}</g:gtin>
                 <g:mpn n:if="$product->mpn">{$product->mpn}</g:mpn>
@@ -63,7 +64,8 @@
                 {/if}
 
                 {if isset($configuration['customLabel_2']) && $configuration['customLabel_2']}
-                    <g:custom_label_2>{if $price}{if $price < 500}0-499{elseif $price < 1000}500-999{elseif $price < 2000}1000-1999{elseif $price < 5000}2000-4999{elseif $price < 10000}5000-9999{else}10000+{/if}{/if}</g:custom_label_2>
+                    {var $finalPrice = $mainPrice ? ($discountPrice && $discountPrice < $mainPrice ? $discountPrice : $mainPrice) : null}
+                    <g:custom_label_2>{if $finalPrice}{if $finalPrice < 500}0-499{elseif $finalPrice < 1000}500-999{elseif $finalPrice < 2000}1000-1999{elseif $finalPrice < 5000}2000-4999{elseif $finalPrice < 10000}5000-9999{else}10000+{/if}{/if}</g:custom_label_2>
                 {/if}
             </item>
         </channel>
