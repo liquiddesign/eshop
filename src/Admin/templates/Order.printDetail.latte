@@ -187,8 +187,10 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                     <div class="col-6">
                         <p class="lead">Doprava:</p>
                         <div class="d-flex align-items-center">
-                            <img n:if="$purchase->deliveryType->imageFileName" src="{$userUrl|noescape}/deliverytype_images/thumb/{$purchase->deliveryType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
-                            {$purchase->deliveryType ? $purchase->deliveryType->name : null}&nbsp;-&nbsp;{$delivery->shippedTs ? 'Expedováno' : 'Čeká na expedici'}<br>
+                            <img n:if="$purchase->deliveryType && $purchase->deliveryType->imageFileName" src="{$userUrl|noescape}/deliverytype_images/thumb/{$purchase->deliveryType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
+                            {if $purchase->deliveryType}
+                             {$purchase->deliveryType->name}&nbsp;-&nbsp;{$delivery->shippedTs ? 'Expedováno' : 'Čeká na expedici'}<br>
+                            {/if}
                             {$purchase->pickupPointId || $purchase->zasilkovnaId ? 'Výdejní místo: ' : null}
                             {if $purchase->pickupPointId}
                                 {if $purchase->pickupPoint}
