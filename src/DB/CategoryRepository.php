@@ -21,6 +21,7 @@ use StORM\ArrayWrapper;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
+use Tracy\Debugger;
 use Web\DB\PageRepository;
 
 /**
@@ -229,6 +230,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 	/**
 	 * Updates all paths of children of category.
+	 * @deprecated
 	 * @param \Eshop\DB\Category $category
 	 * @param string|null $typeId
 	 * @throws \StORM\Exception\NotFoundException
@@ -796,6 +798,100 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		}
 	}
 
+	public function recalculateCategoryTree(string $categoryType): void
+	{
+		$tree = [];
+		$insertedCount = 0;
+
+		foreach ($this->many()->where('fk_type', $categoryType) as $category) {
+			$branch = $this->getBranch($category);
+
+			foreach ($branch as $branchCategory) {
+				$this->insertCategoryToTree($tree, $branchCategory, $insertedCount);
+			}
+		}
+
+		$updates = [];
+
+		$this->recalculateTree($tree, null, $updates);
+
+		foreach ($updates as $updatePK => $updatePath) {
+			$this->many()->where('this.uuid', $updatePK)->update(['path' => $updatePath]);
+		}
+	}
+
+	private function recalculateTree(array &$tree, ?string $ancestorPath = null, array &$updates = []): void
+	{
+		foreach ($tree as $branch) {
+			if (!$ancestorPath || (Strings::startsWith($branch['category']['path'], $ancestorPath) && Strings::length($branch['category']['path']) === Strings::length($ancestorPath) + 4)) {
+				$this->recalculateTree($tree[$branch['category']['uuid']]['children'], $branch['category']['path'], $updates);
+
+				continue;
+			}
+
+			do {
+				$newPath = $ancestorPath . Random::generate(4);
+			} while (\count(\array_filter($branch['children'], function ($element) use ($newPath) {
+				return $element['category']['path'] === $newPath;
+			})) !== 0);
+
+			$updates[$branch['category']['uuid']] = $newPath;
+			$tree[$branch['category']['uuid']]['category']['path'] = $newPath;
+
+
+			$this->recalculateTree($tree[$branch['category']['uuid']]['children'], $newPath, $updates);
+		}
+	}
+
+	private function insertCategoryToTree(array &$tree, Category $category, int &$insertedCount): bool
+	{
+		if (!$category->ancestor) {
+			if (isset($tree[$category->getPK()])) {
+				return true;
+			}
+
+			$tree[$category->getPK()] = [
+				'category' => [
+					'uuid' => $category->getPK(),
+					'path' => $category->path,
+				],
+				'children' => [],
+			];
+
+			$insertedCount++;
+
+			return true;
+		}
+
+		if (isset($tree[$category->getPK()])) {
+			return true;
+		}
+
+		if (isset($tree[$category->getValue('ancestor')])) {
+			if (!isset($tree[$category->getValue('ancestor')]['children'][$category->getPK()])) {
+				$tree[$category->getValue('ancestor')]['children'][$category->getPK()] = [
+					'category' => [
+						'uuid' => $category->getPK(),
+						'path' => $category->path,
+					],
+					'children' => [],
+				];
+
+				$insertedCount++;
+			}
+
+			return true;
+		}
+
+		foreach ($tree as $subTree) {
+			if ($this->insertCategoryToTree($tree[$subTree['category']['uuid']]['children'], $category, $insertedCount)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	private function iterateAndImportHeurekaTreeXml(\SimpleXMLElement $tree, CategoryType $categoryType, ?Category $ancestor = null): void
 	{
 		foreach ($tree as $categoryXml) {
@@ -901,6 +997,11 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		return null;
 	}
 
+	/**
+	 * @param \Eshop\DB\Category $category
+	 * @throws \StORM\Exception\NotFoundException
+	 * @deprecated
+	 */
 	private function doUpdateCategoryChildrenPath(Category $category): void
 	{
 		foreach ($category->children as $child) {

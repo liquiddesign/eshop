@@ -188,7 +188,7 @@ class CategoryForm extends Control
 			/** @var \Eshop\DB\Category $category */
 			$category = $this->categoryRepository->syncOne($values, null, true);
 
-			$this->categoryRepository->updateCategoryChildrenPath($category);
+			$this->categoryRepository->recalculateCategoryTree($presenter->tab);
 
 			$form->syncPages(function () use ($category, $values): void {
 				$values['page']['params'] = Helpers::serializeParameters(['category' => $category->getPK()]);

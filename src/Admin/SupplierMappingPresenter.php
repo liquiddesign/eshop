@@ -640,7 +640,7 @@ class SupplierMappingPresenter extends BackendPresenter
 				}
 
 				if (isset($newFirstCategory)) {
-					$this->categoryRepository->updateCategoryChildrenPath($newFirstCategory);
+					$this->categoryRepository->recalculateCategoryTree($newFirstCategory->getValue('type'));
 				}
 
 				$this->categoryRepository->clearCategoriesCache();
