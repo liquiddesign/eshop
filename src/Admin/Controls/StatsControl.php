@@ -64,10 +64,7 @@ class StatsControl extends Control
 		$this->categoryRepository = $categoryRepository;
 		$this->discountCouponRepository = $discountCouponRepository;
 		$this->signedInCustomer = $signedInCustomer;
-	}
 
-	public function createComponentStatsFilterForm(): Form
-	{
 		$form = $this->formFactory->create();
 
 		$form->addText('from', 'Od')
@@ -82,18 +79,18 @@ class StatsControl extends Control
 			->setHtmlType('date')
 			->setRequired()
 			->setDefaultValue((new Nette\Utils\DateTime())->format('Y-m-d'));
-		$form->addDataSelect('customerType', 'Typ zákazníka', ['new' => 'Nový', 'current' => 'Stávající'])->setPrompt('- Všichni zákazníci -');
-		$form->addDataSelect(
+		$form->addSelect2('customerType', 'Typ zákazníka', ['new' => 'Nový', 'current' => 'Stávající'])->setPrompt('- Všichni zákazníci -');
+		$form->addSelect2(
 			'customer',
 			'Zákazník',
 			$this->customerRepository->getCollection(true)->select(['emailName' => 'CONCAT(fullName, " : ", email)'])->toArrayOf('emailName'),
 		)->setPrompt('- Zákazník -');
-		$form->addDataSelect('merchant', 'Obchodník', $this->merchantRepository->getArrayForSelect())->setPrompt('- Obchodník -');
-		$form->addDataSelect('category', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('- Kategorie -');
+		$form->addSelect2('merchant', 'Obchodník', $this->merchantRepository->getArrayForSelect())->setPrompt('- Obchodník -');
+		$form->addSelect2('category', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('- Kategorie -');
 
 		$currencies = $this->currencyRepository->getArrayForSelect();
 
-		$input = $form->addDataSelect('currency', 'Měna', $currencies)->setRequired();
+		$input = $form->addSelect2('currency', 'Měna', $currencies)->setRequired();
 
 		if (\count($currencies) > 0) {
 			$input->setDefaultValue(Nette\Utils\Arrays::first($currencies));
@@ -121,13 +118,13 @@ class StatsControl extends Control
 			$this->redirect('this');
 		};
 
-		return $form;
+		$this->addComponent($form, 'form');
 	}
 
 	public function render(): void
 	{
 		/** @var \Nette\Application\UI\Form $form */
-		$form = $this->getComponent('statsFilterForm');
+		$form = $this->getComponent('form');
 
 		$statsFrom = isset($this->state['from']) ? new Nette\Utils\DateTime($this->state['from']) : ((new Nette\Utils\DateTime())->modify('- 1 year'));
 		$statsTo = isset($this->state['to']) ? new Nette\Utils\DateTime($this->state['to']) : (new Nette\Utils\DateTime());
@@ -184,6 +181,8 @@ class StatsControl extends Control
 				->join(['category' => 'eshop_category'], 'category.uuid = productXcategory.fk_category')
 				->where('category.path LIKE :s', ['s' => "$category->path%"]);
 		}
+
+		$orders = $orders->toArray();
 
 		$this->template->shopper = $this->shopper;
 		$this->template->monthlyOrders = $this->orderRepository->getGroupedOrdersPrices($orders, $statsFrom, $statsTo, $currency);

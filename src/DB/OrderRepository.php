@@ -553,20 +553,17 @@ class OrderRepository extends \StORM\Repository
 	}
 
 	/**
-	 * @param \StORM\Collection $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 * @param \Nette\Utils\DateTime $from
 	 * @param \Nette\Utils\DateTime $to
 	 * @param \Eshop\DB\Currency $currency
 	 * @return array<string, array<string, float>>
 	 * @throws \Exception
 	 */
-	public function getGroupedOrdersPrices(Collection $orders, DateTime $from, DateTime $to, Currency $currency): array
+	public function getGroupedOrdersPrices(array $orders, DateTime $from, DateTime $to, Currency $currency): array
 	{
 		$from = $from->modifyClone();
 		$to = $to->modifyClone();
-
-		$orders = $orders->toArray();
-		/** @var \Eshop\DB\Order[] $orders */
 
 		/** @var \Eshop\DB\CartRepository $cartRepo */
 		$cartRepo = $this->getConnection()->findRepository(Cart::class);
@@ -589,7 +586,7 @@ class OrderRepository extends \StORM\Repository
 
 		foreach ($orders as $order) {
 			/** @var \Eshop\DB\Cart|null $cart */
-			$cart = $cartRepo->many()->where('fk_purchase', $order->purchase->getPK())->fetch();
+			$cart = $cartRepo->many()->where('fk_purchase', $order->purchase->getPK())->first();
 
 			if (!$cart || $cart->currency->getPK() !== $currency->getPK()) {
 				continue;
@@ -621,13 +618,11 @@ class OrderRepository extends \StORM\Repository
 	}
 
 	/**
-	 * @param \StORM\Collection $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 * @return float[]
 	 */
-	public function getAverageOrderPrice(Collection $orders): array
+	public function getAverageOrderPrice(array $orders): array
 	{
-		$orders->clear();
-
 		$total = 0;
 		$totalVat = 0;
 		$count = \count($orders);
@@ -636,7 +631,7 @@ class OrderRepository extends \StORM\Repository
 			return [0, 0];
 		}
 
-		while ($order = $orders->fetch()) {
+		foreach ($orders as $order) {
 			/** @var \Eshop\DB\Order $order */
 			$total += $order->getTotalPrice();
 			$totalVat += $order->getTotalPriceVat();
@@ -646,11 +641,11 @@ class OrderRepository extends \StORM\Repository
 	}
 
 	/**
-	 * @param \StORM\Collection $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 * @param \Eshop\DB\Currency $currency
 	 * @return array<string, array<string, float|string>>
 	 */
-	public function getOrdersCategoriesGroupedByAmountPercentage(Collection $orders, Currency $currency): array
+	public function getOrdersCategoriesGroupedByAmountPercentage(array $orders, Currency $currency): array
 	{
 		/** @var \Eshop\DB\CategoryRepository $categoryRepo */
 		$categoryRepo = $this->getConnection()->findRepository(Category::class);
@@ -667,10 +662,9 @@ class OrderRepository extends \StORM\Repository
 
 		$sum = 0;
 
-		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
 			/** @var \Eshop\DB\Cart|null $cart */
-			$cart = $cartRepo->many()->where('fk_purchase', $order->purchase->getPK())->fetch();
+			$cart = $cartRepo->many()->where('fk_purchase', $order->purchase->getPK())->first();
 
 			if (!$cart || $cart->currency->getPK() !== $currency->getPK()) {
 				continue;
@@ -679,7 +673,7 @@ class OrderRepository extends \StORM\Repository
 			$items = $order->purchase->getItems();
 
 			foreach ($items as $item) {
-				$category = $item->product ? $item->product->getPrimaryCategory() : null;
+				$category = $item->product ? $item->product->primaryCategory : null;
 				$sum += $item->amount;
 
 				if (!$category) {
@@ -716,21 +710,20 @@ class OrderRepository extends \StORM\Repository
 	}
 
 	/**
-	 * @param \StORM\Collection $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 * @param \Eshop\DB\Currency $currency
 	 * @return array<string, array<string, \Eshop\DB\CartItem|\Eshop\DB\Product|float|int|null>>
 	 */
-	public function getOrdersTopProductsByAmount(Collection $orders, Currency $currency): array
+	public function getOrdersTopProductsByAmount(array $orders, Currency $currency): array
 	{
 		/** @var \Eshop\DB\CartRepository $cartRepo */
 		$cartRepo = $this->getConnection()->findRepository(Cart::class);
 
 		$data = [];
 
-		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
 			/** @var \Eshop\DB\Cart|null $cart */
-			$cart = $cartRepo->many()->where('fk_purchase', $order->purchase->getPK())->fetch();
+			$cart = $cartRepo->many()->where('fk_purchase', $order->purchase->getPK())->first();
 
 			if (!$cart || $cart->currency->getPK() !== $currency->getPK()) {
 				continue;
@@ -1076,19 +1069,17 @@ class OrderRepository extends \StORM\Repository
 	}
 
 	/**
-	 * @param \StORM\Collection $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 * @param \Eshop\DB\DiscountCoupon[] $discountCoupons
 	 * @return array<string, float>
 	 */
-	public function getDiscountCouponsUsage(Collection $orders, array $discountCoupons): array
+	public function getDiscountCouponsUsage(array $orders, array $discountCoupons): array
 	{
-		$orders->clear();
-
 		$count = \count($orders);
 
 		$usedCoupons = [];
 
-		while ($order = $orders->fetch()) {
+		foreach ($orders as $order) {
 			/** @var \Eshop\DB\Order $order */
 			if (!$discountCoupon = $order->getDiscountCoupon()) {
 				continue;

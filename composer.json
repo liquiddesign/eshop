@@ -52,7 +52,7 @@
 	},
 	"scripts": {
 		"check-code": "phpcs --standard=ruleset.xml --ignore=assets src && phpstan analyse --memory-limit 1G -c phpstan.neon",
-		"check-repair-code": "phpcbf --standard=ruleset.xml --ignore=assets src && phpcs --standard=ruleset.xml --ignore=assets src && phpstan analyse --memory-limit 1G -c phpstan.neon",
+		"check-fix-code": "phpcbf --standard=ruleset.xml --ignore=assets src && phpcs --standard=ruleset.xml --ignore=assets src && phpstan analyse --memory-limit 1G -c phpstan.neon",
 		"phpstan-clear-cache": "phpstan clear-result-cache",
 		"phpstan": "phpstan analyse --memory-limit 1G -c phpstan.neon",
 		"phpcs": "phpcs --standard=ruleset.xml --ignore=assets src",

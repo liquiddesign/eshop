@@ -6,14 +6,14 @@
         {foreach $flashes as $message}
             <div class="alert alert-{$message->type} mt-4">{$message->message}</div>
         {/foreach}
-        {form statsFilterForm}
+        <form n:name="form">
             <div class="form-inline">
-                    {label from}
+                {label from /}
                 <div class="p-1 inline-style">
                     {input from, class => 'form-control form-control-sm'}
                 </div>
                 <div class="p-1 inline-style">
-                    {label to}
+                    {label to /}
                 </div>
                 <div class="p-1 inline-style">
                     {input to, class => 'form-control form-control-sm'}
@@ -30,6 +30,8 @@
                 <div class="p-1 inline-style">
                     {input merchant, class => 'form-control form-control-sm'}
                 </div>
+{*            </div>*}
+{*            <div class="form-inline">*}
                 <div class="p-1 form-group">
                     {input category, class => 'form-control form-control-sm'}
                 </div>
@@ -40,7 +42,7 @@
                     <a n:href="resetStatsFilter!" class="btn btn-secondary btn-sm form-control-sm">Zrušit</a>
                 </div>
             </div>
-        {/form}
+        </form>
     </div>
 </div>
 <div class="row mt-4">
