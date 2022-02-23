@@ -147,11 +147,11 @@
                     <th>Kód</th>
                     <th>Název</th>
                     <th>Počet</th>
-                    {if $control->shopper->getShowVat()}
-                        <th>Cena s DPH</th>
-                    {/if}
                     {if $control->shopper->getShowWithoutVat()}
                         <th>Cena bez DPH</th>
+                    {/if}
+                    {if $control->shopper->getShowVat()}
+                        <th>Cena s DPH</th>
                     {/if}
                 </tr>
                 </thead>
@@ -176,11 +176,11 @@
                             <td>{$row['item']->productName}</td>
                         {/ifset}
                         <td>{$row['amount']}</td>
-                        {if $control->shopper->getShowVat()}
-                            <td>{$row['priceSumVat']|price:$currency}</td>
-                        {/if}
                         {if $control->shopper->getShowWithoutVat()}
                             <td>{$row['priceSum']|price:$currency}</td>
+                        {/if}
+                        {if $control->shopper->getShowVat()}
+                            <td>{$row['priceSumVat']|price:$currency}</td>
                         {/if}
                     </tr>
                 {/if}
