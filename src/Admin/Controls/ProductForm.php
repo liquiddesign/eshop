@@ -155,7 +155,7 @@ class ProductForm extends Control
 			$categories = $categoryRepository->getTreeArrayForSelect(true, $categoryType->getPK());
 			$allCategories = \array_merge($allCategories, $categories);
 
-			$categoriesContainer->addDataMultiSelect($categoryType->getPK(), 'Kategorie: ' . $categoryType->name, $categories);
+			$categoriesContainer->addMultiSelect2($categoryType->getPK(), 'Kategorie: ' . $categoryType->name, $categories);
 		}
 
 		$productCategories = [];

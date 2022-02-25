@@ -6,6 +6,7 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminGrid;
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\InternalRibbonRepository;
 use Eshop\DB\PricelistRepository;
@@ -36,6 +37,8 @@ class ProductGridFiltersFactory
 
 	private DisplayAmountRepository $displayAmountRepository;
 
+	private CategoryTypeRepository $categoryTypeRepository;
+
 	public function __construct(
 		ProducerRepository $producerRepository,
 		SupplierRepository $supplierRepository,
@@ -44,7 +47,8 @@ class ProductGridFiltersFactory
 		RibbonRepository $ribbonRepository,
 		InternalRibbonRepository $internalRibbonRepository,
 		PricelistRepository $pricelistRepository,
-		DisplayAmountRepository $displayAmountRepository
+		DisplayAmountRepository $displayAmountRepository,
+		CategoryTypeRepository $categoryTypeRepository
 	) {
 		$this->producerRepository = $producerRepository;
 		$this->supplierRepository = $supplierRepository;
@@ -54,13 +58,16 @@ class ProductGridFiltersFactory
 		$this->internalRibbonRepository = $internalRibbonRepository;
 		$this->pricelistRepository = $pricelistRepository;
 		$this->displayAmountRepository = $displayAmountRepository;
+		$this->categoryTypeRepository = $categoryTypeRepository;
 	}
 
 	public function addFilters(AdminGrid $grid): void
 	{
 		$grid->addFilterTextInput('code', ['this.code', 'this.ean', 'this.name_cs', 'this.mpn'], null, 'Název, EAN, kód, P/N', '', '%s%%');
 
-		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
+		$firstCategoryType = $this->categoryTypeRepository->many()->setOrderBy(['priority'])->first();
+
+		if ($firstCategoryType && ($categories = $this->categoryRepository->getTreeArrayForSelect(true, $firstCategoryType->getPK()))) {
 			$exactCategories = $categories;
 			$categories += ['0' => 'X - bez kategorie'];
 

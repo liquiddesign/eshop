@@ -76,7 +76,7 @@ class ProductAttributesForm extends Control
 
 			$attributeValues = $this->attributeRepository->getAttributeValues($attribute, true)->toArrayOf('internalLabel');
 
-			$select = $form->addDataMultiSelect($attribute->getPK(), $attribute->name . ' (' . ($attribute->code ?? '-') . ')', $attributeValues);
+			$select = $form->addMultiSelect2($attribute->getPK(), $attribute->name . ' (' . ($attribute->code ?? '-') . ')', $attributeValues);
 
 			$existingValues = $this->attributeAssignRepository->many()
 				->join(['attributeValue' => 'eshop_attributevalue'], 'this.fk_value = attributeValue.uuid')

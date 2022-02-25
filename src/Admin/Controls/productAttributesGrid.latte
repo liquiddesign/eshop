@@ -92,7 +92,7 @@
                     <li class="page-item {if $paginator->getItemsPerPage() == $ipp}disabled{/if}"><a href="{plink this $onpage => $ipp, $page => 1}" class="page-link">{$ipp}</a></li>
                 {/foreach}
 
-                <li class="page-item disabled"><a href="#" class="page-link" style="border: 0;">{$itemCountMessage}: {$paginator->itemCount|number:0:',':' '}</a></li>
+                <li class="page-item disabled"><a href="#" class="page-link" style="border: 0;">{$itemCountMessage}: {$paginator->itemCount|number,0,',',' '}</a></li>
             </ul>
         </div>
     {/if}
