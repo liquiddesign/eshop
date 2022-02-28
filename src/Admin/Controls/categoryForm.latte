@@ -115,8 +115,13 @@
                         </td>
                     </tr>
 
-                    {$renderer->renderPair($form['exportHeurekaCategory'])|noescape}
-                    {$renderer->renderPair($form['exportZboziCategory'])|noescape}
+                    {ifset $form['exportHeurekaCategory']}
+                        {$renderer->renderPair($form['exportHeurekaCategory'])|noescape}
+                    {/ifset}
+
+                    {ifset $form['exportHeurekaCategory']}
+                        {$renderer->renderPair($form['exportZboziCategory'])|noescape}
+                    {/ifset}
 
                     <tr class="m-0 mt-1 has-danger">
                             <th class="col-label col-form-label col">{label exportGoogleCategory/}</th>
