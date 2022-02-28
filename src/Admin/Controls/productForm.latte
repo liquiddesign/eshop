@@ -325,43 +325,47 @@
                 </table>
             </fieldset>
         </div>
-        <div id="menuStores-content" class="tab-pane {$presenter->editTab == 'menuStores' ? 'active show' : ''}">
-            <fieldset>
-                <table class="mt-1 mb-1" style="width: auto;">
-                    <tr class="m-0 mt-1 has-danger" n:if="$stores">
-                        <th class="col-label col-form-label col"></th>
-                        <th class="">Naskladněno</th>
-                        <th class="pl-2">Rezervováno</th>
-                        <th class="pl-2">Objednáno</th>
-                    </tr>
-                    {foreach $stores as $id => $store}
-                        <tr class="m-0 mt-1 has-danger">
-                            <th class="col-label col-form-label col">{$store->name} {if $store->code}({$store->code}){/if}</th>
-
-                            <td class="align-middle">{input stores-$id-inStock class => 'form-control form-control-sm col-label max-number'}
-                            </td>
-
-                            <td class="align-middle">{input stores-$id-reserved class => 'ml-2 form-control form-control-sm col-label max-number'}
-                            </td>
-
-                            <td class="align-middle">{input stores-$id-ordered class => 'ml-2 form-control form-control-sm col-label max-number'}
-                            </td>
+        <div id="menuStores-content" class="tab-pane {$presenter->editTab == 'menuStores' ? 'active show' : ''}" >
+            {if \count($stores) > 0}
+                <fieldset>
+                    <table class="mt-1 mb-1" style="width: auto;">
+                        <tr class="m-0 mt-1 has-danger" >
+                            <th class="col-label col-form-label col"></th>
+                            <th class="">Naskladněno</th>
+                            <th class="pl-2">Rezervováno</th>
+                            <th class="pl-2">Objednáno</th>
                         </tr>
-                    {/foreach}
+                        {foreach $stores as $id => $store}
+                            <tr class="m-0 mt-1 has-danger">
+                                <th class="col-label col-form-label col">{$store->name} {if $store->code}({$store->code}){/if}</th>
 
-                </table>
-            </fieldset>
-            <fieldset>
-                <table class="mt-1 mb-1">
-                    <tr>
-                        {ifset $form['submitAndNext']}
-                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
-                        {else}
-                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
-                        {/ifset}
-                    </tr>
-                </table>
-            </fieldset>
+                                <td class="align-middle">{input stores-$id-inStock class => 'form-control form-control-sm col-label max-number'}
+                                </td>
+
+                                <td class="align-middle">{input stores-$id-reserved class => 'ml-2 form-control form-control-sm col-label max-number'}
+                                </td>
+
+                                <td class="align-middle">{input stores-$id-ordered class => 'ml-2 form-control form-control-sm col-label max-number'}
+                                </td>
+                            </tr>
+                        {/foreach}
+
+                    </table>
+                </fieldset>
+                <fieldset>
+                    <table class="mt-1 mb-1">
+                        <tr>
+                            {ifset $form['submitAndNext']}
+                                {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
+                            {else}
+                                {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
+                            {/ifset}
+                        </tr>
+                    </table>
+                </fieldset>
+            {else}
+                Žádné sklady!
+            {/if}
         </div>
         <div id="menu3-content" class="tab-pane {$presenter->editTab == 'menu3' ? 'active show' : ''}">
             <fieldset>
