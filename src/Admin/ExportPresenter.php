@@ -110,7 +110,7 @@ class ExportPresenter extends BackendPresenter
 					'link' => $this->link('//:Eshop:Export:supportbox'),
 					'detail' => 'Je nutné specifikovat e-mail zákazníka a API klíč SupportBoxu shodný se zadaným API klíčem v adminu.<br><br>
 Příklad HTTP požadavku:<br>
-GET https://rajtiskaren.cz/json/supportbox?email=test@lqd.cz HTTP/1.1<br>
+GET https://vasprojekt.cz/json/supportbox?email=test@lqd.cz HTTP/1.1<br>
 Host: localhost:443<br>
 Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 ',
