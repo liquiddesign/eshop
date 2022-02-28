@@ -290,12 +290,18 @@ class CategoryPresenter extends BackendPresenter
 
 		return $form;
 	}
-
+	
+	/**
+	 * @param array<string|int> $ids
+	 */
 	public function actionGenerateProducerCategories(array $ids): void
 	{
 		unset($ids);
 	}
-
+	
+	/**
+	 * @param array<string|int> $ids
+	 */
 	public function renderGenerateProducerCategories(array $ids): void
 	{
 		unset($ids);
@@ -746,7 +752,10 @@ Očekává se formát kategorií dle formátu Heuréky. Tedy "Subcategory 1" atd
 
 		return $form;
 	}
-
+	
+	/**
+	 * @param array<string|int> $ids
+	 */
 	public function renderExportCategoryTree(array $ids): void
 	{
 		unset($ids);

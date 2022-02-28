@@ -54,7 +54,11 @@ class OrderGridFactory
 		$this->orderLogItemRepository = $orderLogItemRepository;
 		$this->customerGroupRepository = $customerGroupRepository;
 	}
-
+	
+	/**
+	 * @param string $state
+	 * @param array<mixed> $configuration
+	 */
 	public function create(string $state, array $configuration = []): Datagrid
 	{
 		$btnSecondary = 'btn btn-sm btn-outline-primary';

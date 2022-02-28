@@ -637,7 +637,11 @@ class AttributePresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('valuesForm')];
 	}
-
+	
+	/**
+	 * @param array<string|int> $ids
+	 * @param bool $createOrDelete
+	 */
 	public function renderCreatePages(array $ids, bool $createOrDelete): void
 	{
 		unset($ids);
