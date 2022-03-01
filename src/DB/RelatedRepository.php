@@ -146,10 +146,6 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 	/** @todo použít univerzální funkci z backend */
 	private function getReaderFromString(string $content): Reader
 	{
-		if (!\ini_get('auto_detect_line_endings')) {
-			\ini_set('auto_detect_line_endings', '1');
-		}
-
 		$detector = new EncodingDetector();
 
 		$detector->disableEncoding([

@@ -1520,10 +1520,6 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 	protected function importCsv(string $filePath, string $delimiter = ';', bool $addNew = false, bool $overwriteExisting = true, bool $updateAttributes = false): void
 	{
-		if (!\ini_get('auto_detect_line_endings')) {
-			\ini_set('auto_detect_line_endings', '1');
-		}
-
 		$csvData = FileSystem::read($filePath);
 
 		$detector = new EncodingDetector();
