@@ -42,6 +42,7 @@ use League\Csv\Writer;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
+use Nette\IOException;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
@@ -1410,9 +1411,21 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		}
 
 		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR;
-		FileSystem::delete($basePath . '/origin/' . $photo->fileName);
-		FileSystem::delete($basePath . '/detail/' . $photo->fileName);
-		FileSystem::delete($basePath . '/thumb/' . $photo->fileName);
+
+		try {
+			FileSystem::delete($basePath . '/origin/' . $photo->fileName);
+		} catch (IOException $e) {
+		}
+
+		try {
+			FileSystem::delete($basePath . '/detail/' . $photo->fileName);
+		} catch (IOException $e) {
+		}
+
+		try {
+			FileSystem::delete($basePath . '/thumb/' . $photo->fileName);
+		} catch (IOException $e) {
+		}
 
 		if ($photo->product->imageFileName === $photo->fileName) {
 			$photo->product->update(['imageFileName' => null]);
