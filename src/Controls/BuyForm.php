@@ -12,13 +12,12 @@ use Nette;
 
 class BuyForm extends Form
 {
-	private const DEFAULT_MAX_BUY_COUNT = 999999999;
-
 	public function __construct(Product $product, Shopper $shopper, CheckoutManager $checkoutManager)
 	{
 		parent::__construct();
 
-		$maxCount = $product->maxBuyCount ?? self::DEFAULT_MAX_BUY_COUNT;
+		$minCount = $product->minBuyCount ?? CheckoutManager::DEFAULT_MIN_BUY_COUNT;
+		$maxCount = $product->maxBuyCount ?? CheckoutManager::DEFAULT_MAX_BUY_COUNT;
 
 		$countInput = $this->addInteger('amount', 'Počet zboží:')
 			->setDefaultValue($product->defaultBuyCount)
@@ -30,7 +29,7 @@ class BuyForm extends Form
 		}
 
 		if ($product->buyStep !== null) {
-			$countInput->addRule([$this, 'validateNumber'], 'Není to násobek', $product->buyStep);
+			$countInput->addRule([$this, 'validateNumber'], 'Není to násobek', [$product->buyStep, $minCount]);
 			$countInput->setHtmlAttribute('step', $product->buyStep);
 		}
 
@@ -47,8 +46,10 @@ class BuyForm extends Form
 		};
 	}
 
-	public function validateNumber(Nette\Forms\IControl $control, int $cislo): bool
+	public function validateNumber(Nette\Forms\Control $control, $args): bool
 	{
-		return $control->getValue() % $cislo === 0;
+		[$buyStep, $minCount] = $args;
+
+		return ($control->getValue() + $minCount - 1) % $buyStep === 0;
 	}
 }

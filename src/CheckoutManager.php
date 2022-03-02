@@ -58,6 +58,9 @@ use StORM\DIConnection;
 class CheckoutManager
 {
 	use SmartObject;
+	public const DEFAULT_MIN_BUY_COUNT = 1;
+	public const DEFAULT_MAX_BUY_COUNT = 999999999;
+
 	/**
 	 * @var callable[]&callable(\Eshop\DB\Customer): void; Occurs after customer create
 	 */
@@ -897,7 +900,10 @@ class CheckoutManager
 	
 	public function checkAmount(Product $product, $amount): bool
 	{
-		return !($amount < $product->minBuyCount || ($product->maxBuyCount !== null && $amount > $product->maxBuyCount) || ($product->buyStep && $amount % $product->buyStep !== 0));
+		$min = $product->minBuyCount ?? self::DEFAULT_MIN_BUY_COUNT;
+		$max = $product->maxBuyCount ?? self::DEFAULT_MAX_BUY_COUNT;
+
+		return !($amount < $min || $amount > $max || ($amount && $product->buyStep && (($amount + $min - 1) % $product->buyStep !== 0)));
 	}
 	
 	public function checkCartItemPrice(CartItem $cartItem): bool

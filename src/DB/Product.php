@@ -86,13 +86,13 @@ class Product extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $supplierCode;
-	
+
 	/**
 	 * Externí ID
 	 * @column
 	 */
 	public ?string $externalId;
-	
+
 	/**
 	 * Prodejní jednotka (kus)
 	 * @column
@@ -642,6 +642,24 @@ class Product extends \StORM\Entity
 	public function getPriceVatBefore(): ?float
 	{
 		return $this->getValue('priceVatBefore') !== null ? (float)$this->getValue('priceVatBefore') : null;
+	}
+
+	public function getDiscountPercent(): ?float
+	{
+		if (!$beforePrice = $this->getPriceBefore()) {
+			return null;
+		}
+
+		return 100 - ($this->getPrice() / $beforePrice * 100);
+	}
+
+	public function getDiscountPercentVat(): ?float
+	{
+		if (!$beforePrice = $this->getPriceVatBefore()) {
+			return null;
+		}
+
+		return 100 - ($this->getPriceVat() / $beforePrice * 100);
 	}
 
 	/**
