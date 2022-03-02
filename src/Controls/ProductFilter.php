@@ -171,6 +171,12 @@ class ProductFilter extends Control
 			$priceTo->addError($this->translator->translate('filter.wrongPriceRange', 'Neplatný rozsah cen!'));
 			$this->flashMessage($this->translator->translate('form.submitError', 'Chybně vyplněný formulář!'), 'error');
 		};
+
+		$filterForm->onSuccess[] = function (\Nette\Forms\Container $form): void {
+			$values = $form->getValues('array');
+
+			$this->onFormSuccess($values);
+		};
 		
 		return $filterForm;
 	}
