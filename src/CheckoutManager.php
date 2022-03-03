@@ -553,7 +553,7 @@ class CheckoutManager
 		return $this->cartExists() ? $this->itemRepository->getItems([$this->getCart()->getPK()]) : $this->itemRepository->many()->where('1=0');
 	}
 	
-	public function addItemsFromCart(Cart $cart): void
+	public function addItemsFromCart(Cart $cart, bool $required = false): void
 	{
 		$ids = $this->itemRepository->getItems([$cart->getPK()])->where('this.fk_product IS NOT NULL')->setSelect(['aux' => 'this.fk_product'])->toArrayOf('aux');
 		
@@ -563,7 +563,11 @@ class CheckoutManager
 		/** @var \Eshop\DB\CartItem $item */
 		foreach ($this->itemRepository->getItems([$cart->getPK()]) as $item) {
 			if (!isset($products[$item->getValue('product')])) {
-				throw new BuyException('product not found');
+				if ($required) {
+					throw new BuyException('product not found');
+				}
+
+				continue;
 			}
 			
 			$this->addItemToCart($products[$item->getValue('product')], $item->variant, $item->amount, false, null, null);
