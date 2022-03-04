@@ -1,0 +1,87 @@
+<form n:name="form">
+    {var $activeMutation = $form->getActiveMutation()}
+    {var $renderer = $form->getRenderer()}
+
+
+    <ul class="error" n:ifcontent>
+        <li n:foreach="$form->getOwnErrors() as $error">{$error}</li>
+    </ul>
+
+    {if isset($form['__MUTATION_SELECTOR'])}
+        <table>
+            {$renderer->renderPair($form['__MUTATION_SELECTOR'])|noescape}
+        </table>
+    {/if}
+
+    <fieldset>
+        <table class="mt-1 mb-1">
+            {$renderer->renderPair($form['code'])|noescape}
+            {$renderer->renderPair($form['label'])|noescape}
+            {$renderer->renderPair($form['exclusiveCustomer'])|noescape}
+            {$renderer->renderPair($form['currency'])|noescape}
+            {$renderer->renderPair($form['discount'])|noescape}
+        </table>
+    </fieldset>
+
+    <legend>Generátor</legend>
+
+    <fieldset>
+        <table class="mt-1 mb-1">
+            {$renderer->renderPair($form['apiUsageLimit'])|noescape}
+            {$renderer->renderPair($form['apiUsagesCount'])|noescape}
+            {$renderer->renderPair($form['validFrom'])|noescape}
+            {$renderer->renderPair($form['validTo'])|noescape}
+        </table>
+    </fieldset>
+
+    <legend>Absolutní sleva</legend>
+
+    <fieldset>
+        <table class="mt-1 mb-1">
+            {$renderer->renderPair($form['discountPct'])|noescape}
+            {$renderer->renderPair($form['discountValue'])|noescape}
+            {$renderer->renderPair($form['discountValueVat'])|noescape}
+        </table>
+    </fieldset>
+
+    <fieldset>
+        <legend>Podmínky</legend>
+        <table class="mt-1 mb-1">
+            {$renderer->renderPair($form['usageLimit'])|noescape}
+            {$renderer->renderPair($form['minimalOrderPrice'])|noescape}
+            {$renderer->renderPair($form['maximalOrderPrice'])|noescape}
+            {$renderer->renderPair($form['conditionsType'])|noescape}
+        </table>
+
+        {formContainer conditionsContainer}
+            <table class="mt-1 mb-1" style="width: auto;">
+                <thead>
+                <tr>
+                    <th class="p-2">Podmínka košíku</th>
+                    <th class="p-2">Podmínka množství</th>
+                    <th class="p-2">Produkty</th>
+                </tr>
+                </thead>
+                {for $i =0; $i < 6; $i++}
+                    <tr>
+                        <td class="p-2">{input cartCondition_$i class => "form-control form-control-sm"}</td>
+                        <td class="p-2">{input quantityCondition_$i class => "form-control form-control-sm"}</td>
+                        <td class="p-2">{input products_$i}</td>
+                    </tr>
+                {/for}
+            </table>
+        {/formContainer}
+    </fieldset>
+
+    <fieldset>
+        <table class="mt-1 mb-1">
+            <tr>
+                {ifset $form['submitAndNext']}
+                    {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
+                {else}
+                    {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
+                {/ifset}
+            </tr>
+        </table>
+    </fieldset>
+</form>

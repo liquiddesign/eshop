@@ -195,7 +195,7 @@ class Purchase extends \StORM\Entity
 	/**
 	 * Aplikovaný kupón
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?DiscountCoupon $coupon;
 

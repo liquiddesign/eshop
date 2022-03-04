@@ -46,6 +46,13 @@ class DiscountCondition extends \StORM\Entity
 	public ?DeliveryDiscount $deliveryDiscount;
 
 	/**
+	 * Generator kuponu
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 */
+	public ?ApiGeneratorDiscountCoupon $apiGeneratorDiscountCoupon;
+
+	/**
 	 * Produkty
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\Product>|\Eshop\DB\Product[]
