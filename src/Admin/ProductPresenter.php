@@ -52,6 +52,7 @@ use Pages\DB\PageRepository;
 use StORM\Connection;
 use StORM\DIConnection;
 use StORM\Expression;
+use Tracy\Debugger;
 use Web\DB\SettingRepository;
 
 class ProductPresenter extends BackendPresenter
@@ -1133,6 +1134,8 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				$connection->getLink()->commit();
 				$this->flashMessage('Provedeno', 'success');
 			} catch (\Exception $e) {
+				Debugger::log($e);
+
 				FileSystem::delete(\dirname(__DIR__, 5) . '/userfiles/products.csv');
 				$connection->getLink()->rollBack();
 
