@@ -1136,7 +1136,11 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			} catch (\Exception $e) {
 				Debugger::log($e);
 
-				FileSystem::delete(\dirname(__DIR__, 5) . '/userfiles/products.csv');
+				try {
+					FileSystem::delete(\dirname(__DIR__, 5) . '/userfiles/products.csv');
+				} catch (IOException $e) {
+				}
+
 				$connection->getLink()->rollBack();
 
 				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Import dat se nezdařil!', 'error');
