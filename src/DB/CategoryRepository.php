@@ -369,38 +369,36 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	{
 		$repository = $this;
 
-		return $this->cache->load(($includeHidden ? '1' : '0') . "_$type", static function (&$dependencies) use ($includeHidden, $type, $repository) {
-			$dependencies = [
-				Cache::TAGS => ['categories'],
-			];
+//		return $this->cache->load(($includeHidden ? '1' : '0') . "_$type", static function (&$dependencies) use ($includeHidden, $type, $repository) {
+//			$dependencies = [
+//				Cache::TAGS => ['categories'],
+//			];
 
-			$collection = $repository->getCategories($includeHidden)->where('LENGTH(path) <= 40');
+		$collection = $repository->getCategories($includeHidden)->where('LENGTH(path) <= 40');
 
-			if ($type) {
-				$collection->where('fk_type', $type);
+		if ($type) {
+			$collection->where('fk_type', $type);
+		}
+
+		$list = [];
+
+		/** @var \Eshop\DB\Category $category */
+		foreach ($collection as $category) {
+			$currentCategories = [];
+			$currentCategory = $category;
+
+			while ($currentCategory !== null) {
+				$currentCategories[] = $currentCategory->name;
+				$currentCategory = $currentCategory->ancestor;
 			}
 
-			$list = [];
+			$currentCategories = \array_reverse($currentCategories);
 
-			$categories = $collection->toArray();
+			$list[$category->getPK()] = $category->type->name . ': ' . \implode(' -> ', $currentCategories);
+		}
 
-			/** @var \Eshop\DB\Category $category */
-			foreach ($categories as $category) {
-				$currentCategories = [];
-				$currentCategory = $category;
-
-				while ($currentCategory !== null) {
-					$currentCategories[] = $currentCategory->name;
-					$currentCategory = $currentCategory->ancestor;
-				}
-
-				$currentCategories = \array_reverse($currentCategories);
-
-				$list[$category->getPK()] = $category->type->name . ': ' . \implode(' -> ', $currentCategories);
-			}
-
-			return $list;
-		});
+		return $list;
+//		});
 	}
 
 	public function getRootCategoryOfCategory(Category $category): Category

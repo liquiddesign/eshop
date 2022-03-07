@@ -195,6 +195,8 @@ class CategoryForm extends Control
 				$this->pageRepository->syncOne($values['page']);
 			});
 
+			$this->categoryRepository->clearCategoriesCache();
+
 			$this->getPresenter()->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$category]);
 		};
