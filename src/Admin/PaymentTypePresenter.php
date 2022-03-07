@@ -226,12 +226,22 @@ class PaymentTypePresenter extends BackendPresenter
 		$grid->addColumnSelector();
 		
 		$grid->addColumnText('Měna', 'currency.code', '%s');
+
 		$grid->addColumnInputPrice('Cena', 'price');
-		$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
+
+		$saveAllTypes = [
+			'price' => 'float',
+		];
+
+		if ($this->shopper->getShowVat()) {
+			$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
+
+			$saveAllTypes += ['priceVat' => 'float'];
+		}
 		
 		$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll([], [], 'this.uuid');
+		$grid->addButtonSaveAll([], $saveAllTypes, 'this.uuid', false, null, null, false);
 		$grid->addButtonDeleteSelected();
 		
 		return $grid;

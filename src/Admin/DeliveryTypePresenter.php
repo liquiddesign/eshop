@@ -255,7 +255,17 @@ class DeliveryTypePresenter extends BackendPresenter
 		$grid->addColumnSelector();
 		
 		$grid->addColumnInputPrice('Cena', 'price');
-		$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
+
+		$saveAllTypes = [
+			'price' => 'float',
+		];
+
+		if ($this->shopper->getShowVat()) {
+			$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
+
+			$saveAllTypes += ['priceVat' => 'float'];
+		}
+
 		$grid->addColumnInputFloat('Dostupné do váhy kg (včetně)', 'weightTo', '', '', 'weightTo');
 		$grid->addColumnInputFloat('Dostupné do rozměru (včetně)', 'dimensionTo', '', '', 'dimensionTo');
 		
@@ -263,7 +273,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		
 		$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll(['weightTo'], [], 'this.uuid');
+		$grid->addButtonSaveAll(['weightTo', 'dimensionTo'], $saveAllTypes, 'this.uuid', false, null, null, false);
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 		
 		$grid->addFilterSelectInput('search', 'fk_currency = :q', 'Měna', '- Měna -', null, $this->currencyRepo->getArrayForSelect());
