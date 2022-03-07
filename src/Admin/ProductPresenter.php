@@ -1116,21 +1116,26 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			/** @var \Nette\Http\FileUpload $file */
 			$file = $values['file'];
 
-			$file->move(\dirname(__DIR__, 5) . '/userfiles/products.csv');
-			\touch(\dirname(__DIR__, 5) . '/userfiles/products.csv');
+			$dir = \dirname(__DIR__, 5);
+			$productsFileName = $dir . '/userfiles/products.csv';
+			$tempFileName = \tempnam($dir, 'products');
+
+			$file->move($tempFileName);
 
 			$connection = $this->productRepository->getConnection();
-
 			$connection->getLink()->beginTransaction();
 
 			try {
 				$this->importCsv(
-					\dirname(__DIR__, 5) . '/userfiles/products.csv',
+					$tempFileName,
 					$values['delimiter'],
 					$values['addNew'],
 					$values['overwriteExisting'],
 					$values['updateAttributes'],
 				);
+
+				FileSystem::copy($tempFileName, $productsFileName);
+				FileSystem::delete($tempFileName);
 
 				$connection->getLink()->commit();
 				$this->flashMessage('Provedeno', 'success');
@@ -1138,7 +1143,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				Debugger::log($e, ILogger::DEBUG);
 
 				try {
-					FileSystem::delete(\dirname(__DIR__, 5) . '/userfiles/products.csv');
+					FileSystem::delete($tempFileName);
 				} catch (IOException $e) {
 					Debugger::log($e, ILogger::DEBUG);
 				}

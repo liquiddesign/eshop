@@ -369,36 +369,35 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	{
 		$repository = $this;
 
-//		return $this->cache->load(($includeHidden ? '1' : '0') . "_$type", static function (&$dependencies) use ($includeHidden, $type, $repository) {
-//			$dependencies = [
-//				Cache::TAGS => ['categories'],
-//			];
+		return $this->cache->load(($includeHidden ? '1' : '0') . "_$type", static function (&$dependencies) use ($includeHidden, $type, $repository) {
+			$dependencies = [
+				Cache::TAGS => ['categories'],
+			];
+			$collection = $repository->getCategories($includeHidden)->where('LENGTH(path) <= 40');
 
-		$collection = $repository->getCategories($includeHidden)->where('LENGTH(path) <= 40');
-
-		if ($type) {
-			$collection->where('fk_type', $type);
-		}
-
-		$list = [];
-
-		/** @var \Eshop\DB\Category $category */
-		foreach ($collection as $category) {
-			$currentCategories = [];
-			$currentCategory = $category;
-
-			while ($currentCategory !== null) {
-				$currentCategories[] = $currentCategory->name;
-				$currentCategory = $currentCategory->ancestor;
+			if ($type) {
+				$collection->where('fk_type', $type);
 			}
 
-			$currentCategories = \array_reverse($currentCategories);
+			$list = [];
 
-			$list[$category->getPK()] = $category->type->name . ': ' . \implode(' -> ', $currentCategories) . ' (' . $category->code . ')';
-		}
+			/** @var \Eshop\DB\Category $category */
+			foreach ($collection as $category) {
+				$currentCategories = [];
+				$currentCategory = $category;
 
-		return $list;
-//		});
+				while ($currentCategory !== null) {
+					$currentCategories[] = $currentCategory->name;
+					$currentCategory = $currentCategory->ancestor;
+				}
+
+				$currentCategories = \array_reverse($currentCategories);
+
+				$list[$category->getPK()] = $category->type->name . ': ' . \implode(' -> ', $currentCategories) . ' (' . $category->code . ')';
+			}
+
+			return $list;
+		});
 	}
 
 	public function getRootCategoryOfCategory(Category $category): Category
