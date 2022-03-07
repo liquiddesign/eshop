@@ -1140,6 +1140,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				try {
 					FileSystem::delete(\dirname(__DIR__, 5) . '/userfiles/products.csv');
 				} catch (IOException $e) {
+					Debugger::log($e, ILogger::DEBUG);
 				}
 
 				$connection->getLink()->rollBack();
