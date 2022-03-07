@@ -20,6 +20,12 @@ class InvoiceItem extends \StORM\Entity
 	 * Cena s DPH
 	 * @column
 	 */
+	public ?float $price;
+
+	/**
+	 * Cena s DPH
+	 * @column
+	 */
 	public ?float $priceVat;
 	
 	/**

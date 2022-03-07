@@ -13,6 +13,12 @@ use StORM\RelationCollection;
 class Invoice extends \StORM\Entity
 {
 	/**
+	 * Id
+	 * @column{"autoincrement":true}
+	 */
+	public int $id;
+	
+	/**
 	 * Kód
 	 * @column
 	 */
