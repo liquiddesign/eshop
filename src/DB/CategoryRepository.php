@@ -394,7 +394,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 			$currentCategories = \array_reverse($currentCategories);
 
-			$list[$category->getPK()] = $category->type->name . ': ' . \implode(' -> ', $currentCategories);
+			$list[$category->getPK()] = $category->type->name . ': ' . \implode(' -> ', $currentCategories) . ' (' . $category->code . ')';
 		}
 
 		return $list;
