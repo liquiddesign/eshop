@@ -205,7 +205,7 @@ class AttributePresenter extends BackendPresenter
 		$form->addText('code', 'Kód')->setRequired();
 		$form->addLocaleText('name', 'Název');
 		$form->addLocaleTextArea('note', 'Dodatečné informace');
-		$form->addDataMultiSelect('categories', 'Kategorie', $this->categoryRepository->getArrayForSelect());
+		$form->addMultiSelect2('categories', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect());
 		$form->addText('priority', 'Priorita')
 			->addRule($form::INTEGER)
 			->setRequired()
