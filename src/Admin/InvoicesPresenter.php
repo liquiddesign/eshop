@@ -11,6 +11,7 @@ use Eshop\DB\Invoice;
 use Eshop\DB\InvoiceRepository;
 use Eshop\DB\OrderRepository;
 use Forms\Form;
+use Nette\Utils\Arrays;
 
 class InvoicesPresenter extends BackendPresenter
 {
@@ -24,9 +25,10 @@ class InvoicesPresenter extends BackendPresenter
 	{
 		$grid = $this->gridFactory->create($this->invoiceRepository->many(), 20, 'code', 'ASC', true);
 		
-		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit']);
+		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		
 		$grid->addColumnLinkDetail('detail');
+		$grid->addColumnActionDelete();
 		
 		$grid->addFilterTextInput('search', ['code'], null, 'Kód');
 		$grid->addFilterButtons();
@@ -45,19 +47,19 @@ class InvoicesPresenter extends BackendPresenter
 		$form->addDataSelect('order', 'Objednávka', $this->orderRepository->many()->toArrayOf('code'));
 		
 		$form->addGroup('Stav faktury');
-		$form->addDate('paidDate', 'Zaplaceno');
-		$form->addDate('canceled', 'Storno');
+		$form->addDate('paidDate', 'Zaplaceno')->setNullable();
+		$form->addDate('canceled', 'Storno')->setNullable();
 	
 		$form->addSubmits();
 		
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 			
-			$this->invoiceRepository->createFromOrder($this->orderRepository->one($values['order']));
+			$invoice = $this->invoiceRepository->createFromOrder($this->orderRepository->one(Arrays::pick($values, 'order')), $values);
 			
 			$this->flashMessage('Uloženo', 'success');
 			
-			$form->processRedirect('this', 'default');
+			$form->processRedirect('detail', 'default', [$invoice]);
 		};
 		
 		return $form;
