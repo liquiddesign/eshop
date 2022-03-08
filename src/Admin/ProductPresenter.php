@@ -15,6 +15,7 @@ use Eshop\BackendPresenter;
 use Eshop\DB\AmountRepository;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
+use Eshop\DB\AttributeValue;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\CustomerRepository;
@@ -46,12 +47,12 @@ use Nette\IOException;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
+use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use Onnov\DetectEncoding\EncodingDetector;
 use Pages\DB\PageRepository;
 use StORM\Connection;
 use StORM\DIConnection;
-use StORM\Expression;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
@@ -907,6 +908,11 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 		return $form;
 	}
 
+	public function actionImportCsv(): void
+	{
+		Debugger::$showBar = false;
+	}
+
 	public function renderImportCsv(): void
 	{
 		$this->template->headerLabel = 'Import';
@@ -1085,7 +1091,8 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 
 		$form->addCheckbox('addNew', 'Vytvářet nové záznamy');
 		$form->addCheckbox('overwriteExisting', 'Přepisovat existující záznamy')->setDefaultValue(true);
-		$form->addCheckbox('updateAttributes', 'Aktualizovat atributy')->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
+		$form->addCheckbox('updateAttributes', 'Aktualizovat atributy');
+		$form->addCheckbox('createAttributeValues', 'Vytvářet hodnoty atributů (pokud neexistují, hledá dle jména)')->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
 Soubor <b>musí obsahovat</b> hlavičku a jeden ze sloupců "Kód" nebo "EAN" pro jednoznačné rozlišení produktů.&nbsp;
 Jako prioritní se hledá kód a pokud není nalezen tak EAN. Kód a EAN se ukládají jen při vytváření nových záznamů.<br><br>
 Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
@@ -1118,7 +1125,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 			$dir = \dirname(__DIR__, 5);
 			$productsFileName = $dir . '/userfiles/products.csv';
-			$tempFileName = \tempnam($dir, 'products');
+			$tempFileName = \tempnam($this->container->parameters['tempDir'], 'products');
 
 			$file->move($tempFileName);
 
@@ -1126,13 +1133,14 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			$connection->getLink()->beginTransaction();
 
 			try {
-				$this->importCsv(
+				Debugger::log($this->importCsv(
 					$tempFileName,
 					$values['delimiter'],
 					$values['addNew'],
 					$values['overwriteExisting'],
 					$values['updateAttributes'],
-				);
+					$values['createAttributeValues'],
+				), ILogger::DEBUG);
 
 				FileSystem::copy($tempFileName, $productsFileName);
 				FileSystem::delete($tempFileName);
@@ -1140,12 +1148,12 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				$connection->getLink()->commit();
 				$this->flashMessage('Provedeno', 'success');
 			} catch (\Exception $e) {
-				Debugger::log($e, ILogger::DEBUG);
+				Debugger::log($e, ILogger::WARNING);
 
 				try {
 					FileSystem::delete($tempFileName);
-				} catch (IOException $e) {
-					Debugger::log($e, ILogger::DEBUG);
+				} catch (\Exception $e) {
+					Debugger::log($e, ILogger::WARNING);
 				}
 
 				$connection->getLink()->rollBack();
@@ -1545,8 +1553,28 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		FileSystem::createDir($this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . File::FILE_DIR);
 	}
 
-	protected function importCsv(string $filePath, string $delimiter = ';', bool $addNew = false, bool $overwriteExisting = true, bool $updateAttributes = false): void
-	{
+	/**
+	 * @param string $filePath
+	 * @param string $delimiter
+	 * @param bool $addNew
+	 * @param bool $overwriteExisting
+	 * @param bool $updateAttributes
+	 * @param bool $createAttributeValues
+	 * @return array<string|int>
+	 * @throws \League\Csv\Exception
+	 * @throws \League\Csv\InvalidArgument
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	protected function importCsv(
+		string $filePath,
+		string $delimiter = ';',
+		bool $addNew = false,
+		bool $overwriteExisting = true,
+		bool $updateAttributes = false,
+		bool $createAttributeValues = false
+	): array {
+		Debugger::timer();
+
 		$csvData = FileSystem::read($filePath);
 
 		$detector = new EncodingDetector();
@@ -1570,15 +1598,43 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		$reader->setDelimiter($delimiter);
 		$reader->setHeaderOffset(0);
 		$mutation = $this->productRepository->getConnection()->getMutation();
+		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
 
 		$producers = $this->producerRepository->many()->setIndex('code')->toArrayOf('uuid');
 		$stores = $this->storeRepository->many()->setIndex('code')->toArrayOf('uuid');
 		$categories = $this->categoryRepository->many()->toArrayOf('uuid');
 		$categoriesCodes = $this->categoryRepository->many()->setIndex('code')->toArrayOf('uuid');
 
+		$products = $this->productRepository->many()->setSelect([
+			'uuid',
+			'code',
+			'fullCode' => 'CONCAT(code,".",subCode)',
+			'ean',
+			'name' => "name$mutationSuffix",
+			'perex' => "perex$mutationSuffix",
+		], [], true)->fetchArray(\stdClass::class);
+
 		$header = $reader->getHeader();
 		$parsedHeader = [];
 		$attributes = [];
+
+		$groupedAttributeValues = [];
+		$attributeValues = $this->attributeValueRepository->many()->setSelect([
+			'uuid',
+			'label' => "label$mutationSuffix",
+			'code',
+			'attribute' => 'fk_attribute',
+		], [], true)->fetchArray(\stdClass::class);
+
+		foreach ($attributeValues as $attributeValue) {
+			if (!isset($groupedAttributeValues[$attributeValue->attribute])) {
+				$groupedAttributeValues[$attributeValue->attribute] = [];
+			}
+
+			$groupedAttributeValues[$attributeValue->attribute][$attributeValue->uuid] = $attributeValue;
+		}
+
+		unset($attributeValues);
 
 		foreach ($header as $headerItem) {
 			if (isset($this::CONFIGURATION['importColumns'][$headerItem])) {
@@ -1614,37 +1670,64 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		}
 
 		$valuesToUpdate = [];
+		$amountsToUpdate = [];
+		$productsToDeleteCategories = [];
+		$attributeValuesToCreate = [];
+		$attributeAssignsToSync = [];
+
+		$createdProducts = 0;
+		$updatedProducts = 0;
+		$skippedProducts = 0;
 
 		foreach ($reader->getRecords() as $record) {
 			$newValues = [];
-			$product = null;
-			$expression = new Expression();
 			$code = null;
 			$ean = null;
+			$codePrefix = null;
+
 			/** @var string|null $codeFromRecord */
 			$codeFromRecord = isset($parsedHeader['code']) ? Arrays::pick($record, $parsedHeader['code'], null) : null;
 			/** @var string|null $eanFromRecord */
 			$eanFromRecord = isset($parsedHeader['ean']) ? Arrays::pick($record, $parsedHeader['ean'], null) : null;
 
+			/** @var \Eshop\DB\Product|null $product */
+			$product = null;
+
 			if (isset($parsedHeader['code']) && $codeFromRecord) {
 				$codeBase = Strings::trim($codeFromRecord);
 				$codePrefix = Strings::trim('00' . $codeFromRecord);
-
-				$expression->add('OR', 'code = %s OR CONCAT(code,".",subCode) = %s', [$codeBase, $codeBase]);
-				$expression->add('OR', 'code = %s OR CONCAT(code,".",subCode) = %s', [$codePrefix, $codePrefix]);
 
 				$code = $codeBase;
 			}
 
 			if (isset($parsedHeader['ean']) && $eanFromRecord) {
-				$expression->add('OR', 'ean = %s', [Strings::trim($eanFromRecord)]);
-
 				$ean = Strings::trim($eanFromRecord);
 			}
 
-			$product = $this->productRepository->many()->where($expression->getSql(), $expression->getVars())->first();
+			if ($code && $ean) {
+				$product = $this->arrayFind($products, function (\stdClass $x) use ($code, $codePrefix, $ean): bool {
+					return $x->code === $code || $x->fullCode === $code ||
+						$x->code === $codePrefix || $x->fullCode === $codePrefix ||
+						$x->ean === $ean;
+				});
+			} elseif ($code) {
+				$product = $this->arrayFind($products, function (\stdClass $x) use ($code, $codePrefix): bool {
+					return $x->code === $code || $x->fullCode === $code ||
+						$x->code === $codePrefix || $x->fullCode === $codePrefix;
+				});
+			} elseif ($ean) {
+				$product = $this->arrayFind($products, function (\stdClass $x) use ($ean): bool {
+					return $x->ean === $ean;
+				});
+			}
+
+			if ($product) {
+				$updatedProducts++;
+			}
 
 			if ((!$code && !$ean) || (!$product && !$addNew) || ($product && !$overwriteExisting)) {
+				$skippedProducts++;
+
 				continue;
 			}
 
@@ -1685,17 +1768,15 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 							continue;
 						}
 
-						$this->amountRepository->syncOne([
+						$amountsToUpdate[] = [
 							'store' => $stores[$amount[1]],
-							'product' => $product->getPK(),
+							'product' => $product->uuid,
 							'inStock' => \intval($amount[0]),
-						]);
+						];
 					}
 				} elseif ($key === 'categories') {
 					if ($product) {
-						$this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
-							->where('fk_product', $product->getPK())
-							->delete();
+						$productsToDeleteCategories[] = $product->uuid;
 					}
 
 					$valueCategories = \explode(':', $value);
@@ -1733,7 +1814,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			try {
 				if ($product) {
 					if (\count($newValues) > 0) {
-						$newValues['uuid'] = $product->getPK();
+						$newValues['uuid'] = $product->uuid;
 
 						if (isset($newValues['name'][$mutation]) && $newValues['name'][$mutation] !== $product->name) {
 							$newValues['supplierContentLock'] = true;
@@ -1743,7 +1824,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 							$newValues['supplierContentLock'] = true;
 						}
 
-						$valuesToUpdate[$product->getPK()] = $newValues;
+						$valuesToUpdate[$product->uuid] = $newValues;
 					}
 				} elseif (\count($newValues) > 0) {
 					if (!$code && !$ean) {
@@ -1772,7 +1853,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 				$this->attributeAssignRepository->many()
 					->join(['eshop_attributevalue'], 'this.fk_value = eshop_attributevalue.uuid')
-					->where('this.fk_product', $product->getPK())
+					->where('this.fk_product', $product->uuid)
 					->where('eshop_attributevalue.fk_attribute', $key)
 					->delete();
 
@@ -1791,18 +1872,95 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 						$attributeValueCode = $attributeString;
 					}
 
-					if (!$attributeValue = $this->attributeValueRepository->many()->where('code', $attributeValueCode)->firstValue('uuid')) {
+					/** @var \stdClass|null|false|\Eshop\DB\AttributeValue $attributeValue */
+					$attributeValue = $this->arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode): bool {
+						return $x->code === $attributeValueCode;
+					});
+
+					if (!$attributeValue && !$createAttributeValues) {
 						continue;
 					}
 
-					$this->attributeAssignRepository->syncOne([
-						'product' => $product->getPK(),
-						'value' => $attributeValue,
-					]);
+					if (!$attributeValue) {
+						/** @var \stdClass|null|false|\Eshop\DB\AttributeValue $attributeValue */
+						$attributeValue = $this->arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode): bool {
+							return $x->label === $attributeValueCode;
+						});
+
+						$tried = 0;
+
+						while ($attributeValue === false || $attributeValue === null) {
+							try {
+								$attributeValue = $this->attributeValueRepository->createOne([
+									'code' => Strings::webalize($attributeValueCode) . '-' . Random::generate(),
+									'label' => [
+										$mutation => $attributeValueCode,
+									],
+									'attribute' => $key,
+								], false, true);
+
+								$attributeValuesToCreate[] = $attributeValue;
+							} catch (\Throwable $e) {
+							}
+
+							$tried++;
+
+							if ($tried > 10) {
+								throw new \Exception('Cant create new attribute value. Tried 10 times! (product:' . $product->code . ')');
+							}
+						}
+
+						if (!isset($groupedAttributeValues[$key][$attributeValue->uuid])) {
+							$groupedAttributeValues[$key][$attributeValue->uuid] = (object) [
+								'uuid' => $attributeValue->uuid,
+								'label' => $attributeValue instanceof AttributeValue ? $attributeValue->getValue('label', $mutation) : $attributeValue->label,
+								'code' => $attributeValue->code,
+								'attribute' => $attributeValue instanceof AttributeValue ? $attributeValue->getValue('attribute') : $attributeValue->attribute,
+							];
+						}
+					}
+
+					$attributeAssignsToSync[] = [
+						'product' => $product->uuid,
+						'value' => $attributeValue->uuid,
+					];
 				}
 			}
 		}
 
+		foreach (\array_chunk($productsToDeleteCategories, 100) as $categories) {
+			$this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
+				->where('fk_product', $categories)
+				->delete();
+		}
+
+		$this->attributeAssignRepository->syncMany($attributeAssignsToSync);
 		$this->productRepository->syncMany($valuesToUpdate);
+		$this->amountRepository->syncMany($amountsToUpdate);
+
+		return [
+			'createdProducts' => $createdProducts,
+			'updatedProducts' => $updatedProducts,
+			'skippedProducts' => $skippedProducts,
+			'updatedAmounts' => \count($amountsToUpdate),
+			'createdAttributeValues' => \count($attributeValuesToCreate),
+			'attributeAssignsUpdated' => \count($attributeAssignsToSync),
+			'elapsedTimeInSeconds' => (int) Debugger::timer(),
+		];
+	}
+
+	/**
+	 * @param array<\stdClass> $xs
+	 * @param callable $f
+	 */
+	private function arrayFind(array $xs, callable $f): ?\stdClass
+	{
+		foreach ($xs as $x) {
+			if (\call_user_func($f, $x) === true) {
+				return $x;
+			}
+		}
+
+		return null;
 	}
 }
