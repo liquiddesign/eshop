@@ -7,6 +7,7 @@ namespace Eshop\Admin\Controls;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGridFactory;
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\SupplierProductRepository;
@@ -35,6 +36,8 @@ class ProductGridFactory
 
 	private SupplierProductRepository $supplierProductRepository;
 
+	private CategoryTypeRepository $categoryTypeRepository;
+
 	public function __construct(
 		\Admin\Controls\AdminGridFactory $gridFactory,
 		Container $container,
@@ -43,7 +46,8 @@ class ProductGridFactory
 		ProductGridFiltersFactory $productGridFiltersFactory,
 		Connection $connection,
 		CategoryRepository $categoryRepository,
-		SupplierProductRepository $supplierProductRepository
+		SupplierProductRepository $supplierProductRepository,
+		CategoryTypeRepository $categoryTypeRepository
 	) {
 		$this->gridFactory = $gridFactory;
 		$this->pageRepository = $pageRepository;
@@ -53,6 +57,7 @@ class ProductGridFactory
 		$this->connection = $connection;
 		$this->categoryRepository = $categoryRepository;
 		$this->supplierProductRepository = $supplierProductRepository;
+		$this->categoryTypeRepository = $categoryTypeRepository;
 	}
 
 	public function create(array $configuration): Datagrid
@@ -261,7 +266,9 @@ class ProductGridFactory
 				/** @var \Nette\Forms\Controls\SelectBox $primaryCategorySelect */
 				$primaryCategorySelect = $form['values']['primaryCategory'];
 
-				$primaryCategorySelect->setItems($this->categoryRepository->getTreeArrayForSelect());
+				$firstCategoryType = $this->categoryTypeRepository->many()->setOrderBy(['priority'])->first();
+
+				$primaryCategorySelect->setItems($this->categoryRepository->getTreeArrayForSelect(true, $firstCategoryType->getPK()));
 				$primaryCategorySelect->setPrompt(false);
 				$primaryCategorySelect->setHtmlAttribute('data-info', 'Pokud produkt nemá zvolenou kategorii, nebude jeho primární kategorie změněna!');
 
