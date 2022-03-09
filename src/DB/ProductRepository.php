@@ -448,6 +448,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$orConditions = [
 			"IF(this.subCode, CONCAT(this.code,'.',this.subCode), this.code) LIKE :qlikeq",
 			'this.externalCode LIKE :qlike',
+			'this.ean LIKE :qlike',
 			"this.name$langSuffix LIKE :qlike COLLATE utf8_general_ci",
 			"this.name$langSuffix LIKE :qlikeq COLLATE utf8_general_ci",
 			"MATCH(this.name$langSuffix) AGAINST (:q)",
@@ -461,6 +462,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			"this.name$langSuffix LIKE :qlikeq" => 'DESC',
 			'rel0' => 'DESC',
 			'this.code LIKE :qlike' => 'DESC',
+			'this.ean LIKE :qlike' => 'DESC',
 		]);
 	}
 
