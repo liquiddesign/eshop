@@ -11,6 +11,9 @@ use Eshop\DB\Invoice;
 use Eshop\DB\InvoiceRepository;
 use Eshop\DB\OrderRepository;
 use Forms\Form;
+use Messages\DB\TemplateRepository;
+use Nette\Application\LinkGenerator;
+use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
 
 class InvoicesPresenter extends BackendPresenter
@@ -20,15 +23,55 @@ class InvoicesPresenter extends BackendPresenter
 	
 	/** @inject */
 	public OrderRepository $orderRepository;
+
+	/** @inject */
+	public LinkGenerator $linkGenerator;
+
+	/** @inject */
+	public Mailer $mailer;
+
+	/** @inject */
+	public TemplateRepository $templateRepository;
 	
 	public function createComponentGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->invoiceRepository->many(), 20, 'code', 'ASC', true);
-		
-		$grid->addColumnText('Kód', 'code', '%s', 'code');
+		$grid = $this->gridFactory->create($this->invoiceRepository->getCollection(), 20, 'code', 'ASC', true);
+		$grid->addColumnSelector();
+
+		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit']);
+		$grid->addColumn('Objednávka', function (Invoice $invoice): ?string {
+			if ($invoice->getValue('ordersCodes') === null) {
+				return null;
+			}
+
+			$orders = \explode(',', $invoice->getValue('ordersCodes'));
+			$last = Arrays::last($orders);
+
+			$ordersString = '';
+
+			foreach ($orders as $order) {
+				$link = $this->link(':Eshop:Admin:Order:default', ['ordersGrid-search_order' => $order]);
+				$orderCode = $last === $order ? $order : "$order,&nbsp";
+
+				$ordersString .= "<a href='$link'>$orderCode</a>";
+			}
+
+			return \substr($ordersString, 0, -2);
+		}, '%s', 'order.code');
+		$grid->addColumn('Veřejná URL', function (Invoice $invoice): ?string {
+			try {
+				$link = $this->linkGenerator->link('Eshop:Export:invoice', ['id' => $invoice->id]);
+
+				return "<a href=\"$link\" target=\"_blank\">$link</a>";
+			} catch (\Nette\Application\UI\InvalidLinkException $e) {
+				return null;
+			}
+		});
 		
 		$grid->addColumnLinkDetail('detail');
 		$grid->addColumnActionDelete();
+
+		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 		
 		$grid->addFilterTextInput('search', ['code'], null, 'Kód');
 		$grid->addFilterButtons();
@@ -38,13 +81,16 @@ class InvoicesPresenter extends BackendPresenter
 	
 	public function createComponentForm(): Form
 	{
+		/** @var \Eshop\DB\Invoice|null $invoice */
+		$invoice = $this->getParameter('invoice');
+
 		$form = $this->formFactory->create();
 		
 		$form->addText('code', 'Kód')->setRequired();
 		$form->addDate('exposed', 'Datum vystavení')->setRequired();
 		$form->addDate('taxDate', 'Datum zdanitelného plnění')->setRequired();
 		$form->addDate('dueDate', 'Datum splatnosti')->setRequired();
-		$form->addDataSelect('order', 'Objednávka', $this->orderRepository->many()->toArrayOf('code'));
+		$form->addSelect2('order', 'Objednávka', $this->orderRepository->many()->toArrayOf('code'))->setRequired()->setDisabled((bool) $invoice);
 		
 		$form->addGroup('Stav faktury');
 		$form->addDate('paidDate', 'Zaplaceno')->setNullable();
@@ -52,10 +98,12 @@ class InvoicesPresenter extends BackendPresenter
 	
 		$form->addSubmits();
 		
-		$form->onSuccess[] = function (AdminForm $form): void {
+		$form->onSuccess[] = function (AdminForm $form) use ($invoice): void {
 			$values = $form->getValues('array');
-			
-			$invoice = $this->invoiceRepository->createFromOrder($this->orderRepository->one(Arrays::pick($values, 'order')), $values);
+
+			$invoice = $invoice ? $this->invoiceRepository->syncOne($values) :
+				$this->invoiceRepository->createFromOrder($this->orderRepository->one(Arrays::pick($values, 'order')), $values);
+
 			
 			$this->flashMessage('Uloženo', 'success');
 			
@@ -89,22 +137,68 @@ class InvoicesPresenter extends BackendPresenter
 	
 	public function renderDetail(Invoice $invoice): void
 	{
-		unset($invoice);
-		
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Faktury', 'default'],
 			['Detail'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayButtons = [
+			$this->createBackButton('default'),
+			$this->createButtonWithClass('demand!', '<i class="fas fa-meteor"></i>&nbsp;Urgovat', 'btn btn-sm btn-outline-primary'),
+			$this->createButtonWithClass('notify!', '<i class="fas fa-bell"></i>&nbsp;Notifikovat', 'btn btn-sm btn-outline-primary'),
+		];
+
+		try {
+			$link = $this->linkGenerator->link('Eshop:Export:invoice', ['id' => $invoice->id]);
+
+			$this->template->displayButtons[] = '<a href="' . $link . '" target="_blank"><button class="btn btn-sm btn-outline-primary"><i class="fas fa-print"></i>&nbsp;Tisková sestava</button></a>';
+		} catch (\Nette\Application\UI\InvalidLinkException $e) {
+			\bdump($e);
+		}
+
 		$this->template->displayControls = [$this->getComponent('form')];
+	}
+
+	public function handleDemand(Invoice $invoice): void
+	{
+		try {
+			$mail = $this->templateRepository->createMessage('invoice.demand', $invoice->getEmailVariables(), $invoice->customer->email);
+			$this->mailer->send($mail);
+
+			$this->flashMessage('Odesláno', 'success');
+		} catch (\Throwable $e) {
+			\bdump($e);
+
+			$this->flashMessage('Nelze odeslat email!', 'error');
+		}
+
+		$this->redirect('this');
+	}
+
+	public function handleNotify(Invoice $invoice): void
+	{
+		try {
+			$mail = $this->templateRepository->createMessage('invoice.notify', $invoice->getEmailVariables(), $invoice->customer->email);
+			$this->mailer->send($mail);
+
+			$this->flashMessage('Odesláno', 'success');
+		} catch (\Throwable $e) {
+			\bdump($e);
+
+			$this->flashMessage('Nelze odeslat email!', 'error');
+		}
+
+		$this->redirect('this');
 	}
 	
 	public function actionDetail(Invoice $invoice): void
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('form');
-		
-		$form->setDefaults($invoice->toArray());
+
+		$values = $invoice->toArray(['orders', 'items']);
+		$values['order'] = Arrays::first($values['orders']);
+
+		$form->setDefaults($values);
 	}
 }

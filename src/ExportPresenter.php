@@ -10,6 +10,7 @@ use Eshop\DB\CurrencyRepository;
 use Eshop\DB\Customer;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\DeliveryTypeRepository;
+use Eshop\DB\InvoiceRepository;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
@@ -87,6 +88,9 @@ abstract class ExportPresenter extends Presenter
 
 	/** @inject */
 	public PhotoRepository $photoRepository;
+
+	/** @inject */
+	public InvoiceRepository $invoiceRepository;
 
 	/** @inject */
 	public Shopper $shopper;
@@ -324,6 +328,23 @@ abstract class ExportPresenter extends Presenter
 		}
 
 		return $this->priceListRepo->many()->where('this.uuid', \explode(';', $setting->value))->toArray();
+	}
+
+	public function actionInvoice(string $id): void
+	{
+		unset($id);
+	}
+
+	public function renderInvoice(string $id): void
+	{
+		$invoice = $this->invoiceRepository->one(['id' => $id], true);
+
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+
+		$template->invoice = $invoice;
+
+		$template->setFile($this->template->getFile() ?: __DIR__ . '/templates/export/invoice.latte');
 	}
 
 	private function export(string $name): void

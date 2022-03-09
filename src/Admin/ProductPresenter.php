@@ -881,7 +881,11 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 						$newSupplierProductValues = ['product' => $values['mainProduct']];
 					}
 
-					$supplierProduct->update($newSupplierProductValues);
+					try {
+						$supplierProduct->update($newSupplierProductValues);
+					} catch (\Throwable $e) {
+						$warning1 = 'Některé produkty již mají namapovaného stejného dodavatele! Mapování těchto dodavatelů bylo vymazáno.';
+					}
 				}
 
 				try {
@@ -889,7 +893,7 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 				} catch (\Exception $e) {
 					\bdump($e);
 
-					$warning2 = 'Některé produkty nebyly smazány! Smazání pravděpodobně blokují vazby s jinými produkty.';
+					$warning2 = 'Některé produkty nebyly smazány! Smazání pravděpodobně blokují vazby s jinými entitami.';
 				}
 			}
 
