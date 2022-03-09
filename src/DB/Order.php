@@ -72,6 +72,12 @@ class Order extends \StORM\Entity
 	 * @column
 	 */
 	public bool $zasilkovnaCompleted = false;
+
+	/**
+	 * Edited manually in Admin
+	 * @column
+	 */
+	public bool $manuallyEdited = false;
 	
 	/**
 	 * Nákup

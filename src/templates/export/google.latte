@@ -29,7 +29,7 @@
                 {var $attributes = $product->getPreviewParameters()}
                 <g:id>{$product->getFullCode()}</g:id>
                 <g:title><![CDATA[{$product->name}]]></g:title>
-                <g:description><![CDATA[{$product->primaryCategory ? ($product->primaryCategory->exportGoogleCategory && Nette\Utils\Strings::length($product->primaryCategory->exportGoogleCategory) > 0 ? $product->primaryCategory->exportGoogleCategory : $product->primaryCategory->name) : null} {\strip_tags($product->content)}]]></g:description>
+                <g:description><![CDATA[{$product->primaryCategory ? ($product->primaryCategory->exportGoogleCategory && Nette\Utils\Strings::length($product->primaryCategory->exportGoogleCategory) > 0 ? $product->primaryCategory->exportGoogleCategory : $product->primaryCategory->name) : null} {\strip_tags($product->content ?? '')}]]></g:description>
                 <g:link>{plink //:Eshop:Product:detail $product->getPK()}</g:link>
                 {ifset $product->imageFileName}<g:image_link>{$productImageUrl . $product->imageFileName}</g:image_link>{/ifset}
                 <g:condition>new</g:condition>

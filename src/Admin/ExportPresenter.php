@@ -34,6 +34,21 @@ class ExportPresenter extends BackendPresenter
 	/** @inject */
 	public Storage $storage;
 
+	/**
+	 * @var array<string|array<mixed>>
+	 * Can be simple: ['settingKey' => 'inputLabel']
+	 * Or complex: [
+	 * 		'inputGroupLabel' => [[
+	 * 			'key' => '...', //settings key
+	 * 			'label' => '...', //input label
+	 * 			'type' => '...', //input type (string,select,multi)
+	 * 			'options' => [], //if select or multi you need to specify options,
+	 * 			'prompt' => null|string, //prompt for select
+	 * 	]]
+	 * ]
+	 */
+	protected array $customSettings = [];
+
 	public function actionDefault(): void
 	{
 		/** @var \Admin\Controls\AdminForm $form */
@@ -54,6 +69,16 @@ class ExportPresenter extends BackendPresenter
 			'googleHighlightsMutation',
 			'googleSalePricelist',
 		];
+
+		foreach ($this->customSettings as $key => $groupSettings) {
+			if (\is_array($groupSettings)) {
+				foreach ($groupSettings as $setting) {
+					$keys[] = $setting['key'];
+				}
+			} else {
+				$keys[] = $key;
+			}
+		}
 
 		$defaults = [];
 
@@ -153,6 +178,36 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 			'Jazyk tagu Představení produktu [product_highlight]',
 			\array_combine($mutations, $mutations),
 		)->setPrompt('- Primární -');
+
+		$basicSettings = false;
+
+		foreach ($this->customSettings as $header => $settings) {
+			if (\is_array($settings)) {
+				$form->addGroup($header);
+
+				foreach ($settings as $setting) {
+					if ($setting['type'] === 'string') {
+						$form->addText($setting['key'], $setting['label'])->setNullable();
+					} elseif ($setting['type'] === 'select') {
+						$form->addSelect2($setting['key'], $setting['label'], $setting['options'])->setPrompt($setting['prompt'] ?? '- Nepřiřazeno -')->checkDefaultValue(false);
+					} elseif ($setting['type'] === 'multi') {
+						$form->addMultiSelect2($setting['key'], $setting['label'], $setting['options'])->checkDefaultValue(false);
+					}
+				}
+			} else {
+				$basicSettings = true;
+			}
+		}
+
+		if ($basicSettings) {
+			$form->addGroup('Ostatní');
+
+			foreach ($this->customSettings as $header => $settings) {
+				if (!\is_array($settings)) {
+					$form->addText($header, $settings)->setNullable();
+				}
+			}
+		}
 
 		$form->addSubmit('submit', 'Uložit');
 
