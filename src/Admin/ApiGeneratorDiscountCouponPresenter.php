@@ -11,7 +11,6 @@ use Eshop\DB\ApiGeneratorDiscountCoupon;
 use Eshop\DB\ApiGeneratorDiscountCouponRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\CustomerRepository;
-use Eshop\DB\DiscountConditionRepository;
 use Eshop\DB\DiscountCouponRepository;
 use Eshop\DB\DiscountRepository;
 use Grid\Datagrid;
@@ -34,9 +33,6 @@ class ApiGeneratorDiscountCouponPresenter extends BackendPresenter
 	public DiscountCouponRepository $discountCouponRepository;
 
 	/** @inject */
-	public DiscountConditionRepository $discountConditionRepository;
-
-	/** @inject */
 	public IApiGeneratorDiscountCouponFormFactory $apiGeneratorDiscountCouponFormFactory;
 
 	public function createComponentGrid(): AdminGrid
@@ -55,7 +51,6 @@ class ApiGeneratorDiscountCouponPresenter extends BackendPresenter
 		$grid->addColumnLinkDetail('Detail');
 		$grid->addColumnActionDelete();
 
-//		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected();
 
 		$grid->addFilterTextInput('search', ['this.label', 'this.code'], null, 'Kód, název');

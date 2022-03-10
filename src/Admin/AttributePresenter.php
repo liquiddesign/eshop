@@ -397,7 +397,7 @@ class AttributePresenter extends BackendPresenter
 		$nameInput = $form->addLocaleText('label', 'Popisek');
 
 		$form->addLocaleTextArea('note', 'Dodatečné informace');
-		$form->addText('metaValue', 'Doprovodná hodnota');
+		$form->addText('metaValue', 'Doprovodná hodnota')->setNullable();
 		$form->addText('number', 'Číselná reprezentace')->addFilter('floatval')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->addText('priority', 'Priorita')
 			->addRule($form::INTEGER)
