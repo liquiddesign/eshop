@@ -1616,9 +1616,11 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			'ean',
 			'name' => "name$mutationSuffix",
 			'perex' => "perex$mutationSuffix",
+			'supplierContentLock',
 		], [], true)->fetchArray(\stdClass::class);
 
 		$header = $reader->getHeader();
+
 		$parsedHeader = [];
 		$attributes = [];
 
@@ -1819,6 +1821,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				if ($product) {
 					if (\count($newValues) > 0) {
 						$newValues['uuid'] = $product->uuid;
+						$newValues['supplierContentLock'] = $product->supplierContentLock;
 
 						if (isset($newValues['name'][$mutation]) && $newValues['name'][$mutation] !== $product->name) {
 							$newValues['supplierContentLock'] = true;
