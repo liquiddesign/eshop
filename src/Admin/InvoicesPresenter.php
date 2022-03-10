@@ -11,10 +11,13 @@ use Eshop\DB\Invoice;
 use Eshop\DB\InvoiceRepository;
 use Eshop\DB\OrderRepository;
 use Forms\Form;
+use Grid\Datagrid;
 use Messages\DB\TemplateRepository;
 use Nette\Application\LinkGenerator;
+use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
+use Nette\Utils\Html;
 
 class InvoicesPresenter extends BackendPresenter
 {
@@ -35,6 +38,8 @@ class InvoicesPresenter extends BackendPresenter
 	
 	public function createComponentGrid(): AdminGrid
 	{
+		$btnSecondary = 'btn btn-sm btn-outline-primary';
+
 		$grid = $this->gridFactory->create($this->invoiceRepository->getCollection(), 20, 'code', 'ASC', true);
 		$grid->addColumnSelector();
 
@@ -72,6 +77,14 @@ class InvoicesPresenter extends BackendPresenter
 		$grid->addColumnActionDelete();
 
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
+
+		$grid->getForm()->addSubmit('demandMultiple', Html::fromHtml('<i class="fa fa-meteor"></i>&nbsp;Urgovat'))
+			->setHtmlAttribute('class', $btnSecondary)
+			->onClick[] = [$this, 'demandMultiple'];
+
+		$grid->getForm()->addSubmit('notifyMultiple', Html::fromHtml('<i class="fa fa-bell"></i>&nbsp;Notifikovat'))
+			->setHtmlAttribute('class', $btnSecondary)
+			->onClick[] = [$this, 'notifyMultiple'];
 		
 		$grid->addFilterTextInput('search', ['code'], null, 'Kód');
 		$grid->addFilterButtons();
@@ -200,5 +213,49 @@ class InvoicesPresenter extends BackendPresenter
 		$values['order'] = Arrays::first($values['orders']);
 
 		$form->setDefaults($values);
+	}
+
+	public function demandMultiple(Button $button): void
+	{
+		/** @var \Grid\Datagrid $grid */
+		$grid = $button->lookup(Datagrid::class);
+
+		foreach ($grid->getSelectedIds() as $id) {
+			$this->demandInvoice($grid->getSource()->where('this.uuid', $id)->first());
+		}
+
+		$grid->getPresenter()->flashMessage('Provedeno', 'success');
+		$grid->getPresenter()->redirect('this');
+	}
+
+	public function notifyMultiple(Button $button): void
+	{
+		/** @var \Grid\Datagrid $grid */
+		$grid = $button->lookup(Datagrid::class);
+
+		foreach ($grid->getSelectedIds() as $id) {
+			$this->notifyInvoice($grid->getSource()->where('this.uuid', $id)->first());
+		}
+
+		$grid->getPresenter()->flashMessage('Provedeno', 'success');
+		$grid->getPresenter()->redirect('this');
+	}
+
+	private function demandInvoice(Invoice $invoice): void
+	{
+		try {
+			$mail = $this->templateRepository->createMessage('invoice.demand', $invoice->getEmailVariables(), $invoice->customer->email);
+			$this->mailer->send($mail);
+		} catch (\Throwable $e) {
+		}
+	}
+
+	private function notifyInvoice(Invoice $invoice): void
+	{
+		try {
+			$mail = $this->templateRepository->createMessage('invoice.notify', $invoice->getEmailVariables(), $invoice->customer->email);
+			$this->mailer->send($mail);
+		} catch (\Throwable $e) {
+		}
 	}
 }
