@@ -16,6 +16,8 @@ use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use StORM\Connection;
+use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\DB\PageRepository;
 
 class ProductGridFactory
@@ -328,7 +330,11 @@ class ProductGridFactory
 
 		foreach ($product->photos as $photo) {
 			foreach ($subDirs as $subDir) {
-				FileSystem::delete("$dir/$subDir/$photo->fileName");
+				try {
+					FileSystem::delete("$dir/$subDir/$photo->fileName");
+				} catch (\Throwable $e) {
+					Debugger::log($e, ILogger::WARNING);
+				}
 			}
 		}
 
