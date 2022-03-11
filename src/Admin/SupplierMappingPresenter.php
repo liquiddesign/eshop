@@ -180,7 +180,10 @@ class SupplierMappingPresenter extends BackendPresenter
 			});
 
 			$property = 'attribute';
+			$grid->addColumnInputCheckbox('Aktivní', 'active', '', 'active');
 			$grid->addFilterTextInput('search', ['name'], null, 'Název');
+			$grid->addFilterSelectInput('active', 'active = :active', null, '- Aktivní -', null, ['0' => 'Ne', '1' => 'Ano'], 'active');
+			$grid->addButtonSaveAll();
 		}
 
 		if ($this->tab === 'attributeValue') {
@@ -226,7 +229,7 @@ class SupplierMappingPresenter extends BackendPresenter
 
 		$grid->addButtonBulkEdit(
 			'form',
-			[$property],
+			$property === 'attribute' ? [$property, 'active'] : [$property],
 			'grid',
 			'bulkEdit',
 			'Hromadná úprava',
@@ -238,7 +241,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		);
 		//      $grid->addButtonBulkEdit('mappingForm', [], 'grid', 'bulkMapping', 'Vytvořit strukturu');
 
-		$submit = $grid->getForm()->addSubmit('submit', 'Vytvořit strukturu')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+		$submit = $grid->getForm()->addSubmit('createStructureSubmit', 'Vytvořit strukturu')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 		$submit->onClick[] = function ($button) use ($grid): void {
 			$this->session->getSection('bulkEdit')->set('totalIds', \array_keys($grid->getFilteredSource()->toArray()));
 			$this->redirect('mapping', \serialize($grid->getSelectedIds()));
@@ -286,6 +289,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		if ($this->tab === 'attribute') {
 			$form->addText('name', 'Název / hodnota')->setHtmlAttribute('readonly', 'readonly');
 			$form->addSelect2Ajax('attribute', $this->link('getAttributes!'), 'Atribut', [], 'Nepřiřazeno')->setPrompt('Nepřiřazeno');
+			$form->addCheckbox('active', 'Aktivní');
 		}
 
 		if ($this->tab === 'attributeValue') {

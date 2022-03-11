@@ -28,6 +28,12 @@ class SupplierAttribute extends \StORM\Entity
 	 * @column{"type":"enum","length":"'and','or'"}
 	 */
 	public string $filterType = 'and';
+
+	/**
+	 * Active
+	 * @column
+	 */
+	public bool $active = true;
 	
 	/**
 	 * Mapování atributu, jestli je zadáno
