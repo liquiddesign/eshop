@@ -46,6 +46,7 @@ use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use StORM\Literal;
 use Tracy\Debugger;
+use Tracy\ILogger;
 
 class OrderPresenter extends BackendPresenter
 {
@@ -1516,7 +1517,11 @@ class OrderPresenter extends BackendPresenter
 
 		$tempFilename = \tempnam($presenter->tempDir, 'csv');
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
-			FileSystem::delete($tempFilename);
+			try {
+				FileSystem::delete($tempFilename);
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::WARNING);
+			}
 		};
 		$this->orderRepository->csvExport($object, Writer::createFromPath($tempFilename, 'w+'));
 		$response = new FileResponse($tempFilename, "objednavka-$object->code.csv", 'text/csv');
@@ -1532,7 +1537,11 @@ class OrderPresenter extends BackendPresenter
 		\fwrite($fh, $this->orderRepository->ediExport($object));
 		\fclose($fh);
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
-			FileSystem::delete($tempFilename);
+			try {
+				FileSystem::delete($tempFilename);
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::WARNING);
+			}
 		};
 		$this->sendResponse(new FileResponse($tempFilename, 'order.txt', 'text/plain'));
 	}

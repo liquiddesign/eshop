@@ -21,6 +21,8 @@ use Nette\Forms\Controls\TextInput;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use StORM\DIConnection;
+use Tracy\Debugger;
+use Tracy\ILogger;
 
 class RelatedPresenter extends BackendPresenter
 {
@@ -501,7 +503,11 @@ class RelatedPresenter extends BackendPresenter
 			$tempFilename = \tempnam($this->tempDir, 'csv');
 
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
-				FileSystem::delete($tempFilename);
+				try {
+					FileSystem::delete($tempFilename);
+				} catch (\Throwable $e) {
+					Debugger::log($e, ILogger::WARNING);
+				}
 			};
 
 			$this->relatedRepository->exportCsv(Writer::createFromPath($tempFilename, 'w+'), $relations);

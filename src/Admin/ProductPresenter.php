@@ -643,7 +643,11 @@ class ProductPresenter extends BackendPresenter
 			return;
 		}
 
-		FileSystem::delete($rootDir . \DIRECTORY_SEPARATOR . $file->fileName);
+		try {
+			FileSystem::delete($rootDir . \DIRECTORY_SEPARATOR . $file->fileName);
+		} catch (\Throwable $e) {
+			Debugger::log($e, ILogger::WARNING);
+		}
 	}
 
 	public function actionNewsletterExportSelect(array $ids): void
@@ -789,7 +793,11 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 			$tempFilename = \tempnam($this->tempDir, 'html');
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
 				if (\is_file($tempFilename)) {
-					FileSystem::delete($tempFilename);
+					try {
+						FileSystem::delete($tempFilename);
+					} catch (\Throwable $e) {
+						Debugger::log($e, ILogger::WARNING);
+					}
 				}
 			};
 
@@ -808,7 +816,11 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 			$zip->close();
 
 			$this->application->onShutdown[] = function () use ($zipFilename): void {
-				FileSystem::delete($zipFilename);
+				try {
+					FileSystem::delete($zipFilename);
+				} catch (\Throwable $e) {
+					Debugger::log($e, ILogger::WARNING);
+				}
 			};
 
 			$this->sendResponse(new FileResponse($zipFilename, 'newsletter.zip', 'application/zip'));
@@ -1016,9 +1028,23 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 							continue;
 						}
 
-						FileSystem::delete($originalPath . '/' . $existingImagePath);
-						FileSystem::delete($detailPath . '/' . $existingImagePath);
-						FileSystem::delete($thumbPath . '/' . $existingImagePath);
+						try {
+							FileSystem::delete($originalPath . '/' . $existingImagePath);
+						} catch (\Throwable $e) {
+							Debugger::log($e, ILogger::WARNING);
+						}
+
+						try {
+							FileSystem::delete($detailPath . '/' . $existingImagePath);
+						} catch (\Throwable $e) {
+							Debugger::log($e, ILogger::WARNING);
+						}
+
+						try {
+							FileSystem::delete($thumbPath . '/' . $existingImagePath);
+						} catch (\Throwable $e) {
+							Debugger::log($e, ILogger::WARNING);
+						}
 					}
 
 					$imageD = Image::fromFile($imagesPath . '/' . $imageFileName);

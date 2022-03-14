@@ -12,6 +12,8 @@ use StORM\DIConnection;
 use StORM\ICollection;
 use StORM\Literal;
 use StORM\SchemaManager;
+use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\DB\Page;
 
 /**
@@ -223,8 +225,12 @@ class SupplierProductRepository extends \StORM\Repository
 			$imageSizes = ['origin', 'detail', 'thumb'];
 			
 			foreach ($imageSizes as $imageSize) {
-				FileSystem::copy($sourceImageDirectory . $sep . $imageSize . $sep . $draft->fileName, $galleryImageDirectory . $sep . $imageSize . $sep . $draft->fileName);
-				@\touch($galleryImageDirectory . $sep . $imageSize . $sep . $draft->fileName, $mtime);
+				try {
+					FileSystem::copy($sourceImageDirectory . $sep . $imageSize . $sep . $draft->fileName, $galleryImageDirectory . $sep . $imageSize . $sep . $draft->fileName);
+					@\touch($galleryImageDirectory . $sep . $imageSize . $sep . $draft->fileName, $mtime);
+				} catch (\Throwable $e) {
+					Debugger::log($e, ILogger::WARNING);
+				}
 			}
 		}
 

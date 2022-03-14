@@ -18,6 +18,8 @@ use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use StORM\DIConnection;
 use StORM\ICollection;
+use Tracy\Debugger;
+use Tracy\ILogger;
 
 abstract class SupplierProvider
 {
@@ -140,9 +142,23 @@ abstract class SupplierProvider
 				
 				$this->imageDownloadCount++;
 			} catch (\Exception $x) {
-				FileSystem::delete($origin);
-				FileSystem::delete($this->imageDirectory . \DIRECTORY_SEPARATOR . 'detail' . \DIRECTORY_SEPARATOR . $fileName);
-				FileSystem::delete($this->imageDirectory . \DIRECTORY_SEPARATOR . 'thumb' . \DIRECTORY_SEPARATOR . $fileName);
+				try {
+					FileSystem::delete($origin);
+				} catch (\Throwable $e) {
+					Debugger::log($e, ILogger::WARNING);
+				}
+
+				try {
+					FileSystem::delete($this->imageDirectory . \DIRECTORY_SEPARATOR . 'detail' . \DIRECTORY_SEPARATOR . $fileName);
+				} catch (\Throwable $e) {
+					Debugger::log($e, ILogger::WARNING);
+				}
+
+				try {
+					FileSystem::delete($this->imageDirectory . \DIRECTORY_SEPARATOR . 'thumb' . \DIRECTORY_SEPARATOR . $fileName);
+				} catch (\Throwable $e) {
+					Debugger::log($e, ILogger::WARNING);
+				}
 				
 				$this->imageErrorCount++;
 				$origin = null;

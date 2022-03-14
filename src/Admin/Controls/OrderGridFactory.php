@@ -20,6 +20,8 @@ use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use StORM\Collection;
 use StORM\ICollection;
+use Tracy\Debugger;
+use Tracy\ILogger;
 
 class OrderGridFactory
 {
@@ -324,7 +326,11 @@ class OrderGridFactory
 
 		$tempFilename = \tempnam($presenter->tempDir, 'csv');
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
-			FileSystem::delete($tempFilename);
+			try {
+				FileSystem::delete($tempFilename);
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::WARNING);
+			}
 		};
 		$this->orderRepository->csvExportZasilkovna($grid->getSelectedIds(), Writer::createFromPath($tempFilename, 'w+'));
 		$response = new FileResponse($tempFilename, 'zasilkovna.csv', 'text/csv');

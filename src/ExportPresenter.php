@@ -30,6 +30,8 @@ use Nette\Http\Response;
 use Nette\Security\AuthenticationException;
 use Nette\Utils\FileSystem;
 use Security\DB\AccountRepository;
+use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\DB\SettingRepository;
 
 abstract class ExportPresenter extends Presenter
@@ -227,7 +229,11 @@ abstract class ExportPresenter extends Presenter
 		\fwrite($fh, $this->orderRepo->ediExport($order));
 		\fclose($fh);
 		$this->context->getService('application')->onShutdown[] = function () use ($tmpfname): void {
-			FileSystem::delete($tmpfname);
+			try {
+				FileSystem::delete($tmpfname);
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::WARNING);
+			}
 		};
 		$this->sendResponse(new FileResponse($tmpfname, 'order.txt', 'text/plain'));
 	}
