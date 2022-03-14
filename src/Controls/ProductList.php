@@ -279,7 +279,6 @@ class ProductList extends Datalist
 		$templateFilters = [];
 
 		foreach (Arrays::pick($filters, 'attributes', []) as $attributeKey => $attributeValues) {
-			/** @phpstan-ignore-next-line */
 			if ($attributeKey === 'producer') {
 				/** @var \Eshop\DB\Producer $producer */
 				foreach ($this->producerRepository->getCollection()->where('this.uuid', $attributeValues) as $producer) {
@@ -289,7 +288,6 @@ class ProductList extends Datalist
 				continue;
 			}
 
-			/** @phpstan-ignore-next-line */
 			if ($attributeKey === 'availability') {
 				/** @var \Eshop\DB\DisplayAmount $displayAmount */
 				foreach ($this->displayAmountRepository->getCollection()->where('this.uuid', $attributeValues) as $displayAmount) {
@@ -299,7 +297,6 @@ class ProductList extends Datalist
 				continue;
 			}
 
-			/** @phpstan-ignore-next-line */
 			if ($attributeKey === 'delivery') {
 				/** @var \Eshop\DB\DisplayDelivery $displayDelivery */
 				foreach ($this->displayDeliveryRepository->getCollection()->where('this.uuid', $attributeValues) as $displayDelivery) {
