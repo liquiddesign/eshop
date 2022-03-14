@@ -336,14 +336,15 @@ abstract class ExportPresenter extends Presenter
 		return $this->priceListRepo->many()->where('this.uuid', \explode(';', $setting->value))->toArray();
 	}
 
-	public function actionInvoice(string $id): void
+	public function actionInvoice(string $id, ?string $hash = null): void
 	{
 		unset($id);
+		unset($hash);
 	}
 
-	public function renderInvoice(string $id): void
+	public function renderInvoice(string $id, ?string $hash = null): void
 	{
-		$invoice = $this->invoiceRepository->one(['id' => $id], true);
+		$invoice = $this->invoiceRepository->one(['id' => $id, 'hash' => $hash], true);
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;

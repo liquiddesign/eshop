@@ -9,6 +9,7 @@ use StORM\RelationCollection;
 /**
  * Faktury
  * @table
+ * @index{"name":"invoice_codehash","unique":true,"columns":["code", "hash"]}
  */
 class Invoice extends \StORM\Entity
 {
@@ -89,6 +90,18 @@ class Invoice extends \StORM\Entity
 	 * @column
 	 */
 	public float $totalPriceVat;
+
+	/**
+	 * Cena k úhradě
+	 * @column
+	 */
+	public float $totalPriceWithoutDiscount;
+
+	/**
+	 * Celková cena s daní
+	 * @column
+	 */
+	public float $totalPriceVatWithoutDiscount;
 
 	/**
 	 * Uhrazeno částka

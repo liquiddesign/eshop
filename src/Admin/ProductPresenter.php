@@ -71,6 +71,7 @@ class ProductPresenter extends BackendPresenter
 		'exportColumns' => [
 			'code' => 'Kód',
 			'ean' => 'EAN',
+			'mpn' => 'P/N',
 			'name' => 'Název',
 			'perex' => 'Popisek',
 			'priority' => 'Priorita',

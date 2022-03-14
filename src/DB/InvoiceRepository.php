@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
+use Nette\Utils\Random;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Repository;
@@ -57,7 +58,12 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 		
 		$addressValues = $order->purchase->billAddress->toArray([], true, false, false);
 		unset($addressValues['id']);
-		
+
+		do {
+			$newHash = Random::generate(15, '0-9a-zA-Z');
+			$hash = $this->many()->where('hash', $newHash)->first();
+		} while ($hash !== null);
+
 		$invoice = $this->createOne([
 				'totalPrice' => $order->getTotalPrice(),
 				'totalPriceVat' => $order->getTotalPriceVat(),
@@ -65,6 +71,9 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 				'address' => $this->addressRepository->createOne($addressValues),
 				'customer' => $order->purchase->customer,
 				'orders' => [$order->getPK()],
+				'hash' => $newHash,
+				'totalPriceWithoutDiscount' => $order->getTotalPrice() + $order->getDiscountPrice(),
+				'totalPriceVatWithoutDiscount' => $order->getTotalPriceVat() + $order->getDiscountPriceVat(),
 			] + $values);
 		
 		foreach ($order->purchase->getItems() as $item) {

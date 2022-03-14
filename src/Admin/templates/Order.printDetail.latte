@@ -228,7 +228,7 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                                 {if $presenter->shopper->getShowVat()}
                                     <tr>
                                         <th>Mezisoučet:</th>
-                                        <td>{$order->purchase->getSumPrice()|price:$purchase->currency->code}</td>
+                                        <td>{($order->purchase->getSumPriceVat())|price:$purchase->currency->code}</td>
                                     </tr>
                                     <tr>
                                         <th>Doprava:</th>
@@ -243,13 +243,17 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                                         <td>{($order->getTotalPriceVat() - $order->getTotalPrice())|price:$purchase->currency->code}</td>
                                     </tr>
                                     <tr>
+                                        <th>Sleva celkem:</th>
+                                        <td>{($order->getTotalPriceVat() - ($order->getTotalPriceVat() - $order->getDiscountPriceVat()))|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
                                         <th><span style="font-size: large">Celkem:</span></th>
                                         <td><span style="font-size: large">{$order->getTotalPriceVat()|price:$purchase->currency->code}</span></td>
                                     </tr>
                                 {elseif $presenter->shopper->getShowWithoutVat()}
                                     <tr>
                                         <th>Mezisoučet:</th>
-                                        <td>{$order->purchase->getSumPrice()|price:$purchase->currency->code}</td>
+                                        <td>{($order->purchase->getSumPrice())|price:$purchase->currency->code}</td>
                                     </tr>
                                     <tr>
                                         <th>Doprava:</th>
@@ -258,6 +262,10 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                                     <tr>
                                         <th>Poplatek platební metody:</th>
                                         <td>{$order->getPaymentPriceSum()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Sleva celkem:</th>
+                                        <td>{($order->getTotalPrice() - ($order->getTotalPrice() - $order->getDiscountPrice()))|price:$purchase->currency->code}</td>
                                     </tr>
                                     <tr>
                                         <th><span style="font-size: large">Celkem:</span></th>

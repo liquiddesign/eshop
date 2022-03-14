@@ -113,7 +113,7 @@
                             {if $presenter->shopper->getShowVat()}
                                 <tr>
                                     <th>Mezisoučet:</th>
-                                    <td>{$order->purchase->getSumPrice()|price:$purchase->currency->code}</td>
+                                    <td>{($order->purchase->getSumPriceVat())|price:$purchase->currency->code}</td>
                                 </tr>
                                 <tr>
                                     <th>Doprava:</th>
@@ -136,7 +136,7 @@
                             {elseif $presenter->shopper->getShowWithoutVat()}
                                 <tr>
                                     <th>Mezisoučet:</th>
-                                    <td>{$order->purchase->getSumPrice()|price:$purchase->currency->code}</td>
+                                    <td>{($order->purchase->getSumPrice())|price:$purchase->currency->code}</td>
                                 </tr>
                                 <tr>
                                     <th>Doprava:</th>

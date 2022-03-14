@@ -65,10 +65,12 @@ class InvoicesPresenter extends BackendPresenter
 		}, '%s', 'order.code');
 		$grid->addColumn('Veřejná URL', function (Invoice $invoice): ?string {
 			try {
-				$link = $this->linkGenerator->link('Eshop:Export:invoice', ['id' => $invoice->id]);
+				$link = $this->linkGenerator->link('Eshop:Export:invoice', ['id' => $invoice->id, 'hash' => $invoice->hash]);
 
 				return "<a href=\"$link\" target=\"_blank\">$link</a>";
 			} catch (\Nette\Application\UI\InvalidLinkException $e) {
+				\bdump($e);
+
 				return null;
 			}
 		});
@@ -162,7 +164,7 @@ class InvoicesPresenter extends BackendPresenter
 		];
 
 		try {
-			$link = $this->linkGenerator->link('Eshop:Export:invoice', ['id' => $invoice->id]);
+			$link = $this->linkGenerator->link('Eshop:Export:invoice', ['id' => $invoice->id, 'hash' => $invoice->hash]);
 
 			$this->template->displayButtons[] = '<a href="' . $link . '" target="_blank"><button class="btn btn-sm btn-outline-primary"><i class="fas fa-print"></i>&nbsp;Tisková sestava</button></a>';
 		} catch (\Nette\Application\UI\InvalidLinkException $e) {
