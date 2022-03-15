@@ -37,7 +37,7 @@ class ApiGeneratorDiscountCouponForm extends Control
 				try {
 					$url = $presenter->link('//:Eshop:ApiGenerator:default', ['generator' => 'discountCoupon', 'code' => $apiGeneratorDiscountCoupon->code]);
 
-					$codeInput->setHtmlAttribute('data-info', "Odkaz pro generování: <a class='ml-2' href='$url' target='_blank'><i class='fas fa-external-link-alt'></i>$url</a>");
+					$codeInput->setHtmlAttribute('data-info', "Odkaz pro generování: <a class='ml-2' href='$url' target='_blank'><i class='fas fa-external-link-alt mr-1'></i>$url</a>");
 				} catch (\Throwable $e) {
 				}
 			}
