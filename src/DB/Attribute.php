@@ -113,6 +113,12 @@ class Attribute extends \StORM\Entity
 	public bool $systemic = false;
 
 	/**
+	 * Systemic
+	 * @column
+	 */
+	public int $systemicLock = 0;
+
+	/**
 	 * Zobrazit jako range
 	 * @column
 	 */
@@ -146,11 +152,32 @@ class Attribute extends \StORM\Entity
 
 	public function isSystemic(): bool
 	{
-		return $this->systemic;
+		return $this->systemic || $this->systemicLock > 0;
 	}
 
 	public function isHardSystemic(): bool
 	{
 		return $this->isSystemic() && Arrays::contains(\array_keys(ProductFilter::SYSTEMIC_ATTRIBUTES), $this->getPK());
+	}
+
+	public function addSystemic(): int
+	{
+		$this->systemicLock++;
+		$this->updateAll();
+
+		return $this->systemicLock;
+	}
+
+	public function removeSystemic(): int
+	{
+		$this->systemicLock--;
+
+		if ($this->systemicLock < 0) {
+			$this->systemicLock = 0;
+		} else {
+			$this->updateAll();
+		}
+
+		return $this->systemicLock;
 	}
 }

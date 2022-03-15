@@ -26,7 +26,7 @@ class SettingsPresenter extends BackendPresenter
 	 * 			'options' => [], //if select or multi you need to specify options,
 	 * 			'prompt' => null|string, //prompt for select,
 	 * 			'info' => null|string, // data-info for element,
-	 * 			'onSave' => callable // custom callback called on save form,
+	 * 			'onSave' => callable // custom callback called on save form, (key, oldValue, newValue)
 	 * 	], ...]
 	 * ]
 	 */
