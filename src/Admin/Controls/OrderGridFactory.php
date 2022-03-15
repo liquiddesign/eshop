@@ -39,6 +39,9 @@ class OrderGridFactory
 
 	private CustomerGroupRepository $customerGroupRepository;
 
+	/** @var array<mixed> */
+	private array $configuration;
+
 	public function __construct(
 		\Admin\Controls\AdminGridFactory $adminGridFactory,
 		OrderRepository $orderRepository,
@@ -63,6 +66,8 @@ class OrderGridFactory
 	 */
 	public function create(string $state, array $configuration = []): Datagrid
 	{
+		$this->configuration = $configuration;
+
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
 		$grid = $this->gridFactory->create(
@@ -118,8 +123,14 @@ class OrderGridFactory
 		$grid->addColumnLink('orderEmail', '<i class="far fa-envelope"></i>', null, ['class' => 'minimal']);
 
 		$downloadIco = "<a href='%s' class='$btnSecondary' title='Stáhnout'><i class='fa fa-sm fa-download'></i></a>";
-		$grid->addColumnAction('EDI', $downloadIco, [$this, 'downloadEdi'], [], null, ['class' => 'minimal']);
-		$grid->addColumnAction('CSV', $downloadIco, [$this, 'downloadCsv'], [], null, ['class' => 'minimal']);
+
+		if (isset($configuration['exportEdi']) && $configuration['exportEdi']) {
+			$grid->addColumnAction('EDI', $downloadIco, [$this, 'downloadEdi'], [], null, ['class' => 'minimal']);
+		}
+
+		if (isset($configuration['exportCsv']) && $configuration['exportCsv']) {
+			$grid->addColumnAction('CSV', $downloadIco, [$this, 'downloadCsv'], [], null, ['class' => 'minimal']);
+		}
 
 		$grid->addColumn('', function ($object, $grid) {
 			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' .
@@ -206,7 +217,8 @@ class OrderGridFactory
 			$paymentInfo = "<br><small title='Zaplaceno'><i class='fas fa-check fa-xs' style='color: green;'></i> $date <a href='$linkCancel'><i class='far fa-times-circle'></i></a></small>";
 		} else {
 			$paymentInfo = "<br><small title='Nezaplaceno'><i class='fas fa-stop fa-xs' style='color: gray'></i> 
-<a href='$linkPay'>Zaplatit</a> | <a href='$linkPayPlusEmail'>Zaplatit + e-mail</a></small>";
+<a href='$linkPay'>Zaplatit</a>" . (isset($this->configuration['showExtendedPay']) && $this->configuration['showExtendedPay'] ?
+					"| <a href='$linkPayPlusEmail'>Zaplatit + e-mail</a>" : '') . '</small>';
 		}
 
 		return "<a href='$link'>" . $payment->getTypeName() . '</a>' . $paymentInfo;
@@ -232,7 +244,8 @@ class OrderGridFactory
 </i> $from / $to | $date <a href='$linkCancel'><i class='far fa-times-circle'></i></a></small>";
 		} else {
 			$deliveryInfo = "<br><small title='Neexpedováno'><i class='fas fa-stop fa-xs' style='color: gray'></i>
- <a href='$linkShip'>Expedovat</a>  | <a href='$linkShipPlusEmail'>Expedovat + e-mail</a></small>";
+ <a href='$linkShip'>Expedovat</a>" . (isset($this->configuration['showExtendedDispatch']) && $this->configuration['showExtendedDispatch'] ?
+					"  | <a href='$linkShipPlusEmail'>Expedovat + e-mail</a>" : '') . '</small>';
 		}
 
 		$date = $delivery->shippingDate ? '<i style=\'color: gray;\' class=\'fa fa-shipping-fast\'></i> ' . $grid->template->getLatte()->invokeFilter('date', [$delivery->shippingDate]) : '';

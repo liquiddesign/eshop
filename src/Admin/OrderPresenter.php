@@ -54,6 +54,10 @@ class OrderPresenter extends BackendPresenter
 		'exportPPC' => false,
 		'exportPPC_columns' => [],
 		'defaultExportPPC_columns' => [],
+		'exportEdi' => false,
+		'exportCsv' => true,
+		'showExtendedDispatch' => true,
+		'showExtendedPay' => true,
 	];
 
 	/** @inject */
