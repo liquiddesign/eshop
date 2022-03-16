@@ -499,6 +499,7 @@ class Product extends \StORM\Entity
 				'label' => $parameter[2],
 				'metaValue' => $parameter[3],
 				'attributeName' => $parameter[4] ?? null,
+				'imageFileName' => $parameter[5] ?? null,
 			];
 		}
 

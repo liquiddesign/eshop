@@ -180,7 +180,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 					["GROUP_CONCAT(CONCAT_WS('$sep', eshop_attributevalue.uuid, eshop_attributevalue.fk_attribute,
 					IFNULL(eshop_attributevalue.label$suffix, ''),
 					IFNULL(eshop_attributevalue.metaValue, ''),
-					IFNULL(eshop_attribute.name$suffix, '')))"],
+					IFNULL(eshop_attribute.name$suffix, ''),
+					IFNULL(eshop_attributevalue.imageFileName, '')))"],
 				)
 				->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
 				->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')

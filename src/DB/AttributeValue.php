@@ -11,6 +11,8 @@ namespace Eshop\DB;
  */
 class AttributeValue extends \StORM\Entity
 {
+	public const IMAGE_DIR = 'attribute_values_images';
+
 	/**
 	 * Kód
 	 * @column
@@ -83,6 +85,12 @@ class AttributeValue extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $zboziLabel;
+
+	/**
+	 * Image filename
+	 * @column
+	 */
+	public ?string $imageFileName;
 
 	/**
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}

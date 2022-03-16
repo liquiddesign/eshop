@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
-use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\BackendPresenter;
 use Eshop\Controls\ProductFilter;
 use Eshop\DB\Attribute;
 use Eshop\DB\AttributeRepository;
@@ -19,6 +19,7 @@ use Grid\Datagrid;
 use Nette\Forms\Controls\TextArea;
 use Nette\Forms\Controls\TextInput;
 use Nette\Utils\Arrays;
+use Nette\Utils\Image;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use Pages\DB\PageRepository;
@@ -375,6 +376,9 @@ class AttributePresenter extends BackendPresenter
 
 	public function createComponentValuesForm(): AdminForm
 	{
+		/** @var \Eshop\DB\AttributeValue|null $attributeValue */
+		$attributeValue = $this->getParameter('attributeValue');
+
 		if (isset($this::CONFIGURATIONS['forceValueFormMutationSelector']) && $this::CONFIGURATIONS['forceValueFormMutationSelector']) {
 			$this->formFactory->setMutations(\array_keys($this->attributeRepository->getConnection()->getAvailableMutations()));
 		}
@@ -418,6 +422,21 @@ class AttributePresenter extends BackendPresenter
 			->setPrompt('Nepřiřazeno')
 			->setHtmlAttribute('data-info', 'Pokud má atribut aktivní možnost "Zobrazit jako rozsahy", tak bude tato hodnota zobrazena jako zvolený rozsah.');
 
+		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
+			AttributeValue::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
+			AttributeValue::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => static function (Image $image): void {
+				$image->resize(600, null);
+			},
+			AttributeValue::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
+				$image->resize(300, null);
+			},
+		]);
+
+		$imagePicker->onDelete[] = function (array $directories, $filename) use ($attributeValue): void {
+			$this->onDeleteImagePublic($attributeValue);
+			$this->redirect('this');
+		};
+
 		$form->addGroup('Export');
 		$form->addText('heurekaLabel', 'Název pro Heureka.cz')->setNullable();
 		$form->addText('zboziLabel', 'Název pro Zboží.cz')->setNullable();
@@ -442,7 +461,7 @@ class AttributePresenter extends BackendPresenter
 			);
 		}
 
-		$form->addSubmits(!$this->getParameter('attributeValue'));
+		$form->addSubmits(!$attributeValue);
 
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
@@ -451,9 +470,15 @@ class AttributePresenter extends BackendPresenter
 				$values['uuid'] = DIConnection::generateUuid();
 			}
 
-			if ($this->getParameter('attributeValue')) {
-				$values['attribute'] = $this->getParameter('attributeValue')->attribute->getPK();
-			}
+			/** @var \Eshop\BackendPresenter $presenter */
+			$presenter = $this->getPresenter();
+
+			$presenter->createImageDirs(AttributeValue::IMAGE_DIR);
+
+			/** @var \Forms\Controls\UploadImage $upload */
+			$upload = $form['imageFileName'];
+
+			$values['imageFileName'] = $upload->upload($values['uuid'] . '.%2$s');
 
 			if ($this->getParameter('attribute')) {
 				$values['attribute'] = $this->getParameter('attribute')->getPK();
@@ -803,6 +828,8 @@ class AttributePresenter extends BackendPresenter
 
 	public function onDelete(Entity $object): void
 	{
+		$this->onDeleteImage($object);
+
 		/** @var \Web\DB\Page|null $page */
 		$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $object->getPK()]);
 

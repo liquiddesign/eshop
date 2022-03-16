@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
+use Nette\Application\ApplicationException;
 use StORM\Collection;
 
 /**
@@ -76,5 +77,22 @@ class AttributeValueRepository extends \StORM\Repository implements IGeneralRepo
 				->join(['attributeAssign' => 'eshop_attributeassign'], 'this.uuid = attributeAssign.fk_value')
 				->where('attributeAssign.fk_value', $value->getPK())
 				->count() > 0;
+	}
+
+	public function getImage(string $basePath, $attributeValue, string $size = 'detail'): ?string
+	{
+		if (!$attributeValue instanceof AttributeValue) {
+			if (!$attributeValue = $this->one($attributeValue)) {
+				return null;
+			}
+		}
+
+		if (!\in_array($size, ['origin', 'detail', 'thumb'])) {
+			throw new ApplicationException('Invalid product image size: ' . $size);
+		}
+
+		$dir = AttributeValue::IMAGE_DIR;
+
+		return $attributeValue->imageFileName ? "$basePath/userfiles/$dir/$size/$attributeValue->imageFileName" : "$basePath/public/img/no-image.png";
 	}
 }
