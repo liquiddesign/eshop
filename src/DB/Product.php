@@ -500,6 +500,7 @@ class Product extends \StORM\Entity
 				'metaValue' => $parameter[3],
 				'attributeName' => $parameter[4] ?? null,
 				'imageFileName' => $parameter[5] ?? null,
+				'number' => $parameter[6] ?? null,
 			];
 		}
 

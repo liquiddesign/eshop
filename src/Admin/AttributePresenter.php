@@ -191,6 +191,12 @@ class AttributePresenter extends BackendPresenter
 
 		$grid->addFilterButtons(['default']);
 
+		$grid->onDelete[] = function (Attribute $attribute): void {
+			foreach ($this->attributeValueRepository->many()->where('fk_attribute', $attribute->getPK()) as $attributeValue) {
+				$this->onDelete($attributeValue);
+			}
+		};
+
 		return $grid;
 	}
 

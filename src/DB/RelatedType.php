@@ -101,9 +101,36 @@ class RelatedType extends \StORM\Entity
 	 */
 	public bool $systemic = false;
 
+	/**
+	 * Systemic
+	 * @column
+	 */
+	public int $systemicLock = 0;
+
 	public function isSystemic(): bool
 	{
-		return $this->systemic;
+		return $this->systemic || $this->systemicLock > 0;
+	}
+
+	public function addSystemic(): int
+	{
+		$this->systemicLock++;
+		$this->updateAll();
+
+		return $this->systemicLock;
+	}
+
+	public function removeSystemic(): int
+	{
+		$this->systemicLock--;
+
+		if ($this->systemicLock < 0) {
+			$this->systemicLock = 0;
+		} else {
+			$this->updateAll();
+		}
+
+		return $this->systemicLock;
 	}
 
 	public function getMasterInternalName(): ?string
