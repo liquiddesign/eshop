@@ -29,7 +29,7 @@ class CartItemRepository extends \StORM\Repository
 	
 	public function getSumItems(Cart $cart): int
 	{
-		return $this->many()->where('fk_cart', $cart)->count();
+		return $this->many()->where('fk_cart', $cart)->where('fk_upsell IS NULL')->count();
 	}
 	
 	public function getItem(Cart $cart, Product $product, ?Variant $variant = null): ?CartItem
@@ -134,5 +134,16 @@ class CartItemRepository extends \StORM\Repository
 		$upsell = $this->productRepository->one($upsell);
 		
 		return (bool)$this->many()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->count() > 0;
+	}
+
+	public function getUpsell($cartItem, $upsell): ?CartItem
+	{
+		/** @var \Eshop\DB\CartItem $cartItem */
+		$cartItem = $this->one($cartItem, true);
+
+		/** @var \Eshop\DB\Product $upsell */
+		$upsell = $this->productRepository->one($upsell);
+
+		return $this->many()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first();
 	}
 }

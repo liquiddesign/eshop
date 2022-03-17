@@ -507,13 +507,11 @@ class CheckoutManager
 		}
 
 		foreach ($this->productRepository->getCartItemRelations($cartItem) as $upsell) {
-			if ($this->itemRepository->isUpsellActive($cartItem->getPK(), $upsell->getPK())) {
-				$upsellCartItem = $this->itemRepository->many()->where('fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first();
-
+			if ($upsellCartItem = $this->itemRepository->getUpsell($cartItem->getPK(), $upsell->getPK())) {
 				$upsellCartItem->update([
-					'price' => $upsell->getValue('price'),
-					'priceVat' => $upsell->getValue('priceVat'),
-					'amount' => $upsell->getValue('amount'),
+					'price' => (float) $upsell->getValue('price'),
+					'priceVat' => (float) $upsell->getValue('priceVat'),
+					'amount' => $upsellCartItem->realAmount ? $upsellCartItem->realAmount * $upsell->getValue('amount') : $upsell->getValue('amount'),
 				]);
 			}
 		}

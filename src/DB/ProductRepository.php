@@ -817,6 +817,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 		return $result ? $result->enum() : 0;
 	}
 
+	/**
+	 * @param string $relation
+	 * @param string|\Eshop\DB\Product $product
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function getSlaveProductsByRelationAndMaster($relation, $product): ?ICollection
 	{
 		if (!$product instanceof Product) {

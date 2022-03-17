@@ -10,8 +10,16 @@ use Eshop\Shopper;
 use Forms\Form;
 use Nette;
 
+/**
+ * @method onItemAddedToCart(\Eshop\DB\CartItem $cartItem, array $values)
+ */
 class BuyForm extends Form
 {
+	/**
+	 * @var callable[]
+	 */
+	public array $onItemAddedToCart = [];
+
 	public function __construct(Product $product, Shopper $shopper, CheckoutManager $checkoutManager)
 	{
 		parent::__construct();
@@ -42,7 +50,9 @@ class BuyForm extends Form
 		}
 
 		$this->onSuccess[] = function ($form, $values) use ($product, $checkoutManager): void {
-			$checkoutManager->addItemToCart($product, $values->variant ?: null, \intval($values->amount));
+			$cartItem = $checkoutManager->addItemToCart($product, $values->variant ?: null, \intval($values->amount));
+
+			$this->onItemAddedToCart($cartItem, (array) $values);
 		};
 	}
 
