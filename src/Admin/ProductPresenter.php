@@ -857,7 +857,7 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 
 		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
 
-		$form->addRadioList(
+		$form->addSelect2(
 			'mainProduct',
 			'Hlavní produkt',
 			$this->productRepository->many()
@@ -875,9 +875,6 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 			/** @var \Eshop\DB\Product[] $products */
 			$products = $this->productRepository->many()->where('this.uuid', $ids)->whereNot('this.uuid', $values['mainProduct'])->toArray();
 
-			$warning1 = null;
-			$warning2 = null;
-
 			/** @var \Eshop\DB\SupplierProduct[] $mainProductSupplierProducts */
 			$mainProductSupplierProducts = $this->supplierProductRepository->many()->where('fk_product', $values['mainProduct'])->setIndex('this.fk_supplier')->toArray();
 
@@ -886,36 +883,21 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 				$productSupplierProducts = $this->supplierProductRepository->many()->where('fk_product', $product->getPK())->setIndex('this.fk_supplier')->toArray();
 
 				foreach ($productSupplierProducts as $supplierProduct) {
-					if (isset($mainProductSupplierProducts[$supplierProduct->getValue('supplier')])) {
-						$newSupplierProductValues = ['product' => null, 'active' => false];
-
-						$warning1 = 'Některé produkty již mají namapovaného stejného dodavatele! Mapování těchto dodavatelů bylo vymazáno.';
-					} else {
-						$newSupplierProductValues = ['product' => $values['mainProduct']];
-					}
+					$newSupplierProductValues = isset($mainProductSupplierProducts[$supplierProduct->getValue('supplier')]) ? ['product' => null, 'active' => false] :
+						['product' => $values['mainProduct']];
 
 					try {
 						$supplierProduct->update($newSupplierProductValues);
 					} catch (\Throwable $e) {
-						$warning1 = 'Některé produkty již mají namapovaného stejného dodavatele! Mapování těchto dodavatelů bylo vymazáno.';
+						Debugger::log($e);
 					}
 				}
 
 				try {
 					$product->delete();
-				} catch (\Exception $e) {
-					\bdump($e);
-
-					$warning2 = 'Některé produkty nebyly smazány! Smazání pravděpodobně blokují vazby s jinými entitami.';
+				} catch (\Throwable $e) {
+					Debugger::log($e);
 				}
-			}
-
-			if ($warning1) {
-				$this->flashMessage($warning1, 'warning');
-			}
-
-			if ($warning2) {
-				$this->flashMessage($warning2, 'warning');
 			}
 
 			$this->flashMessage('Provedeno', 'success');
