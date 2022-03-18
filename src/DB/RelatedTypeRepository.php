@@ -30,13 +30,13 @@ class RelatedTypeRepository extends \StORM\Repository implements IGeneralReposit
 	/**
 	 * @inheritDoc
 	 */
-	public function getArrayForSelect(bool $includeHidden = true): array
+	public function getArrayForSelect(bool $includeHidden = true, bool $extended = true): array
 	{
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 
 		return $this->getCollection($includeHidden)
 			->select(['fullName' => "IF(this.systemic = 1 OR this.systemicLock > 0, CONCAT(name$mutationSuffix, ' (', code, ', systémový)'), CONCAT(name$mutationSuffix, ' (', code, ')'))"])
-			->toArrayOf('fullName');
+			->toArrayOf($extended ? 'fullName' : 'name');
 	}
 
 	public function getCollection(bool $includeHidden = false): Collection

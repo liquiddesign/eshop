@@ -210,7 +210,7 @@ class RelatedPresenter extends BackendPresenter
 
 	public function actionDefault(): void
 	{
-		$this->tabs = $this->relatedTypeRepository->getArrayForSelect();
+		$this->tabs = $this->relatedTypeRepository->getArrayForSelect(true, false);
 		$this->tabs['types'] = '<i class="fa fa-bars"></i> Typy';
 
 		if ($this->tab !== 'none') {
