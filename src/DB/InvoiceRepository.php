@@ -64,7 +64,7 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 			$hash = $this->many()->where('hash', $newHash)->first();
 		} while ($hash !== null);
 
-		$invoice = $this->createOne([
+		$newValues = [
 				'totalPrice' => $order->getTotalPrice(),
 				'totalPriceVat' => $order->getTotalPriceVat(),
 				'currency' => $order->purchase->currency,
@@ -74,17 +74,42 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 				'hash' => $newHash,
 				'totalPriceWithoutDiscount' => $order->getTotalPrice() + $order->getDiscountPrice(),
 				'totalPriceVatWithoutDiscount' => $order->getTotalPriceVat() + $order->getDiscountPriceVat(),
-			] + $values);
-		
-		foreach ($order->purchase->getItems() as $item) {
+			] + $values;
+
+		if (!isset($values['paymentType'])) {
+			$newValues['paymentType'] = $order->purchase->getValue('paymentType');
+		}
+
+		$invoice = $this->createOne($newValues);
+
+		$cartItemInvoiceItemMap = [];
+
+		foreach ($order->purchase->getItems()->where('fk_upsell IS NULL') as $item) {
+			$newItem = $this->invoiceItemRepository->createOne([
+				'name' => $item->productName,
+				'price' => $item->price,
+				'priceVat' => $item->priceVat,
+				'vatPct' => $item->vatPct,
+				'amount' => $item->amount,
+				'realAmount' => $item->realAmount,
+				'product' => $item->product,
+				'invoice' => $invoice,
+			]);
+
+			$cartItemInvoiceItemMap[$item->getPK()] = $newItem->getPK();
+		}
+
+		foreach ($order->purchase->getItems()->where('fk_upsell IS NOT NULL') as $item) {
 			$this->invoiceItemRepository->createOne([
 				'name' => $item->productName,
 				'price' => $item->price,
 				'priceVat' => $item->priceVat,
 				'vatPct' => $item->vatPct,
 				'amount' => $item->amount,
+				'realAmount' => $item->realAmount,
 				'product' => $item->product,
 				'invoice' => $invoice,
+				'upsell' => $cartItemInvoiceItemMap[$item->getValue('upsell')] ?? null,
 			]);
 		}
 		

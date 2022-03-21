@@ -10,6 +10,7 @@ use Admin\Controls\AdminGrid;
 use Eshop\DB\Invoice;
 use Eshop\DB\InvoiceRepository;
 use Eshop\DB\OrderRepository;
+use Eshop\DB\PaymentTypeRepository;
 use Forms\Form;
 use Grid\Datagrid;
 use Messages\DB\TemplateRepository;
@@ -29,6 +30,9 @@ class InvoicesPresenter extends BackendPresenter
 
 	/** @inject */
 	public LinkGenerator $linkGenerator;
+
+	/** @inject */
+	public PaymentTypeRepository $paymentTypeRepository;
 
 	/** @inject */
 	public Mailer $mailer;
@@ -106,7 +110,9 @@ class InvoicesPresenter extends BackendPresenter
 		$form->addDate('taxDate', 'Datum zdanitelného plnění')->setRequired();
 		$form->addDate('dueDate', 'Datum splatnosti')->setRequired();
 		$form->addSelect2('order', 'Objednávka', $this->orderRepository->many()->toArrayOf('code'))->setRequired()->setDisabled((bool) $invoice);
-		
+		$form->addSelect2('paymentType', 'Typ úhrady', $this->paymentTypeRepository->getArrayForSelect())->setPrompt('- Z objednávky -')->setDisabled((bool) $invoice);
+
+
 		$form->addGroup('Stav faktury');
 		$form->addDate('paidDate', 'Zaplaceno')->setNullable();
 		$form->addDate('canceled', 'Storno')->setNullable();

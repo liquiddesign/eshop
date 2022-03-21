@@ -130,6 +130,13 @@ class Invoice extends \StORM\Entity
 	public ?Customer $customer;
 
 	/**
+	 * Vybraná platba
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public ?PaymentType $paymentType;
+
+	/**
 	 * Objednávky
 	 * @relationNxN{"sourceViaKey":"fk_invoice","targetViaKey":"fk_order"}
 	 * @var \StORM\RelationCollection<\Eshop\DB\Order>

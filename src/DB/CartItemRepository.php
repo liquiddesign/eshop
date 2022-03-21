@@ -146,4 +146,17 @@ class CartItemRepository extends \StORM\Repository
 
 		return $this->many()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first();
 	}
+
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\CartItem> $items
+	 * @param \Eshop\DB\RelatedType $relatedType
+	 * @return \StORM\Collection<\Eshop\DB\CartItem>
+	 */
+	public function getCartItemsUpsellsByRelatedType(Collection $items, RelatedType $relatedType): Collection
+	{
+		return $items->where('fk_upsell IS NOT NULL')
+			->where('fk_product IS NOT NULL')
+			->join(['related' => 'eshop_related'], 'this.fk_product = related.fk_slave')
+			->where('related.fk_type', $relatedType->getPK());
+	}
 }

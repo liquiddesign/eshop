@@ -39,7 +39,8 @@
 		"ext-iconv": "*",
 		"ext-json": "*",
 		"ext-soap": "*",
-		"algolia/algoliasearch-client-php": "^3.1"
+		"algolia/algoliasearch-client-php": "^3.1",
+		"neitanod/forceutf8": "^2.0"
 	},
 	"require-dev": 
 	{

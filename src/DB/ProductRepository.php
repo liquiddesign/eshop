@@ -872,10 +872,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	/**
 	 * @param \Eshop\DB\CartItem $cartItem
+	 * @param bool $useCombinedName
 	 * @return array<string, \Eshop\DB\Product>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getCartItemRelations(CartItem $cartItem): array
+	public function getCartItemRelations(CartItem $cartItem, bool $useCombinedName = true): array
 	{
 		if (!$cartItem->getValue('product')) {
 			return [];
@@ -904,7 +905,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 			}
 
 			$slaveProduct->shortName = $slaveProduct->name;
-			$slaveProduct->name = $cartItem->productName . ' - ' . $slaveProduct->name;
+			$slaveProduct->name = $useCombinedName ? $cartItem->productName . ' - ' . $slaveProduct->name : $slaveProduct->name;
 			$slaveProduct->amount = $cartItem->amount * $related->amount;
 
 			if ($related->masterPct !== null) {

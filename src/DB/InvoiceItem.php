@@ -39,6 +39,19 @@ class InvoiceItem extends \StORM\Entity
 	 * @column
 	 */
 	public int $amount;
+
+	/**
+	 * Proporční množství
+	 * @column
+	 */
+	public ?int $realAmount;
+
+	/**
+	 * Upsell pro položku
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * @relation
+	 */
+	public ?InvoiceItem $upsell;
 	
 	/**
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}

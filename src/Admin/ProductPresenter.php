@@ -37,6 +37,7 @@ use Eshop\DB\SupplierRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
+use ForceUTF8\Encoding;
 use Forms\Form;
 use League\Csv\Reader;
 use League\Csv\Writer;
@@ -49,7 +50,6 @@ use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
-use Onnov\DetectEncoding\EncodingDetector;
 use Pages\DB\PageRepository;
 use StORM\Connection;
 use StORM\DIConnection;
@@ -1590,23 +1590,8 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 		$csvData = FileSystem::read($filePath);
 
-		$detector = new EncodingDetector();
-
-		$detector->disableEncoding([
-			EncodingDetector::ISO_8859_5,
-			EncodingDetector::KOI8_R,
-		]);
-
-		$encoding = $detector->getEncoding($csvData);
-
-		if ($encoding !== 'utf-8') {
-			$csvData = \iconv('windows-1250', 'utf-8', $csvData);
-			$reader = Reader::createFromString($csvData);
-			unset($csvData);
-		} else {
-			unset($csvData);
-			$reader = Reader::createFromPath($filePath);
-		}
+		$csvData = Encoding::toUTF8($csvData);
+		$reader = Reader::createFromString($csvData);
 
 		$reader->setDelimiter($delimiter);
 		$reader->setHeaderOffset(0);
