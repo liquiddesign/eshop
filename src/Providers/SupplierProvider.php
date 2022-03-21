@@ -8,9 +8,12 @@ use Eshop\DB\ImportResultRepository;
 use Eshop\DB\Supplier;
 use Eshop\DB\SupplierCategory;
 use Eshop\DB\SupplierDisplayAmount;
+use Eshop\DB\SupplierPaymentType;
+use Eshop\DB\SupplierPaymentTypeRepository;
 use Eshop\DB\SupplierProducer;
 use Eshop\DB\SupplierProduct;
 use Eshop\DB\SupplierRepository;
+use Nette\Application\Application;
 use Nette\DI\Container;
 use Nette\IOException;
 use Nette\Utils\DateTime;
@@ -44,10 +47,16 @@ abstract class SupplierProvider
 	protected ImportResultRepository $importResultRepository;
 	
 	protected DIConnection $connection;
+
+	protected Application $application;
+
+	protected SupplierPaymentTypeRepository $supplierPaymentTypeRepository;
 	
 	protected string $imageDirectory;
 	
 	protected string $logDirectory;
+
+	protected string $tempDirectory;
 
 	/** @var string[] */
 	private array $eans = [];
@@ -67,13 +76,27 @@ abstract class SupplierProvider
 	
 	abstract public function import(): Supplier;
 	
-	public function __construct(Container $container, DIConnection $connection, SupplierRepository $supplierRepository, ImportResultRepository $importResultRepository)
-	{
+	public function __construct(
+		Container $container,
+		DIConnection $connection,
+		SupplierRepository $supplierRepository,
+		ImportResultRepository $importResultRepository
+	) {
 		$this->supplierRepository = $supplierRepository;
 		$this->importResultRepository = $importResultRepository;
 		$this->connection = $connection;
+
+		/** @var \Nette\Application\Application $application */
+		$application = $container->getByType(Application::class);
+		$this->application = $application;
+
+		/** @var \Eshop\DB\SupplierPaymentTypeRepository $supplierPaymentTypeRepository */
+		$supplierPaymentTypeRepository = $connection->findRepository(SupplierPaymentType::class);
+		$this->supplierPaymentTypeRepository = $supplierPaymentTypeRepository;
+
 		$this->imageDirectory = $container->parameters['wwwDir'] . '/userfiles/supplier_images';
 		$this->logDirectory = $container->parameters['tempDir'] . '/log/import';
+		$this->tempDirectory = $container->parameters['tempDir'];
 	}
 	
 	/**
