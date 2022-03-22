@@ -11,7 +11,7 @@ use Eshop\CheckoutManager;
 use Eshop\DB\ComgateRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
-use Nette\Utils\DateTime;
+use Web\DB\SettingRepository;
 
 class Comgate
 {
@@ -22,6 +22,8 @@ class Comgate
 	public ComgateRepository $comgateRepository;
 
 	public OrderRepository $orderRepository;
+
+	public SettingRepository $settingRepository;
 
 	public function __construct(CheckoutManager $checkoutManager, ComgateRepository $comgateRepository, OrderRepository $orderRepository, PaymentService $paymentService)
 	{
@@ -42,7 +44,6 @@ class Comgate
 			}
 
 			$response = $this->createPayment($order);
-			$order->update(['receivedTs' => (new DateTime())->__toString()]);
 
 			if ($response['code'] === '0') {
 				$this->comgateRepository->saveTransaction($response['transId'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, 'PENDING', $order);

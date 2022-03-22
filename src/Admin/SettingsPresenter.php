@@ -44,7 +44,7 @@ class SettingsPresenter extends BackendPresenter
 		$basicSettings = false;
 
 		foreach ($this->customSettings as $header => $settings) {
-			if (\is_array($settings)) {
+			if (\is_array($settings) && \is_array(Arrays::first($settings))) {
 				$form->addGroup($header);
 
 				foreach ($settings as $setting) {
@@ -77,9 +77,28 @@ class SettingsPresenter extends BackendPresenter
 		if ($basicSettings) {
 			$form->addGroup('Ostatní');
 
-			foreach ($this->customSettings as $header => $settings) {
-				if (!\is_array($settings)) {
-					$form->addText($header, $settings)->setNullable();
+			foreach ($this->customSettings as $settings) {
+				if (\is_array($settings) && !\is_array(Arrays::first($settings))) {
+					if ($settings['type'] === 'string') {
+						$form->addText($settings['key'], $settings['label'])
+							->setNullable()
+							->setHtmlAttribute('data-info', $settings['info'] ?? null);
+					} elseif ($settings['type'] === 'select') {
+						$form->addSelect2($settings['key'], $settings['label'], $settings['options'])
+							->setPrompt($settings['prompt'] ?? '- Nepřiřazeno -')
+							->checkDefaultValue(false)
+							->setHtmlAttribute('data-info', $settings['info'] ?? null);
+					} elseif ($settings['type'] === 'multi') {
+						$form->addMultiSelect2($settings['key'], $settings['label'], $settings['options'])
+							->checkDefaultValue(false)
+							->setHtmlAttribute('data-info', $settings['info'] ?? null);
+					}
+
+					if (!isset($settings['onSave'])) {
+						continue;
+					}
+
+					$this->customOnSaves[$settings['key']] = $settings['onSave'];
 				}
 			}
 		}
@@ -122,12 +141,12 @@ class SettingsPresenter extends BackendPresenter
 		$keys = [];
 
 		foreach ($this->customSettings as $key => $groupSettings) {
-			if (\is_array($groupSettings)) {
+			if (\is_array($groupSettings) && \is_array(Arrays::first($groupSettings))) {
 				foreach ($groupSettings as $setting) {
 					$keys[] = $setting['key'];
 				}
 			} else {
-				$keys[] = $key;
+				$keys[] = $groupSettings['key'];
 			}
 		}
 

@@ -74,10 +74,16 @@ class PaymentTypePresenter extends BackendPresenter
 		$grid->addColumnLink('prices', 'Ceník');
 		
 		$grid->addColumnLinkDetail('Detail');
-		$grid->addColumnActionDelete();
+		$grid->addColumnActionDeleteSystemic();
 		
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(null, false, function ($object) {
+			if ($object) {
+				return !$object->isSystemic();
+			}
+
+			return false;
+		});
 		
 		$grid->addFilterTextInput('search', ['name_cs', 'code'], null, 'Kód, název');
 		

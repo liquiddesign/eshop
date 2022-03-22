@@ -17,7 +17,11 @@ class PaymentTypeRepository extends \StORM\Repository implements IGeneralReposit
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		return $this->getCollection($includeHidden)->toArrayOf('name');
+		$mutationSuffix = $this->getConnection()->getMutationSuffix();
+
+		return $this->getCollection($includeHidden)
+			->select(['fullName' => "IF(this.systemicLock > 0, CONCAT(name$mutationSuffix, ' (', code, ', systémový)'), CONCAT(name$mutationSuffix, ' (', code, ')'))"])
+			->toArrayOf('fullName');
 	}
 	
 	public function getCollection(bool $includeHidden = false): Collection
