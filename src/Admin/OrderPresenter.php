@@ -875,38 +875,10 @@ class OrderPresenter extends BackendPresenter
 
 	public function handleChangePayment(string $payment, bool $paid, bool $email = false): void
 	{
-		/** @var \Eshop\DB\Payment $payment */
-		$payment = $this->paymentRepository->one($payment, true);
-
-		$values = [
-			'paidTs' => $paid ? (string)new DateTime() : null,
-			'paidPrice' => $paid ? $payment->order->getTotalPrice() : 0,
-			'paidPriceVat' => $paid ? $payment->order->getTotalPriceVat() : 0,
-		];
-		$payment->update($values);
-
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
 
-		if (!$admin) {
-			return;
-		}
-
-		if ($paid) {
-			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED, null, $admin);
-
-			if ($email) {
-				try {
-					$mail = $this->templateRepository->createMessage('order.payed', ['orderCode' => $payment->order->code], $payment->order->purchase->email);
-					$this->mailer->send($mail);
-
-					$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::PAYED, $admin);
-				} catch (\Throwable $e) {
-				}
-			}
-		} else {
-			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED_CANCELED, null, $admin);
-		}
+		$this->orderRepository->changePayment($payment, $paid, $email, $admin);
 
 		$this->flashMessage($paid ? 'Zaplaceno' : 'Zaplacení zrušeno', 'success');
 

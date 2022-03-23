@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Admin\DB\Administrator;
 use Eshop\Shopper;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
+use Messages\DB\Template;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\DI\Container;
 use Nette\Localization\Translator;
+use Nette\Mail\Mailer;
 use Nette\Utils\DateTime;
 use Security\DB\Account;
 use StORM\Collection;
@@ -38,6 +42,8 @@ class OrderRepository extends \StORM\Repository
 
 	private BannedEmailRepository $bannedEmailRepository;
 
+	private Container $container;
+
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
@@ -48,7 +54,8 @@ class OrderRepository extends \StORM\Repository
 		CatalogPermissionRepository $catalogPermissionRepository,
 		PackageRepository $packageRepository,
 		PackageItemRepository $packageItemRepository,
-		BannedEmailRepository $bannedEmailRepository
+		BannedEmailRepository $bannedEmailRepository,
+		Container $container
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -60,6 +67,7 @@ class OrderRepository extends \StORM\Repository
 		$this->packageRepository = $packageRepository;
 		$this->packageItemRepository = $packageItemRepository;
 		$this->bannedEmailRepository = $bannedEmailRepository;
+		$this->container = $container;
 	}
 
 	/**
@@ -1093,5 +1101,41 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		return $usedCoupons;
+	}
+
+	public function changePayment(string $payment, bool $paid, bool $email = false, ?Administrator $admin = null): void
+	{
+		$paymentRepository = $this->connection->findRepository(Payment::class);
+		$orderLogItemRepository = $this->connection->findRepository(OrderLogItem::class);
+		$templateRepository = $this->connection->findRepository(Template::class);
+		$mailer = $this->container->getByType(Mailer::class);
+
+
+		/** @var \Eshop\DB\Payment $payment */
+		$payment = $paymentRepository->one($payment, true);
+
+		$values = [
+			'paidTs' => $paid ? (string)new DateTime() : null,
+			'paidPrice' => $paid ? $payment->order->getTotalPrice() : 0,
+			'paidPriceVat' => $paid ? $payment->order->getTotalPriceVat() : 0,
+		];
+
+		$payment->update($values);
+
+		if ($paid) {
+			$orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED, null, $admin);
+
+			if ($email) {
+				try {
+					$mail = $templateRepository->createMessage('order.payed', ['orderCode' => $payment->order->code], $payment->order->purchase->email);
+					$mailer->send($mail);
+
+					$orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::PAYED, $admin);
+				} catch (\Throwable $e) {
+				}
+			}
+		} else {
+			$orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED_CANCELED, null, $admin);
+		}
 	}
 }
