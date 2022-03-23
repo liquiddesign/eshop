@@ -11,6 +11,7 @@ use Eshop\CheckoutManager;
 use Eshop\DB\ComgateRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
+use Eshop\DB\PaymentTypeRepository;
 use Web\DB\SettingRepository;
 
 class Comgate
@@ -25,12 +26,22 @@ class Comgate
 
 	public SettingRepository $settingRepository;
 
-	public function __construct(CheckoutManager $checkoutManager, ComgateRepository $comgateRepository, OrderRepository $orderRepository, PaymentService $paymentService)
-	{
+	public PaymentTypeRepository $paymentTypeRepository;
+
+	public function __construct(
+		CheckoutManager $checkoutManager,
+		ComgateRepository $comgateRepository,
+		OrderRepository $orderRepository,
+		PaymentService $paymentService,
+		SettingRepository $settingRepository,
+		PaymentTypeRepository $paymentTypeRepository
+	) {
 		$this->checkoutManager = $checkoutManager;
 		$this->comgateRepository = $comgateRepository;
 		$this->orderRepository = $orderRepository;
 		$this->paymentService = $paymentService;
+		$this->settingRepository = $settingRepository;
+		$this->paymentTypeRepository = $paymentTypeRepository;
 	}
 
 	public function processPayment(): void
@@ -39,7 +50,15 @@ class Comgate
 			/** @var \Eshop\DB\Order $order */
 			$order = $this->orderRepository->one($order->getPK(), true);
 
-			if ($order->getPayment()->type->code !== 'CG') {
+			$paymentType = $this->settingRepository->getValueByName('comgatePaymentType');
+
+			if (!$paymentType) {
+				return;
+			}
+
+			$paymentType = $this->paymentTypeRepository->one($paymentType);
+
+			if (!$paymentType || $order->getPayment()->type->code !== $paymentType->code) {
 				return;
 			}
 
