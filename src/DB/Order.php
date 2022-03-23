@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Nette\Utils\DateTime;
+use StORM\Collection;
 use StORM\RelationCollection;
 
 /**
@@ -98,7 +99,7 @@ class Order extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Payment>|\Eshop\DB\Payment[]
 	 */
 	public RelationCollection $payments;
-	
+
 	/**
 	 * Dopravy
 	 * @relation
@@ -242,5 +243,15 @@ class Order extends \StORM\Entity
 	public function getDiscountCoupon(): ?DiscountCoupon
 	{
 		return $this->purchase->coupon;
+	}
+
+	/**
+	 * @return \StORM\Collection<\Eshop\DB\Invoice>
+	 */
+	public function getInvoices(): Collection
+	{
+		$invoiceRepository = $this->getConnection()->findRepository(Invoice::class);
+
+		return $invoiceRepository->many()->where('orders.uuid', $this->getPK());
 	}
 }
