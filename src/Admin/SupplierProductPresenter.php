@@ -55,6 +55,10 @@ class SupplierProductPresenter extends BackendPresenter
 
 	public function createComponentGrid(): AdminGrid
 	{
+		if (!$this->tab) {
+			return $this->gridFactory->create($this->supplierProductRepository->many()->where('1=0'), 20, 'this.createdTs', 'ASC', true);
+		}
+
 		$supplier = $this->supplierRepository->one($this->tab, true);
 
 		$grid = $this->gridFactory->create($this->supplierProductRepository->many()->where('this.fk_supplier', $supplier->getPK()), 20, 'this.createdTs', 'ASC', true);
