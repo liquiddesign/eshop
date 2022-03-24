@@ -57,7 +57,8 @@ class AddressesForm extends Form
 		$billAddressBox = $this->addContainer('billAddress');
 		$billAddressBox->addText('street', 'AddressesForm.bill_street')->setRequired();
 		$billAddressBox->addText('city', 'AddressesForm.bill_city')->setRequired();
-		$billAddressBox->addText('zipcode', 'AddressesForm.bill_zipcode')->addRule(self::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
+		$billAddressBox->addText('zipcode', 'AddressesForm.bill_zipcode')->setRequired()
+			->addRule(self::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
 		$billAddressBox->addText('state', 'AddressesForm.bill_state');
 		
 		$otherAddress = $this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool)$this->checkoutManager->getPurchase()->deliveryAddress);
