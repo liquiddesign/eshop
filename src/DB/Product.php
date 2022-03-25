@@ -482,7 +482,7 @@ class Product extends \StORM\Entity
 
 		$parameters = [];
 
-		foreach (\explode(',', $this->getValue('parameters')) as $parameterSerialized) {
+		foreach (\explode(';', $this->getValue('parameters')) as $parameterSerialized) {
 			$parameter = \explode('|', $parameterSerialized);
 
 			if (!isset($parameter[3])) {
