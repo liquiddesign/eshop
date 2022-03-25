@@ -1265,7 +1265,6 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				->join(['attributeValue' => 'eshop_attributevalue'], 'this.uuid = attributeValue.fk_attribute')
 				->join(['assign' => 'eshop_attributeassign'], 'attributeValue.uuid = assign.fk_value')
 				->where('assign.uuid IS NOT NULL')
-				->where('this.hidden', false)
 				->orderBy(["this.name$mutationSuffix"])
 				->select(['nameAndCode' => "CONCAT(this.name$mutationSuffix, '#', this.code)"])
 				->toArrayOf('nameAndCode');
