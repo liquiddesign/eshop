@@ -164,8 +164,6 @@ class CheckoutManager
 
 	private OrderLogItemRepository $orderLogItemRepository;
 
-	private Nette\Security\Passwords $passwords;
-
 	private CustomerGroupRepository $customerGroupRepository;
 
 	private CatalogPermissionRepository $catalogPermissionRepository;
@@ -195,7 +193,6 @@ class CheckoutManager
 		LoyaltyProgramHistoryRepository $loyaltyProgramHistoryRepository,
 		BannedEmailRepository $bannedEmailRepository,
 		OrderLogItemRepository $orderLogItemRepository,
-		Nette\Security\Passwords $passwords,
 		CustomerGroupRepository $customerGroupRepository,
 		CatalogPermissionRepository $catalogPermissionRepository,
 		AttributeAssignRepository $attributeAssignRepository
@@ -222,7 +219,6 @@ class CheckoutManager
 		$this->loyaltyProgramHistoryRepository = $loyaltyProgramHistoryRepository;
 		$this->bannedEmailRepository = $bannedEmailRepository;
 		$this->orderLogItemRepository = $orderLogItemRepository;
-		$this->passwords = $passwords;
 		$this->customerGroupRepository = $customerGroupRepository;
 		$this->catalogPermissionRepository = $catalogPermissionRepository;
 		$this->attributeAssignRepository = $attributeAssignRepository;
@@ -971,7 +967,7 @@ class CheckoutManager
 			$account = $this->accountRepository->createOne([
 				'uuid' => Connection::generateUuid(),
 				'login' => $purchase->email,
-				'password' => $this->passwords->hash($purchase->password),
+				'password' => $purchase->password,
 				'active' => !$this->shopper->getRegistrationConfiguration()['confirmation'],
 				'authorized' => !$this->shopper->getRegistrationConfiguration()['emailAuthorization'],
 				'confirmationToken' => $this->shopper->getRegistrationConfiguration()['emailAuthorization'] ? Nette\Utils\Random::generate(128) : null,
