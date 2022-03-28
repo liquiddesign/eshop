@@ -87,7 +87,7 @@ class NewsletterPresenter extends BackendPresenter
 		$newsletterUser = $this->getParameter('newsletterUser');
 
 		$form = $this->formFactory->create();
-		$form->addText('email', 'E-mail')->setRequired();
+		$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired();
 		$form->addMultiSelect2('groups', 'Skupiny', $this->newsletterUserGroupRepository->getArrayForSelect());
 		$form->addText('customerAccount', 'Zákaznický účet')->setDisabled();
 
