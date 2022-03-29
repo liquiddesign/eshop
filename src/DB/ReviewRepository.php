@@ -4,28 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Messages\DB\TemplateRepository;
-use Nette\Mail\Mailer;
 use StORM\Collection;
-use StORM\DIConnection;
-use StORM\SchemaManager;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Review>
  */
 class ReviewRepository extends \StORM\Repository
 {
-	/** @inject */
-	public TemplateRepository $templateRepository;
-
-	/** @inject */
-	public Mailer $mailer;
-
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager)
-	{
-		parent::__construct($connection, $schemaManager);
-	}
-
 	public function createReviewsFromOrder(Order $order): void
 	{
 		$purchase = $order->purchase;
@@ -45,33 +30,19 @@ class ReviewRepository extends \StORM\Repository
 	}
 
 	/**
+	 * @param callable $onReviewProcessed
 	 * @param int $days Days from product buyed
 	 * @param int $maxReminders Max count of tries
-	 * @return \StORM\Collection<\Eshop\DB\Review>
+	 * @return array<\Eshop\DB\Review>
 	 */
-	public function getReviewsToBeSent(int $days = 10, int $maxReminders = 1): Collection
+	public function getReviewsToBeSent(callable $onReviewProcessed, int $days = 10, int $maxReminders = 1): array
 	{
-		$collection = $this->many()->where(
-			'this.score IS NULL AND
-			this.remindersSentCount < :maxReminders AND
-			UNIX_TIMESTAMP(DATE_ADD(this.createdTs, INTERVAL :days day)) <= UNIX_TIMESTAMP(NOW())',
-			[
-				'maxReminders' => $maxReminders,
-				'days' => $days,
-			],
-		);
+		$reviews = $this->getReviewsToBeSentCollection($days, $maxReminders)->toArray();
 
-		/** TODO group by customer */
-
-		while ($review = $collection->fetch()) {
-			/** @var \Eshop\DB\Review $review */
-
+		/** @var \Eshop\DB\Review $review */
+		foreach ($reviews as $review) {
 			try {
-				$emailVariables = $review->getEmailVariables();
-
-				$message = $this->templateRepository->createMessage('review.notification', $emailVariables, $emailVariables['customerEmail']);
-
-				$this->mailer->send($message);
+				$onReviewProcessed($review);
 
 				$review->update([
 					'remindersSentCount' => $review->remindersSentCount + 1,
@@ -80,6 +51,24 @@ class ReviewRepository extends \StORM\Repository
 			}
 		}
 
-		return $collection->clear();
+		return $reviews;
+	}
+
+	/**
+	 * @param int $days
+	 * @param int $maxReminders
+	 * @return \StORM\Collection<\Eshop\DB\Review>
+	 */
+	private function getReviewsToBeSentCollection(int $days, int $maxReminders): Collection
+	{
+		return $this->many()->where(
+			'this.score IS NULL AND
+			this.remindersSentCount < :maxReminders AND
+			UNIX_TIMESTAMP(DATE_ADD(this.createdTs, INTERVAL :days day)) <= UNIX_TIMESTAMP(NOW())',
+			[
+				'maxReminders' => $maxReminders,
+				'days' => $days,
+			],
+		);
 	}
 }
