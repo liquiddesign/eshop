@@ -110,6 +110,18 @@ class Invoice extends \StORM\Entity
 	public ?float $paid;
 
 	/**
+	 * Variabilni symbol
+	 * @column
+	 */
+	public ?string $variableSymbol = null;
+
+	/**
+	 * Konstantní symbol
+	 * @column
+	 */
+	public ?string $constantSymbol = null;
+
+	/**
 	 * Měna
 	 * @constraint{"onUpdate":"RESTRICT","onDelete":"RESTRICT"}
 	 * @relation

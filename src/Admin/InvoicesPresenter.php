@@ -111,7 +111,8 @@ class InvoicesPresenter extends BackendPresenter
 		$form->addDate('dueDate', 'Datum splatnosti')->setRequired();
 		$form->addSelect2('order', 'Objednávka', $this->orderRepository->many()->toArrayOf('code'))->setRequired()->setDisabled((bool) $invoice);
 		$form->addSelect2('paymentType', 'Typ úhrady', $this->paymentTypeRepository->getArrayForSelect())->setPrompt('- Z objednávky -')->setDisabled((bool) $invoice);
-
+		$form->addText('variableSymbol', 'Variabilní symbol pro platbu')->setNullable();
+		$form->addText('constantSymbol', 'Konstantní symbol pro platbu')->setNullable();
 
 		$form->addGroup('Stav faktury');
 		$form->addDate('paidDate', 'Zaplaceno')->setNullable();
