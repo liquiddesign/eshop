@@ -784,14 +784,18 @@ class Product extends \StORM\Entity
 		/** @var \Eshop\DB\ReviewRepository $reviewRepository */
 		$reviewRepository = $this->getConnection()->findRepository(Review::class);
 
-		$reviews = $reviewRepository->many()
-			->where('this.fk_product', $this->getPK())
-			->where('this.score IS NOT NULL AND this.reviewedTs IS NOT NULL')
-			->select(['sumOfScore' => 'SUM(this.score)'])
-			->select(['countOfScore' => 'COUNT(this.score)'])
-			->first();
+		try {
+			$reviews = $reviewRepository->many()
+				->where('this.fk_product', $this->getPK())
+				->where('this.score IS NOT NULL AND this.reviewedTs IS NOT NULL')
+				->select(['sumOfScore' => 'SUM(this.score)'])
+				->select(['countOfScore' => 'COUNT(this.score)'])
+				->first();
 
-		return (float) $reviews->getValue('sumOfScore') / $reviews->getValue('countOfScore');
+			return (float) $reviews->getValue('sumOfScore') / $reviews->getValue('countOfScore');
+		} catch (\Throwable $e) {
+			return 0;
+		}
 	}
 
 	public function getReviewsCount(): int
@@ -799,11 +803,15 @@ class Product extends \StORM\Entity
 		/** @var \Eshop\DB\ReviewRepository $reviewRepository */
 		$reviewRepository = $this->getConnection()->findRepository(Review::class);
 
-		return (int) $reviewRepository->many()
-			->where('this.fk_product', $this->getPK())
-			->where('this.score IS NOT NULL AND this.reviewedTs IS NOT NULL')
-			->select(['countOfScore' => 'COUNT(this.score)'])
-			->firstValue('countOfScore');
+		try {
+			return (int) $reviewRepository->many()
+				->where('this.fk_product', $this->getPK())
+				->where('this.score IS NOT NULL AND this.reviewedTs IS NOT NULL')
+				->select(['countOfScore' => 'COUNT(this.score)'])
+				->firstValue('countOfScore');
+		} catch (\Throwable $e) {
+			return 0;
+		}
 	}
 
 	private function getQuantityPrice(int $amount, string $property): ?float
