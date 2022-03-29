@@ -779,6 +779,33 @@ class Product extends \StORM\Entity
 			->first();
 	}
 
+	public function getReviewsRating(): float
+	{
+		/** @var \Eshop\DB\ReviewRepository $reviewRepository */
+		$reviewRepository = $this->getConnection()->findRepository(Review::class);
+
+		$reviews = $reviewRepository->many()
+			->where('this.fk_product', $this->getPK())
+			->where('this.score IS NOT NULL AND this.reviewedTs IS NOT NULL')
+			->select(['sumOfScore' => 'SUM(this.score)'])
+			->select(['countOfScore' => 'COUNT(this.score)'])
+			->first();
+
+		return (float) $reviews->getValue('sumOfScore') / $reviews->getValue('countOfScore');
+	}
+
+	public function getReviewsCount(): int
+	{
+		/** @var \Eshop\DB\ReviewRepository $reviewRepository */
+		$reviewRepository = $this->getConnection()->findRepository(Review::class);
+
+		return (int) $reviewRepository->many()
+			->where('this.fk_product', $this->getPK())
+			->where('this.score IS NOT NULL AND this.reviewedTs IS NOT NULL')
+			->select(['countOfScore' => 'COUNT(this.score)'])
+			->firstValue('countOfScore');
+	}
+
 	private function getQuantityPrice(int $amount, string $property): ?float
 	{
 		/** @var float|null $price */

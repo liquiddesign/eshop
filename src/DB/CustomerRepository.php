@@ -86,9 +86,12 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 	/**
 	 * @inheritDoc
 	 */
-	public function getArrayForSelect(bool $includeHidden = true): array
+	public function getArrayForSelect(bool $includeHidden = true, bool $extended = true): array
 	{
-		return $this->getCollection($includeHidden)->select(['name' => 'IF(this.company != "",this.company,this.fullname)'])->toArrayOf('name');
+		return $this->getCollection($includeHidden)->select([
+			'name' => 'IF(this.company != "",this.company,this.fullname)',
+			'extendedName' => 'CONCAT(IF(this.company != "",this.company,this.fullname), " (", this.email, ")")',
+		])->toArrayOf($extended ? 'extendedName' : 'name');
 	}
 
 	public function getCollection(bool $includeHidden = false): Collection

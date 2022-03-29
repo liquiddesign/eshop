@@ -36,6 +36,7 @@ use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\Purchase;
+use Eshop\DB\ReviewRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\Variant;
 use Nette;
@@ -170,6 +171,8 @@ class CheckoutManager
 
 	private AttributeAssignRepository $attributeAssignRepository;
 
+	private ReviewRepository $reviewRepository;
+
 	public function __construct(
 		Shopper $shopper,
 		CartRepository $cartRepository,
@@ -195,7 +198,8 @@ class CheckoutManager
 		OrderLogItemRepository $orderLogItemRepository,
 		CustomerGroupRepository $customerGroupRepository,
 		CatalogPermissionRepository $catalogPermissionRepository,
-		AttributeAssignRepository $attributeAssignRepository
+		AttributeAssignRepository $attributeAssignRepository,
+		ReviewRepository $reviewRepository
 	) {
 		$this->customer = $shopper->getCustomer();
 		$this->shopper = $shopper;
@@ -222,6 +226,7 @@ class CheckoutManager
 		$this->customerGroupRepository = $customerGroupRepository;
 		$this->catalogPermissionRepository = $catalogPermissionRepository;
 		$this->attributeAssignRepository = $attributeAssignRepository;
+		$this->reviewRepository = $reviewRepository;
 
 		if (!$request->getCookie('cartToken') && !$this->customer) {
 			$this->cartToken = DIConnection::generateUuid();
@@ -1152,6 +1157,8 @@ class CheckoutManager
 		$this->refreshSumProperties();
 
 		$this->onOrderCreate($order);
+
+		$this->reviewRepository->createReviewsFromOrder($order);
 	}
 
 	/**
