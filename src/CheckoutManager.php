@@ -89,6 +89,11 @@ class CheckoutManager
 	 */
 	public $onCartItemCreate;
 
+	/**
+	 * @var array<mixed>|null
+	 */
+	public ?array $orderCodeArguments = null;
+
 	private ?string $cartToken;
 
 	private ?string $lastOrderToken;
@@ -1072,6 +1077,7 @@ class CheckoutManager
 		$year = \date('Y');
 		$code = \vsprintf(
 			$this->shopper->getCountry()->orderCodeFormat,
+			$this->orderCodeArguments ??
 			[$this->orderRepository->many()->where('YEAR(this.createdTs)', $year)->enum() + $this->shopper->getCountry()->orderCodeStartNumber, $year],
 		);
 
