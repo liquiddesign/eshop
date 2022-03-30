@@ -1243,7 +1243,7 @@ class OrderPresenter extends BackendPresenter
 			'<a href="#" data-toggle="modal" data-target="#modal-mergeOrderForm"><button class="btn btn-sm btn-primary"><i class="fas fa-compress mr-1"></i> Spojit</button></a>';
 		$this->template->displayButtons[] =
 			'<a href="#" onclick="window.print();"><button class="btn btn-sm btn-primary"><i class="fas fa-print mr-1"></i> Tisk</button></a>';
-		$this->template->displayButtons[] = $this->createButton('cloneOrder!', '<i class="far fa-clone mr-1"></i>Objednat znovu', [$order->getPK()]);
+//		$this->template->displayButtons[] = $this->createButton('cloneOrder!', '<i class="far fa-clone mr-1"></i>Objednat znovu', [$order->getPK()]);
 		$this->template->displayButtons[] =
 			'<a href="#" data-toggle="modal" data-target="#modal-emailForm"><button class="btn btn-sm btn-primary"><i class="fas fa-envelope mr-1"></i> Poslat e-mail</button></a>';
 
@@ -1277,12 +1277,15 @@ class OrderPresenter extends BackendPresenter
 
 	public function handleCloneOrder(string $orderId): void
 	{
+		/** @TODO not working */
+
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->one($orderId, true);
 
+		$this->checkoutManager->deleteCart();
 		$this->checkoutManager->createCart();
 
-		if ($order->purchase->customer) {
+		if ($order->purchase->customer && $order->purchase->account) {
 			$order->purchase->customer->setAccount($order->purchase->account);
 			$this->shopper->setCustomer($order->purchase->customer);
 		} else {
@@ -1292,7 +1295,6 @@ class OrderPresenter extends BackendPresenter
 
 		/** @var \Eshop\DB\Cart $cart */
 		$cart = $order->purchase->carts->first();
-
 		$this->checkoutManager->addItemsFromCart($cart);
 
 		$purchase = $this->checkoutManager->syncPurchase($order->purchase->toArray());
