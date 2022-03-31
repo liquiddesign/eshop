@@ -903,7 +903,7 @@ class CustomerPresenter extends BackendPresenter
 
 				if (isset($existingNewsletters[$account->getPK()]) && isset($newsletterGroups)) {
 					$newsletterValues = [
-						'email' => $account->login,
+						'email' => $existingNewsletters[$account->getPK()]->email,
 						'customerAccount' => $account->getPK(),
 						'groups' => $newsletterGroups,
 					];

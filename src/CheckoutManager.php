@@ -25,6 +25,7 @@ use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\DiscountCoupon;
 use Eshop\DB\DiscountCouponRepository;
 use Eshop\DB\LoyaltyProgramHistoryRepository;
+use Eshop\DB\NewsletterUserRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderLogItem;
 use Eshop\DB\OrderLogItemRepository;
@@ -127,6 +128,8 @@ class CheckoutManager
 
 	private DiscountCouponRepository $discountCouponRepository;
 
+	private NewsletterUserRepository $newsletterUserRepository;
+
 	private Collection $paymentTypes;
 
 	private ?float $sumPrice = null;
@@ -204,7 +207,8 @@ class CheckoutManager
 		CustomerGroupRepository $customerGroupRepository,
 		CatalogPermissionRepository $catalogPermissionRepository,
 		AttributeAssignRepository $attributeAssignRepository,
-		ReviewRepository $reviewRepository
+		ReviewRepository $reviewRepository,
+		NewsletterUserRepository $newsletterUserRepository
 	) {
 		$this->customer = $shopper->getCustomer();
 		$this->shopper = $shopper;
@@ -232,6 +236,7 @@ class CheckoutManager
 		$this->catalogPermissionRepository = $catalogPermissionRepository;
 		$this->attributeAssignRepository = $attributeAssignRepository;
 		$this->reviewRepository = $reviewRepository;
+		$this->newsletterUserRepository = $newsletterUserRepository;
 
 		if (!$request->getCookie('cartToken') && !$this->customer) {
 			$this->cartToken = DIConnection::generateUuid();
@@ -1154,6 +1159,13 @@ class CheckoutManager
 
 		if ($discountCoupon && $discountCoupon->usageLimit) {
 			$discountCoupon->update(['usagesCount' => $discountCoupon->usagesCount + 1]);
+		}
+
+		if ($purchase->sendNewsletters) {
+			$this->newsletterUserRepository->syncOne([
+				'email' => $purchase->email,
+				'customerAccount' => $customer && $customer->account ? $customer->account->getPK() : null,
+			], null, false, true);
 		}
 
 		$this->orderLogItemRepository->createLog($order, OrderLogItem::CREATED);
