@@ -113,6 +113,13 @@ class Order extends \StORM\Entity
 	 */
 	public RelationCollection $comgate;
 	
+	/**
+	 * Faktury
+	 * @relationNxN{"sourceViaKey":"fk_order","targetViaKey":"fk_invoice","via":"eshop_invoice_nxn_eshop_order"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\Invoice>
+	 */
+	public RelationCollection $invoices;
+	
 	public function getDeliveryPriceSum(): float
 	{
 		return $this->deliveries->sum('price');
