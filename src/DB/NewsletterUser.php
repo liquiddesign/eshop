@@ -11,6 +11,8 @@ use StORM\RelationCollection;
  * Newsletter user
  * @table
  * @index{"name":"newsletteruser_unique_email","unique":true,"columns":["email"]}
+ * @index{"name":"newsletteruser_unique_customerAccount","unique":true,"columns":["fk_customerAccount"]}
+ * @index{"name":"newsletteruser_unique_email_customerAccount","unique":true,"columns":["email", "fk_customerAccount"]}
  */
 class NewsletterUser extends \StORM\Entity
 {

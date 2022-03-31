@@ -16,6 +16,8 @@ use Eshop\DB\CustomerRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\LoyaltyProgramRepository;
 use Eshop\DB\MerchantRepository;
+use Eshop\DB\NewsletterUserGroupRepository;
+use Eshop\DB\NewsletterUserRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProductRepository;
@@ -28,6 +30,7 @@ use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
+use Nette\Utils\Validators;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Connection;
@@ -109,6 +112,12 @@ class CustomerPresenter extends BackendPresenter
 
 	/** @inject */
 	public LoyaltyProgramRepository $loyaltyProgramRepository;
+
+	/** @inject */
+	public NewsletterUserRepository $newsletterUserRepository;
+
+	/** @inject */
+	public NewsletterUserGroupRepository $newsletterUserGroupRepository;
 
 	public function createComponentCustomers(): AdminGrid
 	{
@@ -262,6 +271,16 @@ class CustomerPresenter extends BackendPresenter
 			$container->setDefaults($permission->toArray());
 		}
 
+		/** @var \Forms\Container $container */
+		$container = $form['newsletter'];
+
+		$newsletterUser = $this->newsletterUserRepository->one(['fk_customerAccount' => $account->getPK()]);
+
+		$container->setDefaults([
+			'newsletter' => (bool) $newsletterUser,
+			'newsletterGroups' => $newsletterUser ? $newsletterUser->toArray(['groups'])['groups'] : [],
+		]);
+
 		$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values, array $oldValues) use ($permission, $form): void {
 			if ($permission) {
 				$permission->update($values['permission']);
@@ -274,6 +293,20 @@ class CustomerPresenter extends BackendPresenter
 					$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login, null, null, $account->getPreferredMutation());
 					$this->mailer->send($mail);
 				}
+			}
+
+			/** @var bool $newsletter */
+			$newsletter = Arrays::pick($values['newsletter'], 'newsletter', false);
+			$newsletterGroups = Arrays::pick($values['newsletter'], 'newsletterGroups', null);
+
+			$this->newsletterUserRepository->many()->where('fk_customerAccount', $account->getPK())->delete();
+
+			if ($newsletter && Validators::isEmail($account->login)) {
+				$this->newsletterUserRepository->syncOne([
+					'email' => $account->login,
+					'customerAccount' => $account->getPK(),
+					'groups' => $newsletterGroups,
+				]);
 			}
 
 			$this->flashMessage('Uloženo', 'success');
@@ -293,6 +326,21 @@ class CustomerPresenter extends BackendPresenter
 
 		$this->accountFormFactory->onCreateAccount[] = function (Account $account, array $values) use ($form): void {
 			$this->catalogPermissionRepo->createOne($values['permission'] + ['account' => $account]);
+
+			/** @var bool $newsletter */
+			$newsletter = Arrays::pick($values['newsletter'], 'newsletter', false);
+			$newsletterGroups = Arrays::pick($values['newsletter'], 'newsletterGroups', null);
+
+			$this->newsletterUserRepository->many()->where('fk_customerAccount', $account->getPK())->delete();
+
+			if ($newsletter && Validators::isEmail($account->login)) {
+				$this->newsletterUserRepository->syncOne([
+					'email' => $account->login,
+					'customerAccount' => $account->getPK(),
+					'groups' => $newsletterGroups,
+				]);
+			}
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('editAccount', 'default', [$account]);
 		};
@@ -619,9 +667,12 @@ class CustomerPresenter extends BackendPresenter
 			$container->addCheckbox('buyAllowed', 'Povolit nákup')->setDefaultValue(true);
 			$container->addCheckbox('viewAllOrders', 'Zobrazit všechny objednávky zákazníka')->setDefaultValue(false);
 
+			$container = $form->addContainer('newsletter');
+
 			$newsletterInput = $container->addCheckbox('newsletter', 'Přihlášen k newsletteru');
-			$newsletterInput->addCondition($form::EQUAL, true)->toggle('frm-accountForm-permission-newsletterGroup-toogle');
-			$container->addText('newsletterGroup', 'Skupina pro newsletter')->addConditionOn($newsletterInput, $form::EQUAL, true)->addRule($form::REQUIRED);
+			$newsletterGroupsInput = $container->addMultiSelect2('newsletterGroups', 'Skupiny newsletteru', $this->newsletterUserGroupRepository->getArrayForSelect());
+
+			$newsletterInput->addCondition($form::FILLED)->toggle($newsletterGroupsInput->getHtmlId() . '-toogle');
 		};
 
 		return $this->accountFormFactory->create(false, $callback, true, true);
@@ -638,6 +689,7 @@ class CustomerPresenter extends BackendPresenter
 			->where('merchant.fk_merchant IS NULL')
 			->join(['catalogPermission' => 'eshop_catalogpermission'], 'catalogPermission.fk_account = this.uuid')
 			->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogPermission.fk_customer')
+			->join(['newsletterUser' => 'eshop_newsletteruser'], 'this.uuid = newsletterUser.fk_customerAccount')
 			->select(['company' => 'customer.company', 'customerFullname' => 'customer.fullname'])
 			->select([
 				'permission' => 'catalogPermission.catalogPermission',
@@ -719,7 +771,7 @@ class CustomerPresenter extends BackendPresenter
 			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
 		}
 
-		$grid->addFilterSelectInput('newsletter', 'catalogPermission.newsletter = :nQ', 'Newsletter', '- Newsletter -', null, [
+		$grid->addFilterSelectInput('newsletter', 'IF(:nQ = "1", newsletterUser.uuid IS NOT NULL, newsletterUser.uuid IS NULL)', 'Newsletter', '- Newsletter -', null, [
 			'0' => 'Ne',
 			'1' => 'Ano',
 		], 'nQ');
@@ -786,8 +838,8 @@ class CustomerPresenter extends BackendPresenter
 			false => 'Ne',
 			true => 'Ano',
 		])->setPrompt('Původní');
-		$values->addCheckbox('newsletterGroupCheck', 'Původní')->setDefaultValue(true);
-		$values->addText('newsletterGroup', 'Skupina pro newsletter');
+		$values->addCheckbox('newsletterGroupsCheck', 'Původní')->setDefaultValue(true);
+		$values->addMultiSelect2('newsletterGroups', 'Skupiny pro newsletter', $this->newsletterUserGroupRepository->getArrayForSelect());
 
 		$form->addSubmits(false, false);
 
@@ -798,11 +850,11 @@ class CustomerPresenter extends BackendPresenter
 				return;
 			}
 
-			if ($values['values']['newsletterGroupCheck']) {
-				unset($values['values']['newsletterGroup']);
+			if ($values['values']['newsletterGroupsCheck']) {
+				unset($values['values']['newsletterGroups']);
 			}
 
-			unset($values['values']['newsletterGroupCheck']);
+			unset($values['values']['newsletterGroupsCheck']);
 
 			foreach ($values['values'] as $key => $value) {
 				if ($value === null) {
@@ -810,12 +862,54 @@ class CustomerPresenter extends BackendPresenter
 				}
 			}
 
+			/** @var null|int $newsletter */
+			$newsletter = Arrays::pick($values['values'], 'newsletter', null);
+			$newsletterGroups = Arrays::pick($values['values'], 'newsletterGroups', []);
+
+			/** @var array<\Eshop\DB\NewsletterUser> $existingNewsletters */
+			$existingNewsletters = $this->newsletterUserRepository->many()
+				->where('this.fk_customerAccount IS NOT NULL')
+				->setIndex('this.fk_customerAccount')
+				->toArray();
+
 			$ids = $values['bulkType'] === 'selected' ? $ids : $grid->getFilteredSource()->toArrayOf($grid->getSourceIdName());
 
 			foreach ($ids as $id) {
 				if (\count($values['values']) > 0) {
 					$this->catalogPermissionRepo->many()->where('fk_account', $id)->update($values['values']);
 				}
+
+				$account = $this->accountRepository->one($id);
+				$newsletterValues = [];
+
+				if (!Validators::isEmail($account->login)) {
+					continue;
+				}
+
+				if ($newsletter === 1) {
+					$newsletterValues = [
+						'email' => $account->login,
+						'customerAccount' => $account->getPK(),
+					];
+
+					if (isset($newsletterGroups)) {
+						$newsletterValues = [
+							'groups' => $newsletterGroups,
+						];
+					}
+				} elseif ($newsletter === 0) {
+					$this->newsletterUserRepository->many()->where('this.fk_customerAccount', $account->getPK())->delete();
+				}
+
+				if (isset($existingNewsletters[$account->getPK()]) && isset($newsletterGroups)) {
+					$newsletterValues = [
+						'email' => $account->login,
+						'customerAccount' => $account->getPK(),
+						'groups' => $newsletterGroups,
+					];
+				}
+
+				$this->newsletterUserRepository->syncOne($newsletterValues);
 			}
 
 			$this->getPresenter()->flashMessage('Uloženo', 'success');
