@@ -37,12 +37,15 @@ class NewsletterPresenter extends BackendPresenter
 
 		$grid->addColumnText('Vytvořeno', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
 		$grid->addColumnText('E-mail', 'email', '%s', 'email');
-		$grid->addColumn('Zákazník', function (NewsletterUser $newsletterUser): ?string {
+		$grid->addColumn('Zákazník', function (NewsletterUser $newsletterUser, AdminGrid $datagrid): ?string {
 			if (!$newsletterUser->customerAccount) {
 				return null;
 			}
 
-			return $newsletterUser->customerAccount->login;
+			$link = $this->admin->isAllowed(':Eshop:Admin:Customer:editAccount') ?
+				$datagrid->getPresenter()->link(':Eshop:Admin:Customer:editAccount', [$newsletterUser->customerAccount, 'backLink' => $this->storeRequest()]) : '#';
+
+			return '<a href="' . $link . "\"><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $newsletterUser->customerAccount->login . '</a>';
 		});
 		$grid->addColumn('Skupiny', function (NewsletterUser $newsletterUser): string {
 			return \implode(', ', $newsletterUser->groups->toArrayOf('name'));
