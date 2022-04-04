@@ -57,6 +57,7 @@ use StORM\DIConnection;
  * @method onOrderCreate(\Eshop\DB\Order $order)
  * @method onCartItemDelete()
  * @method onCartItemCreate(\Eshop\DB\CartItem $cartItem)
+ * @method onCartItemUpdate(\Eshop\DB\CartItem $cartItem)
  * @package Eshop
  */
 class CheckoutManager
@@ -89,6 +90,11 @@ class CheckoutManager
 	 * @var array<callable(\Eshop\DB\CartItem): void>; Occurs after cart item create
 	 */
 	public $onCartItemCreate;
+
+	/**
+	 * @var callable[]&callable(): void; Occurs after cart item updated
+	 */
+	public $onCartItemUpdate;
 
 	/**
 	 * @var array<mixed>|null
@@ -526,6 +532,8 @@ class CheckoutManager
 				]);
 			}
 		}
+
+		$this->onCartItemUpdate($cartItem);
 	}
 
 	public function deleteItem(CartItem $item): void

@@ -1182,6 +1182,40 @@ class OrderRepository extends \StORM\Repository
 					$purchase->billAddress ? $purchase->billAddress->city : null,
 				]);
 			}
+
+			if ($deliveryType = $purchase->deliveryType) {
+				$writer->insertOne([
+					$purchase->customer ? $purchase->customer->email : $purchase->email,
+					$order->code,
+					$order->createdTs,
+					'doprava-' . $deliveryType->code,
+					$order->getDeliveryPriceSum(),
+					$order->getDeliveryPriceVatSum(),
+					1,
+					$purchase->billAddress ? $purchase->billAddress->name : null,
+					$purchase->billAddress ? $purchase->billAddress->street : null,
+					$purchase->billAddress ? $purchase->billAddress->zipcode : null,
+					$purchase->billAddress ? $purchase->billAddress->city : null,
+				]);
+			}
+
+			if (!$paymentType = $purchase->paymentType) {
+				continue;
+			}
+
+			$writer->insertOne([
+				$purchase->customer ? $purchase->customer->email : $purchase->email,
+				$order->code,
+				$order->createdTs,
+				'platba-' . $paymentType->code,
+				$order->getPaymentPriceSum(),
+				$order->getPaymentPriceVatSum(),
+				1,
+				$purchase->billAddress ? $purchase->billAddress->name : null,
+				$purchase->billAddress ? $purchase->billAddress->street : null,
+				$purchase->billAddress ? $purchase->billAddress->zipcode : null,
+				$purchase->billAddress ? $purchase->billAddress->city : null,
+			]);
 		}
 	}
 }
