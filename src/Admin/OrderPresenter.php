@@ -58,6 +58,7 @@ class OrderPresenter extends BackendPresenter
 		'exportCsv' => true,
 		'showExtendedDispatch' => true,
 		'showExtendedPay' => true,
+		'targito' => false,
 	];
 
 	/** @inject */
@@ -1522,6 +1523,60 @@ class OrderPresenter extends BackendPresenter
 			}
 		};
 		$this->sendResponse(new FileResponse($tempFilename, 'order.txt', 'text/plain'));
+	}
+
+	public function renderExportTargito(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Export pro Targito';
+		$this->template->headerTree = [
+			['Objednávky', 'default',],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('targitoExportForm')];
+	}
+
+	public function createComponentTargitoExportForm(): AdminForm
+	{
+		/** @var \Grid\Datagrid $grid */
+		$grid = $this->getComponent('ordersGrid');
+
+		$ids = $this->getParameter('ids') ?: [];
+		$totalNo = $grid->getPaginator()->getItemCount();
+		$selectedNo = \count($ids);
+
+		$form = $this->formFactory->create();
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+		$form->addRadioList('bulkType', 'Exportovat', [
+			'selected' => "vybrané ($selectedNo)",
+			'all' => "celý výsledek ($totalNo)",
+		])->setDefaultValue('selected');
+
+		$form->addSubmit('submit', 'Exportovat');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid): void {
+			$values = $form->getValues('array');
+
+			/** @var \StORM\Collection $collection */
+			$collection = $values['bulkType'] === 'selected' ? $this->orderRepository->many()->where('uuid', $ids) : $grid->getFilteredSource();
+
+			$tempFilename = \tempnam($this->tempDir, 'csv');
+
+			$this->application->onShutdown[] = function () use ($tempFilename): void {
+				try {
+					FileSystem::delete($tempFilename);
+				} catch (\Throwable $e) {
+					Debugger::log($e, ILogger::WARNING);
+				}
+			};
+
+			$this->orderRepository->csvExportTargito(Writer::createFromPath($tempFilename, 'w+'), $collection);
+
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'targito_orders.csv', 'text/csv'));
+		};
+
+		return $form;
 	}
 
 	protected function startup(): void

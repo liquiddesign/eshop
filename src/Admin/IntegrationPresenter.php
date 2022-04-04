@@ -20,6 +20,7 @@ class IntegrationPresenter extends BackendPresenter
 {
 	protected const CONFIGURATION = [
 		'supportBox' => false,
+		'targito' => false,
 	];
 
 	/** @inject */
@@ -54,11 +55,15 @@ class IntegrationPresenter extends BackendPresenter
 			'@algolia' => 'Algolia',
 		];
 
-		if (!isset($this::CONFIGURATION['supportBox']) || !$this::CONFIGURATION['supportBox']) {
+		if (isset($this::CONFIGURATION['supportBox']) && $this::CONFIGURATION['supportBox']) {
+			$this->template->tabs['@supportBox'] = 'SupportBox';
+		}
+
+		if (!isset($this::CONFIGURATION['targito']) || !$this::CONFIGURATION['targito']) {
 			return;
 		}
 
-		$this->template->tabs['@supportBox'] = 'SupportBox';
+		$this->template->tabs['@targito'] = 'Targito';
 	}
 
 	public function actionDefault(): void
@@ -122,6 +127,36 @@ class IntegrationPresenter extends BackendPresenter
 		$form = $this->getComponent('supportboxForm');
 
 		$form->setDefaults($this->settingsRepo->many()->setIndex('name')->toArrayOf('value'));
+	}
+
+	public function actionTargito(): void
+	{
+		/** @var \Admin\Controls\AdminForm $form */
+		$form = $this->getComponent('targitoForm');
+
+		$form->setDefaults($this->settingsRepo->many()->setIndex('name')->toArrayOf('value'));
+	}
+
+	public function createComponentTargitoForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+		$form->addText('targitoDataId', 'data-id')->setNullable();
+		$form->addText('targitoDataOrigin', 'data-origin')->setNullable();
+
+		$form->addSubmit('submit', 'Uložit');
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			$values = $form->getValues('array');
+
+			foreach ($values as $key => $value) {
+				$this->settingsRepo->syncOne(['name' => $key, 'value' => $value]);
+			}
+
+			$this->flashMessage('Nastavení uloženo', 'success');
+			$form->processRedirect('targito');
+		};
+
+		return $form;
 	}
 
 	public function createComponentZasilkovnaForm(): AdminForm
@@ -229,6 +264,17 @@ class IntegrationPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('supportboxForm')];
+	}
+
+	public function renderTargito(): void
+	{
+		$this->template->headerLabel = 'Integrace';
+		$this->template->headerTree = [
+			['Integrace'],
+			['Targito'],
+		];
+		$this->template->displayButtons = [];
+		$this->template->displayControls = [$this->getComponent('targitoForm')];
 	}
 
 	public function renderZasilkovna(): void

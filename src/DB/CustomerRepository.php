@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
+use Eshop\Providers\Helpers;
+use League\Csv\EncloseField;
 use League\Csv\Writer;
 use Nette\Utils\Validators;
 use Security\DB\IUserRepository;
@@ -46,6 +48,49 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 		foreach ($customers->toArray() as $customer) {
 			$writer->insertOne([
 				$customer->email,
+			]);
+		}
+	}
+
+	/**
+	 * @param \StORM\ICollection<\Eshop\DB\Customer> $customers
+	 * @param \League\Csv\Writer $writer
+	 * @throws \League\Csv\CannotInsertRecord
+	 * @throws \League\Csv\InvalidArgument
+	 */
+	public function csvExportTargito(ICollection $customers, Writer $writer): void
+	{
+		$writer->setDelimiter(';');
+		EncloseField::addTo($writer, "\t\x1f");
+
+		$writer->insertOne([
+			'email',
+			'origin',
+			'last_update',
+			'first_name',
+			'last_name',
+			'city',
+			'company',
+			'newsletter',
+		]);
+
+		$customers = $customers->join(['ecp' => 'eshop_catalogpermission'], 'this.uuid = ecp.fk_customer')
+			->join(['enu' => 'eshop_newsletteruser'], 'ecp.fk_account = enu.fk_customerAccount')
+			->select(['newsletterPK' => 'enu.uuid']);
+
+		/** @var \Eshop\DB\Customer $customer */
+		foreach ($customers->toArray() as $customer) {
+			[$firstName, $lastName] = Helpers::parseFullName($customer->fullname ?? '');
+
+			$writer->insertOne([
+				$customer->email,
+				$customer->group ? $customer->group->name : null,
+				$customer->createdTs,
+				$firstName,
+				$lastName,
+				$customer->billAddress ? $customer->billAddress->city : null,
+				$customer->company,
+				$customer->getValue('newsletterPK') ? '1' : '0',
 			]);
 		}
 	}

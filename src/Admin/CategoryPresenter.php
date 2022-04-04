@@ -15,6 +15,7 @@ use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\ProducerRepository;
 use Forms\Form;
 use League\Csv\Writer;
+use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\Request;
@@ -22,6 +23,8 @@ use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Strings;
 use StORM\Entity;
+use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\DB\Page;
 use Web\DB\PageRepository;
 
@@ -34,6 +37,7 @@ class CategoryPresenter extends BackendPresenter
 		'activeProducers' => null,
 		'producerPagesType' => self::PRODUCER_CATEGORY,
 		'dynamicCategories' => false,
+		'targito' => false,
 	];
 
 	/** @inject */
@@ -53,6 +57,9 @@ class CategoryPresenter extends BackendPresenter
 
 	/** @inject */
 	public ProducerRepository $producerRepository;
+
+	/** @inject */
+	public Application $application;
 
 	/** @persistent */
 	public string $tab = 'none';
@@ -173,7 +180,53 @@ class CategoryPresenter extends BackendPresenter
 			$this->categoryRepository->clearCategoriesCache();
 		};
 
+		if (isset($this::CONFIGURATION['targito']) && $this::CONFIGURATION['targito']) {
+			$submit = $grid->getForm()->addSubmit('export', 'Exportovat pro Targito (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+			$submit->onClick[] = function ($button) use ($grid): void {
+				$grid->getPresenter()->redirect('exportTargito', [$grid->getSelectedIds()]);
+			};
+		}
+
 		return $grid;
+	}
+
+	public function renderExportTargito(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Export pro Targito';
+		$this->template->headerTree = [
+			['Kategorie', 'default',],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('targitoExportForm')];
+	}
+
+	public function createComponentTargitoExportForm(): AdminForm
+	{
+		/** @var \Grid\Datagrid $grid */
+		$grid = $this->getComponent('categoryGrid');
+		$ids = $this->getParameter('ids') ?: [];
+
+		return $this->formFactory->createCsvExport($grid, function ($values) use ($grid, $ids): void {
+			/** @var \StORM\Collection $collection */
+			$collection = $values['bulkType'] === 'selected' ? $this->categoryRepository->many()->where('uuid', $ids) : $grid->getFilteredSource();
+
+			$tempFilename = \tempnam($this->tempDir, 'csv');
+
+			$this->application->onShutdown[] = function () use ($tempFilename): void {
+				try {
+					FileSystem::delete($tempFilename);
+				} catch (\Throwable $e) {
+					Debugger::log($e, ILogger::WARNING);
+				}
+			};
+
+			$this->categoryRepository->csvExportTargito(Writer::createFromPath($tempFilename, 'w+'), $collection);
+
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'targito_categories.csv', 'text/csv'));
+		}, $this->link('this', ['selected' => $this->getParameter('selected')]), $ids);
 	}
 
 	public function onDeletePage(Entity $object): void
@@ -211,6 +264,7 @@ class CategoryPresenter extends BackendPresenter
 
 	public function renderDefault(): void
 	{
+		Debugger::$showBar = false;
 		$this->template->tabs = $this->tabs;
 
 		if ($this->tab === 'types') {

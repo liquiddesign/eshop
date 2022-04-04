@@ -1138,4 +1138,50 @@ class OrderRepository extends \StORM\Repository
 			$orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED_CANCELED, null, $admin);
 		}
 	}
+
+	/**
+	 * @param \League\Csv\Writer $writer
+	 * @param \StORM\Collection<\Eshop\DB\Order> $orders
+	 * @throws \League\Csv\CannotInsertRecord
+	 * @throws \League\Csv\InvalidArgument
+	 */
+	public function csvExportTargito(Writer $writer, Collection $orders): void
+	{
+		$writer->setDelimiter(';');
+
+		$writer->insertOne([
+			'email',
+			'order_id',
+			'created_date',
+			'item_id',
+			'item_price',
+			'item_price_vat',
+			'item_quantity',
+			'billing_fullname',
+			'billing_street',
+			'billing_postcode',
+			'billing_city',
+		]);
+
+		/** @var \Eshop\DB\Order $order */
+		foreach ($orders as $order) {
+			$purchase = $order->purchase;
+
+			foreach ($purchase->getItems() as $item) {
+				$writer->insertOne([
+					$purchase->customer ? $purchase->customer->email : $purchase->email,
+					$order->code,
+					$order->createdTs,
+					$item->getFullCode(),
+					$item->price,
+					$item->priceVat,
+					$item->amount,
+					$purchase->billAddress ? $purchase->billAddress->name : null,
+					$purchase->billAddress ? $purchase->billAddress->street : null,
+					$purchase->billAddress ? $purchase->billAddress->zipcode : null,
+					$purchase->billAddress ? $purchase->billAddress->city : null,
+				]);
+			}
+		}
+	}
 }

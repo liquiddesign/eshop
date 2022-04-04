@@ -642,7 +642,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		/** @var \Eshop\DB\Category $category */
 		foreach ($items as $category) {
-			$tree = \explode(';', $category->getFamilyTree()->select(['tree' => 'GROUP_CONCAT(name' . $defaultMutationSuffix . ' SEPARATOR ";")'])->first()->getValue('tree'));
+			$tree = \array_reverse(\explode(';', $category->getFamilyTree()->select(['tree' => 'GROUP_CONCAT(name' . $defaultMutationSuffix . ' SEPARATOR ";")'])->first()->getValue('tree')));
 
 			$row = [];
 
@@ -651,6 +651,42 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			}
 
 			$writer->insertOne($row);
+		}
+	}
+
+	/**
+	 * @param \League\Csv\Writer $writer
+	 * @param \StORM\Collection<\Eshop\DB\Category> $categories
+	 * @throws \League\Csv\CannotInsertRecord
+	 * @throws \League\Csv\InvalidArgument
+	 */
+	public function csvExportTargito(Writer $writer, Collection $categories): void
+	{
+		$writer->setDelimiter(';');
+
+		$writer->insertOne([
+			'id',
+			'name',
+			'parent_id',
+			'full_name',
+			'is_hidden',
+		]);
+
+		/** @var \Eshop\DB\Category $category */
+		foreach ($categories as $category) {
+			$tree = $this->getBranch($category);
+
+			foreach ($tree as $key => $treeCategory) {
+				$tree[$key] = $treeCategory->name;
+			}
+
+			$writer->insertOne([
+				$category->code,
+				$category->name,
+				$category->ancestor ? $category->ancestor->code : null,
+				\implode('|', $tree),
+				$category->hidden ? '1' : '0',
+			]);
 		}
 	}
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\Providers;
 
+use Nette\Utils\Arrays;
+
 abstract class Helpers
 {
 	public static function getRemoteFilemtime(string $imageUrl): ?int
@@ -136,5 +138,52 @@ abstract class Helpers
 		}
 		
 		return $html;
+	}
+
+	/**
+	 * @param string $fullName
+	 * @return array<string> Two strings as firstName and lastName
+	 */
+	public static function parseFullName(string $fullName): array
+	{
+		$explodedName = \explode(' ', $fullName);
+
+		$firstName = null;
+
+		if (\count($explodedName) > 1) {
+			$last = Arrays::last($explodedName);
+
+			foreach ($explodedName as $name) {
+				if ($name === $last) {
+					break;
+				}
+
+				$firstName .= $name . ' ';
+			}
+
+			$firstName = \substr($firstName, 0, -1);
+		}
+
+		$lastName = null;
+
+		if (\count($explodedName) > 1) {
+			$first = true;
+
+			foreach ($explodedName as $name) {
+				if ($first) {
+					$first = false;
+
+					continue;
+				}
+
+				$lastName .= $name . ' ';
+			}
+
+			$lastName = \substr($lastName, 0, -1);
+		} else {
+			$lastName = Arrays::last($explodedName);
+		}
+
+		return [$firstName, $lastName];
 	}
 }

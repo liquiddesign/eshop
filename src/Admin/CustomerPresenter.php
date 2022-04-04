@@ -57,6 +57,7 @@ class CustomerPresenter extends BackendPresenter
 		'discountLevel' => true,
 		'rounding' => true,
 		'loyaltyProgram' => false,
+		'targito' => false,
 	];
 
 	/** @persistent */
@@ -180,9 +181,15 @@ class CustomerPresenter extends BackendPresenter
 
 		$grid->addButtonBulkEdit('form', $bulkEdits, 'customers');
 
-		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů');
-		$submit->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
+		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů')
+			->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
 		$submit->onClick[] = [$this, 'exportCustomers'];
+
+		if (isset($this::CONFIGURATIONS['targito']) && $this::CONFIGURATIONS['targito']) {
+			$submit = $grid->getForm()->addSubmit('downloadContactsTargito', 'Export Targito (CSV)')
+				->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
+			$submit->onClick[] = [$this, 'exportTargito'];
+		}
 
 		$grid->addFilterTextInput('search', ['this.fullname', 'this.email', 'this.phone'], null, 'Jméno a příjmení, e-mail, telefon');
 
@@ -231,6 +238,17 @@ class CustomerPresenter extends BackendPresenter
 		$this->customerRepository->csvExport($collection, Writer::createFromPath($tempFilename, 'w+'));
 
 		$response = new FileResponse($tempFilename, 'customers.csv', 'text/csv');
+		$this->sendResponse($response);
+	}
+
+	public function exportTargito(Button $button): void
+	{
+		unset($button);
+
+		$tempFilename = \tempnam($this->tempDir, 'csv');
+		$this->customerRepository->csvExportTargito($this->customerRepository->many(), Writer::createFromPath($tempFilename, 'w+'));
+
+		$response = new FileResponse($tempFilename, 'targito_customers.csv', 'text/csv');
 		$this->sendResponse($response);
 	}
 

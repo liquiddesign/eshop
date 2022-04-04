@@ -197,6 +197,14 @@ class OrderGridFactory
 			};
 		}
 
+		if (isset($configuration['targito']) && $configuration['targito']) {
+			$submit = $grid->getForm()->addSubmit('export', 'Exportovat pro Targito (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+			$submit->onClick[] = function ($button) use ($grid): void {
+				$grid->getPresenter()->redirect('exportTargito', [$grid->getSelectedIds()]);
+			};
+		}
+
 		return $grid;
 	}
 
