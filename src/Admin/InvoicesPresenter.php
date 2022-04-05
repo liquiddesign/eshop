@@ -44,7 +44,7 @@ class InvoicesPresenter extends BackendPresenter
 	{
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
-		$grid = $this->gridFactory->create($this->invoiceRepository->getCollection(), 20, 'code', 'ASC', true);
+		$grid = $this->gridFactory->create($this->invoiceRepository->many(), 20, 'code', 'ASC', true);
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit']);

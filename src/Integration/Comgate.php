@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Eshop\Integration;
 
 use Brick\Money\Money;

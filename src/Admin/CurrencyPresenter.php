@@ -44,7 +44,6 @@ class CurrencyPresenter extends BackendPresenter
 
 		$form->addText('code', 'Kód')->setHtmlAttribute('readonly', 'readonly');
 		$form->addText('symbol', 'Symbol')->setHtmlAttribute('readonly', 'readonly');
-		$form->addCheckbox('cashback', 'Cashback')->setHtmlAttribute('data-info', 'Měna může být použitá pro věrnostní programy.');
 
 		$form->addGroup('Formát');
 		$form->addInteger('formatDecimals', 'Počet desetinných míst');

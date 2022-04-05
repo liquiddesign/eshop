@@ -33,7 +33,7 @@ class ReviewPresenter extends BackendPresenter
 
 	public function createComponentGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->reviewRepository->many(), 20, 'this.createdTs', 'ASC', true);
+		$grid = $this->gridFactory->create($this->reviewRepository->many(), 20, 'this.createdTs', 'DESC', true);
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Vytvořeno', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);

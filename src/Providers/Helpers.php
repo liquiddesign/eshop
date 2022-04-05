@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Providers;
 
 use Nette\Utils\Arrays;
+use Nette\Utils\Json;
 
 abstract class Helpers
 {
@@ -59,6 +60,15 @@ abstract class Helpers
 	public static function convertToArray($item): array
 	{
 		return \json_decode(\json_encode((array) $item), true);
+	}
+
+	/**
+	 * @param string $json
+	 * @return array<mixed>
+	 */
+	public static function convertJsonToArray(string $json): array
+	{
+		return Json::decode($json, Json::FORCE_ARRAY);
 	}
 	
 	public static function createSoapClient(string $url, ?string $login = null, ?string $password = null): \SoapClient
