@@ -265,6 +265,10 @@ class ProductList extends Datalist
 		$filterForm->addCheckbox('inStock');
 		$filterForm->addSubmit('submit');
 		$this->makeFilterForm($filterForm);
+		
+		$filterForm->onSuccess[] = function (): void {
+			// init onSuccess to prevent "no associated handlers"
+		};
 
 		return $filterForm;
 	}
