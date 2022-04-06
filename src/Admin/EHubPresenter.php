@@ -148,7 +148,7 @@ class EHubPresenter extends BackendPresenter
 		} catch (\Exception $e) {
 			Debugger::log($e, ILogger::WARNING);
 
-			$this->flashMessage('Chyba synchronizace', 'danger');
+			$this->flashMessage('Chyba synchronizace', 'error');
 		}
 
 		$this->redirect('this');

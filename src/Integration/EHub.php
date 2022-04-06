@@ -31,8 +31,15 @@ class EHub
 
 	private EHubTransactionRepository $EHubTransactionRepository;
 
-	public function __construct(string $url, string $apikey, string $advertiserId, OrderRepository $orderRepository, EHubTransactionRepository $EHubTransactionRepository)
+	public function __construct(?string $url, ?string $apikey, ?string $advertiserId, ?OrderRepository $orderRepository, ?EHubTransactionRepository $EHubTransactionRepository)
 	{
+		$this->orderRepository = $orderRepository;
+		$this->EHubTransactionRepository = $EHubTransactionRepository;
+
+		if (!$url || !$apikey || !$advertiserId) {
+			return;
+		}
+
 		$this->client = new Client([
 			'base_uri' => $url,
 			'timeout' => 10.0,
@@ -40,8 +47,11 @@ class EHub
 
 		$this->advertiserId = $advertiserId;
 		$this->queryParams = ['apiKey' => $apikey];
-		$this->orderRepository = $orderRepository;
-		$this->EHubTransactionRepository = $EHubTransactionRepository;
+	}
+
+	public function check(): bool
+	{
+		return isset($this->client) && isset($this->advertiserId) && isset($this->queryParams);
 	}
 
 	/**
@@ -50,6 +60,10 @@ class EHub
 	 */
 	public function getTransactionList(): array
 	{
+		if (!$this->check()) {
+			return [];
+		}
+
 		$response = $this->client->get("advertisers/$this->advertiserId/transactions/", [
 			'query' => $this->queryParams + [
 				'perPage' => $this::PER_PAGE,
@@ -91,6 +105,10 @@ class EHub
 	 */
 	public function updateTransaction(EHubTransaction $transaction): array
 	{
+		if (!$this->check()) {
+			return [];
+		}
+
 		$response = $this->client->patch("advertisers/$this->advertiserId/transactions/$transaction->transactionId", [
 			'query' => $this->queryParams,
 			'json' => [],
@@ -110,6 +128,10 @@ class EHub
 	 */
 	public function updateTransactionByOrder(Order $order): array
 	{
+		if (!$this->check()) {
+			return [];
+		}
+
 		$response = $this->client->patch("advertisers/$this->advertiserId/transactions/$order->code", [
 			'query' => $this->queryParams,
 			'json' => [
@@ -132,6 +154,10 @@ class EHub
 	 */
 	public function syncTransactions(): void
 	{
+		if (!$this->check()) {
+			return;
+		}
+
 		$transactions = $this->getTransactionList();
 
 		/** @var array<\Eshop\DB\Order> $orders */
@@ -170,6 +196,10 @@ class EHub
 	 */
 	public function syncOrders(?Collection $orders = null): void
 	{
+		if (!$this->check()) {
+			return;
+		}
+
 		unset($orders);
 	}
 }
