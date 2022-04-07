@@ -429,6 +429,9 @@ class Shopper
 		return $customer ? $catalogPerm->priorityPrice : $this->customerGroupRepository->getUnregisteredGroup()->defaultPriorityPrice;
 	}
 
+	/**
+	 * Main function, always use this to determine vat or withoutVat on frontend
+	 */
 	public function getShowPrice(): ?string
 	{
 		if ($this->showPricesWithoutVat() && $this->showPricesWithVat()) {

@@ -10,6 +10,7 @@ use Eshop\DB\Order;
 use Eshop\DB\OrderLogItem;
 use Eshop\DB\OrderLogItemRepository;
 use Eshop\DB\OrderRepository;
+use Eshop\Shopper;
 use Grid\Datagrid;
 use League\Csv\Writer;
 use Messages\DB\TemplateRepository;
@@ -40,6 +41,8 @@ class OrderGridFactory
 
 	private CustomerGroupRepository $customerGroupRepository;
 
+	private Shopper $shopper;
+
 	/** @var array<mixed> */
 	private array $configuration;
 
@@ -50,7 +53,8 @@ class OrderGridFactory
 		TemplateRepository $templateRepository,
 		Mailer $mailer,
 		OrderLogItemRepository $orderLogItemRepository,
-		CustomerGroupRepository $customerGroupRepository
+		CustomerGroupRepository $customerGroupRepository,
+		Shopper $shopper
 	) {
 		$this->orderRepository = $orderRepository;
 		$this->gridFactory = $adminGridFactory;
@@ -59,6 +63,7 @@ class OrderGridFactory
 		$this->application = $application;
 		$this->orderLogItemRepository = $orderLogItemRepository;
 		$this->customerGroupRepository = $customerGroupRepository;
+		$this->shopper = $shopper;
 	}
 	
 	/**
@@ -101,8 +106,21 @@ class OrderGridFactory
 		$grid->addColumn('Doprava', [$this, 'renderDeliveryColumn']);
 		$grid->addColumn('Platba', [$this, 'renderPaymentColumn']);
 
-		$properties = ['getTotalPrice|price:currency.code', 'getTotalPriceVat|price:currency.code'];
-		$grid->addColumnText('Cena', $properties, '%s<br><small>%s s DPH</small>', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		$properties = [];
+
+		if ($this->shopper->getShowWithoutVat() && $this->shopper->getShowVat()) {
+			$properties = ['getTotalPrice|price:currency.code', 'getTotalPriceVat|price:currency.code'];
+
+			$grid->addColumnText('Cena', $properties, '%s<br><small>%s s DPH</small>', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		} elseif ($this->shopper->getShowWithoutVat()) {
+			$properties[] = 'getTotalPrice|price:currency.code';
+
+			$grid->addColumnText('Cena', $properties, '%s', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		} elseif ($this->shopper->getShowVat()) {
+			$properties[] = 'getTotalPriceVat|price:currency.code';
+
+			$grid->addColumnText('Cena', $properties, '%s', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		}
 
 		if ($state === 'open') {
 			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Označit jako přijaté'><i class='fa fa-sm fa-check'></i></a>";
