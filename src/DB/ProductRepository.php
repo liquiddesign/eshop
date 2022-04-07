@@ -876,7 +876,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 	 * @return array<string, \Eshop\DB\Product>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getCartItemRelations(CartItem $cartItem, bool $useCombinedName = true): array
+	public function getCartItemRelations(CartItem $cartItem, bool $useCombinedName = true, bool $onlyShowCart = true): array
 	{
 		if (!$cartItem->getValue('product')) {
 			return [];
@@ -884,15 +884,19 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		$itemRelationsForCart = [];
 
+		$collection = $this->relatedRepository->many()
+			->join(['relatedType' => 'eshop_relatedtype'], 'this.fk_type = relatedType.uuid')
+			->where('relatedType.hidden', false)
+			->where('this.fk_master', $cartItem->getValue('product'))
+			->whereNot('this.fk_slave', $cartItem->getValue('product'))
+			->orderBy(['this.priority']);
+
+		if ($onlyShowCart) {
+			$collection->where('relatedType.showCart', true);
+		}
+
 		/** @var \Eshop\DB\Related $related */
-		foreach ($this->relatedRepository->many()
-					 ->join(['relatedType' => 'eshop_relatedtype'], 'this.fk_type = relatedType.uuid')
-					 ->where('relatedType.showCart', true)
-					 ->where('relatedType.hidden', false)
-					 ->where('this.fk_master', $cartItem->getValue('product'))
-					 ->whereNot('this.fk_slave', $cartItem->getValue('product'))
-					 ->orderBy(['this.priority']) as $related
-		) {
+		foreach ($collection as $related) {
 			if (isset($itemRelationsForCart[$related->getValue('slave')])) {
 				continue;
 			}
