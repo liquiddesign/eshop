@@ -26,6 +26,11 @@ class EHubTransaction extends \StORM\Entity
 		self::STATUS_DECLINED => 'Zamítnuto',
 	];
 
+	public const STATUSES_TO_UPDATE = [
+		self::STATUS_APPROVED => 'Schváleno',
+		self::STATUS_DECLINED => 'Zamítnuto',
+	];
+
 	/**
 	 * @column
 	 */
@@ -35,6 +40,11 @@ class EHubTransaction extends \StORM\Entity
 	 * @column
 	 */
 	public string $transactionId;
+
+	/**
+	 * @column{"type":"timestamp"}
+	 */
+	public string $createdTs;
 
 	/**
 	 * @relation

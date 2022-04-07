@@ -1100,6 +1100,10 @@ class CheckoutManager
 		];
 
 		$orderValues['receivedTs'] = $this->shopper->getEditOrderAfterCreation() ? null : (string)new DateTime();
+		$orderValues['newCustomer'] = !$purchase->customer || $this->orderRepository->many()
+			->join(['purchase' => 'eshop_purchase'], 'purchase.uuid = this.fk_purchase')
+			->where('purchase.fk_customer', $purchase->customer->getPK())
+			->count() === 0;
 
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->createOne($orderValues);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin\Controls;
 
+use Admin\Helpers;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderLogItem;
@@ -203,6 +204,10 @@ class OrderGridFactory
 			$submit->onClick[] = function ($button) use ($grid): void {
 				$grid->getPresenter()->redirect('exportTargito', [$grid->getSelectedIds()]);
 			};
+		}
+
+		if (Helpers::isConfigurationActive($configuration, 'eHub')) {
+			$grid->addBulkAction('sendEHub', 'EHubSendOrders', 'Odeslat do eHUB');
 		}
 
 		return $grid;

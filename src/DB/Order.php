@@ -79,6 +79,16 @@ class Order extends \StORM\Entity
 	 * @column
 	 */
 	public bool $manuallyEdited = false;
+
+	/**
+	 * @column
+	 */
+	public ?string $eHubVisitId;
+
+	/**
+	 * @column
+	 */
+	public bool $newCustomer = false;
 	
 	/**
 	 * Nákup
@@ -254,6 +264,7 @@ class Order extends \StORM\Entity
 
 	/**
 	 * @return \StORM\Collection<\Eshop\DB\Invoice>
+	 * @deprecated use property
 	 */
 	public function getInvoices(): Collection
 	{

@@ -400,6 +400,10 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		});
 	}
 
+	/**
+	 * @throws \StORM\Exception\NotFoundException
+	 * @deprecated low performance, use getBranch($category)
+	 */
 	public function getRootCategoryOfCategory(Category $category): Category
 	{
 		if ($category->ancestor === null) {

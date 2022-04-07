@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
-use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\EHubTransaction;
@@ -12,10 +11,11 @@ use Eshop\DB\EHubTransactionRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\Integration\EHub;
 use Forms\Form;
+use StORM\Collection;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
-class EHubPresenter extends BackendPresenter
+class EHubPresenter extends \Eshop\BackendPresenter
 {
 	/** @inject */
 	public EHubTransactionRepository $EHubTransactionRepository;
@@ -30,9 +30,10 @@ class EHubPresenter extends BackendPresenter
 	{
 //		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
-		$grid = $this->gridFactory->create($this->EHubTransactionRepository->many(), 20, 'code', 'ASC', true);
+		$grid = $this->gridFactory->create($this->EHubTransactionRepository->many(), 20, 'this.createdTs', 'DESC', true);
 		$grid->addColumnSelector();
 
+		$grid->addColumnText('Vytvořen', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('ID', 'transactionId', '%s', 'transactionId', ['class' => 'fit']);
 		$grid->addColumn('Stav', function (EHubTransaction $EHubTransaction): string {
 			return EHubTransaction::STATUSES[$EHubTransaction->status] ?? '';
@@ -52,6 +53,7 @@ class EHubPresenter extends BackendPresenter
 		$grid->addColumnActionDelete();
 
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
+		$grid->addBulkAction('changeStatus', 'changeStatus', 'Změnit stav hromadně');
 		
 		$grid->addFilterTextInput('search', ['transactionId'], null, 'ID');
 		$grid->addFilterSelectInput('status', 'status = :q', 'Status', '- Status -', null, EHubTransaction::STATUSES);
@@ -68,17 +70,38 @@ class EHubPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 		
 		$form->addText('transactionId', 'ID')->setDisabled();
-		$form->addText('order', 'Objednávka')->setDisabled();
-		$form->addSelect('status', 'Stav', EHubTransaction::STATUSES)->setRequired();
+
+		if ($EHubTransaction) {
+			$form->addText('order', 'Objednávka')->setDisabled();
+		} else {
+			$form->addSelect2('order', 'Objednávka', $this->orderRepository->many()->orderBy(['createdTs' => 'DESC'])->toArrayOf('code'))
+				->setRequired();
+		}
+
+		$form->addSelect('status', 'Stav', EHubTransaction::STATUSES_TO_UPDATE)->setRequired()->checkDefaultValue(false);
 	
 		$form->addSubmits(!$EHubTransaction);
 		
-		$form->onSuccess[] = function (AdminForm $form): void {
+		$form->onSuccess[] = function (AdminForm $form) use ($EHubTransaction): void {
 			$values = $form->getValues('array');
 
-			$EHubTransaction = $this->EHubTransactionRepository->syncOne($values);
+			try {
+				if ($EHubTransaction) {
+					$this->EHub->updateTransaction($EHubTransaction, $values['status']);
+				} else {
+//					$order = $this->orderRepository->one($values['order']);
+//
+//					$newTransaction = $this->EHub->updateTransactionByOrder($order);
+//					$values['transactionId'] = $newTransaction['transaction']['id'];
+				}
+			} catch (\Exception $e) {
+				\bdump($e);
 
-//			$this->EHub->updateTransactionByOrder($EHubTransaction);
+				$this->flashMessage('Transakci nelze odeslat!', 'error');
+				$this->redirect('this');
+			}
+
+			$EHubTransaction = $this->EHubTransactionRepository->syncOne($values);
 			
 			$this->flashMessage('Uloženo', 'success');
 			
@@ -86,6 +109,43 @@ class EHubPresenter extends BackendPresenter
 		};
 		
 		return $form;
+	}
+
+	public function renderChangeStatus(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Transakce';
+		$this->template->headerTree = [
+			['eHUB', 'transactions'],
+		];
+		$this->template->displayButtons = [
+			$this->createBackButton('transactions'),
+		];
+		$this->template->displayControls = [$this->getComponent('changeStatusForm')];
+	}
+
+	public function createComponentChangeStatusForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('gridTransactions'), function (array $values, Collection $collection): void {
+			/** @var \Eshop\DB\EHubTransaction $transaction */
+			foreach ($collection as $transaction) {
+				try {
+					$this->EHub->updateTransaction($transaction, $values['status']);
+
+					$transaction->update(['status' => $values['status']]);
+				} catch (\Exception $e) {
+					\bdump($e);
+
+					$this->flashMessage('Některé transakce nelze odeslat!', 'warning');
+					$this->redirect('this');
+				}
+			}
+
+			$this->flashMessage('Provedeno', 'success');
+		}, $this->getBulkFormActionLink(), $this->EHubTransactionRepository->many(), $this->getBulkFormIds(), function (AdminForm $form): void {
+			$form->addSelect('status', 'Stav', EHubTransaction::STATUSES_TO_UPDATE)->setRequired();
+		});
 	}
 	
 	public function renderTransactions(): void
@@ -96,7 +156,7 @@ class EHubPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [
 			$this->createNewItemButton('newTransaction'),
-			$this->createButtonWithClass('syncTransactions!', '<i class="fa fa-sync"></i>&nbsp;&nbsp;Synchronizovat', 'btn btn-sm btn-outline-primary'),
+			$this->createButtonWithClass('syncTransactions!', '<i class="fa fa-sync"></i>&nbsp;&nbsp;Aktualizovat', 'btn btn-sm btn-outline-primary'),
 		];
 		$this->template->displayControls = [$this->getComponent('gridTransactions')];
 	}

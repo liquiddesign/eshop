@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Eshop;
 
+use Admin\Controls\AdminGrid;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\Product;
@@ -164,5 +165,26 @@ class BackendPresenter extends \Admin\BackendPresenter
 	public function onDeleteImagePublic(Entity $object, string $propertyName = 'imageFileName'): void
 	{
 		$this->onDeleteImage($object, $propertyName);
+	}
+
+	protected function getBulkFormActionLink(): string
+	{
+		return $this->link('this', ['selected' => $this->getParameter('selected')]);
+	}
+
+	/**
+	 * @return array<string>
+	 */
+	protected function getBulkFormIds(): array
+	{
+		return $this->getParameter('ids') ?: [];
+	}
+
+	protected function getBulkFormGrid(string $name): AdminGrid
+	{
+		/** @var \Admin\Controls\AdminGrid $grid */
+		$grid = $this->getComponent($name);
+
+		return $grid;
 	}
 }

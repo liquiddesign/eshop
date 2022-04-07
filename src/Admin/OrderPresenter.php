@@ -32,6 +32,7 @@ use Eshop\DB\PickupPointRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierRepository;
+use Eshop\Integration\EHub;
 use Forms\Form;
 use Grid\Datagrid;
 use League\Csv\Writer;
@@ -44,6 +45,7 @@ use Nette\Http\Request;
 use Nette\Mail\Mailer;
 use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
+use StORM\Collection;
 use StORM\Literal;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -59,6 +61,7 @@ class OrderPresenter extends BackendPresenter
 		'showExtendedDispatch' => true,
 		'showExtendedPay' => true,
 		'targito' => false,
+		'eHub' => false,
 	];
 
 	/** @inject */
@@ -141,6 +144,9 @@ class OrderPresenter extends BackendPresenter
 
 	/** @inject */
 	public PickupPointRepository $pickupPointRepository;
+
+	/** @inject */
+	public EHub $eHub;
 
 	/** @persistent */
 	public ?string $tab = null;
@@ -1577,6 +1583,27 @@ class OrderPresenter extends BackendPresenter
 		};
 
 		return $form;
+	}
+
+	public function renderEHubSendOrders(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Odeslat objednávky - eHUB';
+		$this->template->headerTree = [
+			['Objednávky', 'default',],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('eHubSendOrdersForm')];
+	}
+
+	public function createComponentEHubSendOrdersForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
+			$sync = $this->eHub->syncOrders($collection);
+
+			$this->flashMessage($sync ? 'Provedeno' : 'Chyba odesílání!', $sync ? 'success' : 'error');
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
 	}
 
 	protected function startup(): void
