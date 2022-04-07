@@ -44,7 +44,7 @@ class ApiGeneratorDiscountCouponPresenter extends BackendPresenter
 			return '<i title=' . ($object->isActive() ? 'Aktivní' : 'Neaktivní') . ' class="fa fa-circle fa-sm text-' . ($object->isActive() ? 'success' : 'danger') . '">';
 		}, '%s', null, ['class' => 'fit']);
 		$grid->addColumnText('Platnost od', "validFrom|date:'d.m.Y G:i'", '%s', 'validFrom', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
-		$grid->addColumnText('Platnost od', "validTo|date:'d.m.Y G:i'", '%s', 'validTo', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
+		$grid->addColumnText('Platnost do', "validTo|date:'d.m.Y G:i'", '%s', 'validTo', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 		$grid->addColumnText('Název', 'label', '%s', 'label');
 		$grid->addColumn('Odkaz pro generování', function (ApiGeneratorDiscountCoupon $apiGeneratorDiscountCoupon) {
