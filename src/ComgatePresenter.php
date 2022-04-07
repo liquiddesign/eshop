@@ -6,6 +6,9 @@ use Nette\Application\BadRequestException;
 use Nette\Application\UI\Presenter;
 use Tracy\Debugger;
 
+/**
+ * @deprecated
+ */
 class ComgatePresenter extends Presenter
 {
 	public function actionPaymentResult(): void

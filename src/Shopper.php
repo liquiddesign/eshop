@@ -91,6 +91,8 @@ class Shopper
 
 	private bool $alwaysCreateCustomerOnOrderCreated;
 
+	private bool $integrationsEHub;
+
 	private ?DiscountCoupon $discountCoupon = null;
 	
 	private ?Customer $customer = null;
@@ -194,6 +196,16 @@ class Shopper
 	public function setAlwaysCreateCustomerOnOrderCreated(bool $create): void
 	{
 		$this->alwaysCreateCustomerOnOrderCreated = $create;
+	}
+
+	public function setIntegrationsEHub(bool $eHub): void
+	{
+		$this->integrationsEHub = $eHub;
+	}
+
+	public function isIntegrationsEHub(): bool
+	{
+		return $this->integrationsEHub;
 	}
 
 	/**

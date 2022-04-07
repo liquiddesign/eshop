@@ -38,6 +38,9 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			'showVat' => Expect::bool(true),
 			'editOrderAfterCreation' => Expect::bool(false),
 			'alwaysCreateCustomerOnOrderCreated' => Expect::bool(false),
+			'integrations' => Expect::structure([
+				'eHub' => Expect::bool(false),
+			]),
 		]);
 	}
 	
@@ -56,6 +59,8 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$latteDefinition = $builder->getDefinition('latte.templateFactory');
 		$latteDefinition->addSetup('$onCreate[]', [['@shopper.shopper', 'addFilters']]);
 
+		$integrations = (array) $config['integrations'];
+
 		$shopper->addSetup('setProjectUrl', [$config['projectUrl']]);
 		$shopper->addSetup('setRegistrationConfiguration', [(array) $config['registration']]);
 		$shopper->addSetup('setCountry', [$config['country']]);
@@ -64,6 +69,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$shopper->addSetup('setShowVat', [$config['showVat']]);
 		$shopper->addSetup('setEditOrderAfterCreation', [$config['editOrderAfterCreation']]);
 		$shopper->addSetup('setAlwaysCreateCustomerOnOrderCreated', [$config['alwaysCreateCustomerOnOrderCreated']]);
+		$shopper->addSetup('setIntegrationsEHub', [$integrations['eHub']]);
 
 		$cartManager->addSetup('setCheckoutSequence', [$config['checkoutSequence']]);
 	}
