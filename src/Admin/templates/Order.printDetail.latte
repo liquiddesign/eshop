@@ -291,6 +291,10 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                 <!-- /.row -->
             </div>
         </div>
+
+        {ifset $customContentBlock}
+            {include $customContentBlock}
+        {/ifset}
     </section>
 
     {embed modal id:'orderForm'}
