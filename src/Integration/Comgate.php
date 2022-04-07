@@ -14,6 +14,8 @@ use Eshop\DB\ComgateRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
+use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\DB\SettingRepository;
 
 class Comgate
@@ -71,6 +73,8 @@ class Comgate
 				\header('location: ' . $response['redirect']);
 				exit;
 			}
+
+			Debugger::log($response, ILogger::WARNING);
 		};
 	}
 
