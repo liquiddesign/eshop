@@ -491,84 +491,86 @@ class OrderPresenter extends BackendPresenter
 
 		$form->setDefaults($order->toArray());
 	}
-
-	public function createComponentNewOrderItemForm(): AdminForm
+	
+	public function createComponentProductForm(): AdminForm
 	{
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->getParameter('order');
-
+		
 		$form = $this->formFactory->create();
-
-		$form->addSelect2('product', 'Produkt', [], [
-			'ajax' => [
-				'url' => $this->link('getProductsForSelect2!'),
-			],
-			'placeholder' => 'Zvolte produkt',
-		]);
-
-		$form->addSelect('cart', 'Košík č.', $order->purchase->carts->toArrayOf('id'))->setRequired();
-		$form->addSelect('delivery', 'Doprava', $order->deliveries->where('shippedTs IS NULL')->toArrayOf('typeName'))->setRequired();
-
+		
+		$form->addText('product', 'Kód produktu')->setRequired();
+		
+		$form->addSelect('cart', 'Košík č.', $order->purchase->getCarts()->toArrayOf('id'))->setRequired();
+		$form->addSelect('package', 'Balík č.', $order->getPackages()->toArrayOf('id'))->setRequired();
+		
 		$form->addInteger('amount', 'Množství')->setDefaultValue(1)->setRequired();
-
+		
 		$form->addSubmits(false);
-
-		$form->onValidate[] = function (AdminForm $form): void {
+		
+		$form->onValidate[] = function (AdminForm $form) use ($order): void {
 			$data = $this->getHttpRequest()->getPost();
-
+			
 			/** @var \Nette\Forms\Controls\SelectBox $productInput */
 			$productInput = $form['product'];
-
+			
 			if (!isset($data['product'])) {
 				$productInput->addError('Toto pole je povinné!');
-
+				
 				return;
 			}
-
-			if ($this->productRepo->getProduct($data['product'])) {
+			
+			$this->shopper->setCustomer($order->purchase->customer);
+			
+			if ($this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.code', $data['product'])->first()) {
 				return;
 			}
-
-			$productInput->addError('Daný produkt nebyl nalezen nebo není dostupný');
+			
+			$productInput->addError('Daný produkt nebyl nalezen nebo není dostupný pro uživatele');
 		};
-
+		
 		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValues('array');
-
+			
+			
 			/** @var \Eshop\DB\Cart $cart */
 			$cart = $this->cartRepository->one($values['cart']);
-
+			
 			if ($order->purchase->customer) {
 				$this->shopper->setCustomer($order->purchase->customer);
 				$this->checkoutManager->setCustomer($order->purchase->customer);
 			}
 
 			/** @var \Eshop\DB\Product $product */
-			$product = $this->productRepo->getProduct($form->getHttpData(Form::DATA_TEXT, 'product'));
-
+			$product = $this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.code', $values['product'])->first();
+			
 			$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], false, false, false, $cart);
+			
+			$existingPackageItem = $this->packageItemRepository->many()->where('fk_package', $values['package'])->where('fk_cartItem', $cartItem)->first();
 
-			$amount = (int)$this->packageItemRepository->many()->where('fk_delivery', $values['delivery'])->where('fk_cartItem', $cartItem)->firstValue('amount');
-
-			$this->packageItemRepository->syncOne([
-				'amount' => $values['amount'] + $amount,
-				'delivery' => $values['delivery'],
-				'cartItem' => $cartItem,
-			]);
-
+			if ($existingPackageItem) {
+				$existingPackageItem->update(['amount' => $existingPackageItem->amount + $values['amount']]);
+			} else {
+				$this->packageItemRepository->syncOne([
+					'amount' => $values['amount'],
+					'package' => $values['package'],
+					'cartItem' => $cartItem,
+				]);
+			}
+			
 			/** @var \Admin\DB\Administrator|null $admin */
 			$admin = $this->admin->getIdentity();
-
+			
 			if (!$admin) {
 				return;
 			}
-
+			
 			$this->orderLogItemRepository->createLog($order, OrderLogItem::NEW_ITEM, $cartItem->productName, $admin);
-
+			
 			$this->flashMessage('Provedeno', 'success');
-			$form->processRedirect('newOrderItem', 'orderItems', [$order], [$order]);
+			$form->processRedirect('this');
 		};
-
+		
 		return $form;
 	}
 
@@ -1246,6 +1248,8 @@ class OrderPresenter extends BackendPresenter
 
 		$this->template->displayButtons[] =
 			'<a href="#" data-toggle="modal" data-target="#modal-orderForm"><button class="btn btn-sm btn-primary"><i class="fas fa-edit mr-1"></i> Editovat</button></a>';
+		$this->template->displayButtons[] =
+			'<a href="#" data-toggle="modal" data-target="#modal-productForm"><button class="btn btn-sm btn-primary"><i class="fas fa-plus"></i> Produkt</button></a>';
 		$this->template->displayButtons[] =
 			'<a href="#" data-toggle="modal" data-target="#modal-mergeOrderForm"><button class="btn btn-sm btn-primary"><i class="fas fa-compress mr-1"></i> Spojit</button></a>';
 		$this->template->displayButtons[] =
