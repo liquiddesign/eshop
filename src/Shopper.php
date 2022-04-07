@@ -357,12 +357,8 @@ class Shopper
 			return false;
 		}
 		
-		if (!$customer) {
+		if (!$customer || !$catalogPermission = $customer->getCatalogPermission()) {
 			return $this->getCustomerGroup()->defaultBuyAllowed;
-		}
-		
-		if (!$catalogPermission = $customer->getCatalogPermission()) {
-			return false;
 		}
 		
 		return $catalogPermission->buyAllowed;
