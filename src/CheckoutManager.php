@@ -451,7 +451,7 @@ class CheckoutManager
 			throw new BuyException('Invalid currency', BuyException::INVALID_CURRENCY);
 		}
 
-		if (!$this->shopper->getBuyPermission()) {
+		if ($checkCanBuy !== false && !$this->shopper->getBuyPermission()) {
 			throw new BuyException('Permission denied', BuyException::PERMISSION_DENIED);
 		}
 
