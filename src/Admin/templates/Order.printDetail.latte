@@ -344,6 +344,11 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
         {block modal-body}{control detailOrderItemForm:noHeader}{/block}
     {/embed}
 
+    {embed modal id:'productForm'}
+        {block modal-header}Přidání položky{/block}
+        {block modal-body}{control productForm:noHeader}{/block}
+    {/embed}
+
     {embed modal id:'mergeOrderForm'}
         {block modal-header}Zvolte objednávku{/block}
         {block modal-body}{control mergeOrderForm:noHeader}{/block}

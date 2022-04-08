@@ -491,7 +491,7 @@ class OrderPresenter extends BackendPresenter
 
 		$form->setDefaults($order->toArray());
 	}
-	
+
 	public function createComponentProductForm(): AdminForm
 	{
 		/** @var \Eshop\DB\Order $order */
@@ -506,7 +506,7 @@ class OrderPresenter extends BackendPresenter
 		
 		$form->addInteger('amount', 'Množství')->setDefaultValue(1)->setRequired();
 		
-		$form->addSubmits(false);
+		$form->addSubmits(false, false);
 		
 		$form->onValidate[] = function (AdminForm $form) use ($order): void {
 			$data = $this->getHttpRequest()->getPost();
@@ -522,7 +522,7 @@ class OrderPresenter extends BackendPresenter
 			
 			$this->shopper->setCustomer($order->purchase->customer);
 			
-			if ($this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.code', $data['product'])->first()) {
+			if ($this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.code OR this.ean', $data['product'])->first()) {
 				return;
 			}
 			
@@ -540,14 +540,14 @@ class OrderPresenter extends BackendPresenter
 				$this->shopper->setCustomer($order->purchase->customer);
 				$this->checkoutManager->setCustomer($order->purchase->customer);
 			}
-
+			
 			/** @var \Eshop\DB\Product $product */
-			$product = $this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.code', $values['product'])->first();
+			$product = $this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.code OR this.ean', $values['product'])->first();
 			
 			$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], false, false, false, $cart);
 			
 			$existingPackageItem = $this->packageItemRepository->many()->where('fk_package', $values['package'])->where('fk_cartItem', $cartItem)->first();
-
+			
 			if ($existingPackageItem) {
 				$existingPackageItem->update(['amount' => $existingPackageItem->amount + $values['amount']]);
 			} else {
@@ -565,7 +565,7 @@ class OrderPresenter extends BackendPresenter
 				return;
 			}
 			
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::NEW_ITEM, $cartItem->productName, $admin);
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::NEW_ITEM, $product->name, $admin);
 			
 			$this->flashMessage('Provedeno', 'success');
 			$form->processRedirect('this');
