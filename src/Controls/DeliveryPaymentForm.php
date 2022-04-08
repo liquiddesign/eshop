@@ -50,7 +50,9 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		$this->translator = $translator;
 		$this->pickupPointRepository = $pickupPointRepository;
 
-		$deliveriesList = $this->addRadioList('deliveries', 'deliveryPaymentForm.payments', $checkoutManager->getDeliveryTypes()->toArrayOf('name'))
+		$vat = $this->shopper->getShowPrice() === 'withVat';
+
+		$deliveriesList = $this->addRadioList('deliveries', 'deliveryPaymentForm.payments', $checkoutManager->getDeliveryTypes($vat)->toArrayOf('name'))
 			->setHtmlAttribute('onChange=updatePoints(this)');
 		$paymentsList = $this->addRadioList('payments', 'deliveryPaymentForm.payments', $checkoutManager->getPaymentTypes()->toArrayOf('name'));
 
@@ -60,7 +62,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		$typesWithPoints = [];
 
 		/** @var \Eshop\DB\DeliveryType $deliveryType */
-		foreach ($checkoutManager->getDeliveryTypes()->toArray() as $deliveryType) {
+		foreach ($checkoutManager->getDeliveryTypes($vat)->toArray() as $deliveryType) {
 			$pickupPoints = $this->pickupPointRepository->many()
 				->join(['type' => 'eshop_pickuppointtype'], 'this.fk_pickupPointType = type.uuid')
 				->join(['delivery' => 'eshop_deliverytype'], 'delivery.fk_pickupPointType = type.uuid')
@@ -85,7 +87,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		$deliveriesList->setRequired();
 		$paymentsList->setRequired();
 
-		$this->addCombinationRules($deliveriesList, $paymentsList, $checkoutManager->getDeliveryTypes());
+		$this->addCombinationRules($deliveriesList, $paymentsList, $checkoutManager->getDeliveryTypes($vat));
 
 		// @TODO: overload toggle (https://pla.nette.org/cs/forms-toggle#toc-jak-pridat-animaci)
 
