@@ -24,6 +24,7 @@ use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Localization\Translator;
 use Nette\Mail\Mailer;
+use Nette\Utils\Arrays;
 use Web\Controls\Breadcrumb;
 use Web\Controls\IBreadcrumbFactory;
 use Web\Controls\IWidgetFactory;
@@ -31,6 +32,10 @@ use Web\Controls\Widget;
 
 abstract class FrontendPresenter extends Presenter
 {
+	public string $appPath = __DIR__ . '/../../../../../app';
+
+	public string $layoutTemplate = __DIR__ . '/../../../../../app/@layout.latte';
+
 	/** @inject */
 	public LatteFactory $latteFactory;
 
@@ -75,9 +80,23 @@ abstract class FrontendPresenter extends Presenter
 	/** @persistent */
 	public string $lang;
 
+	/** @var array<callable(\Web\Controls\Breadcrumb): void> */
+	public $onBreadcrumbCreated = [];
+
 	protected Engine $latte;
 
 	private Cache $cache;
+
+	/**
+	 * @return array<string>
+	 */
+	public function formatLayoutTemplateFiles(): array
+	{
+		$dirs = parent::formatLayoutTemplateFiles();
+		$dirs[] = $this->layoutTemplate;
+
+		return $dirs;
+	}
 
 	public function createComponentWidget(): Widget
 	{
@@ -95,17 +114,6 @@ abstract class FrontendPresenter extends Presenter
 
 		$this->user->logout(true);
 		$this->redirect(':Web:Index:default');
-	}
-
-	/**
-	 * @return array<string>
-	 */
-	public function formatLayoutTemplateFiles(): array
-	{
-		$dirs = parent::formatLayoutTemplateFiles();
-		$dirs[] = __DIR__ . \DIRECTORY_SEPARATOR . '@layout.latte';
-
-		return $dirs;
 	}
 
 	public function handleGetProductsForTypeAhead(): void
@@ -166,8 +174,10 @@ abstract class FrontendPresenter extends Presenter
 	{
 		$breadcrumb = $this->breadcrumbFactory->create();
 		$breadcrumb->onAnchor[] = function (Breadcrumb $breadcrumb): void {
-			$breadcrumb->template->setFile(__DIR__ . '/Web/Controls/Breadcrumb.latte');
+			$breadcrumb->template->setFile($this->appPath . '/Web/Controls/Breadcrumb.latte');
 		};
+
+		Arrays::invoke($this->onBreadcrumbCreated, $breadcrumb);
 
 		return $breadcrumb;
 	}
@@ -206,7 +216,11 @@ abstract class FrontendPresenter extends Presenter
 		// @TODO call event
 	}
 
-	public function handleLoadAres($ic): void
+	/**
+	 * TODO move to package
+	 * @throws \Nette\Application\AbortException
+	 */
+	public function handleLoadAres(): void
 	{
 		$ic = $this->getHttpRequest()->getPost('ic');
 

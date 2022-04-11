@@ -8,7 +8,7 @@ use Eshop\DB\OrderRepository;
 use Nette\Application\BadRequestException;
 use Tracy\Debugger;
 
-class ComgatePresenter extends FrontendPresenter
+abstract class ComgatePresenter extends FrontendPresenter
 {
 	public Comgate $comgate;
 
