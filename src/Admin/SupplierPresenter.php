@@ -138,9 +138,15 @@ class SupplierPresenter extends BackendPresenter
 			return $object->imageDownloadCount . ( $object->imageErrorCount ? ' (<span style="color: red;"> ' . $object->imageErrorCount . ' </span>)' : '');
 		}, '%s', null, ['class' => 'minimal'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		
-		$grid->addColumn('', function (ImportResult $object, Datagrid $datagrid) {
-			return $datagrid->getPresenter()->link('logItems', $object);
-		}, '<a class="btn btn-outline-primary btn-sm text-xs" target="_blank" style="white-space: nowrap" href="%s">Podrobný log</a>', null, ['class' => 'minimal']);
+		$grid->addColumn('', function (ImportResult $object, Datagrid $datagrid): string {
+			if (!\is_file($this->tempDir . '/log/import/' . $object->id . '.log')) {
+				return '';
+			}
+
+			$link = $datagrid->getPresenter()->link('logItems', $object);
+
+			return '<a class="btn btn-outline-primary btn-sm text-xs" target="_blank" style="white-space: nowrap" href="' . $link . '">Podrobný log</a>';
+		}, '%s', null, ['class' => 'minimal']);
 		
 		
 		$grid->addFilterTextInput('search', ['supplier.name', 'supplier.code'], null, 'Název, kód');

@@ -52,8 +52,8 @@
 		"phpstan/phpstan-nette": "~1.0"
 	},
 	"scripts": {
-		"check-code": "phpcs --standard=ruleset.xml --ignore=assets src && phpstan analyse --memory-limit 1G -c phpstan.neon",
-		"fix-code": "phpcbf --standard=ruleset.xml --ignore=assets src",
+		"fix-code": ["@phpcsfix"],
+		"check-code": ["@phpcs", "@phpstan"],
 		"phpstan-clear-cache": "phpstan clear-result-cache",
 		"phpstan": "phpstan analyse --memory-limit 1G -c phpstan.neon",
 		"phpcs": "phpcs --standard=ruleset.xml --ignore=assets src",
