@@ -42,9 +42,12 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 			->join(['e_pu' => 'eshop_purchase'], 'e_c.fk_purchase = e_pu.uuid')
 			->join(['e_o' => 'eshop_order'], 'e_pu.uuid = e_o.fk_purchase')
 			->join(['e_sp' => 'eshop_supplierproduct'], 'e_sp.fk_product = this.fk_product')
+			->join(['e_sp_su' => 'eshop_supplier'], 'e_sp_su.uuid = e_sp.fk_supplier')
 			->join(['e_pai' => 'eshop_packageitem'], 'this.uuid = e_pai.fk_cartItem')
 			->join(['e_st' => 'eshop_store'], 'e_st.uuid = e_pai.fk_store')
 			->join(['e_su' => 'eshop_supplier'], 'e_su.uuid = e_st.fk_supplier')
+			->select(['allSuppliers' => 'GROUP_CONCAT(e_sp_su.name ORDER BY e_sp_su.name ASC SEPARATOR ", ")'])
+			->setGroupBy(['this.uuid'])
 			->selectAliases(['e_pai' => PackageItem::class])
 			->selectAliases(['e_o' => Order::class])
 			->selectAliases(['e_su' => Supplier::class])
@@ -75,7 +78,9 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 
 		$grid->addColumnText('Množství', 'amount', '%s', null, ['class' => 'fit']);
 
-		$grid->addColumn('Dodavatel', function (CartItem $cartItem): ?string {
+		$grid->addColumnText('Dodavatelé', 'allSuppliers', '%s');
+
+		$grid->addColumn('Zvolený dodavatel', function (CartItem $cartItem): ?string {
 			return $cartItem->getValue('e_su_name');
 		});
 
@@ -99,7 +104,7 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 		}, '', 'date_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
 
 		$grid->addFilterDataSelect(function (Collection $source, $value): void {
-			$source->where('e_st.fk_supplier', $value);
+			$source->where('e_st.fk_supplier = :val OR e_sp_su.uuid = :val', ['val' => $value]);
 		}, '', 'supplier', null, $this->supplierRepository->getArrayForSelect())->setPrompt('- Dodavatel -');
 
 		$grid->addFilterButtons();
