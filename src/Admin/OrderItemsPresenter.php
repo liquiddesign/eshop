@@ -45,43 +45,43 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 			->join(['e_pai' => 'eshop_packageitem'], 'this.uuid = e_pai.fk_cartItem')
 			->join(['e_st' => 'eshop_store'], 'e_st.uuid = e_pai.fk_store')
 			->join(['e_su' => 'eshop_supplier'], 'e_su.uuid = e_st.fk_supplier')
-			->selectAliases(['e_pai' => PackageItem::class], 'packageitem_')
-			->selectAliases(['e_o' => Order::class], 'order_')
-			->selectAliases(['e_su' => Supplier::class], 'supplier_')
+			->selectAliases(['e_pai' => PackageItem::class])
+			->selectAliases(['e_o' => Order::class])
+			->selectAliases(['e_su' => Supplier::class])
 			->where('e_o.receivedTs IS NOT NULL AND e_o.completedTs IS NOT NULL AND e_o.canceledTs IS NULL'), 100, 'e_o.createdTs', 'DESC', true);
 		$grid->addColumnSelector();
 
-		$grid->addColumnText('Vytvořeno', 'order_createdTs|date', '%s', 'e_o.createdTs', ['class' => 'fit']);
+		$grid->addColumnText('Vytvořeno', 'e_o_createdTs|date', '%s', 'e_o.createdTs', ['class' => 'fit']);
 
 		$grid->addColumn('Objednávka', function (CartItem $cartItem) use ($orders): ?string {
-			$name = $cartItem->getValue('order_code');
-			$link = $cartItem->getValue('order_code') && $this->admin->isAllowed(':Eshop:Admin:Order:printDetail') ?
-				$this->link(':Eshop:Admin:Order:printDetail', $orders[$cartItem->getValue('order_uuid')]) :
+			$name = $cartItem->getValue('e_o_code');
+			$link = $cartItem->getValue('e_o_code') && $this->admin->isAllowed(':Eshop:Admin:Order:printDetail') ?
+				$this->link(':Eshop:Admin:Order:printDetail', $orders[$cartItem->getValue('e_o_uuid')]) :
 				null;
 
 			return $link ? "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;$name</a>" : $name;
-		}, '%s', 'code');
+		});
 
 		$grid->addColumn('Kód', function (CartItem $cartItem): string {
 			return $cartItem->getProduct() ? $cartItem->getProduct()->getFullCode() : $cartItem->getFullCode();
-		}, '%s', 'code');
+		});
 
 		$grid->addColumn('Produkt', function (CartItem $cartItem): string {
 			$name = $cartItem->getProduct() ? $cartItem->getProduct()->name : $cartItem->productName;
 			$link = $cartItem->getProduct() && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $this->link(':Eshop:Admin:Product:edit', $cartItem->getProduct()) : null;
 
 			return $link ? "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;$name</a>" : $name;
-		}, '%s', 'code');
+		});
 
-		$grid->addColumnText('Množství', 'amount', '%s', 'amount', ['class' => 'fit']);
+		$grid->addColumnText('Množství', 'amount', '%s', null, ['class' => 'fit']);
 
 		$grid->addColumn('Dodavatel', function (CartItem $cartItem): ?string {
-			return $cartItem->getValue('supplier_name');
-		}, '%s', 'code');
+			return $cartItem->getValue('e_su_name');
+		});
 
 		$grid->addColumn('Objednáno', function (CartItem $cartItem): string {
-			return $cartItem->getValue('packageitem_status') === 'reserved' ? '<i class="fa fa-check text-success"></i>' : '<i class="fa fa-times text-danger"></i>';
-		}, '%s', 'code', ['class' => 'minimal']);
+			return $cartItem->getValue('e_pai_status') === 'reserved' ? '<i class="fa fa-check text-success"></i>' : '<i class="fa fa-times text-danger"></i>';
+		}, '%s', null, ['class' => 'minimal']);
 
 //		$btnSecondary = 'btn btn-sm btn-outline-primary';
 //		$sendIco = "<a href='%s' class='$btnSecondary' title='Objednat'><i class='fas fa-paper-plane'></i></a>";
