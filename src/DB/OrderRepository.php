@@ -14,6 +14,7 @@ use Nette\Caching\Storage;
 use Nette\DI\Container;
 use Nette\Localization\Translator;
 use Nette\Mail\Mailer;
+use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
 use Security\DB\Account;
 use StORM\Collection;
@@ -26,6 +27,18 @@ use StORM\SchemaManager;
  */
 class OrderRepository extends \StORM\Repository
 {
+	/** @var array<callable(\Eshop\DB\Order): void> */
+	public array $onOrderReceived = [];
+
+	/** @var array<callable(\Eshop\DB\Order): void> */
+	public array $onOrderCompleted = [];
+
+	/** @var array<callable(\Eshop\DB\Order): void> */
+	public array $onOrderCanceled = [];
+
+	/** @var array<callable(\Eshop\DB\Order): void> */
+	public array $onOrderBanned = [];
+
 	private Cache $cache;
 
 	private Shopper $shopper;
@@ -44,6 +57,8 @@ class OrderRepository extends \StORM\Repository
 
 	private Container $container;
 
+	private OrderLogItemRepository $orderLogItemRepository;
+
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
@@ -55,7 +70,8 @@ class OrderRepository extends \StORM\Repository
 		PackageRepository $packageRepository,
 		PackageItemRepository $packageItemRepository,
 		BannedEmailRepository $bannedEmailRepository,
-		Container $container
+		Container $container,
+		OrderLogItemRepository $orderLogItemRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -68,6 +84,7 @@ class OrderRepository extends \StORM\Repository
 		$this->packageItemRepository = $packageItemRepository;
 		$this->bannedEmailRepository = $bannedEmailRepository;
 		$this->container = $container;
+		$this->orderLogItemRepository = $orderLogItemRepository;
 	}
 
 	/**
@@ -1049,26 +1066,78 @@ class OrderRepository extends \StORM\Repository
 		return $pointsGain;
 	}
 
+	/**
+	 * @deprecated
+	 * @param string $orderId
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function cancelOrderById(string $orderId): void
 	{
 		$this->cancelOrder($this->one($orderId, true));
 	}
 
-	public function cancelOrder(Order $order): void
+	public function receiveOrder(Order $order, ?Administrator $administrator = null): void
+	{
+		$order->update(['receivedTs' => (string)new DateTime(), 'canceledTs' => null]);
+
+		Arrays::invoke($this->onOrderReceived, $order);
+
+		$this->orderLogItemRepository->createLog($order, OrderLogItem::RECEIVED, null, $administrator);
+	}
+
+	public function completeOrder(Order $order, ?Administrator $administrator = null): void
+	{
+		if ($order->canceledTs === null) {
+			foreach ($order->purchase->getItems() as $item) {
+				if (!$item->product) {
+					continue;
+				}
+
+				$item->product->update(['buyCount' => $item->product->buyCount + $item->amount]);
+			}
+		}
+
+		$order->update(['completedTs' => (string)new DateTime(), 'canceledTs' => null]);
+
+		Arrays::invoke($this->onOrderCompleted, $order);
+
+		$this->orderLogItemRepository->createLog($order, OrderLogItem::COMPLETED, null, $administrator);
+	}
+
+	public function receiveAndCompleteOrder(Order $order, ?Administrator $administrator = null): void
+	{
+		$this->receiveOrder($order, $administrator);
+		$this->completeOrder($order, $administrator);
+	}
+
+	public function cancelOrder(Order $order, ?Administrator $administrator = null): void
 	{
 		$order->update(['canceledTs' => (string)new DateTime()]);
+
+		Arrays::invoke($this->onOrderCanceled, $order);
+
+		$this->orderLogItemRepository->createLog($order, OrderLogItem::CANCELED, null, $administrator);
 	}
 
-	public function banOrderById(string $orderId): void
-	{
-		$this->banOrder($this->one($orderId, true));
-	}
-
-	public function banOrder(Order $order): void
+	public function banOrder(Order $order, ?Administrator $administrator = null): void
 	{
 		$this->cancelOrder($order);
 
 		$this->bannedEmailRepository->syncOne(['email' => $order->purchase->email]);
+
+		Arrays::invoke($this->onOrderBanned, $order);
+
+		$this->orderLogItemRepository->createLog($order, OrderLogItem::BAN_CANCELED, null, $administrator);
+	}
+
+	/**
+	 * @deprecated
+	 * @param string $orderId
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function banOrderById(string $orderId): void
+	{
+		$this->banOrder($this->one($orderId, true));
 	}
 
 	public function getLastOrder(): ?Order

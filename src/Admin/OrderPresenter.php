@@ -1325,56 +1325,34 @@ class OrderPresenter extends BackendPresenter
 
 	public function handleCancelOrder(string $orderId): void
 	{
-		$this->orderRepository->cancelOrderById($orderId);
-
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->one($orderId);
-
-		$accountMutation = null;
-
-		if ($order->purchase->account) {
-			if (!$accountMutation = $order->purchase->account->getPreferredMutation()) {
-				if ($order->purchase->customer) {
-					$accountMutation = $order->purchase->customer->getPreferredMutation();
-				}
-			}
-		}
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
 
-		if (!$admin) {
-			return;
-		}
+		$this->orderRepository->cancelOrder($order, $admin);
 
 		try {
-			$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $order->code], $order->purchase->email, null, null, $accountMutation);
+			$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $order->code], $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
 			$this->mailer->send($mail);
 
 			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
 		} catch (\Throwable $e) {
 		}
 
-		$this->orderLogItemRepository->createLog($order, OrderLogItem::CANCELED, null, $admin);
-
 		$this->redirect('this');
 	}
 
 	public function handleBanOrder(string $orderId): void
 	{
-		$this->orderRepository->banOrderById($orderId);
-
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->one($orderId);
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
 
-		if (!$admin) {
-			return;
-		}
-
-		$this->orderLogItemRepository->createLog($order, OrderLogItem::BAN_CANCELED, null, $admin);
+		$this->orderRepository->banOrder($order, $admin);
 
 		$this->redirect('this');
 	}
@@ -1384,47 +1362,21 @@ class OrderPresenter extends BackendPresenter
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->one($orderId, true);
 
-		if ($order->canceledTs === null) {
-			foreach ($order->purchase->getItems() as $item) {
-				if (!$item->product) {
-					continue;
-				}
-
-				$item->product->update(['buyCount' => $item->product->buyCount + $item->amount]);
-			}
-		}
-
-		$order->update(['completedTs' => (string)new DateTime(), 'canceledTs' => null]);
-
-		$accountMutation = null;
-
-		if ($order->purchase->account) {
-			if (!$accountMutation = $order->purchase->account->getPreferredMutation()) {
-				if ($order->purchase->customer) {
-					$accountMutation = $order->purchase->customer->getPreferredMutation();
-				}
-			}
-		}
-
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
 
-		if (!$admin) {
-			return;
-		}
+		$this->orderRepository->completeOrder($order, $admin);
 
 		try {
 			$mail = $this->templateRepository->createMessage('order.confirmed', [
 				'orderCode' => $order->code,
-			], $order->purchase->email, null, null, $accountMutation);
+			], $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
 
 			$this->mailer->send($mail);
 
 			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
 		} catch (\Throwable $e) {
 		}
-
-		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::COMPLETED, null, $admin);
 
 		$this->redirect('this');
 	}
@@ -1433,16 +1385,11 @@ class OrderPresenter extends BackendPresenter
 	{
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->one($orderId, true);
-		$order->update(['receivedTs' => (string)new DateTime(), 'canceledTs' => null]);
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
 
-		if (!$admin) {
-			return;
-		}
-
-		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::RECEIVED, null, $admin);
+		$this->orderRepository->receiveOrder($order, $admin);
 
 		$this->redirect('this');
 	}
@@ -1451,50 +1398,22 @@ class OrderPresenter extends BackendPresenter
 	{
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->one($orderId, true);
-		$order->update([
-			'receivedTs' => (string)new DateTime(),
-			'completedTs' => (string)new DateTime(),
-			'canceledTs' => null,
-		]);
-
-		foreach ($order->purchase->getItems() as $item) {
-			if (!$item->product) {
-				continue;
-			}
-
-			$item->product->update(['buyCount' => $item->product->buyCount + $item->amount]);
-		}
-
-		$accountMutation = null;
-
-		if ($order->purchase->account) {
-			if (!$accountMutation = $order->purchase->account->getPreferredMutation()) {
-				if ($order->purchase->customer) {
-					$accountMutation = $order->purchase->customer->getPreferredMutation();
-				}
-			}
-		}
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
 
-		if (!$admin) {
-			return;
-		}
+		$this->orderRepository->receiveAndCompleteOrder($order, $admin);
 
 		try {
 			$mail = $this->templateRepository->createMessage('order.confirmed', [
 				'orderCode' => $order->code,
-			], $order->purchase->email, null, null, $accountMutation);
+			], $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
 
 			$this->mailer->send($mail);
 
 			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
 		} catch (\Throwable $e) {
 		}
-
-		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::RECEIVED, null, $admin);
-		$this->orderLogItemRepository->createLog($this->orderRepository->one($orderId), OrderLogItem::COMPLETED, null, $admin);
 
 		$this->redirect('this');
 	}

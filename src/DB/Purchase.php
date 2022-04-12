@@ -301,6 +301,21 @@ class Purchase extends \StORM\Entity
 		return $supplierPaymentType->externalId ?? ($this->paymentType->externalId ?? null);
 	}
 
+	public function getCustomerPrefferedMutation(): ?string
+	{
+		$accountMutation = null;
+
+		if ($this->account) {
+			if (!$accountMutation = $this->account->getPreferredMutation()) {
+				if ($this->customer) {
+					$accountMutation = $this->customer->getPreferredMutation();
+				}
+			}
+		}
+
+		return $accountMutation;
+	}
+
 	/**
 	 * @return string[]
 	 */

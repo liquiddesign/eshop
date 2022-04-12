@@ -20,6 +20,7 @@ use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
+use Nette\Utils\Html;
 use StORM\Collection;
 use StORM\ICollection;
 use Tracy\Debugger;
@@ -124,7 +125,10 @@ class OrderGridFactory
 
 		if ($state === 'open') {
 			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Označit jako přijaté'><i class='fa fa-sm fa-check'></i></a>";
-			$grid->addColumnAction('', $actionIco, [$this, 'closeOrder'], [], null, ['class' => 'minimal']);
+			$grid->addColumnAction('', $actionIco, [$this, 'receiveOrder'], [], null, ['class' => 'minimal']);
+
+			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Označit jako zpracované'><i class='fas fa-sm fa-check-double'></i></a>";
+			$grid->addColumnAction('', $actionIco, [$this, 'receiveAndCompleteOrder'], [], null, ['class' => 'minimal']);
 		}
 
 		if ($state !== 'finished' && $state !== 'open') {
@@ -139,7 +143,7 @@ class OrderGridFactory
 			$grid->addColumnAction('', $actionIco, [$this, 'cancelOrder'], [], null, ['class' => 'minimal']);
 		}
 
-		$grid->addColumnLink('orderEmail', '<i class="far fa-envelope"></i>', null, ['class' => 'minimal']);
+//		$grid->addColumnLink('orderEmail', '<i class="far fa-envelope"></i>', null, ['class' => 'minimal']);
 
 		$downloadIco = "<a href='%s' class='$btnSecondary' title='Stáhnout'><i class='fa fa-sm fa-download'></i></a>";
 
@@ -187,20 +191,23 @@ class OrderGridFactory
 		}
 
 		if ($state === 'open') {
-			$submit = $grid->getForm()->addSubmit('closeMultiple', 'Uzavřít úpravy');
-			$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')->setHtml('<i class="fa fa-check"></i> Uzavřít úpravy');
-			$submit->onClick[] = [$this, 'closeOrderMultiple'];
+			$submit = $grid->getForm()->addSubmit('receiveMultiple', Html::fromHtml('<i class="fa fa-check"></i> Přijmout'))->setHtmlAttribute('class', $btnSecondary);
+			$submit->onClick[] = [$this, 'receiveOrderMultiple'];
+
+			$submit = $grid->getForm()->addSubmit('receiveAndCompleteMultiple', Html::fromHtml('<i class="fas fa-check-double"></i> Přijmout a zpracovat'));
+			$submit->setHtmlAttribute('class', $btnSecondary);
+			$submit->onClick[] = [$this, 'receiveAndCompleteMultiple'];
 		}
 
 		if ($state !== 'finished' && $state !== 'open') {
-			$submit = $grid->getForm()->addSubmit('completeMultiple', 'Zpracovat');
-			$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')->setHtml('<i class="fa fa-check"></i> Zpracovat');
+			$submit = $grid->getForm()->addSubmit('completeMultiple', Html::fromHtml('<i class="fa fa-check"></i> Zpracovat'));
+			$submit->setHtmlAttribute('class', $btnSecondary);
 			$submit->onClick[] = [$this, 'completeOrderMultiple'];
 		}
 
 		if ($state !== 'canceled' && $state !== 'open') {
-			$submit = $grid->getForm()->addSubmit('cancelMultiple', 'Stornovat');
-			$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')->setHtml('<i class="fa fa-times"></i> Stornovat');
+			$submit = $grid->getForm()->addSubmit('cancelMultiple', Html::fromHtml('<i class="fa fa-times"></i> Stornovat'));
+			$submit->setHtmlAttribute('class', $btnSecondary);
 			$submit->onClick[] = [$this, 'cancelOrderMultiple'];
 		}
 
@@ -325,8 +332,6 @@ class OrderGridFactory
 		$grid = $button->lookup(Datagrid::class);
 
 		foreach ($grid->getSelectedIds() as $id) {
-			$grid->getSource()->where('this.uuid', $id)->setGroupBy([])->update(['canceledTs' => (string)new DateTime()]);
-
 			$order = $this->orderRepository->one($id, true);
 
 			/** @var \Eshop\BackendPresenter $presenter */
@@ -335,20 +340,18 @@ class OrderGridFactory
 			/** @var \Admin\DB\Administrator|null $admin */
 			$admin = $presenter->admin->getIdentity();
 
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::CANCELED, null, $admin);
-
-			$accountMutation = null;
-
-			if ($order->purchase->account) {
-				if (!$accountMutation = $order->purchase->account->getPreferredMutation()) {
-					if ($order->purchase->customer) {
-						$accountMutation = $order->purchase->customer->getPreferredMutation();
-					}
-				}
-			}
+			$this->orderRepository->completeOrder($order);
 
 			try {
-				$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $order->code], $order->purchase->email, null, null, $accountMutation);
+				$mail = $this->templateRepository->createMessage(
+					'order.canceled',
+					['orderCode' => $order->code],
+					$order->purchase->email,
+					null,
+					null,
+					$order->purchase->getCustomerPrefferedMutation(),
+				);
+
 				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
@@ -381,37 +384,31 @@ class OrderGridFactory
 		$presenter->sendResponse($response);
 	}
 
-	public function cancelOrder(Order $object, ?Datagrid $grid = null): void
+	public function cancelOrder(Order $order, ?Datagrid $grid = null): void
 	{
-		$object->update(['canceledTs' => (string)new DateTime(), 'completedTs' => null]);
-
-		$accountMutation = null;
-
-		if ($object->purchase->account) {
-			if (!$accountMutation = $object->purchase->account->getPreferredMutation()) {
-				if ($object->purchase->customer) {
-					$accountMutation = $object->purchase->customer->getPreferredMutation();
-				}
-			}
-		}
-
-		if (!$grid) {
-			return;
-		}
-
 		/** @var \Eshop\BackendPresenter $presenter */
 		$presenter = $grid->getPresenter();
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $presenter->admin->getIdentity();
 
-		$this->orderLogItemRepository->createLog($object, OrderLogItem::CANCELED, null, $admin);
+		$this->orderRepository->cancelOrder($order, $admin);
+
+		$this->orderLogItemRepository->createLog($order, OrderLogItem::CANCELED, null, $admin);
 
 		try {
-			$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $object->code], $object->purchase->email, null, null, $accountMutation);
+			$mail = $this->templateRepository->createMessage(
+				'order.canceled',
+				['orderCode' => $order->code],
+				$order->purchase->email,
+				null,
+				null,
+				$order->purchase->getCustomerPrefferedMutation(),
+			);
+
 			$this->mailer->send($mail);
 
-			$this->orderLogItemRepository->createLog($object, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
 		} catch (\Throwable $e) {
 		}
 
@@ -434,42 +431,18 @@ class OrderGridFactory
 
 	public function completeOrder(Order $object, ?Datagrid $grid = null, bool $redirectAfter = true): void
 	{
-		$object->update(['completedTs' => (string)new DateTime(), 'canceledTs' => null]);
-
-		$accountMutation = null;
-
-		if ($object->purchase->account) {
-			if (!$accountMutation = $object->purchase->account->getPreferredMutation()) {
-				if ($object->purchase->customer) {
-					$accountMutation = $object->purchase->customer->getPreferredMutation();
-				}
-			}
-		}
-
-		foreach ($object->purchase->getItems() as $item) {
-			if (!$item->product) {
-				continue;
-			}
-
-			$item->product->update(['buyCount' => $item->product->buyCount + $item->amount]);
-		}
-
-		if (!$grid) {
-			return;
-		}
-
 		/** @var \Eshop\BackendPresenter $presenter */
 		$presenter = $grid->getPresenter();
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $presenter->admin->getIdentity();
 
-		$this->orderLogItemRepository->createLog($object, OrderLogItem::COMPLETED, null, $admin);
+		$this->orderRepository->completeOrder($object, $admin);
 
 		try {
 			$mail = $this->templateRepository->createMessage('order.confirmed', [
 				'orderCode' => $object->code,
-			], $object->purchase->email, null, null, $accountMutation);
+			], $object->purchase->email, null, null, $object->purchase->getCustomerPrefferedMutation());
 
 			$this->mailer->send($mail);
 
@@ -485,34 +458,70 @@ class OrderGridFactory
 		$grid->getPresenter()->redirect('this');
 	}
 
-	public function closeOrderMultiple(Button $button): void
+	public function receiveOrderMultiple(Button $button): void
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
 
 		foreach ($grid->getSelectedIds() as $id) {
-			$this->closeOrder($grid->getSource()->where('this.uuid', $id)->first(), $grid, false);
+			$this->receiveOrder($grid->getSource()->where('this.uuid', $id)->first(), $grid, false);
 		}
 
 		$grid->getPresenter()->flashMessage('Provedeno', 'success');
 		$grid->getPresenter()->redirect('this');
 	}
 
-	public function closeOrder(Order $object, ?Datagrid $grid = null, bool $redirectAfter = true): void
+	public function receiveOrder(Order $object, ?Datagrid $grid = null, bool $redirectAfter = true): void
 	{
-		$object->update(['receivedTs' => (string)new DateTime()]);
-
-		if (!$grid) {
-			return;
-		}
-
 		/** @var \Eshop\BackendPresenter $presenter */
 		$presenter = $grid->getPresenter();
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $presenter->admin->getIdentity();
 
-		$this->orderLogItemRepository->createLog($object, OrderLogItem::RECEIVED, null, $admin);
+		$this->orderRepository->receiveOrder($object, $admin);
+
+		if (!$redirectAfter) {
+			return;
+		}
+
+		$grid->getPresenter()->flashMessage('Provedeno', 'success');
+		$grid->getPresenter()->redirect('this');
+	}
+
+	public function receiveAndCompleteMultiple(Button $button): void
+	{
+		/** @var \Grid\Datagrid $grid */
+		$grid = $button->lookup(Datagrid::class);
+
+		foreach ($grid->getSelectedIds() as $id) {
+			$this->receiveAndCompleteOrder($grid->getSource()->where('this.uuid', $id)->first(), $grid, false);
+		}
+
+		$grid->getPresenter()->flashMessage('Provedeno', 'success');
+		$grid->getPresenter()->redirect('this');
+	}
+
+	public function receiveAndCompleteOrder(Order $object, ?Datagrid $grid = null, bool $redirectAfter = true): void
+	{
+		/** @var \Eshop\BackendPresenter $presenter */
+		$presenter = $grid->getPresenter();
+
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $presenter->admin->getIdentity();
+
+		$this->orderRepository->receiveAndCompleteOrder($object, $admin);
+
+		try {
+			$mail = $this->templateRepository->createMessage('order.confirmed', [
+				'orderCode' => $object->code,
+			], $object->purchase->email, null, null, $object->purchase->getCustomerPrefferedMutation());
+
+			$this->mailer->send($mail);
+
+			$this->orderLogItemRepository->createLog($object, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
+		} catch (\Throwable $e) {
+		}
 
 		if (!$redirectAfter) {
 			return;
