@@ -876,7 +876,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 	 * @return array<string, \Eshop\DB\Product>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getCartItemRelations(CartItem $cartItem, bool $useCombinedName = true, bool $onlyShowCart = true): array
+	public function getCartItemRelations(CartItem $cartItem, bool $useCombinedName = true, bool $onlyShowCart = true, ?RelatedType $relatedType = null): array
 	{
 		if (!$cartItem->getValue('product')) {
 			return [];
@@ -893,6 +893,10 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		if ($onlyShowCart) {
 			$collection->where('relatedType.showCart', true);
+		}
+
+		if ($relatedType) {
+			$collection->where('relatedType.uuid', $relatedType->getPK());
 		}
 
 		/** @var \Eshop\DB\Related $related */

@@ -40,6 +40,7 @@ use Eshop\DB\Purchase;
 use Eshop\DB\ReviewRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\Variant;
+use Eshop\DB\VatRate;
 use Nette;
 use Nette\Http\Request;
 use Nette\Http\Response;
@@ -508,6 +509,53 @@ class CheckoutManager
 	}
 
 	/**
+	 * @param \Eshop\DB\CartItem $cartItem
+	 * @param \Eshop\DB\Product $upsell Must be processed by getCartItemRelations()
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function addUpsellToCart(CartItem $cartItem, Product $upsell, ?int $realAmount = null): CartItem
+	{
+		$existingUpsell = $this->itemRepository->getUpsellByObjects($cartItem, $upsell);
+
+		if ($existingUpsell) {
+			$realAmount = $realAmount && $existingUpsell->realAmount ? $existingUpsell->realAmount + $realAmount : null;
+
+			$existingUpsell->update([
+				'price' => (float) $upsell->getValue('price'),
+				'priceVat' => (float) $upsell->getValue('priceVat'),
+				'amount' => $realAmount ? $realAmount * $cartItem->amount : $upsell->getValue('amount'),
+				'realAmount' => $realAmount,
+			]);
+
+			return $this->itemRepository->getUpsellByObjects($cartItem, $upsell);
+		}
+
+		/** @var \Eshop\DB\VatRateRepository $vatRepo */
+		$vatRepo = $this->itemRepository->getConnection()->findRepository(VatRate::class);
+		/** @var \Eshop\DB\VatRate|null $vat */
+		$vat = $vatRepo->one($upsell->vatRate);
+
+		$vatPct = $vat ? $vat->rate : 0;
+		$amount = $realAmount ? $realAmount * $cartItem->amount : $upsell->getValue('amount');
+
+		return $this->itemRepository->createOne([
+			'productName' => $upsell->toArray()['name'],
+			'productCode' => $upsell->getFullCode(),
+			'productSubCode' => $upsell->subCode,
+			'productWeight' => $upsell->weight,
+			'productDimension' => $upsell->dimension,
+			'amount' => $amount,
+			'realAmount' => $realAmount,
+			'price' => $upsell->getPrice($amount),
+			'priceVat' => $upsell->getPriceVat($amount),
+			'vatPct' => (float) $vatPct,
+			'product' => $upsell->getPK(),
+			'cart' => $cartItem->getValue('cart'),
+			'upsell' => $cartItem->getPK(),
+		]);
+	}
+
+	/**
 	 * @throws \Eshop\BuyException
 	 */
 	public function changeItemAmount(Product $product, ?Variant $variant = null, int $amount = 1, bool $checkInvalidAmount = true, ?Cart $cart = null): void
@@ -523,7 +571,7 @@ class CheckoutManager
 			return;
 		}
 
-		foreach ($this->productRepository->getCartItemRelations($cartItem) as $upsell) {
+		foreach ($this->productRepository->getCartItemRelations($cartItem, true, false) as $upsell) {
 			if ($upsellCartItem = $this->itemRepository->getUpsell($cartItem->getPK(), $upsell->getPK())) {
 				$upsellCartItem->update([
 					'price' => (float) $upsell->getValue('price'),

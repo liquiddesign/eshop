@@ -140,11 +140,11 @@ class CartItemList extends Datalist
 
 		if ($this->isUpsellActive($cartItem->getPK(), $upsell->getPK())) {
 			/** @var \Eshop\DB\CartItem $cartItem */
-			$cartItem = $this->checkoutManager->getItems()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first();
+			$cartItem = $this->cartItemsRepository->getUpsellByObjects($cartItem, $upsell);
 
 			$this->checkoutManager->deleteItem($cartItem);
 		} else {
-			$this->checkoutManager->addItemToCart($upsell, null, $upsell->getValue('amount') ?? 1, false, false, true)->update(['upsell' => $cartItem->getPK()]);
+			$this->checkoutManager->addUpsellToCart($cartItem, $upsell);
 		}
 
 		$this->redirect('this');
