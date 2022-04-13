@@ -4,13 +4,25 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Eshop\Shopper;
 use StORM\Collection;
+use StORM\DIConnection;
+use StORM\SchemaManager;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Review>
  */
 class ReviewRepository extends \StORM\Repository
 {
+	private Shopper $shopper;
+
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Shopper $shopper)
+	{
+		parent::__construct($connection, $schemaManager);
+
+		$this->shopper = $shopper;
+	}
+
 	public function createReviewsFromOrder(Order $order): void
 	{
 		$purchase = $order->purchase;
@@ -52,6 +64,36 @@ class ReviewRepository extends \StORM\Repository
 		}
 
 		return $reviews;
+	}
+
+	/**
+	 * @return \StORM\Collection<\Eshop\DB\Review>
+	 */
+	public function getReviewedReviews(): Collection
+	{
+		return $this->many()->where('this.score IS NOT NULL AND this.reviewedTs IS NOT NULL');
+	}
+
+	public function getTotalReviewsCount(): int
+	{
+		return (int) $this->getReviewedReviews()->select(['totalCount' => 'COUNT(this.uuid)'])->firstValue('totalCount');
+	}
+
+	public function getAverageReviewsScore(): float
+	{
+		return (float) $this->getReviewedReviews()->select(['averageScore' => 'AVG(this.score)'])->firstValue('averageScore');
+	}
+
+	/**
+	 * @return float Recommendation percent based on reviews with score bigger than or equal to middle of min and max score.
+	 */
+	public function getRecommendationPercentOfReviews(): float
+	{
+		return $this->getReviewedReviews()
+				->select(['recommendationPercent' => 'COUNT(this.uuid)'])
+				->where('this.score >= :s', ['s' => $this->shopper->getReviewsMiddleScore()])
+				->firstValue('recommendationPercent') /
+			$this->getTotalReviewsCount() * 100;
 	}
 
 	/**

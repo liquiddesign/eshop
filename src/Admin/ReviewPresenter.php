@@ -10,6 +10,7 @@ use Eshop\DB\CustomerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\Review;
 use Eshop\DB\ReviewRepository;
+use Eshop\Shopper;
 use Nette\Utils\DateTime;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -30,6 +31,9 @@ class ReviewPresenter extends BackendPresenter
 
 	/** @inject */
 	public ProductRepository $productRepository;
+
+	/** @inject */
+	public Shopper $shopper;
 
 	public function createComponentGrid(): AdminGrid
 	{
@@ -101,16 +105,18 @@ class ReviewPresenter extends BackendPresenter
 			$this->template->select2AjaxDefaults[$productInput->getHtmlId()] = [$review->getValue('product') => $review->product->name];
 		}
 
+		$reviewInputInfoType = $this->shopper->getReviewsType() === 'int' ? 'Vyplňujte celá čísla v intervalu' : 'Vyplňujte celá nebo desetinná čísla v intervalu';
+
 		$form->addText('score', 'Hodnocení')
-			->setHtmlAttribute('data-info', 'Při nevyplnění se považuje recenze jako nehodnocená.<br>Vyplňujte celá nebo desetinná čísla v intervalu ' .
-				($this::CONFIGURATION['minScore'] ?? 1) .
+			->setHtmlAttribute('data-info', "Při nevyplnění se považuje recenze jako nehodnocená.<br>$reviewInputInfoType " .
+				$this->shopper->getReviewsMinScore() .
 				' - ' .
-				($this::CONFIGURATION['maxScore'] ?? 5) .
+				$this->shopper->getReviewsMaxScore() .
 				' (včetně)')
-			->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
+			->setNullable()->addCondition($form::FILLED)->addRule($this->shopper->getReviewsType() === 'int' ? $form::INTEGER : $form::FLOAT);
 
 		$form->addText('remindersSentCount', 'Počet zaslaných upozornění e-mailem')->setDisabled()
-			->setHtmlAttribute('data-info', 'Probíhá automaticky. Maximální počet: ' . ($this::CONFIGURATION['maxRemindersCount'] ?? 1));
+			->setHtmlAttribute('data-info', 'Probíhá automaticky. Maximální počet: ' . $this->shopper->getReviewsMaxRemindersCount());
 
 		$form->addSubmits(!$review);
 

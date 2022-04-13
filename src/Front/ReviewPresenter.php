@@ -7,6 +7,7 @@ use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\Review;
 use Eshop\DB\ReviewRepository;
+use Eshop\Shopper;
 use Forms\Form;
 use Nette\Localization\Translator;
 
@@ -20,6 +21,9 @@ abstract class ReviewPresenter extends FrontendPresenter
 
 	/** @inject */
 	public Translator $translator;
+
+	/** @inject */
+	public Shopper $shopper;
 
 	private ?Review $review = null;
 
@@ -57,7 +61,7 @@ abstract class ReviewPresenter extends FrontendPresenter
 
 		$options = [];
 
-		for ($i = 1; $i <= 5; $i++) {
+		for ($i = $this->shopper->getReviewsMinScore(); $i <= $this->shopper->getReviewsMaxScore(); $i++) {
 			$options["o_$i"] = $i;
 		}
 

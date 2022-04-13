@@ -41,6 +41,12 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			'integrations' => Expect::structure([
 				'eHub' => Expect::bool(false),
 			]),
+			'reviews' => Expect::structure([
+				'type' => Expect::anyOf('int', 'float')->firstIsDefault(),
+				'minScore' => Expect::float(1),
+				'maxScore' => Expect::float(5),
+				'maxRemindersCount' => Expect::int(1),
+			]),
 		]);
 	}
 	
@@ -59,7 +65,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$latteDefinition = $builder->getDefinition('latte.templateFactory');
 		$latteDefinition->addSetup('$onCreate[]', [['@shopper.shopper', 'addFilters']]);
 
-		$integrations = (array) $config['integrations'];
+
 
 		$shopper->addSetup('setProjectUrl', [$config['projectUrl']]);
 		$shopper->addSetup('setRegistrationConfiguration', [(array) $config['registration']]);
@@ -69,7 +75,11 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$shopper->addSetup('setShowVat', [$config['showVat']]);
 		$shopper->addSetup('setEditOrderAfterCreation', [$config['editOrderAfterCreation']]);
 		$shopper->addSetup('setAlwaysCreateCustomerOnOrderCreated', [$config['alwaysCreateCustomerOnOrderCreated']]);
+
+		$integrations = (array) $config['integrations'];
 		$shopper->addSetup('setIntegrationsEHub', [$integrations['eHub']]);
+
+		$shopper->addSetup('setReviews', [(array) $config['reviews']]);
 
 		$cartManager->addSetup('setCheckoutSequence', [$config['checkoutSequence']]);
 	}

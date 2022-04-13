@@ -58,7 +58,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 	 * @throws \League\Csv\CannotInsertRecord
 	 * @throws \League\Csv\InvalidArgument
 	 */
-	public function csvExportTargito(ICollection $customers, Writer $writer): void
+	public function csvExportTargito(ICollection $customers, Writer $writer, ?string $origin = null): void
 	{
 		$writer->setDelimiter(';');
 		EncloseField::addTo($writer, "\t\x1f");
@@ -84,7 +84,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 
 			$writer->insertOne([
 				$customer->email,
-				$customer->group ? $customer->group->name : null,
+				$origin,
 				$customer->createdTs,
 				$firstName,
 				$lastName,

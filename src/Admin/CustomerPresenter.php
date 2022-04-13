@@ -58,6 +58,7 @@ class CustomerPresenter extends BackendPresenter
 		'rounding' => true,
 		'loyaltyProgram' => false,
 		'targito' => false,
+		'targitoOrigin' => null,
 	];
 
 	/** @persistent */
@@ -246,7 +247,10 @@ class CustomerPresenter extends BackendPresenter
 		unset($button);
 
 		$tempFilename = \tempnam($this->tempDir, 'csv');
-		$this->customerRepository->csvExportTargito($this->customerRepository->many(), Writer::createFromPath($tempFilename, 'w+'));
+
+		$origin = $this::CONFIGURATIONS['targitoOrigin'] ?? null;
+
+		$this->customerRepository->csvExportTargito($this->customerRepository->many(), Writer::createFromPath($tempFilename, 'w+'), $origin);
 
 		$response = new FileResponse($tempFilename, 'targito_customers.csv', 'text/csv');
 		$this->sendResponse($response);

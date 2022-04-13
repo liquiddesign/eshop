@@ -93,6 +93,11 @@ class Shopper
 
 	private bool $integrationsEHub;
 
+	/**
+	 * @var array<mixed>
+	 */
+	private array $reviews;
+
 	private ?DiscountCoupon $discountCoupon = null;
 	
 	private ?Customer $customer = null;
@@ -201,6 +206,39 @@ class Shopper
 	public function setIntegrationsEHub(bool $eHub): void
 	{
 		$this->integrationsEHub = $eHub;
+	}
+
+	/**
+	 * @param array<mixed> $reviews
+	 */
+	public function setReviews(array $reviews): void
+	{
+		$this->reviews = $reviews;
+	}
+
+	public function getReviewsType(): string
+	{
+		return $this->reviews['type'];
+	}
+
+	public function getReviewsMinScore(): float
+	{
+		return $this->reviews['minScore'];
+	}
+
+	public function getReviewsMaxScore(): float
+	{
+		return $this->reviews['maxScore'];
+	}
+
+	public function getReviewsMaxRemindersCount(): int
+	{
+		return $this->reviews['maxRemindersCount'];
+	}
+
+	public function getReviewsMiddleScore(): float
+	{
+		return ($this->getReviewsMinScore() + $this->getReviewsMaxScore()) / 2;
 	}
 
 	public function isIntegrationsEHub(): bool
