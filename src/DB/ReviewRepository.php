@@ -89,11 +89,13 @@ class ReviewRepository extends \StORM\Repository
 	 */
 	public function getRecommendationPercentOfReviews(): float
 	{
-		return $this->getReviewedReviews()
+		$total = $this->getTotalReviewsCount();
+
+		return $total > 0 ? ((float) $this->getReviewedReviews()
 				->select(['recommendationPercent' => 'COUNT(this.uuid)'])
 				->where('this.score >= :s', ['s' => $this->shopper->getReviewsMiddleScore()])
-				->firstValue('recommendationPercent') /
-			$this->getTotalReviewsCount() * 100;
+				->firstValue('recommendationPercent')) /
+			$total * 100 : 0;
 	}
 
 	/**
