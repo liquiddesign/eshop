@@ -66,6 +66,11 @@ class ReviewRepository extends \StORM\Repository
 		return $reviews;
 	}
 
+	public function filterReviewedReviews(Collection $collection): void
+	{
+		$collection->where('this.score IS NOT NULL AND this.reviewedTs IS NOT NULL');
+	}
+
 	/**
 	 * @return \StORM\Collection<\Eshop\DB\Review>
 	 */

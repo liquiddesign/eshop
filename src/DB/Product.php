@@ -6,6 +6,7 @@ namespace Eshop\DB;
 
 use Nette\Application\ApplicationException;
 use Nette\Utils\DateTime;
+use StORM\Collection;
 use StORM\RelationCollection;
 
 /**
@@ -439,6 +440,12 @@ class Product extends \StORM\Entity
 	public RelationCollection $loyaltyPrograms;
 
 	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\Review>|\Eshop\DB\Review[]
+	 */
+	public RelationCollection $reviews;
+
+	/**
 	 * Galerie
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\Photo>|\Eshop\DB\Photo[]
@@ -779,15 +786,26 @@ class Product extends \StORM\Entity
 			->first();
 	}
 
+	public function getReviews(): Collection
+	{
+		/** @var \Eshop\DB\ReviewRepository $reviewRepository */
+		$reviewRepository = $this->getConnection()->findRepository(Review::class);
+
+		$reviews = $this->reviews;
+
+		$reviewRepository->filterReviewedReviews($reviews);
+
+		return $reviews;
+	}
+
 	public function getReviewsRating(): float
 	{
 		/** @var \Eshop\DB\ReviewRepository $reviewRepository */
 		$reviewRepository = $this->getConnection()->findRepository(Review::class);
 
 		try {
-			$reviews = $reviewRepository->many()
+			$reviews = $reviewRepository->getReviewedReviews()
 				->where('this.fk_product', $this->getPK())
-				->where('this.score IS NOT NULL AND this.reviewedTs IS NOT NULL')
 				->select(['sumOfScore' => 'SUM(this.score)'])
 				->select(['countOfScore' => 'COUNT(this.score)'])
 				->first();
@@ -804,9 +822,8 @@ class Product extends \StORM\Entity
 		$reviewRepository = $this->getConnection()->findRepository(Review::class);
 
 		try {
-			return (int) $reviewRepository->many()
+			return (int) $reviewRepository->getReviewedReviews()
 				->where('this.fk_product', $this->getPK())
-				->where('this.score IS NOT NULL AND this.reviewedTs IS NOT NULL')
 				->select(['countOfScore' => 'COUNT(this.score)'])
 				->firstValue('countOfScore');
 		} catch (\Throwable $e) {
