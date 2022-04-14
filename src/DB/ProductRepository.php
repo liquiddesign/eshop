@@ -48,6 +48,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	private RelatedRepository $relatedRepository;
 
+	private RelatedTypeRepository $relatedTypeRepository;
+
 	private LinkGenerator $linkGenerator;
 
 	private Request $request;
@@ -68,7 +70,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 		LinkGenerator $linkGenerator,
 		Request $request,
 		Storage $storage,
-		SupplierProductRepository $supplierProductRepository
+		SupplierProductRepository $supplierProductRepository,
+		RelatedTypeRepository $relatedTypeRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -83,6 +86,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$this->linkGenerator = $linkGenerator;
 		$this->request = $request;
 		$this->cache = new Cache($storage);
+		$this->relatedTypeRepository = $relatedTypeRepository;
 
 		unset($supplierProductRepository);
 //		$this->onDelete[] = function (ProductRepository $productRepository, Collection $collection) use ($supplierProductRepository): void {
@@ -818,11 +822,11 @@ class ProductRepository extends Repository implements IGeneralRepository
 	}
 
 	/**
-	 * @param string $relation
+	 * @param string|\Eshop\DB\RelatedType $relatedType
 	 * @param string|\Eshop\DB\Product $product
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getSlaveProductsByRelationAndMaster($relation, $product): ?ICollection
+	public function getSlaveProductsByRelationAndMaster($relatedType, $product): ?ICollection
 	{
 		if (!$product instanceof Product) {
 			if (!$product = $this->one($product)) {
@@ -830,9 +834,93 @@ class ProductRepository extends Repository implements IGeneralRepository
 			}
 		}
 
+		if (!$relatedType instanceof RelatedType) {
+			if (!$relatedType = $this->relatedTypeRepository->one($relatedType)) {
+				return null;
+			}
+		}
+
 		return $this->many()->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave')
 			->where('related.fk_master', $product->getPK())
-			->where('related.fk_type', $relation);
+			->where('related.fk_type', $relatedType->getPK());
+	}
+
+	/**
+	 * @param string|\Eshop\DB\RelatedType $relatedType
+	 * @param string|\Eshop\DB\Product $product
+	 * @throws \StORM\Exception\NotFoundException
+	 * @return \StORM\Collection<\Eshop\DB\Related>
+	 */
+	public function getMasterRelatedProducts($relatedType, $product): Collection
+	{
+		return $this->getRelatedProducts($relatedType, $product, 'slave');
+	}
+
+	/**
+	 * @param string|\Eshop\DB\RelatedType $relatedType
+	 * @param string|\Eshop\DB\Product $product
+	 * @throws \StORM\Exception\NotFoundException
+	 * @return \StORM\Collection<\Eshop\DB\Related>
+	 */
+	public function getSlaveRelatedProducts($relatedType, $product): Collection
+	{
+		return $this->getRelatedProducts($relatedType, $product, 'master');
+	}
+
+	/**
+	 * @param string|\Eshop\DB\RelatedType $relatedType
+	 * @param string|\Eshop\DB\Product $product
+	 * @param string $relatedSide
+	 * @return \StORM\Collection<\Eshop\DB\Related>
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function getRelatedProducts($relatedType, $product, string $relatedSide): Collection
+	{
+		$validRelatedTypes = ['master', 'slave'];
+
+		if (!\in_array($relatedSide, $validRelatedTypes)) {
+			throw new \InvalidArgumentException('Invalid relation side! Valid values: [' . \implode(',', $validRelatedTypes) . ']');
+		}
+
+		if (!$product instanceof Product) {
+			if (!$product = $this->one($product)) {
+				throw new \InvalidArgumentException('Product not found!');
+			}
+		}
+
+		if (!$relatedType instanceof RelatedType) {
+			if (!$relatedType = $this->relatedTypeRepository->one($relatedType)) {
+				throw new \InvalidArgumentException('RelatedType not found!');
+			}
+		}
+
+		return $this->relatedRepository->many()
+			->where("this.fk_$relatedSide", $product->getPK())
+			->where('this.fk_type', $relatedType->getPK());
+	}
+
+	/**
+	 * @param string|\Eshop\DB\RelatedType $relatedType
+	 * @param string|\Eshop\DB\Product $product
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function getMasterProductsByRelationAndSlave($relatedType, $product): ?ICollection
+	{
+		if (!$product instanceof Product) {
+			if (!$product = $this->one($product)) {
+				return null;
+			}
+		}
+
+		if (!$relatedType instanceof RelatedType) {
+			if (!$relatedType = $this->relatedTypeRepository->one($relatedType)) {
+				return null;
+			}
+		}
+
+		return $this->many()->join(['related' => 'eshop_related'], 'this.uuid = related.fk_master')
+			->where('related.fk_slave', $product->getPK())
+			->where('related.fk_type', $relatedType->getPK());
 	}
 
 	/**
