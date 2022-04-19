@@ -251,6 +251,15 @@ class EHub
 			$transactionValues['transactionId'] = $transaction['id'];
 			$transactionValues['status'] = $transaction['status'];
 			$transactionValues['createdTs'] = (new Carbon($transaction['dateTime']))->format('Y-m-d G:i');
+			$transactionValues['clickDateTime'] = (new Carbon($transaction['clickDateTime']))->format('Y-m-d G:i');
+			$transactionValues['orderAmount'] = (float) $transaction['orderAmount'];
+			$transactionValues['originalOrderAmount'] = $transaction['originalOrderAmount'] ?? null;
+			$transactionValues['originalCurrency'] = $transaction['originalCurrency'] ?? null;
+			$transactionValues['commission'] = isset($transaction['commission']) ? (float) $transaction['commission'] : null;
+			$transactionValues['type'] = $transaction['type'];
+			$transactionValues['orderId'] = $transaction['orderId'] ?? null;
+			$transactionValues['couponCode'] = $transaction['couponCode'] ?? null;
+			$transactionValues['newCustomer'] = $transaction['newCustomer'] ?? null;
 
 			if (isset($orders[$transaction['orderId']])) {
 				$transactionValues['order'] = $orders[$transaction['orderId']];

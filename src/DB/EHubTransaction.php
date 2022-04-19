@@ -47,6 +47,51 @@ class EHubTransaction extends \StORM\Entity
 	public string $createdTs;
 
 	/**
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $clickDateTime;
+
+	/**
+	 * @column
+	 */
+	public float $orderAmount;
+
+	/**
+	 * @column
+	 */
+	public ?float $originalOrderAmount;
+
+	/**
+	 * @column
+	 */
+	public ?string $originalCurrency;
+
+	/**
+	 * @column
+	 */
+	public ?float $commission;
+
+	/**
+	 * @column
+	 */
+	public string $type;
+
+	/**
+	 * @column
+	 */
+	public ?string $orderId;
+
+	/**
+	 * @column
+	 */
+	public ?string $couponCode;
+
+	/**
+	 * @column
+	 */
+	public ?bool $newCustomer;
+
+	/**
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */

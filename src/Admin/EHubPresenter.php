@@ -34,6 +34,7 @@ class EHubPresenter extends \Eshop\BackendPresenter
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Vytvořen', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
+		$grid->addColumnText('Related click', "clickDateTime|date:'d.m.Y G:i'", '%s', 'clickDateTime', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('ID', 'transactionId', '%s', 'transactionId', ['class' => 'fit']);
 		$grid->addColumn('Stav', function (EHubTransaction $EHubTransaction): string {
 			return EHubTransaction::STATUSES[$EHubTransaction->status] ?? '';
@@ -48,6 +49,16 @@ class EHubPresenter extends \Eshop\BackendPresenter
 
 			return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;$orderCode</a>";
 		}, '%s', 'order.code');
+		$grid->addColumnText('Cena', 'orderAmount', '%s', 'orderAmount', ['class' => 'fit']);
+		$grid->addColumnText('Originální cena', 'originalOrderAmount', '%s', 'originalOrderAmount', ['class' => 'fit']);
+		$grid->addColumnText('Měna', 'originalCurrency', '%s', 'originalCurrency', ['class' => 'fit']);
+		$grid->addColumnText('Provize', 'commission', '%s', 'commission', ['class' => 'fit']);
+		$grid->addColumnText('Typ', 'type', '%s', 'type', ['class' => 'fit']);
+		$grid->addColumnText('ID objednávky', 'orderId', '%s', 'orderId', ['class' => 'fit']);
+		$grid->addColumnText('Kupón', 'couponCode', '%s', 'couponCode', ['class' => 'fit']);
+		$grid->addColumn('Nový zákazník', function (EHubTransaction $EHubTransaction): string {
+			return $EHubTransaction->newCustomer === true ? '<i class="fa fa-check text-success"></i>' : ($EHubTransaction->newCustomer === false ? '<i class="fa fa-times text-danger"></i>' : '');
+		}, '%s', 'newCustomer', ['class' => 'fit']);
 		
 		$grid->addColumnLinkDetail('detailTransaction');
 		$grid->addColumnActionDelete();
