@@ -44,9 +44,15 @@ class StorePresenter extends \Eshop\BackendPresenter
 
 		$grid->addColumnLink('amounts', 'Množství');
 		$grid->addColumnLinkDetail();
-		$grid->addColumnActionDelete();
+		$grid->addColumnActionDeleteSystemic();
 
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(null, false, function ($object) {
+			if ($object) {
+				return !$object->isSystemic();
+			}
+
+			return false;
+		}, 'this.uuid');
 
 		$grid->addFilterTextInput('search', ['name_cs', 'code'], null, 'Kód, název');
 

@@ -21,6 +21,12 @@ class Store extends \StORM\Entity
 	 * @column{"mutations":true}
 	 */
 	public ?string $name;
+
+	/**
+	 * Systemic
+	 * @column
+	 */
+	public int $systemicLock = 0;
 	
 	/**
 	 * Dodavatel / externí sklad
@@ -28,4 +34,30 @@ class Store extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public ?Supplier $supplier;
+
+	public function isSystemic(): bool
+	{
+		return $this->systemicLock > 0;
+	}
+
+	public function addSystemic(): int
+	{
+		$this->systemicLock++;
+		$this->updateAll();
+
+		return $this->systemicLock;
+	}
+
+	public function removeSystemic(): int
+	{
+		$this->systemicLock--;
+
+		if ($this->systemicLock < 0) {
+			$this->systemicLock = 0;
+		} else {
+			$this->updateAll();
+		}
+
+		return $this->systemicLock;
+	}
 }

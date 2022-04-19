@@ -1287,4 +1287,22 @@ class OrderRepository extends \StORM\Repository
 			]);
 		}
 	}
+
+	/**
+	 * @param \Eshop\DB\Order $order
+	 * @return array<array<\Eshop\DB\CartItem>>
+	 */
+	public function getUpsellGroupedByCartItems(Order $order): array
+	{
+		/** @var \Eshop\DB\CartItemRepository $cartItemRepository */
+		$cartItemRepository = $this->getConnection()->findRepository(CartItem::class);
+
+		$upsells = [];
+
+		foreach ($order->purchase->getItems()->where('this.fk_upsell IS NULL') as $cartItem) {
+			$upsells[$cartItem->getPK()] = $cartItemRepository->many()->where('this.fk_upsell', $cartItem->getPK())->toArray();
+		}
+
+		return $upsells;
+	}
 }

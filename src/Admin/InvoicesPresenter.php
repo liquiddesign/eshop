@@ -19,6 +19,7 @@ use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
 use Nette\Utils\Html;
+use Nette\Utils\Strings;
 
 class InvoicesPresenter extends BackendPresenter
 {
@@ -47,7 +48,7 @@ class InvoicesPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($this->invoiceRepository->getCollection(true), 20, 'code', 'ASC', true);
 		$grid->addColumnSelector();
 
-		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit']);
+		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumn('Objednávka', function (Invoice $invoice): ?string {
 			if ($invoice->getValue('ordersCodes') === null) {
 				return null;
@@ -105,11 +106,11 @@ class InvoicesPresenter extends BackendPresenter
 
 		$form = $this->formFactory->create();
 		
-		$form->addText('code', 'Kód')->setRequired();
+		$form->addText('code', 'Kód')->setNullable()->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude použit kód objednávky.')->setDisabled((bool) $invoice);
 		$form->addDate('exposed', 'Datum vystavení')->setRequired();
 		$form->addDate('taxDate', 'Datum zdanitelného plnění')->setRequired();
 		$form->addDate('dueDate', 'Datum splatnosti')->setRequired();
-		$form->addSelect2('order', 'Objednávka', $this->orderRepository->many()->toArrayOf('code'))->setRequired()->setDisabled((bool) $invoice);
+		$form->addSelect2('order', 'Objednávka', $this->orderRepository->many()->orderBy(['this.createdTs' => 'DESC'])->toArrayOf('code'))->setRequired()->setDisabled((bool) $invoice);
 		$form->addSelect2('paymentType', 'Typ úhrady', $this->paymentTypeRepository->getArrayForSelect())->setPrompt('- Z objednávky -')->setDisabled((bool) $invoice);
 		$form->addText('variableSymbol', 'Variabilní symbol pro platbu')->setNullable();
 		$form->addText('constantSymbol', 'Konstantní symbol pro platbu')->setNullable();
@@ -123,8 +124,12 @@ class InvoicesPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($invoice): void {
 			$values = $form->getValues('array');
 
+			$order = $this->orderRepository->one(Arrays::pick($values, 'order'));
+
+			$values['code'] ??= Strings::webalize($order->code);
+
 			$invoice = $invoice ? $this->invoiceRepository->syncOne($values) :
-				$this->invoiceRepository->createFromOrder($this->orderRepository->one(Arrays::pick($values, 'order')), $values);
+				$this->invoiceRepository->createFromOrder($order, $values);
 
 			
 			$this->flashMessage('Uloženo', 'success');

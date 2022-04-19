@@ -2,6 +2,8 @@
 {varType Eshop\DB\Purchase $purchase}
 {varType Admin\Administrator $admin}
 {varType Eshop\DB\PickupPoint|null $pickupPoint}
+{varType Eshop\DB\Package[] $packages}
+{varType Eshop\DB\CartItem[] $upsells}
 
 {var $purchase = $order->purchase}
 {var $billingAddress = $purchase->billAddress}
@@ -133,46 +135,23 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                                 </tr></thead>
                                 <tbody>
 
-                                <tr n:foreach="$package->items as $packageItem" {if $packageItem->deleted}style="text-decoration: line-through"{/if}>
+                                {var $collection = clone $package->items}
+
+                                {foreach $package->items->where('cartItem.fk_upsell IS NULL')->toArray() as $packageItem}
                                     {var Eshop\DB\CartItem $item = $packageItem->cartItem}
-                                    <td>
-                                        <a n:if="$item->product" href="#">
-                                            <img data-src="{$item->product->getPreviewImage($baseUrl,'thumb')}" loading="lazy" alt="" style="height:32px;">
-                                        </a>
-                                    </td>
-                                    <td>
-                                        {$item->product ? $item->product->getFullCode() : $item->getFullCode()}
-									{if $item->product && $item->product->ean}<br><small>EAN: {$item->product->ean}</small>{/if}
-                                    </td>
-                                    <td>
-                                        <a n:tag-if="$admin->isAllowed(':Eshop:Admin:Product:default')" href="{plink :Eshop:Admin:Product:default, productGrid-code=>$item->productCode}" target="_blank">
-                                            {$item->product ? $item->product->name : $item->productName}
-                                        </a>
-                                        <i n:if="$item->note" title="{$item->note}" class="far fa-sticky-note"></i>
-                                    </td>
-                                    <td>{$packageItem->amount}</td>
-                                    <td>
-                                        {if $packageItem->store}{$packageItem->store->name}{/if}
-                                        <a n:if="$item->product" class="modalStoreOrderItemForm d-print-none" data-toggle="modal" data-target="#modal-storeOrderItemForm" data-values="{json_encode(['uuid' => $packageItem->getPK(), 'store' => $packageItem->getValue('store'), 'amounts' => $item->product->getSupplierStoreAmounts(), 'prices' => $item->product->getSupplierPrices()])}" href="#"><i class="far fa-edit"></i></a><br>
-                                        <span n:if="$packageItem->status === 'waiting'" class="text-secondary"><i class="far fa-square"></i> Nepotrvzeno</span>
-                                        <span n:if="$packageItem->status === 'reserved'" class="text-success"><i class="fa fa-check"></i> Rezervováno</span>
-                                    </td>
-                                    <td style="text-align: right">
-                                        {$item->priceVat|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price|price} bez DPH</small>{/if}
-                                    </td>
-                                    <td style="text-align: right">
-                                        {$item->getPriceVatSum()|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->getPriceSum()|price} bez DPH</small>{/if}
-                                    </td>
-                                    <td class="d-print-none">
-                                        <a class="btn btn-outline-primary btn-sm text-xs modalSplitOrderItemForm" data-values="{json_encode(['uuid' => $packageItem->getPK()])}" data-toggle="modal" data-target="#modal-splitOrderItemForm" href="#" title="Rozdělit"><i class="fa fa-columns"></i></a>
-                                    </td>
-                                    <td class="d-print-none">
-                                        <a class="btn btn-primary btn-sm text-xs modalDetailOrderItemForm" data-values="{json_encode($item->toArray() + ['packageItem' => $packageItem->getPK(), 'packageItemAmount' => $packageItem->amount])}" data-toggle="modal" data-target="#modal-detailOrderItemForm" href="#" title="Upravit"><i class="far fa-edit"></i></a>
-                                    </td>
-                                    <td class="d-print-none">
-                                        <a href="{plink toggleDeleteOrderItem! $packageItem->getPK()}" class="btn btn-danger btn-sm text-xs" title="Smazat" onclick="return confirm('Opravdu?')"><i class="{if $packageItem->deleted}fa fa-trash-restore-alt{else}far fa-trash-alt{/if}"></i></a>
-                                    </td>
-                                </tr>
+
+                                    {include '../Components/Order.printDetail.item.latte', item:$item, packageItem:$packageItem, upsell:false}
+
+                                    {var $items = clone $collection}
+                                    {var Eshop\DB\PackageItem[] $itemUpsells = $items->where('cartItem.fk_upsell', $item->getPK())->toArray()}
+
+                                    {foreach $itemUpsells as $upsellPackageItem}
+                                        {var Eshop\DB\CartItem $upsellItem = $upsellPackageItem->cartItem}
+
+                                        {include '../Components/Order.printDetail.item.latte', item:$upsellItem, packageItem:$upsellPackageItem, upsell:true}
+                                    {/foreach}
+
+                                {/foreach}
 
                                 </tbody>
                             </table>
