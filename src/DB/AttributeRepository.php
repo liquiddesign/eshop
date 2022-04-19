@@ -180,6 +180,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
 			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value', [], 'INNER')
 			->where('attribute.showWizard', true)
+			->where('attribute.hidden', false)
 			->where('this.showWizard', true)
 			->where('FIND_IN_SET(:s, attribute.wizardStep)', ['s' => $step])
 			->setOrderBy(['attribute.priority', 'this.priority', "this.label$suffix"])
