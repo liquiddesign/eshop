@@ -285,7 +285,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 		/** @var \Eshop\DB\LoyaltyProgramDiscountLevel|null $discountLevel */
 		$discountLevel = $this->loyaltyProgramDiscountLevelRepository->many()
-			->where('this.fk_loyaltyProgram', $loyaltyProgram)
+			->where('this.fk_loyaltyProgram', $loyaltyProgram->getPK())
 			->where('this.priceThreshold <= :turnover', ['turnover' => (string)$customerTurnover])
 			->orderBy(['this.discountLevel' => 'DESC'])
 			->first();

@@ -562,15 +562,8 @@ class OrderRepository extends \StORM\Repository
 				$customers = $merchantRepo->getMerchantCustomers($user);
 
 				$collection->where('purchase.fk_customer', \array_keys($customers->toArray()));
-			} elseif ($user->getAccount()) {
-				/** @var \Eshop\DB\CatalogPermission $perm */
-				$perm = $this->catalogPermissionRepository->many()->where('fk_account', $user->getAccount()->getPK())->first();
-
-				if ($perm->viewAllOrders) {
-					$collection->where('purchase.fk_customer', $user->getPK());
-				} else {
-					$collection->where('purchase.fk_account', $user->getAccount()->getPK());
-				}
+			} else {
+				$collection->where('purchase.fk_customer', $user->getPK());
 			}
 		}
 
