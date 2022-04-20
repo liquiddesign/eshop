@@ -141,11 +141,13 @@ class SupplierProductPresenter extends BackendPresenter
 
 		$grid->addButtonBulkEdit('form', ['active']);
 
-		$submit = $grid->getForm()->addSubmit('pairAlgoliaBulk', 'Párovat dle Algolia')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+		if ($this->algolia->isActive() && $supplier->pairWithAlgolia) {
+			$submit = $grid->getForm()->addSubmit('pairAlgoliaBulk', 'Párovat dle Algolia')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-		$submit->onClick[] = function ($button) use ($grid): void {
-			$grid->getPresenter()->redirect('pairAlgoliaBulk', [$grid->getSelectedIds()]);
-		};
+			$submit->onClick[] = function ($button) use ($grid): void {
+				$grid->getPresenter()->redirect('pairAlgoliaBulk', [$grid->getSelectedIds()]);
+			};
+		}
 
 		$grid->addFilterButtons();
 

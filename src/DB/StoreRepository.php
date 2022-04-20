@@ -20,7 +20,8 @@ class StoreRepository extends \StORM\Repository implements IGeneralRepository
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 
 		return $this->getCollection($includeHidden)
-			->select(['fullName' => "IF(this.systemicLock > 0, CONCAT(name$mutationSuffix, ' (', code, ', systémový)'), CONCAT(name$mutationSuffix, ' (', code, ')'))"])
+			->select(['fullName' => "IF(this.systemicLock > 0, CONCAT(COALESCE(name$mutationSuffix,'-'),
+			' (', COALESCE(code, ''), ', systémový)'), CONCAT(COALESCE(name$mutationSuffix, '-'), ' (', COALESCE(code, ''), ')'))"])
 			->toArrayOf('fullName');
 	}
 
