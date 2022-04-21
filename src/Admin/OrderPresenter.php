@@ -26,6 +26,7 @@ use Eshop\DB\OrderLogItem;
 use Eshop\DB\OrderLogItemRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PackageItemRepository;
+use Eshop\DB\Payment;
 use Eshop\DB\PaymentRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PickupPointRepository;
@@ -43,6 +44,7 @@ use Nette\Forms\Controls\Button;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\Request;
 use Nette\Mail\Mailer;
+use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use StORM\Collection;
@@ -261,6 +263,7 @@ class OrderPresenter extends BackendPresenter
 				return;
 			}
 
+			Arrays::invoke($this->orderRepository->onOrderDeliveryChanged, $order, $delivery);
 			$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::DELIVERY_CHANGED, $delivery->getTypeName(), $admin);
 
 			$this->flashMessage('Uloženo', 'success');
@@ -336,6 +339,8 @@ class OrderPresenter extends BackendPresenter
 
 	public function createComponentPaymentForm(): Form
 	{
+		$order = $this->getParameter('order') ?: $this->getParameter('payment')->order;
+
 		$form = $this->formFactory->create();
 
 		$form->addSelect('type', 'Platba', $this->paymentTypeRepository->getArrayForSelect())->setRequired();
@@ -350,7 +355,7 @@ class OrderPresenter extends BackendPresenter
 
 		$form->addSubmits(!$this->getParameter('order'));
 
-		$form->onSuccess[] = function (AdminForm $form): void {
+		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValues('array');
 
 			$type = $this->paymentTypeRepository->one($values['type'])->toArray();
@@ -366,6 +371,7 @@ class OrderPresenter extends BackendPresenter
 				return;
 			}
 
+			Arrays::invoke($this->orderRepository->onOrderPaymentChanged, $order, $payment);
 			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYMENT_CHANGED, $payment->getTypeName(), $admin);
 
 			$this->flashMessage('Uloženo', 'success');
@@ -1528,6 +1534,35 @@ class OrderPresenter extends BackendPresenter
 	protected function startup(): void
 	{
 		parent::startup();
+
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $this->admin->getIdentity();
+
+		$this->orderRepository->onOrderDeliveryChanged[] = function (Order $order, Delivery $delivery) use ($admin): void {
+			$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::DELIVERY_CHANGED, $delivery->getTypeName(), $admin);
+
+			try {
+				$mail = $this->templateRepository->createMessage('order.deliveryChanged', $this->orderRepository->getEmailVariables($order), $delivery->order->purchase->email);
+				$this->mailer->send($mail);
+
+				$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::EMAIL_SENT, OrderLogItem::DELIVERY_CHANGED, $admin);
+			} catch (\Throwable $e) {
+				Debugger::log($e->getMessage(), ILogger::WARNING);
+			}
+		};
+
+		$this->orderRepository->onOrderPaymentChanged[] = function (Order $order, Payment $payment) use ($admin): void {
+			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::DELIVERY_CHANGED, $payment->getTypeName(), $admin);
+
+			try {
+				$mail = $this->templateRepository->createMessage('order.paymentChanged', $this->orderRepository->getEmailVariables($order), $payment->order->purchase->email);
+				$this->mailer->send($mail);
+
+				$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::DELIVERY_CHANGED, $admin);
+			} catch (\Throwable $e) {
+				Debugger::log($e->getMessage(), ILogger::WARNING);
+			}
+		};
 
 		if ($this->tab !== null) {
 			return;

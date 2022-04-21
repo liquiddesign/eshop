@@ -39,6 +39,12 @@ class OrderRepository extends \StORM\Repository
 	/** @var array<callable(\Eshop\DB\Order): void> */
 	public array $onOrderBanned = [];
 
+	/** @var array<callable(\Eshop\DB\Order, \Eshop\DB\Delivery): void> */
+	public array $onOrderDeliveryChanged = [];
+
+	/** @var array<callable(\Eshop\DB\Order, \Eshop\DB\Payment): void> */
+	public array $onOrderPaymentChanged = [];
+
 	private Cache $cache;
 
 	private Shopper $shopper;
@@ -1171,7 +1177,6 @@ class OrderRepository extends \StORM\Repository
 		$orderLogItemRepository = $this->connection->findRepository(OrderLogItem::class);
 		$templateRepository = $this->connection->findRepository(Template::class);
 		$mailer = $this->container->getByType(Mailer::class);
-
 
 		/** @var \Eshop\DB\Payment $payment */
 		$payment = $paymentRepository->one($payment, true);
