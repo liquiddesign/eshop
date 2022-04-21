@@ -41,12 +41,12 @@ class RelatedPresenter extends BackendPresenter
 	/** @persistent */
 	public string $tab = 'none';
 
+	protected ?RelatedType $relatedType;
+
 	/**
 	 * @var string[]
 	 */
 	private array $tabs = [];
-
-	private ?RelatedType $relatedType;
 
 	public function createComponentRelationGrid(): AdminGrid
 	{
@@ -240,7 +240,7 @@ class RelatedPresenter extends BackendPresenter
 		} else {
 			$this->template->displayButtons = [
 				$this->createNewItemButton('newRelation'),
-				$this->createButtonWithClass('import', '<i class="fas fa-file-import"></i> Import', 'btn btn-outline-primary btn-sm'),
+				$this->createButtonWithClass('import', '<i class="fas fa-file-upload"></i> Import', 'btn btn-primary btn-sm'),
 			];
 			$this->template->displayControls = [$this->getComponent('relationGrid'),];
 		}
