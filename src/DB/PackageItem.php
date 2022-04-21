@@ -50,6 +50,13 @@ class PackageItem extends \StORM\Entity
 	 */
 	public CartItem $cartItem;
 
+	/**
+	 * Upsell
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * @relation
+	 */
+	public ?PackageItem $upsell;
+
 	public function getSupplierProduct(string $supplierCode): ?SupplierProduct
 	{
 		return $this->cartItem->product ? $this->cartItem->product->getSupplierProduct($supplierCode) : null;

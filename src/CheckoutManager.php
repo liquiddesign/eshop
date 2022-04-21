@@ -1175,12 +1175,23 @@ class CheckoutManager
 				'delivery' => $delivery->getPK(),
 			]);
 
-			foreach ($purchase->getItems() as $cartItem) {
-				$this->packageItemRepository->createOne([
+			foreach ($purchase->getItems()->where('this.fk_upsell IS NULL') as $cartItem) {
+				$packageItem = $this->packageItemRepository->createOne([
 					'package' => $package->getPK(),
 					'cartItem' => $cartItem->getPK(),
 					'amount' => $cartItem->amount,
 				]);
+
+				$upsells = $purchase->getItems()->where('this.fk_upsell', $cartItem->getPK())->toArray();
+
+				foreach ($upsells as $upsell) {
+					$this->packageItemRepository->createOne([
+						'package' => $package->getPK(),
+						'cartItem' => $upsell->getPK(),
+						'amount' => $upsell->amount,
+						'upsell' => $packageItem->getPK(),
+					]);
+				}
 			}
 		}
 

@@ -3,7 +3,7 @@
 {varType Admin\Administrator $admin}
 {varType Eshop\DB\PickupPoint|null $pickupPoint}
 {varType Eshop\DB\Package[] $packages}
-{varType Eshop\DB\CartItem[] $upsells}
+{varType Eshop\DB\PackageItem[] $upsells}
 
 {var $purchase = $order->purchase}
 {var $billingAddress = $purchase->billAddress}
@@ -135,24 +135,13 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                                 </tr></thead>
                                 <tbody>
 
-                                {var $collection = clone $package->items}
+                                {foreach $package->items->where('cartItem.fk_upsell IS NULL') as $packageItem}
+                                    {include '../Components/Order.printDetail.item.latte', packageItem:$packageItem, upsell:false}
 
-                                {foreach $package->items->where('cartItem.fk_upsell IS NULL')->toArray() as $packageItem}
-                                    {var Eshop\DB\CartItem $item = $packageItem->cartItem}
-
-                                    {include '../Components/Order.printDetail.item.latte', item:$item, packageItem:$packageItem, upsell:false}
-
-                                    {var $items = clone $collection}
-                                    {var Eshop\DB\PackageItem[] $itemUpsells = $items->where('cartItem.fk_upsell', $item->getPK())->toArray()}
-
-                                    {foreach $itemUpsells as $upsellPackageItem}
-                                        {var Eshop\DB\CartItem $upsellItem = $upsellPackageItem->cartItem}
-
-                                        {include '../Components/Order.printDetail.item.latte', item:$upsellItem, packageItem:$upsellPackageItem, upsell:true}
+                                    {foreach $upsells[$package->getPK()][$packageItem->getPK()] ?? [] as $upsellPackageItem}
+                                        {include '../Components/Order.printDetail.item.latte', packageItem:$upsellPackageItem, upsell:true}
                                     {/foreach}
-
                                 {/foreach}
-
                                 </tbody>
                             </table>
                         </div>

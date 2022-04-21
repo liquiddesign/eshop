@@ -225,18 +225,6 @@ class OrderPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentChangeForm(): Form
-	{
-		$this->getParameter('order') ?: $this->getParameter('delivery')->order;
-
-		$form = $this->formFactory->create();
-		$form->addRadioList('Sklad', 'store', ['asda' => 'asdasd']);
-
-		//@todo log
-
-		return $form;
-	}
-
 	public function createComponentDeliveryForm(): Form
 	{
 		$order = $this->getParameter('order') ?: $this->getParameter('delivery')->order;
@@ -496,58 +484,55 @@ class OrderPresenter extends BackendPresenter
 	{
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->getParameter('order');
-		
+
 		$form = $this->formFactory->create();
-		
-		$form->addText('product', 'Kód produktu')->setRequired();
-		
+
+		$form->addText('product', 'Kód nebo EAN produktu')->setRequired();
+
 		$form->addSelect('cart', 'Košík č.', $order->purchase->getCarts()->toArrayOf('id'))->setRequired();
 		$form->addSelect('package', 'Balík č.', $order->getPackages()->toArrayOf('id'))->setRequired();
-		
+
 		$form->addInteger('amount', 'Množství')->setDefaultValue(1)->setRequired();
-		
+
 		$form->addSubmits(false, false);
-		
+
 		$form->onValidate[] = function (AdminForm $form) use ($order): void {
-			$data = $this->getHttpRequest()->getPost();
-			
+			if (!$form->isValid()) {
+				return;
+			}
+
+			$values = $form->getValues('array');
+
 			/** @var \Nette\Forms\Controls\SelectBox $productInput */
 			$productInput = $form['product'];
-			
-			if (!isset($data['product'])) {
-				$productInput->addError('Toto pole je povinné!');
-				
-				return;
-			}
-			
+
 			$this->shopper->setCustomer($order->purchase->customer);
-			
-			if ($this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.code OR this.ean', $data['product'])->first()) {
+
+			if ($this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.code =:s OR this.ean =:s', ['s' => $values['product']])->first()) {
 				return;
 			}
-			
+
 			$productInput->addError('Daný produkt nebyl nalezen nebo není dostupný pro uživatele');
 		};
-		
+
 		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValues('array');
-			
-			
+
 			/** @var \Eshop\DB\Cart $cart */
 			$cart = $this->cartRepository->one($values['cart']);
-			
+
 			if ($order->purchase->customer) {
 				$this->shopper->setCustomer($order->purchase->customer);
 				$this->checkoutManager->setCustomer($order->purchase->customer);
 			}
-			
+
 			/** @var \Eshop\DB\Product $product */
-			$product = $this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.code OR this.ean', $values['product'])->first();
-			
+			$product = $this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.code =:s OR this.ean =:s', ['s' => $values['product']])->first();
+
 			$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], false, false, false, $cart);
-			
+
 			$existingPackageItem = $this->packageItemRepository->many()->where('fk_package', $values['package'])->where('fk_cartItem', $cartItem)->first();
-			
+
 			if ($existingPackageItem) {
 				$existingPackageItem->update(['amount' => $existingPackageItem->amount + $values['amount']]);
 			} else {
@@ -557,20 +542,20 @@ class OrderPresenter extends BackendPresenter
 					'cartItem' => $cartItem,
 				]);
 			}
-			
+
 			/** @var \Admin\DB\Administrator|null $admin */
 			$admin = $this->admin->getIdentity();
-			
+
 			if (!$admin) {
 				return;
 			}
-			
+
 			$this->orderLogItemRepository->createLog($order, OrderLogItem::NEW_ITEM, $product->name, $admin);
-			
+
 			$this->flashMessage('Provedeno', 'success');
 			$form->processRedirect('this');
 		};
-		
+
 		return $form;
 	}
 
@@ -590,7 +575,7 @@ class OrderPresenter extends BackendPresenter
 			$values['amount'] = $values['amount'] > $packageItem->amount ? $packageItem->amount : $values['amount'];
 
 			if ($packageItem->getValue('store') === $values['store'] || $values['amount'] === 0) {
-				$this->flashMessage('Položka neví ve zvoleném skladě k dispozici!', 'error');
+				$this->flashMessage('Položka není ve zvoleném skladě k dispozici!', 'error');
 				$this->redirect('this');
 			}
 
@@ -614,6 +599,7 @@ class OrderPresenter extends BackendPresenter
 					'store' => $values['store'],
 					'package' => $packageItem->getValue('package'),
 					'cartItem' => $packageItem->getValue('cartItem'),
+					'upsell' => $packageItem->getValue('upsell'),
 				]);
 			}
 
@@ -1195,7 +1181,17 @@ class OrderPresenter extends BackendPresenter
 		}
 
 		$this->template->orderItems = $order->purchase->getItems()->toArray();
-		$this->template->packages = $order->packages;
+		$this->template->packages = clone $order->packages;
+
+		$upsells = [];
+
+		foreach ($order->packages as $package) {
+			foreach ($package->items->where('this.fk_upsell IS NULL') as $item) {
+				$upsells[$package->getPK()][$item->getPK()] = $this->packageItemRepository->many()->where('this.fk_upsell', $item->getPK())->toArray();
+			}
+		}
+
+		$this->template->upsells = $upsells;
 
 		$this->template->stores = $this->storeRepository->many();
 		$this->template->headerTree = [

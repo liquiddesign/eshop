@@ -1,4 +1,7 @@
+{varType Eshop\Admin\OrderPresenter $presenter}
 {varType bool $upsell}
+{varType Eshop\DB\PackageItem $packageItem}
+{var Eshop\DB\CartItem $item = $packageItem->cartItem}
 
 <tr {if $packageItem->deleted}style="text-decoration: line-through"{/if}>
     <td>
@@ -29,7 +32,7 @@
         {$item->priceVat|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price|price} bez DPH</small>{/if}
     </td>
     <td style="text-align: right">
-        {$item->getPriceVatSum()|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->getPriceSum()|price} bez DPH</small>{/if}
+        {$item->priceVat * $packageItem->amount|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price * $packageItem->amount|price} bez DPH</small>{/if}
     </td>
     <td class="d-print-none">
         <a class="btn btn-outline-primary btn-sm text-xs modalSplitOrderItemForm" data-values="{json_encode(['uuid' => $packageItem->getPK()])}" data-toggle="modal"

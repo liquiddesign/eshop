@@ -61,7 +61,7 @@ class CartItemRepository extends \StORM\Repository
 
 	public function getItems(array $cartIds): Collection
 	{
-		return $this->many()->where('fk_cart', $cartIds);
+		return clone $this->many()->where('fk_cart', $cartIds);
 	}
 	
 	public function deleteItem(Cart $cart, CartItem $item): int
