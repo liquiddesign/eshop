@@ -13,7 +13,7 @@ use League\Csv\Reader;
 use Nette\Utils\FileSystem;
 use StORM\Entity;
 
-class BackendPresenter extends \Admin\BackendPresenter
+abstract class BackendPresenter extends \Admin\BackendPresenter
 {
 	/** @inject */
 	public ProductRepository $productRepository;

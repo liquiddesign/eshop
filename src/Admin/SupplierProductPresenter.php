@@ -85,7 +85,15 @@ class SupplierProductPresenter extends BackendPresenter
 				}
 
 				try {
-					$hits = $this->algolia->searchProduct($supplierProduct->name)['hits'];
+					$explodedNames = \explode(' ', $supplierProduct->name);
+
+					$hits = [];
+
+					foreach ($explodedNames as $name) {
+						$hits = \array_merge($hits, $this->algolia->searchProduct($name)['hits']);
+					}
+
+					$hits = \array_reverse($hits);
 					$hitsCount = \count($hits);
 
 					if ($hitsCount > 0) {
@@ -312,10 +320,19 @@ class SupplierProductPresenter extends BackendPresenter
 
 		/** @var \Eshop\DB\SupplierProduct|null $supplierProduct */
 		$supplierProduct = $this->getParameter('supplierProduct');
-		$algoliaResults = $this->algolia->searchProduct($supplierProduct->name, 'products');
+
+		$explodedNames = \explode(' ', $supplierProduct->name);
+
+		$hits = [];
+
+		foreach ($explodedNames as $name) {
+			$hits = \array_merge($hits, $this->algolia->searchProduct($name)['hits']);
+		}
+
+		$hits = \array_reverse($hits);
 		$results = [];
 
-		foreach ($algoliaResults['hits'] as $result) {
+		foreach ($hits as $result) {
 			$results[$result['objectID']] = $result['name_cs'];
 		}
 
