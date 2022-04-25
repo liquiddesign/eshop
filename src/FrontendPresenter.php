@@ -216,9 +216,10 @@ abstract class FrontendPresenter extends Presenter
 
 	/**
 	 * TODO move to package
+	 * @param mixed $ic
 	 * @throws \Nette\Application\AbortException
 	 */
-	public function handleLoadAres(): void
+	public function handleLoadAres($ic): void
 	{
 		$ic = $this->getHttpRequest()->getPost('ic');
 
