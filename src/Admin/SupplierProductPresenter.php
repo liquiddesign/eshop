@@ -118,6 +118,12 @@ class SupplierProductPresenter extends BackendPresenter
 			return $grid->getPresenter()->link('detail', $object);
 		}, '<a href="%s" class="btn btn-sm btn-outline-primary">Napárovat ručně</a>');
 
+		$btnSecondary = 'btn btn-sm btn-outline-danger';
+		$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Zrušit párování'><i class='fas fa-sm fa-unlink'></i></a>";
+		$grid->addColumnAction('', $actionIco, function (SupplierProduct $supplierProduct): void {
+			$supplierProduct->update(['product' => null]);
+		}, [], null, ['class' => 'minimal']);
+
 		$grid->addButtonSaveAll();
 
 		$grid->addFilterTextInput('search', ['this.ean', 'this.code', 'this.mpn'], null, 'EAN, kód, P/N');
@@ -297,7 +303,12 @@ class SupplierProductPresenter extends BackendPresenter
 				$update['ean'] = $product->ean;
 			}
 
-			$supplierProduct->update($update);
+			try {
+				$supplierProduct->update($update);
+			} catch (\PDOException $e) {
+				$this->flashMessage('Nelze napárovat! Pravděpodobně existuje párování cílového produktu na jiný produkt tohoto dodavatele!', 'error');
+				$this->redirect('this');
+			}
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$supplierProduct]);
@@ -343,6 +354,8 @@ class SupplierProductPresenter extends BackendPresenter
 			try {
 				$supplierProduct->update($update);
 			} catch (\PDOException $e) {
+				$this->flashMessage('Nelze napárovat! Pravděpodobně existuje párování cílového produktu na jiný produkt tohoto dodavatele!', 'error');
+				$this->redirect('this');
 			}
 
 			$this->flashMessage('Uloženo', 'success');

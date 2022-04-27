@@ -175,6 +175,18 @@ class SupplierProduct extends \StORM\Entity
 	 * @column
 	 */
 	public bool $unavailable = false;
+
+	/**
+	 * Recyklační poplatek
+	 * @column
+	 */
+	public ?float $recyclingFee;
+
+	/**
+	 * Autorský poplatek
+	 * @column
+	 */
+	public ?float $copyrightFee;
 	
 	/**
 	 * Výrobce

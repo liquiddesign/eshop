@@ -279,7 +279,7 @@ class SupplierProductRepository extends \StORM\Repository
 
 		while ($draft = $products->fetch()) {
 			/** @var \Eshop\DB\SupplierProduct $draft */
-			if ($draft->amount === null || $draft->amount === 0 || $draft->getValue('product') === null) {
+			if ($draft->amount === null || $draft->getValue('product') === null) {
 				continue;
 			}
 
