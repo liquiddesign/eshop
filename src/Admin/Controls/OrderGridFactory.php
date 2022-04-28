@@ -90,8 +90,10 @@ class OrderGridFactory
 
 		$grid->addColumnSelector();
 		$grid->addColumn('Číslo a datum', function (Order $order, $grid) {
+			$noteIcon = $order->purchase->note ? '<i class="fa fa-info-circle ml-2"></i>' : '';
+
 			return \sprintf(
-				'<a id="%s" href="%s">%s</a><br><small>%s</small>',
+				"<a id='%s' href='%s'>%s$noteIcon</a><br><small>%s</small>",
 				$order->getPK(),
 				$grid->getPresenter()->link('printDetail', $order),
 				$order->code,
