@@ -1104,12 +1104,14 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 			'|' => 'Pipe (|)',
 		]);
 
+		$form->addCheckbox('searchEan', 'Hledat i dle EAN')->setDefaultValue(true)
+			->setHtmlAttribute('data-info', 'Pokud je nastaveno, tak se hledají produkty dle Kódu nebo EANu. EAN se v tomto módu mění jen při nových záznamech!');
 		$form->addCheckbox('addNew', 'Vytvářet nové záznamy');
 		$form->addCheckbox('overwriteExisting', 'Přepisovat existující záznamy')->setDefaultValue(true);
 		$form->addCheckbox('updateAttributes', 'Aktualizovat atributy');
 		$form->addCheckbox('createAttributeValues', 'Vytvářet hodnoty atributů (pokud neexistují, hledá dle jména)')->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
 Soubor <b>musí obsahovat</b> hlavičku a jeden ze sloupců "Kód" nebo "EAN" pro jednoznačné rozlišení produktů.&nbsp;
-Jako prioritní se hledá kód a pokud není nalezen tak EAN. Kód a EAN se ukládají jen při vytváření nových záznamů.<br><br>
+Jako prioritní se hledá kód a pokud není nalezen tak EAN. Kód se ukládá jen při vytváření nových záznamů.<br><br>
 Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 ' . $allowedColumns . '<br>
 Atributy a výrobce musí být zadány jako kód (např.: "001") nebo jako kombinace názvu a kódu(např.: "Tisková technologie#001).<br>
@@ -1155,6 +1157,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 					$values['overwriteExisting'],
 					$values['updateAttributes'],
 					$values['createAttributeValues'],
+					$values['searchEan'],
 				), ILogger::DEBUG);
 
 				FileSystem::copy($tempFileName, $productsFileName);
@@ -1585,7 +1588,8 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		bool $addNew = false,
 		bool $overwriteExisting = true,
 		bool $updateAttributes = false,
-		bool $createAttributeValues = false
+		bool $createAttributeValues = false,
+		bool $searchEan = false
 	): array {
 		Debugger::timer();
 
@@ -1612,6 +1616,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			'name' => "name$mutationSuffix",
 			'perex' => "perex$mutationSuffix",
 			'supplierContentLock',
+			'mpn',
 		], [], true)->fetchArray(\stdClass::class);
 
 		$header = $reader->getHeader();
@@ -1689,7 +1694,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			/** @var string|null $codeFromRecord */
 			$codeFromRecord = isset($parsedHeader['code']) ? Arrays::pick($record, $parsedHeader['code'], null) : null;
 			/** @var string|null $eanFromRecord */
-			$eanFromRecord = isset($parsedHeader['ean']) ? Arrays::pick($record, $parsedHeader['ean'], null) : null;
+			$eanFromRecord = isset($parsedHeader['ean']) ? ($searchEan ? Arrays::pick($record, $parsedHeader['ean'], null) : ($record[$parsedHeader['ean']] ?? null)) : null;
 
 			/** @var \Eshop\DB\Product|null $product */
 			$product = null;
@@ -1705,7 +1710,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				$ean = Strings::trim($eanFromRecord);
 			}
 
-			if ($code && $ean) {
+			if ($code && ($ean && $searchEan)) {
 				$product = $this->arrayFind($products, function (\stdClass $x) use ($code, $codePrefix, $ean): bool {
 					return $x->code === $code || $x->fullCode === $code ||
 						$x->code === $codePrefix || $x->fullCode === $codePrefix ||
@@ -1716,7 +1721,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 					return $x->code === $code || $x->fullCode === $code ||
 						$x->code === $codePrefix || $x->fullCode === $codePrefix;
 				});
-			} elseif ($ean) {
+			} elseif ($ean && $searchEan) {
 				$product = $this->arrayFind($products, function (\stdClass $x) use ($ean): bool {
 					return $x->ean === $ean;
 				});
@@ -1726,7 +1731,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				$updatedProducts++;
 			}
 
-			if ((!$code && !$ean) || (!$product && !$addNew) || ($product && !$overwriteExisting)) {
+			if (($searchEan && !$ean) || !$code || (!$product && !$addNew) || ($product && !$overwriteExisting)) {
 				$skippedProducts++;
 
 				continue;
@@ -1829,11 +1834,10 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 						$valuesToUpdate[$product->uuid] = $newValues;
 					}
 				} elseif (\count($newValues) > 0) {
-					if (!$code && !$ean) {
-						continue;
+					if ($ean) {
+						$newValues['ean'] = $ean;
 					}
 
-					$newValues['ean'] = $ean;
 					$newValues['code'] = $code;
 
 					$this->productRepository->createOne($newValues);

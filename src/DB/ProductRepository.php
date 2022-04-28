@@ -50,6 +50,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 
 	private RelatedTypeRepository $relatedTypeRepository;
 
+	private SupplierProductRepository $supplierProductRepository;
+
 	private LinkGenerator $linkGenerator;
 
 	private Request $request;
@@ -87,8 +89,7 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$this->request = $request;
 		$this->cache = new Cache($storage);
 		$this->relatedTypeRepository = $relatedTypeRepository;
-
-		unset($supplierProductRepository);
+		$this->supplierProductRepository = $supplierProductRepository;
 //		$this->onDelete[] = function (ProductRepository $productRepository, Collection $collection) use ($supplierProductRepository): void {
 //			$product = Arrays::first($collection->getVars());
 //
@@ -1033,6 +1034,20 @@ class ProductRepository extends Repository implements IGeneralRepository
 		}
 
 		return $this->setRepository->many()->join(['product' => 'eshop_product'], 'product.uuid=this.fk_set')->orderBy(['priority'])->toArray();
+	}
+
+	public function getSuppliersRecyclingFee(Product $product): ?float
+	{
+		$recyclingFee = null;
+
+		foreach ($this->supplierProductRepository->many()->where('this.fk_product', $product->getPK())
+				->orderBy(['supplier.importPriority' => 'ASC'])
+				->where('recyclingFee IS NOT NULL') as $supplierProduct
+		) {
+			$recyclingFee = $supplierProduct->recyclingFee;
+		}
+
+		return $recyclingFee;
 	}
 
 	public function csvExport(ICollection $products, Writer $writer, array $columns = [], array $attributes = [], string $delimiter = ';', ?array $header = null): void
