@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Eshop\Admin\Controls;
 
+use Admin\Controls\AdminGridFactory;
 use Admin\Helpers;
 use Eshop\DB\CustomerGroupRepository;
+use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderLogItem;
 use Eshop\DB\OrderLogItemRepository;
 use Eshop\DB\OrderRepository;
+use Eshop\DB\PaymentTypeRepository;
 use Eshop\Shopper;
 use Grid\Datagrid;
 use League\Csv\Writer;
@@ -30,7 +33,7 @@ class OrderGridFactory
 {
 	private OrderRepository $orderRepository;
 
-	private \Admin\Controls\AdminGridFactory $gridFactory;
+	private AdminGridFactory $gridFactory;
 
 	private TemplateRepository $templateRepository;
 
@@ -41,20 +44,26 @@ class OrderGridFactory
 	private Application $application;
 
 	private CustomerGroupRepository $customerGroupRepository;
-
+	
+	private DeliveryTypeRepository $deliveryTypeRepository;
+	
+	private PaymentTypeRepository $paymentTypeRepository;
+	
 	private Shopper $shopper;
-
+	
 	/** @var array<mixed> */
 	private array $configuration;
-
+	
 	public function __construct(
-		\Admin\Controls\AdminGridFactory $adminGridFactory,
+		AdminGridFactory $adminGridFactory,
 		OrderRepository $orderRepository,
 		Application $application,
 		TemplateRepository $templateRepository,
 		Mailer $mailer,
 		OrderLogItemRepository $orderLogItemRepository,
 		CustomerGroupRepository $customerGroupRepository,
+		DeliveryTypeRepository $deliveryTypeRepository,
+		PaymentTypeRepository $paymentTypeRepository,
 		Shopper $shopper
 	) {
 		$this->orderRepository = $orderRepository;
@@ -64,6 +73,9 @@ class OrderGridFactory
 		$this->application = $application;
 		$this->orderLogItemRepository = $orderLogItemRepository;
 		$this->customerGroupRepository = $customerGroupRepository;
+		$this->deliveryTypeRepository = $deliveryTypeRepository;
+		$this->paymentTypeRepository = $paymentTypeRepository;
+		
 		$this->shopper = $shopper;
 	}
 	
@@ -191,6 +203,16 @@ class OrderGridFactory
 				}
 			}, '', 'customerGroup', null, $customerGroups + [])->setPrompt('- Skupina zákazníků -');
 		}
+		
+		$deliveryTypes = $this->deliveryTypeRepository->getArrayForSelect();
+		$grid->addFilterDataSelect(function (Collection $source, $value): void {
+			$source->where('purchase.fk_deliveryType', $value);
+		}, '', 'deliveryType', null, $deliveryTypes)->setPrompt('- Způsob dopravy -');
+		
+		$paymentTypes = $this->paymentTypeRepository->getArrayForSelect();
+		$grid->addFilterDataSelect(function (Collection $source, $value): void {
+			$source->where('purchase.fk_paymentType', $value);
+		}, '', 'paymentType', null, $paymentTypes)->setPrompt('- Způsob platby -');
 
 		if ($state === 'open') {
 			$submit = $grid->getForm()->addSubmit('receiveMultiple', Html::fromHtml('<i class="fa fa-check"></i> Přijmout'))->setHtmlAttribute('class', $btnSecondary);
