@@ -108,6 +108,14 @@
                                        href="#comments-content"
                                        role="tab">Komentáře</a>
                                 </li>
+                                {if isset($configuration['detailSuppliersTab']) && $configuration['detailSuppliersTab']}
+                                    <li class="nav-item">
+                                        <a class="nav-link {$editTab == 'suppliers' ? 'active show' : ''} productForm-tab"
+                                           id="suppliers" data-toggle="pill"
+                                           href="#suppliers-content"
+                                           role="tab">Dodavatelé</a>
+                                    </li>
+                                {/if}
                             {/ifset}
                         </ul>
                     </div>

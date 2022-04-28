@@ -4,6 +4,8 @@
 {varType Eshop\Admin\ProductPresenter $presenter}
 {varType Eshop\DB\Pricelist[] $pricelists}
 {varType Eshop\DB\Store[] $stores}
+{varType string[] $configuration}
+{varType Eshop\DB\SupplierProduct[] $supplierProducts}
 
 <form n:name="form">
     {var $activeMutation = $form->getActiveMutation()}
@@ -496,7 +498,6 @@
                 </table>
             </fieldset>
         </div>
-
         <div id="menu4-content" class="tab-pane {$presenter->editTab == 'menu4' ? 'active show' : ''}">
             <fieldset>
                 {foreach $relatedTypes as $relatedType}
@@ -540,7 +541,6 @@
                 </table>
             </fieldset>
         </div>
-
         <div id="gallery-content" class="tab-pane {$presenter->editTab == 'gallery' ? 'active show' : ''}">
         </div>
         <div id="files-content" class="tab-pane {$presenter->editTab == 'files' ? 'active show' : ''}">
@@ -548,6 +548,26 @@
         <div id="comments-content" class="tab-pane {$presenter->editTab == 'comments' ? 'active show' : ''}">
         </div>
         <div id="attributes-content" class="tab-pane {$presenter->editTab == 'attributes' ? 'active show' : ''}">
+        </div>
+        <div id="suppliers-content" class="tab-pane {$presenter->editTab == 'suppliers' ? 'active show' : ''}">
+            {foreach $supplierProducts as $supplierProduct}
+                <table class="table table-hover text-nowrap mt-1 mb-1" style="width: auto;">
+                    <tr>
+                        <th>Dodavatel</th>
+                        <th>Produkt</th>
+                        <th>Kód</th>
+                    </tr>
+                    <tr>
+                        <td>{$supplierProduct->supplier->name}</td>
+                        <td>
+                            <a href="{plink :Eshop:Admin:SupplierProduct:default 'tab' => $supplierProduct->supplier->getPK(), 'grid-search' => $supplierProduct->code}">
+                                {$supplierProduct->name}
+                            </a>
+                        </td>
+                        <td>{$supplierProduct->code}</td>
+                    </tr>
+                </table>
+            {/foreach}
         </div>
     </div>
 

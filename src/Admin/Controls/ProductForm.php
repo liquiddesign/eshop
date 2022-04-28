@@ -672,6 +672,8 @@ Ostatní: Přebírání ze zvoleného zdroje
 
 	public function render(): void
 	{
+		$this->template->supplierProducts = $this->product ? $this->supplierProductRepository->many()->where('this.fk_product', $this->product->getPK())->toArray() : [];
+
 		$this->template->relationMaxItemsCount = $this::RELATION_MAX_ITEMS_COUNT;
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->pricelistRepository->many()->orderBy(['this.priority']);

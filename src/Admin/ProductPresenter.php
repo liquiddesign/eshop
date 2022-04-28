@@ -117,6 +117,7 @@ class ProductPresenter extends BackendPresenter
 			'login' => '',
 			'password' => '',
 		],
+		'detailSuppliersTab' => false,
 	];
 
 	protected const IMPORT_SET_COLUMNS = [
@@ -578,6 +579,7 @@ class ProductPresenter extends BackendPresenter
 		}
 
 		$this->template->photos = $data;
+		$this->template->configuration = $this::CONFIGURATION;
 
 		$this->template->setFile(__DIR__ . '/templates/product.edit.latte');
 	}
