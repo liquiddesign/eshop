@@ -89,7 +89,7 @@ class Comgate
 		$currency = $order->getPayment()->currency->code;
 		$customer = $order->purchase->email;
 		$payment = Payment::of(
-			Money::of($price, $currency),
+			Money::of($price, $currency, new \Brick\Money\Context\CustomContext(2)),
 			$order->code,
 			$order->code,
 			$customer,
