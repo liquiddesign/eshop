@@ -92,6 +92,11 @@ class Order extends \StORM\Entity
 	public bool $newCustomer = false;
 	
 	/**
+	 * @column
+	 */
+	public bool $highlighted = false;
+	
+	/**
 	 * Nákup
 	 * @relation
 	 * @constraint{"onUpdate":"RESTRICT","onDelete":"RESTRICT"}
