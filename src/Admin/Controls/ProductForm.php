@@ -405,7 +405,17 @@ Ostatní: Přebírání ze zvoleného zdroje
 				->addFilter('intval')->addCondition($form::FILLED)->addRule($form::MIN, 'Zadejte číslo rovné nebo větší než 0!', 0);
 		}
 
-		$form->addPageContainer('product_detail', ['product' => $product], $nameInput);
+		$form->addPageContainer(
+			'product_detail',
+			['product' => $product],
+			$nameInput,
+			false,
+			true,
+			false,
+			'URL a SEO',
+			false,
+			true,
+		);
 
 		$form->addSubmits(!$product);
 
