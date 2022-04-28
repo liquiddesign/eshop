@@ -97,6 +97,8 @@ class Shopper
 	 * @var array<mixed>
 	 */
 	private array $reviews;
+	
+	private bool $allowBannedEmailOrder = false;
 
 	private ?DiscountCoupon $discountCoupon = null;
 	
@@ -124,6 +126,16 @@ class Shopper
 		$this->customerRepository = $customerRepository;
 		$this->customerGroupRepository = $customerGroupRepository;
 		$this->minimalOrderValueRepository = $minimalOrderValueRepository;
+	}
+	
+	public function setAllowBannedEmailOrder(bool $allowBannedEmailOrder): void
+	{
+		$this->allowBannedEmailOrder = $allowBannedEmailOrder;
+	}
+	
+	public function getAllowBannedEmailOrder(): bool
+	{
+		return $this->allowBannedEmailOrder;
 	}
 	
 	public function setEditOrderAfterCreation(bool $editOrderAfterCreation): void

@@ -1101,8 +1101,8 @@ class CheckoutManager
 	public function createOrder(?Purchase $purchase = null): void
 	{
 		$purchase = $purchase ?: $this->getPurchase();
-
-		if ($this->bannedEmailRepository->isEmailBanned($purchase->email)) {
+		
+		if (!$this->shopper->getAllowBannedEmailOrder() && $this->bannedEmailRepository->isEmailBanned($purchase->email)) {
 			throw new BuyException('Banned email', BuyException::BANNED_EMAIL);
 		}
 

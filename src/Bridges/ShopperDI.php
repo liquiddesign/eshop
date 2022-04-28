@@ -38,6 +38,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			'showVat' => Expect::bool(true),
 			'editOrderAfterCreation' => Expect::bool(false),
 			'alwaysCreateCustomerOnOrderCreated' => Expect::bool(false),
+			'allowBannedEmailOrder' => Expect::bool(false),
 			'integrations' => Expect::structure([
 				'eHub' => Expect::bool(false),
 			]),
@@ -75,6 +76,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$shopper->addSetup('setShowVat', [$config['showVat']]);
 		$shopper->addSetup('setEditOrderAfterCreation', [$config['editOrderAfterCreation']]);
 		$shopper->addSetup('setAlwaysCreateCustomerOnOrderCreated', [$config['alwaysCreateCustomerOnOrderCreated']]);
+		$shopper->addSetup('setAllowBannedEmailOrder', [$config['allowBannedEmailOrder']]);
 
 		$integrations = (array) $config['integrations'];
 		$shopper->addSetup('setIntegrationsEHub', [$integrations['eHub']]);
