@@ -172,25 +172,30 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	 */
 	public function getWizardAttributesValues(int $step): array
 	{
+		$collection = $this->attributeValueRepository->getCollection();
 		$suffix = $this->getConnection()->getMutationSuffix();
-		$items = [];
+		$index = 'wizzard_' . $step;
 		
-		/** @var \Eshop\DB\AttributeValue[] $attributeValues */
-		$attributeValues = $this->attributeValueRepository->getCollection()
-			->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
-			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value', [], 'INNER')
-			->where('attribute.showWizard', true)
-			->where('attribute.hidden', false)
-			->where('this.showWizard', true)
-			->where('FIND_IN_SET(:s, attribute.wizardStep)', ['s' => $step])
-			->setOrderBy(['attribute.priority', 'this.priority', "this.label$suffix"])
-			->toArray();
-		
-		foreach ($attributeValues as $attributeValue) {
-			$items[$attributeValue->getValue('attribute')][$attributeValue->getPK()] = $attributeValue;
-		}
-		
-		return $items;
+		return $this->cache->load($index, static function (&$dependencies) use ($step, $suffix, $collection) {
+			$items = [];
+			
+			/** @var \Eshop\DB\AttributeValue[] $attributeValues */
+			$attributeValues = $collection
+				->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
+				->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value', [], 'INNER')
+				->where('attribute.showWizard', true)
+				->where('attribute.hidden', false)
+				->where('this.showWizard', true)
+				->where('FIND_IN_SET(:s, attribute.wizardStep)', ['s' => $step])
+				->setOrderBy(['attribute.priority', 'this.priority', "this.label$suffix"])
+				->toArray();
+			
+			foreach ($attributeValues as $attributeValue) {
+				$items[$attributeValue->getValue('attribute')][$attributeValue->getPK()] = $attributeValue;
+			}
+			
+			return $items;
+		});
 	}
 	
 	/**
