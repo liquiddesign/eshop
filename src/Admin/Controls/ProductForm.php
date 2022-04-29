@@ -702,4 +702,15 @@ Ostatní: Přebírání ze zvoleného zdroje
 		$template = $this->template;
 		$template->render(__DIR__ . '/productForm.latte');
 	}
+
+	public function handleClearPrice(string $productPK, string $pricelistPK): void
+	{
+		$this->priceRepository->many()
+			->where('this.fk_product', $productPK)
+			->where('this.fk_pricelist', $pricelistPK)
+			->delete();
+
+		$this->flashMessage('Provedeno', 'success');
+		$this->redirect('this');
+	}
 }
