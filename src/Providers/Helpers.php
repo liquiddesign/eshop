@@ -177,20 +177,6 @@ abstract class Helpers
 		$lastName = null;
 
 		if (\count($explodedName) > 1) {
-			$first = true;
-
-			foreach ($explodedName as $name) {
-				if ($first) {
-					$first = false;
-
-					continue;
-				}
-
-				$lastName .= $name . ' ';
-			}
-
-			$lastName = \substr($lastName, 0, -1);
-		} else {
 			$lastName = Arrays::last($explodedName);
 		}
 
