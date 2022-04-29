@@ -78,8 +78,9 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 			->join(['enu' => 'eshop_newsletteruser'], 'ecp.fk_account = enu.fk_customerAccount')
 			->select(['newsletterPK' => 'enu.uuid']);
 
-		/** @var \Eshop\DB\Customer $customer */
-		foreach ($customers->toArray() as $customer) {
+		while ($customer = $customers->fetch()) {
+			/** @var \Eshop\DB\Customer $customer */
+
 			[$firstName, $lastName] = Helpers::parseFullName($customer->fullname ?? '');
 
 			$writer->insertOne([

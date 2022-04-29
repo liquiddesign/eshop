@@ -161,10 +161,10 @@ abstract class Helpers
 		$firstName = null;
 
 		if (\count($explodedName) > 1) {
-			$last = Arrays::last($explodedName);
+			$last = Arrays::last(\array_keys($explodedName));
 
-			foreach ($explodedName as $name) {
-				if ($name === $last) {
+			foreach ($explodedName as $id => $name) {
+				if ($id === $last) {
 					break;
 				}
 
