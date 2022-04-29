@@ -22,6 +22,7 @@ use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Localization\Translator;
 use Nette\Mail\Mailer;
+use Nette\Mail\Message;
 use Nette\Utils\Arrays;
 use Web\Controls\Breadcrumb;
 use Web\Controls\IBreadcrumbFactory;
@@ -317,6 +318,13 @@ abstract class FrontendPresenter extends Presenter
 			return $this->latte->renderToString($string, $params);
 		} catch (\Throwable $e) {
 			return null;
+		}
+	}
+
+	public function sendMessage(?Message $message): void
+	{
+		if ($message) {
+			$this->mailer->send($message);
 		}
 	}
 

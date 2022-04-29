@@ -1564,11 +1564,7 @@ class OrderPresenter extends BackendPresenter
 			}
 		};
 
-		if ($this->tab !== null) {
-			return;
-		}
-
-		$this->tab = $this->shopper->getEditOrderAfterCreation() ? Order::STATE_OPEN : Order::STATE_RECEIVED;
+		$this->tab = $this->getTab();
 	}
 
 	protected function sendToSuppliersAll(Order $order): void
@@ -1579,5 +1575,10 @@ class OrderPresenter extends BackendPresenter
 	protected function sendToSuppliersOnlyUncompleted(Order $order): void
 	{
 		unset($order);
+	}
+
+	protected function getTab(): string
+	{
+		return $this->tab ??= ($this->shopper->getEditOrderAfterCreation() ? Order::STATE_OPEN : Order::STATE_RECEIVED);
 	}
 }
