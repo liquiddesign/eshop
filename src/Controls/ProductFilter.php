@@ -13,6 +13,7 @@ use Eshop\DB\ProducerRepository;
 use Forms\Form;
 use Forms\FormFactory;
 use Nette\Application\UI\Control;
+use Nette\Application\UI\Presenter;
 use Nette\Utils\Arrays;
 use StORM\Collection;
 use Translator\DB\TranslationRepository;
@@ -113,13 +114,14 @@ class ProductFilter extends Control
 	{
 		$filterForm = $this->formFactory->create();
 		
-		/** @var \Grid\Datalist $datalist */
-		$datalist = $this->getParent();
+		$filterForm->setMethod('get');
 		
-		$datalist->makeFilterForm($filterForm, false, true);
+		$filterForm->onRender[] = function ($filterForm): void {
+			$filterForm->removeComponent($filterForm[Presenter::SIGNAL_KEY]);
+		};
 		
-		$filterForm->addInteger('priceFrom')->setHtmlAttribute('placeholder', 0);
-		$filterForm->addInteger('priceTo')->setHtmlAttribute('placeholder', 100000);
+		$filterForm->addInteger('priceFrom')->setNullable(true)->setHtmlAttribute('placeholder', 0);
+		$filterForm->addInteger('priceTo')->setNullable(true)->setHtmlAttribute('placeholder', 100000);
 		
 		$attributesContainer = $filterForm->addContainer('attributes');
 		
@@ -156,27 +158,11 @@ class ProductFilter extends Control
 			$checkboxList->setDefaultValue($defaults[$attribute->getPK()]);
 		}
 		
-		$filterForm->addSubmit('submit', $this->translator->translate('filter.showProducts', 'Zobrazit produkty'));
+		$submit = $filterForm->addSubmit('submit', $this->translator->translate('filter.showProducts', 'Zobrazit produkty'));
+		$submit->setHtmlAttribute('name', '');
 		
-		$filterForm->onValidate[] = function (\Nette\Forms\Container $form): void {
-			$values = $form->getValues('array');
-			
-			if ($values['priceFrom'] <= $values['priceTo']) {
-				return;
-			}
-			
-			/** @var \Nette\Forms\Controls\TextInput $priceTo */
-			$priceTo = $form['priceTo'];
-			
-			$priceTo->addError($this->translator->translate('filter.wrongPriceRange', 'Neplatný rozsah cen!'));
-			$this->flashMessage($this->translator->translate('form.submitError', 'Chybně vyplněný formulář!'), 'error');
-		};
-
-		$filterForm->onSuccess[] = function (\Nette\Forms\Container $form): void {
-			$values = $form->getValues('array');
-
-			$this->onFormSuccess($values);
-		};
+		
+		$filterForm->setDefaults($this->getPresenter()->getParameters());
 		
 		return $filterForm;
 	}
