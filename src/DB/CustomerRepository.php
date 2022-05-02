@@ -60,7 +60,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 	 */
 	public function csvExportTargito(ICollection $customers, Writer $writer, ?string $origin = null): void
 	{
-		$writer->setDelimiter(';');
+		$writer->setDelimiter(',');
 		EncloseField::addTo($writer, "\t\x1f");
 
 		$writer->insertOne([

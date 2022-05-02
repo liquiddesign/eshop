@@ -666,7 +666,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	 */
 	public function csvExportTargito(Writer $writer, Collection $categories): void
 	{
-		$writer->setDelimiter(';');
+		$writer->setDelimiter(',');
 
 		$writer->insertOne([
 			'id',

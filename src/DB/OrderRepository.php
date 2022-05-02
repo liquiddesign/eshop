@@ -1214,7 +1214,7 @@ class OrderRepository extends \StORM\Repository
 	 */
 	public function csvExportTargito(Writer $writer, Collection $orders): void
 	{
-		$writer->setDelimiter(';');
+		$writer->setDelimiter(',');
 
 		$writer->insertOne([
 			'email',
