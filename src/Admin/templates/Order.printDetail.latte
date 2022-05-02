@@ -4,6 +4,7 @@
 {varType Eshop\DB\PickupPoint|null $pickupPoint}
 {varType Eshop\DB\Package[] $packages}
 {varType Eshop\DB\PackageItem[] $upsells}
+{varType Eshop\DB\Related[][] $relations}
 
 {var $purchase = $order->purchase}
 {var $billingAddress = $purchase->billAddress}
@@ -136,12 +137,49 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                                 </tr></thead>
                                 <tbody>
 
-                                {foreach $package->items->where('cartItem.fk_upsell IS NULL') as $packageItem}
+                                {foreach $package->items->where('cartItem.fk_upsell IS NULL')->toArray() as $packageItem}
+                                    {varType Eshop\DB\PackageItem $packageItem}
                                     {include '../Components/Order.printDetail.item.latte', packageItem:$packageItem, upsell:false}
 
                                     {foreach $upsells[$package->getPK()][$packageItem->getPK()] ?? [] as $upsellPackageItem}
                                         {include '../Components/Order.printDetail.item.latte', packageItem:$upsellPackageItem, upsell:true}
                                     {/foreach}
+
+                                    {if $packageItem->cartItem->getValue('product') && isset($relations[$packageItem->cartItem->getValue('product')])}
+                                        {foreach $relations[$packageItem->cartItem->getValue('product')] as $related}
+                                            {varType Eshop\DB\Related $related}
+                                            {var Eshop\DB\Product $slave = $related->slave}
+                                            <tr>
+                                                <td>
+                                                    <a href="#">
+                                                        <img data-src="{$slave->getPreviewImage($baseUrl,'thumb')}" loading="lazy" alt="" style="height:32px;">
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    {$slave->getFullCode()}
+									            {if $slave->ean}<br><small>EAN: {$slave->ean}</small>{/if}
+                                                </td>
+                                                <td>
+                                                    <a n:tag-if="$admin->isAllowed(':Eshop:Admin:Product:default')" href="{plink :Eshop:Admin:Product:default, productGrid-code=>$slave->getFullCode()}" target="_blank">
+                                                        -- {$slave->name}
+                                                    </a>
+                                                </td>
+                                                <td>{$related->amount}</td>
+                                                <td>
+                                                </td>
+                                                <td style="text-align: right">
+                                                </td>
+                                                <td style="text-align: right">
+                                                </td>
+                                                <td class="d-print-none">
+                                                </td>
+                                                <td class="d-print-none">
+                                                </td>
+                                                <td class="d-print-none">
+                                                </td>
+                                            </tr>
+                                        {/foreach}
+                                    {/if}
                                 {/foreach}
                                 </tbody>
                             </table>

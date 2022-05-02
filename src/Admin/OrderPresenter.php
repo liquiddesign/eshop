@@ -31,6 +31,7 @@ use Eshop\DB\PaymentRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PickupPointRepository;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\Integration\EHub;
@@ -149,6 +150,9 @@ class OrderPresenter extends BackendPresenter
 
 	/** @inject */
 	public EHub $eHub;
+
+	/** @inject */
+	public RelatedTypeRepository $relatedTypeRepository;
 
 	/** @persistent */
 	public ?string $tab = null;
@@ -1198,6 +1202,18 @@ class OrderPresenter extends BackendPresenter
 		}
 
 		$this->template->upsells = $upsells;
+
+		$relations = [];
+
+		/** @var \Eshop\DB\RelatedType $relatedType */
+		foreach ($this->relatedTypeRepository->getSetTypes() as $relatedType) {
+			/** @var \Eshop\DB\CartItem $item */
+			foreach ($order->purchase->getItems()->where('fk_product IS NOT NULL') as $item) {
+				$relations[$item->getValue('product')] = $this->productRepo->getSlaveRelatedProducts($relatedType, $item->getValue('product'))->toArray();
+			}
+		}
+
+		$this->template->relations = $relations;
 
 		$this->template->stores = $this->storeRepository->many();
 		$this->template->headerTree = [
