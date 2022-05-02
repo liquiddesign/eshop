@@ -1,3 +1,4 @@
+{varType Eshop\DB\Order[] $recievedOrders}
 {define content}
     <section class="content-header">
         <div class="container-fluid">
@@ -65,10 +66,10 @@
                                         <td>{$order->code}</td>
                                         <td>{$order->createdTs|date}</td>
                                         {if $presenter->shopper->getShowVat()}
-                                            <td>{$order->purchase->getSumPriceVat()|price}</td>
+                                            <td>{$order->getTotalPriceVat()|price}</td>
                                         {/if}
                                         {if $presenter->shopper->getShowWithoutVat()}
-                                            <td>{$order->purchase->getSumPrice()|price}</td>
+                                            <td>{$order->getTotalPrice()|price}</td>
                                         {/if}
                                         <td>
                                             {if $order->purchase->customer && $order->purchase->account}
@@ -93,13 +94,13 @@
                                         <td>
                                             {switch $control->orderRepo->getState($order)}
                                                 {case 'finished'}
-                                                    {_'order.done','Vyřízeno'}
+                                                    {_'order.done','Odesláno'}
                                                 {case 'received'}
                                                     {_'order.process','Zpracovává se'}
                                                 {case 'canceled'}
                                                     {_'order.canceled','Stornováno'}
                                                 {default }
-                                                    {_'order.open','Otevřeno k úpravám'}
+                                                    {_'order.open','Přijaté'}
                                             {/switch}
                                         </td>
                                         <td><a href="{plink :Eshop:Admin:Order:printDetail, $order}"><i
