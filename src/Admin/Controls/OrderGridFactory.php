@@ -217,24 +217,28 @@ class OrderGridFactory
 		$grid->addFilterDataSelect(function (Collection $source, $value): void {
 			$source->where('purchase.fk_paymentType', $value);
 		}, '', 'paymentType', null, $paymentTypes)->setPrompt('- Způsob platby -');
-
+		
 		if ($state === 'open') {
-			$submit = $grid->getForm()->addSubmit('receiveMultiple', Html::fromHtml('<i class="fa fa-check"></i> Přijmout'))->setHtmlAttribute('class', $btnSecondary);
+			$stateReceived = $configuration['orderStates']['received'] ?? 'Přijmout';
+			$submit = $grid->getForm()->addSubmit('receiveMultiple', Html::fromHtml('<i class="fa fa-check"></i> Přesunout do stavu ' . $stateReceived))->setHtmlAttribute('class', $btnSecondary);
 			$submit->onClick[] = [$this, 'receiveOrderMultiple'];
-
-			$submit = $grid->getForm()->addSubmit('receiveAndCompleteMultiple', Html::fromHtml('<i class="fas fa-check-double"></i> Přijmout a zpracovat'));
+			
+			$stateFinished = $configuration['orderStates']['finished'] ?? 'Přijmout a zpracovat';
+			$submit = $grid->getForm()->addSubmit('receiveAndCompleteMultiple', Html::fromHtml('<i class="fas fa-check-double"></i> Přesunout do stavu ' . $stateFinished));
 			$submit->setHtmlAttribute('class', $btnSecondary);
 			$submit->onClick[] = [$this, 'receiveAndCompleteMultiple'];
 		}
-
+		
 		if ($state !== 'finished' && $state !== 'open') {
-			$submit = $grid->getForm()->addSubmit('completeMultiple', Html::fromHtml('<i class="fa fa-check"></i> Zpracovat'));
+			$stateFinished = $configuration['orderStates']['finished'] ?? 'Zpracovat';
+			$submit = $grid->getForm()->addSubmit('completeMultiple', Html::fromHtml('<i class="fa fa-check"></i> Přesunout do stavu ' . $stateFinished));
 			$submit->setHtmlAttribute('class', $btnSecondary);
 			$submit->onClick[] = [$this, 'completeOrderMultiple'];
 		}
-
+		
 		if ($state !== 'canceled' && $state !== 'open') {
-			$submit = $grid->getForm()->addSubmit('cancelMultiple', Html::fromHtml('<i class="fa fa-times"></i> Stornovat'));
+			$stateCanceled = $configuration['orderStates']['finished'] ?? 'Stornovat';
+			$submit = $grid->getForm()->addSubmit('cancelMultiple', Html::fromHtml('<i class="fa fa-times"></i> Přesunout do stavu ' . $stateCanceled));
 			$submit->setHtmlAttribute('class', $btnSecondary);
 			$submit->onClick[] = [$this, 'cancelOrderMultiple'];
 		}
