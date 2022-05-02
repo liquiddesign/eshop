@@ -136,24 +136,28 @@ class OrderGridFactory
 
 			$grid->addColumnText('Cena', $properties, '%s', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		}
-
+		
 		if ($state === 'open') {
-			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Označit jako přijaté'><i class='fa fa-sm fa-check'></i></a>";
+			$stateReceived = $configuration['orderStates']['received'] ?? 'Přijaté';
+			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Přesunout do stavu " . $stateReceived . "'><i class='fa fa-sm fa-check'></i></a>";
 			$grid->addColumnAction('', $actionIco, [$this, 'receiveOrder'], [], null, ['class' => 'minimal']);
-
-			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Označit jako zpracované'><i class='fas fa-sm fa-check-double'></i></a>";
+			
+			$stateFinished = $configuration['orderStates']['finished'] ?? 'Odeslané';
+			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Přesunout do stavu " . $stateFinished . "'><i class='fas fa-sm fa-check-double'></i></a>";
 			$grid->addColumnAction('', $actionIco, [$this, 'receiveAndCompleteOrder'], [], null, ['class' => 'minimal']);
 		}
-
+		
 		if ($state !== 'finished' && $state !== 'open') {
-//			$grid->addColumn('Schváleno', [$this, 'renderApprovalColumn'], '%s', null, ['class' => 'minimal']);
-
-			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Zpracovat'><i class='fa fa-sm fa-check'></i></a>";
+			//			$grid->addColumn('Schváleno', [$this, 'renderApprovalColumn'], '%s', null, ['class' => 'minimal']);
+			
+			$stateFinished = $configuration['orderStates']['finished'] ?? 'Odeslané';
+			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Přesunout do stavu " . $stateFinished . "'><i class='fa fa-sm fa-check'></i></a>";
 			$grid->addColumnAction('', $actionIco, [$this, 'completeOrder'], [], null, ['class' => 'minimal']);
 		}
-
+		
 		if ($state !== 'canceled' && $state !== 'open') {
-			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Stornovat'><i class='fa fa-sm fa-times'></i></a>";
+			$stateCanceled = $configuration['orderStates']['canceled'] ?? 'Stornované';
+			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Přesunout do stavu " . $stateCanceled . "'><i class='fa fa-sm fa-times'></i></a>";
 			$grid->addColumnAction('', $actionIco, [$this, 'cancelOrder'], [], null, ['class' => 'minimal']);
 		}
 
@@ -504,6 +508,17 @@ class OrderGridFactory
 		$admin = $presenter->admin->getIdentity();
 
 		$this->orderRepository->receiveOrder($object, $admin);
+		
+		try {
+			$mail = $this->templateRepository->createMessage('order.received', [
+				'orderCode' => $object->code,
+			], $object->purchase->email, null, null, $object->purchase->getCustomerPrefferedMutation());
+			
+			$this->mailer->send($mail);
+			
+			$this->orderLogItemRepository->createLog($object, OrderLogItem::EMAIL_SENT, OrderLogItem::RECEIVED, $admin);
+		} catch (\Throwable $e) {
+		}
 
 		if (!$redirectAfter) {
 			return;

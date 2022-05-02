@@ -65,6 +65,11 @@ class OrderPresenter extends BackendPresenter
 		'showExtendedPay' => true,
 		'targito' => false,
 		'eHub' => false,
+		'orderStates' => [
+			'received' => 'Přijaté',
+			'finished' => 'Odeslané',
+			'canceled' => 'Stornované',
+		],
 	];
 
 	/** @inject */
@@ -1408,6 +1413,17 @@ class OrderPresenter extends BackendPresenter
 		$admin = $this->admin->getIdentity();
 
 		$this->orderRepository->receiveOrder($order, $admin);
+		
+		try {
+			$mail = $this->templateRepository->createMessage('order.received', [
+				'orderCode' => $order->code,
+			], $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
+			
+			$this->mailer->send($mail);
+			
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::RECEIVED, $admin);
+		} catch (\Throwable $e) {
+		}
 
 		$this->redirect('this');
 	}
