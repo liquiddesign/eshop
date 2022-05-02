@@ -237,7 +237,7 @@ class OrderGridFactory
 		}
 		
 		if ($state !== 'canceled' && $state !== 'open') {
-			$stateCanceled = $configuration['orderStates']['finished'] ?? 'Stornovat';
+			$stateCanceled = $configuration['orderStates']['canceled'] ?? 'Stornovat';
 			$submit = $grid->getForm()->addSubmit('cancelMultiple', Html::fromHtml('<i class="fa fa-times"></i> Přesunout do stavu ' . $stateCanceled));
 			$submit->setHtmlAttribute('class', $btnSecondary);
 			$submit->onClick[] = [$this, 'cancelOrderMultiple'];
