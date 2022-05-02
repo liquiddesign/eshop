@@ -68,7 +68,7 @@ class RelatedTypeRepository extends \StORM\Repository implements IGeneralReposit
 
 	public function getSetTypes(bool $includeHidden = false): Collection
 	{
-		return $this->getDetailTypes($includeHidden)->where('this.showAsSet', true);
+		return $this->getCollection($includeHidden)->where('this.showAsSet', true);
 	}
 
 	/**

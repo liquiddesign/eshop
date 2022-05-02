@@ -65,6 +65,8 @@ class OrderRepository extends \StORM\Repository
 
 	private OrderLogItemRepository $orderLogItemRepository;
 
+	private RelatedTypeRepository $relatedTypeRepository;
+
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
@@ -77,7 +79,8 @@ class OrderRepository extends \StORM\Repository
 		PackageItemRepository $packageItemRepository,
 		BannedEmailRepository $bannedEmailRepository,
 		Container $container,
-		OrderLogItemRepository $orderLogItemRepository
+		OrderLogItemRepository $orderLogItemRepository,
+		RelatedTypeRepository $relatedTypeRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -91,6 +94,7 @@ class OrderRepository extends \StORM\Repository
 		$this->bannedEmailRepository = $bannedEmailRepository;
 		$this->container = $container;
 		$this->orderLogItemRepository = $orderLogItemRepository;
+		$this->relatedTypeRepository = $relatedTypeRepository;
 	}
 
 	/**
@@ -1302,5 +1306,43 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		return $upsells;
+	}
+
+	/**
+	 * @param \Eshop\DB\Order $order
+	 * @return array<\Eshop\DB\CartItem|\Eshop\DB\Related>
+	 */
+	public function getGroupedItemsWithSets(Order $order): array
+	{
+		/** @var \Eshop\DB\ProductRepository $productRepository */
+		$productRepository = $this->getConnection()->findRepository(Product::class);
+
+		$grouped = [];
+
+		/** @var \Eshop\DB\InvoiceItem $item */
+		foreach ($order->purchase->getItems() as $item) {
+			if (isset($grouped[$item->getFullCode()])) {
+				$grouped[$item->getFullCode()]->amount += $item->amount;
+			} else {
+				$grouped[$item->getFullCode()] = $item;
+			}
+		}
+
+		/** @var \Eshop\DB\RelatedType $relatedType */
+		foreach ($this->relatedTypeRepository->getSetTypes() as $relatedType) {
+			/** @var \Eshop\DB\InvoiceItem $item */
+			foreach ($order->purchase->getItems()->where('fk_product IS NOT NULL') as $item) {
+				/** @var \Eshop\DB\Related $related */
+				foreach ($productRepository->getSlaveRelatedProducts($relatedType, $item->getValue('product')) as $related) {
+					if (isset($grouped[$related->slave->getFullCode()])) {
+						$grouped[$related->slave->getFullCode()]->amount += $related->amount;
+					} else {
+						$grouped[$related->slave->getFullCode()] = $related;
+					}
+				}
+			}
+		}
+
+		return $grouped;
 	}
 }

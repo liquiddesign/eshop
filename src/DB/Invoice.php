@@ -171,4 +171,38 @@ class Invoice extends \StORM\Entity
 			'code' => $this->code,
 		];
 	}
+
+	/**
+	 * @return array<\Eshop\DB\InvoiceItem>
+	 */
+	public function getGroupedItems(): array
+	{
+		$grouped = [];
+
+		/** @var \Eshop\DB\InvoiceItem $item */
+		foreach ($this->items as $item) {
+			if (isset($grouped[$item->getFullCode()])) {
+				$grouped[$item->getFullCode()]->amount += $item->amount;
+			} else {
+				$grouped[$item->getFullCode()] = $item;
+			}
+		}
+
+		return $grouped;
+	}
+
+	/**
+	 * @return array<array<\Eshop\DB\InvoiceItem>>
+	 */
+	public function getGroupedUpsells(): array
+	{
+		$grouped = [];
+
+		/** @var \Eshop\DB\InvoiceItem $item */
+		foreach ($this->items->clear(true)->where('fk_upsell IS NOT NULL') as $item) {
+			$grouped[$item->getValue('upsell')][$item->getPK()] = $item;
+		}
+
+		return $grouped;
+	}
 }

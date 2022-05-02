@@ -19,13 +19,25 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 	private AddressRepository $addressRepository;
 	
 	private InvoiceItemRepository $invoiceItemRepository;
+
+	private RelatedTypeRepository $relatedTypeRepository;
+
+	private ProductRepository $productRepository;
 	
-	public function __construct(InvoiceItemRepository $invoiceItemRepository, AddressRepository $addressRepository, DIConnection $connection, SchemaManager $schemaManager)
-	{
+	public function __construct(
+		InvoiceItemRepository $invoiceItemRepository,
+		AddressRepository $addressRepository,
+		RelatedTypeRepository $relatedTypeRepository,
+		DIConnection $connection,
+		SchemaManager $schemaManager,
+		ProductRepository $productRepository
+	) {
 		parent::__construct($connection, $schemaManager);
 		
 		$this->addressRepository = $addressRepository;
 		$this->invoiceItemRepository = $invoiceItemRepository;
+		$this->relatedTypeRepository = $relatedTypeRepository;
+		$this->productRepository = $productRepository;
 	}
 
 	/**
@@ -94,6 +106,8 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 				'realAmount' => $item->realAmount,
 				'product' => $item->product,
 				'invoice' => $invoice,
+				'productCode' => $item->getProduct() ? $item->getProduct()->getFullCode() : $item->productCode,
+				'productSubCode' => $item->getProduct() ? $item->getProduct()->subCode : $item->productSubCode,
 			]);
 
 			$cartItemInvoiceItemMap[$item->getPK()] = $newItem->getPK();
@@ -110,11 +124,48 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 				'product' => $item->product,
 				'invoice' => $invoice,
 				'upsell' => $cartItemInvoiceItemMap[$item->getValue('upsell')] ?? null,
+				'productCode' => $item->getProduct() ? $item->getProduct()->getFullCode() : $item->productCode,
+				'productSubCode' => $item->getProduct() ? $item->getProduct()->subCode : $item->productSubCode,
 			]);
 		}
 		
 		$this->getConnection()->getLink()->commit();
 		
 		return $invoice;
+	}
+
+	/**
+	 * @param \Eshop\DB\Invoice $invoice
+	 * @return array<\Eshop\DB\InvoiceItem|\Eshop\DB\Related>
+	 */
+	public function getGroupedItemsWithSets(Invoice $invoice): array
+	{
+		$grouped = [];
+
+		/** @var \Eshop\DB\InvoiceItem $item */
+		foreach ($invoice->items->clear(true) as $item) {
+			if (isset($grouped[$item->getFullCode()])) {
+				$grouped[$item->getFullCode()]->amount += $item->amount;
+			} else {
+				$grouped[$item->getFullCode()] = $item;
+			}
+		}
+
+		/** @var \Eshop\DB\RelatedType $relatedType */
+		foreach ($this->relatedTypeRepository->getSetTypes() as $relatedType) {
+			/** @var \Eshop\DB\InvoiceItem $item */
+			foreach ($invoice->items->clear(true)->where('fk_product IS NOT NULL') as $item) {
+				/** @var \Eshop\DB\Related $related */
+				foreach ($this->productRepository->getSlaveRelatedProducts($relatedType, $item->getValue('product')) as $related) {
+					if (isset($grouped[$related->slave->getFullCode()])) {
+						$grouped[$related->slave->getFullCode()]->amount += $related->amount;
+					} else {
+						$grouped[$related->slave->getFullCode()] = $related;
+					}
+				}
+			}
+		}
+
+		return $grouped;
 	}
 }

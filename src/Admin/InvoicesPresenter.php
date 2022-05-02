@@ -70,7 +70,7 @@ class InvoicesPresenter extends BackendPresenter
 		}, '%s', 'order.code');
 		$grid->addColumn('Veřejná URL', function (Invoice $invoice): ?string {
 			try {
-				$link = $this->linkGenerator->link('Eshop:Export:invoice', ['id' => $invoice->id, 'hash' => $invoice->hash]);
+				$link = $this->linkGenerator->link('Eshop:Export:invoice', ['hash' => $invoice->hash]);
 
 				return "<a href=\"$link\" target=\"_blank\">$link</a>";
 			} catch (\Nette\Application\UI\InvalidLinkException $e) {

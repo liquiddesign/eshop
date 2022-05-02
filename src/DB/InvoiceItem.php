@@ -15,6 +15,18 @@ class InvoiceItem extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $name;
+
+	/**
+	 * Kód produktu
+	 * @column
+	 */
+	public ?string $productCode;
+
+	/**
+	 * Podkód produktu
+	 * @column
+	 */
+	public ?string $productSubCode;
 	
 	/**
 	 * Cena s DPH
@@ -64,4 +76,9 @@ class InvoiceItem extends \StORM\Entity
 	 * @relation
 	 */
 	public Invoice $invoice;
+
+	public function getFullCode(): ?string
+	{
+		return $this->product ? $this->product->getFullCode() : ($this->productSubCode ? $this->productCode . '.' . $this->productSubCode : $this->productCode);
+	}
 }
