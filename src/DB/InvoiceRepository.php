@@ -88,6 +88,10 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 				'totalPriceVatWithoutDiscount' => $order->getTotalPriceVat() + $order->getDiscountPriceVat(),
 			] + $values;
 
+		if (!isset($values['variableSymbol'])) {
+			$newValues['variableSymbol'] = $order->code;
+		}
+
 		if (!isset($values['paymentType'])) {
 			$newValues['paymentType'] = $order->purchase->getValue('paymentType');
 		}
