@@ -41,6 +41,12 @@ class Product extends \StORM\Entity
 	public ?string $name;
 
 	/**
+	 * Název
+	 * @column{"mutations":true}
+	 */
+	public ?string $extendedName;
+
+	/**
 	 * Náhledový obrázek
 	 * @column
 	 */

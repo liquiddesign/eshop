@@ -118,6 +118,7 @@ class ProductPresenter extends BackendPresenter
 			'password' => '',
 		],
 		'detailSuppliersTab' => false,
+		'extendedName' => false,
 	];
 
 	protected const IMPORT_SET_COLUMNS = [

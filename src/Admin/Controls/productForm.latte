@@ -84,6 +84,13 @@
                             </td>
                         </tr>
                     {/foreach}
+
+                    {if isset($configuration['extendedName']) && $configuration['extendedName'] && isset($form['extendedName'])}
+                        {foreach $form['name']->getComponents() as $key => $element}
+                            {$renderer->renderPair($form['extendedName'][$key])|noescape}
+                        {/foreach}
+                    {/if}
+
                     <tr class="m-0 mt-1 has-danger">
                             <th class="col-label col-form-label col">{label displayAmount/}</th>
 
