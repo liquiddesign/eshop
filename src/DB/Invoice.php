@@ -250,6 +250,43 @@ class Invoice extends \StORM\Entity
 				$basePrices[$invoiceItem->vatPct]['vat'] = $invoiceItem->priceVat - $invoiceItem->price;
 		}
 
+		/** @var \Eshop\DB\Order $order */
+		foreach ($this->orders->clear(true) as $order) {
+			if ($order->purchase->deliveryType) {
+				$vatPct = $order->getDeliveryPriceSum() > 0 ? \round($order->getDeliveryPriceVatSum() / $order->getDeliveryPriceSum() * 100 - 100) : 0;
+
+				if ($vatPct > 0) {
+					isset($basePrices[$vatPct]['base']) ?
+						$basePrices[$vatPct]['base'] += $order->getDeliveryPriceSum() :
+						$basePrices[$vatPct]['base'] = $order->getDeliveryPriceSum();
+
+					isset($basePrices[$vatPct]['vat']) ?
+						$basePrices[$vatPct]['vat'] += $order->getDeliveryPriceVatSum() - $order->getDeliveryPriceSum() :
+						$basePrices[$vatPct]['vat'] = $order->getDeliveryPriceVatSum() - $order->getDeliveryPriceSum();
+				}
+			}
+
+			if (!$order->purchase->paymentType) {
+				continue;
+			}
+
+			$vatPct = $order->getPaymentPriceSum() > 0 ? \round($order->getPaymentPriceVatSum() / $order->getPaymentPriceSum() * 100 - 100) : 0;
+
+			if ($vatPct <= 0) {
+				continue;
+			}
+
+			isset($basePrices[$vatPct]['base']) ?
+				$basePrices[$vatPct]['base'] += $order->getPaymentPriceSum() :
+				$basePrices[$vatPct]['base'] = $order->getPaymentPriceSum();
+
+			isset($basePrices[$vatPct]['vat']) ?
+				$basePrices[$vatPct]['vat'] += $order->getPaymentPriceVatSum() - $order->getPaymentPriceSum() :
+				$basePrices[$vatPct]['vat'] = $order->getPaymentPriceVatSum() - $order->getPaymentPriceSum();
+		}
+
+		\ksort($basePrices);
+
 		return $basePrices;
 	}
 }
