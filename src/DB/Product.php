@@ -113,6 +113,12 @@ class Product extends \StORM\Entity
 	public int $defaultBuyCount = 1;
 
 	/**
+	 * Hodnocení
+	 * @column
+	 */
+	public ?float $rating = null;
+
+	/**
 	 * Minimální prodejní množství
 	 * @column
 	 */
