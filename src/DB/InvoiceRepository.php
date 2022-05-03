@@ -101,6 +101,8 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 				'name' => $item->productName,
 				'price' => $item->price,
 				'priceVat' => $item->priceVat,
+				'priceBefore' => $item->priceBefore,
+				'priceVatBefore' => $item->priceVatBefore,
 				'vatPct' => $item->vatPct,
 				'amount' => $item->amount,
 				'realAmount' => $item->realAmount,
@@ -108,6 +110,7 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 				'invoice' => $invoice,
 				'productCode' => $item->getProduct() ? $item->getProduct()->getFullCode() : $item->productCode,
 				'productSubCode' => $item->getProduct() ? $item->getProduct()->subCode : $item->productSubCode,
+				'customerDiscountLevel' => $order->purchase->customerDiscountLevel,
 			]);
 
 			$cartItemInvoiceItemMap[$item->getPK()] = $newItem->getPK();
@@ -118,6 +121,8 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 				'name' => $item->productName,
 				'price' => $item->price,
 				'priceVat' => $item->priceVat,
+				'priceBefore' => $item->priceBefore,
+				'priceVatBefore' => $item->priceVatBefore,
 				'vatPct' => $item->vatPct,
 				'amount' => $item->amount,
 				'realAmount' => $item->realAmount,
@@ -126,6 +131,7 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 				'upsell' => $cartItemInvoiceItemMap[$item->getValue('upsell')] ?? null,
 				'productCode' => $item->getProduct() ? $item->getProduct()->getFullCode() : $item->productCode,
 				'productSubCode' => $item->getProduct() ? $item->getProduct()->subCode : $item->productSubCode,
+				'customerDiscountLevel' => $order->purchase->customerDiscountLevel,
 			]);
 		}
 		

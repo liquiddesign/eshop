@@ -27,7 +27,7 @@ class InvoiceItem extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $productSubCode;
-	
+
 	/**
 	 * Cena s DPH
 	 * @column
@@ -39,13 +39,25 @@ class InvoiceItem extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $priceVat;
-	
+
+	/**
+	 * Cena před (pokud je akční)
+	 * @column
+	 */
+	public ?float $priceBefore;
+
+	/**
+	 * Cena před (pokud je akční) s DPH
+	 * @column
+	 */
+	public ?float $priceVatBefore;
+
 	/**
 	 * DPH
 	 * @column
 	 */
 	public ?float $vatPct;
-	
+
 	/**
 	 * Množství
 	 * @column
@@ -59,18 +71,24 @@ class InvoiceItem extends \StORM\Entity
 	public ?int $realAmount;
 
 	/**
+	 * Sleva zákazníka
+	 * @column
+	 */
+	public ?float $customerDiscountLevel;
+
+	/**
 	 * Upsell pro položku
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public ?InvoiceItem $upsell;
-	
+
 	/**
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 * @relation
 	 */
 	public ?Product $product;
-	
+
 	/**
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
@@ -80,5 +98,23 @@ class InvoiceItem extends \StORM\Entity
 	public function getFullCode(): ?string
 	{
 		return $this->product ? $this->product->getFullCode() : ($this->productSubCode ? $this->productCode . '.' . $this->productSubCode : $this->productCode);
+	}
+
+	public function getDiscountLevel(): ?float
+	{
+		if (!$beforePrice = $this->priceBefore) {
+			return $this->customerDiscountLevel;
+		}
+
+		return 100 - ($this->price / $beforePrice * 100);
+	}
+
+	public function getDiscountLevelVat(): ?float
+	{
+		if (!$beforePrice = $this->priceVatBefore) {
+			return $this->customerDiscountLevel;
+		}
+
+		return 100 - ($this->priceVat / $beforePrice * 100);
 	}
 }

@@ -33,6 +33,18 @@ class Delivery extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $priceVat;
+
+	/**
+	 * Cena před (pokud je akční)
+	 * @column
+	 */
+	public ?float $priceBefore;
+
+	/**
+	 * Cena před (pokud je akční) s DPH
+	 * @column
+	 */
+	public ?float $priceVatBefore;
 	
 	/**
 	 * Externí id

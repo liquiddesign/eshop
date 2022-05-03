@@ -895,6 +895,28 @@ class CheckoutManager
 		return 0.0;
 	}
 
+	public function getDeliveryPriceBefore(): ?float
+	{
+		if ($this->getPurchase() && $this->getPurchase()->deliveryType) {
+			$price = $this->getDeliveryTypes()[$this->getPurchase()->getValue('deliveryType')]->getValue('priceBefore');
+
+			return isset($price) ? (float)$price : null;
+		}
+
+		return null;
+	}
+
+	public function getDeliveryPriceVatBefore(): ?float
+	{
+		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
+			$price = $this->getDeliveryTypes(true)[$this->getPurchase()->getValue('deliveryType')]->getValue('priceBeforeVat');
+
+			return isset($price) ? (float)$price : null;
+		}
+
+		return null;
+	}
+
 	public function getDeliveryDiscount(bool $vat = false): ?DeliveryDiscount
 	{
 		$currency = $this->cartExists() ? $this->getCart()->currency : $this->shopper->getCurrency();
@@ -1116,6 +1138,10 @@ class CheckoutManager
 		$cart = $this->getCart();
 		$currency = $cart->currency;
 
+		if ($customer) {
+			$purchase->update(['customerDiscountLevel' => $this->productRepository->getBestDiscountLevel($customer)]);
+		}
+
 		$cart->update(['approved' => ($customer && $customer->orderPermission === 'full') || !$customer ? 'yes' : 'waiting']);
 
 		// create customer
@@ -1167,6 +1193,8 @@ class CheckoutManager
 				'typeCode' => $purchase->deliveryType->code,
 				'price' => $this->getDeliveryPrice(),
 				'priceVat' => $this->getDeliveryPriceVat(),
+				'priceBefore' => $this->getDeliveryPriceBefore(),
+				'priceVatBefore' => $this->getDeliveryPriceVatBefore(),
 			]);
 
 			/** @var \Eshop\DB\Package $package */

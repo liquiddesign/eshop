@@ -89,6 +89,8 @@ class CartItemRepository extends \StORM\Repository
 			'amount' => $amount,
 			'price' => $product->getPrice($amount),
 			'priceVat' => $product->getPriceVat($amount),
+			'priceBefore' => $product->getPriceBefore(),
+			'priceVatBefore' => $product->getPriceVatBefore(),
 			'vatPct' => (float) $vatPct,
 			'product' => !$disabled ? $product->getPK() : null,
 			'pricelist' => $product->pricelist ?? null,

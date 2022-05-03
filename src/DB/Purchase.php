@@ -206,6 +206,12 @@ class Purchase extends \StORM\Entity
 	 * @constraint
 	 */
 	public Currency $currency;
+
+	/**
+	 * Sleva zákazníka
+	 * @column
+	 */
+	public ?float $customerDiscountLevel;
 	
 	/**
 	 * Vytvořen

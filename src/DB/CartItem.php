@@ -51,6 +51,7 @@ class CartItem extends \StORM\Entity
 	
 	/**
 	 * Množství
+	 * Pokud je amount > 1, potom priceBefore a priceVatBefore je neplatný!
 	 * @column
 	 */
 	public int $amount;
@@ -72,7 +73,19 @@ class CartItem extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $priceVat;
-	
+
+	/**
+	 * Cena před (pokud je akční)
+	 * @column
+	 */
+	public ?float $priceBefore;
+
+	/**
+	 * Cena před (pokud je akční) s DPH
+	 * @column
+	 */
+	public ?float $priceVatBefore;
+
 	/**
 	 * DPH
 	 * @column
@@ -147,6 +160,24 @@ class CartItem extends \StORM\Entity
 	public function getPriceVatSum(): float
 	{
 		return $this->priceVat * $this->amount;
+	}
+
+	public function getDiscountPercent(): ?float
+	{
+		if (!$beforePrice = $this->priceBefore) {
+			return null;
+		}
+
+		return 100 - ($this->price / $beforePrice * 100);
+	}
+
+	public function getDiscountPercentVat(): ?float
+	{
+		if (!$beforePrice = $this->priceVatBefore) {
+			return null;
+		}
+
+		return 100 - ($this->priceVat / $beforePrice * 100);
 	}
 	
 	public function isAvailable(): bool

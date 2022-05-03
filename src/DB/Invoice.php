@@ -205,4 +205,51 @@ class Invoice extends \StORM\Entity
 
 		return $grouped;
 	}
+
+	public function getTotalPrice(): float
+	{
+		try {
+			$first = $this->items->clear(true)->select(['priceSum' => 'SUM(this.price)'])->first();
+
+			return (float) $first->getValue('priceSum');
+		} catch (\Throwable $e) {
+			return 0;
+		}
+	}
+
+	public function getTotalPriceVat(): float
+	{
+		try {
+			$first = $this->items->clear(true)->select(['priceSum' => 'SUM(this.priceVat)'])->first();
+
+			return (float) $first->getValue('priceSum');
+		} catch (\Throwable $e) {
+			return 0;
+		}
+	}
+
+	/**
+	 * @return array<array<float>>
+	 */
+	public function getGroupedVatPrices(): array
+	{
+		$basePrices = [];
+
+		/** @var \Eshop\DB\InvoiceItem $invoiceItem */
+		foreach ($this->items->clear(true) as $invoiceItem) {
+			if (!$invoiceItem->vatPct) {
+				continue;
+			}
+
+			isset($basePrices[$invoiceItem->vatPct]['base']) ?
+				$basePrices[$invoiceItem->vatPct]['base'] += $invoiceItem->price :
+				$basePrices[$invoiceItem->vatPct]['base'] = $invoiceItem->price;
+
+			isset($basePrices[$invoiceItem->vatPct]['vat']) ?
+				$basePrices[$invoiceItem->vatPct]['vat'] += $invoiceItem->priceVat - $invoiceItem->price :
+				$basePrices[$invoiceItem->vatPct]['vat'] = $invoiceItem->priceVat - $invoiceItem->price;
+		}
+
+		return $basePrices;
+	}
 }

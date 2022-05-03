@@ -145,6 +145,58 @@ class Order extends \StORM\Entity
 	{
 		return $this->deliveries->sum('priceVat');
 	}
+
+	public function getDeliveryDiscountPriceSum(): float
+	{
+		$beforePrice = null;
+		$price = null;
+
+		foreach ($this->deliveries as $delivery) {
+			$delivery->priceBefore ? $beforePrice += $delivery->priceBefore : $beforePrice += $delivery->price;
+			$price += $delivery->price;
+		}
+
+		return $beforePrice - $price;
+	}
+
+	public function getDeliveryDiscountPriceVatSum(): float
+	{
+		$beforePrice = null;
+		$price = null;
+
+		foreach ($this->deliveries as $delivery) {
+			$delivery->priceBefore ? $beforePrice += $delivery->priceVatBefore : $beforePrice += $delivery->priceVat;
+			$price += $delivery->priceVat;
+		}
+
+		return $beforePrice - $price;
+	}
+
+	public function getDeliveriesDiscountLevel(): float
+	{
+		$beforePrice = null;
+		$price = null;
+
+		foreach ($this->deliveries as $delivery) {
+			$delivery->priceBefore ? $beforePrice += $delivery->priceBefore : $beforePrice += $delivery->price;
+			$price += $delivery->price;
+		}
+
+		return $beforePrice > 0 ? 100 - ($price / $beforePrice * 100) : 0.0;
+	}
+
+	public function getDeliveriesDiscountLevelVat(): float
+	{
+		$beforePrice = null;
+		$price = null;
+
+		foreach ($this->deliveries as $delivery) {
+			$delivery->priceBefore ? $beforePrice += $delivery->priceVatBefore : $beforePrice += $delivery->priceVat;
+			$price += $delivery->priceVat;
+		}
+
+		return $beforePrice > 0 ? 100 - ($price / $beforePrice * 100) : 0.0;
+	}
 	
 	public function getPaymentPriceSum(): float
 	{

@@ -651,12 +651,12 @@ class Product extends \StORM\Entity
 
 	public function getPriceBefore(): ?float
 	{
-		return $this->getValue('priceBefore') !== null ? (float)$this->getValue('priceBefore') : null;
+		return (float) $this->getValue('priceBefore') > 0 ? (float)$this->getValue('priceBefore') : null;
 	}
 
 	public function getPriceVatBefore(): ?float
 	{
-		return $this->getValue('priceVatBefore') !== null ? (float)$this->getValue('priceVatBefore') : null;
+		return (float) $this->getValue('priceVatBefore') > 0 ? (float)$this->getValue('priceVatBefore') : null;
 	}
 
 	public function getDiscountPercent(): ?float
