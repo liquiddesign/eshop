@@ -252,7 +252,7 @@ class CustomerPresenter extends BackendPresenter
 
 		$this->customerRepository->csvExportTargito($this->customerRepository->many(), Writer::createFromPath($tempFilename, 'w+'), $origin);
 
-		$response = new FileResponse($tempFilename, 'targito_customers.csv', 'text/csv');
+		$response = new FileResponse($tempFilename, 'customers.csv', 'text/csv');
 		$this->sendResponse($response);
 	}
 

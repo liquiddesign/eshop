@@ -17,12 +17,6 @@ use StORM\DIConnection;
 
 class ReviewPresenter extends BackendPresenter
 {
-	protected const CONFIGURATION = [
-		'minScore' => 1.0,
-		'maxScore' => 5.0,
-		'maxRemindersCount' => 1,
-	];
-
 	/** @inject */
 	public ReviewRepository $reviewRepository;
 
@@ -129,14 +123,14 @@ class ReviewPresenter extends BackendPresenter
 			/** @var \Nette\Forms\Controls\TextInput $scoreInput */
 			$scoreInput = $form['score'];
 
-			if ($values['score'] !== null && $values['score'] < ($this::CONFIGURATION['minScore'] ?? 1)) {
-				$scoreInput->addError('Hodnota musí být větší než nebo rovna číslu ' . $this::CONFIGURATION['minScore']);
+			if ($values['score'] !== null && $values['score'] < $this->shopper->getReviewsMinScore()) {
+				$scoreInput->addError('Hodnota musí být větší než nebo rovna číslu ' . $this->shopper->getReviewsMinScore());
 
 				return;
 			}
 
-			if ($values['score'] !== null && $values['score'] > ($this::CONFIGURATION['maxScore'] ?? 5)) {
-				$scoreInput->addError('Hodnota musí být menší než nebo rovna číslu ' . $this::CONFIGURATION['maxScore']);
+			if ($values['score'] !== null && $values['score'] > $this->shopper->getReviewsMaxScore()) {
+				$scoreInput->addError('Hodnota musí být menší než nebo rovna číslu ' . $this->shopper->getReviewsMaxScore());
 
 				return;
 			}

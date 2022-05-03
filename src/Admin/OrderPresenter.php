@@ -1536,7 +1536,7 @@ class OrderPresenter extends BackendPresenter
 
 			$this->orderRepository->csvExportTargito(Writer::createFromPath($tempFilename, 'w+'), $collection);
 
-			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'targito_orders.csv', 'text/csv'));
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'transactions.csv', 'text/csv'));
 		};
 
 		return $form;

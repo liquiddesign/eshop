@@ -234,6 +234,23 @@ Ostatní: Přebírání ze zvoleného zdroje
 		$form->addIntegerNullable('inCarton', 'Počet v kartónu');
 		$form->addIntegerNullable('inPalett', 'Počet v paletě');
 
+		$defaultReviewsCount = $form->addIntegerNullable('defaultReviewsCount', 'Výchozí počet recenzí');
+
+		$defaultReviewsScore = $form->addText('defaultReviewsScore', 'Výchozí hodnocení recenzí')->setNullable()
+		->setHtmlAttribute(
+			'data-info',
+			'Zobrazované hodnocení produktu se počítá jako průměr výchozích hodnocení (počet výchozích recenzí * výchozí hodnocení recenzí) ve spojení se skutečnými recenzemi.<br>
+Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getReviewsMinScore() . ' - ' . $this->shopper->getReviewsMaxScore() . ' (včetně)',
+		);
+
+		$defaultReviewsScore->addConditionOn($defaultReviewsCount, $form::FILLED)
+			->addRule($form::REQUIRED)
+			->addCondition($form::FILLED)
+			->addRule($form::FLOAT);
+
+		$defaultReviewsCount->addCondition($form::FILLED)
+			->toggle($defaultReviewsScore->getHtmlId() . '-toogle');
+
 		if (isset($configuration['rounding']) && $configuration['rounding']) {
 			$form->addIntegerNullable('roundingPackagePct', 'Zokrouhlení balení (%)');
 			$form->addIntegerNullable('roundingCartonPct', 'Zokrouhlení karton (%)');

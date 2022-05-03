@@ -191,7 +191,22 @@ class ProductGridFactory
 		});
 		$grid->addButtonDeleteSelected([$this, 'onDelete'], false, null, 'this.uuid');
 
-		$bulkColumns = ['producer', 'categories', 'ribbons', 'internalRibbons', 'displayAmount', 'displayDelivery', 'vatRate', 'taxes', 'hidden', 'unavailable', 'discountLevelPct', 'primaryCategory'];
+		$bulkColumns = [
+			'producer',
+			'categories',
+			'ribbons',
+			'internalRibbons',
+			'displayAmount',
+			'displayDelivery',
+			'vatRate',
+			'taxes',
+			'hidden',
+			'unavailable',
+			'discountLevelPct',
+			'primaryCategory',
+			'defaultReviewsCount',
+			'defaultReviewsScore',
+		];
 
 		if (isset($configuration['buyCount']) && $configuration['buyCount']) {
 			$bulkColumns = \array_merge($bulkColumns, ['buyCount']);

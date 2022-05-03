@@ -269,10 +269,16 @@ class Product extends \StORM\Entity
 	public ?float $dependedValue = null;
 
 	/**
-	 * Hodnocení
+	 * Výchozí průměrné sk=re recenzí
 	 * @column
 	 */
-	public ?float $rating = null;
+	public ?float $defaultReviewsScore;
+
+	/**
+	 * Výchozí počet recenzí
+	 * @column
+	 */
+	public ?int $defaultReviewsCount;
 
 	/**
 	 * Nejvyšší priorita dodavatele
@@ -803,6 +809,9 @@ class Product extends \StORM\Entity
 		/** @var \Eshop\DB\ReviewRepository $reviewRepository */
 		$reviewRepository = $this->getConnection()->findRepository(Review::class);
 
+		$count = $this->defaultReviewsCount ?? 0;
+		$score = $count > 0 ? $count * $this->defaultReviewsScore : 0.0;
+
 		try {
 			$reviews = $reviewRepository->getReviewedReviews()
 				->where('this.fk_product', $this->getPK())
@@ -810,10 +819,12 @@ class Product extends \StORM\Entity
 				->select(['countOfScore' => 'COUNT(this.score)'])
 				->first();
 
-			return (float) $reviews->getValue('sumOfScore') / $reviews->getValue('countOfScore');
+			$score += $reviews->getValue('sumOfScore');
+			$count += $reviews->getValue('countOfScore');
 		} catch (\Throwable $e) {
-			return 0;
 		}
+
+		return $count > 0 ? (float) $score / $count : 0;
 	}
 
 	public function getReviewsCount(): int
@@ -822,10 +833,10 @@ class Product extends \StORM\Entity
 		$reviewRepository = $this->getConnection()->findRepository(Review::class);
 
 		try {
-			return (int) $reviewRepository->getReviewedReviews()
+			return $this->defaultReviewsCount + ((int) $reviewRepository->getReviewedReviews()
 				->where('this.fk_product', $this->getPK())
 				->select(['countOfScore' => 'COUNT(this.score)'])
-				->firstValue('countOfScore');
+				->firstValue('countOfScore'));
 		} catch (\Throwable $e) {
 			return 0;
 		}

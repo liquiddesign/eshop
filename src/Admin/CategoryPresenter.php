@@ -225,7 +225,7 @@ class CategoryPresenter extends BackendPresenter
 
 			$this->categoryRepository->csvExportTargito(Writer::createFromPath($tempFilename, 'w+'), $collection);
 
-			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'targito_categories.csv', 'text/csv'));
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'categories.csv', 'text/csv'));
 		}, $this->link('this', ['selected' => $this->getParameter('selected')]), $ids);
 	}
 

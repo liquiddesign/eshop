@@ -469,11 +469,14 @@
 
                 {$renderer->renderPair($form['storageDate'])|noescape}
 
+                {$renderer->renderPair($form['defaultReviewsCount'])|noescape}
+                {$renderer->renderPair($form['defaultReviewsScore'])|noescape}
+
                 </table>
 
                 {if isset($form['loyaltyProgram'])}
                     <legend>Věrnostní programy</legend>
-                    <span class="text-gray text-sm">Zadejte zisk "bodů" při nákupu pro jednotlivé věrnostní programy.</span>
+                    <span class="text-gray text-sm ml-2">Zadejte zisk "bodů" při nákupu pro jednotlivé věrnostní programy.</span>
 
                     <table class="mt-2 mb-1" style="width: auto;">
                         {formContainer loyaltyProgram}
