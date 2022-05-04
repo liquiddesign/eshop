@@ -142,7 +142,15 @@ class SupplierProductPresenter extends BackendPresenter
 			$source->where('(' . $expression->getSql() . ') OR producer.name=:producer', $expression->getVars() + ['producer' => $value]);
 		}, '', 'category')->setHtmlAttribute('placeholder', 'Kategorie, výrobce')->setHtmlAttribute('class', 'form-control form-control-sm');
 
-		$grid->addFilterSelectInput('notmapped', 'IF(:q = "0",fk_product IS NULL, fk_product IS NOT NULL)', 'Napárované', '- Napárované -', null, ['0' => 'Bez párování', '1' => 'Napárované']);
+		$grid->addFilterSelectInput(
+			'notmapped',
+			'IF(:mapped = "0", fk_product IS NULL, fk_product IS NOT NULL)',
+			'Napárované',
+			'- Napárované -',
+			null,
+			['0' => 'Bez párování', '1' => 'Napárované'],
+			'mapped',
+		);
 //		$grid->addFilterCheckboxInput('notmapped', 'fk_product IS NOT NULL', 'Napárované');
 
 		$grid->addButtonBulkEdit('form', ['active']);
