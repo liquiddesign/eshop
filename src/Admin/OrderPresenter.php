@@ -774,12 +774,21 @@ class OrderPresenter extends BackendPresenter
 
 	public function createComponentDetailOrderItemForm(): AdminForm
 	{
+		/** @var \Eshop\DB\Order|null $order */
+		$order = $this->getParameter('order');
+		
+		$hasMultiplePackages = !$order || $order->getPackages()->enum() > 1;
+		
 		$form = $this->formFactory->create();
 		$form->addHidden('packageItem');
 		$form->getCurrentGroup()->setOption('label', 'Nákup');
 		$form->addInteger('amount', 'Celkové množství produktu v objednávce')->setRequired();
-		$form->addInteger('packageItemAmount', 'Celkové množství produktu v položce balíčku')->setRequired()
-		->setHtmlAttribute('data-info', 'Součet množství produktu ve všech balíčcích nemůže být větší než celkový počet produktů v objednávce.');
+		
+		if ($hasMultiplePackages) {
+			$form->addInteger('packageItemAmount', 'Celkové množství produktu v položce balíčku')->setRequired()
+				->setHtmlAttribute('data-info', 'Součet množství produktu ve všech balíčcích nemůže být větší než celkový počet produktů v objednávce.');
+		}
+		
 		$form->addTextArea('note', 'Poznámka')->setNullable();
 		$form->addGroup('Cena za kus');
 		$form->addText('price', 'Cena bez DPH')->addRule(Form::FLOAT)->setRequired();
@@ -789,12 +798,13 @@ class OrderPresenter extends BackendPresenter
 
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
-
-			$cartItem = $this->cartItemRepo->one($values['uuid'], true);
-
+			
+			$cartItemOld = $this->cartItemRepo->one($values['uuid'], true);
+			$cartItem = clone $cartItemOld;
+			
 			$packageItem = $this->packageItemRepository->one($values['packageItem']);
-			$packageItem->update(['amount' => $values['packageItemAmount']]);
-
+			$packageItem->update(['amount' => $values['packageItemAmount'] ?? $values['amount']]);
+			
 			$cartItem->update($values);
 
 			/** @var \Eshop\DB\Order|null $order */
@@ -810,9 +820,16 @@ class OrderPresenter extends BackendPresenter
 			if (!$admin) {
 				return;
 			}
-
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::ITEM_EDITED, $cartItem->productName, $admin);
-
+			
+			$currencySymbol = $order->purchase->currency->symbol;
+			$amountChange = $cartItemOld->amount !== $cartItem->amount ? ' | Množství z ' . $cartItemOld->amount . ' na ' . $cartItem->amount : '';
+			$priceChange = $cartItemOld->price !== $cartItem->price ? " | Cena z $cartItemOld->price $currencySymbol na $cartItem->price $currencySymbol" : '';
+			$vatChange = $cartItemOld->vatPct !== $cartItem->vatPct ? '  | DPH z ' . $cartItemOld->vatPct . ' % na ' . $cartItem->vatPct . ' %' : '';
+			
+			$changes = $amountChange . $priceChange . $vatChange;
+			
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::ITEM_EDITED, $cartItem->productName . $changes, $admin);
+			
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('this');
 		};

@@ -430,4 +430,33 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
             });
         });
     </script>
+
+    <script>
+        $('#modal-detailOrderItemForm input[name="vatPct"]').on('change', function() {
+            let price = parseFloat($('#modal-detailOrderItemForm input[name="price"]').val());
+            let priceVatInput = $('#modal-detailOrderItemForm input[name="priceVat"]');
+            let vatPct = parseFloat($(this).val());
+
+            let priceVat = price + (price * vatPct / 100);
+            priceVatInput.val(priceVat.toFixed(2));
+        });
+
+        $('#modal-detailOrderItemForm input[name="price"]').on('change', function() {
+            let price = parseFloat($(this).val());
+            let priceVatInput = $('#modal-detailOrderItemForm input[name="priceVat"]');
+            let vatPct = parseFloat($('#modal-detailOrderItemForm input[name="vatPct"]').val());
+
+            let priceVat = price + (price * vatPct / 100);
+            priceVatInput.val(priceVat.toFixed(2));
+        });
+
+        $('#modal-detailOrderItemForm input[name="priceVat"]').on('change', function() {
+            let priceVat = parseFloat($(this).val());
+            let priceInput = $('#modal-detailOrderItemForm input[name="price"]');
+            let vatPct = parseFloat($('#modal-detailOrderItemForm input[name="vatPct"]').val());
+
+            let price = priceVat - (priceVat * vatPct / (vatPct + 100));
+            priceInput.val(price.toFixed(2));
+        });
+    </script>
 {/block}
