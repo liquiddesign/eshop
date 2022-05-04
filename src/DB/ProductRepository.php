@@ -187,7 +187,8 @@ class ProductRepository extends Repository implements IGeneralRepository
 					IFNULL(eshop_attributevalue.metaValue, ''),
 					IFNULL(eshop_attribute.name$suffix, ''),
 					IFNULL(eshop_attributevalue.imageFileName, ''),
-					IFNULL(eshop_attributevalue.number, '')) SEPARATOR \";\")"],
+					IFNULL(eshop_attributevalue.number, ''),
+					IFNULL(eshop_attributevalue.note$suffix, '')) SEPARATOR \";\")"],
 				)
 				->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
 				->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
