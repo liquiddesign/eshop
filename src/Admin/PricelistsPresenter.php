@@ -7,6 +7,7 @@ namespace Eshop\Admin;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\BackendPresenter;
+use Eshop\DB\Attribute;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\CurrencyRepository;
@@ -35,6 +36,8 @@ use Nette\Application\Responses\FileResponse;
 use StORM\Collection;
 use StORM\Connection;
 use StORM\ICollection;
+use Tracy\Debugger;
+use Tracy\ILogger;
 
 class PricelistsPresenter extends BackendPresenter
 {
@@ -154,10 +157,16 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addColumnLink('quantityPrices', 'Množstevní ceny');
 
 		$grid->addColumnLinkDetail('priceListDetail');
-		$grid->addColumnActionDelete();
+		$grid->addColumnActionDeleteSystemic();
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(null, false, function (?Attribute $object) {
+			if ($object) {
+				return !$object->isSystemic();
+			}
+
+			return false;
+		}, 'this.uuid');
 
 		$grid->addFilterTextInput('search', ['name'], null, 'Název');
 		$grid->addFilterSelectInput(
@@ -409,15 +418,26 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 			$pricelist = $this->getParameter('pricelist');
 			$quantity = $this->getParameter('type') === 'quantity';
 
-			$this->priceListRepository->csvImport(
-				$pricelist,
-				Reader::createFromString($file->getContents()),
-				$quantity,
-				$values['delimiter'],
-			);
+			$this->priceListRepository->getConnection()->getLink()->beginTransaction();
 
+			try {
+				$this->priceListRepository->csvImport(
+					$pricelist,
+					Reader::createFromString($file->getContents()),
+					$quantity,
+					$values['delimiter'],
+				);
 
-			$form->getPresenter()->flashMessage('Uloženo', 'success');
+				$this->priceListRepository->getConnection()->getLink()->commit();
+
+				$form->getPresenter()->flashMessage('Uloženo', 'success');
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::WARNING);
+				$this->priceListRepository->getConnection()->getLink()->rollBack();
+
+				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Import dat se nezdařil!', 'error');
+			}
+
 			$form->getPresenter()->redirect('priceListItems', $this->getParameter('pricelist'));
 		};
 

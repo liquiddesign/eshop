@@ -115,6 +115,7 @@ class Product extends \StORM\Entity
 	/**
 	 * Hodnocení
 	 * @column
+	 * @deprecated Use ReviewRepository
 	 */
 	public ?float $rating = null;
 
@@ -497,9 +498,18 @@ class Product extends \StORM\Entity
 	}
 
 	/**
+	 * @deprecated Use getPreviewAtttributes()
 	 * @return array<string, array<int, array<string, string>>>
 	 */
 	public function getPreviewParameters(): array
+	{
+		return $this->getPreviewAtttributes();
+	}
+
+	/**
+	 * @return array<string, array<int, array<string, string>>>
+	 */
+	public function getPreviewAtttributes(): array
 	{
 		if (!$this->getValue('parameters')) {
 			return [];

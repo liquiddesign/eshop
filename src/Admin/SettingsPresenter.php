@@ -179,4 +179,29 @@ class SettingsPresenter extends BackendPresenter
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
+
+	protected function systemicCallback($key, $oldValue, $newValue, $repository): void
+	{
+		unset($key);
+
+		if ($oldValue) {
+			$oldAttribute = $repository->one($oldValue);
+
+			if ($oldAttribute) {
+				$oldAttribute->removeSystemic();
+			}
+		}
+
+		if (!$newValue) {
+			return;
+		}
+
+		$newAttribute = $repository->one($newValue);
+
+		if (!$newAttribute) {
+			return;
+		}
+
+		$newAttribute->addSystemic();
+	}
 }
