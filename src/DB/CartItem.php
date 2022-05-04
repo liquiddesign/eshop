@@ -165,7 +165,7 @@ class CartItem extends \StORM\Entity
 	public function getDiscountPercent(): ?float
 	{
 		if (!$beforePrice = $this->priceBefore) {
-			return null;
+			return $this->cart->purchase->customerDiscountLevel;
 		}
 
 		return 100 - ($this->price / $beforePrice * 100);
@@ -174,7 +174,7 @@ class CartItem extends \StORM\Entity
 	public function getDiscountPercentVat(): ?float
 	{
 		if (!$beforePrice = $this->priceVatBefore) {
-			return null;
+			return $this->cart->purchase->customerDiscountLevel;
 		}
 
 		return 100 - ($this->priceVat / $beforePrice * 100);
