@@ -1,0 +1,13 @@
+{varType float $sum}
+{varType array $ids}
+{varType string $query}
+<script>
+    window.dataLayerGTM = window.dataLayerGTM || [];
+    dataLayerGTM.push({
+        'event' : 'eec.search',
+        'page_type' : 'search_results',
+        'search_query' : {$query},
+        'ids' : {\Nette\Utils\Json::encode($ids)|noescape},
+        'total_value' : {$sum}
+    });
+</script>

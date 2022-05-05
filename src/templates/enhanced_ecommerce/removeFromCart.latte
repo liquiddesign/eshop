@@ -1,30 +1,69 @@
 <script>
     $(document).on('mousedown', '.removeFromCart', function(event) {
         event.preventDefault();
-        let product = $(this).data('product');
-        let quantity = $(this).data('quantity');
+        let button = $(this);
 
-        window.dataLayer = window.dataLayer || [];
-        dataLayer.push({
-            'event': 'removeFromCart',
+        let product = $(this).data('product');
+        product.quantity = parseInt($(this).data('original-amount'));
+
+        window.dataLayerGTM = window.dataLayerGTM || [];
+        dataLayerGTM.push({
+            'event': 'eec.remove_from_cart',
             'ecommerce': {
                 'remove': {
-                    'products': [{
-                        'name': product.name,
-                        'id': product.id,
-                        'price': product.price,
-                        'brand': product.producer,
-                        'category': product.category,
-                        'variant': product.variant,
-                        'quantity': quantity
-                    }]
+                    'products': [
+                        product
+                    ]
                 }
             },
             'eventCallback': function() {
-                if ($(this).is('button')) {
-                    $(this).closest('form').submit();
+                if (button.is('button')) {
+                    button.closest('form').submit();
                 } else {
-                    document.location = $(this).attr('href');
+                    document.location = button.attr('href');
+                }
+            },
+            'eventTimeout' : 2000
+        });
+    });
+
+    $(document).on('mousedown', '.removeAllFromCart', function(event) {
+        event.preventDefault();
+        let button = $(this);
+
+        window.dataLayerGTM = window.dataLayerGTM || [];
+        dataLayerGTM.push({
+            'event': 'eec.remove_from_cart',
+            'ecommerce': {
+                'remove': {
+                    'products': [
+                        {foreach $cartItems as $cartItem}
+                            {var Eshop\DB\Product $item = $cartItem->product}
+                            {breakIf !$item}
+                            {var $tree = $item->primaryCategory ? $item->primaryCategory->getFamilyTree()->toArrayOf('name', [], true) : []}
+
+                            {
+                                'id': {$item->getPK()},
+                                'name': {$item->name},
+                                'price': {\str_replace(',', '.', $cartItem->price)},
+                                'brand': {$item->producer ? $item->producer->name : null},
+                                'category_id': {$item->primaryCategory ? $item->primaryCategory->getPK() : null},
+                                'category': {implode('|', $tree)},
+                                'category1': {$tree[0] ?? null},
+                                'category2': {$tree[1] ?? null},
+                                'category3': {$tree[2] ?? null},
+                                'category4': {$tree[3] ?? null},
+                                'quantity': {$cartItem->amount}
+                            }{sep},{/sep}
+                        {/foreach}
+                    ]
+                }
+            },
+            'eventCallback': function() {
+                if (button.is('button')) {
+                    button.closest('form').submit();
+                } else {
+                    document.location = button.attr('href');
                 }
             },
             'eventTimeout' : 2000

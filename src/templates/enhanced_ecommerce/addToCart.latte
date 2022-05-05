@@ -1,36 +1,117 @@
 {varType string $currency}
 
 <script>
-    $(document).on('mousedown', '.addToCart', function(event) {
-        event.preventDefault();
-        let product = $(this).data('product');
-        let quantity = $(this).data('quantity');
+document.addEventListener("DOMContentLoaded", function(event) {
+    let elements = document.querySelectorAll('.addToCart');
 
-        window.dataLayer = window.dataLayer || [];
-        dataLayer.push({
-            'event': 'addToCart',
-            'ecommerce': {
-                'currencyCode': {$currency},
-                'add': {
-                    'products': [{
-                        'name': product.name,
-                        'id': product.id,
-                        'price': product.price,
-                        'brand': product.producer,
-                        'category': product.category,
-                        'variant': product.variant,
-                        'quantity': quantity
-                    }]
-                }
-            },
-            'eventCallback': function() {
-                if ($(this).is('button')) {
-                    $(this).closest('form').submit();
-                } else {
-                    document.location = $(this).attr('href');
-                }
-            },
-            'eventTimeout' : 2000
+    elements.forEach(element => {
+        element.addEventListener('mousedown', function (event) {
+            event.preventDefault();
+            let product = $(this).data('product');
+            console.log(product)
+            product.quantity = $(this).data('quantity');
+
+            let button = $(this);
+
+            window.dataLayerGTM = window.dataLayerGTM || [];
+            dataLayerGTM.push({
+                'event': 'eec.add_to_cart',
+                'ecommerce': {
+                    'currencyCode': {$currency},
+                    'add': {
+                        'products': [
+                            product
+                        ]
+                    }
+                },
+                'eventCallback': function () {
+                    if (button.is('button')) {
+                        button.closest('form').submit();
+                    } else {
+                        document.location = button.attr('href');
+                    }
+                },
+                'eventTimeout': 2000
+            });
         });
     });
+
+    elements = document.querySelectorAll('.addToCartPlusMinus');
+
+    elements.forEach(element => {
+        element.addEventListener('mousedown', function (event) {
+            event.preventDefault();
+            let product = $(this).data('product');
+            let input = $($(this).data('amount'));
+            let originalAmount = parseInt($(this).data('original-amount'));
+
+            let amount = parseInt(input.val());
+            amount = $(this).data('direction') === 1 ? amount + 1 : amount - 1;
+            input.val(amount);
+
+            let button = $(this);
+            let remove = amount < originalAmount
+            product.quantity = Math.abs(originalAmount - amount);
+
+            if (product.quantity === 0) {
+                return;
+            }
+
+            window.dataLayerGTM = window.dataLayerGTM || [];
+            dataLayerGTM.push({
+                'event': remove ? 'eec.remove_from_cart' : 'eec.add_to_cart',
+                'ecommerce': {
+                    [remove ? 'remove' : 'add']: {
+                        'products': [
+                            product
+                        ]
+                    }
+                },
+                'eventCallback': function () {
+                    if (button.is('button')) {
+                        button.closest('form').submit();
+                    } else {
+                        document.location = button.attr('href');
+                    }
+                },
+                'eventTimeout': 2000
+            });
+        });
+    });
+
+    elements = document.querySelectorAll('.addToCartChange');
+
+    elements.forEach(element => {
+        element.addEventListener('change', function (event) {
+            event.preventDefault();
+            let input = $(this);
+            let product = $(this).data('product');
+            let originalAmount = parseInt($(this).data('original-amount'));
+            let amount = parseInt(input.val());
+
+            let remove = amount < originalAmount
+            product.quantity = Math.abs(originalAmount - amount);
+
+            if (product.quantity === 0) {
+                return;
+            }
+
+            window.dataLayerGTM = window.dataLayerGTM || [];
+            dataLayerGTM.push({
+                'event': remove ? 'eec.remove_from_cart' : 'eec.add_to_cart',
+                'ecommerce': {
+                    [remove ? 'remove' : 'add']: {
+                        'products': [
+                            product
+                        ]
+                    }
+                },
+                'eventCallback': function () {
+                    input.closest('form').submit();
+                },
+                'eventTimeout': 2000
+            });
+        });
+    });
+});
 </script>

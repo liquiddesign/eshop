@@ -6,8 +6,8 @@
         let product = $(this).data('product');
         let position = $(this).data('position');
 
-        window.dataLayer = window.dataLayer || [];
-        dataLayer.push({
+        window.dataLayerGTM = window.dataLayerGTM || [];
+        dataLayerGTM.push({
             'event': 'productClick',
             'ecommerce': {
                 'click': {

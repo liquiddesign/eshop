@@ -125,6 +125,10 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 
 	public function validateForm(DeliveryPaymentForm $form): void
 	{
+		if (!$form->isValid()) {
+			return;
+		}
+
 		$values = $form->getValues('array');
 
 		/** @var \Eshop\DB\DeliveryType|null $deliveryType */

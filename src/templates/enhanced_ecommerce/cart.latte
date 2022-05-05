@@ -1,24 +1,16 @@
-{varType Eshop\DB\Order $order}
+{varType int $step}
+{varType float $sum}
 {varType Eshop\DB\CartItem[] $items}
+
 <script>
     window.dataLayerGTM = window.dataLayerGTM || [];
     dataLayerGTM.push({
-        'event': 'trackTrans',
-        'page_type' : 'purchase',
-        'total_value': {\str_replace(',', '.', $order->getTotalPrice())},
+        'event': 'eec.cart',
+        'page_type': 'cart',
+        'total_value': {$sum},
         'ecommerce': {
-            'purchase': {
-                'actionField': {
-                    'id': {$order->code},
-                    'revenue': {\str_replace(',', '.', $order->getTotalPrice())},
-                    'tax': {\str_replace(',', '.', $order->getTotalPriceVat() - $order->getTotalPrice())},
-                    'shipping': {\str_replace(',', '.', $order->getDeliveryPriceSum())},
-                    'shipping_method': {($order->getLastDelivery() ? $order->getLastDelivery()->getTypeName() : '')},
-                    'payment': {\str_replace(',', '.', $order->getPaymentPriceSum())},
-                    'payment_method': {($order->getPayment() ? $order->getPayment()->getTypeName() : '')},
-                    'coupon': {$order->getDiscountCoupon() ? $order->getDiscountCoupon()->code : ''},
-                    'coupon_value': {$order->getDiscountCoupon() ? str_replace(',', '.', $order->getDiscountCoupon()->discountValue) : ''}
-                },
+            'cart': {
+                'actionField': {'step': {$step|noescape}},
                 'products': [
                     {foreach $items as $item}{if $item->product}
                     {var $tree = $item->product->primaryCategory ? $item->product->primaryCategory->getFamilyTree()->toArrayOf('name', [], true) : []}

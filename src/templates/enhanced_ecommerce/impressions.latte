@@ -3,8 +3,8 @@
 {varType string $list}
 
 <script>
-    window.dataLayer = window.dataLayer || [];
-    dataLayer.push({
+    window.dataLayerGTM = window.dataLayerGTM || [];
+    dataLayerGTM.push({
         'ecommerce': {
             'currencyCode': {$currency},
             'impressions': [
@@ -12,7 +12,7 @@
                 {
                     'name': {(string) \Nette\Utils\Strings::fixEncoding($product->name)},
                     'id': {$product->getPK()},
-                    'price': '{$product->getPrice()|noescape}',
+                    'price': {\str_replace(',', '.', $product->getPrice())},
                     'brand': {$product->producer ? (string) \Nette\Utils\Strings::fixEncoding($product->producer->name) : null},
                     'category': {$product->primaryCategory ? (string) \Nette\Utils\Strings::fixEncoding($product->primaryCategory->name) : null},
                     'variant': null,

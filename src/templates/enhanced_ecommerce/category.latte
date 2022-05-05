@@ -1,0 +1,15 @@
+{varType float $sum}
+{varType array $ids}
+{var $tree = $category ? $category->getFamilyTree()->toArrayOf('name', [], true) : []}
+
+<script>
+    window.dataLayerGTM = window.dataLayerGTM || [];
+    dataLayerGTM.push({
+        'event' : 'eec.category',
+        'page_type' : 'category',
+        'ids' : {\Nette\Utils\Json::encode($ids)|noescape},
+        'total_value' : {$sum},
+        'category_id': {$category->getPK()},
+        'category': {implode('|', $tree)}
+    });
+</script>

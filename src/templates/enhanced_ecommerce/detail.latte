@@ -1,22 +1,32 @@
+{varType Eshop\DB\Product $product}
 {varType Eshop\DB\Product[] $products}
 
 <script>
-    window.dataLayer = window.dataLayer || [];
-    dataLayer.push({
-        'ecommerce': {
-            'detail': {
-                'products': [
-					{foreach $products as $product}
-                    {
-                        'name': {(string) \Nette\Utils\Strings::fixEncoding($product->name)},
-                        'id': {$product->getPK()},
-                        'price': '{$product->getPrice()|noescape}',
-                        'brand': {$product->producer ? (string) \Nette\Utils\Strings::fixEncoding($product->producer->name) : null},
-                        'category': {$product->primaryCategory ? (string) \Nette\Utils\Strings::fixEncoding($product->primaryCategory->name) : null},
-                        'variant': null
-                    }{sep},{/sep}
-					{/foreach}]
-            }
+window.dataLayerGTM = window.dataLayerGTM || [];
+dataLayerGTM.push({
+    'event': 'eec.productDetail',
+    'total_value': {\str_replace(',', '.', $product->getPrice())},
+    'page_type': 'product',
+    'ecommerce': {
+        'detail': {
+            'products': [
+                {foreach $products as $product}
+                {var $tree = $product->primaryCategory ? $product->primaryCategory->getFamilyTree()->toArrayOf('name', [], true) : []}
+                {
+                    'name': {(string) \Nette\Utils\Strings::fixEncoding($product->name)},
+                    'id': {$product->getPK()},
+                    'price': {\str_replace(',', '.', $product->getPrice())},
+                    'brand': {$product->producer ? (string) \Nette\Utils\Strings::fixEncoding($product->producer->name) : null},
+                    'category_id': {$product->getValue('primaryCategory')},
+                    'category': {implode('|', $tree)},
+                    'category1': {$tree[0] ?? null},
+                    'category2': {$tree[1] ?? null},
+                    'category3': {$tree[2] ?? null},
+                    'category4': {$tree[3] ?? null},
+                    'variant': null
+                }{sep},{/sep}
+                {/foreach}]
         }
-    });
+    }
+});
 </script>
