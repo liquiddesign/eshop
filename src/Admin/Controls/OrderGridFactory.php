@@ -111,7 +111,7 @@ class OrderGridFactory
 				$order->code,
 				(new DateTime($order->createdTs))->format('d.m.Y G:i'),
 			);
-		}, '%s', 'this.createdTs', ['class' => 'fit']);
+		}, '%s', 'this.createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
 		$grid->addColumn('Zákazník a adresa', [$this, 'renderCustomerColumn']);
 		$contacts = '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a><br><small><a href="tel:%2$s"><i class="fa fa-phone-alt"></i> %2$s</a></small>';

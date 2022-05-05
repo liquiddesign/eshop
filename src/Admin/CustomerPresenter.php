@@ -124,22 +124,28 @@ class CustomerPresenter extends BackendPresenter
 	public function createComponentCustomers(): AdminGrid
 	{
 		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
-
-		$grid = $this->gridFactory->create($this->customerRepository->many(), 20, 'createdTs', 'DESC', true);
+		
+		$grid = $this->gridFactory->create($this->customerRepository->many()
+			->select(['pricelists_names' => "GROUP_CONCAT(pricelists.name, ' ')"])
+			->setGroupBy(['this.uuid']), 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Registrace', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
 		$grid->addColumn('Název / Jméno', function (Customer $customer) {
 			return $customer->company ?: $customer->fullname;
 		});
+		$td = '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a><br><a href="tel:%2$s"><i class="fa fa-phone-alt"></i> %2$s</a>';
+		$grid->addColumnTextFit('E-mail / Telefon', ['email', 'phone'], $td)->onRenderCell[] = [$grid, 'decoratorEmpty'];
+		
+		
 		$grid->addColumn($lableMerchants, function (Customer $customer) {
 			return \implode(', ', $this->merchantRepository->many()
 				->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = merchantXcustomer.fk_merchant')
 				->where('fk_customer', $customer)
 				->toArrayOf('fullname'));
 		});
-		$grid->addColumnText('Skupina', 'group.name', '%s', 'group.name');
-		$grid->addColumnText('Telefon', 'phone', '<a href="tel:%1$s"><i class="fa fa-phone-alt"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
-		$grid->addColumnText('E-mail', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>')->onRenderCell[] = [$grid, 'decoratorEmpty'];
+		$grid->addColumnTextFit('Skupina', 'group.name', '%s', 'group.name');
+		$grid->addColumnText('Ceníky', 'pricelists_names', '%s');
+		$grid->addColumnTextFit('Hladina', 'discountLevelPct', '%s %%', 'discountLevelPct');
 
 		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
 			$grid->addColumn('Věrnostní program', function (Customer $object) {

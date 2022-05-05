@@ -113,7 +113,7 @@ class AttributePresenter extends BackendPresenter
 		});
 
 		$grid->addColumnSelector();
-		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
+		$grid->addColumnTextFit('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumnText('Kategorie', 'categoriesNames', '%s');
 		$grid->addColumnText('Zdroj', 'supplier.name', '%s', 'supplier.name');
@@ -299,7 +299,7 @@ class AttributePresenter extends BackendPresenter
 		});
 
 		$grid->addColumnSelector();
-		$grid->addColumnText('Kód', 'code', '%s', 'code');
+		$grid->addColumnTextFit('Kód', 'code', '%s', 'code');
 		$grid->addColumnText('Interní název', 'internalName', '%s', 'internalName');
 		$grid->addColumn('Hodnota', function (AttributeValue $attributeValue, $grid) {
 			$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValue->getPK()]);
