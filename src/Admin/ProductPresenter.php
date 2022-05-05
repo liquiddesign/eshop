@@ -1105,8 +1105,8 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 			'|' => 'Pipe (|)',
 		]);
 
-		$form->addCheckbox('searchEan', 'Hledat i dle EAN')->setDefaultValue(true)
-			->setHtmlAttribute('data-info', 'Pokud je nastaveno, tak se hledají produkty dle Kódu nebo EANu. EAN se v tomto módu mění jen při nových záznamech!');
+		$form->addSelect('searchCriteria', 'Hledat dle', ['all' => 'Kód a EAN', 'code' => 'Kód', 'ean' => 'EAN',])->setRequired()
+			->setHtmlAttribute('data-info', 'Pole, dle kterých se hledá, se přepisují jen v případě nové položky.');
 		$form->addCheckbox('addNew', 'Vytvářet nové záznamy');
 		$form->addCheckbox('overwriteExisting', 'Přepisovat existující záznamy')->setDefaultValue(true);
 		$form->addCheckbox('updateAttributes', 'Aktualizovat atributy');
@@ -1158,7 +1158,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 					$values['overwriteExisting'],
 					$values['updateAttributes'],
 					$values['createAttributeValues'],
-					$values['searchEan'],
+					$values['searchCriteria'],
 				), ILogger::DEBUG);
 
 				FileSystem::copy($tempFileName, $productsFileName);
@@ -1590,7 +1590,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		bool $overwriteExisting = true,
 		bool $updateAttributes = false,
 		bool $createAttributeValues = false,
-		bool $searchEan = false
+		string $searchCriteria = 'all'
 	): array {
 		Debugger::timer();
 
@@ -1686,19 +1686,26 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		$updatedProducts = 0;
 		$skippedProducts = 0;
 
+		$searchCode = $searchCriteria === 'all' || $searchCriteria === 'code';
+		$searchEan = $searchCriteria === 'all' || $searchCriteria === 'ean';
+
 		foreach ($reader->getRecords() as $record) {
 			$newValues = [];
 			$code = null;
 			$ean = null;
 			$codePrefix = null;
 
+			// Take Code or Ean based on search criteria - if search by, delete it from record
+
 			/** @var string|null $codeFromRecord */
-			$codeFromRecord = isset($parsedHeader['code']) ? Arrays::pick($record, $parsedHeader['code'], null) : null;
+			$codeFromRecord = isset($parsedHeader['code']) ? ($searchCode ? Arrays::pick($record, $parsedHeader['code'], null) : ($record[$parsedHeader['code']] ?? null)) : null;
 			/** @var string|null $eanFromRecord */
 			$eanFromRecord = isset($parsedHeader['ean']) ? ($searchEan ? Arrays::pick($record, $parsedHeader['ean'], null) : ($record[$parsedHeader['ean']] ?? null)) : null;
 
 			/** @var \Eshop\DB\Product|null $product */
 			$product = null;
+
+			// Sanitize and prefix code and ean
 
 			if (isset($parsedHeader['code']) && $codeFromRecord) {
 				$codeBase = Strings::trim($codeFromRecord);
@@ -1711,13 +1718,15 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				$ean = Strings::trim($eanFromRecord);
 			}
 
-			if ($code && ($ean && $searchEan)) {
+			// Fast local search of product based on criteria
+
+			if ($code && $ean && $searchCode && $searchEan) {
 				$product = $this->arrayFind($products, function (\stdClass $x) use ($code, $codePrefix, $ean): bool {
 					return $x->code === $code || $x->fullCode === $code ||
 						$x->code === $codePrefix || $x->fullCode === $codePrefix ||
 						$x->ean === $ean;
 				});
-			} elseif ($code) {
+			} elseif ($code && $searchCode) {
 				$product = $this->arrayFind($products, function (\stdClass $x) use ($code, $codePrefix): bool {
 					return $x->code === $code || $x->fullCode === $code ||
 						$x->code === $codePrefix || $x->fullCode === $codePrefix;
@@ -1728,14 +1737,21 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				});
 			}
 
-			if ($product) {
-				$updatedProducts++;
-			}
+			// Continue based on settings adn data
 
-			if (($searchEan && !$ean) || !$code || (!$product && !$addNew) || ($product && !$overwriteExisting)) {
+			if (($searchCode && $searchEan && !$code && !$ean) ||
+				($searchCode && !$searchEan && !$code) ||
+				($searchEan && !$searchCode && !$ean) ||
+				(!$product && !$addNew) ||
+				($product && !$overwriteExisting)
+			) {
 				$skippedProducts++;
 
 				continue;
+			}
+
+			if ($product) {
+				$updatedProducts++;
 			}
 
 			foreach ($record as $key => $value) {
@@ -1813,6 +1829,14 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 					$newValues[$key] = \intval($value);
 				} elseif ($key === 'recommended' || $key === 'hidden' || $key === 'unavailable') {
 					$newValues[$key] = $value === '1';
+				} elseif ($key === 'code') {
+					if (!$searchCode) {
+						$newValues[$key] = $codeFromRecord ?: null;
+					}
+				} elseif ($key === 'ean') {
+					if (!$searchEan) {
+						$newValues[$key] = $eanFromRecord ?: null;
+					}
 				} elseif (!isset($attributes[$key])) {
 					$newValues[$key] = $value;
 				}

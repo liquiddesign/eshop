@@ -126,7 +126,7 @@ class CustomerPresenter extends BackendPresenter
 		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
 		
 		$grid = $this->gridFactory->create($this->customerRepository->many()
-			->select(['pricelists_names' => "GROUP_CONCAT(pricelists.name, ' ')"])
+			->select(['pricelists_names' => "GROUP_CONCAT(pricelists.name SEPARATOR ', ')"])
 			->setGroupBy(['this.uuid']), 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Registrace', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
