@@ -51,7 +51,7 @@ class Photo extends \StORM\Entity
 	/**
 	 * Dodavatel / externí
 	 * @relation
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Supplier $supplier;
 	
