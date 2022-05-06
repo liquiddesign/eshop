@@ -1471,7 +1471,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			$photo->product->update(['imageFileName' => null]);
 		}
 
-		$photo->delete();
+		$this->photoRepository->many()->where('fileName', $filename)->delete();
 	}
 
 	public function handleDropzoneUploadPhoto(): void
