@@ -785,7 +785,7 @@ class OrderRepository extends \StORM\Repository
 		return \array_slice($data, 0, 5);
 	}
 
-	public function getOrdersByUser($user): ?Collection
+	public function getOrdersByUser($user): Collection
 	{
 		$collection = $this->many()
 			->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')

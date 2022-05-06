@@ -79,7 +79,15 @@ class ProductGridFiltersFactory
 				if (\substr($value, 0, 1) === '.') {
 					$source->where('categories.uuid', \substr($value, 1));
 				} else {
-					$source->filter(['category' => $value === '0' ? false : $this->categoryRepository->one($value)->path]);
+					$category = $this->categoryRepository->one($value);
+
+					if (!$category && $value !== '0') {
+						$source->where('1=0');
+
+						return;
+					}
+
+					$source->filter(['category' => $value === '0' ? false : $category->path]);
 				}
 			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
 		}
