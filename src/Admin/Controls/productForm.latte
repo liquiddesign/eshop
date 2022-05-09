@@ -86,8 +86,19 @@
                     {/foreach}
 
                     {if isset($configuration['extendedName']) && $configuration['extendedName'] && isset($form['extendedName'])}
-                        {foreach $form['name']->getComponents() as $key => $element}
-                            {$renderer->renderPair($form['extendedName'][$key])|noescape}
+                        {foreach $form['extendedName']->getComponents() as $key => $element}
+                            <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
+                                id="{$element->getHtmlId()}" data-mutation="{$key}">
+                                {$renderer->renderLabel($element)|noescape}
+
+                                <td class="align-middle">
+                                    <div class="d-flex">
+                                        {input extendedName-$key class => 'form-control form-control-sm'}
+                                    </div>
+
+                                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError extendedName-$key}</span>
+                                </td>
+                            </tr>
                         {/foreach}
                     {/if}
 
