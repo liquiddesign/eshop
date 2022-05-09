@@ -36,10 +36,11 @@ use Nette\Application\UI\Presenter;
 use Nette\Utils\Arrays;
 use StORM\ICollection;
 use Web\DB\PageRepository;
+use Web\DB\SettingRepository;
 
 class ProductForm extends Control
 {
-	protected const RELATION_MAX_ITEMS_COUNT = 10;
+	public const RELATION_MAX_ITEMS_COUNT = 10;
 
 	/** @persistent */
 	public string $tab = 'menu0';
@@ -76,6 +77,8 @@ class ProductForm extends Control
 
 	private AmountRepository $amountRepository;
 
+	private int $relationMaxItemsCount;
+
 	/**
 	 * @var \Eshop\DB\RelatedType[]
 	 */
@@ -108,6 +111,7 @@ class ProductForm extends Control
 		RelatedRepository $relatedRepository,
 		StoreRepository $storeRepository,
 		AmountRepository $amountRepository,
+		SettingRepository $settingRepository,
 		$product = null,
 		array $configuration = []
 	) {
@@ -128,6 +132,8 @@ class ProductForm extends Control
 		$this->relatedRepository = $relatedRepository;
 		$this->storeRepository = $storeRepository;
 		$this->amountRepository = $amountRepository;
+
+		$this->relationMaxItemsCount = (int) ($settingRepository->getValueByName('relationMaxItemsCount') ?? $this::RELATION_MAX_ITEMS_COUNT);
 
 		$form = $adminFormFactory->create(true);
 
@@ -309,7 +315,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 			foreach ($this->relatedTypes as $relatedType) {
 				$relationsContainer = $form->addContainer('relatedType_' . $relatedType->getPK());
 
-				for ($i = 0; $i < $this::RELATION_MAX_ITEMS_COUNT; $i++) {
+				for ($i = 0; $i < $this->relationMaxItemsCount; $i++) {
 					$relationsContainer->addSelect2Ajax("product_$i", $this->getPresenter()->link('getProductsForSelect2!'), null, [], 'Zvolte produkt');
 					$relationsContainer->addInteger("amount_$i")->setDefaultValue($relatedType->defaultAmount)->setNullable();
 					$relationsContainer->addInteger("priority_$i")->setDefaultValue(10)->setNullable();
@@ -369,7 +375,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 					$i++;
 
-					if ($i === $this::RELATION_MAX_ITEMS_COUNT) {
+					if ($i === $this->relationMaxItemsCount) {
 						break;
 					}
 				}
@@ -560,7 +566,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 						->where('fk_master', $this->product->getPK())
 						->where('fk_type', $relatedType->getPK())
 						->orderBy(['uuid' => 'asc'])
-						->setTake($this::RELATION_MAX_ITEMS_COUNT)
+						->setTake($this->relationMaxItemsCount)
 						->toArrayOf('uuid')),
 				)->delete();
 			}
@@ -570,7 +576,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 		foreach ($this->relatedTypes as $relatedType) {
 			$relatedTypeValues = $values['relatedType_' . $relatedType->getPK()];
 
-			for ($i = 0; $i < $this::RELATION_MAX_ITEMS_COUNT; $i++) {
+			for ($i = 0; $i < $this->relationMaxItemsCount; $i++) {
 				if (!isset($data['relatedType_' . $relatedType->getPK()]["product_$i"])) {
 					continue;
 				}
@@ -692,7 +698,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 	{
 		$this->template->supplierProducts = $this->product ? $this->supplierProductRepository->many()->where('this.fk_product', $this->product->getPK())->toArray() : [];
 
-		$this->template->relationMaxItemsCount = $this::RELATION_MAX_ITEMS_COUNT;
+		$this->template->relationMaxItemsCount = $this->relationMaxItemsCount;
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->pricelistRepository->many()->orderBy(['this.priority']);
 		$this->template->stores = $this->storeRepository->many()->orderBy(['this.name' . $this->storeRepository->getConnection()->getMutationSuffix()]);

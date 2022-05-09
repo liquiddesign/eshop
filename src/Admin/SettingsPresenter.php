@@ -6,6 +6,7 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Eshop\Admin\Controls\ProductForm;
 use Forms\Form;
 use Nette\Utils\Arrays;
 use Web\DB\SettingRepository;
@@ -37,6 +38,22 @@ class SettingsPresenter extends BackendPresenter
 	 */
 	private array $customOnSaves = [];
 
+	public function __construct()
+	{
+		parent::__construct();
+
+		$this->customSettings = [
+			'Produkty' => [
+				[
+					'key' => 'relationMaxItemsCount',
+					'label' => 'Maximální počet relací produktu',
+					'type' => 'int',
+					'info' => 'Zadajte číslo větší než 0! Určuje počet možných relací jednoho typu u produktu. Výchozí hodnota je: ' . ProductForm::RELATION_MAX_ITEMS_COUNT,
+				],
+			],
+		];
+	}
+
 	public function createComponentForm(): Form
 	{
 		$form = $this->formFactory->create();
@@ -60,6 +77,14 @@ class SettingsPresenter extends BackendPresenter
 					} elseif ($setting['type'] === 'multi') {
 						$form->addMultiSelect2($setting['key'], $setting['label'], $setting['options'])
 							->checkDefaultValue(false)
+							->setHtmlAttribute('data-info', $setting['info'] ?? null);
+					} elseif ($setting['type'] === 'int') {
+						$form->addInteger($setting['key'], $setting['label'])
+							->setHtmlAttribute('data-info', $setting['info'] ?? null);
+					} elseif ($setting['type'] === 'float') {
+						$form->addText($setting['key'], $setting['label'])
+							->setNullable()
+							->addRule($form::FLOAT)
 							->setHtmlAttribute('data-info', $setting['info'] ?? null);
 					}
 
@@ -110,7 +135,7 @@ class SettingsPresenter extends BackendPresenter
 
 			foreach ($values as $key => $value) {
 				$setting = $this->settingsRepository->one(['name' => $key]);
-				$value = \is_array($value) ? \implode(';', $value) : $value;
+				$value = \is_array($value) ? \implode(';', $value) : (string) $value;
 
 				if (isset($this->customOnSaves[$key])) {
 					$this->customOnSaves[$key]($key, $setting ? $setting->value : null, $value);
