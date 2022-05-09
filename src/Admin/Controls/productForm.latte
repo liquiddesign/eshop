@@ -239,9 +239,11 @@
                                 <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
                             </td>
 
-                            <td class="align-middle pl-2 pr-2">
-                                <a n:href="clearPrice! $product->getPK(), $id" title="Vymazat cenu"><i class="fas fa-sm text-danger fa-trash"></i></a>
-                            </td>
+                            {ifset $product}
+                                <td class="align-middle pl-2 pr-2">
+                                   <a n:href="clearPrice! $product->getPK(), $id" title="Vymazat cenu"><i class="fas fa-sm text-danger fa-trash"></i></a>
+                                </td>
+                            {/ifset}
                         </tr>
                     {/foreach}
                 </table>
