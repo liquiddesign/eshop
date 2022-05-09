@@ -10,8 +10,6 @@ use Messages\DB\TemplateRepository;
 use Nette;
 use Pages\Pages;
 use Web\DB\ContactItemRepository;
-use Web\DB\FaqItemRepository;
-use Web\DB\FaqRepository;
 use Web\DB\SettingRepository;
 
 abstract class ContentPresenter extends \Eshop\FrontendPresenter
@@ -27,12 +25,6 @@ abstract class ContentPresenter extends \Eshop\FrontendPresenter
 
 	/** @inject */
 	public TemplateRepository $templateRepository;
-
-	/** @inject */
-	public FaqRepository $faqRepository;
-
-	/** @inject */
-	public FaqItemRepository $faqItemRepository;
 
 	public function renderDefault(string $page): void
 	{
@@ -90,20 +82,5 @@ abstract class ContentPresenter extends \Eshop\FrontendPresenter
 	{
 		$this->template->settings = $this->settingRepository->getValues();
 		$this->template->contactItems = $this->contactItemRepository->getCollection();
-	}
-
-	public function renderFaq(): void
-	{
-		/** @var \Web\DB\Page|null $page */
-		$page = $this->pages->getPage();
-
-		/** @var \Web\Controls\Breadcrumb $breadcrumb */
-		$breadcrumb = $this['breadcrumb'];
-
-		if ($page) {
-			$breadcrumb->addItem((string)$page->name, null);
-		}
-
-		$this->template->faqs = $this->faqRepository->getCollection();
 	}
 }
