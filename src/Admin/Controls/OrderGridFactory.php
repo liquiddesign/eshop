@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Admin\Controls;
 
+use Admin\Controls\AdminGrid;
 use Admin\Controls\AdminGridFactory;
 use Admin\Helpers;
 use Eshop\DB\CustomerGroupRepository;
@@ -13,6 +14,8 @@ use Eshop\DB\OrderLogItem;
 use Eshop\DB\OrderLogItemRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
+use Eshop\Integration\Integrations;
+use Eshop\Services\DPD;
 use Eshop\Shopper;
 use Grid\Datagrid;
 use League\Csv\Writer;
@@ -48,8 +51,12 @@ class OrderGridFactory
 	private DeliveryTypeRepository $deliveryTypeRepository;
 	
 	private PaymentTypeRepository $paymentTypeRepository;
+
+	private Integrations $integrations;
 	
 	private Shopper $shopper;
+
+	private ?DPD $dpd = null;
 	
 	/** @var array<mixed> */
 	private array $configuration;
@@ -64,7 +71,8 @@ class OrderGridFactory
 		CustomerGroupRepository $customerGroupRepository,
 		DeliveryTypeRepository $deliveryTypeRepository,
 		PaymentTypeRepository $paymentTypeRepository,
-		Shopper $shopper
+		Shopper $shopper,
+		Integrations $integrations
 	) {
 		$this->orderRepository = $orderRepository;
 		$this->gridFactory = $adminGridFactory;
@@ -75,7 +83,7 @@ class OrderGridFactory
 		$this->customerGroupRepository = $customerGroupRepository;
 		$this->deliveryTypeRepository = $deliveryTypeRepository;
 		$this->paymentTypeRepository = $paymentTypeRepository;
-		
+		$this->integrations = $integrations;
 		$this->shopper = $shopper;
 	}
 	
@@ -86,6 +94,8 @@ class OrderGridFactory
 	public function create(string $state, array $configuration = []): Datagrid
 	{
 		$this->configuration = $configuration;
+
+		$this->dpd = $this->integrations->getService('dpd');
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
@@ -173,6 +183,14 @@ class OrderGridFactory
 			$grid->addColumnAction('CSV', $downloadIco, [$this, 'downloadCsv'], [], null, ['class' => 'minimal']);
 		}
 
+		if ($this->dpd) {
+			$grid->addColumn('DPD', function (Order $order, AdminGrid $datagrid) {
+				return '<button class="btn btn-sm disabled ' . ($order->dpdCode ? 'btn-outline-success' : 'btn-outline-danger') . '" disabled>
+				<i class="' . ($order->dpdCode ? 'fas fa-check' : 'fas fa-times') . '"></i>
+				</button>';
+			}, '%s', 'this.dpdCode', ['class' => 'fit']);
+		}
+
 		$grid->addColumn('', function ($object, $grid) {
 			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' .
 				$grid->getPresenter()->link('comments', $object) . '"><i title="Komentáře" class="far fa-comment"></i>&nbsp;' . $object->commentCount .
@@ -248,7 +266,7 @@ class OrderGridFactory
 		$submit->onClick[] = [$this, 'exportZasilkovna'];
 
 		if (isset($configuration['exportPPC']) && $configuration['exportPPC']) {
-			$submit = $grid->getForm()->addSubmit('export', 'Exportovat pro PPC (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+			$submit = $grid->getForm()->addSubmit('exportPPC', 'Exportovat pro PPC (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
 			$submit->onClick[] = function ($button) use ($grid): void {
 				$grid->getPresenter()->redirect('exportPPC', [$grid->getSelectedIds()]);
@@ -256,7 +274,7 @@ class OrderGridFactory
 		}
 
 		if (isset($configuration['targito']) && $configuration['targito']) {
-			$submit = $grid->getForm()->addSubmit('export', 'Exportovat pro Targito (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+			$submit = $grid->getForm()->addSubmit('exportTargito', 'Exportovat pro Targito (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
 			$submit->onClick[] = function ($button) use ($grid): void {
 				$grid->getPresenter()->redirect('exportTargito', [$grid->getSelectedIds()]);
@@ -265,6 +283,10 @@ class OrderGridFactory
 
 		if (Helpers::isConfigurationActive($configuration, 'eHub')) {
 			$grid->addBulkAction('sendEHub', 'EHubSendOrders', 'Odeslat do eHUB');
+		}
+
+		if ($this->dpd) {
+			$grid->addBulkAction('sendDPD', 'sendDPD', 'Odeslat do DPD');
 		}
 
 		return $grid;

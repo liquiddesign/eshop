@@ -88,10 +88,12 @@ class DeliveryTypePresenter extends BackendPresenter
 		
 		$grid->addColumnLink('prices', 'Ceník');
 		$grid->addColumnLinkDetail('Detail');
-		$grid->addColumnActionDelete();
+		$grid->addColumnActionDeleteSystemic();
 		
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
+		$grid->addButtonDeleteSelected(null, false, function (DeliveryType $deliveryType): bool {
+			return !$deliveryType->isSystemic();
+		}, 'this.uuid');
 		
 		$grid->addFilterTextInput('search', ['name_cs', 'code'], null, 'Kód, název');
 		

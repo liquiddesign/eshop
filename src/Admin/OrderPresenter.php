@@ -35,6 +35,8 @@ use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\Integration\EHub;
+use Eshop\Integration\Integrations;
+use Eshop\Services\DPD;
 use Forms\Form;
 use Grid\Datagrid;
 use League\Csv\Writer;
@@ -159,8 +161,13 @@ class OrderPresenter extends BackendPresenter
 	/** @inject */
 	public RelatedTypeRepository $relatedTypeRepository;
 
+	/** @inject */
+	public Integrations $integrations;
+
 	/** @persistent */
 	public ?string $tab = null;
+
+	protected ?DPD $dpd = null;
 
 	public function createComponentOrdersGrid(): Datagrid
 	{
@@ -1505,6 +1512,18 @@ class OrderPresenter extends BackendPresenter
 		$this->sendResponse(new FileResponse($tempFilename, 'order.txt', 'text/plain'));
 	}
 
+	public function renderSendDPD(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Odeslat do DPD';
+		$this->template->headerTree = [
+			['Objednávky', 'default',],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('dpdSendForm')];
+	}
+
 	public function renderExportTargito(array $ids): void
 	{
 		unset($ids);
@@ -1580,9 +1599,20 @@ class OrderPresenter extends BackendPresenter
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
 	}
 
+	public function createComponentDpdSendForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
+			$sync = $this->dpd->syncOrders($collection);
+
+			$this->flashMessage($sync ? 'Provedeno' : 'Chyba odesílání!', $sync ? 'success' : 'error');
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
+	}
+
 	protected function startup(): void
 	{
 		parent::startup();
+
+		$this->dpd = $this->integrations->getService('dpd');
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();

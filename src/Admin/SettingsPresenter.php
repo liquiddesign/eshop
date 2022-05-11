@@ -7,6 +7,9 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Eshop\Admin\Controls\ProductForm;
+use Eshop\DB\DeliveryTypeRepository;
+use Eshop\DB\PaymentTypeRepository;
+use Eshop\Integration\Integrations;
 use Forms\Form;
 use Nette\Utils\Arrays;
 use Web\DB\SettingRepository;
@@ -14,7 +17,16 @@ use Web\DB\SettingRepository;
 class SettingsPresenter extends BackendPresenter
 {
 	/** @inject */
+	public Integrations $integrations;
+
+	/** @inject */
 	public SettingRepository $settingsRepository;
+
+	/** @inject */
+	public DeliveryTypeRepository $deliveryTypeRepository;
+
+	/** @inject */
+	public PaymentTypeRepository $paymentTypeRepository;
 
 	/**
 	 * @var array<string|array<mixed>>
@@ -38,22 +50,6 @@ class SettingsPresenter extends BackendPresenter
 	 */
 	private array $customOnSaves = [];
 
-	public function __construct()
-	{
-		parent::__construct();
-
-		$this->customSettings = [
-			'Produkty' => [
-				[
-					'key' => 'relationMaxItemsCount',
-					'label' => 'Maximální počet relací produktu',
-					'type' => 'int',
-					'info' => 'Zadajte číslo větší než 0! Určuje počet možných relací jednoho typu u produktu. Výchozí hodnota je: ' . ProductForm::RELATION_MAX_ITEMS_COUNT,
-				],
-			],
-		];
-	}
-
 	public function createComponentForm(): Form
 	{
 		$form = $this->formFactory->create();
@@ -65,34 +61,7 @@ class SettingsPresenter extends BackendPresenter
 				$form->addGroup($header);
 
 				foreach ($settings as $setting) {
-					if ($setting['type'] === 'string') {
-						$form->addText($setting['key'], $setting['label'])
-							->setNullable()
-							->setHtmlAttribute('data-info', $setting['info'] ?? null);
-					} elseif ($setting['type'] === 'select') {
-						$form->addSelect2($setting['key'], $setting['label'], $setting['options'])
-							->setPrompt($setting['prompt'] ?? '- Nepřiřazeno -')
-							->checkDefaultValue(false)
-							->setHtmlAttribute('data-info', $setting['info'] ?? null);
-					} elseif ($setting['type'] === 'multi') {
-						$form->addMultiSelect2($setting['key'], $setting['label'], $setting['options'])
-							->checkDefaultValue(false)
-							->setHtmlAttribute('data-info', $setting['info'] ?? null);
-					} elseif ($setting['type'] === 'int') {
-						$form->addInteger($setting['key'], $setting['label'])
-							->setHtmlAttribute('data-info', $setting['info'] ?? null);
-					} elseif ($setting['type'] === 'float') {
-						$form->addText($setting['key'], $setting['label'])
-							->setNullable()
-							->addRule($form::FLOAT)
-							->setHtmlAttribute('data-info', $setting['info'] ?? null);
-					}
-
-					if (!isset($setting['onSave'])) {
-						continue;
-					}
-
-					$this->customOnSaves[$setting['key']] = $setting['onSave'];
+					$this->processSetting($setting, $form);
 				}
 			} else {
 				$basicSettings = true;
@@ -104,26 +73,7 @@ class SettingsPresenter extends BackendPresenter
 
 			foreach ($this->customSettings as $settings) {
 				if (\is_array($settings) && !\is_array(Arrays::first($settings))) {
-					if ($settings['type'] === 'string') {
-						$form->addText($settings['key'], $settings['label'])
-							->setNullable()
-							->setHtmlAttribute('data-info', $settings['info'] ?? null);
-					} elseif ($settings['type'] === 'select') {
-						$form->addSelect2($settings['key'], $settings['label'], $settings['options'])
-							->setPrompt($settings['prompt'] ?? '- Nepřiřazeno -')
-							->checkDefaultValue(false)
-							->setHtmlAttribute('data-info', $settings['info'] ?? null);
-					} elseif ($settings['type'] === 'multi') {
-						$form->addMultiSelect2($settings['key'], $settings['label'], $settings['options'])
-							->checkDefaultValue(false)
-							->setHtmlAttribute('data-info', $settings['info'] ?? null);
-					}
-
-					if (!isset($settings['onSave'])) {
-						continue;
-					}
-
-					$this->customOnSaves[$settings['key']] = $settings['onSave'];
+					$this->processSetting($settings, $form);
 				}
 			}
 		}
@@ -228,5 +178,81 @@ class SettingsPresenter extends BackendPresenter
 		}
 
 		$newAttribute->addSystemic();
+	}
+
+	protected function startup(): void
+	{
+		parent::startup();
+
+		$this->customSettings = [
+			'Produkty' => [
+				'key' => 'relationMaxItemsCount',
+				'label' => 'Maximální počet relací produktu',
+				'type' => 'int',
+				'info' => 'Zadajte číslo větší než 0! Určuje počet možných relací jednoho typu u produktu. Výchozí hodnota je: ' . ProductForm::RELATION_MAX_ITEMS_COUNT,
+			],
+			'Doprava' => [
+				[
+					'key' => 'codType',
+					'label' => 'Typ platby pro dobírku',
+					'type' => 'select',
+					'options' => $this->paymentTypeRepository->getArrayForSelect(),
+					'info' => 'Pro rozlišení platby jako Dobírky pro různé služby.',
+					'onSave' => function ($key, $oldValue, $newValue): void {
+						$this->systemicCallback($key, $oldValue, $newValue, $this->paymentTypeRepository);
+					},
+				],
+			],
+		];
+
+		/** @var \Eshop\Services\DPD|null $dpd */
+		$dpd = $this->integrations->getService('dpd');
+
+		if (!$dpd) {
+			return;
+		}
+
+		$this->customSettings['Doprava'][] = [
+			'key' => 'dpdDeliveryType',
+			'label' => 'Typ dopravy DPD',
+			'type' => 'select',
+			'options' => $this->deliveryTypeRepository->getArrayForSelect(),
+			'info' => 'Při exportu objednávek do DPD budou odeslány jen objednávky s tímto typem platby.',
+			'onSave' => function ($key, $oldValue, $newValue): void {
+				$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
+			},
+		];
+	}
+
+	private function processSetting(array $setting, AdminForm $form): void
+	{
+		if ($setting['type'] === 'string') {
+			$form->addText($setting['key'], $setting['label'])
+				->setNullable()
+				->setHtmlAttribute('data-info', $setting['info'] ?? null);
+		} elseif ($setting['type'] === 'select') {
+			$form->addSelect2($setting['key'], $setting['label'], $setting['options'])
+				->setPrompt($setting['prompt'] ?? '- Nepřiřazeno -')
+				->checkDefaultValue(false)
+				->setHtmlAttribute('data-info', $setting['info'] ?? null);
+		} elseif ($setting['type'] === 'multi') {
+			$form->addMultiSelect2($setting['key'], $setting['label'], $setting['options'])
+				->checkDefaultValue(false)
+				->setHtmlAttribute('data-info', $setting['info'] ?? null);
+		} elseif ($setting['type'] === 'int') {
+			$form->addInteger($setting['key'], $setting['label'])
+				->setHtmlAttribute('data-info', $setting['info'] ?? null);
+		} elseif ($setting['type'] === 'float') {
+			$form->addText($setting['key'], $setting['label'])
+				->setNullable()
+				->addRule($form::FLOAT)
+				->setHtmlAttribute('data-info', $setting['info'] ?? null);
+		}
+
+		if (!isset($setting['onSave'])) {
+			return;
+		}
+
+		$this->customOnSaves[$setting['key']] = $setting['onSave'];
 	}
 }

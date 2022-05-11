@@ -76,6 +76,12 @@ class Order extends \StORM\Entity
 	public bool $zasilkovnaCompleted = false;
 
 	/**
+	 * DPD kód
+	 * @column
+	 */
+	public ?string $dpdCode;
+
+	/**
 	 * Edited manually in Admin
 	 * @column
 	 */

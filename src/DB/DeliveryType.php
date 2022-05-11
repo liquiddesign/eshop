@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Eshop\Common\DB\SystemicEntity;
 use StORM\RelationCollection;
 
 /**
  * Typ dopravy
  * @table
  */
-class DeliveryType extends \StORM\Entity
+class DeliveryType extends SystemicEntity
 {
 	public const IMAGE_DIR = 'deliverytype_images';
 	
