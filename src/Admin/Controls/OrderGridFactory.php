@@ -238,55 +238,47 @@ class OrderGridFactory
 		
 		if ($state === 'open') {
 			$stateReceived = $configuration['orderStates']['received'] ?? 'Přijmout';
-			$submit = $grid->getForm()->addSubmit('receiveMultiple', Html::fromHtml('<i class="fa fa-check"></i> Přesunout do stavu ' . $stateReceived))->setHtmlAttribute('class', $btnSecondary);
+			$submit = $grid->getForm()->addSubmit('receiveMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateReceived))->setHtmlAttribute('class', $btnSecondary);
 			$submit->onClick[] = [$this, 'receiveOrderMultiple'];
 			
 			$stateFinished = $configuration['orderStates']['finished'] ?? 'Přijmout a zpracovat';
-			$submit = $grid->getForm()->addSubmit('receiveAndCompleteMultiple', Html::fromHtml('<i class="fas fa-check-double"></i> Přesunout do stavu ' . $stateFinished));
+			$submit = $grid->getForm()->addSubmit('receiveAndCompleteMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateFinished));
 			$submit->setHtmlAttribute('class', $btnSecondary);
 			$submit->onClick[] = [$this, 'receiveAndCompleteMultiple'];
 		}
 		
 		if ($state !== 'finished' && $state !== 'open') {
 			$stateFinished = $configuration['orderStates']['finished'] ?? 'Zpracovat';
-			$submit = $grid->getForm()->addSubmit('completeMultiple', Html::fromHtml('<i class="fa fa-check"></i> Přesunout do stavu ' . $stateFinished));
+			$submit = $grid->getForm()->addSubmit('completeMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateFinished));
 			$submit->setHtmlAttribute('class', $btnSecondary);
 			$submit->onClick[] = [$this, 'completeOrderMultiple'];
 		}
 		
 		if ($state !== 'canceled' && $state !== 'open') {
 			$stateCanceled = $configuration['orderStates']['canceled'] ?? 'Stornovat';
-			$submit = $grid->getForm()->addSubmit('cancelMultiple', Html::fromHtml('<i class="fa fa-times"></i> Přesunout do stavu ' . $stateCanceled));
+			$submit = $grid->getForm()->addSubmit('cancelMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateCanceled));
 			$submit->setHtmlAttribute('class', $btnSecondary);
 			$submit->onClick[] = [$this, 'cancelOrderMultiple'];
 		}
 
-		$submit = $grid->getForm()->addSubmit('exportZasilkovna', 'Export pro Zásilkovnu');
-		$submit->setHtmlAttribute('class', $btnSecondary)->getControlPrototype()->setName('button')->setHtml('<i class="fa fa-download"></i> Export pro Zásilkovnu');
+		$submit = $grid->getForm()->addSubmit('exportZasilkovna', Html::fromHtml('<i class="fas fa-download"></i> Zásilkovna (CSV)'));
+		$submit->setHtmlAttribute('class', $btnSecondary);
 		$submit->onClick[] = [$this, 'exportZasilkovna'];
 
-		if (isset($configuration['exportPPC']) && $configuration['exportPPC']) {
-			$submit = $grid->getForm()->addSubmit('exportPPC', 'Exportovat pro PPC (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
-
-			$submit->onClick[] = function ($button) use ($grid): void {
-				$grid->getPresenter()->redirect('exportPPC', [$grid->getSelectedIds()]);
-			};
+		if (Helpers::isConfigurationActive($configuration, 'exportPPC')) {
+			$grid->addBulkAction('exportPPC', 'exportPPC', '<i class="fas fa-download"></i> PPC (CSV)');
 		}
 
-		if (isset($configuration['targito']) && $configuration['targito']) {
-			$submit = $grid->getForm()->addSubmit('exportTargito', 'Exportovat pro Targito (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
-
-			$submit->onClick[] = function ($button) use ($grid): void {
-				$grid->getPresenter()->redirect('exportTargito', [$grid->getSelectedIds()]);
-			};
+		if (Helpers::isConfigurationActive($configuration, 'exportPPC')) {
+			$grid->addBulkAction('exportTargito', 'exportTargito', '<i class="fas fa-download"></i> Targito (CSV)');
 		}
 
 		if (Helpers::isConfigurationActive($configuration, 'eHub')) {
-			$grid->addBulkAction('sendEHub', 'EHubSendOrders', 'Odeslat do eHUB');
+			$grid->addBulkAction('sendEHub', 'EHubSendOrders', '<i class="fas fa-paper-plane"></i> eHUB');
 		}
 
 		if ($this->dpd) {
-			$grid->addBulkAction('sendDPD', 'sendDPD', 'Odeslat do DPD');
+			$grid->addBulkAction('sendDPD', 'sendDPD', '<i class="fas fa-paper-plane"></i> DPD');
 		}
 
 		return $grid;
