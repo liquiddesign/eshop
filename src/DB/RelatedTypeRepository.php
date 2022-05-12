@@ -109,7 +109,7 @@ class RelatedTypeRepository extends \StORM\Repository implements IGeneralReposit
 		}
 	}
 	
-	public function getAttributeBySettingName(string $settingName): ?Attribute
+	public function getAttributeBySettingName(string $settingName): ? Eshop\DB\RelatedType
 	{
 		$setting = $this->settingRepository->getValueByName($settingName);
 		
