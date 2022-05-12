@@ -12,6 +12,7 @@ use Nette\Bridges\ApplicationLatte\UIMacros;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
+use Web\DB\SettingRepository;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\RelatedType>
@@ -19,12 +20,16 @@ use StORM\SchemaManager;
 class RelatedTypeRepository extends \StORM\Repository implements IGeneralRepository
 {
 	private LatteFactory $latteFactory;
+	
+	private SettingRepository $settingRepository;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, LatteFactory $latteFactory)
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, SettingRepository $settingRepository, LatteFactory $latteFactory)
 	{
 		parent::__construct($connection, $schemaManager);
 
 		$this->latteFactory = $latteFactory;
+		$this->connection = $connection;
+		$this->settingRepository = $settingRepository;
 	}
 
 	/**
@@ -102,5 +107,12 @@ class RelatedTypeRepository extends \StORM\Repository implements IGeneralReposit
 
 			return false;
 		}
+	}
+	
+	public function getAttributeBySettingName(string $settingName): ?Attribute
+	{
+		$setting = $this->settingRepository->getValueByName($settingName);
+		
+		return $setting ? $this->one($setting) : null;
 	}
 }
