@@ -1626,6 +1626,8 @@ class OrderPresenter extends BackendPresenter
 
 			$this->flashMessage('Spojení objednávek se nezdařilo!', 'error');
 		}
+
+		$this->redirect('this');
 	}
 
 	protected function startup(): void
