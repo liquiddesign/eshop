@@ -1608,6 +1608,26 @@ class OrderPresenter extends BackendPresenter
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
 	}
 
+	public function handleMergeOrders(string $targetOrder, array $ids): void
+	{
+		$connection = $this->orderRepository->getConnection();
+
+		$connection->getLink()->beginTransaction();
+
+		try {
+			$this->orderRepository->mergeOrders($this->orderRepository->one($targetOrder), $this->orderRepository->many()->where('this.uuid', $ids)->toArray(), $this->getAdministrator());
+
+			$connection->getLink()->commit();
+
+			$this->flashMessage('Provedeno', 'success');
+		} catch (\Throwable $e) {
+			Debugger::log($e->getMessage(), ILogger::ERROR);
+			$connection->getLink()->rollBack();
+
+			$this->flashMessage('Spojení objednávek se nezdařilo!', 'error');
+		}
+	}
+
 	protected function startup(): void
 	{
 		parent::startup();
