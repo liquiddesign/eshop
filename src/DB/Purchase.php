@@ -220,6 +220,24 @@ class Purchase extends \StORM\Entity
 	public string $createdTs;
 
 	/**
+	 * Účet
+	 * @column
+	 */
+	public ?string $bankAccount;
+
+	/**
+	 * Kód banky
+	 * @column
+	 */
+	public ?string $bankAccountCode;
+
+	/**
+	 * Specifický symbol
+	 * @column
+	 */
+	public ?string $bankSpecificSymbol;
+
+	/**
 	 * @var string[]
 	 */
 	private ?array $cartIds;
@@ -227,6 +245,29 @@ class Purchase extends \StORM\Entity
 	public function isCompany(): bool
 	{
 		return (bool) $this->ic;
+	}
+	
+	public function updateCustomer(Customer $customer): void
+	{
+		$customer->update([
+			'email' => $this->email,
+			'fullname' => $this->fullname,
+			'phone' => $this->phone,
+			'ic' => $this->ic,
+			'dic' => $this->dic,
+			'bankAccount' => $this->bankAccount,
+			'bankAccountCode' => $this->bankAccountCode,
+			'bankSpecificSymbol' => $this->bankSpecificSymbol,
+			'billAddress' => $this->billAddress ? $this->billAddress->toArray([], true, false, false) : null,
+		]);
+		
+		if (!$this->deliveryAddress) {
+			return;
+		}
+
+		$customer->update([
+			'deliveryAddress' => $this->deliveryAddress->toArray([], true, false, false),
+		]);
 	}
 
 	/**

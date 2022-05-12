@@ -93,6 +93,24 @@ class Customer extends Entity implements IIdentity, IUser
 	public ?Address $deliveryAddress;
 	
 	/**
+	 * Účet
+	 * @column
+	 */
+	public ?string $bankAccount;
+	
+	/**
+	 * Kód banky
+	 * @column
+	 */
+	public ?string $bankAccountCode;
+	
+	/**
+	 * Specifický symbol
+	 * @column
+	 */
+	public ?string $bankSpecificSymbol;
+	
+	/**
 	 * Slevová hladina
 	 * @column
 	 */
