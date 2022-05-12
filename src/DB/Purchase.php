@@ -253,11 +253,11 @@ class Purchase extends \StORM\Entity
 			'email' => $this->email,
 			'fullname' => $this->fullname,
 			'phone' => $this->phone,
-			'ic' => $this->ic ?? null,
-			'dic' => $this->dic ?? null,
-			'bankAccount' => $this->bankAccount ?? null,
-			'bankAccountCode' => $this->bankAccountCode ?? null,
-			'bankSpecificSymbol' => $this->bankSpecificSymbol ?? null,
+			'ic' => $this->ic ?: null,
+			'dic' => $this->dic ?: null,
+			'bankAccount' => $this->bankAccount ?: null,
+			'bankAccountCode' => $this->bankAccountCode ?: null,
+			'bankSpecificSymbol' => $this->bankSpecificSymbol ?: null,
 			'billAddress' => $this->billAddress ? $this->billAddress->toArray([], true, false, false) : null,
 		]);
 		
