@@ -24,6 +24,7 @@ use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
+use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Html;
@@ -34,6 +35,9 @@ use Tracy\ILogger;
 
 class OrderGridFactory
 {
+	/** @var array<callable(\StORM\Collection): void> */
+	public array $onCollectionCreation = [];
+
 	private OrderRepository $orderRepository;
 
 	private AdminGridFactory $gridFactory;
@@ -94,16 +98,19 @@ class OrderGridFactory
 	public function create(string $state, array $configuration = []): Datagrid
 	{
 		$this->configuration = $configuration;
-
 		$this->dpd = $this->integrations->getService('dpd');
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
-		$grid = $this->gridFactory->create(
-			$this->orderRepository->getCollectionByState($state)
+		$collection = $this->orderRepository->getCollectionByState($state)
 			->setGroupBy(['this.uuid'])
 			->join(['comment' => 'eshop_internalcommentorder'], 'this.uuid = comment.fk_order')
-			->select(['commentCount' => 'COUNT(DISTINCT comment.uuid)']),
+			->select(['commentCount' => 'COUNT(DISTINCT comment.uuid)']);
+
+		Arrays::invoke($this->onCollectionCreation, $collection);
+
+		$grid = $this->gridFactory->create(
+			$collection,
 			20,
 			'this.createdTs',
 			'DESC',

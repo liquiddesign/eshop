@@ -45,6 +45,12 @@ class OrderRepository extends \StORM\Repository
 	/** @var array<callable(\Eshop\DB\Order, \Eshop\DB\Payment): void> */
 	public array $onOrderPaymentChanged = [];
 
+	/** @var array<callable(\Eshop\DB\Order, array<\Eshop\DB\Order>): void> */
+	public array $onOrdersMergedAll = [];
+
+	/** @var array<callable(\Eshop\DB\Order, \Eshop\DB\Order): void> */
+	public array $onOrdersMergedOne = [];
+
 	private Cache $cache;
 
 	private Shopper $shopper;
@@ -123,6 +129,46 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		return $collection;
+	}
+
+	/**
+	 * @param \Eshop\DB\Order $targetOrder
+	 * @param array<\Eshop\DB\Order> $orders
+	 */
+	public function mergeOrders(Order $targetOrder, array $orders, ?Administrator $administrator = null): void
+	{
+		/** @var \Eshop\DB\Cart $targetCart */
+		$targetCart = $targetOrder->purchase->carts->first();
+
+		/** @var \Eshop\DB\Package $targetPackage */
+		$targetPackage = $targetOrder->packages->first();
+
+		foreach ($orders as $oldOrder) {
+			foreach ($oldOrder->purchase->carts as $oldCart) {
+				foreach ($oldCart->items as $item) {
+					$item->update(['cart' => $targetCart->getPK()]);
+				}
+
+				$oldCart->update(['purchase' => $targetOrder->getValue('purchase')]);
+			}
+
+			foreach ($oldOrder->packages as $oldPackage) {
+				foreach ($oldPackage->items as $packageItem) {
+					$packageItem->update(['package' => $targetPackage->getPK()]);
+				}
+
+				$oldPackage->delete();
+			}
+
+			$oldOrder->update(['canceledTs' => (string)(new DateTime())]);
+
+			$this->orderLogItemRepository->createLog($oldOrder, OrderLogItem::CANCELED, 'Spojeno s obj.: ' . $oldOrder->code, $administrator);
+			$this->orderLogItemRepository->createLog($targetOrder, OrderLogItem::MERGED, $oldOrder->code, $administrator);
+
+			Arrays::invoke($this->onOrdersMergedOne, $targetOrder, $oldOrder);
+		}
+
+		Arrays::invoke($this->onOrdersMergedAll, $targetOrder, $orders);
 	}
 
 	/**
