@@ -846,6 +846,20 @@ class ProductRepository extends Repository implements IGeneralRepository
 			->where('related.fk_master', $product->getPK())
 			->where('related.fk_type', $relatedType->getPK());
 	}
+	
+	/**
+	 * @param string|\Eshop\DB\RelatedType $relatedType
+	 * @param string|\Eshop\DB\Product $product
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function getSlaveProductsByRelationAndMasterVisible($relatedType, $product): ?ICollection
+	{
+		$collection = $this->getSlaveProductsByRelationAndMaster($relatedType, $product);
+		
+		return $collection ? $this->getSlaveProductsByRelationAndMaster($relatedType, $product)
+			->where('this.hidden', 0)
+			->where('related.hidden', 0)->orderBy(['this.priority']) : null;
+	}
 
 	/**
 	 * @param string|\Eshop\DB\RelatedType $relatedType
