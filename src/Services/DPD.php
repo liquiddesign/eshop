@@ -8,6 +8,9 @@ use Eshop\Providers\Helpers;
 use StORM\Collection;
 use Web\DB\SettingRepository;
 
+/**
+ * Supports only Normal packages at the moment!
+ */
 class DPD
 {
 	private string $url;
@@ -18,6 +21,8 @@ class DPD
 
 	private string $idCustomer;
 
+	private string $idAddress;
+
 	private string $labelPrintType;
 
 	private SettingRepository $settingRepository;
@@ -27,6 +32,7 @@ class DPD
 		string $login,
 		string $password,
 		string $idCustomer,
+		string $idAddress,
 		string $labelPrintType = 'PDF',
 		?SettingRepository $settingRepository = null
 	) {
@@ -34,6 +40,7 @@ class DPD
 		$this->login = $login;
 		$this->password = $password;
 		$this->idCustomer = $idCustomer;
+		$this->idAddress = $idAddress;
 		$this->settingRepository = $settingRepository;
 		$this->labelPrintType = $labelPrintType;
 	}
@@ -65,7 +72,7 @@ class DPD
 				'NewShipment' => [
 					'login' => $this->login,
 					'password' => $this->password,
-					'ShipmentDetailVO' => [],
+					'_ShipmentDetailVO' => [],
 				],
 			];
 
@@ -81,13 +88,14 @@ class DPD
 				$deliveryAddress = $purchase->deliveryAddress ?? $purchase->billAddress;
 
 				$newShipmentVO = [
-					'ID_Customer' => $this->idCustomer,
-					'REF1' => '***TEST-LQD***' . $order->code,
+					'ID_Customer' => (int) $this->idCustomer,
+					'ID_Customer_Address' => (int) $this->idAddress,
+					'REF1' => $order->code,
 					'Receiver' => [
 						'RNAME1' => $purchase->fullname,
-						'RSTREET' => $deliveryAddress ? $deliveryAddress->street : null,
-						'RCITY' => $deliveryAddress ? $deliveryAddress->city : null,
-						'RPOSTAL' => $deliveryAddress ? $deliveryAddress->zipcode : null,
+						'RSTREET' => $deliveryAddress ? $deliveryAddress->street : '',
+						'RCITY' => $deliveryAddress ? $deliveryAddress->city : '',
+						'RPOSTAL' => $deliveryAddress ? $deliveryAddress->zipcode : '',
 						'RCOUNTRY' => $deliveryAddress && $deliveryAddress->state ? $deliveryAddress->state : 'CZ',
 						'RCONTACT' => $purchase->fullname,
 						'RPHONE' => $purchase->phone,
@@ -100,11 +108,14 @@ class DPD
 
 				if ($dpdCodType) {
 					$newShipmentVO['Additional_Services'] = [
-						'COD' => $order->getTotalPriceVat(),
+						'COD' => (string) $order->getTotalPriceVat(),
+						'CURRENCY' => $order->purchase->currency->code,
+						'PAYMENT' => 1,
+						'PURPOSE' => $order->code,
 					];
 				}
 
-				$request['NewShipment']['ShipmentDetailVO'] = $newShipmentVO;
+				$request['NewShipment']['_ShipmentDetailVO'][] = $newShipmentVO;
 			}
 
 			\bdump($request);

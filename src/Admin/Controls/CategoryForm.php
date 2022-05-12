@@ -51,7 +51,7 @@ class CategoryForm extends Control
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
 				$image->resize(300, null);
 			},
-		]);
+		])->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce 600px s libovolnou šířkou.');
 
 		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {
 			$imagePicker->onDelete[] = function (array $directories, $filename) use ($category, $presenter): void {
@@ -68,7 +68,7 @@ class CategoryForm extends Control
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
 				$image->resize(300, null);
 			},
-		]);
+		])->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce 600px s libovolnou šířkou.');
 
 		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {
 			$imagePicker->onDelete[] = function (array $directories, $filename) use ($category, $presenter): void {

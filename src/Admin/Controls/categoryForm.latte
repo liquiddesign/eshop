@@ -1,9 +1,11 @@
 {varType Web\DB\Page $page}
 {varType Eshop\DB\Producer $producer}
+{varType Eshop\Admin\CategoryPresenter $presenter}
 
 <form n:name="form">
+    {varType Admin\Controls\AdminForm $form}
     {var $activeMutation = $form->getActiveMutation()}
-	    {var $renderer = $form->getRenderer()}
+    {var Admin\Controls\BootstrapRenderer $renderer = $form->getRenderer()}
     <ul class="error" n:ifcontent>
             <li n:foreach="$form->getOwnErrors() as $error">{$error}</li>
     </ul>
@@ -20,23 +22,9 @@
                 <table class="mt-1 mb-1">
                     {$renderer->renderPair($form['code'])|noescape}
 
-                    <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label imageFileName/}</th>
+                    {$renderer->renderPair($form['imageFileName'])|noescape}
 
-                        {$renderer->renderControl($form['imageFileName'])|noescape}
-
-
-                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError imageFileName}</span>
-                    </tr>
-
-                    <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label productFallbackImageFileName/}</th>
-
-                        {$renderer->renderControl($form['productFallbackImageFileName'])|noescape}
-
-
-                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError productFallbackImageFileName}</span>
-                    </tr>
+                    {$renderer->renderPair($form['productFallbackImageFileName'])|noescape}
 
                     {foreach $form['name']->getComponents() as $key => $element}
                         <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}" data-mutation="{$key}">
