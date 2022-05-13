@@ -1,0 +1,29 @@
+{varType Eshop\Admin\OrderPresenter $presenter}
+{varType bool $upsell}
+{varType Eshop\DB\PackageItem $packageItem}
+{var Eshop\DB\CartItem $item = $packageItem->cartItem}
+
+<tr {if $packageItem->deleted}style="text-decoration: line-through"{/if}>
+    <td>
+        {$item->product ? $item->product->getFullCode() : $item->getFullCode()}
+									{if $item->product && $item->product->ean}<br><small>EAN: {$item->product->ean}</small>{/if}
+    </td>
+    <td>
+        <a n:tag-if="$admin->isAllowed(':Eshop:Admin:Product:default')" href="{plink :Eshop:Admin:Product:default, productGrid-code=>$item->productCode}" target="_blank">
+            <span n:class="$upsell ? ml-3 : null">{if $upsell}-- {/if}{$item->product ? $item->product->name : $item->productName}</span>
+        </a>
+        <i n:if="$item->note" title="{$item->note}" class="far fa-sticky-note"></i>
+    </td>
+    <td>{$packageItem->amount}</td>
+    <td>
+        {if $packageItem->store}{$packageItem->store->name}{/if}
+        <span n:if="$packageItem->status === 'waiting'" class="text-secondary"><i class="far fa-square"></i> Nepotrvzeno</span>
+        <span n:if="$packageItem->status === 'reserved'" class="text-success"><i class="fa fa-check"></i> Rezervováno</span>
+    </td>
+    <td style="text-align: right">
+        {$item->priceVat|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price|price} bez DPH</small>{/if}
+    </td>
+    <td style="text-align: right">
+        {$item->priceVat * $packageItem->amount|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price * $packageItem->amount|price} bez DPH</small>{/if}
+    </td>
+</tr>

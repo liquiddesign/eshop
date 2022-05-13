@@ -22,6 +22,7 @@ use League\Csv\Writer;
 use Messages\DB\TemplateRepository;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
+use Nette\Application\UI\Presenter;
 use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
@@ -242,7 +243,7 @@ class OrderGridFactory
 		$grid->addFilterDataSelect(function (Collection $source, $value): void {
 			$source->where('purchase.fk_paymentType', $value);
 		}, '', 'paymentType', null, $paymentTypes)->setPrompt('- Způsob platby -');
-		
+
 		if ($state === 'open') {
 			$stateReceived = $configuration['orderStates']['received'] ?? 'Přijmout';
 			$submit = $grid->getForm()->addSubmit('receiveMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateReceived))->setHtmlAttribute('class', $btnSecondary);
@@ -267,6 +268,20 @@ class OrderGridFactory
 			$submit->setHtmlAttribute('class', $btnSecondary);
 			$submit->onClick[] = [$this, 'cancelOrderMultiple'];
 		}
+
+		$grid->addBulkAction(
+			'printDetailMultiple',
+			'printDetailMultiple',
+			'<i class="fas fa-print"></i> Tisk',
+			'btn btn-outline-primary btn-sm',
+			function (Presenter $presenter, string $destination, array $ids): void {
+				if (\count($ids) === 0) {
+					$presenter->flashMessage('Žádné vybrané položky!', 'warning');
+
+					$presenter->redirect('this');
+				}
+			},
+		);
 
 		$submit = $grid->getForm()->addSubmit('exportZasilkovna', Html::fromHtml('<i class="fas fa-download"></i> Zásilkovna (CSV)'));
 		$submit->setHtmlAttribute('class', $btnSecondary);

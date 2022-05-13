@@ -1311,6 +1311,51 @@ class OrderPresenter extends BackendPresenter
 		//  window.print()
 	}
 
+	public function renderPrintDetailMultiple(array $ids): void
+	{
+		$this->template->headerLabel = 'Tisk objednávek';
+
+		$this->template->orders = $orders = $this->orderRepository->many()->where('this.uuid', $ids)->toArray();
+
+		$upsells = [];
+
+		foreach ($orders as $order) {
+			foreach ($order->packages as $package) {
+				foreach ($package->items->where('this.fk_upsell IS NULL') as $item) {
+					$upsells[$order->getPK()][$package->getPK()][$item->getPK()] = $this->packageItemRepository->many()->where('this.fk_upsell', $item->getPK())->toArray();
+				}
+			}
+		}
+
+		$this->template->upsells = $upsells;
+
+		$relations = [];
+
+		/** @var \Eshop\DB\RelatedType $relatedType */
+		foreach ($this->relatedTypeRepository->getSetTypes() as $relatedType) {
+			foreach ($orders as $order) {
+				/** @var \Eshop\DB\CartItem $item */
+				foreach ($order->purchase->getItems()->where('fk_product IS NOT NULL') as $item) {
+					$relations[$order->getPK()][$item->getValue('product')] = $this->productRepo->getSlaveRelatedProducts($relatedType, $item->getValue('product'))->toArray();
+				}
+			}
+		}
+
+		$this->template->relations = $relations;
+
+		$this->template->stores = $this->storeRepository->many();
+		$this->template->headerTree = [
+			['Objednávky', 'default'],
+			['Tisk'],
+		];
+
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayButtons[] =
+			'<a href="#" onclick="window.print();"><button class="btn btn-sm btn-primary"><i class="fas fa-print mr-1"></i> Tisk</button></a>';
+
+		$this->template->setFile(__DIR__ . '/templates/Order.printDetailMultiple.latte');
+	}
+
 	public function handleToggleDeleteOrderItem(string $itemId): void
 	{
 		/** @var \Eshop\DB\PackageItem $packageItem */
