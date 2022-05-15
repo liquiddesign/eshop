@@ -58,7 +58,7 @@ class CartItemRepository extends \StORM\Repository
 			->where('fk_variant', [$variant])
 			->update(['note' => $note]);
 	}
-
+	
 	public function getItems(array $cartIds): Collection
 	{
 		return clone $this->many()->where('fk_cart', $cartIds);
@@ -136,23 +136,28 @@ class CartItemRepository extends \StORM\Repository
 		
 		return (bool)$this->many()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->count() > 0;
 	}
-
+	
 	public function getUpsell($cartItem, $upsell): ?CartItem
 	{
 		/** @var \Eshop\DB\CartItem $cartItem */
 		$cartItem = $this->one($cartItem, true);
-
+		
 		/** @var \Eshop\DB\Product $upsell */
 		$upsell = $this->productRepository->one($upsell);
-
+		
 		return $this->getUpsellByObjects($cartItem, $upsell);
 	}
-
+	
 	public function getUpsellByObjects(CartItem $cartItem, Product $upsell): ?CartItem
 	{
 		return $this->many()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first();
 	}
-
+	
+	public function deleteUpsellByObjects(CartItem $cartItem, array $upsellIds): int
+	{
+		return $this->many()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsellIds)->delete();
+	}
+	
 	/**
 	 * @param \StORM\Collection<\Eshop\DB\CartItem> $items
 	 * @param \Eshop\DB\RelatedType $relatedType

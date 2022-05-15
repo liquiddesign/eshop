@@ -130,23 +130,29 @@ class CartItemList extends Datalist
 
 		$this->checkoutManager->changeItemAmount($cartItem->getProduct(), $cartItem->variant, $amount, false);
 	}
-
-	public function handleChangeUpsell($cartItem, $upsell): void
+	
+	public function handleChangeUpsell($cartItem, $upsell, bool $isUnique = false): void
 	{
 		/** @var \Eshop\DB\CartItem $cartItem */
 		$cartItem = $this->cartItemsRepository->one($cartItem, true);
-
+		
+		if ($isUnique) {
+			$upsellIds = \array_keys($this->productRepository->getCartItemRelations($cartItem));
+			$this->cartItemsRepository->deleteUpsellByObjects($cartItem, $upsellIds);
+		}
+		
 		$upsell = $this->productRepository->getCartItemRelations($cartItem)[$upsell];
-
+		
 		if ($this->isUpsellActive($cartItem->getPK(), $upsell->getPK())) {
-			/** @var \Eshop\DB\CartItem $cartItem */
 			$cartItem = $this->cartItemsRepository->getUpsellByObjects($cartItem, $upsell);
-
-			$this->checkoutManager->deleteItem($cartItem);
+			
+			if ($cartItem) {
+				$this->checkoutManager->deleteItem($cartItem);
+			}
 		} else {
 			$this->checkoutManager->addUpsellToCart($cartItem, $upsell);
 		}
-
+		
 		$this->redirect('this');
 	}
 
