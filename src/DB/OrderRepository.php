@@ -1363,14 +1363,15 @@ class OrderRepository extends \StORM\Repository
 		/** @var \Eshop\DB\ProductRepository $productRepository */
 		$productRepository = $this->getConnection()->findRepository(Product::class);
 
+		$topLevelItems = [];
 		$grouped = [];
 
 		/** @var \Eshop\DB\InvoiceItem $item */
 		foreach ($order->purchase->getItems() as $item) {
-			if (isset($grouped[$item->getFullCode()])) {
-				$grouped[$item->getFullCode()]->amount += $item->amount;
+			if (isset($topLevelItems[$item->getFullCode()])) {
+				$topLevelItems[$item->getFullCode()]->amount += $item->amount;
 			} else {
-				$grouped[$item->getFullCode()] = $item;
+				$topLevelItems[$item->getFullCode()] = $item;
 			}
 		}
 
@@ -1384,8 +1385,17 @@ class OrderRepository extends \StORM\Repository
 						$grouped[$related->slave->getFullCode()]->amount += $related->amount;
 					} else {
 						$grouped[$related->slave->getFullCode()] = $related;
+						unset($topLevelItems[$item->getFullCode()]);
 					}
 				}
+			}
+		}
+
+		foreach ($topLevelItems as $item) {
+			if (isset($grouped[$item->getFullCode()])) {
+				$grouped[$item->getFullCode()]->amount += $item->amount;
+			} else {
+				$grouped[$item->getFullCode()] = $item;
 			}
 		}
 

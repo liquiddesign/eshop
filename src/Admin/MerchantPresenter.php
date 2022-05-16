@@ -132,7 +132,7 @@ class MerchantPresenter extends BackendPresenter
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepository->getArrayForSelect());
 
 		if ($this::CONFIGURATIONS['customers']) {
-			$form->addDataMultiSelect('customers', 'Zákazníci', $this->customerRepository->getArrayForSelect());
+			$form->addMultiSelect2('customers', 'Zákazníci', $this->customerRepository->getArrayForSelect());
 		}
 
 		$form->addCheckbox('customersPermission', 'Oprávnění: Správa zákazníků');

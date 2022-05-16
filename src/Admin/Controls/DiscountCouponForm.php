@@ -44,7 +44,7 @@ class DiscountCouponForm extends Control
 		});
 
 		$form->addText('label', 'Popisek');
-		$form->addDataSelect('exclusiveCustomer', 'Jen pro zákazníka', $customerRepository->getArrayForSelect())->setPrompt('Žádný');
+		$form->addSelect2('exclusiveCustomer', 'Jen pro zákazníka', $customerRepository->getArrayForSelect())->setPrompt('Žádný');
 		$form->addText('discountPct', 'Sleva (%)')->addRule($form::FLOAT)->addRule([FormValidators::class, 'isPercent'], 'Hodnota není platné procento!');
 		$form->addInteger('usageLimit', 'Maximální počet použití')->setNullable()->addCondition($form::FILLED)->toggle('frm-couponsForm-usagesCount-toogle');
 		$form->addInteger('usagesCount', 'Aktuální počet použití')

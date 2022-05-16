@@ -46,7 +46,7 @@ class ApiGeneratorDiscountCouponForm extends Control
 		$form->addText('label', 'Popisek');
 		$form->addDatetime('validFrom', 'Platný od')->setNullable();
 		$form->addDatetime('validTo', 'Platný do')->setNullable();
-		$form->addDataSelect('exclusiveCustomer', 'Jen pro zákazníka', $customerRepository->getArrayForSelect())->setPrompt('Žádný');
+		$form->addSelect2('exclusiveCustomer', 'Jen pro zákazníka', $customerRepository->getArrayForSelect())->setPrompt('Žádný');
 		$form->addText('discountPct', 'Sleva (%)')->addRule($form::FLOAT)->addRule([FormValidators::class, 'isPercent'], 'Hodnota není platné procento!');
 		$form->addInteger('apiUsageLimit', 'Maximální počet použití')->setNullable();
 		$form->addInteger('apiUsagesCount', 'Aktuální počet použití')

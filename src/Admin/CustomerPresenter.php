@@ -421,7 +421,7 @@ class CustomerPresenter extends BackendPresenter
 		$form->addGroup('Nákup a preference');
 
 		if (isset($this::CONFIGURATIONS['branches']) && $this::CONFIGURATIONS['branches']) {
-			$form->addDataSelect('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->setPrompt('Žádná');
+			$form->addSelect2('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->setPrompt('Žádná');
 			$form->addSelect('orderPermission', 'Objednání', [
 				'fullWithApproval' => 'Pouze se schválením',
 				'full' => 'Povoleno',
@@ -665,7 +665,7 @@ class CustomerPresenter extends BackendPresenter
 		$callback = function (Form $form): void {
 			$form->addGroup('Oprávnění a zákazník');
 			$container = $form->addContainer('permission');
-			$container->addDataSelect('customer', 'Zákazník', $this->customerRepository->getArrayForSelect())->setPrompt('-Zvolte-')->setRequired();
+			$container->addSelect2('customer', 'Zákazník', $this->customerRepository->getArrayForSelect())->setPrompt('-Zvolte-')->setRequired();
 			$catalogInput = $container->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setDefaultValue('price');
 
 			$catalogInput->addCondition($form::EQUAL, 'price')

@@ -268,9 +268,12 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                 </div>
                 <!-- /.row -->
             </div>
-                </div>
-            {/foreach}
+
+            {ifset $customContentBlocks}
+                {$customContentBlocks[$order->getPK()]|noescape}
+            {/ifset}
         </div>
+    {/foreach}
     </section>
 
 {/define}
