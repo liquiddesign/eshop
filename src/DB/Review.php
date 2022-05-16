@@ -35,6 +35,11 @@ class Review extends \StORM\Entity
 	 * @column
 	 */
 	public int $remindersSentCount = 0;
+	
+	/**
+	 * @column
+	 */
+	public ?bool $recommends;
 
 	/**
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
@@ -57,6 +62,12 @@ class Review extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Customer $customer;
+	
+	/**
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public ?Order $order;
 
 	public function isReviewed(): bool
 	{
