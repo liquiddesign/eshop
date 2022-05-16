@@ -52,6 +52,7 @@ class IntegrationPresenter extends BackendPresenter
 			'@default' => 'Měření a nástroje',
 			'@zasilkovna' => 'Zásilkovna',
 			'@mailerLite' => 'MailerLite',
+			'@heureka' => 'Heureka',
 			'@algolia' => 'Algolia',
 		];
 		
@@ -111,6 +112,14 @@ class IntegrationPresenter extends BackendPresenter
 		};
 		
 		return $form;
+	}
+	
+	public function actionHeureka(): void
+	{
+		/** @var \Admin\Controls\AdminForm $form */
+		$form = $this->getComponent('heurekaForm');
+		
+		$form->setDefaults($this->settingsRepo->many()->setIndex('name')->toArrayOf('value'));
 	}
 	
 	public function actionZasilkovna(): void
@@ -231,6 +240,27 @@ class IntegrationPresenter extends BackendPresenter
 		return $form;
 	}
 	
+	public function createComponentHeurekaForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+		$form->addText('heurekaApiKey', 'API klíč')->setNullable();
+		
+		$form->addSubmit('submit', 'Uložit');
+		
+		$form->onSuccess[] = function (AdminForm $form): void {
+			$values = $form->getValues('array');
+			
+			foreach ($values as $key => $value) {
+				$this->settingsRepo->syncOne(['name' => $key, 'value' => $value]);
+			}
+			
+			$this->flashMessage('Nastavení uloženo', 'success');
+			$form->processRedirect('heureka');
+		};
+		
+		return $form;
+	}
+	
 	public function createComponentAlgoliaForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
@@ -264,6 +294,17 @@ class IntegrationPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('supportboxForm')];
+	}
+	
+	public function renderHeureka(): void
+	{
+		$this->template->headerLabel = 'Integrace';
+		$this->template->headerTree = [
+			['Integrace'],
+			['Heureka'],
+		];
+		$this->template->displayButtons = [];
+		$this->template->displayControls = [$this->getComponent('heurekaForm')];
 	}
 	
 	public function renderTargito(): void
