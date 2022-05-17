@@ -27,6 +27,12 @@ use StORM\SchemaManager;
  */
 class OrderRepository extends \StORM\Repository
 {
+	/** @var array<callable(\Eshop\DB\Order): bool> */
+	public array $onBeforeOrderReceived = [];
+
+	/** @var array<callable(\Eshop\DB\Order): bool> */
+	public array $onBeforeOrderCompleted = [];
+
 	/** @var array<callable(\Eshop\DB\Order): void> */
 	public array $onOrderReceived = [];
 
@@ -1127,6 +1133,10 @@ class OrderRepository extends \StORM\Repository
 
 	public function receiveOrder(Order $order, ?Administrator $administrator = null): void
 	{
+		if (\in_array(false, Arrays::invoke($this->onBeforeOrderReceived, $order), true)) {
+			return;
+		}
+
 		$order->update(['receivedTs' => (string)new DateTime(), 'canceledTs' => null]);
 
 		Arrays::invoke($this->onOrderReceived, $order);
@@ -1136,6 +1146,10 @@ class OrderRepository extends \StORM\Repository
 
 	public function completeOrder(Order $order, ?Administrator $administrator = null): void
 	{
+		if (\in_array(false, Arrays::invoke($this->onBeforeOrderCompleted, $order), true)) {
+			return;
+		}
+
 		if ($order->canceledTs === null) {
 			foreach ($order->purchase->getItems() as $item) {
 				if (!$item->product) {
@@ -1161,7 +1175,10 @@ class OrderRepository extends \StORM\Repository
 
 	public function cancelOrder(Order $order, ?Administrator $administrator = null): void
 	{
-		$order->update(['canceledTs' => (string)new DateTime()]);
+		$order->update([
+			'receivedTs' => $order->receivedTs ?: (string)new DateTime(),
+			'canceledTs' => (string)new DateTime(),
+		]);
 
 		Arrays::invoke($this->onOrderCanceled, $order);
 

@@ -245,6 +245,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function createComponentDeliveryForm(): Form
 	{
+		/** @var \Eshop\DB\Order|null $order */
 		$order = $this->getParameter('order') ?: $this->getParameter('delivery')->order;
 
 		$form = $this->formFactory->create();
@@ -271,6 +272,10 @@ class OrderPresenter extends BackendPresenter
 			$values['typeName'] = $type['name'];
 
 			$delivery = $this->deliveryRepository->syncOne($values);
+
+			if ($order) {
+				$order->purchase->update(['deliveryType' => $values['type']]);
+			}
 
 			/** @var \Admin\DB\Administrator|null $admin */
 			$admin = $this->admin->getIdentity();
@@ -355,6 +360,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function createComponentPaymentForm(): Form
 	{
+		/** @var \Eshop\DB\Order|null $order */
 		$order = $this->getParameter('order') ?: $this->getParameter('payment')->order;
 
 		$form = $this->formFactory->create();
@@ -379,6 +385,10 @@ class OrderPresenter extends BackendPresenter
 			$values['typeName'] = $type['name'];
 
 			$payment = $this->paymentRepository->syncOne($values);
+
+			if ($order) {
+				$order->purchase->update(['paymentType' => $values['type']]);
+			}
 
 			/** @var \Admin\DB\Administrator|null $admin */
 			$admin = $this->admin->getIdentity();
