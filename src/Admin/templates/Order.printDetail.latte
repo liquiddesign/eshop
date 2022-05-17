@@ -220,8 +220,8 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
 
                         <p class="lead mt-4">Platební metoda:</p>
                         <div class="d-flex align-items-center">
-                            <img n:if="$purchase->paymentType->imageFileName" src="{$userUrl|noescape}/paymenttype_images/thumb/{$purchase->paymentType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
-                            {$purchase->paymentType ? $purchase->paymentType->name : null} - {$payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
+                            <img n:if="$purchase->paymentType && $purchase->paymentType->imageFileName" src="{$userUrl|noescape}/paymenttype_images/thumb/{$purchase->paymentType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
+                            {$purchase->paymentType ? $purchase->paymentType->name : null} - {$purchase->paymentType && $payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
                             <a class="ml-2 d-print-none" n:href="payment $order">Změnit</a>
                         </div>
 
