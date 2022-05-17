@@ -77,7 +77,7 @@ class ProductGridFactory
 				'commentCount' => 'COUNT(DISTINCT comment.uuid)',
 				'priceCount' => 'COUNT(DISTINCT price.uuid)',
 				'categoryCount' => 'COUNT(DISTINCT nxnCategory.fk_category)',
-				'pricelistActive' => 'pricelist.isActive',
+				'pricelistActive' => 'MAX(pricelist.isActive)',
 			]);
 
 		$grid = $this->gridFactory->create($source, 20, 'this.priority', 'ASC', true);
@@ -89,14 +89,14 @@ class ProductGridFactory
 			} elseif ($object->getValue('priceCount') === '0') {
 				$label = 'Neviditelný: Bez ceny';
 				$color = 'danger';
+			} elseif ($object->getValue('pricelistActive') === '0') {
+				$label = 'Neviditelný: Žádné aktivní ceny';
+				$color = 'danger';
 			} elseif ($object->unavailable) {
 				$label = 'Viditelný: Neprodejný';
 				$color = 'warning';
 			} elseif ($object->getValue('categoryCount') === '0') {
 				$label = 'Viditelný: Bez kategorie';
-				$color = 'warning';
-			} elseif ($object->getValue('pricelistActive') === '0') {
-				$label = 'Viditelný: Neaktivní ceník u některé ceny';
 				$color = 'warning';
 			} else {
 				$label = 'Viditelný';
