@@ -110,7 +110,14 @@ class InvoicesPresenter extends BackendPresenter
 		$form->addDate('exposed', 'Datum vystavení')->setRequired();
 		$form->addDate('taxDate', 'Datum zdanitelného plnění')->setRequired();
 		$form->addDate('dueDate', 'Datum splatnosti')->setRequired();
-		$form->addSelect2('order', 'Objednávka', $this->orderRepository->many()->orderBy(['this.createdTs' => 'DESC'])->toArrayOf('code'))->setRequired()->setDisabled((bool) $invoice);
+
+		$input = $form->addSelect2('order', 'Objednávka', $this->orderRepository->many()->orderBy(['this.createdTs' => 'DESC'])->toArrayOf('code'))->setRequired()->setDisabled((bool) $invoice);
+
+		if ($invoice && $invoice->orders->count() === 0) {
+			$input->setPrompt('Objednávka smazána!');
+			$input->setHtmlAttribute('data-info', 'Objednávka přiřazená k teté faktuře již neexistuje. Tato faktura je neplatná!');
+		}
+
 		$form->addSelect2('paymentType', 'Typ úhrady', $this->paymentTypeRepository->getArrayForSelect())->setPrompt('- Z objednávky -')->setDisabled((bool) $invoice);
 		$form->addText('variableSymbol', 'Variabilní symbol pro platbu')->setNullable();
 		$form->addText('constantSymbol', 'Konstantní symbol pro platbu')->setNullable();
