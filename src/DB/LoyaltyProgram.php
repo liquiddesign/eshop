@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Eshop\Common\DB\SystemicEntity;
 use StORM\RelationCollection;
 
 /**
  * Věrnostní program
  * @table
  */
-class LoyaltyProgram extends \StORM\Entity
+class LoyaltyProgram extends SystemicEntity
 {
 	/**
 	 * Název

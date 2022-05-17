@@ -293,10 +293,69 @@ class ProductRepository extends Repository implements IGeneralRepository
 			->first();
 
 		if ($discountLevel) {
-			return $discountLevel->discountLevel > $customer->discountLevelPct ? $discountLevel->discountLevel : $customer->discountLevelPct;
+			return \max($discountLevel->discountLevel, $customer->discountLevelPct);
 		}
 
 		return $customer->discountLevelPct;
+	}
+
+	public function getCurrentDiscountThreshold(Customer $customer): ?float
+	{
+		$loyaltyProgram = $customer->loyaltyProgram;
+
+		if ($loyaltyProgram === null || $loyaltyProgram->isActive() === false) {
+			return null;
+		}
+
+		$customerTurnover = $this->orderRepository->getCustomerTotalTurnover($customer, $loyaltyProgram->turnoverFrom ? new DateTime($loyaltyProgram->turnoverFrom) : null, new DateTime());
+
+		/** @var \Eshop\DB\LoyaltyProgramDiscountLevel|null $discountLevel */
+		$discountLevel = $this->loyaltyProgramDiscountLevelRepository->many()
+			->where('this.fk_loyaltyProgram', $loyaltyProgram->getPK())
+			->where('this.priceThreshold <= :turnover', ['turnover' => (string)$customerTurnover])
+			->orderBy(['this.discountLevel' => 'DESC'])
+			->first();
+
+		if ($discountLevel) {
+			return $discountLevel->priceThreshold;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Get next best discount level - only works if customer has loyalty program
+	 * @param \Eshop\DB\Customer $customer
+	 * @return array<int|float>|null Returns array of 2 elements - NextDiscountLevel and NextDiscountThreshold [0 => int, 1 => float]
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function getNextBestDiscountLevel(Customer $customer): ?array
+	{
+		$loyaltyProgram = $customer->loyaltyProgram;
+
+		if ($loyaltyProgram === null || $loyaltyProgram->isActive() === false) {
+			return null;
+		}
+
+		$currentBestDiscountLevel = $this->getBestDiscountLevel($customer);
+
+		$customerTurnover = $this->orderRepository->getCustomerTotalTurnover($customer, $loyaltyProgram->turnoverFrom ? new DateTime($loyaltyProgram->turnoverFrom) : null, new DateTime());
+
+		/** @var \Eshop\DB\LoyaltyProgramDiscountLevel|null $discountLevel */
+		$discountLevel = $this->loyaltyProgramDiscountLevelRepository->many()
+			->where('this.fk_loyaltyProgram', $loyaltyProgram->getPK())
+			->where('this.priceThreshold >= :turnover', ['turnover' => (string)$customerTurnover])
+			->orderBy(['this.discountLevel' => 'ASC'])
+			->first();
+
+		if ($discountLevel) {
+			return [
+				\max($currentBestDiscountLevel, $discountLevel->discountLevel),
+				$discountLevel->priceThreshold,
+			];
+		}
+
+		return null;
 	}
 
 	/**

@@ -28,12 +28,18 @@ class LoyaltyProgramRepository extends \StORM\Repository implements IGeneralRepo
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		return $this->getCollection($includeHidden)->toArrayOf('name');
+		$mutationSuffix = $this->getConnection()->getMutationSuffix();
+
+		return $this->getCollection($includeHidden)
+			->select(['fullName' => "IF(this.systemicLock > 0, CONCAT(name$mutationSuffix, ' (systémový)'), name$mutationSuffix)"])
+			->toArrayOf('fullName');
 	}
 
 	public function getLevelsByProgram(LoyaltyProgram $loyaltyProgram): Collection
 	{
-		return $this->loyaltyProgramDiscountLevelRepository->many()->where('this.fk_loyaltyProgram', $loyaltyProgram->getPK());
+		return $this->loyaltyProgramDiscountLevelRepository->many()
+			->orderBy(['this.discountLevel' => 'ASC'])
+			->where('this.fk_loyaltyProgram', $loyaltyProgram->getPK());
 	}
 	
 	public function getCollection(bool $includeHidden = false): Collection
