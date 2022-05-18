@@ -56,6 +56,7 @@ class SupplierCategory extends \StORM\Entity
 	/**
 	 * Mapování kategorií, jestli je zadáno
 	 * @relation
+	 * @deprecated
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?ParameterCategory $parameterCategory;
