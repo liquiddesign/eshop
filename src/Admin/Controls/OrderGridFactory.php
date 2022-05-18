@@ -301,6 +301,7 @@ class OrderGridFactory
 
 		if ($this->dpd) {
 			$grid->addBulkAction('sendDPD', 'sendDPD', '<i class="fas fa-paper-plane"></i> DPD');
+//			$grid->addBulkAction('printDPD', 'printDPD', '<i class="fas fa-print"></i> DPD');
 		}
 
 		return $grid;

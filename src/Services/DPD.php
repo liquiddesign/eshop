@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Eshop\Services;
 
 use Eshop\Providers\Helpers;
+use Nette\Application\Application;
+use Nette\DI\Container;
+use Nette\Utils\FileSystem;
 use StORM\Collection;
 use Web\DB\SettingRepository;
 
@@ -27,6 +30,10 @@ class DPD
 
 	private SettingRepository $settingRepository;
 
+	private Container $container;
+
+	private Application $application;
+
 	public function __construct(
 		string $url,
 		string $login,
@@ -34,7 +41,9 @@ class DPD
 		string $idCustomer,
 		string $idAddress,
 		string $labelPrintType = 'PDF',
-		?SettingRepository $settingRepository = null
+		?SettingRepository $settingRepository = null,
+		?Container $container = null,
+		?Application $application = null
 	) {
 		$this->url = $url;
 		$this->login = $login;
@@ -43,6 +52,8 @@ class DPD
 		$this->idAddress = $idAddress;
 		$this->settingRepository = $settingRepository;
 		$this->labelPrintType = $labelPrintType;
+		$this->container = $container;
+		$this->application = $application;
 	}
 
 	public function getDPDDeliveryTypePK(): ?string
@@ -55,7 +66,7 @@ class DPD
 	 * @param \StORM\Collection<\Eshop\DB\Order> $orders
 	 * @throws \Exception
 	 */
-	public function syncOrders(Collection $orders): ?\stdClass
+	public function syncOrders(Collection $orders): bool
 	{
 		$client = $this->getClient();
 
@@ -68,16 +79,14 @@ class DPD
 		$dpdCodType = $this->settingRepository->getValueByName('codType');
 
 		try {
-			$request = [
-				'NewShipment' => [
+			/** @var \Eshop\DB\Order $order */
+			foreach ($orders as $order) {
+				$request = [
 					'login' => $this->login,
 					'password' => $this->password,
 					'_ShipmentDetailVO' => [],
-				],
-			];
+				];
 
-			/** @var \Eshop\DB\Order $order */
-			foreach ($orders as $order) {
 				$deliveryType = $order->purchase->deliveryType;
 
 				if (!$deliveryType || $deliveryType->getPK() !== $dpdDeliveryType) {
@@ -88,8 +97,8 @@ class DPD
 				$deliveryAddress = $purchase->deliveryAddress ?? $purchase->billAddress;
 
 				$newShipmentVO = [
-					'ID_Customer' => (int) $this->idCustomer,
-					'ID_Customer_Address' => (int) $this->idAddress,
+					'ID_Customer' => $this->idCustomer,
+					'ID_Customer_Address' => $this->idAddress,
 					'REF1' => $order->code,
 					'Receiver' => [
 						'RNAME1' => $purchase->fullname,
@@ -97,16 +106,15 @@ class DPD
 						'RCITY' => $deliveryAddress ? $deliveryAddress->city : '',
 						'RPOSTAL' => $deliveryAddress ? $deliveryAddress->zipcode : '',
 						'RCOUNTRY' => $deliveryAddress && $deliveryAddress->state ? $deliveryAddress->state : 'CZ',
-						'RCONTACT' => $purchase->fullname,
 						'RPHONE' => $purchase->phone,
 						'REMAIL' => $purchase->email,
 					],
-					'Parcel_References_and_insurance' => [
-						'REF1' => $order->code,
+					'Parcel_References_and_Insurance' => [
+						['REF1' => $order->code,],
 					],
 				];
 
-				if ($dpdCodType) {
+				if ($dpdCodType && $order->purchase->paymentType && $order->purchase->paymentType->getPK() === $dpdCodType) {
 					$newShipmentVO['Additional_Services'] = [
 						'COD' => (string) $order->getTotalPriceVat(),
 						'CURRENCY' => $order->purchase->currency->code,
@@ -115,20 +123,26 @@ class DPD
 					];
 				}
 
-				$request['NewShipment']['_ShipmentDetailVO'][] = $newShipmentVO;
+				$request['_ShipmentDetailVO'][] = $newShipmentVO;
+
+				\bdump($request);
+
+				$result = $client->NewShipment($request);
+
+				\bdump($result);
+
+				/** @codingStandardsIgnoreStart */
+				if ($result = ($result->NewShipmentResult->NewShipmentResultVO->ParcelVO->PARCELNO ?? null)) {
+					$order->update(['dpdCode' => $result]);
+				}
+				/** @codingStandardsIgnoreEnd */
 			}
 
-			\bdump($request);
-
-			$result = (array) $client->__soapCall('NewShipment', $request);
-
-			\bdump($result);
-
-			return $result['NewShipmentResult'];
+			return true;
 		} catch (\Throwable $e) {
 			\bdump($e);
 
-			return null;
+			return false;
 		}
 	}
 
@@ -137,7 +151,7 @@ class DPD
 	 * @param \StORM\Collection<\Eshop\DB\Order> $orders
 	 * @param string|null $printType
 	 */
-	public function getLabels(Collection $orders, ?string $printType = null): ?\stdClass
+	public function getLabels(Collection $orders, ?string $printType = null): ?string
 	{
 		$client = $this->getClient();
 
@@ -148,19 +162,41 @@ class DPD
 		}
 
 		try {
-			$result = (array) $client->__soapCall('GetLabel', array(
-				'GetLabel' => array (
-					'login' => $this->login,
-					'password' => $this->password,
-					'type' => $printType ?? $this->labelPrintType,
-					'parcelno' => $ids,
-				)
-			));
+			$result = $client->GetLabel([
+				'login' => $this->login,
+				'password' => $this->password,
+				'type' => $printType ?? $this->labelPrintType,
+				'parcelno' => $ids,
+			]);
 
 			\bdump($result);
 
-			return $result['GetCustomerDSWResult'];
+			/** @codingStandardsIgnoreStart */
+			$result = $result->GetLabelResult->LabelVO;
+			/** @codingStandardsIgnoreEnd */
+
+			/** @TODO */
+			foreach ($result as $item) {
+				$dir = $this->container->getParameters()['tempDir'] . '/pdfs/';
+				FileSystem::createDir($dir);
+
+				$filename = $tempName = \tempnam($dir, 'dpd_');
+
+				$this->application->onShutdown[] = function () use ($filename): void {
+					if (!\is_file($filename)) {
+						return;
+					}
+
+					FileSystem::delete($filename);
+				};
+
+				FileSystem::write($filename, \base64_decode($item->BASE64));
+			}
+
+			return 'true';
 		} catch (\Throwable $e) {
+			\bdump($e);
+
 			return null;
 		}
 	}

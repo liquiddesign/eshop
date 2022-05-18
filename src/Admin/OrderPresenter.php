@@ -1579,6 +1579,18 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('dpdSendForm')];
 	}
 
+	public function renderPrintDPD(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Tisk DPD štítků';
+		$this->template->headerTree = [
+			['Objednávky', 'default',],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('dpdPrintForm')];
+	}
+
 	public function renderExportTargito(array $ids): void
 	{
 		unset($ids);
@@ -1660,6 +1672,15 @@ class OrderPresenter extends BackendPresenter
 			$sync = $this->dpd->syncOrders($collection);
 
 			$this->flashMessage($sync ? 'Provedeno' : 'Chyba odesílání!', $sync ? 'success' : 'error');
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
+	}
+
+	public function createComponentDpdPrintForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
+			$sync = $this->dpd->getLabels($collection);
+
+			$this->flashMessage($sync ? 'Provedeno' : 'Chyba tisku!', $sync ? 'success' : 'error');
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
 	}
 
