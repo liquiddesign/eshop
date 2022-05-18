@@ -114,8 +114,14 @@ class ProductGridFactory
 		$grid->addColumn('Název', function (Product $product, $grid) {
 			$suppliers = [];
 
+			$productSuppliers = $product->supplierProducts->toArray();
+
+			if ($product->supplierSource && !isset($productSuppliers[$product->getValue('supplierSource')])) {
+				$suppliers[] = "<a href='#' class='badge badge-light' style='font-weight: normal;'>" . $product->supplierSource->name . '</a>';
+			}
+
 			/** @var \Eshop\DB\SupplierProduct $supplierProduct */
-			foreach ($product->supplierProducts as $supplierProduct) {
+			foreach ($productSuppliers as $supplierProduct) {
 				$supplier = $supplierProduct->getValue('supplier');
 				$code = $supplierProduct->code;
 				$link = $grid->getPresenter()->link(':Eshop:Admin:SupplierProduct:default', ['tab' => $supplier, 'grid-search' => $code]);
