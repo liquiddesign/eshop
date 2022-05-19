@@ -190,6 +190,10 @@ class DPD
 			$dir = $this->container->getParameters()['tempDir'] . '/pdfs/';
 			FileSystem::createDir($dir);
 
+			if (!\is_array($result)) {
+				$result = [$result];
+			}
+
 			foreach ($result as $item) {
 				$filename = \tempnam($dir, 'dpd');
 
