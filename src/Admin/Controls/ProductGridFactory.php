@@ -114,7 +114,7 @@ class ProductGridFactory
 		$grid->addColumn('Název', function (Product $product, $grid) {
 			$suppliers = [];
 
-			$productSuppliers = $product->supplierProducts->toArray();
+			$productSuppliers = $product->supplierProducts->setIndex('this.fk_supplier')->toArray();
 
 			if ($product->supplierSource && !isset($productSuppliers[$product->getValue('supplierSource')])) {
 				$suppliers[] = "<a href='#' class='badge badge-light' style='font-weight: normal;'>" . $product->supplierSource->name . '</a>';
