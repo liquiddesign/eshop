@@ -1678,9 +1678,15 @@ class OrderPresenter extends BackendPresenter
 	public function createComponentDpdPrintForm(): AdminForm
 	{
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
-			$sync = $this->dpd->getLabels($collection);
+			$filename = $this->dpd->getLabels($collection);
 
-			$this->flashMessage($sync ? 'Provedeno' : 'Chyba tisku!', $sync ? 'success' : 'error');
+			$this->flashMessage($filename ? 'Provedeno' : 'Chyba tisku!', $filename ? 'success' : 'error');
+
+			if (!$filename) {
+				return;
+			}
+
+			$this->sendResponse(new FileResponse($filename, 'labels.pdf', 'application/pdf'));
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
 	}
 

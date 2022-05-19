@@ -9,6 +9,8 @@ use Nette\Application\Application;
 use Nette\DI\Container;
 use Nette\Utils\FileSystem;
 use StORM\Collection;
+use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\DB\SettingRepository;
 
 /**
@@ -175,12 +177,13 @@ class DPD
 			$result = $result->GetLabelResult->LabelVO;
 			/** @codingStandardsIgnoreEnd */
 
-			/** @TODO */
-			foreach ($result as $item) {
-				$dir = $this->container->getParameters()['tempDir'] . '/pdfs/';
-				FileSystem::createDir($dir);
+			$pdf = new \Jurosh\PDFMerge\PDFMerger();
 
-				$filename = $tempName = \tempnam($dir, 'dpd_');
+			$dir = $this->container->getParameters()['tempDir'] . '/pdfs/';
+			FileSystem::createDir($dir);
+
+			foreach ($result as $item) {
+				$filename = \tempnam($dir, 'dpd');
 
 				$this->application->onShutdown[] = function () use ($filename): void {
 					if (!\is_file($filename)) {
@@ -191,10 +194,25 @@ class DPD
 				};
 
 				FileSystem::write($filename, \base64_decode($item->BASE64));
+
+				$pdf->addPDF($filename);
 			}
 
-			return 'true';
+			$filename = \tempnam($dir, 'dpd');
+
+			$this->application->onShutdown[] = function () use ($filename): void {
+				if (!\is_file($filename)) {
+					return;
+				}
+
+				FileSystem::delete($filename);
+			};
+
+			$pdf->merge('file', $filename);
+
+			return $filename;
 		} catch (\Throwable $e) {
+			Debugger::log($e, ILogger::ERROR);
 			\bdump($e);
 
 			return null;
