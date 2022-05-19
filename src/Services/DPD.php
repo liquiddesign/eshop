@@ -83,6 +83,10 @@ class DPD
 		try {
 			/** @var \Eshop\DB\Order $order */
 			foreach ($orders as $order) {
+				if ($order->dpdCode) {
+					continue;
+				}
+
 				$request = [
 					'login' => $this->login,
 					'password' => $this->password,
@@ -102,6 +106,7 @@ class DPD
 					'ID_Customer' => $this->idCustomer,
 					'ID_Customer_Address' => $this->idAddress,
 					'REF1' => $order->code,
+					'REF3' => $order->code,
 					'Receiver' => [
 						'RNAME1' => $purchase->fullname,
 						'RSTREET' => $deliveryAddress ? $deliveryAddress->street : '',
@@ -112,13 +117,16 @@ class DPD
 						'REMAIL' => $purchase->email,
 					],
 					'Parcel_References_and_Insurance' => [
-						['REF1' => $order->code,],
+						[
+							'REF1' => $order->code,
+							'REF3' => $order->code,
+						],
 					],
 				];
 
 				if ($dpdCodType && $order->purchase->paymentType && $order->purchase->paymentType->getPK() === $dpdCodType) {
 					$newShipmentVO['Additional_Services'] = [
-						'COD' => (string) $order->getTotalPriceVat(),
+						'COD' => (string) \number_format($order->getTotalPriceVat(), 2, '.', ''),
 						'CURRENCY' => $order->purchase->currency->code,
 						'PAYMENT' => 1,
 						'PURPOSE' => $order->code,
@@ -224,14 +232,10 @@ class DPD
 		$client = $this->getClient();
 
 		try {
-			$result = (array) $client->__soapCall('GetCustomerDSW', array(
-				'GetCustomerDSW' => array (
-					'login' => $this->login,
-					'password' => $this->password,
-				)
-			));
-
-			return $result['GetCustomerDSWResult'];
+			return $client->GetCustomerDSW([
+				'login' => $this->login,
+				'password' => $this->password,
+			]);
 		} catch (\Throwable $e) {
 			return null;
 		}
