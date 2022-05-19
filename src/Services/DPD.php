@@ -80,9 +80,11 @@ class DPD
 
 		$dpdCodType = $this->settingRepository->getValueByName('codType');
 
-		try {
-			/** @var \Eshop\DB\Order $order */
-			foreach ($orders as $order) {
+		$error = false;
+
+		/** @var \Eshop\DB\Order $order */
+		foreach ($orders as $order) {
+			try {
 				if ($order->dpdCode) {
 					continue;
 				}
@@ -126,7 +128,7 @@ class DPD
 
 				if ($dpdCodType && $order->purchase->paymentType && $order->purchase->paymentType->getPK() === $dpdCodType) {
 					$newShipmentVO['Additional_Services'] = [
-						'COD' => (string) \number_format($order->getTotalPriceVat(), 2, '.', ''),
+						'COD' => (string)\number_format($order->getTotalPriceVat(), 2, '.', ''),
 						'CURRENCY' => $order->purchase->currency->code,
 						'PAYMENT' => 1,
 						'PURPOSE' => $order->code,
@@ -142,18 +144,19 @@ class DPD
 				\bdump($result);
 
 				/** @codingStandardsIgnoreStart */
-				if ($result = ($result->NewShipmentResult->NewShipmentResultVO->ParcelVO->PARCELNO ?? null)) {
+				if ($result = $result->NewShipmentResult->NewShipmentResultVO->ParcelVO->PARCELNO) {
+					/** @codingStandardsIgnoreEnd */
 					$order->update(['dpdCode' => $result]);
+				} else {
+					$error = true;
 				}
-				/** @codingStandardsIgnoreEnd */
+
+			} catch (\Throwable $e) {
+				$error = true;
 			}
-
-			return true;
-		} catch (\Throwable $e) {
-			\bdump($e);
-
-			return false;
 		}
+
+		return !$error;
 	}
 
 	/**
