@@ -76,6 +76,7 @@ class AddressesForm extends Form
 		// address delivery
 		$deliveryAddressBox = $this->addContainer('deliveryAddress');
 		$deliveryAddressBox->addText('name', 'AddressesForm.delivery_name')->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired();
+		$deliveryAddressBox->addText('companyName', 'AddressesForm.delivery_companyName')->setNullable();
 		$deliveryAddressBox->addText('street', 'AddressesForm.delivery_street')->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired();
 		$deliveryAddressBox->addText('city', 'AddressesForm.delivery_city')->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired();
 		$deliveryAddressBox->addText('zipcode', 'AddressesForm.delivery_zipcode')->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired()

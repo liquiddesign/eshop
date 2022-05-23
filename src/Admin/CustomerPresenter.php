@@ -489,6 +489,7 @@ class CustomerPresenter extends BackendPresenter
 		$form->addGroup('Doručovací adresa');
 		$deliveryAddress = $form->addContainer('deliveryAddress');
 		$deliveryAddress->addText('name', ' Jméno a příjmení / název firmy');
+		$deliveryAddress->addText('companyName', ' Název firmy');
 		$deliveryAddress->addText('street', 'Ulice');
 		$deliveryAddress->addText('city', 'Město');
 		$deliveryAddress->addText('zipcode', 'PSČ');

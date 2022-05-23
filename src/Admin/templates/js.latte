@@ -68,8 +68,10 @@
                 <div class="col-sm-4 invoice-col">
                     <p class="lead mb-1">Dodací adresa</p>
                     <address n:if="$deliveryAddress" class="mt-2">
-                        {$deliveryAddress->street},<br>
-                                {$deliveryAddress->zipcode} {$deliveryAddress->city}<br>
+                        {if $deliveryAddress->name}{$deliveryAddress->name}<br>{/if}
+                        {if $deliveryAddress->companyName}{$deliveryAddress->companyName}<br>{/if}
+                        {$deliveryAddress->street}<br>
+                        {$deliveryAddress->zipcode} {$deliveryAddress->city}<br>
                     </address>
                     <address n:if="!$deliveryAddress" class="">
                         <i>Stejná jako fakturační</i>

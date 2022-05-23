@@ -17,6 +17,12 @@ class Address extends \StORM\Entity
 	public ?string $name = null;
 
 	/**
+	 * Název firmy
+	 * @column
+	 */
+	public ?string $companyName = null;
+
+	/**
 	 * Poznámka
 	 * @column{"type":"text"}
 	 */

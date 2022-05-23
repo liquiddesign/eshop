@@ -65,7 +65,8 @@ class ProfileForm extends \Nette\Application\UI\Form
 
 		$this->addGroup('Doručovací adresa');
 		$deliveryAddressBox = $this->addContainer('deliveryAddress');
-		$deliveryAddressBox->addText('name', 'deliveryAddress.street')->setRequired();
+		$deliveryAddressBox->addText('name', 'deliveryAddress.name')->setRequired();
+		$deliveryAddressBox->addText('companyName', 'deliveryAddress.companyName')->setNullable();
 		$deliveryAddressBox->addText('street', 'deliveryAddress.street')->setRequired();
 		$deliveryAddressBox->addText('city', 'deliveryAddress.city')->setRequired();
 		$deliveryAddressBox->addText('zipcode', 'deliveryAddress.zipcode')->setRequired()
