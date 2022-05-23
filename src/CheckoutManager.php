@@ -427,12 +427,12 @@ class CheckoutManager
 
 		$this->itemRepository->syncItem($this->getCart(), $item, $product, $variant, $amount);
 	}
-
+	
 	/**
 	 * @param \Eshop\DB\Product $product
 	 * @param \Eshop\DB\Variant|null $variant
 	 * @param int $amount
-	 * @param bool $replaceMode
+	 * @param ?bool $replaceMode true - replace | false - add or update | null - only add
 	 * @param ?bool $checkInvalidAmount
 	 * @param ?bool $checkCanBuy
 	 * @param \Eshop\DB\Cart|null $cart
@@ -443,7 +443,7 @@ class CheckoutManager
 		Product $product,
 		?Variant $variant = null,
 		int $amount = 1,
-		bool $replaceMode = false,
+		?bool $replaceMode = false,
 		?bool $checkInvalidAmount = true,
 		?bool $checkCanBuy = true,
 		?Cart $cart = null
@@ -451,44 +451,44 @@ class CheckoutManager
 		if (!$this->checkCurrency($product)) {
 			throw new BuyException('Invalid currency', BuyException::INVALID_CURRENCY);
 		}
-
+		
 		if ($checkCanBuy !== false && !$this->shopper->getBuyPermission()) {
 			throw new BuyException('Permission denied', BuyException::PERMISSION_DENIED);
 		}
-
+		
 		$disabled = false;
-
+		
 		if ($checkCanBuy !== false && !$this->canBuyProduct($product)) {
 			if ($checkCanBuy === true) {
 				throw new BuyException('Product is not for sell', BuyException::NOT_FOR_SELL);
 			}
-
+			
 			$disabled = true;
 		}
-
+		
 		if ($checkInvalidAmount !== false && !$this->checkAmount($product, $amount)) {
 			if ($checkInvalidAmount === true) {
 				throw new BuyException('Invalid amount', BuyException::INVALID_AMOUNT);
 			}
-
+			
 			$disabled = true;
 		}
-
-		if ($item = $this->itemRepository->getItem($cart ?? $this->getCart(), $product, $variant)) {
+		
+		if ($replaceMode !== null && $item = $this->itemRepository->getItem($cart ?? $this->getCart(), $product, $variant)) {
 			$this->changeItemAmount($product, $variant, $replaceMode ? $amount : $item->amount + $amount, $checkInvalidAmount, $cart);
-
+			
 			if ($this->onCartItemCreate) {
 				$this->onCartItemCreate($item);
 			}
-
+			
 			return $item;
 		}
-
+		
 		$cartItem = $this->itemRepository->syncItem($cart ?? $this->getCart(), null, $product, $variant, $amount, $disabled);
-
+		
 		if ($currency = $this->getCartCurrency()) {
 			$taxes = $this->taxRepository->getTaxesForProduct($product, $currency);
-
+			
 			foreach ($taxes as $tax) {
 				$tax = $tax->toArray();
 				$this->cartItemTaxRepository->createOne([
@@ -498,13 +498,13 @@ class CheckoutManager
 				], null);
 			}
 		}
-
+		
 		$this->refreshSumProperties();
-
+		
 		if ($this->onCartItemCreate) {
 			$this->onCartItemCreate($cartItem);
 		}
-
+		
 		return $cartItem;
 	}
 
