@@ -30,6 +30,7 @@ use Eshop\DB\Payment;
 use Eshop\DB\PaymentRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PickupPointRepository;
+use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\StoreRepository;
@@ -43,6 +44,7 @@ use League\Csv\Writer;
 use Messages\DB\TemplateRepository;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
+use Nette\Application\UI\Presenter;
 use Nette\Forms\Controls\Button;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\Request;
@@ -519,28 +521,38 @@ class OrderPresenter extends BackendPresenter
 
 		$form = $this->formFactory->create();
 
-		$form->addText('product', 'Kód nebo EAN produktu')->setRequired();
+		$form->monitor(Presenter::class, function () use ($form, $order): void {
+			$form->addSelectAjax('product', 'Produkt', '- Vyberte produkt -', Product::class);
 
-		$form->addSelect('cart', 'Košík č.', $order->purchase->getCarts()->toArrayOf('id'))->setRequired();
-		$form->addSelect('package', 'Balík č.', $order->getPackages()->toArrayOf('id'))->setRequired();
+			$form->addSelect('cart', 'Košík č.', $order->purchase->getCarts()->toArrayOf('id'))->setRequired();
+			$form->addSelect('package', 'Balík č.', $order->getPackages()->toArrayOf('id'))->setRequired();
 
-		$form->addInteger('amount', 'Množství')->setDefaultValue(1)->setRequired();
+			$form->addInteger('amount', 'Množství')->setDefaultValue(1)->setRequired();
 
-		$form->addSubmits(false, false);
+			$form->addSubmits(false, false);
+		});
 
 		$form->onValidate[] = function (AdminForm $form) use ($order): void {
 			if (!$form->isValid()) {
 				return;
 			}
 
-			$values = $form->getValues('array');
+			$values = $form->getHttpData();
+
+			if (!isset($values['product'])) {
+				/** @var \Nette\Forms\Controls\SelectBox $input */
+				$input = $form['product'];
+				$input->addError('Toto pole je povinné!');
+
+				return;
+			}
 
 			/** @var \Nette\Forms\Controls\SelectBox $productInput */
 			$productInput = $form['product'];
 
 			$this->shopper->setCustomer($order->purchase->customer);
 
-			if ($this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.code =:s OR this.ean =:s', ['s' => $values['product']])->first()) {
+			if ($this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.uuid', $values['product'])->first()) {
 				return;
 			}
 
@@ -548,7 +560,7 @@ class OrderPresenter extends BackendPresenter
 		};
 
 		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
-			$values = $form->getValues('array');
+			$values = $form->getValuesWithAjax();
 
 			/** @var \Eshop\DB\Cart $cart */
 			$cart = $this->cartRepository->one($values['cart']);
@@ -559,7 +571,7 @@ class OrderPresenter extends BackendPresenter
 			}
 
 			/** @var \Eshop\DB\Product $product */
-			$product = $this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.code =:s OR this.ean =:s', ['s' => $values['product']])->first();
+			$product = $this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.uuid', $values['product'])->first();
 
 			$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], false, false, false, $cart);
 
@@ -582,7 +594,7 @@ class OrderPresenter extends BackendPresenter
 				return;
 			}
 
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::NEW_ITEM, $product->name, $admin);
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::NEW_ITEM, $product->name . ' ' . $values['amount'] . ' ks', $admin);
 
 			$this->flashMessage('Provedeno', 'success');
 			$form->processRedirect('this');
@@ -1211,6 +1223,8 @@ class OrderPresenter extends BackendPresenter
 
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('orderForm');
+
+		$this->getComponent('productForm');
 
 		$form->setDefaults($array);
 	}

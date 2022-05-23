@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Admin\DB\IGeneralAjaxRepository;
 use Common\DB\IGeneralRepository;
 use Eshop\Controls\ProductFilter;
 use Eshop\Shopper;
@@ -30,7 +31,7 @@ use Web\DB\PageRepository;
 /**
  * @extends \StORM\Repository<\Eshop\DB\Product>
  */
-class ProductRepository extends Repository implements IGeneralRepository
+class ProductRepository extends Repository implements IGeneralRepository, IGeneralAjaxRepository
 {
 	private Shopper $shopper;
 
@@ -708,6 +709,19 @@ class ProductRepository extends Repository implements IGeneralRepository
 		$suffix = $this->getConnection()->getMutationSuffix();
 
 		return $this->many()->orderBy(["name$suffix"])->toArrayOf('name');
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getAjaxArrayForSelect(bool $includeHidden = true, ?string $q = null, ?int $page = null): array
+	{
+		$suffix = $this->getConnection()->getMutationSuffix();
+
+		return $this->getCollection($includeHidden)
+			->where("this.name$suffix LIKE :q OR this.code = :exact OR this.ean = :exact", ['q' => "%$q%", 'exact' => $q,])
+			->setPage($page ?? 1, 5)
+			->toArrayOf('name');
 	}
 
 	public function getProductByCodeOrEAN(string $expression): ?Product

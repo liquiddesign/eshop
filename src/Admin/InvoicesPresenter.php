@@ -107,32 +107,30 @@ class InvoicesPresenter extends BackendPresenter
 		$invoice = $this->getParameter('invoice');
 
 		$form = $this->formFactory->create();
-		
-		$form->addText('code', 'Kód')->setNullable()->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude použit kód objednávky.')->setDisabled((bool) $invoice);
-		$form->addDate('exposed', 'Datum vystavení')->setRequired();
-		$form->addDate('taxDate', 'Datum zdanitelného plnění')->setRequired();
-		$form->addDate('dueDate', 'Datum splatnosti')->setRequired();
 
 		$form->monitor(Presenter::class, function () use ($form, $invoice): void {
+			$form->addText('code', 'Kód')->setNullable()->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude použit kód objednávky.')->setDisabled((bool) $invoice);
+			$form->addDate('exposed', 'Datum vystavení')->setRequired();
+			$form->addDate('taxDate', 'Datum zdanitelného plnění')->setRequired();
+			$form->addDate('dueDate', 'Datum splatnosti')->setRequired();
+
 			$input = $form->addSelectAjax('order', 'Objednávka', '- Vyberte objednávku -', Order::class)->setDisabled((bool) $invoice);
 
-			if (!$invoice || $invoice->orders->count() !== 0) {
-				return;
+			if ($invoice && $invoice->orders->count() === 0) {
+				$input->setPrompt('Objednávka smazána!');
+				$input->setHtmlAttribute('data-info', 'Objednávka přiřazená k teté faktuře již neexistuje. Tato faktura je neplatná!');
 			}
 
-			$input->setPrompt('Objednávka smazána!');
-			$input->setHtmlAttribute('data-info', 'Objednávka přiřazená k teté faktuře již neexistuje. Tato faktura je neplatná!');
+			$form->addSelect2('paymentType', 'Typ úhrady', $this->paymentTypeRepository->getArrayForSelect())->setPrompt('- Z objednávky -')->setDisabled((bool) $invoice);
+			$form->addText('variableSymbol', 'Variabilní symbol pro platbu')->setNullable();
+			$form->addText('constantSymbol', 'Konstantní symbol pro platbu')->setNullable();
+
+			$form->addGroup('Stav faktury');
+			$form->addDate('paidDate', 'Zaplaceno')->setNullable();
+			$form->addDate('canceled', 'Storno')->setNullable();
+
+			$form->addSubmits();
 		});
-
-		$form->addSelect2('paymentType', 'Typ úhrady', $this->paymentTypeRepository->getArrayForSelect())->setPrompt('- Z objednávky -')->setDisabled((bool) $invoice);
-		$form->addText('variableSymbol', 'Variabilní symbol pro platbu')->setNullable();
-		$form->addText('constantSymbol', 'Konstantní symbol pro platbu')->setNullable();
-
-		$form->addGroup('Stav faktury');
-		$form->addDate('paidDate', 'Zaplaceno')->setNullable();
-		$form->addDate('canceled', 'Storno')->setNullable();
-	
-		$form->addSubmits();
 
 		$form->onValidate[] = function (AdminForm $form) use ($invoice): void {
 			if (!$form->isValid()) {
