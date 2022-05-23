@@ -594,7 +594,7 @@ class OrderPresenter extends BackendPresenter
 				return;
 			}
 
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::NEW_ITEM, $product->name . ' ' . $values['amount'] . ' ks', $admin);
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::NEW_ITEM, $product->name . ' | ' . $values['amount'] . ' ks', $admin);
 
 			$this->flashMessage('Provedeno', 'success');
 			$form->processRedirect('this');
