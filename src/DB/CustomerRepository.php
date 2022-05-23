@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Admin\DB\IGeneralAjaxRepository;
 use Common\DB\IGeneralRepository;
 use Eshop\Providers\Helpers;
 use League\Csv\EncloseField;
@@ -17,7 +18,7 @@ use StORM\ICollection;
 /**
  * @extends \StORM\Repository<\Eshop\DB\Customer>
  */
-class CustomerRepository extends \StORM\Repository implements IUserRepository, IGeneralRepository
+class CustomerRepository extends \StORM\Repository implements IUserRepository, IGeneralRepository, IGeneralAjaxRepository
 {
 	use UserRepositoryTrait;
 	public function createNew(array $values): ?Customer
@@ -134,16 +135,29 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 	 */
 	public function getArrayForSelect(bool $includeHidden = true, bool $extended = true): array
 	{
-		return $this->getCollection($includeHidden)->select([
-			'name' => 'IF(this.company != "",this.company,this.fullname)',
-			'extendedName' => 'CONCAT(IF(this.company != "",this.company,this.fullname), " (", this.email, ")")',
-		])->toArrayOf($extended ? 'extendedName' : 'name');
+		$extended = $extended ? 'extendedName' : 'name';
+
+		return $this->getCollection($includeHidden)->setOrderBy([$extended])->toArrayOf($extended);
 	}
 
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		unset($includeHidden);
 
-		return $this->many()->orderBy(['fullname']);
+		return $this->many()->select([
+			'name' => 'IF(this.company != "",this.company,this.fullname)',
+			'extendedName' => 'CONCAT(IF(this.company != "",this.company,this.fullname), " (", this.email, ")")',
+		])->orderBy(['fullname']);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getAjaxArrayForSelect(bool $includeHidden = true, ?string $q = null, ?int $page = null): array
+	{
+		return $this->getCollection($includeHidden)
+			->where('this.fullname LIKE :q OR this.email LIKE :q OR this.company LIKE :q OR this.phone LIKE :q', ['q' => "%$q%", 'exact' => $q,])
+			->setPage($page ?? 1, 5)
+			->toArrayOf('extendedName');
 	}
 }

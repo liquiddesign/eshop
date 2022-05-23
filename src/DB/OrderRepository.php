@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Admin\DB\Administrator;
+use Admin\DB\IGeneralAjaxRepository;
+use Common\DB\IGeneralRepository;
 use Eshop\Shopper;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
@@ -25,7 +27,7 @@ use StORM\SchemaManager;
 /**
  * @extends \StORM\Repository<\Eshop\DB\Order>
  */
-class OrderRepository extends \StORM\Repository
+class OrderRepository extends \StORM\Repository implements IGeneralRepository, IGeneralAjaxRepository
 {
 	/** @var array<callable(\Eshop\DB\Order): bool> */
 	public array $onBeforeOrderReceived = [];
@@ -1417,5 +1419,31 @@ class OrderRepository extends \StORM\Repository
 		}
 
 		return $grouped;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getAjaxArrayForSelect(bool $includeHidden = true, ?string $q = null, ?int $page = null): array
+	{
+		return $this->getCollection($includeHidden)
+			->where('this.code LIKE :like', ['like' => "%$q%"])
+			->setPage($page ?? 1, 5)
+			->toArrayOf('code');
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getArrayForSelect(bool $includeHidden = true): array
+	{
+		return $this->getCollection($includeHidden)->toArrayOf('code');
+	}
+
+	public function getCollection(bool $includeHidden = false): Collection
+	{
+		unset($includeHidden);
+
+		return $this->many()->orderBy(['this.createdTs' => 'DESC']);
 	}
 }

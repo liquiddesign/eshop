@@ -1671,7 +1671,7 @@ class OrderPresenter extends BackendPresenter
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
 			$sync = $this->dpd->syncOrders($collection);
 
-			$this->flashMessage($sync ? 'Provedeno' : 'Chyba odesílání!', $sync ? 'success' : 'error');
+			$this->flashMessage($sync ? 'Provedeno' : 'Některé objednávky nebyly odeslány!', $sync ? 'success' : 'warning');
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
 	}
 

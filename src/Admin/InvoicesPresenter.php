@@ -9,12 +9,14 @@ use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\Invoice;
 use Eshop\DB\InvoiceRepository;
+use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Forms\Form;
 use Grid\Datagrid;
 use Messages\DB\TemplateRepository;
 use Nette\Application\LinkGenerator;
+use Nette\Application\UI\Presenter;
 use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
@@ -111,12 +113,16 @@ class InvoicesPresenter extends BackendPresenter
 		$form->addDate('taxDate', 'Datum zdanitelného plnění')->setRequired();
 		$form->addDate('dueDate', 'Datum splatnosti')->setRequired();
 
-		$input = $form->addSelect2('order', 'Objednávka', $this->orderRepository->many()->orderBy(['this.createdTs' => 'DESC'])->toArrayOf('code'))->setRequired()->setDisabled((bool) $invoice);
+		$form->monitor(Presenter::class, function () use ($form, $invoice): void {
+			$input = $form->addSelectAjax('order', 'Objednávka', '- Vyberte objednávku -', Order::class)->setDisabled((bool) $invoice);
 
-		if ($invoice && $invoice->orders->count() === 0) {
+			if (!$invoice || $invoice->orders->count() !== 0) {
+				return;
+			}
+
 			$input->setPrompt('Objednávka smazána!');
 			$input->setHtmlAttribute('data-info', 'Objednávka přiřazená k teté faktuře již neexistuje. Tato faktura je neplatná!');
-		}
+		});
 
 		$form->addSelect2('paymentType', 'Typ úhrady', $this->paymentTypeRepository->getArrayForSelect())->setPrompt('- Z objednávky -')->setDisabled((bool) $invoice);
 		$form->addText('variableSymbol', 'Variabilní symbol pro platbu')->setNullable();
@@ -127,15 +133,33 @@ class InvoicesPresenter extends BackendPresenter
 		$form->addDate('canceled', 'Storno')->setNullable();
 	
 		$form->addSubmits();
+
+		$form->onValidate[] = function (AdminForm $form) use ($invoice): void {
+			if (!$form->isValid()) {
+				return;
+			}
+
+			$data = $form->getHttpData();
+
+			if (isset($data['order']) || $invoice) {
+				return;
+			}
+
+			/** @var \Nette\Forms\Controls\SelectBox $input */
+			$input = $form['order'];
+			$input->addError('Toto pole je povinné!');
+		};
 		
 		$form->onSuccess[] = function (AdminForm $form) use ($invoice): void {
-			$values = $form->getValues('array');
+			$values = $form->getValuesWithAjax();
 
-			$order = $this->orderRepository->one(Arrays::pick($values, 'order'));
+			if (isset($values['order'])) {
+				$order = $this->orderRepository->one(Arrays::pick($values, 'order'));
 
-			$values['code'] ??= Strings::webalize($order->code);
+				$values['code'] ??= Strings::webalize($order->code);
+			}
 
-			$invoice = $invoice ? $this->invoiceRepository->syncOne($values) :
+			$invoice = $invoice || !isset($order) ? $this->invoiceRepository->syncOne($values) :
 				$this->invoiceRepository->createFromOrder($order, $values);
 
 			
@@ -164,8 +188,12 @@ class InvoicesPresenter extends BackendPresenter
 			['Faktury', 'default'],
 			['Nová faktura'],
 		];
+
+		/** @var \Admin\Controls\AdminForm $form */
+		$form = $this->getComponent('form');
+
 		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('form')];
+		$this->template->displayControls = [$form];
 		$this->template->activeTab = 'default';
 	}
 	
@@ -232,6 +260,13 @@ class InvoicesPresenter extends BackendPresenter
 
 		$values = $invoice->toArray(['orders', 'items']);
 		$values['order'] = Arrays::first($values['orders']);
+
+		/** @var \Nette\Forms\Controls\SelectBox $orderInput */
+		$orderInput = $form['order'];
+
+		if ($order = $invoice->orders->first()) {
+			$this->template->select2AjaxDefaults[$orderInput->getHtmlId()] = [$order->getPK() => $order->code];
+		}
 
 		$form->setDefaults($values);
 	}

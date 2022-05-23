@@ -150,8 +150,9 @@ class DPD
 				} else {
 					$error = true;
 				}
-
 			} catch (\Throwable $e) {
+				\bdump($e);
+
 				$error = true;
 			}
 		}
