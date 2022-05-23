@@ -558,7 +558,7 @@ class CheckoutManager
 	/**
 	 * @throws \Eshop\BuyException
 	 */
-	public function changeItemAmount(Product $product, ?Variant $variant = null, int $amount = 1, bool $checkInvalidAmount = true, ?Cart $cart = null): void
+	public function changeItemAmount(Product $product, ?Variant $variant = null, int $amount = 1, ?bool $checkInvalidAmount = true, ?Cart $cart = null): void
 	{
 		if ($checkInvalidAmount && !$this->checkAmount($product, $amount)) {
 			throw new BuyException('Invalid amount', BuyException::INVALID_AMOUNT);
