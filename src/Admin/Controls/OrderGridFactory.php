@@ -37,6 +37,9 @@ class OrderGridFactory
 	/** @var array<callable(\StORM\Collection): void> */
 	public array $onCollectionCreation = [];
 
+	/** @var array<callable(\Admin\Controls\AdminGrid): void> */
+	public array $onBulkActionsCreated = [];
+
 	private OrderRepository $orderRepository;
 
 	private AdminGridFactory $gridFactory;
@@ -344,6 +347,12 @@ class OrderGridFactory
 			}
 
 			$button();
+		}
+
+		if ($this->onBulkActionsCreated) {
+			Arrays::invoke($this->onBulkActionsCreated, $grid);
+		} else {
+			$grid->addButtonBulkEdit('orderBulkForm', ['bannedTs', 'dpdPrinted'], 'ordersGrid');
 		}
 
 		$grid->addBulkAction(

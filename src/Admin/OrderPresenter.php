@@ -1752,6 +1752,19 @@ class OrderPresenter extends BackendPresenter
 		$this->redirect('this');
 	}
 
+	public function createComponentOrderBulkForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+
+		$form->addDatetime('bannedTs', 'Zablokováno')->setNullable();
+
+		if ($this->dpd) {
+			$form->addCheckbox('dpdPrinted', 'DPD vytištěno');
+		}
+
+		return $form;
+	}
+
 	protected function startup(): void
 	{
 		parent::startup();
