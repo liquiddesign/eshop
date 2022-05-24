@@ -19,12 +19,10 @@ use Eshop\Services\DPD;
 use Eshop\Shopper;
 use Grid\Datagrid;
 use League\Csv\Writer;
-use Messages\DB\TemplateRepository;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Presenter;
 use Nette\Forms\Controls\Button;
-use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
@@ -43,11 +41,7 @@ class OrderGridFactory
 
 	private AdminGridFactory $gridFactory;
 
-	private TemplateRepository $templateRepository;
-
 	private OrderLogItemRepository $orderLogItemRepository;
-
-	private Mailer $mailer;
 
 	private Application $application;
 
@@ -70,8 +64,6 @@ class OrderGridFactory
 		AdminGridFactory $adminGridFactory,
 		OrderRepository $orderRepository,
 		Application $application,
-		TemplateRepository $templateRepository,
-		Mailer $mailer,
 		OrderLogItemRepository $orderLogItemRepository,
 		CustomerGroupRepository $customerGroupRepository,
 		DeliveryTypeRepository $deliveryTypeRepository,
@@ -81,8 +73,6 @@ class OrderGridFactory
 	) {
 		$this->orderRepository = $orderRepository;
 		$this->gridFactory = $adminGridFactory;
-		$this->templateRepository = $templateRepository;
-		$this->mailer = $mailer;
 		$this->application = $application;
 		$this->orderLogItemRepository = $orderLogItemRepository;
 		$this->customerGroupRepository = $customerGroupRepository;
@@ -91,15 +81,21 @@ class OrderGridFactory
 		$this->integrations = $integrations;
 		$this->shopper = $shopper;
 	}
-	
+
 	/**
 	 * @param string $state
 	 * @param array<mixed> $configuration
+	 * @param array<mixed> $orderStatesNames
+	 * @param array<mixed> $orderStatesEvents
 	 */
-	public function create(string $state, array $configuration = []): Datagrid
+	public function create(string $state, array $configuration = [], array $orderStatesNames = [], array $orderStatesEvents = []): Datagrid
 	{
 		$this->configuration = $configuration;
 		$this->dpd = $this->integrations->getService('dpd');
+
+		$stateReceived = $configuration['orderStates'][Order::STATE_RECEIVED] ?? $orderStatesNames[Order::STATE_RECEIVED] ?? 'Přijmout';
+		$stateFinished = $configuration['orderStates'][Order::STATE_COMPLETED] ?? $orderStatesNames[Order::STATE_COMPLETED] ?? 'Zpracovat';
+		$stateCanceled = $configuration['orderStates'][Order::STATE_CANCELED] ?? $orderStatesNames[Order::STATE_CANCELED] ?? 'Stornovat';
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
@@ -154,32 +150,71 @@ class OrderGridFactory
 
 			$grid->addColumnText('Cena', $properties, '%s', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		}
-		
-		if ($state === 'open') {
-			$stateReceived = $configuration['orderStates']['received'] ?? 'Přijaté';
-			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Přesunout do stavu " . $stateReceived . "'><i class='fa fa-sm fa-check'></i></a>";
-			$grid->addColumnAction('', $actionIco, [$this, 'receiveOrder'], [], null, ['class' => 'minimal']);
-			
-			$stateFinished = $configuration['orderStates']['finished'] ?? 'Odeslané';
-			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Přesunout do stavu " . $stateFinished . "'><i class='fas fa-sm fa-check-double'></i></a>";
-			$grid->addColumnAction('', $actionIco, [$this, 'receiveAndCompleteOrder'], [], null, ['class' => 'minimal']);
-		}
-		
-		if ($state !== 'finished' && $state !== 'open') {
-			//			$grid->addColumn('Schváleno', [$this, 'renderApprovalColumn'], '%s', null, ['class' => 'minimal']);
-			
-			$stateFinished = $configuration['orderStates']['finished'] ?? 'Odeslané';
-			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Přesunout do stavu " . $stateFinished . "'><i class='fa fa-sm fa-check'></i></a>";
-			$grid->addColumnAction('', $actionIco, [$this, 'completeOrder'], [], null, ['class' => 'minimal']);
-		}
-		
-		if ($state !== 'canceled' && $state !== 'open') {
-			$stateCanceled = $configuration['orderStates']['canceled'] ?? 'Stornované';
-			$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='Přesunout do stavu " . $stateCanceled . "'><i class='fa fa-sm fa-times'></i></a>";
-			$grid->addColumnAction('', $actionIco, [$this, 'cancelOrder'], [], null, ['class' => 'minimal']);
-		}
 
-//		$grid->addColumnLink('orderEmail', '<i class="far fa-envelope"></i>', null, ['class' => 'minimal']);
+		$receiveOrderButton = function () use ($grid, $stateReceived, $btnSecondary): void {
+			try {
+				$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='" . $stateReceived . "'><i class='fa fa-sm fa-check'></i></a>";
+				$grid->addColumnAction('', $actionIco, [$this, 'receiveOrder'], [], null, ['class' => 'minimal']);
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::ERROR);
+			}
+		};
+
+		$receiveAndCompleteOrderButton = function () use ($grid, $stateFinished, $btnSecondary): void {
+			try {
+				$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='" . $stateFinished . "'><i class='fas fa-sm fa-check-double'></i></a>";
+				$grid->addColumnAction('', $actionIco, [$this, 'receiveAndCompleteOrder'], [], null, ['class' => 'minimal']);
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::ERROR);
+			}
+		};
+
+		$cancelOrderButton = function () use ($grid, $stateCanceled, $btnSecondary): void {
+			try {
+				$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='" . $stateCanceled . "'><i class='fa fa-sm fa-times'></i></a>";
+				$grid->addColumnAction('', $actionIco, [$this, 'cancelOrder'], [], null, ['class' => 'minimal']);
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::ERROR);
+			}
+		};
+
+		$completeOrderButton = function () use ($grid, $stateFinished, $btnSecondary): void {
+			try {
+				$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='" . $stateFinished . "'><i class='fa fa-sm fa-check'></i></a>";
+				$grid->addColumnAction('', $actionIco, [$this, 'completeOrder'], [], null, ['class' => 'minimal']);
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::ERROR);
+			}
+		};
+
+		$buttonsByTargetStates = [
+			Order::STATE_OPEN => [
+				Order::STATE_RECEIVED => $receiveOrderButton,
+				Order::STATE_COMPLETED => $receiveAndCompleteOrderButton,
+				Order::STATE_CANCELED => $cancelOrderButton,
+			],
+			Order::STATE_RECEIVED => [
+				Order::STATE_COMPLETED => $completeOrderButton,
+				Order::STATE_CANCELED => $cancelOrderButton,
+			],
+			Order::STATE_COMPLETED => [
+				Order::STATE_RECEIVED => $receiveOrderButton,
+				Order::STATE_CANCELED => $cancelOrderButton,
+			],
+			Order::STATE_CANCELED => [
+				Order::STATE_RECEIVED => $receiveOrderButton,
+				Order::STATE_COMPLETED => $completeOrderButton,
+			],
+		];
+
+		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
+			if (!isset($orderStatesEvents[$state]) || !Arrays::contains($orderStatesEvents[$state], $targetState) ||
+				($state === Order::STATE_OPEN && !$this->shopper->getEditOrderAfterCreation())) {
+				continue;
+			}
+
+			$button();
+		}
 
 		$downloadIco = "<a href='%s' class='$btnSecondary' title='Stáhnout'><i class='fa fa-sm fa-download'></i></a>";
 
@@ -193,8 +228,8 @@ class OrderGridFactory
 
 		if ($this->dpd) {
 			$grid->addColumn('DPD', function (Order $order, AdminGrid $datagrid) {
-				return '<button class="btn btn-sm disabled ' . ($order->dpdCode ? 'btn-outline-success' : 'btn-outline-danger') . '" disabled>
-				<i class="' . ($order->dpdCode ? 'fas fa-check' : 'fas fa-times') . '"></i>
+				return '<button class="btn btn-sm disabled btn-outline-' . ($order->dpdCode ? 'success' : 'danger') . '" disabled>
+				<i class="fas fa-' . ($order->dpdCode ? ($order->dpdPrinted ? 'print' : 'check') : 'times') . '"></i>
 				</button>';
 			}, '%s', 'this.dpdCode', ['class' => 'fit']);
 		}
@@ -244,29 +279,71 @@ class OrderGridFactory
 			$source->where('purchase.fk_paymentType', $value);
 		}, '', 'paymentType', null, $paymentTypes)->setPrompt('- Způsob platby -');
 
-		if ($state === 'open') {
-			$stateReceived = $configuration['orderStates']['received'] ?? 'Přijmout';
-			$submit = $grid->getForm()->addSubmit('receiveMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateReceived))->setHtmlAttribute('class', $btnSecondary);
-			$submit->onClick[] = [$this, 'receiveOrderMultiple'];
-			
-			$stateFinished = $configuration['orderStates']['finished'] ?? 'Přijmout a zpracovat';
-			$submit = $grid->getForm()->addSubmit('receiveAndCompleteMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateFinished));
-			$submit->setHtmlAttribute('class', $btnSecondary);
-			$submit->onClick[] = [$this, 'receiveAndCompleteMultiple'];
-		}
-		
-		if ($state !== 'finished' && $state !== 'open') {
-			$stateFinished = $configuration['orderStates']['finished'] ?? 'Zpracovat';
-			$submit = $grid->getForm()->addSubmit('completeMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateFinished));
-			$submit->setHtmlAttribute('class', $btnSecondary);
-			$submit->onClick[] = [$this, 'completeOrderMultiple'];
-		}
-		
-		if ($state !== 'canceled' && $state !== 'open') {
-			$stateCanceled = $configuration['orderStates']['canceled'] ?? 'Stornovat';
-			$submit = $grid->getForm()->addSubmit('cancelMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateCanceled));
-			$submit->setHtmlAttribute('class', $btnSecondary);
-			$submit->onClick[] = [$this, 'cancelOrderMultiple'];
+		$receiveOrderButton = function () use ($grid, $stateReceived, $btnSecondary): void {
+			try {
+				$grid->getForm()->addSubmit('receiveMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateReceived))->setHtmlAttribute('class', $btnSecondary)
+					->onClick[] = [$this, 'receiveOrderMultiple'];
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::ERROR);
+			}
+		};
+
+		$receiveAndCompleteOrderButton = function () use ($grid, $stateFinished, $btnSecondary): void {
+			try {
+				$grid->getForm()->addSubmit('receiveAndCompleteMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateFinished))->setHtmlAttribute('class', $btnSecondary)
+					->onClick[] = [$this, 'receiveAndCompleteMultiple'];
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::ERROR);
+			}
+		};
+
+		$cancelOrderButton = function () use ($grid, $stateCanceled, $btnSecondary): void {
+			try {
+				$grid->getForm()->addSubmit('cancelMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateCanceled))
+					->setHtmlAttribute('class', $btnSecondary)
+					->onClick[] = [$this, 'cancelOrderMultiple'];
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::ERROR);
+			}
+		};
+
+		$completeOrderButton = function () use ($grid, $stateFinished, $btnSecondary): void {
+			try {
+				$grid->getForm()->addSubmit('completeMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateFinished))
+					->setHtmlAttribute('class', $btnSecondary)
+					->onClick[] = [$this, 'completeOrderMultiple'];
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::ERROR);
+			}
+		};
+
+		$buttonsByTargetStates = [
+			Order::STATE_OPEN => [
+				Order::STATE_RECEIVED => $receiveOrderButton,
+				Order::STATE_COMPLETED => $receiveAndCompleteOrderButton,
+				Order::STATE_CANCELED => $cancelOrderButton,
+			],
+			Order::STATE_RECEIVED => [
+				Order::STATE_COMPLETED => $completeOrderButton,
+				Order::STATE_CANCELED => $cancelOrderButton,
+			],
+			Order::STATE_COMPLETED => [
+				Order::STATE_RECEIVED => $receiveOrderButton,
+				Order::STATE_CANCELED => $cancelOrderButton,
+			],
+			Order::STATE_CANCELED => [
+				Order::STATE_RECEIVED => $receiveOrderButton,
+				Order::STATE_COMPLETED => $completeOrderButton,
+			],
+		];
+
+		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
+			if (!isset($orderStatesEvents[$state]) || !Arrays::contains($orderStatesEvents[$state], $targetState) ||
+				($state === Order::STATE_OPEN && !$this->shopper->getEditOrderAfterCreation())) {
+				continue;
+			}
+
+			$button();
 		}
 
 		$grid->addBulkAction(
@@ -403,29 +480,7 @@ class OrderGridFactory
 		foreach ($grid->getSelectedIds() as $id) {
 			$order = $this->orderRepository->one($id, true);
 
-			/** @var \Eshop\BackendPresenter $presenter */
-			$presenter = $grid->getPresenter();
-
-			/** @var \Admin\DB\Administrator|null $admin */
-			$admin = $presenter->admin->getIdentity();
-
-			$this->orderRepository->completeOrder($order);
-
-			try {
-				$mail = $this->templateRepository->createMessage(
-					'order.canceled',
-					['orderCode' => $order->code],
-					$order->purchase->email,
-					null,
-					null,
-					$order->purchase->getCustomerPrefferedMutation(),
-				);
-
-				$this->mailer->send($mail);
-
-				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
-			} catch (\Throwable $e) {
-			}
+			$this->orderRepository->cancelOrder($order);
 		}
 
 		$grid->getPresenter()->flashMessage('Provedeno', 'success');
@@ -465,22 +520,6 @@ class OrderGridFactory
 
 		$this->orderLogItemRepository->createLog($order, OrderLogItem::CANCELED, null, $admin);
 
-		try {
-			$mail = $this->templateRepository->createMessage(
-				'order.canceled',
-				['orderCode' => $order->code],
-				$order->purchase->email,
-				null,
-				null,
-				$order->purchase->getCustomerPrefferedMutation(),
-			);
-
-			$this->mailer->send($mail);
-
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
-		} catch (\Throwable $e) {
-		}
-
 		$grid->getPresenter()->flashMessage('Provedeno', 'success');
 		$grid->getPresenter()->redirect('this');
 	}
@@ -507,17 +546,6 @@ class OrderGridFactory
 		$admin = $presenter->admin->getIdentity();
 
 		$this->orderRepository->completeOrder($object, $admin);
-
-		try {
-			$mail = $this->templateRepository->createMessage('order.confirmed', [
-				'orderCode' => $object->code,
-			], $object->purchase->email, null, null, $object->purchase->getCustomerPrefferedMutation());
-
-			$this->mailer->send($mail);
-
-			$this->orderLogItemRepository->createLog($object, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
-		} catch (\Throwable $e) {
-		}
 
 		if (!$redirectAfter) {
 			return;
@@ -549,17 +577,6 @@ class OrderGridFactory
 		$admin = $presenter->admin->getIdentity();
 
 		$this->orderRepository->receiveOrder($object, $admin);
-		
-		try {
-			$mail = $this->templateRepository->createMessage('order.received', [
-				'orderCode' => $object->code,
-			], $object->purchase->email, null, null, $object->purchase->getCustomerPrefferedMutation());
-			
-			$this->mailer->send($mail);
-			
-			$this->orderLogItemRepository->createLog($object, OrderLogItem::EMAIL_SENT, OrderLogItem::RECEIVED, $admin);
-		} catch (\Throwable $e) {
-		}
 
 		if (!$redirectAfter) {
 			return;
@@ -591,17 +608,6 @@ class OrderGridFactory
 		$admin = $presenter->admin->getIdentity();
 
 		$this->orderRepository->receiveAndCompleteOrder($object, $admin);
-
-		try {
-			$mail = $this->templateRepository->createMessage('order.confirmed', [
-				'orderCode' => $object->code,
-			], $object->purchase->email, null, null, $object->purchase->getCustomerPrefferedMutation());
-
-			$this->mailer->send($mail);
-
-			$this->orderLogItemRepository->createLog($object, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
-		} catch (\Throwable $e) {
-		}
 
 		if (!$redirectAfter) {
 			return;

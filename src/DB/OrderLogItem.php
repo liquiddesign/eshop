@@ -26,7 +26,8 @@ class OrderLogItem extends \StORM\Entity
 	public const ITEM_RESTORED = 'Položka obnovena';
 	public const SHIPPED = 'Expedováno';
 	public const SHIPPED_CANCELED = 'Expedice zrušena';
-	public const BAN_CANCELED = 'Problémová objednávka - stornováno';
+	public const BAN = 'Zablokováno';
+	public const UN_BAN = 'Odblokováno';
 	public const DELIVERY_CHANGED = 'Změna způsobu dopravy';
 	public const PAYMENT_CHANGED = 'Změna způsobu platby';
 	public const PACKAGE_CHANGED = 'Úprava balíku/ů';

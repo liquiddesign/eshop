@@ -59,6 +59,32 @@ use Tracy\ILogger;
 
 class OrderPresenter extends BackendPresenter
 {
+	protected const ORDER_STATES_NAMES = [
+		Order::STATE_RECEIVED => 'Přijaté',
+		Order::STATE_COMPLETED => 'Odeslané',
+		Order::STATE_CANCELED => 'Stornované',
+	];
+
+	protected const ORDER_STATES_EVENTS = [
+		Order::STATE_OPEN => [
+			Order::STATE_RECEIVED,
+			Order::STATE_COMPLETED,
+			Order::STATE_CANCELED,
+		],
+		Order::STATE_RECEIVED => [
+			Order::STATE_COMPLETED,
+			Order::STATE_CANCELED,
+		],
+		Order::STATE_COMPLETED => [
+			Order::STATE_RECEIVED,
+			Order::STATE_CANCELED,
+		],
+		Order::STATE_CANCELED => [
+			Order::STATE_RECEIVED,
+			Order::STATE_COMPLETED,
+		],
+	];
+
 	protected const CONFIGURATION = [
 		'exportPPC' => false,
 		'exportPPC_columns' => [],
@@ -69,11 +95,8 @@ class OrderPresenter extends BackendPresenter
 		'showExtendedPay' => true,
 		'targito' => false,
 		'eHub' => false,
-		'orderStates' => [
-			'received' => 'Přijaté',
-			'finished' => 'Odeslané',
-			'canceled' => 'Stornované',
-		],
+		/** @deprecated Use const ORDER_STATES_NAMES */
+		'orderStates' => null,
 	];
 
 	/** @inject */
@@ -173,7 +196,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function createComponentOrdersGrid(): Datagrid
 	{
-		return $this->orderGridFactory->create($this->tab, $this::CONFIGURATION);
+		return $this->orderGridFactory->create($this->tab, $this::CONFIGURATION, $this::ORDER_STATES_NAMES, $this::ORDER_STATES_EVENTS);
 	}
 
 	public function createComponentDeliveryGrid(): AdminGrid
@@ -805,19 +828,19 @@ class OrderPresenter extends BackendPresenter
 	{
 		/** @var \Eshop\DB\Order|null $order */
 		$order = $this->getParameter('order');
-		
+
 		$hasMultiplePackages = !$order || $order->getPackages()->enum() > 1;
-		
+
 		$form = $this->formFactory->create();
 		$form->addHidden('packageItem');
 		$form->getCurrentGroup()->setOption('label', 'Nákup');
 		$form->addInteger('amount', 'Celkové množství produktu v objednávce')->setRequired();
-		
+
 		if ($hasMultiplePackages) {
 			$form->addInteger('packageItemAmount', 'Celkové množství produktu v položce balíčku')->setRequired()
 				->setHtmlAttribute('data-info', 'Součet množství produktu ve všech balíčcích nemůže být větší než celkový počet produktů v objednávce.');
 		}
-		
+
 		$form->addTextArea('note', 'Poznámka')->setNullable();
 		$form->addGroup('Cena za kus');
 		$form->addText('price', 'Cena bez DPH')->addRule(Form::FLOAT)->setRequired();
@@ -827,13 +850,13 @@ class OrderPresenter extends BackendPresenter
 
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
-			
+
 			$cartItemOld = $this->cartItemRepo->one($values['uuid'], true);
 			$cartItem = clone $cartItemOld;
-			
+
 			$packageItem = $this->packageItemRepository->one($values['packageItem']);
 			$packageItem->update(['amount' => $values['packageItemAmount'] ?? $values['amount']]);
-			
+
 			$cartItem->update($values);
 
 			/** @var \Eshop\DB\Order|null $order */
@@ -849,16 +872,16 @@ class OrderPresenter extends BackendPresenter
 			if (!$admin) {
 				return;
 			}
-			
+
 			$currencySymbol = $order->purchase->currency->symbol;
 			$amountChange = $cartItemOld->amount !== $cartItem->amount ? ' | Množství z ' . $cartItemOld->amount . ' na ' . $cartItem->amount : '';
 			$priceChange = $cartItemOld->price !== $cartItem->price ? " | Cena z $cartItemOld->price $currencySymbol na $cartItem->price $currencySymbol" : '';
 			$vatChange = $cartItemOld->vatPct !== $cartItem->vatPct ? '  | DPH z ' . $cartItemOld->vatPct . ' % na ' . $cartItem->vatPct . ' %' : '';
-			
+
 			$changes = $amountChange . $priceChange . $vatChange;
-			
+
 			$this->orderLogItemRepository->createLog($order, OrderLogItem::ITEM_EDITED, $cartItem->productName . $changes, $admin);
-			
+
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('this');
 		};
@@ -1281,41 +1304,64 @@ class OrderPresenter extends BackendPresenter
 
 		$this->template->displayButtonsRight = [];
 
-		if ($state === 'open' && $this->shopper->getEditOrderAfterCreation()) {
-			$this->template->displayButtonsRight[] = $this->createButtonWithClass('receiveOrder!', '<i class="fas fa-check mr-1"></i>Přijmout', 'btn btn-sm btn-success', $order->getPK());
-			$this->template->displayButtonsRight[] = $this->createButtonWithClass(
-				'receiveAndCompleteOrder!',
-				'<i class="fas fa-check mr-1"></i>Přijmout a zpracovat',
-				'btn btn-sm btn-success',
-				$order->getPK(),
-			);
-			$this->template->displayButtonsRight[] = $this->createButtonWithClass('cancelOrder!', '<i class="fas fa-times mr-1"></i>Storno', 'btn btn-sm btn-danger', $order->getPK());
-			$this->template->displayButtonsRight[] = $this->createButtonWithClass(
-				'banOrder!',
-				'<i class="fas fa-exclamation mr-1"></i>Problémová objednávka',
-				'btn btn-sm btn-warning',
-				$order->getPK(),
-			);
-		} elseif ($state === 'received') {
-			$this->template->displayButtonsRight[] = $this->createButtonWithClass('completeOrder!', '<i class="fas fa-check mr-1"></i>Zpracovat', 'btn btn-sm btn-success', $order->getPK());
-			$this->template->displayButtonsRight[] = $this->createButtonWithClass('cancelOrder!', '<i class="fas fa-times mr-1"></i>Storno', 'btn btn-sm btn-danger', $order->getPK());
-			$this->template->displayButtonsRight[] = $this->createButtonWithClass(
-				'banOrder!',
-				'<i class="fas fa-exclamation mr-1"></i>Problémová objednávka',
-				'btn btn-sm btn-warning',
-				$order->getPK(),
-			);
-		} elseif ($state === 'finished') {
-			$this->template->displayButtonsRight[] = $this->createButtonWithClass('cancelOrder!', '<i class="fas fa-times mr-1"></i>Storno', 'btn btn-sm btn-danger', $order->getPK());
-			$this->template->displayButtonsRight[] = $this->createButtonWithClass(
-				'banOrder!',
-				'<i class="fas fa-exclamation mr-1"></i>Problémová objednávka',
-				'btn btn-sm btn-warning',
-				$order->getPK(),
-			);
-		} elseif ($state === 'canceled') {
-			$this->template->displayButtonsRight[] = $this->createButtonWithClass('completeOrder!', '<i class="fas fa-check mr-1"></i>Zpracovat', 'btn btn-sm btn-success', $order->getPK());
+		$stateReceived = $this->getOrderStateName(Order::STATE_RECEIVED);
+		$stateFinished = $this->getOrderStateName(Order::STATE_COMPLETED);
+		$stateCanceled = $this->getOrderStateName(Order::STATE_CANCELED);
+
+		$receiveOrderButton = $this->createButtonWithClass('receiveOrder!', "<i class='fas fa-angle-double-right'></i> $stateReceived", 'btn btn-sm btn-success', $order->getPK());
+		$receiveAndCompleteOrderButton = $this->createButtonWithClass(
+			'receiveAndCompleteOrder!',
+			"<i class='fas fa-angle-double-right'></i> $stateFinished",
+			'btn btn-sm btn-success',
+			$order->getPK(),
+		);
+		$completeOrderButton = $this->createButtonWithClass('completeOrder!', "<i class='fas fa-angle-double-right'></i> $stateFinished", 'btn btn-sm btn-success', $order->getPK());
+		$cancelOrderButton = $this->createButtonWithClass('cancelOrder!', "<i class='fas fa-angle-double-right'></i> $stateCanceled", 'btn btn-sm btn-danger', $order->getPK());
+
+		$banOrderButton = $this->createButtonWithClass(
+			'banOrder!',
+			'<i class="fas fa-exclamation mr-1"></i> Zablokovat objednávku',
+			'btn btn-sm btn-warning',
+			$order->getPK(),
+		);
+
+		$unBanOrderButton = $this->createButtonWithClass(
+			'unBanOrder!',
+			'<i class="fas fa-check-circle mr-1"></i> Odblokovat objednávku',
+			'btn btn-sm btn-warning',
+			$order->getPK(),
+		);
+
+		$buttonsByTargetStates = [
+			Order::STATE_OPEN => [
+				Order::STATE_RECEIVED => $receiveOrderButton,
+				Order::STATE_COMPLETED => $receiveAndCompleteOrderButton,
+				Order::STATE_CANCELED => $cancelOrderButton,
+			],
+			Order::STATE_RECEIVED => [
+				Order::STATE_COMPLETED => $completeOrderButton,
+				Order::STATE_CANCELED => $cancelOrderButton,
+			],
+			Order::STATE_COMPLETED => [
+				Order::STATE_RECEIVED => $receiveOrderButton,
+				Order::STATE_CANCELED => $cancelOrderButton,
+			],
+			Order::STATE_CANCELED => [
+				Order::STATE_RECEIVED => $receiveOrderButton,
+				Order::STATE_COMPLETED => $completeOrderButton,
+			],
+		];
+
+		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
+			if (!isset($this::ORDER_STATES_EVENTS[$state]) || !Arrays::contains($this::ORDER_STATES_EVENTS[$state], $targetState) ||
+				($state === Order::STATE_OPEN && !$this->shopper->getEditOrderAfterCreation())) {
+				continue;
+			}
+
+			$this->template->displayButtonsRight[] = $button;
 		}
+
+		$this->template->displayButtonsRight[] = !$order->bannedTs ? $banOrderButton : $unBanOrderButton;
 
 		$this->template->displayButtons[] =
 			'<a href="#" data-toggle="modal" data-target="#modal-orderForm"><button class="btn btn-sm btn-primary"><i class="fas fa-edit mr-1"></i> Editovat</button></a>';
@@ -1331,7 +1377,6 @@ class OrderPresenter extends BackendPresenter
 
 		$this->template->displayButtons[] = $this->createButton('exportEdi!', '<i class="fa fa-download mr-1"></i>EDI', [$order->getPK()]);
 		$this->template->displayButtons[] = $this->createButton('exportCsv!', '<i class="fa fa-download mr-1"></i>CSV', [$order->getPK()]);
-
 		//  window.print()
 	}
 
@@ -1449,14 +1494,6 @@ class OrderPresenter extends BackendPresenter
 
 		$this->orderRepository->cancelOrder($order, $admin);
 
-		try {
-			$mail = $this->templateRepository->createMessage('order.canceled', ['orderCode' => $order->code], $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
-			$this->mailer->send($mail);
-
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
-		} catch (\Throwable $e) {
-		}
-
 		$this->redirect('this');
 	}
 
@@ -1473,6 +1510,19 @@ class OrderPresenter extends BackendPresenter
 		$this->redirect('this');
 	}
 
+	public function handleUnBanOrder(string $orderId): void
+	{
+		/** @var \Eshop\DB\Order $order */
+		$order = $this->orderRepository->one($orderId);
+
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $this->admin->getIdentity();
+
+		$this->orderRepository->unBanOrder($order, $admin);
+
+		$this->redirect('this');
+	}
+
 	public function handleCompleteOrder(string $orderId): void
 	{
 		/** @var \Eshop\DB\Order $order */
@@ -1482,17 +1532,6 @@ class OrderPresenter extends BackendPresenter
 		$admin = $this->admin->getIdentity();
 
 		$this->orderRepository->completeOrder($order, $admin);
-
-		try {
-			$mail = $this->templateRepository->createMessage('order.confirmed', [
-				'orderCode' => $order->code,
-			], $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
-
-			$this->mailer->send($mail);
-
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
-		} catch (\Throwable $e) {
-		}
 
 		$this->redirect('this');
 	}
@@ -1506,17 +1545,6 @@ class OrderPresenter extends BackendPresenter
 		$admin = $this->admin->getIdentity();
 
 		$this->orderRepository->receiveOrder($order, $admin);
-		
-		try {
-			$mail = $this->templateRepository->createMessage('order.received', [
-				'orderCode' => $order->code,
-			], $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
-			
-			$this->mailer->send($mail);
-			
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::RECEIVED, $admin);
-		} catch (\Throwable $e) {
-		}
 
 		$this->redirect('this');
 	}
@@ -1530,17 +1558,6 @@ class OrderPresenter extends BackendPresenter
 		$admin = $this->admin->getIdentity();
 
 		$this->orderRepository->receiveAndCompleteOrder($order, $admin);
-
-		try {
-			$mail = $this->templateRepository->createMessage('order.confirmed', [
-				'orderCode' => $order->code,
-			], $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
-
-			$this->mailer->send($mail);
-
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
-		} catch (\Throwable $e) {
-		}
 
 		$this->redirect('this');
 	}
@@ -1691,7 +1708,14 @@ class OrderPresenter extends BackendPresenter
 
 	public function createComponentDpdPrintForm(): AdminForm
 	{
-		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection, AdminForm $form): void {
+			/** @var \Nette\Forms\Controls\SubmitButton $submitter */
+			$submitter = $form->isSubmitted();
+
+			if ($submitter->getName() === 'onlyNotPrinted') {
+				$collection->where('this.dpdPrinted', false);
+			}
+
 			$filename = $this->dpd->getLabels($collection);
 
 			$this->flashMessage($filename ? 'Provedeno' : 'Chyba tisku!', $filename ? 'success' : 'error');
@@ -1701,7 +1725,9 @@ class OrderPresenter extends BackendPresenter
 			}
 
 			$this->sendResponse(new FileResponse($filename, 'labels.pdf', 'application/pdf'));
-		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds(), function (AdminForm $form): void {
+			$form->addSubmit('onlyNotPrinted', 'Pouze nevytištěné');
+		});
 	}
 
 	public function handleMergeOrders(string $targetOrder, array $ids): void
@@ -1761,6 +1787,49 @@ class OrderPresenter extends BackendPresenter
 			}
 		};
 
+		$this->orderRepository->onOrderReceived[] = function (Order $order) use ($admin): void {
+			try {
+				$mail = $this->templateRepository->createMessage('order.received', [
+					'orderCode' => $order->code,
+				], $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
+
+				$this->mailer->send($mail);
+
+				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::RECEIVED, $admin);
+			} catch (\Throwable $e) {
+			}
+		};
+
+		$this->orderRepository->onOrderCompleted[] = function (Order $order) use ($admin): void {
+			try {
+				$mail = $this->templateRepository->createMessage('order.confirmed', [
+					'orderCode' => $order->code,
+				], $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
+
+				$this->mailer->send($mail);
+
+				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
+			} catch (\Throwable $e) {
+			}
+		};
+
+		$this->orderRepository->onOrderCanceled[] = function (Order $order) use ($admin): void {
+			try {
+				$mail = $this->templateRepository->createMessage(
+					'order.canceled',
+					['orderCode' => $order->code],
+					$order->purchase->email,
+					null,
+					null,
+					$order->purchase->getCustomerPrefferedMutation(),
+				);
+				$this->mailer->send($mail);
+
+				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
+			} catch (\Throwable $e) {
+			}
+		};
+
 		$this->tab = $this->getTab();
 	}
 
@@ -1777,5 +1846,10 @@ class OrderPresenter extends BackendPresenter
 	protected function getTab(): string
 	{
 		return $this->tab ??= ($this->shopper->getEditOrderAfterCreation() ? Order::STATE_OPEN : Order::STATE_RECEIVED);
+	}
+
+	protected function getOrderStateName(string $state): ?string
+	{
+		return $this::CONFIGURATION['orderStates'][$state] ?? $this::ORDER_STATES_NAMES[$state] ?? null;
 	}
 }

@@ -32,20 +32,32 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	/** @var array<callable(\Eshop\DB\Order): bool> */
 	public array $onBeforeOrderReceived = [];
 
+	/** @var array<callable(\Eshop\DB\Order): void> */
+	public array $onOrderReceived = [];
+
 	/** @var array<callable(\Eshop\DB\Order): bool> */
 	public array $onBeforeOrderCompleted = [];
 
 	/** @var array<callable(\Eshop\DB\Order): void> */
-	public array $onOrderReceived = [];
-
-	/** @var array<callable(\Eshop\DB\Order): void> */
 	public array $onOrderCompleted = [];
+
+	/** @var array<callable(\Eshop\DB\Order): bool> */
+	public array $onBeforeOrderCanceled = [];
 
 	/** @var array<callable(\Eshop\DB\Order): void> */
 	public array $onOrderCanceled = [];
 
+	/** @var array<callable(\Eshop\DB\Order): bool> */
+	public array $onBeforeOrderBanned = [];
+
 	/** @var array<callable(\Eshop\DB\Order): void> */
 	public array $onOrderBanned = [];
+
+	/** @var array<callable(\Eshop\DB\Order): bool> */
+	public array $onBeforeOrderUnBanned = [];
+
+	/** @var array<callable(\Eshop\DB\Order): void> */
+	public array $onOrderUnBanned = [];
 
 	/** @var array<callable(\Eshop\DB\Order, \Eshop\DB\Delivery): void> */
 	public array $onOrderDeliveryChanged = [];
@@ -1139,7 +1151,11 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			return;
 		}
 
-		$order->update(['receivedTs' => (string)new DateTime(), 'canceledTs' => null]);
+		$order->update([
+			'receivedTs' => (string)new DateTime(),
+			'completedTs' => null,
+			'canceledTs' => null,
+		]);
 
 		Arrays::invoke($this->onOrderReceived, $order);
 
@@ -1177,6 +1193,10 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	public function cancelOrder(Order $order, ?Administrator $administrator = null): void
 	{
+		if (\in_array(false, Arrays::invoke($this->onBeforeOrderCanceled, $order), true)) {
+			return;
+		}
+
 		$order->update([
 			'receivedTs' => $order->receivedTs ?: (string)new DateTime(),
 			'canceledTs' => (string)new DateTime(),
@@ -1189,13 +1209,34 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	public function banOrder(Order $order, ?Administrator $administrator = null): void
 	{
-		$this->cancelOrder($order);
+		if (\in_array(false, Arrays::invoke($this->onBeforeOrderBanned, $order), true)) {
+			return;
+		}
+
+		$order->update([
+			'bannedTs' => (string)new DateTime(),
+		]);
 
 		$this->bannedEmailRepository->syncOne(['email' => $order->purchase->email]);
 
 		Arrays::invoke($this->onOrderBanned, $order);
 
-		$this->orderLogItemRepository->createLog($order, OrderLogItem::BAN_CANCELED, null, $administrator);
+		$this->orderLogItemRepository->createLog($order, OrderLogItem::BAN, null, $administrator);
+	}
+
+	public function unBanOrder(Order $order, ?Administrator $administrator = null): void
+	{
+		if (\in_array(false, Arrays::invoke($this->onBeforeOrderUnBanned, $order), true)) {
+			return;
+		}
+
+		$order->update([
+			'bannedTs' => null,
+		]);
+
+		Arrays::invoke($this->onOrderUnBanned, $order);
+
+		$this->orderLogItemRepository->createLog($order, OrderLogItem::UN_BAN, null, $administrator);
 	}
 
 	/**

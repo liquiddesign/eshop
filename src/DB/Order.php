@@ -68,6 +68,12 @@ class Order extends \StORM\Entity
 	 * @column{"type":"timestamp"}
 	 */
 	public ?string $canceledTs;
+
+	/**
+	 * Zablokováno
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $bannedTs;
 	
 	/**
 	 * Odesláno do systému zásilkovny
@@ -80,6 +86,12 @@ class Order extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $dpdCode;
+
+	/**
+	 * DPD vytištěno
+	 * @column
+	 */
+	public bool $dpdPrinted = false;
 
 	/**
 	 * Edited manually in Admin

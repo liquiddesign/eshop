@@ -226,6 +226,8 @@ class DPD
 
 			$pdf->merge('file', $filename);
 
+			$orders->clear(true)->where('this.dpdCode', $ids)->update(['this.dpdPrinted' => true]);
+
 			return $filename;
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::ERROR);
