@@ -54,6 +54,7 @@ use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use StORM\Collection;
+use StORM\DIConnection;
 use StORM\Literal;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -1158,6 +1159,8 @@ class OrderPresenter extends BackendPresenter
 		$form->addGroup('Doručovací adresa');
 		$deliveryAddress = $form->addContainer('deliveryAddress');
 		$deliveryAddress->addHidden('uuid')->setNullable();
+		$deliveryAddress->addText('name', ' Jméno a příjmení / název firmy');
+		$deliveryAddress->addText('companyName', ' Název firmy');
 		$deliveryAddress->addText('street', 'Ulice');
 		$deliveryAddress->addText('city', 'Město');
 		$deliveryAddress->addText('zipcode', 'PSČ');
@@ -1174,7 +1177,7 @@ class OrderPresenter extends BackendPresenter
 
 			foreach (['deliveryAddress', 'billAddress'] as $address) {
 				if ($values[$address]['uuid'] === null) {
-					unset($values[$address]);
+					$values[$address]['uuid'] = DIConnection::generateUuid();
 				}
 			}
 
