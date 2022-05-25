@@ -20,6 +20,8 @@ class BuyForm extends Form
 	 */
 	public array $onItemAddedToCart = [];
 
+	public ?bool $replaceMode = false;
+
 	public function __construct(Product $product, Shopper $shopper, CheckoutManager $checkoutManager)
 	{
 		parent::__construct();
@@ -50,7 +52,9 @@ class BuyForm extends Form
 		}
 
 		$this->onSuccess[] = function ($form, $values) use ($product, $checkoutManager): void {
-			$cartItem = $checkoutManager->addItemToCart($product, $values->variant ?: null, \intval($values->amount));
+			\bdump($this->replaceMode);
+
+			$cartItem = $checkoutManager->addItemToCart($product, $values->variant ?: null, \intval($values->amount), $this->replaceMode);
 
 			$this->onItemAddedToCart($cartItem, (array) $values);
 		};
