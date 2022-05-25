@@ -16,6 +16,7 @@ use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\Integration\Integrations;
 use Eshop\Services\DPD;
+use Eshop\Services\PPL;
 use Eshop\Shopper;
 use Grid\Datagrid;
 use League\Csv\Writer;
@@ -37,7 +38,7 @@ class OrderGridFactory
 	/** @var array<callable(\StORM\Collection): void> */
 	public array $onCollectionCreation = [];
 
-	/** @var array<callable(\Admin\Controls\AdminGrid): void> */
+	/** @var array<callable(\Admin\Controls\AdminGrid, array<string>): void> */
 	public array $onBulkActionsCreated = [];
 
 	private OrderRepository $orderRepository;
@@ -59,6 +60,8 @@ class OrderGridFactory
 	private Shopper $shopper;
 
 	private ?DPD $dpd = null;
+
+	private ?PPL $ppl = null;
 	
 	/** @var array<mixed> */
 	private array $configuration;
@@ -95,6 +98,7 @@ class OrderGridFactory
 	{
 		$this->configuration = $configuration;
 		$this->dpd = $this->integrations->getService('dpd');
+		$this->ppl = $this->integrations->getService('ppl');
 
 		$stateReceived = $configuration['orderStates'][Order::STATE_RECEIVED] ?? $orderStatesNames[Order::STATE_RECEIVED] ?? 'Přijmout';
 		$stateFinished = $configuration['orderStates'][Order::STATE_COMPLETED] ?? $orderStatesNames[Order::STATE_COMPLETED] ?? 'Zpracovat';
@@ -237,6 +241,14 @@ class OrderGridFactory
 			}, '%s', 'this.dpdCode', ['class' => 'fit']);
 		}
 
+		if ($this->ppl) {
+			$grid->addColumn('PPL', function (Order $order, AdminGrid $datagrid) {
+				return '<button class="btn btn-sm disabled btn-outline-' . ($order->pplCode ? 'success' : 'danger') . '" disabled>
+				<i class="fas fa-' . ($order->pplCode ? ($order->pplPrinted ? 'print' : 'check') : 'times') . '"></i>
+				</button>';
+			}, '%s', 'this.pplCode', ['class' => 'fit']);
+		}
+
 		$grid->addColumn('', function ($object, $grid) {
 			return '<a class="btn btn-outline-primary btn-sm text-xs" style="white-space: nowrap" href="' .
 				$grid->getPresenter()->link('comments', $object) . '"><i title="Komentáře" class="far fa-comment"></i>&nbsp;' . $object->commentCount .
@@ -349,10 +361,12 @@ class OrderGridFactory
 			$button();
 		}
 
+		$eshopBulkProperties = ['bannedTs', 'dpdPrinted', 'pplPrinted'];
+
 		if ($this->onBulkActionsCreated) {
-			Arrays::invoke($this->onBulkActionsCreated, $grid);
+			Arrays::invoke($this->onBulkActionsCreated, $grid, $eshopBulkProperties);
 		} else {
-			$grid->addButtonBulkEdit('orderBulkForm', ['bannedTs', 'dpdPrinted'], 'ordersGrid');
+			$grid->addButtonBulkEdit('orderBulkForm', $eshopBulkProperties, 'ordersGrid');
 		}
 
 		$grid->addBulkAction(
@@ -388,6 +402,11 @@ class OrderGridFactory
 		if ($this->dpd) {
 			$grid->addBulkAction('sendDPD', 'sendDPD', '<i class="fas fa-paper-plane"></i> DPD');
 			$grid->addBulkAction('printDPD', 'printDPD', '<i class="fas fa-print"></i> DPD');
+		}
+
+		if ($this->ppl) {
+			$grid->addBulkAction('sendPPL', 'sendPPL', '<i class="fas fa-paper-plane"></i> PPL');
+			$grid->addBulkAction('printPPL', 'printPPL', '<i class="fas fa-print"></i> PPL');
 		}
 
 		return $grid;

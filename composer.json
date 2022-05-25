@@ -41,7 +41,8 @@
 		"ext-soap": "*",
 		"algolia/algoliasearch-client-php": "^3.1",
 		"neitanod/forceutf8": "^2.0",
-		"jurosh/pdf-merge": "^2.0"
+		"jurosh/pdf-merge": "^2.0",
+		"salamek/ppl-my-api": "^2.5"
 	},
 	"require-dev": 
 	{

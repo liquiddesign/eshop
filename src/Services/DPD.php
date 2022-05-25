@@ -58,7 +58,7 @@ class DPD
 		$this->application = $application;
 	}
 
-	public function getDPDDeliveryTypePK(): ?string
+	public function getDpdDeliveryTypePK(): ?string
 	{
 		return $this->settingRepository->getValueByName('dpdDeliveryType');
 	}
@@ -72,7 +72,7 @@ class DPD
 	{
 		$client = $this->getClient();
 
-		$dpdDeliveryType = $this->getDPDDeliveryTypePK();
+		$dpdDeliveryType = $this->getDpdDeliveryTypePK();
 
 		if (!$dpdDeliveryType) {
 			throw new \Exception('Delivery type for DPD service is not set!');

@@ -205,6 +205,22 @@ class SettingsPresenter extends BackendPresenter
 			],
 		];
 
+		/** @var \Eshop\Services\PPL|null $ppl */
+		$ppl = $this->integrations->getService('ppl');
+
+		if ($ppl) {
+			$this->customSettings['Doprava'][] = [
+				'key' => 'pplDeliveryType',
+				'label' => 'Typ dopravy PPL',
+				'type' => 'select',
+				'options' => $this->deliveryTypeRepository->getArrayForSelect(),
+				'info' => 'Při exportu objednávek do PPL budou odeslány jen objednávky s tímto typem dopravy.',
+				'onSave' => function ($key, $oldValue, $newValue): void {
+					$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
+				},
+			];
+		}
+
 		/** @var \Eshop\Services\DPD|null $dpd */
 		$dpd = $this->integrations->getService('dpd');
 
@@ -217,7 +233,7 @@ class SettingsPresenter extends BackendPresenter
 			'label' => 'Typ dopravy DPD',
 			'type' => 'select',
 			'options' => $this->deliveryTypeRepository->getArrayForSelect(),
-			'info' => 'Při exportu objednávek do DPD budou odeslány jen objednávky s tímto typem platby.',
+			'info' => 'Při exportu objednávek do DPD budou odeslány jen objednávky s tímto typem dopravy.',
 			'onSave' => function ($key, $oldValue, $newValue): void {
 				$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
 			},

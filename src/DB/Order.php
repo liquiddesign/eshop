@@ -94,6 +94,18 @@ class Order extends \StORM\Entity
 	public bool $dpdPrinted = false;
 
 	/**
+	 * PPL kód
+	 * @column
+	 */
+	public ?string $pplCode;
+
+	/**
+	 * PPL vytištěno
+	 * @column
+	 */
+	public bool $pplPrinted = false;
+
+	/**
 	 * Edited manually in Admin
 	 * @column
 	 */

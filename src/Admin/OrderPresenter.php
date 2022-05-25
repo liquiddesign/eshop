@@ -38,6 +38,7 @@ use Eshop\DB\SupplierRepository;
 use Eshop\Integration\EHub;
 use Eshop\Integration\Integrations;
 use Eshop\Services\DPD;
+use Eshop\Services\PPL;
 use Forms\Form;
 use Grid\Datagrid;
 use League\Csv\Writer;
@@ -193,6 +194,8 @@ class OrderPresenter extends BackendPresenter
 	public ?string $tab = null;
 
 	protected ?DPD $dpd = null;
+
+	protected ?PPL $ppl = null;
 
 	public function createComponentOrdersGrid(): Datagrid
 	{
@@ -1622,6 +1625,30 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('dpdPrintForm')];
 	}
 
+	public function renderSendPPL(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Odeslat do PPL';
+		$this->template->headerTree = [
+			['Objednávky', 'default',],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('pplSendForm')];
+	}
+
+	public function renderPrintPPL(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Tisk PPL štítků';
+		$this->template->headerTree = [
+			['Objednávky', 'default',],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('pplPrintForm')];
+	}
+
 	public function renderExportTargito(array $ids): void
 	{
 		unset($ids);
@@ -1700,9 +1727,13 @@ class OrderPresenter extends BackendPresenter
 	public function createComponentDpdSendForm(): AdminForm
 	{
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
-			$sync = $this->dpd->syncOrders($collection);
+			try {
+				$sync = $this->dpd->syncOrders($collection);
 
-			$this->flashMessage($sync ? 'Provedeno' : 'Některé objednávky nebyly odeslány!', $sync ? 'success' : 'warning');
+				$this->flashMessage($sync ? 'Provedeno' : 'Některé objednávky nebyly odeslány!', $sync ? 'success' : 'warning');
+			} catch (\Throwable $e) {
+				$this->flashMessage($e->getMessage(), 'error');
+			}
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
 	}
 
@@ -1727,6 +1758,51 @@ class OrderPresenter extends BackendPresenter
 			$this->sendResponse(new FileResponse($filename, 'labels.pdf', 'application/pdf'));
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds(), function (AdminForm $form): void {
 			$form->addSubmit('onlyNotPrinted', 'Pouze nevytištěné');
+
+			/** @var \Nette\Forms\Controls\SubmitButton $submit */
+			$submit = $form['submit'];
+			$submit->setCaption('Vše');
+		});
+	}
+
+	public function createComponentPplSendForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
+			try {
+				$sync = $this->ppl->syncOrders($collection);
+
+				$this->flashMessage($sync ? 'Provedeno' : 'Některé objednávky nebyly odeslány!', $sync ? 'success' : 'warning');
+			} catch (\Throwable $e) {
+				$this->flashMessage($e->getMessage(), 'error');
+			}
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
+	}
+
+	public function createComponentPplPrintForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection, AdminForm $form): void {
+			/** @var \Nette\Forms\Controls\SubmitButton $submitter */
+			$submitter = $form->isSubmitted();
+
+			if ($submitter->getName() === 'onlyNotPrinted') {
+				$collection->where('this.pplPrinted', false);
+			}
+
+			$filename = $this->ppl->getLabels($collection);
+
+			$this->flashMessage($filename ? 'Provedeno' : 'Chyba tisku!', $filename ? 'success' : 'error');
+
+			if (!$filename) {
+				return;
+			}
+
+			$this->sendResponse(new FileResponse($filename, 'labels.pdf', 'application/pdf'));
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds(), function (AdminForm $form): void {
+			$form->addSubmit('onlyNotPrinted', 'Pouze nevytištěné');
+
+			/** @var \Nette\Forms\Controls\SubmitButton $submit */
+			$submit = $form['submit'];
+			$submit->setCaption('Vše');
 		});
 	}
 
@@ -1762,6 +1838,10 @@ class OrderPresenter extends BackendPresenter
 			$form->addCheckbox('dpdPrinted', 'DPD vytištěno');
 		}
 
+		if ($this->ppl) {
+			$form->addCheckbox('pplPrinted', 'PPL vytištěno');
+		}
+
 		return $form;
 	}
 
@@ -1770,6 +1850,7 @@ class OrderPresenter extends BackendPresenter
 		parent::startup();
 
 		$this->dpd = $this->integrations->getService('dpd');
+		$this->ppl = $this->integrations->getService('ppl');
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();

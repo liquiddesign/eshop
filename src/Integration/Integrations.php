@@ -9,6 +9,7 @@ final class Integrations
 {
 	public const SERVICES = [
 		'dpd' => 'integrations.dpd',
+		'ppl' => 'integrations.ppl',
 	];
 
 	protected Container $container;
