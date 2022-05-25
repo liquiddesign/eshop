@@ -52,8 +52,6 @@ class BuyForm extends Form
 		}
 
 		$this->onSuccess[] = function ($form, $values) use ($product, $checkoutManager): void {
-			\bdump($this->replaceMode);
-
 			$cartItem = $checkoutManager->addItemToCart($product, $values->variant ?: null, \intval($values->amount), $this->replaceMode);
 
 			$this->onItemAddedToCart($cartItem, (array) $values);
