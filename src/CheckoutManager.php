@@ -1123,8 +1123,10 @@ class CheckoutManager
 	public function createOrder(?Purchase $purchase = null): void
 	{
 		$purchase = $purchase ?: $this->getPurchase();
-		
-		if (!$this->shopper->getAllowBannedEmailOrder() && $this->bannedEmailRepository->isEmailBanned($purchase->email)) {
+
+		$banned = $this->bannedEmailRepository->isEmailBanned($purchase->email);
+
+		if (!$this->shopper->getAllowBannedEmailOrder() && $banned) {
 			throw new BuyException('Banned email', BuyException::BANNED_EMAIL);
 		}
 
@@ -1178,6 +1180,10 @@ class CheckoutManager
 			->join(['purchase' => 'eshop_purchase'], 'purchase.uuid = this.fk_purchase')
 			->where('purchase.fk_customer', $purchase->customer->getPK())
 			->count() === 0;
+
+		if ($this->shopper->getAllowBannedEmailOrder() && $banned) {
+			$orderValues['bannedTs'] = (string)new DateTime();
+		}
 
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->createOne($orderValues);
