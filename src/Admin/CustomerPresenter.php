@@ -775,7 +775,7 @@ class CustomerPresenter extends BackendPresenter
 			}
 		});
 
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 
 		$grid->addFilterTextInput('search', ['this.login'], null, 'Login');
 		$grid->addFilterTextInput('company', ['customer.company', 'customer.fullname', 'customer.ic', 'customer.email'], null, 'Zákazník, IČ');
