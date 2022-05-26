@@ -178,7 +178,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnActionDelete([$this->accountFormFactory, 'deleteAccountHolder']);
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder']);
+		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder'], false, null, 'this.uuid');
 
 		$bulkEdits = ['pricelists', 'merchant', 'group'];
 
