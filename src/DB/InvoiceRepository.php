@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
+use Eshop\Shopper;
 use Nette\Utils\Random;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Repository;
@@ -23,6 +26,8 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 	private RelatedTypeRepository $relatedTypeRepository;
 
 	private ProductRepository $productRepository;
+
+	private Shopper $shopper;
 	
 	public function __construct(
 		InvoiceItemRepository $invoiceItemRepository,
@@ -30,7 +35,8 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 		RelatedTypeRepository $relatedTypeRepository,
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		ProductRepository $productRepository
+		ProductRepository $productRepository,
+		Shopper $shopper
 	) {
 		parent::__construct($connection, $schemaManager);
 		
@@ -38,6 +44,7 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 		$this->invoiceItemRepository = $invoiceItemRepository;
 		$this->relatedTypeRepository = $relatedTypeRepository;
 		$this->productRepository = $productRepository;
+		$this->shopper = $shopper;
 	}
 
 	/**
@@ -88,12 +95,40 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 				'totalPriceVatWithoutDiscount' => $order->getTotalPriceVat() + $order->getDiscountPriceVat(),
 			] + $values;
 
+		if (!isset($values['code'])) {
+			$newValues['code'] = Strings::webalize($order->code);
+		}
+
+		if (!isset($values['exposed'])) {
+			$newValues['exposed'] = (string)(new Carbon());
+		}
+
+		if (!isset($values['taxDate'])) {
+			$days = $this->shopper->getInvoicesAutoTaxDateInDays();
+
+			$newValues['taxDate'] = (string)(new Carbon($newValues['exposed']))->addDays($days);
+		}
+
+		if (!isset($values['dueDate'])) {
+			$days = $this->shopper->getInvoicesAutoDueDateInDays();
+
+			$newValues['dueDate'] = (string)(new Carbon($newValues['exposed']))->addDays($days);
+		}
+
 		if (!isset($values['variableSymbol'])) {
 			$newValues['variableSymbol'] = $order->code;
 		}
 
-		if (!isset($values['paymentType'])) {
-			$newValues['paymentType'] = $order->purchase->getValue('paymentType');
+		if (!isset($values['paidDate'])) {
+			if ($payment = $order->getPayment()) {
+				$newValues['paidDate'] = $payment->paidTs;
+			}
+		}
+
+		if (!isset($values['canceled'])) {
+			if ($order->getState() === Order::STATE_CANCELED) {
+				$newValues['canceled'] = $order->canceledTs;
+			}
 		}
 
 		$invoice = $this->createOne($newValues);

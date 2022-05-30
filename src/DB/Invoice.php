@@ -20,6 +20,12 @@ class Invoice extends \StORM\Entity
 	public int $id;
 
 	/**
+	 * Vytištěno
+	 * @column
+	 */
+	public bool $printed = false;
+
+	/**
 	 * Kód
 	 * @column
 	 */

@@ -1,0 +1,30 @@
+{varType Eshop\DB\Invoice[] $invoices}
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="cs" xml:lang="cs" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+    <meta content="cs" http-equiv="Content-Language" />
+    <meta content="no-cache" http-equiv="Cache-control" />
+    <title>Faktury</title>
+
+    <link media="screen, print" type="text/css" href="{$pubUrl}/css/invoice.css?v={$ts}" rel="Stylesheet"/>
+    <link media="print" type="text/css" href="{$pubUrl}/css/invoice-print.css?v={$ts}" rel="Stylesheet"/>
+
+    <script>
+        function resizeIframe(obj) {
+            obj.style.height = obj.contentWindow.document.documentElement.scrollHeight + 'px';
+        }
+    </script>
+</head>
+
+<body>
+    <div class="actions">
+        <a href="javascript: window.print();">Vytisknout vše</a>
+    </div>
+
+    {foreach $invoices as $invoice}
+        <iframe src="{plink :Eshop:Export:invoice, $invoice->hash}" frameborder="0" scrolling="no" onload="resizeIframe(this)" style="break-after: page; width: 100%"></iframe>
+    {/foreach}
+</body>
+</html>

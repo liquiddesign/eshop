@@ -274,6 +274,23 @@ class OrderGridFactory
 			return $grid->getPresenter()->link('printDetail', $order);
 		}, "<a class='$btnSecondary' href='%s'><i class='fa fa-search'></i> Detail</a>", null, ['class' => 'minimal']);
 
+		if (isset($configuration['printInvoices']) && $configuration['printInvoices'] && $state !== Order::STATE_OPEN) {
+			$grid->addColumn('Tisk', function (Order $order, AdminGrid $datagrid) {
+				$invoice = $order->invoices->first();
+
+				if (!$invoice) {
+					return '<button class="btn btn-sm btn-outline-danger disabled" disabled><i class="fas fa-times text-danger"></i></button>';
+				}
+
+				$link = $datagrid->getPresenter()->link(':Eshop:Export:invoice', $invoice->hash);
+
+				return '<a target="_blank" href="' . $link . '" title="Tisknout fakturu" class="btn btn-sm btn-outline-' .
+					($invoice->printed ? 'success' : 'primary') . '">
+				<i class="fas fa-' . ($invoice->printed ? 'check link-success' : 'print link-primary') . '"></i>
+				</a>';
+			}, '%s', null, ['class' => 'fit']);
+		}
+
 		// filters
 		$grid->addFilterTextInput('search_order', ['this.code'], null, 'Č. objednávky');
 		$searchExpressions = ['customer.fullname', 'purchase.fullname', 'customer.ic', 'purchase.ic', 'customer.email', 'purchase.email', 'customer.phone', 'purchase.phone',];
@@ -396,19 +413,37 @@ class OrderGridFactory
 			$grid->addButtonBulkEdit('orderBulkForm', $eshopBulkProperties, 'ordersGrid');
 		}
 
-		$grid->addBulkAction(
-			'printDetailMultiple',
-			'printDetailMultiple',
-			'<i class="fas fa-print"></i> Tisk',
-			'btn btn-outline-primary btn-sm',
-			function (Presenter $presenter, string $destination, array $ids): void {
-				if (\count($ids) === 0) {
-					$presenter->flashMessage('Žádné vybrané položky!', 'warning');
+		if (isset($configuration['printMultiple']) && $configuration['printMultiple'] && $state !== Order::STATE_OPEN) {
+			$grid->addBulkAction(
+				'printDetailMultiple',
+				'printDetailMultiple',
+				'<i class="fas fa-print"></i> Tisk',
+				'btn btn-outline-primary btn-sm',
+				function (Presenter $presenter, string $destination, array $ids): void {
+					if (\count($ids) === 0) {
+						$presenter->flashMessage('Žádné vybrané položky!', 'warning');
 
-					$presenter->redirect('this');
-				}
-			},
-		);
+						$presenter->redirect('this');
+					}
+				},
+			);
+		}
+
+		if (isset($configuration['printInvoices']) && $configuration['printInvoices'] && $state !== Order::STATE_OPEN) {
+			$grid->addBulkAction(
+				'printInvoiceMultiple',
+				'printInvoiceMultiple',
+				'<i class="fas fa-print"></i> Faktury',
+				'btn btn-outline-primary btn-sm',
+				function (Presenter $presenter, string $destination, array $ids): void {
+					if (\count($ids) === 0) {
+						$presenter->flashMessage('Žádné vybrané položky!', 'warning');
+
+						$presenter->redirect('this');
+					}
+				},
+			);
+		}
 
 		if ($state !== Order::STATE_OPEN) {
 			$submit = $grid->getForm()->addSubmit('exportZasilkovna', Html::fromHtml('<i class="fas fa-download"></i> Zásilkovna (CSV)'));

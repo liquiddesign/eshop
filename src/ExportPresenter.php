@@ -338,19 +338,29 @@ abstract class ExportPresenter extends Presenter
 
 	public function actionInvoice(string $hash): void
 	{
-		unset($hash);
+		$this->template->invoice = $invoice = $this->invoiceRepository->one(['hash' => $hash], true);
+
+		$invoice->update(['printed' => true]);
+
+		$this->template->setFile($this->template->getFile() ?: __DIR__ . '/templates/export/invoice.latte');
 	}
 
 	public function renderInvoice(string $hash): void
 	{
-		$invoice = $this->invoiceRepository->one(['hash' => $hash], true);
+		unset($hash);
+	}
 
-		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
-		$template = $this->template;
+	public function actionInvoiceMultiple(array $hashes): void
+	{
+		$this->invoiceRepository->many()->where('this.hash', $hashes)->update(['printed' => true]);
+		$this->template->invoices = $this->invoiceRepository->many()->where('this.hash', $hashes)->toArray();
 
-		$template->invoice = $invoice;
+		$this->template->setFile($this->template->getFile() ?: __DIR__ . '/templates/export/invoice.multiple.latte');
+	}
 
-		$template->setFile($this->template->getFile() ?: __DIR__ . '/templates/export/invoice.latte');
+	public function actionRenderMultiple(array $hashes): void
+	{
+		unset($hashes);
 	}
 
 	private function export(string $name): void

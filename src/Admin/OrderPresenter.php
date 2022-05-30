@@ -21,6 +21,7 @@ use Eshop\DB\Delivery;
 use Eshop\DB\DeliveryRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\InternalCommentOrderRepository;
+use Eshop\DB\InvoiceRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderLogItem;
 use Eshop\DB\OrderLogItemRepository;
@@ -102,6 +103,8 @@ class OrderPresenter extends BackendPresenter
 		'eHub' => false,
 		/** @deprecated Use const ORDER_STATES_NAMES */
 		'orderStates' => null,
+		'printMultiple' => false,
+		'printInvoices' => false,
 	];
 
 	/** @inject */
@@ -157,6 +160,9 @@ class OrderPresenter extends BackendPresenter
 
 	/** @inject */
 	public SupplierRepository $supplierRepository;
+
+	/** @inject */
+	public InvoiceRepository $invoiceRepository;
 
 	/** @inject */
 	public AddressRepository $addressRepository;
@@ -1390,6 +1396,30 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayButtons[] = $this->createButton('exportEdi!', '<i class="fa fa-download mr-1"></i>EDI', [$order->getPK()]);
 		$this->template->displayButtons[] = $this->createButton('exportCsv!', '<i class="fa fa-download mr-1"></i>CSV', [$order->getPK()]);
 		//  window.print()
+	}
+
+	public function createComponentPrintInvoiceMultipleForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
+			$hashes = $this->invoiceRepository->many()
+				->join(['orders' => 'eshop_invoice_nxn_eshop_order'], 'this.uuid = orders.fk_invoice')
+				->where('orders.fk_order', $collection->toArrayOf('uuid', [], true))
+				->toArrayOf('hash', [], true);
+
+			$this->redirect(':Eshop:Export:invoiceMultiple', [$hashes]);
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
+	}
+
+	public function renderPrintInvoiceMultiple(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Tisk faktur';
+		$this->template->headerTree = [
+			['Objednávky', 'default'],
+			['Tisk faktur'],
+		];
+		$this->template->displayButtons = [$this->getComponent('printInvoiceMultipleForm')];
 	}
 
 	public function renderPrintDetailMultiple(array $ids): void

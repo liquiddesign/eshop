@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Eshop\Admin;
 
-use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\BackendPresenter;
 use Eshop\DB\Invoice;
 use Eshop\DB\InvoiceRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
+use Eshop\Shopper;
 use Forms\Form;
 use Grid\Datagrid;
 use Messages\DB\TemplateRepository;
@@ -21,7 +22,7 @@ use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
 use Nette\Utils\Html;
-use Nette\Utils\Strings;
+use StORM\Collection;
 
 class InvoicesPresenter extends BackendPresenter
 {
@@ -42,6 +43,9 @@ class InvoicesPresenter extends BackendPresenter
 
 	/** @inject */
 	public TemplateRepository $templateRepository;
+
+	/** @inject */
+	public Shopper $shopper;
 	
 	public function createComponentGrid(): AdminGrid
 	{
@@ -81,11 +85,18 @@ class InvoicesPresenter extends BackendPresenter
 				return null;
 			}
 		});
+
+		$grid->addColumn('Tisk', function (Invoice $invoice, AdminGrid $datagrid) {
+			return '<i class="fas fa-' . ($invoice->printed ? 'check' : 'times') . '"></i>';
+		}, '%s', 'this.dpdCode', ['class' => 'fit']);
 		
 		$grid->addColumnLinkDetail('detail');
 		$grid->addColumnActionDelete();
 
+		$grid->addButtonBulkEdit('form', ['printed']);
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
+
+		$grid->addBulkAction('printMultiple', 'printMultiple', '<i class="fas fa-print"></i>');
 
 		$grid->getForm()->addSubmit('demandMultiple', Html::fromHtml('<i class="fa fa-meteor"></i>&nbsp;Urgovat'))
 			->setHtmlAttribute('class', $btnSecondary)
@@ -110,9 +121,18 @@ class InvoicesPresenter extends BackendPresenter
 
 		$form->monitor(Presenter::class, function () use ($form, $invoice): void {
 			$form->addText('code', 'Kód')->setNullable()->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude použit kód objednávky.')->setDisabled((bool) $invoice);
-			$form->addDate('exposed', 'Datum vystavení')->setRequired();
-			$form->addDate('taxDate', 'Datum zdanitelného plnění')->setRequired();
-			$form->addDate('dueDate', 'Datum splatnosti')->setRequired();
+			$form->addText('exposed', 'Datum vystavení')
+				->setHtmlType('date')
+				->setNullable()
+				->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude použito dnešní datum.');
+			$form->addText('taxDate', 'Datum zdanitelného plnění')
+				->setHtmlType('date')
+				->setNullable()
+				->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude použito nastavení posunu. Aktuální posun: + ' . $this->shopper->getInvoicesAutoTaxDateInDays() . ' dní vůči datu vystavení');
+			$form->addText('dueDate', 'Datum splatnosti')
+				->setHtmlType('date')
+				->setNullable()
+				->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude použito nastavení posunu. Aktuální posun: + ' . $this->shopper->getInvoicesAutoDueDateInDays() . ' dní vůči datu vystavení');
 
 			$input = $form->addSelectAjax('order', 'Objednávka', '- Vyberte objednávku -', Order::class)->setDisabled((bool) $invoice);
 
@@ -126,8 +146,16 @@ class InvoicesPresenter extends BackendPresenter
 			$form->addText('constantSymbol', 'Konstantní symbol pro platbu')->setNullable();
 
 			$form->addGroup('Stav faktury');
-			$form->addDate('paidDate', 'Zaplaceno')->setNullable();
-			$form->addDate('canceled', 'Storno')->setNullable();
+			$form->addText('paidDate', 'Zaplaceno')
+				->setHtmlType('date')
+				->setNullable()
+				->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude použit stav objednávky.');
+			$form->addText('canceled', 'Storno')
+				->setHtmlType('date')
+				->setNullable()
+				->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude použit stav objednávky.');
+
+			$form->addCheckbox('printed', 'Vytisknuto');
 
 			$form->addSubmits();
 		});
@@ -153,8 +181,6 @@ class InvoicesPresenter extends BackendPresenter
 
 			if (isset($values['order'])) {
 				$order = $this->orderRepository->one(Arrays::pick($values, 'order'));
-
-				$values['code'] ??= Strings::webalize($order->code);
 			}
 
 			$invoice = $invoice || !isset($order) ? $this->invoiceRepository->syncOne($values) :
@@ -293,6 +319,28 @@ class InvoicesPresenter extends BackendPresenter
 
 		$grid->getPresenter()->flashMessage('Provedeno', 'success');
 		$grid->getPresenter()->redirect('this');
+	}
+
+	public function renderPrintMultiple(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Tisknout hromadně';
+		$this->template->headerTree = [
+			['Faktury', 'default'],
+			['Tisknout hromadně'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('printMultipleForm')];
+	}
+
+	public function createComponentPrintMultipleForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('grid'), function (array $values, Collection $collection): void {
+			$hashes = $collection->toArrayOf('hash', [], true);
+
+			$this->redirect(':Eshop:Export:invoiceMultiple', [$hashes]);
+		}, $this->getBulkFormActionLink(), $this->invoiceRepository->many(), $this->getBulkFormIds());
 	}
 
 	private function demandInvoice(Invoice $invoice): void

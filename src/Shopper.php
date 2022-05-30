@@ -97,6 +97,11 @@ class Shopper
 	 * @var array<mixed>
 	 */
 	private array $reviews;
+
+	/**
+	 * @var array<mixed>
+	 */
+	private array $invoices;
 	
 	private bool $allowBannedEmailOrder = false;
 
@@ -226,6 +231,24 @@ class Shopper
 	public function setReviews(array $reviews): void
 	{
 		$this->reviews = $reviews;
+	}
+
+	/**
+	 * @param array<mixed> $invoices
+	 */
+	public function setInvoices(array $invoices): void
+	{
+		$this->invoices = $invoices;
+	}
+
+	public function getInvoicesAutoTaxDateInDays(): int
+	{
+		return $this->invoices['autoTaxDateInDays'];
+	}
+
+	public function getInvoicesAutoDueDateInDays(): int
+	{
+		return $this->invoices['autoDueDateInDays'];
 	}
 
 	public function getReviewsType(): string

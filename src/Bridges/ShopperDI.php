@@ -48,6 +48,10 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 				'maxScore' => Expect::float(5),
 				'maxRemindersCount' => Expect::int(1),
 			]),
+			'invoices' => Expect::structure([
+				'autoTaxDateInDays' => Expect::int(0),
+				'autoDueDateInDays' => Expect::int(0),
+			]),
 		]);
 	}
 	
@@ -82,6 +86,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$shopper->addSetup('setIntegrationsEHub', [$integrations['eHub']]);
 
 		$shopper->addSetup('setReviews', [(array) $config['reviews']]);
+		$shopper->addSetup('setInvoices', [(array) $config['invoices']]);
 
 		$cartManager->addSetup('setCheckoutSequence', [$config['checkoutSequence']]);
 	}
