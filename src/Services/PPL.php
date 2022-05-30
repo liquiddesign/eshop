@@ -240,6 +240,8 @@ class PPL
 				if ($result['Code'] !== '0') {
 					$ordersWithError[] = $order;
 
+					$order->update(['pplError' => true]);
+
 					continue;
 				}
 
@@ -249,11 +251,13 @@ class PPL
 					$firstAvailablePackageSeriesNumber++;
 				}
 
-				$order->update(['pplCode' => $result['ItemKey']]);
+				$order->update(['pplCode' => $result['ItemKey'], 'pplError' => false,]);
 			} catch (\Throwable $e) {
 				\bdump($e);
 
 				$ordersWithError[] = $order;
+
+				$order->update(['pplError' => true]);
 			}
 		}
 

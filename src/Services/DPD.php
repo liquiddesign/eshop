@@ -147,14 +147,18 @@ class DPD
 				/** @codingStandardsIgnoreStart */
 				if ($result = $result->NewShipmentResult->NewShipmentResultVO->ParcelVO->PARCELNO) {
 					/** @codingStandardsIgnoreEnd */
-					$order->update(['dpdCode' => $result]);
+					$order->update(['dpdCode' => $result, 'dpdError' => false,]);
 				} else {
 					$ordersWithError[] = $order;
+
+					$order->update(['dpdError' => true]);
 				}
 			} catch (\Throwable $e) {
 				\bdump($e);
 
 				$ordersWithError[] = $order;
+
+				$order->update(['dpdError' => true]);
 			}
 		}
 

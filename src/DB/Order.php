@@ -94,6 +94,12 @@ class Order extends \StORM\Entity
 	public bool $dpdPrinted = false;
 
 	/**
+	 * PPL chyba
+	 * @column
+	 */
+	public bool $dpdError = false;
+
+	/**
 	 * PPL kód
 	 * @column
 	 */
@@ -104,6 +110,12 @@ class Order extends \StORM\Entity
 	 * @column
 	 */
 	public bool $pplPrinted = false;
+
+	/**
+	 * PPL chyba
+	 * @column
+	 */
+	public bool $pplError = false;
 
 	/**
 	 * Edited manually in Admin

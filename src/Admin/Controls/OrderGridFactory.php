@@ -249,7 +249,7 @@ class OrderGridFactory
 		if ($this->dpd && $state !== Order::STATE_OPEN) {
 			$grid->addColumn('DPD', function (Order $order, AdminGrid $datagrid) {
 				return '<button class="btn btn-sm disabled btn-outline-' . ($order->dpdCode ? 'success' : 'danger') . '" disabled>
-				<i class="fas fa-' . ($order->dpdCode ? ($order->dpdPrinted ? 'print' : 'check') : 'times') . '"></i>
+				<i class="fas fa-' . ($order->dpdCode ? ($order->dpdPrinted ? 'print' : 'check') : ($order->dpdError ? 'exclamation' : 'times')) . '"></i>
 				</button>';
 			}, '%s', 'this.dpdCode', ['class' => 'fit']);
 		}
@@ -257,7 +257,7 @@ class OrderGridFactory
 		if ($this->ppl && $state !== Order::STATE_OPEN) {
 			$grid->addColumn('PPL', function (Order $order, AdminGrid $datagrid) {
 				return '<button class="btn btn-sm disabled btn-outline-' . ($order->pplCode ? 'success' : 'danger') . '" disabled>
-				<i class="fas fa-' . ($order->pplCode ? ($order->pplPrinted ? 'print' : 'check') : 'times') . '"></i>
+				<i class="fas fa-' . ($order->pplCode ? ($order->pplPrinted ? 'print' : 'check') : ($order->pplError ? 'exclamation' : 'times')) . '"></i>
 				</button>';
 			}, '%s', 'this.pplCode', ['class' => 'fit']);
 		}
