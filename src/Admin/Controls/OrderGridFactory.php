@@ -309,7 +309,7 @@ class OrderGridFactory
 
 		$openOrderButton = function () use ($grid, $stateOpen, $btnSecondary): void {
 			try {
-				$grid->getForm()->addSubmit('receiveMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateOpen))->setHtmlAttribute('class', $btnSecondary)
+				$grid->getForm()->addSubmit('openMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateOpen))->setHtmlAttribute('class', $btnSecondary)
 					->onClick[] = [$this, 'openOrderMultiple'];
 			} catch (\Throwable $e) {
 				Debugger::log($e, ILogger::ERROR);
