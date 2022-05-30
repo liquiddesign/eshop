@@ -631,8 +631,10 @@ class CheckoutManager
 		/** @var \Eshop\DB\Product[] $products */
 		$products = $this->productRepository->getProducts()->where('this.uuid', $ids)->toArray();
 
+		$upsellsMap = [];
+
 		/** @var \Eshop\DB\CartItem $item */
-		foreach ($this->itemRepository->getItems([$cart->getPK()]) as $item) {
+		foreach ($this->itemRepository->getItems([$cart->getPK()])->where('this.fk_upsell IS NULL') as $item) {
 			if (!isset($products[$item->getValue('product')])) {
 				if ($required) {
 					throw new BuyException('product not found');
@@ -641,7 +643,23 @@ class CheckoutManager
 				continue;
 			}
 
-			$this->addItemToCart($products[$item->getValue('product')], $item->variant, $item->amount, false, null, null);
+			$newItem = $this->addItemToCart($products[$item->getValue('product')], $item->variant, $item->amount, null, null);
+
+			$upsellsMap[$item->getPK()] = $newItem->getPK();
+		}
+
+		/** @var \Eshop\DB\CartItem $item */
+		foreach ($this->itemRepository->getItems([$cart->getPK()])->where('this.fk_upsell IS NOT NULL') as $item) {
+			if (!isset($products[$item->getValue('product')])) {
+				if ($required) {
+					throw new BuyException('product not found');
+				}
+
+				continue;
+			}
+
+			$this->addItemToCart($products[$item->getValue('product')], $item->variant, $item->amount, null, false, false)
+				->update(['upsell' => $upsellsMap[$item->getValue('upsell')]]);
 		}
 	}
 
