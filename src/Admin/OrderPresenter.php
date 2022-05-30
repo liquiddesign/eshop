@@ -1400,14 +1400,26 @@ class OrderPresenter extends BackendPresenter
 
 	public function createComponentPrintInvoiceMultipleForm(): AdminForm
 	{
-		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection, AdminForm $form): void {
 			$hashes = $this->invoiceRepository->many()
 				->join(['orders' => 'eshop_invoice_nxn_eshop_order'], 'this.uuid = orders.fk_invoice')
-				->where('orders.fk_order', $collection->toArrayOf('uuid', [], true))
-				->toArrayOf('hash', [], true);
+				->where('orders.fk_order', $collection->toArrayOf('uuid', [], true));
 
-			$this->redirect(':Eshop:Export:invoiceMultiple', [$hashes]);
-		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
+			/** @var \Nette\Forms\Controls\SubmitButton $submitter */
+			$submitter = $form->isSubmitted();
+
+			if ($submitter->getName() === 'onlyNotPrinted') {
+				$hashes->where('this.printed', false);
+			}
+
+			$this->redirect(':Eshop:Export:invoiceMultiple', [$hashes->toArrayOf('hash', [], true)]);
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds(), function (AdminForm $form): void {
+			$form->addSubmit('onlyNotPrinted', 'Pouze nevytištěné');
+
+			/** @var \Nette\Forms\Controls\SubmitButton $submit */
+			$submit = $form['submit'];
+			$submit->setCaption('Vše');
+		});
 	}
 
 	public function renderPrintInvoiceMultiple(array $ids): void
