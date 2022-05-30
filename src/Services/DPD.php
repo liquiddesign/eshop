@@ -66,9 +66,10 @@ class DPD
 	/**
 	 * Send orders DPD
 	 * @param \StORM\Collection<\Eshop\DB\Order> $orders
+	 * @return array<\Eshop\DB\Order> Orders with errors
 	 * @throws \Exception
 	 */
-	public function syncOrders(Collection $orders): bool
+	public function syncOrders(Collection $orders): array
 	{
 		$client = $this->getClient();
 
@@ -80,7 +81,7 @@ class DPD
 
 		$dpdCodType = $this->settingRepository->getValueByName('codType');
 
-		$error = false;
+		$ordersWithError = [];
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
@@ -148,16 +149,16 @@ class DPD
 					/** @codingStandardsIgnoreEnd */
 					$order->update(['dpdCode' => $result]);
 				} else {
-					$error = true;
+					$ordersWithError[] = $order;
 				}
 			} catch (\Throwable $e) {
 				\bdump($e);
 
-				$error = true;
+				$ordersWithError[] = $order;
 			}
 		}
 
-		return !$error;
+		return $ordersWithError;
 	}
 
 	/**

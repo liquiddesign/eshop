@@ -97,7 +97,12 @@ class PPL
 		return $this->settingRepository->getValueByName('pplDeliveryType');
 	}
 
-	public function syncOrders(Collection $orders): bool
+	/**
+	 * @param \StORM\Collection $orders
+	 * @return array<\Eshop\DB\Order> Orders with errors
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function syncOrders(Collection $orders): array
 	{
 		$pplDeliveryType = $this->getPplDeliveryTypePK();
 
@@ -109,7 +114,7 @@ class PPL
 
 		$client = $this->getClient();
 
-		$error = false;
+		$ordersWithError = [];
 
 		$packageNumberInfo = new PackageNumberInfo(
 			$this->packageSeriesNumberId,
@@ -233,7 +238,7 @@ class PPL
 				\bdump($result);
 
 				if ($result['Code'] !== '0') {
-					$error = true;
+					$ordersWithError[] = $order;
 
 					continue;
 				}
@@ -248,11 +253,11 @@ class PPL
 			} catch (\Throwable $e) {
 				\bdump($e);
 
-				$error = true;
+				$ordersWithError[] = $order;
 			}
 		}
 
-		return !$error;
+		return $ordersWithError;
 	}
 
 	/**

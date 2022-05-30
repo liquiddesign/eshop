@@ -1737,9 +1737,15 @@ class OrderPresenter extends BackendPresenter
 	{
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
 			try {
-				$sync = $this->dpd->syncOrders($collection);
+				$ordersWithError = $this->dpd->syncOrders($collection);
 
-				$this->flashMessage($sync ? 'Provedeno' : 'Některé objednávky nebyly odeslány!', $sync ? 'success' : 'warning');
+				$orderCodes = [];
+
+				foreach ($ordersWithError as $order) {
+					$orderCodes[] = $order->code;
+				}
+
+				$this->flashMessage(!$ordersWithError ? 'Provedeno' : 'Některé objednávky nebyly odeslány!<br>' . \implode('<br>', $orderCodes), !$ordersWithError ? 'success' : 'warning');
 			} catch (\Throwable $e) {
 				$this->flashMessage($e->getMessage(), 'error');
 			}
@@ -1778,9 +1784,15 @@ class OrderPresenter extends BackendPresenter
 	{
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
 			try {
-				$sync = $this->ppl->syncOrders($collection);
+				$ordersWithError = $this->ppl->syncOrders($collection);
 
-				$this->flashMessage($sync ? 'Provedeno' : 'Některé objednávky nebyly odeslány!', $sync ? 'success' : 'warning');
+				$orderCodes = [];
+
+				foreach ($ordersWithError as $order) {
+					$orderCodes[] = $order->code;
+				}
+
+				$this->flashMessage(!$orderCodes ? 'Provedeno' : 'Některé objednávky nebyly odeslány!<br>' . \implode('<br>', $orderCodes), !$orderCodes ? 'success' : 'warning');
 			} catch (\Throwable $e) {
 				$this->flashMessage($e->getMessage(), 'error');
 			}
