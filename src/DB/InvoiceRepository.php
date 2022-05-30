@@ -168,6 +168,8 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 			foreach ($invoice->items->clear(true)->where('fk_product IS NOT NULL') as $item) {
 				/** @var \Eshop\DB\Related $related */
 				foreach ($this->productRepository->getSlaveRelatedProducts($relatedType, $item->getValue('product')) as $related) {
+					$related->amount *= $item->amount;
+
 					if (isset($grouped[$related->slave->getFullCode()])) {
 						$grouped[$related->slave->getFullCode()]->amount += $related->amount;
 					} else {
