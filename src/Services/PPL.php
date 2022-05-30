@@ -152,7 +152,6 @@ class PPL
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
 			try {
-				throw new \Exception();
 				if ($order->pplCode) {
 					continue;
 				}
