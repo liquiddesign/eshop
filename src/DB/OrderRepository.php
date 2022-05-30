@@ -30,6 +30,9 @@ use StORM\SchemaManager;
 class OrderRepository extends \StORM\Repository implements IGeneralRepository, IGeneralAjaxRepository
 {
 	/** @var array<callable(\Eshop\DB\Order): bool> */
+	public array $onBeforeOrderOpened = [];
+
+	/** @var array<callable(\Eshop\DB\Order): bool> */
 	public array $onBeforeOrderReceived = [];
 
 	/** @var array<callable(\Eshop\DB\Order): void> */
@@ -1150,7 +1153,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	public function openOrder(Order $order, ?Administrator $administrator = null): void
 	{
-		if (\in_array(false, Arrays::invoke($this->onBeforeOrderReceived, $order), true)) {
+		if (\in_array(false, Arrays::invoke($this->onBeforeOrderOpened, $order), true)) {
 			return;
 		}
 
