@@ -372,4 +372,14 @@ class Order extends \StORM\Entity
 
 		return $invoiceRepository->many()->where('orders.uuid', $this->getPK());
 	}
+
+	public function getDpdCode(): ?string
+	{
+		return $this->dpdError ? null : $this->dpdCode;
+	}
+
+	public function getPplCode(): ?string
+	{
+		return $this->pplError ? null : $this->pplCode;
+	}
 }
