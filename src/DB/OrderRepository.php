@@ -33,6 +33,9 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	public array $onBeforeOrderReceived = [];
 
 	/** @var array<callable(\Eshop\DB\Order): void> */
+	public array $onOrderOpened = [];
+
+	/** @var array<callable(\Eshop\DB\Order): void> */
 	public array $onOrderReceived = [];
 
 	/** @var array<callable(\Eshop\DB\Order): bool> */
@@ -1143,6 +1146,23 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	public function cancelOrderById(string $orderId): void
 	{
 		$this->cancelOrder($this->one($orderId, true));
+	}
+
+	public function openOrder(Order $order, ?Administrator $administrator = null): void
+	{
+		if (\in_array(false, Arrays::invoke($this->onBeforeOrderReceived, $order), true)) {
+			return;
+		}
+
+		$order->update([
+			'receivedTs' => null,
+			'completedTs' => null,
+			'canceledTs' => null,
+		]);
+
+		Arrays::invoke($this->onOrderOpened, $order);
+
+		$this->orderLogItemRepository->createLog($order, OrderLogItem::OPENED, null, $administrator);
 	}
 
 	public function receiveOrder(Order $order, ?Administrator $administrator = null): void

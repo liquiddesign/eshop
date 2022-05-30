@@ -13,6 +13,7 @@ use Admin\DB\Administrator;
 class OrderLogItem extends \StORM\Entity
 {
 	public const CREATED = 'Vytvořeno';
+	public const OPENED = 'Otevřeno';
 	public const RECEIVED = 'Přijato';
 	public const COMPLETED = 'Odesláno';
 	public const CANCELED = 'Stornováno';

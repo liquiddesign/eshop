@@ -74,14 +74,17 @@ class OrderPresenter extends BackendPresenter
 			Order::STATE_CANCELED,
 		],
 		Order::STATE_RECEIVED => [
+			Order::STATE_OPEN,
 			Order::STATE_COMPLETED,
 			Order::STATE_CANCELED,
 		],
 		Order::STATE_COMPLETED => [
+			Order::STATE_OPEN,
 			Order::STATE_RECEIVED,
 			Order::STATE_CANCELED,
 		],
 		Order::STATE_CANCELED => [
+			Order::STATE_OPEN,
 			Order::STATE_RECEIVED,
 			Order::STATE_COMPLETED,
 		],
@@ -191,7 +194,10 @@ class OrderPresenter extends BackendPresenter
 	/** @inject */
 	public Integrations $integrations;
 
-	/** @persistent */
+	/**
+	 * Always use getter getTab()
+	 * @persistent
+	 */
 	public ?string $tab = null;
 
 	protected ?DPD $dpd = null;

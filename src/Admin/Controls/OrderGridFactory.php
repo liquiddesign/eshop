@@ -100,6 +100,7 @@ class OrderGridFactory
 		$this->dpd = $this->integrations->getService('dpd');
 		$this->ppl = $this->integrations->getService('ppl');
 
+		$stateOpen = $configuration['orderStates'][Order::STATE_OPEN] ?? $orderStatesNames[Order::STATE_OPEN] ?? 'Otevřít';
 		$stateReceived = $configuration['orderStates'][Order::STATE_RECEIVED] ?? $orderStatesNames[Order::STATE_RECEIVED] ?? 'Přijmout';
 		$stateFinished = $configuration['orderStates'][Order::STATE_COMPLETED] ?? $orderStatesNames[Order::STATE_COMPLETED] ?? 'Zpracovat';
 		$stateCanceled = $configuration['orderStates'][Order::STATE_CANCELED] ?? $orderStatesNames[Order::STATE_CANCELED] ?? 'Stornovat';
@@ -158,6 +159,15 @@ class OrderGridFactory
 			$grid->addColumnText('Cena', $properties, '%s', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		}
 
+		$openOrderButton = function () use ($grid, $stateOpen, $btnSecondary): void {
+			try {
+				$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='" . $stateOpen . "'><i class='fa fa-sm fa-angle-double-left'></i></a>";
+				$grid->addColumnAction('', $actionIco, [$this, 'openOrder'], [], null, ['class' => 'minimal']);
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::ERROR);
+			}
+		};
+
 		$receiveOrderButton = function () use ($grid, $stateReceived, $btnSecondary): void {
 			try {
 				$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='" . $stateReceived . "'><i class='fa fa-sm fa-check'></i></a>";
@@ -201,14 +211,17 @@ class OrderGridFactory
 				Order::STATE_CANCELED => $cancelOrderButton,
 			],
 			Order::STATE_RECEIVED => [
+				Order::STATE_OPEN => $openOrderButton,
 				Order::STATE_COMPLETED => $completeOrderButton,
 				Order::STATE_CANCELED => $cancelOrderButton,
 			],
 			Order::STATE_COMPLETED => [
+				Order::STATE_OPEN => $openOrderButton,
 				Order::STATE_RECEIVED => $receiveOrderButton,
 				Order::STATE_CANCELED => $cancelOrderButton,
 			],
 			Order::STATE_CANCELED => [
+				Order::STATE_OPEN => $openOrderButton,
 				Order::STATE_RECEIVED => $receiveOrderButton,
 				Order::STATE_COMPLETED => $completeOrderButton,
 			],
@@ -225,7 +238,7 @@ class OrderGridFactory
 
 		$downloadIco = "<a href='%s' class='$btnSecondary' title='Stáhnout'><i class='fa fa-sm fa-download'></i></a>";
 
-		if (isset($configuration['exportEdi']) && $configuration['exportEdi']) {
+		if (isset($configuration['exportEdi']) && $configuration['exportEdi'] && $state !== Order::STATE_OPEN) {
 			$grid->addColumnAction('EDI', $downloadIco, [$this, 'downloadEdi'], [], null, ['class' => 'minimal']);
 		}
 
@@ -233,7 +246,7 @@ class OrderGridFactory
 			$grid->addColumnAction('CSV', $downloadIco, [$this, 'downloadCsv'], [], null, ['class' => 'minimal']);
 		}
 
-		if ($this->dpd) {
+		if ($this->dpd && $state !== Order::STATE_OPEN) {
 			$grid->addColumn('DPD', function (Order $order, AdminGrid $datagrid) {
 				return '<button class="btn btn-sm disabled btn-outline-' . ($order->dpdCode ? 'success' : 'danger') . '" disabled>
 				<i class="fas fa-' . ($order->dpdCode ? ($order->dpdPrinted ? 'print' : 'check') : 'times') . '"></i>
@@ -241,7 +254,7 @@ class OrderGridFactory
 			}, '%s', 'this.dpdCode', ['class' => 'fit']);
 		}
 
-		if ($this->ppl) {
+		if ($this->ppl && $state !== Order::STATE_OPEN) {
 			$grid->addColumn('PPL', function (Order $order, AdminGrid $datagrid) {
 				return '<button class="btn btn-sm disabled btn-outline-' . ($order->pplCode ? 'success' : 'danger') . '" disabled>
 				<i class="fas fa-' . ($order->pplCode ? ($order->pplPrinted ? 'print' : 'check') : 'times') . '"></i>
@@ -294,6 +307,15 @@ class OrderGridFactory
 			$source->where('purchase.fk_paymentType', $value);
 		}, '', 'paymentType', null, $paymentTypes)->setPrompt('- Způsob platby -');
 
+		$openOrderButton = function () use ($grid, $stateOpen, $btnSecondary): void {
+			try {
+				$grid->getForm()->addSubmit('receiveMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateOpen))->setHtmlAttribute('class', $btnSecondary)
+					->onClick[] = [$this, 'openOrderMultiple'];
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::ERROR);
+			}
+		};
+
 		$receiveOrderButton = function () use ($grid, $stateReceived, $btnSecondary): void {
 			try {
 				$grid->getForm()->addSubmit('receiveMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateReceived))->setHtmlAttribute('class', $btnSecondary)
@@ -339,14 +361,17 @@ class OrderGridFactory
 				Order::STATE_CANCELED => $cancelOrderButton,
 			],
 			Order::STATE_RECEIVED => [
+				Order::STATE_OPEN => $openOrderButton,
 				Order::STATE_COMPLETED => $completeOrderButton,
 				Order::STATE_CANCELED => $cancelOrderButton,
 			],
 			Order::STATE_COMPLETED => [
+				Order::STATE_OPEN => $openOrderButton,
 				Order::STATE_RECEIVED => $receiveOrderButton,
 				Order::STATE_CANCELED => $cancelOrderButton,
 			],
 			Order::STATE_CANCELED => [
+				Order::STATE_OPEN => $openOrderButton,
 				Order::STATE_RECEIVED => $receiveOrderButton,
 				Order::STATE_COMPLETED => $completeOrderButton,
 			],
@@ -383,28 +408,30 @@ class OrderGridFactory
 			},
 		);
 
-		$submit = $grid->getForm()->addSubmit('exportZasilkovna', Html::fromHtml('<i class="fas fa-download"></i> Zásilkovna (CSV)'));
-		$submit->setHtmlAttribute('class', $btnSecondary);
-		$submit->onClick[] = [$this, 'exportZasilkovna'];
+		if ($state !== Order::STATE_OPEN) {
+			$submit = $grid->getForm()->addSubmit('exportZasilkovna', Html::fromHtml('<i class="fas fa-download"></i> Zásilkovna (CSV)'));
+			$submit->setHtmlAttribute('class', $btnSecondary);
+			$submit->onClick[] = [$this, 'exportZasilkovna'];
+		}
 
-		if (Helpers::isConfigurationActive($configuration, 'exportPPC')) {
+		if (Helpers::isConfigurationActive($configuration, 'exportPPC') && $state !== Order::STATE_OPEN) {
 			$grid->addBulkAction('exportPPC', 'exportPPC', '<i class="fas fa-download"></i> PPC (CSV)');
 		}
 
-		if (Helpers::isConfigurationActive($configuration, 'exportPPC')) {
+		if (Helpers::isConfigurationActive($configuration, 'exportTargito') && $state !== Order::STATE_OPEN) {
 			$grid->addBulkAction('exportTargito', 'exportTargito', '<i class="fas fa-download"></i> Targito (CSV)');
 		}
 
-		if (Helpers::isConfigurationActive($configuration, 'eHub')) {
+		if (Helpers::isConfigurationActive($configuration, 'eHub') && $state !== Order::STATE_OPEN) {
 			$grid->addBulkAction('sendEHub', 'EHubSendOrders', '<i class="fas fa-paper-plane"></i> eHUB');
 		}
 
-		if ($this->dpd) {
+		if ($this->dpd && $state !== Order::STATE_OPEN) {
 			$grid->addBulkAction('sendDPD', 'sendDPD', '<i class="fas fa-paper-plane"></i> DPD');
 			$grid->addBulkAction('printDPD', 'printDPD', '<i class="fas fa-print"></i> DPD');
 		}
 
-		if ($this->ppl) {
+		if ($this->ppl && $state !== Order::STATE_OPEN) {
 			$grid->addBulkAction('sendPPL', 'sendPPL', '<i class="fas fa-paper-plane"></i> PPL');
 			$grid->addBulkAction('printPPL', 'printPPL', '<i class="fas fa-print"></i> PPL');
 		}
@@ -590,6 +617,37 @@ class OrderGridFactory
 
 		foreach ($grid->getSelectedIds() as $id) {
 			$this->receiveOrder($grid->getSource()->where('this.uuid', $id)->first(), $grid, false);
+		}
+
+		$grid->getPresenter()->flashMessage('Provedeno', 'success');
+		$grid->getPresenter()->redirect('this');
+	}
+
+	public function openOrderMultiple(Button $button): void
+	{
+		/** @var \Grid\Datagrid $grid */
+		$grid = $button->lookup(Datagrid::class);
+
+		foreach ($grid->getSelectedIds() as $id) {
+			$this->openOrder($grid->getSource()->where('this.uuid', $id)->first(), $grid, false);
+		}
+
+		$grid->getPresenter()->flashMessage('Provedeno', 'success');
+		$grid->getPresenter()->redirect('this');
+	}
+
+	public function openOrder(Order $object, ?Datagrid $grid = null, bool $redirectAfter = true): void
+	{
+		/** @var \Eshop\BackendPresenter $presenter */
+		$presenter = $grid->getPresenter();
+
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $presenter->admin->getIdentity();
+
+		$this->orderRepository->openOrder($object, $admin);
+
+		if (!$redirectAfter) {
+			return;
 		}
 
 		$grid->getPresenter()->flashMessage('Provedeno', 'success');
