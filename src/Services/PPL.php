@@ -220,7 +220,7 @@ class PPL
 					$package = new Package(
 						(string) $packageNumber,
 						Product::PPL_PARCEL_CZ_PRIVATE_COD,
-						$order->purchase->note,
+						$order->code . ($order->purchase->note ? ', ' . $order->purchase->note : null),
 						$recipient,
 						$cityRouting,
 						null,
@@ -229,7 +229,13 @@ class PPL
 						$paymentInfo,
 					);
 				} else {
-					$package = new Package((string) $packageNumber, Product::PPL_PARCEL_CZ_PRIVATE, $order->purchase->note, $recipient, $cityRouting);
+					$package = new Package(
+						(string) $packageNumber,
+						Product::PPL_PARCEL_CZ_PRIVATE,
+						$order->code . ($order->purchase->note ? ', ' . $order->purchase->note : null),
+						$recipient,
+						$cityRouting,
+					);
 				}
 
 				/** Don´t delete array type!!! By doc createPackages returns array but that is NOT true in all cases! */
@@ -342,7 +348,7 @@ class PPL
 					$packages[] = new Package(
 						$packageNumber,
 						Product::PPL_PARCEL_CZ_PRIVATE_COD,
-						$order->purchase->note,
+						$order->code . ($order->purchase->note ? ', ' . $order->purchase->note : null),
 						$recipient,
 						$cityRouting,
 						$this->sender,
@@ -351,7 +357,14 @@ class PPL
 						$paymentInfo,
 					);
 				} else {
-					$packages[] = new Package($packageNumber, Product::PPL_PARCEL_CZ_PRIVATE, $order->purchase->note, $recipient, $cityRouting, $this->sender);
+					$packages[] = new Package(
+						$packageNumber,
+						Product::PPL_PARCEL_CZ_PRIVATE,
+						$order->code . ($order->purchase->note ? ', ' . $order->purchase->note : null),
+						$recipient,
+						$cityRouting,
+						$this->sender,
+					);
 				}
 
 				$ids[] = $order->getPK();
@@ -387,6 +400,26 @@ class PPL
 
 			return null;
 		}
+	}
+
+	public function getPackages(): void
+	{
+		$client = $this->getClient();
+
+		$dateFrom = new \DateTime();
+		$dateFrom->modify('-14 days');
+		$dateTo = new \DateTime();
+
+		$packageNumbers = [];
+
+		$result = $client->getPackages(
+			null,
+			$dateFrom,
+			$dateTo,
+			$packageNumbers,
+		);
+
+		\bdump($result);
 	}
 
 	protected function getClient(): Api
