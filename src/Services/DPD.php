@@ -66,7 +66,7 @@ class DPD
 	/**
 	 * Send orders DPD
 	 * @param \StORM\Collection<\Eshop\DB\Order> $orders
-	 * @return array<\Eshop\DB\Order> Orders with errors
+	 * @return array<array<\Eshop\DB\Order>> Orders with errors
 	 * @throws \Exception
 	 */
 	public function syncOrders(Collection $orders): array
@@ -81,12 +81,16 @@ class DPD
 
 		$dpdCodType = $this->settingRepository->getValueByName('codType');
 
+		$ordersCompleted = [];
+		$ordersIgnored = [];
 		$ordersWithError = [];
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
 			try {
 				if ($order->dpdCode) {
+					$ordersIgnored[] = $order;
+
 					continue;
 				}
 
@@ -99,6 +103,8 @@ class DPD
 				$deliveryType = $order->purchase->deliveryType;
 
 				if (!$deliveryType || $deliveryType->getPK() !== $dpdDeliveryType) {
+					$ordersIgnored[] = $order;
+
 					continue;
 				}
 
@@ -148,21 +154,27 @@ class DPD
 				if ($result = $result->NewShipmentResult->NewShipmentResultVO->ParcelVO->PARCELNO) {
 					/** @codingStandardsIgnoreEnd */
 					$order->update(['dpdCode' => $result, 'dpdError' => false,]);
-				} else {
-					$ordersWithError[] = $order;
 
+					$ordersCompleted[] = $order;
+				} else {
 					$order->update(['dpdError' => true]);
+
+					$ordersWithError[] = $order;
 				}
 			} catch (\Throwable $e) {
-				\bdump($e);
+				$order->update(['dpdError' => true]);
 
 				$ordersWithError[] = $order;
 
-				$order->update(['dpdError' => true]);
+				\bdump($e);
 			}
 		}
 
-		return $ordersWithError;
+		return [
+			'completed' => $ordersCompleted,
+			'failed' => $ordersWithError,
+			'ignored' => $ordersIgnored,
+		];
 	}
 
 	/**

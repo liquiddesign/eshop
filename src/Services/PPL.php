@@ -99,7 +99,7 @@ class PPL
 
 	/**
 	 * @param \StORM\Collection $orders
-	 * @return array<\Eshop\DB\Order> Orders with errors
+	 * @return array<array<\Eshop\DB\Order>> Orders with errors
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function syncOrders(Collection $orders): array
@@ -114,6 +114,8 @@ class PPL
 
 		$client = $this->getClient();
 
+		$ordersCompleted = [];
+		$ordersIgnored = [];
 		$ordersWithError = [];
 
 		$packageNumberInfo = new PackageNumberInfo(
@@ -153,12 +155,16 @@ class PPL
 		foreach ($orders as $order) {
 			try {
 				if ($order->pplCode) {
+					$ordersIgnored[] = $order;
+
 					continue;
 				}
 
 				$deliveryType = $order->purchase->deliveryType;
 
 				if (!$deliveryType || $deliveryType->getPK() !== $pplDeliveryType) {
+					$ordersIgnored[] = $order;
+
 					continue;
 				}
 
@@ -194,8 +200,9 @@ class PPL
 
 				/** @codingStandardsIgnoreStart Camel caps */
 				if (!isset($cityRoutingResponse->RouteCode) || !isset($cityRoutingResponse->DepoCode) || !isset($cityRoutingResponse->Highlighted)) {
-					/** @codingStandardsIgnoreEnd */
-					throw new \Exception('Štítek PPL se nepodařilo vytisknout, chybí Routing, pravděpodobně neplatná adresa!');
+					$ordersWithError[] = $order;
+
+					continue;
 				}
 
 				$cityRouting = new CityRouting(
@@ -244,9 +251,9 @@ class PPL
 				\bdump($result);
 
 				if ($result['Code'] !== '0') {
-					$ordersWithError[] = $order;
-
 					$order->update(['pplError' => true]);
+
+					$ordersWithError[] = $order;
 
 					continue;
 				}
@@ -258,6 +265,8 @@ class PPL
 				}
 
 				$order->update(['pplCode' => $result['ItemKey'], 'pplError' => false,]);
+
+				$ordersCompleted[] = $order;
 			} catch (\Throwable $e) {
 				\bdump($e);
 
@@ -267,7 +276,11 @@ class PPL
 			}
 		}
 
-		return $ordersWithError;
+		return [
+			'completed' => $ordersCompleted,
+			'failed' => $ordersWithError,
+			'ignored' => $ordersIgnored,
+		];
 	}
 
 	/**

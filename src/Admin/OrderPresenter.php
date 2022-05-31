@@ -1809,15 +1809,17 @@ class OrderPresenter extends BackendPresenter
 	{
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
 			try {
-				$ordersWithError = $this->dpd->syncOrders($collection);
+				$result = $this->dpd->syncOrders($collection);
 
-				$orderCodes = [];
+				$msg = 'Odesláno: ' . \count($result['completed']) . '<br>';
+				$msg .= 'Přeskočeno: ' . \count($result['ignored']) . '<br>';
+				$msg .= 'Chyba: ' . \count($result['ignored']) . '<br>';
 
-				foreach ($ordersWithError as $order) {
-					$orderCodes[] = $order->code;
+				foreach ($result['failed'] as $order) {
+					$msg .= $order->code . '<br>';
 				}
 
-				$this->flashMessage(!$ordersWithError ? 'Provedeno' : 'Některé objednávky nebyly odeslány!<br>' . \implode('<br>', $orderCodes), !$ordersWithError ? 'success' : 'warning');
+				$this->flashMessage($msg, 'success');
 			} catch (\Throwable $e) {
 				$this->flashMessage($e->getMessage(), 'error');
 			}
@@ -1856,15 +1858,17 @@ class OrderPresenter extends BackendPresenter
 	{
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
 			try {
-				$ordersWithError = $this->ppl->syncOrders($collection);
+				$result = $this->ppl->syncOrders($collection);
 
-				$orderCodes = [];
+				$msg = 'Odesláno: ' . \count($result['completed']) . '<br>';
+				$msg .= 'Přeskočeno: ' . \count($result['ignored']) . '<br>';
+				$msg .= 'Chyba: ' . \count($result['ignored']) . '<br>';
 
-				foreach ($ordersWithError as $order) {
-					$orderCodes[] = $order->code;
+				foreach ($result['failed'] as $order) {
+					$msg .= $order->code . '<br>';
 				}
 
-				$this->flashMessage(!$orderCodes ? 'Provedeno' : 'Některé objednávky nebyly odeslány!<br>' . \implode('<br>', $orderCodes), !$orderCodes ? 'success' : 'warning');
+				$this->flashMessage($msg, 'success');
 			} catch (\Throwable $e) {
 				$this->flashMessage($e->getMessage(), 'error');
 			}
