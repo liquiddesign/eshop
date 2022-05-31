@@ -26,6 +26,7 @@ use Eshop\DB\Order;
 use Eshop\DB\OrderLogItem;
 use Eshop\DB\OrderLogItemRepository;
 use Eshop\DB\OrderRepository;
+use Eshop\DB\PackageItem;
 use Eshop\DB\PackageItemRepository;
 use Eshop\DB\Payment;
 use Eshop\DB\PaymentRepository;
@@ -105,6 +106,7 @@ class OrderPresenter extends BackendPresenter
 		'orderStates' => null,
 		'printMultiple' => false,
 		'printInvoices' => false,
+		'deletePackageItemMode' => PackageItem::DELETE_MODE_MARK,
 	];
 
 	/** @inject */
@@ -612,18 +614,27 @@ class OrderPresenter extends BackendPresenter
 			/** @var \Eshop\DB\Product $product */
 			$product = $this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.uuid', $values['product'])->first();
 
-			$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], false, false, false, $cart);
+			$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], null, false, false, $cart);
 
-			$existingPackageItem = $this->packageItemRepository->many()->where('fk_package', $values['package'])->where('fk_cartItem', $cartItem)->first();
-
-			if ($existingPackageItem) {
-				$existingPackageItem->update(['amount' => $existingPackageItem->amount + $values['amount']]);
-			} else {
+			if (isset($this::CONFIGURATION['deletePackageItemMode']) && $this::CONFIGURATION['deletePackageItemMode'] === PackageItem::DELETE_MODE_DELETE) {
 				$this->packageItemRepository->syncOne([
 					'amount' => $values['amount'],
 					'package' => $values['package'],
 					'cartItem' => $cartItem,
 				]);
+			} else {
+				/** @var \Eshop\DB\PackageItem|null $existingPackageItem */
+				$existingPackageItem = $this->packageItemRepository->many()->where('fk_package', $values['package'])->where('fk_cartItem', $cartItem->getPK())->first();
+
+				if ($existingPackageItem) {
+					$existingPackageItem->update(['amount' => $existingPackageItem->amount + $values['amount'], 'deleted' => false,]);
+				} else {
+					$this->packageItemRepository->syncOne([
+						'amount' => $values['amount'],
+						'package' => $values['package'],
+						'cartItem' => $cartItem,
+					]);
+				}
 			}
 
 			/** @var \Admin\DB\Administrator|null $admin */
@@ -1483,10 +1494,16 @@ class OrderPresenter extends BackendPresenter
 	{
 		/** @var \Eshop\DB\PackageItem $packageItem */
 		$packageItem = $this->packageItemRepository->one($itemId, true);
-		$packageItem->update(['deleted' => !$packageItem->deleted]);
 
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->getParameter('order');
+
+		if (isset($this::CONFIGURATION['deletePackageItemMode']) && $this::CONFIGURATION['deletePackageItemMode'] === PackageItem::DELETE_MODE_DELETE) {
+			$packageItem->cartItem->delete();
+			$packageItem->delete();
+		} else {
+			$packageItem->update(['deleted' => !$packageItem->deleted]);
+		}
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
@@ -1495,8 +1512,21 @@ class OrderPresenter extends BackendPresenter
 			return;
 		}
 
-		$this->orderLogItemRepository->createLog($order, $packageItem->deleted ? OrderLogItem::ITEM_DELETED : OrderLogItem::ITEM_RESTORED, $packageItem->cartItem->productName, $admin);
-
+		if (isset($this::CONFIGURATION['deletePackageItemMode']) && $this::CONFIGURATION['deletePackageItemMode'] === PackageItem::DELETE_MODE_DELETE) {
+			$this->orderLogItemRepository->createLog(
+				$order,
+				OrderLogItem::ITEM_DELETED,
+				$packageItem->cartItem->productName . ' | ' . $packageItem->amount . ' ks',
+				$admin,
+			);
+		} else {
+			$this->orderLogItemRepository->createLog(
+				$order,
+				$packageItem->deleted ? OrderLogItem::ITEM_DELETED : OrderLogItem::ITEM_RESTORED,
+				$packageItem->cartItem->productName . ' | ' . $packageItem->amount . ' ks',
+				$admin,
+			);
+		}
 
 		$this->redirect('this');
 	}

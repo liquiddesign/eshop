@@ -11,6 +11,9 @@ namespace Eshop\DB;
  */
 class PackageItem extends \StORM\Entity
 {
+	public const DELETE_MODE_DELETE = 'delete';
+	public const DELETE_MODE_MARK = 'mark';
+
 	/**
 	 * Počet
 	 * @column
