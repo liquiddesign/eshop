@@ -429,7 +429,7 @@ class CheckoutManager
 	}
 
 	/**
-	 * @param \Eshop\DB\Product $product
+	 * @param \Eshop\DB\Product $product Must have set prices
 	 * @param \Eshop\DB\Variant|null $variant
 	 * @param int $amount
 	 * @param ?bool $replaceMode true - replace | false - add or update | null - only add
@@ -577,17 +577,27 @@ class CheckoutManager
 			return;
 		}
 
-		foreach ($this->productRepository->getCartItemRelations($cartItem, true, false) as $upsell) {
-			if ($upsellCartItem = $this->itemRepository->getUpsell($cartItem->getPK(), $upsell->getPK())) {
-				$upsellCartItem->update([
-					'price' => (float) $upsell->getValue('price'),
-					'priceVat' => (float) $upsell->getValue('priceVat'),
-					'amount' => $upsellCartItem->realAmount ? $upsellCartItem->realAmount * $upsell->getValue('amount') : $upsell->getValue('amount'),
-				]);
-			}
+		$this->updateItem($cartItem);
+	}
+
+	/**
+	 * @throws \Eshop\BuyException
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function changeCartItemAmount(Product $product, CartItem $cartItem, int $amount = 1, ?bool $checkInvalidAmount = true): void
+	{
+		if ($checkInvalidAmount && !$this->checkAmount($product, $amount)) {
+			throw new BuyException('Invalid amount', BuyException::INVALID_AMOUNT);
 		}
 
-		$this->onCartItemUpdate($cartItem);
+		$this->itemRepository->updateCartItemAmount($cartItem, $product, $amount);
+		$this->refreshSumProperties();
+
+		if (!($cartItem = $this->itemRepository->one($cartItem->getPK()))) {
+			return;
+		}
+
+		$this->updateItem($cartItem);
 	}
 
 	public function deleteItem(CartItem $item): void
@@ -638,9 +648,10 @@ class CheckoutManager
 		$products = $this->productRepository->getProducts()->where('this.uuid', $ids)->toArray();
 
 		$upsellsMap = [];
+		$nonUpsellItems = $this->itemRepository->getItems([$cart->getPK()])->where('this.fk_upsell IS NULL')->toArray();
 
 		/** @var \Eshop\DB\CartItem $item */
-		foreach ($this->itemRepository->getItems([$cart->getPK()])->where('this.fk_upsell IS NULL') as $item) {
+		foreach ($nonUpsellItems as $item) {
 			if (!isset($products[$item->getValue('product')])) {
 				if ($required) {
 					throw new BuyException('product not found');
@@ -649,10 +660,12 @@ class CheckoutManager
 				continue;
 			}
 
-			$newItem = $this->addItemToCart($products[$item->getValue('product')], $item->variant, $item->amount, null, null);
+			$newItem = $this->addItemToCart($products[$item->getValue('product')], $item->variant, $item->amount, null, false);
 
-			$upsellsMap[$item->getPK()] = $newItem->getPK();
+			$upsellsMap[$item->getPK()] = $newItem;
 		}
+
+		$relations = $this->productRepository->getCartItemsRelations($nonUpsellItems, false, false);
 
 		/** @var \Eshop\DB\CartItem $item */
 		foreach ($this->itemRepository->getItems([$cart->getPK()])->where('this.fk_upsell IS NOT NULL') as $item) {
@@ -664,8 +677,27 @@ class CheckoutManager
 				continue;
 			}
 
-			$this->addItemToCart($products[$item->getValue('product')], $item->variant, $item->amount, null, false, false)
-				->update(['upsell' => $upsellsMap[$item->getValue('upsell')]]);
+			$product = $item->getValue('product');
+
+			if (($upsellProduct = $item->getValue('upsell')) === null) {
+				throw new \Exception('Upsell product not found');
+			}
+
+			if (!isset($relations[$upsellProduct][$product])) {
+				throw new \Exception('Product not found');
+			}
+
+			$product = $relations[$upsellProduct][$product];
+
+			if (!$item->getPriceSum() > 0) {
+				$product->price = 0;
+			}
+
+			if (!$item->getPriceVatSum() > 0) {
+				$product->priceVat = 0;
+			}
+
+			$this->addUpsellToCart($upsellsMap[$item->getValue('upsell')], $product, $item->realAmount);
 		}
 	}
 
@@ -1397,5 +1429,24 @@ class CheckoutManager
 		$this->sumWeight = null;
 		$this->sumPoints = null;
 		$this->sumDimension = null;
+	}
+
+	/**
+	 * @param \Eshop\DB\CartItem $cartItem
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	private function updateItem(CartItem $cartItem): void
+	{
+		foreach ($this->productRepository->getCartItemRelations($cartItem, true, false) as $upsell) {
+			if ($upsellCartItem = $this->itemRepository->getUpsell($cartItem->getPK(), $upsell->getPK())) {
+				$upsellCartItem->update([
+					'price' => (float)$upsell->getValue('price'),
+					'priceVat' => (float)$upsell->getValue('priceVat'),
+					'amount' => $upsellCartItem->realAmount ? $upsellCartItem->realAmount * $upsell->getValue('amount') : $upsell->getValue('amount'),
+				]);
+			}
+		}
+
+		$this->onCartItemUpdate($cartItem);
 	}
 }

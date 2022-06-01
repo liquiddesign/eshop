@@ -108,7 +108,7 @@ class CartItemList extends Datalist
 					$amount = 1;
 				}
 
-				$checkoutManager->changeItemAmount($product, $cartItem->variant, $amount, false);
+				$checkoutManager->changeCartItemAmount($product, $cartItem, $amount, false);
 
 				$this->onItemAmountChange();
 			};
@@ -128,7 +128,7 @@ class CartItemList extends Datalist
 			$amount = 1;
 		}
 
-		$this->checkoutManager->changeItemAmount($cartItem->getProduct(), $cartItem->variant, $amount, false);
+		$this->checkoutManager->changeCartItemAmount($cartItem->getProduct(), $cartItem, $amount);
 	}
 	
 	public function handleChangeUpsell($cartItem, $upsell, bool $isUnique = false): void

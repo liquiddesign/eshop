@@ -95,7 +95,6 @@ class OrderItemList extends Datalist
 			$cartItem = $cartItemRepository->one($itemId);
 			$product = $cartItem->getProduct();
 
-
 			$form = new Form();
 			$form->addInteger('amount');
 
@@ -106,7 +105,7 @@ class OrderItemList extends Datalist
 					$amount = 1;
 				}
 
-				$checkoutManager->changeItemAmount($product, $cartItem->variant, $amount, false, $cartItem->cart);
+				$checkoutManager->changeCartItemAmount($product, $cartItem, $amount, false);
 
 				if ($cartItem->cart->purchase) {
 					$packageItem = $this->orderRepository->getFirstPackageItemByCartItem($cartItem);
@@ -145,7 +144,7 @@ class OrderItemList extends Datalist
 			$amount = 1;
 		}
 
-		$this->checkoutManager->changeItemAmount($cartItem->getProduct(), $cartItem->variant, $amount, false, $cartItem->cart);
+		$this->checkoutManager->changeCartItemAmount($cartItem->getProduct(), $cartItem, $amount, false);
 
 		if ($cartItem->cart->purchase) {
 			$packageItem = $this->orderRepository->getFirstPackageItemByCartItem($cartItem);

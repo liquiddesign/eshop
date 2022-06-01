@@ -822,8 +822,11 @@ class OrderPresenter extends BackendPresenter
 						throw new \Exception('Product not found');
 					}
 
-					if (!$item->getPriceSum() > 0 || !$item->getPriceVatSum() > 0) {
+					if (!$item->getPriceSum() > 0) {
 						$product->price = 0;
+					}
+
+					if (!$item->getPriceVatSum() > 0) {
 						$product->priceVat = 0;
 					}
 
@@ -853,8 +856,11 @@ class OrderPresenter extends BackendPresenter
 
 					$product = $relations[$upsellProduct][$product];
 
-					if (!$item->getPriceSum() > 0 || !$item->getPriceVatSum() > 0) {
+					if (!$item->getPriceSum() > 0) {
 						$product->price = 0;
+					}
+
+					if (!$item->getPriceVatSum() > 0) {
 						$product->priceVat = 0;
 					}
 
