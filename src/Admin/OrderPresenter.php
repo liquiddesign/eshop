@@ -1170,8 +1170,9 @@ class OrderPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 
 		$form->addGroup('Kontakty');
-		$form->addText('phone', 'Telefon')->setNullable(true);
-		$form->addText('email', 'E-mail')->setNullable(true);
+		$form->addText('phone', 'Telefon')->setNullable();
+		$form->addText('email', 'E-mail')->setNullable();
+
 		$form->addGroup('Fakturační adresa');
 		$billAddress = $form->addContainer('billAddress');
 		$billAddress->addHidden('uuid')->setNullable();
@@ -1180,6 +1181,8 @@ class OrderPresenter extends BackendPresenter
 		$billAddress->addText('zipcode', 'PSČ');
 
 		$form->addGroup('Doručovací adresa');
+		$otherAddress = $form->addCheckbox('otherAddress', 'Doručovací adresa je jiná než fakturační');
+
 		$deliveryAddress = $form->addContainer('deliveryAddress');
 		$deliveryAddress->addHidden('uuid')->setNullable();
 		$deliveryAddress->addText('name', ' Jméno a příjmení / název firmy');
@@ -1187,10 +1190,16 @@ class OrderPresenter extends BackendPresenter
 		$deliveryAddress->addText('street', 'Ulice');
 		$deliveryAddress->addText('city', 'Město');
 		$deliveryAddress->addText('zipcode', 'PSČ');
+
+		/** @var \Nette\Forms\Controls\BaseControl $input */
+		foreach ($deliveryAddress->getComponents() as $input) {
+			$otherAddress->addCondition($form::EQUAL, true)->toggle($input->getHtmlId() . '-toogle');
+		}
+
 		$form->addGroup('Ostatní');
-		$form->addDate('desiredShippingDate', 'Požadované doručení')->setNullable(true);
-		$form->addText('internalOrderCode', 'Interní číslo')->setNullable(true);
-		$form->addTextArea('note', 'Poznámka')->setNullable(true);
+		$form->addDate('desiredShippingDate', 'Požadované doručení')->setNullable();
+		$form->addText('internalOrderCode', 'Interní číslo')->setNullable();
+		$form->addTextArea('note', 'Poznámka')->setNullable();
 
 		$form->addSubmits(!$this->getParameter('order'));
 
@@ -1206,6 +1215,14 @@ class OrderPresenter extends BackendPresenter
 
 			/** @var \Eshop\DB\Order $order */
 			$order = $this->getParameter('order');
+
+			if (!$values['otherAddress']) {
+				if ($order->purchase->deliveryAddress) {
+					$order->purchase->deliveryAddress->delete();
+				}
+
+				$values['deliveryAddress'] = null;
+			}
 
 			$order->purchase->update($values, true);
 
@@ -1277,6 +1294,8 @@ class OrderPresenter extends BackendPresenter
 		$form = $this->getComponent('orderForm');
 
 		$this->getComponent('productForm');
+
+		$array['otherAddress'] = (bool) $order->purchase->deliveryAddress;
 
 		$form->setDefaults($array);
 	}
