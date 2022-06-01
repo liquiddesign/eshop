@@ -535,6 +535,10 @@ class Shopper
 		$template->addFilter('price', function ($number, ?string $currencyCode = null) {
 			return $this->filterPrice($number, $currencyCode);
 		});
+
+		$template->addFilter('priceNoZero', function ($number, ?string $currencyCode = null) {
+			return $this->filterPriceNoZero($number, $currencyCode);
+		});
 	}
 
 	/**
@@ -555,6 +559,16 @@ class Shopper
 		$formatted = \number_format((float)$number, $currency->formatDecimals, $currency->formatDecimalSeparator, \str_replace(' ', $nbsp, $currency->formatThousandsSeparator));
 		
 		return ($currency->formatSymbolPosition !== 'after' ? $currency->symbol : '') . $formatted . $nbsp . ($currency->formatSymbolPosition === 'after' ? $currency->symbol : '');
+	}
+
+	/**
+	 * Formátuje cenu - 0 se nezobrazuje
+	 * @param float|int $number
+	 * @param string|null $currencyCode
+	 */
+	public function filterPriceNoZero($number, ?string $currencyCode = null): string
+	{
+		return $number > 0 ? $this->filterPrice($number, $currencyCode) : '';
 	}
 	
 	public function getPreferredMutationByAccount($account): ?string
