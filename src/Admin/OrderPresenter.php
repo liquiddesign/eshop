@@ -836,30 +836,29 @@ class OrderPresenter extends BackendPresenter
 					]);
 				}
 
+				$relations = $this->productRepository->getCartItemsRelations($oldCart->items->toArray(), false, false);
+
 				foreach ($oldCart->items->clear(true)->where('this.fk_upsell IS NOT NULL') as $item) {
 					if (($product = $item->getValue('product')) === null) {
 						throw new \Exception('Product not found');
 					}
 
-					if (!$product = $this->productRepository->getProduct($product)) {
+					if (($upsellProduct = $item->getValue('upsell')) === null) {
+						throw new \Exception('Upsell product not found');
+					}
+
+					if (!isset($relations[$upsellProduct][$product])) {
 						throw new \Exception('Product not found');
 					}
+
+					$product = $relations[$upsellProduct][$product];
 
 					if (!$item->getPriceSum() > 0 || !$item->getPriceVatSum() > 0) {
 						$product->price = 0;
 						$product->priceVat = 0;
 					}
 
-					$cartItem = $this->checkoutManager->addItemToCart(
-						$product,
-						null,
-						$item->amount,
-						null,
-						false,
-						false,
-						$targetCart,
-						$topLevelItems[$item->getValue('upsell')]->cartItem,
-					);
+					$cartItem = $this->checkoutManager->addUpsellToCart($topLevelItems[$item->getValue('upsell')]->cartItem, $product, $item->realAmount);
 
 					$this->packageItemRepository->createOne([
 						'package' => $package->getPK(),

@@ -1036,12 +1036,12 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 * @return array<string, array<string, object>>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getCartItemsRelations(array $cartItems): array
+	public function getCartItemsRelations(array $cartItems, bool $useCombinedName = true, bool $onlyShowCart = true, ?RelatedType $relatedType = null): array
 	{
 		$upsells = [];
 
 		foreach ($cartItems as $cartItem) {
-			$upsells[$cartItem->getPK()] = $this->getCartItemRelations($cartItem);
+			$upsells[$cartItem->getPK()] = $this->getCartItemRelations($cartItem, $useCombinedName, $onlyShowCart, $relatedType);
 		}
 
 		return $upsells;
