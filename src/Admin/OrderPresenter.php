@@ -802,7 +802,18 @@ class OrderPresenter extends BackendPresenter
 				/** @var \Eshop\DB\Package $package */
 				$package = $targetOrder->packages->first();
 
-				foreach ($oldCart->items as $item) {
+				if ($oldOrder->purchase->customer && $oldOrder->purchase->account) {
+					$oldOrder->purchase->customer->setAccount($oldOrder->purchase->account);
+					$this->shopper->setCustomer($oldOrder->purchase->customer);
+				} else {
+					$this->shopper->setCustomer(null);
+					$this->shopper->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
+				}
+
+				/** @var array<\Eshop\DB\PackageItem> $topLevelItems */
+				$topLevelItems = [];
+
+				foreach ($oldCart->items->where('this.fk_upsell IS NULL') as $item) {
 					if (($product = $item->getValue('product')) === null) {
 						throw new \Exception('Product not found');
 					}
@@ -811,40 +822,61 @@ class OrderPresenter extends BackendPresenter
 						throw new \Exception('Product not found');
 					}
 
-					$cartItem = $this->checkoutManager->addItemToCart($product, null, $item->amount, false, false, false, $targetCart);
+					$cartItem = $this->checkoutManager->addItemToCart($product, null, $item->amount, null, false, false, $targetCart);
 
-					$this->packageItemRepository->createOne([
+					$topLevelItems[$item->getPK()] = $this->packageItemRepository->createOne([
 						'package' => $package->getPK(),
 						'cartItem' => $cartItem->getPK(),
 						'amount' => $cartItem->amount,
 					]);
 				}
 
-				$oldOrder->update(['canceledTs' => (string)(new DateTime())]);
+				foreach ($oldCart->items->clear(true)->where('this.fk_upsell IS NOT NULL') as $item) {
+					if (($product = $item->getValue('product')) === null) {
+						throw new \Exception('Product not found');
+					}
+
+					if (!$product = $this->productRepository->getProduct($product)) {
+						throw new \Exception('Product not found');
+					}
+
+					$cartItem = $this->checkoutManager->addItemToCart(
+						$product,
+						null,
+						$item->amount,
+						null,
+						false,
+						false,
+						$targetCart,
+						$topLevelItems[$item->getValue('upsell')]->cartItem,
+					);
+
+					$this->packageItemRepository->createOne([
+						'package' => $package->getPK(),
+						'cartItem' => $cartItem->getPK(),
+						'amount' => $cartItem->amount,
+						'upsell' => $topLevelItems[$item->getValue('upsell')]->getPK(),
+					]);
+				}
 
 				/** @var \Admin\DB\Administrator|null $admin */
 				$admin = $this->admin->getIdentity();
 
-				$this->orderLogItemRepository->createLog($oldOrder, OrderLogItem::CANCELED, null, $admin);
+				$this->orderRepository->cancelOrder($oldOrder, $admin);
+
 				$this->orderLogItemRepository->createLog($targetOrder, OrderLogItem::MERGED, $oldOrder->code, $admin);
 
 				$connection->getLink()->commit();
+
+				$this->flashMessage('Provedeno', 'success');
 			} catch (\Throwable $e) {
-				Debugger::log($e->getMessage());
 				$connection->getLink()->rollBack();
+
+				Debugger::log($e->getMessage(), ILogger::ERROR);
 
 				$this->flashMessage('Spojení objednávek se nezdařilo!', 'error');
 			}
 
-//          if ($orderOld->purchase->customer) {
-//              $orderOld->purchase->customer->setAccount($orderOld->purchase->account);
-//              $this->shopper->setCustomer($orderOld->purchase->customer);
-//          } else {
-//              $this->shopper->setCustomer(null);
-//              $this->shopper->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
-//          }
-
-			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('this');
 		};
 
@@ -1314,7 +1346,6 @@ class OrderPresenter extends BackendPresenter
 			$this->template->pickupPoint = null;
 		}
 
-		$this->template->orderItems = $order->purchase->getItems()->toArray();
 		$this->template->packages = clone $order->packages;
 
 		$upsells = [];

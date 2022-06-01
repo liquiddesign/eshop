@@ -158,8 +158,12 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	}
 
 	/**
+	 * Merge orders by moving cart items from orders to target order and cancelling old orders. This leave old orders empty.
+	 * @TODO better merging with copying
 	 * @param \Eshop\DB\Order $targetOrder
 	 * @param array<\Eshop\DB\Order> $orders
+	 * @param \Admin\DB\Administrator|null $administrator
+	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function mergeOrders(Order $targetOrder, array $orders, ?Administrator $administrator = null): void
 	{
@@ -174,8 +178,6 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				foreach ($oldCart->items as $item) {
 					$item->update(['cart' => $targetCart->getPK()]);
 				}
-
-				$oldCart->update(['purchase' => $targetOrder->getValue('purchase')]);
 			}
 
 			foreach ($oldOrder->packages as $oldPackage) {
@@ -186,7 +188,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				$oldPackage->delete();
 			}
 
-			$oldOrder->update(['canceledTs' => (string)(new DateTime())]);
+			$this->cancelOrder($oldOrder);
 
 			$this->orderLogItemRepository->createLog($oldOrder, OrderLogItem::CANCELED, 'Spojeno s obj.: ' . $oldOrder->code, $administrator);
 			$this->orderLogItemRepository->createLog($targetOrder, OrderLogItem::MERGED, $oldOrder->code, $administrator);

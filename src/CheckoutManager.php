@@ -427,7 +427,7 @@ class CheckoutManager
 
 		$this->itemRepository->syncItem($this->getCart(), $item, $product, $variant, $amount);
 	}
-	
+
 	/**
 	 * @param \Eshop\DB\Product $product
 	 * @param \Eshop\DB\Variant|null $variant
@@ -436,6 +436,7 @@ class CheckoutManager
 	 * @param ?bool $checkInvalidAmount
 	 * @param ?bool $checkCanBuy
 	 * @param \Eshop\DB\Cart|null $cart
+	 * @param \Eshop\DB\CartItem|null $upsell
 	 * @throws \Eshop\BuyException
 	 * @throws \StORM\Exception\NotFoundException
 	 */
@@ -446,7 +447,8 @@ class CheckoutManager
 		?bool $replaceMode = false,
 		?bool $checkInvalidAmount = true,
 		?bool $checkCanBuy = true,
-		?Cart $cart = null
+		?Cart $cart = null,
+		?CartItem $upsell = null
 	): CartItem {
 		if (!$this->checkCurrency($product)) {
 			throw new BuyException('Invalid currency', BuyException::INVALID_CURRENCY);
@@ -485,6 +487,10 @@ class CheckoutManager
 		}
 		
 		$cartItem = $this->itemRepository->syncItem($cart ?? $this->getCart(), null, $product, $variant, $amount, $disabled);
+
+		if ($upsell) {
+			$cartItem->update(['upsell' => $upsell->getPK(),]);
+		}
 		
 		if ($currency = $this->getCartCurrency()) {
 			$taxes = $this->taxRepository->getTaxesForProduct($product, $currency);
