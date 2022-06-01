@@ -194,13 +194,13 @@ class PPL
 
 				$cityRoutingResponse = $client->getCitiesRouting($country, null, $zipCode, $street);
 
-				if (\is_array($cityRoutingResponse) && isset($cityRoutingResponse[0])) {
-					$cityRoutingResponse = $cityRoutingResponse[0];
-				} else {
+				if (!\is_array($cityRoutingResponse) || !isset($cityRoutingResponse[0])) {
 					$ordersWithError[] = $order;
 
 					continue;
 				}
+
+				$cityRoutingResponse = $cityRoutingResponse[0];
 
 				/** @codingStandardsIgnoreStart Camel caps */
 				if (!isset($cityRoutingResponse->RouteCode) || !isset($cityRoutingResponse->DepoCode) || !isset($cityRoutingResponse->Highlighted)) {
