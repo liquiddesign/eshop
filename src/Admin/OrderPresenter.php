@@ -822,6 +822,11 @@ class OrderPresenter extends BackendPresenter
 						throw new \Exception('Product not found');
 					}
 
+					if (!$item->getPriceSum() > 0 || !$item->getPriceVatSum() > 0) {
+						$product->price = 0;
+						$product->priceVat = 0;
+					}
+
 					$cartItem = $this->checkoutManager->addItemToCart($product, null, $item->amount, null, false, false, $targetCart);
 
 					$topLevelItems[$item->getPK()] = $this->packageItemRepository->createOne([
@@ -838,6 +843,11 @@ class OrderPresenter extends BackendPresenter
 
 					if (!$product = $this->productRepository->getProduct($product)) {
 						throw new \Exception('Product not found');
+					}
+
+					if (!$item->getPriceSum() > 0 || !$item->getPriceVatSum() > 0) {
+						$product->price = 0;
+						$product->priceVat = 0;
 					}
 
 					$cartItem = $this->checkoutManager->addItemToCart(
