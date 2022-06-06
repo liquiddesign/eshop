@@ -51,7 +51,7 @@ class InvoicesPresenter extends BackendPresenter
 	{
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
-		$grid = $this->gridFactory->create($this->invoiceRepository->getCollection(true), 20, 'code', 'ASC', true);
+		$grid = $this->gridFactory->create($this->invoiceRepository->getCollection(true), 20, 'this.code', 'ASC', true);
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
@@ -106,7 +106,7 @@ class InvoicesPresenter extends BackendPresenter
 			->setHtmlAttribute('class', $btnSecondary)
 			->onClick[] = [$this, 'notifyMultiple'];
 		
-		$grid->addFilterTextInput('search', ['code'], null, 'Kód');
+		$grid->addFilterTextInput('search', ['this.code'], null, 'Kód');
 		$grid->addFilterButtons();
 		
 		return $grid;

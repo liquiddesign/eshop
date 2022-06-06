@@ -225,4 +225,63 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 
 		return $grouped;
 	}
+
+	/**
+	 * @param \Eshop\DB\InvoiceItem $invoiceItem
+	 * @param array<\Eshop\DB\Related> $setProducts
+	 * @return array<\Eshop\DB\Related>
+	 * @throws \Exception
+	 */
+	public function getSetItemsWithDiscount(InvoiceItem $invoiceItem, array $setProducts): array
+	{
+		if (\count($setProducts) === 0) {
+			return [];
+		}
+
+		$setPrice = $invoiceItem->price;
+		$setPriceVat = $invoiceItem->priceVat;
+		$setProductsPrice = 0;
+		$setProductsPriceVat = 0;
+
+		// Load products
+		$productsPKs = [];
+
+		foreach ($setProducts as $related) {
+			$productsPKs[] = $related->getValue('slave');
+		}
+
+		// Load prices
+		/** @var array<\Eshop\DB\Product> $setProductsWithPrice */
+		$setProductsWithPrice = $this->productRepository->getProducts()->where('this.uuid', $productsPKs)->toArray();
+
+		foreach ($setProducts as $related) {
+			if (!isset($setProductsWithPrice[$related->getValue('slave')])) {
+				continue;
+			}
+
+			$productWithPrice = $setProductsWithPrice[$related->getValue('slave')];
+
+			$setProductsPrice += $productWithPrice->getPrice() * $related->amount;
+			$setProductsPriceVat += $productWithPrice->getPriceVat() * $related->amount;
+		}
+
+		// Calculate prices
+		$discountMultiplier = $setPrice / $setProductsPrice;
+		$discountMultiplierVat = $setPriceVat / $setProductsPriceVat;
+		$discountPercentage = (1 - $discountMultiplier) * 100;
+		$discountPercentageVat = (1 - $discountMultiplierVat) * 100;
+
+		foreach ($setProducts as $related) {
+			if (!isset($setProductsWithPrice[$related->getValue('slave')])) {
+				continue;
+			}
+
+			$related->setValue('price', $setProductsWithPrice[$related->getValue('slave')]->getPrice() * $discountMultiplier);
+			$related->setValue('priceVat', $setProductsWithPrice[$related->getValue('slave')]->getPriceVat() * $discountMultiplierVat);
+			$related->setValue('discountPercentage', $discountPercentage);
+			$related->setValue('discountPercentageVat', $discountPercentageVat);
+		}
+
+		return $setProducts;
+	}
 }

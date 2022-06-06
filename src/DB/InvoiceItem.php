@@ -95,6 +95,16 @@ class InvoiceItem extends \StORM\Entity
 	 */
 	public Invoice $invoice;
 
+	public function getPriceSum(): float
+	{
+		return $this->price * $this->amount;
+	}
+
+	public function getPriceVatSum(): float
+	{
+		return $this->priceVat * $this->amount;
+	}
+
 	public function getFullCode(): ?string
 	{
 		return $this->product ? $this->product->getFullCode() : ($this->productSubCode ? $this->productCode . '.' . $this->productSubCode : $this->productCode);

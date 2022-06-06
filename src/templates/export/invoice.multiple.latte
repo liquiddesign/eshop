@@ -24,7 +24,8 @@
     </div>
 
     {foreach $invoices as $invoice}
-        <iframe src="{plink :Eshop:Export:invoice, $invoice->hash}" frameborder="0" scrolling="no" onload="resizeIframe(this)" style="break-after: page; width: 100%"></iframe>
+        <iframe src="{plink :Eshop:Export:invoice, $invoice->hash}" frameborder="0" scrolling="no" onload="resizeIframe(this)" style="width: 100%"></iframe>
+        <div style='page-break-after:always;'></div>
     {/foreach}
 </body>
 </html>
