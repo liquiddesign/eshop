@@ -238,8 +238,8 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 			return [];
 		}
 
-		$setPrice = $invoiceItem->price;
-		$setPriceVat = $invoiceItem->priceVat;
+		$setPrice = $invoiceItem->getPriceSum();
+		$setPriceVat = $invoiceItem->getPriceVatSum();
 		$setProductsPrice = 0;
 		$setProductsPriceVat = 0;
 
@@ -261,23 +261,32 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 
 			$productWithPrice = $setProductsWithPrice[$related->getValue('slave')];
 
-			$setProductsPrice += $productWithPrice->getPrice() * $related->amount;
-			$setProductsPriceVat += $productWithPrice->getPriceVat() * $related->amount;
+			$setProductsPrice += $productWithPrice->getPrice() * $related->amount * $invoiceItem->amount;
+			$setProductsPriceVat += $productWithPrice->getPriceVat() * $related->amount * $invoiceItem->amount;
 		}
 
 		// Calculate prices
 		$discountMultiplier = $setPrice / $setProductsPrice;
 		$discountMultiplierVat = $setPriceVat / $setProductsPriceVat;
+
 		$discountPercentage = (1 - $discountMultiplier) * 100;
 		$discountPercentageVat = (1 - $discountMultiplierVat) * 100;
+
+		$customerDiscountMultiplier = $invoiceItem->customerDiscountLevel ? 100 / (100 - $invoiceItem->customerDiscountLevel) : 1;
 
 		foreach ($setProducts as $related) {
 			if (!isset($setProductsWithPrice[$related->getValue('slave')])) {
 				continue;
 			}
 
+			$related->setValue('priceBefore', $setProductsWithPrice[$related->getValue('slave')]->getPrice() * $customerDiscountMultiplier);
+			$related->setValue('priceVatBefore', $setProductsWithPrice[$related->getValue('slave')]->getPriceVat() * $customerDiscountMultiplier);
 			$related->setValue('price', $setProductsWithPrice[$related->getValue('slave')]->getPrice() * $discountMultiplier);
 			$related->setValue('priceVat', $setProductsWithPrice[$related->getValue('slave')]->getPriceVat() * $discountMultiplierVat);
+			$related->setValue('totalPriceBefore', $setProductsWithPrice[$related->getValue('slave')]->getPrice() * $related->amount * $invoiceItem->amount * $customerDiscountMultiplier);
+			$related->setValue('totalPriceVatBefore', $setProductsWithPrice[$related->getValue('slave')]->getPriceVat() * $related->amount * $invoiceItem->amount * $customerDiscountMultiplier);
+			$related->setValue('totalPrice', $setProductsWithPrice[$related->getValue('slave')]->getPrice() * $related->amount * $invoiceItem->amount * $discountMultiplier);
+			$related->setValue('totalPriceVat', $setProductsWithPrice[$related->getValue('slave')]->getPriceVat() * $related->amount * $invoiceItem->amount * $discountMultiplierVat);
 			$related->setValue('discountPercentage', $discountPercentage);
 			$related->setValue('discountPercentageVat', $discountPercentageVat);
 		}

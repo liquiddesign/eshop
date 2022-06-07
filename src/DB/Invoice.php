@@ -248,12 +248,12 @@ class Invoice extends \StORM\Entity
 			}
 
 			isset($basePrices[$invoiceItem->vatPct]['base']) ?
-				$basePrices[$invoiceItem->vatPct]['base'] += $invoiceItem->price :
-				$basePrices[$invoiceItem->vatPct]['base'] = $invoiceItem->price;
+				$basePrices[$invoiceItem->vatPct]['base'] += $invoiceItem->getPriceSum() :
+				$basePrices[$invoiceItem->vatPct]['base'] = $invoiceItem->getPriceSum();
 
 			isset($basePrices[$invoiceItem->vatPct]['vat']) ?
-				$basePrices[$invoiceItem->vatPct]['vat'] += $invoiceItem->priceVat - $invoiceItem->price :
-				$basePrices[$invoiceItem->vatPct]['vat'] = $invoiceItem->priceVat - $invoiceItem->price;
+				$basePrices[$invoiceItem->vatPct]['vat'] += $invoiceItem->getPriceVatSum() - $invoiceItem->getPriceSum() :
+				$basePrices[$invoiceItem->vatPct]['vat'] = $invoiceItem->getPriceVatSum() - $invoiceItem->getPriceSum();
 		}
 
 		/** @var \Eshop\DB\Order $order */
