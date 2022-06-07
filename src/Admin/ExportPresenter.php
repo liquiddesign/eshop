@@ -16,6 +16,10 @@ use Web\DB\SettingRepository;
 
 class ExportPresenter extends BackendPresenter
 {
+	protected const CONFIGURATION = [
+		'targito' => false,
+	];
+
 	/** @inject */
 	public SettingRepository $settingsRepo;
 
@@ -124,6 +128,18 @@ class ExportPresenter extends BackendPresenter
 				'link' => $this->link('//:Eshop:Export:googleExport', ['lang' => $primaryMutation]),
 			],
 		];
+
+		if (isset($this::CONFIGURATION['targito']) && $this::CONFIGURATION['targito']) {
+			$this->template->exports = \array_merge(
+				$this->template->exports,
+				[
+					[
+						'name' => 'Export stromu kategorií pro Targito',
+						'link' => $this->link('//:Eshop:Export:categoriesTargito'),
+					],
+				],
+			);
+		}
 
 		/** @var \Web\DB\Setting|null $setting */
 		$setting = $this->settingsRepo->many()->where('name', 'supportBoxApiKey')->first();

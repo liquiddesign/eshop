@@ -20,10 +20,15 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VatRateRepository;
+use League\Csv\Writer;
+use Nette\Application\AbortException;
+use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
+use Nette\Application\Responses\TextResponse;
 use Nette\Application\UI\Presenter;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\DI\Container;
 use Nette\Http\IResponse;
 use Nette\Http\Request;
 use Nette\Http\Response;
@@ -93,6 +98,15 @@ abstract class ExportPresenter extends Presenter
 
 	/** @inject */
 	public InvoiceRepository $invoiceRepository;
+
+	/** @inject */
+	public CustomerRepository $customerRepository;
+
+	/** @inject */
+	public Application $application;
+
+	/** @inject */
+	public Container $context;
 
 	/** @inject */
 	public Shopper $shopper;
@@ -174,6 +188,38 @@ abstract class ExportPresenter extends Presenter
 		}
 	}
 
+	public function actionCategoriesTargito(): void
+	{
+		try {
+			$tempFilename = \tempnam($this->context->parameters['tempDir'], 'csv');
+
+			$this->application->onShutdown[] = function () use ($tempFilename): void {
+				try {
+					FileSystem::delete($tempFilename);
+				} catch (\Throwable $e) {
+					Debugger::log($e, ILogger::WARNING);
+				}
+			};
+
+			/** @var \Web\DB\Setting|null $categoryTypeSetting */
+			$categoryTypeSetting = $this->settingRepo->getValueByName('heurekaCategoryTypeToParse');
+
+			if (!$categoryTypeSetting) {
+				throw new \Exception('Missing Heureka category type setting!');
+			}
+
+			$this->categoryRepository->csvExportTargito(Writer::createFromPath($tempFilename, 'w+'), $this->categoryRepository->many()->where('this.fk_type', $categoryTypeSetting));
+
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'categories.csv', 'text/csv'));
+		} catch (\Exception $e) {
+			if ($e instanceof AbortException) {
+				throw $e;
+			}
+
+			$this->sendResponse(new TextResponse($e->getMessage()));
+		}
+	}
+
 	public function actionCustomer(?string $uuid = null): void
 	{
 		$phpAuthUser = $this->request->getUrl()->getUser();
@@ -228,6 +274,7 @@ abstract class ExportPresenter extends Presenter
 		$fh = \fopen($tmpfname, 'w+');
 		\fwrite($fh, $this->orderRepo->ediExport($order));
 		\fclose($fh);
+
 		$this->context->getService('application')->onShutdown[] = function () use ($tmpfname): void {
 			try {
 				FileSystem::delete($tmpfname);
