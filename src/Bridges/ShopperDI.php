@@ -52,6 +52,28 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 				'autoTaxDateInDays' => Expect::int(0),
 				'autoDueDateInDays' => Expect::int(0),
 			]),
+			'categories' => Expect::structure([
+				'image' => Expect::structure([
+					'detail' => Expect::structure([
+						'width' => Expect::int(600),
+						'height' => Expect::int(null),
+					])->castTo('array'),
+					'thumb' => Expect::structure([
+						'width' => Expect::int(300),
+						'height' => Expect::int(null),
+					])->castTo('array'),
+				])->castTo('array'),
+				'fallbackImage' => Expect::structure([
+					'detail' => Expect::structure([
+						'width' => Expect::int(600),
+						'height' => Expect::int(null),
+					])->castTo('array'),
+					'thumb' => Expect::structure([
+						'width' => Expect::int(300),
+						'height' => Expect::int(null),
+					])->castTo('array'),
+				])->castTo('array'),
+			]),
 		]);
 	}
 	
@@ -70,8 +92,6 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$latteDefinition = $builder->getDefinition('latte.templateFactory');
 		$latteDefinition->addSetup('$onCreate[]', [['@shopper.shopper', 'addFilters']]);
 
-
-
 		$shopper->addSetup('setProjectUrl', [$config['projectUrl']]);
 		$shopper->addSetup('setRegistrationConfiguration', [(array) $config['registration']]);
 		$shopper->addSetup('setCountry', [$config['country']]);
@@ -87,6 +107,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 
 		$shopper->addSetup('setReviews', [(array) $config['reviews']]);
 		$shopper->addSetup('setInvoices', [(array) $config['invoices']]);
+		$shopper->addSetup('setCategories', [(array) $config['categories']]);
 
 		$cartManager->addSetup('setCheckoutSequence', [$config['checkoutSequence']]);
 	}

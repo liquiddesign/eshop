@@ -102,6 +102,11 @@ class Shopper
 	 * @var array<mixed>
 	 */
 	private array $invoices;
+
+	/**
+	 * @var array<mixed>
+	 */
+	private array $categories;
 	
 	private bool $allowBannedEmailOrder = false;
 
@@ -239,6 +244,30 @@ class Shopper
 	public function setInvoices(array $invoices): void
 	{
 		$this->invoices = $invoices;
+	}
+
+	/**
+	 * @param array<mixed> $categories
+	 */
+	public function setCategories(array $categories): void
+	{
+		$this->categories = $categories;
+	}
+
+	/**
+	 * @return array<mixed>
+	 */
+	public function getCategoriesImage(): array
+	{
+		return $this->categories['image'];
+	}
+
+	/**
+	 * @return array<mixed>
+	 */
+	public function getCategoriesFallbackImage(): array
+	{
+		return $this->categories['fallbackImage'];
 	}
 
 	public function getInvoicesAutoTaxDateInDays(): int

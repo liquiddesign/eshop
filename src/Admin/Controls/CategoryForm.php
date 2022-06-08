@@ -9,6 +9,7 @@ use Admin\Controls\AdminFormFactory;
 use Eshop\Admin\CategoryPresenter;
 use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
+use Eshop\Shopper;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Image;
@@ -25,6 +26,8 @@ class CategoryForm extends Control
 
 	private SettingRepository $settingRepository;
 
+	private Shopper $shopper;
+
 	private ?Category $category;
 
 	public function __construct(
@@ -32,12 +35,14 @@ class CategoryForm extends Control
 		AdminFormFactory $formFactory,
 		PageRepository $pageRepository,
 		SettingRepository $settingRepository,
+		Shopper $shopper,
 		?Category $category
 	) {
 		$this->category = $category;
 		$this->categoryRepository = $categoryRepository;
 		$this->pageRepository = $pageRepository;
 		$this->settingRepository = $settingRepository;
+		$this->shopper = $shopper;
 
 		$form = $formFactory->create(true);
 
@@ -45,13 +50,21 @@ class CategoryForm extends Control
 
 		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
-			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => static function (Image $image): void {
-				$image->resize(600, null);
+			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => function (Image $image): void {
+				$image->resize($this->shopper->getCategoriesImage()['detail']['width'], $this->shopper->getCategoriesImage()['detail']['height']);
 			},
-			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
-				$image->resize(300, null);
+			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => function (Image $image): void {
+				$image->resize($this->shopper->getCategoriesImage()['thumb']['width'], $this->shopper->getCategoriesImage()['thumb']['height']);
 			},
-		])->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce 600px s libovolnou šířkou.');
+		]);
+
+		if ($this->shopper->getCategoriesImage()['detail']['width']) {
+			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální šířce ' . $this->shopper->getCategoriesImage()['detail']['width'] . 'px.');
+		}
+
+		if ($this->shopper->getCategoriesImage()['detail']['height']) {
+			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce ' . $this->shopper->getCategoriesImage()['detail']['height'] . 'px.');
+		}
 
 		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {
 			$imagePicker->onDelete[] = function (array $directories, $filename) use ($category, $presenter): void {
@@ -62,13 +75,21 @@ class CategoryForm extends Control
 
 		$imagePicker = $form->addImagePicker('productFallbackImageFileName', 'Placeholder produktů', [
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
-			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => static function (Image $image): void {
-				$image->resize(600, null);
+			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => function (Image $image): void {
+				$image->resize($this->shopper->getCategoriesFallbackImage()['detail']['width'], $this->shopper->getCategoriesFallbackImage()['detail']['height']);
 			},
-			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
-				$image->resize(300, null);
+			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => function (Image $image): void {
+				$image->resize($this->shopper->getCategoriesFallbackImage()['thumb']['width'], $this->shopper->getCategoriesFallbackImage()['thumb']['height']);
 			},
 		])->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce 600px s libovolnou šířkou.');
+
+		if ($this->shopper->getCategoriesFallbackImage()['detail']['width']) {
+			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální šířce ' . $this->shopper->getCategoriesFallbackImage()['detail']['width'] . 'px.');
+		}
+
+		if ($this->shopper->getCategoriesFallbackImage()['detail']['height']) {
+			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce ' . $this->shopper->getCategoriesFallbackImage()['detail']['height'] . 'px.');
+		}
 
 		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {
 			$imagePicker->onDelete[] = function (array $directories, $filename) use ($category, $presenter): void {
