@@ -65,6 +65,18 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	/** @var array<callable(\Eshop\DB\Order): void> */
 	public array $onOrderUnBanned = [];
 
+	/** @var array<callable(\Eshop\DB\Order): bool> */
+	public array $onBeforeOrderPaused = [];
+
+	/** @var array<callable(\Eshop\DB\Order): void> */
+	public array $onOrderPaused = [];
+
+	/** @var array<callable(\Eshop\DB\Order): bool> */
+	public array $onBeforeOrderUnPaused = [];
+
+	/** @var array<callable(\Eshop\DB\Order): void> */
+	public array $onOrderUnPaused = [];
+
 	/** @var array<callable(\Eshop\DB\Order, \Eshop\DB\Delivery): void> */
 	public array $onOrderDeliveryChanged = [];
 
@@ -1262,6 +1274,36 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		Arrays::invoke($this->onOrderUnBanned, $order);
 
 		$this->orderLogItemRepository->createLog($order, OrderLogItem::UN_BAN, null, $administrator);
+	}
+
+	public function pauseOrder(Order $order, ?Administrator $administrator = null): void
+	{
+		if (\in_array(false, Arrays::invoke($this->onBeforeOrderPaused, $order), true)) {
+			return;
+		}
+
+		$order->update([
+			'pausedTs' => (string)new DateTime(),
+		]);
+
+		Arrays::invoke($this->onOrderPaused, $order);
+
+		$this->orderLogItemRepository->createLog($order, OrderLogItem::PAUSE, null, $administrator);
+	}
+
+	public function unPauseOrder(Order $order, ?Administrator $administrator = null): void
+	{
+		if (\in_array(false, Arrays::invoke($this->onBeforeOrderUnPaused, $order), true)) {
+			return;
+		}
+
+		$order->update([
+			'pausedTs' => null,
+		]);
+
+		Arrays::invoke($this->onOrderUnPaused, $order);
+
+		$this->orderLogItemRepository->createLog($order, OrderLogItem::UN_PAUSE, null, $administrator);
 	}
 
 	/**

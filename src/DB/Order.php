@@ -74,6 +74,12 @@ class Order extends \StORM\Entity
 	 * @column{"type":"timestamp"}
 	 */
 	public ?string $bannedTs;
+
+	/**
+	 * Pozastaveno
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $pausedTs;
 	
 	/**
 	 * Odesláno do systému zásilkovny

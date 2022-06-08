@@ -107,6 +107,7 @@ class OrderPresenter extends BackendPresenter
 		'printMultiple' => false,
 		'printInvoices' => false,
 		'deletePackageItemMode' => PackageItem::DELETE_MODE_MARK,
+		'pauseOrder' => false,
 	];
 
 	/** @inject */
@@ -1783,6 +1784,30 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('pplSendForm')];
 	}
 
+	public function renderPauseOrder(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Pozastavit';
+		$this->template->headerTree = [
+			['Objednávky', 'default',],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('pauseOrderForm')];
+	}
+
+	public function renderUnPauseOrder(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Zrušit pozastavení';
+		$this->template->headerTree = [
+			['Objednávky', 'default',],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('unPauseOrderForm')];
+	}
+
 	public function renderPrintPPL(array $ids): void
 	{
 		unset($ids);
@@ -1940,6 +1965,36 @@ class OrderPresenter extends BackendPresenter
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
 	}
 
+	public function createComponentPauseOrderForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
+			try {
+				foreach ($collection as $order) {
+					$this->orderRepository->pauseOrder($order);
+				}
+
+				$this->flashMessage('Provedeno', 'success');
+			} catch (\Throwable $e) {
+				$this->flashMessage($e->getMessage(), 'error');
+			}
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
+	}
+
+	public function createComponentUnPauseOrderForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
+			try {
+				foreach ($collection as $order) {
+					$this->orderRepository->unPauseOrder($order);
+				}
+
+				$this->flashMessage('Provedeno', 'success');
+			} catch (\Throwable $e) {
+				$this->flashMessage($e->getMessage(), 'error');
+			}
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
+	}
+
 	public function createComponentPplPrintForm(): AdminForm
 	{
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection, AdminForm $form): void {
@@ -2005,6 +2060,16 @@ class OrderPresenter extends BackendPresenter
 		}
 
 		return $form;
+	}
+
+	public function handlePauseOrder(string $orderPK): void
+	{
+		$this->orderRepository->pauseOrder($this->orderRepository->one($orderPK));
+	}
+
+	public function handleUnPauseOrder(string $orderPK): void
+	{
+		$this->orderRepository->unPauseOrder($this->orderRepository->one($orderPK));
 	}
 
 	protected function startup(): void

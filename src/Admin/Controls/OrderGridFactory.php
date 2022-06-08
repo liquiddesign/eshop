@@ -236,6 +236,25 @@ class OrderGridFactory
 			$button();
 		}
 
+		if (isset($configuration['pauseOrder']) && $configuration['pauseOrder']) {
+			$pauseButton = "<a href='%s' class='$btnSecondary' title='Pozastavit'><i class='fa fa-sm fa-pause'></i></a>";
+			$unPauseButton = "<a href='%s' class='$btnSecondary' title='Zrušit pozastavení'><i class='fa fa-sm fa-play'></i></a>";
+
+			$grid->addColumn('', function (Order $order, AdminGrid $datagrid) use ($pauseButton, $unPauseButton) {
+				$pauseLink = $datagrid->getPresenter()->link('pauseOrder!', [$order->getPK()]);
+				$unPauseLink = $datagrid->getPresenter()->link('unPauseOrder!', [$order->getPK()]);
+
+				return \sprintf($order->pausedTs ? $unPauseButton : $pauseButton, $order->pausedTs ? $unPauseLink : $pauseLink);
+			}, '%s', null, ['class' => 'minimal']);
+
+			$grid->onRenderRow[] = function (\Nette\Utils\Html $row, $object): void {
+				/** @var \Eshop\DB\Order $object */
+				if ($object->pausedTs) {
+					$row->appendAttribute('style', 'background-color: #fff0bf !important;');
+				}
+			};
+		}
+
 		$downloadIco = "<a href='%s' class='$btnSecondary' title='Stáhnout'><i class='fa fa-sm fa-download'></i></a>";
 
 		if (isset($configuration['exportEdi']) && $configuration['exportEdi'] && $state !== Order::STATE_OPEN) {
@@ -427,6 +446,11 @@ class OrderGridFactory
 					}
 				},
 			);
+		}
+
+		if (isset($configuration['pauseOrder']) && $configuration['pauseOrder']) {
+			$grid->addBulkAction('pauseOrder', 'pauseOrder', '<i class="fas fa-pause"></i>');
+			$grid->addBulkAction('unPauseOrder', 'unPauseOrder', '<i class="fas fa-play"></i>');
 		}
 
 		if (isset($configuration['printInvoices']) && $configuration['printInvoices'] && $state !== Order::STATE_OPEN) {
