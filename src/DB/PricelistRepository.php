@@ -6,7 +6,9 @@ namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
 use Common\NumbersHelper;
+use Eshop\Shopper;
 use League\Csv\Reader;
+use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -26,18 +28,22 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 	private CustomerGroupRepository $customerGroupRepository;
 
+	private Container $container;
+
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
 		PriceRepository $priceRepository,
 		CustomerRepository $customerRepository,
-		CustomerGroupRepository $customerGroupRepository
+		CustomerGroupRepository $customerGroupRepository,
+		Container $container
 	) {
 		parent::__construct($connection, $schemaManager);
 
 		$this->priceRepository = $priceRepository;
 		$this->customerRepository = $customerRepository;
 		$this->customerGroupRepository = $customerGroupRepository;
+		$this->container = $container;
 	}
 
 	public function getPricelists(array $pks, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
@@ -413,6 +419,9 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		bool $overwriteExisting = true,
 		bool $usePriority = true
 	): void {
+		/** @var \Eshop\Shopper $shopper */
+		$shopper = $this->container->getByType(Shopper::class);
+
 		$aggregateFunctions = ['min', 'max', 'avg', 'med'];
 
 		if (!Arrays::contains($aggregateFunctions, $aggregateFunction)) {
@@ -430,6 +439,20 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			$localPrices = $this->priceRepository->many()->where('fk_pricelist', $sourcePricelist->getPK())->toArray();
 
 			foreach ($localPrices as $localPrice) {
+				if (!$shopper->getShowZeroPrices()) {
+					if ($shopper->getShowVat() && $shopper->getShowWithoutVat() && (!$localPrice->price > 0 || !$localPrice->priceVat > 0)) {
+						continue;
+					}
+
+					if ($shopper->getShowVat() && !$localPrice->priceVat > 0) {
+						continue;
+					}
+
+					if ($shopper->getShowWithoutVat() && !$localPrice->price > 0) {
+						continue;
+					}
+				}
+
 				if (isset($prices[$localPrice->getValue('product')])) {
 					$currentPrice = $prices[$localPrice->getValue('product')];
 

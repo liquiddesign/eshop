@@ -179,11 +179,11 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 			if (!$this->shopper->getShowZeroPrices()) {
 				if ($this->shopper->getShowVat()) {
-					$collection->setGroupBy(['this.uuid'], 'priceVat > 0');
+					$collection->where($this->sqlExplode($expression, $sep, 3) . ' > 0');
 				}
 
 				if ($this->shopper->getShowWithoutVat()) {
-					$collection->setGroupBy(['this.uuid'], 'price > 0');
+					$collection->where($this->sqlExplode($expression, $sep, 2) . ' > 0');
 				}
 			}
 
@@ -250,7 +250,24 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		foreach ($pricelists as $id => $pricelist) {
 			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
-			$priceWhere->add('OR', "prices$id.price IS NOT NULL");
+
+			$priceZeroWhere = null;
+
+			if (!$this->shopper->getShowZeroPrices()) {
+				if ($this->shopper->getShowVat() && $this->shopper->getShowWithoutVat()) {
+					$priceZeroWhere = " AND prices$id.price > 0 AND prices$id.priceVat > 0";
+				}
+
+				if ($this->shopper->getShowVat()) {
+					$priceZeroWhere = " AND prices$id.priceVat > 0";
+				}
+
+				if ($this->shopper->getShowWithoutVat()) {
+					$priceZeroWhere = " AND prices$id.price > 0";
+				}
+			}
+
+			$priceWhere->add('OR', "prices$id.price IS NOT NULL" . ($priceZeroWhere ?: ''));
 		}
 
 		if (!$includeHidden) {
