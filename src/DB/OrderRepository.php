@@ -1405,11 +1405,13 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'billing_street',
 			'billing_postcode',
 			'billing_city',
+			'is_cancelled',
 		]);
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
 			$purchase = $order->purchase;
+			$isCancelled = $this->getState($order) === Order::STATE_CANCELED ? '1' : '0';
 
 			foreach ($purchase->getItems() as $item) {
 				$writer->insertOne([
@@ -1424,6 +1426,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					$purchase->billAddress ? $purchase->billAddress->street : null,
 					$purchase->billAddress ? $purchase->billAddress->zipcode : null,
 					$purchase->billAddress ? $purchase->billAddress->city : null,
+					$isCancelled,
 				]);
 			}
 
@@ -1440,6 +1443,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					$purchase->billAddress ? $purchase->billAddress->street : null,
 					$purchase->billAddress ? $purchase->billAddress->zipcode : null,
 					$purchase->billAddress ? $purchase->billAddress->city : null,
+					$isCancelled,
 				]);
 			}
 
@@ -1459,6 +1463,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				$purchase->billAddress ? $purchase->billAddress->street : null,
 				$purchase->billAddress ? $purchase->billAddress->zipcode : null,
 				$purchase->billAddress ? $purchase->billAddress->city : null,
+				$isCancelled,
 			]);
 		}
 	}
