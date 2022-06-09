@@ -15,8 +15,12 @@ use Eshop\DB\SupplierRepository;
 use Eshop\Integration\Algolia;
 use Forms\Form;
 use Nette\Utils\Arrays;
+use StORM\Collection;
 use StORM\Expression;
 use StORM\ICollection;
+use Tracy\Debugger;
+use Tracy\ILogger;
+use Web\DB\SettingRepository;
 
 class SupplierProductPresenter extends BackendPresenter
 {
@@ -42,6 +46,9 @@ class SupplierProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public SupplierRepository $supplierRepository;
+
+	/** @inject */
+	public SettingRepository $settingRepository;
 
 	/** @inject */
 	public Algolia $algolia;
@@ -124,6 +131,18 @@ class SupplierProductPresenter extends BackendPresenter
 			$supplierProduct->update(['product' => null]);
 		}, [], null, ['class' => 'minimal']);
 
+		if ($this->settingRepository->getValueByName('supplierProductDummyDefaultCategory')) {
+			$grid->addColumn('', function (SupplierProduct $supplierProduct, AdminGrid $adminGrid): string {
+				if ($supplierProduct->product) {
+					return '<button class="btn btn-sm btn-outline-primary disabled" disabled><i class="fas fa-sm fa-plus-square"></i></button>';
+				}
+
+				$link = $adminGrid->getPresenter()->link('createDummyProduct!', [$supplierProduct->getPK()]);
+
+				return "<a href='$link' class='btn btn-sm btn-outline-primary'><i class='fas fa-sm fa-plus-square'></i></button>";
+			}, '%s', null, ['class' => 'fit']);
+		}
+
 		$grid->addButtonSaveAll();
 
 		$grid->addFilterTextInput('search', ['this.ean', 'this.code', 'this.mpn'], null, 'EAN, kód, P/N');
@@ -163,9 +182,28 @@ class SupplierProductPresenter extends BackendPresenter
 			};
 		}
 
+		$grid->addBulkAction('createDummyProducts', 'createDummyProducts', 'Vytvořit produkty');
+
 		$grid->addFilterButtons();
 
 		return $grid;
+	}
+
+	public function handleCreateDummyProduct(string $supplierProduct): void
+	{
+		try {
+			$this->productRepository->createDummyProducts(
+				$this->supplierProductRepository->many()->where('this.uuid', $supplierProduct),
+				$this->categoryRepository->one($this->settingRepository->getValueByName('supplierProductDummyDefaultCategory'), true),
+				$this->supplierRepository->one($this->tab, true),
+			);
+
+			$this->flashMessage('Provedeno', 'success');
+		} catch (\Throwable $e) {
+			$this->flashMessage($e->getMessage(), 'error');
+		}
+
+		$this->redirect('this');
 	}
 
 	public function handleAcceptAlgoliaSuggestion(string $supplierProduct, string $product): void
@@ -269,6 +307,40 @@ class SupplierProductPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('pairAlgoliaBulkForm')];
+	}
+
+	public function renderCreateDummyProducts(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Vytvořit produkty';
+		$this->template->headerTree = [
+			['Externí produkty', 'default'],
+			['Vytvořit produkty'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('createDummyProductsForm')];
+	}
+
+	public function createComponentCreateDummyProductsForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('grid'), function (array $values, Collection $collection): void {
+			try {
+				$this->productRepository->createDummyProducts($collection, $this->categoryRepository->one($values['category'], true), $this->supplierRepository->one($this->tab, true));
+
+				$this->flashMessage('Provedeno', 'success');
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::WARNING);
+
+				$this->flashMessage('Chyba!<br>' . $e->getMessage(), 'error');
+			}
+
+			$this->redirect('this');
+		}, $this->getBulkFormActionLink(), $this->supplierProductRepository->many(), $this->getBulkFormIds(), null, function (AdminForm $form): void {
+			$form->addSelect2('category', 'Cílová kategorie', $this->categoryRepository->getTreeArrayForSelect())
+				->setDefaultValue($this->settingRepository->getValueByName('supplierProductDummyDefaultCategory'))
+				->setHtmlAttribute('data-info', 'Nově vytvořené produkty budou přidány do této kategorie.');
+		});
 	}
 
 	public function createComponentForm(): AdminForm

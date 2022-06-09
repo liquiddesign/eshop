@@ -7,6 +7,7 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Eshop\Admin\Controls\ProductForm;
+use Eshop\DB\CategoryRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\Integration\Integrations;
@@ -27,6 +28,9 @@ class SettingsPresenter extends BackendPresenter
 
 	/** @inject */
 	public PaymentTypeRepository $paymentTypeRepository;
+
+	/** @inject */
+	public CategoryRepository $categoryRepository;
 
 	/**
 	 * @var array<string|array<mixed>>
@@ -200,6 +204,18 @@ class SettingsPresenter extends BackendPresenter
 					'info' => 'Pro rozlišení platby jako Dobírky pro různé služby.',
 					'onSave' => function ($key, $oldValue, $newValue): void {
 						$this->systemicCallback($key, $oldValue, $newValue, $this->paymentTypeRepository);
+					},
+				],
+			],
+			'Dodavatelské produkty' => [
+				[
+					'key' => 'supplierProductDummyDefaultCategory',
+					'label' => 'Kategorie vytváření produktů',
+					'type' => 'select',
+					'options' => $this->categoryRepository->getTreeArrayForSelect(),
+					'info' => 'Výchozí kategorie pro vytváření produktů z dodavatelský produktů.',
+					'onSave' => function ($key, $oldValue, $newValue): void {
+						$this->systemicCallback($key, $oldValue, $newValue, $this->categoryRepository);
 					},
 				],
 			],

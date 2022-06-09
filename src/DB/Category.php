@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Eshop\Common\DB\SystemicEntity;
 use StORM\Collection;
 use StORM\ICollection;
 use StORM\RelationCollection;
@@ -13,7 +14,7 @@ use StORM\RelationCollection;
  * @table
  * @index{"name":"category_path","unique":true,"columns":["path"]}
  */
-class Category extends \StORM\Entity
+class Category extends SystemicEntity
 {
 	public const IMAGE_DIR = 'category_images';
 
@@ -118,6 +119,7 @@ class Category extends \StORM\Entity
 	/**
 	 * Systémová
 	 * @column
+	 * @deprecated Use SystemicEntity
 	 */
 	public bool $systemic = false;
 
@@ -154,7 +156,7 @@ class Category extends \StORM\Entity
 			return true;
 		}
 
-		return $this->systemic;
+		return $this->systemic || parent::isSystemic();
 	}
 
 	public function isBottom(): bool

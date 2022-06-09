@@ -1291,6 +1291,53 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		]);
 	}
 
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\SupplierProduct> $supplierProducts
+	 * @param \Eshop\DB\Category $category
+	 * @param \Eshop\DB\Supplier $supplier
+	 * @return array<\Eshop\DB\Product>
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function createDummyProducts(Collection $supplierProducts, Category $category, Supplier $supplier): array
+	{
+		$products = [];
+		$mutation = Arrays::first(\array_keys($this->getConnection()->getAvailableMutations()));
+
+		/** @var \Eshop\DB\SupplierProduct $supplierProduct */
+		foreach ($supplierProducts->where('this.fk_product IS NULL') as $supplierProduct) {
+			$product = $this->createOne([
+				'ean' => $supplierProduct->ean ?: null,
+				'mpn' => $supplierProduct->mpn ?: null,
+				'code' => $supplierProduct->code,
+				'subCode' => $supplierProduct->productSubCode,
+				'supplierCode' => $supplierProduct->code,
+				'name' => [$mutation => $supplierProduct->name],
+				'content' => [$mutation => $supplierProduct->content],
+				'unit' => $supplierProduct->unit,
+				'unavailable' => $supplierProduct->unavailable,
+				'hidden' => $supplier->defaultHiddenProduct,
+				'storageDate' => $supplierProduct->storageDate,
+				'defaultBuyCount' => $supplierProduct->defaultBuyCount,
+				'minBuyCount' => $supplierProduct->minBuyCount,
+				'buyStep' => $supplierProduct->buyStep,
+				'inPackage' => $supplierProduct->inPackage,
+				'inCarton' => $supplierProduct->inCarton,
+				'inPalett' => $supplierProduct->inPalett,
+				'weight' => $supplierProduct->weight,
+				'primaryCategory' => $category->getPK(),
+				'supplierLock' => $supplier->importPriority,
+				'supplierSource' => $supplier,
+				'categories' => [$category->getPK(),],
+			]);
+
+			$products[$product->getPK()] = $product;
+
+			$supplierProduct->update(['product' => $product->getPK()]);
+		}
+
+		return $products;
+	}
+
 	public static function generateUuid(?string $ean, ?string $fullCode): string
 	{
 		$namespace = 'product';
