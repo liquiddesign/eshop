@@ -98,6 +98,7 @@ class OrderPresenter extends BackendPresenter
 		'defaultExportPPC_columns' => [],
 		'exportEdi' => false,
 		'exportCsv' => true,
+		'exportTargito' => false,
 		'showExtendedDispatch' => true,
 		'showExtendedPay' => true,
 		'targito' => false,
@@ -1834,6 +1835,8 @@ class OrderPresenter extends BackendPresenter
 
 	public function createComponentTargitoExportForm(): AdminForm
 	{
+		Debugger::$showBar = false;
+
 		/** @var \Grid\Datagrid $grid */
 		$grid = $this->getComponent('ordersGrid');
 
@@ -1846,6 +1849,7 @@ class OrderPresenter extends BackendPresenter
 		$form->addRadioList('bulkType', 'Exportovat', [
 			'selected' => "vybrané ($selectedNo)",
 			'all' => "celý výsledek ($totalNo)",
+//			'total' => 'vše',
 		])->setDefaultValue('selected');
 
 		$form->addSubmit('submit', 'Exportovat');
@@ -1854,7 +1858,8 @@ class OrderPresenter extends BackendPresenter
 			$values = $form->getValues('array');
 
 			/** @var \StORM\Collection $collection */
-			$collection = $values['bulkType'] === 'selected' ? $this->orderRepository->many()->where('uuid', $ids) : $grid->getFilteredSource();
+			$collection = $values['bulkType'] === 'selected' ? $this->orderRepository->many()->where('uuid', $ids) :
+				($values['bulkType'] === 'all' ? $grid->getFilteredSource() : $this->orderRepository->many());
 
 			$tempFilename = \tempnam($this->tempDir, 'csv');
 
