@@ -65,6 +65,8 @@ class Shopper
 	private bool $showVat;
 	
 	private bool $showWithoutVat;
+
+	private bool $showZeroPrices;
 	
 	/**
 	 * @var \Eshop\DB\Currency[]
@@ -176,6 +178,16 @@ class Shopper
 	public function getShowWithoutVat(): bool
 	{
 		return $this->showWithoutVat;
+	}
+
+	public function setShowZeroPrices(bool $showZeroPrices): void
+	{
+		$this->showZeroPrices = $showZeroPrices;
+	}
+
+	public function getShowZeroPrices(): bool
+	{
+		return $this->showZeroPrices;
 	}
 	
 	public function setRegistrationConfiguration(array $configuration): void

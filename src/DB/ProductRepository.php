@@ -177,6 +177,16 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			$collection->select(['pricelist' => $this->sqlExplode($expression, $sep, 6)]);
 			$collection->select(['currencyCode' => "'" . $currency->code . "'"]);
 
+			if (!$this->shopper->getShowZeroPrices()) {
+				if ($this->shopper->getShowVat()) {
+					$collection->setGroupBy(['this.uuid'], 'priceVat > 0');
+				}
+
+				if ($this->shopper->getShowWithoutVat()) {
+					$collection->setGroupBy(['this.uuid'], 'price > 0');
+				}
+			}
+
 			$collection->select([
 				'vatPct' => "IF(vatRate = 'standard'," . ($vatRates['standard'] ?? 0) . ",IF(vatRate = 'reduced-high'," .
 					($vatRates['reduced-high'] ?? 0) . ",IF(vatRate = 'reduced-low'," . ($vatRates['reduced-low'] ?? 0) . ',0)))',
