@@ -1117,7 +1117,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			$slaveProduct = $this->getProducts()
 				->where('this.uuid', $related->getValue('slave'))
 				->where('this.hidden', false)
-				->where('this.unavailable', false)
 				->first();
 
 			if (!$slaveProduct) {
