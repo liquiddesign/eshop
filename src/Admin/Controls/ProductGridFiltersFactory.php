@@ -222,17 +222,17 @@ class ProductGridFiltersFactory
 			if ($value === 'green') {
 				$source->setGroupBy(
 					['this.uuid'],
-					'this.hidden = "0" AND this.unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) > 0 AND pricelist.isActive = "1"',
+					'this.hidden = "0" AND this.unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) > 0 AND pricelistActive = "1"',
 				);
 			} elseif ($value === 'orange') {
 				$source->setGroupBy(
 					['this.uuid'],
-					'this.hidden = "0" AND this.unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) = 0 AND pricelist.isActive = "1"',
+					'this.hidden = "0" AND this.unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) = 0 AND pricelistActive = "1"',
 				);
 			} else {
 				$source->setGroupBy(
 					['this.uuid'],
-					'this.hidden = "1" OR this.unavailable = "1" OR COUNT(DISTINCT price.uuid) = 0 OR COUNT(DISTINCT nxnCategory.fk_category) = 0 OR pricelist.isActive = "0"',
+					'this.hidden = "1" OR this.unavailable = "1" OR COUNT(DISTINCT price.uuid) = 0 OR COUNT(DISTINCT nxnCategory.fk_category) = 0 OR pricelistActive = "0"',
 				);
 			}
 		}, '', 'show', null, ['green' => 'Viditelné', 'orange' => 'Viditelné: bez kategorie', 'red' => 'Neviditelné'])->setPrompt('- Viditelnost v eshopu -');
