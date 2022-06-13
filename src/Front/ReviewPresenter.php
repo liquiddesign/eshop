@@ -7,7 +7,6 @@ use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\Review;
 use Eshop\DB\ReviewRepository;
-use Eshop\FrontendPresenter;
 use Eshop\Shopper;
 use Forms\Form;
 use Nette\Localization\Translator;

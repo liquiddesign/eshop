@@ -12,7 +12,7 @@ use Pages\Pages;
 use Web\DB\ContactItemRepository;
 use Web\DB\SettingRepository;
 
-abstract class ContentPresenter extends \Eshop\FrontendPresenter
+abstract class ContentPresenter extends \Eshop\Front\FrontendPresenter
 {
 	/** @inject */
 	public Pages $pages;

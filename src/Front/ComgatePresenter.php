@@ -6,7 +6,6 @@ namespace Eshop\Front;
 use Contributte\Comgate\Comgate;
 use Eshop\DB\ComgateRepository;
 use Eshop\DB\OrderRepository;
-use Eshop\FrontendPresenter;
 use Nette\Application\BadRequestException;
 use Tracy\Debugger;
 

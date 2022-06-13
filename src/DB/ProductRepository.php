@@ -947,8 +947,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 
 		return $this->many()->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave')
+			->where('related.hidden', false)
 			->where('related.fk_master', $product->getPK())
-			->where('related.fk_type', $relatedType->getPK());
+			->where('related.fk_type', $relatedType->getPK())
+			->orderBy(['this.priority']);
 	}
 
 	/**
@@ -1015,8 +1017,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 
 		return $this->relatedRepository->many()
+			->where('this.hidden', false)
 			->where("this.fk_$relatedSide", $product->getPK())
-			->where('this.fk_type', $relatedType->getPK());
+			->where('this.fk_type', $relatedType->getPK())
+			->orderBy(['this.priority']);
 	}
 
 	/**
@@ -1039,8 +1043,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 
 		return $this->many()->join(['related' => 'eshop_related'], 'this.uuid = related.fk_master')
+			->where('related.hidden', false)
 			->where('related.fk_slave', $product->getPK())
-			->where('related.fk_type', $relatedType->getPK());
+			->where('related.fk_type', $relatedType->getPK())
+			->orderBy(['related.priority']);
 	}
 
 	/**
@@ -1094,7 +1100,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		$collection = $this->relatedRepository->many()
 			->join(['relatedType' => 'eshop_relatedtype'], 'this.fk_type = relatedType.uuid')
-			->where('relatedType.hidden', false)
 			->where('this.fk_master', $cartItem->getValue('product'))
 			->whereNot('this.fk_slave', $cartItem->getValue('product'))
 			->orderBy(['this.priority']);

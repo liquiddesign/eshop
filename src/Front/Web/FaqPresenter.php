@@ -10,7 +10,7 @@ use Web\DB\FaqItemTag;
 use Web\DB\FaqItemTagRepository;
 use Web\DB\FaqRepository;
 
-abstract class FaqPresenter extends \Eshop\FrontendPresenter
+abstract class FaqPresenter extends \Eshop\Front\FrontendPresenter
 {
 	/** @inject */
 	public Pages $pages;
