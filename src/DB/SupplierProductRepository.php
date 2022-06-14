@@ -149,7 +149,25 @@ class SupplierProductRepository extends \StORM\Repository
 				'supplierSource' => $supplier,
 			];
 
-			if ($primary) {
+			$importImagesResult = true;
+
+			if (!$importImages ||
+				!$supplier->importImages ||
+				!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName) ||
+				!isset($productsMap[$uuid])
+			) {
+				$importImagesResult = false;
+			}
+
+			if ($importImagesResult) {
+				$mtime = \filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
+
+				if (!$overwrite || !$draft->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
+					$importImagesResult = false;
+				}
+			}
+
+			if ($primary && $importImagesResult) {
 				$values['imageFileName'] = $draft->fileName;
 			} else {
 				unset($currentUpdates['imageFileName']);
@@ -200,15 +218,9 @@ class SupplierProductRepository extends \StORM\Repository
 				'type' => 'product_detail',
 			], []);
 
-			if (!$importImages ||
-				!$supplier->importImages ||
-				!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName) ||
-				!isset($productsMap[$uuid])
-			) {
+			if (!$importImagesResult) {
 				continue;
 			}
-
-			$mtime = \filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 
 			$photoRepository->syncOne([
 				'uuid' => $draft->getPK(),
@@ -216,10 +228,6 @@ class SupplierProductRepository extends \StORM\Repository
 				'supplier' => $supplierId,
 				'fileName' => $draft->fileName,
 			]);
-
-			if (!$overwrite || !$draft->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
-				continue;
-			}
 			
 			$imageSizes = ['origin', 'detail', 'thumb'];
 			
