@@ -224,6 +224,10 @@ abstract class FrontendPresenter extends Presenter
 	{
 		$ic = $this->getHttpRequest()->getPost('ic');
 
+		if (!$ic) {
+			return;
+		}
+
 		$aresIcoFin = '';
 		$aresDicFin = '';
 		$aresCompanyFin = '';
