@@ -203,8 +203,7 @@ class SupplierProductRepository extends \StORM\Repository
 			if (!$importImages ||
 				!$supplier->importImages ||
 				!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName) ||
-				!isset($productsMap[$uuid]) ||
-				$productsMap[$uuid]->contentLock
+				!isset($productsMap[$uuid])
 			) {
 				continue;
 			}
