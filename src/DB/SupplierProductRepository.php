@@ -218,7 +218,7 @@ class SupplierProductRepository extends \StORM\Repository
 				'type' => 'product_detail',
 			], []);
 
-			if (!$importImagesResult) {
+			if (!$importImagesResult || !isset($mtime)) {
 				continue;
 			}
 
