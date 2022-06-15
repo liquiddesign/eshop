@@ -1121,7 +1121,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			/** @var \Eshop\DB\Product|\stdClass|null $slaveProduct */
 			$slaveProduct = $this->getProducts()
 				->where('this.uuid', $related->getValue('slave'))
-				->where('this.hidden', false)
 				->first();
 
 			if (!$slaveProduct) {
