@@ -113,8 +113,6 @@ class Shopper
 	private bool $allowBannedEmailOrder = false;
 
 	private bool $useDiscountLevelCalculationInBeforePrice = false;
-
-	private ?DiscountCoupon $discountCoupon = null;
 	
 	private ?Customer $customer = null;
 	
@@ -232,11 +230,6 @@ class Shopper
 	{
 		unset($this->currency);
 		$this->currencyCode = $currencyCode;
-	}
-
-	public function setDiscountCoupon(?DiscountCoupon $discountCoupon): void
-	{
-		$this->discountCoupon = $discountCoupon;
 	}
 
 	public function isAlwaysCreateCustomerOnOrderCreated(): bool
@@ -425,8 +418,9 @@ class Shopper
 	
 	/**
 	 * Vrací kolekci aktuálních ceník, respektující uživatel i měnu, cachuje se do proměnné pokud není zadána měna
+	 * If possible, dont use this function but getPricelists(..) in CheckoutManager!
 	 */
-	public function getPricelists(?Currency $currency = null): Collection
+	public function getPricelists(?Currency $currency = null, ?DiscountCoupon $discountCoupon = null): Collection
 	{
 		if ($this->pricelists !== null && $currency === null) {
 			return $this->pricelists;
@@ -442,11 +436,11 @@ class Shopper
 		$repo = $this->pricelistRepository;
 		
 		if (!$customer && $merchant) {
-			return $this->pricelists = $repo->getMerchantPricelists($merchant, $currency, $this->getCountry(), $this->getDiscountCoupon());
+			return $this->pricelists = $repo->getMerchantPricelists($merchant, $currency, $this->getCountry(), $discountCoupon);
 		}
 		
-		return $this->pricelists = $customer ? $repo->getCustomerPricelists($customer, $currency, $this->getCountry(), $this->getDiscountCoupon()) :
-			$repo->getPricelists($unregisteredPricelists, $currency, $this->getCountry(), $this->getDiscountCoupon());
+		return $this->pricelists = $customer ? $repo->getCustomerPricelists($customer, $currency, $this->getCountry(), $discountCoupon) :
+			$repo->getPricelists($unregisteredPricelists, $currency, $this->getCountry(), $discountCoupon);
 	}
 	
 	public function getPriceCacheIndex(string $prefix, array $filters = []): ?string
@@ -646,10 +640,5 @@ class Shopper
 		}
 		
 		return null;
-	}
-
-	private function getDiscountCoupon(): ?DiscountCoupon
-	{
-		return $this->discountCoupon ?? null;
 	}
 }

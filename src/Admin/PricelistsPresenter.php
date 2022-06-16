@@ -484,8 +484,6 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 				'btn btn-outline-primary btn-sm',
 				$pricelist->getPK(),
 			),
-//			$this->createButtonWithClass('copyToPricelist', '<i class="far fa-copy"></i> Kopírovat do ...',
-//				'btn btn-outline-primary btn-sm', $pricelist),
 		];
 		$this->template->displayControls = [$this->getComponent('priceListItems')];
 	}
@@ -499,18 +497,6 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('priceListDetail')];
-	}
-
-	public function renderPriceListItemsNew(Pricelist $pricelist): void
-	{
-		$this->template->headerLabel = 'Nová cena ceníku - ' . $pricelist->name . ' (' . $pricelist->currency->code . ')';
-		$this->template->headerTree = [
-			['Ceníky', 'default'],
-			['Ceny', 'priceListItems', $pricelist],
-			['Nová cena'],
-		];
-		$this->template->displayButtons = [$this->createBackButton('priceListItems', $this->getParameter('pricelist'))];
-		$this->template->displayControls = [$this->getComponent('priceListItemsNew')];
 	}
 
 	public function renderImportPriceList(Pricelist $pricelist, string $type = 'standard'): void

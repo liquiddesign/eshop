@@ -6,6 +6,7 @@ namespace Eshop\DB;
 
 use Admin\DB\IGeneralAjaxRepository;
 use Common\DB\IGeneralRepository;
+use Eshop\CheckoutManager;
 use Eshop\Controls\ProductFilter;
 use Eshop\Shopper;
 use InvalidArgumentException;
@@ -15,6 +16,7 @@ use Nette\Application\LinkGenerator;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Caching\Storages\DevNullStorage;
+use Nette\DI\Container;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
@@ -62,6 +64,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	private Cache $cache;
 
+	private Container $container;
+
 	public function __construct(
 		Shopper $shopper,
 		DIConnection $connection,
@@ -77,7 +81,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		Request $request,
 		Storage $storage,
 		SupplierProductRepository $supplierProductRepository,
-		RelatedTypeRepository $relatedTypeRepository
+		RelatedTypeRepository $relatedTypeRepository,
+		Container $container
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -94,11 +99,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$this->cache = new Cache($storage);
 		$this->relatedTypeRepository = $relatedTypeRepository;
 		$this->supplierProductRepository = $supplierProductRepository;
-//		$this->onDelete[] = function (ProductRepository $productRepository, Collection $collection) use ($supplierProductRepository): void {
-//			$product = Arrays::first($collection->getVars());
-//
-//			\bdump($supplierProductRepository->many()->where('this.fk_product', $product)->update(['active' => false]));
-//		};
+		$this->container = $container;
 	}
 
 	/**
@@ -118,6 +119,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	public function getProducts(?array $pricelists = null, ?Customer $customer = null, bool $selects = true): Collection
 	{
+		/** @var \Eshop\CheckoutManager $checkoutManager */
+		$checkoutManager = $this->container->getByType(CheckoutManager::class);
+
 		$currency = $this->shopper->getCurrency();
 		$convertRatio = null;
 
@@ -126,7 +130,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 
 		/** @var \Eshop\DB\Pricelist[] $pricelists */
-		$pricelists = $pricelists ?: $this->shopper->getPricelists()->toArray();
+		$pricelists = $pricelists ?: $checkoutManager->getPricelists()->toArray();
 		$pricelists = \array_values($pricelists);
 		$customer ??= $this->shopper->getCustomer();
 		$discountLevelPct = $customer ? $this->getBestDiscountLevel($customer) : 0;
@@ -266,7 +270,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	public function setProductsConditions(ICollection $collection, bool $includeHidden = true, ?array $pricelists = null): void
 	{
-		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists()->toArray());
+		/** @var \Eshop\CheckoutManager $checkoutManager */
+		$checkoutManager = $this->container->getByType(CheckoutManager::class);
+
+		$pricelists = $pricelists ?: \array_values($checkoutManager->getPricelists()->toArray());
 		$priceWhere = new Expression();
 
 		foreach ($pricelists as $id => $pricelist) {
@@ -445,7 +452,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	public function filterPriceFrom($value, ICollection $collection): void
 	{
-		$no = \count($this->shopper->getPricelists()->toArray());
+		/** @var \Eshop\CheckoutManager $checkoutManager */
+		$checkoutManager = $this->container->getByType(CheckoutManager::class);
+
+		$no = \count($checkoutManager->getPricelists()->toArray());
 		$expression = new Expression();
 
 		for ($i = 0; $i !== $no; $i++) {
@@ -457,7 +467,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	public function filterPriceTo($value, ICollection $collection): void
 	{
-		$no = \count($this->shopper->getPricelists()->toArray());
+		/** @var \Eshop\CheckoutManager $checkoutManager */
+		$checkoutManager = $this->container->getByType(CheckoutManager::class);
+
+		$no = \count($checkoutManager->getPricelists()->toArray());
 		$expression = new Expression();
 
 		for ($i = 0; $i !== $no; $i++) {
@@ -469,7 +482,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	public function filterPriceVatFrom($value, ICollection $collection): void
 	{
-		$no = \count($this->shopper->getPricelists()->toArray());
+		/** @var \Eshop\CheckoutManager $checkoutManager */
+		$checkoutManager = $this->container->getByType(CheckoutManager::class);
+
+		$no = \count($checkoutManager->getPricelists()->toArray());
 		$expression = new Expression();
 
 		for ($i = 0; $i !== $no; $i++) {
@@ -481,7 +497,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	public function filterPriceVatTo($value, ICollection $collection): void
 	{
-		$no = \count($this->shopper->getPricelists()->toArray());
+		/** @var \Eshop\CheckoutManager $checkoutManager */
+		$checkoutManager = $this->container->getByType(CheckoutManager::class);
+
+		$no = \count($checkoutManager->getPricelists()->toArray());
 		$expression = new Expression();
 
 		for ($i = 0; $i !== $no; $i++) {

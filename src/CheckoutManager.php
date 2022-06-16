@@ -263,15 +263,16 @@ class CheckoutManager
 		}
 
 		$this->lastOrderToken = $request->getCookie('lastOrderToken');
-
-		$this->onCartCreate[] = function ($cart): void {
-			$this->shopper->setDiscountCoupon($this->getDiscountCoupon());
-		};
 	}
 
 	public function setCheckoutSequence(array $checkoutSequence): void
 	{
 		$this->checkoutSequence = $checkoutSequence;
+	}
+
+	public function getPricelists(?Currency $currency = null, ?DiscountCoupon $discountCoupon = null): Collection
+	{
+		return $this->shopper->getPricelists($currency, $discountCoupon ?? $this->getDiscountCoupon());
 	}
 
 	public function cartExists(): bool
