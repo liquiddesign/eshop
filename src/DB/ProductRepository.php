@@ -267,10 +267,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	public function setProductsConditions(ICollection $collection, bool $includeHidden = true, ?array $pricelists = null): void
 	{
-		/** @var \Eshop\CheckoutManager $checkoutManager */
-		$checkoutManager = $this->container->getByType(CheckoutManager::class);
-
-		$pricelists = $pricelists ?: \array_values($checkoutManager->getPricelists()->toArray());
+		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists()->toArray());
 		$priceWhere = new Expression();
 
 		foreach ($pricelists as $id => $pricelist) {
@@ -449,10 +446,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	public function filterPriceFrom($value, ICollection $collection): void
 	{
-		/** @var \Eshop\CheckoutManager $checkoutManager */
-		$checkoutManager = $this->container->getByType(CheckoutManager::class);
-
-		$no = \count($checkoutManager->getPricelists()->toArray());
+		$no = \count($this->shopper->getPricelists()->toArray());
 		$expression = new Expression();
 
 		for ($i = 0; $i !== $no; $i++) {
@@ -464,10 +458,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	public function filterPriceTo($value, ICollection $collection): void
 	{
-		/** @var \Eshop\CheckoutManager $checkoutManager */
-		$checkoutManager = $this->container->getByType(CheckoutManager::class);
-
-		$no = \count($checkoutManager->getPricelists()->toArray());
+		$no = \count($this->shopper->getPricelists()->toArray());
 		$expression = new Expression();
 
 		for ($i = 0; $i !== $no; $i++) {
@@ -479,10 +470,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	public function filterPriceVatFrom($value, ICollection $collection): void
 	{
-		/** @var \Eshop\CheckoutManager $checkoutManager */
-		$checkoutManager = $this->container->getByType(CheckoutManager::class);
-
-		$no = \count($checkoutManager->getPricelists()->toArray());
+		$no = \count($this->shopper->getPricelists()->toArray());
 		$expression = new Expression();
 
 		for ($i = 0; $i !== $no; $i++) {
@@ -494,10 +482,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	public function filterPriceVatTo($value, ICollection $collection): void
 	{
-		/** @var \Eshop\CheckoutManager $checkoutManager */
-		$checkoutManager = $this->container->getByType(CheckoutManager::class);
-
-		$no = \count($checkoutManager->getPricelists()->toArray());
+		$no = \count($this->shopper->getPricelists()->toArray());
 		$expression = new Expression();
 
 		for ($i = 0; $i !== $no; $i++) {
