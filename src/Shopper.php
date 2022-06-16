@@ -35,7 +35,7 @@ class Shopper
 	
 	private const MERCHANT_CATALOG_PERMISSIONS = 'price';
 
-	public ?DiscountCoupon $discountCoupon;
+	public ?DiscountCoupon $discountCoupon = null;
 	
 	/**
 	 * @var bool[]
