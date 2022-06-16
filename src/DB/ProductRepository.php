@@ -6,7 +6,6 @@ namespace Eshop\DB;
 
 use Admin\DB\IGeneralAjaxRepository;
 use Common\DB\IGeneralRepository;
-use Eshop\CheckoutManager;
 use Eshop\Controls\ProductFilter;
 use Eshop\Shopper;
 use InvalidArgumentException;
@@ -16,7 +15,6 @@ use Nette\Application\LinkGenerator;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Caching\Storages\DevNullStorage;
-use Nette\DI\Container;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
@@ -64,8 +62,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	private Cache $cache;
 
-	private Container $container;
-
 	public function __construct(
 		Shopper $shopper,
 		DIConnection $connection,
@@ -81,8 +77,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		Request $request,
 		Storage $storage,
 		SupplierProductRepository $supplierProductRepository,
-		RelatedTypeRepository $relatedTypeRepository,
-		Container $container
+		RelatedTypeRepository $relatedTypeRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -99,7 +94,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$this->cache = new Cache($storage);
 		$this->relatedTypeRepository = $relatedTypeRepository;
 		$this->supplierProductRepository = $supplierProductRepository;
-		$this->container = $container;
 	}
 
 	/**
