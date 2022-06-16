@@ -34,6 +34,8 @@ class Shopper
 	];
 	
 	private const MERCHANT_CATALOG_PERMISSIONS = 'price';
+
+	public ?DiscountCoupon $discountCoupon;
 	
 	/**
 	 * @var bool[]
@@ -425,7 +427,8 @@ class Shopper
 		if ($this->pricelists !== null && $currency === null) {
 			return $this->pricelists;
 		}
-		
+
+		$discountCoupon ??= $this->discountCoupon;
 		$currency = $currency ?: ($this->getCurrency()->isConversionEnabled() ? $this->getCurrency()->convertCurrency : $this->getCurrency());
 		
 		$customer = $this->getCustomer();

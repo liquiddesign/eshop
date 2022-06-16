@@ -119,9 +119,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	public function getProducts(?array $pricelists = null, ?Customer $customer = null, bool $selects = true): Collection
 	{
-		/** @var \Eshop\CheckoutManager $checkoutManager */
-		$checkoutManager = $this->container->getByType(CheckoutManager::class);
-
 		$currency = $this->shopper->getCurrency();
 		$convertRatio = null;
 
@@ -130,7 +127,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 
 		/** @var \Eshop\DB\Pricelist[] $pricelists */
-		$pricelists = $pricelists ?: $checkoutManager->getPricelists()->toArray();
+		$pricelists = $pricelists ?: $this->shopper->getPricelists()->toArray();
 		$pricelists = \array_values($pricelists);
 		$customer ??= $this->shopper->getCustomer();
 		$discountLevelPct = $customer ? $this->getBestDiscountLevel($customer) : 0;

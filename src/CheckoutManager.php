@@ -263,6 +263,8 @@ class CheckoutManager
 		}
 
 		$this->lastOrderToken = $request->getCookie('lastOrderToken');
+
+		$this->shopper->discountCoupon = $this->getDiscountCoupon();
 	}
 
 	public function setCheckoutSequence(array $checkoutSequence): void
@@ -800,7 +802,8 @@ class CheckoutManager
 					$incorrectItems[] = [
 						'object' => $cartItem,
 						'reason' => 'incorrect-price',
-						'correctValue' => \floatval($this->productRepository->getProduct($cartItem->product->getPK())->getPrice($cartItem->amount)),
+						'correctValue' => $this->productRepository->getProduct($cartItem->product->getPK())->getPrice($cartItem->amount),
+						'correctValueVat' => $this->productRepository->getProduct($cartItem->product->getPK())->getPriceVat($cartItem->amount),
 					];
 				}
 			} catch (\Exception $e) {
