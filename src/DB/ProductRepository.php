@@ -33,6 +33,9 @@ use Web\DB\PageRepository;
  */
 class ProductRepository extends Repository implements IGeneralRepository, IGeneralAjaxRepository
 {
+	/** @var array<callable(\Eshop\DB\Product, \Eshop\DB\SupplierProduct): void> */
+	public array $onDummyProductCreated = [];
+
 	private Shopper $shopper;
 
 	private AttributeRepository $attributeRepository;
@@ -169,11 +172,29 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 
 		if ($selects) {
+			$useBeforePriceCalculation = $this->shopper->getUseDiscountLevelCalculationInBeforePrice();
+
 			$expression = \count($pricelists) > 1 ? 'LEAST(' . \implode(',', $priceSelects) . ')' : $priceSelects[0];
-			$collection->select(['price' => $this->sqlExplode($expression, $sep, 2)]);
-			$collection->select(['priceVat' => $this->sqlExplode($expression, $sep, 3)]);
-			$collection->select(['priceBefore' => $this->sqlExplode($expression, $sep, 4)]);
-			$collection->select(['priceVatBefore' => $this->sqlExplode($expression, $sep, 5)]);
+
+			$priceSelect = $this->sqlExplode($expression, $sep, 2);
+			$priceVatSelect = $this->sqlExplode($expression, $sep, 3);
+
+			$collection->select(['price' => $priceSelect]);
+			$collection->select(['priceVat' => $priceVatSelect]);
+
+			$beforeSelect = $this->sqlExplode($expression, $sep, 4);
+			$beforeVatSelect = $this->sqlExplode($expression, $sep, 5);
+
+			$collection->select(['priceBefore' => $useBeforePriceCalculation && $discountLevelPct > 0 ?
+				"IF(($beforeSelect) > 0, $beforeSelect, 100/(100-$discountLevelPct) * ($priceSelect))" :
+				$beforeSelect,
+			]);
+
+			$collection->select(['priceVatBefore' => $useBeforePriceCalculation && $discountLevelPct > 0 ?
+				"IF(($beforeVatSelect) > 0, $beforeVatSelect, 100/(100-$discountLevelPct) * ($priceVatSelect))" :
+				$beforeVatSelect,
+			]);
+
 			$collection->select(['pricelist' => $this->sqlExplode($expression, $sep, 6)]);
 			$collection->select(['currencyCode' => "'" . $currency->code . "'"]);
 
@@ -1336,6 +1357,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'supplierSource' => $supplier,
 				'categories' => [$category->getPK(),],
 			]);
+
+			Arrays::invoke($this->onDummyProductCreated, $product, $supplierProduct);
 
 			$products[$product->getPK()] = $product;
 

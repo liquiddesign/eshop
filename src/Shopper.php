@@ -112,6 +112,8 @@ class Shopper
 	
 	private bool $allowBannedEmailOrder = false;
 
+	private bool $useDiscountLevelCalculationInBeforePrice = false;
+
 	private ?DiscountCoupon $discountCoupon = null;
 	
 	private ?Customer $customer = null;
@@ -138,6 +140,16 @@ class Shopper
 		$this->customerRepository = $customerRepository;
 		$this->customerGroupRepository = $customerGroupRepository;
 		$this->minimalOrderValueRepository = $minimalOrderValueRepository;
+	}
+
+	public function setUseDiscountLevelCalculationInBeforePrice(bool $useDiscountLevelCalculationInBeforePrice): void
+	{
+		$this->useDiscountLevelCalculationInBeforePrice = $useDiscountLevelCalculationInBeforePrice;
+	}
+
+	public function getUseDiscountLevelCalculationInBeforePrice(): bool
+	{
+		return $this->useDiscountLevelCalculationInBeforePrice;
 	}
 	
 	public function setAllowBannedEmailOrder(bool $allowBannedEmailOrder): void

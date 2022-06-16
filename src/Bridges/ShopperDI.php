@@ -43,6 +43,8 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			'integrations' => Expect::structure([
 				'eHub' => Expect::bool(false),
 			]),
+			/** false - only beforePrice from pricelist used, true - if no beforePrice in pricelist calculate based on discount level */
+			'useDiscountLevelCalculationInBeforePrice' => Expect::bool(false),
 			'reviews' => Expect::structure([
 				'type' => Expect::anyOf('int', 'float')->firstIsDefault(),
 				'minScore' => Expect::float(1),
@@ -103,6 +105,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$shopper->addSetup('setEditOrderAfterCreation', [$config['editOrderAfterCreation']]);
 		$shopper->addSetup('setAlwaysCreateCustomerOnOrderCreated', [$config['alwaysCreateCustomerOnOrderCreated']]);
 		$shopper->addSetup('setAllowBannedEmailOrder', [$config['allowBannedEmailOrder']]);
+		$shopper->addSetup('setUseDiscountLevelCalculationInBeforePrice', [$config['useDiscountLevelCalculationInBeforePrice']]);
 
 		$integrations = (array) $config['integrations'];
 		$shopper->addSetup('setIntegrationsEHub', [$integrations['eHub']]);
