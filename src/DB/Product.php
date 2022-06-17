@@ -7,6 +7,7 @@ namespace Eshop\DB;
 use Nette\Application\ApplicationException;
 use Nette\Utils\DateTime;
 use StORM\Collection;
+use StORM\IEntityParent;
 use StORM\RelationCollection;
 
 /**
@@ -471,6 +472,15 @@ class Product extends \StORM\Entity
 	 */
 	public RelationCollection $photos;
 
+	private ProductRepository $productRepository;
+
+	public function __construct(array $vars, ?IEntityParent $parent = null, array $mutations = [], ?string $mutation = null)
+	{
+		parent::__construct($vars, $parent, $mutations, $mutation);
+
+		$this->productRepository = $this->getConnection()->findRepository(Product::class);
+	}
+
 	/**
 	 * @return \Eshop\DB\Ribbon[]|\StORM\Entity[]
 	 */
@@ -867,13 +877,6 @@ class Product extends \StORM\Entity
 
 	private function getQuantityPrice(int $amount, string $property): ?float
 	{
-		/** @var float|null $price */
-		$price = $this->getConnection()->findRepository(QuantityPrice::class)->many()
-			->match(['fk_product' => $this->getPK(), 'fk_pricelist' => $this->getValue('pricelist')])
-			->where('validFrom <= :amount', ['amount' => $amount])
-			->orderBy(['validFrom' => 'DESC'])
-			->firstValue($property);
-
-		return $price ? (float)$price : null;
+		return $this->productRepository->getQuantityPrice($this, $amount, $property);
 	}
 }

@@ -62,6 +62,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	private Cache $cache;
 
+	private QuantityPriceRepository $quantityPriceRepository;
+
 	public function __construct(
 		Shopper $shopper,
 		DIConnection $connection,
@@ -77,7 +79,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		Request $request,
 		Storage $storage,
 		SupplierProductRepository $supplierProductRepository,
-		RelatedTypeRepository $relatedTypeRepository
+		RelatedTypeRepository $relatedTypeRepository,
+		QuantityPriceRepository $quantityPriceRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -94,6 +97,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$this->cache = new Cache($storage);
 		$this->relatedTypeRepository = $relatedTypeRepository;
 		$this->supplierProductRepository = $supplierProductRepository;
+		$this->quantityPriceRepository = $quantityPriceRepository;
 	}
 
 	/**
@@ -252,6 +256,24 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$this->setProductsConditions($collection, true, $pricelists);
 
 		return $collection;
+	}
+
+	public function getQuantityPrice(Product $product, int $amount, string $property): ?float
+	{
+		$customer = $this->shopper->getCustomer();
+		$discountLevelPct = $customer ? $this->getBestDiscountLevel($customer) : 0;
+
+		/** @var float|null $price */
+		$price = $this->quantityPriceRepository->many()
+			->where('this.fk_product', $product->getPK())
+			->where('this.fk_pricelist', $product->getValue('pricelist'))
+			->where('validFrom <= :amount', ['amount' => $amount])
+			->orderBy(['validFrom' => 'DESC'])
+			->firstValue($property);
+
+		$price = $price ? (float)$price : null;
+
+		return $discountLevelPct > 0 ? (100 - $discountLevelPct) / 100 * $price : $price;
 	}
 
 	/**
