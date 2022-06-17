@@ -29,6 +29,9 @@ use Web\Controls\IBreadcrumbFactory;
 use Web\Controls\IWidgetFactory;
 use Web\Controls\Widget;
 
+/**
+ * @deprecated
+ */
 abstract class FrontendPresenter extends Presenter
 {
 	public string $appPath = __DIR__ . '/../../../../app';

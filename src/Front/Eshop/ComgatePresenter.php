@@ -1,11 +1,12 @@
 <?php
 declare(strict_types=1);
 
-namespace Eshop\Front;
+namespace Eshop\Front\Eshop;
 
 use Contributte\Comgate\Comgate;
 use Eshop\DB\ComgateRepository;
 use Eshop\DB\OrderRepository;
+use Eshop\Front\FrontendPresenter;
 use Nette\Application\BadRequestException;
 use Tracy\Debugger;
 

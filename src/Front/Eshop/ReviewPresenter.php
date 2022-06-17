@@ -1,12 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace Eshop\Front;
+namespace Eshop\Front\Eshop;
 
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\Review;
 use Eshop\DB\ReviewRepository;
+use Eshop\Front\FrontendPresenter;
 use Eshop\Shopper;
 use Forms\Form;
 use Nette\Localization\Translator;

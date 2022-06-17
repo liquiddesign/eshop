@@ -22,6 +22,7 @@ use Nette\Bridges\ApplicationLatte\LatteFactory;
 use Nette\Bridges\ApplicationLatte\UIMacros;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\DI\Container;
 use Nette\Localization\Translator;
 use Nette\Mail\Mailer;
 use Nette\Mail\Message;
@@ -37,10 +38,13 @@ abstract class FrontendPresenter extends Presenter
 
 	public string $layoutTemplate = __DIR__ . '/../../../../../app/@layout.latte';
 
+	public Administrator $admin;
+
+	/** @inject */
+	public Container $container;
+
 	/** @inject */
 	public LatteFactory $latteFactory;
-
-	public Administrator $admin;
 
 	/** @inject */
 	public Translator $translator;
@@ -85,6 +89,10 @@ abstract class FrontendPresenter extends Presenter
 	public $onBreadcrumbCreated = [];
 
 	protected Engine $latte;
+
+	protected string $tempDir;
+
+	protected string $userDir;
 
 	private Cache $cache;
 
@@ -337,6 +345,9 @@ abstract class FrontendPresenter extends Presenter
 	protected function startup(): void
 	{
 		parent::startup();
+
+		$this->tempDir = $this->container->getParameters()['tempDir'];
+		$this->userDir = $this->container->getParameters()['wwwDir'] . '/userfiles';
 
 		$this->latte = $this->createLatteEngine();
 
