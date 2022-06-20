@@ -493,6 +493,10 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$this->clearCategoriesCache();
 	}
 
+	/**
+	 * @param bool $includeHidden
+	 * @return \StORM\Collection<\Eshop\DB\Category>
+	 */
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
