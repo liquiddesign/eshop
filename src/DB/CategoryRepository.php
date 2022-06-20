@@ -393,7 +393,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 				$currentCategories = \array_reverse($currentCategories);
 
-				$list[$category->getPK()] = $category->type->name . ': ' . \implode(' -> ', $currentCategories) . ' (' . $category->code . ')';
+				$list[$category->getPK()] = $category->type->name . ': ' . \implode(' -> ', $currentCategories) . ' (' . $category->code . ($category->isSystemic() ? ', systémová' : '') . ')';
 			}
 
 			return $list;
