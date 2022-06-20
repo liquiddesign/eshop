@@ -105,6 +105,7 @@ class OrderPresenter extends BackendPresenter
 		'eHub' => false,
 		/** @deprecated Use const ORDER_STATES_NAMES */
 		'orderStates' => null,
+		'print' => true,
 		'printMultiple' => false,
 		'printInvoices' => false,
 		'deletePackageItemMode' => PackageItem::DELETE_MODE_MARK,
@@ -1465,8 +1466,27 @@ class OrderPresenter extends BackendPresenter
 			'<a href="#" data-toggle="modal" data-target="#modal-productForm"><button class="btn btn-sm btn-primary"><i class="fas fa-plus"></i> Produkt</button></a>';
 		$this->template->displayButtons[] =
 			'<a href="#" data-toggle="modal" data-target="#modal-mergeOrderForm"><button class="btn btn-sm btn-primary"><i class="fas fa-compress mr-1"></i> Spojit</button></a>';
-		$this->template->displayButtons[] =
-			'<a href="#" onclick="window.print();"><button class="btn btn-sm btn-primary"><i class="fas fa-print mr-1"></i> Tisk</button></a>';
+
+		if (!isset($this::CONFIGURATION['print']) || (isset($this::CONFIGURATION['print']) && $this::CONFIGURATION['print'])) {
+			$this->template->displayButtons[] =
+				'<a href="#" onclick="window.print();"><button class="btn btn-sm btn-primary"><i class="fas fa-print mr-1"></i> Tisk</button></a>';
+		}
+
+		if (isset($this::CONFIGURATION['printInvoices']) && $this::CONFIGURATION['printInvoices']) {
+			if ((clone $order->invoices)->count() > 0) {
+				$invoice = (clone $order->invoices)->first();
+
+				$link = $this->link(':Eshop:Export:invoice', $invoice->hash);
+				$icon = $invoice->printed ? 'fa-check' : 'fa-print';
+
+				$this->template->displayButtons[] =
+					"<a href='$link'><button class='btn btn-sm btn-primary'><i class='fas $icon mr-1'></i> Tisk faktury</button></a>";
+			} else {
+				$this->template->displayButtons[] =
+					"<button class='btn btn-sm btn-primary disabled' disabled><i class='fas fa-times mr-1'></i> Tisk faktury</button>";
+			}
+		}
+
 //		$this->template->displayButtons[] = $this->createButton('cloneOrder!', '<i class="far fa-clone mr-1"></i>Objednat znovu', [$order->getPK()]);
 		$this->template->displayButtons[] =
 			'<a href="#" data-toggle="modal" data-target="#modal-emailForm"><button class="btn btn-sm btn-primary"><i class="fas fa-envelope mr-1"></i> Poslat e-mail</button></a>';
