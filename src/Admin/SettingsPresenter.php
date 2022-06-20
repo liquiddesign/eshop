@@ -13,6 +13,7 @@ use Eshop\DB\PaymentTypeRepository;
 use Eshop\Integration\Integrations;
 use Forms\Form;
 use Nette\Utils\Arrays;
+use Nette\Utils\Strings;
 use Web\DB\SettingRepository;
 
 class SettingsPresenter extends BackendPresenter
@@ -164,10 +165,22 @@ class SettingsPresenter extends BackendPresenter
 		unset($key);
 
 		if ($oldValue) {
-			$oldAttribute = $repository->one($oldValue);
+			if (Strings::contains($oldValue, ';')) {
+				foreach (\explode(';', $oldValue) as $subOldValue) {
+					$oldObject = $repository->one($subOldValue);
 
-			if ($oldAttribute) {
-				$oldAttribute->removeSystemic();
+					if (!$oldObject) {
+						continue;
+					}
+
+					$oldObject->removeSystemic();
+				}
+			} else {
+				$oldObject = $repository->one($oldValue);
+
+				if ($oldObject) {
+					$oldObject->removeSystemic();
+				}
 			}
 		}
 
@@ -175,13 +188,23 @@ class SettingsPresenter extends BackendPresenter
 			return;
 		}
 
-		$newAttribute = $repository->one($newValue);
+		if (Strings::contains($newValue, ';')) {
+			foreach (\explode(';', $newValue) as $subNewValue) {
+				$newObject = $repository->one($subNewValue);
 
-		if (!$newAttribute) {
-			return;
+				if (!$newObject) {
+					continue;
+				}
+
+				$newObject->addSystemic();
+			}
+		} else {
+			$newObject = $repository->one($newValue);
+
+			if ($newObject) {
+				$newObject->addSystemic();
+			}
 		}
-
-		$newAttribute->addSystemic();
 	}
 
 	protected function startup(): void
