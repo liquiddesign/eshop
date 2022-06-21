@@ -181,7 +181,6 @@ class SupplierProductPresenter extends BackendPresenter
 
 		$grid->addBulkAction('createDummyProducts', 'createDummyProducts', 'Vytvořit produkty');
 
-		/** @var \Eshop\Providers\SupplierProvider|null $supplierProvider */
 		$supplierProvider = $this->container->getByType($supplier->providerClass, false);
 
 		if ($supplierProvider instanceof IProducerSyncSupplier) {
