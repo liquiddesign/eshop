@@ -8,11 +8,11 @@ use Admin\Controls\AdminGrid;
 use Eshop\BackendPresenter;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProducerRepository;
-use Eshop\DB\ProductRepository;
 use Eshop\DB\SupplierProduct;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\Integration\Algolia;
+use Eshop\Providers\IProducerSyncSupplier;
 use Forms\Form;
 use Nette\Utils\Arrays;
 use StORM\Collection;
@@ -37,9 +37,6 @@ class SupplierProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public PricelistRepository $pricelistRepository;
-
-	/** @inject */
-	public ProductRepository $productRepository;
 
 	/** @inject */
 	public ProducerRepository $producerRepository;
@@ -183,6 +180,21 @@ class SupplierProductPresenter extends BackendPresenter
 		}
 
 		$grid->addBulkAction('createDummyProducts', 'createDummyProducts', 'Vytvořit produkty');
+
+		/** @var \Eshop\Providers\SupplierProvider|null $supplierProvider */
+		$supplierProvider = $this->container->getByType($supplier->providerClass, false);
+
+		if ($supplierProvider instanceof IProducerSyncSupplier) {
+			$submit = $grid->getForm()->addSubmit('syncProducers', 'Synchronizovat výrobce')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+			$submit->onClick[] = function ($button) use ($grid, $supplierProvider): void {
+				$supplierProvider->syncSupplierProducers();
+				$supplierProvider->syncRealProducers();
+
+				$grid->getPresenter()->flashMessage('Provedeno', 'success');
+				$grid->getPresenter()->redirect('this');
+			};
+		}
 
 		$grid->addFilterButtons();
 
