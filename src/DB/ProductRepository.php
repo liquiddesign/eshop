@@ -958,9 +958,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		return $categoryRepo->getRootCategoryOfCategory($primaryCategory)->getPK() === $category->getPK();
 	}
 
-	public function getSlaveProductsCountByRelationAndMaster($relation, $product): int
+	public function getSlaveProductsCountByRelationAndMaster($relation, $product, bool $onlyVisible = false): int
 	{
-		$result = $this->getSlaveProductsByRelationAndMaster($relation, $product);
+		$result = $onlyVisible ? $this->getSlaveProductsByRelationAndMasterVisible($relation, $product) : $this->getSlaveProductsByRelationAndMaster($relation, $product);
 
 		return $result ? $result->enum() : 0;
 	}
