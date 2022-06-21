@@ -405,7 +405,7 @@ abstract class ExportPresenter extends Presenter
 		$this->invoiceRepository->many()->where('this.hash', $hashes)->update(['printed' => true]);
 		$this->template->invoices = $this->invoiceRepository->many()->where('this.hash', $hashes)->toArray();
 
-		$this->template->setFile($this->template->getFile() ?: __DIR__ . '/templates/export/invoice.multiple.latte');
+		$this->template->setFile($this->template->getFile() ?: __DIR__ . '/../../templates/export/invoice.multiple.latte');
 	}
 
 	public function actionRenderMultiple(array $hashes): void
