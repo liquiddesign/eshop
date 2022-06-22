@@ -133,7 +133,10 @@ class CategoryForm extends Control
 					$form->addSelect2('exportZboziCategory', 'Exportní kategorie pro Zboží', $categories)->setPrompt('Žádná');
 				}
 			} else {
-				$form->addSelect2('exportZboziCategory', 'Exportní kategorie pro Zboží', $categories)->setPrompt('Žádná')->setDisabled()
+				$form->addSelect2('exportZboziCategory', 'Exportní kategorie pro Zboží', $categories)
+					->setPrompt('Žádná')
+					->setDisabled()
+					->checkDefaultValue(false)
 					->setHtmlAttribute('data-info', 'Nejprve zvolte v nastavení exportů typ kategorií pro Zboží.');
 			}
 
