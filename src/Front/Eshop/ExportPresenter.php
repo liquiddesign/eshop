@@ -137,7 +137,7 @@ abstract class ExportPresenter extends Presenter
 
 	public function renderPartnersExport(): void
 	{
-		$this->template->setFile(__DIR__ . '/templates/export/partners.latte');
+		$this->template->setFile(__DIR__ . '/../../templates/export/partners.latte');
 		$this->template->vatRates = $this->vatRateRepo->getVatRatesByCountry();
 	}
 
@@ -267,7 +267,7 @@ abstract class ExportPresenter extends Presenter
 
 	public function renderCustomer(): void
 	{
-		$this->template->setFile(__DIR__ . '/templates/export/customer.latte');
+		$this->template->setFile(__DIR__ . '/../../templates/export/customer.latte');
 		$this->template->vatRates = $this->vatRateRepo->getVatRatesByCountry();
 	}
 
@@ -392,7 +392,7 @@ abstract class ExportPresenter extends Presenter
 
 		$invoice->update(['printed' => true]);
 
-		$this->template->setFile($this->template->getFile() ?: __DIR__ . '/templates/export/invoice.latte');
+		$this->template->setFile($this->template->getFile() ?: __DIR__ . '/../../templates/export/invoice.latte');
 	}
 
 	public function renderInvoice(string $hash): void
@@ -419,6 +419,6 @@ abstract class ExportPresenter extends Presenter
 
 		$this->template->priceType = $this->shopper->getShowVat() ? true : ($this->shopper->getShowWithoutVat() ? false : null);
 		$this->template->deliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0);
-		$this->template->setFile(__DIR__ . "/templates/export/$name.latte");
+		$this->template->setFile(__DIR__ . "/../../templates/export/$name.latte");
 	}
 }
