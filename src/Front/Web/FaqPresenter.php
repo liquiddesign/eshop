@@ -53,6 +53,7 @@ abstract class FaqPresenter extends \Eshop\Front\FrontendPresenter
 		$this->template->faqs = $this->faqRepository->getFaqsWithItems(false, $this->tag);
 		$this->template->activeTag = $this->tag ?: null;
 		$this->template->tags = $this->faqItemTagRepository->getActiveTags();
+		$this->template->content = $this->page ? $this->page->content : null;
 	}
 
 	public function breadcrumbDefault(): void
