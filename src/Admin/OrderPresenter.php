@@ -1951,15 +1951,19 @@ class OrderPresenter extends BackendPresenter
 				$collection->where('this.dpdPrinted', false);
 			}
 
-			$filename = $this->dpd->getLabels($collection);
+			$individualFiles = [];
 
-			$this->flashMessage($filename ? 'Provedeno' : 'Chyba tisku!', $filename ? 'success' : 'error');
+			$this->dpd->getLabels($collection, null, $individualFiles);
 
-			if (!$filename) {
+			$mergedFilename = $this->dpd->mergePdfs($individualFiles);
+
+			$this->flashMessage($mergedFilename ? 'Provedeno' : 'Chyba tisku!', $mergedFilename ? 'success' : 'error');
+
+			if (!$mergedFilename) {
 				return;
 			}
 
-			$this->sendResponse(new FileResponse($filename, 'labels.pdf', 'application/pdf'));
+			$this->sendResponse(new FileResponse($mergedFilename, 'labels.pdf', 'application/pdf'));
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds(), function (AdminForm $form): void {
 			$form->addSubmit('onlyNotPrinted', 'Pouze nevytištěné');
 

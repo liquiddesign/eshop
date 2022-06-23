@@ -8,6 +8,7 @@ use Eshop\Providers\Helpers;
 use Nette\Application\Application;
 use Nette\DI\Container;
 use Nette\Utils\FileSystem;
+use setasign\Fpdi\Fpdi;
 use StORM\Collection;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -182,7 +183,7 @@ class DPD
 	 * @param \StORM\Collection<\Eshop\DB\Order> $orders
 	 * @param string|null $printType
 	 */
-	public function getLabels(Collection $orders, ?string $printType = null): ?string
+	public function getLabels(Collection $orders, ?string $printType = null, array &$individualFiles = []): ?string
 	{
 		$client = $this->getClient();
 
@@ -228,6 +229,7 @@ class DPD
 
 				FileSystem::write($filename, \base64_decode($item->BASE64));
 
+				$individualFiles[] = $filename;
 				$pdf->addPDF($filename);
 			}
 
@@ -252,6 +254,73 @@ class DPD
 
 			return null;
 		}
+	}
+
+	/**
+	 * @param array<string> $filenames
+	 */
+	public function mergePdfs(array $filenames): ?string
+	{
+		if (!$filenames) {
+			return null;
+		}
+
+		$pdf = new Fpdi();
+
+		$i = 0;
+
+		foreach ($filenames as $filename) {
+			if ($i % 4 === 0) {
+				$pdf->addPage();
+			}
+
+			$pdf->setSourceFile($filename);
+			$tplIdxA = $pdf->importPage(1, '/MediaBox');
+
+			$x = 0;
+			$y = 0;
+
+			switch ($i % 4) {
+				case 0:
+					$x = 10;
+					$y = 10;
+
+					break;
+				case 1:
+					$x = 110;
+					$y = 10;
+
+					break;
+				case 2:
+					$x = 10;
+					$y = 150;
+
+					break;
+				case 3:
+					$x = 110;
+					$y = 150;
+
+					break;
+			}
+
+			$pdf->useTemplate($tplIdxA, $x, $y, 90);
+
+			$i++;
+		}
+
+		$filename = \tempnam($this->container->getParameters()['tempDir'] . '/pdfs/', 'dpd');
+
+		$this->application->onShutdown[] = function () use ($filename): void {
+			if (!\is_file($filename)) {
+				return;
+			}
+
+			FileSystem::delete($filename);
+		};
+
+		FileSystem::write($filename, $pdf->Output());
+
+		return $filename;
 	}
 
 	public function getCustomers(): ?\stdClass
