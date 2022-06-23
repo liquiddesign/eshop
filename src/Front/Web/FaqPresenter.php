@@ -9,6 +9,9 @@ use Pages\Pages;
 use Web\DB\FaqItemTag;
 use Web\DB\FaqItemTagRepository;
 use Web\DB\FaqRepository;
+use Web\DB\MenuItemRepository;
+use Web\DB\Page;
+use Web\DB\PageRepository;
 
 abstract class FaqPresenter extends \Eshop\Front\FrontendPresenter
 {
@@ -24,28 +27,58 @@ abstract class FaqPresenter extends \Eshop\Front\FrontendPresenter
 	/** @inject */
 	public FaqItemTagRepository $faqItemTagRepository;
 
-	public function renderDefault(?string $tag = null): void
+	/** @inject */
+	public PageRepository $pageRepository;
+
+	/** @inject */
+	public MenuItemRepository $menuItemRepository;
+
+	protected ?FaqItemTag $tag = null;
+
+	protected ?Page $page = null;
+
+	public function actionDefault(?string $tag = null): void
 	{
-		$faqItemTag = $tag ? $this->faqItemTagRepository->one($tag) : null;
+		/** @var \Web\DB\Page|null $page */
+		$page = $this->pages->getPage();
 
-		$this->breadcrumbDefault($faqItemTag);
+		$this->page = $page;
+		$this->tag = $tag ? $this->faqItemTagRepository->one($tag) : null;
+	}
 
-		$this->template->faqs = $this->faqRepository->getCollection();
-		$this->template->activeTag = $faqItemTag ?? null;
+	public function renderDefault(): void
+	{
+		$this->breadcrumbDefault();
+
+		$this->template->faqs = $this->faqRepository->getFaqsWithItems(false, $this->tag);
+		$this->template->activeTag = $this->tag ?: null;
 		$this->template->tags = $this->faqItemTagRepository->getActiveTags();
 	}
 
-	public function breadcrumbDefault(?FaqItemTag $tag = null): void
+	public function breadcrumbDefault(): void
 	{
-		/** @var \Web\Controls\Breadcrumb $breadcrumb */
-		$breadcrumb = $this['breadcrumb'];
-
-		$breadcrumb->addItem($this->translator->translate('faq.faq', 'Online poradna'), $tag ? $this->link('default') : null);
-
-		if (!$tag) {
+		if (!$this->page) {
 			return;
 		}
 
-		$breadcrumb->addItem((string) $tag->name, null);
+		$menuItem = $this->menuItemRepository->one(['fk_page' => $this->page->getPK()]);
+		$parents = $this->menuItemRepository->getBreadcrumbStructure($menuItem);
+
+		/** @var \Web\Controls\Breadcrumb $breadcrumb */
+		$breadcrumb = $this['breadcrumb'];
+
+		foreach ($parents as $item) {
+			if ($item->name) {
+				$breadcrumb->addItem($item->name, $item->getUrl());
+			}
+		}
+
+		$breadcrumb->addItem($this->page->name ?? '', $this->tag ? $this->link('//this') : null);
+
+		if (!$this->tag) {
+			return;
+		}
+
+		$breadcrumb->addItem((string) $this->tag->name, null);
 	}
 }

@@ -8,8 +8,10 @@ use Forms\Form;
 use Messages\Control\ContactForm;
 use Messages\DB\TemplateRepository;
 use Nette;
+use Nette\Application\BadRequestException;
 use Pages\Pages;
 use Web\DB\ContactItemRepository;
+use Web\DB\MenuItemRepository;
 use Web\DB\SettingRepository;
 
 abstract class ContentPresenter extends \Eshop\Front\FrontendPresenter
@@ -26,15 +28,31 @@ abstract class ContentPresenter extends \Eshop\Front\FrontendPresenter
 	/** @inject */
 	public TemplateRepository $templateRepository;
 
+	/** @inject */
+	public MenuItemRepository $menuItemRepository;
+
 	public function renderDefault(string $page): void
 	{
 		/** @var \Web\DB\Page|null $page */
 		$page = $this->pages->getPage();
 
-		$this->template->breadcrumb = $page ? [(object)[
-			'name' => $page->name,
-			'link' => null,
-		]] : [];
+		if (!$page) {
+			throw new BadRequestException();
+		}
+
+		$menuItem = $this->menuItemRepository->one(['fk_page' => $page->getPK()]);
+		$parents = $this->menuItemRepository->getBreadcrumbStructure($menuItem);
+
+		/** @var \Web\Controls\Breadcrumb $breadcrumb */
+		$breadcrumb = $this['breadcrumb'];
+
+		foreach ($parents as $item) {
+			if ($item->name) {
+				$breadcrumb->addItem($item->name, $item->getUrl());
+			}
+		}
+
+		$breadcrumb->addItem($page->name ?? '', $this->link('//this'));
 	}
 
 	public function createComponentContactForm(): ContactForm
