@@ -1478,9 +1478,10 @@ class OrderPresenter extends BackendPresenter
 
 				$link = $this->link(':Eshop:Export:invoice', $invoice->hash);
 				$icon = $invoice->printed ? 'fa-check' : 'fa-print';
+				$class = $invoice->printed ? 'btn btn-sm btn-success' : 'btn btn-sm btn-primary';
 
 				$this->template->displayButtons[] =
-					"<a href='$link'><button class='btn btn-sm btn-primary'><i class='fas $icon mr-1'></i> Tisk faktury</button></a>";
+					"<a href='$link'><button class='$class'><i class='fas $icon mr-1'></i> Tisk faktury</button></a>";
 			} else {
 				$this->template->displayButtons[] =
 					"<button class='btn btn-sm btn-primary disabled' disabled><i class='fas fa-times mr-1'></i> Tisk faktury</button>";
