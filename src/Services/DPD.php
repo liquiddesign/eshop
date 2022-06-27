@@ -168,6 +168,12 @@ class DPD
 				$ordersWithError[] = $order;
 
 				\bdump($e);
+
+				$tempDir = $this->container->getParameters()['tempDir'] . '/dpd';
+
+				FileSystem::createDir($tempDir);
+
+				FileSystem::write("$tempDir/" . $order->code, $e->getMessage());
 			}
 		}
 
