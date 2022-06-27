@@ -23,7 +23,9 @@ use League\Csv\Writer;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Presenter;
+use Nette\DI\Container;
 use Nette\Forms\Controls\Button;
+use Nette\IOException;
 use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
@@ -62,6 +64,8 @@ class OrderGridFactory
 	private ?DPD $dpd = null;
 
 	private ?PPL $ppl = null;
+
+	private Container $container;
 	
 	/** @var array<mixed> */
 	private array $configuration;
@@ -75,7 +79,8 @@ class OrderGridFactory
 		DeliveryTypeRepository $deliveryTypeRepository,
 		PaymentTypeRepository $paymentTypeRepository,
 		Shopper $shopper,
-		Integrations $integrations
+		Integrations $integrations,
+		Container $container
 	) {
 		$this->orderRepository = $orderRepository;
 		$this->gridFactory = $adminGridFactory;
@@ -86,6 +91,7 @@ class OrderGridFactory
 		$this->paymentTypeRepository = $paymentTypeRepository;
 		$this->integrations = $integrations;
 		$this->shopper = $shopper;
+		$this->container = $container;
 	}
 
 	/**
@@ -266,18 +272,34 @@ class OrderGridFactory
 		}
 
 		if ($this->dpd && $state !== Order::STATE_OPEN) {
-			$grid->addColumn('DPD', function (Order $order, AdminGrid $datagrid) {
-				return '<button title="' . $order->getDpdCode() . '" class="btn btn-sm disabled btn-outline-' .
-					($order->getDpdCode() ? 'success' : ($order->dpdError ? 'danger' : 'primary')) . '" disabled>
+			$tempDir = $this->container->getParameters()['tempDir'] . '/dpd/';
+
+			$grid->addColumn('DPD', function (Order $order, AdminGrid $datagrid) use ($tempDir) {
+				try {
+					$title = $order->dpdError ? FileSystem::read($tempDir . $order->code) : $order->getDpdCode();
+				} catch (IOException $e) {
+					$title = '';
+				}
+
+				return '<button type="button" role="button" title="' . $title . '" class="btn btn-sm btn-outline-' .
+					($order->getDpdCode() ? 'success' : ($order->dpdError ? 'danger' : 'primary')) . '" data-toggle="tooltip" data-placement="bottom">
 				<i class="fas fa-' . ($order->getDpdCode() ? ($order->dpdPrinted ? 'print' : 'check') : ($order->dpdError ? 'exclamation' : 'times')) . '"></i>
 				</button>';
 			}, '%s', 'this.dpdCode', ['class' => 'fit']);
 		}
 
 		if ($this->ppl && $state !== Order::STATE_OPEN) {
-			$grid->addColumn('PPL', function (Order $order, AdminGrid $datagrid) {
-				return '<button title="' . $order->getPplCode() . '" class="btn btn-sm disabled btn-outline-' .
-					($order->getPplCode() ? 'success' : ($order->pplError ? 'danger' : 'primary')) . '" disabled>
+			$tempDir = $this->container->getParameters()['tempDir'] . '/ppl/';
+
+			$grid->addColumn('PPL', function (Order $order, AdminGrid $datagrid) use ($tempDir) {
+				try {
+					$title = $order->dpdError ? FileSystem::read($tempDir . $order->code) : $order->getPplCode();
+				} catch (IOException $e) {
+					$title = '';
+				}
+
+				return '<button type="button" role="button" title="' . $title . '" class="btn btn-sm btn-outline-' .
+					($order->getPplCode() ? 'success' : ($order->pplError ? 'danger' : 'primary')) . '" data-toggle="tooltip" data-placement="bottom">
 				<i class="fas fa-' . ($order->getPplCode() ? ($order->pplPrinted ? 'print' : 'check') : ($order->pplError ? 'exclamation' : 'times')) . '"></i>
 				</button>';
 			}, '%s', 'this.pplCode', ['class' => 'fit']);

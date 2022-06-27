@@ -277,6 +277,12 @@ class PPL
 				$ordersWithError[] = $order;
 
 				$order->update(['pplError' => true]);
+
+				$tempDir = $this->container->getParameters()['tempDir'] . '/ppl';
+
+				FileSystem::createDir($tempDir);
+
+				FileSystem::write("$tempDir/" . $order->code, $e->getMessage());
 			}
 		}
 
