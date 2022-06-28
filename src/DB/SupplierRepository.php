@@ -111,7 +111,10 @@ class SupplierRepository extends Repository implements IGeneralRepository
 		$store = $this->syncStore($supplier, $mutation);
 
 		if (!$this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('amount IS NOT NULL')->isEmpty()) {
-			$total = $this->supplierProductRepository->syncAmounts($this->supplierProductRepository->many()->where('fk_supplier', $supplier), $store);
+			$total = $this->supplierProductRepository->syncAmounts($this->supplierProductRepository->many()
+				->where('fk_supplier', $supplier)
+				->where('amount IS NOT NULL')
+				->where('fk_product IS NOT NULL'), $store);
 		}
 
 		$this->importResultRepository->log("Store entered: total: $total");

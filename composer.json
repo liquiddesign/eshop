@@ -59,7 +59,7 @@
 		"fix-code": ["@phpcsfix"],
 		"check-code": ["@phpcs", "@phpstan"],
 		"phpstan-clear-cache": "phpstan clear-result-cache",
-		"phpstan": "phpstan analyse --memory-limit 4G -c phpstan.neon",
+		"phpstan": "phpstan analyse --memory-limit 6G -c phpstan.neon",
 		"phpcs": "phpcs --standard=ruleset.xml --ignore=assets --cache src",
 		"phpcsfix": "phpcbf --standard=ruleset.xml --ignore=assets --cache src",
 		"tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php"
