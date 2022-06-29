@@ -181,7 +181,10 @@ abstract class ExportPresenter extends Presenter
 		$discountPricelist = $this->settingRepo->many()->where('name', 'googleSalePricelist')->first();
 
 		$this->template->discountPrices = $discountPricelist && $discountPricelist->value ?
-			$this->priceRepository->many()->where('fk_pricelist', $discountPricelist->value)->setIndex('this.fk_product')->toArray() :
+			$this->priceRepository->many()
+				->where('fk_pricelist', $discountPricelist->value)
+				->setIndex('this.fk_product')
+				->toArray() :
 			[];
 
 		try {
