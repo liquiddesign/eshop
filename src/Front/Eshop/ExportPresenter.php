@@ -19,7 +19,6 @@ use Eshop\DB\OrderRepository;
 use Eshop\DB\PhotoRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
-use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\Shopper;
@@ -132,7 +131,7 @@ abstract class ExportPresenter extends Presenter
 	public function beforeRender(): void
 	{
 		$this->template->configuration = $this::CONFIGURATION;
-		$this->template->productImageUrl = $this->request->getUrl()->withoutUserInfo()->getBaseUrl() . 'userfiles/' . Product::GALLERY_DIR . '/origin/';
+		$this->template->productImageUrl = $this->request->getUrl()->withoutUserInfo()->getHostUrl();
 	}
 
 	public function renderPartnersExport(): void

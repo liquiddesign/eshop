@@ -2,6 +2,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 {varType Eshop\ExportPresenter $presenter}
 {varType Eshop\DB\Product $product}
+{varType string|null $productImageUrl}
+{var $photoImageUrl = "$userUrl/" . Eshop\DB\Product::GALLERY_DIR . '/detail/'}
 {try}
     {cache expire => '1 day', tags => ['export']}
         {var $photos = $presenter->photoRepository->many()->setGroupBy(['fk_product'])->setIndex('fk_product')->select(['fileNames' => 'GROUP_CONCAT(fileName)'])->toArrayOf('fileNames')}
@@ -16,21 +18,20 @@
                 <DESCRIPTION n:if="$product->content"><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
                 <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
                 {var $productPhotos = isset($photos[$product->getPK()]) ? \explode(',', $photos[$product->getPK()]) : []}
-                {ifset $product->imageFileName}
-                    <IMGURL>{$productImageUrl . $product->imageFileName}</IMGURL>
-                    {foreach $productPhotos as $photo}
-                        {continueIf $photo === $product->imageFileName}
-                        <IMGURL_ALTERNATIVE>{$productImageUrl . $photo}</IMGURL_ALTERNATIVE>
-                    {/foreach}
+                {if $image = $product->getPreviewImage($basePath)}
+                    {var $imgUrl = $productImageUrl . $image}
+                    <IMGURL>{$imgUrl}</IMGURL>
+                    {if $photo = Nette\Utils\Arrays::first($productPhotos)}
+                        <IMGURL_ALTERNATIVE>{$photoImageUrl . $photo}</IMGURL_ALTERNATIVE>
+                    {/if}
                 {else}
+                    {if $photo = Nette\Utils\Arrays::pick($photos)}
+                        <IMGURL>{$productImageUrl . $photo}</IMGURL>
+                    {/if}
                     {foreach $productPhotos as $photo}
-                        {if $iterator->isFirst()}
-                            <IMGURL>{$productImageUrl . $photo}</IMGURL>
-                        {else}
-                            <IMGURL_ALTERNATIVE>{$productImageUrl . $photo}</IMGURL_ALTERNATIVE>
-                        {/if}
+                        <IMGURL_ALTERNATIVE>{$photoImageUrl . $photo}</IMGURL_ALTERNATIVE>
                     {/foreach}
-                {/ifset}
+                {/if}
 
                 <PRICE_VAT>{$product->getPriceVat()}</PRICE_VAT>
                 <MANUFACTURER>{ifset $product->producer}{$product->producer->name}{/ifset}</MANUFACTURER>

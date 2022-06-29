@@ -259,6 +259,12 @@ class PPL
 
 					$ordersWithError[] = $order;
 
+					$tempDir = $this->container->getParameters()['tempDir'] . '/ppl';
+
+					FileSystem::createDir($tempDir);
+
+					FileSystem::write("$tempDir/" . $order->code, $result['Message'] ?? 'Neznámá chyba');
+
 					continue;
 				}
 

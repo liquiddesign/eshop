@@ -2,6 +2,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 {varType Eshop\DB\Product $product}
 {varType string|null $error}
+{varType string|null $productImageUrl}
 {varType Eshop\ExportPresenter $presenter}
 {cache expire => '1 day', tags => ['export']}
 {ifset $error}
@@ -18,7 +19,7 @@
             <PRODUCT n:if="$supplierProduct = $product->getSupplierProduct()"><![CDATA[{$supplierProduct->name}]]></PRODUCT>
             <DESCRIPTION><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
             <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
-            {ifset $product->imageFileName}<IMGURL>{$productImageUrl . $product->imageFileName}</IMGURL>{/ifset}
+            {if $image = $product->getPreviewImage($basePath)}<IMGURL>{$productImageUrl . $image}</IMGURL>{/if}
             <PRICE_VAT>{$product->getPriceVat()}</PRICE_VAT>
             <MANUFACTURER>{ifset $product->producer}{$product->producer->name}{/ifset}</MANUFACTURER>
             {var Eshop\DB\Category|null $category = $product->primaryCategory}

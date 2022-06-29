@@ -31,7 +31,7 @@
                 <g:title><![CDATA[{$product->name}]]></g:title>
                 <g:description><![CDATA[{$product->primaryCategory ? ($product->primaryCategory->exportGoogleCategory && Nette\Utils\Strings::length($product->primaryCategory->exportGoogleCategory) > 0 ? $product->primaryCategory->exportGoogleCategory : $product->primaryCategory->name) : null} {\strip_tags($product->content ?? '')}]]></g:description>
                 <g:link>{plink //:Eshop:Product:detail $product->getPK()}</g:link>
-                {ifset $product->imageFileName}<g:image_link>{$productImageUrl . $product->imageFileName}</g:image_link>{/ifset}
+                {if $image = $product->getPreviewImage($basePath)}<g:image_link>{$productImageUrl}{$image}</g:image_link>{/if}
                 <g:condition>new</g:condition>
                 <g:availability>{if $product->inStock()}in stock{else}out of stock{/if}</g:availability>
                 <g:price n:if="$mainPrice">{$mainPrice} {$pricelists[$product->pricelist]->currency->code}</g:price>
