@@ -440,22 +440,22 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		return $selects;
 	}
 
-	public function filterCategory($value, ICollection $collection): void
+	public function filterCategory($path, ICollection $collection): void
 	{
-		if ($value === false) {
+		if ($path === false) {
 			$collection->where('categories.uuid IS NULL');
 
 			return;
 		}
 
-		$id = $this->getConnection()->findRepository(Category::class)->many()->match(['path' => $value])->firstValue('uuid');
+		$id = $this->getConnection()->findRepository(Category::class)->many()->where('path', $path)->firstValue('uuid');
 
 		if (!$id) {
 			$collection->where('1=0');
 		} else {
 			$subSelect = $this->getConnection()->rows(['eshop_product_nxn_eshop_category'], ['fk_product'])
 				->join(['eshop_category'], 'eshop_category.uuid=eshop_product_nxn_eshop_category.fk_category')
-				->where('eshop_category.path LIKE :path', ['path' => "$value%"]);
+				->where('eshop_category.path LIKE :path', ['path' => "$path%"]);
 			$collection->where('this.fk_primaryCategory = :category OR this.uuid IN (' . $subSelect->getSql() . ')', ['category' => $id] + $subSelect->getVars());
 		}
 	}

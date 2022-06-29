@@ -117,6 +117,12 @@ class Category extends SystemicEntity
 	public bool $showInMenu = true;
 
 	/**
+	 * Zobrazit pokud nemá produkty
+	 * @column
+	 */
+	public bool $showEmpty = true;
+
+	/**
 	 * Systémová
 	 * @column
 	 * @deprecated Use SystemicEntity

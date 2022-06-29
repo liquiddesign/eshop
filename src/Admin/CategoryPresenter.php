@@ -118,6 +118,7 @@ class CategoryPresenter extends BackendPresenter
 			$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 			$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 			$grid->addColumnInputCheckbox('<i title="Zobrazit v menu" class="fas fa-bars"></i>', 'showInMenu', '', '', 'showInMenu');
+			$grid->addColumnInputCheckbox('<i title="Zobrazit pokud nemá produkty" class="fas fa-list-ol"></i>', 'showEmpty', '', '', 'showEmpty');
 		} else {
 			$grid->addColumn('Priorita', function (Category $category) {
 				return '<input class="form-control form-control-sm" type="number" value="' . $category->priority . '" disabled>';
@@ -131,6 +132,9 @@ class CategoryPresenter extends BackendPresenter
 			$grid->addColumn('<i title="Zobrazit v menu" class="fas fa-bars"></i>', function (Category $category) {
 				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int)$category->showInMenu . '" disabled></label>';
 			}, '%s', 'showInMenu', ['class' => 'minimal']);
+			$grid->addColumn('<i title="Zobrazit pokud nemá produkty" class="fas fa-list-ol"></i>', function (Category $category) {
+				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int)$category->showEmpty . '" disabled></label>';
+			}, '%s', 'showEmpty', ['class' => 'minimal']);
 		}
 
 		$grid->addColumnLinkDetail('Detail');
@@ -150,7 +154,7 @@ class CategoryPresenter extends BackendPresenter
 				$this->categoryRepository->clearCategoriesCache();
 			});
 
-			$grid->addButtonBulkEdit('categoryForm', ['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory'], 'categoryGrid');
+			$grid->addButtonBulkEdit('categoryForm', ['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory', 'hidden', 'showMenu', 'showEmpty'], 'categoryGrid');
 
 			if (isset($this::CONFIGURATION['producerPagesType']) && $this::CONFIGURATION['producerPagesType'] === $this::PRODUCER_CATEGORY) {
 				$submit = $grid->getForm()->addSubmit('generateProducerCategories', 'Generovat kategorie výrobců')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');

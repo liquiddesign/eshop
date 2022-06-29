@@ -161,6 +161,7 @@ class CategoryForm extends Control
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('showInMenu', 'Zobrazit v menu');
+		$form->addCheckbox('showEmpty', 'Zobrazit pokud nemá produkty');
 		$form->addCheckbox('recommended', 'Doporučeno');
 
 		$form->addPageContainer('product_list', ['category' => $category], $nameInput);
