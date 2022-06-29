@@ -28,7 +28,7 @@
             {do $categories = \array_reverse($categories)}
             <CATEGORYTEXT><![CDATA[{foreach $categories as $category}{$category->name}{if !$iterator->isLast()} | {/if}{/foreach}]]></CATEGORYTEXT>
         {/if}
-            {ifset $product->imageFileName}<IMGURL>{$productImageUrl . $product->imageFileName}</IMGURL>{/ifset}
+            {if $image = $product->getPreviewImage($basePath)}<IMGURL>{$productImageUrl . $image}</IMGURL>{/if}
             <IN_STOCK>{(int) $product->inStock()}</IN_STOCK>
             <STORAGE_DATE n:if="$product->storageDate">{$product->storageDate}</STORAGE_DATE>
             <PRICE>{$product->getPrice()}</PRICE>
