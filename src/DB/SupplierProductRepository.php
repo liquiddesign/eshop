@@ -280,8 +280,11 @@ class SupplierProductRepository extends \StORM\Repository
 	 */
 	public function syncAmounts(Collection $products, Store $store): int
 	{
+		Debugger::log('3.1');
 		$amountRepository = $this->getConnection()->findRepository(Amount::class);
+		Debugger::log('3.2');
 		$products->setBufferedQuery(false);
+		Debugger::log('3.3');
 		$array = [];
 
 		while ($draft = $products->fetch()) {
@@ -293,7 +296,11 @@ class SupplierProductRepository extends \StORM\Repository
 			];
 		}
 
+		Debugger::log('3.4');
+
 		$amountRepository->syncMany($array);
+
+		Debugger::log('3.5');
 
 		return \count($array);
 	}
