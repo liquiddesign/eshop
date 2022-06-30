@@ -696,13 +696,16 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 	public function render(): void
 	{
-		$this->template->supplierProducts = $this->product ? $this->supplierProductRepository->many()->where('this.fk_product', $this->product->getPK())->toArray() : [];
+		$this->template->supplierProducts = $this->product ? $this->supplierProductRepository->many()
+			->join(['supplier' => 'eshop_supplier'], 'this.fk_supplier = supplier.uuid')
+			->orderBy(['supplier.importPriority'])
+			->where('this.fk_product', $this->product->getPK())
+			->toArray() : [];
 
 		$this->template->relationMaxItemsCount = $this->relationMaxItemsCount;
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->pricelistRepository->many()->orderBy(['this.priority']);
 		$this->template->stores = $this->storeRepository->many()->orderBy(['this.name' . $this->storeRepository->getConnection()->getMutationSuffix()]);
-		$this->template->supplierProducts = [];
 		$this->template->configuration = $this->configuration;
 		$this->template->shopper = $this->shopper;
 		$this->template->primaryCategory = $this->product && $this->product->primaryCategory ?
@@ -717,11 +720,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 			'content' => 'frm-content-cs',
 		];
 
-		$this->template->supplierProducts = $this->getPresenter()->getParameter('product') ? $this->supplierProductRepository->many()->where(
-			'fk_product',
-			$this->getPresenter()->getParameter('product'),
-		)->toArray() : [];
-
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;
 		$template->render(__DIR__ . '/productForm.latte');
@@ -734,7 +732,17 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 			->where('this.fk_pricelist', $pricelistPK)
 			->delete();
 
-		$this->flashMessage('Provedeno', 'success');
-		$this->redirect('this');
+		$this->getPresenter()->flashMessage('Provedeno', 'success');
+		$this->getPresenter()->redirect('this');
+	}
+
+	public function handleUnlinkSupplierProduct(string $supplierProduct): void
+	{
+		$supplierProduct = $this->supplierProductRepository->one($supplierProduct, true);
+
+		$supplierProduct->update(['product' => null,]);
+
+		$this->getPresenter()->flashMessage('Provedeno', 'success');
+		$this->getPresenter()->redirect('this');
 	}
 }

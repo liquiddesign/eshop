@@ -579,24 +579,30 @@
         <div id="attributes-content" class="tab-pane {$presenter->editTab == 'attributes' ? 'active show' : ''}">
         </div>
         <div id="suppliers-content" class="tab-pane {$presenter->editTab == 'suppliers' ? 'active show' : ''}">
-            {foreach $supplierProducts as $supplierProduct}
-                <table class="table table-hover text-nowrap mt-1 mb-1" style="width: auto;">
+            <table class="table table-hover text-nowrap mt-1 mb-1" style="width: auto;">
+                <tr>
+                    <th>Dodavatel (Priorita)</th>
+                    <th>Produkt</th>
+                    <th>Kód</th>
+                    <th>Recyklační poplatek</th>
+                    <th>Autorský poplatek</th>
+                    <th></th>
+                </tr>
+                {foreach $supplierProducts as $supplierProduct}
                     <tr>
-                        <th>Dodavatel</th>
-                        <th>Produkt</th>
-                        <th>Kód</th>
-                    </tr>
-                    <tr>
-                        <td>{$supplierProduct->supplier->name}</td>
+                        <td>{$supplierProduct->supplier->name} ({$supplierProduct->supplier->importPriority})</td>
                         <td>
                             <a href="{plink :Eshop:Admin:SupplierProduct:default 'tab' => $supplierProduct->supplier->getPK(), 'grid-search' => $supplierProduct->code}">
                                 {$supplierProduct->name}
                             </a>
                         </td>
                         <td>{$supplierProduct->code}</td>
+                        <td>{$supplierProduct->recyclingFee}</td>
+                        <td>{$supplierProduct->copyrightFee}</td>
+                        <td><a n:href='unlinkSupplierProduct!, $supplierProduct->getPK()' class='btn btn-sm btn-outline-danger' onclick='return confirm("Opravdu?")' title='Zrušit párování'><i class='fas fa-sm fa-unlink'></i></a></td>
                     </tr>
-                </table>
-            {/foreach}
+                {/foreach}
+            </table>
         </div>
     </div>
 

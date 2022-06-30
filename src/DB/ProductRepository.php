@@ -1200,18 +1200,28 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		return $this->setRepository->many()->join(['product' => 'eshop_product'], 'product.uuid=this.fk_set')->orderBy(['priority'])->toArray();
 	}
 
-	public function getSuppliersRecyclingFee(Product $product): ?float
+	public function getRecyclingFeeBySuppliersPriority(Product $product): ?float
 	{
-		$recyclingFee = null;
+		//@TODO s novým systémem sloučení zakomponovat
 
-		foreach ($this->supplierProductRepository->many()->where('this.fk_product', $product->getPK())
-				->orderBy(['supplier.importPriority' => 'ASC'])
-				->where('recyclingFee IS NOT NULL') as $supplierProduct
-		) {
-			$recyclingFee = $supplierProduct->recyclingFee;
-		}
+		return $this->supplierProductRepository->many()
+			->join(['supplier' => 'eshop_supplier'], 'this.fk_supplier = supplier.uuid')
+			->where('this.fk_product', $product->getPK())
+			->where('this.recyclingFee IS NOT NULL')
+			->orderBy(['supplier.importPriority'])
+			->firstValue('recyclingFee');
+	}
 
-		return $recyclingFee;
+	public function getCopyrightFeeBySuppliersPriority(Product $product): ?float
+	{
+		//@TODO s novým systémem sloučení zakomponovat
+
+		return $this->supplierProductRepository->many()
+			->join(['supplier' => 'eshop_supplier'], 'this.fk_supplier = supplier.uuid')
+			->where('this.fk_product', $product->getPK())
+			->where('this.copyrightFee IS NOT NULL')
+			->orderBy(['supplier.importPriority'])
+			->firstValue('copyrightFee');
 	}
 
 	public function csvExport(ICollection $products, Writer $writer, array $columns = [], array $attributes = [], string $delimiter = ';', ?array $header = null): void
