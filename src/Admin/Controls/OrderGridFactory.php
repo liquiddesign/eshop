@@ -256,7 +256,7 @@ class OrderGridFactory
 			$grid->onRenderRow[] = function (\Nette\Utils\Html $row, $object): void {
 				/** @var \Eshop\DB\Order $object */
 				if ($object->pausedTs) {
-					$row->appendAttribute('style', 'background-color: #fff0bf !important;');
+					$row->appendAttribute('style', 'background-color: #f7d5d5 !important;');
 				}
 			};
 		}

@@ -7,6 +7,7 @@ namespace Eshop\Services;
 use Eshop\Providers\Helpers;
 use Nette\Application\Application;
 use Nette\DI\Container;
+use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use setasign\Fpdi\Fpdi;
 use StORM\Collection;
@@ -19,6 +20,12 @@ use Web\DB\SettingRepository;
  */
 class DPD
 {
+	/** @var array<callable(): bool> */
+	public array $onBeforeOrdersSent = [];
+
+	/** @var array<callable(\Eshop\DB\Order): bool> */
+	public array $onBeforeOrderSent = [];
+
 	private string $url;
 
 	private string $login;
@@ -72,6 +79,10 @@ class DPD
 	 */
 	public function syncOrders(Collection $orders): array
 	{
+		if (\in_array(false, Arrays::invoke($this->onBeforeOrdersSent), true)) {
+			throw new \Exception('Not allowed');
+		}
+
 		$client = $this->getClient();
 
 		$dpdDeliveryType = $this->getDpdDeliveryTypePK();
@@ -88,6 +99,12 @@ class DPD
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
+			if (\in_array(false, Arrays::invoke($this->onBeforeOrderSent, $order), true)) {
+				$ordersIgnored[] = $order;
+
+				continue;
+			}
+
 			try {
 				if ($order->dpdCode) {
 					$ordersIgnored[] = $order;

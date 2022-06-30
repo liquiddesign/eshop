@@ -7,6 +7,7 @@ namespace Eshop\Services;
 use Eshop\DB\OrderRepository;
 use Nette\Application\Application;
 use Nette\DI\Container;
+use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Strings;
 use Salamek\PplMyApi\Api;
@@ -29,6 +30,12 @@ use Web\DB\SettingRepository;
 
 class PPL
 {
+	/** @var array<callable(): bool> */
+	public array $onBeforeOrdersSent = [];
+
+	/** @var array<callable(\Eshop\DB\Order): bool> */
+	public array $onBeforeOrderSent = [];
+
 	private string $login;
 
 	private string $password;
@@ -104,6 +111,10 @@ class PPL
 	 */
 	public function syncOrders(Collection $orders): array
 	{
+		if (\in_array(false, Arrays::invoke($this->onBeforeOrdersSent), true)) {
+			throw new \Exception('Not allowed');
+		}
+
 		$pplDeliveryType = $this->getPplDeliveryTypePK();
 
 		if (!$pplDeliveryType) {
@@ -153,6 +164,12 @@ class PPL
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
+			if (\in_array(false, Arrays::invoke($this->onBeforeOrderSent, $order), true)) {
+				$ordersIgnored[] = $order;
+
+				continue;
+			}
+
 			try {
 				if ($order->pplCode) {
 					$ordersIgnored[] = $order;
