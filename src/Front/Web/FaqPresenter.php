@@ -74,7 +74,7 @@ abstract class FaqPresenter extends \Eshop\Front\FrontendPresenter
 			}
 		}
 
-		$breadcrumb->addItem($this->page->name ?? '', $this->tag ? $this->link('//this') : null);
+		$breadcrumb->addItem($this->page->name ?? '', $this->tag ? $this->link('//this', ['tag' => null,]) : null);
 
 		if (!$this->tag) {
 			return;
