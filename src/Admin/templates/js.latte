@@ -87,7 +87,7 @@
 
             <hr>
 
-            <div class="row">
+            <div class="row mb-2">
                 <div class="col-6">
                     <div>
                         <b>Doprava:</b>
@@ -110,9 +110,29 @@
                         </div>
                     </div>
 
-                    <p class="text-muted well well-sm shadow-none" style="margin-top: 10px;">
-                        {$order->purchase->note}
-                    </p>
+                    <div class="mt-2" n:if="$purchase->desiredShippingDate">
+                        <b>Požadované datum expedice:</b>
+
+                        <div class="d-flex align-items-center">
+                            {$order->purchase->desiredShippingDate|date:'d.m.Y'}
+                        </div>
+                    </div>
+
+                    <div class="mt-2" n:if="$purchase->note">
+                        <b>Poznámka:</b>
+
+                        <div class="d-flex align-items-center">
+                            {$order->purchase->note}
+                        </div>
+                    </div>
+
+                    <div class="mt-2" n:if="$purchase->deliveryNote">
+                        <b>Poznamka pro dopravce:</b>
+
+                        <div class="d-flex align-items-center">
+                            {$order->purchase->deliveryNote}
+                        </div>
+                    </div>
                 </div>
                 <div class="col-6">
                     <div class="table-responsive">

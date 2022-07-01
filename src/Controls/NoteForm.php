@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Carbon\Carbon;
 use Eshop\CheckoutManager;
 use Eshop\Shopper;
 
@@ -28,7 +29,9 @@ class NoteForm extends \Nette\Application\UI\Form
 
 		$this->addTextArea('note');
 		$this->addText('internalOrderCode');
-		$this->addText('desiredShippingDate')->setHtmlType('date');
+		$this->addText('desiredShippingDate')
+			->setHtmlType('date')
+			->setHtmlAttribute('min', (new Carbon())->addDay()->format('Y-m-d'));
 
 		$this->addSubmit('submit');
 		$this->onSuccess[] = [$this, 'success'];
