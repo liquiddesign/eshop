@@ -52,7 +52,7 @@ abstract class ContentPresenter extends \Eshop\Front\FrontendPresenter
 			}
 		}
 
-		$breadcrumb->addItem($page->name ?? '', $this->link('//this'));
+		$breadcrumb->addItem($page->name ?? '');
 	}
 
 	public function createComponentContactForm(): ContactForm
