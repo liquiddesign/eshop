@@ -30,6 +30,8 @@ use Web\DB\SettingRepository;
 
 class PPL
 {
+	public const NOTE_MAX_LENGTH = 300;
+
 	/** @var array<callable(): bool> */
 	public array $onBeforeOrdersSent = [];
 

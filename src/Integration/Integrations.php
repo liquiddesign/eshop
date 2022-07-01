@@ -2,21 +2,34 @@
 
 namespace Eshop\Integration;
 
+use Eshop\Admin\SettingsPresenter;
 use Nette\DI\Container;
 use Nette\DI\MissingServiceException;
+use Web\DB\SettingRepository;
 
 final class Integrations
 {
+	public const DPD = 'dpd';
+	public const PPL = 'ppl';
+
 	public const SERVICES = [
-		'dpd' => 'integrations.dpd',
-		'ppl' => 'integrations.ppl',
+		self::DPD => 'integrations.dpd',
+		self::PPL => 'integrations.ppl',
+	];
+
+	public const SERVICES_SETTINGS = [
+		 SettingsPresenter::DPD_DELIVERY_TYPE => self::DPD,
+		 SettingsPresenter::PPL_DELIVERY_TYPE => self::PPL,
 	];
 
 	protected Container $container;
 
-	public function __construct(Container $container)
+	protected SettingRepository $settingRepository;
+
+	public function __construct(Container $container, SettingRepository $settingRepository)
 	{
 		$this->container = $container;
+		$this->settingRepository = $settingRepository;
 	}
 
 	public function getService(string $name): ?object
@@ -30,5 +43,16 @@ final class Integrations
 		} catch (MissingServiceException $e) {
 			return null;
 		}
+	}
+
+	public function getServiceBySetting(string $settingName): ?object
+	{
+		$setting = $this->settingRepository->getValueByName($settingName);
+
+		if (!$setting || !isset(self::SERVICES_SETTINGS[$settingName])) {
+			return null;
+		}
+
+		return $this->getService(self::SERVICES_SETTINGS[$settingName]);
 	}
 }

@@ -6,6 +6,9 @@ namespace Eshop\Controls;
 
 use Eshop\BuyException;
 use Eshop\CheckoutManager;
+use Nette\Application\UI\Form;
+use Tracy\Debugger;
+use Tracy\ILogger;
 
 /**
  * @method onBuyError(int $code)
@@ -24,9 +27,8 @@ class OrderForm extends \Nette\Application\UI\Form
 		parent::__construct();
 		
 		$this->checkoutManager = $checkoutManager;
-		
-//		$this->addCheckbox('aggreementTermsConditions')->setRequired(true);
-//		$this->addCheckbox('aggreementPersonalData')->setRequired(true);
+
+		$this->addTextArea('deliveryNote');
 		$this->addSubmit('submit');
 		$this->onSuccess[] = [$this, 'success'];
 		$this->onValidate[] = [$this, 'validateOrder'];
@@ -39,8 +41,14 @@ class OrderForm extends \Nette\Application\UI\Form
 		}
 	}
 
-	public function success(): void
+	public function success(Form $form): void
 	{
+		try {
+			$this->checkoutManager->syncPurchase($form->getValues());
+		} catch (\Throwable $e) {
+			Debugger::log('Cant sync purchase!', ILogger::WARNING);
+		}
+
 		try {
 			$this->checkoutManager->createOrder();
 		} catch (BuyException $exception) {

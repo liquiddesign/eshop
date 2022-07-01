@@ -18,6 +18,12 @@ use Web\DB\SettingRepository;
 
 class SettingsPresenter extends BackendPresenter
 {
+	public const RELATION_MAX_ITEMS_COUNT = 'relationMaxItemsCount';
+	public const COD_TYPE = 'codType';
+	public const SUPPLIER_PRODUCT_DUMMY_DEFAULT_CATEGORY = 'supplierProductDummyDefaultCategory';
+	public const PPL_DELIVERY_TYPE = 'pplDeliveryType';
+	public const DPD_DELIVERY_TYPE = 'dpdDeliveryType';
+
 	/** @inject */
 	public Integrations $integrations;
 
@@ -213,14 +219,14 @@ class SettingsPresenter extends BackendPresenter
 
 		$this->customSettings = [
 			'Produkty' => [
-				'key' => 'relationMaxItemsCount',
+				'key' => self::RELATION_MAX_ITEMS_COUNT,
 				'label' => 'Maximální počet relací produktu',
 				'type' => 'int',
 				'info' => 'Zadajte číslo větší než 0! Určuje počet možných relací jednoho typu u produktu. Výchozí hodnota je: ' . ProductForm::RELATION_MAX_ITEMS_COUNT,
 			],
 			'Doprava' => [
 				[
-					'key' => 'codType',
+					'key' => self::COD_TYPE,
 					'label' => 'Typ platby pro dobírku',
 					'type' => 'select',
 					'options' => $this->paymentTypeRepository->getArrayForSelect(),
@@ -232,7 +238,7 @@ class SettingsPresenter extends BackendPresenter
 			],
 			'Dodavatelské produkty' => [
 				[
-					'key' => 'supplierProductDummyDefaultCategory',
+					'key' => self::SUPPLIER_PRODUCT_DUMMY_DEFAULT_CATEGORY,
 					'label' => 'Kategorie vytváření produktů',
 					'type' => 'select',
 					'options' => $this->categoryRepository->getTreeArrayForSelect(),
@@ -245,11 +251,11 @@ class SettingsPresenter extends BackendPresenter
 		];
 
 		/** @var \Eshop\Services\PPL|null $ppl */
-		$ppl = $this->integrations->getService('ppl');
+		$ppl = $this->integrations->getService(Integrations::PPL);
 
 		if ($ppl) {
 			$this->customSettings['Doprava'][] = [
-				'key' => 'pplDeliveryType',
+				'key' => self::PPL_DELIVERY_TYPE,
 				'label' => 'Typ dopravy PPL',
 				'type' => 'select',
 				'options' => $this->deliveryTypeRepository->getArrayForSelect(),
@@ -261,14 +267,14 @@ class SettingsPresenter extends BackendPresenter
 		}
 
 		/** @var \Eshop\Services\DPD|null $dpd */
-		$dpd = $this->integrations->getService('dpd');
+		$dpd = $this->integrations->getService(Integrations::DPD);
 
 		if (!$dpd) {
 			return;
 		}
 
 		$this->customSettings['Doprava'][] = [
-			'key' => 'dpdDeliveryType',
+			'key' => self::DPD_DELIVERY_TYPE,
 			'label' => 'Typ dopravy DPD',
 			'type' => 'select',
 			'options' => $this->deliveryTypeRepository->getArrayForSelect(),

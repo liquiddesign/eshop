@@ -20,6 +20,8 @@ use Web\DB\SettingRepository;
  */
 class DPD
 {
+	public const NOTE_MAX_LENGTH = 200;
+
 	/** @var array<callable(): bool> */
 	public array $onBeforeOrdersSent = [];
 

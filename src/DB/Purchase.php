@@ -112,6 +112,12 @@ class Purchase extends \StORM\Entity
 	public ?string $note;
 
 	/**
+	 * Poznámka pro dopravce
+	 * @column{"type":"text"}
+	 */
+	public ?string $deliveryNote;
+
+	/**
 	 * Výdejní místo - ID
 	 * @column
 	 */
