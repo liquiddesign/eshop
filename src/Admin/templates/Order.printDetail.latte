@@ -11,12 +11,6 @@
 {var $deliveryAddress = $purchase->deliveryAddress}
 {var $delivery = $order->getLastDelivery()}
 {var $payment = $order->getPayment()}
-{var $states = [
-Eshop\DB\Order::STATE_CANCELED => 'Stornovaná',
-Eshop\DB\Order::STATE_COMPLETED => 'Odeslaná',
-Eshop\DB\Order::STATE_OPEN => 'Otevřená',
-Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
-]}
 {import '../../../../../../app/Admin/templates/content.latte'}
 
 {define content}

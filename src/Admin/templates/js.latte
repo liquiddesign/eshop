@@ -118,6 +118,14 @@
                         </div>
                     </div>
 
+                    <div class="mt-2" n:if="$purchase->internalOrderCode">
+                        <b>Interní číslo:</b>
+
+                        <div class="d-flex align-items-center">
+                            {$order->purchase->internalOrderCode}
+                        </div>
+                    </div>
+
                     <div class="mt-2" n:if="$purchase->note">
                         <b>Poznámka:</b>
 
@@ -131,6 +139,14 @@
 
                         <div class="d-flex align-items-center">
                             {$order->purchase->deliveryNote}
+                        </div>
+                    </div>
+
+                    <div class="mt-2" n:if="$purchase->internalNote">
+                        <b>Interní poznámka:</b>
+
+                        <div class="d-flex align-items-center">
+                            {$order->purchase->internalNote}
                         </div>
                     </div>
                 </div>

@@ -116,6 +116,7 @@ class OrderGridFactory
 		$collection = $this->orderRepository->getCollectionByState($state)
 			->setGroupBy(['this.uuid'])
 			->join(['comment' => 'eshop_internalcommentorder'], 'this.uuid = comment.fk_order')
+			->join(['payment' => 'eshop_payment'], 'this.uuid = payment.fk_order')
 			->select(['commentCount' => 'COUNT(DISTINCT comment.uuid)']);
 
 		Arrays::invoke($this->onCollectionCreation, $collection);
@@ -130,7 +131,8 @@ class OrderGridFactory
 
 		$grid->addColumnSelector();
 		$grid->addColumn('Číslo a datum', function (Order $order, $grid) {
-			$noteIcon = $order->purchase->note ? '<i class="fas fa-comment-dots ml-2"></i>' : '';
+			$color = 'color: ' . ($this->configuration['noteIconColor'] ?? null);
+			$noteIcon = $order->purchase->note ? "<i style='$color;' class='fas fa-comment-dots ml-2'></i>" : '';
 
 			return \sprintf(
 				"<a id='%s' href='%s'>%s$noteIcon</a><br><small>%s</small>",
@@ -154,7 +156,14 @@ class OrderGridFactory
 		if ($this->shopper->getShowWithoutVat() && $this->shopper->getShowVat()) {
 			$properties = ['getTotalPrice|price:currency.code', 'getTotalPriceVat|price:currency.code'];
 
-			$grid->addColumnText('Cena', $properties, '%s<br><small>%s s DPH</small>', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+			$smallVatText = 's DPH';
+
+			if ($this->shopper->getPriorityPrice() === 'withVat') {
+				$properties = \array_reverse($properties);
+				$smallVatText = 'bez DPH';
+			}
+
+			$grid->addColumnText('Cena', $properties, "%s<br><small>%s $smallVatText</small>", null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		} elseif ($this->shopper->getShowWithoutVat()) {
 			$properties[] = 'getTotalPrice|price:currency.code';
 
@@ -311,9 +320,9 @@ class OrderGridFactory
 				'</a>';
 		});
 
-		$grid->addColumn('', function (Order $order) use ($grid) {
-			return $grid->getPresenter()->link('printDetail', $order);
-		}, "<a class='$btnSecondary' href='%s'><i class='fa fa-search'></i> Detail</a>", null, ['class' => 'minimal']);
+//		$grid->addColumn('', function (Order $order) use ($grid) {
+//			return $grid->getPresenter()->link('printDetail', $order);
+//		}, "<a class='$btnSecondary' href='%s'><i class='fa fa-search'></i> Detail</a>", null, ['class' => 'minimal']);
 
 		if (isset($configuration['printInvoices']) && $configuration['printInvoices'] && $state !== Order::STATE_OPEN) {
 			$grid->addColumn('Tisk', function (Order $order, AdminGrid $datagrid) {
@@ -366,6 +375,11 @@ class OrderGridFactory
 		$grid->addFilterDataSelect(function (Collection $source, $value): void {
 			$source->where('purchase.fk_paymentType', $value);
 		}, '', 'paymentType', null, $paymentTypes)->setPrompt('- Způsob platby -');
+
+		$grid->addFilterSelectInput('filter_payment', 'IF(:fp = "1", payment.paidTs IS NOT NULL, payment.paidTs IS NULL)', null, '- Stav platby -', null, [
+			'0' => 'Nezaplaceno',
+			'1' => 'Zaplaceno',
+		], 'fp');
 
 		$openOrderButton = function () use ($grid, $stateOpen, $btnSecondary): void {
 			try {
@@ -538,12 +552,13 @@ class OrderGridFactory
 			$date = $grid->template->getLatte()->invokeFilter('date', [$payment->paidTs]);
 			$paymentInfo = "<br><small title='Zaplaceno'><i class='fas fa-check fa-xs' style='color: green;'></i> $date <a href='$linkCancel'><i class='far fa-times-circle'></i></a></small>";
 		} else {
-			$paymentInfo = "<br><small title='Nezaplaceno'><i class='fas fa-stop fa-xs' style='color: gray'></i> 
+			$paymentInfo = !isset($this->configuration['showPay']) || (isset($this->configuration['showPay']) && $this->configuration['showPay']) ?
+				"<br><small title='Nezaplaceno'><i class='fas fa-stop fa-xs' style='color: gray'></i> 
 <a href='$linkPay'>Zaplatit</a>" . (isset($this->configuration['showExtendedPay']) && $this->configuration['showExtendedPay'] ?
-					"| <a href='$linkPayPlusEmail'>Zaplatit + e-mail</a>" : '') . '</small>';
+					"  | <a href='$linkPayPlusEmail'>Zaplatit + e-mail</a>" : '') . '</small>' : '';
 		}
 
-		return "<a href='$link'>" . $payment->getTypeName() . '</a>' . $paymentInfo;
+		return "<a href='$link' class='" . ($payment->paidTs ? 'text-success font-weight-bold' : '') . "'>" . $payment->getTypeName() . '</a>' . $paymentInfo;
 	}
 
 	public function renderDeliveryColumn(Order $order, Datagrid $grid): string
@@ -565,9 +580,10 @@ class OrderGridFactory
 			$deliveryInfo = "<br><small title='Expedováno'><i class='fas fa-play fa-xs' style='color: gray;'>
 </i> $from / $to | $date <a href='$linkCancel'><i class='far fa-times-circle'></i></a></small>";
 		} else {
-			$deliveryInfo = "<br><small title='Neexpedováno'><i class='fas fa-stop fa-xs' style='color: gray'></i>
+			$deliveryInfo = !isset($this->configuration['showDispatch']) || (isset($this->configuration['showDispatch']) && $this->configuration['showDispatch']) ?
+				"<br><small title='Neexpedováno'><i class='fas fa-stop fa-xs' style='color: gray'></i>
  <a href='$linkShip'>Expedovat</a>" . (isset($this->configuration['showExtendedDispatch']) && $this->configuration['showExtendedDispatch'] ?
-					"  | <a href='$linkShipPlusEmail'>Expedovat + e-mail</a>" : '') . '</small>';
+					"  | <a href='$linkShipPlusEmail'>Expedovat + e-mail</a>" : '') . '</small>' : '';
 		}
 
 		$date = $delivery->shippingDate ? '<i style=\'color: gray;\' class=\'fa fa-shipping-fast\'></i> ' . $grid->template->getLatte()->invokeFilter('date', [$delivery->shippingDate]) : '';

@@ -65,6 +65,8 @@ class Shopper
 	private array $vatRates = [];
 	
 	private bool $showVat;
+
+	private string $priorityPrice;
 	
 	private bool $showWithoutVat;
 
@@ -176,10 +178,20 @@ class Shopper
 	{
 		$this->showVat = $showVat;
 	}
+
+	public function setPriorityPrice(string $value): void
+	{
+		$this->priorityPrice = $value;
+	}
 	
 	public function getShowVat(): bool
 	{
 		return $this->showVat;
+	}
+
+	public function getPriorityPrice(): string
+	{
+		return $this->priorityPrice;
 	}
 	
 	public function setShowWithoutVat(bool $showWithoutVat): void

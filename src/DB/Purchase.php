@@ -92,9 +92,9 @@ class Purchase extends \StORM\Entity
 	 * @column
 	 */
 	public bool $sendNewsletters = false;
-	
+
 	/**
-	 * Interní kod
+	 * Interní kod - zákaznické číslo
 	 * @column
 	 */
 	public ?string $internalOrderCode;
@@ -116,6 +116,12 @@ class Purchase extends \StORM\Entity
 	 * @column{"type":"text"}
 	 */
 	public ?string $deliveryNote;
+
+	/**
+	 * Interní poznámka
+	 * @column
+	 */
+	public ?string $internalNote;
 
 	/**
 	 * Výdejní místo - ID

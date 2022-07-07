@@ -36,6 +36,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			]),
 			'showWithoutVat' => Expect::bool(true),
 			'showVat' => Expect::bool(true),
+			'priorityPrice' => Expect::anyOf('withoutVat', 'withVat')->firstIsDefault(),
 			'showZeroPrices' => Expect::bool(true),
 			'editOrderAfterCreation' => Expect::bool(false),
 			'alwaysCreateCustomerOnOrderCreated' => Expect::bool(false),
@@ -101,6 +102,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$shopper->addSetup('setCurrency', [$config['currency']]);
 		$shopper->addSetup('setShowWithoutVat', [$config['showWithoutVat']]);
 		$shopper->addSetup('setShowVat', [$config['showVat']]);
+		$shopper->addSetup('setPriorityPrice', [$config['priorityPrice']]);
 		$shopper->addSetup('setShowZeroPrices', [$config['showZeroPrices']]);
 		$shopper->addSetup('setEditOrderAfterCreation', [$config['editOrderAfterCreation']]);
 		$shopper->addSetup('setAlwaysCreateCustomerOnOrderCreated', [$config['alwaysCreateCustomerOnOrderCreated']]);

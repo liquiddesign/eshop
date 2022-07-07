@@ -64,6 +64,7 @@ use Tracy\ILogger;
 class OrderPresenter extends BackendPresenter
 {
 	protected const ORDER_STATES_NAMES = [
+		Order::STATE_OPEN => 'Nové',
 		Order::STATE_RECEIVED => 'Přijaté',
 		Order::STATE_COMPLETED => 'Odeslané',
 		Order::STATE_CANCELED => 'Stornované',
@@ -99,6 +100,8 @@ class OrderPresenter extends BackendPresenter
 		'exportEdi' => false,
 		'exportCsv' => true,
 		'exportTargito' => false,
+		'showDispatch' => true,
+		'showPay' => true,
 		'showExtendedDispatch' => true,
 		'showExtendedPay' => true,
 		'targito' => false,
@@ -110,6 +113,7 @@ class OrderPresenter extends BackendPresenter
 		'printInvoices' => false,
 		'deletePackageItemMode' => PackageItem::DELETE_MODE_MARK,
 		'pauseOrder' => false,
+		'noteIconColor' => null,
 	];
 
 	/** @inject */
@@ -464,7 +468,7 @@ class OrderPresenter extends BackendPresenter
 		];
 
 		if ($this->shopper->getEditOrderAfterCreation()) {
-			$tabs = \array_merge(['open' => 'Otevřené'], $tabs);
+			$tabs = \array_merge(['open' => 'Nové'], $tabs);
 		}
 
 		$this->template->tabs = $tabs;
@@ -1248,8 +1252,9 @@ class OrderPresenter extends BackendPresenter
 
 		$form->addGroup('Ostatní');
 		$form->addDate('desiredShippingDate', 'Požadované doručení')->setNullable();
-		$form->addText('internalOrderCode', 'Interní číslo')->setNullable();
+		$form->addText('internalOrderCode', 'Zákaznické číslo')->setNullable();
 		$form->addTextArea('note', 'Poznámka')->setNullable();
+		$form->addTextArea('internalNote', 'Interní poznámka')->setNullable();
 
 		$form->addSubmits(!$this->getParameter('order'));
 
@@ -1352,6 +1357,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function renderPrintDetail(Order $order): void
 	{
+		$this->template->states = $this::ORDER_STATES_NAMES;
 		$this->template->headerLabel = 'Objednávka - ' . $order->code;
 
 		$this->template->order = $order;
@@ -1401,10 +1407,12 @@ class OrderPresenter extends BackendPresenter
 
 		$this->template->displayButtonsRight = [];
 
+		$stateOpen = $this->getOrderStateName(Order::STATE_OPEN);
 		$stateReceived = $this->getOrderStateName(Order::STATE_RECEIVED);
 		$stateFinished = $this->getOrderStateName(Order::STATE_COMPLETED);
 		$stateCanceled = $this->getOrderStateName(Order::STATE_CANCELED);
 
+		$openOrderButton = $this->createButtonWithClass('openOrder!', "<i class='fas fa-angle-double-right'></i> $stateOpen", 'btn btn-sm btn-primary', $order->getPK());
 		$receiveOrderButton = $this->createButtonWithClass('receiveOrder!', "<i class='fas fa-angle-double-right'></i> $stateReceived", 'btn btn-sm btn-success', $order->getPK());
 		$receiveAndCompleteOrderButton = $this->createButtonWithClass(
 			'receiveAndCompleteOrder!',
@@ -1436,14 +1444,17 @@ class OrderPresenter extends BackendPresenter
 				Order::STATE_CANCELED => $cancelOrderButton,
 			],
 			Order::STATE_RECEIVED => [
+				Order::STATE_OPEN => $openOrderButton,
 				Order::STATE_COMPLETED => $completeOrderButton,
 				Order::STATE_CANCELED => $cancelOrderButton,
 			],
 			Order::STATE_COMPLETED => [
+				Order::STATE_OPEN => $openOrderButton,
 				Order::STATE_RECEIVED => $receiveOrderButton,
 				Order::STATE_CANCELED => $cancelOrderButton,
 			],
 			Order::STATE_CANCELED => [
+				Order::STATE_OPEN => $openOrderButton,
 				Order::STATE_RECEIVED => $receiveOrderButton,
 				Order::STATE_COMPLETED => $completeOrderButton,
 			],
@@ -1704,6 +1715,19 @@ class OrderPresenter extends BackendPresenter
 		$admin = $this->admin->getIdentity();
 
 		$this->orderRepository->completeOrder($order, $admin);
+
+		$this->redirect('this');
+	}
+
+	public function handleOpenOrder(string $orderId): void
+	{
+		/** @var \Eshop\DB\Order $order */
+		$order = $this->orderRepository->one($orderId, true);
+
+		/** @var \Admin\DB\Administrator|null $admin */
+		$admin = $this->admin->getIdentity();
+
+		$this->orderRepository->openOrder($order, $admin);
 
 		$this->redirect('this');
 	}
