@@ -524,13 +524,13 @@ class OrderGridFactory
 		}
 
 		if ($this->dpd && $state !== Order::STATE_OPEN) {
-			$grid->addBulkAction('sendDPD', 'sendDPD', '<i class="fas fa-paper-plane"></i> DPD');
-			$grid->addBulkAction('printDPD', 'printDPD', '<i class="fas fa-print"></i> DPD');
+			$grid->addBulkAction('sendDPD', 'sendDPD', '<i class="fas fa-paper-plane"></i> DPD')->setHtmlAttribute('formtarget', '_blank');
+			$grid->addBulkAction('printDPD', 'printDPD', '<i class="fas fa-print"></i> DPD')->setHtmlAttribute('formtarget', '_blank');
 		}
 
 		if ($this->ppl && $state !== Order::STATE_OPEN) {
-			$grid->addBulkAction('sendPPL', 'sendPPL', '<i class="fas fa-paper-plane"></i> PPL');
-			$grid->addBulkAction('printPPL', 'printPPL', '<i class="fas fa-print"></i> PPL');
+			$grid->addBulkAction('sendPPL', 'sendPPL', '<i class="fas fa-paper-plane"></i> PPL')->setHtmlAttribute('formtarget', '_blank');
+			$grid->addBulkAction('printPPL', 'printPPL', '<i class="fas fa-print"></i> PPL')->setHtmlAttribute('formtarget', '_blank');
 		}
 
 		return $grid;
