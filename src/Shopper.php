@@ -213,7 +213,10 @@ class Shopper
 	{
 		return $this->showZeroPrices;
 	}
-	
+
+	/**
+	 * @param array<mixed> $configuration
+	 */
 	public function setRegistrationConfiguration(array $configuration): void
 	{
 		$this->registrationConfiguration = $configuration;
@@ -429,10 +432,13 @@ class Shopper
 		
 		return 0;
 	}
-	
+
 	/**
 	 * Vrací kolekci aktuálních ceník, respektující uživatel i měnu, cachuje se do proměnné pokud není zadána měna
 	 * If possible, dont use this function but getPricelists(..) in CheckoutManager!
+	 * @param \Eshop\DB\Currency|null $currency
+	 * @param \Eshop\DB\DiscountCoupon|null $discountCoupon
+	 * @return \StORM\Collection<\Eshop\DB\Pricelist>
 	 */
 	public function getPricelists(?Currency $currency = null, ?DiscountCoupon $discountCoupon = null): Collection
 	{
@@ -457,7 +463,11 @@ class Shopper
 		return $this->pricelists = $customer ? $repo->getCustomerPricelists($customer, $currency, $this->getCountry(), $discountCoupon) :
 			$repo->getPricelists($unregisteredPricelists, $currency, $this->getCountry(), $discountCoupon);
 	}
-	
+
+	/**
+	 * @param string $prefix
+	 * @param array<mixed> $filters
+	 */
 	public function getPriceCacheIndex(string $prefix, array $filters = []): ?string
 	{
 		if (\count($filters) > 1) {
@@ -632,7 +642,11 @@ class Shopper
 	{
 		return $number > 0 ? $this->filterPrice($number, $currencyCode) : '';
 	}
-	
+
+	/**
+	 * @param \Security\DB\Account|string $account
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function getPreferredMutationByAccount($account): ?string
 	{
 		if (!$account instanceof Account) {

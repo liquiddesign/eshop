@@ -108,6 +108,8 @@ class RelatedPresenter extends BackendPresenter
 			return false;
 		});
 
+		$grid->addButtonBulkEdit('relationForm', ['amount', 'priority', 'hidden'], 'relationGrid');
+
 		$mutationSuffix = $this->relatedTypeRepository->getConnection()->getMutationSuffix();
 
 		$grid->addFilterTextInput('master', ['master.code', 'master.ean', "master.name$mutationSuffix"], null, $this->relatedType->getMasterInternalName() .

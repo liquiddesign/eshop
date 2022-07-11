@@ -764,7 +764,7 @@ class Product extends \StORM\Entity
 	}
 
 	/**
-	 * @return array<string|array>
+	 * @return array<string|array<string>>
 	 */
 	public function getFrontendData(): array
 	{
@@ -825,6 +825,9 @@ class Product extends \StORM\Entity
 			->first();
 	}
 
+	/**
+	 * @return \StORM\Collection<\Eshop\DB\Review>
+	 */
 	public function getReviews(): Collection
 	{
 		/** @var \Eshop\DB\ReviewRepository $reviewRepository */

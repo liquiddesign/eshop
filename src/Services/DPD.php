@@ -207,6 +207,7 @@ class DPD
 	 * Get labels from DPD for orders
 	 * @param \StORM\Collection<\Eshop\DB\Order> $orders
 	 * @param string|null $printType
+	 * @param array<mixed> $individualFiles
 	 */
 	public function getLabels(Collection $orders, ?string $printType = null, array &$individualFiles = []): ?string
 	{

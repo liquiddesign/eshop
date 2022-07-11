@@ -107,7 +107,7 @@ class PPL
 	}
 
 	/**
-	 * @param \StORM\Collection $orders
+	 * @param \StORM\Collection<\Eshop\DB\Order> $orders
 	 * @return array<array<\Eshop\DB\Order>> Orders with errors
 	 * @throws \StORM\Exception\NotFoundException
 	 */

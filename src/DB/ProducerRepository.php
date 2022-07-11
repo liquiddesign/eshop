@@ -33,7 +33,11 @@ class ProducerRepository extends Repository implements IGeneralRepository
 		
 		return $this->getCollection($includeHidden)->setOrderBy(["this.name$suffix"])->toArrayOf('name');
 	}
-	
+
+	/**
+	 * @param bool $includeHidden
+	 * @return \StORM\Collection<\Eshop\DB\Producer>
+	 */
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
@@ -45,7 +49,10 @@ class ProducerRepository extends Repository implements IGeneralRepository
 		
 		return $collection->orderBy(['this.priority', "this.name$suffix"]);
 	}
-	
+
+	/**
+	 * @return \StORM\Collection<\Eshop\DB\Producer>
+	 */
 	public function getProducers(): Collection
 	{
 		return $this->many()->where('this.hidden', false);
