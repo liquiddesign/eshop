@@ -988,7 +988,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			->where('related.hidden', false)
 			->where('related.fk_master', $product->getPK())
 			->where('related.fk_type', $relatedType->getPK())
-			->orderBy(['this.priority']);
+			->orderBy(['related.priority', 'this.priority']);
 	}
 
 	/**
@@ -1058,7 +1058,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			->where('this.hidden', false)
 			->where("this.fk_$relatedSide", $product->getPK())
 			->where('this.fk_type', $relatedType->getPK())
-			->orderBy(['this.priority']);
+			->orderBy(['related.priority', 'this.priority']);
 	}
 
 	/**
