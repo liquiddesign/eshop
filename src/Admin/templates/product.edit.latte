@@ -184,6 +184,7 @@
                                 <span>Vkládejte obrázky o minimální výšce 600px s libovolnou šířkou.</span>
                                 <span class="mt-3"><a class="btn btn-primary btn-xs" href="javascript:void(0);"><i class="fas fa-arrows-alt"></i></a> - Kliknutím a držením můžete měnit pořadí obrázků.</span>
                                 <span><a class="btn btn-primary btn-xs" href="javascript:void(0);"><i class=" far fa-star"></i></a> - Označí obrázek jako hlavní. Hlavní obrázek se zobrazuje při výpisech produktů a jako první v detailu produktu.</span>
+                                <span><a class="btn btn-success btn-xs" href="javascript:void(0);"><i class=" fab fa-google"></i></a><a class="btn btn-primary btn-xs ml-1" href="javascript:void(0);"><i class=" fab fa-google"></i></a> - Označí obrázek jako exportní pro Google Feed. Aktivní/neaktivní stav.</span>
                             </div>
                         </div>
                     </div>
@@ -274,7 +275,15 @@
         let mainPhotos = [];
 
         {foreach $photos as $photo}
-            mainPhotos[{$photo['name']}] = {$photo['main'] ? true : false}
+            mainPhotos[{$photo['name']}] = {$photo['main'] ? true : false};
+        {/foreach}
+
+        let googlePhotos = [];
+
+        {foreach $photos as $photo}
+            {continueIf !$photo['googleFeed']}
+
+            googlePhotos[{$photo['name']}] = true;
         {/foreach}
 
         Dropzone.options.photosDropzone = {
@@ -286,8 +295,10 @@
             acceptedFiles: 'image/*',
             init: function () {
                 this.on("success", function(file, response) {
+                    let id = (response ?? file).name.split('.')[0];
+
                     var newNode = document.createElement('a');
-                    newNode.className = 'btn btn-primary btn-xs dz-main-2';
+                    newNode.className = 'btn btn-primary btn-xs dz-main-3';
                     newNode.href = 'javascript:void(0);'
                     newNode.innerHTML = '<i class="fas fa-arrows-alt"></i>';
                     file.previewTemplate.appendChild(newNode);
@@ -305,9 +316,29 @@
                     }
                     file.previewTemplate.appendChild(newNode);
 
-                    newNode = document.createElement('a');
+                    console.log((response ?? file).name);
 
-                    let id = (response ?? file).name.split('.')[0];
+                    newNode = document.createElement('a');
+                    newNode.id = 'google-' + id;
+                    newNode.className = 'btn btn-xs btn-' + (googlePhotos[(response ?? file).name] !== undefined ? 'success' : 'primary') + ' dz-main-2';
+                    newNode.href = 'javascript:void(0);'
+                    newNode.innerHTML = '<i class="fab fa-google"></i>';
+                    newNode.onclick = function () {
+                        var mainElement = $('a.dz-main-2');
+                        mainElement.removeClass('btn-success')
+                        mainElement.addClass('btn-primary')
+
+                        mainElement = $('#google-' + id);
+                        mainElement.removeClass('btn-primary')
+                        mainElement.addClass('btn-success')
+
+                        $.post({link dropzoneSetGoogleFeed!}, { file: (response ?? file).name}).done(function (data){
+                            toastr.success('Provedeno');
+                        });
+                    }
+                    file.previewTemplate.appendChild(newNode);
+
+                    newNode = document.createElement('a');
 
                     newNode.id = 'main-' + id;
                     newNode.className = 'btn btn-primary btn-xs dz-main';

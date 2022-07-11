@@ -54,6 +54,12 @@ class Photo extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Supplier $supplier;
+
+	/**
+	 * Use in googleFeed
+	 * @column
+	 */
+	public bool $googleFeed = false;
 	
 	public function getImagePath(string $basePath, string $size = 'detail'): string
 	{

@@ -17,6 +17,7 @@
     {cache expire => '1 day', tags => ['export']}
         {var $pricelists = $presenter->getPricelistFromSetting('googleExportPricelist')}
         {var $products = $presenter->productRepo->getProducts($pricelists)->where('this.hidden', false)}
+        {var $photos = $presenter->photoRepository->many()->where('this.googleFeed')->setIndex('this.fk_product')->toArray()}
         {var Web\DB\Setting|null $colorAttribute = $presenter->settingRepo->many()->where('name', 'googleColorAttribute')->first()}
         {var Web\DB\Setting|null $highlightsAttribute = $presenter->settingRepo->many()->where('name', 'googleHighlightsAttribute')->first()}
         {var Web\DB\Setting|null $highlightsMutation = $presenter->settingRepo->many()->where('name', 'googleHighlightsMutation')->first()}
@@ -24,14 +25,16 @@
         <rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
         <channel>
             <item n:while="$product = $products->fetch()">
+
                 {var $mainPrice = $priceType ? $product->getPriceVat() : ($priceType === false ? $product->getPrice() : null)}
                 {var $discountPrice = isset($discountPrices[$product->getPK()]) ? ($priceType ? $discountPrices[$product->getPK()]->priceVat : ($priceType === false ? $discountPrices[$product->getPK()]->price : null)) : null}
-                {var $attributes = $product->getPreviewParameters()}
+                {var $attributes = $product->getPreviewAtttributes()}
                 <g:id>{$product->getFullCode()}</g:id>
                 <g:title><![CDATA[{$product->name}]]></g:title>
                 <g:description><![CDATA[{$product->primaryCategory ? ($product->primaryCategory->exportGoogleCategory && Nette\Utils\Strings::length($product->primaryCategory->exportGoogleCategory) > 0 ? $product->primaryCategory->exportGoogleCategory : $product->primaryCategory->name) : null} {\strip_tags($product->content ?? '')}]]></g:description>
                 <g:link>{plink //:Eshop:Product:detail $product->getPK()}</g:link>
-                {if $image = $product->getPreviewImage($basePath)}<g:image_link>{$productImageUrl}{$image}</g:image_link>{/if}
+                {if isset($photos[$product->getPK()])}<g:image_link>{$productImageUrl}{$basePath}/userfiles/{\Eshop\DB\Product::GALLERY_DIR}/detail/{$photos[$product->getPK()]->fileName}</g:image_link>{/if}
+                {if ($image = $product->getPreviewImage($basePath)) && !isset($photos[$product->getPK()])}<g:image_link>{$productImageUrl}{$image}</g:image_link>{/if}
                 <g:condition>new</g:condition>
                 <g:availability>{if $product->inStock()}in stock{else}out of stock{/if}</g:availability>
                 <g:price n:if="$mainPrice">{$mainPrice} {$pricelists[$product->pricelist]->currency->code}</g:price>

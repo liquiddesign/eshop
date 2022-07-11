@@ -575,6 +575,7 @@ class ProductPresenter extends BackendPresenter
 			$row['name'] = $photo->fileName;
 			$row['size'] = \file_exists($basePath . $photo->fileName) ? \filesize($basePath . $photo->fileName) : 0;
 			$row['main'] = $product->imageFileName === $photo->fileName;
+			$row['googleFeed'] = $photo->googleFeed;
 
 			$data[$photo->fileName] = $row;
 		}
@@ -1535,6 +1536,27 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		}
 
 		$photo->product->update(['imageFileName' => $filename]);
+
+		$this->redirect('this');
+	}
+
+	public function handleDropzoneSetGoogleFeed(): void
+	{
+		$filename = $this->getPresenter()->getParameter('file');
+
+		if (!$filename) {
+			return;
+		}
+
+		/** @var \Eshop\DB\Photo|null $photo */
+		$photo = $this->photoRepository->many()->where('filename', $filename)->first();
+
+		if (!$photo) {
+			return;
+		}
+
+		$this->photoRepository->many()->where('fk_product', $photo->getValue('product'))->update(['googleFeed' => false]);
+		$photo->update(['googleFeed' => true]);
 
 		$this->redirect('this');
 	}
