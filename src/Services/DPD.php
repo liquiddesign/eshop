@@ -136,6 +136,7 @@ class DPD
 					'ID_Customer_Address' => $this->idAddress,
 					'REF1' => $order->code,
 					'REF3' => $order->code,
+					'REF4' => $order->purchase->deliveryNote,
 					'Receiver' => [
 						'RNAME1' => $purchase->fullname,
 						'RSTREET' => $deliveryAddress ? $deliveryAddress->street : '',
@@ -149,6 +150,7 @@ class DPD
 						[
 							'REF1' => $order->code,
 							'REF3' => $order->code,
+							'REF4' => $order->purchase->deliveryNote,
 						],
 					],
 				];
