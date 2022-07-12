@@ -259,13 +259,20 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		$productRepository = $this->getConnection()->findRepository(Product::class);
 
 		return $cache->load($index, static function (&$dependencies) use ($values, $filters, $productRepository) {
+			$dependencies = [
+				Cache::TAGS => ['categories', 'products', 'pricelists'],
+			];
+
 			$rows = $productRepository->many();
 			$rows->setFrom(['assign' => 'eshop_attributeassign'])
 				->join(['this' => 'eshop_product'], 'this.uuid=assign.fk_product')
 				->setSelect(['count' => 'COUNT(assign.fk_product)'])
 				->setIndex('assign.fk_value')
-				->where('fk_value', $values)
 				->setGroupBy(['assign.fk_value']);
+
+			if ($values) {
+				$rows->where('fk_value', $values);
+			}
 
 			$productRepository->setProductsConditions($rows, false);
 
