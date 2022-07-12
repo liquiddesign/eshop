@@ -1414,7 +1414,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	{
 		$expression = $rate === null ? "$alias.$priceExp" : "ROUND($alias.$priceExp * $rate,$prec)";
 
-		if ($levelDiscountPct && $generalPricelistIds) {
+		$levelDiscountPct ??= 0;
+
+		if ($generalPricelistIds) {
 			$pricelists = \implode(',', \array_map(function ($value) {
 				return "'$value'";
 			}, $generalPricelistIds));
