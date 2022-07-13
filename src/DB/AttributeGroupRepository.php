@@ -36,4 +36,30 @@ class AttributeGroupRepository extends \StORM\Repository implements IGeneralRepo
 
 		return $collection->orderBy(['this.priority', "this.name$mutationSuffix",]);
 	}
+
+	/**
+	 * @param array<string> $attributes
+	 * @return array<mixed>
+	 */
+	public function getGroupsByAttributes(array $attributes): array
+	{
+		$collection = $this->getCollection()
+			->join(['attributeXgroup' => 'eshop_attributegroup_nxn_eshop_attribute'], 'attributeXgroup.fk_attributegroup = this.uuid')
+			->where('attributeXgroup.fk_attribute', $attributes)
+			->setGroupBy(['this.uuid']);
+
+		$groups = [];
+
+		while ($group = $collection->fetch()) {
+			foreach ((clone $group->attributes)->where('this.uuid', $attributes) as $attribute) {
+				if (!isset($groups[$group->getPK()])) {
+					$groups[$group->getPK()] = ['group' => $group, 'items' => [$attribute->getPK() => $attribute]];
+				} else {
+					$groups[$group->getPK()]['items'][$attribute->getPK()] = $attribute;
+				}
+			}
+		}
+
+		return $groups;
+	}
 }

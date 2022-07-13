@@ -216,13 +216,20 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				->rows(
 					['eshop_attributevalue'],
 					[
-						"GROUP_CONCAT(CONCAT_WS('$sep', eshop_attributevalue.uuid, eshop_attributevalue.fk_attribute,
-					IFNULL(eshop_attributevalue.label$suffix, ''),
-					IFNULL(eshop_attributevalue.metaValue, ''),
-					IFNULL(eshop_attribute.name$suffix, ''),
-					IFNULL(eshop_attributevalue.imageFileName, ''),
-					IFNULL(eshop_attributevalue.number, ''),
-					IFNULL(eshop_attributevalue.note$suffix, '')) SEPARATOR \";\")",
+						"GROUP_CONCAT(
+							CONCAT_WS(
+								'$sep',
+								eshop_attributevalue.uuid,
+								eshop_attributevalue.fk_attribute,
+								IFNULL(eshop_attributevalue.label$suffix, ''),
+								IFNULL(eshop_attributevalue.metaValue, ''),
+								IFNULL(eshop_attribute.name$suffix, ''),
+								IFNULL(eshop_attributevalue.imageFileName, ''),
+								IFNULL(eshop_attributevalue.number, ''),
+								IFNULL(eshop_attributevalue.note$suffix, ''),
+								IFNULL(eshop_attribute.note$suffix, '')
+							)
+						SEPARATOR \";\")",
 					],
 				)
 				->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')

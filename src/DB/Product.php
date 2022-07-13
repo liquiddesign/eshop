@@ -547,6 +547,7 @@ class Product extends \StORM\Entity
 				'imageFileName' => $parameter[5] ?? null,
 				'number' => $parameter[6] ?? null,
 				'note' => $parameter[7] ?? null,
+				'attributeNote' => $parameter[8] ?? null,
 			];
 		}
 
