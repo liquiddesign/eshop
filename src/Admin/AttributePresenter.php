@@ -8,6 +8,8 @@ use Admin\Controls\AdminGrid;
 use Eshop\BackendPresenter;
 use Eshop\Controls\ProductFilter;
 use Eshop\DB\Attribute;
+use Eshop\DB\AttributeGroup;
+use Eshop\DB\AttributeGroupRepository;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValue;
 use Eshop\DB\AttributeValueRange;
@@ -15,6 +17,7 @@ use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\SupplierRepository;
+use Forms\Form;
 use Grid\Datagrid;
 use Nette\Forms\Controls\TextArea;
 use Nette\Forms\Controls\TextInput;
@@ -36,6 +39,7 @@ class AttributePresenter extends BackendPresenter
 		'attributes' => 'Atributy',
 		'values' => 'Hodnoty',
 		'ranges' => 'Rozsahy',
+		'groups' => 'Skupiny',
 	];
 
 	protected const CONFIGURATIONS = [
@@ -65,6 +69,9 @@ class AttributePresenter extends BackendPresenter
 	/** @inject */
 	public AttributeValueRangeRepository $attributeValueRangeRepository;
 
+	/** @inject */
+	public AttributeGroupRepository $attributeGroupRepository;
+
 	/** @persistent */
 	public string $tab = 'attributes';
 
@@ -85,6 +92,9 @@ class AttributePresenter extends BackendPresenter
 		} elseif ($this->tab === 'ranges') {
 			$this->template->displayButtons = [$this->createNewItemButton('rangeNew')];
 			$this->template->displayControls = [$this->getComponent('rangesGrid')];
+		} elseif ($this->tab === 'groups') {
+			$this->template->displayButtons = [$this->createNewItemButton('groupNew')];
+			$this->template->displayControls = [$this->getComponent('groupsGrid')];
 		}
 
 		$this->template->tabs = self::TABS;
@@ -96,10 +106,15 @@ class AttributePresenter extends BackendPresenter
 		$mutationSuffix = $connection->getMutationSuffix();
 
 		$source = $this->attributeRepository->many()->setGroupBy(['this.uuid'])
-			->select(['categoriesNames' => "GROUP_CONCAT(DISTINCT category.name$mutationSuffix SEPARATOR ', ')"])
+			->select([
+				'categoriesNames' => "GROUP_CONCAT(DISTINCT category.name$mutationSuffix SEPARATOR ', ')",
+				'groupsNames' => "GROUP_CONCAT(DISTINCT attributegroup.name$mutationSuffix SEPARATOR ', ')",
+			])
 			->select(['assignCount' => 'COUNT(assign.uuid)'])
 			->join(['attributeXcategory' => 'eshop_attribute_nxn_eshop_category'], 'attributeXcategory.fk_attribute = this.uuid')
 			->join(['category' => 'eshop_category'], 'attributeXcategory.fk_category = category.uuid')
+			->join(['attributeXgroup' => 'eshop_attributegroup_nxn_eshop_attribute'], 'attributeXgroup.fk_attribute = this.uuid')
+			->join(['attributegroup' => 'eshop_attributegroup'], 'attributeXgroup.fk_attributegroup = attributegroup.uuid')
 			->join(['attributeValue' => 'eshop_attributevalue'], 'this.uuid = attributeValue.fk_attribute')
 			->join(['assign' => 'eshop_attributeassign'], 'attributeValue.uuid = assign.fk_value');
 
@@ -116,6 +131,7 @@ class AttributePresenter extends BackendPresenter
 		$grid->addColumnTextFit('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumnText('Kategorie', 'categoriesNames', '%s');
+		$grid->addColumnText('Skupiny', 'groupsNames', '%s');
 		$grid->addColumnText('Zdroj', 'supplier.name', '%s', 'supplier.name');
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
@@ -161,7 +177,7 @@ class AttributePresenter extends BackendPresenter
 			return false;
 		}, 'this.uuid');
 
-		$grid->addButtonBulkEdit('attributeForm', ['showCount', 'hidden', 'hideEmptyValues', 'showRange', 'showFilter', 'showProduct'], 'attributeGrid');
+		$grid->addButtonBulkEdit('attributeForm', ['showCount', 'hidden', 'hideEmptyValues', 'showRange', 'showFilter', 'showProduct', 'categories', 'groups'], 'attributeGrid');
 
 		$grid->addFilterTextInput('code', ['this.name_cs', 'this.code'], null, 'Kód, název');
 
@@ -213,6 +229,7 @@ class AttributePresenter extends BackendPresenter
 		$form->addLocaleText('name', 'Název');
 		$form->addLocaleTextArea('note', 'Dodatečné informace');
 		$form->addMultiSelect2('categories', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect());
+		$form->addMultiSelect2('groups', 'Skupiny', $this->attributeGroupRepository->getArrayForSelect());
 		$form->addText('priority', 'Priorita')
 			->addRule($form::INTEGER)
 			->setRequired()
@@ -584,7 +601,7 @@ class AttributePresenter extends BackendPresenter
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('attributeForm');
 
-		$defaults = $attribute->toArray(['categories']);
+		$defaults = $attribute->toArray(['categories', 'groups']);
 		$defaults['wizardStep'] = $defaults['wizardStep'] ? \explode(',', $defaults['wizardStep']) : null;
 
 		$form->setDefaults($defaults);
@@ -844,5 +861,93 @@ class AttributePresenter extends BackendPresenter
 		}
 
 		$page->delete();
+	}
+
+	public function createComponentGroupsGrid(): AdminGrid
+	{
+		$grid = $this->gridFactory->create($this->attributeGroupRepository->many(), 20, 'priority', 'ASC', true);
+		$grid->addColumnSelector();
+
+		$grid->addColumnText('Název', 'name', '%s', 'name');
+
+		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
+		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
+
+		$grid->addColumnLinkDetail('groupDetail');
+		$grid->addColumnActionDeleteSystemic();
+
+		$grid->addButtonSaveAll();
+		$grid->addButtonDeleteSelected(null, false, function ($object) {
+			if ($object) {
+				return !$object->isSystemic();
+			}
+
+			return false;
+		}, 'this.uuid');
+
+		$grid->addFilterTextInput('search', ['name_cs'], null, 'Název');
+
+		$grid->addFilterButtons();
+
+		return $grid;
+	}
+
+	public function createComponentGroupForm(): Form
+	{
+		$form = $this->formFactory->create(true);
+		$form->addLocaleText('name', 'Název');
+		$form->addLocaleText('description', 'Popisek');
+
+		$producer = $this->getParameter('attributeGroup');
+
+		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
+		$form->addCheckbox('hidden', 'Skryto');
+		$form->addSubmits(!$producer);
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			$values = $form->getValues('array');
+
+			if (!$values['uuid']) {
+				$values['uuid'] = DIConnection::generateUuid();
+			}
+
+			$producer = $this->attributeGroupRepository->syncOne($values, null, true);
+
+			$this->flashMessage('Uloženo', 'success');
+			$form->processRedirect('groupDetail', 'default', [$producer]);
+		};
+
+		return $form;
+	}
+
+	public function renderGroupNew(): void
+	{
+		$this->template->headerLabel = 'Nová položka';
+		$this->template->headerTree = [
+			['Atributy', 'default'],
+			['Skupiny'],
+			['Nová položka'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('groupForm')];
+	}
+
+	public function renderGroupDetail(): void
+	{
+		$this->template->headerLabel = 'Detail';
+		$this->template->headerTree = [
+			['Atributy', 'default'],
+			['Skupiny'],
+			['Detail'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('groupForm')];
+	}
+
+	public function actionGroupDetail(AttributeGroup $attributeGroup): void
+	{
+		/** @var \Forms\Form $form */
+		$form = $this->getComponent('groupForm');
+		$form->setDefaults($attributeGroup->toArray());
 	}
 }

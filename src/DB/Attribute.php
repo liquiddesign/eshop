@@ -142,6 +142,12 @@ class Attribute extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Category>|\Eshop\DB\Category[]
 	 */
 	public RelationCollection $categories;
+
+	/**
+	 * @relationNxN{"sourceViaKey":"fk_attribute","targetViaKey":"fk_attributegroup","via":"eshop_attributegroup_nxn_eshop_attribute"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\AttributeGroup>
+	 */
+	public RelationCollection $groups;
 	
 	/**
 	 * Dodavatel / externí
