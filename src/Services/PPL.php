@@ -213,6 +213,10 @@ class PPL
 
 				$cityRoutingResponse = $client->getCitiesRouting($country, null, $zipCode, $street);
 
+				if ($cityRoutingResponse instanceof \stdClass) {
+					$cityRoutingResponse = [$cityRoutingResponse];
+				}
+
 				if (!\is_array($cityRoutingResponse) || !isset($cityRoutingResponse[0])) {
 					$ordersWithError[] = $order;
 
