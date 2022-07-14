@@ -227,7 +227,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 								IFNULL(eshop_attributevalue.imageFileName, ''),
 								IFNULL(eshop_attributevalue.number, ''),
 								IFNULL(eshop_attributevalue.note$suffix, ''),
-								IFNULL(eshop_attribute.note$suffix, '')
+								IFNULL(eshop_attribute.note$suffix, ''),
+								IFNULL(eshop_attribute.priority, ''),
+								IFNULL(eshop_attributevalue.priority, '')
 							)
 						SEPARATOR \";\")",
 					],
@@ -235,7 +237,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
 				->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
 				->where('eshop_attribute.showProduct=1')
-				->where('eshop_attributeassign.fk_product=this.uuid');
+				->where('eshop_attributeassign.fk_product=this.uuid')
+				->orderBy(['eshop_attribute.priority' => 'ASC', 'eshop_attributevalue.priority' => 'ASC']);
 			$collection->select(['parameters' => $subSelect]);
 
 			$subSelect = $this->getConnection()->rows(['eshop_ribbon'], ['GROUP_CONCAT(uuid)'])

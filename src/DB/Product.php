@@ -525,6 +525,7 @@ class Product extends \StORM\Entity
 			return [];
 		}
 
+		$attributePriorities = [];
 		$parameters = [];
 
 		foreach (\explode(';', $this->getValue('parameters')) as $parameterSerialized) {
@@ -548,8 +549,39 @@ class Product extends \StORM\Entity
 				'number' => $parameter[6] ?? null,
 				'note' => $parameter[7] ?? null,
 				'attributeNote' => $parameter[8] ?? null,
+				'attributePriority' => $parameter[9] ?? null,
+				'valuePriority' => $parameter[10] ?? null,
 			];
+
+			\usort($parameters[$parameter[1]], function ($a, $b) {
+				if ($a['valuePriority'] === $b['valuePriority']) {
+					return 0;
+				}
+
+				return $a['valuePriority'] < $b['valuePriority'] ? -1 : 1;
+			});
+
+			if (!isset($parameter[9])) {
+				continue;
+			}
+
+			$attributePriorities[$parameter[1]] = $parameter[9];
 		}
+
+		\uksort($parameters, function ($a, $b) use ($attributePriorities) {
+			if (!isset($attributePriorities[$a]) || !isset($attributePriorities[$b])) {
+				return 0;
+			}
+
+			$a = (int) $attributePriorities[$a];
+			$b = (int) $attributePriorities[$b];
+
+			if ($a === $b) {
+				return 0;
+			}
+
+			return $a < $b ? -1 : 1;
+		});
 
 		return $parameters;
 	}

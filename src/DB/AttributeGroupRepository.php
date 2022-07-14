@@ -51,7 +51,7 @@ class AttributeGroupRepository extends \StORM\Repository implements IGeneralRepo
 		$groups = [];
 
 		while ($group = $collection->fetch()) {
-			foreach ((clone $group->attributes)->where('this.uuid', $attributes) as $attribute) {
+			foreach ((clone $group->attributes)->where('this.uuid', $attributes)->orderBy(['this.priority']) as $attribute) {
 				if (!isset($groups[$group->getPK()])) {
 					$groups[$group->getPK()] = ['group' => $group, 'items' => [$attribute->getPK() => $attribute]];
 				} else {
