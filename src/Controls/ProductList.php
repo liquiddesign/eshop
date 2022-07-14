@@ -85,7 +85,9 @@ class ProductList extends Datalist
 		?array $order = null,
 		?Collection $source = null
 	) {
-		$source ??= $productRepository->getProducts()->where('this.hidden', false);
+		$source ??= $productRepository->getProducts()
+			->join(['displayAmount' => 'eshop_displayamount'], 'this.fk_displayAmount = displayAmount.uuid')
+			->where('this.hidden', false);
 
 		if ($order) {
 			$source->orderBy($order);
@@ -108,6 +110,17 @@ class ProductList extends Datalist
 			$collection->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=this.uuid');
 			$collection->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
 			$collection->orderBy(['LENGTH(categories.path)' => $value]);
+		});
+
+		$this->addOrderExpression('availabilityAndPrice', function (ICollection $collection, $value): void {
+			$collection->orderBy([
+				'case COALESCE(displayAmount.isSold, 2)
+					 when 0 then 0
+					 when 2 then 1
+					 when 1 then 2
+					 else 2 end' => $value,
+				'price' => $value,
+			]);
 		});
 
 		$this->setAllowedRepositoryFilters(['category', 'tag', 'producer', 'related', 'recommended', 'q', 'hidden']);
