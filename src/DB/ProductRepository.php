@@ -1257,7 +1257,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			->join(['categoryAssign' => 'eshop_product_nxn_eshop_category'], 'this.uuid = categoryAssign.fk_product')
 			->join(['category' => 'eshop_category'], 'categoryAssign.fk_category = category.uuid')
 			->select([
-				'attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute, ':', CONCAT(COALESCE(attributeValue.label$mutationSuffix), '#', attributeValue.code)))",
+				'attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute, '^', CONCAT(COALESCE(attributeValue.label$mutationSuffix), '°', attributeValue.code)) SEPARATOR \"~\")",
 				'producerCodeName' => "CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, ''))",
 				'amounts' => "GROUP_CONCAT(DISTINCT CONCAT(storeAmount.inStock, '#', store.code) SEPARATOR ':')",
 				'groupedCategories' => "GROUP_CONCAT(DISTINCT CONCAT(category.name$mutationSuffix, '#', 
@@ -1272,16 +1272,16 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			$productAttributes = [];
 
 			if ($product->attributes) {
-				$tmp = \explode(',', $product->attributes);
+				$tmp = \explode('~', $product->attributes);
 
 				foreach ($tmp as $value) {
-					$tmpExplode = \explode(':', $value);
+					$tmpExplode = \explode('^', $value);
 
 					if (\count($tmpExplode) !== 2) {
 						continue;
 					}
 
-					$attributeValue = \explode('#', $tmpExplode[1]);
+					$attributeValue = \explode('°', $tmpExplode[1]);
 
 					if (\count($attributeValue) !== 2) {
 						continue;
