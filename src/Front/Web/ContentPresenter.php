@@ -30,6 +30,9 @@ abstract class ContentPresenter extends \Eshop\Front\FrontendPresenter
 
 	/** @inject */
 	public MenuItemRepository $menuItemRepository;
+	
+	/** @inject */
+	public Nette\Mail\Mailer $mailer;
 
 	public function renderDefault(string $page): void
 	{
@@ -75,7 +78,7 @@ abstract class ContentPresenter extends \Eshop\Front\FrontendPresenter
 
 		$form->onSuccess[] = function (Form $form): void {
 			$values = $form->getValues();
-			$mailer = new Nette\Mail\SendmailMailer();
+			$mailer = $this->mailer;
 
 			$mail = $this->templateRepository->createMessage('contact', ['text' => $values['message']], null, null, $values['email']);
 
