@@ -64,6 +64,7 @@ class ProductPresenter extends BackendPresenter
 		'taxes' => true,
 		'suppliers' => true,
 		'weightAndDimension' => false,
+		'externalCode' => false,
 		'discountLevel' => true,
 		'rounding' => true,
 		'importButton' => false,

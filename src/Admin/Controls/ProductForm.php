@@ -147,6 +147,11 @@ class ProductForm extends Control
 		$form->addText('subCode', 'Kód podskladu');
 		$form->addText('ean', 'EAN')->setNullable();
 		$form->addText('mpn', 'P/N')->setNullable();
+
+		if (isset($configuration['externalCode']) && $configuration['externalCode']) {
+			$form->addText('externalCode', 'Externí kód')->setNullable();
+		}
+
 		$form->addLocaleText('extendedName', 'Rozšířený název');
 		$nameInput = $form->addLocaleText('name', 'Název');
 
