@@ -150,6 +150,7 @@ class ProductForm extends Control
 
 		if (isset($configuration['externalCode']) && $configuration['externalCode']) {
 			$form->addText('externalCode', 'Externí kód')->setNullable();
+			$form->addText('externalId', 'Externí id')->setNullable();
 		}
 
 		$form->addLocaleText('extendedName', 'Rozšířený název');

@@ -62,6 +62,10 @@
                         {$renderer->renderPair($form['externalCode'])|noescape}
                     {/ifset}
 
+                    {ifset $form['externalId']}
+                        {$renderer->renderPair($form['externalId'])|noescape}
+                    {/ifset}
+
                     {foreach $form['name']->getComponents() as $key => $element}
                         <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
                             id="{$element->getHtmlId()}" data-mutation="{$key}">
