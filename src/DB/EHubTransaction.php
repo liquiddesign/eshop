@@ -44,7 +44,7 @@ class EHubTransaction extends \StORM\Entity
 	/**
 	 * @column{"type":"timestamp"}
 	 */
-	public string $createdTs;
+	public ?string $createdTs;
 
 	/**
 	 * @column{"type":"timestamp"}
