@@ -400,7 +400,7 @@ class PPL
 					$packages[] = new Package(
 						$packageNumber,
 						Product::PPL_PARCEL_CZ_PRIVATE_COD,
-						$order->code . ($order->purchase->deliveryNote ? ', ' . $order->purchase->deliveryNote : null),
+						$order->code . ($order->purchase->deliveryNote ? '<br>' . $order->purchase->deliveryNote : null),
 						$recipient,
 						$cityRouting,
 						$this->sender,
@@ -412,7 +412,7 @@ class PPL
 					$packages[] = new Package(
 						$packageNumber,
 						Product::PPL_PARCEL_CZ_PRIVATE,
-						$order->code . ($order->purchase->deliveryNote ? ', ' . $order->purchase->deliveryNote : null),
+						$order->code . ($order->purchase->deliveryNote ? '<br>' . $order->purchase->deliveryNote : null),
 						$recipient,
 						$cityRouting,
 						$this->sender,
