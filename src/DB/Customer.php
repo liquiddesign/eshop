@@ -268,6 +268,13 @@ class Customer extends Entity implements IIdentity, IUser
 	public ?LoyaltyProgram $loyaltyProgram = null;
 	
 	/**
+	 * Hladina věrnostního programu
+	 * @relation
+	 * @constraint{"onUpdate":"RESTRICT","onDelete":"RESTRICT"}
+	 */
+	public ?LoyaltyProgramDiscountLevel $loyaltyProgramDiscountLevel = null;
+	
+	/**
 	 * Vytvořen
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
