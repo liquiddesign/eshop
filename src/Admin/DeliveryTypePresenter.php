@@ -130,6 +130,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		
 		$form->addLocaleText('name', 'Název');
 		$form->addLocalePerexEdit('perex', 'Perex');
+		$form->addLocalePerexEdit('instructions', 'Instrukce (např. do emailu)');
 		$form->addText('trackingLink', 'Odkaz pro sledování zásilky');
 		$form->addDataSelect('exclusive', 'Exkluzivní pro skupinu uživatelů', $this->groupRepo->getArrayForSelect())->setPrompt('Žádná');
 		$form->addDataSelect('pickupPointType', 'Typ výdejních míst', $this->pointTypeRepo->getArrayForSelect())->setPrompt('Žádný');
