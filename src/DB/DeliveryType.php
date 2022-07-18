@@ -40,6 +40,12 @@ class DeliveryType extends SystemicEntity
 	public ?string $perex;
 	
 	/**
+	 * Instrukce (např. do emailu)
+	 * @column{"type":"text","mutations":true}
+	 */
+	public ?string $instructions;
+	
+	/**
 	 * Náhledový obrázek
 	 * @column
 	 */
