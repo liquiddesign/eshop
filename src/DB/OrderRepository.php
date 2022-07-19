@@ -6,6 +6,7 @@ namespace Eshop\DB;
 
 use Admin\DB\Administrator;
 use Admin\DB\IGeneralAjaxRepository;
+use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
 use Eshop\Shopper;
 use League\Csv\EncloseField;
@@ -1358,33 +1359,34 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 		return $usedCoupons;
 	}
-
-	public function changePayment(string $payment, bool $paid, bool $email = false, ?Administrator $admin = null): void
+	
+	public function changePayment(string $payment, bool $paid, bool $email = false, ?Administrator $admin = null, ?Carbon $paidTs = null, ?string $externalId = null): void
 	{
 		$paymentRepository = $this->connection->findRepository(Payment::class);
 		$orderLogItemRepository = $this->connection->findRepository(OrderLogItem::class);
 		$templateRepository = $this->connection->findRepository(Template::class);
 		$mailer = $this->container->getByType(Mailer::class);
-
+		
 		/** @var \Eshop\DB\Payment $payment */
 		$payment = $paymentRepository->one($payment, true);
-
+		
 		$values = [
-			'paidTs' => $paid ? (string)new DateTime() : null,
+			'externalId' => $externalId,
+			'paidTs' => $paid ? ($paidTs ?: Carbon::now()) : null,
 			'paidPrice' => $paid ? $payment->order->getTotalPrice() : 0,
 			'paidPriceVat' => $paid ? $payment->order->getTotalPriceVat() : 0,
 		];
-
+		
 		$payment->update($values);
-
+		
 		if ($paid) {
 			$orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED, null, $admin);
-
+			
 			if ($email) {
 				try {
 					$mail = $templateRepository->createMessage('order.payed', ['orderCode' => $payment->order->code], $payment->order->purchase->email);
 					$mailer->send($mail);
-
+					
 					$orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::PAYED, $admin);
 				} catch (\Throwable $e) {
 				}

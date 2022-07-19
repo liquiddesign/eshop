@@ -11,6 +11,12 @@ namespace Eshop\DB;
 class Payment extends \StORM\Entity
 {
 	/**
+	 * Externí ID
+	 * @column
+	 */
+	public ?string $externalId;
+	
+	/**
 	 * Kód typu dopravy
 	 * @column
 	 */
