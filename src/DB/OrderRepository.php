@@ -1370,9 +1370,11 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		/** @var \Eshop\DB\Payment $payment */
 		$payment = $paymentRepository->one($payment, true);
 		
+		$paidTs = $paidTs ?: Carbon::now();
+		
 		$values = [
 			'externalId' => $externalId,
-			'paidTs' => $paid ? ($paidTs ?: Carbon::now()) : null,
+			'paidTs' => $paid ? $paidTs->toDateTimeString() : null,
 			'paidPrice' => $paid ? $payment->order->getTotalPrice() : 0,
 			'paidPriceVat' => $paid ? $payment->order->getTotalPriceVat() : 0,
 		];
