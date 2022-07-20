@@ -738,14 +738,13 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 						->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
 						->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
 						->where('eshop_attributeassign.fk_product=this.uuid')
-						->where("eshop_attributevalue.fk_attribute = '$attributeKey'")
-						->where($attribute->showRange ? "eshop_attributevalue.fk_attributevaluerange = '$attributeValue'" : "eshop_attributevalue.uuid = '$attributeValue'");
+						->where('eshop_attributevalue.fk_attribute', $attributeKey)
+						->where($attribute->showRange ? 'eshop_attributevalue.fk_attributevaluerange' : 'eshop_attributevalue.uuid', $attributeValue);
+				
 					
-					$collection->where('EXISTS (' . $subSelect->getSql() . ')');
+					$collection->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
 				}
 			} else {
-				$query = '';
-				
 				if ($attribute->showRange) {
 					$selectedAttributeValues = $this->getConnection()->rows(['eshop_attributevalue'])
 						->where('eshop_attributevalue.fk_attributevaluerange', $selectedAttributeValues)
@@ -758,17 +757,15 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 					->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
 					->where('eshop_attributeassign.fk_product=this.uuid');
 				
-				$query .= "(eshop_attributevalue.fk_attribute = \"$attributeKey\" AND (";
+				$exp = new Expression();
 				
 				foreach ($selectedAttributeValues as $attributeValue) {
-					$query .= "eshop_attributevalue.uuid = \"$attributeValue\" OR ";
+					$exp->add('OR', 'eshop_attributevalue.uuid = %s', [$attributeValue]);
 				}
 				
-				$query = \substr($query, 0, -3) . '))';
+				$subSelect->where('eshop_attributevalue.fk_attribute = :attributeKey AND ' . $exp->getSql(), $exp->getVars() + ['attributeKey' => $attributeKey]);
 				
-				$subSelect->where($query);
-				
-				$collection->where('EXISTS (' . $subSelect->getSql() . ')');
+				$collection->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
 			}
 		}
 	}
