@@ -16,6 +16,7 @@ use Salamek\PplMyApi\Enum\Currency;
 use Salamek\PplMyApi\Enum\LabelDecomposition;
 use Salamek\PplMyApi\Enum\Product;
 use Salamek\PplMyApi\Model\CityRouting;
+use Salamek\PplMyApi\Model\Flag;
 use Salamek\PplMyApi\Model\Package;
 use Salamek\PplMyApi\Model\PackageNumberInfo;
 use Salamek\PplMyApi\Model\PaymentInfo;
@@ -261,6 +262,9 @@ class PPL
 						null,
 						null,
 						$paymentInfo,
+						[],
+						[],
+						[new Flag('SL', true)],
 					);
 				} else {
 					$package = new Package(
@@ -269,6 +273,13 @@ class PPL
 						$order->code . ($order->purchase->deliveryNote ? ', ' . $order->purchase->deliveryNote : null),
 						$recipient,
 						$cityRouting,
+						null,
+						null,
+						null,
+						null,
+						[],
+						[],
+						[new Flag('SL', true)],
 					);
 				}
 
@@ -407,6 +418,9 @@ class PPL
 						null,
 						null,
 						$paymentInfo,
+						[],
+						[],
+						[new Flag('SL', true)],
 					);
 				} else {
 					$packages[] = new Package(
@@ -416,6 +430,12 @@ class PPL
 						$recipient,
 						$cityRouting,
 						$this->sender,
+						null,
+						null,
+						null,
+						[],
+						[],
+						[new Flag('SL', true)],
 					);
 				}
 
