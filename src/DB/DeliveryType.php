@@ -81,6 +81,12 @@ class DeliveryType extends SystemicEntity
 	 * @column
 	 */
 	public bool $recommended = false;
+	
+	/**
+	 * Externí dopravce
+	 * @column
+	 */
+	public bool $externalCarrier = false;
 
 	/**
 	 * Max váha

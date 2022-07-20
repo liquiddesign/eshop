@@ -145,6 +145,7 @@ class DeliveryTypePresenter extends BackendPresenter
 			->addCondition($form::FILLED)
 			->addRule($form::FLOAT);
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
+		$form->addCheckbox('externalCarrier', 'Externí dopravce');
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
 
