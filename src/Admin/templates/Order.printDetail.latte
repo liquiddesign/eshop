@@ -206,14 +206,14 @@
                                     {$purchase->zasilkovnaId}
                                 {/if}
                             {/if}
-                            <a class="ml-2 d-print-none" n:href="delivery $order">Změnit</a>
+                            <a class="ml-2 d-print-none btn btn-xs btn-outline-primary" n:href="delivery $order"><i class="fa fa-xs fa-edit"></i> Změnit</a><a n:if="$order->pplCode || $order->dpdCode || $order->pplError || $order->dpdError" class="ml-2 d-print-none btn btn-xs btn-outline-danger" href="{link resetTransport!, 'uuid' => $order->getPK()}"><i class="fa fa-xs fa-undo"></i> Resetovat</a>
                         </div>
 
                         <p class="lead mt-4">Platební metoda:</p>
                         <div class="d-flex align-items-center">
                             <img n:if="$purchase->paymentType && $purchase->paymentType->imageFileName" src="{$userUrl|noescape}/paymenttype_images/thumb/{$purchase->paymentType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
                             {$purchase->paymentType ? $purchase->paymentType->name : null} - {$purchase->paymentType && $payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
-                            <a class="ml-2 d-print-none" n:href="payment $order">Změnit</a>
+                            <a class="ml-2 d-print-none btn btn-xs btn-outline-primary" n:href="payment $order"><i class="fa fa-xs fa-edit"></i> Změnit</a>
                         </div>
 
                         {if $order->purchase->note}

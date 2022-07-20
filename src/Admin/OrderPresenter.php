@@ -2126,6 +2126,22 @@ class OrderPresenter extends BackendPresenter
 		$this->orderRepository->unPauseOrder($this->orderRepository->one($orderPK));
 	}
 
+	public function handleResetTransport(string $uuid): void
+	{
+		$this->orderRepository->many()->where('this.uuid', $uuid)->update([
+			'pplCode' => null,
+			'dpdCode' => null,
+			'pplError' => false,
+			'dpdError' => false,
+			'pplPrinted' => false,
+			'dpdPrinted' => false,
+		]);
+		
+		$this->flashMessage('Poslaní k dopravci bylo resetováno', 'success');
+		
+		$this->redirect('this');
+	}
+
 	protected function startup(): void
 	{
 		parent::startup();
