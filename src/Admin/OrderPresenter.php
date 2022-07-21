@@ -2128,7 +2128,13 @@ class OrderPresenter extends BackendPresenter
 
 	public function handleResetTransport(string $uuid): void
 	{
-		$this->orderRepository->many()->where('this.uuid', $uuid)->update([
+		$order = $this->orderRepository->one(['uuid' => $uuid], true);
+		
+		if ($this->dpd && $order->dpdCode) {
+			$this->dpd->deletePackages([$order->dpdCode]);
+		}
+		
+		$order->update([
 			'pplCode' => null,
 			'dpdCode' => null,
 			'pplError' => false,
@@ -2136,6 +2142,7 @@ class OrderPresenter extends BackendPresenter
 			'pplPrinted' => false,
 			'dpdPrinted' => false,
 		]);
+		
 		
 		$this->flashMessage('Poslaní k dopravci bylo resetováno', 'success');
 		

@@ -283,6 +283,51 @@ class DPD
 			return null;
 		}
 	}
+	
+	public function getStatus(array $list): void
+	{
+		$client = $this->getClient();
+		
+		$result = $client->GetPickupStatus([
+			'login' => $this->login,
+			'password' => $this->password,
+			'statusList' => $list,
+		]);
+		
+		\bdump($result);
+		
+		return;
+	}
+	
+	public function deletePackages(array $list): void
+	{
+		$client = $this->getClient();
+		
+		$result = $client->DeleteParcelByParcelno([
+			'login' => $this->login,
+			'password' => $this->password,
+			'parcelno' => $list,
+		]);
+		
+		\bdump($result);
+		
+		return;
+	}
+	
+	public function deletePickups(array $list): void
+	{
+		$client = $this->getClient();
+		
+		$result = $client->DeletePickup([
+			'login' => $this->login,
+			'password' => $this->password,
+			'deleteList' => $list,
+		]);
+		
+		\bdump($result);
+		
+		return;
+	}
 
 	/**
 	 * @param array<string> $filenames
