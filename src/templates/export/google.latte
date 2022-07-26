@@ -32,7 +32,7 @@
                 <g:id>{$product->getFullCode()}</g:id>
                 <g:title><![CDATA[{$product->name}]]></g:title>
                 <g:description><![CDATA[{$product->primaryCategory ? ($product->primaryCategory->exportGoogleCategory && Nette\Utils\Strings::length($product->primaryCategory->exportGoogleCategory) > 0 ? $product->primaryCategory->exportGoogleCategory : $product->primaryCategory->name) : null} {\strip_tags($product->content ?? '')}]]></g:description>
-                <g:google_product_category n:if="$product->primaryCategory && $product->primaryCategory->exportGoogleCategoryId">{$product->primaryCategory->exportGoogleCategoryId}></g:google_product_category>
+                <g:google_product_category n:if="$product->primaryCategory && $product->primaryCategory->exportGoogleCategoryId">{$product->primaryCategory->exportGoogleCategoryId}</g:google_product_category>
                 <g:link>{plink //:Eshop:Product:detail $product->getPK()}</g:link>
                 {if isset($photos[$product->getPK()])}<g:image_link>{$productImageUrl}{$basePath}/userfiles/{\Eshop\DB\Product::GALLERY_DIR}/detail/{$photos[$product->getPK()]->fileName}</g:image_link>{/if}
                 {if ($image = $product->getPreviewImage($basePath)) && !isset($photos[$product->getPK()])}<g:image_link>{$productImageUrl}{$image}</g:image_link>{/if}
