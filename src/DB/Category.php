@@ -73,10 +73,16 @@ class Category extends SystemicEntity
 	public ?string $productFallbackImageFileName;
 
 	/**
-	 * Exportní název pro Google
+	 * Exportní název pro Googlecomp
 	 * @column
 	 */
 	public ?string $exportGoogleCategory;
+	
+	/**
+	 * Exportní ID kategorie Google
+	 * @column
+	 */
+	public ?string $exportGoogleCategoryId;
 
 	/**
 	 * Kategorie pro Heuréku

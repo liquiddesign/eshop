@@ -154,7 +154,11 @@ class CategoryPresenter extends BackendPresenter
 				$this->categoryRepository->clearCategoriesCache();
 			});
 
-			$grid->addButtonBulkEdit('categoryForm', ['exportGoogleCategory', 'exportHeurekaCategory', 'exportZboziCategory', 'hidden', 'showMenu', 'showEmpty'], 'categoryGrid');
+			$grid->addButtonBulkEdit(
+				'categoryForm',
+				['exportGoogleCategory', 'exportGoogleCategoryId', 'exportHeurekaCategory', 'exportZboziCategory', 'hidden', 'showMenu', 'showEmpty'],
+				'categoryGrid',
+			);
 
 			if (isset($this::CONFIGURATION['producerPagesType']) && $this::CONFIGURATION['producerPagesType'] === $this::PRODUCER_CATEGORY) {
 				$submit = $grid->getForm()->addSubmit('generateProducerCategories', 'Generovat kategorie výrobců')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');

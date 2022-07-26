@@ -158,6 +158,7 @@ class CategoryForm extends Control
 		});
 
 		$form->addText('exportGoogleCategory', 'Exportní název pro Google');
+		$form->addText('exportGoogleCategoryId', 'Exportní ID kategorie Google');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('showInMenu', 'Zobrazit v menu');
