@@ -1206,24 +1206,28 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	{
 		//@TODO s novým systémem sloučení zakomponovat
 		
-		return $this->supplierProductRepository->many()
+		$fee = $this->supplierProductRepository->many()
 			->join(['supplier' => 'eshop_supplier'], 'this.fk_supplier = supplier.uuid')
 			->where('this.fk_product', $product->getPK())
 			->where('this.recyclingFee IS NOT NULL')
 			->orderBy(['supplier.importPriority'])
 			->firstValue('recyclingFee');
+
+		return $fee ? (float) $fee : null;
 	}
 	
 	public function getCopyrightFeeBySuppliersPriority(Product $product): ?float
 	{
 		//@TODO s novým systémem sloučení zakomponovat
-		
-		return $this->supplierProductRepository->many()
+
+		$fee = $this->supplierProductRepository->many()
 			->join(['supplier' => 'eshop_supplier'], 'this.fk_supplier = supplier.uuid')
 			->where('this.fk_product', $product->getPK())
 			->where('this.copyrightFee IS NOT NULL')
 			->orderBy(['supplier.importPriority'])
 			->firstValue('copyrightFee');
+
+		return $fee ? (float) $fee : null;
 	}
 	
 	public function csvExport(ICollection $products, Writer $writer, array $columns = [], array $attributes = [], string $delimiter = ';', ?array $header = null): void
