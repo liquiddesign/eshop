@@ -300,6 +300,44 @@ class EHub
 		return $check;
 	}
 
+	/**
+	 * Change state of transactions that are valid by conditions from specified date to now and send to ehub
+	 * @param callable $condition
+	 * @param \DateTime|null $from
+	 */
+	public function updateTransactions(callable $condition, ?\DateTime $from = null): void
+	{
+		$this->syncTransactions();
+
+		$transactions = $this->EHubTransactionRepository->many()
+			->whereNot('this.status', EHubTransaction::STATUS_APPROVED)
+			->whereNot('this.status', EHubTransaction::STATUS_DECLINED);
+
+		if ($from) {
+			$fromString = $from->format('Y-m-d\TH:i:s');
+
+			$transactions->where('this.createdTs > :from', ['from' => $fromString]);
+		}
+
+		while ($transaction = $transactions->fetch()) {
+			/** @var \Eshop\DB\EHubTransaction $transaction */
+
+			$approved = $condition($transaction);
+
+			if ($approved === null) {
+				continue;
+			}
+
+			if ($approved === true) {
+				$this->updateTransaction($transaction, EHubTransaction::STATUS_APPROVED);
+
+				continue;
+			}
+
+			$this->updateTransaction($transaction, EHubTransaction::STATUS_DECLINED);
+		}
+	}
+
 	private function sendSaleByOrder(Order $order): void
 	{
 		$json = [

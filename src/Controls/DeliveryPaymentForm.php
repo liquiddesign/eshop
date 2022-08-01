@@ -10,6 +10,7 @@ use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\PaymentType;
 use Eshop\DB\PickupPointRepository;
 use Eshop\Shopper;
+use InvalidArgumentException;
 use Nette;
 use StORM\Collection;
 
@@ -95,8 +96,15 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		$this->onValidate[] = [$this, 'validateForm'];
 		$this->onSuccess[] = [$this, 'success'];
 
-		$deliveriesList->setDefaultValue($this->getSelectedDeliveryType());
-		$paymentsList->setDefaultValue($this->getSelectedPaymentType());
+		try {
+			$deliveriesList->setDefaultValue($this->getSelectedDeliveryType());
+		} catch (InvalidArgumentException $e) {
+		}
+
+		try {
+			$paymentsList->setDefaultValue($this->getSelectedPaymentType());
+		} catch (InvalidArgumentException $e) {
+		}
 	}
 
 	public function success(DeliveryPaymentForm $form): void

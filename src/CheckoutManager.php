@@ -914,7 +914,13 @@ class CheckoutManager
 	public function getPaymentPrice(): float
 	{
 		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
-			$price = $this->getPaymentTypes()[$this->getPurchase()->getValue('paymentType')]->getValue('price');
+			$paymentType = $this->getPaymentTypes()[$this->getPurchase()->getValue('paymentType')] ?? null;
+
+			if (!$paymentType) {
+				return 0.0;
+			}
+
+			$price = $paymentType->getValue('price');
 
 			return isset($price) ? (float)$price : 0.0;
 		}
@@ -925,7 +931,13 @@ class CheckoutManager
 	public function getPaymentPriceVat(): float
 	{
 		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
-			$price = $this->getPaymentTypes()[$this->getPurchase()->getValue('paymentType')]->getValue('priceVat');
+			$paymentType = $this->getPaymentTypes()[$this->getPurchase()->getValue('paymentType')] ?? null;
+
+			if (!$paymentType) {
+				return 0.0;
+			}
+
+			$price = $paymentType->getValue('priceVat');
 
 			return isset($price) ? (float)$price : 0.0;
 		}
