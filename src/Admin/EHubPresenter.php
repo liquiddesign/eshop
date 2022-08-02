@@ -44,7 +44,7 @@ class EHubPresenter extends \Eshop\BackendPresenter
 				return null;
 			}
 
-			$link = $this->link(':Eshop:Admin:Order:detail', ['order' => $EHubTransaction->order]);
+			$link = $this->link(':Eshop:Admin:Order:printDetail', ['order' => $EHubTransaction->order]);
 			$orderCode = $EHubTransaction->order->code;
 
 			return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;$orderCode</a>";
