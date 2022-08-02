@@ -643,7 +643,7 @@ class CheckoutManager
 		return $this->cartExists() ? $this->itemRepository->getItems([$this->getCart()->getPK()]) : $this->itemRepository->many()->where('1=0');
 	}
 
-	public function addItemsFromCart(Cart $cart, bool $required = false): void
+	public function addItemsFromCart(Cart $cart, bool $required = false): bool
 	{
 		$ids = $this->itemRepository->getItems([$cart->getPK()])->where('this.fk_product IS NOT NULL')->setSelect(['aux' => 'this.fk_product'])->toArrayOf('aux');
 
@@ -653,6 +653,8 @@ class CheckoutManager
 		$upsellsMap = [];
 		$nonUpsellItems = $this->itemRepository->getItems([$cart->getPK()])->where('this.fk_upsell IS NULL')->toArray();
 
+		$someProductNotFound = false;
+
 		/** @var \Eshop\DB\CartItem $item */
 		foreach ($nonUpsellItems as $item) {
 			if (!isset($products[$item->getValue('product')])) {
@@ -660,10 +662,12 @@ class CheckoutManager
 					throw new BuyException('product not found');
 				}
 
+				$someProductNotFound = true;
+
 				continue;
 			}
 
-			$newItem = $this->addItemToCart($products[$item->getValue('product')], $item->variant, $item->amount, null, false);
+			$newItem = $this->addItemToCart($products[$item->getValue('product')], $item->variant, $item->amount, null, false, $required);
 
 			$upsellsMap[$item->getPK()] = $newItem;
 		}
@@ -676,6 +680,8 @@ class CheckoutManager
 				if ($required) {
 					throw new BuyException('product not found');
 				}
+
+				$someProductNotFound = true;
 
 				continue;
 			}
@@ -702,6 +708,8 @@ class CheckoutManager
 
 			$this->addUpsellToCart($upsellsMap[$item->getValue('upsell')], $product, $item->realAmount);
 		}
+
+		return !$someProductNotFound;
 	}
 
 	public function getPaymentTypes(): Collection
