@@ -34,10 +34,12 @@ class DisplayAmountPresenter extends BackendPresenter
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 
 		$grid->addColumnLinkDetail('detail');
-		$grid->addColumnActionDelete();
+		$grid->addColumnActionDeleteSystemic();
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(null, false, function ($object) {
+			return !$object->isSystemic();
+		});
 
 		$grid->addFilterTextInput('search', ['label_cs'], null, 'Popisek');
 		$grid->addFilterButtons();

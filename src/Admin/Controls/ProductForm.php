@@ -223,6 +223,8 @@ S nejdelším obsahem: Převezme se obsah, který je nejdelší ze všech zdroj�
 Nikdy nepřebírat: Obsah nebude nikdy přebírán<br>
 Ostatní: Přebírání ze zvoleného zdroje
 ');
+
+			$form->addCheckbox('supplierDisplayAmountLock', 'Nepřebírat skladovost');
 		}
 
 		$form->addText('storageDate', 'Nejbližší datum naskladnění')->setNullable(true)->setHtmlType('date');

@@ -307,6 +307,12 @@ class Product extends \StORM\Entity
 	public bool $supplierContentLock = false;
 
 	/**
+	 * Nepřebírat display amount
+	 * @column
+	 */
+	public bool $supplierDisplayAmountLock = false;
+
+	/**
 	 * Režim přebírání obsahu, platí pouze pokud supplierContentLock === false
 	 * @column{"type":"enum","length":"'none','priority','length','supplier'"}
 	 */

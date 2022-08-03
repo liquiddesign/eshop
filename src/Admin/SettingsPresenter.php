@@ -9,6 +9,7 @@ use Admin\Controls\AdminForm;
 use Eshop\Admin\Controls\ProductForm;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\DeliveryTypeRepository;
+use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\Integration\Integrations;
 use Forms\Form;
@@ -23,6 +24,8 @@ class SettingsPresenter extends BackendPresenter
 	public const SUPPLIER_PRODUCT_DUMMY_DEFAULT_CATEGORY = 'supplierProductDummyDefaultCategory';
 	public const PPL_DELIVERY_TYPE = 'pplDeliveryType';
 	public const DPD_DELIVERY_TYPE = 'dpdDeliveryType';
+	public const SUPPLIER_IN_STOCK_DISPLAY_AMOUNT = 'supplierInStockDisplayAmount';
+	public const SUPPLIER_NOT_IN_STOCK_DISPLAY_AMOUNT = 'supplierNotInStockDisplayAmount';
 
 	/** @inject */
 	public Integrations $integrations;
@@ -38,6 +41,9 @@ class SettingsPresenter extends BackendPresenter
 
 	/** @inject */
 	public CategoryRepository $categoryRepository;
+
+	/** @inject */
+	public DisplayAmountRepository $displayAmountRepository;
 
 	/**
 	 * @var array<string|array<mixed>>
@@ -245,6 +251,26 @@ class SettingsPresenter extends BackendPresenter
 					'info' => 'Výchozí kategorie pro vytváření produktů z dodavatelský produktů.',
 					'onSave' => function ($key, $oldValue, $newValue): void {
 						$this->systemicCallback($key, $oldValue, $newValue, $this->categoryRepository);
+					},
+				],
+				[
+					'key' => self::SUPPLIER_IN_STOCK_DISPLAY_AMOUNT,
+					'label' => 'Typ doručení skladem',
+					'type' => 'select',
+					'options' => $this->displayAmountRepository->getArrayForSelect(),
+					'info' => 'Při importu dostupností se použije jako skladem od dodavatele.',
+					'onSave' => function ($key, $oldValue, $newValue): void {
+						$this->systemicCallback($key, $oldValue, $newValue, $this->displayAmountRepository);
+					},
+				],
+					[
+					'key' => self::SUPPLIER_NOT_IN_STOCK_DISPLAY_AMOUNT,
+					'label' => 'Typ doručení není skladem',
+					'type' => 'select',
+					'options' => $this->displayAmountRepository->getArrayForSelect(),
+					'info' => 'Při importu dostupností se použije jako není skladem od dodavatele.',
+					'onSave' => function ($key, $oldValue, $newValue): void {
+						$this->systemicCallback($key, $oldValue, $newValue, $this->displayAmountRepository);
 					},
 				],
 			],

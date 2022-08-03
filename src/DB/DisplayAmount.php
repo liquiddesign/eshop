@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Eshop\Common\DB\SystemicEntity;
+
 /**
  * Zobrazení skladového množství
  * @table
  */
-class DisplayAmount extends \StORM\Entity
+class DisplayAmount extends SystemicEntity
 {
 	/**
 	 * Popisek

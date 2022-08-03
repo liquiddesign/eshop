@@ -9,7 +9,6 @@ use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Repository;
 use StORM\SchemaManager;
-use Tracy\Debugger;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Supplier>
@@ -107,24 +106,16 @@ class SupplierRepository extends Repository implements IGeneralRepository
 
 		$this->storeRepository->many()->where('fk_supplier', $supplier)->delete();
 
-		Debugger::log('1');
-
 		$total = 0;
 
 		$store = $this->syncStore($supplier, $mutation);
 
-		Debugger::log('2');
-
 		if (!$this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('amount IS NOT NULL')->isEmpty()) {
-			Debugger::log('3');
 			$total = $this->supplierProductRepository->syncAmounts($this->supplierProductRepository->many()
 				->where('fk_supplier', $supplier)
 				->where('amount IS NOT NULL')
 				->where('fk_product IS NOT NULL'), $store);
-			Debugger::log('4');
 		}
-
-		Debugger::log('5');
 
 		$this->importResultRepository->log("Store entered: total: $total");
 
