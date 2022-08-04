@@ -7,6 +7,7 @@ namespace Eshop\Controls;
 use Eshop\CheckoutManager;
 use Eshop\DB\CartItemRepository;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\WatcherRepository;
 use Eshop\Shopper;
 use Grid\Datalist;
 use Nette\Application\UI\Form;
@@ -45,12 +46,15 @@ class CartItemList extends Datalist
 
 	private ProductRepository $productRepository;
 
-	public function __construct(CartItemRepository $cartItemsRepository, CheckoutManager $checkoutManager, Shopper $shopper, ProductRepository $productRepository)
+	private WatcherRepository $watcherRepository;
+
+	public function __construct(CartItemRepository $cartItemsRepository, CheckoutManager $checkoutManager, Shopper $shopper, ProductRepository $productRepository, WatcherRepository $watcherRepository)
 	{
 		$this->checkoutManager = $checkoutManager;
 		$this->cartItemsRepository = $cartItemsRepository;
 		$this->shopper = $shopper;
 		$this->productRepository = $productRepository;
+		$this->watcherRepository = $watcherRepository;
 
 		parent::__construct($this->checkoutManager->getItems());
 	}
@@ -173,6 +177,7 @@ class CartItemList extends Datalist
 		$this->template->discountCoupon = $this->checkoutManager->getDiscountCoupon();
 		$this->template->discountPrice = $this->checkoutManager->getDiscountPrice();
 		$this->template->discountPriceVat = $this->checkoutManager->getDiscountPriceVat();
+		$this->template->watchers = ($customer = $this->shopper->getCustomer()) ? $this->watcherRepository->getWatchersByCustomer($customer)->setIndex('fk_product')->toArray() : [];
 
 		/** @var \Eshop\DB\CartItem[] $cartItems */
 		$cartItems = $this->getItemsOnPage();

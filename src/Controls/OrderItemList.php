@@ -11,6 +11,7 @@ use Eshop\DB\OrderRepository;
 use Eshop\DB\PackageItemRepository;
 use Eshop\DB\PackageRepository;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\WatcherRepository;
 use Eshop\Shopper;
 use Grid\Datalist;
 use Nette\Application\UI\Form;
@@ -39,6 +40,8 @@ class OrderItemList extends Datalist
 
 	private Order $selectedOrder;
 
+	private WatcherRepository $watcherRepository;
+
 	public function __construct(
 		CartItemRepository $cartItemsRepository,
 		CheckoutManager $checkoutManager,
@@ -47,7 +50,8 @@ class OrderItemList extends Datalist
 		Order $order,
 		OrderRepository $orderRepository,
 		PackageItemRepository $packageItemRepository,
-		PackageRepository $packageRepository
+		PackageRepository $packageRepository,
+		WatcherRepository $watcherRepository
 	) {
 		$this->checkoutManager = $checkoutManager;
 		$this->cartItemsRepository = $cartItemsRepository;
@@ -57,6 +61,7 @@ class OrderItemList extends Datalist
 		$this->orderRepository = $orderRepository;
 		$this->packageItemRepository = $packageItemRepository;
 		$this->packageRepository = $packageRepository;
+		$this->watcherRepository = $watcherRepository;
 
 		parent::__construct($order->purchase->getItems());
 	}
@@ -205,6 +210,7 @@ class OrderItemList extends Datalist
 		$this->template->discountPrice = $this->selectedOrder->getDiscountPrice();
 		$this->template->discountPriceVat = $this->selectedOrder->getDiscountPriceVat();
 		$this->template->upsells = $this->productRepository->getCartItemsRelations($this->getItemsOnPage());
+		$this->template->watchers = ($customer = $this->shopper->getCustomer()) ? $this->watcherRepository->getWatchersByCustomer($customer)->setIndex('fk_product')->toArray() : [];
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;

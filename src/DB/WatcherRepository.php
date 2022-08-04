@@ -53,6 +53,17 @@ class WatcherRepository extends \StORM\Repository
 	}
 
 	/**
+	 * @param \Eshop\DB\Customer $customer
+	 * @param array<string> $products
+	 */
+	public function getWatchersByCustomerAndProducts(Customer $customer, array $products): ICollection
+	{
+		return $this->many()
+			->where('this.fk_product', $products)
+			->where('this.fk_customer', $customer->getPK());
+	}
+
+	/**
 	 * Return two arrays.
 	 * First array (active): changed watchers in positive way, for example: amountFrom=1, beforeAmountFrom=0, currentAmount=1
 	 * Second array (nonActive): changed watchers in negative way, for example: amountFrom=1, beforeAmountFrom=1, currentAmount=0
