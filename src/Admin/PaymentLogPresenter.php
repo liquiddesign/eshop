@@ -22,7 +22,8 @@ class PaymentLogPresenter extends BackendPresenter
 		
 		$grid->addColumnText('VS', 'externalCode', '%s', 'externalCode');
 		
-		$grid->addColumnText('Částka', ['amount|price::currency.code'], '%s', 'amount')->onRenderCell[] = [$grid, 'decoratorNumber'];;
+		$grid->addColumnText('Částka', ['amount|price::currency.code'], '%s', 'amount')->onRenderCell[] = [$grid, 'decoratorNumber'];
+
 		
 		$grid->addColumnText('Protiúčet', 'countermeasure', '%s', 'countermeasure');
 		$grid->addColumnText('Poznámka', 'note', '%s', 'note');
