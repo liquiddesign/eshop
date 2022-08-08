@@ -145,6 +145,12 @@ class Order extends \StORM\Entity
 	public bool $highlighted = false;
 	
 	/**
+	 * Započítán loyalty program
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $loyaltyProgramComputedTs;
+	
+	/**
 	 * Nákup
 	 * @relation
 	 * @constraint{"onUpdate":"RESTRICT","onDelete":"RESTRICT"}
