@@ -14,13 +14,13 @@ class Photo extends \StORM\Entity
 {
 	/**
 	 * Soubor
-	 * @column
+	 * @column{"type":"longtext"}
 	 */
 	public ?string $fileName;
 
 	/**
 	 * Původní název
-	 * @column
+	 * @column{"type":"longtext"}
 	 */
 	public ?string $originalFileName;
 	

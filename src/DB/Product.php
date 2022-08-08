@@ -49,7 +49,7 @@ class Product extends \StORM\Entity
 
 	/**
 	 * Náhledový obrázek
-	 * @column
+	 * @column{"type":"longtext"}
 	 */
 	public ?string $imageFileName;
 
