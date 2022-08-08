@@ -1217,14 +1217,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				$item->product->update(['buyCount' => $item->product->buyCount + $item->amount]);
 			}
 			
-			if ($order->purchase->customer) {
-				/** @var \Eshop\DB\ProductRepository $productRepository */
-				$productRepository = $this->getConnection()->findRepository(Product::class);
-				
-				$order->purchase->customer->update([
-					'loyaltyProgramDiscountLevel' => $productRepository->getRealLoyaltyDiscountLevel($order->purchase->customer),
-				]);
-			}
+			// loyalty program is computed in scripts
 		}
 
 		$order->update(['completedTs' => (string)new DateTime(), 'canceledTs' => null]);
