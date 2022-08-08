@@ -41,6 +41,12 @@ class PaymentLog extends \StORM\Entity
 	public float $amount;
 	
 	/**
+	 * Protiúčet
+	 * @column
+	 */
+	public ?string $countermeasure;
+	
+	/**
 	 * Poznámka
 	 * @column
 	 */
