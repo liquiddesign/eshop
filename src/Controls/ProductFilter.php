@@ -119,9 +119,10 @@ class ProductFilter extends Control
 		$filterForm->onRender[] = function ($filterForm): void {
 			$filterForm->removeComponent($filterForm[Presenter::SIGNAL_KEY]);
 		};
-		
-		$filterForm->addInteger('priceFrom')->setNullable(true)->setHtmlAttribute('placeholder', 0);
-		$filterForm->addInteger('priceTo')->setNullable(true)->setHtmlAttribute('placeholder', 100000);
+
+		/** @TODO set default values based on displayed products */
+		$filterForm->addInteger('priceFrom')->setRequired()->setDefaultValue(0)->setHtmlAttribute('placeholder', 0);
+		$filterForm->addInteger('priceTo')->setRequired()->setDefaultValue(100000)->setHtmlAttribute('placeholder', 100000);
 		
 		$attributesContainer = $filterForm->addContainer('attributes');
 		
