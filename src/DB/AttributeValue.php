@@ -93,6 +93,12 @@ class AttributeValue extends \StORM\Entity
 	public ?string $imageFileName;
 
 	/**
+	 * Custom value 1
+	 * @column
+	 */
+	public ?string $customField1;
+
+	/**
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */

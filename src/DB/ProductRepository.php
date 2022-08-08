@@ -63,6 +63,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	private Cache $cache;
 	
 	private QuantityPriceRepository $quantityPriceRepository;
+
+	private AttributeValueRepository $attributeValueRepository;
 	
 	public function __construct(
 		Shopper $shopper,
@@ -80,7 +82,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		Storage $storage,
 		SupplierProductRepository $supplierProductRepository,
 		RelatedTypeRepository $relatedTypeRepository,
-		QuantityPriceRepository $quantityPriceRepository
+		QuantityPriceRepository $quantityPriceRepository,
+		AttributeValueRepository $attributeValueRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 		
@@ -98,6 +101,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$this->relatedTypeRepository = $relatedTypeRepository;
 		$this->supplierProductRepository = $supplierProductRepository;
 		$this->quantityPriceRepository = $quantityPriceRepository;
+		$this->attributeValueRepository = $attributeValueRepository;
 	}
 	
 	/**
@@ -1399,6 +1403,45 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 		
 		return $products;
+	}
+
+	/**
+	 * @param \Eshop\DB\Product $product
+	 * @return array<mixed>
+	 */
+	public function getPreviewAttributesByProduct(Product $product): array
+	{
+		$attributeValues = $this->attributeValueRepository->getCollection()
+			->join(['attributeAssign' => 'eshop_attributeassign'], 'this.uuid = attributeAssign.fk_value', [], 'INNER')
+			->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid', [], 'INNER')
+			->where('attribute.showProduct=1')
+			->setOrderBy(['attribute.priority' => 'ASC', 'this.priority' => 'ASC'])
+			->where('attributeAssign.fk_product', $product->getPK());
+
+		$attributes = [
+			'attributes' => [],
+			'values' => [],
+		];
+
+		foreach ($attributeValues as $attributeValue) {
+			$attribute = $attributeValue->attribute;
+
+			if (!isset($attributes['attributes'][$attribute->getPK()])) {
+				$attributes['attributes'][$attribute->getPK()] = $attribute;
+			}
+
+			if (!isset($attributes['values'][$attribute->getPK()])) {
+				$attributes['values'][$attribute->getPK()] = [];
+			}
+
+			if (isset($attributes['values'][$attribute->getPK()][$attributeValue->getPK()])) {
+				continue;
+			}
+
+			$attributes['values'][$attribute->getPK()][$attributeValue->getPK()] = $attributeValue;
+		}
+
+		return $attributes;
 	}
 	
 	public static function generateUuid(?string $ean, ?string $fullCode): string
