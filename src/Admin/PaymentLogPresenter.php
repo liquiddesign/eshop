@@ -18,10 +18,16 @@ class PaymentLogPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($this->paymentLogRepository->many(), 20, 'created', 'DESC', true);
 		
 		$grid->addColumnText('ID', 'externalId', '%s', 'externalId', ['class' => 'fit']);
-		$grid->addColumnText('Kód', 'externalCode', '%s', 'externalCode', ['class' => 'fit']);
-		$grid->addColumnText('Částka', 'amount', '%s', 'amount', ['class' => 'fit']);
-	
-		$grid->addFilterTextInput('search', ['externalCode'], null, 'Kód');
+		$grid->addColumnText('Datum', 'created|date', '%s', 'created', ['class' => 'fit']);
+		
+		$grid->addColumnText('VS', 'externalCode', '%s', 'externalCode');
+		
+		$grid->addColumnText('Částka', ['amount|price::currency.code'], '%s', 'amount')->onRenderCell[] = [$grid, 'decoratorNumber'];;
+		
+		$grid->addColumnText('Protiúčet', 'countermeasure', '%s', 'countermeasure');
+		$grid->addColumnText('Poznámka', 'note', '%s', 'note');
+		
+		$grid->addFilterTextInput('search', ['externalCode', 'countermeasure', 'note'], null, 'VS, protiúčet, poznámka');
 		$grid->addFilterButtons();
 		
 		return $grid;
