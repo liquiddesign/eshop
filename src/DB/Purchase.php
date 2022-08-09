@@ -334,13 +334,13 @@ class Purchase extends \StORM\Entity
 
 		$supplierDeliveryTypeRepository = $this->getConnection()->findRepository(SupplierDeliveryType::class);
 
-		/** @var \Eshop\DB\SupplierDeliveryType $supplierDeliveryType */
+		/** @var \Eshop\DB\SupplierDeliveryType|null $supplierDeliveryType */
 		$supplierDeliveryType = $supplierDeliveryTypeRepository->many()
 			->where('this.fk_supplier', $supplier->getPK())
 			->where('this.fk_deliveryType', $this->getValue('deliveryType'))
 			->first();
 
-		return $supplierDeliveryType->externalId ?? ($this->deliveryType->externalId ?? null);
+		return $supplierDeliveryType->externalId ?? null;
 	}
 
 	public function getPaymentTypeExternalId(Supplier $supplier): ?string
@@ -373,6 +373,32 @@ class Purchase extends \StORM\Entity
 		}
 
 		return $accountMutation;
+	}
+
+	public function getPickupPointId(): ?string
+	{
+		if ($this->pickupPointId) {
+			return $this->pickupPoint ? $this->pickupPoint->code : $this->pickupPointId;
+		}
+
+		if ($this->zasilkovnaId) {
+			return $this->pickupPoint ? $this->pickupPoint->code : $this->zasilkovnaId;
+		}
+
+		return null;
+	}
+
+	public function getPickupPointName(): ?string
+	{
+		if ($this->pickupPointId) {
+			return $this->pickupPoint ? $this->pickupPoint->name : $this->pickupPointName;
+		}
+
+		if ($this->zasilkovnaId) {
+			return $this->pickupPoint ? $this->pickupPoint->name : $this->zasilkovnaId;
+		}
+
+		return null;
 	}
 
 	/**
