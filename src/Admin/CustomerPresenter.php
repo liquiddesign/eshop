@@ -18,6 +18,7 @@ use Eshop\DB\LoyaltyProgramRepository;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\NewsletterUserGroupRepository;
 use Eshop\DB\NewsletterUserRepository;
+use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProductRepository;
@@ -30,6 +31,7 @@ use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
+use Nette\Utils\DateTime;
 use Nette\Utils\Validators;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
@@ -93,6 +95,9 @@ class CustomerPresenter extends BackendPresenter
 
 	/** @inject */
 	public CustomerGroupRepository $groupsRepo;
+	
+	/** @inject */
+	public OrderRepository $orderRepository;
 
 	/** @inject */
 	public AddressRepository $addressRepo;
@@ -443,8 +448,13 @@ class CustomerPresenter extends BackendPresenter
 
 		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
 			$form->addSelect2('loyaltyProgram', 'Věrnostní program', $this->loyaltyProgramRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
-
+				//->setHtmlAttribute('data-info', 'Zadejte e-mailové adresy oddělené středníkem (;).');
+		
 			if ($customer && $customer->getValue('loyaltyProgram')) {
+				$loyaltyProgram = $this->loyaltyProgramRepository->one($customer->getValue('loyaltyProgram'), true);
+				$customerTurnover = $this->orderRepository->getCustomerTotalTurnover($customer, $loyaltyProgram->turnoverFrom ? new DateTime($loyaltyProgram->turnoverFrom) : null, new DateTime());
+				
+				$form->addText('loyaltyProgramTurnover', 'Objem objednávek (Kč)')->setDisabled()->setDefaultValue((string) $customerTurnover);
 				$form->addText('loyaltyProgramPoints', 'Stav věrnostního konta')->setDisabled()->setDefaultValue((string)$customer->getLoyaltyProgramPoints());
 				$form->addText('loyaltyProgramDiscountLevel', 'Sleva věrnostního programu (%)')->setDisabled()->setDefaultValue((string)$this->productRepo->getBestDiscountLevel($customer));
 			}
