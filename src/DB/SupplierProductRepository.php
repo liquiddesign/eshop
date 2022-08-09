@@ -60,8 +60,6 @@ class SupplierProductRepository extends \StORM\Repository
 		$pagesRepository = $this->getConnection()->findRepository(Page::class);
 		$supplierId = $supplier->getPK();
 		$attributeAssignRepository = $this->getConnection()->findRepository(AttributeAssign::class);
-		/** @var \Eshop\DB\DisplayAmountRepository $displayAmountRepository */
-		$displayAmountRepository = $this->getConnection()->findRepository(DisplayAmount::class);
 		$photoRepository = $this->getConnection()->findRepository(Photo::class);
 		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$mutation];
 		$riboonId = 'novy_import';
@@ -101,13 +99,6 @@ class SupplierProductRepository extends \StORM\Repository
 			->where('this.fk_supplier', $supplier)
 			->where('category.fk_category IS NOT NULL')
 			->where('this.active', true);
-
-		$draftsProductMap = $supplierProductRepository->many()
-			->select(['realDisplayAmount' => 'displayAmount.fk_displayAmount'])
-			->where('category.fk_category IS NOT NULL')
-			->where('this.active', true);
-
-		$draftsDisplayAmountMap = [];
 
 		while ($draft = $drafts->fetch()) {
 			/** @var \stdClass|\Eshop\DB\SupplierProduct $draft */
@@ -186,12 +177,6 @@ class SupplierProductRepository extends \StORM\Repository
 
 			$product = $productRepository->syncOne($values, $currentUpdates + ['mpn' => new Literal('VALUES(mpn)')], false, null, ['categories' => false]);
 
-			if ($draft->getValue('realDisplayAmount')) {
-				$draftsDisplayAmountMap[$draft->getValue('product')] = [
-					$draft->getValue('supplier') => $draft->getValue('realDisplayAmount'),
-				];
-			}
-
 			$updated = $product->getParent() instanceof ICollection;
 
 			if ($updated) {
@@ -257,59 +242,6 @@ class SupplierProductRepository extends \StORM\Repository
 				}
 			}
 		}
-
-		/** @var array<\Eshop\DB\DisplayAmount> $displayAmounts */
-		$displayAmounts = $displayAmountRepository->getCollection()->toArray();
-
-		while ($draft = $draftsProductMap->fetch()) {
-			/** @var \stdClass|\Eshop\DB\SupplierProduct $draft */
-
-			if (!isset($draftsDisplayAmountMap[$draft->getValue('product')]) || isset($draftsDisplayAmountMap[$draft->getValue('product')][$draft->getValue('supplier')])) {
-				continue;
-			}
-
-			$draftsDisplayAmountMap[$draft->getValue('product')][$draft->getValue('supplier')] = $draft->getValue('realDisplayAmount');
-		}
-
-		/** @var \Web\DB\SettingRepository $settingRepository */
-		$settingRepository = $this->getConnection()->findRepository(Setting::class);
-
-		$inStockSetting = $settingRepository->getValueByName(SettingsPresenter::SUPPLIER_IN_STOCK_DISPLAY_AMOUNT);
-		$notInStockSetting = $settingRepository->getValueByName(SettingsPresenter::SUPPLIER_NOT_IN_STOCK_DISPLAY_AMOUNT);
-
-		if (!$inStockSetting || !$notInStockSetting) {
-			return $result;
-		}
-
-		$inStockProducts = [];
-		$notStockProducts = [];
-
-		foreach ($draftsDisplayAmountMap as $productPK => $draftDisplayAmounts) {
-			$inStock = false;
-
-			foreach ($draftDisplayAmounts as $displayAmount) {
-				if (!isset($displayAmounts[$displayAmount])) {
-					continue;
-				}
-
-				$displayAmount = $displayAmounts[$displayAmount];
-
-				if (!$displayAmount->isSold) {
-					$inStock = true;
-
-					break;
-				}
-			}
-
-			if ($inStock) {
-				$inStockProducts[] = $productPK;
-			} else {
-				$notStockProducts[] = $productPK;
-			}
-		}
-
-		$productRepository->many()->where('this.supplierDisplayAmountLock', false)->where('this.uuid', $inStockProducts)->update(['fk_displayAmount' => $inStockSetting]);
-		$productRepository->many()->where('this.supplierDisplayAmountLock', false)->where('this.uuid', $notStockProducts)->update(['fk_displayAmount' => $notInStockSetting]);
 
 		return $result;
 	}
@@ -388,5 +320,86 @@ class SupplierProductRepository extends \StORM\Repository
 				'productSupplierContentMode' => 'product.supplierContentMode',
 				'productSupplierContent' => 'product.fk_supplierContent',
 			], [], true)->fetchArray(\stdClass::class);
+	}
+
+	public function syncDisplayAmounts(): void
+	{
+		/** @var \Eshop\DB\DisplayAmountRepository $displayAmountRepository */
+		$displayAmountRepository = $this->getConnection()->findRepository(DisplayAmount::class);
+
+		/** @var \Eshop\DB\ProductRepository $productRepository */
+		$productRepository = $this->getConnection()->findRepository(Product::class);
+
+		/** @var array<\Eshop\DB\DisplayAmount> $displayAmounts */
+		$displayAmounts = $displayAmountRepository->getCollection()->toArray();
+
+		/** @var \Eshop\DB\SupplierProductRepository $supplierProductRepository */
+		$supplierProductRepository = $this->getConnection()->findRepository(SupplierProduct::class);
+
+		$supplierProducts = $supplierProductRepository->many()
+			->select(['realCategory' => 'category.fk_category'])
+			->select(['realDisplayAmount' => 'displayAmount.fk_displayAmount'])
+			->select(['realProducer' => 'producer.fk_producer'])
+			->where('this.fk_displayAmount IS NOT NULL')
+			->where('category.fk_category IS NOT NULL')
+			->where('this.fk_product IS NOT NULL')
+			->where('this.active', true);
+
+		/** @var array<mixed> $productsXDisplayAmounts Contains products paired with all supplier display amounts */
+		$productsXDisplayAmounts = [];
+
+		while ($supplierProduct = $supplierProducts->fetch()) {
+			/** @var \Eshop\DB\SupplierProduct $supplierProduct */
+
+			if (!isset($productsXDisplayAmounts[$supplierProduct->getValue('product')])) {
+				$productsXDisplayAmounts[$supplierProduct->getValue('product')] = [];
+			}
+
+			if (isset($productsXDisplayAmounts[$supplierProduct->getValue('product')][$supplierProduct->getValue('supplier')])) {
+				continue;
+			}
+
+			$productsXDisplayAmounts[$supplierProduct->getValue('product')][$supplierProduct->getValue('supplier')] = $supplierProduct->getValue('realDisplayAmount');
+		}
+
+		/** @var \Web\DB\SettingRepository $settingRepository */
+		$settingRepository = $this->getConnection()->findRepository(Setting::class);
+
+		$inStockSetting = $settingRepository->getValueByName(SettingsPresenter::SUPPLIER_IN_STOCK_DISPLAY_AMOUNT);
+		$notInStockSetting = $settingRepository->getValueByName(SettingsPresenter::SUPPLIER_NOT_IN_STOCK_DISPLAY_AMOUNT);
+
+		if (!$inStockSetting || !$notInStockSetting) {
+			return;
+		}
+
+		$inStockProducts = [];
+		$notStockProducts = [];
+
+		foreach ($productsXDisplayAmounts as $productPK => $draftDisplayAmounts) {
+			$inStock = false;
+
+			foreach ($draftDisplayAmounts as $displayAmount) {
+				if (!isset($displayAmounts[$displayAmount])) {
+					continue;
+				}
+
+				$displayAmount = $displayAmounts[$displayAmount];
+
+				if (!$displayAmount->isSold) {
+					$inStock = true;
+
+					break;
+				}
+			}
+
+			if ($inStock) {
+				$inStockProducts[] = $productPK;
+			} else {
+				$notStockProducts[] = $productPK;
+			}
+		}
+
+		$productRepository->many()->where('this.supplierDisplayAmountLock', false)->where('this.uuid', $inStockProducts)->update(['fk_displayAmount' => $inStockSetting]);
+		$productRepository->many()->where('this.supplierDisplayAmountLock', false)->where('this.uuid', $notStockProducts)->update(['fk_displayAmount' => $notInStockSetting]);
 	}
 }
