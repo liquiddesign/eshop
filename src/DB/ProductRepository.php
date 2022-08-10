@@ -187,14 +187,19 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			
 			$beforeSelect = $this->sqlExplode($expression, $sep, 4);
 			$beforeVatSelect = $this->sqlExplode($expression, $sep, 5);
+			$pricelistId = $this->sqlExplode($expression, $sep, 6);
 			
-			$collection->select(['priceBefore' => $useBeforePriceCalculation && $discountLevelPct > 0 ?
-				"IF(($beforeSelect) > 0, $beforeSelect, 100/(100-$discountLevelPct) * ($priceSelect))" :
+			$allowLevelDiscounts = \implode(',', \array_map(function ($value) {
+				return "'$value'";
+			}, $generalPricelistIds));
+			
+			$collection->select(['priceBefore' => $useBeforePriceCalculation && $discountLevelPct > 0 && \count($generalPricelistIds) ?
+				"IF(($beforeSelect) > 0 OR (($pricelistId) NOT IN ($allowLevelDiscounts)), $beforeSelect, 100/(100-$discountLevelPct) * ($priceSelect))" :
 				$beforeSelect,
 			]);
 			
-			$collection->select(['priceVatBefore' => $useBeforePriceCalculation && $discountLevelPct > 0 ?
-				"IF(($beforeVatSelect) > 0, $beforeVatSelect, 100/(100-$discountLevelPct) * ($priceVatSelect))" :
+			$collection->select(['priceVatBefore' => $useBeforePriceCalculation && $discountLevelPct > 0 && \count($generalPricelistIds) ?
+				"IF(($beforeVatSelect) > 0 OR (($pricelistId) NOT IN ($allowLevelDiscounts)), $beforeVatSelect, 100/(100-$discountLevelPct) * ($priceVatSelect))" :
 				$beforeVatSelect,
 			]);
 			
