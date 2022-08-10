@@ -99,8 +99,8 @@ class AttributeValue extends \StORM\Entity
 	public ?string $imageFileName;
 
 	/**
-	 * Custom value 1
-	 * @column
+	 * Custom field 1
+	 * @column{"mutations":true}
 	 */
 	public ?string $customField1;
 

@@ -46,6 +46,8 @@ class AttributePresenter extends BackendPresenter
 		'wizard' => false,
 		'wizardSteps' => [],
 		'forceValueFormMutationSelector' => false,
+		// Change null to custom string => will be displayed as name of field
+		'customField1' => null,
 	];
 
 	/** @inject */
@@ -463,6 +465,10 @@ class AttributePresenter extends BackendPresenter
 			$this->onDeleteImagePublic($attributeValue);
 			$this->redirect('this');
 		};
+
+		if (isset($this::CONFIGURATIONS['customField1']) && $this::CONFIGURATIONS['customField1'] && \is_string($this::CONFIGURATIONS['customField1'])) {
+			$form->addLocaleText('customField1', $this::CONFIGURATIONS['customField1']);
+		}
 
 		$form->addGroup('Export');
 		$form->addText('heurekaLabel', 'Název pro Heureka.cz')->setNullable();
