@@ -34,7 +34,7 @@ class AttributeGroupRepository extends \StORM\Repository implements IGeneralRepo
 			$collection->where('this.hidden', false);
 		}
 
-		return $collection->orderBy(['this.priority', "this.name$mutationSuffix",]);
+		return $collection->orderBy(['this.subGroup', 'this.priority', "this.name$mutationSuffix",]);
 	}
 
 	/**
@@ -52,10 +52,10 @@ class AttributeGroupRepository extends \StORM\Repository implements IGeneralRepo
 
 		while ($group = $collection->fetch()) {
 			foreach ((clone $group->attributes)->where('this.uuid', $attributes)->orderBy(['this.priority']) as $attribute) {
-				if (!isset($groups[$group->getPK()])) {
-					$groups[$group->getPK()] = ['group' => $group, 'items' => [$attribute->getPK() => $attribute]];
+				if (!isset($groups[$group->subGroup][$group->getPK()])) {
+					$groups[$group->subGroup][$group->getPK()] = ['group' => $group, 'items' => [$attribute->getPK() => $attribute]];
 				} else {
-					$groups[$group->getPK()]['items'][$attribute->getPK()] = $attribute;
+					$groups[$group->subGroup][$group->getPK()]['items'][$attribute->getPK()] = $attribute;
 				}
 			}
 		}

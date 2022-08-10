@@ -869,12 +869,14 @@ class AttributePresenter extends BackendPresenter
 
 	public function createComponentGroupsGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->attributeGroupRepository->many(), 20, 'priority', 'ASC', true);
+		$grid = $this->gridFactory->create($this->attributeGroupRepository->many(), 20, 'subGroup', 'ASC', true);
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 
+		$grid->addColumnInputInteger('Podskupina', 'subGroup', '', '', 'subGroup', [], true);
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
+
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('groupDetail');
@@ -904,8 +906,10 @@ class AttributePresenter extends BackendPresenter
 
 		$producer = $this->getParameter('attributeGroup');
 
+		$form->addInteger('subGroup', 'Podskupina')->setDefaultValue(10);
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
+
 		$form->addSubmits(!$producer);
 
 		$form->onSuccess[] = function (AdminForm $form): void {

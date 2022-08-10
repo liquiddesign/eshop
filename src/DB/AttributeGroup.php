@@ -30,6 +30,12 @@ class AttributeGroup extends SystemicEntity
 	public int $priority = 10;
 
 	/**
+	 * Podskupina
+	 * @column
+	 */
+	public int $subGroup = 10;
+
+	/**
 	 * Skryto
 	 * @column
 	 */
