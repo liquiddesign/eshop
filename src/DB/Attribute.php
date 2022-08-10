@@ -101,6 +101,12 @@ class Attribute extends \StORM\Entity
 	public bool $hidden = false;
 
 	/**
+	 * Doporučené
+	 * @column
+	 */
+	public bool $recommended = false;
+
+	/**
 	 * Skrýt hodnoty bez přiřazení na frontu
 	 * @column
 	 */

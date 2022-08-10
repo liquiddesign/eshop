@@ -135,6 +135,7 @@ class AttributePresenter extends BackendPresenter
 		$grid->addColumnText('Zdroj', 'supplier.name', '%s', 'supplier.name');
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
+		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 		$grid->addColumnInputCheckbox('Filtrace', 'showFilter', '', '', 'showFilter');
 		$grid->addColumnInputCheckbox('Náhled', 'showProduct', '', '', 'showProduct');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
@@ -241,6 +242,7 @@ class AttributePresenter extends BackendPresenter
 
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addCheckbox('hideEmptyValues', 'Skrýt nepřiřazené hodnoty')->setHtmlAttribute('data-info', 'Hodnoty, které nemají žádný produkt budou v seznamu skryté.');
+		$form->addCheckbox('recommended', 'Doporučeno');
 
 		if (!$hardSystemic) {
 			$form->addCheckbox('showRange', 'Zobrazit jako rozsahy')->setHtmlAttribute('data-info', 'Hodnoty atributu nebudou zobrazeny jako jednotlivé položky, ale souhrnně dle nastavení rozsahů.');
@@ -332,6 +334,7 @@ class AttributePresenter extends BackendPresenter
 		$grid->addColumnText('Zdroj', 'supplierName', '%s', 'supplierName');
 		$grid->addColumnText('Rozsah', 'rangeName', '%s');
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
+		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('valueDetail');
@@ -431,6 +434,7 @@ class AttributePresenter extends BackendPresenter
 			->setRequired()
 			->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
+		$form->addCheckbox('recommended', 'Doporučeno');
 
 		$mutationSuffix = $this->attributeValueRangeRepository->getConnection()->getMutationSuffix();
 
