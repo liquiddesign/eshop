@@ -305,7 +305,7 @@ class EHub
 	 * @param callable $condition
 	 * @param \DateTime|null $from
 	 */
-	public function updateTransactions(callable $condition, ?\DateTime $from = null): void
+	public function updateTransactions(callable $condition, ?\DateTime $from = null, ?\DateTime $to = null): void
 	{
 		$this->syncTransactions();
 
@@ -316,7 +316,13 @@ class EHub
 		if ($from) {
 			$fromString = $from->format('Y-m-d\TH:i:s');
 
-			$transactions->where('this.createdTs > :from', ['from' => $fromString]);
+			$transactions->where('this.createdTs >= :from', ['from' => $fromString]);
+		}
+
+		if ($to) {
+			$toString = $to->format('Y-m-d\TH:i:s');
+
+			$transactions->where('this.createdTs <= :to', ['to' => $toString]);
 		}
 
 		while ($transaction = $transactions->fetch()) {

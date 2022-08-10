@@ -6,11 +6,14 @@ namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\DB\Customer;
+use Eshop\DB\CustomerRepository;
 use Eshop\DB\EHubTransaction;
 use Eshop\DB\EHubTransactionRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\Integration\EHub;
 use Forms\Form;
+use Grid\Datagrid;
 use StORM\Collection;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -25,6 +28,9 @@ class EHubPresenter extends \Eshop\BackendPresenter
 
 	/** @inject */
 	public EHub $EHub;
+
+	/** @inject */
+	public CustomerRepository $customerRepository;
 	
 	public function createComponentGridTransactions(): AdminGrid
 	{
@@ -49,6 +55,20 @@ class EHubPresenter extends \Eshop\BackendPresenter
 
 			return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;$orderCode</a>";
 		}, '%s', 'order.code');
+		$btnSecondary = 'btn btn-sm btn-outline-primary';
+		$grid->addColumn('Login', function (EHubTransaction $object, Datagrid $grid) use ($btnSecondary) {
+			if (!$object->order || !$object->order->purchase->account) {
+				return '';
+			}
+
+			$account = $object->order->purchase->account;
+
+			$link = $grid->getPresenter()->link('loginCustomer!', [$account->login]);
+
+			return $account->isActive() ?
+				"<a class='$btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>" :
+				"<a class='$btnSecondary disabled' href='#'><i class='fa fa-sign-in-alt'></i></a>";
+		}, '%s', null, ['class' => 'minimal']);
 		$grid->addColumnText('Cena', 'orderAmount', '%s', 'orderAmount', ['class' => 'fit']);
 		$grid->addColumnText('Originální cena', 'originalOrderAmount', '%s', 'originalOrderAmount', ['class' => 'fit']);
 		$grid->addColumnText('Měna', 'originalCurrency', '%s', 'originalCurrency', ['class' => 'fit']);
@@ -123,6 +143,13 @@ class EHubPresenter extends \Eshop\BackendPresenter
 		};
 		
 		return $form;
+	}
+
+	public function handleLoginCustomer($login): void
+	{
+		$this->user->login($this->customerRepository->getByAccountLogin($login), null, [Customer::class]);
+
+		$this->presenter->redirect(':Web:Index:default');
 	}
 
 	public function renderChangeStatus(array $ids): void
