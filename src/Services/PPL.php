@@ -255,7 +255,7 @@ class PPL
 					$package = new Package(
 						(string) $packageNumber,
 						Product::PPL_PARCEL_CZ_PRIVATE_COD,
-						$order->code . ($order->purchase->deliveryNote ? ', ' . $order->purchase->deliveryNote : null),
+						$order->code . ($order->purchase->deliveryNote ? ', ' . Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH) : null),
 						$recipient,
 						$cityRouting,
 						null,
@@ -270,7 +270,7 @@ class PPL
 					$package = new Package(
 						(string) $packageNumber,
 						Product::PPL_PARCEL_CZ_PRIVATE,
-						$order->code . ($order->purchase->deliveryNote ? ', ' . $order->purchase->deliveryNote : null),
+						$order->code . ($order->purchase->deliveryNote ? ', ' . Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH) : null),
 						$recipient,
 						$cityRouting,
 						null,
@@ -411,7 +411,7 @@ class PPL
 					$packages[] = new Package(
 						$packageNumber,
 						Product::PPL_PARCEL_CZ_PRIVATE_COD,
-						$order->code . ($order->purchase->deliveryNote ? '<br>' . $order->purchase->deliveryNote : null),
+						$order->code . ($order->purchase->deliveryNote ? '<br>' . Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH) : null),
 						$recipient,
 						$cityRouting,
 						$this->sender,
@@ -426,7 +426,7 @@ class PPL
 					$packages[] = new Package(
 						$packageNumber,
 						Product::PPL_PARCEL_CZ_PRIVATE,
-						$order->code . ($order->purchase->deliveryNote ? '<br>' . $order->purchase->deliveryNote : null),
+						$order->code . ($order->purchase->deliveryNote ? '<br>' . Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH) : null),
 						$recipient,
 						$cityRouting,
 						$this->sender,

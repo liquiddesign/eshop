@@ -9,6 +9,7 @@ use Nette\Application\Application;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
+use Nette\Utils\Strings;
 use setasign\Fpdi\Fpdi;
 use StORM\Collection;
 use Tracy\Debugger;
@@ -136,7 +137,7 @@ class DPD
 					'ID_Customer_Address' => $this->idAddress,
 					'REF1' => $order->code,
 					'REF3' => $order->code,
-					'REF4' => $order->purchase->deliveryNote,
+					'REF4' => Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH),
 					'Receiver' => [
 						'RNAME1' => $purchase->fullname,
 						'RSTREET' => $deliveryAddress ? $deliveryAddress->street : '',
@@ -150,7 +151,7 @@ class DPD
 						[
 							'REF1' => $order->code,
 							'REF3' => $order->code,
-							'REF4' => $order->purchase->deliveryNote,
+							'REF4' => Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH),
 						],
 					],
 				];
