@@ -121,6 +121,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	public function getProducts(?array $pricelists = null, ?Customer $customer = null, bool $selects = true): Collection
 	{
+		$discountCoupon = $this->shopper->discountCoupon;
+
 		$currency = $this->shopper->getCurrency();
 		$convertRatio = null;
 		
@@ -132,7 +134,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$pricelists = $pricelists ?: $this->shopper->getPricelists()->toArray();
 		$pricelists = \array_values($pricelists);
 		$customer ??= $this->shopper->getCustomer();
-		$discountLevelPct = $customer ? $this->getBestDiscountLevel($customer) : 0;
+		$discountLevelPct = \max($discountCoupon && $discountCoupon->discountPct ? (int)$discountCoupon->discountPct : 0, $customer ? $this->getBestDiscountLevel($customer) : 0);
 		$vatRates = $this->shopper->getVatRates();
 		$prec = $currency->calculationPrecision;
 		

@@ -150,7 +150,7 @@ class CustomerPresenter extends BackendPresenter
 		});
 		$grid->addColumnTextFit('Skupina', 'group.name', '%s', 'group.name');
 		$grid->addColumnText('Ceníky', 'pricelists_names', '%s');
-		$grid->addColumnTextFit('Hladina', 'discountLevelPct', '%s %%', 'discountLevelPct');
+		$grid->addColumnTextFit('Procentuální sleva', 'discountLevelPct', '%s %%', 'discountLevelPct');
 
 		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
 			$grid->addColumn('Věrnostní program', function (Customer $object) {
@@ -161,7 +161,7 @@ class CustomerPresenter extends BackendPresenter
 
 				return $object->getValue('loyaltyProgram') ?
 					"<a href='" . $link . "'>" . $object->loyaltyProgram->name . '</a><small><br>Bodů: ' . $object->getLoyaltyProgramPoints() .
-					' | Sleva: ' . $this->productRepo->getBestDiscountLevel($object) . '%</small>' :
+					' | Sleva: ' . ($object->loyaltyProgramDiscountLevel ? $object->loyaltyProgramDiscountLevel->discountLevel : 0) . '%</small>' :
 					'';
 			}, '%s');
 		}
@@ -456,12 +456,20 @@ class CustomerPresenter extends BackendPresenter
 				
 				$form->addText('loyaltyProgramTurnover', 'Objem objednávek (Kč)')->setDisabled()->setDefaultValue((string) $customerTurnover);
 				$form->addText('loyaltyProgramPoints', 'Stav věrnostního konta')->setDisabled()->setDefaultValue((string)$customer->getLoyaltyProgramPoints());
-				$form->addText('loyaltyProgramDiscountLevel', 'Sleva věrnostního programu (%)')->setDisabled()->setDefaultValue((string)$this->productRepo->getBestDiscountLevel($customer));
+				$form->addText('loyaltyProgramDiscountLevel', 'Procentuální sleva věrnostního programu (%)')
+					->setDisabled();
 			}
 		}
 
 		if (isset($this::CONFIGURATIONS['discountLevel']) && $this::CONFIGURATIONS['discountLevel']) {
-			$form->addInteger('discountLevelPct', 'Slevová hladina (%)')->setDefaultValue(0)->setRequired();
+			$form->addInteger('discountLevelPct', 'Procentuální sleva (%)')
+				->setHtmlAttribute(
+					'data-info',
+					'Aplikuje se vždy největší z čtveřice: procentuální slevy produktu, procentuální slevy zákazníka, slevy věrnostního programu zákazníka nebo slevového kupónu.<br>
+Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
+				)
+				->setDefaultValue(0)
+				->setRequired();
 		}
 
 		if (isset($this::CONFIGURATIONS['rounding']) && $this::CONFIGURATIONS['rounding']) {
@@ -617,12 +625,18 @@ class CustomerPresenter extends BackendPresenter
 			->where('fk_customer', $customer)
 			->toArray();
 
-		$form->setDefaults($customer->toArray([
+		$defaults = $customer->toArray([
 				'pricelists',
 				'exclusivePaymentTypes',
 				'exclusiveDeliveryTypes',
 				'accounts',
-			]) + ['merchants' => $merchants]);
+			]) + ['merchants' => $merchants];
+
+		if ($customer->loyaltyProgramDiscountLevel) {
+			$defaults['loyaltyProgramDiscountLevel'] = (string)$customer->loyaltyProgramDiscountLevel->discountLevel;
+		}
+
+		$form->setDefaults($defaults);
 
 		$form->onSuccess[] = function (AdminForm $form) use ($customer): void {
 			$values = $form->getValues('array');

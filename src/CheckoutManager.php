@@ -1052,10 +1052,6 @@ class CheckoutManager
 	public function getDiscountPrice(): float
 	{
 		if ($coupon = $this->getDiscountCoupon()) {
-			if ($coupon->discountPct) {
-				return \floatval($this->getSumPrice() * $coupon->discountPct / 100);
-			}
-
 			return \floatval($coupon->discountValue);
 		}
 
@@ -1065,10 +1061,6 @@ class CheckoutManager
 	public function getDiscountPriceVat(): float
 	{
 		if ($coupon = $this->getDiscountCoupon()) {
-			if ($coupon->discountPct) {
-				return \floatval($this->getSumPriceVat() * $coupon->discountPct / 100);
-			}
-
 			return \floatval($coupon->discountValueVat);
 		}
 

@@ -369,7 +369,12 @@ class PricelistsPresenter extends BackendPresenter
 		$discountInput->addCondition($form::FILLED)->toggle($onlyCouponInput->getHtmlId() . '-toogle');
 
 		$form->addText('priority', 'Priorita')->addRule($form::INTEGER)->setRequired()->setDefaultValue(10);
-		$form->addCheckbox('allowDiscountLevel', 'Povolit slevovou hladinu');
+		$form->addCheckbox('allowDiscountLevel', 'Povolit procentuální slevy')
+			->setHtmlAttribute(
+				'data-info',
+				'Aplikuje se vždy největší z čtveřice: procentuální slevy produktu, procentuální slevy zákazníka, slevy věrnostního programu zákazníka nebo slevového kupónu.<br>
+Pokud je povoleno, aplikuje zmíněnou procentuální slevu. Jinak aplikuje pouze slevu v rámci cen v aktivních ceníkách.',
+			);
 		$form->addCheckbox('isActive', 'Aktivní');
 
 		if (isset($this::CONFIGURATION['customLabel']) && $this::CONFIGURATION['customLabel']) {
