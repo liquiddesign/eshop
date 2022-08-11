@@ -185,7 +185,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder'], false, null, 'this.uuid');
 
-		$bulkEdits = ['pricelists', 'merchant', 'group'];
+		$bulkEdits = ['pricelists', 'merchant', 'discountLevelPct', 'group'];
 
 		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
 			$bulkEdits[] = 'loyaltyProgram';
