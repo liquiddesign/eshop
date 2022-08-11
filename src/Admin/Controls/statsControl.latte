@@ -41,6 +41,9 @@
                 <div class="p-1 inline-style">
                     <a n:href="resetStatsFilter!" class="btn btn-secondary btn-sm form-control-sm">Zrušit</a>
                 </div>
+                <div class="p-1 inline-style">
+                    <a href="{$presenter->link('clearOrdersPriceCache!')}" class="btn btn-danger btn-sm form-control-sm" onclick="return confirm('Opravdu? Načtení statistik bude trvat více jak 10 minut! V případě chyby prosím obnovte stránku.')">Vyčistit mezipaměť cen objednávek</a>
+                </div>
             </div>
         </form>
     </div>
@@ -256,7 +259,7 @@
                     backgroundColor: '#4791ed',
                     borderColor: '#4791ed',
                     borderWidth: 1,
-                    data: [{foreach $monthlyOrders as $key => $value}{$value['price']},{/foreach}]
+                    data: [{foreach $monthlyOrders as $key => $value}{$value['price']|round:2},{/foreach}]
                 },
                 {/if}
                 {if $control->shopper->getShowVat()}
@@ -265,7 +268,7 @@
                     backgroundColor: '#2970C9',
                     borderColor: '#2970C9',
                     borderWidth: 1,
-                    data: [{foreach $monthlyOrders as $key => $value}{$value['priceVat']},{/foreach}]
+                    data: [{foreach $monthlyOrders as $key => $value}{$value['priceVat']|round:2},{/foreach}]
                 },
                 {/if}
             ],

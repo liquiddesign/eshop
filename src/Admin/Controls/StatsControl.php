@@ -14,6 +14,7 @@ use Eshop\Shopper;
 use Forms\Form;
 use Nette;
 use Nette\Application\UI\Control;
+use Tracy\Debugger;
 
 class StatsControl extends Control
 {
@@ -72,7 +73,7 @@ class StatsControl extends Control
 			->setHtmlAttribute('max', (new Nette\Utils\DateTime())->format('Y-m-d'))
 			->setHtmlType('date')
 			->setRequired()
-			->setDefaultValue((new Nette\Utils\DateTime())->modify('- 1 year')->format('Y-m-d'));
+			->setDefaultValue((new Nette\Utils\DateTime())->modify('- 1 week')->format('Y-m-d'));
 		$form->addText('to', 'Do')
 			->setHtmlAttribute('min', (new Nette\Utils\DateTime())->modify('- 1 year')->format('Y-m-d'))
 			->setHtmlAttribute('max', (new Nette\Utils\DateTime())->format('Y-m-d'))
@@ -123,10 +124,12 @@ class StatsControl extends Control
 
 	public function render(): void
 	{
+		Debugger::$showBar = false;
+
 		/** @var \Nette\Application\UI\Form $form */
 		$form = $this->getComponent('form');
 
-		$statsFrom = isset($this->state['from']) ? new Nette\Utils\DateTime($this->state['from']) : ((new Nette\Utils\DateTime())->modify('- 1 year'));
+		$statsFrom = isset($this->state['from']) ? new Nette\Utils\DateTime($this->state['from']) : ((new Nette\Utils\DateTime())->modify('- 1 week'));
 		$statsTo = isset($this->state['to']) ? new Nette\Utils\DateTime($this->state['to']) : (new Nette\Utils\DateTime());
 		$customerType = $this->state['customerType'] ?? 'all';
 		$customer = $this->signedInCustomer ?? (isset($this->state['customer']) ? $this->customerRepository->one($this->state['customer']) : null);
@@ -173,9 +176,15 @@ class StatsControl extends Control
 				->where('customerXmerchant.fk_merchant', $merchant->getPK());
 		}
 
+		$orders->join(['cart' => 'eshop_cart'], 'purchase.uuid = cart.fk_purchase')
+			->join(['cartCurrency' => 'eshop_currency'], 'cartCurrency.uuid = cart.fk_currency')
+			->select([
+				'purchaseCart' => 'cart.uuid',
+				'cartCurrency' => 'cartCurrency.uuid',
+			]);
+
 		if ($category) {
-			$orders->join(['cart' => 'eshop_cart'], 'purchase.uuid = cart.fk_purchase')
-				->join(['cartItem' => 'eshop_cartitem'], 'cart.uuid = cartItem.fk_cart')
+			$orders->join(['cartItem' => 'eshop_cartitem'], 'cart.uuid = cartItem.fk_cart')
 				->join(['product' => 'eshop_product'], 'cartItem.fk_product = product.uuid')
 				->join(['productXcategory' => 'eshop_product_nxn_eshop_category'], 'product.uuid = productXcategory.fk_product')
 				->join(['category' => 'eshop_category'], 'category.uuid = productXcategory.fk_category')
@@ -183,6 +192,9 @@ class StatsControl extends Control
 		}
 
 		$orders = $orders->toArray();
+
+//		$this->orderRepository->computeOrdersTotalPrice();
+//		die();
 
 		$this->template->shopper = $this->shopper;
 		$this->template->monthlyOrders = $this->orderRepository->getGroupedOrdersPrices($orders, $statsFrom, $statsTo, $currency);

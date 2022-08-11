@@ -765,6 +765,15 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		}
 	}
 
+	public function clearOrdersTotalPrice(): void
+	{
+		$this->many()->update([
+			'totalPriceComputed' => null,
+			'totalPriceVatComputed' => null,
+			'totalPriceComputedTs' => null,
+		]);
+	}
+
 	/**
 	 * @param array<\Eshop\DB\Order> $orders
 	 * @return float[]
@@ -781,8 +790,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 		foreach ($orders as $order) {
 			/** @var \Eshop\DB\Order $order */
-			$total += $order->getTotalPrice();
-			$totalVat += $order->getTotalPriceVat();
+			$total += $order->totalPriceComputed ?: $order->getTotalPrice();
+			$totalVat += $order->totalPriceVatComputed ?: $order->getTotalPriceVat();
 		}
 
 		return [$total / $count, $totalVat / $count];
@@ -807,15 +816,44 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 		$sum = 0;
 
+		$purchases = [];
+
+		/** @var \Eshop\DB\Order $order */
+		foreach ($orders as $order) {
+			$purchases[] = $order->getValue('purchase');
+		}
+
+		$repository = $this->connection->findRepository(CartItem::class);
+		$items = $repository->many()
+			->join(['cart' => 'eshop_cart'], 'this.fk_cart = cart.uuid')
+			->join(['purchase' => 'eshop_purchase'], 'cart.fk_purchase = purchase.uuid')
+			->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid')
+			->select(['purchasePK' => 'purchase.uuid', 'primaryCategory' => 'product.fk_primaryCategory'])
+			->where('purchase.uuid', $purchases)
+			->toArray();
+
+		$itemsByPurchase = [];
+
+		$loadedRootCategories = [];
+
+		foreach ($categoryRepo->many()->toArray() as $category) {
+			$loadedRootCategories[$category->getPK()] = Arrays::first($categoryRepo->getBranch($category));
+		}
+
+		/** @var \Eshop\DB\CartItem $item */
+		foreach ($items as $item) {
+			$itemsByPurchase[$item->getValue('purchasePK')][$item->getPK()] = $item;
+		}
+
 		foreach ($orders as $order) {
 			if (!$order->getValue('purchaseCart') || $order->getValue('cartCurrency') !== $currency->getPK()) {
 				continue;
 			}
 
-			$items = $order->purchase->getItems();
+			$items = $itemsByPurchase[$order->getValue('purchase')] ?? [];
 
 			foreach ($items as $item) {
-				$category = $item->product ? $item->product->primaryCategory : null;
+				$category = $item->getValue('primaryCategory');
 				$sum += $item->amount;
 
 				if (!$category) {
@@ -824,7 +862,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					continue;
 				}
 
-				$root = $categoryRepo->getRootCategoryOfCategory($category);
+				$root = $loadedRootCategories[$category];
 
 				if (!isset($rootCategories[$root->getPK()])) {
 					$rootCategories[$root->getPK()] = [
@@ -858,20 +896,36 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	 */
 	public function getOrdersTopProductsByAmount(array $orders, Currency $currency): array
 	{
-		/** @var \Eshop\DB\CartRepository $cartRepo */
-		$cartRepo = $this->getConnection()->findRepository(Cart::class);
-
 		$data = [];
 
-		foreach ($orders as $order) {
-			/** @var \Eshop\DB\Cart|null $cart */
-			$cart = $cartRepo->many()->where('fk_purchase', $order->purchase->getPK())->first();
+		$purchases = [];
 
-			if (!$cart || $cart->currency->getPK() !== $currency->getPK()) {
+		foreach ($orders as $order) {
+			$purchases[] = $order->getValue('purchase');
+		}
+
+		$repository = $this->connection->findRepository(CartItem::class);
+		$items = $repository->many()
+			->join(['cart' => 'eshop_cart'], 'this.fk_cart = cart.uuid')
+			->join(['purchase' => 'eshop_purchase'], 'cart.fk_purchase = purchase.uuid')
+			->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid')
+			->select(['purchasePK' => 'purchase.uuid', 'primaryCategory' => 'product.fk_primaryCategory'])
+			->where('purchase.uuid', $purchases)
+			->toArray();
+
+		$itemsByPurchase = [];
+
+		/** @var \Eshop\DB\CartItem $item */
+		foreach ($items as $item) {
+			$itemsByPurchase[$item->getValue('purchasePK')][$item->getPK()] = $item;
+		}
+
+		foreach ($orders as $order) {
+			if (!$order->getValue('purchaseCart') || $order->getValue('cartCurrency') !== $currency->getPK()) {
 				continue;
 			}
 
-			$items = $order->purchase->getItems();
+			$items = $itemsByPurchase[$order->getValue('purchase')] ?? [];
 
 			foreach ($items as $item) {
 				$code = $item->product ? $item->product->getFullCode() : $item->getFullCode();
@@ -896,7 +950,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			return $a['amount'] <=> $b['amount'];
 		});
 
-		return \array_slice($data, 0, 5);
+		return \array_slice(\array_reverse($data), 0, 10);
 	}
 
 	public function getOrdersByUser($user): Collection
