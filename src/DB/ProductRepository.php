@@ -194,15 +194,15 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			}, $generalPricelistIds));
 			
 			$sqlDiscountLevel = "100/(100-IF($discountLevelPct > this.discountLevelPct,$discountLevelPct,this.discountLevelPct))";
-			//$sqlDiscountLevel = "100/(100-$discountLevelPct)";
+			$sqlComputeBefore = "($beforeSelect) > 0 OR ($discountLevelPct = 0 AND this.discountLevelPct = 0) OR (($pricelistId) NOT IN ($allowLevelDiscounts))";
 			
-			$collection->select(['priceBefore' => $useBeforePriceCalculation && $discountLevelPct > 0 && \count($generalPricelistIds) ?
-				"IF(($beforeSelect) > 0 OR (($pricelistId) NOT IN ($allowLevelDiscounts)), $beforeSelect,$sqlDiscountLevel  * ($priceSelect))" :
+			$collection->select(['priceBefore' => $useBeforePriceCalculation && \count($generalPricelistIds) ?
+				"IF($sqlComputeBefore, $beforeSelect,$sqlDiscountLevel  * ($priceSelect))" :
 				$beforeSelect,
 			]);
 			
-			$collection->select(['priceVatBefore' => $useBeforePriceCalculation && $discountLevelPct > 0 && \count($generalPricelistIds) ?
-				"IF(($beforeVatSelect) > 0 OR (($pricelistId) NOT IN ($allowLevelDiscounts)), $beforeVatSelect,$sqlDiscountLevel * ($priceVatSelect))" :
+			$collection->select(['priceVatBefore' => $useBeforePriceCalculation && \count($generalPricelistIds) ?
+				"IF($sqlComputeBefore, $beforeVatSelect,$sqlDiscountLevel * ($priceVatSelect))" :
 				$beforeVatSelect,
 			]);
 			
