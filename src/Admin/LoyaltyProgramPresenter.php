@@ -191,7 +191,7 @@ class LoyaltyProgramPresenter extends BackendPresenter
 
 //		$grid->addColumnText('Věrnostní program', 'loyaltyProgram.name', '%s', 'loyaltyProgram.name');
 		$grid->addColumnText('Obratový práh', 'priceThreshold', '%s', 'priceThreshold');
-		$grid->addColumnText('Slevová hladina', 'discountLevel', '%s %%', 'discountLevel');
+		$grid->addColumnText('Procentuální sleva', 'discountLevel', '%s %%', 'discountLevel');
 
 		$grid->addColumnLinkDetail('levelDetail');
 		$grid->addColumnActionDelete();
@@ -219,14 +219,19 @@ class LoyaltyProgramPresenter extends BackendPresenter
 
 		$form->addText('priceThreshold', 'Obratový práh')
 			->setRequired()
-			->setHtmlAttribute('Obratový práh od kterého platí slevová hladina.')
+			->setHtmlAttribute('Obratový práh od kterého platí procentuální sleva.')
 			->addCondition($form::FILLED)
 			->addRule($form::FLOAT)
 			->endCondition()
 			->addFilter(function ($value) {
 				return $value !== null ? \floatval($value) : $value;
 			});
-		$form->addText('discountLevel', 'Slevová hladina (%)')
+		$form->addText('discountLevel', 'Procentuální sleva (%)')
+			->setHtmlAttribute(
+				'data-info',
+				'Aplikuje se vždy největší z čtveřice: procentuální slevy produktu, procentuální slevy zákazníka, slevy věrnostního programu zákazníka nebo slevového kupónu.<br>
+Platí jen pokud má ceník povoleno "Povolit procentualni slevy".',
+			)
 			->setRequired()
 			->setDefaultValue(0)
 			->addRule($form::INTEGER)
@@ -268,7 +273,7 @@ class LoyaltyProgramPresenter extends BackendPresenter
 		$this->template->headerLabel = 'Nová položka';
 		$this->template->headerTree = [
 			['Věrnostní programy', 'default'],
-			['Slevová hladina', 'default'],
+			['Procentuální sleva', 'default'],
 			['Nová položka'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
@@ -288,7 +293,7 @@ class LoyaltyProgramPresenter extends BackendPresenter
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Věrnostní programy', 'default'],
-			['Slevová hladina', 'default'],
+			['Procentuální sleva', 'default'],
 			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];

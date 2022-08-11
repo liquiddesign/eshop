@@ -140,7 +140,7 @@ class CustomerGroupPresenter extends BackendPresenter
 			}
 		}
 
-		$form->addInteger('defaultDiscountLevelPct', 'Výchozí slevová hladina')->setRequired()->setDefaultValue(0);
+		$form->addInteger('defaultDiscountLevelPct', 'Výchozí procentuální sleva')->setRequired()->setDefaultValue(0);
 		$form->addCheckbox('defaultBuyAllowed', 'Povolený nákup');
 		$form->addCheckbox('defaultViewAllOrders', 'Účet vidí všechny objednávky zákazníka');
 		$form->addDataMultiSelect('defaultPricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
