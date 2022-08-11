@@ -209,8 +209,9 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 						$grouped[$related->slave->getFullCode()]->amount += $related->amount;
 					} else {
 						$grouped[$related->slave->getFullCode()] = $related;
-						unset($topLevelItems[$item->getFullCode()]);
 					}
+
+					unset($topLevelItems[$item->getFullCode()]);
 				}
 			}
 		}

@@ -1527,8 +1527,9 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 						$grouped[$related->slave->getFullCode()]->amount += $related->amount;
 					} else {
 						$grouped[$related->slave->getFullCode()] = $related;
-						unset($topLevelItems[$item->getFullCode()]);
 					}
+
+					unset($topLevelItems[$item->getFullCode()]);
 				}
 			}
 		}
