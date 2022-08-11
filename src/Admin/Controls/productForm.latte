@@ -267,8 +267,24 @@
                         </tr>
                     {/foreach}
                 </table>
+
             </fieldset>
 
+            {ifset $form['discountLevelPct']}
+            <fieldset>
+                <legend>Slevy</legend>
+                <table class="mt-1 mb-1" style="width: auto;">
+                    <tr class="m-0 mt-1 has-danger">
+                        <th class="col-label col-form-label col">{label discountLevelPct/}</th>
+
+                        <td colspan="4"
+                            class="align-middle">{input discountLevelPct  class => 'form-control form-control-sm col-label max-number'}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError discountLevelPct}</span>
+                        </td>
+                    </tr>
+                </table>
+            </fieldset>
+            {/ifset}
             <fieldset>
                 <legend>Daně</legend>
 
@@ -467,17 +483,6 @@
                             <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError roundingCartonPct}</span>
                             <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError roundingPalletPct}</span>
 
-                        </td>
-                    </tr>
-                {/ifset}
-
-                {ifset $form['discountLevelPct']}
-                    <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label discountLevelPct/}</th>
-
-                        <td colspan="4"
-                            class="align-middle">{input discountLevelPct  class => 'form-control form-control-sm col-label max-number'}
-                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError discountLevelPct}</span>
                         </td>
                     </tr>
                 {/ifset}
