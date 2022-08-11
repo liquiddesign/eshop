@@ -149,6 +149,22 @@ class Order extends \StORM\Entity
 	 * @column{"type":"timestamp"}
 	 */
 	public ?string $loyaltyProgramComputedTs;
+
+	/**
+	 * Total prices computed
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $totalPriceComputedTs;
+
+	/**
+	 * @column
+	 */
+	public ?float $totalPriceComputed;
+
+	/**
+	 * @column
+	 */
+	public ?float $totalPriceVatComputed;
 	
 	/**
 	 * Nákup

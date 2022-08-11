@@ -680,9 +680,6 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$from = $from->modifyClone();
 		$to = $to->modifyClone();
 
-		/** @var \Eshop\DB\CartRepository $cartRepo */
-		$cartRepo = $this->getConnection()->findRepository(Cart::class);
-
 		$data = [];
 		$from->setDate((int)$from->format('Y'), (int)$from->format('m'), 1);
 
@@ -700,10 +697,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$priceVat = 0;
 
 		foreach ($orders as $order) {
-			/** @var \Eshop\DB\Cart|null $cart */
-			$cart = $cartRepo->many()->where('fk_purchase', $order->purchase->getPK())->first();
-
-			if (!$cart || $cart->currency->getPK() !== $currency->getPK()) {
+			if (!$order->getValue('purchaseCart') || $order->getValue('cartCurrency') !== $currency->getPK()) {
 				continue;
 			}
 
@@ -717,9 +711,23 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				$priceVat = 0;
 			}
 
-			$price += $order->getTotalPrice();
-			$priceVat += $order->getTotalPriceVat();
+			$totalPrice = null;
+			$totalPriceVat = null;
+
+			$price += $order->totalPriceComputed ?: ($totalPrice = $order->getTotalPrice());
+			$priceVat += $order->totalPriceVatComputed ?: ($totalPriceVat = $order->getTotalPriceVat());
+
 			$prevDate = (new DateTime($order->createdTs))->format('Y-m');
+
+			if ($order->totalPriceComputedTs || !$totalPrice || !$totalPriceVat) {
+				continue;
+			}
+
+			$order->update([
+				'totalPriceComputed' => $totalPrice,
+				'totalPriceVatComputed' => $totalPriceVat,
+				'totalPriceComputedTs' => Carbon::now()->toDateTimeString(),
+			]);
 		}
 
 		if (isset($order)) {
@@ -730,6 +738,31 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		}
 
 		return $data;
+	}
+
+	public function computeOrdersTotalPrice(?Carbon $from = null, ?Carbon $to = null): void
+	{
+		/** @var \StORM\Collection<\Eshop\DB\Order> $orders */
+		$orders = $this->many()->where('this.totalPriceComputedTs IS NULL');
+
+		if ($from) {
+			$orders->where('this.createdTs >= :from', ['from' => $from->toDateTimeString()]);
+		}
+
+		if ($to) {
+			$orders->where('this.createdTs <= :to', ['to' => $to->toDateTimeString()]);
+		}
+
+		while ($order = $orders->fetch()) {
+			$price = $order->getTotalPrice();
+			$priceVat = $order->getTotalPriceVat();
+
+			$order->update([
+				'totalPriceComputed' => $price,
+				'totalPriceVatComputed' => $priceVat,
+				'totalPriceComputedTs' => Carbon::now()->toDateTimeString(),
+			]);
+		}
 	}
 
 	/**
@@ -765,9 +798,6 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		/** @var \Eshop\DB\CategoryRepository $categoryRepo */
 		$categoryRepo = $this->getConnection()->findRepository(Category::class);
 
-		/** @var \Eshop\DB\CartRepository $cartRepo */
-		$cartRepo = $this->getConnection()->findRepository(Cart::class);
-
 		$rootCategories = [];
 
 		$rootCategories[null] = [
@@ -778,10 +808,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$sum = 0;
 
 		foreach ($orders as $order) {
-			/** @var \Eshop\DB\Cart|null $cart */
-			$cart = $cartRepo->many()->where('fk_purchase', $order->purchase->getPK())->first();
-
-			if (!$cart || $cart->currency->getPK() !== $currency->getPK()) {
+			if (!$order->getValue('purchaseCart') || $order->getValue('cartCurrency') !== $currency->getPK()) {
 				continue;
 			}
 
@@ -1416,61 +1443,127 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'is_cancelled',
 		]);
 
+		$purchases = [];
+		$deliveryTypes = [];
+		$customers = [];
+		$addresses = [];
+		$paymentTypes = [];
+
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
-			$purchase = $order->purchase;
+			$purchases[] = $order->getValue('purchase');
+		}
+
+		$repository = $this->connection->findRepository(CartItem::class);
+		$items = $repository->many()
+			->join(['cart' => 'eshop_cart'], 'this.fk_cart = cart.uuid')
+			->join(['purchase' => 'eshop_purchase'], 'cart.fk_purchase = purchase.uuid')
+			->select(['purchasePK' => 'purchase.uuid'])
+			->where('purchase.uuid', $purchases)
+			->toArray();
+
+		$itemsByPurchase = [];
+
+		/** @var \Eshop\DB\CartItem $item */
+		foreach ($items as $item) {
+			$itemsByPurchase[$item->getValue('purchasePK')][$item->getPK()] = $item;
+		}
+
+		$repository = $this->connection->findRepository(Purchase::class);
+		$purchases = $repository->many()->where('this.uuid', $purchases)->toArray();
+
+		/** @var \Eshop\DB\Order $order */
+		foreach ($orders as $order) {
+			/** @var \Eshop\DB\Purchase $purchase */
+			$purchase = $purchases[$order->getValue('purchase')];
+
+			if ($object = $purchase->getValue('customer')) {
+				$customers[] = $object;
+			}
+
+			if ($object = $purchase->getValue('deliveryType')) {
+				$deliveryTypes[] = $object;
+			}
+
+			if ($object = $purchase->getValue('paymentType')) {
+				$paymentTypes[] = $object;
+			}
+
+			if (!$object = $purchase->getValue('billAddress')) {
+				continue;
+			}
+
+			$addresses[] = $object;
+		}
+
+		$repository = $this->connection->findRepository(DeliveryType::class);
+		$deliveryTypes = $repository->many()->where('this.uuid', $deliveryTypes)->toArray();
+		$repository = $this->connection->findRepository(Customer::class);
+		$customers = $repository->many()->where('this.uuid', $customers)->toArray();
+		$repository = $this->connection->findRepository(Address::class);
+		$addresses = $repository->many()->where('this.uuid', $addresses)->toArray();
+		$repository = $this->connection->findRepository(PaymentType::class);
+		$paymentTypes = $repository->many()->where('this.uuid', $paymentTypes)->toArray();
+
+		/** @var \Eshop\DB\Order $order */
+		foreach ($orders as $order) {
+			/** @var \Eshop\DB\Purchase $purchase */
+			$purchase = $purchases[$order->getValue('purchase')];
 			$isCancelled = $this->getState($order) === Order::STATE_CANCELED ? '1' : '0';
 
-			foreach ($purchase->getItems() as $item) {
+			$email = isset($customers[$purchase->getValue('customer')]) ? $customers[$purchase->getValue('customer')]->email : $purchase->email;
+			$billAddress = $addresses[$purchase->getValue('billAddress')] ?? null;
+
+			foreach ($itemsByPurchase[$purchase->getPK()] ?? [] as $item) {
 				$writer->insertOne([
-					$purchase->customer ? $purchase->customer->email : $purchase->email,
+					$email,
 					$order->code,
 					$order->createdTs,
 					$item->getFullCode(),
 					$item->price,
 					$item->priceVat,
 					$item->amount,
-					$purchase->billAddress ? $purchase->billAddress->name : null,
-					$purchase->billAddress ? $purchase->billAddress->street : null,
-					$purchase->billAddress ? $purchase->billAddress->zipcode : null,
-					$purchase->billAddress ? $purchase->billAddress->city : null,
+					$billAddress ? $billAddress->name : null,
+					$billAddress ? $billAddress->street : null,
+					$billAddress ? $billAddress->zipcode : null,
+					$billAddress ? $billAddress->city : null,
 					$isCancelled,
 				]);
 			}
 
-			if ($deliveryType = $purchase->deliveryType) {
+			if ($deliveryType = ($deliveryTypes[$purchase->getValue('deliveryType')] ?? null)) {
 				$writer->insertOne([
-					$purchase->customer ? $purchase->customer->email : $purchase->email,
+					$email,
 					$order->code,
 					$order->createdTs,
 					'doprava-' . $deliveryType->code,
 					$order->getDeliveryPriceSum(),
 					$order->getDeliveryPriceVatSum(),
 					1,
-					$purchase->billAddress ? $purchase->billAddress->name : null,
-					$purchase->billAddress ? $purchase->billAddress->street : null,
-					$purchase->billAddress ? $purchase->billAddress->zipcode : null,
-					$purchase->billAddress ? $purchase->billAddress->city : null,
+					$billAddress ? $billAddress->name : null,
+					$billAddress ? $billAddress->street : null,
+					$billAddress ? $billAddress->zipcode : null,
+					$billAddress ? $billAddress->city : null,
 					$isCancelled,
 				]);
 			}
 
-			if (!$paymentType = $purchase->paymentType) {
+			if (!$paymentType = ($paymentTypes[$purchase->getValue('paymentType')] ?? null)) {
 				continue;
 			}
 
 			$writer->insertOne([
-				$purchase->customer ? $purchase->customer->email : $purchase->email,
+				$email,
 				$order->code,
 				$order->createdTs,
 				'platba-' . $paymentType->code,
 				$order->getPaymentPriceSum(),
 				$order->getPaymentPriceVatSum(),
 				1,
-				$purchase->billAddress ? $purchase->billAddress->name : null,
-				$purchase->billAddress ? $purchase->billAddress->street : null,
-				$purchase->billAddress ? $purchase->billAddress->zipcode : null,
-				$purchase->billAddress ? $purchase->billAddress->city : null,
+				$billAddress ? $billAddress->name : null,
+				$billAddress ? $billAddress->street : null,
+				$billAddress ? $billAddress->zipcode : null,
+				$billAddress ? $billAddress->city : null,
 				$isCancelled,
 			]);
 		}
