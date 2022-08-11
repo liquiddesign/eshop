@@ -193,13 +193,15 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				return "'$value'";
 			}, $generalPricelistIds));
 			
+			$sqlDiscountLevel = "100/(100-IF($discountLevelPct > this.discountLevelPct,$discountLevelPct,this.discountLevelPct))";
+			
 			$collection->select(['priceBefore' => $useBeforePriceCalculation && $discountLevelPct > 0 && \count($generalPricelistIds) ?
-				"IF(($beforeSelect) > 0 OR (($pricelistId) NOT IN ($allowLevelDiscounts)), $beforeSelect, 100/(100-$discountLevelPct) * ($priceSelect))" :
+				"IF(($beforeSelect) > 0 OR (($pricelistId) NOT IN ($allowLevelDiscounts)), $beforeSelect,$sqlDiscountLevel  * ($priceSelect))" :
 				$beforeSelect,
 			]);
 			
 			$collection->select(['priceVatBefore' => $useBeforePriceCalculation && $discountLevelPct > 0 && \count($generalPricelistIds) ?
-				"IF(($beforeVatSelect) > 0 OR (($pricelistId) NOT IN ($allowLevelDiscounts)), $beforeVatSelect, 100/(100-$discountLevelPct) * ($priceVatSelect))" :
+				"IF(($beforeVatSelect) > 0 OR (($pricelistId) NOT IN ($allowLevelDiscounts)), $beforeVatSelect,$sqlDiscountLevel * ($priceVatSelect))" :
 				$beforeVatSelect,
 			]);
 			

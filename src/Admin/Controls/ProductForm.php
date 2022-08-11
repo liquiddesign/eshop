@@ -238,7 +238,7 @@ Ostatní: Přebírání ze zvoleného zdroje
 			->setHtmlAttribute('data-info', 'Např.: ks, ml, ...');
 
 		if (isset($configuration['discountLevel']) && $configuration['discountLevel']) {
-			$form->addInteger('discountLevelPct', 'Slevová hladina (%)')->setDefaultValue(0);
+			$form->addInteger('discountLevelPct', 'Slevová hladina (%)')->setRequired()->setDefaultValue(0);
 		}
 
 		$form->addInteger('defaultBuyCount', 'Předdefinované množství')->setRequired()->setDefaultValue(1);
