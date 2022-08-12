@@ -162,6 +162,16 @@ class CartItem extends \StORM\Entity
 		return $this->priceVat * $this->amount;
 	}
 
+	public function getPriceBefore(): ?float
+	{
+		return (float) $this->getValue('priceBefore') > 0 ? (float)$this->getValue('priceBefore') * $this->amount : null;
+	}
+
+	public function getPriceVatBefore(): ?float
+	{
+		return (float) $this->getValue('priceVatBefore') > 0 ? (float)$this->getValue('priceVatBefore') * $this->amount : null;
+	}
+
 	public function getDiscountPercent(): ?float
 	{
 		if (!$beforePrice = $this->priceBefore) {
