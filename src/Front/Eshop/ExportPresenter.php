@@ -149,6 +149,15 @@ abstract class ExportPresenter extends Presenter
 		}
 	}
 
+	public function renderTargitoProductsExport(): void
+	{
+		try {
+			$this->export('targito');
+		} catch (\Exception $e) {
+			$this->template->error = $e->getMessage();
+		}
+	}
+
 	public function renderZboziExport(): void
 	{
 		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();

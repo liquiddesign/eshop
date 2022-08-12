@@ -134,6 +134,10 @@ class ExportPresenter extends BackendPresenter
 				$this->template->exports,
 				[
 					[
+						'name' => 'Export pro Targito',
+						'link' => $this->link('//:Eshop:Export:targitoProductsExport', ['lang' => $primaryMutation]),
+					],
+					[
 						'name' => 'Export stromu kategorií pro Targito',
 						'link' => $this->link('//:Eshop:Export:categoriesTargito'),
 					],
