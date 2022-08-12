@@ -149,7 +149,8 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
 
-		$form->addGroup('Externí ID');
+		$form->addGroup('Ostatní');
+		$form->addCheckbox('exportToFeed', 'Poskytovat v XML feedech');
 		$form->addText('externalId', 'Externí ID: Obecné')->setNullable();
 
 		$suppliersContainer = $form->addContainer('suppliers');

@@ -45,6 +45,16 @@
                 <g:mpn n:if="$product->mpn">{$product->mpn}</g:mpn>
                 <g:adult>no</g:adult>
                 <g:color n:if="$colorAttribute && $colorAttribute->value && isset($attributes[$colorAttribute->value]) && \count($attributes[$colorAttribute->value]) > 0">{foreach $attributes[$colorAttribute->value] as $attribute}{breakIf $iterator->getCounter0() === 3}{$attribute['label']}{sep}/{/sep}{/foreach}</g:color>
+                {if ($category = $product->primaryCategory) !== null}
+                    {do $categories = []}
+                    {while $category != null}
+                        {do $categories[] = $category}
+                        {do $category = $category->ancestor}
+                    {/while}
+                    {do $categories = \array_reverse($categories)}
+                    <g:product_type><![CDATA[{foreach $categories as $category}{$category->name}{if !$iterator->isLast()} | {/if}{/foreach}]]></g:product_type>
+                {/if}
+
                 {foreach $deliveryTypes as $deliveryType}
                     <g:shipping>
                         <g:country>CZ</g:country>

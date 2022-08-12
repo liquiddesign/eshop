@@ -58,6 +58,12 @@ class DeliveryType extends SystemicEntity
 	public ?string $trackingLink;
 	
 	/**
+	 * Exportovat do feedu
+	 * @column
+	 */
+	public bool $exportToFeed = false;
+	
+	/**
 	 * Exclusivní pro skupiny uživatelů
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}

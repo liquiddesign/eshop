@@ -429,7 +429,7 @@ abstract class ExportPresenter extends Presenter
 		$currency = $this->currencyRepository->one('CZK');
 
 		$this->template->priceType = $this->shopper->getShowVat() ? true : ($this->shopper->getShowWithoutVat() ? false : null);
-		$this->template->deliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0);
+		$this->template->deliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0)->where('this.exportToFeed', true);
 		$this->template->setFile(__DIR__ . "/../../templates/export/$name.latte");
 	}
 }
