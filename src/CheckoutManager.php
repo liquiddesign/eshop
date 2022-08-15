@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop;
 
+use Carbon\Carbon;
 use Eshop\DB\Address;
 use Eshop\DB\Attribute;
 use Eshop\DB\AttributeAssignRepository;
@@ -1335,7 +1336,10 @@ class CheckoutManager
 		}
 
 		if ($discountCoupon && $discountCoupon->usageLimit) {
-			$discountCoupon->update(['usagesCount' => $discountCoupon->usagesCount + 1]);
+			$discountCoupon->update([
+				'usagesCount' => $discountCoupon->usagesCount + 1,
+				'lastUsageTs' => (new Carbon())->toDateTimeString(),
+			]);
 		}
 
 		if ($purchase->sendNewsletters) {

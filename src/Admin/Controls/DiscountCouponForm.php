@@ -58,6 +58,8 @@ class DiscountCouponForm extends Control
 		$form->addText('minimalOrderPrice', 'Minimální cena objednávky')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->addText('maximalOrderPrice', 'Maximální cena objednávky')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->bind($discountCouponRepository->getStructure());
+		$form->addGroup('Export');
+		$form->addCheckbox('targitoExport', 'Targito');
 		$form->addGroup('Podmínky');
 		$form->addSelect('conditionsType', 'Typ porovnávání', ['and' => 'Všechny podmínky musí platit', 'or' => 'Alespoň jedna podmínka musí platit']);
 

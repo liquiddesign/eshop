@@ -4,14 +4,27 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
+use League\Csv\Writer;
 use StORM\Collection;
+use StORM\DIConnection;
+use StORM\SchemaManager;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Discount>
  */
 class DiscountRepository extends \StORM\Repository implements IGeneralRepository
 {
+	private DiscountCouponRepository $discountCouponRepository;
+
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, DiscountCouponRepository $discountCouponRepository)
+	{
+		parent::__construct($connection, $schemaManager);
+
+		$this->discountCouponRepository = $discountCouponRepository;
+	}
+
 	/**
 	 * @inheritDoc
 	 */
@@ -46,5 +59,63 @@ class DiscountRepository extends \StORM\Repository implements IGeneralRepository
 			(validFrom IS NOT NULL AND validFrom <= NOW()) OR (validTo IS NOT NULL AND NOW() <= validTo),
 			TRUE)
 			)')->orderBy(['validTo', 'validFrom']);
+	}
+
+	public function getValidCoupon(string $code, ?Currency $currency = null, ?Customer $customer = null): ?DiscountCoupon
+	{
+		return $this->getValidCoupons($currency, $customer)->where('code', $code)->first();
+	}
+
+	/**
+	 * @param \Eshop\DB\Currency|null $currency
+	 * @param \Eshop\DB\Customer|null $customer
+	 * @return \StORM\Collection<\Eshop\DB\DiscountCoupon>
+	 */
+	public function getValidCoupons(?Currency $currency = null, ?Customer $customer = null): Collection
+	{
+		$activeDiscounts = $this->getActiveDiscounts()->toArray();
+
+		$collection = $this->discountCouponRepository->many()
+			->where('discount.uuid', \array_keys($activeDiscounts))
+			->where('this.usageLimit IS NULL OR (this.usagesCount < this.usageLimit)');
+
+		if ($currency) {
+			$collection->where('fk_currency', $currency->getPK());
+		}
+
+		if ($customer) {
+			$collection->where('fk_exclusiveCustomer IS NULL OR fk_exclusiveCustomer = :customer', ['customer' => $customer]);
+		} else {
+			$collection->where('fk_exclusiveCustomer IS NULL');
+		}
+
+		return $collection;
+	}
+
+	public function csvExportTargitoCoupons(Writer $writer, ?string $origin = null): void
+	{
+		$writer->setDelimiter(',');
+
+		$writer->insertOne([
+			'id',
+			'origin',
+			'name',
+			'code',
+			'valid_from',
+			'valid_to',
+			'usage_date',
+		]);
+
+		foreach ($this->getValidCoupons()->where('this.targitoExport', true) as $coupon) {
+			$writer->insertOne([
+				'id',
+				$origin,
+				$coupon->label,
+				$coupon->code,
+				$coupon->discount->validFrom ? Carbon::parse($coupon->discount->validFrom)->toDateString() : null,
+				$coupon->discount->validTo ? Carbon::parse($coupon->discount->validTo)->toDateString() : null,
+				$coupon->lastUsageTs ? Carbon::parse($coupon->lastUsageTs)->toDateString() : null,
+			]);
+		}
 	}
 }

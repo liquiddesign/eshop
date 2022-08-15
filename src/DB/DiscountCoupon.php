@@ -66,6 +66,12 @@ class DiscountCoupon extends \StORM\Entity
 	public int $usagesCount = 0;
 
 	/**
+	 * Last usage datetime
+	 * @column{"type":"datetime"}
+	 */
+	public ?string $lastUsageTs;
+
+	/**
 	 * Minimální objednávka
 	 * @column
 	 */
@@ -82,6 +88,12 @@ class DiscountCoupon extends \StORM\Entity
 	 * @column{"type":"enum","length":"'or','and'"}
 	 */
 	public string $conditionsType;
+
+	/**
+	 * Maximální objednávka
+	 * @column
+	 */
+	public bool $targitoExport = false;
 	
 	/**
 	 * Exkluzivně pro zákazníka

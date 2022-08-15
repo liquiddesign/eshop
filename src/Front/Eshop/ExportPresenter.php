@@ -385,13 +385,17 @@ abstract class ExportPresenter extends Presenter
 	 * @return array<\Eshop\DB\Pricelist>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getPricelistFromSetting(string $settingName): array
+	public function getPricelistFromSetting(string $settingName, bool $required = true): ?array
 	{
 		/** @var \Web\DB\Setting|null $setting */
 		$setting = $this->settingRepo->one(['name' => $settingName]);
 
 		if (!$setting || !$setting->value) {
-			throw new \Exception($this::ERROR_MSG);
+			if ($required) {
+				throw new \Exception($this::ERROR_MSG);
+			}
+
+			return null;
 		}
 
 		return $this->priceListRepo->many()->where('this.uuid', \explode(';', $setting->value))->toArray();

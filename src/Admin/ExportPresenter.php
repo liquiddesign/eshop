@@ -72,6 +72,7 @@ class ExportPresenter extends BackendPresenter
 			'googleHighlightsAttribute',
 			'googleHighlightsMutation',
 			'googleSalePricelist',
+			'targitoExportPricelist',
 		];
 
 		foreach ($this->customSettings as $key => $groupSettings) {
@@ -175,6 +176,10 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 		$form->addDataMultiSelect('heurekaExportPricelist', 'Heureka', $this->priceListRepo->getArrayForSelect(false));
 		$form->addDataMultiSelect('zboziExportPricelist', 'Zboží', $this->priceListRepo->getArrayForSelect(false));
 		$form->addDataMultiSelect('googleExportPricelist', 'Google Nákupy', $this->priceListRepo->getArrayForSelect(false));
+
+		if (isset($this::CONFIGURATION['targito']) && $this::CONFIGURATION['targito']) {
+			$form->addDataMultiSelect('targitoExportPricelist', 'Targito', $this->priceListRepo->getArrayForSelect(false));
+		}
 
 		$form->addGroup('Heuréka');
 		$form->addDataSelect('heurekaCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');

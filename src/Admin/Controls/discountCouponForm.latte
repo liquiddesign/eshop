@@ -33,6 +33,13 @@
     </fieldset>
 
     <fieldset>
+        <legend>Export</legend>
+        <table class="mt-1 mb-1">
+            {$renderer->renderPair($form['targitoExport'])|noescape}
+        </table>
+    </fieldset>
+
+    <fieldset>
         <legend>Podmínky</legend>
         <table class="mt-1 mb-1">
             {$renderer->renderPair($form['usageLimit'])|noescape}

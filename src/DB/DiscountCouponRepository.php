@@ -34,6 +34,10 @@ class DiscountCouponRepository extends \StORM\Repository
 		$this->discountConditionRepository = $discountConditionRepository;
 	}
 
+	/**
+	 * @deprecated use DiscountRepository::getValidCoupon
+	 * @TODO use DiscountRepository::getActiveDiscounts for discounts
+	*/
 	public function getValidCoupon(string $code, Currency $currency, ?Customer $customer = null): ?DiscountCoupon
 	{
 		$collection = $this->many()
@@ -52,6 +56,9 @@ class DiscountCouponRepository extends \StORM\Repository
 		return $collection->first();
 	}
 
+	/**
+	 * @TODO use DiscountRepository::getActiveDiscounts for discounts and move to DiscountRepository
+	 */
 	public function getValidCouponByCart(string $code, Cart $cart, ?Customer $customer = null): ?DiscountCoupon
 	{
 		$showPrice = $this->shopper->getShowPrice();

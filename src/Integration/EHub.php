@@ -152,6 +152,7 @@ class EHub
 			'json' => [
 				'status' => $status,
 			],
+			'verify' => false,
 		]);
 
 		if ($response->getStatusCode() !== 200) {
