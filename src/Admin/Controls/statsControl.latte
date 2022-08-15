@@ -107,6 +107,18 @@
                 </tr>
                 {if $control->shopper->getShowWithoutVat()}
                     <tr>
+                        <td>Celková cena objednávek bez DPH</td>
+                        <td>{$sumOrderPrice[0]|price:$currency}</td>
+                    </tr>
+                {/if}
+                {if $control->shopper->getShowVat()}
+                    <tr>
+                        <td>Celková cena objednávek s DPH</td>
+                        <td>{$sumOrderPrice[1]|price:$currency}</td>
+                    </tr>
+                {/if}
+                {if $control->shopper->getShowWithoutVat()}
+                    <tr>
                         <td>Průměrná cena objednávky bez DPH</td>
                         <td>{$averageOrderPrice[0]|price:$currency}</td>
                     </tr>

@@ -69,13 +69,11 @@ class StatsControl extends Control
 		$form = $this->formFactory->create();
 
 		$form->addText('from', 'Od')
-			->setHtmlAttribute('min', (new Nette\Utils\DateTime())->modify('- 1 year')->format('Y-m-d'))
 			->setHtmlAttribute('max', (new Nette\Utils\DateTime())->format('Y-m-d'))
 			->setHtmlType('date')
 			->setRequired()
 			->setDefaultValue((new Nette\Utils\DateTime())->modify('- 1 week')->format('Y-m-d'));
 		$form->addText('to', 'Do')
-			->setHtmlAttribute('min', (new Nette\Utils\DateTime())->modify('- 1 year')->format('Y-m-d'))
 			->setHtmlAttribute('max', (new Nette\Utils\DateTime())->format('Y-m-d'))
 			->setHtmlType('date')
 			->setRequired()
@@ -200,6 +198,7 @@ class StatsControl extends Control
 		$this->template->monthlyOrders = $this->orderRepository->getGroupedOrdersPrices($orders, $statsFrom, $statsTo, $currency);
 		$this->template->boughtCategories = $this->orderRepository->getOrdersCategoriesGroupedByAmountPercentage($orders, $currency);
 		$this->template->topProducts = $this->orderRepository->getOrdersTopProductsByAmount($orders, $currency);
+		$this->template->sumOrderPrice = $this->orderRepository->getSumOrderPrice($orders);
 		$this->template->averageOrderPrice = $this->orderRepository->getAverageOrderPrice($orders);
 		$this->template->lastOrder = $this->orderRepository->getLastOrder();
 		$this->template->currency = $currency;

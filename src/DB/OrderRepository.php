@@ -778,6 +778,29 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	 * @param array<\Eshop\DB\Order> $orders
 	 * @return float[]
 	 */
+	public function getSumOrderPrice(array $orders): array
+	{
+		$total = 0;
+		$totalVat = 0;
+		$count = \count($orders);
+
+		if ($count === 0) {
+			return [0, 0];
+		}
+
+		foreach ($orders as $order) {
+			/** @var \Eshop\DB\Order $order */
+			$total += $order->totalPriceComputed ?: $order->getTotalPrice();
+			$totalVat += $order->totalPriceVatComputed ?: $order->getTotalPriceVat();
+		}
+
+		return [$total, $totalVat];
+	}
+
+	/**
+	 * @param array<\Eshop\DB\Order> $orders
+	 * @return float[]
+	 */
 	public function getAverageOrderPrice(array $orders): array
 	{
 		$total = 0;
