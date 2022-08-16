@@ -669,55 +669,34 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	/**
 	 * @param array<\Eshop\DB\Order> $orders
-	 * @param \Nette\Utils\DateTime $from
-	 * @param \Nette\Utils\DateTime $to
 	 * @param \Eshop\DB\Currency $currency
 	 * @return array<string, array<string, float>>
 	 * @throws \Exception
 	 */
-	public function getGroupedOrdersPrices(array $orders, DateTime $from, DateTime $to, Currency $currency): array
+	public function getGroupedOrdersPrices(array $orders, Currency $currency): array
 	{
-		$from = $from->modifyClone();
-		$to = $to->modifyClone();
-
 		$data = [];
-		$from->setDate((int)$from->format('Y'), (int)$from->format('m'), 1);
-
-		while ($from <= $to) {
-			$data[$from->format('Y-m')] = [
-				'price' => 0,
-				'priceVat' => 0,
-			];
-
-			$from->modify('+1 month');
-		}
-
-		$prevDate = \count($orders) > 0 && isset($orders[\array_keys($orders)[0]]) ? (new DateTime($orders[\array_keys($orders)[0]]->createdTs))->format('Y-m') : '';
-		$price = 0;
-		$priceVat = 0;
 
 		foreach ($orders as $order) {
 			if (!$order->getValue('purchaseCart') || $order->getValue('cartCurrency') !== $currency->getPK()) {
 				continue;
 			}
 
-			if ((new DateTime($order->createdTs))->format('Y-m') !== $prevDate) {
-				$data[$prevDate] = [
-					'price' => $price,
-					'priceVat' => $priceVat,
-				];
-
-				$price = 0;
-				$priceVat = 0;
-			}
-
 			$totalPrice = null;
 			$totalPriceVat = null;
 
-			$price += $order->totalPriceComputed ?: ($totalPrice = $order->getTotalPrice());
-			$priceVat += $order->totalPriceVatComputed ?: ($totalPriceVat = $order->getTotalPriceVat());
+			$price = $order->totalPriceComputed ?: ($totalPrice = $order->getTotalPrice());
+			$priceVat = $order->totalPriceVatComputed ?: ($totalPriceVat = $order->getTotalPriceVat());
 
-			$prevDate = (new DateTime($order->createdTs))->format('Y-m');
+			$orderCreatedYearMonth = (new Carbon($order->createdTs))->format('Y-m');
+
+			$data[$orderCreatedYearMonth] = isset($data[$orderCreatedYearMonth]) ? [
+				'price' => $price + $data[$orderCreatedYearMonth]['price'],
+				'priceVat' => $priceVat + $data[$orderCreatedYearMonth]['priceVat'],
+			] : [
+				'price' => $price,
+				'priceVat' => $priceVat,
+			];
 
 			if ($order->totalPriceComputedTs || !$totalPrice || !$totalPriceVat) {
 				continue;
@@ -728,13 +707,6 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				'totalPriceVatComputed' => $totalPriceVat,
 				'totalPriceComputedTs' => Carbon::now()->toDateTimeString(),
 			]);
-		}
-
-		if (isset($order)) {
-			$data[$prevDate] = [
-				'price' => $price,
-				'priceVat' => $priceVat,
-			];
 		}
 
 		return $data;

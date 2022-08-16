@@ -128,13 +128,11 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 		$currency = $this->shopper->getCurrency();
 
 		$user = $this->shopper->getCustomer() ?? $this->shopper->getMerchant();
-		$from = isset($this->statsFrom) ? (new Nette\Utils\DateTime($this->statsFrom)) : ((new Nette\Utils\DateTime())->modify('- 1 year'));
-		$to = isset($this->statsTo) ? (new Nette\Utils\DateTime($this->statsTo)) : (new Nette\Utils\DateTime());
 
 		/** @var array<\Eshop\DB\Order> $orders */
 		$orders = $this->orderRepository->getOrdersByUser($user)->toArray();
 
-		$this->template->monthlyOrders = $this->orderRepository->getGroupedOrdersPrices($orders, $from, $to, $currency);
+		$this->template->monthlyOrders = $this->orderRepository->getGroupedOrdersPrices($orders, $currency);
 		$this->template->boughtCategories = $this->orderRepository->getOrdersCategoriesGroupedByAmountPercentage($orders, $currency);
 		$this->template->topProducts = $this->orderRepository->getOrdersTopProductsByAmount($orders, $currency);
 	}

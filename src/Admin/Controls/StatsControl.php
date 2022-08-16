@@ -197,7 +197,7 @@ class StatsControl extends Control
 //		die();
 
 		$this->template->shopper = $this->shopper;
-		$this->template->monthlyOrders = $this->orderRepository->getGroupedOrdersPrices($orders, $statsFrom, $statsTo, $currency);
+		$this->template->monthlyOrders = $this->orderRepository->getGroupedOrdersPrices($orders, $currency);
 		$this->template->boughtCategories = $this->orderRepository->getOrdersCategoriesGroupedByAmountPercentage($orders, $currency);
 		$this->template->topProducts = $this->orderRepository->getOrdersTopProductsByAmount($orders, $currency);
 		$this->template->sumOrderPrice = $this->orderRepository->getSumOrderPrice($orders);
