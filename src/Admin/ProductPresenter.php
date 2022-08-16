@@ -120,8 +120,6 @@ class ProductPresenter extends BackendPresenter
 		],
 		'detailSuppliersTab' => false,
 		'extendedName' => false,
-		// Callback after Product is created, Product entity and form values passed as args
-		'onProductFormSuccess' => null,
 	];
 
 	protected const IMPORT_SET_COLUMNS = [
@@ -135,6 +133,9 @@ class ProductPresenter extends BackendPresenter
 	];
 
 	protected const DEFAULT_TEMPLATE = __DIR__ . '/../../_data/newsletterTemplates/newsletter.latte';
+
+	/** @var array<callable(\Eshop\DB\Product, array): void> */
+	public array $onProductFormSuccess = [];
 
 	/** @inject */
 	public ProductGridFactory $productGridFactory;
