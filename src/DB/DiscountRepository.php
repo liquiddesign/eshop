@@ -108,7 +108,7 @@ class DiscountRepository extends \StORM\Repository implements IGeneralRepository
 
 		foreach ($this->getValidCoupons()->where('this.targitoExport', true) as $coupon) {
 			$writer->insertOne([
-				'id',
+				$coupon->discount->name,
 				$origin,
 				$coupon->label,
 				$coupon->code,
