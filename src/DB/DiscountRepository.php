@@ -7,6 +7,7 @@ namespace Eshop\DB;
 use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
 use League\Csv\Writer;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
@@ -108,7 +109,7 @@ class DiscountRepository extends \StORM\Repository implements IGeneralRepository
 
 		foreach ($this->getValidCoupons()->where('this.targitoExport', true) as $coupon) {
 			$writer->insertOne([
-				$coupon->discount->name,
+				Strings::webalize($coupon->discount->name),
 				$origin,
 				$coupon->label,
 				$coupon->code,

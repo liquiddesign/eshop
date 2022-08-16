@@ -120,6 +120,8 @@ class ProductPresenter extends BackendPresenter
 		],
 		'detailSuppliersTab' => false,
 		'extendedName' => false,
+		// Callback after Product is created, Product entity and form values passed as args
+		'onProductFormSuccess' => null,
 	];
 
 	protected const IMPORT_SET_COLUMNS = [

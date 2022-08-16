@@ -703,6 +703,10 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 			$this->pageRepository->syncPage($values['page'], ['product' => $product->getPK()]);
 		});
 
+		if (isset($this->configuration['onProductFormSuccess']) && \is_callable($this->configuration['onProductFormSuccess'])) {
+			\call_user_func($this->configuration['onProductFormSuccess'], $product, $values);
+		}
+
 		$this->productRepository->clearCache();
 
 		$this->getPresenter()->flashMessage('Uloženo', 'success');
