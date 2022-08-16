@@ -184,17 +184,13 @@ class StatsControl extends Control
 			]);
 
 		if ($category) {
-			$orders->join(['cartItem' => 'eshop_cartitem'], 'cart.uuid = cartItem.fk_cart')
-				->join(['product' => 'eshop_product'], 'cartItem.fk_product = product.uuid')
-				->join(['productXcategory' => 'eshop_product_nxn_eshop_category'], 'product.uuid = productXcategory.fk_product')
-				->join(['category' => 'eshop_category'], 'category.uuid = productXcategory.fk_category')
-				->where('category.path LIKE :s', ['s' => "$category->path%"]);
+			$orders->join(['cartItem' => 'eshop_cartitem'], 'cart.uuid = cartItem.fk_cart', [], 'INNER')
+				->join(['product' => 'eshop_product'], 'cartItem.fk_product = product.uuid', [], 'INNER')
+				->join(['productXcategory' => 'eshop_product_nxn_eshop_category'], 'product.uuid = productXcategory.fk_product', [], 'INNER')
+				->where('productXcategory.fk_category', $category->getPK());
 		}
 
 		$orders = $orders->toArray();
-
-//		$this->orderRepository->computeOrdersTotalPrice();
-//		die();
 
 		$this->template->shopper = $this->shopper;
 		$this->template->monthlyOrders = $this->orderRepository->getGroupedOrdersPrices($orders, $currency);
