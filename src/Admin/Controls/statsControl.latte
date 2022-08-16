@@ -180,8 +180,8 @@
                     <tr n:foreach="$topProducts as $row">
                         <td>{$iterator->getCounter()}.</td>
                         {ifset $row['product']}
-                            <td><a href="{$row['product']->getPreviewImage($baseUrl)}">
-                                    <img data-src="{$row['product']->getPreviewImage($baseUrl,'thumb')}" loading="lazy" alt="" style="height:32px;">
+                            <td><a href="{$row['product']->getPreviewImage($baseUrl)}" target="_blank">
+                                    <img src="{$row['product']->getPreviewImage($baseUrl,'thumb')}" loading="lazy" alt="" style="height:32px;">
                                 </a></td>
                             <td>{$row['product']->getFullCode()}</td>
                             <td><a href="{plink :Eshop:Admin:Product:edit, $row['product']}">{$row['product']->name}</a></td>
