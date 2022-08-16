@@ -25,7 +25,7 @@
                     {input customerType, class => 'form-control form-control-sm'}
                 </div>
                 <div class="p-1 inline-style">
-                    {input customer, class => 'form-control form-control-sm'}
+                    {input customer, class => 'form-control form-control-sm', style => 'min-width:300px'}
                 </div>
                 <div class="p-1 inline-style">
                     {input merchant, class => 'form-control form-control-sm'}
@@ -56,7 +56,7 @@
             {var $purchase = $lastOrder->purchase}
             <div>
                  <div class="row">
-                    <div class="col-6">
+                    <div class="col-12">
                         <a href={plink :Eshop:Admin:Order:printDetail $lastOrder}>#{$lastOrder->code}</a>&nbsp;&nbsp;<small>Před {(new Nette\Utils\DateTime())->diff(new Nette\Utils\DateTime($lastOrder->createdTs))->format('%d dny %h hodinami %i minutami')} ({$lastOrder->createdTs|date:"d.m.Y G:i"})</small>
                     </div>
                     </div>

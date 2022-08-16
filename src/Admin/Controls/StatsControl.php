@@ -79,11 +79,7 @@ class StatsControl extends Control
 			->setRequired()
 			->setDefaultValue((new Nette\Utils\DateTime())->format('Y-m-d'));
 		$form->addSelect2('customerType', 'Typ zákazníka', ['new' => 'Nový', 'current' => 'Stávající'])->setPrompt('- Všichni zákazníci -');
-		$form->addSelect2(
-			'customer',
-			'Zákazník',
-			$this->customerRepository->getCollection(true)->select(['emailName' => 'CONCAT(fullName, " : ", email)'])->toArrayOf('emailName'),
-		)->setPrompt('- Zákazník -');
+		$form->addText('customer', 'Zákazník')->setNullable()->setHtmlAttribute('placeholder', 'E-mail zákazníka (pouze registrovaní)');
 		$form->addSelect2('merchant', 'Obchodník', $this->merchantRepository->getArrayForSelect())->setPrompt('- Obchodník -');
 		$form->addSelect2('category', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('- Kategorie -');
 
@@ -130,7 +126,13 @@ class StatsControl extends Control
 		$statsFrom = isset($this->state['from']) ? new Nette\Utils\DateTime($this->state['from']) : ((new Nette\Utils\DateTime())->modify('- 1 week'));
 		$statsTo = isset($this->state['to']) ? new Nette\Utils\DateTime($this->state['to']) : (new Nette\Utils\DateTime());
 		$customerType = $this->state['customerType'] ?? 'all';
-		$customer = $this->signedInCustomer ?? (isset($this->state['customer']) ? $this->customerRepository->one($this->state['customer']) : null);
+		$customer = $this->signedInCustomer ??
+			(isset($this->state['customer']) ? $this->customerRepository->many()->where('this.email LIKE :s', ['s' => '%' . $this->state['customer'] . '%'])->first() : null);
+
+		if (isset($this->state['customer']) && !$customer) {
+			$this->flashMessage('Zákazník nenalezen', 'warning');
+		}
+
 		$merchant = isset($this->state['merchant']) ? $this->merchantRepository->one($this->state['merchant']) : null;
 		$category = isset($this->state['category']) ? $this->categoryRepository->one($this->state['category']) : null;
 
