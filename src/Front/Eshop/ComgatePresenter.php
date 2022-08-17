@@ -36,7 +36,7 @@ abstract class ComgatePresenter extends FrontendPresenter
 		}
 
 		if ($data['merchant'] !== $this->comgate->getMerchant() || $data['secret'] !== $this->comgate->getSecret()) {
-			throw new \Exception('Invalid request');
+			throw new \Exception('Invalid request: Invalid data');
 		}
 
 		Debugger::log($data);
@@ -45,7 +45,7 @@ abstract class ComgatePresenter extends FrontendPresenter
 		$payment = $this->comgateRepository->one(['transactionId' => $data['transId']]);
 
 		if (!$payment) {
-			throw new \Exception('Invalid request');
+			throw new \Exception('Invalid request: Transaction not found');
 		}
 
 		$payment->update([
