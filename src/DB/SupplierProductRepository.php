@@ -340,7 +340,6 @@ class SupplierProductRepository extends \StORM\Repository
 			->select(['realCategory' => 'category.fk_category'])
 			->select(['realDisplayAmount' => 'displayAmount.fk_displayAmount'])
 			->select(['realProducer' => 'producer.fk_producer'])
-			->where('this.fk_displayAmount IS NOT NULL')
 			->where('category.fk_category IS NOT NULL')
 			->where('this.fk_product IS NOT NULL')
 			->where('this.active', true);
