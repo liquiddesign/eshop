@@ -306,9 +306,11 @@ class EHub
 	 * @param callable $condition
 	 * @param \DateTime|null $from
 	 */
-	public function updateTransactions(callable $condition, ?\DateTime $from = null, ?\DateTime $to = null): void
+	public function updateTransactions(callable $condition, ?\DateTime $from = null, ?\DateTime $to = null, bool $syncTransactions = true): void
 	{
-		$this->syncTransactions();
+		if ($syncTransactions) {
+			$this->syncTransactions();
+		}
 
 		$transactions = $this->EHubTransactionRepository->many()
 			->whereNot('this.status', EHubTransaction::STATUS_APPROVED)
@@ -343,6 +345,12 @@ class EHub
 
 			$this->updateTransaction($transaction, EHubTransaction::STATUS_DECLINED);
 		}
+
+		if (!$syncTransactions) {
+			return;
+		}
+
+		$this->syncTransactions();
 	}
 
 	private function sendSaleByOrder(Order $order): void
