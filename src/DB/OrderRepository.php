@@ -709,6 +709,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			]);
 		}
 
+		\ksort($data);
+
 		return $data;
 	}
 
