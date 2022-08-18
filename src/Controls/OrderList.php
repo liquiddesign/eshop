@@ -67,7 +67,7 @@ class OrderList extends Datalist
 				($permission->viewAllOrders ? null : $shopper->getCustomer()->getAccount()) : null));
 
 		$this->setDefaultOnPage(10);
-		$this->setDefaultOrder('this.createdTs', 'DESC');
+		$this->setDefaultOrder('createdTs', 'DESC');
 
 		$this->addFilterExpression('search', function (ICollection $collection, $value) use ($orderRepository, $shopper): void {
 			$suffix = $orderRepository->getConnection()->getMutationSuffix();
