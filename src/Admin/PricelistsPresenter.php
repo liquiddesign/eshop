@@ -379,7 +379,7 @@ Pokud je povoleno, aplikuje zmíněnou procentuální slevu. Jinak aplikuje pouz
 
 		if (isset($this::CONFIGURATION['customLabel']) && $this::CONFIGURATION['customLabel']) {
 			$form->addText('customLabel', 'Vlastní štítek')
-				->setHtmlAttribute('data-info', 'Použitý při exportu XML produktů pro Google jako "custom_label_0".')
+				->setHtmlAttribute('data-info', 'Použitý při exportu XML produktů pro Google jako "custom_label_1".')
 				->addCondition($form::FILLED)->addRule($form::MAX_LENGTH, 'Maximálně 100 znaků!', 100);
 		}
 
