@@ -23,6 +23,7 @@ use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
 use Nette\Utils\Html;
 use StORM\Collection;
+use StORM\ICollection;
 
 class InvoicesPresenter extends BackendPresenter
 {
@@ -107,6 +108,15 @@ class InvoicesPresenter extends BackendPresenter
 			->onClick[] = [$this, 'notifyMultiple'];
 		
 		$grid->addFilterTextInput('search', ['this.code'], null, 'Kód');
+		
+		$grid->addFilterDate(function (ICollection $source, $value): void {
+			$source->where('DATE(this.exposed) >= DATE(:date_from)', ['date_from' => $value]);
+		}, '', 'date_from', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
+		
+		$grid->addFilterDate(function (ICollection $source, $value): void {
+			$source->where('DATE(this.exposed) <= DATE(:date_to)', ['date_to' => $value]);
+		}, '', 'date_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
+		
 		$grid->addFilterButtons();
 		
 		return $grid;
