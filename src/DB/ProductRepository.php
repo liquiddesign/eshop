@@ -135,7 +135,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$pricelists = \array_values($pricelists);
 		$customer ??= $this->shopper->getCustomer();
 		$discountLevelPct = \max($discountCoupon && $discountCoupon->discountPct ? (int)$discountCoupon->discountPct : 0, $customer ? $this->getBestDiscountLevel($customer) : 0);
-		$maxProductDiscountLevel = $customer ? $customer->maxDiscountProductPct : 100;
+		$maxProductDiscountLevel = $customer ? $customer->maxDiscountProductPct : ($this->shopper->getCustomerGroup() ? $this->shopper->getCustomerGroup()->defaultMaxDiscountProductPct : 100);
 		$vatRates = $this->shopper->getVatRates();
 		$prec = $currency->calculationPrecision;
 		
