@@ -47,6 +47,12 @@ class CustomerGroup extends \StORM\Entity
 	 * @column
 	 */
 	public int $defaultDiscountLevelPct = 0;
+	
+	/**
+	 * Max. slevova u produktů
+	 * @column
+	 */
+	public int $defaultMaxDiscountProductPct = 100;
 
 	/**
 	 * Defaultní oprávnění: nákup

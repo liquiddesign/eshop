@@ -117,6 +117,12 @@ class Customer extends Entity implements IIdentity, IUser
 	public int $discountLevelPct = 0;
 	
 	/**
+	 * Max. slevova u produktů
+	 * @column
+	 */
+	public int $maxDiscountProductPct = 100;
+	
+	/**
 	 * Zokrouhlení od procent
 	 * @column
 	 */
