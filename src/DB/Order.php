@@ -280,12 +280,12 @@ class Order extends \StORM\Entity
 	
 	public function getTotalPrice(): float
 	{
-		return $this->purchase->getSumPrice() + $this->getDeliveryPriceSum() + $this->getPaymentPriceSum() - $this->getDiscountPrice();
+		return $this->purchase->getSumPrice() + $this->getDeliveryPriceSum() + $this->getPaymentPriceSum();
 	}
 	
 	public function getTotalPriceVat(): float
 	{
-		return $this->purchase->getSumPriceVat() + $this->getDeliveryPriceVatSum() + $this->getPaymentPriceVatSum() - $this->getDiscountPriceVat();
+		return $this->purchase->getSumPriceVat() + $this->getDeliveryPriceVatSum() + $this->getPaymentPriceVatSum();
 	}
 	
 	public function getDiscountPrice(): float
