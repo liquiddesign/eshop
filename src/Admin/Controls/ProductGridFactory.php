@@ -158,7 +158,8 @@ class ProductGridFactory
 
 			return $finalStr;
 		});
-
+		
+		$grid->addColumn('Sleva', 'discountLevelPct','%s %', 'discountLevelPct', ['class' => 'fit']);
 		$grid->addColumn('Obsah', function (Product $object, Datagrid $datagrid) {
 			if ($object->supplierContentLock && $object->content) {
 				$label = 'Vlastní obsah';
