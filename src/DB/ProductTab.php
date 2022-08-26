@@ -15,4 +15,10 @@ class ProductTab extends \StORM\Entity
 	 * @column{"mutations":true}
 	 */
 	public ?string $name;
+
+	/**
+	 * Priorita
+	 * @column
+	 */
+	public int $priority = 10;
 }
