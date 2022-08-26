@@ -63,7 +63,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	private Cache $cache;
 	
 	private QuantityPriceRepository $quantityPriceRepository;
-
+	
 	private AttributeValueRepository $attributeValueRepository;
 	
 	public function __construct(
@@ -122,7 +122,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function getProducts(?array $pricelists = null, ?Customer $customer = null, bool $selects = true): Collection
 	{
 		$discountCoupon = $this->shopper->discountCoupon;
-
+		
 		$currency = $this->shopper->getCurrency();
 		$convertRatio = null;
 		
@@ -135,6 +135,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$pricelists = \array_values($pricelists);
 		$customer ??= $this->shopper->getCustomer();
 		$discountLevelPct = \max($discountCoupon && $discountCoupon->discountPct ? (int)$discountCoupon->discountPct : 0, $customer ? $this->getBestDiscountLevel($customer) : 0);
+		$maxProductDiscountLevel = $customer ? $customer->maxDiscountProductPct : 100;
 		$vatRates = $this->shopper->getVatRates();
 		$prec = $currency->calculationPrecision;
 		
@@ -167,10 +168,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		/** @var \Eshop\DB\Pricelist $pricelist */
 		foreach ($pricelists as $id => $pricelist) {
 			if ($selects) {
-				$price = $this->sqlHandlePrice("prices$id", 'price', $discountLevelPct, $generalPricelistIds, $prec, $convertRatio);
-				$priceVat = $this->sqlHandlePrice("prices$id", 'priceVat', $discountLevelPct, $generalPricelistIds, $prec, $convertRatio);
-				$priceBefore = $this->sqlHandlePrice("prices$id", 'priceBefore', 0, [], $prec, $convertRatio);
-				$priceVatBefore = $this->sqlHandlePrice("prices$id", 'priceVatBefore', 0, [], $prec, $convertRatio);
+				$price = $this->sqlHandlePrice("prices$id", 'price', $discountLevelPct, $maxProductDiscountLevel, $generalPricelistIds, $prec, $convertRatio);
+				$priceVat = $this->sqlHandlePrice("prices$id", 'priceVat', $discountLevelPct, $maxProductDiscountLevel, $generalPricelistIds, $prec, $convertRatio);
+				$priceBefore = $this->sqlHandlePrice("prices$id", 'priceBefore', 0, 0, [], $prec, $convertRatio);
+				$priceVatBefore = $this->sqlHandlePrice("prices$id", 'priceVatBefore', 0, 0, [], $prec, $convertRatio);
 				$priceSelects[] = "IF(prices$id.price IS NULL,'X',CONCAT_WS('$sep',LPAD(" . $pricelist->priority .
 					",$priorityLpad,'0'),LPAD(CAST($price AS DECIMAL($priceLpad,$prec)), $priceLpad, '0'),$priceVat,IFNULL($priceBefore,0),IFNULL($priceVatBefore,0),prices$id.fk_pricelist))";
 			}
@@ -195,8 +196,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				return "'$value'";
 			}, $generalPricelistIds));
 			
-			$sqlDiscountLevel = "100/(100-IF($discountLevelPct > this.discountLevelPct,$discountLevelPct,this.discountLevelPct))";
-			$sqlComputeBefore = "($beforeSelect) > 0 OR ($discountLevelPct = 0 AND this.discountLevelPct = 0) OR (($pricelistId) NOT IN ($allowLevelDiscounts))";
+			$sqlDiscountLevel = "100/(100-IF($discountLevelPct > LEAST(this.discountLevelPct, $maxProductDiscountLevel),$discountLevelPct,LEAST(this.discountLevelPct, $maxProductDiscountLevel)))";
+			$sqlComputeBefore = "($beforeSelect) > 0 OR ($discountLevelPct = 0 AND LEAST(this.discountLevelPct, $maxProductDiscountLevel) = 0) OR (($pricelistId) NOT IN ($allowLevelDiscounts))";
 			
 			$collection->select(['priceBefore' => $useBeforePriceCalculation && \count($generalPricelistIds) ?
 				"IF($sqlComputeBefore, $beforeSelect,$sqlDiscountLevel  * ($priceSelect))" :
@@ -754,7 +755,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 						->where('eshop_attributeassign.fk_product=this.uuid')
 						->where('eshop_attributevalue.fk_attribute', $attributeKey)
 						->where($attribute->showRange ? 'eshop_attributevalue.fk_attributevaluerange' : 'eshop_attributevalue.uuid', $attributeValue);
-				
+					
 					
 					$collection->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
 				}
@@ -1226,21 +1227,21 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			->where('this.recyclingFee IS NOT NULL')
 			->orderBy(['supplier.importPriority'])
 			->firstValue('recyclingFee');
-
+		
 		return $fee ? (float) $fee : null;
 	}
 	
 	public function getCopyrightFeeBySuppliersPriority(Product $product): ?float
 	{
 		//@TODO s novým systémem sloučení zakomponovat
-
+		
 		$fee = $this->supplierProductRepository->many()
 			->join(['supplier' => 'eshop_supplier'], 'this.fk_supplier = supplier.uuid')
 			->where('this.fk_product', $product->getPK())
 			->where('this.copyrightFee IS NOT NULL')
 			->orderBy(['supplier.importPriority'])
 			->firstValue('copyrightFee');
-
+		
 		return $fee ? (float) $fee : null;
 	}
 	
@@ -1273,7 +1274,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute, '^', CONCAT(COALESCE(attributeValue.label$mutationSuffix), '°', attributeValue.code)) SEPARATOR \"~\")",
 				'producerCodeName' => "CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, ''))",
 				'amounts' => "GROUP_CONCAT(DISTINCT CONCAT(storeAmount.inStock, '#', store.code) SEPARATOR ':')",
-				'groupedCategories' => "GROUP_CONCAT(DISTINCT CONCAT(category.name$mutationSuffix, '#', 
+				'groupedCategories' => "GROUP_CONCAT(DISTINCT CONCAT(category.name$mutationSuffix, '#',
                 IF(category.code IS NULL OR category.code = '', category.uuid, category.code)) ORDER BY LENGTH(category.path) SEPARATOR ':')",
 			]);
 		
@@ -1414,7 +1415,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		
 		return $products;
 	}
-
+	
 	/**
 	 * @param \Eshop\DB\Product $product
 	 * @return array<mixed>
@@ -1427,30 +1428,30 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			->where('attribute.showProduct=1')
 			->setOrderBy(['attribute.priority' => 'ASC', 'this.priority' => 'ASC'])
 			->where('attributeAssign.fk_product', $product->getPK());
-
+		
 		$attributes = [
 			'attributes' => [],
 			'values' => [],
 		];
-
+		
 		foreach ($attributeValues as $attributeValue) {
 			$attribute = $attributeValue->attribute;
-
+			
 			if (!isset($attributes['attributes'][$attribute->getPK()])) {
 				$attributes['attributes'][$attribute->getPK()] = $attribute;
 			}
-
+			
 			if (!isset($attributes['values'][$attribute->getPK()])) {
 				$attributes['values'][$attribute->getPK()] = [];
 			}
-
+			
 			if (isset($attributes['values'][$attribute->getPK()][$attributeValue->getPK()])) {
 				continue;
 			}
-
+			
 			$attributes['values'][$attribute->getPK()][$attributeValue->getPK()] = $attributeValue;
 		}
-
+		
 		return $attributes;
 	}
 	
@@ -1469,7 +1470,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		throw new InvalidArgumentException('There is no unique parameter');
 	}
 	
-	private function sqlHandlePrice(string $alias, string $priceExp, ?int $levelDiscountPct, array $generalPricelistIds, int $prec, ?float $rate): string
+	private function sqlHandlePrice(string $alias, string $priceExp, ?int $levelDiscountPct, int $maxDiscountPct, array $generalPricelistIds, int $prec, ?float $rate): string
 	{
 		$expression = $rate === null ? "$alias.$priceExp" : "ROUND($alias.$priceExp * $rate,$prec)";
 		
@@ -1480,8 +1481,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				return "'$value'";
 			}, $generalPricelistIds));
 			
-			$expression = "IF($alias.fk_pricelist IN ($pricelists), 
-			ROUND($expression * ((100 - IF(this.discountLevelPct > $levelDiscountPct,this.discountLevelPct,$levelDiscountPct)) / 100),$prec),
+			$expression = "IF($alias.fk_pricelist IN ($pricelists),
+			ROUND($expression * ((100 - IF(LEAST(this.discountLevelPct, $maxDiscountPct) > $levelDiscountPct,LEAST(this.discountLevelPct, $maxDiscountPct),$levelDiscountPct)) / 100),$prec),
 			$expression)";
 		}
 		
