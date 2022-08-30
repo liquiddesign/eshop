@@ -1489,7 +1489,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		/** @var \Nette\Http\FileUpload $fileUpload */
 		$fileUpload = $this->getPresenter()->getHttpRequest()->getFile('file');
 		$uuid = Connection::generateUuid();
-		$filename = $uuid . '.' . $fileUpload->getImageFileExtension();
+		$filename = (isset($product->name) ? Strings::webalize($product->name) : '') . "-$uuid." . $fileUpload->getImageFileExtension();
 
 		/** @var \Eshop\DB\Photo $photo */
 		$photo = $this->photoRepository->createOne([

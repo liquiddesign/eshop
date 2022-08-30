@@ -111,11 +111,11 @@ class InvoicesPresenter extends BackendPresenter
 		
 		$grid->addFilterDate(function (ICollection $source, $value): void {
 			$source->where('DATE(this.exposed) >= DATE(:date_from)', ['date_from' => $value]);
-		}, '', 'date_from', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
+		}, '', 'date_from')->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
 		
 		$grid->addFilterDate(function (ICollection $source, $value): void {
 			$source->where('DATE(this.exposed) <= DATE(:date_to)', ['date_to' => $value]);
-		}, '', 'date_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
+		}, '', 'date_to')->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
 		
 		$grid->addFilterButtons();
 		
