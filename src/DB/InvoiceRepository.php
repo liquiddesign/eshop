@@ -93,6 +93,8 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 				'hash' => $newHash,
 				'totalPriceWithoutDiscount' => $order->getTotalPrice() + $order->getDiscountPrice(),
 				'totalPriceVatWithoutDiscount' => $order->getTotalPriceVat() + $order->getDiscountPriceVat(),
+				'ic' => $order->purchase->ic,
+				'dic' => $order->purchase->dic,
 			] + $values;
 
 		if (!isset($values['code'])) {
