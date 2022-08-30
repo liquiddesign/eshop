@@ -7,17 +7,13 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
-use Eshop\DB\Producer;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductTab;
 use Eshop\DB\ProductTabRepository;
 use Forms\Form;
 use Nette\Http\Request;
-use Nette\Utils\Image;
 use Pages\DB\PageRepository;
-use Pages\Helpers;
 use StORM\DIConnection;
-use StORM\Entity;
 
 class ProductTabPresenter extends BackendPresenter
 {
@@ -65,24 +61,14 @@ class ProductTabPresenter extends BackendPresenter
 	public function createComponentNewForm(): Form
 	{
 		$form = $this->formFactory->create(true);
-		$nameInput = $form->addLocaleText('name', 'Název');
+		$form->addLocaleText('name', 'Název');
 
-
-		//$producer = $this->getParameter('producer');
-
-
-		//$form->addLocaleRichEdit('content', 'Obsah');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
-		//$form->addCheckbox('recommended', 'Doporučeno');
-		//$form->addCheckbox('hidden', 'Skryto');
-		//$form->addPageContainer('product_list', ['producer' => $this->getParameter('producer')], $nameInput);
 
-		//$form->addSubmits(!$producer);
 		$form->addSubmits();
 
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
-
 
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();

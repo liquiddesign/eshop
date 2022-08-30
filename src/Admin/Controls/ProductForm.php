@@ -21,9 +21,7 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
-use Eshop\DB\ProductTab;
 use Eshop\DB\ProductTabRepository;
-use Eshop\DB\ProductTabText;
 use Eshop\DB\ProductTabTextRepository;
 use Eshop\DB\RelatedRepository;
 use Eshop\DB\RelatedTypeRepository;
@@ -423,13 +421,12 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 			});
 		}
 
-
-		/** @var ProductTab  $productTab */
-		foreach($productTabRepository->many() as $productTab) {
-			$productTabContainer = $form->addLocalePerexEdit("productTab".$productTab->getPk(), $productTab->name);
+		/** @var \Eshop\DB\ProductTab $productTab */
+		foreach ($productTabRepository->many() as $productTab) {
+			$productTabContainer = $form->addLocalePerexEdit('productTab' . $productTab->getPk(), $productTab->name);
 		}
 
-		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository, $storeRepository, $productTabRepository): void {
+		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository, $storeRepository): void {
 			$prices = $form->addContainer('prices');
 
 			$pricesPermission = $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default');
@@ -706,21 +703,21 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 		unset($values['prices']);
 
-		foreach($this->productTabRepository->many() as $productTab) {
+		foreach ($this->productTabRepository->many() as $productTab) {
 			$conditions = [
 				'tab' => $productTab->getPK(),
 				'product' => $values['uuid'],
 			];
 			
-			$conditions['content'] = $values['productTab'.$productTab->getPK()];
+			$conditions['content'] = $values['productTab' . $productTab->getPK()];
 
 			$this->productTabTextRepository->many()
-				->where('fk_product=:product AND fk_tab=:tab', ["product" => $product->getPK(), "tab" => $productTab->getPK()])
+				->where('fk_product=:product AND fk_tab=:tab', ['product' => $product->getPK(), 'tab' => $productTab->getPK()])
 				->delete();
 
 			$this->productTabTextRepository->syncOne($conditions);
 
-			unset($values['productTab'.$productTab->getPK()]);
+			unset($values['productTab' . $productTab->getPK()]);
 		}
 
 		foreach ($values['stores'] as $storeId => $amount) {
