@@ -14,7 +14,6 @@ use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Image;
 use Nette\Utils\Random;
-use Nette\Utils\Strings;
 use Pages\Helpers;
 use StORM\DIConnection;
 use Web\DB\PageRepository;
@@ -211,21 +210,18 @@ class CategoryForm extends Control
 
 			unset($values['imageFileName']);
 
-			$defaultMutation = $this->categoryRepository->getConnection()->getMutation();
-
 			if ($upload->isOk() && $upload->isFilled()) {
 				$userDir = $form->getUserDir();
+				$fileName = \pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_FILENAME);
 				$fileExtension = \strtolower(\pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_EXTENSION));
 
-				if (isset($values['name'][$defaultMutation])) {
-					do {
-						$filename = Strings::webalize($values['name'][$defaultMutation]) . '-' . Random::generate(4);
-					} while (\is_file("$userDir/$filename.$fileExtension"));
-				} else {
-					$filename = $values['uuid'];
+				$newsImageDir = Category::IMAGE_DIR;
+
+				while (\is_file("$userDir/$newsImageDir/origin/$fileName.$fileExtension")) {
+					$fileName .= '-' . Random::generate(1, '0-9');
 				}
 
-				$values['imageFileName'] = $upload->upload($filename . '.%2$s');
+				$values['imageFileName'] = $upload->upload($fileName . '.%2$s');
 			}
 
 			/** @var \Forms\Controls\UploadImage $upload */
@@ -235,17 +231,16 @@ class CategoryForm extends Control
 
 			if ($upload->isOk() && $upload->isFilled()) {
 				$userDir = $form->getUserDir();
+				$fileName = \pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_FILENAME);
 				$fileExtension = \strtolower(\pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_EXTENSION));
 
-				if (isset($values['name'][$defaultMutation])) {
-					do {
-						$filename = Strings::webalize($values['name'][$defaultMutation]) . '-' . Random::generate(4);
-					} while (\is_file("$userDir/$filename.$fileExtension"));
-				} else {
-					$filename = $values['uuid'];
+				$newsImageDir = Category::IMAGE_DIR;
+
+				while (\is_file("$userDir/$newsImageDir/origin/$fileName.$fileExtension")) {
+					$fileName .= '-' . Random::generate(1, '0-9');
 				}
 
-				$values['productFallbackImageFileName'] = $upload->upload($filename . '-fallback.%2$s');
+				$values['productFallbackImageFileName'] = $upload->upload($fileName . '-fallback.%2$s');
 			}
 
 			$values['path'] = $this->categoryRepository->generateUniquePath($values['ancestor'] ? $this->categoryRepository->one($values['ancestor'])->path : '');

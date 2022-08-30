@@ -1488,8 +1488,18 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 		/** @var \Nette\Http\FileUpload $fileUpload */
 		$fileUpload = $this->getPresenter()->getHttpRequest()->getFile('file');
+
+		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR;
+
+		$filename = \pathinfo($fileUpload->getSanitizedName(), \PATHINFO_FILENAME);
+		$fileExtension = \strtolower(\pathinfo($fileUpload->getSanitizedName(), \PATHINFO_EXTENSION));
+
+		while (\is_file("$basePath/origin/$filename.$fileExtension")) {
+			$filename .= '-' . Random::generate(1, '0-9');
+		}
+
 		$uuid = Connection::generateUuid();
-		$filename = (isset($product->name) ? Strings::webalize($product->name) : '') . "-$uuid." . $fileUpload->getImageFileExtension();
+		$filename .= '.' . $fileUpload->getImageFileExtension();
 
 		/** @var \Eshop\DB\Photo $photo */
 		$photo = $this->photoRepository->createOne([
@@ -1498,8 +1508,6 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			'fileName' => $filename,
 			'priority' => 999,
 		]);
-
-		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR;
 
 		try {
 			$fileUpload->move($basePath . '/origin/' . $filename);
