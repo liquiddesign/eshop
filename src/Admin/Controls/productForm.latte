@@ -620,6 +620,42 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                 {/foreach}
             </table>
         </div>
+        <div id="productTabs-content" class="tab-pane {$presenter->editTab == 'productTabs' ? 'active show' : ''}">
+            <fieldset>
+                <legend>Záložky</legend>
+
+
+                <table class="mt-1 mb-1" style="width: auto;">
+                    {foreach $productTabs as $id => $productTab}
+
+                            {foreach $form['productTab'.$id]->getComponents() as $key => $element}
+                                <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}" data-mutation="{$key}">
+                                    {$renderer->renderLabel($element)|noescape}
+
+                                    <td>
+                                        {input productTab$id-$key}
+
+                                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError productTab$id-$key}</span>
+                                    </td>
+                                </tr>
+                            {/foreach}
+                    {/foreach}
+                </table>
+
+            </fieldset>
+
+            <fieldset>
+                <table class="mt-1 mb-1">
+                    <tr>
+                        {ifset $form['submitAndNext']}
+                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
+                        {else}
+                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
+                        {/ifset}
+                    </tr>
+                </table>
+            </fieldset>
+        </div>
     </div>
 
 </form>

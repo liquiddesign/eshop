@@ -21,6 +21,10 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\ProductTab;
+use Eshop\DB\ProductTabRepository;
+use Eshop\DB\ProductTabText;
+use Eshop\DB\ProductTabTextRepository;
 use Eshop\DB\RelatedRepository;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\RibbonRepository;
@@ -44,6 +48,10 @@ class ProductForm extends Control
 
 	/** @persistent */
 	public string $tab = 'menu0';
+
+	public ProductTabRepository $productTabRepository;
+
+	public ProductTabTextRepository $productTabTextRepository;
 
 	private ?Product $product;
 
@@ -92,6 +100,8 @@ class ProductForm extends Control
 		PageRepository $pageRepository,
 		ProductRepository $productRepository,
 		PricelistRepository $pricelistRepository,
+		ProductTabRepository $productTabRepository,
+		ProductTabTextRepository $productTabTextRepository,
 		PriceRepository $priceRepository,
 		SupplierRepository $supplierRepository,
 		SupplierProductRepository $supplierProductRepository,
@@ -118,6 +128,8 @@ class ProductForm extends Control
 		$this->product = $product = $productRepository->get($product);
 		$this->productRepository = $productRepository;
 		$this->pricelistRepository = $pricelistRepository;
+		$this->productTabRepository = $productTabRepository;
+		$this->productTabTextRepository = $productTabTextRepository;
 		$this->priceRepository = $priceRepository;
 		$this->supplierRepository = $supplierRepository;
 		$this->supplierProductRepository = $supplierProductRepository;
@@ -325,6 +337,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 		// Relations
 		$this->monitor(Presenter::class, function ($presenter) use ($form): void {
+
 			$this->relatedTypes = $this->template->relatedTypes = $this->relatedTypeRepository->many()->toArray();
 
 			foreach ($this->relatedTypes as $relatedType) {
@@ -410,7 +423,13 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 			});
 		}
 
-		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository, $storeRepository): void {
+
+		/** @var ProductTab  $productTab */
+		foreach($productTabRepository->many() as $productTab) {
+			$productTabContainer = $form->addLocalePerexEdit("productTab".$productTab->getPk(), $productTab->name);
+		}
+
+		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository, $storeRepository, $productTabRepository): void {
 			$prices = $form->addContainer('prices');
 
 			$pricesPermission = $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default');
@@ -687,6 +706,23 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 		unset($values['prices']);
 
+		foreach($this->productTabRepository->many() as $productTab) {
+			$conditions = [
+				'tab' => $productTab->getPK(),
+				'product' => $values['uuid'],
+			];
+			
+			$conditions['content'] = $values['productTab'.$productTab->getPK()];
+
+			$this->productTabTextRepository->many()
+				->where('fk_product=:product AND fk_tab=:tab', ["product" => $product->getPK(), "tab" => $productTab->getPK()])
+				->delete();
+
+			$this->productTabTextRepository->syncOne($conditions);
+
+			unset($values['productTab'.$productTab->getPK()]);
+		}
+
 		foreach ($values['stores'] as $storeId => $amount) {
 			if ($amount['inStock'] === null) {
 				$this->amountRepository->many()->where('fk_product', $product->getPK())->where('fk_store', $storeId)->delete();
@@ -726,6 +762,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 		$this->template->relationMaxItemsCount = $this->relationMaxItemsCount;
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->pricelistRepository->many()->orderBy(['this.priority']);
+		$this->template->productTabs = $this->productTabRepository->many()->orderBy(['this.priority']);
 		$this->template->stores = $this->storeRepository->many()->orderBy(['this.name' . $this->storeRepository->getConnection()->getMutationSuffix()]);
 		$this->template->configuration = $this->configuration;
 		$this->template->shopper = $this->shopper;
