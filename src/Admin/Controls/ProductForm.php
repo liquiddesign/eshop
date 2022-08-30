@@ -423,7 +423,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 		/** @var \Eshop\DB\ProductTab $productTab */
 		foreach ($productTabRepository->many() as $productTab) {
-			$productTabContainer = $form->addLocalePerexEdit('productTab' . $productTab->getPk(), $productTab->name);
+			$form->addLocalePerexEdit('productTab' . $productTab->getPk(), $productTab->name);
 		}
 
 		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository, $storeRepository): void {

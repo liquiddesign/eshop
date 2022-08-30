@@ -17,6 +17,12 @@ class ProductTab extends \StORM\Entity
 	public ?string $name;
 
 	/**
+	 * Kód záložky
+	 * @column
+	 */
+	public ?string $code;
+
+	/**
 	 * Priorita
 	 * @column
 	 */
