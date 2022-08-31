@@ -25,9 +25,13 @@
         <rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
         <channel>
             <item n:while="$product = $products->fetch()">
+                {var $price = $priceType ? $product->getPriceVat() : ($priceType === false ? $product->getPrice() : null)}
+                {var $priceBefore = $priceType ? $product->getPriceVatBefore() : ($priceType === false ? $product->getPriceBefore() : null)}
 
-                {var $mainPrice = $priceType ? $product->getPriceVat() : ($priceType === false ? $product->getPrice() : null)}
                 {var $discountPrice = isset($discountPrices[$product->getPK()]) ? ($priceType ? $discountPrices[$product->getPK()]->priceVat : ($priceType === false ? $discountPrices[$product->getPK()]->price : null)) : null}
+                {var $mainPrice = $discountPrice ? $price : ($priceBefore ?: $price)}
+                {do $discountPrice ??= $priceType ? $product->getPriceVat() : ($priceType === false ? $product->getPrice() : null)}
+
                 {var $attributes = $product->getPreviewAtttributes()}
                 <g:id>{$product->getFullCode()}</g:id>
                 <g:title><![CDATA[{$product->name}]]></g:title>
