@@ -1333,6 +1333,8 @@ class CheckoutManager
 					'loyaltyProgram' => $customer->getValue('loyaltyProgram'),
 				]);
 			}
+
+			$customer->update(['lastOrder' => $order->getPK()]);
 		}
 
 		if ($discountCoupon && $discountCoupon->usageLimit) {

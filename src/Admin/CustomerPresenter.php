@@ -37,6 +37,7 @@ use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Connection;
 use StORM\ICollection;
+use Tracy\Debugger;
 
 class CustomerPresenter extends BackendPresenter
 {
@@ -166,6 +167,8 @@ class CustomerPresenter extends BackendPresenter
 					'';
 			}, '%s');
 		}
+
+		$grid->addColumnText('Poslední objednávka', ['lastOrder.code', "lastOrder.createdTs|date:'d.m.Y G:i'"], '%s<br><small>%s</small>', 'lastOrder.createdTs');
 		
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('Feed', function (Customer $customer) use ($btnSecondary) {
@@ -235,6 +238,45 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 			$source->where('accounts.uuid ' . ($value === '1' ? 'IS NOT NULL' : 'IS NULL'));
 		}, '', 'accountsAssigned', 'Účet', ['0' => 'Bez účtu', '1' => 'S účtem'])->setPrompt('- Účet -');
+
+		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+			$source->where('lastOrder.createdTs >= :created_from', ['created_from' => $value]);
+		}, '', 'date_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])
+			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
+			->setHtmlAttribute('placeholder', 'Datum objednávky od');
+
+		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+			$source->where('lastOrder.createdTs <= :created_to', ['created_to' => $value]);
+		}, '', 'created_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])
+			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
+			->setHtmlAttribute('placeholder', 'Datum objednávky do');
+
+		$grid->addFilterDataSelect(function (ICollection $source, $customerType): void {
+			if (!$customerType) {
+				return;
+			}
+
+			$customers = $this->customerRepository->many()
+				->select(['zero' => '0'])
+				->toArrayOf('zero');
+
+			$orders = $this->orderRepository->many()
+				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+				->where('purchase.fk_customer IS NOT NULL')
+				->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
+				->select(['customerPK' => 'purchase.fk_customer']);
+
+			while ($order = $orders->fetch()) {
+				/** @var \Eshop\DB\Order $order */
+				$customers[$order->getValue('customerPK')]++;
+			}
+
+			$customers = \array_filter($customers, function ($value) use ($customerType): bool {
+				return $customerType === 'new' ? ($value <= 1) : ($value > 1);
+			});
+
+			$source->where('this.uuid', \array_keys($customers));
+		}, '', 'customerType', 'Typ zákazníka', ['new' => 'Nový', 'old' => 'Stávající'])->setPrompt('- Typ zákazníka -');
 		
 		$grid->addFilterButtons();
 		
@@ -433,6 +475,8 @@ class CustomerPresenter extends BackendPresenter
 				'full' => 'Povoleno',
 			])->setDefaultValue('full');
 		}
+
+		$form->addText('lastOrder', 'Poslední objednávka')->setDisabled();
 		
 		$form->addDataSelect('preferredMutation', 'Preferovaný jazyk', \array_combine($this->formFactory->formFactory->getDefaultMutations(), $this->formFactory->formFactory->getDefaultMutations()))
 			->setPrompt('Automaticky');
@@ -534,6 +578,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 	
 	public function renderDefault(?Customer $customer = null): void
 	{
+		Debugger::$showBar = false;
+
 		unset($customer);
 		
 		if ($this->tab === 'customers') {
@@ -644,6 +690,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		if ($customer->loyaltyProgramDiscountLevel) {
 			$defaults['loyaltyProgramDiscountLevel'] = (string)$customer->loyaltyProgramDiscountLevel->discountLevel;
 		}
+
+		$defaults['lastOrder'] = $customer->lastOrder ? $customer->lastOrder->code : null;
 		
 		$form->setDefaults($defaults);
 		
