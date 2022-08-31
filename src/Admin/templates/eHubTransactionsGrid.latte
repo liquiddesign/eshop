@@ -1,0 +1,104 @@
+<style>
+    .small-table {
+        width: 400px;
+    }
+</style>
+{form filterForm}
+    {do $components = $form->getComponents()}
+    {do $submit = $components['submit'] ?? null}
+    {do $reset = $components['reset'] ?? null}
+    {ifset $submit}{do unset($components['submit'])}{/ifset}
+    {ifset $reset}{do unset($components['reset'])}{/ifset}
+    {if count($components) > 1}
+        <div class="row align-items-end ">
+            <div class="col-12">
+                <div class="form-group row">
+                    {foreach $components as $component}
+                        <div n:tag-if="!$component instanceof Nette\Forms\Controls\HiddenField"  class="col-auto p-1 inline-style">
+                            {$component->getControl()}
+                        </div>
+                    {/foreach}
+				{ifset $submit}
+                        <div class="col-auto p-1">
+                            {$submit->getControl()}
+                        </div>
+                    {/ifset}
+				{ifset $reset}
+                        <div class="col-auto p-1">
+                            {$reset->getControl()}
+                        </div>
+                    {/ifset}
+                </div>
+            </div>
+        </div>
+    {/if}
+{/form}
+<div class="table-responsive table-striped">
+    {form form}
+        <table class="table table-sm lqd-table {$appendClass}">
+            <thead class="admin-head">
+            {foreach $columns as $column}
+                {$column->renderHeaderCell()|noescape}
+            {/foreach}
+            </thead>
+            {$control->getRows()}
+            <tr style="font-weight: bold">
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>{$commissionSum}</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
+        <div class="table-footer-components d-lg-flex align-items-lg-center">
+            <div class="table-footer-buttons d-lg-flex align-items-lg-center">
+                {foreach $form->getComponents(false, Nette\Forms\Controls\Button::class) as $component}
+                    {$component->getControl()}
+                {/foreach}
+            </div>
+
+            <div class="d-lg-flex align-items-lg ml-auto">
+                <ul class="pagination align-items-center mb-0" n:if="$showPaginator">
+                    {if $showItemsPerPage}
+                        <li class="page-item disabled"><a href="#" class="page-link" style="border: 0;">{_'admin.onPage', 'Na stránce'}:</a></li>
+                        {foreach $itemsPerPage as $ipp}
+                            <li class="page-item {if $paginator->getItemsPerPage() == $ipp}disabled{/if}"><a href="{plink this $onpage => $ipp, $page => 1}" class="page-link">{$ipp}</a></li>
+                        {/foreach}
+                        <li class="page-item disabled"><a href="#" class="page-link" style="border: 0;">{$itemCountMessage}: {$paginator->itemCount|number:0,',',' '}</a></li>
+                    {/if}
+
+                    <li class="page-item {if $paginator->isFirst()}disabled{/if}"><a href="{plink this $page => 1}" class="page-link">{_'admin.firstPage', 'První'}</a></li>
+                    <li class="page-item {if $paginator->isFirst()}disabled{/if}">
+                        <a href="{plink this $page => $paginator->page-1}" class="page-link">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: .75rem; line-height: 1;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="page-item disabled"><a href="#" class="page-link" style="border: 0;">{if $paginator->pageCount === 0}{_'admin.noPage', 'Žádné stránky'}{else}{_'admin.page', 'Stránka'} {$paginator->page} {_'admin.pageFrom', 'z'} {$paginator->pageCount}{/if}</a></li>
+                    <li class="page-item {if $paginator->isLast()}disabled{/if}">
+                        <a href="{plink this $page => $paginator->page+1}" class="page-link">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: .75rem; line-height: 1;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="page-item {if $paginator->isLast()}disabled{/if}"><a href="{plink this $page => $paginator->pageCount}" class="page-link">{_'admin.lastPage', 'Poslední'}</a></li>
+                </ul>
+            </div>
+        </div>
+    {/form}
+</div>
