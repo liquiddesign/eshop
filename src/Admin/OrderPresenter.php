@@ -57,7 +57,6 @@ use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use StORM\Collection;
 use StORM\DIConnection;
-use StORM\Literal;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
@@ -111,6 +110,7 @@ class OrderPresenter extends BackendPresenter
 		'print' => true,
 		'printMultiple' => false,
 		'printInvoices' => false,
+		/** @deprecated PackageItem is always deleted */
 		'deletePackageItemMode' => PackageItem::DELETE_MODE_MARK,
 		'pauseOrder' => false,
 		'noteIconColor' => null,
@@ -623,26 +623,11 @@ class OrderPresenter extends BackendPresenter
 
 			$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], null, false, false, $cart);
 
-			if (isset($this::CONFIGURATION['deletePackageItemMode']) && $this::CONFIGURATION['deletePackageItemMode'] === PackageItem::DELETE_MODE_DELETE) {
-				$this->packageItemRepository->syncOne([
-					'amount' => $values['amount'],
-					'package' => $values['package'],
-					'cartItem' => $cartItem,
-				]);
-			} else {
-				/** @var \Eshop\DB\PackageItem|null $existingPackageItem */
-				$existingPackageItem = $this->packageItemRepository->many()->where('fk_package', $values['package'])->where('fk_cartItem', $cartItem->getPK())->first();
-
-				if ($existingPackageItem) {
-					$existingPackageItem->update(['amount' => $existingPackageItem->amount + $values['amount'], 'deleted' => false,]);
-				} else {
-					$this->packageItemRepository->syncOne([
-						'amount' => $values['amount'],
-						'package' => $values['package'],
-						'cartItem' => $cartItem,
-					]);
-				}
-			}
+			$this->packageItemRepository->createOne([
+				'amount' => $values['amount'],
+				'package' => $values['package'],
+				'cartItem' => $cartItem,
+			]);
 
 			/** @var \Admin\DB\Administrator|null $admin */
 			$admin = $this->admin->getIdentity();
@@ -664,8 +649,8 @@ class OrderPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 		$form->getCurrentGroup()->setOption('label', 'Nová položka');
-		$form->addInteger('amount', 'Množství')->setDefaultValue(1)->setRequired();
-		$form->addSelect('store', 'Sklad', $this->storeRepository->many()->toArrayOf('name'))->setRequired();
+		$form->addInteger('amount', 'Množství')->setDefaultValue(1)->setRequired()->addRule($form::MIN, 'Zadejte číslo větší než 0!', 1);
+		$form->addSelect('store', 'Sklad', $this->storeRepository->many()->toArrayOf('name'))->setPrompt('Žádný');
 		$form->addSubmits(false, false);
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
@@ -675,34 +660,22 @@ class OrderPresenter extends BackendPresenter
 
 			$values['amount'] = $values['amount'] > $packageItem->amount ? $packageItem->amount : $values['amount'];
 
-			if ($packageItem->getValue('store') === $values['store'] || $values['amount'] === 0) {
-				$this->flashMessage('Položka není ve zvoleném skladě k dispozici!', 'error');
-				$this->redirect('this');
-			}
+			$oldCartItemArray = $packageItem->cartItem->toArray();
+			unset($oldCartItemArray['uuid']);
+			$oldCartItemArray['amount'] = $values['amount'];
 
-			if ($values['amount'] === $packageItem->amount) {
-				$this->packageItemRepository->many()->where('this.uuid', $values['uuid'])->delete();
-			} else {
-				$this->packageItemRepository->many()->where('this.uuid', $values['uuid'])->update(['amount' => new Literal("amount - $values[amount]")]);
-			}
+			$packageItem->update(['amount' => $packageItem->cartItem->amount - $values['amount']]);
+			$packageItem->cartItem->update(['amount' => $packageItem->cartItem->amount - $values['amount']]);
 
-			$affected = $this->packageItemRepository->many()
-				->match([
-					'fk_store' => $values['store'],
-					'fk_package' => $packageItem->getValue('package'),
-					'fk_cartItem' => $packageItem->getValue('cartItem'),
-				])
-				->update(['amount' => new Literal("amount + $values[amount]")]);
+			$oldPackageItemArray = $packageItem->toArray();
+			unset($oldPackageItemArray['uuid']);
+			$oldPackageItemArray['amount'] = $values['amount'];
+			$oldPackageItemArray['store'] = $values['store'];
 
-			if (!$affected) {
-				$this->packageItemRepository->createOne([
-					'amount' => $values['amount'],
-					'store' => $values['store'],
-					'package' => $packageItem->getValue('package'),
-					'cartItem' => $packageItem->getValue('cartItem'),
-					'upsell' => $packageItem->getValue('upsell'),
-				]);
-			}
+			$newCartItem = $this->cartItemRepo->createOne($oldCartItemArray);
+			$oldPackageItemArray['cartItem'] = $newCartItem->getPK();
+
+			$this->packageItemRepository->createOne($oldPackageItemArray);
 
 			/** @var \Eshop\DB\Order $order */
 			$order = $this->getParameter('order');
@@ -907,20 +880,10 @@ class OrderPresenter extends BackendPresenter
 
 	public function createComponentDetailOrderItemForm(): AdminForm
 	{
-		/** @var \Eshop\DB\Order|null $order */
-		$order = $this->getParameter('order');
-
-		$hasMultiplePackages = !$order || $order->getPackages()->enum() > 1;
-
 		$form = $this->formFactory->create();
 		$form->addHidden('packageItem');
 		$form->getCurrentGroup()->setOption('label', 'Nákup');
-		$form->addInteger('amount', 'Celkové množství produktu v objednávce')->setRequired();
-
-		if ($hasMultiplePackages) {
-			$form->addInteger('packageItemAmount', 'Celkové množství produktu v položce balíčku')->setRequired()
-				->setHtmlAttribute('data-info', 'Součet množství produktu ve všech balíčcích nemůže být větší než celkový počet produktů v objednávce.');
-		}
+		$form->addInteger('amount', 'Množství')->setRequired();
 
 		$form->addTextArea('note', 'Poznámka')->setNullable();
 		$form->addGroup('Cena za kus');
@@ -936,7 +899,7 @@ class OrderPresenter extends BackendPresenter
 			$cartItem = clone $cartItemOld;
 
 			$packageItem = $this->packageItemRepository->one($values['packageItem']);
-			$packageItem->update(['amount' => $values['packageItemAmount'] ?? $values['amount']]);
+			$packageItem->update(['amount' => $values['amount']]);
 
 			$cartItem->update($values);
 
@@ -1597,12 +1560,8 @@ class OrderPresenter extends BackendPresenter
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->getParameter('order');
 
-		if (isset($this::CONFIGURATION['deletePackageItemMode']) && $this::CONFIGURATION['deletePackageItemMode'] === PackageItem::DELETE_MODE_DELETE) {
-			$packageItem->cartItem->delete();
-			$packageItem->delete();
-		} else {
-			$packageItem->update(['deleted' => !$packageItem->deleted]);
-		}
+		$packageItem->cartItem->delete();
+		$packageItem->delete();
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
@@ -1611,21 +1570,12 @@ class OrderPresenter extends BackendPresenter
 			return;
 		}
 
-		if (isset($this::CONFIGURATION['deletePackageItemMode']) && $this::CONFIGURATION['deletePackageItemMode'] === PackageItem::DELETE_MODE_DELETE) {
-			$this->orderLogItemRepository->createLog(
-				$order,
-				OrderLogItem::ITEM_DELETED,
-				$packageItem->cartItem->productName . ' | ' . $packageItem->amount . ' ks',
-				$admin,
-			);
-		} else {
-			$this->orderLogItemRepository->createLog(
-				$order,
-				$packageItem->deleted ? OrderLogItem::ITEM_DELETED : OrderLogItem::ITEM_RESTORED,
-				$packageItem->cartItem->productName . ' | ' . $packageItem->amount . ' ks',
-				$admin,
-			);
-		}
+		$this->orderLogItemRepository->createLog(
+			$order,
+			OrderLogItem::ITEM_DELETED,
+			$packageItem->cartItem->productName . ' | ' . $packageItem->amount . ' ks',
+			$admin,
+		);
 
 		$this->redirect('this');
 	}
