@@ -1407,7 +1407,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	/**
 	 * @param array<\Eshop\DB\Order> $orders
 	 * @param \Eshop\DB\DiscountCoupon[] $discountCoupons
-	 * @return array<string, float>
+	 * @return array<array<string, float>>
 	 */
 	public function getDiscountCouponsUsage(array $orders, array $discountCoupons): array
 	{
@@ -1424,11 +1424,15 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			$usedCoupons[$discountCoupon->getPK()] = isset($usedCoupons[$discountCoupon->getPK()]) ? $usedCoupons[$discountCoupon->getPK()]++ : 1;
 		}
 
+		$percentageUsage = [];
+		$countUsage = [];
+
 		foreach ($discountCoupons as $discountCoupon) {
-			$usedCoupons[$discountCoupon->getPK()] = isset($usedCoupons[$discountCoupon->getPK()]) ? \round($usedCoupons[$discountCoupon->getPK()] / $count * 100, 2) : 0;
+			$percentageUsage[$discountCoupon->getPK()] = isset($usedCoupons[$discountCoupon->getPK()]) ? \round($usedCoupons[$discountCoupon->getPK()] / $count * 100, 2) : 0;
+			$countUsage[$discountCoupon->getPK()] = $usedCoupons[$discountCoupon->getPK()] ?? 0;
 		}
 
-		return $usedCoupons;
+		return [$percentageUsage, $countUsage];
 	}
 	
 	public function changePayment(string $payment, bool $paid, bool $email = false, ?Administrator $admin = null, ?Carbon $paidTs = null, ?string $externalId = null): void

@@ -202,7 +202,7 @@ class StatsControl extends Control
 		$this->template->currency = $currency;
 		$this->template->ordersCount = \count($orders);
 		$this->template->discountCoupons = $discountCoupons = $this->discountCouponRepository->many()->where('fk_currency', $currency->getPK())->toArray();
-		$this->template->usageDiscountCoupons = $this->orderRepository->getDiscountCouponsUsage($orders, $discountCoupons);
+		$this->template->usageDiscountCoupons = $this->orderRepository->getDiscountCouponsUsage($orders, $discountCoupons)[0];
 
 		/** @var \Eshop\Admin\StatsPresenter $presenter */
 		$presenter = $this->getPresenter();
