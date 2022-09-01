@@ -326,9 +326,16 @@ class CustomerPresenter extends BackendPresenter
 	
 	public function handleLoginCustomer($login): void
 	{
-		$this->user->login($this->customerRepository->getByAccountLogin($login), null, [Customer::class]);
+		$customer = $this->customerRepository->getByAccountLogin($login);
+
+		if (!$customer) {
+			$this->flashMessage('Nelze se přihlásit! Daný účet nemá přiřazeného zákazníka!', 'error');
+			$this->redirect('this');
+		}
+
+		$this->user->login($customer, null, [Customer::class]);
 		
-		$this->presenter->redirect(':Web:Index:default');
+		$this->redirect(':Web:Index:default');
 	}
 	
 	public function actionEditAccount(Account $account): void
