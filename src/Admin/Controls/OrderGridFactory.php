@@ -114,7 +114,7 @@ class OrderGridFactory
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 
 		$collection = $this->orderRepository->getCollectionByState($state)
-			->setGroupBy(['this.uuid', 'this.createdTs'])
+			->setGroupBy(['this.uuid'])
 			->join(['comment' => 'eshop_internalcommentorder'], 'this.uuid = comment.fk_order')
 			->join(['payment' => 'eshop_payment'], 'this.uuid = payment.fk_order')
 			->select(['commentCount' => 'COUNT(DISTINCT comment.uuid)']);
