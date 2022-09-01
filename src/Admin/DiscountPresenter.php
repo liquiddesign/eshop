@@ -114,9 +114,9 @@ class DiscountPresenter extends BackendPresenter
 					$totalCountUsage += $count;
 				}
 
-				return [\round($totalCountUsage / $ordersCount * 100, 4), $totalCountUsage];
+				return [\round($totalCountUsage / $ordersCount * 100, 4), $totalCountUsage, \count($orders)];
 			});
-		}, '%s %%<br>%s x');
+		}, '%s %% | %sx z %s');
 
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 
@@ -275,17 +275,19 @@ class DiscountPresenter extends BackendPresenter
 			$orders->where('this.createdTs <= :created2', ['created2' => $discount->validTo]);
 		}
 
+		$ordersCount = \count($orders);
+
 		$cache = new Cache($this->storage);
 
-		$grid->addColumn('Využití', function (DiscountCoupon $object, $datagrid) use ($orders, $cache): array {
-			return $cache->load('discount_coupon_usage_' . $object->getPK(), function (&$dependencies) use ($object, $orders): array {
+		$grid->addColumn('Využití', function (DiscountCoupon $object, $datagrid) use ($orders, $cache, $ordersCount): array {
+			return $cache->load('discount_coupon_usage_' . $object->getPK(), function (&$dependencies) use ($object, $orders, $ordersCount): array {
 				$dependencies[Cache::EXPIRE] = '1 hour';
 
 				$usages = $this->orderRepository->getDiscountCouponsUsage($orders->toArray(), [$object]);
 
-				return [$usages[0][$object->getPK()], $usages[1][$object->getPK()]];
+				return [$usages[0][$object->getPK()], $usages[1][$object->getPK()], $ordersCount];
 			});
-		}, '%s %%<br>%s x');
+		}, '%s %% | %sx z %s');
 
 		$grid->addColumnLinkDetail('couponsDetail');
 		$grid->addColumnActionDelete();

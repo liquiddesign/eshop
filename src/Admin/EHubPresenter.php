@@ -82,7 +82,7 @@ class EHubPresenter extends \Eshop\BackendPresenter
 		$grid->addColumnText('Cena', 'orderAmount', '%s', 'orderAmount', ['class' => 'fit']);
 		$grid->addColumnText('Originální cena', 'originalOrderAmount', '%s', 'originalOrderAmount', ['class' => 'fit']);
 		$grid->addColumnText('Měna', 'originalCurrency', '%s', 'originalCurrency', ['class' => 'fit']);
-		$grid->addColumnText('Provize', 'commission', '%s', 'commission', ['class' => 'fit']);
+		$grid->addColumnText('Provize', 'commission', '%s', 'commission');
 		$grid->addColumn('Provize %', function (EHubTransaction $EHubTransaction): string {
 			return \round($EHubTransaction->commission / $EHubTransaction->orderAmount * 100, 2) . ' %';
 		}, '%s', null, ['class' => 'fit']);

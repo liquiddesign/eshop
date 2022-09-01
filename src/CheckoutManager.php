@@ -1334,7 +1334,10 @@ class CheckoutManager
 				]);
 			}
 
-			$customer->update(['lastOrder' => $order->getPK()]);
+			$customer->update([
+				'lastOrder' => $order->getPK(),
+				'ordersCount' => $customer->ordersCount + 1,
+			]);
 		}
 
 		if ($discountCoupon && $discountCoupon->usageLimit) {

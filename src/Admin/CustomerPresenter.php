@@ -169,6 +169,7 @@ class CustomerPresenter extends BackendPresenter
 		}
 
 		$grid->addColumnText('Poslední objednávka', ['lastOrder.code', "lastOrder.createdTs|date:'d.m.Y G:i'"], '%s<br><small>%s</small>', 'lastOrder.createdTs');
+		$grid->addColumnText('Počet objednávek', 'ordersCount', '%s', 'ordersCount', ['class' => 'fit']);
 		
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('Feed', function (Customer $customer) use ($btnSecondary) {

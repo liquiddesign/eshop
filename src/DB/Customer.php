@@ -292,6 +292,12 @@ class Customer extends Entity implements IIdentity, IUser
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?Order $lastOrder;
+
+	/**
+	 * Count of all orders by customer
+	 * @column
+	 */
+	public int $ordersCount = 0;
 	
 	/**
 	 * @relationNxN{"via":"eshop_catalogpermission"}
