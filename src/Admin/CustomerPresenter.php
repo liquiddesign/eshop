@@ -155,7 +155,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnTextFit('Max. sleva', 'maxDiscountProductPct', '%s %%', 'discountLevelPct');
 		
 		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
-			$grid->addColumn('Věrnostní program', function (Customer $object) {
+			$grid->addColumn('Věrnostní prog.', function (Customer $object) {
 				$link = $this->admin->isAllowed(':Eshop:Admin:LoyaltyProgram:programDetail') && $object->getValue('loyaltyProgram') ? $this->link(
 					':Eshop:Admin:LoyaltyProgram:programDetail',
 					[$object->loyaltyProgram, 'backLink' => $this->storeRequest()],
@@ -168,8 +168,8 @@ class CustomerPresenter extends BackendPresenter
 			}, '%s');
 		}
 
-		$grid->addColumnText('Poslední objednávka', ['lastOrder.code', "lastOrder.createdTs|date:'d.m.Y G:i'"], '%s<br><small>%s</small>', 'lastOrder.createdTs');
-		$grid->addColumnText('Počet objednávek', 'ordersCount', '%s', 'ordersCount', ['class' => 'fit']);
+		$grid->addColumnText('Poslední obj.', ['lastOrder.code', "lastOrder.createdTs|date:'d.m.Y G:i'"], '%s<br><small>%s</small>', 'lastOrder.createdTs');
+		$grid->addColumnText('Počet obj.', 'ordersCount', '%s', 'ordersCount', ['class' => 'fit']);
 		
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('Feed', function (Customer $customer) use ($btnSecondary) {
@@ -257,26 +257,7 @@ class CustomerPresenter extends BackendPresenter
 				return;
 			}
 
-			$customers = $this->customerRepository->many()
-				->select(['zero' => '0'])
-				->toArrayOf('zero');
-
-			$orders = $this->orderRepository->many()
-				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
-				->where('purchase.fk_customer IS NOT NULL')
-				->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
-				->select(['customerPK' => 'purchase.fk_customer']);
-
-			while ($order = $orders->fetch()) {
-				/** @var \Eshop\DB\Order $order */
-				$customers[$order->getValue('customerPK')]++;
-			}
-
-			$customers = \array_filter($customers, function ($value) use ($customerType): bool {
-				return $customerType === 'new' ? ($value <= 1) : ($value > 1);
-			});
-
-			$source->where('this.uuid', \array_keys($customers));
+			$source->where('this.ordersCount ' . ($customerType === 'new' ? ' <= 1' : ' > 1'));
 		}, '', 'customerType', 'Typ zákazníka', ['new' => 'Nový', 'old' => 'Stávající'])->setPrompt('- Typ zákazníka -');
 		
 		$grid->addFilterButtons();
