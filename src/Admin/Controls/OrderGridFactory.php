@@ -43,32 +43,32 @@ class OrderGridFactory
 	/** @var array<callable(\Admin\Controls\AdminGrid, array<string>): void> */
 	public array $onBulkActionsCreated = [];
 
-	protected OrderRepository $orderRepository;
+	private OrderRepository $orderRepository;
 
-	protected AdminGridFactory $gridFactory;
+	private AdminGridFactory $gridFactory;
 
-	protected OrderLogItemRepository $orderLogItemRepository;
+	private OrderLogItemRepository $orderLogItemRepository;
 
-	protected Application $application;
+	private Application $application;
 
-	protected CustomerGroupRepository $customerGroupRepository;
+	private CustomerGroupRepository $customerGroupRepository;
+	
+	private DeliveryTypeRepository $deliveryTypeRepository;
+	
+	private PaymentTypeRepository $paymentTypeRepository;
 
-	protected DeliveryTypeRepository $deliveryTypeRepository;
+	private Integrations $integrations;
+	
+	private Shopper $shopper;
 
-	protected PaymentTypeRepository $paymentTypeRepository;
+	private ?DPD $dpd = null;
 
-	protected Integrations $integrations;
+	private ?PPL $ppl = null;
 
-	protected Shopper $shopper;
-
-	protected ?DPD $dpd = null;
-
-	protected ?PPL $ppl = null;
-
-	protected Container $container;
+	private Container $container;
 	
 	/** @var array<mixed> */
-	protected array $configuration;
+	private array $configuration;
 	
 	public function __construct(
 		AdminGridFactory $adminGridFactory,
