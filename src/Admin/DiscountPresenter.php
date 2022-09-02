@@ -13,16 +13,18 @@ use Eshop\DB\CustomerRepository;
 use Eshop\DB\DeliveryDiscountRepository;
 use Eshop\DB\Discount;
 use Eshop\DB\DiscountCoupon;
-use Eshop\DB\DiscountCouponRepository;
 use Eshop\DB\DiscountRepository;
+use Eshop\DB\OrderRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\RibbonRepository;
-use Eshop\DB\TagRepository;
 use Eshop\FormValidators;
 use Forms\Form;
 use Grid\Datagrid;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 use StORM\Connection;
 use StORM\ICollection;
+use Tracy\Debugger;
 
 class DiscountPresenter extends BackendPresenter
 {
@@ -31,9 +33,6 @@ class DiscountPresenter extends BackendPresenter
 
 	/** @inject */
 	public PricelistRepository $priceListRepository;
-
-	/** @inject */
-	public DiscountCouponRepository $couponRepository;
 
 	/** @inject */
 	public CustomerRepository $customerRepository;
@@ -45,9 +44,6 @@ class DiscountPresenter extends BackendPresenter
 	public DeliveryDiscountRepository $deliveryRepo;
 
 	/** @inject */
-	public TagRepository $tagRepo;
-
-	/** @inject */
 	public RibbonRepository $ribbonRepository;
 
 	/** @inject */
@@ -55,6 +51,12 @@ class DiscountPresenter extends BackendPresenter
 
 	/** @inject */
 	public Connection $storm;
+
+	/** @inject */
+	public OrderRepository $orderRepository;
+
+	/** @inject */
+	public Storage $storage;
 
 	public function createComponentGrid(): AdminGrid
 	{
@@ -82,6 +84,39 @@ class DiscountPresenter extends BackendPresenter
 
 			return \substr($resultString, 0, -2);
 		}, '%s');
+
+		$cache = new Cache($this->storage);
+
+		$grid->addColumn('Využití', function (Discount $object, $datagrid) use ($cache): array {
+			return $cache->load('discount_usage_' . $object->getPK(), function (&$dependencies) use ($object): array {
+				$dependencies[Cache::EXPIRE] = '1 hour';
+
+				$orders = $this->orderRepository->many()
+					->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL');
+
+				if ($object->validFrom) {
+					$orders->where('this.createdTs >= :created1', ['created1' => $object->validFrom]);
+				}
+
+				if ($object->validTo) {
+					$orders->where('this.createdTs <= :created2', ['created2' => $object->validTo]);
+				}
+
+				$orders = $orders->toArray();
+				$coupons = $object->coupons->toArray();
+
+				$countUsage = $this->orderRepository->getDiscountCouponsUsage($orders, $coupons)[1] ?? [];
+
+				$ordersCount = \count($orders);
+				$totalCountUsage = 0;
+
+				foreach ($countUsage as $count) {
+					$totalCountUsage += $count;
+				}
+
+				return [\round($totalCountUsage / $ordersCount * 100, 4), $totalCountUsage, \count($orders)];
+			});
+		}, '%s %% | %sx z %s');
 
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 
@@ -167,6 +202,8 @@ class DiscountPresenter extends BackendPresenter
 
 	public function renderDefault(): void
 	{
+		Debugger::$showBar = false;
+
 		$this->template->headerLabel = 'Akce';
 		$this->template->headerTree = [
 			['Akce', 'default'],
@@ -209,7 +246,10 @@ class DiscountPresenter extends BackendPresenter
 
 	public function createComponentCouponsGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->getParameter('discount')->coupons, 20, 'code', 'ASC', true);
+		/** @var \Eshop\DB\Discount $discount */
+		$discount = $this->getParameter('discount');
+
+		$grid = $this->gridFactory->create($discount->coupons, 20, 'code', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Vytvořen', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
@@ -223,6 +263,31 @@ class DiscountPresenter extends BackendPresenter
 		$grid->addColumnText('Sleva (%)', 'discountPct', '%s %%', 'discountPct', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Sleva', 'discountValue|price:currency.code', '%s', 'discountValue', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Sleva s DPH', 'discountValueVat|price:currency.code', '%s', 'discountValueVat', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+
+		$orders = $this->orderRepository->many()
+			->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL');
+
+		if ($discount->validFrom) {
+			$orders->where('this.createdTs >= :created1', ['created1' => $discount->validFrom]);
+		}
+
+		if ($discount->validTo) {
+			$orders->where('this.createdTs <= :created2', ['created2' => $discount->validTo]);
+		}
+
+		$ordersCount = \count($orders);
+
+		$cache = new Cache($this->storage);
+
+		$grid->addColumn('Využití', function (DiscountCoupon $object, $datagrid) use ($orders, $cache, $ordersCount): array {
+			return $cache->load('discount_coupon_usage_' . $object->getPK(), function (&$dependencies) use ($object, $orders, $ordersCount): array {
+				$dependencies[Cache::EXPIRE] = '1 hour';
+
+				$usages = $this->orderRepository->getDiscountCouponsUsage($orders->toArray(), [$object]);
+
+				return [$usages[0][$object->getPK()], $usages[1][$object->getPK()], $ordersCount];
+			});
+		}, '%s %% | %sx z %s');
 
 		$grid->addColumnLinkDetail('couponsDetail');
 		$grid->addColumnActionDelete();
@@ -301,6 +366,7 @@ class DiscountPresenter extends BackendPresenter
 
 	public function actionCoupons(Discount $discount, ?string $backLink = null): void
 	{
+		Debugger::$showBar = false;
 		unset($backLink);
 
 		$this->template->displayButtons = [$this->createBackButton('default'), $this->createNewItemButton('couponsCreate', [$discount])];

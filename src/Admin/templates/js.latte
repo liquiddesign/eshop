@@ -39,9 +39,8 @@
                                 <i n:if="$purchase->account" class="far fa-user"
                                                              aria-hidden="true"></i> {$purchase->customer->fullname}
                             </a><br>
-                            <div n:if="$purchase->customer->ic">IČ: <strong>{$purchase->customer->ic}</strong><br></div>
-                            <div n:if="$purchase->customer->dic">DIČ: <strong>{$purchase->customer->dic}</strong><br>
-                            </div>
+                            <div n:if="$purchase->ic || $purchase->customer->ic">IČ: <strong>{$purchase->ic ?: $purchase->customer->ic}</strong><br></div>
+                            <div n:if="$purchase->dic || $purchase->customer->dic">DIČ: <strong>{$purchase->dic ?: $purchase->customer->dic}</strong><br></div>
                             <div><a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}
                                 </a><br></div>
                             <div><a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a>

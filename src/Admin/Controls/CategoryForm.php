@@ -13,6 +13,7 @@ use Eshop\Shopper;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Image;
+use Nette\Utils\Random;
 use Pages\Helpers;
 use StORM\DIConnection;
 use Web\DB\PageRepository;
@@ -207,12 +208,41 @@ class CategoryForm extends Control
 			/** @var \Forms\Controls\UploadImage $upload */
 			$upload = $form['imageFileName'];
 
-			$values['imageFileName'] = $upload->upload($values['uuid'] . '.%2$s');
+			unset($values['imageFileName']);
+
+			if ($upload->isOk() && $upload->isFilled()) {
+				$userDir = $form->getUserDir();
+				$fileName = \pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_FILENAME);
+				$fileExtension = \strtolower(\pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_EXTENSION));
+
+				$newsImageDir = Category::IMAGE_DIR;
+
+				while (\is_file("$userDir/$newsImageDir/origin/$fileName.$fileExtension")) {
+					$fileName .= '-' . Random::generate(1, '0-9');
+				}
+
+				$values['imageFileName'] = $upload->upload($fileName . '.%2$s');
+			}
 
 			/** @var \Forms\Controls\UploadImage $upload */
 			$upload = $form['productFallbackImageFileName'];
 
-			$values['productFallbackImageFileName'] = $upload->upload($values['uuid'] . '_fallback.%2$s');
+			unset($values['productFallbackImageFileName']);
+
+			if ($upload->isOk() && $upload->isFilled()) {
+				$userDir = $form->getUserDir();
+				$fileName = \pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_FILENAME);
+				$fileExtension = \strtolower(\pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_EXTENSION));
+
+				$newsImageDir = Category::IMAGE_DIR;
+
+				while (\is_file("$userDir/$newsImageDir/origin/$fileName.$fileExtension")) {
+					$fileName .= '-' . Random::generate(1, '0-9');
+				}
+
+				$values['productFallbackImageFileName'] = $upload->upload($fileName . '-fallback.%2$s');
+			}
+
 			$values['path'] = $this->categoryRepository->generateUniquePath($values['ancestor'] ? $this->categoryRepository->one($values['ancestor'])->path : '');
 
 			/** @var \Eshop\DB\Category $category */

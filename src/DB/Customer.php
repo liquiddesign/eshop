@@ -285,6 +285,19 @@ class Customer extends Entity implements IIdentity, IUser
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
 	public string $createdTs;
+
+	/**
+	 * Last order created
+	 * @relation
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 */
+	public ?Order $lastOrder;
+
+	/**
+	 * Count of all orders by customer
+	 * @column
+	 */
+	public int $ordersCount = 0;
 	
 	/**
 	 * @relationNxN{"via":"eshop_catalogpermission"}
