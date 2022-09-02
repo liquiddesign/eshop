@@ -85,8 +85,9 @@ class DiscountPresenter extends BackendPresenter
 			return \substr($resultString, 0, -2);
 		}, '%s');
 
-		$cache = new Cache($this->storage);
+		//$cache = new Cache($this->storage);
 
+		/*
 		$grid->addColumn('Využití', function (Discount $object, $datagrid) use ($cache): array {
 			return $cache->load('discount_usage_' . $object->getPK(), function (&$dependencies) use ($object): array {
 				$dependencies[Cache::EXPIRE] = '1 hour';
@@ -116,7 +117,14 @@ class DiscountPresenter extends BackendPresenter
 
 				return [\round($totalCountUsage / $ordersCount * 100, 4), $totalCountUsage, \count($orders)];
 			});
-		}, '%s %% | %sx z %s');
+		}, '%s %% | %sx z %s');*/
+		
+		$grid->addColumn('Kupóny', function (Discount $object, $datagrid) {
+			/** @var \stdClass $test */
+			$test = $object->coupons->select(['usagesCountSum' => 'SUM(usagesCount)', 'usageLimitSum' => 'SUM(usageLimit)'])->first();
+			
+			return [(int) $test->usagesCountSum, (int) $test->usageLimitSum];
+		}, '%s/%s')->onRenderCell[] = [$grid, 'decoratorNumber'];
 
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 
@@ -259,7 +267,6 @@ class DiscountPresenter extends BackendPresenter
 
 			return $object->exclusiveCustomer ? '<a href="' . $link . "\"><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->exclusiveCustomer->fullname . '</a>' : '';
 		});
-		$grid->addColumnText('Měna', 'currency.code', '%s', 'currency', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Sleva (%)', 'discountPct', '%s %%', 'discountPct', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Sleva', 'discountValue|price:currency.code', '%s', 'discountValue', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Sleva s DPH', 'discountValueVat|price:currency.code', '%s', 'discountValueVat', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
@@ -278,17 +285,19 @@ class DiscountPresenter extends BackendPresenter
 		$ordersCount = \count($orders);
 
 		$cache = new Cache($this->storage);
-
+		
 		$grid->addColumn('Využití', function (DiscountCoupon $object, $datagrid) use ($orders, $cache, $ordersCount): array {
 			return $cache->load('discount_coupon_usage_' . $object->getPK(), function (&$dependencies) use ($object, $orders, $ordersCount): array {
 				$dependencies[Cache::EXPIRE] = '1 hour';
-
+				
 				$usages = $this->orderRepository->getDiscountCouponsUsage($orders->toArray(), [$object]);
-
+				
 				return [$usages[0][$object->getPK()], $usages[1][$object->getPK()], $ordersCount];
 			});
-		}, '%s %% | %sx z %s');
-
+		}, '%s %% | %sx z %s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		
+		$grid->addColumnText('Uplatnění', ['usagesCount', 'usageLimit'], '%s / %s', 'usagesCount', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		
 		$grid->addColumnLinkDetail('couponsDetail');
 		$grid->addColumnActionDelete();
 
