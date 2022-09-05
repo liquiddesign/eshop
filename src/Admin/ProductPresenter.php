@@ -311,7 +311,7 @@ class ProductPresenter extends BackendPresenter
 				}
 
 				$newData = [
-					'price' => isset($data['price']) ? \floatval(\str_replace(',', '.', $data['price'])) : 0,
+					'price' => \floatval(\str_replace(',', '.', $data['price'])),
 					'priceBefore' => isset($data['priceBefore']) ? \floatval(\str_replace(',', '.', $data['priceBefore'])) : null,
 					'product' => $product,
 					'pricelist' => $id,

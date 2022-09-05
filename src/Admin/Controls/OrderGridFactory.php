@@ -349,11 +349,11 @@ class OrderGridFactory
 		
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs >= :created_from', ['created_from' => $value]);
-		}, '', 'date_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
+		}, '', 'date_from', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
 		
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
-		}, '', 'created_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
+		}, '', 'created_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
 		
 		if ($customerGroups = $this->customerGroupRepository->getArrayForSelect()) {
 			$customerGroups += ['0' => 'X - bez skupiny'];
@@ -552,7 +552,7 @@ class OrderGridFactory
 			$date = $grid->template->getLatte()->invokeFilter('date', [$payment->paidTs]);
 			$paymentInfo = "<br><small title='Zaplaceno'><i class='fas fa-check fa-xs' style='color: green;'></i> $date <a href='$linkCancel'><i class='far fa-times-circle'></i></a></small>";
 		} else {
-			$paymentInfo = !isset($this->configuration['showPay']) || (isset($this->configuration['showPay']) && $this->configuration['showPay']) ?
+			$paymentInfo =  $this->configuration['showPay'] ?
 				"<br><small title='Nezaplaceno'><i class='fas fa-stop fa-xs' style='color: gray'></i> 
 <a href='$linkPay'>Zaplatit</a>" . (isset($this->configuration['showExtendedPay']) && $this->configuration['showExtendedPay'] ?
 					"  | <a href='$linkPayPlusEmail'>Zaplatit + e-mail</a>" : '') . '</small>' : '';
@@ -580,7 +580,7 @@ class OrderGridFactory
 			$deliveryInfo = "<br><small title='Expedováno'><i class='fas fa-play fa-xs' style='color: gray;'>
 </i> $from / $to | $date <a href='$linkCancel'><i class='far fa-times-circle'></i></a></small>";
 		} else {
-			$deliveryInfo = !isset($this->configuration['showDispatch']) || (isset($this->configuration['showDispatch']) && $this->configuration['showDispatch']) ?
+			$deliveryInfo = $this->configuration['showDispatch'] ?
 				"<br><small title='Neexpedováno'><i class='fas fa-stop fa-xs' style='color: gray'></i>
  <a href='$linkShip'>Expedovat</a>" . (isset($this->configuration['showExtendedDispatch']) && $this->configuration['showExtendedDispatch'] ?
 					"  | <a href='$linkShipPlusEmail'>Expedovat + e-mail</a>" : '') . '</small>' : '';

@@ -104,11 +104,11 @@ class EHubPresenter extends \Eshop\BackendPresenter
 
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs >= :created_from', ['created_from' => $value]);
-		}, '', 'date_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
+		}, '', 'date_from', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
 
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
-		}, '', 'created_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
+		}, '', 'created_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
 		$grid->addFilterButtons(['transactions']);
 		
 		return $grid;

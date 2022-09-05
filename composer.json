@@ -53,7 +53,8 @@
 		"composer/composer": "*",
 		"liquiddesign/codestyle": "~1.0",
 		"liquiddesign/migrator": "~1.0",
-		"phpstan/phpstan-nette": "~1.0"
+		"phpstan/phpstan-nette": "~1.0",
+		"phpstan/phpstan": "^1.8"
 	},
 	"scripts": {
 		"fix-code": ["@phpcsfix"],
