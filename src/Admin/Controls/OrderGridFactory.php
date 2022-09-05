@@ -552,7 +552,7 @@ class OrderGridFactory
 			$date = $grid->template->getLatte()->invokeFilter('date', [$payment->paidTs]);
 			$paymentInfo = "<br><small title='Zaplaceno'><i class='fas fa-check fa-xs' style='color: green;'></i> $date <a href='$linkCancel'><i class='far fa-times-circle'></i></a></small>";
 		} else {
-			$paymentInfo =  $this->configuration['showPay'] ?
+			$paymentInfo = $this->configuration['showPay'] ?
 				"<br><small title='Nezaplaceno'><i class='fas fa-stop fa-xs' style='color: gray'></i> 
 <a href='$linkPay'>Zaplatit</a>" . (isset($this->configuration['showExtendedPay']) && $this->configuration['showExtendedPay'] ?
 					"  | <a href='$linkPayPlusEmail'>Zaplatit + e-mail</a>" : '') . '</small>' : '';
