@@ -346,15 +346,15 @@ class OrderGridFactory
 		$searchExpressions = ['customer.fullname', 'purchase.fullname', 'customer.ic', 'purchase.ic', 'customer.email', 'purchase.email', 'customer.phone', 'purchase.phone',];
 		$grid->addFilterTextInput('search_q', $searchExpressions, null, 'Jméno zákazníka, IČO, e-mail, telefon');
 		$grid->addFilterButtons(['default']);
-		
+
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs >= :created_from', ['created_from' => $value]);
-		}, '', 'date_from', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
-		
+		}, '', 'date_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
+
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
-		}, '', 'created_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
-		
+		}, '', 'created_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
+
 		if ($customerGroups = $this->customerGroupRepository->getArrayForSelect()) {
 			$customerGroups += ['0' => 'X - bez skupiny'];
 			$grid->addFilterDataSelect(function (Collection $source, $value): void {

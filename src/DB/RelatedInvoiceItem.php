@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use StORM\RelationCollection;
-
 /**
  * Položka faktury
  * @table
  */
-class InvoiceItem extends \StORM\Entity
+class RelatedInvoiceItem extends \StORM\Entity
 {
 	/**
 	 * Název položky
@@ -67,25 +65,6 @@ class InvoiceItem extends \StORM\Entity
 	public int $amount;
 
 	/**
-	 * Proporční množství
-	 * @column
-	 */
-	public ?int $realAmount;
-
-	/**
-	 * Sleva zákazníka
-	 * @column
-	 */
-	public ?float $customerDiscountLevel;
-
-	/**
-	 * Upsell pro položku
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
-	 * @relation
-	 */
-	public ?InvoiceItem $upsell;
-
-	/**
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 * @relation
 	 */
@@ -95,14 +74,7 @@ class InvoiceItem extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
-	public Invoice $invoice;
-
-	/**
-	 * Related invoice items
-	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedInvoiceItem>|\Eshop\DB\RelatedInvoiceItem[]
-	 */
-	public RelationCollection $relatedInvoiceItems;
+	public InvoiceItem $invoiceItem;
 
 	public function getPriceSum(): float
 	{
@@ -114,6 +86,21 @@ class InvoiceItem extends \StORM\Entity
 		return $this->priceVat * $this->amount;
 	}
 
+	public function getPriceBeforeSum(): ?float
+	{
+		return $this->priceBefore ? $this->priceBefore * $this->amount : null;
+	}
+
+	public function getPriceVatBeforeSum(): ?float
+	{
+		return $this->priceVatBefore ? $this->priceVatBefore * $this->amount : null;
+	}
+
+	public function getDiscountPriceVatSum(): float
+	{
+		return ($priceVatBefore = $this->getPriceVatBeforeSum()) ? $priceVatBefore - $this->getPriceVatSum() : 0;
+	}
+
 	public function getFullCode(): ?string
 	{
 		return $this->product ? $this->product->getFullCode() : ($this->productSubCode ? $this->productCode . '.' . $this->productSubCode : $this->productCode);
@@ -122,7 +109,7 @@ class InvoiceItem extends \StORM\Entity
 	public function getDiscountLevel(): ?float
 	{
 		if (!$beforePrice = $this->priceBefore) {
-			return $this->customerDiscountLevel;
+			return 0;
 		}
 
 		return 100 - ($this->price / $beforePrice * 100);
@@ -131,7 +118,7 @@ class InvoiceItem extends \StORM\Entity
 	public function getDiscountLevelVat(): ?float
 	{
 		if (!$beforePrice = $this->priceVatBefore) {
-			return $this->customerDiscountLevel;
+			return 0;
 		}
 
 		return 100 - ($this->priceVat / $beforePrice * 100);

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use StORM\RelationCollection;
+
 /**
  * Položka balíčku
  * @table
@@ -62,6 +64,13 @@ class PackageItem extends \StORM\Entity
 	 * @relation
 	 */
 	public ?PackageItem $upsell;
+
+	/**
+	 * Related package items
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedPackageItem>|\Eshop\DB\RelatedPackageItem[]
+	 */
+	public RelationCollection $relatedPackageItems;
 
 	public function getSupplierProduct(string $supplierCode): ?SupplierProduct
 	{

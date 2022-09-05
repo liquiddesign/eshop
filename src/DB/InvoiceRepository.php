@@ -28,6 +28,8 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 	private ProductRepository $productRepository;
 
 	private Shopper $shopper;
+
+	private RelatedInvoiceItemRepository $relatedInvoiceItemRepository;
 	
 	public function __construct(
 		InvoiceItemRepository $invoiceItemRepository,
@@ -36,7 +38,8 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 		DIConnection $connection,
 		SchemaManager $schemaManager,
 		ProductRepository $productRepository,
-		Shopper $shopper
+		Shopper $shopper,
+		RelatedInvoiceItemRepository $relatedInvoiceItemRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 		
@@ -45,6 +48,7 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 		$this->relatedTypeRepository = $relatedTypeRepository;
 		$this->productRepository = $productRepository;
 		$this->shopper = $shopper;
+		$this->relatedInvoiceItemRepository = $relatedInvoiceItemRepository;
 	}
 
 	/**
@@ -155,6 +159,22 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 			]);
 
 			$cartItemInvoiceItemMap[$item->getPK()] = $newItem->getPK();
+
+			foreach ($item->relatedCartItems as $relatedCartItem) {
+				$this->relatedInvoiceItemRepository->createOne([
+					'name' => $relatedCartItem->productName,
+					'price' => $relatedCartItem->price,
+					'priceVat' => $relatedCartItem->priceVat,
+					'priceBefore' => $relatedCartItem->priceBefore,
+					'priceVatBefore' => $relatedCartItem->priceVatBefore,
+					'vatPct' => $relatedCartItem->vatPct,
+					'amount' => $relatedCartItem->amount,
+					'product' => $relatedCartItem->product,
+					'invoiceItem' => $newItem->getPK(),
+					'productCode' => $relatedCartItem->getProduct() ? $relatedCartItem->getProduct()->getFullCode() : $relatedCartItem->productCode,
+					'productSubCode' => $relatedCartItem->getProduct() ? $relatedCartItem->getProduct()->subCode : $relatedCartItem->productSubCode,
+				]);
+			}
 		}
 
 		foreach ($order->purchase->getItems()->where('fk_upsell IS NOT NULL') as $item) {

@@ -136,41 +136,41 @@
                                         {include '../Components/Order.printDetail.item.latte', packageItem:$upsellPackageItem, upsell:true}
                                     {/foreach}
 
-                                    {if $packageItem->cartItem->getValue('product') && isset($relations[$packageItem->cartItem->getValue('product')])}
-                                        {foreach $relations[$packageItem->cartItem->getValue('product')] as $related}
-                                            {varType Eshop\DB\Related $related}
-                                            {var Eshop\DB\Product $slave = $related->slave}
-                                            <tr>
-                                                <td>
-                                                    <a href="#">
-                                                        <img data-src="{$slave->getPreviewImage($baseUrl,'thumb')}" loading="lazy" alt="" style="height:32px;">
-                                                    </a>
-                                                </td>
-                                                <td>
-                                                    {$slave->getFullCode()}
-									            {if $slave->ean}<br><small>EAN: {$slave->ean}</small>{/if}
-                                                </td>
-                                                <td>
-                                                    <a n:tag-if="$admin->isAllowed(':Eshop:Admin:Product:default')" href="{plink :Eshop:Admin:Product:default, productGrid-code=>$slave->getFullCode()}" target="_blank">
-                                                        -- {$slave->name}
-                                                    </a>
-                                                </td>
-                                                <td>{$related->amount}</td>
-                                                <td>
-                                                </td>
-                                                <td style="text-align: right">
-                                                </td>
-                                                <td style="text-align: right">
-                                                </td>
-                                                <td class="d-print-none">
-                                                </td>
-                                                <td class="d-print-none">
-                                                </td>
-                                                <td class="d-print-none">
-                                                </td>
-                                            </tr>
-                                        {/foreach}
-                                    {/if}
+                                    {foreach $packageItem->relatedPackageItems->toArray() as $relatedPackageItem}
+                                        {varType Eshop\DB\RelatedPackageItem $relatedPackageItem}
+                                        {var Eshop\DB\RelatedCartItem $item = $relatedPackageItem->cartItem}
+                                        {var Eshop\DB\Product|null $product = $item->product}
+                                        <tr>
+                                            <td>
+                                                <a n:if="$product" href="#">
+                                                    <img data-src="{$product->getPreviewImage($baseUrl,'thumb')}" loading="lazy" alt="" style="height:32px;">
+                                                </a>
+                                            </td>
+                                            <td>
+                                                {$product ? $product->getFullCode() : $item->getFullCode()}
+									            {if $product && $product->ean}<br><small>EAN: {$product->ean}</small>{/if}
+                                            </td>
+                                            <td>
+                                                <a n:tag-if="$admin->isAllowed(':Eshop:Admin:Product:default')" href="{plink :Eshop:Admin:Product:default, productGrid-code=>$item->productCode}" target="_blank">
+                                                    -- {$item->product ? $item->product->name : $item->productName}
+                                                </a>
+                                                <i n:if="$item->note" title="{$item->note}" class="far fa-sticky-note"></i>
+                                            </td>
+                                            <td>{$item->amount}</td>
+                                            <td>
+
+                                            </td>
+                                            <td style="text-align: right">
+                                                {$item->priceVat|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price|price} bez DPH</small>{/if}
+                                            </td>
+                                            <td style="text-align: right">
+                                                {$item->priceVat * $item->amount|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price * $item->amount|price} bez DPH</small>{/if}
+                                            </td>
+                                            <td class="d-print-none"></td>
+                                            <td class="d-print-none"></td>
+                                            <td class="d-print-none"></td>
+                                        </tr>
+                                    {/foreach}
                                 {/foreach}
                                 </tbody>
                             </table>
