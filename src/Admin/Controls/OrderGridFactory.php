@@ -355,7 +355,6 @@ class OrderGridFactory
 			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
 		}, '', 'created_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
 
-		
 		if ($customerGroups = $this->customerGroupRepository->getArrayForSelect()) {
 			$customerGroups += ['0' => 'X - bez skupiny'];
 			$grid->addFilterDataSelect(function (Collection $source, $value): void {
