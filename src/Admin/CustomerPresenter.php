@@ -242,13 +242,13 @@ class CustomerPresenter extends BackendPresenter
 
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('lastOrder.createdTs >= :created_from', ['created_from' => $value]);
-		}, '', 'date_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])
+		}, '', 'date_from', null)
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
 			->setHtmlAttribute('placeholder', 'Datum objednávky od');
 
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('lastOrder.createdTs <= :created_to', ['created_to' => $value]);
-		}, '', 'created_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])
+		}, '', 'created_to', null)
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
 			->setHtmlAttribute('placeholder', 'Datum objednávky do');
 
