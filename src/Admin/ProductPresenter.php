@@ -30,6 +30,8 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\ProductTabRepository;
+use Eshop\DB\ProductTabTextRepository;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierProductRepository;
@@ -120,6 +122,7 @@ class ProductPresenter extends BackendPresenter
 		],
 		'detailSuppliersTab' => false,
 		'extendedName' => false,
+		'productTabs' => true,
 	];
 
 	protected const IMPORT_SET_COLUMNS = [
@@ -157,6 +160,12 @@ class ProductPresenter extends BackendPresenter
 
 	/** @inject */
 	public PriceRepository $priceRepository;
+
+	/** @inject */
+	public ProductTabRepository $productTabRepository;
+
+	/** @inject */
+	public ProductTabTextRepository $productTabTextRepository;
 
 	/** @inject */
 	public VatRateRepository $vatRateRepository;
@@ -480,6 +489,28 @@ class ProductPresenter extends BackendPresenter
 		 */
 		foreach ($input->getComponents() as $pricelistId => $container) {
 			$container->setDefaults($prices[$pricelistId]->toArray());
+		}
+
+		/** @var \Eshop\DB\ProductTab $productTab */
+		foreach ($this->productTabRepository->many() as $productTab) {
+			$values = [];
+			$productTabText = $this->productTabTextRepository->many()
+				->where('fk_product=:product AND fk_tab=:tab', ['product' => $product->getPK(), 'tab' => $productTab->getPK()])
+				->first();
+
+			/** @var \Forms\Container $input */
+			$input = $form['productTab' . $productTab->getPK()];
+
+			/**
+			 * @var string $key
+			 * @var \Forms\Container $container
+			 */
+			foreach ($input->getComponents() as $key => $container) {
+				$property = 'content_' . $key;
+				$values[$key] = $productTabText->$property;
+			}
+
+			$input->setDefaults($values);
 		}
 
 		$amounts = $this->amountRepository->many()
