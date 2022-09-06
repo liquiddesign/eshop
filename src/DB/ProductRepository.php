@@ -1350,14 +1350,14 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$value === false ? $collection->where('categories.uuid IS NULL') : $collection->where('categories.path LIKE :category', ['category' => "$value%"]);
 	}*/
 	
-	public function isProductDeliveryFreeVat(Product $product): bool
+	public function isProductDeliveryFreeVat(Product $product, Currency $currency): bool
 	{
-		return $this->isProductDeliveryFree($product, true);
+		return $this->isProductDeliveryFree($product, true, $currency);
 	}
 	
-	public function isProductDeliveryFreeWithoutVat(Product $product): bool
+	public function isProductDeliveryFreeWithoutVat(Product $product, Currency $currency): bool
 	{
-		return $this->isProductDeliveryFree($product, false);
+		return $this->isProductDeliveryFree($product, false, $currency);
 	}
 	
 	public function clearCache(): void
@@ -1495,10 +1495,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
        LENGTH(SUBSTRING_INDEX($expression, '$delimiter', " . ($position - 1) . ")) + 1), '$delimiter', '')";
 	}
 	
-	private function isProductDeliveryFree(Product $product, bool $vat): bool
+	private function isProductDeliveryFree(Product $product, bool $vat, Currency $currency): bool
 	{
 		/** @var \Eshop\DB\DeliveryDiscount $deliveryDiscount */
-		foreach ($this->deliveryDiscountRepository->many() as $deliveryDiscount) {
+		foreach ($this->deliveryDiscountRepository->many()->where('this.fk_currency', $currency->getPK()) as $deliveryDiscount) {
 			if ($deliveryDiscount->discount->isActive() === false ||
 				$deliveryDiscount->discountPriceFrom > ($vat ? $product->getValue('priceVat') : $product->getValue('price')) ||
 				(\abs($deliveryDiscount->discountPct - 100) >= \PHP_FLOAT_EPSILON)) {
