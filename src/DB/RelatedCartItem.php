@@ -4,15 +4,11 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use StORM\ICollection;
-use StORM\RelationCollection;
-
 /**
- * Položka košíku
+ * Položka setu košíku
  * @table
- * @index{"name":"cartitem_item","unique":true,"columns":["fk_product","fk_variant","fk_cart"]}
  */
-class CartItem extends \StORM\Entity
+class RelatedCartItem extends \StORM\Entity
 {
 	/**
 	 * Název produktu
@@ -52,16 +48,9 @@ class CartItem extends \StORM\Entity
 	
 	/**
 	 * Množství
-	 * Pokud je amount > 1, potom priceBefore a priceVatBefore je neplatný!
 	 * @column
 	 */
 	public int $amount;
-	
-	/**
-	 * Dodané množství
-	 * @column
-	 */
-	public ?int $realAmount;
 	
 	/**
 	 * Cena
@@ -92,13 +81,19 @@ class CartItem extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $vatPct;
-	
+
 	/**
-	 * Cena
+	 * Related type name
 	 * @column
 	 */
-	public ?int $pts;
-	
+	public string $relatedTypeName;
+
+	/**
+	 * Related type code
+	 * @column
+	 */
+	public string $relatedTypeCode;
+
 	/**
 	 * Poznámka
 	 * @column
@@ -111,48 +106,26 @@ class CartItem extends \StORM\Entity
 	 * @relation
 	 */
 	public ?Product $product;
-	
+
 	/**
-	 * Ceník
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
-	 * @relation
-	 */
-	public ?Pricelist $pricelist;
-	
-	/**
-	 * Varianta
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
-	 * @relation
-	 */
-	public ?Variant $variant;
-	
-	/**
-	 * Košík
+	 * Main item
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
-	public Cart $cart;
+	public CartItem $cartItem;
 
 	/**
-	 * Upsell pro položku
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * Related type
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 * @relation
 	 */
-	public ?CartItem $upsell;
-
-	/**
-	 * Related cart items
-	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedCartItem>|\Eshop\DB\RelatedCartItem[]
-	 */
-	public RelationCollection $relatedCartItems;
+	public ?RelatedType $relatedType;
 	
 	public function getProduct(): ?Product
 	{
 		if ($this->product) {
 			$this->product->setValue('price', $this->price);
 			$this->product->setValue('priceVat', $this->priceVat);
-			$this->product->setValue('pricelist', $this->pricelist);
 			
 			return $this->product;
 		}
@@ -170,49 +143,19 @@ class CartItem extends \StORM\Entity
 		return $this->priceVat * $this->amount;
 	}
 
-	public function getPriceBefore(): ?float
+	public function getPriceSumBefore(): ?float
 	{
 		return (float) $this->getValue('priceBefore') > 0 ? (float)$this->getValue('priceBefore') * $this->amount : null;
 	}
 
-	public function getPriceVatBefore(): ?float
+	public function getPriceVatSumBefore(): ?float
 	{
 		return (float) $this->getValue('priceVatBefore') > 0 ? (float)$this->getValue('priceVatBefore') * $this->amount : null;
-	}
-
-	public function getDiscountPercent(): ?float
-	{
-		if (!$beforePrice = $this->priceBefore) {
-			return $this->cart->purchase->customerDiscountLevel;
-		}
-
-		return 100 - ($this->price / $beforePrice * 100);
-	}
-
-	public function getDiscountPercentVat(): ?float
-	{
-		if (!$beforePrice = $this->priceVatBefore) {
-			return $this->cart->purchase->customerDiscountLevel;
-		}
-
-		return 100 - ($this->priceVat / $beforePrice * 100);
-	}
-	
-	public function isAvailable(): bool
-	{
-		return $this->product && !$this->product->unavailable;
 	}
 	
 	public function getFullCode(): ?string
 	{
 		//@TODO code-subcode delimeter (tečka) by mel jit nastavit
 		return $this->productSubCode ? $this->productCode . '.' . $this->productSubCode : $this->productCode;
-	}
-	
-	public function getDeliveries(): ICollection
-	{
-		return $this->getConnection()->findRepository(Delivery::class)->many()
-			->join(['package' => 'eshop_packageitem'], 'this.uuid=package.fk_delivery')
-			->where('package.fk_cartItem', $this->getPK());
 	}
 }

@@ -11,6 +11,7 @@ use Eshop\DB\CategoryRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\PaymentTypeRepository;
+use Eshop\DB\RelatedTypeRepository;
 use Eshop\Integration\Integrations;
 use Forms\Form;
 use Nette\Utils\Arrays;
@@ -26,6 +27,7 @@ class SettingsPresenter extends BackendPresenter
 	public const DPD_DELIVERY_TYPE = 'dpdDeliveryType';
 	public const SUPPLIER_IN_STOCK_DISPLAY_AMOUNT = 'supplierInStockDisplayAmount';
 	public const SUPPLIER_NOT_IN_STOCK_DISPLAY_AMOUNT = 'supplierNotInStockDisplayAmount';
+	public const SET_RELATION_TYPE = 'advPackageRelationType';
 
 	/** @inject */
 	public Integrations $integrations;
@@ -44,6 +46,9 @@ class SettingsPresenter extends BackendPresenter
 
 	/** @inject */
 	public DisplayAmountRepository $displayAmountRepository;
+
+	/** @inject */
+	public RelatedTypeRepository $relatedTypeRepository;
 
 	/**
 	 * @var array<string|array<mixed>>
@@ -229,6 +234,18 @@ class SettingsPresenter extends BackendPresenter
 				'label' => 'Maximální počet relací produktu',
 				'type' => 'int',
 				'info' => 'Zadajte číslo větší než 0! Určuje počet možných relací jednoho typu u produktu. Výchozí hodnota je: ' . ProductForm::RELATION_MAX_ITEMS_COUNT,
+			],
+			'Vazby' => [
+				[
+					'key' => self::SET_RELATION_TYPE,
+					'label' => 'Typ vazby setů',
+					'type' => 'select',
+					'options' => $this->relatedTypeRepository->getArrayForSelect(),
+					'info' => 'Používá se pro vytvoření produktů jako setů a odkazování na ně.',
+					'onSave' => function ($key, $oldValue, $newValue): void {
+						$this->systemicCallback($key, $oldValue, $newValue, $this->relatedTypeRepository);
+					},
+				],
 			],
 			'Doprava' => [
 				[

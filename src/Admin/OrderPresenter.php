@@ -34,9 +34,12 @@ use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PickupPointRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\RelatedCartItemRepository;
+use Eshop\DB\RelatedPackageItemRepository;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierRepository;
+use Eshop\DB\VatRateRepository;
 use Eshop\Integration\EHub;
 use Eshop\Integration\Integrations;
 use Eshop\Services\DPD;
@@ -59,6 +62,7 @@ use StORM\Collection;
 use StORM\DIConnection;
 use Tracy\Debugger;
 use Tracy\ILogger;
+use Web\DB\SettingRepository;
 
 class OrderPresenter extends BackendPresenter
 {
@@ -208,6 +212,18 @@ class OrderPresenter extends BackendPresenter
 
 	/** @inject */
 	public Integrations $integrations;
+
+	/** @inject */
+	public VatRateRepository $vatRateRepository;
+
+	/** @inject */
+	public SettingRepository $settingRepository;
+
+	/** @inject */
+	public RelatedCartItemRepository $relatedCartItemRepository;
+
+	/** @inject */
+	public RelatedPackageItemRepository $relatedPackageItemRepository;
 
 	/**
 	 * Always use getter getTab()
@@ -623,11 +639,107 @@ class OrderPresenter extends BackendPresenter
 
 			$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], null, false, false, $cart);
 
-			$this->packageItemRepository->createOne([
+			$packageItem = $this->packageItemRepository->createOne([
 				'amount' => $values['amount'],
 				'package' => $values['package'],
 				'cartItem' => $cartItem,
 			]);
+
+			$setRelationType = $this->settingRepository->getValueByName(SettingsPresenter::SET_RELATION_TYPE);
+
+			if ($setRelationType) {
+				/** @var \Eshop\DB\RelatedType $setRelationType */
+				$setRelationType = $this->relatedTypeRepository->one($setRelationType);
+			}
+
+			/* Get default set relation type and slave products in that relation for top-level cart item */
+			if (!$setRelationType) {
+				$this->flashMessage('Provedeno', 'success');
+				$form->processRedirect('this');
+			}
+
+			/** @var array<mixed> $relatedCartItems */
+			$relatedCartItems = [];
+
+			/* Load real products in relation with prices */
+			$relatedProducts = $this->productRepository->getSlaveRelatedProducts($setRelationType, $cartItem->product)->toArray();
+
+			if (!$relatedProducts) {
+				$this->flashMessage('Provedeno', 'success');
+				$form->processRedirect('this');
+			}
+
+			$slaveProducts = [];
+
+			foreach ($relatedProducts as $relatedProduct) {
+				$slaveProducts[] = $relatedProduct->getValue('slave');
+			}
+
+			/* Compute total price of set items */
+			/** @var array<\Eshop\DB\Product> $slaveProducts */
+			$slaveProducts = $this->productRepository->getProducts()->where('this.uuid', $slaveProducts)->toArray();
+			$slaveProductsTotalPrice = 0;
+			$slaveProductsTotalPriceVat = 0;
+
+			foreach ($relatedProducts as $relatedProduct) {
+				if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
+					continue;
+				}
+
+				$slaveProductsTotalPrice += $slaveProducts[$relatedProduct->getValue('slave')]->getPrice() * $relatedProduct->amount;
+				$slaveProductsTotalPriceVat += $slaveProducts[$relatedProduct->getValue('slave')]->getPriceVat() * $relatedProduct->amount;
+			}
+
+			$setTotalPriceModifier = $slaveProductsTotalPrice > 0 ? $cartItem->price / $slaveProductsTotalPrice : 1;
+			$setTotalPriceVatModifier = $slaveProductsTotalPriceVat > 0 ? $cartItem->priceVat / $slaveProductsTotalPriceVat : 1;
+
+			foreach ($relatedProducts as $relatedProduct) {
+				if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
+					continue;
+				}
+
+				$product = $slaveProducts[$relatedProduct->getValue('slave')];
+
+				/** @var \Eshop\DB\VatRate|null $vat */
+				$vat = $this->vatRateRepository->one($product->vatRate);
+				$vatPct = $vat ? $vat->rate : 0;
+
+				/* Create related cart items with price computed to match unit price of top-level cart item */
+				$relatedCartItems[] = [
+					'cartItem' => $cartItem->getPK(),
+					'relatedType' => $setRelationType->getPK(),
+					'product' => $product->getPK(),
+					'relatedTypeCode' => $setRelationType->code,
+					'relatedTypeName' => $setRelationType->name,
+					'productName' => $product->toArray()['name'],
+					'productCode' => $product->getFullCode(),
+					'productSubCode' => $product->subCode,
+					'productWeight' => $product->weight,
+					'productDimension' => $product->dimension,
+					'amount' => $relatedProduct->amount * $cartItem->amount,
+					'price' => $product->getPrice() * $setTotalPriceModifier,
+					'priceVat' => $product->getPriceVat() * $setTotalPriceVatModifier,
+					'priceBefore' => $product->getPriceBefore() ?: $product->getPrice(),
+					'priceVatBefore' => $product->getPriceVatBefore() ?: $product->getPriceVat(),
+					'vatPct' => (float) $vatPct,
+				];
+			}
+
+			if (!$relatedCartItems) {
+				$this->flashMessage('Provedeno', 'success');
+				$form->processRedirect('this');
+			}
+
+			/** @var array<\Eshop\DB\RelatedCartItem> $relatedCartItems */
+			$relatedCartItems = $this->relatedCartItemRepository->createMany($relatedCartItems)->toArray();
+
+			/* Create relation between related package item and related cart item */
+			foreach ($relatedCartItems as $relatedCartItem) {
+				$this->relatedPackageItemRepository->createOne([
+					'cartItem' => $relatedCartItem->getPK(),
+					'packageItem' => $packageItem->getPK(),
+				]);
+			}
 
 			/** @var \Admin\DB\Administrator|null $admin */
 			$admin = $this->admin->getIdentity();
@@ -899,6 +1011,13 @@ class OrderPresenter extends BackendPresenter
 			$cartItem = clone $cartItemOld;
 
 			$packageItem = $this->packageItemRepository->one($values['packageItem']);
+
+			foreach ($packageItem->relatedPackageItems as $relatedPackageItem) {
+				$relatedCartItem = $relatedPackageItem->cartItem;
+
+				$relatedCartItem->update(['amount' => $relatedCartItem->amount / $cartItemOld->amount * $values['amount']]);
+			}
+
 			$packageItem->update(['amount' => $values['amount']]);
 
 			$cartItem->update($values);
@@ -1559,6 +1678,11 @@ class OrderPresenter extends BackendPresenter
 
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->getParameter('order');
+
+		foreach ($packageItem->relatedPackageItems as $relatedPackageItem) {
+			$relatedPackageItem->cartItem->delete();
+			$relatedPackageItem->delete();
+		}
 
 		$packageItem->cartItem->delete();
 		$packageItem->delete();
