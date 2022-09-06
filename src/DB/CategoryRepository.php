@@ -536,6 +536,40 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		return \array_reverse($categories);
 	}
 
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\Category> $categories
+	 * @return array<array<\Eshop\DB\Category>>
+	 */
+	public function getCategoriesMapWithHeurekaCategories(Collection $categories): array
+	{
+		$map = [];
+
+		foreach ($categories as $category) {
+			$map[$category->getPK()] = [
+				'category' => $category,
+				'heureka' => null,
+			];
+
+			if ($category->exportHeurekaCategory || $category->ancestor === null) {
+				$map[$category->getPK()]['heureka'] = $category->exportHeurekaCategory;
+
+				continue;
+			}
+
+			$categoryBranch = \array_reverse($this->getBranch($category));
+
+			foreach (\array_slice($categoryBranch, 1) as $branchCategory) {
+				if ($branchCategory->exportHeurekaCategory) {
+					$map[$category->getPK()]['heureka'] = $branchCategory->exportHeurekaCategory;
+
+					break;
+				}
+			}
+		}
+
+		return $map;
+	}
+
 	public function importHeurekaTreeCsv(Reader $reader, CategoryType $categoryType): void
 	{
 		$columns = [

@@ -3,6 +3,7 @@
 {varType Eshop\ExportPresenter $presenter}
 {varType Eshop\DB\Product $product}
 {varType string|null $productImageUrl}
+{varType array $categoriesMapWithHeurekaCategories}
 {var $photoImageUrl = "$userUrl/" . Eshop\DB\Product::GALLERY_DIR . '/detail/'}
 {try}
     {cache expire => '1 day', tags => ['export']}
@@ -11,6 +12,7 @@
         {var $allAttributes = $presenter->attributeRepository->many()->select(["heureka" => "IFNULL(heurekaName,name$mutationSuffix)"])->toArrayOf('heureka')}
         {var $allAttributeValues = $presenter->attributeValueRepository->many()->select(["heureka" => "IFNULL(heurekaLabel,label$mutationSuffix)"])->toArrayOf('heureka')}
         {var $pricelists = $presenter->getPricelistFromSetting('heurekaExportPricelist')}
+        {var $haurekaCategoryType = $presenter->settingRepo->getValueByName('heurekaCategoryTypeToParse')}
         <SHOP>
             <SHOPITEM n:foreach="$presenter->productRepo->getProducts($pricelists)->where('this.hidden', false) as $product">
                 <ITEM_ID>{$product->getFullCode()}</ITEM_ID>
@@ -36,7 +38,16 @@
                 <PRICE_VAT>{$product->getPriceVat()}</PRICE_VAT>
                 <MANUFACTURER>{ifset $product->producer}{$product->producer->name}{/ifset}</MANUFACTURER>
                 {var Eshop\DB\Category|null $category = $product->primaryCategory}
-                {if ($category = ($category->exportHeurekaCategory ?? null)) !== null}
+                {if $category && isset($categoriesMapWithHeurekaCategories[$category->getPK()]['heureka']) && $haurekaCategoryType}
+                    {do $category = $categoriesMapWithHeurekaCategories[$category->getPK()]['heureka']}
+                    {do $categories = []}
+                    {while $category != null}
+                        {do $categories[] = $category}
+                        {do $category = $category->ancestor}
+                    {/while}
+                    {do $categories = \array_reverse($categories)}
+                    <CATEGORYTEXT>{foreach $categories as $category}{$category->name|noescape}{if !$iterator->isLast()} | {/if}{/foreach}</CATEGORYTEXT>
+                {elseif $category && !$haurekaCategoryType}
                     {do $categories = []}
                     {while $category != null}
                         {do $categories[] = $category}

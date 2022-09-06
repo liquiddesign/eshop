@@ -143,6 +143,8 @@ abstract class ExportPresenter extends Presenter
 	public function renderHeurekaExport(): void
 	{
 		try {
+			$this->template->categoriesMapWithHeurekaCategories = $this->categoryRepository->getCategoriesMapWithHeurekaCategories($this->categoryRepository->many()->where('fk_type', 'main'));
+
 			$this->export('heureka');
 		} catch (\Exception $e) {
 			$this->template->error = $e->getMessage();
