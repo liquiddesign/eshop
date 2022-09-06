@@ -28,6 +28,7 @@ class PackageItem extends \StORM\Entity
 	/**
 	 * Smazáno
 	 * @column
+	 * @deprecated
 	 */
 	public bool $deleted = false;
 

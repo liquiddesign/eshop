@@ -7,6 +7,7 @@ namespace Eshop\DB;
 /**
  * Item of package set item
  * @table
+ * @index{"name":"related_package_item_unique","unique":true,"columns":["fk_packageItem","fk_cartItem"]}
  */
 class RelatedPackageItem extends \StORM\Entity
 {
