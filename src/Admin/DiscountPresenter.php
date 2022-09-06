@@ -120,10 +120,14 @@ class DiscountPresenter extends BackendPresenter
 		}, '%s %% | %sx z %s');*/
 		
 		$grid->addColumn('Kupóny', function (Discount $object, $datagrid) {
-			/** @var \stdClass $test */
-			$test = $object->coupons->select(['usagesCountSum' => 'SUM(usagesCount)', 'usageLimitSum' => 'SUM(usageLimit)'])->first();
-			
-			return [(int) $test->usagesCountSum, (int) $test->usageLimitSum];
+			try {
+				/** @var \stdClass $test */
+				$test = $object->coupons->select(['usagesCountSum' => 'SUM(usagesCount)', 'usageLimitSum' => 'SUM(usageLimit)'])->first();
+
+				return [(int) $test->usagesCountSum, (int) $test->usageLimitSum];
+			} catch (\PDOException $exception) {
+				return [0, 0,];
+			}
 		}, '%s/%s')->onRenderCell[] = [$grid, 'decoratorNumber'];
 
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
