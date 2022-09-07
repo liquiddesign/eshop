@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use DVDoug\BoxPacker;
+use DVDoug\BoxPacker\Packer;
 use Eshop\Common\DB\SystemicEntity;
 use StORM\RelationCollection;
 
@@ -11,7 +13,7 @@ use StORM\RelationCollection;
  * Typ dopravy
  * @table
  */
-class DeliveryType extends SystemicEntity
+class DeliveryType extends SystemicEntity implements BoxPacker\Box
 {
 	public const IMAGE_DIR = 'deliverytype_images';
 	
@@ -93,16 +95,15 @@ class DeliveryType extends SystemicEntity
 	 * @column
 	 */
 	public bool $externalCarrier = false;
-
+	
 	/**
 	 * Max váha
 	 * @column
 	 */
 	public ?float $maxWeight;
-
+	
 	/**
 	 * Max rozměr
-	 * @deprecated use maxLength, maxDepth, maxWidth instead
 	 * @column
 	 */
 	public ?float $maxDimension;
@@ -130,11 +131,98 @@ class DeliveryType extends SystemicEntity
 	 * @var \StORM\RelationCollection<\Eshop\DB\PaymentType>|\Eshop\DB\PaymentType[]
 	 */
 	public RelationCollection $allowedPaymentTypes;
-
+	
 	/**
 	 * Výdejní typ
 	 * @relation
 	 * @constraint
 	 */
 	public ?PickupPointType $pickupPointType;
+
+	/**
+	 * @param array<\Eshop\DB\CartItem> $items
+	 */
+	public function getBoxesFroItems(array $items): BoxPacker\PackedBoxList
+	{
+		$packer = new Packer();
+		$packer->addBox($this);
+		
+		foreach ($items as $item) {
+			$packer->addItem($item, $item->amount);
+		}
+		
+		return $packer->pack();
+	}
+	
+	/**
+	 * Reference for box type (e.g. SKU or description).
+	 */
+	public function getReference(): string
+	{
+		return $this->code ?: $this->name;
+	}
+	
+	/**
+	 * Outer width in mm.
+	 */
+	public function getOuterWidth(): int
+	{
+		return (int) $this->maxWidth;
+	}
+	
+	/**
+	 * Outer length in mm.
+	 */
+	public function getOuterLength(): int
+	{
+		return (int) $this->maxLength;
+	}
+	
+	/**
+	 * Outer depth in mm.
+	 */
+	public function getOuterDepth(): int
+	{
+		return (int) $this->maxDepth;
+	}
+	
+	/**
+	 * Empty weight in g.
+	 */
+	public function getEmptyWeight(): int
+	{
+		return 0;
+	}
+	
+	/**
+	 * Inner width in mm.
+	 */
+	public function getInnerWidth(): int
+	{
+		return (int) $this->maxWidth;
+	}
+	
+	/**
+	 * Inner length in mm.
+	 */
+	public function getInnerLength(): int
+	{
+		return (int) $this->maxLength;
+	}
+	
+	/**
+	 * Inner depth in mm.
+	 */
+	public function getInnerDepth(): int
+	{
+		return (int) $this->maxDepth;
+	}
+	
+	/**
+	 * Max weight the packaging can hold in g.
+	 */
+	public function getMaxWeight(): int
+	{
+		return (int) \round($this->maxWeight * 1000);
+	}
 }

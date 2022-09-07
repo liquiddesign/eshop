@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use DVDoug\BoxPacker;
 use StORM\ICollection;
 use StORM\RelationCollection;
 
@@ -12,7 +13,7 @@ use StORM\RelationCollection;
  * @table
  * @index{"name":"cartitem_item","unique":true,"columns":["fk_product","fk_variant","fk_cart"]}
  */
-class CartItem extends \StORM\Entity
+class CartItem extends \StORM\Entity implements BoxPacker\Item
 {
 	/**
 	 * Název produktu
@@ -37,12 +38,37 @@ class CartItem extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $productWeight;
-
+	
 	/**
 	 * Rozměr produktu
+	 * @deprecated Use width, length and depth instead
 	 * @column
 	 */
 	public ?float $productDimension;
+	
+	/**
+	 * Šířka produktu
+	 * @column
+	 */
+	public ?int $productWidth;
+
+	/**
+	 * Délka produktu
+	 * @column
+	 */
+	public ?int $productLength;
+	
+	/**
+	 * Hloubka produktu
+	 * @column
+	 */
+	public ?int $productDepth;
+	
+	/**
+	 * Produkt naplacato?
+	 * @column
+	 */
+	public ?bool $productKeepFlat;
 	
 	/**
 	 * Název varianty
@@ -74,19 +100,19 @@ class CartItem extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $priceVat;
-
+	
 	/**
 	 * Cena před (pokud je akční)
 	 * @column
 	 */
 	public ?float $priceBefore;
-
+	
 	/**
 	 * Cena před (pokud je akční) s DPH
 	 * @column
 	 */
 	public ?float $priceVatBefore;
-
+	
 	/**
 	 * DPH
 	 * @column
@@ -132,14 +158,14 @@ class CartItem extends \StORM\Entity
 	 * @relation
 	 */
 	public Cart $cart;
-
+	
 	/**
 	 * Upsell pro položku
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public ?CartItem $upsell;
-
+	
 	/**
 	 * Related cart items
 	 * @relation
@@ -169,32 +195,32 @@ class CartItem extends \StORM\Entity
 	{
 		return $this->priceVat * $this->amount;
 	}
-
+	
 	public function getPriceBefore(): ?float
 	{
 		return (float) $this->getValue('priceBefore') > 0 ? (float)$this->getValue('priceBefore') * $this->amount : null;
 	}
-
+	
 	public function getPriceVatBefore(): ?float
 	{
 		return (float) $this->getValue('priceVatBefore') > 0 ? (float)$this->getValue('priceVatBefore') * $this->amount : null;
 	}
-
+	
 	public function getDiscountPercent(): ?float
 	{
 		if (!$beforePrice = $this->priceBefore) {
 			return $this->cart->purchase->customerDiscountLevel;
 		}
-
+		
 		return 100 - ($this->price / $beforePrice * 100);
 	}
-
+	
 	public function getDiscountPercentVat(): ?float
 	{
 		if (!$beforePrice = $this->priceVatBefore) {
 			return $this->cart->purchase->customerDiscountLevel;
 		}
-
+		
 		return 100 - ($this->priceVat / $beforePrice * 100);
 	}
 	
@@ -214,5 +240,53 @@ class CartItem extends \StORM\Entity
 		return $this->getConnection()->findRepository(Delivery::class)->many()
 			->join(['package' => 'eshop_packageitem'], 'this.uuid=package.fk_delivery')
 			->where('package.fk_cartItem', $this->getPK());
+	}
+	
+	/**
+	 * Item SKU etc.
+	 */
+	public function getDescription(): string
+	{
+		return $this->getFullCode() ?: $this->productName;
+	}
+	
+	/**
+	 * Item width in mm.
+	 */
+	public function getWidth(): int
+	{
+		return (int) $this->productWidth;
+	}
+	
+	/**
+	 * Item length in mm.
+	 */
+	public function getLength(): int
+	{
+		return (int) $this->productLength;
+	}
+	
+	/**
+	 * Item depth in mm.
+	 */
+	public function getDepth(): int
+	{
+		return (int) $this->productLength;
+	}
+	
+	/**
+	 * Item weight in g.
+	 */
+	public function getWeight(): int
+	{
+		return (int) \round($this->productWeight * 1000);
+	}
+	
+	/**
+	 * Does this item need to be kept flat / packed "this way up"?
+	 */
+	public function getKeepFlat(): bool
+	{
+		return $this->productKeepFlat ?? false;
 	}
 }

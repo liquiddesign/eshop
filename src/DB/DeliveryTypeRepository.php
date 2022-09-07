@@ -45,7 +45,7 @@ class DeliveryTypeRepository extends \StORM\Repository implements IGeneralReposi
 			->where('prices.weightTo IS NULL OR prices.weightTo >= :weightTo', ['weightTo' => $weight])
 			->where('prices.dimensionTo IS NULL OR prices.dimensionTo >= :dimensionTo', ['dimensionTo' => $dimension])
 			->where('this.maxWeight IS NULL OR this.maxWeight >= :weight', ['weight' => $weight])
-			->where('this.maxDimension IS NULL OR this.maxDimension >= :dimension', ['dimension' => $dimension])
+			->where('COALESCE(this.maxLength, this.maxWidth, this.maxDepth) IS NULL OR GREATEST(this.maxLength, this.maxWidth, this.maxDepth) >= :dimension', ['dimension' => $dimension])
 			->where('hidden', false)
 			->orderBy(['priority' => 'ASC', 'weightTo' => 'DESC', 'dimensionTo' => 'DESC']);
 		

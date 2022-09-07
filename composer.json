@@ -44,7 +44,8 @@
 		"jurosh/pdf-merge": "^2.0",
 		"salamek/ppl-my-api": "^2.5",
 		"setasign/fpdf": "^1.8",
-		"setasign/fpdi": "^2.0"
+		"setasign/fpdi": "^2.0",
+		"dvdoug/boxpacker": "^3.9"
 	},
 	"require-dev": 
 	{

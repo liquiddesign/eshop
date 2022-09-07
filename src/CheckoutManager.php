@@ -160,6 +160,10 @@ class CheckoutManager
 	private ?float $sumDimension = null;
 
 	private ?int $sumPoints = null;
+	
+	private ?float $maxWeight = null;
+	
+	private ?int $maxDimension = null;
 
 	/**
 	 * @var string[]
@@ -370,6 +374,24 @@ class CheckoutManager
 		}
 
 		return $this->sumDimension ??= $this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'productDimension');
+	}
+	
+	public function getMaxWeight(): float
+	{
+		if (!$this->cartExists()) {
+			return 0.0;
+		}
+		
+		return $this->maxWeight ??= $this->itemRepository->many()->where('fk_cart', $this->getCart()->getPK())->max('productWeight');
+	}
+	
+	public function getMaxDimension(): int
+	{
+		if (!$this->cartExists()) {
+			return 0;
+		}
+		
+		return $this->maxDimension ??= (int) $this->itemRepository->many()->where('fk_cart', $this->getCart()->getPK())->max('GREATEST(productWidth,productLength,productDepth)');
 	}
 
 	public function getSumPoints(): int
@@ -746,8 +768,8 @@ class CheckoutManager
 			$this->customer,
 			$this->shopper->getCustomerGroup(),
 			$this->getDeliveryDiscount($vat),
-			$this->getSumWeight(),
-			$this->getSumDimension(),
+			$this->getMaxWeight(),
+			$this->getMaxDimension(),
 		);
 	}
 
