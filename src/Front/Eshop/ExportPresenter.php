@@ -10,6 +10,7 @@ use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\Customer;
+use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\InvoiceRepository;
@@ -118,6 +119,9 @@ abstract class ExportPresenter extends Presenter
 
 	/** @inject */
 	public Response $response;
+	
+	/** @inject */
+	public CustomerGroupRepository $customerGroupRepository;
 
 	protected Cache $cache;
 
@@ -189,7 +193,8 @@ abstract class ExportPresenter extends Presenter
 	{
 		/** @var \Web\DB\Setting|null $discountPricelist */
 		$discountPricelist = $this->settingRepo->many()->where('name', 'googleSalePricelist')->first();
-
+		$this->template->groupAfterRegistration = $this->customerGroupRepository->getDefaultRegistrationGroup() ?: $this->customerGroupRepository->getUnregisteredGroup();
+		
 		$this->template->discountPrices = $discountPricelist && $discountPricelist->value ?
 			$this->priceRepository->many()
 				->where('fk_pricelist', $discountPricelist->value)
