@@ -102,9 +102,28 @@ class DeliveryType extends SystemicEntity
 
 	/**
 	 * Max rozměr
+	 * @deprecated use maxLength, maxDepth, maxWidth instead
 	 * @column
 	 */
 	public ?float $maxDimension;
+	
+	/**
+	 * Šířka
+	 * @column
+	 */
+	public ?int $maxWidth;
+	
+	/**
+	 * Délka
+	 * @column
+	 */
+	public ?int $maxLength;
+	
+	/**
+	 * Hloubka
+	 * @column
+	 */
+	public ?int $maxDepth;
 	
 	/**
 	 * @relationNxN

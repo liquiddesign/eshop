@@ -203,9 +203,34 @@ class Product extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $weight;
+	
+	/**
+	 * Šířka
+	 * @column
+	 */
+	public ?int $width;
+	
+	/**
+	 * Délka
+	 * @column
+	 */
+	public ?int $length;
+	
+	/**
+	 * Hloubka
+	 * @column
+	 */
+	public ?int $depth;
+	
+	/**
+	 * Při přepravě nechat naplacato
+	 * @column
+	 */
+	public bool $keepFlat = false;
 
 	/**
 	 * Rozměr
+	 * @deprecated use length, depth, width instead
 	 * @column
 	 */
 	public ?float $dimension;

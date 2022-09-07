@@ -136,19 +136,18 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form->addDataSelect('pickupPointType', 'Typ výdejních míst', $this->pointTypeRepo->getArrayForSelect())->setPrompt('Žádný');
 		$form->addDataMultiSelect('allowedPaymentTypes', 'Povolené typy plateb', $this->paymentTypeRepo->many()->toArrayOf('code'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
-		$form->addText('maxWeight', 'Maximální váha')
-			->setNullable()
-			->addCondition($form::FILLED)
-			->addRule($form::FLOAT);
-		$form->addText('maxDimension', 'Maximální rozměr')
-			->setNullable()
-			->addCondition($form::FILLED)
-			->addRule($form::FLOAT);
+		
+		
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('externalCarrier', 'Externí dopravce');
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
-
+		$form->addGroup('Maximální přepravní jednotka');
+		$form->addText('maxWeight', 'Váha')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
+		$form->addIntegerNullable('maxWidth', 'Šírka');
+		$form->addIntegerNullable('maxLength', 'Délka');
+		$form->addIntegerNullable('maxDepth', 'Hloubka');
+		
 		$form->addGroup('Ostatní');
 		$form->addCheckbox('exportToFeed', 'Poskytovat v XML feedech');
 		$form->addText('externalId', 'Externí ID: Obecné')->setNullable();

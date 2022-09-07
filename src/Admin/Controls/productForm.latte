@@ -493,8 +493,20 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                     {$renderer->renderPair($form['weight'])|noescape}
                 {/ifset}
 
-                {ifset $form['dimension']}
-                    {$renderer->renderPair($form['dimension'])|noescape}
+                {ifset $form['width']}
+                    {$renderer->renderPair($form['width'])|noescape}
+                {/ifset}
+
+                {ifset $form['length']}
+                        {$renderer->renderPair($form['length'])|noescape}
+                {/ifset}
+
+                {ifset $form['depth']}
+                        {$renderer->renderPair($form['depth'])|noescape}
+                {/ifset}
+
+                {ifset $form['keepFlat']}
+                        {$renderer->renderPair($form['keepFlat'])|noescape}
                 {/ifset}
 
 			    {$renderer->renderPair($form['unavailable'])|noescape}

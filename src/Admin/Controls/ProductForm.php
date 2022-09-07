@@ -302,11 +302,10 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 				->setNullable()
 				->addCondition($form::FILLED)
 				->addRule($form::FLOAT);
-			$form->addText('dimension', 'Rozměr')
-				->setHtmlAttribute('data-info', 'Celkový rozměr objednávky. Na jednotce nezáleží.')
-				->setNullable()
-				->addCondition($form::FILLED)
-				->addRule($form::FLOAT);
+			$form->addIntegerNullable('width', 'Šířka')->setHtmlAttribute('data-info', 'Na jednotce nezáleží.');
+			$form->addIntegerNullable('length', 'Délka')->setHtmlAttribute('data-info', 'Na jednotce nezáleží.');
+			$form->addIntegerNullable('depth', 'Hloubka')->setHtmlAttribute('data-info', 'Na jednotce nezáleží.');
+			$form->addCheckbox('keepFlat', 'Přepravovat naležato');
 		}
 
 		if (isset($configuration['loyaltyProgram']) && $configuration['loyaltyProgram']) {

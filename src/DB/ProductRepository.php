@@ -66,6 +66,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	private AttributeValueRepository $attributeValueRepository;
 	
+	private CustomerGroupRepository $customerGroupRepository;
+	
 	public function __construct(
 		Shopper $shopper,
 		DIConnection $connection,
@@ -83,7 +85,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		SupplierProductRepository $supplierProductRepository,
 		RelatedTypeRepository $relatedTypeRepository,
 		QuantityPriceRepository $quantityPriceRepository,
-		AttributeValueRepository $attributeValueRepository
+		AttributeValueRepository $attributeValueRepository,
+		CustomerGroupRepository $customerGroupRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 		
@@ -102,6 +105,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$this->supplierProductRepository = $supplierProductRepository;
 		$this->quantityPriceRepository = $quantityPriceRepository;
 		$this->attributeValueRepository = $attributeValueRepository;
+		$this->customerGroupRepository = $customerGroupRepository;
 	}
 	
 	/**
@@ -114,12 +118,25 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		return $this->getProducts()->where('this.uuid', $productUuid)->first(true);
 	}
 	
+	public function getProductsAsCustomer(?Customer $customer, bool $selects = true): Collection
+	{
+		$priceLists = $customer ? $customer->pricelists->toArray() : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricelists->toArray();
+		
+		return $this->getProducts($priceLists, $customer, $selects, $customer === null ? $this->customerGroupRepository->getUnregisteredGroup() : null);
+	}
+	
+	public function getProductAsGroup(CustomerGroup $customerGroup, bool $selects = true): Collection
+	{
+		return $this->getProducts([], null, $selects, $customerGroup);
+	}
+	
 	/**
 	 * @param \Eshop\DB\Pricelist[]|null $pricelists
 	 * @param \Eshop\DB\Customer|null $customer
 	 * @param bool $selects
+	 * @param \Eshop\DB\CustomerGroup|null $customerGroup
 	 */
-	public function getProducts(?array $pricelists = null, ?Customer $customer = null, bool $selects = true): Collection
+	public function getProducts(?array $pricelists = null, ?Customer $customer = null, bool $selects = true, ?CustomerGroup $customerGroup = null): Collection
 	{
 		$discountCoupon = $this->shopper->discountCoupon;
 		
@@ -130,16 +147,16 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			$convertRatio = $currency->convertRatio;
 		}
 		
-		/** @var \Eshop\DB\Pricelist[] $pricelists */
-		$pricelists = $pricelists ?: $this->shopper->getPricelists()->toArray();
+		$pricelists ??= $this->shopper->getPricelists()->toArray();
 		$pricelists = \array_values($pricelists);
-		$customer ??= $this->shopper->getCustomer();
+		$customer = $customerGroup ? $customer : ($customer ?: $this->shopper->getCustomer());
+		$customerGroup ??= $this->shopper->getCustomerGroup();
 		$discountLevelPct = \max($discountCoupon && $discountCoupon->discountPct ? (int)$discountCoupon->discountPct : 0, $customer ? $this->getBestDiscountLevel($customer) : 0);
-		$maxProductDiscountLevel = $customer ? $customer->maxDiscountProductPct : ($this->shopper->getCustomerGroup() ? $this->shopper->getCustomerGroup()->defaultMaxDiscountProductPct : 100);
+		$maxProductDiscountLevel = $customer ? $customer->maxDiscountProductPct : ($customerGroup ? $customerGroup->defaultMaxDiscountProductPct : 100);
 		$vatRates = $this->shopper->getVatRates();
 		$prec = $currency->calculationPrecision;
 		
-		$generalPricelistIds = $convertionPricelistIds = [];
+		$generalPricelistIds = [];
 		
 		/** @var \Eshop\DB\Pricelist $pricelist */
 		foreach ($pricelists as $pricelist) {
