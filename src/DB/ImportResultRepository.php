@@ -54,7 +54,7 @@ class ImportResultRepository extends \StORM\Repository
 	
 	public function log($message): void
 	{
-		$line = Logger::formatLogLine($message . ' (' . \round(\memory_get_usage(true) / 1024 / 1024, 2) . ' MB)');
+		$line = Logger::formatLogLine($message . ' (cur: ' . \round(\memory_get_usage(true) / 1024 / 1024, 2) . ' MB, max: ' . \round(\memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB)');
 		
 		// @ is escalated to exception
 		if (!@\file_put_contents($this->getLogFilePath(), $line . \PHP_EOL, \FILE_APPEND | \LOCK_EX)) {
@@ -119,6 +119,7 @@ class ImportResultRepository extends \StORM\Repository
 			'finishedTs' => (string) (new DateTime()),
 			'insertedCount' => $provider->insertedCount,
 			'updatedCount' => $provider->updatedCount,
+			'skippedCount' => $provider->skippedCount,
 			'imageDownloadCount' => $provider->imageDownloadCount,
 			'imageErrorCount' => $provider->imageErrorCount,
 		]);

@@ -135,6 +135,7 @@ class SupplierPresenter extends BackendPresenter
 		
 		$grid->addColumnText('Nových', 'insertedCount', '%s', 'insertedCount', ['class' => 'minimal'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Upravených', 'updatedCount', '%s', 'updatedCount', ['class' => 'minimal'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
+		$grid->addColumnText('Přeskočených', 'skippedCount', '%s', 'skippedCount', ['class' => 'minimal'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumn('Obrázků', function (ImportResult $object, Datagrid $datagrid) {
 			return $object->imageDownloadCount . ( $object->imageErrorCount ? ' (<span style="color: red;"> ' . $object->imageErrorCount . ' </span>)' : '');
 		}, '%s', null, ['class' => 'minimal'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
