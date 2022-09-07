@@ -1207,7 +1207,7 @@ class CheckoutManager
 			$customer->pricelists->relate(\array_keys($defaultGroup->defaultPricelists->toArray()));
 		}
 
-		return $customer;
+		return $this->customerRepository->one($customer->getPK());
 	}
 
 	/**
