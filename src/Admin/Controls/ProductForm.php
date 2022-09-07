@@ -298,13 +298,13 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 		if (isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']) {
 			$form->addText('weight', 'Váha')
-				->setHtmlAttribute('data-info', 'Celková váha produktu. Na jednotce nezáleží.')
+				->setHtmlAttribute('data-info', 'Celková váha produktu.')
 				->setNullable()
 				->addCondition($form::FILLED)
 				->addRule($form::FLOAT);
-			$form->addIntegerNullable('width', 'Šířka')->setHtmlAttribute('data-info', 'Na jednotce nezáleží.');
-			$form->addIntegerNullable('length', 'Délka')->setHtmlAttribute('data-info', 'Na jednotce nezáleží.');
-			$form->addIntegerNullable('depth', 'Hloubka')->setHtmlAttribute('data-info', 'Na jednotce nezáleží.');
+			$form->addIntegerNullable('width', 'Šířka');
+			$form->addIntegerNullable('length', 'Délka');
+			$form->addIntegerNullable('depth', 'Hloubka');
 			$form->addCheckbox('keepFlat', 'Přepravovat naležato');
 		}
 

@@ -489,26 +489,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                     </tr>
                 {/ifset}
 
-                {ifset $form['weight']}
-                    {$renderer->renderPair($form['weight'])|noescape}
-                {/ifset}
-
-                {ifset $form['width']}
-                    {$renderer->renderPair($form['width'])|noescape}
-                {/ifset}
-
-                {ifset $form['length']}
-                        {$renderer->renderPair($form['length'])|noescape}
-                {/ifset}
-
-                {ifset $form['depth']}
-                        {$renderer->renderPair($form['depth'])|noescape}
-                {/ifset}
-
-                {ifset $form['keepFlat']}
-                        {$renderer->renderPair($form['keepFlat'])|noescape}
-                {/ifset}
-
 			    {$renderer->renderPair($form['unavailable'])|noescape}
 
                 {ifset $form['buyCount']}
@@ -516,9 +496,37 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                 {/ifset}
 
                 {$renderer->renderPair($form['storageDate'])|noescape}
+                </table>
 
-                {$renderer->renderPair($form['defaultReviewsCount'])|noescape}
-                {$renderer->renderPair($form['defaultReviewsScore'])|noescape}
+                <legend>Rozměry</legend>
+                <table class="mt-2 mb-1" style="width: auto;">
+                    <span class="text-gray text-sm ml-2">Na jednotce nezáleží. Zadávejte stejné jednotky jako u maximální dopravy.</span>
+
+                    {ifset $form['weight']}
+                        {$renderer->renderPair($form['weight'])|noescape}
+                    {/ifset}
+
+                    {ifset $form['width']}
+                        {$renderer->renderPair($form['width'])|noescape}
+                    {/ifset}
+
+                    {ifset $form['length']}
+                        {$renderer->renderPair($form['length'])|noescape}
+                    {/ifset}
+
+                    {ifset $form['depth']}
+                        {$renderer->renderPair($form['depth'])|noescape}
+                    {/ifset}
+
+                    {ifset $form['keepFlat']}
+                        {$renderer->renderPair($form['keepFlat'])|noescape}
+                    {/ifset}
+                </table>
+
+                <legend>Recenze</legend>
+                <table class="mt-2 mb-1" style="width: auto;">
+                    {$renderer->renderPair($form['defaultReviewsCount'])|noescape}
+                    {$renderer->renderPair($form['defaultReviewsScore'])|noescape}
 
                 </table>
 
