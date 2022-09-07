@@ -129,10 +129,7 @@ class CategoryForm extends Control
 
 			if ($categoryTypeSetting && $categoryTypeSetting->value) {
 				$categories = $this->categoryRepository->getTreeArrayForSelect(true, $categoryTypeSetting->value);
-
-				if ($category) {
 					$form->addSelect2('exportZboziCategory', 'Exportní kategorie pro Zboží', $categories)->setPrompt('Žádná');
-				}
 			} else {
 				$form->addSelect2('exportZboziCategory', 'Exportní kategorie pro Zboží', $categories)
 					->setPrompt('Žádná')
@@ -146,10 +143,7 @@ class CategoryForm extends Control
 
 			if ($categoryTypeSetting && $categoryTypeSetting->value) {
 				$categories = $this->categoryRepository->getTreeArrayForSelect(true, $categoryTypeSetting->value);
-
-				if ($category) {
 					$form->addSelect2('exportHeurekaCategory', 'Exportní kategorie pro Heuréku', $categories)->setPrompt('Žádná');
-				}
 			} else {
 				$form->addSelect2('exportHeurekaCategory', 'Exportní kategorie pro Heuréku', $categories)->setPrompt('Žádná')
 					->setDisabled()

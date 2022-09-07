@@ -53,6 +53,12 @@ class ImportResult extends \StORM\Entity
 	 * @column
 	 */
 	public ?int $updatedCount;
+
+	/**
+	 * Počet přeskočených
+	 * @column
+	 */
+	public ?int $skippedCount;
 	
 	/**
 	 * Počet stažených obrázků
