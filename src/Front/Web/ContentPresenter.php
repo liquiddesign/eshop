@@ -60,7 +60,7 @@ abstract class ContentPresenter extends \Eshop\Front\FrontendPresenter
 
 	public function createComponentContactForm(): ContactForm
 	{
-		$form = new ContactForm($this, 'contactForm', $this->templateRepository);
+		$form = new ContactForm($this, 'contactForm', $this->templateRepository, $this->mailer);
 
 		/** @var \Nette\Forms\Controls\TextInput $email */
 		$email = $form['email'];
@@ -77,21 +77,6 @@ abstract class ContentPresenter extends \Eshop\Front\FrontendPresenter
 		$submit->setCaption($this->translator->translate('contactForm.send', 'Odeslat'));
 
 		$form->onSuccess[] = function (Form $form): void {
-			$values = $form->getValues();
-			$mailer = $this->mailer;
-
-			$mail = $this->templateRepository->createMessage('contact', ['text' => $values['message']], null, null, $values['email']);
-
-			if ($mail) {
-				$mailer->send($mail);
-			}
-
-			$mail = $this->templateRepository->createMessage('contactInfo', ['text' => $values['message']], $values['email']);
-
-			if ($mail) {
-				$mailer->send($mail);
-			}
-
 			$this->flashMessage($this->translator->translate('contactForm.success', 'Zpráva byla úspěšně odeslána'), 'info');
 			$this->redirect('this');
 		};
