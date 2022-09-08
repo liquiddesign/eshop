@@ -51,7 +51,7 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	 * @column
 	 */
 	public ?int $productWidth;
-
+	
 	/**
 	 * Délka produktu
 	 * @column
@@ -243,11 +243,11 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	}
 	
 	/**
-	 * Item SKU etc.
+	 * Item PK
 	 */
 	public function getDescription(): string
 	{
-		return $this->getFullCode() ?: $this->productName;
+		return $this->getPK();
 	}
 	
 	/**

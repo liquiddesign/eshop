@@ -138,12 +138,40 @@ class DeliveryType extends SystemicEntity implements BoxPacker\Box
 	 * @constraint
 	 */
 	public ?PickupPointType $pickupPointType;
-
+	
+	private BoxPacker\PackedBoxList $boxesForItems;
+	
+	public function getRealPrice(): float
+	{
+		return $this->getValue('price') * ($this->getValue('packagesNo') ?? 1);
+	}
+	
+	public function getRealPriceVat(): float
+	{
+		return $this->getValue('priceVat') * ($this->getValue('packagesNo') ?? 1);
+	}
+	
+	public function getPackagesNo(): int
+	{
+		return $this->getValue('packagesNo') ?? 1;
+	}
+	
 	/**
 	 * @param array<\Eshop\DB\CartItem> $items
 	 */
-	public function getBoxesFroItems(array $items): BoxPacker\PackedBoxList
+	public function getBoxesForItems(array $items): BoxPacker\PackedBoxList
 	{
+		if ($this->maxWeight === null && $this->maxDepth === null && $this->maxLength === null && $this->maxWidth === null) {
+			$packedBox = new BoxPacker\PackedBoxList();
+			$packedBox->insert(new BoxPacker\PackedBox($this, new BoxPacker\PackedItemList()));
+			
+			return $packedBox;
+		}
+		
+		if (isset($this->boxesForItems)) {
+			return $this->boxesForItems;
+		}
+		
 		$packer = new Packer();
 		$packer->addBox($this);
 		
@@ -151,7 +179,7 @@ class DeliveryType extends SystemicEntity implements BoxPacker\Box
 			$packer->addItem($item, $item->amount);
 		}
 		
-		return $packer->pack();
+		return $this->boxesForItems = $packer->pack();
 	}
 	
 	/**

@@ -116,6 +116,12 @@ class Purchase extends \StORM\Entity
 	 * @column{"type":"text"}
 	 */
 	public ?string $deliveryNote;
+	
+	/**
+	 * Počet balíků - má vliv na cenu
+	 * @column
+	 */
+	public int $deliveryPackagesNo = 1;
 
 	/**
 	 * Interní poznámka

@@ -19,6 +19,12 @@ class Package extends \StORM\Entity
 	public int $id = 1;
 	
 	/**
+	 * Váha
+	 * @column
+	 */
+	public ?float $weight = null;
+	
+	/**
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\PackageItem>|\Eshop\DB\PackageItem[]
 	 */
