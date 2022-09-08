@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     elements.forEach(element => {
         element.addEventListener('mousedown', function (event) {
             event.preventDefault();
-            let product = $(this).data('product');
+            let product = JSON.parse($(this).data('product'));
             console.log(product)
             product.quantity = $(this).data('quantity');
 
@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     elements.forEach(element => {
         element.addEventListener('mousedown', function (event) {
             event.preventDefault();
-            let product = $(this).data('product');
+            let product = JSON.parse($(this).data('product'));
             let input = $($(this).data('amount'));
             let originalAmount = parseInt($(this).data('original-amount'));
 

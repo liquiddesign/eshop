@@ -3,7 +3,7 @@
 <script>
     $(document).on('mousedown', '.productClick', function(event) {
         event.preventDefault();
-        let product = $(this).data('product');
+        let product = JSON.parse($(this).data('product'));
         let position = $(this).data('position');
 
         window.dataLayerGTM = window.dataLayerGTM || [];

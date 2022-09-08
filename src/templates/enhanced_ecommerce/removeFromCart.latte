@@ -3,7 +3,7 @@
         event.preventDefault();
         let button = $(this);
 
-        let product = $(this).data('product');
+        let product = JSON.parse($(this).data('product'));
         product.quantity = parseInt($(this).data('original-amount'));
 
         window.dataLayerGTM = window.dataLayerGTM || [];
