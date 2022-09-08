@@ -39,6 +39,7 @@ use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\Purchase;
+use Eshop\DB\PurchaseRepository;
 use Eshop\DB\RelatedCartItemRepository;
 use Eshop\DB\RelatedPackageItemRepository;
 use Eshop\DB\RelatedTypeRepository;
@@ -207,6 +208,8 @@ class CheckoutManager
 	private RelatedTypeRepository $relatedTypeRepository;
 	
 	private DIConnection $stm;
+
+	private PurchaseRepository $purchaseRepository;
 	
 	public function __construct(
 		Shopper $shopper,
@@ -241,6 +244,7 @@ class CheckoutManager
 		RelatedPackageItemRepository $relatedPackageItemRepository,
 		RelatedTypeRepository $relatedTypeRepository,
 		DIConnection $stm,
+		PurchaseRepository $purchaseRepository
 	) {
 		$this->customer = $shopper->getCustomer();
 		$this->shopper = $shopper;
@@ -274,6 +278,7 @@ class CheckoutManager
 		$this->relatedPackageItemRepository = $relatedPackageItemRepository;
 		$this->relatedTypeRepository = $relatedTypeRepository;
 		$this->stm = $stm;
+		$this->purchaseRepository = $purchaseRepository;
 		
 		if (!$request->getCookie('cartToken') && !$this->customer) {
 			$this->cartToken = DIConnection::generateUuid();
@@ -1243,9 +1248,22 @@ class CheckoutManager
 		if (!$customer) {
 			return null;
 		}
+
+		$customer = $this->customerRepository->one($customer->getPK(), true);
 		
 		if ($createAccount) {
 			$customer->account = $account;
+
+			$customerOrders = $this->orderRepository->many()->where('purchase.fk_customer', $customer->getPK())->toArrayOf('uuid', [], true);
+
+			if ($customerOrders) {
+				$this->purchaseRepository->many()
+					->join(['eshop_order'], 'this.uuid = eshop_order.fk_purchase')
+					->where('eshop_order.uuid', $customerOrders)
+					->update([
+						'fk_account' => $account->getPK(),
+					]);
+			}
 			
 			$this->catalogPermissionRepository->createOne([
 				'catalogPermission' => $defaultGroup ? $defaultGroup->defaultCatalogPermission : 'none',
@@ -1264,7 +1282,7 @@ class CheckoutManager
 			$customer->pricelists->relate(\array_keys($defaultGroup->defaultPricelists->toArray()));
 		}
 		
-		return $this->customerRepository->one($customer->getPK());
+		return $customer;
 	}
 	
 	/**
