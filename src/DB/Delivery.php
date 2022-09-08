@@ -90,6 +90,42 @@ class Delivery extends \StORM\Entity
 	 * @constraint
 	 */
 	public Currency $currency;
+
+	/**
+	 * DPD kód
+	 * @column
+	 */
+	public ?string $dpdCode;
+
+	/**
+	 * DPD vytištěno
+	 * @column
+	 */
+	public bool $dpdPrinted = false;
+
+	/**
+	 * DPD chyba
+	 * @column
+	 */
+	public bool $dpdError = false;
+
+	/**
+	 * PPL kód
+	 * @column
+	 */
+	public ?string $pplCode;
+
+	/**
+	 * PPL chyba
+	 * @column
+	 */
+	public bool $pplError = false;
+
+	/**
+	 * PPL vytištěno
+	 * @column
+	 */
+	public bool $pplPrinted = false;
 	
 	/**
 	 * Dodavatel / Dropship
@@ -101,5 +137,15 @@ class Delivery extends \StORM\Entity
 	public function getTypeName(): ?string
 	{
 		return $this->type ? $this->type->name : $this->typeName;
+	}
+
+	public function getDpdCode(): ?string
+	{
+		return $this->dpdError ? null : $this->dpdCode;
+	}
+
+	public function getPplCode(): ?string
+	{
+		return $this->pplError ? null : $this->pplCode;
 	}
 }

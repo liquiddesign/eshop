@@ -54,6 +54,7 @@ use Nette\Application\UI\Presenter;
 use Nette\Forms\Controls\Button;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\Request;
+use Nette\IOException;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
@@ -250,6 +251,40 @@ class OrderPresenter extends BackendPresenter
 		$grid->addColumnText('Externí číslo', 'externalId', '%s');
 		$grid->addColumnText('Expedováno', "shippedTs|date:'d.m.Y G:i'", '%s', 'shshippedTsippingDate', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Den doručování', "shippingDate|date:'d.m.Y'", '%s', 'shippingDate', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+
+		if ($this->dpd) {
+			$tempDir = $this->container->getParameters()['tempDir'] . '/dpd/';
+
+			$grid->addColumn('DPD', function (Delivery $delivery, AdminGrid $datagrid) use ($tempDir) {
+				try {
+					$title = $delivery->dpdError ? FileSystem::read($tempDir . $delivery->getPK()) : $delivery->getDpdCode();
+				} catch (IOException $e) {
+					$title = '';
+				}
+
+				return '<button type="button" role="button" title="' . $title . '" class="btn btn-sm btn-outline-' .
+					($delivery->getDpdCode() ? 'success' : ($delivery->dpdError ? 'danger' : 'primary')) . '" data-toggle="tooltip" data-placement="bottom">
+				<i class="fas fa-' . ($delivery->getDpdCode() ? ($delivery->dpdPrinted ? 'print' : 'check') : ($delivery->dpdError ? 'exclamation' : 'times')) . '"></i>
+				</button>';
+			}, '%s', 'this.dpdCode', ['class' => 'fit']);
+		}
+
+		if ($this->ppl) {
+			$tempDir = $this->container->getParameters()['tempDir'] . '/ppl/';
+
+			$grid->addColumn('PPL', function (Delivery $delivery, AdminGrid $datagrid) use ($tempDir) {
+				try {
+					$title = $delivery->pplError ? FileSystem::read($tempDir . $delivery->getPK()) : $delivery->getPplCode();
+				} catch (IOException $e) {
+					$title = '';
+				}
+
+				return '<button type="button" role="button" title="' . $title . '" class="btn btn-sm btn-outline-' .
+					($delivery->getPplCode() ? 'success' : ($delivery->pplError ? 'danger' : 'primary')) . '" data-toggle="tooltip" data-placement="bottom">
+				<i class="fas fa-' . ($delivery->getPplCode() ? ($delivery->pplPrinted ? 'print' : 'check') : ($delivery->pplError ? 'exclamation' : 'times')) . '"></i>
+				</button>';
+			}, '%s', 'this.pplCode', ['class' => 'fit']);
+		}
 
 		$grid->addColumnText('Cena bez DPH', 'price|price:currency.code', '%s', 'price', ['class' => 'fit text-right'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Cena s DPH', 'priceVat|price:currency.code', '%s', 'priceVat', ['class' => 'fit text-right'])->onRenderCell[] = [$grid, 'decoratorNumber'];
@@ -2029,8 +2064,8 @@ class OrderPresenter extends BackendPresenter
 				$msg .= 'Přeskočeno: ' . \count($result['ignored']) . '<br>';
 				$msg .= 'Chyba: ' . \count($result['failed']) . '<br>';
 
-				foreach ($result['failed'] as $order) {
-					$msg .= $order->code . '<br>';
+				foreach ($result['failed'] as $orderCode => $packagesCount) {
+					$msg .= "$orderCode($packagesCount)<br>";
 				}
 
 				$this->flashMessage($msg, 'success');

@@ -100,18 +100,19 @@
                     <!-- /.col -->
                 </div>
                 <!-- /.row -->
-                <br>
-                <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
-                    <li n:foreach="$packages as $package" class="nav-item">
-                        <a class="nav-link active" id="custom-tabs-one-home-tab" href="#">Balík #{$package->id}</a>
-                    </li>
-                </ul>
+{*                <br>*}
+{*                <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">*}
+{*                    <li n:foreach="$packages as $package" class="nav-item">*}
+{*                        <a class="nav-link active" id="custom-tabs-one-home-tab" href="#">Balík #{$package->id}</a>*}
+{*                    </li>*}
+{*                </ul>*}
                 <br>
 
                 {foreach $packages as $package}
                     <!-- Table row -->
                     <div class="row">
                         <div class="col-12 table-responsive table-striped">
+                            <h5>Balík #{$package->id}</h5>
                             <table class="table table-sm lqd-table">
                                 <thead class="admin-head">
                                 <tr>
