@@ -40,6 +40,8 @@ class OrderLogItem extends \StORM\Entity
 	public const MERGED = 'Spojeno';
 	public const CLONED = 'Duplikováno';
 	public const SUPPLIER_SENT = 'Odesláno dodavateli';
+	public const INVOICE_CREATED = 'Faktura vytvořena';
+	public const INVOICE_DOWNLOADED = 'Faktura stažena';
 
 	/**
 	 * Operace
