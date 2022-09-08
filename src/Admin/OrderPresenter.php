@@ -2261,9 +2261,9 @@ class OrderPresenter extends BackendPresenter
 
 		$this->orderRepository->onOrderReceived[] = function (Order $order) use ($admin): void {
 			try {
-				$mail = $this->templateRepository->createMessage('order.received', [
-					'orderCode' => $order->code,
-				], $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
+				$emailVariables = $this->orderRepository->getEmailVariables($order);
+
+				$mail = $this->templateRepository->createMessage('order.received', $emailVariables, $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
 
 				$this->mailer->send($mail);
 
@@ -2274,9 +2274,9 @@ class OrderPresenter extends BackendPresenter
 
 		$this->orderRepository->onOrderCompleted[] = function (Order $order) use ($admin): void {
 			try {
-				$mail = $this->templateRepository->createMessage('order.confirmed', [
-					'orderCode' => $order->code,
-				], $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
+				$emailVariables = $this->orderRepository->getEmailVariables($order);
+
+				$mail = $this->templateRepository->createMessage('order.confirmed', $emailVariables, $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
 
 				$this->mailer->send($mail);
 
@@ -2287,9 +2287,11 @@ class OrderPresenter extends BackendPresenter
 
 		$this->orderRepository->onOrderCanceled[] = function (Order $order) use ($admin): void {
 			try {
+				$emailVariables = $this->orderRepository->getEmailVariables($order);
+
 				$mail = $this->templateRepository->createMessage(
 					'order.canceled',
-					['orderCode' => $order->code],
+					$emailVariables,
 					$order->purchase->email,
 					null,
 					null,
