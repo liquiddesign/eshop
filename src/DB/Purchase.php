@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Nette\Utils\Strings;
 use Security\DB\Account;
 use StORM\Collection;
 use StORM\RelationCollection;
@@ -259,6 +260,20 @@ class Purchase extends \StORM\Entity
 	 * @var string[]
 	 */
 	private ?array $cartIds;
+	
+	public function getFirstName(): ?string
+	{
+		$array = \explode(' ', $this->fullname, 2);
+		
+		return isset($array[0]) ? Strings::trim($array[0]) : null;
+	}
+	
+	public function getLastName(): ?string
+	{
+		$array = \explode(' ', $this->fullname, 2);
+		
+		return isset($array[1]) ? Strings::trim($array[1]) : null;
+	}
 	
 	public function isCompany(): bool
 	{
