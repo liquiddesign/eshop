@@ -131,6 +131,18 @@ class Attribute extends \StORM\Entity
 	public bool $showRange = false;
 
 	/**
+	 * Order attribute values by label
+	 * @column
+	 */
+	public bool $orderValuesByLabel = false;
+
+	/**
+	 * Export to Targito
+	 * @column
+	 */
+	public bool $exportToTargito = false;
+
+	/**
 	 * Jméno pro Heureku
 	 * @column
 	 */
