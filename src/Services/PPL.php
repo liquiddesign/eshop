@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Services;
 
+use Eshop\DB\DeliveryRepository;
 use Eshop\DB\OrderRepository;
 use Nette\Application\Application;
 use Nette\DI\Container;
@@ -69,6 +70,8 @@ class PPL
 
 	private OrderRepository $orderRepository;
 
+	private DeliveryRepository $deliveryRepository;
+
 	public function __construct(
 		string $login,
 		string $password,
@@ -83,7 +86,8 @@ class PPL
 		?SettingRepository $settingRepository = null,
 		?Container $container = null,
 		?Application $application = null,
-		?OrderRepository $orderRepository = null
+		?OrderRepository $orderRepository = null,
+		?DeliveryRepository $deliveryRepository = null
 	) {
 		$this->login = $login;
 		$this->password = $password;
@@ -100,6 +104,7 @@ class PPL
 		$this->sender = $sender;
 		$this->orderRepository = $orderRepository;
 		$this->secureStorage = $container->getParameters()['tempDir'];
+		$this->deliveryRepository = $deliveryRepository;
 	}
 
 	public function getPplDeliveryTypePK(): ?string
@@ -109,7 +114,7 @@ class PPL
 
 	/**
 	 * @param \StORM\Collection<\Eshop\DB\Order> $orders
-	 * @return array<array<\Eshop\DB\Order>> Orders with errors
+	 * @return array<mixed> Orders with errors
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function syncOrders(Collection $orders): array
@@ -164,6 +169,7 @@ class PPL
 			->firstValue('pplCode');
 
 		$firstAvailablePackageSeriesNumberCod = $firstAvailablePackageSeriesNumberCod ? (int) $firstAvailablePackageSeriesNumberCod + 1 : (int) $packageNumber;
+		$orderPplCodes = null;
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
@@ -173,157 +179,169 @@ class PPL
 				continue;
 			}
 
-			try {
-				if ($order->pplCode) {
-					$ordersIgnored[] = $order;
+			$purchase = $order->purchase;
+			$deliveryAddress = $purchase->deliveryAddress ?? $purchase->billAddress;
 
-					continue;
-				}
+			foreach ($order->packages as $package) {
+				try {
+					$delivery = $package->delivery;
+					$deliveryType = $delivery->type;
 
-				$deliveryType = $order->purchase->deliveryType;
+					if (!$deliveryType || $deliveryType->getPK() !== $pplDeliveryType) {
+						$ordersIgnored[$order->code] = isset($ordersIgnored[$order->code]) ? $ordersIgnored[$order->code] + 1 : 1;
 
-				if (!$deliveryType || $deliveryType->getPK() !== $pplDeliveryType) {
-					$ordersIgnored[] = $order;
-
-					continue;
-				}
-
-				$isCod = $pplCodType && $order->purchase->paymentType && $order->purchase->paymentType->getPK() === $pplCodType;
-
-				$packageNumber = $isCod ? $firstAvailablePackageSeriesNumberCod : $firstAvailablePackageSeriesNumber;
-
-				$purchase = $order->purchase;
-				$deliveryAddress = $purchase->deliveryAddress ?? $purchase->billAddress;
-
-				$country = Country::CZ;
-				$city = $deliveryAddress ? $deliveryAddress->city : '';
-				$street = $deliveryAddress ? $deliveryAddress->street : '';
-				$zipCode = $deliveryAddress ? $deliveryAddress->zipcode : '';
-
-				$recipient = new Recipient(
-					$city,
-					$purchase->fullname ?: '',
-					$street,
-					$zipCode,
-					$purchase->email,
-					$purchase->phone,
-					null,
-					$country,
-					$purchase->billAddress && $purchase->billAddress->companyName ? $purchase->billAddress->companyName : null,
-				);
-
-				$cityRoutingResponse = $client->getCitiesRouting($country, null, $zipCode, $street);
-
-				if ($cityRoutingResponse instanceof \stdClass) {
-					$cityRoutingResponse = [$cityRoutingResponse];
-				}
-
-				if (!\is_array($cityRoutingResponse) || !isset($cityRoutingResponse[0])) {
-					$ordersWithError[] = $order;
-
-					continue;
-				}
-
-				$cityRoutingResponse = $cityRoutingResponse[0];
-
-				/** @codingStandardsIgnoreStart Camel caps */
-				if (!isset($cityRoutingResponse->RouteCode) || !isset($cityRoutingResponse->DepoCode) || !isset($cityRoutingResponse->Highlighted)) {
-					$ordersWithError[] = $order;
-
-					continue;
-				}
-
-				$cityRouting = new CityRouting(
-				/** @codingStandardsIgnoreStart Camel caps */
-					$cityRoutingResponse->RouteCode,
-					$cityRoutingResponse->DepoCode,
-					$cityRoutingResponse->Highlighted
-				/** @codingStandardsIgnoreEnd */
-				);
-
-				if ($isCod) {
-					$cashOnDeliveryPrice = $order->getTotalPriceVat();
-					$cashOnDeliveryCurrency = Currency::CZK;
-					$cashOnDeliveryVariableSymbol = (int)$order->code;
-
-					if ($cashOnDeliveryVariableSymbol === 0) {
-						$cashOnDeliveryVariableSymbol = $packageNumber;
+						continue;
 					}
 
-					$paymentInfo = new PaymentInfo($cashOnDeliveryPrice, $cashOnDeliveryCurrency, $cashOnDeliveryVariableSymbol);
+					if ($pplCode = $delivery->getPplCode()) {
+						$ordersIgnored[$order->code] = isset($ordersIgnored[$order->code]) ? $ordersIgnored[$order->code] + 1 : 1;
+						$orderPplCodes .= "$pplCode,";
 
-					$package = new Package(
-						(string) $packageNumber,
-						Product::PPL_PARCEL_CZ_PRIVATE_COD,
-						$order->code . ($order->purchase->deliveryNote ? ', ' . Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH) : null),
-						$recipient,
-						$cityRouting,
+						continue;
+					}
+
+					$isCod = $pplCodType && $order->purchase->paymentType && $order->purchase->paymentType->getPK() === $pplCodType;
+
+					$packageNumber = $isCod ? $firstAvailablePackageSeriesNumberCod : $firstAvailablePackageSeriesNumber;
+
+					$country = Country::CZ;
+					$city = $deliveryAddress ? $deliveryAddress->city : '';
+					$street = $deliveryAddress ? $deliveryAddress->street : '';
+					$zipCode = $deliveryAddress ? $deliveryAddress->zipcode : '';
+
+					$recipient = new Recipient(
+						$city,
+						$purchase->fullname ?: '',
+						$street,
+						$zipCode,
+						$purchase->email,
+						$purchase->phone,
 						null,
-						null,
-						null,
-						$paymentInfo,
-						[],
-						[],
-						[new Flag('SL', true)],
+						$country,
+						$purchase->billAddress && $purchase->billAddress->companyName ? $purchase->billAddress->companyName : null,
 					);
-				} else {
-					$package = new Package(
-						(string) $packageNumber,
-						Product::PPL_PARCEL_CZ_PRIVATE,
-						$order->code . ($order->purchase->deliveryNote ? ', ' . Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH) : null),
-						$recipient,
-						$cityRouting,
-						null,
-						null,
-						null,
-						null,
-						[],
-						[],
-						[new Flag('SL', true)],
+
+					$cityRoutingResponse = $client->getCitiesRouting($country, null, $zipCode, $street);
+
+					if ($cityRoutingResponse instanceof \stdClass) {
+						$cityRoutingResponse = [$cityRoutingResponse];
+					}
+
+					if (!\is_array($cityRoutingResponse) || !isset($cityRoutingResponse[0])) {
+						$ordersWithError[] = $order;
+
+						continue;
+					}
+
+					$cityRoutingResponse = $cityRoutingResponse[0];
+
+					/** @codingStandardsIgnoreStart Camel caps */
+					if (!isset($cityRoutingResponse->RouteCode) || !isset($cityRoutingResponse->DepoCode) || !isset($cityRoutingResponse->Highlighted)) {
+						$ordersWithError[] = $order;
+
+						continue;
+					}
+
+					$cityRouting = new CityRouting(
+					/** @codingStandardsIgnoreStart Camel caps */
+						$cityRoutingResponse->RouteCode,
+						$cityRoutingResponse->DepoCode,
+						$cityRoutingResponse->Highlighted
+					/** @codingStandardsIgnoreEnd */
 					);
-				}
 
-				/** Don´t delete array type!!! By doc createPackages returns array but that is NOT true in all cases! */
-				$result = (array)$client->createPackages([$package]);
+					if ($isCod) {
+						$cashOnDeliveryPrice = \round($order->getTotalPriceVat() / \count($order->packages), 2);
+						$cashOnDeliveryCurrency = Currency::CZK;
+						$cashOnDeliveryVariableSymbol = (int)$order->code;
 
-				\bdump($result);
+						if ($cashOnDeliveryVariableSymbol === 0) {
+							$cashOnDeliveryVariableSymbol = $packageNumber;
+						}
 
-				if ($result['Code'] !== '0') {
-					$order->update(['pplError' => true]);
+						$paymentInfo = new PaymentInfo($cashOnDeliveryPrice, $cashOnDeliveryCurrency, $cashOnDeliveryVariableSymbol);
 
-					$ordersWithError[] = $order;
+						$package = new Package(
+							(string)$packageNumber,
+							Product::PPL_PARCEL_CZ_PRIVATE_COD,
+							$order->code . ($order->purchase->deliveryNote ? ', ' . Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH) : null),
+							$recipient,
+							$cityRouting,
+							null,
+							null,
+							null,
+							$paymentInfo,
+							[],
+							[],
+							[new Flag('SL', true)],
+						);
+					} else {
+						$package = new Package(
+							(string)$packageNumber,
+							Product::PPL_PARCEL_CZ_PRIVATE,
+							$order->code . ($order->purchase->deliveryNote ? ', ' . Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH) : null),
+							$recipient,
+							$cityRouting,
+							null,
+							null,
+							null,
+							null,
+							[],
+							[],
+							[new Flag('SL', true)],
+						);
+					}
+
+					/** Don´t delete array type!!! By doc createPackages returns array but that is NOT true in all cases! */
+					$result = (array)$client->createPackages([$package]);
+
+					\bdump($result);
+
+					if ($result['Code'] !== '0') {
+						$delivery->update(['pplError' => true]);
+
+						$ordersWithError[$order->code] = isset($ordersWithError[$order->code]) ? $ordersWithError[$order->code] + 1 : 1;
+
+						$tempDir = $this->container->getParameters()['tempDir'] . '/ppl';
+
+						FileSystem::createDir($tempDir);
+
+						FileSystem::write("$tempDir/" . $delivery->getPK(), $result['Message'] ?? 'Neznámá chyba');
+
+						continue;
+					}
+
+					if ($isCod) {
+						$firstAvailablePackageSeriesNumberCod++;
+					} else {
+						$firstAvailablePackageSeriesNumber++;
+					}
+
+					$pplCode = $result['ItemKey'];
+
+					$delivery->update(['pplCode' => $pplCode, 'pplError' => false,]);
+
+					$ordersCompleted[$order->code] = isset($ordersCompleted[$order->code]) ? $ordersCompleted[$order->code] + 1 : 1;
+					$orderPplCodes .= "$pplCode,";
+				} catch (\Throwable $e) {
+					\bdump($e);
+
+					$ordersWithError[$order->code] = isset($ordersWithError[$order->code]) ? $ordersWithError[$order->code] + 1 : 1;
+
+					$delivery->update(['pplError' => true]);
 
 					$tempDir = $this->container->getParameters()['tempDir'] . '/ppl';
 
 					FileSystem::createDir($tempDir);
 
-					FileSystem::write("$tempDir/" . $order->code, $result['Message'] ?? 'Neznámá chyba');
-
-					continue;
+					FileSystem::write("$tempDir/" . $delivery->getPK(), $e->getMessage());
 				}
-
-				if ($isCod) {
-					$firstAvailablePackageSeriesNumberCod++;
-				} else {
-					$firstAvailablePackageSeriesNumber++;
-				}
-
-				$order->update(['pplCode' => $result['ItemKey'], 'pplError' => false,]);
-
-				$ordersCompleted[] = $order;
-			} catch (\Throwable $e) {
-				\bdump($e);
-
-				$ordersWithError[] = $order;
-
-				$order->update(['pplError' => true]);
-
-				$tempDir = $this->container->getParameters()['tempDir'] . '/ppl';
-
-				FileSystem::createDir($tempDir);
-
-				FileSystem::write("$tempDir/" . $order->code, $e->getMessage());
 			}
+
+			$order->update([
+				'pplCode' => $orderPplCodes,
+				'pplError' => isset($ordersWithError[$order->code]),
+			]);
 		}
 
 		return [
@@ -334,7 +352,7 @@ class PPL
 	}
 
 	/**
-	 * Get labels from DPD for orders
+	 * Get labels from PPL for orders
 	 * @param \StORM\Collection<\Eshop\DB\Order> $orders
 	 */
 	public function getLabels(Collection $orders): ?string
@@ -352,91 +370,108 @@ class PPL
 			$ids = [];
 
 			/** @var \Eshop\DB\Order $order */
-			foreach ($orders->where('this.pplCode IS NOT NULL')->toArray() as $order) {
+			foreach ($orders->where('this.pplCode IS NOT NULL')->where('this.pplError', false)->toArray() as $order) {
 				$purchase = $order->purchase;
 				$deliveryAddress = $purchase->deliveryAddress ?? $purchase->billAddress;
 
-				$country = Country::CZ;
-				$city = $deliveryAddress ? $deliveryAddress->city : '';
-				$street = $deliveryAddress ? $deliveryAddress->street : '';
-				$zipCode = $deliveryAddress ? $deliveryAddress->zipcode : '';
+				$pplCodes = \explode(',', $order->pplCode);
+				$deliveries = $this->deliveryRepository->many()->where('this.pplCode IS NOT NULL')->setIndex('this.pplCode')->where('this.fk_order', $order->getPK())->toArray();
 
-				$recipient = new Recipient(
-					$city,
-					$purchase->fullname ?: '',
-					$street,
-					$zipCode,
-					$purchase->email,
-					$purchase->phone,
-					null,
-					$country,
-					$purchase->billAddress && $purchase->billAddress->companyName ? $purchase->billAddress->companyName : null,
-				);
-
-				$packageNumber = $order->pplCode;
-
-				$cityRoutingResponse = $client->getCitiesRouting($country, null, $zipCode, $street);
-
-				if (\is_array($cityRoutingResponse)) {
-					$cityRoutingResponse = $cityRoutingResponse[0];
-				}
-
-				/** @codingStandardsIgnoreStart Camel caps */
-				if (!isset($cityRoutingResponse->RouteCode) || !isset($cityRoutingResponse->DepoCode) || !isset($cityRoutingResponse->Highlighted)) {
-					/** @codingStandardsIgnoreEnd */
-					throw new \Exception('Štítek PPL se nepodařilo vytisknout, chybí Routing, pravděpodobně neplatná adresa!');
-				}
-
-				$cityRouting = new CityRouting(
-				/** @codingStandardsIgnoreStart Camel caps */
-					$cityRoutingResponse->RouteCode,
-					$cityRoutingResponse->DepoCode,
-					$cityRoutingResponse->Highlighted,
-				/** @codingStandardsIgnoreEnd */
-				);
-
-				$isCod = $pplCodType && $order->purchase->paymentType && $order->purchase->paymentType->getPK() === $pplCodType;
-
-				if ($isCod) {
-					$cashOnDeliveryPrice = $order->getTotalPriceVat();
-					$cashOnDeliveryCurrency = Currency::CZK;
-					$cashOnDeliveryVariableSymbol = (int)$order->code;
-
-					if ($cashOnDeliveryVariableSymbol === 0) {
-						$cashOnDeliveryVariableSymbol = (int)$packageNumber;
+				foreach ($pplCodes as $pplCode) {
+					if (!$pplCode) {
+						continue;
 					}
 
-					$paymentInfo = new PaymentInfo($cashOnDeliveryPrice, $cashOnDeliveryCurrency, $cashOnDeliveryVariableSymbol);
+					$delivery = $deliveries[$pplCode] ?? null;
 
-					$packages[] = new Package(
-						$packageNumber,
-						Product::PPL_PARCEL_CZ_PRIVATE_COD,
-						$order->code . ($order->purchase->deliveryNote ? '<br>' . Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH) : null),
-						$recipient,
-						$cityRouting,
-						$this->sender,
+					if ($delivery) {
+						if ($delivery->pplError) {
+							continue;
+						}
+					}
+
+					$country = Country::CZ;
+					$city = $deliveryAddress ? $deliveryAddress->city : '';
+					$street = $deliveryAddress ? $deliveryAddress->street : '';
+					$zipCode = $deliveryAddress ? $deliveryAddress->zipcode : '';
+
+					$recipient = new Recipient(
+						$city,
+						$purchase->fullname ?: '',
+						$street,
+						$zipCode,
+						$purchase->email,
+						$purchase->phone,
 						null,
-						null,
-						$paymentInfo,
-						[],
-						[],
-						[new Flag('SL', true)],
+						$country,
+						$purchase->billAddress && $purchase->billAddress->companyName ? $purchase->billAddress->companyName : null,
 					);
-				} else {
-					$packages[] = new Package(
-						$packageNumber,
-						Product::PPL_PARCEL_CZ_PRIVATE,
-						$order->code . ($order->purchase->deliveryNote ? '<br>' . Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH) : null),
-						$recipient,
-						$cityRouting,
-						$this->sender,
-						null,
-						null,
-						null,
-						[],
-						[],
-						[new Flag('SL', true)],
+
+					$packageNumber = $pplCode;
+
+					$cityRoutingResponse = $client->getCitiesRouting($country, null, $zipCode, $street);
+
+					if (\is_array($cityRoutingResponse)) {
+						$cityRoutingResponse = $cityRoutingResponse[0];
+					}
+
+					/** @codingStandardsIgnoreStart Camel caps */
+					if (!isset($cityRoutingResponse->RouteCode) || !isset($cityRoutingResponse->DepoCode) || !isset($cityRoutingResponse->Highlighted)) {
+						/** @codingStandardsIgnoreEnd */
+						throw new \Exception('Štítek PPL se nepodařilo vytisknout, chybí Routing, pravděpodobně neplatná adresa!');
+					}
+
+					$cityRouting = new CityRouting(
+					/** @codingStandardsIgnoreStart Camel caps */
+						$cityRoutingResponse->RouteCode,
+						$cityRoutingResponse->DepoCode,
+						$cityRoutingResponse->Highlighted,
+					/** @codingStandardsIgnoreEnd */
 					);
+
+					$isCod = $pplCodType && $order->purchase->paymentType && $order->purchase->paymentType->getPK() === $pplCodType;
+
+					if ($isCod) {
+						$cashOnDeliveryPrice = \round($order->getTotalPriceVat() / \count($order->packages), 2);
+						$cashOnDeliveryCurrency = Currency::CZK;
+						$cashOnDeliveryVariableSymbol = (int)$order->code;
+
+						if ($cashOnDeliveryVariableSymbol === 0) {
+							$cashOnDeliveryVariableSymbol = (int)$packageNumber;
+						}
+
+						$paymentInfo = new PaymentInfo($cashOnDeliveryPrice, $cashOnDeliveryCurrency, $cashOnDeliveryVariableSymbol);
+
+						$packages[] = new Package(
+							$packageNumber,
+							Product::PPL_PARCEL_CZ_PRIVATE_COD,
+							$order->code . ($order->purchase->deliveryNote ? '<br>' . Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH) : null),
+							$recipient,
+							$cityRouting,
+							$this->sender,
+							null,
+							null,
+							$paymentInfo,
+							[],
+							[],
+							[new Flag('SL', true)],
+						);
+					} else {
+						$packages[] = new Package(
+							$packageNumber,
+							Product::PPL_PARCEL_CZ_PRIVATE,
+							$order->code . ($order->purchase->deliveryNote ? '<br>' . Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH) : null),
+							$recipient,
+							$cityRouting,
+							$this->sender,
+							null,
+							null,
+							null,
+							[],
+							[],
+							[new Flag('SL', true)],
+						);
+					}
 				}
 
 				$ids[] = $order->getPK();

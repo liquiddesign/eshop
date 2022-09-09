@@ -30,6 +30,8 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 	private Shopper $shopper;
 
 	private RelatedInvoiceItemRepository $relatedInvoiceItemRepository;
+
+	private OrderLogItemRepository $orderLogItemRepository;
 	
 	public function __construct(
 		InvoiceItemRepository $invoiceItemRepository,
@@ -39,7 +41,8 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 		SchemaManager $schemaManager,
 		ProductRepository $productRepository,
 		Shopper $shopper,
-		RelatedInvoiceItemRepository $relatedInvoiceItemRepository
+		RelatedInvoiceItemRepository $relatedInvoiceItemRepository,
+		OrderLogItemRepository $orderLogItemRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 		
@@ -49,6 +52,7 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 		$this->productRepository = $productRepository;
 		$this->shopper = $shopper;
 		$this->relatedInvoiceItemRepository = $relatedInvoiceItemRepository;
+		$this->orderLogItemRepository = $orderLogItemRepository;
 	}
 
 	/**
@@ -197,6 +201,8 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 		}
 		
 		$this->getConnection()->getLink()->commit();
+
+		$this->orderLogItemRepository->createLog($order, OrderLogItem::INVOICE_CREATED, $invoice->code);
 		
 		return $invoice;
 	}
