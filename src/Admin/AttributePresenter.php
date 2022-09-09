@@ -192,7 +192,6 @@ class AttributePresenter extends BackendPresenter
 				'categories',
 				'groups',
 				'orderValuesByLabel',
-				'exportToTargito',
 			],
 			'attributeGrid',
 		);
@@ -261,7 +260,6 @@ class AttributePresenter extends BackendPresenter
 		$form->addCheckbox('hideEmptyValues', 'Skrýt nepřiřazené hodnoty')->setHtmlAttribute('data-info', 'Hodnoty, které nemají žádný produkt budou v seznamu skryté.');
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('orderValuesByLabel', 'Řadit hodnoty dle popisku')->setHtmlAttribute('data-info', 'Ignoruje řazení dle priorit a řadí abecedně.');
-		$form->addCheckbox('exportToTargito', 'Exportovat do Targito');
 
 		if (!$hardSystemic) {
 			$form->addCheckbox('showRange', 'Zobrazit jako rozsahy')->setHtmlAttribute('data-info', 'Hodnoty atributu nebudou zobrazeny jako jednotlivé položky, ale souhrnně dle nastavení rozsahů.');
