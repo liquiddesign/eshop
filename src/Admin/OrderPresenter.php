@@ -1341,8 +1341,11 @@ class OrderPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 
 		$form->addGroup('Kontakty');
+		$form->addText('fullname', 'Jméno / firma')->setNullable();
 		$form->addText('phone', 'Telefon')->setNullable();
 		$form->addText('email', 'E-mail')->setNullable();
+		$form->addText('ic', 'IČ')->setNullable();
+		$form->addText('dic', 'DIČ')->setNullable();
 
 		$form->addGroup('Fakturační adresa');
 		$billAddress = $form->addContainer('billAddress');

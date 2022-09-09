@@ -167,6 +167,13 @@ class InvoicesPresenter extends BackendPresenter
 
 			$form->addCheckbox('printed', 'Vytisknuto');
 
+			if ($invoice) {
+				$form->addGroup('Údaje');
+
+				$form->addText('ic', 'IČ')->setNullable();
+				$form->addText('dic', 'DIČ')->setNullable();
+			}
+
 			$form->addSubmits();
 		});
 
