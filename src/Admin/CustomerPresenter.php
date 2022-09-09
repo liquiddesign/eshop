@@ -241,24 +241,55 @@ class CustomerPresenter extends BackendPresenter
 		}, '', 'accountsAssigned', 'Účet', ['0' => 'Bez účtu', '1' => 'S účtem'])->setPrompt('- Účet -');
 
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
-			$source->where('lastOrder.createdTs >= :created_from', ['created_from' => $value]);
-		}, '', 'date_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])
+			$source->where('this.createdTs >= :createdTs_from', ['createdTs_from' => $value]);
+		}, '', 'createdTs_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
-			->setHtmlAttribute('placeholder', 'Datum objednávky od');
+			->setHtmlAttribute('placeholder', 'Registrace od');
 
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
-			$source->where('lastOrder.createdTs <= :created_to', ['created_to' => $value]);
-		}, '', 'created_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])
+			$source->where('this.createdTs <= :createdTs_to', ['createdTs_to' => $value]);
+		}, '', 'createdTs_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
-			->setHtmlAttribute('placeholder', 'Datum objednávky do');
+			->setHtmlAttribute('placeholder', 'Registrace do');
+
+		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+			$source->where('lastOrder.createdTs >= :lastOrder_createdTs_from', ['lastOrder_createdTs_from' => $value]);
+		}, '', 'lastOrder_createdTs_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])
+			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
+			->setHtmlAttribute('placeholder', 'Poslední obj. od');
+
+		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+			$source->where('lastOrder.createdTs <= :lastOrder_createdTs_to', ['lastOrder_createdTs_to' => $value]);
+		}, '', 'lastOrder_createdTs_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])
+			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
+			->setHtmlAttribute('placeholder', 'Poslední obj. do');
 
 		$grid->addFilterDataSelect(function (ICollection $source, $customerType): void {
 			if (!$customerType) {
 				return;
 			}
 
-			$source->where('this.ordersCount ' . ($customerType === 'new' ? ' <= 1' : ' > 1'));
-		}, '', 'customerType', 'Typ zákazníka', ['new' => 'Nový', 'old' => 'Stávající'])->setPrompt('- Typ zákazníka -');
+			switch ($customerType) {
+				case 'one':
+					$filter = '=1';
+
+					break;
+				case 'more':
+					$filter = '>1';
+
+					break;
+				default:
+					$filter = '=0';
+
+					break;
+			}
+
+			$source->where("this.ordersCount $filter");
+		}, '', 'customerType', null, [
+			'no' => 'Bez objednávky (=0)',
+			'one' => 'Jedna objednávka (=1)',
+			'more' => 'Více objednávek (>1)',
+		])->setPrompt('- Počet obj. -');
 		
 		$grid->addFilterButtons();
 		
@@ -271,7 +302,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid = $button->lookup(Datagrid::class);
 		
 		$tempFilename = \tempnam($this->tempDir, 'csv');
-		$collection = $grid->getSource()->where($grid->getSourceIdName(), $grid->getSelectedIds());
+		$collection = $grid->getFilteredSource();
 		$this->customerRepository->csvExport($collection, Writer::createFromPath($tempFilename, 'w+'));
 		
 		$response = new FileResponse($tempFilename, 'customers.csv', 'text/csv');
@@ -280,13 +311,15 @@ class CustomerPresenter extends BackendPresenter
 	
 	public function exportTargito(Button $button): void
 	{
+		/** @var \Grid\Datagrid $grid */
+		$grid = $button->lookup(Datagrid::class);
 		unset($button);
 		
 		$tempFilename = \tempnam($this->tempDir, 'csv');
 		
 		$origin = $this::CONFIGURATIONS['targitoOrigin'] ?? null;
 		
-		$this->customerRepository->csvExportTargito($this->customerRepository->many(), Writer::createFromPath($tempFilename, 'w+'), $origin);
+		$this->customerRepository->csvExportTargito($grid->getFilteredSource(), Writer::createFromPath($tempFilename, 'w+'), $origin);
 		
 		$response = new FileResponse($tempFilename, 'customers.csv', 'text/csv');
 		$this->sendResponse($response);

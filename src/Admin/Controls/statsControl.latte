@@ -108,25 +108,25 @@
                 {if $control->shopper->getShowWithoutVat()}
                     <tr>
                         <td>Celková cena objednávek bez DPH</td>
-                        <td>{$sumOrderPrice[0]|price:$currency}</td>
+                        <td>{\number_format($sumOrderPrice[0], 2, ',', ' ')} {$currency->symbol}</td>
                     </tr>
                 {/if}
                 {if $control->shopper->getShowVat()}
                     <tr>
                         <td>Celková cena objednávek s DPH</td>
-                        <td>{$sumOrderPrice[1]|price:$currency}</td>
+                        <td>{\number_format($sumOrderPrice[1], 2, ',', ' ')} {$currency->symbol}</td>
                     </tr>
                 {/if}
                 {if $control->shopper->getShowWithoutVat()}
                     <tr>
                         <td>Průměrná cena objednávky bez DPH</td>
-                        <td>{$averageOrderPrice[0]|price:$currency}</td>
+                        <td>{\number_format($averageOrderPrice[0], 2, ',', ' ')} {$currency->symbol}</td>
                     </tr>
                 {/if}
                 {if $control->shopper->getShowVat()}
                     <tr>
                         <td>Průměrná cena objednávky s DPH</td>
-                        <td>{$averageOrderPrice[1]|price:$currency}</td>
+                        <td>{\number_format($averageOrderPrice[1], 2, ',', ' ')} {$currency->symbol}</td>
                     </tr>
                 {/if}
                 </tbody>
@@ -192,10 +192,10 @@
                         {/ifset}
                         <td>{$row['amount']}</td>
                         {if $control->shopper->getShowWithoutVat()}
-                            <td>{$row['priceSum']|price:$currency}</td>
+                            <td>{\number_format($row['priceSum'], 2, ',', ' ')} {$currency->symbol}</td>
                         {/if}
                         {if $control->shopper->getShowVat()}
-                            <td>{$row['priceSumVat']|price:$currency}</td>
+                            <td>{\number_format($row['priceSumVat'], 2, ',', ' ')} {$currency->symbol}</td>
                         {/if}
                     </tr>
                 {/if}
@@ -271,7 +271,7 @@
                     backgroundColor: '#4791ed',
                     borderColor: '#4791ed',
                     borderWidth: 1,
-                    data: [{foreach $monthlyOrders as $key => $value}{$value['price']|round:2},{/foreach}]
+                    data: [{foreach $monthlyOrders as $key => $value}{$value['price']|round:2},{/foreach}],
                 },
                 {/if}
                 {if $control->shopper->getShowVat()}
