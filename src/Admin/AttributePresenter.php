@@ -180,7 +180,22 @@ class AttributePresenter extends BackendPresenter
 			return false;
 		}, 'this.uuid');
 
-		$grid->addButtonBulkEdit('attributeForm', ['showCount', 'hidden', 'hideEmptyValues', 'showRange', 'showFilter', 'showProduct', 'categories', 'groups', 'orderValuesByLabel', 'exportToTargito'], 'attributeGrid');
+		$grid->addButtonBulkEdit(
+			'attributeForm',
+			[
+				'showCount',
+				'hidden',
+				'hideEmptyValues',
+				'showRange',
+				'showFilter',
+				'showProduct',
+				'categories',
+				'groups',
+				'orderValuesByLabel',
+				'exportToTargito',
+			],
+			'attributeGrid',
+		);
 
 		$grid->addFilterTextInput('code', ['this.name_cs', 'this.code'], null, 'Kód, název');
 
