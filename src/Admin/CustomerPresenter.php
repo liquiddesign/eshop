@@ -12,8 +12,8 @@ use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\Customer;
 use Eshop\DB\CustomerGroupRepository;
-use Eshop\DB\CustomerRepository;
 use Eshop\DB\CustomerRoleRepository;
+use Eshop\DB\CustomerRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\LoyaltyProgramRepository;
 use Eshop\DB\MerchantRepository;
@@ -63,7 +63,7 @@ class CustomerPresenter extends BackendPresenter
 		'loyaltyProgram' => false,
 		'targito' => false,
 		'targitoOrigin' => null,
-		'customerRoles' => false,
+		'customerRoles' => false
 	];
 	
 	/** @persistent */
@@ -156,10 +156,9 @@ class CustomerPresenter extends BackendPresenter
 		});
 		$grid->addColumnTextFit('Skupina', 'group.name', '%s', 'group.name');
 
-		if ($this::CONFIGURATIONS['customerRoles']) {
+		if($this::CONFIGURATIONS['customerRoles']) {
 			$grid->addColumnTextFit('Role', 'customerRole.name', '%s', 'customerRole.name');
 		}
-
 		$grid->addColumnText('Ceníky', 'pricelists_names', '%s');
 		$grid->addColumnTextFit('Sleva', 'discountLevelPct', '%s %%', 'discountLevelPct');
 		$grid->addColumnTextFit('Max. sleva', 'maxDiscountProductPct', '%s %%', 'discountLevelPct');
@@ -233,7 +232,7 @@ class CustomerPresenter extends BackendPresenter
 			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
 		}
 
-		if ($this::CONFIGURATIONS['customerRoles']) {
+		if($this::CONFIGURATIONS['customerRoles']) {
 			if (\count($this->customerRoleRepo->getArrayForSelect(true)) > 0) {
 				$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 					$source->where('fk_customerRole', $value);
@@ -259,58 +258,24 @@ class CustomerPresenter extends BackendPresenter
 		}, '', 'accountsAssigned', 'Účet', ['0' => 'Bez účtu', '1' => 'S účtem'])->setPrompt('- Účet -');
 
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
-
 			$source->where('lastOrder.createdTs >= :created_from', ['created_from' => $value]);
 		}, '', 'date_from', null)
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
-			->setHtmlAttribute('placeholder', 'Registrace od');
+			->setHtmlAttribute('placeholder', 'Datum objednávky od');
 
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('lastOrder.createdTs <= :created_to', ['created_to' => $value]);
 		}, '', 'created_to', null)
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
-			->setHtmlAttribute('placeholder', 'Registrace do');
-
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
-			$source->where('lastOrder.createdTs >= :lastOrder_createdTs_from', ['lastOrder_createdTs_from' => $value]);
-		}, '', 'lastOrder_createdTs_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])
-			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
-			->setHtmlAttribute('placeholder', 'Poslední obj. od');
-
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
-			$source->where('lastOrder.createdTs <= :lastOrder_createdTs_to', ['lastOrder_createdTs_to' => $value]);
-		}, '', 'lastOrder_createdTs_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])
-=======
->>>>>>> 80fa587 (pridani customerRoli)
-			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
-			->setHtmlAttribute('placeholder', 'Poslední obj. do');
+			->setHtmlAttribute('placeholder', 'Datum objednávky do');
 
 		$grid->addFilterDataSelect(function (ICollection $source, $customerType): void {
 			if (!$customerType) {
 				return;
 			}
 
-			switch ($customerType) {
-				case 'one':
-					$filter = '=1';
-
-					break;
-				case 'more':
-					$filter = '>1';
-
-					break;
-				default:
-					$filter = '=0';
-
-					break;
-			}
-
-			$source->where("this.ordersCount $filter");
-		}, '', 'customerType', null, [
-			'no' => 'Bez objednávky (=0)',
-			'one' => 'Jedna objednávka (=1)',
-			'more' => 'Více objednávek (>1)',
-		])->setPrompt('- Počet obj. -');
+			$source->where('this.ordersCount ' . ($customerType === 'new' ? ' <= 1' : ' > 1'));
+		}, '', 'customerType', 'Typ zákazníka', ['new' => 'Nový', 'old' => 'Stávající'])->setPrompt('- Typ zákazníka -');
 		
 		$grid->addFilterButtons();
 		
@@ -323,7 +288,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid = $button->lookup(Datagrid::class);
 		
 		$tempFilename = \tempnam($this->tempDir, 'csv');
-		$collection = $grid->getFilteredSource();
+		$collection = $grid->getSource()->where($grid->getSourceIdName(), $grid->getSelectedIds());
 		$this->customerRepository->csvExport($collection, Writer::createFromPath($tempFilename, 'w+'));
 		
 		$response = new FileResponse($tempFilename, 'customers.csv', 'text/csv');
@@ -332,15 +297,13 @@ class CustomerPresenter extends BackendPresenter
 	
 	public function exportTargito(Button $button): void
 	{
-		/** @var \Grid\Datagrid $grid */
-		$grid = $button->lookup(Datagrid::class);
 		unset($button);
 		
 		$tempFilename = \tempnam($this->tempDir, 'csv');
 		
 		$origin = $this::CONFIGURATIONS['targitoOrigin'] ?? null;
 		
-		$this->customerRepository->csvExportTargito($grid->getFilteredSource(), Writer::createFromPath($tempFilename, 'w+'), $origin);
+		$this->customerRepository->csvExportTargito($this->customerRepository->many(), Writer::createFromPath($tempFilename, 'w+'), $origin);
 		
 		$response = new FileResponse($tempFilename, 'customers.csv', 'text/csv');
 		$this->sendResponse($response);
@@ -509,7 +472,7 @@ class CustomerPresenter extends BackendPresenter
 		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']))
 			->setPrompt('Žádná');
 
-		if ($this::CONFIGURATIONS['customerRoles']) {
+		if($this::CONFIGURATIONS['customerRoles']) {
 			$form->addDataSelect('customerRole', 'Role', $this->customerRoleRepo->getArrayForSelect(true))->setPrompt('Žádná');
 		}
 
@@ -921,7 +884,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
 		}
 
-		if ($this::CONFIGURATIONS['customerRoles']) {
+		if($this::CONFIGURATIONS['customerRoles']) {
 			if (\count($this->customerRoleRepo->getArrayForSelect(true)) > 0) {
 				$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 					$source->where('customer.fk_customerRole', $value);

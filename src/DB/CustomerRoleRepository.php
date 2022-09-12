@@ -12,6 +12,7 @@ use StORM\Collection;
  */
 class CustomerRoleRepository extends \StORM\Repository implements IGeneralRepository
 {
+
 	/**
 	 * @inheritDoc
 	 */

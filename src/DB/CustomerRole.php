@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use StORM\RelationCollection;
+
 /**
  * Role uzivatelů uživatelů
  * @table
@@ -17,6 +19,7 @@ class CustomerRole extends \StORM\Entity
 	public string $name;
 
 	/**
+	 *
 	 * @column
 	 */
 	public int $priority;
