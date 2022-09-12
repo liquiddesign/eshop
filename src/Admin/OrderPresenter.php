@@ -1613,6 +1613,11 @@ class OrderPresenter extends BackendPresenter
 
 				$this->template->displayButtons[] =
 					"<a href='$link'><button class='$class'><i class='fas $icon mr-1'></i> Tisk faktury</button></a>";
+
+				$link = $this->link('regenerateInvoices!', $invoice->getPK(), $order->getPK());
+
+				$this->template->displayButtons[] =
+					"<a href='$link'><button class='btn btn-sm btn-primary'><i class='fas fa-retweet mr-1'></i> Reset faktury</button></a>";
 			} else {
 				$this->template->displayButtons[] =
 					"<button class='btn btn-sm btn-primary disabled' disabled><i class='fas fa-times mr-1'></i> Tisk faktury</button>";
@@ -1626,6 +1631,17 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayButtons[] = $this->createButton('exportEdi!', '<i class="fa fa-download mr-1"></i>EDI', [$order->getPK()]);
 		$this->template->displayButtons[] = $this->createButton('exportCsv!', '<i class="fa fa-download mr-1"></i>CSV', [$order->getPK()]);
 		//  window.print()
+	}
+
+	public function handleRegenerateInvoices(string $invoicePK, string $orderPK): void
+	{
+		$invoice = $this->invoiceRepository->one($invoicePK, true);
+		$invoice->delete();
+
+		$this->invoiceRepository->createFromOrder($this->orderRepository->one($orderPK, true));
+
+		$this->flashMessage('Faktury objednávky přegenerovány.', 'success');
+		$this->redirect('this');
 	}
 
 	public function createComponentPrintInvoiceMultipleForm(): AdminForm

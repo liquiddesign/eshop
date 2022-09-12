@@ -44,6 +44,16 @@ class Invoice extends \StORM\Entity
 	public ?string $subject;
 
 	/**
+	 * @column
+	 */
+	public ?string $phone;
+
+	/**
+	 * @column
+	 */
+	public ?string $email;
+
+	/**
 	 * IČ
 	 * @column
 	 */

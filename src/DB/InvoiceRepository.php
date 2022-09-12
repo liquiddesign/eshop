@@ -103,6 +103,8 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 				'totalPriceVatWithoutDiscount' => $order->getTotalPriceVat() + $order->getDiscountPriceVat(),
 				'ic' => $order->purchase->ic ?: ($order->purchase->customer ? $order->purchase->customer->ic : null),
 				'dic' => $order->purchase->dic ?: ($order->purchase->customer ? $order->purchase->customer->dic : null),
+				'email' => $order->purchase->email ?: ($order->purchase->customer ? $order->purchase->customer->email : null),
+				'phone' => $order->purchase->phone ?: ($order->purchase->customer ? $order->purchase->customer->phone : null),
 			] + $values;
 
 		if (!isset($values['code'])) {
