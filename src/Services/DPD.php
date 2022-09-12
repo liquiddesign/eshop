@@ -100,7 +100,7 @@ class DPD
 		$ordersIgnored = [];
 		$ordersWithError = [];
 
-		$orderDpdCodes = null;
+
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
@@ -110,6 +110,7 @@ class DPD
 				continue;
 			}
 
+			$orderDpdCodes = null;
 			$purchase = $order->purchase;
 			$deliveryAddress = $purchase->deliveryAddress ?? $purchase->billAddress;
 

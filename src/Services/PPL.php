@@ -169,7 +169,6 @@ class PPL
 			->firstValue('pplCode');
 
 		$firstAvailablePackageSeriesNumberCod = $firstAvailablePackageSeriesNumberCod ? (int) $firstAvailablePackageSeriesNumberCod + 1 : (int) $packageNumber;
-		$orderPplCodes = null;
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
@@ -179,6 +178,7 @@ class PPL
 				continue;
 			}
 
+			$orderPplCodes = null;
 			$purchase = $order->purchase;
 			$deliveryAddress = $purchase->deliveryAddress ?? $purchase->billAddress;
 
