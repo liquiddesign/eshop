@@ -22,15 +22,4 @@ class CustomerRole extends SystemicEntity
 	 * @column
 	 */
 	public int $priority;
-
-	/**
-	 * Systémová
-	 * @column
-	 */
-	public bool $systemic = false;
-
-	public function isSystemic(): bool
-	{
-		return $this->systemic;
-	}
 }
