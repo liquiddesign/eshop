@@ -100,8 +100,6 @@ class DPD
 		$ordersIgnored = [];
 		$ordersWithError = [];
 
-
-
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
 			if (\in_array(false, Arrays::invoke($this->onBeforeOrderSent, $order), true)) {
