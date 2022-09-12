@@ -2,9 +2,9 @@ name: Analysis
 
 on:
   push:
-    branches: [ main, tabs ]
+    branches: [ main, customerrole ]
   pull_request:
-    branches: [ main, tabs ]
+    branches: [ main, customerrole ]
 
 jobs:
   build:
