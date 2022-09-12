@@ -7,16 +7,13 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\DB\CustomerRepository;
 use Eshop\DB\CustomerRole;
 use Eshop\DB\CustomerRoleRepository;
-use Eshop\DB\CustomerRepository;
-use Eshop\DB\PricelistRepository;
-use Eshop\Shopper;
 use Forms\Form;
 
 class CustomerRolePresenter extends BackendPresenter
 {
-
 	/** @inject */
 	public CustomerRepository $customerRepo;
 

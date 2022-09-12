@@ -12,8 +12,8 @@ use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\Customer;
 use Eshop\DB\CustomerGroupRepository;
-use Eshop\DB\CustomerRoleRepository;
 use Eshop\DB\CustomerRepository;
+use Eshop\DB\CustomerRoleRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\LoyaltyProgramRepository;
 use Eshop\DB\MerchantRepository;
@@ -63,7 +63,7 @@ class CustomerPresenter extends BackendPresenter
 		'loyaltyProgram' => false,
 		'targito' => false,
 		'targitoOrigin' => null,
-		'customerRoles' => false
+		'customerRoles' => false,
 	];
 	
 	/** @persistent */
@@ -156,9 +156,10 @@ class CustomerPresenter extends BackendPresenter
 		});
 		$grid->addColumnTextFit('Skupina', 'group.name', '%s', 'group.name');
 
-		if($this::CONFIGURATIONS['customerRoles']) {
+		if ($this::CONFIGURATIONS['customerRoles']) {
 			$grid->addColumnTextFit('Role', 'customerRole.name', '%s', 'customerRole.name');
 		}
+
 		$grid->addColumnText('Ceníky', 'pricelists_names', '%s');
 		$grid->addColumnTextFit('Sleva', 'discountLevelPct', '%s %%', 'discountLevelPct');
 		$grid->addColumnTextFit('Max. sleva', 'maxDiscountProductPct', '%s %%', 'discountLevelPct');
@@ -232,7 +233,7 @@ class CustomerPresenter extends BackendPresenter
 			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
 		}
 
-		if($this::CONFIGURATIONS['customerRoles']) {
+		if ($this::CONFIGURATIONS['customerRoles']) {
 			if (\count($this->customerRoleRepo->getArrayForSelect(true)) > 0) {
 				$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 					$source->where('fk_customerRole', $value);
@@ -472,7 +473,7 @@ class CustomerPresenter extends BackendPresenter
 		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']))
 			->setPrompt('Žádná');
 
-		if($this::CONFIGURATIONS['customerRoles']) {
+		if ($this::CONFIGURATIONS['customerRoles']) {
 			$form->addDataSelect('customerRole', 'Role', $this->customerRoleRepo->getArrayForSelect(true))->setPrompt('Žádná');
 		}
 
@@ -884,7 +885,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
 		}
 
-		if($this::CONFIGURATIONS['customerRoles']) {
+		if ($this::CONFIGURATIONS['customerRoles']) {
 			if (\count($this->customerRoleRepo->getArrayForSelect(true)) > 0) {
 				$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 					$source->where('customer.fk_customerRole', $value);
