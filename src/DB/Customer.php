@@ -176,6 +176,13 @@ class Customer extends Entity implements IIdentity, IUser
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?CustomerGroup $group;
+
+	/**
+	 * Role uživatelů
+	 * @relation
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 */
+	public ?CustomerRole $customerRole;
 	
 	/**
 	 * Preferovaná doprava
