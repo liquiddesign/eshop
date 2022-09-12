@@ -279,6 +279,8 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('lastOrder.createdTs <= :lastOrder_createdTs_to', ['lastOrder_createdTs_to' => $value]);
 		}, '', 'lastOrder_createdTs_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])
+=======
+>>>>>>> 80fa587 (pridani customerRoli)
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
 			->setHtmlAttribute('placeholder', 'Poslední obj. do');
 
