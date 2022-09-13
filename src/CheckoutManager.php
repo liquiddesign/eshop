@@ -36,6 +36,7 @@ use Eshop\DB\PackageItemRepository;
 use Eshop\DB\PackageRepository;
 use Eshop\DB\PaymentRepository;
 use Eshop\DB\PaymentTypeRepository;
+use Eshop\DB\PriceRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\Purchase;
@@ -210,7 +211,9 @@ class CheckoutManager
 	protected DIConnection $stm;
 
 	protected PurchaseRepository $purchaseRepository;
-	
+
+	protected PriceRepository $priceRepository;
+
 	public function __construct(
 		Shopper $shopper,
 		CartRepository $cartRepository,
@@ -244,7 +247,8 @@ class CheckoutManager
 		RelatedPackageItemRepository $relatedPackageItemRepository,
 		RelatedTypeRepository $relatedTypeRepository,
 		DIConnection $stm,
-		PurchaseRepository $purchaseRepository
+		PurchaseRepository $purchaseRepository,
+		PriceRepository $priceRepository
 	) {
 		$this->customer = $shopper->getCustomer();
 		$this->shopper = $shopper;
@@ -279,7 +283,8 @@ class CheckoutManager
 		$this->relatedTypeRepository = $relatedTypeRepository;
 		$this->stm = $stm;
 		$this->purchaseRepository = $purchaseRepository;
-		
+		$this->priceRepository = $priceRepository;
+
 		if (!$request->getCookie('cartToken') && !$this->customer) {
 			$this->cartToken = DIConnection::generateUuid();
 			$response->setCookie('cartToken', $this->cartToken, $this->cartExpiration . ' days');
