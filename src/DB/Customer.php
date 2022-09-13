@@ -370,7 +370,7 @@ class Customer extends Entity implements IIdentity, IUser
 	
 	public function getName(): string
 	{
-		return (string) $this->company ?: $this->fullname;
+		return (string) ($this->company ?: $this->fullname);
 	}
 
 	public function getPreferredMutation(): ?string
