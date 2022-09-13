@@ -2083,8 +2083,8 @@ class OrderPresenter extends BackendPresenter
 				$msg .= 'Přeskočeno: ' . \count($result['ignored']) . '<br>';
 				$msg .= 'Chyba: ' . \count($result['failed']) . '<br>';
 
-				foreach ($result['failed'] as $orderCode => $packagesCount) {
-					$msg .= "$orderCode($packagesCount)<br>";
+				foreach ($result['failed'] as $order) {
+					$msg .= "$order->code<br>";
 				}
 
 				$this->flashMessage($msg, 'success');
@@ -2136,8 +2136,8 @@ class OrderPresenter extends BackendPresenter
 				$msg .= 'Přeskočeno: ' . \count($result['ignored']) . '<br>';
 				$msg .= 'Chyba: ' . \count($result['failed']) . '<br>';
 
-				foreach ($result['failed'] as $orderCode => $packagesCount) {
-					$msg .= "$orderCode($packagesCount)<br>";
+				foreach ($result['failed'] as $order) {
+					$msg .= "$order->code<br>";
 				}
 
 				$this->flashMessage($msg, 'success');

@@ -285,7 +285,7 @@ class OrderGridFactory
 
 			$grid->addColumn('DPD', function (Order $order, AdminGrid $datagrid) use ($tempDir) {
 				try {
-					$title = $order->dpdError ? FileSystem::read($tempDir . $order->code) : $order->getDpdCode();
+					$title = $order->dpdError ? FileSystem::read($tempDir . $order->getPK()) : $order->getDpdCode();
 				} catch (IOException $e) {
 					$title = '';
 				}
@@ -302,7 +302,7 @@ class OrderGridFactory
 
 			$grid->addColumn('PPL', function (Order $order, AdminGrid $datagrid) use ($tempDir) {
 				try {
-					$title = $order->pplError ? FileSystem::read($tempDir . $order->code) : $order->getPplCode();
+					$title = $order->pplError ? FileSystem::read($tempDir . $order->getPK()) : $order->getPplCode();
 				} catch (IOException $e) {
 					$title = '';
 				}

@@ -108,106 +108,120 @@ class DPD
 				continue;
 			}
 
-			$orderDpdCodes = null;
 			$purchase = $order->purchase;
 			$deliveryAddress = $purchase->deliveryAddress ?? $purchase->billAddress;
 
-			foreach ($order->packages as $package) {
-				try {
+			if ($order->getDpdCode()) {
+				$ordersIgnored[] = $order;
+
+				continue;
+			}
+
+			try {
+				$request = [
+					'login' => $this->login,
+					'password' => $this->password,
+					'_ShipmentDetailVO' => [],
+				];
+
+				$newShipmentVO = [
+					'ID_Customer' => $this->idCustomer,
+					'ID_Customer_Address' => $this->idAddress,
+					'REF1' => $order->code,
+					'REF3' => $order->code,
+					'REF4' => Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH),
+					'Receiver' => [
+						'RNAME1' => $purchase->fullname,
+						'RSTREET' => $deliveryAddress ? $deliveryAddress->street : '',
+						'RCITY' => $deliveryAddress ? $deliveryAddress->city : '',
+						'RPOSTAL' => $deliveryAddress ? $deliveryAddress->zipcode : '',
+						'RCOUNTRY' => $deliveryAddress && $deliveryAddress->state ? $deliveryAddress->state : 'CZ',
+						'RPHONE' => $purchase->phone,
+						'REMAIL' => $purchase->email,
+					],
+				];
+
+				$parcelReferences = [];
+
+				foreach ($order->packages as $package) {
 					$delivery = $package->delivery;
 					$deliveryType = $delivery->type;
 
 					if (!$deliveryType || $deliveryType->getPK() !== $dpdDeliveryType) {
-						$ordersIgnored[$order->code] = isset($ordersIgnored[$order->code]) ? $ordersIgnored[$order->code] + 1 : 1;
-
 						continue;
 					}
 
-					if ($dpdCode = $delivery->getDpdCode()) {
-						$ordersIgnored[$order->code] = isset($ordersIgnored[$order->code]) ? $ordersIgnored[$order->code] + 1 : 1;
-						$orderDpdCodes .= "$dpdCode,";
-
+					if ($delivery->getDpdCode()) {
 						continue;
 					}
 
-					$request = [
-						'login' => $this->login,
-						'password' => $this->password,
-						'_ShipmentDetailVO' => [],
-					];
-
-					$newShipmentVO = [
-						'ID_Customer' => $this->idCustomer,
-						'ID_Customer_Address' => $this->idAddress,
-						'REF1' => $order->code,
+					$parcelReferences[] = [
+						'REF1' => $order->code . '_' . $package->getPK(),
 						'REF3' => $order->code,
 						'REF4' => Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH),
-						'Receiver' => [
-							'RNAME1' => $purchase->fullname,
-							'RSTREET' => $deliveryAddress ? $deliveryAddress->street : '',
-							'RCITY' => $deliveryAddress ? $deliveryAddress->city : '',
-							'RPOSTAL' => $deliveryAddress ? $deliveryAddress->zipcode : '',
-							'RCOUNTRY' => $deliveryAddress && $deliveryAddress->state ? $deliveryAddress->state : 'CZ',
-							'RPHONE' => $purchase->phone,
-							'REMAIL' => $purchase->email,
-						],
-						'Parcel_References_and_Insurance' => [
-							[
-								'REF1' => $order->code,
-								'REF3' => $order->code,
-								'REF4' => Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH),
-							],
-						],
 					];
-
-					if ($dpdCodType && $order->purchase->paymentType && $order->purchase->paymentType->getPK() === $dpdCodType) {
-						$newShipmentVO['Additional_Services'] = [
-							'COD' => (string)\number_format($order->getTotalPriceVat() / \count($order->packages), 2, '.', ''),
-							'CURRENCY' => $order->purchase->currency->code,
-							'PAYMENT' => 1,
-							'PURPOSE' => $order->code,
-						];
-					}
-
-					$request['_ShipmentDetailVO'][] = $newShipmentVO;
-
-					\bdump($request);
-
-					$result = $client->NewShipment($request);
-
-					\bdump($result);
-
-					/** @codingStandardsIgnoreStart */
-					if ($dpdCode = $result->NewShipmentResult->NewShipmentResultVO->ParcelVO->PARCELNO) {
-						/** @codingStandardsIgnoreEnd */
-						$delivery->update(['dpdCode' => $dpdCode, 'dpdError' => false,]);
-
-						$ordersCompleted[$order->code] = isset($ordersCompleted[$order->code]) ? $ordersCompleted[$order->code] + 1 : 1;
-						$orderDpdCodes .= "$dpdCode,";
-					} else {
-						$delivery->update(['dpdError' => true]);
-
-						$ordersWithError[$order->code] = isset($ordersWithError[$order->code]) ? $ordersWithError[$order->code] + 1 : 1;
-					}
-				} catch (\Throwable $e) {
-					$delivery->update(['dpdError' => true]);
-
-					$ordersWithError[$order->code] = isset($ordersWithError[$order->code]) ? $ordersWithError[$order->code] + 1 : 1;
-
-					\bdump($e);
-
-					$tempDir = $this->container->getParameters()['tempDir'] . '/dpd';
-
-					FileSystem::createDir($tempDir);
-
-					FileSystem::write("$tempDir/" . $delivery->getPK(), $e->getMessage());
 				}
-			}
 
-			$order->update([
-				'dpdCode' => $orderDpdCodes,
-				'dpdError' => isset($ordersWithError[$order->code]),
-			]);
+				if (!$parcelReferences) {
+					$ordersIgnored[] = $order;
+
+					continue;
+				}
+
+				$newShipmentVO['Parcel_References_and_Insurance'] = $parcelReferences;
+
+				if ($dpdCodType && $order->purchase->paymentType && $order->purchase->paymentType->getPK() === $dpdCodType) {
+					$newShipmentVO['Additional_Services'] = [
+						'COD' => (string)\number_format($order->getTotalPriceVat(), 2, '.', ''),
+						'CURRENCY' => $order->purchase->currency->code,
+						'PAYMENT' => 1,
+						'PURPOSE' => $order->code,
+					];
+				}
+
+				$request['_ShipmentDetailVO'][] = $newShipmentVO;
+
+				\bdump($request);
+				$result = $client->NewShipment($request);
+
+				\bdump($result);
+
+				/** @codingStandardsIgnoreStart */
+				if (\is_array($result->NewShipmentResult->NewShipmentResultVO)) {
+					$dpdCodes = null;
+
+					foreach ($result->NewShipmentResult->NewShipmentResultVO as $parcel) {
+						$dpdCodes .= $parcel->ParcelVO->PARCELNO . ',';
+					}
+					/** @codingStandardsIgnoreEnd */
+
+					$order->update(['dpdCode' => $dpdCodes, 'dpdError' => false,]);
+
+					$ordersCompleted[] = $order;
+				/** @codingStandardsIgnoreStart */
+				} elseif ($dpdCode = $result->NewShipmentResult->NewShipmentResultVO->ParcelVO->PARCELNO) {
+					/** @codingStandardsIgnoreEnd */
+					$order->update(['dpdCode' => $dpdCode, 'dpdError' => false,]);
+
+					$ordersCompleted[] = $order;
+				} else {
+					$order->update(['dpdError' => true]);
+
+					$ordersWithError[] = $order;
+				}
+			} catch (\Throwable $e) {
+				$order->update(['dpdError' => true]);
+
+				$ordersWithError[] = $order;
+
+				\bdump($e);
+
+				$tempDir = $this->container->getParameters()['tempDir'] . '/dpd';
+
+				FileSystem::createDir($tempDir);
+
+				FileSystem::write("$tempDir/" . $order->getPK(), $e->getMessage());
+			}
 		}
 
 		return [
