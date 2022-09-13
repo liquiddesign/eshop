@@ -10,7 +10,6 @@ use Eshop\Providers\Helpers;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
 use Nette\Utils\Validators;
-use Security\DB\Account;
 use Security\DB\IUserRepository;
 use Security\DB\UserRepositoryTrait;
 use StORM\Collection;
@@ -164,17 +163,13 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 
 	/**
 	 * Zda má uživatel nějaký aktivní autoship
-	 * @return bool
 	 */
 	public function hasActiveAutoship(Customer $customer): bool
 	{
 		$autoships = $this->getConnection()->findRepository(Autoship::class)
 			->many()
-			->where("active=1 AND activeFrom<NOW() AND purchase.fk_customer=:uuid", ["uuid" => $customer->getPK()]);
+			->where('active=1 AND activeFrom<NOW() AND purchase.fk_customer=:uuid', ['uuid' => $customer->getPK()]);
 
-		return (bool) count($autoships);
+		return (bool) \count($autoships);
 	}
-
-
-
 }
