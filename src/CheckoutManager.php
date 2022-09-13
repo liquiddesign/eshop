@@ -109,107 +109,107 @@ class CheckoutManager
 	 */
 	public ?array $orderCodeArguments = null;
 	
-	private ?string $cartToken;
-	
-	private ?string $lastOrderToken;
+	protected ?string $cartToken;
+
+	protected ?string $lastOrderToken;
 	
 	/**
 	 * @var \Eshop\DB\Cart[]|null[]
 	 */
-	private array $unattachedCarts = [];
-	
-	private int $cartExpiration = 30;
-	
-	private ?Customer $customer;
-	
-	private Shopper $shopper;
-	
-	private CartRepository $cartRepository;
-	
-	private CartItemRepository $itemRepository;
-	
-	private ProductRepository $productRepository;
-	
-	private DeliveryDiscountRepository $deliveryDiscountRepository;
-	
-	private DeliveryTypeRepository $deliveryTypeRepository;
-	
-	private DeliveryRepository $deliveryRepository;
-	
-	private PaymentTypeRepository $paymentTypeRepository;
-	
-	private PaymentRepository $paymentRepository;
-	
-	private DiscountCouponRepository $discountCouponRepository;
-	
-	private NewsletterUserRepository $newsletterUserRepository;
-	
-	private SettingRepository $settingRepository;
-	
-	private Collection $paymentTypes;
-	
-	private ?float $sumPrice = null;
-	
-	private ?float $sumPriceVat = null;
-	
-	private ?int $sumAmount = null;
-	
-	private ?int $sumAmountTotal = null;
-	
-	private ?float $sumWeight = null;
-	
-	private ?float $sumDimension = null;
-	
-	private ?int $sumPoints = null;
-	
-	private ?float $maxWeight = null;
-	
-	private ?int $maxDimension = null;
+	protected array $unattachedCarts = [];
+
+	protected int $cartExpiration = 30;
+
+	protected ?Customer $customer;
+
+	protected Shopper $shopper;
+
+	protected CartRepository $cartRepository;
+
+	protected CartItemRepository $itemRepository;
+
+	protected ProductRepository $productRepository;
+
+	protected DeliveryDiscountRepository $deliveryDiscountRepository;
+
+	protected DeliveryTypeRepository $deliveryTypeRepository;
+
+	protected DeliveryRepository $deliveryRepository;
+
+	protected PaymentTypeRepository $paymentTypeRepository;
+
+	protected PaymentRepository $paymentRepository;
+
+	protected DiscountCouponRepository $discountCouponRepository;
+
+	protected NewsletterUserRepository $newsletterUserRepository;
+
+	protected SettingRepository $settingRepository;
+
+	protected Collection $paymentTypes;
+
+	protected ?float $sumPrice = null;
+
+	protected ?float $sumPriceVat = null;
+
+	protected ?int $sumAmount = null;
+
+	protected ?int $sumAmountTotal = null;
+
+	protected ?float $sumWeight = null;
+
+	protected ?float $sumDimension = null;
+
+	protected ?int $sumPoints = null;
+
+	protected ?float $maxWeight = null;
+
+	protected ?int $maxDimension = null;
 	
 	/**
 	 * @var string[]
 	 */
-	private array $checkoutSequence;
-	
-	private OrderRepository $orderRepository;
-	
-	private AccountRepository $accountRepository;
-	
-	private CustomerRepository $customerRepository;
-	
-	private Response $response;
-	
-	private TaxRepository $taxRepository;
-	
-	private CartItemTaxRepository $cartItemTaxRepository;
-	
-	private PackageRepository $packageRepository;
-	
-	private PackageItemRepository $packageItemRepository;
-	
-	private LoyaltyProgramHistoryRepository $loyaltyProgramHistoryRepository;
-	
-	private BannedEmailRepository $bannedEmailRepository;
-	
-	private OrderLogItemRepository $orderLogItemRepository;
-	
-	private CustomerGroupRepository $customerGroupRepository;
-	
-	private CatalogPermissionRepository $catalogPermissionRepository;
-	
-	private AttributeAssignRepository $attributeAssignRepository;
-	
-	private ReviewRepository $reviewRepository;
-	
-	private RelatedCartItemRepository $relatedCartItemRepository;
-	
-	private RelatedPackageItemRepository $relatedPackageItemRepository;
-	
-	private RelatedTypeRepository $relatedTypeRepository;
-	
-	private DIConnection $stm;
+	protected array $checkoutSequence;
 
-	private PurchaseRepository $purchaseRepository;
+	protected OrderRepository $orderRepository;
+
+	protected AccountRepository $accountRepository;
+
+	protected CustomerRepository $customerRepository;
+
+	protected Response $response;
+
+	protected TaxRepository $taxRepository;
+
+	protected CartItemTaxRepository $cartItemTaxRepository;
+
+	protected PackageRepository $packageRepository;
+
+	protected PackageItemRepository $packageItemRepository;
+
+	protected LoyaltyProgramHistoryRepository $loyaltyProgramHistoryRepository;
+
+	protected BannedEmailRepository $bannedEmailRepository;
+
+	protected OrderLogItemRepository $orderLogItemRepository;
+
+	protected CustomerGroupRepository $customerGroupRepository;
+
+	protected CatalogPermissionRepository $catalogPermissionRepository;
+
+	protected AttributeAssignRepository $attributeAssignRepository;
+
+	protected ReviewRepository $reviewRepository;
+
+	protected RelatedCartItemRepository $relatedCartItemRepository;
+
+	protected RelatedPackageItemRepository $relatedPackageItemRepository;
+
+	protected RelatedTypeRepository $relatedTypeRepository;
+
+	protected DIConnection $stm;
+
+	protected PurchaseRepository $purchaseRepository;
 	
 	public function __construct(
 		Shopper $shopper,
