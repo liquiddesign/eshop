@@ -48,9 +48,11 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 			->join(['e_su' => 'eshop_supplier'], 'e_su.uuid = e_st.fk_supplier')
 			->select(['allSuppliers' => 'GROUP_CONCAT(e_sp_su.name ORDER BY e_sp_su.name ASC SEPARATOR ", ")'])
 			->setGroupBy(['this.uuid'])
-			->selectAliases(['e_pai' => PackageItem::class])
-			->selectAliases(['e_o' => Order::class])
-			->selectAliases(['e_su' => Supplier::class])
+			->selectAliases([
+				'e_pai' => PackageItem::class,
+				'e_o' => Order::class,
+				'e_su' => Supplier::class,
+			])
 			->where('e_o.receivedTs IS NOT NULL AND e_o.completedTs IS NOT NULL AND e_o.canceledTs IS NULL'), 100, 'e_o.createdTs', 'DESC', true);
 		$grid->addColumnSelector();
 
@@ -106,6 +108,14 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 		$grid->addFilterDataSelect(function (Collection $source, $value): void {
 			$source->where('e_st.fk_supplier = :val OR e_sp_su.uuid = :val', ['val' => $value]);
 		}, '', 'supplier', null, $this->supplierRepository->getArrayForSelect())->setPrompt('- Dodavatel -');
+
+		$grid->addFilterDataSelect(function (Collection $source, $value): void {
+			if (!$value) {
+				return;
+			}
+
+			$source->where('e_su.uuid = :val1', ['val1' => $value]);
+		}, null, 'selectedSupplier', null, $this->supplierRepository->getArrayForSelect())->setPrompt('- Zvolený dodavatel -');
 
 		$grid->addFilterButtons();
 
@@ -164,7 +174,7 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 			$this->redirect('this');
 		}, $this->getBulkFormActionLink(), $this->cartItemRepository->many(), $this->getBulkFormIds(), function (AdminForm $form): void {
 			$form->addSelect('status', 'Odesláno', ['n' => 'Ne', 'y' => 'Ano',])->setDefaultValue('y')->setRequired()
-				->setHtmlAttribute('data-info', 'Nedochází ke skutečnému odeslání dodavateli! Položky se pouze interně ozznačí.');
+				->setHtmlAttribute('data-info', 'Nedochází ke skutečnému odeslání dodavateli! Položky se pouze interně označí.');
 		});
 	}
 
