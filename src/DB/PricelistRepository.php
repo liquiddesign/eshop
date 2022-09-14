@@ -528,17 +528,17 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 					\sort($priceArray['priceArray']);
 					\sort($priceArray['priceVatArray']);
 
-					if (\fmod($priceArray['count'], 2) !== 0.00) {
-						$middle = ($priceArray['count'] / 2) - 1;
+					if ($priceArray['count'] % 2 !== 0) {
+						$middle = (int)($priceArray['count'] / 2);
 
-						$newValues['price'] = $priceArray['priceArray'][$middle];
-						$newValues['priceVat'] = $priceArray['priceVatArray'][$middle];
+						$newValues['price'] = $priceArray['priceArray'][(string)$middle];
+						$newValues['priceVat'] = $priceArray['priceVatArray'][(string)$middle];
 					} else {
-						$middle1 = ($priceArray['count'] / 2.0) - 1;
-						$middle2 = ($priceArray['count'] / 2.0) + 1 - 1;
+						$middle1 = ((int)($priceArray['count'] / 2)) - 1;
+						$middle2 = $middle1 + 1;
 
-						$newValues['price'] = ($priceArray['priceArray'][$middle1] + $priceArray['priceArray'][$middle2]) / 2.0;
-						$newValues['priceVat'] = ($priceArray['priceVatArray'][$middle1] + $priceArray['priceVatArray'][$middle2]) / 2.0;
+						$newValues['price'] = ($priceArray['priceArray'][(string)$middle1] + $priceArray['priceArray'][(string)$middle2]) / 2.0;
+						$newValues['priceVat'] = ($priceArray['priceVatArray'][(string)$middle1] + $priceArray['priceVatArray'][(string)$middle2]) / 2.0;
 					}
 				}
 			}
