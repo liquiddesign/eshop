@@ -159,13 +159,10 @@ abstract class ExportPresenter extends Presenter
 	{
 		try {
 			$pricelists = $this->getPricelistFromSetting('targitoExportPricelist');
-			$flavourRelationTypeSetting = $this->settingRepo->getValueByName('flavourRelationType');
+			//$flavourRelationTypeSetting = $this->settingRepo->getValueByName('flavourRelationType');
 			
 			$products = \count($pricelists) ? $this->productRepo->getProducts($pricelists) : $this->productRepo->getProductsAsCustomer(null);
-			$products->join(['related' => 'eshop_related'], 'this.uuid = related.fk_master')
-				->where('related.fk_type', $flavourRelationTypeSetting)
-				->where('related.fk_master IS NULL')
-				->where('this.hidden', false);
+			$products->where('this.hidden', false);
 			
 			$this->template->products = $products;
 			

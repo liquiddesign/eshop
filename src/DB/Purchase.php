@@ -315,6 +315,14 @@ class Purchase extends \StORM\Entity
 		return $cartItemRepository->getItems($this->getCartIds());
 	}
 	
+	/**
+	 * @return \Eshop\DB\CartItem[]|\StORM\Collection<\Eshop\DB\CartItem>
+	 */
+	public function getTopLevelItems(): Collection
+	{
+		return $this->getItems()->where('this.fk_upsell IS NULL');
+	}
+	
 	public function getSumPriceVat(): float
 	{
 		/** @var \Eshop\DB\CartItemRepository $cartItemRepository */
