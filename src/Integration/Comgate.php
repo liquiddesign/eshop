@@ -14,6 +14,7 @@ use Eshop\DB\ComgateRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
+use Nette\Utils\Validators;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
@@ -76,7 +77,10 @@ class Comgate
 
 			if ($response['code'] === '0') {
 				$this->comgateRepository->saveTransaction($response['transId'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, 'PENDING', $order);
-				\header('location: ' . $response['redirect']);
+
+				$url = $response['redirect'] . $orderPaymentType->comgateParams;
+
+				\header('location: ' . (Validators::isUrl($url) ? $url : $response['redirect']));
 				exit;
 			}
 
