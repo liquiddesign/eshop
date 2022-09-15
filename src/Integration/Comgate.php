@@ -54,15 +54,21 @@ class Comgate
 			/** @var \Eshop\DB\Order $order */
 			$order = $this->orderRepository->one($order->getPK(), true);
 
-			$paymentType = $this->settingRepository->getValueByName('comgatePaymentType');
+			$comgatePaymentTypes = $this->settingRepository->getValuesByName('comgatePaymentType');
 
-			if (!$paymentType) {
+			if (!$comgatePaymentTypes) {
 				return;
 			}
 
-			$paymentType = $this->paymentTypeRepository->one($paymentType);
+			$comgatePaymentTypes = $this->paymentTypeRepository->many()->where('this.uuid', $comgatePaymentTypes)->toArray();
 
-			if (!$paymentType || $order->getPayment()->type->code !== $paymentType->code) {
+			$orderPaymentType = $order->getPayment()->type;
+
+			if (!$orderPaymentType) {
+				return;
+			}
+
+			if (!isset($comgatePaymentTypes[$orderPaymentType->getPK()])) {
 				return;
 			}
 

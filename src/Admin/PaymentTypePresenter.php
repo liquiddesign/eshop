@@ -126,6 +126,10 @@ class PaymentTypePresenter extends BackendPresenter
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
 
+		$form->addText('comgateParams', 'Parametry pro Comgate')
+			->setNullable()
+			->setHtmlAttribute('data-info', 'Zadejte atributy ve formátu GET požadavku, které budou předány do Comgate.<br>
+Např.: "&method=CARD_CZ_CS". Více viz: https://help.comgate.cz/docs/api-protokol');
 		$form->addGroup('Externí ID');
 		$form->addText('externalId', 'Externí ID: Obecné')->setNullable();
 		$suppliersContainer = $form->addContainer('suppliers');
