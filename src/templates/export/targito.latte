@@ -12,7 +12,7 @@
             <SHOPITEM n:foreach="$products as $product">
                 <ITEM_ID>{$product->getFullCode()}</ITEM_ID>
                 <PRODUCTNAME><![CDATA[{$product->name}]]></PRODUCTNAME>
-                <DESCRIPTION n:if="$product->content"><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
+                <DESCRIPTION n:if="$product->content"><![CDATA[{\strip_tags(\htmlspecialchars_decode($product->content))}]]></DESCRIPTION>
                 <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
                 {var $productPhotos = isset($photos[$product->getPK()]) ? \explode(',', $photos[$product->getPK()]) : []}
                 {if $image = $product->getPreviewImage($basePath)}
