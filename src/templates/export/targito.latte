@@ -10,7 +10,7 @@
         {var $mutationSuffix = $presenter->attributeRepository->getConnection()->getMutationSuffix()}
         {var $pricelists = $presenter->getPricelistFromSetting('targitoExportPricelist')}
         <SHOP>
-            <SHOPITEM n:foreach="$presenter->productRepo->getProducts($pricelists)->where('this.hidden', false) as $product">
+            <SHOPITEM n:foreach="$products as $product">
                 <ITEM_ID>{$product->getFullCode()}</ITEM_ID>
                 <PRODUCTNAME><![CDATA[{$product->name}]]></PRODUCTNAME>
                 <DESCRIPTION n:if="$product->content"><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
