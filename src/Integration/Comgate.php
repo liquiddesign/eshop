@@ -79,7 +79,8 @@ class Comgate
 				$this->comgateRepository->saveTransaction($response['transId'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, 'PENDING', $order);
 
 				$url = $response['redirect'] . $orderPaymentType->comgateParams;
-				\bdump($url);
+
+				Debugger::log($url);
 
 				\header('location: ' . (Validators::isUrl($url) ? $url : $response['redirect']));
 				exit;
