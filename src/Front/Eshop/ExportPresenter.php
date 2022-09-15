@@ -158,10 +158,10 @@ abstract class ExportPresenter extends Presenter
 	public function renderTargitoProductsExport(): void
 	{
 		try {
-			$pricelists = $this->getPricelistFromSetting('targitoExportPricelist');
+			$pricelists = $this->getPricelistFromSetting('targitoExportPricelist', false);
 			//$flavourRelationTypeSetting = $this->settingRepo->getValueByName('flavourRelationType');
 			
-			$products = \count($pricelists) ? $this->productRepo->getProducts($pricelists) : $this->productRepo->getProductsAsCustomer(null);
+			$products = $pricelists !== null && \count($pricelists) ? $this->productRepo->getProducts($pricelists) : $this->productRepo->getProductsAsCustomer(null);
 			$products->where('this.hidden', false);
 			
 			$this->template->products = $products;
