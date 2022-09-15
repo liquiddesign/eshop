@@ -74,6 +74,8 @@ class Comgate
 
 			$response = $this->createPayment($order, $orderPaymentType->comgateMethod ?: PaymentMethodCode::ALL);
 
+			Debugger::log($response['redirect']);
+
 			if ($response['code'] === '0') {
 				$this->comgateRepository->saveTransaction($response['transId'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, 'PENDING', $order);
 
