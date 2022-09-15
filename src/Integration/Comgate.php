@@ -14,7 +14,6 @@ use Eshop\DB\ComgateRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
-use Nette\Utils\Validators;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
