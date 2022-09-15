@@ -1600,10 +1600,10 @@ class CheckoutManager
 		$this->refreshSumProperties();
 		
 		$this->stm->getLink()->commit();
+
+		$this->reviewRepository->createReviewsFromOrder($order);
 		
 		$this->onOrderCreate($order);
-		
-		$this->reviewRepository->createReviewsFromOrder($order);
 	}
 	
 	/**

@@ -73,16 +73,12 @@ class Comgate
 				return;
 			}
 
-			$response = $this->createPayment($order);
+			$response = $this->createPayment($order, $orderPaymentType->comgateMethod ?: PaymentMethodCode::ALL);
 
 			if ($response['code'] === '0') {
 				$this->comgateRepository->saveTransaction($response['transId'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, 'PENDING', $order);
 
-				$url = $response['redirect'] . $orderPaymentType->comgateParams;
-
-				Debugger::log($url);
-
-				\header('location: ' . (Validators::isUrl($url) ? $url : $response['redirect']));
+				\header('location: ' . $response['redirect']);
 				exit;
 			}
 
@@ -95,7 +91,7 @@ class Comgate
 	 * @return string[]
 	 * @throws \Brick\Money\Exception\UnknownCurrencyException
 	 */
-	public function createPayment(Order $order): array
+	public function createPayment(Order $order, string $method = PaymentMethodCode::ALL): array
 	{
 		$price = $order->getTotalPriceVat();
 		$currency = $order->getPayment()->currency->code;
@@ -105,7 +101,7 @@ class Comgate
 			$order->code,
 			$order->code,
 			$customer,
-			PaymentMethodCode::ALL,
+			$method,
 		);
 
 		$res = $this->paymentService->create($payment);
