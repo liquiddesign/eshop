@@ -174,6 +174,13 @@ class Order extends \StORM\Entity
 	public Purchase $purchase;
 	
 	/**
+	 * Vytvořeno autoshipem
+	 * @relation
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 */
+	public ?Autoship $autoship;
+	
+	/**
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\Package>|\Eshop\DB\Package[]
 	 */

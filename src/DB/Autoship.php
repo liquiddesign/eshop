@@ -11,6 +11,12 @@ namespace Eshop\DB;
 class Autoship extends \StORM\Entity
 {
 	/**
+	 * Id
+	 * @column{"autoincrement":true}
+	 */
+	public int $id;
+	
+	/**
 	 * Počet dní
 	 * @column
 	 */
@@ -39,6 +45,24 @@ class Autoship extends \StORM\Entity
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
 	public string $createdTs;
+	
+	/**
+	 * Vytvoření poslední objednávky
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $lastCreatedOrderTs;
+	
+	/**
+	 * Čas poslední chyby
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $lastErrorOrderTs;
+	
+	/**
+	 * Popis poslední chyby
+	 * @column{"type":"text"}
+	 */
+	public ?string $lastErrorOrderInfo;
 	
 	/**
 	 * Nákup

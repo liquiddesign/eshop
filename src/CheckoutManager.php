@@ -1291,10 +1291,12 @@ class CheckoutManager
 	}
 	
 	/**
+	 * @param \Eshop\DB\Purchase|null $purchase
+	 * @param array<string|int|float|null> $defaultOrderValues
 	 * @throws \Eshop\BuyException
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function createOrder(?Purchase $purchase = null): void
+	public function createOrder(?Purchase $purchase = null, array $defaultOrderValues = []): Order
 	{
 		/** @var \Eshop\DB\VatRateRepository $vatRepo */
 		$vatRepo = $this->itemRepository->getConnection()->findRepository(VatRate::class);
@@ -1349,7 +1351,7 @@ class CheckoutManager
 			[$this->orderRepository->many()->where('YEAR(this.createdTs)', $year)->enum() + $this->shopper->getCountry()->orderCodeStartNumber, $year],
 		);
 		
-		$orderValues = [
+		$orderValues = $defaultOrderValues + [
 			'code' => $code,
 			'purchase' => $purchase,
 		];
@@ -1604,12 +1606,10 @@ class CheckoutManager
 		$this->onOrderCreate($order);
 		
 		$this->reviewRepository->createReviewsFromOrder($order);
+		
+		return $order;
 	}
 	
-	/**
-	 * @param \Eshop\DB\Customer $customer
-	 * @deprecated TODO: redesign to $this->shooper->getCustomer();
-	 */
 	public function setCustomer(Customer $customer): void
 	{
 		$this->customer = $customer;
