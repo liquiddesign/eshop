@@ -54,22 +54,29 @@ class Comgate
 			/** @var \Eshop\DB\Order $order */
 			$order = $this->orderRepository->one($order->getPK(), true);
 
-			$paymentType = $this->settingRepository->getValueByName('comgatePaymentType');
+			$comgatePaymentTypes = $this->settingRepository->getValuesByName('comgatePaymentType');
 
-			if (!$paymentType) {
+			if (!$comgatePaymentTypes) {
 				return;
 			}
 
-			$paymentType = $this->paymentTypeRepository->one($paymentType);
+			$comgatePaymentTypes = $this->paymentTypeRepository->many()->where('this.uuid', $comgatePaymentTypes)->toArray();
 
-			if (!$paymentType || $order->getPayment()->type->code !== $paymentType->code) {
+			$orderPaymentType = $order->getPayment()->type;
+
+			if (!$orderPaymentType) {
 				return;
 			}
 
-			$response = $this->createPayment($order);
+			if (!isset($comgatePaymentTypes[$orderPaymentType->getPK()])) {
+				return;
+			}
+
+			$response = $this->createPayment($order, $orderPaymentType->comgateMethod ?: PaymentMethodCode::ALL);
 
 			if ($response['code'] === '0') {
 				$this->comgateRepository->saveTransaction($response['transId'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, 'PENDING', $order);
+
 				\header('location: ' . $response['redirect']);
 				exit;
 			}
@@ -83,7 +90,7 @@ class Comgate
 	 * @return string[]
 	 * @throws \Brick\Money\Exception\UnknownCurrencyException
 	 */
-	public function createPayment(Order $order): array
+	public function createPayment(Order $order, string $method = PaymentMethodCode::ALL): array
 	{
 		$price = $order->getTotalPriceVat();
 		$currency = $order->getPayment()->currency->code;
@@ -93,7 +100,7 @@ class Comgate
 			$order->code,
 			$order->code,
 			$customer,
-			PaymentMethodCode::ALL,
+			$method,
 		);
 
 		$res = $this->paymentService->create($payment);

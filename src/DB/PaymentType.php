@@ -76,8 +76,8 @@ class PaymentType extends SystemicEntity
 	public bool $recommended = false;
 
 	/**
-	 * Comgate URL params
+	 * Comgate method
 	 * @column
 	 */
-	public ?string $comgateParams;
+	public ?string $comgateMethod;
 }

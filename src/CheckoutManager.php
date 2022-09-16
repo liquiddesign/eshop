@@ -1602,14 +1602,18 @@ class CheckoutManager
 		$this->refreshSumProperties();
 		
 		$this->stm->getLink()->commit();
+
+		$this->reviewRepository->createReviewsFromOrder($order);
 		
 		$this->onOrderCreate($order);
-		
-		$this->reviewRepository->createReviewsFromOrder($order);
 		
 		return $order;
 	}
 	
+	/**
+	 * @param \Eshop\DB\Customer $customer
+	 * @deprecated TODO: redesign to $this->shooper->getCustomer();
+	 */
 	public function setCustomer(Customer $customer): void
 	{
 		$this->customer = $customer;

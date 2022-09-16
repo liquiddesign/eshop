@@ -126,6 +126,10 @@ class PaymentTypePresenter extends BackendPresenter
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
 
+		$form->addText('comgateMethod', 'Polovené metody pro Comgate')
+			->setNullable()
+			->setHtmlAttribute('data-info', 'Zadejte povolené metody plateb.<br>
+Např.: "BANK_CZ_CS_P+BANK_CZ_KB-BANK_CZ_RB". Více viz: https://help.comgate.cz/docs/api-protokol');
 		$form->addGroup('Externí ID');
 		$form->addText('externalId', 'Externí ID: Obecné')->setNullable();
 		$suppliersContainer = $form->addContainer('suppliers');
