@@ -7,6 +7,7 @@ namespace Eshop\DB;
 use Nette\Security\IIdentity;
 use Security\DB\Account;
 use Security\DB\IUser;
+use StORM\Collection;
 use StORM\Entity;
 use StORM\RelationCollection;
 
@@ -141,6 +142,13 @@ class Customer extends Entity implements IIdentity, IUser
 	 * @constraint
 	 */
 	public ?Customer $parentCustomer;
+	
+	/**
+	 * Vedoucí
+	 * @relation
+	 * @constraint
+	 */
+	public ?Customer $leadCustomer;
 	
 	/**
 	 * Preferovaná platba
@@ -392,5 +400,42 @@ class Customer extends Entity implements IIdentity, IUser
 		$points = $this->loyaltyProgram->histories->match(['fk_customer' => $this->getPK()])->select(['totalPoints' => 'SUM(points)'])->first();
 
 		return $points ? \floatval($points->getValue('totalPoints')) : 0;
+	}
+	
+	public function getAvailableCredit(Currency $currency): ?float
+	{
+		/** @var \Eshop\DB\RewardMoveRepository $repository */
+		$repository = $this->getConnection()->findRepository(RewardMove::class);
+		
+		return $repository->many()
+			->where('applied = 1 OR ((validFrom >= NOW() OR validFrom IS NULL) AND (validTo <= NOW() OR validTo IS NULL))')
+			->where('fk_currency', $currency->getPK())
+			->sum('price');
+	}
+	
+	public function getAvailableCreditVat(Currency $currency): ?float
+	{
+		/** @var \Eshop\DB\RewardMoveRepository $repository */
+		$repository = $this->getConnection()->findRepository(RewardMove::class);
+		
+		return $repository->many()
+			->where('applied = 1 OR ((validFrom >= NOW() OR validFrom IS NULL) AND (validTo <= NOW() OR validTo IS NULL))')
+			->where('fk_currency', $currency->getPK())
+			->sum('priceVat');
+	}
+	
+	/**
+	 * Returns aggregated product, productAmount, price, priceVat
+	 */
+	public function getAvailableProductReward(): Collection
+	{
+		/** @var \Eshop\DB\RewardMoveRepository $repository */
+		$repository = $this->getConnection()->findRepository(RewardMove::class);
+		
+		return $repository->many()
+			->select(['product' => 'fk_product', 'amount' => 'SUM(productAmount)', 'price' => 'SUM(price * productAmount)', 'priceVat' => 'SUM(priceVat * productAmount)'])
+			->where('applied = 1 OR ((validFrom >= NOW() OR validFrom IS NULL) AND (validTo <= NOW() OR validTo IS NULL))')
+			->where('fk_product IS NOT NULL')
+			->setGroupBy(['fk_product'], 'SUM(productAmount) > 0');
 	}
 }
