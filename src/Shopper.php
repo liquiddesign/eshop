@@ -33,14 +33,14 @@ class Shopper
 		'price' => 'S cenami',
 	];
 	
-	private const MERCHANT_CATALOG_PERMISSIONS = 'price';
+	protected const MERCHANT_CATALOG_PERMISSIONS = 'price';
 
 	public ?DiscountCoupon $discountCoupon = null;
 	
 	/**
 	 * @var bool[]
 	 */
-	private array $registrationConfiguration = [
+	protected array $registrationConfiguration = [
 		'enabled' => true,
 		'confirmation' => true,
 		'emailAuthorization' => true,
@@ -49,80 +49,80 @@ class Shopper
 	/**
 	 * @var \StORM\Collection<\Eshop\DB\Pricelist>|null
 	 */
-	private ?Collection $pricelists = null;
-	
-	private User $user;
-	
-	private PricelistRepository $pricelistRepository;
-	
-	private Currency $currency;
-	
-	private Country $country;
+	protected ?Collection $pricelists = null;
+
+	protected User $user;
+
+	protected PricelistRepository $pricelistRepository;
+
+	protected Currency $currency;
+
+	protected Country $country;
 	
 	/**
 	 * @var float[]
 	 */
-	private array $vatRates = [];
-	
-	private bool $showVat;
+	protected array $vatRates = [];
 
-	private string $priorityPrice;
-	
-	private bool $showWithoutVat;
+	protected bool $showVat;
 
-	private bool $showZeroPrices;
+	protected string $priorityPrice;
+
+	protected bool $showWithoutVat;
+
+	protected bool $showZeroPrices;
 	
 	/**
 	 * @var \Eshop\DB\Currency[]
 	 */
-	private array $altCurrencies = [];
-	
-	private CurrencyRepository $currencyRepository;
-	
-	private CountryRepository $countryRepository;
-	
-	private CustomerRepository $customerRepository;
-	
-	private CustomerGroupRepository $customerGroupRepository;
-	
-	private MinimalOrderValueRepository $minimalOrderValueRepository;
-	
-	private string $countryCode;
-	
-	private string $currencyCode;
-	
-	private string $projectUrl;
-	
-	private bool $editOrderAfterCreation;
+	protected array $altCurrencies = [];
 
-	private bool $alwaysCreateCustomerOnOrderCreated;
+	protected CurrencyRepository $currencyRepository;
 
-	private bool $integrationsEHub;
+	protected CountryRepository $countryRepository;
 
-	/**
-	 * @var array<mixed>
-	 */
-	private array $reviews;
+	protected CustomerRepository $customerRepository;
+
+	protected CustomerGroupRepository $customerGroupRepository;
+
+	protected MinimalOrderValueRepository $minimalOrderValueRepository;
+
+	protected string $countryCode;
+
+	protected string $currencyCode;
+
+	protected string $projectUrl;
+
+	protected bool $editOrderAfterCreation;
+
+	protected bool $alwaysCreateCustomerOnOrderCreated;
+
+	protected bool $integrationsEHub;
 
 	/**
 	 * @var array<mixed>
 	 */
-	private array $invoices;
+	protected array $reviews;
 
 	/**
 	 * @var array<mixed>
 	 */
-	private array $categories;
-	
-	private bool $allowBannedEmailOrder = false;
+	protected array $invoices;
 
-	private bool $useDiscountLevelCalculationInBeforePrice = false;
-	
-	private ?Customer $customer = null;
-	
-	private ?CustomerGroup $customerGroup;
-	
-	private AccountRepository $accountRepository;
+	/**
+	 * @var array<mixed>
+	 */
+	protected array $categories;
+
+	protected bool $allowBannedEmailOrder = false;
+
+	protected bool $useDiscountLevelCalculationInBeforePrice = false;
+
+	protected ?Customer $customer = null;
+
+	protected ?CustomerGroup $customerGroup;
+
+	protected AccountRepository $accountRepository;
 	
 	public function __construct(
 		User $user,
