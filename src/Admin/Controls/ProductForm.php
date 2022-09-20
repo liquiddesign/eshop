@@ -794,7 +794,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 	{
 		$supplierProduct = $this->supplierProductRepository->one($supplierProduct, true);
 
-		$supplierProduct->update(['product' => null,]);
+		$supplierProduct->update(['product' => null, 'active' => false,]);
 
 		$this->getPresenter()->flashMessage('Provedeno', 'success');
 		$this->getPresenter()->redirect('this');
