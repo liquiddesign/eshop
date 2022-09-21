@@ -869,12 +869,12 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 		return $form;
 	}
 
-	public function actionJoinSelect(array $ids): void
+	public function actionMergeSelect(array $ids): void
 	{
 		unset($ids);
 	}
 
-	public function renderJoinSelect(array $ids): void
+	public function renderMergeSelect(array $ids): void
 	{
 		unset($ids);
 
@@ -884,10 +884,10 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 			['Sloučení produktů'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('joinForm')];
+		$this->template->displayControls = [$this->getComponent('mergeForm')];
 	}
 
-	public function createComponentJoinForm(): AdminForm
+	public function createComponentMergeForm(): AdminForm
 	{
 		$ids = $this->getParameter('ids') ?: [];
 
@@ -903,41 +903,37 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 				->where('this.uuid', $ids)
 				->select(['customName' => "CONCAT(this.name$mutationSuffix, ' (', this.code, ')')"])
 			->toArrayOf('customName'),
-		)
-			->setRequired();
+		)->setRequired();
 
 		$form->addSubmit('submit', 'Uložit');
+
+		$form->onValidate[] = function (AdminForm $form) use ($ids): void {
+			if (!$form->isValid()) {
+				return;
+			}
+
+			$values = $form->getValues('array');
+
+			$existingMasterMergedProducts = $this->productRepository->many()
+				->where('this.fk_masterProduct IS NOT NULL')
+				->where('this.uuid', $ids)
+				->whereNot('this.uuid', $values['mainProduct'])
+				->toArrayOf('code');
+
+			if (!$existingMasterMergedProducts) {
+				return;
+			}
+
+			$form->addError('Následující produkty již jsou spojeny s jiným produktem a nelze je spojit! ' . \implode(', ', $existingMasterMergedProducts), false);
+		};
 
 		$form->onSuccess[] = function (AdminForm $form) use ($ids): void {
 			$values = $form->getValues('array');
 
-			/** @var \Eshop\DB\Product[] $products */
-			$products = $this->productRepository->many()->where('this.uuid', $ids)->whereNot('this.uuid', $values['mainProduct'])->toArray();
-
-			/** @var \Eshop\DB\SupplierProduct[] $mainProductSupplierProducts */
-			$mainProductSupplierProducts = $this->supplierProductRepository->many()->where('fk_product', $values['mainProduct'])->setIndex('this.fk_supplier')->toArray();
-
-			foreach ($products as $product) {
-				/** @var \Eshop\DB\SupplierProduct[] $productSupplierProducts */
-				$productSupplierProducts = $this->supplierProductRepository->many()->where('fk_product', $product->getPK())->setIndex('this.fk_supplier')->toArray();
-
-				foreach ($productSupplierProducts as $supplierProduct) {
-					$newSupplierProductValues = isset($mainProductSupplierProducts[$supplierProduct->getValue('supplier')]) ? ['product' => null, 'active' => false] :
-						['product' => $values['mainProduct']];
-
-					try {
-						$supplierProduct->update($newSupplierProductValues);
-					} catch (\Throwable $e) {
-						Debugger::log($e);
-					}
-				}
-
-				try {
-					$product->delete();
-				} catch (\Throwable $e) {
-					Debugger::log($e);
-				}
-			}
+			$this->productRepository->many()
+				->where('this.uuid', $ids)
+				->whereNot('this.uuid', $values['mainProduct'])
+				->update(['fk_masterProduct' => $values['mainProduct']]);
 
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('default');
