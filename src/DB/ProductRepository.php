@@ -1479,20 +1479,67 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		
 		return $attributes;
 	}
-	
+
+	/**
+	 * Return all descendants recursively and direct ancestors
+	 * @param \Eshop\DB\Product $product
+	 * @return array<mixed>
+	 */
+	public function getProductFullTree(Product $product): array
+	{
+		$downTree = $this->getProductTree($product);
+
+		$upTree = [];
+
+		while ($masterProduct = $product->masterProduct) {
+			$upTree[] = [$masterProduct->getPK() => $masterProduct];
+
+			$product = $masterProduct;
+		}
+
+		return \array_merge(\array_reverse($upTree), $downTree);
+	}
+
+	/**
+	 * @param \Eshop\DB\Product $product
+	 * @return array<mixed>
+	 */
+	public function getProductTree(Product $product): array
+	{
+		$result = [];
+
+		$this->doGetProductTree($product, $result);
+
+		return $result;
+	}
+
 	public static function generateUuid(?string $ean, ?string $fullCode): string
 	{
 		$namespace = 'product';
-		
+
 		if ($ean) {
 			return DIConnection::generateUuid($namespace, $ean);
 		}
-		
+
 		if ($fullCode) {
 			return DIConnection::generateUuid($namespace, $fullCode);
 		}
-		
+
 		throw new InvalidArgumentException('There is no unique parameter');
+	}
+
+	/**
+	 * @param \Eshop\DB\Product $product
+	 * @param array<mixed> $result
+	 * @param int $depth
+	 */
+	private function doGetProductTree(Product $product, array &$result, int $depth = 0): void
+	{
+		$result[$depth][$product->getPK()] = $product;
+
+		foreach ($product->slaveProducts as $mergedProduct) {
+			$this->doGetProductTree($mergedProduct, $result, $depth + 1);
+		}
 	}
 	
 	private function sqlHandlePrice(string $alias, string $priceExp, ?int $levelDiscountPct, int $maxDiscountPct, array $generalPricelistIds, int $prec, ?float $rate): string

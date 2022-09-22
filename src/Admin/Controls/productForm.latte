@@ -615,10 +615,12 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
         <div id="attributes-content" class="tab-pane {$presenter->editTab == 'attributes' ? 'active show' : ''}">
         </div>
         <div id="suppliers-content" class="tab-pane {$presenter->editTab == 'suppliers' ? 'active show' : ''}">
+            <h5>Všichni dodavatelé produktu <small>včetně sloučených produktů</small></h5>
             <table class="table table-hover text-nowrap mt-1 mb-1" style="width: auto;">
                 <tr>
                     <th>Dodavatel (Priorita)</th>
                     <th>Produkt</th>
+                    <th>Dodavatelský produkt</th>
                     <th>Kód</th>
                     <th>Recyklační poplatek</th>
                     <th>Autorský poplatek</th>
@@ -627,16 +629,39 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                 {foreach $supplierProducts as $supplierProduct}
                     <tr>
                         <td>{$supplierProduct->supplier->name} ({$supplierProduct->supplier->importPriority})</td>
+                        <td>{if $supplierProduct->product->getPK() === $product->getPK()}<b>{$supplierProduct->product->name|truncate:80}</b>{else}{$supplierProduct->product->name|truncate:80}{/if}</td>
                         <td>
                             <a href="{plink :Eshop:Admin:SupplierProduct:default 'tab' => $supplierProduct->supplier->getPK(), 'grid-search' => $supplierProduct->code}">
-                                {$supplierProduct->name}
+                                {$supplierProduct->name|truncate:80}
                             </a>
                         </td>
                         <td>{$supplierProduct->code}</td>
                         <td>{$supplierProduct->recyclingFee}</td>
                         <td>{$supplierProduct->copyrightFee}</td>
-                        <td><a n:href='unlinkSupplierProduct!, $supplierProduct->getPK()' class='btn btn-sm btn-outline-danger' onclick='return confirm("Opravdu?")' title='Zrušit párování'><i class='fas fa-sm fa-unlink'></i></a></td>
+                        <td><a n:href='unlinkSupplierProduct!, $supplierProduct->getPK()' class='btn btn-sm btn-outline-danger' onclick='return confirm("Opravdu zrušit párování produktu a dodavatelského produktu?")' title='Zrušit párování'><i class='fas fa-sm fa-unlink'></i></a></td>
                     </tr>
+                {/foreach}
+            </table>
+            <h5>Kompletní strom sloučení</h5>
+            <table class="table table-hover text-nowrap mt-1 mb-1" style="width: auto;">
+                <tr>
+                    <th>Produkt</th>
+                    <th>Kód</th>
+                    <th>Nadřazený produkt</th>
+                    <th>Nadřazený kód produkt</th>
+                    <th></th>
+                </tr>
+                {foreach $productFullTree as $depth => $depthItems}
+                    {foreach $depthItems as $productItem}
+                        {varType Eshop\DB\Product $productItem}
+                        <tr>
+                            <td>{for $i = 0; $i < $depth; $i++}--&nbsp;&nbsp;{/for}{if $productItem->getPK() === $product->getPK()}<b>{$productItem->name}</b>{else}{$productItem->name}{/if}</td>
+                            <td>{$productItem->getFullCode()}</td>
+                            <td>{$productItem->masterProduct ? $productItem->masterProduct->name : ''}</td>
+                            <td>{$productItem->masterProduct ? $productItem->masterProduct->getFullCode() : ''}</td>
+                            <td><a n:if="$productItem->masterProduct" n:href='unmergeProduct!, $productItem->getPK()' class='btn btn-sm btn-outline-danger' onclick='return confirm("Opravdu zrušit sloučení s nadřazeným produktem?")' title='Zrušit sloučení s nadřazeným produktem'><i class='fas fa-sm fa-unlink'></i></a></td>
+                        </tr>
+                    {/foreach}
                 {/foreach}
             </table>
         </div>
@@ -647,7 +672,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
 
                 <table class="mt-1 mb-1" style="width: auto;">
                     {foreach $productTabs as $id => $productTab}
-
                             {foreach $form['productTab'.$id]->getComponents() as $key => $element}
                                 <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}" data-mutation="{$key}">
                                     {$renderer->renderLabel($element)|noescape}

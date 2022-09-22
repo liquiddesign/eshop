@@ -903,7 +903,19 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 				->where('this.uuid', $ids)
 				->select(['customName' => "CONCAT(this.name$mutationSuffix, ' (', this.code, ')')"])
 			->toArrayOf('customName'),
-		)->setRequired();
+		)->setRequired()->setHtmlAttribute('data-info', '<br>
+Vysvětlení: Všechny vybrané produkty budou sloučené pod zvolený hlavní produkt.<br>
+Produkt může být sloučený pod <b>maximálně jeden</b> produkt. Ten ale může být sloučený pod další a tím vznikne strom.<br>
+Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jestli se ostatní produkty skryjí či budou neprodejné.');
+
+		$trueFalseOptions = [
+			'0' => 'Ne',
+			'1' => 'Ano',
+		];
+
+		$form->addGroup('Sloučené produkty');
+		$form->addSelect('hidden', 'Skryté', $trueFalseOptions)->setPrompt('Původní');
+		$form->addSelect('unavailable', 'Neprodejné', $trueFalseOptions)->setPrompt('Původní');
 
 		$form->addSubmit('submit', 'Uložit');
 
@@ -920,20 +932,58 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 				->whereNot('this.uuid', $values['mainProduct'])
 				->toArrayOf('code');
 
-			if (!$existingMasterMergedProducts) {
+			if ($existingMasterMergedProducts) {
+				$form->addError('Nelze sloučit: Následující produkty již jsou spojeny s jiným produktem a nelze je spojit. ' . \implode(', ', $existingMasterMergedProducts), false);
+			}
+
+			$existingMergedProductsForAllProducts = [];
+			$circularReference = [];
+
+			foreach ($this->productRepository->many()->where('this.uuid', $ids) as $product) {
+				/** @var array<string, \Eshop\DB\Product> $localProducts */
+				$localProducts = [$product->getPK() => $product];
+				$localProducts = \array_merge($localProducts, $product->getAllMergedProducts());
+
+				/**
+				 * @var string $localProductPK
+				 * @var \Eshop\DB\Product $localProduct
+				 */
+				foreach ($localProducts as $localProductPK => $localProduct) {
+					if (isset($existingMergedProductsForAllProducts[$localProductPK])) {
+						$circularReference[] = $localProduct->code;
+					} else {
+						$existingMergedProductsForAllProducts[$localProductPK] = $localProduct;
+					}
+				}
+			}
+
+			if (!$circularReference) {
 				return;
 			}
 
-			$form->addError('Následující produkty již jsou spojeny s jiným produktem a nelze je spojit! ' . \implode(', ', $existingMasterMergedProducts), false);
+			$form->addError(
+				'Nelze sloučit: Následující produkty mají cyklickou závislost na některý z vybraných produktů. Zkontrolujte Vaši strukturu na detailu produktů. ' . \implode(', ', $circularReference),
+				false,
+			);
 		};
 
 		$form->onSuccess[] = function (AdminForm $form) use ($ids): void {
 			$values = $form->getValues('array');
 
+			$updateValues = [
+				'fk_masterProduct' => $values['mainProduct'],
+			];
+
+			foreach (['hidden', 'unavailable'] as $key) {
+				if ($values[$key] !== null) {
+					$updateValues[$key] = $values[$key];
+				}
+			}
+
 			$this->productRepository->many()
 				->where('this.uuid', $ids)
 				->whereNot('this.uuid', $values['mainProduct'])
-				->update(['fk_masterProduct' => $values['mainProduct']]);
+				->update($updateValues);
 
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('default');
