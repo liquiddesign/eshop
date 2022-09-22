@@ -135,11 +135,12 @@ class ProductGridFactory
 				$mergedProductSuppliers = $mergedProduct->supplierProducts->toArray();
 
 				foreach ($mergedProductSuppliers as $supplierProduct) {
+					$supplierRealProduct = $supplierProduct->product;
 					$supplier = $supplierProduct->getValue('supplier');
 					$link = $grid->getPresenter()->link('this', ['productGrid-code' => $mergedProduct->code]);
 
-					$suppliers[] = "<a href='$link' class='badge badge-light' style='font-weight: normal;' target='_blank'><i class='fas fa-level-down-alt fa-sm mr-1'></i>" .
-						($supplierProduct->supplier->url ? $supplierProduct->supplier->name : $supplier) . '</a>';
+					$suppliers[] = "<a href='$link' class='badge badge-light' style='font-weight: normal;' target='_blank' title='{$supplierRealProduct->getFullCode()} - $supplierRealProduct->name'>
+<i class='fas fa-level-down-alt fa-sm mr-1'></i>" . ($supplierProduct->supplier->url ? $supplierProduct->supplier->name : $supplier) . '</a>';
 				}
 			}
 
@@ -149,11 +150,12 @@ class ProductGridFactory
 				$mergedProductSuppliers = $masterProduct->supplierProducts->toArray();
 
 				foreach ($mergedProductSuppliers as $supplierProduct) {
+					$supplierRealProduct = $supplierProduct->product;
 					$supplier = $supplierProduct->getValue('supplier');
 					$link = $grid->getPresenter()->link('this', ['productGrid-code' => $masterProduct->code]);
 
-					$suppliers[] = "<a href='$link' class='badge badge-light' style='font-weight: normal;' target='_blank'><i class='fas fa-level-up-alt fa-sm mr-1'></i>" .
-						($supplierProduct->supplier->url ? $supplierProduct->supplier->name : $supplier) . '</a>';
+					$suppliers[] = "<a href='$link' class='badge badge-light' style='font-weight: normal;' target='_blank' title='{$supplierRealProduct->getFullCode()} - $supplierRealProduct->name'>
+<i class='fas fa-level-up-alt fa-sm mr-1'></i>" . ($supplierProduct->supplier->url ? $supplierProduct->supplier->name : $supplier) . '</a>';
 				}
 
 				$tempProduct = $masterProduct;
@@ -242,6 +244,8 @@ class ProductGridFactory
 			'primaryCategory',
 			'defaultReviewsCount',
 			'defaultReviewsScore',
+			'supplierDisplayAmountLock',
+			'supplierDisplayAmountMergedLock',
 		];
 
 		if (isset($configuration['buyCount']) && $configuration['buyCount']) {

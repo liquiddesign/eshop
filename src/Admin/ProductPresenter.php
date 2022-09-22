@@ -89,6 +89,8 @@ class ProductPresenter extends BackendPresenter
 			'categories' => 'Kategorie',
 			'adminUrl' => 'Admin URL',
 			'frontUrl' => 'Front URL',
+			'mergedProducts' => 'Sloučené produkty',
+			'masterProduct' => 'Nadřazený sloučený produkt',
 		],
 		'exportAttributes' => [],
 		'defaultExportColumns' => [
@@ -1320,7 +1322,11 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		]);
 		$form->addCheckbox('header', 'Hlavička')->setDefaultValue(true)->setHtmlAttribute('data-info', 'Pokud tuto možnost nepoužijete tak nebude možné tento soubor použít pro import!');
 
-		$headerColumns = $form->addDataMultiSelect('columns', 'Sloupce');
+		$headerColumns = $form->addDataMultiSelect('columns', 'Sloupce')
+		->setHtmlAttribute('data-info', '<br><b>Vysvětlivky sloupců:</b><br>
+Sloučené produkty: Sloučené produkty se exportují do sloupce "mergedProducts" jako kódy produktů oddělené znakem ":". Tento sloupec se <b>NEPOUŽÍVÁ</b> při importu!<br>
+Nadřazený sloučený produkt: U každého produktu se exportuje jen kód produktu do sloupce "masterProduct" jako jeho předchůdce ve stromové struktuře sloučených produktů. 
+Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 		$attributesColumns = $form->addDataMultiSelect('attributes', 'Atributy')->setHtmlAttribute('data-info', 'Zobrazují se pouze atributy, které mají alespoň jeden přiřazený produkt.');
 
 		$items = [];

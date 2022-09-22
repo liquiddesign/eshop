@@ -338,6 +338,12 @@ class Product extends \StORM\Entity
 	public bool $supplierDisplayAmountLock = false;
 
 	/**
+	 * Nepřebírat display amount od sloučených produktů
+	 * @column
+	 */
+	public bool $supplierDisplayAmountMergedLock = false;
+
+	/**
 	 * Režim přebírání obsahu, platí pouze pokud supplierContentLock === false
 	 * @column{"type":"enum","length":"'none','priority','length','supplier'"}
 	 */
@@ -356,6 +362,13 @@ class Product extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public ?Supplier $supplierSource;
+
+//	/**
+//	 * When catalog entry use these product for content, ignores all settings from current product and use only product from relation
+//	 * @relation
+//	 * @constraint
+//	 */
+//	public ?Product $supplierContentSourceProduct;
 
 	/**
 	 * Alternativní produkt k

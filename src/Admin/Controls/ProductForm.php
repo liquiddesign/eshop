@@ -234,7 +234,10 @@ Nikdy nepřebírat: Obsah nebude nikdy přebírán<br>
 Ostatní: Přebírání ze zvoleného zdroje
 ');
 
-			$form->addCheckbox('supplierDisplayAmountLock', 'Nepřebírat skladovost');
+			$supplierDisplayAmountMergedLockInput = $form->addCheckbox('supplierDisplayAmountMergedLock', 'Nepřebírat skladovost od sloučených produktů');
+			$supplierDisplayAmountLockInput = $form->addCheckbox('supplierDisplayAmountLock', 'Nepřebírat žádnou skladovost');
+
+			$supplierDisplayAmountLockInput->addConditionOn($supplierDisplayAmountMergedLockInput, $form::EQUAL, true)->toggle($supplierDisplayAmountLockInput->getHtmlId() . '-toogle');
 		}
 
 		$form->addText('storageDate', 'Nejbližší datum naskladnění')->setNullable(true)->setHtmlType('date');
@@ -751,7 +754,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 	{
 		$mergedProducts = $this->product ? $this->product->getAllMergedProducts() : [];
 
-		if ($mergedProducts) {
+		if ($this->product) {
 			$mergedProducts[$this->product->getPK()] = $this->product;
 		}
 

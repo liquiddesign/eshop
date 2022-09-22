@@ -337,9 +337,11 @@ class SupplierProductRepository extends \StORM\Repository
 		$supplierProductRepository = $this->getConnection()->findRepository(SupplierProduct::class);
 
 		$supplierProducts = $supplierProductRepository->many()
-			->select(['realCategory' => 'category.fk_category'])
-			->select(['realDisplayAmount' => 'displayAmount.fk_displayAmount'])
-			->select(['realProducer' => 'producer.fk_producer'])
+			->select([
+				'realCategory' => 'category.fk_category',
+				'realDisplayAmount' => 'displayAmount.fk_displayAmount',
+				'realProducer' => 'producer.fk_producer',
+			])
 			->where('category.fk_category IS NOT NULL')
 			->where('this.fk_product IS NOT NULL')
 			->where('this.active', true);
@@ -354,11 +356,27 @@ class SupplierProductRepository extends \StORM\Repository
 				$productsXDisplayAmounts[$supplierProduct->getValue('product')] = [];
 			}
 
-			if (isset($productsXDisplayAmounts[$supplierProduct->getValue('product')][$supplierProduct->getValue('supplier')])) {
+			$productsXDisplayAmounts[$supplierProduct->getValue('product')][] = $supplierProduct->getValue('realDisplayAmount');
+
+			$product = $supplierProduct->product;
+
+			if ($product->supplierDisplayAmountMergedLock) {
 				continue;
 			}
 
-			$productsXDisplayAmounts[$supplierProduct->getValue('product')][$supplierProduct->getValue('supplier')] = $supplierProduct->getValue('realDisplayAmount');
+			$allMergedProducts = $product->getAllMergedProducts();
+
+			foreach ($allMergedProducts as $mergedProduct) {
+				$mergedProductSupplierProducts = $mergedProduct->supplierProducts
+					->select([
+						'realDisplayAmount' => 'displayAmount.fk_displayAmount',
+					])
+					->toArray();
+
+				foreach ($mergedProductSupplierProducts as $mergedProductSupplierProduct) {
+					$productsXDisplayAmounts[$product->getPK()][] = $mergedProductSupplierProduct->getValue('realDisplayAmount');
+				}
+			}
 		}
 
 		/** @var \Web\DB\SettingRepository $settingRepository */
