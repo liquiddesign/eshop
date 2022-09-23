@@ -434,7 +434,7 @@ class DPD
 			FileSystem::delete($filename);
 		};
 
-		FileSystem::write($filename, $pdf->Output());
+		FileSystem::write($filename, $pdf->Output('S'));
 
 		return $filename;
 	}
