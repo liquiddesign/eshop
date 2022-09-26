@@ -111,6 +111,7 @@ class ProductPresenter extends BackendPresenter
 			'content' => 'Obsah',
 			'storeAmount' => 'Skladová dostupnost',
 			'categories' => 'Kategorie',
+			'masterProduct' => 'Nadřazený sloučený produkt',
 		],
 		'importAttributes' => [],
 		'importExampleFile' => null,
@@ -1953,6 +1954,18 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 				} elseif ($key === 'ean') {
 					if (!$searchEan) {
 						$newValues[$key] = $eanFromRecord ?: null;
+					}
+				} elseif ($key === 'masterProduct') {
+					$newValues[$key] = null;
+
+					if ($value) {
+						$masterProduct = $this->arrayFind($products, function (\stdClass $x) use ($value): bool {
+							return $x->code === $value || $x->fullCode === $value;
+						});
+
+						if ($masterProduct) {
+							$newValues[$key] = $masterProduct->uuid;
+						}
 					}
 				} elseif (!isset($attributes[$key])) {
 					$newValues[$key] = $value;
