@@ -349,9 +349,8 @@ class SupplierProductRepository extends \StORM\Repository
 		/** @var array<mixed> $productsXDisplayAmounts Contains products paired with all supplier display amounts */
 		$productsXDisplayAmounts = [];
 
-		while ($supplierProduct = $supplierProducts->fetch()) {
-			/** @var \Eshop\DB\SupplierProduct $supplierProduct */
-
+		/** @var \Eshop\DB\SupplierProduct $supplierProduct */
+		foreach ($supplierProducts as $supplierProduct) {
 			if (!isset($productsXDisplayAmounts[$supplierProduct->getValue('product')])) {
 				$productsXDisplayAmounts[$supplierProduct->getValue('product')] = [];
 			}
