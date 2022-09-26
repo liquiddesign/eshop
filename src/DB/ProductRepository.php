@@ -1271,23 +1271,29 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	}
 
 	/**
-	 * @param \StORM\ICollection|null $products
 	 * @return array<mixed>
 	 */
-	public function getGroupedMergedProducts(?ICollection $products = null): array
+	public function getGroupedMergedProducts(): array
 	{
-		$products ??= $this->many();
 
-		$products->select(['fkMasterProduct' => 'this.fk_masterProduct']);
-		$products = $products->toArrayOf('fkMasterProduct');
+		$products = $this->many()->select(['fkMasterProduct' => 'this.fk_masterProduct'])->toArrayOf('fkMasterProduct');
 
 		$productsMap = [];
+		$result = [];
 
-		foreach (\array_keys($products) as $productPK) {
-			$productsMap[$productPK] = $this->doGetGroupedMergedProducts($products, $productPK);
+		foreach ($products as $productPK => $masterProductPK) {
+			if (!$masterProductPK) {
+				continue;
+			}
+
+			$productsMap[$masterProductPK][] = $productPK;
 		}
 
-		return $productsMap;
+		foreach (\array_keys($products) as $productPK) {
+			$result[$productPK] = $this->doGetGroupedMergedProducts($productsMap, $productPK);
+		}
+
+		return $result;
 	}
 
 	public function csvExport(
@@ -1331,11 +1337,12 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'masterProductCode' => 'masterProduct.code',
 			]);
 
-		$mergedProductsMap = $this->getGroupedMergedProducts($products);
+		$mergedProductsMap = $this->getGroupedMergedProducts();
 		$productsXCode = $this->many()->toArrayOf('code');
 
-		/** @var \Eshop\DB\Product|\stdClass $product */
-		foreach ($products->toArray() as $product) {
+		while ($product = $products->fetch()) {
+			/** @var \Eshop\DB\Product|\stdClass $product */
+
 			$row = [];
 			
 			$productAttributes = [];
@@ -1575,13 +1582,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	private function doGetGroupedMergedProducts(array $products, string $product): array
 	{
-		$descendants = \array_filter($products, function ($value) use ($product): bool {
-			return $value === $product;
-		});
-
+		$descendants = $products[$product] ?? [];
 		$realDescendants = [];
 
-		foreach (\array_keys($descendants) as $descendant) {
+		foreach ($descendants as $descendant) {
 			$realDescendants[] = $descendant;
 
 			$realDescendants = \array_merge($realDescendants, $this->doGetGroupedMergedProducts($products, $descendant));
