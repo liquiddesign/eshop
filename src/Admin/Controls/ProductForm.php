@@ -234,7 +234,10 @@ Nikdy nepřebírat: Obsah nebude nikdy přebírán<br>
 Ostatní: Přebírání ze zvoleného zdroje
 ');
 
-			$form->addCheckbox('supplierDisplayAmountLock', 'Nepřebírat skladovost');
+			$supplierDisplayAmountMergedLockInput = $form->addCheckbox('supplierDisplayAmountMergedLock', 'Nepřebírat skladovost od sloučených produktů');
+			$supplierDisplayAmountLockInput = $form->addCheckbox('supplierDisplayAmountLock', 'Nepřebírat žádnou skladovost');
+
+			$supplierDisplayAmountLockInput->addConditionOn($supplierDisplayAmountMergedLockInput, $form::EQUAL, true)->toggle($supplierDisplayAmountLockInput->getHtmlId() . '-toogle');
 		}
 
 		$form->addText('storageDate', 'Nejbližší datum naskladnění')->setNullable(true)->setHtmlType('date');
@@ -749,10 +752,16 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 	public function render(): void
 	{
+		$mergedProducts = $this->product ? $this->product->getAllMergedProducts() : [];
+
+		if ($this->product) {
+			$mergedProducts[$this->product->getPK()] = $this->product;
+		}
+
 		$this->template->supplierProducts = $this->product ? $this->supplierProductRepository->many()
 			->join(['supplier' => 'eshop_supplier'], 'this.fk_supplier = supplier.uuid')
 			->orderBy(['supplier.importPriority'])
-			->where('this.fk_product', $this->product->getPK())
+			->where('this.fk_product', \array_keys($mergedProducts))
 			->toArray() : [];
 
 		$this->template->relationMaxItemsCount = $this->relationMaxItemsCount;
@@ -767,6 +776,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 				\implode(' -> ', $this->product->primaryCategory->ancestor->getFamilyTree()->toArrayOf('name')) . ' -> ' . $this->product->primaryCategory->name :
 				$this->product->primaryCategory->name)
 			: '-';
+
+		$this->template->productFullTree = $this->product ? $this->productRepository->getProductFullTree($this->product) : [];
 
 		$this->template->modals = [
 			'name' => 'frm-productForm-form-name-cs',
@@ -795,6 +806,16 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 		$supplierProduct = $this->supplierProductRepository->one($supplierProduct, true);
 
 		$supplierProduct->update(['product' => null, 'active' => false,]);
+
+		$this->getPresenter()->flashMessage('Provedeno', 'success');
+		$this->getPresenter()->redirect('this');
+	}
+
+	public function handleUnmergeProduct(string $product): void
+	{
+		$product = $this->productRepository->one($product, true);
+
+		$product->update(['masterProduct' => null]);
 
 		$this->getPresenter()->flashMessage('Provedeno', 'success');
 		$this->getPresenter()->redirect('this');

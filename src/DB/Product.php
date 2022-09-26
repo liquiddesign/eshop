@@ -338,6 +338,12 @@ class Product extends \StORM\Entity
 	public bool $supplierDisplayAmountLock = false;
 
 	/**
+	 * Nepřebírat display amount od sloučených produktů
+	 * @column
+	 */
+	public bool $supplierDisplayAmountMergedLock = false;
+
+	/**
 	 * Režim přebírání obsahu, platí pouze pokud supplierContentLock === false
 	 * @column{"type":"enum","length":"'none','priority','length','supplier'"}
 	 */
@@ -356,6 +362,13 @@ class Product extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public ?Supplier $supplierSource;
+
+//	/**
+//	 * When catalog entry use these product for content, ignores all settings from current product and use only product from relation
+//	 * @relation
+//	 * @constraint
+//	 */
+//	public ?Product $supplierContentSourceProduct;
 
 	/**
 	 * Alternativní produkt k
@@ -399,6 +412,20 @@ class Product extends \StORM\Entity
 	public ?Watcher $watcher;
 
 	/**
+	 * Sloučené produkty
+	 * @relation
+	 */
+	public ?Product $masterProduct;
+
+	/**
+	 * Sloučené produkty
+	 * @relation{"targetKey":"fk_masterProduct"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\Product>
+	 */
+	public RelationCollection $slaveProducts;
+
+	/**
+	 * @deprecated
 	 * Skupina parametrů
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\ParameterGroup>|\Eshop\DB\ParameterGroup[]
@@ -510,6 +537,14 @@ class Product extends \StORM\Entity
 		parent::__construct($vars, $parent, $mutations, $mutation);
 
 		$this->productRepository = $this->getConnection()->findRepository(Product::class);
+	}
+
+	/**
+	 * @return array<\Eshop\DB\Product>
+	 */
+	public function getAllMergedProducts(): array
+	{
+		return $this->doGetAllMergedProducts($this);
 	}
 
 	/**
@@ -945,5 +980,21 @@ class Product extends \StORM\Entity
 	private function getQuantityPrice(int $amount, string $property): ?float
 	{
 		return $this->productRepository->getQuantityPrice($this, $amount, $property);
+	}
+
+	/**
+	 * @return array<\Eshop\DB\Product>
+	 */
+	private function doGetAllMergedProducts(Product $product): array
+	{
+		$products = [];
+
+		foreach ($product->slaveProducts as $mergedProduct) {
+			$products[$mergedProduct->getPK()] = $mergedProduct;
+
+			$products = \array_merge($products, $this->doGetAllMergedProducts($mergedProduct));
+		}
+
+		return $products;
 	}
 }
