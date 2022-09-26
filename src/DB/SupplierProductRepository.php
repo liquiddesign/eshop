@@ -347,12 +347,13 @@ class SupplierProductRepository extends \StORM\Repository
 			->where('this.fk_product IS NOT NULL')
 			->where('this.active', true);
 
-		$productsMapXDisplayAmount = $supplierProductRepository->many()
-			->select([
-				'realDisplayAmount' => 'displayAmount.fk_displayAmount',
-			])
-			->setIndex('this.fk_product')
-			->toArrayOf('realDisplayAmount');
+		$productsMapXSupplierProductsXDisplayAmount = [];
+
+		foreach ($supplierProductRepository->many()->select([
+			'realDisplayAmount' => 'displayAmount.fk_displayAmount',
+		])->toArray() as $supplierProduct) {
+			$productsMapXSupplierProductsXDisplayAmount[$supplierProduct->getValue('product')][$supplierProduct->getPK()] = $supplierProduct->getValue('realDisplayAmount');
+		}
 
 		$mergedProductsMap = $productRepository->getGroupedMergedProducts();
 
@@ -372,7 +373,13 @@ class SupplierProductRepository extends \StORM\Repository
 			}
 
 			foreach ($mergedProductsMap[$supplierProduct->getValue('product')] ?? [] as $mergedProduct) {
-				$productsXDisplayAmounts[$supplierProduct->getValue('product')][] = $productsMapXDisplayAmount[$mergedProduct] ?? null;
+				foreach ($productsMapXSupplierProductsXDisplayAmount[$mergedProduct] ?? [] as $realDisplayAmount) {
+					if (!$realDisplayAmount) {
+						continue;
+					}
+
+					$productsXDisplayAmounts[$supplierProduct->getValue('product')][] = $realDisplayAmount;
+				}
 			}
 		}
 

@@ -1271,10 +1271,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	}
 
 	/**
-	 * @param \StORM\Collection|null $products
+	 * @param \StORM\ICollection|null $products
 	 * @return array<mixed>
 	 */
-	public function getGroupedMergedProducts(?Collection $products = null): array
+	public function getGroupedMergedProducts(?ICollection $products = null): array
 	{
 		$products ??= $this->many();
 
@@ -1330,10 +1330,12 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
                 IF(category.code IS NULL OR category.code = '', category.uuid, category.code)) ORDER BY LENGTH(category.path) SEPARATOR ':')",
 				'masterProductCode' => 'masterProduct.code',
 			]);
-		
-		while ($product = $products->fetch()) {
-			/** @var \Eshop\DB\Product|\stdClass $product */
-			
+
+		$mergedProductsMap = $this->getGroupedMergedProducts($products);
+		$productsXCode = $this->many()->toArrayOf('code');
+
+		/** @var \Eshop\DB\Product|\stdClass $product */
+		foreach ($products->toArray() as $product) {
 			$row = [];
 			
 			$productAttributes = [];
@@ -1371,12 +1373,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 					$page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product->getPK()]);
 					$row[] = $page ? $this->request->getUrl()->getBaseUrl() . $page->getUrl($this->getConnection()->getMutation()) : null;
 				} elseif ($columnKey === 'mergedProducts') {
-					$mergedProducts = $product->getAllMergedProducts();
-
 					$codes = [];
 
-					foreach ($mergedProducts as $mergedProduct) {
-						$codes[] = $mergedProduct->code;
+					foreach ($mergedProductsMap[$product->getPK()] ?? [] as $mergedProduct) {
+						$codes[] = $productsXCode[$mergedProduct] ?? null;
 					}
 
 					$row[] = \implode(':', $codes);
