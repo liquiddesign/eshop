@@ -1269,7 +1269,27 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		
 		return $fee ? (float) $fee : null;
 	}
-	
+
+	/**
+	 * @param \StORM\Collection|null $products
+	 * @return array<mixed>
+	 */
+	public function getGroupedMergedProducts(?Collection $products = null): array
+	{
+		$products ??= $this->many();
+
+		$products->select(['fkMasterProduct' => 'this.fk_masterProduct']);
+		$products = $products->toArrayOf('fkMasterProduct');
+
+		$productsMap = [];
+
+		foreach (\array_keys($products) as $productPK) {
+			$productsMap[$productPK] = $this->doGetGroupedMergedProducts($products, $productPK);
+		}
+
+		return $productsMap;
+	}
+
 	public function csvExport(
 		ICollection $products,
 		Writer $writer,
@@ -1546,6 +1566,28 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 
 		throw new InvalidArgumentException('There is no unique parameter');
+	}
+
+	/**
+	 * @param array $products
+	 * @param string $product
+	 * @return array<mixed>
+	 */
+	private function doGetGroupedMergedProducts(array $products, string $product): array
+	{
+		$descendants = \array_filter($products, function ($value) use ($product): bool {
+			return $value === $product;
+		});
+
+		$realDescendants = [];
+
+		foreach (\array_keys($descendants) as $descendant) {
+			$realDescendants[] = $descendant;
+
+			$realDescendants = \array_merge($realDescendants, $this->doGetGroupedMergedProducts($products, $descendant));
+		}
+
+		return $realDescendants;
 	}
 
 	/**

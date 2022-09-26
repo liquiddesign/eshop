@@ -341,10 +341,20 @@ class SupplierProductRepository extends \StORM\Repository
 				'realCategory' => 'category.fk_category',
 				'realDisplayAmount' => 'displayAmount.fk_displayAmount',
 				'realProducer' => 'producer.fk_producer',
+				'supplierDisplayAmountMergedLock' => 'product.supplierDisplayAmountMergedLock',
 			])
 			->where('category.fk_category IS NOT NULL')
 			->where('this.fk_product IS NOT NULL')
 			->where('this.active', true);
+
+		$productsMapXDisplayAmount = $supplierProductRepository->many()
+			->select([
+				'realDisplayAmount' => 'displayAmount.fk_displayAmount',
+			])
+			->setIndex('this.fk_product')
+			->toArrayOf('realDisplayAmount');
+
+		$mergedProductsMap = $productRepository->getGroupedMergedProducts();
 
 		/** @var array<mixed> $productsXDisplayAmounts Contains products paired with all supplier display amounts */
 		$productsXDisplayAmounts = [];
@@ -357,24 +367,12 @@ class SupplierProductRepository extends \StORM\Repository
 
 			$productsXDisplayAmounts[$supplierProduct->getValue('product')][] = $supplierProduct->getValue('realDisplayAmount');
 
-			$product = $supplierProduct->product;
-
-			if ($product->supplierDisplayAmountMergedLock) {
+			if ($supplierProduct->getValue('supplierDisplayAmountMergedLock')) {
 				continue;
 			}
 
-			$allMergedProducts = $product->getAllMergedProducts();
-
-			foreach ($allMergedProducts as $mergedProduct) {
-				$mergedProductSupplierProducts = $mergedProduct->supplierProducts
-					->select([
-						'realDisplayAmount' => 'displayAmount.fk_displayAmount',
-					])
-					->toArray();
-
-				foreach ($mergedProductSupplierProducts as $mergedProductSupplierProduct) {
-					$productsXDisplayAmounts[$product->getPK()][] = $mergedProductSupplierProduct->getValue('realDisplayAmount');
-				}
+			foreach ($mergedProductsMap[$supplierProduct->getValue('product')] ?? [] as $mergedProduct) {
+				$productsXDisplayAmounts[$supplierProduct->getValue('product')][] = $productsMapXDisplayAmount[$mergedProduct] ?? null;
 			}
 		}
 
