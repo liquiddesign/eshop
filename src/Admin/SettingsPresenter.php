@@ -25,6 +25,7 @@ class SettingsPresenter extends BackendPresenter
 	public const SUPPLIER_PRODUCT_DUMMY_DEFAULT_CATEGORY = 'supplierProductDummyDefaultCategory';
 	public const PPL_DELIVERY_TYPE = 'pplDeliveryType';
 	public const DPD_DELIVERY_TYPE = 'dpdDeliveryType';
+	public const GO_PAY_PAYMENT_TYPE = 'goPayPaymentType';
 	public const SUPPLIER_IN_STOCK_DISPLAY_AMOUNT = 'supplierInStockDisplayAmount';
 	public const SUPPLIER_NOT_IN_STOCK_DISPLAY_AMOUNT = 'supplierNotInStockDisplayAmount';
 	public const SET_RELATION_TYPE = 'advPackageRelationType';
@@ -292,6 +293,22 @@ class SettingsPresenter extends BackendPresenter
 				],
 			],
 		];
+
+		/** @var \Eshop\Services\GoPay|null $goPay */
+		$goPay = $this->integrations->getService(Integrations::GO_PAY);
+
+		if ($goPay) {
+			$this->customSettings['Platba'][] = [
+				'key' => self::GO_PAY_PAYMENT_TYPE,
+				'label' => 'Typy platby PaymentResult',
+				'type' => 'multi',
+				'options' => $this->paymentTypeRepository->getArrayForSelect(),
+				'info' => 'Při zvolení platby typu PaymentResult bude zákazník přesměrován na platební bránu.',
+				'onSave' => function ($key, $oldValue, $newValue): void {
+					$this->systemicCallback($key, $oldValue, $newValue, $this->paymentTypeRepository);
+				},
+			];
+		}
 
 		/** @var \Eshop\Services\PPL|null $ppl */
 		$ppl = $this->integrations->getService(Integrations::PPL);
