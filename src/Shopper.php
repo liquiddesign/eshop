@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop;
 
+use Admin\DB\RoleRepository;
 use Eshop\DB\Country;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\Currency;
@@ -123,7 +124,9 @@ class Shopper
 	protected ?CustomerGroup $customerGroup;
 
 	protected AccountRepository $accountRepository;
-	
+
+	protected RoleRepository $roleRepository;
+
 	public function __construct(
 		User $user,
 		PricelistRepository $pricelistRepository,
@@ -132,7 +135,8 @@ class Shopper
 		CustomerRepository $customerRepository,
 		CustomerGroupRepository $customerGroupRepository,
 		MinimalOrderValueRepository $minimalOrderValueRepository,
-		AccountRepository $accountRepository
+		AccountRepository $accountRepository,
+		RoleRepository $roleRepository
 	) {
 		$this->user = $user;
 		$this->pricelistRepository = $pricelistRepository;
@@ -142,6 +146,7 @@ class Shopper
 		$this->customerRepository = $customerRepository;
 		$this->customerGroupRepository = $customerGroupRepository;
 		$this->minimalOrderValueRepository = $minimalOrderValueRepository;
+		$this->roleRepository = $roleRepository;
 	}
 
 	public function setUseDiscountLevelCalculationInBeforePrice(bool $useDiscountLevelCalculationInBeforePrice): void
