@@ -5,6 +5,8 @@
 {varType Eshop\DB\Package[] $packages}
 {varType Eshop\DB\PackageItem[] $upsells}
 {varType Eshop\DB\Related[][] $relations}
+{varType Eshop\DB\Amount[][] $allStoreAmounts}
+{varType string[][] $prices}
 
 {var $purchase = $order->purchase}
 {var $billingAddress = $purchase->billAddress}
@@ -319,6 +321,7 @@
     {/embed}
 
     {foreach $allStoreAmounts as $packageItemPK => $storeAmounts}
+        {varType Eshop\DB\Amount[] $storeAmounts}
         {embed modal id:"storeOrderItemForm-$packageItemPK"}
             {block modal-header}Sklad položky{/block}
             {block modal-body}
@@ -337,14 +340,14 @@
                             </tr>
                             </thead>
                             <tbody>
-                            <tr n:foreach="$storeAmounts as $storeAmount" id="store-{$storeAmount->store->getValue('supplier') ? $storeAmount->store->supplier->getPK() : $store->getPK()}" class="store {if $storeAmount->store->supplier}supplier-{$storeAmount->store->supplier->getPK()}{/if} {if $storeAmount->inStock === 0}disabled{/if}"">
+                            <tr n:foreach="$storeAmounts as $storeAmount" id="store-{$storeAmount->store->getValue('supplier') ? $storeAmount->store->supplier->getPK() : ''}" class="store {if $storeAmount->store->supplier}supplier-{$storeAmount->store->supplier->getPK()}{/if} {if $storeAmount->inStock === 0}disabled{/if}">
                                 <td>{input amount:$storeAmount->getPK()}</td>
                                 <td>{$storeAmount->product->name}</td>
                                 <td>{$storeAmount->product->getFullCode()}</td>
                                 <td>{$storeAmount->store->name}</td>
                                 <td class="input-amount" style="text-align: right">{$storeAmount->inStock}</td>
                                 <td>{if $storeAmount->store->supplier}{$storeAmount->store->supplier->name}{else}-{/if}</td>
-                                <td class="input-price" style="text-align: right"></td>
+                                <td class="input-price" style="text-align: right" n:inner-if="$storeAmount->store->supplier">{$prices[$storeAmount->getValue('product')][$storeAmount->store->supplier->code] ?? ''}</td>
                             </tr>
                             </tbody>
                         </table>
@@ -397,45 +400,6 @@
             toastr.{$flash->type|noescape}({$flash->message});
         </script>
     {/foreach}
-    <script>
-        $( "a.modalStoreOrderItemForm").click(function() {
-            var values = $(this).data('values');
-
-            $('#modal-storeOrderItemForm td.input-amount').html('-');
-            $('#modal-storeOrderItemForm td.input-price').html('-');
-            $('#modal-storeOrderItemForm tr.store ').addClass('disabled');
-
-            Object.keys(values.amounts).forEach(key => {
-                $('#modal-storeOrderItemForm tr#store-' + key).removeClass('disabled');
-                $('#modal-storeOrderItemForm tr#store-' + key + ' td.input-amount').html(values.amounts[key]);
-            });
-
-            Object.keys(values.prices).forEach(key => {
-                $('#modal-storeOrderItemForm tr#store-' + key).removeClass('disabled');
-                $('#modal-storeOrderItemForm tr.supplier-' + key + ' td.input-price').html(values.prices[key]);
-            });
-
-            $('#modal-storeOrderItemForm input[type="radio"]').prop('checked', false);
-            $('#modal-storeOrderItemForm input[value="' + values.store + '"]').prop('checked', true);
-
-            $('#modal-storeOrderItemForm input[name="uuid"]').val(values.uuid);
-        });
-
-        $( "a.modalSplitOrderItemForm").click(function() {
-            var values = $(this).data('values');
-
-            $('#modal-splitOrderItemForm form input[name="uuid"]').val(values['uuid']);
-        });
-
-        $( "a.modalDetailOrderItemForm").click(function() {
-            var values = $(this).data('values');
-
-            Object.keys(values).forEach(key => {
-                $('#modal-detailOrderItemForm form input[name="'+ key +'"]').val(values[key]);
-            });
-        });
-    </script>
-
     <script>
         $('#modal-detailOrderItemForm input[name="vatPct"]').on('change', function() {
             let price = parseFloat($('#modal-detailOrderItemForm input[name="price"]').val());

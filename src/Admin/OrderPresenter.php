@@ -1529,6 +1529,7 @@ class OrderPresenter extends BackendPresenter
 		$this->template->relations = $relations;
 
 		$allStoreAmounts = [];
+		$prices = [];
 
 		foreach ($order->packages as $package) {
 			foreach ($package->items as $packageItem) {
@@ -1541,11 +1542,16 @@ class OrderPresenter extends BackendPresenter
 				$mergedProducts = $product->getAllMergedProducts();
 				$mergedProducts[$product->getPK()] = $product;
 
+				foreach ($mergedProducts as $product) {
+					$prices[$product->getPK()] = $product->getSupplierPrices();
+				}
+
 				$allStoreAmounts[$packageItem->getPK()] = $this->amountRepository->many()->where('this.fk_product', \array_keys($mergedProducts))->toArray();
 			}
 		}
 
 		$this->template->allStoreAmounts = $allStoreAmounts;
+		$this->template->prices = $prices;
 
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
