@@ -11,6 +11,12 @@ namespace Eshop\DB;
 class RewardMove extends \StORM\Entity
 {
 	/**
+	 * Vytvořen
+	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
+	 */
+	public string $createdTs;
+
+	/**
 	 * @column
 	 */
 	public ?string $reason;
