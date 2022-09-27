@@ -408,8 +408,9 @@ class Customer extends Entity implements IIdentity, IUser
 		$repository = $this->getConnection()->findRepository(RewardMove::class);
 		
 		return $repository->many()
-			->where('applied = 1 OR ((validFrom >= NOW() OR validFrom IS NULL) AND (validTo <= NOW() OR validTo IS NULL))')
+			->where('applied = 0 OR ((validFrom >= NOW() OR validFrom IS NULL) AND (validTo <= NOW() OR validTo IS NULL))')
 			->where('fk_currency', $currency->getPK())
+			->where('fk_customer', $this->getPK())
 			->sum('price');
 	}
 	
@@ -419,8 +420,9 @@ class Customer extends Entity implements IIdentity, IUser
 		$repository = $this->getConnection()->findRepository(RewardMove::class);
 		
 		return $repository->many()
-			->where('applied = 1 OR ((validFrom >= NOW() OR validFrom IS NULL) AND (validTo <= NOW() OR validTo IS NULL))')
+			->where('applied = 0 OR ((validFrom >= NOW() OR validFrom IS NULL) AND (validTo <= NOW() OR validTo IS NULL))')
 			->where('fk_currency', $currency->getPK())
+			->where('fk_customer', $this->getPK())
 			->sum('priceVat');
 	}
 	
@@ -434,8 +436,9 @@ class Customer extends Entity implements IIdentity, IUser
 		
 		return $repository->many()
 			->select(['product' => 'fk_product', 'amount' => 'SUM(productAmount)', 'price' => 'SUM(price * productAmount)', 'priceVat' => 'SUM(priceVat * productAmount)'])
-			->where('applied = 1 OR ((validFrom >= NOW() OR validFrom IS NULL) AND (validTo <= NOW() OR validTo IS NULL))')
+			->where('applied = 0 OR ((validFrom >= NOW() OR validFrom IS NULL) AND (validTo <= NOW() OR validTo IS NULL))')
 			->where('fk_product IS NOT NULL')
+			->where('fk_customer', $this->getPK())
 			->setGroupBy(['fk_product'], 'SUM(productAmount) > 0');
 	}
 }
