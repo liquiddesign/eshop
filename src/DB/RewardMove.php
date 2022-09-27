@@ -61,11 +61,11 @@ class RewardMove extends \StORM\Entity
 	 * @relation
 	 * @constraint{"onUpdate":"RESTRICT","onDelete":"RESTRICT"}
 	 */
-	public Currency $currency;
+	public ?Currency $currency;
 	
 	/**
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
-	public ?Customer $customer;
+	public Customer $customer;
 }
