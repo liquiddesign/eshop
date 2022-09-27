@@ -45,7 +45,8 @@
 		"salamek/ppl-my-api": "^2.5",
 		"setasign/fpdf": "^1.8",
 		"setasign/fpdi": "^2.0",
-		"dvdoug/boxpacker": "^3.9"
+		"dvdoug/boxpacker": "^3.9",
+		"markette/gopay-inline": "^2.1"
 	},
 	"require-dev": 
 	{

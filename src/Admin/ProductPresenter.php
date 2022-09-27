@@ -89,6 +89,8 @@ class ProductPresenter extends BackendPresenter
 			'categories' => 'Kategorie',
 			'adminUrl' => 'Admin URL',
 			'frontUrl' => 'Front URL',
+			'mergedProducts' => 'Sloučené produkty',
+			'masterProduct' => 'Nadřazený sloučený produkt',
 		],
 		'exportAttributes' => [],
 		'defaultExportColumns' => [
@@ -109,6 +111,7 @@ class ProductPresenter extends BackendPresenter
 			'content' => 'Obsah',
 			'storeAmount' => 'Skladová dostupnost',
 			'categories' => 'Kategorie',
+			'masterProduct' => 'Nadřazený sloučený produkt',
 		],
 		'importAttributes' => [],
 		'importExampleFile' => null,
@@ -869,12 +872,12 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 		return $form;
 	}
 
-	public function actionJoinSelect(array $ids): void
+	public function actionMergeSelect(array $ids): void
 	{
 		unset($ids);
 	}
 
-	public function renderJoinSelect(array $ids): void
+	public function renderMergeSelect(array $ids): void
 	{
 		unset($ids);
 
@@ -884,10 +887,10 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 			['Sloučení produktů'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('joinForm')];
+		$this->template->displayControls = [$this->getComponent('mergeForm')];
 	}
 
-	public function createComponentJoinForm(): AdminForm
+	public function createComponentMergeForm(): AdminForm
 	{
 		$ids = $this->getParameter('ids') ?: [];
 
@@ -903,41 +906,87 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 				->where('this.uuid', $ids)
 				->select(['customName' => "CONCAT(this.name$mutationSuffix, ' (', this.code, ')')"])
 			->toArrayOf('customName'),
-		)
-			->setRequired();
+		)->setRequired()->setHtmlAttribute('data-info', '<br>
+Vysvětlení: Všechny vybrané produkty budou sloučené pod zvolený hlavní produkt.<br>
+Produkt může být sloučený pod <b>maximálně jeden</b> produkt. Ten ale může být sloučený pod další a tím vznikne strom.<br>
+Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jestli se ostatní produkty skryjí či budou neprodejné.');
+
+		$trueFalseOptions = [
+			'0' => 'Ne',
+			'1' => 'Ano',
+		];
+
+		$form->addGroup('Sloučené produkty');
+		$form->addSelect('hidden', 'Skryté', $trueFalseOptions)->setPrompt('Původní');
+		$form->addSelect('unavailable', 'Neprodejné', $trueFalseOptions)->setPrompt('Původní');
 
 		$form->addSubmit('submit', 'Uložit');
+
+		$form->onValidate[] = function (AdminForm $form) use ($ids): void {
+			if (!$form->isValid()) {
+				return;
+			}
+
+			$values = $form->getValues('array');
+
+			$existingMasterMergedProducts = $this->productRepository->many()
+				->where('this.fk_masterProduct IS NOT NULL')
+				->where('this.uuid', $ids)
+				->whereNot('this.uuid', $values['mainProduct'])
+				->toArrayOf('code');
+
+			if ($existingMasterMergedProducts) {
+				$form->addError('Nelze sloučit: Následující produkty již jsou spojeny s jiným produktem a nelze je spojit. ' . \implode(', ', $existingMasterMergedProducts), false);
+			}
+
+			$existingMergedProductsForAllProducts = [];
+			$circularReference = [];
+
+			foreach ($this->productRepository->many()->where('this.uuid', $ids) as $product) {
+				/** @var array<string, \Eshop\DB\Product> $localProducts */
+				$localProducts = [$product->getPK() => $product];
+				$localProducts = \array_merge($localProducts, $product->getAllMergedProducts());
+
+				/**
+				 * @var string $localProductPK
+				 * @var \Eshop\DB\Product $localProduct
+				 */
+				foreach ($localProducts as $localProductPK => $localProduct) {
+					if (isset($existingMergedProductsForAllProducts[$localProductPK])) {
+						$circularReference[] = $localProduct->code;
+					} else {
+						$existingMergedProductsForAllProducts[$localProductPK] = $localProduct;
+					}
+				}
+			}
+
+			if (!$circularReference) {
+				return;
+			}
+
+			$form->addError(
+				'Nelze sloučit: Následující produkty mají cyklickou závislost na některý z vybraných produktů. Zkontrolujte Vaši strukturu na detailu produktů. ' . \implode(', ', $circularReference),
+				false,
+			);
+		};
 
 		$form->onSuccess[] = function (AdminForm $form) use ($ids): void {
 			$values = $form->getValues('array');
 
-			/** @var \Eshop\DB\Product[] $products */
-			$products = $this->productRepository->many()->where('this.uuid', $ids)->whereNot('this.uuid', $values['mainProduct'])->toArray();
+			$updateValues = [
+				'fk_masterProduct' => $values['mainProduct'],
+			];
 
-			/** @var \Eshop\DB\SupplierProduct[] $mainProductSupplierProducts */
-			$mainProductSupplierProducts = $this->supplierProductRepository->many()->where('fk_product', $values['mainProduct'])->setIndex('this.fk_supplier')->toArray();
-
-			foreach ($products as $product) {
-				/** @var \Eshop\DB\SupplierProduct[] $productSupplierProducts */
-				$productSupplierProducts = $this->supplierProductRepository->many()->where('fk_product', $product->getPK())->setIndex('this.fk_supplier')->toArray();
-
-				foreach ($productSupplierProducts as $supplierProduct) {
-					$newSupplierProductValues = isset($mainProductSupplierProducts[$supplierProduct->getValue('supplier')]) ? ['product' => null, 'active' => false] :
-						['product' => $values['mainProduct']];
-
-					try {
-						$supplierProduct->update($newSupplierProductValues);
-					} catch (\Throwable $e) {
-						Debugger::log($e);
-					}
-				}
-
-				try {
-					$product->delete();
-				} catch (\Throwable $e) {
-					Debugger::log($e);
+			foreach (['hidden', 'unavailable'] as $key) {
+				if ($values[$key] !== null) {
+					$updateValues[$key] = $values[$key];
 				}
 			}
+
+			$this->productRepository->many()
+				->where('this.uuid', $ids)
+				->whereNot('this.uuid', $values['mainProduct'])
+				->update($updateValues);
 
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('default');
@@ -1274,7 +1323,11 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		]);
 		$form->addCheckbox('header', 'Hlavička')->setDefaultValue(true)->setHtmlAttribute('data-info', 'Pokud tuto možnost nepoužijete tak nebude možné tento soubor použít pro import!');
 
-		$headerColumns = $form->addDataMultiSelect('columns', 'Sloupce');
+		$headerColumns = $form->addDataMultiSelect('columns', 'Sloupce')
+		->setHtmlAttribute('data-info', '<br><b>Vysvětlivky sloupců:</b><br>
+Sloučené produkty: Sloučené produkty se exportují do sloupce "mergedProducts" jako kódy produktů oddělené znakem ":". Tento sloupec se <b>NEPOUŽÍVÁ</b> při importu!<br>
+Nadřazený sloučený produkt: U každého produktu se exportuje jen kód produktu do sloupce "masterProduct" jako jeho předchůdce ve stromové struktuře sloučených produktů. 
+Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 		$attributesColumns = $form->addDataMultiSelect('attributes', 'Atributy')->setHtmlAttribute('data-info', 'Zobrazují se pouze atributy, které mají alespoň jeden přiřazený produkt.');
 
 		$items = [];
@@ -1901,6 +1954,18 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				} elseif ($key === 'ean') {
 					if (!$searchEan) {
 						$newValues[$key] = $eanFromRecord ?: null;
+					}
+				} elseif ($key === 'masterProduct') {
+					$newValues[$key] = null;
+
+					if ($value) {
+						$masterProduct = $this->arrayFind($products, function (\stdClass $x) use ($value): bool {
+							return $x->code === $value || $x->fullCode === $value;
+						});
+
+						if ($masterProduct) {
+							$newValues[$key] = $masterProduct->uuid;
+						}
 					}
 				} elseif (!isset($attributes[$key])) {
 					$newValues[$key] = $value;

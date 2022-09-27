@@ -11,15 +11,18 @@ final class Integrations
 {
 	public const DPD = 'dpd';
 	public const PPL = 'ppl';
+	public const GO_PAY = 'goPay';
 
 	public const SERVICES = [
 		self::DPD => 'integrations.dpd',
 		self::PPL => 'integrations.ppl',
+		self::GO_PAY => 'integrations.goPay',
 	];
 
 	public const SERVICES_SETTINGS = [
-		 SettingsPresenter::DPD_DELIVERY_TYPE => self::DPD,
-		 SettingsPresenter::PPL_DELIVERY_TYPE => self::PPL,
+		SettingsPresenter::DPD_DELIVERY_TYPE => self::DPD,
+		SettingsPresenter::PPL_DELIVERY_TYPE => self::PPL,
+		SettingsPresenter::GO_PAY_PAYMENT_TYPE => self::GO_PAY,
 	];
 
 	protected Container $container;

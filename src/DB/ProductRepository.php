@@ -1269,9 +1269,41 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		
 		return $fee ? (float) $fee : null;
 	}
-	
-	public function csvExport(ICollection $products, Writer $writer, array $columns = [], array $attributes = [], string $delimiter = ';', ?array $header = null): void
+
+	/**
+	 * @return array<mixed>
+	 */
+	public function getGroupedMergedProducts(): array
 	{
+
+		$products = $this->many()->select(['fkMasterProduct' => 'this.fk_masterProduct'])->toArrayOf('fkMasterProduct');
+
+		$productsMap = [];
+		$result = [];
+
+		foreach ($products as $productPK => $masterProductPK) {
+			if (!$masterProductPK) {
+				continue;
+			}
+
+			$productsMap[$masterProductPK][] = $productPK;
+		}
+
+		foreach (\array_keys($products) as $productPK) {
+			$result[$productPK] = $this->doGetGroupedMergedProducts($productsMap, $productPK);
+		}
+
+		return $result;
+	}
+
+	public function csvExport(
+		ICollection $products,
+		Writer $writer,
+		array $columns = [],
+		array $attributes = [],
+		string $delimiter = ';',
+		?array $header = null
+	): void {
 		$writer->setDelimiter($delimiter);
 		
 		EncloseField::addTo($writer, "\t\22");
@@ -1295,17 +1327,22 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			->join(['store' => 'eshop_store'], 'storeAmount.fk_store = store.uuid')
 			->join(['categoryAssign' => 'eshop_product_nxn_eshop_category'], 'this.uuid = categoryAssign.fk_product')
 			->join(['category' => 'eshop_category'], 'categoryAssign.fk_category = category.uuid')
+			->join(['masterProduct' => 'eshop_product'], 'this.fk_masterProduct = masterProduct.uuid')
 			->select([
 				'attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute, '^', CONCAT(COALESCE(attributeValue.label$mutationSuffix), '°', attributeValue.code)) SEPARATOR \"~\")",
 				'producerCodeName' => "CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, ''))",
 				'amounts' => "GROUP_CONCAT(DISTINCT CONCAT(storeAmount.inStock, '#', store.code) SEPARATOR ':')",
 				'groupedCategories' => "GROUP_CONCAT(DISTINCT CONCAT(category.name$mutationSuffix, '#',
                 IF(category.code IS NULL OR category.code = '', category.uuid, category.code)) ORDER BY LENGTH(category.path) SEPARATOR ':')",
+				'masterProductCode' => 'masterProduct.code',
 			]);
-		
+
+		$mergedProductsMap = $this->getGroupedMergedProducts();
+		$productsXCode = $this->many()->toArrayOf('code');
+
 		while ($product = $products->fetch()) {
 			/** @var \Eshop\DB\Product|\stdClass $product */
-			
+
 			$row = [];
 			
 			$productAttributes = [];
@@ -1342,6 +1379,16 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				} elseif ($columnKey === 'frontUrl') {
 					$page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product->getPK()]);
 					$row[] = $page ? $this->request->getUrl()->getBaseUrl() . $page->getUrl($this->getConnection()->getMutation()) : null;
+				} elseif ($columnKey === 'mergedProducts') {
+					$codes = [];
+
+					foreach ($mergedProductsMap[$product->getPK()] ?? [] as $mergedProduct) {
+						$codes[] = $productsXCode[$mergedProduct] ?? null;
+					}
+
+					$row[] = \implode(':', $codes);
+				} elseif ($columnKey === 'masterProduct') {
+					$row[] = $product->getValue('masterProductCode');
 				} else {
 					$row[] = $product->getValue($columnKey) === false ? '0' : $product->getValue($columnKey);
 				}
@@ -1479,20 +1526,86 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		
 		return $attributes;
 	}
-	
+
+	/**
+	 * Return all descendants recursively and direct ancestors
+	 * @param \Eshop\DB\Product $product
+	 * @return array<mixed>
+	 */
+	public function getProductFullTree(Product $product): array
+	{
+		$downTree = $this->getProductTree($product);
+
+		$upTree = [];
+
+		while ($masterProduct = $product->masterProduct) {
+			$upTree[] = [$masterProduct->getPK() => $masterProduct];
+
+			$product = $masterProduct;
+		}
+
+		return \array_merge(\array_reverse($upTree), $downTree);
+	}
+
+	/**
+	 * @param \Eshop\DB\Product $product
+	 * @return array<mixed>
+	 */
+	public function getProductTree(Product $product): array
+	{
+		$result = [];
+
+		$this->doGetProductTree($product, $result);
+
+		return $result;
+	}
+
 	public static function generateUuid(?string $ean, ?string $fullCode): string
 	{
 		$namespace = 'product';
-		
+
 		if ($ean) {
 			return DIConnection::generateUuid($namespace, $ean);
 		}
-		
+
 		if ($fullCode) {
 			return DIConnection::generateUuid($namespace, $fullCode);
 		}
-		
+
 		throw new InvalidArgumentException('There is no unique parameter');
+	}
+
+	/**
+	 * @param array $products
+	 * @param string $product
+	 * @return array<mixed>
+	 */
+	private function doGetGroupedMergedProducts(array $products, string $product): array
+	{
+		$descendants = $products[$product] ?? [];
+		$realDescendants = [];
+
+		foreach ($descendants as $descendant) {
+			$realDescendants[] = $descendant;
+
+			$realDescendants = \array_merge($realDescendants, $this->doGetGroupedMergedProducts($products, $descendant));
+		}
+
+		return $realDescendants;
+	}
+
+	/**
+	 * @param \Eshop\DB\Product $product
+	 * @param array<mixed> $result
+	 * @param int $depth
+	 */
+	private function doGetProductTree(Product $product, array &$result, int $depth = 0): void
+	{
+		$result[$depth][$product->getPK()] = $product;
+
+		foreach ($product->slaveProducts as $mergedProduct) {
+			$this->doGetProductTree($mergedProduct, $result, $depth + 1);
+		}
 	}
 	
 	private function sqlHandlePrice(string $alias, string $priceExp, ?int $levelDiscountPct, int $maxDiscountPct, array $generalPricelistIds, int $prec, ?float $rate): string

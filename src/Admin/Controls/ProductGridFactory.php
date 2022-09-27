@@ -64,7 +64,8 @@ class ProductGridFactory
 
 	public function create(array $configuration): Datagrid
 	{
-		$source = $this->productRepository->many()->setGroupBy(['this.uuid'])
+		$source = $this->productRepository->many()
+			->setGroupBy(['this.uuid'])
 			->join(['photo' => 'eshop_photo'], 'this.uuid = photo.fk_product')
 			->join(['file' => 'eshop_file'], 'this.uuid = file.fk_product')
 			->join(['comment' => 'eshop_internalcommentproduct'], 'this.uuid = comment.fk_product')
@@ -128,6 +129,36 @@ class ProductGridFactory
 
 				$suppliers[] = "<a href='$link' class='badge badge-light' style='font-weight: normal;' target='_blank'>" .
 					($supplierProduct->supplier->url ? $supplierProduct->supplier->name : $supplier) . '</a>';
+			}
+
+			foreach ($product->getAllMergedProducts() as $mergedProduct) {
+				$mergedProductSuppliers = $mergedProduct->supplierProducts->toArray();
+
+				foreach ($mergedProductSuppliers as $supplierProduct) {
+					$supplierRealProduct = $supplierProduct->product;
+					$supplier = $supplierProduct->getValue('supplier');
+					$link = $grid->getPresenter()->link('this', ['productGrid-code' => $mergedProduct->code]);
+
+					$suppliers[] = "<a href='$link' class='badge badge-light' style='font-weight: normal;' target='_blank' title='{$supplierRealProduct->getFullCode()} - $supplierRealProduct->name'>
+<i class='fas fa-level-down-alt fa-sm mr-1'></i>" . ($supplierProduct->supplier->url ? $supplierProduct->supplier->name : $supplier) . '</a>';
+				}
+			}
+
+			$tempProduct = $product;
+
+			while ($masterProduct = $tempProduct->masterProduct) {
+				$mergedProductSuppliers = $masterProduct->supplierProducts->toArray();
+
+				foreach ($mergedProductSuppliers as $supplierProduct) {
+					$supplierRealProduct = $supplierProduct->product;
+					$supplier = $supplierProduct->getValue('supplier');
+					$link = $grid->getPresenter()->link('this', ['productGrid-code' => $masterProduct->code]);
+
+					$suppliers[] = "<a href='$link' class='badge badge-light' style='font-weight: normal;' target='_blank' title='{$supplierRealProduct->getFullCode()} - $supplierRealProduct->name'>
+<i class='fas fa-level-up-alt fa-sm mr-1'></i>" . ($supplierProduct->supplier->url ? $supplierProduct->supplier->name : $supplier) . '</a>';
+				}
+
+				$tempProduct = $masterProduct;
 			}
 
 			return [$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]), $product->name, \implode(' &nbsp;', $suppliers)];
@@ -213,6 +244,8 @@ class ProductGridFactory
 			'primaryCategory',
 			'defaultReviewsCount',
 			'defaultReviewsScore',
+			'supplierDisplayAmountLock',
+			'supplierDisplayAmountMergedLock',
 		];
 
 		if (isset($configuration['buyCount']) && $configuration['buyCount']) {
@@ -303,7 +336,7 @@ class ProductGridFactory
 		$submit = $grid->getForm()->addSubmit('join', 'Sloučit')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
 		$submit->onClick[] = function ($button) use ($grid): void {
-			$grid->getPresenter()->redirect('joinSelect', [$grid->getSelectedIds()]);
+			$grid->getPresenter()->redirect('mergeSelect', [$grid->getSelectedIds()]);
 		};
 
 		if (isset($configuration['buyCount']) && $configuration['buyCount']) {

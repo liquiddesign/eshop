@@ -184,6 +184,7 @@
 
                     {if isset($configuration['suppliers']) && $configuration['suppliers'] && isset($form['supplierContent'])}
                         {$renderer->renderPair($form['supplierContent'])|noescape}
+                        {$renderer->renderPair($form['supplierDisplayAmountMergedLock'])|noescape}
                         {$renderer->renderPair($form['supplierDisplayAmountLock'])|noescape}
                     {/if}
 
@@ -614,31 +615,85 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
         </div>
         <div id="attributes-content" class="tab-pane {$presenter->editTab == 'attributes' ? 'active show' : ''}">
         </div>
-        <div id="suppliers-content" class="tab-pane {$presenter->editTab == 'suppliers' ? 'active show' : ''}">
-            <table class="table table-hover text-nowrap mt-1 mb-1" style="width: auto;">
-                <tr>
-                    <th>Dodavatel (Priorita)</th>
-                    <th>Produkt</th>
-                    <th>Kód</th>
-                    <th>Recyklační poplatek</th>
-                    <th>Autorský poplatek</th>
-                    <th></th>
-                </tr>
-                {foreach $supplierProducts as $supplierProduct}
+        <div id="suppliers-content" class="tab-pane {$presenter->editTab == 'suppliers' ? 'active show' : ''} p-0">
+            <div class="row">
+                <h5>Všichni dodavatelé produktu <small>včetně sloučených produktů</small></h5>
+                <table class="table table-sm text-nowrap mt-1 mb-1" style="width: 100%;">
                     <tr>
-                        <td>{$supplierProduct->supplier->name} ({$supplierProduct->supplier->importPriority})</td>
-                        <td>
-                            <a href="{plink :Eshop:Admin:SupplierProduct:default 'tab' => $supplierProduct->supplier->getPK(), 'grid-search' => $supplierProduct->code}">
-                                {$supplierProduct->name}
-                            </a>
-                        </td>
-                        <td>{$supplierProduct->code}</td>
-                        <td>{$supplierProduct->recyclingFee}</td>
-                        <td>{$supplierProduct->copyrightFee}</td>
-                        <td><a n:href='unlinkSupplierProduct!, $supplierProduct->getPK()' class='btn btn-sm btn-outline-danger' onclick='return confirm("Opravdu?")' title='Zrušit párování'><i class='fas fa-sm fa-unlink'></i></a></td>
+                        <th>Dodavatel (Priorita)</th>
+                        <th>Produkt</th>
+                        <th>Dodavatelský produkt</th>
+                        <th>Kód</th>
+                        <th>Recyklační poplatek</th>
+                        <th>Autorský poplatek</th>
+                        <th>Mapovaná dostupnost</th>
+                        <th></th>
                     </tr>
-                {/foreach}
-            </table>
+                    {foreach $supplierProducts as $supplierProduct}
+                        <tr>
+                            <td>{$supplierProduct->supplier->name} ({$supplierProduct->supplier->importPriority})</td>
+                            <td>
+                                {if $supplierProduct->product->getPK() === $product->getPK()}
+                                    <b>{$supplierProduct->product->name|truncate:80}</b>
+                                {else}
+                                    <a href="{plink :Eshop:Admin:Product:default 'productGrid-code' => $supplierProduct->product->code}" target="_blank">
+                                        {$supplierProduct->product->name|truncate:80}
+                                    </a>
+                                {/if}
+                            </td>
+                            <td>
+                                <a href="{plink :Eshop:Admin:SupplierProduct:default 'tab' => $supplierProduct->supplier->getPK(), 'grid-search' => $supplierProduct->code}" target="_blank">
+                                    {$supplierProduct->name|truncate:80}
+                                </a>
+                            </td>
+                            <td>{$supplierProduct->code}</td>
+                            <td>{$supplierProduct->recyclingFee}</td>
+                            <td>{$supplierProduct->copyrightFee}</td>
+                            <td>{$supplierProduct->displayAmount && $supplierProduct->displayAmount->displayAmount ? $supplierProduct->displayAmount->displayAmount->label : ''}</td>
+                            <td><a n:href='unlinkSupplierProduct!, $supplierProduct->getPK()' class='btn btn-sm btn-outline-danger' onclick='return confirm("Opravdu zrušit párování produktu a dodavatelského produktu?")' title='Zrušit párování'><i class='fas fa-sm fa-unlink'></i></a></td>
+                        </tr>
+                    {/foreach}
+                </table>
+            </div>
+
+            <div class="row mt-2">
+                <h5>Kompletní strom sloučení</h5>
+                <table class="table table-sm table-hover text-nowrap mt-1 mb-1" style="width: 100%;">
+                    <tr>
+                        <th>Produkt</th>
+                        <th>Kód</th>
+                        <th>Nadřazený produkt</th>
+                        <th>Nadřazený kód produkt</th>
+                        <th></th>
+                    </tr>
+                    {foreach $productFullTree as $depth => $depthItems}
+                        {foreach $depthItems as $productItem}
+                            {varType Eshop\DB\Product $productItem}
+                            <tr>
+                                <td>
+                                    {for $i = 0; $i < $depth; $i++}--&nbsp;&nbsp;{/for}
+
+                                    {if $productItem->getPK() === $product->getPK()}
+                                        <b>{$productItem->name}</b>
+                                    {else}
+                                        <a href="{plink :Eshop:Admin:Product:default 'productGrid-code' => $productItem->code}" target="_blank">
+                                            {$productItem->name}
+                                        </a>
+                                    {/if}
+                                </td>
+                                <td>{$productItem->getFullCode()}</td>
+                                <td n:inner-if="$productItem->masterProduct">
+                                    <a href="{plink :Eshop:Admin:Product:default 'productGrid-code' => $productItem->masterProduct->code}" target="_blank">
+                                        {$productItem->masterProduct->name}
+                                    </a>
+                                </td>
+                                <td>{$productItem->masterProduct ? $productItem->masterProduct->getFullCode() : ''}</td>
+                                <td><a n:if="$productItem->masterProduct" n:href='unmergeProduct!, $productItem->getPK()' class='btn btn-sm btn-outline-danger' onclick='return confirm("Opravdu zrušit sloučení s nadřazeným produktem?")' title='Zrušit sloučení s nadřazeným produktem'><i class='fas fa-sm fa-unlink'></i></a></td>
+                            </tr>
+                        {/foreach}
+                    {/foreach}
+                </table>
+            </div>
         </div>
         <div id="productTabs-content" class="tab-pane {$presenter->editTab == 'productTabs' ? 'active show' : ''}">
             <fieldset>
@@ -647,7 +702,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
 
                 <table class="mt-1 mb-1" style="width: auto;">
                     {foreach $productTabs as $id => $productTab}
-
                             {foreach $form['productTab'.$id]->getComponents() as $key => $element}
                                 <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}" data-mutation="{$key}">
                                     {$renderer->renderLabel($element)|noescape}

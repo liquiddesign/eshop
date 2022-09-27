@@ -7,7 +7,6 @@ namespace Eshop\Admin;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\BackendPresenter;
-use Eshop\DB\Attribute;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\CurrencyRepository;
@@ -160,7 +159,7 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addColumnActionDeleteSystemic();
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected(null, false, function (?Attribute $object) {
+		$grid->addButtonDeleteSelected(null, false, function (?Pricelist $object) {
 			if ($object) {
 				return !$object->isSystemic();
 			}
@@ -833,6 +832,8 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 
 		$form->addCheckbox('overwriteExisting', 'Přepsat existující ceny')->setDefaultValue(true);
 		$form->addCheckbox('usePriority', 'Počítat s prioritou ceníků')->setDefaultValue(true);
+		$form->addCheckbox('skipZeroPrices', 'Přeskočit nulové ceny')->setDefaultValue(false)
+			->setHtmlAttribute('data-info', 'Při zašrtnutí bude cena vynechána pokud je cena bez daně nebo cena s daní nula (0).');
 
 		$form->addSubmit('submit', 'Provést');
 
@@ -866,6 +867,7 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 				$values['roundingAccuracy'],
 				$values['overwriteExisting'],
 				$values['usePriority'],
+				$values['skipZeroPrices'],
 			);
 
 			$this->flashMessage('Provedeno', 'success');

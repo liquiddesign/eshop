@@ -337,28 +337,50 @@ class SupplierProductRepository extends \StORM\Repository
 		$supplierProductRepository = $this->getConnection()->findRepository(SupplierProduct::class);
 
 		$supplierProducts = $supplierProductRepository->many()
-			->select(['realCategory' => 'category.fk_category'])
-			->select(['realDisplayAmount' => 'displayAmount.fk_displayAmount'])
-			->select(['realProducer' => 'producer.fk_producer'])
+			->select([
+				'realCategory' => 'category.fk_category',
+				'realDisplayAmount' => 'displayAmount.fk_displayAmount',
+				'realProducer' => 'producer.fk_producer',
+				'supplierDisplayAmountMergedLock' => 'product.supplierDisplayAmountMergedLock',
+			])
 			->where('category.fk_category IS NOT NULL')
 			->where('this.fk_product IS NOT NULL')
 			->where('this.active', true);
 
+		$productsMapXSupplierProductsXDisplayAmount = [];
+
+		foreach ($supplierProductRepository->many()->select([
+			'realDisplayAmount' => 'displayAmount.fk_displayAmount',
+		])->toArray() as $supplierProduct) {
+			$productsMapXSupplierProductsXDisplayAmount[$supplierProduct->getValue('product')][$supplierProduct->getPK()] = $supplierProduct->getValue('realDisplayAmount');
+		}
+
+		$mergedProductsMap = $productRepository->getGroupedMergedProducts();
+
 		/** @var array<mixed> $productsXDisplayAmounts Contains products paired with all supplier display amounts */
 		$productsXDisplayAmounts = [];
 
-		while ($supplierProduct = $supplierProducts->fetch()) {
-			/** @var \Eshop\DB\SupplierProduct $supplierProduct */
-
+		/** @var \Eshop\DB\SupplierProduct $supplierProduct */
+		foreach ($supplierProducts as $supplierProduct) {
 			if (!isset($productsXDisplayAmounts[$supplierProduct->getValue('product')])) {
 				$productsXDisplayAmounts[$supplierProduct->getValue('product')] = [];
 			}
 
-			if (isset($productsXDisplayAmounts[$supplierProduct->getValue('product')][$supplierProduct->getValue('supplier')])) {
+			$productsXDisplayAmounts[$supplierProduct->getValue('product')][] = $supplierProduct->getValue('realDisplayAmount');
+
+			if ($supplierProduct->getValue('supplierDisplayAmountMergedLock')) {
 				continue;
 			}
 
-			$productsXDisplayAmounts[$supplierProduct->getValue('product')][$supplierProduct->getValue('supplier')] = $supplierProduct->getValue('realDisplayAmount');
+			foreach ($mergedProductsMap[$supplierProduct->getValue('product')] ?? [] as $mergedProduct) {
+				foreach ($productsMapXSupplierProductsXDisplayAmount[$mergedProduct] ?? [] as $realDisplayAmount) {
+					if (!$realDisplayAmount) {
+						continue;
+					}
+
+					$productsXDisplayAmounts[$supplierProduct->getValue('product')][] = $realDisplayAmount;
+				}
+			}
 		}
 
 		/** @var \Web\DB\SettingRepository $settingRepository */
