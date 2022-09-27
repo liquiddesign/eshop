@@ -42,8 +42,16 @@ class PackageItem extends \StORM\Entity
 	 * Sklad
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 * @relation
+	 * @deprecated Use $storeAmount
 	 */
 	public ?Store $store;
+
+	/**
+	 * Skladová zásoba
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @relation
+	 */
+	public ?Amount $storeAmount;
 
 	/**
 	 * Balík

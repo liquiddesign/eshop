@@ -9,6 +9,7 @@ use Admin\Controls\AdminGrid;
 use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\BackendPresenter;
 use Eshop\DB\AddressRepository;
+use Eshop\DB\AmountRepository;
 use Eshop\DB\AutoshipRepository;
 use Eshop\DB\BannedEmailRepository;
 use Eshop\DB\CartItem;
@@ -50,6 +51,7 @@ use League\Csv\Writer;
 use Messages\DB\TemplateRepository;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
+use Nette\Application\UI\Multiplier;
 use Nette\Application\UI\Presenter;
 use Nette\Forms\Controls\Button;
 use Nette\Forms\Controls\TextInput;
@@ -225,6 +227,9 @@ class OrderPresenter extends BackendPresenter
 
 	/** @inject */
 	public RelatedPackageItemRepository $relatedPackageItemRepository;
+
+	/** @inject */
+	public AmountRepository $amountRepository;
 
 	/**
 	 * Always use getter getTab()
@@ -843,37 +848,46 @@ class OrderPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function createComponentStoreOrderItemForm(): AdminForm
+	public function createComponentStoreOrderItemForm(): Multiplier
 	{
-		$form = $this->formFactory->create();
+		return new Multiplier(function ($packageItemPK): AdminForm {
+			$form = $this->formFactory->create();
 
-		$form->addRadioList('store', null, $this->storeRepository->many()->toArrayOf('name'));
+			$packageItem = $this->packageItemRepository->one($packageItemPK, true);
 
-		$form->addSubmits(false, false);
-		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
+			$amountInput = $form->addRadioList('amount', null, $this->amountRepository->many()->toArrayOf('uuid'));
 
-			/** @var \Eshop\DB\PackageItem $packageItem */
-			$packageItem = $this->packageItemRepository->one($values['uuid'], true);
-			$packageItem->update(['store' => $values['store'], 'status' => 'waiting']);
-
-			/** @var \Eshop\DB\Order $order */
-			$order = $this->getParameter('order');
-
-			/** @var \Admin\DB\Administrator|null $admin */
-			$admin = $this->admin->getIdentity();
-
-			if (!$admin) {
-				return;
+			if ($packageItem->storeAmount) {
+				$amountInput->setDefaultValue($packageItem->storeAmount->getPK());
 			}
 
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::PACKAGE_CHANGED, $packageItem->cartItem->productName . ': Změna skladu - ' . $packageItem->store->name, $admin);
+			$form->addSubmits(false, false);
+			$form->onSuccess[] = function (AdminForm $form) use ($packageItem): void {
+				$values = $form->getValues('array');
 
-			$this->flashMessage('Provedeno', 'success');
-			$this->redirect('this');
-		};
+				$amount = $this->amountRepository->one($values['amount'], true);
 
-		return $form;
+				$packageItem->update(['storeAmount' => $amount->getPK(), 'status' => 'waiting', 'store' => $amount->store->getPK(),]);
+
+				/** @var \Eshop\DB\Order $order */
+				$order = $this->getParameter('order');
+
+				/** @var \Admin\DB\Administrator|null $admin */
+				$admin = $this->admin->getIdentity();
+
+				if (!$admin) {
+					return;
+				}
+
+				$this->orderLogItemRepository->createLog($order, OrderLogItem::PACKAGE_CHANGED, $packageItem->cartItem->productName .
+					": Změna skladu - {$amount->product->getFullCode()} => {$amount->store->name}", $admin);
+
+				$this->flashMessage('Provedeno', 'success');
+				$this->redirect('this');
+			};
+
+			return $form;
+		});
 	}
 
 	public function createComponentMergeOrderForm(): AdminForm
@@ -1514,7 +1528,25 @@ class OrderPresenter extends BackendPresenter
 
 		$this->template->relations = $relations;
 
-		$this->template->stores = $this->storeRepository->many();
+		$allStoreAmounts = [];
+
+		foreach ($order->packages as $package) {
+			foreach ($package->items as $packageItem) {
+				$cartItem = $packageItem->cartItem;
+
+				if (!$product = $cartItem->product) {
+					continue;
+				}
+
+				$mergedProducts = $product->getAllMergedProducts();
+				$mergedProducts[$product->getPK()] = $product;
+
+				$allStoreAmounts[$packageItem->getPK()] = $this->amountRepository->many()->where('this.fk_product', \array_keys($mergedProducts))->toArray();
+			}
+		}
+
+		$this->template->allStoreAmounts = $allStoreAmounts;
+
 		$this->template->headerTree = [
 			['Objednávky', 'default'],
 			['Detail'],

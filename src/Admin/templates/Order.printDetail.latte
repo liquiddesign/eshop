@@ -318,37 +318,43 @@
         {block modal-body}{control splitOrderItemForm:noHeader}{/block}
     {/embed}
 
-    {embed modal id:'storeOrderItemForm'}
-        {block modal-header}Sklad položky{/block}
-        {block modal-body}
-            {form storeOrderItemForm}
-                <div class="table-responsive">
-                    <table class="table table-sm table-striped">
-                        <thead>
-                        <tr>
-                            <th></th>
-                            <th>Sklad</th>
-                            <th style="text-align: right">Množství</th>
-                            <th>Dodavatel</th>
-                            <th style="text-align: right">Cena</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr n:foreach="$stores as $store" id="store-{$store->getValue('supplier') ? $store->supplier->getPK() : $store->getPK()}" class="store {if $store->supplier}supplier-{$store->supplier->getPK()}{/if}">
-                            <td>{input store:$store->getPK()}</td>
-                            <td>{$store->name}</td>
-                            <td class="input-amount" style="text-align: right"></td>
-                            <td>{if $store->supplier}{$store->supplier->name}{else}-{/if}</td>
-                            <td class="input-price" style="text-align: right"></td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <span>Změnou skladu dojde k vymazání stavu o odeslání dodavateli! Dodavatel nebude o změně automaticky informován!</span><br>
-                <input type="submit" n:name="submit" value="Uložit" class="btn btn-primary btn-sm ml-0 mt-1 mb-1 mr-1">
-            {/form}
-        {/block}
-    {/embed}
+    {foreach $allStoreAmounts as $packageItemPK => $storeAmounts}
+        {embed modal id:"storeOrderItemForm-$packageItemPK"}
+            {block modal-header}Sklad položky{/block}
+            {block modal-body}
+                {form storeOrderItemForm-$packageItemPK}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                            <tr>
+                                <th></th>
+                                <th>Produkt</th>
+                                <th>Kód</th>
+                                <th>Sklad</th>
+                                <th style="text-align: right">Množství</th>
+                                <th>Dodavatel</th>
+                                <th style="text-align: right">Cena</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr n:foreach="$storeAmounts as $storeAmount" id="store-{$storeAmount->store->getValue('supplier') ? $storeAmount->store->supplier->getPK() : $store->getPK()}" class="store {if $storeAmount->store->supplier}supplier-{$storeAmount->store->supplier->getPK()}{/if} {if $storeAmount->inStock === 0}disabled{/if}"">
+                                <td>{input amount:$storeAmount->getPK()}</td>
+                                <td>{$storeAmount->product->name}</td>
+                                <td>{$storeAmount->product->getFullCode()}</td>
+                                <td>{$storeAmount->store->name}</td>
+                                <td class="input-amount" style="text-align: right">{$storeAmount->inStock}</td>
+                                <td>{if $storeAmount->store->supplier}{$storeAmount->store->supplier->name}{else}-{/if}</td>
+                                <td class="input-price" style="text-align: right"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <span>Změnou skladu dojde k vymazání stavu o odeslání dodavateli! Dodavatel nebude o změně automaticky informován!</span><br>
+                    <input type="submit" n:name="submit" value="Uložit" class="btn btn-primary btn-sm ml-0 mt-1 mb-1 mr-1">
+                {/form}
+            {/block}
+        {/embed}
+    {/foreach}
 
     {embed modal id:'detailOrderItemForm'}
         {block modal-header}Editace položky{/block}
