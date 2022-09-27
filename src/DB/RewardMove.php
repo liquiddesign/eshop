@@ -67,5 +67,5 @@ class RewardMove extends \StORM\Entity
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
-	public Customer $customer;
+	public ?Customer $customer;
 }
