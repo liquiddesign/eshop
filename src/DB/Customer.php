@@ -437,7 +437,6 @@ class Customer extends Entity implements IIdentity, IUser
 		return $repository->many()
 			->select(['product' => 'fk_product', 'amount' => 'SUM(productAmount)', 'price' => 'SUM(price * productAmount)', 'priceVat' => 'SUM(priceVat * productAmount)'])
 			->where('applied = 0 OR ((validFrom >= NOW() OR validFrom IS NULL) AND (validTo <= NOW() OR validTo IS NULL))')
-			->where('fk_product IS NOT NULL')
 			->where('fk_customer', $this->getPK())
 			->setGroupBy(['fk_product'], 'SUM(productAmount) > 0');
 	}
