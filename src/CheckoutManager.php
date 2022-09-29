@@ -792,6 +792,7 @@ class CheckoutManager
 			$this->getDeliveryDiscount($vat),
 			$this->getMaxWeight(),
 			$this->getMaxDimension(),
+			$this->getSumWeight(),
 		)->toArray();
 		
 		foreach ($deliveryTypes as $deliveryType) {
@@ -811,6 +812,7 @@ class CheckoutManager
 			$this->getDeliveryDiscount($vat),
 			$this->getMaxWeight(),
 			$this->getMaxDimension(),
+			$this->getSumWeight(),
 		);
 	}
 	

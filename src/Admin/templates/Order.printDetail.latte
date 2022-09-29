@@ -206,7 +206,7 @@
                                        <br>{$pickupPoint->address->street}, {$pickupPoint->address->city} {$pickupPoint->address->zipcode}
                                     {/if}
                                 {else}
-                                    {$purchase->zasilkovnaId}
+                                    {$purchase->zasilkovnaId} - {$purchase->pickupPointName}
                                 {/if}
                             {/if}
                             <a class="ml-2 d-print-none btn btn-xs btn-outline-primary" n:href="delivery $order"><i class="fa fa-xs fa-edit"></i> Změnit</a><a n:if="$order->dpdCode || $order->dpdError" class="ml-2 d-print-none btn btn-xs btn-outline-danger" href="{link resetTransport!, 'uuid' => $order->getPK()}"><i class="fa fa-xs fa-undo"></i> Resetovat</a>
