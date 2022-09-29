@@ -34,6 +34,7 @@ use StORM\Collection;
 use StORM\ICollection;
 use Tracy\Debugger;
 use Tracy\ILogger;
+use Web\DB\SettingRepository;
 
 class OrderGridFactory
 {
@@ -61,6 +62,8 @@ class OrderGridFactory
 	
 	private Shopper $shopper;
 
+	private SettingRepository $settingRepository;
+
 	private ?DPD $dpd = null;
 
 	private ?PPL $ppl = null;
@@ -80,7 +83,8 @@ class OrderGridFactory
 		PaymentTypeRepository $paymentTypeRepository,
 		Shopper $shopper,
 		Integrations $integrations,
-		Container $container
+		Container $container,
+		SettingRepository $settingRepository
 	) {
 		$this->orderRepository = $orderRepository;
 		$this->gridFactory = $adminGridFactory;
@@ -92,6 +96,7 @@ class OrderGridFactory
 		$this->integrations = $integrations;
 		$this->shopper = $shopper;
 		$this->container = $container;
+		$this->settingRepository = $settingRepository;
 	}
 
 	/**
@@ -291,6 +296,15 @@ class OrderGridFactory
 
 		if (isset($configuration['exportCsv']) && $configuration['exportCsv']) {
 			$grid->addColumnAction('CSV', $downloadIco, [$this, 'downloadCsv'], [], null, ['class' => 'minimal']);
+		}
+
+		if ($this->settingRepository->getValueByName('zasilkovnaApiKey') && $state !== Order::STATE_OPEN) {
+			$grid->addColumn('Zás', function (Order $order, AdminGrid $datagrid) {
+				return '<button type="button" role="button" class="btn btn-sm btn-outline-' .
+					($order->zasilkovnaCompleted ? 'success' : (!$order->purchase->zasilkovnaId ? 'secondary' : 'primary')) . '" data-toggle="tooltip" data-placement="bottom">
+				<i class="fas fa-' . ($order->zasilkovnaCompleted ? 'check' : ($order->purchase->zasilkovnaId ? 'question' : 'times')) . '"></i>
+				</button>';
+			}, '%s', 'this.dpdCode', ['class' => 'fit']);
 		}
 
 		if ($this->dpd && $state !== Order::STATE_OPEN) {
@@ -518,10 +532,8 @@ class OrderGridFactory
 			);
 		}
 
-		if ($state !== Order::STATE_OPEN) {
-			$submit = $grid->getForm()->addSubmit('exportZasilkovna', Html::fromHtml('<i class="fas fa-download"></i> Zásilkovna (CSV)'));
-			$submit->setHtmlAttribute('class', $btnSecondary);
-			$submit->onClick[] = [$this, 'exportZasilkovna'];
+		if ($this->settingRepository->getValueByName('zasilkovnaApiKey') && $state !== Order::STATE_OPEN) {
+			$grid->addBulkAction('exportZasilkovna', 'exportZasilkovna', '<i class="fas fa-paper-plane"></i> Zásilkovna');
 		}
 
 		if (Helpers::isConfigurationActive($configuration, 'exportPPC') && $state !== Order::STATE_OPEN) {

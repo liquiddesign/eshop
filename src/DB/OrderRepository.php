@@ -8,6 +8,7 @@ use Admin\DB\Administrator;
 use Admin\DB\IGeneralAjaxRepository;
 use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
+use Eshop\Admin\SettingsPresenter;
 use Eshop\Shopper;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
@@ -24,6 +25,7 @@ use StORM\Collection;
 use StORM\DIConnection;
 use StORM\ICollection;
 use StORM\SchemaManager;
+use Web\DB\SettingRepository;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Order>
@@ -112,6 +114,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	private RelatedTypeRepository $relatedTypeRepository;
 
+	private SettingRepository $settingRepository;
+
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
@@ -125,7 +129,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		BannedEmailRepository $bannedEmailRepository,
 		Container $container,
 		OrderLogItemRepository $orderLogItemRepository,
-		RelatedTypeRepository $relatedTypeRepository
+		RelatedTypeRepository $relatedTypeRepository,
+		SettingRepository $settingRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -140,6 +145,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$this->container = $container;
 		$this->orderLogItemRepository = $orderLogItemRepository;
 		$this->relatedTypeRepository = $relatedTypeRepository;
+		$this->settingRepository = $settingRepository;
 	}
 
 	/**
@@ -535,6 +541,13 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		}
 	}
 
+	/**
+	 * @param array<string> $orders
+	 * @param \League\Csv\Writer $writer
+	 * @throws \League\Csv\CannotInsertRecord
+	 * @throws \League\Csv\InvalidArgument
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function csvExportZasilkovna(array $orders, Writer $writer): void
 	{
 		$writer->setDelimiter(';');
@@ -551,7 +564,20 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				continue;
 			}
 
+			$codPaymentType = $this->settingRepository->getValueByName(SettingsPresenter::COD_TYPE);
+
 			$payment = $order->getPayment();
+			$cod = false;
+
+			if ($payment && $codPaymentType) {
+				$orderPaymentType = $payment->type;
+
+				if ($orderPaymentType && $orderPaymentType->getPK() === $codPaymentType) {
+					$cod = true;
+				}
+			}
+
+			$sumWeight = $purchase->getSumWeight();
 
 			$writer->insertOne([
 				'',
@@ -561,13 +587,15 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				'',
 				$purchase->email,
 				$purchase->phone,
-				$payment->typeCode === 'dob' ? $order->getTotalPriceVat() : '',
+				$cod ? \round($order->getTotalPriceVat()) : '',
 				$this->shopper->getCurrency(),
 				$order->getTotalPriceVat(),
-				'',
+				$sumWeight > 0 ? $sumWeight : 1,
 				$purchase->zasilkovnaId,
 				$this->shopper->getProjectUrl(),
 			]);
+
+			$order->update(['zasilkovnaCompleted' => true]);
 		}
 	}
 

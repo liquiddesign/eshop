@@ -21,7 +21,7 @@
 		"liquiddesign/messages": "^0.1",
 		"liquiddesign/translator": "^0.1",
 		"liquiddesign/pages": "^1.0",
-		"liquiddesign/admin": "^0.2",
+		"liquiddesign/admin": "^0.2.5",
 		"liquiddesign/web": "^0.1",
 		"liquiddesign/grid": "^0.1",
 		"liquiddesign/common": "^0.1",

@@ -43,6 +43,7 @@ use Eshop\DB\SupplierRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\Integration\EHub;
 use Eshop\Integration\Integrations;
+use Eshop\Integration\Zasilkovna;
 use Eshop\Services\DPD;
 use Eshop\Services\PPL;
 use Forms\Form;
@@ -230,6 +231,9 @@ class OrderPresenter extends BackendPresenter
 
 	/** @inject */
 	public AmountRepository $amountRepository;
+
+	/** @inject */
+	public Zasilkovna $zasilkovna;
 
 	/**
 	 * Always use getter getTab()
@@ -1984,6 +1988,18 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('dpdPrintForm')];
 	}
 
+	public function renderExportZasilkovna(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Export pro Zásilkovnu (CSV)';
+		$this->template->headerTree = [
+			['Objednávky', 'default',],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('exportZasilkovnaCSVForm')];
+	}
+
 	public function renderSendPPL(array $ids): void
 	{
 		unset($ids);
@@ -2109,6 +2125,56 @@ class OrderPresenter extends BackendPresenter
 
 			$this->flashMessage($sync ? 'Provedeno' : 'Chyba odesílání!', $sync ? 'success' : 'error');
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
+	}
+
+	public function createComponentExportZasilkovnaCSVForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection, AdminForm $form): void {
+			/** @var \Nette\Forms\Controls\SubmitButton $submitter */
+			$submitter = $form->isSubmitted();
+
+			$collection->where('purchase.zasilkovnaId IS NOT NULL AND LENGTH(purchase.zasilkovnaId) > 0');
+
+			if ($submitter->getName() === 'onlyNotExported' || $submitter->getName() === 'useApi') {
+				$collection->where('this.zasilkovnaCompleted', false);
+			}
+
+			if ($submitter->getName() === 'useApi') {
+				try {
+					$this->zasilkovna->syncOrders($collection->toArray());
+					$this->flashMessage('Provedeno', 'success');
+				} catch (\Exception $e) {
+					$this->flashMessage('Chyba! Zkontrolujte API klíč.<br>' . $e->getMessage(), 'error');
+				}
+
+				return;
+			}
+
+			$tempFilename = \tempnam($this->tempDir, 'csv');
+			$this->application->onShutdown[] = function () use ($tempFilename): void {
+				try {
+					FileSystem::delete($tempFilename);
+				} catch (\Throwable $e) {
+					Debugger::log($e, ILogger::WARNING);
+				}
+			};
+
+			$this->orderRepository->csvExportZasilkovna(\array_keys($collection->toArray()), Writer::createFromPath($tempFilename, 'w+'));
+
+			$this->sendResponse(new FileResponse($tempFilename, 'zasilkovna.csv', 'text/csv'));
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds(), function (AdminForm $form): void {
+			/** @var \Nette\Forms\Controls\RadioList $bulkTypeInput */
+			$bulkTypeInput = $form['bulkType'];
+			$bulkTypeInput->setHtmlAttribute('data-info', '<br>Systém umožňuje i automatické odeslání do Zásilkovny bez nutnosti manuálního exportu.<br>
+"Exportovat přes API" odešle dosud neexportované objednávky přímo do Zásilkovny. Ruční export označuje objednávky jako exportované a znemožňuje následný automatický export!');
+
+			$form->addSubmit('onlyNotExported', 'Pouze neexportované');
+			$form->addSubmit('useApi', 'Exportovat přes API');
+
+			/** @var \Nette\Forms\Controls\SubmitButton $submit */
+			$submit = $form['submit'];
+			$submit->setCaption('Vše');
+		});
 	}
 
 	public function createComponentDpdSendForm(): AdminForm

@@ -2,6 +2,7 @@
 
 namespace Eshop\Integration;
 
+use Eshop\Admin\SettingsPresenter;
 use Eshop\DB\AddressRepository;
 use Eshop\DB\OpeningHoursRepository;
 use Eshop\DB\Order;
@@ -267,9 +268,24 @@ class Zasilkovna
 
 		$client = new Client([
 			'base_uri' => 'https://www.zasilkovna.cz/api/rest',
-			'timeout' => 5.0,
-			'verify' => false,
+			'timeout' => 2.0,
+			'verify' => true,
 		]);
+
+		$sumWeight = $purchase->getSumWeight();
+
+		$codPaymentType = $this->settingRepository->getValueByName(SettingsPresenter::COD_TYPE);
+
+		$payment = $order->getPayment();
+		$cod = false;
+
+		if ($payment && $codPaymentType) {
+			$orderPaymentType = $payment->type;
+
+			if ($orderPaymentType && $orderPaymentType->getPK() === $codPaymentType) {
+				$cod = true;
+			}
+		}
 
 		$xml = '
 			<createPacket>
@@ -282,11 +298,14 @@ class Zasilkovna
 			        <addressId>' . $purchase->zasilkovnaId . '</addressId>
 			        <currency>' . $order->purchase->currency->code . '</currency>
 			        <value>' . $order->getTotalPriceVat() . '</value>
-			        ' . ($order->getPayment()->typeCode === 'dob' ? '<cod>' . $order->getTotalPriceVat() . '</cod>' : null) . '
+			        ' . ($cod ? '<cod>' . \round($order->getTotalPriceVat()) . '</cod>' : null) . '
 			        <eshop>' . $this->shopper->getProjectUrl() . '</eshop>
+			        <weight>' . ($sumWeight > 0 ? $sumWeight : 1) . '</weight>
 			    </packetAttributes>
 			</createPacket>
 			';
+
+		\bdump($xml);
 
 		$options = [
 			'headers' => [
@@ -298,10 +317,12 @@ class Zasilkovna
 		$response = $client->request('POST', '', $options);
 		$xmlResponse = new SimpleXMLElement($response->getBody()->getContents());
 
-		if ((string)$xmlResponse->status === 'ok') {
-			$order->update(['zasilkovnaCompleted' => true]);
+		\bdump($xmlResponse);
+
+		if ((string)$xmlResponse->status !== 'ok') {
+			throw new \Exception("Order {$order->code} error sending!");
 		}
 
-		\bdump($xmlResponse);
+		$order->update(['zasilkovnaCompleted' => true]);
 	}
 }
