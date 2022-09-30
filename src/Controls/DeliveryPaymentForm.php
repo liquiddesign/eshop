@@ -110,6 +110,10 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 
 		$purchase = $this->checkoutManager->getPurchase(true);
 
+		if (!isset($purchase->zasilkovnaId) || !isset($purchase->pickupPointName)) {
+			return;
+		}
+
 		if (!$purchase->zasilkovnaId || !$purchase->pickupPointName) {
 			return;
 		}
