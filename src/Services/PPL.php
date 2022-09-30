@@ -147,7 +147,7 @@ class PPL
 		$packageNumber[3] = $this->nonCodType;
 
 		$firstAvailablePackageSeriesNumber = $this->orderRepository->many()
-			->where('this.pplCode LIKE :s', ['s' => Strings::substring($packageNumber, 0, 6) . '%'])
+			->where('this.pplCode LIKE :s', ['s' => Strings::substring($packageNumber, 0, 5) . '%'])
 			->orderBy(['this.pplCode' => 'DESC'])
 			->firstValue('pplCode');
 
