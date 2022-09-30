@@ -340,7 +340,7 @@ class PPL
 
 			$order->update([
 				'pplCode' => $orderPplCodes,
-				'pplError' => isset($ordersWithError[$order->code]),
+				'pplError' => \count($ordersWithError) > 0,
 			]);
 		}
 
