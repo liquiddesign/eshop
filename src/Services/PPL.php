@@ -300,7 +300,7 @@ class PPL
 					if ($result['Code'] !== '0') {
 						$delivery->update(['pplError' => true]);
 
-						$ordersWithError[$order->code] = isset($ordersWithError[$order->code]) ? $ordersWithError[$order->code] + 1 : 1;
+						$ordersWithError[] = $order;
 
 						$tempDir = $this->container->getParameters()['tempDir'] . '/ppl';
 
@@ -326,7 +326,7 @@ class PPL
 				} catch (\Throwable $e) {
 					\bdump($e);
 
-					$ordersWithError[$order->code] = isset($ordersWithError[$order->code]) ? $ordersWithError[$order->code] + 1 : 1;
+					$ordersWithError[] = $order;
 
 					$delivery->update(['pplError' => true]);
 
