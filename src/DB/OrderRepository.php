@@ -1481,11 +1481,11 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'paidPrice' => $paid ? $payment->order->getTotalPrice() : 0,
 			'paidPriceVat' => $paid ? $payment->order->getTotalPriceVat() : 0,
 		];
-		
+
 		$payment->update($values);
 		
 		if ($paid) {
-			$orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED, null, $admin);
+			$orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED, $payment->getTypeName(), $admin);
 			
 			if ($email) {
 				try {
