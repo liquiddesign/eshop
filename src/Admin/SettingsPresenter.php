@@ -29,6 +29,8 @@ class SettingsPresenter extends BackendPresenter
 	public const SUPPLIER_IN_STOCK_DISPLAY_AMOUNT = 'supplierInStockDisplayAmount';
 	public const SUPPLIER_NOT_IN_STOCK_DISPLAY_AMOUNT = 'supplierNotInStockDisplayAmount';
 	public const SET_RELATION_TYPE = 'advPackageRelationType';
+	public const DEFAULT_DISPLAY_AMOUNT = 'defaultDisplayAmount';
+	public const DEFAULT_UNAVAILABLE_DISPLAY_AMOUNT = 'defaultUnavailableDisplayAmount';
 
 	/** @inject */
 	public Integrations $integrations;
@@ -287,6 +289,30 @@ class SettingsPresenter extends BackendPresenter
 					'type' => 'select',
 					'options' => $this->displayAmountRepository->getArrayForSelect(),
 					'info' => 'Při importu dostupností se použije jako není skladem od dodavatele.',
+					'onSave' => function ($key, $oldValue, $newValue): void {
+						$this->systemicCallback($key, $oldValue, $newValue, $this->displayAmountRepository);
+					},
+				],
+			],
+			'Dostupnosti' => [
+				[
+					'key' => self::DEFAULT_DISPLAY_AMOUNT,
+					'label' => 'Výchozí dostupnost skladem',
+					'type' => 'select',
+					'options' => $this->displayAmountRepository->getArrayForSelect(),
+					'info' => 'Výchozí dostupnost pro produkty, které <b>nejsou</b> Nedostupné.<br>
+Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti produktu a řídí se pouze možností Nedostupné.',
+					'onSave' => function ($key, $oldValue, $newValue): void {
+						$this->systemicCallback($key, $oldValue, $newValue, $this->displayAmountRepository);
+					},
+				],
+				[
+					'key' => self::DEFAULT_UNAVAILABLE_DISPLAY_AMOUNT,
+					'label' => 'Výchozí dostupnost není skladem',
+					'type' => 'select',
+					'options' => $this->displayAmountRepository->getArrayForSelect(),
+					'info' => 'Výchozí dostupnost pro produkty, které <b>jsou</b> Nedostupné.<br>
+Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti produktu a řídí se pouze možností Nedostupné.',
 					'onSave' => function ($key, $oldValue, $newValue): void {
 						$this->systemicCallback($key, $oldValue, $newValue, $this->displayAmountRepository);
 					},

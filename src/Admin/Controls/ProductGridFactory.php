@@ -161,8 +161,23 @@ class ProductGridFactory
 				$tempProduct = $masterProduct;
 			}
 
-			return [$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]), $product->name, \implode(' &nbsp;', $suppliers)];
-		}, '<a href="%s" target="_blank"> %s</a> <a href="" class="badge badge-light" style="font-weight: normal;">%s</a>', 'name');
+			$ribbons = null;
+
+			foreach ($product->ribbons as $ribbon) {
+				$ribbons .= "<div class=\"badge\" style=\"font-weight: normal; background-color: $ribbon->backgroundColor; color: $ribbon->color\">$ribbon->name</div> ";
+			}
+
+			foreach ($product->internalRibbons as $ribbon) {
+				$ribbons .= "<div class=\"badge\" style=\"font-weight: normal; font-style: italic; background-color: $ribbon->backgroundColor; color: $ribbon->color\">$ribbon->name</div> ";
+			}
+
+			return [
+				$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]),
+				$product->name,
+				\implode(' &nbsp;', $suppliers),
+				$ribbons,
+			];
+		}, '<a href="%s" target="_blank"> %s</a> <a href="" class="badge badge-light" style="font-weight: normal;">%s</a> %s', 'name');
 
 		$mutationSuffix = $this->categoryRepository->getConnection()->getMutationSuffix();
 
