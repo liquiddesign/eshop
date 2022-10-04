@@ -440,4 +440,56 @@ class Customer extends Entity implements IIdentity, IUser
 			->where('fk_customer', $this->getPK())
 			->setGroupBy(['fk_product'], 'SUM(productAmount) > 0');
 	}
+
+	/**
+	 * @return array|Collection
+	 */
+	public function getMyChildUsers()
+	{
+		if($this->isAffiliateTree()) {
+			return $this->getMyTreeUsers();
+		}
+		elseif($this->isAffiliateDirect()) {
+			return $this->getMyDirectUsers();
+		}
+
+		return [];
+	}
+
+	public function getMyDirectUsers(): Collection
+	{
+		/** @var Customer $repository */
+		$repository = $this->getConnection()->findRepository(Customer::class);
+
+		return $repository->many()
+			->where('fk_parentCustomer', $this->getPK())
+			->orderBy(['createdTs' => 'DESC']);
+	}
+
+	public function getMyTreeUsers(): Collection
+	{
+		/** @var Customer $repository */
+		$repository = $this->getConnection()->findRepository(Customer::class);
+
+		return $repository->many()
+			->where('fk_leadCustomer', $this->getPK())
+			->orderBy(['createdTs' => 'DESC']);
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function isAffiliateTree(): bool {
+
+		return $this->customerRole && $this->customerRole->isAffiliateTree();
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function isAffiliateDirect(): bool {
+
+		return $this->customerRole && $this->customerRole->isAffiliateDirect();
+	}
+
 }
