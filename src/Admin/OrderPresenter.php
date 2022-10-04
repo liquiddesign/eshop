@@ -2405,13 +2405,13 @@ class OrderPresenter extends BackendPresenter
 		};
 
 		$this->orderRepository->onOrderPaymentChanged[] = function (Order $order, Payment $payment) use ($admin): void {
-			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::DELIVERY_CHANGED, $payment->getTypeName(), $admin);
+			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYMENT_CHANGED, $payment->getTypeName(), $admin);
 
 			try {
 				$mail = $this->templateRepository->createMessage('order.paymentChanged', $this->orderRepository->getEmailVariables($order), $payment->order->purchase->email);
 				$this->mailer->send($mail);
 
-				$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::DELIVERY_CHANGED, $admin);
+				$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::PAYMENT_CHANGED, $admin);
 			} catch (\Throwable $e) {
 				Debugger::log($e->getMessage(), ILogger::WARNING);
 			}

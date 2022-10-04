@@ -86,6 +86,12 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	/** @var array<callable(\Eshop\DB\Order, \Eshop\DB\Payment): void> */
 	public array $onOrderPaymentChanged = [];
 
+	/** @var array<callable(\Eshop\DB\Payment): void> */
+	public array $onOrderPaymentPaid = [];
+
+	/** @var array<callable(\Eshop\DB\Payment): void> */
+	public array $onOrderPaymentCanceled = [];
+
 	/** @var array<callable(\Eshop\DB\Order, array<\Eshop\DB\Order>): void> */
 	public array $onOrdersMergedAll = [];
 
@@ -1496,8 +1502,12 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				} catch (\Throwable $e) {
 				}
 			}
+
+			Arrays::invoke($this->onOrderPaymentPaid, $payment);
 		} else {
 			$orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED_CANCELED, null, $admin);
+
+			Arrays::invoke($this->onOrderPaymentCanceled, $payment);
 		}
 	}
 
