@@ -8,7 +8,7 @@ class DevelTools
 	public static function getPeakMemoryUsage(): string
 	{
 		$unit = array('b','kb','mb','gb','tb','pb');
-		$size = \memory_get_peak_usage();
+		$size = \memory_get_peak_usage(true);
 
 		return @\round($size / \pow(1024, ($i = \floor(\log($size, 1024)))), 2) . ' ' . $unit[$i];
 	}
@@ -16,7 +16,7 @@ class DevelTools
 	public static function getCurrentMemoryUsage(): string
 	{
 		$unit = array('b','kb','mb','gb','tb','pb');
-		$size = \memory_get_usage();
+		$size = \memory_get_usage(true);
 
 		return @\round($size / \pow(1024, ($i = \floor(\log($size, 1024)))), 2) . ' ' . $unit[$i];
 	}
