@@ -82,4 +82,21 @@ class CustomerRole extends SystemicEntity
 	 * @column
 	 */
 	public bool $allowWithdraw;
+
+	/**
+	 * @return bool
+	 */
+	public function isAffiliateTree(): bool {
+
+		return $this->affiliate === 'tree';
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function isAffiliateDirect(): bool {
+
+		return $this->affiliate === 'direct';
+	}
+
 }
