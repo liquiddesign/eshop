@@ -359,10 +359,14 @@
         {/embed}
     {/foreach}
 
-    {embed modal id:'detailOrderItemForm'}
-        {block modal-header}Editace položky{/block}
-        {block modal-body}{control detailOrderItemForm:noHeader}{/block}
-    {/embed}
+    {foreach $packages as $package}
+        {foreach $package->items as $packageItemPK => $packageItem}
+            {embed modal id:"detailOrderItemForm-$packageItemPK"}
+                {block modal-header}Editace položky{/block}
+                {block modal-body}{control detailOrderItemForm-$packageItemPK:noHeader}{/block}
+            {/embed}
+        {/foreach}
+    {/foreach}
 
     {embed modal id:'productForm'}
         {block modal-header}Přidání položky{/block}
@@ -400,32 +404,36 @@
             toastr.{$flash->type|noescape}({$flash->message});
         </script>
     {/foreach}
-    <script>
-        $('#modal-detailOrderItemForm input[name="vatPct"]').on('change', function() {
-            let price = parseFloat($('#modal-detailOrderItemForm input[name="price"]').val());
-            let priceVatInput = $('#modal-detailOrderItemForm input[name="priceVat"]');
-            let vatPct = parseFloat($(this).val());
+    {foreach $packages as $package}
+        {foreach $package->items as $packageItemPK => $packageItem}
+            <script>
+                $('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="vatPct"]').on('change', function() {
+                    let price = parseFloat($('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="price"]').val());
+                    let priceVatInput = $('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="priceVat"]');
+                    let vatPct = parseFloat($(this).val());
 
-            let priceVat = price + (price * vatPct / 100);
-            priceVatInput.val(priceVat.toFixed(2));
-        });
+                    let priceVat = price + (price * vatPct / 100);
+                    priceVatInput.val(priceVat.toFixed(2));
+                });
 
-        $('#modal-detailOrderItemForm input[name="price"]').on('change', function() {
-            let price = parseFloat($(this).val());
-            let priceVatInput = $('#modal-detailOrderItemForm input[name="priceVat"]');
-            let vatPct = parseFloat($('#modal-detailOrderItemForm input[name="vatPct"]').val());
+                $('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="price"]').on('change', function() {
+                    let price = parseFloat($(this).val());
+                    let priceVatInput = $('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="priceVat"]');
+                    let vatPct = parseFloat($('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="vatPct"]').val());
 
-            let priceVat = price + (price * vatPct / 100);
-            priceVatInput.val(priceVat.toFixed(2));
-        });
+                    let priceVat = price + (price * vatPct / 100);
+                    priceVatInput.val(priceVat.toFixed(2));
+                });
 
-        $('#modal-detailOrderItemForm input[name="priceVat"]').on('change', function() {
-            let priceVat = parseFloat($(this).val());
-            let priceInput = $('#modal-detailOrderItemForm input[name="price"]');
-            let vatPct = parseFloat($('#modal-detailOrderItemForm input[name="vatPct"]').val());
+                $('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="priceVat"]').on('change', function() {
+                    let priceVat = parseFloat($(this).val());
+                    let priceInput = $('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="price"]');
+                    let vatPct = parseFloat($('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="vatPct"]').val());
 
-            let price = priceVat - (priceVat * vatPct / (vatPct + 100));
-            priceInput.val(price.toFixed(2));
-        });
-    </script>
+                    let price = priceVat - (priceVat * vatPct / (vatPct + 100));
+                    priceInput.val(price.toFixed(2));
+                });
+            </script>
+        {/foreach}
+    {/foreach}
 {/block}

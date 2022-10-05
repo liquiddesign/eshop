@@ -39,8 +39,8 @@
     </td>
     <td class="d-print-none">
         <a class="btn btn-primary btn-sm text-xs modalDetailOrderItemForm"
-           data-values="{json_encode($item->toArray() + ['packageItem' => $packageItem->getPK(), 'packageItemAmount' => $packageItem->amount])}" data-toggle="modal"
-           data-target="#modal-detailOrderItemForm" href="#" title="Upravit"><i class="far fa-edit"></i></a>
+           data-toggle="modal"
+           data-target="#modal-detailOrderItemForm-{$packageItem->getPK()}" href="#" title="Upravit"><i class="far fa-edit"></i></a>
     </td>
     <td class="d-print-none">
         <a href="{plink toggleDeleteOrderItem! $packageItem->getPK()}" class="btn btn-danger btn-sm text-xs" title="Smazat" onclick="return confirm('Opravdu?')"><i

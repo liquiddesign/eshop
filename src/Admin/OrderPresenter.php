@@ -1043,66 +1043,68 @@ class OrderPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function createComponentDetailOrderItemForm(): AdminForm
+	public function createComponentDetailOrderItemForm(): Multiplier
 	{
-		$form = $this->formFactory->create();
-		$form->addHidden('packageItem');
-		$form->getCurrentGroup()->setOption('label', 'Nákup');
-		$form->addInteger('amount', 'Množství')->setRequired();
+		return new Multiplier(function ($packageItemPK): AdminForm {
+			$packageItem = $this->packageItemRepository->one($packageItemPK, true);
+			$cartItemOld = $packageItem->cartItem;
 
-		$form->addTextArea('note', 'Poznámka')->setNullable();
-		$form->addGroup('Cena za kus');
-		$form->addText('price', 'Cena bez DPH')->addRule(Form::FLOAT)->setRequired();
-		$form->addText('priceVat', 'Cena s DPH')->addRule(Form::FLOAT)->setRequired();
-		$form->addInteger('vatPct', 'DPH')->setRequired();
-		$form->addSubmits(false, false);
+			$form = $this->formFactory->create();
+			$form->getCurrentGroup()->setOption('label', 'Nákup');
+			$form->addInteger('amount', 'Množství')->setRequired()->setDefaultValue($cartItemOld->amount);
 
-		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
+			$form->addTextArea('note', 'Poznámka')->setNullable()->setDefaultValue($cartItemOld->note);
+			$form->addGroup('Cena za kus');
+			$form->addText('price', 'Cena bez DPH')->addRule(Form::FLOAT)->setRequired()->setDefaultValue($cartItemOld->price);
+			$form->addText('priceVat', 'Cena s DPH')->addRule(Form::FLOAT)->setRequired()->setDefaultValue($cartItemOld->priceVat);
+			$form->addInteger('vatPct', 'DPH')->setRequired()->setDefaultValue($cartItemOld->vatPct);
+			$form->addSubmits(false, false);
 
-			$cartItemOld = $this->cartItemRepo->one($values['uuid'], true);
-			$cartItem = clone $cartItemOld;
+			$form->onSuccess[] = function (AdminForm $form) use ($packageItem, $cartItemOld): void {
+				$values = $form->getValues('array');
+				unset($values['uuid']);
 
-			$packageItem = $this->packageItemRepository->one($values['packageItem']);
+				$cartItem = clone $cartItemOld;
 
-			foreach ($packageItem->relatedPackageItems as $relatedPackageItem) {
-				$relatedCartItem = $relatedPackageItem->cartItem;
+				foreach ($packageItem->relatedPackageItems as $relatedPackageItem) {
+					$relatedCartItem = $relatedPackageItem->cartItem;
 
-				$relatedCartItem->update(['amount' => $relatedCartItem->amount / $cartItemOld->amount * $values['amount']]);
-			}
+					$relatedCartItem->update(['amount' => $relatedCartItem->amount / $cartItemOld->amount * $values['amount']]);
+				}
 
-			$packageItem->update(['amount' => $values['amount']]);
+				$packageItem->update(['amount' => $values['amount']]);
 
-			$cartItem->update($values);
+				$cartItem->update($values);
 
-			/** @var \Eshop\DB\Order|null $order */
-			$order = $this->getParameter('order');
+				/** @var \Eshop\DB\Order|null $order */
+				$order = $this->getParameter('order');
 
-			if (!$order) {
-				return;
-			}
+				if (!$order) {
+					return;
+				}
 
-			/** @var \Admin\DB\Administrator|null $admin */
-			$admin = $this->admin->getIdentity();
+				/** @var \Admin\DB\Administrator|null $admin */
+				$admin = $this->admin->getIdentity();
 
-			if (!$admin) {
-				return;
-			}
+				if (!$admin) {
+					return;
+				}
 
-			$currencySymbol = $order->purchase->currency->symbol;
-			$amountChange = $cartItemOld->amount !== $cartItem->amount ? ' | Množství z ' . $cartItemOld->amount . ' na ' . $cartItem->amount : '';
-			$priceChange = $cartItemOld->price !== $cartItem->price ? " | Cena z $cartItemOld->price $currencySymbol na $cartItem->price $currencySymbol" : '';
-			$vatChange = $cartItemOld->vatPct !== $cartItem->vatPct ? '  | DPH z ' . $cartItemOld->vatPct . ' % na ' . $cartItem->vatPct . ' %' : '';
+				$currencySymbol = $order->purchase->currency->symbol;
+				$amountChange = $cartItemOld->amount !== $cartItem->amount ? ' | Množství z ' . $cartItemOld->amount . ' na ' . $cartItem->amount : '';
+				$priceChange = $cartItemOld->price !== $cartItem->price ? " | Cena z $cartItemOld->price $currencySymbol na $cartItem->price $currencySymbol" : '';
+				$vatChange = $cartItemOld->vatPct !== $cartItem->vatPct ? '  | DPH z ' . $cartItemOld->vatPct . ' % na ' . $cartItem->vatPct . ' %' : '';
 
-			$changes = $amountChange . $priceChange . $vatChange;
+				$changes = $amountChange . $priceChange . $vatChange;
 
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::ITEM_EDITED, $cartItem->productName . $changes, $admin);
+				$this->orderLogItemRepository->createLog($order, OrderLogItem::ITEM_EDITED, $cartItem->productName . $changes, $admin);
 
-			$this->flashMessage('Provedeno', 'success');
-			$this->redirect('this');
-		};
+				$this->flashMessage('Provedeno', 'success');
+				$this->redirect('this');
+			};
 
-		return $form;
+			return $form;
+		});
 	}
 
 	public function actionOrderEmail(Order $order): void
