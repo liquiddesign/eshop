@@ -171,6 +171,10 @@ class ProductGridFactory
 				$ribbons .= "<div class=\"badge\" style=\"font-weight: normal; font-style: italic; background-color: $ribbon->backgroundColor; color: $ribbon->color\">$ribbon->name</div> ";
 			}
 
+			if (!$product->imageFileName) {
+				$ribbons .= '<div class="badge" style="font-weight: normal; font-style: italic; background-color: orangered; color: white;">chybí hlavní obrázek</div> ';
+			}
+
 			return [
 				$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]),
 				$product->name,
