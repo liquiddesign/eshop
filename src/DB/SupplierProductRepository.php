@@ -175,7 +175,7 @@ class SupplierProductRepository extends \StORM\Repository
 				unset($currentUpdates['imageFileName']);
 			}
 
-			$product = $productRepository->syncOne($values, $currentUpdates + ['mpn' => new Literal('VALUES(mpn)')], false, null, ['categories' => false]);
+			$product = $productRepository->syncOne($values, $currentUpdates, false, null, ['categories' => false]);
 
 			$updated = $product->getParent() instanceof ICollection;
 
