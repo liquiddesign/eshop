@@ -326,7 +326,7 @@ class PPL
 				} catch (\Throwable $e) {
 					\bdump($e);
 
-					$ordersWithError[] = $order;
+					$ordersWithError[$order->code] = $order;
 
 					$delivery->update(['pplError' => true]);
 
@@ -340,7 +340,7 @@ class PPL
 
 			$order->update([
 				'pplCode' => $orderPplCodes,
-				'pplError' => \count($ordersWithError) > 0,
+				'pplError' => isset($ordersWithError[$order->code]) ? 1 : 0,
 			]);
 		}
 
