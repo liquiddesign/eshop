@@ -131,9 +131,17 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		return $this->getProducts($priceLists, $customer, $selects, $customer === null ? $this->customerGroupRepository->getUnregisteredGroup() : null);
 	}
 	
+	/**
+	 * @deprecated use getProductsAsGroup instead
+	 */
 	public function getProductAsGroup(CustomerGroup $customerGroup, bool $selects = true): Collection
 	{
-		return $this->getProducts([], null, $selects, $customerGroup);
+		return $this->getProductsAsGroup($customerGroup, $selects);
+	}
+	
+	public function getProductsAsGroup(CustomerGroup $customerGroup, bool $selects = true): Collection
+	{
+		return $this->getProducts($customerGroup->defaultPricelists->toArray(), null, $selects, $customerGroup);
 	}
 	
 	/**

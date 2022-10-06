@@ -16,8 +16,9 @@
 {else}
 {try}
     {cache expire => '1 day', tags => ['export']}
-        {var $pricelists = $presenter->getPricelistFromSetting('googleExportPricelist')}
-        {var $products = count($pricelists) ? $presenter->productRepo->getProducts($pricelists)->where('this.hidden', false) : $presenter->productRepo->getProductsAsGroup($groupAfterRegistration)}
+        {var $pricelists = $presenter->getPricelistFromSetting('googleExportPricelist', false)}
+        {var $products = $pricelists && count($pricelists) ? $presenter->productRepo->getProducts($pricelists)->where('this.hidden', false) : $presenter->productRepo->getProductsAsGroup($groupAfterRegistration)}
+        {var $pricelists = $pricelists && count($pricelists) ? $pricelists : $groupAfterRegistration->defaultPricelists->toArray()}
         {var $photos = $presenter->photoRepository->many()->where('this.googleFeed', true)->setIndex('this.fk_product')->toArray()}
         {var Web\DB\Setting|null $colorAttribute = $presenter->settingRepo->many()->where('name', 'googleColorAttribute')->first()}
         {var Web\DB\Setting|null $highlightsAttribute = $presenter->settingRepo->many()->where('name', 'googleHighlightsAttribute')->first()}
