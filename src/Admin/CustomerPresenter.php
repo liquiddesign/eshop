@@ -200,9 +200,14 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder'], false, null, 'this.uuid');
 		
-		$bulkEdits = ['pricelists', 'merchant', 'discountLevelPct', 'group'];
+		$bulkEdits = ['merchant', 'group'];
+
+		if ($this->isManager) {
+			$bulkEdits[] = 'pricelists';
+			$bulkEdits[] = 'discountLevelPct';
+		}
 		
-		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
+		if ($this->isManager && isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
 			$bulkEdits[] = 'loyaltyProgram';
 		}
 		
@@ -491,7 +496,8 @@ class CustomerPresenter extends BackendPresenter
 		$form->addText('ccEmails', 'Kopie e-mailů')->setHtmlAttribute('data-info', 'Zadejte e-mailové adresy oddělené středníkem (;).');
 		
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->many()->toArrayOf('name'))
-			->setHtmlAttribute('placeholder', 'Vyberte položky...');
+			->setHtmlAttribute('placeholder', 'Vyberte položky...')
+			->setDisabled(!$this->isManager);
 		
 		$customersForSelect = $this->customerRepository->getArrayForSelect();
 		
@@ -535,7 +541,7 @@ class CustomerPresenter extends BackendPresenter
 				->setHtmlAttribute('placeholder', 'Vyberte položky...');
 		}
 		
-		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
+		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram'] && $this->isManager) {
 			$form->addSelect2('loyaltyProgram', 'Věrnostní program', $this->loyaltyProgramRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 			//->setHtmlAttribute('data-info', 'Zadejte e-mailové adresy oddělené středníkem (;).');
 			
@@ -550,7 +556,7 @@ class CustomerPresenter extends BackendPresenter
 			}
 		}
 		
-		if (isset($this::CONFIGURATIONS['discountLevel']) && $this::CONFIGURATIONS['discountLevel']) {
+		if (isset($this::CONFIGURATIONS['discountLevel']) && $this::CONFIGURATIONS['discountLevel'] && $this->isManager) {
 			$form->addInteger('discountLevelPct', 'Sleva (%)')
 				->setHtmlAttribute(
 					'data-info',

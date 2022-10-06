@@ -259,13 +259,16 @@ class ProductGridFactory
 			'taxes',
 			'hidden',
 			'unavailable',
-			'discountLevelPct',
 			'primaryCategory',
 			'defaultReviewsCount',
 			'defaultReviewsScore',
 			'supplierDisplayAmountLock',
 			'supplierDisplayAmountMergedLock',
 		];
+
+		if (isset($configuration['isManager']) && $configuration['isManager']) {
+			$bulkColumns = \array_merge($bulkColumns, ['discountLevelPct']);
+		}
 
 		if (isset($configuration['buyCount']) && $configuration['buyCount']) {
 			$bulkColumns = \array_merge($bulkColumns, ['buyCount']);
