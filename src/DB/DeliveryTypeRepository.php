@@ -46,12 +46,13 @@ class DeliveryTypeRepository extends \StORM\Repository implements IGeneralReposi
 		float $totalWeight = 0.0
 	): Collection {
 		$allowedDeliveries = $customer ? $customer->exclusiveDeliveryTypes->toArrayOf('uuid', [], true) : null;
-		
+
 		$collection = $this->many()
 			->join(['prices' => 'eshop_deliverytypeprice'], 'prices.fk_deliveryType=this.uuid AND prices.fk_currency=:currency', ['currency' => $currency])
-			->where('prices.weightTo IS NULL OR prices.weightTo >= :weightTo', ['weightTo' => $totalWeight])
+			->where('prices.weightTo IS NULL OR prices.weightTo >= :weightTo', ['weightTo' => $weight])
 			->where('prices.dimensionTo IS NULL OR prices.dimensionTo >= :dimensionTo', ['dimensionTo' => $dimension])
 			->where('this.maxWeight IS NULL OR this.maxWeight >= :weight', ['weight' => $weight])
+			->where('this.totalMaxWeight IS NULL OR this.totalMaxWeight >= :totalWeight', ['totalWeight' => $totalWeight])
 			->where('COALESCE(this.maxLength, this.maxWidth, this.maxDepth) IS NULL OR GREATEST(this.maxLength, this.maxWidth, this.maxDepth) >= :dimension', ['dimension' => $dimension])
 			->where('hidden', false)
 			->orderBy(['priority' => 'ASC', 'weightTo' => 'DESC', 'dimensionTo' => 'DESC']);

@@ -42,6 +42,8 @@ class OrderLogItem extends \StORM\Entity
 	public const SUPPLIER_SENT = 'Odesláno dodavateli';
 	public const INVOICE_CREATED = 'Faktura vytvořena';
 	public const INVOICE_DOWNLOADED = 'Faktura stažena';
+	public const DOCUMENT_IMPORTED = 'Importován dokument';
+	public const DOCUMENT_SENT = 'Dokument odeslán';
 
 	/**
 	 * Operace
