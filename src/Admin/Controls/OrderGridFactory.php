@@ -7,6 +7,7 @@ namespace Eshop\Admin\Controls;
 use Admin\Controls\AdminGrid;
 use Admin\Controls\AdminGridFactory;
 use Admin\Helpers;
+use Eshop\BackendPresenter;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\Order;
@@ -532,58 +533,71 @@ class OrderGridFactory
 			);
 		}
 
-		if ($this->settingRepository->getValueByName('zasilkovnaApiKey') && $state !== Order::STATE_OPEN) {
-			$grid->addBulkAction('exportZasilkovna', 'exportZasilkovna', '<i class="fas fa-paper-plane"></i> Zásilkovna');
-		}
+		$grid->monitor(BackendPresenter::class, function (BackendPresenter $presenter) use ($grid, $state, $configuration): void {
+			if ($this->settingRepository->getValueByName('zasilkovnaApiKey') && $state !== Order::STATE_OPEN) {
+				$grid->addBulkAction('exportZasilkovna', 'exportZasilkovna', '<i class="fas fa-paper-plane"></i> Zásilkovna');
+			}
 
-		if (Helpers::isConfigurationActive($configuration, 'exportPPC') && $state !== Order::STATE_OPEN) {
-			$grid->addBulkAction('exportPPC', 'exportPPC', '<i class="fas fa-download"></i> PPC (CSV)');
-		}
+			if (Helpers::isConfigurationActive($configuration, 'exportPPC') && $state !== Order::STATE_OPEN) {
+				$grid->addBulkAction('exportPPC', 'exportPPC', '<i class="fas fa-download"></i> PPC (CSV)');
+			}
 
-		if (Helpers::isConfigurationActive($configuration, 'exportTargito') && $state !== Order::STATE_OPEN) {
-			$grid->addBulkAction('exportTargito', 'exportTargito', '<i class="fas fa-download"></i> Targito (CSV)');
-		}
+			if (Helpers::isConfigurationActive($configuration, 'exportTargito') && $state !== Order::STATE_OPEN) {
+				$grid->addBulkAction('exportTargito', 'exportTargito', '<i class="fas fa-download"></i> Targito (CSV)');
+			}
 
-		if (Helpers::isConfigurationActive($configuration, 'eHub') && $state !== Order::STATE_OPEN) {
-			$grid->addBulkAction('sendEHub', 'EHubSendOrders', '<i class="fas fa-paper-plane"></i> eHUB');
-		}
+			if (Helpers::isConfigurationActive($configuration, 'eHub') && $state !== Order::STATE_OPEN && $presenter->isManager) {
+				$grid->addBulkAction('sendEHub', 'EHubSendOrders', '<i class="fas fa-paper-plane"></i> eHUB');
+			}
 
-		if ($this->dpd && $state !== Order::STATE_OPEN) {
-			$grid->addBulkAction('sendDPD', 'sendDPD', '<i class="fas fa-paper-plane"></i> DPD')->setHtmlAttribute('formtarget', '_blank');
-			$grid->addBulkAction('printDPD', 'printDPD', '<i class="fas fa-print"></i> DPD')->setHtmlAttribute('formtarget', '_blank');
-		}
+			if ($this->dpd && $state !== Order::STATE_OPEN) {
+				$grid->addBulkAction('sendDPD', 'sendDPD', '<i class="fas fa-paper-plane"></i> DPD')->setHtmlAttribute('formtarget', '_blank');
+				$grid->addBulkAction('printDPD', 'printDPD', '<i class="fas fa-print"></i> DPD')->setHtmlAttribute('formtarget', '_blank');
+			}
 
-		if ($this->ppl && $state !== Order::STATE_OPEN) {
+			if (!$this->ppl || $state === Order::STATE_OPEN) {
+				return;
+			}
+
 			$grid->addBulkAction('sendPPL', 'sendPPL', '<i class="fas fa-paper-plane"></i> PPL')->setHtmlAttribute('formtarget', '_blank');
 			$grid->addBulkAction('printPPL', 'printPPL', '<i class="fas fa-print"></i> PPL')->setHtmlAttribute('formtarget', '_blank');
-		}
+		});
 
 		return $grid;
 	}
 
 	public function renderPaymentColumn(Order $order, Datagrid $grid): string
 	{
+
+		/** @var \Eshop\BackendPresenter $presenter */
+		$presenter = $grid->getPresenter();
+
 		$link = $grid->getPresenter()->link('payment', [$order]);
 
 		if (!$payment = $order->getPayment()) {
-			return '<a href="' . $link . '" class="btn btn-sm btn-outline-primary"><i class="fa fa-sm fa-plus m-1"></i>Zvolte platbu</a>';
+			return $presenter->isManager ? '<a href="' . $link . '" class="btn btn-sm btn-outline-primary"><i class="fa fa-sm fa-plus m-1"></i>Zvolte platbu</a>' : 'Zvolte platbu';
 		}
 
 		$linkPay = $grid->getPresenter()->link('changePayment!', ['payment' => (string)$payment, 'paid' => true]);
 		$linkPayPlusEmail = $grid->getPresenter()->link('changePayment!', ['payment' => (string)$payment, 'paid' => true, 'email' => true]);
 		$linkCancel = $grid->getPresenter()->link('changePayment!', ['payment' => (string)$payment, 'paid' => false]);
+		$linkCancel = $presenter->isManager ? "<a href='$linkCancel'><i class='far fa-times-circle'></i></a>" : '';
+
+		$paymentInfo = '';
 
 		if ($payment->paidTs) {
 			$date = $grid->template->getLatte()->invokeFilter('date', [$payment->paidTs]);
-			$paymentInfo = "<br><small title='Zaplaceno'><i class='fas fa-check fa-xs' style='color: green;'></i> $date <a href='$linkCancel'><i class='far fa-times-circle'></i></a></small>";
-		} else {
+			$paymentInfo = "<br><small title='Zaplaceno'><i class='fas fa-check fa-xs' style='color: green;'></i> $date $linkCancel</small>";
+		} elseif ($presenter->isManager) {
 			$paymentInfo = $this->configuration['showPay'] ?
 				"<br><small title='Nezaplaceno'><i class='fas fa-stop fa-xs' style='color: gray'></i> 
 <a href='$linkPay'>Zaplatit</a>" . (isset($this->configuration['showExtendedPay']) && $this->configuration['showExtendedPay'] ?
 					"  | <a href='$linkPayPlusEmail'>Zaplatit + e-mail</a>" : '') . '</small>' : '';
 		}
 
-		return "<a href='$link' class='" . ($payment->paidTs ? 'text-success font-weight-bold' : '') . "'>" . $payment->getTypeName() . '</a>' . $paymentInfo;
+		return $presenter->isManager ?
+			("<a href='$link' class='" . ($payment->paidTs ? 'text-success font-weight-bold' : '') . "'>" . $payment->getTypeName() . '</a>' . $paymentInfo) :
+			("<span class='" . ($payment->paidTs ? 'text-success font-weight-bold' : '') . "'>" . $payment->getTypeName() . '</span>' . $paymentInfo);
 	}
 
 	public function renderDeliveryColumn(Order $order, Datagrid $grid): string
