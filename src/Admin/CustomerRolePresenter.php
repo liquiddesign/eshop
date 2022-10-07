@@ -90,6 +90,14 @@ class CustomerRolePresenter extends BackendPresenter
 		$form->addInteger('membersFirstOrderCzk', 'Sleva na první nákup pro moje členy (Kč)');
 		//$form->addText('members_first_order_eur', 'Sleva na první nákup pro moje členy (€)');
 		$form->addInteger('membersFirstOrderPct', 'Sleva na první nákup pro moje členy (%)');
+
+		$values = [
+			'no' => 'ne',
+			'yes' => 'ano',
+			'rays_club' => 'pouze za Rays Club',
+		];
+		$form->addSelect('provisionGift', 'Dárek za první objednávku mých členů', $values);
+
 		$form->addCheckbox('allowWithdraw', 'Umožnit výběr peněz');
 
 		$form->addSubmits(!$role);
