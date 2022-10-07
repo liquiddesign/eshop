@@ -9,6 +9,7 @@ use Eshop\Controls\BuyForm;
 use Eshop\Controls\IProductsFilterFactory;
 use Eshop\Controls\ProductFilter;
 use Eshop\Controls\ProductList;
+use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\Category;
 use Eshop\DB\Producer;
 use Eshop\DB\Product;
@@ -45,6 +46,9 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 
 	/** @inject */
 	public IProductsFilterFactory $productsFilterFactory;
+
+	/** @inject */
+	public AttributeValueRepository $attributeValueRepository;
 
 	/** @persistent */
 	public string $selectedCompareCategory;
