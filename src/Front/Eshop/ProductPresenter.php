@@ -88,7 +88,9 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 		?string $tag = null,
 		?string $query = null,
 		?string $priceFrom = null,
-		?string $priceTo = null
+		?string $priceTo = null,
+		?string $attributeValue = null,
+		?array $attributes = null
 	): void {
 		if ($this->shopper->getCatalogPermission() === 'none') {
 			$this->error('You dont have permission to view catalog!', 403);
@@ -119,8 +121,26 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 		if ($priceTo) {
 			$filters['priceTo'] = $priceTo;
 		}
+
+		if ($attributeValue) {
+			$filters['attributes'] = [];
+			$attributeValues = \explode(';', $attributeValue);
+
+			foreach ($attributeValues as $attributeValue) {
+				/** @var \Eshop\DB\AttributeValue $attributeValue */
+				$attributeValue = $this->attributeValueRepository->one($attributeValue);
+
+				$filters['attributes'][$attributeValue->getValue('attribute')][] = $attributeValue->getPK();
+			}
+		}
+
+		if ($attributes) {
+			$filters['attributes'] = $attributes;
+		}
 		
 		$products->setFilters($filters);
+
+		\bdump($products->getFilters());
 	}
 	
 	public function renderList(?string $category = null, ?string $producer = null, ?string $tag = null): void
