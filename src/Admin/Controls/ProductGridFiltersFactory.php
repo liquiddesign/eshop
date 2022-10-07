@@ -147,16 +147,16 @@ class ProductGridFiltersFactory
 		}
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			if ($value === 'image') {
+			if ($value === 'mainImage') {
 				$source->where('this.imageFileName IS NOT NULL');
 			}
 
-			if ($value === 'noimage') {
+			if ($value === 'noMainImage') {
 				$source->where('this.imageFileName IS NULL');
 			}
 
 			if ($value === 'fiximage') {
-				$source->where('this.imageFileName IS NOT NULL AND this.imageNeedFix = 1');
+				$source->where('this.imageNeedFix = 1');
 			}
 
 			if ($value === 'ean') {
@@ -189,8 +189,8 @@ class ProductGridFiltersFactory
 
 			$source->where("LENGTH(this.content$suffix) > :length", ['length' => $thresholdLength])->where($expression->getSql(), $expression->getVars());
 		}, '', 'image', null, [
-			'image' => 'S obrázkem',
-			'noimage' => 'Bez obrázku',
+			'mainImage' => 'S hlavním obrázkem',
+			'noMainImage' => 'Chybí hlavní obrázek',
 			'fiximage' => 'Chybný obrázek',
 			'ean' => 'S EANem',
 			'noean' => 'Bez EANu',

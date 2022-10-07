@@ -6,6 +6,7 @@ namespace Eshop\DB;
 
 use Admin\DB\IGeneralAjaxRepository;
 use Common\DB\IGeneralRepository;
+use Eshop\Admin\SettingsPresenter;
 use Eshop\Controls\ProductFilter;
 use Eshop\Shopper;
 use InvalidArgumentException;
@@ -27,6 +28,7 @@ use StORM\ICollection;
 use StORM\Repository;
 use StORM\SchemaManager;
 use Web\DB\PageRepository;
+use Web\DB\SettingRepository;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Product>
@@ -67,6 +69,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	private AttributeValueRepository $attributeValueRepository;
 	
 	private CustomerGroupRepository $customerGroupRepository;
+
+	private SettingRepository $settingRepository;
 	
 	public function __construct(
 		Shopper $shopper,
@@ -86,7 +90,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		RelatedTypeRepository $relatedTypeRepository,
 		QuantityPriceRepository $quantityPriceRepository,
 		AttributeValueRepository $attributeValueRepository,
-		CustomerGroupRepository $customerGroupRepository
+		CustomerGroupRepository $customerGroupRepository,
+		SettingRepository $settingRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 		
@@ -106,6 +111,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$this->quantityPriceRepository = $quantityPriceRepository;
 		$this->attributeValueRepository = $attributeValueRepository;
 		$this->customerGroupRepository = $customerGroupRepository;
+		$this->settingRepository = $settingRepository;
 	}
 	
 	/**
@@ -125,9 +131,17 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		return $this->getProducts($priceLists, $customer, $selects, $customer === null ? $this->customerGroupRepository->getUnregisteredGroup() : null);
 	}
 	
+	/**
+	 * @deprecated use getProductsAsGroup instead
+	 */
 	public function getProductAsGroup(CustomerGroup $customerGroup, bool $selects = true): Collection
 	{
-		return $this->getProducts([], null, $selects, $customerGroup);
+		return $this->getProductsAsGroup($customerGroup, $selects);
+	}
+	
+	public function getProductsAsGroup(CustomerGroup $customerGroup, bool $selects = true): Collection
+	{
+		return $this->getProducts($customerGroup->defaultPricelists->toArray(), null, $selects, $customerGroup);
 	}
 	
 	/**
@@ -198,6 +212,17 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 		
 		if ($selects) {
+			$defaultDisplayAmount = $this->settingRepository->getValueByName(SettingsPresenter::DEFAULT_DISPLAY_AMOUNT);
+			$defaultUnavailableDisplayAmount = $this->settingRepository->getValueByName(SettingsPresenter::DEFAULT_UNAVAILABLE_DISPLAY_AMOUNT);
+
+			if ($defaultDisplayAmount && $defaultUnavailableDisplayAmount) {
+				$collection->select(['fk_displayAmount' => "IF(this.unavailable = '0', '$defaultDisplayAmount', '$defaultUnavailableDisplayAmount')"]);
+			} elseif ($defaultDisplayAmount) {
+				$collection->select(['fk_displayAmount' => "IF(this.unavailable = '0', '$defaultDisplayAmount', this.fk_displayAmount)"]);
+			} elseif ($defaultUnavailableDisplayAmount) {
+				$collection->select(['fk_displayAmount' => "IF(this.unavailable = '1', '$defaultUnavailableDisplayAmount', this.fk_displayAmount)"]);
+			}
+
 			$useBeforePriceCalculation = $this->shopper->getUseDiscountLevelCalculationInBeforePrice();
 			
 			$expression = \count($pricelists) > 1 ? 'LEAST(' . \implode(',', $priceSelects) . ')' : $priceSelects[0];
@@ -1276,17 +1301,17 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function getGroupedMergedProducts(): array
 	{
 
-		$products = $this->many()->select(['fkMasterProduct' => 'this.fk_masterProduct'])->toArrayOf('fkMasterProduct');
+		$products = $this->many()->select(['fkMasterProduct' => 'this.fk_masterProduct'])->fetchArray(\stdClass::class);
 
 		$productsMap = [];
 		$result = [];
 
-		foreach ($products as $productPK => $masterProductPK) {
-			if (!$masterProductPK) {
+		foreach ($products as $productPK => $masterProduct) {
+			if (!$masterProduct->fkMasterProduct) {
 				continue;
 			}
 
-			$productsMap[$masterProductPK][] = $productPK;
+			$productsMap[$masterProduct->fkMasterProduct][] = $productPK;
 		}
 
 		foreach (\array_keys($products) as $productPK) {

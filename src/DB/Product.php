@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Eshop\Admin\SettingsPresenter;
 use Nette\Application\ApplicationException;
 use Nette\Utils\DateTime;
 use StORM\Collection;
 use StORM\IEntityParent;
 use StORM\RelationCollection;
+use Web\DB\Setting;
 
 /**
  * Produkt
@@ -760,7 +762,42 @@ class Product extends \StORM\Entity
 
 	public function inStock(): bool
 	{
-		return $this->displayAmount === null || !$this->displayAmount->isSold;
+		$displayAmount = $this->getDisplayAmount();
+
+		return $displayAmount === null || !$displayAmount->isSold;
+	}
+
+	public function getDisplayAmount(): ?DisplayAmount
+	{
+		/** @var \Web\DB\SettingRepository $settingRepository */
+		$settingRepository = $this->getConnection()->findRepository(Setting::class);
+
+		$defaultDisplayAmount = $settingRepository->getValueByName(SettingsPresenter::DEFAULT_DISPLAY_AMOUNT);
+		$defaultUnavailableDisplayAmount = $settingRepository->getValueByName(SettingsPresenter::DEFAULT_UNAVAILABLE_DISPLAY_AMOUNT);
+
+		/** @var \Eshop\DB\DisplayAmountRepository $displayAmountRepository */
+		$displayAmountRepository = $this->getConnection()->findRepository(DisplayAmount::class);
+
+		if ($defaultDisplayAmount && $defaultUnavailableDisplayAmount) {
+			$defaultDisplayAmount = $displayAmountRepository->one($defaultDisplayAmount);
+			$defaultUnavailableDisplayAmount = $displayAmountRepository->one($defaultUnavailableDisplayAmount);
+
+			return $this->unavailable === false ? $defaultDisplayAmount : $defaultUnavailableDisplayAmount;
+		}
+
+		if ($defaultDisplayAmount) {
+			$defaultDisplayAmount = $displayAmountRepository->one($defaultDisplayAmount);
+
+			return $this->unavailable === false ? $defaultDisplayAmount : $this->displayAmount;
+		}
+
+		if ($defaultUnavailableDisplayAmount) {
+			$defaultUnavailableDisplayAmount = $displayAmountRepository->one($defaultUnavailableDisplayAmount);
+
+			return $this->unavailable === false ? $this->displayAmount : $defaultUnavailableDisplayAmount;
+		}
+
+		return $this->displayAmount;
 	}
 
 	public function getPrice(int $amount = 1): float

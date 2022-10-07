@@ -246,7 +246,10 @@ class ProductPresenter extends BackendPresenter
 
 	public function createComponentProductGrid(): \Grid\Datagrid
 	{
-		return $this->productGridFactory->create($this::CONFIGURATION);
+		$config = $this::CONFIGURATION;
+		$config['isManager'] = $this->isManager;
+
+		return $this->productGridFactory->create($config);
 	}
 
 	public function createComponentProductAttributesGrid(): \Grid\Datagrid

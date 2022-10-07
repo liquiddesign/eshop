@@ -142,7 +142,9 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form->addCheckbox('externalCarrier', 'Externí dopravce');
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
-		$form->addGroup('Maximální přepravní jednotka');
+		$form->addIntegerNullable('totalMaxWeight', 'Maximální celková váha objednávky');
+
+		$form->addGroup('Maximální přepravní jednotka (na 1 balík)');
 		$form->addText('maxWeight', 'Váha')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->addIntegerNullable('maxWidth', 'Šírka');
 		$form->addIntegerNullable('maxLength', 'Délka');

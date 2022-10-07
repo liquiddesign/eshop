@@ -260,18 +260,18 @@
                                 <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
                             </td>
 
-                            {ifset $product}
+                            {if isset($product) && $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default')}
                                 <td class="align-middle pl-2 pr-2">
                                    <a n:href="clearPrice! $product->getPK(), $id" title="Vymazat cenu"><i class="fas fa-sm text-danger fa-trash"></i></a>
                                 </td>
-                            {/ifset}
+                            {/if}
                         </tr>
                     {/foreach}
                 </table>
 
             </fieldset>
 
-            {ifset $form['discountLevelPct']}
+            {if isset($form['discountLevelPct']) && $presenter->isManager}
             <fieldset>
                 <legend>Slevy</legend>
                 <table class="mt-1 mb-1" style="width: auto;">
@@ -287,7 +287,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                     </tr>
                 </table>
             </fieldset>
-            {/ifset}
+            {/if}
             <fieldset>
                 <legend>Daně</legend>
 
@@ -618,7 +618,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
         <div id="suppliers-content" class="tab-pane {$presenter->editTab == 'suppliers' ? 'active show' : ''} p-0">
             <div class="row">
                 <h5>Všichni dodavatelé produktu <small>včetně sloučených produktů</small></h5>
-                <table class="table table-sm text-nowrap mt-1 mb-1" style="width: 100%;">
+                <table class="table table-sm table-responsive text-nowrap mt-1 mb-1" style="width: 100%;">
                     <tr>
                         <th>Dodavatel (Priorita)</th>
                         <th>Produkt</th>

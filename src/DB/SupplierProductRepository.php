@@ -175,7 +175,7 @@ class SupplierProductRepository extends \StORM\Repository
 				unset($currentUpdates['imageFileName']);
 			}
 
-			$product = $productRepository->syncOne($values, $currentUpdates + ['mpn' => new Literal('VALUES(mpn)')], false, null, ['categories' => false]);
+			$product = $productRepository->syncOne($values, $currentUpdates, false, null, ['categories' => false]);
 
 			$updated = $product->getParent() instanceof ICollection;
 
@@ -342,6 +342,7 @@ class SupplierProductRepository extends \StORM\Repository
 				'realDisplayAmount' => 'displayAmount.fk_displayAmount',
 				'realProducer' => 'producer.fk_producer',
 				'supplierDisplayAmountMergedLock' => 'product.supplierDisplayAmountMergedLock',
+				'product' => 'this.fk_product',
 			])
 			->where('category.fk_category IS NOT NULL')
 			->where('this.fk_product IS NOT NULL')
@@ -351,8 +352,9 @@ class SupplierProductRepository extends \StORM\Repository
 
 		foreach ($supplierProductRepository->many()->select([
 			'realDisplayAmount' => 'displayAmount.fk_displayAmount',
-		])->toArray() as $supplierProduct) {
-			$productsMapXSupplierProductsXDisplayAmount[$supplierProduct->getValue('product')][$supplierProduct->getPK()] = $supplierProduct->getValue('realDisplayAmount');
+			'product' => 'this.fk_product',
+		])->fetchArray(\stdClass::class) as $supplierProduct) {
+			$productsMapXSupplierProductsXDisplayAmount[$supplierProduct->product][$supplierProduct->uuid] = $supplierProduct->realDisplayAmount;
 		}
 
 		$mergedProductsMap = $productRepository->getGroupedMergedProducts();
@@ -360,25 +362,24 @@ class SupplierProductRepository extends \StORM\Repository
 		/** @var array<mixed> $productsXDisplayAmounts Contains products paired with all supplier display amounts */
 		$productsXDisplayAmounts = [];
 
-		/** @var \Eshop\DB\SupplierProduct $supplierProduct */
-		foreach ($supplierProducts as $supplierProduct) {
-			if (!isset($productsXDisplayAmounts[$supplierProduct->getValue('product')])) {
-				$productsXDisplayAmounts[$supplierProduct->getValue('product')] = [];
+		foreach ($supplierProducts->fetchArray(\stdClass::class) as $supplierProduct) {
+			if (!isset($productsXDisplayAmounts[$supplierProduct->product])) {
+				$productsXDisplayAmounts[$supplierProduct->product] = [];
 			}
 
-			$productsXDisplayAmounts[$supplierProduct->getValue('product')][] = $supplierProduct->getValue('realDisplayAmount');
+			$productsXDisplayAmounts[$supplierProduct->product][] = $supplierProduct->realDisplayAmount;
 
-			if ($supplierProduct->getValue('supplierDisplayAmountMergedLock')) {
+			if ($supplierProduct->supplierDisplayAmountMergedLock) {
 				continue;
 			}
 
-			foreach ($mergedProductsMap[$supplierProduct->getValue('product')] ?? [] as $mergedProduct) {
+			foreach ($mergedProductsMap[$supplierProduct->product] ?? [] as $mergedProduct) {
 				foreach ($productsMapXSupplierProductsXDisplayAmount[$mergedProduct] ?? [] as $realDisplayAmount) {
 					if (!$realDisplayAmount) {
 						continue;
 					}
 
-					$productsXDisplayAmounts[$supplierProduct->getValue('product')][] = $realDisplayAmount;
+					$productsXDisplayAmounts[$supplierProduct->product][] = $realDisplayAmount;
 				}
 			}
 		}

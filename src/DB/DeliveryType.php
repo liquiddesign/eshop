@@ -95,9 +95,15 @@ class DeliveryType extends SystemicEntity implements BoxPacker\Box
 	 * @column
 	 */
 	public bool $externalCarrier = false;
-	
+
 	/**
-	 * Max váha
+	 * Max váha celé objednávky
+	 * @column
+	 */
+	public ?float $totalMaxWeight;
+
+	/**
+	 * Max váha balíku
 	 * @column
 	 */
 	public ?float $maxWeight;

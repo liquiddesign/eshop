@@ -250,16 +250,18 @@ Ostatní: Přebírání ze zvoleného zdroje
 		$form->addText('unit', 'Prodejní jednotka')
 			->setHtmlAttribute('data-info', 'Např.: ks, ml, ...');
 
-		if (isset($configuration['discountLevel']) && $configuration['discountLevel']) {
-			$form->addInteger('discountLevelPct', 'Procentuální sleva (%)')
-				->setHtmlAttribute(
-					'data-info',
-					'Aplikuje se vždy největší z čtveřice: procentuální slevy produktu, procentuální slevy zákazníka, slevy věrnostního programu zákazníka nebo slevového kupónu.<br>
+		$this->monitor(BackendPresenter::class, function (BackendPresenter $backendPresenter) use ($form, $configuration): void {
+			if (isset($configuration['discountLevel']) && $configuration['discountLevel'] && $backendPresenter->isManager) {
+				$form->addInteger('discountLevelPct', 'Procentuální sleva (%)')
+					->setHtmlAttribute(
+						'data-info',
+						'Aplikuje se vždy největší z čtveřice: procentuální slevy produktu, procentuální slevy zákazníka, slevy věrnostního programu zákazníka nebo slevového kupónu.<br>
 Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
-				)
-				->setRequired()
-				->setDefaultValue(0);
-		}
+					)
+					->setRequired()
+					->setDefaultValue(0);
+			}
+		});
 
 		$form->addInteger('defaultBuyCount', 'Předdefinované množství')->setRequired()->setDefaultValue(1);
 		$form->addInteger('minBuyCount', 'Minimální množství')->setRequired()->setDefaultValue(1);

@@ -212,6 +212,12 @@ class Order extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Invoice>
 	 */
 	public RelationCollection $invoices;
+
+	/**
+	 * @relationNxN{"sourceViaKey":"fk_order","targetViaKey":"fk_importedDocument","via":"eshop_importeddocument_nxn_eshop_order"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\ImportedDocument>
+	 */
+	public RelationCollection $importedDocuments;
 	
 	public function getDeliveryPriceSum(): float
 	{
