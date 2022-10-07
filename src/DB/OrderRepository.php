@@ -1354,6 +1354,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$order->update([
 			'receivedTs' => $order->receivedTs ?: (string)new DateTime(),
 			'canceledTs' => (string)new DateTime(),
+			'loyaltyProgramComputedTs' => null,
 		]);
 
 		Arrays::invoke($this->onOrderCanceled, $order);
