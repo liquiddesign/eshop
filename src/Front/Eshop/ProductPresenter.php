@@ -82,8 +82,14 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 		return $products;
 	}
 	
-	public function actionList(?string $category = null, ?string $producer = null, ?string $tag = null, ?string $query = null): void
-	{
+	public function actionList(
+		?string $category = null,
+		?string $producer = null,
+		?string $tag = null,
+		?string $query = null,
+		?string $priceFrom = null,
+		?string $priceTo = null
+	): void {
 		if ($this->shopper->getCatalogPermission() === 'none') {
 			$this->error('You dont have permission to view catalog!', 403);
 		}
@@ -104,6 +110,14 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 		if ($query) {
 			$this->query = $query;
 			$filters['query'] = $query;
+		}
+
+		if ($priceFrom) {
+			$filters['priceFrom'] = $priceFrom;
+		}
+
+		if ($priceTo) {
+			$filters['priceTo'] = $priceTo;
 		}
 		
 		$products->setFilters($filters);
