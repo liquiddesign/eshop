@@ -153,4 +153,5 @@ class CustomerRolePresenter extends BackendPresenter
 		$values = $role->toArray();
 		$form->setDefaults($values);
 	}
+
 }
