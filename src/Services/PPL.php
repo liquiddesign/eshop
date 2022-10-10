@@ -228,7 +228,7 @@ class PPL
 					);
 
 					if ($isCod) {
-						$cashOnDeliveryPrice = \round($order->getTotalPriceVat() / \count($order->packages), 2);
+						$cashOnDeliveryPrice = $packageSet && $i > 1 ? 0 : \round($order->getTotalPriceVat() / \count($order->packages), 2);
 						$cashOnDeliveryCurrency = Currency::CZK;
 						$cashOnDeliveryVariableSymbol = (int)$order->code;
 
@@ -295,6 +295,7 @@ class PPL
 					}
 
 					$isCod ? $this->incrementPackageNumberCod() : $this->incrementPackageNumber();
+					$i++;
 
 					$pplCode = $result['ItemKey'];
 
@@ -353,6 +354,10 @@ class PPL
 				$purchase = $order->purchase;
 				$deliveryAddress = $purchase->deliveryAddress ?? $purchase->billAddress;
 
+				$packageSet = null;
+				$packagesCount = $order->packages->count();
+				$i = 1;
+
 				$pplCodes = \explode(',', $order->pplCode);
 				$deliveries = $this->deliveryRepository->many()->where('this.pplCode IS NOT NULL')->setIndex('this.pplCode')->where('this.fk_order', $order->getPK())->toArray();
 
@@ -388,6 +393,14 @@ class PPL
 
 					$packageNumber = $pplCode;
 
+					if ($packagesCount > 1) {
+						$packageSet = new PackageSet(
+							$packageSet === null ? $packageNumber : $packageSet->getMasterPackageNumber(),
+							$i,
+							$packagesCount,
+						);
+					}
+
 					$cityRoutingResponse = $client->getCitiesRouting($country, null, $zipCode, $street);
 
 					if (\is_array($cityRoutingResponse)) {
@@ -411,7 +424,7 @@ class PPL
 					$isCod = $pplCodType && $order->purchase->paymentType && $order->purchase->paymentType->getPK() === $pplCodType;
 
 					if ($isCod) {
-						$cashOnDeliveryPrice = \round($order->getTotalPriceVat() / \count($order->packages), 2);
+						$cashOnDeliveryPrice = $packageSet && $i > 1 ? 0 : \round($order->getTotalPriceVat() / \count($order->packages), 2);
 						$cashOnDeliveryCurrency = Currency::CZK;
 						$cashOnDeliveryVariableSymbol = (int)$order->code;
 
@@ -434,6 +447,9 @@ class PPL
 							[],
 							[],
 							[new Flag('SL', true)],
+							null,
+							null,
+							$packageSet,
 						);
 					} else {
 						$packages[] = new Package(
@@ -449,8 +465,13 @@ class PPL
 							[],
 							[],
 							[new Flag('SL', true)],
+							null,
+							null,
+							$packageSet,
 						);
 					}
+
+					$i++;
 				}
 
 				$ids[] = $order->getPK();
