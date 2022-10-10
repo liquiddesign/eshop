@@ -324,4 +324,39 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 
 		return $setProducts;
 	}
+
+	/**
+	 * @param array $ids
+	 * @return array<string, array<\Eshop\DB\Order>>
+	 */
+	public function getOrdersByIds(array $ids): array
+	{
+		$ordersByInvoiceId = [];
+		$ordersIds = [];
+		$orders = [];
+
+		$ordersXinvoices = $this->getConnection()->rows(['orderXinvoice' => 'eshop_invoice_nxn_eshop_order'])
+			->where('orderXinvoice.fk_invoice', $ids)
+			->fetchArray(\stdClass::class);
+
+		foreach ($ordersXinvoices as $item) {
+			// phpcs:ignore
+			$ordersIds[] = $item->fk_order;
+		}
+
+		/** @var \Eshop\DB\OrderRepository $orderRepository */
+		$orderRepository = $this->getConnection()->findRepository(Order::class);
+
+		/** @var \Eshop\DB\Order $order */
+		foreach ($orderRepository->many()->where('this.uuid', $ordersIds) as $order) {
+			$orders[$order->getPK()] = $order;
+		}
+
+		foreach ($ordersXinvoices as $item) {
+			// phpcs:ignore
+			$ordersByInvoiceId[$item->fk_invoice][$item->fk_order] = $orders[$item->fk_order];
+		}
+
+		return $ordersByInvoiceId;
+	}
 }
