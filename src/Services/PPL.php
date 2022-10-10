@@ -228,7 +228,7 @@ class PPL
 					}
 
 					if (!\is_array($cityRoutingResponse) || !isset($cityRoutingResponse[0])) {
-						$ordersWithError[] = $order;
+						$ordersWithError[$order->code] = $order;
 
 						continue;
 					}
@@ -237,7 +237,7 @@ class PPL
 
 					/** @codingStandardsIgnoreStart Camel caps */
 					if (!isset($cityRoutingResponse->RouteCode) || !isset($cityRoutingResponse->DepoCode) || !isset($cityRoutingResponse->Highlighted)) {
-						$ordersWithError[] = $order;
+						$ordersWithError[$order->code] = $order;
 
 						continue;
 					}
@@ -300,7 +300,7 @@ class PPL
 					if ($result['Code'] !== '0') {
 						$delivery->update(['pplError' => true]);
 
-						$ordersWithError[] = $order;
+						$ordersWithError[$order->code] = $order;
 
 						$tempDir = $this->container->getParameters()['tempDir'] . '/ppl';
 
@@ -340,7 +340,7 @@ class PPL
 
 			$order->update([
 				'pplCode' => $orderPplCodes,
-				'pplError' => isset($ordersWithError[$order->code]) ? 1 : 0,
+				'pplError' => isset($ordersWithError[$order->code]),
 			]);
 		}
 
