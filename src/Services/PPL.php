@@ -6,7 +6,6 @@ namespace Eshop\Services;
 
 use Eshop\Admin\SettingsPresenter;
 use Eshop\DB\DeliveryRepository;
-use Eshop\DB\OrderRepository;
 use Nette\Application\Application;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
@@ -71,8 +70,6 @@ class PPL
 
 	private ?Sender $sender;
 
-	private OrderRepository $orderRepository;
-
 	private DeliveryRepository $deliveryRepository;
 
 	public function __construct(
@@ -89,7 +86,6 @@ class PPL
 		?SettingRepository $settingRepository = null,
 		?Container $container = null,
 		?Application $application = null,
-		?OrderRepository $orderRepository = null,
 		?DeliveryRepository $deliveryRepository = null
 	) {
 		$this->login = $login;
@@ -105,7 +101,6 @@ class PPL
 		$this->container = $container;
 		$this->application = $application;
 		$this->sender = $sender;
-		$this->orderRepository = $orderRepository;
 		$this->secureStorage = $container->getParameters()['tempDir'];
 		$this->deliveryRepository = $deliveryRepository;
 	}
@@ -139,12 +134,6 @@ class PPL
 		$ordersCompleted = [];
 		$ordersIgnored = [];
 		$ordersWithError = [];
-
-		$packageNumberInfo = new PackageNumberInfo(
-			$this->packageSeriesNumberId,
-			Product::PPL_PARCEL_CZ_PRIVATE,
-			$this->depoCode,
-		);
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
@@ -553,14 +542,14 @@ class PPL
 	protected function getPackageNumberCod(): string
 	{
 		$packageNumberInfo = new PackageNumberInfo(
-			$this->packageSeriesNumberId,
+			$this->packageSeriesNumberIdCod,
 			Product::PPL_PARCEL_CZ_PRIVATE,
-			$this->depoCode,
+			$this->depoCodeCod,
 			true,
 		);
 
 		$packageNumber = Tools::generatePackageNumber($packageNumberInfo);
-		$packageNumber[3] = $this->nonCodType;
+		$packageNumber[3] = $this->codType;
 
 		$lastUsedPackageNumber = (int) $this->settingRepository->getValueByName(SettingsPresenter::PPL_LAST_USED_PACKAGE_NUMBER_COD);
 
