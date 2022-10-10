@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Services;
 
+use Eshop\Admin\SettingsPresenter;
 use Eshop\DB\DeliveryRepository;
 use Eshop\DB\OrderRepository;
 use Nette\Application\Application;
@@ -11,6 +12,7 @@ use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Strings;
+use Nette\Utils\Validators;
 use Salamek\PplMyApi\Api;
 use Salamek\PplMyApi\Enum\Country;
 use Salamek\PplMyApi\Enum\Currency;
@@ -20,6 +22,7 @@ use Salamek\PplMyApi\Model\CityRouting;
 use Salamek\PplMyApi\Model\Flag;
 use Salamek\PplMyApi\Model\Package;
 use Salamek\PplMyApi\Model\PackageNumberInfo;
+use Salamek\PplMyApi\Model\PackageSet;
 use Salamek\PplMyApi\Model\PaymentInfo;
 use Salamek\PplMyApi\Model\Recipient;
 use Salamek\PplMyApi\Model\Sender;
@@ -143,33 +146,6 @@ class PPL
 			$this->depoCode,
 		);
 
-		$packageNumber = Tools::generatePackageNumber($packageNumberInfo);
-		$packageNumber[3] = $this->nonCodType;
-
-		$firstAvailablePackageSeriesNumber = $this->orderRepository->many()
-			->where('this.pplCode LIKE :s', ['s' => Strings::substring($packageNumber, 0, 5) . '%'])
-			->orderBy(['this.pplCode' => 'DESC'])
-			->firstValue('pplCode');
-
-		$firstAvailablePackageSeriesNumber = $firstAvailablePackageSeriesNumber ? (int) $firstAvailablePackageSeriesNumber + 1 : (int) $packageNumber;
-
-		$packageNumberInfo = new PackageNumberInfo(
-			$this->packageSeriesNumberIdCod,
-			Product::PPL_PARCEL_CZ_PRIVATE_COD,
-			$this->depoCodeCod,
-			true,
-		);
-
-		$packageNumber = Tools::generatePackageNumber($packageNumberInfo);
-		$packageNumber[3] = $this->codType;
-
-		$firstAvailablePackageSeriesNumberCod = $this->orderRepository->many()
-			->where('this.pplCode LIKE :s', ['s' => Strings::substring($packageNumber, 0, 4) . '%'])
-			->orderBy(['this.pplCode' => 'DESC'])
-			->firstValue('pplCode');
-
-		$firstAvailablePackageSeriesNumberCod = $firstAvailablePackageSeriesNumberCod ? (int) $firstAvailablePackageSeriesNumberCod + 1 : (int) $packageNumber;
-
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
 			if (\in_array(false, Arrays::invoke($this->onBeforeOrderSent, $order), true)) {
@@ -181,6 +157,10 @@ class PPL
 			$orderPplCodes = null;
 			$purchase = $order->purchase;
 			$deliveryAddress = $purchase->deliveryAddress ?? $purchase->billAddress;
+
+			$packageSet = null;
+			$packagesCount = $order->packages->count();
+			$i = 1;
 
 			foreach ($order->packages as $package) {
 				try {
@@ -202,7 +182,15 @@ class PPL
 
 					$isCod = $pplCodType && $order->purchase->paymentType && $order->purchase->paymentType->getPK() === $pplCodType;
 
-					$packageNumber = $isCod ? $firstAvailablePackageSeriesNumberCod : $firstAvailablePackageSeriesNumber;
+					$packageNumber = $isCod ? $this->getPackageNumberCod() : $this->getPackageNumber();
+
+					if ($packagesCount > 1) {
+						$packageSet = new PackageSet(
+							$packageSet === null ? $packageNumber : $packageSet->getMasterPackageNumber(),
+							$i,
+							$packagesCount,
+						);
+					}
 
 					$country = Country::CZ;
 					$city = $deliveryAddress ? $deliveryAddress->city : '';
@@ -274,6 +262,9 @@ class PPL
 							[],
 							[],
 							[new Flag('SL', true)],
+							null,
+							null,
+							$packageSet,
 						);
 					} else {
 						$package = new Package(
@@ -289,6 +280,9 @@ class PPL
 							[],
 							[],
 							[new Flag('SL', true)],
+							null,
+							null,
+							$packageSet,
 						);
 					}
 
@@ -311,11 +305,7 @@ class PPL
 						continue;
 					}
 
-					if ($isCod) {
-						$firstAvailablePackageSeriesNumberCod++;
-					} else {
-						$firstAvailablePackageSeriesNumber++;
-					}
+					$isCod ? $this->incrementPackageNumberCod() : $this->incrementPackageNumber();
 
 					$pplCode = $result['ItemKey'];
 
@@ -538,5 +528,72 @@ class PPL
 		}
 
 		return $client;
+	}
+
+	protected function getPackageNumber(): string
+	{
+		$packageNumberInfo = new PackageNumberInfo(
+			$this->packageSeriesNumberId,
+			Product::PPL_PARCEL_CZ_PRIVATE,
+			$this->depoCode,
+		);
+
+		$packageNumber = Tools::generatePackageNumber($packageNumberInfo);
+		$packageNumber[3] = $this->nonCodType;
+
+		$lastUsedPackageNumber = (int) $this->settingRepository->getValueByName(SettingsPresenter::PPL_LAST_USED_PACKAGE_NUMBER);
+
+		if ($lastUsedPackageNumber) {
+			return (string) ($lastUsedPackageNumber + 1);
+		}
+
+		return $packageNumber;
+	}
+
+	protected function getPackageNumberCod(): string
+	{
+		$packageNumberInfo = new PackageNumberInfo(
+			$this->packageSeriesNumberId,
+			Product::PPL_PARCEL_CZ_PRIVATE,
+			$this->depoCode,
+			true,
+		);
+
+		$packageNumber = Tools::generatePackageNumber($packageNumberInfo);
+		$packageNumber[3] = $this->nonCodType;
+
+		$lastUsedPackageNumber = (int) $this->settingRepository->getValueByName(SettingsPresenter::PPL_LAST_USED_PACKAGE_NUMBER_COD);
+
+		if ($lastUsedPackageNumber) {
+			return (string) ($lastUsedPackageNumber + 1);
+		}
+
+		return $packageNumber;
+	}
+
+	protected function incrementPackageNumber(): void
+	{
+		$existingSetting = $this->settingRepository->one(['name' => SettingsPresenter::PPL_LAST_USED_PACKAGE_NUMBER]);
+
+		if (!$existingSetting || !Validators::isNumericInt($existingSetting->value)) {
+			return;
+		}
+
+		$existingSetting->update([
+			'value' => (string)(((int) $existingSetting->value) + 1),
+		]);
+	}
+
+	protected function incrementPackageNumberCod(): void
+	{
+		$existingSetting = $this->settingRepository->one(['name' => SettingsPresenter::PPL_LAST_USED_PACKAGE_NUMBER_COD]);
+
+		if (!$existingSetting || !Validators::isNumericInt($existingSetting->value)) {
+			return;
+		}
+
+		$existingSetting->update([
+			'value' => (string)(((int) $existingSetting->value) + 1),
+		]);
 	}
 }

@@ -31,6 +31,8 @@ class SettingsPresenter extends BackendPresenter
 	public const SET_RELATION_TYPE = 'advPackageRelationType';
 	public const DEFAULT_DISPLAY_AMOUNT = 'defaultDisplayAmount';
 	public const DEFAULT_UNAVAILABLE_DISPLAY_AMOUNT = 'defaultUnavailableDisplayAmount';
+	public const PPL_LAST_USED_PACKAGE_NUMBER = 'pplLastUsedPackageNumber';
+	public const PPL_LAST_USED_PACKAGE_NUMBER_COD = 'pplLastUsedPackageNumberCod';
 
 	/** @inject */
 	public Integrations $integrations;
@@ -349,6 +351,18 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 				'onSave' => function ($key, $oldValue, $newValue): void {
 					$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
 				},
+			];
+			$this->customSettings['Doprava'][] = [
+				'key' => self::PPL_LAST_USED_PACKAGE_NUMBER,
+				'label' => 'PPL - poslední použité číslo balíku',
+				'type' => 'string',
+				'info' => 'Pro následující balík PPL bude použito toto číslo + 1.',
+			];
+			$this->customSettings['Doprava'][] = [
+				'key' => self::PPL_LAST_USED_PACKAGE_NUMBER_COD,
+				'label' => 'PPL - poslední použité číslo balíku s dobírkou',
+				'type' => 'string',
+				'info' => 'Pro následující balík PPL bude použito toto číslo + 1.',
 			];
 		}
 
