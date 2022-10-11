@@ -115,6 +115,25 @@ class ProductGridFactory
 		$grid->addColumn('Název', function (Product $product, $grid) {
 			$suppliers = [];
 
+			if ($product->masterProduct) {
+				$link = $grid->getPresenter()->link(':Eshop:Admin:Product:default', ['productGrid-code' => $product->masterProduct->code]);
+
+				$suppliers[] = "<a href='$link' class='badge badge-secondary' style='font-weight: normal;'><i class='fas fa-angle-up fa-sm mr-1'></i>" . $product->masterProduct->code . '</a>';
+			}
+
+			$mergedProducts = $product->getAllMergedProducts();
+			$mergedProductsCodes = null;
+
+			foreach ($mergedProducts as $mergedProduct) {
+				$mergedProductsCodes .= $mergedProduct->code . ',';
+			}
+
+			if ($mergedProductsCodes) {
+				$mergedProductsCodes = \substr($mergedProductsCodes, 0, -1);
+
+				$suppliers[] = "<a href='#' class='badge badge-secondary' style='font-weight: normal;'><i class='fas fa-angle-down fa-sm mr-1'></i>" . $mergedProductsCodes . '</a>';
+			}
+
 			$productSuppliers = $product->supplierProducts->setIndex('this.fk_supplier')->toArray();
 
 			if ($product->supplierSource && !isset($productSuppliers[$product->getValue('supplierSource')])) {
@@ -131,7 +150,7 @@ class ProductGridFactory
 					($supplierProduct->supplier->url ? $supplierProduct->supplier->name : $supplier) . '</a>';
 			}
 
-			foreach ($product->getAllMergedProducts() as $mergedProduct) {
+			foreach ($mergedProducts as $mergedProduct) {
 				$mergedProductSuppliers = $mergedProduct->supplierProducts->toArray();
 
 				foreach ($mergedProductSuppliers as $supplierProduct) {
