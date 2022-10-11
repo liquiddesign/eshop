@@ -42,19 +42,19 @@ class RewardMove extends \StORM\Entity
 	 * Částka - doplatek +-
 	 * @column
 	 */
-	public float $price;
+	public ?float $price;
 	
 	/**
 	 * Částka - doplatek +-
 	 * @column
 	 */
-	public float $priceVat;
+	public ?float $priceVat;
 	
 	/**
 	 * Kusů +-
 	 * @column
 	 */
-	public float $productAmount;
+	public ?float $productAmount;
 	
 	/**
 	 * Nárok na produkt

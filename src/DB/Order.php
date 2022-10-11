@@ -423,4 +423,18 @@ class Order extends \StORM\Entity
 	{
 		return $this->pplError ? null : $this->pplCode;
 	}
+
+	public function isFirstOrder(): bool
+	{
+		$orderRepository = $this->getConnection()->findRepository(Order::class);
+
+		$firstOrder = $orderRepository->many()
+			->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+			->where('purchase.fk_customer', $this->purchase->customer)
+			->where('canceledTs IS NULL')
+			->orderBy(['createdTs' => 'ASC'])
+			->first();
+
+		return $firstOrder->getPK() === $this->getPK();
+	}
 }
