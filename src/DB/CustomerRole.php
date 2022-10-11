@@ -82,20 +82,4 @@ class CustomerRole extends SystemicEntity
 	 * @column
 	 */
 	public bool $allowWithdraw;
-
-	/**
-	 * Dárek jako provize
-	 * @column{"type":"enum","length":"'no','yes','rays_club'"}
-	 */
-	public ?string $provisionGift = null;
-
-	public function isAffiliateTree(): bool
-	{
-		return $this->affiliate === 'tree';
-	}
-
-	public function isAffiliateDirect(): bool
-	{
-		return $this->affiliate === 'direct';
-	}
 }
