@@ -18,6 +18,8 @@ use Web\DB\SettingRepository;
 
 class IntegrationPresenter extends BackendPresenter
 {
+	public const HEUREKA_API_KEY = 'heurekaApiKey';
+
 	protected const CONFIGURATION = [
 		'supportBox' => false,
 		'targito' => false,
@@ -243,7 +245,7 @@ class IntegrationPresenter extends BackendPresenter
 	public function createComponentHeurekaForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
-		$form->addText('heurekaApiKey', 'API klíč')->setNullable();
+		$form->addText($this::HEUREKA_API_KEY, 'API klíč')->setNullable();
 		
 		$form->addSubmit('submit', 'Uložit');
 		

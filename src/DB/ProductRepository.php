@@ -946,7 +946,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 * @return array<array<string, array<\Eshop\DB\AttributeValue>|\StORM\Entity>>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getActiveProductAttributes($product, bool $showAll = false): array
+	public function getActiveProductAttributes($product, bool $showAll = false, bool $showOnlyRecommendedAttributes = false): array
 	{
 		if (!$product instanceof Product) {
 			if (!$product = $this->one($product)) {
@@ -966,7 +966,14 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			return [];
 		}
 		
-		$attributes = $attributeRepository->getAttributesByCategory($productCategory->path, $showAll)->toArray();
+		$attributes = $attributeRepository->getAttributesByCategory($productCategory->path, $showAll);
+
+		if ($showOnlyRecommendedAttributes) {
+			$attributes->where('this.recommended', true);
+		}
+
+		$attributes = $attributes->toArray();
+
 		$attributesList = [];
 		
 		foreach ($attributes as $attributeKey => $attribute) {
