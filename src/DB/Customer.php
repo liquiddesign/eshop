@@ -442,16 +442,23 @@ class Customer extends Entity implements IIdentity, IUser
 	}
 
 	/**
-	 * @return array<mixed>|\StORM\Collection
+	 * @return array|Collection
 	 */
 	public function getMyChildUsers()
 	{
+		if($this->isAffiliateTree()) {
+			return $this->getMyTreeUsers();
+		}
+		elseif($this->isAffiliateDirect()) {
+			return $this->getMyDirectUsers();
+		}
+
 		return [];
 	}
 
 	public function getMyDirectUsers(): Collection
 	{
-		/** @var \Eshop\DB\CustomerRepository $repository */
+		/** @var Customer $repository */
 		$repository = $this->getConnection()->findRepository(Customer::class);
 
 		return $repository->many()
@@ -461,11 +468,28 @@ class Customer extends Entity implements IIdentity, IUser
 
 	public function getMyTreeUsers(): Collection
 	{
-		/** @var \Eshop\DB\CustomerRepository $repository */
+		/** @var Customer $repository */
 		$repository = $this->getConnection()->findRepository(Customer::class);
 
 		return $repository->many()
 			->where('fk_leadCustomer', $this->getPK())
 			->orderBy(['createdTs' => 'DESC']);
 	}
+
+	/**
+	 * @return bool
+	 */
+	public function isAffiliateTree(): bool {
+
+		return $this->customerRole && $this->customerRole->isAffiliateTree();
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function isAffiliateDirect(): bool {
+
+		return $this->customerRole && $this->customerRole->isAffiliateDirect();
+	}
+
 }
