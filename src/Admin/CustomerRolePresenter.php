@@ -30,19 +30,6 @@ class CustomerRolePresenter extends BackendPresenter
 
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 
-		$grid->addColumnText('Role', ['name'], '%s', 'this.name');
-		$grid->addColumnText('Affiliate', ['affiliate'], '%s', 'this.affiliate');
-		$grid->addColumnText('Fixní provize (Kč)', ['provisionCzk'], '%s Kč', 'this.provisionCzk');
-		//$grid->addColumnText('Fixní provize (€)', ['provision_eur'], '%s €', 'this.provision_eur');
-		$grid->addColumnText('Procentuální provize', ['provisionPct'], '%s%%', 'this.provisionPct');
-		$grid->addColumnText('Procentuální provize z prvního nákupu', ['firstProvisionPct'], '%s%%', 'this.firstProvisionPct');
-		$grid->addColumnText('Sleva na nákup', ['discount'], '%s%%', 'this.discount');
-		$grid->addColumnText('Sleva pro členy', ['membersDiscountPct'], '%s%%', 'this.membersDiscountPct');
-		$grid->addColumnText('Sleva pro členy na první nákup (Kč)', ['membersFirstOrderCzk'], '%s Kč', 'this.membersFirstOrderCzk');
-		//$grid->addColumnText('Sleva pro členy na první nákup (€)', ['members_first_order_eur'], '%s €', 'this.members_first_order_eur');
-		$grid->addColumnText('Sleva pro členy na první nákup (%)', ['membersFirstOrderPct'], '%s %%', 'this.membersFirstOrderPct');
-
-
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 
 
@@ -76,29 +63,6 @@ class CustomerRolePresenter extends BackendPresenter
 		$role = $this->getParameter('role');
 
 		$form->addText('name', 'Název')->setRequired();
-
-		//$form->addSelect('affiliate','Typ', ["direct" => "direct", "tree" => "tree"]);
-
-		$form->addInteger('provisionCzk', 'Fixní provize (Kč)');
-		//$form->addText('provision_eur', 'Fixní provize (€)');
-		$form->addInteger('provisionPct', 'Procentuální provize');
-		$form->addInteger('firstProvisionPct', 'Procentuální provize z prvního nákupu');
-		$form->addInteger('raysClubRepeatProvisionPct', 'Procentualní provize z opakovaných Rays Club objednávek (%)');
-
-		$form->addInteger('discount', 'Sleva na produkty');
-		$form->addInteger('membersDiscountPct', 'Procentuální sleva pro moje členy');
-		$form->addInteger('membersFirstOrderCzk', 'Sleva na první nákup pro moje členy (Kč)');
-		//$form->addText('members_first_order_eur', 'Sleva na první nákup pro moje členy (€)');
-		$form->addInteger('membersFirstOrderPct', 'Sleva na první nákup pro moje členy (%)');
-
-		$values = [
-			'no' => 'ne',
-			'yes' => 'ano',
-			'rays_club' => 'pouze za Rays Club',
-		];
-		$form->addSelect('provisionGift', 'Dárek za první objednávku mých členů', $values);
-
-		$form->addCheckbox('allowWithdraw', 'Umožnit výběr peněz');
 
 		$form->addSubmits(!$role);
 
@@ -153,5 +117,4 @@ class CustomerRolePresenter extends BackendPresenter
 		$values = $role->toArray();
 		$form->setDefaults($values);
 	}
-
 }
