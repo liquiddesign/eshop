@@ -446,6 +446,14 @@ class Customer extends Entity implements IIdentity, IUser
 	 */
 	public function getMyChildUsers()
 	{
+		if ($this->isAffiliateTree()) {
+			return $this->getMyTreeUsers();
+		}
+
+		if ($this->isAffiliateDirect()) {
+			return $this->getMyDirectUsers();
+		}
+
 		return [];
 	}
 
@@ -467,5 +475,124 @@ class Customer extends Entity implements IIdentity, IUser
 		return $repository->many()
 			->where('fk_leadCustomer', $this->getPK())
 			->orderBy(['createdTs' => 'DESC']);
+	}
+
+	public function isAffiliateTree(): bool
+	{
+		return $this->customerRole && $this->customerRole->isAffiliateTree();
+	}
+
+	public function isAffiliateDirect(): bool
+	{
+		return $this->customerRole && $this->customerRole->isAffiliateDirect();
+	}
+
+	/**
+	 * Vraci provizi jakou uzivatel dostane z objednavky
+	 * @param \Eshop\DB\Order $order
+	 * @return float|int
+	 */
+	public function getProvisionAmount(Order $order)
+	{
+		$provision = 0;
+
+		//pokud jde o opakovanou objednavku (RAYS CLUB)
+		if ($order->autoship) {
+			if ($this->customerRole->raysClubRepeatProvisionPct) {
+				$provision += $order->purchase->getSumPriceVat() * $this->customerRole->raysClubRepeatProvisionPct / 100;
+			}
+		} elseif ($order->isFirstOrder() && $this->customerRole->firstProvisionPct > 0) {
+			//pokud se jedna o prvni objednavku uzivatele a je nastavena specialni provize za prvni objednavku, pripisujeme tuto provizi
+			$provision += $order->purchase->getSumPriceVat() * $this->customerRole->firstProvisionPct / 100;
+		} else {
+			//procentualni provize
+			if ($this->customerRole->provisionPct) {
+				$provision += $order->purchase->getSumPriceVat() * $this->customerRole->provisionPct / 100;
+			}
+
+			//fixni provize CZK
+			if ($this->customerRole->provisionCzk > 0) {
+				$provision += $this->customerRole->provisionCzk;
+			}
+		}
+
+		return $provision;
+	}
+
+	/**
+	 * vrati na kolik darku zdarma ma uzivatel pravo jako provizi za prvni objednavku
+	 * @param \Eshop\DB\Order $order
+	 */
+	public function getRewardAmount(Order $order): int
+	{
+		if ($order->isFirstOrder() && $this->customerRole->provisionGift === 'yes') {
+			return 1;
+		}
+
+		if ($order->isFirstOrder() && $this->customerRole->provisionGift === 'autoship' && $order->autoship) {
+			return 1;
+		}
+
+		return 0;
+	}
+
+	public function addProvision($reason, $amount, $withVat = true, ?Currency $currency = null): void
+	{
+		/** @var \Eshop\DB\RewardMoveRepository $repository */
+		$repository = $this->getConnection()->findRepository(RewardMove::class);
+
+		$reward = [
+			'reason' => $reason,
+			'price' => isset($currency) && !$withVat ? $amount : null,
+			'priceVat' => isset($currency) && $withVat ? $amount : null,
+			'productAmount' => !isset($currency) ? $amount : null,
+			'customer' => $this,
+			'currency' => $currency,
+			'createdTs' => \date('Y-m-d H:i:s'),
+		];
+
+		$repository->createOne($reward);
+	}
+
+	/**
+	 * pripise uzivateli provizi z objednavky
+	 * @param \Eshop\DB\Order $order
+	 */
+	public function addOrderProvision(Order $order): void
+	{
+		$provision = $this->getProvisionAmount($order);
+
+		if ($provision <= 0) {
+			return;
+		}
+
+		$email = $order->purchase->email;
+
+		$this->addProvision(
+			"Provize za objednávku id. $order->id, uživatele $email",
+			$provision,
+			true,
+			$order->purchase->currency,
+		);
+	}
+
+	/**
+	 * pripise uzivateli darek na ktery ma z objednavky narok
+	 * @param \Eshop\DB\Order $order
+	 */
+	public function addOrderReward(Order $order): void
+	{
+		$rewards = $this->getRewardAmount($order);
+
+		if ($rewards <= 0) {
+			return;
+		}
+
+		$email = $order->purchase->email;
+
+		$this->addProvision(
+			"Dárek za objednávku id. $order->id, uživatele $email",
+			$rewards,
+		);
 	}
 }
