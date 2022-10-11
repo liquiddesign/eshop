@@ -442,15 +442,14 @@ class Customer extends Entity implements IIdentity, IUser
 	}
 
 	/**
-	 * @return array<mixed>|\StORM\Collection
+	 * @return array|Collection
 	 */
 	public function getMyChildUsers()
 	{
-		if ($this->isAffiliateTree()) {
+		if($this->isAffiliateTree()) {
 			return $this->getMyTreeUsers();
 		}
-
-		if ($this->isAffiliateDirect()) {
+		elseif($this->isAffiliateDirect()) {
 			return $this->getMyDirectUsers();
 		}
 
@@ -459,7 +458,7 @@ class Customer extends Entity implements IIdentity, IUser
 
 	public function getMyDirectUsers(): Collection
 	{
-		/** @var \Eshop\DB\Customer $repository */
+		/** @var Customer $repository */
 		$repository = $this->getConnection()->findRepository(Customer::class);
 
 		return $repository->many()
@@ -469,7 +468,7 @@ class Customer extends Entity implements IIdentity, IUser
 
 	public function getMyTreeUsers(): Collection
 	{
-		/** @var \Eshop\DB\Customer $repository */
+		/** @var Customer $repository */
 		$repository = $this->getConnection()->findRepository(Customer::class);
 
 		return $repository->many()
@@ -477,13 +476,20 @@ class Customer extends Entity implements IIdentity, IUser
 			->orderBy(['createdTs' => 'DESC']);
 	}
 
-	public function isAffiliateTree(): bool
-	{
+	/**
+	 * @return bool
+	 */
+	public function isAffiliateTree(): bool {
+
 		return $this->customerRole && $this->customerRole->isAffiliateTree();
 	}
 
-	public function isAffiliateDirect(): bool
-	{
+	/**
+	 * @return bool
+	 */
+	public function isAffiliateDirect(): bool {
+
 		return $this->customerRole && $this->customerRole->isAffiliateDirect();
 	}
+
 }
