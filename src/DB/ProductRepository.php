@@ -572,7 +572,17 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		
 		$collection->where($expression->getSql(), ['priceVatTo' => (float)$value]);
 	}
-	
+
+	public function filterHiddenInMenu(?bool $hiddenInMenu, ICollection $collection): void
+	{
+		if ($hiddenInMenu !== null) {
+			$collection->where('this.hiddenInMenu', $hiddenInMenu);
+		}
+	}
+
+	/**
+	 * @deprecated
+	 */
 	public function filterTag($value, ICollection $collection): void
 	{
 		$collection->join(['tags' => 'eshop_product_nxn_eshop_tag'], 'tags.fk_product=this.uuid');
@@ -615,9 +625,11 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$collection->where('this.recommended', $value);
 	}
 	
-	public function filterHidden($value, ICollection $collection): void
+	public function filterHidden(?bool $hidden, ICollection $collection): void
 	{
-		$collection->where('this.hidden', $value);
+		if ($hidden !== null) {
+			$collection->where('this.hidden', $hidden);
+		}
 	}
 	
 	public function filterRelated($values, ICollection $collection): void
@@ -1445,14 +1457,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			$writer->insertOne($row);
 		}
 	}
-	
-	/*public function filterCategory($value, ICollection $collection)
-	{
-		$collection->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=this.uuid');
-		$collection->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
-
-		$value === false ? $collection->where('categories.uuid IS NULL') : $collection->where('categories.path LIKE :category', ['category' => "$value%"]);
-	}*/
 	
 	public function isProductDeliveryFreeVat(Product $product, Currency $currency): bool
 	{
