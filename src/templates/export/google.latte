@@ -49,7 +49,7 @@
                 {/foreach}
                 <g:condition>new</g:condition>
                 <g:availability>{if $product->inStock()}in stock{else}out of stock{/if}</g:availability>
-                <g:price n:if="$mainPrice">{$mainPrice} {$pricelists[$product->pricelist]->currency->code}</g:price>
+                <g:price n:if="$mainPrice">{$mainPrice|round:2} {$pricelists[$product->pricelist]->currency->code}</g:price>
                 <g:sale_price n:if="$discountPrice && $mainPrice && $discountPrice < $mainPrice">{$discountPrice} {$pricelists[$product->pricelist]->currency->code}</g:sale_price>
                 <g:brand>{$product->producer ? $product->producer->name : null}</g:brand>
                 <g:gtin n:if="$product->ean">{$product->ean}</g:gtin>
