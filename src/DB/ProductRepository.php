@@ -126,9 +126,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function getProductsAsCustomer(?Customer $customer, bool $selects = true): Collection
 	{
-		$priceLists = $customer ? $customer->pricelists->toArray() : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricelists->toArray();
+		$priceLists = $customer ? $customer->pricelists : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricelists;
 		
-		return $this->getProducts($priceLists, $customer, $selects, $customer === null ? $this->customerGroupRepository->getUnregisteredGroup() : null);
+		return $this->getProducts($this->getValidPricelists($priceLists)->toArray(), $customer, $selects, $customer === null ? $this->customerGroupRepository->getUnregisteredGroup() : null);
 	}
 	
 	/**
@@ -141,7 +141,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function getProductsAsGroup(CustomerGroup $customerGroup, bool $selects = true): Collection
 	{
-		return $this->getProducts($customerGroup->defaultPricelists->toArray(), null, $selects, $customerGroup);
+		return $this->getProducts($this->getValidPricelists($customerGroup->defaultPricelists)->toArray(), null, $selects, $customerGroup);
 	}
 	
 	/**
@@ -1606,7 +1606,16 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		throw new InvalidArgumentException('There is no unique parameter');
 	}
-
+	
+	protected function getValidPricelists(Collection $collection): Collection
+	{
+		return $collection
+			->where('this.isActive', true)
+			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
+			->where('this.fk_currency', $this->shopper->getCurrency()->getPK())
+			->where('this.fk_country', $this->shopper->getCountry()->getPK());
+	}
+	
 	/**
 	 * @param array $products
 	 * @param string $product
