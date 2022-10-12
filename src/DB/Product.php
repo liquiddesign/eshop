@@ -451,6 +451,7 @@ class Product extends \StORM\Entity
 	 * Tagy
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\Tag>|\Eshop\DB\Tag[]
+	 * @deprecated
 	 */
 	public RelationCollection $tags;
 
