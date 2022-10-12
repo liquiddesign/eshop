@@ -921,6 +921,7 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 
 		$form->addGroup('Sloučené produkty');
 		$form->addSelect('hidden', 'Skryté', $trueFalseOptions)->setPrompt('Původní');
+		$form->addSelect('hiddenInMenu', 'Skryté v menu a vyhledávání', $trueFalseOptions)->setPrompt('Původní')->setDefaultValue(true);
 		$form->addSelect('unavailable', 'Neprodejné', $trueFalseOptions)->setPrompt('Původní');
 
 		$form->addSubmit('submit', 'Uložit');
@@ -980,7 +981,7 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 				'fk_masterProduct' => $values['mainProduct'],
 			];
 
-			foreach (['hidden', 'unavailable'] as $key) {
+			foreach (['hidden', 'unavailable', 'hiddenInMenu'] as $key) {
 				if ($values[$key] !== null) {
 					$updateValues[$key] = $values[$key];
 				}
