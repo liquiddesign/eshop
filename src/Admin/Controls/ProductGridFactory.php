@@ -256,6 +256,7 @@ class ProductGridFactory
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
+		$grid->addColumnInputCheckbox('<i title="Skryto v menu a vyhledávání" class="far fa-minus-square"></i>', 'hiddenInMenu', '', '', 'hiddenInMenu');
 		$grid->addColumnInputCheckbox('<i title="Neprodejné" class="fas fa-ban"></i>', 'unavailable', '', '', 'unavailable');
 
 		$grid->addColumnLinkDetail('edit');
@@ -277,6 +278,7 @@ class ProductGridFactory
 			'vatRate',
 			'taxes',
 			'hidden',
+			'hiddenInMenu',
 			'unavailable',
 			'primaryCategory',
 			'defaultReviewsCount',

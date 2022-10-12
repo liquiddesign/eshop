@@ -242,7 +242,11 @@ Ostatní: Přebírání ze zvoleného zdroje
 
 		$form->addText('storageDate', 'Nejbližší datum naskladnění')->setNullable(true)->setHtmlType('date');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
-		$form->addCheckbox('hidden', 'Skryto');
+		$hiddenInput = $form->addCheckbox('hidden', 'Skryto');
+		$hiddenInMenuInput = $form->addCheckbox('hiddenInMenu', 'Skryto v menu a vyhledávání');
+
+		$hiddenInMenuInput->addConditionOn($hiddenInput, $form::EQUAL, false)->toggle($hiddenInMenuInput->getHtmlId() . '-toogle');
+
 		$form->addCheckbox('recommended', 'Doporučeno')
 			->setHtmlAttribute('data-info', 'Zobrazí se na hlavní stránce.');
 
