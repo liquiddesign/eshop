@@ -280,6 +280,12 @@ class Product extends \StORM\Entity
 	public bool $hidden = false;
 
 	/**
+	 * Skryto v menu a vyhledávání, dostupné přes URL
+	 * @column
+	 */
+	public bool $hiddenInMenu = false;
+
+	/**
 	 * Doporučené
 	 * @column
 	 */
@@ -364,13 +370,6 @@ class Product extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public ?Supplier $supplierSource;
-
-//	/**
-//	 * When catalog entry use these product for content, ignores all settings from current product and use only product from relation
-//	 * @relation
-//	 * @constraint
-//	 */
-//	public ?Product $supplierContentSourceProduct;
 
 	/**
 	 * Alternativní produkt k
