@@ -27,6 +27,8 @@ use StORM\Expression;
 use StORM\ICollection;
 use StORM\Repository;
 use StORM\SchemaManager;
+use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\DB\PageRepository;
 use Web\DB\SettingRepository;
 
@@ -748,6 +750,12 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function filterRelatedTypeMaster(array $value, ICollection $collection): void
 	{
+		if (!isset($value[0]) || !isset($value[1])) {
+			Debugger::log('filterRelatedTypeMaster: missing values', ILogger::WARNING);
+
+			return;
+		}
+
 		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave', [], 'LEFT');
 		$collection->where('related.fk_master', $value[0]);
 		$collection->where('related.fk_type', $value[1]);
@@ -755,6 +763,12 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function filterRelatedTypeSlave(array $value, ICollection $collection): void
 	{
+		if (!isset($value[0]) || !isset($value[1])) {
+			Debugger::log('filterRelatedTypeMaster: missing values', ILogger::WARNING);
+
+			return;
+		}
+
 		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_master', [], 'LEFT');
 		$collection->where('related.fk_slave', $value[0]);
 		$collection->where('related.fk_type', $value[1]);
