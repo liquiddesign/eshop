@@ -40,6 +40,7 @@ use Nette\Utils\FileSystem;
 use Security\DB\AccountRepository;
 use Tracy\Debugger;
 use Tracy\ILogger;
+use Web\DB\PageRepository;
 use Web\DB\SettingRepository;
 
 abstract class ExportPresenter extends Presenter
@@ -98,6 +99,9 @@ abstract class ExportPresenter extends Presenter
 
 	/** @inject */
 	public PhotoRepository $photoRepository;
+	
+	/** @inject */
+	public PageRepository $pageRepository;
 
 	/** @inject */
 	public InvoiceRepository $invoiceRepository;
