@@ -10,10 +10,10 @@
         {var $mutationSuffix = $presenter->attributeRepository->getConnection()->getMutationSuffix()}
         <SHOP>
             <SHOPITEM n:foreach="$products as $product">
-                {var $page = $presenter->pageRepository->getPageByTypeAndParams('product_detail', ['product' => $product->getPK()])}
+                {var $page = $presenter->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product->getPK()])}
                 <ITEM_ID>{$product->getFullCode()}</ITEM_ID>
                 <PRODUCTNAME><![CDATA[{$product->name}]]></PRODUCTNAME>
-                <DESCRIPTION n:if="$page->getDescription()"><![CDATA[{\strip_tags($page->getDescription())}]]></DESCRIPTION>
+                <DESCRIPTION n:if="$page->getDescription(null)"><![CDATA[{\strip_tags($page->getDescription(null))}]]></DESCRIPTION>
                 <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
                 {var $productPhotos = isset($photos[$product->getPK()]) ? \explode(',', $photos[$product->getPK()]) : []}
                 {if $image = $product->getPreviewImage($basePath)}
