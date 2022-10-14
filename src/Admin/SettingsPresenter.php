@@ -328,10 +328,10 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 		if ($goPay) {
 			$this->customSettings['Platba'][] = [
 				'key' => self::GO_PAY_PAYMENT_TYPE,
-				'label' => 'Typy platby PaymentResult',
+				'label' => 'Typy platby GoPay',
 				'type' => 'multi',
 				'options' => $this->paymentTypeRepository->getArrayForSelect(),
-				'info' => 'Při zvolení platby typu PaymentResult bude zákazník přesměrován na platební bránu.',
+				'info' => 'Při zvolení platby typu GoPay bude zákazník přesměrován na platební bránu.',
 				'onSave' => function ($key, $oldValue, $newValue): void {
 					$this->systemicCallback($key, $oldValue, $newValue, $this->paymentTypeRepository);
 				},

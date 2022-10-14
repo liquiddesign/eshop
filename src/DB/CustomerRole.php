@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Eshop\Common\DB\SystemicEntity;
+use StORM\RelationCollection;
 
 /**
  * Role uzivatelů uživatelů
@@ -88,6 +89,12 @@ class CustomerRole extends SystemicEntity
 	 * @column{"type":"enum","length":"'no','yes','autoship'"}
 	 */
 	public ?string $provisionGift = null;
+
+	/**
+	 * @relation{"targetKey":"fk_customerRole"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\Customer>
+	 */
+	public RelationCollection $customers;
 
 	public function isAffiliateTree(): bool
 	{
