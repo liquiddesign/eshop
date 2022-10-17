@@ -9,11 +9,14 @@ use Common\DB\IGeneralRepository;
 use Eshop\Providers\Helpers;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
+use Nette\Utils\Arrays;
 use Nette\Utils\Validators;
 use Security\DB\IUserRepository;
 use Security\DB\UserRepositoryTrait;
 use StORM\Collection;
+use StORM\DIConnection;
 use StORM\ICollection;
+use StORM\SchemaManager;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Customer>
@@ -21,6 +24,43 @@ use StORM\ICollection;
 class CustomerRepository extends \StORM\Repository implements IUserRepository, IGeneralRepository, IGeneralAjaxRepository
 {
 	use UserRepositoryTrait;
+	/** @var array<callable(\Eshop\DB\Customer, array): void> */
+	public array $onBeforeCustomerUpdate = [];
+
+	/** @var array<callable(\Eshop\DB\Customer): void> */
+	public array $onAfterCustomerUpdate = [];
+
+	protected CustomerRoleRepository $customerRoleRepository;
+
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, CustomerRoleRepository $customerRoleRepository)
+	{
+		parent::__construct($connection, $schemaManager);
+
+		$this->customerRoleRepository = $customerRoleRepository;
+
+		$this->startup();
+	}
+
+	public function startup(): void
+	{
+		// Implement
+	}
+
+	public function update(Customer $customer, array $newValues = []): Customer
+	{
+		$customer = $this->one($customer->getPK(), true);
+
+		Arrays::invoke($this->onBeforeCustomerUpdate, $customer, $newValues);
+
+		if ($newValues) {
+			$customer->update($newValues);
+		}
+
+		Arrays::invoke($this->onAfterCustomerUpdate, $customer);
+
+		return $customer;
+	}
+
 	public function createNew(array $values): ?Customer
 	{
 		return $this->createOne($values);

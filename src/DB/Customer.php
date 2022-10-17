@@ -611,7 +611,6 @@ class Customer extends Entity implements IIdentity, IUser
 
 	public function getActualDiscountPct(): int
 	{
-
 		$discountPct = $this->getAllOrdersDiscountPct();
 
 		if (!$this->firstOrderDone()) {
@@ -640,6 +639,10 @@ class Customer extends Entity implements IIdentity, IUser
 	 */
 	public function getAllOrdersDiscountPct(): int
 	{
+		if (!$this->customerRole) {
+			return 0;
+		}
+
 		//moje sleva
 		$myDiscount = $this->customerRole->discount;
 
@@ -696,7 +699,12 @@ class Customer extends Entity implements IIdentity, IUser
 		return $parentDiscount;
 	}
 
-
+	public function updateActualDiscountLevel(): void
+	{
+		$this->update([
+			'discountLevelPct' => $this->getActualDiscountPct(),
+		]);
+	}
 
 
 	/**

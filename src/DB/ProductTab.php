@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use StORM\RelationCollection;
+
 /**
  * Založka produktu
  * @table
@@ -27,4 +29,10 @@ class ProductTab extends \StORM\Entity
 	 * @column
 	 */
 	public int $priority = 10;
+
+	/**
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\Pricelist>
+	 */
+	public RelationCollection $pricelists;
 }

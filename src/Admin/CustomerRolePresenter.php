@@ -107,6 +107,8 @@ class CustomerRolePresenter extends BackendPresenter
 
 			$role = $this->customerRoleRepo->syncOne($values, null, true);
 
+			$this->customerRoleRepo->updateDiscountLevelOfRoleCustomers($role);
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$role]);
 		};

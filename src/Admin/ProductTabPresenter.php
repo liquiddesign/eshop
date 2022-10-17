@@ -7,6 +7,7 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductTab;
 use Eshop\DB\ProductTabRepository;
@@ -29,6 +30,8 @@ class ProductTabPresenter extends BackendPresenter
 	/** @inject */
 	public ProductTabRepository $productTabRepository;
 
+	/** @inject */
+	public PricelistRepository $pricelistRepository;
 
 	public function createComponentGrid(): AdminGrid
 	{
@@ -64,6 +67,14 @@ class ProductTabPresenter extends BackendPresenter
 		$form->addLocaleText('name', 'Název');
 
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
+		$form->addMultiSelect2(
+			'pricelists',
+			'Ceníky',
+			$this->pricelistRepository->getArrayForSelect(),
+		)->setHtmlAttribute(
+			'data-info',
+			'Pokud necháte prázdné, budou použity výchozí ceníky dle nastavení skupin/zákazníků.',
+		);
 
 		$form->addSubmits();
 
@@ -124,6 +135,6 @@ class ProductTabPresenter extends BackendPresenter
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
-		$form->setDefaults($tab->toArray());
+		$form->setDefaults($tab->toArray(['pricelists']));
 	}
 }

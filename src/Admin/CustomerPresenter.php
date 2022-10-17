@@ -759,6 +759,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			
 			/** @var \Eshop\DB\Customer $customer */
 			$customer = $this->customerRepository->syncOne($values, null, true);
+
+			$this->customerRepository->update($customer);
 			
 			$form->getPresenter()->flashMessage('Uloženo', 'success');
 			$form->processRedirect('edit', 'default', [$customer]);

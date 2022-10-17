@@ -29,22 +29,18 @@ class CustomerRoleRepository extends \StORM\Repository implements IGeneralReposi
 		return $this->many()->orderBy(['name']);
 	}
 
-	/**
-	 * @TODO
-	 */
-	public function getCustomerDiscountLevelPct(Customer $customer, CustomerRole $customerRole): int
+	public function updateDiscountLevelOfAllRoles(): void
 	{
-		unset($customer);
-		unset($customerRole);
-
-		return 10;
+		foreach ($this->many() as $customerRole) {
+			$this->updateDiscountLevelOfRoleCustomers($customerRole);
+		}
 	}
 
 	public function updateDiscountLevelOfRoleCustomers(CustomerRole $customerRole): void
 	{
 		foreach ($customerRole->customers as $customer) {
 			$customer->update([
-				'discountLevelPct' => $this->getCustomerDiscountLevelPct($customer, $customerRole),
+				'discountLevelPct' => $customer->getActualDiscountPct(),
 			]);
 		}
 	}
