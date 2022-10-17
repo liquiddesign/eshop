@@ -94,7 +94,7 @@ class CustomerRolePresenter extends BackendPresenter
 		$values = [
 			'no' => 'ne',
 			'yes' => 'ano',
-			'rays_club' => 'pouze za Rays Club',
+			'autoship' => 'pouze za Rays Club',
 		];
 		$form->addSelect('provisionGift', 'Dárek za první objednávku mých členů', $values);
 
@@ -106,8 +106,6 @@ class CustomerRolePresenter extends BackendPresenter
 			$values = $form->getValues('array');
 
 			$role = $this->customerRoleRepo->syncOne($values, null, true);
-
-			$this->customerRoleRepo->updateDiscountLevelOfRoleCustomers($role);
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$role]);

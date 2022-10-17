@@ -595,4 +595,98 @@ class Customer extends Entity implements IIdentity, IUser
 			$rewards,
 		);
 	}
+
+	public function firstOrderDone(): bool
+	{
+		$orderRepository = $this->getConnection()->findRepository(Order::class);
+
+		$firstOrder = $orderRepository->many()
+			->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+			->where('purchase.fk_customer', $this)
+			->where('canceledTs IS NULL')
+			->first();
+
+		return $firstOrder !== null;
+	}
+
+	public function getActualDiscountPct(): int
+	{
+
+		$discountPct = $this->getAllOrdersDiscountPct();
+
+		if (!$this->firstOrderDone()) {
+			$firstOrderDiscountPct = $this->getFirstOrderDiscountPct();
+
+			return $firstOrderDiscountPct > $discountPct ? $firstOrderDiscountPct : $discountPct;
+		}
+
+		return $discountPct;
+	}
+
+	/**
+	 * Ziska slevu na produkty, kombinuje slevu se slevou na prvni objednavku
+	 * @return int
+	 */
+	/*public function getDiscountPct() {
+		//moje sleva
+		$discount = $this->getAllOrdersDiscountPct();
+		$firstOrderDiscount = $this->getFirstOrderDiscountPct();
+
+		return ($firstOrderDiscount > $discount) ? $firstOrderDiscount : $discount;
+	}*/
+
+	/**
+	 * Ziska procentualni slevu na vsechny objednavky
+	 */
+	public function getAllOrdersDiscountPct(): int
+	{
+		//moje sleva
+		$myDiscount = $this->customerRole->discount;
+
+		if ($this->leadCustomer) {
+			if ($this->leadCustomer->customerRole->membersDiscountPct > $myDiscount) {
+				$myDiscount = $this->leadCustomer->customerRole->membersDiscountPct;
+			}
+		}
+
+		if ($this->parentCustomer) {
+			if ($this->parentCustomer->customerRole->membersDiscountPct > $myDiscount) {
+				$myDiscount = $this->parentCustomer->customerRole->membersDiscountPct;
+			}
+		}
+
+		return $myDiscount;
+	}
+
+	/**
+	 * Ziska procentualni slevu na prvni objednavku
+	 */
+	public function getFirstOrderDiscountPct(): int
+	{
+
+		$parentDiscount = 0;
+
+		if ($this->leadCustomer) {
+			$parentDiscount = $this->leadCustomer->customerRole->membersFirstOrderPct;
+		}
+
+		if ($this->parentCustomer) {
+			if ($this->parentCustomer->customerRole->membersFirstOrderPct > $parentDiscount) {
+				$parentDiscount = $this->parentCustomer->customerRole->membersFirstOrderPct;
+			}
+		}
+
+		return $parentDiscount;
+	}
+
+
+
+
+	/**
+	 Sleva na produkty - discount
+	Procentuální sleva pro moje členy - membersDiscountPct
+
+	Sleva na první nákup pro moje členy (Kč) - membersFirstOrderCzk
+	Sleva na první nákup pro moje členy (%) - membersFirstOrderPct
+	 */
 }
