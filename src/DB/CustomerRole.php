@@ -64,7 +64,7 @@ class CustomerRole extends SystemicEntity
 	 * Procentuální sleva pro členy na první objednávku
 	 * @column
 	 */
-	public float $membersFirstOrderPct;
+	public int $membersFirstOrderPct;
 
 	/**
 	 * sleva na produkty v %
@@ -76,7 +76,7 @@ class CustomerRole extends SystemicEntity
 	 * Procentualni provize z opakovanych rays club objednavek
 	 * @column
 	 */
-	public float $raysClubRepeatProvisionPct;
+	public int $raysClubRepeatProvisionPct;
 
 	/**
 	 * Umožnit výběr peněz
