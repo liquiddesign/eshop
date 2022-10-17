@@ -679,6 +679,23 @@ class Customer extends Entity implements IIdentity, IUser
 		return $parentDiscount;
 	}
 
+	public function getFirstOrderDiscountFix(): float
+	{
+		$parentDiscount = 0;
+
+		if ($this->leadCustomer) {
+			$parentDiscount = $this->leadCustomer->customerRole->membersFirstOrderCzk;
+		}
+
+		if ($this->parentCustomer) {
+			if ($this->parentCustomer->customerRole->membersFirstOrderCzk > $parentDiscount) {
+				$parentDiscount = $this->parentCustomer->customerRole->membersFirstOrderCzk;
+			}
+		}
+
+		return $parentDiscount;
+	}
+
 
 
 
