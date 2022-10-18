@@ -49,6 +49,7 @@ class ApiGeneratorDiscountCoupon extends \StORM\Entity
 	/**
 	 * Poslední využití
 	 * @column{"type":"timestamp"}
+	 * @deprecated use lastUsageTs
 	 */
 	public ?string $usedTs;
 
