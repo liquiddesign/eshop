@@ -1198,13 +1198,13 @@ class CheckoutManager
 	
 	public function getPurchase(bool $needed = false): ?Purchase
 	{
-		$purchase = $this->getCart()->purchase;
-		
+		$purchase = $this->getCart()->getValue('purchase');
+
 		if ($needed && !$purchase) {
 			throw new \DomainException('purchase is not created yet');
 		}
 		
-		return $purchase;
+		return $purchase ? $this->purchaseRepository->one($purchase) : null;
 	}
 	
 	public function setDeliveryAddress(?Address $address): void

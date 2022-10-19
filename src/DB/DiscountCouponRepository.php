@@ -89,7 +89,7 @@ class DiscountCouponRepository extends \StORM\Repository
 		}
 
 		$productsInCart = \array_keys($this->cartItemRepository->many()->where('this.fk_cart', $cart->getPK())->setIndex('fk_product')->toArrayOf('product'));
-		$conditions = $this->discountConditionRepository->many()->where('this.fk_discountCoupon', $coupon->getPK());
+		$conditions = $this->discountConditionRepository->many()->where('this.fk_discountCoupon', $coupon->getPK())->toArray();
 
 		$conditionType = $coupon->conditionsType;
 		$valid = $conditionType === 'and';
@@ -171,6 +171,6 @@ class DiscountCouponRepository extends \StORM\Repository
 			$valid = $valid || $conditionValid;
 		}
 
-		return $valid ? $coupon : null;
+		return !$conditions ? $coupon : ($valid ? $coupon : null);
 	}
 }

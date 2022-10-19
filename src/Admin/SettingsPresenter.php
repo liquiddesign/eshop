@@ -9,6 +9,7 @@ use Admin\Controls\AdminForm;
 use Eshop\Admin\Controls\ProductForm;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\DeliveryTypeRepository;
+use Eshop\DB\DiscountRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\RelatedTypeRepository;
@@ -33,6 +34,7 @@ class SettingsPresenter extends BackendPresenter
 	public const DEFAULT_UNAVAILABLE_DISPLAY_AMOUNT = 'defaultUnavailableDisplayAmount';
 	public const PPL_LAST_USED_PACKAGE_NUMBER = 'pplLastUsedPackageNumber';
 	public const PPL_LAST_USED_PACKAGE_NUMBER_COD = 'pplLastUsedPackageNumberCod';
+	public const DEFAULT_DISCOUNT = 'defaultDiscount';
 
 	/** @inject */
 	public Integrations $integrations;
@@ -54,6 +56,9 @@ class SettingsPresenter extends BackendPresenter
 
 	/** @inject */
 	public RelatedTypeRepository $relatedTypeRepository;
+
+	/** @inject */
+	public DiscountRepository $discountRepository;
 
 	/**
 	 * @var array<string|array<mixed>>
@@ -317,6 +322,18 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti produktu a řídí se pouze možností Nedostupné.',
 					'onSave' => function ($key, $oldValue, $newValue): void {
 						$this->systemicCallback($key, $oldValue, $newValue, $this->displayAmountRepository);
+					},
+				],
+			],
+			'Akce' => [
+				[
+					'key' => self::DEFAULT_DISCOUNT,
+					'label' => 'Výchozí akce',
+					'type' => 'select',
+					'options' => $this->discountRepository->getArrayForSelect(),
+					'info' => 'Výchozí akce pro různé operace se slevami a kupóny.',
+					'onSave' => function ($key, $oldValue, $newValue): void {
+						$this->systemicCallback($key, $oldValue, $newValue, $this->discountRepository);
 					},
 				],
 			],

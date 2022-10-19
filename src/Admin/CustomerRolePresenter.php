@@ -85,8 +85,8 @@ class CustomerRolePresenter extends BackendPresenter
 		$form->addInteger('firstProvisionPct', 'Procentuální provize z prvního nákupu');
 		$form->addInteger('raysClubRepeatProvisionPct', 'Procentualní provize z opakovaných Rays Club objednávek (%)');
 
-		$form->addInteger('discount', 'Sleva na produkty');
-		$form->addInteger('membersDiscountPct', 'Procentuální sleva pro moje členy');
+		$form->addInteger('discount', 'Sleva na produkty (%)');
+		$form->addInteger('membersDiscountPct', 'Sleva pro moje členy (%)');
 		$form->addInteger('membersFirstOrderCzk', 'Sleva na první nákup pro moje členy (Kč)');
 		//$form->addText('members_first_order_eur', 'Sleva na první nákup pro moje členy (€)');
 		$form->addInteger('membersFirstOrderPct', 'Sleva na první nákup pro moje členy (%)');

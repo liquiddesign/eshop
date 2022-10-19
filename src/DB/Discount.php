@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Eshop\Common\DB\SystemicEntity;
 use StORM\RelationCollection;
 
 /**
  * Slevová akce
  * @table
  */
-class Discount extends \StORM\Entity
+class Discount extends SystemicEntity
 {
 	/**
 	 * Název
