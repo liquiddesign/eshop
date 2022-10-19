@@ -16,6 +16,7 @@ use Eshop\DB\OrderLogItemRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\Integration\Integrations;
+use Eshop\Integration\Zbozi;
 use Eshop\Services\DPD;
 use Eshop\Services\PPL;
 use Eshop\Shopper;
@@ -69,6 +70,8 @@ class OrderGridFactory
 
 	private ?PPL $ppl = null;
 
+	private ?Zbozi $zbozi = null;
+
 	private Container $container;
 	
 	/** @var array<mixed> */
@@ -109,8 +112,9 @@ class OrderGridFactory
 	public function create(string $state, array $configuration = [], array $orderStatesNames = [], array $orderStatesEvents = []): Datagrid
 	{
 		$this->configuration = $configuration;
-		$this->dpd = $this->integrations->getService('dpd');
-		$this->ppl = $this->integrations->getService('ppl');
+		$this->dpd = $this->integrations->getService(Integrations::DPD);
+		$this->ppl = $this->integrations->getService(Integrations::PPL);
+		$this->zbozi = $this->integrations->getService(Integrations::ZBOZI);
 
 		$stateOpen = $configuration['orderStates'][Order::STATE_OPEN] ?? $orderStatesNames[Order::STATE_OPEN] ?? 'Otevřít';
 		$stateReceived = $configuration['orderStates'][Order::STATE_RECEIVED] ?? $orderStatesNames[Order::STATE_RECEIVED] ?? 'Přijmout';
@@ -348,9 +352,11 @@ class OrderGridFactory
 				'</a>';
 		});
 
-//		$grid->addColumn('', function (Order $order) use ($grid) {
-//			return $grid->getPresenter()->link('printDetail', $order);
-//		}, "<a class='$btnSecondary' href='%s'><i class='fa fa-search'></i> Detail</a>", null, ['class' => 'minimal']);
+		if ($this->zbozi && $this->zbozi->isInitialized()) {
+			$grid->addColumn('Zboží.cz odesl.', function (Order $order) {
+				return $order->zboziConversionSent ? '<i class="fa fa-check text-success"></i>' : '<i class="fa fa-times text-danger"></i>';
+			}, '%s', null, ['class' => 'fit']);
+		}
 
 		if (isset($configuration['printInvoices']) && $configuration['printInvoices'] && $state !== Order::STATE_OPEN) {
 			$grid->addColumn('Tisk', function (Order $order, AdminGrid $datagrid) {
