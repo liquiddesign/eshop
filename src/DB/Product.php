@@ -854,13 +854,23 @@ class Product extends \StORM\Entity
 		return $this->quantityPrices->where('validFrom IS NOT NULL')->orderBy(['validFrom' => 'ASC'])->toArray();
 	}
 
-	public function getPreviewImage(string $basePath, string $size = 'detail'): string
+	/**
+	 * @param string $basePath
+	 * @param string $size
+	 * @param bool $fallbackImageSupplied If true, it is expected that property fallbackImage is set on object, otherwise it is selected manually
+	 * @throws \Nette\Application\ApplicationException
+	 */
+	public function getPreviewImage(string $basePath, string $size = 'detail', bool $fallbackImageSupplied = true): string
 	{
 		if (!\in_array($size, ['origin', 'detail', 'thumb'])) {
 			throw new ApplicationException('Invalid product image size: ' . $size);
 		}
 
-		$image = $this->imageFileName ?: ($this->__isset('fallbackImage') ? $this->getValue('fallbackImage') : null);
+		$fallbackImage = $fallbackImageSupplied ?
+			($this->__isset('fallbackImage') ? $this->getValue('fallbackImage') : null) :
+			($this->primaryCategory ? $this->primaryCategory->productFallbackImageFileName : null);
+
+		$image = $this->imageFileName ?: $fallbackImage;
 		$dir = $this->imageFileName ? Product::GALLERY_DIR : Category::IMAGE_DIR;
 
 		return $image ? "$basePath/userfiles/$dir/$size/$image" : "$basePath/public/img/no-image.png";
