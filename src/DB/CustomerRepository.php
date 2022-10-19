@@ -200,16 +200,4 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 			->setPage($page ?? 1, 5)
 			->toArrayOf('extendedName');
 	}
-
-	/**
-	 * Zda má uživatel nějaký aktivní autoship
-	 */
-	public function hasActiveAutoship(Customer $customer): bool
-	{
-		$autoships = $this->getConnection()->findRepository(Autoship::class)
-			->many()
-			->where('active=1 AND activeFrom<NOW() AND purchase.fk_customer=:uuid', ['uuid' => $customer->getPK()]);
-
-		return (bool) \count($autoships);
-	}
 }

@@ -494,6 +494,10 @@ class Customer extends Entity implements IIdentity, IUser
 	 */
 	public function getProvisionAmount(Order $order)
 	{
+		if (!$this->hasActiveAutoship()) {
+			return 0;
+		}
+
 		$provision = 0;
 
 		//pokud jde o opakovanou objednavku (RAYS CLUB)
@@ -525,6 +529,10 @@ class Customer extends Entity implements IIdentity, IUser
 	 */
 	public function getRewardAmount(Order $order): int
 	{
+		if (!$this->hasActiveAutoship()) {
+			return 0;
+		}
+
 		if ($order->isFirstOrder() && $this->customerRole->provisionGift === 'yes') {
 			return 1;
 		}
@@ -706,12 +714,15 @@ class Customer extends Entity implements IIdentity, IUser
 		]);
 	}
 
-
 	/**
-	 Sleva na produkty - discount
-	Procentuální sleva pro moje členy - membersDiscountPct
-
-	Sleva na první nákup pro moje členy (Kč) - membersFirstOrderCzk
-	Sleva na první nákup pro moje členy (%) - membersFirstOrderPct
+	 * Zda má uživatel nějaký aktivní autoship
 	 */
+	public function hasActiveAutoship(): bool
+	{
+		$autoships = $this->getConnection()->findRepository(Autoship::class)
+			->many()
+			->where('active=1 AND activeFrom<NOW() AND purchase.fk_customer=:uuid', ['uuid' => $this->getPK()]);
+
+		return (bool) \count($autoships);
+	}
 }
