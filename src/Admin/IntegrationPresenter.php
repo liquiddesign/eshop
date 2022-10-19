@@ -19,6 +19,8 @@ use Web\DB\SettingRepository;
 class IntegrationPresenter extends BackendPresenter
 {
 	public const HEUREKA_API_KEY = 'heurekaApiKey';
+	public const ZBOZI_API_KEY = 'zboziApiKey';
+	public const ZBOZI_STORE_ID = 'zboziStoreId';
 
 	protected const CONFIGURATION = [
 		'supportBox' => false,
@@ -55,6 +57,7 @@ class IntegrationPresenter extends BackendPresenter
 			'@zasilkovna' => 'Zásilkovna',
 			'@mailerLite' => 'MailerLite',
 			'@heureka' => 'Heureka',
+			'@zbozi' => 'Zboží',
 			'@algolia' => 'Algolia',
 		];
 		
@@ -121,6 +124,14 @@ class IntegrationPresenter extends BackendPresenter
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('heurekaForm');
 		
+		$form->setDefaults($this->settingsRepo->many()->setIndex('name')->toArrayOf('value'));
+	}
+
+	public function actionZbozi(): void
+	{
+		/** @var \Admin\Controls\AdminForm $form */
+		$form = $this->getComponent('zboziForm');
+
 		$form->setDefaults($this->settingsRepo->many()->setIndex('name')->toArrayOf('value'));
 	}
 	
@@ -241,6 +252,28 @@ class IntegrationPresenter extends BackendPresenter
 		
 		return $form;
 	}
+
+	public function createComponentZboziForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+		$form->addText($this::ZBOZI_API_KEY, 'API klíč')->setNullable();
+		$form->addText($this::ZBOZI_STORE_ID, 'ID provozovny')->setNullable();
+
+		$form->addSubmit('submit', 'Uložit');
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			$values = $form->getValues('array');
+
+			foreach ($values as $key => $value) {
+				$this->settingsRepo->syncOne(['name' => $key, 'value' => $value]);
+			}
+
+			$this->flashMessage('Nastavení uloženo', 'success');
+			$form->processRedirect('zbozi');
+		};
+
+		return $form;
+	}
 	
 	public function createComponentHeurekaForm(): AdminForm
 	{
@@ -307,6 +340,17 @@ class IntegrationPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('heurekaForm')];
+	}
+
+	public function renderZbozi(): void
+	{
+		$this->template->headerLabel = 'Integrace';
+		$this->template->headerTree = [
+			['Integrace'],
+			['Zboží'],
+		];
+		$this->template->displayButtons = [];
+		$this->template->displayControls = [$this->getComponent('zboziForm')];
 	}
 	
 	public function renderTargito(): void

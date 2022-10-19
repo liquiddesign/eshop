@@ -1,0 +1,19 @@
+{varType Eshop\DB\Order $order}
+{varType Eshop\Integration\Zbozi $zbozi}
+
+{if $zbozi->isInitialized()}
+    <script type="text/javascript" src="https://c.seznam.cz/js/rc.js"></script>
+    <script>
+        var conversionConf = {
+            zboziId: {$zbozi->storeId}, // ID provozovny na Zboží
+            orderId: {$order->code},  // Číslo objednávky
+            zboziType: {$zbozi->sandbox ? "sandbox" : "standard"}, // Typ měření konverzí Zboží.cz, pro testovací režim uvádějte "sandbox"
+            // consent: SOUHLAS, // Souhlas od návštěvníka na odeslání konverzního hitu
+        };
+
+        // Ujistěte se, že metoda existuje, předtím než ji zavoláte
+        if (window.rc && window.rc.conversionHit) {
+            window.rc.conversionHit(conversionConf);
+        }
+    </script>
+{/if}

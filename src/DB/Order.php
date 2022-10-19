@@ -143,6 +143,11 @@ class Order extends \StORM\Entity
 	 * @column
 	 */
 	public bool $highlighted = false;
+
+	/**
+	 * @column
+	 */
+	public bool $zboziConversionSent = false;
 	
 	/**
 	 * Započítán loyalty program

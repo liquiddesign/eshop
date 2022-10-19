@@ -46,7 +46,8 @@
 		"setasign/fpdf": "^1.8",
 		"setasign/fpdi": "^2.0",
 		"dvdoug/boxpacker": "^3.9",
-		"markette/gopay-inline": "^2.1"
+		"markette/gopay-inline": "^2.1",
+		"soukicz/zbozicz": "^1.2"
 	},
 	"require-dev": 
 	{
