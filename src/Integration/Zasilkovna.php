@@ -321,9 +321,11 @@ class Zasilkovna
 		\bdump($xmlResponse);
 
 		if ((string)$xmlResponse->status !== 'ok') {
+			$order->update(['zasilkovnaCompleted' => false, 'zasilkovnaError' => 'Chyba při odesílání pomocí API!',]);
+
 			throw new \Exception("Order {$order->code} error sending!");
 		}
 
-		$order->update(['zasilkovnaCompleted' => true]);
+		$order->update(['zasilkovnaCompleted' => true, 'zasilkovnaError' => null,]);
 	}
 }

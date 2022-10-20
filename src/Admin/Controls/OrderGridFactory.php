@@ -303,15 +303,6 @@ class OrderGridFactory
 			$grid->addColumnAction('CSV', $downloadIco, [$this, 'downloadCsv'], [], null, ['class' => 'minimal']);
 		}
 
-		if ($this->settingRepository->getValueByName('zasilkovnaApiKey') && $state !== Order::STATE_OPEN) {
-			$grid->addColumn('Zás', function (Order $order, AdminGrid $datagrid) {
-				return '<button type="button" role="button" class="btn btn-sm btn-outline-' .
-					($order->zasilkovnaCompleted ? 'success' : (!$order->purchase->zasilkovnaId ? 'secondary' : 'primary')) . '" data-toggle="tooltip" data-placement="bottom">
-				<i class="fas fa-' . ($order->zasilkovnaCompleted ? 'check' : ($order->purchase->zasilkovnaId ? 'question' : 'times')) . '"></i>
-				</button>';
-			}, '%s', 'this.dpdCode', ['class' => 'fit']);
-		}
-
 		if ($this->dpd && $state !== Order::STATE_OPEN) {
 			$tempDir = $this->container->getParameters()['tempDir'] . '/dpd/';
 
@@ -642,7 +633,16 @@ class OrderGridFactory
 		}
 
 		if ($order->purchase->zasilkovnaId) {
-			return "<a href='$link'>" . $delivery->getTypeName() . '</a> - ' . $order->purchase->zasilkovnaId . " <small> $date</small>" . $deliveryInfo;
+			$zasilkovnaState = null;
+
+			if ($this->settingRepository->getValueByName('zasilkovnaApiKey') && $order->getState() !== Order::STATE_OPEN) {
+				$icon = $order->zasilkovnaCompleted ? 'check' : ($order->zasilkovnaError ? 'times' : 'question');
+				$title = $order->zasilkovnaCompleted ? 'Úspešně odesláno' : ($order->zasilkovnaError ?: 'Neznámý stav - objednávka nebyla odeslána ani exportována');
+				$color = $order->zasilkovnaCompleted ? 'success' : ($order->zasilkovnaError ? 'danger' : 'secondary');
+				$zasilkovnaState = "<i class='ml-2 fas fa-$icon fa-sm text-$color' title='$title'></i>";
+			}
+
+			return "<a href='$link'>" . $delivery->getTypeName() . '</a> - ' . $order->purchase->zasilkovnaId . $zasilkovnaState . " <small> $date</small>" . $deliveryInfo;
 		}
 
 		return "<a href='$link'>" . $delivery->getTypeName() . "</a> <small> $date</small>" . $deliveryInfo;
