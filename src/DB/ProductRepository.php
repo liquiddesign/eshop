@@ -145,6 +145,16 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	{
 		return $this->getProducts($this->getValidPricelists($customerGroup->defaultPricelists)->toArray(), null, $selects, $customerGroup);
 	}
+
+	public function getDiscountPct(?Customer $customer = null, ?CustomerGroup $customerGroup = null, ?DiscountCoupon $discountCoupon = null): int
+	{
+		$discountCoupon ??= $this->shopper->discountCoupon;
+		$customer = $customerGroup ? $customer : ($customer ?: $this->shopper->getCustomer());
+		$customerGroup ??= $this->shopper->getCustomerGroup();
+		$customerDiscount = $customer ? $this->getBestDiscountLevel($customer) : ($customerGroup ? $customerGroup->defaultDiscountLevelPct : 0);
+
+		return \max($discountCoupon && $discountCoupon->discountPct ? (int)$discountCoupon->discountPct : 0, $customerDiscount);
+	}
 	
 	/**
 	 * @param \Eshop\DB\Pricelist[]|null $pricelists
@@ -166,11 +176,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$pricelists ??= $this->shopper->getPricelists()->toArray();
 		$pricelists = \array_values($pricelists);
 		$customer = $customerGroup ? $customer : ($customer ?: $this->shopper->getCustomer());
-		
-		$customerDiscount = $customer ? $this->getBestDiscountLevel($customer) : ($customerGroup ? $customerGroup->defaultDiscountLevelPct : 0);
+
 		$customerGroup ??= $this->shopper->getCustomerGroup();
 		
-		$discountLevelPct = \max($discountCoupon && $discountCoupon->discountPct ? (int)$discountCoupon->discountPct : 0, $customerDiscount);
+		$discountLevelPct = $this->getDiscountPct($customer, $customerGroup, $discountCoupon);
 		$maxProductDiscountLevel = $customer ? $customer->maxDiscountProductPct : ($customerGroup ? $customerGroup->defaultMaxDiscountProductPct : 100);
 		$vatRates = $this->shopper->getVatRates();
 		$prec = $currency->calculationPrecision;
@@ -224,8 +233,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			} elseif ($defaultUnavailableDisplayAmount) {
 				$collection->select(['fk_displayAmount' => "IF(this.unavailable = '1', '$defaultUnavailableDisplayAmount', this.fk_displayAmount)"]);
 			}
-
-			$useBeforePriceCalculation = $this->shopper->getUseDiscountLevelCalculationInBeforePrice();
 			
 			$expression = \count($pricelists) > 1 ? 'LEAST(' . \implode(',', $priceSelects) . ')' : $priceSelects[0];
 			
@@ -246,12 +253,12 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			$sqlDiscountLevel = "100/(100-IF($discountLevelPct > LEAST(this.discountLevelPct, $maxProductDiscountLevel),$discountLevelPct,LEAST(this.discountLevelPct, $maxProductDiscountLevel)))";
 			$sqlComputeBefore = "($beforeSelect) > 0 OR ($discountLevelPct = 0 AND LEAST(this.discountLevelPct, $maxProductDiscountLevel) = 0) OR (($pricelistId) NOT IN ($allowLevelDiscounts))";
 			
-			$collection->select(['priceBefore' => $useBeforePriceCalculation && \count($generalPricelistIds) ?
+			$collection->select(['priceBefore' => \count($generalPricelistIds) ?
 				"IF($sqlComputeBefore, $beforeSelect,$sqlDiscountLevel  * ($priceSelect))" :
 				$beforeSelect,
 			]);
 			
-			$collection->select(['priceVatBefore' => $useBeforePriceCalculation && \count($generalPricelistIds) ?
+			$collection->select(['priceVatBefore' => \count($generalPricelistIds) ?
 				"IF($sqlComputeBefore, $beforeVatSelect,$sqlDiscountLevel * ($priceVatSelect))" :
 				$beforeVatSelect,
 			]);

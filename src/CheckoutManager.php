@@ -153,6 +153,10 @@ class CheckoutManager
 
 	protected ?float $sumPriceVat = null;
 
+	protected ?float $sumPriceBefore = null;
+
+	protected ?float $sumPriceVatBefore = null;
+
 	protected ?int $sumAmount = null;
 
 	protected ?int $sumAmountTotal = null;
@@ -352,6 +356,24 @@ class CheckoutManager
 		}
 		
 		return $this->sumPriceVat ??= $this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'priceVat');
+	}
+
+	public function getSumPriceBefore(): float
+	{
+		if (!$this->cartExists()) {
+			return 0.0;
+		}
+
+		return $this->sumPriceBefore ??= $this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'priceBefore');
+	}
+
+	public function getSumPriceVatBefore(): float
+	{
+		if (!$this->cartExists()) {
+			return 0.0;
+		}
+
+		return $this->sumPriceVatBefore ??= $this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'priceVatBefore');
 	}
 	
 	public function getSumItems(): int
@@ -1005,6 +1027,20 @@ class CheckoutManager
 		
 		return $priceVat ?: 0.0;
 	}
+
+	public function getCartCheckoutPriceBefore(): float
+	{
+		$price = $this->getSumPriceBefore();
+
+		return $price ?: 0.0;
+	}
+
+	public function getCartCheckoutPriceVatBefore(): float
+	{
+		$priceVat = $this->getSumPriceVatBefore();
+
+		return $priceVat ?: 0.0;
+	}
 	
 	public function getPaymentPrice(): float
 	{
@@ -1139,7 +1175,7 @@ class CheckoutManager
 		
 		($purchase ?? $this->getPurchase())->update(['coupon' => $coupon]);
 	}
-	
+
 	public function getDiscountPrice(): float
 	{
 		if ($coupon = $this->getDiscountCoupon()) {
@@ -1148,13 +1184,13 @@ class CheckoutManager
 		
 		return 0.0;
 	}
-	
+
 	public function getDiscountPriceVat(): float
 	{
 		if ($coupon = $this->getDiscountCoupon()) {
 			return \floatval($coupon->discountValueVat);
 		}
-		
+
 		return 0.0;
 	}
 	

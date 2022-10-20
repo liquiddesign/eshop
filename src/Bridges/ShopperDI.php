@@ -44,8 +44,8 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			'integrations' => Expect::structure([
 				'eHub' => Expect::bool(false),
 			]),
-			/** false - only beforePrice from pricelist used, true - if no beforePrice in pricelist calculate based on discount level */
-			'useDiscountLevelCalculationInBeforePrice' => Expect::bool(false),
+			/** @deprecated Always true */
+			'useDiscountLevelCalculationInBeforePrice' => Expect::bool(true),
 			'reviews' => Expect::structure([
 				'type' => Expect::anyOf('int', 'float')->firstIsDefault(),
 				'minScore' => Expect::float(1),

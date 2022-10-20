@@ -301,22 +301,22 @@ class Order extends \StORM\Entity
 	{
 		return $this->payments->sum('priceVat');
 	}
-	
+
 	public function getTotalPrice(): float
 	{
-		return $this->purchase->getSumPrice() + $this->getDeliveryPriceSum() + $this->getPaymentPriceSum();
+		return $this->purchase->getSumPrice() + $this->getDeliveryPriceSum() + $this->getPaymentPriceSum() - $this->getDiscountPriceFix();
 	}
-	
+
 	public function getTotalPriceVat(): float
 	{
-		return $this->purchase->getSumPriceVat() + $this->getDeliveryPriceVatSum() + $this->getPaymentPriceVatSum();
+		return $this->purchase->getSumPriceVat() + $this->getDeliveryPriceVatSum() + $this->getPaymentPriceVatSum() - $this->getDiscountPriceFixVat();
 	}
-	
+
 	public function getDiscountPrice(): float
 	{
 		if ($coupon = $this->purchase->coupon) {
 			if ($coupon->discountPct) {
-				return \floatval($this->purchase->getSumPrice() * $coupon->discountPct / 100);
+				return \floatval($this->purchase->getSumPriceBefore() * $coupon->discountPct / 100);
 			}
 			
 			return \floatval($coupon->discountValue);
@@ -329,12 +329,36 @@ class Order extends \StORM\Entity
 	{
 		if ($coupon = $this->purchase->coupon) {
 			if ($coupon->discountPct) {
-				return \floatval($this->purchase->getSumPriceVat() * $coupon->discountPct / 100);
+				return \floatval($this->purchase->getSumPriceBeforeVat() * $coupon->discountPct / 100);
 			}
 			
 			return \floatval($coupon->discountValueVat);
 		}
 		
+		return 0.0;
+	}
+
+	/**
+	 * Return only fixed discount, pct discount is applied directly
+	 */
+	public function getDiscountPriceFix(): float
+	{
+		if ($coupon = $this->purchase->coupon) {
+			return \floatval($coupon->discountValue);
+		}
+
+		return 0.0;
+	}
+
+	/**
+	 * Return only fixed discount, pct discount is applied directly
+	 */
+	public function getDiscountPriceFixVat(): float
+	{
+		if ($coupon = $this->purchase->coupon) {
+			return \floatval($coupon->discountValueVat);
+		}
+
 		return 0.0;
 	}
 	

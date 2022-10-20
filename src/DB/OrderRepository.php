@@ -570,7 +570,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				continue;
 			}
 
-			$codPaymentType = $this->settingRepository->getValueByName(SettingsPresenter::COD_TYPE);
+			$codPaymentType = $this->settingRepository->getValuesByName(SettingsPresenter::COD_TYPE);
 
 			$payment = $order->getPayment();
 			$cod = false;
@@ -578,7 +578,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			if ($payment && $codPaymentType) {
 				$orderPaymentType = $payment->type;
 
-				if ($orderPaymentType && $orderPaymentType->getPK() === $codPaymentType) {
+				if ($orderPaymentType && Arrays::contains($codPaymentType, $orderPaymentType->getPK())) {
 					$cod = true;
 				}
 			}

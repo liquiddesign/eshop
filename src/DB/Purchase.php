@@ -338,6 +338,22 @@ class Purchase extends \StORM\Entity
 		
 		return $cartItemRepository->getSumProperty($this->getCartIds(), 'price');
 	}
+
+	public function getSumPriceBeforeVat(): float
+	{
+		/** @var \Eshop\DB\CartItemRepository $cartItemRepository */
+		$cartItemRepository = $this->getConnection()->findRepository(CartItem::class);
+
+		return $cartItemRepository->getSumProperty($this->getCartIds(), 'priceVatBefore');
+	}
+
+	public function getSumPriceBefore(): float
+	{
+		/** @var \Eshop\DB\CartItemRepository $cartItemRepository */
+		$cartItemRepository = $this->getConnection()->findRepository(CartItem::class);
+
+		return $cartItemRepository->getSumProperty($this->getCartIds(), 'priceBefore');
+	}
 	
 	public function getSumWeight(): float
 	{
