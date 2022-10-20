@@ -88,6 +88,12 @@ class Order extends \StORM\Entity
 	public bool $zasilkovnaCompleted = false;
 
 	/**
+	 * Odesláno do systému zásilkovny
+	 * @column
+	 */
+	public ?string $zasilkovnaError = null;
+
+	/**
 	 * DPD kód
 	 * @column
 	 */
