@@ -256,7 +256,7 @@ class SettingsPresenter extends BackendPresenter
 				[
 					'key' => self::COD_TYPE,
 					'label' => 'Typ platby pro dobírku',
-					'type' => 'select',
+					'type' => 'multi',
 					'options' => $this->paymentTypeRepository->getArrayForSelect(),
 					'info' => 'Pro rozlišení platby jako Dobírky pro různé služby.',
 					'onSave' => function ($key, $oldValue, $newValue): void {

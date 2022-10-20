@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Services;
 
+use Eshop\Admin\SettingsPresenter;
 use Eshop\Providers\Helpers;
 use Nette\Application\Application;
 use Nette\DI\Container;
@@ -94,7 +95,7 @@ class DPD
 			throw new \Exception('Delivery type for DPD service is not set!');
 		}
 
-		$dpdCodType = $this->settingRepository->getValueByName('codType');
+		$dpdCodType = $this->settingRepository->getValuesByName(SettingsPresenter::COD_TYPE);
 
 		$ordersCompleted = [];
 		$ordersIgnored = [];
@@ -170,7 +171,7 @@ class DPD
 
 				$newShipmentVO['Parcel_References_and_Insurance'] = $parcelReferences;
 
-				if ($dpdCodType && $order->purchase->paymentType && $order->purchase->paymentType->getPK() === $dpdCodType) {
+				if ($dpdCodType && $order->purchase->paymentType && Arrays::contains($dpdCodType, $order->purchase->paymentType->getPK())) {
 					$newShipmentVO['Additional_Services'] = [
 						'COD' => (string)\number_format($order->getTotalPriceVat(), 2, '.', ''),
 						'CURRENCY' => $order->purchase->currency->code,

@@ -127,7 +127,7 @@ class PPL
 			throw new \Exception('Delivery type for PPL service is not set!');
 		}
 
-		$pplCodType = $this->settingRepository->getValueByName('codType');
+		$pplCodType = $this->settingRepository->getValuesByName(SettingsPresenter::COD_TYPE);
 
 		$client = $this->getClient();
 
@@ -169,7 +169,7 @@ class PPL
 						continue;
 					}
 
-					$isCod = $pplCodType && $order->purchase->paymentType && $order->purchase->paymentType->getPK() === $pplCodType;
+					$isCod = $pplCodType && $order->purchase->paymentType && Arrays::contains($pplCodType, $order->purchase->paymentType->getPK());
 
 					$packageNumber = $isCod ? $this->getPackageNumberCod() : $this->getPackageNumber();
 
@@ -343,7 +343,7 @@ class PPL
 
 		$client = $this->getClient();
 
-		$pplCodType = $this->settingRepository->getValueByName('codType');
+		$pplCodType = $this->settingRepository->getValuesByName(SettingsPresenter::COD_TYPE);
 
 		try {
 			$packages = [];
@@ -421,7 +421,7 @@ class PPL
 					/** @codingStandardsIgnoreEnd */
 					);
 
-					$isCod = $pplCodType && $order->purchase->paymentType && $order->purchase->paymentType->getPK() === $pplCodType;
+					$isCod = $pplCodType && $order->purchase->paymentType && Arrays::contains($pplCodType, $order->purchase->paymentType->getPK());
 
 					if ($isCod) {
 						$cashOnDeliveryPrice = $packageSet && $i > 1 ? 0 : \round($order->getTotalPriceVat() / \count($order->packages), 2);
