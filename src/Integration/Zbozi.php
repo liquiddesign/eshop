@@ -68,8 +68,6 @@ class Zbozi
 			$zboziOrder->setPaymentType($paymentType->code);
 		}
 
-		\xdebug_break();
-
 		$zboziOrder->setOtherCosts($order->getPaymentPriceVatSum() - $order->getDiscountPriceVat());
 
 		try {
