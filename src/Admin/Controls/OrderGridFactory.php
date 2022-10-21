@@ -539,7 +539,7 @@ class OrderGridFactory
 				$grid->addBulkAction('exportPPC', 'exportPPC', '<i class="fas fa-download"></i> PPC (CSV)');
 			}
 
-			if (Helpers::isConfigurationActive($configuration, 'exportTargito') && $state !== Order::STATE_OPEN) {
+			if (Helpers::isConfigurationActive($configuration, 'exportTargito') && $state !== Order::STATE_OPEN && $presenter->isManager) {
 				$grid->addBulkAction('exportTargito', 'exportTargito', '<i class="fas fa-download"></i> Targito (CSV)');
 			}
 
