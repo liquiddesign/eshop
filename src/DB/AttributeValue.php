@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Eshop\Common\DB\SystemicEntity;
+
 /**
  * AttributeValue
  * @table
  * @index{"name":"attributeValue_code_unique","unique":true,"columns":["code"]}
  */
-class AttributeValue extends \StORM\Entity
+class AttributeValue extends SystemicEntity
 {
 	public const IMAGE_DIR = 'attribute_values_images';
 
