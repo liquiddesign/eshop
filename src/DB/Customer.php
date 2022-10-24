@@ -302,6 +302,12 @@ class Customer extends Entity implements IIdentity, IUser
 	public string $createdTs;
 
 	/**
+	 * Datum odsouhlaseni obchodnich podminek
+	 * @column{"type":"timestamp","default":null}
+	 */
+	public ?string $conditionsTs;
+
+	/**
 	 * Last order created
 	 * @relation
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
@@ -724,5 +730,10 @@ class Customer extends Entity implements IIdentity, IUser
 			->where('active=1 AND activeFrom<NOW() AND purchase.fk_customer=:uuid', ['uuid' => $this->getPK()]);
 
 		return (bool) \count($autoships);
+	}
+
+	public function conditionsConfirmed(): bool
+	{
+		return $this->conditionsTs !== null;
 	}
 }

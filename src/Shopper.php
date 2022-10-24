@@ -13,6 +13,7 @@ use Eshop\DB\Customer;
 use Eshop\DB\CustomerGroup;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
+use Eshop\DB\CustomerRoleRepository;
 use Eshop\DB\DiscountCoupon;
 use Eshop\DB\Merchant;
 use Eshop\DB\MinimalOrderValueRepository;
@@ -38,6 +39,8 @@ class Shopper
 
 	public ?DiscountCoupon $discountCoupon = null;
 	
+	public CustomerRoleRepository $customerRoleRepository;
+
 	/**
 	 * @var bool[]
 	 */
@@ -136,7 +139,8 @@ class Shopper
 		CustomerGroupRepository $customerGroupRepository,
 		MinimalOrderValueRepository $minimalOrderValueRepository,
 		AccountRepository $accountRepository,
-		RoleRepository $roleRepository
+		RoleRepository $roleRepository,
+		CustomerRoleRepository $customerRoleRepository,
 	) {
 		$this->user = $user;
 		$this->pricelistRepository = $pricelistRepository;
@@ -147,6 +151,7 @@ class Shopper
 		$this->customerGroupRepository = $customerGroupRepository;
 		$this->minimalOrderValueRepository = $minimalOrderValueRepository;
 		$this->roleRepository = $roleRepository;
+		$this->customerRoleRepository = $customerRoleRepository;
 	}
 
 	public function setUseDiscountLevelCalculationInBeforePrice(bool $useDiscountLevelCalculationInBeforePrice): void
