@@ -22,7 +22,7 @@ class ImportResultRepository extends \StORM\Repository
 	
 	private string $logDirectory;
 	
-	public function createLog(Supplier $supplier, string $directory, string $type = 'import'): void
+	public function createLog(Supplier $supplier, string $directory, string $type = 'import'): ImportResult
 	{
 		$id = (new DateTime())->format('Y-m-d-g-i-s') . '-' . $supplier->code . '-' . Random::generate(4);
 		$this->importResult = $this->createOne([
@@ -50,6 +50,8 @@ class ImportResultRepository extends \StORM\Repository
 		}
 
 		$this->log($typeMsg);
+
+		return $this->importResult;
 	}
 	
 	public function log($message): void
