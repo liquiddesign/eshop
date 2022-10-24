@@ -431,20 +431,22 @@ class Customer extends Entity implements IIdentity, IUser
 			->where('fk_customer', $this->getPK())
 			->sum('priceVat');
 	}
-	
+
 	/**
 	 * Returns aggregated product, productAmount, price, priceVat
 	 */
-	public function getAvailableProductReward(): Collection
+	public function getAvailableProductReward(): int
 	{
 		/** @var \Eshop\DB\RewardMoveRepository $repository */
 		$repository = $this->getConnection()->findRepository(RewardMove::class);
-		
-		return $repository->many()
+
+		$object = $repository->many()
 			->select(['product' => 'fk_product', 'amount' => 'SUM(productAmount)', 'price' => 'SUM(price * productAmount)', 'priceVat' => 'SUM(priceVat * productAmount)'])
 			->where('applied = 0 OR ((validFrom >= NOW() OR validFrom IS NULL) AND (validTo <= NOW() OR validTo IS NULL))')
 			->where('fk_customer', $this->getPK())
-			->setGroupBy(['fk_product'], 'SUM(productAmount) > 0');
+			->setGroupBy(['fk_product'], 'SUM(productAmount) > 0')->first();
+
+		return $object ? (int)$object->amount : 0;
 	}
 
 	/**

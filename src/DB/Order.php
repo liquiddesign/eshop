@@ -165,7 +165,13 @@ class Order extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $totalPriceVatComputed;
-	
+
+	/**
+	 * @column
+	 */
+	public int $gifts;
+
+
 	/**
 	 * Nákup
 	 * @relation
