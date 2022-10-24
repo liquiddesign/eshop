@@ -155,6 +155,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 
 		return $this->attributeValueRepository->getCollection($includeHidden)
 			->where('fk_attribute', $attribute->getPK())
+			->where('attribute.hideEmptyValues = "0" OR EXISTS(SELECT * FROM eshop_attributeassign WHERE this.uuid = eshop_attributeassign.fk_value)')
 			->select(['internalLabel' => 'CONCAT(IFNULL(internalName, label' . $mutationSuffix . '), " (", this.code, ")")']);
 	}
 
