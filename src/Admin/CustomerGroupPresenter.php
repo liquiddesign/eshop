@@ -9,5 +9,4 @@ namespace Eshop\Admin;
  */
 class CustomerGroupPresenter extends GroupPresenter
 {
-
 }
