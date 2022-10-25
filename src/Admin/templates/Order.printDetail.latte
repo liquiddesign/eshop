@@ -237,54 +237,42 @@
                     <div class="col-6">
                         <div class="table-responsive">
                             <table class="table table-sm">
-                                <tbody>
-                                {if $presenter->shopper->getShowVat()}
+                                <thead>
                                     <tr>
-                                        <th>Mezisoučet:</th>
+                                        <th></th>
+                                        <th>bez DPH</th>
+                                        <th>s DPH</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th>Mezisoučet produktů:</th>
+                                        <td>{($order->purchase->getSumPrice())|price:$purchase->currency->code}</td>
                                         <td>{($order->purchase->getSumPriceVat())|price:$purchase->currency->code}</td>
                                     </tr>
                                     <tr>
-                                        <th>Doprava:</th>
-                                        <td>{$order->getDeliveryPriceSum()|price:$purchase->currency->code}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Poplatek platební metody:</th>
-                                        <td>{$order->getPaymentPriceSum()|price:$purchase->currency->code}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Daň</th>
-                                        <td>{($order->getTotalPriceVat() - $order->getTotalPrice())|price:$purchase->currency->code}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Sleva celkem:</th>
+                                        <th>Sleva produktů:</th>
+                                        <td>{($order->getTotalPrice() - ($order->getTotalPrice() - $order->getDiscountPrice()))|price:$purchase->currency->code}</td>
                                         <td>{($order->getTotalPriceVat() - ($order->getTotalPriceVat() - $order->getDiscountPriceVat()))|price:$purchase->currency->code}</td>
                                     </tr>
                                     <tr>
-                                        <th><span style="font-size: large">Celkem:</span></th>
-                                        <td><span style="font-size: large">{$order->getTotalPriceVat()|price:$purchase->currency->code}</span></td>
-                                    </tr>
-                                {elseif $presenter->shopper->getShowWithoutVat()}
-                                    <tr>
-                                        <th>Mezisoučet:</th>
-                                        <td>{($order->purchase->getSumPrice())|price:$purchase->currency->code}</td>
-                                    </tr>
-                                    <tr>
                                         <th>Doprava:</th>
-                                        <td>{$order->getDeliveryPriceSum()|price:$purchase->currency->code}</td>
+                                        <td>{$order->getDeliveryDiscountPriceSum()|price:$purchase->currency->code}</td>
+                                        <td>{$order->getDeliveryDiscountPriceVatSum()|price:$purchase->currency->code}</td>
                                     </tr>
                                     <tr>
                                         <th>Poplatek platební metody:</th>
                                         <td>{$order->getPaymentPriceSum()|price:$purchase->currency->code}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Sleva celkem:</th>
-                                        <td>{($order->getTotalPrice() - ($order->getTotalPrice() - $order->getDiscountPrice()))|price:$purchase->currency->code}</td>
+                                        <td>{$order->getPaymentPriceVatSum()|price:$purchase->currency->code}</td>
                                     </tr>
                                     <tr>
                                         <th><span style="font-size: large">Celkem:</span></th>
                                         <td><span style="font-size: large">{$order->getTotalPrice()|price:$purchase->currency->code}</span></td>
+                                        <td>
+                                            <span style="font-size: large">{$order->getTotalPriceVat()|price:$purchase->currency->code}</span>
+                                            <span class="ml-2">daň: {$order->getTotalPriceVat() - $order->getTotalPrice()|price:$purchase->currency->code}</span>
+                                        </td>
                                     </tr>
-                                {/if}
                                 </tbody>
                             </table>
                         </div>
