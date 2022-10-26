@@ -247,18 +247,18 @@
                                 <tbody>
                                     <tr>
                                         <th>Mezisoučet produktů:</th>
-                                        <td>{($order->purchase->getSumPrice())|price:$purchase->currency->code}</td>
-                                        <td>{($order->purchase->getSumPriceVat())|price:$purchase->currency->code}</td>
+                                        <td>{($order->purchase->getSumPrice())|price:$purchase->currency->code}<small class="ml-2" title="Před slevou" n:if="$order->purchase->getSumPriceBefore()">{$order->purchase->getSumPriceBefore()|price:$purchase->currency->code}</small></td>
+                                        <td>{($order->purchase->getSumPriceVat())|price:$purchase->currency->code}<small class="ml-2" title="Před slevou" n:if="$order->purchase->getSumPriceBeforeVat()">{$order->purchase->getSumPriceBeforeVat()|price:$purchase->currency->code}</small></td>
                                     </tr>
                                     <tr>
-                                        <th>Sleva produktů:</th>
-                                        <td>{($order->getTotalPrice() - ($order->getTotalPrice() - $order->getDiscountPrice()))|price:$purchase->currency->code}</td>
-                                        <td>{($order->getTotalPriceVat() - ($order->getTotalPriceVat() - $order->getDiscountPriceVat()))|price:$purchase->currency->code}</td>
+                                        <th>Sleva kupónu:</th>
+                                        <td>{$order->getDiscountPrice()|price:$purchase->currency->code}</td>
+                                        <td>{$order->getDiscountPriceVat()|price:$purchase->currency->code}</td>
                                     </tr>
                                     <tr>
                                         <th>Doprava:</th>
-                                        <td>{$order->getDeliveryDiscountPriceSum()|price:$purchase->currency->code}</td>
-                                        <td>{$order->getDeliveryDiscountPriceVatSum()|price:$purchase->currency->code}</td>
+                                        <td>{$order->getDeliveryPriceSum()|price:$purchase->currency->code}<small class="ml-2" title="Před slevou" n:if="$order->getDeliveryDiscountPriceSum()">{$order->getDeliveryPriceSum() + $order->getDeliveryDiscountPriceSum()|price:$purchase->currency->code}</small></td>
+                                        <td>{$order->getDeliveryPriceVatSum()|price:$purchase->currency->code}<small class="ml-2" title="Před slevou" n:if="$order->getDeliveryDiscountPriceVatSum()">{$order->getDeliveryPriceVatSum() + $order->getDeliveryDiscountPriceVatSum()|price:$purchase->currency->code}</small></td>
                                     </tr>
                                     <tr>
                                         <th>Poplatek platební metody:</th>

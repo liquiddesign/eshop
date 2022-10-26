@@ -1080,7 +1080,8 @@ class CheckoutManager
 	{
 		if ($this->getPurchase() && $this->getPurchase()->deliveryType) {
 			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true)->deliveryPackagesNo : 1;
-			$price = $this->getDeliveryTypes()[$this->getPurchase()->getValue('deliveryType')]->getValue('price');
+			$showPrice = $this->shopper->getShowPrice();
+			$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('price');
 			
 			return isset($price) ? (float)$price * $deliveryPackagesNo : 0.0;
 		}
@@ -1092,7 +1093,8 @@ class CheckoutManager
 	{
 		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
 			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true)->deliveryPackagesNo : 1;
-			$price = $this->getDeliveryTypes(true)[$this->getPurchase()->getValue('deliveryType')]->getValue('priceVat');
+			$showPrice = $this->shopper->getShowPrice();
+			$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('priceVat');
 			
 			return isset($price) ? (float)$price * $deliveryPackagesNo : 0.0;
 		}
@@ -1104,8 +1106,9 @@ class CheckoutManager
 	{
 		if ($this->getPurchase() && $this->getPurchase()->deliveryType) {
 			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true)->deliveryPackagesNo : 1;
-			$price = $this->getDeliveryTypes()[$this->getPurchase()->getValue('deliveryType')]->getValue('priceBefore');
-			
+			$showPrice = $this->shopper->getShowPrice();
+			$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('priceBefore');
+
 			return isset($price) ? (float)$price * $deliveryPackagesNo : null;
 		}
 		
@@ -1116,7 +1119,8 @@ class CheckoutManager
 	{
 		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
 			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true)->deliveryPackagesNo : 1;
-			$price = $this->getDeliveryTypes(true)[$this->getPurchase()->getValue('deliveryType')]->getValue('priceBeforeVat');
+			$showPrice = $this->shopper->getShowPrice();
+			$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('priceBeforeVat');
 			
 			return isset($price) ? (float)$price * $deliveryPackagesNo : null;
 		}
@@ -1410,9 +1414,7 @@ class CheckoutManager
 		//@todo getDeliveryPrice se pocita z aktulaniho purchase ne z parametru a presunout do order repository jako create order
 		if ($purchase->deliveryType) {
 			$topLevelItems = $this->getTopLevelItems()->toArray();
-			$t = \microtime(true);
 			$boxList = $purchase->deliveryType->getBoxesForItems($topLevelItems);
-			\bdump(\microtime(true) - $t);
 			$packageId = 0;
 			
 			foreach ($boxList as $box) {

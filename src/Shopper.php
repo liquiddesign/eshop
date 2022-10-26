@@ -571,26 +571,33 @@ class Shopper
 		
 		return $customer ? $catalogPerm->showPricesWithoutVat : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricesWithoutVat;
 	}
-	
-	public function showPriorityPrices(): ?string
+
+	/**
+	 * @return 'withVat'|'withoutVat'
+	 */
+	public function showPriorityPrices(): string
 	{
 		$customer = $this->getCustomer();
 		
 		if ($this->getMerchant() && !$customer) {
-			return null;
+			return 'withoutVat';
 		}
 		
 		if ($customer) {
 			$catalogPerm = $customer->getCatalogPermission();
 		}
+
+		/** @var 'withVat'|'withoutVat' $result */
+		$result = $customer ? $catalogPerm->priorityPrice : $this->customerGroupRepository->getUnregisteredGroup()->defaultPriorityPrice;
 		
-		return $customer ? $catalogPerm->priorityPrice : $this->customerGroupRepository->getUnregisteredGroup()->defaultPriorityPrice;
+		return $result;
 	}
 
 	/**
 	 * Main function, always use this to determine vat or withoutVat on frontend
+	 * @return 'withVat'|'withoutVat'
 	 */
-	public function getShowPrice(): ?string
+	public function getShowPrice(): string
 	{
 		if ($this->showPricesWithoutVat() && $this->showPricesWithVat()) {
 			return $this->showPriorityPrices();
@@ -604,7 +611,7 @@ class Shopper
 			return 'withVat';
 		}
 
-		return null;
+		return 'withoutVat';
 	}
 
 	public function addFilters(\Nette\Bridges\ApplicationLatte\Template $template): void

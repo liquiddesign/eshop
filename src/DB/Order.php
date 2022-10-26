@@ -259,7 +259,7 @@ class Order extends \StORM\Entity
 		$price = null;
 
 		foreach ($this->deliveries as $delivery) {
-			$delivery->priceBefore ? $beforePrice += $delivery->priceVatBefore : $beforePrice += $delivery->priceVat;
+			$delivery->priceVatBefore ? $beforePrice += $delivery->priceVatBefore : $beforePrice += $delivery->priceVat;
 			$price += $delivery->priceVat;
 		}
 
