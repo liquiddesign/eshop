@@ -405,6 +405,32 @@ class Product extends \StORM\Entity
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?DisplayDelivery $displayDelivery;
+	
+	/**
+	 * Exportní název kategori pro Google
+	 * @column
+	 */
+	public ?string $exportGoogleCategory;
+	
+	/**
+	 * Exportní ID kategorie Google
+	 * @column
+	 */
+	public ?string $exportGoogleCategoryId;
+	
+	/**
+	 * Kategorie pro Heuréku
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public ?Category $exportHeurekaCategory;
+	
+	/**
+	 * Kategorie pro Zboží.cz
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public ?Category $exportZboziCategory;
 
 	/**
 	 * Watcher pro aktualniho uživatele jinak nedáva smysl
