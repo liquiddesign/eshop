@@ -322,8 +322,19 @@ class SupplierProductRepository extends \StORM\Repository
 			], [], true)->fetchArray(\stdClass::class);
 	}
 
-	public function syncDisplayAmounts(): void
+	/**
+	 * @param int $page
+	 * @param int $totalPages
+	 * @return array{'positivelyUpdated': int, 'negativelyUpdated': int}
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function syncDisplayAmounts(int $page = 1, int $totalPages = 1): array
 	{
+		$result = [
+			'positivelyUpdated' => 0,
+			'negativelyUpdated' => 0,
+		];
+
 		/** @var \Eshop\DB\DisplayAmountRepository $displayAmountRepository */
 		$displayAmountRepository = $this->getConnection()->findRepository(DisplayAmount::class);
 
@@ -336,6 +347,12 @@ class SupplierProductRepository extends \StORM\Repository
 		/** @var \Eshop\DB\SupplierProductRepository $supplierProductRepository */
 		$supplierProductRepository = $this->getConnection()->findRepository(SupplierProduct::class);
 
+		$productsCount = $productRepository->many()->enum();
+
+		$onPageCount = ((int) ($productsCount / $totalPages)) + ($productsCount % $totalPages);
+
+		$productsToUpdatePKs = \array_keys($productRepository->many()->setPage($page, $onPageCount)->fetchArray(\stdClass::class));
+
 		$supplierProducts = $supplierProductRepository->many()
 			->select([
 				'realCategory' => 'category.fk_category',
@@ -345,7 +362,7 @@ class SupplierProductRepository extends \StORM\Repository
 				'product' => 'this.fk_product',
 			])
 			->where('category.fk_category IS NOT NULL')
-			->where('this.fk_product IS NOT NULL')
+			->where('this.fk_product', $productsToUpdatePKs)
 			->where('this.active', true);
 
 		$productsMapXSupplierProductsXDisplayAmount = [];
@@ -353,7 +370,7 @@ class SupplierProductRepository extends \StORM\Repository
 		foreach ($supplierProductRepository->many()->select([
 			'realDisplayAmount' => 'displayAmount.fk_displayAmount',
 			'product' => 'this.fk_product',
-		])->fetchArray(\stdClass::class) as $supplierProduct) {
+		])->where('this.fk_product', $productsToUpdatePKs)->fetchArray(\stdClass::class) as $supplierProduct) {
 			$productsMapXSupplierProductsXDisplayAmount[$supplierProduct->product][$supplierProduct->uuid] = $supplierProduct->realDisplayAmount;
 		}
 
@@ -391,7 +408,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$notInStockSetting = $settingRepository->getValueByName(SettingsPresenter::SUPPLIER_NOT_IN_STOCK_DISPLAY_AMOUNT);
 
 		if (!$inStockSetting || !$notInStockSetting) {
-			return;
+			return $result;
 		}
 
 		$inStockProducts = [];
@@ -421,7 +438,16 @@ class SupplierProductRepository extends \StORM\Repository
 			}
 		}
 
-		$productRepository->many()->where('this.supplierDisplayAmountLock', false)->where('this.uuid', $inStockProducts)->update(['fk_displayAmount' => $inStockSetting]);
-		$productRepository->many()->where('this.supplierDisplayAmountLock', false)->where('this.uuid', $notStockProducts)->update(['fk_displayAmount' => $notInStockSetting]);
+		$result['positivelyUpdated'] = $productRepository->many()
+			->where('this.supplierDisplayAmountLock', false)
+			->where('this.uuid', $inStockProducts)
+			->update(['fk_displayAmount' => $inStockSetting]);
+
+		$result['negativelyUpdated'] = $productRepository->many()
+			->where('this.supplierDisplayAmountLock', false)
+			->where('this.uuid', $notStockProducts)
+			->update(['fk_displayAmount' => $notInStockSetting]);
+
+		return $result;
 	}
 }
