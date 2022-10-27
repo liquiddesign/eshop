@@ -395,7 +395,6 @@ class OrderPresenter extends BackendPresenter
 			}
 
 			Arrays::invoke($this->orderRepository->onOrderDeliveryChanged, $order, $delivery);
-			$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::DELIVERY_CHANGED, $delivery->getTypeName(), $admin);
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detailDelivery', 'delivery', [$delivery], [$order]);
@@ -508,7 +507,6 @@ class OrderPresenter extends BackendPresenter
 			}
 
 			Arrays::invoke($this->orderRepository->onOrderPaymentChanged, $order, $payment);
-			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYMENT_CHANGED, $payment->getTypeName(), $admin);
 
 			$this->flashMessage('Uloženo', 'success');
 
@@ -1419,16 +1417,23 @@ class OrderPresenter extends BackendPresenter
 				$values['deliveryAddress'] = null;
 			}
 
+			$originalPurchase = $order->purchase->toArray();
+
 			$order->purchase->update($values, true);
 
-			/** @var \Admin\DB\Administrator|null $admin */
+				/** @var \Admin\DB\Administrator|null $admin */
 			$admin = $this->admin->getIdentity();
 
 			if (!$admin) {
 				return;
 			}
 
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::EDITED, null, $admin);
+			$this->orderLogItemRepository->createLog(
+				$order,
+				OrderLogItem::EDITED,
+				$values['note'] !== $originalPurchase['note'] || $values['internalNote'] !== $originalPurchase['internalNote'] ? 'Změna poznámky' : 'Osobní údaje',
+				$admin,
+			);
 
 			$this->flashMessage('Uloženo', 'success');
 
@@ -2394,7 +2399,12 @@ class OrderPresenter extends BackendPresenter
 		$admin = $this->admin->getIdentity();
 
 		$this->orderRepository->onOrderDeliveryChanged[] = function (Order $order, Delivery $delivery) use ($admin): void {
-			$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::DELIVERY_CHANGED, $delivery->getTypeName(), $admin);
+			$this->orderLogItemRepository->createLog(
+				$delivery->order,
+				OrderLogItem::DELIVERY_CHANGED,
+				$delivery->getTypeName() . ', Cena:' . $delivery->price . ', Cena s DPH:' . $delivery->priceVat,
+				$admin,
+			);
 
 			try {
 				$mail = $this->templateRepository->createMessage('order.deliveryChanged', $this->orderRepository->getEmailVariables($order), $delivery->order->purchase->email);
@@ -2407,7 +2417,18 @@ class OrderPresenter extends BackendPresenter
 		};
 
 		$this->orderRepository->onOrderPaymentChanged[] = function (Order $order, Payment $payment) use ($admin): void {
-			$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYMENT_CHANGED, $payment->getTypeName(), $admin);
+			$this->orderLogItemRepository->createLog(
+				$payment->order,
+				OrderLogItem::PAYMENT_CHANGED,
+				$payment->getTypeName() . ', ' . \implode(', ', [
+					"Cena: $payment->price",
+					"Cena DPH: $payment->priceVat",
+					"Zaplaceno: $payment->paidPrice",
+					"Zaplaceno DPH: $payment->paidPriceVat",
+					'Zaplaceno: ' . ($payment->paidTs ?: '-'),
+				]),
+				$admin,
+			);
 
 			try {
 				$mail = $this->templateRepository->createMessage('order.paymentChanged', $this->orderRepository->getEmailVariables($order), $payment->order->purchase->email);
