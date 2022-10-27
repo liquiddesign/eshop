@@ -347,6 +347,15 @@ class SupplierProductRepository extends \StORM\Repository
 		/** @var \Eshop\DB\SupplierProductRepository $supplierProductRepository */
 		$supplierProductRepository = $this->getConnection()->findRepository(SupplierProduct::class);
 
+		$productsMapXSupplierProductsXDisplayAmount = [];
+
+		foreach ($supplierProductRepository->many()->select([
+			'realDisplayAmount' => 'displayAmount.fk_displayAmount',
+			'product' => 'this.fk_product',
+		])->fetchArray(\stdClass::class) as $supplierProduct) {
+			$productsMapXSupplierProductsXDisplayAmount[$supplierProduct->product][$supplierProduct->uuid] = $supplierProduct->realDisplayAmount;
+		}
+
 		$productsCount = $productRepository->many()->enum();
 
 		$onPageCount = ((int) ($productsCount / $totalPages)) + ($productsCount % $totalPages);
@@ -364,15 +373,6 @@ class SupplierProductRepository extends \StORM\Repository
 			->where('category.fk_category IS NOT NULL')
 			->where('this.fk_product', $productsToUpdatePKs)
 			->where('this.active', true);
-
-		$productsMapXSupplierProductsXDisplayAmount = [];
-
-		foreach ($supplierProductRepository->many()->select([
-			'realDisplayAmount' => 'displayAmount.fk_displayAmount',
-			'product' => 'this.fk_product',
-		])->where('this.fk_product', $productsToUpdatePKs)->fetchArray(\stdClass::class) as $supplierProduct) {
-			$productsMapXSupplierProductsXDisplayAmount[$supplierProduct->product][$supplierProduct->uuid] = $supplierProduct->realDisplayAmount;
-		}
 
 		$mergedProductsMap = $productRepository->getGroupedMergedProducts();
 
