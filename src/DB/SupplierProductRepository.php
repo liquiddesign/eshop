@@ -323,47 +323,73 @@ class SupplierProductRepository extends \StORM\Repository
 	}
 
 	/**
-	 * @param int $page
-	 * @param int $totalPages
 	 * @return array{'positivelyUpdated': int, 'negativelyUpdated': int}
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function syncDisplayAmounts(int $page = 1, int $totalPages = 1): array
+	public function syncDisplayAmounts(): array
 	{
 		$result = [
 			'positivelyUpdated' => 0,
 			'negativelyUpdated' => 0,
 		];
 
-		/** @var \Eshop\DB\DisplayAmountRepository $displayAmountRepository */
-		$displayAmountRepository = $this->getConnection()->findRepository(DisplayAmount::class);
-
 		/** @var \Eshop\DB\ProductRepository $productRepository */
 		$productRepository = $this->getConnection()->findRepository(Product::class);
 
-		/** @var array<\Eshop\DB\DisplayAmount> $displayAmounts */
-		$displayAmounts = $displayAmountRepository->getCollection()->toArray();
-
-		/** @var \Eshop\DB\SupplierProductRepository $supplierProductRepository */
-		$supplierProductRepository = $this->getConnection()->findRepository(SupplierProduct::class);
-
 		$productsMapXSupplierProductsXDisplayAmount = [];
 
-		foreach ($supplierProductRepository->many()->select([
+		$this->loadProductsMapXSupplierProductsXDisplayAmount($productsMapXSupplierProductsXDisplayAmount);
+
+		$mergedProductsMap = $productRepository->getGroupedMergedProducts();
+
+		/** @var array<mixed> $productsXDisplayAmounts Contains products paired with all supplier display amounts */
+		$productsXDisplayAmounts = [];
+
+		$this->loadProductsXDisplayAmounts($productsXDisplayAmounts, $mergedProductsMap, $productsMapXSupplierProductsXDisplayAmount);
+
+		/** @var \Web\DB\SettingRepository $settingRepository */
+		$settingRepository = $this->getConnection()->findRepository(Setting::class);
+
+		$inStockSetting = $settingRepository->getValueByName(SettingsPresenter::SUPPLIER_IN_STOCK_DISPLAY_AMOUNT);
+		$notInStockSetting = $settingRepository->getValueByName(SettingsPresenter::SUPPLIER_NOT_IN_STOCK_DISPLAY_AMOUNT);
+
+		if (!$inStockSetting || !$notInStockSetting) {
+			return $result;
+		}
+
+		$inStockProducts = [];
+		$notStockProducts = [];
+
+		$this->loadStock($inStockProducts, $notStockProducts, $productsXDisplayAmounts);
+
+		$result['positivelyUpdated'] = $productRepository->many()
+			->where('this.supplierDisplayAmountLock', false)
+			->where('this.uuid', $inStockProducts)
+			->update(['fk_displayAmount' => $inStockSetting]);
+
+		$result['negativelyUpdated'] = $productRepository->many()
+			->where('this.supplierDisplayAmountLock', false)
+			->where('this.uuid', $notStockProducts)
+			->update(['fk_displayAmount' => $notInStockSetting]);
+
+		return $result;
+	}
+
+	private function loadProductsMapXSupplierProductsXDisplayAmount(array &$productsMapXSupplierProductsXDisplayAmount): void
+	{
+		foreach ($this->many()->setSelect([
+			'uuid' => 'this.uuid',
 			'realDisplayAmount' => 'displayAmount.fk_displayAmount',
 			'product' => 'this.fk_product',
 		])->fetchArray(\stdClass::class) as $supplierProduct) {
 			$productsMapXSupplierProductsXDisplayAmount[$supplierProduct->product][$supplierProduct->uuid] = $supplierProduct->realDisplayAmount;
 		}
+	}
 
-		$productsCount = $productRepository->many()->enum();
-
-		$onPageCount = ((int) ($productsCount / $totalPages)) + ($productsCount % $totalPages);
-
-		$productsToUpdatePKs = \array_keys($productRepository->many()->setPage($page, $onPageCount)->fetchArray(\stdClass::class));
-
-		$supplierProducts = $supplierProductRepository->many()
-			->select([
+	private function loadProductsXDisplayAmounts(array &$productsXDisplayAmounts, array &$mergedProductsMap, array &$productsMapXSupplierProductsXDisplayAmount): void
+	{
+		$supplierProducts = $this->many()
+			->setSelect([
 				'realCategory' => 'category.fk_category',
 				'realDisplayAmount' => 'displayAmount.fk_displayAmount',
 				'realProducer' => 'producer.fk_producer',
@@ -371,13 +397,7 @@ class SupplierProductRepository extends \StORM\Repository
 				'product' => 'this.fk_product',
 			])
 			->where('category.fk_category IS NOT NULL')
-			->where('this.fk_product', $productsToUpdatePKs)
 			->where('this.active', true);
-
-		$mergedProductsMap = $productRepository->getGroupedMergedProducts();
-
-		/** @var array<mixed> $productsXDisplayAmounts Contains products paired with all supplier display amounts */
-		$productsXDisplayAmounts = [];
 
 		foreach ($supplierProducts->fetchArray(\stdClass::class) as $supplierProduct) {
 			if (!isset($productsXDisplayAmounts[$supplierProduct->product])) {
@@ -400,19 +420,15 @@ class SupplierProductRepository extends \StORM\Repository
 				}
 			}
 		}
+	}
 
-		/** @var \Web\DB\SettingRepository $settingRepository */
-		$settingRepository = $this->getConnection()->findRepository(Setting::class);
+	private function loadStock(array &$inStockProducts, array &$notStockProducts, array &$productsXDisplayAmounts): void
+	{
+		/** @var \Eshop\DB\DisplayAmountRepository $displayAmountRepository */
+		$displayAmountRepository = $this->getConnection()->findRepository(DisplayAmount::class);
 
-		$inStockSetting = $settingRepository->getValueByName(SettingsPresenter::SUPPLIER_IN_STOCK_DISPLAY_AMOUNT);
-		$notInStockSetting = $settingRepository->getValueByName(SettingsPresenter::SUPPLIER_NOT_IN_STOCK_DISPLAY_AMOUNT);
-
-		if (!$inStockSetting || !$notInStockSetting) {
-			return $result;
-		}
-
-		$inStockProducts = [];
-		$notStockProducts = [];
+		/** @var array<\Eshop\DB\DisplayAmount> $displayAmounts */
+		$displayAmounts = $displayAmountRepository->getCollection()->toArray();
 
 		foreach ($productsXDisplayAmounts as $productPK => $draftDisplayAmounts) {
 			$inStock = false;
@@ -437,17 +453,5 @@ class SupplierProductRepository extends \StORM\Repository
 				$notStockProducts[] = $productPK;
 			}
 		}
-
-		$result['positivelyUpdated'] = $productRepository->many()
-			->where('this.supplierDisplayAmountLock', false)
-			->where('this.uuid', $inStockProducts)
-			->update(['fk_displayAmount' => $inStockSetting]);
-
-		$result['negativelyUpdated'] = $productRepository->many()
-			->where('this.supplierDisplayAmountLock', false)
-			->where('this.uuid', $notStockProducts)
-			->update(['fk_displayAmount' => $notInStockSetting]);
-
-		return $result;
 	}
 }
