@@ -140,6 +140,8 @@ class SupplierProductPresenter extends BackendPresenter
 			}, '%s', null, ['class' => 'fit']);
 		}
 
+		$grid->addColumnLinkDetail('SupplierProductDetail');
+
 		$grid->addButtonSaveAll();
 
 		$grid->addFilterTextInput('search', ['this.ean', 'this.code', 'this.mpn'], null, 'EAN, kód, P/N');
@@ -307,6 +309,37 @@ class SupplierProductPresenter extends BackendPresenter
 		return $form;
 	}
 
+	public function createComponentSupplierProductForm(): Form
+	{
+		$form = $this->formFactory->create(true);
+
+		/** @var \Eshop\DB\SupplierProduct|null $supplierProduct */
+		$supplierProduct = $this->getParameter('supplierProduct');
+
+		$form->addTextArea('ean', 'EAN')->setNullable();
+
+		$form->addSubmits(!$supplierProduct);
+
+		$form->onSuccess[] = function (AdminForm $form) use ($supplierProduct): void {
+			$values = $form->getValues('array');
+
+			try {
+				$supplierProduct->update($values);
+			} catch (\Throwable $e) {
+				if ((int) $e->getCode() === 23000 && \strpos($e->getMessage(), 'supplier_product_ean') !== false) {
+					$this->flashMessage('Duplicitní EAN!', 'error');
+
+					return;
+				}
+			}
+
+			$this->flashMessage('Uloženo', 'success');
+			$form->processRedirect('supplierProductDetail', 'default', [$supplierProduct]);
+		};
+
+		return $form;
+	}
+
 	public function renderPairAlgoliaBulk(array $ids): void
 	{
 		unset($ids);
@@ -318,6 +351,25 @@ class SupplierProductPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('pairAlgoliaBulkForm')];
+	}
+
+	public function actionSupplierProductDetail(SupplierProduct $supplierProduct): void
+	{
+		/** @var \Forms\Form $form */
+		$form = $this->getComponent('supplierProductForm');
+
+		$form->setDefaults($supplierProduct->toArray());
+	}
+
+	public function renderSupplierProductDetail(): void
+	{
+		$this->template->headerLabel = 'Detail';
+		$this->template->headerTree = [
+			['Externí produkty', 'default'],
+			['Detail dodavatelského produkty'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('supplierProductForm')];
 	}
 
 	public function renderCreateDummyProducts(array $ids): void
