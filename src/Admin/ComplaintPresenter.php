@@ -58,6 +58,7 @@ class ComplaintPresenter extends BackendPresenter
 
 		$grid->addColumnSelector();
 		$grid->addColumnText('Vytvořeno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs');
+		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumnText('Stav', 'complaintState.name', '%s', 'complaintState.sequence');
 		$grid->addColumn('Objednávka', function (Complaint $complaint): string {
 			$order = $complaint->order;
@@ -109,6 +110,8 @@ class ComplaintPresenter extends BackendPresenter
 			);
 
 		$form->addSelect('complaintState', 'Stav', $this->complaintStateRepository->getArrayForSelect())->setRequired();
+
+		$form->addTextArea('note', 'Komentář');
 
 		$form->addText('customerFullName', 'Jméno zákazníka')->setNullable()->setDisabled((bool) $complaint);
 		$form->addEmail('customerEmail', 'E-mail zákazníka')->setNullable()->setDisabled((bool) $complaint);
