@@ -7,9 +7,15 @@ namespace Eshop\DB;
 /**
  * Reklamace
  * @table
+ * @index{"name":"complaint_code_unique","unique":true,"columns":["code"]}
  */
 class Complaint extends \StORM\Entity
 {
+	/**
+	 * @column
+	 */
+	public string $code;
+
 	/**
 	 * Důvod reklamace
 	 * @column{"type":"text"}
@@ -21,27 +27,54 @@ class Complaint extends \StORM\Entity
 	 * @column{"type":"text"}
 	 */
 	public ?string $note;
+
+	/**
+	 * @column
+	 */
+	public string $customerEmail;
+
+	/**
+	 * @column
+	 */
+	public string $customerFullName;
+
+	/**
+	 * @column
+	 */
+	public string $customerPhone;
+
+	/**
+	 * @column
+	 */
+	public string $orderCode;
 	
 	/**
 	 * Zákazník
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 * @relation
 	 */
-	public Customer $customer;
+	public ?Customer $customer;
 	
 	/**
 	 * Položka objednávky
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 * @relation
 	 */
-	public CartItem $cartItem;
+	public ?CartItem $cartItem;
 	
 	/**
 	 * Objednávka
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 * @relation
 	 */
-	public Order $order;
+	public ?Order $order;
+
+	/**
+	 * Stav
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * @relation
+	 */
+	public ComplaintState $complaintState;
 	
 	/**
 	 * Fotografie produkt
@@ -60,4 +93,20 @@ class Complaint extends \StORM\Entity
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
 	public string $createdTs;
+
+	/**
+	 * @return array<string|float|int|null>
+	 */
+	public function getEmailVariables(): array
+	{
+		return [
+			'code' => $this->code,
+			'note' => $this->note,
+			'customerFullName' => $this->customer ? $this->customer->fullname : $this->customerFullName,
+			'customerEmail' => $this->customer ? $this->customer->email : $this->customerEmail,
+			'customerPhone' => $this->customer ? $this->customer->phone : $this->customerPhone,
+			'createdTs' => $this->createdTs,
+			'orderCode' => $this->order ? $this->order->code : $this->orderCode,
+		];
+	}
 }
