@@ -157,10 +157,18 @@ class Category extends SystemicEntity
 
 	/**
 	 * Kategorie
+	 * @deprecated
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\ParameterCategory>|\Eshop\DB\ParameterCategory[]
 	 */
 	public RelationCollection $parameterCategories;
+
+	/**
+	 * Kategorie
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\Category>
+	 */
+	public RelationCollection $producerCategories;
 
 	public function isSystemic(): bool
 	{

@@ -7,6 +7,7 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\DB\CategoryRepository;
 use Eshop\DB\Producer;
 use Eshop\DB\ProducerRepository;
 use Forms\Form;
@@ -24,6 +25,9 @@ class ProducerPresenter extends BackendPresenter
 
 	/** @inject */
 	public PageRepository $pageRepository;
+
+	/** @inject */
+	public CategoryRepository $categoryRepository;
 
 	/** @inject */
 	public Request $request;
@@ -93,6 +97,7 @@ class ProducerPresenter extends BackendPresenter
 
 		$form->addLocalePerexEdit('perex', 'Perex');
 		$form->addLocaleRichEdit('content', 'Obsah');
+		$form->addSelect2('mainCategory', 'Hlavní kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('- Kategorie -');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');

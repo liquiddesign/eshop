@@ -64,6 +64,13 @@ class Producer extends \StORM\Entity
 	 */
 	public bool $hidden = false;
 
+	/**
+	 * Hlavní přiřazená kategorie
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public ?Category $mainCategory;
+
 	public function getPreviewImage(string $basePath, string $size = 'detail'): string
 	{
 		if (!\in_array($size, ['origin', 'detail', 'thumb'])) {
