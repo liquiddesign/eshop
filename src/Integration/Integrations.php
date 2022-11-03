@@ -13,12 +13,14 @@ final class Integrations
 	public const PPL = 'ppl';
 	public const GO_PAY = 'goPay';
 	public const ZBOZI = 'zbozi';
+	public const COMGATE = 'comgate';
 
 	public const SERVICES = [
 		self::DPD => 'integrations.dpd',
 		self::PPL => 'integrations.ppl',
 		self::GO_PAY => 'integrations.goPay',
 		self::ZBOZI => 'integrations.zbozi',
+		self::COMGATE => 'integrations.' . self::COMGATE,
 	];
 
 	public const SERVICES_SETTINGS = [
