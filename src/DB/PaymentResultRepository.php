@@ -5,6 +5,9 @@ namespace Eshop\DB;
 use Nette\Utils\Arrays;
 use StORM\Repository;
 
+/**
+ * @extends \StORM\Repository<\Eshop\DB\PaymentResult>
+ */
 class PaymentResultRepository extends Repository
 {
 	public const ALLOWED_SERVICE_TYPES = [

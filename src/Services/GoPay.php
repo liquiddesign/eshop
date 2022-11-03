@@ -10,8 +10,10 @@ use Contributte\GopayInline\Client;
 use Contributte\GopayInline\Http\Response;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\CheckoutManager;
+use Eshop\Common\IPaymentIntegration;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
+use Eshop\DB\PaymentResult;
 use Eshop\DB\PaymentResultRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Nette\Http\Request;
@@ -19,7 +21,7 @@ use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
 
-class GoPay
+class GoPay implements IPaymentIntegration
 {
 	public Client $client;
 
@@ -31,7 +33,7 @@ class GoPay
 
 	public PaymentTypeRepository $paymentTypeRepository;
 
-	public PaymentResultRepository $goPayRepository;
+	public PaymentResultRepository $paymentResultRepository;
 
 	public Request $request;
 
@@ -41,7 +43,7 @@ class GoPay
 		OrderRepository $orderRepository,
 		SettingRepository $settingRepository,
 		PaymentTypeRepository $paymentTypeRepository,
-		PaymentResultRepository $goPayRepository,
+		PaymentResultRepository $paymentResultRepository,
 		Request $request
 	) {
 		$this->client = $client;
@@ -49,7 +51,7 @@ class GoPay
 		$this->orderRepository = $orderRepository;
 		$this->settingRepository = $settingRepository;
 		$this->paymentTypeRepository = $paymentTypeRepository;
-		$this->goPayRepository = $goPayRepository;
+		$this->paymentResultRepository = $paymentResultRepository;
 		$this->request = $request;
 	}
 
@@ -142,7 +144,7 @@ class GoPay
 			$data = $response->getData();
 			$url = $data['gw_url'];
 
-			$this->goPayRepository->saveTransaction((string)$data['id'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, $data['state'], 'goPay', $order);
+			$this->paymentResultRepository->saveTransaction((string)$data['id'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, $data['state'], 'goPay', $order);
 
 			\header('location: ' . $url);
 			exit;
@@ -171,5 +173,89 @@ class GoPay
 		unset($id);
 
 		return;
+	}
+
+	public function getUrl(PaymentResult $paymentResult, array $result): string
+	{
+		unset($paymentResult);
+
+		return $result['gw_url'];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function processPaymentSummary(string $id): array
+	{
+		/** @var \Eshop\DB\PaymentResult|null $paymentResult */
+		$paymentResult = $this->paymentResultRepository->many()->where('id', $id)->first();
+
+		if (!$paymentResult || $paymentResult->service !== 'goPay') {
+			throw new \Exception("Payment '$id' not found!");
+		}
+
+		$result = $this->checkPaymentStatus($id);
+
+		$order = $paymentResult->order;
+
+		if (!$order) {
+			throw new \Exception('Order not found!');
+		}
+
+		return [
+			'status' => (string) $result['state'],
+			'order' => $order,
+			'paymentResultId' => $id,
+			'url' => $this->getUrl($paymentResult, $result),
+			'customer' => $paymentResult->order->purchase->customer,
+			'merchant' => $paymentResult->order->purchase->merchant,
+		];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function processPaymentResult(Request $request): array
+	{
+		$id = $request->getQuery('id');
+
+		if (!$id) {
+			throw new \Exception("Required parameter '$id' not found!");
+		}
+
+		/** @var \Eshop\DB\PaymentResult|null $paymentResult */
+		$paymentResult = $this->paymentResultRepository->one(['id' => $id]);
+
+		if (!$paymentResult) {
+			throw new \Exception("Payment '$id' not found!");
+		}
+
+		if ($paymentResult->service !== 'goPay') {
+			throw new \Exception('Not a GoPay payment!');
+		}
+
+		$paymentStatus = $this->checkPaymentStatus($id);
+
+		if (!$paymentStatus) {
+			throw new \Exception("Payment '$id': Can't load status from API!");
+		}
+
+		$paymentResult->update([
+			'status' => $paymentStatus['state'],
+		]);
+
+		if ($paymentStatus['state'] !== 'PAID') {
+			return [];
+		}
+
+		$paymentResult = $paymentResult->order->getPayment();
+
+		if (!$paymentResult) {
+			return [];
+		}
+
+		$this->orderRepository->changePayment($paymentResult->getPK(), true, true);
+
+		return [];
 	}
 }

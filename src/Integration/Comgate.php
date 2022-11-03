@@ -18,6 +18,9 @@ use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
 
+/**
+ * @deprecated use \Eshop\Services\Comgate
+ */
 class Comgate
 {
 	public CheckoutManager $checkoutManager;

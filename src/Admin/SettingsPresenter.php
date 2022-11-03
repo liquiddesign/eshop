@@ -33,6 +33,7 @@ class SettingsPresenter extends BackendPresenter
 	public const DEFAULT_UNAVAILABLE_DISPLAY_AMOUNT = 'defaultUnavailableDisplayAmount';
 	public const PPL_LAST_USED_PACKAGE_NUMBER = 'pplLastUsedPackageNumber';
 	public const PPL_LAST_USED_PACKAGE_NUMBER_COD = 'pplLastUsedPackageNumberCod';
+	public const COMGATE_PAYMENT_TYPE = 'comgatePaymentType';
 
 	/** @inject */
 	public Integrations $integrations;
@@ -332,6 +333,22 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 				'type' => 'multi',
 				'options' => $this->paymentTypeRepository->getArrayForSelect(),
 				'info' => 'Při zvolení platby typu PaymentResult bude zákazník přesměrován na platební bránu.',
+				'onSave' => function ($key, $oldValue, $newValue): void {
+					$this->systemicCallback($key, $oldValue, $newValue, $this->paymentTypeRepository);
+				},
+			];
+		}
+
+		/** @var \Eshop\Services\Comgate|null $comgate */
+		$comgate = $this->integrations->getService(Integrations::COMGATE);
+
+		if ($comgate) {
+			$this->customSettings['Platba'][] = [
+				'key' => $this::COMGATE_PAYMENT_TYPE,
+				'label' => 'Typ platby Comgate',
+				'type' => 'multi',
+				'options' => $this->paymentTypeRepository->getArrayForSelect(),
+				'info' => 'Při použití zvoleného typu platby se použije služba Comgate.',
 				'onSave' => function ($key, $oldValue, $newValue): void {
 					$this->systemicCallback($key, $oldValue, $newValue, $this->paymentTypeRepository);
 				},
