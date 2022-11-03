@@ -90,46 +90,86 @@ class GoPay
 			];
 		}
 
+		$deliveryPaymentPrice = $order->getPaymentPriceVatSum() + $order->getDeliveryPriceVatSum();
+
+		if ($deliveryPaymentPrice > 0 && ($deliveryType = $order->purchase->deliveryType)) {
+			$payment['items'][] = [
+				'type' => 'DELIVERY',
+				'name' => $deliveryType->name,
+				'count' => 1,
+				'amount' => \Money\Money::CZK((int)($deliveryPaymentPrice * 100)),
+			];
+		}
+
+		\bdump($payment);
+
 		return $this->client->payments->createPayment(PaymentFactory::create($payment));
 	}
 
-	public function processPayment(): void
+	public function processPaymentCallback(): void
 	{
 		$this->checkoutManager->onOrderCreate[] = function (Order $order): void {
-			/** @var \Eshop\DB\Order $order */
-			$order = $this->orderRepository->one($order->getPK(), true);
-
-			$paymentTypes = $this->settingRepository->getValuesByName(SettingsPresenter::GO_PAY_PAYMENT_TYPE);
-
-			if (!$paymentTypes) {
-				return;
-			}
-
-			$paymentTypes = $this->paymentTypeRepository->many()->where('this.uuid', $paymentTypes)->toArray();
-
-			$orderPaymentType = $order->getPayment()->type;
-
-			if (!$orderPaymentType) {
-				return;
-			}
-
-			if (!isset($paymentTypes[$orderPaymentType->getPK()])) {
-				return;
-			}
-
-			$response = $this->createPayment($order);
-
-			if ($response->isSuccess()) {
-				$data = $response->getData();
-				$url = $data['gw_url'];
-
-				$this->goPayRepository->saveTransaction((string)$data['id'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, $data['state'], 'goPay', $order);
-
-				\header('location: ' . $url);
-				exit;
-			}
-
-			Debugger::log($response, ILogger::WARNING);
+			$this->processPayment($order);
 		};
+	}
+
+	public function processPayment(Order $order): void
+	{
+		/** @var \Eshop\DB\Order $order */
+		$order = $this->orderRepository->one($order->getPK(), true);
+
+		$paymentTypes = $this->settingRepository->getValuesByName(SettingsPresenter::GO_PAY_PAYMENT_TYPE);
+
+		if (!$paymentTypes) {
+			return;
+		}
+
+		$paymentTypes = $this->paymentTypeRepository->many()->where('this.uuid', $paymentTypes)->toArray();
+
+		$orderPaymentType = $order->getPayment()->type;
+
+		if (!$orderPaymentType) {
+			return;
+		}
+
+		if (!isset($paymentTypes[$orderPaymentType->getPK()])) {
+			return;
+		}
+
+		$response = $this->createPayment($order);
+
+		if ($response->isSuccess()) {
+			$data = $response->getData();
+			$url = $data['gw_url'];
+
+			$this->goPayRepository->saveTransaction((string)$data['id'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, $data['state'], 'goPay', $order);
+
+			\header('location: ' . $url);
+			exit;
+		}
+
+		Debugger::log($response, ILogger::WARNING);
+	}
+
+	/**
+	 * @param string $id
+	 * @return array<mixed>|null
+	 */
+	public function checkPaymentStatus(string $id): ?array
+	{
+		$result = $this->client->payments->verify($id);
+
+		if (!$result->isSuccess()) {
+			return null;
+		}
+
+		return $result->getData();
+	}
+
+	public function savePaymentStatus(string $id): void
+	{
+		unset($id);
+
+		return;
 	}
 }
