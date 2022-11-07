@@ -441,6 +441,6 @@ class Order extends \StORM\Entity
 			->orderBy(['createdTs' => 'ASC'])
 			->first();
 
-		return $firstOrder->getPK() === $this->getPK();
+		return $firstOrder && $firstOrder->getPK() === $this->getPK();
 	}
 }
