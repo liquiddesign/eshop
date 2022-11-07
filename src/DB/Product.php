@@ -1049,6 +1049,27 @@ class Product extends \StORM\Entity
 			return 0;
 		}
 	}
+	
+	public function getGoogleExportCategory(): ?string
+	{
+		if ($this->exportGoogleCategory) {
+			return $this->exportGoogleCategory;
+		}
+		
+		if ($this->primaryCategory) {
+			$category = $this->primaryCategory;
+			$exportGoogleCategory = $this->primaryCategory->exportGoogleCategory;
+			
+			while ($exportGoogleCategory === null && $category->ancestor !== null) {
+				$category = $category->ancestor;
+				$exportGoogleCategory = $category->exportGoogleCategory;
+			}
+			
+			return $exportGoogleCategory;
+		}
+		
+		return null;
+	}
 
 	private function getQuantityPrice(int $amount, string $property): ?float
 	{
