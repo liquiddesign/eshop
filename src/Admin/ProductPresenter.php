@@ -1372,6 +1372,10 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 		$attributesColumns->setItems($attributes);
 		$attributesColumns->setDefaultValue($defaultAttributes);
 
+		if ($suppliers = $this->supplierRepository->many()->where('code IS NOT NULL')->setIndex('code')->toArrayOf('name')) {
+			$form->addMultiSelect2('suppliersCodes', 'Dodavatelské kódy', $suppliers);
+		}
+
 		$form->addSubmit('submit', 'Exportovat');
 
 		$form->onValidate[] = function (AdminForm $form) use ($headerColumns): void {
@@ -1406,12 +1410,19 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 				$attributeColumns,
 				$values['delimiter'],
 				$values['header'] ? \array_merge(\array_values($headerColumns), \array_values($attributeColumns)) : null,
+				$values['suppliersCodes'] ?? [],
+				$this->getCsvExportGetSupplierCodeCallback(),
 			);
 
 			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'products.csv', 'text/csv'));
 		};
 
 		return $form;
+	}
+
+	public function getCsvExportGetSupplierCodeCallback(): ?callable
+	{
+		return null;
 	}
 
 	public function handleDownloadImportExampleFile(): void

@@ -1367,14 +1367,18 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		array $columns = [],
 		array $attributes = [],
 		string $delimiter = ';',
-		?array $header = null
+		?array $header = null,
+		array $supplierCodes = [],
+		?callable $getSupplierCode = null
 	): void {
 		$writer->setDelimiter($delimiter);
 		
 		EncloseField::addTo($writer, "\t\22");
-		
-		if ($header) {
-			$writer->insertOne($header);
+
+		$completeHeaders = \array_merge($header, $supplierCodes);
+
+		if ($completeHeaders) {
+			$writer->insertOne($completeHeaders);
 		}
 		
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
@@ -1458,6 +1462,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 					$row[] = $product->getValue($columnKey) === false ? '0' : $product->getValue($columnKey);
 				}
 			}
+
+			foreach ($supplierCodes as $supplierCode) {
+				$row[] = $getSupplierCode ? $getSupplierCode($product, $supplierCode) : $this->getSupplierCode($product, $supplierCode);
+			}
 			
 			foreach (\array_keys($attributes) as $attributePK) {
 				if (!isset($productAttributes[$attributePK]) || !$product->attributes || !\is_array($productAttributes[$attributePK])) {
@@ -1494,6 +1502,13 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$this->cache->clean([
 			Cache::TAGS => ['products'],
 		]);
+	}
+
+	public function getSupplierCode(Product $product, string $supplierCode): ?string
+	{
+		$supplierProduct = $product->getSupplierProduct($supplierCode);
+
+		return $supplierProduct ? $supplierProduct->code : null;
 	}
 	
 	/**
