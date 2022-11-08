@@ -1338,15 +1338,15 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	/**
 	 * @return array<mixed>
 	 */
-	public function getGroupedMergedProducts(): array
+	public function getGroupedMergedProducts(?Collection $products = null): array
 	{
-
-		$products = $this->many()->select(['fkMasterProduct' => 'this.fk_masterProduct'])->fetchArray(\stdClass::class);
+		$allProducts = $this->many()->select(['fkMasterProduct' => 'this.fk_masterProduct'])->fetchArray(\stdClass::class);
+		$products = ($products ?: $this->many())->setSelect(['this.uuid'], [], true)->fetchArray(\stdClass::class);
 
 		$productsMap = [];
 		$result = [];
 
-		foreach ($products as $productPK => $masterProduct) {
+		foreach ($allProducts as $productPK => $masterProduct) {
 			if (!$masterProduct->fkMasterProduct) {
 				continue;
 			}
