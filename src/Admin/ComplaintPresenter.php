@@ -10,6 +10,8 @@ use Eshop\DB\Complaint;
 use Eshop\DB\ComplaintRepository;
 use Eshop\DB\ComplaintState;
 use Eshop\DB\ComplaintStateRepository;
+use Eshop\DB\ComplaintType;
+use Eshop\DB\ComplaintTypeRepository;
 use Eshop\DB\OrderRepository;
 use Nette\Forms\Controls\TextInput;
 use StORM\DIConnection;
@@ -18,6 +20,7 @@ class ComplaintPresenter extends BackendPresenter
 {
 	public const TABS = [
 		'complaints' => 'Reklamace',
+		'types' => 'Typy',
 		'states' => 'Stavy',
 	];
 
@@ -26,6 +29,9 @@ class ComplaintPresenter extends BackendPresenter
 
 	/** @inject */
 	public ComplaintStateRepository $complaintStateRepository;
+
+	/** @inject */
+	public ComplaintTypeRepository $complaintTypeRepository;
 
 	/** @inject */
 	public OrderRepository $orderRepository;
@@ -47,6 +53,9 @@ class ComplaintPresenter extends BackendPresenter
 		} elseif ($this->tab === 'states') {
 			$this->template->displayButtons = [$this->createNewItemButton('stateNew')];
 			$this->template->displayControls = [$this->getComponent('statesGrid')];
+		} elseif ($this->tab === 'types') {
+			$this->template->displayButtons = [$this->createNewItemButton('typeNew')];
+			$this->template->displayControls = [$this->getComponent('typesGrid')];
 		}
 
 		$this->template->tabs = self::TABS;
@@ -59,6 +68,7 @@ class ComplaintPresenter extends BackendPresenter
 		$grid->addColumnSelector();
 		$grid->addColumnText('Vytvořeno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs');
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
+		$grid->addColumnText('Typ', 'complaintType.name', '%s', 'complaintType.priority');
 		$grid->addColumnText('Stav', 'complaintState.name', '%s', 'complaintState.sequence');
 		$grid->addColumn('Objednávka', function (Complaint $complaint): string {
 			$order = $complaint->order;
@@ -109,6 +119,7 @@ class ComplaintPresenter extends BackendPresenter
 				'Neplatný kód objednávky',
 			);
 
+		$form->addSelect('complaintType', 'Typ', $this->complaintTypeRepository->getArrayForSelect())->setRequired();
 		$form->addSelect('complaintState', 'Stav', $this->complaintStateRepository->getArrayForSelect())->setRequired();
 
 		$form->addTextArea('note', 'Komentář');
@@ -116,7 +127,7 @@ class ComplaintPresenter extends BackendPresenter
 		$form->addText('customerFullName', 'Jméno zákazníka')->setNullable()->setDisabled((bool) $complaint);
 		$form->addEmail('customerEmail', 'E-mail zákazníka')->setNullable()->setDisabled((bool) $complaint);
 		$form->addText('customerPhone', 'Telefon zákazníka')->setNullable()->setDisabled((bool) $complaint)
-			->setHtmlAttribute('data-info', 'Nepovinné údaje budou doplněny automaticky.');
+			->setHtmlAttribute('data-info', 'Nepovinné údaje budou doplněny automaticky z objednávky.');
 
 		$form->addSubmits(!$complaint);
 
@@ -158,6 +169,26 @@ class ComplaintPresenter extends BackendPresenter
 		return $grid;
 	}
 
+	public function createComponentTypesGrid(): AdminGrid
+	{
+		$mutationSuffix = $this->complaintTypeRepository->getConnection()->getMutationSuffix();
+
+		$grid = $this->gridFactory->create($this->complaintTypeRepository->many(), 20, 'sequence', 'ASC', true);
+
+		$grid->addColumnSelector();
+		$grid->addColumnText('Název', "name$mutationSuffix", '%s', "name$mutationSuffix");
+
+		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
+
+		$grid->addColumnLinkDetail('typeDetail');
+		$grid->addColumnActionDelete();
+
+		$grid->addButtonSaveAll();
+		$grid->addButtonDeleteSelected();
+
+		return $grid;
+	}
+
 	public function createComponentStateForm(): AdminForm
 	{
 		$form = $this->formFactory->create(true);
@@ -185,6 +216,37 @@ class ComplaintPresenter extends BackendPresenter
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('stateDetail', 'default', [$object]);
+		};
+
+		return $form;
+	}
+
+	public function createComponentTypeForm(): AdminForm
+	{
+		$form = $this->formFactory->create(true);
+
+		/** @var \Eshop\DB\ComplaintType|null $complaintType */
+		$complaintType = $this->getParameter('complaintType');
+
+		$form->addLocaleText('name', 'Název')->forPrimary(function (TextInput $input): void {
+			$input->setRequired();
+		});
+
+		$form->addInteger('priority', 'Priorita')
+			->setDefaultValue(10)
+			->setRequired();
+		$form->addCheckbox('hidden', 'Skryto');
+
+		$form->addSubmits(!$complaintType);
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			$values = $form->getValues('array');
+
+			/** @var \Eshop\DB\ComplaintType $object */
+			$object = $this->complaintTypeRepository->syncOne($values, null, true);
+
+			$this->flashMessage('Uloženo', 'success');
+			$form->processRedirect('typeDetail', 'default', [$object]);
 		};
 
 		return $form;
@@ -254,5 +316,39 @@ class ComplaintPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('stateForm')];
+	}
+
+	public function renderTypeNew(): void
+	{
+		$this->template->headerLabel = 'Nová položka';
+		$this->template->headerTree = [
+			['Reklamace', 'default',],
+			['Typ', 'default',],
+			['Nová položka'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('typeForm')];
+	}
+
+	public function actionTypeDetail(ComplaintType $complaintType): void
+	{
+		/** @var \Admin\Controls\AdminForm $form */
+		$form = $this->getComponent('typeForm');
+
+		$defaults = $complaintType->toArray();
+
+		$form->setDefaults($defaults);
+	}
+
+	public function renderTypeDetail(): void
+	{
+		$this->template->headerLabel = 'Detail';
+		$this->template->headerTree = [
+			['Reklamace', 'default',],
+			['Typ', 'default',],
+			['Detail'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('typeForm')];
 	}
 }

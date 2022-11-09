@@ -75,6 +75,13 @@ class Complaint extends \StORM\Entity
 	 * @relation
 	 */
 	public ComplaintState $complaintState;
+
+	/**
+	 * Typ
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * @relation
+	 */
+	public ComplaintType $complaintType;
 	
 	/**
 	 * Fotografie produkt
