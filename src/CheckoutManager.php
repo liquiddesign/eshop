@@ -298,8 +298,7 @@ class CheckoutManager
 		
 		if ($this->customer && $this->cartToken) {
 			if ($cart = $this->cartRepository->getUnattachedCart($this->cartToken)) {
-				$this->addItemsFromCart($cart);
-				$cart->delete();
+				$this->handleCartOnLogin($cart, $this->customer);
 			}
 			
 			$response->deleteCookie('cartToken');
@@ -309,6 +308,14 @@ class CheckoutManager
 		$this->lastOrderToken = $request->getCookie('lastOrderToken');
 		
 		$this->shopper->discountCoupon = $this->getDiscountCoupon();
+	}
+
+	public function handleCartOnLogin(Cart $oldCart, Customer $customer): void
+	{
+		unset($customer);
+
+		$this->addItemsFromCart($oldCart);
+		$oldCart->delete();
 	}
 	
 	public function setCheckoutSequence(array $checkoutSequence): void
