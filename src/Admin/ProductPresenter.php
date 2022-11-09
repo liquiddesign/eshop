@@ -126,6 +126,7 @@ class ProductPresenter extends BackendPresenter
 		'detailSuppliersTab' => false,
 		'extendedName' => false,
 		'productTabs' => true,
+		'karsa' => false,
 	];
 
 	protected const IMPORT_SET_COLUMNS = [

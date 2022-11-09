@@ -299,6 +299,10 @@ class ProductGridFactory
 			$bulkColumns = \array_merge($bulkColumns, ['supplierContent']);
 		}
 
+		if (isset($configuration['karsa']) && $configuration['karsa']) {
+			$bulkColumns = \array_merge($bulkColumns, ['karsaAllowRepricing']);
+		}
+
 		$grid->addButtonBulkEdit(
 			'productForm',
 			$bulkColumns,

@@ -292,6 +292,10 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 		$defaultReviewsCount->addCondition($form::FILLED)
 			->toggle($defaultReviewsScore->getHtmlId() . '-toogle');
 
+		if (isset($configuration['karsa']) && $configuration['karsa']) {
+			$form->addCheckbox('karsaAllowRepricing', 'Povolit přecenění')->setDefaultValue(true);
+		}
+
 		if (isset($configuration['rounding']) && $configuration['rounding']) {
 			$form->addIntegerNullable('roundingPackagePct', 'Zokrouhlení balení (%)');
 			$form->addIntegerNullable('roundingCartonPct', 'Zokrouhlení karton (%)');

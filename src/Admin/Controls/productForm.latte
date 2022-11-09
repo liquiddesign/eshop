@@ -530,8 +530,14 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                 <table class="mt-2 mb-1" style="width: auto;">
                     {$renderer->renderPair($form['defaultReviewsCount'])|noescape}
                     {$renderer->renderPair($form['defaultReviewsScore'])|noescape}
-
                 </table>
+
+                {ifset $form['karsaAllowRepricing']}
+                    <legend>Karsa</legend>
+                    <table class="mt-2 mb-1" style="width: auto;">
+                        {$renderer->renderPair($form['karsaAllowRepricing'])|noescape}
+                    </table>
+                {/ifset}
 
                 {if isset($form['loyaltyProgram'])}
                     <legend>Věrnostní programy</legend>
