@@ -22,10 +22,13 @@ class ComplaintTypeRepository extends \StORM\Repository implements IGeneralRepos
 
 	public function getCollection(bool $includeHidden = false): Collection
 	{
-		unset($includeHidden);
-
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
+		$collection = $this->many();
 
-		return $this->many()->orderBy(['this.priority', "this.name$mutationSuffix"]);
+		if (!$includeHidden) {
+			$collection->where('this.hidden', false);
+		}
+
+		return $collection->orderBy(['this.priority', "this.name$mutationSuffix"]);
 	}
 }

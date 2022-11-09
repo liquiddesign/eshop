@@ -97,6 +97,7 @@ class ComplaintPresenter extends BackendPresenter
 		$grid->addButtonDeleteSelected();
 
 		$grid->addFilterTextInput('code', ['this.orderCode'], null, 'Kód objednávky');
+		$grid->addFilterSelectInput('complaintType', 'this.fk_complaintType = :q', 'Typ', '- Typ -', null, $this->complaintTypeRepository->getArrayForSelect());
 		$grid->addFilterSelectInput('complaintState', 'this.fk_complaintState = :q', 'Stav', '- Stav -', null, $this->complaintStateRepository->getArrayForSelect());
 		$grid->addFilterButtons();
 
@@ -179,6 +180,7 @@ class ComplaintPresenter extends BackendPresenter
 		$grid->addColumnText('Název', "name$mutationSuffix", '%s', "name$mutationSuffix");
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
+		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('typeDetail');
 		$grid->addColumnActionDelete();

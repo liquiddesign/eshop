@@ -21,4 +21,9 @@ class ComplaintType extends \StORM\Entity
 	 * @column
 	 */
 	public int $priority = 10;
+
+	/**
+	 * @column
+	 */
+	public bool $hidden = false;
 }
