@@ -216,7 +216,7 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 					} elseif ($setting['type'] === 'select') {
 						$form->addSelect2($setting['key'], $setting['label'], $setting['options'])->setPrompt($setting['prompt'] ?? '- Nepřiřazeno -')->checkDefaultValue(false);
 					} elseif ($setting['type'] === 'multi') {
-						$form->addMultiSelect2($setting['key'], $setting['label'], $setting['options'])->checkDefaultValue(false);
+						$form->addDataMultiSelect($setting['key'], $setting['label'], $setting['options'])->checkDefaultValue(false);
 					}
 				}
 			} else {

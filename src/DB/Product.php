@@ -372,6 +372,11 @@ class Product extends \StORM\Entity
 	public ?Supplier $supplierSource;
 
 	/**
+	 * @column
+	 */
+	public bool $karsaAllowRepricing = true;
+
+	/**
 	 * Alternativní produkt k
 	 * @relation
 	 * @constraint
