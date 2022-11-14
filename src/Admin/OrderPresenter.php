@@ -29,6 +29,7 @@ use Eshop\DB\OrderLogItemRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PackageItem;
 use Eshop\DB\PackageItemRepository;
+use Eshop\DB\PackageRepository;
 use Eshop\DB\Payment;
 use Eshop\DB\PaymentRepository;
 use Eshop\DB\PaymentTypeRepository;
@@ -234,6 +235,9 @@ class OrderPresenter extends BackendPresenter
 
 	/** @inject */
 	public Zasilkovna $zasilkovna;
+
+	/** @inject */
+	public PackageRepository $packageRepository;
 
 	/**
 	 * Always use getter getTab()
@@ -631,7 +635,7 @@ class OrderPresenter extends BackendPresenter
 			$form->addSelectAjax('product', 'Produkt', '- Vyberte produkt -', Product::class);
 
 			$form->addSelect('cart', 'Košík č.', $order->purchase->getCarts()->toArrayOf('id'))->setRequired();
-			$form->addSelect('package', 'Balík č.', $order->getPackages()->toArrayOf('id'))->setRequired();
+			$form->addSelect('package', 'Balík č.', $order->getPackages()->toArrayOf('id') + ['new' => 'Nový balík'])->setRequired();
 
 			$form->addInteger('amount', 'Množství')->setDefaultValue(1)->setRequired();
 
@@ -667,6 +671,34 @@ class OrderPresenter extends BackendPresenter
 
 		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValuesWithAjax();
+
+			if ($values['package'] === 'new') {
+				$purchase = $order->purchase;
+
+				$newPackageId = $this->packageRepository->many()->where('this.fk_order', $order->getPK())->select(['packagesCount' => 'MAX(this.id) + 1'])->firstValue('packagesCount') ?? 1;
+
+				/** @var \Eshop\DB\Delivery $delivery */
+				$delivery = $this->deliveryRepository->createOne([
+					'order' => $order,
+					'currency' => $purchase->currency->getPK(),
+					'type' => $purchase->deliveryType,
+					'typeName' => $purchase->deliveryType->toArray()['name'],
+					'typeCode' => $purchase->deliveryType->code,
+					'price' => 0,
+					'priceVat' => 0,
+					'priceBefore' => 0,
+					'priceVatBefore' => 0,
+				]);
+
+				/** @var \Eshop\DB\Package $package */
+				$package = $this->packageRepository->createOne([
+					'id' => $newPackageId,
+					'order' => $order->getPK(),
+					'delivery' => $delivery->getPK(),
+				]);
+
+				$values['package'] = $package->getPK();
+			}
 
 			/** @var \Eshop\DB\Cart $cart */
 			$cart = $this->cartRepository->one($values['cart']);
@@ -799,55 +831,140 @@ class OrderPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function createComponentSplitOrderItemForm(): AdminForm
+	public function createComponentSplitOrderItemForm(): Multiplier
 	{
-		$form = $this->formFactory->create();
-		$form->getCurrentGroup()->setOption('label', 'Nová položka');
-		$form->addInteger('amount', 'Množství')->setDefaultValue(1)->setRequired()->addRule($form::MIN, 'Zadejte číslo větší než 0!', 1);
-		$form->addSelect('store', 'Sklad', $this->storeRepository->many()->toArrayOf('name'))->setPrompt('Žádný');
-		$form->addSubmits(false, false);
-		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
+		return new Multiplier(function ($packageItemPK): AdminForm {
+			$form = $this->formFactory->create();
+			$form->addInteger('amount', 'Množství')->setDefaultValue(1)->setRequired()->addRule($form::MIN, 'Zadejte číslo větší než 0!', 1);
+			$form->addSelect('store', 'Sklad', $this->storeRepository->many()->toArrayOf('name'))->setPrompt('Žádný');
+			$form->addSubmits(false, false);
+			$form->onSuccess[] = function (AdminForm $form) use ($packageItemPK): void {
+				$values = $form->getValues('array');
+
+				/** @var \Eshop\DB\PackageItem $oldPackageItem */
+				$oldPackageItem = $this->packageItemRepository->one($packageItemPK, true);
+
+				$values['amount'] = $values['amount'] > $oldPackageItem->amount ? $oldPackageItem->amount : $values['amount'];
+
+				$oldCartItemArray = $oldPackageItem->cartItem->toArray();
+				unset($oldCartItemArray['uuid']);
+				$oldCartItemArray['amount'] = $values['amount'];
+
+				$oldPackageItem->update(['amount' => $oldPackageItem->cartItem->amount - $values['amount']]);
+				$oldPackageItem->cartItem->update(['amount' => $oldPackageItem->cartItem->amount - $values['amount']]);
+
+				$oldPackageItemArray = $oldPackageItem->toArray();
+				unset($oldPackageItemArray['uuid']);
+				$oldPackageItemArray['amount'] = $values['amount'];
+				$oldPackageItemArray['store'] = $values['store'];
+
+				$newCartItem = $this->cartItemRepo->createOne($oldCartItemArray);
+				$oldPackageItemArray['cartItem'] = $newCartItem->getPK();
+
+				$this->packageItemRepository->createOne($oldPackageItemArray);
+
+				/** @var \Eshop\DB\Order $order */
+				$order = $this->getParameter('order');
+
+				/** @var \Admin\DB\Administrator|null $admin */
+				$admin = $this->admin->getIdentity();
+
+				if (!$admin) {
+					return;
+				}
+
+				$this->orderLogItemRepository->createLog($order, OrderLogItem::SPLIT, $oldPackageItem->cartItem->productName, $admin);
+
+				$this->flashMessage('Provedeno', 'success');
+				$this->redirect('this');
+			};
+
+			return $form;
+		});
+	}
+
+	public function createComponentMoveOrderItemForm(): Multiplier
+	{
+		return new Multiplier(function ($packageItemPK): AdminForm {
+			$form = $this->formFactory->create();
 
 			/** @var \Eshop\DB\PackageItem $packageItem */
-			$packageItem = $this->packageItemRepository->one($values['uuid'], true);
+			$packageItem = $this->packageItemRepository->one($packageItemPK, true);
 
-			$values['amount'] = $values['amount'] > $packageItem->amount ? $packageItem->amount : $values['amount'];
+			$form->addSelect('package', 'Balík č.', $packageItem->package->order->getPackages()->toArrayOf('id') + ['new' => 'Nový balík'])->setRequired();
 
-			$oldCartItemArray = $packageItem->cartItem->toArray();
-			unset($oldCartItemArray['uuid']);
-			$oldCartItemArray['amount'] = $values['amount'];
+			$form->addSubmits(false, false);
+			$form->onSuccess[] = function (AdminForm $form) use ($packageItem): void {
+				$values = $form->getValues('array');
 
-			$packageItem->update(['amount' => $packageItem->cartItem->amount - $values['amount']]);
-			$packageItem->cartItem->update(['amount' => $packageItem->cartItem->amount - $values['amount']]);
+				if ($values['package'] === 'new') {
+					$order = $packageItem->package->order;
+					$purchase = $order->purchase;
 
-			$oldPackageItemArray = $packageItem->toArray();
-			unset($oldPackageItemArray['uuid']);
-			$oldPackageItemArray['amount'] = $values['amount'];
-			$oldPackageItemArray['store'] = $values['store'];
+					$newPackageId = $this->packageRepository->many()->where('this.fk_order', $order->getPK())->select(['packagesCount' => 'MAX(this.id) + 1'])->firstValue('packagesCount') ?? 1;
 
-			$newCartItem = $this->cartItemRepo->createOne($oldCartItemArray);
-			$oldPackageItemArray['cartItem'] = $newCartItem->getPK();
+					/** @var \Eshop\DB\Delivery $delivery */
+					$delivery = $this->deliveryRepository->createOne([
+						'order' => $order,
+						'currency' => $purchase->currency->getPK(),
+						'type' => $purchase->deliveryType,
+						'typeName' => $purchase->deliveryType->toArray()['name'],
+						'typeCode' => $purchase->deliveryType->code,
+						'price' => 0,
+						'priceVat' => 0,
+						'priceBefore' => 0,
+						'priceVatBefore' => 0,
+					]);
 
-			$this->packageItemRepository->createOne($oldPackageItemArray);
+					/** @var \Eshop\DB\Package $package */
+					$package = $this->packageRepository->createOne([
+						'id' => $newPackageId,
+						'order' => $order->getPK(),
+						'delivery' => $delivery->getPK(),
+					]);
 
-			/** @var \Eshop\DB\Order $order */
-			$order = $this->getParameter('order');
+					$values['package'] = $package->getPK();
+				}
 
-			/** @var \Admin\DB\Administrator|null $admin */
-			$admin = $this->admin->getIdentity();
+				$packageItem->update(['package' => $values['package']]);
 
-			if (!$admin) {
-				return;
+				/** @var \Eshop\DB\Order $order */
+				$order = $this->getParameter('order');
+
+				/** @var \Admin\DB\Administrator|null $admin */
+				$admin = $this->admin->getIdentity();
+
+				if (!$admin) {
+					return;
+				}
+
+				$this->orderLogItemRepository->createLog($order, OrderLogItem::ITEM_MOVED, $packageItem->cartItem->productName . ' --> Balík č. ' . $packageItem->package->id, $admin);
+
+				$this->flashMessage('Provedeno', 'success');
+				$this->redirect('this');
+			};
+
+			return $form;
+		});
+	}
+
+	public function handleRemovePackage(string $packagePK): void
+	{
+		$package = $this->packageRepository->one($packagePK, true);
+
+		foreach ($this->packageItemRepository->many()->where('fk_package', $package->getPK()) as $item) {
+			$item->cartItem->delete();
+
+			foreach ($item->relatedPackageItems as $relatedPackageItem) {
+				$relatedPackageItem->cartItem->delete();
+				$relatedPackageItem->delete();
 			}
+		}
 
-			$this->orderLogItemRepository->createLog($order, OrderLogItem::SPLIT, $packageItem->cartItem->productName, $admin);
+		$package->delivery->delete();
+		$package->delete();
 
-			$this->flashMessage('Provedeno', 'success');
-			$this->redirect('this');
-		};
-
-		return $form;
+		$this->redirect('this');
 	}
 
 	public function createComponentStoreOrderItemForm(): Multiplier

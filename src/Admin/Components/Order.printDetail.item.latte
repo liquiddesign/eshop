@@ -34,8 +34,12 @@
         {$item->priceVat * $packageItem->amount|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price * $packageItem->amount|price} bez DPH</small>{/if}
     </td>
     <td class="d-print-none">
-        <a class="btn btn-outline-primary btn-sm text-xs modalSplitOrderItemForm" data-values="{json_encode(['uuid' => $packageItem->getPK()])}" data-toggle="modal" n:if="$presenter->isManager"
-           data-target="#modal-splitOrderItemForm" href="#" title="Rozdělit"><i class="fa fa-columns"></i></a>
+        <a class="btn btn-outline-primary btn-sm text-xs modalMoveOrderItemForm" data-toggle="modal" n:if="$presenter->isManager"
+           data-target="#modal-moveOrderItemForm-{$packageItem->getPK()}" href="#" title="Přesunout"><i class="fas fa-cube"></i></a>
+    </td>
+    <td class="d-print-none">
+        <a class="btn btn-outline-primary btn-sm text-xs modalSplitOrderItemForm" data-toggle="modal" n:if="$presenter->isManager"
+           data-target="#modal-splitOrderItemForm-{$packageItem->getPK()}" href="#" title="Rozdělit"><i class="fa fa-columns"></i></a>
     </td>
     <td class="d-print-none">
         <a class="btn btn-primary btn-sm text-xs modalDetailOrderItemForm"

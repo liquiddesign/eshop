@@ -114,7 +114,7 @@
                     <!-- Table row -->
                     <div class="row">
                         <div class="col-12 table-responsive table-striped">
-                            <h5>Balík #{$package->id}</h5>
+                            <h5>Balík #{$package->id} <a n:href="removePackage! $package->getPK()" class="ml-2 text-danger" title="Odstranit" onclick="return confirm('Opravdu?')"><i class="fas fa-trash fa-xs"></i></a></h5>
                             <table class="table table-sm lqd-table">
                                 <thead class="admin-head">
                                 <tr>
@@ -125,6 +125,7 @@
                                     <th>Sklad</th>
                                     <th style="text-align: right">Cena za kus</th>
                                     <th style="text-align: right">Cena celkem</th>
+                                    <th class="minimal d-print-none"></th>
                                     <th class="minimal d-print-none"></th>
                                     <th class="minimal d-print-none"></th>
                                     <th class="minimal d-print-none"></th>
@@ -172,6 +173,7 @@
                                             <td class="d-print-none"></td>
                                             <td class="d-print-none"></td>
                                             <td class="d-print-none"></td>
+                                            <td class="d-print-none"></td>
                                         </tr>
                                     {/foreach}
                                 {/foreach}
@@ -190,7 +192,7 @@
                         <div class="d-flex align-items-center">
                             <img n:if="$purchase->deliveryType && $purchase->deliveryType->imageFileName" src="{$userUrl|noescape}/deliverytype_images/thumb/{$purchase->deliveryType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
                             {if $purchase->deliveryType}
-                             {$purchase->deliveryType->name}&nbsp;-&nbsp;{$delivery->shippedTs ? 'Expedováno' : 'Čeká na expedici'}<br>
+                             {$purchase->deliveryType->name}&nbsp;-&nbsp;{$delivery?->shippedTs ? 'Expedováno' : 'Čeká na expedici'}<br>
                             {/if}
                             {$purchase->pickupPointId || $purchase->zasilkovnaId ? 'Výdejní místo: ' : null}
                             {if $purchase->pickupPointId}
@@ -303,10 +305,23 @@
         {block modal-body}{control orderForm:noHeader}{/block}
     {/embed}
 
-    {embed modal id:'splitOrderItemForm'}
-        {block modal-header}Rozdělení položky{/block}
-        {block modal-body}{control splitOrderItemForm:noHeader}{/block}
-    {/embed}
+    {foreach $packages as $package}
+        {foreach $package->items as $packageItemPK => $packageItem}
+            {embed modal id:"splitOrderItemForm-$packageItemPK"}
+                {block modal-header}Rozdělení položky{/block}
+                {block modal-body}{control splitOrderItemForm-$packageItemPK:noHeader}{/block}
+            {/embed}
+        {/foreach}
+    {/foreach}
+
+    {foreach $packages as $package}
+        {foreach $package->items as $packageItemPK => $packageItem}
+            {embed modal id:"moveOrderItemForm-$packageItemPK"}
+                {block modal-header}Přesun položky{/block}
+                {block modal-body}{control moveOrderItemForm-$packageItemPK:noHeader}{/block}
+            {/embed}
+        {/foreach}
+    {/foreach}
 
     {foreach $allStoreAmounts as $packageItemPK => $storeAmounts}
         {varType Eshop\DB\Amount[] $storeAmounts}

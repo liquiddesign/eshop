@@ -37,6 +37,7 @@ class OrderLogItem extends \StORM\Entity
 	public const NEW_COMMENT = 'Nový komentář';
 	public const NEW_ITEM = 'Nová položka';
 	public const SPLIT = 'Rozděleno';
+	public const ITEM_MOVED = 'Položka přesunuta do jiného balíku';
 	public const MERGED = 'Spojeno';
 	public const CLONED = 'Duplikováno';
 	public const SUPPLIER_SENT = 'Odesláno dodavateli';
