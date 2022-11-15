@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Front\Eshop;
 
+use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CatalogPermissionRepository;
@@ -20,6 +21,7 @@ use Eshop\DB\OrderRepository;
 use Eshop\DB\PhotoRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
+use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\Shopper;
@@ -136,6 +138,12 @@ abstract class ExportPresenter extends Presenter
 	/** @inject */
 	public CustomerGroupRepository $customerGroupRepository;
 
+	/** @inject */
+	public AttributeAssignRepository $attributeAssignRepository;
+
+	/** @inject */
+	public ProducerRepository $producerRepository;
+
 	protected Cache $cache;
 
 	protected Engine $latte;
@@ -149,7 +157,7 @@ abstract class ExportPresenter extends Presenter
 
 	public function compileLatte(?string $string, array $params): ?string
 	{
-		$this->latte = $this->createLatteEngine();
+		$this->latte ??= $this->createLatteEngine();
 
 		if ($string === null) {
 			return null;
@@ -172,6 +180,84 @@ abstract class ExportPresenter extends Presenter
 	{
 		$this->template->setFile(__DIR__ . '/../../templates/export/partners.latte');
 		$this->template->vatRates = $this->vatRateRepo->getVatRatesByCountry();
+	}
+
+	public function renderHeurekaV2Export(): void
+	{
+		$pricelists = $this->getPricelistFromSetting('heurekaExportPricelist');
+
+		if (!$pricelists) {
+			$this->sendJson('No pricelists selected!');
+		}
+
+		Debugger::timer();
+
+		$this->template->products = $this->productRepo->getProducts($pricelists)->where('this.hidden', false)->where('this.unavailable', 0)->toArray();
+		$this->template->categoriesMapWithHeurekaCategories = $this->categoryRepository->getCategoriesMapWithHeurekaCategories($this->categoryRepository->many()->where('fk_type', 'main'));
+
+		$currency = $this->currencyRepository->one('CZK');
+
+		$this->template->priceType = $this->shopper->getShowVat() ? true : ($this->shopper->getShowWithoutVat() ? false : null);
+		$this->template->deliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0)->where('this.exportToFeed', true)->toArray();
+
+		/** @var array<\Eshop\DB\Attribute> $allAttributes */
+		$allAttributes = $this->attributeRepository->many()->toArray();
+		/** @var array<\Eshop\DB\AttributeValue> $allAttributeValues */
+		$allAttributeValues = $this->attributeValueRepository->many()->toArray();
+		/** @var array<\Eshop\DB\AttributeAssign> $allAttributeAssigns */
+		$allAttributeAssigns = $this->attributeAssignRepository->many()->toArray();
+		/** @var array<\Eshop\DB\Producer> $allProducers */
+		$allProducers = $this->producerRepository->many()->toArray();
+
+		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
+		$this->template->allAttributes = $this->attributeRepository->many()->select(['heureka' => "IFNULL(heurekaName,name$mutationSuffix)"])->toArrayOf('heureka');
+		$this->template->allAttributeValues = $this->attributeValueRepository->many()->select(['heureka' => "IFNULL(heurekaLabel,label$mutationSuffix)"])->toArrayOf('heureka');
+
+		$attributeAssignsByProducts = [];
+
+		foreach ($allAttributeAssigns as $attributeAssign) {
+			$attributeAssignsByProducts[$attributeAssign->getValue('product')][$attributeAssign->getPK()] = $attributeAssign;
+		}
+
+		unset($allAttributeAssigns);
+
+		$this->template->productsFrontendData = [];
+
+		/** @var \Eshop\DB\Product $product */
+		foreach ($this->template->products as $product) {
+			$this->template->productsFrontendData[$product->getPK()] = $product->getSimpleFrontendData();
+
+			$attributeAssigns = $attributeAssignsByProducts[$product->getPK()] ?? [];
+
+			/** @var \Eshop\DB\AttributeAssign $attributeAssign */
+			foreach ($attributeAssigns as $attributeAssign) {
+				if (!isset($allAttributeValues[$attributeAssign->getValue('value')])) {
+					continue;
+				}
+
+				$attributeValue = $allAttributeValues[$attributeAssign->getValue('value')];
+
+				if (!isset($allAttributes[$attributeValue->getValue('attribute')])) {
+					continue;
+				}
+
+				$attribute = $allAttributes[$attributeValue->getValue('attribute')];
+
+				if (isset($this->template->productsFrontendData[$product->getPK()]['attributes'][$attribute->code])) {
+					$this->template->productsFrontendData[$product->getPK()]['attributes'][$attribute->code] .= ', ' . $attributeValue->label;
+				} else {
+					$this->template->productsFrontendData[$product->getPK()]['attributes'][$attribute->code] = $attributeValue->label;
+				}
+			}
+
+			$this->template->productsFrontendData[$product->getPK()]['producer'] = $product->getValue('producer') && isset($allProducers[$product->getValue('producer')]) ?
+				$allProducers[$product->getValue('producer')]->name :
+				null;
+		}
+
+		$this->template->photos = $this->photoRepository->many()->setGroupBy(['fk_product'])->setIndex('fk_product')->select(['fileNames' => 'GROUP_CONCAT(fileName)'])->toArrayOf('fileNames');
+
+		$this->template->setFile(__DIR__ . '/../../templates/export/heurekaV2.latte');
 	}
 
 	public function renderHeurekaExport(): void

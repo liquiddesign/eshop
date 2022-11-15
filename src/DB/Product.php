@@ -970,12 +970,21 @@ class Product extends \StORM\Entity
 			$productAttributesByCode[$attribute->code] = $tmp;
 		}
 
+		return \array_merge($this->getSimpleFrontendData(), [
+			'producer' => $this->producer ? $this->producer->name : null,
+			'attributes' => $productAttributesByCode,
+		]);
+	}
+
+	/**
+	 * @return array<string|array<string>>
+	 */
+	public function getSimpleFrontendData(): array
+	{
 		return [
 			'name' => $this->name,
-			'producer' => $this->producer ? $this->producer->name : null,
 			'code' => $this->getFullCode(),
 			'ean' => $this->ean,
-			'attributes' => $productAttributesByCode,
 		];
 	}
 
