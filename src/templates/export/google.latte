@@ -35,9 +35,11 @@
                 {do $discountPrice ??= $priceType ? $product->getPriceVat() : ($priceType === false ? $product->getPrice() : null)}
                 {var $page = $presenter->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product->getPK()])}
                 {var $attributes = $product->getPreviewAtttributes()}
+                {var string|null $productContent = $presenter->compileLatte($product->content, $product->getFrontendData())}
+
                 <g:id>{$product->getFullCode()}</g:id>
                 <g:title><![CDATA[{$product->name}]]></g:title>
-                <g:description><![CDATA[{$product->primaryCategory ? ($product->primaryCategory->exportGoogleCategory && Nette\Utils\Strings::length($product->primaryCategory->exportGoogleCategory) > 0 ? $product->primaryCategory->exportGoogleCategory : $product->primaryCategory->name) : null} {$page ? $page->getDescription(null) : \strip_tags($product->content ?? '')}]]></g:description>
+                <g:description><![CDATA[{$product->primaryCategory ? ($product->primaryCategory->exportGoogleCategory && Nette\Utils\Strings::length($product->primaryCategory->exportGoogleCategory) > 0 ? $product->primaryCategory->exportGoogleCategory : $product->primaryCategory->name) : null} {$page && $page->getDescription(null) ? $page->getDescription(null) : \strip_tags($productContent ?? '')}]]></g:description>
                 <g:google_product_category n:if="$product->primaryCategory && $product->primaryCategory->exportGoogleCategoryId">{$product->primaryCategory->exportGoogleCategoryId}</g:google_product_category>
                 <g:link>{plink //:Eshop:Product:detail $product->getPK()}</g:link>
                 {if isset($photos[$product->getPK()])}<g:image_link>{$productImageUrl}{$basePath}/userfiles/{\Eshop\DB\Product::GALLERY_DIR}/detail/{$photos[$product->getPK()]->fileName}</g:image_link>{/if}

@@ -23,12 +23,18 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\Shopper;
+use Latte\Engine;
+use Latte\Loaders\StringLoader;
+use Latte\Policy;
+use Latte\Sandbox\SecurityPolicy;
 use League\Csv\Writer;
 use Nette\Application\AbortException;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Application\Responses\TextResponse;
 use Nette\Application\UI\Presenter;
+use Nette\Bridges\ApplicationLatte\LatteFactory;
+use Nette\Bridges\ApplicationLatte\UIMacros;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\DI\Container;
@@ -123,17 +129,37 @@ abstract class ExportPresenter extends Presenter
 
 	/** @inject */
 	public Response $response;
+
+	/** @inject */
+	public LatteFactory $latteFactory;
 	
 	/** @inject */
 	public CustomerGroupRepository $customerGroupRepository;
 
 	protected Cache $cache;
 
+	protected Engine $latte;
+
 	public function __construct(Storage $storage)
 	{
 		parent::__construct();
 
 		$this->cache = new Cache($storage);
+	}
+
+	public function compileLatte(?string $string, array $params): ?string
+	{
+		$this->latte = $this->createLatteEngine();
+
+		if ($string === null) {
+			return null;
+		}
+
+		try {
+			return $this->latte->renderToString($string, $params);
+		} catch (\Throwable $e) {
+			return null;
+		}
 	}
 
 	public function beforeRender(): void
@@ -445,6 +471,25 @@ abstract class ExportPresenter extends Presenter
 	public function actionRenderMultiple(array $hashes): void
 	{
 		unset($hashes);
+	}
+
+	protected function createLatteEngine(): Engine
+	{
+		$latte = $this->latteFactory->create();
+		UIMacros::install($latte->getCompiler());
+		$latte->setLoader(new StringLoader());
+		$latte->setPolicy($this->getLatteSecurityPolicy());
+		$latte->setSandboxMode();
+
+		return $latte;
+	}
+
+	protected function getLatteSecurityPolicy(): Policy
+	{
+		$policy = SecurityPolicy::createSafePolicy();
+		$policy->allowFilters(['price', 'date']);
+
+		return $policy;
 	}
 
 	private function export(string $name): void

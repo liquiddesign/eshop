@@ -17,7 +17,9 @@
             <SHOPITEM n:foreach="$presenter->productRepo->getProducts($pricelists)->where('this.hidden', false)->where('this.unavailable', 0) as $product">
                 <ITEM_ID>{$product->getFullCode()}</ITEM_ID>
                 <PRODUCTNAME><![CDATA[{$product->name}]]></PRODUCTNAME>
-                <DESCRIPTION n:if="$product->content"><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
+                {var string|null $productContent = $presenter->compileLatte($product->content, $product->getFrontendData())}
+
+                <DESCRIPTION n:if="$productContent"><![CDATA[{\strip_tags($productContent)}]]></DESCRIPTION>
                 <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
                 {var $productPhotos = isset($photos[$product->getPK()]) ? \explode(',', $photos[$product->getPK()]) : []}
                 {if $image = $product->getPreviewImage($basePath)}
