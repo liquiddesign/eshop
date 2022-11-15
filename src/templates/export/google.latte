@@ -35,7 +35,7 @@
                 {do $discountPrice ??= $priceType ? $product->getPriceVat() : ($priceType === false ? $product->getPrice() : null)}
                 {var $page = $presenter->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product->getPK()])}
                 {var $attributes = $product->getPreviewAtttributes()}
-                {var string|null $productContent = $presenter->compileLatte($product->content, $product->getFrontendData())}
+                {var string|null $productContent = $product->getValue('originalContent')}
 
                 <g:id>{$product->getFullCode()}</g:id>
                 <g:title><![CDATA[{$product->name}]]></g:title>
