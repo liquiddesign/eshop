@@ -237,7 +237,9 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		return $this->getCollection($includeHidden)->toArrayOf('name');
+		return $this->getCollection($includeHidden)
+			->select(['fullName' => "IF(this.systemicLock > 0, CONCAT(name, ' (', code, ', systémový)'), CONCAT(name, ' (', code, ')'))"])
+			->toArrayOf('fullName');
 	}
 
 	public function getDefaultPricelists(): Collection
