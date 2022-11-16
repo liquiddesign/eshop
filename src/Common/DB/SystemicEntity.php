@@ -11,7 +11,6 @@ class SystemicEntity extends \StORM\Entity
 	 */
 	public int $systemicLock = 0;
 
-
 	public function isSystemic(): bool
 	{
 		return $this->systemicLock > 0;

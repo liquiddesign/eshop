@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Eshop\Common\DB\SystemicEntity;
+
 /**
  * Ceník
  * @table
  */
-class Pricelist extends \StORM\Entity
+class Pricelist extends SystemicEntity
 {
 	/**
 	 * Kód
@@ -59,12 +61,6 @@ class Pricelist extends \StORM\Entity
 	 * @unique
 	 */
 	public ?string $customLabel;
-
-	/**
-	 * Systemic
-	 * @column
-	 */
-	public int $systemicLock = 0;
 	
 	/**
 	 * Měna
@@ -93,30 +89,4 @@ class Pricelist extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Supplier $supplier;
-
-	public function isSystemic(): bool
-	{
-		return $this->systemicLock > 0;
-	}
-
-	public function addSystemic(): int
-	{
-		$this->systemicLock++;
-		$this->updateAll();
-
-		return $this->systemicLock;
-	}
-
-	public function removeSystemic(): int
-	{
-		$this->systemicLock--;
-
-		if ($this->systemicLock < 0) {
-			$this->systemicLock = 0;
-		} else {
-			$this->updateAll();
-		}
-
-		return $this->systemicLock;
-	}
 }
