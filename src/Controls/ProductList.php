@@ -45,27 +45,27 @@ class ProductList extends Datalist
 
 	public Shopper $shopper;
 
-	private ProductRepository $productRepository;
+	protected ProductRepository $productRepository;
 
-	private WatcherRepository $watcherRepository;
+	protected WatcherRepository $watcherRepository;
 
-	private Translator $translator;
+	protected Translator $translator;
 
-	private FormFactory $formFactory;
+	protected FormFactory $formFactory;
 
-	private AttributeRepository $attributeRepository;
+	protected AttributeRepository $attributeRepository;
 
-	private AttributeValueRepository $attributeValueRepository;
+	protected AttributeValueRepository $attributeValueRepository;
 
-	private AttributeValueRangeRepository $attributeValueRangeRepository;
+	protected AttributeValueRangeRepository $attributeValueRangeRepository;
 
-	private IBuyFormFactory $buyFormFactory;
+	protected IBuyFormFactory $buyFormFactory;
 
-	private ProducerRepository $producerRepository;
+	protected ProducerRepository $producerRepository;
 
-	private DisplayAmountRepository $displayAmountRepository;
+	protected DisplayAmountRepository $displayAmountRepository;
 
-	private DisplayDeliveryRepository $displayDeliveryRepository;
+	protected DisplayDeliveryRepository $displayDeliveryRepository;
 
 	public function __construct(
 		ProductRepository $productRepository,
