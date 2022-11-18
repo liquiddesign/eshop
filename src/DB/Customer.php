@@ -585,7 +585,7 @@ class Customer extends Entity implements IIdentity, IUser
 		$email = $order->purchase->email;
 
 		$this->addProvision(
-			"Provize za objednávku id. $order->id, uživatele $email",
+			"Provize za objednávku id. $order->code, uživatele $email",
 			$provision,
 			true,
 			$order->purchase->currency,
@@ -607,7 +607,7 @@ class Customer extends Entity implements IIdentity, IUser
 		$email = $order->purchase->email;
 
 		$this->addProvision(
-			"Dárek za objednávku id. $order->id, uživatele $email",
+			"Dárek za objednávku id. $order->code, uživatele $email",
 			$rewards,
 		);
 	}
