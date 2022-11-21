@@ -20,9 +20,12 @@
             <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
             {if $image = $product->getPreviewImage($basePath)}<IMGURL>{$productImageUrl . $image}</IMGURL>{/if}
             <PRICE_VAT>{$product->getPriceVat()}</PRICE_VAT>
-            <MANUFACTURER>{ifset $product->producer}{$product->producer->name}{/ifset}</MANUFACTURER>
+            <MANUFACTURER>{$productsFrontendData[$product->getPK()]['producer'] ?? null}</MANUFACTURER>
+
             {var string|null $category = $product->getValue('primaryCategory')}
             {var Eshop\DB\Category|null $category = $allCategories[$category] ?? null}
+            {var Eshop\DB\Category|null $category = $category && $category->getValue('exportZboziCategory') ? ($allCategories[$category->getValue('exportZboziCategory')] ?? null) : null}
+
             {if $category !== null}
                 {var $categories = []}
                 {while $category != null}

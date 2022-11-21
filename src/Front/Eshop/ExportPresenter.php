@@ -493,11 +493,6 @@ abstract class ExportPresenter extends Presenter
 		$this->template->products = $this->productRepo->getProducts($pricelists)->where('this.hidden', false)->where('this.unavailable', 0)->toArray();
 		$this->template->categoriesMapWithHeurekaCategories = $this->categoryRepository->getCategoriesMapWithHeurekaCategories($this->categoryRepository->many()->where('fk_type', 'main'));
 
-		$currency = $this->currencyRepository->one('CZK');
-
-		$this->template->priceType = $this->shopper->getShowVat() ? true : ($this->shopper->getShowWithoutVat() ? false : null);
-		$this->template->deliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0)->where('this.exportToFeed', true)->toArray();
-
 		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
 		$this->template->allAttributes = $this->attributeRepository->many()->select(['heureka' => "IFNULL(heurekaName,name$mutationSuffix)"])->toArrayOf('heureka');
 		$this->template->allAttributeValues = $this->attributeValueRepository->many()->select(['heureka' => "IFNULL(heurekaLabel,label$mutationSuffix)"])->toArrayOf('heureka');
@@ -538,12 +533,62 @@ abstract class ExportPresenter extends Presenter
 				'ancestor' => 'this.fk_ancestor',
 				'name' => "this.name$mutationSuffix",
 				'exportZboziCategory' => 'this.fk_exportZboziCategory',
-			])
+			], [], true)
 			->fetchArray(\stdClass::class);
 
 		$this->setProductsFrontendData();
 
 		$this->template->setFile(__DIR__ . '/../../templates/export/zboziV2.latte');
+	}
+
+	public function renderGoogleV2Export(): void
+	{
+		$pricelists = $this->getPricelistFromSetting('googleExportPricelist');
+
+		$this->template->groupAfterRegistration = $groupAfterRegistration = $this->customerGroupRepository->getDefaultRegistrationGroup() ?: $this->customerGroupRepository->getUnregisteredGroup();
+		$this->template->products = $this->productRepo->getProducts($pricelists)->where('this.hidden', false)->where('this.unavailable', 0)->toArray();
+
+		$this->template->products = (
+			$pricelists ?
+				$this->productRepo->getProducts($pricelists) :
+				$this->productRepo->getProductsAsGroup($groupAfterRegistration)
+		)->where('this.hidden', false)->where('this.unavailable', 0);
+		$this->template->pricelists = $pricelists ?: $groupAfterRegistration->defaultPricelists->toArray();
+		$this->template->photos = $this->photoRepository->many()->where('this.googleFeed', true)->setIndex('this.fk_product')->toArray();
+		$this->template->colorAttribute = $this->settingRepo->many()->where('name', 'googleColorAttribute')->first();
+		$this->template->highlightsAttribute = $highlightsAttribute = $this->settingRepo->many()->where('name', 'googleHighlightsAttribute')->first();
+		$this->template->highlightsMutation = $this->settingRepo->many()->where('name', 'googleHighlightsMutation')->first();
+		$this->template->highlightsAttributeValues = $highlightsAttribute && $highlightsAttribute->value ?
+			$this->attributeValueRepository->many()->where('fk_attribute', $highlightsAttribute->value)->toArray() :
+			[];
+
+		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
+		$this->template->allAttributes = $this->attributeRepository->many()->select(['zbozi' => "IFNULL(zboziName,name$mutationSuffix)"])->toArrayOf('zbozi');
+		$this->template->allAttributeValues = $this->attributeValueRepository->many()->select(['zbozi' => "IFNULL(zboziLabel,label$mutationSuffix)"])->toArrayOf('zbozi');
+		$this->template->allCategories = $this->categoryRepository->many()
+			->setSelect([
+				'uuid' => 'this.uuid',
+				'ancestor' => 'this.fk_ancestor',
+				'name' => "this.name$mutationSuffix",
+				'exportGoogleCategory' => 'this.exportGoogleCategory',
+				'exportGoogleCategoryId' => 'this.exportGoogleCategoryId',
+			], [], true)
+			->fetchArray(\stdClass::class);
+
+		/** @var \Web\DB\Setting|null $discountPricelist */
+		$discountPricelist = $this->settingRepo->many()->where('name', 'googleSalePricelist')->first();
+		$this->template->groupAfterRegistration = $this->customerGroupRepository->getDefaultRegistrationGroup() ?: $this->customerGroupRepository->getUnregisteredGroup();
+
+		$this->template->discountPrices = $discountPricelist && $discountPricelist->value ?
+			$this->priceRepository->many()
+				->where('fk_pricelist', $discountPricelist->value)
+				->setIndex('this.fk_product')
+				->toArray() :
+			[];
+
+		$this->setProductsFrontendData();
+
+		$this->template->setFile(__DIR__ . '/../../templates/export/googleV2.latte');
 	}
 
 	protected function afterRender(): void
@@ -633,5 +678,10 @@ abstract class ExportPresenter extends Presenter
 				$allProducers[$product->getValue('producer')]->name :
 				null;
 		}
+
+		$currency = $this->currencyRepository->one('CZK');
+
+		$this->template->priceType = $this->shopper->getShowVat() ? true : ($this->shopper->getShowWithoutVat() ? false : null);
+		$this->template->deliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0)->where('this.exportToFeed', true);
 	}
 }
