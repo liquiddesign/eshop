@@ -390,13 +390,11 @@ class SupplierProductRepository extends \StORM\Repository
 	{
 		$supplierProducts = $this->many()
 			->setSelect([
-				'realCategory' => 'category.fk_category',
 				'realDisplayAmount' => 'displayAmount.fk_displayAmount',
 				'realProducer' => 'producer.fk_producer',
 				'supplierDisplayAmountMergedLock' => 'product.supplierDisplayAmountMergedLock',
 				'product' => 'this.fk_product',
 			])
-			->where('category.fk_category IS NOT NULL')
 			->where('this.active', true);
 
 		foreach ($supplierProducts->fetchArray(\stdClass::class) as $supplierProduct) {
@@ -430,7 +428,19 @@ class SupplierProductRepository extends \StORM\Repository
 		/** @var array<\Eshop\DB\DisplayAmount> $displayAmounts */
 		$displayAmounts = $displayAmountRepository->getCollection()->toArray();
 
-		foreach ($productsXDisplayAmounts as $productPK => $draftDisplayAmounts) {
+		/** @var \Eshop\DB\ProductRepository $productRepository */
+		$productRepository = $this->getConnection()->findRepository(Product::class);
+
+		$allProducts = $productRepository->many()->setSelect(['this.uuid'], [], true)->toArrayOf('uuid');
+
+		foreach ($allProducts as $productPK) {
+			if (!isset($productsXDisplayAmounts[$productPK])) {
+				$notStockProducts[] = $productPK;
+
+				 continue;
+			}
+
+			$draftDisplayAmounts = $productsXDisplayAmounts[$productPK];
 			$inStock = false;
 
 			foreach ($draftDisplayAmounts as $displayAmount) {
