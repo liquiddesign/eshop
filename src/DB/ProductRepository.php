@@ -1406,12 +1406,32 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'masterProductCode' => 'masterProduct.code',
 			]);
 
+		$productsArray = $products->toArray();
+
+		$supplierProductsArray = $this->supplierProductRepository->many()
+			->join(['supplier' => 'eshop_supplier'], 'this.fk_supplier = supplier.uuid')
+			->setSelect([
+				'fkProduct' => 'this.fk_product',
+				'supplier.importPriority',
+				'this.recyclingFee',
+			], [], true)
+			->orderBy(['this.fk_product', 'supplier.importPriority'])
+			->fetchArray(\stdClass::class);
+
+		$supplierProductsArrayGroupedByProductPK = [];
+
+		foreach ($supplierProductsArray as $supplierProduct) {
+			$supplierProductsArrayGroupedByProductPK[$supplierProduct->fkProduct][] = $supplierProduct;
+		}
+
+		unset($supplierProductsArray);
+
 		$mergedProductsMap = $this->getGroupedMergedProducts();
-		$productsXCode = $this->many()->toArrayOf('code');
+		$productsXCode = $this->many()->setSelect(['this.code'], [], true)->toArrayOf('code');
+		$lazyLoadedProducts = [];
 
-		while ($product = $products->fetch()) {
-			/** @var \Eshop\DB\Product|\stdClass $product */
-
+		/** @var \Eshop\DB\Product|\stdClass $product */
+		foreach ($productsArray as $product) {
 			$row = [];
 			
 			$productAttributes = [];
@@ -1458,6 +1478,34 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 					$row[] = \implode(':', $codes);
 				} elseif ($columnKey === 'masterProduct') {
 					$row[] = $product->getValue('masterProductCode');
+				} elseif ($columnKey === 'recyclingFee') {
+					$allMergedProducts = \array_merge([$product], ($mergedProductsMap[$product->getPK()] ?? []));
+
+					$minSupplierPriority = \PHP_INT_MAX;
+					$recyclingFee = null;
+
+					foreach ($allMergedProducts as $allMergedProduct) {
+						if (\is_string($allMergedProduct)) {
+							if (!isset($lazyLoadedProducts[$allMergedProduct])) {
+								$lazyLoadedProducts[$allMergedProduct] = $this->one($allMergedProduct, true);
+							}
+
+							$allMergedProduct = $lazyLoadedProducts[$allMergedProduct];
+						}
+
+						foreach ($supplierProductsArrayGroupedByProductPK[$allMergedProduct->getPK()] ?? [] as $item) {
+							$importPriority = $item->importPriority ?: 0;
+
+							if ($importPriority >= $minSupplierPriority && $recyclingFee !== null) {
+								continue;
+							}
+
+							$minSupplierPriority = $importPriority;
+							$recyclingFee = $item->recyclingFee;
+						}
+					}
+
+					$row[] = $recyclingFee;
 				} else {
 					$row[] = $product->getValue($columnKey) === false ? '0' : $product->getValue($columnKey);
 				}

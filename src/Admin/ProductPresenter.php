@@ -91,6 +91,7 @@ class ProductPresenter extends BackendPresenter
 			'frontUrl' => 'Front URL',
 			'mergedProducts' => 'Sloučené produkty',
 			'masterProduct' => 'Nadřazený sloučený produkt',
+			'recyclingFee' => 'Recyklační poplatek',
 		],
 		'exportAttributes' => [],
 		'defaultExportColumns' => [
