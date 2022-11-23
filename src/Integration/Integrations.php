@@ -14,6 +14,7 @@ final class Integrations
 	public const GO_PAY = 'goPay';
 	public const ZBOZI = 'zbozi';
 	public const COMGATE = 'comgate';
+	public const HEUREKA_OVERENO_ZAKAZNIKY = 'heurekaOverenoZakazniky';
 
 	public const SERVICES = [
 		self::DPD => 'integrations.dpd',
@@ -21,6 +22,7 @@ final class Integrations
 		self::GO_PAY => 'integrations.goPay',
 		self::ZBOZI => 'integrations.zbozi',
 		self::COMGATE => 'integrations.' . self::COMGATE,
+		self::HEUREKA_OVERENO_ZAKAZNIKY => 'integrations.' . self::HEUREKA_OVERENO_ZAKAZNIKY,
 	];
 
 	public const SERVICES_SETTINGS = [

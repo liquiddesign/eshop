@@ -47,7 +47,8 @@
 		"setasign/fpdi": "^2.0",
 		"dvdoug/boxpacker": "^3.9",
 		"markette/gopay-inline": "^2.1",
-		"soukicz/zbozicz": "^1.2"
+		"soukicz/zbozicz": "^1.2",
+		"heureka/overeno-zakazniky": "^4.0"
 	},
 	"require-dev": 
 	{
