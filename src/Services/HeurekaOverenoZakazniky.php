@@ -1,6 +1,6 @@
 <?php
 
-namespace Eshop\Integration;
+namespace Eshop\Services;
 
 use Eshop\DB\Order;
 use Heureka\ShopCertification;
