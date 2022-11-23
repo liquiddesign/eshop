@@ -50,8 +50,8 @@ class Zbozi
 		$zboziOrder
 			->setEmail($purchase->email);
 
-		if ($deliveryType = $purchase->deliveryType) {
-			$zboziOrder->setDeliveryType($deliveryType->code);
+		if (($deliveryType = $purchase->deliveryType) && $deliveryType->externalIdZbozi) {
+			$zboziOrder->setDeliveryType($deliveryType->externalIdZbozi);
 		}
 
 		$zboziOrder->setDeliveryPrice($order->getDeliveryPriceVatSum());
