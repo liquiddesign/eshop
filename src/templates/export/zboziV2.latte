@@ -23,14 +23,14 @@
             <MANUFACTURER>{$productsFrontendData[$product->getPK()]['producer'] ?? null}</MANUFACTURER>
 
             {var string|null $category = $product->getValue('primaryCategory')}
-            {var Eshop\DB\Category|null $category = $allCategories[$category] ?? null}
-            {var Eshop\DB\Category|null $category = $category && $category->getValue('exportZboziCategory') ? ($allCategories[$category->getValue('exportZboziCategory')] ?? null) : null}
+            {var Eshop\DB\Category|null $category = $category ? ($allCategories[$category] ?? null) : null}
+            {var Eshop\DB\Category|null $category = $category && $category->exportZboziCategory ? ($allCategories[$category->exportZboziCategory] ?? null) : null}
 
             {if $category !== null}
                 {var $categories = []}
                 {while $category != null}
                     {var $categories[] = $category}
-                    {var $category = $allCategories[$category->ancestor]}
+                    {var $category = $category->ancestor ? $allCategories[$category->ancestor] : null}
                 {/while}
                 {var $categories = \array_reverse($categories)}
                 <CATEGORYTEXT>{foreach $categories as $category}{$category->name|noescape}{if !$iterator->isLast()} | {/if}{/foreach}</CATEGORYTEXT>
