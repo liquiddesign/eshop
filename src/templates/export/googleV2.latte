@@ -54,7 +54,7 @@
                 {do $categories = []}
                 {while $category != null}
                     {do $categories[] = $category}
-                    {do $category = $allCategories[$category->ancestor] ?? null}
+                    {do $category = $category->ancestor ? ($allCategories[$category->ancestor] ?? null) : null}
                 {/while}
                 {do $categories = \array_reverse($categories)}
                 <g:product_type><![CDATA[{foreach $categories as $category}{$category->name}{if !$iterator->isLast()} | {/if}{/foreach}]]></g:product_type>
