@@ -13,6 +13,7 @@ use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\DeliveryType;
 use Eshop\DB\DeliveryTypePriceRepository;
 use Eshop\DB\DeliveryTypeRepository;
+use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PickupPointTypeRepository;
 use Eshop\DB\SupplierDeliveryTypeRepository;
@@ -58,6 +59,9 @@ class DeliveryTypePresenter extends BackendPresenter
 
 	/** @inject */
 	public SupplierDeliveryTypeRepository $supplierDeliveryTypeRepository;
+
+	/** @inject */
+	public DisplayDeliveryRepository $displayDeliveryRepository;
 	
 	public function createComponentGrid(): AdminGrid
 	{
@@ -132,8 +136,9 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form->addLocalePerexEdit('perex', 'Perex');
 		$form->addLocalePerexEdit('instructions', 'Instrukce (např. do emailu)');
 		$form->addText('trackingLink', 'Odkaz pro sledování zásilky');
-		$form->addDataSelect('exclusive', 'Exkluzivní pro skupinu uživatelů', $this->groupRepo->getArrayForSelect())->setPrompt('Žádná');
-		$form->addDataSelect('pickupPointType', 'Typ výdejních míst', $this->pointTypeRepo->getArrayForSelect())->setPrompt('Žádný');
+		$form->addDataSelect('defaultDisplayDelivery', 'Výchozí zobrazované doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('-- Žádné --');
+		$form->addDataSelect('exclusive', 'Exkluzivní pro skupinu uživatelů', $this->groupRepo->getArrayForSelect())->setPrompt('-- Žádná --');
+		$form->addDataSelect('pickupPointType', 'Typ výdejních míst', $this->pointTypeRepo->getArrayForSelect())->setPrompt('-- Žádný --');
 		$form->addDataMultiSelect('allowedPaymentTypes', 'Povolené typy plateb', $this->paymentTypeRepo->many()->toArrayOf('code'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 		

@@ -7,6 +7,7 @@ namespace Eshop\DB;
 use DVDoug\BoxPacker;
 use DVDoug\BoxPacker\Packer;
 use Eshop\Common\DB\SystemicEntity;
+use Nette\Utils\DateTime;
 use StORM\RelationCollection;
 
 /**
@@ -131,6 +132,12 @@ class DeliveryType extends SystemicEntity implements BoxPacker\Box
 	 * @column
 	 */
 	public ?int $maxDepth;
+
+	/**
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public ?DisplayDelivery $defaultDisplayDelivery;
 	
 	/**
 	 * @relationNxN
@@ -258,5 +265,22 @@ class DeliveryType extends SystemicEntity implements BoxPacker\Box
 	public function getMaxWeight(): int
 	{
 		return (int) \round($this->maxWeight * 1000);
+	}
+
+	public function getDynamicDelivery(): ?string
+	{
+		$displayDelivery = $this->defaultDisplayDelivery;
+
+		if (!$displayDelivery) {
+			return null;
+		}
+
+		if (!$displayDelivery->timeThreshold) {
+			return $displayDelivery->label;
+		}
+
+		$nowThresholdTime = DateTime::createFromFormat('G:i', $displayDelivery->timeThreshold);
+
+		return $nowThresholdTime > (new DateTime()) ? $displayDelivery->beforeTimeThresholdLabel : $displayDelivery->afterTimeThresholdLabel;
 	}
 }
