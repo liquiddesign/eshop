@@ -29,6 +29,12 @@ class Category extends SystemicEntity
 	 * @column{"mutations":true}
 	 */
 	public ?string $name;
+	
+	/**
+	 * Celý název
+	 * @column{"mutations":true}
+	 */
+	public ?string $fullName;
 
 	/**
 	 * Cesta

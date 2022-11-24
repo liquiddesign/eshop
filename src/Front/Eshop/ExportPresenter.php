@@ -617,7 +617,7 @@ abstract class ExportPresenter extends Presenter
 		return $policy;
 	}
 
-	private function export(string $name): void
+	protected function export(string $name): void
 	{
 		$currency = $this->currencyRepository->one('CZK');
 
@@ -626,7 +626,7 @@ abstract class ExportPresenter extends Presenter
 		$this->template->setFile(__DIR__ . "/../../templates/export/$name.latte");
 	}
 
-	private function setProductsFrontendData(): void
+	protected function setProductsFrontendData(): void
 	{
 		/** @var array<\Eshop\DB\Attribute> $allAttributes */
 		$allAttributes = $this->attributeRepository->many()->toArray();

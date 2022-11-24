@@ -1001,6 +1001,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		return $existingCategory ?? $this->createOne([
 				'name' => ['cs' => $elementArray['CATEGORY_NAME']],
+				'fullName' => ['cs' => $elementArray['CATEGORY_FULLNAME'] ?? null],
 				'path' => $this->generateUniquePath($ancestor ? $ancestor->path : ''),
 				'ancestor' => $ancestor,
 				'type' => $categoryType->getPK(),
