@@ -262,6 +262,13 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addFilterButtons(['priceListItems', $this->getParameter('pricelist')]);
 
 		$grid->addFilterTextInput('code', ['products.code', 'products.ean', 'products.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
+		
+		$grid->addFilterInteger(function (ICollection $source, $value): void {
+			$source->where('this.price >= :price', ['price' => $value]);
+		}, null, 'priceFrom', 'Cena od')
+			->setHtmlAttribute('placeholder', 'Cena od')
+			->setHtmlAttribute('class', 'form-control form-control-sm')
+			->setHtmlAttribute('style', 'width: 100px');
 
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
 			$grid->addFilterDataSelect(function (Collection $source, $value): void {
