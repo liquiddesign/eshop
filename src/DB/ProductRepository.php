@@ -73,6 +73,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	private CustomerGroupRepository $customerGroupRepository;
 
 	private SettingRepository $settingRepository;
+
+	private AttributeAssignRepository $attributeAssignRepository;
 	
 	public function __construct(
 		Shopper $shopper,
@@ -93,7 +95,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		QuantityPriceRepository $quantityPriceRepository,
 		AttributeValueRepository $attributeValueRepository,
 		CustomerGroupRepository $customerGroupRepository,
-		SettingRepository $settingRepository
+		SettingRepository $settingRepository,
+		AttributeAssignRepository $attributeAssignRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 		
@@ -114,6 +117,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$this->attributeValueRepository = $attributeValueRepository;
 		$this->customerGroupRepository = $customerGroupRepository;
 		$this->settingRepository = $settingRepository;
+		$this->attributeAssignRepository = $attributeAssignRepository;
 	}
 	
 	/**
@@ -1389,8 +1393,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'priceMin' => 'MIN(priceTable.price)',
 				'priceMax' => 'MAX(priceTable.price)',
 			])
-			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
-			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value = attributeValue.uuid')
+//			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
+//			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value = attributeValue.uuid')
 			->join(['producer' => 'eshop_producer'], 'producer.uuid = this.fk_producer')
 			->join(['storeAmount' => 'eshop_amount'], 'storeAmount.fk_product = this.uuid')
 			->join(['store' => 'eshop_store'], 'storeAmount.fk_store = store.uuid')
@@ -1398,7 +1402,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			->join(['category' => 'eshop_category'], 'categoryAssign.fk_category = category.uuid')
 			->join(['masterProduct' => 'eshop_product'], 'this.fk_masterProduct = masterProduct.uuid')
 			->select([
-				'attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute, '^', CONCAT(COALESCE(attributeValue.label$mutationSuffix), '°', attributeValue.code)) SEPARATOR \"~\")",
+//				'attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute, '^', CONCAT(COALESCE(attributeValue.label$mutationSuffix), '°', attributeValue.code)) SEPARATOR \"~\")",
 				'producerCodeName' => "CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, ''))",
 				'amounts' => "GROUP_CONCAT(DISTINCT CONCAT(storeAmount.inStock, '#', store.code) SEPARATOR ':')",
 				'groupedCategories' => "GROUP_CONCAT(DISTINCT CONCAT(category.name$mutationSuffix, '#',
@@ -1406,7 +1410,19 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'masterProductCode' => 'masterProduct.code',
 			]);
 
-		$productsArray = $products->toArray();
+		$attributesByProductPK = [];
+
+		foreach ($this->attributeAssignRepository->many()
+					 ->join(['attributeValue' => 'eshop_attributevalue'], 'this.fk_value = attributeValue.uuid')
+					 ->select([
+						 'fk_attribute' => 'attributeValue.fk_attribute',
+						 'label' => "attributeValue.label$mutationSuffix",
+						 'code' => 'attributeValue.code',
+					 ])
+					 ->fetchArray(\stdClass::class) as $item) {
+			// phpcs:ignore
+			$attributesByProductPK[$item->fk_product][$item->fk_attribute][] = $item;
+		}
 
 		$supplierProductsArray = $this->supplierProductRepository->many()
 			->join(['supplier' => 'eshop_supplier'], 'this.fk_supplier = supplier.uuid')
@@ -1430,31 +1446,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$productsXCode = $this->many()->setSelect(['this.code'], [], true)->toArrayOf('code');
 		$lazyLoadedProducts = [];
 
-		/** @var \Eshop\DB\Product|\stdClass $product */
-		foreach ($productsArray as $product) {
+		while ($product = $products->fetch()) {
+			/** @var \Eshop\DB\Product|\stdClass $product */
 			$row = [];
-			
-			$productAttributes = [];
-			
-			if ($product->attributes) {
-				$tmp = \explode('~', $product->attributes);
-				
-				foreach ($tmp as $value) {
-					$tmpExplode = \explode('^', $value);
-					
-					if (\count($tmpExplode) !== 2) {
-						continue;
-					}
-					
-					$attributeValue = \explode('°', $tmpExplode[1]);
-					
-					if (\count($attributeValue) !== 2) {
-						continue;
-					}
-					
-					$productAttributes[$tmpExplode[0]][$attributeValue[1]] = $attributeValue[0];
-				}
-			}
 			
 			foreach (\array_keys($columns) as $columnKey) {
 				if ($columnKey === 'producer') {
@@ -1514,20 +1508,20 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			foreach ($supplierCodes as $supplierCode) {
 				$row[] = $getSupplierCode ? $getSupplierCode($product, $supplierCode) : $this->getSupplierCode($product, $supplierCode);
 			}
-			
+
 			foreach (\array_keys($attributes) as $attributePK) {
-				if (!isset($productAttributes[$attributePK]) || !$product->attributes || !\is_array($productAttributes[$attributePK])) {
+				if (!isset($attributesByProductPK[$product->getPK()][$attributePK])) {
 					$row[] = null;
-					
+
 					continue;
 				}
-				
+
 				$tmp = '';
-				
-				foreach ($productAttributes[$attributePK] as $attributeValueCode => $attributeValueLabel) {
-					$tmp .= "$attributeValueLabel#$attributeValueCode:";
+
+				foreach ($attributesByProductPK[$product->getPK()][$attributePK] as $attributeAssignObject) {
+					$tmp .= "$attributeAssignObject->label#$attributeAssignObject->code:";
 				}
-				
+
 				$row[] = \substr($tmp, 0, -1);
 			}
 			
