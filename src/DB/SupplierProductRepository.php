@@ -323,10 +323,11 @@ class SupplierProductRepository extends \StORM\Repository
 	}
 
 	/**
+	 * @param callable|null $customCallback
 	 * @return array{'positivelyUpdated': int, 'negativelyUpdated': int}
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function syncDisplayAmounts(): array
+	public function syncDisplayAmounts(?callable $customCallback = null): array
 	{
 		$result = [
 			'positivelyUpdated' => 0,
@@ -360,7 +361,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$inStockProducts = [];
 		$notStockProducts = [];
 
-		$this->loadStock($inStockProducts, $notStockProducts, $productsXDisplayAmounts);
+		$this->loadStock($inStockProducts, $notStockProducts, $productsXDisplayAmounts, $customCallback);
 
 		$result['positivelyUpdated'] = $productRepository->many()
 			->where('this.supplierDisplayAmountLock', false)
@@ -420,7 +421,7 @@ class SupplierProductRepository extends \StORM\Repository
 		}
 	}
 
-	private function loadStock(array &$inStockProducts, array &$notStockProducts, array &$productsXDisplayAmounts): void
+	private function loadStock(array &$inStockProducts, array &$notStockProducts, array &$productsXDisplayAmounts, ?callable $customCallback = null): void
 	{
 		/** @var \Eshop\DB\DisplayAmountRepository $displayAmountRepository */
 		$displayAmountRepository = $this->getConnection()->findRepository(DisplayAmount::class);
@@ -455,6 +456,10 @@ class SupplierProductRepository extends \StORM\Repository
 
 					break;
 				}
+			}
+
+			if ($customCallback) {
+				$inStock = $customCallback($inStock, $productPK);
 			}
 
 			if ($inStock) {
