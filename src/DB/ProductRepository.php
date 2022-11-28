@@ -1505,10 +1505,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				}
 			}
 
-			foreach ($supplierCodes as $supplierCode) {
-				$row[] = $getSupplierCode ? $getSupplierCode($product, $supplierCode) : $this->getSupplierCode($product, $supplierCode);
-			}
-
 			foreach (\array_keys($attributes) as $attributePK) {
 				if (!isset($attributesByProductPK[$product->getPK()][$attributePK])) {
 					$row[] = null;
@@ -1523,6 +1519,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				}
 
 				$row[] = \substr($tmp, 0, -1);
+			}
+
+			foreach ($supplierCodes as $supplierCode) {
+				$row[] = $getSupplierCode ? $getSupplierCode($product, $supplierCode) : $this->getSupplierCode($product, $supplierCode);
 			}
 			
 			$writer->insertOne($row);
