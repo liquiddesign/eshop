@@ -169,8 +169,7 @@ class Order extends \StORM\Entity
 	/**
 	 * @column
 	 */
-	public int $gifts;
-
+	public int $gifts = 0;
 
 	/**
 	 * Nákup
