@@ -1,117 +1,134 @@
 {varType string $currency}
 
-<script>
-document.addEventListener("DOMContentLoaded", function(event) {
-    let elements = document.querySelectorAll('.addToCart');
+<script data-cookieconsent="ignore">
+    document.addEventListener("DOMContentLoaded", function(event) {
+        let elements = document.querySelectorAll('.addToCart');
 
-    elements.forEach(element => {
-        element.addEventListener('mousedown', function (event) {
-            event.preventDefault();
-            let product = JSON.parse($(this).data('product'));
-            console.log(product)
-            product.quantity = $(this).data('quantity');
+        elements.forEach(element => {
+            element.addEventListener('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                console.log(event.target);
 
-            let button = $(this);
+                let product = JSON.parse(element.dataset.product);
 
-            window.dataLayerGTM = window.dataLayerGTM || [];
-            dataLayerGTM.push({
-                'event': 'eec.add_to_cart',
-                'ecommerce': {
-                    'currencyCode': {$currency},
-                    'add': {
-                        'products': [
-                            product
-                        ]
-                    }
-                },
-                'eventCallback': function () {
-                    if (button.is('button')) {
-                        button.closest('form').submit();
-                    } else {
-                        document.location = button.attr('href');
-                    }
-                },
-                'eventTimeout': 2000
+                if (!product) {
+                    return;
+                }
+
+                product.quantity = element.dataset.quantity;
+
+                let button = element;
+
+                button.setAttribute('disabled', 'disabled');
+
+                window.dataLayerGTM = window.dataLayerGTM || [];
+
+                dataLayerGTM.push({
+                    'event': 'eec.add_to_cart',
+                    'ecommerce': {
+                        'currencyCode': {$currency},
+                        'add': {
+                            'products': [
+                                product
+                            ]
+                        }
+                    },
+                    'eventCallback': function (id) {
+                        if (id.includes({$settings['integrationGTM']})) {
+                            console.log(id + 'contains' + {$settings['integrationGTM']});
+                            if (button.nodeName !== 'BUTTON') {
+                                document.location = button.getAttribute('href');
+                            } else {
+                                button.closest('form').submit();
+                            }
+
+                            button.removeAttribute('disabled');
+                        }
+                    },
+                    'eventTimeout': 2000
+                });
+
+                button.removeAttribute('disabled');
+            });
+        });
+
+        elements = document.querySelectorAll('.addToCartPlusMinus');
+
+        elements.forEach(element => {
+            element.addEventListener('mousedown', function (event) {
+                event.preventDefault();
+                let product = element.dataset.product;
+                let input = document.querySelector(element.dataset.amount);
+                let originalAmount = parseInt(element.dataset.originalAmount);
+
+                let amount = parseInt(input.value);
+                amount = parseInt(element.dataset.direction) === 1 ? amount + 1 : amount - 1;
+                input.value = amount;
+
+                let button = element;
+                let remove = amount < originalAmount
+                product.quantity = Math.abs(originalAmount - amount);
+
+                if (product.quantity === 0) {
+                    return;
+                }
+
+                window.dataLayerGTM = window.dataLayerGTM || [];
+                dataLayerGTM.push({
+                    'event': remove ? 'eec.remove_from_cart' : 'eec.add_to_cart',
+                    'ecommerce': {
+                        [remove ? 'remove' : 'add']: {
+                            'products': [
+                                product
+                            ]
+                        }
+                    },
+                    'eventCallback': function () {
+                        if (button.nodeName === 'BUTTON') {
+                            button.closest('form').submit();
+                        } else {
+                            document.location = button.getAttribute('href');
+                        }
+                    },
+                    'eventTimeout': 2000
+                });
+            });
+        });
+
+        elements = document.querySelectorAll('.addToCartChange');
+
+        elements.forEach(element => {
+            element.addEventListener('change', function (event) {
+                event.preventDefault();
+                let input = element;
+                let product = JSON.parse(element.dataset.product);
+                let originalAmount = parseInt(element.dataset.originalAmount);
+                let amount = parseInt(input.value);
+
+                let remove = amount < originalAmount
+                product.quantity = Math.abs(originalAmount - amount);
+
+                if (product.quantity === 0) {
+                    return;
+                }
+
+                window.dataLayerGTM = window.dataLayerGTM || [];
+                dataLayerGTM.push({
+                    'event': remove ? 'eec.remove_from_cart' : 'eec.add_to_cart',
+                    'ecommerce': {
+                        [remove ? 'remove' : 'add']: {
+                            'products': [
+                                product
+                            ]
+                        }
+                    },
+                    'eventCallback': function () {
+                        input.closest('form').submit();
+                    },
+                    'eventTimeout': 2000
+                });
             });
         });
     });
-
-    elements = document.querySelectorAll('.addToCartPlusMinus');
-
-    elements.forEach(element => {
-        element.addEventListener('mousedown', function (event) {
-            event.preventDefault();
-            let product = JSON.parse($(this).data('product'));
-            let input = $($(this).data('amount'));
-            let originalAmount = parseInt($(this).data('original-amount'));
-
-            let amount = parseInt(input.val());
-            amount = $(this).data('direction') === 1 ? amount + 1 : amount - 1;
-            input.val(amount);
-
-            let button = $(this);
-            let remove = amount < originalAmount
-            product.quantity = Math.abs(originalAmount - amount);
-
-            if (product.quantity === 0) {
-                return;
-            }
-
-            window.dataLayerGTM = window.dataLayerGTM || [];
-            dataLayerGTM.push({
-                'event': remove ? 'eec.remove_from_cart' : 'eec.add_to_cart',
-                'ecommerce': {
-                    [remove ? 'remove' : 'add']: {
-                        'products': [
-                            product
-                        ]
-                    }
-                },
-                'eventCallback': function () {
-                    if (button.is('button')) {
-                        button.closest('form').submit();
-                    } else {
-                        document.location = button.attr('href');
-                    }
-                },
-                'eventTimeout': 2000
-            });
-        });
-    });
-
-    elements = document.querySelectorAll('.addToCartChange');
-
-    elements.forEach(element => {
-        element.addEventListener('change', function (event) {
-            event.preventDefault();
-            let input = $(this);
-            let product = $(this).data('product');
-            let originalAmount = parseInt($(this).data('original-amount'));
-            let amount = parseInt(input.val());
-
-            let remove = amount < originalAmount
-            product.quantity = Math.abs(originalAmount - amount);
-
-            if (product.quantity === 0) {
-                return;
-            }
-
-            window.dataLayerGTM = window.dataLayerGTM || [];
-            dataLayerGTM.push({
-                'event': remove ? 'eec.remove_from_cart' : 'eec.add_to_cart',
-                'ecommerce': {
-                    [remove ? 'remove' : 'add']: {
-                        'products': [
-                            product
-                        ]
-                    }
-                },
-                'eventCallback': function () {
-                    input.closest('form').submit();
-                },
-                'eventTimeout': 2000
-            });
-        });
-    });
-});
 </script>
