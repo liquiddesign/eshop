@@ -31,6 +31,12 @@ class DeliveryType extends SystemicEntity implements BoxPacker\Box
 	public ?string $externalId;
 
 	/**
+	 * Externí ID Heureka.cz
+	 * @column
+	 */
+	public ?string $externalIdHeureka;
+
+	/**
 	 * Externí ID Zboží.cz
 	 * @column
 	 */

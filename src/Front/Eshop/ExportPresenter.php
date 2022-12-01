@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\Front\Eshop;
 
+use Eshop\Admin\SettingsPresenter;
+use Eshop\CheckoutManager;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
@@ -18,6 +20,7 @@ use Eshop\DB\InvoiceRepository;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
+use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PhotoRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
@@ -45,6 +48,7 @@ use Nette\Http\IResponse;
 use Nette\Http\Request;
 use Nette\Http\Response;
 use Nette\Security\AuthenticationException;
+use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Security\DB\AccountRepository;
 use Tracy\Debugger;
@@ -60,6 +64,9 @@ abstract class ExportPresenter extends Presenter
 		'customLabel_1' => false,
 		'customLabel_2' => false,
 	];
+
+	/** @inject */
+	public CheckoutManager $checkoutManager;
 
 	/** @inject */
 	public ProductRepository $productRepo;
@@ -144,6 +151,9 @@ abstract class ExportPresenter extends Presenter
 
 	/** @inject */
 	public ProducerRepository $producerRepository;
+
+	/** @inject */
+	public PaymentTypeRepository $paymentTypeRepository;
 
 	protected Cache $cache;
 
@@ -498,6 +508,36 @@ abstract class ExportPresenter extends Presenter
 		$this->template->allAttributeValues = $this->attributeValueRepository->many()->select(['heureka' => "IFNULL(heurekaLabel,label$mutationSuffix)"])->toArrayOf('heureka');
 
 		$this->template->photos = $this->photoRepository->many()->setGroupBy(['fk_product'])->setIndex('fk_product')->select(['fileNames' => 'GROUP_CONCAT(fileName)'])->toArrayOf('fileNames');
+
+		$czkCurrency = $this->currencyRepository->one('CZK', true);
+		$unregisteredGroup = $this->customerGroupRepository->getUnregisteredGroup();
+
+		$this->template->possibleDeliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes(
+			$czkCurrency,
+			null,
+			$unregisteredGroup,
+			null,
+			0,
+			0,
+		)->where('this.externalIdHeureka IS NOT NULL')->toArray();
+
+		$codPaymentTypeSettings = $this->settingRepo->getValuesByName(SettingsPresenter::COD_TYPE);
+
+		/** @var \Eshop\DB\DeliveryType $deliveryType */
+		foreach ($this->template->possibleDeliveryTypes as $deliveryType) {
+			$this->template->possibleDeliveryTypes[$deliveryType->getPK()]->priceVatWithCod = $this->template->possibleDeliveryTypes[$deliveryType->getPK()]->priceVat;
+			$allowedPaymentTypes = \array_keys($deliveryType->allowedPaymentTypes->toArray());
+
+			foreach ($allowedPaymentTypes ?: $this->paymentTypeRepository->many() as $paymentId) {
+				if (Arrays::contains($codPaymentTypeSettings, $paymentId)) {
+					$this->template->possibleDeliveryTypes[$deliveryType->getPK()]->priceVatWithCod += $this->paymentTypeRepository->getPaymentTypes(
+						$czkCurrency,
+						null,
+						$unregisteredGroup,
+					)->where('this.uuid', $paymentId)->firstValue('priceVat');
+				}
+			}
+		}
 
 		$this->setProductsFrontendData();
 

@@ -8,6 +8,7 @@
 {varType array $allAttributeValues}
 {varType array $photos}
 {varType string $productImageUrl}
+{varType array $possibleDeliveryTypes}
 {var $heurekaCategoryType = $presenter->settingRepo->getValueByName('heurekaCategoryTypeToParse')}
 {var $photoImageUrl = "$userUrl/" . Eshop\DB\Product::GALLERY_DIR . '/detail/'}
 
@@ -67,6 +68,13 @@
                         <VAL>{$allAttributeValues[$attributeValue['uuid']]}</VAL>
                     </PARAM>
                 {/foreach}
+            {/foreach}
+            {foreach $possibleDeliveryTypes as $deliveryType}
+                {varType Eshop\DB\DeliveryType $deliveryType}
+                {continueIf !$deliveryType->externalIdHeureka}
+                <DELIVERY_ID>{$deliveryType->externalIdHeureka}</DELIVERY_ID>
+                <DELIVERY_PRICE>{$deliveryType->getValue('priceVat')}</DELIVERY_PRICE>
+                <DELIVERY_PRICE_COD>{$deliveryType->getValue('priceVatWithCod')}</DELIVERY_PRICE_COD>
             {/foreach}
         </SHOPITEM>
     </SHOP>
