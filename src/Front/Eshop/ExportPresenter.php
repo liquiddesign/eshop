@@ -528,7 +528,7 @@ abstract class ExportPresenter extends Presenter
 			$this->template->possibleDeliveryTypes[$deliveryType->getPK()]->priceVatWithCod = $this->template->possibleDeliveryTypes[$deliveryType->getPK()]->priceVat;
 			$allowedPaymentTypes = \array_keys($deliveryType->allowedPaymentTypes->toArray());
 
-			foreach ($allowedPaymentTypes ?: $this->paymentTypeRepository->many() as $paymentId) {
+			foreach ($allowedPaymentTypes && $codPaymentTypeSettings ?: $this->paymentTypeRepository->many() as $paymentId) {
 				if (Arrays::contains($codPaymentTypeSettings, $paymentId)) {
 					$this->template->possibleDeliveryTypes[$deliveryType->getPK()]->priceVatWithCod += $this->paymentTypeRepository->getPaymentTypes(
 						$czkCurrency,
