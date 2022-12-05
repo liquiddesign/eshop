@@ -104,7 +104,7 @@ class ProductGridFiltersFactory
 				$expression = new Expression();
 
 				foreach ($value as $supplier) {
-					$expression->add('OR', 'supplierProducts.fk_supplier=%1$s OR fk_supplierSource=%1$s', [$supplier]);
+					$expression->add('OR', 'supplierProducts.fk_supplier=%1$s OR this.fk_supplierSource=%1$s', [$supplier]);
 				}
 
 				$source->where($expression->getSql(), $expression->getVars());
