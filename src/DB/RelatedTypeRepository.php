@@ -9,6 +9,7 @@ use Latte\Loaders\StringLoader;
 use Latte\Sandbox\SecurityPolicy;
 use Nette\Bridges\ApplicationLatte\LatteFactory;
 use Nette\Bridges\ApplicationLatte\UIMacros;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
@@ -87,8 +88,12 @@ class RelatedTypeRepository extends \StORM\Repository implements IGeneralReposit
 		}
 
 		$policy = SecurityPolicy::createSafePolicy();
+		$policy->allowFilters(['firstLower']);
 
 		$latte = $this->latteFactory->create();
+		$latte->addFilter('firstLower', function (string $s): string {
+			return Strings::firstLower($s);
+		});
 		UIMacros::install($latte->getCompiler());
 		$latte->setLoader(new StringLoader());
 		$latte->setPolicy($policy);

@@ -27,6 +27,7 @@ use Nette\Localization\Translator;
 use Nette\Mail\Mailer;
 use Nette\Mail\Message;
 use Nette\Utils\Arrays;
+use Nette\Utils\Strings;
 use Web\Controls\Breadcrumb;
 use Web\Controls\IBreadcrumbFactory;
 use Web\Controls\IWidgetFactory;
@@ -331,6 +332,8 @@ abstract class FrontendPresenter extends Presenter
 		try {
 			return $this->latte->renderToString($string, $params);
 		} catch (\Throwable $e) {
+			\bdump($e);
+
 			return null;
 		}
 	}
@@ -425,6 +428,10 @@ abstract class FrontendPresenter extends Presenter
 		$latte->setLoader(new StringLoader());
 		$latte->setPolicy($this->getLatteSecurityPolicy());
 		$latte->setSandboxMode();
+
+		$latte->addFilter('firstLower', function (string $s): string {
+			return Strings::firstLower($s);
+		});
 
 		return $latte;
 	}
