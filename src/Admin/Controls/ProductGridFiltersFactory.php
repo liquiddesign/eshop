@@ -14,6 +14,7 @@ use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierCategoryRepository;
+use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use StORM\Collection;
 use StORM\Expression;
@@ -39,6 +40,8 @@ class ProductGridFiltersFactory
 
 	private CategoryTypeRepository $categoryTypeRepository;
 
+	private SupplierProductRepository $supplierProductRepository;
+
 	public function __construct(
 		ProducerRepository $producerRepository,
 		SupplierRepository $supplierRepository,
@@ -48,7 +51,8 @@ class ProductGridFiltersFactory
 		InternalRibbonRepository $internalRibbonRepository,
 		PricelistRepository $pricelistRepository,
 		DisplayAmountRepository $displayAmountRepository,
-		CategoryTypeRepository $categoryTypeRepository
+		CategoryTypeRepository $categoryTypeRepository,
+		SupplierProductRepository $supplierProductRepository
 	) {
 		$this->producerRepository = $producerRepository;
 		$this->supplierRepository = $supplierRepository;
@@ -59,6 +63,7 @@ class ProductGridFiltersFactory
 		$this->pricelistRepository = $pricelistRepository;
 		$this->displayAmountRepository = $displayAmountRepository;
 		$this->categoryTypeRepository = $categoryTypeRepository;
+		$this->supplierProductRepository = $supplierProductRepository;
 	}
 
 	public function addFilters(AdminGrid $grid): void
@@ -100,19 +105,36 @@ class ProductGridFiltersFactory
 		}
 
 		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $suppliers): void {
 				$expression = new Expression();
 
-				foreach ($value as $supplier) {
-					$expression->add('OR', 'supplierProducts.fk_supplier=%1$s OR this.fk_supplierSource=%1$s', [$supplier]);
+				foreach ($suppliers as $supplier) {
+					$expression->add('OR', 'this.fk_supplierSource=%1$s', [$supplier]);
 				}
 
-				$source->where($expression->getSql(), $expression->getVars());
+				$subSelect = $this->supplierProductRepository->getConnection()
+					->rows(['eshop_supplierproduct']);
+
+				$subSelect->setBinderName('eshop_supplierproductFilterDataMultiSelectSupplier');
+
+				$subSelect
+					->where('this.uuid = eshop_supplierproduct.fk_product')
+					->where('eshop_supplierproduct.fk_supplier', $suppliers);
+
+				$source->where('EXISTS (' . $subSelect->getSql() . ') OR ' . $expression->getSql(), $subSelect->getVars() + $expression->getVars());
 			}, '', 'suppliers', null, $suppliers, ['placeholder' => '- Zdroje -']);
 
 			if ($supplierCategories = $this->supplierCategoryRepository->getArrayForSelect(true)) {
-				$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
-					$source->where('supplierProducts.fk_category', $value);
+				$grid->addFilterDataMultiSelect(function (ICollection $source, $categories): void {
+					$subSelect = $this->supplierProductRepository->getConnection()->rows(['eshop_supplierproduct']);
+
+					$subSelect->setBinderName('eshop_supplierproductFilterDataMultiSelectCategory');
+
+					$subSelect
+						->where('this.uuid = eshop_supplierproduct.fk_product')
+						->where('eshop_supplierproduct.fk_category', $categories);
+
+					$source->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
 				}, '', 'supplier_categories', null, $supplierCategories, ['placeholder' => '- Rozřazení -']);
 			}
 

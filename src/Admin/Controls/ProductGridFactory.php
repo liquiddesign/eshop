@@ -65,6 +65,7 @@ class ProductGridFactory
 	public function create(array $configuration): Datagrid
 	{
 		$source = $this->productRepository->many()
+			->setSmartJoin(false)
 			->setGroupBy(['this.uuid'])
 			->join(['photo' => 'eshop_photo'], 'this.uuid = photo.fk_product')
 			->join(['file' => 'eshop_file'], 'this.uuid = file.fk_product')
