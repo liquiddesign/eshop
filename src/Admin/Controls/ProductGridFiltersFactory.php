@@ -82,7 +82,11 @@ class ProductGridFiltersFactory
 
 			$grid->addFilterDataSelect(function (Collection $source, $value): void {
 				if (\substr($value, 0, 1) === '.') {
-					$source->where('categories.uuid', \substr($value, 1));
+					$subSelect = $this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
+						->where('this.uuid = eshop_product_nxn_eshop_category.fk_product')
+						->where('eshop_product_nxn_eshop_category.fk_category', \substr($value, 1));
+
+					$source->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
 				} else {
 					$category = $this->categoryRepository->one($value);
 
