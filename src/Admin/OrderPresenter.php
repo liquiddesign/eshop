@@ -1597,7 +1597,7 @@ class OrderPresenter extends BackendPresenter
 
 
 			$this->flashMessage('Uloženo', 'success');
-			$this->redirect('comments', $this->getParameter('order'));
+			$this->redirect('this', $this->getParameter('order'));
 		};
 
 		return $form;
