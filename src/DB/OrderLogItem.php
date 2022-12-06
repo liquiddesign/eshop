@@ -12,6 +12,37 @@ use Admin\DB\Administrator;
  */
 class OrderLogItem extends \StORM\Entity
 {
+	public const OPERATIONS_FOR_FILTER = [
+		self::PAYED,
+		self::PAYED_CANCELED,
+		self::PRICE_CHANGED,
+		self::EMAIL_SENT,
+		self::EDITED,
+		self::ITEM_EDITED,
+		self::ITEM_DELETED,
+		self::ITEM_RESTORED,
+		self::SHIPPED,
+		self::SHIPPED_CANCELED,
+		self::BAN,
+		self::UN_BAN,
+		self::PAUSE,
+		self::UN_PAUSE,
+		self::DELIVERY_CHANGED,
+		self::PAYMENT_CHANGED,
+		self::PACKAGE_CHANGED,
+		self::NEW_COMMENT,
+		self::NEW_ITEM,
+		self::SPLIT,
+		self::ITEM_MOVED,
+		self::MERGED,
+		self::CLONED,
+		self::SUPPLIER_SENT,
+		self::INVOICE_CREATED,
+		self::INVOICE_DOWNLOADED,
+		self::DOCUMENT_IMPORTED,
+		self::DOCUMENT_SENT,
+	];
+
 	public const CREATED = 'Vytvořeno';
 	public const OPENED = 'Otevřeno';
 	public const RECEIVED = 'Přijato';

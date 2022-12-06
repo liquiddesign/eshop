@@ -127,6 +127,7 @@ class OrderGridFactory
 			->setGroupBy(['this.uuid'])
 			->join(['comment' => 'eshop_internalcommentorder'], 'this.uuid = comment.fk_order')
 			->join(['payment' => 'eshop_payment'], 'this.uuid = payment.fk_order')
+			->join(['log' => 'eshop_orderlogitem'], 'this.uuid = log.fk_order')
 			->select(['commentCount' => 'COUNT(DISTINCT comment.uuid)']);
 
 		Arrays::invoke($this->onCollectionCreation, $collection);
@@ -405,6 +406,13 @@ class OrderGridFactory
 			'0' => 'Nezaplaceno',
 			'1' => 'Zaplaceno',
 		], 'fp');
+
+		$collator = new \Collator('cs-CZ');
+		$operationsForFilter = OrderLogItem::OPERATIONS_FOR_FILTER;
+		$collator->sort($operationsForFilter);
+		$operationsForFilter = \array_combine($operationsForFilter, $operationsForFilter);
+
+		$grid->addFilterSelectInput('filter_operations', 'log.operation = :fo', null, '- Operace -', null, $operationsForFilter, 'fo');
 
 		$openOrderButton = function () use ($grid, $stateOpen, $btnSecondary): void {
 			try {
