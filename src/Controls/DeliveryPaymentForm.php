@@ -85,6 +85,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		$pickupPoint->setItems($allPoints)->setPrompt('Vyberte výdejní místo')->addConditionOn($deliveries, $this::IS_IN, $typesWithPoints)->addRule($this::REQUIRED);
 		
 		$zasilkovnaIdInput = $this->addHidden('zasilkovnaId')->setNullable();
+		$pickupPointIdInput = $this->addHidden('pickupPointId')->setNullable();
 		$pickupPointNameInput = $this->addHidden('pickupPointName')->setNullable();
 
 		$deliveriesList->setRequired();
@@ -110,6 +111,13 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 
 		$purchase = $this->checkoutManager->getPurchase(true);
 
+		if (isset($purchase->pickupPointId)) {
+			$pickupPointIdInput->setDefaultValue($purchase->pickupPointId);
+			$pickupPointNameInput->setDefaultValue($purchase->pickupPointName);
+
+			return;
+		}
+
 		if (!isset($purchase->zasilkovnaId) || !isset($purchase->pickupPointName)) {
 			return;
 		}
@@ -133,7 +141,8 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 			'deliveryPackagesNo' => \count($deliveryType->getBoxesForItems($this->checkoutManager->getTopLevelItems()->toArray())),
 			'paymentType' => $values['payments'],
 			'zasilkovnaId' => $deliveryType->code === 'zasilkovna' ? $values['zasilkovnaId'] : null,
-			'pickupPointName' => $deliveryType->code === 'zasilkovna' ? $values['pickupPointName'] : null,
+			'pickupPointId' => $deliveryType->code !== 'zasilkovna' ? $values['pickupPointId'] : null,
+			'pickupPointName' => $deliveryType->code === 'zasilkovna' || isset($values['pickupPointId']) ? $values['pickupPointName'] : null,
 		];
 		
 		if (isset($values['pickupPoint'])) {

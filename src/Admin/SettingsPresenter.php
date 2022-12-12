@@ -34,6 +34,7 @@ class SettingsPresenter extends BackendPresenter
 	public const PPL_LAST_USED_PACKAGE_NUMBER = 'pplLastUsedPackageNumber';
 	public const PPL_LAST_USED_PACKAGE_NUMBER_COD = 'pplLastUsedPackageNumberCod';
 	public const COMGATE_PAYMENT_TYPE = 'comgatePaymentType';
+	public const BALIKOVNA_DELIVERY_TYPE = 'balikovnaDeliveryType';
 
 	/** @inject */
 	public Integrations $integrations;
@@ -382,6 +383,17 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 				'info' => 'Pro následující balík PPL bude použito toto číslo + 1.',
 			];
 		}
+
+		$this->customSettings['Doprava'][] = [
+			'key' => self::BALIKOVNA_DELIVERY_TYPE,
+			'label' => 'Typ dopravy Balíkovna',
+			'type' => 'select',
+			'options' => $this->deliveryTypeRepository->getArrayForSelect(),
+			'info' => '',
+			'onSave' => function ($key, $oldValue, $newValue): void {
+				$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
+			},
+		];
 
 		/** @var \Eshop\Services\DPD|null $dpd */
 		$dpd = $this->integrations->getService(Integrations::DPD);
