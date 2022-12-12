@@ -68,7 +68,7 @@ class ProductGridFiltersFactory
 
 	public function addFilters(AdminGrid $grid): void
 	{
-		$grid->addFilterTextInput('code', ['this.code', 'this.ean', 'this.name_cs', 'this.mpn'], null, 'Název, EAN, kód, P/N', '', '%s%%');
+		$grid->addFilterTextInput('code', ['this.code', 'this.ean', 'this.name_cs', 'this.mpn'], null, 'Název, EAN, kód, P/N', '', '%%%s%%');
 
 		$firstCategoryType = $this->categoryTypeRepository->many()->setOrderBy(['priority'])->first();
 
