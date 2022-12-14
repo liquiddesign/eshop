@@ -25,6 +25,7 @@
 		"liquiddesign/web": "^0.1.12",
 		"liquiddesign/grid": "^0.1.6",
 		"liquiddesign/common": "^0.1.1",
+		"liquiddesign/ares": "~1.0.0",
 		"ext-pdo": "*",
 		"ext-intl": "*",
 		"ext-curl": "*",
@@ -58,7 +59,7 @@
 		"liquiddesign/codestyle": "~1.0",
 		"liquiddesign/migrator": "~1.0",
 		"phpstan/phpstan-nette": "~1.0",
-		"phpstan/phpstan": "^1.8"
+		"phpstan/phpstan": "1.9.2"
 	},
 	"scripts": {
 		"fix-code": ["@phpcsfix"],

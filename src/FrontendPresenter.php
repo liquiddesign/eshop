@@ -4,12 +4,16 @@ declare(strict_types=1);
 namespace Eshop;
 
 use Admin\Administrator;
+use Ares\Ares;
+use Ares\HttpException;
+use Ares\IcNotFoundException;
 use Eshop\DB\CartItem;
 use Eshop\DB\NewsletterUserRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\WatcherRepository;
 use Forms\Form;
 use Forms\FormFactory;
+use GuzzleHttp\Exception\GuzzleException;
 use Latte\Engine;
 use Latte\Loaders\StringLoader;
 use Latte\Policy;
@@ -25,6 +29,8 @@ use Nette\Mail\Mailer;
 use Nette\Mail\Message;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
+use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\Controls\Breadcrumb;
 use Web\Controls\IBreadcrumbFactory;
 use Web\Controls\IWidgetFactory;
@@ -229,63 +235,19 @@ abstract class FrontendPresenter extends Presenter
 		$ic = $this->getHttpRequest()->getPost('ic');
 
 		if (!$ic) {
-			return;
+			$this->sendPayload();
 		}
 
-		$aresIcoFin = '';
-		$aresDicFin = '';
-		$aresCompanyFin = '';
-		$aresStreetFin = '';
-		$aresCP1Fin = '';
-		$aresCP2Fin = '';
-		$aresCityFin = '';
-		$aresPSCFin = '';
-		$aresStatusFin = '';
-		$file = @\file_get_contents('http://wwwinfo.mfcr.cz/cgi-bin/ares/darv_bas.cgi?ico=' . $ic);
-
-		$xml = null;
-
-		if ($file) {
-			$xml = @\simplexml_load_string($file);
+		try {
+			$this->getPresenter()->payload->result = Ares::loadDataByIc($ic);
+		} catch (HttpException | GuzzleException $e) {
+			Debugger::log($e, ILogger::EXCEPTION);
+			\bdump($e);
+			$this->getPresenter()->getHttpResponse()->setCode(400);
+		} catch (IcNotFoundException $e) {
+			$this->getPresenter()->getHttpResponse()->setCode(404);
 		}
 
-		if ($xml) {
-			/** @var array<string> $ns */
-			$ns = $xml->getDocNamespaces();
-			$data = $xml->children($ns['are']);
-			$el = $data->children($ns['D'])->VBAS;
-
-			if (\strval($el->ICO) === $ic) {
-				$aresIcoFin = \strval($el->ICO);
-				unset($aresIcoFin);
-
-				$aresDicFin = \strval($el->DIC);
-				$aresCompanyFin = \strval($el->OF);
-				$aresStreetFin = \strval($el->AA->NU);
-				$aresCP1Fin = \strval($el->AA->CD);
-				$aresCP2Fin = \strval($el->AA->CO);
-
-				$aresCPFin = $aresCP2Fin !== '' ? $aresCP1Fin . '/' . $aresCP2Fin : $aresCP1Fin;
-				unset($aresCPFin);
-
-				$aresCityFin = \strval($el->AA->N);
-				$aresPSCFin = \strval($el->AA->PSC);
-			} else {
-				$aresStatusFin = 'IČO firmy nebylo nalezeno';
-				unset($aresStatusFin);
-			}
-		} else {
-			$aresStatusFin = 'Databáze ARES není dostupná';
-			unset($aresStatusFin);
-		}
-
-		$this->getPresenter()->payload->result = array(
-			'name' => $aresCompanyFin,
-			'dic' => $aresDicFin,
-			'city' => $aresCityFin,
-			'zip' => $aresPSCFin,
-			'street' => $aresStreetFin . ' ' . $aresCP2Fin
-		);
 		$this->getPresenter()->sendPayload();
 	}
 

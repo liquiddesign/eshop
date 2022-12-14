@@ -49,13 +49,13 @@ class EHub
 	private CategoryRepository $categoryRepository;
 
 	public function __construct(
-		?string $apiUrl,
-		?string $apikey,
-		?string $advertiserId,
-		?string $scriptsUrl,
-		?OrderRepository $orderRepository,
-		?EHubTransactionRepository $EHubTransactionRepository,
-		CategoryRepository $categoryRepository
+		?string $apiUrl = null,
+		?string $apikey = null,
+		?string $advertiserId = null,
+		?string $scriptsUrl = null,
+		?OrderRepository $orderRepository = null,
+		?EHubTransactionRepository $EHubTransactionRepository = null,
+		?CategoryRepository $categoryRepository = null
 	) {
 		$this->orderRepository = $orderRepository;
 		$this->EHubTransactionRepository = $EHubTransactionRepository;
