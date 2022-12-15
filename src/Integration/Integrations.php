@@ -15,6 +15,7 @@ final class Integrations
 	public const ZBOZI = 'zbozi';
 	public const COMGATE = 'comgate';
 	public const HEUREKA_OVERENO_ZAKAZNIKY = 'heurekaOverenoZakazniky';
+	public const QR_PAYMENT_GENERATOR = 'qrPaymentGenerator';
 
 	public const SERVICES = [
 		self::DPD => 'integrations.dpd',
@@ -23,6 +24,7 @@ final class Integrations
 		self::ZBOZI => 'integrations.zbozi',
 		self::COMGATE => 'integrations.' . self::COMGATE,
 		self::HEUREKA_OVERENO_ZAKAZNIKY => 'integrations.' . self::HEUREKA_OVERENO_ZAKAZNIKY,
+		self::QR_PAYMENT_GENERATOR => 'integrations.' . self::QR_PAYMENT_GENERATOR,
 	];
 
 	public const SERVICES_SETTINGS = [

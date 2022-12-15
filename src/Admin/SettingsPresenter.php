@@ -36,6 +36,10 @@ class SettingsPresenter extends BackendPresenter
 	public const COMGATE_PAYMENT_TYPE = 'comgatePaymentType';
 	public const BALIKOVNA_DELIVERY_TYPE = 'balikovnaDeliveryType';
 
+	public const BANK_PAYMENT_TYPE = 'bankPaymentType';
+	public const BANK_ACCOUNT_NUMBER = 'bankAccountNumber';
+	public const BANK_IBAN = 'bankIBAN';
+
 	/** @inject */
 	public Integrations $integrations;
 
@@ -322,6 +326,28 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 					},
 				],
 			],
+		];
+
+		$this->customSettings['Platba'][] = [
+			'key' => self::BANK_PAYMENT_TYPE,
+			'label' => 'Typ platby "Bankovní převod"',
+			'type' => 'select',
+			'options' => $this->paymentTypeRepository->getArrayForSelect(),
+			'onSave' => function ($key, $oldValue, $newValue): void {
+				$this->systemicCallback($key, $oldValue, $newValue, $this->paymentTypeRepository);
+			},
+		];
+
+		$this->customSettings['Platba'][] = [
+			'key' => self::BANK_ACCOUNT_NUMBER,
+			'label' => 'Číslo bankovního účtu pro různé služby',
+			'type' => 'string',
+		];
+
+		$this->customSettings['Platba'][] = [
+			'key' => self::BANK_IBAN,
+			'label' => 'Číslo IBAN pro různé služby',
+			'type' => 'string',
 		];
 
 		/** @var \Eshop\Services\GoPay|null $goPay */
