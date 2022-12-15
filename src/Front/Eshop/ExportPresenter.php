@@ -236,8 +236,13 @@ abstract class ExportPresenter extends Presenter
 				->where('rel.fk_type', $groupIdRelationType->value)
 				->toArray() : [];
 
-		$pricelists = $this->getPricelistFromSetting('zboziExportPricelist');
-		$this->template->products = $this->productRepo->getProducts($pricelists)->where('this.hidden', false);
+		$pricelists = $this->getPricelistFromSetting('zboziExportPricelist', false);
+		$groupAfterRegistration = $this->customerGroupRepository->getDefaultRegistrationGroup() ?: $this->customerGroupRepository->getUnregisteredGroup();
+
+		$this->template->products = $pricelists ?
+			$this->productRepo->getProducts($pricelists)->where('this.hidden', false) : $this->productRepo->getProductsAsGroup($groupAfterRegistration)->where('this.hidden', false);
+
+		$this->template->pricelists = $pricelists ?: $groupAfterRegistration->defaultPricelists->toArray();
 
 		try {
 			$this->export('zbozi');

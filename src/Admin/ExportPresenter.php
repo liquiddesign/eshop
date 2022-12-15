@@ -116,15 +116,15 @@ class ExportPresenter extends BackendPresenter
 				'name' => 'Export pro Partnery',
 				'link' => $this->link('//:Eshop:Export:partnersExport', ['lang' => $primaryMutation]),
 			],
-			[
+			'heurekaV1' => [
 				'name' => 'Export pro Heureku',
 				'link' => $this->link('//:Eshop:Export:heurekaExport', ['lang' => $primaryMutation]),
 			],
-			[
+			'zboziV1' => [
 				'name' => 'Export pro Zboží',
 				'link' => $this->link('//:Eshop:Export:zboziExport', ['lang' => $primaryMutation]),
 			],
-			[
+			'googleV1' => [
 				'name' => 'Export pro Google Nákupy',
 				'link' => $this->link('//:Eshop:Export:googleExport', ['lang' => $primaryMutation]),
 			],
