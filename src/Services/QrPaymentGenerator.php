@@ -17,7 +17,7 @@ class QrPaymentGenerator
 		$this->settingRepository = $settingRepository;
 	}
 
-	public function generateQrPaymentForOrder(Order $order, bool $checkPaymentType = true): string
+	public function generateQrPaymentObjectForOrder(Order $order, bool $checkPaymentType = true): QRPlatba
 	{
 		if ($checkPaymentType) {
 			$bankPaymentType = $this->settingRepository->getValueByName(SettingsPresenter::BANK_PAYMENT_TYPE);
@@ -51,7 +51,15 @@ class QrPaymentGenerator
 			->setCurrency($order->purchase->currency->code)
 			->setDueDate(Carbon::now());
 
-		return $qrPayment->getQRCodeImage();
+		return $qrPayment;
+	}
+
+	/**
+	 * @throws \Exception
+	 */
+	public function generateQrPaymentForOrder(Order $order, bool $checkPaymentType = true): string
+	{
+		return $this->generateQrPaymentObjectForOrder($order, $checkPaymentType)->getQRCodeImage();
 	}
 
 	public function generateQrPaymentForInvoice(Invoice $invoice, bool $checkPaymentType = true): string
