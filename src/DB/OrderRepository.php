@@ -9,6 +9,7 @@ use Admin\DB\IGeneralAjaxRepository;
 use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
+use Eshop\Integration\Integrations;
 use Eshop\Shopper;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
@@ -122,6 +123,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	private SettingRepository $settingRepository;
 
+	private Integrations $integrations;
+
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
@@ -136,7 +139,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		Container $container,
 		OrderLogItemRepository $orderLogItemRepository,
 		RelatedTypeRepository $relatedTypeRepository,
-		SettingRepository $settingRepository
+		SettingRepository $settingRepository,
+		Integrations $integrations
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -152,6 +156,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$this->orderLogItemRepository = $orderLogItemRepository;
 		$this->relatedTypeRepository = $relatedTypeRepository;
 		$this->settingRepository = $settingRepository;
+		$this->integrations = $integrations;
 	}
 
 	/**
@@ -1112,6 +1117,16 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					$values['totalPricePref'] = $order->getTotalPrice();
 					$values['withoutVat'] = true;
 				}
+			}
+		}
+
+		/** @var \Eshop\Services\QrPaymentGenerator|null $qrPaymentGenerator */
+		$qrPaymentGenerator = $this->integrations->getService(Integrations::QR_PAYMENT_GENERATOR);
+
+		if ($qrPaymentGenerator) {
+			try {
+				$values['qrPaymentCode'] = $qrPaymentGenerator->generateQrPaymentForOrder($order);
+			} catch (\Exception $e) {
 			}
 		}
 
