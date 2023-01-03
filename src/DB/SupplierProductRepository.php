@@ -287,6 +287,8 @@ class SupplierProductRepository extends \StORM\Repository
 		$products->setBufferedQuery(false);
 		$array = [];
 
+		$amountRepository->many()->where('this.fk_store', $store->getPK())->delete();
+
 		while ($draft = $products->fetch()) {
 			/** @var \Eshop\DB\SupplierProduct $draft */
 			$array[] = [
