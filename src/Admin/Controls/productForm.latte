@@ -41,7 +41,7 @@
                         <th class="col-label col-form-label col">{label supplierCode/}{if isset($form['externalCode'])} a {label externalCode/}{/if}</th>
 
                         <td class="align-middle form-inline">
-                            {input supplierCode class => 'form-control form-control-sm col-label'} {if isset($form['externalCode'])}{input externalCode class => 'ml-2 form-control form-control-sm col-label'}{/if}
+                            {input supplierCode, class: 'form-control form-control-sm col-label'} {if isset($form['externalCode'])}{input externalCode, class: 'ml-2 form-control form-control-sm col-label'}{/if}
                             <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError supplierCode}</span>
                         </td>
                     </tr>
@@ -51,7 +51,7 @@
                         <th class="col-label col-form-label col">{label ean/}</th>
 
                         <td class="align-middle">
-                            {input ean class => 'form-control form-control-sm col-label'}
+                            {input ean, class: 'form-control form-control-sm col-label'}
                             <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError ean}</span>
                         </td>
                     </tr>
@@ -575,7 +575,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
         <div id="menu4-content" class="tab-pane {$presenter->editTab == 'menu4' ? 'active show' : ''}">
             <fieldset>
                 {foreach $relatedTypes as $relatedType}
-                    {formContainer relatedType_$relatedType->uuid}
+                    {formContainer "relatedType_" . $relatedType->uuid}
                         <legend>{$relatedType->name}</legend>
 
                         <table class="mt-1 mb-1" style="width: auto;">
@@ -591,12 +591,12 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                             </thead>
                             {for $i =0; $i < $relationMaxItemsCount; $i++}
                                 <tr>
-                                    <td class="p-2">{input product_$i class => "form-control form-control-sm"}</td>
-                                    <td class="p-2">{input amount_$i class => "form-control form-control-sm"}</td>
-                                    <td class="p-2">{input priority_$i class => "form-control form-control-sm"}</td>
-                                    <td class="p-2">{input hidden_$i class => "form-check-input form-control-sm"}</td>
-                                    {if $relatedType->defaultDiscountPct}<td class="p-2">{input discountPct_$i class => "form-control form-control-sm"}</td>{/if}
-                                    {if $relatedType->defaultMasterPct}<td class="p-2">{input masterPct_$i class => "form-control form-control-sm"}</td>{/if}
+                                    <td class="p-2">{input product_$i, class: "form-control form-control-sm"}</td>
+                                    <td class="p-2">{input amount_$i, class: "form-control form-control-sm"}</td>
+                                    <td class="p-2">{input priority_$i, class: "form-control form-control-sm"}</td>
+                                    <td class="p-2">{input hidden_$i, class: "form-check-input form-control-sm"}</td>
+                                    {if $relatedType->defaultDiscountPct}<td class="p-2">{input discountPct_$i, class: "form-control form-control-sm"}</td>{/if}
+                                    {if $relatedType->defaultMasterPct}<td class="p-2">{input masterPct_$i, class: "form-control form-control-sm"}</td>{/if}
                                 </tr>
                             {/for}
                         </table>
@@ -717,7 +717,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                                     <td>
                                         {input productTab$id-$key}
 
-                                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError productTab$id-$key}</span>
+                                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "productTab$id-$key"}</span>
                                     </td>
                                 </tr>
                             {/foreach}

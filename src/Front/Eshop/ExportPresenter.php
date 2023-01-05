@@ -40,7 +40,7 @@ use Nette\Application\Responses\FileResponse;
 use Nette\Application\Responses\TextResponse;
 use Nette\Application\UI\Presenter;
 use Nette\Bridges\ApplicationLatte\LatteFactory;
-use Nette\Bridges\ApplicationLatte\UIMacros;
+use Nette\Bridges\ApplicationLatte\UIExtension;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\DI\Container;
@@ -646,7 +646,7 @@ abstract class ExportPresenter extends Presenter
 	protected function createLatteEngine(): Engine
 	{
 		$latte = $this->latteFactory->create();
-		UIMacros::install($latte->getCompiler());
+		$latte->addExtension(new UIExtension(null));
 		$latte->setLoader(new StringLoader());
 		$latte->setPolicy($this->getLatteSecurityPolicy());
 		$latte->setSandboxMode();

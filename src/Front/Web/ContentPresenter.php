@@ -60,7 +60,7 @@ abstract class ContentPresenter extends \Eshop\Front\FrontendPresenter
 
 	public function createComponentContactForm(): ContactForm
 	{
-		$form = new ContactForm($this, 'contactForm', $this->templateRepository, $this->mailer);
+		$form = new ContactForm($this, 'contactForm', $this->templateRepository);
 
 		/** @var \Nette\Forms\Controls\TextInput $email */
 		$email = $form['email'];

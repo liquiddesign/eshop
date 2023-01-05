@@ -21,7 +21,7 @@ use Latte\Sandbox\SecurityPolicy;
 use Messages\DB\TemplateRepository;
 use Nette\Application\UI\Presenter;
 use Nette\Bridges\ApplicationLatte\LatteFactory;
-use Nette\Bridges\ApplicationLatte\UIMacros;
+use Nette\Bridges\ApplicationLatte\UIExtension;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Localization\Translator;
@@ -376,7 +376,7 @@ abstract class FrontendPresenter extends Presenter
 	protected function createLatteEngine(): Engine
 	{
 		$latte = $this->latteFactory->create();
-		UIMacros::install($latte->getCompiler());
+		$latte->addExtension(new UIExtension(null));
 		$latte->setLoader(new StringLoader());
 		$latte->setPolicy($this->getLatteSecurityPolicy());
 		$latte->setSandboxMode();

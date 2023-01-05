@@ -11,7 +11,7 @@ use Latte\Sandbox\SecurityPolicy;
 use League\Csv\Reader;
 use League\Csv\Writer;
 use Nette\Bridges\ApplicationLatte\LatteFactory;
-use Nette\Bridges\ApplicationLatte\UIMacros;
+use Nette\Bridges\ApplicationLatte\UIExtension;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Utils\Random;
@@ -848,7 +848,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$policy->allowFilters(['price', 'date']);
 
 		$latte = $this->latteFactory->create();
-		UIMacros::install($latte->getCompiler());
+		$latte->addExtension(new UIExtension(null));
 		$latte->setLoader(new StringLoader());
 		$latte->setPolicy($policy);
 		$latte->setSandboxMode();

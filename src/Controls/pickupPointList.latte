@@ -32,11 +32,11 @@
         {form filterForm}
             <div class="flex flex-col md:flex-row md:items-end md:space-x-2">
                 <div class="form-group">
-                    {label name}
+                    {label name /}
                     {input name}
                 </div>
                 <div class="form-group">
-                    {label city}
+                    {label city /}
                     {input city}
                 </div>
                 <div class="form-group">
@@ -203,12 +203,12 @@
         card.getHeader().innerHTML = "<strong>{$point->name|noescape} - {$point->pickupPointType->name|noescape}</strong><span class='text-sm'>";
         card.getBody().innerHTML = "{$point->address->getFullAddress()|noescape}<hr class='my-1'>" +
             '{$openingHoursTexts[$key]|noescape}<hr class="my-1">'+
-            '<a href="#anchor-{$key|noescape}">{_'pickupPointList.moreInfo','Více informací'|noescape}</a>'
+            '<a href={='#anchor-' . $key}>{_'pickupPointList.moreInfo','Více informací'|noescape}</a>'
         '</span>';
 
         var options = {
             title: 'map-img',
-            url: "{$point->pickupPointType->getImage($basePath)|noescape}",
+            url: {$point->pickupPointType->getImage($basePath)},
         };
 
         var marker = new SMap.Marker(SMap.Coords.fromWGS84({\str_replace(',','.',$point->gpsE)}, {\str_replace(',','.',$point->gpsN)}), {$key}, options);

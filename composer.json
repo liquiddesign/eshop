@@ -11,7 +11,7 @@
 	},
 	"require" :
 	{
-		"php":">=7.4",
+		"php":">=8.0",
 		"nette/application":"^3.0",
 		"nette/http":"^3.0",
 		"nette/utils":"^3.0",
@@ -24,7 +24,7 @@
 		"liquiddesign/admin": "^0.4.3",
 		"liquiddesign/web": "^0.1.12",
 		"liquiddesign/grid": "^0.1.6",
-		"liquiddesign/common": "^0.1.1",
+		"liquiddesign/common": "~0.1.0 || ~1.0.0",
 		"liquiddesign/ares": "~1.0.0",
 		"ext-pdo": "*",
 		"ext-intl": "*",
@@ -69,6 +69,7 @@
 		"phpstan": "phpstan analyse --memory-limit 6G -c phpstan.neon",
 		"phpcs": "phpcs --standard=ruleset.xml --ignore=assets --cache src",
 		"phpcsfix": "phpcbf --standard=ruleset.xml --ignore=assets --cache src",
+		"lattelint": "php lattelint.php",
 		"tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php"
 	},
 	"config": {

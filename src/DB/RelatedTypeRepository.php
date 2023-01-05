@@ -8,7 +8,7 @@ use Common\DB\IGeneralRepository;
 use Latte\Loaders\StringLoader;
 use Latte\Sandbox\SecurityPolicy;
 use Nette\Bridges\ApplicationLatte\LatteFactory;
-use Nette\Bridges\ApplicationLatte\UIMacros;
+use Nette\Bridges\ApplicationLatte\UIExtension;
 use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -94,7 +94,7 @@ class RelatedTypeRepository extends \StORM\Repository implements IGeneralReposit
 		$latte->addFilter('firstLower', function (string $s): string {
 			return Strings::firstLower($s);
 		});
-		UIMacros::install($latte->getCompiler());
+		$latte->addExtension(new UIExtension(null));
 		$latte->setLoader(new StringLoader());
 		$latte->setPolicy($policy);
 		$latte->setSandboxMode();

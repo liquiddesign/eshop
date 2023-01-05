@@ -241,14 +241,14 @@
 
         <script>
             new jBox('Tooltip', {
-                attach: '#{$order->getPK()|noescape}',
+                attach: {='#' . $order->getPK()},
                 position: {
                     x: 'right',
                     y: 'center'
                 },
                 outside: 'x',
                 closeOnMouseleave: true,
-                content: $('#content-{$order->getPK()|noescape}'),
+                content: $({='#content-' . $order->getPK()}),
                 responsiveWidth: true,
                 minWidth: 1000
             });

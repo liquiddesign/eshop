@@ -399,7 +399,7 @@
 
                     thisDropzone.options.addedfile.call(thisDropzone, mockFile);
 
-                    thisDropzone.options.thumbnail.call(thisDropzone, mockFile, {$baseUrl}+'/userfiles/product_gallery_images/thumb/{$photo['name']|noescape}');
+                    thisDropzone.options.thumbnail.call(thisDropzone, mockFile, {$baseUrl . '/userfiles/product_gallery_images/thumb/' . $photo['name']});
 
                     thisDropzone.emit("success", mockFile);
                     thisDropzone.emit("complete", mockFile);
