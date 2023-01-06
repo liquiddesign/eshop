@@ -143,8 +143,6 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 		}
 		
 		$products->setFilters($filters);
-
-		\bdump($products->getFilters());
 	}
 	
 	public function renderList(?string $category = null, ?string $producer = null, ?string $tag = null): void
