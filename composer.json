@@ -22,7 +22,7 @@
 		"liquiddesign/translator": "^0.1.0",
 		"liquiddesign/pages": "^1.0.8",
 		"liquiddesign/admin": "^0.4 || ^0.5",
-		"liquiddesign/web": "^0.1 || ^0.2",
+		"liquiddesign/web": "^0.1 || ^0.3",
 		"liquiddesign/grid": "^0.1.6",
 		"liquiddesign/common": "~0.1.0 || ~1.0.0",
 		"liquiddesign/ares": "~1.0.0",
