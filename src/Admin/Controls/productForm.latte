@@ -73,7 +73,7 @@
 
                             <td class="align-middle">
                                 <div class="d-flex">
-                                    {input name-$key class => 'form-control form-control-sm'}
+                                    {input "name-$key" class => 'form-control form-control-sm'}
                                         <!-- COPY BUTTON -->
                                     {if isset($supplierProducts) && \count($supplierProducts) > 0}
                                         <button type="button" class="btn btn-sm btn-outline-primary ml-1"
@@ -88,7 +88,7 @@
                                     {/if}
                                 </div>
 
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError name-$key}</span>
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "name-$key"}</span>
                             </td>
                         </tr>
                     {/foreach}
@@ -101,10 +101,10 @@
 
                                 <td class="align-middle">
                                     <div class="d-flex">
-                                        {input extendedName-$key class => 'form-control form-control-sm'}
+                                        {input "extendedName-$key" class => 'form-control form-control-sm'}
                                     </div>
 
-                                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError extendedName-$key}</span>
+                                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "extendedName-$key"}</span>
                                 </td>
                             </tr>
                         {/foreach}
@@ -136,7 +136,7 @@
 
                             <td class="align-middle">
                                 <div class="d-flex">
-                                    {input perex-$key}
+                                    {input "perex-$key"}
                                         <!-- COPY BUTTON -->
                                     {if isset($supplierProducts) && \count($supplierProducts) > 0}
                                         <button type="button" style="margin: 4px 0px 8px;"
@@ -150,7 +150,7 @@
                                         </button>
                                     {/if}
                                 </div>
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError perex-$key}</span>
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "perex-$key"}</span>
                             </td>
                         </tr>
                     {/foreach}
@@ -162,7 +162,7 @@
 
                             <td class="align-middle">
                                 <div class="d-flex">
-                                    {input content-$key}
+                                    {input "content-$key"}
                                         <!-- COPY BUTTON -->
 
                                     {if isset($supplierProducts) && \count($supplierProducts) > 0}
@@ -177,7 +177,7 @@
                                         </button>
                                     {/if}
                                 </div>
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError content-$key}</span>
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "content-$key"}</span>
                             </td>
                         </tr>
                     {/foreach}
@@ -244,21 +244,21 @@
                             <th class="col-label col-form-label col">{$pricelist->name} <i
                                         class="fa fa-sort-numeric-up mr-1"></i> {$pricelist->priority}</th>
 
-                            <td class="align-middle">{input prices-$id-price class => 'form-control form-control-sm col-label max-number'}
+                            <td class="align-middle">{input "prices-$id-price" class => 'form-control form-control-sm col-label max-number'}
                                 <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
                             </td>
 
                             <td n:if="$shopper->getShowVat()"
-                                    class="align-middle">{input prices-$id-priceVat class => 'ml-2 form-control form-control-sm col-label max-number'}
+                                    class="align-middle">{input "prices-$id-priceVat" class => 'ml-2 form-control form-control-sm col-label max-number'}
                                 <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
                             </td>
 
-                            <td class="align-middle">{input prices-$id-priceBefore class => 'ml-2 form-control form-control-sm col-label max-number'}
+                            <td class="align-middle">{input "prices-$id-priceBefore" class => 'ml-2 form-control form-control-sm col-label max-number'}
                                 <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
                             </td>
 
                             <td n:if="$shopper->getShowVat()"
-                                    class="align-middle">{input prices-$id-priceVatBefore class => 'ml-2 form-control form-control-sm col-label max-number'}
+                                    class="align-middle">{input "prices-$id-priceVatBefore" class => 'ml-2 form-control form-control-sm col-label max-number'}
                                 <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
                             </td>
 
@@ -397,13 +397,13 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                             <tr class="m-0 mt-1 has-danger">
                                 <th class="col-label col-form-label col">{$store->name} {if $store->code}({$store->code}){/if}</th>
 
-                                <td class="align-middle">{input stores-$id-inStock class => 'form-control form-control-sm col-label max-number'}
+                                <td class="align-middle">{input "stores-$id-inStock" class => 'form-control form-control-sm col-label max-number'}
                                 </td>
 
-                                <td class="align-middle">{input stores-$id-reserved class => 'ml-2 form-control form-control-sm col-label max-number'}
+                                <td class="align-middle">{input "stores-$id-reserved" class => 'ml-2 form-control form-control-sm col-label max-number'}
                                 </td>
 
-                                <td class="align-middle">{input stores-$id-ordered class => 'ml-2 form-control form-control-sm col-label max-number'}
+                                <td class="align-middle">{input "stores-$id-ordered" class => 'ml-2 form-control form-control-sm col-label max-number'}
                                 </td>
                             </tr>
                         {/foreach}
@@ -591,12 +591,12 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                             </thead>
                             {for $i =0; $i < $relationMaxItemsCount; $i++}
                                 <tr>
-                                    <td class="p-2">{input product_$i, class: "form-control form-control-sm"}</td>
-                                    <td class="p-2">{input amount_$i, class: "form-control form-control-sm"}</td>
-                                    <td class="p-2">{input priority_$i, class: "form-control form-control-sm"}</td>
-                                    <td class="p-2">{input hidden_$i, class: "form-check-input form-control-sm"}</td>
-                                    {if $relatedType->defaultDiscountPct}<td class="p-2">{input discountPct_$i, class: "form-control form-control-sm"}</td>{/if}
-                                    {if $relatedType->defaultMasterPct}<td class="p-2">{input masterPct_$i, class: "form-control form-control-sm"}</td>{/if}
+                                    <td class="p-2">{input "product_$i", class: "form-control form-control-sm"}</td>
+                                    <td class="p-2">{input "amount_$i", class: "form-control form-control-sm"}</td>
+                                    <td class="p-2">{input "priority_$i", class: "form-control form-control-sm"}</td>
+                                    <td class="p-2">{input "hidden_$i", class: "form-check-input form-control-sm"}</td>
+                                    {if $relatedType->defaultDiscountPct}<td class="p-2">{input "discountPct_$i", class: "form-control form-control-sm"}</td>{/if}
+                                    {if $relatedType->defaultMasterPct}<td class="p-2">{input "masterPct_$i", class: "form-control form-control-sm"}</td>{/if}
                                 </tr>
                             {/for}
                         </table>
@@ -715,7 +715,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                                     {$renderer->renderLabel($element)|noescape}
 
                                     <td>
-                                        {input productTab$id-$key}
+                                        {input "productTab$id-$key"}
 
                                         <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "productTab$id-$key"}</span>
                                     </td>

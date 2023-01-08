@@ -320,7 +320,7 @@
         {foreach $package->items as $packageItemPK => $packageItem}
             {embed modal id:"splitOrderItemForm-$packageItemPK"}
                 {block modal-header}Rozdělení položky{/block}
-                {block modal-body}{control splitOrderItemForm-$packageItemPK:noHeader}{/block}
+                {block modal-body}{control "splitOrderItemForm-$packageItemPK":noHeader}{/block}
             {/embed}
         {/foreach}
     {/foreach}
@@ -329,7 +329,7 @@
         {foreach $package->items as $packageItemPK => $packageItem}
             {embed modal id:"moveOrderItemForm-$packageItemPK"}
                 {block modal-header}Přesun položky{/block}
-                {block modal-body}{control moveOrderItemForm-$packageItemPK:noHeader}{/block}
+                {block modal-body}{control "moveOrderItemForm-$packageItemPK":noHeader}{/block}
             {/embed}
         {/foreach}
     {/foreach}
@@ -339,7 +339,7 @@
         {embed modal id:"storeOrderItemForm-$packageItemPK"}
             {block modal-header}Sklad položky{/block}
             {block modal-body}
-                {form storeOrderItemForm-$packageItemPK}
+                {form "storeOrderItemForm-$packageItemPK"}
                     <div class="table-responsive">
                         <table class="table table-sm table-striped">
                             <thead>
@@ -377,7 +377,7 @@
         {foreach $package->items as $packageItemPK => $packageItem}
             {embed modal id:"detailOrderItemForm-$packageItemPK"}
                 {block modal-header}Editace položky{/block}
-                {block modal-body}{control detailOrderItemForm-$packageItemPK:noHeader}{/block}
+                {block modal-body}{control "detailOrderItemForm-$packageItemPK":noHeader}{/block}
             {/embed}
         {/foreach}
     {/foreach}

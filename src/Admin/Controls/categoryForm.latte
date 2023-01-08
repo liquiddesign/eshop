@@ -31,9 +31,9 @@
                             {$renderer->renderLabel($element)|noescape}
 
                             <td class="align-middle">
-                                {input name-$key class => 'form-control form-control-sm'}
+                                {input "name-$key" class => 'form-control form-control-sm'}
 
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError name-$key}</span>
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "name-$key"}</span>
                             </td>
                         </tr>
                     {/foreach}
@@ -43,9 +43,9 @@
                             {$renderer->renderLabel($element)|noescape}
 
                             <td class="align-middle">
-                                {input perex-$key}
+                                {input "perex-$key"}
 
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError perex-$key}</span>
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "perex-$key"}</span>
                             </td>
                         </tr>
                     {/foreach}
@@ -55,9 +55,9 @@
                             {$renderer->renderLabel($element)|noescape}
 
                             <td class="align-middle">
-                                {input content-$key}
+                                {input "content-$key"}
 
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError content-$key}</span>
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "content-$key"}</span>
                             </td>
                         </tr>
                     {/foreach}
@@ -67,9 +67,9 @@
                             {$renderer->renderLabel($element)|noescape}
 
                             <td class="align-middle">
-                                {input defaultProductPerex-$key}
+                                {input "defaultProductPerex-$key"}
 
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError defaultProductPerex-$key}</span>
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "defaultProductPerex-$key"}</span>
                             </td>
                         </tr>
                     {/foreach}
@@ -79,9 +79,9 @@
                             {$renderer->renderLabel($element)|noescape}
 
                             <td class="align-middle">
-                                {input defaultProductContent-$key}
+                                {input "defaultProductContent-$key"}
 
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError defaultProductContent-$key}</span>
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "defaultProductContent-$key"}</span>
                                 <span class="text-sm" n:syntax="off">
                                     Ve výchozím perexu a obsahu můžete použít tyto proměnné:<br><br>
                                     {$name} - Název produktu<br>

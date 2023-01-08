@@ -32,7 +32,7 @@
 		</thead>
 		<tbody>
 		{foreach $control->getItemsOnPage() as $item}
-			{form changePermForm-$item->uuid}
+			{form "changePermForm-$item->uuid"}
 				{*				{if $item->account && !$item->account->active}text-danger-lighter{/if}*}
 				<tr class="border border-gray-light border-l-0 border-t-0 border-r-0 ">
 					<td class="p-4 whitespace-no-wrap">{$item->company ?: $item->fullname}</td>

@@ -38,7 +38,7 @@
             <PACKAGE>{$product->inPackage}</PACKAGE>
             <INNER_PACKAGE>{$product->inCarton}</INNER_PACKAGE>
             <QUANTITY_PALLETE>{$product->inPalett}</QUANTITY_PALLETE>
-            {do unset($product)}
+            {php unset($product)}
     </SHOPITEM>
     </SHOP>
 {/cache}

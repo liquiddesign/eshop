@@ -64,9 +64,9 @@
                 </thead>
                 {for $i =0; $i < 6; $i++}
                     <tr>
-                        <td class="p-2">{input cartCondition_$i, class: "form-control form-control-sm"}</td>
-                        <td class="p-2">{input quantityCondition_$i, class: "form-control form-control-sm"}</td>
-                        <td class="p-2">{input products_$i}</td>
+                        <td class="p-2">{input "cartCondition_$i", class: "form-control form-control-sm"}</td>
+                        <td class="p-2">{input "quantityCondition_$i"", class: "form-control form-control-sm"}</td>
+                        <td class="p-2">{input "products_$i"}</td>
                     </tr>
                 {/for}
             </table>

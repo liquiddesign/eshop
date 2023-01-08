@@ -22,7 +22,7 @@
 
 			<td class="p-4 align-middle">
 				<div class="flex items-center justify-between">
-					{form changeAmountForm-$cartItem->uuid}
+					{form "changeAmountForm-$cartItem->uuid"}
 						<div class="flex items-center lg:mt-0">
 							<input n:name="amount" type="number" class="form-control lg:w-24" value="{$cartItem->amount}" onchange="this.form.submit()">
 							<strong class="pl-2">ks</strong>

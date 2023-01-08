@@ -77,7 +77,7 @@
 		</div>
 
 		{if $control->checkoutManager->canBuyProduct($item) && $presenter->shopper->getCatalogPermission() === 'full'}
-			{form buyForm-$item->uuid class=> "mt-4 flex flex-row items-center justify-start"}
+			{form "buyForm-$item->uuid" class=> "mt-4 flex flex-row items-center justify-start"}
 				<div class="form-group mb-0 flex-grow-0 mr-2">
 					<input n:name="amount" id="input-{$item->getPK()}" type="number" class="form-control form-control-sm w-24">
 				</div>
