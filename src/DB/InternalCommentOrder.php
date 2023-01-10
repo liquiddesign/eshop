@@ -14,7 +14,7 @@ class InternalCommentOrder extends \StORM\Entity
 {
 	/**
 	 * Text
-	 * @column
+	 * @column{"type":"longtext"}
 	 */
 	public ?string $text;
 

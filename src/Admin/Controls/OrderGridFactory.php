@@ -10,6 +10,8 @@ use Admin\Helpers;
 use Eshop\BackendPresenter;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\DeliveryTypeRepository;
+use Eshop\DB\InternalRibbon;
+use Eshop\DB\InternalRibbonRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderLogItem;
 use Eshop\DB\OrderLogItemRepository;
@@ -88,7 +90,10 @@ class OrderGridFactory
 		Shopper $shopper,
 		Integrations $integrations,
 		Container $container,
-		SettingRepository $settingRepository
+		SettingRepository $settingRepository,
+		/** @codingStandardsIgnoreStart */
+		private InternalRibbonRepository $internalRibbonRepository,
+		/** @codingStandardsIgnoreEnd */
 	) {
 		$this->orderRepository = $orderRepository;
 		$this->gridFactory = $adminGridFactory;
@@ -158,11 +163,18 @@ class OrderGridFactory
 				);
 			}
 
+			$ribbons = null;
+
+			foreach ($order->internalRibbons as $ribbon) {
+				$ribbons .= "<div class=\"badge\" style=\"font-weight: normal; font-style: italic; background-color: $ribbon->backgroundColor; color: $ribbon->color\">$ribbon->name</div> ";
+			}
+
 			return \sprintf(
-				"<a id='%s' href='%s'>%s$noteIcon</a><br><small>%s</small>",
+				"<a id='%s' href='%s'>%s$noteIcon</a>%s<br><small>%s</small>",
 				$order->getPK(),
 				$grid->getPresenter()->link('printDetail', $order),
 				$order->code,
+				$ribbons,
 				(new DateTime($order->createdTs))->format('d.m.Y G:i'),
 			);
 		}, '%s', 'this.createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
@@ -413,6 +425,13 @@ class OrderGridFactory
 		$operationsForFilter = \array_combine($operationsForFilter, $operationsForFilter);
 
 		$grid->addFilterSelectInput('filter_operations', 'log.operation = :fo', null, '- Operace -', null, $operationsForFilter, 'fo');
+
+		if ($ribbons = $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_ORDER)) {
+			$ribbons += ['0' => 'X - bez štítků'];
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+				$source->filter(['internalRibbon' => \Eshop\Common\Helpers::replaceArrayValue($value, '0', null)]);
+			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
+		}
 
 		$openOrderButton = function () use ($grid, $stateOpen, $btnSecondary): void {
 			try {

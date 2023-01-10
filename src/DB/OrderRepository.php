@@ -159,6 +159,13 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$this->integrations = $integrations;
 	}
 
+	public function filterInternalRibbon($value, ICollection $collection): void
+	{
+		$collection->join(['internalRibbons' => 'eshop_internalribbon_nxn_eshop_order'], 'internalRibbons.fk_order=this.uuid');
+
+		$value === false ? $collection->where('internalRibbons.fk_internalRibbon IS NULL') : $collection->where('internalRibbons.fk_internalRibbon', $value);
+	}
+
 	/**
 	 * @deprecated use getFinishedOrders(new Customer(['uuid' => $customerId])) instead
 	 */

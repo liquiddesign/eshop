@@ -15,9 +15,15 @@ class InternalRibbonRepository extends \StORM\Repository implements IGeneralRepo
 	/**
 	 * @inheritDoc
 	 */
-	public function getArrayForSelect(bool $includeHidden = true): array
+	public function getArrayForSelect(bool $includeHidden = true, ?string $type = null): array
 	{
-		return $this->getCollection($includeHidden)->toArrayOf('name');
+		$collection = $this->getCollection($includeHidden);
+
+		if ($type) {
+			$collection->where('this.type', $type);
+		}
+
+		return $collection->toArrayOf('name');
 	}
 	
 	public function getCollection(bool $includeHidden = false): Collection

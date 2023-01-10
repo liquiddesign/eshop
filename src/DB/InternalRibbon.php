@@ -4,12 +4,22 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use StORM\RelationCollection;
+
 /**
  * Stužky k produktu
  * @table
  */
 class InternalRibbon extends \StORM\Entity
 {
+	public const TYPE_PRODUCT = 'product';
+	public const TYPE_ORDER = 'order';
+
+	public const TYPES = [
+		self::TYPE_PRODUCT => 'Produkt',
+		self::TYPE_ORDER => 'Objednávka',
+	];
+
 	/**
 	 * Název / Popisek
 	 * @column
@@ -33,6 +43,18 @@ class InternalRibbon extends \StORM\Entity
 	 * @column
 	 */
 	public bool $systemic = false;
+
+	/**
+	 * Typ
+	 * @column{"type":"enum","length":"'product','order'"}
+	 */
+	public string $type = 'product';
+
+	/**
+	 * @relationNxN{"sourceViaKey":"fk_internalRibbon","targetViaKey":"fk_order","via":"eshop_internalribbon_nxn_eshop_order"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\Order>
+	 */
+	public RelationCollection $orders;
 
 	public function isSystemic(): bool
 	{

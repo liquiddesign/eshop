@@ -15,6 +15,7 @@ use Eshop\DB\RibbonRepository;
 use Forms\Form;
 use Nette\Utils\Arrays;
 use Nette\Utils\Image;
+use StORM\Collection;
 use StORM\Connection;
 use StORM\DIConnection;
 
@@ -122,7 +123,10 @@ class RibbonPresenter extends BackendPresenter
 		};
 
 		$grid->addFilterTextInput('search', ['name'], null, 'Popisek');
-		$grid->addFilterButtons();
+		$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+			$source->where('type', $value);
+		}, '', 'type', null, InternalRibbon::TYPES, ['placeholder' => '- Typ -']);
+		$grid->addFilterButtons(['internal']);
 
 		return $grid;
 	}
@@ -137,6 +141,11 @@ class RibbonPresenter extends BackendPresenter
 
 		$form->addColor('color', 'Barva textu');
 		$form->addColor('backgroundColor', 'Barva pozadí');
+		$form->addSelect('type', 'Typ', InternalRibbon::TYPES)
+			->setDefaultValue(InternalRibbon::TYPE_PRODUCT)
+			->setRequired()
+			->setDisabled((bool) $ribbon);
+
 		$form->addSubmits(!$ribbon);
 
 		$form->onSuccess[] = function (AdminForm $form): void {
