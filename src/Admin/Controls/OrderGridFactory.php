@@ -149,19 +149,6 @@ class OrderGridFactory
 		$grid->addColumn('Číslo a datum', function (Order $order, $grid) {
 			$color = 'color: ' . ($this->configuration['noteIconColor'] ?? null);
 			$noteIcon = $order->purchase->note ? "<i style='$color;' class='fas fa-comment-dots ml-2'></i>" : '';
-			
-			if ($order->autoship) {
-				$link = $grid->getPresenter()->link(':Eshop:Admin:Autoship:default', ['grid-id' => 2]);
-				
-				return \sprintf(
-					"<a id='%s' href='%s'>%s$noteIcon</a><br><a href='%s'><small title='Autoship #" . $order->autoship->id . "'>%s <i class='fas fa-history fa-sm'></i></small></a>",
-					$order->getPK(),
-					$grid->getPresenter()->link('printDetail', $order),
-					$order->code,
-					$link,
-					(new DateTime($order->createdTs))->format('d.m.Y G:i'),
-				);
-			}
 
 			$ribbons = null;
 
@@ -169,8 +156,22 @@ class OrderGridFactory
 				$ribbons .= "<div class=\"badge\" style=\"font-weight: normal; font-style: italic; background-color: $ribbon->backgroundColor; color: $ribbon->color\">$ribbon->name</div> ";
 			}
 
+			if ($order->autoship) {
+				$link = $grid->getPresenter()->link(':Eshop:Admin:Autoship:default', ['grid-id' => 2]);
+				
+				return \sprintf(
+					"<a id='%s' href='%s'>%s$noteIcon</a> %s<br><a href='%s'><small title='Autoship #" . $order->autoship->id . "'>%s <i class='fas fa-history fa-sm'></i></small></a>",
+					$order->getPK(),
+					$grid->getPresenter()->link('printDetail', $order),
+					$order->code,
+					$ribbons,
+					$link,
+					(new DateTime($order->createdTs))->format('d.m.Y G:i'),
+				);
+			}
+
 			return \sprintf(
-				"<a id='%s' href='%s'>%s$noteIcon</a>%s<br><small>%s</small>",
+				"<a id='%s' href='%s'>%s$noteIcon</a> %s<br><small>%s</small>",
 				$order->getPK(),
 				$grid->getPresenter()->link('printDetail', $order),
 				$order->code,
@@ -512,7 +513,7 @@ class OrderGridFactory
 			$button();
 		}
 
-		$eshopBulkProperties = ['bannedTs', 'dpdPrinted', 'pplPrinted'];
+		$eshopBulkProperties = ['bannedTs', 'dpdPrinted', 'pplPrinted', 'internalRibbons'];
 
 		if ($this->onBulkActionsCreated) {
 			Arrays::invoke($this->onBulkActionsCreated, $grid, $eshopBulkProperties);

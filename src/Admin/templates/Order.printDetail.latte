@@ -316,6 +316,11 @@
         {block modal-body}{control orderForm:noHeader}{/block}
     {/embed}
 
+    {embed modal id:'orderInternalRibbonsForm'}
+        {block modal-header}Interní štítky{/block}
+        {block modal-body}{control orderInternalRibbonsForm:noHeader}{/block}
+    {/embed}
+
     {foreach $packages as $package}
         {foreach $package->items as $packageItemPK => $packageItem}
             {embed modal id:"splitOrderItemForm-$packageItemPK"}
@@ -406,6 +411,9 @@
     {/embed}
 {/define}
 {block scripts}
+    <script>
+        $('#' + "frm-internalRibbons").select2({"theme":"classic","maximumSelectionLength":15});
+    </script>
     <style>
         @media print {
             a { text-decoration: none !important; color: #000 }

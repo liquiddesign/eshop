@@ -22,6 +22,8 @@ use Eshop\DB\Delivery;
 use Eshop\DB\DeliveryRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\InternalCommentOrderRepository;
+use Eshop\DB\InternalRibbon;
+use Eshop\DB\InternalRibbonRepository;
 use Eshop\DB\InvoiceRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderLogItem;
@@ -238,6 +240,9 @@ class OrderPresenter extends BackendPresenter
 
 	/** @inject */
 	public PackageRepository $packageRepository;
+
+	/** @inject */
+	public InternalRibbonRepository $internalRibbonRepository;
 
 	/**
 	 * Always use getter getTab()
@@ -1471,6 +1476,34 @@ class OrderPresenter extends BackendPresenter
 		return $form;
 	}
 
+	public function createComponentOrderInternalRibbonsForm(): Form
+	{
+		$form = $this->formFactory->create();
+
+		/** @var \Eshop\DB\Order $order */
+		$order = $this->getParameter('order');
+
+		$form->addMultiSelect2('internalRibbons', 'Interní štítky', $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_ORDER))
+			->setDefaultValue($order->internalRibbons->toArrayOf('uuid', toArrayValues: true));
+		$form->addSubmits(!$this->getParameter('order'));
+
+		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
+			$values = $form->getValues('array');
+
+			$order->internalRibbons->unrelateAll();
+
+			if ($values['internalRibbons']) {
+				$order->internalRibbons->relate($values['internalRibbons']);
+			}
+
+			$this->flashMessage('Uloženo', 'success');
+
+			$form->processRedirect('printDetail', 'default', [$order]);
+		};
+
+		return $form;
+	}
+
 	public function createComponentOrderForm(): Form
 	{
 		$form = $this->formFactory->create();
@@ -1796,6 +1829,9 @@ class OrderPresenter extends BackendPresenter
 
 		$this->template->displayButtons[] = $this->createButton('exportEdi!', '<i class="fa fa-download mr-1"></i>EDI', [$order->getPK()]);
 		$this->template->displayButtons[] = $this->createButton('exportCsv!', '<i class="fa fa-download mr-1"></i>CSV', [$order->getPK()]);
+
+		$this->template->displayButtons[] =
+			'<a href="#" data-toggle="modal" data-target="#modal-orderInternalRibbonsForm"><button class="btn btn-sm btn-primary"><i class="fas fa-ribbon mr-1"></i> Štítky</button></a>';
 		//  window.print()
 	}
 
@@ -2460,6 +2496,7 @@ class OrderPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 
 		$form->addDatetime('bannedTs', 'Zablokováno')->setNullable();
+		$form->addMultiSelect2('internalRibbons', 'Interní štítky', $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_ORDER));
 
 		if ($this->dpd) {
 			$form->addCheckbox('dpdPrinted', 'DPD vytištěno');
