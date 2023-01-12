@@ -64,7 +64,7 @@
 	},
 	"scripts": {
 		"fix-code": ["@phpcsfix"],
-		"check-code": ["@phpcs", "@phpstan"],
+		"check-code": ["@phpcs", "@phpstan", "@lattelint"],
 		"phpstan-clear-cache": "phpstan clear-result-cache",
 		"phpstan": "phpstan analyse --memory-limit 6G -c phpstan.neon",
 		"phpcs": "phpcs --standard=ruleset.xml --ignore=assets --cache src",

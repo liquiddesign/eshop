@@ -9,6 +9,7 @@ use Common\DB\IGeneralRepository;
 use Eshop\Providers\Helpers;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
+use Nette\Utils\Strings;
 use Nette\Utils\Validators;
 use Security\DB\IUserRepository;
 use Security\DB\UserRepositoryTrait;
@@ -73,6 +74,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 			'city',
 			'company',
 			'newsletter',
+			'phone',
 		]);
 
 		$customers = $customers->join(['ecp' => 'eshop_catalogpermission'], 'this.uuid = ecp.fk_customer')
@@ -84,6 +86,12 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 
 			[$firstName, $lastName] = Helpers::parseFullName($customer->fullname ?? '');
 
+			$phone = \str_replace(' ', '', $customer->phone);
+
+			if (!Strings::startsWith($phone, '+') && Strings::length($phone) === 9) {
+				$phone = '+420' . $phone;
+			}
+
 			$writer->insertOne([
 				$customer->email,
 				$origin,
@@ -93,6 +101,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 				$customer->billAddress ? $customer->billAddress->city : null,
 				$customer->company,
 				$customer->getValue('newsletterPK') || $customer->newsletter ? '1' : '0',
+				$phone,
 			]);
 		}
 	}
