@@ -23,8 +23,6 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 	
 	private InvoiceItemRepository $invoiceItemRepository;
 
-	private RelatedTypeRepository $relatedTypeRepository;
-
 	private ProductRepository $productRepository;
 
 	private Shopper $shopper;
@@ -36,7 +34,6 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 	public function __construct(
 		InvoiceItemRepository $invoiceItemRepository,
 		AddressRepository $addressRepository,
-		RelatedTypeRepository $relatedTypeRepository,
 		DIConnection $connection,
 		SchemaManager $schemaManager,
 		ProductRepository $productRepository,
@@ -48,7 +45,6 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 		
 		$this->addressRepository = $addressRepository;
 		$this->invoiceItemRepository = $invoiceItemRepository;
-		$this->relatedTypeRepository = $relatedTypeRepository;
 		$this->productRepository = $productRepository;
 		$this->shopper = $shopper;
 		$this->relatedInvoiceItemRepository = $relatedInvoiceItemRepository;
