@@ -146,10 +146,10 @@ class Invoice extends \StORM\Entity
 
 	/**
 	 * Adresa
-	 * @constraint{"onUpdate":"RESTRICT","onDelete":"RESTRICT"}
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 * @relation
 	 */
-	public Address $address;
+	public ?Address $address;
 
 	/**
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
