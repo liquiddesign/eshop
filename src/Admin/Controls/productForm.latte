@@ -228,7 +228,16 @@
         <div id="menu1-content" class="tab-pane {$presenter->editTab == 'menu1' ? 'active show' : ''}">
             <fieldset>
                 <legend>Ceníky</legend>
+                <span class="text-sm ml-2">
+                    {ifset $configuration[Eshop\Admin\Configs\ProductFormConfig::class][Eshop\Admin\Configs\ProductFormAutoPriceConfig::class]}
+                        {do $autoPriceConfig = $configuration[Eshop\Admin\Configs\ProductFormConfig::class][Eshop\Admin\Configs\ProductFormAutoPriceConfig::class]}
 
+                        {switch $autoPriceConfig}
+                            {case Eshop\Admin\Configs\ProductFormAutoPriceConfig::WITH_VAT} Zadávejte pouze cenu bez DPH, cena s DPH bude vypočtena na základě zvolené úrovňe DPH produktu.
+                            {case Eshop\Admin\Configs\ProductFormAutoPriceConfig::WITHOUT_VAT} Zadávejte pouze cenu s DPH, cena bez DPH bude vypočtena na základě zvolené úrovňe DPH produktu.
+                        {/switch}
+                    {/ifset}
+                </span>
                 <table class="mt-1 mb-1" style="width: auto;">
                     <tr class="m-0 mt-1 has-danger" n:if="$pricelists">
                         <th class="col-label col-form-label col"></th>

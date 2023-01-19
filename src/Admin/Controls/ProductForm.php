@@ -6,6 +6,8 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
+use Eshop\Admin\Configs\ProductFormAutoPriceConfig;
+use Eshop\Admin\Configs\ProductFormConfig;
 use Eshop\Admin\ProductPresenter;
 use Eshop\BackendPresenter;
 use Eshop\DB\AmountRepository;
@@ -90,7 +92,7 @@ class ProductForm extends Control
 	 */
 	private array $relatedTypes;
 
-	/** @var string[] */
+	/** @var array<mixed> */
 	private array $configuration;
 
 	public function __construct(
@@ -142,7 +144,6 @@ class ProductForm extends Control
 		$this->relatedRepository = $relatedRepository;
 		$this->storeRepository = $storeRepository;
 		$this->amountRepository = $amountRepository;
-
 		$this->relationMaxItemsCount = (int) ($settingRepository->getValueByName('relationMaxItemsCount') ?? $this::RELATION_MAX_ITEMS_COUNT);
 
 		$form = $adminFormFactory->create(true);
@@ -442,14 +443,32 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 			$prices = $form->addContainer('prices');
 
 			$pricesPermission = $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default');
+			/** @var null|string $autoPriceConfig */
+			$autoPriceConfig = $this->configuration[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
 			/** @var \Eshop\DB\Price $prc */
 			foreach ($pricelistRepository->many() as $prc) {
 				$pricelist = $prices->addContainer($prc->getPK());
-				$pricelist->addText('price')->setNullable()->setDisabled(!$pricesPermission)->addCondition($form::FILLED)->addRule($form::FLOAT);
-				$pricelist->addText('priceVat')->setNullable()->setDisabled(!$pricesPermission)->addCondition($form::FILLED)->addRule($form::FLOAT);
-				$pricelist->addText('priceBefore')->setNullable()->setDisabled(!$pricesPermission)->addCondition($form::FILLED)->addRule($form::FLOAT);
-				$pricelist->addText('priceVatBefore')->setNullable()->setDisabled(!$pricesPermission)->addCondition($form::FILLED)->addRule($form::FLOAT);
+				$pricelist->addText('price')
+					->setNullable()
+					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT)
+					->addCondition($form::FILLED)
+					->addRule($form::FLOAT);
+				$pricelist->addText('priceVat')
+					->setNullable()
+					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT)
+					->addCondition($form::FILLED)
+					->addRule($form::FLOAT);
+				$pricelist->addText('priceBefore')
+					->setNullable()
+					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT)
+					->addCondition($form::FILLED)
+					->addRule($form::FLOAT);
+				$pricelist->addText('priceVatBefore')
+					->setNullable()
+					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT)
+					->addCondition($form::FILLED)
+					->addRule($form::FLOAT);
 			}
 
 			$stores = $form->addContainer('stores');
@@ -690,19 +709,32 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 		if ($pricesPermission) {
 			foreach ($values['prices'] as $pricelistId => $prices) {
-				$conditions = [
-					'fk_pricelist' => $pricelistId,
-					'fk_product' => $values['uuid'],
-				];
+				/** @var null|string $autoPriceConfig */
+				$autoPriceConfig = $this->configuration[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
-				if ($prices['price'] === null) {
-					$this->priceRepository->many()->match($conditions)->delete();
+				if ((($autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) && $prices['price'] === null) ||
+					($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT && $prices['priceVat'] === null)) {
+					$this->priceRepository->many()
+						->where('this.fk_pricelist', $pricelistId)
+						->where('this.fk_product', $values['uuid'])
+						->delete();
 
 					continue;
 				}
 
-				$prices['priceVat'] = $prices['priceVat'] ? \floatval(\str_replace(',', '.', \strval($prices['priceVat']))) :
-					$prices['price'] + ($prices['price'] * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 100));
+				if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
+					$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 2);
+					$prices['priceBefore'] = isset($prices['priceVatBefore']) ?
+						\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 2) :
+						null;
+				}
+
+				if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
+					$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), 2);
+					$prices['priceVatBefore'] = isset($prices['priceBefore']) ?
+						\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), 2) :
+						null;
+				}
 
 				$conditions = [
 					'pricelist' => $pricelistId,

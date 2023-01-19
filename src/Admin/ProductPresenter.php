@@ -6,6 +6,8 @@ namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\Admin\Configs\ProductFormAutoPriceConfig;
+use Eshop\Admin\Configs\ProductFormConfig;
 use Eshop\Admin\Controls\IProductAttributesFormFactory;
 use Eshop\Admin\Controls\IProductFormFactory;
 use Eshop\Admin\Controls\ProductAttributesForm;
@@ -128,6 +130,9 @@ class ProductPresenter extends BackendPresenter
 		'extendedName' => false,
 		'productTabs' => true,
 		'karsa' => false,
+		ProductFormConfig::class => [
+			ProductFormAutoPriceConfig::class => ProductFormAutoPriceConfig::NONE,
+		],
 	];
 
 	protected const IMPORT_SET_COLUMNS = [
