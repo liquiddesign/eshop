@@ -330,13 +330,13 @@ class DPD
 	
 	public function getStatus(array $list): void
 	{
-		$client = $this->getClient();
-		
-		$result = $client->GetPickupStatus([
-			'login' => $this->login,
-			'password' => $this->password,
-			'statusList' => $list,
-		]);
+		$client = $this->getProductApiClient();
+
+			$result = $client->GetParcelStatus([
+				'login' => $this->login,
+				'password' => $this->password,
+				'parcels' => $list,
+			]);
 		
 		\bdump($result);
 		
@@ -457,5 +457,10 @@ class DPD
 	protected function getClient(): \SoapClient
 	{
 		return Helpers::createSoapClient($this->url);
+	}
+
+	protected function getProductApiClient(): \SoapClient
+	{
+		return Helpers::createSoapClient('https://reg-prijemce.dpd.cz/Product_api_v1_1/Product_api.svc?singleWsdl');
 	}
 }

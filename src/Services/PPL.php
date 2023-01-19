@@ -521,9 +521,9 @@ class PPL
 
 		$result = $client->getPackages(
 			null,
-			$dateFrom,
-			$dateTo,
-			$packageNumbers,
+			null,
+			null,
+			['44601139943'],
 		);
 
 		\bdump($result);
