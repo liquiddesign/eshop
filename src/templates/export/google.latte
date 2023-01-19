@@ -46,8 +46,9 @@
                 {if ($image = $product->getPreviewImage($basePath)) && !isset($photos[$product->getPK()])}<g:image_link>{$productImageUrl}{$image}</g:image_link>{/if}
                 {foreach $product->photos as $photo}
                     {var $photoPath = $productImageUrl . $photo->getImagePath($basePath)}
-                    {continueIf ($productImageUrl . $image) === $photoPath}
-                    <g:additional_image_link>{$photoPath}</g:additional_image_link>
+                    {if ($productImageUrl . $image !== $photoPath)}
+                        <g:additional_image_link>{$photoPath}</g:additional_image_link>
+                    {/if}
                 {/foreach}
                 <g:condition>new</g:condition>
                 <g:availability>{if $product->inStock()}in stock{else}out of stock{/if}</g:availability>
