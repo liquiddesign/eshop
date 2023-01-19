@@ -119,8 +119,6 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	private OrderLogItemRepository $orderLogItemRepository;
 
-	private RelatedTypeRepository $relatedTypeRepository;
-
 	private SettingRepository $settingRepository;
 
 	private Integrations $integrations;
@@ -138,7 +136,6 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		BannedEmailRepository $bannedEmailRepository,
 		Container $container,
 		OrderLogItemRepository $orderLogItemRepository,
-		RelatedTypeRepository $relatedTypeRepository,
 		SettingRepository $settingRepository,
 		Integrations $integrations
 	) {
@@ -154,7 +151,6 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$this->bannedEmailRepository = $bannedEmailRepository;
 		$this->container = $container;
 		$this->orderLogItemRepository = $orderLogItemRepository;
-		$this->relatedTypeRepository = $relatedTypeRepository;
 		$this->settingRepository = $settingRepository;
 		$this->integrations = $integrations;
 	}
@@ -1709,13 +1705,10 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	 */
 	public function getGroupedItemsWithSets(Order $order): array
 	{
-		/** @var \Eshop\DB\ProductRepository $productRepository */
-		$productRepository = $this->getConnection()->findRepository(Product::class);
-
 		$topLevelItems = [];
 		$grouped = [];
 
-		/** @var \Eshop\DB\InvoiceItem $item */
+		/** @var \Eshop\DB\CartItem $item */
 		foreach ($order->purchase->getItems() as $item) {
 			if (isset($topLevelItems[$item->getFullCode()])) {
 				$topLevelItems[$item->getFullCode()]->amount += $item->amount;
@@ -1724,7 +1717,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			}
 		}
 
-			/** @var \Eshop\DB\InvoiceItem $item */
+			/** @var \Eshop\DB\CartItem $item */
 		foreach ($order->purchase->getItems()->where('fk_product IS NOT NULL') as $item) {
 			/** @var \Eshop\DB\RelatedCartItem $related */
 			foreach ($item->relatedCartItems as $related) {
