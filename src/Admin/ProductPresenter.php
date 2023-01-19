@@ -506,6 +506,10 @@ class ProductPresenter extends BackendPresenter
 				->where('fk_product=:product AND fk_tab=:tab', ['product' => $product->getPK(), 'tab' => $productTab->getPK()])
 				->first();
 
+			if (!$productTabText) {
+				continue;
+			}
+
 			/** @var \Forms\Container $input */
 			$input = $form['productTab' . $productTab->getPK()];
 

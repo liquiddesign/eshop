@@ -1724,22 +1724,17 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			}
 		}
 
-		/** @var \Eshop\DB\RelatedType $relatedType */
-		foreach ($this->relatedTypeRepository->getSetTypes() as $relatedType) {
 			/** @var \Eshop\DB\InvoiceItem $item */
-			foreach ($order->purchase->getItems()->where('fk_product IS NOT NULL') as $item) {
-				/** @var \Eshop\DB\Related $related */
-				foreach ($productRepository->getSlaveRelatedProducts($relatedType, $item->getValue('product')) as $related) {
-					$related->amount *= $item->amount;
-
-					if (isset($grouped[$related->slave->getFullCode()])) {
-						$grouped[$related->slave->getFullCode()]->amount += $related->amount;
-					} else {
-						$grouped[$related->slave->getFullCode()] = $related;
-					}
-
-					unset($topLevelItems[$item->getFullCode()]);
+		foreach ($order->purchase->getItems()->where('fk_product IS NOT NULL') as $item) {
+			/** @var \Eshop\DB\RelatedCartItem $related */
+			foreach ($item->relatedCartItems as $related) {
+				if (isset($grouped[$related->getFullCode()])) {
+					$grouped[$related->getFullCode()]->amount += $related->amount;
+				} else {
+					$grouped[$related->getFullCode()] = $related;
 				}
+
+				unset($topLevelItems[$item->getFullCode()]);
 			}
 		}
 
