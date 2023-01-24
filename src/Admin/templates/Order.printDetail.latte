@@ -6,6 +6,7 @@
 {varType Eshop\DB\PackageItem[] $upsells}
 {varType Eshop\DB\Related[][] $relations}
 {varType Eshop\DB\Amount[][] $allStoreAmounts}
+{varType Eshop\DB\PackageItem[] $packageItems}
 {varType string[][] $prices}
 
 {var $purchase = $order->purchase}
@@ -342,8 +343,30 @@
     {foreach $allStoreAmounts as $packageItemPK => $storeAmounts}
         {varType Eshop\DB\Amount[] $storeAmounts}
         {embed modal id:"storeOrderItemForm-$packageItemPK"}
-            {block modal-header}Sklad položky{/block}
+            {block modal-header}Sklad položky - {$packageItems[$packageItemPK]->cartItem->getProduct() ? $packageItems[$packageItemPK]->cartItem->getProduct()->name : $packageItems[$packageItemPK]->cartItem->productName}{/block}
             {block modal-body}
+                <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                            <tr>
+                                <th>Množství</th>
+                                <th>Cena za kus</th>
+                                <th>Cena za kus s DPH</th>
+                                <th>Cena celkem</th>
+                                <th>Cena celkem s DPH</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>{$packageItems[$packageItemPK]->cartItem->amount}</td>
+                                <td>{$packageItems[$packageItemPK]->cartItem->price|price:$purchase->currency->code}</td>
+                                <td>{$packageItems[$packageItemPK]->cartItem->priceVat|price:$purchase->currency->code}</td>
+                                <td>{$packageItems[$packageItemPK]->cartItem->getPriceSum()|price:$purchase->currency->code}</td>
+                                <td>{$packageItems[$packageItemPK]->cartItem->getPriceVatSum()|price:$purchase->currency->code}</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                </div>
                 {form "storeOrderItemForm-$packageItemPK"}
                     <div class="table-responsive">
                         <table class="table table-sm table-striped">

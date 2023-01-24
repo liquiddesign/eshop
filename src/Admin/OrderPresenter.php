@@ -1666,6 +1666,7 @@ class OrderPresenter extends BackendPresenter
 		}
 
 		$this->template->packages = clone $order->packages;
+		$this->template->packageItems = $this->packageItemRepository->many()->where('this.fk_package', (clone $order->packages)->toArrayOf('uuid', toArrayValues: true))->toArray();
 
 		$upsells = [];
 

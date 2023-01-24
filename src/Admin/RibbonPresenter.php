@@ -101,6 +101,7 @@ class RibbonPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($this->internalRibbonRepository->many(), 20, 'priority');
 		$grid->addColumnSelector();
 		$grid->addColumnText('Popisek', 'name', '%s', 'name');
+		$grid->addColumnText('Typ', 'type', '%s', 'type');
 		$columnText = $grid->addColumnText('Barva textu', 'color', '%s', 'color');
 		$columnBackground = $grid->addColumnText('Barva pozadí', 'backgroundColor', '%s', 'backgroundColor');
 		$grid->addColumnLinkDetail('InternalDetail');
