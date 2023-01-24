@@ -858,15 +858,15 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				$subSelect->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
 					->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
 					->where('eshop_attributeassign.fk_product=this.uuid');
-				
+
 				$exp = new Expression();
-				
+
 				foreach ($selectedAttributeValues as $attributeValue) {
 					$exp->add('OR', 'eshop_attributevalue.uuid = %s', [$attributeValue]);
 				}
-				
+
 				$subSelect->where('eshop_attributevalue.fk_attribute = :attributeKey AND ' . $exp->getSql(), $exp->getVars() + ['attributeKey' => $attributeKey]);
-				
+
 				$collection->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
 			}
 		}
@@ -1313,11 +1313,19 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function getRecyclingFeeBySuppliersPriority(Product $product): ?float
 	{
-		//@TODO s novým systémem sloučení zakomponovat
+		$mergedProducts = $product->getAllMergedProducts();
+
+		$tempMasterProduct = $product->masterProduct;
+
+		while ($tempMasterProduct) {
+			$mergedProducts[$tempMasterProduct->getPK()] = $tempMasterProduct;
+
+			$tempMasterProduct = $tempMasterProduct->masterProduct;
+		}
 		
 		$fee = $this->supplierProductRepository->many()
 			->join(['supplier' => 'eshop_supplier'], 'this.fk_supplier = supplier.uuid')
-			->where('this.fk_product', $product->getPK())
+			->where('this.fk_product', \array_keys($mergedProducts))
 			->where('this.recyclingFee IS NOT NULL')
 			->orderBy(['supplier.importPriority'])
 			->firstValue('recyclingFee');
@@ -1327,11 +1335,19 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function getCopyrightFeeBySuppliersPriority(Product $product): ?float
 	{
-		//@TODO s novým systémem sloučení zakomponovat
+		$mergedProducts = $product->getAllMergedProducts();
+
+		$tempMasterProduct = $product->masterProduct;
+
+		while ($tempMasterProduct) {
+			$mergedProducts[$tempMasterProduct->getPK()] = $tempMasterProduct;
+
+			$tempMasterProduct = $tempMasterProduct->masterProduct;
+		}
 		
 		$fee = $this->supplierProductRepository->many()
 			->join(['supplier' => 'eshop_supplier'], 'this.fk_supplier = supplier.uuid')
-			->where('this.fk_product', $product->getPK())
+			->where('this.fk_product', \array_keys($mergedProducts))
 			->where('this.copyrightFee IS NOT NULL')
 			->orderBy(['supplier.importPriority'])
 			->firstValue('copyrightFee');
