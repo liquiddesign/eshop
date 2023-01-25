@@ -86,7 +86,7 @@ class InvoiceItem extends \StORM\Entity
 	public ?InvoiceItem $upsell;
 
 	/**
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 * @relation
 	 */
 	public ?Product $product;

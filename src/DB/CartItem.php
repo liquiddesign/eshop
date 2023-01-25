@@ -133,7 +133,7 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	
 	/**
 	 * Produkt
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 * @relation
 	 */
 	public ?Product $product;

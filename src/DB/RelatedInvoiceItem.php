@@ -65,7 +65,7 @@ class RelatedInvoiceItem extends \StORM\Entity
 	public int $amount;
 
 	/**
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 * @relation
 	 */
 	public ?Product $product;

@@ -367,7 +367,7 @@ class Product extends \StORM\Entity
 	/**
 	 * Zdrojový dodavatel
 	 * @relation
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Supplier $supplierSource;
 
@@ -379,7 +379,7 @@ class Product extends \StORM\Entity
 	/**
 	 * Alternativní produkt k
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Product $alternative;
 
@@ -446,6 +446,7 @@ class Product extends \StORM\Entity
 	/**
 	 * Sloučené produkty
 	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Product $masterProduct;
 

@@ -59,7 +59,7 @@ class RewardMove extends \StORM\Entity
 	/**
 	 * Nárok na produkt
 	 * @relation
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Product $product;
 	
