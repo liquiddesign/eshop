@@ -271,7 +271,6 @@ class OrderPresenter extends BackendPresenter
 		$grid->addColumnText('Den doručování', "shippingDate|date:'d.m.Y'", '%s', 'shippingDate', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
 		if ($this->dpd) {
-			$this->dpd->getStatus(['23655010419887']);
 			$tempDir = $this->container->getParameters()['tempDir'] . '/dpd/';
 
 			$grid->addColumn('DPD', function (Delivery $delivery, AdminGrid $datagrid) use ($tempDir) {
@@ -289,7 +288,6 @@ class OrderPresenter extends BackendPresenter
 		}
 
 		if ($this->ppl) {
-			$this->ppl->getPackages();
 			$tempDir = $this->container->getParameters()['tempDir'] . '/ppl/';
 
 			$grid->addColumn('PPL', function (Delivery $delivery, AdminGrid $datagrid) use ($tempDir) {

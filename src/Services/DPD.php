@@ -5,9 +5,14 @@ declare(strict_types=1);
 namespace Eshop\Services;
 
 use Eshop\Admin\SettingsPresenter;
+use Eshop\DB\Order;
+use Eshop\DB\OrderDeliveryStatus;
+use Eshop\DB\OrderDeliveryStatusRepository;
+use Eshop\DB\OrderRepository;
 use Eshop\Providers\Helpers;
 use Nette\Application\Application;
 use Nette\DI\Container;
+use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Strings;
@@ -57,7 +62,12 @@ class DPD
 		string $labelPrintType = 'PDF',
 		?SettingRepository $settingRepository = null,
 		?Container $container = null,
-		?Application $application = null
+		?Application $application = null,
+		/** @codingStandardsIgnoreStart */
+		private ?OrderRepository $orderRepository = null,
+		private ?OrderDeliveryStatusRepository $orderDeliveryStatusRepository = null,
+		private ?Translator $translator = null,
+		/** @codingStandardsIgnoreEnd */
 	) {
 		$this->url = $url;
 		$this->login = $login;
@@ -327,20 +337,139 @@ class DPD
 			return null;
 		}
 	}
-	
-	public function getStatus(array $list): void
-	{
-		$client = $this->getProductApiClient();
 
-			$result = $client->GetParcelStatus([
-				'login' => $this->login,
-				'password' => $this->password,
-				'parcels' => $list,
-			]);
-		
-		\bdump($result);
-		
-		return;
+	/**
+	 * @param array<string, \Eshop\DB\Order>|null $orders
+	 * @throws \Exception
+	 */
+	public function syncOrdersStatus(?array $orders = null): void
+	{
+		$client = $this->getClient();
+
+		$ordersByPackages = [];
+
+		$orders ??= $this->orderRepository->many()
+			->where('this.dpdCode IS NOT NULl')
+			->where('this.dpdError', false)
+			->toArray();
+
+		foreach ($orders as $order) {
+			if (!$order->dpdCode || $order->dpdError) {
+				continue;
+			}
+
+			foreach (\explode(',', $order->dpdCode) as $dpdCode) {
+				$ordersByPackages[$dpdCode] = $order;
+			}
+		}
+
+		$ordersDeliveryStatuses = [];
+
+		foreach ($this->orderDeliveryStatusRepository->many()->where('this.fk_order', \array_keys($orders)) as $orderDeliveryStatus) {
+			$ordersDeliveryStatuses[$orderDeliveryStatus->getValue('order')][$orderDeliveryStatus->status] = $orderDeliveryStatus;
+		}
+
+		$allTrackingDetails = [];
+
+		foreach (\array_chunk($ordersByPackages, 100, true) as $chunkedOrders) {
+			try {
+				$response = $client->GetTrackingByParcelno([
+					'login' => $this->login,
+					'password' => $this->password,
+					'parcelno' => \array_keys($chunkedOrders),
+				]);
+			} catch (\Exception $e) {
+				\bdump($e);
+
+				throw new \Exception('Invalid request: ' . $e->getMessage());
+			}
+
+			// phpcs:ignore
+			if (!isset($response->GetTrackingByParcelnoResult->TrackingDetailVO) || !\is_array($response->GetTrackingByParcelnoResult->TrackingDetailVO)) {
+				throw new \Exception('Invalid response data');
+			}
+
+			// phpcs:ignore
+			$allTrackingDetails = \array_merge($allTrackingDetails, $response->GetTrackingByParcelnoResult->TrackingDetailVO);
+		}
+
+		// phpcs:ignore
+		foreach ($allTrackingDetails as $trackingDetail) {
+			// phpcs:ignore
+			$order = $ordersByPackages[$trackingDetail->PARCELNO] ?? null;
+
+			if (!$order) {
+				continue;
+			}
+
+			$orderDeliverStatuses = $ordersDeliveryStatuses[$order->getPK()] ?? [];
+
+			// phpcs:ignore
+			if (isset($orderDeliverStatuses[$trackingDetail->SCANCODE])) {
+				continue;
+			}
+
+			// phpcs:ignore
+			switch ($trackingDetail->SCANCODE) {
+				case '02':
+				case '03':
+				case '04':
+				case '05':
+				case '06':
+				case '08':
+				case '09':
+				case '10':
+				case '13':
+				case '14':
+				case '23':
+					// phpcs:ignore
+					$ordersDeliveryStatuses[$order->getPK()][$trackingDetail->SCANCODE] = $this->orderDeliveryStatusRepository->createOne([
+						'service' => OrderDeliveryStatus::SERVICE_DPD,
+						'order' => $order->getPK(),
+						// phpcs:ignore
+						'createdTs' => $trackingDetail->SCANDATETIME ?? null,
+						// phpcs:ignore
+						'status' => $trackingDetail->SCANCODE,
+						// phpcs:ignore
+						'packageCode' => $trackingDetail->PARCELNO,
+					]);
+			}
+		}
+	}
+
+	/**
+	 * @param \Eshop\DB\Order $order
+	 * @return array<string>|null
+	 */
+	public function getDeliveryStatusText(Order $order): ?array
+	{
+		if (!$order->dpdCode || $order->dpdError) {
+			return null;
+		}
+
+		$result = [];
+
+		foreach (\explode(',', $order->dpdCode) as $dpdCode) {
+			$deliveryStatuses = $this->orderDeliveryStatusRepository->many()->setIndex('this.status')->where('this.packageCode', $dpdCode)->toArray();
+
+			if (isset($deliveryStatuses['13'])) {
+				$result[$dpdCode] = $this->translator->translate('dpdStatus.13', 'Balíček jsme úspěšně doručili.');
+			} elseif (isset($deliveryStatuses['23'])) {
+				$result[$dpdCode] = $this->translator->translate('dpdStatus.23', 'Doručení do výdejního místa.');
+			} elseif (isset($deliveryStatuses['14'])) {
+				$result[$dpdCode] = $this->translator->translate('dpdStatus.14', 'Bohužel se nám nepodařilo balíček doručit.');
+			} elseif (isset($deliveryStatuses['04'])) {
+				$result[$dpdCode] = $this->translator->translate('dpdStatus.04', 'Balíček se nepodařilo doručit a vrátili jsme ho na depo.');
+			} elseif (isset($deliveryStatuses['03'])) {
+				$result[$dpdCode] = $this->translator->translate('dpdStatus.03', 'Balíček jsme předali kurýrovi. Dnes ho můžete čekat.');
+			} elseif (isset($deliveryStatuses['02'])) {
+				$result[$dpdCode] = $this->translator->translate('dpdStatus.02', 'Balíček už je v našem depu.');
+			} elseif (isset($deliveryStatuses['05'])) {
+				$result[$dpdCode] = $this->translator->translate('dpdStatus.05', 'Balíček už jsme vyzvedli u odesílatele.');
+			}
+		}
+
+		return $result;
 	}
 	
 	public function deletePackages(array $list): void

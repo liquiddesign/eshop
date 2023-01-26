@@ -509,21 +509,19 @@ class PPL
 		}
 	}
 
-	public function getPackages(): void
+	public function getPackages(array $packageNumbers): void
 	{
 		$client = $this->getClient();
 
 		$dateFrom = new \DateTime();
-		$dateFrom->modify('-14 days');
-		$dateTo = new \DateTime();
-
-		$packageNumbers = [];
+		$dateFrom->modify('-6 months');
+//		$dateTo = new \DateTime();
 
 		$result = $client->getPackages(
 			null,
 			null,
 			null,
-			['44601139943'],
+			$packageNumbers,
 		);
 
 		\bdump($result);
