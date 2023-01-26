@@ -441,6 +441,8 @@ class OrderPresenter extends BackendPresenter
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, $template->name, $admin);
 			} catch (\Throwable $e) {
+				\bdump($e);
+				Debugger::log($e, ILogger::ERROR);
 			}
 
 			$this->flashMessage('Odesláno', 'success');

@@ -88,6 +88,7 @@ abstract class Helpers
 		$options = [
 			'stream_context' => $context,
 			'trace' => 1,
+			'cache_wsdl' => \WSDL_CACHE_NONE,
 		];
 		
 		if ($login && $password) {
