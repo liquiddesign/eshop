@@ -833,7 +833,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				foreach ($selectedAttributeValues as $attributeValue) {
 					$subSelect = $this->getConnection()->rows(['eshop_attributevalue']);
 
-					$subSelect->setBinderName("__var$attributeKey$attributeValue");
+					$subSelect->setBinderName("__var$attributeKey" . \str_replace('-', '_', Strings::webalize($attributeValue)));
 
 					$subSelect->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
 						->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
