@@ -1575,6 +1575,8 @@ class CheckoutManager
 					if (!$relatedCartItems) {
 						continue;
 					}
+
+					$this->relatedCartItemRepository->many()->where('fk_cartItem', $cartItem->getPK())->delete();
 					
 					/** @var array<\Eshop\DB\RelatedCartItem> $relatedCartItems */
 					$relatedCartItems = $this->relatedCartItemRepository->createMany($relatedCartItems)->toArray();
