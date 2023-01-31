@@ -55,8 +55,13 @@ class CartImportForm extends Form
 		$notFoundProducts = [];
 		
 		foreach ($this->items as $code => $amount) {
+			$supplierPrefixSqlIF = 'IF(ISNULL(supplier.productCodePrefix), this.code, SUBSTRING(this.code,LENGTH(supplier.productCodePrefix)+1))';
+			
 			/** @var \Eshop\DB\Product|null $product */
-			$product = $this->productRepository->getProducts()->where('IF(this.subCode, CONCAT(this.code,".",this.subCode), this.code) = :code OR this.ean = :code', ['code' => $code])->first();
+			$product = $this->productRepository->getProducts()
+				->where('IF(this.subCode, CONCAT(' . $supplierPrefixSqlIF . ',".",this.subCode),' . $supplierPrefixSqlIF . ') = :code OR this.ean = :code', ['code' => $code])
+				->join(['supplier' => 'eshop_supplier'], 'supplier.uuid = this.fk_supplierSource')
+				->first();
 			
 			if ($product) {
 				try {
