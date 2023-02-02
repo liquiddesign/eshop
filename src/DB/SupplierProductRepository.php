@@ -92,6 +92,12 @@ class SupplierProductRepository extends \StORM\Repository
 			->setBufferedQuery(false)
 			->fetchArray(\stdClass::class);
 
+		$eanProductsMap = $productRepository->many()
+			->setSelect(['ean', 'uuid'], [], true)
+			->setBufferedQuery(false)
+			->setIndex('ean')
+			->toArrayOf('uuid');
+
 		$drafts = $supplierProductRepository->many()
 			->select(['realCategory' => 'category.fk_category'])
 			->select(['realDisplayAmount' => 'displayAmount.fk_displayAmount'])
@@ -210,6 +216,14 @@ class SupplierProductRepository extends \StORM\Repository
 					$draft->update(['product' => $uuid]);
 				} catch (\Throwable $x) {
 					unset($x);
+
+					try {
+						if (isset($eanProductsMap[$draft->ean])) {
+							$draft->update(['product' => $eanProductsMap[$draft->ean]]);
+						}
+					} catch (\Throwable $e) {
+						unset($e);
+					}
 				}
 			}
 
