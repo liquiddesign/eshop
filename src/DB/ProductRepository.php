@@ -1247,7 +1247,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		
 		$itemRelationsForCart = [];
 		
-		$collection = $this->relatedRepository->many()
+		$collection = $this->relatedRepository->getCollection()
 			->join(['relatedType' => 'eshop_relatedtype'], 'this.fk_type = relatedType.uuid')
 			->where('this.fk_master', $cartItem->getValue('product'))
 			->whereNot('this.fk_slave', $cartItem->getValue('product'))
