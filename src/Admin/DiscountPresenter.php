@@ -13,6 +13,7 @@ use Eshop\DB\CustomerRepository;
 use Eshop\DB\DeliveryDiscountRepository;
 use Eshop\DB\Discount;
 use Eshop\DB\DiscountCoupon;
+use Eshop\DB\DiscountCouponRepository;
 use Eshop\DB\DiscountRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PricelistRepository;
@@ -24,7 +25,6 @@ use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use StORM\Connection;
 use StORM\ICollection;
-use Tracy\Debugger;
 
 class DiscountPresenter extends BackendPresenter
 {
@@ -57,6 +57,9 @@ class DiscountPresenter extends BackendPresenter
 
 	/** @inject */
 	public Storage $storage;
+
+	/** @inject */
+	public DiscountCouponRepository $discountCouponRepository;
 
 	public function createComponentGrid(): AdminGrid
 	{
@@ -136,10 +139,23 @@ class DiscountPresenter extends BackendPresenter
 		$grid->addColumnLink('coupons', 'Kupóny');
 
 		$grid->addColumnLinkDetail();
-		$grid->addColumnActionDelete();
+
+		$deleteCondition = function (Discount $discount): bool {
+			$usedCoupons = $this->discountCouponRepository->many()->where('EXISTS (SELECT uuid, fk_coupon FROM eshop_purchase WHERE eshop_purchase.fk_coupon = this.uuid)')->toArray();
+
+			foreach ($discount->coupons as $coupon) {
+				if (isset($usedCoupons[$coupon->getPK()])) {
+					return false;
+				}
+			}
+
+			return true;
+		};
+
+		$grid->addColumnActionDelete(condition: $deleteCondition);
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(condition: $deleteCondition);
 
 		$grid->addFilterTextInput('search', ['name_cs'], null, 'Název');
 
@@ -214,8 +230,6 @@ class DiscountPresenter extends BackendPresenter
 
 	public function renderDefault(): void
 	{
-		Debugger::$showBar = false;
-
 		$this->template->headerLabel = 'Akce';
 		$this->template->headerTree = [
 			['Akce', 'default'],
@@ -303,9 +317,16 @@ class DiscountPresenter extends BackendPresenter
 		$grid->addColumnText('Uplatnění', ['usagesCount', 'usageLimit'], '%s / %s', 'usagesCount', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		
 		$grid->addColumnLinkDetail('couponsDetail');
-		$grid->addColumnActionDelete();
 
-		$grid->addButtonDeleteSelected();
+		$deleteCondition = function (DiscountCoupon $discountCoupon): bool {
+			return $this->discountCouponRepository->many()
+					->where('this.uuid', $discountCoupon->getPK())
+					->where('EXISTS (SELECT uuid, fk_coupon FROM eshop_purchase WHERE eshop_purchase.fk_coupon = this.uuid)')
+					->count() === 0;
+		};
+
+		$grid->addColumnActionDelete(condition: $deleteCondition);
+		$grid->addButtonDeleteSelected(condition: $deleteCondition);
 
 		$grid->addFilterSelectInput('search', 'fk_currency = :q', 'Měna', '- Měna -', null, $this->currencyRepo->getArrayForSelect());
 		$grid->addFilterButtons(['coupons', $this->getParameter('discount')]);
@@ -379,7 +400,6 @@ class DiscountPresenter extends BackendPresenter
 
 	public function actionCoupons(Discount $discount, ?string $backLink = null): void
 	{
-		Debugger::$showBar = false;
 		unset($backLink);
 
 		$this->template->displayButtons = [$this->createBackButton('default'), $this->createNewItemButton('couponsCreate', [$discount])];
