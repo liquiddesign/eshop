@@ -305,4 +305,20 @@ class Invoice extends \StORM\Entity
 
 		return $basePrices;
 	}
+
+	/**
+	 * Get absolute price of discount coupons applied to orders, works only for invoice with one order
+	 * Hotfix for Ketofit
+	 */
+	public function getAbsoluteDiscountCouponPriceVatRatio(): float
+	{
+		/** @var \Eshop\DB\Order|null $order */
+		$order = $this->orders->clear(true)->first();
+
+		if (!$order || !$order->getDiscountCoupon()) {
+			return 1.0;
+		}
+
+		return $order->getTotalPriceVat() / ($order->getTotalPriceVat() + $order->getDiscountCoupon()->discountValueVat);
+	}
 }

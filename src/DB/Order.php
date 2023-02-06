@@ -336,9 +336,9 @@ class Order extends \StORM\Entity
 			}
 
 			if (!$coupon->discountValue && $coupon->discountValueVat) {
-				return ($this->purchase->getSumPriceVat() + $this->getDeliveryPriceVatSum() + $this->getPaymentPriceVatSum()) /
-						($this->purchase->getSumPriceBeforeVat() + ($this->getDeliveryPriceVatSumBefore() ?: $this->getDeliveryPriceVatSum()) + $this->getPaymentPriceVatSum()) *
-					$coupon->discountValueVat;
+				$totalPrice = $this->purchase->getSumPrice() + $this->getDeliveryPriceSum() + $this->getPaymentPriceSum();
+
+				return $totalPrice - ($this->getTotalPriceVat() / ($this->getTotalPriceVat() + $coupon->discountValueVat) * $totalPrice);
 			}
 
 			return \floatval($coupon->discountValue);
@@ -367,9 +367,9 @@ class Order extends \StORM\Entity
 	{
 		if ($coupon = $this->purchase->coupon) {
 			if (!$coupon->discountValue && $coupon->discountValueVat) {
-				return ($this->purchase->getSumPriceVat() + $this->getDeliveryPriceVatSum() + $this->getPaymentPriceVatSum()) /
-					($this->purchase->getSumPriceBeforeVat() + ($this->getDeliveryPriceVatSumBefore() ?: $this->getDeliveryPriceVatSum()) + $this->getPaymentPriceVatSum()) *
-					$coupon->discountValueVat;
+				$totalPrice = $this->purchase->getSumPrice() + $this->getDeliveryPriceSum() + $this->getPaymentPriceSum();
+
+				return $totalPrice - ($this->getTotalPriceVat() / ($this->getTotalPriceVat() + $coupon->discountValueVat) * $totalPrice);
 			}
 
 			return \floatval($coupon->discountValue);
