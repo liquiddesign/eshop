@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Eshop\Common\DB\SystemicEntity;
 use Nette\Application\ApplicationException;
 
 /**
@@ -11,7 +12,7 @@ use Nette\Application\ApplicationException;
  * @table
  * @index{"name":"producer_code_unique","unique":true,"columns":["code"]}
  */
-class Producer extends \StORM\Entity
+class Producer extends SystemicEntity
 {
 	public const IMAGE_DIR = 'producer_images';
 

@@ -59,10 +59,16 @@ class ProducerPresenter extends BackendPresenter
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('Detail');
-		$grid->addColumnActionDelete();
+		$grid->addColumnActionDeleteSystemic();
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(condition: function ($object) {
+			if ($object) {
+				return !$object->isSystemic();
+			}
+
+			return false;
+		});
 
 		$grid->addFilterTextInput('search', ['name_cs', 'this.code'], null, 'Kód, název');
 
