@@ -12,39 +12,38 @@ use Web\DB\SettingRepository;
 
 class Algolia
 {
+	protected string $baseUrl;
+
 	private ?SearchClient $client = null;
 
-	private ProductRepository $productRepository;
-
-	private SettingRepository $settingRepository;
-
-	private CategoryRepository $categoryRepository;
-
-	private string $baseUrl;
-
-	public function __construct(IRequest $httpRequest, ProductRepository $productRepository, SettingRepository $settingRepository, CategoryRepository $categoryRepository)
-	{
-		$this->productRepository = $productRepository;
-		$this->settingRepository = $settingRepository;
-		$this->categoryRepository = $categoryRepository;
+	public function __construct(
+		/** @codingStandardsIgnoreStart PHP 8.0 features */
+		private string $applicationId,
+		private string $adminApiKey,
+		protected IRequest $httpRequest,
+		protected ProductRepository $productRepository,
+		protected SettingRepository $settingRepository,
+		protected CategoryRepository $categoryRepository
+		/** @codingStandardsIgnoreEnd */
+	) {
 		$this->baseUrl = $httpRequest->getUrl()->getBaseUrl();
-
-		$applicationId = $settingRepository->one(['name' => 'algoliaApplicationId']);
-		$adminApiKey = $settingRepository->one(['name' => 'algoliaAdminApiKey']);
-
-		if (!$applicationId || !$adminApiKey) {
-			return;
-		}
-
-		$this->client = SearchClient::create($applicationId->value, $adminApiKey->value);
 	}
 
-	public function isActive(): bool
+	public function getClient(): SearchClient
 	{
-		return (bool) $this->client;
+		if (!$this->applicationId || !$this->adminApiKey) {
+			throw new \Exception('Algolia client can not be initialized. Properties "applicationId" or "adminApiKey" are not set.');
+		}
+
+		if ($this->client) {
+			return $this->client;
+		}
+
+		return SearchClient::create($this->applicationId, $this->adminApiKey);
 	}
 
 	/**
+	 * @deprecated use uploadValues instead
 	 * @param array<string, array<string, array<string>>> $indexes
 	 * @param string[] $mutations
 	 * @throws \Algolia\AlgoliaSearch\Exceptions\MissingObjectId|\StORM\Exception\NotFoundException
@@ -97,18 +96,45 @@ class Algolia
 	}
 
 	/**
+	 * @deprecated use search instead
 	 * @param string $name
 	 * @param string $index
 	 * @return array<array<array<string>>>
 	 */
 	public function searchProduct(string $name, string $index = 'products'): array
 	{
-		if (!$this->client) {
+		try {
+			$client = $this->getClient();
+		} catch (\Throwable $e) {
 			return [];
 		}
 
-		$index = $this->client->initIndex($index);
+		$index = $client->initIndex($index);
 
 		return $index->search($name);
+	}
+
+	/**
+	 * @param array $values Serializable array
+	 * @throws \Algolia\AlgoliaSearch\Exceptions\MissingObjectId
+	 */
+	public function uploadValues(array $values, string $index): void
+	{
+		$index = $this->getClient()->initIndex($index);
+
+		$index->saveObjects($values);
+	}
+
+	/**
+	 * @param string $query
+	 * @param string $index
+	 * @return array<mixed>
+	 * @throws \Exception
+	 */
+	public function search(string $query, string $index): array
+	{
+		$index = $this->getClient()->initIndex($index);
+
+		return $index->search($query);
 	}
 }

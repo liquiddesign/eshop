@@ -8,12 +8,9 @@ use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\OrderRepository;
-use Eshop\Integration\Algolia;
 use Eshop\Integration\MailerLite;
 use Eshop\Integration\Zasilkovna;
-use Tracy\Debugger;
 use Web\DB\ContactItemRepository;
-use Web\DB\Setting;
 use Web\DB\SettingRepository;
 
 class IntegrationPresenter extends BackendPresenter
@@ -43,9 +40,6 @@ class IntegrationPresenter extends BackendPresenter
 	public OrderRepository $orderRepository;
 	
 	/** @inject */
-	public Algolia $algoliaService;
-	
-	/** @inject */
 	public CategoryRepository $categoryRepository;
 	
 	public function beforeRender(): void
@@ -58,7 +52,6 @@ class IntegrationPresenter extends BackendPresenter
 			'@mailerLite' => 'MailerLite',
 			'@heureka' => 'Heureka',
 			'@zbozi' => 'Zboží',
-			'@algolia' => 'Algolia',
 		];
 		
 		if (isset($this::CONFIGURATION['supportBox']) && $this::CONFIGURATION['supportBox']) {
@@ -76,14 +69,6 @@ class IntegrationPresenter extends BackendPresenter
 	{
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('form');
-		
-		$form->setDefaults($this->settingsRepo->many()->setIndex('name')->toArrayOf('value'));
-	}
-	
-	public function actionAlgolia(): void
-	{
-		/** @var \Admin\Controls\AdminForm $form */
-		$form = $this->getComponent('algoliaForm');
 		
 		$form->setDefaults($this->settingsRepo->many()->setIndex('name')->toArrayOf('value'));
 	}
@@ -296,30 +281,6 @@ class IntegrationPresenter extends BackendPresenter
 		return $form;
 	}
 	
-	public function createComponentAlgoliaForm(): AdminForm
-	{
-		$form = $this->formFactory->create();
-		$form->addText('algoliaAdminApiKey', 'Admin klíč')->setNullable();
-		$form->addText('algoliaSearchApiKey', 'Vyhledávací klíč')->setNullable();
-		$form->addText('algoliaApplicationId', 'Id aplikace')->setNullable();
-		$form->addSelect2('algoliaCategory', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('Všechny');
-		
-		$form->addSubmit('submit', 'Uložit');
-		
-		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
-			
-			foreach ($values as $key => $value) {
-				$this->settingsRepo->syncOne(['name' => $key, 'value' => $value]);
-			}
-			
-			$this->flashMessage('Nastavení uloženo', 'success');
-			$form->processRedirect('algolia');
-		};
-		
-		return $form;
-	}
-	
 	public function renderSupportbox(): void
 	{
 		$this->template->headerLabel = 'Integrace';
@@ -441,26 +402,6 @@ class IntegrationPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('mailerLiteForm')];
 	}
 	
-	public function renderAlgolia(): void
-	{
-		$this->template->headerLabel = 'Integrace';
-		$this->template->headerTree = [
-			['Integrace'],
-			['Algolia'],
-		];
-		
-		$active = $this->checkSetting('algoliaAdminApiKey') &&
-			$this->checkSetting('algoliaSearchApiKey') &&
-			$this->checkSetting('algoliaApplicationId') &&
-			$this->checkSetting('algoliaCategory');
-		
-		if ($active) {
-			$this->template->displayButtons = [$this->createButtonWithClass('syncAlgoliaProducts!', '<i class="fa fa-sync"></i>  Synchronizovat produkty s Algolia', 'btn btn-sm btn-outline-primary')];
-		}
-		
-		$this->template->displayControls = [$this->getComponent('algoliaForm')];
-	}
-	
 	public function handleSyncMailerLite(): void
 	{
 		try {
@@ -471,34 +412,5 @@ class IntegrationPresenter extends BackendPresenter
 		}
 		
 		$this->redirect('this');
-	}
-	
-	public function handleSyncAlgoliaProducts(): void
-	{
-		try {
-			$this->algoliaService->uploadProducts(
-				[
-					'products' => [
-						'properties' => [],
-						'mutationalProperties' => ['name'],
-					],
-				],
-				[$this->settingsRepo->getConnection()->getMutation()],
-			);
-			$this->flashMessage('Provedeno', 'success');
-		} catch (\Exception $e) {
-			Debugger::log($e->getMessage());
-			$this->flashMessage('Chyba! Zkontrolujte API klíč.', 'error');
-		}
-		
-		$this->redirect('this');
-	}
-	
-	private function checkSetting(string $name): ?Setting
-	{
-		/** @var \Web\DB\Setting|null $setting */
-		$setting = $this->settingsRepo->many()->where('name', $name)->first();
-		
-		return $setting !== null && $setting->getValue('value') !== null && $setting->getValue('value') !== '' ? $setting : null;
 	}
 }

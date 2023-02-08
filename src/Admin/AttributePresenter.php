@@ -192,6 +192,7 @@ class AttributePresenter extends BackendPresenter
 				'categories',
 				'groups',
 				'orderValuesByLabel',
+				'exportToAlgolia',
 			],
 			'attributeGrid',
 		);
@@ -271,6 +272,7 @@ class AttributePresenter extends BackendPresenter
 		$form->addGroup('Export');
 		$form->addText('heurekaName', 'Název pro Heureka.cz')->setNullable();
 		$form->addText('zboziName', 'Název pro Zboží.cz')->setNullable();
+		$form->addCheckbox('exportToAlgolia', 'Exportovat do Algolia');
 
 		$form->addGroup('Filtr');
 		$form->addCheckbox('showFilter', 'Filtr')->setHtmlAttribute('data-info', 'Atribut se zobrazí při filtrování.');

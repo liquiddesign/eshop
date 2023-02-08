@@ -149,6 +149,11 @@ class Attribute extends \StORM\Entity
 	public ?string $zboziName;
 
 	/**
+	 * @column
+	 */
+	public bool $exportToAlgolia = false;
+
+	/**
 	 * Kategorie
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\Category>|\Eshop\DB\Category[]

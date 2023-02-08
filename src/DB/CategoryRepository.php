@@ -512,10 +512,11 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 	/**
 	 * @param \Eshop\DB\Category|string $category
+	 * @param array<\Eshop\DB\Category>|null $allCategories
 	 * @return array|\Eshop\DB\Category[]
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getBranch($category): array
+	public function getBranch($category, ?array $allCategories = null): array
 	{
 		if (!$category instanceof Category) {
 			if (!$category = $this->one($category)) {
@@ -523,7 +524,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			}
 		}
 
-		if ($category->ancestor === null) {
+		if ($category->getValue('ancestor') === null) {
 			return [$category->getPK() => $category];
 		}
 
@@ -531,7 +532,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		do {
 			$categories[$category->getPK()] = $category;
-			$category = $category->ancestor;
+			$category = $allCategories[$category->getValue('ancestor')] ?? $category->ancestor;
 		} while ($category !== null);
 
 		return \array_reverse($categories);
