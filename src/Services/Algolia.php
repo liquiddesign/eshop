@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Eshop\Integration;
+namespace Eshop\Services;
 
 use Algolia\AlgoliaSearch\SearchClient;
 use Eshop\DB\CategoryRepository;

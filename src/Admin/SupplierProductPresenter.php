@@ -82,7 +82,7 @@ class SupplierProductPresenter extends BackendPresenter
 			return $supplierProduct->product ? "<a href='$link'>" . $supplierProduct->product->getFullCode() . '</a>' : '-ne-';
 		}, '%s', 'product');
 
-		/** @var \Eshop\Integration\Algolia|null $algolia */
+		/** @var \Eshop\Services\Algolia|null $algolia */
 		$algolia = $this->integrations->getService(Integrations::ALGOLIA);
 
 		if ($algolia && $supplier->pairWithAlgolia) {
@@ -176,7 +176,7 @@ class SupplierProductPresenter extends BackendPresenter
 
 		$grid->addButtonBulkEdit('form', ['active']);
 
-		/** @var \Eshop\Integration\Algolia|null $algolia */
+		/** @var \Eshop\Services\Algolia|null $algolia */
 		$algolia = $this->integrations->getService(Integrations::ALGOLIA);
 
 		if ($algolia && $supplier->pairWithAlgolia) {
@@ -272,7 +272,7 @@ class SupplierProductPresenter extends BackendPresenter
 					continue;
 				}
 
-				/** @var \Eshop\Integration\Algolia $algolia */
+				/** @var \Eshop\Services\Algolia $algolia */
 				$algolia = $this->integrations->getService(Integrations::ALGOLIA);
 
 				$hits = $algolia->searchProduct($supplierProduct->name)['hits'];
@@ -481,7 +481,7 @@ class SupplierProductPresenter extends BackendPresenter
 		/** @var \Eshop\DB\SupplierProduct|null $supplierProduct */
 		$supplierProduct = $this->getParameter('supplierProduct');
 
-		/** @var \Eshop\Integration\Algolia|null $algolia */
+		/** @var \Eshop\Services\Algolia|null $algolia */
 		$algolia = $this->integrations->getService(Integrations::ALGOLIA);
 
 		$algoliaResults = $algolia->searchProduct($supplierProduct->name, 'products');
