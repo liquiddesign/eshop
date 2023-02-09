@@ -734,6 +734,18 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		}
 	}
 
+	/**
+	 * @param array<\Eshop\DB\Category> $branch
+	 */
+	public function getBranchFullName(array $branch, string $separator = '|'): string
+	{
+		foreach ($branch as $key => $treeCategory) {
+			$branch[$key] = $treeCategory->name;
+		}
+
+		return \implode($separator, $branch);
+	}
+
 	public function generateProducerCategories(array $categories, bool $deep = false): void
 	{
 		$connection = $this->getConnection();
