@@ -11,7 +11,7 @@ use Eshop\DB\ProducerRepository;
 use Eshop\DB\SupplierProduct;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
-use Eshop\Integration\Algolia;
+use Eshop\Integration\Integrations;
 use Eshop\Providers\IProducerSyncSupplier;
 use Forms\Form;
 use Nette\Utils\Arrays;
@@ -48,7 +48,7 @@ class SupplierProductPresenter extends BackendPresenter
 	public SettingRepository $settingRepository;
 
 	/** @inject */
-	public Algolia $algolia;
+	public Integrations $integrations;
 
 	public function beforeRender(): void
 	{
@@ -82,44 +82,42 @@ class SupplierProductPresenter extends BackendPresenter
 			return $supplierProduct->product ? "<a href='$link'>" . $supplierProduct->product->getFullCode() . '</a>' : '-ne-';
 		}, '%s', 'product');
 
-		try {
-			$this->algolia->getClient();
+		/** @var \Eshop\Integration\Algolia|null $algolia */
+		$algolia = $this->integrations->getService(Integrations::ALGOLIA);
 
-			if ($supplier->pairWithAlgolia) {
-				$grid->addColumn('Návrh Algolia', function (SupplierProduct $supplierProduct, AdminGrid $datagrid) {
-					if (!$supplierProduct->name) {
-						return '-';
-					}
-
-					try {
-						$hits = $this->algolia->searchProduct($supplierProduct->name)['hits'];
-						$hitsCount = \count($hits);
-
-						if ($hitsCount > 0) {
-							/** @var string[] $firstHit */
-							$firstHit = Arrays::first($hits);
-
-							$hitProduct = $this->productRepository->one($firstHit['objectID']);
-
-							$link = $hitProduct && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ?
-								$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$hitProduct, 'backLink' => $this->storeRequest(),]) : '#';
-
-							$acceptLink = '<a class="ml-2" title="Napárovat" href="' .
-								$this->link('acceptAlgoliaSuggestion!', ['supplierProduct' => $supplierProduct->getPK(), 'product' => $hitProduct->getPK()])
-								. '"><i class="fas fa-check fa-sm"></i></a>';
-
-							$moreLink = '<a class="ml-2" title="Zobrazit další možnosti" href="' . $this->link('detailAlgolia', [$supplierProduct]) .
-								'"><i class="fas fa-cog fa-sm"></i>&nbsp;(' . $hitsCount . ')</a>';
-
-							return "<a href='$link'>$hitProduct->name (" . $hitProduct->getFullCode() . ')</a>' . $acceptLink . $moreLink;
-						}
-					} catch (\Throwable $e) {
-					}
-
+		if ($algolia && $supplier->pairWithAlgolia) {
+			$grid->addColumn('Návrh Algolia', function (SupplierProduct $supplierProduct, AdminGrid $datagrid) use ($algolia) {
+				if (!$supplierProduct->name) {
 					return '-';
-				}, '%s', 'product');
-			}
-		} catch (\Throwable $e) {
+				}
+
+				try {
+					$hits = $algolia->searchProduct($supplierProduct->name)['hits'];
+					$hitsCount = \count($hits);
+
+					if ($hitsCount > 0) {
+						/** @var string[] $firstHit */
+						$firstHit = Arrays::first($hits);
+
+						$hitProduct = $this->productRepository->one($firstHit['objectID']);
+
+						$link = $hitProduct && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ?
+							$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$hitProduct, 'backLink' => $this->storeRequest(),]) : '#';
+
+						$acceptLink = '<a class="ml-2" title="Napárovat" href="' .
+							$this->link('acceptAlgoliaSuggestion!', ['supplierProduct' => $supplierProduct->getPK(), 'product' => $hitProduct->getPK()])
+							. '"><i class="fas fa-check fa-sm"></i></a>';
+
+						$moreLink = '<a class="ml-2" title="Zobrazit další možnosti" href="' . $this->link('detailAlgolia', [$supplierProduct]) .
+							'"><i class="fas fa-cog fa-sm"></i>&nbsp;(' . $hitsCount . ')</a>';
+
+						return "<a href='$link'>$hitProduct->name (" . $hitProduct->getFullCode() . ')</a>' . $acceptLink . $moreLink;
+					}
+				} catch (\Throwable $e) {
+				}
+
+				return '-';
+			}, '%s', 'product');
 		}
 
 		$grid->addColumnInputCheckbox('<span title="Aktivní">Aktivní</span>', 'active', 'active', '', 'this.active');
@@ -178,17 +176,15 @@ class SupplierProductPresenter extends BackendPresenter
 
 		$grid->addButtonBulkEdit('form', ['active']);
 
-		try {
-			$this->algolia->getClient();
+		/** @var \Eshop\Integration\Algolia|null $algolia */
+		$algolia = $this->integrations->getService(Integrations::ALGOLIA);
 
-			if ($supplier->pairWithAlgolia) {
-				$submit = $grid->getForm()->addSubmit('pairAlgoliaBulk', 'Párovat dle Algolia')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+		if ($algolia && $supplier->pairWithAlgolia) {
+			$submit = $grid->getForm()->addSubmit('pairAlgoliaBulk', 'Párovat dle Algolia')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-				$submit->onClick[] = function ($button) use ($grid): void {
-					$grid->getPresenter()->redirect('pairAlgoliaBulk', [$grid->getSelectedIds()]);
-				};
-			}
-		} catch (\Throwable $e) {
+			$submit->onClick[] = function ($button) use ($grid): void {
+				$grid->getPresenter()->redirect('pairAlgoliaBulk', [$grid->getSelectedIds()]);
+			};
 		}
 
 		$grid->addBulkAction('createDummyProducts', 'createDummyProducts', 'Vytvořit produkty');
@@ -276,7 +272,10 @@ class SupplierProductPresenter extends BackendPresenter
 					continue;
 				}
 
-				$hits = $this->algolia->searchProduct($supplierProduct->name)['hits'];
+				/** @var \Eshop\Integration\Algolia $algolia */
+				$algolia = $this->integrations->getService(Integrations::ALGOLIA);
+
+				$hits = $algolia->searchProduct($supplierProduct->name)['hits'];
 
 				if (\count($hits) === 0) {
 					continue;
@@ -481,7 +480,11 @@ class SupplierProductPresenter extends BackendPresenter
 
 		/** @var \Eshop\DB\SupplierProduct|null $supplierProduct */
 		$supplierProduct = $this->getParameter('supplierProduct');
-		$algoliaResults = $this->algolia->searchProduct($supplierProduct->name, 'products');
+
+		/** @var \Eshop\Integration\Algolia|null $algolia */
+		$algolia = $this->integrations->getService(Integrations::ALGOLIA);
+
+		$algoliaResults = $algolia->searchProduct($supplierProduct->name, 'products');
 		$results = [];
 
 		foreach ($algoliaResults['hits'] as $result) {

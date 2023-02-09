@@ -17,6 +17,8 @@ final class Integrations
 	public const HEUREKA_OVERENO_ZAKAZNIKY = 'heurekaOverenoZakazniky';
 	public const QR_PAYMENT_GENERATOR = 'qrPaymentGenerator';
 
+	public const ALGOLIA = 'algolia';
+
 	public const SERVICES = [
 		self::DPD => 'integrations.dpd',
 		self::PPL => 'integrations.ppl',
@@ -25,6 +27,7 @@ final class Integrations
 		self::COMGATE => 'integrations.' . self::COMGATE,
 		self::HEUREKA_OVERENO_ZAKAZNIKY => 'integrations.' . self::HEUREKA_OVERENO_ZAKAZNIKY,
 		self::QR_PAYMENT_GENERATOR => 'integrations.' . self::QR_PAYMENT_GENERATOR,
+		self::ALGOLIA => 'integrations.' . self::ALGOLIA,
 	];
 
 	public const SERVICES_SETTINGS = [
