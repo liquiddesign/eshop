@@ -6,6 +6,7 @@ namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
 use Eshop\DB\DiscountCouponRepository;
+use Eshop\Exceptions\InvalidCouponException;
 use Eshop\Shopper;
 use Nette;
 
@@ -42,13 +43,39 @@ class CouponForm extends \Nette\Application\UI\Form
 		$discountCoupon = $checkoutManager->getDiscountCoupon();
 
 		$this->addCheckbox('active');
-		$this->addText('code')
-			->setDefaultValue($discountCoupon ? $discountCoupon->code : null)
-			->addRule(
-				[$this, 'validateCoupon'],
-				$translator->translate('couponForm.invalid', 'Slevový kupón není platný'),
-				[$checkoutManager->getCart(), $shopper->getCustomer(), $discountCouponRepository],
-			);
+		// phpcs:ignore
+		$this->addText('code')->setDefaultValue($discountCoupon?->code);
+
+		$this->onValidate[] = function (CouponForm $form) use ($checkoutManager, $shopper, $translator): void {
+			if (!$form->isValid()) {
+				return;
+			}
+
+			$values = $form->getValues();
+
+			/** @var \Nette\Forms\Controls\TextInput $input */
+			$input = $form['code'];
+
+			try {
+				$this->discountCouponRepository->getValidCouponByCart($values['code'], $checkoutManager->getCart(), $shopper->getCustomer(), true);
+			} catch (InvalidCouponException $e) {
+				$errorMsg = match ($e->getCode()) {
+					InvalidCouponException::NOT_FOUND => $translator->translate('couponFormICE.notFound', 'Slevový kupón není platný'),
+					InvalidCouponException::NOT_ACTIVE => $translator->translate('couponFormICE.notActive', 'Slevový kupón není platný'),
+					InvalidCouponException::INVALID_CONDITIONS => $translator->translate('couponFormICE.invalidConditions', 'Slevový kupón není platný'),
+					InvalidCouponException::MAX_USAGE => $translator->translate('couponFormICE.maxUsage', 'Slevový kupón není platný'),
+					InvalidCouponException::LIMITED_TO_EXCLUSIVE_CUSTOMER => $translator->translate('couponFormICE.exclusiveCustomer', 'Slevový kupón není platný'),
+					InvalidCouponException::LOW_CART_PRICE => $translator->translate('couponFormICE.lowPrice', 'Slevový kupón není platný'),
+					InvalidCouponException::HIGH_CART_PRICE => $translator->translate('couponFormICE.highPrice', 'Slevový kupón není platný'),
+					InvalidCouponException::INVALID_CURRENCY => $translator->translate('couponFormICE.invalidCurrency', 'Slevový kupón není platný'),
+					default => 'unknown',
+				// phpcs:ignore
+				};
+
+				$input->addError($errorMsg);
+			}
+		};
+
 		$this->addSubmit('submit')->onClick[] = [$this, 'setCoupon'];
 		
 		if (!$discountCoupon) {
@@ -85,6 +112,9 @@ class CouponForm extends \Nette\Application\UI\Form
 		$this->onRemove();
 	}
 
+	/**
+	 * @deprecated Checked in onValidate, just don't use this.
+	 */
 	public static function validateCoupon(Nette\Forms\Controls\TextInput $input, array $args): bool
 	{
 		[$cart, $customer, $repository] = $args;

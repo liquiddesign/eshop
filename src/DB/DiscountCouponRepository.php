@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Eshop\Exceptions\InvalidCouponException;
 use Eshop\Shopper;
 use Nette\Utils\Arrays;
 use StORM\DIConnection;
+use StORM\Exception\NotFoundException;
 use StORM\SchemaManager;
 
 /**
@@ -58,33 +60,30 @@ class DiscountCouponRepository extends \StORM\Repository
 
 	/**
 	 * @TODO use DiscountRepository::getActiveDiscounts for discounts and move to DiscountRepository
+	 * @throws \Eshop\Exceptions\InvalidCouponException
 	 */
-	public function getValidCouponByCart(string $code, Cart $cart, ?Customer $customer = null): ?DiscountCoupon
+	public function getValidCouponByCart(string $code, Cart $cart, ?Customer $customer = null, bool $throw = false): ?DiscountCoupon
 	{
 		$showPrice = $this->shopper->getShowPrice();
 		$priceType = $showPrice === 'withVat' ? 'priceVat' : 'price';
 
-		$collection = $this->many()
-			->where('code', $code)
-			->where('fk_currency', $cart->getValue('currency'))
-			->where('discount.validFrom IS NULL OR discount.validFrom <= now()')
-			->where('discount.validTo IS NULL OR discount.validTo >= now()')
-			->where('this.usageLimit IS NULL OR (this.usagesCount < this.usageLimit)')
-			->where(
-				'(this.minimalOrderPrice IS NULL OR this.minimalOrderPrice <= :cartPrice) AND (this.maximalOrderPrice IS NULL OR this.maximalOrderPrice >= :cartPrice)',
-				['cartPrice' => $this->cartItemRepository->getSumProperty([$cart->getPK()], $priceType)],
-			);
+		try {
+			$coupon = $this->many()->where('code', $code)->first(true);
+		} catch (NotFoundException $e) {
+			if ($throw) {
+				throw new InvalidCouponException(code: InvalidCouponException::NOT_FOUND);
+			}
 
-		if ($customer) {
-			$collection->where('fk_exclusiveCustomer IS NULL OR fk_exclusiveCustomer = :customer', ['customer' => $customer]);
-		} else {
-			$collection->where('fk_exclusiveCustomer IS NULL');
+			return null;
 		}
 
-		/** @var \Eshop\DB\DiscountCoupon|null $coupon */
-		$coupon = $collection->first();
+		try {
+			$coupon->tryIsValid($cart->currency, $this->cartItemRepository->getSumProperty([$cart->getPK()], $priceType), $customer);
+		} catch (InvalidCouponException $e) {
+			if ($throw) {
+				throw $e;
+			}
 
-		if (!$coupon) {
 			return null;
 		}
 
@@ -169,6 +168,10 @@ class DiscountCouponRepository extends \StORM\Repository
 			}
 
 			$valid = $valid || $conditionValid;
+		}
+
+		if (!$valid && $throw) {
+			throw new InvalidCouponException(code: InvalidCouponException::INVALID_CONDITIONS);
 		}
 
 		return $valid ? $coupon : null;
