@@ -111,7 +111,7 @@ class ComplaintPresenter extends BackendPresenter
 		/** @var \Eshop\DB\Complaint|null $complaint */
 		$complaint = $this->getParameter('complaint');
 
-		$form->addText('code', 'Kód')->setNullable()->setDisabled((bool) $complaint);
+		$form->addText('code', 'Kód')->setRequired()->setDisabled((bool) $complaint);
 		$form->addText('orderCode', 'Kód objednávky')
 			->setRequired()
 			->setDisabled((bool) $complaint)
