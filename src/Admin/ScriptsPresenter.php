@@ -12,6 +12,8 @@ use Nette\Mail\Mailer;
 
 class ScriptsPresenter extends \Admin\BackendPresenter
 {
+	public const ATTRIBUTES_CACHE_TAG = 'attributes';
+
 	/** @inject */
 	public WatcherRepository $watcherRepository;
 
@@ -62,7 +64,7 @@ class ScriptsPresenter extends \Admin\BackendPresenter
 		$cache = new Cache($this->storage);
 
 		$cache->clean([
-			Cache::TAGS => ['products', 'pricelists', 'categories', 'export'],
+			Cache::Tags => ['products', 'pricelists', 'categories', 'export', self::ATTRIBUTES_CACHE_TAG],
 		]);
 
 		$this->flashMessage('Provedeno', 'success');

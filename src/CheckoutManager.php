@@ -512,7 +512,7 @@ class CheckoutManager
 		}
 		
 		if ($checkInvalidAmount && !$this->checkAmount($product, $amount)) {
-			throw new BuyException('Invalid amount', BuyException::INVALID_AMOUNT);
+			throw new BuyException("Invalid amount: $amount", BuyException::INVALID_AMOUNT);
 		}
 		
 		$this->itemRepository->syncItem($this->getCart(), $item, $product, $variant, $amount);
@@ -560,7 +560,7 @@ class CheckoutManager
 		
 		if ($checkInvalidAmount !== false && !$this->checkAmount($product, $amount)) {
 			if ($checkInvalidAmount === true) {
-				throw new BuyException('Invalid amount', BuyException::INVALID_AMOUNT);
+				throw new BuyException("Invalid amount: $amount", BuyException::INVALID_AMOUNT);
 			}
 			
 			$disabled = true;
@@ -657,7 +657,7 @@ class CheckoutManager
 	public function changeItemAmount(Product $product, ?Variant $variant = null, int $amount = 1, ?bool $checkInvalidAmount = true, ?Cart $cart = null): void
 	{
 		if ($checkInvalidAmount && !$this->checkAmount($product, $amount)) {
-			throw new BuyException('Invalid amount', BuyException::INVALID_AMOUNT);
+			throw new BuyException("Invalid amount: $amount", BuyException::INVALID_AMOUNT);
 		}
 		
 		$this->itemRepository->updateItemAmount($cart ?: $this->getCart(), $variant, $product, $amount);
@@ -677,7 +677,7 @@ class CheckoutManager
 	public function changeCartItemAmount(Product $product, CartItem $cartItem, int $amount = 1, ?bool $checkInvalidAmount = true): void
 	{
 		if ($checkInvalidAmount && !$this->checkAmount($product, $amount)) {
-			throw new BuyException('Invalid amount', BuyException::INVALID_AMOUNT);
+			throw new BuyException("Invalid amount: $amount", BuyException::INVALID_AMOUNT);
 		}
 		
 		$this->itemRepository->updateCartItemAmount($cartItem, $product, $amount);

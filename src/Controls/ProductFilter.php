@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Eshop\Admin\ScriptsPresenter;
 use Eshop\DB\Attribute;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRangeRepository;
@@ -14,6 +15,8 @@ use Forms\Form;
 use Forms\FormFactory;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 use Nette\Utils\Arrays;
 use StORM\Collection;
 use Translator\DB\TranslationRepository;
@@ -51,6 +54,8 @@ class ProductFilter extends Control
 	private AttributeValueRangeRepository $attributeValueRangeRepository;
 	
 	private ProducerRepository $producerRepository;
+
+	private Cache $cache;
 	
 	/**
 	 * @var \Eshop\DB\Attribute[]
@@ -74,7 +79,8 @@ class ProductFilter extends Control
 		DisplayAmountRepository $displayAmountRepository,
 		DisplayDeliveryRepository $displayDeliveryRepository,
 		AttributeValueRangeRepository $attributeValueRangeRepository,
-		ProducerRepository $producerRepository
+		ProducerRepository $producerRepository,
+		Storage $storage
 	) {
 		$this->translator = $translator;
 		$this->formFactory = $formFactory;
@@ -83,6 +89,7 @@ class ProductFilter extends Control
 		$this->displayDeliveryRepository = $displayDeliveryRepository;
 		$this->attributeValueRangeRepository = $attributeValueRangeRepository;
 		$this->producerRepository = $producerRepository;
+		$this->cache = new Cache($storage);
 	}
 	
 	public function render(): void
@@ -252,12 +259,20 @@ class ProductFilter extends Control
 			case 'delivery':
 				return $this->displayDeliveryRepository->getArrayForSelect(false);
 			case 'producer':
-				return $this->producerRepository->getCollection()
-					->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid', [], 'INNER')
-					->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid')
-					->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
-					->where('category.path LIKE :s', ['s' => ($this->getCategoryPath() ?? '') . '%'])
-					->toArrayOf('name');
+				$categoryPath = $this->getCategoryPath() ?? '';
+
+				return $this->cache->load("getSystemicAttributeValues-$uuid-$categoryPath", function (&$dependencies) use ($categoryPath) {
+					$dependencies = [
+						Cache::Tags => ScriptsPresenter::ATTRIBUTES_CACHE_TAG,
+					];
+
+					return $this->producerRepository->getCollection()
+						->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid', [], 'INNER')
+						->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid')
+						->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
+						->where('category.path LIKE :s', ['s' => $categoryPath . '%'])
+						->toArrayOf('name');
+				});
 			default:
 				return [];
 		}
