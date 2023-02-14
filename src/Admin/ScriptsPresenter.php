@@ -12,13 +12,12 @@ use Nette\Mail\Mailer;
 
 class ScriptsPresenter extends \Admin\BackendPresenter
 {
-	public const
-		ATTRIBUTES_CACHE_TAG = 'attributes',
-		PRODUCERS_CACHE_TAG = 'producers',
-		PRODUCTS_CACHE_TAG = 'products',
-		PRICELISTS_CACHE_TAG = 'pricelists',
-		CATEGORIES_CACHE_TAG = 'categories',
-		EXPORT_CACHE_TAG = 'export';
+	public const ATTRIBUTES_CACHE_TAG = 'attributes';
+	public const PRODUCERS_CACHE_TAG = 'producers';
+	public const PRODUCTS_CACHE_TAG = 'products';
+	public const PRICELISTS_CACHE_TAG = 'pricelists';
+	public const CATEGORIES_CACHE_TAG = 'categories';
+	public const EXPORT_CACHE_TAG = 'export';
 
 	/** @inject */
 	public WatcherRepository $watcherRepository;
