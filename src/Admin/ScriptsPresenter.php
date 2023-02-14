@@ -12,7 +12,13 @@ use Nette\Mail\Mailer;
 
 class ScriptsPresenter extends \Admin\BackendPresenter
 {
-	public const ATTRIBUTES_CACHE_TAG = 'attributes';
+	public const
+		ATTRIBUTES_CACHE_TAG = 'attributes',
+		PRODUCERS_CACHE_TAG = 'producers',
+		PRODUCTS_CACHE_TAG = 'products',
+		PRICELISTS_CACHE_TAG = 'pricelists',
+		CATEGORIES_CACHE_TAG = 'categories',
+		EXPORT_CACHE_TAG = 'export';
 
 	/** @inject */
 	public WatcherRepository $watcherRepository;
@@ -64,7 +70,14 @@ class ScriptsPresenter extends \Admin\BackendPresenter
 		$cache = new Cache($this->storage);
 
 		$cache->clean([
-			Cache::Tags => ['products', 'pricelists', 'categories', 'export', self::ATTRIBUTES_CACHE_TAG],
+			Cache::Tags => [
+				self::PRODUCTS_CACHE_TAG,
+				self::PRICELISTS_CACHE_TAG,
+				self::CATEGORIES_CACHE_TAG,
+				self::EXPORT_CACHE_TAG,
+				self::ATTRIBUTES_CACHE_TAG,
+				self::PRODUCERS_CACHE_TAG,
+			],
 		]);
 
 		$this->flashMessage('Provedeno', 'success');
