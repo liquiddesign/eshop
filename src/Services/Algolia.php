@@ -118,9 +118,13 @@ class Algolia
 	 * @param array $values Serializable array
 	 * @throws \Algolia\AlgoliaSearch\Exceptions\MissingObjectId
 	 */
-	public function uploadValues(array $values, string $index): void
+	public function uploadValues(array $values, string $index, bool $deleteIndexBeforeUpload = false): void
 	{
 		$index = $this->getClient()->initIndex($index);
+
+		if ($deleteIndexBeforeUpload) {
+			$index->delete();
+		}
 
 		$index->saveObjects($values);
 	}
