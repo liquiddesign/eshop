@@ -654,6 +654,11 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	{
 		$collection->where('this.fk_displayAmount', $values);
 	}
+
+	public function filterUuids($values, ICollection $collection): void
+	{
+		$collection->where('this.uuid', $values);
+	}
 	
 	public function filterDelivery($values, ICollection $collection): void
 	{
