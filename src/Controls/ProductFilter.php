@@ -263,7 +263,7 @@ class ProductFilter extends Control
 
 				return $this->cache->load("getSystemicAttributeValues-$uuid-$categoryPath", function (&$dependencies) use ($categoryPath) {
 					$dependencies = [
-						Cache::Tags => ScriptsPresenter::ATTRIBUTES_CACHE_TAG,
+						Cache::Tags => [ScriptsPresenter::ATTRIBUTES_CACHE_TAG, ScriptsPresenter::PRODUCERS_CACHE_TAG,],
 					];
 
 					return $this->producerRepository->getCollection()

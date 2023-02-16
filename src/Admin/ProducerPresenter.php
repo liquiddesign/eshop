@@ -59,16 +59,21 @@ class ProducerPresenter extends BackendPresenter
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$grid->addColumnLinkDetail('Detail');
-		$grid->addColumnActionDeleteSystemic();
 
-		$grid->addButtonSaveAll();
+		$clearCacheCallback = function (): void {
+			$this->producerRepository->cleanProducersCache();
+		};
+
+		$grid->addColumnActionDeleteSystemic(afterDeleteCallback: $clearCacheCallback);
+
+		$grid->addButtonSaveAll(oneTimeAfterCallback: $clearCacheCallback);
 		$grid->addButtonDeleteSelected(condition: function ($object) {
 			if ($object) {
 				return !$object->isSystemic();
 			}
 
 			return false;
-		});
+		}, oneTimeAfterCallback: $clearCacheCallback);
 
 		$grid->addFilterTextInput('search', ['name_cs', 'this.code'], null, 'Kód, název');
 
@@ -132,6 +137,7 @@ class ProducerPresenter extends BackendPresenter
 				$this->pageRepository->syncOne($values['page']);
 			});
 
+			$this->producerRepository->cleanProducersCache();
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$producer]);
 		};

@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
+use Eshop\Admin\ScriptsPresenter;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Repository;
@@ -16,12 +19,15 @@ use StORM\SchemaManager;
 class ProducerRepository extends Repository implements IGeneralRepository
 {
 	private ProductRepository $productRepository;
+
+	private Storage $storage;
 	
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, ProductRepository $productRepository)
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, ProductRepository $productRepository, Storage $storage)
 	{
 		parent::__construct($connection, $schemaManager);
 		
 		$this->productRepository = $productRepository;
+		$this->storage = $storage;
 	}
 	
 	/**
@@ -65,5 +71,18 @@ class ProducerRepository extends Repository implements IGeneralRepository
 	public function getCounts(array $filters): array
 	{
 		return $this->productRepository->getCountGroupedBy('this.fk_producer', $filters);
+	}
+
+	public function cleanProducersCache(): void
+	{
+		\bdump('cleaned');
+		$cache = new Cache($this->storage);
+
+		$cache->clean([
+			Cache::Tags => [
+				ScriptsPresenter::PRODUCERS_CACHE_TAG,
+				ScriptsPresenter::ATTRIBUTES_CACHE_TAG,
+			],
+		]);
 	}
 }
