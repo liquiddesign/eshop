@@ -64,7 +64,15 @@ class ProductAttributesGridFactory
 		$source = $this->productRepository->many()->setGroupBy(['this.uuid'])
 			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
 			->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.uuid = assign.fk_value')
-			->select(['attributeValues' => "GROUP_CONCAT(DISTINCT attributeValue.uuid SEPARATOR ',')"]);
+			->select(['attributeValues' => "GROUP_CONCAT(DISTINCT attributeValue.uuid SEPARATOR ',')"])
+			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
+			->join(['pricelist' => 'eshop_pricelist'], 'pricelist.uuid=price.fk_pricelist')
+			->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = this.uuid')
+			->select([
+				'priceCount' => 'COUNT(DISTINCT price.uuid)',
+				'categoryCount' => 'COUNT(DISTINCT nxnCategory.fk_category)',
+				'pricelistActive' => 'MAX(pricelist.isActive)',
+			]);
 
 		$grid = $this->gridFactory->create($source, 20, 'this.priority', 'ASC', false);
 		$grid->setItemsPerPage([5, 10, 20, 50, 100]);
