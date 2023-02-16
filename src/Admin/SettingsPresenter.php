@@ -14,6 +14,8 @@ use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\Integration\Integrations;
 use Forms\Form;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use Web\DB\SettingRepository;
@@ -60,6 +62,9 @@ class SettingsPresenter extends BackendPresenter
 
 	/** @inject */
 	public RelatedTypeRepository $relatedTypeRepository;
+
+	/** @inject */
+	public Storage $storage;
 
 	/**
 	 * @var array<string|array<mixed>>
@@ -133,6 +138,14 @@ class SettingsPresenter extends BackendPresenter
 					]);
 				}
 			}
+
+			$cache = new Cache($this->storage);
+
+			$cache->clean([
+				Cache::Tags => [
+					ScriptsPresenter::SETTINGS_CACHE_TAG,
+				],
+			]);
 
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$this->redirect('default');

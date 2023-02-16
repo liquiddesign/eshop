@@ -18,6 +18,7 @@ class ScriptsPresenter extends \Admin\BackendPresenter
 	public const PRICELISTS_CACHE_TAG = 'pricelists';
 	public const CATEGORIES_CACHE_TAG = 'categories';
 	public const EXPORT_CACHE_TAG = 'export';
+	public const SETTINGS_CACHE_TAG = 'settings';
 
 	/** @inject */
 	public WatcherRepository $watcherRepository;
@@ -76,6 +77,7 @@ class ScriptsPresenter extends \Admin\BackendPresenter
 				self::EXPORT_CACHE_TAG,
 				self::ATTRIBUTES_CACHE_TAG,
 				self::PRODUCERS_CACHE_TAG,
+				self::SETTINGS_CACHE_TAG,
 			],
 		]);
 

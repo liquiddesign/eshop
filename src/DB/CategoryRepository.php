@@ -335,7 +335,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	public function clearCategoriesCache(): void
 	{
 		$this->cache->clean([
-			Cache::TAGS => ['categories'],
+			Cache::Tags => ['categories'],
 		]);
 	}
 

@@ -123,7 +123,7 @@ class ProductList extends Datalist
 			]);
 		});
 
-		$this->setAllowedRepositoryFilters(['category', 'tag', 'producer', 'related', 'recommended', 'q', 'hidden']);
+		$this->setAllowedRepositoryFilters(['category', 'tag', 'producer', 'related', 'recommended', 'q', 'hidden', 'uuids']);
 
 		$this->addFilterExpression('crossSellFilter', function (ICollection $collection, $value): void {
 			$this->productRepository->filterCrossSellFilter($value, $collection);
