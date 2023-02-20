@@ -1538,6 +1538,9 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	 */
 	public function csvExportTargito(Writer $writer, Collection $orders): void
 	{
+		/** @var \Eshop\Services\DPD|null $dpd */
+		$dpd = $this->integrations->getService(Integrations::DPD);
+
 		$writer->setDelimiter(',');
 
 		$writer->insertOne([
@@ -1553,6 +1556,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'billing_postcode',
 			'billing_city',
 			'is_cancelled',
+			'delivery_state',
 		]);
 
 		$purchases = [];
@@ -1622,6 +1626,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			/** @var \Eshop\DB\Purchase $purchase */
 			$purchase = $purchases[$order->getValue('purchase')];
 			$isCancelled = $this->getState($order) === Order::STATE_CANCELED ? '1' : '0';
+			// phpcs:ignore
+			$deliveryStatus = $dpd?->getIsOrderDelivered($order) ? '1' : '0';
 
 			$email = isset($customers[$purchase->getValue('customer')]) ? $customers[$purchase->getValue('customer')]->email : $purchase->email;
 			$billAddress = $addresses[$purchase->getValue('billAddress')] ?? null;
@@ -1640,6 +1646,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					$billAddress ? $billAddress->zipcode : null,
 					$billAddress ? $billAddress->city : null,
 					$isCancelled,
+					$deliveryStatus,
 				]);
 			}
 
@@ -1657,6 +1664,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					$billAddress ? $billAddress->zipcode : null,
 					$billAddress ? $billAddress->city : null,
 					$isCancelled,
+					$deliveryStatus,
 				]);
 			}
 
@@ -1677,6 +1685,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				$billAddress ? $billAddress->zipcode : null,
 				$billAddress ? $billAddress->city : null,
 				$isCancelled,
+				$deliveryStatus,
 			]);
 		}
 	}

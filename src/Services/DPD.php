@@ -437,6 +437,27 @@ class DPD
 		}
 	}
 
+	public function getIsOrderDelivered(Order $order): ?bool
+	{
+		if (!$order->dpdCode || $order->dpdError) {
+			return null;
+		}
+
+		$delivered = true;
+
+		foreach (\explode(',', $order->dpdCode) as $dpdCode) {
+			$deliveryStatuses = $this->orderDeliveryStatusRepository->many()->setIndex('this.status')->where('this.packageCode', $dpdCode)->toArray();
+
+			if (!isset($deliveryStatuses['13']) && !isset($deliveryStatuses['23'])) {
+				$delivered = false;
+
+				break;
+			}
+		}
+
+		return $delivered;
+	}
+
 	/**
 	 * @param \Eshop\DB\Order $order
 	 * @return array<string>|null
