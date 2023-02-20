@@ -724,16 +724,16 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 				}
 
 				if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
-					$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 2);
+					$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 4);
 					$prices['priceBefore'] = isset($prices['priceVatBefore']) ?
-						\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 2) :
+						\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 4) :
 						null;
 				}
 
 				if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
-					$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), 2);
+					$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), 4);
 					$prices['priceVatBefore'] = isset($prices['priceBefore']) ?
-						\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), 2) :
+						\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), 4) :
 						null;
 				}
 

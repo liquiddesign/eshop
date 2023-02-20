@@ -1753,6 +1753,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		$newsletters = $this->newsletterUserRepository->many()->setSelect([])->setIndex('email')->fetchArray(\stdClass::class);
 
+		/** @phpstan-ignore-next-liner STORM */
 		while ($order = $orders->fetch(\stdClass::class)) {
 			/** @var \stdClass $order */
 
@@ -1781,6 +1782,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			]);
 		}
 
+		/** @phpstan-ignore-next-liner STORM */
 		$orders->__destruct();
 	}
 

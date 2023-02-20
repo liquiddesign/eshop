@@ -6,6 +6,8 @@ namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\Admin\Configs\ProductFormAutoPriceConfig;
+use Eshop\Admin\Configs\ProductFormConfig;
 use Eshop\BackendPresenter;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CountryRepository;
@@ -43,6 +45,9 @@ class PricelistsPresenter extends BackendPresenter
 	protected const CONFIGURATION = [
 		'aggregate' => true,
 		'customLabel' => false,
+		ProductFormConfig::class => [
+			ProductFormAutoPriceConfig::class => ProductFormAutoPriceConfig::NONE,
+		],
 	];
 
 	/** @inject */
@@ -211,52 +216,70 @@ class PricelistsPresenter extends BackendPresenter
 			return '<a href="' . $link . '">' . $price->product->name . '</a>';
 		}, '%s');
 
-		$grid->addColumnInputPrice('Cena', 'price');
+		/** @var null|string $autoPriceConfig */
+		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
-		if ($this->shopper->getShowVat()) {
-			$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
+		if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
+			$grid->addColumnText('Cena', 'price', '%s');
+		} else {
+			$grid->addColumnInputPrice('Cena', 'price');
 		}
 
-		$grid->addColumnInputPrice('Cena před slevou', 'priceBefore');
+		if ($this->shopper->getShowVat()) {
+			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
+				$grid->addColumnText('Cena s DPH', 'priceVat', '%s');
+			} else {
+				$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
+			}
+		}
 
-		$nullColumns = [
-			'priceBefore',
-		];
-
-		$saveAllTypes = [
-			'price' => 'float',
-			'priceBefore' => 'float',
-		];
+		if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
+			$grid->addColumnText('Cena před slevou', 'priceBefore', '%s');
+		} else {
+			$grid->addColumnInputPrice('Cena před slevou', 'priceBefore');
+		}
 
 		if ($this->shopper->getShowVat()) {
-			$grid->addColumnInputPrice('Cena s DPH před slevou', 'priceVatBefore');
-
-			$saveAllTypes += ['priceVat' => 'float', 'priceVatBefore' => 'float'];
-			$nullColumns = ['priceBefore', 'priceVatBefore'];
+			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
+				$grid->addColumnText('Cena s DPH před slevou', 'priceVatBefore', '%s');
+			} else {
+				$grid->addColumnInputPrice('Cena s DPH před slevou', 'priceVatBefore');
+			}
 		}
 
 		$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll($nullColumns, $saveAllTypes, null, false, function ($key, &$data, $type, Price $object): void {
-			if ($key === 'price' && !isset($data['price'])) {
-				$data['price'] = 0;
+		/** @var null|string $autoPriceConfig */
+		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
+		$grid->addButtonSaveAll(onRowUpdate: function (string $id, array &$prices, Price $price) use ($autoPriceConfig): void {
+			if ((!$autoPriceConfig || $autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) && !isset($prices['price']) ||
+				($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT && !isset($prices['priceVat']))) {
 				return;
 			}
 
-			$newValue = $key === 'priceVat' && !isset($data['priceVat']) ?
-				\floatval($data['price']) + (\floatval($data['price']) * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$object->product->vatRate]), 100)) : $data[$key];
-
-			if ($type === 'float') {
-				$data[$key] = \floatval(\str_replace(',', '.', $newValue));
-
-				return;
+			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
+				$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), 4);
+				$prices['priceBefore'] = isset($prices['priceVatBefore']) ?
+					\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), 4) :
+					null;
 			}
 
-			$data[$key] = \settype($newValue, $type) ? $newValue : null;
+			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
+				$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), 4);
+				$prices['priceVatBefore'] = isset($prices['priceBefore']) ?
+					\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), 4) :
+					null;
+			}
 
-			return;
-		}, null, false);
+			foreach (['price', 'priceVat', 'priceBefore', 'priceVatBefore'] as $priceKey) {
+				if (isset($prices[$priceKey])) {
+					continue;
+				}
+
+				$prices[$priceKey] = null;
+			}
+		}, diff: false);
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 
 		$grid->addFilterButtons(['priceListItems', $this->getParameter('pricelist')]);
