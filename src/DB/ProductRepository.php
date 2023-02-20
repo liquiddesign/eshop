@@ -8,6 +8,7 @@ use Admin\DB\IGeneralAjaxRepository;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Controls\ProductFilter;
+use Eshop\Providers\Helpers;
 use Eshop\Shopper;
 use InvalidArgumentException;
 use League\Csv\EncloseField;
@@ -96,7 +97,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		AttributeValueRepository $attributeValueRepository,
 		CustomerGroupRepository $customerGroupRepository,
 		SettingRepository $settingRepository,
-		AttributeAssignRepository $attributeAssignRepository
+		AttributeAssignRepository $attributeAssignRepository,
+		/* @codingStandardsIgnoreStart PHP 8.0 features */
+		private NewsletterUserRepository $newsletterUserRepository,
+		/* @codingStandardsIgnoreEnd */
 	) {
 		parent::__construct($connection, $schemaManager);
 		
@@ -1693,6 +1697,91 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$this->doGetProductTree($product, $result);
 
 		return $result;
+	}
+
+	/**
+	 * @param \StORM\ICollection<\Eshop\DB\Order> $orders
+	 * @param \League\Csv\Writer $writer
+	 * @throws \League\Csv\CannotInsertRecord
+	 * @throws \League\Csv\InvalidArgument
+	 */
+	public function csvExportTargitoContacts(ICollection $orders, Writer $writer, ?string $origin = null): void
+	{
+		$writer->setDelimiter(',');
+		EncloseField::addTo($writer, "\t\x1f");
+
+		$writer->insertOne([
+			'email',
+			'origin',
+			'last_update',
+			'first_name',
+			'last_name',
+			'city',
+			'company',
+			'newsletter',
+			'phone',
+		]);
+
+		$orders->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid');
+		$orders->setSelect([], keepIndex: true);
+		$orders->setGroupBy(['purchase.email']);
+		$orders->setOrderBy(['this.createdTs']);
+
+		$uniqueOrdersByEmail = $orders->fetchArray(\stdClass::class);
+		$orders->clear();
+
+		$orders->join(['billAddress' => 'eshop_address'], 'purchase.fk_billAddress = billAddress.uuid');
+		$orders->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
+		$orders->join(['customerBillAddress' => 'eshop_address'], 'customer.fk_billAddress = customerBillAddress.uuid');
+
+		$orders->setSelect([
+			'this.uuid',
+			'purchase.email',
+			'purchase.fullname',
+			'purchase.phone',
+			'customerPhone' => 'customer.phone',
+			'this.createdTs',
+			'purchase.fk_billAddress',
+			'purchaseCity' => 'billAddress.city',
+			'customerCity' => 'customerBillAddress.city',
+			'purchase.ic',
+			'customer.company',
+			'customer.newsletter',
+		]);
+
+		$orders->setGroupBy([]);
+
+		$newsletters = $this->newsletterUserRepository->many()->setSelect([])->setIndex('email')->fetchArray(\stdClass::class);
+
+		while ($order = $orders->fetch(\stdClass::class)) {
+			/** @var \stdClass $order */
+
+			if (!isset($uniqueOrdersByEmail[$order->uuid])) {
+				continue;
+			}
+
+			[$firstName, $lastName] = Helpers::parseFullName($order->fullname ?? '');
+
+			$phone = \str_replace(' ', '', $order->customerPhone ?: $order->phone);
+
+			if (!Strings::startsWith($phone, '+') && Strings::length($phone) === 9) {
+				$phone = '+420' . $phone;
+			}
+
+			$writer->insertOne([
+				$order->email,
+				$origin,
+				$order->createdTs,
+				$firstName,
+				$lastName,
+				$order->customerCity ?: $order->purchaseCity,
+				$order->company ?: $order->ic,
+				isset($newsletters[$order->email]) || $order->newsletter ? '1' : '0',
+				$phone,
+			]);
+		}
+
+		$orders->__destruct();
 	}
 
 	public static function generateUuid(?string $ean, ?string $fullCode): string

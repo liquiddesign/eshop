@@ -764,6 +764,7 @@ class Product extends \StORM\Entity
 	 */
 	public function getCategoryTree(string $property, bool $reversed = false): array
 	{
+		/* @phpstan-ignore-next-line */
 		if (!isset($this->primaryCategoryPath) || !$this->primaryCategoryPath) {
 			return [];
 		}

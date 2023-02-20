@@ -104,6 +104,7 @@ class CartItemRepository extends \StORM\Repository
 			'priceVatBefore' => $product->getPriceVatBefore(),
 			'vatPct' => (float) $vatPct,
 			'product' => !$disabled ? $product->getPK() : null,
+			/* @phpstan-ignore-next-line */
 			'pricelist' => $product->pricelist ?? null,
 			'variant' => $variant ? $variant->getPK() : null,
 			'cart' => $cart->getPK(),
