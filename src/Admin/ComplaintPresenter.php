@@ -132,19 +132,19 @@ class ComplaintPresenter extends BackendPresenter
 
 		$form->addSubmits(!$complaint);
 
-		$form->onSuccess[] = function (AdminForm $form): void {
+		$form->onSuccess[] = function (AdminForm $form) use ($complaint): void {
 			$values = $form->getValues('array');
 
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
 
-				$object = $this->complaintRepository->create($values);
+				$complaint = $this->complaintRepository->create($values);
 			} else {
-				$object = $this->complaintRepository->syncOne($values, null, false, false);
+				$complaint->update($values);
 			}
 
 			$this->flashMessage('Uloženo', 'success');
-			$form->processRedirect('complaintDetail', 'default', [$object]);
+			$form->processRedirect('complaintDetail', 'default', [$complaint]);
 		};
 
 		return $form;
