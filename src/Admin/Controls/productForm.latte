@@ -548,6 +548,13 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                     </table>
                 {/ifset}
 
+                {ifset $form['karsaAllowRepricing']}
+                    <legend>Algolia</legend>
+                    <table class="mt-2 mb-1" style="width: auto;">
+                        {$renderer->renderPair($form['algoliaPriority'])|noescape}
+                    </table>
+                {/ifset}
+
                 {if isset($form['loyaltyProgram'])}
                     <legend>Věrnostní programy</legend>
                     <span class="text-gray text-sm ml-2">Zadejte zisk "bodů" při nákupu pro jednotlivé věrnostní programy.</span>

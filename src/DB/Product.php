@@ -262,6 +262,12 @@ class Product extends \StORM\Entity
 	public int $priority = 10;
 
 	/**
+	 * Priorita
+	 * @column
+	 */
+	public int $algoliaPriority = 10;
+
+	/**
 	 * Neprodejné
 	 * @column
 	 */

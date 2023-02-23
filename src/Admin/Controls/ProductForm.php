@@ -34,6 +34,7 @@ use Eshop\DB\SupplierRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
+use Eshop\Integration\Integrations;
 use Eshop\Shopper;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
@@ -122,6 +123,7 @@ class ProductForm extends Control
 		StoreRepository $storeRepository,
 		AmountRepository $amountRepository,
 		SettingRepository $settingRepository,
+		Integrations $integrations,
 		$product = null,
 		array $configuration = []
 	) {
@@ -295,6 +297,10 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 		if (isset($configuration['karsa']) && $configuration['karsa']) {
 			$form->addCheckbox('karsaAllowRepricing', 'Povolit přecenění')->setDefaultValue(true);
+		}
+
+		if ($integrations->getService(Integrations::ALGOLIA)) {
+			$form->addInteger('algoliaPriority', 'Priorita')->setDefaultValue(10);
 		}
 
 		if (isset($configuration['rounding']) && $configuration['rounding']) {

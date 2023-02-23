@@ -11,6 +11,7 @@ use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\SupplierProductRepository;
+use Eshop\Integration\Integrations;
 use Grid\Datagrid;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
@@ -49,7 +50,10 @@ class ProductGridFactory
 		Connection $connection,
 		CategoryRepository $categoryRepository,
 		SupplierProductRepository $supplierProductRepository,
-		CategoryTypeRepository $categoryTypeRepository
+		CategoryTypeRepository $categoryTypeRepository,
+		/** @codingStandardsIgnoreStart PHP 8.0 */
+		private Integrations $integrations,
+		/** @codingStandardsIgnoreEnd */
 	) {
 		$this->gridFactory = $gridFactory;
 		$this->pageRepository = $pageRepository;
@@ -255,6 +259,7 @@ class ProductGridFactory
 		}, '%s', null, ['class' => 'fit']);
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
+
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 		$grid->addColumnInputCheckbox('<i title="Skryto v menu a vyhledávání" class="far fa-minus-square"></i>', 'hiddenInMenu', '', '', 'hiddenInMenu');
@@ -302,6 +307,10 @@ class ProductGridFactory
 
 		if (isset($configuration['karsa']) && $configuration['karsa']) {
 			$bulkColumns = \array_merge($bulkColumns, ['karsaAllowRepricing']);
+		}
+
+		if ($this->integrations->getService(Integrations::ALGOLIA)) {
+			$bulkColumns = \array_merge($bulkColumns, ['algoliaPriority']);
 		}
 
 		$grid->addButtonBulkEdit(

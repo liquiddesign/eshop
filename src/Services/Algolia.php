@@ -23,7 +23,8 @@ class Algolia
 		protected IRequest $httpRequest,
 		protected ProductRepository $productRepository,
 		protected SettingRepository $settingRepository,
-		protected CategoryRepository $categoryRepository
+		protected CategoryRepository $categoryRepository,
+		private string $indexPrefix = '',
 		/** @codingStandardsIgnoreEnd */
 	) {
 		$this->baseUrl = $httpRequest->getUrl()->getBaseUrl();
@@ -118,12 +119,12 @@ class Algolia
 	 * @param array $values Serializable array
 	 * @throws \Algolia\AlgoliaSearch\Exceptions\MissingObjectId
 	 */
-	public function uploadValues(array $values, string $index, bool $deleteIndexBeforeUpload = false): void
+	public function uploadValues(array $values, string $index, bool $clearIndexBeforeUpload = false): void
 	{
-		$index = $this->getClient()->initIndex($index);
+		$index = $this->getClient()->initIndex($this->indexPrefix . $index);
 
-		if ($deleteIndexBeforeUpload) {
-			$index->delete();
+		if ($clearIndexBeforeUpload) {
+			$index->clearObjects();
 		}
 
 		$index->saveObjects($values);
@@ -137,7 +138,7 @@ class Algolia
 	 */
 	public function search(string $query, string $index): array
 	{
-		$index = $this->getClient()->initIndex($index);
+		$index = $this->getClient()->initIndex($this->indexPrefix . $index);
 
 		return $index->search($query);
 	}
