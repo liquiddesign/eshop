@@ -39,6 +39,7 @@ use Eshop\Shopper;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Arrays;
+use StORM\DIConnection;
 use StORM\ICollection;
 use Web\DB\PageRepository;
 use Web\DB\SettingRepository;
@@ -577,10 +578,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 		$oldValues = $this->product ? $this->product->toArray() : [];
 
 		if (!$values['uuid']) {
-			$values['uuid'] = ProductRepository::generateUuid(
-				$values['ean'],
-				$values['subCode'] ? $values['code'] . '.' . $values['subCode'] : $values['code'],
-			);
+			$values['uuid'] = DIConnection::generateUuid();
 		}
 
 		if (isset($values['supplierContent'])) {

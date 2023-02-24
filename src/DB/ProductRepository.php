@@ -1786,6 +1786,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$orders->__destruct();
 	}
 
+	/**
+	 * @deprecated Use DIConnection::generateUuid()
+	 */
 	public static function generateUuid(?string $ean, ?string $fullCode): string
 	{
 		$namespace = 'product';
