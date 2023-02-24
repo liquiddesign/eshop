@@ -1136,7 +1136,14 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		return $values;
 	}
 
-	public function getProductUniqueOrderCountInDateRange($product, DateTime $from, DateTime $to): int
+	/**
+	 * @param $product
+	 * @param \DateTime|\Carbon\Carbon $from
+	 * @param \DateTime|\Carbon\Carbon $to
+	 * @throws \StORM\Exception\NotFoundException
+	 * @throws \Throwable
+	 */
+	public function getProductUniqueOrderCountInDateRange($product, $from, $to): int
 	{
 		/** @var \Eshop\DB\ProductRepository $productRepository */
 		$productRepository = $this->getConnection()->findRepository(Product::class);
