@@ -98,9 +98,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		CustomerGroupRepository $customerGroupRepository,
 		SettingRepository $settingRepository,
 		AttributeAssignRepository $attributeAssignRepository,
-		/* @codingStandardsIgnoreStart PHP 8.0 features */
-		private NewsletterUserRepository $newsletterUserRepository,
-		/* @codingStandardsIgnoreEnd */
 	) {
 		parent::__construct($connection, $schemaManager);
 		
@@ -1720,6 +1717,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			'company',
 			'newsletter',
 			'phone',
+			'from_order',
 		]);
 
 		$orders->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid');
@@ -1751,7 +1749,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		$orders->setGroupBy([]);
 
-		$newsletters = $this->newsletterUserRepository->many()->setSelect([])->setIndex('email')->fetchArray(\stdClass::class);
+		//$newsletters = $this->newsletterUserRepository->many()->setSelect([])->setIndex('email')->fetchArray(\stdClass::class);
 
 		/** @phpstan-ignore-next-liner STORM */
 		while ($order = $orders->fetch(\stdClass::class)) {
@@ -1777,8 +1775,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				$lastName,
 				$order->customerCity ?: $order->purchaseCity,
 				$order->company ?: $order->ic,
-				isset($newsletters[$order->email]) || $order->newsletter ? '1' : '0',
+				//isset($newsletters[$order->email]) || $order->newsletter ? '1' : '0',
+				'1',
 				$phone,
+				'1',
 			]);
 		}
 
