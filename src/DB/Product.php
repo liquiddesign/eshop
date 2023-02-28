@@ -268,6 +268,11 @@ class Product extends \StORM\Entity
 	public int $algoliaPriority = 10;
 
 	/**
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $karsaExportTs;
+
+	/**
 	 * Neprodejné
 	 * @column
 	 */
