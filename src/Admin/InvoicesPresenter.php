@@ -24,6 +24,7 @@ use Nette\Utils\Arrays;
 use Nette\Utils\Html;
 use StORM\Collection;
 use StORM\ICollection;
+use Tracy\Debugger;
 
 class InvoicesPresenter extends BackendPresenter
 {
@@ -108,7 +109,7 @@ class InvoicesPresenter extends BackendPresenter
 			->onClick[] = [$this, 'notifyMultiple'];
 		
 		$grid->addFilterTextInput('search', ['this.code'], null, 'Kód');
-		
+
 		$grid->addFilterDate(function (ICollection $source, $value): void {
 			$source->where('DATE(this.exposed) >= DATE(:date_from)', ['date_from' => $value]);
 		}, '', 'date_from')->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
@@ -116,7 +117,13 @@ class InvoicesPresenter extends BackendPresenter
 		$grid->addFilterDate(function (ICollection $source, $value): void {
 			$source->where('DATE(this.exposed) <= DATE(:date_to)', ['date_to' => $value]);
 		}, '', 'date_to')->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
-		
+
+		$grid->addFilterText(function (ICollection $collection, $value): void {
+			$collection->where('this.totalPriceVat >= :totalPriceVat', ['totalPriceVat' => $value]);
+		}, null, 'totalPriceVat')
+			->setHtmlAttribute('class', 'form-control form-control-sm')
+			->setHtmlAttribute('placeholder', 'Celková cena s DPH >=');
+
 		$grid->addFilterButtons();
 		
 		return $grid;
@@ -214,6 +221,8 @@ class InvoicesPresenter extends BackendPresenter
 	
 	public function renderDefault(): void
 	{
+		Debugger::$showBar = false;
+
 		$this->template->headerLabel = 'Faktury';
 		$this->template->headerTree = [
 			['Faktury', 'default'],
