@@ -137,7 +137,7 @@ class DiscountCoupon extends \StORM\Entity
 			throw new InvalidCouponException(code: InvalidCouponException::NOT_ACTIVE);
 		}
 
-		if ($this->usageLimit && ($this->usagesCount < $this->usageLimit)) {
+		if ($this->usageLimit && ($this->usagesCount >= $this->usageLimit)) {
 			throw new InvalidCouponException(code: InvalidCouponException::MAX_USAGE);
 		}
 

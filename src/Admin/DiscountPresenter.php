@@ -125,7 +125,10 @@ class DiscountPresenter extends BackendPresenter
 		$grid->addColumn('Kupóny', function (Discount $object, $datagrid) {
 			try {
 				/** @var \stdClass $test */
-				$test = $object->coupons->select(['usagesCountSum' => 'SUM(usagesCount)', 'usageLimitSum' => 'SUM(usageLimit)'])->first();
+				$test = $this->discountCouponRepository->getConnection()->rows(['this' => 'eshop_discountcoupon'])
+					->where('this.fk_discount', $object->getPK())
+					->setSelect(['usagesCountSum' => 'SUM(usagesCount)', 'usageLimitSum' => 'SUM(usageLimit)'])
+					->first();
 
 				return [(int) $test->usagesCountSum, (int) $test->usageLimitSum];
 			} catch (\PDOException $exception) {

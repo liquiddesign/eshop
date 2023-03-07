@@ -1035,6 +1035,9 @@ class CheckoutManager
 		return $priceVat ?: 0.0;
 	}
 
+	/**
+	 * @deprecated Don't work in all cases!
+	 */
 	public function getCartCheckoutPriceBefore(): float
 	{
 		$price = $this->getSumPriceBefore();
@@ -1042,6 +1045,9 @@ class CheckoutManager
 		return $price ?: 0.0;
 	}
 
+	/**
+	 * @deprecated Don't work in all cases!
+	 */
 	public function getCartCheckoutPriceVatBefore(): float
 	{
 		$priceVat = $this->getSumPriceVatBefore();
