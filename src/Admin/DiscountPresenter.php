@@ -21,7 +21,6 @@ use Eshop\DB\RibbonRepository;
 use Eshop\FormValidators;
 use Forms\Form;
 use Grid\Datagrid;
-use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use StORM\Connection;
 use StORM\ICollection;
@@ -292,30 +291,30 @@ class DiscountPresenter extends BackendPresenter
 		$grid->addColumnText('Sleva', 'discountValue|price:currency.code', '%s', 'discountValue', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Sleva s DPH', 'discountValueVat|price:currency.code', '%s', 'discountValueVat', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
-		$orders = $this->orderRepository->many()
-			->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL');
+//		$orders = $this->orderRepository->many()
+//			->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL');
+//
+//		if ($discount->validFrom) {
+//			$orders->where('this.createdTs >= :created1', ['created1' => $discount->validFrom]);
+//		}
+//
+//		if ($discount->validTo) {
+//			$orders->where('this.createdTs <= :created2', ['created2' => $discount->validTo]);
+//		}
 
-		if ($discount->validFrom) {
-			$orders->where('this.createdTs >= :created1', ['created1' => $discount->validFrom]);
-		}
-
-		if ($discount->validTo) {
-			$orders->where('this.createdTs <= :created2', ['created2' => $discount->validTo]);
-		}
-
-		$ordersCount = \count($orders);
-
-		$cache = new Cache($this->storage);
+//		$ordersCount = \count($orders);
+//
+//		$cache = new Cache($this->storage);
 		
-		$grid->addColumn('Využití', function (DiscountCoupon $object, $datagrid) use ($orders, $cache, $ordersCount): array {
-			return $cache->load('discount_coupon_usage_' . $object->getPK(), function (&$dependencies) use ($object, $orders, $ordersCount): array {
-				$dependencies[Cache::EXPIRE] = '1 hour';
-				
-				$usages = $this->orderRepository->getDiscountCouponsUsage($orders->toArray(), [$object]);
-				
-				return [$usages[0][$object->getPK()], $usages[1][$object->getPK()], $ordersCount];
-			});
-		}, '%s %% | %sx z %s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+//		$grid->addColumn('Využití', function (DiscountCoupon $object, $datagrid) use ($orders, $cache, $ordersCount): array {
+//			return $cache->load('discount_coupon_usage_' . $object->getPK(), function (&$dependencies) use ($object, $orders, $ordersCount): array {
+//				$dependencies[Cache::EXPIRE] = '1 hour';
+//
+//				$usages = $this->orderRepository->getDiscountCouponsUsage($orders->toArray(), [$object]);
+//
+//				return [$usages[0][$object->getPK()], $usages[1][$object->getPK()], $ordersCount];
+//			});
+//		}, '%s %% | %sx z %s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		
 		$grid->addColumnText('Uplatnění', ['usagesCount', 'usageLimit'], '%s / %s', 'usagesCount', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		
