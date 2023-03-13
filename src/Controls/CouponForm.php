@@ -9,6 +9,8 @@ use Eshop\DB\DiscountCouponRepository;
 use Eshop\Exceptions\InvalidCouponException;
 use Eshop\Shopper;
 use Nette;
+use Tracy\Debugger;
+use Tracy\ILogger;
 
 /**
  * @method onSet(\Eshop\DB\DiscountCoupon $coupon)
@@ -59,6 +61,8 @@ class CouponForm extends \Nette\Application\UI\Form
 			try {
 				$this->discountCouponRepository->getValidCouponByCart($values['code'], $checkoutManager->getCart(), $shopper->getCustomer(), true);
 			} catch (InvalidCouponException $e) {
+				Debugger::log($e->getMessage(), ILogger::DEBUG);
+
 				$errorMsg = match ($e->getCode()) {
 					InvalidCouponException::NOT_FOUND => $translator->translate('couponFormICE.notFound', 'Slevový kupón není platný'),
 					InvalidCouponException::NOT_ACTIVE => $translator->translate('couponFormICE.notActive', 'Slevový kupón není platný'),
