@@ -132,8 +132,8 @@ class DiscountCoupon extends \StORM\Entity
 			throw new InvalidCouponException(code: InvalidCouponException::INVALID_CURRENCY);
 		}
 
-		if (($this->discount->validFrom && Carbon::parse($this->discount->validFrom)->lessThan(Carbon::now())) ||
-			($this->discount->validTo && Carbon::parse($this->discount->validTo)->greaterThanOrEqualTo(Carbon::now()))) {
+		if (($this->discount->validFrom && Carbon::parse($this->discount->validFrom)->greaterThan(Carbon::now())) ||
+			($this->discount->validTo && Carbon::parse($this->discount->validTo)->lessThan(Carbon::now()))) {
 			throw new InvalidCouponException(code: InvalidCouponException::NOT_ACTIVE);
 		}
 
