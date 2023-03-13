@@ -9,8 +9,6 @@ use Eshop\DB\DiscountCouponRepository;
 use Eshop\Exceptions\InvalidCouponException;
 use Eshop\Shopper;
 use Nette;
-use Tracy\Debugger;
-use Tracy\ILogger;
 
 /**
  * @method onSet(\Eshop\DB\DiscountCoupon $coupon)
