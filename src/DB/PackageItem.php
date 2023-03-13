@@ -81,8 +81,20 @@ class PackageItem extends \StORM\Entity
 	 */
 	public RelationCollection $relatedPackageItems;
 
+	/**
+	 * Returns selected supplier product by storeAmount
+	 */
+	public function getSelectedSupplierProductBySupplierCode(string $supplierCode): ?SupplierProduct
+	{
+		if (!$this->storeAmount) {
+			return null;
+		}
+
+		return $this->storeAmount->product->getSupplierProduct($supplierCode);
+	}
+
 	public function getSupplierProduct(string $supplierCode): ?SupplierProduct
 	{
-		return $this->cartItem->product ? $this->cartItem->product->getSupplierProduct($supplierCode) : null;
+		return $this->getSelectedSupplierProductBySupplierCode($supplierCode) ?: ($this->cartItem->product ? $this->cartItem->product->getSupplierProduct($supplierCode) : null);
 	}
 }
