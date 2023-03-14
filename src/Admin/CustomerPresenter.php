@@ -485,6 +485,9 @@ class CustomerPresenter extends BackendPresenter
 		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
 		
 		$form = $this->formFactory->create();
+
+		/** @var \Eshop\DB\Customer|null $customer */
+		$customer = $this->getParameter('customer');
 		
 		$form->addText('fullname', 'Jméno a příjmení');
 		$form->addText('company', 'Firma');
@@ -492,7 +495,7 @@ class CustomerPresenter extends BackendPresenter
 		$form->addText('dic', 'DIČ');
 		$form->addText('phone', 'Telefon');
 		
-		$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired();
+		$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired()->setDisabled((bool) $customer);
 		$form->addText('ccEmails', 'Kopie e-mailů')->setHtmlAttribute('data-info', 'Zadejte e-mailové adresy oddělené středníkem (;).');
 		
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->many()->toArrayOf('name'))
@@ -500,9 +503,6 @@ class CustomerPresenter extends BackendPresenter
 			->setDisabled(!$this->isManager);
 		
 		$customersForSelect = $this->customerRepository->getArrayForSelect();
-		
-		/** @var \Eshop\DB\Customer|null $customer */
-		$customer = $this->getParameter('customer');
 		
 		if ($customer) {
 			unset($customersForSelect[$customer->getPK()]);
@@ -588,9 +588,24 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$form->addText('ediBranch', 'EDI: Identifikátor pobočky')
 				->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
 		}
-		
-		//$form->bind($this->customerRepository->getStructure(), []);
-		
+
+		$form->onValidate[] = function (AdminForm $form): void {
+			if (!$form->isValid()) {
+				return;
+			}
+
+			$values = $form->getValues('array');
+
+			if (!isset($values['email']) || !$this->customerRepository->many()->where('email', $values['email'])->first()) {
+				return;
+			}
+
+			/** @var \Nette\Forms\Controls\TextInput $emailInput */
+			$emailInput = $form['email'];
+
+			$emailInput->addError('Tento e-mail již existuje!');
+		};
+
 		$form->addSubmits(!$this->getParameter('customer'));
 		
 		return $form;
@@ -707,8 +722,14 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$values = $form->getValues('array');
 			
 			$merchants = Arrays::pick($values, 'merchants');
-			
-			$customer = $this->customerRepository->syncOne($values, null, true);
+
+			try {
+				$customer = $this->customerRepository->createOne($values);
+			} catch (\Throwable $e) {
+				$this->flashMessage('Nelze vytvořit zákazníka', 'error');
+
+				return;
+			}
 			
 			foreach ($merchants as $merchant) {
 				$this->storm->createRow('eshop_merchant_nxn_eshop_customer', ['fk_merchant' => $merchant, 'fk_customer' => $customer]);
