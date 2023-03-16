@@ -17,6 +17,12 @@ class ApiGeneratorDiscountCoupon extends \StORM\Entity
 	public string $code;
 
 	/**
+	 * Bezpečnostní hash
+	 * @column
+	 */
+	public string $hash = '';
+
+	/**
 	 * Popisek
 	 * @column
 	 */
@@ -130,10 +136,6 @@ class ApiGeneratorDiscountCoupon extends \StORM\Entity
 
 	public function used(): void
 	{
-		if ($this->apiUsageLimit === null) {
-			return;
-		}
-
 		$this->apiUsagesCount++;
 
 		$this->updateAll(['apiUsagesCount']);

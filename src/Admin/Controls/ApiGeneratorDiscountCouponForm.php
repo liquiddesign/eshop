@@ -16,6 +16,7 @@ use Eshop\FormValidators;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Arrays;
+use Nette\Utils\Random;
 
 class ApiGeneratorDiscountCouponForm extends Control
 {
@@ -35,7 +36,11 @@ class ApiGeneratorDiscountCouponForm extends Control
 		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($codeInput, $apiGeneratorDiscountCoupon): void {
 			if ($apiGeneratorDiscountCoupon) {
 				try {
-					$url = $presenter->link('//:Eshop:ApiGenerator:default', ['generator' => 'discountCoupon', 'code' => $apiGeneratorDiscountCoupon->code]);
+					$url = $presenter->link('//:Eshop:ApiGenerator:default', [
+						'generator' => 'discountCoupon',
+						'code' => $apiGeneratorDiscountCoupon->code,
+						'hash' => $apiGeneratorDiscountCoupon->hash,
+					]);
 
 					$codeInput->setHtmlAttribute('data-info', "Odkaz pro generování: <a class='ml-2' href='$url' target='_blank'><i class='fas fa-external-link-alt mr-1'></i>$url</a>");
 				} catch (\Throwable $e) {
@@ -119,7 +124,13 @@ class ApiGeneratorDiscountCouponForm extends Control
 
 			$conditions = Arrays::pick($values, 'conditionsContainer');
 
-			$apiGeneratorDiscountCoupon = $apiGeneratorDiscountCouponRepository->syncOne($values, null, true);
+			if ($apiGeneratorDiscountCoupon) {
+				$apiGeneratorDiscountCoupon->update($values);
+			} else {
+				$values['hash'] = Random::generate(32);
+
+				$apiGeneratorDiscountCoupon = $apiGeneratorDiscountCouponRepository->createOne($values);
+			}
 
 			$discountConditionRepository->many()->where('fk_apiGeneratorDiscountCoupon', $apiGeneratorDiscountCoupon->getPK())->delete();
 

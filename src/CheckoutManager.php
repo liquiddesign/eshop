@@ -1636,7 +1636,7 @@ class CheckoutManager
 			]);
 		}
 		
-		if ($discountCoupon && $discountCoupon->usageLimit) {
+		if ($discountCoupon) {
 			$discountCoupon->update([
 				'usagesCount' => $discountCoupon->usagesCount + 1,
 				'lastUsageTs' => (new Carbon())->toDateTimeString(),

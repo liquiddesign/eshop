@@ -48,7 +48,11 @@ class ApiGeneratorDiscountCouponPresenter extends BackendPresenter
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 		$grid->addColumnText('Název', 'label', '%s', 'label');
 		$grid->addColumn('Odkaz pro generování', function (ApiGeneratorDiscountCoupon $apiGeneratorDiscountCoupon) {
-			$url = $this->link('//:Eshop:ApiGenerator:default', ['generator' => 'discountCoupon', 'code' => $apiGeneratorDiscountCoupon->code]);
+			$url = $this->link('//:Eshop:ApiGenerator:default', [
+				'generator' => 'discountCoupon',
+				'code' => $apiGeneratorDiscountCoupon->code,
+				'hash' => $apiGeneratorDiscountCoupon->hash,
+			]);
 
 			return "<a href='$url' target='_blank'><i class='fas fa-external-link-alt mr-1'></i>$url</a>";
 		});

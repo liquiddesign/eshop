@@ -8,6 +8,8 @@ use Eshop\DB\DiscountCouponRepository;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
+use Tracy\Debugger;
+use Tracy\ILogger;
 
 abstract class ApiGeneratorPresenter extends Presenter
 {
@@ -20,7 +22,7 @@ abstract class ApiGeneratorPresenter extends Presenter
 	/** @inject */
 	public DiscountConditionRepository $discountConditionRepository;
 
-	public function actionDefault(string $generator, string $code): void
+	public function actionDefault(string $generator, string $code, string $hash): void
 	{
 		$result = false;
 		$error = null;
@@ -37,12 +39,14 @@ abstract class ApiGeneratorPresenter extends Presenter
 
 			$method = $reflection->getMethod($methodName);
 
-			if ($method->getNumberOfRequiredParameters() !== 1) {
+			if ($method->getNumberOfRequiredParameters() !== 2) {
 				throw new \Exception('Internal generator error');
 			}
 
-			$result = $this->$methodName($code);
+			$result = $this->$methodName($code, $hash);
 		} catch (\Throwable $e) {
+			Debugger::log($e, ILogger::ERROR);
+
 			$error = $e->getMessage();
 		}
 
@@ -60,12 +64,16 @@ abstract class ApiGeneratorPresenter extends Presenter
 	 * @return array<string>|null
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function generateDiscountCoupon(string $code): ?array
+	public function generateDiscountCoupon(string $code, string $hash): ?array
 	{
 		$apiGeneratorDiscountCoupon = $this->apiGeneratorDiscountCouponRepository->one(['code' => $code]);
 
-		if (!$apiGeneratorDiscountCoupon || !$apiGeneratorDiscountCoupon->isActive()) {
+		if (!$apiGeneratorDiscountCoupon || !$apiGeneratorDiscountCoupon->isActive() || !$apiGeneratorDiscountCoupon->discount->isActive()) {
 			throw new \Exception('Invalid code');
+		}
+
+		if ($apiGeneratorDiscountCoupon->hash !== $hash) {
+			throw new \Exception('Invalid hash');
 		}
 
 		do {
