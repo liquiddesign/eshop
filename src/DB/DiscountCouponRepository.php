@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Common\DB\IGeneralRepository;
 use Eshop\Exceptions\InvalidCouponException;
 use Eshop\Shopper;
 use Nette\Utils\Arrays;
+use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Exception\NotFoundException;
 use StORM\SchemaManager;
@@ -14,7 +16,7 @@ use StORM\SchemaManager;
 /**
  * @extends \StORM\Repository<\Eshop\DB\DiscountCoupon>
  */
-class DiscountCouponRepository extends \StORM\Repository
+class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepository
 {
 	private Shopper $shopper;
 
@@ -34,6 +36,25 @@ class DiscountCouponRepository extends \StORM\Repository
 		$this->shopper = $shopper;
 		$this->cartItemRepository = $cartItemRepository;
 		$this->discountConditionRepository = $discountConditionRepository;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getArrayForSelect(bool $includeHidden = true): array
+	{
+		return $this->getCollection($includeHidden)
+			->select(['fullName' => "CONCAT(label, ' (', code, ')')"])
+			->toArrayOf('fullName');
+	}
+
+	public function getCollection(bool $includeHidden = false): Collection
+	{
+		$collection = $this->many();
+
+		unset($includeHidden);
+
+		return $collection->orderBy(['label']);
 	}
 
 	/**
@@ -59,7 +80,7 @@ class DiscountCouponRepository extends \StORM\Repository
 	}
 
 	/**
-	 * @TODO use DiscountRepository::getActiveDiscounts for discounts and move to DiscountRepository
+	 * @TODO use DiscountRepository::getActiveDiscounts for discounts
 	 * @throws \Eshop\Exceptions\InvalidCouponException
 	 */
 	public function getValidCouponByCart(string $code, Cart $cart, ?Customer $customer = null, bool $throw = false): ?DiscountCoupon

@@ -6,7 +6,9 @@ namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\Admin\Controls\DiscountCouponGeneratorForm;
 use Eshop\Admin\Controls\IDiscountCouponFormFactory;
+use Eshop\Admin\Controls\IDiscountCouponGeneratorFormFactory;
 use Eshop\BackendPresenter;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\CustomerRepository;
@@ -59,6 +61,9 @@ class DiscountPresenter extends BackendPresenter
 
 	/** @inject */
 	public DiscountCouponRepository $discountCouponRepository;
+
+	/** @inject */
+	public IDiscountCouponGeneratorFormFactory $discountCouponGeneratorFormFactory;
 
 	public function createComponentGrid(): AdminGrid
 	{
@@ -428,7 +433,11 @@ class DiscountPresenter extends BackendPresenter
 			['Akce', 'default'],
 			['Kupóny akce'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default'), $this->createNewItemButton('couponsCreate', [$discount])];
+		$this->template->displayButtons = [
+			$this->createBackButton('default'),
+			$this->createNewItemButton('couponsCreate', [$discount]),
+			$this->createButton('discountCouponGenerator', 'Generátor kupónů', [$discount]),
+		];
 		$this->template->displayControls = [$this->getComponent('couponsGrid')];
 	}
 
@@ -477,5 +486,22 @@ class DiscountPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('deliveryDiscounts', $discount)];
 		$this->template->displayControls = [$this->getComponent('deliveryDiscountsForm')];
+	}
+
+	public function renderDiscountCouponGenerator(Discount $discount): void
+	{
+		$this->template->headerLabel = 'Generátor kupónů';
+		$this->template->headerTree = [
+			['Akce', 'default'],
+			['Kupóny', ':Eshop:Admin:Discount:coupons', $discount],
+			['Generátor'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('coupons', $discount)];
+		$this->template->displayControls = [$this->getComponent('discountCouponGeneratorForm')];
+	}
+
+	public function createComponentDiscountCouponGeneratorForm(): DiscountCouponGeneratorForm
+	{
+		return $this->discountCouponGeneratorFormFactory->create($this->getParameter('discount'));
 	}
 }

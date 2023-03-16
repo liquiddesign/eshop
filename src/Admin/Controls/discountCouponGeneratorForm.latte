@@ -2,7 +2,6 @@
 {var $activeMutation = $form->getActiveMutation()}
     {var $renderer = $form->getRenderer()}
 
-    {input discount}
     <ul class="error" n:ifcontent>
         <li n:foreach="$form->getOwnErrors() as $error">{$error}</li>
     </ul>
@@ -13,11 +12,20 @@
         </table>
     {/if}
 
+    <legend>Nastavení generátoru</legend>
+
     <fieldset>
         <table class="mt-1 mb-1">
-            {$renderer->renderPair($form['code'])|noescape}
+            {$renderer->renderPair($form['generatorCount'])|noescape}
+        </table>
+    </fieldset>
+
+    <legend>Nastavení kupónu</legend>
+
+    <fieldset>
+        <table class="mt-1 mb-1">
+            {$renderer->renderPair($form['codePrefix'])|noescape}
             {$renderer->renderPair($form['label'])|noescape}
-            {$renderer->renderPair($form['exclusiveCustomer'])|noescape}
             {$renderer->renderPair($form['currency'])|noescape}
             {$renderer->renderPair($form['discountPct'])|noescape}
         </table>
@@ -72,11 +80,7 @@
     <fieldset>
         <table class="mt-1 mb-1">
             <tr>
-                {ifset $form['submitAndNext']}
-                    {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
-                {else}
-                    {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
-                {/ifset}
+                {$renderer->renderPairMulti([$form['submit']])|noescape}
             </tr>
         </table>
     </fieldset>
