@@ -854,7 +854,7 @@ class CheckoutManager
 			return true;
 		}
 		
-		return (bool)$this->discountCouponRepository->getValidCouponByCart($discountCoupon->code, $this->getCart(), $discountCoupon->exclusiveCustomer);
+		return (bool)$this->discountCouponRepository->getValidCouponByCart($discountCoupon->code, $this->getCart(), $discountCoupon->exclusiveCustomer, discountCouponApplied: true);
 	}
 	
 	public function checkOrder(): bool

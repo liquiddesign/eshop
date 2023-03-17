@@ -83,7 +83,7 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 	 * @TODO use DiscountRepository::getActiveDiscounts for discounts
 	 * @throws \Eshop\Exceptions\InvalidCouponException
 	 */
-	public function getValidCouponByCart(string $code, Cart $cart, ?Customer $customer = null, bool $throw = false): ?DiscountCoupon
+	public function getValidCouponByCart(string $code, Cart $cart, ?Customer $customer = null, bool $throw = false, bool $discountCouponApplied = false,): ?DiscountCoupon
 	{
 		$showPrice = $this->shopper->getShowPrice();
 		$priceType = $showPrice === 'withVat' ? 'priceVat' : 'price';
@@ -98,8 +98,18 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 			return null;
 		}
 
+		$cartPrice = $this->cartItemRepository->getSumProperty([$cart->getPK()], $priceType);
+
+		if ($discountCouponApplied) {
+			if ($coupon->discountValue || $coupon->discountValueVat) {
+				$cartPrice = $showPrice === 'withVat' ? $cartPrice + $coupon->discountValueVat : $cartPrice + $coupon->discountValue;
+			} elseif ($coupon->discountPct) {
+				$cartPrice = $cartPrice * 100 / (100 - $coupon->discountPct);
+			}
+		}
+
 		try {
-			$coupon->tryIsValid($cart->currency, $this->cartItemRepository->getSumProperty([$cart->getPK()], $priceType), $customer);
+			$coupon->tryIsValid($cart->currency, $cartPrice, $customer);
 		} catch (InvalidCouponException $e) {
 			if ($throw) {
 				throw $e;
