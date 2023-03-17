@@ -775,7 +775,10 @@ class Product extends \StORM\Entity
 	 */
 	public function getCategoryTree(string $property, bool $reversed = false): array
 	{
-		if (!isset($this->primaryCategoryPath) || !$this->primaryCategoryPath) {
+		/** @var \Eshop\DB\Product|\stdClass $product */
+		$product = $this;
+
+		if (!isset($product->primaryCategoryPath) || !$product->primaryCategoryPath) {
 			return [];
 		}
 
@@ -786,8 +789,8 @@ class Product extends \StORM\Entity
 		$type = 'main';
 
 		if ($categoryRepository->isTreeBuild($type)) {
-			for ($i = 4; $i <= \strlen($this->primaryCategoryPath); $i += 4) {
-				if ($category = $categoryRepository->getCategoryByPath($type, \substr($this->primaryCategoryPath, 0, $i))) {
+			for ($i = 4; $i <= \strlen($product->primaryCategoryPath); $i += 4) {
+				if ($category = $categoryRepository->getCategoryByPath($type, \substr($product->primaryCategoryPath, 0, $i))) {
 					$tree[] = $category->$property;
 				}
 			}

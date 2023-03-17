@@ -75,8 +75,8 @@ class CartItemRepository extends \StORM\Repository
 	{
 		return $this->many()->where('fk_cart', $cart)->where('this.uuid', $item)->delete();
 	}
-	
-	public function syncItem(Cart $cart, ?CartItem $item, Product $product, ?Variant $variant, int $amount, bool $disabled = false): CartItem
+
+	public function syncItem(Cart $cart, ?CartItem $item, \Eshop\DB\Product|\stdClass $product, ?Variant $variant, int $amount, bool $disabled = false): CartItem
 	{
 		/** @var \Eshop\DB\VatRateRepository $vatRepo */
 		$vatRepo = $this->getConnection()->findRepository(VatRate::class);

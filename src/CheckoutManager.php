@@ -6,6 +6,7 @@ namespace Eshop;
 
 use Carbon\Carbon;
 use Eshop\Admin\SettingsPresenter;
+use Eshop\Common\CheckInvalidAmount;
 use Eshop\DB\Address;
 use Eshop\DB\Attribute;
 use Eshop\DB\AttributeAssignRepository;
@@ -523,7 +524,9 @@ class CheckoutManager
 	 * @param \Eshop\DB\Variant|null $variant
 	 * @param int $amount
 	 * @param ?bool $replaceMode true - replace | false - add or update | null - only add
-	 * @param ?bool $checkInvalidAmount
+	 * @param bool|null|\Eshop\Common\CheckInvalidAmount::SET_DEFAULT_AMOUNT $checkInvalidAmount null - check, but do not throw
+	 *                                                                                           false - dont check | true - check and throw
+	 *                                                                                           constants - see CheckInvalidAmount
 	 * @param ?bool $checkCanBuy
 	 * @param \Eshop\DB\Cart|null $cart
 	 * @param \Eshop\DB\CartItem|null $upsell
@@ -535,7 +538,7 @@ class CheckoutManager
 		?Variant $variant = null,
 		int $amount = 1,
 		?bool $replaceMode = false,
-		?bool $checkInvalidAmount = true,
+		bool | int | null $checkInvalidAmount = true,
 		?bool $checkCanBuy = true,
 		?Cart $cart = null,
 		?CartItem $upsell = null
@@ -557,13 +560,19 @@ class CheckoutManager
 			
 			$disabled = true;
 		}
-		
-		if ($checkInvalidAmount !== false && !$this->checkAmount($product, $amount)) {
-			if ($checkInvalidAmount === true) {
-				throw new BuyException("Invalid amount: $amount", BuyException::INVALID_AMOUNT);
+
+		if (\is_null($checkInvalidAmount) || \is_bool($checkInvalidAmount)) {
+			if ($checkInvalidAmount !== false && !$this->checkAmount($product, $amount)) {
+				if ($checkInvalidAmount === true) {
+					throw new BuyException("Invalid amount: $amount", BuyException::INVALID_AMOUNT);
+				}
+
+				$disabled = true;
 			}
-			
-			$disabled = true;
+		} elseif (\is_int($checkInvalidAmount)) {
+			if ($checkInvalidAmount === CheckInvalidAmount::SET_DEFAULT_AMOUNT) {
+				$amount = $this->checkAmount($product, $amount) ? $amount : $product->defaultBuyCount;
+			}
 		}
 		
 		if ($replaceMode !== null && $item = $this->itemRepository->getItem($cart ?? $this->getCart(), $product, $variant)) {
