@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Eshop\DB\CustomerRepository;
 use Eshop\Shopper;
-use Messages\DB\TemplateRepository;
 use Nette;
 
 /**
@@ -21,23 +21,20 @@ class ProfileForm extends \Nette\Application\UI\Form
 	public $onSuccess = [];
 
 	/**
-	 * @var callable[]&callable(\Eshop\Controls\ProfileForm, string): void;
+	 * @var array<callable(\Eshop\Controls\ProfileForm, string): void>
 	 */
-	public $onEmailChange;
-
-	private Nette\Mail\Mailer $mailer;
-
-	private TemplateRepository $templateRepository;
+	public array $onEmailChange = [];
 
 	private Shopper $shopper;
 
-	public function __construct(Shopper $shopper, Nette\Mail\Mailer $mailer, TemplateRepository $templateRepository, Nette\Localization\Translator $translator)
-	{
+	public function __construct(
+		Shopper $shopper,
+		Nette\Localization\Translator $translator,
+		CustomerRepository $customerRepository,
+	) {
 		parent::__construct();
 
 		$this->shopper = $shopper;
-		$this->mailer = $mailer;
-		$this->templateRepository = $templateRepository;
 
 		if (!$shopper->getCustomer()) {
 			throw new \InvalidArgumentException('Customer not found');
@@ -75,6 +72,26 @@ class ProfileForm extends \Nette\Application\UI\Form
 		$this->addGroup('Potvrzení');
 		$this->addSubmit('submit', 'profileForm.submit');
 
+		$this->onValidate[] = function (Nette\Application\UI\Form $form) use ($customerRepository, $translator): void {
+			if (!$form->isValid()) {
+				return;
+			}
+
+			$values = $form->getValues();
+
+			$customer = $this->shopper->getCustomer();
+			$existingCustomer = $customerRepository->many()->where('this.email', $values['email'])->first();
+
+			if (!$existingCustomer || $existingCustomer->getPK() === $customer->getPK()) {
+				return;
+			}
+
+			/** @var \Nette\Forms\Controls\TextInput $emailInput */
+			$emailInput = $form['email'];
+
+			$emailInput->addError($translator->translate('AddressesForm.duplicateEmail', 'Zákazník s tímto e-mailem již existuje!'));
+		};
+
 		$this->onSuccess[] = [$this, 'success'];
 	}
 
@@ -83,6 +100,8 @@ class ProfileForm extends \Nette\Application\UI\Form
 		$values = (array) $form->getValues();
 		$customer = $this->shopper->getCustomer();
 		$email = $values['email'];
+
+		$emailChanged = $customer->email !== $email;
 
 		$billAddress = Nette\Utils\Arrays::pick($values, 'billAddress');
 		$customer->syncRelated('billAddress', $billAddress);
@@ -93,23 +112,9 @@ class ProfileForm extends \Nette\Application\UI\Form
 
 		$customer->update($values);
 
-		$emailChanged = $customer->email !== $email;
-
 		if (!$emailChanged) {
 			return;
 		}
-
-		$token = Nette\Utils\Random::generate(128);
-
-		$mail = $this->templateRepository->createMessage('profile.emailChanged', ['email' => $email, 'link' => $this->getPresenter()->link('//confirmUserEmail!', $token)], $email);
-		$this->mailer->send($mail);
-
-		$customer->update([
-			'confirmationToken' => $token,
-		]);
-		$customer->account->update([
-			'authorized' => false,
-		]);
 
 		$this->onEmailChange($this, $email);
 	}
