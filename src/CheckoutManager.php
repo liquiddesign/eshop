@@ -790,11 +790,23 @@ class CheckoutManager
 			$product = $item->getValue('product');
 			
 			if (($upsellProduct = $item->getValue('upsell')) === null) {
-				throw new \Exception('Upsell product not found');
+				if ($required) {
+					throw new BuyException('Upsell product not found');
+				}
+
+				$someProductNotFound = true;
+
+				continue;
 			}
 			
 			if (!isset($relations[$upsellProduct][$product])) {
-				throw new \Exception('Product not found');
+				if ($required) {
+					throw new BuyException('Product not found');
+				}
+
+				$someProductNotFound = true;
+
+				continue;
 			}
 			
 			$product = $relations[$upsellProduct][$product];
