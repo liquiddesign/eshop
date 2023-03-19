@@ -40,4 +40,10 @@ class OrderDeliveryStatus extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public Order $order;
+
+	/**
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public ?DeliveryServiceStatus $deliveryServiceStatus;
 }

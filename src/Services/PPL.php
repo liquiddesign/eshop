@@ -4,8 +4,15 @@ declare(strict_types=1);
 
 namespace Eshop\Services;
 
+use Carbon\Carbon;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\DB\DeliveryRepository;
+use Eshop\DB\DeliveryServiceStatus;
+use Eshop\DB\DeliveryServiceStatusRepository;
+use Eshop\DB\Order;
+use Eshop\DB\OrderDeliveryStatus;
+use Eshop\DB\OrderDeliveryStatusRepository;
+use Eshop\DB\OrderRepository;
 use Nette\Application\Application;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
@@ -28,6 +35,7 @@ use Salamek\PplMyApi\Model\Sender;
 use Salamek\PplMyApi\PdfLabel;
 use Salamek\PplMyApi\Tools;
 use StORM\Collection;
+use StORM\DIConnection;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
@@ -86,7 +94,13 @@ class PPL
 		?SettingRepository $settingRepository = null,
 		?Container $container = null,
 		?Application $application = null,
-		?DeliveryRepository $deliveryRepository = null
+		?DeliveryRepository $deliveryRepository = null,
+		/** @codingStandardsIgnoreStart */
+		private ?OrderRepository $orderRepository = null,
+		private ?OrderDeliveryStatusRepository $orderDeliveryStatusRepository = null,
+		private ?DeliveryServiceStatusRepository $deliveryServiceStatusRepository = null,
+		private ?DIConnection $connection = null,
+		/** @codingStandardsIgnoreEnd */
 	) {
 		$this->login = $login;
 		$this->password = $password;
@@ -509,22 +523,155 @@ class PPL
 		}
 	}
 
-	public function getPackages(array $packageNumbers): void
+	/**
+	 * @param array<int> $packageNumbers
+	 * @return array<mixed>
+	 * @throws \Salamek\PplMyApi\Exception\WrongDataException
+	 */
+	public function getPackages(array $packageNumbers = [], ?Carbon $dateFrom = null, ?Carbon $dateTo = null): array
 	{
-		$client = $this->getClient();
+		return $this->getClient()->getPackages(dateFrom: $dateFrom, dateTo: $dateTo, packageNumbers: $packageNumbers);
+	}
 
-		$dateFrom = new \DateTime();
-		$dateFrom->modify('-6 months');
-//		$dateTo = new \DateTime();
+	/**
+	 * @param array<string, \Eshop\DB\Order>|null $orders
+	 * @throws \Exception
+	 */
+	public function syncOrdersStatus(?array $orders = null): void
+	{
+		$defaultMutation = $this->connection->getMutation();
 
-		$result = $client->getPackages(
-			null,
-			null,
-			null,
-			$packageNumbers,
-		);
+		$orders ??= $this->orderRepository->many()
+			->where('this.pplCode IS NOT NULl')
+			->where('this.pplError', false)
+			->where('this.createdTs >= :s', ['s' => Carbon::now()->subWeeks(1)->toDateString()])
+			->toArray();
 
-		\bdump($result);
+		$ordersByPackages = [];
+
+		foreach ($orders as $order) {
+			if (!$order->pplCode || $order->pplError) {
+				continue;
+			}
+
+			foreach (\explode(',', $order->pplCode) as $pplCode) {
+				if (!$pplCode) {
+					continue;
+				}
+
+				$ordersByPackages[$pplCode] = $order;
+			}
+		}
+
+		$ordersDeliveryStatuses = [];
+
+		foreach ($this->orderDeliveryStatusRepository->many()->where('this.fk_order', \array_keys($orders)) as $orderDeliveryStatus) {
+			$ordersDeliveryStatuses[$orderDeliveryStatus->getValue('order')][$orderDeliveryStatus->status] = $orderDeliveryStatus;
+		}
+
+		$deliveryServiceStatuses = $this->deliveryServiceStatusRepository->many()
+			->where('service', DeliveryServiceStatus::SERVICE_PPL)
+			->setIndex('status')
+			->toArray();
+
+		/** @var array<int> $chunkedOrders */
+		foreach (\array_chunk($ordersByPackages, 100, true) as $chunkedOrders) {
+			$results = $this->getPackages(packageNumbers: \array_keys($chunkedOrders));
+
+			/** @var \stdClass $result */
+			foreach ($results as $result) {
+				// phpcs:ignore
+				$order = $ordersByPackages[$result->PackNumber] ?? null;
+
+				if (!$order) {
+					continue;
+				}
+
+				// phpcs:ignore
+				if (!isset($result->PackageStatuses->MyApiPackageOutStatus) || !\is_array($result->PackageStatuses->MyApiPackageOutStatus)) {
+					throw new \Exception('Invalid response data');
+				}
+
+				// phpcs:ignore
+				foreach ($result->PackageStatuses->MyApiPackageOutStatus as $status) {
+					$orderDeliverStatuses = $ordersDeliveryStatuses[$order->getPK()] ?? [];
+
+					// phpcs:ignore
+					if (isset($orderDeliverStatuses[$status->StaID])) {
+						continue;
+					}
+
+					// phpcs:ignore
+					$deliveryServiceStatus = $deliveryServiceStatuses[(string) $status->StaID] ??= $this->deliveryServiceStatusRepository->createOne([
+						'service' => DeliveryServiceStatus::SERVICE_PPL,
+						// phpcs:ignore
+						'status' => (string) $status->StaID,
+						// phpcs:ignore
+						'text' => [$defaultMutation => (string) $status->StatusName],
+					]);
+
+					// phpcs:ignore
+					$ordersDeliveryStatuses[$order->getPK()][$status->StaID] = $this->orderDeliveryStatusRepository->createOne([
+						'service' => OrderDeliveryStatus::SERVICE_PPL,
+						'order' => $order->getPK(),
+						// phpcs:ignore
+						'createdTs' => $status->StatusDate,
+						// phpcs:ignore
+						'status' => (string) $status->StaID,
+						// phpcs:ignore
+						'packageCode' => $result->PackNumber,
+						'deliveryServiceStatus' => $deliveryServiceStatus->getPK(),
+					]);
+				}
+			}
+		}
+	}
+
+	public function getIsOrderDelivered(Order $order): ?bool
+	{
+		if (!$order->pplCode || $order->pplError) {
+			return null;
+		}
+
+		$delivered = true;
+
+		foreach (\explode(',', $order->pplCode) as $pplCode) {
+			$deliveryStatuses = $this->orderDeliveryStatusRepository->many()->setIndex('this.status')->where('this.packageCode', $pplCode)->toArray();
+
+			if (!isset($deliveryStatuses['450']) && !isset($deliveryStatuses['451']) && !isset($deliveryStatuses['453'])) {
+				$delivered = false;
+
+				break;
+			}
+		}
+
+		return $delivered;
+	}
+
+	/**
+	 * @param \Eshop\DB\Order $order
+	 * @return array<string>|null
+	 */
+	public function getDeliveryStatusText(Order $order): ?array
+	{
+		if (!$order->pplCode || $order->pplError) {
+			return null;
+		}
+
+		$result = [];
+
+		foreach (\explode(',', $order->pplCode) as $pplCode) {
+			$deliveryStatus = $this->orderDeliveryStatusRepository->many()->setIndex('this.status')->where('this.packageCode', $pplCode)->orderBy(['createdTs' => 'DESC'])->first();
+
+			if (!$deliveryStatus) {
+				continue;
+			}
+
+			//phpcs:ignore
+			$result[$pplCode] = $deliveryStatus->deliveryServiceStatus?->text;
+		}
+
+		return $result;
 	}
 
 	protected function getClient(): Api
