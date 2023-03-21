@@ -18,6 +18,12 @@
 
 {define content}
     {include content-header}
+    <style>
+        .modal-lg{
+            max-width: 1200px;
+        }
+    </style>
+
     <section class="content">
         <div class="card card-primary card-outline card-outline-tabs">
             {var $displayButtonsLeft = @$displayButtons}
@@ -375,6 +381,8 @@
                                 <th></th>
                                 <th>Produkt</th>
                                 <th>Kód</th>
+                                <th>Dodavatelský produkt</th>
+                                <th>Kód dodavatele</th>
                                 <th>Sklad</th>
                                 <th style="text-align: right">Množství</th>
                                 <th>Dodavatel</th>
@@ -386,6 +394,8 @@
                                 <td>{input amount:$storeAmount->getPK()}</td>
                                 <td>{$storeAmount->product->name}</td>
                                 <td>{$storeAmount->product->getFullCode()}</td>
+                                <td>{$storeAmount->store->supplier ? ($storeAmount->product->getSupplierProduct($storeAmount->store->supplier->getPK())?->name ?: null)}</td>
+                                <td>{$storeAmount->store->supplier ? ($storeAmount->product->getSupplierProduct($storeAmount->store->supplier->getPK())?->code ?: null)}</td>
                                 <td>{$storeAmount->store->name}</td>
                                 <td class="input-amount" style="text-align: right">{$storeAmount->inStock}</td>
                                 <td>{if $storeAmount->store->supplier}{$storeAmount->store->supplier->name}{else}-{/if}</td>
@@ -433,6 +443,7 @@
         {/block}
     {/embed}
 {/define}
+
 {block scripts}
     <script>
         $('#' + "frm-internalRibbons").select2({"theme":"classic","maximumSelectionLength":15});
