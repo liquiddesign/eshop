@@ -259,16 +259,16 @@ class PricelistsPresenter extends BackendPresenter
 			}
 
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
-				$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), 4);
+				$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), Shopper::PRICE_PRECISSION);
 				$prices['priceBefore'] = isset($prices['priceVatBefore']) ?
-					\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), 4) :
+					\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), Shopper::PRICE_PRECISSION) :
 					null;
 			}
 
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
-				$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), 4);
+				$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), Shopper::PRICE_PRECISSION);
 				$prices['priceVatBefore'] = isset($prices['priceBefore']) ?
-					\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), 4) :
+					\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), Shopper::PRICE_PRECISSION) :
 					null;
 			}
 
@@ -691,13 +691,6 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 			->addRule([FormValidators::class, 'isPercentNoMax'], 'Zadaná hodnota není správná (>=0)!')
 			->setRequired()->setDefaultValue(100);
 
-		$form->addInteger('roundPrecision', 'Přesnost zaokrouhlení')
-			->setDefaultValue(2)->setRequired()
-			->setHtmlAttribute(
-				'data-info',
-				'Kladná čísla určují desetinnou část. Např.: přesnost 1 zaokrouhlí na 1 destinné místo. <br>Záporná čísla určují celou část. Např.: -2 zaokrouhlí na stovky.',
-			);
-
 		if ($this->getParameter('type') === 'standard') {
 			$beforePricesInput = $form->addCheckbox('beforePrices', 'Importovat původní ceny')
 				->setHtmlAttribute(
@@ -732,7 +725,7 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 				$values['bulkType'] === 'selected' ? $ids : \array_keys($grid->getFilteredSource()->toArrayOf('uuid')),
 				$targetPricelist,
 				(float)$values['percent'] / 100,
-				$values['roundPrecision'],
+				Shopper::PRICE_PRECISSION,
 				$values['overwrite'],
 				$values['beforePrices'] ?? false,
 				$quantity,

@@ -33,6 +33,8 @@ class Shopper
 		'catalog' => 'Bez cen',
 		'price' => 'S cenami',
 	];
+
+	public const PRICE_PRECISSION = 4;
 	
 	protected const MERCHANT_CATALOG_PERMISSIONS = 'price';
 
