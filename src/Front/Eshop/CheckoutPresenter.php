@@ -79,6 +79,8 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 	{
 		parent::startup();
 
+		$this->checkoutManager->autoFixCart();
+
 		$this->checkoutManager->onOrderCreate[] = function (Order $order): void {
 			/** @var \Eshop\DB\Order $order */
 			$order = $this->orderRepository->one($order->getPK(), true);

@@ -7,6 +7,7 @@ namespace Eshop;
 use Carbon\Carbon;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Common\CheckInvalidAmount;
+use Eshop\Common\IncorrectItemReason;
 use Eshop\DB\Address;
 use Eshop\DB\Attribute;
 use Eshop\DB\AttributeAssignRepository;
@@ -171,6 +172,13 @@ class CheckoutManager
 	protected ?float $maxWeight = null;
 
 	protected ?int $maxDimension = null;
+
+	protected bool $autoFixCart;
+
+	/**
+	 * @var bool|null Cached status of discount coupon validity during request
+	 */
+	protected ?bool $isDiscountCouponValid = null;
 	
 	/**
 	 * @var string[]
@@ -322,6 +330,11 @@ class CheckoutManager
 	public function setCheckoutSequence(array $checkoutSequence): void
 	{
 		$this->checkoutSequence = $checkoutSequence;
+	}
+
+	public function setAutoFixCart(bool $value): void
+	{
+		$this->autoFixCart = $value;
 	}
 	
 	public function getPricelists(?Currency $currency = null, ?DiscountCoupon $discountCoupon = null): Collection
@@ -874,8 +887,24 @@ class CheckoutManager
 		if ($discountCoupon === null) {
 			return true;
 		}
+
+		if ($this->isDiscountCouponValid !== null) {
+			return $this->isDiscountCouponValid;
+		}
+
+		$this->setDiscountCoupon(null);
+		$this->shopper->discountCoupon = null;
+		$this->fixCartItems();
 		
-		return (bool)$this->discountCouponRepository->getValidCouponByCart($discountCoupon->code, $this->getCart(), $discountCoupon->exclusiveCustomer, discountCouponApplied: true);
+		$valid = (bool)$this->discountCouponRepository->getValidCouponByCart($discountCoupon->code, $this->getCart(), $discountCoupon->exclusiveCustomer);
+
+		$this->setDiscountCoupon($discountCoupon);
+		$this->shopper->discountCoupon = $discountCoupon;
+		$this->fixCartItems();
+
+		$this->isDiscountCouponValid = $valid;
+
+		return $valid;
 	}
 	
 	public function checkOrder(): bool
@@ -895,9 +924,67 @@ class CheckoutManager
 		
 		return !\count($this->getIncorrectCartItems());
 	}
+
+	/**
+	 * Fix cart if it is allowed by config
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function autoFixCart(): void
+	{
+		if (!$this->autoFixCart) {
+			return;
+		}
+
+		$this->fixCart();
+	}
+
+	/**
+	 * Fix cart
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function fixCart(): void
+	{
+		if (!$this->checkDiscountCoupon()) {
+			$this->setDiscountCoupon(null);
+		}
+
+		$this->fixCartItems();
+	}
+
+	/**
+	 * Fix cart
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function fixCartItems(): void
+	{
+		$incorrectItems = $this->getIncorrectCartItems();
+
+		if (!$incorrectItems) {
+			return;
+		}
+
+		foreach ($incorrectItems as $incorrectItem) {
+			if ($incorrectItem['reason'] === IncorrectItemReason::UNAVAILABLE) {
+				$incorrectItem['object']->delete();
+			} elseif ($incorrectItem['reason'] === IncorrectItemReason::INCORRECT_AMOUNT) {
+				$incorrectItem['object']->update([
+					'amount' => $incorrectItem['correctValue'],
+				]);
+			} elseif ($incorrectItem['reason'] === IncorrectItemReason::INCORRECT_PRICE) {
+				$incorrectItem['object']->update([
+					'price' => $incorrectItem['correctValue'],
+					'priceVat' => $incorrectItem['correctValueVat'],
+				]);
+			} elseif ($incorrectItem['reason'] === IncorrectItemReason::PRODUCT_ROUND) {
+				$incorrectItem['object']->update([
+					'amount' => $incorrectItem['correctValue'],
+				]);
+			}
+		}
+	}
 	
 	/**
-	 * @return array<int, array<string, \Eshop\DB\CartItem|float|int|string|null>>
+	 * @return array<int, array{object: \Eshop\DB\CartItem, reason: string, correctValue?: string|int|float|null, correctValueVat?: string|int|float|null}>
 	 */
 	public function getIncorrectCartItems(): array
 	{
@@ -1212,6 +1299,8 @@ class CheckoutManager
 		}
 		
 		($purchase ?? $this->getPurchase())->update(['coupon' => $coupon]);
+
+		$this->isDiscountCouponValid = null;
 	}
 
 	public function getDiscountPrice(): float

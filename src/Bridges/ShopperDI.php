@@ -78,6 +78,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 					])->castTo('array'),
 				])->castTo('array'),
 			]),
+			'autoFixCart' => Expect::bool(true),
 		]);
 	}
 	
@@ -117,5 +118,6 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$shopper->addSetup('setCategories', [(array) $config['categories']]);
 
 		$cartManager->addSetup('setCheckoutSequence', [$config['checkoutSequence']]);
+		$cartManager->addSetup('setAutoFixCart', [$config['autoFixCart']]);
 	}
 }
