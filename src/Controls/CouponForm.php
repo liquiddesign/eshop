@@ -44,7 +44,7 @@ class CouponForm extends \Nette\Application\UI\Form
 
 		$this->addCheckbox('active');
 		// phpcs:ignore
-		$this->addText('code')->setDefaultValue($discountCoupon?->code);
+		$this->addText('code')->setDisabled((bool)$discountCoupon)->setDefaultValue($discountCoupon?->code);
 
 		$this->onValidate[] = function (CouponForm $form) use ($checkoutManager, $shopper, $translator): void {
 			if (!$form->isValid()) {

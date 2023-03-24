@@ -48,11 +48,6 @@ class Shopper
 		'confirmation' => true,
 		'emailAuthorization' => true,
 	];
-	
-	/**
-	 * @var \StORM\Collection<\Eshop\DB\Pricelist>|null
-	 */
-	protected ?Collection $pricelists = null;
 
 	protected User $user;
 
@@ -449,10 +444,6 @@ class Shopper
 	 */
 	public function getPricelists(?Currency $currency = null, ?DiscountCoupon $discountCoupon = null): Collection
 	{
-		if ($this->pricelists !== null && $currency === null) {
-			return $this->pricelists;
-		}
-
 		$discountCoupon ??= $this->discountCoupon;
 		$currency = $currency ?: ($this->getCurrency()->isConversionEnabled() ? $this->getCurrency()->convertCurrency : $this->getCurrency());
 		
@@ -464,10 +455,10 @@ class Shopper
 		$repo = $this->pricelistRepository;
 		
 		if (!$customer && $merchant) {
-			return $this->pricelists = $repo->getMerchantPricelists($merchant, $currency, $this->getCountry(), $discountCoupon);
+			return $repo->getMerchantPricelists($merchant, $currency, $this->getCountry(), $discountCoupon);
 		}
 		
-		return $this->pricelists = $customer ? $repo->getCustomerPricelists($customer, $currency, $this->getCountry(), $discountCoupon) :
+		return $customer ? $repo->getCustomerPricelists($customer, $currency, $this->getCountry(), $discountCoupon) :
 			$repo->getPricelists($unregisteredPricelists, $currency, $this->getCountry(), $discountCoupon);
 	}
 

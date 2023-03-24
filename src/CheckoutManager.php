@@ -59,6 +59,8 @@ use Security\DB\AccountRepository;
 use StORM\Collection;
 use StORM\Connection;
 use StORM\DIConnection;
+use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\DB\SettingRepository;
 
 /**
@@ -927,7 +929,6 @@ class CheckoutManager
 
 	/**
 	 * Fix cart if it is allowed by config
-	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function autoFixCart(): void
 	{
@@ -940,7 +941,6 @@ class CheckoutManager
 
 	/**
 	 * Fix cart
-	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function fixCart(): void
 	{
@@ -953,7 +953,6 @@ class CheckoutManager
 
 	/**
 	 * Fix cart
-	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function fixCartItems(): void
 	{
@@ -964,21 +963,25 @@ class CheckoutManager
 		}
 
 		foreach ($incorrectItems as $incorrectItem) {
-			if ($incorrectItem['reason'] === IncorrectItemReason::UNAVAILABLE) {
-				$incorrectItem['object']->delete();
-			} elseif ($incorrectItem['reason'] === IncorrectItemReason::INCORRECT_AMOUNT) {
-				$incorrectItem['object']->update([
-					'amount' => $incorrectItem['correctValue'],
-				]);
-			} elseif ($incorrectItem['reason'] === IncorrectItemReason::INCORRECT_PRICE) {
-				$incorrectItem['object']->update([
-					'price' => $incorrectItem['correctValue'],
-					'priceVat' => $incorrectItem['correctValueVat'],
-				]);
-			} elseif ($incorrectItem['reason'] === IncorrectItemReason::PRODUCT_ROUND) {
-				$incorrectItem['object']->update([
-					'amount' => $incorrectItem['correctValue'],
-				]);
+			try {
+				if ($incorrectItem['reason'] === IncorrectItemReason::UNAVAILABLE) {
+					$incorrectItem['object']->delete();
+				} elseif ($incorrectItem['reason'] === IncorrectItemReason::INCORRECT_AMOUNT) {
+					$incorrectItem['object']->update([
+						'amount' => $incorrectItem['correctValue'],
+					]);
+				} elseif ($incorrectItem['reason'] === IncorrectItemReason::INCORRECT_PRICE) {
+					$incorrectItem['object']->update([
+						'price' => $incorrectItem['correctValue'],
+						'priceVat' => $incorrectItem['correctValueVat'],
+					]);
+				} elseif ($incorrectItem['reason'] === IncorrectItemReason::PRODUCT_ROUND) {
+					$incorrectItem['object']->update([
+						'amount' => $incorrectItem['correctValue'],
+					]);
+				}
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::EXCEPTION);
 			}
 		}
 	}
