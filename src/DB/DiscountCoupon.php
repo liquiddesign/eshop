@@ -10,6 +10,7 @@ use Eshop\Exceptions\InvalidCouponException;
 /**
  * Slevový kupón
  * @table
+ * @index{"name":"discount_coupon_code_unique","unique":true,"columns":["code"]}
  * @index{"name":"discount_coupon_unique","unique":true,"columns":["code","fk_discount"]}
  */
 class DiscountCoupon extends \StORM\Entity

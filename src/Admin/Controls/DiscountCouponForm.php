@@ -23,7 +23,9 @@ class DiscountCouponForm extends Control
 		AdminFormFactory $adminFormFactory,
 		CustomerRepository $customerRepository,
 		CurrencyRepository $currencyRepository,
-		DiscountCouponRepository $discountCouponRepository,
+		/** @codingStandardsIgnoreStart */
+		private DiscountCouponRepository $discountCouponRepository,
+		/** @codingStandardsIgnoreEnd */
 		DiscountConditionRepository $discountConditionRepository,
 		?DiscountCoupon $discountCoupon,
 		?Discount $discount = null
@@ -107,6 +109,25 @@ class DiscountCouponForm extends Control
 		});
 
 		$form->addSubmits(!$discountCoupon);
+
+		$form->onValidate[] = function (AdminForm $form) use ($discountCoupon): void {
+			if (!$form->isValid()) {
+				return;
+			}
+
+			$values = $form->getValues('array');
+
+			$existingCoupon = $this->discountCouponRepository->many()->where('this.code', $values['code'])->first();
+
+			if (!$existingCoupon || ($discountCoupon && $discountCoupon->getPK() === $existingCoupon->getPK())) {
+				return;
+			}
+
+			/** @var \Nette\Forms\Controls\TextInput $codeInput */
+			$codeInput = $form['code'];
+
+			$codeInput->addError('Tento kód již existuje!');
+		};
 
 		$form->onSuccess[] = function (AdminForm $form) use ($discountCouponRepository, $discount, $discountConditionRepository): void {
 			$values = $form->getValues('array');
