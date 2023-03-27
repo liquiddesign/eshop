@@ -5,6 +5,8 @@
 ### Added
 - **BREAKING:** New Shopper option *autoFixCart*, defaults to **true**
   - If enabled, CartChecker is not shown and all changes to cart are immediately applied
+  - If you are using CheckoutPresenter from package you are good to go, just hide CartChecker in template
+    - If not you need to add *$this->checkoutManager->autoFixCart();* at top of startUp function
 - CheckoutManager::addItemToCart - parameter $checkInvalidAmount now accepts *bool|null|\Eshop\Common\CheckInvalidAmount*, more info in function doc
 - ProfileForm - duplicate email validation added
 
