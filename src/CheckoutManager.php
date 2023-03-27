@@ -974,6 +974,8 @@ class CheckoutManager
 					$incorrectItem['object']->update([
 						'price' => $incorrectItem['correctValue'],
 						'priceVat' => $incorrectItem['correctValueVat'],
+						'priceBefore' => $incorrectItem['correctValueBefore'],
+						'priceVatBefore' => $incorrectItem['correctValueVatBefore'],
 					]);
 				} elseif ($incorrectItem['reason'] === IncorrectItemReason::PRODUCT_ROUND) {
 					$incorrectItem['object']->update([
@@ -987,7 +989,14 @@ class CheckoutManager
 	}
 	
 	/**
-	 * @return array<int, array{object: \Eshop\DB\CartItem, reason: string, correctValue?: string|int|float|null, correctValueVat?: string|int|float|null}>
+	 * @return array<int, array{
+	 *     object: \Eshop\DB\CartItem,
+	 *     reason: string,
+	 *     correctValue?: string|int|float|null,
+	 *     correctValueVat?: string|int|float|null,
+	 *     correctValueBefore?: null|float,
+	 *     correctValueVatBefore?: null|float
+	 * }>
 	 */
 	public function getIncorrectCartItems(): array
 	{
@@ -1039,6 +1048,8 @@ class CheckoutManager
 						'reason' => 'incorrect-price',
 						'correctValue' => $this->productRepository->getProduct($cartItem->product->getPK())->getPrice($cartItem->amount),
 						'correctValueVat' => $this->productRepository->getProduct($cartItem->product->getPK())->getPriceVat($cartItem->amount),
+						'correctValueBefore' => $this->productRepository->getProduct($cartItem->product->getPK())->getPriceBefore(),
+						'correctValueVatBefore' => $this->productRepository->getProduct($cartItem->product->getPK())->getPriceVatBefore(),
 					];
 				}
 			} catch (\Exception $e) {
