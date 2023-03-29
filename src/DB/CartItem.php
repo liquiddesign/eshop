@@ -172,6 +172,13 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedCartItem>|\Eshop\DB\RelatedCartItem[]
 	 */
 	public RelationCollection $relatedCartItems;
+
+	/**
+	 * Related cart items
+	 * @relation{"targetKey":"fk_upsell"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\CartItem>
+	 */
+	public RelationCollection $upsells;
 	
 	public function getProduct(): ?Product
 	{

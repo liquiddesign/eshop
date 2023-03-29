@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Eshop;
 
+use StORM\ICollection;
+
 class DevelTools
 {
 	public static function getPeakMemoryUsage(): string
@@ -16,5 +18,14 @@ class DevelTools
 		$size = \memory_get_usage(true);
 
 		return @\round($size / \pow(1024, ($i = \floor(\log($size, 1024)))), 2) . ' ' . $unit[$i];
+	}
+
+	/**
+	 * Returns SQL
+	 * @param \StORM\ICollection $collection
+	 */
+	public static function showCollection(ICollection $collection): string
+	{
+		return \PdoDebugger::show($collection->getSql(), $collection->getVars());
 	}
 }

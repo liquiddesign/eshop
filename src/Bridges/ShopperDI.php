@@ -33,7 +33,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 				'addresses',
 				'deliveryPayment',
 				'summary',
-			]),
+			])->mergeDefaults(false),
 			'showWithoutVat' => Expect::bool(true),
 			'showVat' => Expect::bool(true),
 			'priorityPrice' => Expect::anyOf('withoutVat', 'withVat')->firstIsDefault(),
