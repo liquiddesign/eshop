@@ -587,9 +587,24 @@ class Product extends \StORM\Entity
 	/**
 	 * @return array<\Eshop\DB\Product>
 	 */
-	public function getAllMergedProducts(): array
+	public function getAllMergedProducts(bool $onlyDescendants = true): array
 	{
-		return $this->doGetAllMergedProducts($this);
+		$down = $this->doGetAllMergedProducts($this);
+
+		if ($onlyDescendants) {
+			return $down;
+		}
+
+		$up = [];
+		$product = $this;
+
+		while ($masterProduct = $product->masterProduct) {
+			$up[$masterProduct->getPK()] = $masterProduct;
+
+			$product = $masterProduct;
+		}
+
+		return \array_merge(\array_reverse($up), $down);
 	}
 
 	/**

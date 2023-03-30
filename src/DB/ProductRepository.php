@@ -1664,6 +1664,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	/**
 	 * Return all descendants recursively and direct ancestors
+	 * Indexed by depth
 	 * @param \Eshop\DB\Product $product
 	 * @return array<mixed>
 	 */

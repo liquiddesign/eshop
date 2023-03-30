@@ -799,7 +799,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 	public function render(): void
 	{
-		$mergedProducts = $this->product ? $this->product->getAllMergedProducts() : [];
+		$mergedProducts = $this->product ? $this->product->getAllMergedProducts(false) : [];
 
 		if ($this->product) {
 			$mergedProducts[$this->product->getPK()] = $this->product;
