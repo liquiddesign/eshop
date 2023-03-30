@@ -59,6 +59,7 @@ use Security\DB\AccountRepository;
 use StORM\Collection;
 use StORM\Connection;
 use StORM\DIConnection;
+use StORM\Exception\NotFoundException;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
@@ -1216,9 +1217,16 @@ class CheckoutManager
 		if ($this->getPurchase() && $this->getPurchase()->deliveryType) {
 			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true)->deliveryPackagesNo : 1;
 			$showPrice = $this->shopper->getShowPrice();
-			$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('price');
-			
-			return isset($price) ? (float)$price * $deliveryPackagesNo : 0.0;
+
+			try {
+				$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('price');
+
+				return isset($price) ? (float)$price * $deliveryPackagesNo : 0.0;
+			} catch (NotFoundException $e) {
+				$this->getPurchase()->update(['deliveryType' => null]);
+
+				return 0.0;
+			}
 		}
 		
 		return 0.0;
@@ -1229,9 +1237,16 @@ class CheckoutManager
 		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
 			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true)->deliveryPackagesNo : 1;
 			$showPrice = $this->shopper->getShowPrice();
-			$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('priceVat');
-			
-			return isset($price) ? (float)$price * $deliveryPackagesNo : 0.0;
+
+			try {
+				$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('priceVat');
+
+				return isset($price) ? (float)$price * $deliveryPackagesNo : 0.0;
+			} catch (NotFoundException $e) {
+				$this->getPurchase()->update(['deliveryType' => null]);
+
+				return 0.0;
+			}
 		}
 		
 		return 0.0;
