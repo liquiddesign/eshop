@@ -75,6 +75,7 @@ class ProductGridFactory
 			->join(['file' => 'eshop_file'], 'this.uuid = file.fk_product')
 			->join(['comment' => 'eshop_internalcommentproduct'], 'this.uuid = comment.fk_product')
 			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
+			->join(['producer' => 'eshop_producer'], 'this.fk_producer = producer.uuid')
 			->join(['pricelist' => 'eshop_pricelist'], 'pricelist.uuid=price.fk_pricelist')
 			->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = this.uuid')
 			->select([
