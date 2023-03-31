@@ -129,6 +129,7 @@ class ComplaintPresenter extends BackendPresenter
 		$form->addEmail('customerEmail', 'E-mail zákazníka')->setNullable()->setDisabled((bool) $complaint);
 		$form->addText('customerPhone', 'Telefon zákazníka')->setNullable()->setDisabled((bool) $complaint)
 			->setHtmlAttribute('data-info', 'Nepovinné údaje budou doplněny automaticky z objednávky.');
+		$form->addEmail('customerBankAccountNumber', 'Číslo účtu zákazníka')->setNullable()->setDisabled((bool) $complaint);
 
 		$form->addSubmits(!$complaint);
 

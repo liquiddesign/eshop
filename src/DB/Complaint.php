@@ -29,6 +29,12 @@ class Complaint extends \StORM\Entity
 	public ?string $note;
 
 	/**
+	 * Číslo účtu
+	 * @column
+	 */
+	public ?string $customerBankAccountNumber;
+
+	/**
 	 * @column
 	 */
 	public string $customerEmail;
