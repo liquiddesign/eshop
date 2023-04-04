@@ -98,6 +98,11 @@ class Shopper
 	protected bool $integrationsEHub;
 
 	/**
+	 * @var array{categories: bool}
+	 */
+	protected array $discountConditions;
+
+	/**
 	 * @var array<mixed>
 	 */
 	protected array $reviews;
@@ -288,6 +293,22 @@ class Shopper
 	public function setCategories(array $categories): void
 	{
 		$this->categories = $categories;
+	}
+
+	/**
+	 * @return array<mixed>
+	 */
+	public function getDiscountConditions(): array
+	{
+		return $this->discountConditions;
+	}
+
+	/**
+	 * @param array<mixed> $discountConditions
+	 */
+	public function setDiscountConditions(array $discountConditions): void
+	{
+		$this->discountConditions = $discountConditions;
 	}
 
 	/**

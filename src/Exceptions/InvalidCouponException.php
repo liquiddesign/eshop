@@ -15,4 +15,6 @@ class InvalidCouponException extends \Exception
 	public const HIGH_CART_PRICE = 6;
 
 	public const INVALID_CURRENCY = 7;
+
+	public const INVALID_CONDITIONS_CATEGORY = 8;
 }

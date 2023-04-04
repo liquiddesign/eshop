@@ -8,6 +8,7 @@ use Common\DB\IGeneralRepository;
 use Eshop\Exceptions\InvalidCouponException;
 use Eshop\Shopper;
 use Nette\Utils\Arrays;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Exception\NotFoundException;
@@ -18,24 +19,18 @@ use StORM\SchemaManager;
  */
 class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepository
 {
-	private Shopper $shopper;
-
-	private CartItemRepository $cartItemRepository;
-
-	private DiscountConditionRepository $discountConditionRepository;
-
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		Shopper $shopper,
-		CartItemRepository $cartItemRepository,
-		DiscountConditionRepository $discountConditionRepository
+		/** @codingStandardsIgnoreStart */
+		private Shopper $shopper,
+		private CartItemRepository $cartItemRepository,
+		private DiscountConditionRepository $discountConditionRepository,
+		private DiscountConditionCategoryRepository $discountConditionCategoryRepository,
+		private CategoryRepository $categoryRepository,
+		/** @codingStandardsIgnoreEnd */
 	) {
 		parent::__construct($connection, $schemaManager);
-
-		$this->shopper = $shopper;
-		$this->cartItemRepository = $cartItemRepository;
-		$this->discountConditionRepository = $discountConditionRepository;
 	}
 
 	/**
@@ -193,8 +188,113 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 			$valid = $valid || $conditionValid;
 		}
 
+		if (!$valid) {
+			if ($throw) {
+				throw new InvalidCouponException(code: InvalidCouponException::INVALID_CONDITIONS);
+			}
+
+			return null;
+		}
+
+		if ($conditions = $this->discountConditionCategoryRepository->many()->where('this.fk_discountCoupon', $coupon->getPK())->toArray()) {
+			$categoriesInCart = $this->cartItemRepository->many()
+				->where('this.fk_cart', $cart->getPK())
+				->join(['eshop_product'], 'this.fk_product = eshop_product.uuid')
+				->select(['primaryCategoryPK' => 'eshop_product.fk_primaryCategory'])
+				->toArrayOf('primaryCategoryPK', toArrayValues: true);
+
+			$categoriesInCart = $this->categoryRepository->many()->where('this.uuid', $categoriesInCart)->toArray();
+
+			/** @var \Eshop\DB\DiscountConditionCategory $condition */
+			foreach ($conditions as $condition) {
+				$conditionValid = true;
+
+				$required = $condition->categories->toArray();
+
+				if ($condition->cartCondition === 'isInCart') {
+					if ($condition->quantityCondition === 'all') {
+						foreach ($required as $requiredCategory) {
+							foreach ($categoriesInCart as $categoryInCart) {
+								if (Strings::startsWith($categoryInCart->path, $requiredCategory->path)) {
+									break;
+								}
+							}
+
+							$conditionValid = false;
+
+							break;
+						}
+					} elseif ($condition->quantityCondition === 'atLeastOne') {
+						$found = false;
+
+						foreach ($required as $requiredCategory) {
+							foreach ($categoriesInCart as $categoryInCart) {
+								if (Strings::startsWith($categoryInCart->path, $requiredCategory->path)) {
+									$found = true;
+
+									break 2;
+								}
+							}
+						}
+
+						if (!$found) {
+							$conditionValid = false;
+						}
+					}
+				} elseif ($condition->cartCondition === 'notInCart') {
+					if ($condition->quantityCondition === 'all') {
+						foreach ($required as $requiredCategory) {
+							foreach ($categoriesInCart as $categoryInCart) {
+								if (Strings::startsWith($categoryInCart->path, $requiredCategory->path)) {
+									$conditionValid = false;
+
+									break 2;
+								}
+							}
+						}
+					} elseif ($condition->quantityCondition === 'atLeastOne') {
+						$found = false;
+
+						foreach ($required as $requiredCategory) {
+							foreach ($categoriesInCart as $categoryInCart) {
+								if (!Strings::startsWith($categoryInCart->path, $requiredCategory->path)) {
+									$found = true;
+
+									break 2;
+								}
+							}
+						}
+
+						if (!$found) {
+							$conditionValid = false;
+						}
+					}
+				}
+
+				if (!$conditionValid && $conditionType === 'and') {
+					$valid = false;
+
+					break;
+				}
+
+				if ($conditionValid && $conditionType === 'or') {
+					$valid = true;
+
+					break;
+				}
+
+				if ($conditionType === 'and') {
+					$valid = $valid && $conditionValid;
+
+					continue;
+				}
+
+				$valid = $valid || $conditionValid;
+			}
+		}
+
 		if (!$valid && $throw) {
-			throw new InvalidCouponException(code: InvalidCouponException::INVALID_CONDITIONS);
+			throw new InvalidCouponException(code: InvalidCouponException::INVALID_CONDITIONS_CATEGORY);
 		}
 
 		return $valid ? $coupon : null;

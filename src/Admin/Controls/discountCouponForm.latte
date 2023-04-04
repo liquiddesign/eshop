@@ -67,6 +67,27 @@
                 {/for}
             </table>
         {/formContainer}
+
+        {ifset $form['categoriesConditionsContainer']}
+            {formContainer categoriesConditionsContainer}
+                <table class="mt-1 mb-1" style="width: auto;">
+                    <thead>
+                    <tr>
+                        <th class="p-2">Podmínka košíku</th>
+                        <th class="p-2">Podmínka množství</th>
+                        <th class="p-2">Kategorie</th>
+                    </tr>
+                    </thead>
+                    {for $i =0; $i < 3; $i++}
+                        <tr>
+                            <td class="p-2">{input "cartCondition_$i", class: "form-control form-control-sm"}</td>
+                            <td class="p-2">{input "quantityCondition_$i", class: "form-control form-control-sm"}</td>
+                            <td class="p-2">{input "categories_$i"}</td>
+                        </tr>
+                    {/for}
+                </table>
+            {/formContainer}
+        {/ifset}
     </fieldset>
 
     <fieldset>

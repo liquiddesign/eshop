@@ -6,6 +6,7 @@ namespace Eshop;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\CustomerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use ForceUTF8\Encoding;
@@ -23,6 +24,8 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 
 	/** @inject */
 	public AttributeValueRepository $attributeValueRepository;
+	#[\Nette\DI\Attributes\Inject]
+	public CustomerRepository $customerRepository;
 
 	public function handleGetProductsForSelect2(?string $q = null, ?int $page = null): void
 	{
@@ -50,6 +53,37 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 
 		$this->payload->results = $results;
 		$this->payload->pagination = ['more' => \count($products) === 5];
+
+		$this->sendPayload();
+	}
+
+	public function handleGetCategoriesForSelect2(?string $q = null, ?int $page = null): void
+	{
+		if (!$q) {
+			$this->payload->results = [];
+			$this->sendPayload();
+		}
+
+		$suffix = $this->categoryRepository->getConnection()->getMutationSuffix();
+
+		/** @var \Eshop\DB\Category[] $categories */
+		$categories = $this->categoryRepository->getCollection(true)
+			->join(['eshop_categorytype'], 'this.fk_type = eshop_categorytype.uuid')
+			->where("this.name$suffix LIKE :q OR this.code LIKE :q", ['q' => "%$q%"])
+			->setPage($page ?? 1, 5)
+			->toArray();
+
+		$results = [];
+
+		foreach ($categories as $pk => $category) {
+			$results[] = [
+				'id' => $pk,
+				'text' => $category->type->name . ': ' . $category->name . ' (' . $category->code . ($category->isSystemic() ? ', systémová' : '') . ')',
+			];
+		}
+
+		$this->payload->results = $results;
+		$this->payload->pagination = ['more' => \count($categories) === 5];
 
 		$this->sendPayload();
 	}

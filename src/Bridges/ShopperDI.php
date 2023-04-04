@@ -79,6 +79,9 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 				])->castTo('array'),
 			]),
 			'autoFixCart' => Expect::bool(true),
+			'discountConditions' => Expect::structure([
+				'categories' => Expect::bool(false),
+			]),
 		]);
 	}
 	
@@ -116,6 +119,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$shopper->addSetup('setReviews', [(array) $config['reviews']]);
 		$shopper->addSetup('setInvoices', [(array) $config['invoices']]);
 		$shopper->addSetup('setCategories', [(array) $config['categories']]);
+		$shopper->addSetup('setDiscountConditions', [(array) $config['discountConditions']]);
 
 		$cartManager->addSetup('setCheckoutSequence', [$config['checkoutSequence']]);
 		$cartManager->addSetup('setAutoFixCart', [$config['autoFixCart']]);
