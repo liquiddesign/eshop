@@ -216,7 +216,7 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 						foreach ($required as $requiredCategory) {
 							foreach ($categoriesInCart as $categoryInCart) {
 								if (Strings::startsWith($categoryInCart->path, $requiredCategory->path)) {
-									break;
+									break 2;
 								}
 							}
 
