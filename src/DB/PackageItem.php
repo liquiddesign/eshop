@@ -39,6 +39,12 @@ class PackageItem extends \StORM\Entity
 	public string $status = 'waiting';
 
 	/**
+	 * Exportováno
+	 * @column{"type":"datetime"}
+	 */
+	public ?string $exportedTs;
+
+	/**
 	 * Sklad
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 * @relation

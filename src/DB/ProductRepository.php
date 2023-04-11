@@ -1416,7 +1416,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			])
 //			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
 //			->join(['attributeValue' => 'eshop_attributevalue'], 'assign.fk_value = attributeValue.uuid')
-			->join(['producer' => 'eshop_producer'], 'producer.uuid = this.fk_producer')
 			->join(['storeAmount' => 'eshop_amount'], 'storeAmount.fk_product = this.uuid')
 			->join(['store' => 'eshop_store'], 'storeAmount.fk_store = store.uuid')
 			->join(['categoryAssign' => 'eshop_product_nxn_eshop_category'], 'this.uuid = categoryAssign.fk_product')

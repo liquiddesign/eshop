@@ -9,6 +9,7 @@ use StORM\RelationCollection;
 /**
  * Balíčku
  * @table
+ * @method \StORM\RelationCollection<\Eshop\DB\PackageItem> getItems()
  */
 class Package extends \StORM\Entity
 {
