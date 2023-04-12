@@ -6,6 +6,7 @@ namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
 use Grid\Datalist;
+use Nette\Utils\Arrays;
 use StORM\ICollection;
 
 /**
@@ -14,6 +15,9 @@ use StORM\ICollection;
  */
 class CartRecapitulationList extends Datalist
 {
+	/** @var array<callable(self): void> */
+	public array $onRender = [];
+
 	public CheckoutManager $checkoutManager;
 
 	public function __construct(CheckoutManager $checkoutManager, ?ICollection $items = null)
@@ -36,6 +40,8 @@ class CartRecapitulationList extends Datalist
 		$this->template->paymentType = $this->checkoutManager->getPurchase() ? $this->checkoutManager->getPurchase()->paymentType : null;
 		$this->template->cartCheckoutPrice = $this->checkoutManager->getCheckoutPrice();
 		$this->template->cartCheckoutPriceVat = $this->checkoutManager->getCheckoutPriceVat();
+
+		Arrays::invoke($this->onRender, $this);
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;
