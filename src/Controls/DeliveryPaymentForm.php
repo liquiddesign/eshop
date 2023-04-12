@@ -148,12 +148,10 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		if (isset($values['pickupPoint']) && !isset($values['pickupPointId'])) {
 			/** @var \Eshop\DB\PickupPoint $pickupPoint */
 			$pickupPoint = $this->pickupPointRepository->one($values['pickupPoint']);
-			
-			$newValues += [
-				'pickupPointId' => $pickupPoint->code,
-				'pickupPointName' => $pickupPoint->name,
-				'pickupPoint' => $pickupPoint->getPK(),
-			];
+
+			$newValues['pickupPointId'] = $pickupPoint->code;
+			$newValues['pickupPointName'] = $pickupPoint->name;
+			$newValues['pickupPoint'] = $pickupPoint->getPK();
 		} else {
 			$this->checkoutManager->getPurchase()->update(['pickupPoint' => null]);
 		}
