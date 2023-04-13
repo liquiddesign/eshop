@@ -2,10 +2,23 @@
 
 namespace Eshop\Common;
 
-class CheckInvalidAmount
+enum CheckInvalidAmount
 {
+	/**
+	 * No checks
+	 */
+	case NO_CHECK;
+	/**
+	 * Check amount but don't throw exception if invalid
+	 */
+	case CHECK_NO_THROW;
+	/**
+	 * Check amount and throw exception if invalid
+	 */
+	case CHECK_THROW;
+
 	/**
 	 * Set default amount of product if supplied amount is invalid
 	 */
-	public const SET_DEFAULT_AMOUNT = 1;
+	case SET_DEFAULT_AMOUNT;
 }
