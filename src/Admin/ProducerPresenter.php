@@ -42,7 +42,7 @@ class ProducerPresenter extends BackendPresenter
 
 		$grid->addColumn('Název', function (Producer $producer, $grid) {
 			return [
-				$grid->getPresenter()->link(':Eshop:Product:list', ['producer' => (string)$producer]),
+				$grid->getPresenter()->link(':Eshop:Product:list', ['producer' => (string) $producer]),
 				$producer->name,
 			];
 		}, '<a href="%s" target="_blank"> %s</a>', 'name');

@@ -14,7 +14,7 @@ class AttributeGroupRepository extends \StORM\Repository implements IGeneralRepo
 {
 	/**
 	 * @param bool $includeHidden
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{

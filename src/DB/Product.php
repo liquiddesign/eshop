@@ -6,7 +6,8 @@ namespace Eshop\DB;
 
 use Eshop\Admin\SettingsPresenter;
 use Nette\Application\ApplicationException;
-use Nette\Utils\DateTime;
+use Nette\Utils\Arrays;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\IEntityParent;
 use StORM\RelationCollection;
@@ -472,85 +473,77 @@ class Product extends \StORM\Entity
 	 * @deprecated
 	 * Skupina parametrů
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\ParameterGroup>|\Eshop\DB\ParameterGroup[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\ParameterGroup>
 	 */
 	public RelationCollection $parameterGroups;
 
 	/**
 	 * Kategorie
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\Category>|\Eshop\DB\Category[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Category>
 	 */
 	public RelationCollection $categories;
 
 	/**
 	 * Dodvatelské produkty
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\SupplierProduct>|\Eshop\DB\SupplierProduct[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\SupplierProduct>
 	 */
 	public RelationCollection $supplierProducts;
 
 	/**
-	 * Tagy
-	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\Tag>|\Eshop\DB\Tag[]
-	 * @deprecated
-	 */
-	public RelationCollection $tags;
-
-	/**
 	 * Stužky
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\Ribbon>|\Eshop\DB\Ribbon[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Ribbon>
 	 */
 	public RelationCollection $ribbons;
 
 	/**
 	 * Interní stužky
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\InternalRibbon>|\Eshop\DB\InternalRibbon[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\InternalRibbon>
 	 */
 	public RelationCollection $internalRibbons;
 
 	/**
 	 * Varianty
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Variant>|\Eshop\DB\Variant[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Variant>
 	 */
 	public RelationCollection $variants;
 
 	/**
 	 * Obrázky galerie
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Photo>|\Eshop\DB\Photo[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Photo>
 	 */
 	public RelationCollection $galleryImages;
 
 	/**
 	 * Soubory
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\File>|\Eshop\DB\File[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\File>
 	 */
 	public RelationCollection $files;
 
 	/**
 	 * Množstevní slevy
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\QuantityPrice>|\Eshop\DB\QuantityPrice[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\QuantityPrice>
 	 */
 	public RelationCollection $quantityPrices;
 
 	/**
 	 * Poplatky a daně
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\Tax>|\Eshop\DB\Tax[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Tax>
 	 */
 	public RelationCollection $taxes;
 
 	/**
 	 * Upsell produkty
 	 * @relationNxN{"sourceViaKey":"fk_root","targetViaKey":"fk_upsell"}
-	 * @var \StORM\RelationCollection<\Eshop\DB\Product>|\Eshop\DB\Product[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Product>
 	 * @deprecated
 	 */
 	public RelationCollection $upsells;
@@ -558,20 +551,20 @@ class Product extends \StORM\Entity
 	/**
 	 * Věrnostní programy
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\LoyaltyProgramProduct>|\Eshop\DB\LoyaltyProgramProduct[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\LoyaltyProgramProduct>
 	 */
 	public RelationCollection $loyaltyPrograms;
 
 	/**
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Review>|\Eshop\DB\Review[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Review>
 	 */
 	public RelationCollection $reviews;
 
 	/**
 	 * Galerie
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Photo>|\Eshop\DB\Photo[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Photo>
 	 */
 	public RelationCollection $photos;
 
@@ -608,7 +601,7 @@ class Product extends \StORM\Entity
 	}
 
 	/**
-	 * @return \Eshop\DB\Ribbon[]|\StORM\Entity[]
+	 * @return array<\Eshop\DB\Ribbon>|array<\StORM\Entity>
 	 */
 	public function getImageRibbons(): array
 	{
@@ -621,7 +614,7 @@ class Product extends \StORM\Entity
 	}
 
 	/**
-	 * @return \Eshop\DB\Ribbon[]|\StORM\Entity[]
+	 * @return array<\Eshop\DB\Ribbon>|array<\StORM\Entity>
 	 */
 	public function getTextRibbons(): array
 	{
@@ -734,16 +727,16 @@ class Product extends \StORM\Entity
 		}
 
 		if ($this->supplierSource && $this->supplierSource->productCodePrefix && !$this->supplierSource->showCodeWithPrefix) {
-			$prefixLength = \strlen($this->supplierSource->productCodePrefix);
+			$prefixLength = Strings::length($this->supplierSource->productCodePrefix);
 
-			$code = \substr($code, $prefixLength, \strlen($code) - $prefixLength);
+			$code = Strings::substring($code, $prefixLength, Strings::length($code) - $prefixLength);
 		}
 
 		return $code;
 	}
 
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getStoreAmounts(): array
 	{
@@ -751,7 +744,7 @@ class Product extends \StORM\Entity
 	}
 
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getSupplierStoreAmounts(): array
 	{
@@ -764,7 +757,7 @@ class Product extends \StORM\Entity
 
 	/**
 	 * @param string $property
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getSupplierPrices(string $property = 'price'): array
 	{
@@ -786,7 +779,7 @@ class Product extends \StORM\Entity
 	/**
 	 * @param string $property
 	 * @param bool $reversed
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getCategoryTree(string $property, bool $reversed = false): array
 	{
@@ -804,8 +797,8 @@ class Product extends \StORM\Entity
 		$type = 'main';
 
 		if ($categoryRepository->isTreeBuild($type)) {
-			for ($i = 4; $i <= \strlen($product->primaryCategoryPath); $i += 4) {
-				if ($category = $categoryRepository->getCategoryByPath($type, \substr($product->primaryCategoryPath, 0, $i))) {
+			for ($i = 4; $i <= Strings::length($product->primaryCategoryPath); $i += 4) {
+				if ($category = $categoryRepository->getCategoryByPath($type, Strings::substring($product->primaryCategoryPath, 0, $i))) {
 					$tree[] = $category->$property;
 				}
 			}
@@ -864,29 +857,29 @@ class Product extends \StORM\Entity
 	public function getPrice(int $amount = 1): float
 	{
 		if ($amount === 1) {
-			return (float)$this->getValue('price');
+			return (float) $this->getValue('price');
 		}
 
-		return (float)($this->getQuantityPrice($amount, 'price') ?: $this->getValue('price'));
+		return (float) ($this->getQuantityPrice($amount, 'price') ?: $this->getValue('price'));
 	}
 
 	public function getPriceVat(int $amount = 1): float
 	{
 		if ($amount === 1) {
-			return (float)$this->getValue('priceVat');
+			return (float) $this->getValue('priceVat');
 		}
 
-		return (float)($this->getQuantityPrice($amount, 'priceVat') ?: $this->getValue('priceVat'));
+		return (float) ($this->getQuantityPrice($amount, 'priceVat') ?: $this->getValue('priceVat'));
 	}
 
 	public function getPriceBefore(): ?float
 	{
-		return (float) $this->getValue('priceBefore') > 0 ? (float)$this->getValue('priceBefore') : null;
+		return (float) $this->getValue('priceBefore') > 0 ? (float) $this->getValue('priceBefore') : null;
 	}
 
 	public function getPriceVatBefore(): ?float
 	{
-		return (float) $this->getValue('priceVatBefore') > 0 ? (float)$this->getValue('priceVatBefore') : null;
+		return (float) $this->getValue('priceVatBefore') > 0 ? (float) $this->getValue('priceVatBefore') : null;
 	}
 
 	public function getDiscountPercent(): ?float
@@ -908,7 +901,7 @@ class Product extends \StORM\Entity
 	}
 
 	/**
-	 * @return \Eshop\DB\QuantityPrice[]|\StORM\Entity[]
+	 * @return array<\Eshop\DB\QuantityPrice>|array<\StORM\Entity>
 	 */
 	public function getQuantityPrices(): array
 	{
@@ -923,7 +916,7 @@ class Product extends \StORM\Entity
 	 */
 	public function getPreviewImage(string $basePath, string $size = 'detail', bool $fallbackImageSupplied = true): string
 	{
-		if (!\in_array($size, ['origin', 'detail', 'thumb'])) {
+		if (!Arrays::contains(['origin', 'detail', 'thumb'], $size)) {
 			throw new ApplicationException('Invalid product image size: ' . $size);
 		}
 
@@ -953,9 +946,9 @@ class Product extends \StORM\Entity
 			return $displayDelivery->label;
 		}
 
-		$nowThresholdTime = DateTime::createFromFormat('G:i', $displayDelivery->timeThreshold);
+		$nowThresholdTime = \Carbon\Carbon::createFromFormat('G:i', $displayDelivery->timeThreshold);
 
-		return $nowThresholdTime > (new DateTime()) ? $displayDelivery->beforeTimeThresholdLabel : $displayDelivery->afterTimeThresholdLabel;
+		return $nowThresholdTime > (new \Carbon\Carbon()) ? $displayDelivery->beforeTimeThresholdLabel : $displayDelivery->afterTimeThresholdLabel;
 	}
 
 	public function getLoyaltyProgramPointsGain(LoyaltyProgram $loyaltyProgram): float
@@ -993,8 +986,8 @@ class Product extends \StORM\Entity
 				$tmp .= $value->label . ', ';
 			}
 
-			if (\strlen($tmp) > 0) {
-				$tmp = \substr($tmp, 0, -2);
+			if (Strings::length($tmp) > 0) {
+				$tmp = Strings::substring($tmp, 0, -2);
 			}
 
 			$productAttributesByCode[$attribute->code] = $tmp;

@@ -247,7 +247,7 @@ class OrderList extends Datalist
 	}
 
 	/**
-	 * @param \Eshop\DB\Order[] $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 */
 	public function exportCsv(array $orders): void
 	{
@@ -327,7 +327,7 @@ class OrderList extends Datalist
 	}
 
 	/**
-	 * @param \Eshop\DB\Order[] $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 * @throws \League\Csv\CannotInsertRecord
 	 * @throws \League\Csv\InvalidArgument
 	 * @throws \Nette\Application\AbortException
@@ -350,7 +350,7 @@ class OrderList extends Datalist
 	}
 
 	/**
-	 * @param \Eshop\DB\Order[] $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 * @throws \Nette\Application\AbortException
 	 * @throws \Nette\Application\BadRequestException
 	 */
@@ -411,7 +411,7 @@ class OrderList extends Datalist
 	}
 
 	/**
-	 * @param \Eshop\DB\Order[] $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 * @throws \Nette\Application\AbortException
 	 * @throws \Nette\Application\BadRequestException
 	 */

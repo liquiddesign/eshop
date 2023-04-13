@@ -15,6 +15,7 @@ use Nette\Bridges\ApplicationLatte\UIExtension;
 use Nette\Bridges\ApplicationLatte\UIMacros;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\Utils\Arrays;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use Pages\Helpers;
@@ -46,7 +47,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 	private LatteFactory $latteFactory;
 	
-	/** @var int[] */
+	/** @var array<int> */
 	private array $preloadCategoryCounts;
 	
 	public function __construct(
@@ -133,7 +134,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$stm = $this->connection;
 		$productRepository = $this->productRepository;
 		
-		if (!\in_array(\strlen($path) / 4, $levels)) {
+		if (!Arrays::contains($levels, Strings::length($path) / 4)) {
 			return null;
 		}
 		
@@ -182,7 +183,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			throw new \InvalidArgumentException('Invalid category type!');
 		}
 
-		/** @var \Eshop\DB\Category[] $tree */
+		/** @var array<\Eshop\DB\Category> $tree */
 		$tree = $this->getTree($type, false, true);
 
 		$startCategory = null;
@@ -211,7 +212,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 			foreach ($startCategory->children as $child) {
 				$child->setParent($this);
-				$child->update(['path' => $startCategory->path . \substr($child->path, -4)]);
+				$child->update(['path' => $startCategory->path . Strings::substring($child->path, -4)]);
 
 				if (\count($child->children) <= 0) {
 					continue;
@@ -295,7 +296,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	/**
 	 * @param bool $includeHidden
 	 * @param string|null $type
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getTreeArrayForSelect(bool $includeHidden = true, ?string $type = null): array
 	{
@@ -343,7 +344,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		}
 
 		return $this->many()
-			->where('path', \substr($category->path, 0, 4))
+			->where('path', Strings::substring($category->path, 0, 4))
 			->first();
 	}
 
@@ -372,11 +373,11 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 	public function generateCategoryProducerPages(?array $activeProducers = null): void
 	{
-		/** @var \Eshop\DB\Category[] $categories */
+		/** @var array<\Eshop\DB\Category> $categories */
 		$categories = $this->getCollection(true);
 
 		foreach ($categories as $category) {
-			/** @var \Eshop\DB\Producer[] $producers */
+			/** @var array<\Eshop\DB\Producer> $producers */
 			$producers = $this->producerRepository->many()
 				->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid')
 				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid')
@@ -444,7 +445,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	/**
 	 * @param \Eshop\DB\Category|string $category
 	 * @param array<\Eshop\DB\Category>|null $allCategories
-	 * @return array|\Eshop\DB\Category[]
+	 * @return array<\Eshop\DB\Category>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function getBranch($category, ?array $allCategories = null): array
@@ -521,7 +522,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			$previousCategory = null;
 
 			foreach ($columns as $column) {
-				if (!isset($value[$column]) || \strlen($value[$column]) === 0) {
+				if (!isset($value[$column]) || Strings::length($value[$column]) === 0) {
 					break;
 				}
 
@@ -682,11 +683,11 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$connection = $this->getConnection();
 		$mutations = $connection->getAvailableMutations();
 
-		/** @var \Eshop\DB\Category[] $categories */
+		/** @var array<\Eshop\DB\Category> $categories */
 		$categories = $this->many()->where('uuid', $categories);
 
 		foreach ($categories as $category) {
-			/** @var \Eshop\DB\Producer[]|\StORM\ICollection $producers */
+			/** @var array<\Eshop\DB\Producer>|\StORM\ICollection $producers */
 			$producers = $this->producerRepository->many()
 				->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid', [], 'INNER')
 				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid');
@@ -819,8 +820,6 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 			return true;
 		} catch (\Throwable $e) {
-			\bdump($e);
-
 			return false;
 		}
 	}
@@ -967,7 +966,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	 * @param \Eshop\DB\CategoryRepository $repository
 	 * @param bool $includeHidden
 	 * @param bool $onlyMenu
-	 * @return \Eshop\DB\Category[]
+	 * @return array<\Eshop\DB\Category>
 	 */
 	private function getTreeHelper(string $typeId, CategoryRepository $repository, bool $includeHidden = false, bool $onlyMenu = false): array
 	{
@@ -985,9 +984,9 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	}
 
 	/**
-	 * @param \Eshop\DB\Category[] $elements
+	 * @param array<\Eshop\DB\Category> $elements
 	 * @param string|null $ancestorId
-	 * @return \Eshop\DB\Category[]
+	 * @return array<\Eshop\DB\Category>
 	 */
 	private function buildTree(array $elements, ?string $ancestorId, string $typeId): array
 	{
@@ -1034,7 +1033,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	{
 		foreach ($category->children as $child) {
 			$child->setParent($this);
-			$child->update(['path' => $category->path . \substr($child->path, -4)]);
+			$child->update(['path' => $category->path . Strings::substring($child->path, -4)]);
 
 			if (\count($child->children) <= 0) {
 				continue;

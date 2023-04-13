@@ -17,7 +17,6 @@ class Algolia
 	private ?SearchClient $client = null;
 
 	public function __construct(
-		/** @codingStandardsIgnoreStart PHP 8.0 features */
 		private string $applicationId,
 		private string $adminApiKey,
 		protected IRequest $httpRequest,
@@ -25,7 +24,6 @@ class Algolia
 		protected SettingRepository $settingRepository,
 		protected CategoryRepository $categoryRepository,
 		private string $indexPrefix = '',
-		/** @codingStandardsIgnoreEnd */
 	) {
 		$this->baseUrl = $httpRequest->getUrl()->getBaseUrl();
 	}
@@ -46,7 +44,7 @@ class Algolia
 	/**
 	 * @deprecated use uploadValues instead
 	 * @param array<string, array<string, array<string>>> $indexes
-	 * @param string[] $mutations
+	 * @param array<string> $mutations
 	 * @throws \Algolia\AlgoliaSearch\Exceptions\MissingObjectId|\StORM\Exception\NotFoundException
 	 */
 	public function uploadProducts(array $indexes, array $mutations): void

@@ -25,7 +25,6 @@ use Eshop\DB\QuantityPriceRepository;
 use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierRepository;
-use Eshop\DB\TagRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
@@ -82,9 +81,6 @@ class PricelistsPresenter extends BackendPresenter
 
 	/** @inject */
 	public SupplierCategoryRepository $supplierCategoryRepository;
-
-	/** @inject */
-	public TagRepository $tagRepository;
 
 	/** @inject */
 	public RibbonRepository $ribbonRepository;
@@ -308,19 +304,12 @@ class PricelistsPresenter extends BackendPresenter
 			}, '', 'producers', null, $producers, ['placeholder' => '- Výrobci -']);
 		}
 
-		if ($tags = $this->tagRepository->getArrayForSelect()) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
-				$source->join(['tags' => 'eshop_product_nxn_eshop_tag'], 'tags.fk_product=products.uuid');
-				$source->where('tags.fk_tag', $value);
-			}, '', 'tags', null, $tags, ['placeholder' => '- Tagy -']);
-		}
-
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('products.hidden', (bool)$value);
+			$source->where('products.hidden', (bool) $value);
 		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('products.unavailable', (bool)$value);
+			$source->where('products.unavailable', (bool) $value);
 		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
 
 		$submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
@@ -724,7 +713,7 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 			$this->priceListRepository->copyPricesArray(
 				$values['bulkType'] === 'selected' ? $ids : \array_keys($grid->getFilteredSource()->toArrayOf('uuid')),
 				$targetPricelist,
-				(float)$values['percent'] / 100,
+				(float) $values['percent'] / 100,
 				Shopper::PRICE_PRECISSION,
 				$values['overwrite'],
 				$values['beforePrices'] ?? false,
@@ -773,8 +762,8 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 //			$products .= $this->productRepository->one($id)->getFullCode() . ';';
 //		}
 //
-//		if (\strlen($products) > 0) {
-//			$products = \substr($products, 0, -1);
+//		if (Strings::length($products) > 0) {
+//			$products = Strings::substring($products, 0, -1);
 //		}
 //
 //		$form->setDefaults(['products' => $products]);

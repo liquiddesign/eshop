@@ -249,7 +249,7 @@ class MerchantPresenter extends BackendPresenter
 	{
 		$merchant = $this->getParameter('merchant');
 
-		return $this->accountFormFactory->create((bool)$merchant->accounts->first());
+		return $this->accountFormFactory->create((bool) $merchant->accounts->first());
 	}
 
 	public function actionEditAccount(Merchant $merchant): void

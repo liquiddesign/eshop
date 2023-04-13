@@ -63,7 +63,6 @@ use Nette\Http\Request;
 use Nette\IOException;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
-use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -379,7 +378,7 @@ class OrderPresenter extends BackendPresenter
 		$form->addGroup('Stav');
 		$form->addDatetime('shippedTs', 'Expedováno')->setNullable(true);
 
-		$form->addHidden('order', (string)$order);
+		$form->addHidden('order', (string) $order);
 
 		$form->addSubmits(!$this->getParameter('delivery'));
 
@@ -441,7 +440,6 @@ class OrderPresenter extends BackendPresenter
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, $template->name, $admin);
 			} catch (\Throwable $e) {
-				\bdump($e);
 				Debugger::log($e, ILogger::ERROR);
 			}
 
@@ -493,7 +491,7 @@ class OrderPresenter extends BackendPresenter
 		$form->addDatetime('paidTs', 'Datum a čas')->setNullable(true);
 		$form->addText('paidPrice', 'Částka bez DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
 		$form->addText('paidPriceVat', 'Částka s DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
-		$form->addHidden('order', (string)$this->getParameter('order'));
+		$form->addHidden('order', (string) $this->getParameter('order'));
 
 		$form->addSubmits(!$this->getParameter('order'));
 
@@ -1310,7 +1308,7 @@ class OrderPresenter extends BackendPresenter
 		$delivery = $this->deliveryRepository->one($delivery, true);
 
 		$values = [
-			'shippedTs' => $shipped ? (string)new DateTime() : null,
+			'shippedTs' => $shipped ? (string) new \Carbon\Carbon() : null,
 		];
 
 		/** @var \Admin\DB\Administrator|null $admin */
@@ -1357,7 +1355,7 @@ class OrderPresenter extends BackendPresenter
 			}
 
 			$values = [
-				'amount' => (int)$data['packageAmount'],
+				'amount' => (int) $data['packageAmount'],
 				'cartItem' => $id,
 				'delivery' => $delivery,
 			];
@@ -1371,7 +1369,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function renderDeliveryColumn(CartItem $item, Datagrid $grid): string
 	{
-		/** @var \Eshop\DB\Delivery[] $deliveries */
+		/** @var array<\Eshop\DB\Delivery> $deliveries */
 		$deliveries = $item->getDeliveries()->toArray();
 		$types = [];
 
@@ -1461,7 +1459,7 @@ class OrderPresenter extends BackendPresenter
 
 			$tempFilename = \tempnam($this->tempDir, 'csv');
 			$headerColumns = \array_filter($items, function ($item) use ($values) {
-				return \in_array($item, $values['columns']);
+				return Arrays::contains($values['columns'], $item);
 			}, \ARRAY_FILTER_USE_KEY);
 
 			$this->orderRepository->csvPPCExport(

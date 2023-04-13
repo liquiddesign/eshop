@@ -40,17 +40,17 @@ class ScriptsPresenter extends \Admin\BackendPresenter
 		$this->template->setFile(__DIR__ . '/templates/Scripts.default.latte');
 
 		$this->template->scripts = [
-			(object)[
+			(object) [
 				'name' => 'Vymazat mezipaměť',
 				'link' => 'clearCache!',
 				'info' => 'Po vymazání může být první průchod eshopem pomalý!',
 			],
-			(object)[
+			(object) [
 				'name' => 'Odeslat aktivní hlídací psy',
 				'link' => 'checkWatchers!',
 				'info' => 'Odešle e-maily zákazníkům o případných změnách v dostupnosit jejich hlídaných produktů.',
 			],
-			(object)[
+			(object) [
 				'name' => 'Doplnit chybějící hlavní obrázky',
 				'link' => 'fixMissingMainImages!',
 				'info' => 'Vybere všechny produkty, které NEMAJÍ nastavený hlavní obrázek a pokud mají alespoň jeden obrázek tak nastaví náhodně hlavní obrázek.',

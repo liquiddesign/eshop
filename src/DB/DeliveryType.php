@@ -7,7 +7,6 @@ namespace Eshop\DB;
 use DVDoug\BoxPacker;
 use DVDoug\BoxPacker\Packer;
 use Eshop\Common\DB\SystemicEntity;
-use Nette\Utils\DateTime;
 use StORM\RelationCollection;
 
 /**
@@ -153,7 +152,7 @@ class DeliveryType extends SystemicEntity implements BoxPacker\Box
 	
 	/**
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\PaymentType>|\Eshop\DB\PaymentType[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\PaymentType>
 	 */
 	public RelationCollection $allowedPaymentTypes;
 	
@@ -291,8 +290,8 @@ class DeliveryType extends SystemicEntity implements BoxPacker\Box
 			return $displayDelivery->label;
 		}
 
-		$nowThresholdTime = DateTime::createFromFormat('G:i', $displayDelivery->timeThreshold);
+		$nowThresholdTime = \Carbon\Carbon::createFromFormat('G:i', $displayDelivery->timeThreshold);
 
-		return $nowThresholdTime > (new DateTime()) ? $displayDelivery->beforeTimeThresholdLabel : $displayDelivery->afterTimeThresholdLabel;
+		return $nowThresholdTime > (new \Carbon\Carbon()) ? $displayDelivery->beforeTimeThresholdLabel : $displayDelivery->afterTimeThresholdLabel;
 	}
 }

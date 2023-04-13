@@ -63,7 +63,7 @@ class CustomerGroup extends \StORM\Entity
 	/**
 	 * Defaultní ceníky
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Pricelist>
 	 */
 	public RelationCollection $defaultPricelists;
 

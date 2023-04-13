@@ -117,8 +117,6 @@ class RelatedTypeRepository extends \StORM\Repository implements IGeneralReposit
 
 			return true;
 		} catch (\Throwable $e) {
-			\bdump($e);
-
 			return false;
 		}
 	}

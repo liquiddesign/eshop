@@ -28,17 +28,17 @@ class CartItemList extends Datalist
 	public Shopper $shopper;
 
 	/**
-	 * @var callable[]&callable(): void; Occurs on delete item or coupon
+	 * @var array<callable>&callable(): void ; Occurs on delete item or coupon
 	 */
 	public $onItemAmountChange;
 
 	/**
-	 * @var callable[]&callable(): void; Occurs on delete item or coupon
+	 * @var array<callable>&callable(): void ; Occurs on delete item or coupon
 	 */
 	public $onItemDelete;
 
 	/**
-	 * @var callable[]&callable(): void; Occurs on delete all items
+	 * @var array<callable>&callable(): void ; Occurs on delete all items
 	 */
 	public $onDeleteAll;
 
@@ -179,7 +179,7 @@ class CartItemList extends Datalist
 		$this->template->discountPriceVat = $this->checkoutManager->getDiscountPriceVat();
 		$this->template->watchers = ($customer = $this->shopper->getCustomer()) ? $this->watcherRepository->getWatchersByCustomer($customer)->setIndex('fk_product')->toArray() : [];
 
-		/** @var \Eshop\DB\CartItem[] $cartItems */
+		/** @var array<\Eshop\DB\CartItem> $cartItems */
 		$cartItems = $this->getItemsOnPage();
 		$this->template->upsells = $this->productRepository->getCartItemsRelations($cartItems);
 

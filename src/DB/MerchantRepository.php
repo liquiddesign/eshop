@@ -16,7 +16,7 @@ class MerchantRepository extends \StORM\Repository implements IUserRepository, I
 {
 	use UserRepositoryTrait;
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 * @deprecated use getArrayForSelect()
 	 */
 	public function getListForSelect(): array
@@ -35,7 +35,7 @@ class MerchantRepository extends \StORM\Repository implements IUserRepository, I
 
 	/**
 	 * @param \Eshop\DB\Customer|string|null $customer
-	 * @return \Eshop\DB\Merchant[]
+	 * @return array<\Eshop\DB\Merchant>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function getMerchantsByCustomer($customer = null): array

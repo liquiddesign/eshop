@@ -16,6 +16,7 @@ use Grid\Datagrid;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
+use Nette\Utils\Strings;
 use StORM\Connection;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -51,9 +52,7 @@ class ProductGridFactory
 		CategoryRepository $categoryRepository,
 		SupplierProductRepository $supplierProductRepository,
 		CategoryTypeRepository $categoryTypeRepository,
-		/** @codingStandardsIgnoreStart PHP 8.0 */
 		private Integrations $integrations,
-		/** @codingStandardsIgnoreEnd */
 	) {
 		$this->gridFactory = $gridFactory;
 		$this->pageRepository = $pageRepository;
@@ -134,7 +133,7 @@ class ProductGridFactory
 			}
 
 			if ($mergedProductsCodes) {
-				$mergedProductsCodes = \substr($mergedProductsCodes, 0, -1);
+				$mergedProductsCodes = Strings::substring($mergedProductsCodes, 0, -1);
 
 				$suppliers[] = "<a href='#' class='badge badge-secondary' style='font-weight: normal;'><i class='fas fa-angle-down fa-sm mr-1'></i>" . $mergedProductsCodes . '</a>';
 			}
@@ -200,7 +199,7 @@ class ProductGridFactory
 			}
 
 			return [
-				$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]),
+				$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string) $product]),
 				$product->name,
 				\implode(' &nbsp;', $suppliers),
 				$ribbons,
@@ -212,7 +211,7 @@ class ProductGridFactory
 		$grid->addColumnText('Výrobce', 'producer.name', '%s');
 		$grid->addColumn('Kategorie', function (Product $product, $grid) use ($mutationSuffix) {
 			$categories = $this->categoryRepository->getTreeArrayForSelect();
-			/** @var string[] $productCategories */
+			/** @var array<string> $productCategories */
 			$productCategories = $product->categories->orderBy(['LENGTH(this.path)', "this.name$mutationSuffix"])->toArrayOf('name');
 
 			$finalStr = '';

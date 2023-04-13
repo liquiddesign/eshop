@@ -108,19 +108,19 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 		}
 
 		if (!isset($values['exposed'])) {
-			$newValues['exposed'] = (string)(new Carbon());
+			$newValues['exposed'] = (string) (new Carbon());
 		}
 
 		if (!isset($values['taxDate'])) {
 			$days = $this->shopper->getInvoicesAutoTaxDateInDays();
 
-			$newValues['taxDate'] = (string)(new Carbon($newValues['exposed']))->addDays($days);
+			$newValues['taxDate'] = (string) (new Carbon($newValues['exposed']))->addDays($days);
 		}
 
 		if (!isset($values['dueDate'])) {
 			$days = $this->shopper->getInvoicesAutoDueDateInDays();
 
-			$newValues['dueDate'] = (string)(new Carbon($newValues['exposed']))->addDays($days);
+			$newValues['dueDate'] = (string) (new Carbon($newValues['exposed']))->addDays($days);
 		}
 
 		if (!isset($values['variableSymbol'])) {

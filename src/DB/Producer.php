@@ -6,6 +6,7 @@ namespace Eshop\DB;
 
 use Eshop\Common\DB\SystemicEntity;
 use Nette\Application\ApplicationException;
+use Nette\Utils\Arrays;
 
 /**
  * Výrobce
@@ -74,7 +75,7 @@ class Producer extends SystemicEntity
 
 	public function getPreviewImage(string $basePath, string $size = 'detail'): string
 	{
-		if (!\in_array($size, ['origin', 'detail', 'thumb'])) {
+		if (!Arrays::contains(['origin', 'detail', 'thumb'], $size)) {
 			throw new ApplicationException('Invalid product image size: ' . $size);
 		}
 

@@ -12,7 +12,6 @@ use Eshop\DB\SupplierProduct;
 use Eshop\DB\SupplierRepository;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
-use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Strings;
 use StORM\DIConnection;
@@ -61,7 +60,7 @@ class HeurekaProvider extends SupplierProvider
 		FileSystem::createDir($this->imageDirectory . '/thumb');
 		FileSystem::createDir($this->logDirectory);
 
-		$this->supplier->update(['lastImportTs' => (new DateTime())->format('Y-m-d G:i')]);
+		$this->supplier->update(['lastImportTs' => (new \Carbon\Carbon())->format('Y-m-d G:i')]);
 
 		return $this->supplier;
 	}

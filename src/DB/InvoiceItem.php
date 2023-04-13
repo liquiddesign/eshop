@@ -100,7 +100,7 @@ class InvoiceItem extends \StORM\Entity
 	/**
 	 * Related invoice items
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedInvoiceItem>|\Eshop\DB\RelatedInvoiceItem[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedInvoiceItem>
 	 */
 	public RelationCollection $relatedInvoiceItems;
 

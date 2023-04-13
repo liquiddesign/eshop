@@ -28,12 +28,12 @@ class MailerLite
 	private Groups $groupsApi;
 
 	/**
-	 * @var \stdClass[]
+	 * @var array<\stdClass>
 	 */
 	private array $groups;
 
 	/**
-	 * @var array<string, \stdClass[]>
+	 * @var array<string, array<\stdClass>>
 	 */
 	private array $subscribers;
 
@@ -170,9 +170,8 @@ class MailerLite
 	/**
 	 * Get group, if groupName doesnt exist creates new.
 	 * @param string $groupName
-	 * @return mixed
 	 */
-	private function getGroupByName(string $groupName)
+	private function getGroupByName(string $groupName): mixed
 	{
 		foreach ($this->groups as $group) {
 			if ($group->name === $groupName) {
@@ -188,7 +187,7 @@ class MailerLite
 
 	/**
 	 * @param string $groupName
-	 * @return \stdClass[]
+	 * @return array<\stdClass>
 	 */
 	private function getSubscribers(string $groupName): array
 	{

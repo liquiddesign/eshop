@@ -24,6 +24,7 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 
 	/** @inject */
 	public AttributeValueRepository $attributeValueRepository;
+
 	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 
@@ -36,7 +37,7 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 
 		$suffix = $this->productRepository->getConnection()->getMutationSuffix();
 
-		/** @var \Eshop\DB\Product[] $products */
+		/** @var array<\Eshop\DB\Product> $products */
 		$products = $this->productRepository->getCollection(true)
 			->where("this.name$suffix LIKE :q OR this.code = :exact OR this.ean = :exact", ['q' => "%$q%", 'exact' => $q,])
 			->setPage($page ?? 1, 5)
@@ -66,7 +67,7 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 
 		$suffix = $this->categoryRepository->getConnection()->getMutationSuffix();
 
-		/** @var \Eshop\DB\Category[] $categories */
+		/** @var array<\Eshop\DB\Category> $categories */
 		$categories = $this->categoryRepository->getCollection(true)
 			->join(['eshop_categorytype'], 'this.fk_type = eshop_categorytype.uuid')
 			->where("this.name$suffix LIKE :q OR this.code LIKE :q", ['q' => "%$q%"])

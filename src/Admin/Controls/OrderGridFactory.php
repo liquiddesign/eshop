@@ -31,7 +31,6 @@ use Nette\DI\Container;
 use Nette\Forms\Controls\Button;
 use Nette\IOException;
 use Nette\Utils\Arrays;
-use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Html;
 use StORM\Collection;
@@ -91,9 +90,7 @@ class OrderGridFactory
 		Integrations $integrations,
 		Container $container,
 		SettingRepository $settingRepository,
-		/** @codingStandardsIgnoreStart */
 		private InternalRibbonRepository $internalRibbonRepository,
-		/** @codingStandardsIgnoreEnd */
 	) {
 		$this->orderRepository = $orderRepository;
 		$this->gridFactory = $adminGridFactory;
@@ -166,7 +163,7 @@ class OrderGridFactory
 					$order->code,
 					$ribbons,
 					$link,
-					(new DateTime($order->createdTs))->format('d.m.Y G:i'),
+					(new \Carbon\Carbon($order->createdTs))->format('d.m.Y G:i'),
 				);
 			}
 
@@ -176,7 +173,7 @@ class OrderGridFactory
 				$grid->getPresenter()->link('printDetail', $order),
 				$order->code,
 				$ribbons,
-				(new DateTime($order->createdTs))->format('d.m.Y G:i'),
+				(new \Carbon\Carbon($order->createdTs))->format('d.m.Y G:i'),
 			);
 		}, '%s', 'this.createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
@@ -603,9 +600,9 @@ class OrderGridFactory
 			return $presenter->isManager ? '<a href="' . $link . '" class="btn btn-sm btn-outline-primary"><i class="fa fa-sm fa-plus m-1"></i>Zvolte platbu</a>' : 'Zvolte platbu';
 		}
 
-		$linkPay = $grid->getPresenter()->link('changePayment!', ['payment' => (string)$payment, 'paid' => true]);
-		$linkPayPlusEmail = $grid->getPresenter()->link('changePayment!', ['payment' => (string)$payment, 'paid' => true, 'email' => true]);
-		$linkCancel = $grid->getPresenter()->link('changePayment!', ['payment' => (string)$payment, 'paid' => false]);
+		$linkPay = $grid->getPresenter()->link('changePayment!', ['payment' => (string) $payment, 'paid' => true]);
+		$linkPayPlusEmail = $grid->getPresenter()->link('changePayment!', ['payment' => (string) $payment, 'paid' => true, 'email' => true]);
+		$linkCancel = $grid->getPresenter()->link('changePayment!', ['payment' => (string) $payment, 'paid' => false]);
 		$linkCancel = $presenter->isManager ? "<a href='$linkCancel'><i class='far fa-times-circle'></i></a>" : '';
 
 		$paymentInfo = '';
@@ -633,9 +630,9 @@ class OrderGridFactory
 			return '<a href="' . $link . '" class="btn btn-sm btn-outline-primary"><i class="fa fa-sm fa-plus m-1"></i>Zvolte dopravu</a>';
 		}
 
-		$linkShip = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string)$delivery, 'shipped' => true, 'email' => false]);
-		$linkShipPlusEmail = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string)$delivery, 'shipped' => true, 'email' => true]);
-		$linkCancel = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string)$delivery, 'shipped' => false]);
+		$linkShip = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string) $delivery, 'shipped' => true, 'email' => false]);
+		$linkShipPlusEmail = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string) $delivery, 'shipped' => true, 'email' => true]);
+		$linkCancel = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string) $delivery, 'shipped' => false]);
 
 		if ($delivery->shippedTs) {
 			$from = $order->deliveries->clear(true)->where('shippedTs IS NOT NULL')->enum();

@@ -367,7 +367,7 @@ class IntegrationPresenter extends BackendPresenter
 	public function handleSyncZasilkovnaOrders(): void
 	{
 		try {
-			/** @var \Eshop\DB\Order[] $orders */
+			/** @var array<\Eshop\DB\Order> $orders */
 			$orders = $this->orderRepository->many()
 				->where('this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
 				->where('purchase.zasilkovnaId IS NOT NULL')

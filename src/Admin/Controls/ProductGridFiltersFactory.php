@@ -18,6 +18,7 @@ use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\Expression;
 use StORM\ICollection;
@@ -86,7 +87,7 @@ class ProductGridFiltersFactory
 				if (\str_starts_with($value, '.')) {
 					$subSelect = $this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
 						->where('this.uuid = eshop_product_nxn_eshop_category.fk_product')
-						->where('eshop_product_nxn_eshop_category.fk_category', \substr($value, 1));
+						->where('eshop_product_nxn_eshop_category.fk_category', Strings::substring($value, 1));
 
 					$source->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
 				} else {
@@ -235,15 +236,15 @@ class ProductGridFiltersFactory
 		}
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('this.hidden', (bool)$value);
+			$source->where('this.hidden', (bool) $value);
 		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('this.recommended', (bool)$value);
+			$source->where('this.recommended', (bool) $value);
 		}, '', 'recommended', null, ['1' => 'Doporučené', '0' => 'Normální'])->setPrompt('- Doporučené -');
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('this.unavailable', (bool)$value);
+			$source->where('this.unavailable', (bool) $value);
 		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {

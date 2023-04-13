@@ -35,7 +35,7 @@ class ProductAttributesGridFactory
 	private Session $session;
 
 	/**
-	 * @var \Eshop\DB\Attribute[]
+	 * @var array<\Eshop\DB\Attribute>
 	 */
 	private array $attributes = [];
 
@@ -78,7 +78,7 @@ class ProductAttributesGridFactory
 		$grid->setItemsPerPage([5, 10, 20, 50, 100]);
 
 		$nameColumn = $grid->addColumn('Název', function (Product $product, $grid) {
-			return [$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]), $product->name];
+			return [$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string) $product]), $product->name];
 		}, '<a style="" href="%s" target="_blank"> %s</a>', 'name');
 
 		$nameColumn->onRenderCell[] = [$grid, 'decoratorNowrap'];
@@ -111,7 +111,7 @@ class ProductAttributesGridFactory
 				}
 			}
 
-			/** @var \Eshop\DB\Attribute[] $attributes */
+			/** @var array<\Eshop\DB\Attribute> $attributes */
 			$attributes = $this->attributes = $this->attributeRepository->getAttributesByCategory($category->path, true)->toArray();
 
 			foreach ($attributes as $attribute) {

@@ -147,8 +147,6 @@ class EHubPresenter extends \Eshop\BackendPresenter
 //					$values['transactionId'] = $newTransaction['transaction']['id'];
 				}
 			} catch (\Exception $e) {
-				\bdump($e);
-
 				$this->flashMessage('Transakci nelze odeslat!', 'error');
 				$this->redirect('this');
 			}
@@ -194,8 +192,6 @@ class EHubPresenter extends \Eshop\BackendPresenter
 
 					$transaction->update(['status' => $values['status']]);
 				} catch (\Exception $e) {
-					\bdump($e);
-
 					$this->flashMessage('Některé transakce nelze odeslat!', 'warning');
 					$this->redirect('this');
 				}

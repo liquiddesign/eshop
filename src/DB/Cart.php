@@ -81,7 +81,7 @@ class Cart extends \StORM\Entity
 	/**
 	 * Položky košíku
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\CartItem>|\Eshop\DB\CartItem[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\CartItem>
 	 */
 	public RelationCollection $items;
 }

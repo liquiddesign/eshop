@@ -318,7 +318,7 @@ Např.: "BANK_CZ_CS_P+BANK_CZ_KB-BANK_CZ_RB". Více viz: https://help.comgate.cz
 	}
 
 	/**
-	 * @return \Eshop\DB\Currency[]
+	 * @return array<\Eshop\DB\Currency>
 	 */
 	private function getAvailableCurrencies(): array
 	{

@@ -34,7 +34,7 @@ class ProductFilter extends Control
 	];
 	
 	/**
-	 * @var callable[]&callable(): void; Occurs after product filter form success
+	 * @var array<callable>&callable(): void ; Occurs after product filter form success
 	 */
 	public $onFormSuccess;
 	
@@ -58,17 +58,17 @@ class ProductFilter extends Control
 	private Cache $cache;
 	
 	/**
-	 * @var \Eshop\DB\Attribute[]
+	 * @var array<\Eshop\DB\Attribute>
 	 */
 	private array $attributes;
 	
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	private array $attributeValues = [];
 	
 	/**
-	 * @var string[][]
+	 * @var array<array<string>>
 	 */
 	private array $rangeValues = [];
 	
@@ -94,7 +94,7 @@ class ProductFilter extends Control
 	
 	public function render(): void
 	{
-		/** @var string[][][] $filters */
+		/** @var array<array<array<string>>> $filters */
 		$filters = $this->getProductList()->getFilters();
 		
 		$this->template->systemicCounts = [
@@ -178,7 +178,7 @@ class ProductFilter extends Control
 	/**
 	 * @param string|null $rootIndex
 	 * @param string|null $valueIndex
-	 * @return mixed[]|mixed[][]|mixed[][][]
+	 * @return array<mixed>|array<array<mixed>>|array<array<array<mixed>>>
 	 */
 	public function getClearFilters(?string $rootIndex = null, ?string $valueIndex = null): array
 	{
@@ -192,7 +192,7 @@ class ProductFilter extends Control
 			return [];
 		}
 		
-		/** @var string[][][] $filters */
+		/** @var array<array<array<string>>> $filters */
 		$filters = $this->getProductList()->getFilters();
 		
 		if ($valueIndex) {
@@ -231,7 +231,7 @@ class ProductFilter extends Control
 	}
 	
 	/**
-	 * @return \Eshop\DB\Attribute[]
+	 * @return array<\Eshop\DB\Attribute>
 	 */
 	private function getAttributes(): array
 	{
@@ -253,28 +253,31 @@ class ProductFilter extends Control
 	 */
 	private function getSystemicAttributeValues(string $uuid): array
 	{
-		switch ($uuid) {
-			case 'availability':
-				return $this->displayAmountRepository->getArrayForSelect(false);
-			case 'delivery':
-				return $this->displayDeliveryRepository->getArrayForSelect(false);
-			case 'producer':
-				$categoryPath = $this->getCategoryPath() ?? '';
-
-				return $this->cache->load("getSystemicAttributeValues-$uuid-$categoryPath", function (&$dependencies) use ($categoryPath) {
-					$dependencies = [
-						Cache::Tags => [ScriptsPresenter::ATTRIBUTES_CACHE_TAG, ScriptsPresenter::PRODUCERS_CACHE_TAG,],
-					];
-
-					return $this->producerRepository->getCollection()
-						->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid', [], 'INNER')
-						->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid')
-						->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
-						->where('category.path LIKE :s', ['s' => $categoryPath . '%'])
-						->toArrayOf('name');
-				});
-			default:
-				return [];
+		if ($uuid === 'availability') {
+			return $this->displayAmountRepository->getArrayForSelect(false);
 		}
+
+		if ($uuid === 'delivery') {
+			return $this->displayDeliveryRepository->getArrayForSelect(false);
+		}
+
+		if ($uuid === 'producer') {
+			$categoryPath = $this->getCategoryPath() ?? '';
+
+			return $this->cache->load("getSystemicAttributeValues-$uuid-$categoryPath", function (&$dependencies) use ($categoryPath) {
+				$dependencies = [
+					Cache::Tags => [ScriptsPresenter::ATTRIBUTES_CACHE_TAG, ScriptsPresenter::PRODUCERS_CACHE_TAG,],
+				];
+
+				return $this->producerRepository->getCollection()
+					->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid', [], 'INNER')
+					->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid')
+					->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
+					->where('category.path LIKE :s', ['s' => $categoryPath . '%'])
+					->toArrayOf('name');
+			});
+		}
+
+		return [];
 	}
 }

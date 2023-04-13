@@ -27,7 +27,7 @@ class Package extends \StORM\Entity
 	
 	/**
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\PackageItem>|\Eshop\DB\PackageItem[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\PackageItem>
 	 */
 	public RelationCollection $items;
 	

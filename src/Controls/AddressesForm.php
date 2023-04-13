@@ -61,7 +61,7 @@ class AddressesForm extends Form
 			->addRule(self::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
 		$billAddressBox->addText('state', 'AddressesForm.bill_state');
 		
-		$otherAddress = $this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool)$this->checkoutManager->getPurchase()->deliveryAddress);
+		$otherAddress = $this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool) $this->checkoutManager->getPurchase()->deliveryAddress);
 		$isCompany = $this->addCheckbox('isCompany', 'AddressesForm.isCompany')->setDefaultValue($shopper->getCustomer() && $shopper->getCustomer()->isCompany());
 		$createAccount = $this->addCheckbox('createAccount', 'AddressesForm.createAccount');
 		$this->addPassword('password', 'AddressesForm.password')

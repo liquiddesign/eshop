@@ -6,7 +6,7 @@ namespace Eshop\Bridges;
 
 use Eshop\CheckoutManager;
 use Eshop\CompareManager;
-use Eshop\Integration\Comgate;
+use Eshop\Services\Comgate;
 use Eshop\Shopper;
 use Nette\Schema\Expect;
 use Nette\Schema\Schema;

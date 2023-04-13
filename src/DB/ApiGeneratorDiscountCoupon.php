@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Carbon\Carbon;
+
 /**
  * API klíč pro vygenerování slevového kuponu pro partnera dle nastavení
  * @table
@@ -129,8 +131,8 @@ class ApiGeneratorDiscountCoupon extends \StORM\Entity
 
 	public function isActive(): bool
 	{
-		return ($this->validFrom === null || \strtotime($this->validFrom) <= \time()) &&
-			($this->validTo === null || \strtotime($this->validTo) >= \time()) &&
+		return ($this->validFrom === null || Carbon::parse($this->validFrom)->getTimestamp() <= \time()) &&
+			($this->validTo === null || Carbon::parse($this->validTo)->getTimestamp() >= \time()) &&
 			($this->apiUsageLimit === null || $this->apiUsageLimit > $this->apiUsagesCount);
 	}
 

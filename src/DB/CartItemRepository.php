@@ -145,7 +145,7 @@ class CartItemRepository extends \StORM\Repository
 		/** @var \Eshop\DB\Product $upsell */
 		$upsell = $this->productRepository->one($upsell);
 		
-		return (bool)$this->many()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->count() > 0;
+		return (bool) $this->many()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->count() > 0;
 	}
 	
 	public function getUpsell($cartItem, $upsell): ?CartItem

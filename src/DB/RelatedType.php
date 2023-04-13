@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Nette\Utils\Strings;
+
 /**
  * Typ vztahu produktů
  * @table
@@ -135,12 +137,12 @@ class RelatedType extends \StORM\Entity
 
 	public function getMasterInternalName(): ?string
 	{
-		return \is_string($this->masterName) && \strlen($this->masterName) > 0 ? $this->masterName : 'Master produkty';
+		return \is_string($this->masterName) && Strings::length($this->masterName) > 0 ? $this->masterName : 'Master produkty';
 	}
 
 	public function getSlaveInternalName(): ?string
 	{
-		return \is_string($this->slaveName) && \strlen($this->slaveName) > 0 ? $this->slaveName : 'Slave produkty';
+		return \is_string($this->slaveName) && Strings::length($this->slaveName) > 0 ? $this->slaveName : 'Slave produkty';
 	}
 
 	/**

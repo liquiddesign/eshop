@@ -22,6 +22,7 @@ use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
 use Nette\Utils\Html;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\ICollection;
 use Tracy\Debugger;
@@ -74,7 +75,7 @@ class InvoicesPresenter extends BackendPresenter
 				$ordersString .= "<a href='$link'>$orderCode</a>";
 			}
 
-			return \substr($ordersString, 0, -2);
+			return Strings::substring($ordersString, 0, -2);
 		}, '%s', 'order.code');
 		$grid->addColumn('Veřejná URL', function (Invoice $invoice): ?string {
 			try {
@@ -82,8 +83,6 @@ class InvoicesPresenter extends BackendPresenter
 
 				return "<a href=\"$link\" target=\"_blank\">$link</a>";
 			} catch (\Nette\Application\UI\InvalidLinkException $e) {
-				\bdump($e);
-
 				return null;
 			}
 		});
@@ -265,7 +264,6 @@ class InvoicesPresenter extends BackendPresenter
 
 			$this->template->displayButtons[] = '<a href="' . $link . '" target="_blank"><button class="btn btn-sm btn-outline-primary"><i class="fas fa-print"></i>&nbsp;Tisková sestava</button></a>';
 		} catch (\Nette\Application\UI\InvalidLinkException $e) {
-			\bdump($e);
 		}
 
 		$this->template->displayControls = [$this->getComponent('form')];
@@ -279,8 +277,6 @@ class InvoicesPresenter extends BackendPresenter
 
 			$this->flashMessage('Odesláno', 'success');
 		} catch (\Throwable $e) {
-			\bdump($e);
-
 			$this->flashMessage('Nelze odeslat email!', 'error');
 		}
 
@@ -295,8 +291,6 @@ class InvoicesPresenter extends BackendPresenter
 
 			$this->flashMessage('Odesláno', 'success');
 		} catch (\Throwable $e) {
-			\bdump($e);
-
 			$this->flashMessage('Nelze odeslat email!', 'error');
 		}
 

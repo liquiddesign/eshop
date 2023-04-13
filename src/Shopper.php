@@ -41,7 +41,7 @@ class Shopper
 	public ?DiscountCoupon $discountCoupon = null;
 	
 	/**
-	 * @var bool[]
+	 * @var array<bool>
 	 */
 	protected array $registrationConfiguration = [
 		'enabled' => true,
@@ -58,7 +58,7 @@ class Shopper
 	protected Country $country;
 	
 	/**
-	 * @var float[]
+	 * @var array<float>
 	 */
 	protected array $vatRates = [];
 
@@ -71,7 +71,7 @@ class Shopper
 	protected bool $showZeroPrices;
 	
 	/**
-	 * @var \Eshop\DB\Currency[]
+	 * @var array<\Eshop\DB\Currency>
 	 */
 	protected array $altCurrencies = [];
 
@@ -497,7 +497,7 @@ class Shopper
 	}
 	
 	/**
-	 * @return mixed[]
+	 * @return array<mixed>
 	 */
 	public function getRegistrationConfiguration(): array
 	{
@@ -541,7 +541,7 @@ class Shopper
 	}
 	
 	/**
-	 * @return float[]
+	 * @return array<float>
 	 */
 	public function getVatRates(): array
 	{
@@ -654,7 +654,7 @@ class Shopper
 		}
 		
 		$nbsp = \html_entity_decode('&nbsp;');
-		$formatted = \number_format((float)$number, $currency->formatDecimals, $currency->formatDecimalSeparator, \str_replace(' ', $nbsp, $currency->formatThousandsSeparator));
+		$formatted = \number_format((float) $number, $currency->formatDecimals, $currency->formatDecimalSeparator, \str_replace(' ', $nbsp, $currency->formatThousandsSeparator));
 		
 		return ($currency->formatSymbolPosition !== 'after' ? $currency->symbol : '') . $formatted . $nbsp . ($currency->formatSymbolPosition === 'after' ? $currency->symbol : '');
 	}

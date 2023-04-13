@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Carbon\Carbon;
 use Nette\Application\ApplicationException;
-use Nette\Utils\DateTime;
+use Nette\IOException;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Helpers;
 use Nette\Utils\Random;
@@ -24,7 +25,7 @@ class ImportResultRepository extends \StORM\Repository
 	
 	public function createLog(Supplier $supplier, string $directory, string $type = 'import'): ImportResult
 	{
-		$id = (new DateTime())->format('Y-m-d-g-i-s') . '-' . $supplier->code . '-' . Random::generate(4);
+		$id = (new Carbon())->format('Y-m-d-g-i-s') . '-' . $supplier->code . '-' . Random::generate(4);
 		$this->importResult = $this->createOne([
 			'supplier' => $supplier,
 			'id' => $id,
@@ -34,20 +35,11 @@ class ImportResultRepository extends \StORM\Repository
 		$this->logDirectory = $directory;
 		$this->logFilePath = $directory . '/' . $id . '.log';
 
-		switch ($type) {
-			case 'import':
-				$typeMsg = 'Import started';
-
-				break;
-			case 'importAmount':
-				$typeMsg = 'Import amount started';
-
-				break;
-			default:
-				$typeMsg = 'Entry started';
-
-				break;
-		}
+		$typeMsg = match ($type) {
+			'import' => 'Import started',
+			'importAmount' => 'Import amount started',
+			default => 'Entry started',
+		};
 
 		$this->log($typeMsg);
 
@@ -58,8 +50,9 @@ class ImportResultRepository extends \StORM\Repository
 	{
 		$line = Logger::formatLogLine($message . ' (cur: ' . \round(\memory_get_usage(true) / 1024 / 1024, 2) . ' MB, max: ' . \round(\memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB)');
 		
-		// @ is escalated to exception
-		if (!@\file_put_contents($this->getLogFilePath(), $line . \PHP_EOL, \FILE_APPEND | \LOCK_EX)) {
+		try {
+			Filesystem::write($this->getLogFilePath(), $line . \PHP_EOL, \FILE_APPEND | \LOCK_EX);
+		} catch (IOException) {
 			throw new \RuntimeException('Unable to write to log file ' . $this->getLogFilePath() . '. Is directory writable?');
 		}
 	}
@@ -73,7 +66,7 @@ class ImportResultRepository extends \StORM\Repository
 		$this->importResult->update([
 			'status' => 'error',
 			'errorMessage' => $message,
-			'finishedTs' => (string) (new DateTime()),
+			'finishedTs' => (string) (new Carbon()),
 		]);
 		
 		$this->log('Import fatal error: ' . $message);
@@ -102,7 +95,7 @@ class ImportResultRepository extends \StORM\Repository
 		
 		$this->importResult->update([
 			'status' => 'received',
-			'receivedTs' => (string) (new DateTime()),
+			'receivedTs' => (string) (new Carbon()),
 			'importSize' => Helpers::falseToNull(\filesize($this->logDirectory . '/data/' . $importFile)),
 			'importFile' => $importFile,
 		]);
@@ -118,7 +111,7 @@ class ImportResultRepository extends \StORM\Repository
 		
 		$this->importResult->update([
 			'status' => 'ok',
-			'finishedTs' => (string) (new DateTime()),
+			'finishedTs' => (string) (new Carbon()),
 			'insertedCount' => $provider->insertedCount,
 			'updatedCount' => $provider->updatedCount,
 			'skippedCount' => $provider->skippedCount,
@@ -141,7 +134,7 @@ class ImportResultRepository extends \StORM\Repository
 		
 		$this->importResult->update([
 			'status' => 'ok',
-			'finishedTs' => (string) (new DateTime()),
+			'finishedTs' => (string) (new Carbon()),
 			'insertedCount' => $insertedCount,
 			'updatedCount' => $updatedCount,
 			'imageDownloadCount' => $imagesCount,

@@ -9,6 +9,7 @@ use Eshop\CheckoutManager;
 use Eshop\DB\ProductRepository;
 use Nette\Application\UI\Form;
 use Nette\Http\FileUpload;
+use Nette\Utils\Strings;
 
 class CartImportForm extends Form
 {
@@ -22,7 +23,7 @@ class CartImportForm extends Form
 	private ProductRepository $productRepository;
 	
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	private array $items = [];
 	
@@ -102,7 +103,7 @@ class CartImportForm extends Form
 				continue;
 			}
 			
-			$this->items[$productId] = isset($this->items[$productId]) ? (int)$this->items[$productId] + (int)$amount : $amount;
+			$this->items[$productId] = isset($this->items[$productId]) ? (int) $this->items[$productId] + (int) $amount : $amount;
 		}
 		
 		\fclose($handle);
@@ -110,8 +111,8 @@ class CartImportForm extends Form
 	
 	private function parsePasteArea(string $pasteArea): void
 	{
-		foreach (\explode('<br />', \nl2br(\trim($pasteArea))) as $row) {
-			$productRow = \preg_split('/\s+/', \trim($row));
+		foreach (\explode('<br />', \nl2br(Strings::trim($pasteArea))) as $row) {
+			$productRow = \preg_split('/\s+/', Strings::trim($row));
 			$productId = $productRow[0] ?? false;
 			$amount = $productRow[1] ?? false;
 			
@@ -119,7 +120,7 @@ class CartImportForm extends Form
 				continue;
 			}
 			
-			$this->items[$productId] = isset($this->items[$productId]) ? (int)$this->items[$productId] + (int)$amount : $amount;
+			$this->items[$productId] = isset($this->items[$productId]) ? (int) $this->items[$productId] + (int) $amount : $amount;
 		}
 	}
 	

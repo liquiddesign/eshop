@@ -22,13 +22,11 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		/** @codingStandardsIgnoreStart */
 		private Shopper $shopper,
-		private CartItemRepository $cartItemRepository,
-		private DiscountConditionRepository $discountConditionRepository,
-		private DiscountConditionCategoryRepository $discountConditionCategoryRepository,
-		private CategoryRepository $categoryRepository,
-		/** @codingStandardsIgnoreEnd */
+		private readonly CartItemRepository $cartItemRepository,
+		private readonly DiscountConditionRepository $discountConditionRepository,
+		private readonly DiscountConditionCategoryRepository $discountConditionCategoryRepository,
+		private readonly CategoryRepository $categoryRepository,
 	) {
 		parent::__construct($connection, $schemaManager);
 	}

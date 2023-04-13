@@ -92,7 +92,7 @@ class CountryPresenter extends BackendPresenter
 
 		$form->addText('name', 'Název');
 		$form->addText('rate', 'Výše')->addRule($form::FLOAT)->setRequired();
-		$form->addHidden('country', (string)$this->getParameter('vat')->country);
+		$form->addHidden('country', (string) $this->getParameter('vat')->country);
 		$form->addText('priority', 'Priorita')
 			->addRule($form::INTEGER)
 			->setRequired()

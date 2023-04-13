@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Eshop\Common\DB\SystemicEntity;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\ICollection;
 use StORM\RelationCollection;
@@ -143,7 +144,7 @@ class Category extends SystemicEntity
 
 	/**
 	 * Pomocí repositářové metody getTree(array $orderBy)
-	 * @var \Eshop\DB\Category[]
+	 * @var array<\Eshop\DB\Category>
 	 */
 	public $children = [];
 
@@ -165,7 +166,7 @@ class Category extends SystemicEntity
 	 * Kategorie
 	 * @deprecated
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\ParameterCategory>|\Eshop\DB\ParameterCategory[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\ParameterCategory>
 	 */
 	public RelationCollection $parameterCategories;
 
@@ -208,7 +209,7 @@ class Category extends SystemicEntity
 
 	public function getParentPath(int $level): string
 	{
-		return \substr($this->path, 0, 4 * ($level + 1));
+		return Strings::substring($this->path, 0, 4 * ($level + 1));
 	}
 
 	public function getProductCount(): ?int

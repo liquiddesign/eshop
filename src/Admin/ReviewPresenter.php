@@ -5,13 +5,13 @@ namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Carbon\Carbon;
 use Eshop\BackendPresenter;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\Review;
 use Eshop\DB\ReviewRepository;
 use Eshop\Shopper;
-use Nette\Utils\DateTime;
 use StORM\Collection;
 use StORM\DIConnection;
 
@@ -36,7 +36,7 @@ class ReviewPresenter extends BackendPresenter
 
 		$grid->addColumnText('Vytvořeno', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
 		$grid->addColumn('Recenzováno', function (Review $review): string {
-			return $review->isReviewed() ? DateTime::from($review->reviewedTs)->format('d. m. Y') : '<i class="fa fa-times text-danger"></i>';
+			return $review->isReviewed() ? \Carbon\Carbon::parse($review->reviewedTs)->format('d. m. Y') : '<i class="fa fa-times text-danger"></i>';
 		}, '%s', null, ['class' => 'fit']);
 		$grid->addColumn('Zákazník', function (Review $review): string {
 			if ($customer = $review->customer) {
@@ -157,14 +157,14 @@ class ReviewPresenter extends BackendPresenter
 
 			if ($review) {
 				if ($values['score'] && !$review->reviewedTs) {
-					$values['reviewedTs'] = \date('Y-m-d\TH:i:s');
+					$values['reviewedTs'] = Carbon::now()->toString();
 				}
 
 				if (!$values['score']) {
 					$values['reviewedTs'] = null;
 				}
 			} else {
-				$values['reviewedTs'] = $values['score'] ? \date('Y-m-d\TH:i:s') : null;
+				$values['reviewedTs'] = $values['score'] ? Carbon::now()->toString() : null;
 			}
 
 			$object = $this->reviewRepository->syncOne($values, null, true);

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Eshop\Front\Eshop;
 
+use Carbon\Carbon;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\Review;
@@ -74,7 +75,7 @@ abstract class ReviewPresenter extends FrontendPresenter
 
 			$this->review->update([
 				'score' => (int) \explode('_', $values['score'])[1],
-				'reviewedTs' => \date('Y-m-d\TH:i:s'),
+				'reviewedTs' => Carbon::now()->format('Y-m-d\TH:i:s'),
 			]);
 
 			$this->flashMessage($this->translator->translate('Review.thankYouNow', 'Děkujeme!'), 'success');

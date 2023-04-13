@@ -18,7 +18,7 @@ class OrderForm extends \Nette\Application\UI\Form
 	public CheckoutManager $checkoutManager;
 
 	/**
-	 * @var callable[]
+	 * @var array<callable>
 	 */
 	public array $onBuyError = [];
 

@@ -63,11 +63,9 @@ class DPD
 		?SettingRepository $settingRepository = null,
 		?Container $container = null,
 		?Application $application = null,
-		/** @codingStandardsIgnoreStart */
-		private ?OrderRepository $orderRepository = null,
-		private ?OrderDeliveryStatusRepository $orderDeliveryStatusRepository = null,
-		private ?Translator $translator = null,
-		/** @codingStandardsIgnoreEnd */
+		private readonly ?OrderRepository $orderRepository = null,
+		private readonly ?OrderDeliveryStatusRepository $orderDeliveryStatusRepository = null,
+		private readonly ?Translator $translator = null,
 	) {
 		$this->url = $url;
 		$this->login = $login;
@@ -93,7 +91,7 @@ class DPD
 	 */
 	public function syncOrders(Collection $orders): array
 	{
-		if (\in_array(false, Arrays::invoke($this->onBeforeOrdersSent), true)) {
+		if (Arrays::contains(Arrays::invoke($this->onBeforeOrdersSent), false)) {
 			throw new \Exception('Not allowed');
 		}
 
@@ -113,7 +111,7 @@ class DPD
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
-			if (\in_array(false, Arrays::invoke($this->onBeforeOrderSent, $order), true)) {
+			if (Arrays::contains(Arrays::invoke($this->onBeforeOrderSent, $order), false)) {
 				$ordersIgnored[] = $order;
 
 				continue;
@@ -183,7 +181,7 @@ class DPD
 
 				if ($dpdCodType && $order->purchase->paymentType && Arrays::contains($dpdCodType, $order->purchase->paymentType->getPK())) {
 					$newShipmentVO['Additional_Services'] = [
-						'COD' => (string)\number_format($order->getTotalPriceVat(), 2, '.', ''),
+						'COD' => (string) \number_format($order->getTotalPriceVat(), 2, '.', ''),
 						'CURRENCY' => $order->purchase->currency->code,
 						'PAYMENT' => 1,
 						'PURPOSE' => $order->code,
@@ -192,12 +190,9 @@ class DPD
 
 				$request['_ShipmentDetailVO'][] = $newShipmentVO;
 
-				\bdump($request);
 				$result = $client->NewShipment($request);
 
-				\bdump($result);
-
-				/** @codingStandardsIgnoreStart */
+				/** @codingStandardsIgnoreStart Camel caps*/
 				if (\is_array($result->NewShipmentResult->NewShipmentResultVO)) {
 					$dpdCodes = null;
 
@@ -209,7 +204,7 @@ class DPD
 					$order->update(['dpdCode' => $dpdCodes, 'dpdError' => false,]);
 
 					$ordersCompleted[] = $order;
-				/** @codingStandardsIgnoreStart */
+				/** @codingStandardsIgnoreStart Camel caps*/
 				} elseif ($dpdCode = $result->NewShipmentResult->NewShipmentResultVO->ParcelVO->PARCELNO) {
 					/** @codingStandardsIgnoreEnd */
 					$order->update(['dpdCode' => $dpdCode, 'dpdError' => false,]);
@@ -224,8 +219,6 @@ class DPD
 				$order->update(['dpdError' => true]);
 
 				$ordersWithError[] = $order;
-
-				\bdump($e);
 
 				$tempDir = $this->container->getParameters()['tempDir'] . '/dpd';
 
@@ -283,9 +276,7 @@ class DPD
 				'parcelno' => $dpdCodes,
 			]);
 
-			\bdump($result);
-
-			/** @codingStandardsIgnoreStart */
+			/** @codingStandardsIgnoreStart Camel caps*/
 			$result = $result->GetLabelResult->LabelVO;
 			/** @codingStandardsIgnoreEnd */
 
@@ -332,7 +323,6 @@ class DPD
 			return $filename;
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::ERROR);
-			\bdump($e);
 
 			return null;
 		}
@@ -379,8 +369,6 @@ class DPD
 					'parcelno' => \array_keys($chunkedOrders),
 				]);
 			} catch (\Exception $e) {
-				\bdump($e);
-
 				throw new \Exception('Invalid request: ' . $e->getMessage());
 			}
 
@@ -497,30 +485,22 @@ class DPD
 	{
 		$client = $this->getClient();
 		
-		$result = $client->DeleteParcelByParcelno([
+		$client->DeleteParcelByParcelno([
 			'login' => $this->login,
 			'password' => $this->password,
 			'parcelno' => $list,
 		]);
-		
-		\bdump($result);
-		
-		return;
 	}
 	
 	public function deletePickups(array $list): void
 	{
 		$client = $this->getClient();
 		
-		$result = $client->DeletePickup([
+		$client->DeletePickup([
 			'login' => $this->login,
 			'password' => $this->password,
 			'deleteList' => $list,
 		]);
-		
-		\bdump($result);
-		
-		return;
 	}
 
 	/**
@@ -547,27 +527,18 @@ class DPD
 			$x = 0;
 			$y = 0;
 
-			switch ($i % 4) {
-				case 0:
-					$x = 10;
-					$y = 10;
-
-					break;
-				case 1:
-					$x = 110;
-					$y = 10;
-
-					break;
-				case 2:
-					$x = 10;
-					$y = 150;
-
-					break;
-				case 3:
-					$x = 110;
-					$y = 150;
-
-					break;
+			if ($i % 4 === 0) {
+				$x = 10;
+				$y = 10;
+			} elseif ($i % 4 === 1) {
+				$x = 110;
+				$y = 10;
+			} elseif ($i % 4 === 2) {
+				$x = 10;
+				$y = 150;
+			} elseif ($i % 4 === 3) {
+				$x = 110;
+				$y = 150;
 			}
 
 			$pdf->useTemplate($tplIdxA, $x, $y, 90);

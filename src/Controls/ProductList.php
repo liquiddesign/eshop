@@ -32,12 +32,12 @@ use StORM\ICollection;
 class ProductList extends Datalist
 {
 	/**
-	 * @var callable[]&callable(\Eshop\DB\Watcher): void; Occurs after order create
+	 * @var array<callable>&callable(\Eshop\DB\Watcher): void ; Occurs after order create
 	 */
 	public $onWatcherCreated;
 
 	/**
-	 * @var callable[]&callable(\Eshop\DB\Watcher): void; Occurs after order create
+	 * @var array<callable>&callable(\Eshop\DB\Watcher): void ; Occurs after order create
 	 */
 	public $onWatcherDeleted;
 
@@ -287,7 +287,7 @@ class ProductList extends Datalist
 	}
 
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	private function getFiltersForTemplate(): array

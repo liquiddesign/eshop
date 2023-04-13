@@ -95,12 +95,10 @@ class PPL
 		?Container $container = null,
 		?Application $application = null,
 		?DeliveryRepository $deliveryRepository = null,
-		/** @codingStandardsIgnoreStart */
 		private ?OrderRepository $orderRepository = null,
 		private ?OrderDeliveryStatusRepository $orderDeliveryStatusRepository = null,
 		private ?DeliveryServiceStatusRepository $deliveryServiceStatusRepository = null,
 		private ?DIConnection $connection = null,
-		/** @codingStandardsIgnoreEnd */
 	) {
 		$this->login = $login;
 		$this->password = $password;
@@ -131,7 +129,7 @@ class PPL
 	 */
 	public function syncOrders(Collection $orders): array
 	{
-		if (\in_array(false, Arrays::invoke($this->onBeforeOrdersSent), true)) {
+		if (Arrays::contains(Arrays::invoke($this->onBeforeOrdersSent), false)) {
 			throw new \Exception('Not allowed');
 		}
 
@@ -151,7 +149,7 @@ class PPL
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
-			if (\in_array(false, Arrays::invoke($this->onBeforeOrderSent, $order), true)) {
+			if (Arrays::contains(Arrays::invoke($this->onBeforeOrderSent, $order), false)) {
 				$ordersIgnored[] = $order;
 
 				continue;
@@ -244,7 +242,7 @@ class PPL
 					if ($isCod) {
 						$cashOnDeliveryPrice = $packageSet && $i > 1 ? 0 : \round($order->getTotalPriceVat() / \count($order->packages), 2);
 						$cashOnDeliveryCurrency = Currency::CZK;
-						$cashOnDeliveryVariableSymbol = (int)$order->code;
+						$cashOnDeliveryVariableSymbol = (int) $order->code;
 
 						if ($cashOnDeliveryVariableSymbol === 0) {
 							$cashOnDeliveryVariableSymbol = $packageNumber;
@@ -253,7 +251,7 @@ class PPL
 						$paymentInfo = new PaymentInfo($cashOnDeliveryPrice, $cashOnDeliveryCurrency, $cashOnDeliveryVariableSymbol);
 
 						$package = new Package(
-							(string)$packageNumber,
+							(string) $packageNumber,
 							Product::PPL_PARCEL_CZ_PRIVATE_COD,
 							$order->code . ($order->purchase->deliveryNote ? ', ' . Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH) : null),
 							$recipient,
@@ -271,7 +269,7 @@ class PPL
 						);
 					} else {
 						$package = new Package(
-							(string)$packageNumber,
+							(string) $packageNumber,
 							Product::PPL_PARCEL_CZ_PRIVATE,
 							$order->code . ($order->purchase->deliveryNote ? ', ' . Strings::substring($order->purchase->deliveryNote, 0, self::NOTE_MAX_LENGTH) : null),
 							$recipient,
@@ -290,9 +288,7 @@ class PPL
 					}
 
 					/** Don´t delete array type!!! By doc createPackages returns array but that is NOT true in all cases! */
-					$result = (array)$client->createPackages([$package]);
-
-					\bdump($result);
+					$result = (array) $client->createPackages([$package]);
 
 					if ($result['Code'] !== '0') {
 						$delivery->update(['pplError' => true]);
@@ -318,8 +314,6 @@ class PPL
 					$ordersCompleted[$order->code] = isset($ordersCompleted[$order->code]) ? $ordersCompleted[$order->code] + 1 : 1;
 					$orderPplCodes .= "$pplCode,";
 				} catch (\Throwable $e) {
-					\bdump($e);
-
 					$ordersWithError[$order->code] = $order;
 
 					$delivery->update(['pplError' => true]);
@@ -440,10 +434,10 @@ class PPL
 					if ($isCod) {
 						$cashOnDeliveryPrice = $packageSet && $i > 1 ? 0 : \round($order->getTotalPriceVat() / \count($order->packages), 2);
 						$cashOnDeliveryCurrency = Currency::CZK;
-						$cashOnDeliveryVariableSymbol = (int)$order->code;
+						$cashOnDeliveryVariableSymbol = (int) $order->code;
 
 						if ($cashOnDeliveryVariableSymbol === 0) {
-							$cashOnDeliveryVariableSymbol = (int)$packageNumber;
+							$cashOnDeliveryVariableSymbol = (int) $packageNumber;
 						}
 
 						$paymentInfo = new PaymentInfo($cashOnDeliveryPrice, $cashOnDeliveryCurrency, $cashOnDeliveryVariableSymbol);
@@ -517,7 +511,6 @@ class PPL
 			return $filename;
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::ERROR);
-			\bdump($e);
 
 			return null;
 		}
@@ -735,7 +728,7 @@ class PPL
 		}
 
 		$existingSetting->update([
-			'value' => (string)(((int) $existingSetting->value) + 1),
+			'value' => (string) (((int) $existingSetting->value) + 1),
 		]);
 	}
 
@@ -748,7 +741,7 @@ class PPL
 		}
 
 		$existingSetting->update([
-			'value' => (string)(((int) $existingSetting->value) + 1),
+			'value' => (string) (((int) $existingSetting->value) + 1),
 		]);
 	}
 }

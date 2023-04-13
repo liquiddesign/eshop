@@ -14,6 +14,7 @@ use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Image;
 use Nette\Utils\Random;
+use Nette\Utils\Strings;
 use Pages\Helpers;
 use StORM\DIConnection;
 use Web\DB\PageRepository;
@@ -101,14 +102,14 @@ class CategoryForm extends Control
 
 		$nameInput = $form->addLocaleText('name', 'Název');
 		$form->addLocalePerexEdit('perex', 'Perex', [
-			/** @codingStandardsIgnoreStart */
+			/** @codingStandardsIgnoreStart Long string*/
 			'toolbar1' => 'undo redo | styleselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | link unlink anchor | table | copy cut paste pastetext insertcontent code',
 			/** @codingStandardsIgnoreEnd */
 			'plugins' => 'table code link',
 		]);
 		$form->addLocaleRichEdit('content', 'Obsah');
 		$form->addLocalePerexEdit('defaultProductPerex', 'Výchozí perex produktů', [
-			/** @codingStandardsIgnoreStart */
+			/** @codingStandardsIgnoreStart Long string */
 			'toolbar1' => 'undo redo | styleselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | link unlink anchor | table | copy cut paste pastetext insertcontent code',
 			/** @codingStandardsIgnoreEnd */
 			'plugins' => 'table code link',
@@ -207,7 +208,7 @@ class CategoryForm extends Control
 			if ($upload->isOk() && $upload->isFilled()) {
 				$userDir = $form->getUserDir();
 				$fileName = \pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_FILENAME);
-				$fileExtension = \strtolower(\pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_EXTENSION));
+				$fileExtension = Strings::lower(\pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_EXTENSION));
 
 				$newsImageDir = Category::IMAGE_DIR;
 
@@ -226,7 +227,7 @@ class CategoryForm extends Control
 			if ($upload->isOk() && $upload->isFilled()) {
 				$userDir = $form->getUserDir();
 				$fileName = \pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_FILENAME);
-				$fileExtension = \strtolower(\pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_EXTENSION));
+				$fileExtension = Strings::lower(\pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_EXTENSION));
 
 				$newsImageDir = Category::IMAGE_DIR;
 

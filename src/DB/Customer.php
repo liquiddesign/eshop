@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Carbon\Carbon;
 use Nette\Security\IIdentity;
 use Security\DB\Account;
 use Security\DB\IUser;
@@ -160,21 +161,21 @@ class Customer extends Entity implements IIdentity, IUser
 	/**
 	 * Povolené exkluzivní platby
 	 * @relationNxN
-	 * @var \Eshop\DB\PaymentType[]|\StORM\RelationCollection<\Eshop\DB\PaymentType>
+	 * @var \StORM\RelationCollection<\Eshop\DB\PaymentType>
 	 */
 	public RelationCollection $exclusivePaymentTypes;
 	
 	/**
 	 * Povolené exkluzivní dopravy
 	 * @relationNxN
-	 * @var \Eshop\DB\DeliveryType[]|\StORM\RelationCollection<\Eshop\DB\DeliveryType>
+	 * @var \StORM\RelationCollection<\Eshop\DB\DeliveryType>
 	 */
 	public RelationCollection $exclusiveDeliveryTypes;
 	
 	/**
 	 * Ceníky
 	 * @relationNxN
-	 * @var \Eshop\DB\Pricelist[]|\StORM\RelationCollection<\Eshop\DB\Pricelist>
+	 * @var \StORM\RelationCollection<\Eshop\DB\Pricelist>
 	 */
 	public RelationCollection $pricelists;
 	
@@ -316,7 +317,7 @@ class Customer extends Entity implements IIdentity, IUser
 	
 	/**
 	 * @relationNxN{"via":"eshop_catalogpermission"}
-	 * @var \StORM\RelationCollection<\Security\DB\Account>|\Security\DB\Account[]
+	 * @var \StORM\RelationCollection<\Security\DB\Account>
 	 */
 	public RelationCollection $accounts;
 	
@@ -344,7 +345,7 @@ class Customer extends Entity implements IIdentity, IUser
 	}
 	
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getRoles(): array
 	{
@@ -444,7 +445,7 @@ class Customer extends Entity implements IIdentity, IUser
 	/**
 	 * @return array<mixed>|\StORM\Collection
 	 */
-	public function getMyChildUsers()
+	public function getMyChildUsers(): array|\StORM\Collection
 	{
 		if ($this->isAffiliateTree()) {
 			return $this->getMyTreeUsers();
@@ -490,9 +491,8 @@ class Customer extends Entity implements IIdentity, IUser
 	/**
 	 * Vraci provizi jakou uzivatel dostane z objednavky
 	 * @param \Eshop\DB\Order $order
-	 * @return float|int
 	 */
-	public function getProvisionAmount(Order $order)
+	public function getProvisionAmount(Order $order): float|int
 	{
 		$provision = 0;
 
@@ -548,7 +548,7 @@ class Customer extends Entity implements IIdentity, IUser
 			'productAmount' => !isset($currency) ? $amount : null,
 			'customer' => $this,
 			'currency' => $currency,
-			'createdTs' => \date('Y-m-d H:i:s'),
+			'createdTs' => Carbon::now()->format('Y-m-d H:i:s'),
 		];
 
 		$repository->createOne($reward);

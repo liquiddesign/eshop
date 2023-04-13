@@ -118,15 +118,10 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 		
 		$form->onError[] = function (RegistrationForm $form): void {
 			foreach ($form->getErrors() as $error) {
-				switch ($error) {
-					case 'registerForm.account.alreadyExists':
-						$this->flashMessage($this->translator->translate('registerForm.emailExists', 'Účet s tímto emailem již existuje!'), 'error');
-
-						break;
-					case 'registerForm.passwordCheck.notEqual':
-						$this->flashMessage($this->translator->translate('registerForm.pwdsNotMatch', 'Hesla se neshodují!'), 'error');
-
-						break;
+				if ($error === 'registerForm.account.alreadyExists') {
+					$this->flashMessage($this->translator->translate('registerForm.emailExists', 'Účet s tímto emailem již existuje!'), 'error');
+				} elseif ($error === 'registerForm.passwordCheck.notEqual') {
+					$this->flashMessage($this->translator->translate('registerForm.pwdsNotMatch', 'Hesla se neshodují!'), 'error');
 				}
 			}
 		};

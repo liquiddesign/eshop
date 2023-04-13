@@ -169,7 +169,7 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	/**
 	 * Related cart items
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedCartItem>|\Eshop\DB\RelatedCartItem[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedCartItem>
 	 */
 	public RelationCollection $relatedCartItems;
 
@@ -205,12 +205,12 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	
 	public function getPriceBefore(): ?float
 	{
-		return (float) $this->getValue('priceBefore') > 0 ? (float)$this->getValue('priceBefore') * $this->amount : null;
+		return (float) $this->getValue('priceBefore') > 0 ? (float) $this->getValue('priceBefore') * $this->amount : null;
 	}
 	
 	public function getPriceVatBefore(): ?float
 	{
-		return (float) $this->getValue('priceVatBefore') > 0 ? (float)$this->getValue('priceVatBefore') * $this->amount : null;
+		return (float) $this->getValue('priceVatBefore') > 0 ? (float) $this->getValue('priceVatBefore') * $this->amount : null;
 	}
 	
 	public function getDiscountPercent(): ?float

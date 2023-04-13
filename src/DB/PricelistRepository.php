@@ -91,7 +91,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 	/**
 	 * @param \Eshop\DB\Pricelist $pricelist
-	 * @return \Eshop\DB\Customer[]
+	 * @return array<\Eshop\DB\Customer>
 	 */
 	public function getPricelistCustomers(Pricelist $pricelist): array
 	{
@@ -335,7 +335,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			];
 
 			if ($quantityPrices) {
-				$values['validFrom'] = $value['validFrom'] !== '' ? (int)$value['validFrom'] : null;
+				$values['validFrom'] = $value['validFrom'] !== '' ? (int) $value['validFrom'] : null;
 			} else {
 				$values['priceBefore'] = $value['priceBefore'] !== '' ? NumbersHelper::strToFloat($value['priceBefore']) : null;
 				$values['priceVatBefore'] = $value['priceVatBefore'] !== '' ? NumbersHelper::strToFloat($value['priceVatBefore']) : null;
@@ -357,7 +357,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	}
 
 	/**
-	 * @param \Eshop\DB\Pricelist[] $pricelists
+	 * @param array<\Eshop\DB\Pricelist> $pricelists
 	 */
 	public function checkSameCurrency(array $pricelists): ?Currency
 	{
@@ -378,8 +378,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	}
 
 	/**
-	 * @param \Eshop\DB\Pricelist[] $pricelists
-	 * @return \Eshop\DB\Pricelist[]
+	 * @param array<\Eshop\DB\Pricelist> $pricelists
+	 * @return array<\Eshop\DB\Pricelist>
 	 */
 	public function getTopPriorityPricelists(array $pricelists): array
 	{
@@ -398,7 +398,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 	/**
 	 * Expecting pricelists with same currency!
-	 * @param \Eshop\DB\Pricelist[] $sourcePricelists
+	 * @param array<\Eshop\DB\Pricelist> $sourcePricelists
 	 * @param \Eshop\DB\Pricelist $targetPricelist
 	 * @param string $aggregateFunction
 	 * @param float $percentageChange
@@ -429,7 +429,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		$prices = [];
 
 		foreach ($sourcePricelists as $sourcePricelist) {
-			/** @var \Eshop\DB\Price[] $localPrices */
+			/** @var array<\Eshop\DB\Price> $localPrices */
 			$localPrices = $this->priceRepository->many()->where('this.fk_pricelist', $sourcePricelist->getPK())->toArray();
 
 			foreach ($localPrices as $localPrice) {
@@ -502,8 +502,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 				$newValues['price'] = $priceArray['price'];
 				$newValues['priceVat'] = $priceArray['priceVat'];
 			} elseif ($aggregateFunction === 'avg') {
-				$newValues['price'] = (float)$priceArray['price'] / $priceArray['count'];
-				$newValues['priceVat'] = (float)$priceArray['priceVat'] / $priceArray['count'];
+				$newValues['price'] = (float) $priceArray['price'] / $priceArray['count'];
+				$newValues['priceVat'] = (float) $priceArray['priceVat'] / $priceArray['count'];
 			} elseif ($aggregateFunction === 'med') {
 				if (\count($priceArray['priceArray']) === 1) {
 					$newValues['price'] = $priceArray['priceArray'][0];
@@ -513,16 +513,16 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 					\sort($priceArray['priceVatArray']);
 
 					if ($priceArray['count'] % 2 !== 0) {
-						$middle = (int)($priceArray['count'] / 2);
+						$middle = (int) ($priceArray['count'] / 2);
 
-						$newValues['price'] = $priceArray['priceArray'][(string)$middle];
-						$newValues['priceVat'] = $priceArray['priceVatArray'][(string)$middle];
+						$newValues['price'] = $priceArray['priceArray'][(string) $middle];
+						$newValues['priceVat'] = $priceArray['priceVatArray'][(string) $middle];
 					} else {
-						$middle1 = ((int)($priceArray['count'] / 2)) - 1;
+						$middle1 = ((int) ($priceArray['count'] / 2)) - 1;
 						$middle2 = $middle1 + 1;
 
-						$newValues['price'] = ($priceArray['priceArray'][(string)$middle1] + $priceArray['priceArray'][(string)$middle2]) / 2.0;
-						$newValues['priceVat'] = ($priceArray['priceVatArray'][(string)$middle1] + $priceArray['priceVatArray'][(string)$middle2]) / 2.0;
+						$newValues['price'] = ($priceArray['priceArray'][(string) $middle1] + $priceArray['priceArray'][(string) $middle2]) / 2.0;
+						$newValues['priceVat'] = ($priceArray['priceVatArray'][(string) $middle1] + $priceArray['priceVatArray'][(string) $middle2]) / 2.0;
 					}
 				}
 			}

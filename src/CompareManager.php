@@ -9,6 +9,7 @@ use Eshop\DB\CategoryRepository;
 use Eshop\DB\ProductRepository;
 use Nette\Http\Session;
 use Nette\Http\SessionSection;
+use Nette\Utils\Strings;
 use Web\DB\PageRepository;
 
 class CompareManager
@@ -42,7 +43,7 @@ class CompareManager
 	}
 
 	/**
-	 * @return \Eshop\DB\Product[]
+	 * @return array<\Eshop\DB\Product>
 	 */
 	public function getCompareList(): array
 	{
@@ -82,7 +83,7 @@ class CompareManager
 			$resultCategories[$category->getPK()]['products'][$productKey]['product'] = $product;
 
 			foreach ($attributes as $attributeKey => $attribute) {
-				/** @var \Eshop\DB\AttributeValue[] $values */
+				/** @var array<\Eshop\DB\AttributeValue> $values */
 				$values = $this->attributeValueRepository->getCollection()
 					->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value')
 					->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
@@ -111,7 +112,7 @@ class CompareManager
 
 	/**
 	 * @param string|null $parameterName
-	 * @return string[]|\Eshop\DB\Category[]
+	 * @return array<string>|array<\Eshop\DB\Category>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function getCategories(?string $parameterName = null): array
@@ -132,7 +133,7 @@ class CompareManager
 	}
 
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function getCategoriesNames(): array
@@ -158,11 +159,11 @@ class CompareManager
 				$resultCategories[$category->getPK()] .= $branchCategory->name . ' -> ';
 			}
 
-			if (\strlen($resultCategories[$category->getPK()]) <= 0) {
+			if (Strings::length($resultCategories[$category->getPK()]) <= 0) {
 				continue;
 			}
 
-			$resultCategories[$category->getPK()] = \substr($resultCategories[$category->getPK()], 0, -3);
+			$resultCategories[$category->getPK()] = Strings::substring($resultCategories[$category->getPK()], 0, -3);
 		}
 
 		return $resultCategories;

@@ -38,7 +38,7 @@ class SupplierProductRepository extends \StORM\Repository
 	 * @param string $country
 	 * @param bool $overwrite
 	 * @param bool $importImages
-	 * @return int[]
+	 * @return array<int>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function syncProducts(Supplier $supplier, string $mutation, string $country, bool $overwrite, bool $importImages = false): array
@@ -140,7 +140,7 @@ class SupplierProductRepository extends \StORM\Repository
 				'unit' => $draft->unit,
 				'unavailable' => $draft->unavailable,
 				'hidden' => $supplier->defaultHiddenProduct,
-				'vatRate' => $vatLevels[(int)$draft->vatRate] ?? 'standard',
+				'vatRate' => $vatLevels[(int) $draft->vatRate] ?? 'standard',
 				'producer' => $producer,
 				'displayDelivery' => $supplier->getValue('defaultDisplayDelivery'),
 				'displayAmount' => $displayAmount ?: $supplier->getValue('defaultDisplayAmount'),
@@ -171,7 +171,7 @@ class SupplierProductRepository extends \StORM\Repository
 			if ($importImagesResult) {
 				$mtime = \filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 
-				if (!$overwrite || !$draft->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
+				if (!$overwrite || !$draft->fileName || $mtime === \filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
 					$importImagesResult = false;
 				}
 			}
@@ -251,7 +251,7 @@ class SupplierProductRepository extends \StORM\Repository
 			foreach ($imageSizes as $imageSize) {
 				try {
 					FileSystem::copy($sourceImageDirectory . $sep . $imageSize . $sep . $draft->fileName, $galleryImageDirectory . $sep . $imageSize . $sep . $draft->fileName);
-					@\touch($galleryImageDirectory . $sep . $imageSize . $sep . $draft->fileName, $mtime);
+					\touch($galleryImageDirectory . $sep . $imageSize . $sep . $draft->fileName, $mtime);
 				} catch (\Throwable $e) {
 					Debugger::log($e, ILogger::WARNING);
 				}

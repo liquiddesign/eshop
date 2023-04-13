@@ -54,7 +54,6 @@ use Nette;
 use Nette\Http\Request;
 use Nette\Http\Response;
 use Nette\SmartObject;
-use Nette\Utils\DateTime;
 use Security\DB\AccountRepository;
 use StORM\Collection;
 use StORM\Connection;
@@ -81,22 +80,22 @@ class CheckoutManager
 	public const DEFAULT_MAX_BUY_COUNT = 999999999;
 	
 	/**
-	 * @var callable[]&callable(\Eshop\DB\Customer): void; Occurs after customer create
+	 * @var array<callable>&callable(\Eshop\DB\Customer): void ; Occurs after customer create
 	 */
 	public $onCustomerCreate;
 	
 	/**
-	 * @var callable[]&callable(\Eshop\DB\Order): void; Occurs after order create
+	 * @var array<callable>&callable(\Eshop\DB\Order): void ; Occurs after order create
 	 */
 	public $onOrderCreate;
 	
 	/**
-	 * @var callable[] Occurs after cart create
+	 * @var array<callable> Occurs after cart create
 	 */
 	public array $onCartCreate = [];
 	
 	/**
-	 * @var callable[]&callable(): void; Occurs after cart item delete
+	 * @var array<callable>&callable(): void ; Occurs after cart item delete
 	 */
 	public $onCartItemDelete;
 	
@@ -106,7 +105,7 @@ class CheckoutManager
 	public $onCartItemCreate;
 	
 	/**
-	 * @var callable[]&callable(): void; Occurs after cart item updated
+	 * @var array<callable>&callable(): void ; Occurs after cart item updated
 	 */
 	public $onCartItemUpdate;
 	
@@ -120,7 +119,7 @@ class CheckoutManager
 	protected ?string $lastOrderToken;
 	
 	/**
-	 * @var \Eshop\DB\Cart[]|null[]
+	 * @var array<\Eshop\DB\Cart>|array<null>
 	 */
 	protected array $unattachedCarts = [];
 
@@ -184,7 +183,7 @@ class CheckoutManager
 	protected ?bool $isDiscountCouponValid = null;
 	
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	protected array $checkoutSequence;
 
@@ -361,7 +360,7 @@ class CheckoutManager
 			$this->unattachedCarts[$this->cartToken] = $this->cartRepository->getUnattachedCart($this->cartToken);
 		}
 		
-		return (bool)$this->unattachedCarts[$this->cartToken];
+		return (bool) $this->unattachedCarts[$this->cartToken];
 	}
 	
 	public function getSumPrice(): float
@@ -415,7 +414,7 @@ class CheckoutManager
 			return 0;
 		}
 		
-		return $this->sumAmountTotal ??= (int)$this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'amount');
+		return $this->sumAmountTotal ??= (int) $this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'amount');
 	}
 	
 	public function getSumWeight(): float
@@ -460,7 +459,7 @@ class CheckoutManager
 			return 0;
 		}
 		
-		return $this->sumPoints ??= (int)$this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'pts');
+		return $this->sumPoints ??= (int) $this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'pts');
 	}
 	
 	public function getCartCurrency(): ?Currency
@@ -474,7 +473,7 @@ class CheckoutManager
 	}
 	
 	/**
-	 * @return \Eshop\DB\Cart[]
+	 * @return array<\Eshop\DB\Cart>
 	 */
 	public function getAvailableCarts(): array
 	{
@@ -496,7 +495,7 @@ class CheckoutManager
 			'active' => $activate,
 			'customer' => $this->customer ?: null,
 			'currency' => $this->shopper->getCurrency(),
-			'expirationTs' => $this->customer ? null : (string)new DateTime('+' . $this->cartExpiration . ' days'),
+			'expirationTs' => $this->customer ? null : (string) new \Carbon\Carbon('+' . $this->cartExpiration . ' days'),
 		]);
 		
 		$this->customer ? $this->customer->update(['activeCart' => $cart]) : $this->unattachedCarts[$this->cartToken] = $cart;
@@ -764,7 +763,7 @@ class CheckoutManager
 	{
 		$ids = $this->itemRepository->getItems([$cart->getPK()])->where('this.fk_product IS NOT NULL')->setSelect(['aux' => 'this.fk_product'])->toArrayOf('aux');
 		
-		/** @var \Eshop\DB\Product[] $products */
+		/** @var array<\Eshop\DB\Product> $products */
 		$products = $this->productRepository->getProducts()->where('this.uuid', $ids)->toArray();
 		
 		$upsellsMap = [];
@@ -899,7 +898,7 @@ class CheckoutManager
 		$this->shopper->discountCoupon = null;
 		$this->fixCartItems();
 		
-		$valid = (bool)$this->discountCouponRepository->getValidCouponByCart($discountCoupon->code, $this->getCart(), $discountCoupon->exclusiveCustomer);
+		$valid = (bool) $this->discountCouponRepository->getValidCouponByCart($discountCoupon->code, $this->getCart(), $discountCoupon->exclusiveCustomer);
 
 		$this->setDiscountCoupon($discountCoupon);
 		$this->shopper->discountCoupon = $discountCoupon;
@@ -1087,7 +1086,7 @@ class CheckoutManager
 		$previousStep = $this->checkoutSequence[$sequence - 1] ?? null;
 		
 		if ($previousStep === 'cart') {
-			return $this->getPurchase() && (bool)\count($this->getItems()) && \count($this->getIncorrectCartItems()) === 0 && $this->checkDiscountCoupon();
+			return $this->getPurchase() && (bool) \count($this->getItems()) && \count($this->getIncorrectCartItems()) === 0 && $this->checkDiscountCoupon();
 		}
 		
 		if ($previousStep === 'addresses') {
@@ -1102,7 +1101,7 @@ class CheckoutManager
 	}
 	
 	/**
-	 * @return bool[]
+	 * @return array<bool>
 	 */
 	public function getCheckoutSteps(): array
 	{
@@ -1189,7 +1188,7 @@ class CheckoutManager
 			
 			$price = $paymentType->getValue('price');
 			
-			return isset($price) ? (float)$price : 0.0;
+			return isset($price) ? (float) $price : 0.0;
 		}
 		
 		return 0.0;
@@ -1206,7 +1205,7 @@ class CheckoutManager
 			
 			$price = $paymentType->getValue('priceVat');
 			
-			return isset($price) ? (float)$price : 0.0;
+			return isset($price) ? (float) $price : 0.0;
 		}
 		
 		return 0.0;
@@ -1221,7 +1220,7 @@ class CheckoutManager
 			try {
 				$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('price');
 
-				return isset($price) ? (float)$price * $deliveryPackagesNo : 0.0;
+				return isset($price) ? (float) $price * $deliveryPackagesNo : 0.0;
 			} catch (NotFoundException $e) {
 				$this->getPurchase()->update(['deliveryType' => null]);
 
@@ -1241,7 +1240,7 @@ class CheckoutManager
 			try {
 				$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('priceVat');
 
-				return isset($price) ? (float)$price * $deliveryPackagesNo : 0.0;
+				return isset($price) ? (float) $price * $deliveryPackagesNo : 0.0;
 			} catch (NotFoundException $e) {
 				$this->getPurchase()->update(['deliveryType' => null]);
 
@@ -1259,7 +1258,7 @@ class CheckoutManager
 			$showPrice = $this->shopper->getShowPrice();
 			$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('priceBefore');
 
-			return isset($price) ? (float)$price * $deliveryPackagesNo : null;
+			return isset($price) ? (float) $price * $deliveryPackagesNo : null;
 		}
 		
 		return null;
@@ -1272,7 +1271,7 @@ class CheckoutManager
 			$showPrice = $this->shopper->getShowPrice();
 			$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('priceBeforeVat');
 			
-			return isset($price) ? (float)$price * $deliveryPackagesNo : null;
+			return isset($price) ? (float) $price * $deliveryPackagesNo : null;
 		}
 		
 		return null;
@@ -1363,7 +1362,7 @@ class CheckoutManager
 	
 	public function checkCartItemPrice(CartItem $cartItem): bool
 	{
-		$productPrice = $this->productRepository->getProduct($cartItem->product->getPK())->getPrice((int)$cartItem->amount);
+		$productPrice = $this->productRepository->getProduct($cartItem->product->getPK())->getPrice((int) $cartItem->amount);
 		
 		return \floatval($productPrice) === $cartItem->price;
 	}
@@ -1538,7 +1537,7 @@ class CheckoutManager
 			}
 		}
 		
-		$year = \date('Y');
+		$year = Carbon::now()->format('Y');
 		$code = \vsprintf(
 			$this->shopper->getCountry()->orderCodeFormat,
 			$this->orderCodeArguments ??
@@ -1550,14 +1549,14 @@ class CheckoutManager
 			'purchase' => $purchase,
 		];
 		
-		$orderValues['receivedTs'] = $this->shopper->getEditOrderAfterCreation() ? null : (string)new DateTime();
+		$orderValues['receivedTs'] = $this->shopper->getEditOrderAfterCreation() ? null : (string) new \Carbon\Carbon();
 		$orderValues['newCustomer'] = !$purchase->customer || $this->orderRepository->many()
 				->join(['purchase' => 'eshop_purchase'], 'purchase.uuid = this.fk_purchase')
 				->where('purchase.fk_customer', $purchase->customer->getPK())
 				->count() === 0;
 		
 		if ($this->shopper->getAllowBannedEmailOrder() && $banned) {
-			$orderValues['bannedTs'] = (string)new DateTime();
+			$orderValues['bannedTs'] = (string) (new \Carbon\Carbon());
 		}
 		
 		/** @var \Eshop\DB\Order $order */
@@ -1904,8 +1903,8 @@ class CheckoutManager
 		foreach ($this->productRepository->getCartItemRelations($cartItem, true, false) as $upsell) {
 			if ($upsellCartItem = $this->itemRepository->getUpsell($cartItem->getPK(), $upsell->getPK())) {
 				$upsellCartItem->update([
-					'price' => (float)$upsell->getValue('price'),
-					'priceVat' => (float)$upsell->getValue('priceVat'),
+					'price' => (float) $upsell->getValue('price'),
+					'priceVat' => (float) $upsell->getValue('priceVat'),
 					'amount' => $upsellCartItem->realAmount ? $upsellCartItem->realAmount * $upsell->getValue('amount') : $upsell->getValue('amount'),
 				]);
 			}

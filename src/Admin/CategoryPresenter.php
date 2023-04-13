@@ -70,7 +70,7 @@ class CategoryPresenter extends BackendPresenter
 	private ?CategoryType $categoryType;
 
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	private array $tabs = [];
 
@@ -105,11 +105,11 @@ class CategoryPresenter extends BackendPresenter
 
 		$grid->addColumn('Název', function (Category $category, $grid) {
 			return [
-				$grid->getPresenter()->link(':Eshop:Product:list', ['category' => (string)$category]),
+				$grid->getPresenter()->link(':Eshop:Product:list', ['category' => (string) $category]),
 				$category->name,
 			];
 		}, '<a href="%s" target="_blank"> %s</a>', 'name')->onRenderCell[] = function (\Nette\Utils\Html $td, Category $object): void {
-			$level = \strlen($object->path) / 4 - 1;
+			$level = Strings::length($object->path) / 4 - 1;
 			$td->setHtml(\str_repeat('- - ', $level) . $td->getHtml());
 		};
 
@@ -124,16 +124,16 @@ class CategoryPresenter extends BackendPresenter
 				return '<input class="form-control form-control-sm" type="number" value="' . $category->priority . '" disabled>';
 			}, '%s', 'showInMenu', ['class' => 'minimal']);
 			$grid->addColumn('<i title="Doporučeno" class="far fa-thumbs-up"></i>', function (Category $category) {
-				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int)$category->recommended . '" disabled></label>';
+				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int) $category->recommended . '" disabled></label>';
 			}, '%s', 'showInMenu', ['class' => 'minimal']);
 			$grid->addColumn('<i title="Skryto" class="far fa-eye-slash"></i>', function (Category $category) {
-				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int)$category->hidden . '" disabled></label>';
+				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int) $category->hidden . '" disabled></label>';
 			}, '%s', 'showInMenu', ['class' => 'minimal']);
 			$grid->addColumn('<i title="Zobrazit v menu" class="fas fa-bars"></i>', function (Category $category) {
-				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int)$category->showInMenu . '" disabled></label>';
+				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int) $category->showInMenu . '" disabled></label>';
 			}, '%s', 'showInMenu', ['class' => 'minimal']);
 			$grid->addColumn('<i title="Zobrazit pokud nemá produkty" class="fas fa-list-ol"></i>', function (Category $category) {
-				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int)$category->showEmpty . '" disabled></label>';
+				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int) $category->showEmpty . '" disabled></label>';
 			}, '%s', 'showEmpty', ['class' => 'minimal']);
 		}
 

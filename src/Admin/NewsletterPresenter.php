@@ -19,7 +19,7 @@ class NewsletterPresenter extends BackendPresenter
 	public ?string $tab = null;
 
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	public array $tabs = [];
 

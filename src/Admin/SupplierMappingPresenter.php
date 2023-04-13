@@ -29,6 +29,7 @@ use Eshop\DB\SupplierRepository;
 use Nette\Http\Session;
 use Nette\Utils\Arrays;
 use Nette\Utils\Random;
+use Nette\Utils\Strings;
 use StORM\Entity;
 use StORM\Expression;
 use StORM\ICollection;
@@ -41,7 +42,7 @@ class SupplierMappingPresenter extends BackendPresenter
 	];
 
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	public array $TABS = [
 		'category' => 'Kategorie',
@@ -144,7 +145,7 @@ class SupplierMappingPresenter extends BackendPresenter
 
 				for ($i = 1; $i !== 7; $i++) {
 					if (isset($parsed[$i - 1])) {
-						$expression->add('AND', "categoryNameL$i=%s", [\trim($parsed[$i - 1])]);
+						$expression->add('AND', "categoryNameL$i=%s", [Strings::trim($parsed[$i - 1])]);
 					}
 				}
 

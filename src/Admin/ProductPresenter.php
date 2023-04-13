@@ -6,6 +6,7 @@ namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Carbon\Carbon;
 use Eshop\Admin\Configs\ProductFormAutoPriceConfig;
 use Eshop\Admin\Configs\ProductFormConfig;
 use Eshop\Admin\Controls\IProductAttributesFormFactory;
@@ -244,7 +245,7 @@ class ProductPresenter extends BackendPresenter
 	public string $editTab = 'menu0';
 
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	private array $tabs = [
 		'products' => 'Katalog',
@@ -379,7 +380,7 @@ class ProductPresenter extends BackendPresenter
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
 
-		$form->addHidden('product', (string)$this->getParameter('product'));
+		$form->addHidden('product', (string) $this->getParameter('product'));
 
 		$form->addSubmit('submit', 'Uložit');
 
@@ -547,7 +548,7 @@ class ProductPresenter extends BackendPresenter
 			$container->setDefaults(isset($amounts[$storeId]) ? $amounts[$storeId]->toArray() : []);
 		}
 
-		/** @var \Eshop\DB\CategoryType[] $categoryTypes */
+		/** @var array<\Eshop\DB\CategoryType> $categoryTypes */
 		$categoryTypes = $this->categoryTypeRepository->getCollection(true)->toArray();
 
 		$productData = $product->toArray(['ribbons', 'internalRibbons', 'parameterGroups', 'taxes', 'categories']);
@@ -617,7 +618,7 @@ class ProductPresenter extends BackendPresenter
 		$this->template->relatedTypes = $this->relatedTypeRepository->getArrayForSelect();
 
 		$data = [];
-		/** @var \Eshop\DB\Photo[] $photos */
+		/** @var array<\Eshop\DB\Photo> $photos */
 		$photos = $this->photoRepository->many()->where('fk_product', $product->getPK())->orderBy(['priority']);
 
 		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR . '/origin/';
@@ -718,8 +719,8 @@ class ProductPresenter extends BackendPresenter
 			$products .= $this->productRepository->one($id)->getFullCode() . ';';
 		}
 
-		if (\strlen($products) > 0) {
-			$products = \substr($products, 0, -1);
+		if (Strings::length($products) > 0) {
+			$products = Strings::substring($products, 0, -1);
 		}
 
 		$form->setDefaults(['products' => $products]);
@@ -765,7 +766,7 @@ class ProductPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($productGrid): void {
 			$values = $form->getValues('array');
 
-			$functionName = 'newsletterExport' . (\ucfirst($values['type']));
+			$functionName = 'newsletterExport' . Strings::firstUpper($values['type']);
 
 //          try {
 			if ($values['bulkType'] === 'selected') {
@@ -1085,7 +1086,7 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 			try {
 				foreach ($filtered as $fileName) {
 					$code = \explode('.', $fileName)[0];
-					$imageFileName = \trim($fileName);
+					$imageFileName = Strings::trim($fileName);
 
 					if (!isset($products[$code])) {
 						continue;
@@ -1106,7 +1107,7 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 					});
 
 					if (\count($currentExistingImages) > 0) {
-						$existingImagePath = \trim(Arrays::first($currentExistingImages));
+						$existingImagePath = Strings::trim(Arrays::first($currentExistingImages));
 						$existingTimestamp = \filemtime($thumbPath . '/' . $existingImagePath);
 						$imagesTimestamp = \filemtime($imagesPath . '/' . $imageFileName);
 
@@ -1180,7 +1181,7 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 		}
 
 		$form->addGroup('CSV soubor');
-		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? \date('d.m.Y G:i', $lastUpdate) : null);
+		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? Carbon::createFromTimestamp($lastUpdate)->format('d.m.Y G:i') : null);
 
 		$allowedColumns = '';
 
@@ -1407,11 +1408,11 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 			$tempFilename = \tempnam($this->tempDir, 'csv');
 
 			$headerColumns = \array_filter($items, function ($item) use ($values) {
-				return \in_array($item, $values['columns']);
+				return Arrays::contains($values['columns'], $item);
 			}, \ARRAY_FILTER_USE_KEY);
 
 			$attributeColumns = \array_filter($attributes, function ($item) use ($values) {
-				return \in_array($item, $values['attributes']);
+				return Arrays::contains($values['attributes'], $item);
 			}, \ARRAY_FILTER_USE_KEY);
 
 			$this->productRepository->csvExport(
@@ -1602,7 +1603,7 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR;
 
 		$filename = \pathinfo($fileUpload->getSanitizedName(), \PATHINFO_FILENAME);
-		$fileExtension = \strtolower(\pathinfo($fileUpload->getSanitizedName(), \PATHINFO_EXTENSION));
+		$fileExtension = Strings::lower(\pathinfo($fileUpload->getSanitizedName(), \PATHINFO_EXTENSION));
 
 		while (\is_file("$basePath/origin/$filename.$fileExtension")) {
 			$filename .= '-' . Random::generate(1, '0-9');
@@ -1692,7 +1693,7 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 		}
 
 		foreach ($items as $uuid => $priority) {
-			$this->photoRepository->many()->where('uuid', $uuid)->update(['priority' => (int)$priority]);
+			$this->photoRepository->many()->where('uuid', $uuid)->update(['priority' => (int) $priority]);
 		}
 
 		$this->redirect('this');
@@ -1918,7 +1919,7 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 						$producerCode = $value;
 					}
 
-					if (isset($producers[$producerCode]) && \strlen($producerCode) > 0) {
+					if (isset($producers[$producerCode]) && Strings::length($producerCode) > 0) {
 						$newValues[$key] = $producers[$producerCode];
 					}
 				} elseif ($key === 'storeAmount') {
@@ -2034,7 +2035,7 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 			foreach ($record as $key => $value) {
 				$key = \array_search($key, $parsedHeader);
 
-				if (!isset($attributes[$key]) || \strlen($value) === 0) {
+				if (!isset($attributes[$key]) || Strings::length($value) === 0) {
 					continue;
 				}
 

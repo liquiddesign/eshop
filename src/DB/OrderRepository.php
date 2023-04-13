@@ -21,6 +21,7 @@ use Nette\Localization\Translator;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
+use Nette\Utils\Strings;
 use Security\DB\Account;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -433,50 +434,50 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	public function excelExport(Order $order, \XLSXWriter $writer, string $sheetName = 'sheet'): void
 	{
-		$writer->writeSheetRow($sheetName, array(
-			$order->code
-		));
+		$writer->writeSheetRow($sheetName, [
+			$order->code,
+		]);
 		$writer->writeSheetRow($sheetName, []);
 
-		$styles = array('font-style' => 'bold');
+		$styles = ['font-style' => 'bold'];
 
-		$writer->writeSheetRow($sheetName, array(
+		$writer->writeSheetRow($sheetName, [
 			$this->translator->translate('orderEE.productName', 'Název produktu'),
 			$this->translator->translate('orderEE.productCode', 'Kód produktu'),
 			$this->translator->translate('orderEE.amount', 'Množství'),
 			$this->translator->translate('orderEE.pcsPrice', 'Cena za kus'),
 			$this->translator->translate('orderEE.sumPrice', 'Mezisoučet'),
 			$this->translator->translate('orderEE.note', 'Poznámka'),
-		), $styles);
+		], $styles);
 
 		foreach ($order->purchase->getItems() as $item) {
 			$writer->writeSheetRow($sheetName, [
 				$item->productName,
 				$item->getFullCode(),
 				$item->amount,
-				\str_replace(',', '.', (string)$this->shopper->filterPrice($item->price, $order->purchase->currency->code)),
-				\str_replace(',', '.', (string)$this->shopper->filterPrice($item->getPriceSum(), $order->purchase->currency->code)),
+				\str_replace(',', '.', (string) $this->shopper->filterPrice($item->price, $order->purchase->currency->code)),
+				\str_replace(',', '.', (string) $this->shopper->filterPrice($item->getPriceSum(), $order->purchase->currency->code)),
 				$item->note,
 			]);
 		}
 
 		$writer->writeSheetRow($sheetName, []);
-		$writer->writeSheetRow($sheetName, array(
-			$this->translator->translate('orderEE.totalPrice', 'Celková cena'), \str_replace(',', '.', (string)$this->shopper->filterPrice($order->getTotalPrice(), $order->purchase->currency->code)),
-		));
+		$writer->writeSheetRow($sheetName, [
+			$this->translator->translate('orderEE.totalPrice', 'Celková cena'), \str_replace(',', '.', (string) $this->shopper->filterPrice($order->getTotalPrice(), $order->purchase->currency->code)),
+		]);
 	}
 
 	/**
-	 * @param \Eshop\DB\Order[] $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 * @param \XLSXWriter $writer
 	 */
 	public function excelExportAll(array $orders, \XLSXWriter $writer): void
 	{
-		$styles = array('font-style' => 'bold');
+		$styles = ['font-style' => 'bold'];
 
 		$sheetName = $this->translator->translate('orderEE.orders', 'Objednávky');
 
-		$writer->writeSheetRow($sheetName, array(
+		$writer->writeSheetRow($sheetName, [
 			$this->translator->translate('orderEE.order', 'Objednávka'),
 			$this->translator->translate('orderEE.productName', 'Název produktu'),
 			$this->translator->translate('orderEE.productCode', 'Kód produktu'),
@@ -485,7 +486,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			$this->translator->translate('orderEE.sumPrice', 'Mezisoučet'),
 			$this->translator->translate('orderEE.note', 'Poznámka'),
 			$this->translator->translate('orderEE.account', 'Servisní technik'),
-		), $styles);
+		], $styles);
 
 		$sumPrice = 0;
 
@@ -502,8 +503,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					$item->productName,
 					$item->getFullCode(),
 					$item->amount,
-					\str_replace(',', '.', (string)$this->shopper->filterPrice($item->price, $order->purchase->currency->code)),
-					\str_replace(',', '.', (string)$this->shopper->filterPrice($item->getPriceSum(), $order->purchase->currency->code)),
+					\str_replace(',', '.', (string) $this->shopper->filterPrice($item->price, $order->purchase->currency->code)),
+					\str_replace(',', '.', (string) $this->shopper->filterPrice($item->getPriceSum(), $order->purchase->currency->code)),
 					$item->note,
 					$order->purchase->account ? $order->purchase->account->fullname : $order->purchase->accountFullname,
 				]);
@@ -511,13 +512,13 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		}
 
 		$writer->writeSheetRow($sheetName, []);
-		$writer->writeSheetRow($sheetName, array(
-			$this->translator->translate('orderEE.totalPrice', 'Celková cena'), \str_replace(',', '.', (string)$this->shopper->filterPrice($sumPrice, $order->purchase->currency->code)),
-		));
+		$writer->writeSheetRow($sheetName, [
+			$this->translator->translate('orderEE.totalPrice', 'Celková cena'), \str_replace(',', '.', (string) $this->shopper->filterPrice($sumPrice, $order->purchase->currency->code)),
+		]);
 	}
 
 	/**
-	 * @param \Eshop\DB\Order[] $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 * @param \League\Csv\Writer $writer
 	 * @throws \League\Csv\CannotInsertRecord
 	 * @throws \League\Csv\InvalidArgument
@@ -617,18 +618,18 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	{
 		$gln = '8590804000006';
 		$user = $order->purchase->customer;
-		$created = new DateTime($order->createdTs);
+		$created = new \Carbon\Carbon($order->createdTs);
 		$string = '';
-		$string .= 'SYS' . \str_pad($gln, 14, ' ', \STR_PAD_RIGHT) . "ED  96AORDERSP\r\n";
+		$string .= 'SYS' . Strings::padRight($gln, 14, ' ') . "ED  96AORDERSP\r\n";
 		$string .= 'HDR'
-			. \str_pad($order->code, 15, ' ', \STR_PAD_RIGHT)
+			. Strings::padRight($order->code, 15, ' ')
 			. $created->format('Ymd')
-			. \str_pad($user && $user->ediCompany ? $user->ediCompany : $gln, 17, ' ')
-			. \str_pad($user && $user->ediBranch ? $user->ediBranch : $gln, 17, ' ')
-			. \str_pad($user && $user->ediBranch ? $user->ediBranch : $gln, 17, ' ')
-			. \str_pad($gln, 17, ' ', \STR_PAD_RIGHT)
-			. \str_pad(' ', 17, ' ', \STR_PAD_RIGHT)
-			. \str_pad((\date('Ymd', \strtotime($order->canceledTs ?? $order->createdTs))) . '0000', 17, ' ')
+			. Strings::padRight($user && $user->ediCompany ? $user->ediCompany : $gln, 17, ' ')
+			. Strings::padRight($user && $user->ediBranch ? $user->ediBranch : $gln, 17, ' ')
+			. Strings::padRight($user && $user->ediBranch ? $user->ediBranch : $gln, 17, ' ')
+			. Strings::padRight($gln, 17, ' ')
+			. Strings::padRight(' ', 17, ' ')
+			. Strings::padRight(Carbon::parse($order->canceledTs ?? $order->createdTs)->format('Ymd') . '0000', 17, ' ')
 			//."!!!".$order->note."!!!************>>"
 			. '' . $order->purchase->note . ''
 			. "\r\n";
@@ -636,11 +637,11 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 		foreach ($order->getGroupedItems() as $i) {
 			$string .= 'LIN'
-				. \str_pad((string)$line, 6, ' ', \STR_PAD_LEFT)
-				. \str_pad($i->product ? $i->product->getFullCode() : $i->getFullCode(), 25, ' ', \STR_PAD_RIGHT)
-				. \str_pad('', 25, ' ', \STR_PAD_RIGHT)
-				. \str_pad(\number_format($i->amount, 3, '.', ''), 12, ' ', \STR_PAD_LEFT)
-				. \str_pad('', 15, ' ')
+				. Strings::padLeft((string) $line, 6, ' ')
+				. Strings::padRight($i->product ? $i->product->getFullCode() : $i->getFullCode(), 25, ' ')
+				. Strings::padRight('', 25, ' ')
+				. Strings::padLeft(\number_format($i->amount, 3, '.', ''), 12, ' ')
+				. Strings::padRight('', 15, ' ')
 				. "\r\n";
 			$line++;
 		}
@@ -648,10 +649,10 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		return $string;
 	}
 
-	public function getCustomerTotalTurnover(Customer $customer, ?DateTime $from = null, ?DateTime $to = null): float
+	public function getCustomerTotalTurnover(Customer $customer, DateTime|Carbon|null $from = null, DateTime|Carbon|null $to = null): float
 	{
-		$from ??= new DateTime('1970-01-01');
-		$to ??= new DateTime();
+		$from ??= new \Carbon\Carbon('1970-01-01');
+		$to ??= new \Carbon\Carbon();
 
 		$orders = $this->getOrdersByUserInRange($customer, $from, $to);
 
@@ -792,7 +793,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	/**
 	 * @param array<\Eshop\DB\Order> $orders
-	 * @return float[]
+	 * @return array<float>
 	 */
 	public function getSumOrderPrice(array $orders): array
 	{
@@ -815,7 +816,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	/**
 	 * @param array<\Eshop\DB\Order> $orders
-	 * @return float[]
+	 * @return array<float>
 	 */
 	public function getAverageOrderPrice(array $orders): array
 	{
@@ -919,7 +920,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		foreach ($rootCategories as $key => $category) {
 			if ($sum !== 0) {
 				$empty = false;
-				$rootCategories[$key]['share'] = \round($category['amount'] / (float)$sum * 100);
+				$rootCategories[$key]['share'] = \round($category['amount'] / (float) $sum * 100);
 			} else {
 				$rootCategories[$key]['share'] = 0;
 			}
@@ -1194,7 +1195,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		/** @var \Eshop\DB\CartRepository $cartRepository */
 		$cartRepository = $this->getConnection()->findRepository(Cart::class);
 
-		/** @var \Eshop\DB\Cart[] $carts */
+		/** @var array<\Eshop\DB\Cart> $carts */
 		$carts = $cartRepository->many()
 			->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
 			->join(['orders' => 'eshop_order'], 'orders.fk_purchase = purchase.uuid')
@@ -1307,7 +1308,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	public function openOrder(Order $order, ?Administrator $administrator = null): void
 	{
-		if (\in_array(false, Arrays::invoke($this->onBeforeOrderOpened, $order), true)) {
+		if (Arrays::contains(Arrays::invoke($this->onBeforeOrderOpened, $order), false)) {
 			return;
 		}
 
@@ -1324,12 +1325,12 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	public function receiveOrder(Order $order, ?Administrator $administrator = null): void
 	{
-		if (\in_array(false, Arrays::invoke($this->onBeforeOrderReceived, $order), true)) {
+		if (Arrays::contains(Arrays::invoke($this->onBeforeOrderReceived, $order), false)) {
 			return;
 		}
 
 		$order->update([
-			'receivedTs' => (string)new DateTime(),
+			'receivedTs' => (string) new \Carbon\Carbon(),
 			'completedTs' => null,
 			'canceledTs' => null,
 		]);
@@ -1341,7 +1342,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	public function completeOrder(Order $order, ?Administrator $administrator = null): void
 	{
-		if (\in_array(false, Arrays::invoke($this->onBeforeOrderCompleted, $order), true)) {
+		if (Arrays::contains(Arrays::invoke($this->onBeforeOrderCompleted, $order), false)) {
 			return;
 		}
 
@@ -1357,7 +1358,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			// loyalty program is computed in scripts
 		}
 
-		$order->update(['completedTs' => (string)new DateTime(), 'canceledTs' => null]);
+		$order->update(['completedTs' => (string) new \Carbon\Carbon(), 'canceledTs' => null]);
 
 		Arrays::invoke($this->onOrderCompleted, $order);
 
@@ -1372,13 +1373,13 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	public function cancelOrder(Order $order, ?Administrator $administrator = null): void
 	{
-		if (\in_array(false, Arrays::invoke($this->onBeforeOrderCanceled, $order), true)) {
+		if (Arrays::contains(Arrays::invoke($this->onBeforeOrderCanceled, $order), false)) {
 			return;
 		}
 
 		$order->update([
-			'receivedTs' => $order->receivedTs ?: (string)new DateTime(),
-			'canceledTs' => (string)new DateTime(),
+			'receivedTs' => $order->receivedTs ?: (string) new \Carbon\Carbon(),
+			'canceledTs' => (string) new \Carbon\Carbon(),
 			'loyaltyProgramComputedTs' => null,
 		]);
 
@@ -1389,12 +1390,12 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	public function banOrder(Order $order, ?Administrator $administrator = null): void
 	{
-		if (\in_array(false, Arrays::invoke($this->onBeforeOrderBanned, $order), true)) {
+		if (Arrays::contains(Arrays::invoke($this->onBeforeOrderBanned, $order), false)) {
 			return;
 		}
 
 		$order->update([
-			'bannedTs' => (string)new DateTime(),
+			'bannedTs' => (string) new \Carbon\Carbon(),
 		]);
 
 		$this->bannedEmailRepository->syncOne(['email' => $order->purchase->email]);
@@ -1406,7 +1407,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	public function unBanOrder(Order $order, ?Administrator $administrator = null): void
 	{
-		if (\in_array(false, Arrays::invoke($this->onBeforeOrderUnBanned, $order), true)) {
+		if (Arrays::contains(Arrays::invoke($this->onBeforeOrderUnBanned, $order), false)) {
 			return;
 		}
 
@@ -1421,12 +1422,12 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	public function pauseOrder(Order $order, ?Administrator $administrator = null): void
 	{
-		if (\in_array(false, Arrays::invoke($this->onBeforeOrderPaused, $order), true)) {
+		if (Arrays::contains(Arrays::invoke($this->onBeforeOrderPaused, $order), false)) {
 			return;
 		}
 
 		$order->update([
-			'pausedTs' => (string)new DateTime(),
+			'pausedTs' => (string) new \Carbon\Carbon(),
 		]);
 
 		Arrays::invoke($this->onOrderPaused, $order);
@@ -1436,7 +1437,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	public function unPauseOrder(Order $order, ?Administrator $administrator = null): void
 	{
-		if (\in_array(false, Arrays::invoke($this->onBeforeOrderUnPaused, $order), true)) {
+		if (Arrays::contains(Arrays::invoke($this->onBeforeOrderUnPaused, $order), false)) {
 			return;
 		}
 
@@ -1466,7 +1467,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	/**
 	 * @param array<\Eshop\DB\Order> $orders
-	 * @param \Eshop\DB\DiscountCoupon[] $discountCoupons
+	 * @param array<\Eshop\DB\DiscountCoupon> $discountCoupons
 	 * @return array<array<string, float>>
 	 */
 	public function getDiscountCouponsUsage(array $orders, array $discountCoupons): array

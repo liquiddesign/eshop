@@ -52,7 +52,7 @@ class Country extends \StORM\Entity
 	/**
 	 * Výše DPH
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\VatRate>|\Eshop\DB\VatRate[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\VatRate>
 	 */
 	public RelationCollection $vatRates;
 }

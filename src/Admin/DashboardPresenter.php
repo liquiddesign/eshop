@@ -47,7 +47,7 @@ class DashboardPresenter extends BackendPresenter
 
 		$this->template->recievedOrders = $this->orderRepo->getCollectionByState($state)->orderBy(['createdTs DESC'])->setTake(10);
 		
-		/** @var \Security\DB\Account[] $accounts */
+		/** @var array<\Security\DB\Account> $accounts */
 		$accounts = $this->accountRepo->many()->orderBy(['tsRegistered' => 'DESC']);
 		
 		$counter = 0;

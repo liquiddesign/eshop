@@ -9,6 +9,7 @@ use Eshop\Shopper;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Caching\Storages\DevNullStorage;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
@@ -45,7 +46,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 
 	/**
 	 * @param bool $includeHidden
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
@@ -135,7 +136,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		return $this->getCollection($includeHidden)
 			->join(['nxn' => 'eshop_attribute_nxn_eshop_category'], 'this.uuid = nxn.fk_attribute')
 			->join(['category' => 'eshop_category'], 'category.uuid = nxn.fk_category')
-			->where(\strlen($query) > 0 ? \substr($query, 0, -3) : '1=0');
+			->where(Strings::length($query) > 0 ? Strings::substring($query, 0, -3) : '1=0');
 	}
 
 	/**
@@ -185,7 +186,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		return $this->cache->load($index, static function (&$dependencies) use ($step, $suffix, $collection) {
 			$items = [];
 
-			/** @var \Eshop\DB\AttributeValue[] $attributeValues */
+			/** @var array<\Eshop\DB\AttributeValue> $attributeValues */
 			$attributeValues = $collection
 				->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
 				->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value', [], 'INNER')

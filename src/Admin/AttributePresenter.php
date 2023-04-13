@@ -123,7 +123,7 @@ class AttributePresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($source, 20, null, null, true);
 
 		$grid->setItemCountCallback(function (ICollection $filteredSource) use ($connection): int {
-			return (int)$connection->rows()
+			return (int) $connection->rows()
 				->select(['count' => 'count(*)'])
 				->from(['derived' => $filteredSource->select(['assignCount' => 'COUNT(assign.uuid)'])], $filteredSource->getVars())
 				->firstValue('count');
@@ -212,7 +212,7 @@ class AttributePresenter extends BackendPresenter
 		}
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('this.hidden', (bool)$value);
+			$source->where('this.hidden', (bool) $value);
 		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
 
 		$grid->addFilterDataSelect(function (Collection $source, $value): void {
@@ -330,7 +330,7 @@ class AttributePresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($source, 20, 'code', 'ASC', true);
 
 		$grid->setItemCountCallback(function (ICollection $filteredSource) {
-			return (int)$this->attributeRepository->getConnection()->rows()
+			return (int) $this->attributeRepository->getConnection()->rows()
 				->select(['count' => 'count(*)'])
 				->from(['derived' => $filteredSource->setSelect(['uuid' => 'this.uuid', 'assignCount' => 'COUNT(assign.uuid)'])], $filteredSource->getVars())
 				->firstValue('count');
@@ -377,7 +377,7 @@ class AttributePresenter extends BackendPresenter
 		}
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('this.hidden', (bool)$value);
+			$source->where('this.hidden', (bool) $value);
 		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
 
 		$grid->addFilterDataSelect(function (Collection $source, $value): void {
@@ -777,7 +777,7 @@ class AttributePresenter extends BackendPresenter
 			$submitter = $form->isSubmitted();
 			$submitName = $submitter->getName();
 
-			/** @var \Eshop\DB\AttributeValue[] $attributeValues */
+			/** @var array<\Eshop\DB\AttributeValue> $attributeValues */
 			$attributeValues = $values['bulkType'] === 'selected' ? $this->attributeValueRepository->many()->where('uuid', $ids) : $productGrid->getFilteredSource();
 
 			if ($submitName === 'submit') {

@@ -16,7 +16,7 @@ use Nette;
 class BuyForm extends Form
 {
 	/**
-	 * @var callable[]
+	 * @var array<callable>
 	 */
 	public array $onItemAddedToCart = [];
 

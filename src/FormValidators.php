@@ -24,7 +24,7 @@ class FormValidators
 		[$repository] = $args;
 		$value = $control->getValue();
 
-		return (bool)$repository->getProductByCodeOrEAN($value);
+		return (bool) $repository->getProductByCodeOrEAN($value);
 	}
 
 	/**

@@ -17,12 +17,12 @@ use Nette;
 class CouponForm extends \Nette\Application\UI\Form
 {
 	/**
-	 * @var callable[]&callable(\Eshop\DB\DiscountCoupon): void
+	 * @var array<callable>&callable(\Eshop\DB\DiscountCoupon): void
 	 */
 	public $onSet;
 	
 	/**
-	 * @var callable[]&callable(): void
+	 * @var array<callable>&callable(): void
 	 */
 	public $onRemove;
 

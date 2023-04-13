@@ -24,11 +24,9 @@ class DiscountCouponForm extends Control
 	public function __construct(
 		AdminFormFactory $adminFormFactory,
 		CurrencyRepository $currencyRepository,
-		/** @codingStandardsIgnoreStart */
 		private DiscountCouponRepository $discountCouponRepository,
 		private DiscountConditionCategoryRepository $discountConditionCategoryRepository,
 		private Shopper $shopper,
-		/** @codingStandardsIgnoreEnd */
 		DiscountConditionRepository $discountConditionRepository,
 		?DiscountCoupon $discountCoupon,
 		?Discount $discount = null
@@ -68,7 +66,7 @@ class DiscountCouponForm extends Control
 		$form->addDataSelect('currency', 'Měna', $currencyRepository->getArrayForSelect());
 		$form->addText('discountValue', 'Sleva')->setHtmlAttribute('data-info', 'Zadejte hodnotu ve zvolené měně.')->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->addText('discountValueVat', 'Sleva s DPH')->setHtmlAttribute('data-info', 'Zadejte hodnotu ve zvolené měně.')->addCondition($form::FILLED)->addRule($form::FLOAT);
-		$form->addHidden('discount', isset($discount) ? (string)$discount : $discountCoupon->getValue('discount'));
+		$form->addHidden('discount', isset($discount) ? (string) $discount : $discountCoupon->getValue('discount'));
 		$form->addText('minimalOrderPrice', 'Minimální cena objednávky')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->addText('maximalOrderPrice', 'Maximální cena objednávky')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->bind($discountCouponRepository->getStructure());

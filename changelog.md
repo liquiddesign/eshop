@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0]
+
+### Added
+### Changed
+- Comgate service is now provided only by Integrations service.
+### Removed
+- Removed deprecated classes
+  - `FrontendPresenter.php`
+  - `ComgatePresenter.php`
+  - `ExportPresenter.php`
+  - `DB/Tag.php`
+  - `DB/TagRepository.php`
+  - `Admin/TagPresenter.php`
+  - `Integration/Comgate.php`
+  - ``
+### Deprecated
+### Fixed
+
 ## [1.3.0 - 1.3.4] - 2023-03-26
 
 ### Added

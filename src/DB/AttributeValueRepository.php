@@ -6,6 +6,7 @@ namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
 use Nette\Application\ApplicationException;
+use Nette\Utils\Arrays;
 use StORM\Collection;
 
 /**
@@ -87,7 +88,7 @@ class AttributeValueRepository extends \StORM\Repository implements IGeneralRepo
 			}
 		}
 
-		if (!\in_array($size, ['origin', 'detail', 'thumb'])) {
+		if (!Arrays::contains(['origin', 'detail', 'thumb'], $size)) {
 			throw new ApplicationException('Invalid product image size: ' . $size);
 		}
 

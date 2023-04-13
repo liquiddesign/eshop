@@ -121,7 +121,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 
 	/**
 	 * @deprecated use getArrayForSelect()
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getListForSelect(): array
 	{
@@ -130,7 +130,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 
 	/**
 	 * @param \Eshop\DB\Customer $customer
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getEmailVariables(Customer $customer): array
 	{

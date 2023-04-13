@@ -83,7 +83,7 @@ class PackageItem extends \StORM\Entity
 	/**
 	 * Related package items
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedPackageItem>|\Eshop\DB\RelatedPackageItem[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedPackageItem>
 	 */
 	public RelationCollection $relatedPackageItems;
 

@@ -293,8 +293,6 @@ abstract class FrontendPresenter extends Presenter
 		try {
 			return $this->latte->renderToString($string, $params);
 		} catch (\Throwable $e) {
-			\bdump($e);
-
 			return null;
 		}
 	}
@@ -336,8 +334,6 @@ abstract class FrontendPresenter extends Presenter
 		if (!$this->shopper->isIntegrationsEHub() || (!$eHub = $this->getParameter('ehub'))) {
 			return;
 		}
-
-		\bdump('ehub detected and saved to session');
 
 		$this->getSession()->getSection('frontend')->set('ehub', $eHub);
 	}

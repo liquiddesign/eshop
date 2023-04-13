@@ -29,7 +29,7 @@ class CustomerGroupRepository extends \StORM\Repository implements IGeneralRepos
 	}
 
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getRegisteredGroupsArray(): array
 	{
@@ -38,7 +38,7 @@ class CustomerGroupRepository extends \StORM\Repository implements IGeneralRepos
 
 	/**
 	 * @deprecated use getArrayForSelect()
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getListForSelect(): array
 	{

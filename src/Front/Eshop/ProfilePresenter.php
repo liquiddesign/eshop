@@ -70,12 +70,12 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 		$form = new Nette\Application\UI\Form();
 
 		$form->addText('from', $this->translator->translate('Profile.from', 'Od'))
-			->setHtmlAttribute('min', (new Nette\Utils\DateTime())->modify('- 1 year')->format('Y-m-d'))
-			->setHtmlAttribute('max', (new Nette\Utils\DateTime())->format('Y-m-d'))
+			->setHtmlAttribute('min', (new \Carbon\Carbon())->modify('- 1 year')->format('Y-m-d'))
+			->setHtmlAttribute('max', (new \Carbon\Carbon())->format('Y-m-d'))
 			->setHtmlType('date');
 		$form->addText('to', $this->translator->translate('Profile.to', 'Do'))
-			->setHtmlAttribute('min', (new Nette\Utils\DateTime())->modify('- 1 year')->format('Y-m-d'))
-			->setHtmlAttribute('max', (new Nette\Utils\DateTime())->format('Y-m-d'))
+			->setHtmlAttribute('min', (new \Carbon\Carbon())->modify('- 1 year')->format('Y-m-d'))
+			->setHtmlAttribute('max', (new \Carbon\Carbon())->format('Y-m-d'))
 			->setHtmlType('date');
 		$form->addSubmit('submit', $this->translator->translate('Profile.show', 'Zobrazit'));
 
@@ -113,8 +113,8 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 		/** @var \Nette\Forms\Controls\TextInput $to */
 		$to = $form['to'];
 
-		$from->setDefaultValue($this->statsFrom ?? (new Nette\Utils\DateTime())->modify('- 1 year')->format('Y-m-d'));
-		$to->setDefaultValue($this->statsTo ?? (new Nette\Utils\DateTime())->format('Y-m-d'));
+		$from->setDefaultValue($this->statsFrom ?? (new \Carbon\Carbon())->modify('- 1 year')->format('Y-m-d'));
+		$to->setDefaultValue($this->statsTo ?? (new \Carbon\Carbon())->format('Y-m-d'));
 	}
 
 	public function renderStats(): void

@@ -13,6 +13,7 @@ use Eshop\DB\CustomerRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\Shopper;
 use Forms\Form;
+use Nette\Utils\Strings;
 
 class GroupPresenter extends BackendPresenter
 {
@@ -56,7 +57,7 @@ class GroupPresenter extends BackendPresenter
 				}
 			}
 			
-			return \substr($resultString, 0, -2);
+			return Strings::substring($resultString, 0, -2);
 		});
 		
 		$grid->addColumn('Katalogové oprávnění', function (CustomerGroup $group) {

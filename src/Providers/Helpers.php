@@ -6,6 +6,7 @@ namespace Eshop\Providers;
 
 use Nette\Utils\Arrays;
 use Nette\Utils\Json;
+use Nette\Utils\Strings;
 
 abstract class Helpers
 {
@@ -55,7 +56,7 @@ abstract class Helpers
 
 	/**
 	 * @param mixed $item
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public static function convertToArray($item): array
 	{
@@ -141,7 +142,7 @@ abstract class Helpers
 		$openedTags = \array_reverse($openedTags);
 
 		for ($i = 0; $i < $lenOpened; $i++) {
-			if (!\in_array($openedTags[$i], $closedTags)) {
+			if (!Arrays::contains($closedTags, $openedTags[$i])) {
 				$html .= '</' . $openedTags[$i] . '>';
 			} else {
 				unset($closedTags[\array_search($openedTags[$i], $closedTags)]);
@@ -172,7 +173,7 @@ abstract class Helpers
 				$firstName .= $name . ' ';
 			}
 
-			$firstName = \substr($firstName, 0, -1);
+			$firstName = Strings::substring($firstName, 0, -1);
 		}
 
 		$lastName = null;

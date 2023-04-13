@@ -51,6 +51,7 @@ use Nette\Http\Response;
 use Nette\Security\AuthenticationException;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
+use Nette\Utils\Strings;
 use Security\DB\AccountRepository;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -308,7 +309,7 @@ abstract class ExportPresenter extends Presenter
 	{
 		$phpAuthUser = $this->request->getUrl()->getUser();
 
-		if (\strlen($phpAuthUser) === 0 && !$this->user->isLoggedIn() && !$uuid) {
+		if (Strings::length($phpAuthUser) === 0 && !$this->user->isLoggedIn() && !$uuid) {
 			\Header('WWW-Authenticate: Basic realm="Please, log in."');
 			\Header('HTTP/1.0 401 Unauthorized');
 			echo "401 Unauthorized\n";
@@ -318,7 +319,7 @@ abstract class ExportPresenter extends Presenter
 
 		$phpAuthPassword = $this->request->getUrl()->getPassword();
 
-		if (\strlen($phpAuthUser) > 0) {
+		if (Strings::length($phpAuthUser) > 0) {
 			try {
 				$this->user->login($phpAuthUser, $phpAuthPassword, Customer::class);
 			} catch (AuthenticationException $e) {

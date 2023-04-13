@@ -81,7 +81,7 @@ class RibbonPresenter extends BackendPresenter
 
 		$grid->onRenderRow[] = function (\Nette\Utils\Html $tr, $object) use ($columnText, $columnBackground): void {
 			/** @var \Eshop\DB\Ribbon $object */
-			/** @var \Nette\Utils\Html[] $tr */
+			/** @var array<\Nette\Utils\Html> $tr */
 			$tr[$columnText->getId()]->setAttribute('style', "color: $object->color");
 			$tr[$columnBackground->getId()]->setAttribute('style', "color: $object->backgroundColor");
 		};
@@ -118,7 +118,7 @@ class RibbonPresenter extends BackendPresenter
 
 		$grid->onRenderRow[] = function (\Nette\Utils\Html $tr, $object) use ($columnText, $columnBackground): void {
 			/** @var \Eshop\DB\InternalRibbon $object */
-			/** @var \Nette\Utils\Html[] $tr */
+			/** @var array<\Nette\Utils\Html> $tr */
 			$tr[$columnText->getId()]->setAttribute('style', "color: $object->color");
 			$tr[$columnBackground->getId()]->setAttribute('style', "color: $object->backgroundColor");
 		};

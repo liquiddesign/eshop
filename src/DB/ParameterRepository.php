@@ -14,7 +14,7 @@ use StORM\Collection;
 class ParameterRepository extends \StORM\Repository implements IGeneralRepository
 {
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 * @deprecated
 	 */
 	public function getListForSelect(): array
@@ -51,7 +51,7 @@ class ParameterRepository extends \StORM\Repository implements IGeneralRepositor
 
 	/**
 	 * @param \StORM\Collection<\Eshop\DB\Product> $collection
-	 * @return string[]
+	 * @return array<string>
 	 * @deprecated
 	 */
 	public function getCounts(Collection $collection): array

@@ -73,7 +73,7 @@ class GoPay implements IPaymentIntegration
 					'country_code' => $purchase->billAddress->state ?? 'CZE',
 				],
 			],
-			'amount' => \Money\Money::CZK((int)($order->getTotalPriceVat() * 100)),
+			'amount' => \Money\Money::CZK((int) ($order->getTotalPriceVat() * 100)),
 			'order_number' => $order->code,
 			'callback' => [
 				'return_url' => $baseUrl . 'payment-summary',
@@ -88,7 +88,7 @@ class GoPay implements IPaymentIntegration
 				'type' => 'ITEM',
 				'name' => $item->productName,
 				'count' => $item->amount,
-				'amount' => \Money\Money::CZK((int)($item->getPriceVatSum() * 100)),
+				'amount' => \Money\Money::CZK((int) ($item->getPriceVatSum() * 100)),
 			];
 		}
 
@@ -99,11 +99,9 @@ class GoPay implements IPaymentIntegration
 				'type' => 'DELIVERY',
 				'name' => $deliveryType->name,
 				'count' => 1,
-				'amount' => \Money\Money::CZK((int)($deliveryPaymentPrice * 100)),
+				'amount' => \Money\Money::CZK((int) ($deliveryPaymentPrice * 100)),
 			];
 		}
-
-		\bdump($payment);
 
 		return $this->client->payments->createPayment(PaymentFactory::create($payment));
 	}
@@ -144,7 +142,7 @@ class GoPay implements IPaymentIntegration
 			$data = $response->getData();
 			$url = $data['gw_url'];
 
-			$this->paymentResultRepository->saveTransaction((string)$data['id'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, $data['state'], 'goPay', $order);
+			$this->paymentResultRepository->saveTransaction((string) $data['id'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, $data['state'], 'goPay', $order);
 
 			\header('location: ' . $url);
 			exit;

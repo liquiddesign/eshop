@@ -32,7 +32,6 @@ use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
-use Nette\Utils\DateTime;
 use Nette\Utils\Validators;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
@@ -292,20 +291,11 @@ class CustomerPresenter extends BackendPresenter
 				return;
 			}
 
-			switch ($customerType) {
-				case 'one':
-					$filter = '=1';
-
-					break;
-				case 'more':
-					$filter = '>1';
-
-					break;
-				default:
-					$filter = '=0';
-
-					break;
-			}
+			$filter = match ($customerType) {
+				'one' => '=1',
+				'more' => '>1',
+				default => '=0',
+			};
 
 			$source->where("this.ordersCount $filter");
 		}, '', 'customerType', null, [
@@ -547,10 +537,15 @@ class CustomerPresenter extends BackendPresenter
 			
 			if ($customer && $customer->getValue('loyaltyProgram')) {
 				$loyaltyProgram = $this->loyaltyProgramRepository->one($customer->getValue('loyaltyProgram'), true);
-				$customerTurnover = $this->orderRepository->getCustomerTotalTurnover($customer, $loyaltyProgram->turnoverFrom ? new DateTime($loyaltyProgram->turnoverFrom) : null, new DateTime());
+				$customerTurnover = $this->orderRepository->getCustomerTotalTurnover(
+					$customer,
+					$loyaltyProgram->turnoverFrom ?
+					new \Carbon\Carbon($loyaltyProgram->turnoverFrom) : null,
+					new \Carbon\Carbon(),
+				);
 				
 				$form->addText('loyaltyProgramTurnover', 'Objem objednávek (Kč)')->setDisabled()->setDefaultValue((string) $customerTurnover);
-				$form->addText('loyaltyProgramPoints', 'Stav věrnostního konta')->setDisabled()->setDefaultValue((string)$customer->getLoyaltyProgramPoints());
+				$form->addText('loyaltyProgramPoints', 'Stav věrnostního konta')->setDisabled()->setDefaultValue((string) $customer->getLoyaltyProgramPoints());
 				$form->addText('loyaltyProgramDiscountLevel', 'Procentuální sleva věrnostního programu (%)')
 					->setDisabled();
 			}
@@ -759,7 +754,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			]) + ['merchants' => $merchants];
 		
 		if ($customer->loyaltyProgramDiscountLevel) {
-			$defaults['loyaltyProgramDiscountLevel'] = (string)$customer->loyaltyProgramDiscountLevel->discountLevel;
+			$defaults['loyaltyProgramDiscountLevel'] = (string) $customer->loyaltyProgramDiscountLevel->discountLevel;
 		}
 
 		$defaults['lastOrder'] = $customer->lastOrder ? $customer->lastOrder->code : null;

@@ -44,7 +44,7 @@ class RelatedPresenter extends BackendPresenter
 	protected ?RelatedType $relatedType;
 
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	private array $tabs = [];
 

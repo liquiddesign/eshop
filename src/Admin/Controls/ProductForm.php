@@ -90,7 +90,7 @@ class ProductForm extends Control
 	private int $relationMaxItemsCount;
 
 	/**
-	 * @var \Eshop\DB\RelatedType[]
+	 * @var array<\Eshop\DB\RelatedType>
 	 */
 	private array $relatedTypes;
 
@@ -172,7 +172,7 @@ class ProductForm extends Control
 
 		$form->addSelect('vatRate', 'Úroveň DPH (%)', $vatRateRepository->getDefaultVatRates());
 
-		/** @var \Eshop\DB\CategoryType[] $categoryTypes */
+		/** @var array<\Eshop\DB\CategoryType> $categoryTypes */
 		$categoryTypes = $this->categoryTypeRepository->getCollection(true)->toArray();
 
 		$categoriesContainer = $form->addContainer('categories');

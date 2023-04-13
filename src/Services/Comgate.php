@@ -84,8 +84,6 @@ class Comgate implements IPaymentIntegration
 
 		$response = $this->createPayment($order, $orderPaymentType->comgateMethod ?: PaymentMethodCode::ALL);
 
-		\bdump($response);
-
 		if ($response['code'] === '0') {
 			$this->paymentResultRepository->saveTransaction(
 				$response['transId'],
@@ -106,7 +104,7 @@ class Comgate implements IPaymentIntegration
 
 	/**
 	 * @param \Eshop\DB\Order $order
-	 * @return string[]
+	 * @return array<string>
 	 * @throws \Brick\Money\Exception\UnknownCurrencyException
 	 */
 	public function createPayment(Order $order, string $method = PaymentMethodCode::ALL): array
@@ -130,7 +128,7 @@ class Comgate implements IPaymentIntegration
 
 	/**
 	 * @param string $transaction
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getStatus(string $transaction): array
 	{

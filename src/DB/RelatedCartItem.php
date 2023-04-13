@@ -145,12 +145,12 @@ class RelatedCartItem extends \StORM\Entity
 
 	public function getPriceSumBefore(): ?float
 	{
-		return (float) $this->getValue('priceBefore') > 0 ? (float)$this->getValue('priceBefore') * $this->amount : null;
+		return (float) $this->getValue('priceBefore') > 0 ? (float) $this->getValue('priceBefore') * $this->amount : null;
 	}
 
 	public function getPriceVatSumBefore(): ?float
 	{
-		return (float) $this->getValue('priceVatBefore') > 0 ? (float)$this->getValue('priceVatBefore') * $this->amount : null;
+		return (float) $this->getValue('priceVatBefore') > 0 ? (float) $this->getValue('priceVatBefore') * $this->amount : null;
 	}
 	
 	public function getFullCode(): ?string

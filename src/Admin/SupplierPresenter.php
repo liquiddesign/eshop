@@ -120,20 +120,11 @@ class SupplierPresenter extends BackendPresenter
 			}
 
 			if ($object->status === 'ok') {
-				$msg = '';
-
-				switch ($object->type) {
-					case 'import':
-						$msg .= 'Import doběhl v pořádku';
-
-						break;
-					case 'importAmount':
-						$msg .= 'Import dosupností a skladů doběhl v pořádku';
-
-						break;
-					default:
-						$msg .= 'Zápis do katalogu doběhl v pořádku';
-				}
+				$msg = match ($object->type) {
+					'import' => 'Import doběhl v pořádku',
+					'importAmount' => 'Import dosupností a skladů doběhl v pořádku',
+					default => 'Zápis do katalogu doběhl v pořádku',
+				};
 
 				$msg .= " $object->warningMessages";
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Nette\Utils\DateTime;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\RelationCollection;
 
@@ -198,27 +198,27 @@ class Order extends \StORM\Entity
 	
 	/**
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Package>|\Eshop\DB\Package[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Package>
 	 */
 	public RelationCollection $packages;
 	
 	/**
 	 * Platby
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Payment>|\Eshop\DB\Payment[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Payment>
 	 */
 	public RelationCollection $payments;
 
 	/**
 	 * Dopravy
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Delivery>|\Eshop\DB\Delivery[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Delivery>
 	 */
 	public RelationCollection $deliveries;
 	
 	/**
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Comgate>|\Eshop\DB\Comgate[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Comgate>
 	 */
 	public RelationCollection $comgate;
 	
@@ -397,7 +397,7 @@ class Order extends \StORM\Entity
 	
 	public function isCompany(): bool
 	{
-		return (bool)$this->getValue('ic');
+		return (bool) $this->getValue('ic');
 	}
 	
 	public function getState(): string
@@ -410,12 +410,12 @@ class Order extends \StORM\Entity
 	
 	public function getId(int $length): string
 	{
-		return \str_pad((string) $this->id, $length, '0', \STR_PAD_LEFT);
+		return Strings::padLeft((string) $this->id, $length, '0');
 	}
 	
 	public function getYear(): int
 	{
-		$created = DateTime::from((int) $this->createdTs);
+		$created = \Carbon\Carbon::parse($this->createdTs);
 		
 		return (int) $created->format('Y');
 	}
@@ -429,11 +429,11 @@ class Order extends \StORM\Entity
 		
 		$id = $maxIdLastYear ? $this->id - (int) $maxIdLastYear : $this->id;
 		
-		return \str_pad((string) $id, $length, '0', \STR_PAD_LEFT);
+		return Strings::padLeft((string) $id, $length, '0');
 	}
 	
 	/**
-	 * @return \Eshop\DB\CartItem[]
+	 * @return array<\Eshop\DB\CartItem>
 	 */
 	public function getGroupedItems(): array
 	{

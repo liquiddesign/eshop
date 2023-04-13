@@ -173,7 +173,7 @@ class Purchase extends \StORM\Entity
 	/**
 	 * Košíky
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Cart>|\Eshop\DB\Cart[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Cart>
 	 */
 	public RelationCollection $carts;
 	
@@ -257,7 +257,7 @@ class Purchase extends \StORM\Entity
 	public ?string $bankSpecificSymbol;
 
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	private ?array $cartIds;
 	
@@ -304,19 +304,18 @@ class Purchase extends \StORM\Entity
 	}
 
 	/**
-	 * @return \Eshop\DB\CartItem[]|\StORM\Collection<\Eshop\DB\CartItem>
+	 * @return \StORM\Collection<\Eshop\DB\CartItem>
 	 */
 	public function getItems(): Collection
 	{
 		/** @var \Eshop\DB\CartItemRepository $cartItemRepository */
 		$cartItemRepository = $this->getConnection()->findRepository(CartItem::class);
 
-		/** @phpstan-ignore-next-line @todo generické typy */
 		return $cartItemRepository->getItems($this->getCartIds());
 	}
 	
 	/**
-	 * @return \Eshop\DB\CartItem[]|\StORM\Collection<\Eshop\DB\CartItem>
+	 * @return \StORM\Collection<\Eshop\DB\CartItem>
 	 */
 	public function getTopLevelItems(): Collection
 	{
@@ -447,7 +446,7 @@ class Purchase extends \StORM\Entity
 	}
 
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 */
 	private function getCartIds(): array
 	{

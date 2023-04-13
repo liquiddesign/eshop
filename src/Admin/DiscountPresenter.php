@@ -6,6 +6,7 @@ namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Carbon\Carbon;
 use Eshop\Admin\Controls\DiscountCouponGeneratorForm;
 use Eshop\Admin\Controls\IDiscountCouponFormFactory;
 use Eshop\Admin\Controls\IDiscountCouponGeneratorFormFactory;
@@ -24,6 +25,7 @@ use Eshop\FormValidators;
 use Forms\Form;
 use Grid\Datagrid;
 use Nette\Caching\Storage;
+use Nette\Utils\Strings;
 use StORM\Connection;
 use StORM\ICollection;
 
@@ -89,7 +91,7 @@ class DiscountPresenter extends BackendPresenter
 				}
 			}
 
-			return \substr($resultString, 0, -2);
+			return Strings::substring($resultString, 0, -2);
 		}, '%s');
 
 		//$cache = new Cache($this->storage);
@@ -390,7 +392,7 @@ class DiscountPresenter extends BackendPresenter
 		$form->addText('weightTo', 'Do váhy košíku')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
 
 		$form->bind($this->deliveryRepo->getStructure());
-		$form->addHidden('discount', $discount ? (string)$discount : $this->getParameter('deliveryDiscount')->getValue('discount'));
+		$form->addHidden('discount', $discount ? (string) $discount : $this->getParameter('deliveryDiscount')->getValue('discount'));
 		$form->addSubmits(false, false);
 
 		$form->onSuccess[] = function (AdminForm $form): void {
@@ -421,8 +423,8 @@ class DiscountPresenter extends BackendPresenter
 		$form = $this->getComponent('couponsForm')['form'];
 
 		$values = $discountCoupon->toArray();
-		$values['usedTs'] = $values['usedTs'] ? \date('Y-m-d\TH:i:s', \strtotime($values['usedTs'])) : '';
-		$values['createdTs'] = $values['createdTs'] ? \date('Y-m-d\TH:i:s', \strtotime($values['createdTs'])) : '';
+		$values['usedTs'] = $values['usedTs'] ? Carbon::parse($values['usedTs'])->toString() : '';
+		$values['createdTs'] = $values['createdTs'] ? Carbon::parse($values['createdTs'])->toString() : '';
 		$form->setDefaults($values);
 	}
 

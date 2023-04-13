@@ -81,20 +81,20 @@ class Merchant extends \StORM\Entity implements IIdentity, IUser
 	/**
 	 * Ceníky
 	 * @relationNxN
-	 * @var \Eshop\DB\Pricelist[]|\StORM\RelationCollection<\Eshop\DB\Pricelist>
+	 * @var \StORM\RelationCollection<\Eshop\DB\Pricelist>
 	 */
 	public RelationCollection $pricelists;
 
 	/**
 	 * Zákazníci
 	 * @relationNxN
-	 * @var \Eshop\DB\Customer[]|\StORM\RelationCollection<\Eshop\DB\Customer>
+	 * @var \StORM\RelationCollection<\Eshop\DB\Customer>
 	 */
 	public RelationCollection $customers;
 	
 	/**
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Security\DB\Account>|\Security\DB\Account[]
+	 * @var \StORM\RelationCollection<\Security\DB\Account>
 	 */
 	public RelationCollection $accounts;
 	
@@ -106,7 +106,7 @@ class Merchant extends \StORM\Entity implements IIdentity, IUser
 	}
 
 	/**
-	 * @return object[]
+	 * @return array<object>
 	 */
 	public function getRoles(): array
 	{

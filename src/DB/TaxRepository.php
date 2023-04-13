@@ -33,7 +33,7 @@ class TaxRepository extends \StORM\Repository implements IGeneralRepository
 	/**
 	 * @param \Eshop\DB\Product $product
 	 * @param \Eshop\DB\Currency $currency
-	 * @return \Eshop\DB\Tax[]
+	 * @return array<\Eshop\DB\Tax>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function getTaxesForProduct(Product $product, Currency $currency): array

@@ -75,7 +75,6 @@ class ProducerRepository extends Repository implements IGeneralRepository
 
 	public function cleanProducersCache(): void
 	{
-		\bdump('cleaned');
 		$cache = new Cache($this->storage);
 
 		$cache->clean([

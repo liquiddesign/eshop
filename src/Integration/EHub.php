@@ -111,7 +111,7 @@ class EHub
 			throw new \Exception('Invalid response from eHub.', $response->getStatusCode());
 		}
 
-		$result = Helpers::convertJsonToArray((string)$response->getBody());
+		$result = Helpers::convertJsonToArray((string) $response->getBody());
 
 		if ($result['totalItems'] > $this::PER_PAGE) {
 			$loaded = $this::PER_PAGE;
@@ -125,7 +125,7 @@ class EHub
 						],
 				]);
 
-				$result['transactions'] = \array_merge($result['transactions'], Helpers::convertJsonToArray((string)$response->getBody())['transactions']);
+				$result['transactions'] = \array_merge($result['transactions'], Helpers::convertJsonToArray((string) $response->getBody())['transactions']);
 
 				$page++;
 				$loaded += $this::PER_PAGE;
@@ -159,7 +159,7 @@ class EHub
 			throw new \Exception('Invalid response from eHub.', $response->getStatusCode());
 		}
 
-		return Helpers::convertJsonToArray((string)$response->getBody());
+		return Helpers::convertJsonToArray((string) $response->getBody());
 	}
 
 	/**
@@ -215,7 +215,7 @@ class EHub
 			throw new \Exception('Invalid response from eHub.', $response->getStatusCode());
 		}
 
-		return Helpers::convertJsonToArray((string)$response->getBody());
+		return Helpers::convertJsonToArray((string) $response->getBody());
 	}
 
 	/**

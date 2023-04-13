@@ -23,7 +23,7 @@ class StatsControl extends Control
 
 	/**
 	 * @persistent
-	 * @var string[]
+	 * @var array<string>
 	 */
 	public array $state = [];
 
@@ -69,15 +69,15 @@ class StatsControl extends Control
 		$form = $this->formFactory->create();
 
 		$form->addText('from', 'Od')
-			->setHtmlAttribute('max', (new Nette\Utils\DateTime())->format('Y-m-d'))
+			->setHtmlAttribute('max', (new \Carbon\Carbon())->format('Y-m-d'))
 			->setHtmlType('date')
 			->setRequired()
-			->setDefaultValue((new Nette\Utils\DateTime())->modify('- 1 week')->format('Y-m-d'));
+			->setDefaultValue((new \Carbon\Carbon())->modify('- 1 week')->format('Y-m-d'));
 		$form->addText('to', 'Do')
-			->setHtmlAttribute('max', (new Nette\Utils\DateTime())->format('Y-m-d'))
+			->setHtmlAttribute('max', (new \Carbon\Carbon())->format('Y-m-d'))
 			->setHtmlType('date')
 			->setRequired()
-			->setDefaultValue((new Nette\Utils\DateTime())->format('Y-m-d'));
+			->setDefaultValue((new \Carbon\Carbon())->format('Y-m-d'));
 		$form->addSelect2('customerType', 'Typ zákazníka', ['new' => 'Nový', 'current' => 'Stávající'])->setPrompt('- Všichni zákazníci -');
 		$form->addText('customer', 'Zákazník')->setNullable()->setHtmlAttribute('placeholder', 'E-mail zákazníka (pouze registrovaní)');
 		$form->addSelect2('merchant', 'Obchodník', $this->merchantRepository->getArrayForSelect())->setPrompt('- Obchodník -');
@@ -123,8 +123,8 @@ class StatsControl extends Control
 		/** @var \Nette\Application\UI\Form $form */
 		$form = $this->getComponent('form');
 
-		$statsFrom = isset($this->state['from']) ? new Nette\Utils\DateTime($this->state['from']) : ((new Nette\Utils\DateTime())->modify('- 1 week'));
-		$statsTo = isset($this->state['to']) ? new Nette\Utils\DateTime($this->state['to']) : (new Nette\Utils\DateTime());
+		$statsFrom = isset($this->state['from']) ? new \Carbon\Carbon($this->state['from']) : ((new \Carbon\Carbon())->modify('- 1 week'));
+		$statsTo = isset($this->state['to']) ? new \Carbon\Carbon($this->state['to']) : (new \Carbon\Carbon());
 		$customerType = $this->state['customerType'] ?? 'all';
 		$customer = $this->signedInCustomer ??
 			(isset($this->state['customer']) ? $this->customerRepository->many()->where('this.email LIKE :s', ['s' => '%' . $this->state['customer'] . '%'])->first() : null);

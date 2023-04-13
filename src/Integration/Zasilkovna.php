@@ -15,6 +15,7 @@ use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
+use Nette\Utils\Strings;
 use SimpleXMLElement;
 use Web\DB\SettingRepository;
 
@@ -134,7 +135,7 @@ class Zasilkovna
 				'hidden' => false,
 				'description' => [
 					'cs' => $this->translator->translate('.status', 'Stav') . ': ' . $value['status']['description'] . '  ' .
-						(\is_array($value['directions']) ? null : \trim(\strip_tags($value['directions']))),
+						(\is_array($value['directions']) ? null : Strings::trim(\strip_tags($value['directions']))),
 				],
 			]);
 
@@ -142,7 +143,7 @@ class Zasilkovna
 
 			if ($regularOpeningHours = ($openingHours['regular'] ?? null)) {
 				foreach ($regularOpeningHours as $day => $hours) {
-					if (\is_array($hours) || (\is_string($hours) && \strlen($hours) === 0)) {
+					if (\is_array($hours) || (\is_string($hours) && Strings::length($hours) === 0)) {
 						continue;
 					}
 
@@ -219,7 +220,7 @@ class Zasilkovna
 	}
 
 	/**
-	 * @param \Eshop\DB\Order[] $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function syncOrders($orders): void
@@ -306,8 +307,6 @@ class Zasilkovna
 			</createPacket>
 			';
 
-		\bdump($xml);
-
 		$options = [
 			'headers' => [
 				'Content-Type' => 'text/xml; charset=UTF8',
@@ -318,9 +317,7 @@ class Zasilkovna
 		$response = $client->request('POST', '', $options);
 		$xmlResponse = new SimpleXMLElement($response->getBody()->getContents());
 
-		\bdump($xmlResponse);
-
-		if ((string)$xmlResponse->status !== 'ok') {
+		if ((string) $xmlResponse->status !== 'ok') {
 			$order->update(['zasilkovnaCompleted' => false, 'zasilkovnaError' => 'Chyba při odesílání pomocí API!',]);
 
 			throw new \Exception("Order {$order->code} error sending!");

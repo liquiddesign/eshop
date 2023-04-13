@@ -53,7 +53,7 @@ class ProductAttributesForm extends Control
 		$form->removeComponent($form->getComponent('uuid'));
 		$form->addGroup('Atributy');
 
-		/** @var \Eshop\DB\Category[] $productCategories */
+		/** @var array<\Eshop\DB\Category> $productCategories */
 		$productCategories = $product->categories->toArray();
 
 		if (\count($productCategories) === 0) {
