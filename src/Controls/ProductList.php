@@ -227,12 +227,12 @@ class ProductList extends Datalist
 		$this->redirect('this');
 	}
 
-	public function handleBuy(string $productId): void
+	public function handleBuy(string $productId, ?int $amount = null): void
 	{
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->itemsOnPage !== null ? ($this->itemsOnPage[$productId] ?? null) : $this->productRepository->getProduct($productId);
-
-		$amount = $product->defaultBuyCount >= $product->minBuyCount ? $product->defaultBuyCount : $product->minBuyCount;
+		
+		$amount = $amount ?: (\max($product->defaultBuyCount, $product->minBuyCount));
 		$this->checkoutManager->addItemToCart($product, null, $amount);
 
 		$this->redirect('this');
