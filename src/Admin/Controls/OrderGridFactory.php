@@ -21,7 +21,7 @@ use Eshop\Integration\Integrations;
 use Eshop\Integration\Zbozi;
 use Eshop\Services\DPD;
 use Eshop\Services\PPL;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Grid\Datagrid;
 use League\Csv\Writer;
 use Nette\Application\Application;
@@ -47,25 +47,7 @@ class OrderGridFactory
 	/** @var array<callable(\Admin\Controls\AdminGrid, array<string>): void> */
 	public array $onBulkActionsCreated = [];
 
-	private OrderRepository $orderRepository;
-
 	private AdminGridFactory $gridFactory;
-
-	private OrderLogItemRepository $orderLogItemRepository;
-
-	private Application $application;
-
-	private CustomerGroupRepository $customerGroupRepository;
-	
-	private DeliveryTypeRepository $deliveryTypeRepository;
-	
-	private PaymentTypeRepository $paymentTypeRepository;
-
-	private Integrations $integrations;
-	
-	private Shopper $shopper;
-
-	private SettingRepository $settingRepository;
 
 	private ?DPD $dpd = null;
 
@@ -73,36 +55,24 @@ class OrderGridFactory
 
 	private ?Zbozi $zbozi = null;
 
-	private Container $container;
-	
 	/** @var array<mixed> */
 	private array $configuration;
 	
 	public function __construct(
 		AdminGridFactory $adminGridFactory,
-		OrderRepository $orderRepository,
-		Application $application,
-		OrderLogItemRepository $orderLogItemRepository,
-		CustomerGroupRepository $customerGroupRepository,
-		DeliveryTypeRepository $deliveryTypeRepository,
-		PaymentTypeRepository $paymentTypeRepository,
-		Shopper $shopper,
-		Integrations $integrations,
-		Container $container,
-		SettingRepository $settingRepository,
-		private InternalRibbonRepository $internalRibbonRepository,
+		private readonly OrderRepository $orderRepository,
+		private readonly Application $application,
+		private readonly OrderLogItemRepository $orderLogItemRepository,
+		private readonly CustomerGroupRepository $customerGroupRepository,
+		private readonly DeliveryTypeRepository $deliveryTypeRepository,
+		private readonly PaymentTypeRepository $paymentTypeRepository,
+		private readonly ShopperUser $shopperUser,
+		private readonly Integrations $integrations,
+		private readonly Container $container,
+		private readonly SettingRepository $settingRepository,
+		private readonly InternalRibbonRepository $internalRibbonRepository,
 	) {
-		$this->orderRepository = $orderRepository;
 		$this->gridFactory = $adminGridFactory;
-		$this->application = $application;
-		$this->orderLogItemRepository = $orderLogItemRepository;
-		$this->customerGroupRepository = $customerGroupRepository;
-		$this->deliveryTypeRepository = $deliveryTypeRepository;
-		$this->paymentTypeRepository = $paymentTypeRepository;
-		$this->integrations = $integrations;
-		$this->shopper = $shopper;
-		$this->container = $container;
-		$this->settingRepository = $settingRepository;
 	}
 
 	/**
@@ -187,22 +157,22 @@ class OrderGridFactory
 
 		$properties = [];
 
-		if ($this->shopper->getShowWithoutVat() && $this->shopper->getShowVat()) {
+		if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat()) {
 			$properties = ['getTotalPrice|price:currency.code', 'getTotalPriceVat|price:currency.code'];
 
 			$smallVatText = 's DPH';
 
-			if ($this->shopper->getPriorityPrice() === 'withVat') {
+			if ($this->shopperUser->getPriorityPrice() === 'withVat') {
 				$properties = \array_reverse($properties);
 				$smallVatText = 'bez DPH';
 			}
 
 			$grid->addColumnText('Cena', $properties, "%s<br><small>%s $smallVatText</small>", null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		} elseif ($this->shopper->getShowWithoutVat()) {
+		} elseif ($this->shopperUser->getShowWithoutVat()) {
 			$properties[] = 'getTotalPrice|price:currency.code';
 
 			$grid->addColumnText('Cena', $properties, '%s', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		} elseif ($this->shopper->getShowVat()) {
+		} elseif ($this->shopperUser->getShowVat()) {
 			$properties[] = 'getTotalPriceVat|price:currency.code';
 
 			$grid->addColumnText('Cena', $properties, '%s', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
@@ -278,7 +248,7 @@ class OrderGridFactory
 
 		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
 			if (!isset($orderStatesEvents[$state]) || !Arrays::contains($orderStatesEvents[$state], $targetState) ||
-				($state === Order::STATE_OPEN && !$this->shopper->getEditOrderAfterCreation())) {
+				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())) {
 				continue;
 			}
 
@@ -503,7 +473,7 @@ class OrderGridFactory
 
 		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
 			if (!isset($orderStatesEvents[$state]) || !Arrays::contains($orderStatesEvents[$state], $targetState) ||
-				($state === Order::STATE_OPEN && !$this->shopper->getEditOrderAfterCreation())) {
+				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())) {
 				continue;
 			}
 

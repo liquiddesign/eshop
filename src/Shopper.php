@@ -25,6 +25,7 @@ use StORM\Collection;
 /**
  * Služba která zapouzdřuje nakupujícího
  * @package Eshop
+ * @deprecated Use ShopperUser
  */
 class Shopper
 {
@@ -49,10 +50,6 @@ class Shopper
 		'emailAuthorization' => true,
 	];
 
-	protected User $user;
-
-	protected PricelistRepository $pricelistRepository;
-
 	protected Currency $currency;
 
 	protected Country $country;
@@ -74,16 +71,6 @@ class Shopper
 	 * @var array<\Eshop\DB\Currency>
 	 */
 	protected array $altCurrencies = [];
-
-	protected CurrencyRepository $currencyRepository;
-
-	protected CountryRepository $countryRepository;
-
-	protected CustomerRepository $customerRepository;
-
-	protected CustomerGroupRepository $customerGroupRepository;
-
-	protected MinimalOrderValueRepository $minimalOrderValueRepository;
 
 	protected string $countryCode;
 
@@ -125,30 +112,17 @@ class Shopper
 
 	protected ?CustomerGroup $customerGroup;
 
-	protected AccountRepository $accountRepository;
-
-	protected RoleRepository $roleRepository;
-
 	public function __construct(
-		User $user,
-		PricelistRepository $pricelistRepository,
-		CurrencyRepository $currencyRepository,
-		CountryRepository $countryRepository,
-		CustomerRepository $customerRepository,
-		CustomerGroupRepository $customerGroupRepository,
-		MinimalOrderValueRepository $minimalOrderValueRepository,
-		AccountRepository $accountRepository,
-		RoleRepository $roleRepository
+		protected User $user,
+		protected PricelistRepository $pricelistRepository,
+		protected CurrencyRepository $currencyRepository,
+		protected CountryRepository $countryRepository,
+		protected CustomerRepository $customerRepository,
+		protected CustomerGroupRepository $customerGroupRepository,
+		protected MinimalOrderValueRepository $minimalOrderValueRepository,
+		protected AccountRepository $accountRepository,
+		protected RoleRepository $roleRepository
 	) {
-		$this->user = $user;
-		$this->pricelistRepository = $pricelistRepository;
-		$this->accountRepository = $accountRepository;
-		$this->countryRepository = $countryRepository;
-		$this->currencyRepository = $currencyRepository;
-		$this->customerRepository = $customerRepository;
-		$this->customerGroupRepository = $customerGroupRepository;
-		$this->minimalOrderValueRepository = $minimalOrderValueRepository;
-		$this->roleRepository = $roleRepository;
 	}
 
 	public function setUseDiscountLevelCalculationInBeforePrice(bool $useDiscountLevelCalculationInBeforePrice): void

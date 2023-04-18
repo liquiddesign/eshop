@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\CheckoutManager;
+use Eshop\ShopperUser;
 use Grid\Datalist;
 use Nette\Utils\Arrays;
 use StORM\ICollection;
@@ -18,28 +18,24 @@ class CartRecapitulationList extends Datalist
 	/** @var array<callable(self): void> */
 	public array $onRender = [];
 
-	public CheckoutManager $checkoutManager;
-
-	public function __construct(CheckoutManager $checkoutManager, ?ICollection $items = null)
+	public function __construct(public readonly ShopperUser $shopperUser, ?ICollection $items = null)
 	{
-		$this->checkoutManager = $checkoutManager;
-
-		parent::__construct($items ?? $this->checkoutManager->getItems());
+		parent::__construct($items ?? $this->shopperUser->getCheckoutManager()->getItems());
 	}
 
 	public function render(): void
 	{
-		$this->template->deliveryAndPaymentPrice = $this->checkoutManager->getDeliveryPrice() + $this->checkoutManager->getPaymentPrice();
-		$this->template->deliveryAndPaymentPriceVat = $this->checkoutManager->getDeliveryPriceVat() + $this->checkoutManager->getPaymentPriceVat();
-		$this->template->cartCurrency = $this->checkoutManager->getCartCurrencyCode();
-		$this->template->cartItems = $this->checkoutManager->getItems();
-		$this->template->discountCoupon = $this->checkoutManager->getDiscountCoupon();
-		$this->template->discountPrice = $this->checkoutManager->getDiscountPrice();
-		$this->template->discountPriceVat = $this->checkoutManager->getDiscountPriceVat();
-		$this->template->deliveryType = $this->checkoutManager->getPurchase() ? $this->checkoutManager->getPurchase()->deliveryType : null;
-		$this->template->paymentType = $this->checkoutManager->getPurchase() ? $this->checkoutManager->getPurchase()->paymentType : null;
-		$this->template->cartCheckoutPrice = $this->checkoutManager->getCheckoutPrice();
-		$this->template->cartCheckoutPriceVat = $this->checkoutManager->getCheckoutPriceVat();
+		$this->template->deliveryAndPaymentPrice = $this->shopperUser->getCheckoutManager()->getDeliveryPrice() + $this->shopperUser->getCheckoutManager()->getPaymentPrice();
+		$this->template->deliveryAndPaymentPriceVat = $this->shopperUser->getCheckoutManager()->getDeliveryPriceVat() + $this->shopperUser->getCheckoutManager()->getPaymentPriceVat();
+		$this->template->cartCurrency = $this->shopperUser->getCheckoutManager()->getCartCurrencyCode();
+		$this->template->cartItems = $this->shopperUser->getCheckoutManager()->getItems();
+		$this->template->discountCoupon = $this->shopperUser->getCheckoutManager()->getDiscountCoupon();
+		$this->template->discountPrice = $this->shopperUser->getCheckoutManager()->getDiscountPrice();
+		$this->template->discountPriceVat = $this->shopperUser->getCheckoutManager()->getDiscountPriceVat();
+		$this->template->deliveryType = $this->shopperUser->getCheckoutManager()->getPurchase() ? $this->shopperUser->getCheckoutManager()->getPurchase()->deliveryType : null;
+		$this->template->paymentType = $this->shopperUser->getCheckoutManager()->getPurchase() ? $this->shopperUser->getCheckoutManager()->getPurchase()->paymentType : null;
+		$this->template->cartCheckoutPrice = $this->shopperUser->getCheckoutManager()->getCheckoutPrice();
+		$this->template->cartCheckoutPriceVat = $this->shopperUser->getCheckoutManager()->getCheckoutPriceVat();
 
 		Arrays::invoke($this->onRender, $this);
 

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eshop\Front\Eshop;
 
 use Eshop\Admin\SettingsPresenter;
-use Eshop\CheckoutManager;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
@@ -28,7 +27,7 @@ use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\DevelTools;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Latte\Engine;
 use Latte\Loaders\StringLoader;
 use Latte\Policy;
@@ -66,9 +65,6 @@ abstract class ExportPresenter extends Presenter
 		'customLabel_1' => false,
 		'customLabel_2' => false,
 	];
-
-	/** @inject */
-	public CheckoutManager $checkoutManager;
 
 	/** @inject */
 	public ProductRepository $productRepo;
@@ -134,7 +130,7 @@ abstract class ExportPresenter extends Presenter
 	public Container $context;
 
 	/** @inject */
-	public Shopper $shopper;
+	public ShopperUser $shopperUser;
 
 	/** @inject */
 	public Request $request;
@@ -676,7 +672,7 @@ abstract class ExportPresenter extends Presenter
 	{
 		$currency = $this->currencyRepository->one('CZK');
 
-		$this->template->priceType = $this->shopper->getShowVat() ? true : ($this->shopper->getShowWithoutVat() ? false : null);
+		$this->template->priceType = $this->shopperUser->getShowVat() ? true : ($this->shopperUser->getShowWithoutVat() ? false : null);
 		$this->template->deliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0)->where('this.exportToFeed', true);
 		$this->template->setFile(__DIR__ . "/../../templates/export/$name.latte");
 	}
@@ -736,7 +732,7 @@ abstract class ExportPresenter extends Presenter
 
 		$currency = $this->currencyRepository->one('CZK');
 
-		$this->template->priceType = $this->shopper->getShowVat() ? true : ($this->shopper->getShowWithoutVat() ? false : null);
+		$this->template->priceType = $this->shopperUser->getShowVat() ? true : ($this->shopperUser->getShowWithoutVat() ? false : null);
 		$this->template->deliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0)->where('this.exportToFeed', true);
 	}
 }

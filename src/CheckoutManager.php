@@ -72,6 +72,7 @@ use Web\DB\SettingRepository;
  * @method onCartItemCreate(\Eshop\DB\CartItem $cartItem)
  * @method onCartItemUpdate(\Eshop\DB\CartItem $cartItem)
  * @package Eshop
+ * @deprecated Use CheckoutManagerV2
  */
 class CheckoutManager
 {

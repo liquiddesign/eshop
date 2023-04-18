@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Grid\Datalist;
 use Nette\Application\UI\Form;
 use Nette\Application\UI\Multiplier;
@@ -17,9 +17,7 @@ use StORM\ICollection;
  */
 class CustomerList extends Datalist
 {
-	private Shopper $shopper;
-
-	public function __construct(Collection $customers, Shopper $shopper)
+	public function __construct(Collection $customers, private readonly ShopperUser $shopperUserUser)
 	{
 		parent::__construct($customers);
 
@@ -35,8 +33,6 @@ class CustomerList extends Datalist
 
 		$form->addText('name');
 		$form->addSubmit('submit');
-
-		$this->shopper = $shopper;
 	}
 
 	public function handleReset(): void
@@ -48,8 +44,8 @@ class CustomerList extends Datalist
 
 	public function render(): void
 	{
-		$this->template->merchant = $this->shopper->getMerchant() ?? $this->shopper->getCustomer();
-		$this->template->customer = $this->shopper->getCustomer();
+		$this->template->merchant = $this->shopperUserUser->getMerchant() ?? $this->shopperUserUser->getCustomer();
+		$this->template->customer = $this->shopperUserUser->getCustomer();
 		$this->template->paginator = $this->getPaginator();
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */

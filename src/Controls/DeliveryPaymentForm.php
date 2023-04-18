@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\CheckoutManager;
 use Eshop\DB\DeliveryType;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\PaymentType;
 use Eshop\DB\PickupPointRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use InvalidArgumentException;
 use Nette;
 use StORM\Collection;
@@ -25,33 +24,16 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 	 * @var array<callable(self, array|object): void|callable(array|object): void>
 	 */
 	public $onSuccess = [];
-	
-	public Shopper $shopper;
-	
-	private CheckoutManager $checkoutManager;
-	
-	private DeliveryTypeRepository $deliveryTypeRepository;
-	
-	private Nette\Localization\Translator $translator;
-	
-	private PickupPointRepository $pickupPointRepository;
-	
+
 	public function __construct(
-		Shopper $shopper,
-		CheckoutManager $checkoutManager,
-		DeliveryTypeRepository $deliveryTypeRepository,
-		Nette\Localization\Translator $translator,
-		PickupPointRepository $pickupPointRepository
+		public readonly ShopperUser $shopperUser,
+		private readonly DeliveryTypeRepository $deliveryTypeRepository,
+		private readonly Nette\Localization\Translator $translator,
+		private readonly PickupPointRepository $pickupPointRepository
 	) {
 		parent::__construct();
-		
-		$this->checkoutManager = $checkoutManager;
-		$this->shopper = $shopper;
-		$this->deliveryTypeRepository = $deliveryTypeRepository;
-		$this->translator = $translator;
-		$this->pickupPointRepository = $pickupPointRepository;
-		
-		$vat = $this->shopper->getShowPrice() === 'withVat';
+
+		$vat = $this->shopperUser->getShowPrice() === 'withVat';
 		
 		$deliveriesList = $this->addRadioList('deliveries', 'deliveryPaymentForm.payments', $checkoutManager->getDeliveryTypes($vat)->toArrayOf('name'))
 			->setHtmlAttribute('onChange=updatePoints(this)');
@@ -215,7 +197,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 	private function getSelectedDeliveryType(): ?DeliveryType
 	{
 		$purchase = $this->checkoutManager->getPurchase(true);
-		$shopper = $this->shopper;
+		$shopper = $this->shopperUser;
 		
 		if (!$purchase->deliveryType && $shopper->getCustomer() && $shopper->getCustomer()->preferredDeliveryType) {
 			return $shopper->getCustomer()->preferredDeliveryType;
@@ -227,7 +209,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 	private function getSelectedPaymentType(): ?PaymentType
 	{
 		$purchase = $this->checkoutManager->getPurchase(true);
-		$shopper = $this->shopper;
+		$shopper = $this->shopperUser;
 		
 		if (!$purchase->deliveryType && $shopper->getCustomer() && $shopper->getCustomer()->preferredPaymentType) {
 			return $shopper->getCustomer()->preferredPaymentType;

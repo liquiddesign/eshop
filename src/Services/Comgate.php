@@ -42,7 +42,6 @@ class Comgate implements IPaymentIntegration
 	private \Contributte\Comgate\Comgate $contributteComgate;
 
 	public function __construct(
-		CheckoutManager $checkoutManager,
 		PaymentResultRepository $paymentResultRepository,
 		OrderRepository $orderRepository,
 		PaymentService $paymentService,
@@ -50,7 +49,6 @@ class Comgate implements IPaymentIntegration
 		PaymentTypeRepository $paymentTypeRepository,
 		Container $container
 	) {
-		$this->checkoutManager = $checkoutManager;
 		$this->paymentResultRepository = $paymentResultRepository;
 		$this->orderRepository = $orderRepository;
 		$this->paymentService = $paymentService;

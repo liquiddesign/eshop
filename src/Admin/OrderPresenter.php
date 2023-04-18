@@ -160,16 +160,13 @@ class OrderPresenter extends BackendPresenter
 	public StoreRepository $storeRepository;
 
 	/** @inject */
-	public \Eshop\CheckoutManager $checkoutManager;
-
-	/** @inject */
 	public Application $application;
 
 	/** @inject */
 	public Request $request;
 
 	/** @inject */
-	public \Eshop\Shopper $shopper;
+	public \Eshop\ShopperUser $shopperUser;
 
 	/** @inject */
 	public CartItemRepository $cartItemRepo;
@@ -534,7 +531,7 @@ class OrderPresenter extends BackendPresenter
 			'bannedEmails' => 'Blokované e-maily',
 		];
 
-		if ($this->shopper->getEditOrderAfterCreation()) {
+		if ($this->shopperUser->getEditOrderAfterCreation()) {
 			$tabs = \array_merge(['open' => 'Nové'], $tabs);
 		}
 
@@ -665,7 +662,7 @@ class OrderPresenter extends BackendPresenter
 			/** @var \Nette\Forms\Controls\SelectBox $productInput */
 			$productInput = $form['product'];
 
-			$this->shopper->setCustomer($order->purchase->customer);
+			$this->shopperUser->setCustomer($order->purchase->customer);
 
 			if ($this->productRepo->getProducts($this->checkoutManager->getPricelists()->toArray())->where('this.uuid', $values['product'])->first()) {
 				return;
@@ -709,12 +706,12 @@ class OrderPresenter extends BackendPresenter
 			$cart = $this->cartRepository->one($values['cart']);
 
 			if ($order->purchase->customer) {
-				$this->shopper->setCustomer($order->purchase->customer);
+				$this->shopperUser->setCustomer($order->purchase->customer);
 				$this->checkoutManager->setCustomer($order->purchase->customer);
 			}
 
 			/** @var \Eshop\DB\Product $product */
-			$product = $this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.uuid', $values['product'])->first();
+			$product = $this->productRepo->getProducts($this->shopperUser->getPricelists()->toArray())->where('this.uuid', $values['product'])->first();
 
 			$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], null, false, false, $cart);
 
@@ -1069,10 +1066,10 @@ class OrderPresenter extends BackendPresenter
 
 				if ($oldOrder->purchase->customer && $oldOrder->purchase->account) {
 					$oldOrder->purchase->customer->setAccount($oldOrder->purchase->account);
-					$this->shopper->setCustomer($oldOrder->purchase->customer);
+					$this->shopperUser->setCustomer($oldOrder->purchase->customer);
 				} else {
-					$this->shopper->setCustomer(null);
-					$this->shopper->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
+					$this->shopperUser->setCustomer(null);
+					$this->shopperUser->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
 				}
 
 				/** @var array<\Eshop\DB\PackageItem> $topLevelItems */
@@ -1782,7 +1779,7 @@ class OrderPresenter extends BackendPresenter
 
 		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
 			if (!isset($this::ORDER_STATES_EVENTS[$state]) || !Arrays::contains($this::ORDER_STATES_EVENTS[$state], $targetState) ||
-				($state === Order::STATE_OPEN && !$this->shopper->getEditOrderAfterCreation())) {
+				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())) {
 				continue;
 			}
 
@@ -1973,10 +1970,10 @@ class OrderPresenter extends BackendPresenter
 
 		if ($order->purchase->customer && $order->purchase->account) {
 			$order->purchase->customer->setAccount($order->purchase->account);
-			$this->shopper->setCustomer($order->purchase->customer);
+			$this->shopperUser->setCustomer($order->purchase->customer);
 		} else {
-			$this->shopper->setCustomer(null);
-			$this->shopper->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
+			$this->shopperUser->setCustomer(null);
+			$this->shopperUser->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
 		}
 
 		/** @var \Eshop\DB\Cart $cart */
@@ -2655,7 +2652,7 @@ class OrderPresenter extends BackendPresenter
 
 	protected function getTab(): string
 	{
-		return $this->tab ??= ($this->shopper->getEditOrderAfterCreation() ? Order::STATE_OPEN : Order::STATE_RECEIVED);
+		return $this->tab ??= ($this->shopperUser->getEditOrderAfterCreation() ? Order::STATE_OPEN : Order::STATE_RECEIVED);
 	}
 
 	protected function getOrderStateName(string $state): ?string

@@ -8,19 +8,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0]
 
 ### Added
+- **BREAKING:** New *ShopperUser* and *CheckoutManagerV2*
+  - *ShopperUser* is now extending *Nette\Security\User* and act like it
+  - *CheckoutManagerV2* is now not injected to *Container* and is available only by *ShopperUser*
+  - *ShopperUser* should not use *CheckoutManagerV2* directly
+  - *CheckoutManagerV2* uses *ShopperUser*
 ### Changed
-- Comgate service is now provided only by Integrations service.
+- **BREAKING:** Comgate service is now provided only by Integrations service. Comgate package extension is still injected to *Container* with configuration.
 ### Removed
-- Removed deprecated classes
-  - `FrontendPresenter.php`
-  - `ComgatePresenter.php`
-  - `ExportPresenter.php`
-  - `DB/Tag.php`
-  - `DB/TagRepository.php`
-  - `Admin/TagPresenter.php`
-  - `Integration/Comgate.php`
-  - ``
+- **BREAKING:** Removed deprecated classes
+  - `FrontendPresenter`
+  - `ComgatePresenter`
+  - `ExportPresenter`
+  - `DB/Tag`
+  - `DB/TagRepository`
+  - `Admin/TagPresenter`
+  - `Integration/Comgate`
+  - `Admin/CustomerGroupPresenter`
+  - `DB/Parameter`
+  - `DB/ParameterAvailableValue`
+  - `DB/ParameterAvailableValueRepository`
+  - `DB/ParameterCategory`
+  - `DB/ParameterCategoryRepository`
+  - `DB/ParameterGroup`
+  - `DB/ParameterGroupRepository`
+  - `DB/ParameterRepository`
+  - `DB/ParameterValue`
+  - `DB/ParameterValueRepository`
+  - `DB/Set`
+  - `DB/SetItem`
+  - `DB/SetItemRepository`
+  - `DB/SetRepository`
 ### Deprecated
+ - **BREAKING:** *Shopper* and *CheckoutManager* are now deprecated and not injected to *Container*
+   - Use *ShopperUser* and *CheckoutManagerV2* instead
+   - This change is not backward compatible, you need to rewrite all dependencies to *Shopper* and *CheckoutManager*
 ### Fixed
 
 ## [1.3.0 - 1.3.4] - 2023-03-26

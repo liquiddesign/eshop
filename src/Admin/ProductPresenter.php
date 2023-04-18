@@ -41,7 +41,7 @@ use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use ForceUTF8\Encoding;
 use Forms\Form;
 use League\Csv\Reader;
@@ -136,16 +136,6 @@ class ProductPresenter extends BackendPresenter
 		],
 	];
 
-	protected const IMPORT_SET_COLUMNS = [
-		'setCode' => 'Kód setu',
-		'setEan' => 'EAN setu',
-		'productCode' => 'Kód produktu',
-		'productEan' => 'EAN produktu',
-		'amount' => 'Množství',
-		'discountPct' => 'Sleva',
-		'priority' => 'Priorita',
-	];
-
 	protected const DEFAULT_TEMPLATE = __DIR__ . '/../../_data/newsletterTemplates/newsletter.latte';
 
 	/** @var array<callable(\Eshop\DB\Product, array): void> */
@@ -194,7 +184,7 @@ class ProductPresenter extends BackendPresenter
 	public NewsletterTypeRepository $newsletterTypeRepository;
 
 	/** @inject */
-	public Shopper $shopper;
+	public ShopperUser $shopperUser;
 
 	/** @inject */
 	public SettingRepository $settingRepository;
@@ -313,13 +303,13 @@ class ProductPresenter extends BackendPresenter
 		$grid->addColumnText('Měna', 'currency.code', '%s', 'currency.code');
 		$grid->addColumnInputPrice('Cena', 'price');
 
-		if ($this->shopper->getShowVat()) {
+		if ($this->shopperUser->getShowVat()) {
 			$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
 		}
 
 		$grid->addColumnInputPrice('Cena před slevou', 'priceBefore');
 
-		if ($this->shopper->getShowVat()) {
+		if ($this->shopperUser->getShowVat()) {
 			$grid->addColumnInputPrice('Cena před slevou s DPH', 'priceVatBefore');
 		}
 
@@ -340,7 +330,7 @@ class ProductPresenter extends BackendPresenter
 					'pricelist' => $id,
 				];
 
-				if ($this->shopper->getShowVat()) {
+				if ($this->shopperUser->getShowVat()) {
 					$newData += [
 						'priceVat' => isset($data['priceVat']) ? \floatval(\str_replace(',', '.', $data['priceVat'])) : $data['price'] +
 							($data['price'] * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 100)),

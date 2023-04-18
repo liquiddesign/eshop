@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\CheckoutManager;
 use Eshop\DB\CartItemRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
@@ -12,7 +11,7 @@ use Eshop\DB\PackageItemRepository;
 use Eshop\DB\PackageRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\WatcherRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Grid\Datalist;
 use Nette\Application\UI\Form;
 use Nette\Application\UI\Multiplier;
@@ -24,44 +23,19 @@ use Nette\Forms\IControl;
  */
 class OrderItemList extends Datalist
 {
-	public CheckoutManager $checkoutManager;
-
-	public Shopper $shopper;
-
-	private CartItemRepository $cartItemsRepository;
-
-	private ProductRepository $productRepository;
-
-	private OrderRepository $orderRepository;
-
-	private PackageRepository $packageRepository;
-
-	private PackageItemRepository $packageItemRepository;
-
 	private Order $selectedOrder;
 
-	private WatcherRepository $watcherRepository;
-
 	public function __construct(
-		CartItemRepository $cartItemsRepository,
-		CheckoutManager $checkoutManager,
-		Shopper $shopper,
-		ProductRepository $productRepository,
+		private readonly CartItemRepository $cartItemsRepository,
+		public readonly ShopperUser $shopperUserUser,
+		private readonly ProductRepository $productRepository,
 		Order $order,
-		OrderRepository $orderRepository,
-		PackageItemRepository $packageItemRepository,
-		PackageRepository $packageRepository,
-		WatcherRepository $watcherRepository
+		private readonly OrderRepository $orderRepository,
+		private readonly PackageItemRepository $packageItemRepository,
+		private readonly PackageRepository $packageRepository,
+		private readonly WatcherRepository $watcherRepository
 	) {
-		$this->checkoutManager = $checkoutManager;
-		$this->cartItemsRepository = $cartItemsRepository;
-		$this->shopper = $shopper;
-		$this->productRepository = $productRepository;
 		$this->selectedOrder = $order;
-		$this->orderRepository = $orderRepository;
-		$this->packageItemRepository = $packageItemRepository;
-		$this->packageRepository = $packageRepository;
-		$this->watcherRepository = $watcherRepository;
 
 		parent::__construct($order->purchase->getItems());
 	}
@@ -210,7 +184,7 @@ class OrderItemList extends Datalist
 		$this->template->discountPrice = $this->selectedOrder->getDiscountPrice();
 		$this->template->discountPriceVat = $this->selectedOrder->getDiscountPriceVat();
 		$this->template->upsells = $this->productRepository->getCartItemsRelations($this->getItemsOnPage());
-		$this->template->watchers = ($customer = $this->shopper->getCustomer()) ? $this->watcherRepository->getWatchersByCustomer($customer)->setIndex('fk_product')->toArray() : [];
+		$this->template->watchers = ($customer = $this->shopperUserUser->getCustomer()) ? $this->watcherRepository->getWatchersByCustomer($customer)->setIndex('fk_product')->toArray() : [];
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;

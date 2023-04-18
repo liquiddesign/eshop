@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\DB\CustomerRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette;
 
 /**
@@ -25,18 +25,14 @@ class ProfileForm extends \Nette\Application\UI\Form
 	 */
 	public array $onEmailChange = [];
 
-	private Shopper $shopper;
-
 	public function __construct(
-		Shopper $shopper,
+		private readonly ShopperUser $shopperUser,
 		Nette\Localization\Translator $translator,
 		CustomerRepository $customerRepository,
 	) {
 		parent::__construct();
 
-		$this->shopper = $shopper;
-
-		if (!$shopper->getCustomer()) {
+		if (!$shopperUser->getCustomer()) {
 			throw new \InvalidArgumentException('Customer not found');
 		}
 
@@ -79,7 +75,7 @@ class ProfileForm extends \Nette\Application\UI\Form
 
 			$values = $form->getValues();
 
-			$customer = $this->shopper->getCustomer();
+			$customer = $this->shopperUser->getCustomer();
 			$existingCustomer = $customerRepository->many()->where('this.email', $values['email'])->first();
 
 			if (!$existingCustomer || $existingCustomer->getPK() === $customer->getPK()) {
@@ -98,7 +94,7 @@ class ProfileForm extends \Nette\Application\UI\Form
 	public function success(ProfileForm $form): void
 	{
 		$values = (array) $form->getValues();
-		$customer = $this->shopper->getCustomer();
+		$customer = $this->shopperUser->getCustomer();
 		$email = $values['email'];
 
 		$emailChanged = $customer->email !== $email;
@@ -123,6 +119,6 @@ class ProfileForm extends \Nette\Application\UI\Form
 	{
 		parent::beforeRender();
 
-		$this->setDefaults($this->shopper->getCustomer()->toArray(['billAddress', 'deliveryAddress']));
+		$this->setDefaults($this->shopperUser->getCustomer()->toArray(['billAddress', 'deliveryAddress']));
 	}
 }

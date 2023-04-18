@@ -10,7 +10,7 @@ use Eshop\DB\DiscountRepository;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Security\DB\AccountRepository;
 
 class DashboardPresenter extends BackendPresenter
@@ -31,7 +31,7 @@ class DashboardPresenter extends BackendPresenter
 	public DiscountRepository $discountRepo;
 
 	/** @inject */
-	public Shopper $shopper;
+	public ShopperUser $shopperUser;
 	
 	public function renderDefault(): void
 	{
@@ -43,7 +43,7 @@ class DashboardPresenter extends BackendPresenter
 	
 	public function actionDefault(): void
 	{
-		$state = $this->shopper->getEditOrderAfterCreation() ? Order::STATE_OPEN : Order::STATE_RECEIVED;
+		$state = $this->shopperUser->getEditOrderAfterCreation() ? Order::STATE_OPEN : Order::STATE_RECEIVED;
 
 		$this->template->recievedOrders = $this->orderRepo->getCollectionByState($state)->orderBy(['createdTs DESC'])->setTake(10);
 		

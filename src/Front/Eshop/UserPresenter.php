@@ -89,7 +89,7 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 		$form = $this->loginFormFactory->create([Customer::class, Merchant::class]);
 		
 		$form->onLogin[] = function (\Forms\Bridges\FormsSecurity\LoginForm $form, Nette\Security\IIdentity $user): void {
-			if (($user instanceof Customer || $user instanceof Merchant) && $user->getAccount() && $mutation = $this->shopper->getPreferredMutationByAccount($user->getAccount())) {
+			if (($user instanceof Customer || $user instanceof Merchant) && $user->getAccount() && $mutation = $this->shopperUser->getPreferredMutationByAccount($user->getAccount())) {
 				$this->lang = $mutation;
 			}
 

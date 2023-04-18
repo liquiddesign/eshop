@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\BuyException;
-use Eshop\CheckoutManager;
+use Eshop\CheckoutManagerV2;
+use Eshop\ShopperUser;
 use Nette\Application\UI\Form;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -15,18 +16,18 @@ use Tracy\ILogger;
  */
 class OrderForm extends \Nette\Application\UI\Form
 {
-	public CheckoutManager $checkoutManager;
+	public CheckoutManagerV2 $checkoutManager;
 
 	/**
 	 * @var array<callable>
 	 */
 	public array $onBuyError = [];
 
-	public function __construct(CheckoutManager $checkoutManager)
+	public function __construct(ShopperUser $shopperUser)
 	{
 		parent::__construct();
 		
-		$this->checkoutManager = $checkoutManager;
+		$this->checkoutManager = $shopperUser->getCheckoutManager();
 
 		$this->addTextArea('deliveryNote');
 		$this->addSubmit('submit');

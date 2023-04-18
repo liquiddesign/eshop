@@ -7,12 +7,11 @@ use Admin\Administrator;
 use Ares\Ares;
 use Ares\HttpException;
 use Ares\IcNotFoundException;
-use Eshop\CheckoutManager;
 use Eshop\DB\CartItem;
 use Eshop\DB\NewsletterUserRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\WatcherRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Forms\FormFactory;
 use GuzzleHttp\Exception\GuzzleException;
@@ -58,7 +57,7 @@ abstract class FrontendPresenter extends Presenter
 	public Translator $translator;
 
 	/** @inject */
-	public Shopper $shopper;
+	public ShopperUser $shopperUser;
 
 	/** @inject */
 	public ProductRepository $productRepository;
@@ -86,9 +85,6 @@ abstract class FrontendPresenter extends Presenter
 
 	/** @inject */
 	public FormFactory $formFactory;
-
-	/** @inject */
-	public CheckoutManager $checkoutManager;
 
 	/** @persistent */
 	public string $lang;
@@ -122,9 +118,9 @@ abstract class FrontendPresenter extends Presenter
 
 	public function handleLogout(): void
 	{
-		if ($this->shopper->getMerchant() && $this->shopper->getMerchant()->activeCustomer) {
-			$this->shopper->getMerchant()->update(['activeCustomer' => null]);
-			$this->shopper->getMerchant()->update(['activeCustomerAccount' => null]);
+		if ($this->shopperUser->getMerchant() && $this->shopperUser->getMerchant()->activeCustomer) {
+			$this->shopperUser->getMerchant()->update(['activeCustomer' => null]);
+			$this->shopperUser->getMerchant()->update(['activeCustomerAccount' => null]);
 
 			$this->redirect(':Web:Index:default');
 		}
@@ -164,21 +160,21 @@ abstract class FrontendPresenter extends Presenter
 				'inStock' => $inStock,
 			];
 
-			if ($this->shopper->getCatalogPermission() !== 'price') {
+			if ($this->shopperUser->getCatalogPermission() !== 'price') {
 				continue;
 			}
 
-			if ($this->shopper->getShowVat() && $this->shopper->getShowWithoutVat()) {
-				$result[$product->getPK()]['price'] = $this->shopper->showPriorityPrices() === 'withVat' ?
-					$this->shopper->filterPrice($product->getPriceVat()) :
-					$this->shopper->filterPrice($product->getPrice());
+			if ($this->shopperUser->getShowVat() && $this->shopperUser->getShowWithoutVat()) {
+				$result[$product->getPK()]['price'] = $this->shopperUser->showPriorityPrices() === 'withVat' ?
+					$this->shopperUser->filterPrice($product->getPriceVat()) :
+					$this->shopperUser->filterPrice($product->getPrice());
 			} else {
-				if ($this->shopper->getShowVat()) {
-					$result[$product->getPK()]['price'] = $this->shopper->filterPrice($product->getPriceVat());
+				if ($this->shopperUser->getShowVat()) {
+					$result[$product->getPK()]['price'] = $this->shopperUser->filterPrice($product->getPriceVat());
 				}
 
-				if ($this->shopper->getShowWithoutVat()) {
-					$result[$product->getPK()]['price'] = $this->shopper->filterPrice($product->getPrice());
+				if ($this->shopperUser->getShowWithoutVat()) {
+					$result[$product->getPK()]['price'] = $this->shopperUser->filterPrice($product->getPrice());
 				}
 			}
 		}
@@ -201,7 +197,7 @@ abstract class FrontendPresenter extends Presenter
 
 	public function handleWatchIt(string $product): void
 	{
-		if ($customer = $this->shopper->getCustomer()) {
+		if ($customer = $this->shopperUser->getCustomer()) {
 			$this->watcherRepository->createOne([
 				'product' => $product,
 				'customer' => $customer,
@@ -222,7 +218,7 @@ abstract class FrontendPresenter extends Presenter
 
 	public function handleUnWatchIt(string $product): void
 	{
-		if ($customer = $this->shopper->getCustomer()) {
+		if ($customer = $this->shopperUser->getCustomer()) {
 			$this->watcherRepository->many()
 				->where('fk_product', $product)
 				->where('fk_customer', $customer)
@@ -313,25 +309,25 @@ abstract class FrontendPresenter extends Presenter
 
 		$this->latte = $this->createLatteEngine();
 
-		if ($preferredMutation = $this->shopper->getUserPreferredMutation()) {
+		if ($preferredMutation = $this->shopperUser->getUserPreferredMutation()) {
 			$this->templateRepository->setMutation($preferredMutation);
 		}
 
 		$this->cache = new Cache($this->storage);
 
-		$this->checkoutManager->onCartItemCreate[] = function (CartItem $cartItem): void {
+		$this->shopperUser->getCheckoutManager()->onCartItemCreate[] = function (CartItem $cartItem): void {
 			$this->setCartChanged();
 		};
 
-		$this->checkoutManager->onCartItemDelete[] = function (): void {
+		$this->shopperUser->getCheckoutManager()->onCartItemDelete[] = function (): void {
 			$this->setCartChanged();
 		};
 
-		$this->checkoutManager->onCartItemUpdate[] = function (): void {
+		$this->shopperUser->getCheckoutManager()->onCartItemUpdate[] = function (): void {
 			$this->setCartChanged();
 		};
 
-		if (!$this->shopper->isIntegrationsEHub() || (!$eHub = $this->getParameter('ehub'))) {
+		if (!$this->shopperUser->isIntegrationsEHub() || (!$eHub = $this->getParameter('ehub'))) {
 			return;
 		}
 

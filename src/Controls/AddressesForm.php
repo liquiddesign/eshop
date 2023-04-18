@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\CheckoutManager;
 use Eshop\DB\CustomerRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Application\UI\Form;
 use Nette\Localization\Translator;
 use Nette\Security\Passwords;
@@ -24,29 +23,15 @@ class AddressesForm extends Form
 	 */
 	public $onSuccess = [];
 
-	private CheckoutManager $checkoutManager;
-	
-	private AccountRepository $accountRepository;
-	
-	private Passwords $passwords;
-
-	private CustomerRepository $customerRepository;
-
-	private Shopper $shopper;
-	
 	public function __construct(
-		Shopper $shopper,
-		CheckoutManager $checkoutManager,
-		AccountRepository $accountRepository,
+		private readonly ShopperUser $shopperUser,
+		private readonly AccountRepository $accountRepository,
 		Translator $translator,
-		Passwords $passwords,
-		CustomerRepository $customerRepository
+		private readonly Passwords $passwords,
+		private readonly CustomerRepository $customerRepository
 	) {
 		parent::__construct();
-		
-		$this->checkoutManager = $checkoutManager;
-		$this->accountRepository = $accountRepository;
-		
+
 		$this->addText('email', 'AddressesForm.email')->setRequired()->addRule($this::EMAIL);
 		$this->addText('ccEmails', 'AddressesForm.ccEmails');
 		$this->addText('fullname', 'AddressesForm.fullname')->setRequired()->setMaxLength(32);
@@ -62,7 +47,7 @@ class AddressesForm extends Form
 		$billAddressBox->addText('state', 'AddressesForm.bill_state');
 		
 		$otherAddress = $this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool) $this->checkoutManager->getPurchase()->deliveryAddress);
-		$isCompany = $this->addCheckbox('isCompany', 'AddressesForm.isCompany')->setDefaultValue($shopper->getCustomer() && $shopper->getCustomer()->isCompany());
+		$isCompany = $this->addCheckbox('isCompany', 'AddressesForm.isCompany')->setDefaultValue($shopperUser->getCustomer() && $shopperUser->getCustomer()->isCompany());
 		$createAccount = $this->addCheckbox('createAccount', 'AddressesForm.createAccount');
 		$this->addPassword('password', 'AddressesForm.password')
 			->addConditionOn($createAccount, $this::EQUAL, true)
@@ -91,7 +76,7 @@ class AddressesForm extends Form
 		$this->addText('bankAccountCode', 'AddressesForm.bankAccountCode');
 		$this->addText('bankSpecificSymbol', 'AddressesForm.bankSpecificSymbol');
 		
-		$customer = $shopper->getCustomer();
+		$customer = $shopperUser->getCustomer();
 		
 		if ($customer && !$checkoutManager->getPurchase()->email) {
 			$customerArray = $customer->toArray(['billAddress', 'deliveryAddress']);
@@ -125,9 +110,6 @@ class AddressesForm extends Form
 		$this->addSubmit('submit');
 		$this->onSuccess[] = [$this, 'success'];
 		$this->onValidate[] = [$this, 'validateForm'];
-		$this->passwords = $passwords;
-		$this->customerRepository = $customerRepository;
-		$this->shopper = $shopper;
 	}
 
 	public function validateForm(AddressesForm $form): void
@@ -144,11 +126,11 @@ class AddressesForm extends Form
 						!$this->accountRepository->one(['login' => $values['email']]) &&
 						!$this->customerRepository->one(['email' => $values['email']])
 					) ||
-					$this->shopper->isAlwaysCreateCustomerOnOrderCreated()
+					$this->shopperUser->isAlwaysCreateCustomerOnOrderCreated()
 				) &&
 				(
 					!$this->accountRepository->one(['login' => $values['email']]) ||
-					!$this->shopper->isAlwaysCreateCustomerOnOrderCreated()
+					!$this->shopperUser->isAlwaysCreateCustomerOnOrderCreated()
 				)
 			)
 		) {

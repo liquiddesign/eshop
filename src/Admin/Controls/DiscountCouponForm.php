@@ -14,7 +14,7 @@ use Eshop\DB\DiscountConditionRepository;
 use Eshop\DB\DiscountCoupon;
 use Eshop\DB\DiscountCouponRepository;
 use Eshop\FormValidators;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Arrays;
@@ -24,9 +24,9 @@ class DiscountCouponForm extends Control
 	public function __construct(
 		AdminFormFactory $adminFormFactory,
 		CurrencyRepository $currencyRepository,
-		private DiscountCouponRepository $discountCouponRepository,
-		private DiscountConditionCategoryRepository $discountConditionCategoryRepository,
-		private Shopper $shopper,
+		private readonly DiscountCouponRepository $discountCouponRepository,
+		private readonly DiscountConditionCategoryRepository $discountConditionCategoryRepository,
+		private readonly ShopperUser $shopperUser,
 		DiscountConditionRepository $discountConditionRepository,
 		?DiscountCoupon $discountCoupon,
 		?Discount $discount = null
@@ -115,7 +115,7 @@ class DiscountCouponForm extends Control
 				}
 			}
 
-			if (!$this->shopper->getDiscountConditions()['categories']) {
+			if (!$this->shopperUser->getDiscountConditions()['categories']) {
 				return;
 			}
 

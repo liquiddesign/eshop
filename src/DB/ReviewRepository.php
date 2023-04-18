@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
@@ -14,13 +14,9 @@ use StORM\SchemaManager;
  */
 class ReviewRepository extends \StORM\Repository
 {
-	private Shopper $shopper;
-
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Shopper $shopper)
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, private readonly ShopperUser $shopperUser)
 	{
 		parent::__construct($connection, $schemaManager);
-
-		$this->shopper = $shopper;
 	}
 
 	public function createReviewsFromOrder(Order $order): void
@@ -98,7 +94,7 @@ class ReviewRepository extends \StORM\Repository
 
 		return $total > 0 ? ((float) $this->getReviewedReviews()
 				->select(['recommendationPercent' => 'COUNT(this.uuid)'])
-				->where('this.score >= :s', ['s' => $this->shopper->getReviewsMiddleScore()])
+				->where('this.score >= :s', ['s' => $this->shopperUser->getReviewsMiddleScore()])
 				->firstValue('recommendationPercent')) /
 			$total * 100 : 0;
 	}

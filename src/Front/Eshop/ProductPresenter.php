@@ -96,7 +96,7 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 		?string $attributeValue = null,
 		?array $attributes = null
 	): void {
-		if ($this->shopper->getCatalogPermission() === 'none') {
+		if ($this->shopperUser->getCatalogPermission() === 'none') {
 			$this->error('You dont have permission to view catalog!', 403);
 		}
 		
@@ -198,7 +198,7 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 	
 	public function actionDetail(string $product): void
 	{
-		if ($this->shopper->getCatalogPermission() === 'none') {
+		if ($this->shopperUser->getCatalogPermission() === 'none') {
 			$this->error('You dont have permission to view catalog!', 403);
 		}
 
@@ -215,7 +215,7 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 
 		$this->category = $this->product->primaryCategory;
 		
-		$form = new BuyForm($this->product, $this->shopper, $this->checkoutManager);
+		$form = new BuyForm($this->product, $this->shopperUser, $this->checkoutManager);
 		$this->addComponent($form, 'buyForm');
 		$form->onSuccess[] = function ($form, $values): void {
 			$form->getPresenter()->redirect('this');
@@ -227,7 +227,7 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 	
 	public function handleAddToCart(string $product, int $amount): void
 	{
-		if (!$this->shopper->getBuyPermission()) {
+		if (!$this->shopperUser->getBuyPermission()) {
 			throw new \Nette\Application\BadRequestException();
 		}
 		
@@ -257,7 +257,7 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 		$this->template->similar = $this->productsRepository->getSimilarProductsByProduct($product);
 		$this->template->loyaltyProgramPointsGain = null;
 
-		if (!($loyaltyProgram = ($this->shopper->getCustomer() ? $this->shopper->getCustomer()->loyaltyProgram : null))) {
+		if (!($loyaltyProgram = ($this->shopperUser->getCustomer() ? $this->shopperUser->getCustomer()->loyaltyProgram : null))) {
 			return;
 		}
 
@@ -266,7 +266,7 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 	
 	public function handleWatchIt(string $product): void
 	{
-		if ($customer = $this->shopper->getCustomer()) {
+		if ($customer = $this->shopperUser->getCustomer()) {
 			$watcher = $this->watcherRepository->createOne([
 				'product' => $product,
 				'customer' => $customer,
@@ -282,7 +282,7 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 	
 	public function handleUnWatchIt(string $product): void
 	{
-		if ($customer = $this->shopper->getCustomer()) {
+		if ($customer = $this->shopperUser->getCustomer()) {
 			$this->watcherRepository->many()
 				->where('fk_product', $product)
 				->where('fk_customer', $customer)

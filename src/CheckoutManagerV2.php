@@ -14,7 +14,7 @@ use Nette\SmartObject;
 use Nette\Utils\Arrays;
 use StORM\Collection;
 
-class CartManager
+class CheckoutManagerV2
 {
 	use SmartObject;
 	public const DEFAULT_MIN_BUY_COUNT = 1;
@@ -189,7 +189,6 @@ class CartManager
 		$this->refreshSumProperties();
 
 		Arrays::invoke($this->onCartItemCreate($cartItem));
-
 
 		return $cartItem;
 	}

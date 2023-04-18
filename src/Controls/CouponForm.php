@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\CheckoutManager;
 use Eshop\DB\DiscountCouponRepository;
 use Eshop\Exceptions\InvalidCouponException;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette;
 
 /**
@@ -26,27 +25,17 @@ class CouponForm extends \Nette\Application\UI\Form
 	 */
 	public $onRemove;
 
-	private DiscountCouponRepository $discountCouponRepository;
-	
-	private Shopper $shopper;
-	
-	private CheckoutManager $checkoutManager;
-	
-	public function __construct(Shopper $shopper, CheckoutManager $checkoutManager, DiscountCouponRepository $discountCouponRepository, Nette\Localization\Translator $translator)
+	public function __construct(private ShopperUser $shopper, private DiscountCouponRepository $discountCouponRepository, Nette\Localization\Translator $translator)
 	{
 		parent::__construct();
 
-		$this->discountCouponRepository = $discountCouponRepository;
-		$this->shopper = $shopper;
-		$this->checkoutManager = $checkoutManager;
-		
-		$discountCoupon = $checkoutManager->getDiscountCoupon();
+		$discountCoupon = $this->shopper->getCheckoutManager()->getDiscountCoupon();
 
 		$this->addCheckbox('active');
 		// phpcs:ignore
 		$this->addText('code')->setDisabled((bool)$discountCoupon)->setDefaultValue($discountCoupon?->code);
 
-		$this->onValidate[] = function (CouponForm $form) use ($checkoutManager, $shopper, $translator): void {
+		$this->onValidate[] = function (CouponForm $form) use ($shopper, $translator): void {
 			if (!$form->isValid()) {
 				return;
 			}
@@ -57,7 +46,7 @@ class CouponForm extends \Nette\Application\UI\Form
 			$input = $form['code'];
 
 			try {
-				$this->discountCouponRepository->getValidCouponByCart($values['code'], $checkoutManager->getCart(), $shopper->getCustomer(), true);
+				$this->discountCouponRepository->getValidCouponByCart($values['code'], $this->shopper->getCheckoutManager()->getCart(), $shopper->getCustomer(), true);
 			} catch (InvalidCouponException $e) {
 				$errorMsg = match ($e->getCode()) {
 					InvalidCouponException::NOT_FOUND => $translator->translate('couponFormICE.notFound', 'Slevový kupón není platný'),

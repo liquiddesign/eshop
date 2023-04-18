@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\DB\WatcherRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Grid\Datalist;
 use StORM\DIConnection;
 use StORM\Exception\NotFoundException;
@@ -17,17 +17,10 @@ use StORM\ICollection;
  */
 class WatcherList extends Datalist
 {
-	private WatcherRepository $watcherRepository;
-
-	private bool $email;
-	
-	public function __construct(WatcherRepository $watcherRepository, Shopper $shopper, DIConnection $connection, bool $email = false)
+	public function __construct(private readonly WatcherRepository $watcherRepository, ShopperUser $shopperUser, DIConnection $connection, private readonly bool $email = false)
 	{
-		parent::__construct($watcherRepository->getWatchersByCustomer($shopper->getCustomer()));
+		parent::__construct($watcherRepository->getWatchersByCustomer($shopperUser->getCustomer()));
 
-		$this->email = $email;
-	
-		$this->watcherRepository = $watcherRepository;
 		$this->setDefaultOnPage(20);
 		
 		$langSuffix = $connection->getMutationSuffix();

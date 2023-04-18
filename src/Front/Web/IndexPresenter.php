@@ -75,7 +75,7 @@ abstract class IndexPresenter extends FrontendPresenter
 	{
 		$this->template->recommendedDeliveryTypes = $this->deliveryTypeRepository->getCollection()->where('recommended', true);
 		$this->template->recommendedPaymentTypes = $this->paymentTypeRepository->getCollection()->where('recommended', true);
-		$this->template->deliveryDiscount = $this->deliveryDiscountRepository->getDeliveryDiscount($this->shopper->getCurrency());
+		$this->template->deliveryDiscount = $this->deliveryDiscountRepository->getDeliveryDiscount($this->shopperUser->getCurrency());
 		$this->template->recommendedDiscounts = $this->discountRepository->getActiveDiscounts()->where('recommended', true);
 		$this->template->recommendedProducers = $this->producerRepository->getCollection()->where('recommended', true);
 		$this->template->recommendedCategories = $this->categoryRepo->getCategories()->where('recommended', true)->setTake(15);

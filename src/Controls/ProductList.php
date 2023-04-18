@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\CheckoutManager;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
@@ -14,7 +13,7 @@ use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\WatcherRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\FormFactory;
 use Grid\Datalist;
 use Nette\Application\UI\Multiplier;
@@ -41,47 +40,20 @@ class ProductList extends Datalist
 	 */
 	public $onWatcherDeleted;
 
-	public CheckoutManager $checkoutManager;
-
-	public Shopper $shopper;
-
-	private ProductRepository $productRepository;
-
-	private WatcherRepository $watcherRepository;
-
-	private Translator $translator;
-
-	private FormFactory $formFactory;
-
-	private AttributeRepository $attributeRepository;
-
-	private AttributeValueRepository $attributeValueRepository;
-
-	private AttributeValueRangeRepository $attributeValueRangeRepository;
-
-	private IBuyFormFactory $buyFormFactory;
-
-	private ProducerRepository $producerRepository;
-
-	private DisplayAmountRepository $displayAmountRepository;
-
-	private DisplayDeliveryRepository $displayDeliveryRepository;
-
 	public function __construct(
-		ProductRepository $productRepository,
+		private readonly ProductRepository $productRepository,
 		CategoryRepository $categoryRepository,
-		WatcherRepository $watcherRepository,
-		CheckoutManager $checkoutManager,
-		Shopper $shopper,
-		Translator $translator,
-		FormFactory $formFactory,
-		AttributeRepository $attributeRepository,
-		AttributeValueRepository $attributeValueRepository,
-		AttributeValueRangeRepository $attributeValueRangeRepository,
-		IBuyFormFactory $buyFormFactory,
-		ProducerRepository $producerRepository,
-		DisplayAmountRepository $displayAmountRepository,
-		DisplayDeliveryRepository $displayDeliveryRepository,
+		private readonly WatcherRepository $watcherRepository,
+		public readonly ShopperUser $shopperUser,
+		private readonly Translator $translator,
+		private readonly FormFactory $formFactory,
+		private readonly AttributeRepository $attributeRepository,
+		private readonly AttributeValueRepository $attributeValueRepository,
+		private readonly AttributeValueRangeRepository $attributeValueRangeRepository,
+		private readonly IBuyFormFactory $buyFormFactory,
+		private readonly ProducerRepository $producerRepository,
+		private readonly DisplayAmountRepository $displayAmountRepository,
+		private readonly DisplayDeliveryRepository $displayDeliveryRepository,
 		?array $order = null,
 		?Collection $source = null
 	) {
@@ -129,10 +101,10 @@ class ProductList extends Datalist
 			$this->productRepository->filterCrossSellFilter($value, $collection);
 		});
 		$this->addFilterExpression('priceFrom', function (ICollection $collection, $value): void {
-			$this->shopper->getShowPrice() === 'withVat' ? $this->productRepository->filterPriceVatFrom($value, $collection) : $this->productRepository->filterPriceFrom($value, $collection);
+			$this->shopperUser->getShowPrice() === 'withVat' ? $this->productRepository->filterPriceVatFrom($value, $collection) : $this->productRepository->filterPriceFrom($value, $collection);
 		}, '');
 		$this->addFilterExpression('priceTo', function (ICollection $collection, $value): void {
-			$this->shopper->getShowPrice() === 'withVat' ? $this->productRepository->filterPriceVatTo($value, $collection) : $this->productRepository->filterPriceTo($value, $collection);
+			$this->shopperUser->getShowPrice() === 'withVat' ? $this->productRepository->filterPriceVatTo($value, $collection) : $this->productRepository->filterPriceTo($value, $collection);
 		}, '');
 		$this->addFilterExpression('producer', function (ICollection $collection, $value): void {
 			$this->productRepository->filterProducer($value, $collection);
@@ -179,25 +151,11 @@ class ProductList extends Datalist
 		$this->addFilterExpression('relatedTypeSlave', function (ICollection $collection, $value): void {
 			$this->productRepository->filterRelatedTypeSlave($value, $collection);
 		});
-
-		$this->productRepository = $productRepository;
-		$this->watcherRepository = $watcherRepository;
-		$this->shopper = $shopper;
-		$this->checkoutManager = $checkoutManager;
-		$this->translator = $translator;
-		$this->formFactory = $formFactory;
-		$this->attributeRepository = $attributeRepository;
-		$this->attributeValueRepository = $attributeValueRepository;
-		$this->attributeValueRangeRepository = $attributeValueRangeRepository;
-		$this->buyFormFactory = $buyFormFactory;
-		$this->producerRepository = $producerRepository;
-		$this->displayAmountRepository = $displayAmountRepository;
-		$this->displayDeliveryRepository = $displayDeliveryRepository;
 	}
 
 	public function handleWatchIt(string $product): void
 	{
-		if ($customer = $this->shopper->getCustomer()) {
+		if ($customer = $this->shopperUser->getCustomer()) {
 			$watcher = $this->watcherRepository->createOne([
 				'product' => $product,
 				'customer' => $customer,
@@ -213,7 +171,7 @@ class ProductList extends Datalist
 
 	public function handleUnWatchIt(string $product): void
 	{
-		if ($customer = $this->shopper->getCustomer()) {
+		if ($customer = $this->shopperUser->getCustomer()) {
 			$watcher = $this->watcherRepository->many()
 				->where('fk_product', $product)
 				->where('fk_customer', $customer)
@@ -261,7 +219,7 @@ class ProductList extends Datalist
 		$this->template->templateFilters = $this->getFiltersForTemplate();
 		$this->template->display = $display === 'card' ? 'Card' : 'Row';
 		$this->template->paginator = $this->getPaginator();
-		$this->template->shopper = $this->shopper;
+		$this->template->shopper = $this->shopperUser;
 		$this->template->checkoutManager = $this->checkoutManager;
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */

@@ -36,6 +36,7 @@ use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Integration\Integrations;
 use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Arrays;
@@ -51,41 +52,7 @@ class ProductForm extends Control
 	/** @persistent */
 	public string $tab = 'menu0';
 
-	public ProductTabRepository $productTabRepository;
-
-	public ProductTabTextRepository $productTabTextRepository;
-
 	private ?Product $product;
-
-	private ProductRepository $productRepository;
-
-	private PricelistRepository $pricelistRepository;
-
-	private PriceRepository $priceRepository;
-
-	private SupplierRepository $supplierRepository;
-
-	private SupplierProductRepository $supplierProductRepository;
-
-	private PageRepository $pageRepository;
-
-	private Shopper $shopper;
-
-	private VatRateRepository $vatRateRepository;
-
-	private CategoryTypeRepository $categoryTypeRepository;
-
-	private LoyaltyProgramRepository $loyaltyProgramRepository;
-
-	private LoyaltyProgramProductRepository $loyaltyProgramProductRepository;
-
-	private RelatedTypeRepository $relatedTypeRepository;
-
-	private RelatedRepository $relatedRepository;
-
-	private StoreRepository $storeRepository;
-
-	private AmountRepository $amountRepository;
 
 	private int $relationMaxItemsCount;
 
@@ -94,59 +61,38 @@ class ProductForm extends Control
 	 */
 	private array $relatedTypes;
 
-	/** @var array<mixed> */
-	private array $configuration;
-
 	public function __construct(
 		AdminFormFactory $adminFormFactory,
-		PageRepository $pageRepository,
-		ProductRepository $productRepository,
-		PricelistRepository $pricelistRepository,
-		ProductTabRepository $productTabRepository,
-		ProductTabTextRepository $productTabTextRepository,
-		PriceRepository $priceRepository,
-		SupplierRepository $supplierRepository,
-		SupplierProductRepository $supplierProductRepository,
+		private readonly PageRepository $pageRepository,
+		private readonly ProductRepository $productRepository,
+		private readonly PricelistRepository $pricelistRepository,
+		private readonly ProductTabRepository $productTabRepository,
+		private readonly ProductTabTextRepository $productTabTextRepository,
+		private readonly PriceRepository $priceRepository,
+		private readonly SupplierRepository $supplierRepository,
+		private readonly SupplierProductRepository $supplierProductRepository,
 		CategoryRepository $categoryRepository,
 		RibbonRepository $ribbonRepository,
 		InternalRibbonRepository $internalRibbonRepository,
 		ProducerRepository $producerRepository,
-		VatRateRepository $vatRateRepository,
+		private readonly VatRateRepository $vatRateRepository,
 		DisplayAmountRepository $displayAmountRepository,
 		DisplayDeliveryRepository $displayDeliveryRepository,
 		TaxRepository $taxRepository,
-		Shopper $shopper,
-		CategoryTypeRepository $categoryTypeRepository,
-		LoyaltyProgramRepository $loyaltyProgramRepository,
-		LoyaltyProgramProductRepository $loyaltyProgramProductRepository,
-		RelatedTypeRepository $relatedTypeRepository,
-		RelatedRepository $relatedRepository,
-		StoreRepository $storeRepository,
-		AmountRepository $amountRepository,
+		private readonly ShopperUser $shopperUser,
+		private readonly CategoryTypeRepository $categoryTypeRepository,
+		private readonly LoyaltyProgramRepository $loyaltyProgramRepository,
+		private readonly LoyaltyProgramProductRepository $loyaltyProgramProductRepository,
+		private readonly RelatedTypeRepository $relatedTypeRepository,
+		private readonly RelatedRepository $relatedRepository,
+		private readonly StoreRepository $storeRepository,
+		private readonly AmountRepository $amountRepository,
 		SettingRepository $settingRepository,
 		Integrations $integrations,
 		$product = null,
-		array $configuration = []
+		private readonly array $configuration = []
 	) {
 		$this->product = $product = $productRepository->get($product);
-		$this->productRepository = $productRepository;
-		$this->pricelistRepository = $pricelistRepository;
-		$this->productTabRepository = $productTabRepository;
-		$this->productTabTextRepository = $productTabTextRepository;
-		$this->priceRepository = $priceRepository;
-		$this->supplierRepository = $supplierRepository;
-		$this->supplierProductRepository = $supplierProductRepository;
-		$this->pageRepository = $pageRepository;
-		$this->configuration = $configuration;
-		$this->shopper = $shopper;
-		$this->vatRateRepository = $vatRateRepository;
-		$this->categoryTypeRepository = $categoryTypeRepository;
-		$this->loyaltyProgramRepository = $loyaltyProgramRepository;
-		$this->loyaltyProgramProductRepository = $loyaltyProgramProductRepository;
-		$this->relatedTypeRepository = $relatedTypeRepository;
-		$this->relatedRepository = $relatedRepository;
-		$this->storeRepository = $storeRepository;
-		$this->amountRepository = $amountRepository;
 		$this->relationMaxItemsCount = (int) ($settingRepository->getValueByName('relationMaxItemsCount') ?? $this::RELATION_MAX_ITEMS_COUNT);
 
 		$form = $adminFormFactory->create(true);
@@ -285,7 +231,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		->setHtmlAttribute(
 			'data-info',
 			'Zobrazované hodnocení produktu se počítá jako průměr výchozích hodnocení (počet výchozích recenzí * výchozí hodnocení recenzí) ve spojení se skutečnými recenzemi.<br>
-Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getReviewsMinScore() . ' - ' . $this->shopper->getReviewsMaxScore() . ' (včetně)',
+Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->getReviewsMinScore() . ' - ' . $this->shopperUser->getReviewsMaxScore() . ' (včetně)',
 		);
 
 		$defaultReviewsScore->addConditionOn($defaultReviewsCount, $form::FILLED)
@@ -817,7 +763,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 		$this->template->productTabs = $this->productTabRepository->many()->orderBy(['this.priority']);
 		$this->template->stores = $this->storeRepository->many()->orderBy(['this.name' . $this->storeRepository->getConnection()->getMutationSuffix()]);
 		$this->template->configuration = $this->configuration;
-		$this->template->shopper = $this->shopper;
+		$this->template->shopper = $this->shopperUser;
 		$this->template->primaryCategory = $this->product && $this->product->primaryCategory ?
 			($this->product->primaryCategory->ancestor ?
 				\implode(' -> ', $this->product->primaryCategory->ancestor->getFamilyTree()->toArrayOf('name')) . ' -> ' . $this->product->primaryCategory->name :

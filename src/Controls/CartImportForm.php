@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\BuyException;
-use Eshop\CheckoutManager;
 use Eshop\DB\ProductRepository;
+use Eshop\ShopperUser;
 use Nette\Application\UI\Form;
 use Nette\Http\FileUpload;
 use Nette\Utils\Strings;
@@ -18,22 +18,15 @@ class CartImportForm extends Form
 	 */
 	public $onValidate = [];
 
-	private CheckoutManager $checkoutManager;
-	
-	private ProductRepository $productRepository;
-	
 	/**
 	 * @var array<string>
 	 */
 	private array $items = [];
 	
-	public function __construct(CheckoutManager $checkoutManager, ProductRepository $productRepository)
+	public function __construct(private readonly ShopperUser $shopperUser, private readonly ProductRepository $productRepository)
 	{
 		parent::__construct();
-		
-		$this->checkoutManager = $checkoutManager;
-		$this->productRepository = $productRepository;
-		
+
 		$this->addTextArea('pasteArea');
 		$this->addUpload('importFile');
 //			->addRule(Form::MIME_TYPE, 'Soubor musí být ve formátu CSV', 'text/csv');
@@ -66,8 +59,8 @@ class CartImportForm extends Form
 			
 			if ($product) {
 				try {
-					$this->checkoutManager->addItemToCart($product, null, \intval($amount), false, false, false);
-				} catch (BuyException $exception) {
+					$this->shopperUser->getCheckoutManager()->addItemToCart($product, null, \intval($amount), checkCanBuy: false);
+				} catch (BuyException) {
 					$notFoundProducts[] = $code . ' ' . $amount;
 				}
 			} else {

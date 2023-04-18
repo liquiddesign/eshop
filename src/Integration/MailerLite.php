@@ -4,7 +4,7 @@ namespace Eshop\Integration;
 
 use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CustomerRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use MailerLiteApi\Api\Groups;
 use MailerLiteApi\Api\Subscribers;
 use MailerLiteApi\MailerLite as MailerLiteApi;
@@ -13,17 +13,9 @@ use Web\DB\SettingRepository;
 
 class MailerLite
 {
-	public Shopper $shopper;
-
-	public CustomerRepository $customerRepository;
-
 	public Subscribers $subscribersApi;
 
 	private ?string $apiKey = null;
-
-	private CatalogPermissionRepository $catalogPermissionRepository;
-
-	private SettingRepository $settingRepository;
 
 	private Groups $groupsApi;
 
@@ -37,12 +29,12 @@ class MailerLite
 	 */
 	private array $subscribers;
 
-	public function __construct(SettingRepository $settingRepository, Shopper $shopper, CustomerRepository $customerRepository, CatalogPermissionRepository $catalogPermissionRepository)
-	{
-		$this->shopper = $shopper;
-		$this->customerRepository = $customerRepository;
-		$this->catalogPermissionRepository = $catalogPermissionRepository;
-		$this->settingRepository = $settingRepository;
+	public function __construct(
+		private readonly SettingRepository $settingRepository,
+		public ShopperUser $shopperUser,
+		public CustomerRepository $customerRepository,
+		private readonly CatalogPermissionRepository $catalogPermissionRepository
+	) {
 	}
 
 	/**

@@ -18,7 +18,7 @@ use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PickupPointTypeRepository;
 use Eshop\DB\SupplierDeliveryTypeRepository;
 use Eshop\DB\SupplierRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;
@@ -49,7 +49,7 @@ class DeliveryTypePresenter extends BackendPresenter
 	public PickupPointTypeRepository $pointTypeRepo;
 	
 	/** @inject */
-	public Shopper $shopper;
+	public ShopperUser $shopperUser;
 	
 	/** @inject */
 	public Request $request;
@@ -83,7 +83,7 @@ class DeliveryTypePresenter extends BackendPresenter
 				->setTake(1)
 				->first();
 			
-			return $price ? $this->shopper->filterPrice($price->priceVat, $code) : '';
+			return $price ? $this->shopperUser->filterPrice($price->priceVat, $code) : '';
 		});
 		
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
@@ -273,7 +273,7 @@ class DeliveryTypePresenter extends BackendPresenter
 			'price' => 'float',
 		];
 
-		if ($this->shopper->getShowVat()) {
+		if ($this->shopperUser->getShowVat()) {
 			$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
 
 			$saveAllTypes += ['priceVat' => 'float'];

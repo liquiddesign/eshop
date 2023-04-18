@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\CheckoutManager;
+use Eshop\CheckoutManagerV2;
 use Eshop\DB\Product;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Nette;
 
@@ -22,12 +22,14 @@ class BuyForm extends Form
 
 	public ?bool $replaceMode = false;
 
-	public function __construct(Product $product, Shopper $shopper, CheckoutManager $checkoutManager)
+	public function __construct(Product $product, ShopperUser $shopperUser)
 	{
 		parent::__construct();
 
-		$minCount = $product->minBuyCount ?? CheckoutManager::DEFAULT_MIN_BUY_COUNT;
-		$maxCount = $product->maxBuyCount ?? CheckoutManager::DEFAULT_MAX_BUY_COUNT;
+		$checkoutManager = $shopperUser->getCheckoutManager();
+
+		$minCount = $product->minBuyCount ?? CheckoutManagerV2::DEFAULT_MIN_BUY_COUNT;
+		$maxCount = $product->maxBuyCount ?? CheckoutManagerV2::DEFAULT_MAX_BUY_COUNT;
 
 		$countInput = $this->addInteger('amount', 'Počet zboží:')
 			->setDefaultValue($product->defaultBuyCount)
@@ -45,9 +47,9 @@ class BuyForm extends Form
 
 		$this->addHidden('itemId', $product->getPK());
 		$this->addHidden('variant');
-		$this->addSubmit('submit', 'Přidat do košíku')->setDisabled(!$shopper->getBuyPermission());
+		$this->addSubmit('submit', 'Přidat do košíku')->setDisabled(!$shopperUser->getBuyPermission());
 
-		if (!$shopper->getBuyPermission()) {
+		if (!$shopperUser->getBuyPermission()) {
 			return;
 		}
 

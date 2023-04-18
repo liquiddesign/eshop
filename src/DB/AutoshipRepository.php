@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Eshop\CheckoutManager;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Utils\Arrays;
 use StORM\DIConnection;
 use StORM\SchemaManager;
@@ -15,28 +14,14 @@ use StORM\SchemaManager;
  */
 class AutoshipRepository extends \StORM\Repository
 {
-	private Shopper $shopper;
-	
-	private CheckoutManager $checkoutManager;
-	
-	private AddressRepository $addressRepository;
-	
-	private PurchaseRepository $purchaseRepository;
-	
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		Shopper $shopper,
-		CheckoutManager $checkoutManager,
-		AddressRepository $addressRepository,
-		PurchaseRepository $purchaseRepository
+		private readonly ShopperUser $shopperUser,
+		private readonly AddressRepository $addressRepository,
+		private readonly PurchaseRepository $purchaseRepository
 	) {
 		parent::__construct($connection, $schemaManager);
-
-		$this->shopper = $shopper;
-		$this->checkoutManager = $checkoutManager;
-		$this->addressRepository = $addressRepository;
-		$this->purchaseRepository = $purchaseRepository;
 	}
 	
 	public function createOrder(Autoship $autoship): ?Order
@@ -48,7 +33,7 @@ class AutoshipRepository extends \StORM\Repository
 			return null;
 		}
 		
-		$this->shopper->setCustomer($autoship->purchase->customer);
+		$this->shopperUser->setCustomer($autoship->purchase->customer);
 		$this->checkoutManager->setCustomer($autoship->purchase->customer);
 		$this->checkoutManager->createCart();
 		$this->checkoutManager->getCart()->update(['purchase' => $autoship->purchase]);

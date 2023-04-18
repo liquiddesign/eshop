@@ -9,7 +9,7 @@ use Admin\Controls\AdminFormFactory;
 use Eshop\Admin\CategoryPresenter;
 use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Image;
@@ -22,30 +22,14 @@ use Web\DB\SettingRepository;
 
 class CategoryForm extends Control
 {
-	private CategoryRepository $categoryRepository;
-
-	private PageRepository $pageRepository;
-
-	private SettingRepository $settingRepository;
-
-	private Shopper $shopper;
-
-	private ?Category $category;
-
 	public function __construct(
-		CategoryRepository $categoryRepository,
+		private readonly CategoryRepository $categoryRepository,
 		AdminFormFactory $formFactory,
-		PageRepository $pageRepository,
-		SettingRepository $settingRepository,
-		Shopper $shopper,
-		?Category $category
+		private readonly PageRepository $pageRepository,
+		private readonly SettingRepository $settingRepository,
+		private readonly ShopperUser $shopperUser,
+		private readonly ?Category $category
 	) {
-		$this->category = $category;
-		$this->categoryRepository = $categoryRepository;
-		$this->pageRepository = $pageRepository;
-		$this->settingRepository = $settingRepository;
-		$this->shopper = $shopper;
-
 		$form = $formFactory->create(true);
 
 		$form->addText('code', 'Kód')->setRequired();
@@ -53,19 +37,19 @@ class CategoryForm extends Control
 		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => function (Image $image): void {
-				$image->resize($this->shopper->getCategoriesImage()['detail']['width'], $this->shopper->getCategoriesImage()['detail']['height']);
+				$image->resize($this->shopperUser->getCategoriesImage()['detail']['width'], $this->shopperUser->getCategoriesImage()['detail']['height']);
 			},
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => function (Image $image): void {
-				$image->resize($this->shopper->getCategoriesImage()['thumb']['width'], $this->shopper->getCategoriesImage()['thumb']['height']);
+				$image->resize($this->shopperUser->getCategoriesImage()['thumb']['width'], $this->shopperUser->getCategoriesImage()['thumb']['height']);
 			},
 		]);
 
-		if ($this->shopper->getCategoriesImage()['detail']['width']) {
-			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální šířce ' . $this->shopper->getCategoriesImage()['detail']['width'] . 'px.');
+		if ($this->shopperUser->getCategoriesImage()['detail']['width']) {
+			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální šířce ' . $this->shopperUser->getCategoriesImage()['detail']['width'] . 'px.');
 		}
 
-		if ($this->shopper->getCategoriesImage()['detail']['height']) {
-			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce ' . $this->shopper->getCategoriesImage()['detail']['height'] . 'px.');
+		if ($this->shopperUser->getCategoriesImage()['detail']['height']) {
+			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce ' . $this->shopperUser->getCategoriesImage()['detail']['height'] . 'px.');
 		}
 
 		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {
@@ -78,19 +62,19 @@ class CategoryForm extends Control
 		$imagePicker = $form->addImagePicker('productFallbackImageFileName', 'Placeholder produktů', [
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => function (Image $image): void {
-				$image->resize($this->shopper->getCategoriesFallbackImage()['detail']['width'], $this->shopper->getCategoriesFallbackImage()['detail']['height']);
+				$image->resize($this->shopperUser->getCategoriesFallbackImage()['detail']['width'], $this->shopperUser->getCategoriesFallbackImage()['detail']['height']);
 			},
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => function (Image $image): void {
-				$image->resize($this->shopper->getCategoriesFallbackImage()['thumb']['width'], $this->shopper->getCategoriesFallbackImage()['thumb']['height']);
+				$image->resize($this->shopperUser->getCategoriesFallbackImage()['thumb']['width'], $this->shopperUser->getCategoriesFallbackImage()['thumb']['height']);
 			},
 		])->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce 600px s libovolnou šířkou.');
 
-		if ($this->shopper->getCategoriesFallbackImage()['detail']['width']) {
-			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální šířce ' . $this->shopper->getCategoriesFallbackImage()['detail']['width'] . 'px.');
+		if ($this->shopperUser->getCategoriesFallbackImage()['detail']['width']) {
+			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální šířce ' . $this->shopperUser->getCategoriesFallbackImage()['detail']['width'] . 'px.');
 		}
 
-		if ($this->shopper->getCategoriesFallbackImage()['detail']['height']) {
-			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce ' . $this->shopper->getCategoriesFallbackImage()['detail']['height'] . 'px.');
+		if ($this->shopperUser->getCategoriesFallbackImage()['detail']['height']) {
+			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce ' . $this->shopperUser->getCategoriesFallbackImage()['detail']['height'] . 'px.');
 		}
 
 		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {

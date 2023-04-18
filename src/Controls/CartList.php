@@ -2,18 +2,13 @@
 
 namespace Eshop\Controls;
 
-use Eshop\CheckoutManager;
 use Eshop\DB\CartRepository;
 use StORM\Collection;
 use StORM\ICollection;
 
 class CartList extends \Grid\Datalist
 {
-	private CheckoutManager $checkoutManager;
-
-	private CartRepository $cartRepository;
-
-	public function __construct(Collection $carts, CheckoutManager $checkoutManager, CartRepository $cartRepository)
+	public function __construct(Collection $carts, private readonly CartRepository $cartRepository)
 	{
 		parent::__construct($carts);
 
@@ -29,9 +24,6 @@ class CartList extends \Grid\Datalist
 
 		$form->addText('customer');
 		$form->addSubmit('submit');
-
-		$this->checkoutManager = $checkoutManager;
-		$this->cartRepository = $cartRepository;
 	}
 
 	public function render(): void

@@ -24,6 +24,7 @@ use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
 use League\Csv\Writer;
@@ -120,7 +121,7 @@ class CustomerPresenter extends BackendPresenter
 	public Connection $storm;
 	
 	/** @inject */
-	public Shopper $shopper;
+	public ShopperUser $shopperUser;
 	
 	/** @inject */
 	public LoyaltyProgramRepository $loyaltyProgramRepository;
@@ -821,15 +822,15 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				->toggle('frm-accountForm-permission-showPricesWithVat-toogle');
 			
 			if (isset($this::CONFIGURATIONS['prices']) && $this::CONFIGURATIONS['prices']) {
-				if ($this->shopper->getShowWithoutVat()) {
+				if ($this->shopperUser->getShowWithoutVat()) {
 					$withoutVatInput = $container->addCheckbox('showPricesWithoutVat', 'Zobrazit ceny bez daně');
 				}
 				
-				if ($this->shopper->getShowVat()) {
+				if ($this->shopperUser->getShowVat()) {
 					$withVatInput = $container->addCheckbox('showPricesWithVat', 'Zobrazit ceny s daní');
 				}
 				
-				if ($this->shopper->getShowWithoutVat() && $this->shopper->getShowVat() && isset($withoutVatInput) && isset($withVatInput)) {
+				if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat() && isset($withoutVatInput) && isset($withVatInput)) {
 					$container->addSelect('priorityPrice', 'Prioritní cena', [
 						'withoutVat' => 'Bez daně',
 						'withVat' => 'S daní',

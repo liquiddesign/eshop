@@ -11,7 +11,7 @@ use Eshop\DB\CustomerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\Review;
 use Eshop\DB\ReviewRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use StORM\Collection;
 use StORM\DIConnection;
 
@@ -27,7 +27,7 @@ class ReviewPresenter extends BackendPresenter
 	public ProductRepository $productRepository;
 
 	/** @inject */
-	public Shopper $shopper;
+	public ShopperUser $shopper;
 
 	public function createComponentGrid(): AdminGrid
 	{

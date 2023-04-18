@@ -25,7 +25,7 @@ abstract class ReviewPresenter extends FrontendPresenter
 	public Translator $translator;
 
 	/** @inject */
-	public Shopper $shopper;
+	public Shopper $shopperUser;
 
 	private ?Review $review = null;
 
@@ -63,7 +63,7 @@ abstract class ReviewPresenter extends FrontendPresenter
 
 		$options = [];
 
-		for ($i = $this->shopper->getReviewsMinScore(); $i <= $this->shopper->getReviewsMaxScore(); $i++) {
+		for ($i = $this->shopperUser->getReviewsMinScore(); $i <= $this->shopperUser->getReviewsMaxScore(); $i++) {
 			$options["o_$i"] = $i;
 		}
 

@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\CheckoutManager;
 use Eshop\DB\CartItemRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\WatcherRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Grid\Datalist;
 use Nette\Application\UI\Form;
 use Nette\Application\UI\Multiplier;
@@ -23,10 +22,6 @@ use Nette\Forms\IControl;
  */
 class CartItemList extends Datalist
 {
-	public CheckoutManager $checkoutManager;
-
-	public Shopper $shopper;
-
 	/**
 	 * @var array<callable>&callable(): void ; Occurs on delete item or coupon
 	 */
@@ -42,21 +37,13 @@ class CartItemList extends Datalist
 	 */
 	public $onDeleteAll;
 
-	private CartItemRepository $cartItemsRepository;
-
-	private ProductRepository $productRepository;
-
-	private WatcherRepository $watcherRepository;
-
-	public function __construct(CartItemRepository $cartItemsRepository, CheckoutManager $checkoutManager, Shopper $shopper, ProductRepository $productRepository, WatcherRepository $watcherRepository)
-	{
-		$this->checkoutManager = $checkoutManager;
-		$this->cartItemsRepository = $cartItemsRepository;
-		$this->shopper = $shopper;
-		$this->productRepository = $productRepository;
-		$this->watcherRepository = $watcherRepository;
-
-		parent::__construct($this->checkoutManager->getItems());
+	public function __construct(
+		private readonly CartItemRepository $cartItemsRepository,
+		public ShopperUser $shopperUserUser,
+		private readonly ProductRepository $productRepository,
+		private readonly WatcherRepository $watcherRepository
+	) {
+		parent::__construct($this->shopperUserUser->getCheckoutManager()->getItems());
 	}
 
 	public function handleDeleteItem(string $itemId): void
@@ -177,7 +164,7 @@ class CartItemList extends Datalist
 		$this->template->discountCoupon = $this->checkoutManager->getDiscountCoupon();
 		$this->template->discountPrice = $this->checkoutManager->getDiscountPrice();
 		$this->template->discountPriceVat = $this->checkoutManager->getDiscountPriceVat();
-		$this->template->watchers = ($customer = $this->shopper->getCustomer()) ? $this->watcherRepository->getWatchersByCustomer($customer)->setIndex('fk_product')->toArray() : [];
+		$this->template->watchers = ($customer = $this->shopperUserUser->getCustomer()) ? $this->watcherRepository->getWatchersByCustomer($customer)->setIndex('fk_product')->toArray() : [];
 
 		/** @var array<\Eshop\DB\CartItem> $cartItems */
 		$cartItems = $this->getItemsOnPage();

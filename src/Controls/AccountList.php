@@ -7,7 +7,7 @@ namespace Eshop\Controls;
 use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Grid\Datalist;
 use Nette\Application\UI\Form;
 use Nette\Application\UI\Multiplier;
@@ -28,30 +28,14 @@ class AccountList extends Datalist
 	 */
 	public $onSuccess = [];
 
-	private Shopper $shopper;
-
-	private AccountRepository $accountRepository;
-
-	private CatalogPermissionRepository $catalogPermissionRepository;
-
-	private CustomerRepository $customerRepository;
-
-	private Translator $translator;
-
 	public function __construct(
-		Shopper $shopper,
-		AccountRepository $accountRepository,
-		CatalogPermissionRepository $catalogPermissionRepository,
-		CustomerRepository $customerRepository,
-		Translator $translator,
+		private readonly ShopperUser $shopperUser,
+		private readonly AccountRepository $accountRepository,
+		private readonly CatalogPermissionRepository $catalogPermissionRepository,
+		private readonly CustomerRepository $customerRepository,
+		private readonly Translator $translator,
 		?Collection $accounts = null
 	) {
-		$this->shopper = $shopper;
-		$this->accountRepository = $accountRepository;
-		$this->catalogPermissionRepository = $catalogPermissionRepository;
-		$this->customerRepository = $customerRepository;
-		$this->translator = $translator;
-
 		parent::__construct($accounts ?? $this->accountRepository->many());
 
 		$this->setDefaultOnPage(10);
@@ -75,7 +59,7 @@ class AccountList extends Datalist
 
 		$this->addFilterExpression('noCustomer', function (ICollection $collection, $enable): void {
 			if ($enable) {
-				$user = $this->shopper->getMerchant() ?? $this->shopper->getCustomer();
+				$user = $this->shopperUser->getMerchant() ?? $this->shopperUser->getCustomer();
 
 				$collection->join(['catalogpermission' => 'eshop_catalogpermission'], 'this.uuid = catalogpermission.fk_account')
 					->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogpermission.fk_customer')
@@ -113,8 +97,8 @@ class AccountList extends Datalist
 			->where('catalogpermission.fk_account', $account->getPK())
 			->first();
 
-		$this->shopper->getMerchant()->update(['activeCustomer' => $customer->getPK()]);
-		$this->shopper->getMerchant()->update(['activeCustomerAccount' => $account->getPK()]);
+		$this->shopperUser->getMerchant()->update(['activeCustomer' => $customer->getPK()]);
+		$this->shopperUser->getMerchant()->update(['activeCustomerAccount' => $account->getPK()]);
 
 		$this->getPresenter()->redirect(':Web:Index:default');
 	}
@@ -140,8 +124,8 @@ class AccountList extends Datalist
 
 	public function render(): void
 	{
-		$this->template->merchant = $merchant = $this->shopper->getMerchant() ?? $this->shopper->getCustomer();
-		$this->template->isCustomer = $this->shopper->getCustomer();
+		$this->template->merchant = $merchant = $this->shopperUser->getMerchant() ?? $this->shopperUser->getCustomer();
+		$this->template->isCustomer = $this->shopperUser->getCustomer();
 		$this->template->selectedCustomer = $this->getPresenter()->getParameter('selectedCustomer');
 		$this->template->paginator = $this->getPaginator();
 

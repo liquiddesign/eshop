@@ -8,7 +8,6 @@ use Admin\DB\IGeneralAjaxRepository;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Controls\ProductFilter;
-use Eshop\Shopper;
 use InvalidArgumentException;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
@@ -38,85 +37,32 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 {
 	/** @var array<callable(\Eshop\DB\Product, \Eshop\DB\SupplierProduct): void> */
 	public array $onDummyProductCreated = [];
-	
-	private Shopper $shopper;
-	
-	private AttributeRepository $attributeRepository;
-	
-	private SetRepository $setRepository;
-	
-	private PageRepository $pageRepository;
-	
-	private DeliveryDiscountRepository $deliveryDiscountRepository;
-	
-	private LoyaltyProgramDiscountLevelRepository $loyaltyProgramDiscountLevelRepository;
-	
-	private OrderRepository $orderRepository;
-	
-	private RelatedRepository $relatedRepository;
-	
-	private RelatedTypeRepository $relatedTypeRepository;
-	
-	private SupplierProductRepository $supplierProductRepository;
-	
-	private LinkGenerator $linkGenerator;
-	
-	private Request $request;
-	
+
 	private Cache $cache;
-	
-	private QuantityPriceRepository $quantityPriceRepository;
-	
-	private AttributeValueRepository $attributeValueRepository;
-	
-	private CustomerGroupRepository $customerGroupRepository;
 
-	private SettingRepository $settingRepository;
-
-	private AttributeAssignRepository $attributeAssignRepository;
-	
 	public function __construct(
-		Shopper $shopper,
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		AttributeRepository $attributeRepository,
-		SetRepository $setRepository,
-		PageRepository $pageRepository,
-		DeliveryDiscountRepository $deliveryDiscountRepository,
-		LoyaltyProgramDiscountLevelRepository $loyaltyProgramDiscountLevelRepository,
-		OrderRepository $orderRepository,
-		RelatedRepository $relatedRepository,
-		LinkGenerator $linkGenerator,
-		Request $request,
+		private readonly AttributeRepository $attributeRepository,
+		private readonly PageRepository $pageRepository,
+		private readonly DeliveryDiscountRepository $deliveryDiscountRepository,
+		private readonly LoyaltyProgramDiscountLevelRepository $loyaltyProgramDiscountLevelRepository,
+		private readonly OrderRepository $orderRepository,
+		private readonly RelatedRepository $relatedRepository,
+		private readonly LinkGenerator $linkGenerator,
+		private readonly Request $request,
 		Storage $storage,
-		SupplierProductRepository $supplierProductRepository,
-		RelatedTypeRepository $relatedTypeRepository,
-		QuantityPriceRepository $quantityPriceRepository,
-		AttributeValueRepository $attributeValueRepository,
-		CustomerGroupRepository $customerGroupRepository,
-		SettingRepository $settingRepository,
-		AttributeAssignRepository $attributeAssignRepository,
+		private readonly SupplierProductRepository $supplierProductRepository,
+		private readonly RelatedTypeRepository $relatedTypeRepository,
+		private readonly QuantityPriceRepository $quantityPriceRepository,
+		private readonly AttributeValueRepository $attributeValueRepository,
+		private readonly CustomerGroupRepository $customerGroupRepository,
+		private readonly SettingRepository $settingRepository,
+		private readonly AttributeAssignRepository $attributeAssignRepository,
 	) {
 		parent::__construct($connection, $schemaManager);
-		
-		$this->shopper = $shopper;
-		$this->attributeRepository = $attributeRepository;
-		$this->setRepository = $setRepository;
-		$this->pageRepository = $pageRepository;
-		$this->deliveryDiscountRepository = $deliveryDiscountRepository;
-		$this->loyaltyProgramDiscountLevelRepository = $loyaltyProgramDiscountLevelRepository;
-		$this->orderRepository = $orderRepository;
-		$this->relatedRepository = $relatedRepository;
-		$this->linkGenerator = $linkGenerator;
-		$this->request = $request;
+
 		$this->cache = new Cache($storage);
-		$this->relatedTypeRepository = $relatedTypeRepository;
-		$this->supplierProductRepository = $supplierProductRepository;
-		$this->quantityPriceRepository = $quantityPriceRepository;
-		$this->attributeValueRepository = $attributeValueRepository;
-		$this->customerGroupRepository = $customerGroupRepository;
-		$this->settingRepository = $settingRepository;
-		$this->attributeAssignRepository = $attributeAssignRepository;
 	}
 	
 	/**
@@ -150,9 +96,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	public function getDiscountPct(?Customer $customer = null, ?CustomerGroup $customerGroup = null, ?DiscountCoupon $discountCoupon = null): int
 	{
-		$discountCoupon ??= $this->shopper->discountCoupon;
-		$customer = $customerGroup ? $customer : ($customer ?: $this->shopper->getCustomer());
-		$customerGroup ??= $this->shopper->getCustomerGroup();
+		$discountCoupon ??= $this->shopperUser->discountCoupon;
+		$customer = $customerGroup ? $customer : ($customer ?: $this->shopperUser->getCustomer());
+		$customerGroup ??= $this->shopperUser->getCustomerGroup();
 		$customerDiscount = $customer ? $this->getBestDiscountLevel($customer) : ($customerGroup ? $customerGroup->defaultDiscountLevelPct : 0);
 
 		return \max($discountCoupon && $discountCoupon->discountPct ? (int) $discountCoupon->discountPct : 0, $customerDiscount);
@@ -166,24 +112,24 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	public function getProducts(?array $pricelists = null, ?Customer $customer = null, bool $selects = true, ?CustomerGroup $customerGroup = null): Collection
 	{
-		$discountCoupon = $this->shopper->discountCoupon;
+		$discountCoupon = $this->shopperUser->discountCoupon;
 		
-		$currency = $this->shopper->getCurrency();
+		$currency = $this->shopperUser->getCurrency();
 		$convertRatio = null;
 		
 		if ($currency->isConversionEnabled()) {
 			$convertRatio = $currency->convertRatio;
 		}
 		
-		$pricelists ??= $this->shopper->getPricelists()->toArray();
+		$pricelists ??= $this->shopperUser->getPricelists()->toArray();
 		$pricelists = \array_values($pricelists);
-		$customer = $customerGroup ? $customer : ($customer ?: $this->shopper->getCustomer());
+		$customer = $customerGroup ? $customer : ($customer ?: $this->shopperUser->getCustomer());
 
-		$customerGroup ??= $this->shopper->getCustomerGroup();
+		$customerGroup ??= $this->shopperUser->getCustomerGroup();
 		
 		$discountLevelPct = $this->getDiscountPct($customer, $customerGroup, $discountCoupon);
 		$maxProductDiscountLevel = $customer ? $customer->maxDiscountProductPct : ($customerGroup ? $customerGroup->defaultMaxDiscountProductPct : 100);
-		$vatRates = $this->shopper->getVatRates();
+		$vatRates = $this->shopperUser->getVatRates();
 		$prec = $currency->calculationPrecision;
 		
 		$generalPricelistIds = [];
@@ -266,12 +212,12 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			$collection->select(['pricelist' => $this->sqlExplode($expression, $sep, 6)]);
 			$collection->select(['currencyCode' => "'" . $currency->code . "'"]);
 			
-			if (!$this->shopper->getShowZeroPrices()) {
-				if ($this->shopper->getShowVat()) {
+			if (!$this->shopperUser->getShowZeroPrices()) {
+				if ($this->shopperUser->getShowVat()) {
 					$collection->where($this->sqlExplode($expression, $sep, 3) . ' > 0');
 				}
 				
-				if ($this->shopper->getShowWithoutVat()) {
+				if ($this->shopperUser->getShowWithoutVat()) {
 					$collection->where($this->sqlExplode($expression, $sep, 2) . ' > 0');
 				}
 			}
@@ -339,7 +285,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function getQuantityPrice(Product $product, int $amount, string $property): ?float
 	{
-		$customer = $this->shopper->getCustomer();
+		$customer = $this->shopperUser->getCustomer();
 		$discountLevelPct = $customer ? $this->getBestDiscountLevel($customer) : 0;
 		
 		/** @var float|null $price */
@@ -362,7 +308,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	public function setProductsConditions(ICollection $collection, bool $includeHidden = true, ?array $pricelists = null): void
 	{
-		$pricelists = $pricelists ?: \array_values($this->shopper->getPricelists()->toArray());
+		$pricelists = $pricelists ?: \array_values($this->shopperUser->getPricelists()->toArray());
 		$priceWhere = new Expression();
 		
 		foreach ($pricelists as $id => $pricelist) {
@@ -370,16 +316,16 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			
 			$priceZeroWhere = null;
 			
-			if (!$this->shopper->getShowZeroPrices()) {
-				if ($this->shopper->getShowVat() && $this->shopper->getShowWithoutVat()) {
+			if (!$this->shopperUser->getShowZeroPrices()) {
+				if ($this->shopperUser->getShowVat() && $this->shopperUser->getShowWithoutVat()) {
 					$priceZeroWhere = " AND prices$id.price > 0 AND prices$id.priceVat > 0";
 				}
 				
-				if ($this->shopper->getShowVat()) {
+				if ($this->shopperUser->getShowVat()) {
 					$priceZeroWhere = " AND prices$id.priceVat > 0";
 				}
 				
-				if ($this->shopper->getShowWithoutVat()) {
+				if ($this->shopperUser->getShowWithoutVat()) {
 					$priceZeroWhere = " AND prices$id.price > 0";
 				}
 			}
@@ -405,7 +351,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	public function getCountGroupedBy(string $groupBy, $filters): array
 	{
-		$index = $this->shopper->getPriceCacheIndex($groupBy, $filters);
+		$index = $this->shopperUser->getPriceCacheIndex($groupBy, $filters);
 		$cache = $index ? $this->cache : new Cache(new DevNullStorage());
 		$productRepository = $this;
 		
@@ -536,7 +482,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function filterPriceFrom($value, ICollection $collection): void
 	{
-		$no = \count($this->shopper->getPricelists()->toArray());
+		$no = \count($this->shopperUser->getPricelists()->toArray());
 		$expression = new Expression();
 		
 		for ($i = 0; $i !== $no; $i++) {
@@ -548,7 +494,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function filterPriceTo($value, ICollection $collection): void
 	{
-		$no = \count($this->shopper->getPricelists()->toArray());
+		$no = \count($this->shopperUser->getPricelists()->toArray());
 		$expression = new Expression();
 		
 		for ($i = 0; $i !== $no; $i++) {
@@ -560,7 +506,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function filterPriceVatFrom($value, ICollection $collection): void
 	{
-		$no = \count($this->shopper->getPricelists()->toArray());
+		$no = \count($this->shopperUser->getPricelists()->toArray());
 		$expression = new Expression();
 		
 		for ($i = 0; $i !== $no; $i++) {
@@ -572,7 +518,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function filterPriceVatTo($value, ICollection $collection): void
 	{
-		$no = \count($this->shopper->getPricelists()->toArray());
+		$no = \count($this->shopperUser->getPricelists()->toArray());
 		$expression = new Expression();
 		
 		for ($i = 0; $i !== $no; $i++) {
@@ -1715,8 +1661,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		return $collection
 			->where('this.isActive', true)
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
-			->where('this.fk_currency', $this->shopper->getCurrency()->getPK())
-			->where('this.fk_country', $this->shopper->getCountry()->getPK());
+			->where('this.fk_currency', $this->shopperUser->getCurrency()->getPK())
+			->where('this.fk_country', $this->shopperUser->getCountry()->getPK());
 	}
 	
 	/**

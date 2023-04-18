@@ -12,6 +12,7 @@ use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Nette\Utils\Strings;
 
@@ -33,7 +34,7 @@ class GroupPresenter extends BackendPresenter
 	public PricelistRepository $pricelistRepo;
 	
 	/** @inject */
-	public Shopper $shopper;
+	public ShopperUser $shopperUser;
 	
 	public function createComponentGrid(): AdminGrid
 	{
@@ -122,15 +123,15 @@ class GroupPresenter extends BackendPresenter
 			->toggle('frm-newForm-defaultPricesWithVat-toogle');
 		
 		if (isset($this::CONFIGURATION['prices']) && $this::CONFIGURATION['prices']) {
-			if ($this->shopper->getShowWithoutVat()) {
+			if ($this->shopperUser->getShowWithoutVat()) {
 				$withoutVatInput = $form->addCheckbox('defaultPricesWithoutVat', 'Zobrazit ceny bez daně');
 			}
 			
-			if ($this->shopper->getShowVat()) {
+			if ($this->shopperUser->getShowVat()) {
 				$withVatInput = $form->addCheckbox('defaultPricesWithVat', 'Zobrazit ceny s daní');
 			}
 			
-			if ($this->shopper->getShowWithoutVat() && $this->shopper->getShowVat() && isset($withoutVatInput) && isset($withVatInput)) {
+			if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat() && isset($withoutVatInput) && isset($withVatInput)) {
 				$form->addSelect('defaultPriorityPrice', 'Prioritní cena', [
 					'withoutVat' => 'Bez daně',
 					'withVat' => 'S daní',

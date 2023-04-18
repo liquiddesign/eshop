@@ -10,7 +10,7 @@ use Eshop\DB\CustomerRepository;
 use Eshop\DB\DiscountCouponRepository;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\OrderRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Nette;
 use Nette\Application\UI\Control;
@@ -27,44 +27,17 @@ class StatsControl extends Control
 	 */
 	public array $state = [];
 
-	public Shopper $shopper;
-
-	private AdminFormFactory $formFactory;
-
-	private OrderRepository $orderRepository;
-
-	private MerchantRepository $merchantRepository;
-
-	private CurrencyRepository $currencyRepository;
-
-	private CustomerRepository $customerRepository;
-
-	private CategoryRepository $categoryRepository;
-
-	private DiscountCouponRepository $discountCouponRepository;
-
-	private ?Customer $signedInCustomer;
-
 	public function __construct(
-		AdminFormFactory $formFactory,
-		Shopper $shopper,
-		OrderRepository $orderRepository,
-		MerchantRepository $merchantRepository,
-		CurrencyRepository $currencyRepository,
-		CustomerRepository $customerRepository,
-		CategoryRepository $categoryRepository,
-		DiscountCouponRepository $discountCouponRepository,
-		?Customer $signedInCustomer = null
+		private readonly AdminFormFactory $formFactory,
+		public ShopperUser $shopperUser,
+		private readonly OrderRepository $orderRepository,
+		private readonly MerchantRepository $merchantRepository,
+		private readonly CurrencyRepository $currencyRepository,
+		private readonly CustomerRepository $customerRepository,
+		private readonly CategoryRepository $categoryRepository,
+		private readonly DiscountCouponRepository $discountCouponRepository,
+		private readonly ?Customer $signedInCustomer = null
 	) {
-		$this->formFactory = $formFactory;
-		$this->shopper = $shopper;
-		$this->orderRepository = $orderRepository;
-		$this->merchantRepository = $merchantRepository;
-		$this->currencyRepository = $currencyRepository;
-		$this->customerRepository = $customerRepository;
-		$this->categoryRepository = $categoryRepository;
-		$this->discountCouponRepository = $discountCouponRepository;
-		$this->signedInCustomer = $signedInCustomer;
 
 		$form = $this->formFactory->create();
 
@@ -192,7 +165,7 @@ class StatsControl extends Control
 
 		$orders = $orders->toArray();
 
-		$this->template->shopper = $this->shopper;
+		$this->template->shopper = $this->shopperUser;
 		$this->template->monthlyOrders = $this->orderRepository->getGroupedOrdersPrices($orders, $currency);
 		$this->template->boughtCategories = $this->orderRepository->getOrdersCategoriesGroupedByAmountPercentage($orders, $currency);
 		$this->template->topProducts = $this->orderRepository->getOrdersTopProductsByAmount($orders, $currency);

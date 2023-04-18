@@ -120,7 +120,7 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 			$registerConfirmation = $this->templateRepository->createMessage('register.confirmation', $params, $customer->email);
 			$registerSuccess = $this->templateRepository->createMessage('register.success', $params, $customer->email);
 
-			$mail = $this->shopper->getRegistrationConfiguration()['emailAuthorization'] ? $registerConfirmation : $registerSuccess;
+			$mail = $this->shopperUser->getRegistrationConfiguration()['emailAuthorization'] ? $registerConfirmation : $registerSuccess;
 			$this->mailer->send($mail);
 		};
 	}
@@ -244,7 +244,7 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 	public function actionCart(?string $coupon = null): void
 	{
 		if ($coupon) {
-			$this->checkoutManager->setDiscountCoupon($this->discountCouponRepository->getValidCouponByCart($coupon, $this->checkoutManager->getCart(), $this->shopper->getCustomer()));
+			$this->checkoutManager->setDiscountCoupon($this->discountCouponRepository->getValidCouponByCart($coupon, $this->checkoutManager->getCart(), $this->shopperUser->getCustomer()));
 
 			$this->redirect('this');
 		}
@@ -254,12 +254,12 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 	{
 		$vat = false;
 
-		if ($this->shopper->showPricesWithVat() && $this->shopper->showPricesWithoutVat()) {
-			if ($this->shopper->showPriorityPrices() === 'withVat') {
+		if ($this->shopperUser->showPricesWithVat() && $this->shopperUser->showPricesWithoutVat()) {
+			if ($this->shopperUser->showPriorityPrices() === 'withVat') {
 				$vat = true;
 			}
 		} else {
-			if ($this->shopper->showPricesWithVat()) {
+			if ($this->shopperUser->showPricesWithVat()) {
 				$vat = true;
 			}
 		}
@@ -275,8 +275,8 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 		$this->template->cartCheckoutPriceVat = $this->checkoutManager->getCartCheckoutPriceVat();
 		$this->template->weightSum = $this->checkoutManager->getSumWeight();
 		$this->template->dimensionSum = $this->checkoutManager->getSumDimension();
-		$this->template->loyaltyProgramPointsGain = $this->shopper->getCustomer() ?
-			$this->cartRepository->getLoyaltyProgramPointsGainByCartItemsAndCustomer($this->checkoutManager->getItems(), $this->shopper->getCustomer()) :
+		$this->template->loyaltyProgramPointsGain = $this->shopperUser->getCustomer() ?
+			$this->cartRepository->getLoyaltyProgramPointsGainByCartItemsAndCustomer($this->checkoutManager->getItems(), $this->shopperUser->getCustomer()) :
 			null;
 	}
 
@@ -317,7 +317,7 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 	{
 		$purchase = $this->checkoutManager->getPurchase();
 
-		$this->template->merchants = $this->merchantRepository->getMerchantsByCustomer($this->shopper->getCustomer());
+		$this->template->merchants = $this->merchantRepository->getMerchantsByCustomer($this->shopperUser->getCustomer());
 		$this->template->order = $purchase;
 		
 		$this->template->billAddress = $purchase->billAddress;

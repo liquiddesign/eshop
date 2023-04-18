@@ -6,7 +6,7 @@ namespace Eshop\DB;
 
 use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use StORM\Collection;
@@ -19,36 +19,17 @@ use StORM\SchemaManager;
  */
 class InvoiceRepository extends Repository implements IGeneralRepository
 {
-	private AddressRepository $addressRepository;
-	
-	private InvoiceItemRepository $invoiceItemRepository;
-
-	private ProductRepository $productRepository;
-
-	private Shopper $shopper;
-
-	private RelatedInvoiceItemRepository $relatedInvoiceItemRepository;
-
-	private OrderLogItemRepository $orderLogItemRepository;
-	
 	public function __construct(
-		InvoiceItemRepository $invoiceItemRepository,
-		AddressRepository $addressRepository,
+		private readonly InvoiceItemRepository $invoiceItemRepository,
+		private readonly AddressRepository $addressRepository,
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		ProductRepository $productRepository,
-		Shopper $shopper,
-		RelatedInvoiceItemRepository $relatedInvoiceItemRepository,
-		OrderLogItemRepository $orderLogItemRepository
+		private readonly ProductRepository $productRepository,
+		private readonly ShopperUser $shopperUser,
+		private readonly RelatedInvoiceItemRepository $relatedInvoiceItemRepository,
+		private readonly OrderLogItemRepository $orderLogItemRepository
 	) {
 		parent::__construct($connection, $schemaManager);
-		
-		$this->addressRepository = $addressRepository;
-		$this->invoiceItemRepository = $invoiceItemRepository;
-		$this->productRepository = $productRepository;
-		$this->shopper = $shopper;
-		$this->relatedInvoiceItemRepository = $relatedInvoiceItemRepository;
-		$this->orderLogItemRepository = $orderLogItemRepository;
 	}
 
 	/**
@@ -112,13 +93,13 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 		}
 
 		if (!isset($values['taxDate'])) {
-			$days = $this->shopper->getInvoicesAutoTaxDateInDays();
+			$days = $this->shopperUser->getInvoicesAutoTaxDateInDays();
 
 			$newValues['taxDate'] = (string) (new Carbon($newValues['exposed']))->addDays($days);
 		}
 
 		if (!isset($values['dueDate'])) {
-			$days = $this->shopper->getInvoicesAutoDueDateInDays();
+			$days = $this->shopperUser->getInvoicesAutoDueDateInDays();
 
 			$newValues['dueDate'] = (string) (new Carbon($newValues['exposed']))->addDays($days);
 		}

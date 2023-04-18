@@ -40,7 +40,7 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 	public OrderRepository $orderRepository;
 
 	/** @inject */
-	public Shopper $shopper;
+	public Shopper $shopperUser;
 
 	/** @inject */
 	public FormFactory $formFactory;
@@ -125,9 +125,9 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 		$breadcrumb->addItem($this->translator->translate('.myAccount', 'Můj účet'));
 		$breadcrumb->addItem($this->translator->translate('.stats', 'Statistiky'));
 
-		$currency = $this->shopper->getCurrency();
+		$currency = $this->shopperUser->getCurrency();
 
-		$user = $this->shopper->getCustomer() ?? $this->shopper->getMerchant();
+		$user = $this->shopperUser->getCustomer() ?? $this->shopperUser->getMerchant();
 
 		/** @var array<\Eshop\DB\Order> $orders */
 		$orders = $this->orderRepository->getOrdersByUser($user)->toArray();
@@ -185,7 +185,7 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 	public function createComponentSettingsForm(): Nette\Application\UI\Form
 	{
 		$presenter = $this;
-		$customer = $this->shopper->getCustomer();
+		$customer = $this->shopperUser->getCustomer();
 
 		$form = new Nette\Application\UI\Form();
 		$form->addCheckbox('newsletter');
@@ -244,7 +244,7 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 
 	public function createComponentCustomers(): CustomerList
 	{
-		$user = $this->shopper->getMerchant() ?? $this->shopper->getCustomer();
+		$user = $this->shopperUser->getMerchant() ?? $this->shopperUser->getCustomer();
 
 		$customers = $user instanceof Merchant ? $this->customerRepository->many()
 				->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = nxn.fk_customer')

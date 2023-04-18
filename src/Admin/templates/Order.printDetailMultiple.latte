@@ -214,7 +214,7 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                         <div class="table-responsive">
                             <table class="table table-sm">
                                 <tbody>
-                                {if $presenter->shopper->getShowVat()}
+                                {if $presenter->shopperUser->getShowVat()}
                                     <tr>
                                         <th>Mezisoučet:</th>
                                         <td>{($order->purchase->getSumPriceVat())|price:$purchase->currency->code}</td>
@@ -239,7 +239,7 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                                         <th><span style="font-size: large">Celkem:</span></th>
                                         <td><span style="font-size: large">{$order->getTotalPriceVat()|price:$purchase->currency->code}</span></td>
                                     </tr>
-                                {elseif $presenter->shopper->getShowWithoutVat()}
+                                {elseif $presenter->shopperUser->getShowWithoutVat()}
                                     <tr>
                                         <th>Mezisoučet:</th>
                                         <td>{($order->purchase->getSumPrice())|price:$purchase->currency->code}</td>

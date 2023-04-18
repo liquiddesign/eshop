@@ -22,12 +22,11 @@ use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\QuantityPrice;
 use Eshop\DB\QuantityPriceRepository;
-use Eshop\DB\RibbonRepository;
-use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
 use League\Csv\Reader;
@@ -59,9 +58,6 @@ class PricelistsPresenter extends BackendPresenter
 	public PriceRepository $priceRepository;
 
 	/** @inject */
-	public SupplierRepository $supplierRepo;
-
-	/** @inject */
 	public CurrencyRepository $currencyRepository;
 
 	/** @inject */
@@ -80,12 +76,6 @@ class PricelistsPresenter extends BackendPresenter
 	public SupplierRepository $supplierRepository;
 
 	/** @inject */
-	public SupplierCategoryRepository $supplierCategoryRepository;
-
-	/** @inject */
-	public RibbonRepository $ribbonRepository;
-
-	/** @inject */
 	public Connection $storm;
 
 	/** @inject */
@@ -98,7 +88,7 @@ class PricelistsPresenter extends BackendPresenter
 	public CountryRepository $countryRepo;
 
 	/** @inject */
-	public Shopper $shopper;
+	public ShopperUser $shopperUser;
 
 	/** @inject */
 	public VatRateRepository $vatRateRepository;
@@ -221,7 +211,7 @@ class PricelistsPresenter extends BackendPresenter
 			$grid->addColumnInputPrice('Cena', 'price');
 		}
 
-		if ($this->shopper->getShowVat()) {
+		if ($this->shopperUser->getShowVat()) {
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
 				$grid->addColumnText('Cena s DPH', 'priceVat', '%s');
 			} else {
@@ -235,7 +225,7 @@ class PricelistsPresenter extends BackendPresenter
 			$grid->addColumnInputPrice('Cena před slevou', 'priceBefore');
 		}
 
-		if ($this->shopper->getShowVat()) {
+		if ($this->shopperUser->getShowVat()) {
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
 				$grid->addColumnText('Cena s DPH před slevou', 'priceVatBefore', '%s');
 			} else {
@@ -347,7 +337,7 @@ class PricelistsPresenter extends BackendPresenter
 			'price' => 'float',
 		];
 
-		if ($this->shopper->getShowVat()) {
+		if ($this->shopperUser->getShowVat()) {
 			$grid->addColumnInputPrice('Cena s daní', 'priceVat');
 
 			$processTypes += ['priceVat' => 'float'];
@@ -357,7 +347,7 @@ class PricelistsPresenter extends BackendPresenter
 
 		$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll($this->shopper->getShowVat() ? ['priceVat', 'validFrom'] : ['validFrom'], $processTypes, null, false, null, null, false);
+		$grid->addButtonSaveAll($this->shopperUser->getShowVat() ? ['priceVat', 'validFrom'] : ['validFrom'], $processTypes, null, false, null, null, false);
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 
 		$grid->addFilterTextInput('search', ['product.code', 'product.name_cs'], null, 'Kód, název');
@@ -554,7 +544,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 			$this->priceListRepository->one($pricelistId),
 			Writer::createFromPath($tempFilename, 'w+'),
 			$type === 'quantity',
-			$this->shopper->getShowVat(),
+			$this->shopperUser->getShowVat(),
 		);
 
 		$response = new FileResponse($tempFilename, 'cenik.csv', 'text/csv');

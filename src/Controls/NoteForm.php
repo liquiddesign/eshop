@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Carbon\Carbon;
-use Eshop\CheckoutManager;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 
 class NoteForm extends \Nette\Application\UI\Form
 {
@@ -16,16 +15,9 @@ class NoteForm extends \Nette\Application\UI\Form
 	 */
 	public $onSuccess = [];
 
-	private CheckoutManager $checkoutManager;
-
-	private Shopper $shopper;
-
-	public function __construct(CheckoutManager $checkoutManager, Shopper $shopper)
+	public function __construct(private readonly ShopperUser $shopperUser)
 	{
 		parent::__construct();
-
-		$this->checkoutManager = $checkoutManager;
-		$this->shopper = $shopper;
 
 		$this->addTextArea('note');
 		$this->addText('internalOrderCode');
@@ -44,15 +36,15 @@ class NoteForm extends \Nette\Application\UI\Form
 		$values = $this->getValues();
 		$values['desiredShippingDate'] = $values['desiredShippingDate'] ?: null;
 
-		$account = $this->shopper->getCustomer() && $this->shopper->getCustomer()->getAccount() ? $this->shopper->getCustomer()->getAccount() : null;
+		$account = $this->shopperUser->getCustomer() && $this->shopperUser->getCustomer()->getAccount() ? $this->shopperUser->getCustomer()->getAccount() : null;
 
 		unset($values['couponActive']);
 
-		$values['customer'] = $this->shopper->getCustomer() ? $this->shopper->getCustomer()->getPK() : null;
-		$values['account'] = $account ? $account->getPK() : null;
-		$values['accountFullname'] = $account ? $account->fullname : null;
+		$values['customer'] = $this->shopperUser->getCustomer() ? $this->shopperUser->getCustomer()->getPK() : null;
+		$values['account'] = $account?->getPK();
+		$values['accountFullname'] = $account?->fullname;
 		$values['accountEmail'] = $account && \filter_var($account->login, \FILTER_VALIDATE_EMAIL) !== false ? $account->login : null;
-		$values['currency'] = $this->shopper->getCurrency();
+		$values['currency'] = $this->shopperUser->getCurrency();
 
 		$this->checkoutManager->syncPurchase($values);
 	}

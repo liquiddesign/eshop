@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Caching\Storages\DevNullStorage;
@@ -20,28 +20,19 @@ use Web\DB\SettingRepository;
  */
 class AttributeRepository extends \StORM\Repository implements IGeneralRepository
 {
-	private AttributeValueRepository $attributeValueRepository;
-
 	private Cache $cache;
-
-	private Shopper $shopper;
-
-	private SettingRepository $settingRepository;
 
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		AttributeValueRepository $attributeValueRepository,
-		Shopper $shopper,
+		private readonly AttributeValueRepository $attributeValueRepository,
+		private readonly ShopperUser $shopperUser,
 		Storage $storage,
-		SettingRepository $settingRepository
+		private readonly SettingRepository $settingRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
-		$this->attributeValueRepository = $attributeValueRepository;
-		$this->shopper = $shopper;
 		$this->cache = new Cache($storage);
-		$this->settingRepository = $settingRepository;
 	}
 
 	/**
@@ -256,7 +247,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	 */
 	public function getCounts(array $values, array $filters, ?string $cacheId = null): array
 	{
-		$index = $cacheId ?? $this->shopper->getPriceCacheIndex('attributes', $filters);
+		$index = $cacheId ?? $this->shopperUser->getPriceCacheIndex('attributes', $filters);
 		$cache = $index ? $this->cache : new Cache(new DevNullStorage());
 		$productRepository = $this->getConnection()->findRepository(Product::class);
 

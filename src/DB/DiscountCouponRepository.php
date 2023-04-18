@@ -6,7 +6,7 @@ namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
 use Eshop\Exceptions\InvalidCouponException;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use StORM\Collection;
@@ -22,7 +22,7 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		private Shopper $shopper,
+		private readonly ShopperUser $shopperUser,
 		private readonly CartItemRepository $cartItemRepository,
 		private readonly DiscountConditionRepository $discountConditionRepository,
 		private readonly DiscountConditionCategoryRepository $discountConditionCategoryRepository,
@@ -78,7 +78,7 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 	 */
 	public function getValidCouponByCart(string $code, Cart $cart, ?Customer $customer = null, bool $throw = false): ?DiscountCoupon
 	{
-		$showPrice = $this->shopper->getShowPrice();
+		$showPrice = $this->shopperUser->getShowPrice();
 		$priceType = $showPrice === 'withVat' ? 'priceVat' : 'price';
 
 		try {

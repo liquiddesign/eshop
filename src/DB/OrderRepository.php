@@ -10,7 +10,7 @@ use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Integration\Integrations;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
 use Messages\DB\Template;
@@ -102,58 +102,25 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	private Cache $cache;
 
-	private Shopper $shopper;
-
-	private Translator $translator;
-
-	private MerchantRepository $merchantRepository;
-
-	private CatalogPermissionRepository $catalogPermissionRepository;
-
-	private PackageRepository $packageRepository;
-
-	private PackageItemRepository $packageItemRepository;
-
-	private BannedEmailRepository $bannedEmailRepository;
-
-	private Container $container;
-
-	private OrderLogItemRepository $orderLogItemRepository;
-
-	private SettingRepository $settingRepository;
-
-	private Integrations $integrations;
-
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
 		Storage $storage,
-		Shopper $shopper,
-		Translator $translator,
-		MerchantRepository $merchantRepository,
-		CatalogPermissionRepository $catalogPermissionRepository,
-		PackageRepository $packageRepository,
-		PackageItemRepository $packageItemRepository,
-		BannedEmailRepository $bannedEmailRepository,
-		Container $container,
-		OrderLogItemRepository $orderLogItemRepository,
-		SettingRepository $settingRepository,
-		Integrations $integrations
+		private readonly ShopperUser $shopperUser,
+		private readonly Translator $translator,
+		private readonly MerchantRepository $merchantRepository,
+		private readonly CatalogPermissionRepository $catalogPermissionRepository,
+		private readonly PackageRepository $packageRepository,
+		private readonly PackageItemRepository $packageItemRepository,
+		private readonly BannedEmailRepository $bannedEmailRepository,
+		private readonly Container $container,
+		private readonly OrderLogItemRepository $orderLogItemRepository,
+		private readonly SettingRepository $settingRepository,
+		private readonly Integrations $integrations
 	) {
 		parent::__construct($connection, $schemaManager);
 
 		$this->cache = new Cache($storage);
-		$this->shopper = $shopper;
-		$this->translator = $translator;
-		$this->merchantRepository = $merchantRepository;
-		$this->catalogPermissionRepository = $catalogPermissionRepository;
-		$this->packageRepository = $packageRepository;
-		$this->packageItemRepository = $packageItemRepository;
-		$this->bannedEmailRepository = $bannedEmailRepository;
-		$this->container = $container;
-		$this->orderLogItemRepository = $orderLogItemRepository;
-		$this->settingRepository = $settingRepository;
-		$this->integrations = $integrations;
 	}
 
 	public function filterInternalRibbon($value, ICollection $collection): void
@@ -347,7 +314,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			}
 		}
 
-		if ($this->shopper->getEditOrderAfterCreation() && !$order->receivedTs) {
+		if ($this->shopperUser->getEditOrderAfterCreation() && !$order->receivedTs) {
 			return Order::STATE_OPEN;
 		}
 
@@ -455,15 +422,16 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				$item->productName,
 				$item->getFullCode(),
 				$item->amount,
-				\str_replace(',', '.', (string) $this->shopper->filterPrice($item->price, $order->purchase->currency->code)),
-				\str_replace(',', '.', (string) $this->shopper->filterPrice($item->getPriceSum(), $order->purchase->currency->code)),
+				\str_replace(',', '.', (string) $this->shopperUser->filterPrice($item->price, $order->purchase->currency->code)),
+				\str_replace(',', '.', (string) $this->shopperUser->filterPrice($item->getPriceSum(), $order->purchase->currency->code)),
 				$item->note,
 			]);
 		}
 
 		$writer->writeSheetRow($sheetName, []);
 		$writer->writeSheetRow($sheetName, [
-			$this->translator->translate('orderEE.totalPrice', 'Celková cena'), \str_replace(',', '.', (string) $this->shopper->filterPrice($order->getTotalPrice(), $order->purchase->currency->code)),
+			$this->translator->translate('orderEE.totalPrice', 'Celková cena'),
+			\str_replace(',', '.', (string) $this->shopperUser->filterPrice($order->getTotalPrice(), $order->purchase->currency->code)),
 		]);
 	}
 
@@ -503,8 +471,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					$item->productName,
 					$item->getFullCode(),
 					$item->amount,
-					\str_replace(',', '.', (string) $this->shopper->filterPrice($item->price, $order->purchase->currency->code)),
-					\str_replace(',', '.', (string) $this->shopper->filterPrice($item->getPriceSum(), $order->purchase->currency->code)),
+					\str_replace(',', '.', (string) $this->shopperUser->filterPrice($item->price, $order->purchase->currency->code)),
+					\str_replace(',', '.', (string) $this->shopperUser->filterPrice($item->getPriceSum(), $order->purchase->currency->code)),
 					$item->note,
 					$order->purchase->account ? $order->purchase->account->fullname : $order->purchase->accountFullname,
 				]);
@@ -513,7 +481,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 		$writer->writeSheetRow($sheetName, []);
 		$writer->writeSheetRow($sheetName, [
-			$this->translator->translate('orderEE.totalPrice', 'Celková cena'), \str_replace(',', '.', (string) $this->shopper->filterPrice($sumPrice, $order->purchase->currency->code)),
+			$this->translator->translate('orderEE.totalPrice', 'Celková cena'), \str_replace(',', '.', (string) $this->shopperUser->filterPrice($sumPrice, $order->purchase->currency->code)),
 		]);
 	}
 
@@ -603,11 +571,11 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				$purchase->email,
 				$purchase->phone,
 				$cod ? \round($order->getTotalPriceVat()) : '',
-				$this->shopper->getCurrency(),
+				$this->shopperUser->getCurrency(),
 				$order->getTotalPriceVat(),
 				$sumWeight > 0 ? $sumWeight : 1,
 				$purchase->zasilkovnaId,
-				$this->shopper->getProjectUrl(),
+				$this->shopperUser->getProjectUrl(),
 			]);
 
 			$order->update(['zasilkovnaCompleted' => true]);
@@ -660,7 +628,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 		$vat = false;
 
-		if ($this->shopper->getShowPrice() === 'withVat') {
+		if ($this->shopperUser->getShowPrice() === 'withVat') {
 			$vat = true;
 		}
 
@@ -1038,18 +1006,18 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			$items[$cartItem->getPK()]['totalPrice'] = $cartItem->getPriceSum();
 			$items[$cartItem->getPK()]['totalPriceVat'] = $cartItem->getPriceVatSum();
 
-			if ($this->shopper->getCatalogPermission() !== 'price') {
+			if ($this->shopperUser->getCatalogPermission() !== 'price') {
 				continue;
 			}
 
-			if ($this->shopper->getShowVat() && $this->shopper->getShowWithoutVat()) {
-				$items[$cartItem->getPK()]['totalPricePref'] = $this->shopper->showPriorityPrices() === 'withVat' ? $cartItem->getPriceVatSum() : $cartItem->getPriceSum();
+			if ($this->shopperUser->getShowVat() && $this->shopperUser->getShowWithoutVat()) {
+				$items[$cartItem->getPK()]['totalPricePref'] = $this->shopperUser->showPriorityPrices() === 'withVat' ? $cartItem->getPriceVatSum() : $cartItem->getPriceSum();
 			} else {
-				if ($this->shopper->getShowVat()) {
+				if ($this->shopperUser->getShowVat()) {
 					$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceVatSum();
 				}
 
-				if ($this->shopper->getShowWithoutVat()) {
+				if ($this->shopperUser->getShowWithoutVat()) {
 					$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceSum();
 				}
 			}
@@ -1083,20 +1051,20 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'billName' => $purchase->fullname,
 			'billingAddress' => $purchase->billAddress ? $purchase->billAddress->jsonSerialize() : [],
 			'deliveryAddress' => $purchase->deliveryAddress ? $purchase->deliveryAddress->jsonSerialize() : ($purchase->billAddress ? $purchase->billAddress->jsonSerialize() : []),
-			'totalPrice' => $this->shopper->getCatalogPermission() === 'price' ? $order->getTotalPrice() : null,
-			'totalPriceVat' => $this->shopper->getCatalogPermission() === 'price' ? $order->getTotalPriceVat() : null,
+			'totalPrice' => $this->shopperUser->getCatalogPermission() === 'price' ? $order->getTotalPrice() : null,
+			'totalPriceVat' => $this->shopperUser->getCatalogPermission() === 'price' ? $order->getTotalPriceVat() : null,
 			'currency' => $order->purchase->currency,
 			'discountCoupon' => $order->getDiscountCoupon(),
 			'order' => $order,
 			'withVat' => false,
 			'withoutVat' => false,
-			'catalogPermission' => $this->shopper->getCatalogPermission(),
-			'priorityPrices' => $this->shopper->showPriorityPrices(),
+			'catalogPermission' => $this->shopperUser->getCatalogPermission(),
+			'priorityPrices' => $this->shopperUser->showPriorityPrices(),
 		];
 
-		if ($this->shopper->getCatalogPermission() === 'price') {
-			if ($this->shopper->getShowVat() && $this->shopper->getShowWithoutVat()) {
-				if ($this->shopper->showPriorityPrices() === 'withVat') {
+		if ($this->shopperUser->getCatalogPermission() === 'price') {
+			if ($this->shopperUser->getShowVat() && $this->shopperUser->getShowWithoutVat()) {
+				if ($this->shopperUser->showPriorityPrices() === 'withVat') {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPriceVat;
 					$values['paymentPricePref'] = $order->payments->firstValue('priceVat');
 					$values['totalPricePref'] = $order->getTotalPriceVat();
@@ -1108,14 +1076,14 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					$values['withoutVat'] = true;
 				}
 			} else {
-				if ($this->shopper->getShowVat()) {
+				if ($this->shopperUser->getShowVat()) {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPriceVat;
 					$values['paymentPricePref'] = $order->payments->firstValue('priceVat');
 					$values['totalPricePref'] = $order->getTotalPriceVat();
 					$values['withVat'] = true;
 				}
 
-				if ($this->shopper->getShowWithoutVat()) {
+				if ($this->shopperUser->getShowWithoutVat()) {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPrice;
 					$values['paymentPricePref'] = $order->payments->firstValue('price');
 					$values['totalPricePref'] = $order->getTotalPrice();

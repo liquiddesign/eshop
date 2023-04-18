@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Latte\Loaders\StringLoader;
 use Latte\Sandbox\SecurityPolicy;
 use League\Csv\Reader;
@@ -36,40 +36,22 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	public array $categoryMap;
 
 	private Cache $cache;
-
-	private Shopper $shopper;
-
-	private PageRepository $pageRepository;
-
-	private ProducerRepository $producerRepository;
-
-	private ProductRepository $productRepository;
-
-	private LatteFactory $latteFactory;
-	
-	/** @var array<int> */
-	private array $preloadCategoryCounts;
 	
 	public function __construct(
-		DIConnection $connection,
-		SchemaManager $schemaManager,
-		Shopper $shopper,
+		protected DIConnection $connection,
+		protected SchemaManager $schemaManager,
+		private readonly ShopperUser $shopperUser,
 		Storage $storage,
-		PageRepository $pageRepository,
-		ProducerRepository $producerRepository,
-		ProductRepository $productRepository,
-		LatteFactory $latteFactory,
-		array $preloadCategoryCounts = []
+		private readonly PageRepository $pageRepository,
+		private readonly ProducerRepository $producerRepository,
+		private readonly ProductRepository $productRepository,
+		private readonly LatteFactory $latteFactory,
+		/** @var array<int> */
+		private readonly array $preloadCategoryCounts = []
 	) {
 		parent::__construct($connection, $schemaManager);
 
 		$this->cache = new Cache($storage);
-		$this->shopper = $shopper;
-		$this->pageRepository = $pageRepository;
-		$this->producerRepository = $producerRepository;
-		$this->productRepository = $productRepository;
-		$this->preloadCategoryCounts = $preloadCategoryCounts;
-		$this->latteFactory = $latteFactory;
 	}
 
 	/**
@@ -138,7 +120,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			return null;
 		}
 		
-		$result = $this->cache->load($this->shopper->getPriceCacheIndex('categories'), static function (&$dependencies) use ($stm, $productRepository, $levels) {
+		$result = $this->cache->load($this->shopperUser->getPriceCacheIndex('categories'), static function (&$dependencies) use ($stm, $productRepository, $levels) {
 			$dependencies = [
 				Cache::TAGS => ['categories', 'products', 'pricelists'],
 			];
