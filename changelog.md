@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - *CheckoutManager* uses *ShopperUser*
 ### Changed
 - **BREAKING:** Comgate service is now provided only by Integrations service. Comgate package extension is still injected to *Container* with configuration.
-- **BREAKING:** *CheckoutManager* callbacks are now always arrays, so you need to call them with *Arrays::invoke*
+- **BREAKING:** Many callbacks are now always arrays, so you need to call them with *Arrays::invoke*
 ### Removed
 - **BREAKING:** Removed deprecated classes
   - `FrontendPresenter`
