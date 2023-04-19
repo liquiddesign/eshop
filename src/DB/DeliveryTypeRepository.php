@@ -35,7 +35,17 @@ class DeliveryTypeRepository extends \StORM\Repository implements IGeneralReposi
 		
 		return $collection->orderBy(['priority DESC', "name$suffix"]);
 	}
-	
+
+	/**
+	 * @param \Eshop\DB\Currency $currency
+	 * @param \Eshop\DB\Customer|null $customer
+	 * @param \Eshop\DB\CustomerGroup|null $customerGroup
+	 * @param \Eshop\DB\DeliveryDiscount|null $deliveryDiscount
+	 * @param float $weight
+	 * @param float $dimension
+	 * @param float $totalWeight
+	 * @return \StORM\Collection<\Eshop\DB\DeliveryType>
+	 */
 	public function getDeliveryTypes(
 		Currency $currency,
 		?Customer $customer,
@@ -45,7 +55,7 @@ class DeliveryTypeRepository extends \StORM\Repository implements IGeneralReposi
 		float $dimension,
 		float $totalWeight = 0.0
 	): Collection {
-		$allowedDeliveries = $customer ? $customer->exclusiveDeliveryTypes->toArrayOf('uuid', [], true) : null;
+		$allowedDeliveries = $customer?->exclusiveDeliveryTypes->toArrayOf('uuid', [], true);
 
 		$collection = $this->many()
 			->join(['prices' => 'eshop_deliverytypeprice'], 'prices.fk_deliveryType=this.uuid AND prices.fk_currency=:currency', ['currency' => $currency])

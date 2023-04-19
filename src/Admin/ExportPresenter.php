@@ -254,7 +254,7 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 
 			$cache = new Cache($this->storage);
 			$cache->clean([
-				Cache::TAGS => ['export'],
+				Cache::Tags => ['export'],
 			]);
 
 			$this->flashMessage('Nastavení uloženo', 'success');

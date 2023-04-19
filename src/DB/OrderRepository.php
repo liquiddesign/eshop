@@ -262,10 +262,6 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			$writer->insertOne($header);
 		}
 
-		/**
-		 * @var \Eshop\DB\Order $order
-		 * @phpstan-ignore-next-line specific situation
-		 */
 		while ($order = $orders->fetch()) {
 			foreach ($order->purchase->getItems() as $item) {
 				$row = [];

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0]
+## [2.0.0-beta.1]
 
 ### Added
 - **BREAKING:** New *ShopperUser* and *CheckoutManager*
@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **BREAKING:** Comgate service is now provided only by Integrations service. Comgate package extension is still injected to *Container* with configuration.
 - **BREAKING:** Many callbacks are now always arrays, so you need to call them with *Arrays::invoke*
+- **BREAKING:** `CheckoutManager::addItemToCart` - parameter $checkInvalidAmount now accepts only enum `\Eshop\Common\CheckInvalidAmount`
+- **BREAKING:** Dropped support for Latte <3.0
 ### Removed
 - **BREAKING:** Removed deprecated classes
   - `FrontendPresenter`
@@ -42,6 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `DB/SetRepository`
   - `DB/SupplierParameterValue.php`
   - `DB/SupplierParameterValueRepository.php`
+- **BREAKING:** Removed many deprecated and unused methods, not all of them are listed here
+  - *OrderList::handleExport*
+  - *OrderList::exportCsvApi*
 ### Deprecated
  - **BREAKING:** *Shopper* and *CheckoutManager* are now deprecated and not injected to *Container*
    - Use *ShopperUser* and *CheckoutManager* from *ShopperUser* instead

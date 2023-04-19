@@ -12,6 +12,7 @@ use StORM\RelationCollection;
 /**
  * Typ dopravy
  * @table
+ * @property float $priceVatWithCod
  */
 class DeliveryType extends SystemicEntity implements BoxPacker\Box
 {

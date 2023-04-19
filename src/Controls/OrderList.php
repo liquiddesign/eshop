@@ -114,7 +114,6 @@ class OrderList extends Datalist
 		$form->addSubmit('exportCsv');
 		$form->addSubmit('exportExcel');
 		$form->addSubmit('exportExcelZip');
-		$form->addSubmit('exportCsvApi');
 
 		$form->onSuccess[] = function (\Nette\Forms\Form $form): void {
 			$values = $form->getValues('array');
@@ -147,8 +146,6 @@ class OrderList extends Datalist
 				$this->exportOrdersExcel($values);
 			} elseif ($submitName === 'exportExcelZip') {
 				$this->exportOrdersExcelZip($values);
-			} elseif ($submitName === 'exportCsvApi') {
-				$this->exportCsvApi($values);
 			} elseif ($submitName === 'exportCsv') {
 				$this->exportCsv($values);
 			}
@@ -183,40 +180,6 @@ class OrderList extends Datalist
 		}
 
 		$this->orderGridFactory->cancelOrder($order);
-	}
-
-	public function handleExport(string $orderId): void
-	{
-		$object = $this->orderRepository->one($orderId, true);
-		$tempFilename = \tempnam($this->tempDir, 'csv');
-		$this->application->onShutdown[] = function () use ($tempFilename): void {
-			try {
-				FileSystem::delete($tempFilename);
-			} catch (\Throwable $e) {
-				Debugger::log($e, ILogger::WARNING);
-			}
-		};
-
-		/** @phpstan-ignore-next-line volá metodu presenteru, pozůstatek z Linde */
-		$this->getPresenter()->csvOrderExportAPI($object, Writer::createFromPath($tempFilename, 'w+'));
-
-		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "order-$object->code.csv", 'text/csv'));
-	}
-
-	public function exportCsvApi(array $orders): void
-	{
-		$tempFilename = \tempnam($this->tempDir, 'csv');
-		$this->application->onShutdown[] = function () use ($tempFilename): void {
-			try {
-				FileSystem::delete($tempFilename);
-			} catch (\Throwable $e) {
-				Debugger::log($e, ILogger::WARNING);
-			}
-		};
-		/** @phpstan-ignore-next-line volá metodu presenteru, pozůstatek z Linde */
-		$this->getPresenter()->csvOrderExportItemsAPI($orders, Writer::createFromPath($tempFilename, 'w+'));
-
-		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'orders.csv', 'text/csv'));
 	}
 
 	/**

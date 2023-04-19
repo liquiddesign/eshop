@@ -12,7 +12,6 @@ use League\Csv\Reader;
 use League\Csv\Writer;
 use Nette\Bridges\ApplicationLatte\LatteFactory;
 use Nette\Bridges\ApplicationLatte\UIExtension;
-use Nette\Bridges\ApplicationLatte\UIMacros;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Utils\Arrays;
@@ -753,14 +752,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$policy->allowFilters(['price', 'date']);
 
 		$latte = $this->latteFactory->create();
-
-		/** @phpstan-ignore-next-line @TODO LATTEV3 */
-		if (\version_compare(\Latte\Engine::VERSION, '3', '<')) {
-			/** @phpstan-ignore-next-line @TODO LATTEV3 */
-			UIMacros::install($latte->getCompiler());
-		} else {
-			$latte->addExtension(new UIExtension(null));
-		}
+		$latte->addExtension(new UIExtension(null));
 
 		$latte->setLoader(new StringLoader());
 		$latte->setPolicy($policy);
