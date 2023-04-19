@@ -34,10 +34,9 @@ class AutoshipRepository extends \StORM\Repository
 		}
 		
 		$this->shopperUser->setCustomer($autoship->purchase->customer);
-		$this->checkoutManager->setCustomer($autoship->purchase->customer);
-		$this->checkoutManager->createCart();
-		$this->checkoutManager->getCart()->update(['purchase' => $autoship->purchase]);
-		$this->checkoutManager->addItemsFromCart($cart);
+		$this->shopperUser->getCheckoutManager()->createCart();
+		$this->shopperUser->getCheckoutManager()->getCart()->update(['purchase' => $autoship->purchase]);
+		$this->shopperUser->getCheckoutManager()->addItemsFromCart($cart);
 		
 		$purchase = $autoship->purchase->toArray(['deliveryAddress', 'billAddress'], true, false, false);
 		unset($purchase['deliveryAddress']['uuid'], $purchase['deliveryAddress']['id'], $purchase['billAddress']['uuid'], $purchase['billAddress']['id']);
@@ -47,16 +46,16 @@ class AutoshipRepository extends \StORM\Repository
 		if ($deliveryAddress !== null) {
 			$purchase['deliveryAddress'] = $this->addressRepository->createOne($deliveryAddress);
 		}
-		
+
+		/** @var null|array<mixed> $billAddress */
 		$billAddress = Arrays::pick($purchase, 'billAddress');
-		
-		/** @phpstan-ignore-next-line */
+
 		if ($billAddress !== null) {
 			$purchase['billAddress'] = $this->addressRepository->createOne($billAddress);
 		}
 		
 		$purchase = $this->purchaseRepository->createOne($purchase);
 		
-		return $this->checkoutManager->createOrder($purchase, ['autoship' => $autoship->getPK()]);
+		return $this->shopperUser->getCheckoutManager()->createOrder($purchase, ['autoship' => $autoship->getPK()]);
 	}
 }

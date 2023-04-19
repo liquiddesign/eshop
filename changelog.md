@@ -8,13 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0]
 
 ### Added
-- **BREAKING:** New *ShopperUser* and *CheckoutManagerV2*
+- **BREAKING:** New *ShopperUser* and *CheckoutManager*
   - *ShopperUser* is now extending *Nette\Security\User* and act like it
-  - *CheckoutManagerV2* is now not injected to *Container* and is available only by *ShopperUser*
-  - *ShopperUser* should not use *CheckoutManagerV2* directly
-  - *CheckoutManagerV2* uses *ShopperUser*
+  - *CheckoutManager* is now not injected to *Container* and is available only by *ShopperUser*
+  - *ShopperUser* should not use *CheckoutManager* directly
+  - *CheckoutManager* uses *ShopperUser*
 ### Changed
 - **BREAKING:** Comgate service is now provided only by Integrations service. Comgate package extension is still injected to *Container* with configuration.
+- **BREAKING:** *CheckoutManager* callbacks are now always arrays, so you need to call them with *Arrays::invoke*
 ### Removed
 - **BREAKING:** Removed deprecated classes
   - `FrontendPresenter`
@@ -39,9 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `DB/SetItem`
   - `DB/SetItemRepository`
   - `DB/SetRepository`
+  - `DB/SupplierParameterValue.php`
+  - `DB/SupplierParameterValueRepository.php`
 ### Deprecated
  - **BREAKING:** *Shopper* and *CheckoutManager* are now deprecated and not injected to *Container*
-   - Use *ShopperUser* and *CheckoutManagerV2* instead
+   - Use *ShopperUser* and *CheckoutManager* from *ShopperUser* instead
    - This change is not backward compatible, you need to rewrite all dependencies to *Shopper* and *CheckoutManager*
 ### Fixed
 
@@ -51,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING:** New Shopper option `autoFixCart`, defaults to **true**
   - If enabled, CartChecker is not shown and all changes to cart are immediately applied
   - If you are using CheckoutPresenter from package you are good to go, just hide CartChecker in template
-    - If not you need to add `$this->checkoutManager->autoFixCart();` at top of `startUp` function
+    - If not you need to add `$this->shopperUser->getCheckoutManager()->autoFixCart();` at top of `startUp` function
 - `CheckoutManager::addItemToCart` - parameter $checkInvalidAmount now accepts `bool|null|\Eshop\Common\CheckInvalidAmount`, more info in function doc
 - ProfileForm - duplicate email validation added
 

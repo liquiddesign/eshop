@@ -26,7 +26,7 @@
 	</td>
 	<td class="p-4">
 		<div class="leading-tight lg:mt-0 lg:text-right">
-			{if $presenter->shopper->getCatalogPermission() === 'price' || $presenter->shopper->getCatalogPermission() === 'full'}
+			{if $presenter->shopperUser->getCatalogPermission() === 'price' || $presenter->shopperUser->getCatalogPermission() === 'full'}
 			<div n:if="$item->priceBefore" class="font-light text-sm text-gray-dark"><del>{$item->priceBefore|price}</del></div>
 			<div class="text-2xl font-bold">{$item->price|price}</div>
 			<div class="text-xs text-gray-dark">s DPH {$item->priceVat|price}</div>
@@ -70,13 +70,13 @@
 
 	<td class="p-4">
 		<div class="text-sm">
-			<div n:if="$item->inPackage">Balení: <strong>{$item->inPackage} {$item->unit}</strong> <a n:if="$control->checkoutManager->canBuyProduct($item) && $presenter->shopper->getCatalogPermission() === 'full'" href="javascript:void(0);" data-amount="{$item->inPackage}" class="ml-4" data-set-amount="#input-{$item->getPK()}">Nastavit</a></div>
-			<div n:if="$item->inCarton">V kartónu: <strong>{$item->inCarton} {$item->unit}</strong> <a n:if="$control->checkoutManager->canBuyProduct($item) && $presenter->shopper->getCatalogPermission() === 'full'" href="javascript:void(0);" data-amount="{$item->inCarton}" class="ml-4" data-set-amount="#input-{$item->getPK()}">Nastavit</a></div>
-			<div n:if="$item->inPalett">Na paletě: <strong>{$item->inPalett} {$item->unit}</strong><a n:if="$control->checkoutManager->canBuyProduct($item) && $presenter->shopper->getCatalogPermission() === 'full'" href="javascript:void(0);" data-amount="{$item->inPalett}" class="ml-4" data-set-amount="#input-{$item->getPK()}">Nastavit</a></div>
+			<div n:if="$item->inPackage">Balení: <strong>{$item->inPackage} {$item->unit}</strong> <a n:if="$control->checkoutManager->canBuyProduct($item) && $presenter->shopperUser->getCatalogPermission() === 'full'" href="javascript:void(0);" data-amount="{$item->inPackage}" class="ml-4" data-set-amount="#input-{$item->getPK()}">Nastavit</a></div>
+			<div n:if="$item->inCarton">V kartónu: <strong>{$item->inCarton} {$item->unit}</strong> <a n:if="$control->checkoutManager->canBuyProduct($item) && $presenter->shopperUser->getCatalogPermission() === 'full'" href="javascript:void(0);" data-amount="{$item->inCarton}" class="ml-4" data-set-amount="#input-{$item->getPK()}">Nastavit</a></div>
+			<div n:if="$item->inPalett">Na paletě: <strong>{$item->inPalett} {$item->unit}</strong><a n:if="$control->checkoutManager->canBuyProduct($item) && $presenter->shopperUser->getCatalogPermission() === 'full'" href="javascript:void(0);" data-amount="{$item->inPalett}" class="ml-4" data-set-amount="#input-{$item->getPK()}">Nastavit</a></div>
 			<div>Min. objednávka: <strong>{$item->minBuyCount} {$item->unit}</strong></div>
 		</div>
 
-		{if $control->checkoutManager->canBuyProduct($item) && $presenter->shopper->getCatalogPermission() === 'full'}
+		{if $control->checkoutManager->canBuyProduct($item) && $presenter->shopperUser->getCatalogPermission() === 'full'}
 			{form "buyForm-$item->uuid" class=> "mt-4 flex flex-row items-center justify-start"}
 				<div class="form-group mb-0 flex-grow-0 mr-2">
 					<input n:name="amount" id="input-{$item->getPK()}" type="number" class="form-control form-control-sm w-24">

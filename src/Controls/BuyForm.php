@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\CheckoutManagerV2;
+use Eshop\CheckoutManager;
 use Eshop\DB\Product;
 use Eshop\ShopperUser;
 use Forms\Form;
@@ -28,8 +28,8 @@ class BuyForm extends Form
 
 		$checkoutManager = $shopperUser->getCheckoutManager();
 
-		$minCount = $product->minBuyCount ?? CheckoutManagerV2::DEFAULT_MIN_BUY_COUNT;
-		$maxCount = $product->maxBuyCount ?? CheckoutManagerV2::DEFAULT_MAX_BUY_COUNT;
+		$minCount = $product->minBuyCount ?? CheckoutManager::DEFAULT_MIN_BUY_COUNT;
+		$maxCount = $product->maxBuyCount ?? CheckoutManager::DEFAULT_MAX_BUY_COUNT;
 
 		$countInput = $this->addInteger('amount', 'Počet zboží:')
 			->setDefaultValue($product->defaultBuyCount)

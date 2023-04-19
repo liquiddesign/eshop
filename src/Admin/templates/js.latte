@@ -1,3 +1,6 @@
+{varType Eshop\Admin\OrderPresenter $presenter}
+{varType Eshop\DB\Order $order}
+{varType Eshop\DB\Purchase $purchase}
 <script src="{$baseUrl}/vendor/liquiddesign/eshop/src/assets/dropzone/dropzone.min.js"></script>
 <script src="{$baseUrl}/vendor/liquiddesign/eshop/src/assets/html5sortable/html5sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/StephanWagner/jBox@v1.3.2/dist/jBox.all.min.js"></script>
@@ -8,8 +11,6 @@
     })
 </script>
 
-{varType Eshop\DB\Order $order}
-{varType Eshop\DB\Purchase $purchase}
 {ifset $ordersForJBOX}
     {foreach $ordersForJBOX as $order}
         {do $purchase = $order->purchase}
@@ -153,7 +154,7 @@
                     <div class="table-responsive">
                         <table class="table order-JBOX">
                             <tbody>
-                            {if $presenter->shopper->getShowVat()}
+                            {if $presenter->shopperUser->getShowVat()}
                                 <tr>
                                     <th>Mezisoučet:</th>
                                     <td>{($order->purchase->getSumPriceVat())|price:$purchase->currency->code}</td>
@@ -176,7 +177,7 @@
                                         <span style="font-size: large">{$order->getTotalPriceVat()|price:$purchase->currency->code}</span>
                                     </td>
                                 </tr>
-                            {elseif $presenter->shopper->getShowWithoutVat()}
+                            {elseif $presenter->shopperUser->getShowWithoutVat()}
                                 <tr>
                                     <th>Mezisoučet:</th>
                                     <td>{($order->purchase->getSumPrice())|price:$purchase->currency->code}</td>

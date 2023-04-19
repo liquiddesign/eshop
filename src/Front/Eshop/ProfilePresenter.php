@@ -15,7 +15,6 @@ use Eshop\Controls\WatcherList;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
 use Eshop\DB\OrderRepository;
-use Eshop\Shopper;
 use Forms\FormFactory;
 use Nette;
 
@@ -38,9 +37,6 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 
 	/** @inject */
 	public OrderRepository $orderRepository;
-
-	/** @inject */
-	public Shopper $shopperUser;
 
 	/** @inject */
 	public FormFactory $formFactory;

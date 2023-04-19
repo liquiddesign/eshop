@@ -3,12 +3,13 @@
 namespace Eshop\Controls;
 
 use Eshop\DB\CartRepository;
+use Eshop\ShopperUser;
 use StORM\Collection;
 use StORM\ICollection;
 
 class CartList extends \Grid\Datalist
 {
-	public function __construct(Collection $carts, private readonly CartRepository $cartRepository)
+	public function __construct(Collection $carts, private readonly CartRepository $cartRepository, private readonly ShopperUser $shopperUser)
 	{
 		parent::__construct($carts);
 
@@ -60,7 +61,7 @@ class CartList extends \Grid\Datalist
 	public function handleInsertIntoMyCart($cart): void
 	{
 		$cart = $this->cartRepository->one($cart, true);
-		$this->checkoutManager->addItemsFromCart($cart);
+		$this->shopperUser->getCheckoutManager()->addItemsFromCart($cart);
 		$this->redirect('this');
 	}
 }

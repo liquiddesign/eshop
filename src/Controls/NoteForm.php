@@ -46,6 +46,6 @@ class NoteForm extends \Nette\Application\UI\Form
 		$values['accountEmail'] = $account && \filter_var($account->login, \FILTER_VALIDATE_EMAIL) !== false ? $account->login : null;
 		$values['currency'] = $this->shopperUser->getCurrency();
 
-		$this->checkoutManager->syncPurchase($values);
+		$this->shopperUser->getCheckoutManager()->syncPurchase($values);
 	}
 }

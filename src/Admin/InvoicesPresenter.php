@@ -12,7 +12,7 @@ use Eshop\DB\InvoiceRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
 use Messages\DB\TemplateRepository;
@@ -48,7 +48,7 @@ class InvoicesPresenter extends BackendPresenter
 	public TemplateRepository $templateRepository;
 
 	/** @inject */
-	public Shopper $shopper;
+	public ShopperUser $shopperUser;
 	
 	public function createComponentGrid(): AdminGrid
 	{
@@ -144,11 +144,17 @@ class InvoicesPresenter extends BackendPresenter
 			$form->addText('taxDate', 'Datum zdanitelného plnění')
 				->setHtmlType('date')
 				->setNullable()
-				->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude použito nastavení posunu. Aktuální posun: + ' . $this->shopper->getInvoicesAutoTaxDateInDays() . ' dní vůči datu vystavení');
+				->setHtmlAttribute(
+					'data-info',
+					'Pokud nevyplníte, bude použito nastavení posunu. Aktuální posun: + ' . $this->shopperUser->getInvoicesAutoTaxDateInDays() . ' dní vůči datu vystavení',
+				);
 			$form->addText('dueDate', 'Datum splatnosti')
 				->setHtmlType('date')
 				->setNullable()
-				->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude použito nastavení posunu. Aktuální posun: + ' . $this->shopper->getInvoicesAutoDueDateInDays() . ' dní vůči datu vystavení');
+				->setHtmlAttribute(
+					'data-info',
+					'Pokud nevyplníte, bude použito nastavení posunu. Aktuální posun: + ' . $this->shopperUser->getInvoicesAutoDueDateInDays() . ' dní vůči datu vystavení',
+				);
 
 			$input = $form->addSelectAjax('order', 'Objednávka', '- Vyberte objednávku -', Order::class)->setDisabled((bool) $invoice);
 

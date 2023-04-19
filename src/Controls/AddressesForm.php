@@ -46,7 +46,7 @@ class AddressesForm extends Form
 			->addRule(self::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
 		$billAddressBox->addText('state', 'AddressesForm.bill_state');
 		
-		$otherAddress = $this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool) $this->checkoutManager->getPurchase()->deliveryAddress);
+		$otherAddress = $this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool) $this->shopperUser->getCheckoutManager()->getPurchase()->deliveryAddress);
 		$isCompany = $this->addCheckbox('isCompany', 'AddressesForm.isCompany')->setDefaultValue($shopperUser->getCustomer() && $shopperUser->getCustomer()->isCompany());
 		$createAccount = $this->addCheckbox('createAccount', 'AddressesForm.createAccount');
 		$this->addPassword('password', 'AddressesForm.password')
@@ -78,7 +78,7 @@ class AddressesForm extends Form
 		
 		$customer = $shopperUser->getCustomer();
 		
-		if ($customer && !$checkoutManager->getPurchase()->email) {
+		if ($customer && !$this->shopperUser->getCheckoutManager()->getPurchase()->email) {
 			$customerArray = $customer->toArray(['billAddress', 'deliveryAddress']);
 			$customerArray['fullname'] = $customer->getName();
 
@@ -93,7 +93,7 @@ class AddressesForm extends Form
 			}
 		}
 		
-		$purchase = $checkoutManager->getPurchase();
+		$purchase = $this->shopperUser->getCheckoutManager()->getPurchase();
 		
 		if ($purchase->email) {
 			$this->setDefaults($purchase);
@@ -150,6 +150,6 @@ class AddressesForm extends Form
 			$values['deliveryAddress'] = null;
 		}
 		
-		$this->checkoutManager->syncPurchase($values);
+		$this->shopperUser->getCheckoutManager()->syncPurchase($values);
 	}
 }

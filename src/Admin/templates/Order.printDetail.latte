@@ -172,10 +172,10 @@
 
                                             </td>
                                             <td style="text-align: right">
-                                                {$item->priceVat|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price|price} bez DPH</small>{/if}
+                                                {$item->priceVat|price}{if $presenter->shopperUser->getShowWithoutVat()}<br><small>{$item->price|price} bez DPH</small>{/if}
                                             </td>
                                             <td style="text-align: right">
-                                                {$item->priceVat * $item->amount|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price * $item->amount|price} bez DPH</small>{/if}
+                                                {$item->priceVat * $item->amount|price}{if $presenter->shopperUser->getShowWithoutVat()}<br><small>{$item->price * $item->amount|price} bez DPH</small>{/if}
                                             </td>
                                             <td class="d-print-none"></td>
                                             <td class="d-print-none"></td>

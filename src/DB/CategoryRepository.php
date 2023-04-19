@@ -330,29 +330,6 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			->first();
 	}
 
-	public function getParameterCategoriesOfCategory($category): ?Collection
-	{
-		if (!$category instanceof Category) {
-			if (!$category = $this->one($category)) {
-				return null;
-			}
-		}
-
-		if ($category->ancestor === null) {
-			return $category->parameterCategories;
-		}
-
-		do {
-			if (\count($category->parameterCategories->toArray()) > 0) {
-				return $category->parameterCategories;
-			}
-
-			$category = $category->ancestor;
-		} while ($category !== null);
-
-		return null;
-	}
-
 	public function generateCategoryProducerPages(?array $activeProducers = null): void
 	{
 		/** @var array<\Eshop\DB\Category> $categories */

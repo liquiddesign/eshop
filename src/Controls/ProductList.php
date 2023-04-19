@@ -133,9 +133,6 @@ class ProductList extends Datalist
 		$this->addFilterExpression('attributes', function (ICollection $collection, $attributes): void {
 			$this->productRepository->filterAttributes($attributes, $collection);
 		});
-		$this->addFilterExpression('parameters', function (ICollection $collection, $groups): void {
-			$this->productRepository->filterParameters($groups, $collection);
-		});
 		$this->addFilterExpression('attributeValue', function (ICollection $collection, $value): void {
 			$this->productRepository->filterAttributeValue($value, $collection);
 		});
@@ -191,7 +188,7 @@ class ProductList extends Datalist
 		$product = $this->itemsOnPage !== null ? ($this->itemsOnPage[$productId] ?? null) : $this->productRepository->getProduct($productId);
 		
 		$amount = $amount ?: (\max($product->defaultBuyCount, $product->minBuyCount));
-		$this->checkoutManager->addItemToCart($product, null, $amount);
+		$this->shopperUser->getCheckoutManager()->addItemToCart($product, null, $amount);
 
 		$this->redirect('this');
 	}
@@ -220,7 +217,7 @@ class ProductList extends Datalist
 		$this->template->display = $display === 'card' ? 'Card' : 'Row';
 		$this->template->paginator = $this->getPaginator();
 		$this->template->shopper = $this->shopperUser;
-		$this->template->checkoutManager = $this->checkoutManager;
+		$this->template->checkoutManager = $this->shopperUser->getCheckoutManager();
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;

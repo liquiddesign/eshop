@@ -35,9 +35,9 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 
 		$vat = $this->shopperUser->getShowPrice() === 'withVat';
 		
-		$deliveriesList = $this->addRadioList('deliveries', 'deliveryPaymentForm.payments', $checkoutManager->getDeliveryTypes($vat)->toArrayOf('name'))
+		$deliveriesList = $this->addRadioList('deliveries', 'deliveryPaymentForm.payments', $this->shopperUser->getCheckoutManager()->getDeliveryTypes($vat)->toArrayOf('name'))
 			->setHtmlAttribute('onChange=updatePoints(this)');
-		$paymentsList = $this->addRadioList('payments', 'deliveryPaymentForm.payments', $checkoutManager->getPaymentTypes()->toArrayOf('name'));
+		$paymentsList = $this->addRadioList('payments', 'deliveryPaymentForm.payments', $this->shopperUser->getCheckoutManager()->getPaymentTypes()->toArrayOf('name'));
 		
 		$pickupPoint = $this->addSelect('pickupPoint');
 		
@@ -45,7 +45,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		$typesWithPoints = [];
 		
 		/** @var \Eshop\DB\DeliveryType $deliveryType */
-		foreach ($checkoutManager->getDeliveryTypes($vat)->toArray() as $deliveryType) {
+		foreach ($this->shopperUser->getCheckoutManager()->getDeliveryTypes($vat)->toArray() as $deliveryType) {
 			$pickupPoints = $this->pickupPointRepository->many()
 				->join(['type' => 'eshop_pickuppointtype'], 'this.fk_pickupPointType = type.uuid')
 				->join(['delivery' => 'eshop_deliverytype'], 'delivery.fk_pickupPointType = type.uuid')
@@ -73,7 +73,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		$deliveriesList->setRequired();
 		$paymentsList->setRequired();
 		
-		$this->addCombinationRules($deliveriesList, $paymentsList, $checkoutManager->getDeliveryTypes($vat));
+		$this->addCombinationRules($deliveriesList, $paymentsList, $this->shopperUser->getCheckoutManager()->getDeliveryTypes($vat));
 		
 		// @TODO: overload toggle (https://pla.nette.org/cs/forms-toggle#toc-jak-pridat-animaci)
 		
@@ -91,7 +91,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		} catch (InvalidArgumentException $e) {
 		}
 
-		$purchase = $this->checkoutManager->getPurchase(true);
+		$purchase = $this->shopperUser->getCheckoutManager()->getPurchase(true);
 
 		if (isset($purchase->pickupPointId)) {
 			$pickupPointIdInput->setDefaultValue($purchase->pickupPointId);
@@ -120,7 +120,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 
 		$newValues = [
 			'deliveryType' => $values['deliveries'],
-			'deliveryPackagesNo' => \count($deliveryType->getBoxesForItems($this->checkoutManager->getTopLevelItems()->toArray())),
+			'deliveryPackagesNo' => \count($deliveryType->getBoxesForItems($this->shopperUser->getCheckoutManager()->getTopLevelItems()->toArray())),
 			'paymentType' => $values['payments'],
 			'zasilkovnaId' => $deliveryType->code === 'zasilkovna' ? $values['zasilkovnaId'] : null,
 			'pickupPointId' => $deliveryType->code !== 'zasilkovna' ? $values['pickupPointId'] : null,
@@ -135,10 +135,10 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 			$newValues['pickupPointName'] = $pickupPoint->name;
 			$newValues['pickupPoint'] = $pickupPoint->getPK();
 		} else {
-			$this->checkoutManager->getPurchase()->update(['pickupPoint' => null]);
+			$this->shopperUser->getCheckoutManager()->getPurchase()->update(['pickupPoint' => null]);
 		}
 		
-		$this->checkoutManager->syncPurchase($newValues);
+		$this->shopperUser->getCheckoutManager()->syncPurchase($newValues);
 	}
 	
 	public function validateForm(DeliveryPaymentForm $form): void
@@ -196,7 +196,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 	
 	private function getSelectedDeliveryType(): ?DeliveryType
 	{
-		$purchase = $this->checkoutManager->getPurchase(true);
+		$purchase = $this->shopperUser->getCheckoutManager()->getPurchase(true);
 		$shopper = $this->shopperUser;
 		
 		if (!$purchase->deliveryType && $shopper->getCustomer() && $shopper->getCustomer()->preferredDeliveryType) {
@@ -208,7 +208,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 	
 	private function getSelectedPaymentType(): ?PaymentType
 	{
-		$purchase = $this->checkoutManager->getPurchase(true);
+		$purchase = $this->shopperUser->getCheckoutManager()->getPurchase(true);
 		$shopper = $this->shopperUser;
 		
 		if (!$purchase->deliveryType && $shopper->getCustomer() && $shopper->getCustomer()->preferredPaymentType) {

@@ -9,7 +9,6 @@ use Eshop\DB\OrderRepository;
 use Eshop\DB\Review;
 use Eshop\DB\ReviewRepository;
 use Eshop\Front\FrontendPresenter;
-use Eshop\Shopper;
 use Forms\Form;
 use Nette\Localization\Translator;
 
@@ -23,9 +22,6 @@ abstract class ReviewPresenter extends FrontendPresenter
 
 	/** @inject */
 	public Translator $translator;
-
-	/** @inject */
-	public Shopper $shopperUser;
 
 	private ?Review $review = null;
 

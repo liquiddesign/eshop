@@ -470,14 +470,6 @@ class Product extends \StORM\Entity
 	public RelationCollection $slaveProducts;
 
 	/**
-	 * @deprecated
-	 * Skupina parametrů
-	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\ParameterGroup>
-	 */
-	public RelationCollection $parameterGroups;
-
-	/**
 	 * Kategorie
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\Category>

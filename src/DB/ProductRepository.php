@@ -8,6 +8,7 @@ use Admin\DB\IGeneralAjaxRepository;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Controls\ProductFilter;
+use Eshop\ShopperUser;
 use InvalidArgumentException;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
@@ -59,6 +60,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		private readonly CustomerGroupRepository $customerGroupRepository,
 		private readonly SettingRepository $settingRepository,
 		private readonly AttributeAssignRepository $attributeAssignRepository,
+		private readonly ShopperUser $shopperUser,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -96,7 +98,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	public function getDiscountPct(?Customer $customer = null, ?CustomerGroup $customerGroup = null, ?DiscountCoupon $discountCoupon = null): int
 	{
-		$discountCoupon ??= $this->shopperUser->discountCoupon;
+		$discountCoupon ??= $this->shopperUser->getCheckoutManager()->getDiscountCoupon();
 		$customer = $customerGroup ? $customer : ($customer ?: $this->shopperUser->getCustomer());
 		$customerGroup ??= $this->shopperUser->getCustomerGroup();
 		$customerDiscount = $customer ? $this->getBestDiscountLevel($customer) : ($customerGroup ? $customerGroup->defaultDiscountLevelPct : 0);
@@ -112,7 +114,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	public function getProducts(?array $pricelists = null, ?Customer $customer = null, bool $selects = true, ?CustomerGroup $customerGroup = null): Collection
 	{
-		$discountCoupon = $this->shopperUser->discountCoupon;
+		$discountCoupon = $this->shopperUser->getCheckoutManager()->getDiscountCoupon();
 		
 		$currency = $this->shopperUser->getCurrency();
 		$convertRatio = null;
@@ -747,15 +749,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			->where('attributeAssign.fk_value', $value);
 	}
 	
-	/**
-	 * @deprecated
-	 */
-	public function filterParameters($groups, ICollection $collection): void
-	{
-		unset($groups);
-		unset($collection);
-	}
-	
 	public function filterAttributes($attributes, ICollection $collection): void
 	{
 		//@TODO performance
@@ -889,39 +882,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			->where('fk_master = :q OR fk_slave = :q', ['q' => $product->getPK()])
 			->where('type.similar', true)
 			->where('this.uuid != :currentRelationProduct', ['currentRelationProduct' => $product->getPK()]);
-	}
-	
-	/**
-	 * @param \Eshop\DB\Product|string $product
-	 * @return array<int|string, array<string, array<int, \Eshop\DB\Parameter>|\Eshop\DB\ParameterGroup>>
-	 * @throws \StORM\Exception\NotFoundException
-	 * @deprecated
-	 */
-	public function getGroupedProductParameters($product): array
-	{
-		if (!$product instanceof Product) {
-			if (!$product = $this->one($product)) {
-				return [];
-			}
-		}
-		
-		/** @var \Eshop\DB\ParameterRepository $paramRepo */
-		$paramRepo = $this->getConnection()->findRepository(Parameter::class);
-		
-		$groupedParameters = [];
-		
-		/** @var array<\Eshop\DB\Parameter> $parameters */
-		$parameters = $paramRepo->many()
-			->join(['availableValue' => 'eshop_parameteravailablevalue'], 'availableValue.fk_parameter = this.uuid')
-			->join(['value' => 'eshop_parametervalue'], 'availableValue.uuid = this.fk_value')
-			->where('fk_product', $product->getPK());
-		
-		foreach ($parameters as $parameter) {
-			$groupedParameters[$parameter->group->getPK()]['group'] = $parameter->group;
-			$groupedParameters[$parameter->group->getPK()]['parameters'][] = $parameter;
-		}
-		
-		return $groupedParameters;
 	}
 	
 	/**
@@ -1239,23 +1199,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 		
 		return $itemRelationsForCart;
-	}
-	
-	/**
-	 * @param \Eshop\DB\Product|string $set
-	 * @return array<\Eshop\DB\Set>
-	 * @throws \StORM\Exception\NotFoundException
-	 * @deprecated
-	 */
-	public function getSetProducts($set): array
-	{
-		if (!$set instanceof Product) {
-			if (!$set = $this->one($set)) {
-				return [];
-			}
-		}
-		
-		return $this->setRepository->many()->join(['product' => 'eshop_product'], 'product.uuid=this.fk_set')->orderBy(['priority'])->toArray();
 	}
 	
 	public function getRecyclingFeeBySuppliersPriority(Product $product): ?float

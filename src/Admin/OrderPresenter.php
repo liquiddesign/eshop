@@ -8,6 +8,7 @@ use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\BackendPresenter;
+use Eshop\Common\CheckInvalidAmount;
 use Eshop\DB\AddressRepository;
 use Eshop\DB\AmountRepository;
 use Eshop\DB\AutoshipRepository;
@@ -664,7 +665,7 @@ class OrderPresenter extends BackendPresenter
 
 			$this->shopperUser->setCustomer($order->purchase->customer);
 
-			if ($this->productRepo->getProducts($this->checkoutManager->getPricelists()->toArray())->where('this.uuid', $values['product'])->first()) {
+			if ($this->productRepo->getProducts($this->shopperUser->getCheckoutManager()->getPricelists()->toArray())->where('this.uuid', $values['product'])->first()) {
 				return;
 			}
 
@@ -707,13 +708,12 @@ class OrderPresenter extends BackendPresenter
 
 			if ($order->purchase->customer) {
 				$this->shopperUser->setCustomer($order->purchase->customer);
-				$this->checkoutManager->setCustomer($order->purchase->customer);
 			}
 
 			/** @var \Eshop\DB\Product $product */
 			$product = $this->productRepo->getProducts($this->shopperUser->getPricelists()->toArray())->where('this.uuid', $values['product'])->first();
 
-			$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], null, false, false, $cart);
+			$cartItem = $this->shopperUser->getCheckoutManager()->addItemToCart($product, null, $values['amount'], null, CheckInvalidAmount::NO_CHECK, false, cart: $cart);
 
 			$packageItem = $this->packageItemRepository->createOne([
 				'amount' => $values['amount'],
@@ -1092,7 +1092,7 @@ class OrderPresenter extends BackendPresenter
 						$product->priceVat = 0;
 					}
 
-					$cartItem = $this->checkoutManager->addItemToCart($product, null, $item->amount, null, false, false, $targetCart);
+					$cartItem = $this->shopperUser->getCheckoutManager()->addItemToCart($product, null, $item->amount, null, CheckInvalidAmount::NO_CHECK, false, $targetCart);
 
 					$topLevelItems[$item->getPK()] = $this->packageItemRepository->createOne([
 						'package' => $package->getPK(),
@@ -1126,7 +1126,7 @@ class OrderPresenter extends BackendPresenter
 						$product->priceVat = 0;
 					}
 
-					$cartItem = $this->checkoutManager->addUpsellToCart($topLevelItems[$item->getValue('upsell')]->cartItem, $product, $item->realAmount);
+					$cartItem = $this->shopperUser->getCheckoutManager()->addUpsellToCart($topLevelItems[$item->getValue('upsell')]->cartItem, $product, $item->realAmount);
 
 					$this->packageItemRepository->createOne([
 						'package' => $package->getPK(),
@@ -1965,8 +1965,8 @@ class OrderPresenter extends BackendPresenter
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->one($orderId, true);
 
-		$this->checkoutManager->deleteCart();
-		$this->checkoutManager->createCart();
+		$this->shopperUser->getCheckoutManager()->deleteCart();
+		$this->shopperUser->getCheckoutManager()->createCart();
 
 		if ($order->purchase->customer && $order->purchase->account) {
 			$order->purchase->customer->setAccount($order->purchase->account);
@@ -1978,10 +1978,10 @@ class OrderPresenter extends BackendPresenter
 
 		/** @var \Eshop\DB\Cart $cart */
 		$cart = $order->purchase->carts->first();
-		$this->checkoutManager->addItemsFromCart($cart);
+		$this->shopperUser->getCheckoutManager()->addItemsFromCart($cart);
 
-		$purchase = $this->checkoutManager->syncPurchase($order->purchase->toArray());
-		$this->checkoutManager->createOrder($purchase);
+		$purchase = $this->shopperUser->getCheckoutManager()->syncPurchase($order->purchase->toArray());
+		$this->shopperUser->getCheckoutManager()->createOrder($purchase);
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();

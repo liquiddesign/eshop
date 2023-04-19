@@ -105,25 +105,25 @@
                     <td>Počet objednávek</td>
                     <td>{$ordersCount}</td>
                 </tr>
-                {if $control->shopper->getShowWithoutVat()}
+                {if $control->shopperUser->getShowWithoutVat()}
                     <tr>
                         <td>Celková cena objednávek bez DPH</td>
                         <td>{\number_format($sumOrderPrice[0], 2, ',', ' ')} {$currency->symbol}</td>
                     </tr>
                 {/if}
-                {if $control->shopper->getShowVat()}
+                {if $control->shopperUser->getShowVat()}
                     <tr>
                         <td>Celková cena objednávek s DPH</td>
                         <td>{\number_format($sumOrderPrice[1], 2, ',', ' ')} {$currency->symbol}</td>
                     </tr>
                 {/if}
-                {if $control->shopper->getShowWithoutVat()}
+                {if $control->shopperUser->getShowWithoutVat()}
                     <tr>
                         <td>Průměrná cena objednávky bez DPH</td>
                         <td>{\number_format($averageOrderPrice[0], 2, ',', ' ')} {$currency->symbol}</td>
                     </tr>
                 {/if}
-                {if $control->shopper->getShowVat()}
+                {if $control->shopperUser->getShowVat()}
                     <tr>
                         <td>Průměrná cena objednávky s DPH</td>
                         <td>{\number_format($averageOrderPrice[1], 2, ',', ' ')} {$currency->symbol}</td>
@@ -162,10 +162,10 @@
                     <th>Kód</th>
                     <th>Název</th>
                     <th>Počet</th>
-                    {if $control->shopper->getShowWithoutVat()}
+                    {if $control->shopperUser->getShowWithoutVat()}
                         <th>Cena bez DPH</th>
                     {/if}
-                    {if $control->shopper->getShowVat()}
+                    {if $control->shopperUser->getShowVat()}
                         <th>Cena s DPH</th>
                     {/if}
                 </tr>
@@ -191,10 +191,10 @@
                             <td>{$row['item']->productName}</td>
                         {/ifset}
                         <td>{$row['amount']}</td>
-                        {if $control->shopper->getShowWithoutVat()}
+                        {if $control->shopperUser->getShowWithoutVat()}
                             <td>{\number_format($row['priceSum'], 2, ',', ' ')} {$currency->symbol}</td>
                         {/if}
-                        {if $control->shopper->getShowVat()}
+                        {if $control->shopperUser->getShowVat()}
                             <td>{\number_format($row['priceSumVat'], 2, ',', ' ')} {$currency->symbol}</td>
                         {/if}
                     </tr>
@@ -235,10 +235,10 @@
                         {if $discountCoupons[$discountCouponPK]->discountPct}
                          {$discountCoupons[$discountCouponPK]->discountPct} %
                         {else}
-                         {if $control->shopper->getShowVat() && $discountCoupons[$discountCouponPK]->discountValueVat}
+                         {if $control->shopperUser->getShowVat() && $discountCoupons[$discountCouponPK]->discountValueVat}
                           s DPH: {$discountCoupons[$discountCouponPK]->discountValueVat|price:$currency}<br>
                          {/if}
-                         {if $control->shopper->getShowWithoutVat() && $discountCoupons[$discountCouponPK]->discountValue}
+                         {if $control->shopperUser->getShowWithoutVat() && $discountCoupons[$discountCouponPK]->discountValue}
                            bez DPH: {$discountCoupons[$discountCouponPK]->discountValue|price:$currency}
                          {/if}
                          {/if}
@@ -265,7 +265,7 @@
         const barData = {
             labels: MONTHS,
             datasets: [
-                {if $control->shopper->getShowWithoutVat()}
+                {if $control->shopperUser->getShowWithoutVat()}
                 {
                     label: 'Cena',
                     backgroundColor: '#4791ed',
@@ -274,7 +274,7 @@
                     data: [{foreach $monthlyOrders as $key => $value}{$value['price']|round:2},{/foreach}],
                 },
                 {/if}
-                {if $control->shopper->getShowVat()}
+                {if $control->shopperUser->getShowVat()}
                 {
                     label: 'Cena s daní',
                     backgroundColor: '#2970C9',

@@ -11,7 +11,6 @@ use Contributte\Comgate\Entity\Payment;
 use Contributte\Comgate\Entity\PaymentStatus;
 use Contributte\Comgate\Gateway\PaymentService;
 use Eshop\Admin\SettingsPresenter;
-use Eshop\CheckoutManager;
 use Eshop\Common\IPaymentIntegration;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
@@ -27,33 +26,16 @@ use Web\DB\SettingRepository;
 
 class Comgate implements IPaymentIntegration
 {
-	public CheckoutManager $checkoutManager;
-
-	public PaymentService $paymentService;
-
-	public PaymentResultRepository $paymentResultRepository;
-
-	public OrderRepository $orderRepository;
-
-	public SettingRepository $settingRepository;
-
-	public PaymentTypeRepository $paymentTypeRepository;
-
 	private \Contributte\Comgate\Comgate $contributteComgate;
 
 	public function __construct(
-		PaymentResultRepository $paymentResultRepository,
-		OrderRepository $orderRepository,
-		PaymentService $paymentService,
-		SettingRepository $settingRepository,
-		PaymentTypeRepository $paymentTypeRepository,
+		public PaymentResultRepository $paymentResultRepository,
+		public OrderRepository $orderRepository,
+		public PaymentService $paymentService,
+		public SettingRepository $settingRepository,
+		public PaymentTypeRepository $paymentTypeRepository,
 		Container $container
 	) {
-		$this->paymentResultRepository = $paymentResultRepository;
-		$this->orderRepository = $orderRepository;
-		$this->paymentService = $paymentService;
-		$this->settingRepository = $settingRepository;
-		$this->paymentTypeRepository = $paymentTypeRepository;
 		$this->contributteComgate = $container->getByName('comgate.comgate');
 	}
 

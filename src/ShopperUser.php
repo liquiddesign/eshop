@@ -40,7 +40,7 @@ class ShopperUser extends User
 
 	protected ?Customer $customer = null;
 
-	protected CheckoutManagerV2 $checkoutManager;
+	protected CheckoutManager $checkoutManager;
 
 	protected ?CustomerGroup $customerGroup;
 
@@ -90,9 +90,9 @@ class ShopperUser extends User
 		parent::__construct($legacyStorage, $authenticator, $authorizator, $storage);
 	}
 
-	public function getCheckoutManager(): CheckoutManagerV2
+	public function getCheckoutManager(): CheckoutManager
 	{
-		return $this->checkoutManager ??= $this->container->createInstance(CheckoutManagerV2::class);
+		return $this->checkoutManager ??= $this->container->createInstance(CheckoutManager::class);
 	}
 
 	public function setConfig(array $config): void
@@ -214,6 +214,11 @@ class ShopperUser extends User
 		return $this->config['useDiscountLevelCalculationInBeforePrice'];
 	}
 
+	public function getAutoFixCart(): bool
+	{
+		return $this->config['autoFixCart'];
+	}
+
 	public function getCustomer(): ?Customer
 	{
 		if ($this->customer) {
@@ -224,6 +229,8 @@ class ShopperUser extends User
 
 		if ($this->isLoggedIn()) {
 			if ($identity instanceof Customer) {
+				$this->customer = $identity;
+
 				return $identity;
 			}
 

@@ -91,7 +91,7 @@ abstract class OrderPresenter extends \Eshop\Front\FrontendPresenter
 			return;
 		}
 
-		$this->checkoutManager->addItemsFromCart($cart);
+		$this->shopperUser->getCheckoutManager()->addItemsFromCart($cart);
 		$this->redirect(':Eshop:Checkout:cart');
 	}
 

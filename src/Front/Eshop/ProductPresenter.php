@@ -215,7 +215,7 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 
 		$this->category = $this->product->primaryCategory;
 		
-		$form = new BuyForm($this->product, $this->shopperUser, $this->checkoutManager);
+		$form = new BuyForm($this->product, $this->shopperUser);
 		$this->addComponent($form, 'buyForm');
 		$form->onSuccess[] = function ($form, $values): void {
 			$form->getPresenter()->redirect('this');
@@ -231,7 +231,7 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 			throw new \Nette\Application\BadRequestException();
 		}
 		
-		$this->checkoutManager->addItemToCart($this->productRepository->getProduct($product), null, $amount);
+		$this->shopperUser->getCheckoutManager()->addItemToCart($this->productRepository->getProduct($product), null, $amount);
 		
 		$this->redirect('this');
 	}

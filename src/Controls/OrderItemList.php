@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Eshop\Common\CheckInvalidAmount;
 use Eshop\DB\CartItemRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
@@ -27,7 +28,7 @@ class OrderItemList extends Datalist
 
 	public function __construct(
 		private readonly CartItemRepository $cartItemsRepository,
-		public readonly ShopperUser $shopperUserUser,
+		public readonly ShopperUser $shopperUser,
 		private readonly ProductRepository $productRepository,
 		Order $order,
 		private readonly OrderRepository $orderRepository,
@@ -66,7 +67,7 @@ class OrderItemList extends Datalist
 
 	public function createComponentChangeAmountForm(): Multiplier
 	{
-		$checkoutManager = $this->checkoutManager;
+		$checkoutManager = $this->shopperUser->getCheckoutManager();
 		$cartItemRepository = $this->cartItemsRepository;
 
 		return new Multiplier(function ($itemId) use ($checkoutManager, $cartItemRepository) {
@@ -123,7 +124,7 @@ class OrderItemList extends Datalist
 			$amount = 1;
 		}
 
-		$this->checkoutManager->changeCartItemAmount($cartItem->getProduct(), $cartItem, $amount, false);
+		$this->shopperUser->getCheckoutManager()->changeCartItemAmount($cartItem->getProduct(), $cartItem, $amount, false);
 
 		if ($cartItem->cart->purchase) {
 			$packageItem = $this->orderRepository->getFirstPackageItemByCartItem($cartItem);
@@ -156,11 +157,19 @@ class OrderItemList extends Datalist
 
 		if ($this->isUpsellActive($cartItem->getPK(), $upsell->getPK())) {
 			/** @var \Eshop\DB\CartItem $cartItem */
-			$cartItem = $this->checkoutManager->getItems()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first();
+			$cartItem = $this->shopperUser->getCheckoutManager()->getItems()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first();
 
-			$this->checkoutManager->deleteItem($cartItem);
+			$this->shopperUser->getCheckoutManager()->deleteItem($cartItem);
 		} else {
-			$this->checkoutManager->addItemToCart($upsell, null, $upsell->getValue('amount') ?? 1, false, false, false, $cartItem->cart)->update(['upsell' => $cartItem->getPK()]);
+			$this->shopperUser->getCheckoutManager()->addItemToCart(
+				$upsell,
+				null,
+				$upsell->getValue('amount') ?? 1,
+				false,
+				CheckInvalidAmount::NO_CHECK,
+				false,
+				$cartItem->cart,
+			)->update(['upsell' => $cartItem->getPK()]);
 		}
 
 		$this->redirect('this');
@@ -184,7 +193,7 @@ class OrderItemList extends Datalist
 		$this->template->discountPrice = $this->selectedOrder->getDiscountPrice();
 		$this->template->discountPriceVat = $this->selectedOrder->getDiscountPriceVat();
 		$this->template->upsells = $this->productRepository->getCartItemsRelations($this->getItemsOnPage());
-		$this->template->watchers = ($customer = $this->shopperUserUser->getCustomer()) ? $this->watcherRepository->getWatchersByCustomer($customer)->setIndex('fk_product')->toArray() : [];
+		$this->template->watchers = ($customer = $this->shopperUser->getCustomer()) ? $this->watcherRepository->getWatchersByCustomer($customer)->setIndex('fk_product')->toArray() : [];
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;
@@ -200,7 +209,7 @@ class OrderItemList extends Datalist
 		/** @var \Eshop\DB\Cart $cart */
 		$cart = $this->selectedOrder->purchase->carts->first();
 
-		$cartItem = $this->checkoutManager->addItemToCart($product, null, 1, false, true, true, $cart);
+		$cartItem = $this->shopperUser->getCheckoutManager()->addItemToCart($product, null, 1, false, CheckInvalidAmount::CHECK_THROW, true, $cart);
 
 		if ($cartItem->cart->purchase) {
 			$package = $this->orderRepository->getFirstPackageByCartItem($cartItem) ??

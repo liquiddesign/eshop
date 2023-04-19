@@ -9,13 +9,13 @@ use Contributte\GopayInline\Api\Lists\Language;
 use Contributte\GopayInline\Client;
 use Contributte\GopayInline\Http\Response;
 use Eshop\Admin\SettingsPresenter;
-use Eshop\CheckoutManager;
 use Eshop\Common\IPaymentIntegration;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentResult;
 use Eshop\DB\PaymentResultRepository;
 use Eshop\DB\PaymentTypeRepository;
+use Eshop\ShopperUser;
 use Nette\Http\Request;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -23,36 +23,15 @@ use Web\DB\SettingRepository;
 
 class GoPay implements IPaymentIntegration
 {
-	public Client $client;
-
-	public CheckoutManager $checkoutManager;
-
-	public OrderRepository $orderRepository;
-
-	public SettingRepository $settingRepository;
-
-	public PaymentTypeRepository $paymentTypeRepository;
-
-	public PaymentResultRepository $paymentResultRepository;
-
-	public Request $request;
-
 	public function __construct(
-		Client $client,
-		CheckoutManager $checkoutManager,
-		OrderRepository $orderRepository,
-		SettingRepository $settingRepository,
-		PaymentTypeRepository $paymentTypeRepository,
-		PaymentResultRepository $paymentResultRepository,
-		Request $request
+		protected readonly Client $client,
+		protected readonly ShopperUser $shopperUser,
+		protected readonly OrderRepository $orderRepository,
+		protected readonly SettingRepository $settingRepository,
+		protected readonly PaymentTypeRepository $paymentTypeRepository,
+		protected readonly PaymentResultRepository $paymentResultRepository,
+		protected readonly Request $request
 	) {
-		$this->client = $client;
-		$this->checkoutManager = $checkoutManager;
-		$this->orderRepository = $orderRepository;
-		$this->settingRepository = $settingRepository;
-		$this->paymentTypeRepository = $paymentTypeRepository;
-		$this->paymentResultRepository = $paymentResultRepository;
-		$this->request = $request;
 	}
 
 	public function createPayment(Order $order): Response
@@ -108,7 +87,7 @@ class GoPay implements IPaymentIntegration
 
 	public function processPaymentCallback(): void
 	{
-		$this->checkoutManager->onOrderCreate[] = function (Order $order): void {
+		$this->shopperUser->getCheckoutManager()->onOrderCreate[] = function (Order $order): void {
 			$this->processPayment($order);
 		};
 	}
