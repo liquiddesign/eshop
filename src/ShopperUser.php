@@ -229,8 +229,6 @@ class ShopperUser extends User
 
 		if ($this->isLoggedIn()) {
 			if ($identity instanceof Customer) {
-				$this->customer = $identity;
-
 				return $identity;
 			}
 
