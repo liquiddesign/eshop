@@ -219,6 +219,14 @@ class ShopperUser extends User
 		return $this->config['autoFixCart'];
 	}
 
+	/**
+	 * @return array<int, string>
+	 */
+	public function getCheckoutSequence(): array
+	{
+		return $this->config['checkoutSequence'];
+	}
+
 	public function getCustomer(): ?Customer
 	{
 		if ($this->customer) {

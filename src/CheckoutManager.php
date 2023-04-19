@@ -329,11 +329,6 @@ class CheckoutManager
 		$oldCart->delete();
 	}
 
-	public function setCheckoutSequence(array $checkoutSequence): void
-	{
-		$this->checkoutSequence = $checkoutSequence;
-	}
-
 	public function getPricelists(?Currency $currency = null, ?DiscountCoupon $discountCoupon = null): Collection
 	{
 		return $this->shopperUser->getPricelists($currency, $discountCoupon ?? $this->getDiscountCoupon());
@@ -940,8 +935,8 @@ class CheckoutManager
 	 */
 	public function isStepAllowed(string $step): bool
 	{
-		$sequence = \array_search($step, $this->checkoutSequence);
-		$previousStep = $this->checkoutSequence[$sequence - 1] ?? null;
+		$sequence = \array_search($step, $this->shopperUser->getCheckoutSequence());
+		$previousStep = $this->shopperUser->getCheckoutSequence()[$sequence - 1] ?? null;
 
 		if ($previousStep === 'cart') {
 			return $this->getPurchase() && (bool) \count($this->getItems()) && \count($this->getIncorrectCartItems()) === 0 && $this->checkDiscountCoupon();
@@ -965,7 +960,7 @@ class CheckoutManager
 	{
 		$steps = [];
 
-		foreach ($this->checkoutSequence as $step) {
+		foreach ($this->shopperUser->getCheckoutSequence() as $step) {
 			$steps[$step] = $this->isStepAllowed($step);
 		}
 
@@ -976,7 +971,7 @@ class CheckoutManager
 	{
 		$lastStep = null;
 
-		foreach ($this->checkoutSequence as $step) {
+		foreach ($this->shopperUser->getCheckoutSequence() as $step) {
 			if (!$this->isStepAllowed($step)) {
 				break;
 			}
