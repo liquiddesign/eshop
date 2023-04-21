@@ -21,12 +21,10 @@
 		"liquiddesign/messages": "^0.1.2",
 		"liquiddesign/translator": "^0.1.0",
 		"liquiddesign/pages": "^1.0.8",
-		"liquiddesign/admin": "^0.5.15",
-		"liquiddesign/web": "^0.3",
+		"liquiddesign/web": "v1.x-dev",
 		"liquiddesign/grid": "^0.1.6",
 		"liquiddesign/common": "^1.0",
 		"liquiddesign/ares": "^1.0",
-		"liquiddesign/base": "dev-main",
 		"ext-pdo": "*",
 		"ext-intl": "*",
 		"ext-curl": "*",
@@ -54,6 +52,8 @@
 		"dfridrich/qr-platba": "^2.0",
 		"latte/latte": "^3.0"
 	},
+	"minimum-stability": "dev",
+	"prefer-stable": true,
 	"require-dev": 
 	{
 		"nette/tester":"*",
