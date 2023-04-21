@@ -216,21 +216,23 @@ class DiscountCouponForm extends Control
 				]);
 			}
 
-			/** @var array<mixed> $conditions */
-			$conditions = Arrays::pick($values, 'categoriesConditionsContainer');
-			$this->discountConditionCategoryRepository->many()->where('fk_discountCoupon', $discountCoupon->getPK())->delete();
+			if (isset($values['categoriesConditionsContainer'])) {
+				/** @var array<mixed> $conditions */
+				$conditions = Arrays::pick($values, 'categoriesConditionsContainer');
+				$this->discountConditionCategoryRepository->many()->where('fk_discountCoupon', $discountCoupon->getPK())->delete();
 
-			for ($i = 0; $i < 3; $i++) {
-				if (!isset($data['categoriesConditionsContainer']["categories_$i"])) {
-					continue;
+				for ($i = 0; $i < 3; $i++) {
+					if (!isset($data['categoriesConditionsContainer']["categories_$i"])) {
+						continue;
+					}
+
+					$this->discountConditionCategoryRepository->syncOne([
+						'cartCondition' => $conditions["cartCondition_$i"],
+						'quantityCondition' => $conditions["quantityCondition_$i"],
+						'categories' => $data['categoriesConditionsContainer']["categories_$i"],
+						'discountCoupon' => $discountCoupon,
+					]);
 				}
-
-				$this->discountConditionCategoryRepository->syncOne([
-					'cartCondition' => $conditions["cartCondition_$i"],
-					'quantityCondition' => $conditions["quantityCondition_$i"],
-					'categories' => $data['categoriesConditionsContainer']["categories_$i"],
-					'discountCoupon' => $discountCoupon,
-				]);
 			}
 
 			$this->flashMessage('Uloženo', 'success');
