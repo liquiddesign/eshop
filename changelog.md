@@ -8,11 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0-beta.1]
 
 ### Added
+- **BREAKING:** Many entities now have foreign key to *Base/DB/Shop* entity
+  - To run this version of Eshop you need to sync this entity to database
 - **BREAKING:** New *ShopperUser* and *CheckoutManager*
   - *ShopperUser* is now extending *Nette\Security\User* and act like it
   - *CheckoutManager* is now not injected to *Container* and is available only by *ShopperUser*
   - *ShopperUser* should not use *CheckoutManager* directly
   - *CheckoutManager* uses *ShopperUser*
+  
 ### Changed
 - **BREAKING:** Comgate service is now provided only by Integrations service. Comgate package extension is still injected to *Container* with configuration.
 - **BREAKING:** Many callbacks are now always arrays, so you need to call them with *Arrays::invoke*

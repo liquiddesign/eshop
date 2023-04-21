@@ -26,6 +26,7 @@
 		"liquiddesign/grid": "^0.1.6",
 		"liquiddesign/common": "^1.0",
 		"liquiddesign/ares": "^1.0",
+		"liquiddesign/base": "dev-main",
 		"ext-pdo": "*",
 		"ext-intl": "*",
 		"ext-curl": "*",
