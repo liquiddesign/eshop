@@ -1010,26 +1010,6 @@ class CheckoutManager
 		return $priceVat ?: 0.0;
 	}
 
-	/**
-	 * @deprecated Don't work in all cases!
-	 */
-	public function getCartCheckoutPriceBefore(): float
-	{
-		$price = $this->getSumPriceBefore();
-
-		return $price ?: 0.0;
-	}
-
-	/**
-	 * @deprecated Don't work in all cases!
-	 */
-	public function getCartCheckoutPriceVatBefore(): float
-	{
-		$priceVat = $this->getSumPriceVatBefore();
-
-		return $priceVat ?: 0.0;
-	}
-
 	public function getPaymentPrice(): float
 	{
 		if ($this->getPurchase() && $this->getPurchase()->paymentType) {

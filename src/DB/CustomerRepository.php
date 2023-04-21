@@ -100,7 +100,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 				$lastName,
 				$customer->billAddress ? $customer->billAddress->city : null,
 				$customer->company,
-				$customer->getValue('newsletterPK') || $customer->newsletter ? '1' : '0',
+				$customer->getValue('newsletterPK') ? '1' : '0',
 				$phone,
 			]);
 		}
@@ -117,15 +117,6 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 				]);
 			}
 		}
-	}
-
-	/**
-	 * @deprecated use getArrayForSelect()
-	 * @return array<string>
-	 */
-	public function getListForSelect(): array
-	{
-		return $this->getArrayForSelect();
 	}
 
 	/**

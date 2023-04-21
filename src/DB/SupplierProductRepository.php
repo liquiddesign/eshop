@@ -301,7 +301,11 @@ class SupplierProductRepository extends \StORM\Repository
 		$products->setBufferedQuery(false);
 		$array = [];
 
-		$amountRepository->many()->where('this.fk_store', $store->getPK())->delete();
+		$amountRepository->many()->where('this.fk_store', $store->getPK())->update([
+			'inStock' => 0,
+			'reserved' => null,
+			'ordered' => null,
+		]);
 
 		while ($draft = $products->fetch()) {
 			/** @var \Eshop\DB\SupplierProduct $draft */

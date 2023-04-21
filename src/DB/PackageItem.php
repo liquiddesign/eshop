@@ -13,12 +13,6 @@ use StORM\RelationCollection;
  */
 class PackageItem extends \StORM\Entity
 {
-	/** @deprecated PackageItem is always deleted */
-	public const DELETE_MODE_DELETE = 'delete';
-
-	/** @deprecated PackageItem is always deleted */
-	public const DELETE_MODE_MARK = 'mark';
-
 	/**
 	 * Počet
 	 * @column

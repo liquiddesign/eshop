@@ -53,62 +53,6 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$this->cache = new Cache($storage);
 	}
 
-	/**
-	 * @param bool $includeInactive
-	 * @return array<array<array<object>>>
-	 * @throws \Throwable
-	 * @deprecated use category generator
-	 */
-	public function getProducerPages(bool $includeInactive = true): array
-	{
-		return $this->cache->load('categoryProducerPages', function (&$dependencies) use ($includeInactive) {
-			$dependencies = [
-				Cache::TAGS => 'categories',
-			];
-
-			$mutationSuffix = $this->pageRepository->getConnection()->getMutationSuffix();
-
-			$pages = $this->pageRepository->many()->where('type', 'product_list')->setOrderBy(['this.priority']);
-
-			if (!$includeInactive) {
-				$pages->where("active$mutationSuffix", true);
-			}
-
-			$producerPages = [];
-
-			while ($page = $pages->fetch()) {
-				/** @var \Web\DB\Page $page */
-
-				$params = $page->getParsedParameters();
-
-				if (!isset($params['category']) || !isset($params['producer'])) {
-					continue;
-				}
-
-				$producerPages[$params['category']][] = [$page, $this->producerRepository->one($params['producer'])];
-			}
-
-			return $producerPages;
-		});
-	}
-
-	/**
-	 * @param string|null $groupBy
-	 * @param array $filters
-	 * @param array|null $pricelists
-	 * @return array<array<int>>
-	 * @deprecated Use getCounts() instead
-	 * @throws \Throwable
-	 */
-	public function getCountsGrouped(?string $groupBy = null, array $filters = [], ?array $pricelists = null): array
-	{
-		unset($groupBy);
-		unset($filters);
-		unset($pricelists);
-
-		return [];
-	}
-
 	public function getCounts(string $path): ?int
 	{
 		$levels = $this->preloadCategoryCounts;
@@ -139,71 +83,6 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		});
 		
 		return (int) ($result[$path] ?? 0);
-	}
-
-	/**
-	 * Updates all paths of children of category.
-	 * @deprecated
-	 * @param \Eshop\DB\Category $category
-	 * @param string|null $typeId
-	 * @throws \StORM\Exception\NotFoundException
-	 */
-	public function updateCategoryChildrenPath(Category $category, ?string $typeId = null): void
-	{
-		if ($typeId) {
-			$type = $typeId;
-		} else {
-			if (!$category->getValue('type')) {
-				$category = $this->one($category->getPK());
-			}
-
-			$type = $category->getValue('type');
-		}
-
-		if (!$type) {
-			throw new \InvalidArgumentException('Invalid category type!');
-		}
-
-		/** @var array<\Eshop\DB\Category> $tree */
-		$tree = $this->getTree($type, false, true);
-
-		$startCategory = null;
-
-		foreach ($tree as $item) {
-			if ($item->getPK() === $category->getPK()) {
-				$startCategory = $item;
-
-				break;
-			}
-
-			if (!\str_contains($category->path, $item->path)) {
-				continue;
-			}
-
-			$startCategory = $this->findCategoryInTree($item, $category);
-
-			if ($startCategory) {
-				break;
-			}
-		}
-
-		if ($startCategory) {
-			$startCategory->setParent($this);
-			$startCategory->update(['path' => $category->path]);
-
-			foreach ($startCategory->children as $child) {
-				$child->setParent($this);
-				$child->update(['path' => $startCategory->path . Strings::substring($child->path, -4)]);
-
-				if (\count($child->children) <= 0) {
-					continue;
-				}
-
-				$this->doUpdateCategoryChildrenPath($child);
-			}
-		}
-
-		$this->clearCategoriesCache();
 	}
 
 	public function getTree(string $typeId = 'main', bool $cache = true, bool $includeHidden = false, bool $onlyMenu = false): ArrayWrapper
@@ -956,41 +835,5 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		}
 
 		return $branch;
-	}
-
-	private function findCategoryInTree(Category $category, Category $targetCategory): ?Category
-	{
-		foreach ($category->children as $child) {
-			if ($child->getPK() === $targetCategory->getPK()) {
-				return $child;
-			}
-
-			$returnCategory = $this->findCategoryInTree($child, $targetCategory);
-
-			if ($returnCategory) {
-				return $returnCategory;
-			}
-		}
-
-		return null;
-	}
-
-	/**
-	 * @param \Eshop\DB\Category $category
-	 * @throws \StORM\Exception\NotFoundException
-	 * @deprecated
-	 */
-	private function doUpdateCategoryChildrenPath(Category $category): void
-	{
-		foreach ($category->children as $child) {
-			$child->setParent($this);
-			$child->update(['path' => $category->path . Strings::substring($child->path, -4)]);
-
-			if (\count($child->children) <= 0) {
-				continue;
-			}
-
-			$this->doUpdateCategoryChildrenPath($child);
-		}
 	}
 }

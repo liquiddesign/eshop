@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Nette\Utils\Strings;
-use StORM\Collection;
 use StORM\RelationCollection;
 
 /**
@@ -469,17 +468,6 @@ class Order extends \StORM\Entity
 	public function getDiscountCoupon(): ?DiscountCoupon
 	{
 		return $this->purchase->coupon;
-	}
-
-	/**
-	 * @return \StORM\Collection<\Eshop\DB\Invoice>
-	 * @deprecated use property
-	 */
-	public function getInvoices(): Collection
-	{
-		$invoiceRepository = $this->getConnection()->findRepository(Invoice::class);
-
-		return $invoiceRepository->many()->where('orders.uuid', $this->getPK());
 	}
 
 	public function getDpdCode(): ?string

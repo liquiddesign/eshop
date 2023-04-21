@@ -25,7 +25,6 @@ use Eshop\DB\QuantityPriceRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
-use Eshop\Shopper;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
@@ -245,16 +244,16 @@ class PricelistsPresenter extends BackendPresenter
 			}
 
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
-				$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), Shopper::PRICE_PRECISSION);
+				$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), ShopperUser::PRICE_PRECISSION);
 				$prices['priceBefore'] = isset($prices['priceVatBefore']) ?
-					\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), Shopper::PRICE_PRECISSION) :
+					\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), ShopperUser::PRICE_PRECISSION) :
 					null;
 			}
 
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
-				$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), Shopper::PRICE_PRECISSION);
+				$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), ShopperUser::PRICE_PRECISSION);
 				$prices['priceVatBefore'] = isset($prices['priceBefore']) ?
-					\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), Shopper::PRICE_PRECISSION) :
+					\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), ShopperUser::PRICE_PRECISSION) :
 					null;
 			}
 
@@ -704,7 +703,7 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 				$values['bulkType'] === 'selected' ? $ids : \array_keys($grid->getFilteredSource()->toArrayOf('uuid')),
 				$targetPricelist,
 				(float) $values['percent'] / 100,
-				Shopper::PRICE_PRECISSION,
+				ShopperUser::PRICE_PRECISSION,
 				$values['overwrite'],
 				$values['beforePrices'] ?? false,
 				$quantity,

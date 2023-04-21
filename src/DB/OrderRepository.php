@@ -130,14 +130,6 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$value === false ? $collection->where('internalRibbons.fk_internalRibbon IS NULL') : $collection->where('internalRibbons.fk_internalRibbon', $value);
 	}
 
-	/**
-	 * @deprecated use getFinishedOrders(new Customer(['uuid' => $customerId])) instead
-	 */
-	public function getFinishedOrdersByCustomer(string $customerId): Collection
-	{
-		return $this->getFinishedOrders(new Customer(['uuid' => $customerId]));
-	}
-
 	public function getFinishedOrders(?Customer $customer = null, ?Merchant $merchant = null, ?Account $account = null): Collection
 	{
 		$collection = $this->many()->where('this.completedTs IS NOT NULL AND this.canceledTs IS NULL');
@@ -198,18 +190,6 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		}
 
 		Arrays::invoke($this->onOrdersMergedAll, $targetOrder, $orders);
-	}
-
-	/**
-	 * @deprecated use getNewOrders(new Customer(['uuid' => $customerId])) instead
-	 */
-	public function getNewOrdersByCustomer(string $customerId): Collection
-	{
-		return $this->many()
-			->join(['purchase' => 'eshop_purchase'], 'purchase.fk_purchase = purchase.uuid')
-			->join(['customer' => 'eshop_customer'], 'customer.uuid = purchase.fk_customer')
-			->where('purchase.fk_customer', $customerId)
-			->where('this.completedTs IS NULL AND this.canceledTs IS NULL');
 	}
 
 	public function getNewOrders(?Customer $customer, ?Merchant $merchant = null, ?Account $account = null): Collection
@@ -1260,16 +1240,6 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		return $pointsGain;
 	}
 
-	/**
-	 * @deprecated
-	 * @param string $orderId
-	 * @throws \StORM\Exception\NotFoundException
-	 */
-	public function cancelOrderById(string $orderId): void
-	{
-		$this->cancelOrder($this->one($orderId, true));
-	}
-
 	public function openOrder(Order $order, ?Administrator $administrator = null): void
 	{
 		if (Arrays::contains(Arrays::invoke($this->onBeforeOrderOpened, $order), false)) {
@@ -1412,16 +1382,6 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		Arrays::invoke($this->onOrderUnPaused, $order);
 
 		$this->orderLogItemRepository->createLog($order, OrderLogItem::UN_PAUSE, null, $administrator);
-	}
-
-	/**
-	 * @deprecated
-	 * @param string $orderId
-	 * @throws \StORM\Exception\NotFoundException
-	 */
-	public function banOrderById(string $orderId): void
-	{
-		$this->banOrder($this->one($orderId, true));
 	}
 
 	public function getLastOrder(): ?Order

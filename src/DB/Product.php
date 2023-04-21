@@ -117,13 +117,6 @@ class Product extends \StORM\Entity
 	public int $defaultBuyCount = 1;
 
 	/**
-	 * Hodnocení
-	 * @column
-	 * @deprecated Use ReviewRepository
-	 */
-	public ?float $rating = null;
-
-	/**
 	 * Minimální prodejní množství
 	 * @column
 	 */
@@ -533,14 +526,6 @@ class Product extends \StORM\Entity
 	public RelationCollection $taxes;
 
 	/**
-	 * Upsell produkty
-	 * @relationNxN{"sourceViaKey":"fk_root","targetViaKey":"fk_upsell"}
-	 * @var \StORM\RelationCollection<\Eshop\DB\Product>
-	 * @deprecated
-	 */
-	public RelationCollection $upsells;
-
-	/**
 	 * Věrnostní programy
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\LoyaltyProgramProduct>
@@ -616,15 +601,6 @@ class Product extends \StORM\Entity
 		$ribbonRepository = $this->getConnection()->findRepository(Ribbon::class);
 
 		return \array_intersect_key($ribbonRepository->getTextRibbons()->toArray(), \array_flip(\explode(',', $ids ?? '')));
-	}
-
-	/**
-	 * @deprecated Use getPreviewAtttributes()
-	 * @return array<string, array<int, array<string, string>>>
-	 */
-	public function getPreviewParameters(): array
-	{
-		return $this->getPreviewAtttributes();
 	}
 
 	/**

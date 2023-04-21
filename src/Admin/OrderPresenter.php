@@ -30,7 +30,6 @@ use Eshop\DB\Order;
 use Eshop\DB\OrderLogItem;
 use Eshop\DB\OrderLogItemRepository;
 use Eshop\DB\OrderRepository;
-use Eshop\DB\PackageItem;
 use Eshop\DB\PackageItemRepository;
 use Eshop\DB\PackageRepository;
 use Eshop\DB\Payment;
@@ -116,13 +115,9 @@ class OrderPresenter extends BackendPresenter
 		'showExtendedPay' => true,
 		'targito' => false,
 		'eHub' => false,
-		/** @deprecated Use const ORDER_STATES_NAMES */
-		'orderStates' => null,
 		'print' => true,
 		'printMultiple' => false,
 		'printInvoices' => false,
-		/** @deprecated PackageItem is always deleted */
-		'deletePackageItemMode' => PackageItem::DELETE_MODE_MARK,
 		'pauseOrder' => false,
 		'noteIconColor' => null,
 	];

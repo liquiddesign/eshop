@@ -97,14 +97,4 @@ class CouponForm extends \Nette\Application\UI\Form
 
 		Nette\Utils\Arrays::invoke($this->onRemove);
 	}
-
-	/**
-	 * @deprecated Checked in onValidate, just don't use this.
-	 */
-	public static function validateCoupon(Nette\Forms\Controls\TextInput $input, array $args): bool
-	{
-		[$cart, $customer, $repository] = $args;
-		
-		return (bool) $repository->getValidCouponByCart((string) $input->getValue(), $cart, $customer);
-	}
 }

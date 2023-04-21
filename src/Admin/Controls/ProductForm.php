@@ -35,7 +35,6 @@ use Eshop\DB\TaxRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\Integration\Integrations;
-use Eshop\Shopper;
 use Eshop\ShopperUser;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
@@ -373,19 +372,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				}
 			}
 		});
-		// /Relations
-
-		/** @deprecated */
-		if (isset($configuration['upsells']) && $configuration['upsells']) {
-			$this->monitor(Presenter::class, function () use ($form): void {
-				$form->addMultiSelect2('upsells', 'Upsell produkty', [], [
-					'ajax' => [
-						'url' => $this->getPresenter()->link('getProductsForSelect2!'),
-					],
-					'placeholder' => 'Zvolte produkty',
-				])->checkDefaultValue(false);
-			});
-		}
 
 		/** @var \Eshop\DB\ProductTab $productTab */
 		foreach ($productTabRepository->many() as $productTab) {
@@ -674,16 +660,16 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				}
 
 				if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
-					$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), Shopper::PRICE_PRECISSION);
+					$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), ShopperUser::PRICE_PRECISSION);
 					$prices['priceBefore'] = isset($prices['priceVatBefore']) ?
-						\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), Shopper::PRICE_PRECISSION) :
+						\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), ShopperUser::PRICE_PRECISSION) :
 						null;
 				}
 
 				if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
-					$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), Shopper::PRICE_PRECISSION);
+					$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), ShopperUser::PRICE_PRECISSION);
 					$prices['priceVatBefore'] = isset($prices['priceBefore']) ?
-						\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), Shopper::PRICE_PRECISSION) :
+						\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), ShopperUser::PRICE_PRECISSION) :
 						null;
 				}
 

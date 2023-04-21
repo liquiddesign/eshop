@@ -37,15 +37,6 @@ class CustomerGroupRepository extends \StORM\Repository implements IGeneralRepos
 	}
 
 	/**
-	 * @deprecated use getArrayForSelect()
-	 * @return array<string>
-	 */
-	public function getListForSelect(): array
-	{
-		return $this->many()->toArrayOf('name');
-	}
-
-	/**
 	 * @inheritDoc
 	 */
 	public function getArrayForSelect(bool $includeHidden = true, bool $showUnregistered = true): array

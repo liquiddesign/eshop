@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING:** Dropped support for Latte <3.0
 ### Removed
 - **BREAKING:** Removed deprecated classes
+  - `Shopper`
   - `FrontendPresenter`
   - `ComgatePresenter`
   - `ExportPresenter`
@@ -28,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Admin/TagPresenter`
   - `Integration/Comgate`
   - `Admin/CustomerGroupPresenter`
+  - `Admin/ParameterPresenter`
   - `DB/Parameter`
   - `DB/ParameterAvailableValue`
   - `DB/ParameterAvailableValueRepository`
@@ -44,13 +46,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `DB/SetRepository`
   - `DB/SupplierParameterValue.php`
   - `DB/SupplierParameterValueRepository.php`
-- **BREAKING:** Removed many deprecated and unused methods, not all of them are listed here
+- **BREAKING:** Removed many deprecated and unused methods and properties. Not all of them are listed here.
   - *OrderList::handleExport*
   - *OrderList::exportCsvApi*
+  - *CheckoutManager::getCartCheckoutPriceBefore*
+  - *CheckoutManager::getCartCheckoutPriceVatBefore*
+  - *CouponForm::validateCoupon*
+  - *CatalogPermission::$newsletter*
+  - *CatalogPermission::$newsletterGroup*
+  - *Customer::$newsletter*
+  - *Customer::$newsletterGroup*
+  - *Customer::$pricesWithVat*
+  - *Category::getFallbackImage*
+  - *CategoryRepository::updateCategoryChildrenPath*
+  - *CategoryRepository::doUpdateCategoryChildrenPath*
+  - *CategoryRepository::getCountsGrouped*
+  - *CategoryRepository::getProducerPages*
+  - *CustomerGroupRepository::getListForSelect*
+  - *CustomerRepository::getListForSelect*
+  - *DiscountCouponRepository::getValidCoupon*
+  - *Order::getInvoices*
+  - *OrderRepository::getFinishedOrdersByCustomer*
+  - *OrderRepository::getNewOrdersByCustomer*
+  - *OrderRepository::cancelOrderById*
+  - *OrderRepository::banOrderById*
+  - *Algolia::uploadProducts*
+  - *ProductRepository::getDisplayAmount*
+  - *ProductRepository::filterTag*
+  - *ProductRepository::getProductAsGroup*
+  - *Product::getPreviewParameters*
+  - *Product::$upsells*
+  - *Product::$rating*
 ### Deprecated
  - **BREAKING:** *Shopper* and *CheckoutManager* are now deprecated and not injected to *Container*
    - Use *ShopperUser* and *CheckoutManager* from *ShopperUser* instead
    - This change is not backward compatible, you need to rewrite all dependencies to *Shopper* and *CheckoutManager*
+ - *Integration/MailerLite*
 ### Fixed
 
 ## [1.3.0 - 1.3.4] - 2023-03-26

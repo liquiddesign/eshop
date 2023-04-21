@@ -23,7 +23,6 @@ use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProductRepository;
-use Eshop\Shopper;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
@@ -815,7 +814,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$form->addGroup('Oprávnění a zákazník');
 			$container = $form->addContainer('permission');
 			$container->addSelect2('customer', 'Zákazník', $this->customerRepository->getArrayForSelect())->setPrompt('-Zvolte-')->setRequired();
-			$catalogInput = $container->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setDefaultValue('price');
+			$catalogInput = $container->addSelect('catalogPermission', 'Zobrazení', ShopperUser::PERMISSIONS)->setDefaultValue('price');
 			
 			$catalogInput->addCondition($form::EQUAL, 'price')
 				->toggle('frm-accountForm-permission-showPricesWithoutVat-toogle')
@@ -886,7 +885,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				return '';
 			}
 			
-			$label = Shopper::PERMISSIONS;
+			$label = ShopperUser::PERMISSIONS;
 			
 			return '' . $label[$account->getValue('permission')] . ' + ' . ($account->getValue('buyAllowed') ? 'nákup' : 'bez nákupu');
 		});
@@ -1010,7 +1009,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		
 		$values = $form->addContainer('values');
 		
-		$values->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setPrompt('Původní');
+		$values->addSelect('catalogPermission', 'Zobrazení', ShopperUser::PERMISSIONS)->setPrompt('Původní');
 		$values->addSelect('buyAllowed', 'Povolit nákup', [
 			false => 'Ne',
 			true => 'Ano',

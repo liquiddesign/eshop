@@ -211,24 +211,4 @@ class Category extends SystemicEntity
 
 		return $repository->getCounts($this->path);
 	}
-
-	/**
-	 * @deprecated User property instead
-	 */
-	public function getFallbackImage(?Category $category = null): ?string
-	{
-		if (!$category) {
-			$category = $this;
-		}
-
-		if ($category->productFallbackImageFileName) {
-			return $category->productFallbackImageFileName;
-		}
-
-		if ($category->ancestor) {
-			return $this->getFallbackImage($category->ancestor);
-		}
-
-		return null;
-	}
 }

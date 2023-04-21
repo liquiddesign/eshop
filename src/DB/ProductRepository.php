@@ -21,7 +21,6 @@ use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\DIConnection;
-use StORM\Entity;
 use StORM\Expression;
 use StORM\ICollection;
 use StORM\Repository;
@@ -81,14 +80,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$priceLists = $customer ? $customer->pricelists : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricelists;
 		
 		return $this->getProducts($this->getValidPricelists($priceLists)->toArray(), $customer, $selects, $customer === null ? $this->customerGroupRepository->getUnregisteredGroup() : null);
-	}
-	
-	/**
-	 * @deprecated use getProductsAsGroup instead
-	 */
-	public function getProductAsGroup(CustomerGroup $customerGroup, bool $selects = true): Collection
-	{
-		return $this->getProductsAsGroup($customerGroup, $selects);
 	}
 	
 	public function getProductsAsGroup(CustomerGroup $customerGroup, bool $selects = true): Collection
@@ -536,15 +527,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			$collection->where('this.hiddenInMenu', $hiddenInMenu);
 		}
 	}
-
-	/**
-	 * @deprecated
-	 */
-	public function filterTag($value, ICollection $collection): void
-	{
-		$collection->join(['tags' => 'eshop_product_nxn_eshop_tag'], 'tags.fk_product=this.uuid');
-		$collection->where('tags.fk_tag', $value);
-	}
 	
 	public function filterRibbon($value, ICollection $collection): void
 	{
@@ -852,14 +834,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 		
 		return $collection->orderBy(['this.priority', "this.name$suffix"]);
-	}
-	
-	/**
-	 * @deprecated Use same method from DisplayAmountRepository.php
-	 */
-	public function getDisplayAmount(int $amount): ?Entity
-	{
-		return $this->getConnection()->findRepository(DisplayAmount::class)->many()->where('amountFrom <= :amount AND amountTo >= :amount', ['amount' => $amount])->orderBy(['priority'])->first();
 	}
 	
 	/**

@@ -214,31 +214,10 @@ class Customer extends Entity implements IIdentity, IUser
 	public ?string $preferredMutation;
 	
 	/**
-	 * Přihlášen k newsletteru
-	 * @column
-	 * @deprecated
-	 */
-	public bool $newsletter = false;
-
-	/**
-	 * Newsletter skupina
-	 * @column
-	 * @deprecated
-	 */
-	public ?string $newsletterGroup;
-	
-	/**
 	 * Body
 	 * @column
 	 */
 	public ?int $points;
-	
-	/**
-	 * Ukazovat ceny s DPH
-	 * @deprecated
-	 * @column
-	 */
-	public bool $pricesWithVat = false;
 
 	/**
 	 * Oprávnění: objednávky

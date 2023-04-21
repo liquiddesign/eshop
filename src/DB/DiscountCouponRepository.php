@@ -51,28 +51,6 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 	}
 
 	/**
-	 * @deprecated use DiscountRepository::getValidCoupon
-	 * @TODO use DiscountRepository::getActiveDiscounts for discounts
-	*/
-	public function getValidCoupon(string $code, Currency $currency, ?Customer $customer = null): ?DiscountCoupon
-	{
-		$collection = $this->many()
-			->where('code', $code)
-			->where('fk_currency', $currency->getPK())
-			->where('discount.validFrom IS NULL OR discount.validFrom <= now()')
-			->where('discount.validTo IS NULL OR discount.validTo >= now()')
-			->where('this.usageLimit IS NULL OR (this.usagesCount < this.usageLimit)');
-
-		if ($customer) {
-			$collection->where('fk_exclusiveCustomer IS NULL OR fk_exclusiveCustomer = :customer', ['customer' => $customer]);
-		} else {
-			$collection->where('fk_exclusiveCustomer IS NULL');
-		}
-
-		return $collection->first();
-	}
-
-	/**
 	 * @TODO use DiscountRepository::getActiveDiscounts for discounts
 	 * @throws \Eshop\Exceptions\InvalidCouponException
 	 */

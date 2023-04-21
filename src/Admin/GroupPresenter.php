@@ -11,7 +11,6 @@ use Eshop\DB\CustomerGroup;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\PricelistRepository;
-use Eshop\Shopper;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Nette\Utils\Strings;
@@ -62,7 +61,7 @@ class GroupPresenter extends BackendPresenter
 		});
 		
 		$grid->addColumn('Katalogové oprávnění', function (CustomerGroup $group) {
-			return Shopper::PERMISSIONS[$group->defaultCatalogPermission];
+			return ShopperUser::PERMISSIONS[$group->defaultCatalogPermission];
 		}, '%s', null, ['class' => 'fit']);
 		
 		$grid->addColumn('Povolený nákup', function (CustomerGroup $group) {
@@ -116,7 +115,7 @@ class GroupPresenter extends BackendPresenter
 		
 		$form->addText('name', 'Název')->setRequired();
 		
-		$catalogPermInput = $form->addSelect('defaultCatalogPermission', 'Katalogové oprávnění', Shopper::PERMISSIONS);
+		$catalogPermInput = $form->addSelect('defaultCatalogPermission', 'Katalogové oprávnění', ShopperUser::PERMISSIONS);
 		
 		$catalogPermInput->addCondition($form::EQUAL, 'price')
 			->toggle('frm-newForm-defaultPricesWithoutVat-toogle')

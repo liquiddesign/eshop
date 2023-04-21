@@ -11,6 +11,9 @@ use MailerLiteApi\MailerLite as MailerLiteApi;
 use Nette\Utils\Validators;
 use Web\DB\SettingRepository;
 
+/**
+ * @deprecated Old class, no alternative
+ */
 class MailerLite
 {
 	public Subscribers $subscribersApi;
@@ -86,7 +89,7 @@ class MailerLite
 				continue;
 			}
 
-			$this->subscribe($catalogPerm->account->login, $catalogPerm->account->fullname, $catalogPerm->newsletterGroup);
+			$this->subscribe($catalogPerm->account->login, $catalogPerm->account->fullname, 'group');
 		}
 	}
 
