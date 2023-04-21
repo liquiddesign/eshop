@@ -110,7 +110,7 @@ class ShopperUser extends User
 	 */
 	public function getCategoriesImage(): array
 	{
-		return $this->config['categories']['image'];
+		return $this->config['categories']->image;
 	}
 
 	/**
@@ -118,37 +118,37 @@ class ShopperUser extends User
 	 */
 	public function getCategoriesFallbackImage(): array
 	{
-		return $this->config['categories']['fallbackImage'];
+		return $this->config['categories']->fallbackImage;
 	}
 
 	public function getInvoicesAutoTaxDateInDays(): int
 	{
-		return $this->config['invoices']['autoTaxDateInDays'];
+		return $this->config['invoices']->autoTaxDateInDays;
 	}
 
 	public function getInvoicesAutoDueDateInDays(): int
 	{
-		return $this->config['invoices']['autoDueDateInDays'];
+		return $this->config['invoices']->autoDueDateInDays;
 	}
 
 	public function getReviewsType(): string
 	{
-		return $this->config['reviews']['type'];
+		return $this->config['reviews']->type;
 	}
 
 	public function getReviewsMinScore(): float
 	{
-		return $this->config['reviews']['minScore'];
+		return $this->config['reviews']->minScore;
 	}
 
 	public function getReviewsMaxScore(): float
 	{
-		return $this->config['reviews']['maxScore'];
+		return $this->config['reviews']->maxScore;
 	}
 
 	public function getReviewsMaxRemindersCount(): int
 	{
-		return $this->config['reviews']['maxRemindersCount'];
+		return $this->config['reviews']->maxRemindersCount;
 	}
 
 	public function getReviewsMiddleScore(): float

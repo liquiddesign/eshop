@@ -541,7 +541,7 @@ class ProductPresenter extends BackendPresenter
 		/** @var array<\Eshop\DB\CategoryType> $categoryTypes */
 		$categoryTypes = $this->categoryTypeRepository->getCollection(true)->toArray();
 
-		$productData = $product->toArray(['ribbons', 'internalRibbons', 'parameterGroups', 'taxes', 'categories']);
+		$productData = $product->toArray(['ribbons', 'internalRibbons', 'taxes', 'categories']);
 
 		foreach ($categoryTypes as $categoryType) {
 			$form['categories'][$categoryType->getPK()]
