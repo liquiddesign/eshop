@@ -1693,7 +1693,7 @@ class OrderPresenter extends BackendPresenter
 					continue;
 				}
 
-				$mergedProducts = $product->getAllMergedProducts();
+				$mergedProducts = $product->getAllMergedProducts(false, true);
 				$mergedProducts[$product->getPK()] = $product;
 
 				foreach ($mergedProducts as $product) {
