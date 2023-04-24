@@ -585,9 +585,12 @@ class Product extends \StORM\Entity
 	}
 
 	/**
+	 * Return all descendant products
+	 * If $onlyDescendants is false, return all descendant and ascendant products
+	 * If $includeDescendantsOfAscendants is true, return all descendant and ascendant products and their descendants. Only works if $onlyDescendants is false.
 	 * @return array<\Eshop\DB\Product>
 	 */
-	public function getAllMergedProducts(bool $onlyDescendants = true): array
+	public function getAllMergedProducts(bool $onlyDescendants = true, bool $includeDescendantsOfAscendants = false): array
 	{
 		$down = $this->doGetAllMergedProducts($this);
 
@@ -600,6 +603,10 @@ class Product extends \StORM\Entity
 
 		while ($masterProduct = $product->masterProduct) {
 			$up[$masterProduct->getPK()] = $masterProduct;
+
+			if ($includeDescendantsOfAscendants) {
+				$up = \array_merge($up, $this->doGetAllMergedProducts($masterProduct));
+			}
 
 			$product = $masterProduct;
 		}
