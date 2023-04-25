@@ -2,6 +2,7 @@
 
 namespace Eshop;
 
+use Base\ShopsConfig;
 use Carbon\Carbon;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Common\CheckInvalidAmount;
@@ -186,6 +187,7 @@ class CheckoutManager
 		protected readonly DIConnection $stm,
 		protected readonly PurchaseRepository $purchaseRepository,
 		protected readonly PriceRepository $priceRepository,
+		protected readonly ShopsConfig $shopsConfig,
 		Request $request,
 	) {
 		if (!$request->getCookie('cartToken') && !$this->shopperUser->getCustomer()) {
@@ -452,6 +454,7 @@ class CheckoutManager
 			'customer' => $this->shopperUser->getCustomer() ?: null,
 			'currency' => $this->shopperUser->getCurrency(),
 			'expirationTs' => $this->shopperUser->getCustomer() ? null : (string) new \Carbon\Carbon('+' . $this->cartExpiration . ' days'),
+			'shop' => $this->shopsConfig->getSelectedShop(),
 		]);
 
 		$this->shopperUser->getCustomer() ? $this->shopperUser->getCustomer()->update(['activeCart' => $cart]) : $this->unattachedCarts[$this->cartToken] = $cart;
@@ -1391,6 +1394,8 @@ class CheckoutManager
 		if ($this->shopperUser->getAllowBannedEmailOrder() && $banned) {
 			$orderValues['bannedTs'] = (string) (new \Carbon\Carbon());
 		}
+
+		$orderValues['shop'] = $this->shopsConfig->getSelectedShop();
 
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->createOne($orderValues);

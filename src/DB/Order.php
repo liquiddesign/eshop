@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopEntity;
 use Nette\Utils\Strings;
 use StORM\RelationCollection;
 
@@ -13,7 +14,7 @@ use StORM\RelationCollection;
  * @table
  * @index{"name":"order_code","unique":true,"columns":["code"]}
  */
-class Order extends \StORM\Entity
+class Order extends ShopEntity
 {
 	public const STATE_OPEN = 'open';
 	public const STATE_RECEIVED = 'received';

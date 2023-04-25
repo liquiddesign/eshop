@@ -17,7 +17,16 @@ class CategoryTypeRepository extends \StORM\Repository implements IGeneralReposi
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		return $this->getCollection($includeHidden)->toArrayOf('name');
+		return $this->toArrayForSelect($this->getCollection($includeHidden));
+	}
+
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\CategoryType> $collection
+	 * @param bool $includeHidden
+	 */
+	public function toArrayForSelect(Collection $collection): array
+	{
+		return $collection->toArrayOf('name');
 	}
 
 	public function getCollection(bool $includeHidden = false): Collection

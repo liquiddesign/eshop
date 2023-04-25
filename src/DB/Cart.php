@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopEntity;
 use StORM\RelationCollection;
 
 /**
  * Košík
  * @table
  */
-class Cart extends \StORM\Entity
+class Cart extends ShopEntity
 {
 	public const EXPIRATION_DAYS = 30;
 

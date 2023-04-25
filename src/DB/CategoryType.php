@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Base\DB\Shop;
 use Base\Entity\ShopEntity;
 
 /**

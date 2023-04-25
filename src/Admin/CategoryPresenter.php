@@ -256,14 +256,20 @@ class CategoryPresenter extends BackendPresenter
 
 	public function actionDefault(): void
 	{
-		$this->tabs = $this->categoryTypeRepository->getArrayForSelect();
+		$categoryTypes = $this->categoryTypeRepository->getCollection(true);
+
+		if ($this->shop) {
+			$categoryTypes->where('this.fk_shop = :s OR this.fk_shop IS NULL', ['s' => $this->shop]);
+		}
+
+		$this->tabs = $this->categoryTypeRepository->toArrayForSelect($categoryTypes);
 		$this->tabs['types'] = '<i class="fa fa-bars"></i> Typy';
 
 		if (isset($this::CONFIGURATION['dynamicCategories']) && $this::CONFIGURATION['dynamicCategories']) {
 			$this->tabs['dynamicCategories'] = 'Dynamické kategorie';
 		}
 
-		if ($this->tab !== 'none') {
+		if ($this->tab !== 'none' && isset($this->tabs[$this->tab])) {
 			return;
 		}
 
@@ -470,6 +476,8 @@ class CategoryPresenter extends BackendPresenter
 		$form->addText('name', 'Název');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
 		$form->addCheckbox('hidden', 'Skryto');
+
+		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$categoryType);
 
