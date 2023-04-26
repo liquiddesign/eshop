@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopEntity;
 use Carbon\Carbon;
 use StORM\RelationCollection;
 
@@ -11,7 +12,7 @@ use StORM\RelationCollection;
  * Slevová akce
  * @table
  */
-class Discount extends \StORM\Entity
+class Discount extends ShopEntity
 {
 	/**
 	 * Název

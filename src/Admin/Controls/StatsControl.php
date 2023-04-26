@@ -3,6 +3,7 @@
 namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminFormFactory;
+use Base\ShopsConfig;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\Customer;
@@ -36,6 +37,7 @@ class StatsControl extends Control
 		private readonly CustomerRepository $customerRepository,
 		private readonly CategoryRepository $categoryRepository,
 		private readonly DiscountCouponRepository $discountCouponRepository,
+		private readonly ShopsConfig $shopsConfig,
 		private readonly ?Customer $signedInCustomer = null
 	) {
 
@@ -124,6 +126,7 @@ class StatsControl extends Control
 			->select(['date' => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
 			->where('this.createdTs >= :from AND this.createdTs <= :to', ['from' => $fromString, 'to' => $toString])
 			->join(['purchase' => 'eshop_purchase'], 'purchase.uuid = this.fk_purchase')
+			->where('this.fk_shop = :s OR this.fk_shop IS NULL', ['s' => $this->shopsConfig->getSelectedShop()])
 			->where('purchase.fk_currency', $currency->getPK());
 
 		if ($customerType !== 'all' && !$customer) {
@@ -135,6 +138,7 @@ class StatsControl extends Control
 				->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
 				->select(['date' => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
 				->where('this.createdTs >= :from AND this.createdTs <= :to', ['from' => $fromString, 'to' => $toString])
+				->where('this.fk_shop = :s OR this.fk_shop IS NULL', ['s' => $this->shopsConfig->getSelectedShop()])
 				->where('purchase.fk_currency', $currency->getPK());
 
 			$orders->where('purchase.fk_customer', \array_values($subSelect->toArrayOf('customerUuid')));
@@ -174,7 +178,9 @@ class StatsControl extends Control
 		$this->template->lastOrder = $this->orderRepository->getLastOrder();
 		$this->template->currency = $currency;
 		$this->template->ordersCount = \count($orders);
-		$this->template->discountCoupons = $discountCoupons = $this->discountCouponRepository->many()->where('fk_currency', $currency->getPK())->toArray();
+		$this->template->discountCoupons = $discountCoupons = $this->discountCouponRepository->many()
+			->where('discount.fk_shop = :s OR discount.fk_shop IS NULL', ['s' => $this->shopsConfig->getSelectedShop()])
+			->where('fk_currency', $currency->getPK())->toArray();
 		$this->template->usageDiscountCoupons = $this->orderRepository->getDiscountCouponsUsage($orders, $discountCoupons)[0];
 
 		/** @var \Eshop\Admin\StatsPresenter $presenter */

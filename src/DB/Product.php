@@ -252,6 +252,7 @@ class Product extends \StORM\Entity
 	/**
 	 * Priorita
 	 * @column
+	 * @deprecated
 	 */
 	public int $priority = 10;
 
@@ -269,30 +270,28 @@ class Product extends \StORM\Entity
 	/**
 	 * Neprodejné
 	 * @column
+	 * @deprecated
 	 */
 	public bool $unavailable = false;
 
 	/**
-	 * Set produktů
-	 * @column
-	 */
-	public bool $productsSet = false;
-
-	/**
 	 * Skryto
 	 * @column
+	 * @deprecated
 	 */
 	public bool $hidden = false;
 
 	/**
 	 * Skryto v menu a vyhledávání, dostupné přes URL
 	 * @column
+	 * @deprecated
 	 */
 	public bool $hiddenInMenu = false;
 
 	/**
 	 * Doporučené
 	 * @column
+	 * @deprecated
 	 */
 	public bool $recommended = false;
 

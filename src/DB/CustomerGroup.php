@@ -68,6 +68,13 @@ class CustomerGroup extends \StORM\Entity
 	public RelationCollection $defaultPricelists;
 
 	/**
+	 * Viditelníky
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\VisibilityList>
+	 */
+	public RelationCollection $defaultVisibilityLists;
+
+	/**
 	 * Defaultní po registraci
 	 * @column
 	 */

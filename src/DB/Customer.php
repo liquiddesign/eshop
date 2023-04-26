@@ -178,6 +178,13 @@ class Customer extends Entity implements IIdentity, IUser
 	 * @var \StORM\RelationCollection<\Eshop\DB\Pricelist>
 	 */
 	public RelationCollection $pricelists;
+
+	/**
+	 * Viditelníky
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\VisibilityList>
+	 */
+	public RelationCollection $visibilityLists;
 	
 	/**
 	 * Skupina uživatelů

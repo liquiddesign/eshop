@@ -6,6 +6,7 @@ namespace Eshop\DB;
 
 use Admin\DB\Administrator;
 use Admin\DB\IGeneralAjaxRepository;
+use Base\ShopsConfig;
 use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
@@ -116,7 +117,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		private readonly Container $container,
 		private readonly OrderLogItemRepository $orderLogItemRepository,
 		private readonly SettingRepository $settingRepository,
-		private readonly Integrations $integrations
+		private readonly Integrations $integrations,
+		private readonly ShopsConfig $shopsConfig,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -1386,7 +1388,9 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	public function getLastOrder(): ?Order
 	{
-		return $this->many()->orderBy(['this.createdTs' => 'DESC'])->first();
+		return $this->many()
+			->where('this.fk_shop = :s OR this.fk_shop IS NULL', ['s' => $this->shopsConfig->getSelectedShop()])
+			->orderBy(['this.createdTs' => 'DESC'])->first();
 	}
 
 	/**
