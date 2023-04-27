@@ -252,6 +252,18 @@ class ShopperUser extends User
 		return null;
 	}
 
+	/**
+	 * @return array<\Eshop\DB\VisibilityList>
+	 */
+	public function getVisibilityLists(): array
+	{
+		$customer = $this->getCustomer();
+
+		$visibilityLists = $customer ? $customer->getVisibilityLists() : $this->getCustomerGroup()->getDefaultVisibilityLists();
+
+		return $visibilityLists->where('this.hidden', false)->orderBy(['this.priority' => 'ASC'])->toArray();
+	}
+
 	public function canBuyProductAmount(Product $product, $amount): bool
 	{
 		return !($amount < $product->minBuyCount || ($product->maxBuyCount !== null && $amount > $product->maxBuyCount));

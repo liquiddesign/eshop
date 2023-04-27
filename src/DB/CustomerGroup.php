@@ -9,6 +9,7 @@ use StORM\RelationCollection;
 /**
  * Skupiny uživatelů
  * @table
+ * @method \StORM\ICollection<\Eshop\DB\VisibilityList> getDefaultVisibilityLists()
  */
 class CustomerGroup extends \StORM\Entity
 {

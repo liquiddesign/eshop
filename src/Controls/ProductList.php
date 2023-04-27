@@ -57,9 +57,7 @@ class ProductList extends Datalist
 		?array $order = null,
 		?Collection $source = null
 	) {
-		$source ??= $productRepository->getProducts()
-			->join(['displayAmount' => 'eshop_displayamount'], 'this.fk_displayAmount = displayAmount.uuid')
-			->where('this.hidden', false);
+		$source ??= $productRepository->getProducts()->join(['displayAmount' => 'eshop_displayamount'], 'this.fk_displayAmount = displayAmount.uuid');
 
 		if ($order) {
 			$source->orderBy($order);

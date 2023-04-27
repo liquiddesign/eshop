@@ -11,8 +11,10 @@ use Eshop\DB\CustomerGroup;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\PricelistRepository;
+use Eshop\DB\VisibilityListRepository;
 use Eshop\ShopperUser;
 use Forms\Form;
+use Nette\DI\Attributes\Inject;
 use Nette\Utils\Strings;
 
 class GroupPresenter extends BackendPresenter
@@ -34,6 +36,9 @@ class GroupPresenter extends BackendPresenter
 	
 	/** @inject */
 	public ShopperUser $shopperUser;
+
+	#[Inject]
+	public VisibilityListRepository $visibilityListRepository;
 	
 	public function createComponentGrid(): AdminGrid
 	{
@@ -145,8 +150,9 @@ class GroupPresenter extends BackendPresenter
 		$form->addInteger('defaultMaxDiscountProductPct', 'Výchozí max. sleva u prod. (%)')->setRequired()->setDefaultValue(100);
 		$form->addCheckbox('defaultBuyAllowed', 'Povolený nákup');
 		$form->addCheckbox('defaultViewAllOrders', 'Účet vidí všechny objednávky zákazníka');
-		$form->addDataMultiSelect('defaultPricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
+		$form->addMultiSelect2('defaultPricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
+		$form->addMultiSelect2('defaultVisibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect());
 		
 		if ($this::CONFIGURATION['defaultAfterRegistration']) {
 			$form->addCheckbox('defaultAfterRegistration', 'Výchozí po registraci');
@@ -210,6 +216,7 @@ class GroupPresenter extends BackendPresenter
 		$form = $this->getComponent('newForm');
 		$values = $group->toArray();
 		$values['defaultPricelists'] = \array_keys($group->defaultPricelists->toArray());
+		$values['defaultVisibilityLists'] = \array_keys($group->defaultVisibilityLists->toArray());
 		$form->setDefaults($values);
 	}
 }

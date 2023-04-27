@@ -1,23 +1,5 @@
 {varType Eshop\DB\Product $product}
-{do $shopper = $presenter->shopper}
-{varType Eshop\Shopper $shopper}
 
-{*{do $price = null}*}
-
-{*{if $shopper->getShowVat() && $shopper->getShowWithoutVat()}*}
-{*        {if ($shopper->showPriorityPrices() == 'withVat')}*}
-{*                {do $price = $product->getPriceVat()}*}
-{*        {else}*}
-{*                {do $price = $product->getPrice()}*}
-{*        {/if}*}
-{*{else}*}
-{*        {if $shopper->getShowVat()}*}
-{*                {do $price = $product->getPriceVat()}*}
-{*        {/if}*}
-{*        {if $shopper->getShowWithoutVat()}*}
-{*                {do $price = $product->getPrice()}*}
-{*        {/if}*}
-{*{/if}*}
 <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -37,10 +19,10 @@
             "price": {(string) $product->getPriceVat()},
             "priceCurrency": "CZK"
         },
-        {if $product->rating}
+        {if $rating = $product->getReviewsRating()}
         "aggregateRating": {
             "@type": "AggregateRating",
-            "ratingValue": {(string)$product->rating},
+            "ratingValue": {(string)(int)$product->rating},
             "reviewCount": "1",
             "worstRating": "0",
             "bestRating": "5"

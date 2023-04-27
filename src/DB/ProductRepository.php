@@ -8,6 +8,7 @@ use Admin\DB\IGeneralAjaxRepository;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Controls\ProductFilter;
+use Eshop\DevelTools;
 use Eshop\ShopperUser;
 use InvalidArgumentException;
 use League\Csv\EncloseField;
@@ -99,7 +100,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	/**
 	 * @param array<\Eshop\DB\Pricelist>|null $pricelists
-	 * @param \Eshop\DB\Customer|null $customer
+	 * @param \Eshop\DB\Customer|null $customer Used only when $customerGroup is not null
 	 * @param bool $selects
 	 * @param \Eshop\DB\CustomerGroup|null $customerGroup
 	 */
@@ -139,9 +140,11 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 		
 		if (!$pricelists) {
+			Debugger::barDump('No PriceLists');
+
 			return $this->many()->where('1=0');
 		}
-		
+
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$sep = '|';
 		$priorityLpad = '3';
@@ -160,7 +163,32 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 					",$priorityLpad,'0'),LPAD(CAST($price AS DECIMAL($priceLpad,$prec)), $priceLpad, '0'),$priceVat,IFNULL($priceBefore,0),IFNULL($priceVatBefore,0),prices$id.fk_pricelist))";
 			}
 		}
-		
+
+//		$visibilityLists = $this->shopperUser->getVisibilityLists();
+//
+//		if (!$visibilityLists) {
+//			Debugger::barDump('No VisibilityLists');
+//		}
+//
+//		$visibilityLists = \implode(',', \array_map(static function ($item) {
+//			return "'$item'";
+//		}, \array_keys($visibilityLists)));
+//
+//		$collection->select(['visibilityHidden' => "(SELECT hidden FROM eshop_visibilityListItem WHERE eshop_visibilityListItem.fk_product = this.uuid AND
+//		fk_visibilityList IN ($visibilityLists) ORDER BY priority LIMIT 1)"]);
+
+//		$collection->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid')
+//			->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityListItem.uuid')
+//			->join(
+//				['visibilityList2' => '(SELECT uuid FROM eshop_visibilitylist ORDER BY priority LIMIT 1)'],
+//				'visibilityList.uuid = visibilityList2.uuid',
+//			)
+//			->select(['hidden' => 'visibilityListItem.hidden'])
+//			->where('visibilityListItem.fk_visibilityList', \array_keys($visibilityLists));
+//		$collection->setGroupBy(['this.uuid']);
+
+		Debugger::barDump(DevelTools::showCollection($collection));
+
 		if ($selects) {
 			$defaultDisplayAmount = $this->settingRepository->getValueByName(SettingsPresenter::DEFAULT_DISPLAY_AMOUNT);
 			$defaultUnavailableDisplayAmount = $this->settingRepository->getValueByName(SettingsPresenter::DEFAULT_UNAVAILABLE_DISPLAY_AMOUNT);
@@ -272,7 +300,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 		
 		$this->setProductsConditions($collection, true, $pricelists);
-		
+
 		return $collection;
 	}
 	
@@ -524,7 +552,19 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function filterHiddenInMenu(?bool $hiddenInMenu, ICollection $collection): void
 	{
 		if ($hiddenInMenu !== null) {
-			$collection->where('this.hiddenInMenu', $hiddenInMenu);
+			$visibilityLists = $this->shopperUser->getVisibilityLists();
+
+			if (!$visibilityLists) {
+				Debugger::barDump('No VisibilityLists');
+			}
+
+			$visibilityLists = \implode(',', \array_map(static function ($item) {
+				return "'$item'";
+			}, \array_keys($visibilityLists)));
+
+			$collection->where("(SELECT eshop_visibilityListItem.hiddenInMenu FROM eshop_visibilityListItem
+			LEFT JOIN eshop_visibilitylist ON eshop_visibilitylist.uuid = eshop_visibilityListItem.fk_visibilityList
+			WHERE eshop_visibilityListItem.fk_product = this.uuid AND fk_visibilityList IN ($visibilityLists) ORDER BY eshop_visibilitylist.priority LIMIT 1) = " . ($hiddenInMenu ? '1' : '0'));
 		}
 	}
 	
@@ -561,13 +601,37 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function filterRecommended($value, ICollection $collection): void
 	{
-		$collection->where('this.recommended', $value);
+		$visibilityLists = $this->shopperUser->getVisibilityLists();
+
+		if (!$visibilityLists) {
+			Debugger::barDump('No VisibilityLists');
+		}
+
+		$visibilityLists = \implode(',', \array_map(static function ($item) {
+			return "'$item'";
+		}, \array_keys($visibilityLists)));
+
+		$collection->where("(SELECT eshop_visibilityListItem.recommended FROM eshop_visibilityListItem
+			LEFT JOIN eshop_visibilitylist ON eshop_visibilitylist.uuid = eshop_visibilityListItem.fk_visibilityList
+			WHERE eshop_visibilityListItem.fk_product = this.uuid AND fk_visibilityList IN ($visibilityLists) ORDER BY eshop_visibilitylist.priority LIMIT 1) = " . ($value ? '1' : '0'));
 	}
 	
 	public function filterHidden(?bool $hidden, ICollection $collection): void
 	{
 		if ($hidden !== null) {
-			$collection->where('this.hidden', $hidden);
+			$visibilityLists = $this->shopperUser->getVisibilityLists();
+
+			if (!$visibilityLists) {
+				Debugger::barDump('No VisibilityLists');
+			}
+
+			$visibilityLists = \implode(',', \array_map(static function ($item) {
+				return "'$item'";
+			}, \array_keys($visibilityLists)));
+
+			$collection->where("(SELECT eshop_visibilityListItem.hidden FROM eshop_visibilityListItem
+			LEFT JOIN eshop_visibilitylist ON eshop_visibilitylist.uuid = eshop_visibilityListItem.fk_visibilityList
+			WHERE eshop_visibilityListItem.fk_product = this.uuid AND fk_visibilityList IN ($visibilityLists) ORDER BY eshop_visibilitylist.priority LIMIT 1) = " . ($hidden ? '1' : '0'));
 		}
 	}
 	

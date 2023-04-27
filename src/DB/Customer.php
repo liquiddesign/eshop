@@ -17,6 +17,7 @@ use StORM\RelationCollection;
  * @table
  * @index{"name":"customer_unique_email","unique":true,"columns":["email"]}
  * @method array getData()
+ * @method \StORM\ICollection<\Eshop\DB\VisibilityList> getVisibilityLists()
  */
 class Customer extends Entity implements IIdentity, IUser
 {

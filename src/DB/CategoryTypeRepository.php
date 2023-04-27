@@ -22,7 +22,7 @@ class CategoryTypeRepository extends \StORM\Repository implements IGeneralReposi
 
 	/**
 	 * @param \StORM\Collection<\Eshop\DB\CategoryType> $collection
-	 * @param bool $includeHidden
+	 * @return array<string>
 	 */
 	public function toArrayForSelect(Collection $collection): array
 	{

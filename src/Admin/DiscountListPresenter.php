@@ -6,5 +6,4 @@ use Eshop\BackendPresenter;
 
 class DiscountListPresenter extends BackendPresenter
 {
-
 }

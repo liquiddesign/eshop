@@ -5,8 +5,6 @@ namespace Eshop\Admin;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\BackendPresenter;
-use Eshop\Common\DB\SystemicEntity;
-use Eshop\DB\Price;
 use Eshop\DB\Product;
 use Eshop\DB\VisibilityList;
 use Eshop\DB\VisibilityListItem;
@@ -60,10 +58,13 @@ class VisibilityListPresenter extends BackendPresenter
 
 	public function createComponentItemsGrid(): AdminGrid
 	{
-		$collection = $this->visibilityListItemRepository->many();
+		$collection = $this->visibilityListItemRepository->many()
+			->where('visibilityList.fk_shop = :shop OR visibilityList.fk_shop IS NULL', ['shop' => $this->shopsConfig->getSelectedShop()?->getPK()]);
 
 		$grid = $this->gridFactory->create($collection, 20, 'priority', 'ASC', true);
 		$grid->addColumnSelector();
+
+		$grid->addColumnText('Seznam', 'visibilityList.name', '%s', 'visibilityList.name');
 
 		$grid->addColumn('Kód', function (VisibilityListItem $visibilityListItem) {
 			return $visibilityListItem->product->getFullCode();
@@ -88,7 +89,8 @@ class VisibilityListPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected();
 
-		$grid->addFilterTextInput('search', ['name'], null, 'Název');
+		$mutationSuffix = $this->visibilityListItemRepository->getConnection()->getMutationSuffix();
+		$grid->addFilterTextInput('product', ["product.name$mutationSuffix", 'product.code', 'product.ean'], null, 'Produkt - Jméno, kód, ean');
 
 		if ($categories = $this->visibilityListRepository->getArrayForSelect()) {
 			$grid->addFilterDataSelect(function (Collection $source, $value): void {
@@ -170,11 +172,13 @@ class VisibilityListPresenter extends BackendPresenter
 
 			$data = $this->getHttpRequest()->getPost();
 
-			if (!isset($data['product'])) {
-				/** @var \Nette\Forms\Controls\SelectBox $input */
-				$input = $form['product'];
-				$input->addError('Toto pole je povinné!');
+			if (isset($data['product'])) {
+				return;
 			}
+
+			/** @var \Nette\Forms\Controls\SelectBox $input */
+			$input = $form['product'];
+			$input->addError('Toto pole je povinné!');
 		};
 
 		$form->onSuccess[] = function (AdminForm $form) use ($object): void {
