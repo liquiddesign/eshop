@@ -68,7 +68,7 @@ class ProductList extends Datalist
 		$this->setDefaultOnPage(20);
 		$this->setDefaultOrder('priority');
 
-		$this->setAllowedOrderColumns(['price' => 'price', 'priority' => 'priority', 'name' => 'name']);
+		$this->setAllowedOrderColumns(['price' => 'price', 'priority' => 'visibilityListItem.priority', 'name' => 'name']);
 		$this->setItemCountCallback(function (ICollection $filteredSource) use ($categoryRepository) {
 			$prefetchedCount = isset($this->getFilters()['category']) && \count($this->getFilters()) === 1 ? $categoryRepository->getCounts($this->getFilters()['category']) : null;
 			

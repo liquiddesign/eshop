@@ -9,8 +9,10 @@ use Nette\Application\ApplicationException;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use StORM\Collection;
+use StORM\Exception\NotExistsException;
 use StORM\IEntityParent;
 use StORM\RelationCollection;
+use Tracy\Debugger;
 use Web\DB\Setting;
 
 /**
@@ -252,13 +254,6 @@ class Product extends \StORM\Entity
 	/**
 	 * Priorita
 	 * @column
-	 * @deprecated
-	 */
-	public int $priority = 10;
-
-	/**
-	 * Priorita
-	 * @column
 	 */
 	public int $algoliaPriority = 10;
 
@@ -266,34 +261,6 @@ class Product extends \StORM\Entity
 	 * @column{"type":"timestamp"}
 	 */
 	public ?string $karsaExportTs;
-
-	/**
-	 * Neprodejné
-	 * @column
-	 * @deprecated
-	 */
-	public bool $unavailable = false;
-
-	/**
-	 * Skryto
-	 * @column
-	 * @deprecated
-	 */
-	public bool $hidden = false;
-
-	/**
-	 * Skryto v menu a vyhledávání, dostupné přes URL
-	 * @column
-	 * @deprecated
-	 */
-	public bool $hiddenInMenu = false;
-
-	/**
-	 * Doporučené
-	 * @column
-	 * @deprecated
-	 */
-	public bool $recommended = false;
 
 	/**
 	 * Koncept
@@ -543,6 +510,8 @@ class Product extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Photo>
 	 */
 	public RelationCollection $photos;
+
+	public ?VisibilityListItem $visibilityListItem;
 
 	private ProductRepository $productRepository;
 
@@ -810,19 +779,19 @@ class Product extends \StORM\Entity
 			$defaultDisplayAmount = $displayAmountRepository->one($defaultDisplayAmount);
 			$defaultUnavailableDisplayAmount = $displayAmountRepository->one($defaultUnavailableDisplayAmount);
 
-			return $this->unavailable === false ? $defaultDisplayAmount : $defaultUnavailableDisplayAmount;
+			return $this->isUnavailable() === false ? $defaultDisplayAmount : $defaultUnavailableDisplayAmount;
 		}
 
 		if ($defaultDisplayAmount) {
 			$defaultDisplayAmount = $displayAmountRepository->one($defaultDisplayAmount);
 
-			return $this->unavailable === false ? $defaultDisplayAmount : $this->displayAmount;
+			return $this->isUnavailable() === false ? $defaultDisplayAmount : $this->displayAmount;
 		}
 
 		if ($defaultUnavailableDisplayAmount) {
 			$defaultUnavailableDisplayAmount = $displayAmountRepository->one($defaultUnavailableDisplayAmount);
 
-			return $this->unavailable === false ? $this->displayAmount : $defaultUnavailableDisplayAmount;
+			return $this->isUnavailable() === false ? $this->displayAmount : $defaultUnavailableDisplayAmount;
 		}
 
 		return $this->displayAmount;
@@ -1082,6 +1051,50 @@ class Product extends \StORM\Entity
 		return null;
 	}
 
+	public function isHidden(): bool
+	{
+		return (bool) $this->loadVisibilityListItemProperty('unavailable');
+	}
+
+	public function isHiddenInMenu(): bool
+	{
+		return (bool) $this->loadVisibilityListItemProperty('unavailable');
+	}
+
+	public function isRecommended(): bool
+	{
+		return (bool) $this->loadVisibilityListItemProperty('unavailable');
+	}
+
+	public function getPriority(): int
+	{
+		return (int) $this->loadVisibilityListItemProperty('unavailable');
+	}
+
+	public function isUnavailable(): bool
+	{
+		return (bool) $this->loadVisibilityListItemProperty('unavailable');
+	}
+
+	private function loadVisibilityListItemProperty(string $property): int|string|bool|float|null
+	{
+		try {
+			return (bool) $this->getValue($property);
+		} catch (NotExistsException) {
+			if (isset($this->visibilityListItem)) {
+				return $this->visibilityListItem->$property;
+			}
+
+			$this->productRepository->hydrateProductWithVisibilityListItemProperties($this);
+
+			if (isset($this->visibilityListItem)) {
+				return $this->visibilityListItem->$property;
+			}
+
+			return null;
+		}
+	}
+
 	private function getQuantityPrice(int $amount, string $property): ?float
 	{
 		return $this->productRepository->getQuantityPrice($this, $amount, $property);
@@ -1101,5 +1114,20 @@ class Product extends \StORM\Entity
 		}
 
 		return $products;
+	}
+
+	public function __get(string $name): mixed
+	{
+		$deprecated = match ($name) {
+			'hidden', 'hiddenInMenu', 'recommended', 'unavailable' => 'is',
+			'priority' => 'get',
+			default => false,
+		};
+
+		if ($deprecated) {
+//			\trigger_error('Property ' . $name . ' is deprecated, use method ' . self::class . '::' . $deprecated . Strings::firstUpper($name) . '() instead', \E_USER_DEPRECATED);
+		}
+
+		return parent::__get($name);
 	}
 }

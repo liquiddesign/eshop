@@ -75,6 +75,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 					->join(['category' => 'eshop_category'], 'category.uuid=nxn.fk_category')
 					->setGroupBy(['SUBSTR(category.path,1,:level)'], null, ['level' => $level * 4]);
 				$productRepository->setProductsConditions($rows, false);
+				$productRepository->joinVisibilityListItemToProductCollection($rows);
 				
 				$result += $rows->setIndex('SUBSTR(category.path,1,:level)')->toArrayOf('total');
 			}

@@ -85,31 +85,31 @@ class ProductGridFactory
 				'pricelistActive' => 'MAX(pricelist.isActive)',
 			]);
 
-		$grid = $this->gridFactory->create($source, 20, 'this.priority', 'ASC', true);
+		$grid = $this->gridFactory->create($source, 20, 'this.uuid', 'ASC', true);
 		$grid->addColumnSelector();
-		$grid->addColumn('', function (Product $object, Datagrid $datagrid) {
-			if ($object->hidden) {
-				$label = 'Neviditelný: Skrytý';
-				$color = 'danger';
-			} elseif ($object->getValue('priceCount') === '0') {
-				$label = 'Neviditelný: Bez ceny';
-				$color = 'danger';
-			} elseif ($object->getValue('pricelistActive') === '0') {
-				$label = 'Neviditelný: Žádné aktivní ceny';
-				$color = 'danger';
-			} elseif ($object->unavailable) {
-				$label = 'Viditelný: Neprodejný';
-				$color = 'warning';
-			} elseif ($object->getValue('categoryCount') === '0') {
-				$label = 'Viditelný: Bez kategorie';
-				$color = 'warning';
-			} else {
-				$label = 'Viditelný';
-				$color = 'success';
-			}
-
-			return '<i title="' . $label . '" class="fa fa-circle fa-sm text-' . $color . '">';
-		}, '%s', null, ['class' => 'fit']);
+//		$grid->addColumn('', function (Product $object, Datagrid $datagrid) {
+//			if ($object->hidden) {
+//				$label = 'Neviditelný: Skrytý';
+//				$color = 'danger';
+//			} elseif ($object->getValue('priceCount') === '0') {
+//				$label = 'Neviditelný: Bez ceny';
+//				$color = 'danger';
+//			} elseif ($object->getValue('pricelistActive') === '0') {
+//				$label = 'Neviditelný: Žádné aktivní ceny';
+//				$color = 'danger';
+//			} elseif ($object->unavailable) {
+//				$label = 'Viditelný: Neprodejný';
+//				$color = 'warning';
+//			} elseif ($object->getValue('categoryCount') === '0') {
+//				$label = 'Viditelný: Bez kategorie';
+//				$color = 'warning';
+//			} else {
+//				$label = 'Viditelný';
+//				$color = 'success';
+//			}
+//
+//			return '<i title="' . $label . '" class="fa fa-circle fa-sm text-' . $color . '">';
+//		}, '%s', null, ['class' => 'fit']);
 		$grid->addColumnImage('imageFileName', Product::GALLERY_DIR);
 
 		$grid->addColumn('Kód a EAN', function (Product $product) {
@@ -257,12 +257,12 @@ class ProductGridFactory
 			return '<i title="' . $label . '" class="' . $icon . ' fa-lg text-primary">';
 		}, '%s', null, ['class' => 'fit']);
 
-		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
+//		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 
-		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
-		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
-		$grid->addColumnInputCheckbox('<i title="Skryto v menu a vyhledávání" class="far fa-minus-square"></i>', 'hiddenInMenu', '', '', 'hiddenInMenu');
-		$grid->addColumnInputCheckbox('<i title="Neprodejné" class="fas fa-ban"></i>', 'unavailable', '', '', 'unavailable');
+//		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
+//		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
+//		$grid->addColumnInputCheckbox('<i title="Skryto v menu a vyhledávání" class="far fa-minus-square"></i>', 'hiddenInMenu', '', '', 'hiddenInMenu');
+//		$grid->addColumnInputCheckbox('<i title="Neprodejné" class="fas fa-ban"></i>', 'unavailable', '', '', 'unavailable');
 
 		$grid->addColumnLinkDetail('edit');
 		$grid->addColumnActionDelete([$this, 'onDelete']);
@@ -282,8 +282,6 @@ class ProductGridFactory
 			'displayDelivery',
 			'vatRate',
 			'taxes',
-			'hidden',
-			'hiddenInMenu',
 			'unavailable',
 			'primaryCategory',
 			'defaultReviewsCount',

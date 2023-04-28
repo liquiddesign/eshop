@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING:** Many callbacks are now always arrays, so you need to call them with *Arrays::invoke*
 - **BREAKING:** `CheckoutManager::addItemToCart` - parameter $checkInvalidAmount now accepts only enum `\Eshop\Common\CheckInvalidAmount`
 - **BREAKING:** Dropped support for Latte <3.0
+- **BREAKING:** Properties hidden, hiddenInMenu, unavailable, recommended and priority are no longer stored with Product but in VisibilityListItem
+  - Use new getters
 ### Removed
 - **BREAKING:** Removed deprecated classes
   - `Shopper`

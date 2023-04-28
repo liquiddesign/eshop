@@ -466,7 +466,7 @@ class CheckoutManager
 
 	public function canBuyProduct(Product $product): bool
 	{
-		return !$product->unavailable && $product->getValue('price') !== null && $this->shopperUser->getBuyPermission();
+		return $this->shopperUser->canBuyProduct($product);
 	}
 
 	public function updateItemInCart(CartItem $item, Product $product, ?Variant $variant = null, int $amount = 1, bool $checkInvalidAmount = true, bool $checkCanBuy = true): void

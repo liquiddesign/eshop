@@ -74,7 +74,7 @@ class ProductAttributesGridFactory
 				'pricelistActive' => 'MAX(pricelist.isActive)',
 			]);
 
-		$grid = $this->gridFactory->create($source, 20, 'this.priority', 'ASC', false);
+		$grid = $this->gridFactory->create($source, 20, 'this.uuid', 'ASC', false);
 		$grid->setItemsPerPage([5, 10, 20, 50, 100]);
 
 		$nameColumn = $grid->addColumn('Název', function (Product $product, $grid) {

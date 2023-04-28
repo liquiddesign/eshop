@@ -8,7 +8,6 @@ use Admin\DB\IGeneralAjaxRepository;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Controls\ProductFilter;
-use Eshop\DevelTools;
 use Eshop\ShopperUser;
 use InvalidArgumentException;
 use League\Csv\EncloseField;
@@ -61,6 +60,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		private readonly SettingRepository $settingRepository,
 		private readonly AttributeAssignRepository $attributeAssignRepository,
 		private readonly ShopperUser $shopperUser,
+		private readonly VisibilityListItemRepository $visibilityListItemRepository,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -103,6 +103,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 * @param \Eshop\DB\Customer|null $customer Used only when $customerGroup is not null
 	 * @param bool $selects
 	 * @param \Eshop\DB\CustomerGroup|null $customerGroup
+	 * @return \StORM\Collection<\Eshop\DB\Product>
 	 */
 	public function getProducts(?array $pricelists = null, ?Customer $customer = null, bool $selects = true, ?CustomerGroup $customerGroup = null): Collection
 	{
@@ -164,32 +165,23 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			}
 		}
 
-//		$visibilityLists = $this->shopperUser->getVisibilityLists();
-//
-//		if (!$visibilityLists) {
-//			Debugger::barDump('No VisibilityLists');
-//		}
-//
-//		$visibilityLists = \implode(',', \array_map(static function ($item) {
-//			return "'$item'";
-//		}, \array_keys($visibilityLists)));
-//
-//		$collection->select(['visibilityHidden' => "(SELECT hidden FROM eshop_visibilityListItem WHERE eshop_visibilityListItem.fk_product = this.uuid AND
-//		fk_visibilityList IN ($visibilityLists) ORDER BY priority LIMIT 1)"]);
+		$visibilityLists = $this->shopperUser->getVisibilityLists();
 
-//		$collection->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid')
-//			->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityListItem.uuid')
-//			->join(
-//				['visibilityList2' => '(SELECT uuid FROM eshop_visibilitylist ORDER BY priority LIMIT 1)'],
-//				'visibilityList.uuid = visibilityList2.uuid',
-//			)
-//			->select(['hidden' => 'visibilityListItem.hidden'])
-//			->where('visibilityListItem.fk_visibilityList', \array_keys($visibilityLists));
-//		$collection->setGroupBy(['this.uuid']);
+		if (!$visibilityLists) {
+			Debugger::barDump('No VisibilityLists');
+		}
 
-		Debugger::barDump(DevelTools::showCollection($collection));
+		$this->joinVisibilityListItemToProductCollection($collection, $visibilityLists);
 
 		if ($selects) {
+			$collection->select([
+				'fk_visibilityListItem' => 'visibilityListItem.uuid',
+				'hidden' => 'visibilityListItem.hidden',
+				'hiddenInMenu' => 'visibilityListItem.hiddenInMenu',
+//				'unavailable' => 'visibilityListItem.unavailable',
+				'recommended' => 'visibilityListItem.recommended',
+			]);
+
 			$defaultDisplayAmount = $this->settingRepository->getValueByName(SettingsPresenter::DEFAULT_DISPLAY_AMOUNT);
 			$defaultUnavailableDisplayAmount = $this->settingRepository->getValueByName(SettingsPresenter::DEFAULT_UNAVAILABLE_DISPLAY_AMOUNT);
 
@@ -303,6 +295,37 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		return $collection;
 	}
+
+	/**
+	 * Always hydrate visibilityListItem property and other properties
+	 * @param \Eshop\DB\VisibilityListItem|null $visibilityListItem
+	 * @param array<\Eshop\DB\VisibilityList>|null $visibilistyLists
+	 */
+	public function hydrateProductWithVisibilityListItemProperties(Product $product, ?VisibilityListItem $visibilityListItem = null, ?array $visibilistyLists = null): void
+	{
+		if (!$visibilityListItem) {
+			if (!$visibilistyLists) {
+				$visibilistyLists = $this->shopperUser->getVisibilityLists();
+			}
+
+			$visibilityListItem = $this->visibilityListItemRepository->many()
+				->where('this.fk_product', $product->getPK())
+				->where('this.fk_visibilityList', \array_keys($visibilistyLists))
+				->where('visibilityList.hidden', false)
+				->orderBy(['visibilityList.priority'])
+				->first();
+		}
+
+		if (!$visibilityListItem) {
+			return;
+		}
+
+		$product->visibilityListItem = $visibilityListItem;
+		$product->setValue('hidden', $visibilityListItem->hidden);
+		$product->setValue('hiddenInMenu', $visibilityListItem->hiddenInMenu);
+		$product->setValue('recommended', $visibilityListItem->recommended);
+		$product->setValue('priority', $visibilityListItem->priority);
+	}
 	
 	public function getQuantityPrice(Product $product, int $amount, string $property): ?float
 	{
@@ -355,7 +378,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 		
 		if (!$includeHidden) {
-			$collection->where('this.hidden = 0');
+			$collection->where('visibilityListItem.hidden = 0');
 		}
 		
 		if (!$sql = $priceWhere->getSql()) {
@@ -552,19 +575,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function filterHiddenInMenu(?bool $hiddenInMenu, ICollection $collection): void
 	{
 		if ($hiddenInMenu !== null) {
-			$visibilityLists = $this->shopperUser->getVisibilityLists();
-
-			if (!$visibilityLists) {
-				Debugger::barDump('No VisibilityLists');
-			}
-
-			$visibilityLists = \implode(',', \array_map(static function ($item) {
-				return "'$item'";
-			}, \array_keys($visibilityLists)));
-
-			$collection->where("(SELECT eshop_visibilityListItem.hiddenInMenu FROM eshop_visibilityListItem
-			LEFT JOIN eshop_visibilitylist ON eshop_visibilitylist.uuid = eshop_visibilityListItem.fk_visibilityList
-			WHERE eshop_visibilityListItem.fk_product = this.uuid AND fk_visibilityList IN ($visibilityLists) ORDER BY eshop_visibilitylist.priority LIMIT 1) = " . ($hiddenInMenu ? '1' : '0'));
+			$collection->where('visibilityListItem.hiddenInMenu', $hiddenInMenu ? 1 : 0);
 		}
 	}
 	
@@ -601,37 +612,38 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function filterRecommended($value, ICollection $collection): void
 	{
-		$visibilityLists = $this->shopperUser->getVisibilityLists();
-
-		if (!$visibilityLists) {
-			Debugger::barDump('No VisibilityLists');
-		}
-
-		$visibilityLists = \implode(',', \array_map(static function ($item) {
-			return "'$item'";
-		}, \array_keys($visibilityLists)));
-
-		$collection->where("(SELECT eshop_visibilityListItem.recommended FROM eshop_visibilityListItem
-			LEFT JOIN eshop_visibilitylist ON eshop_visibilitylist.uuid = eshop_visibilityListItem.fk_visibilityList
-			WHERE eshop_visibilityListItem.fk_product = this.uuid AND fk_visibilityList IN ($visibilityLists) ORDER BY eshop_visibilitylist.priority LIMIT 1) = " . ($value ? '1' : '0'));
+		$collection->where('visibilityListItem.hiddenInMenu', $value ? 1 : 0);
 	}
 	
 	public function filterHidden(?bool $hidden, ICollection $collection): void
 	{
 		if ($hidden !== null) {
-			$visibilityLists = $this->shopperUser->getVisibilityLists();
+			/** @var array<mixed> $joins */
+			$joins = $collection->getModifiers()['JOIN'];
 
-			if (!$visibilityLists) {
-				Debugger::barDump('No VisibilityLists');
+			$visibilityListItemJoined = false;
+
+			foreach ($joins as $join) {
+				if (Arrays::contains(\array_keys($join[1]), 'visibilityListItem')) {
+					$visibilityListItemJoined = true;
+
+					break;
+				}
 			}
 
-			$visibilityLists = \implode(',', \array_map(static function ($item) {
-				return "'$item'";
-			}, \array_keys($visibilityLists)));
+			if (!$visibilityListItemJoined) {
+				$visibilityLists = $this->shopperUser->getVisibilityLists();
 
-			$collection->where("(SELECT eshop_visibilityListItem.hidden FROM eshop_visibilityListItem
-			LEFT JOIN eshop_visibilitylist ON eshop_visibilitylist.uuid = eshop_visibilityListItem.fk_visibilityList
-			WHERE eshop_visibilityListItem.fk_product = this.uuid AND fk_visibilityList IN ($visibilityLists) ORDER BY eshop_visibilitylist.priority LIMIT 1) = " . ($hidden ? '1' : '0'));
+				if (!$visibilityLists) {
+					Debugger::barDump('No VisibilityLists');
+				}
+
+				$collection->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid', type: 'INNER')
+					->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityList.uuid', type: 'INNER')
+					->where('visibilityListItem.fk_visibilityList', \array_keys($visibilityLists));
+			}
+
+			$collection->where('visibilityListItem.hidden', $hidden ? '1' : '0');
 		}
 	}
 	
@@ -896,8 +908,39 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		if (!$includeHidden) {
 			$collection->where('this.hidden', false);
 		}
+
+		$this->joinVisibilityListItemToProductCollection($collection);
 		
-		return $collection->orderBy(['this.priority', "this.name$suffix"]);
+		return $collection->orderBy(['visibilityListItem.priority', "this.name$suffix"]);
+	}
+
+	/**
+	 * @param \StORM\ICollection $collection
+	 * @param array<\Eshop\DB\VisibilityList>|null $visibilityLists
+	 */
+	public function joinVisibilityListItemToProductCollection(ICollection $collection, array|null $visibilityLists = null): void
+	{
+		if (!$visibilityLists) {
+			$visibilityLists = $this->shopperUser->getVisibilityLists();
+
+			if (!$visibilityLists) {
+				Debugger::barDump('No VisibilityLists');
+			}
+		}
+
+		$visibilityLists = \implode(',', \array_map(function ($val) {
+			return "'$val'";
+		}, $visibilityLists));
+
+		$collection->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid AND visibilityListItem.fk_visibilityList = (
+				SELECT fk_visibilityList
+					FROM eshop_visibilitylistitem
+					JOIN eshop_visibilityList ON eshop_visibilityList.uuid = eshop_visibilitylistitem.fk_visibilityList
+					WHERE fk_product = this.uuid AND eshop_visibilityList.uuid IN (' . $visibilityLists . ')
+					ORDER BY eshop_visibilityList.priority ASC
+					LIMIT 1
+				)
+			');
 	}
 	
 	/**
@@ -1039,12 +1082,12 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				return null;
 			}
 		}
-		
+
 		return $this->many()->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave')
 			->where('related.hidden', false)
 			->where('related.fk_master', $product->getPK())
 			->where('related.fk_type', $relatedType->getPK())
-			->orderBy(['related.priority', 'this.priority']);
+			->orderBy(['related.priority']);
 	}
 	
 	/**

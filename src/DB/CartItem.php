@@ -233,7 +233,7 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	
 	public function isAvailable(): bool
 	{
-		return $this->product && !$this->product->unavailable;
+		return $this->product && !$this->product->isUnavailable();
 	}
 	
 	public function getFullCode(): ?string
