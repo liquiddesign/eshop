@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopEntity;
+
 /**
  * Reklamace
  * @table
  * @index{"name":"complaint_code_unique","unique":true,"columns":["code"]}
  */
-class Complaint extends \StORM\Entity
+class Complaint extends ShopEntity
 {
 	/**
 	 * @column

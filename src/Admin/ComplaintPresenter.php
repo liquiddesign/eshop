@@ -131,6 +131,8 @@ class ComplaintPresenter extends BackendPresenter
 			->setHtmlAttribute('data-info', 'Nepovinné údaje budou doplněny automaticky z objednávky.');
 		$form->addEmail('customerBankAccountNumber', 'Číslo účtu zákazníka')->setNullable()->setDisabled((bool) $complaint);
 
+		$this->formFactory->addShopsContainerToAdminForm($form);
+
 		$form->addSubmits(!$complaint);
 
 		$form->onSuccess[] = function (AdminForm $form) use ($complaint): void {

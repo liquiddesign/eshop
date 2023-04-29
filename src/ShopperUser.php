@@ -16,6 +16,7 @@ use Eshop\DB\Merchant;
 use Eshop\DB\MinimalOrderValueRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\Product;
+use Eshop\DTO\ProductWithFormattedPrices;
 use Nette\DI\Container;
 use Nette\Security\Authorizator;
 use Nette\Security\IAuthenticator;
@@ -25,6 +26,7 @@ use Nette\Security\UserStorage;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Collection;
+use StORM\Exception\NotFoundException;
 
 class ShopperUser extends User
 {
@@ -279,6 +281,27 @@ class ShopperUser extends User
 		return !$product->isUnavailable() && $product->getValue('price') !== null && $this->getBuyPermission();
 	}
 
+	public function getProductPricesFormatted(Product $product): ?ProductWithFormattedPrices
+	{
+		try {
+			$product->getPrice();
+		} catch (NotFoundException) {
+			return null;
+		}
+
+		return new ProductWithFormattedPrices(
+			$product,
+			$this->showPricesWithVat(),
+			$this->showPricesWithoutVat(),
+			$this->showPriorityPrices(),
+			$this->getCatalogPermission() === 'price',
+			$this->filterPrice($product->getPrice()),
+			$this->filterPrice($product->getPriceVat()),
+			$product->getPriceBefore() ? $this->filterPrice($product->getPriceBefore()) : null,
+			$product->getPriceVatBefore() ? $this->filterPrice($product->getPriceVatBefore()) : null,
+		);
+	}
+
 	/**
 	 * Vrací aktuální měnu, pokud zadáte kód vrací měnu dle kódu
 	 */
@@ -382,6 +405,9 @@ class ShopperUser extends User
 		return $this->registrationConfiguration;
 	}
 
+	/**
+	 * @return 'none'|'catalog'|'price'|string
+	 */
 	public function getCatalogPermission(): string
 	{
 		$customer = $this->getCustomer();

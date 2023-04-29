@@ -23,12 +23,14 @@ use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\VisibilityListRepository;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
 use League\Csv\Writer;
 use Messages\DB\TemplateRepository;
 use Nette\Application\Responses\FileResponse;
+use Nette\DI\Attributes\Inject;
 use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
@@ -130,6 +132,9 @@ class CustomerPresenter extends BackendPresenter
 	
 	/** @inject */
 	public NewsletterUserGroupRepository $newsletterUserGroupRepository;
+
+	#[Inject]
+	public VisibilityListRepository $visibilityListRepository;
 	
 	public function createComponentCustomers(): AdminGrid
 	{
@@ -203,6 +208,7 @@ class CustomerPresenter extends BackendPresenter
 
 		if ($this->isManager) {
 			$bulkEdits[] = 'pricelists';
+			$bulkEdits[] = 'visibilityLists';
 			$bulkEdits[] = 'discountLevelPct';
 		}
 		
@@ -491,6 +497,8 @@ class CustomerPresenter extends BackendPresenter
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->many()->toArrayOf('name'))
 			->setHtmlAttribute('placeholder', 'Vyberte položky...')
 			->setDisabled(!$this->isManager);
+		$form->addMultiSelect2('visibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect())
+			->setDisabled(!$this->isManager);
 		
 		$customersForSelect = $this->customerRepository->getArrayForSelect();
 		
@@ -748,6 +756,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		
 		$defaults = $customer->toArray([
 				'pricelists',
+				'visibilityLists',
 				'exclusivePaymentTypes',
 				'exclusiveDeliveryTypes',
 				'accounts',
