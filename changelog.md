@@ -15,15 +15,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - *CheckoutManager* is now not injected to *Container* and is available only by *ShopperUser*
   - *ShopperUser* should not use *CheckoutManager* directly
   - *CheckoutManager* uses *ShopperUser*
+- **BREAKNG:** New Visibility system for Products
+  - Properties hidden, hiddenInMenu, unavailable, recommended and priority are no longer stored in Product but in VisibilityListItem
+  - These properties are now stored in *VisibilityListItem* which always have *VisibilityList*
+  - Selection is same as Pricelists and Prices selection:
+    - *VisibilityLists* are assigned to groups and customers
+    - *VisibilityList* has priority, same as Pricelist
+    - *VisibilityListItem* is selected based on assigned *VisibilityList*s to customer or group, and is found first product row based on priority of *VisibilityList*
+    - You can use *ProductRepository::joinVisibilityListItemToProductCollection* to join them
+      - *ProductRepository::getProducts* does this automatically and properties are available in Product getters, or directly in SQL as alias *visibilityListItem*
   
 ### Changed
 - **BREAKING:** Comgate service is now provided only by Integrations service. Comgate package extension is still injected to *Container* with configuration.
 - **BREAKING:** Many callbacks are now always arrays, so you need to call them with *Arrays::invoke*
 - **BREAKING:** `CheckoutManager::addItemToCart` - parameter $checkInvalidAmount now accepts only enum `\Eshop\Common\CheckInvalidAmount`
 - **BREAKING:** Dropped support for Latte <3.0
-- **BREAKING:** Properties hidden, hiddenInMenu, unavailable, recommended and priority are no longer stored with Product but in VisibilityListItem
-  - Use new getters
 ### Removed
+- **BREAKING:** Properties hidden, hiddenInMenu, unavailable, recommended and priority are no longer stored in Product but in VisibilityListItem
+  - Use new getters or repository method *ProductRepository::joinVisibilityListItemToProductCollection* to join them to Product collection (better performance then getters)
 - **BREAKING:** Removed deprecated classes
   - `Shopper`
   - `FrontendPresenter`
