@@ -40,7 +40,7 @@ class PackageItem extends \StORM\Entity
 
 	/**
 	 * Sklad
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 * @relation
 	 * @deprecated Use $storeAmount
 	 */
@@ -48,7 +48,7 @@ class PackageItem extends \StORM\Entity
 
 	/**
 	 * Skladová zásoba
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 * @relation
 	 */
 	public ?Amount $storeAmount;
