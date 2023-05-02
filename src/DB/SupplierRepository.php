@@ -19,8 +19,6 @@ class SupplierRepository extends Repository implements IGeneralRepository
 	
 	private PriceRepository $priceRepository;
 
-	private StoreRepository $storeRepository;
-
 	private SupplierCategoryRepository $supplierCategoryRepository;
 
 	private ImportResultRepository $importResultRepository;
@@ -30,13 +28,11 @@ class SupplierRepository extends Repository implements IGeneralRepository
 		SchemaManager $schemaManager,
 		SupplierProductRepository $supplierProductRepository,
 		PriceRepository $priceRepository,
-		StoreRepository $storeRepository,
 		SupplierCategoryRepository $supplierCategoryRepository,
 		ImportResultRepository $importResultRepository
 	) {
 		$this->supplierCategoryRepository = $supplierCategoryRepository;
 		$this->supplierProductRepository = $supplierProductRepository;
-		$this->storeRepository = $storeRepository;
 		$this->priceRepository = $priceRepository;
 		$this->importResultRepository = $importResultRepository;
 
