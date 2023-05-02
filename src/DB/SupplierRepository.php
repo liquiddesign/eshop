@@ -104,8 +104,6 @@ class SupplierRepository extends Repository implements IGeneralRepository
 
 		$this->importResultRepository->log("Pricelist entered: available: $availablePriceCount, unavailable: $unavailablePriceCount");
 
-		$this->storeRepository->many()->where('fk_supplier', $supplier)->delete();
-
 		$total = 0;
 
 		$store = $this->syncStore($supplier, $mutation);
