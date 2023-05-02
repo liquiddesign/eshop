@@ -18,7 +18,9 @@ use StORM\RelationCollection;
  * @index{"name":"customer_unique_email","unique":true,"columns":["email"]}
  * @method array getData()
  * @method \StORM\ICollection<\Eshop\DB\VisibilityList> getVisibilityLists()
+ * Due to compatibility within PHP 8.0-8.2 and seamless migration to this version, DynamicProperties are allowed in this class. If they are not, you will have to clear all sessions' data.
  */
+#[\AllowDynamicProperties]
 class Customer extends Entity implements IIdentity, IUser
 {
 	/**

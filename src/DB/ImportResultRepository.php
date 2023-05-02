@@ -52,6 +52,7 @@ class ImportResultRepository extends \StORM\Repository
 		
 		try {
 			Filesystem::write($this->getLogFilePath(), $line . \PHP_EOL, \FILE_APPEND | \LOCK_EX);
+			FileSystem::makeWritable($this->getLogFilePath());
 		} catch (IOException) {
 			throw new \RuntimeException('Unable to write to log file ' . $this->getLogFilePath() . '. Is directory writable?');
 		}
