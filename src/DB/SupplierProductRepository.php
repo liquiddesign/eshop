@@ -138,8 +138,6 @@ class SupplierProductRepository extends \StORM\Repository
 				//'perex' => [$mutation => substr($draft->content, 0, 150)],
 				'content' => [$mutation => $draft->content],
 				'unit' => $draft->unit,
-				'unavailable' => $draft->unavailable,
-				'hidden' => $supplier->defaultHiddenProduct,
 				'vatRate' => $vatLevels[(int) $draft->vatRate] ?? 'standard',
 				'producer' => $producer,
 				'displayDelivery' => $supplier->getValue('defaultDisplayDelivery'),
