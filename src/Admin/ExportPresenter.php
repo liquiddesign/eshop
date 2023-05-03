@@ -111,22 +111,27 @@ class ExportPresenter extends BackendPresenter
 
 		$primaryMutation = Arrays::first(\array_keys($this->settingsRepo->getConnection()->getAvailableMutations()));
 
+		$defaultParameters = [
+			'lang' => $primaryMutation,
+			'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
+		];
+
 		$this->template->exports = [
 			[
 				'name' => 'Export pro Partnery',
-				'link' => $this->link('//:Eshop:Export:partnersExport', ['lang' => $primaryMutation]),
+				'link' => $this->link('//:Eshop:Export:partnersExport', $defaultParameters),
 			],
 			'heurekaV1' => [
 				'name' => 'Export pro Heureku',
-				'link' => $this->link('//:Eshop:Export:heurekaExport', ['lang' => $primaryMutation]),
+				'link' => $this->link('//:Eshop:Export:heurekaExport', $defaultParameters),
 			],
 			'zboziV1' => [
 				'name' => 'Export pro Zboží',
-				'link' => $this->link('//:Eshop:Export:zboziExport', ['lang' => $primaryMutation]),
+				'link' => $this->link('//:Eshop:Export:zboziExport', $defaultParameters),
 			],
 			'googleV1' => [
 				'name' => 'Export pro Google Nákupy',
-				'link' => $this->link('//:Eshop:Export:googleExport', ['lang' => $primaryMutation]),
+				'link' => $this->link('//:Eshop:Export:googleExport', $defaultParameters),
 			],
 		];
 
@@ -136,7 +141,7 @@ class ExportPresenter extends BackendPresenter
 				[
 					[
 						'name' => 'Export pro Targito',
-						'link' => $this->link('//:Eshop:Export:targitoProductsExport', ['lang' => $primaryMutation]),
+						'link' => $this->link('//:Eshop:Export:targitoProductsExport', $defaultParameters),
 					],
 					[
 						'name' => 'Export stromu kategorií pro Targito',
@@ -170,23 +175,25 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 	{
 		$form = $this->formFactory->create();
 
+		$availablePricelists = $this->priceListRepo->toArrayForSelect($this->priceListRepo->getCollection(true));
+
 		$form->removeComponent($form['uuid']);
 		$form->addGroup('Ceníky');
-		$form->addDataMultiSelect('partnersExportPricelist', 'Partneři', $this->priceListRepo->getArrayForSelect(false));
-		$form->addDataMultiSelect('heurekaExportPricelist', 'Heureka', $this->priceListRepo->getArrayForSelect(false));
-		$form->addDataMultiSelect('zboziExportPricelist', 'Zboží', $this->priceListRepo->getArrayForSelect(false));
-		$form->addDataMultiSelect('googleExportPricelist', 'Google Nákupy', $this->priceListRepo->getArrayForSelect(false));
+		$form->addMultiSelect2('partnersExportPricelist', 'Partneři', $availablePricelists);
+		$form->addMultiSelect2('heurekaExportPricelist', 'Heureka', $availablePricelists);
+		$form->addMultiSelect2('zboziExportPricelist', 'Zboží', $availablePricelists);
+		$form->addMultiSelect2('googleExportPricelist', 'Google Nákupy', $availablePricelists);
 
 		if (isset($this::CONFIGURATION['targito']) && $this::CONFIGURATION['targito']) {
-			$form->addDataMultiSelect('targitoExportPricelist', 'Targito', $this->priceListRepo->getArrayForSelect(false));
+			$form->addMultiSelect2('targitoExportPricelist', 'Targito', $availablePricelists);
 		}
 
 		$form->addGroup('Heuréka');
-		$form->addDataSelect('heurekaCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
+		$form->addSelect2('heurekaCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
 
 		$form->addGroup('Zboží');
-		$form->addDataSelect('zboziCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
-		$form->addDataSelect('zboziGroupRelation', 'Typ vazby pro ITEMGROUP_ID', $this->relatedTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
+		$form->addSelect2('zboziCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
+		$form->addSelect2('zboziGroupRelation', 'Typ vazby pro ITEMGROUP_ID', $this->relatedTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
 
 		$form->addGroup('Google');
 		$form->addSelect2('googleColorAttribute', 'Atribut pro tag Barva [color]', $this->attributeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -')
@@ -216,7 +223,7 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 					} elseif ($setting['type'] === 'select') {
 						$form->addSelect2($setting['key'], $setting['label'], $setting['options'])->setPrompt($setting['prompt'] ?? '- Nepřiřazeno -')->checkDefaultValue(false);
 					} elseif ($setting['type'] === 'multi') {
-						$form->addDataMultiSelect($setting['key'], $setting['label'], $setting['options'])->checkDefaultValue(false);
+						$form->addMultiSelect2($setting['key'], $setting['label'], $setting['options'])->checkDefaultValue(false);
 					}
 				}
 			} else {

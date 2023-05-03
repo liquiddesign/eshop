@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Front\Eshop;
 
+use Base\ShopsConfig;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
@@ -42,6 +43,7 @@ use Nette\Bridges\ApplicationLatte\LatteFactory;
 use Nette\Bridges\ApplicationLatte\UIExtension;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\DI\Attributes\Inject;
 use Nette\DI\Container;
 use Nette\Http\IResponse;
 use Nette\Http\Request;
@@ -65,92 +67,95 @@ abstract class ExportPresenter extends Presenter
 		'customLabel_2' => false,
 	];
 
-	/** @inject */
+	#[Inject]
 	public ProductRepository $productRepo;
 
-	/** @inject */
+	#[Inject]
 	public SettingRepository $settingRepo;
 
-	/** @inject */
+	#[Inject]
 	public PricelistRepository $priceListRepo;
 
-	/** @inject */
+	#[Inject]
 	public CustomerRepository $customerRepo;
 
-	/** @inject */
+	#[Inject]
 	public CategoryRepository $categoryRepository;
 
-	/** @inject */
+	#[Inject]
 	public PriceRepository $priceRepository;
 
-	/** @inject */
+	#[Inject]
 	public MerchantRepository $merchantRepo;
 
-	/** @inject */
+	#[Inject]
 	public AccountRepository $accountRepo;
 
-	/** @inject */
+	#[Inject]
 	public OrderRepository $orderRepo;
 
-	/** @inject */
+	#[Inject]
 	public VatRateRepository $vatRateRepo;
 
-	/** @inject */
+	#[Inject]
 	public DeliveryTypeRepository $deliveryTypeRepository;
 
-	/** @inject */
+	#[Inject]
 	public CatalogPermissionRepository $catalogPermRepo;
 
-	/** @inject */
+	#[Inject]
 	public CurrencyRepository $currencyRepository;
 
-	/** @inject */
+	#[Inject]
 	public AttributeRepository $attributeRepository;
 
-	/** @inject */
+	#[Inject]
 	public AttributeValueRepository $attributeValueRepository;
 
-	/** @inject */
+	#[Inject]
 	public PhotoRepository $photoRepository;
 	
-	/** @inject */
+	#[Inject]
 	public PageRepository $pageRepository;
 
-	/** @inject */
+	#[Inject]
 	public InvoiceRepository $invoiceRepository;
 
-	/** @inject */
+	#[Inject]
 	public CustomerRepository $customerRepository;
 
-	/** @inject */
+	#[Inject]
 	public Application $application;
 
-	/** @inject */
+	#[Inject]
 	public Container $context;
 
-	/** @inject */
+	#[Inject]
 	public ShopperUser $shopperUser;
 
-	/** @inject */
+	#[Inject]
 	public Request $request;
 
-	/** @inject */
+	#[Inject]
 	public Response $response;
 
-	/** @inject */
+	#[Inject]
 	public LatteFactory $latteFactory;
 	
-	/** @inject */
+	#[Inject]
 	public CustomerGroupRepository $customerGroupRepository;
 
-	/** @inject */
+	#[Inject]
 	public AttributeAssignRepository $attributeAssignRepository;
 
-	/** @inject */
+	#[Inject]
 	public ProducerRepository $producerRepository;
 
-	/** @inject */
+	#[Inject]
 	public PaymentTypeRepository $paymentTypeRepository;
+
+	#[Inject]
+	public ShopsConfig $shopsConfig;
 
 	protected Cache $cache;
 
@@ -190,17 +195,6 @@ abstract class ExportPresenter extends Presenter
 		$this->template->vatRates = $this->vatRateRepo->getVatRatesByCountry();
 	}
 
-	public function renderHeurekaExport(): void
-	{
-		try {
-			$this->template->categoriesMapWithHeurekaCategories = $this->categoryRepository->getCategoriesMapWithHeurekaCategories($this->categoryRepository->many()->where('fk_type', 'main'));
-
-			$this->export('heureka');
-		} catch (\Exception $e) {
-			$this->template->error = $e->getMessage();
-		}
-	}
-
 	public function renderTargitoProductsExport(): void
 	{
 		try {
@@ -213,56 +207,6 @@ abstract class ExportPresenter extends Presenter
 			$this->template->products = $products;
 			
 			$this->export('targito');
-		} catch (\Exception $e) {
-			$this->template->error = $e->getMessage();
-		}
-	}
-
-	public function renderZboziExport(): void
-	{
-		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
-		$this->template->allAttributes = $this->attributeRepository->many()->select(['zbozi' => "IFNULL(zboziName,name$mutationSuffix)"])->toArrayOf('zbozi');
-		$this->template->allAttributeValues = $this->attributeValueRepository->many()->select(['zbozi' => "IFNULL(zboziLabel,label$mutationSuffix)"])->toArrayOf('zbozi');
-
-		/** @var \Web\DB\Setting|null $groupIdRelationType */
-		$groupIdRelationType = $this->settingRepo->many()->where('name', 'zboziGroupRelation')->first();
-
-		$this->template->groupIdMasterProducts = $groupIdRelationType ?
-			$this->productRepo->many()->join(['rel' => 'eshop_related'], 'rel.fk_master = this.uuid')
-				->setIndex('rel.fk_slave')
-				->where('rel.fk_type', $groupIdRelationType->value)
-				->toArray() : [];
-
-		$pricelists = $this->getPricelistFromSetting('zboziExportPricelist', false);
-		$groupAfterRegistration = $this->customerGroupRepository->getDefaultRegistrationGroup() ?: $this->customerGroupRepository->getUnregisteredGroup();
-
-		$this->template->products = $pricelists ?
-			$this->productRepo->getProducts($pricelists)->where('this.hidden', false) : $this->productRepo->getProductsAsGroup($groupAfterRegistration)->where('this.hidden', false);
-
-		$this->template->pricelists = $pricelists ?: $groupAfterRegistration->defaultPricelists->toArray();
-
-		try {
-			$this->export('zbozi');
-		} catch (\Exception $e) {
-			$this->template->error = $e->getMessage();
-		}
-	}
-
-	public function renderGoogleExport(): void
-	{
-		/** @var \Web\DB\Setting|null $discountPricelist */
-		$discountPricelist = $this->settingRepo->many()->where('name', 'googleSalePricelist')->first();
-		$this->template->groupAfterRegistration = $this->customerGroupRepository->getDefaultRegistrationGroup() ?: $this->customerGroupRepository->getUnregisteredGroup();
-		
-		$this->template->discountPrices = $discountPricelist && $discountPricelist->value ?
-			$this->priceRepository->many()
-				->where('fk_pricelist', $discountPricelist->value)
-				->setIndex('this.fk_product')
-				->toArray() :
-			[];
-
-		try {
-			$this->export('google');
 		} catch (\Exception $e) {
 			$this->template->error = $e->getMessage();
 		}
@@ -453,10 +397,9 @@ abstract class ExportPresenter extends Presenter
 	 */
 	public function getPricelistFromSetting(string $settingName, bool $required = true): ?array
 	{
-		/** @var \Web\DB\Setting|null $setting */
-		$setting = $this->settingRepo->one(['name' => $settingName]);
+		$priceLists = $this->settingRepo->getValuesByName($settingName);
 
-		if (!$setting || !$setting->value) {
+		if (!$priceLists) {
 			if ($required) {
 				throw new \Exception($this::ERROR_MSG);
 			}
@@ -464,7 +407,10 @@ abstract class ExportPresenter extends Presenter
 			return null;
 		}
 
-		return $this->priceListRepo->many()->where('this.uuid', \explode(';', $setting->value))->toArray();
+		$priceListsCollection = $this->priceListRepo->many()->where('this.uuid', $priceLists);
+		$this->shopsConfig->filterShopsInShopEntityCollection($priceListsCollection);
+
+		return $this->priceListRepo->getCollection()->where('this.uuid', $priceLists)->toArray();
 	}
 
 	public function actionInvoice(string $hash): void
@@ -494,7 +440,7 @@ abstract class ExportPresenter extends Presenter
 		unset($hashes);
 	}
 
-	public function renderHeurekaV2Export(): void
+	public function renderHeurekaExport(): void
 	{
 		$pricelists = $this->getPricelistFromSetting('heurekaExportPricelist');
 
@@ -502,7 +448,11 @@ abstract class ExportPresenter extends Presenter
 			$this->sendJson('No pricelists selected!');
 		}
 
-		$this->template->products = $this->productRepo->getProducts($pricelists)->where('this.hidden', false)->where('this.unavailable', 0)->toArray();
+		$productsCollection = $this->productRepo->getProducts($pricelists);
+		$this->productRepo->filterHidden(false, $productsCollection);
+		$this->productRepo->filterUnavailable(false, $productsCollection);
+
+		$this->template->products = $productsCollection->toArray();
 		$this->template->categoriesMapWithHeurekaCategories = $this->categoryRepository->getCategoriesMapWithHeurekaCategories($this->categoryRepository->many()->where('fk_type', 'main'));
 
 		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
@@ -543,10 +493,10 @@ abstract class ExportPresenter extends Presenter
 
 		$this->setProductsFrontendData();
 
-		$this->template->setFile(__DIR__ . '/../../templates/export/heurekaV2.latte');
+		$this->template->setFile(__DIR__ . '/../../templates/export/heureka.latte');
 	}
 
-	public function renderZboziV2Export(): void
+	public function renderZboziExport(): void
 	{
 		$pricelists = $this->getPricelistFromSetting('zboziExportPricelist');
 
@@ -580,10 +530,10 @@ abstract class ExportPresenter extends Presenter
 
 		$this->setProductsFrontendData();
 
-		$this->template->setFile(__DIR__ . '/../../templates/export/zboziV2.latte');
+		$this->template->setFile(__DIR__ . '/../../templates/export/zbozi.latte');
 	}
 
-	public function renderGoogleV2Export(): void
+	public function renderGoogleExport(): void
 	{
 		$pricelists = $this->getPricelistFromSetting('googleExportPricelist');
 
@@ -630,7 +580,7 @@ abstract class ExportPresenter extends Presenter
 
 		$this->setProductsFrontendData();
 
-		$this->template->setFile(__DIR__ . '/../../templates/export/googleV2.latte');
+		$this->template->setFile(__DIR__ . '/../../templates/export/google.latte');
 	}
 
 	protected function afterRender(): void

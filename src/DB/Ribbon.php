@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopEntity;
+
 /**
  * Stužky k produktu
  * @table
  */
-class Ribbon extends \StORM\Entity
+class Ribbon extends ShopEntity
 {
 	public const IMAGE_DIR = 'ribbon_images';
 	

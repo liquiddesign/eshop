@@ -571,13 +571,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		
 		$collection->where($expression->getSql(), ['priceVatTo' => (float) $value]);
 	}
-
-	public function filterHiddenInMenu(?bool $hiddenInMenu, ICollection $collection): void
-	{
-		if ($hiddenInMenu !== null) {
-			$collection->where('visibilityListItem.hiddenInMenu', $hiddenInMenu ? 1 : 0);
-		}
-	}
 	
 	public function filterRibbon($value, ICollection $collection): void
 	{
@@ -610,11 +603,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$collection->where('this.fk_producer', $value);
 	}
 	
-	public function filterRecommended($value, ICollection $collection): void
-	{
-		$collection->where('visibilityListItem.hiddenInMenu', $value ? 1 : 0);
-	}
-	
 	public function filterHidden(?bool $hidden, ICollection $collection): void
 	{
 		if ($hidden !== null) {
@@ -638,12 +626,100 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 					Debugger::barDump('No VisibilityLists');
 				}
 
-				$collection->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid', type: 'INNER')
-					->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityList.uuid', type: 'INNER')
-					->where('visibilityListItem.fk_visibilityList', \array_keys($visibilityLists));
+				$this->joinVisibilityListItemToProductCollection($collection, $visibilityLists);
 			}
 
 			$collection->where('visibilityListItem.hidden', $hidden ? '1' : '0');
+		}
+	}
+
+	public function filterHiddenInMenu(?bool $hiddenInMenu, ICollection $collection): void
+	{
+		if ($hiddenInMenu !== null) {
+			/** @var array<mixed> $joins */
+			$joins = $collection->getModifiers()['JOIN'];
+
+			$visibilityListItemJoined = false;
+
+			foreach ($joins as $join) {
+				if (Arrays::contains(\array_keys($join[1]), 'visibilityListItem')) {
+					$visibilityListItemJoined = true;
+
+					break;
+				}
+			}
+
+			if (!$visibilityListItemJoined) {
+				$visibilityLists = $this->shopperUser->getVisibilityLists();
+
+				if (!$visibilityLists) {
+					Debugger::barDump('No VisibilityLists');
+				}
+
+				$this->joinVisibilityListItemToProductCollection($collection, $visibilityLists);
+			}
+
+			$collection->where('visibilityListItem.hiddenInMenu', $hiddenInMenu ? '1' : '0');
+		}
+	}
+
+	public function filterUnavailable(?bool $unavailable, ICollection $collection): void
+	{
+		if ($unavailable !== null) {
+			/** @var array<mixed> $joins */
+			$joins = $collection->getModifiers()['JOIN'];
+
+			$visibilityListItemJoined = false;
+
+			foreach ($joins as $join) {
+				if (Arrays::contains(\array_keys($join[1]), 'visibilityListItem')) {
+					$visibilityListItemJoined = true;
+
+					break;
+				}
+			}
+
+			if (!$visibilityListItemJoined) {
+				$visibilityLists = $this->shopperUser->getVisibilityLists();
+
+				if (!$visibilityLists) {
+					Debugger::barDump('No VisibilityLists');
+				}
+
+				$this->joinVisibilityListItemToProductCollection($collection, $visibilityLists);
+			}
+
+			$collection->where('visibilityListItem.unavailable', $unavailable ? '1' : '0');
+		}
+	}
+
+	public function filterRecommended(?bool $recommended, ICollection $collection): void
+	{
+		if ($recommended !== null) {
+			/** @var array<mixed> $joins */
+			$joins = $collection->getModifiers()['JOIN'];
+
+			$visibilityListItemJoined = false;
+
+			foreach ($joins as $join) {
+				if (Arrays::contains(\array_keys($join[1]), 'visibilityListItem')) {
+					$visibilityListItemJoined = true;
+
+					break;
+				}
+			}
+
+			if (!$visibilityListItemJoined) {
+				$visibilityLists = $this->shopperUser->getVisibilityLists();
+
+				if (!$visibilityLists) {
+					Debugger::barDump('No VisibilityLists');
+				}
+
+				$this->joinVisibilityListItemToProductCollection($collection, $visibilityLists);
+			}
+
+			$collection->where('visibilityListItem.recommended', $recommended ? '1' : '0');
 		}
 	}
 	

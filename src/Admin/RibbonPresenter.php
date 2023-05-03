@@ -147,6 +147,8 @@ class RibbonPresenter extends BackendPresenter
 			->setRequired()
 			->setDisabled((bool) $ribbon);
 
+		$this->formFactory->addShopsContainerToAdminForm($form);
+
 		$form->addSubmits(!$ribbon);
 
 		$form->onSuccess[] = function (AdminForm $form): void {
@@ -205,6 +207,7 @@ class RibbonPresenter extends BackendPresenter
 			->setRequired();
 
 		$form->addDataMultiSelect('discounts', 'Akce', $this->discountRepository->getArrayForSelect())->setHtmlAttribute('placeholder', 'Vyberte položky...');
+		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$ribbon);
 

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Eshop\Common\DB\SystemicEntity;
+use Base\Entity\ShopSystemicEntity;
 
 /**
  * Ceník
  * @table
  */
-class Pricelist extends SystemicEntity
+class Pricelist extends ShopSystemicEntity
 {
 	/**
 	 * Kód

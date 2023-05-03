@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING:** Many callbacks are now always arrays, so you need to call them with *Arrays::invoke*
 - **BREAKING:** `CheckoutManager::addItemToCart` - parameter $checkInvalidAmount now accepts only enum `\Eshop\Common\CheckInvalidAmount`
 - **BREAKING:** Dropped support for Latte <3.0
+- **BREAKING:** Old XML exports are no longer available, V2 exports are now default. 
+- XML exports accepts Shop parameter and used entities are affected by it.
+- PriceList selects in XML exports now shows all PriceLists, even from different Shops. Truly active PriceLists are filtered afterward in exports.
 ### Removed
 - **BREAKING:** Properties hidden, hiddenInMenu, unavailable, recommended and priority are no longer stored in Product but in VisibilityListItem
   - Use new getters or repository method *ProductRepository::joinVisibilityListItemToProductCollection* to join them to Product collection (better performance then getters)
@@ -97,6 +100,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - This change is not backward compatible, you need to rewrite all dependencies to *Shopper* and *CheckoutManager*
  - *Integration/MailerLite*
 ### Fixed
+- Stores are no longer deleted during catalogEntry, only synced
+- Fixed indexes on PackageItem
 
 ## [1.3.0 - 1.3.4] - 2023-03-26
 

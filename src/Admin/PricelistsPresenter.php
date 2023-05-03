@@ -390,6 +390,8 @@ Pokud je povoleno, aplikuje zmíněnou procentuální slevu. Jinak aplikuje pouz
 				->addCondition($form::FILLED)->addRule($form::MAX_LENGTH, 'Maximálně 100 znaků!', 100);
 		}
 
+		$this->formFactory->addShopsContainerToAdminForm($form);
+
 		$form->addSubmits(!$this->getParameter('pricelist'));
 
 		$form->onSuccess[] = function (AdminForm $form): void {

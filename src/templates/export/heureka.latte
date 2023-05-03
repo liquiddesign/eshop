@@ -1,81 +1,85 @@
 {contentType application/xml}
 <?xml version="1.0" encoding="utf-8"?>
-{varType Eshop\ExportPresenter $presenter}
-{varType Eshop\DB\Product $product}
-{varType string|null $productImageUrl}
+{varType Eshop\Front\Eshop\ExportPresenter $presenter}
+{varType Eshop\DB\Product[] $products}
 {varType array $categoriesMapWithHeurekaCategories}
+{varType array $productsFrontendData}
+{varType array $allAttributes}
+{varType array $allAttributeValues}
+{varType array $photos}
+{varType string $productImageUrl}
+{varType array $possibleDeliveryTypes}
+{var $heurekaCategoryType = $presenter->settingRepo->getValueByName('heurekaCategoryTypeToParse')}
 {var $photoImageUrl = "$userUrl/" . Eshop\DB\Product::GALLERY_DIR . '/detail/'}
-{try}
-    {cache expire => '1 day', tags => ['export']}
-        {var $photos = $presenter->photoRepository->many()->setGroupBy(['fk_product'])->setIndex('fk_product')->select(['fileNames' => 'GROUP_CONCAT(fileName)'])->toArrayOf('fileNames')}
-        {var $mutationSuffix = $presenter->attributeRepository->getConnection()->getMutationSuffix()}
-        {var $allAttributes = $presenter->attributeRepository->many()->select(["heureka" => "IFNULL(heurekaName,name$mutationSuffix)"])->toArrayOf('heureka')}
-        {var $allAttributeValues = $presenter->attributeValueRepository->many()->select(["heureka" => "IFNULL(heurekaLabel,label$mutationSuffix)"])->toArrayOf('heureka')}
-        {var $pricelists = $presenter->getPricelistFromSetting('heurekaExportPricelist')}
-        {var $haurekaCategoryType = $presenter->settingRepo->getValueByName('heurekaCategoryTypeToParse')}
-        <SHOP>
-            <SHOPITEM n:foreach="$presenter->productRepo->getProducts($pricelists)->where('this.hidden', false)->where('this.unavailable', 0) as $product">
-                <ITEM_ID>{$product->getFullCode()}</ITEM_ID>
-                <PRODUCTNAME><![CDATA[{$product->name}]]></PRODUCTNAME>
-                {var string|null $productContent = $product->getValue('originalContent')}
 
-                <DESCRIPTION n:if="$productContent"><![CDATA[{\strip_tags($productContent)}]]></DESCRIPTION>
-                <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
-                {var $productPhotos = isset($photos[$product->getPK()]) ? \explode(',', $photos[$product->getPK()]) : []}
-                {if $image = $product->getPreviewImage($basePath)}
-                    {var $imgUrl = $productImageUrl . $image}
-                    <IMGURL>{$imgUrl}</IMGURL>
-                    {if $photo = Nette\Utils\Arrays::first($productPhotos)}
-                        <IMGURL_ALTERNATIVE>{$photoImageUrl . $photo}</IMGURL_ALTERNATIVE>
-                    {/if}
-                {else}
-                    {if $photo = Nette\Utils\Arrays::pick($photos)}
-                        <IMGURL>{$productImageUrl . $photo}</IMGURL>
-                    {/if}
-                    {foreach $productPhotos as $photo}
-                        <IMGURL_ALTERNATIVE>{$photoImageUrl . $photo}</IMGURL_ALTERNATIVE>
-                    {/foreach}
+{cache expire => '1 day', tags => ['export']}
+    <SHOP>
+        <SHOPITEM n:foreach="$products as $product">
+            {varType Eshop\DB\Product $product}
+            <ITEM_ID>{$product->getFullCode()}</ITEM_ID>
+            <PRODUCTNAME><![CDATA[{$product->name}]]></PRODUCTNAME>
+            {var string|null $productContent = $presenter->compileLatte($product->content, $productsFrontendData[$product->getPK()] ?? [])}
+            <DESCRIPTION n:if="$productContent"><![CDATA[{\strip_tags($productContent)}]]></DESCRIPTION>
+            <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
+            {var $productPhotos = isset($photos[$product->getPK()]) ? \explode(',', $photos[$product->getPK()]) : []}
+            {if $image = $product->getPreviewImage($basePath)}
+                {var $imgUrl = $productImageUrl . $image}
+                <IMGURL>{$imgUrl}</IMGURL>
+                {if $photo = Nette\Utils\Arrays::first($productPhotos)}
+                    <IMGURL_ALTERNATIVE>{$photoImageUrl . $photo}</IMGURL_ALTERNATIVE>
                 {/if}
-
-                <PRICE_VAT>{$product->getPriceVat()}</PRICE_VAT>
-                <MANUFACTURER>{ifset $product->producer}{$product->producer->name}{/ifset}</MANUFACTURER>
-                {var Eshop\DB\Category|null $category = $product->primaryCategory}
-                {if $category && isset($categoriesMapWithHeurekaCategories[$category->getPK()]['heureka']) && $haurekaCategoryType}
-                    {do $category = $categoriesMapWithHeurekaCategories[$category->getPK()]['heureka']}
-                    {do $categories = []}
-                    {while $category != null}
-                        {do $categories[] = $category}
-                        {do $category = $category->ancestor}
-                    {/while}
-                    {do $categories = \array_reverse($categories)}
-                    <CATEGORYTEXT>{foreach $categories as $category}{$category->name|noescape}{if !$iterator->isLast()} | {/if}{/foreach}</CATEGORYTEXT>
-                {elseif $category && !$haurekaCategoryType}
-                    {do $categories = []}
-                    {while $category != null}
-                        {do $categories[] = $category}
-                        {do $category = $category->ancestor}
-                    {/while}
-                    {do $categories = \array_reverse($categories)}
-                    <CATEGORYTEXT>{foreach $categories as $category}{$category->name|noescape}{if !$iterator->isLast()} | {/if}{/foreach}</CATEGORYTEXT>
+            {else}
+                {if $photo = Nette\Utils\Arrays::pick($photos)}
+                    <IMGURL>{$productImageUrl . $photo}</IMGURL>
                 {/if}
-                <EAN n:if="$product->ean">{$product->ean}</EAN>
-                <DELIVERY_DATE n:if="$product->inStock()">0</DELIVERY_DATE>
-                {var $attributes = $product->getPreviewParameters()}
-                {foreach $attributes as $attributeValues}
-                    {foreach $attributeValues as $attributeValue}
-                        <PARAM>
-                            <PARAM_NAME>{$allAttributes[$attributeValue['fk_parameter']]}</PARAM_NAME>
-                            <VAL>{$allAttributeValues[$attributeValue['uuid']]}</VAL>
-                        </PARAM>
-                    {/foreach}
+                {foreach $productPhotos as $photo}
+                    <IMGURL_ALTERNATIVE>{$photoImageUrl . $photo}</IMGURL_ALTERNATIVE>
                 {/foreach}
-            </SHOPITEM>
-        </SHOP>
-    {/cache}
-{else}
-    <error>
-        {\Eshop\ExportPresenter::ERROR_MSG}
-    </error>
-{/try}
+            {/if}
+
+            <PRICE_VAT>{$product->getPriceVat()}</PRICE_VAT>
+            <MANUFACTURER>{$productsFrontendData[$product->getPK()]['producer'] ?? null}</MANUFACTURER>
+            {var Eshop\DB\Category|null $category = $product->getValue('primaryCategory')}
+            {if $category && isset($categoriesMapWithHeurekaCategories[$category]['heureka']) && $heurekaCategoryType}
+                {do $category = $categoriesMapWithHeurekaCategories[$category]['heureka']}
+                {do $categories = []}
+                {while $category != null}
+                    {do $categories[] = $category}
+                    {do $category = $category->ancestor}
+                {/while}
+                {do $categories = \array_reverse($categories)}
+                <CATEGORYTEXT>{foreach $categories as $category}{$category->name|noescape}{if !$iterator->isLast()} | {/if}{/foreach}</CATEGORYTEXT>
+            {elseif $category && !$heurekaCategoryType}
+                {do $categories = []}
+                    {while $category != null}
+                        {do $categories[] = $category}
+                        {do $category = $category->ancestor}
+                    {/while}
+                {do $categories = \array_reverse($categories)}
+                <CATEGORYTEXT>{foreach $categories as $category}{$category->name|noescape}{if !$iterator->isLast()} | {/if}{/foreach}</CATEGORYTEXT>
+            {/if}
+            <EAN n:if="$product->ean">{$product->ean}</EAN>
+            <DELIVERY_DATE n:if="$product->inStock()">0</DELIVERY_DATE>
+            {var $attributes = $product->getPreviewParameters()}
+            {foreach $attributes as $attributeValues}
+                {foreach $attributeValues as $attributeValue}
+                    <PARAM>
+                        <PARAM_NAME>{$allAttributes[$attributeValue['fk_parameter']]}</PARAM_NAME>
+                        <VAL>{$allAttributeValues[$attributeValue['uuid']]}</VAL>
+                    </PARAM>
+                {/foreach}
+            {/foreach}
+            {foreach $possibleDeliveryTypes as $deliveryType}
+                {varType Eshop\DB\DeliveryType $deliveryType}
+                {continueIf !$deliveryType->externalIdHeureka}
+                <DELIVERY>
+                    <DELIVERY_ID>{$deliveryType->externalIdHeureka}</DELIVERY_ID>
+                    <DELIVERY_PRICE>{$deliveryType->getValue('priceVat')}</DELIVERY_PRICE>
+                    <DELIVERY_PRICE_COD>{$deliveryType->getValue('priceVatWithCod')}</DELIVERY_PRICE_COD>
+                </DELIVERY>
+            {/foreach}
+        </SHOPITEM>
+    </SHOP>
+{/cache}
 
 
