@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopSystemicEntity;
 use DVDoug\BoxPacker;
 use DVDoug\BoxPacker\Packer;
-use Eshop\Common\DB\SystemicEntity;
 use StORM\RelationCollection;
 
 /**
@@ -14,7 +14,7 @@ use StORM\RelationCollection;
  * @table
  * @property float $priceVatWithCod
  */
-class DeliveryType extends SystemicEntity implements BoxPacker\Box
+class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 {
 	public const IMAGE_DIR = 'deliverytype_images';
 	

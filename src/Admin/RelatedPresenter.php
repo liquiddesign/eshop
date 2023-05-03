@@ -26,16 +26,16 @@ use Tracy\ILogger;
 
 class RelatedPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public RelatedRepository $relatedRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public RelatedTypeRepository $relatedTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Application $application;
 
 	/** @persistent */

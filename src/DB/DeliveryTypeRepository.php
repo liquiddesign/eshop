@@ -4,14 +4,27 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\DB\Shop;
+use Base\Repository\GeneralRepositoryHelpers;
+use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use StORM\Collection;
+use StORM\DIConnection;
+use StORM\SchemaManager;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\DeliveryType>
  */
 class DeliveryTypeRepository extends \StORM\Repository implements IGeneralRepository
 {
+	public function __construct(
+		DIConnection $connection,
+		SchemaManager $schemaManager,
+		private readonly ShopsConfig $shopsConfig,
+	) {
+		parent::__construct($connection, $schemaManager);
+	}
+
 	/**
 	 * @inheritDoc
 	 */
@@ -19,9 +32,9 @@ class DeliveryTypeRepository extends \StORM\Repository implements IGeneralReposi
 	{
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 
-		return $this->getCollection($includeHidden)
-			->select(['fullName' => "IF(this.systemicLock > 0, CONCAT(name$mutationSuffix, ' (', code, ', systémový)'), CONCAT(name$mutationSuffix, ' (', code, ')'))"])
-			->toArrayOf('fullName');
+		return GeneralRepositoryHelpers::toArrayOfFullName(
+			GeneralRepositoryHelpers::selectFullName($this->getCollection($includeHidden), selectColumnName: "this.name$mutationSuffix", uniqueColumnName: 'this.code')
+		);
 	}
 	
 	public function getCollection(bool $includeHidden = false): Collection
@@ -48,12 +61,13 @@ class DeliveryTypeRepository extends \StORM\Repository implements IGeneralReposi
 	 */
 	public function getDeliveryTypes(
 		Currency $currency,
-		?Customer $customer,
-		?CustomerGroup $customerGroup,
-		?DeliveryDiscount $deliveryDiscount,
+		Customer|null $customer,
+		CustomerGroup|null $customerGroup,
+		DeliveryDiscount|null $deliveryDiscount,
 		float $weight,
 		float $dimension,
-		float $totalWeight = 0.0
+		float $totalWeight = 0.0,
+		Shop|null $selectedShop = null,
 	): Collection {
 		$allowedDeliveries = $customer?->exclusiveDeliveryTypes->toArrayOf('uuid', [], true);
 
@@ -66,6 +80,10 @@ class DeliveryTypeRepository extends \StORM\Repository implements IGeneralReposi
 			->where('COALESCE(this.maxLength, this.maxWidth, this.maxDepth) IS NULL OR GREATEST(this.maxLength, this.maxWidth, this.maxDepth) >= :dimension', ['dimension' => $dimension])
 			->where('hidden', false)
 			->orderBy(['priority' => 'ASC', 'weightTo' => 'DESC', 'dimensionTo' => 'DESC']);
+
+		if ($selectedShop) {
+			$this->shopsConfig->filterShopsInShopEntityCollection($collection, $selectedShop);
+		}
 
 		if ($deliveryDiscount) {
 			$collection->select([

@@ -50,28 +50,28 @@ class AttributePresenter extends BackendPresenter
 		'customField1' => null,
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeRepository $attributeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeValueRepository $attributeValueRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryRepository $categoryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PageRepository $pageRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PageTemplateRepository $pageTemplateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeValueRangeRepository $attributeValueRangeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeGroupRepository $attributeGroupRepository;
 
 	/** @persistent */

@@ -14,13 +14,13 @@ use Nette\Http\Request;
 
 class CountryPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CountryRepository $countryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public VatRateRepository $vatRateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Request $request;
 
 	public function createComponentGrid(): AdminGrid

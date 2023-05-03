@@ -13,7 +13,7 @@ use Nette\Forms\Form;
 
 class DisplayDeliveryPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DisplayDeliveryRepository $displayDeliveryRepository;
 
 	public function createComponentGrid(): AdminGrid

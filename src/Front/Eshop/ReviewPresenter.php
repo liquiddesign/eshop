@@ -14,13 +14,13 @@ use Nette\Localization\Translator;
 
 abstract class ReviewPresenter extends FrontendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ReviewRepository $reviewRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Translator $translator;
 
 	private ?Review $review = null;

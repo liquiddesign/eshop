@@ -24,16 +24,16 @@ class ComplaintPresenter extends BackendPresenter
 		'states' => 'Stavy',
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ComplaintRepository $complaintRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ComplaintStateRepository $complaintStateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ComplaintTypeRepository $complaintTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
 	/** @persistent */

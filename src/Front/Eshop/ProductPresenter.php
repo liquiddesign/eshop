@@ -26,28 +26,28 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 	/** @var array<callable(\Eshop\DB\Product): bool> */
 	public array $onProductUnWatched = [];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public \Eshop\Controls\IProductsFactory $productsFactory;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public \Eshop\DB\ProductRepository $productsRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public \Eshop\DB\ProducerRepository $producerRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public \Eshop\DB\CategoryRepository $categoryRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public \Eshop\DB\FileRepository $fileRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CompareManager $compareManager;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IProductsFilterFactory $productsFilterFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeValueRepository $attributeValueRepository;
 
 	/** @persistent */

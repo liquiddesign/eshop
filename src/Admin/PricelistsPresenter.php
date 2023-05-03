@@ -47,49 +47,49 @@ class PricelistsPresenter extends BackendPresenter
 		],
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $priceListRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PriceRepository $priceRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryRepository $categoryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProducerRepository $producerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Connection $storm;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountRepository $discountRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public QuantityPriceRepository $quantityPriceRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CountryRepository $countryRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ShopperUser $shopperUser;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public VatRateRepository $vatRateRepository;
 
 	public function createComponentPriceLists(): AdminGrid

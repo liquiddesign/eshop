@@ -33,46 +33,46 @@ use Web\DB\SettingRepository;
 
 abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ICartItemListFactory $cartItemListFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ICartImportFactory $cartImportFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public INoteFormFactory $noteFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ICartCheckerFactory $cartCheckerFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IDeliveryPaymentFormFactory $deliveryPaymentFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IAddressesFormFactory $addressesFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ICouponFormFactory $couponFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IOrderFormFactory $orderFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SettingRepository $settingRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public MerchantRepository $merchantRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CartRepository $cartRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountCouponRepository $discountCouponRepository;
 
 	public function startup(): void

@@ -15,22 +15,22 @@ use Web\DB\PageRepository;
 
 abstract class FaqPresenter extends \Eshop\Front\FrontendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Pages $pages;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public TemplateRepository $templateRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public FaqRepository $faqRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public FaqItemTagRepository $faqItemTagRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PageRepository $pageRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public MenuItemRepository $menuItemRepository;
 	
 	protected ?FaqItemTag $tag = null;

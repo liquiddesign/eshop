@@ -27,40 +27,40 @@ use StORM\DIConnection;
 
 class DeliveryTypePresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DeliveryTypeRepository $deliveryRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DeliveryTypePriceRepository $deliveryPriceRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CountryRepository $countryRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PaymentTypeRepository $paymentTypeRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerGroupRepository $groupRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PickupPointTypeRepository $pointTypeRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ShopperUser $shopperUser;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Request $request;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierDeliveryTypeRepository $supplierDeliveryTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DisplayDeliveryRepository $displayDeliveryRepository;
 	
 	public function createComponentGrid(): AdminGrid
@@ -167,6 +167,8 @@ class DeliveryTypePresenter extends BackendPresenter
 		foreach ($this->supplierRepository->many() as $supplierPK => $supplier) {
 			$suppliersContainer->addText($supplierPK, " Externí ID: $supplier->name")->setNullable();
 		}
+
+		$this->formFactory->addShopsContainerToAdminForm($form);
 		
 		$form->addSubmits(!$deliveryType);
 		

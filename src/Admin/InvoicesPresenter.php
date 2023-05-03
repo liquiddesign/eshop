@@ -29,25 +29,25 @@ use Tracy\Debugger;
 
 class InvoicesPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public InvoiceRepository $invoiceRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public LinkGenerator $linkGenerator;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PaymentTypeRepository $paymentTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Mailer $mailer;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public TemplateRepository $templateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ShopperUser $shopperUser;
 	
 	public function createComponentGrid(): AdminGrid

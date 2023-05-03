@@ -15,13 +15,13 @@ use Nette\Utils\FileSystem;
 
 class PhotoPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PhotoRepository $photoRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AdminFormFactory $formFactory;
 	
 	private string $productPhotosPath;

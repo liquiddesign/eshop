@@ -22,40 +22,40 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 {
 	protected const ADMIN_EMAIL = 'info@roiwell.cz';
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public \Forms\Bridges\FormsSecurity\ILostPasswordFormFactory $lostPasswordFormFactory;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public \Forms\Bridges\FormsSecurity\ILoginFormFactory $loginFormFactory;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public TemplateRepository $templateRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AccountRepository $accountRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Nette\Mail\Mailer $mailer;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IRegisterFormFactory $registrationFormFactory;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AddressRepository $addressRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerGroupRepository $customerGroupRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CatalogPermissionRepository $catalogPermissionRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public MerchantRepository $merchantRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Nette\Security\Passwords $passwords;
 	
 	public function createComponentLostPasswordForm(): \Forms\Bridges\FormsSecurity\LostPasswordForm

@@ -28,31 +28,31 @@ class MerchantPresenter extends BackendPresenter
 		'showUnregisteredGroup' => true,
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AccountFormFactory $accountFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public MerchantRepository $merchantRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AccountRepository $accountRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public TemplateRepository $templateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerGroupRepository $customerGroupRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $pricelistRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Mailer $mailer;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Passwords $passwords;
 
 	public function createComponentGrid(): AdminGrid

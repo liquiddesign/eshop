@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Repository\GeneralRepositoryHelpers;
 use Common\DB\IGeneralRepository;
 use StORM\Collection;
 
@@ -26,7 +27,7 @@ class CategoryTypeRepository extends \StORM\Repository implements IGeneralReposi
 	 */
 	public function toArrayForSelect(Collection $collection): array
 	{
-		return $collection->toArrayOf('name');
+		return GeneralRepositoryHelpers::toArrayOfFullName(GeneralRepositoryHelpers::selectFullName($collection, oldSystemicProperty: true));
 	}
 
 	public function getCollection(bool $includeHidden = false): Collection

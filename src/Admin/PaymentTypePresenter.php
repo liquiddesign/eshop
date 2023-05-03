@@ -23,31 +23,31 @@ use StORM\DIConnection;
 
 class PaymentTypePresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PaymentTypeRepository $paymentTypeRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PaymentTypePriceRepository $paymentPriceRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CountryRepository $countryRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerGroupRepository $groupRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Request $request;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ShopperUser $shopperUser;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierPaymentTypeRepository $supplierPaymentTypeRepository;
 
 	public function createComponentGrid(): AdminGrid
@@ -138,6 +138,8 @@ Např.: "BANK_CZ_CS_P+BANK_CZ_KB-BANK_CZ_RB". Více viz: https://help.comgate.cz
 		foreach ($this->supplierRepository->many() as $supplierPK => $supplier) {
 			$suppliersContainer->addText($supplierPK, " Externí ID: $supplier->name")->setNullable();
 		}
+
+		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$paymentType);
 		

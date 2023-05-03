@@ -29,34 +29,34 @@ class SupplierPresenter extends BackendPresenter
 		\Eshop\Providers\HeurekaProvider::class => 'Heuréka',
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ImportResultRepository $importResultRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierCategoryRepository $supplierCategoryRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierProductRepository $supplierProductRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $pricelistRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public StoreRepository $storeRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DisplayDeliveryRepository $displayDeliveryRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DisplayAmountRepository $displayAmountRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerGroupRepository $customerGroupRepository;
 	
 	public function beforeRender(): void

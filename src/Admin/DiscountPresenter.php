@@ -31,40 +31,40 @@ use StORM\ICollection;
 
 class DiscountPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountRepository $discountRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $priceListRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DeliveryDiscountRepository $deliveryRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public RibbonRepository $ribbonRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IDiscountCouponFormFactory $discountCouponFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Connection $storm;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Storage $storage;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountCouponRepository $discountCouponRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IDiscountCouponGeneratorFormFactory $discountCouponGeneratorFormFactory;
 
 	public function createComponentGrid(): AdminGrid

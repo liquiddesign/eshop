@@ -17,22 +17,22 @@ use Grid\Datagrid;
 
 class ApiGeneratorDiscountCouponPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ApiGeneratorDiscountCouponRepository $discountCouponApiKeyRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountRepository $discountRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountCouponRepository $discountCouponRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IApiGeneratorDiscountCouponFormFactory $apiGeneratorDiscountCouponFormFactory;
 
 	public function createComponentGrid(): AdminGrid

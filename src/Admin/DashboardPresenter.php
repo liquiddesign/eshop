@@ -15,22 +15,22 @@ use Security\DB\AccountRepository;
 
 class DashboardPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AccountRepository $accountRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public MerchantRepository $merchantRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountRepository $discountRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ShopperUser $shopperUser;
 	
 	public function renderDefault(): void

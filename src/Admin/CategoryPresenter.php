@@ -40,25 +40,25 @@ class CategoryPresenter extends BackendPresenter
 		'targito' => false,
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Request $request;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryRepository $categoryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PageRepository $pageRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryTypeRepository $categoryTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ICategoryFormFactory $categoryFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProducerRepository $producerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Application $application;
 
 	/** @persistent */
@@ -257,10 +257,7 @@ class CategoryPresenter extends BackendPresenter
 	public function actionDefault(): void
 	{
 		$categoryTypes = $this->categoryTypeRepository->getCollection(true);
-
-		if ($this->shop) {
-			$categoryTypes->where('this.fk_shop = :s OR this.fk_shop IS NULL', ['s' => $this->shop]);
-		}
+		$this->shopsConfig->filterShopsInShopEntityCollection($categoryTypes);
 
 		$this->tabs = $this->categoryTypeRepository->toArrayForSelect($categoryTypes);
 		$this->tabs['types'] = '<i class="fa fa-bars"></i> Typy';

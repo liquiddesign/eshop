@@ -6,8 +6,10 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Base\ShopsConfig;
 use Eshop\Admin\Controls\ProductForm;
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\PaymentTypeRepository;
@@ -16,6 +18,7 @@ use Eshop\Integration\Integrations;
 use Forms\Form;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\DI\Attributes\Inject;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use Web\DB\SettingRepository;
@@ -37,34 +40,40 @@ class SettingsPresenter extends BackendPresenter
 	public const PPL_LAST_USED_PACKAGE_NUMBER_COD = 'pplLastUsedPackageNumberCod';
 	public const COMGATE_PAYMENT_TYPE = 'comgatePaymentType';
 	public const BALIKOVNA_DELIVERY_TYPE = 'balikovnaDeliveryType';
-
 	public const BANK_PAYMENT_TYPE = 'bankPaymentType';
 	public const BANK_ACCOUNT_NUMBER = 'bankAccountNumber';
 	public const BANK_IBAN = 'bankIBAN';
+	public const MAIN_CATEGORY_TYPE = 'mainCategoryType';
 
-	/** @inject */
+	#[Inject]
 	public Integrations $integrations;
 
-	/** @inject */
+	#[Inject]
 	public SettingRepository $settingsRepository;
 
-	/** @inject */
+	#[Inject]
 	public DeliveryTypeRepository $deliveryTypeRepository;
 
-	/** @inject */
+	#[Inject]
 	public PaymentTypeRepository $paymentTypeRepository;
 
-	/** @inject */
+	#[Inject]
 	public CategoryRepository $categoryRepository;
 
-	/** @inject */
+	#[Inject]
 	public DisplayAmountRepository $displayAmountRepository;
 
-	/** @inject */
+	#[Inject]
 	public RelatedTypeRepository $relatedTypeRepository;
 
-	/** @inject */
+	#[Inject]
 	public Storage $storage;
+
+	#[Inject]
+	public ShopsConfig $shopsConfig;
+
+	#[Inject]
+	public CategoryTypeRepository $categoryTypeRepository;
 
 	/**
 	 * @var array<string|array<mixed>>
@@ -437,20 +446,34 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 		/** @var \Eshop\Services\DPD|null $dpd */
 		$dpd = $this->integrations->getService(Integrations::DPD);
 
-		if (!$dpd) {
+		if ($dpd) {
+			$this->customSettings['Doprava'][] = [
+				'key' => self::DPD_DELIVERY_TYPE,
+				'label' => 'Typ dopravy DPD',
+				'type' => 'select',
+				'options' => $this->deliveryTypeRepository->getArrayForSelect(),
+				'info' => 'Při exportu objednávek do DPD budou odeslány jen objednávky s tímto typem dopravy.',
+				'onSave' => function ($key, $oldValue, $newValue): void {
+					$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
+				},
+			];
+		}
+
+		if (!$shops = $this->shopsConfig->getAvailableShops()) {
 			return;
 		}
 
-		$this->customSettings['Doprava'][] = [
-			'key' => self::DPD_DELIVERY_TYPE,
-			'label' => 'Typ dopravy DPD',
-			'type' => 'select',
-			'options' => $this->deliveryTypeRepository->getArrayForSelect(),
-			'info' => 'Při exportu objednávek do DPD budou odeslány jen objednávky s tímto typem dopravy.',
-			'onSave' => function ($key, $oldValue, $newValue): void {
-				$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
-			},
-		];
+		foreach ($shops as $shop) {
+			$this->customSettings['Obchod: ' . $shop->name][] = [
+				'key' => self::MAIN_CATEGORY_TYPE . '_' . $shop->getPK(),
+				'label' => 'Hlavní typ kategorií',
+				'type' => 'select',
+				'options' => $this->categoryTypeRepository->getArrayForSelect(),
+				'onSave' => function ($key, $oldValue, $newValue): void {
+					$this->systemicCallback($key, $oldValue, $newValue, $this->categoryTypeRepository);
+				},
+			];
+		}
 	}
 
 	private function processSetting(array $setting, AdminForm $form): void

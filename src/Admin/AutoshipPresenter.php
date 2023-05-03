@@ -15,13 +15,13 @@ use StORM\DIConnection;
 
 class AutoshipPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AutoshipRepository $autoshipRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AddressRepository $addressRepository;
 	
 	public function createComponentGrid(): AdminGrid

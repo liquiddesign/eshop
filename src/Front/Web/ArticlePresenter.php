@@ -11,10 +11,10 @@ use Web\DB\TagRepository;
 
 abstract class ArticlePresenter extends \Eshop\Front\FrontendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public NewsRepository $newsRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public TagRepository $newsTagRepository;
 	
 	public function actionDefault(?string $tag = null, ?string $page = null): void

@@ -14,10 +14,10 @@ use Nette\Utils\FileSystem;
 
 class FilePresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public FileRepository $fileRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AdminFormFactory $formFactory;
 	
 	private string $productFilesPath;

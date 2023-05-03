@@ -20,16 +20,16 @@ use StORM\ICollection;
 
 class OrderItemsPresenter extends \Eshop\BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CartItemRepository $cartItemRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PackageItemRepository $packageItemRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
 	public function createComponentGrid(): AdminGrid

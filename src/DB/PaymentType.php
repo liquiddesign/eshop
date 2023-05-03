@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Eshop\Common\DB\SystemicEntity;
+use Base\Entity\ShopSystemicEntity;
 
 /**
  * Typ platby
  * @table
  */
-class PaymentType extends SystemicEntity
+class PaymentType extends ShopSystemicEntity
 {
 	public const IMAGE_DIR = 'paymenttype_images';
 	

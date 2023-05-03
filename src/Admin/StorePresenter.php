@@ -16,16 +16,16 @@ use Forms\Form;
 
 class StorePresenter extends \Eshop\BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public StoreRepository $storeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AmountRepository $amountRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepo;
 
 	public function createComponentGrid(): AdminGrid

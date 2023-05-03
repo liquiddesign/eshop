@@ -36,16 +36,16 @@ class PickupPointPresenter extends BackendPresenter
 		7 => 'Neděle',
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PickupPointTypeRepository $pickupPointTypeRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PickupPointRepository $pickupPointRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OpeningHoursRepository $openingHoursRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AddressRepository $addressRepository;
 
 	/** @persistent */

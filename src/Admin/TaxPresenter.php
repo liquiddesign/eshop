@@ -16,16 +16,16 @@ use StORM\DIConnection;
 
 class TaxPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public TaxRepository $taxRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PageRepository $pageRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Request $request;
 	
 	public function createComponentGrid(): AdminGrid

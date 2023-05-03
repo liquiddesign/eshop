@@ -46,43 +46,43 @@ abstract class FrontendPresenter extends Presenter
 
 	public Administrator $admin;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Container $container;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public LatteFactory $latteFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Translator $translator;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ShopperUser $shopperUser;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public TemplateRepository $templateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Mailer $mailer;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IBreadcrumbFactory $breadcrumbFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IWidgetFactory $widgetFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Storage $storage;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public WatcherRepository $watcherRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public NewsletterUserRepository $newsletterUserRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public FormFactory $formFactory;
 
 	/** @persistent */

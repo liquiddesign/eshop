@@ -33,22 +33,22 @@ class SupplierProductPresenter extends BackendPresenter
 	 */
 	public array $tabs = [];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierProductRepository $supplierProductRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $pricelistRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProducerRepository $producerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SettingRepository $settingRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Integrations $integrations;
 
 	public function beforeRender(): void

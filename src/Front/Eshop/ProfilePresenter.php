@@ -20,28 +20,28 @@ use Nette;
 
 abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public \Forms\Bridges\FormsSecurity\IChangePasswordFormFactory $changePasswordFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IProfileFormFactory $profileFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ICustomerListFactory $customerListFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IWatcherListFactory $watcherListFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public FormFactory $formFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IAccountListFactory $accountListFactory;
 
 	/** @persistent */

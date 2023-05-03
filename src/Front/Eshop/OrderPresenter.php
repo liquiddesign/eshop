@@ -17,22 +17,22 @@ use Nette\Application\Responses\FileResponse;
 
 abstract class OrderPresenter extends \Eshop\Front\FrontendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IOrderListFactory $orderListFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DeliveryRepository $deliveryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PaymentRepository $paymentRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Application $application;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CatalogPermissionRepository $catalogPermRepository;
 
 	/** @persistent */

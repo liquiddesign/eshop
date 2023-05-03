@@ -7,7 +7,7 @@ use Eshop\DB\AutoshipRepository;
 
 abstract class MaintenancePresenter extends \Eshop\Front\FrontendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AutoshipRepository $autoshipRepository;
 	
 	public function actionAutoships(): void

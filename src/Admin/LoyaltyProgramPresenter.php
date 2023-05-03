@@ -33,22 +33,22 @@ class LoyaltyProgramPresenter extends BackendPresenter
 	/** @persistent */
 	public string $tab = 'programs';
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public LoyaltyProgramRepository $loyaltyProgramRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public LoyaltyProgramDiscountLevelRepository $loyaltyProgramDiscountLevelRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public LoyaltyProgramHistoryRepository $loyaltyProgramHistoryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Storage $storage;
 
 	private Cache $cache;

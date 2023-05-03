@@ -15,13 +15,13 @@ abstract class ComgatePresenter extends FrontendPresenter
 {
 	public Comgate $comgate;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ComgateRepository $comgateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Integrations $integrations;
 
 	private \Eshop\Services\Comgate $comgateService;

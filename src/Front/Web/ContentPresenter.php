@@ -16,22 +16,22 @@ use Web\DB\SettingRepository;
 
 abstract class ContentPresenter extends \Eshop\Front\FrontendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Pages $pages;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SettingRepository $settingRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ContactItemRepository $contactItemRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public TemplateRepository $templateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public MenuItemRepository $menuItemRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Nette\Mail\Mailer $mailer;
 
 	public function renderDefault(string $page): void

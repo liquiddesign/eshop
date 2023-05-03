@@ -9,7 +9,7 @@ use Grid\Datalist;
 
 abstract class PickupPointPresenter extends \Eshop\Front\FrontendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IPickupPointListFactory $pickupPointListFactory;
 
 	public function createComponentPickupPointList(): Datalist

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Base\Entity\ShopEntity;
+use Base\Entity\ShopSystemicEntity;
 
 /**
  * Typ kategorie
  * @table
  */
-class CategoryType extends ShopEntity
+class CategoryType extends ShopSystemicEntity
 {
 	/**
 	 * @column
@@ -45,7 +45,7 @@ class CategoryType extends ShopEntity
 			return true;
 		}
 
-		return $this->systemic;
+		return $this->systemic || $this->systemicLock > 0;
 	}
 
 	public function isReadOnly(): bool

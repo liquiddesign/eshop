@@ -70,67 +70,67 @@ class CustomerPresenter extends BackendPresenter
 	/** @persistent */
 	public string $tab = 'customers';
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AccountFormFactory $accountFormFactory;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AccountRepository $accountRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public MerchantRepository $merchantRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public TemplateRepository $templateRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PaymentTypeRepository $paymentTypeRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DeliveryTypeRepository $deliveryTypeRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerGroupRepository $groupsRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRoleRepository $customerRoleRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AddressRepository $addressRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Mailer $mailer;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $pricelistRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CatalogPermissionRepository $catalogPermissionRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Connection $storm;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ShopperUser $shopperUser;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public LoyaltyProgramRepository $loyaltyProgramRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public NewsletterUserRepository $newsletterUserRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public NewsletterUserGroupRepository $newsletterUserGroupRepository;
 
 	#[Inject]

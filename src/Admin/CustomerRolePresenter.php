@@ -14,10 +14,10 @@ use Forms\Form;
 
 class CustomerRolePresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRoleRepository $customerRoleRepo;
 
 

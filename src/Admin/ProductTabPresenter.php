@@ -17,16 +17,16 @@ use StORM\DIConnection;
 
 class ProductTabPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProducerRepository $producerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PageRepository $pageRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Request $request;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductTabRepository $productTabRepository;
 
 

@@ -1023,7 +1023,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 * @param \Eshop\DB\Product|string $product
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getSimilarProductsByProduct($product): ?Collection
+	public function getSimilarProductsByProduct(Product|string $product): ?Collection
 	{
 		if (!$product instanceof Product) {
 			if (!$product = $this->one($product)) {
@@ -1047,7 +1047,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 * @return array<array<string, array<\Eshop\DB\AttributeValue>|\StORM\Entity>>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getActiveProductAttributes($product, bool $showAll = false, bool $showOnlyRecommendedAttributes = false): array
+	public function getActiveProductAttributes(Product|string $product, bool $showAll = false, bool $showOnlyRecommendedAttributes = false): array
 	{
 		if (!$product instanceof Product) {
 			if (!$product = $this->one($product)) {
@@ -1109,7 +1109,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		return $attributesList;
 	}
 	
-	public function isProductInCategory($product, $category): bool
+	public function isProductInCategory(Product|string $product, Category|string $category): bool
 	{
 		/** @var \Eshop\DB\CategoryRepository $categoryRepo */
 		$categoryRepo = $this->getConnection()->findRepository(Category::class);

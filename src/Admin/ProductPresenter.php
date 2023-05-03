@@ -141,91 +141,91 @@ class ProductPresenter extends BackendPresenter
 	/** @var array<callable(\Eshop\DB\Product, array): void> */
 	public array $onProductFormSuccess = [];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductGridFactory $productGridFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IProductFormFactory $productFormFatory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IProductAttributesFormFactory $productAttributesFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PhotoRepository $photoRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public FileRepository $fileRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $pricelistRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PriceRepository $priceRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductTabRepository $productTabRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductTabTextRepository $productTabTextRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public VatRateRepository $vatRateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PageRepository $pageRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierProductRepository $supplierProductRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public NewsletterTypeRepository $newsletterTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ShopperUser $shopperUser;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SettingRepository $settingRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeRepository $attributeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProducerRepository $producerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeValueRepository $attributeValueRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeAssignRepository $attributeAssignRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public InternalCommentProductRepository $commentRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductAttributesGridFactory $productAttributesGridFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryTypeRepository $categoryTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public StoreRepository $storeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AmountRepository $amountRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public RelatedTypeRepository $relatedTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Application $application;
 
 	/** @persistent */

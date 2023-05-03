@@ -37,16 +37,16 @@ class RibbonPresenter extends BackendPresenter
 		],
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public RibbonRepository $ribbonRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public InternalRibbonRepository $internalRibbonRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountRepository $discountRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Connection $storm;
 
 	public function beforeRender(): void

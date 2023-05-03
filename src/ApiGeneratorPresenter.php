@@ -13,13 +13,13 @@ use Tracy\ILogger;
 
 abstract class ApiGeneratorPresenter extends Presenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ApiGeneratorDiscountCouponRepository $apiGeneratorDiscountCouponRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountCouponRepository $discountCouponRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountConditionRepository $discountConditionRepository;
 
 	public function actionDefault(string $generator, string $code, string $hash): void

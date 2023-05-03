@@ -24,22 +24,22 @@ class IntegrationPresenter extends BackendPresenter
 		'targito' => false,
 	];
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SettingRepository $settingsRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ContactItemRepository $contactItemRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Zasilkovna $zasilkovnaProvider;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public MailerLite $mailerLite;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryRepository $categoryRepository;
 	
 	public function beforeRender(): void

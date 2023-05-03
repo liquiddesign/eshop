@@ -122,118 +122,118 @@ class OrderPresenter extends BackendPresenter
 		'noteIconColor' => null,
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CartRepository $cartRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DeliveryRepository $deliveryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PaymentRepository $paymentRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DeliveryTypeRepository $deliveryTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PaymentTypeRepository $paymentTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AutoshipRepository $autoshipRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderGridFactory $orderGridFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public StoreRepository $storeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Application $application;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Request $request;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public \Eshop\ShopperUser $shopperUser;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CartItemRepository $cartItemRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public InvoiceRepository $invoiceRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AddressRepository $addressRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerGroupRepository $customerGroupRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PackageItemRepository $packageItemRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public TemplateRepository $templateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public BannedEmailRepository $bannedEmailRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Mailer $mailer;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public InternalCommentOrderRepository $commentRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderLogItemRepository $orderLogItemRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PickupPointRepository $pickupPointRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public EHub $eHub;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public RelatedTypeRepository $relatedTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Integrations $integrations;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public VatRateRepository $vatRateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SettingRepository $settingRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public RelatedCartItemRepository $relatedCartItemRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public RelatedPackageItemRepository $relatedPackageItemRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AmountRepository $amountRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Zasilkovna $zasilkovna;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PackageRepository $packageRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public InternalRibbonRepository $internalRibbonRepository;
 
 	/**

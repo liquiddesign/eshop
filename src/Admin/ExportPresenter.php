@@ -20,22 +20,22 @@ class ExportPresenter extends BackendPresenter
 		'targito' => false,
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SettingRepository $settingsRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $priceListRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryTypeRepository $categoryTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public RelatedTypeRepository $relatedTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeRepository $attributeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Storage $storage;
 
 	/**
@@ -178,38 +178,40 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 		$availablePricelists = $this->priceListRepo->toArrayForSelect($this->priceListRepo->getCollection(true));
 
 		$form->removeComponent($form['uuid']);
-		$form->addGroup('Ceníky');
-		$form->addMultiSelect2('partnersExportPricelist', 'Partneři', $availablePricelists);
-		$form->addMultiSelect2('heurekaExportPricelist', 'Heureka', $availablePricelists);
-		$form->addMultiSelect2('zboziExportPricelist', 'Zboží', $availablePricelists);
-		$form->addMultiSelect2('googleExportPricelist', 'Google Nákupy', $availablePricelists);
 
-		if (isset($this::CONFIGURATION['targito']) && $this::CONFIGURATION['targito']) {
-			$form->addMultiSelect2('targitoExportPricelist', 'Targito', $availablePricelists);
-		}
+		$form->addGroup('Partneři');
+		$form->addDataMultiSelect('partnersExportPricelist', 'Ceníky', $availablePricelists);
 
 		$form->addGroup('Heuréka');
-		$form->addSelect2('heurekaCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
+		$form->addDataMultiSelect('heurekaExportPricelist', 'Ceníky', $availablePricelists);
+		$form->addDataSelect('heurekaCategoryTypeToParse', 'Typy kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
 
 		$form->addGroup('Zboží');
-		$form->addSelect2('zboziCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
-		$form->addSelect2('zboziGroupRelation', 'Typ vazby pro ITEMGROUP_ID', $this->relatedTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
+		$form->addDataMultiSelect('zboziExportPricelist', 'Ceníky', $availablePricelists);
+		$form->addDataSelect('zboziCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
+		$form->addDataSelect('zboziGroupRelation', 'Typ vazby pro ITEMGROUP_ID', $this->relatedTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
 
 		$form->addGroup('Google');
-		$form->addSelect2('googleColorAttribute', 'Atribut pro tag Barva [color]', $this->attributeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -')
+		$form->addDataMultiSelect('googleExportPricelist', 'Ceníky', $availablePricelists);
+		$form->addDataSelect('googleColorAttribute', 'Atribut pro tag Barva [color]', $this->attributeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -')
 			->setHtmlAttribute('data-info', 'Pro tag se použijí hodnoty atributu přiřazené danému produktu (max 3).');
-		$form->addSelect2('googleHighlightsAttribute', 'Atribut pro tag Představení produktu [product_highlight]', $this->attributeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -')
+		$form->addDataSelect('googleHighlightsAttribute', 'Atribut pro tag Představení produktu [product_highlight]', $this->attributeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -')
 		->setHtmlAttribute('data-info', 'Pro tag se použijí hodnoty atributu přiřazené danému produktu (max 10).');
-		$form->addSelect2('googleSalePricelist', 'Ceník pro tag Cena v akci [sale_price]', $this->priceListRepo->getArrayForSelect())->setPrompt('- Nepřiřazeno -')
+		$form->addDataSelect('googleSalePricelist', 'Ceník pro tag Cena v akci [sale_price]', $this->priceListRepo->getArrayForSelect())->setPrompt('- Nepřiřazeno -')
 			->setHtmlAttribute('data-info', 'Zvolený ceník se použije pro zobrazení ceny v akci, pokud je nižší než cena dle zvolených ceníků pro export.');
 
 		$mutations = \array_keys($this->attributeRepository->getConnection()->getAvailableMutations());
 
-		$form->addSelect2(
+		$form->addDataSelect(
 			'googleHighlightsMutation',
 			'Jazyk tagu Představení produktu [product_highlight]',
 			\array_combine($mutations, $mutations),
 		)->setPrompt('- Primární -');
+
+		if (isset($this::CONFIGURATION['targito']) && $this::CONFIGURATION['targito']) {
+			$form->addGroup('Targito');
+			$form->addDataMultiSelect('targitoExportPricelist', 'Targito', $availablePricelists);
+		}
 
 		$basicSettings = false;
 
@@ -221,9 +223,9 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 					if ($setting['type'] === 'string') {
 						$form->addText($setting['key'], $setting['label'])->setNullable();
 					} elseif ($setting['type'] === 'select') {
-						$form->addSelect2($setting['key'], $setting['label'], $setting['options'])->setPrompt($setting['prompt'] ?? '- Nepřiřazeno -')->checkDefaultValue(false);
+						$form->addDataSelect($setting['key'], $setting['label'], $setting['options'])->setPrompt($setting['prompt'] ?? '- Nepřiřazeno -')->checkDefaultValue(false);
 					} elseif ($setting['type'] === 'multi') {
-						$form->addMultiSelect2($setting['key'], $setting['label'], $setting['options'])->checkDefaultValue(false);
+						$form->addDataMultiSelect($setting['key'], $setting['label'], $setting['options'])->checkDefaultValue(false);
 					}
 				}
 			} else {

@@ -410,7 +410,7 @@ abstract class ExportPresenter extends Presenter
 		$priceListsCollection = $this->priceListRepo->many()->where('this.uuid', $priceLists);
 		$this->shopsConfig->filterShopsInShopEntityCollection($priceListsCollection);
 
-		return $this->priceListRepo->getCollection()->where('this.uuid', $priceLists)->toArray();
+		return $priceListsCollection->toArray();
 	}
 
 	public function actionInvoice(string $hash): void
@@ -453,7 +453,15 @@ abstract class ExportPresenter extends Presenter
 		$this->productRepo->filterUnavailable(false, $productsCollection);
 
 		$this->template->products = $productsCollection->toArray();
-		$this->template->categoriesMapWithHeurekaCategories = $this->categoryRepository->getCategoriesMapWithHeurekaCategories($this->categoryRepository->many()->where('fk_type', 'main'));
+
+		$mainCategoriesCollection = $this->categoryRepository->many()->where('this.fk_type', 'main');
+
+		if (($selectedShop = $this->shopsConfig->getSelectedShop()) &&
+			($mainCategoryTypeSetting = $this->settingRepo->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $selectedShop->getPK()))) {
+			$mainCategoriesCollection = $this->categoryRepository->many()->where('this.fk_type', $mainCategoryTypeSetting);
+		}
+
+		$this->template->categoriesMapWithHeurekaCategories = $this->categoryRepository->getCategoriesMapWithHeurekaCategories($mainCategoriesCollection);
 
 		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
 		$this->template->allAttributes = $this->attributeRepository->many()->select(['heureka' => "IFNULL(heurekaName,name$mutationSuffix)"])->toArrayOf('heureka');
@@ -471,6 +479,7 @@ abstract class ExportPresenter extends Presenter
 			null,
 			0,
 			0,
+			selectedShop: $this->shopsConfig->getSelectedShop(),
 		)->where('this.externalIdHeureka IS NOT NULL')->toArray();
 
 		$codPaymentTypeSettings = $this->settingRepo->getValuesByName(SettingsPresenter::COD_TYPE);

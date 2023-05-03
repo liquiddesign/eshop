@@ -21,16 +21,16 @@ use Tracy\ILogger;
 
 class EHubPresenter extends \Eshop\BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public EHubTransactionRepository $EHubTransactionRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public EHub $EHub;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 	
 	public function createComponentGridTransactions(): AdminGrid

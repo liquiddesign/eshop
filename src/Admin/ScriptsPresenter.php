@@ -20,19 +20,19 @@ class ScriptsPresenter extends \Admin\BackendPresenter
 	public const EXPORT_CACHE_TAG = 'export';
 	public const SETTINGS_CACHE_TAG = 'settings';
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public WatcherRepository $watcherRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public TemplateRepository $templateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Mailer $mailer;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Storage $storage;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepository;
 
 	public function renderDefault(): void
