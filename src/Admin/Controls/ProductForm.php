@@ -252,7 +252,7 @@ Ostatní: Přebírání ze zvoleného zdroje
 		$hiddenInMenuInput->addConditionOn($hiddenInput, $form::EQUAL, false)->toggle($hiddenInMenuInput->getHtmlId() . '-toogle');
 
 		$form->addCheckbox('recommended', 'Doporučeno')
-			->setHtmlAttribute('data-info', 'Zobrazí se na hlavní stránce.');
+			->setHtmlAttribute('data-info', 'Zobrazí se mezi doporučenými produkty. Např.: na hlavní stránce.');
 
 		$form->addGroup('Nákup');
 		$form->addText('unit', 'Prodejní jednotka')
