@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\DB\Shop;
 use Eshop\Admin\SettingsPresenter;
 use Nette\Application\ApplicationException;
 use Nette\Utils\Arrays;
@@ -363,6 +364,7 @@ class Product extends \StORM\Entity
 	/**
 	 * Hlavní kategorie
 	 * @relation
+	 * @deprecated use getPrimaryCategory
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?Category $primaryCategory;
@@ -509,6 +511,12 @@ class Product extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Photo>
 	 */
 	public RelationCollection $photos;
+
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\ProductPrimaryCategory>
+	 */
+	public RelationCollection $primaryCategories;
 
 	public ?VisibilityListItem $visibilityListItem;
 
@@ -710,12 +718,9 @@ class Product extends \StORM\Entity
 			->toArrayOf($property);
 	}
 
-	/**
-	 * @deprecated use property primaryCategory instead
-	 */
-	public function getPrimaryCategory(): ?Category
+	public function getPrimaryCategory(?Shop $selectedShop = null): ?Category
 	{
-		return $this->primaryCategory;
+		return $this->primaryCategories->where('this.fk_shop', [$selectedShop?->getPK(), null])->first()->category;
 	}
 
 	/**
@@ -1052,22 +1057,22 @@ class Product extends \StORM\Entity
 
 	public function isHidden(): bool
 	{
-		return (bool) $this->loadVisibilityListItemProperty('unavailable');
+		return (bool) $this->loadVisibilityListItemProperty('hidden');
 	}
 
 	public function isHiddenInMenu(): bool
 	{
-		return (bool) $this->loadVisibilityListItemProperty('unavailable');
+		return (bool) $this->loadVisibilityListItemProperty('hiddenInMenu');
 	}
 
 	public function isRecommended(): bool
 	{
-		return (bool) $this->loadVisibilityListItemProperty('unavailable');
+		return (bool) $this->loadVisibilityListItemProperty('recommended');
 	}
 
 	public function getPriority(): int
 	{
-		return (int) $this->loadVisibilityListItemProperty('unavailable');
+		return (int) $this->loadVisibilityListItemProperty('priority');
 	}
 
 	public function isUnavailable(): bool
@@ -1075,10 +1080,13 @@ class Product extends \StORM\Entity
 		return (bool) $this->loadVisibilityListItemProperty('unavailable');
 	}
 
+	/**
+	 * @param 'hidden'|'hiddenInMenu'|'unavailable'|'priority'|'recommended' $property
+	 */
 	private function loadVisibilityListItemProperty(string $property): int|string|bool|float|null
 	{
 		try {
-			return (bool) $this->getValue($property);
+			return $this->getValue($property);
 		} catch (NotExistsException) {
 			if (isset($this->visibilityListItem)) {
 				return $this->visibilityListItem->$property;
@@ -1124,7 +1132,7 @@ class Product extends \StORM\Entity
 		};
 
 		if ($deprecated) {
-//			\trigger_error('Property ' . $name . ' is deprecated, use method ' . self::class . '::' . $deprecated . Strings::firstUpper($name) . '() instead', \E_USER_DEPRECATED);
+			\trigger_error('Property ' . $name . ' is deprecated, use method ' . self::class . '::' . $deprecated . Strings::firstUpper($name) . '() instead', \E_USER_DEPRECATED);
 		}
 
 		return parent::__get($name);
