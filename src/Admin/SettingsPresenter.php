@@ -43,6 +43,8 @@ class SettingsPresenter extends BackendPresenter
 	public const BANK_PAYMENT_TYPE = 'bankPaymentType';
 	public const BANK_ACCOUNT_NUMBER = 'bankAccountNumber';
 	public const BANK_IBAN = 'bankIBAN';
+
+	/** Suffixed with SHOP */
 	public const MAIN_CATEGORY_TYPE = 'mainCategoryType';
 
 	#[Inject]

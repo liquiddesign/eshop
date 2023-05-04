@@ -128,6 +128,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$maxProductDiscountLevel = $customer ? $customer->maxDiscountProductPct : ($customerGroup ? $customerGroup->defaultMaxDiscountProductPct : 100);
 		$vatRates = $this->shopperUser->getVatRates();
 		$prec = $currency->calculationPrecision;
+
+		$shopCategoryType = $this->shopsConfig->getSelectedShop() ?
+			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
+			null;
 		
 		$generalPricelistIds = [];
 		
@@ -180,7 +184,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'fk_visibilityListItem' => 'visibilityListItem.uuid',
 				'hidden' => 'visibilityListItem.hidden',
 				'hiddenInMenu' => 'visibilityListItem.hiddenInMenu',
-//				'unavailable' => 'visibilityListItem.unavailable',
+				'unavailable' => 'visibilityListItem.unavailable',
 				'recommended' => 'visibilityListItem.recommended',
 			]);
 
@@ -273,13 +277,28 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			
 			$subSelect = $this->getConnection()->rows(['eshop_ribbon'], ['GROUP_CONCAT(uuid)'])
 				->join(['nxn' => 'eshop_product_nxn_eshop_ribbon'], 'eshop_ribbon.uuid = nxn.fk_ribbon')
-				->where('nxn.fk_product=this.uuid')
-				->where('eshop_ribbon.fk_shop = :shop OR eshop_ribbon.fk_shop IS NULL', ['shop' => $this->shopsConfig->getSelectedShop()?->getPK()]);
+				->where('nxn.fk_product=this.uuid');
+
+			if ($this->shopsConfig->getSelectedShop()) {
+				$subSelectWhere = new Expression();
+				$subSelectWhere->add('OR', 'eshop_ribbon.fk_shop = %s OR eshop_ribbon.fk_shop IS NULL', [$this->shopsConfig->getSelectedShop()->getPK()], 'eshop_ribbon__var');
+				\bdump($subSelectWhere);
+//				$subSelect->where($subSelectWhere->getSql(), $subSelectWhere->getVars());
+				\bdump($subSelect);
+			}
+
 			$collection->select(['ribbonsIds' => $subSelect]);
+			\bdump($collection);
 			
 			$collection->join(['productPrimaryCategory' => 'eshop_productprimarycategory'], 'this.uuid=productPrimaryCategory.fk_product');
 			$collection->join(['primaryCategory' => 'eshop_category'], 'productPrimaryCategory.fk_category=primaryCategory.uuid');
-			$collection->where('productPrimaryCategory.fk_shop = :shop OR productPrimaryCategory.fk_shop IS NULL', ['shop' => $this->shopsConfig->getSelectedShop()?->getPK()]);
+
+			if ($shopCategoryType) {
+				$collection->where(
+					'productPrimaryCategory.fk_categoryType = :productPrimaryCategory_shopCategoryType OR productPrimaryCategory.fk_categoryType IS NULL',
+					['productPrimaryCategory_shopCategoryType' => $shopCategoryType],
+				);
+			}
 
 			$collection->select([
 				'fallbackImage' => 'primaryCategory.productFallbackImageFileName',
