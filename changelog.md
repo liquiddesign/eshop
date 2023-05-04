@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING:** PHP version 8.2 or higher is required
 - **BREAKING:** Comgate service is now provided only by Integrations service. Comgate package extension is still injected to *Container* with configuration.
 - **BREAKING:** Many callbacks are now always arrays, so you need to call them with *Arrays::invoke*
 - **BREAKING:** `CheckoutManager::addItemToCart` - parameter $checkInvalidAmount now accepts only enum `\Eshop\Common\CheckInvalidAmount`
@@ -70,8 +71,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `DB/SetItem`
     - `DB/SetItemRepository`
     - `DB/SetRepository`
-    - `DB/SupplierParameterValue.php`
-    - `DB/SupplierParameterValueRepository.php`
+    - `DB/SupplierParameterValue`
+    - `DB/SupplierParameterValueRepository`
 - **BREAKING:** Removed many deprecated and unused functions and properties. Not all of them are listed here.
     - *OrderList::handleExport*
     - *OrderList::exportCsvApi*
