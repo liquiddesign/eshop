@@ -194,8 +194,8 @@ class EHub
 		foreach ($order->purchase->getItems() as $item) {
 			$json['orderItems'][] = [
 				'itemId' => $item->product ? $item->product->getFullCode() : $item->getFullCode(),
-				'masterType' => $item->product && $item->product->primaryCategory ? Arrays::first($this->categoryRepository->getBranch($item->product->primaryCategory)) : null,
-				'category' => $item->product && $item->product->primaryCategory ? $item->product->primaryCategory->name : null,
+				'masterType' => $item->product && $item->product->getPrimaryCategory() ? Arrays::first($this->categoryRepository->getBranch($item->product->getPrimaryCategory())) : null,
+				'category' => $item->product && $item->product->getPrimaryCategory() ? $item->product->getPrimaryCategory()->name : null,
 				'name' => $item->product ? $item->product->name : $item->productName,
 				'unitPrice' => \round($item->priceVat, 2),
 				'quantity' => $item->amount,
@@ -370,8 +370,8 @@ class EHub
 		foreach ($order->purchase->getItems() as $item) {
 			$json['orderItems'][] = [
 				'id' => $item->product ? $item->product->getFullCode() : $item->getFullCode(),
-				'masterType' => $item->product && $item->product->primaryCategory ? Arrays::first($this->categoryRepository->getBranch($item->product->primaryCategory)) : null,
-				'category' => $item->product && $item->product->primaryCategory ? $item->product->primaryCategory->name : null,
+				'masterType' => $item->product && $item->product->getPrimaryCategory() ? Arrays::first($this->categoryRepository->getBranch($item->product->getPrimaryCategory())) : null,
+				'category' => $item->product && $item->product->getPrimaryCategory() ? $item->product->getPrimaryCategory()->name : null,
 				'name' => $item->product ? $item->product->name : $item->productName,
 				'unitPrice' => \round($item->priceVat, 2),
 				'quantity' => $item->amount,

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Base\DB\Shop;
 use Eshop\Admin\SettingsPresenter;
 use Nette\Application\ApplicationException;
 use Nette\Utils\Arrays;
@@ -20,6 +19,8 @@ use Web\DB\Setting;
  * @table
  * @index{"name":"code_subcode","unique":true,"columns":["code","subCode"]}
  * @index{"name":"ean","unique":true,"columns":["ean"]}
+ * @method \StORM\ICollection<\Eshop\DB\Category> getCategories():
+ * @method \StORM\ICollection<\Eshop\DB\ProductPrimaryCategory> getPrimaryCategories():
  */
 class Product extends \StORM\Entity
 {
@@ -362,14 +363,6 @@ class Product extends \StORM\Entity
 	public ?Producer $producer;
 
 	/**
-	 * Hlavní kategorie
-	 * @relation
-	 * @deprecated use getPrimaryCategory
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
-	 */
-	public ?Category $primaryCategory;
-
-	/**
 	 * Skladem (agregovaná hodnota)
 	 * @relation
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
@@ -521,6 +514,8 @@ class Product extends \StORM\Entity
 	public ?VisibilityListItem $visibilityListItem;
 
 	private ProductRepository $productRepository;
+
+	private Category|null|false $fetchedPrimaryCategory = false;
 
 	public function __construct(array $vars, ?IEntityParent $parent = null, array $mutations = [], ?string $mutation = null)
 	{
@@ -718,9 +713,26 @@ class Product extends \StORM\Entity
 			->toArrayOf($property);
 	}
 
-	public function getPrimaryCategory(?Shop $selectedShop = null): ?Category
+	/**
+	 * Returns primaryCategory of Product. If property primaryCategory is set, then returns always it.
+	 */
+	public function getPrimaryCategory(?CategoryType $categoryType = null): ?Category
 	{
-		return $this->primaryCategories->where('this.fk_shop', [$selectedShop?->getPK(), null])->first()->category;
+		if ($this->fetchedPrimaryCategory !== false) {
+			return $this->fetchedPrimaryCategory;
+		}
+
+		try {
+			$primaryCategoryPK = $this->getValue('primaryCategory');
+
+			return $this->fetchedPrimaryCategory = $this->getCategories()->where('this.fk_category', $primaryCategoryPK)->first();
+		} catch (NotExistsException) {
+			if ($categoryType) {
+				return $this->fetchedPrimaryCategory = $this->getPrimaryCategories()->where('this.fk_categoryType', $categoryType->getPK())->first()?->category;
+			}
+
+			return $this->fetchedPrimaryCategory = $this->getPrimaryCategories()->orderBy(['categoryType.priority' => 'ASC'])->first()?->category;
+		}
 	}
 
 	/**
@@ -861,7 +873,7 @@ class Product extends \StORM\Entity
 	 * @param bool $fallbackImageSupplied If true, it is expected that property fallbackImage is set on object, otherwise it is selected manually
 	 * @throws \Nette\Application\ApplicationException
 	 */
-	public function getPreviewImage(string $basePath, string $size = 'detail', bool $fallbackImageSupplied = true): string
+	public function getPreviewImage(string $basePath, string $size = 'detail', bool $fallbackImageSupplied = true, ?CategoryType $categoryType = null): string
 	{
 		if (!Arrays::contains(['origin', 'detail', 'thumb'], $size)) {
 			throw new ApplicationException('Invalid product image size: ' . $size);
@@ -869,7 +881,7 @@ class Product extends \StORM\Entity
 
 		$fallbackImage = $fallbackImageSupplied ?
 			($this->__isset('fallbackImage') ? $this->getValue('fallbackImage') : null) :
-			($this->primaryCategory ? $this->primaryCategory->productFallbackImageFileName : null);
+			(($primaryCategory = $this->getPrimaryCategory($categoryType)) ? $primaryCategory->productFallbackImageFileName : null);
 
 		$image = $this->imageFileName ?: $fallbackImage;
 		$dir = $this->imageFileName ? Product::GALLERY_DIR : Category::IMAGE_DIR;
@@ -1034,15 +1046,14 @@ class Product extends \StORM\Entity
 		}
 	}
 	
-	public function getGoogleExportCategory(): ?string
+	public function getGoogleExportCategory(?CategoryType $categoryType = null): ?string
 	{
 		if ($this->exportGoogleCategory) {
 			return $this->exportGoogleCategory;
 		}
 		
-		if ($this->primaryCategory) {
-			$category = $this->primaryCategory;
-			$exportGoogleCategory = $this->primaryCategory->exportGoogleCategory;
+		if ($category = $this->getPrimaryCategory($categoryType)) {
+			$exportGoogleCategory = $category->exportGoogleCategory;
 			
 			while ($exportGoogleCategory === null && $category->ancestor !== null) {
 				$category = $category->ancestor;
@@ -1127,7 +1138,7 @@ class Product extends \StORM\Entity
 	{
 		$deprecated = match ($name) {
 			'hidden', 'hiddenInMenu', 'recommended', 'unavailable' => 'is',
-			'priority' => 'get',
+			'priority', 'primaryCategory' => 'get',
 			default => false,
 		};
 

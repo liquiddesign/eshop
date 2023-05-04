@@ -1,6 +1,5 @@
 {varType Admin\Controls\AdminForm $form}
 {varType Eshop\DB\RelatedType[] $relatedTypes}
-{varType string $primaryCategory}
 {varType Eshop\Admin\ProductPresenter $presenter}
 {varType Eshop\DB\Pricelist[] $pricelists}
 {varType Eshop\DB\Store[] $stores}
@@ -351,7 +350,11 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                         {/foreach}
                     {/formContainer}
 
-                    {$renderer->renderPair($form['primaryCategory'])|noescape}
+                    {formContainer primaryCategories}
+                        {foreach $form['primaryCategories']->getComponents() as $input}
+                            {$renderer->renderPair($input)|noescape}
+                        {/foreach}
+                    {/formContainer}
 
                     <tr class="m-0 mt-1 has-danger">
                         <th class="col-label col-form-label col">{label producer/}</th>

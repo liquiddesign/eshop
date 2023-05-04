@@ -4,20 +4,26 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Base\Entity\ShopEntity;
+use StORM\Entity;
 
 /**
  * Skladové množství
  * @table
- * @index{"name":"productprimarycategory_unique_product","unique":true,"columns":["fk_product","fk_shop"]}
+ * @index{"name":"productprimarycategory_unique_product","unique":true,"columns":["fk_product","fk_categoryType"]}
  */
-class ProductPrimaryCategory extends ShopEntity
+class ProductPrimaryCategory extends Entity
 {
+	/**
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public ?Category $category;
+
 	/**
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
-	public Category $category;
+	public CategoryType $categoryType;
 	
 	/**
 	 * Produkt

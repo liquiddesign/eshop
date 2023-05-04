@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **BREAKING:** Many entities now have foreign key to *Base/DB/Shop* entity
     - To run this version of Eshop you need to sync this entity to database
+    - Selects in forms to entities with Shop, are always shown all with description of Shop state
 - **BREAKING:** New *ShopperUser* and *CheckoutManager*
     - *ShopperUser* is now extending *Nette\Security\User* and act like it
     - *CheckoutManager* is now not injected to *Container* and is available only by *ShopperUser*
@@ -33,10 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING:** `CheckoutManager::addItemToCart` - parameter $checkInvalidAmount now accepts only enum `\Eshop\Common\CheckInvalidAmount`
 - **BREAKING:** Dropped support for Latte <3.0
 - **BREAKING:** Old XML exports are no longer available, V2 exports are now default.
-- **BREAKING:** Property primaryCategory on Product is now deprecated, primary category of Product is determined with entity ProductPrimaryCategory, which uses Shops
-  - Product can have 0..1 primary categories in Shop
-  - To access Product primary category, use getPrimaryCategory function
-  - Function *ProductRepository::getProducts* selects primaryCategory property based on selected Shop
+- **BREAKING:** Property primaryCategory on Product is now removed, primary category of Product is determined with entity ProductPrimaryCategory, which is unique for Product by CategoryType
+    - Product can have 0..1 primary categories in CategoryType
+    - To access Product primary category, use getPrimaryCategory function
+    - Function *ProductRepository::getProducts* selects primaryCategory property based on selected Shop and setting of CategoryType for that Shop
 - XML exports accepts Shop parameter and used entities are affected by it.
 - PriceList selects in XML exports now shows all PriceLists, even from different Shops. Truly active PriceLists are filtered afterward in exports.
 
@@ -102,14 +103,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - *Product::getPreviewParameters*
     - *Product::$upsells*
     - *Product::$rating*
+    - *Product::$primaryCategory*
 
 ### Deprecated
 
-- **BREAKING:** *Shopper* and *CheckoutManager* are now deprecated and not injected to *Container*
-    - Use *ShopperUser* and *CheckoutManager* from *ShopperUser* instead
-    - This change is not backward compatible, you need to rewrite all dependencies to *Shopper* and *CheckoutManager*
 - *Integration/MailerLite*
-- *Product::$primaryCategory*
 
 ### Fixed
 

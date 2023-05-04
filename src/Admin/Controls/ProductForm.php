@@ -22,6 +22,7 @@ use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
+use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\ProductTabRepository;
 use Eshop\DB\ProductTabTextRepository;
@@ -86,6 +87,7 @@ class ProductForm extends Control
 		private readonly RelatedRepository $relatedRepository,
 		private readonly StoreRepository $storeRepository,
 		private readonly AmountRepository $amountRepository,
+		private readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
 		SettingRepository $settingRepository,
 		Integrations $integrations,
 		$product = null,
@@ -127,22 +129,37 @@ class ProductForm extends Control
 			$categories = $categoryRepository->getTreeArrayForSelect(true, $categoryType->getPK());
 			$allCategories = \array_merge($allCategories, $categories);
 
-			$categoriesContainer->addMultiSelect2($categoryType->getPK(), 'Kategorie: ' . $categoryType->name, $categories);
+			$categoriesContainer->addMultiSelect2($categoryType->getPK(), 'Kategorie: ' . $categoryType->name . ($categoryType->shop ? " (O:{$categoryType->shop->name})" : ''), $categories);
 		}
 
-		$productCategories = [];
+		$primaryCategoriesContainer = $form->addContainer('primaryCategories');
+		$primaryCategories = $product->primaryCategories
+			->select(['categoryPK' => 'this.fk_category'])
+			->setIndex('this.fk_categoryType')
+			->toArrayOf('categoryPK');
 
-		if ($this->product) {
-			$assignedProductCategories = $this->product->categories->toArray();
+		foreach ($categoryTypes as $categoryType) {
+			$productCategories = [];
 
-			$productCategories = \array_filter($allCategories, function ($key) use ($assignedProductCategories) {
-				return isset($assignedProductCategories[$key]);
-			}, \ARRAY_FILTER_USE_KEY);
+			if ($this->product) {
+				$assignedProductCategories = $this->product->getCategories()->where('this.fk_type', $categoryType->getPK())->toArray();
+
+				$productCategories = \array_filter($allCategories, function ($key) use ($assignedProductCategories) {
+					return isset($assignedProductCategories[$key]);
+				}, \ARRAY_FILTER_USE_KEY);
+			}
+
+			$primaryCategoriesContainer->addDataSelect(
+				'primaryCategory_' . $categoryType->getPK(),
+				'Primární kategorie: ' . $categoryType->name . ($categoryType->shop ? " (O:{$categoryType->shop->name})" : ''),
+				$productCategories,
+			)
+				->setPrompt('Automaticky')
+				->checkDefaultValue(false)
+				->setDefaultValue($primaryCategories[$categoryType->getPK()] ?? null)
+				->setHtmlAttribute('data-info', 'Primární kategorie je důležitá pro zobrazování drobečkovky produktu, výchozímu obsahu a obrázku a dalších. 
+	V případě zvolení kategorie do které již nepatří, se zvolí automaticky jedna z přiřazených.');
 		}
-
-		$form->addDataSelect('primaryCategory', 'Primární kategorie', $productCategories)->setPrompt('Automaticky')->checkDefaultValue(false)
-			->setHtmlAttribute('data-info', 'Primární kategorie je důležitá pro zobrazování drobečkovky produktu, výchozímu obsahu a obrázku a dalších. 
-		V případě zvolení kategorie do které již nepatří, se zvolí automaticky jedna z přiřazených.');
 
 		$form->addSelect2('producer', 'Výrobce', $producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 
@@ -534,6 +551,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		/** @var array $pickedCategories */
 		$pickedCategories = Arrays::pick($values, 'categories');
+		/** @var array<string> $newCategories */
 		$newCategories = [];
 
 		if (\count($pickedCategories) > 0) {
@@ -544,7 +562,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			}
 		}
 
-		$values['primaryCategory'] = Arrays::contains($newCategories, $values['primaryCategory']) ? $values['primaryCategory'] : (\count($newCategories) > 0 ? Arrays::first($newCategories) : null);
+		/** @var array<mixed> $primaryCategories */
+		$primaryCategories = Arrays::pick($values, 'primaryCategories', []);
 
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
@@ -553,6 +572,24 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		if (\count($newCategories) > 0) {
 			$product->categories->relate($newCategories);
+		}
+
+		foreach ($primaryCategories as $categoryTypePK => $primaryCategory) {
+			$categoryTypePK = \explode('_', $categoryTypePK)[1];
+
+			if (!Arrays::contains($newCategories, $primaryCategory)) {
+				$newCategory = $product->getCategories()->where('this.fk_type', $primaryCategory)->first();
+
+				if ($newCategory) {
+					$primaryCategory = $newCategory->getPK();
+				}
+			}
+
+			$this->productPrimaryCategoryRepository->syncOne([
+				'product' => $product->getPK(),
+				'categoryType' => $categoryTypePK,
+				'category' => $primaryCategory,
+			]);
 		}
 
 		if ($this->product) {
@@ -750,11 +787,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		$this->template->stores = $this->storeRepository->many()->orderBy(['this.name' . $this->storeRepository->getConnection()->getMutationSuffix()]);
 		$this->template->configuration = $this->configuration;
 		$this->template->shopper = $this->shopperUser;
-		$this->template->primaryCategory = $this->product && $this->product->primaryCategory ?
-			($this->product->primaryCategory->ancestor ?
-				\implode(' -> ', $this->product->primaryCategory->ancestor->getFamilyTree()->toArrayOf('name')) . ' -> ' . $this->product->primaryCategory->name :
-				$this->product->primaryCategory->name)
-			: '-';
 
 		$this->template->productFullTree = $this->product ? $this->productRepository->getProductFullTree($this->product) : [];
 

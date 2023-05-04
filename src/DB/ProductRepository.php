@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Admin\DB\IGeneralAjaxRepository;
+use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Controls\ProductFilter;
@@ -61,6 +62,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		private readonly AttributeAssignRepository $attributeAssignRepository,
 		private readonly ShopperUser $shopperUser,
 		private readonly VisibilityListItemRepository $visibilityListItemRepository,
+		private readonly ShopsConfig $shopsConfig,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -271,12 +273,17 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			
 			$subSelect = $this->getConnection()->rows(['eshop_ribbon'], ['GROUP_CONCAT(uuid)'])
 				->join(['nxn' => 'eshop_product_nxn_eshop_ribbon'], 'eshop_ribbon.uuid = nxn.fk_ribbon')
-				->where('nxn.fk_product=this.uuid');
+				->where('nxn.fk_product=this.uuid')
+				->where('eshop_ribbon.fk_shop = :shop OR eshop_ribbon.fk_shop IS NULL', ['shop' => $this->shopsConfig->getSelectedShop()?->getPK()]);
 			$collection->select(['ribbonsIds' => $subSelect]);
 			
-			$collection->join(['primaryCategory' => 'eshop_category'], 'primaryCategory.uuid=this.fk_primaryCategory');
+			$collection->join(['productPrimaryCategory' => 'eshop_productprimarycategory'], 'this.uuid=productPrimaryCategory.fk_product');
+			$collection->join(['primaryCategory' => 'eshop_category'], 'productPrimaryCategory.fk_category=primaryCategory.uuid');
+			$collection->where('productPrimaryCategory.fk_shop = :shop OR productPrimaryCategory.fk_shop IS NULL', ['shop' => $this->shopsConfig->getSelectedShop()?->getPK()]);
+
 			$collection->select([
 				'fallbackImage' => 'primaryCategory.productFallbackImageFileName',
+				'primaryCategory' => 'primaryCategory.uuid',
 				'primaryCategoryPath' => 'primaryCategory.path',
 				'perex' => "COALESCE(NULLIF(this.perex$suffix, ''), NULLIF(primaryCategory.defaultProductPerex$suffix, ''))",
 				'content' => "COALESCE(NULLIF(this.content$suffix, ''), NULLIF(primaryCategory.defaultProductContent$suffix, ''))",
@@ -1061,7 +1068,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		/** @var \Eshop\DB\AttributeValueRepository $attributeValueRepository */
 		$attributeValueRepository = $this->getConnection()->findRepository(AttributeValue::class);
 		
-		$productCategory = $product->primaryCategory;
+		$productCategory = $product->getPrimaryCategory();
 		
 		if (!$productCategory) {
 			return [];
@@ -1126,7 +1133,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			}
 		}
 		
-		if (!$primaryCategory = $product->primaryCategory) {
+		if (!$primaryCategory = $product->getPrimaryCategory($category->type)) {
 			return false;
 		}
 		

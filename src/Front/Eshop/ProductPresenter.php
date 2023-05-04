@@ -213,7 +213,7 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 			$this->error('Product can\'t be viewed', 404);
 		}
 
-		$this->category = $this->product->primaryCategory;
+		$this->category = $this->product->getPrimaryCategory();
 		
 		$form = new BuyForm($this->product, $this->shopperUser);
 		$this->addComponent($form, 'buyForm');

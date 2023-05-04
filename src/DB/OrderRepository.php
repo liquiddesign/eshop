@@ -1389,7 +1389,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	public function getLastOrder(): ?Order
 	{
 		return $this->many()
-			->where('this.fk_shop = :s OR this.fk_shop IS NULL', ['s' => $this->shopsConfig->getSelectedShop()])
+			->where('this.fk_shop = :s OR this.fk_shop IS NULL', ['s' => $this->shopsConfig->getSelectedShop()?->getPK()])
 			->orderBy(['this.createdTs' => 'DESC'])->first();
 	}
 
