@@ -717,8 +717,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	{
 		if ($value) {
 			$collection
-				->join(['displayAmount' => 'eshop_displayamount'], 'displayAmount.uuid=this.fk_displayAmount')
-				->where('fk_displayAmount IS NULL OR displayAmount.isSold = 0');
+				->join(['eshop_displayamount'], 'eshop_displayamount.uuid=this.fk_displayAmount')
+				->where('fk_displayAmount IS NULL OR eshop_displayamount.isSold = 0');
 		}
 	}
 	
