@@ -11,8 +11,7 @@
 {varType array $possibleDeliveryTypes}
 {var $heurekaCategoryType = $presenter->settingRepo->getValueByName('heurekaCategoryTypeToParse')}
 {var $photoImageUrl = "$userUrl/" . Eshop\DB\Product::GALLERY_DIR . '/detail/'}
-
-{cache expire => '1 day', tags => ['export']}
+{cache 'xml_heureka_' . $shop?->getPK(), expire: '1 day', tags: ['export'], }
     <SHOP>
         <SHOPITEM n:foreach="$products as $product">
             {varType Eshop\DB\Product $product}
@@ -60,7 +59,7 @@
             {/if}
             <EAN n:if="$product->ean">{$product->ean}</EAN>
             <DELIVERY_DATE n:if="$product->inStock()">0</DELIVERY_DATE>
-            {var $attributes = $product->getPreviewParameters()}
+            {var $attributes = $product->getPreviewAtttributes()}
             {foreach $attributes as $attributeValues}
                 {foreach $attributeValues as $attributeValue}
                     <PARAM>

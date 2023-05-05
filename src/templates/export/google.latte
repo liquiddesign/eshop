@@ -11,7 +11,7 @@
 {varType Web\DB\Setting|null $colorAttribute}
 {varType Eshop\DB\Category[] $allCategories}
 
-{cache expire => '1 day', tags => ['export']}
+{cache 'xml_google_' . $shop?->getPK(), expire: '1 day', tags: ['export'], }
     <rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
     <channel>
         <item n:foreach="$products as $product">

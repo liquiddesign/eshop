@@ -9,6 +9,7 @@ use Eshop\DB\AttributeRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\RelatedTypeRepository;
+use Eshop\DB\VisibilityListRepository;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Utils\Arrays;
@@ -37,6 +38,9 @@ class ExportPresenter extends BackendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public Storage $storage;
+
+	#[\Nette\DI\Attributes\Inject]
+	public VisibilityListRepository $visibilityListRepository;
 
 	/**
 	 * @var array<string|array<mixed>>
@@ -73,6 +77,11 @@ class ExportPresenter extends BackendPresenter
 			'googleHighlightsMutation',
 			'googleSalePricelist',
 			'targitoExportPricelist',
+			'partnersExportVisibilityLists',
+			'heurekaExportVisibilityLists',
+			'zboziExportVisibilityLists',
+			'googleExportVisibilityLists',
+			'targitoExportVisibilityLists',
 		];
 
 		foreach ($this->customSettings as $key => $groupSettings) {
@@ -175,24 +184,29 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 	{
 		$form = $this->formFactory->create();
 
-		$availablePricelists = $this->priceListRepo->toArrayForSelect($this->priceListRepo->getCollection(true));
+		$pricelists = $this->priceListRepo->toArrayForSelect($this->priceListRepo->getCollection(true));
+		$visibilityLists = $this->visibilityListRepository->toArrayForSelect($this->visibilityListRepository->getCollection(true));
 
 		$form->removeComponent($form['uuid']);
 
 		$form->addGroup('Partneři');
-		$form->addDataMultiSelect('partnersExportPricelist', 'Ceníky', $availablePricelists);
+		$form->addDataMultiSelect('partnersExportPricelist', 'Ceníky', $pricelists);
+		$form->addDataMultiSelect('partnersExportVisibilityLists', 'Seznamy viditelnosti', $visibilityLists);
 
 		$form->addGroup('Heuréka');
-		$form->addDataMultiSelect('heurekaExportPricelist', 'Ceníky', $availablePricelists);
+		$form->addDataMultiSelect('heurekaExportPricelist', 'Ceníky', $pricelists);
+		$form->addDataMultiSelect('heurekaExportVisibilityLists', 'Seznamy viditelnosti', $visibilityLists);
 		$form->addDataSelect('heurekaCategoryTypeToParse', 'Typy kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
 
 		$form->addGroup('Zboží');
-		$form->addDataMultiSelect('zboziExportPricelist', 'Ceníky', $availablePricelists);
+		$form->addDataMultiSelect('zboziExportPricelist', 'Ceníky', $pricelists);
+		$form->addDataMultiSelect('zboziExportVisibilityLists', 'Seznamy viditelnosti', $visibilityLists);
 		$form->addDataSelect('zboziCategoryTypeToParse', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
 		$form->addDataSelect('zboziGroupRelation', 'Typ vazby pro ITEMGROUP_ID', $this->relatedTypeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -');
 
 		$form->addGroup('Google');
-		$form->addDataMultiSelect('googleExportPricelist', 'Ceníky', $availablePricelists);
+		$form->addDataMultiSelect('googleExportPricelist', 'Ceníky', $pricelists);
+		$form->addDataMultiSelect('googleExportVisibilityLists', 'Seznamy viditelnosti', $visibilityLists);
 		$form->addDataSelect('googleColorAttribute', 'Atribut pro tag Barva [color]', $this->attributeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -')
 			->setHtmlAttribute('data-info', 'Pro tag se použijí hodnoty atributu přiřazené danému produktu (max 3).');
 		$form->addDataSelect('googleHighlightsAttribute', 'Atribut pro tag Představení produktu [product_highlight]', $this->attributeRepository->getArrayForSelect())->setPrompt('- Nepřiřazeno -')
@@ -210,7 +224,8 @@ Authorization: Basic fa331395e9c7ef794130d50fec5d6251<br>
 
 		if (isset($this::CONFIGURATION['targito']) && $this::CONFIGURATION['targito']) {
 			$form->addGroup('Targito');
-			$form->addDataMultiSelect('targitoExportPricelist', 'Targito', $availablePricelists);
+			$form->addDataMultiSelect('targitoExportPricelist', 'Targito', $pricelists);
+			$form->addDataMultiSelect('targitoExportVisibilityLists', 'Seznamy viditelnosti', $visibilityLists);
 		}
 
 		$basicSettings = false;

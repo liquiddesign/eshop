@@ -27,6 +27,7 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VatRateRepository;
+use Eshop\DB\VisibilityListRepository;
 use Eshop\DevelTools;
 use Eshop\ShopperUser;
 use Latte\Engine;
@@ -153,6 +154,9 @@ abstract class ExportPresenter extends Presenter
 
 	#[Inject]
 	public PaymentTypeRepository $paymentTypeRepository;
+
+	#[Inject]
+	public VisibilityListRepository $visibilityListRepository;
 
 	#[Inject]
 	public ShopsConfig $shopsConfig;
@@ -392,8 +396,9 @@ abstract class ExportPresenter extends Presenter
 
 	/**
 	 * @param string $settingName
-	 * @return array<\Eshop\DB\Pricelist>
-	 * @throws \StORM\Exception\NotFoundException
+	 * @param bool $required
+	 * @return array<\Eshop\DB\Pricelist>|null
+	 * @throws \Exception
 	 */
 	public function getPricelistFromSetting(string $settingName, bool $required = true): ?array
 	{
@@ -408,6 +413,30 @@ abstract class ExportPresenter extends Presenter
 		}
 
 		$priceListsCollection = $this->priceListRepo->many()->where('this.uuid', $priceLists);
+		$this->shopsConfig->filterShopsInShopEntityCollection($priceListsCollection);
+
+		return $priceListsCollection->toArray();
+	}
+
+	/**
+	 * @param string $settingName
+	 * @param bool $required
+	 * @return array<\Eshop\DB\VisibilityList>|null
+	 * @throws \Exception
+	 */
+	public function getVisibilityListsFromSetting(string $settingName, bool $required = true): ?array
+	{
+		$priceLists = $this->settingRepo->getValuesByName($settingName);
+
+		if (!$priceLists) {
+			if ($required) {
+				throw new \Exception($this::ERROR_MSG);
+			}
+
+			return null;
+		}
+
+		$priceListsCollection = $this->visibilityListRepository->many()->where('this.uuid', $priceLists);
 		$this->shopsConfig->filterShopsInShopEntityCollection($priceListsCollection);
 
 		return $priceListsCollection->toArray();
@@ -443,16 +472,17 @@ abstract class ExportPresenter extends Presenter
 	public function renderHeurekaExport(): void
 	{
 		$pricelists = $this->getPricelistFromSetting('heurekaExportPricelist');
+		$visibilityLists = $this->getVisibilityListsFromSetting('heurekaExportVisibilityLists');
 
-		if (!$pricelists) {
-			$this->sendJson('No pricelists selected!');
+		if (!$pricelists || !$visibilityLists) {
+			$this->sendJson('No PriceLists or VisibilityLists selected!');
 		}
 
-		$productsCollection = $this->productRepo->getProducts($pricelists);
+		$productsCollection = $this->productRepo->getProducts($pricelists, visibilityLists: $visibilityLists);
 		$this->productRepo->filterHidden(false, $productsCollection);
 		$this->productRepo->filterUnavailable(false, $productsCollection);
 
-		$this->template->products = $productsCollection->toArray();
+		$this->template->products = $productsCollection;
 
 		$mainCategoriesCollection = $this->categoryRepository->many()->where('this.fk_type', 'main');
 
@@ -495,6 +525,7 @@ abstract class ExportPresenter extends Presenter
 						$czkCurrency,
 						null,
 						$unregisteredGroup,
+						selectedShop: $this->shopsConfig->getSelectedShop(),
 					)->where('this.uuid', $paymentId)->firstValue('priceVat');
 				}
 			}
@@ -507,10 +538,11 @@ abstract class ExportPresenter extends Presenter
 
 	public function renderZboziExport(): void
 	{
-		$pricelists = $this->getPricelistFromSetting('zboziExportPricelist');
+		$pricelists = $this->getPricelistFromSetting('heurekaExportPricelist');
+		$visibilityLists = $this->getVisibilityListsFromSetting('heurekaExportVisibilityLists');
 
-		if (!$pricelists) {
-			$this->sendJson('No pricelists selected!');
+		if (!$pricelists || !$visibilityLists) {
+			$this->sendJson('No PriceLists or VisibilityLists selected!');
 		}
 
 		$this->template->products = $this->productRepo->getProducts($pricelists)->where('this.hidden', false)->where('this.unavailable', 0)->toArray();
@@ -545,13 +577,18 @@ abstract class ExportPresenter extends Presenter
 	public function renderGoogleExport(): void
 	{
 		$pricelists = $this->getPricelistFromSetting('googleExportPricelist');
+		$visibilityLists = $this->getVisibilityListsFromSetting('googleExportVisibilityLists');
+
+		if (!$visibilityLists) {
+			$this->sendJson('No PriceLists or VisibilityLists selected!');
+		}
 
 		$this->template->groupAfterRegistration = $groupAfterRegistration = $this->customerGroupRepository->getDefaultRegistrationGroup() ?: $this->customerGroupRepository->getUnregisteredGroup();
-		$this->template->products = $this->productRepo->getProducts($pricelists)->where('this.hidden', false)->where('this.unavailable', 0)->toArray();
+		$this->template->products = $this->productRepo->getProducts($pricelists, visibilityLists: $visibilityLists)->where('this.hidden', false)->where('this.unavailable', 0)->toArray();
 
 		$this->template->products = (
 			$pricelists ?
-				$this->productRepo->getProducts($pricelists) :
+				$this->productRepo->getProducts($pricelists, visibilityLists: $visibilityLists) :
 				$this->productRepo->getProductsAsGroup($groupAfterRegistration)
 		)->where('this.hidden', false)->where('this.unavailable', 0);
 		$this->template->pricelists = $pricelists ?: $groupAfterRegistration->defaultPricelists->toArray();
@@ -623,6 +660,7 @@ abstract class ExportPresenter extends Presenter
 	{
 		$currency = $this->currencyRepository->one('CZK');
 
+		$this->template->shop = $this->shopsConfig->getSelectedShop();
 		$this->template->priceType = $this->shopperUser->getShowVat() ? true : ($this->shopperUser->getShowWithoutVat() ? false : null);
 		$this->template->deliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0)->where('this.exportToFeed', true);
 		$this->template->setFile(__DIR__ . "/../../templates/export/$name.latte");

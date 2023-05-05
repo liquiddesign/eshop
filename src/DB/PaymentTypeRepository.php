@@ -4,14 +4,23 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\DB\Shop;
+use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use StORM\Collection;
+use StORM\DIConnection;
+use StORM\SchemaManager;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\PaymentType>
  */
 class PaymentTypeRepository extends \StORM\Repository implements IGeneralRepository
 {
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, private readonly ShopsConfig $shopsConfig,)
+	{
+		parent::__construct($connection, $schemaManager);
+	}
+
 	/**
 	 * @inheritDoc
 	 */
@@ -36,7 +45,7 @@ class PaymentTypeRepository extends \StORM\Repository implements IGeneralReposit
 		return $collection->orderBy(['priority DESC', "name$suffix"]);
 	}
 	
-	public function getPaymentTypes(Currency $currency, ?Customer $customer, ?CustomerGroup $customerGroup): Collection
+	public function getPaymentTypes(Currency $currency, ?Customer $customer, ?CustomerGroup $customerGroup, Shop|null $selectedShop = null,): Collection
 	{
 		$allowedPayments = $customer ? $customer->exclusivePaymentTypes->toArrayOf('uuid', [], true) : null;
 		
@@ -44,6 +53,10 @@ class PaymentTypeRepository extends \StORM\Repository implements IGeneralReposit
 			->join(['prices' => 'eshop_paymenttypeprice'], 'prices.fk_paymentType=this.uuid AND prices.fk_currency=:currency', ['currency' => $currency])
 			->where('hidden', false)
 			->orderBy(['priority']);
+
+		if ($selectedShop) {
+			$this->shopsConfig->filterShopsInShopEntityCollection($collection, $selectedShop);
+		}
 		
 		$collection->select(['price' => 'IFNULL(prices.price,0)', 'priceVat' => 'IFNULL(prices.priceVat,0)', 'priceBefore' => 'NULL', 'priceBeforeVat' => 'NULL']);
 		

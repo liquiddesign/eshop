@@ -25,7 +25,16 @@ class VisibilityListRepository extends \StORM\Repository implements IGeneralRepo
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		return GeneralRepositoryHelpers::toArrayOfFullName(GeneralRepositoryHelpers::selectFullName($this->getCollection($includeHidden)));
+		return $this->toArrayForSelect($this->getCollection($includeHidden));
+	}
+
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\CategoryType> $collection
+	 * @return array<string>
+	 */
+	public function toArrayForSelect(Collection $collection): array
+	{
+		return GeneralRepositoryHelpers::toArrayOfFullName(GeneralRepositoryHelpers::selectFullName($collection));
 	}
 
 	public function getCollection(bool $includeHidden = false): Collection
