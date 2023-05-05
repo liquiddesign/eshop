@@ -1038,7 +1038,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				SELECT fk_visibilityList
 					FROM eshop_visibilitylistitem
 					JOIN eshop_visibilityList ON eshop_visibilityList.uuid = eshop_visibilitylistitem.fk_visibilityList
-					WHERE fk_product = this.uuid AND eshop_visibilityList.uuid IN (' . $visibilityLists . ')
+					WHERE fk_product = this.uuid AND ' . ($visibilityLists ? 'eshop_visibilityList.uuid IN (' . $visibilityLists . ')' : '1=0') . '
 					ORDER BY eshop_visibilityList.priority ASC
 					LIMIT 1
 				)

@@ -248,8 +248,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	{
 		return $collection
 			->select(['fullName' => "IF(this.systemicLock > 0,
-				CONCAT(this.name, '(', this.code, ',systémový,', COALESCE(shop.code,'společný'), ')'),
-				CONCAT(this.name, '(', this.code, ',', COALESCE(shop.code, 'společný'), ')')
+				CONCAT(this.name, '(', this.code, ',systémový,', COALESCE(shop.uuid,'společný'), ')'),
+				CONCAT(this.name, '(', this.code, ',', COALESCE(shop.uuid, 'společný'), ')')
 			)"])
 			->toArrayOf('fullName');
 	}

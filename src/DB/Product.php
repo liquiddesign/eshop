@@ -722,11 +722,9 @@ class Product extends \StORM\Entity
 			return $this->fetchedPrimaryCategory;
 		}
 
-		try {
-			$primaryCategoryPK = $this->getValue('primaryCategory');
-
-			return $this->fetchedPrimaryCategory = $this->getCategories()->where('this.fk_category', $primaryCategoryPK)->first();
-		} catch (NotExistsException) {
+		if ($this->__isset('primaryCategory') && $this->getValue('primaryCategory')) {
+			return $this->fetchedPrimaryCategory = $this->getCategories()->where('this.fk_category', $this->getValue('primaryCategory'))->first();
+		} else {
 			if ($categoryType) {
 				return $this->fetchedPrimaryCategory = $this->getPrimaryCategories()->where('this.fk_categoryType', $categoryType->getPK())->first()?->category;
 			}
