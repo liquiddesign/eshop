@@ -17,10 +17,13 @@ use Eshop\DB\DiscountCoupon;
 use Eshop\DB\Merchant;
 use Eshop\DB\MinimalOrderValueRepository;
 use Eshop\DB\PricelistRepository;
+use Eshop\DB\Product;
+use Eshop\DTO\ProductWithFormattedPrices;
 use Nette\Security\User;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Collection;
+use StORM\Exception\NotFoundException;
 
 /**
  * Služba která zapouzdřuje nakupujícího
@@ -410,6 +413,27 @@ class Shopper
 		}
 		
 		return null;
+	}
+
+	public function getProductPricesFormatted(Product $product): ?ProductWithFormattedPrices
+	{
+		try {
+			$product->getPrice();
+		} catch (NotFoundException) {
+			return null;
+		}
+
+		return new ProductWithFormattedPrices(
+			$product,
+			$this->showPricesWithVat(),
+			$this->showPricesWithoutVat(),
+			$this->showPriorityPrices(),
+			$this->getCatalogPermission() === 'price',
+			$this->filterPrice($product->getPrice()),
+			$this->filterPrice($product->getPriceVat()),
+			$product->getPriceBefore() ? $this->filterPrice($product->getPriceBefore()) : null,
+			$product->getPriceVatBefore() ? $this->filterPrice($product->getPriceVatBefore()) : null,
+		);
 	}
 	
 	public function getUserPreferredMutation(): ?string
