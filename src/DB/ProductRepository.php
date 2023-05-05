@@ -99,16 +99,22 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		return \max($discountCoupon && $discountCoupon->discountPct ? (int) $discountCoupon->discountPct : 0, $customerDiscount);
 	}
-	
+
 	/**
 	 * @param array<\Eshop\DB\Pricelist>|null $pricelists
 	 * @param \Eshop\DB\Customer|null $customer Used only when $customerGroup is not null
 	 * @param bool $selects
 	 * @param \Eshop\DB\CustomerGroup|null $customerGroup
+	 * @param array<\Eshop\DB\VisibilityList>|null $visibilityLists
 	 * @return \StORM\Collection<\Eshop\DB\Product>
 	 */
-	public function getProducts(?array $pricelists = null, ?Customer $customer = null, bool $selects = true, ?CustomerGroup $customerGroup = null): Collection
-	{
+	public function getProducts(
+		?array $pricelists = null,
+		?Customer $customer = null,
+		bool $selects = true,
+		?CustomerGroup $customerGroup = null,
+		?array $visibilityLists = null
+	): Collection {
 		$discountCoupon = $this->shopperUser->getCheckoutManager()->getDiscountCoupon();
 		
 		$currency = $this->shopperUser->getCurrency();
@@ -171,7 +177,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			}
 		}
 
-		$visibilityLists = $this->shopperUser->getVisibilityLists();
+		$visibilityLists ??= $this->shopperUser->getVisibilityLists();
 
 		if (!$visibilityLists) {
 			Debugger::barDump('No VisibilityLists');
@@ -186,6 +192,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'hiddenInMenu' => 'visibilityListItem.hiddenInMenu',
 				'unavailable' => 'visibilityListItem.unavailable',
 				'recommended' => 'visibilityListItem.recommended',
+				'priority' => 'visibilityListItem.priority',
 			]);
 
 			$defaultDisplayAmount = $this->settingRepository->getValueByName(SettingsPresenter::DEFAULT_DISPLAY_AMOUNT);
@@ -280,15 +287,13 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				->where('nxn.fk_product=this.uuid');
 
 			if ($this->shopsConfig->getSelectedShop()) {
-				$subSelectWhere = new Expression();
-				$subSelectWhere->add('OR', 'eshop_ribbon.fk_shop = %s OR eshop_ribbon.fk_shop IS NULL', [$this->shopsConfig->getSelectedShop()->getPK()], 'eshop_ribbon__var');
-				\bdump($subSelectWhere);
-//				$subSelect->where($subSelectWhere->getSql(), $subSelectWhere->getVars());
-				\bdump($subSelect);
+				$subSelect->where(
+					'eshop_ribbon.fk_shop = :eshop_ribbon_shop OR eshop_ribbon.fk_shop IS NULL',
+					['eshop_ribbon_shop' => $this->shopsConfig->getSelectedShop()->getPK()]
+				);
 			}
 
-			$collection->select(['ribbonsIds' => $subSelect]);
-			\bdump($collection);
+			$collection->select(['ribbonsIds' => $subSelect], $subSelect->getVars());
 			
 			$collection->join(['productPrimaryCategory' => 'eshop_productprimarycategory'], 'this.uuid=productPrimaryCategory.fk_product');
 			$collection->join(['primaryCategory' => 'eshop_category'], 'productPrimaryCategory.fk_category=primaryCategory.uuid');

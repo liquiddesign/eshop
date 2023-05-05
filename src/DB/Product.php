@@ -723,14 +723,14 @@ class Product extends \StORM\Entity
 		}
 
 		if ($this->__isset('primaryCategory') && $this->getValue('primaryCategory')) {
-			return $this->fetchedPrimaryCategory = $this->getCategories()->where('this.fk_category', $this->getValue('primaryCategory'))->first();
-		} else {
-			if ($categoryType) {
-				return $this->fetchedPrimaryCategory = $this->getPrimaryCategories()->where('this.fk_categoryType', $categoryType->getPK())->first()?->category;
-			}
-
-			return $this->fetchedPrimaryCategory = $this->getPrimaryCategories()->orderBy(['categoryType.priority' => 'ASC'])->first()?->category;
+			return $this->fetchedPrimaryCategory = $this->getCategories()->where('this.uuid', $this->getValue('primaryCategory'))->first();
 		}
+
+		if ($categoryType) {
+			return $this->fetchedPrimaryCategory = $this->getPrimaryCategories()->where('this.fk_categoryType', $categoryType->getPK())->first()?->category;
+		}
+
+		return $this->fetchedPrimaryCategory = $this->getPrimaryCategories()->orderBy(['categoryType.priority' => 'ASC'])->first()?->category;
 	}
 
 	/**

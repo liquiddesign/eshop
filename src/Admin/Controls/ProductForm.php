@@ -207,14 +207,6 @@ Ostatní: Přebírání ze zvoleného zdroje
 		}
 
 		$form->addText('storageDate', 'Nejbližší datum naskladnění')->setNullable(true)->setHtmlType('date');
-		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
-		$hiddenInput = $form->addCheckbox('hidden', 'Skryto');
-		$hiddenInMenuInput = $form->addCheckbox('hiddenInMenu', 'Skryto v menu a vyhledávání');
-
-		$hiddenInMenuInput->addConditionOn($hiddenInput, $form::EQUAL, false)->toggle($hiddenInMenuInput->getHtmlId() . '-toogle');
-
-		$form->addCheckbox('recommended', 'Doporučeno')
-			->setHtmlAttribute('data-info', 'Zobrazí se mezi doporučenými produkty. Např.: na hlavní stránce.');
 
 		$form->addGroup('Nákup');
 		$form->addText('unit', 'Prodejní jednotka')
@@ -277,7 +269,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			->addCondition($form::FILLED)
 			->addRule($form::FLOAT)
 			->addRule([FormValidators::class, 'isPercentNoMax'], 'Neplatná hodnota!');
-		$form->addCheckbox('unavailable', 'Neprodejné')->setHtmlAttribute('data-info', 'Znemožňuje nákup produktu.');
 
 		if (isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']) {
 			$form->addText('weight', 'Váha')

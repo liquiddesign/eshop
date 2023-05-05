@@ -216,16 +216,11 @@ class ProductGridFactory
 
 			$finalStr = '';
 			$last = Arrays::last(\array_keys($productCategories));
-			$primaryCategory = $product->getValue('primaryCategory');
 
 			foreach ($productCategories as $productCategoryPK => $productCategoryName) {
 				$finalStr .= '<abbr title="' . $categories[$productCategoryPK] . '">';
 				$finalStr .= $productCategoryName;
 				$finalStr .= '</abbr>';
-				$finalStr .= $productCategoryPK === $primaryCategory ?
-					'&nbsp;<i class="fas fa-star fa-sm"></i>' :
-					'&nbsp;<a title="Nastavit jako primární" href="' . $grid->getPresenter()->link('makeProductCategoryPrimary!', ['product' => $product->getPK(), 'category' => $productCategoryPK]) .
-					'"><i class="far fa-star fa-sm"></i></a>';
 				$finalStr .= $last !== $productCategoryPK ? '&nbsp;|&nbsp;' : null;
 			}
 
