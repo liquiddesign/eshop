@@ -105,7 +105,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - *Product::$upsells*
     - *Product::$rating*
     - *Product::$primaryCategory*
-
+    - *ExportPresenter::ERROR_MSG*
+      - The error message now shows the actual error.
 ### Deprecated
 
 - *Integration/MailerLite*

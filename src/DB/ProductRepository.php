@@ -87,7 +87,13 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function getProductsAsGroup(CustomerGroup $customerGroup, bool $selects = true): Collection
 	{
-		return $this->getProducts($this->getValidPricelists($customerGroup->defaultPricelists)->toArray(), null, $selects, $customerGroup);
+		return $this->getProducts(
+			$this->getValidPricelists($customerGroup->defaultPricelists)->toArray(),
+			null,
+			$selects,
+			$customerGroup,
+			visibilityLists: $this->getValidVisibilityLists($customerGroup->defaultVisibilityLists)->toArray(),
+		);
 	}
 
 	public function getDiscountPct(?Customer $customer = null, ?CustomerGroup $customerGroup = null, ?DiscountCoupon $discountCoupon = null): int
@@ -1636,7 +1642,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function clearCache(): void
 	{
 		$this->cache->clean([
-			Cache::TAGS => ['products'],
+			Cache::Tags => ['products'],
 		]);
 	}
 
@@ -1794,6 +1800,15 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
 			->where('this.fk_currency', $this->shopperUser->getCurrency()->getPK())
 			->where('this.fk_country', $this->shopperUser->getCountry()->getPK());
+	}
+
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\VisibilityList> $collection
+	 * @return \StORM\Collection<\Eshop\DB\VisibilityList>
+	 */
+	protected function getValidVisibilityLists(Collection $collection): Collection
+	{
+		return $collection->where('this.hidden', false);
 	}
 	
 	/**
