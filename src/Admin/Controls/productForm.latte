@@ -541,6 +541,14 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                     {$renderer->renderPair($form['defaultReviewsScore'])|noescape}
                 </table>
 
+                <legend>Feedy</legend>
+                <table class="mt-2 mb-1" style="width: auto;">
+                    {$renderer->renderPair($form['exportNone'])|noescape}
+                    {$renderer->renderPair($form['exportHeureka'])|noescape}
+                    {$renderer->renderPair($form['exportGoogle'])|noescape}
+                    {$renderer->renderPair($form['exportZbozi'])|noescape}
+                </table>
+
                 {ifset $form['karsaAllowRepricing']}
                     <legend>Karsa</legend>
                     <table class="mt-2 mb-1" style="width: auto;">

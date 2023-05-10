@@ -506,7 +506,11 @@ abstract class ExportPresenter extends Presenter
 			$this->sendJson('No pricelists selected!');
 		}
 
-		$this->template->products = $this->productRepo->getProducts($pricelists)->where('this.hidden', false)->where('this.unavailable', 0)->toArray();
+		$this->template->products = $this->productRepo->getProducts($pricelists)
+			->where('this.hidden', false)
+			->where('this.unavailable', 0)
+			->where('this.exportHeureka', true)
+			->toArray();
 		$this->template->categoriesMapWithHeurekaCategories = $this->categoryRepository->getCategoriesMapWithHeurekaCategories($this->categoryRepository->many()->where('fk_type', 'main'));
 
 		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
@@ -558,7 +562,11 @@ abstract class ExportPresenter extends Presenter
 			$this->sendJson('No pricelists selected!');
 		}
 
-		$this->template->products = $this->productRepo->getProducts($pricelists)->where('this.hidden', false)->where('this.unavailable', 0)->toArray();
+		$this->template->products = $this->productRepo->getProducts($pricelists)
+			->where('this.hidden', false)
+			->where('this.unavailable', 0)
+			->where('this.exportZbozi', true)
+			->toArray();
 
 		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
 		$this->template->allAttributes = $this->attributeRepository->many()->select(['zbozi' => "IFNULL(zboziName,name$mutationSuffix)"])->toArrayOf('zbozi');
@@ -592,7 +600,11 @@ abstract class ExportPresenter extends Presenter
 		$pricelists = $this->getPricelistFromSetting('googleExportPricelist');
 
 		$this->template->groupAfterRegistration = $groupAfterRegistration = $this->customerGroupRepository->getDefaultRegistrationGroup() ?: $this->customerGroupRepository->getUnregisteredGroup();
-		$this->template->products = $this->productRepo->getProducts($pricelists)->where('this.hidden', false)->where('this.unavailable', 0)->toArray();
+		$this->template->products = $this->productRepo->getProducts($pricelists)
+			->where('this.hidden', false)
+			->where('this.unavailable', 0)
+			->where('this.exportGoogle', true)
+			->toArray();
 
 		$this->template->products = (
 			$pricelists ?

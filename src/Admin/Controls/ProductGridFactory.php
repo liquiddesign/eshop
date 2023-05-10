@@ -14,6 +14,7 @@ use Eshop\DB\SupplierProductRepository;
 use Eshop\Integration\Integrations;
 use Grid\Datagrid;
 use Nette\DI\Container;
+use Nette\Forms\Controls\Checkbox;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use StORM\Connection;
@@ -200,7 +201,7 @@ class ProductGridFactory
 			}
 
 			return [
-				$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string)$product]),
+				$grid->getPresenter()->link(':Eshop:Product:detail', ['product' => (string) $product]),
 				$product->name,
 				\implode(' &nbsp;', $suppliers),
 				$ribbons,
@@ -212,7 +213,7 @@ class ProductGridFactory
 		$grid->addColumnText('Výrobce', 'producer.name', '%s');
 		$grid->addColumn('Kategorie', function (Product $product, $grid) use ($mutationSuffix) {
 			$categories = $this->categoryRepository->getTreeArrayForSelect();
-			/** @var string[] $productCategories */
+			/** @var array<string> $productCategories */
 			$productCategories = $product->categories->orderBy(['LENGTH(this.path)', "this.name$mutationSuffix"])->toArrayOf('name');
 
 			$finalStr = '';
@@ -264,11 +265,21 @@ class ProductGridFactory
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 		$grid->addColumnInputCheckbox('<i title="Skryto v menu a vyhledávání" class="far fa-minus-square"></i>', 'hiddenInMenu', '', '', 'hiddenInMenu');
 		$grid->addColumnInputCheckbox('<i title="Neprodejné" class="fas fa-ban"></i>', 'unavailable', '', '', 'unavailable');
+		$grid->addColumnInputCheckbox('<i title="Skrýt ve všech feedech" class="fas fa-minus-circle"></i>', 'exportNone', function (Checkbox $checkbox, Product $product): void {
+			$checkbox->setDisabled(!$product->exportHeureka && !$product->exportGoogle && !$product->exportZbozi);
+			$checkbox->setDefaultValue(!$product->exportHeureka && !$product->exportGoogle && !$product->exportZbozi);
+		});
 
 		$grid->addColumnLinkDetail('edit');
 		$grid->addColumnActionDelete([$this, 'onDelete']);
 
-		$grid->addButtonSaveAll([], [], null, false, null, null, true, null, function (): void {
+		$grid->addButtonSaveAll([], [], null, false, null, function (string $id, array &$data, Product $product): void {
+			$data['exportHeureka'] = $data['exportNone'] ? false : $product->exportHeureka;
+			$data['exportGoogle'] = $data['exportNone'] ? false : $product->exportGoogle;
+			$data['exportZbozi'] = $data['exportNone'] ? false : $product->exportZbozi;
+
+			unset($data['exportNone']);
+		}, true, null, function (): void {
 			$this->categoryRepository->clearCategoriesCache();
 			$this->productRepository->clearCache();
 		});
@@ -291,6 +302,9 @@ class ProductGridFactory
 			'defaultReviewsScore',
 			'supplierDisplayAmountLock',
 			'supplierDisplayAmountMergedLock',
+			'exportHeureka',
+			'exportZbozi',
+			'exportGoogle',
 		];
 
 		if (isset($configuration['isManager']) && $configuration['isManager']) {

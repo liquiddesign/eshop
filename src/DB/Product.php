@@ -449,6 +449,21 @@ class Product extends \StORM\Entity
 	public ?Category $exportZboziCategory;
 
 	/**
+	 * @column
+	 */
+	public bool $exportGoogle = true;
+
+	/**
+	 * @column
+	 */
+	public bool $exportHeureka = true;
+
+	/**
+	 * @column
+	 */
+	public bool $exportZbozi = true;
+
+	/**
 	 * Watcher pro aktualniho uživatele jinak nedáva smysl
 	 * @relation
 	 */

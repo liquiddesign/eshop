@@ -90,7 +90,7 @@ class ProductForm extends Control
 	private int $relationMaxItemsCount;
 
 	/**
-	 * @var \Eshop\DB\RelatedType[]
+	 * @var array<\Eshop\DB\RelatedType>
 	 */
 	private array $relatedTypes;
 
@@ -172,7 +172,7 @@ class ProductForm extends Control
 
 		$form->addSelect('vatRate', 'Úroveň DPH (%)', $vatRateRepository->getDefaultVatRates());
 
-		/** @var \Eshop\DB\CategoryType[] $categoryTypes */
+		/** @var array<\Eshop\DB\CategoryType> $categoryTypes */
 		$categoryTypes = $this->categoryTypeRepository->getCollection(true)->toArray();
 
 		$categoriesContainer = $form->addContainer('categories');
@@ -278,6 +278,15 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$form->addIntegerNullable('inPackage', 'Počet v balení');
 		$form->addIntegerNullable('inCarton', 'Počet v kartónu');
 		$form->addIntegerNullable('inPalett', 'Počet v paletě');
+
+		$exportNoneInput = $form->addCheckbox('exportNone', 'Skrýt všude');
+		$exportHeurekaInput = $form->addCheckbox('exportHeureka', 'Exportovat do Heureky');
+		$exportGoogleInput = $form->addCheckbox('exportGoogle', 'Exportovat do Google');
+		$exportZboziInput = $form->addCheckbox('exportZbozi', 'Exportovat do Zboží');
+
+		$exportHeurekaInput->addConditionOn($exportNoneInput, $form::EQUAL, false)->toggle($exportHeurekaInput->getHtmlId() . '-toogle');
+		$exportGoogleInput->addConditionOn($exportNoneInput, $form::EQUAL, false)->toggle($exportGoogleInput->getHtmlId() . '-toogle');
+		$exportZboziInput->addConditionOn($exportNoneInput, $form::EQUAL, false)->toggle($exportZboziInput->getHtmlId() . '-toogle');
 
 		$defaultReviewsCount = $form->addIntegerNullable('defaultReviewsCount', 'Výchozí počet recenzí');
 
@@ -613,6 +622,12 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 		}
 
 		$values['primaryCategory'] = Arrays::contains($newCategories, $values['primaryCategory']) ? $values['primaryCategory'] : (\count($newCategories) > 0 ? Arrays::first($newCategories) : null);
+
+		if ($values['exportNone']) {
+			$values['exportHeureka'] = false;
+			$values['exportGoogle'] = false;
+			$values['exportZbozi'] = false;
+		}
 
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
