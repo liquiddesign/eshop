@@ -13,6 +13,7 @@ use StORM\RelationCollection;
  * Typ dopravy
  * @table
  * @property float $priceVatWithCod
+ * @index{"name":"deliverytype_codeshop","unique":true,"columns":["code", "fk_shop"]}
  */
 class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 {
@@ -156,6 +157,12 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	 * @var \StORM\RelationCollection<\Eshop\DB\PaymentType>
 	 */
 	public RelationCollection $allowedPaymentTypes;
+
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\DeliveryTypePrice>
+	 */
+	public RelationCollection $deliveryTypePrices;
 	
 	/**
 	 * Výdejní typ

@@ -56,6 +56,8 @@ class DisplayDeliveryPresenter extends BackendPresenter
 		$form->addLocaleText('beforeTimeThresholdLabel', 'Popisek před');
 		$form->addLocaleText('afterTimeThresholdLabel', 'Popisek po');
 
+		$this->formFactory->addShopsContainerToAdminForm($form);
+
 		$form->addSubmits(!$this->getParameter('displayDelivery'));
 
 		$form->onSuccess[] = function (AdminForm $form): void {

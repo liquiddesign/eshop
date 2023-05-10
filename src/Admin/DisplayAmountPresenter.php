@@ -59,6 +59,8 @@ class DisplayAmountPresenter extends BackendPresenter
 			->setHtmlAttribute('data-info', 'Pokud nastavíte "Přednastavené doručení", tak u produktů s nastaveným doručením na "Automaticky" bude zvoleno toto doručení.');
 		$form->addCheckbox('isSold', 'Označit jako vyprodáno');
 
+		$this->formFactory->addShopsContainerToAdminForm($form);
+
 		$form->addSubmits(!$this->getParameter('displayAmount'));
 
 		$form->onSuccess[] = function (AdminForm $form): void {

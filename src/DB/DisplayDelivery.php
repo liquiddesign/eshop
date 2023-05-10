@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopEntity;
+
 /**
  * Zobrazení doručení
  * @table
  */
-class DisplayDelivery extends \StORM\Entity
+class DisplayDelivery extends ShopEntity
 {
 	/**
 	 * Popisek

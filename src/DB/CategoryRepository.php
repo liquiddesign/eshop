@@ -86,6 +86,14 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		return (int) ($result[$path] ?? 0);
 	}
 
+	/**
+	 * @param string $typeId
+	 * @param bool $cache
+	 * @param bool $includeHidden
+	 * @param bool $onlyMenu
+	 * @return \StORM\ArrayWrapper<\Eshop\DB\Category>
+	 * @throws \Throwable
+	 */
 	public function getTree(string $typeId = 'main', bool $cache = true, bool $includeHidden = false, bool $onlyMenu = false): ArrayWrapper
 	{
 		unset($cache);

@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Base\Entity\ShopSystemicEntity;
+use StORM\RelationCollection;
 
 /**
  * Typ platby
  * @table
+ * @index{"name":"paymenttype_codeshop","unique":true,"columns":["code", "fk_shop"]}
  */
 class PaymentType extends ShopSystemicEntity
 {
@@ -80,4 +82,10 @@ class PaymentType extends ShopSystemicEntity
 	 * @column
 	 */
 	public ?string $comgateMethod;
+
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\PaymentTypePrice>
+	 */
+	public RelationCollection $paymentTypePrices;
 }

@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
-use Admin\Controls\AdminGridFactory;
+use Base\ShopsConfig;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\SupplierProductRepository;
+use Eshop\DB\VisibilityListRepository;
 use Eshop\Integration\Integrations;
 use Grid\Datagrid;
 use Nette\DI\Container;
@@ -24,49 +25,30 @@ use Web\DB\PageRepository;
 
 class ProductGridFactory
 {
-	private ProductRepository $productRepository;
-
-	private AdminGridFactory $gridFactory;
-
-	private PageRepository $pageRepository;
-
-	private Container $container;
-
-	private ProductGridFiltersFactory $productGridFiltersFactory;
-
-	private Connection $connection;
-
-	private CategoryRepository $categoryRepository;
-
-	private SupplierProductRepository $supplierProductRepository;
-
-	private CategoryTypeRepository $categoryTypeRepository;
-
 	public function __construct(
-		\Admin\Controls\AdminGridFactory $gridFactory,
-		Container $container,
-		PageRepository $pageRepository,
-		ProductRepository $productRepository,
-		ProductGridFiltersFactory $productGridFiltersFactory,
-		Connection $connection,
-		CategoryRepository $categoryRepository,
-		SupplierProductRepository $supplierProductRepository,
-		CategoryTypeRepository $categoryTypeRepository,
-		private Integrations $integrations,
+		private readonly \Admin\Controls\AdminGridFactory $gridFactory,
+		private readonly Container $container,
+		private readonly PageRepository $pageRepository,
+		private readonly ProductRepository $productRepository,
+		private readonly ProductGridFiltersFactory $productGridFiltersFactory,
+		private readonly Connection $connection,
+		private readonly CategoryRepository $categoryRepository,
+		private readonly SupplierProductRepository $supplierProductRepository,
+		private readonly CategoryTypeRepository $categoryTypeRepository,
+		private readonly Integrations $integrations,
+		private readonly ShopsConfig $shopsConfig,
+		private readonly VisibilityListRepository $visibilityListRepository,
 	) {
-		$this->gridFactory = $gridFactory;
-		$this->pageRepository = $pageRepository;
-		$this->container = $container;
-		$this->productGridFiltersFactory = $productGridFiltersFactory;
-		$this->productRepository = $productRepository;
-		$this->connection = $connection;
-		$this->categoryRepository = $categoryRepository;
-		$this->supplierProductRepository = $supplierProductRepository;
-		$this->categoryTypeRepository = $categoryTypeRepository;
 	}
 
 	public function create(array $configuration): Datagrid
 	{
+		$visibilityListsCollection = $this->visibilityListRepository->getCollection();
+
+		if ($selectedShop = $this->shopsConfig->getSelectedShop()) {
+			$visibilityListsCollection->where('this.fk_shop', $selectedShop->getPK());
+		}
+
 		$source = $this->productRepository->many()
 			->setSmartJoin(false)
 			->setGroupBy(['this.uuid'])
@@ -76,6 +58,10 @@ class ProductGridFactory
 			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
 			->join(['pricelist' => 'eshop_pricelist'], 'pricelist.uuid=price.fk_pricelist')
 			->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = this.uuid')
+			->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid')
+			->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityList.uuid')
+			->join(['primaryCategory' => 'eshop_productprimarycategory'], 'primaryCategory.fk_product = this.uuid')
+			->where('visibilityList.uuid', $visibilityListsCollection->toArrayOf('uuid', toArrayValues: true))
 			->select([
 				'photoCount' => 'COUNT(DISTINCT photo.uuid)',
 				'fileCount' => 'COUNT(DISTINCT file.uuid)',
@@ -83,33 +69,36 @@ class ProductGridFactory
 				'priceCount' => 'COUNT(DISTINCT price.uuid)',
 				'categoryCount' => 'COUNT(DISTINCT nxnCategory.fk_category)',
 				'pricelistActive' => 'MAX(pricelist.isActive)',
+				'hidden' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.hidden ORDER BY visibilityList.priority), ',', 1)",
+				'unavailable' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.unavailable ORDER BY visibilityList.priority), ',', 1)",
+				'primaryCategoryPKs' => 'GROUP_CONCAT(primaryCategory.fk_category)',
 			]);
 
 		$grid = $this->gridFactory->create($source, 20, 'this.uuid', 'ASC', true);
 		$grid->addColumnSelector();
-//		$grid->addColumn('', function (Product $object, Datagrid $datagrid) {
-//			if ($object->hidden) {
-//				$label = 'Neviditelný: Skrytý';
-//				$color = 'danger';
-//			} elseif ($object->getValue('priceCount') === '0') {
-//				$label = 'Neviditelný: Bez ceny';
-//				$color = 'danger';
-//			} elseif ($object->getValue('pricelistActive') === '0') {
-//				$label = 'Neviditelný: Žádné aktivní ceny';
-//				$color = 'danger';
-//			} elseif ($object->unavailable) {
-//				$label = 'Viditelný: Neprodejný';
-//				$color = 'warning';
-//			} elseif ($object->getValue('categoryCount') === '0') {
-//				$label = 'Viditelný: Bez kategorie';
-//				$color = 'warning';
-//			} else {
-//				$label = 'Viditelný';
-//				$color = 'success';
-//			}
-//
-//			return '<i title="' . $label . '" class="fa fa-circle fa-sm text-' . $color . '">';
-//		}, '%s', null, ['class' => 'fit']);
+		$grid->addColumn('', function (Product $object, Datagrid $datagrid) {
+			if ($object->isHidden()) {
+				$label = 'Neviditelný: Skrytý';
+				$color = 'danger';
+			} elseif ($object->getValue('priceCount') === '0') {
+				$label = 'Neviditelný: Bez ceny';
+				$color = 'danger';
+			} elseif ($object->getValue('pricelistActive') === '0') {
+				$label = 'Neviditelný: Žádné aktivní ceny';
+				$color = 'danger';
+			} elseif ($object->isUnavailable()) {
+				$label = 'Viditelný: Neprodejný';
+				$color = 'warning';
+			} elseif ($object->getValue('categoryCount') === '0') {
+				$label = 'Viditelný: Bez kategorie';
+				$color = 'warning';
+			} else {
+				$label = 'Viditelný';
+				$color = 'success';
+			}
+
+			return '<i title="' . $label . '" class="fa fa-circle fa-sm text-' . $color . '">';
+		}, '%s', null, ['class' => 'fit']);
 		$grid->addColumnImage('imageFileName', Product::GALLERY_DIR);
 
 		$grid->addColumn('Kód a EAN', function (Product $product) {
@@ -216,11 +205,15 @@ class ProductGridFactory
 
 			$finalStr = '';
 			$last = Arrays::last(\array_keys($productCategories));
+			$primaryCategories = \explode(',', $product->getValue('primaryCategoryPKs'));
 
 			foreach ($productCategories as $productCategoryPK => $productCategoryName) {
 				$finalStr .= '<abbr title="' . $categories[$productCategoryPK] . '">';
 				$finalStr .= $productCategoryName;
 				$finalStr .= '</abbr>';
+				$finalStr .= Arrays::contains($primaryCategories, $productCategoryPK) ?
+					'&nbsp;<i class="fas fa-star fa-sm"></i>' :
+					'<i class="far fa-star fa-sm"></i></a>';
 				$finalStr .= $last !== $productCategoryPK ? '&nbsp;|&nbsp;' : null;
 			}
 
