@@ -163,6 +163,12 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	 * @var \StORM\RelationCollection<\Eshop\DB\DeliveryTypePrice>
 	 */
 	public RelationCollection $deliveryTypePrices;
+
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\SupplierDeliveryType>
+	 */
+	public RelationCollection $supplierDeliveryTypes;
 	
 	/**
 	 * Výdejní typ
