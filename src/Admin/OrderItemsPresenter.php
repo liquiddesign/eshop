@@ -57,7 +57,8 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 			->where('e_o.receivedTs IS NOT NULL AND e_o.completedTs IS NOT NULL AND e_o.canceledTs IS NULL'), 100, 'e_o.createdTs', 'DESC', true);
 		$grid->addColumnSelector();
 
-		$grid->addColumnText('Vytvořeno', 'e_o_createdTs|date', '%s', 'e_o.createdTs', ['class' => 'fit']);
+		$grid->addColumnText('Obj. vytvořena', 'e_o_createdTs|date', '%s', 'e_o.createdTs', ['class' => 'fit']);
+		$grid->addColumnText('Obj. odeslána', 'e_o_completedTs|date', '%s', 'e_o.createdTs', ['class' => 'fit']);
 
 		$grid->addColumn('Objednávka', function (CartItem $cartItem) use ($orders): ?string {
 			$name = $cartItem->getValue('e_o_code');
@@ -87,8 +88,12 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 			return $cartItem->getValue('e_su_name');
 		});
 
-		$grid->addColumn('Objednáno', function (CartItem $cartItem): string {
+		$grid->addColumn('Objednáno (LQD)', function (CartItem $cartItem): string {
 			return $cartItem->getValue('e_pai_status') === 'reserved' ? '<i class="fa fa-check text-success"></i>' : '<i class="fa fa-times text-danger"></i>';
+		}, '%s', null, ['class' => 'minimal']);
+
+		$grid->addColumn('Objednáno (Qi)', function (CartItem $cartItem): string {
+			return $cartItem->getValue('e_pai_exportedTs') ? '<i class="fa fa-check text-success"></i>' : '<i class="fa fa-times text-danger"></i>';
 		}, '%s', null, ['class' => 'minimal']);
 
 //		$btnSecondary = 'btn btn-sm btn-outline-primary';
@@ -100,11 +105,27 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('e_o.createdTs >= :created_from', ['created_from' => $value]);
-		}, '', 'date_from', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
+		}, '', 'created_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])
+			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
+			->setHtmlAttribute('placeholder', 'Datum vytvoření obj. od');
 
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('e_o.createdTs <= :created_to', ['created_to' => $value]);
-		}, '', 'date_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
+		}, '', 'created_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])
+			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
+			->setHtmlAttribute('placeholder', 'Datum vytvoření obj. do');
+
+		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+			$source->where('e_o.completedTs >= :completed_from', ['completed_from' => $value]);
+		}, '', 'completed_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])
+			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
+			->setHtmlAttribute('placeholder', 'Datum odeslání obj. od');
+
+		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+			$source->where('e_o.completedTs <= :completed_to', ['completed_to' => $value]);
+		}, '', 'completed_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])
+			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
+			->setHtmlAttribute('placeholder', 'Datum odeslání obj. do');
 
 		$grid->addFilterDataSelect(function (Collection $source, $value): void {
 			$source->where('e_st.fk_supplier = :val OR e_sp_su.uuid = :val', ['val' => $value]);
