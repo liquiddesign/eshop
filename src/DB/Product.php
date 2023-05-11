@@ -738,7 +738,7 @@ class Product extends \StORM\Entity
 	 * @param bool $reversed
 	 * @return array<string>
 	 */
-	public function getCategoryTree(string $property, bool $reversed = false): array
+	public function getCategoryTree(string $property, bool $reversed = false, string $type = 'main'): array
 	{
 		/** @var \Eshop\DB\Product|\stdClass $product */
 		$product = $this;
@@ -751,7 +751,6 @@ class Product extends \StORM\Entity
 		$categoryRepository = $this->getConnection()->findRepository(Category::class);
 
 		$tree = [];
-		$type = 'main';
 
 		if ($categoryRepository->isTreeBuild($type)) {
 			for ($i = 4; $i <= Strings::length($product->primaryCategoryPath); $i += 4) {
@@ -768,7 +767,7 @@ class Product extends \StORM\Entity
 		}
 
 		/** @phpstan-ignore-next-line */
-		return $categoryRepository->many()->where('path LIKE :path', ['path' => $this->primaryCategoryPath])->orderBy(['LENGTH(path)' => $reversed ? 'DESC' : 'ASC'])->toArrayOf($tree, [], true);
+		return $categoryRepository->many()->where('path LIKE :path', ['path' => $product->primaryCategoryPath])->orderBy(['LENGTH(path)' => $reversed ? 'DESC' : 'ASC'])->toArrayOf($tree, [], true);
 	}
 
 	public function inStock(): bool

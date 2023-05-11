@@ -3,6 +3,10 @@
 namespace Eshop;
 
 use Admin\DB\RoleRepository;
+use Base\ShopsConfig;
+use Eshop\Admin\SettingsPresenter;
+use Eshop\DB\CategoryType;
+use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\Country;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\Currency;
@@ -27,6 +31,7 @@ use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Collection;
 use StORM\Exception\NotFoundException;
+use Web\DB\SettingRepository;
 
 class ShopperUser extends User
 {
@@ -74,6 +79,8 @@ class ShopperUser extends User
 	 */
 	private array $config = [];
 
+	private CategoryType|null $mainCategoryType = null;
+
 	public function __construct(
 		protected readonly PricelistRepository $pricelistRepository,
 		protected readonly CurrencyRepository $currencyRepository,
@@ -83,7 +90,10 @@ class ShopperUser extends User
 		protected readonly MinimalOrderValueRepository $minimalOrderValueRepository,
 		protected readonly AccountRepository $accountRepository,
 		protected readonly RoleRepository $roleRepository,
+		protected readonly SettingRepository $settingRepository,
+		protected readonly CategoryTypeRepository $categoryTypeRepository,
 		private readonly Container $container,
+		private readonly ShopsConfig $shopsConfig,
 		?IUserStorage $legacyStorage = null,
 		?IAuthenticator $authenticator = null,
 		?Authorizator $authorizator = null,
@@ -300,6 +310,27 @@ class ShopperUser extends User
 			$product->getPriceBefore() ? $this->filterPrice($product->getPriceBefore()) : null,
 			$product->getPriceVatBefore() ? $this->filterPrice($product->getPriceVatBefore()) : null,
 		);
+	}
+
+	public function getMainCategoryType(): CategoryType
+	{
+		if ($this->mainCategoryType) {
+			return $this->mainCategoryType;
+		}
+
+		$shop = $this->shopsConfig->getSelectedShop();
+
+		if (!$shop) {
+			return $this->mainCategoryType = $this->categoryTypeRepository->one('main', true);
+		}
+
+		$setting = $this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $shop->getPK());
+
+		if (!$setting) {
+			throw new \Exception('Shop is selected, but has no associated category type.');
+		}
+
+		return $this->mainCategoryType = $this->categoryTypeRepository->one($setting, true);
 	}
 
 	/**

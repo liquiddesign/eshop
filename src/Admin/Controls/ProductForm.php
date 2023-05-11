@@ -6,6 +6,7 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
+use Base\ShopsConfig;
 use Eshop\Admin\Configs\ProductFormAutoPriceConfig;
 use Eshop\Admin\Configs\ProductFormConfig;
 use Eshop\Admin\ProductPresenter;
@@ -22,10 +23,9 @@ use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
+use Eshop\DB\ProductContentRepository;
 use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
-use Eshop\DB\ProductTabRepository;
-use Eshop\DB\ProductTabTextRepository;
 use Eshop\DB\RelatedRepository;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\RibbonRepository;
@@ -66,8 +66,7 @@ class ProductForm extends Control
 		private readonly PageRepository $pageRepository,
 		private readonly ProductRepository $productRepository,
 		private readonly PricelistRepository $pricelistRepository,
-		private readonly ProductTabRepository $productTabRepository,
-		private readonly ProductTabTextRepository $productTabTextRepository,
+		private readonly ProductContentRepository $productContentRepository,
 		private readonly PriceRepository $priceRepository,
 		private readonly SupplierRepository $supplierRepository,
 		private readonly SupplierProductRepository $supplierProductRepository,
@@ -78,6 +77,7 @@ class ProductForm extends Control
 		private readonly VatRateRepository $vatRateRepository,
 		DisplayAmountRepository $displayAmountRepository,
 		DisplayDeliveryRepository $displayDeliveryRepository,
+		private readonly ShopsConfig $shopsConfig,
 		TaxRepository $taxRepository,
 		private readonly ShopperUser $shopperUser,
 		private readonly CategoryTypeRepository $categoryTypeRepository,
@@ -381,9 +381,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			}
 		});
 
-		/** @var \Eshop\DB\ProductTab $productTab */
-		foreach ($productTabRepository->many() as $productTab) {
-			$form->addLocalePerexEdit('productTab' . $productTab->getPk(), $productTab->name);
+		foreach ($this->shopsConfig->getAvailableShops() as $shop) {
+			$form->addLocalePerexEdit('content_' . $shop->getPk(), "Obsah (O:$shop->name)");
 		}
 
 		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository, $storeRepository): void {
@@ -712,21 +711,17 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		unset($values['prices']);
 
-		foreach ($this->productTabRepository->many() as $productTab) {
+		foreach ($this->shopsConfig->getAvailableShops() as $shop) {
 			$conditions = [
-				'tab' => $productTab->getPK(),
+				'shop' => $shop->getPK(),
 				'product' => $values['uuid'],
 			];
 			
-			$conditions['content'] = $values['productTab' . $productTab->getPK()];
+			$conditions['content'] = $values['content_' . $shop->getPK()];
 
-			$this->productTabTextRepository->many()
-				->where('fk_product=:product AND fk_tab=:tab', ['product' => $product->getPK(), 'tab' => $productTab->getPK()])
-				->delete();
+			$this->productContentRepository->syncOne($conditions);
 
-			$this->productTabTextRepository->syncOne($conditions);
-
-			unset($values['productTab' . $productTab->getPK()]);
+			unset($values['content_' . $shop->getPK()]);
 		}
 
 		foreach ($values['stores'] as $storeId => $amount) {

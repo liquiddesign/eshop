@@ -4,24 +4,20 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopEntity;
+
 /**
  * Text záložky
  * @table
+ * @index{"name":"productContent_unique","unique":true,"columns":["fk_product", "fk_shop"]}
  */
-class ProductTabText extends \StORM\Entity
+class ProductContent extends ShopEntity
 {
 	/**
 	 * Obsah
 	 * @column{"type":"longtext","mutations":true}
 	 */
 	public ?string $content;
-
-	/**
-	 * Záložka
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
-	 * @relation
-	 */
-	public ?ProductTab $tab;
 
 	/**
 	 * Záložka

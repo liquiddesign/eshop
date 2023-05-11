@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - *VisibilityListItem* is selected based on assigned *VisibilityList*s to customer or group, and is found first product row based on priority of *VisibilityList*
         - You can use *ProductRepository::joinVisibilityListItemToProductCollection* to join them
             - *ProductRepository::getProducts* does this automatically and properties are available in Product getters, or directly in SQL as alias *visibilityListItem*
+- **BREAKING:** Product content is not stored in Product but in ProductContent, based on Shop.
 
 ### Changed
 
@@ -74,6 +75,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `DB/SetRepository`
     - `DB/SupplierParameterValue`
     - `DB/SupplierParameterValueRepository`
+    - `DB/ProductTab`
+    - `DB/ProductTabRepository`
+    - `DB/ProductTabText`
+    - `DB/ProductTabTextRepository`
 - **BREAKING:** Removed many deprecated and unused functions and properties. Not all of them are listed here.
     - *OrderList::handleExport*
     - *OrderList::exportCsvApi*
