@@ -132,6 +132,8 @@ class Shopper
 
 	protected RoleRepository $roleRepository;
 
+	protected \Nette\Localization\Translator $translator;
+
 	public function __construct(
 		User $user,
 		PricelistRepository $pricelistRepository,
@@ -141,7 +143,8 @@ class Shopper
 		CustomerGroupRepository $customerGroupRepository,
 		MinimalOrderValueRepository $minimalOrderValueRepository,
 		AccountRepository $accountRepository,
-		RoleRepository $roleRepository
+		RoleRepository $roleRepository,
+		\Nette\Localization\Translator $translator
 	) {
 		$this->user = $user;
 		$this->pricelistRepository = $pricelistRepository;
@@ -152,6 +155,7 @@ class Shopper
 		$this->customerGroupRepository = $customerGroupRepository;
 		$this->minimalOrderValueRepository = $minimalOrderValueRepository;
 		$this->roleRepository = $roleRepository;
+		$this->translator = $translator;
 	}
 
 	public function setUseDiscountLevelCalculationInBeforePrice(bool $useDiscountLevelCalculationInBeforePrice): void
@@ -424,6 +428,7 @@ class Shopper
 		}
 
 		return new ProductWithFormattedPrices(
+			$this->translator,
 			$product,
 			$this->showPricesWithVat(),
 			$this->showPricesWithoutVat(),
