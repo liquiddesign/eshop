@@ -2,11 +2,14 @@
 
 namespace Eshop\DTO;
 
+use Eshop\DB\Customer;
 use Eshop\DB\Product;
+use Nette\Localization\Translator;
 
 class ProductWithFormattedPrices
 {
 	public function __construct(
+		private readonly Translator $translator,
 		private readonly Product $product,
 		private readonly bool $showWithVat,
 		private readonly bool $showWithoutVat,
@@ -15,8 +18,9 @@ class ProductWithFormattedPrices
 		private readonly bool $canView,
 		private readonly string $price,
 		private readonly string $priceVat,
-		private readonly ?string $priceBefore = null,
-		private readonly ?string $priceVatBefore = null
+		private readonly ?string $priceBefore,
+		private readonly ?string $priceVatBefore,
+		private readonly ?Customer $customer,
 	) {
 	}
 
@@ -110,5 +114,46 @@ class ProductWithFormattedPrices
 		}
 
 		return null;
+	}
+
+	public function inStock(): bool
+	{
+		return $this->product->inStock();
+	}
+
+	public function getDisplayAmountText(): ?string
+	{
+		if ($this->product->displayAmount) {
+			return $this->product->displayAmount->label;
+		}
+
+		return $this->inStock() ?
+			$this->translator->translate('.inStockOnRequest', 'Skladem: na dotaz') :
+			$this->translator->translate('.notInStock', 'Není skladem');
+	}
+
+	public function getDisplayDeliveryText(): ?string
+	{
+		if ($this->inStock()) {
+			return ($text = $this->product->getDynamicDelivery()) ?
+				$text :
+				$this->translator->translate('.unknownDelivery', 'Neznámé dodání');
+		}
+
+		return null;
+	}
+
+	public function getStorageDateText(): ?string
+	{
+		if ($this->inStock()) {
+			return null;
+		}
+
+		return $this->product->storageDate ?: $this->translator->translate('.storageUnknown', 'Naskladnění neznámé');
+	}
+
+	public function showWatchers(): bool
+	{
+		return !$this->inStock() && $this->customer;
 	}
 }

@@ -22,6 +22,7 @@ use Eshop\DB\PricelistRepository;
 use Eshop\DB\Product;
 use Eshop\DTO\ProductWithFormattedPrices;
 use Nette\DI\Container;
+use Nette\Localization\Translator;
 use Nette\Security\Authorizator;
 use Nette\Security\IAuthenticator;
 use Nette\Security\IUserStorage;
@@ -92,8 +93,9 @@ class ShopperUser extends User
 		protected readonly RoleRepository $roleRepository,
 		protected readonly SettingRepository $settingRepository,
 		protected readonly CategoryTypeRepository $categoryTypeRepository,
-		private readonly Container $container,
-		private readonly ShopsConfig $shopsConfig,
+		protected readonly Container $container,
+		protected readonly ShopsConfig $shopsConfig,
+		protected readonly Translator $translator,
 		?IUserStorage $legacyStorage = null,
 		?IAuthenticator $authenticator = null,
 		?Authorizator $authorizator = null,
@@ -300,6 +302,7 @@ class ShopperUser extends User
 		}
 
 		return new ProductWithFormattedPrices(
+			$this->translator,
 			$product,
 			$this->showPricesWithVat(),
 			$this->showPricesWithoutVat(),
@@ -309,6 +312,7 @@ class ShopperUser extends User
 			$this->filterPrice($product->getPriceVat()),
 			$product->getPriceBefore() ? $this->filterPrice($product->getPriceBefore()) : null,
 			$product->getPriceVatBefore() ? $this->filterPrice($product->getPriceVatBefore()) : null,
+			$this->getCustomer(),
 		);
 	}
 
