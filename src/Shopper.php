@@ -438,6 +438,7 @@ class Shopper
 			$this->filterPrice($product->getPriceVat()),
 			$product->getPriceBefore() ? $this->filterPrice($product->getPriceBefore()) : null,
 			$product->getPriceVatBefore() ? $this->filterPrice($product->getPriceVatBefore()) : null,
+			$this->getCustomer(),
 		);
 	}
 	
