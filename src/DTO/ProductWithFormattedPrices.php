@@ -2,6 +2,7 @@
 
 namespace Eshop\DTO;
 
+use Eshop\DB\Customer;
 use Eshop\DB\Product;
 use Nette\Localization\Translator;
 
@@ -19,7 +20,8 @@ class ProductWithFormattedPrices
 		private string $price,
 		private string $priceVat,
 		private ?string $priceBefore = null,
-		private ?string $priceVatBefore = null
+		private ?string $priceVatBefore = null,
+		private ?Customer $customer = null,
 		/** @codingStandardsIgnoreEnd */
 	) {
 		// Nothing here
@@ -195,6 +197,6 @@ class ProductWithFormattedPrices
 
 	public function showWatchers(): bool
 	{
-		return !$this->inStock();
+		return !$this->inStock() && $this->customer;
 	}
 }
