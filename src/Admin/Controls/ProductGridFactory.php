@@ -222,10 +222,10 @@ class ProductGridFactory
 		
 		$grid->addColumnText('Sleva', 'discountLevelPct', '%s %%', 'discountLevelPct', ['class' => 'fit']);
 		$grid->addColumn('Obsah', function (Product $object, Datagrid $datagrid) {
-			if ($object->supplierContentLock && $object->content) {
+			if ($object->supplierContentLock && $object->getContent()) {
 				$label = 'Vlastní obsah';
 				$icon = 'fas fa-file-alt';
-			} elseif ($object->supplierContentLock && !$object->content) {
+			} elseif ($object->supplierContentLock && !$object->getContent()) {
 				$label = 'Žádný obsah';
 				$icon = 'fas fa-file-excel';
 			} elseif ($object->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_LENGTH) {

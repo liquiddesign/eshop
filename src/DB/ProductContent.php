@@ -14,6 +14,12 @@ use Base\Entity\ShopEntity;
 class ProductContent extends ShopEntity
 {
 	/**
+	 * Popisek
+	 * @column{"type":"text","mutations":true}
+	 */
+	public ?string $perex;
+
+	/**
 	 * Obsah
 	 * @column{"type":"longtext","mutations":true}
 	 */

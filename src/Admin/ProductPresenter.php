@@ -518,6 +518,20 @@ class ProductPresenter extends BackendPresenter
 				->setDefaultValue($productData['categories']);
 		}
 
+		foreach ($this->productContentRepository->many()->where('this.fk_product', $product->getPK()) as $productContent) {
+			$productContentArray = $productContent->toArray();
+
+			if ($productContent->getValue('shop') === null) {
+				$productData['content']['perex'] = $productContentArray['perex'];
+				$productData['content']['content'] = $productContentArray['content'];
+
+				continue;
+			}
+
+			$productData['content']['content_' . $productContent->getValue('shop')] = $productContentArray['content'];
+			$productData['content']['perex_' . $productContent->getValue('shop')] = $productContentArray['perex'];
+		}
+
 		$form->setDefaults($productData);
 
 		/** @var \Nette\Forms\Controls\SelectBox|null $input */

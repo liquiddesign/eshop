@@ -49,10 +49,16 @@
                                    role="tab">Hlavní údaje</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link {$editTab == 'content' ? 'active show' : ''} productForm-tab"
+                                   id="content" data-toggle="pill"
+                                   href="#content-content"
+                                   role="tab">Obsah</a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link {$editTab == 'menu1' ? 'active show' : ''} productForm-tab"
                                    id="menu1" data-toggle="pill"
                                    href="#menu1-content"
-                                   role="tab">Ceny</a>
+                                   role="tab">Ceny a viditelnost</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link {$editTab == 'menu2' ? 'active show' : ''} productForm-tab"
@@ -115,14 +121,6 @@
                                            id="suppliers" data-toggle="pill"
                                            href="#suppliers-content"
                                            role="tab">Sloučení a dodavatelé</a>
-                                    </li>
-                                {/if}
-                                {if isset($configuration['productTabs']) && $configuration['productTabs']}
-                                    <li class="nav-item">
-                                        <a class="nav-link {$editTab == 'suppliers' ? 'active show' : ''} productForm-tab"
-                                           id="productTabs" data-toggle="pill"
-                                           href="#productTabs-content"
-                                           role="tab">Texty v záložkách</a>
                                     </li>
                                 {/if}
                             {/ifset}

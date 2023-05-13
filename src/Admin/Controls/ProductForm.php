@@ -176,8 +176,6 @@ class ProductForm extends Control
 			'Doručení',
 			$displayDeliveryRepository->getArrayForSelect(),
 		)->setPrompt('Automaticky');
-		$form->addLocalePerexEdit('perex', 'Popisek');
-		$form->addLocaleRichEdit('content', 'Obsah');
 
 		if (isset($configuration['suppliers']) && $configuration['suppliers'] && $this->supplierRepository->many()->count() > 0) {
 			$locks = [];
@@ -381,8 +379,11 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			}
 		});
 
+		$contentContainer = $form->addContainer('content');
+
 		foreach ($this->shopsConfig->getAvailableShops() as $shop) {
-			$form->addLocalePerexEdit('content_' . $shop->getPk(), "Obsah (O:$shop->name)");
+			$contentContainer->addLocalePerexEdit('perex_' . $shop->getPK(), 'Popisek');
+			$contentContainer->addLocaleRichEdit('content_' . $shop->getPK(), 'Obsah');
 		}
 
 		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository, $storeRepository): void {
@@ -555,6 +556,9 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		/** @var array<mixed> $primaryCategories */
 		$primaryCategories = Arrays::pick($values, 'primaryCategories', []);
 
+		/** @var array<mixed> $content */
+		$content = Arrays::pick($values, 'content', []);
+
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
 
@@ -627,8 +631,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			}
 		}
 
-		// /Relations
-
 		// Loyalty programs
 		$this->loyaltyProgramProductRepository->many()->where('fk_product', $product->getPK())->delete();
 
@@ -648,8 +650,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				]);
 			}
 		}
-
-		// /Loyalty programs
 
 		$changeColumns = ['name', 'perex', 'content'];
 
@@ -714,14 +714,13 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		foreach ($this->shopsConfig->getAvailableShops() as $shop) {
 			$conditions = [
 				'shop' => $shop->getPK(),
-				'product' => $values['uuid'],
+				'product' => $product->getPK(),
 			];
 			
-			$conditions['content'] = $values['content_' . $shop->getPK()];
+			$conditions['perex'] = $content['perex_' . $shop->getPK()];
+			$conditions['content'] = $content['content_' . $shop->getPK()];
 
 			$this->productContentRepository->syncOne($conditions);
-
-			unset($values['content_' . $shop->getPK()]);
 		}
 
 		foreach ($values['stores'] as $storeId => $amount) {
@@ -769,10 +768,10 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		$this->template->relationMaxItemsCount = $this->relationMaxItemsCount;
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->pricelistRepository->many()->orderBy(['this.priority']);
-		$this->template->productTabs = $this->productTabRepository->many()->orderBy(['this.priority']);
 		$this->template->stores = $this->storeRepository->many()->orderBy(['this.name' . $this->storeRepository->getConnection()->getMutationSuffix()]);
 		$this->template->configuration = $this->configuration;
 		$this->template->shopper = $this->shopperUser;
+		$this->template->shops = $this->shopsConfig->getAvailableShops();
 
 		$this->template->productFullTree = $this->product ? $this->productRepository->getProductFullTree($this->product) : [];
 

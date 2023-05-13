@@ -128,59 +128,6 @@
                             </td>
                     </tr>
 
-                    {foreach $form['perex']->getComponents() as $key => $element}
-                        <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
-                            data-mutation="{$key}">
-                            {$renderer->renderLabel($element)|noescape}
-
-                            <td class="align-middle">
-                                <div class="d-flex">
-                                    {input "perex-$key"}
-                                        <!-- COPY BUTTON -->
-                                    {if isset($supplierProducts) && \count($supplierProducts) > 0}
-                                        <button type="button" style="margin: 4px 0px 8px;"
-                                                class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal"
-                                                data-target="#modal-perex">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                 stroke="currentColor" style="width: 18px; height: 18px;">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                      d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
-                                            </svg>
-                                        </button>
-                                    {/if}
-                                </div>
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "perex-$key"}</span>
-                            </td>
-                        </tr>
-                    {/foreach}
-
-			        {foreach $form['content']->getComponents() as $key => $element}
-                        <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
-                            data-mutation="{$key}">
-                            {$renderer->renderLabel($element)|noescape}
-
-                            <td class="align-middle">
-                                <div class="d-flex">
-                                    {input "content-$key"}
-                                        <!-- COPY BUTTON -->
-
-                                    {if isset($supplierProducts) && \count($supplierProducts) > 0}
-                                        <button type="button" style="margin: 4px 0px 8px;"
-                                                class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal"
-                                                data-target="#modal-content">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                 stroke="currentColor" style="width: 18px; height: 18px;">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                      d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
-                                            </svg>
-                                        </button>
-                                    {/if}
-                                </div>
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "content-$key"}</span>
-                            </td>
-                        </tr>
-                    {/foreach}
-
                     {if isset($configuration['suppliers']) && $configuration['suppliers'] && isset($form['supplierContent'])}
                         {$renderer->renderPair($form['supplierContent'])|noescape}
                         {$renderer->renderPair($form['supplierDisplayAmountMergedLock'])|noescape}
@@ -626,6 +573,130 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
         </div>
         <div id="attributes-content" class="tab-pane {$presenter->editTab == 'attributes' ? 'active show' : ''}">
         </div>
+        <div id="content-content" class="tab-pane {$presenter->editTab == 'content' ? 'active show' : ''}">
+            {if !$shops}
+            <fieldset>
+                <legend>{$shop->name}</legend>
+                <table class="mt-1 mb-1">
+                    {foreach $form['content']['perex']->getComponents() as $key => $element}
+                        <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
+                            data-mutation="{$key}">
+                            {$renderer->renderLabel($element)|noescape}
+
+                            <td class="align-middle">
+                                <div class="d-flex">
+                                    {input "content-perex-$key"}
+                                        <!-- COPY BUTTON -->
+                                    {if isset($supplierProducts) && \count($supplierProducts) > 0}
+                                        <button type="button" style="margin: 4px 0px 8px;"
+                                                class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal"
+                                                data-target="#modal-perex">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                                 stroke="currentColor" style="width: 18px; height: 18px;">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+                                            </svg>
+                                        </button>
+                                    {/if}
+                                </div>
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "content-perex-$key"}</span>
+                            </td>
+                        </tr>
+                    {/foreach}
+                    {foreach $form['content']['content']->getComponents() as $key => $element}
+                        <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
+                            data-mutation="{$key}">
+                            {$renderer->renderLabel($element)|noescape}
+
+                            <td class="align-middle">
+                                <div class="d-flex">
+                                    {input "content-content-$key"}
+                                        <!-- COPY BUTTON -->
+                                    {if isset($supplierProducts) && \count($supplierProducts) > 0}
+                                        <button type="button" style="margin: 4px 0px 8px;"
+                                                class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal"
+                                                data-target="#modal-content">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                                 stroke="currentColor" style="width: 18px; height: 18px;">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+                                            </svg>
+                                        </button>
+                                    {/if}
+                                </div>
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "content-content-$key"}</span>
+                            </td>
+                        </tr>
+                    {/foreach}
+                </table>
+            {/if}
+            {foreach $shops as $shop}
+                <fieldset>
+                    <legend>{$shop->name}</legend>
+                    <table class="mt-1 mb-1">
+                        {foreach $form['content']['perex_' . $shop->getPK()]->getComponents() as $key => $element}
+                            <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
+                                data-mutation="{$key}">
+                                {$renderer->renderLabel($element)|noescape}
+
+                                <td class="align-middle">
+                                    <div class="d-flex">
+                                        {input "content-perex_{$shop->getPK()}-$key"}
+                                            <!-- COPY BUTTON -->
+                                        {if isset($supplierProducts) && \count($supplierProducts) > 0}
+                                            <button type="button" style="margin: 4px 0px 8px;"
+                                                    class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal"
+                                                    data-target="#modal-perex">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                                     stroke="currentColor" style="width: 18px; height: 18px;">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                          d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+                                                </svg>
+                                            </button>
+                                        {/if}
+                                    </div>
+                                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "content-perex_{$shop->getPK()}-$key"}</span>
+                                </td>
+                            </tr>
+                        {/foreach}
+                        {foreach $form['content']['content_' . $shop->getPK()]->getComponents() as $key => $element}
+                            <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
+                                data-mutation="{$key}">
+                                {$renderer->renderLabel($element)|noescape}
+
+                                <td class="align-middle">
+                                    <div class="d-flex">
+                                        {input "content-content_{$shop->getPK()}-$key"}
+                                            <!-- COPY BUTTON -->
+                                        {if isset($supplierProducts) && \count($supplierProducts) > 0}
+                                            <button type="button" style="margin: 4px 0px 8px;"
+                                                    class="btn btn-sm btn-outline-primary ml-1" data-toggle="modal"
+                                                    data-target="#modal-content">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                                     stroke="currentColor" style="width: 18px; height: 18px;">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                          d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+                                                </svg>
+                                            </button>
+                                        {/if}
+                                    </div>
+                                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "content-content_{$shop->getPK()}-$key"}</span>
+                                </td>
+                            </tr>
+                        {/foreach}
+                    </table>
+                </fieldset>
+            {/foreach}
+            <table class="mt-1 mb-1">
+                <tr>
+                    {ifset $form['submitAndNext']}
+                        {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
+                    {else}
+                        {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
+                    {/ifset}
+                </tr>
+            </table>
+        </div>
         <div id="suppliers-content" class="tab-pane {$presenter->editTab == 'suppliers' ? 'active show' : ''} p-0">
             <div class="row">
                 <h5>Všichni dodavatelé produktu <small>včetně sloučených produktů přímo nadřazených a všech podřazených</small></h5>
@@ -708,41 +779,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                 </table>
             </div>
         </div>
-        <div id="productTabs-content" class="tab-pane {$presenter->editTab == 'productTabs' ? 'active show' : ''}">
-            <fieldset>
-                <legend>Záložky</legend>
 
-
-                <table class="mt-1 mb-1" style="width: auto;">
-                    {foreach $productTabs as $id => $productTab}
-                            {foreach $form['productTab'.$id]->getComponents() as $key => $element}
-                                <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}" data-mutation="{$key}">
-                                    {$renderer->renderLabel($element)|noescape}
-
-                                    <td>
-                                        {input "productTab$id-$key"}
-
-                                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "productTab$id-$key"}</span>
-                                    </td>
-                                </tr>
-                            {/foreach}
-                    {/foreach}
-                </table>
-
-            </fieldset>
-
-            <fieldset>
-                <table class="mt-1 mb-1">
-                    <tr>
-                        {ifset $form['submitAndNext']}
-                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
-                        {else}
-                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
-                        {/ifset}
-                    </tr>
-                </table>
-            </fieldset>
-        </div>
     </div>
 
 </form>
@@ -780,10 +817,10 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                                         <textarea class="w-100 px-2 form-control form-control-sm" name="" id=""
                                                   cols="30" rows="3">{$supProduct->$property}</textarea>
 
-                                    <button type="button" data-for="{$elementName}"
-                                            class="btn btn-primary btn-sm mt-2 product-loader">
-                                        Vložit
-                                    </button>
+{*                                    <button type="button" data-for="{$elementName}"*}
+{*                                            class="btn btn-primary btn-sm mt-2 product-loader">*}
+{*                                        Vložit*}
+{*                                    </button>*}
                                 </div>
                             </div>
                         {/foreach}

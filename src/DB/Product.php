@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\DB\Shop;
 use Eshop\Admin\SettingsPresenter;
 use Nette\Application\ApplicationException;
 use Nette\Utils\Arrays;
@@ -240,17 +241,17 @@ class Product extends \StORM\Entity
 	 */
 	public int $discountLevelPct = 0;
 
-	/**
-	 * Perex
-	 * @column{"type":"text","mutations":true}
-	 */
-	public ?string $perex;
-
-	/**
-	 * Obsah
-	 * @column{"type":"longtext","mutations":true}
-	 */
-	public ?string $content;
+//	/**
+//	 * Perex
+//	 * @column{"type":"text","mutations":true}
+//	 */
+//	public ?string $perex;
+//
+//	/**
+//	 * Obsah
+//	 * @column{"type":"longtext","mutations":true}
+//	 */
+//	public ?string $content;
 
 	/**
 	 * Priorita
@@ -414,6 +415,12 @@ class Product extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Product $masterProduct;
+
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\ProductContent>
+	 */
+	public RelationCollection $contents;
 
 	/**
 	 * Sloučené produkty
@@ -1061,6 +1068,18 @@ class Product extends \StORM\Entity
 		}
 		
 		return null;
+	}
+
+
+	public function getContent(): ?string
+	{
+		if ($this->__isset('content')) {
+			return $this->getValue('content');
+		}
+
+		$this->productRepository->hydrateProductWithContent($this);
+
+		return $this->getValue('content');
 	}
 
 	public function isHidden(): bool

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Admin\DB\IGeneralAjaxRepository;
+use Base\DB\Shop;
 use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
@@ -311,13 +312,19 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				);
 			}
 
+			$collection->join(['productContent' => 'eshop_productcontent'], 'this.uuid = productContent.fk_product');
+
+			if ($shop = $this->shopsConfig->getSelectedShop()) {
+				$collection->where('productContent.fk_shop', $shop->getPK());
+			}
+
 			$collection->select([
 				'fallbackImage' => 'primaryCategory.productFallbackImageFileName',
 				'primaryCategory' => 'primaryCategory.uuid',
 				'primaryCategoryPath' => 'primaryCategory.path',
-				'perex' => "COALESCE(NULLIF(this.perex$suffix, ''), NULLIF(primaryCategory.defaultProductPerex$suffix, ''))",
-				'content' => "COALESCE(NULLIF(this.content$suffix, ''), NULLIF(primaryCategory.defaultProductContent$suffix, ''))",
-				'originalContent' => "this.content$suffix",
+				'perex' => "COALESCE(NULLIF(productContent.perex$suffix, ''), NULLIF(primaryCategory.defaultProductPerex$suffix, ''))",
+				'content' => "COALESCE(NULLIF(productContent.content$suffix, ''), NULLIF(primaryCategory.defaultProductContent$suffix, ''))",
+				'originalContent' => "this.productContent$suffix",
 			]);
 			
 			if ($customer) {
@@ -362,6 +369,21 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$product->setValue('hiddenInMenu', $visibilityListItem->hiddenInMenu);
 		$product->setValue('recommended', $visibilityListItem->recommended);
 		$product->setValue('priority', $visibilityListItem->priority);
+	}
+
+	public function hydrateProductWithContent(Product $product, Shop|null $shop = null): void
+	{
+		$shop ??= $this->shopsConfig->getSelectedShop();
+		$contentsCollection = $product->contents;
+
+		if ($shop) {
+			$contentsCollection->where('this.fk_shop', $shop->getPK());
+		}
+
+		$productContent = $contentsCollection->first();
+
+		$product->setValue('content', $productContent?->content);
+		$product->setValue('perex', $productContent?->perex);
 	}
 	
 	public function getQuantityPrice(Product $product, int $amount, string $property): ?float
