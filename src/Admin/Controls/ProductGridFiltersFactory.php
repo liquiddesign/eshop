@@ -25,48 +25,18 @@ use StORM\ICollection;
 
 class ProductGridFiltersFactory
 {
-	private ProducerRepository $producerRepository;
-
-	private SupplierRepository $supplierRepository;
-
-	private SupplierCategoryRepository $supplierCategoryRepository;
-
-	private CategoryRepository $categoryRepository;
-
-	private RibbonRepository $ribbonRepository;
-
-	private InternalRibbonRepository $internalRibbonRepository;
-
-	private PricelistRepository $pricelistRepository;
-
-	private DisplayAmountRepository $displayAmountRepository;
-
-	private CategoryTypeRepository $categoryTypeRepository;
-
-	private SupplierProductRepository $supplierProductRepository;
-
 	public function __construct(
-		ProducerRepository $producerRepository,
-		SupplierRepository $supplierRepository,
-		SupplierCategoryRepository $supplierCategoryRepository,
-		CategoryRepository $categoryRepository,
-		RibbonRepository $ribbonRepository,
-		InternalRibbonRepository $internalRibbonRepository,
-		PricelistRepository $pricelistRepository,
-		DisplayAmountRepository $displayAmountRepository,
-		CategoryTypeRepository $categoryTypeRepository,
-		SupplierProductRepository $supplierProductRepository
+		private readonly ProducerRepository $producerRepository,
+		private readonly SupplierRepository $supplierRepository,
+		private readonly SupplierCategoryRepository $supplierCategoryRepository,
+		private readonly CategoryRepository $categoryRepository,
+		private readonly RibbonRepository $ribbonRepository,
+		private readonly InternalRibbonRepository $internalRibbonRepository,
+		private readonly PricelistRepository $pricelistRepository,
+		private readonly DisplayAmountRepository $displayAmountRepository,
+		private readonly CategoryTypeRepository $categoryTypeRepository,
+		private readonly SupplierProductRepository $supplierProductRepository
 	) {
-		$this->producerRepository = $producerRepository;
-		$this->supplierRepository = $supplierRepository;
-		$this->supplierCategoryRepository = $supplierCategoryRepository;
-		$this->categoryRepository = $categoryRepository;
-		$this->ribbonRepository = $ribbonRepository;
-		$this->internalRibbonRepository = $internalRibbonRepository;
-		$this->pricelistRepository = $pricelistRepository;
-		$this->displayAmountRepository = $displayAmountRepository;
-		$this->categoryTypeRepository = $categoryTypeRepository;
-		$this->supplierProductRepository = $supplierProductRepository;
 	}
 
 	public function addFilters(AdminGrid $grid): void
@@ -235,33 +205,33 @@ class ProductGridFiltersFactory
 			}, '', 'displayAmount', null, $displayAmounts, ['placeholder' => '- Dostupnost -']);
 		}
 
-//		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-//			$source->where('visibilityListItem.hidden', (bool) $value);
-//		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
-//
-//		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-//			$source->where('this.recommended', (bool) $value);
-//		}, '', 'recommended', null, ['1' => 'Doporučené', '0' => 'Normální'])->setPrompt('- Doporučené -');
-//
-//		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-//			$source->where('this.unavailable', (bool) $value);
-//		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+			$source->where('hidden', (bool) $value);
+		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
+
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+			$source->where('recommended', (bool) $value);
+		}, '', 'recommended', null, ['1' => 'Doporučené', '0' => 'Normální'])->setPrompt('- Doporučené -');
+
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+			$source->where('unavailable', (bool) $value);
+		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 			if ($value === 'green') {
 				$source->setGroupBy(
 					['this.uuid'],
-					'visibilityListItem.hidden = "0" AND this.unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) > 0 AND pricelistActive = "1"',
+					'hidden = "0" AND unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) > 0 AND pricelistActive = "1"',
 				);
 			} elseif ($value === 'orange') {
 				$source->setGroupBy(
 					['this.uuid'],
-					'visibilityListItem.hidden = "0" AND this.unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) = 0 AND pricelistActive = "1"',
+					'hidden = "0" AND unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) = 0 AND pricelistActive = "1"',
 				);
 			} else {
 				$source->setGroupBy(
 					['this.uuid'],
-					'visibilityListItem.hidden = "1" OR this.unavailable = "1" OR COUNT(DISTINCT price.uuid) = 0 OR COUNT(DISTINCT nxnCategory.fk_category) = 0 OR pricelistActive = "0"',
+					'hidden = "1" OR unavailable = "1" OR COUNT(DISTINCT price.uuid) = 0 OR COUNT(DISTINCT nxnCategory.fk_category) = 0 OR pricelistActive = "0"',
 				);
 			}
 		}, '', 'show', null, ['green' => 'Viditelné', 'orange' => 'Viditelné: bez kategorie', 'red' => 'Neviditelné'])->setPrompt('- Viditelnost v eshopu -');

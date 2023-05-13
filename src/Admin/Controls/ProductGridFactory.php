@@ -80,16 +80,16 @@ class ProductGridFactory
 			if ($object->isHidden()) {
 				$label = 'Neviditelný: Skrytý';
 				$color = 'danger';
-			} elseif ($object->getValue('priceCount') === '0') {
+			} elseif ($object->getValue('priceCount') === 0) {
 				$label = 'Neviditelný: Bez ceny';
 				$color = 'danger';
-			} elseif ($object->getValue('pricelistActive') === '0') {
+			} elseif ($object->getValue('pricelistActive') === 0) {
 				$label = 'Neviditelný: Žádné aktivní ceny';
 				$color = 'danger';
 			} elseif ($object->isUnavailable()) {
 				$label = 'Viditelný: Neprodejný';
 				$color = 'warning';
-			} elseif ($object->getValue('categoryCount') === '0') {
+			} elseif ($object->getValue('categoryCount') === 0) {
 				$label = 'Viditelný: Bez kategorie';
 				$color = 'warning';
 			} else {
@@ -205,7 +205,7 @@ class ProductGridFactory
 
 			$finalStr = '';
 			$last = Arrays::last(\array_keys($productCategories));
-			$primaryCategories = \explode(',', $product->getValue('primaryCategoryPKs'));
+			$primaryCategories = \explode(',', $product->getValue('primaryCategoryPKs') ?? '');
 
 			foreach ($productCategories as $productCategoryPK => $productCategoryName) {
 				$finalStr .= '<abbr title="' . $categories[$productCategoryPK] . '">';
