@@ -6,6 +6,7 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
+use Base\Repository\GeneralRepositoryHelpers;
 use Base\ShopsConfig;
 use Eshop\Admin\Configs\ProductFormAutoPriceConfig;
 use Eshop\Admin\Configs\ProductFormConfig;
@@ -34,12 +35,15 @@ use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\VatRateRepository;
+use Eshop\DB\VisibilityListItemRepository;
+use Eshop\DB\VisibilityListRepository;
 use Eshop\FormValidators;
 use Eshop\Integration\Integrations;
 use Eshop\ShopperUser;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Arrays;
+use Nette\Utils\Strings;
 use StORM\DIConnection;
 use StORM\ICollection;
 use Web\DB\PageRepository;
@@ -88,6 +92,8 @@ class ProductForm extends Control
 		private readonly StoreRepository $storeRepository,
 		private readonly AmountRepository $amountRepository,
 		private readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
+		private readonly VisibilityListRepository $visibilityListRepository,
+		private readonly VisibilityListItemRepository $visibilityListItemRepository,
 		SettingRepository $settingRepository,
 		Integrations $integrations,
 		$product = null,
@@ -386,6 +392,33 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			$contentContainer->addLocaleRichEdit('content_' . $shop->getPK(), 'Obsah');
 		}
 
+		$visibilityContainer = $form->addContainer('visibility');
+		$productVisibilityListItems = $this->product ? $this->product->visibilityListItems->setIndex('fk_visibilityList')->toArray() : [];
+
+		foreach ($this->visibilityListRepository->many() as $visibilityList) {
+			$itemContainer = $visibilityContainer->addContainer('list_' . $visibilityList->getPK());
+
+			$itemContainer->addCheckbox('hidden');
+			$itemContainer->addCheckbox('hiddenInMenu');
+			$itemContainer->addCheckbox('unavailable');
+			$itemContainer->addCheckbox('recommended');
+			$itemContainer->addInteger('priority')->setNullable();
+
+			if (!isset($productVisibilityListItems[$visibilityList->getPK()])) {
+				continue;
+			}
+
+			$item = $productVisibilityListItems[$visibilityList->getPK()];
+
+			$itemContainer->setDefaults([
+				'hidden' => $item->hidden,
+				'hiddenInMenu' => $item->hiddenInMenu,
+				'unavailable' => $item->unavailable,
+				'recommended' => $item->recommended,
+				'priority' => $item->priority,
+			]);
+		}
+
 		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository, $storeRepository): void {
 			$prices = $form->addContainer('prices');
 
@@ -559,6 +592,9 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		/** @var array<mixed> $content */
 		$content = Arrays::pick($values, 'content', []);
 
+		/** @var array<mixed> $visibility */
+		$visibility = Arrays::pick($values, 'visibility', []);
+
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
 
@@ -723,6 +759,24 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			$this->productContentRepository->syncOne($conditions);
 		}
 
+		$product->visibilityListItems->delete();
+
+		foreach ($visibility as $itemId => $item) {
+			if (!$item['priority']) {
+				continue;
+			}
+
+			$this->visibilityListItemRepository->syncOne([
+				'product' => $product->getPK(),
+				'visibilityList' => Strings::after($itemId, 'list_'),
+				'priority' => $item['priority'],
+				'hidden' => $item['hidden'],
+				'hiddenInMenu' => $item['hiddenInMenu'],
+				'unavailable' => $item['unavailable'],
+				'recommended' => $item['recommended'],
+			]);
+		}
+
 		foreach ($values['stores'] as $storeId => $amount) {
 			if ($amount['inStock'] === null) {
 				$this->amountRepository->many()->where('fk_product', $product->getPK())->where('fk_store', $storeId)->delete();
@@ -768,6 +822,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		$this->template->relationMaxItemsCount = $this->relationMaxItemsCount;
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->pricelistRepository->many()->orderBy(['this.priority']);
+		$this->template->visibilityLists = GeneralRepositoryHelpers::selectFullName($this->visibilityListRepository->many());
 		$this->template->stores = $this->storeRepository->many()->orderBy(['this.name' . $this->storeRepository->getConnection()->getMutationSuffix()]);
 		$this->template->configuration = $this->configuration;
 		$this->template->shopper = $this->shopperUser;
@@ -791,6 +846,17 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		$this->priceRepository->many()
 			->where('this.fk_product', $productPK)
 			->where('this.fk_pricelist', $pricelistPK)
+			->delete();
+
+		$this->getPresenter()->flashMessage('Provedeno', 'success');
+		$this->getPresenter()->redirect('this');
+	}
+
+	public function handleClearVisibilityList(string $productPK, string $visibilityListPK): void
+	{
+		$this->visibilityListItemRepository->many()
+			->where('this.fk_product', $productPK)
+			->where('this.fk_visibilityList', $visibilityListPK)
 			->delete();
 
 		$this->getPresenter()->flashMessage('Provedeno', 'success');

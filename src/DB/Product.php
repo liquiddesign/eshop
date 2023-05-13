@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Base\DB\Shop;
 use Eshop\Admin\SettingsPresenter;
 use Nette\Application\ApplicationException;
 use Nette\Utils\Arrays;
@@ -511,6 +510,12 @@ class Product extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Photo>
 	 */
 	public RelationCollection $photos;
+
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\VisibilityListItem>
+	 */
+	public RelationCollection $visibilityListItems;
 
 	/**
 	 * @relation
@@ -1069,7 +1074,6 @@ class Product extends \StORM\Entity
 		
 		return null;
 	}
-
 
 	public function getContent(): ?string
 	{

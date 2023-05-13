@@ -2,6 +2,7 @@
 {varType Eshop\DB\RelatedType[] $relatedTypes}
 {varType Eshop\Admin\ProductPresenter $presenter}
 {varType Eshop\DB\Pricelist[] $pricelists}
+{varType Eshop\DB\VisibilityList[] $visibilityLists}
 {varType Eshop\DB\Store[] $stores}
 {varType string[] $configuration}
 {varType Eshop\DB\SupplierProduct[] $supplierProducts}
@@ -186,21 +187,21 @@
                                         class="fa fa-sort-numeric-up mr-1"></i> {$pricelist->priority}</th>
 
                             <td class="align-middle">{input "prices-$id-price" class => 'form-control form-control-sm col-label max-number'}
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "prices-$id-price"}</span>
                             </td>
 
                             <td n:if="$shopper->getShowVat()"
                                     class="align-middle">{input "prices-$id-priceVat" class => 'ml-2 form-control form-control-sm col-label max-number'}
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "prices-$id-priceVat"}</span>
                             </td>
 
                             <td class="align-middle">{input "prices-$id-priceBefore" class => 'ml-2 form-control form-control-sm col-label max-number'}
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "prices-$id-priceBefore"}</span>
                             </td>
 
                             <td n:if="$shopper->getShowVat()"
                                     class="align-middle">{input "prices-$id-priceVatBefore" class => 'ml-2 form-control form-control-sm col-label max-number'}
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "prices-$id-priceVatBefore"}</span>
                             </td>
 
                             {if isset($product) && $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default')}
@@ -211,7 +212,57 @@
                         </tr>
                     {/foreach}
                 </table>
+            </fieldset>
 
+            <fieldset>
+                <legend>Viditelnosti</legend>
+                <table class="mt-1 mb-1" style="width: auto;">
+                    <tr class="m-0 mt-1 has-danger" n:if="$visibilityLists">
+                        <th class="col-label col-form-label col"></th>
+                        <th class=""><i title="Skryto" class="far fa-eye-slash"></i></th>
+                        <th class="pl-2"><i title="Skryto v menu a vyhledávání" class="far fa-minus-square"></i></th>
+                        <th class="pl-2"><i title="Neprodejné" class="fas fa-ban"></i></th>
+                        <th class="pl-2"><i title="Doporučeno" class="far fa-thumbs-up"></i></th>
+                        <th class="pl-2">Priorita</th>
+                        <th class="pl-2"></th>
+                    </tr>
+                    {foreach $visibilityLists as $id => $visibilityList}
+                        <tr class="m-0 mt-1 has-danger"
+                            style="{if !$pricelist->isActive}background-color: #E9ECEF;{/if}">
+                            <th class="col-label col-form-label col">{$visibilityList->getValue('fullName')} <i
+                                        class="fa fa-sort-numeric-up mr-1"></i> {$visibilityList->priority}</th>
+
+                            <td class="align-middle">{input "visibility-list_$id-hidden" class => 'form-control form-control-sm col-label max-number'}
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "visibility-list_$id-hidden"}</span>
+                            </td>
+
+                            <td
+                                    class="align-middle">{input "visibility-list_$id-hiddenInMenu" class => 'ml-2 form-control form-control-sm col-label max-number'}
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "visibility-list_$id-hiddenInMenu"}</span>
+                            </td>
+
+                            <td class="align-middle">{input "visibility-list_$id-unavailable" class => 'ml-2 form-control form-control-sm col-label max-number'}
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "visibility-list_$id-unavailable"}</span>
+                            </td>
+
+                            <td
+                                    class="align-middle">{input "visibility-list_$id-recommended" class => 'ml-2 form-control form-control-sm col-label max-number'}
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "visibility-list_$id-recommended"}</span>
+                            </td>
+
+                            <td
+                                    class="align-middle">{input "visibility-list_$id-priority" class => 'ml-2 form-control form-control-sm col-label max-number'}
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "visibility-list_$id-priority"}</span>
+                            </td>
+
+                            {if isset($product) && $presenter->admin->isAllowed(':Eshop:Admin:VisibilityList:default')}
+                                <td class="align-middle pl-2 pr-2">
+                                    <a n:href="clearVisibilityList! $product->getPK(), $id" title="Vymazat viditelnost"><i class="fas fa-sm text-danger fa-trash"></i></a>
+                                </td>
+                            {/if}
+                        </tr>
+                    {/foreach}
+                </table>
             </fieldset>
 
             {if isset($form['discountLevelPct']) && $presenter->isManager}
