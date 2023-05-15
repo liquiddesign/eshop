@@ -14,7 +14,7 @@
         {var $pricelists = $presenter->getPricelistFromSetting('heurekaExportPricelist')}
         {var $haurekaCategoryType = $presenter->settingRepo->getValueByName('heurekaCategoryTypeToParse')}
         <SHOP>
-            <SHOPITEM n:foreach="$presenter->productRepo->getProducts($pricelists)->where('this.hidden', false)->where('this.unavailable', 0) as $product">
+            <SHOPITEM n:foreach="$presenter->productRepo->getProducts($pricelists)->where('this.hidden', false)->where('this.unavailable', 0)->where('this.exportHeureka', true) as $product">
                 <ITEM_ID>{$product->getFullCode()}</ITEM_ID>
                 <PRODUCTNAME><![CDATA[{$product->name}]]></PRODUCTNAME>
                 {var string|null $productContent = $product->getValue('originalContent')}

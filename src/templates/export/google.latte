@@ -26,7 +26,7 @@
         {var Eshop\DB\AttributeValue[] $highlightsAttributeValues = $highlightsAttribute && $highlightsAttribute->value ? $presenter->attributeValueRepository->many()->where('fk_attribute', $highlightsAttribute->value)->toArray() : []}
         <rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
         <channel>
-            <item n:while="$product = $products->where('this.unavailable', 0)->fetch()">
+            <item n:while="$product = $products->where('this.unavailable', 0)->where('this.exportGoogle', true)->fetch()">
                 {var $price = $priceType ? $product->getPriceVat() : ($priceType === false ? $product->getPrice() : null)}
                 {var $priceBefore = $priceType ? $product->getPriceVatBefore() : ($priceType === false ? $product->getPriceBefore() : null)}
 
