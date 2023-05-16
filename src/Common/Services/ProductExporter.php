@@ -11,7 +11,6 @@ use Eshop\DB\AttributeRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
-use Eshop\DB\VisibilityListItem;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
 use League\Csv\EncloseField;
@@ -101,7 +100,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 			->setHtmlAttribute('data-info', $dataInfo);
 
 		$form->addDataMultiSelect('visibilityLists', 'Viditelnosti', $this->visibilityListRepository->getArrayForSelect())
-			->setHtmlAttribute('data-info', 'Pro dané seznamy viditelnosti budou exportovány sloupce ve tvaru "HODNOTA#KOD_SEZNAMU".');
+			->setHtmlAttribute('data-info', 'Pro dané seznamy viditelnosti budou exportovány všechny sloupce ve tvaru "HODNOTA#KOD_SEZNAMU".');
 
 		$attributesColumns = $form->addDataMultiSelect('attributes', 'Atributy')->setHtmlAttribute('data-info', 'Zobrazují se pouze atributy, které mají alespoň jeden přiřazený produkt.');
 
@@ -182,7 +181,8 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 				$values['delimiter'],
 				$values['header'] ? \array_merge(\array_values($headerColumns), \array_values($attributeColumns)) : null,
 				$values['suppliersCodes'] ?? [],
-				$getSupplierCodeCallback
+				$getSupplierCodeCallback,
+				$values['visibilityLists'],
 			);
 
 			$form->getPresenter()->sendResponse(new FileResponse($tempFilename, 'products.csv', 'text/csv'));
@@ -214,11 +214,28 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 		string $delimiter = ';',
 		?array $header = null,
 		array $supplierCodes = [],
-		?callable $getSupplierCodeCallback = null
+		?callable $getSupplierCodeCallback = null,
+		array $visibilityLists = [],
 	): void {
 		$writer->setDelimiter($delimiter);
 
 		EncloseField::addTo($writer, "\t\22");
+
+		foreach ($visibilityLists as $visibilityListPK) {
+			$visibilityList = $this->visibilityListRepository->one($visibilityListPK, true);
+
+			$header[] = "Skryto#$visibilityList->code";
+			$header[] = "Skryto v menu a vyhledávání#$visibilityList->code";
+			$header[] = "Neprodejné#$visibilityList->code";
+			$header[] = "Doporučeno#$visibilityList->code";
+			$header[] = "Priorita#$visibilityList->code";
+
+			$columns["hidden#$visibilityList->code"] = "Skryto#$visibilityList->code";
+			$columns["hiddenInMenu#$visibilityList->code"] = "Skryto v menu a vyhledávání#$visibilityList->code";
+			$columns["unavailable#$visibilityList->code"] = "Neprodejné#$visibilityList->code";
+			$columns["recommended#$visibilityList->code"] = "Doporučeno#$visibilityList->code";
+			$columns["priority#$visibilityList->code"] = "Priorita#$visibilityList->code";
+		}
 
 		$completeHeaders = \array_merge($header, $supplierCodes);
 
@@ -358,11 +375,15 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 					}
 
 					$row[] = $recyclingFee;
-				} elseif (match ($columnKey) {
-					'hidden', 'hiddenInMenu', 'unavailable', 'recommended', 'priority' => true,
-					default => false,
-				}) {
-					$row[] = $product->getValue($columnKey) === false ? '0' : $product->getValue($columnKey);
+				} elseif (Strings::startsWith($columnKey, 'hidden#') ||
+					Strings::startsWith($columnKey, 'hiddenInMenu#') ||
+					Strings::startsWith($columnKey, 'unavailable#') ||
+					Strings::startsWith($columnKey, 'recommended#') ||
+					Strings::startsWith($columnKey, 'priority#')) {
+					[$property, $visibilityList] = \explode('#', $columnKey);
+					$visibilityListItem = $productsByVisibilityLists[$product->getPK()][$visibilityList] ?? null;
+
+					$row[] = $visibilityListItem ? $visibilityListItem[$property] : 0;
 				} else {
 					$row[] = $product->getValue($columnKey) === false ? '0' : $product->getValue($columnKey);
 				}

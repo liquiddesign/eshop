@@ -46,7 +46,6 @@ use Eshop\ShopperUser;
 use ForceUTF8\Encoding;
 use Forms\Form;
 use League\Csv\Reader;
-use League\Csv\Writer;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\DI\Attributes\Inject;
