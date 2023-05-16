@@ -266,7 +266,8 @@ class CheckoutManager
 		PurchaseRepository $purchaseRepository,
 		PriceRepository $priceRepository
 	) {
-		$this->customer = $shopper->getCustomer();
+		$customer = $shopper->getCustomer();
+		$this->customer = $customer ? $customerRepository->one($customer->getPK()) : null;
 		$this->shopper = $shopper;
 		$this->cartRepository = $cartRepository;
 		$this->itemRepository = $itemRepository;
@@ -344,7 +345,7 @@ class CheckoutManager
 	{
 		return $this->shopper->getPricelists($currency, $discountCoupon ?? $this->getDiscountCoupon());
 	}
-	
+
 	public function cartExists(): bool
 	{
 		if ($this->customer) {
