@@ -20,24 +20,14 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	public const COPY_PRICES_BEFORE_PRICE_SOURCE = 'from';
 	public const COPY_PRICES_BEFORE_PRICE_TARGET = 'target';
 
-	private PriceRepository $priceRepository;
-
-	private CustomerRepository $customerRepository;
-
-	private CustomerGroupRepository $customerGroupRepository;
-
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		PriceRepository $priceRepository,
-		CustomerRepository $customerRepository,
-		CustomerGroupRepository $customerGroupRepository
+		private readonly PriceRepository $priceRepository,
+		private readonly CustomerRepository $customerRepository,
+		private readonly CustomerGroupRepository $customerGroupRepository
 	) {
 		parent::__construct($connection, $schemaManager);
-
-		$this->priceRepository = $priceRepository;
-		$this->customerRepository = $customerRepository;
-		$this->customerGroupRepository = $customerGroupRepository;
 	}
 
 	public function getPricelists(array $pks, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection

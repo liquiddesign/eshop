@@ -13,6 +13,7 @@ use Eshop\Controls\ProductFilter;
 use Eshop\ShopperUser;
 use InvalidArgumentException;
 use League\Csv\EncloseField;
+use League\Csv\Reader;
 use League\Csv\Writer;
 use Nette\Application\LinkGenerator;
 use Nette\Caching\Cache;
@@ -63,6 +64,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		private readonly AttributeAssignRepository $attributeAssignRepository,
 		private readonly ShopperUser $shopperUser,
 		private readonly VisibilityListItemRepository $visibilityListItemRepository,
+		private readonly VisibilityListRepository $visibilityListRepository,
 		private readonly ShopsConfig $shopsConfig,
 	) {
 		parent::__construct($connection, $schemaManager);
@@ -338,6 +340,122 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$this->setProductsConditions($collection, true, $pricelists);
 
 		return $collection;
+	}
+
+	/**
+	 * @param \League\Csv\Writer $writer
+	 * @param \StORM\Collection<\Eshop\DB\VisibilityListItem> $objects
+	 * @throws \League\Csv\CannotInsertRecord
+	 * @throws \League\Csv\Exception
+	 * @throws \League\Csv\InvalidArgument
+	 */
+	public function csvExportVisibilityListItem(Writer $writer, Collection $objects): void
+	{
+		$writer->setDelimiter(';');
+
+		$writer->insertOne([
+			'product',
+			'list',
+			'hidden',
+			'hiddenInMenu',
+			'unavailable',
+			'recommended',
+			'priority',
+		]);
+
+		$productsToBeFetched = [];
+		$visibilityListsToBeFetched = [];
+
+		foreach ($objects as $item) {
+			$productsToBeFetched[] = $item->getValue('product');
+			$visibilityListsToBeFetched[] = $item->getValue('visibilityList');
+		}
+
+		$products = $this->many()->where('this.uuid', $productsToBeFetched)->toArray();
+		$visibilityLists = $this->visibilityListRepository->many()->where('this.uuid', $visibilityListsToBeFetched)->toArray();
+
+		foreach ($objects as $item) {
+			$writer->insertOne([
+				$products[$item->getValue('product')]->getFullCode(),
+				$visibilityLists[$item->getValue('visibilityList')]->code,
+				$item->hidden ? '1' : '0',
+				$item->hiddenInMenu ? '1' : '0',
+				$item->unavailable ? '1' : '0',
+				$item->recommended ? '1' : '0',
+				$item->priority,
+			]);
+		}
+	}
+
+	/**
+	 * @param \League\Csv\Reader $reader
+	 * @param string $delimiter
+	 * @return array{imported: int, skipped: int}
+	 * @throws \League\Csv\Exception
+	 * @throws \League\Csv\InvalidArgument
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function csvImportVisibilityListItem(Reader $reader, string $delimiter = ';'): array
+	{
+		$reader->setDelimiter($delimiter);
+		$reader->setHeaderOffset(0);
+
+		$iterator = $reader->getRecords([
+			'product',
+			'list',
+			'hidden',
+			'hiddenInMenu',
+			'unavailable',
+			'recommended',
+			'priority',
+		]);
+
+		$visibilityLists = $this->visibilityListRepository->many()->toArrayOf('uuid');
+		$productsByCode = $this->many()->setIndex('code')->toArrayOf('uuid');
+		$productsByFullCode = $this->many()->select(['fullCode' => 'CONCAT(code,".",subCode)'])->setIndex('fullCode')->toArrayOf('uuid');
+
+		$imported = 0;
+		$skipped = 0;
+
+		foreach ($iterator as $value) {
+			$product = $productsByCode[$value['product']] ?? null;
+
+			if (!$product) {
+				$product = $productsByFullCode[$value['product']] ?? null;
+			}
+
+			if (!$product) {
+				$skipped++;
+
+				continue;
+			}
+
+			$visibilityList = $visibilityLists[$value['list']] ?? null;
+
+			if (!$visibilityList) {
+				$skipped++;
+
+				continue;
+			}
+
+			$values = [];
+
+			foreach (['hidden', 'hiddenInMenu', 'unavailable', 'recommended'] as $key) {
+				if ($value[$key]) {
+					$values[$key] = $value[$key] === '1';
+				}
+			}
+
+			$values['priority'] = (int) $value['priority'];
+			$values['product'] = $product;
+			$values['visibilityList'] = $visibilityList;
+
+			$this->visibilityListItemRepository->syncOne($values);
+
+			$imported++;
+		}
+
+		return ['skipped' => $skipped, 'imported' => $imported];
 	}
 
 	/**

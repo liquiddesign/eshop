@@ -14,6 +14,12 @@ class VisibilityList extends ShopSystemicEntity
 	public string $name;
 
 	/**
+	 * Kód
+	 * @column{"unique":true}
+	 */
+	public string $code;
+
+	/**
 	 * Priorita
 	 * @column
 	 */
