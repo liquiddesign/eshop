@@ -209,6 +209,9 @@ class DiscountPresenter extends BackendPresenter
 		)->setHtmlAttribute('placeholder', 'Vyberte položky...');
 
 		$form->addCheckbox('recommended', 'Doporučeno');
+
+		$this->formFactory->addShopsContainerToAdminForm($form, false);
+
 		$form->addSubmits(!$discount);
 
 		$form->onSuccess[] = function (AdminForm $form) use ($discount): void {

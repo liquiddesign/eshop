@@ -1605,8 +1605,23 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		return $result;
 	}
 
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\Product> $products
+	 * @param \League\Csv\Writer $writer
+	 * @param array $columns
+	 * @param array $attributes
+	 * @param string $delimiter
+	 * @param array|null $header
+	 * @param array $supplierCodes
+	 * @param callable|null $getSupplierCode
+	 * @throws \League\Csv\CannotInsertRecord
+	 * @throws \League\Csv\Exception
+	 * @throws \League\Csv\InvalidArgument
+	 * @throws \Nette\Application\UI\InvalidLinkException
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function csvExport(
-		ICollection $products,
+		Collection $products,
 		Writer $writer,
 		array $columns = [],
 		array $attributes = [],
@@ -1626,6 +1641,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 		
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
+		$availableShops = $this->shopsConfig->getAvailableShops();
+		$selectedShop = $this->shopsConfig->getSelectedShop();
 
 		$products->setGroupBy(['this.uuid'])
 			->join(['priceTable' => 'eshop_price'], 'this.uuid = priceTable.fk_product')
@@ -1641,6 +1658,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			->join(['categoryAssign' => 'eshop_product_nxn_eshop_category'], 'this.uuid = categoryAssign.fk_product')
 			->join(['category' => 'eshop_category'], 'categoryAssign.fk_category = category.uuid')
 			->join(['masterProduct' => 'eshop_product'], 'this.fk_masterProduct = masterProduct.uuid')
+			->join(['productContent' => 'eshop_productcontent'], 'this.uuid = productContent.fk_product')
 			->select([
 //				'attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute, '^', CONCAT(COALESCE(attributeValue.label$mutationSuffix), '°', attributeValue.code)) SEPARATOR \"~\")",
 				'producerCodeName' => "CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, ''))",
@@ -1649,6 +1667,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
                 IF(category.code IS NULL OR category.code = '', category.uuid, category.code)) ORDER BY LENGTH(category.path) SEPARATOR ':')",
 				'masterProductCode' => 'masterProduct.code',
 			]);
+
+		if ($selectedShop) {
+			$products->where('productContent.fk_shop', $selectedShop->getPK());
+		}
 
 		$attributesByProductPK = [];
 
@@ -1767,6 +1789,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			
 			$writer->insertOne($row);
 		}
+
+		$products->__destruct();
 	}
 	
 	public function isProductDeliveryFreeVat(Product $product, Currency $currency): bool

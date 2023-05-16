@@ -15,6 +15,8 @@ use Eshop\Admin\Controls\ProductAttributesForm;
 use Eshop\Admin\Controls\ProductAttributesGridFactory;
 use Eshop\Admin\Controls\ProductGridFactory;
 use Eshop\BackendPresenter;
+use Eshop\Common\Services\ProductExporter;
+use Eshop\Common\Services\ProductImporter;
 use Eshop\DB\AmountRepository;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
@@ -47,6 +49,7 @@ use League\Csv\Reader;
 use League\Csv\Writer;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
+use Nette\DI\Attributes\Inject;
 use Nette\Forms\Controls\TextInput;
 use Nette\IOException;
 use Nette\Utils\Arrays;
@@ -79,10 +82,6 @@ class ProductPresenter extends BackendPresenter
 			'mpn' => 'P/N',
 			'name' => 'Název',
 			'perex' => 'Popisek',
-			'priority' => 'Priorita',
-			'recommended' => 'Doporučeno',
-			'hidden' => 'Skryto',
-			'unavailable' => 'Neprodejné',
 			'priceMin' => 'Minimální nákupní cena',
 			'priceMax' => 'Maximální nákupní cena',
 			'producer' => 'Výrobce',
@@ -222,6 +221,12 @@ class ProductPresenter extends BackendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public Application $application;
+
+	#[Inject]
+	public ProductImporter $productImporter;
+
+	#[Inject]
+	public ProductExporter $productExporter;
 
 	/** @persistent */
 	public string $tab = 'products';
@@ -1280,121 +1285,17 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 	public function createComponentExportForm(): AdminForm
 	{
-		/** @var \Grid\Datagrid $productGrid */
+		/** @var \Admin\Controls\AdminGrid $productGrid */
 		$productGrid = $this->getComponent('productGrid');
 
-		$ids = $this->getParameter('ids') ?: [];
-		$totalNo = $productGrid->getPaginator()->getItemCount();
-		$selectedNo = \count($ids);
-		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
-
-		$form = $this->formFactory->create();
-		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
-		$form->addRadioList('bulkType', 'Exportovat', [
-			'selected' => "vybrané ($selectedNo)",
-			'all' => "celý výsledek ($totalNo)",
-		])->setDefaultValue('selected');
-
-		$form->addSelect('delimiter', 'Oddělovač', [
-			';' => 'Středník (;)',
-			',' => 'Čárka (,)',
-			'   ' => 'Tab (\t)',
-			' ' => 'Mezera ( )',
-			'|' => 'Pipe (|)',
-		]);
-		$form->addCheckbox('header', 'Hlavička')->setDefaultValue(true)->setHtmlAttribute('data-info', 'Pokud tuto možnost nepoužijete tak nebude možné tento soubor použít pro import!');
-
-		$headerColumns = $form->addDataMultiSelect('columns', 'Sloupce')
-		->setHtmlAttribute('data-info', '<br><b>Vysvětlivky sloupců:</b><br>
-Sloučené produkty: Sloučené produkty se exportují do sloupce "mergedProducts" jako kódy produktů oddělené znakem ":". Tento sloupec se <b>NEPOUŽÍVÁ</b> při importu!<br>
-Nadřazený sloučený produkt: U každého produktu se exportuje jen kód produktu do sloupce "masterProduct" jako jeho předchůdce ve stromové struktuře sloučených produktů. 
-Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
-		$attributesColumns = $form->addDataMultiSelect('attributes', 'Atributy')->setHtmlAttribute('data-info', 'Zobrazují se pouze atributy, které mají alespoň jeden přiřazený produkt.');
-
-		$items = [];
-		$defaultItems = [];
-
-		if (isset($this::CONFIGURATION['exportColumns'])) {
-			$items += $this::CONFIGURATION['exportColumns'];
-
-			if (isset($this::CONFIGURATION['defaultExportColumns'])) {
-				$defaultItems = \array_merge($defaultItems, $this::CONFIGURATION['defaultExportColumns']);
-			}
-		}
-
-		$headerColumns->setItems($items);
-		$headerColumns->setDefaultValue($defaultItems);
-
-		$attributes = [];
-		$defaultAttributes = [];
-
-		if (isset($this::CONFIGURATION['exportAttributes'])) {
-			foreach ($this::CONFIGURATION['exportAttributes'] as $key => $value) {
-				if ($attribute = $this->attributeRepository->many()->where('code', $key)->first()) {
-					$attributes[$attribute->getPK()] = "$value#$key";
-					$defaultAttributes[] = $attribute->getPK();
-				}
-			}
-
-			$attributes += $this->attributeRepository->many()
-				->whereNot('this.code', \array_keys($this::CONFIGURATION['exportAttributes']))
-				->join(['attributeValue' => 'eshop_attributevalue'], 'this.uuid = attributeValue.fk_attribute')
-				->join(['assign' => 'eshop_attributeassign'], 'attributeValue.uuid = assign.fk_value')
-				->where('assign.uuid IS NOT NULL')
-				->orderBy(["this.name$mutationSuffix"])
-				->select(['nameAndCode' => "CONCAT(this.name$mutationSuffix, '#', this.code)"])
-				->toArrayOf('nameAndCode');
-		}
-
-		$attributesColumns->setItems($attributes);
-		$attributesColumns->setDefaultValue($defaultAttributes);
-
-		if ($suppliers = $this->supplierRepository->many()->where('code IS NOT NULL')->setIndex('code')->toArrayOf('name')) {
-			$form->addMultiSelect2('suppliersCodes', 'Dodavatelské kódy', $suppliers);
-		}
-
-		$form->addSubmit('submit', 'Exportovat');
-
-		$form->onValidate[] = function (AdminForm $form) use ($headerColumns): void {
-			$values = $form->getValues();
-
-			if (Arrays::contains($values['columns'], 'code') || Arrays::contains($values['columns'], 'ean')) {
-				return;
-			}
-
-			$headerColumns->addError('Je nutné vybrat "Kód" nebo "EAN" pro jednoznačné označení produktu.');
-		};
-
-		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid, $items, $attributes): void {
-			$values = $form->getValues('array');
-
-			$products = $values['bulkType'] === 'selected' ? $this->productRepository->many()->where('this.uuid', $ids) : $productGrid->getFilteredSource();
-
-			$tempFilename = \tempnam($this->tempDir, 'csv');
-
-			$headerColumns = \array_filter($items, function ($item) use ($values) {
-				return Arrays::contains($values['columns'], $item);
-			}, \ARRAY_FILTER_USE_KEY);
-
-			$attributeColumns = \array_filter($attributes, function ($item) use ($values) {
-				return Arrays::contains($values['attributes'], $item);
-			}, \ARRAY_FILTER_USE_KEY);
-
-			$this->productRepository->csvExport(
-				$products,
-				Writer::createFromPath($tempFilename),
-				$headerColumns,
-				$attributeColumns,
-				$values['delimiter'],
-				$values['header'] ? \array_merge(\array_values($headerColumns), \array_values($attributeColumns)) : null,
-				$values['suppliersCodes'] ?? [],
-				$this->getCsvExportGetSupplierCodeCallback(),
-			);
-
-			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'products.csv', 'text/csv'));
-		};
-
-		return $form;
+		return $this->productExporter->createForm(
+			$productGrid,
+			'Eshop:Admin:Product:export',
+			$this::CONFIGURATION['exportColumns'],
+			$this::CONFIGURATION['defaultExportColumns'],
+			$this::CONFIGURATION['exportAttributes'],
+			$this->getCsvExportGetSupplierCodeCallback(),
+		);
 	}
 
 	public function getCsvExportGetSupplierCodeCallback(): ?callable

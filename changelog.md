@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **BREAKING:** Many entities now have foreign key to *Base/DB/Shop* entity
+- **BREAKING:** Many entities now have foreign key to `Base/DB/Shop` entity
     - To run this version of Eshop you need to sync this entity to database
     - Selects in forms to entities with Shop, are always shown all with description of Shop state
 - **BREAKING:** New *ShopperUser* and *CheckoutManager*
@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Product can have 0..1 primary categories in CategoryType
     - To access Product primary category, use getPrimaryCategory function
     - Function *ProductRepository::getProducts* selects primaryCategory property based on selected Shop and setting of CategoryType for that Shop
+- **BREAKING:** All parts of Product CSV import/export are moved to separate services `ProductExporter` and `ProductImporter`
 - XML exports accepts Shop parameter and used entities are affected by it.
 - PriceList selects in XML exports now shows all PriceLists, even from different Shops. Truly active PriceLists are filtered afterward in exports.
 - Category code must be unique within the CategoryType

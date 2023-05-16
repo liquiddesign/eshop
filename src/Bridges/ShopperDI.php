@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\Bridges;
 
+use Eshop\Common\Services\ProductExporter;
+use Eshop\Common\Services\ProductImporter;
 use Eshop\CompareManager;
 use Eshop\Services\Comgate;
 use Eshop\ShopperUser;
@@ -96,6 +98,8 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 
 		$builder->addDefinition($this->prefix('comgate'))->setType(Comgate::class);
 		$builder->addDefinition($this->prefix('compareManager'))->setType(CompareManager::class);
+		$builder->addDefinition($this->prefix('productExporter'))->setType(ProductExporter::class);
+		$builder->addDefinition($this->prefix('productImporter'))->setType(ProductImporter::class);
 
 		/** @var \Nette\DI\Definitions\ServiceDefinition $latteDefinition */
 		$latteDefinition = $builder->getDefinition('latte.templateFactory');
