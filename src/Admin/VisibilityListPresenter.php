@@ -62,7 +62,7 @@ class VisibilityListPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($collection, 20, 'priority', 'ASC', true);
 		$grid->addColumnSelector();
 
-		$grid->addColumnText('Kód', 'cod', '%s', 'cod');
+		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
