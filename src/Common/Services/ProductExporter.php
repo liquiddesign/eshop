@@ -8,6 +8,7 @@ use Admin\Controls\AdminGrid;
 use Base\ShopsConfig;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
+use Eshop\DB\CategoryRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
@@ -43,6 +44,7 @@ class ProductExporter
 		private readonly PageRepository $pageRepository,
 		private readonly VisibilityListItemRepository $visibilityListItemRepository,
 		private readonly VisibilityListRepository $visibilityListRepository,
+		private readonly CategoryRepository $categoryRepository,
 	) {
 		$this->tempDir = $this->container->getParameters()['tempDir'];
 
@@ -56,12 +58,10 @@ class ProductExporter
 	 * @param array|null $defaultExportColumns
 	 * @param array|null $exportAttributes
 	 * @param (callable(\Eshop\DB\Product, string): string|null)|null $getSupplierCodeCallback
-	 * @throws \Nette\Application\UI\InvalidLinkException
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function createForm(
 		AdminGrid $productGrid,
-		string $formActionLink = 'this',
 		array|null $exportColumns = null,
 		array|null $defaultExportColumns = null,
 		array|null $exportAttributes = null,
@@ -173,7 +173,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 				return Arrays::contains($values['attributes'], $item);
 			}, \ARRAY_FILTER_USE_KEY);
 
-			$this->csvExport(
+			$this->exportCsv(
 				$products,
 				Writer::createFromPath($tempFilename),
 				$headerColumns,
@@ -206,7 +206,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 	 * @throws \Nette\Application\UI\InvalidLinkException
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function csvExport(
+	public function exportCsv(
 		Collection $products,
 		Writer $writer,
 		array $columns = [],
@@ -256,6 +256,8 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 			$productsByVisibilityLists[$visibilityListItem['fk_product']][$visibilityListItem['code']] = $visibilityListItem;
 		}
 
+		$allCategories = $this->categoryRepository->many()->toArray();
+
 		$visibilityListItemsCollection->__destruct();
 
 		$products->setGroupBy(['this.uuid'])
@@ -268,14 +270,12 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 			->join(['storeAmount' => 'eshop_amount'], 'storeAmount.fk_product = this.uuid')
 			->join(['store' => 'eshop_store'], 'storeAmount.fk_store = store.uuid')
 			->join(['categoryAssign' => 'eshop_product_nxn_eshop_category'], 'this.uuid = categoryAssign.fk_product')
-			->join(['category' => 'eshop_category'], 'categoryAssign.fk_category = category.uuid')
 			->join(['masterProduct' => 'eshop_product'], 'this.fk_masterProduct = masterProduct.uuid')
 			->join(['productContent' => 'eshop_productcontent'], 'this.uuid = productContent.fk_product')
 			->select([
 				'producerCodeName' => "CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, ''))",
 				'amounts' => "GROUP_CONCAT(DISTINCT CONCAT(storeAmount.inStock, '#', store.code) SEPARATOR ':')",
-				'groupedCategories' => "GROUP_CONCAT(DISTINCT CONCAT(category.name$mutationSuffix, '#',
-                IF(category.code IS NULL OR category.code = '', category.uuid, category.code)) ORDER BY LENGTH(category.path) SEPARATOR ':')",
+				'groupedCategories' => 'GROUP_CONCAT(DISTINCT CONCAT(categoryAssign.fk_category))',
 				'masterProductCode' => 'masterProduct.code',
 				'content' => "productContent.content$mutationSuffix",
 				'perex' => "productContent.perex$mutationSuffix",
@@ -331,7 +331,16 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 				} elseif ($columnKey === 'storeAmount') {
 					$row[] = $product->amounts;
 				} elseif ($columnKey === 'categories') {
-					$row[] = $product->groupedCategories;
+					$categories = \explode(',', $product->groupedCategories);
+					$categoriesString = null;
+
+					foreach ($categories as $categoryPK) {
+						$category = $allCategories[$categoryPK];
+
+						$categoriesString .= "$category->code#{$category->getValue('type')},";
+					}
+
+					$row[] = $categoriesString;
 				} elseif ($columnKey === 'adminUrl') {
 					$row[] = $this->linkGenerator->link('Eshop:Admin:Product:edit', [$product]);
 				} elseif ($columnKey === 'frontUrl') {

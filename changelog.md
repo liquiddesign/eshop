@@ -31,16 +31,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **BREAKING:** PHP version 8.2 or higher is required
+- **BREAKING:** Dropped support for Latte <3.0
 - **BREAKING:** Comgate service is now provided only by Integrations service. Comgate package extension is still injected to *Container* with configuration.
 - **BREAKING:** Many callbacks are now always arrays, so you need to call them with *Arrays::invoke*
 - **BREAKING:** `CheckoutManager::addItemToCart` - parameter $checkInvalidAmount now accepts only enum `\Eshop\Common\CheckInvalidAmount`
-- **BREAKING:** Dropped support for Latte <3.0
 - **BREAKING:** Old XML exports are no longer available, V2 exports are now default.
 - **BREAKING:** Property primaryCategory on Product is now removed, primary category of Product is determined with entity ProductPrimaryCategory, which is unique for Product by CategoryType
     - Product can have 0..1 primary categories in CategoryType
     - To access Product primary category, use getPrimaryCategory function
     - Function *ProductRepository::getProducts* selects primaryCategory property based on selected Shop and setting of CategoryType for that Shop
 - **BREAKING:** All parts of Product CSV import/export are moved to separate services `ProductExporter` and `ProductImporter`
+  - Old CSV files are not compatible with new import 
+  - Imports/exports reflects changes in content, visibility and categories
+  - Content, Perex and Categories are no longer in 'importColumns' array in configuration. They are now hard-coded in import/export services.
+    - **BREAKING:** You NEED to remove them from you local configurations
 - XML exports accepts Shop parameter and used entities are affected by it.
 - PriceList selects in XML exports now shows all PriceLists, even from different Shops. Truly active PriceLists are filtered afterward in exports.
 - Category code must be unique within the CategoryType

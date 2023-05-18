@@ -19,8 +19,6 @@ use Eshop\Common\Services\ProductExporter;
 use Eshop\Common\Services\ProductImporter;
 use Eshop\DB\AmountRepository;
 use Eshop\DB\AttributeAssignRepository;
-use Eshop\DB\AttributeRepository;
-use Eshop\DB\AttributeValue;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\CustomerRepository;
@@ -43,9 +41,7 @@ use Eshop\DB\SupplierRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
 use Eshop\ShopperUser;
-use ForceUTF8\Encoding;
 use Forms\Form;
-use League\Csv\Reader;
 use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\DI\Attributes\Inject;
@@ -104,14 +100,9 @@ class ProductPresenter extends BackendPresenter
 			'ean' => 'EAN',
 			'name' => 'Název',
 			'perex' => 'Popisek',
-			'priority' => 'Priorita',
-			'recommended' => 'Doporučeno',
-			'hidden' => 'Skryto',
-			'unavailable' => 'Neprodejné',
 			'producer' => 'Výrobce',
 			'content' => 'Obsah',
 			'storeAmount' => 'Skladová dostupnost',
-			'categories' => 'Kategorie',
 			'masterProduct' => 'Nadřazený sloučený produkt',
 		],
 		'importAttributes' => [],
@@ -1188,15 +1179,26 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 		$form->addCheckbox('addNew', 'Vytvářet nové záznamy');
 		$form->addCheckbox('overwriteExisting', 'Přepisovat existující záznamy')->setDefaultValue(true);
 		$form->addCheckbox('updateAttributes', 'Aktualizovat atributy');
-		$form->addCheckbox('createAttributeValues', 'Vytvářet hodnoty atributů (pokud neexistují, hledá dle jména)')->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
+
+		$dataInfo = '<h5 class="mt-2">Nápověda</h5>
 Soubor <b>musí obsahovat</b> hlavičku a jeden ze sloupců "Kód" nebo "EAN" pro jednoznačné rozlišení produktů.&nbsp;
 Jako prioritní se hledá kód a pokud není nalezen tak EAN. Kód se ukládá jen při vytváření nových záznamů.<br><br>
 Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
 ' . $allowedColumns . '<br>
 Atributy a výrobce musí být zadány jako kód (např.: "001") nebo jako kombinace názvu a kódu(např.: "Tisková technologie#001).<br>
-Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném formátu jako atributy s tím že jich lze více oddělit pomocí ":". Např.: "Inkoustová#462:9549"<br>
+Hodnoty atributů a skladové množství se zadávají ve stejném formátu jako atributy s tím že jich lze více oddělit pomocí ":". Např.: "Inkoustová#462:9549"<br>
+Kategorie se zadávají ve formátu "KOD_KATEGORIE#KOD_TYPU".<br><br>
+Pro dané seznamy viditelnosti budou importovány všechny sloupce ve tvaru "HODNOTA#KOD_SEZNAMU" Např.: "Skryto#seznam1".
 <br>
-<b>Pozor!</b> Pokud pracujete se souborem na zařízeních Apple, ujistětě se, že vždy při ukládání použijete možnost uložit do formátu Windows nebo Linux (UTF-8)!');
+<b>Pozor!</b> Pokud pracujete se souborem na zařízeních Apple, ujistětě se, že vždy při ukládání použijete možnost uložit do formátu Windows nebo Linux (UTF-8)!';
+
+		if ($this->shopsConfig->getAvailableShops()) {
+			$dataInfo .= '<br><br>Váš eshop využívá více obchodů.<br>
+Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
+		}
+
+		$form->addCheckbox('createAttributeValues', 'Vytvářet hodnoty atributů (pokud neexistují, hledá dle jména)')
+			->setHtmlAttribute('data-info', $dataInfo);
 
 		$form->addSubmit('submit', 'Importovat');
 
@@ -1229,7 +1231,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 			$connection->getLink()->beginTransaction();
 
 			try {
-				Debugger::log($this->importCsv(
+				Debugger::log($this->productImporter->importCsv(
 					$tempFileName,
 					$values['delimiter'],
 					$values['addNew'],
@@ -1237,6 +1239,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 					$values['updateAttributes'],
 					$values['createAttributeValues'],
 					$values['searchCriteria'],
+					$this::CONFIGURATION['importColumns']
 				), ILogger::DEBUG);
 
 				FileSystem::copy($tempFileName, $productsFileName);
@@ -1289,7 +1292,6 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 
 		return $this->productExporter->createForm(
 			$productGrid,
-			'Eshop:Admin:Product:export',
 			$this::CONFIGURATION['exportColumns'],
 			$this::CONFIGURATION['defaultExportColumns'],
 			$this::CONFIGURATION['exportAttributes'],
@@ -1579,441 +1581,5 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		}
 
 		FileSystem::createDir($this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . File::FILE_DIR);
-	}
-
-	/**
-	 * @param string $filePath
-	 * @param string $delimiter
-	 * @param bool $addNew
-	 * @param bool $overwriteExisting
-	 * @param bool $updateAttributes
-	 * @param bool $createAttributeValues
-	 * @return array<string|int>
-	 * @throws \League\Csv\Exception
-	 * @throws \League\Csv\InvalidArgument
-	 * @throws \StORM\Exception\NotFoundException
-	 */
-	protected function importCsv(
-		string $filePath,
-		string $delimiter = ';',
-		bool $addNew = false,
-		bool $overwriteExisting = true,
-		bool $updateAttributes = false,
-		bool $createAttributeValues = false,
-		string $searchCriteria = 'all'
-	): array {
-		Debugger::timer();
-
-		$csvData = FileSystem::read($filePath);
-
-		$csvData = Encoding::toUTF8($csvData);
-		$reader = Reader::createFromString($csvData);
-
-		$reader->setDelimiter($delimiter);
-		$reader->setHeaderOffset(0);
-		$mutation = $this->productRepository->getConnection()->getMutation();
-		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
-
-		$producers = $this->producerRepository->many()->setIndex('code')->toArrayOf('uuid');
-		$stores = $this->storeRepository->many()->setIndex('code')->toArrayOf('uuid');
-		$categories = $this->categoryRepository->many()->toArrayOf('uuid');
-		$categoriesCodes = $this->categoryRepository->many()->setIndex('code')->toArrayOf('uuid');
-
-		$products = $this->productRepository->many()->setSelect([
-			'uuid',
-			'code',
-			'fullCode' => 'CONCAT(code,".",subCode)',
-			'ean',
-			'name' => "name$mutationSuffix",
-			'perex' => "perex$mutationSuffix",
-			'supplierContentLock',
-			'mpn',
-		], [], true)->fetchArray(\stdClass::class);
-
-		$header = $reader->getHeader();
-
-		$parsedHeader = [];
-		$attributes = [];
-
-		$groupedAttributeValues = [];
-		$attributeValues = $this->attributeValueRepository->many()->setSelect([
-			'uuid',
-			'label' => "label$mutationSuffix",
-			'code',
-			'attribute' => 'fk_attribute',
-		], [], true)->fetchArray(\stdClass::class);
-
-		foreach ($attributeValues as $attributeValue) {
-			if (!isset($groupedAttributeValues[$attributeValue->attribute])) {
-				$groupedAttributeValues[$attributeValue->attribute] = [];
-			}
-
-			$groupedAttributeValues[$attributeValue->attribute][$attributeValue->uuid] = $attributeValue;
-		}
-
-		unset($attributeValues);
-
-		foreach ($header as $headerItem) {
-			if (isset($this::CONFIGURATION['importColumns'][$headerItem])) {
-				$parsedHeader[$headerItem] = $headerItem;
-			} elseif ($key = \array_search($headerItem, $this::CONFIGURATION['importColumns'])) {
-				$parsedHeader[$key] = $headerItem;
-			} else {
-				if (Strings::contains($headerItem, '#')) {
-					$attributeCode = \explode('#', $headerItem);
-
-					if (\count($attributeCode) !== 2) {
-						continue;
-					}
-
-					$attributeCode = $attributeCode[1];
-				} else {
-					$attributeCode = $headerItem;
-				}
-
-				if ($attribute = $this->attributeRepository->many()->where('code', $attributeCode)->first()) {
-					$attributes[$attribute->getPK()] = $attribute;
-					$parsedHeader[$attribute->getPK()] = $headerItem;
-				}
-			}
-		}
-
-		if (\count($parsedHeader) === 0) {
-			throw new \Exception('Soubor neobsahuje hlavičku nebo nebyl nalezen žádný použitelný sloupec!');
-		}
-
-		if (!isset($parsedHeader['code']) && !isset($parsedHeader['ean'])) {
-			throw new \Exception('Soubor neobsahuje kód ani EAN!');
-		}
-
-		$valuesToUpdate = [];
-		$amountsToUpdate = [];
-		$productsToDeleteCategories = [];
-		$attributeValuesToCreate = [];
-		$attributeAssignsToSync = [];
-
-		$createdProducts = 0;
-		$updatedProducts = 0;
-		$skippedProducts = 0;
-
-		$searchCode = $searchCriteria === 'all' || $searchCriteria === 'code';
-		$searchEan = $searchCriteria === 'all' || $searchCriteria === 'ean';
-
-		foreach ($reader->getRecords() as $record) {
-			$newValues = [];
-			$code = null;
-			$ean = null;
-			$codePrefix = null;
-
-			// Take Code or Ean based on search criteria - if search by, delete it from record
-
-			/** @var string|null $codeFromRecord */
-			$codeFromRecord = isset($parsedHeader['code']) ? ($searchCode ? Arrays::pick($record, $parsedHeader['code'], null) : ($record[$parsedHeader['code']] ?? null)) : null;
-			/** @var string|null $eanFromRecord */
-			$eanFromRecord = isset($parsedHeader['ean']) ? ($searchEan ? Arrays::pick($record, $parsedHeader['ean'], null) : ($record[$parsedHeader['ean']] ?? null)) : null;
-
-			/** @var \Eshop\DB\Product|null $product */
-			$product = null;
-
-			// Sanitize and prefix code and ean
-
-			if (isset($parsedHeader['code']) && $codeFromRecord) {
-				$codeBase = Strings::trim($codeFromRecord);
-				$codePrefix = Strings::trim('00' . $codeFromRecord);
-
-				$code = $codeBase;
-			}
-
-			if (isset($parsedHeader['ean']) && $eanFromRecord) {
-				$ean = Strings::trim($eanFromRecord);
-			}
-
-			// Fast local search of product based on criteria
-
-			if ($code && $ean && $searchCode && $searchEan) {
-				$product = $this->arrayFind($products, function (\stdClass $x) use ($code, $codePrefix, $ean): bool {
-					return $x->code === $code || $x->fullCode === $code ||
-						$x->code === $codePrefix || $x->fullCode === $codePrefix ||
-						$x->ean === $ean;
-				});
-			} elseif ($code && $searchCode) {
-				$product = $this->arrayFind($products, function (\stdClass $x) use ($code, $codePrefix): bool {
-					return $x->code === $code || $x->fullCode === $code ||
-						$x->code === $codePrefix || $x->fullCode === $codePrefix;
-				});
-			} elseif ($ean && $searchEan) {
-				$product = $this->arrayFind($products, function (\stdClass $x) use ($ean): bool {
-					return $x->ean === $ean;
-				});
-			}
-
-			// Continue based on settings adn data
-
-			if (($searchCode && $searchEan && !$code && !$ean) ||
-				($searchCode && !$searchEan && !$code) ||
-				($searchEan && !$searchCode && !$ean) ||
-				(!$product && !$addNew) ||
-				($product && !$overwriteExisting)
-			) {
-				$skippedProducts++;
-
-				continue;
-			}
-
-			if ($product) {
-				$updatedProducts++;
-			}
-
-			foreach ($record as $key => $value) {
-				$key = \array_search($key, $parsedHeader);
-
-				if (!$key) {
-					continue;
-				}
-
-				if ($key === 'producer') {
-					if (Strings::contains($value, '#')) {
-						$producerCode = \explode('#', $value);
-
-						if (\count($producerCode) !== 2) {
-							continue;
-						}
-
-						$producerCode = $producerCode[1];
-					} else {
-						$producerCode = $value;
-					}
-
-					if (isset($producers[$producerCode]) && Strings::length($producerCode) > 0) {
-						$newValues[$key] = $producers[$producerCode];
-					}
-				} elseif ($key === 'storeAmount') {
-					$amounts = \explode(':', $value);
-
-					foreach ($amounts as $amount) {
-						$amount = \explode('#', $amount);
-
-						if (\count($amount) !== 2) {
-							continue;
-						}
-
-						if (!isset($stores[$amount[1]])) {
-							continue;
-						}
-
-						$amountsToUpdate[] = [
-							'store' => $stores[$amount[1]],
-							'product' => $product->uuid,
-							'inStock' => \intval($amount[0]),
-						];
-					}
-				} elseif ($key === 'categories') {
-					if ($product) {
-						$productsToDeleteCategories[] = $product->uuid;
-					}
-
-					$valueCategories = \explode(':', $value);
-
-					foreach ($valueCategories as $category) {
-						$category = \explode('#', $category);
-
-						if (\count($category) !== 2) {
-							continue;
-						}
-
-						$category = $category[1];
-
-						if (isset($categories[$category])) {
-							$category = $categories[$category];
-						} elseif (isset($categoriesCodes[$category])) {
-							$category = $categoriesCodes[$category];
-						} else {
-							continue;
-						}
-
-						$newValues['categories'][] = $category;
-					}
-				} elseif ($key === 'name' || $key === 'perex' || $key === 'content') {
-					$newValues[$key][$mutation] = $value;
-				} elseif ($key === 'priority') {
-					$newValues[$key] = \intval($value);
-				} elseif ($key === 'recommended' || $key === 'hidden' || $key === 'unavailable') {
-					$newValues[$key] = $value === '1';
-				} elseif ($key === 'code') {
-					if (!$searchCode) {
-						$newValues[$key] = $codeFromRecord ?: null;
-					}
-				} elseif ($key === 'ean') {
-					if (!$searchEan) {
-						$newValues[$key] = $eanFromRecord ?: null;
-					}
-				} elseif ($key === 'masterProduct') {
-					$newValues[$key] = null;
-
-					if ($value) {
-						$masterProduct = $this->arrayFind($products, function (\stdClass $x) use ($value): bool {
-							return $x->code === $value || $x->fullCode === $value;
-						});
-
-						if ($masterProduct) {
-							$newValues[$key] = $masterProduct->uuid;
-						}
-					}
-				} elseif (!isset($attributes[$key])) {
-					$newValues[$key] = $value;
-				}
-			}
-
-			try {
-				if ($product) {
-					if (\count($newValues) > 0) {
-						$newValues['uuid'] = $product->uuid;
-						$newValues['supplierContentLock'] = $product->supplierContentLock;
-
-						if (isset($newValues['name'][$mutation]) && $newValues['name'][$mutation] !== $product->name) {
-							$newValues['supplierContentLock'] = true;
-						}
-
-						if (isset($newValues['perex'][$mutation]) && $newValues['perex'][$mutation] !== $product->perex) {
-							$newValues['supplierContentLock'] = true;
-						}
-
-						$valuesToUpdate[$product->uuid] = $newValues;
-					}
-				} elseif (\count($newValues) > 0) {
-					if ($ean) {
-						$newValues['ean'] = $ean;
-					}
-
-					$newValues['code'] = $code;
-
-					$this->productRepository->createOne($newValues);
-				}
-			} catch (\Exception $e) {
-				throw new \Exception('Chyba při zpracování dat!');
-			}
-
-			if (!$updateAttributes) {
-				continue;
-			}
-
-			foreach ($record as $key => $value) {
-				$key = \array_search($key, $parsedHeader);
-
-				if (!isset($attributes[$key]) || Strings::length($value) === 0) {
-					continue;
-				}
-
-				$this->attributeAssignRepository->many()
-					->join(['eshop_attributevalue'], 'this.fk_value = eshop_attributevalue.uuid')
-					->where('this.fk_product', $product->uuid)
-					->where('eshop_attributevalue.fk_attribute', $key)
-					->delete();
-
-				$attributeValues = Strings::contains($value, ':') ? \explode(':', $value) : [$value];
-
-				foreach ($attributeValues as $attributeString) {
-					if (Strings::contains($attributeString, '#')) {
-						$attributeValueCode = \explode('#', $attributeString);
-
-						if (\count($attributeValueCode) !== 2) {
-							continue;
-						}
-
-						$attributeValueCode = $attributeValueCode[1];
-					} else {
-						$attributeValueCode = $attributeString;
-					}
-
-					/** @var \stdClass|null|false|\Eshop\DB\AttributeValue $attributeValue */
-					$attributeValue = $this->arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode): bool {
-						return $x->code === $attributeValueCode;
-					});
-
-					if (!$attributeValue && !$createAttributeValues) {
-						continue;
-					}
-
-					if (!$attributeValue) {
-						/** @var \stdClass|null|false|\Eshop\DB\AttributeValue $attributeValue */
-						$attributeValue = $this->arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode): bool {
-							return $x->label === $attributeValueCode;
-						});
-
-						$tried = 0;
-
-						while ($attributeValue === false || $attributeValue === null) {
-							try {
-								$attributeValue = $this->attributeValueRepository->createOne([
-									'code' => Strings::webalize($attributeValueCode) . '-' . Random::generate(),
-									'label' => [
-										$mutation => $attributeValueCode,
-									],
-									'attribute' => $key,
-								], false, true);
-
-								$attributeValuesToCreate[] = $attributeValue;
-							} catch (\Throwable $e) {
-							}
-
-							$tried++;
-
-							if ($tried > 10) {
-								throw new \Exception('Cant create new attribute value. Tried 10 times! (product:' . $product->code . ')');
-							}
-						}
-
-						if (!isset($groupedAttributeValues[$key][$attributeValue->uuid])) {
-							$groupedAttributeValues[$key][$attributeValue->uuid] = (object) [
-								'uuid' => $attributeValue->uuid,
-								'label' => $attributeValue instanceof AttributeValue ? $attributeValue->getValue('label', $mutation) : $attributeValue->label,
-								'code' => $attributeValue->code,
-								'attribute' => $attributeValue instanceof AttributeValue ? $attributeValue->getValue('attribute') : $attributeValue->attribute,
-							];
-						}
-					}
-
-					$attributeAssignsToSync[] = [
-						'product' => $product->uuid,
-						'value' => $attributeValue->uuid,
-					];
-				}
-			}
-		}
-
-		foreach (\array_chunk($productsToDeleteCategories, 100) as $categories) {
-			$this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
-				->where('fk_product', $categories)
-				->delete();
-		}
-
-		$this->attributeAssignRepository->syncMany($attributeAssignsToSync);
-		$this->productRepository->syncMany($valuesToUpdate);
-		$this->amountRepository->syncMany($amountsToUpdate);
-
-		return [
-			'createdProducts' => $createdProducts,
-			'updatedProducts' => $updatedProducts,
-			'skippedProducts' => $skippedProducts,
-			'updatedAmounts' => \count($amountsToUpdate),
-			'createdAttributeValues' => \count($attributeValuesToCreate),
-			'attributeAssignsUpdated' => \count($attributeAssignsToSync),
-			'elapsedTimeInSeconds' => (int) Debugger::timer(),
-		];
-	}
-
-	/**
-	 * @param array<\stdClass> $xs
-	 * @param callable $f
-	 */
-	private function arrayFind(array $xs, callable $f): ?\stdClass
-	{
-		foreach ($xs as $x) {
-			if (\call_user_func($f, $x) === true) {
-				return $x;
-			}
-		}
-
-		return null;
 	}
 }

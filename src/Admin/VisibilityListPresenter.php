@@ -3,6 +3,7 @@
 namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminFormFactory;
 use Admin\Controls\AdminGrid;
 use Base\Application;
 use Eshop\BackendPresenter;
@@ -236,8 +237,11 @@ class VisibilityListPresenter extends BackendPresenter
 		/** @var \Eshop\DB\VisibilityList|null $object */
 		$object = $this->getParameter('object');
 
-		$form->addText('code', 'Kód')
-			->setRequired();
+		$codeInput = $form->addText('code', 'Kód')
+			->setRequired()
+			->setHtmlAttribute('data-info', 'Kód může obsahovat pouze znaky a-z, A-Z, 0-9. Speciální znaky nejsou povoleny!');
+
+		AdminFormFactory::addCodeValidationToInput($codeInput, $this->visibilityListRepository, $object);
 
 		$form->addText('name', 'Název')
 			->setRequired();
@@ -251,25 +255,6 @@ class VisibilityListPresenter extends BackendPresenter
 		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$object);
-
-		$form->onValidate[] = function (AdminForm $form, array $values): void {
-			if (!$form->isValid()) {
-				return;
-			}
-
-			$code = $values['code'];
-
-			$existingList = $this->visibilityListRepository->one(['code' => $code]);
-
-			if (!$existingList) {
-				return;
-			}
-
-			/** @var \Nette\Forms\Controls\TextInput $input */
-			$input = $form['code'];
-
-			$input->addError('Seznam s tímto kódem již existuje');
-		};
 
 		$form->onSuccess[] = function (AdminForm $form) use ($object): void {
 			$values = $form->getValues('array');
