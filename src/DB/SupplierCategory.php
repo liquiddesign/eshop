@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use StORM\RelationCollection;
+
 /**
  * Mapování kategorií
  * @table
@@ -55,10 +57,10 @@ class SupplierCategory extends \StORM\Entity
 	
 	/**
 	 * Mapování kategorií, jestli je zadáno
-	 * @relation
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\Category>
 	 */
-	public ?Category $category;
+	public RelationCollection $categories;
 	
 	/**
 	 * Dodavatel

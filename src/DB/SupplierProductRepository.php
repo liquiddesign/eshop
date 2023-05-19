@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\ShopsConfig;
 use Eshop\Admin\SettingsPresenter;
 use Nette\DI\Container;
+use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Strings;
 use StORM\Collection;
@@ -25,7 +27,7 @@ class SupplierProductRepository extends \StORM\Repository
 {
 	private Container $container;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Container $container)
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Container $container, private readonly ShopsConfig $shopsConfig)
 	{
 		parent::__construct($connection, $schemaManager);
 
@@ -58,15 +60,23 @@ class SupplierProductRepository extends \StORM\Repository
 		$supplierProductRepository = $this->getConnection()->findRepository(SupplierProduct::class);
 		$productRepository = $this->getConnection()->findRepository(Product::class);
 		$pagesRepository = $this->getConnection()->findRepository(Page::class);
+		$productContentRepository = $this->getConnection()->findRepository(ProductContent::class);
+		$productPrimaryCategoryRepository = $this->getConnection()->findRepository(ProductPrimaryCategory::class);
+		$categoryRepository = $this->getConnection()->findRepository(Category::class);
 		$supplierId = $supplier->getPK();
 		$attributeAssignRepository = $this->getConnection()->findRepository(AttributeAssign::class);
 		$photoRepository = $this->getConnection()->findRepository(Photo::class);
 		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$mutation];
 		$riboonId = 'novy_import';
 
+		$contentUpdates = [];
+
 		if ($overwrite) {
-			$updates = ["name$mutationSuffix", "content$mutationSuffix", 'unit', 'imageFileName', 'vatRate', 'fk_displayAmount'];
+			$updates = ["name$mutationSuffix", 'unit', 'imageFileName', 'vatRate', 'fk_displayAmount'];
 			$updates = \array_fill_keys($updates, null);
+
+			$contentUpdates = ["content$mutationSuffix"];
+			$contentUpdates = \array_fill_keys($contentUpdates, null);
 
 			foreach (\array_keys($updates) as $name) {
 				$updates[$name] = new Literal("IF
@@ -74,8 +84,22 @@ class SupplierProductRepository extends \StORM\Repository
 					(
 						supplierContentLock = 0 && 
 						(
-							(VALUES(supplierLock) >= supplierLock && (supplierContentMode = 'priority' || (fk_supplierContent IS NULL && supplierContentMode = 'none'))) ||
-							(supplierContentMode = 'length' && LENGTH(VALUES(content$mutationSuffix)) > LENGTH(content$mutationSuffix))
+							(VALUES(supplierLock) >= supplierLock && (supplierContentMode = 'priority' || (fk_supplierContent IS NULL && supplierContentMode = 'none')))
+						)
+					)
+					|| fk_supplierContent='$supplierId',
+					VALUES($name),
+					$name
+				)");
+			}
+
+			foreach (\array_keys($contentUpdates) as $name) {
+				$contentUpdates[$name] = new Literal("IF
+				(
+					(
+						supplierContentLock = 0 && 
+						(
+							(VALUES(supplierLock) >= supplierLock && (supplierContentMode = 'priority' || (fk_supplierContent IS NULL && supplierContentMode = 'none')))
 						)
 					)
 					|| fk_supplierContent='$supplierId',
@@ -87,6 +111,8 @@ class SupplierProductRepository extends \StORM\Repository
 			$updates = [];
 		}
 
+		$allCategories = $categoryRepository->many()->select(['typePK' => 'this.fk_type'])->fetchArray(\stdClass::class);
+
 		$productsMap = $productRepository->many()
 			->setSelect(['contentLock' => 'supplierContentLock', 'sourcePK' => 'fk_supplierSource'], [], true)
 			->setBufferedQuery(false)
@@ -96,24 +122,53 @@ class SupplierProductRepository extends \StORM\Repository
 			->setSelect(['ean', 'uuid'], [], true)
 			->setBufferedQuery(false)
 			->setIndex('ean')
-			->toArrayOf('uuid');
+			->fetchArray(\stdClass::class);
 
 		$drafts = $supplierProductRepository->many()
-			->select(['realCategory' => 'category.fk_category'])
+			->setGroupBy(['this.uuid'])
+			->select(['realCategories' => 'GROUP_CONCAT(supplierCategoryXCategory.fk_category)'])
 			->select(['realDisplayAmount' => 'displayAmount.fk_displayAmount'])
 			->select(['realProducer' => 'producer.fk_producer'])
+			->join(['supplierCategoryXCategory' => 'eshop_suppliercategory_nxn_eshop_category'], 'this.fk_category = supplierCategoryXCategory.fk_supplierCategory')
 			->where('this.fk_supplier', $supplier)
 			->where('category.fk_category IS NOT NULL')
-			->where('this.active', true);
+			->where('this.active', true)
+		//@TODO remove
+		->where('this.uuid', '14d3a02b2a541ee443195721f8b113b2');
+
+		/** @var array<\stdClass> $existingPrimaryCategories */
+		$existingPrimaryCategories = $productPrimaryCategoryRepository->many()
+			->setSelect([
+				'productPK' => 'this.fk_product',
+				'categories' => 'GROUP_CONCAT(this.fk_category)',
+				'categoryTypes' => 'GROUP_CONCAT(this.fk_categoryType)',
+			])
+			->where('this.fk_category IS NOT NULL')
+			->setGroupBy(['this.fk_product'])
+			->setIndex('productPK')
+			->fetchArray(\stdClass::class);
+
+		$productPrimaryCategoriesToSync = [];
+
+		/** @var array<array<\stdClass>> $existingProductContents By product -> shop -> mutations */
+		$existingProductContents = [];
+
+		foreach ($productContentRepository->many()
+					 ->select(['productPK' => 'this.fk_product', 'shopPK' => 'this.fk_shop', 'content' => "this.content$mutationSuffix"])
+					 ->fetchArray(\stdClass::class) as $productContent) {
+			$existingProductContents[$productContent->productPK][$productContent->shopPK] = $productContent;
+		}
+
+		$productContentsToSync = [];
 
 		while ($draft = $drafts->fetch()) {
 			/** @var \stdClass|\Eshop\DB\SupplierProduct $draft */
-			$category = $draft->realCategory;
+			$categories = \array_filter(\explode(',', $draft->realCategories), fn ($v) => $v);
 			$displayAmount = $draft->realDisplayAmount;
 			$producer = $draft->realProducer;
 			$currentUpdates = $updates;
 
-			if (!$category) {
+			if (!$categories) {
 				continue;
 			}
 
@@ -136,7 +191,7 @@ class SupplierProductRepository extends \StORM\Repository
 				'supplierCode' => $draft->code,
 				'name' => [$mutation => $draft->name],
 				//'perex' => [$mutation => substr($draft->content, 0, 150)],
-				'content' => [$mutation => $draft->content],
+//				'content' => [$mutation => $draft->content],
 				'unit' => $draft->unit,
 				'vatRate' => $vatLevels[(int) $draft->vatRate] ?? 'standard',
 				'producer' => $producer,
@@ -150,8 +205,7 @@ class SupplierProductRepository extends \StORM\Repository
 				'inCarton' => $draft->inCarton,
 				'inPalett' => $draft->inPalett,
 				'weight' => $draft->weight,
-				'categories' => [$category],
-				'primaryCategory' => $category,
+				'categories' => $categories,
 				'supplierLock' => $supplier->importPriority,
 				'supplierSource' => $supplier,
 			];
@@ -180,6 +234,7 @@ class SupplierProductRepository extends \StORM\Repository
 				unset($currentUpdates['imageFileName']);
 			}
 
+			/** @var \Eshop\DB\Product $product */
 			$product = $productRepository->syncOne($values, $currentUpdates, false, null, ['categories' => false]);
 
 			$updated = $product->getParent() instanceof ICollection;
@@ -193,6 +248,56 @@ class SupplierProductRepository extends \StORM\Repository
 					'fk_product' => $product->getPK(),
 					'fk_internalribbon' => $riboonId,
 				]);
+			}
+
+			$existingProductPrimaryCategoriesByType = [];
+			$productPrimaryCategories = isset($existingPrimaryCategories[$product->getPK()]) ? \explode(',', $existingPrimaryCategories[$product->getPK()]->categories) : [];
+
+			foreach ($productPrimaryCategories as $categoryPK) {
+				$category = $allCategories[$categoryPK];
+
+				$existingProductPrimaryCategoriesByType[$category->typePK] = $categoryPK;
+			}
+
+			foreach ($categories as $category) {
+				$category = $allCategories[$category];
+
+				if (isset($existingProductPrimaryCategoriesByType[$category->typePK])) {
+					continue;
+				}
+
+				$productPrimaryCategoriesToSync[] = [
+					'product' => $product->getPK(),
+					'category' => $category->uuid,
+					'categoryType' => $category->typePK,
+				];
+			}
+
+			if ($draft->content) {
+				$productContents = $existingProductContents[$product->getPK()] ?? null;
+
+				if ($this->shopsConfig->getAvailableShops()) {
+					foreach ($this->shopsConfig->getAvailableShops() as $shop) {
+						if (isset($productContents[$shop->getPK()]) && $productContents[$shop->getPK()]->content) {
+							continue;
+						}
+
+						$productContentsToSync[] = [
+							'product' => $product->getPK(),
+							'shop' => $shop->getPK(),
+							'content' => [$mutation => $draft->content],
+						];
+					}
+				} else {
+					$productContent = Arrays::first($productContents);
+
+					if (!$productContent || !$productContent->content) {
+						$productContentsToSync[] = [
+							'product' => $product->getPK(),
+							'content' => [$mutation => $draft->content],
+						];
+					}
+				}
 			}
 
 			if (isset($productsMap[$uuid]) && $productsMap[$uuid]->contentLock) {
@@ -217,7 +322,7 @@ class SupplierProductRepository extends \StORM\Repository
 
 					try {
 						if (isset($eanProductsMap[$draft->ean])) {
-							$draft->update(['product' => $eanProductsMap[$draft->ean]]);
+							$draft->update(['product' => $eanProductsMap[$draft->ean]->uuid]);
 						}
 					} catch (\Throwable $e) {
 						unset($e);
@@ -255,6 +360,9 @@ class SupplierProductRepository extends \StORM\Repository
 				}
 			}
 		}
+
+		$productPrimaryCategoryRepository->syncMany($productPrimaryCategoriesToSync);
+		$productContentRepository->syncMany($productContentsToSync, $contentUpdates); // sloupce supplierContentLock nejsou dostupné. Vytáhnout při sync produktu? budou správně načtené?
 
 		return $result;
 	}

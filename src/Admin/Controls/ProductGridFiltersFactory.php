@@ -242,7 +242,6 @@ class ProductGridFiltersFactory
 
 		$locks = [];
 		$locks[Product::SUPPLIER_CONTENT_MODE_PRIORITY] = 'S nejvyšší prioritou';
-		$locks[Product::SUPPLIER_CONTENT_MODE_LENGTH] = 'S nejdelším obsahem';
 		$locks += $suppliers;
 		$locks[Product::SUPPLIER_CONTENT_MODE_CUSTOM_CONTENT] = 'Nikdy nepřebírat: Vlastní obsah';
 		$locks[Product::SUPPLIER_CONTENT_MODE_NONE] = 'Nikdy nepřebírat: Žádný obsah';
@@ -253,9 +252,6 @@ class ProductGridFiltersFactory
 			if ($value === Product::SUPPLIER_CONTENT_MODE_PRIORITY) {
 				$source->where('this.supplierContentLock', false);
 				$source->where('this.supplierContentMode = "priority" OR (this.fk_supplierContent IS NULL AND this.supplierContentMode = "none")');
-			} elseif ($value === Product::SUPPLIER_CONTENT_MODE_LENGTH) {
-				$source->where('this.supplierContentLock', false);
-				$source->where('this.supplierContentMode', Product::SUPPLIER_CONTENT_MODE_LENGTH);
 			} elseif ($value === Product::SUPPLIER_CONTENT_MODE_CUSTOM_CONTENT) {
 				$source->where('this.supplierContentLock', true);
 				$source->where("this.content$mutationSuffix IS NOT NULL AND LENGTH(this.content$mutationSuffix) > 0");

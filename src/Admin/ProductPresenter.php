@@ -504,7 +504,7 @@ class ProductPresenter extends BackendPresenter
 		/** @var array<\Eshop\DB\CategoryType> $categoryTypes */
 		$categoryTypes = $this->categoryTypeRepository->getCollection(true)->toArray();
 
-		$productData = $product->toArray(['ribbons', 'internalRibbons', 'taxes', 'categories']);
+		$productData = $product->toArray(['ribbons', 'internalRibbons', 'taxes', 'categories'], selectContent: false);
 
 		foreach ($categoryTypes as $categoryType) {
 			$form['categories'][$categoryType->getPK()]
@@ -534,8 +534,6 @@ class ProductPresenter extends BackendPresenter
 		if (isset($input)) {
 			if ($product->supplierContentLock) {
 				$input->setDefaultValue(Product::SUPPLIER_CONTENT_MODE_NONE);
-			} elseif ($product->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_LENGTH) {
-				$input->setDefaultValue(Product::SUPPLIER_CONTENT_MODE_LENGTH);
 			} elseif ($product->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_PRIORITY) {
 				$input->setDefaultValue(null);
 			}

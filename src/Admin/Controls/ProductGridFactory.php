@@ -228,9 +228,6 @@ class ProductGridFactory
 			} elseif ($object->supplierContentLock && !$object->getContent()) {
 				$label = 'Žádný obsah';
 				$icon = 'fas fa-file-excel';
-			} elseif ($object->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_LENGTH) {
-				$label = 'Ze zdroje s nejdelším obsahem';
-				$icon = 'fas fa-file-import';
 			} elseif ($object->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_PRIORITY || (!$object->supplierContent && $object->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_NONE)) {
 				$label = 'Ze zdroje s nejvyšší prioritou';
 				$icon = 'fas fa-file-upload';
@@ -313,10 +310,6 @@ class ProductGridFactory
 						$values['values']['supplierContent'] = null;
 						$values['values']['supplierContentLock'] = true;
 						$values['values']['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_NONE;
-					} elseif ($values['values']['supplierContent'] === 'length') {
-						$values['values']['supplierContent'] = null;
-						$values['values']['supplierContentLock'] = false;
-						$values['values']['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_LENGTH;
 					} else {
 						$values['values']['supplierContentLock'] = false;
 						$values['values']['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_PRIORITY;

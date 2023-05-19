@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\DB\Shop;
 use Eshop\Admin\SettingsPresenter;
 use Nette\Application\ApplicationException;
 use Nette\Utils\Arrays;
@@ -37,7 +38,6 @@ class Product extends \StORM\Entity
 
 	public const SUPPLIER_CONTENT_MODE_NONE = 'none';
 	public const SUPPLIER_CONTENT_MODE_PRIORITY = 'priority';
-	public const SUPPLIER_CONTENT_MODE_LENGTH = 'length';
 	public const SUPPLIER_CONTENT_MODE_SUPPLIER = 'supplier';
 	public const SUPPLIER_CONTENT_MODE_CUSTOM_CONTENT = 'content';
 
@@ -240,18 +240,6 @@ class Product extends \StORM\Entity
 	 */
 	public int $discountLevelPct = 0;
 
-//	/**
-//	 * Perex
-//	 * @column{"type":"text","mutations":true}
-//	 */
-//	public ?string $perex;
-//
-//	/**
-//	 * Obsah
-//	 * @column{"type":"longtext","mutations":true}
-//	 */
-//	public ?string $content;
-
 	/**
 	 * Priorita
 	 * @column
@@ -325,7 +313,7 @@ class Product extends \StORM\Entity
 
 	/**
 	 * Režim přebírání obsahu, platí pouze pokud supplierContentLock === false
-	 * @column{"type":"enum","length":"'none','priority','length','supplier'"}
+	 * @column{"type":"enum","length":"'none','priority','supplier'"}
 	 */
 	public string $supplierContentMode = 'none';
 
@@ -1075,15 +1063,32 @@ class Product extends \StORM\Entity
 		return null;
 	}
 
-	public function getContent(): ?string
+	/**
+	 * @param \Base\DB\Shop|null $shop Used only if content property is not set directly
+	 */
+	public function getContent(Shop|null $shop = null): ?string
 	{
 		if ($this->__isset('content')) {
 			return $this->getValue('content');
 		}
 
-		$this->productRepository->hydrateProductWithContent($this);
+		$this->productRepository->hydrateProductWithContent($this, $shop);
 
 		return $this->getValue('content');
+	}
+
+	/**
+	 * @param \Base\DB\Shop|null $shop Used only if perex property is not set directly
+	 */
+	public function getPerex(Shop|null $shop = null): ?string
+	{
+		if ($this->__isset('perex')) {
+			return $this->getValue('perex');
+		}
+
+		$this->productRepository->hydrateProductWithContent($this, $shop);
+
+		return $this->getValue('perex');
 	}
 
 	public function isHidden(): bool
@@ -1109,6 +1114,28 @@ class Product extends \StORM\Entity
 	public function isUnavailable(): bool
 	{
 		return (bool) $this->loadVisibilityListItemProperty('unavailable');
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function toArray(
+		array $relations = [],
+		bool $groupLocales = true,
+		bool $includeNonColumns = false,
+		bool $includePK = true,
+		?callable $relationCallback = null,
+		?Shop $shop = null,
+		bool $selectContent = true,
+	): array {
+		$array = parent::toArray($relations, $groupLocales, $includeNonColumns, $includePK, $relationCallback);
+
+		if ($selectContent) {
+			$array['content'] = $this->getContent($shop);
+			$array['perex'] = $this->getPerex($shop);
+		}
+
+		return $array;
 	}
 
 	/**

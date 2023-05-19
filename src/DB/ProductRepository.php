@@ -913,7 +913,12 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	{
 		$collection->where('this.fk_displayDelivery', $values);
 	}
-	
+
+	/**
+	 * To use this function you need to have JOINED productContent table!
+	 * @param $value
+	 * @param \StORM\ICollection $collection
+	 */
 	public function filterQ($value, ICollection $collection): ICollection
 	{
 		$langSuffix = $this->getConnection()->getMutationSuffix();
@@ -921,7 +926,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$collection->select(
 			[
 				'rel0' => "MATCH(this.name$langSuffix) AGAINST (:q1)",
-				'rel1' => "MATCH(this.name$langSuffix, this.perex$langSuffix, this.content$langSuffix) AGAINST (:q1)",
+				'rel1' => "MATCH(this.name$langSuffix, productContent.perex$langSuffix, productContent.content$langSuffix) AGAINST (:q1)",
 			],
 			['q1' => $value],
 		);
@@ -933,7 +938,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			"this.name$langSuffix LIKE :qlike COLLATE utf8_general_ci",
 			"this.name$langSuffix LIKE :qlikeq COLLATE utf8_general_ci",
 			"MATCH(this.name$langSuffix) AGAINST (:q)",
-			"MATCH(this.name$langSuffix, this.perex$langSuffix, this.content$langSuffix) AGAINST(:q)",
+			"MATCH(this.name$langSuffix, productContent.perex$langSuffix, productContent.content$langSuffix) AGAINST(:q)",
 		];
 		
 		$collection->where(\implode(' OR ', $orConditions), ['q' => $value, 'qlike' => $value . '%', 'qlikeq' => '%' . $value . '%']);

@@ -5,6 +5,7 @@ namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Base\Repository\GeneralRepositoryHelpers;
 use Eshop\BackendPresenter;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
@@ -124,17 +125,40 @@ class SupplierMappingPresenter extends BackendPresenter
 		$grid->addColumnText('Změněno', "updateTs|date:'d.m.Y G:i'", '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
 		$property = null;
+		$categoriesNames = GeneralRepositoryHelpers::toArrayOfFullName(GeneralRepositoryHelpers::selectFullName(
+			$this->categoryRepository->many(),
+			'this.name_cs',
+			uniqueColumnName: 'this.code',
+			shops: false,
+			customSelect: 'type.uuid',
+		));
 
 		if ($this->tab === 'category') {
 			$grid->addColumnText('Název', 'getNameTree', '%s', 'categoryNameL1');
 			$dir = \explode('-', $this->getHttpRequest()->getQuery('grid-order') ?? '')[1] ?? 'ASC';
 			$grid->setSecondaryOrder(['categoryNameL2' => $dir, 'categoryNameL3' => $dir, 'categoryNameL4' => $dir, 'categoryNameL5' => $dir, 'categoryNameL6' => $dir]);
 
-			$grid->addColumn('Napárovano', function (SupplierCategory $mapping) {
-				$link = $mapping->category && $this->admin->isAllowed(':Eshop:Admin:Category:detail') ?
-					$this->link(':Eshop:Admin:Category:detail', [$mapping->category, 'backLink' => $this->storeRequest(),]) : '#';
+			$grid->addColumn('Napárovano', function (SupplierCategory $mapping) use ($categoriesNames) {
+				$categories = $mapping->categories->toArray();
 
-				return $mapping->category ? "<a href='$link'>" . ($mapping->category->name ?: 'Detail kategorie') . '</a>' : '-';
+				$text = null;
+
+				if ($this->admin->isAllowed(':Eshop:Admin:Category:detail')) {
+					foreach ($categories as $category) {
+						$categoryName = $categoriesNames[$category->getPK()];
+
+						$text .= "<a href='" . $this->link(':Eshop:Admin:Category:detail', [$category, 'backLink' => $this->storeRequest(),]) . "'>" .
+							$categoryName . '</a><br>';
+					}
+				} else {
+					foreach ($categories as $category) {
+						$categoryName = $categoriesNames[$category->getPK()];
+
+						$text .= $categoryName . '<br>';
+					}
+				}
+
+				return $text;
 			});
 
 			$property = 'category';
@@ -279,7 +303,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 
 		if ($this->tab === 'category') {
-			$form->addDataSelect('category', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('Nepřiřazeno');
+			$form->addDataMultiSelect('categories', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect());
 		}
 
 		if ($this->tab === 'producer') {
@@ -744,7 +768,12 @@ class SupplierMappingPresenter extends BackendPresenter
 			];
 		}
 
-		$form->setDefaults($object->toArray());
+		$relations = match ($this->tab) {
+			'category' => ['categories'],
+			default => [],
+		};
+
+		$form->setDefaults($object->toArray($relations));
 	}
 
 	protected function startup(): void

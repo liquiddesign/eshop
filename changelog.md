@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **BREAKING:** Many entities now have foreign key to `Base/DB/Shop` entity
     - To run this version of Eshop you need to sync this entity to database
-    - Selects in forms to entities with Shop, are always shown all with description of Shop state
+    - Some entities are saved to Shop, which is currently selected. For others, you can select Shp by yourself.
 - **BREAKING:** New *ShopperUser* and *CheckoutManager*
     - *ShopperUser* is now extending *Nette\Security\User* and act like it
     - *CheckoutManager* is now not injected to *Container* and is available only by *ShopperUser*
@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - *VisibilityListItem* is selected based on assigned *VisibilityList*s to customer or group, and is found first product row based on priority of *VisibilityList*
         - You can use *ProductRepository::joinVisibilityListItemToProductCollection* to join them
             - *ProductRepository::getProducts* does this automatically and properties are available in Product getters, or directly in SQL as alias *visibilityListItem*
-- **BREAKING:** Product content is not stored in Product but in ProductContent, based on Shop.
+- **BREAKING:** Product content (content, perex) is not stored in Product but in ProductContent, based on Shop.
 
 ### Changed
 
@@ -45,6 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Imports/exports reflects changes in content, visibility and categories
   - Content, Perex and Categories are no longer in 'importColumns' array in configuration. They are now hard-coded in import/export services.
     - **BREAKING:** You NEED to remove them from you local configurations
+- **BREAKING:** `SupplierCategory` now can have multiple paired Categories
+- **BREAKING:** `SupplierProductRepository::syncProducts` overhauled to reflect all changes
+  - **BREAKING:** Content (name, content, perex) import option "with the longest content" is removed
+- **BREAKING:** `Product::toArray` now accepts `$shop` and `$selectContent` parameters. `$selectContent` defaults to true, so it selects content, even if it is not loaded. That can lead to performance issue, so always check how you use this.
 - XML exports accepts Shop parameter and used entities are affected by it.
 - PriceList selects in XML exports now shows all PriceLists, even from different Shops. Truly active PriceLists are filtered afterward in exports.
 - Category code must be unique within the CategoryType
@@ -85,42 +89,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `DB/ProductTabText`
     - `DB/ProductTabTextRepository`
 - **BREAKING:** Removed many deprecated and unused functions and properties. Not all of them are listed here.
-    - *OrderList::handleExport*
-    - *OrderList::exportCsvApi*
-    - *CheckoutManager::getCartCheckoutPriceBefore*
-    - *CheckoutManager::getCartCheckoutPriceVatBefore*
-    - *CouponForm::validateCoupon*
-    - *CatalogPermission::$newsletter*
-    - *CatalogPermission::$newsletterGroup*
-    - *Customer::$newsletter*
-    - *Customer::$newsletterGroup*
-    - *Customer::$pricesWithVat*
-    - *Category::getFallbackImage*
-    - *CategoryRepository::updateCategoryChildrenPath*
-    - *CategoryRepository::doUpdateCategoryChildrenPath*
-    - *CategoryRepository::getCountsGrouped*
-    - *CategoryRepository::getProducerPages*
-    - *CustomerGroupRepository::getListForSelect*
-    - *CustomerRepository::getListForSelect*
-    - *DiscountCouponRepository::getValidCoupon*
-    - *Order::getInvoices*
-    - *OrderRepository::getFinishedOrdersByCustomer*
-    - *OrderRepository::getNewOrdersByCustomer*
-    - *OrderRepository::cancelOrderById*
-    - *OrderRepository::banOrderById*
-    - *Algolia::uploadProducts*
-    - *ProductRepository::getDisplayAmount*
-    - *ProductRepository::filterTag*
-    - *ProductRepository::getProductAsGroup*
-    - *Product::getPreviewParameters*
-    - *Product::$upsells*
-    - *Product::$rating*
-    - *Product::$primaryCategory*
-    - *ExportPresenter::ERROR_MSG*
+    - `OrderList::handleExport`
+    - `OrderList::exportCsvApi`
+    - `CheckoutManager::getCartCheckoutPriceBefore`
+    - `CheckoutManager::getCartCheckoutPriceVatBefore`
+    - `CouponForm::validateCoupon`
+    - `CatalogPermission::$newsletter`
+    - `CatalogPermission::$newsletterGroup`
+    - `Customer::$newsletter`
+    - `Customer::$newsletterGroup`
+    - `Customer::$pricesWithVat`
+    - `Category::getFallbackImage`
+    - `CategoryRepository::updateCategoryChildrenPath`
+    - `CategoryRepository::doUpdateCategoryChildrenPath`
+    - `CategoryRepository::getCountsGrouped`
+    - `CategoryRepository::getProducerPages`
+    - `CustomerGroupRepository::getListForSelect`
+    - `CustomerRepository::getListForSelect`
+    - `DiscountCouponRepository::getValidCoupon`
+    - `Order::getInvoices`
+    - `OrderRepository::getFinishedOrdersByCustomer`
+    - `OrderRepository::getNewOrdersByCustomer`
+    - `OrderRepository::cancelOrderById`
+    - `OrderRepository::banOrderById`
+    - `Algolia::uploadProducts`
+    - `ProductRepository::getDisplayAmount`
+    - `ProductRepository::filterTag`
+    - `ProductRepository::getProductAsGroup`
+    - `Product::getPreviewParameters`
+    - `Product::$upsells`
+    - `Product::$rating`
+    - `Product::$primaryCategory`
+    - `ExportPresenter::ERROR_MSG`
       - The error message now shows the actual error.
+    - `Product::SUPPLIER_CONTENT_MODE_LENGTH`
+      
 ### Deprecated
 
-- *Integration/MailerLite*
+- `Integration/MailerLite`
 
 ### Fixed
 

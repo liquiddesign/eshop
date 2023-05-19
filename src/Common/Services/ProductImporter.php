@@ -2,6 +2,7 @@
 
 namespace Eshop\Common\Services;
 
+use Base\Helpers;
 use Base\ShopsConfig;
 use Eshop\DB\AmountRepository;
 use Eshop\DB\AttributeAssignRepository;
@@ -246,18 +247,18 @@ class ProductImporter
 			// Fast local search of product based on criteria
 
 			if ($code && $ean && $searchCode && $searchEan) {
-				$product = $this->arrayFind($products, function (\stdClass $x) use ($code, $codePrefix, $ean): bool {
+				$product = Helpers::arrayFind($products, function (\stdClass $x) use ($code, $codePrefix, $ean): bool {
 					return $x->code === $code || $x->fullCode === $code ||
 						$x->code === $codePrefix || $x->fullCode === $codePrefix ||
 						$x->ean === $ean;
 				});
 			} elseif ($code && $searchCode) {
-				$product = $this->arrayFind($products, function (\stdClass $x) use ($code, $codePrefix): bool {
+				$product = Helpers::arrayFind($products, function (\stdClass $x) use ($code, $codePrefix): bool {
 					return $x->code === $code || $x->fullCode === $code ||
 						$x->code === $codePrefix || $x->fullCode === $codePrefix;
 				});
 			} elseif ($ean && $searchEan) {
-				$product = $this->arrayFind($products, function (\stdClass $x) use ($ean): bool {
+				$product = Helpers::arrayFind($products, function (\stdClass $x) use ($ean): bool {
 					return $x->ean === $ean;
 				});
 			}
@@ -341,7 +342,7 @@ class ProductImporter
 					$newValues[$key] = null;
 
 					if ($value) {
-						$masterProduct = $this->arrayFind($products, function (\stdClass $x) use ($value): bool {
+						$masterProduct = Helpers::arrayFind($products, function (\stdClass $x) use ($value): bool {
 							return $x->code === $value || $x->fullCode === $value;
 						});
 
@@ -468,7 +469,7 @@ class ProductImporter
 					}
 
 					/** @var \stdClass|null|false|\Eshop\DB\AttributeValue $attributeValue */
-					$attributeValue = $this->arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode): bool {
+					$attributeValue = Helpers::arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode): bool {
 						return $x->code === $attributeValueCode;
 					});
 
@@ -478,7 +479,7 @@ class ProductImporter
 
 					if (!$attributeValue) {
 						/** @var \stdClass|null|false|\Eshop\DB\AttributeValue $attributeValue */
-						$attributeValue = $this->arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode): bool {
+						$attributeValue = Helpers::arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode): bool {
 							return $x->label === $attributeValueCode;
 						});
 
@@ -542,20 +543,5 @@ class ProductImporter
 			'attributeAssignsUpdated' => \count($attributeAssignsToSync),
 			'elapsedTimeInSeconds' => (int) Debugger::timer(),
 		];
-	}
-
-	/**
-	 * @param array<\stdClass> $xs
-	 * @param callable $f
-	 */
-	protected function arrayFind(array $xs, callable $f): ?\stdClass
-	{
-		foreach ($xs as $x) {
-			if (\call_user_func($f, $x) === true) {
-				return $x;
-			}
-		}
-
-		return null;
 	}
 }

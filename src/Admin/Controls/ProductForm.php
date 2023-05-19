@@ -185,7 +185,6 @@ class ProductForm extends Control
 
 		if (isset($configuration['suppliers']) && $configuration['suppliers'] && $this->supplierRepository->many()->count() > 0) {
 			$locks = [];
-			$locks[Product::SUPPLIER_CONTENT_MODE_LENGTH] = 'S nejdelším obsahem';
 
 			if ($product) {
 				/** @var \Eshop\DB\Supplier $supplier */
@@ -199,7 +198,6 @@ class ProductForm extends Control
 			$form->addSelect('supplierContent', 'Přebírat obsah', $locks)->setPrompt('S nejvyšší prioritou')
 				->setHtmlAttribute('data-info', 'Nastavení přebírání obsahu (jméno, perex, obsah) ze zdrojů.<br><br>
 S nejvyšší prioritou: Zdroj s nejvyšší prioritou<br>
-S nejdelším obsahem: Převezme se obsah, který je nejdelší ze všech zdrojů<br>
 Nikdy nepřebírat: Obsah nebude nikdy přebírán<br>
 Ostatní: Přebírání ze zvoleného zdroje
 ');
@@ -559,10 +557,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				$values['supplierContent'] = null;
 				$values['supplierContentLock'] = true;
 				$values['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_NONE;
-			} elseif ($values['supplierContent'] === 'length') {
-				$values['supplierContent'] = null;
-				$values['supplierContentLock'] = false;
-				$values['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_LENGTH;
 			} else {
 				$values['supplierContentLock'] = false;
 				$values['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_SUPPLIER;
