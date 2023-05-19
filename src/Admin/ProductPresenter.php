@@ -1247,9 +1247,6 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 				$connection->getLink()->commit();
 				$this->flashMessage('Provedeno', 'success');
 			} catch (\Exception $e) {
-				throw $e;
-				Debugger::log($e, ILogger::WARNING);
-
 				try {
 					FileSystem::delete($tempFileName);
 				} catch (\Exception $e) {

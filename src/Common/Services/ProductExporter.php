@@ -53,7 +53,6 @@ class ProductExporter
 
 	/**
 	 * @param \Admin\Controls\AdminGrid $productGrid
-	 * @param string $formActionLink
 	 * @param array|null $exportColumns
 	 * @param array|null $defaultExportColumns
 	 * @param array|null $exportAttributes
@@ -251,6 +250,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 		$visibilityListItemsCollection = $this->visibilityListItemRepository->many()->select(['code' => 'visibilityList.code']);
 
 		while ($visibilityListItem = $visibilityListItemsCollection->fetch(\stdClass::class)) {
+			/** @var array<mixed> $visibilityListItem */
 			$visibilityListItem = (array) $visibilityListItem;
 
 			$productsByVisibilityLists[$visibilityListItem['fk_product']][$visibilityListItem['code']] = $visibilityListItem;

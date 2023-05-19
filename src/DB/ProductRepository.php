@@ -14,11 +14,9 @@ use Eshop\ShopperUser;
 use InvalidArgumentException;
 use League\Csv\Reader;
 use League\Csv\Writer;
-use Nette\Application\LinkGenerator;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Caching\Storages\DevNullStorage;
-use Nette\Http\Request;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use StORM\Collection;
@@ -51,8 +49,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		private readonly LoyaltyProgramDiscountLevelRepository $loyaltyProgramDiscountLevelRepository,
 		private readonly OrderRepository $orderRepository,
 		private readonly RelatedRepository $relatedRepository,
-		private readonly LinkGenerator $linkGenerator,
-		private readonly Request $request,
 		Storage $storage,
 		private readonly SupplierProductRepository $supplierProductRepository,
 		private readonly RelatedTypeRepository $relatedTypeRepository,
@@ -60,7 +56,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		private readonly AttributeValueRepository $attributeValueRepository,
 		private readonly CustomerGroupRepository $customerGroupRepository,
 		private readonly SettingRepository $settingRepository,
-		private readonly AttributeAssignRepository $attributeAssignRepository,
 		private readonly ShopperUser $shopperUser,
 		private readonly VisibilityListItemRepository $visibilityListItemRepository,
 		private readonly VisibilityListRepository $visibilityListRepository,

@@ -101,6 +101,8 @@ class ProductImporter
 
 		$productsPrimaryCategoriesCollection->__destruct();
 
+		$productsToDeleteCategories = [];
+
 		$products = $this->productRepository->many()->setSelect([
 			'uuid',
 			'code',
@@ -376,7 +378,7 @@ class ProductImporter
 				if (match ($key) {
 						'perex', 'content', 'Popisek', 'Obsah' => true,
 						default => false,
-					}) {
+				}) {
 					$key = match ($key) {
 						'Popisek' => 'perex',
 						'Obsah' => 'content',
@@ -393,6 +395,7 @@ class ProductImporter
 						$parsedVisibilityColumns[$key]['property'] => $parsedVisibilityColumns[$key]['property'] === 'priority' ? \intval($value) : ($value === '1'),
 					];
 				} elseif ($key === 'categories' || $key === 'Kategorie') {
+					$productsToDeleteCategories[] = $product->uuid;
 					$valueCategories = \explode(',', $value);
 
 					foreach ($valueCategories as $categoryValue) {
@@ -413,12 +416,15 @@ class ProductImporter
 						$newValues['categories'][] = $category->uuid;
 					}
 
-
-					$product->categories->relate($newValues['categories']);
+					if (isset($newValues['categories'])) {
+						$valuesToUpdate[$product->uuid]['categories'] = $newValues['categories'];
+					}
 
 					foreach ($productsPrimaryCategories[$product->uuid] ?? [] as $categoryType => $primaryCategory) {
-						if (!Arrays::contains($newValues['categories'], $primaryCategory)) {
-							$product->primaryCategories->unrelate($primaryCategory);
+						if (!Arrays::contains($newValues['categories'] ?? [], $primaryCategory)) {
+							$this->productPrimaryCategoryRepository->many()
+								->where('fk_product', $product->uuid)
+								->where('fk_category', $primaryCategory)->delete();
 
 							unset($productsPrimaryCategories[$product->uuid][$categoryType]);
 						}
@@ -515,6 +521,12 @@ class ProductImporter
 					];
 				}
 			}
+		}
+
+		foreach (\array_chunk($productsToDeleteCategories, 100) as $categories) {
+			$this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
+				->where('fk_product', $categories)
+				->delete();
 		}
 
 		$this->attributeAssignRepository->syncMany($attributeAssignsToSync);
