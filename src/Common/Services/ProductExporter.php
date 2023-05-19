@@ -282,7 +282,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 			]);
 
 		if ($selectedShop) {
-			$products->where('productContent.fk_shop', $selectedShop->getPK());
+			$products->where('productContent.fk_shop = :shop OR productContent.uuid IS NULL', ['shop' => $selectedShop->getPK()]);
 		}
 
 		$attributesByProductPK = [];

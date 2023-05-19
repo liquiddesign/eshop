@@ -19,6 +19,7 @@ use Eshop\Common\Services\ProductExporter;
 use Eshop\Common\Services\ProductImporter;
 use Eshop\DB\AmountRepository;
 use Eshop\DB\AttributeAssignRepository;
+use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\CustomerRepository;
@@ -99,9 +100,7 @@ class ProductPresenter extends BackendPresenter
 			'code' => 'Kód',
 			'ean' => 'EAN',
 			'name' => 'Název',
-			'perex' => 'Popisek',
 			'producer' => 'Výrobce',
-			'content' => 'Obsah',
 			'storeAmount' => 'Skladová dostupnost',
 			'masterProduct' => 'Nadřazený sloučený produkt',
 		],
@@ -1248,6 +1247,7 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 				$connection->getLink()->commit();
 				$this->flashMessage('Provedeno', 'success');
 			} catch (\Exception $e) {
+				throw $e;
 				Debugger::log($e, ILogger::WARNING);
 
 				try {

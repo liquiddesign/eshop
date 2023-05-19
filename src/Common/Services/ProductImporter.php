@@ -79,14 +79,14 @@ class ProductImporter
 		$stores = $this->storeRepository->many()->setIndex('code')->toArrayOf('uuid');
 		$categoriesCollection = $this->categoryRepository->many()
 			->setIndex('code')
-			->select(['typeCode' => 'type.code']);
+			->select(['categoryTypePK' => 'this.fk_type']);
 
 		$categories = [];
 
 		while ($tempCategory = $categoriesCollection->fetch(\stdClass::class)) {
 			/** @var \stdClass $tempCategory */
 
-			$categories[$tempCategory->typeCode][$tempCategory->code] = $tempCategory;
+			$categories[$tempCategory->categoryTypePK][$tempCategory->code] = $tempCategory;
 		}
 
 		$categoriesCollection->__destruct();
@@ -356,15 +356,6 @@ class ProductImporter
 				if ($product) {
 					if (\count($newValues) > 0) {
 						$newValues['uuid'] = $product->uuid;
-						$newValues['supplierContentLock'] = $product->supplierContentLock;
-
-						if (isset($newValues['name'][$mutation]) && $newValues['name'][$mutation] !== $product->name) {
-							$newValues['supplierContentLock'] = true;
-						}
-
-						if (isset($newValues['perex'][$mutation]) && $newValues['perex'][$mutation] !== $product->perex) {
-							$newValues['supplierContentLock'] = true;
-						}
 
 						$valuesToUpdate[$product->uuid] = $newValues;
 					}
@@ -382,7 +373,16 @@ class ProductImporter
 			}
 
 			foreach ($record as $key => $value) {
-				if ($key === 'perex' || $key === 'content') {
+				if (match ($key) {
+						'perex', 'content', 'Popisek', 'Obsah' => true,
+						default => false,
+					}) {
+					$key = match ($key) {
+						'Popisek' => 'perex',
+						'Obsah' => 'content',
+						default => $key,
+					};
+
 					$relatedToSync['content'][$key][$mutation] = $value;
 					$relatedToSync['content']['shop'] = $selectedShop?->getPK();
 					$relatedToSync['content']['product'] = $product->uuid;
@@ -392,8 +392,8 @@ class ProductImporter
 						'visibilityList' => $parsedVisibilityColumns[$key]['visibilityList'],
 						$parsedVisibilityColumns[$key]['property'] => $parsedVisibilityColumns[$key]['property'] === 'priority' ? \intval($value) : ($value === '1'),
 					];
-				} elseif ($key === 'categories') {
-					$valueCategories = \explode(':', $value);
+				} elseif ($key === 'categories' || $key === 'Kategorie') {
+					$valueCategories = \explode(',', $value);
 
 					foreach ($valueCategories as $categoryValue) {
 						$categoryValue = \explode('#', $categoryValue);
@@ -413,14 +413,14 @@ class ProductImporter
 						$newValues['categories'][] = $category->uuid;
 					}
 
-					$product->categories->unrelateAll();
+
 					$product->categories->relate($newValues['categories']);
 
-					foreach ($productsPrimaryCategories[$product->getPK()] ?? [] as $categoryType => $primaryCategory) {
+					foreach ($productsPrimaryCategories[$product->uuid] ?? [] as $categoryType => $primaryCategory) {
 						if (!Arrays::contains($newValues['categories'], $primaryCategory)) {
 							$product->primaryCategories->unrelate($primaryCategory);
 
-							unset($productsPrimaryCategories[$product->getPK()][$categoryType]);
+							unset($productsPrimaryCategories[$product->uuid][$categoryType]);
 						}
 					}
 				}
