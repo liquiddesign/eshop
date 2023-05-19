@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop;
 
 use Admin\DB\RoleRepository;
+use Eshop\DB\CartItem;
 use Eshop\DB\Country;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\Currency;
@@ -18,6 +19,7 @@ use Eshop\DB\Merchant;
 use Eshop\DB\MinimalOrderValueRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\Product;
+use Eshop\DTO\CartItemWithFormattedPrices;
 use Eshop\DTO\ProductWithFormattedPrices;
 use Nette\Security\User;
 use Security\DB\Account;
@@ -438,6 +440,23 @@ class Shopper
 			$this->filterPrice($product->getPriceVat()),
 			$product->getPriceBefore() ? $this->filterPrice($product->getPriceBefore()) : null,
 			$product->getPriceVatBefore() ? $this->filterPrice($product->getPriceVatBefore()) : null,
+			$this->getCustomer(),
+		);
+	}
+
+	public function getCartItemPricesFormatted(CartItem $cartItem): ?CartItemWithFormattedPrices
+	{
+		return new CartItemWithFormattedPrices(
+			$this->translator,
+			$cartItem,
+			$this->showPricesWithVat(),
+			$this->showPricesWithoutVat(),
+			$this->showPriorityPrices(),
+			$this->getCatalogPermission() === 'price',
+			$this->filterPrice($cartItem->getPriceSum()),
+			$this->filterPrice($cartItem->getPriceVatSum()),
+			$cartItem->getPriceBefore() ? $this->filterPrice($cartItem->getPriceBefore()) : null,
+			$cartItem->getPriceVatBefore() ? $this->filterPrice($cartItem->getPriceVatBefore()) : null,
 			$this->getCustomer(),
 		);
 	}
