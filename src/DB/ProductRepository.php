@@ -1187,9 +1187,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$collection->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid AND visibilityListItem.fk_visibilityList = (
 				SELECT fk_visibilityList
 					FROM eshop_visibilitylistitem
-					JOIN eshop_visibilityList ON eshop_visibilityList.uuid = eshop_visibilitylistitem.fk_visibilityList
-					WHERE fk_product = this.uuid AND ' . ($visibilityLists ? 'eshop_visibilityList.uuid IN (' . $visibilityLists . ')' : '1=0') . '
-					ORDER BY eshop_visibilityList.priority ASC
+					JOIN eshop_visibilitylist ON eshop_visibilitylist.uuid = eshop_visibilitylistitem.fk_visibilityList
+					WHERE fk_product = this.uuid AND ' . ($visibilityLists ? 'eshop_visibilitylist.uuid IN (' . $visibilityLists . ')' : '1=0') . '
+					ORDER BY eshop_visibilitylist.priority ASC
 					LIMIT 1
 				)
 			');
