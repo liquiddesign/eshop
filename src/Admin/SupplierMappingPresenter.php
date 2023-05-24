@@ -31,6 +31,7 @@ use Nette\Http\Session;
 use Nette\Utils\Arrays;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
+use StORM\Collection;
 use StORM\Entity;
 use StORM\Expression;
 use StORM\ICollection;
@@ -104,7 +105,7 @@ class SupplierMappingPresenter extends BackendPresenter
 
 	public function createComponentGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->getMappingRepository()->many(), 20, 'createdTs', 'ASC');
+		$grid = $this->gridFactory->create($this->getMappingCollection(), 20, 'createdTs', 'ASC');
 		$grid->addColumnSelector();
 
 		$grid->addColumn(
@@ -124,6 +125,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		$grid->addColumnText('Importováno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		$grid->addColumnText('Změněno', "updateTs|date:'d.m.Y G:i'", '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
+		/** @var 'categories'|'attribute'|'producer'|'attributeValue'|'displayAmount' $property */
 		$property = null;
 		$categoriesNames = GeneralRepositoryHelpers::toArrayOfFullName(GeneralRepositoryHelpers::selectFullName(
 			$this->categoryRepository->many(),
@@ -161,7 +163,7 @@ class SupplierMappingPresenter extends BackendPresenter
 				return $text;
 			});
 
-			$property = 'category';
+			$property = 'categories';
 			$grid->addFilterText(function (ICollection $source, $value): void {
 				$parsed = \explode('>', $value);
 				$expression = new Expression();
@@ -268,8 +270,13 @@ class SupplierMappingPresenter extends BackendPresenter
 
 		$submit = $grid->getForm()->addSubmit('createStructureSubmit', 'Vytvořit strukturu')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 		$submit->onClick[] = function ($button) use ($grid): void {
-			$this->session->getSection('bulkEdit')->set('totalIds', \array_keys($grid->getFilteredSource()->toArray()));
-			$this->redirect('mapping', \serialize($grid->getSelectedIds()));
+			unset($grid);
+			$this->flashMessage('Tato funkce momentálně není dostupná', 'warning');
+			$this->redirect('this');
+
+			// @TODO
+//			$this->session->getSection('bulkEdit')->set('totalIds', \array_keys($grid->getFilteredSource()->toArray()));
+//			$this->redirect('mapping', \serialize($grid->getSelectedIds()));
 		};
 
 		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
@@ -290,7 +297,19 @@ class SupplierMappingPresenter extends BackendPresenter
 			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
 		}, '', 'created_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Importováno do');
 
-		$grid->addFilterCheckboxInput('notmapped', "fk_$property IS NOT NULL", 'Napárované');
+		$grid->addFilterDataSelect(function (ICollection $source, $value) use ($property): void {
+			if ($value === '1') {
+				match ($property) {
+					'categories' => $source->where('supplierCategoryXCategory.fk_category IS NOT NULL'),
+					default => $source->where("this.fk_$property IS NOT NULL"),
+				};
+			} elseif ($value === '0') {
+				match ($property) {
+					'categories' => $source->where('supplierCategoryXCategory.fk_category IS NULL'),
+					default => $source->where("this.fk_$property IS NULL"),
+				};
+			}
+		}, null, 'notmapped', null, ['1' => 'Ano', '0' => 'Ne'])->setPrompt('- Napárované -');
 
 
 		$grid->addFilterButtons();
@@ -815,5 +834,18 @@ class SupplierMappingPresenter extends BackendPresenter
 		}
 
 		throw new \DomainException('Invalid state');
+	}
+
+	private function getMappingCollection(): Collection
+	{
+		$repository = $this->getMappingRepository();
+
+		$collection = $repository->many();
+
+		if ($this->tab === 'category') {
+			return $collection->join(['supplierCategoryXCategory' => 'eshop_suppliercategory_nxn_eshop_category'], 'this.uuid = supplierCategoryXCategory.fk_supplierCategory');
+		}
+
+		return $repository->many();
 	}
 }
