@@ -69,14 +69,9 @@ class SupplierProductRepository extends \StORM\Repository
 		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$mutation];
 		$riboonId = 'novy_import';
 
-		$contentUpdates = [];
-
 		if ($overwrite) {
-			$updates = ["name$mutationSuffix", 'unit', 'imageFileName', 'vatRate', 'fk_displayAmount'];
+			$updates = ["name$mutationSuffix", 'unit', 'imageFileName', 'vatRate'];
 			$updates = \array_fill_keys($updates, null);
-
-			$contentUpdates = ["content$mutationSuffix"];
-			$contentUpdates = \array_fill_keys($contentUpdates, null);
 
 			foreach (\array_keys($updates) as $name) {
 				$updates[$name] = new Literal("IF
@@ -84,22 +79,7 @@ class SupplierProductRepository extends \StORM\Repository
 					(
 						supplierContentLock = 0 && 
 						(
-							(VALUES(supplierLock) >= supplierLock && (supplierContentMode = 'priority' || (fk_supplierContent IS NULL && supplierContentMode = 'none')))
-						)
-					)
-					|| fk_supplierContent='$supplierId',
-					VALUES($name),
-					$name
-				)");
-			}
-
-			foreach (\array_keys($contentUpdates) as $name) {
-				$contentUpdates[$name] = new Literal("IF
-				(
-					(
-						supplierContentLock = 0 && 
-						(
-							(VALUES(supplierLock) >= supplierLock && (supplierContentMode = 'priority' || (fk_supplierContent IS NULL && supplierContentMode = 'none')))
+							(VALUES(supplierLock) >= supplierLock && supplierContentMode = 'priority')
 						)
 					)
 					|| fk_supplierContent='$supplierId',
@@ -362,7 +342,45 @@ class SupplierProductRepository extends \StORM\Repository
 		}
 
 		$productPrimaryCategoryRepository->syncMany($productPrimaryCategoriesToSync);
-		$productContentRepository->syncMany($productContentsToSync, $contentUpdates); // sloupce supplierContentLock nejsou dostupné. Vytáhnout při sync produktu? budou správně načtené?
+
+		$productsToFetch = [];
+
+		foreach ($productContentsToSync as $item) {
+			$productsToFetch[] = $item['product'];
+		}
+
+		$products = $productRepository->many()
+			->setSelect([
+				'uuid',
+				'supplierLock',
+				'supplierContentLock',
+				'supplierContentMode',
+				'supplierContent' => 'fk_supplierContent',
+			], keepIndex: true)
+			->where('this.uuid', $productsToFetch)
+			->fetchArray(\stdClass::class);
+
+		$contentLocksToUpdate = [];
+
+		foreach ($productContentsToSync as $item) {
+			$product = $products[$item['product']];
+
+			// phpcs:ignore
+			if (($product->supplierContentLock === 0 && $product->supplierLock >= $supplier->importPriority && $product->supplierContentMode === 'priority') ||
+				$product->supplierContent === $supplierId) {
+				$productContentRepository->syncOne([
+					'product' => $product->uuid,
+					'shop' => $item['shop'],
+					'content' => $item['content'],
+				]);
+
+				$contentLocksToUpdate[] = $product->uuid;
+			}
+		}
+
+		if ($contentLocksToUpdate) {
+			$productRepository->many()->where('this.uuid', $contentLocksToUpdate)->update(['supplierLock' => $supplier->importPriority]);
+		}
 
 		return $result;
 	}

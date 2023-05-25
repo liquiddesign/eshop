@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING:** `SupplierCategory` now can have multiple paired Categories
 - **BREAKING:** `SupplierProductRepository::syncProducts` overhauled to reflect all changes
   - **BREAKING:** Content (name, content, perex) import option "with the longest content" is removed
+  - **BREAKING:** Content is regardless of import option imported only if content of product is empty
 - **BREAKING:** `Product::toArray` now accepts `$shop` and `$selectContent` parameters. `$selectContent` defaults to true, so it selects content, even if it is not loaded. That can lead to performance issue, so always check how you use this.
 - XML exports accepts Shop parameter and used entities are affected by it.
 - PriceList selects in XML exports now shows all PriceLists, even from different Shops. Truly active PriceLists are filtered afterward in exports.
