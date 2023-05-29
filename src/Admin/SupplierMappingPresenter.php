@@ -28,7 +28,6 @@ use Eshop\DB\SupplierProducer;
 use Eshop\DB\SupplierProducerRepository;
 use Eshop\DB\SupplierRepository;
 use Nette\Http\Session;
-use Nette\Utils\Arrays;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use StORM\Collection;
@@ -597,101 +596,102 @@ class SupplierMappingPresenter extends BackendPresenter
 						$supplierAttributeValue->update(['attributeValue' => $attributeValue->getPK()]);
 					}
 				}
-			} elseif ($this->tab === 'category') {
-				/** @var \Eshop\DB\Category|null $insertToCategory */
-				$insertToCategory = $values['category'] ? $this->categoryRepository->one($values['category']) : null;
-				$type = $insertToCategory ? $insertToCategory->getValue('type') : $values['categoryType'];
 
-				foreach ($data as $uuid) {
-					/** @var \Eshop\DB\SupplierCategory $supplierCategory */
-					$supplierCategory = $this->supplierCategoryRepository->one($uuid);
-
-					if (!$supplierCategory->categoryNameL1) {
-						continue;
-					}
-
-					$newTree = [$supplierCategory->categoryNameL1];
-
-					if ($supplierCategory->categoryNameL2) {
-						$newTree[] = $supplierCategory->categoryNameL2;
-					}
-
-					if ($supplierCategory->categoryNameL3) {
-						$newTree[] = $supplierCategory->categoryNameL3;
-					}
-
-					if ($supplierCategory->categoryNameL4) {
-						$newTree[] = $supplierCategory->categoryNameL4;
-					}
-
-					if ($supplierCategory->categoryNameL5) {
-						$newTree[] = $supplierCategory->categoryNameL5;
-					}
-
-					if ($supplierCategory->categoryNameL6) {
-						$newTree[] = $supplierCategory->categoryNameL6;
-					}
-
-					$currentCategory = $insertToCategory;
-					$path = $insertToCategory ? $insertToCategory->path : null;
-					$first = true;
-
-					foreach ($newTree as $cKey) {
-						$originalPath = $currentCategory ? $currentCategory->path : '';
-
-						do {
-							$tempPath = $path . Random::generate(4, '0-9a-z');
-							$tempCategory = $this->categoryRepository->many()->where('path', $tempPath)->first();
-						} while ($tempCategory);
-
-						/** @var \Eshop\DB\Category|null $existingCategory */
-						$existingCategory = $this->categoryRepository->many()->where('fk_type', $type)->where('path LIKE :s', ['s' => "$originalPath%"])->where('name_cs', $cKey)->first();
-
-						$path = $existingCategory ? $existingCategory->path : $tempPath;
-
-						$newCategoryData = [
-							'name' => ['cs' => $cKey, 'en' => null],
-							'path' => $path,
-							'ancestor' => $currentCategory ? $currentCategory->getPK() : null,
-							'type' => $type,
-						];
-
-						if ($existingCategory) {
-							$existingCategory->update($newCategoryData);
-							$currentCategory = $existingCategory;
-						} elseif ($supplierCategory->category && Arrays::last($newTree) === $cKey) {
-							if ($supplierCategory->category->getValue('ancestor') && $supplierCategory->category->getValue('ancestor') === $newCategoryData['ancestor']) {
-								if (!$overwrite) {
-									unset($newCategoryData['name']);
-								}
-
-								$supplierCategory->category->update($newCategoryData);
-								$currentCategory = $supplierCategory->category;
-							} else {
-								$currentCategory = $this->categoryRepository->createOne($newCategoryData);
-								$supplierCategory->update(['category' => $currentCategory->getPK()]);
-							}
-						} else {
-							/** @var \Eshop\DB\Category $currentCategory */
-							$currentCategory = $this->categoryRepository->createOne($newCategoryData);
-						}
-
-						if (!$first) {
-							continue;
-						}
-
-						$newFirstCategory = $currentCategory;
-						$first = false;
-					}
-
-					$supplierCategory->update(['category' => $currentCategory->getPK()]);
-				}
-
-				if (isset($newFirstCategory)) {
-					$this->categoryRepository->recalculateCategoryTree($newFirstCategory->getValue('type'));
-				}
-
-				$this->categoryRepository->clearCategoriesCache();
+//			} elseif ($this->tab === 'category') {
+//				/** @var \Eshop\DB\Category|null $insertToCategory */
+//				$insertToCategory = $values['category'] ? $this->categoryRepository->one($values['category']) : null;
+//				$type = $insertToCategory ? $insertToCategory->getValue('type') : $values['categoryType'];
+//
+//				foreach ($data as $uuid) {
+//					/** @var \Eshop\DB\SupplierCategory $supplierCategory */
+//					$supplierCategory = $this->supplierCategoryRepository->one($uuid);
+//
+//					if (!$supplierCategory->categoryNameL1) {
+//						continue;
+//					}
+//
+//					$newTree = [$supplierCategory->categoryNameL1];
+//
+//					if ($supplierCategory->categoryNameL2) {
+//						$newTree[] = $supplierCategory->categoryNameL2;
+//					}
+//
+//					if ($supplierCategory->categoryNameL3) {
+//						$newTree[] = $supplierCategory->categoryNameL3;
+//					}
+//
+//					if ($supplierCategory->categoryNameL4) {
+//						$newTree[] = $supplierCategory->categoryNameL4;
+//					}
+//
+//					if ($supplierCategory->categoryNameL5) {
+//						$newTree[] = $supplierCategory->categoryNameL5;
+//					}
+//
+//					if ($supplierCategory->categoryNameL6) {
+//						$newTree[] = $supplierCategory->categoryNameL6;
+//					}
+//
+//					$currentCategory = $insertToCategory;
+//					$path = $insertToCategory?->path;
+//					$first = true;
+//
+//					foreach ($newTree as $cKey) {
+//						$originalPath = $currentCategory ? $currentCategory->path : '';
+//
+//						do {
+//							$tempPath = $path . Random::generate(4, '0-9a-z');
+//							$tempCategory = $this->categoryRepository->many()->where('path', $tempPath)->first();
+//						} while ($tempCategory);
+//
+//						/** @var \Eshop\DB\Category|null $existingCategory */
+//						$existingCategory = $this->categoryRepository->many()->where('fk_type', $type)->where('path LIKE :s', ['s' => "$originalPath%"])->where('name_cs', $cKey)->first();
+//
+//						$path = $existingCategory ? $existingCategory->path : $tempPath;
+//
+//						$newCategoryData = [
+//							'name' => ['cs' => $cKey, 'en' => null],
+//							'path' => $path,
+//							'ancestor' => $currentCategory ? $currentCategory->getPK() : null,
+//							'type' => $type,
+//						];
+//
+//						if ($existingCategory) {
+//							$existingCategory->update($newCategoryData);
+//							$currentCategory = $existingCategory;
+//						} elseif ($supplierCategory->category && Arrays::last($newTree) === $cKey) {
+//							if ($supplierCategory->category->getValue('ancestor') && $supplierCategory->category->getValue('ancestor') === $newCategoryData['ancestor']) {
+//								if (!$overwrite) {
+//									unset($newCategoryData['name']);
+//								}
+//
+//								$supplierCategory->category->update($newCategoryData);
+//								$currentCategory = $supplierCategory->category;
+//							} else {
+//								$currentCategory = $this->categoryRepository->createOne($newCategoryData);
+//								$supplierCategory->update(['category' => $currentCategory->getPK()]);
+//							}
+//						} else {
+//							/** @var \Eshop\DB\Category $currentCategory */
+//							$currentCategory = $this->categoryRepository->createOne($newCategoryData);
+//						}
+//
+//						if (!$first) {
+//							continue;
+//						}
+//
+//						$newFirstCategory = $currentCategory;
+//						$first = false;
+//					}
+//
+//					$supplierCategory->update(['category' => $currentCategory->getPK()]);
+//				}
+//
+//				if (isset($newFirstCategory)) {
+//					$this->categoryRepository->recalculateCategoryTree($newFirstCategory->getValue('type'));
+//				}
+//
+//				$this->categoryRepository->clearCategoriesCache();
 			}
 
 			$this->flashMessage('Uloženo', 'success');
