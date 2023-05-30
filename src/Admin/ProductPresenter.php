@@ -544,7 +544,7 @@ class ProductPresenter extends BackendPresenter
 		}
 
 		/** @var \Web\DB\Page|null $page */
-		$page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product]);
+		$page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product], selectedShop: $this->shopsConfig->getSelectedShop());
 
 		if (!$page) {
 			return;

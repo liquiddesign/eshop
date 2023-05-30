@@ -62,7 +62,7 @@
 		"liquiddesign/codestyle": "^3.0",
 		"liquiddesign/migrator": "~1.0",
 		"phpstan/phpstan-nette": "~1.0",
-		"phpstan/phpstan": "1.9.2"
+		"phpstan/phpstan": "^1.10"
 	},
 	"scripts": {
 		"fix-code": ["@phpcsfix"],
