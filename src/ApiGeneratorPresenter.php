@@ -5,6 +5,7 @@ namespace Eshop;
 use Eshop\DB\ApiGeneratorDiscountCouponRepository;
 use Eshop\DB\DiscountConditionRepository;
 use Eshop\DB\DiscountCouponRepository;
+use Nette\Application\Responses\TextResponse;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
@@ -50,21 +51,16 @@ abstract class ApiGeneratorPresenter extends Presenter
 			$error = $e->getMessage();
 		}
 
-		$this->sendJson($result ? [
-			'status' => 'success',
-			'result' => $result,
-		] : [
-			'status' => 'error',
-			'message' => $error,
-		]);
+		$response = new TextResponse($result);
+
+		if ($error) {
+			$this->getHttpResponse()->setCode(400);
+		}
+
+		$this->sendResponse($response);
 	}
 
-	/**
-	 * @param string $code
-	 * @return array<string>|null
-	 * @throws \StORM\Exception\NotFoundException
-	 */
-	public function generateDiscountCoupon(string $code, string $hash): ?array
+	public function generateDiscountCoupon(string $code, string $hash): ?string
 	{
 		$apiGeneratorDiscountCoupon = $this->apiGeneratorDiscountCouponRepository->one(['code' => $code]);
 
@@ -111,8 +107,6 @@ abstract class ApiGeneratorPresenter extends Presenter
 
 		$apiGeneratorDiscountCoupon->used();
 
-		return [
-			'code' => $newDiscountCoupon->code,
-		];
+		return $newDiscountCoupon->code;
 	}
 }
