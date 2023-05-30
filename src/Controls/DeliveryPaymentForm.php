@@ -25,9 +25,6 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 	 * @var array<callable(self, array|object): void|callable(array|object): void>
 	 */
 	public $onSuccess = [];
-
-	/** @var array<callable(string, \Eshop\DB\DeliveryType, \Nette\Forms\Rules): void> */
-	public array $onTogglePaymentId = [];
 	
 	public Shopper $shopper;
 	
@@ -200,11 +197,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 			$allowedPaymentTypes = \array_keys($deliveryType->allowedPaymentTypes->toArray());
 			
 			foreach ($allowedPaymentTypes as $paymentId) {
-				if ($this->onTogglePaymentId) {
-					Nette\Utils\Arrays::invoke($this->onTogglePaymentId, $paymentId, $deliveryType, $deliveriesCondition);
-				} else {
-					$deliveriesCondition->toggle($paymentId);
-				}
+				$deliveriesCondition->toggle($paymentId);
 			}
 			
 			if (!$allowedPaymentTypes) {
