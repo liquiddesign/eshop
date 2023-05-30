@@ -134,6 +134,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stores are no longer deleted during catalogEntry, only synced
 - Fixed indexes on PackageItem
 
+## [1.3.32] - 2023-05-30
+
+### Changed
+
+- **BREAKING:** `ApiGeneratorPresenter` changed generator response type from JSON to PLAIN TEXT
+
 ## [1.3.0 - 1.3.4] - 2023-03-26
 
 ### Added
