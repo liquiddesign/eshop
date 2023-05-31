@@ -627,7 +627,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
         <div id="content-content" class="tab-pane {$presenter->editTab == 'content' ? 'active show' : ''}">
             {if !$shops}
             <fieldset>
-                <legend>{$shop->name}</legend>
                 <table class="mt-1 mb-1">
                     {foreach $form['content']['perex']->getComponents() as $key => $element}
                         <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
