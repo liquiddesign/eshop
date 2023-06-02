@@ -259,7 +259,10 @@ class ShopperUser extends User
 
 		if ($this->isLoggedIn()) {
 			if ($identity instanceof Customer) {
-				return $this->customer = $this->customerRepository->one($identity->getPK());
+				$this->customer = $this->customerRepository->one($identity->getPK());
+				$this->customer->setAccount($identity->getAccount());
+
+				return $this->customer;
 			}
 
 			if ($identity instanceof Merchant) {
