@@ -385,6 +385,11 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		$contentContainer = $form->addContainer('content');
 
+		if (!$this->shopsConfig->getAvailableShops()) {
+			$contentContainer->addLocalePerexEdit('perex', 'Popisek');
+			$contentContainer->addLocaleRichEdit('content', 'Obsah');
+		}
+
 		foreach ($this->shopsConfig->getAvailableShops() as $shop) {
 			$contentContainer->addLocalePerexEdit('perex_' . $shop->getPK(), 'Popisek');
 			$contentContainer->addLocaleRichEdit('content_' . $shop->getPK(), 'Obsah');
@@ -740,6 +745,17 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		}
 
 		unset($values['prices']);
+
+		if (!$this->shopsConfig->getAvailableShops()) {
+			$conditions = [
+				'product' => $product->getPK(),
+			];
+
+			$conditions['perex'] = $content['perex'];
+			$conditions['content'] = $content['content'];
+
+			$this->productContentRepository->syncOne($conditions);
+		}
 
 		foreach ($this->shopsConfig->getAvailableShops() as $shop) {
 			$conditions = [

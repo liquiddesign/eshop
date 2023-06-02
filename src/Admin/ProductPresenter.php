@@ -557,7 +557,11 @@ class ProductPresenter extends BackendPresenter
 
 		$form['page']['url']->forAll(function (TextInput $text, $mutation) use ($page, $form): void {
 			$text->getRules()->reset();
-			$text->addRule([$form, 'validateUrl'], 'URL již existuje', [$this->pageRepository, $mutation, $page->getPK()]);
+			$text->addRule(
+				[$form, 'validateUrl'],
+				'URL již existuje',
+				[$this->pageRepository, $mutation, $page->getPK(), $this->shopsConfig->getSelectedShop()],
+			);
 		});
 	}
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Common\NumbersHelper;
 use League\Csv\Reader;
@@ -25,7 +26,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		SchemaManager $schemaManager,
 		private readonly PriceRepository $priceRepository,
 		private readonly CustomerRepository $customerRepository,
-		private readonly CustomerGroupRepository $customerGroupRepository
+		private readonly CustomerGroupRepository $customerGroupRepository,
+		private readonly ShopsConfig $shopsConfig
 	) {
 		parent::__construct($connection, $schemaManager);
 	}
@@ -39,6 +41,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			->where('this.uuid', \array_values($pks))
 			->where('fk_currency', $currency->getPK())
 			->where('fk_country', $country->getPK());
+
+		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
 
 		return $collection->orderBy(['priority']);
 	}
@@ -54,6 +58,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			->where('fk_currency ', $currency->getPK())
 			->where('fk_country', $country->getPK());
 
+		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
+
 		return $collection->orderBy(['priority']);
 	}
 
@@ -67,6 +73,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'true' : 'false'))
 			->where('fk_currency ', $currency->getPK())
 			->where('fk_country', $country->getPK());
+
+		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
 
 		return $collection->orderBy(['priority']);
 	}

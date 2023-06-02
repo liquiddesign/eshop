@@ -864,7 +864,11 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 	}
 
-	public function filterRecommended(?bool $recommended, ICollection $collection): void
+	/**
+	 * @param bool|int<0, 1>|null $recommended
+	 * @param \StORM\ICollection $collection
+	 */
+	public function filterRecommended(null|bool|int $recommended, ICollection $collection): void
 	{
 		if ($recommended !== null) {
 			/** @var array<mixed> $joins */
