@@ -188,13 +188,17 @@ class CheckoutManager
 		protected readonly PurchaseRepository $purchaseRepository,
 		protected readonly PriceRepository $priceRepository,
 		protected readonly ShopsConfig $shopsConfig,
-		Request $request,
+		protected readonly Request $request,
 	) {
-		if (!$request->getCookie('cartToken') && !$this->shopperUser->getCustomer()) {
+	}
+
+	public function startup(): void
+	{
+		if (!$this->request->getCookie('cartToken') && !$this->shopperUser->getCustomer()) {
 			$this->cartToken = DIConnection::generateUuid();
-			$response->setCookie('cartToken', $this->cartToken, $this->cartExpiration . ' days');
+			$this->response->setCookie('cartToken', $this->cartToken, $this->cartExpiration . ' days');
 		} else {
-			$this->cartToken = $request->getCookie('cartToken');
+			$this->cartToken = $this->request->getCookie('cartToken');
 		}
 
 		if ($this->shopperUser->getCustomer() && $this->cartToken) {
@@ -202,11 +206,11 @@ class CheckoutManager
 				$this->handleCartOnLogin($cart, $this->shopperUser->getCustomer());
 			}
 
-			$response->deleteCookie('cartToken');
+			$this->response->deleteCookie('cartToken');
 			$this->cartToken = null;
 		}
 
-		$this->lastOrderToken = $request->getCookie('lastOrderToken');
+		$this->lastOrderToken = $this->request->getCookie('lastOrderToken');
 	}
 
 	/**
