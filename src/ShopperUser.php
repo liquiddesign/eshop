@@ -112,9 +112,11 @@ class ShopperUser extends User
 
 		/** @var \Eshop\CheckoutManager $checkoutManager */
 		$checkoutManager = $this->container->createInstance(CheckoutManager::class);
+		$this->checkoutManager = $checkoutManager;
+
 		$checkoutManager->startup();
 
-		return $this->checkoutManager = $checkoutManager;
+		return $checkoutManager;
 	}
 
 	public function setConfig(array $config): void
