@@ -336,6 +336,86 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		return $collection;
 	}
 
+//	/**
+//	 * @param array<\Eshop\DB\Pricelist>|null $priceLists
+//	 * @param array<\Eshop\DB\VisibilityList>|null $visibilityLists
+//	 * @param \Eshop\DB\Customer|null $customer
+//	 * @param \Eshop\DB\CustomerGroup|null $customerGroup
+//	 * @param array{"categories"?: array<string>}|null $filters
+//	 * @param array<string>|null $order
+//	 * @param int $limit
+//	 * @param int $offset
+//	 * @return array<\Eshop\DB\Product>
+//	 */
+//	public function getProductsCached(
+//		array|null $priceLists = null,
+//		array|null $visibilityLists = null,
+//		Customer|null $customer = null,
+//		CustomerGroup|null $customerGroup = null,
+//		array|null $filters = null,
+//		array|null $order = null,
+//		int $limit = 20,
+//		int $offset = 0,
+//	): array {
+//		$productsByCategories = $this->getProductsByCategories();
+//		$productsWithPrices = $this->getProductsWithPrices();
+//
+//		$discountCoupon = $this->shopperUser->getCheckoutManager()->getDiscountCoupon();
+//
+//		$currency = $this->shopperUser->getCurrency();
+//		$convertRatio = null;
+//
+//		if ($currency->isConversionEnabled()) {
+//			$convertRatio = $currency->convertRatio;
+//		}
+//
+//		$priceLists ??= $this->shopperUser->getPricelists()->toArray();
+//		$priceLists = \array_values($priceLists);
+//		$customer = $customerGroup ? $customer : ($customer ?: $this->shopperUser->getCustomer());
+//
+//		$customerGroup ??= $this->shopperUser->getCustomerGroup();
+//
+//		$discountLevelPct = $this->getDiscountPct($customer, $customerGroup, $discountCoupon);
+//		$maxProductDiscountLevel = $customer ? $customer->maxDiscountProductPct : ($customerGroup ? $customerGroup->defaultMaxDiscountProductPct : 100);
+//		$vatRates = $this->shopperUser->getVatRates();
+//		$prec = $currency->calculationPrecision;
+//
+//		$shopCategoryType = $this->shopsConfig->getSelectedShop() ?
+//			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
+//			null;
+//
+//		$generalPricelistIds = [];
+//
+//		/** @var \Eshop\DB\Pricelist $pricelist */
+//		foreach ($priceLists as $pricelist) {
+//			if ($pricelist->allowDiscountLevel) {
+//				$generalPricelistIds[] = $pricelist->getPK();
+//			}
+//
+//			if ($pricelist->getValue('currency') === $currency->getPK() || !$convertRatio) {
+//				continue;
+//			}
+//		}
+//
+//		if (!$priceLists) {
+//			Debugger::barDump('No PriceLists');
+//
+//			return $this->many()->where('1=0');
+//		}
+//
+//		$productsPKs = [];
+//
+//		$categories = isset($filters['category']) ? $this->getCategoriesByPath($filters['category']) : [];
+//
+//		foreach ($categories as $category) {
+//			$productsPKs = \array_merge($productsPKs, $productsByCategories[$category] ?? []);
+//		}
+//
+//		\dump(\count($productsPKs));
+//
+//		return [];
+//	}
+
 	/**
 	 * @param \League\Csv\Writer $writer
 	 * @param \StORM\Collection<\Eshop\DB\VisibilityListItem> $objects
@@ -1189,14 +1269,14 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}, $visibilityLists));
 
 		$collection->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid AND visibilityListItem.fk_visibilityList = (
-				SELECT fk_visibilityList
-					FROM eshop_visibilitylistitem
-					JOIN eshop_visibilitylist ON eshop_visibilitylist.uuid = eshop_visibilitylistitem.fk_visibilityList
-					WHERE fk_product = this.uuid AND ' . ($visibilityLists ? 'eshop_visibilitylist.uuid IN (' . $visibilityLists . ')' : '1=0') . '
-					ORDER BY eshop_visibilitylist.priority ASC
-					LIMIT 1
-				)
-			');
+                SELECT fk_visibilityList
+                    FROM eshop_visibilitylistitem
+                    JOIN eshop_visibilitylist ON eshop_visibilitylist.uuid = eshop_visibilitylistitem.fk_visibilityList
+                    WHERE fk_product = this.uuid AND ' . ($visibilityLists ? 'eshop_visibilitylist.uuid IN (' . $visibilityLists . ')' : '1=0') . '
+                    ORDER BY eshop_visibilitylist.priority ASC
+                    LIMIT 1
+                )
+            ');
 	}
 	
 	/**
@@ -1771,6 +1851,88 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		throw new InvalidArgumentException('There is no unique parameter');
 	}
+
+//	protected function getCategoriesByPath(string $path): array
+//	{
+//		return $this->cache->load('main_categoriesByPath_' . $path, function (&$dependencies) use ($path): array {
+//			$dependencies = [
+//				Cache::Tags => [
+//					ScriptsPresenter::PRODUCTS_CACHE_TAG,
+//					ScriptsPresenter::CATEGORIES_CACHE_TAG,
+//				],
+//			];
+//
+//			$categoryRepository = $this->connection->findRepository(Category::class);
+//
+//			return $categoryRepository->many()->where('this.path LIKE :s', ['s' => $path . '%'])->toArrayOf('uuid');
+//		});
+//	}
+//
+//	protected function getProductsWithPrices(): array
+//	{
+//		return $this->cache->load('main_productsWithPrices', function (&$dependencies): array {
+//			$dependencies = [
+//				Cache::Tags => [
+//					ScriptsPresenter::PRODUCTS_CACHE_TAG,
+//					ScriptsPresenter::PRICELISTS_CACHE_TAG,
+//				],
+//			];
+//
+//			$collection = $this->priceRepository->many()
+//				->setGroupBy(['this.uuid']);
+//
+//			$result = [];
+//
+//			while ($object = $collection->fetch()) {
+//				$result[$object->getValue('product')][$object->getValue('pricelist')] = $object->toArray();
+//			}
+//
+//			$collection->__destruct();
+//
+//			return $result;
+//		});
+//	}
+//
+//	protected function getProductsByCategories(): array
+//	{
+//		return $this->cache->load('main_productsByCategories', function (&$dependencies): array {
+//			$dependencies = [
+//				Cache::Tags => [
+//					ScriptsPresenter::PRODUCTS_CACHE_TAG,
+//					ScriptsPresenter::CATEGORIES_CACHE_TAG,
+//				],
+//			];
+//
+//			$productsCollection = $this->many()
+//				->setGroupBy(['this.uuid'])
+//				->setSelect(['this.uuid'])
+//				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'this.uuid = nxnCategory.fk_product')
+//				->select(['assignedCategories' => 'GROUP_CONCAT(nxnCategory.fk_category)']);
+//
+//			$result = [];
+//
+//			while ($product = $productsCollection->fetch()) {
+//				if (!$product->getValue('assignedCategories')) {
+//					continue;
+//				}
+//
+//				$categories = \explode(',', $product->getValue('assignedCategories'));
+//
+//				foreach ($categories as $category) {
+//					$result[$category][] = $product->getPK();
+//				}
+//			}
+//
+//			$productsCollection->__destruct();
+//
+//			return $result;
+//		});
+//	}
+//
+//	protected function getProductsByPrimaryCategories(): array
+//	{
+//		return [];
+//	}
 	
 	protected function getValidPricelists(Collection $collection): Collection
 	{

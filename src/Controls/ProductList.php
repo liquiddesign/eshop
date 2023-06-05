@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Eshop\Admin\ScriptsPresenter;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
@@ -17,6 +18,8 @@ use Eshop\ShopperUser;
 use Forms\FormFactory;
 use Grid\Datalist;
 use Nette\Application\UI\Multiplier;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
 use StORM\Collection;
@@ -40,6 +43,8 @@ class ProductList extends Datalist
 	 */
 	public $onWatcherDeleted;
 
+	private Cache $cache;
+
 	public function __construct(
 		private readonly ProductRepository $productRepository,
 		CategoryRepository $categoryRepository,
@@ -54,9 +59,12 @@ class ProductList extends Datalist
 		private readonly ProducerRepository $producerRepository,
 		private readonly DisplayAmountRepository $displayAmountRepository,
 		private readonly DisplayDeliveryRepository $displayDeliveryRepository,
+		Storage $storage,
 		?array $order = null,
 		?Collection $source = null
 	) {
+		$this->cache = new Cache($storage);
+
 		$source ??= $productRepository->getProducts()->join(['displayAmount' => 'eshop_displayamount'], 'this.fk_displayAmount = displayAmount.uuid');
 
 		if ($order) {
@@ -71,9 +79,28 @@ class ProductList extends Datalist
 		$this->setAllowedOrderColumns(['price' => 'price', 'priority' => 'visibilityListItem.priority', 'name' => 'name']);
 		$this->setItemCountCallback(function (ICollection $filteredSource) use ($categoryRepository) {
 			$prefetchedCount = isset($this->getFilters()['category']) && \count($this->getFilters()) === 1 ? $categoryRepository->getCounts($this->getFilters()['category']) : null;
-			
-			return $prefetchedCount ?? $filteredSource->setOrderBy([])->count();
+
+			return $prefetchedCount ?? $filteredSource->setSelect(['this.uuid'])->setOrderBy([])->count();
 		});
+
+//		$this->setItemCountCallback(function (ICollection $filteredSource) use ($categoryRepository) {
+//			$filteredSource->setSelect(['this.uuid'])->setOrderBy([]);
+//
+//			return $this->cache->load('cachedProductListCount_' . \serialize($filteredSource), function (&$dependencies) use ($filteredSource): int {
+//				$dependencies = [
+//					Cache::Tags => [
+//						ScriptsPresenter::PRODUCTS_CACHE_TAG,
+//						ScriptsPresenter::CATEGORIES_CACHE_TAG,
+//						ScriptsPresenter::PRICELISTS_CACHE_TAG,
+//						ScriptsPresenter::ATTRIBUTES_CACHE_TAG,
+//						ScriptsPresenter::PRODUCERS_CACHE_TAG,
+//						ScriptsPresenter::SETTINGS_CACHE_TAG,
+//					],
+//				];
+//
+//				return $filteredSource->count();
+//			});
+//		});
 
 		$this->addOrderExpression('crossSellOrder', function (ICollection $collection, $value): void {
 			$this->setDefaultOnPage(5);
@@ -146,6 +173,53 @@ class ProductList extends Datalist
 		$this->addFilterExpression('relatedTypeSlave', function (ICollection $collection, $value): void {
 			$this->productRepository->filterRelatedTypeSlave($value, $collection);
 		});
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function getItemsOnPage(): array
+	{
+//		return parent::getItemsOnPage();
+		$source = $this->getFilteredSource();
+
+		if ($this->getOnPage()) {
+			$source->setPage($this->getPage(), $this->getOnPage());
+		}
+
+		/** @var array<\Eshop\DB\Product> $products */
+		$products = $this->cache->load('cachedProductList_' . \serialize($source), function (&$dependencies): array {
+			$dependencies = [
+				Cache::Tags => [
+					ScriptsPresenter::PRODUCTS_CACHE_TAG,
+					ScriptsPresenter::CATEGORIES_CACHE_TAG,
+					ScriptsPresenter::PRICELISTS_CACHE_TAG,
+					ScriptsPresenter::ATTRIBUTES_CACHE_TAG,
+					ScriptsPresenter::PRODUCERS_CACHE_TAG,
+					ScriptsPresenter::SETTINGS_CACHE_TAG,
+				],
+			];
+
+			return parent::getItemsOnPage();
+		});
+
+		foreach ($products as $product) {
+			$product->setParent($this->productRepository);
+		}
+
+		return $products;
+
+//		if ($this->itemsOnPage !== null) {
+//			return $this->itemsOnPage;
+//		}
+//
+//		$this->itemsOnPage = $this->productRepository->getProductsCached(
+//			filters: $this->getFilters(),
+//			limit: $this->getOnPage(),
+//			offset: $this->getPage() * $this->getOnPage(),
+//		);
+//
+//		return $this->itemsOnPage;
 	}
 
 	public function handleWatchIt(string $product): void
