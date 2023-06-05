@@ -83,23 +83,27 @@ class ProductList extends Datalist
 			return $prefetchedCount ?? $filteredSource->setSelect(['this.uuid'])->setOrderBy([])->count();
 		});
 
-//		$this->setItemCountCallback(function (ICollection $filteredSource) use ($categoryRepository) {
-//			$filteredSource->setSelect(['this.uuid'])->setOrderBy([]);
+//		$this->setItemCountCallback(function (ICollection $filteredSource): int {
+//			$cachedCount = $this->cache->load('cachedProductListCount_' . \serialize($filteredSource));
 //
-//			return $this->cache->load('cachedProductListCount_' . \serialize($filteredSource), function (&$dependencies) use ($filteredSource): int {
-//				$dependencies = [
-//					Cache::Tags => [
-//						ScriptsPresenter::PRODUCTS_CACHE_TAG,
-//						ScriptsPresenter::CATEGORIES_CACHE_TAG,
-//						ScriptsPresenter::PRICELISTS_CACHE_TAG,
-//						ScriptsPresenter::ATTRIBUTES_CACHE_TAG,
-//						ScriptsPresenter::PRODUCERS_CACHE_TAG,
-//						ScriptsPresenter::SETTINGS_CACHE_TAG,
-//					],
-//				];
+//			if ($cachedCount) {
+//				return $cachedCount;
+//			}
 //
-//				return $filteredSource->count();
-//			});
+//			$cachedCount = $filteredSource->setSelect(['this.uuid'])->setOrderBy([])->count();
+//
+//			$this->cache->save('cachedProductListCount_' . \serialize($filteredSource), $cachedCount, [
+//				Cache::Tags => [
+//					ScriptsPresenter::PRODUCTS_CACHE_TAG,
+//					ScriptsPresenter::CATEGORIES_CACHE_TAG,
+//					ScriptsPresenter::PRICELISTS_CACHE_TAG,
+//					ScriptsPresenter::ATTRIBUTES_CACHE_TAG,
+//					ScriptsPresenter::PRODUCERS_CACHE_TAG,
+//					ScriptsPresenter::SETTINGS_CACHE_TAG,
+//				],
+//			]);
+//
+//			return $cachedCount;
 //		});
 
 		$this->addOrderExpression('crossSellOrder', function (ICollection $collection, $value): void {
