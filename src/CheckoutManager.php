@@ -615,6 +615,11 @@ class CheckoutManager
 	{
 		return $this->cartExists() ? $this->cartItemRepository->getItems([$this->getCart()->getPK()]) : $this->cartItemRepository->many()->where('1=0');
 	}
+	
+	public function getCartItem(Product $product): ?CartItem
+	{
+		return $this->cartExists() ? $this->cartItemRepository->getItem($this->getCart(), $product) : $this->cartItemRepository->many()->where('fk_product', $product->getPK())->first();
+	}
 
 	public function getTopLevelItems(): Collection
 	{
