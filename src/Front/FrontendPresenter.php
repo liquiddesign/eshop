@@ -7,6 +7,8 @@ use Admin\Administrator;
 use Ares\Ares;
 use Ares\HttpException;
 use Ares\IcNotFoundException;
+use Base\DB\ShopRepository;
+use Base\ShopsConfig;
 use Eshop\DB\CartItem;
 use Eshop\DB\NewsletterUserRepository;
 use Eshop\DB\ProductRepository;
@@ -25,12 +27,14 @@ use Nette\Bridges\ApplicationLatte\LatteFactory;
 use Nette\Bridges\ApplicationLatte\UIExtension;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\DI\Attributes\Inject;
 use Nette\DI\Container;
 use Nette\Localization\Translator;
 use Nette\Mail\Mailer;
 use Nette\Mail\Message;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
+use Throwable;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\Controls\Breadcrumb;
@@ -46,44 +50,50 @@ abstract class FrontendPresenter extends Presenter
 
 	public Administrator $admin;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Container $container;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public LatteFactory $latteFactory;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Translator $translator;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ShopperUser $shopperUser;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ProductRepository $productRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public TemplateRepository $templateRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Mailer $mailer;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public IBreadcrumbFactory $breadcrumbFactory;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public IWidgetFactory $widgetFactory;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Storage $storage;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public WatcherRepository $watcherRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public NewsletterUserRepository $newsletterUserRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public FormFactory $formFactory;
+
+	#[Inject]
+	public ShopsConfig $shopsConfig;
+
+	#[Inject]
+	public ShopRepository $shopRepository;
 
 	/** @persistent */
 	public string $lang;
@@ -96,6 +106,10 @@ abstract class FrontendPresenter extends Presenter
 	protected string $tempDir;
 
 	protected string $userDir;
+
+	protected string $appDir;
+
+	protected string|null $selectedShop = null;
 
 	private Cache $cache;
 
@@ -287,7 +301,7 @@ abstract class FrontendPresenter extends Presenter
 
 		try {
 			return $this->latte->renderToString($string, $params);
-		} catch (\Throwable $e) {
+		} catch (Throwable $e) {
 			return null;
 		}
 	}
@@ -305,6 +319,11 @@ abstract class FrontendPresenter extends Presenter
 
 		$this->tempDir = $this->container->getParameters()['tempDir'];
 		$this->userDir = $this->container->getParameters()['wwwDir'] . '/userfiles';
+		$this->appDir = $this->container->getParameters()['appDir'];
+
+		if (isset($this->selectedShop)) {
+			$this->shopsConfig->setSelectedShop($this->shopRepository->one($this->selectedShop, true));
+		}
 
 		$this->latte = $this->createLatteEngine();
 
