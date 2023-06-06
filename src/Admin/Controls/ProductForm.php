@@ -6,7 +6,6 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
-use Base\Repository\GeneralRepositoryHelpers;
 use Base\ShopsConfig;
 use Eshop\Admin\Configs\ProductFormAutoPriceConfig;
 use Eshop\Admin\Configs\ProductFormConfig;
@@ -832,7 +831,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		$this->template->relationMaxItemsCount = $this->relationMaxItemsCount;
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->pricelistRepository->many()->orderBy(['this.priority']);
-		$this->template->visibilityLists = GeneralRepositoryHelpers::selectFullName($this->visibilityListRepository->many());
+		$this->template->visibilityLists = $this->shopsConfig->selectFullNameInShopEntityCollection($this->visibilityListRepository->many());
 		$this->template->stores = $this->storeRepository->many()->orderBy(['this.name' . $this->storeRepository->getConnection()->getMutationSuffix()]);
 		$this->template->configuration = $this->configuration;
 		$this->template->shopper = $this->shopperUser;

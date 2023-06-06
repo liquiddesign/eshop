@@ -5,7 +5,6 @@ namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
-use Base\Repository\GeneralRepositoryHelpers;
 use Eshop\BackendPresenter;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
@@ -126,7 +125,7 @@ class SupplierMappingPresenter extends BackendPresenter
 
 		/** @var 'categories'|'attribute'|'producer'|'attributeValue'|'displayAmount' $property */
 		$property = null;
-		$categoriesNames = GeneralRepositoryHelpers::toArrayOfFullName(GeneralRepositoryHelpers::selectFullName(
+		$categoriesNames = $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection(
 			$this->categoryRepository->many(),
 			'this.name_cs',
 			uniqueColumnName: 'this.code',

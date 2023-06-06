@@ -4,15 +4,22 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Base\Repository\GeneralRepositoryHelpers;
+use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use StORM\Collection;
+use StORM\DIConnection;
+use StORM\SchemaManager;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\CategoryType>
  */
 class CategoryTypeRepository extends \StORM\Repository implements IGeneralRepository
 {
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, private readonly ShopsConfig $shopsConfig)
+	{
+		parent::__construct($connection, $schemaManager);
+	}
+
 	/**
 	 * @inheritDoc
 	 */
@@ -27,7 +34,7 @@ class CategoryTypeRepository extends \StORM\Repository implements IGeneralReposi
 	 */
 	public function toArrayForSelect(Collection $collection): array
 	{
-		return GeneralRepositoryHelpers::toArrayOfFullName(GeneralRepositoryHelpers::selectFullName($collection, oldSystemicProperty: true));
+		return $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection($collection, oldSystemicProperty: true));
 	}
 
 	public function getCollection(bool $includeHidden = false): Collection

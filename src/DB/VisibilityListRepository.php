@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Base\Repository\GeneralRepositoryHelpers;
+use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -15,7 +15,7 @@ use StORM\SchemaManager;
  */
 class VisibilityListRepository extends \StORM\Repository implements IGeneralRepository
 {
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager,)
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, private readonly ShopsConfig $shopsConfig)
 	{
 		parent::__construct($connection, $schemaManager);
 	}
@@ -34,7 +34,7 @@ class VisibilityListRepository extends \StORM\Repository implements IGeneralRepo
 	 */
 	public function toArrayForSelect(Collection $collection): array
 	{
-		return GeneralRepositoryHelpers::toArrayOfFullName(GeneralRepositoryHelpers::selectFullName($collection));
+		return $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection($collection));
 	}
 
 	public function getCollection(bool $includeHidden = false): Collection

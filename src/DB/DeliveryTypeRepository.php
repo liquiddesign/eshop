@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Base\DB\Shop;
-use Base\Repository\GeneralRepositoryHelpers;
 use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use StORM\Collection;
@@ -32,8 +31,8 @@ class DeliveryTypeRepository extends \StORM\Repository implements IGeneralReposi
 	{
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 
-		return GeneralRepositoryHelpers::toArrayOfFullName(
-			GeneralRepositoryHelpers::selectFullName($this->getCollection($includeHidden), selectColumnName: "this.name$mutationSuffix", uniqueColumnName: 'this.code')
+		return $this->shopsConfig->shopEntityCollectionToArrayOfFullName(
+			$this->shopsConfig->selectFullNameInShopEntityCollection($this->getCollection($includeHidden), selectColumnName: "this.name$mutationSuffix", uniqueColumnName: 'this.code'),
 		);
 	}
 	
