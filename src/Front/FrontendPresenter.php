@@ -109,8 +109,6 @@ abstract class FrontendPresenter extends Presenter
 
 	protected string $appDir;
 
-	protected string|null $selectedShop = null;
-
 	private Cache $cache;
 
 	/**
@@ -320,10 +318,6 @@ abstract class FrontendPresenter extends Presenter
 		$this->tempDir = $this->container->getParameters()['tempDir'];
 		$this->userDir = $this->container->getParameters()['wwwDir'] . '/userfiles';
 		$this->appDir = $this->container->getParameters()['appDir'];
-
-		if (isset($this->selectedShop)) {
-			$this->shopsConfig->setSelectedShop($this->shopRepository->one($this->selectedShop, true));
-		}
 
 		$this->latte = $this->createLatteEngine();
 

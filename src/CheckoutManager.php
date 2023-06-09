@@ -709,7 +709,12 @@ class CheckoutManager
 
 	public function getPaymentTypes(): Collection
 	{
-		return $this->paymentTypes ??= $this->paymentTypeRepository->getPaymentTypes($this->shopperUser->getCurrency(), $this->shopperUser->getCustomer(), $this->shopperUser->getCustomerGroup());
+		return $this->paymentTypes ??= $this->paymentTypeRepository->getPaymentTypes(
+			$this->shopperUser->getCurrency(),
+			$this->shopperUser->getCustomer(),
+			$this->shopperUser->getCustomerGroup(),
+			$this->shopsConfig->getSelectedShop(),
+		);
 	}
 
 	/**
@@ -725,6 +730,7 @@ class CheckoutManager
 			$this->getMaxWeight(),
 			$this->getMaxDimension(),
 			$this->getSumWeight(),
+			$this->shopsConfig->getSelectedShop(),
 		)->toArray();
 
 		foreach ($deliveryTypes as $deliveryType) {
@@ -745,6 +751,7 @@ class CheckoutManager
 			$this->getMaxWeight(),
 			$this->getMaxDimension(),
 			$this->getSumWeight(),
+			$this->shopsConfig->getSelectedShop(),
 		);
 	}
 

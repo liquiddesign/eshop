@@ -20,18 +20,6 @@ class PaymentTypeRepository extends \StORM\Repository implements IGeneralReposit
 	{
 		parent::__construct($connection, $schemaManager);
 	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public function getArrayForSelect(bool $includeHidden = true): array
-	{
-		$mutationSuffix = $this->getConnection()->getMutationSuffix();
-
-		return $this->getCollection($includeHidden)
-			->select(['fullName' => "IF(this.systemicLock > 0, CONCAT(name$mutationSuffix, ' (', code, ', systémový)'), CONCAT(name$mutationSuffix, ' (', code, ')'))"])
-			->toArrayOf('fullName');
-	}
 	
 	public function getCollection(bool $includeHidden = false): Collection
 	{
@@ -44,10 +32,29 @@ class PaymentTypeRepository extends \StORM\Repository implements IGeneralReposit
 		
 		return $collection->orderBy(['priority DESC', "name$suffix"]);
 	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getArrayForSelect(bool $includeHidden = true): array
+	{
+		return $this->toArrayForSelect($this->getCollection($includeHidden));
+	}
+
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\PaymentType> $collection
+	 * @return array<string>
+	 */
+	public function toArrayForSelect(Collection $collection): array
+	{
+		$suffix = $this->getConnection()->getMutationSuffix();
+
+		return $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection($collection, "this.name$suffix", 'this.code'));
+	}
 	
 	public function getPaymentTypes(Currency $currency, ?Customer $customer, ?CustomerGroup $customerGroup, Shop|null $selectedShop = null,): Collection
 	{
-		$allowedPayments = $customer ? $customer->exclusivePaymentTypes->toArrayOf('uuid', [], true) : null;
+		$allowedPayments = $customer?->exclusivePaymentTypes->toArrayOf('uuid', [], true);
 		
 		$collection = $this->many()
 			->join(['prices' => 'eshop_paymenttypeprice'], 'prices.fk_paymentType=this.uuid AND prices.fk_currency=:currency', ['currency' => $currency])

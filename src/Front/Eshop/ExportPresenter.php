@@ -653,7 +653,8 @@ abstract class ExportPresenter extends Presenter
 
 		$this->template->shop = $this->shopsConfig->getSelectedShop();
 		$this->template->priceType = $this->shopperUser->getShowVat() ? true : ($this->shopperUser->getShowWithoutVat() ? false : null);
-		$this->template->deliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0)->where('this.exportToFeed', true);
+		$this->template->deliveryTypes =
+			$this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0, selectedShop: $this->shopsConfig->getSelectedShop())->where('this.exportToFeed', true);
 		$this->template->setFile(__DIR__ . "/../../templates/export/$name.latte");
 	}
 
@@ -713,7 +714,8 @@ abstract class ExportPresenter extends Presenter
 		$currency = $this->currencyRepository->one('CZK');
 
 		$this->template->priceType = $this->shopperUser->getShowVat() ? true : ($this->shopperUser->getShowWithoutVat() ? false : null);
-		$this->template->deliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0)->where('this.exportToFeed', true);
+		$this->template->deliveryTypes =
+			$this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0, selectedShop: $this->shopsConfig->getSelectedShop())->where('this.exportToFeed', true);
 	}
 
 	/**

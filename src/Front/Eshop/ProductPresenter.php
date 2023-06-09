@@ -4,21 +4,31 @@ declare(strict_types=1);
 
 namespace Eshop\Front\Eshop;
 
+use Eshop\Admin\SettingsPresenter;
 use Eshop\CompareManager;
 use Eshop\Controls\BuyForm;
+use Eshop\Controls\IProductsFactory;
 use Eshop\Controls\IProductsFilterFactory;
 use Eshop\Controls\ProductFilter;
 use Eshop\Controls\ProductList;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\Category;
+use Eshop\DB\CategoryRepository;
+use Eshop\DB\FileRepository;
 use Eshop\DB\Producer;
+use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
+use Eshop\DB\ProductRepository;
+use Eshop\Front\FrontendPresenter;
 use Forms\Form;
+use Nette\Application\BadRequestException;
 use Nette\Application\Responses\FileResponse;
+use Nette\DI\Attributes\Inject;
 use Nette\Utils\Arrays;
 use StORM\Exception\NotFoundException;
+use Web\DB\SettingRepository;
 
-abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
+abstract class ProductPresenter extends FrontendPresenter
 {
 	/** @var array<callable(\Eshop\DB\Watcher): bool> */
 	public array $onProductWatched = [];
@@ -26,29 +36,32 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 	/** @var array<callable(\Eshop\DB\Product): bool> */
 	public array $onProductUnWatched = [];
 
-	#[\Nette\DI\Attributes\Inject]
-	public \Eshop\Controls\IProductsFactory $productsFactory;
+	#[Inject]
+	public IProductsFactory $productsFactory;
 	
-	#[\Nette\DI\Attributes\Inject]
-	public \Eshop\DB\ProductRepository $productsRepository;
+	#[Inject]
+	public ProductRepository $productsRepository;
 	
-	#[\Nette\DI\Attributes\Inject]
-	public \Eshop\DB\ProducerRepository $producerRepository;
+	#[Inject]
+	public ProducerRepository $producerRepository;
 	
-	#[\Nette\DI\Attributes\Inject]
-	public \Eshop\DB\CategoryRepository $categoryRepository;
+	#[Inject]
+	public CategoryRepository $categoryRepository;
 	
-	#[\Nette\DI\Attributes\Inject]
-	public \Eshop\DB\FileRepository $fileRepository;
+	#[Inject]
+	public FileRepository $fileRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CompareManager $compareManager;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public IProductsFilterFactory $productsFilterFactory;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AttributeValueRepository $attributeValueRepository;
+
+	#[Inject]
+	public SettingRepository $settingRepository;
 
 	/** @persistent */
 	public string $selectedCompareCategory;
@@ -105,7 +118,22 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 		$filters = ['producer' => $producer, 'tag' => $tag, 'query' => $query];
 		
 		if ($category) {
-			$this->category = $this->categoryRepository->one($category, true);
+			try {
+				$categoryCollection = $this->categoryRepository->many()->where('this.uuid', $category);
+
+				if ($this->shopsConfig->getSelectedShop()) {
+					$categoryType = $this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK());
+
+					if ($categoryType) {
+						$categoryCollection->where('this.fk_type', $categoryType);
+					}
+				}
+
+				$this->category = $categoryCollection->first(true);
+			} catch (NotFoundException $x) {
+				throw new BadRequestException();
+			}
+
 			$filters['category'] = $this->category->path;
 		}
 
@@ -228,7 +256,7 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 	public function handleAddToCart(string $product, int $amount): void
 	{
 		if (!$this->shopperUser->getBuyPermission()) {
-			throw new \Nette\Application\BadRequestException();
+			throw new BadRequestException();
 		}
 		
 		$this->shopperUser->getCheckoutManager()->addItemToCart($this->productRepository->getProduct($product), null, $amount);

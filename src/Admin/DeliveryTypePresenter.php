@@ -139,7 +139,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form->addDataSelect('defaultDisplayDelivery', 'Výchozí zobrazované doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('-- Žádné --');
 		$form->addDataSelect('exclusive', 'Exkluzivní pro skupinu uživatelů', $this->groupRepo->getArrayForSelect())->setPrompt('-- Žádná --');
 		$form->addDataSelect('pickupPointType', 'Typ výdejních míst', $this->pointTypeRepo->getArrayForSelect())->setPrompt('-- Žádný --');
-		$form->addDataMultiSelect('allowedPaymentTypes', 'Povolené typy plateb', $this->paymentTypeRepo->many()->toArrayOf('code'))
+		$form->addDataMultiSelect('allowedPaymentTypes', 'Povolené typy plateb', $this->paymentTypeRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 		
 		
