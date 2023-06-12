@@ -27,14 +27,14 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 	public $onSuccess = [];
 	
 	public Shopper $shopper;
-	
-	private CheckoutManager $checkoutManager;
-	
-	private DeliveryTypeRepository $deliveryTypeRepository;
-	
-	private Nette\Localization\Translator $translator;
-	
-	private PickupPointRepository $pickupPointRepository;
+
+	protected Nette\Localization\Translator $translator;
+
+	protected CheckoutManager $checkoutManager;
+
+	protected DeliveryTypeRepository $deliveryTypeRepository;
+
+	protected PickupPointRepository $pickupPointRepository;
 	
 	public function __construct(
 		Shopper $shopper,
@@ -180,7 +180,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		$deliveries->addError($this->translator->translate('deliveryPaymentForm.missingZasil', 'Pro dopravu Zásilkovna je nutné zvolit výdejní místo.'));
 	}
 	
-	private function addCombinationRules(Nette\Forms\Controls\RadioList $deliveriesList, Nette\Forms\Controls\RadioList $paymentsList, Collection $deliveryTypes): void
+	protected function addCombinationRules(Nette\Forms\Controls\RadioList $deliveriesList, Nette\Forms\Controls\RadioList $paymentsList, Collection $deliveryTypes): void
 	{
 		/**
 		 * @var string $deliveryId
