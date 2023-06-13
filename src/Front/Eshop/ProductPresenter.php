@@ -235,7 +235,7 @@ abstract class ProductPresenter extends FrontendPresenter
 
 		try {
 			/** @var \Eshop\DB\Product $product */
-			$product = $this->productsRepository->getProducts()->where('this.hidden', false)->where('this.uuid', $product)->first(true);
+			$product = $this->productsRepository->getProducts()->where('this.uuid', $product)->filter(['hidden' => false])->first(true);
 			$this->product = $product;
 		} catch (NotFoundException $e) {
 			$this->error('Product can\'t be viewed', 404);
