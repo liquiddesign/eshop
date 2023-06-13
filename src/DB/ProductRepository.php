@@ -333,6 +333,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		
 		$this->setProductsConditions($collection, true, $pricelists);
 
+		$collection->setGroupBy(['this.uuid']);
+
 		return $collection;
 	}
 
