@@ -66,6 +66,7 @@ class ProductList extends Datalist
 		$this->cache = new Cache($storage);
 
 		$source ??= $productRepository->getProducts()->join(['displayAmount' => 'eshop_displayamount'], 'this.fk_displayAmount = displayAmount.uuid');
+		$source->setGroupBy(['this.uuid']);
 
 		if ($order) {
 			$source->orderBy($order);
