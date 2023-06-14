@@ -47,4 +47,9 @@ class File extends \StORM\Entity
 	 * @relation
 	 */
 	public Product $product;
+	
+	public function getFilePath(string $basePath): ?string
+	{
+		return $this->fileName ? $basePath . '/userfiles/' . self::FILE_DIR . '/' . $this->fileName : null;
+	}
 }
