@@ -102,7 +102,7 @@ abstract class ProductPresenter extends FrontendPresenter
 	public function actionList(
 		?string $category = null,
 		?string $producer = null,
-		?string $tag = null,
+		?string $ribbon = null,
 		?string $query = null,
 		?string $priceFrom = null,
 		?string $priceTo = null,
@@ -115,7 +115,7 @@ abstract class ProductPresenter extends FrontendPresenter
 		
 		/** @var \Eshop\Controls\ProductList $products */
 		$products = $this->getComponent('products');
-		$filters = ['producer' => $producer, 'tag' => $tag, 'query' => $query];
+		$filters = ['producer' => $producer, 'ribbon' => $ribbon, 'query' => $query];
 		
 		if ($category) {
 			try {
@@ -173,11 +173,11 @@ abstract class ProductPresenter extends FrontendPresenter
 		$products->setFilters($filters);
 	}
 	
-	public function renderList(?string $category = null, ?string $producer = null, ?string $tag = null): void
+	public function renderList(?string $category = null, ?string $producer = null, ?string $ribbon = null): void
 	{
 		unset($category);
 		unset($producer);
-		unset($tag);
+		unset($ribbon);
 
 		/** @var \Eshop\Controls\ProductList $products */
 		$products = $this->getComponent('products');
