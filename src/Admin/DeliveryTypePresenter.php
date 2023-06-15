@@ -22,6 +22,7 @@ use Eshop\ShopperUser;
 use Forms\Form;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;
+use Nette\Utils\Html;
 use Nette\Utils\Image;
 use StORM\DIConnection;
 
@@ -165,7 +166,7 @@ class DeliveryTypePresenter extends BackendPresenter
 
 		/** @var \Eshop\DB\Supplier $supplier */
 		foreach ($this->supplierRepository->many() as $supplierPK => $supplier) {
-			$suppliersContainer->addText($supplierPK, " Externí ID: $supplier->name")->setNullable();
+			$suppliersContainer->addText($supplierPK, Html::fromHtml("$this->shopIcon Externí ID: $supplier->name"))->setNullable();
 		}
 
 		$this->formFactory->addShopsContainerToAdminForm($form);
@@ -201,6 +202,7 @@ class DeliveryTypePresenter extends BackendPresenter
 					'deliveryType' => $deliveryType->getPK(),
 					'supplier' => $supplierPK,
 					'externalId' => $externalID,
+					'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
 				]);
 			}
 			
@@ -251,10 +253,13 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form = $this->getComponent('newForm');
 
 		$defaults = $deliveryType->toArray(['allowedPaymentTypes']);
-		$defaults['suppliers'] = $this->supplierDeliveryTypeRepository->many()
+		$suppliersDefaultsCollection = $this->supplierDeliveryTypeRepository->many()
 			->where('this.fk_deliveryType', $deliveryType->getPK())
-			->setIndex('this.fk_supplier')
-			->toArrayOf('externalId');
+			->setIndex('this.fk_supplier');
+
+		$this->shopsConfig->filterShopsInShopEntityCollection($suppliersDefaultsCollection, showOnlyEntitiesWithSelectedShops: true);
+
+		$defaults['suppliers'] = $suppliersDefaultsCollection->toArrayOf('externalId');
 
 		$form->setDefaults($defaults);
 	}

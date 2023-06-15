@@ -146,7 +146,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 
 		return $this->many()->select([
 			'name' => 'IF(this.company != "",this.company,this.fullname)',
-			'extendedName' => 'CONCAT(IF(this.company != "",this.company,this.fullname), " (", this.email, ")")',
+			'extendedName' => 'CONCAT(IF(this.company != "",this.company,this.fullname), " (", IFNULL(this.email, ""), ")")',
 		])->orderBy(['fullname']);
 	}
 

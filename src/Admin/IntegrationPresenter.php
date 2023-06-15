@@ -42,8 +42,6 @@ class IntegrationPresenter extends BackendPresenter
 	
 	#[\Nette\DI\Attributes\Inject]
 	public CategoryRepository $categoryRepository;
-
-	private string|null $shopIcon = null;
 	
 	public function beforeRender(): void
 	{
@@ -478,12 +476,5 @@ class IntegrationPresenter extends BackendPresenter
 		}
 		
 		$this->redirect('this');
-	}
-
-	protected function startup(): void
-	{
-		parent::startup();
-
-		$this->shopIcon = $this->shopsConfig->getAvailableShops() ? '<i class="fas fa-store-alt fa-sm mr-1" title="Specifické nastavení pro zvolený obchod"></i>' : null;
 	}
 }

@@ -120,6 +120,7 @@ class OrderPresenter extends BackendPresenter
 		'printInvoices' => false,
 		'pauseOrder' => false,
 		'noteIconColor' => null,
+		'approval' => false,
 	];
 
 	#[\Nette\DI\Attributes\Inject]

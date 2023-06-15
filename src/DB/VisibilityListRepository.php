@@ -39,8 +39,12 @@ class VisibilityListRepository extends \StORM\Repository implements IGeneralRepo
 
 	public function getCollection(bool $includeHidden = false): Collection
 	{
-		unset($includeHidden);
+		$collection = $this->many();
 
-		return $this->many()->orderBy(['priority', 'name']);
+		if (!$includeHidden) {
+			$collection->where('this.hidden', false);
+		}
+
+		return $collection->orderBy(['priority', 'name']);
 	}
 }

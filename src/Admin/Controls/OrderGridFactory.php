@@ -178,6 +178,10 @@ class OrderGridFactory
 			$grid->addColumnText('Cena', $properties, '%s', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		}
 
+		if (isset($configuration['approval']) && $configuration['approval']) {
+			$grid->addColumn('Schválení', [$this, 'renderApprovalColumn']);
+		}
+
 		$openOrderButton = function () use ($grid, $stateOpen, $btnSecondary): void {
 			try {
 				$actionIco = "<a href='%s' class='$btnSecondary' onclick='return confirm(\"Opravdu?\")' title='" . $stateOpen . "'><i class='fa fa-sm fa-angle-double-left'></i></a>";
