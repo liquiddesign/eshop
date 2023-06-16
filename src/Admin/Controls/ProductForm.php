@@ -400,11 +400,19 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		foreach ($this->visibilityListRepository->many() as $visibilityList) {
 			$itemContainer = $visibilityContainer->addContainer('list_' . $visibilityList->getPK());
 
-			$itemContainer->addCheckbox('hidden');
-			$itemContainer->addCheckbox('hiddenInMenu');
-			$itemContainer->addCheckbox('unavailable');
-			$itemContainer->addCheckbox('recommended');
-			$itemContainer->addInteger('priority')->setNullable();
+			$activeInput = $itemContainer->addCheckbox('active');
+			$hiddenInput = $itemContainer->addCheckbox('hidden');
+			$hiddenInMenuInput = $itemContainer->addCheckbox('hiddenInMenu');
+			$unavailableInput = $itemContainer->addCheckbox('unavailable');
+			$recommendedInput = $itemContainer->addCheckbox('recommended');
+			$priorityInput = $itemContainer->addInteger('priority')->setRequired()->setDefaultValue(10);
+
+			$activeInput->addCondition($form::Filled)
+				->toggle($hiddenInput->getHtmlId() . '-toogle')
+				->toggle($hiddenInMenuInput->getHtmlId() . '-toogle')
+				->toggle($unavailableInput->getHtmlId() . '-toogle')
+				->toggle($recommendedInput->getHtmlId() . '-toogle')
+				->toggle($priorityInput->getHtmlId() . '-toogle');
 
 			if (!isset($productVisibilityListItems[$visibilityList->getPK()])) {
 				continue;
@@ -413,6 +421,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			$item = $productVisibilityListItems[$visibilityList->getPK()];
 
 			$itemContainer->setDefaults([
+				'active' => true,
 				'hidden' => $item->hidden,
 				'hiddenInMenu' => $item->hiddenInMenu,
 				'unavailable' => $item->unavailable,
@@ -771,7 +780,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		$product->visibilityListItems->delete();
 
 		foreach ($visibility as $itemId => $item) {
-			if (!$item['priority']) {
+			if (!$item['active']) {
 				continue;
 			}
 

@@ -6,12 +6,14 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Base\ShopsConfig;
+use Eshop\Common\Helpers;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\VisibilityListRepository;
+use Eshop\DevelTools;
 use Eshop\Integration\Integrations;
 use Grid\Datagrid;
 use Nette\DI\Container;
@@ -61,7 +63,9 @@ class ProductGridFactory
 			->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid')
 			->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityList.uuid')
 			->join(['primaryCategory' => 'eshop_productprimarycategory'], 'primaryCategory.fk_product = this.uuid')
-			->where('visibilityList.uuid', $visibilityListsCollection->toArrayOf('uuid', toArrayValues: true))
+			->where('visibilityList.uuid IN(:visibilityListIn) OR visibilityList.uuid IS NULL', [
+				'visibilityListIn' => Helpers::arrayToSqlInStatement($visibilityListsCollection->toArrayOf('uuid', toArrayValues: true)),
+			])
 			->select([
 				'photoCount' => 'COUNT(DISTINCT photo.uuid)',
 				'fileCount' => 'COUNT(DISTINCT file.uuid)',
@@ -73,6 +77,8 @@ class ProductGridFactory
 				'unavailable' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.unavailable ORDER BY visibilityList.priority), ',', 1)",
 				'primaryCategoryPKs' => 'GROUP_CONCAT(primaryCategory.fk_category)',
 			]);
+
+		Debugger::barDump(DevelTools::showCollection($source));
 
 		$grid = $this->gridFactory->create($source, 20, 'this.uuid', 'ASC', true);
 		$grid->addColumnSelector();

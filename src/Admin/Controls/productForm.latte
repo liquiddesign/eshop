@@ -216,10 +216,12 @@
 
             <fieldset>
                 <legend>Viditelnosti</legend>
+                <span class="text-sm">První checkbox "Aktivní" určuje platnost daného řádku. V případě, že není zaškrtnutý, tak se daný řádek ignoruje a záznam v daném viditelníku pro tento produkt bude vymazán.</span>
                 <table class="mt-1 mb-1" style="width: auto;">
                     <tr class="m-0 mt-1 has-danger" n:if="$visibilityLists">
                         <th class="col-label col-form-label col"></th>
-                        <th class=""><i title="Skryto" class="far fa-eye-slash"></i></th>
+                        <th class=""><b><i title="Aktivní" class="far fa-arrow-alt-circle-up"></i></b></th>
+                        <th class="pl-2"><i title="Skryto" class="far fa-eye-slash"></i></th>
                         <th class="pl-2"><i title="Skryto v menu a vyhledávání" class="far fa-minus-square"></i></th>
                         <th class="pl-2"><i title="Neprodejné" class="fas fa-ban"></i></th>
                         <th class="pl-2"><i title="Doporučeno" class="far fa-thumbs-up"></i></th>
@@ -229,29 +231,36 @@
                     {foreach $visibilityLists as $id => $visibilityList}
                         <tr class="m-0 mt-1 has-danger"
                             style="{if !$pricelist->isActive}background-color: #E9ECEF;{/if}">
-                            <th class="col-label col-form-label col">{$visibilityList->getValue('fullName')} <i
-                                        class="fa fa-sort-numeric-up mr-1"></i> {$visibilityList->priority}</th>
+                            <th class="col-label col-form-label col">
+                            {$visibilityList->getValue('fullName')} <i class="fa fa-sort-numeric-up mr-1"></i> {$visibilityList->priority}</th>
 
-                            <td class="align-middle">{input "visibility-list_$id-hidden" class => 'form-control form-control-sm col-label max-number'}
+                            <td class="align-middle">
+                                {input "visibility-list_$id-active" class => 'ml-2 form-control form-control-sm col-label max-number'}
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "visibility-list_$id-active"}</span>
+                            </td>
+
+                            <td class="align-middle">
+                                {input "visibility-list_$id-hidden" class => 'ml-2 form-control form-control-sm col-label max-number'}
                                 <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "visibility-list_$id-hidden"}</span>
                             </td>
 
-                            <td
-                                    class="align-middle">{input "visibility-list_$id-hiddenInMenu" class => 'ml-2 form-control form-control-sm col-label max-number'}
+                            <td class="align-middle">
+                                {input "visibility-list_$id-hiddenInMenu" class => 'ml-2 form-control form-control-sm col-label max-number'}
                                 <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "visibility-list_$id-hiddenInMenu"}</span>
                             </td>
 
-                            <td class="align-middle">{input "visibility-list_$id-unavailable" class => 'ml-2 form-control form-control-sm col-label max-number'}
+                            <td class="align-middle">
+                                {input "visibility-list_$id-unavailable" class => 'ml-2 form-control form-control-sm col-label max-number'}
                                 <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "visibility-list_$id-unavailable"}</span>
                             </td>
 
-                            <td
-                                    class="align-middle">{input "visibility-list_$id-recommended" class => 'ml-2 form-control form-control-sm col-label max-number'}
+                            <td class="align-middle">
+                                {input "visibility-list_$id-recommended" class => 'ml-2 form-control form-control-sm col-label max-number'}
                                 <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "visibility-list_$id-recommended"}</span>
                             </td>
 
-                            <td
-                                    class="align-middle">{input "visibility-list_$id-priority" class => 'ml-2 form-control form-control-sm col-label max-number'}
+                            <td class="align-middle">
+                                {input "visibility-list_$id-priority" class => 'ml-2 form-control form-control-sm col-label max-number'}
                                 <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "visibility-list_$id-priority"}</span>
                             </td>
 
