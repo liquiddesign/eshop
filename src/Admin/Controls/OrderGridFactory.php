@@ -7,6 +7,7 @@ namespace Eshop\Admin\Controls;
 use Admin\Controls\AdminGrid;
 use Admin\Controls\AdminGridFactory;
 use Admin\Helpers;
+use Base\ShopsConfig;
 use Eshop\BackendPresenter;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\DeliveryTypeRepository;
@@ -60,17 +61,18 @@ class OrderGridFactory
 	
 	public function __construct(
 		AdminGridFactory $adminGridFactory,
-		private readonly OrderRepository $orderRepository,
-		private readonly Application $application,
-		private readonly OrderLogItemRepository $orderLogItemRepository,
-		private readonly CustomerGroupRepository $customerGroupRepository,
-		private readonly DeliveryTypeRepository $deliveryTypeRepository,
-		private readonly PaymentTypeRepository $paymentTypeRepository,
-		private readonly ShopperUser $shopperUser,
-		private readonly Integrations $integrations,
-		private readonly Container $container,
-		private readonly SettingRepository $settingRepository,
-		private readonly InternalRibbonRepository $internalRibbonRepository,
+		protected readonly OrderRepository $orderRepository,
+		protected readonly Application $application,
+		protected readonly OrderLogItemRepository $orderLogItemRepository,
+		protected readonly CustomerGroupRepository $customerGroupRepository,
+		protected readonly DeliveryTypeRepository $deliveryTypeRepository,
+		protected readonly PaymentTypeRepository $paymentTypeRepository,
+		protected readonly ShopperUser $shopperUser,
+		protected readonly Integrations $integrations,
+		protected readonly Container $container,
+		protected readonly SettingRepository $settingRepository,
+		protected readonly InternalRibbonRepository $internalRibbonRepository,
+		protected readonly ShopsConfig $shopsConfig,
 	) {
 		$this->gridFactory = $adminGridFactory;
 	}
@@ -110,6 +112,7 @@ class OrderGridFactory
 			'this.createdTs',
 			'DESC',
 			true,
+			filterShops: false,
 		);
 
 		$grid->addColumnSelector();
@@ -403,6 +406,12 @@ class OrderGridFactory
 			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
 				$source->filter(['internalRibbon' => \Eshop\Common\Helpers::replaceArrayValue($value, '0', null)]);
 			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
+		}
+
+		if ($shops = $this->shopsConfig->getAvailableShops()) {
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+				$source->where('this.fk_shop', \Eshop\Common\Helpers::replaceArrayValue($value, '0', null));
+			}, '', 'shops', null, $shops, ['placeholder' => '- Obchody -']);
 		}
 
 		$openOrderButton = function () use ($grid, $stateOpen, $btnSecondary): void {
