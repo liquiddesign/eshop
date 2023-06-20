@@ -138,10 +138,10 @@ class ProductForm extends Control
 		}
 
 		$primaryCategoriesContainer = $form->addContainer('primaryCategories');
-		$primaryCategories = $product->primaryCategories
+		$primaryCategories = $product ? $product->primaryCategories
 			->select(['categoryPK' => 'this.fk_category'])
 			->setIndex('this.fk_categoryType')
-			->toArrayOf('categoryPK');
+			->toArrayOf('categoryPK') : [];
 
 		foreach ($categoryTypes as $categoryType) {
 			$productCategories = [];

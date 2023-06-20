@@ -10,6 +10,7 @@ use Eshop\Common\Helpers;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\Product;
+use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\VisibilityListRepository;
@@ -39,6 +40,7 @@ class ProductGridFactory
 		protected readonly Integrations $integrations,
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly VisibilityListRepository $visibilityListRepository,
+		protected readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository
 	) {
 	}
 
@@ -271,7 +273,7 @@ class ProductGridFactory
 			'vatRate',
 			'taxes',
 			'unavailable',
-			'primaryCategory',
+			'primaryCategories',
 			'defaultReviewsCount',
 			'defaultReviewsScore',
 			'supplierDisplayAmountLock',
@@ -346,31 +348,53 @@ class ProductGridFactory
 					$object->categories->relate($categories);
 				}
 
-				/** @var string|null $newPrimaryCategory */
-				$newPrimaryCategory = Arrays::pick($values['values'], 'primaryCategory', null);
+				$updatePrimaryCategoriesTypes = \array_filter($values['keep'], function ($value, $key) use (&$values): bool {
+					$true = Strings::startsWith($key, 'primaryCategories_primaryCategory_') && $value === false;
 
-				if ($values['keep']['primaryCategory'] === false && $newPrimaryCategory) {
-					$realProductCategories = $object->categories->toArray();
-
-					if (isset($realProductCategories[$newPrimaryCategory])) {
-						$values['values']['primaryCategory'] = $newPrimaryCategory;
-					} else {
-						unset($values['values']['primaryCategory']);
+					if ($true) {
+						unset($values['keep'][$key]);
 					}
+
+					return $true;
+				}, \ARRAY_FILTER_USE_BOTH);
+
+				$realProductCategories = $object->categories->toArray();
+
+				foreach (\array_keys($updatePrimaryCategoriesTypes) as $primaryCategoriesType) {
+					$categoryType = \explode('_', $primaryCategoriesType)[2];
+					$category = $values['values'][$primaryCategoriesType];
+					unset($values['values'][$primaryCategoriesType]);
+
+					$this->productPrimaryCategoryRepository->many()
+						->where('this.fk_product', $object->getPK())
+						->where('this.fk_categoryType', $categoryType)
+						->delete();
+
+					if (!isset($realProductCategories[$category])) {
+						continue;
+					}
+
+					$this->productPrimaryCategoryRepository->syncOne([
+						'categoryType' => $categoryType,
+						'category' => $category,
+						'product' => $object->getPK(),
+					]);
 				}
 
 				return [$values, $relations];
 			},
 			[],
 			function ($form): AdminForm {
-				/** @var \Nette\Forms\Controls\SelectBox $primaryCategorySelect */
-				$primaryCategorySelect = $form['values']['primaryCategory'];
+				/** @var array<\Eshop\DB\CategoryType> $categoryTypes */
+				$categoryTypes = $this->categoryTypeRepository->getCollection(true)->toArray();
 
-				$firstCategoryType = $this->categoryTypeRepository->many()->setOrderBy(['priority'])->first();
+				foreach ($categoryTypes as $categoryType) {
+					/** @var \Nette\Forms\Controls\SelectBox $primaryCategorySelect */
+					$primaryCategorySelect = $form['values']['primaryCategories_primaryCategory_' . $categoryType->getPK()];
 
-				$primaryCategorySelect->setItems($this->categoryRepository->getTreeArrayForSelect(true, $firstCategoryType->getPK()));
-				$primaryCategorySelect->setPrompt(false);
-				$primaryCategorySelect->setHtmlAttribute('data-info', 'Pokud produkt nemá zvolenou kategorii, nebude jeho primární kategorie změněna!');
+			//					$primaryCategorySelect->setItems($this->categoryRepository->getTreeArrayForSelect(true, $categoryType->getPK()));
+					$primaryCategorySelect->setPrompt(false);
+				}
 
 				return $form;
 			},
