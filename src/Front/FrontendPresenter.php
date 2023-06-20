@@ -346,6 +346,37 @@ abstract class FrontendPresenter extends Presenter
 		$this->getSession()->getSection('frontend')->set('ehub', $eHub);
 	}
 
+//	public function afterRender(): void
+//	{
+//		\Tracy\Debugger::$maxLength = 100000;
+//
+//		$this->application->onShutdown[] = function (): void {
+//			$logItems = $this->connection->getLog();
+//
+//			\uasort($logItems, function (LogItem $a, LogItem $b): int {
+//				return $b->getTotalTime() <=> $a->getTotalTime();
+//			});
+//
+//			$totalTime = 0;
+//			$totalAmount = 0;
+//
+//			$logItems = \array_filter($logItems, function (LogItem $item) use (&$totalTime, &$totalAmount): bool {
+//				$totalTime += $item->getTotalTime();
+//				$totalAmount += $item->getAmount();
+//
+//				return $item->getTotalTime() > 0.1;
+//			});
+//
+//			Debugger::dump($totalTime);
+//			Debugger::dump($totalAmount);
+//
+//			foreach ($logItems as $logItem) {
+//				Debugger::dump($logItem);
+//				Debugger::dump(PdoDebugger::show($logItem->getSql(), $logItem->getVars()));
+//			}
+//		};
+//	}
+
 	protected function beforeRender(): void
 	{
 		parent::beforeRender();

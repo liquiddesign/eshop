@@ -13,14 +13,13 @@ use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\VisibilityListRepository;
-use Eshop\DevelTools;
 use Eshop\Integration\Integrations;
 use Grid\Datagrid;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Strings;
-use StORM\Connection;
+use StORM\DIConnection;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\PageRepository;
@@ -28,18 +27,18 @@ use Web\DB\PageRepository;
 class ProductGridFactory
 {
 	public function __construct(
-		private readonly \Admin\Controls\AdminGridFactory $gridFactory,
-		private readonly Container $container,
-		private readonly PageRepository $pageRepository,
-		private readonly ProductRepository $productRepository,
-		private readonly ProductGridFiltersFactory $productGridFiltersFactory,
-		private readonly Connection $connection,
-		private readonly CategoryRepository $categoryRepository,
-		private readonly SupplierProductRepository $supplierProductRepository,
-		private readonly CategoryTypeRepository $categoryTypeRepository,
-		private readonly Integrations $integrations,
-		private readonly ShopsConfig $shopsConfig,
-		private readonly VisibilityListRepository $visibilityListRepository,
+		protected readonly \Admin\Controls\AdminGridFactory $gridFactory,
+		protected readonly Container $container,
+		protected readonly PageRepository $pageRepository,
+		protected readonly ProductRepository $productRepository,
+		protected readonly ProductGridFiltersFactory $productGridFiltersFactory,
+		protected readonly DIConnection $connection,
+		protected readonly CategoryRepository $categoryRepository,
+		protected readonly SupplierProductRepository $supplierProductRepository,
+		protected readonly CategoryTypeRepository $categoryTypeRepository,
+		protected readonly Integrations $integrations,
+		protected readonly ShopsConfig $shopsConfig,
+		protected readonly VisibilityListRepository $visibilityListRepository,
 	) {
 	}
 
@@ -77,8 +76,6 @@ class ProductGridFactory
 				'unavailable' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.unavailable ORDER BY visibilityList.priority), ',', 1)",
 				'primaryCategoryPKs' => 'GROUP_CONCAT(primaryCategory.fk_category)',
 			]);
-
-		Debugger::barDump(DevelTools::showCollection($source));
 
 		$grid = $this->gridFactory->create($source, 20, 'this.uuid', 'ASC', true);
 		$grid->addColumnSelector();
@@ -279,6 +276,11 @@ class ProductGridFactory
 			'defaultReviewsScore',
 			'supplierDisplayAmountLock',
 			'supplierDisplayAmountMergedLock',
+			'weight',
+			'width',
+			'length',
+			'depth',
+			'dimension',
 		];
 
 		if (isset($configuration['isManager']) && $configuration['isManager']) {

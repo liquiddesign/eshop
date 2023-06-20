@@ -225,7 +225,7 @@ class CategoryForm extends Control
 			$values['path'] = $this->categoryRepository->generateUniquePath($values['ancestor'] ? $this->categoryRepository->one($values['ancestor'])->path : '');
 
 			/** @var \Eshop\DB\Category $category */
-			$category = $this->categoryRepository->syncOne($values, null, true);
+			$category = $this->categoryRepository->syncOne($values, null, true, ignore: false);
 
 			$this->categoryRepository->recalculateCategoryTree($presenter->tab);
 

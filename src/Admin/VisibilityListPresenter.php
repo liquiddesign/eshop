@@ -5,7 +5,6 @@ namespace Eshop\Admin;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
 use Admin\Controls\AdminGrid;
-use Base\Application;
 use Eshop\BackendPresenter;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
@@ -51,7 +50,7 @@ class VisibilityListPresenter extends BackendPresenter
 	public ProductRepository $productRepository;
 
 	#[Inject]
-	public Application $application;
+	public \Nette\Application\Application $application;
 
 	#[Persistent]
 	public string $tab = 'lists';
