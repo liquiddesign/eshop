@@ -305,6 +305,11 @@ class ProductGridFactory
 			'exportHeureka',
 			'exportZbozi',
 			'exportGoogle',
+			'weight',
+			'width',
+			'length',
+			'depth',
+			'dimension',
 		];
 
 		if (isset($configuration['isManager']) && $configuration['isManager']) {
