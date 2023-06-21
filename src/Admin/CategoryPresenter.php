@@ -156,7 +156,17 @@ class CategoryPresenter extends BackendPresenter
 
 			$grid->addButtonBulkEdit(
 				'categoryForm',
-				['exportGoogleCategory', 'exportGoogleCategoryId', 'exportHeurekaCategory', 'exportZboziCategory', 'hidden', 'showMenu', 'showEmpty'],
+				[
+					'exportGoogleCategory',
+					'exportGoogleCategoryId',
+					'exportHeurekaCategory',
+					'exportZboziCategory',
+					'priority',
+					'hidden',
+					'showInMenu',
+					'showEmpty',
+					'recommended',
+				],
 				'categoryGrid',
 			);
 
