@@ -370,22 +370,37 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		/** @var array<array<mixed>> $joins */
 		$joins = $collection->getModifiers()['JOIN'];
 
-		$joined = false;
+		$joined1 = false;
 
 		foreach ($joins as $join) {
 			if (Arrays::contains(\array_keys($join[1]), 'productPrimaryCategory')) {
-				$joined = true;
+				$joined1 = true;
 
 				break;
 			}
 		}
 
-		if ($joined) {
+		$joined2 = false;
+
+		foreach ($joins as $join) {
+			if (Arrays::contains(\array_keys($join[1]), 'primaryCategory')) {
+				$joined2 = true;
+
+				break;
+			}
+		}
+
+		if ($joined1 && $joined2) {
 			return;
 		}
 
-		$collection->join(['productPrimaryCategory' => 'eshop_productprimarycategory'], 'this.uuid=productPrimaryCategory.fk_product');
-		$collection->join(['primaryCategory' => 'eshop_category'], 'productPrimaryCategory.fk_category=primaryCategory.uuid');
+		if (!$joined1) {
+			$collection->join(['productPrimaryCategory' => 'eshop_productprimarycategory'], 'this.uuid=productPrimaryCategory.fk_product');
+		}
+
+		if (!$joined2) {
+			$collection->join(['primaryCategory' => 'eshop_category'], 'productPrimaryCategory.fk_category=primaryCategory.uuid');
+		}
 
 		if ($categoryType === false) {
 			return;

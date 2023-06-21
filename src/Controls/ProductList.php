@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Admin\Controls\AdminGrid;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
@@ -20,6 +21,7 @@ use Nette\Application\UI\Multiplier;
 use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
 use StORM\Collection;
+use StORM\Connection;
 use StORM\ICollection;
 
 /**
@@ -54,6 +56,7 @@ class ProductList extends Datalist
 		private readonly ProducerRepository $producerRepository,
 		private readonly DisplayAmountRepository $displayAmountRepository,
 		private readonly DisplayDeliveryRepository $displayDeliveryRepository,
+		private readonly Connection $connection,
 		?array $order = null,
 		?Collection $source = null
 	) {
@@ -64,6 +67,17 @@ class ProductList extends Datalist
 		}
 
 		parent::__construct($source);
+
+		$this->setItemCountCallback(function (Collection $collection): int {
+			$collection->setSelect(['DISTINCT this.uuid'])->setGroupBy([])->setOrderBy([]);
+
+			$subCollection = AdminGrid::processCollectionBaseFrom($collection, useOrder: false, join: false);
+			$subCollection->setSelect(['DISTINCT this.uuid'])->setGroupBy([])->setOrderBy([]);
+
+			return $this->connection->rows()
+				->setFrom(['agg' => "({$subCollection->getSql()})"], $collection->getVars())
+				->enum('agg.uuid', unique: false);
+		});
 
 		$this->setDefaultOnPage(20);
 		$this->setDefaultOrder('priority');
@@ -146,6 +160,27 @@ class ProductList extends Datalist
 		$this->addFilterExpression('relatedTypeSlave', function (ICollection $collection, $value): void {
 			$this->productRepository->filterRelatedTypeSlave($value, $collection);
 		});
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getItemsOnPage(): array
+	{
+		if ($this->itemsOnPage !== null) {
+			return $this->itemsOnPage;
+		}
+
+		/** @var \StORM\Collection $source */
+		$source = $this->getFilteredSource();
+
+		AdminGrid::processCollectionBaseFrom($source, $this->getOnPage(), $this->getPage());
+
+		$this->onLoad($source);
+
+		$this->itemsOnPage = $this->nestingCallback && !$this->filters ? $this->getNestedSource($source, null) : $source->toArray();
+
+		return $this->itemsOnPage;
 	}
 
 	public function handleWatchIt(string $product): void
