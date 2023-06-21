@@ -145,6 +145,10 @@ class CategoryForm extends Control
 		$form->addCheckbox('showEmpty', 'Zobrazit pokud nemá produkty');
 		$form->addCheckbox('recommended', 'Doporučeno');
 
+		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($form): void {
+			$form->addHidden('type', $presenter->tab);
+		});
+
 		$form->addPageContainer('product_list', ['category' => $category], $nameInput);
 
 		if (!$category || (!$category->type->isReadOnly())) {
@@ -157,6 +161,17 @@ class CategoryForm extends Control
 			}
 
 			$values = $form->getValues('array');
+
+			$existingCodeCombination = $this->categoryRepository->many()
+				->where('this.code', $values['code'])
+				->where('this.fk_type', $values['type'])
+				->first();
+
+			if ($existingCodeCombination && $existingCodeCombination->getPK() !== $values['uuid']) {
+				$form->addError('Kombinace kódu a typu kategorie již existuje!');
+
+				return;
+			}
 
 			$columnsToCheck = ['defaultProductPerex', 'defaultProductContent'];
 
@@ -181,8 +196,9 @@ class CategoryForm extends Control
 
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
-				$values['type'] = $presenter->tab;
 			}
+
+			$values['type'] = $presenter->tab;
 
 			/** @var \Forms\Controls\UploadImage $upload */
 			$upload = $form['imageFileName'];

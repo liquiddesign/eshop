@@ -6,9 +6,8 @@
     {varType Admin\Controls\AdminForm $form}
     {var $activeMutation = $form->getActiveMutation()}
     {var Admin\Controls\BootstrapRenderer $renderer = $form->getRenderer()}
-    <ul class="error" n:ifcontent>
-            <li n:foreach="$form->getOwnErrors() as $error">{$error}</li>
-    </ul>
+
+    <div n:foreach="$form->getOwnErrors() as $error" class="alert alert-danger mt-4">{$error}</div>
 
     {if isset($form['__MUTATION_SELECTOR'])}
         <table class="mt-1 mb-1">
