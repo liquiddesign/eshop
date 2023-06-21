@@ -3,7 +3,9 @@ ALTER TABLE eshop_product DROP COLUMN hiddenInMenu;
 ALTER TABLE eshop_product DROP COLUMN unavailable;
 ALTER TABLE eshop_product DROP COLUMN priority;
 ALTER TABLE eshop_product DROP COLUMN recommended;
-ALTER TABLE eshop_product DROP COLUMN primaryCategory;
+
+ALTER TABLE eshop_product DROP FOREIGN KEY eshop_product_primaryCategory;
+ALTER TABLE eshop_product DROP COLUMN fk_primaryCategory;
 
 DROP TABLE eshop_parametervalue;
 DROP TABLE eshop_parameteravailablevalue;
