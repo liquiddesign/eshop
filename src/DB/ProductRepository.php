@@ -729,6 +729,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			$subSelect = $this->getConnection()->rows(['eshop_product_nxn_eshop_category'], ['fk_product'])
 				->join(['eshop_category'], 'eshop_category.uuid=eshop_product_nxn_eshop_category.fk_category')
 				->where('eshop_category.path LIKE :path', ['path' => "$path%"]);
+
+			$this->joinPrimaryCategoryToProductCollection($collection);
+
 			$collection->where('productPrimaryCategory.fk_category = :category OR this.uuid IN (' . $subSelect->getSql() . ')', ['category' => $id] + $subSelect->getVars());
 		}
 	}
