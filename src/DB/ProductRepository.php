@@ -295,12 +295,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			$collection->select(['ribbonsIds' => $subSelect], $subSelect->getVars());
 
 			$this->joinPrimaryCategoryToProductCollection($collection);
-
-			$collection->join(['productContent' => 'eshop_productcontent'], 'this.uuid = productContent.fk_product');
-
-			if ($shop = $this->shopsConfig->getSelectedShop()) {
-				$collection->where('productContent.fk_shop', $shop->getPK());
-			}
+			$this->joinContentToProductCollection($collection);
 
 			$collection->select([
 				'fallbackImage' => 'primaryCategory.productFallbackImageFileName',
@@ -328,6 +323,46 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	/**
 	 * @param \StORM\ICollection<\Eshop\DB\Product> $collection
+	 * @param \Base\DB\Shop|false|null $shop Filter by Shop, null - load current shop, false - no filter
+	 */
+	public function joinContentToProductCollection(ICollection $collection, Shop|null|false $shop = null): void
+	{
+		/** @var array<array<mixed>> $joins */
+		$joins = $collection->getModifiers()['JOIN'];
+
+		$joined = false;
+
+		foreach ($joins as $join) {
+			if (Arrays::contains(\array_keys($join[1]), 'productContent')) {
+				$joined = true;
+
+				break;
+			}
+		}
+
+		if ($joined) {
+			return;
+		}
+
+		$collection->join(['productContent' => 'eshop_productcontent'], 'this.uuid = productContent.fk_product');
+
+		if ($shop === false) {
+			return;
+		}
+
+		if ($shop === null) {
+			$shop = $this->shopsConfig->getSelectedShop();
+		}
+
+		if (!$shop) {
+			return;
+		}
+
+		$collection->where('productContent.fk_shop', $shop->getPK());
+	}
+
+	/**
+	 * @param \StORM\ICollection<\Eshop\DB\Product> $collection
 	 * @param \Eshop\DB\CategoryType|false|null $categoryType Filter by CategoryType, null - load category type, false - no filter
 	 */
 	public function joinPrimaryCategoryToProductCollection(ICollection $collection, CategoryType|null|false $categoryType = null): void
@@ -351,6 +386,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		$collection->join(['productPrimaryCategory' => 'eshop_productprimarycategory'], 'this.uuid=productPrimaryCategory.fk_product');
 		$collection->join(['primaryCategory' => 'eshop_category'], 'productPrimaryCategory.fk_category=primaryCategory.uuid');
+
+		if ($categoryType === false) {
+			return;
+		}
 
 		if ($categoryType === null) {
 			$categoryType = $this->shopsConfig->getSelectedShop() ?
@@ -883,11 +922,14 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function filterQ($value, ICollection $collection): ICollection
 	{
 		$langSuffix = $this->getConnection()->getMutationSuffix();
-		
+
+		$this->joinContentToProductCollection($collection);
+
 		$collection->select(
 			[
 				'rel0' => "MATCH(this.name$langSuffix) AGAINST (:q1)",
-				'rel1' => "MATCH(this.name$langSuffix, productContent.perex$langSuffix, productContent.content$langSuffix) AGAINST (:q1)",
+				'rel1' => "MATCH(this.name$langSuffix) AGAINST (:q1)",
+				'rel2' => "MATCH(productContent.perex$langSuffix, productContent.content$langSuffix) AGAINST (:q1)",
 			],
 			['q1' => $value],
 		);
@@ -899,7 +941,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			"this.name$langSuffix LIKE :qlike COLLATE utf8_general_ci",
 			"this.name$langSuffix LIKE :qlikeq COLLATE utf8_general_ci",
 			"MATCH(this.name$langSuffix) AGAINST (:q)",
-			"MATCH(this.name$langSuffix, productContent.perex$langSuffix, productContent.content$langSuffix) AGAINST(:q)",
+			"MATCH(this.name$langSuffix) AGAINST(:q)",
+			"MATCH(productContent.perex$langSuffix, productContent.content$langSuffix) AGAINST(:q)",
 		];
 		
 		$collection->where(\implode(' OR ', $orConditions), ['q' => $value, 'qlike' => $value . '%', 'qlikeq' => '%' . $value . '%']);
