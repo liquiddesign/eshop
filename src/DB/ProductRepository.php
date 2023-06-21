@@ -137,10 +137,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$maxProductDiscountLevel = $customer ? $customer->maxDiscountProductPct : ($customerGroup ? $customerGroup->defaultMaxDiscountProductPct : 100);
 		$vatRates = $this->shopperUser->getVatRates();
 		$prec = $currency->calculationPrecision;
-
-		$shopCategoryType = $this->shopsConfig->getSelectedShop() ?
-			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
-			null;
 		
 		$generalPricelistIds = [];
 		
@@ -297,16 +293,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			}
 
 			$collection->select(['ribbonsIds' => $subSelect], $subSelect->getVars());
-			
-			$collection->join(['productPrimaryCategory' => 'eshop_productprimarycategory'], 'this.uuid=productPrimaryCategory.fk_product');
-			$collection->join(['primaryCategory' => 'eshop_category'], 'productPrimaryCategory.fk_category=primaryCategory.uuid');
 
-			if ($shopCategoryType) {
-				$collection->where(
-					'productPrimaryCategory.fk_categoryType = :productPrimaryCategory_shopCategoryType OR productPrimaryCategory.fk_categoryType IS NULL',
-					['productPrimaryCategory_shopCategoryType' => $shopCategoryType],
-				);
-			}
+			$this->joinPrimaryCategoryToProductCollection($collection);
 
 			$collection->join(['productContent' => 'eshop_productcontent'], 'this.uuid = productContent.fk_product');
 
@@ -338,85 +326,47 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		return $collection;
 	}
 
-//	/**
-//	 * @param array<\Eshop\DB\Pricelist>|null $priceLists
-//	 * @param array<\Eshop\DB\VisibilityList>|null $visibilityLists
-//	 * @param \Eshop\DB\Customer|null $customer
-//	 * @param \Eshop\DB\CustomerGroup|null $customerGroup
-//	 * @param array{"categories"?: array<string>}|null $filters
-//	 * @param array<string>|null $order
-//	 * @param int $limit
-//	 * @param int $offset
-//	 * @return array<\Eshop\DB\Product>
-//	 */
-//	public function getProductsCached(
-//		array|null $priceLists = null,
-//		array|null $visibilityLists = null,
-//		Customer|null $customer = null,
-//		CustomerGroup|null $customerGroup = null,
-//		array|null $filters = null,
-//		array|null $order = null,
-//		int $limit = 20,
-//		int $offset = 0,
-//	): array {
-//		$productsByCategories = $this->getProductsByCategories();
-//		$productsWithPrices = $this->getProductsWithPrices();
-//
-//		$discountCoupon = $this->shopperUser->getCheckoutManager()->getDiscountCoupon();
-//
-//		$currency = $this->shopperUser->getCurrency();
-//		$convertRatio = null;
-//
-//		if ($currency->isConversionEnabled()) {
-//			$convertRatio = $currency->convertRatio;
-//		}
-//
-//		$priceLists ??= $this->shopperUser->getPricelists()->toArray();
-//		$priceLists = \array_values($priceLists);
-//		$customer = $customerGroup ? $customer : ($customer ?: $this->shopperUser->getCustomer());
-//
-//		$customerGroup ??= $this->shopperUser->getCustomerGroup();
-//
-//		$discountLevelPct = $this->getDiscountPct($customer, $customerGroup, $discountCoupon);
-//		$maxProductDiscountLevel = $customer ? $customer->maxDiscountProductPct : ($customerGroup ? $customerGroup->defaultMaxDiscountProductPct : 100);
-//		$vatRates = $this->shopperUser->getVatRates();
-//		$prec = $currency->calculationPrecision;
-//
-//		$shopCategoryType = $this->shopsConfig->getSelectedShop() ?
-//			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
-//			null;
-//
-//		$generalPricelistIds = [];
-//
-//		/** @var \Eshop\DB\Pricelist $pricelist */
-//		foreach ($priceLists as $pricelist) {
-//			if ($pricelist->allowDiscountLevel) {
-//				$generalPricelistIds[] = $pricelist->getPK();
-//			}
-//
-//			if ($pricelist->getValue('currency') === $currency->getPK() || !$convertRatio) {
-//				continue;
-//			}
-//		}
-//
-//		if (!$priceLists) {
-//			Debugger::barDump('No PriceLists');
-//
-//			return $this->many()->where('1=0');
-//		}
-//
-//		$productsPKs = [];
-//
-//		$categories = isset($filters['category']) ? $this->getCategoriesByPath($filters['category']) : [];
-//
-//		foreach ($categories as $category) {
-//			$productsPKs = \array_merge($productsPKs, $productsByCategories[$category] ?? []);
-//		}
-//
-//		\dump(\count($productsPKs));
-//
-//		return [];
-//	}
+	/**
+	 * @param \StORM\ICollection<\Eshop\DB\Product> $collection
+	 * @param \Eshop\DB\CategoryType|false|null $categoryType Filter by CategoryType, null - load category type, false - no filter
+	 */
+	public function joinPrimaryCategoryToProductCollection(ICollection $collection, CategoryType|null|false $categoryType = null): void
+	{
+		/** @var array<array<mixed>> $joins */
+		$joins = $collection->getModifiers()['JOIN'];
+
+		$joined = false;
+
+		foreach ($joins as $join) {
+			if (Arrays::contains(\array_keys($join[1]), 'productPrimaryCategory')) {
+				$joined = true;
+
+				break;
+			}
+		}
+
+		if ($joined) {
+			return;
+		}
+
+		$collection->join(['productPrimaryCategory' => 'eshop_productprimarycategory'], 'this.uuid=productPrimaryCategory.fk_product');
+		$collection->join(['primaryCategory' => 'eshop_category'], 'productPrimaryCategory.fk_category=primaryCategory.uuid');
+
+		if ($categoryType === null) {
+			$categoryType = $this->shopsConfig->getSelectedShop() ?
+				$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
+				null;
+		}
+
+		if (!$categoryType) {
+			return;
+		}
+
+		$collection->where(
+			'productPrimaryCategory.fk_categoryType = :productPrimaryCategory_shopCategoryType OR productPrimaryCategory.fk_categoryType IS NULL',
+			['productPrimaryCategory_shopCategoryType' => $categoryType],
+		);
+	}
 
 	/**
 	 * @param \League\Csv\Writer $writer
@@ -657,9 +607,15 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				Cache::TAGS => ['categories', 'products', 'pricelists'],
 			];
 			$rows = $productRepository->many();
+			$rows->setSmartJoin(false);
+
 			$rows->setSelect(['count' => "COUNT($groupBy)"])
 				->setIndex($groupBy)
 				->setGroupBy([$groupBy]);
+
+			$productRepository->joinVisibilityListItemToProductCollection($rows);
+			$productRepository->joinPrimaryCategoryToProductCollection($rows);
+
 			$productRepository->setProductsConditions($rows, false);
 			$productRepository->filter($rows, $filters);
 			
@@ -773,7 +729,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			$subSelect = $this->getConnection()->rows(['eshop_product_nxn_eshop_category'], ['fk_product'])
 				->join(['eshop_category'], 'eshop_category.uuid=eshop_product_nxn_eshop_category.fk_category')
 				->where('eshop_category.path LIKE :path', ['path' => "$path%"]);
-			$collection->where('this.fk_primaryCategory = :category OR this.uuid IN (' . $subSelect->getSql() . ')', ['category' => $id] + $subSelect->getVars());
+			$collection->where('productPrimaryCategory.fk_category = :category OR this.uuid IN (' . $subSelect->getSql() . ')', ['category' => $id] + $subSelect->getVars());
 		}
 	}
 	
@@ -859,28 +815,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function filterHidden(?bool $hidden, ICollection $collection): void
 	{
 		if ($hidden !== null) {
-			/** @var array<mixed> $joins */
-			$joins = $collection->getModifiers()['JOIN'];
-
-			$visibilityListItemJoined = false;
-
-			foreach ($joins as $join) {
-				if (Arrays::contains(\array_keys($join[1]), 'visibilityListItem')) {
-					$visibilityListItemJoined = true;
-
-					break;
-				}
-			}
-
-			if (!$visibilityListItemJoined) {
-				$visibilityLists = $this->shopperUser->getVisibilityLists();
-
-				if (!$visibilityLists) {
-					Debugger::barDump('No VisibilityLists');
-				}
-
-				$this->joinVisibilityListItemToProductCollection($collection, $visibilityLists);
-			}
+			$this->joinVisibilityListItemToProductCollection($collection);
 
 			$collection->where('visibilityListItem.hidden', $hidden ? '1' : '0');
 		}
@@ -889,28 +824,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function filterHiddenInMenu(?bool $hiddenInMenu, ICollection $collection): void
 	{
 		if ($hiddenInMenu !== null) {
-			/** @var array<mixed> $joins */
-			$joins = $collection->getModifiers()['JOIN'];
-
-			$visibilityListItemJoined = false;
-
-			foreach ($joins as $join) {
-				if (Arrays::contains(\array_keys($join[1]), 'visibilityListItem')) {
-					$visibilityListItemJoined = true;
-
-					break;
-				}
-			}
-
-			if (!$visibilityListItemJoined) {
-				$visibilityLists = $this->shopperUser->getVisibilityLists();
-
-				if (!$visibilityLists) {
-					Debugger::barDump('No VisibilityLists');
-				}
-
-				$this->joinVisibilityListItemToProductCollection($collection, $visibilityLists);
-			}
+			$this->joinVisibilityListItemToProductCollection($collection);
 
 			$collection->where('visibilityListItem.hiddenInMenu', $hiddenInMenu ? '1' : '0');
 		}
@@ -919,28 +833,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function filterUnavailable(?bool $unavailable, ICollection $collection): void
 	{
 		if ($unavailable !== null) {
-			/** @var array<mixed> $joins */
-			$joins = $collection->getModifiers()['JOIN'];
-
-			$visibilityListItemJoined = false;
-
-			foreach ($joins as $join) {
-				if (Arrays::contains(\array_keys($join[1]), 'visibilityListItem')) {
-					$visibilityListItemJoined = true;
-
-					break;
-				}
-			}
-
-			if (!$visibilityListItemJoined) {
-				$visibilityLists = $this->shopperUser->getVisibilityLists();
-
-				if (!$visibilityLists) {
-					Debugger::barDump('No VisibilityLists');
-				}
-
-				$this->joinVisibilityListItemToProductCollection($collection, $visibilityLists);
-			}
+			$this->joinVisibilityListItemToProductCollection($collection);
 
 			$collection->where('visibilityListItem.unavailable', $unavailable ? '1' : '0');
 		}
@@ -953,28 +846,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function filterRecommended(null|bool|int $recommended, ICollection $collection): void
 	{
 		if ($recommended !== null) {
-			/** @var array<mixed> $joins */
-			$joins = $collection->getModifiers()['JOIN'];
-
-			$visibilityListItemJoined = false;
-
-			foreach ($joins as $join) {
-				if (Arrays::contains(\array_keys($join[1]), 'visibilityListItem')) {
-					$visibilityListItemJoined = true;
-
-					break;
-				}
-			}
-
-			if (!$visibilityListItemJoined) {
-				$visibilityLists = $this->shopperUser->getVisibilityLists();
-
-				if (!$visibilityLists) {
-					Debugger::barDump('No VisibilityLists');
-				}
-
-				$this->joinVisibilityListItemToProductCollection($collection, $visibilityLists);
-			}
+			$this->joinVisibilityListItemToProductCollection($collection);
 
 			$collection->where('visibilityListItem.recommended', $recommended ? '1' : '0');
 		}
@@ -982,7 +854,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function filterRelated($values, ICollection $collection): void
 	{
-		$collection->whereNot('this.uuid', $values['uuid'])->where('this.fk_primaryCategory = :category', ['category' => $values['category']]);
+		$collection->whereNot('this.uuid', $values['uuid'])->where('productPrimaryCategory.fk_category = :category', ['category' => $values['category']]);
 	}
 	
 	public function filterAvailability($values, ICollection $collection): void
@@ -1270,15 +1142,32 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			return "'$val'";
 		}, $visibilityLists));
 
+		/** @var array<array<mixed>> $joins */
+		$joins = $collection->getModifiers()['JOIN'];
+
+		$visibilityListItemJoined = false;
+
+		foreach ($joins as $join) {
+			if (Arrays::contains(\array_keys($join[1]), 'visibilityListItem')) {
+				$visibilityListItemJoined = true;
+
+				break;
+			}
+		}
+
+		if ($visibilityListItemJoined) {
+			return;
+		}
+
 		$collection->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid AND visibilityListItem.fk_visibilityList = (
-                SELECT fk_visibilityList
-                    FROM eshop_visibilitylistitem
-                    JOIN eshop_visibilitylist ON eshop_visibilitylist.uuid = eshop_visibilitylistitem.fk_visibilityList
-                    WHERE fk_product = this.uuid AND ' . ($visibilityLists ? 'eshop_visibilitylist.uuid IN (' . $visibilityLists . ')' : '1=0') . '
-                    ORDER BY eshop_visibilitylist.priority ASC
-                    LIMIT 1
-                )
-            ');
+            SELECT fk_visibilityList
+                FROM eshop_visibilitylistitem
+                JOIN eshop_visibilitylist ON eshop_visibilitylist.uuid = eshop_visibilitylistitem.fk_visibilityList
+                WHERE fk_product = this.uuid AND ' . ($visibilityLists ? 'eshop_visibilitylist.uuid IN (' . $visibilityLists . ')' : '1=0') . '
+                ORDER BY eshop_visibilitylist.priority ASC
+                LIMIT 1
+            )
+        ');
 	}
 	
 	/**
