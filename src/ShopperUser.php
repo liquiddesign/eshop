@@ -442,7 +442,7 @@ class ShopperUser extends User
 			return null;
 		}
 
-		return $prefix . \implode('', $this->getPricelists()->toArrayOf('uuid')) . \http_build_query($filters);
+		return $prefix . \implode('', $this->getPricelists()->toArrayOf('uuid')) . \implode('', \array_keys($this->getVisibilityLists())) . \http_build_query($filters);
 	}
 
 	/**
