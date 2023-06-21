@@ -99,12 +99,6 @@ abstract class FrontendPresenter extends Presenter
 	#[Inject]
 	public ShopRepository $shopRepository;
 
-	#[Inject]
-	public Application $application;
-
-	#[Inject]
-	public DIConnection $connection;
-
 	/** @persistent */
 	public string $lang;
 
@@ -321,36 +315,36 @@ abstract class FrontendPresenter extends Presenter
 		}
 	}
 
-	public function afterRender(): void
-	{
-		\Tracy\Debugger::$maxLength = 100000;
-
-		$this->application->onShutdown[] = function (): void {
-			$logItems = $this->connection->getLog();
-
-			\uasort($logItems, function (LogItem $a, LogItem $b): int {
-				return $b->getTotalTime() <=> $a->getTotalTime();
-			});
-
-			$totalTime = 0;
-			$totalAmount = 0;
-
-			$logItems = \array_filter($logItems, function (LogItem $item) use (&$totalTime, &$totalAmount): bool {
-				$totalTime += $item->getTotalTime();
-				$totalAmount += $item->getAmount();
-
-				return $item->getTotalTime() > 0.1;
-			});
-
-			Debugger::dump($totalTime);
-			Debugger::dump($totalAmount);
-
-			foreach ($logItems as $logItem) {
-				Debugger::dump($logItem);
-				Debugger::dump(PdoDebugger::show($logItem->getSql(), $logItem->getVars()));
-			}
-		};
-	}
+//	public function afterRender(): void
+//	{
+//		\Tracy\Debugger::$maxLength = 100000;
+//
+//		$this->application->onShutdown[] = function (): void {
+//			$logItems = $this->connection->getLog();
+//
+//			\uasort($logItems, function (LogItem $a, LogItem $b): int {
+//				return $b->getTotalTime() <=> $a->getTotalTime();
+//			});
+//
+//			$totalTime = 0;
+//			$totalAmount = 0;
+//
+//			$logItems = \array_filter($logItems, function (LogItem $item) use (&$totalTime, &$totalAmount): bool {
+//				$totalTime += $item->getTotalTime();
+//				$totalAmount += $item->getAmount();
+//
+//				return $item->getTotalTime() > 0.1;
+//			});
+//
+//			Debugger::dump($totalTime);
+//			Debugger::dump($totalAmount);
+//
+//			foreach ($logItems as $logItem) {
+//				Debugger::dump($logItem);
+//				Debugger::dump(PdoDebugger::show($logItem->getSql(), $logItem->getVars()));
+//			}
+//		};
+//	}
 
 	protected function startup(): void
 	{
