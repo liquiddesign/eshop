@@ -17,6 +17,8 @@ use Eshop\ShopperUser;
 use Forms\FormFactory;
 use Grid\Datalist;
 use Nette\Application\UI\Multiplier;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
 use StORM\Collection;
@@ -55,6 +57,7 @@ class ProductList extends Datalist
 		private readonly DisplayAmountRepository $displayAmountRepository,
 		private readonly DisplayDeliveryRepository $displayDeliveryRepository,
 		private readonly Connection $connection,
+		Storage $storage,
 		?array $order = null,
 		?Collection $source = null
 	) {
@@ -64,28 +67,32 @@ class ProductList extends Datalist
 			$source->orderBy($order);
 		}
 
+		$cache = new Cache($storage);
+
 		parent::__construct($source);
 
-		$this->setItemCountCallback(function (Collection $collection): int {
+		$this->setItemCountCallback(function (Collection $collection) use ($cache): int {
 			$collection->setSelect([])->setGroupBy([])->setOrderBy([]);
 
 			$subCollection = AdminGrid::processCollectionBaseFrom($collection, useOrder: false, join: false);
 			$subCollection->setSelect(['DISTINCT this.uuid'])->setGroupBy([])->setOrderBy([]);
 
-			return $this->connection->rows()
-				->setFrom(['agg' => "({$subCollection->getSql()})"], $collection->getVars())
-				->enum('agg.uuid', unique: false);
+			$collection = $this->connection->rows()
+				->setFrom(['agg' => "({$subCollection->getSql()})"], $collection->getVars());
+
+			return $cache->load('productlist_count_' . \serialize($collection), static function (&$dependencies) use ($collection) {
+				$dependencies = [
+					Cache::TAGS => ['categories', 'products', 'pricelists'],
+				];
+
+				return $collection->enum('agg.uuid', unique: false);
+			});
 		});
 
 		$this->setDefaultOnPage(20);
 		$this->setDefaultOrder('priority');
 
 		$this->setAllowedOrderColumns(['price' => 'price', 'priority' => 'visibilityListItem.priority', 'name' => 'name']);
-//		$this->setItemCountCallback(function (ICollection $filteredSource) use ($categoryRepository) {
-//			$prefetchedCount = isset($this->getFilters()['category']) && \count($this->getFilters()) === 1 ? $categoryRepository->getCounts($this->getFilters()['category']) : null;
-//
-//			return $prefetchedCount ?? $filteredSource->setSelect(['DISTINCT this.uuid'])->setOrderBy([])->count();
-//		});
 
 		$this->addOrderExpression('crossSellOrder', function (ICollection $collection, $value): void {
 			$this->setDefaultOnPage(5);
