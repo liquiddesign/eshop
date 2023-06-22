@@ -8,7 +8,6 @@ use Admin\Controls\AdminGrid;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
-use Eshop\DB\CategoryRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
@@ -44,7 +43,6 @@ class ProductList extends Datalist
 
 	public function __construct(
 		private readonly ProductRepository $productRepository,
-		CategoryRepository $categoryRepository,
 		private readonly WatcherRepository $watcherRepository,
 		public readonly ShopperUser $shopperUser,
 		private readonly Translator $translator,
@@ -69,7 +67,7 @@ class ProductList extends Datalist
 		parent::__construct($source);
 
 		$this->setItemCountCallback(function (Collection $collection): int {
-			$collection->setSelect(['DISTINCT this.uuid'])->setGroupBy([])->setOrderBy([]);
+			$collection->setSelect([])->setGroupBy([])->setOrderBy([]);
 
 			$subCollection = AdminGrid::processCollectionBaseFrom($collection, useOrder: false, join: false);
 			$subCollection->setSelect(['DISTINCT this.uuid'])->setGroupBy([])->setOrderBy([]);
@@ -83,11 +81,11 @@ class ProductList extends Datalist
 		$this->setDefaultOrder('priority');
 
 		$this->setAllowedOrderColumns(['price' => 'price', 'priority' => 'visibilityListItem.priority', 'name' => 'name']);
-		$this->setItemCountCallback(function (ICollection $filteredSource) use ($categoryRepository) {
-			$prefetchedCount = isset($this->getFilters()['category']) && \count($this->getFilters()) === 1 ? $categoryRepository->getCounts($this->getFilters()['category']) : null;
-
-			return $prefetchedCount ?? $filteredSource->setSelect(['this.uuid'])->setOrderBy([])->count();
-		});
+//		$this->setItemCountCallback(function (ICollection $filteredSource) use ($categoryRepository) {
+//			$prefetchedCount = isset($this->getFilters()['category']) && \count($this->getFilters()) === 1 ? $categoryRepository->getCounts($this->getFilters()['category']) : null;
+//
+//			return $prefetchedCount ?? $filteredSource->setSelect(['DISTINCT this.uuid'])->setOrderBy([])->count();
+//		});
 
 		$this->addOrderExpression('crossSellOrder', function (ICollection $collection, $value): void {
 			$this->setDefaultOnPage(5);

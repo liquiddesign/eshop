@@ -22,6 +22,7 @@ use Latte\Loaders\StringLoader;
 use Latte\Policy;
 use Latte\Sandbox\SecurityPolicy;
 use Messages\DB\TemplateRepository;
+use Nette\Application\Application;
 use Nette\Application\UI\Presenter;
 use Nette\Bridges\ApplicationLatte\LatteFactory;
 use Nette\Bridges\ApplicationLatte\UIExtension;
@@ -34,6 +35,9 @@ use Nette\Mail\Mailer;
 use Nette\Mail\Message;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
+use PdoDebugger;
+use StORM\DIConnection;
+use StORM\LogItem;
 use Throwable;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -94,6 +98,12 @@ abstract class FrontendPresenter extends Presenter
 
 	#[Inject]
 	public ShopRepository $shopRepository;
+
+	#[Inject]
+	public Application $netteApplication;
+
+	#[Inject]
+	public DIConnection $connection;
 
 	/** @persistent */
 	public string $lang;
@@ -311,36 +321,38 @@ abstract class FrontendPresenter extends Presenter
 		}
 	}
 
-//	public function afterRender(): void
-//	{
-//		\Tracy\Debugger::$maxLength = 100000;
-//
-//		$this->application->onShutdown[] = function (): void {
-//			$logItems = $this->connection->getLog();
-//
-//			\uasort($logItems, function (LogItem $a, LogItem $b): int {
-//				return $b->getTotalTime() <=> $a->getTotalTime();
-//			});
-//
-//			$totalTime = 0;
-//			$totalAmount = 0;
-//
-//			$logItems = \array_filter($logItems, function (LogItem $item) use (&$totalTime, &$totalAmount): bool {
-//				$totalTime += $item->getTotalTime();
-//				$totalAmount += $item->getAmount();
-//
-//				return $item->getTotalTime() > 0.1;
-//			});
-//
-//			Debugger::dump($totalTime);
-//			Debugger::dump($totalAmount);
-//
-//			foreach ($logItems as $logItem) {
-//				Debugger::dump($logItem);
-//				Debugger::dump(PdoDebugger::show($logItem->getSql(), $logItem->getVars()));
-//			}
-//		};
-//	}
+	public function afterRender(): void
+	{
+		\Tracy\Debugger::$maxLength = 100000;
+
+		$this->netteApplication->onShutdown[] = function (): void {
+			if ($this->container->getParameters()['debugMode'] === true) {
+				$logItems = $this->connection->getLog();
+
+				\uasort($logItems, function (LogItem $a, LogItem $b): int {
+					return $b->getTotalTime() <=> $a->getTotalTime();
+				});
+
+				$totalTime = 0;
+				$totalAmount = 0;
+
+				$logItems = \array_filter($logItems, function (LogItem $item) use (&$totalTime, &$totalAmount): bool {
+					$totalTime += $item->getTotalTime();
+					$totalAmount += $item->getAmount();
+
+					return $item->getTotalTime() > 0.1;
+				});
+
+				Debugger::dump($totalTime);
+				Debugger::dump($totalAmount);
+
+				foreach ($logItems as $logItem) {
+					Debugger::dump($logItem);
+					Debugger::dump(PdoDebugger::show($logItem->getSql(), $logItem->getVars()));
+				}
+			}
+		};
+	}
 
 	protected function startup(): void
 	{
