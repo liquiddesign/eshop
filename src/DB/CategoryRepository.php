@@ -164,14 +164,16 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 	/**
 	 * @param bool $includeHidden
-	 * @param string|null $type
+	 * @param string|list<string>|null $type
 	 * @return array<string>
+	 * @throws \Throwable
 	 */
-	public function getTreeArrayForSelect(bool $includeHidden = true, ?string $type = null): array
+	public function getTreeArrayForSelect(bool $includeHidden = true, string|null|array $type = null): array
 	{
 		$repository = $this;
+		$typeIndex = \is_array($type) ? \serialize($type) : $type;
 
-		return $this->cache->load(($includeHidden ? '1' : '0') . "_$type", static function (&$dependencies) use ($includeHidden, $type, $repository) {
+		return $this->cache->load(($includeHidden ? '1' : '0') . "_$typeIndex", static function (&$dependencies) use ($includeHidden, $type, $repository) {
 			$dependencies = [
 				Cache::TAGS => ['categories'],
 			];

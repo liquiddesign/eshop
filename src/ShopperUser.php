@@ -80,7 +80,7 @@ class ShopperUser extends User
 	 */
 	private array $config = [];
 
-	private CategoryType|null $mainCategoryType = null;
+	private CategoryType|null|false $mainCategoryType = false;
 
 	public function __construct(
 		protected readonly PricelistRepository $pricelistRepository,
@@ -331,14 +331,14 @@ class ShopperUser extends User
 
 	public function getMainCategoryType(): CategoryType
 	{
-		if ($this->mainCategoryType) {
+		if ($this->mainCategoryType !== false) {
 			return $this->mainCategoryType;
 		}
 
 		$shop = $this->shopsConfig->getSelectedShop();
 
 		if (!$shop) {
-			return $this->mainCategoryType = $this->categoryTypeRepository->one('main', true);
+			return $this->mainCategoryType = $this->categoryTypeRepository->many()->setOrderBy(['priority'])->first();
 		}
 
 		$setting = $this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $shop->getPK());

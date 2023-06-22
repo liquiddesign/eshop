@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminGrid;
+use Base\ShopsConfig;
+use Eshop\Admin\SettingsPresenter;
 use Eshop\Common\Helpers;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
@@ -22,6 +24,7 @@ use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\Expression;
 use StORM\ICollection;
+use Web\DB\SettingRepository;
 
 class ProductGridFiltersFactory
 {
@@ -35,7 +38,9 @@ class ProductGridFiltersFactory
 		private readonly PricelistRepository $pricelistRepository,
 		private readonly DisplayAmountRepository $displayAmountRepository,
 		private readonly CategoryTypeRepository $categoryTypeRepository,
-		private readonly SupplierProductRepository $supplierProductRepository
+		private readonly SupplierProductRepository $supplierProductRepository,
+		private readonly ShopsConfig $shopsConfig,
+		private readonly SettingRepository $settingRepository,
 	) {
 	}
 
@@ -43,9 +48,27 @@ class ProductGridFiltersFactory
 	{
 		$grid->addFilterTextInput('code', ['this.code', 'this.ean', 'this.name_cs', 'this.mpn'], null, 'Název, EAN, kód, P/N', '', '%%%s%%');
 
-		$firstCategoryType = $this->categoryTypeRepository->many()->setOrderBy(['priority'])->first();
+		if ($shops = $this->shopsConfig->getAvailableShops()) {
+			$categoryTypes = [];
 
-		if ($firstCategoryType && ($categories = $this->categoryRepository->getTreeArrayForSelect(true, $firstCategoryType->getPK()))) {
+			foreach ($shops as $shop) {
+				$setting = $this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $shop->getPK());
+
+				if (!$setting) {
+					continue;
+				}
+
+				$categoryTypes[] = $setting;
+			}
+
+			$categories = $categoryTypes ? $this->categoryRepository->getTreeArrayForSelect(true, $categoryTypes) : [];
+		} else {
+			$firstCategoryType = $this->categoryTypeRepository->many()->setOrderBy(['priority'])->first();
+
+			$categories = $firstCategoryType ? $this->categoryRepository->getTreeArrayForSelect(true, $firstCategoryType->getPK()) : [];
+		}
+
+		if ($categories) {
 			$exactCategories = $categories;
 			$categories += ['0' => 'X - bez kategorie'];
 
