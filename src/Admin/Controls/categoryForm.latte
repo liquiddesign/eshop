@@ -22,9 +22,9 @@
                 <table class="mt-1 mb-1">
                     {$renderer->renderPair($form['code'])|noescape}
 
-                    {$renderer->renderPair($form['imageFileName'])|noescape}
-
+                    {$renderer->renderPair($form['imageFileName'])|noescape};
                     {$renderer->renderPair($form['productFallbackImageFileName'])|noescape}
+                    {$renderer->renderPair($form['ogImageFileName'])|noescape}
 
                     {foreach $form['name']->getComponents() as $key => $element}
                         <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}" data-mutation="{$key}">

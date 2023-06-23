@@ -181,6 +181,8 @@ class CategoryPresenter extends BackendPresenter
 		$grid->onDelete[] = function (Category $object): void {
 			foreach ($this->categoryRepository->many()->where('path LIKE :q', ['q' => "$object->path%"])->toArray() as $subCategory) {
 				$this->onDeleteImage($subCategory);
+				$this->onDeleteImage($subCategory, 'productFallbackImageFileName');
+				$this->onDeleteImage($subCategory, 'ogImageFileName');
 				$this->onDeletePage($subCategory);
 				$subCategory->delete();
 			}

@@ -99,6 +99,31 @@ class CategoryForm extends Control
 			};
 		});
 
+		$imagePicker = $form->addImagePicker('ogImageFileName', 'OG Image', [
+			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
+			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => function (Image $image): void {
+				$image->resize($this->shopper->getCategoriesImage()['detail']['width'], $this->shopper->getCategoriesImage()['detail']['height']);
+			},
+			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => function (Image $image): void {
+				$image->resize($this->shopper->getCategoriesImage()['thumb']['width'], $this->shopper->getCategoriesImage()['thumb']['height']);
+			},
+		]);
+
+		if ($this->shopper->getCategoriesImage()['detail']['width']) {
+			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální šířce ' . $this->shopper->getCategoriesImage()['detail']['width'] . 'px.');
+		}
+
+		if ($this->shopper->getCategoriesImage()['detail']['height']) {
+			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce ' . $this->shopper->getCategoriesImage()['detail']['height'] . 'px.');
+		}
+
+		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {
+			$imagePicker->onDelete[] = function (array $directories, $filename) use ($category, $presenter): void {
+				$presenter->onDeleteImagePublic($category, 'ogImageFileName');
+				$presenter->redirect('this');
+			};
+		});
+
 		$nameInput = $form->addLocaleText('name', 'Název');
 		$form->addLocalePerexEdit('perex', 'Perex', [
 			/** @codingStandardsIgnoreStart */
@@ -235,6 +260,25 @@ class CategoryForm extends Control
 				}
 
 				$values['productFallbackImageFileName'] = $upload->upload($fileName . '-fallback.%2$s');
+			}
+
+			/** @var \Forms\Controls\UploadImage $upload */
+			$upload = $form['ogImageFileName'];
+
+			unset($values['ogImageFileName']);
+
+			if ($upload->isOk() && $upload->isFilled()) {
+				$userDir = $form->getUserDir();
+				$fileName = \pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_FILENAME);
+				$fileExtension = \strtolower(\pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_EXTENSION));
+
+				$imageDir = Category::IMAGE_DIR;
+
+				while (\is_file("$userDir/$imageDir/origin/$fileName.$fileExtension")) {
+					$fileName .= '-' . Random::generate(1, '0-9');
+				}
+
+				$values['ogImageFileName'] = $upload->upload($fileName . '.%2$s');
 			}
 
 			$values['path'] = $this->categoryRepository->generateUniquePath($values['ancestor'] ? $this->categoryRepository->one($values['ancestor'])->path : '');

@@ -79,6 +79,12 @@ class Category extends SystemicEntity
 	public ?string $productFallbackImageFileName;
 
 	/**
+	 * OG Obrázek
+	 * @column
+	 */
+	public ?string $ogImageFileName;
+
+	/**
 	 * Exportní název pro Googlecomp
 	 * @column
 	 */
