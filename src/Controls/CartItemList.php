@@ -109,7 +109,11 @@ class CartItemList extends Datalist
 				$amount = \intval($values->amount);
 
 				if ($amount <= 0) {
-					$amount = 1;
+					$cartItem->delete();
+
+					$this->onItemAmountChange();
+
+					return;
 				}
 
 				$checkoutManager->changeCartItemAmount($product, $cartItem, $amount, false);
