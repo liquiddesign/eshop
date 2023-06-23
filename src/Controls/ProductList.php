@@ -72,6 +72,8 @@ class ProductList extends Datalist
 		parent::__construct($source);
 
 		$this->setItemCountCallback(function (Collection $collection) use ($cache): int {
+			$this->productRepository->warmUpRedisCache();
+
 			$collection->setSelect([])->setGroupBy([])->setOrderBy([]);
 
 			$subCollection = AdminGrid::processCollectionBaseFrom($collection, useOrder: false, join: false);
@@ -79,6 +81,8 @@ class ProductList extends Datalist
 
 			$collection = $this->connection->rows()
 				->setFrom(['agg' => "({$subCollection->getSql()})"], $collection->getVars());
+
+			return $collection->enum('agg.uuid', unique: false);
 
 			return $cache->load('productlist_count_' . \serialize($collection), static function (&$dependencies) use ($collection) {
 				$dependencies = [
@@ -180,6 +184,7 @@ class ProductList extends Datalist
 		$source = $this->getFilteredSource();
 
 		AdminGrid::processCollectionBaseFrom($source, $this->getOnPage(), $this->getPage());
+		$source->setGroupBy([]);
 
 		$this->onLoad($source);
 

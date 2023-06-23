@@ -17,8 +17,10 @@ use League\Csv\Writer;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Caching\Storages\DevNullStorage;
+use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
+use Predis\Client;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Expression;
@@ -60,6 +62,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		private readonly VisibilityListItemRepository $visibilityListItemRepository,
 		private readonly VisibilityListRepository $visibilityListRepository,
 		private readonly ShopsConfig $shopsConfig,
+		private readonly Container $container,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -1802,6 +1805,42 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 
 		throw new InvalidArgumentException('There is no unique parameter');
+	}
+
+	public function warmUpRedisCache(): void
+	{
+		/** @var \Predis\Client $redis */
+		$redis = $this->container->getService('redis.connection.default.client');
+
+		\dump(Debugger::timer());
+		$products = $redis->jsonget('products');
+		\dump(Debugger::timer());
+
+		if ($products) {
+			$products = \json_decode($products, true);
+			\dump(Debugger::timer());
+			\dump(\count($products));
+			\dump(Debugger::timer());
+			die();
+		}
+
+		/** @var \Eshop\DB\CategoryRepository $categoryRepository */
+		$categoryRepository = $this->connection->findRepository(Category::class);
+
+		$productsCollection = $this->many();
+		$products = [];
+
+		while ($product = $productsCollection->fetch()) {
+			$products[$product->getPK()] = [
+				'uuid' => $product->getPK(),
+				'name' => $product->name,
+				'priorities' => '',
+			];
+		}
+
+		$productsCollection->__destruct();
+
+		$redis->jsonset('products', '.', \json_encode($products));
 	}
 
 //	protected function getCategoriesByPath(string $path): array
