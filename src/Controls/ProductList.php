@@ -13,6 +13,7 @@ use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\WatcherRepository;
+use Eshop\RedisProductProvider;
 use Eshop\ShopperUser;
 use Forms\FormFactory;
 use Grid\Datalist;
@@ -57,6 +58,7 @@ class ProductList extends Datalist
 		private readonly DisplayAmountRepository $displayAmountRepository,
 		private readonly DisplayDeliveryRepository $displayDeliveryRepository,
 		private readonly Connection $connection,
+		private readonly RedisProductProvider $redisProductProvider,
 		Storage $storage,
 		?array $order = null,
 		?Collection $source = null
@@ -72,8 +74,6 @@ class ProductList extends Datalist
 		parent::__construct($source);
 
 		$this->setItemCountCallback(function (Collection $collection) use ($cache): int {
-			$this->productRepository->warmUpRedisCache();
-
 			$collection->setSelect([])->setGroupBy([])->setOrderBy([]);
 
 			$subCollection = AdminGrid::processCollectionBaseFrom($collection, useOrder: false, join: false);
@@ -176,6 +176,19 @@ class ProductList extends Datalist
 	 */
 	public function getItemsOnPage(): array
 	{
+//		$this->redisProductProvider->warmUpRedisCache(['availabilityAndPrice' => [
+//			'case COALESCE(displayAmount.isSold, 2)
+//					 when 0 then 0
+//					 when 2 then 1
+//					 when 1 then 2
+//					 else 2 end' => ':direction',
+//			'price' => ':direction',
+//		]]);
+
+		$products = $this->redisProductProvider->getProductsFromRedis([], 'availabilityAndPrice');
+
+		return $products;
+
 		if ($this->itemsOnPage !== null) {
 			return $this->itemsOnPage;
 		}

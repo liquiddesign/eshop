@@ -1807,57 +1807,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		throw new InvalidArgumentException('There is no unique parameter');
 	}
 
-	public function warmUpRedisCache(): void
-	{
-		/** @var \Predis\Client $redis */
-		$redis = $this->container->getService('redis.connection.default.client');
-
-		\dump(Debugger::timer());
-		$products = $redis->jsonget('products');
-		\dump(Debugger::timer());
-
-		if ($products) {
-			$products = \json_decode($products, true);
-			\dump(Debugger::timer());
-			\dump(\count($products));
-			\dump(Debugger::timer());
-			die();
-		}
-
-		/** @var \Eshop\DB\CategoryRepository $categoryRepository */
-		$categoryRepository = $this->connection->findRepository(Category::class);
-
-		$productsCollection = $this->many();
-		$products = [];
-
-		while ($product = $productsCollection->fetch()) {
-			$products[$product->getPK()] = [
-				'uuid' => $product->getPK(),
-				'name' => $product->name,
-				'priorities' => '',
-			];
-		}
-
-		$productsCollection->__destruct();
-
-		$redis->jsonset('products', '.', \json_encode($products));
-	}
-
-//	protected function getCategoriesByPath(string $path): array
-//	{
-//		return $this->cache->load('main_categoriesByPath_' . $path, function (&$dependencies) use ($path): array {
-//			$dependencies = [
-//				Cache::Tags => [
-//					ScriptsPresenter::PRODUCTS_CACHE_TAG,
-//					ScriptsPresenter::CATEGORIES_CACHE_TAG,
-//				],
-//			];
-//
-//			$categoryRepository = $this->connection->findRepository(Category::class);
-//
-//			return $categoryRepository->many()->where('this.path LIKE :s', ['s' => $path . '%'])->toArrayOf('uuid');
-//		});
-//	}
 //
 //	protected function getProductsWithPrices(): array
 //	{
