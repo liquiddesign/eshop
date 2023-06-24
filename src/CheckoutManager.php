@@ -1388,13 +1388,8 @@ class CheckoutManager
 				$purchase = $this->syncPurchase(['customer' => $customer ? $customer->getPK() : $this->customerRepository->many()->match(['email' => $purchase->email])->first()]);
 			}
 		}
-
-		$year = Carbon::now()->format('Y');
-		$code = \vsprintf(
-			$this->shopperUser->getCountry()->orderCodeFormat,
-			$this->orderCodeArguments ??
-			[$this->orderRepository->many()->where('YEAR(this.createdTs)', $year)->enum() + $this->shopperUser->getCountry()->orderCodeStartNumber, $year],
-		);
+		
+		$code = $this->createOrderCode();
 
 		$orderValues = $defaultOrderValues + [
 				'code' => $code,
@@ -1677,6 +1672,17 @@ class CheckoutManager
 		}
 
 		return $sum;
+	}
+
+	protected function createOrderCode(): string
+	{
+		$year = Carbon::now()->format('Y');
+		
+		return \vsprintf(
+			$this->shopperUser->getCountry()->orderCodeFormat,
+			$this->orderCodeArguments ??
+			[$this->orderRepository->many()->where('YEAR(this.createdTs)', $year)->enum() + $this->shopperUser->getCountry()->orderCodeStartNumber, $year],
+		);
 	}
 
 	private function getProductRoundAmount(int $amount, Product $product): int
