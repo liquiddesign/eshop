@@ -135,7 +135,7 @@ class GroupPresenter extends BackendPresenter
 				$withVatInput = $form->addCheckbox('defaultPricesWithVat', 'Zobrazit ceny s daní');
 			}
 			
-			if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat() && isset($withoutVatInput) && isset($withVatInput)) {
+			if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat()) {
 				$form->addSelect('defaultPriorityPrice', 'Prioritní cena', [
 					'withoutVat' => 'Bez daně',
 					'withVat' => 'S daní',

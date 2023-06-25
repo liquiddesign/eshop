@@ -335,6 +335,11 @@ class CheckoutManager
 		$oldCart->delete();
 	}
 
+	/**
+	 * @param \Eshop\DB\Currency|null $currency
+	 * @param \Eshop\DB\DiscountCoupon|null $discountCoupon
+	 * @return \StORM\Collection<\Eshop\DB\Pricelist>
+	 */
 	public function getPricelists(?Currency $currency = null, ?DiscountCoupon $discountCoupon = null): Collection
 	{
 		return $this->shopperUser->getPricelists($currency, $discountCoupon ?? $this->getDiscountCoupon());
@@ -621,6 +626,9 @@ class CheckoutManager
 		return $this->cartExists() ? $this->cartItemRepository->getItem($this->getCart(), $product) : $this->cartItemRepository->many()->where('fk_product', $product->getPK())->first();
 	}
 
+	/**
+	 * @return \StORM\Collection<\Eshop\DB\CartItem>
+	 */
 	public function getTopLevelItems(): Collection
 	{
 		return $this->getItems()->where('this.fk_upsell IS NULL');
@@ -634,11 +642,11 @@ class CheckoutManager
 		$products = $this->productRepository->getProducts()->where('this.uuid', $ids)->toArray();
 
 		$upsellsMap = [];
+		/** @var array<\Eshop\DB\CartItem> $nonUpsellItems */
 		$nonUpsellItems = $this->cartItemRepository->getItems([$cart->getPK()])->where('this.fk_upsell IS NULL')->toArray();
 
 		$someProductNotFound = false;
 
-		/** @var \Eshop\DB\CartItem $item */
 		foreach ($nonUpsellItems as $item) {
 			if (!isset($products[$item->getValue('product')])) {
 				if ($required) {
@@ -1478,6 +1486,7 @@ class CheckoutManager
 				}
 
 				foreach ($packageItems as $cartItemToParse) {
+					/** @var \Eshop\DB\CartItem $cartItem */
 					[$cartItem, $amount] = $cartItemToParse;
 
 					/* Create package item for top-level cart items */

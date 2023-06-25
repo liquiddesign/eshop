@@ -838,7 +838,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 					$withVatInput = $container->addCheckbox('showPricesWithVat', 'Zobrazit ceny s daní');
 				}
 				
-				if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat() && isset($withoutVatInput) && isset($withVatInput)) {
+				if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat()) {
 					$container->addSelect('priorityPrice', 'Prioritní cena', [
 						'withoutVat' => 'Bez daně',
 						'withVat' => 'S daní',

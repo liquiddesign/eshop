@@ -17,10 +17,8 @@ use League\Csv\Writer;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Caching\Storages\DevNullStorage;
-use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
-use Predis\Client;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Expression;
@@ -62,7 +60,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		private readonly VisibilityListItemRepository $visibilityListItemRepository,
 		private readonly VisibilityListRepository $visibilityListRepository,
 		private readonly ShopsConfig $shopsConfig,
-		private readonly Container $container,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -1807,7 +1804,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		throw new InvalidArgumentException('There is no unique parameter');
 	}
 
-//
 //	protected function getProductsWithPrices(): array
 //	{
 //		return $this->cache->load('main_productsWithPrices', function (&$dependencies): array {
@@ -1873,7 +1869,11 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 //	{
 //		return [];
 //	}
-	
+
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\Pricelist> $collection
+	 * @return \StORM\Collection<\Eshop\DB\Pricelist>
+	 */
 	protected function getValidPricelists(Collection $collection): Collection
 	{
 		return $collection

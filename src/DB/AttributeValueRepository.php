@@ -22,6 +22,10 @@ class AttributeValueRepository extends \StORM\Repository implements IGeneralRepo
 		return $this->getCollection($includeHidden)->toArrayOf('label');
 	}
 
+	/**
+	 * @param bool $includeHidden
+	 * @return \StORM\Collection<\Eshop\DB\AttributeValue>
+	 */
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();

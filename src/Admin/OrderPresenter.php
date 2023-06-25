@@ -2295,7 +2295,10 @@ class OrderPresenter extends BackendPresenter
 
 			if ($submitter->getName() === 'useApi') {
 				try {
-					$this->zasilkovna->syncOrders($collection->toArray());
+					/** @var array<\Eshop\DB\Order> $orders */
+					$orders = $collection->toArray();
+
+					$this->zasilkovna->syncOrders($orders);
 					$this->flashMessage('Provedeno', 'success');
 				} catch (\Exception $e) {
 					$this->flashMessage('Chyba! Zkontrolujte API klíč.<br>' . $e->getMessage(), 'error');
@@ -2409,6 +2412,7 @@ class OrderPresenter extends BackendPresenter
 	{
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
 			try {
+				/** @var \Eshop\DB\Order $order */
 				foreach ($collection as $order) {
 					$this->orderRepository->pauseOrder($order);
 				}
@@ -2424,6 +2428,7 @@ class OrderPresenter extends BackendPresenter
 	{
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
 			try {
+				/** @var \Eshop\DB\Order $order */
 				foreach ($collection as $order) {
 					$this->orderRepository->unPauseOrder($order);
 				}
