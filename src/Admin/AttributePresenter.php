@@ -114,7 +114,9 @@ class AttributePresenter extends BackendPresenter
 			])
 			->select(['assignCount' => 'COUNT(assign.uuid)'])
 			->join(['attributeXcategory' => 'eshop_attribute_nxn_eshop_category'], 'attributeXcategory.fk_attribute = this.uuid')
+			->join(['attributeXcategory2' => 'eshop_attribute_nxn_eshop_category'], 'attributeXcategory2.fk_attribute = this.uuid')
 			->join(['category' => 'eshop_category'], 'attributeXcategory.fk_category = category.uuid')
+			->join(['category2' => 'eshop_category'], 'attributeXcategory2.fk_category = category.uuid')
 			->join(['attributeXgroup' => 'eshop_attributegroup_nxn_eshop_attribute'], 'attributeXgroup.fk_attribute = this.uuid')
 			->join(['attributegroup' => 'eshop_attributegroup'], 'attributeXgroup.fk_attributegroup = attributegroup.uuid')
 			->join(['attributeValue' => 'eshop_attributevalue'], 'this.uuid = attributeValue.fk_attribute')
@@ -201,7 +203,7 @@ class AttributePresenter extends BackendPresenter
 
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
 			$grid->addFilterDataSelect(function (Collection $source, $value): void {
-				$source->where('category.uuid', $value);
+				$source->where('category2.uuid', $value);
 			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
 		}
 
