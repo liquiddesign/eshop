@@ -201,7 +201,7 @@ class AttributePresenter extends BackendPresenter
 
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
 			$grid->addFilterDataSelect(function (Collection $source, $value): void {
-				$source->where('category.uuid', $value);
+				$source->where('category2.uuid', $value);
 			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
 		}
 

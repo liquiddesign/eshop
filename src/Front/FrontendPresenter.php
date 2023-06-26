@@ -340,7 +340,7 @@ abstract class FrontendPresenter extends Presenter
 					$totalTime += $item->getTotalTime();
 					$totalAmount += $item->getAmount();
 
-					return $item->getTotalTime() > 0.1;
+					return $item->getTotalTime() > 0.01;
 				});
 
 				Debugger::dump($totalTime);

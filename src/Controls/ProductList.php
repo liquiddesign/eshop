@@ -13,17 +13,17 @@ use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\WatcherRepository;
+use Eshop\RedisProductProvider;
 use Eshop\ShopperUser;
 use Forms\FormFactory;
 use Grid\Datalist;
 use Nette\Application\UI\Multiplier;
-use Nette\Caching\Cache;
-use Nette\Caching\Storage;
 use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
 use StORM\Collection;
 use StORM\Connection;
 use StORM\ICollection;
+use Tracy\Debugger;
 
 /**
  * Class Products
@@ -43,6 +43,11 @@ class ProductList extends Datalist
 	 */
 	public $onWatcherDeleted;
 
+	public array|null $redisProducts = null;
+
+	/** @var array<array<string, int>>|null */
+	protected array|null $redisCounts = null;
+
 	public function __construct(
 		private readonly ProductRepository $productRepository,
 		private readonly WatcherRepository $watcherRepository,
@@ -56,8 +61,8 @@ class ProductList extends Datalist
 		private readonly ProducerRepository $producerRepository,
 		private readonly DisplayAmountRepository $displayAmountRepository,
 		private readonly DisplayDeliveryRepository $displayDeliveryRepository,
+		private readonly RedisProductProvider $redisProductProvider,
 		private readonly Connection $connection,
-		Storage $storage,
 		?array $order = null,
 		?Collection $source = null
 	) {
@@ -67,11 +72,10 @@ class ProductList extends Datalist
 			$source->orderBy($order);
 		}
 
-		$cache = new Cache($storage);
-
 		parent::__construct($source);
 
-		$this->setItemCountCallback(function (Collection $collection) use ($cache): int {
+		// Used only if Redis is not available
+		$this->setItemCountCallback(function (Collection $collection): int {
 			$collection->setSelect([])->setGroupBy([])->setOrderBy([]);
 
 			$subCollection = AdminGrid::processCollectionBaseFrom($collection, useOrder: false, join: false);
@@ -80,13 +84,7 @@ class ProductList extends Datalist
 			$collection = $this->connection->rows()
 				->setFrom(['agg' => "({$subCollection->getSql()})"], $collection->getVars());
 
-			return $cache->load('productlist_count_' . \serialize($collection), static function (&$dependencies) use ($collection) {
-				$dependencies = [
-					Cache::TAGS => ['categories', 'products', 'pricelists'],
-				];
-
-				return $collection->enum('agg.uuid', unique: false);
-			});
+			return $collection->enum('agg.uuid', unique: false);
 		});
 
 		$this->setDefaultOnPage(20);
@@ -168,6 +166,14 @@ class ProductList extends Datalist
 	}
 
 	/**
+	 * @return array<array<string, int>>|null
+	 */
+	public function getRedisCounts(): array|null
+	{
+		return $this->redisCounts;
+	}
+
+	/**
 	 * @inheritDoc
 	 */
 	public function getItemsOnPage(): array
@@ -176,10 +182,62 @@ class ProductList extends Datalist
 			return $this->itemsOnPage;
 		}
 
+		$this->redisProductProvider->addAllowedOrder('priorityAvailabilityPrice', [
+			'visibilityListItem.priority',
+			function (array $a, array $b): int {
+				$isSoldA = match ($a['displayAmount.isSold'] ?? -1) {
+					0 => 0,
+					2 => 1,
+					default => 2,
+				};
+
+				$isSoldB = match ($b['displayAmount.isSold'] ?? -1) {
+					0 => 0,
+					2 => 1,
+					default => 2,
+				};
+
+				return $isSoldA <=> $isSoldB;
+			},
+			'price.priceVat',
+		]);
+
+		Debugger::timer();
+		$redisProducts = $this->redisProductProvider->getProductsFromRedis(
+			$this->getFilters(),
+			'priorityAvailabilityPrice',
+			'ASC',
+			$this->shopperUser->getPricelists()->toArray(),
+			$this->shopperUser->getVisibilityLists(),
+		);
+		Debugger::dump(Debugger::timer());
+
+		if ($redisProducts) {
+			$this->redisCounts = [
+				'attributeValuesCounts' => $redisProducts['attributeValuesCounts'],
+				'displayAmountsCounts' => $redisProducts['displayAmountsCounts'],
+				'producersCounts' => $redisProducts['producersCounts'],
+			];
+		}
+
 		/** @var \StORM\Collection $source */
 		$source = $this->getFilteredSource();
 
-		AdminGrid::processCollectionBaseFrom($source, $this->getOnPage(), $this->getPage());
+		if ($this->getOnPage()) {
+			if ($redisProducts !== false) {
+				$this->setItemCountCallback(function (): null {
+					return null;
+				});
+
+				$this->getPaginator()->setItemCount(\count($redisProducts['productPKs']));
+
+				$source->where('this.uuid', \array_slice($redisProducts['productPKs'], ($this->getPage() - 1) * $this->getOnPage(), $this->getOnPage()));
+			} else {
+				$source->setPage($this->getPage(), $this->getOnPage());
+			}
+		}
+
+		$source->setGroupBy([]);
 
 		$this->onLoad($source);
 

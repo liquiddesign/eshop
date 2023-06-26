@@ -1804,22 +1804,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		throw new InvalidArgumentException('There is no unique parameter');
 	}
 
-//	protected function getCategoriesByPath(string $path): array
-//	{
-//		return $this->cache->load('main_categoriesByPath_' . $path, function (&$dependencies) use ($path): array {
-//			$dependencies = [
-//				Cache::Tags => [
-//					ScriptsPresenter::PRODUCTS_CACHE_TAG,
-//					ScriptsPresenter::CATEGORIES_CACHE_TAG,
-//				],
-//			];
-//
-//			$categoryRepository = $this->connection->findRepository(Category::class);
-//
-//			return $categoryRepository->many()->where('this.path LIKE :s', ['s' => $path . '%'])->toArrayOf('uuid');
-//		});
-//	}
-//
 //	protected function getProductsWithPrices(): array
 //	{
 //		return $this->cache->load('main_productsWithPrices', function (&$dependencies): array {
@@ -1885,7 +1869,11 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 //	{
 //		return [];
 //	}
-	
+
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\Pricelist> $collection
+	 * @return \StORM\Collection<\Eshop\DB\Pricelist>
+	 */
 	protected function getValidPricelists(Collection $collection): Collection
 	{
 		return $collection

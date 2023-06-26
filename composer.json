@@ -50,7 +50,8 @@
 		"soukicz/zbozicz": "^1.2",
 		"heureka/overeno-zakazniky": "^4.0",
 		"dfridrich/qr-platba": "^2.0",
-		"latte/latte": "^3.0"
+		"latte/latte": "^3.0",
+		"contributte/redis": "^0.5.3"
 	},
 	"minimum-stability": "dev",
 	"prefer-stable": true,
@@ -61,8 +62,7 @@
 		"composer/composer": "*",
 		"liquiddesign/codestyle": "^3.0",
 		"liquiddesign/migrator": "~1.0",
-		"phpstan/phpstan-nette": "~1.0",
-		"phpstan/phpstan": "1.9.2"
+		"phpstan/phpstan-nette": "~1.0"
 	},
 	"scripts": {
 		"fix-code": ["@phpcsfix"],

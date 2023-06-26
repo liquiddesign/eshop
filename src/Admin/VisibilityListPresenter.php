@@ -84,10 +84,9 @@ class VisibilityListPresenter extends BackendPresenter
 
 	public function createComponentItemsGrid(): AdminGrid
 	{
-		$collection = $this->visibilityListItemRepository->many()
-			->where('visibilityList.fk_shop = :shop OR visibilityList.fk_shop IS NULL', ['shop' => $this->shopsConfig->getSelectedShop()?->getPK()]);
+		$collection = $this->visibilityListItemRepository->many();
 
-		$grid = $this->gridFactory->create($collection, 20, 'priority', 'ASC', true);
+		$grid = $this->gridFactory->create($collection, 20, 'priority', 'ASC', true, filterShops: false);
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Seznam', 'visibilityList.name', '%s', 'visibilityList.name');

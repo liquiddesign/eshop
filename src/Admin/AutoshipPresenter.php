@@ -118,7 +118,7 @@ class AutoshipPresenter extends BackendPresenter
 					}
 					
 					$values['purchase']['deliveryAddress'] = null;
-				} elseif (!$autoship->purchase->deliveryAddress && \is_array($values['purchase']['deliveryAddress'])) {
+				} elseif (!$autoship->purchase->deliveryAddress && isset($values['purchase']['deliveryAddress'])) {
 					$address = $this->addressRepository->createOne($values['purchase']['deliveryAddress']);
 					$autoship->purchase->update(['deliveryAddress' => $address]);
 				}

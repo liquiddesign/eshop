@@ -23,7 +23,6 @@ use Translator\DB\TranslationRepository;
 
 /**
  * @method onFormSuccess(array $parameters)
- * @property-read \Nette\Bridges\ApplicationLatte\Template $template
  */
 class ProductFilter extends Control
 {
@@ -96,16 +95,16 @@ class ProductFilter extends Control
 	{
 		/** @var array<array<array<string>>> $filters */
 		$filters = $this->getProductList()->getFilters();
-		
+
 		$this->template->systemicCounts = [
-			'availability' => $this->displayAmountRepository->getCounts($filters),
+			'availability' => $this->getProductList()->getRedisCounts()['displayAmountsCounts'] ?? $this->displayAmountRepository->getCounts($filters),
 			//'delivery' => $this->displayDeliveryRepository->getCounts($filters),
-			'producer' => $this->producerRepository->getCounts($filters),
+			'producer' => $this->getProductList()->getRedisCounts()['producersCounts'] ?? $this->producerRepository->getCounts($filters),
 		];
 		
 		$this->template->attributes = $attributes = $this->getAttributes();
 		
-		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($this->attributeValues, $filters);
+		$this->template->attributesValuesCounts = $this->getProductList()->getRedisCounts()['attributeValuesCounts'] ?? $this->attributeRepository->getCounts($this->attributeValues, $filters);
 		
 		foreach ($this->rangeValues as $rangeId => $valuesIds) {
 			foreach ($valuesIds as $valueId) {
@@ -113,8 +112,10 @@ class ProductFilter extends Control
 				$this->template->attributesValuesCounts[$rangeId] += $this->template->attributesValuesCounts[$valueId] ?? 0;
 			}
 		}
-		
-		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
+
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+		$template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
 	
 	public function createComponentForm(): Form

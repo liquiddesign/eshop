@@ -156,7 +156,7 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 			}
 
 			if ($conditionType === 'and') {
-				$valid = $valid && $conditionValid;
+				$valid = $conditionValid;
 
 				continue;
 			}
@@ -260,12 +260,12 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 				}
 
 				if ($conditionType === 'and') {
-					$valid = $valid && $conditionValid;
+					$valid = $conditionValid;
 
 					continue;
 				}
 
-				$valid = $valid || $conditionValid;
+				$valid = $conditionValid;
 			}
 		}
 
