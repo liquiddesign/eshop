@@ -12,6 +12,7 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Nette\DI\Container;
+use Nette\DI\MissingServiceException;
 use Nette\Utils\Arrays;
 use StORM\Connection;
 use Web\DB\SettingRepository;
@@ -107,10 +108,14 @@ class RedisProductProvider
 
 	public function warmUpRedisCache(): void
 	{
-		/** @var \Predis\Client|null $redis */
-		$redis = $this->container->getService('redis.connection.default.client');
+		try {
+			/** @var \Predis\Client|null $redis */
+			$redis = $this->container->getService('redis.connection.default.client');
+		} catch (MissingServiceException) {
+			return;
+		}
 
-		if (!$redis || !$redis->isConnected()) {
+		if (!$redis->isConnected()) {
 			return;
 		}
 
@@ -292,10 +297,14 @@ class RedisProductProvider
 			return $this->cache[$cacheIndex];
 		}
 
-		/** @var \Predis\Client|null $redis */
-		$redis = $this->container->getService('redis.connection.default.client');
+		try {
+			/** @var \Predis\Client|null $redis */
+			$redis = $this->container->getService('redis.connection.default.client');
+		} catch (MissingServiceException) {
+			return false;
+		}
 
-		if (!$redis || !$redis->isConnected()) {
+		if (!$redis->isConnected()) {
 			return false;
 		}
 

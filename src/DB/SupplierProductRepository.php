@@ -112,9 +112,7 @@ class SupplierProductRepository extends \StORM\Repository
 			->join(['supplierCategoryXCategory' => 'eshop_suppliercategory_nxn_eshop_category'], 'this.fk_category = supplierCategoryXCategory.fk_supplierCategory')
 			->where('this.fk_supplier', $supplier)
 			->where('category.fk_category IS NOT NULL')
-			->where('this.active', true)
-		//@TODO remove
-		->where('this.uuid', '14d3a02b2a541ee443195721f8b113b2');
+			->where('this.active', true);
 
 		/** @var array<\stdClass> $existingPrimaryCategories */
 		$existingPrimaryCategories = $productPrimaryCategoryRepository->many()
@@ -158,6 +156,10 @@ class SupplierProductRepository extends \StORM\Repository
 			if ($draft->getValue('product') && $draft->getValue('product') !== $uuid) {
 				$uuid = $draft->getValue('product');
 			}
+
+			if ($draft->code === '311532342') {
+				xdebug_break();
+			}
 			
 			$primary = isset($productsMap[$uuid]) && $productsMap[$uuid]->sourcePK === $supplierId;
 			
@@ -185,7 +187,6 @@ class SupplierProductRepository extends \StORM\Repository
 				'inCarton' => $draft->inCarton,
 				'inPalett' => $draft->inPalett,
 				'weight' => $draft->weight,
-				'categories' => $categories,
 				'supplierLock' => $supplier->importPriority,
 				'supplierSource' => $supplier,
 			];
@@ -215,7 +216,9 @@ class SupplierProductRepository extends \StORM\Repository
 			}
 
 			/** @var \Eshop\DB\Product $product */
-			$product = $productRepository->syncOne($values, $currentUpdates, false, null, ['categories' => false]);
+			$product = $productRepository->syncOne($values, $currentUpdates, false, false, ['categories' => false]);
+
+			$product->categories->relate($categories, false);
 
 			$updated = $product->getParent() instanceof ICollection;
 
