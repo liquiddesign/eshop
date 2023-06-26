@@ -12,12 +12,17 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Nette\DI\Container;
+use Nette\Utils\Arrays;
 use StORM\Connection;
 use Web\DB\SettingRepository;
 
 class RedisProductProvider
 {
+	// Location on filters vs in product data
 	public const ALLOWED_FILTER_PROPERTIES = [
+		'attributes.producer' => 'producer',
+		'attributes.displayAmount' => 'displayAmount',
+		'attributes.displayDelivery' => 'displayDelivery',
 	];
 
 	public const ALLOWED_ORDER_PROPERTIES = [
@@ -105,7 +110,7 @@ class RedisProductProvider
 		/** @var \Predis\Client|null $redis */
 		$redis = $this->container->getService('redis.connection.default.client');
 
-		if (!$redis) {
+		if (!$redis || !$redis->isConnected()) {
 			return;
 		}
 
@@ -290,7 +295,7 @@ class RedisProductProvider
 		/** @var \Predis\Client|null $redis */
 		$redis = $this->container->getService('redis.connection.default.client');
 
-		if (!$redis) {
+		if (!$redis || !$redis->isConnected()) {
 			return false;
 		}
 
@@ -328,6 +333,32 @@ class RedisProductProvider
 //			}
 
 			$product = $loadedProductsFromRedis[$productPK];
+
+			foreach ($this::ALLOWED_FILTER_PROPERTIES as $filterLocation => $productLocation) {
+				$filterLocationExploded = \explode('.', $filterLocation);
+				$currentArray = &$filters;
+
+				foreach ($filterLocationExploded as $key) {
+					if (!isset($currentArray[$key])) {
+						$currentArray[$key] = [];
+					}
+
+					$currentArray = &$currentArray[$key];
+				}
+
+				if (match ($filterLocation) {
+					'attributes.producer', 'attributes.displayAmount', 'attributes.displayDelivery' => true,
+					default => false,
+				}) {
+				if (\is_array($currentArray)) {
+					$currentArray = Arrays::first($currentArray);
+				}
+				}
+
+				if ($currentArray && $currentArray !== $product[$productLocation]) {
+					continue 2;
+				}
+			}
 
 			$found = false;
 
@@ -394,7 +425,7 @@ class RedisProductProvider
 				}
 			}
 
-			foreach ($product['attributeValues'] ?? [] as $attributeValue) {
+			foreach (\array_keys($product['attributeValues'] ?? []) as $attributeValue) {
 				if (isset($attributeValuesCounts[$attributeValue])) {
 					$attributeValuesCounts[$attributeValue] += 1;
 				} else {
