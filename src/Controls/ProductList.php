@@ -82,7 +82,7 @@ class ProductList extends Datalist
 			$subCollection->setSelect(['DISTINCT this.uuid'])->setGroupBy([])->setOrderBy([]);
 
 			$collection = $this->connection->rows()
-				->setFrom(['agg' => '({$subCollection->getSql()})'], $collection->getVars());
+				->setFrom(['agg' => "({$subCollection->getSql()})"], $collection->getVars());
 
 			return $collection->enum('agg.uuid', unique: false);
 		});
