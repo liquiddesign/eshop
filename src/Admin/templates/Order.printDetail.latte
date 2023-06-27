@@ -52,7 +52,7 @@
                         <address class="mt-2">
                             <div n:if="$purchase->customer">
                                 <a n:tag-if="$purchase->account && $admin->isAllowed(':Eshop:Admin:Customer:default')" href="{plink :Eshop:Admin:Customer:default, tab=>'accounts', accountGrid-search=>$purchase->account->login}" target="_blank">
-                                    <i n:if="$purchase->account" class="far fa-user" aria-hidden="true"></i> {$purchase->customer->fullname} </a><br>
+                                    <i n:if="$purchase->account" class="far fa-user" aria-hidden="true"></i> {$purchase->customer->company ?: $purchase->customer->fullname} </a><br>
                                 <div n:if="$purchase->ic || $purchase->customer->ic">IČ: <strong>{$purchase->ic ?: $purchase->customer->ic}</strong><br></div>
                                 <div n:if="$purchase->dic || $purchase->customer->dic">DIČ: <strong>{$purchase->dic ?: $purchase->customer->dic}</strong><br></div>
                                 <div><a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}</a><br></div>
