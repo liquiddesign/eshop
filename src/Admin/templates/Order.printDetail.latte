@@ -55,15 +55,15 @@
                                     <i n:if="$purchase->account" class="far fa-user" aria-hidden="true"></i> {$purchase->customer->company ?: $purchase->customer->fullname} </a><br>
                                 <div n:if="$purchase->ic || $purchase->customer->ic">IČ: <strong>{$purchase->ic ?: $purchase->customer->ic}</strong><br></div>
                                 <div n:if="$purchase->dic || $purchase->customer->dic">DIČ: <strong>{$purchase->dic ?: $purchase->customer->dic}</strong><br></div>
-                                <div><a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}</a><br></div>
-                                <div><a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a></div>
+                                <div n:if="$purchase->email"><a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}</a><br></div>
+                                <div n:if="$purchase->phone"><a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a></div>
                             </div>
                             <div n:if="!$purchase->customer">
                                 {$purchase->fullname} <br>
                                 <div n:if="$purchase->ic">IČ: <strong>{$purchase->ic}</strong><br></div>
                                 <div n:if="$purchase->dic">DIČ: <strong>{$purchase->dic}</strong><br></div>
-                                <div><a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}</a><br></div>
-                                <div><a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a></div>
+                                <div n:if="$purchase->email"><a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}</a><br></div>
+                                <div n:if="$purchase->phone"><a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a></div>
                             </div>
                         </address>
                     </div>
