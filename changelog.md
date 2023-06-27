@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-beta.2]
+
+### Changed
+
+- **BREAKING:** changed behavior `createCart` of `CheckoutManager` 
+  - If *active* parameter is false. No longer triggers event *onCartCreate*.
+  - If *active* parameter is false. Property *activeCart* in shopper customer s not updated.
+
+### Added
+
+- You can pass parameter *lastOrder* in `createOrder` of `CheckoutManager`. Default is true. It can allow you to create a set of orders
+  (just calling multiple createOrder in loop).
+  With last order please pass parameter with *true* value. Following changes they are based on the need to create a set of orders.
+- You can specify cart in `createOrder` of `CheckoutManager` in parameter with name *cart*.
+- In following previous change you can call `getTopLevelItems` and `getItems` of `CheckoutManager` with *cart* parameter.
+
+
 ## [2.0.0-beta.1]
 
 ### Added

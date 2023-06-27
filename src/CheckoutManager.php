@@ -466,9 +466,11 @@ class CheckoutManager
 			'shop' => $this->shopsConfig->getSelectedShop(),
 		]);
 
-		$this->shopperUser->getCustomer() ? $this->shopperUser->getCustomer()->update(['activeCart' => $cart]) : $this->unattachedCarts[$this->cartToken] = $cart;
-
-		Arrays::invoke($this->onCartCreate, $cart);
+		if ($activate) {
+			$this->shopperUser->getCustomer() ? $this->shopperUser->getCustomer()->update(['activeCart' => $cart]) : $this->unattachedCarts[$this->cartToken] = $cart;
+			
+			Arrays::invoke($this->onCartCreate, $cart);
+		}
 
 		return $cart;
 	}
@@ -616,9 +618,11 @@ class CheckoutManager
 		$this->cartItemRepository->updateNote($this->getCart(), $product, $variant, $note);
 	}
 
-	public function getItems(): Collection
+	public function getItems(?Cart $cart = null): Collection
 	{
-		return $this->cartExists() ? $this->cartItemRepository->getItems([$this->getCart()->getPK()]) : $this->cartItemRepository->many()->where('1=0');
+		$cart ??= $this->getCart();
+		
+		return $this->cartExists() && $cart ? $this->cartItemRepository->getItems([$cart->getPK()]) : $this->cartItemRepository->many()->where('1=0');
 	}
 	
 	public function getCartItem(Product $product): ?CartItem
@@ -629,9 +633,9 @@ class CheckoutManager
 	/**
 	 * @return \StORM\Collection<\Eshop\DB\CartItem>
 	 */
-	public function getTopLevelItems(): Collection
+	public function getTopLevelItems(?Cart $cart = null): Collection
 	{
-		return $this->getItems()->where('this.fk_upsell IS NULL');
+		return $this->getItems($cart)->where('this.fk_upsell IS NULL');
 	}
 
 	public function addItemsFromCart(Cart $cart, bool $required = false): bool
@@ -1346,10 +1350,12 @@ class CheckoutManager
 	/**
 	 * @param \Eshop\DB\Purchase|null $purchase
 	 * @param array<string|int|float|null> $defaultOrderValues
+	 * @param \Eshop\DB\Cart|null $cart
+	 * @param bool $isLastOrder
 	 * @throws \Eshop\BuyException
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function createOrder(?Purchase $purchase = null, array $defaultOrderValues = []): Order
+	public function createOrder(?Purchase $purchase = null, array $defaultOrderValues = [], ?Cart $cart = null, bool $isLastOrder = true): Order
 	{
 		/** @var \Eshop\DB\VatRateRepository $vatRepo */
 		$vatRepo = $this->cartItemRepository->getConnection()->findRepository(VatRate::class);
@@ -1369,7 +1375,7 @@ class CheckoutManager
 		}
 
 		$customer = $this->shopperUser->getCustomer();
-		$cart = $this->getCart();
+		$cart ??= $this->getCart();
 		$currency = $cart->currency;
 
 		$this->stm->getLink()->beginTransaction();
@@ -1397,12 +1403,10 @@ class CheckoutManager
 			}
 		}
 		
-		$code = $this->createOrderCode();
-
 		$orderValues = $defaultOrderValues + [
-				'code' => $code,
-				'purchase' => $purchase,
-			];
+			'code' => $this->createOrderCode(),
+			'purchase' => $purchase,
+		];
 
 		$orderValues['receivedTs'] = $this->shopperUser->getEditOrderAfterCreation() ? null : (string) new \Carbon\Carbon();
 		$orderValues['newCustomer'] = !$purchase->customer || $this->orderRepository->many()
@@ -1421,7 +1425,7 @@ class CheckoutManager
 
 		//@todo getDeliveryPrice se pocita z aktulaniho purchase ne z parametru a presunout do order repository jako create order
 		if ($purchase->deliveryType) {
-			$topLevelItems = $this->getTopLevelItems()->toArray();
+			$topLevelItems = $this->getTopLevelItems($cart)->toArray();
 			$boxList = $purchase->deliveryType->getBoxesForItems($topLevelItems);
 			$packageId = 0;
 
@@ -1610,11 +1614,13 @@ class CheckoutManager
 			$purchase->billAddress->update(['name' => $purchase->fullname]);
 		}
 
-		$this->response->setCookie('lastOrderToken', $order->getPK(), '1 hour');
-
-		if (!$this->shopperUser->getCustomer()) {
-			$this->cartToken = DIConnection::generateUuid();
-			$this->response->setCookie('cartToken', $this->cartToken, $this->cartExpiration . ' days');
+		if ($isLastOrder) {
+			$this->response->setCookie('lastOrderToken', $order->getPK(), '1 hour');
+			
+			if (!$this->shopperUser->getCustomer()) {
+				$this->cartToken = DIConnection::generateUuid();
+				$this->response->setCookie('cartToken', $this->cartToken, $this->cartExpiration . ' days');
+			}
 		}
 
 		if ($customer) {
@@ -1647,8 +1653,10 @@ class CheckoutManager
 		}
 
 		$this->orderLogItemRepository->createLog($order, OrderLogItem::CREATED);
-
-		$this->createCart();
+		
+		if ($isLastOrder) {
+			$this->createCart();
+		}
 
 		$this->refreshSumProperties();
 
