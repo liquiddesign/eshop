@@ -23,7 +23,6 @@ use Nette\Utils\Arrays;
 use StORM\Collection;
 use StORM\Connection;
 use StORM\ICollection;
-use Tracy\Debugger;
 
 /**
  * Class Products
@@ -61,7 +60,7 @@ class ProductList extends Datalist
 		private readonly ProducerRepository $producerRepository,
 		private readonly DisplayAmountRepository $displayAmountRepository,
 		private readonly DisplayDeliveryRepository $displayDeliveryRepository,
-		private readonly RedisProductProvider $redisProductProvider,
+		protected readonly RedisProductProvider $redisProductProvider,
 		private readonly Connection $connection,
 		?array $order = null,
 		?Collection $source = null
@@ -173,78 +172,78 @@ class ProductList extends Datalist
 		return $this->redisCounts;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
-	public function getItemsOnPage(): array
-	{
-		if ($this->itemsOnPage !== null) {
-			return $this->itemsOnPage;
-		}
-
-		$this->redisProductProvider->addAllowedOrder('priorityAvailabilityPrice', [
-			'visibilityListItem.priority',
-			function (array $a, array $b): int {
-				$isSoldA = match ($a['displayAmount.isSold'] ?? -1) {
-					0 => 0,
-					2 => 1,
-					default => 2,
-				};
-
-				$isSoldB = match ($b['displayAmount.isSold'] ?? -1) {
-					0 => 0,
-					2 => 1,
-					default => 2,
-				};
-
-				return $isSoldA <=> $isSoldB;
-			},
-			'price.priceVat',
-		]);
-
-		Debugger::timer();
-		$redisProducts = $this->redisProductProvider->getProductsFromRedis(
-			$this->getFilters(),
-			'priorityAvailabilityPrice',
-			'ASC',
-			$this->shopperUser->getPricelists()->toArray(),
-			$this->shopperUser->getVisibilityLists(),
-		);
-		Debugger::dump(Debugger::timer());
-
-		if ($redisProducts) {
-			$this->redisCounts = [
-				'attributeValuesCounts' => $redisProducts['attributeValuesCounts'],
-				'displayAmountsCounts' => $redisProducts['displayAmountsCounts'],
-				'producersCounts' => $redisProducts['producersCounts'],
-			];
-		}
-
-		/** @var \StORM\Collection $source */
-		$source = $this->getFilteredSource();
-
-		if ($this->getOnPage()) {
-			if ($redisProducts !== false) {
-				$this->setItemCountCallback(function (): null {
-					return null;
-				});
-
-				$this->getPaginator()->setItemCount(\count($redisProducts['productPKs']));
-
-				$source->where('this.uuid', \array_slice($redisProducts['productPKs'], ($this->getPage() - 1) * $this->getOnPage(), $this->getOnPage()));
-			} else {
-				$source->setPage($this->getPage(), $this->getOnPage());
-			}
-		}
-
-		$source->setGroupBy([]);
-
-		$this->onLoad($source);
-
-		$this->itemsOnPage = $this->nestingCallback && !$this->filters ? $this->getNestedSource($source, null) : $source->toArray();
-
-		return $this->itemsOnPage;
-	}
+//	/**
+//	 * @inheritDoc
+//	 */
+//	public function getItemsOnPage(): array
+//	{
+//		if ($this->itemsOnPage !== null) {
+//			return $this->itemsOnPage;
+//		}
+//
+//		$this->redisProductProvider->addAllowedOrder('priorityAvailabilityPrice', [
+//			'visibilityListItem.priority',
+//			function (array $a, array $b): int {
+//				$isSoldA = match ($a['displayAmount.isSold'] ?? -1) {
+//					0 => 0,
+//					2 => 1,
+//					default => 2,
+//				};
+//
+//				$isSoldB = match ($b['displayAmount.isSold'] ?? -1) {
+//					0 => 0,
+//					2 => 1,
+//					default => 2,
+//				};
+//
+//				return $isSoldA <=> $isSoldB;
+//			},
+//			'price.priceVat',
+//		]);
+//
+//		Debugger::timer();
+//		$redisProducts = $this->redisProductProvider->getProductsFromRedis(
+//			$this->getFilters(),
+//			'priorityAvailabilityPrice',
+//			'ASC',
+//			$this->shopperUser->getPricelists()->toArray(),
+//			$this->shopperUser->getVisibilityLists(),
+//		);
+//		Debugger::dump(Debugger::timer());
+//
+//		if ($redisProducts) {
+//			$this->redisCounts = [
+//				'attributeValuesCounts' => $redisProducts['attributeValuesCounts'],
+//				'displayAmountsCounts' => $redisProducts['displayAmountsCounts'],
+//				'producersCounts' => $redisProducts['producersCounts'],
+//			];
+//		}
+//
+//		/** @var \StORM\Collection $source */
+//		$source = $this->getFilteredSource();
+//
+//		if ($this->getOnPage()) {
+//			if ($redisProducts !== false) {
+//				$this->setItemCountCallback(function (): null {
+//					return null;
+//				});
+//
+//				$this->getPaginator()->setItemCount(\count($redisProducts['productPKs']));
+//
+//				$source->where('this.uuid', \array_slice($redisProducts['productPKs'], ($this->getPage() - 1) * $this->getOnPage(), $this->getOnPage()));
+//			} else {
+//				$source->setPage($this->getPage(), $this->getOnPage());
+//			}
+//		}
+//
+//		$source->setGroupBy([]);
+//
+//		$this->onLoad($source);
+//
+//		$this->itemsOnPage = $this->nestingCallback && !$this->filters ? $this->getNestedSource($source, null) : $source->toArray();
+//
+//		return $this->itemsOnPage;
+//	}
 
 	public function handleWatchIt(string $product): void
 	{

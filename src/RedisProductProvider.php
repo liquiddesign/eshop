@@ -539,6 +539,7 @@ class RedisProductProvider
 
 	/**
 	 * @param array<mixed> $array
+	 * @param array<string> $finalResults
 	 */
 	private function flattenArray(array $array, array &$finalResults): void
 	{

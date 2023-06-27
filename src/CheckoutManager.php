@@ -622,7 +622,7 @@ class CheckoutManager
 	{
 		$cart ??= $this->getCart();
 		
-		return $this->cartExists() && $cart ? $this->cartItemRepository->getItems([$cart->getPK()]) : $this->cartItemRepository->many()->where('1=0');
+		return $this->cartExists() ? $this->cartItemRepository->getItems([$cart->getPK()]) : $this->cartItemRepository->many()->where('1=0');
 	}
 	
 	public function getCartItem(Product $product): ?CartItem
