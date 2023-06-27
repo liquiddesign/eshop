@@ -5,23 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0-beta.2]
-
-### Changed
-
-- **BREAKING:** changed behavior `createCart` of `CheckoutManager` 
-  - If *active* parameter is false. No longer triggers event *onCartCreate*.
-  - If *active* parameter is false. Property *activeCart* in shopper customer s not updated.
-
-### Added
-
-- You can pass parameter *lastOrder* in `createOrder` of `CheckoutManager`. Default is true. It can allow you to create a set of orders
-  (just calling multiple createOrder in loop).
-  With last order please pass parameter with *true* value. Following changes they are based on the need to create a set of orders.
-- You can specify cart in `createOrder` of `CheckoutManager` in parameter with name *cart*.
-- In following previous change you can call `getTopLevelItems` and `getItems` of `CheckoutManager` with *cart* parameter.
-
-
 ## [2.0.0-beta.1]
 
 ### Added
@@ -45,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             - *ProductRepository::getProducts* does this automatically and properties are available in Product getters, or directly in SQL as alias *visibilityListItem*
 - **BREAKING:** Product content (content, perex) is not stored in Product but in ProductContent, based on Shop.
 
+- You can pass parameter *lastOrder* in `createOrder` of `CheckoutManager`. Default is true. It can allow you to create a set of orders
+  (just calling multiple createOrder in loop).
+  With last order please pass parameter with *true* value. Following changes they are based on the need to create a set of orders.
+- You can specify cart in `createOrder` of `CheckoutManager` in parameter with name *cart*.
+- In following previous change you can call `getTopLevelItems` and `getItems` of `CheckoutManager` with *cart* parameter.
+
 ### Changed
 
 - **BREAKING:** PHP version 8.2 or higher is required
@@ -67,6 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **BREAKING:** Content (name, content, perex) import option "with the longest content" is removed
   - **BREAKING:** Content is regardless of import option imported only if content of product is empty
 - **BREAKING:** `Product::toArray` now accepts `$shop` and `$selectContent` parameters. `$selectContent` defaults to true, so it selects content, even if it is not loaded. That can lead to performance issue, so always check how you use this.
+- **BREAKING:** changed behavior `createCart` of `CheckoutManager`
+  - If *active* parameter is false. No longer triggers event *onCartCreate*.
+  - If *active* parameter is false. Property *activeCart* in shopper customer s not updated.
 - XML exports accepts Shop parameter and used entities are affected by it.
 - PriceList selects in XML exports now shows all PriceLists, even from different Shops. Truly active PriceLists are filtered afterward in exports.
 - Category code must be unique within the CategoryType
