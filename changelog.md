@@ -28,10 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             - *ProductRepository::getProducts* does this automatically and properties are available in Product getters, or directly in SQL as alias *visibilityListItem*
 - **BREAKING:** Product content (content, perex) is not stored in Product but in ProductContent, based on Shop.
 
-- You can pass parameter *lastOrder* in `createOrder` of `CheckoutManager`. Default is true. It can allow you to create a set of orders
+- You can pass parameter *lastOrder* of `CheckoutManager::createOrder`. Default is true. It can allow you to create a set of orders
   (just calling multiple createOrder in loop).
   With last order please pass parameter with *true* value. Following changes they are based on the need to create a set of orders.
-- You can specify cart in `createOrder` of `CheckoutManager` in parameter with name *cart*.
+- You can specify cart of `CheckoutManager::createOrder` in parameter with name *cart*.
 - In following previous change you can call `getTopLevelItems` and `getItems` of `CheckoutManager` with *cart* parameter.
 
 ### Changed
@@ -56,7 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **BREAKING:** Content (name, content, perex) import option "with the longest content" is removed
   - **BREAKING:** Content is regardless of import option imported only if content of product is empty
 - **BREAKING:** `Product::toArray` now accepts `$shop` and `$selectContent` parameters. `$selectContent` defaults to true, so it selects content, even if it is not loaded. That can lead to performance issue, so always check how you use this.
-- **BREAKING:** changed behavior `createCart` of `CheckoutManager`
+- **BREAKING:** `ProductRepository::getProduct` parameter *productUuid* renamed to *$condition*. Now it is union type accepts array for *whereMatch* or exact *uuid*.
+- **BREAKING:** changed behavior of `CheckoutManager::createCart`
   - If *active* parameter is false. No longer triggers event *onCartCreate*.
   - If *active* parameter is false. Property *activeCart* in shopper customer s not updated.
 - XML exports accepts Shop parameter and used entities are affected by it.

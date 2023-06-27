@@ -67,12 +67,16 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	}
 	
 	/**
-	 * @param string $productUuid
+	 * @param array|string $condition
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getProduct(string $productUuid): mixed
+	public function getProduct(array|string $condition): mixed
 	{
-		return $this->getProducts()->where('this.uuid', $productUuid)->first(true);
+		if (\is_array($condition)) {
+			return $this->getProducts()->whereMatch($condition)->first(true);
+		}
+		
+		return $this->getProducts()->where('this.uuid', $condition)->first(true);
 	}
 	
 	public function getProductsAsCustomer(?Customer $customer, bool $selects = true): Collection
