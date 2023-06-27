@@ -102,20 +102,14 @@ class CategoryForm extends Control
 		$imagePicker = $form->addImagePicker('ogImageFileName', 'OG Image', [
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => function (Image $image): void {
-				$image->resize($this->shopper->getCategoriesImage()['detail']['width'], $this->shopper->getCategoriesImage()['detail']['height']);
+				$image->resize(600, 315);
 			},
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => function (Image $image): void {
-				$image->resize($this->shopper->getCategoriesImage()['thumb']['width'], $this->shopper->getCategoriesImage()['thumb']['height']);
+				$image->resize(300, 158);
 			},
 		]);
 
-		if ($this->shopper->getCategoriesImage()['detail']['width']) {
-			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální šířce ' . $this->shopper->getCategoriesImage()['detail']['width'] . 'px.');
-		}
-
-		if ($this->shopper->getCategoriesImage()['detail']['height']) {
-			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce ' . $this->shopper->getCategoriesImage()['detail']['height'] . 'px.');
-		}
+		$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimálních rozměrech 600 x 315 px.');
 
 		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {
 			$imagePicker->onDelete[] = function (array $directories, $filename) use ($category, $presenter): void {
