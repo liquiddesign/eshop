@@ -115,6 +115,8 @@ class RedisProductProvider
 			return;
 		}
 
+		$redis->connect();
+
 		if (!$redis->isConnected()) {
 			return;
 		}
@@ -304,9 +306,14 @@ class RedisProductProvider
 			return false;
 		}
 
+		$redis->connect();
+
 		if (!$redis->isConnected()) {
 			return false;
 		}
+
+//		\dump('connect');
+//		\dump(Debugger::timer());
 
 		$cacheReady = $redis->get('cacheReady');
 
@@ -314,34 +321,42 @@ class RedisProductProvider
 			return false;
 		}
 
+//		\dump('ready');
+//		\dump(Debugger::timer());
 		$category = isset($filters['category']) ? $this->categoryRepository->many()->where('this.path', $filters['category'])->first(true) : null;
 
 		$products = $category ? $redis->smembers("productsInCategory:{$category->getPK()}") : $redis->smembers('products');
-
+//		\dump('smembers');
+//		\dump(Debugger::timer());
 		$prefixedArray = \array_map(function ($value) {
 			return 'product:' . $value;
 		}, $products);
-
+//		\dump('map');
+//		\dump(Debugger::timer());
 		$loadedProductsFromRedis = $prefixedArray ? $redis->mget($prefixedArray) : [];
-
-		foreach ($loadedProductsFromRedis as $key => $loadedProductFromRedis) {
-			$unSerializedProduct = \unserialize($loadedProductFromRedis);
-
-			$loadedProductsFromRedis[$unSerializedProduct['uuid']] = $unSerializedProduct;
-			unset($loadedProductsFromRedis[$key]);
-		}
-
+//		\dump('mget');
+//		\dump(Debugger::timer());
+//		foreach ($loadedProductsFromRedis as $key => $loadedProductFromRedis) {
+//			$unSerializedProduct = \unserialize($loadedProductFromRedis);
+//
+//			$loadedProductsFromRedis[$unSerializedProduct['uuid']] = $unSerializedProduct;
+//			unset($loadedProductsFromRedis[$key]);
+//		}
+////		\dump('pre_processing');
+////		\dump(Debugger::timer());
+		$unOrderedResult = [];
 		$orderedResult = [];
 		$attributeValuesCounts = [];
 		$displayAmountsCounts = [];
 		$producersCounts = [];
 
-		foreach ($products as $productPK) {
+		foreach ($loadedProductsFromRedis as $key => $loadedProductFromRedis) {
 //			if ($productPK === '563a8771e84ea36646c67e2d1162e94b') {
 //				xdebug_break();
 //			}
 
-			$product = $loadedProductsFromRedis[$productPK];
+			$product = \unserialize($loadedProductFromRedis);
+			$productPK = $product['uuid'];
 
 			foreach ($this::ALLOWED_FILTER_PROPERTIES as $filterLocation => $productLocation) {
 				$filterLocationExploded = \explode('.', $filterLocation);
@@ -442,6 +457,8 @@ class RedisProductProvider
 				}
 			}
 
+			$unOrderedResult[$productPK] = true;
+
 			if (!$orderByName) {
 				$orderedResult[] = $productPK;
 
@@ -455,14 +472,17 @@ class RedisProductProvider
 //			foreach ($this->allowedOrders[$orderByName] as $order) {
 //
 //			}
-			$orderedResult[$activeVisibilityListItem['priority']][$product['displayAmount.isSold']][(int) $activePrice['price']][$productPK] = true;
+			$orderedResult[(int) $activeVisibilityListItem['priority']][(int) $product['displayAmount.isSold']][(int) $activePrice['price']][$productPK] = true;
 //			$orderedResult[(int)$activePrice['price']][$productPK] = true;
 		}
 
 		$this->recursiveKSort($orderedResult, $orderByDirection);
 
+		$finalResults = [];
+		$this->flattenArray($orderedResult, $finalResults);
+
 		return $this->cache[$cacheIndex] = [
-			'productPKs' => $this->flattenArray($orderedResult),
+			'productPKs' => $finalResults,
 			'attributeValuesCounts' => $attributeValuesCounts,
 			'displayAmountsCounts' => $displayAmountsCounts,
 			'producersCounts' => $producersCounts,
@@ -519,20 +539,15 @@ class RedisProductProvider
 
 	/**
 	 * @param array<mixed> $array
-	 * @return array<mixed>
 	 */
-	private function flattenArray(array $array): array
+	private function flattenArray(array $array, array &$finalResults): void
 	{
-		$result = [];
-
 		foreach ($array as $key => $value) {
 			if (\is_array($value)) {
-				$result = \array_merge($result, $this->flattenArray($value));
+				$this->flattenArray($value, $finalResults);
 			} else {
-				$result[] = $key;
+				$finalResults[] = $key;
 			}
 		}
-
-		return $result;
 	}
 }

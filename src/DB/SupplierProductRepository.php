@@ -157,9 +157,9 @@ class SupplierProductRepository extends \StORM\Repository
 				$uuid = $draft->getValue('product');
 			}
 
-			if ($draft->code === '311532342') {
-				xdebug_break();
-			}
+//			if ($draft->code === '311532342') {
+//				xdebug_break();
+//			}
 			
 			$primary = isset($productsMap[$uuid]) && $productsMap[$uuid]->sourcePK === $supplierId;
 			
