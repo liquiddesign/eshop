@@ -17,7 +17,7 @@ class CartImportForm extends Form
 	 * @var array<callable(self, array|object): void|callable(array|object): void>
 	 */
 	public $onValidate = [];
-
+	
 	/**
 	 * @var array<string>
 	 */
@@ -26,10 +26,10 @@ class CartImportForm extends Form
 	public function __construct(private readonly ShopperUser $shopperUser, private readonly ProductRepository $productRepository)
 	{
 		parent::__construct();
-
+		
 		$this->addTextArea('pasteArea');
 		$this->addUpload('importFile');
-//			->addRule(Form::MIME_TYPE, 'Soubor musí být ve formátu CSV', 'text/csv');
+		//			->addRule(Form::MIME_TYPE, 'Soubor musí být ve formátu CSV', 'text/csv');
 		$this->addSubmit('submit');
 		$this->onValidate[] = [$this, 'importAttempt'];
 	}
@@ -49,13 +49,10 @@ class CartImportForm extends Form
 		$notFoundProducts = [];
 		
 		foreach ($this->items as $code => $amount) {
-			$supplierPrefixSqlIF = 'IF(ISNULL(supplier.productCodePrefix), this.code, SUBSTRING(this.code,LENGTH(supplier.productCodePrefix)+1))';
+			$code = \str_replace('.', '_', Strings::trim((string) $code));
 			
 			/** @var \Eshop\DB\Product|null $product */
-			$product = $this->productRepository->getProducts()
-				->where('IF(this.subCode, CONCAT(' . $supplierPrefixSqlIF . ',".",this.subCode),' . $supplierPrefixSqlIF . ') = :code OR this.ean = :code', ['code' => $code])
-				->join(['supplier' => 'eshop_supplier'], 'supplier.uuid = this.fk_supplierSource')
-				->first();
+			$product = $this->productRepository->getProducts()->where('this.uuid = :code OR this.ean = :code', ['code' => $code])->setTake(1)->first();
 			
 			if ($product) {
 				try {
@@ -64,6 +61,8 @@ class CartImportForm extends Form
 					$notFoundProducts[] = $code . ' ' . $amount;
 				}
 			} else {
+				$form->addError($code);
+				
 				$notFoundProducts[] = $code . ' ' . $amount;
 			}
 		}
@@ -72,15 +71,15 @@ class CartImportForm extends Form
 		if (!$notFoundProducts) {
 			return;
 		}
-
-		$form->addError('Některé z produktů nebyly nalezeny. Zkontrolujte prosím jejich zadání');
-
+		
+		//		$form->addError('Některé z produktů nebyly nalezeny. Zkontrolujte prosím jejich zadání');
+		
 		/** @var \Nette\Forms\Controls\TextArea $control */
 		$control = $form['pasteArea'];
-
+		
 		$control->value = \implode("\n", $notFoundProducts);
 	}
-
+	
 	private function parseCSVFile(FileUpload $importFile): void
 	{
 		$delimiter = $this->detectDelimiter($importFile->getTemporaryFile());
@@ -88,7 +87,7 @@ class CartImportForm extends Form
 		if (($handle = \fopen($importFile->getTemporaryFile(), 'r')) === false) {
 			return;
 		}
-
+		
 		while (($data = \fgetcsv($handle, 1000, $delimiter)) !== false) {
 			[$productId, $amount] = $data;
 			
