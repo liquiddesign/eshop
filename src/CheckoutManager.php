@@ -344,7 +344,7 @@ class CheckoutManager
 	
 	public function cartExists(?string $id = self::ACTIVE_CART_ID): bool
 	{
-		return (bool) $this->getRealCart($id);
+		return (bool) ($id === self::ACTIVE_CART_ID ? $this->getActiveCart() : $this->getRealCart($id));
 	}
 
 	public function getCart(?string $id = self::ACTIVE_CART_ID, bool $createIfNotExists = true): Cart
