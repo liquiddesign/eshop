@@ -1462,7 +1462,7 @@ class CheckoutManager
 
 		$cart->update([
 			'approved' => ($customer && $customer->orderPermission === 'full') || !$customer ? 'yes' : 'waiting',
-			'finished' => Carbon::now()->toDateTimeString(),
+			'closedTs' => Carbon::now()->toDateTimeString(),
 		]);
 
 		// create customer
@@ -1818,7 +1818,7 @@ class CheckoutManager
 			$cart = $this->shopperUser->getCustomer()->activeCart;
 		} elseif ($this->shopperUser->getCustomer()) {
 			$cart = $this->cartRepository->many()
-				->where('closed IS NOT NULL')
+				->where('closedTs IS NOT NULL')
 				->whereMatch(['id' => $id, 'fk_customer' => $this->shopperUser->getCustomer()])
 				->first();
 			
