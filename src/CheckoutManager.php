@@ -1325,7 +1325,7 @@ class CheckoutManager
 		return $purchase;
 	}
 
-	public function getPurchase(bool $needed = false, string $cartId = self::DEFAULT_CART_ID): ?Purchase
+	public function getPurchase(bool $needed = false, ?string $cartId = self::ACTIVE_CART_ID): ?Purchase
 	{
 		$purchase = $this->getCart($cartId)->purchase;
 
