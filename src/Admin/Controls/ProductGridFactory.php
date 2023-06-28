@@ -315,7 +315,7 @@ class ProductGridFactory
 			'default',
 			null,
 			function ($id, Product $object, $values, $relations) {
-				if ($values['keep']['supplierContent'] === false) {
+				if (isset($values['keep']['supplierContent']) && $values['keep']['supplierContent'] === false) {
 					if ($values['values']['supplierContent'] === 'none') {
 						$values['values']['supplierContent'] = null;
 						$values['values']['supplierContentLock'] = true;
