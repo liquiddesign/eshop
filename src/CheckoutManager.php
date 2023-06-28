@@ -517,14 +517,14 @@ class CheckoutManager
 		
 		return $cart;
 	}
-	
-	public function switchCart(string $id): Cart
+
+	public function switchCart(string $id, bool $createIfNotExists = false): Cart
 	{
 		$this->stm->getLink()->beginTransaction();
 		
 		$this->getCart()->update(['activate' => false]);
 		
-		$cart = $this->getCart($id, false);
+		$cart = $this->getCart($id, $createIfNotExists);
 		$cart->update(['activate' => true]);
 		
 		if ($this->shopperUser->getCustomer()) {
