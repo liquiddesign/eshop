@@ -511,8 +511,10 @@ class CheckoutManager
 			$this->shopperUser->getCustomer() ? $this->shopperUser->getCustomer()->update(['activeCart' => $cart]) : $this->unattachedCarts[$this->cartToken] = $cart;
 			
 			Arrays::invoke($this->onCartCreate, $cart);
+		} else {
+			$this->carts[$id] = $cart;
 		}
-
+		
 		return $cart;
 	}
 	
@@ -1733,6 +1735,10 @@ class CheckoutManager
 		
 		if ($isLastOrder) {
 			$this->createCart();
+		}
+		
+		if ($cartId !== self::ACTIVE_CART_ID) {
+			unset($this->carts[$cartId]);
 		}
 
 		$this->refreshSumProperties($cartId);
