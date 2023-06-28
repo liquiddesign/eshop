@@ -193,7 +193,6 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 				$values['header'] ? \array_merge(\array_values($headerColumns), \array_values($attributeColumns)) : null,
 				$values['suppliersCodes'] ?? [],
 				$getSupplierCodeCallback,
-				$values['visibilityLists'],
 			);
 
 			$form->getPresenter()->sendResponse(new FileResponse($tempFilename, 'products.csv', 'text/csv'));
