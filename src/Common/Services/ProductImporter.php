@@ -390,11 +390,8 @@ class ProductImporter
 					$relatedToSync['content']['shop'] = $selectedShop?->getPK();
 					$relatedToSync['content']['product'] = $product->uuid;
 				} elseif (isset($parsedVisibilityColumns[$key])) {
-					$relatedToSync['visibility'][] = [
-						'product' => $product->uuid,
-						'visibilityList' => $parsedVisibilityColumns[$key]['visibilityList'],
-						$parsedVisibilityColumns[$key]['property'] => $parsedVisibilityColumns[$key]['property'] === 'priority' ? \intval($value) : ($value === '1'),
-					];
+					$relatedToSync['visibility'][$parsedVisibilityColumns[$key]['visibilityList']][$product->uuid][$parsedVisibilityColumns[$key]['property']] =
+						$parsedVisibilityColumns[$key]['property'] === 'priority' ? \intval($value) : ($value === '1');
 				} elseif ($key === 'categories' || $key === 'Kategorie') {
 					$productsToDeleteCategories[] = $product->uuid;
 					$valueCategories = \explode(',', $value);
@@ -434,7 +431,17 @@ class ProductImporter
 			}
 
 			$this->productContentRepository->syncOne($relatedToSync['content']);
-			$this->visibilityListItemRepository->syncMany($relatedToSync['visibility']);
+
+			foreach ($relatedToSync['visibility'] as $visibilityListPK => $value) {
+				foreach ($value as $productPK => $data) {
+					$this->visibilityListItemRepository->syncOne([
+						'visibilityList' => $visibilityListPK,
+						'product' => $productPK,
+					] + $data, ignore: false);
+				}
+			}
+
+//			$this->visibilityListItemRepository->syncMany($relatedToSync['visibility']);
 
 			if (!$updateAttributes) {
 				continue;
