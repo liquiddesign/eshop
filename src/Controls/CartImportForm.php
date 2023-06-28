@@ -24,7 +24,7 @@ class CartImportForm extends Form
 	/**
 	 * @var array<string>
 	 */
-	private array $items = [];
+	protected array $items = [];
 	
 	public function __construct(private readonly ShopperUser $shopperUser, private readonly ProductRepository $productRepository)
 	{
@@ -52,10 +52,8 @@ class CartImportForm extends Form
 		$notFoundProducts = [];
 		
 		foreach ($this->items as $code => $amount) {
-			$code = \str_replace('.', '_', Strings::trim((string) $code));
-			
 			/** @var \Eshop\DB\Product|null $product */
-			$product = $this->productRepository->getProducts()->where('this.uuid = :code OR this.ean = :code', ['code' => $code])->setTake(1)->first();
+			$product = $this->productRepository->getProducts()->where('this.code = :code OR this.ean = :code', ['code' => $code])->setTake(1)->first();
 			
 			if ($product) {
 				try {
@@ -64,8 +62,6 @@ class CartImportForm extends Form
 					$notFoundProducts[] = $code . ' ' . $amount;
 				}
 			} else {
-				$form->addError($code);
-				
 				$notFoundProducts[] = $code . ' ' . $amount;
 			}
 		}
@@ -75,7 +71,7 @@ class CartImportForm extends Form
 			return;
 		}
 		
-		//		$form->addError('Některé z produktů nebyly nalezeny. Zkontrolujte prosím jejich zadání');
+		$form->addError('Některé z produktů nebyly nalezeny. Zkontrolujte prosím jejich zadání');
 		
 		/** @var \Nette\Forms\Controls\TextArea $control */
 		$control = $form['pasteArea'];
@@ -83,7 +79,7 @@ class CartImportForm extends Form
 		$control->value = \implode("\n", $notFoundProducts);
 	}
 	
-	private function parseCSVFile(FileUpload $importFile): void
+	protected function parseCSVFile(FileUpload $importFile): void
 	{
 		$delimiter = $this->detectDelimiter($importFile->getTemporaryFile());
 		
@@ -104,7 +100,7 @@ class CartImportForm extends Form
 		\fclose($handle);
 	}
 	
-	private function parsePasteArea(string $pasteArea): void
+	protected function parsePasteArea(string $pasteArea): void
 	{
 		foreach (\explode('<br />', \nl2br(Strings::trim($pasteArea))) as $row) {
 			$productRow = \preg_split('/\s+/', Strings::trim($row));
