@@ -522,7 +522,7 @@ class CheckoutManager
 	{
 		$this->stm->getLink()->beginTransaction();
 		
-		$this->getCart()->update(['activate' => true]);
+		$this->getCart()->update(['activate' => false]);
 		
 		$cart = $this->getCart($id, false);
 		$cart->update(['activate' => true]);
