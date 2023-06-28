@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Setup PHP Action
+        uses: shivammathur/setup-php@v2
+
       - name: CRLF
         run: |
           git config --global core.autocrlf true
