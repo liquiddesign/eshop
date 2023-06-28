@@ -688,7 +688,7 @@ class CheckoutManager
 		$this->cartItemRepository->updateNote($this->getCart($cartId), $product, $variant, $note);
 	}
 
-	public function getItems(string $cartId = self::DEFAULT_CART_ID): Collection
+	public function getItems(?string $cartId = self::ACTIVE_CART_ID): Collection
 	{
 		return $this->cartExists($cartId) ? $this->cartItemRepository->getItems([$this->getCart($cartId)->getPK()]) : $this->cartItemRepository->many()->where('1=0');
 	}
