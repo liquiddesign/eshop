@@ -160,13 +160,25 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid, $items, $attributes, $getSupplierCodeCallback): void {
 			$values = $form->getValues('array');
 
-			$products = $values['bulkType'] === 'selected' ? $this->productRepository->many()->where('this.uuid', $ids) : $productGrid->getFilteredSource();
+			$products = $this->productRepository->many()->where('this.uuid', $values['bulkType'] === 'selected' ?
+				$ids :
+				$productGrid->getFilteredSource()->setSelect(['this.uuid'])->setOrderBy([])->toArrayOf('uuid'));
 
 			$tempFilename = \tempnam($this->tempDir, 'csv');
 
 			$headerColumns = \array_filter($items, function ($item) use ($values) {
 				return Arrays::contains($values['columns'], $item);
 			}, \ARRAY_FILTER_USE_KEY);
+
+			foreach ($values['visibilityLists'] as $visibilityListPK) {
+				$visibilityList = $this->visibilityListRepository->one($visibilityListPK, true);
+
+				$headerColumns["hidden#$visibilityList->code"] = "Skryto#$visibilityList->code";
+				$headerColumns["hiddenInMenu#$visibilityList->code"] = "Skryto v menu a vyhledávání#$visibilityList->code";
+				$headerColumns["unavailable#$visibilityList->code"] = "Neprodejné#$visibilityList->code";
+				$headerColumns["recommended#$visibilityList->code"] = "Doporučeno#$visibilityList->code";
+				$headerColumns["priority#$visibilityList->code"] = "Priorita#$visibilityList->code";
+			}
 
 			$attributeColumns = \array_filter($attributes, function ($item) use ($values) {
 				return Arrays::contains($values['attributes'], $item);
@@ -214,27 +226,10 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 		?array $header = null,
 		array $supplierCodes = [],
 		?callable $getSupplierCodeCallback = null,
-		array $visibilityLists = [],
 	): void {
 		$writer->setDelimiter($delimiter);
 
 		EncloseField::addTo($writer, "\t\22");
-
-		foreach ($visibilityLists as $visibilityListPK) {
-			$visibilityList = $this->visibilityListRepository->one($visibilityListPK, true);
-
-			$header[] = "Skryto#$visibilityList->code";
-			$header[] = "Skryto v menu a vyhledávání#$visibilityList->code";
-			$header[] = "Neprodejné#$visibilityList->code";
-			$header[] = "Doporučeno#$visibilityList->code";
-			$header[] = "Priorita#$visibilityList->code";
-
-			$columns["hidden#$visibilityList->code"] = "Skryto#$visibilityList->code";
-			$columns["hiddenInMenu#$visibilityList->code"] = "Skryto v menu a vyhledávání#$visibilityList->code";
-			$columns["unavailable#$visibilityList->code"] = "Neprodejné#$visibilityList->code";
-			$columns["recommended#$visibilityList->code"] = "Doporučeno#$visibilityList->code";
-			$columns["priority#$visibilityList->code"] = "Priorita#$visibilityList->code";
-		}
 
 		$completeHeaders = \array_merge($header, $supplierCodes);
 
@@ -331,6 +326,12 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 				} elseif ($columnKey === 'storeAmount') {
 					$row[] = $product->amounts;
 				} elseif ($columnKey === 'categories') {
+					if (!$product->groupedCategories) {
+						$row[] = null;
+
+						continue;
+					}
+
 					$categories = \explode(',', $product->groupedCategories);
 					$categoriesString = null;
 
