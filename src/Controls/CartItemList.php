@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Eshop\CheckoutManager;
 use Eshop\DB\CartItemRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\WatcherRepository;
@@ -34,6 +35,8 @@ class CartItemList extends Datalist
 	 * @var array<callable(): void> Occurs on delete all items
 	 */
 	public array $onDeleteAll = [];
+	
+	public ?string $cartId = CheckoutManager::ACTIVE_CART_ID;
 
 	public function __construct(
 		private readonly CartItemRepository $cartItemsRepository,
@@ -149,11 +152,11 @@ class CartItemList extends Datalist
 
 	public function render(): void
 	{
-		$this->template->cartCurrency = $this->shopperUser->getCheckoutManager()->getCartCurrencyCode();
-		$this->template->cartItems = $this->shopperUser->getCheckoutManager()->getItems();
-		$this->template->discountCoupon = $this->shopperUser->getCheckoutManager()->getDiscountCoupon();
-		$this->template->discountPrice = $this->shopperUser->getCheckoutManager()->getDiscountPrice();
-		$this->template->discountPriceVat = $this->shopperUser->getCheckoutManager()->getDiscountPriceVat();
+		$this->template->cartCurrency = $this->shopperUser->getCheckoutManager()->getCartCurrencyCode($this->cartId);
+		$this->template->cartItems = $this->shopperUser->getCheckoutManager()->getItems($this->cartId);
+		$this->template->discountCoupon = $this->shopperUser->getCheckoutManager()->getDiscountCoupon($this->cartId);
+		$this->template->discountPrice = $this->shopperUser->getCheckoutManager()->getDiscountPrice($this->cartId);
+		$this->template->discountPriceVat = $this->shopperUser->getCheckoutManager()->getDiscountPriceVat($this->cartId);
 		$this->template->watchers = ($customer = $this->shopperUser->getCustomer()) ? $this->watcherRepository->getWatchersByCustomer($customer)->setIndex('fk_product')->toArray() : [];
 
 		/** @var array<\Eshop\DB\CartItem> $cartItems */

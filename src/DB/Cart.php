@@ -10,6 +10,7 @@ use StORM\RelationCollection;
 /**
  * Košík
  * @table
+ * @index{"name":"cart_id","columns":["id","fk_customer","closedTs"]}
  */
 class Cart extends ShopEntity
 {
@@ -19,7 +20,13 @@ class Cart extends ShopEntity
 	 * Číslo košíku
 	 * @column
 	 */
-	public int $id;
+	public string $id;
+	
+	/**
+	 * Hash nepřipojeného košíku
+	 * @column
+	 */
+	public ?string $cartToken = null;
 	
 	/**
 	 * Aktivní košík
@@ -43,7 +50,13 @@ class Cart extends ShopEntity
 	 * Expiruje
 	 * @column{"type":"timestamp"}
 	 */
-	public ?string $expirationTs;
+	public ?string $expirationTs = null;
+	
+	/**
+	 * Uzavřený
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $closedTs = null;
 	
 	/**
 	 * Měna

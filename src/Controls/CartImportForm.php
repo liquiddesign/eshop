@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\BuyException;
+use Eshop\CheckoutManager;
 use Eshop\DB\ProductRepository;
 use Eshop\ShopperUser;
 use Nette\Application\UI\Form;
@@ -17,6 +18,8 @@ class CartImportForm extends Form
 	 * @var array<callable(self, array|object): void|callable(array|object): void>
 	 */
 	public $onValidate = [];
+	
+	public ?string $cartId = CheckoutManager::ACTIVE_CART_ID;
 	
 	/**
 	 * @var array<string>
@@ -56,7 +59,7 @@ class CartImportForm extends Form
 			
 			if ($product) {
 				try {
-					$this->shopperUser->getCheckoutManager()->addItemToCart($product, null, \intval($amount), checkCanBuy: false);
+					$this->shopperUser->getCheckoutManager()->addItemToCart($product, null, \intval($amount), checkCanBuy: false, cartId: $this->cartId);
 				} catch (BuyException) {
 					$notFoundProducts[] = $code . ' ' . $amount;
 				}

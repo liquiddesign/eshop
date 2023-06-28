@@ -535,7 +535,7 @@ class ShopperUser extends User
 			$catalogPerm = $customer->getCatalogPermission();
 		}
 
-		return $customer ? $catalogPerm->showPricesWithoutVat : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricesWithoutVat;
+		return $customer && $catalogPerm ? $catalogPerm->showPricesWithoutVat : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricesWithoutVat;
 	}
 
 	/**
