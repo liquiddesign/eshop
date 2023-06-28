@@ -1817,12 +1817,17 @@ class CheckoutManager
 		} elseif ($this->shopperUser->getCustomer()->activeCart?->id === $id) {
 			$cart = $this->shopperUser->getCustomer()->activeCart;
 		} elseif ($this->shopperUser->getCustomer()) {
+			if (\array_key_exists($id, $this->carts)) {
+				return $this->carts[$id];
+			}
+			
 			$cart = $this->cartRepository->many()
-				->where('closedTs IS NOT NULL')
+				->where('closedTs IS NULL')
 				->whereMatch(['id' => $id, 'fk_customer' => $this->shopperUser->getCustomer()])
+				->setTake(1)
 				->first();
 			
-			if ($saveToCache && $cart) {
+			if ($saveToCache) {
 				$this->carts[$id] = $cart;
 			}
 		}
