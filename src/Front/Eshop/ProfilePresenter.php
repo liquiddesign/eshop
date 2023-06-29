@@ -232,7 +232,7 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 		$watcherList = $this->watcherListFactory->create();
 		$watcherList->onAnchor[] = function (WatcherList $watcherList): void {
 			$watcherList->template->setFile(\dirname(__DIR__, 6) . '/app/Eshop/Controls/watcherList.latte');
-			$watcherList->template->products = $this->productRepository->getProducts()->join(['watcher' => 'eshop_watcher'], 'this.uuid = watcher.fk_product');
+//			$watcherList->template->products = $this->productRepository->getProducts()->join(['watcher' => 'eshop_watcher'], 'this.uuid = watcher.fk_product');
 		};
 		
 		return $watcherList;
