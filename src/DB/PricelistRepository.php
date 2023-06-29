@@ -244,12 +244,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	 */
 	public function toArrayForSelect(Collection $collection): array
 	{
-		return $collection
-			->select(['fullName' => "IF(this.systemicLock > 0,
-				CONCAT(this.name, '(', this.code, ',systémový,', COALESCE(shop.uuid,'společný'), ')'),
-				CONCAT(this.name, '(', this.code, ',', COALESCE(shop.uuid, 'společný'), ')')
-			)"])
-			->toArrayOf('fullName');
+		return $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection($collection, uniqueColumnName: 'this.code'));
 	}
 
 	public function getDefaultPricelists(): Collection

@@ -494,7 +494,7 @@ class CustomerPresenter extends BackendPresenter
 		$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired()->setDisabled((bool) $customer);
 		$form->addText('ccEmails', 'Kopie e-mailů')->setHtmlAttribute('data-info', 'Zadejte e-mailové adresy oddělené středníkem (;).');
 		
-		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->many()->toArrayOf('name'))
+		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...')
 			->setDisabled(!$this->isManager);
 		$form->addMultiSelect2('visibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect())

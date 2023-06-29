@@ -201,7 +201,7 @@ class ProductList extends Datalist
 //			'price.priceVat',
 //		]);
 //
-//		Debugger::timer();
+//		\Tracy\Debugger::timer();
 //		$redisProducts = $this->redisProductProvider->getProductsFromRedis(
 //			$this->getFilters(),
 //			'priorityAvailabilityPrice',
@@ -209,7 +209,7 @@ class ProductList extends Datalist
 //			$this->shopperUser->getPricelists()->toArray(),
 //			$this->shopperUser->getVisibilityLists(),
 //		);
-//		Debugger::dump(Debugger::timer());
+//		\Tracy\Debugger::dump(\Tracy\Debugger::timer());
 //
 //		if ($redisProducts) {
 //			$this->redisCounts = [

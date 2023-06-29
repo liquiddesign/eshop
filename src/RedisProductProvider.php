@@ -259,8 +259,12 @@ class RedisProductProvider
 		$redis->mset($serializedProducts);
 
 		foreach ($productsByCategories as $category => $products) {
+			$prefixedProducts = \array_map(function ($value) {
+				return 'product:' . $value;
+			}, \array_keys($products));
+
 			$redis->del("productsInCategory:$category");
-			$redis->sadd("productsInCategory:$category", \array_keys($products));
+			$redis->sadd("productsInCategory:$category", $prefixedProducts);
 		}
 
 		$redis->set('cacheReady', 1);
@@ -294,6 +298,23 @@ class RedisProductProvider
 			\array_keys($priceLists),
 			\array_keys($visibilityLists),
 		]);
+//		\Tracy\Debugger::timer();
+//		$rpc = new \Spiral\Goridge\RPC\RPC(
+//			\Spiral\Goridge\Relay::create('tcp://127.0.0.1:6001')
+//		);
+//		\Tracy\Debugger::dump(\Tracy\Debugger::timer());
+//
+//		$filters['category'] = isset($filters['category']) ? $this->categoryRepository->many()->where('this.path', $filters['category'])->first(true)->getPK() : null;
+//
+//		\Tracy\Debugger::dump($rpc->call('App.GetProductsFromRedis', [
+//			'Filters' => $filters,
+//			'OrderByName' => $orderByName,
+//			'OrderByDirection' => $orderByDirection,
+//			'PriceLists' => $priceLists,
+//			'VisibilityLists' => $visibilityLists,
+//		]));
+//		\Tracy\Debugger::dump(\Tracy\Debugger::timer());
+//		die();
 
 		if (isset($this->cache[$cacheIndex])) {
 			return $this->cache[$cacheIndex];
@@ -328,14 +349,12 @@ class RedisProductProvider
 		$products = $category ? $redis->smembers("productsInCategory:{$category->getPK()}") : $redis->smembers('products');
 //		\dump('smembers');
 //		\dump(Debugger::timer());
-		$prefixedArray = \array_map(function ($value) {
-			return 'product:' . $value;
-		}, $products);
 //		\dump('map');
 //		\dump(Debugger::timer());
-		$loadedProductsFromRedis = $prefixedArray ? $redis->mget($prefixedArray) : [];
+		$loadedProductsFromRedis = $products ? $redis->mget($products) : [];
 //		\dump('mget');
 //		\dump(Debugger::timer());
+
 //		foreach ($loadedProductsFromRedis as $key => $loadedProductFromRedis) {
 //			$unSerializedProduct = \unserialize($loadedProductFromRedis);
 //
@@ -350,7 +369,7 @@ class RedisProductProvider
 		$displayAmountsCounts = [];
 		$producersCounts = [];
 
-		foreach ($loadedProductsFromRedis as $key => $loadedProductFromRedis) {
+		foreach ($loadedProductsFromRedis as $loadedProductFromRedis) {
 //			if ($productPK === '563a8771e84ea36646c67e2d1162e94b') {
 //				xdebug_break();
 //			}

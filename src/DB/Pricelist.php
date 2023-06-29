@@ -30,6 +30,12 @@ class Pricelist extends ShopSystemicEntity
 	 * @column
 	 */
 	public bool $isActive;
+
+	/**
+	 * Ceny se nastavují jen importy/programově
+	 * @column
+	 */
+	public bool $isReadonly = false;
 	
 	/**
 	 * Je nákupní?

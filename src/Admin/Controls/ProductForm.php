@@ -437,27 +437,26 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			/** @var null|string $autoPriceConfig */
 			$autoPriceConfig = $this->configuration[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
-			/** @var \Eshop\DB\Price $prc */
 			foreach ($pricelistRepository->many() as $prc) {
 				$pricelist = $prices->addContainer($prc->getPK());
 				$pricelist->addText('price')
 					->setNullable()
-					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT)
+					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT || $prc->isReadonly)
 					->addCondition($form::FILLED)
 					->addRule($form::FLOAT);
 				$pricelist->addText('priceVat')
 					->setNullable()
-					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT)
+					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT || $prc->isReadonly)
 					->addCondition($form::FILLED)
 					->addRule($form::FLOAT);
 				$pricelist->addText('priceBefore')
 					->setNullable()
-					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT)
+					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT || $prc->isReadonly)
 					->addCondition($form::FILLED)
 					->addRule($form::FLOAT);
 				$pricelist->addText('priceVatBefore')
 					->setNullable()
-					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT)
+					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT || $prc->isReadonly)
 					->addCondition($form::FILLED)
 					->addRule($form::FLOAT);
 			}
@@ -715,6 +714,12 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		if ($pricesPermission) {
 			foreach ($values['prices'] as $pricelistId => $prices) {
+				$pricelist = $this->pricelistRepository->one($pricelistId);
+
+				if ($pricelist->isReadonly) {
+					continue;
+				}
+
 				/** @var null|string $autoPriceConfig */
 				$autoPriceConfig = $this->configuration[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
