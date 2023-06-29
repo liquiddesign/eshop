@@ -236,8 +236,6 @@ class ProductList extends Datalist
 //			}
 //		}
 //
-//		$source->setGroupBy([]);
-//
 //		$this->onLoad($source);
 //
 //		$this->itemsOnPage = $this->nestingCallback && !$this->filters ? $this->getNestedSource($source, null) : $source->toArray();
