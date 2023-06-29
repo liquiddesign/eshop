@@ -356,7 +356,7 @@ class CheckoutManager
 				throw new Nette\Application\ApplicationException("Cart #$id not exists");
 			}
 			
-			return $this->createCart($id, $id === self::ACTIVE_CART_ID);
+			return $this->createCart($id ?? self::DEFAULT_CART_ID, $id === self::ACTIVE_CART_ID);
 		}
 
 		return $cart;
