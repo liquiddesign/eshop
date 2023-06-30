@@ -114,6 +114,8 @@ class CheckoutManager
 
 	protected Collection $paymentTypes;
 	
+	protected ?Customer $customer = null;
+	
 	/**
 	 * @var array<string, float>
 	 */
@@ -236,16 +238,16 @@ class CheckoutManager
 
 	public function startup(): void
 	{
-		if (!$this->request->getCookie('cartToken') && !$this->shopperUser->getCustomer()) {
+		if (!$this->request->getCookie('cartToken') && !$this->getCustomer()) {
 			$this->cartToken = DIConnection::generateUuid();
 			$this->response->setCookie('cartToken', $this->cartToken, $this->cartExpiration . ' days');
 		} else {
 			$this->cartToken = $this->request->getCookie('cartToken');
 		}
 
-		if ($this->shopperUser->getCustomer() && $this->cartToken) {
+		if ($this->getCustomer() && $this->cartToken) {
 			if ($cart = $this->cartRepository->getUnattachedCart($this->cartToken)) {
-				$this->handleCartOnLogin($cart, $this->shopperUser->getCustomer());
+				$this->handleCartOnLogin($cart, $this->getCustomer());
 			}
 
 			$this->response->deleteCookie('cartToken');
@@ -253,6 +255,16 @@ class CheckoutManager
 		}
 
 		$this->lastOrderToken = $this->request->getCookie('lastOrderToken');
+	}
+	
+	public function getCustomer(): ?Customer
+	{
+		return $this->customer ?: $this->shopperUser->getCustomer();
+	}
+	
+	public function setCustomer(?Customer $customer): void
+	{
+		$this->customer = $customer;
 	}
 
 	/**
@@ -497,18 +509,18 @@ class CheckoutManager
 	public function createCart(string $id = self::DEFAULT_CART_ID, bool $activate = true): Cart
 	{
 		$cart = $this->cartRepository->createOne([
-			'uuid' => $this->shopperUser->getCustomer() ? null : ($id === self::DEFAULT_CART_ID ? $this->cartToken : null),
+			'uuid' => $this->getCustomer() ? null : ($id === self::DEFAULT_CART_ID ? $this->cartToken : null),
 			'id' => $id,
 			'active' => $activate,
-			'cartToken' => $this->shopperUser->getCustomer() ? null : $this->cartToken,
-			'customer' => $this->shopperUser->getCustomer() ?: null,
+			'cartToken' => $this->getCustomer() ? null : $this->cartToken,
+			'customer' => $this->getCustomer() ?: null,
 			'currency' => $this->shopperUser->getCurrency(),
-			'expirationTs' => $this->shopperUser->getCustomer() ? null : (string) new \Carbon\Carbon('+' . $this->cartExpiration . ' days'),
+			'expirationTs' => $this->getCustomer() ? null : (string) new \Carbon\Carbon('+' . $this->cartExpiration . ' days'),
 			'shop' => $this->shopsConfig->getSelectedShop(),
 		]);
 
 		if ($activate) {
-			$this->shopperUser->getCustomer() ? $this->shopperUser->getCustomer()->update(['activeCart' => $cart]) : $this->unattachedCarts[$this->cartToken] = $cart;
+			$this->getCustomer() ? $this->getCustomer()->update(['activeCart' => $cart]) : $this->unattachedCarts[$this->cartToken] = $cart;
 			
 			Arrays::invoke($this->onCartCreate, $cart);
 		} else {
@@ -527,8 +539,8 @@ class CheckoutManager
 		$cart = $this->getCart($id, $createIfNotExists);
 		$cart->update(['activate' => true]);
 		
-		if ($this->shopperUser->getCustomer()) {
-			$this->shopperUser->getCustomer()->update(['activeCart' => $cart]);
+		if ($this->getCustomer()) {
+			$this->getCustomer()->update(['activeCart' => $cart]);
 		}
 		
 		$this->stm->getLink()->commit();
@@ -674,8 +686,8 @@ class CheckoutManager
 
 		$this->cartRepository->deleteCart($cart);
 
-		if ($this->shopperUser->getCustomer() && $cart->active) {
-			$this->shopperUser->getCustomer()->activeCart = null;
+		if ($this->getCustomer() && $cart->active) {
+			$this->getCustomer()->activeCart = null;
 		} else {
 			unset($this->unattachedCarts[$this->cartToken]);
 		}
@@ -791,7 +803,7 @@ class CheckoutManager
 	{
 		return $this->paymentTypes ??= $this->paymentTypeRepository->getPaymentTypes(
 			$this->shopperUser->getCurrency(),
-			$this->shopperUser->getCustomer(),
+			$this->getCustomer(),
 			$this->shopperUser->getCustomerGroup(),
 			$this->shopsConfig->getSelectedShop(),
 		);
@@ -804,7 +816,7 @@ class CheckoutManager
 	{
 		$deliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes(
 			$this->shopperUser->getCurrency(),
-			$this->shopperUser->getCustomer(),
+			$this->getCustomer(),
 			$this->shopperUser->getCustomerGroup(),
 			$this->getDeliveryDiscount($vat),
 			$this->getMaxWeight(),
@@ -825,7 +837,7 @@ class CheckoutManager
 	{
 		return $this->deliveryTypeRepository->getDeliveryTypes(
 			$this->shopperUser->getCurrency(),
-			$this->shopperUser->getCustomer(),
+			$this->getCustomer(),
 			$this->shopperUser->getCustomerGroup(),
 			$this->getDeliveryDiscount($vat),
 			$this->getMaxWeight(),
@@ -1450,7 +1462,7 @@ class CheckoutManager
 			throw new BuyException('Coupon invalid!', BuyException::INVALID_COUPON);
 		}
 
-		$customer = $this->shopperUser->getCustomer();
+		$customer = $this->getCustomer();
 		$cart = $this->getCart($cartId);
 		$currency = $cart->currency;
 
@@ -1696,7 +1708,7 @@ class CheckoutManager
 		if ($isLastOrder) {
 			$this->response->setCookie('lastOrderToken', $order->getPK(), '1 hour');
 			
-			if (!$this->shopperUser->getCustomer()) {
+			if (!$this->getCustomer()) {
 				$this->cartToken = DIConnection::generateUuid();
 				$this->response->setCookie('cartToken', $this->cartToken, $this->cartExpiration . ' days');
 			}
@@ -1787,8 +1799,8 @@ class CheckoutManager
 
 	private function getActiveCart(): ?Cart
 	{
-		if ($this->shopperUser->getCustomer()) {
-			return $this->shopperUser->getCustomer()->activeCart;
+		if ($this->getCustomer()) {
+			return $this->getCustomer()->activeCart;
 		}
 		
 		if (!\array_key_exists($this->cartToken, $this->unattachedCarts)) {
@@ -1802,28 +1814,28 @@ class CheckoutManager
 	{
 		$cart = null;
 		
-		if ($id === self::DEFAULT_CART_ID && !$this->shopperUser->getCustomer() && $this->cartToken) {
+		if ($id === self::DEFAULT_CART_ID && !$this->getCustomer() && $this->cartToken) {
 			$cart = $this->unattachedCarts[$this->cartToken] ?? $this->cartRepository->one($this->cartToken);
 			
 			if ($saveToCache && $cart) {
 				$this->unattachedCarts[$this->cartToken] = $cart;
 			}
-		} elseif (!$this->shopperUser->getCustomer() && $this->cartToken) {
+		} elseif (!$this->getCustomer() && $this->cartToken) {
 			$cart = $this->cartRepository->one(['cartToken' => $this->cartToken]);
 			
 			if ($saveToCache && $cart) {
 				$this->unattachedCarts[$this->cartToken] = $cart;
 			}
-		} elseif ($this->shopperUser->getCustomer()->activeCart?->id === $id) {
-			$cart = $this->shopperUser->getCustomer()->activeCart;
-		} elseif ($this->shopperUser->getCustomer()) {
+		} elseif ($this->getCustomer()->activeCart?->id === $id) {
+			$cart = $this->getCustomer()->activeCart;
+		} elseif ($this->getCustomer()) {
 			if (\array_key_exists($id, $this->carts)) {
 				return $this->carts[$id];
 			}
 			
 			$cart = $this->cartRepository->many()
 				->where('closedTs IS NULL')
-				->whereMatch(['id' => $id, 'fk_customer' => $this->shopperUser->getCustomer()])
+				->whereMatch(['id' => $id, 'fk_customer' => $this->getCustomer()])
 				->setTake(1)
 				->first();
 			
@@ -1837,11 +1849,11 @@ class CheckoutManager
 
 	private function getProductRoundAmount(int $amount, Product $product): int
 	{
-		if (!$this->shopperUser->getCustomer() || !$this->shopperUser->getCustomer()->productRoundingPct) {
+		if (!$this->getCustomer() || !$this->getCustomer()->productRoundingPct) {
 			return $amount;
 		}
 
-		$prAmount = $amount * (1 + ($this->shopperUser->getCustomer()->productRoundingPct / 100));
+		$prAmount = $amount * (1 + ($this->getCustomer()->productRoundingPct / 100));
 
 		if ($product->inPalett > 0) {
 			$newAmount = $this->cartItemRepository->roundUpToProductRoundAmount($amount, $prAmount, $product->inPalett);
