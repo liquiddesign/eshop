@@ -6,6 +6,7 @@ namespace Eshop\Controls;
 
 use Eshop\BuyException;
 use Eshop\CheckoutManager;
+use Eshop\DB\Customer;
 use Eshop\DB\ProductRepository;
 use Eshop\ShopperUser;
 use Nette\Application\UI\Form;
@@ -20,6 +21,8 @@ class CartImportForm extends Form
 	public $onValidate = [];
 	
 	public ?string $cartId = CheckoutManager::ACTIVE_CART_ID;
+	
+	public ?Customer $customer = null;
 	
 	/**
 	 * @var array<string>
@@ -51,9 +54,12 @@ class CartImportForm extends Form
 		
 		$notFoundProducts = [];
 		
+		$customer = $this->customer ?: null;
+		$priceLists = $this->customer?->pricelists->toArray(true);
+		
 		foreach ($this->items as $code => $amount) {
 			/** @var \Eshop\DB\Product|null $product */
-			$product = $this->productRepository->getProducts()->where('this.code = :code OR this.ean = :code', ['code' => $code])->setTake(1)->first();
+			$product = $this->productRepository->getProducts($priceLists, $customer)->where('this.code = :code OR this.ean = :code', ['code' => $code])->setTake(1)->first();
 			
 			if ($product) {
 				try {
