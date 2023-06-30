@@ -666,8 +666,12 @@ class CheckoutManager
 	public function deleteItem(CartItem $item, ?string $cartId = self::ACTIVE_CART_ID): void
 	{
 		$this->cartItemTaxRepository->many()->where('fk_cartItem', $item->getPK())->delete();
+		
+		$cart = $this->getCart($cartId);
 
-		$this->cartItemRepository->deleteItem($this->getCart($cartId), $item);
+		if (!$cart->closedTs) {
+			$this->cartItemRepository->deleteItem($this->getCart($cartId), $item);
+		}
 
 		if (!$this->getSumItems($cartId)) {
 			$this->deleteCart($cartId);
@@ -684,7 +688,9 @@ class CheckoutManager
 		
 		$this->cartItemTaxRepository->many()->where('fk_cartItem', \array_keys($this->getItems($id)->toArray()))->delete();
 
-		$this->cartRepository->deleteCart($cart);
+		if (!$cart->closedTs) {
+			$this->cartRepository->deleteCart($cart);
+		}
 
 		if ($this->getCustomer() && $cart->active) {
 			$this->getCustomer()->activeCart = null;
