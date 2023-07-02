@@ -33,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   With last order please pass parameter with *true* value. Following changes they are based on the need to create a set of orders.
 - You can specify cart of `CheckoutManager::createOrder` in parameter with name *cart*.
 - In following previous change you can call `getTopLevelItems` and `getItems` of `CheckoutManager` with *cart* parameter.
+- You can now specify purchase discount apply directly to purchase and one time discount whole order without discount every cart item
+- You can now choose cart in almost every method in checkoutManager and use multiple carts
+
 
 ### Changed
 
