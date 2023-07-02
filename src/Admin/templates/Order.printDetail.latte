@@ -264,6 +264,11 @@
                                         <td>{$order->getDiscountPrice()|price:$purchase->currency->code}</td>
                                         <td>{$order->getDiscountPriceVat()|price:$purchase->currency->code}</td>
                                     </tr>
+                                    <tr n:if="$order->getPurchaseDiscount()">
+                                        <th>Sleva nákupu:</th>
+                                        <td>{$order->getPurchaseDiscountPrice()|price:$purchase->currency->code}</td>
+                                        <td>{$order->getPurchaseDiscountPriceVat()|price:$purchase->currency->code}</td>
+                                    </tr>
                                     <tr>
                                         <th>Doprava:</th>
                                         <td>{$order->getDeliveryPriceSum()|price:$purchase->currency->code}<small class="ml-2" title="Před slevou" n:if="$order->getDeliveryDiscountPriceSum()">{$order->getDeliveryPriceSum() + $order->getDeliveryDiscountPriceSum()|price:$purchase->currency->code}</small></td>

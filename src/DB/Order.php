@@ -322,15 +322,43 @@ class Order extends ShopEntity
 	{
 		return $this->payments->sum('priceVat');
 	}
-
+	
+	public function getPurchaseDiscount(): int
+	{
+		return $this->purchase->discountPct;
+	}
+	
+	public function setPurchaseDiscount(int $value): void
+	{
+		$this->purchase->discountPct = $value;
+	}
+	
+	public function getPurchaseDiscountPrice(): float
+	{
+		if (!$this->getPurchaseDiscount()) {
+			return 0.0;
+		}
+		
+		return \round($this->purchase->getSumPrice() * $this->getPurchaseDiscount() / 100, 2);
+	}
+	
+	public function getPurchaseDiscountPriceVat(): float
+	{
+		if (!$this->getPurchaseDiscount()) {
+			return 0.0;
+		}
+		
+		return \round($this->purchase->getSumPriceVat() * $this->getPurchaseDiscount() / 100, 2);
+	}
+	
 	public function getTotalPrice(): float
 	{
-		return $this->purchase->getSumPrice() + $this->getDeliveryPriceSum() + $this->getPaymentPriceSum() - $this->getDiscountPriceFix();
+		return $this->purchase->getSumPrice() + $this->getDeliveryPriceSum() + $this->getPaymentPriceSum() - $this->getDiscountPriceFix() - $this->getPurchaseDiscountPrice();
 	}
-
+	
 	public function getTotalPriceVat(): float
 	{
-		return $this->purchase->getSumPriceVat() + $this->getDeliveryPriceVatSum() + $this->getPaymentPriceVatSum() - $this->getDiscountPriceFixVat();
+		return $this->purchase->getSumPriceVat() + $this->getDeliveryPriceVatSum() + $this->getPaymentPriceVatSum() - $this->getDiscountPriceFixVat() - $this->getPurchaseDiscountPriceVat();
 	}
 
 	public function getDiscountPrice(): float

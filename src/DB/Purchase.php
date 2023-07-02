@@ -111,6 +111,12 @@ class Purchase extends \StORM\Entity
 	 * @column{"type":"text"}
 	 */
 	public ?string $note;
+	
+	/**
+	 * Sleva na nákup
+	 * @column
+	 */
+	public int $discountPct = 0;
 
 	/**
 	 * Poznámka pro dopravce
