@@ -319,38 +319,38 @@ abstract class FrontendPresenter extends Presenter
 		}
 	}
 
-//	public function afterRender(): void
-//	{
-//		\Tracy\Debugger::$maxLength = 100000;
-//
-//		$this->netteApplication->onShutdown[] = function (): void {
-//			if ($this->container->getParameters()['debugMode'] === true) {
-//				$logItems = $this->connection->getLog();
-//
-//				\uasort($logItems, function (\StORM\LogItem $a, \StORM\LogItem $b): int {
-//					return $b->getTotalTime() <=> $a->getTotalTime();
-//				});
-//
-//				$totalTime = 0;
-//				$totalAmount = 0;
-//
-//				$logItems = \array_filter($logItems, function (\StORM\LogItem $item) use (&$totalTime, &$totalAmount): bool {
-//					$totalTime += $item->getTotalTime();
-//					$totalAmount += $item->getAmount();
-//
-//					return $item->getTotalTime() > 0.01;
-//				});
-//
-//				Debugger::dump($totalTime);
-//				Debugger::dump($totalAmount);
-//
-//				foreach ($logItems as $logItem) {
-//					Debugger::dump($logItem);
-//					Debugger::dump(\PdoDebugger::show($logItem->getSql(), $logItem->getVars()));
-//				}
-//			}
-//		};
-//	}
+	public function afterRender(): void
+	{
+		\Tracy\Debugger::$maxLength = 100000;
+
+		$this->netteApplication->onShutdown[] = function (): void {
+			if ($this->container->getParameters()['debugMode'] === true) {
+				$logItems = $this->connection->getLog();
+
+				\uasort($logItems, function (\StORM\LogItem $a, \StORM\LogItem $b): int {
+					return $b->getTotalTime() <=> $a->getTotalTime();
+				});
+
+				$totalTime = 0;
+				$totalAmount = 0;
+
+				$logItems = \array_filter($logItems, function (\StORM\LogItem $item) use (&$totalTime, &$totalAmount): bool {
+					$totalTime += $item->getTotalTime();
+					$totalAmount += $item->getAmount();
+
+					return $item->getTotalTime() > 0.01;
+				});
+
+				Debugger::dump($totalTime);
+				Debugger::dump($totalAmount);
+
+				foreach ($logItems as $logItem) {
+					Debugger::dump($logItem);
+					Debugger::dump(\PdoDebugger::show($logItem->getSql(), $logItem->getVars()));
+				}
+			}
+		};
+	}
 
 	protected function startup(): void
 	{

@@ -234,6 +234,16 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$form->addIntegerNullable('inCarton', 'Počet v kartónu');
 		$form->addIntegerNullable('inPalett', 'Počet v paletě');
 
+		$exportNoneInput = $form->addCheckbox('exportNone', 'Skrýt všude');
+		$exportHeurekaInput = $form->addCheckbox('exportHeureka', 'Exportovat do Heureky');
+		$exportGoogleInput = $form->addCheckbox('exportGoogle', 'Exportovat do Google');
+		$exportZboziInput = $form->addCheckbox('exportZbozi', 'Exportovat do Zboží');
+
+		$exportHeurekaInput->addConditionOn($exportNoneInput, $form::EQUAL, false)->toggle($exportHeurekaInput->getHtmlId() . '-toogle');
+		$exportGoogleInput->addConditionOn($exportNoneInput, $form::EQUAL, false)->toggle($exportGoogleInput->getHtmlId() . '-toogle');
+		$exportZboziInput->addConditionOn($exportNoneInput, $form::EQUAL, false)->toggle($exportZboziInput->getHtmlId() . '-toogle');
+
+
 		$defaultReviewsCount = $form->addIntegerNullable('defaultReviewsCount', 'Výchozí počet recenzí');
 
 		$defaultReviewsScore = $form->addText('defaultReviewsScore', 'Výchozí hodnocení recenzí')->setNullable()
@@ -600,6 +610,12 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		/** @var array<mixed> $visibility */
 		$visibility = Arrays::pick($values, 'visibility', []);
+
+		if ($values['exportNone']) {
+			$values['exportHeureka'] = false;
+			$values['exportGoogle'] = false;
+			$values['exportZbozi'] = false;
+		}
 
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);

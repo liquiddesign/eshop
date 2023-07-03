@@ -89,6 +89,9 @@ class ProductPresenter extends BackendPresenter
 			'mergedProducts' => 'Sloučené produkty',
 			'masterProduct' => 'Nadřazený sloučený produkt',
 			'recyclingFee' => 'Recyklační poplatek',
+			'exportHeureka' => 'Exportovat do Heureky',
+			'exportGoogle' => 'Exportovat do Google',
+			'exportZbozi' => 'Exportovat do Zboží.cz',
 		],
 		'exportAttributes' => [],
 		'defaultExportColumns' => [
@@ -103,6 +106,9 @@ class ProductPresenter extends BackendPresenter
 			'producer' => 'Výrobce',
 			'storeAmount' => 'Skladová dostupnost',
 			'masterProduct' => 'Nadřazený sloučený produkt',
+			'exportHeureka' => 'Exportovat do Heureky',
+			'exportGoogle' => 'Exportovat do Google',
+			'exportZbozi' => 'Exportovat do Zboží.cz',
 		],
 		'importAttributes' => [],
 		'importExampleFile' => null,
@@ -510,6 +516,10 @@ class ProductPresenter extends BackendPresenter
 			$form['categories'][$categoryType->getPK()]
 				->checkDefaultValue(false)
 				->setDefaultValue($productData['categories']);
+		}
+
+		if (!$product->exportGoogle && !$product->exportHeureka && !$product->exportZbozi) {
+			$productData['exportNone'] = true;
 		}
 
 		foreach ($this->productContentRepository->many()->where('this.fk_product', $product->getPK()) as $productContent) {
