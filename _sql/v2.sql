@@ -58,3 +58,5 @@ ALTER TABLE eshop_productcontent
 
 ALTER TABLE eshop_productcontent
     ADD FULLTEXT `name_content_cs` (`content_cs`, `perex_cs`);
+
+UPDATE messages_template SET code = uuid;
