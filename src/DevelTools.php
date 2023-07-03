@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Eshop;
 
 use StORM\ICollection;
+use Tracy\Debugger;
 
 class DevelTools
 {
@@ -27,5 +28,23 @@ class DevelTools
 	public static function showCollection(ICollection $collection): string
 	{
 		return \PdoDebugger::show($collection->getSql(), $collection->getVars());
+	}
+
+	/**
+	 * Dumps SQL
+	 * @param \StORM\ICollection $collection
+	 */
+	public static function dumpCollection(ICollection $collection): void
+	{
+		Debugger::dump(self::showCollection($collection));
+	}
+
+	/**
+	 * Dumps SQL
+	 * @param \StORM\ICollection $collection
+	 */
+	public static function bdumpCollection(ICollection $collection): void
+	{
+		Debugger::barDump(self::showCollection($collection));
 	}
 }

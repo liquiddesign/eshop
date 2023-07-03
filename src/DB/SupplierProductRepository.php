@@ -79,10 +79,10 @@ class SupplierProductRepository extends \StORM\Repository
 					(
 						supplierContentLock = 0 && 
 						(
-							(VALUES(supplierLock) >= supplierLock && supplierContentMode = 'priority')
+							(VALUES(supplierLock) >= supplierLock && supplierContentMode = 'priority') ||
+							(supplierContentMode = 'content' && fk_supplierContent = '$supplierId')
 						)
-					)
-					|| fk_supplierContent='$supplierId',
+					),
 					VALUES($name),
 					$name
 				)");
@@ -109,9 +109,9 @@ class SupplierProductRepository extends \StORM\Repository
 			->select(['realCategories' => 'GROUP_CONCAT(supplierCategoryXCategory.fk_category)'])
 			->select(['realDisplayAmount' => 'displayAmount.fk_displayAmount'])
 			->select(['realProducer' => 'producer.fk_producer'])
-			->join(['supplierCategoryXCategory' => 'eshop_suppliercategory_nxn_eshop_category'], 'this.fk_category = supplierCategoryXCategory.fk_supplierCategory')
+			->join(['supplierCategoryXCategory' => 'eshop_suppliercategory_nxn_eshop_category'], 'this.fk_category = supplierCategoryXCategory.fk_supplierCategory', type: 'INNER')
 			->where('this.fk_supplier', $supplier)
-			->where('category.fk_category IS NOT NULL')
+			->where('supplierCategoryXCategory.fk_category IS NOT NULL')
 			->where('this.active', true);
 
 		/** @var array<\stdClass> $existingPrimaryCategories */
@@ -125,8 +125,6 @@ class SupplierProductRepository extends \StORM\Repository
 			->setGroupBy(['this.fk_product'])
 			->setIndex('productPK')
 			->fetchArray(\stdClass::class);
-
-		$productPrimaryCategoriesToSync = [];
 
 		/** @var array<array<\stdClass>> $existingProductContents By product -> shop -> mutations */
 		$existingProductContents = [];
@@ -157,10 +155,6 @@ class SupplierProductRepository extends \StORM\Repository
 				$uuid = $draft->getValue('product');
 			}
 
-//			if ($draft->code === '311532342') {
-//				xdebug_break();
-//			}
-			
 			$primary = isset($productsMap[$uuid]) && $productsMap[$uuid]->sourcePK === $supplierId;
 			
 			$values = [
@@ -202,9 +196,9 @@ class SupplierProductRepository extends \StORM\Repository
 			}
 
 			if ($importImagesResult) {
-				$mtime = \filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
+				$mtime = @\filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 
-				if (!$overwrite || !$draft->fileName || $mtime === \filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
+				if (!$overwrite || !$draft->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
 					$importImagesResult = false;
 				}
 			}
@@ -249,11 +243,11 @@ class SupplierProductRepository extends \StORM\Repository
 					continue;
 				}
 
-				$productPrimaryCategoriesToSync[] = [
+				$productPrimaryCategoryRepository->syncOne([
 					'product' => $product->getPK(),
 					'category' => $category->uuid,
 					'categoryType' => $category->typePK,
-				];
+				], checkKeys: ['product' => false,]);
 			}
 
 			if ($draft->content) {
@@ -344,8 +338,6 @@ class SupplierProductRepository extends \StORM\Repository
 			}
 		}
 
-		$productPrimaryCategoryRepository->syncMany($productPrimaryCategoriesToSync);
-
 		$productsToFetch = [];
 
 		foreach ($productContentsToSync as $item) {
@@ -370,7 +362,7 @@ class SupplierProductRepository extends \StORM\Repository
 
 			// phpcs:ignore
 			if (($product->supplierContentLock === 0 && $product->supplierLock >= $supplier->importPriority && $product->supplierContentMode === 'priority') ||
-				$product->supplierContent === $supplierId) {
+				($product->supplierContentLock === 0 && $product->supplierContent === $supplierId)) {
 				$productContentRepository->syncOne([
 					'product' => $product->uuid,
 					'shop' => $item['shop'],

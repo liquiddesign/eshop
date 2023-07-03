@@ -471,7 +471,7 @@ abstract class ExportPresenter extends Presenter
 	{
 		[$priceLists, $visibilityLists] = $this->getPriceAndVisibilityLists('heureka');
 
-		$productsCollection = $this->productRepo->getProducts($priceLists, visibilityLists: $visibilityLists);
+		$productsCollection = $this->productRepo->getProducts($priceLists, visibilityLists: $visibilityLists)->where('this.exportHeureka', true);
 		$this->productRepo->filterHidden(false, $productsCollection);
 		$this->productRepo->filterUnavailable(false, $productsCollection);
 
@@ -533,7 +533,7 @@ abstract class ExportPresenter extends Presenter
 	{
 		[$priceLists, $visibilityLists] = $this->getPriceAndVisibilityLists('zbozi');
 
-		$productsCollection = $this->productRepo->getProducts($priceLists, visibilityLists: $visibilityLists);
+		$productsCollection = $this->productRepo->getProducts($priceLists, visibilityLists: $visibilityLists)->where('this.exportZbozi', true);
 		$this->productRepo->filterHidden(false, $productsCollection);
 		$this->productRepo->filterUnavailable(false, $productsCollection);
 
@@ -576,6 +576,8 @@ abstract class ExportPresenter extends Presenter
 		$productsCollection = $priceLists ?
 				$this->productRepo->getProducts($priceLists, visibilityLists: $visibilityLists) :
 				$this->productRepo->getProductsAsGroup($groupAfterRegistration);
+
+		$productsCollection->where('this.exportGoogle', true);
 
 		$this->productRepo->filterHidden(false, $productsCollection);
 		$this->productRepo->filterUnavailable(false, $productsCollection);
