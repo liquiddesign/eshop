@@ -12,7 +12,6 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Nette\DI\Container;
-use Nette\DI\MissingServiceException;
 use Nette\Utils\Arrays;
 use StORM\Connection;
 use Web\DB\SettingRepository;
@@ -24,6 +23,11 @@ class RedisProductProvider
 		'attributes.producer' => 'producer',
 		'attributes.displayAmount' => 'displayAmount',
 		'attributes.displayDelivery' => 'displayDelivery',
+		'hidden' => 'visibilityList.hidden',
+		'hiddenInMenu' => 'visibilityList.hiddenInMenu',
+		'priority' => 'visibilityList.priority',
+		'recommended' => 'visibilityList.recommended',
+		'unavailable' => 'visibilityList.unavailable',
 	];
 
 	public const ALLOWED_ORDER_PROPERTIES = [
@@ -42,11 +46,13 @@ class RedisProductProvider
 	];
 
 	/**
-	 * @var array<array<string|callable>>
+	 * @var array<array<string>>
 	 */
-	public array $allowedOrders = [
-		'priority' => [
-			'visibilityListItem.priority',
+	public array $allowedOrderExpressions = [
+		'priorityAvailabilityPrice' => [
+			'visibilityListItem.priority' => 'ASC',
+			'displayAmount.isSold' => 'ASC',
+			'price.price' => 'ASC',
 		],
 	];
 
@@ -73,51 +79,35 @@ class RedisProductProvider
 
 	/**
 	 * @param string $name
-	 * @param array<string|callable> $orderBy
+	 * @param array<string, 'ASC'|'DESC'> $orderBy
 	 * @throws \Exception
 	 */
-	public function addAllowedOrder(string $name, array $orderBy): void
+	public function addAllowedOrderExpression(string $name, array $orderBy): void
 	{
-		foreach ($orderBy as $item) {
-			if (\is_callable($item)) {
-				continue;
+		foreach (\array_keys($orderBy) as $item) {
+			$dotCount = \substr_count($item, '.');
+
+			if ($dotCount !== 1) {
+				throw new \Exception("Order '$item' must contain exactly one dot.");
 			}
 
-			if (\is_string($item)) {
-				$dotCount = \substr_count($item, '.');
+			$explodedItem = \explode('.', $item);
 
-				if ($dotCount !== 1) {
-					throw new \Exception("Order '$item' must contain exactly one dot.");
-				}
-
-				$explodedItem = \explode('.', $item);
-
-				if (!isset($this::ALLOWED_ORDER_PROPERTIES[$explodedItem[0]][$explodedItem[1]])) {
-					throw new \Exception("Order '$item' is not supported. Check supported types.");
-				}
-
-				continue;
+			if (!isset($this::ALLOWED_ORDER_PROPERTIES[$explodedItem[0]][$explodedItem[1]])) {
+				throw new \Exception("Order '$item' is not supported. Check supported types.");
 			}
-
-			/** @phpstan-ignore-next-line */
-			throw new \Exception("Unsupported value to order! You can use only dotted string (e.g. 'visibilityListItem.hidden') or callable.");
 		}
 
-		$this->allowedOrders[$name] = $orderBy;
+		$this->allowedOrderExpressions[$name] = $orderBy;
 	}
 
 	public function warmUpRedisCache(): void
 	{
+		$redis = new \Redis();
+
 		try {
-			/** @var \Predis\Client|null $redis */
-			$redis = $this->container->getService('redis.connection.default.client');
-		} catch (MissingServiceException) {
-			return;
-		}
-
-		$redis->connect();
-
-		if (!$redis->isConnected()) {
+			$redis->ping();
+		} catch (\Throwable $e) {
 			return;
 		}
 
@@ -238,6 +228,8 @@ class RedisProductProvider
 
 			$attributeValues = \explode(',', $attributeValues);
 
+			$products[$product->uuid]['attributeValues'] = [];
+
 			foreach ($attributeValues as $attributeValue) {
 				$attributeValue = $allAttributeValues[$attributeValue];
 
@@ -259,7 +251,7 @@ class RedisProductProvider
 			return 'product:' . $value;
 		}, \array_keys($products));
 
-		$redis->sadd('products', $prefixedProducts);
+		$redis->sAddArray('products', $prefixedProducts);
 
 		$redis->mset($serializedProducts);
 
@@ -269,7 +261,7 @@ class RedisProductProvider
 			}, \array_keys($products));
 
 			$redis->del("productsInCategory:$category");
-			$redis->sadd("productsInCategory:$category", $prefixedProducts);
+			$redis->sAddArray("productsInCategory:$category", $prefixedProducts);
 		}
 
 		$redis->set('cacheReady', 1);
@@ -308,21 +300,13 @@ class RedisProductProvider
 			return $this->cache[$cacheIndex];
 		}
 
+		$redis = new \Redis();
+
 		try {
-			/** @var \Predis\Client|null $redis */
-			$redis = $this->container->getService('redis.connection.default.client');
-		} catch (MissingServiceException) {
+			$redis->ping();
+		} catch (\Throwable $e) {
 			return false;
 		}
-
-		$redis->connect();
-
-		if (!$redis->isConnected()) {
-			return false;
-		}
-
-//		\dump('connect');
-//		\dump(\Tracy\::timer());
 
 		$cacheReady = $redis->get('cacheReady');
 
@@ -334,23 +318,61 @@ class RedisProductProvider
 //		\dump(\Tracy\Debugger::timer());
 		$category = isset($filters['category']) ? $this->categoryRepository->many()->where('this.path', $filters['category'])->first(true) : null;
 
-		$products = $category ? $redis->smembers("productsInCategory:{$category->getPK()}") : $redis->smembers('products');
+		$products = $category ? $redis->sMembers("productsInCategory:{$category->getPK()}") : $redis->smembers('products');
 //		\dump('smembers');
 //		\dump(\Tracy\Debugger::timer());
-		$loadedProductsFromRedis = $products ? $redis->mget($products) : [];
+		$loadedProductsFromRedis = $products ? $redis->mGet($products) : [];
 //		\dump('mget');
 //		\dump(\Tracy\Debugger::timer());
 
-////		\dump('pre_processing');
-////		\dump(\Tracy\::timer());
 		$orderedResult = [];
 		$attributeValuesCounts = [];
 		$displayAmountsCounts = [];
 		$producersCounts = [];
 
+//		\dump($filters);
+
 		foreach ($loadedProductsFromRedis as $loadedProductFromRedis) {
 			$product = \unserialize($loadedProductFromRedis);
 			$productPK = $product['uuid'];
+
+			$found = false;
+			$activeVisibilityListItem = null;
+
+			foreach ($visibilityLists as $visibilityList) {
+				if (!isset($product['visibilityListItems'][$visibilityList->getPK()])) {
+					continue;
+				}
+
+				$found = true;
+
+				$activeVisibilityListItem = $product['visibilityListItems'][$visibilityList->getPK()];
+
+				break;
+			}
+
+			if (!$found) {
+				continue;
+			}
+
+			$found = false;
+			$activePrice = null;
+
+			foreach ($priceLists as $priceList) {
+				if (!isset($product['prices'][$priceList->getPK()])) {
+					continue;
+				}
+
+				$found = true;
+
+				$activePrice = $product['prices'][$priceList->getPK()];
+
+				break;
+			}
+
+			if (!$found) {
+				continue;
+			}
 
 			foreach ($this::ALLOWED_FILTER_PROPERTIES as $filterLocation => $productLocation) {
 				$filterLocationExploded = \explode('.', $filterLocation);
@@ -364,67 +386,20 @@ class RedisProductProvider
 					$currentArray = &$currentArray[$key];
 				}
 
-				if (match ($filterLocation) {
+				$filterLocationMatch = match ($filterLocation) {
 					'attributes.producer', 'attributes.displayAmount', 'attributes.displayDelivery' => true,
 					default => false,
-				}) {
-				if (\is_array($currentArray)) {
-					$currentArray = Arrays::first($currentArray);
-				}
+				};
+
+				if ($filterLocationMatch) {
+					if (\is_array($currentArray)) {
+						$currentArray = Arrays::first($currentArray);
+					}
 				}
 
 				if ($currentArray && $currentArray !== $product[$productLocation]) {
 					continue 2;
 				}
-			}
-
-			$found = false;
-
-			$activeVisibilityListItem = null;
-
-			foreach ($product['visibilityListItems'] ?? [] as $visibilityListPK => $visibilityListItem) {
-				if (!isset($visibilityLists[$visibilityListPK])) {
-					continue;
-				}
-
-				$found = true;
-
-				foreach (['hidden', 'hiddenInMenu', 'recommended', 'unavailable'] as $filter) {
-					if (isset($filters[$filter]) && $filters[$filter] !== $visibilityListItem[$filter]) {
-						continue 3;
-					}
-				}
-
-				$activeVisibilityListItem = $visibilityListItem;
-
-				break;
-			}
-
-			if (!$found) {
-				continue;
-			}
-
-			$found = false;
-			$activePrice = null;
-
-			foreach ($product['prices'] ?? [] as $priceListPK => $price) {
-				if (!isset($priceLists[$priceListPK])) {
-					continue;
-				}
-
-				$found = true;
-
-				if (!$price['price'] > 0) {
-					continue 2;
-				}
-
-				$activePrice = $price;
-
-				break;
-			}
-
-			if (!$found) {
-				continue;
 			}
 
 			if ($product['displayAmount']) {
@@ -445,8 +420,8 @@ class RedisProductProvider
 				continue;
 			}
 
-			if (!isset($this->allowedOrders[$orderByName])) {
-				throw new \Exception("Order by '$orderByName' is not supported. You need to use 'addAllowedOrder' method first.");
+			if (!isset($this->allowedOrderExpressions[$orderByName])) {
+				throw new \Exception("Order by '$orderByName' is not allowed. You need to use 'addAllowedOrder' method first.");
 			}
 
 //			foreach ($this->allowedOrders[$orderByName] as $order) {

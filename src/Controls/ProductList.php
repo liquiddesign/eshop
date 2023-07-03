@@ -181,26 +181,6 @@ class ProductList extends Datalist
 //			return $this->itemsOnPage;
 //		}
 //
-//		$this->redisProductProvider->addAllowedOrder('priorityAvailabilityPrice', [
-//			'visibilityListItem.priority',
-//			function (array $a, array $b): int {
-//				$isSoldA = match ($a['displayAmount.isSold'] ?? -1) {
-//					0 => 0,
-//					2 => 1,
-//					default => 2,
-//				};
-//
-//				$isSoldB = match ($b['displayAmount.isSold'] ?? -1) {
-//					0 => 0,
-//					2 => 1,
-//					default => 2,
-//				};
-//
-//				return $isSoldA <=> $isSoldB;
-//			},
-//			'price.priceVat',
-//		]);
-//
 //		\Tracy\Debugger::timer();
 //		$redisProducts = $this->redisProductProvider->getProductsFromRedis(
 //			$this->getFilters(),

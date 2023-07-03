@@ -288,6 +288,8 @@ class ShopperUser extends User
 
 		$visibilityLists = $customer ? $customer->getVisibilityLists() : $this->getCustomerGroup()->getDefaultVisibilityLists();
 
+		$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists);
+
 		return $visibilityLists->where('this.hidden', false)->orderBy(['this.priority' => 'ASC'])->toArray();
 	}
 

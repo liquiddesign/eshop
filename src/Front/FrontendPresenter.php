@@ -327,14 +327,14 @@ abstract class FrontendPresenter extends Presenter
 //			if ($this->container->getParameters()['debugMode'] === true) {
 //				$logItems = $this->connection->getLog();
 //
-//				\uasort($logItems, function (LogItem $a, LogItem $b): int {
+//				\uasort($logItems, function (\StORM\LogItem $a, \StORM\LogItem $b): int {
 //					return $b->getTotalTime() <=> $a->getTotalTime();
 //				});
 //
 //				$totalTime = 0;
 //				$totalAmount = 0;
 //
-//				$logItems = \array_filter($logItems, function (LogItem $item) use (&$totalTime, &$totalAmount): bool {
+//				$logItems = \array_filter($logItems, function (\StORM\LogItem $item) use (&$totalTime, &$totalAmount): bool {
 //					$totalTime += $item->getTotalTime();
 //					$totalAmount += $item->getAmount();
 //
@@ -346,7 +346,7 @@ abstract class FrontendPresenter extends Presenter
 //
 //				foreach ($logItems as $logItem) {
 //					Debugger::dump($logItem);
-//					Debugger::dump(PdoDebugger::show($logItem->getSql(), $logItem->getVars()));
+//					Debugger::dump(\PdoDebugger::show($logItem->getSql(), $logItem->getVars()));
 //				}
 //			}
 //		};
