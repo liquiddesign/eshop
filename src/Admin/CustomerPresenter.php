@@ -208,6 +208,7 @@ class CustomerPresenter extends BackendPresenter
 
 		if ($this->isManager) {
 			$bulkEdits[] = 'pricelists';
+			$bulkEdits[] = 'favouritePriceLists';
 			$bulkEdits[] = 'visibilityLists';
 			$bulkEdits[] = 'discountLevelPct';
 		}
@@ -497,6 +498,12 @@ class CustomerPresenter extends BackendPresenter
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...')
 			->setDisabled(!$this->isManager);
+
+		$form->addDataMultiSelect('favouritePriceLists', 'Oblíbené ceníky', $this->pricelistRepo->getArrayForSelect())
+			->setHtmlAttribute('placeholder', 'Vyberte položky...')
+			->setHtmlAttribute('data-info', 'Pokud zvolený ceník není přiřazen jako "Ceníky", bude dodatečně spárován.')
+			->setDisabled(!$this->isManager);
+
 		$form->addMultiSelect2('visibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect())
 			->setDisabled(!$this->isManager);
 		
@@ -610,6 +617,35 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		};
 
 		$form->addSubmits(!$this->getParameter('customer'));
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			$values = $form->getValues('array');
+
+			$merchants = Arrays::pick($values, 'merchants');
+
+			unset($values['merchants']);
+			unset($values['accounts']);
+
+			foreach ($values['favouritePriceLists'] as $favouritePriceList) {
+				if (Arrays::contains($values['pricelists'], $favouritePriceList)) {
+					continue;
+				}
+
+				$values['pricelists'][] = $favouritePriceList;
+			}
+
+			/** @var \Eshop\DB\Customer $customer */
+			$customer = $this->customerRepository->syncOne($values, null, true, false);
+
+			$this->storm->rows(['eshop_merchant_nxn_eshop_customer'])->where('fk_customer', $customer)->delete();
+
+			foreach ($merchants as $merchant) {
+				$this->storm->createRow('eshop_merchant_nxn_eshop_customer', ['fk_merchant' => $merchant, 'fk_customer' => $customer->getPK()]);
+			}
+
+			$this->flashMessage('Vytvořeno', 'success');
+			$form->processRedirect('edit', 'default', [$customer]);
+		};
 		
 		return $form;
 	}
@@ -716,33 +752,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$this->template->displayControls = [$this->getComponent('accountForm')];
 	}
 	
-	public function actionNew(): void
-	{
-		/** @var \Admin\Controls\AdminForm $form */
-		$form = $this->getComponent('form');
-		
-		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
-			
-			$merchants = Arrays::pick($values, 'merchants');
-
-			try {
-				$customer = $this->customerRepository->createOne($values);
-			} catch (\Throwable $e) {
-				$this->flashMessage('Nelze vytvořit zákazníka', 'error');
-
-				return;
-			}
-			
-			foreach ($merchants as $merchant) {
-				$this->storm->createRow('eshop_merchant_nxn_eshop_customer', ['fk_merchant' => $merchant, 'fk_customer' => $customer]);
-			}
-			
-			$this->flashMessage('Vytvořeno', 'success');
-			$form->processRedirect('edit', 'default', [$customer]);
-		};
-	}
-	
 	public function actionEdit(Customer $customer): void
 	{
 		/** @var \Admin\Controls\AdminForm $form */
@@ -756,6 +765,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		
 		$defaults = $customer->toArray([
 				'pricelists',
+				'favouritePriceLists',
 				'visibilityLists',
 				'exclusivePaymentTypes',
 				'exclusiveDeliveryTypes',
@@ -769,27 +779,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$defaults['lastOrder'] = $customer->lastOrder ? $customer->lastOrder->code : null;
 		
 		$form->setDefaults($defaults);
-		
-		$form->onSuccess[] = function (AdminForm $form) use ($customer): void {
-			$values = $form->getValues('array');
-			
-			$this->storm->rows(['eshop_merchant_nxn_eshop_customer'])->where('fk_customer', $customer)->delete();
-			
-			foreach ($values['merchants'] as $merchant) {
-				$this->storm->createRow('eshop_merchant_nxn_eshop_customer', ['fk_merchant' => $merchant, 'fk_customer' => $customer]);
-			}
-			
-			unset($values['merchants']);
-			unset($values['accounts']);
-			
-			/** @var \Eshop\DB\Customer $customer */
-			$customer = $this->customerRepository->syncOne($values, null, true);
-			
-			$form->getPresenter()->flashMessage('Uloženo', 'success');
-			$form->processRedirect('edit', 'default', [$customer]);
-		};
-		
-		$this->renderEdit();
 	}
 	
 	public function actionEditAddress(Customer $customer): void

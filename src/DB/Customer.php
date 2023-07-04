@@ -183,6 +183,13 @@ class Customer extends Entity implements IIdentity, IUser
 	public RelationCollection $pricelists;
 
 	/**
+	 * Oblíbené ceníky
+	 * @relationNxN{"via":"eshop_customer_nxn_eshop_pricelist_favourite"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\Pricelist>
+	 */
+	public RelationCollection $favouritePriceLists;
+
+	/**
 	 * Viditelníky
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\VisibilityList>
