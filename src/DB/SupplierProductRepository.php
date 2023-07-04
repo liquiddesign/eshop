@@ -196,8 +196,10 @@ class SupplierProductRepository extends \StORM\Repository
 			}
 
 			if ($importImagesResult) {
+				// phpcs:ignore
 				$mtime = @\filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 
+				// phpcs:ignore
 				if (!$overwrite || !$draft->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
 					$importImagesResult = false;
 				}

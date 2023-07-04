@@ -7,7 +7,7 @@ namespace Eshop\Bridges;
 use Eshop\Common\Services\ProductExporter;
 use Eshop\Common\Services\ProductImporter;
 use Eshop\CompareManager;
-use Eshop\RedisProductProvider;
+use Eshop\ProductsProvider;
 use Eshop\Services\Comgate;
 use Eshop\ShopperUser;
 use Nette\Schema\Expect;
@@ -101,7 +101,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$builder->addDefinition($this->prefix('compareManager'))->setType(CompareManager::class);
 		$builder->addDefinition($this->prefix('productExporter'))->setType(ProductExporter::class);
 		$builder->addDefinition($this->prefix('productImporter'))->setType(ProductImporter::class);
-		$builder->addDefinition($this->prefix('redisProductProvider'))->setType(RedisProductProvider::class);
+		$builder->addDefinition($this->prefix('productsProvider'))->setType(ProductsProvider::class);
 
 		/** @var \Nette\DI\Definitions\ServiceDefinition $latteDefinition */
 		$latteDefinition = $builder->getDefinition('latte.templateFactory');

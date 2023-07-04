@@ -13,7 +13,7 @@ use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\WatcherRepository;
-use Eshop\RedisProductProvider;
+use Eshop\ProductsProvider;
 use Eshop\ShopperUser;
 use Forms\FormFactory;
 use Grid\Datalist;
@@ -42,10 +42,8 @@ class ProductList extends Datalist
 	 */
 	public $onWatcherDeleted;
 
-	public array|null $redisProducts = null;
-
 	/** @var array<array<string, int>>|null */
-	protected array|null $redisCounts = null;
+	protected array|null $cachedCounts = null;
 
 	public function __construct(
 		private readonly ProductRepository $productRepository,
@@ -60,8 +58,8 @@ class ProductList extends Datalist
 		private readonly ProducerRepository $producerRepository,
 		private readonly DisplayAmountRepository $displayAmountRepository,
 		private readonly DisplayDeliveryRepository $displayDeliveryRepository,
-		protected readonly RedisProductProvider $redisProductProvider,
 		private readonly Connection $connection,
+		protected readonly ProductsProvider $productsProvider,
 		?array $order = null,
 		?Collection $source = null
 	) {
@@ -73,7 +71,7 @@ class ProductList extends Datalist
 
 		parent::__construct($source);
 
-		// Used only if Redis is not available
+		// Used only if cache table is not available
 		$this->setItemCountCallback(function (Collection $collection): int {
 			$collection->setSelect([])->setGroupBy([])->setOrderBy([]);
 
@@ -167,9 +165,9 @@ class ProductList extends Datalist
 	/**
 	 * @return array<array<string, int>>|null
 	 */
-	public function getRedisCounts(): array|null
+	public function getCachedCounts(): array|null
 	{
-		return $this->redisCounts;
+		return $this->cachedCounts;
 	}
 
 //	/**
@@ -182,7 +180,7 @@ class ProductList extends Datalist
 //		}
 //
 //		\Tracy\Debugger::timer();
-//		$redisProducts = $this->redisProductProvider->getProductsFromRedis(
+//		$cachedProducts = $this->productsProvider->getProductsFromCacheTable(
 //			$this->getFilters(),
 //			'priorityAvailabilityPrice',
 //			'ASC',
@@ -191,11 +189,11 @@ class ProductList extends Datalist
 //		);
 //		\Tracy\Debugger::dump(\Tracy\Debugger::timer());
 //
-//		if ($redisProducts) {
-//			$this->redisCounts = [
-//				'attributeValuesCounts' => $redisProducts['attributeValuesCounts'],
-//				'displayAmountsCounts' => $redisProducts['displayAmountsCounts'],
-//				'producersCounts' => $redisProducts['producersCounts'],
+//		if ($cachedProducts) {
+//			$this->cachedCounts = [
+//				'attributeValuesCounts' => $cachedProducts['attributeValuesCounts'],
+//				'displayAmountsCounts' => $cachedProducts['displayAmountsCounts'],
+//				'producersCounts' => $cachedProducts['producersCounts'],
 //			];
 //		}
 //
@@ -203,14 +201,14 @@ class ProductList extends Datalist
 //		$source = $this->getFilteredSource();
 //
 //		if ($this->getOnPage()) {
-//			if ($redisProducts !== false) {
+//			if ($cachedProducts !== false) {
 //				$this->setItemCountCallback(function (): null {
 //					return null;
 //				});
 //
-//				$this->getPaginator()->setItemCount(\count($redisProducts['productPKs']));
+//				$this->getPaginator()->setItemCount(\count($cachedProducts['productPKs']));
 //
-//				$source->where('this.uuid', \array_slice($redisProducts['productPKs'], ($this->getPage() - 1) * $this->getOnPage(), $this->getOnPage()));
+//				$source->where('this.uuid', \array_slice($cachedProducts['productPKs'], ($this->getPage() - 1) * $this->getOnPage(), $this->getOnPage()));
 //			} else {
 //				$source->setPage($this->getPage(), $this->getOnPage());
 //			}

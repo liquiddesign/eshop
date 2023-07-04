@@ -16,6 +16,9 @@ use Nette\Utils\Arrays;
 use StORM\Connection;
 use Web\DB\SettingRepository;
 
+/**
+ * @deprecated
+ */
 class RedisProductProvider
 {
 	// Location on filters vs in product data

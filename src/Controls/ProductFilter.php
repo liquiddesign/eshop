@@ -97,14 +97,14 @@ class ProductFilter extends Control
 		$filters = $this->getProductList()->getFilters();
 
 		$this->template->systemicCounts = [
-			'availability' => $this->getProductList()->getRedisCounts()['displayAmountsCounts'] ?? $this->displayAmountRepository->getCounts($filters),
+			'availability' => $this->getProductList()->getCachedCounts()['displayAmountsCounts'] ?? $this->displayAmountRepository->getCounts($filters),
 			//'delivery' => $this->displayDeliveryRepository->getCounts($filters),
-			'producer' => $this->getProductList()->getRedisCounts()['producersCounts'] ?? $this->producerRepository->getCounts($filters),
+			'producer' => $this->getProductList()->getCachedCounts()['producersCounts'] ?? $this->producerRepository->getCounts($filters),
 		];
 		
 		$this->template->attributes = $attributes = $this->getAttributes();
 		
-		$this->template->attributesValuesCounts = $this->getProductList()->getRedisCounts()['attributeValuesCounts'] ?? $this->attributeRepository->getCounts($this->attributeValues, $filters);
+		$this->template->attributesValuesCounts = $this->getProductList()->getCachedCounts()['attributeValuesCounts'] ?? $this->attributeRepository->getCounts($this->attributeValues, $filters);
 		
 		foreach ($this->rangeValues as $rangeId => $valuesIds) {
 			foreach ($valuesIds as $valueId) {
