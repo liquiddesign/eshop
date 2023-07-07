@@ -113,6 +113,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 * @param bool $selects
 	 * @param \Eshop\DB\CustomerGroup|null $customerGroup
 	 * @param array<\Eshop\DB\VisibilityList>|null $visibilityLists
+	 * @param \Eshop\DB\Currency|null $currency
 	 * @return \StORM\Collection<\Eshop\DB\Product>
 	 */
 	public function getProducts(
@@ -120,11 +121,12 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		?Customer $customer = null,
 		bool $selects = true,
 		?CustomerGroup $customerGroup = null,
-		?array $visibilityLists = null
+		?array $visibilityLists = null,
+		?Currency $currency = null,
 	): Collection {
 		$discountCoupon = $this->shopperUser->getCheckoutManager()->getDiscountCoupon();
 		
-		$currency = $this->shopperUser->getCurrency();
+		$currency ??= $this->shopperUser->getCurrency();
 		$convertRatio = null;
 		
 		if ($currency->isConversionEnabled()) {
