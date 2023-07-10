@@ -32,6 +32,12 @@ class VisibilityList extends ShopSystemicEntity
 	public bool $hidden = false;
 
 	/**
+	 * ID
+	 * @column
+	 */
+	public int $id;
+
+	/**
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\VisibilityListItem>
 	 */

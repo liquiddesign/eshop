@@ -45,9 +45,9 @@ class ProductsProvider
 		$link->exec('
 DROP TABLE IF EXISTS `eshop_products_cache`;
 CREATE TABLE `eshop_products_cache` (
-  product VARCHAR(32) PRIMARY KEY,
-  producer VARCHAR(32),
-  displayAmount VARCHAR(32),
+  product INT UNSIGNED PRIMARY KEY,
+  producer INT UNSIGNED,
+  displayAmount INT UNSIGNED,
   displayAmount_isSold TINYINT(1),
   attributeValues TEXT,
   INDEX idx_producer (producer),
@@ -55,35 +55,37 @@ CREATE TABLE `eshop_products_cache` (
   INDEX idx_displayAmount_isSold (displayAmount_isSold)
 );');
 
-		$link->exec('ALTER TABLE `eshop_products_cache` ROW_FORMAT=DYNAMIC;');
+//		$link->exec('ALTER TABLE `eshop_products_cache` ROW_FORMAT=DYNAMIC;');
 
 		for ($i = 0; $i < self::CATEGORY_COLUMNS_COUNT; $i++) {
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN category_$i VARCHAR(32), ADD INDEX idx_category_$i (category_$i);");
+			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN category_$i INT UNSIGNED, ADD INDEX idx_category_$i (category_$i);");
 		}
 
 		foreach ($this->visibilityListRepository->many() as $visibilityList) {
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->getPK()} VARCHAR(32) DEFAULT('{$visibilityList->getPK()}');");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD INDEX idx_visibilityList_{$visibilityList->getPK()} (visibilityList_{$visibilityList->getPK()});");
+			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->id} INT UNSIGNED DEFAULT('{$visibilityList->id}');");
+			$link->exec("ALTER TABLE `eshop_products_cache` ADD INDEX idx_visibilityList_{$visibilityList->id} (visibilityList_{$visibilityList->id});");
 
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->getPK()}_hidden TINYINT(1);");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->getPK()}_hiddenInMenu TINYINT(1);");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->getPK()}_priority INT(11);");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->getPK()}_unavailable TINYINT(1);");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->getPK()}_recommended INT(11);");
+			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->id}_hidden TINYINT;");
+			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->id}_hiddenInMenu TINYINT;");
+			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->id}_priority SMALLINT;");
+			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->id}_unavailable TINYINT;");
+			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->id}_recommended TINYINT;");
 		}
 
 		foreach ($this->pricelistRepository->many() as $priceList) {
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->getPK()} VARCHAR(32) DEFAULT('{$priceList->getPK()}');");
+			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->id} INT UNSIGNED DEFAULT('{$priceList->id}');");
 
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->getPK()}_price DOUBLE;");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->getPK()}_priceVat DOUBLE;");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->getPK()}_priceBefore DOUBLE;");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->getPK()}_priceVatBefore DOUBLE;");
+			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->id}_price DOUBLE;");
+			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->id}_priceVat DOUBLE;");
+			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->id}_priceBefore DOUBLE;");
+			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->id}_priceVatBefore DOUBLE;");
 		}
 
 		$allPrices = $this->priceRepository->many()->toArray();
+		$allPriceLists = $this->pricelistRepository->many()->toArray();
+		$allVisibilityLists = $this->visibilityListRepository->many()->toArray();
 		$allVisibilityListItems = $this->visibilityListItemRepository->many()->toArray();
-		$allDisplayAmounts = $this->displayAmountRepository->many()->toArray();
+		$allDisplayAmounts = $this->displayAmountRepository->many()->setIndex('id')->toArray();
 		$allCategories = $this->categoryRepository->many()->toArray();
 		$allCategoriesByCategory = [];
 
@@ -96,21 +98,25 @@ CREATE TABLE `eshop_products_cache` (
 			->join(['priceList' => 'eshop_pricelist'], 'price.fk_pricelist = priceList.uuid')
 			->join(['discount' => 'eshop_discount'], 'priceList.fk_discount = discount.uuid')
 			->join(['eshop_product_nxn_eshop_category'], 'this.uuid = eshop_product_nxn_eshop_category.fk_product')
+//			->join(['eshop_category'], 'eshop_product_nxn_eshop_category.fk_category = eshop_category.uuid')
 			->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid', type: 'INNER')
 			->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityList.uuid')
 			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
+			->join(['eshop_displayamount'], 'this.fk_displayAmount = eshop_displayamount.uuid')
+			->join(['eshop_producer'], 'this.fk_producer = eshop_producer.uuid')
+			->join(['eshop_attributevalue'], 'assign.fk_value = eshop_attributevalue.uuid')
 			->setSelect([
-				'uuid' => 'this.uuid',
-				'fkDisplayAmount' => 'this.fk_displayAmount',
-				'fkProducer' => 'this.fk_producer',
+				'id' => 'this.id',
+				'fkDisplayAmount' => 'eshop_displayamount.id',
+				'fkProducer' => 'eshop_producer.id',
 				'pricesPKs' => 'GROUP_CONCAT(DISTINCT price.uuid ORDER BY priceList.priority)',
 				'categoriesPKs' => 'GROUP_CONCAT(DISTINCT eshop_product_nxn_eshop_category.fk_category)',
 				'visibilityListItemsPKs' => 'GROUP_CONCAT(DISTINCT visibilityListItem.uuid ORDER BY visibilityList.priority)',
-				'attributeValuesPKs' => 'GROUP_CONCAT(DISTINCT assign.fk_value)',
+				'attributeValuesPKs' => 'GROUP_CONCAT(DISTINCT eshop_attributevalue.id)',
 			])
 			->where('priceList.isActive', true)
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
-			->setGroupBy(['this.uuid']);
+			->setGroupBy(['this.id']);
 
 		while ($product = $productsCollection->fetch(\stdClass::class)) {
 			/** @var \stdClass $product */
@@ -119,12 +125,33 @@ CREATE TABLE `eshop_products_cache` (
 				continue;
 			}
 
-			$products[$product->uuid] = [
-				'product' => $product->uuid,
+			$products[$product->id] = [
+				'product' => $product->id,
 				'displayAmount' => $product->fkDisplayAmount,
 				'displayAmount_isSold' => $product->fkDisplayAmount ? $allDisplayAmounts[$product->fkDisplayAmount]->isSold : null,
 				'producer' => $product->fkProducer,
 			];
+
+			for ($i = 0; $i < self::CATEGORY_COLUMNS_COUNT; $i++) {
+				$products[$product->id]["category_$i"] = null;
+			}
+
+			foreach ($allVisibilityLists as $visibilityList) {
+				$products[$product->id]["visibilityList_$visibilityList->id"] = null;
+				$products[$product->id]["visibilityList_{$visibilityList->id}_hidden"] = null;
+				$products[$product->id]["visibilityList_{$visibilityList->id}_hiddenInMenu"] = null;
+				$products[$product->id]["visibilityList_{$visibilityList->id}_priority"] = null;
+				$products[$product->id]["visibilityList_{$visibilityList->id}_unavailable"] = null;
+				$products[$product->id]["visibilityList_{$visibilityList->id}_recommended"] = null;
+			}
+
+			foreach ($allPriceLists as $priceList) {
+				$products[$product->id]["priceList_$priceList->id"] = null;
+				$products[$product->id]["priceList_{$priceList->id}_price"] = null;
+				$products[$product->id]["priceList_{$priceList->id}_priceVat"] = null;
+				$products[$product->id]["priceList_{$priceList->id}_priceBefore"] = null;
+				$products[$product->id]["priceList_{$priceList->id}_priceVatBefore"] = null;
+			}
 
 			if ($categories = $product->categoriesPKs) {
 				$categories = \explode(',', $categories);
@@ -136,23 +163,19 @@ CREATE TABLE `eshop_products_cache` (
 						$categoryCategories = $allCategoriesByCategory[$category] = \array_merge($this->getAncestorsOfCategory($category, $allCategories), [$category]);
 					}
 
-					$products[$product->uuid]['categories'] = \array_unique(\array_merge($products[$product->uuid]['categories'] ?? [], $categoryCategories));
-
-					foreach ($products[$product->uuid]['categories'] as $productCategory) {
-						$productsByCategories[$productCategory][$product->uuid] = true;
-					}
+					$products[$product->id]['categories'] = \array_unique(\array_merge($products[$product->id]['categories'] ?? [], $categoryCategories));
 				}
 
 				$i = 0;
 
-				foreach ($products[$product->uuid]['categories'] as $productCategory) {
-					$products[$product->uuid]["category_$i"] = $productCategory;
+				foreach ($products[$product->id]['categories'] as $productCategory) {
+					$products[$product->id]["category_$i"] = $allCategories[$productCategory]->id;
 
 					$i++;
 				}
 			}
 
-			unset($products[$product->uuid]['categories']);
+			unset($products[$product->id]['categories']);
 
 			if ($visibilityListItems = $product->visibilityListItemsPKs) {
 				$visibilityListItems = \explode(',', $visibilityListItems);
@@ -160,11 +183,11 @@ CREATE TABLE `eshop_products_cache` (
 				foreach ($visibilityListItems as $visibilityListItem) {
 					$visibilityListItem = $allVisibilityListItems[$visibilityListItem];
 
-					$products[$product->uuid]["visibilityList_{$visibilityListItem->getValue('visibilityList')}_hidden"] = $visibilityListItem->hidden;
-					$products[$product->uuid]["visibilityList_{$visibilityListItem->getValue('visibilityList')}_hiddenInMenu"] = $visibilityListItem->hiddenInMenu;
-					$products[$product->uuid]["visibilityList_{$visibilityListItem->getValue('visibilityList')}_priority"] = $visibilityListItem->priority;
-					$products[$product->uuid]["visibilityList_{$visibilityListItem->getValue('visibilityList')}_unavailable"] = $visibilityListItem->unavailable;
-					$products[$product->uuid]["visibilityList_{$visibilityListItem->getValue('visibilityList')}_recommended"] = $visibilityListItem->recommended;
+					$products[$product->id]["visibilityList_{$visibilityListItem->visibilityList->id}_hidden"] = $visibilityListItem->hidden;
+					$products[$product->id]["visibilityList_{$visibilityListItem->visibilityList->id}_hiddenInMenu"] = $visibilityListItem->hiddenInMenu;
+					$products[$product->id]["visibilityList_{$visibilityListItem->visibilityList->id}_priority"] = $visibilityListItem->priority;
+					$products[$product->id]["visibilityList_{$visibilityListItem->visibilityList->id}_unavailable"] = $visibilityListItem->unavailable;
+					$products[$product->id]["visibilityList_{$visibilityListItem->visibilityList->id}_recommended"] = $visibilityListItem->recommended;
 				}
 			}
 
@@ -173,16 +196,16 @@ CREATE TABLE `eshop_products_cache` (
 			foreach ($prices as $price) {
 				$price = $allPrices[$price];
 
-				$products[$product->uuid]["priceList_{$price->getValue('pricelist')}_price"] = $price->price;
-				$products[$product->uuid]["priceList_{$price->getValue('pricelist')}_priceVat"] = $price->priceVat;
-				$products[$product->uuid]["priceList_{$price->getValue('pricelist')}_priceBefore"] = $price->priceBefore;
-				$products[$product->uuid]["priceList_{$price->getValue('pricelist')}_priceVatBefore"] = $price->priceVatBefore;
+				$products[$product->id]["priceList_{$price->pricelist->id}_price"] = $price->price;
+				$products[$product->id]["priceList_{$price->pricelist->id}_priceVat"] = $price->priceVat;
+				$products[$product->id]["priceList_{$price->pricelist->id}_priceBefore"] = $price->priceBefore;
+				$products[$product->id]["priceList_{$price->pricelist->id}_priceVatBefore"] = $price->priceVatBefore;
 			}
 
-			$products[$product->uuid]['attributeValues'] = $product->attributeValuesPKs;
+			$products[$product->id]['attributeValues'] = $product->attributeValuesPKs;
 		}
 
-		$this->connection->createRows('eshop_products_cache', $products, chunkSize: 1);
+		$this->connection->createRows('eshop_products_cache', $products, chunkSize: 10000);
 	}
 
 	/**
@@ -239,7 +262,7 @@ CREATE TABLE `eshop_products_cache` (
 			]);
 
 		if ($category) {
-			$productsCollection->where($categoriesWhereString, ['category' => $category->getPK()]);
+			$productsCollection->where($categoriesWhereString, ['category' => $category->id]);
 		}
 
 		$productPKs = [];
@@ -302,7 +325,7 @@ CREATE TABLE `eshop_products_cache` (
 	protected function createCoalesceFromArray(array $values, string|null $prefix = null, string|null $suffix = null): string
 	{
 		return $values ? ('COALESCE(' . \implode(',', \array_map(function ($item) use ($prefix, $suffix): string {
-				return $prefix . $item . $suffix;
+				return $prefix . $item->id . $suffix;
 		}, $values)) . ')') : 'NULL';
 	}
 }
