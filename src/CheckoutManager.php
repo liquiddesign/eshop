@@ -514,7 +514,7 @@ class CheckoutManager
 			'active' => $activate,
 			'cartToken' => $this->getCustomer() ? null : $this->cartToken,
 			'customer' => $this->getCustomer() ?: null,
-			'currency' => $this->getCartCurrencyCode(),
+			'currency' => $this->getCustomer() ? $this->getCustomer()->preferredCurrency : $this->shopperUser->getCurrency(),
 			'expirationTs' => $this->getCustomer() ? null : (string) new \Carbon\Carbon('+' . $this->cartExpiration . ' days'),
 			'shop' => $this->shopsConfig->getSelectedShop(),
 		]);
@@ -1879,7 +1879,7 @@ class CheckoutManager
 			
 			$cart = $this->cartRepository->many()
 				->where('closedTs IS NULL')
-				->whereMatch(['id' => $id, 'fk_customer' => $this->getCustomer(), 'fk_cart' => $this->getCustomer()?->preferredCurrency ?: $this->shopperUser->getCurrency()])
+				->whereMatch(['id' => $id, 'fk_customer' => $this->getCustomer(), 'fk_currency' => $this->getCustomer()->preferredCurrency ?: $this->shopperUser->getCurrency()])
 				->setTake(1)
 				->first();
 			
