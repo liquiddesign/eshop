@@ -49,14 +49,14 @@ class CartItemList extends Datalist
 
 	public function handleDeleteItem(string $itemId): void
 	{
-		$this->shopperUser->getCheckoutManager()->deleteItem($this->cartItemsRepository->createEntityInstance(['uuid' => $itemId]));
+		$this->shopperUser->getCheckoutManager()->deleteItem($this->cartItemsRepository->createEntityInstance(['uuid' => $itemId]), $this->cartId);
 
 		Arrays::invoke($this->onItemDelete);
 	}
 
 	public function handleDeleteAll(): void
 	{
-		$this->shopperUser->getCheckoutManager()->deleteCart();
+		$this->shopperUser->getCheckoutManager()->deleteCart($this->cartId);
 
 		Arrays::invoke($this->onDeleteAll);
 	}
