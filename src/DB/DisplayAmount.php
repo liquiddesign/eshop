@@ -43,6 +43,12 @@ class DisplayAmount extends ShopSystemicEntity
 	public int $priority = 10;
 
 	/**
+	 * ID
+	 * @column
+	 */
+	public int $id;
+
+	/**
 	 * Doprava
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 * @relation
