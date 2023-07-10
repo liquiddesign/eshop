@@ -1494,7 +1494,7 @@ class CheckoutManager
 		
 		$purchase = $purchase ?: $this->getPurchase(true, $cartId);
 		
-		$banned = $this->bannedEmailRepository->isEmailBanned($purchase->email);
+		$banned = $purchase->email && $this->bannedEmailRepository->isEmailBanned($purchase->email);
 		
 		if (!$this->shopperUser->getAllowBannedEmailOrder() && $banned) {
 			throw new BuyException('Banned email', BuyException::BANNED_EMAIL);
@@ -1523,7 +1523,7 @@ class CheckoutManager
 		
 		// create customer
 		if (!$customer) {
-			if ($purchase->createAccount) {
+			if ($purchase->createAccount && $purchase->email) {
 				$customer = $this->createCustomer($purchase);
 				
 				if ($customer) {
@@ -1780,7 +1780,7 @@ class CheckoutManager
 			]);
 		}
 		
-		if ($purchase->sendNewsletters) {
+		if ($purchase->sendNewsletters && $purchase->email) {
 			$this->newsletterUserRepository->syncOne([
 				'email' => $purchase->email,
 				'customerAccount' => $customer && $customer->account ? $customer->account->getPK() : null,
