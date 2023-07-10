@@ -290,7 +290,7 @@ class CheckoutManager
 		?CartItem $upsell = null,
 		?string $cartId = self::ACTIVE_CART_ID,
 	): CartItem {
-		if (!$this->checkCurrency($product)) {
+		if (!$this->checkCurrency($product, $cartId)) {
 			throw new BuyException('Invalid currency', BuyException::INVALID_CURRENCY);
 		}
 		
@@ -514,7 +514,7 @@ class CheckoutManager
 			'active' => $activate,
 			'cartToken' => $this->getCustomer() ? null : $this->cartToken,
 			'customer' => $this->getCustomer() ?: null,
-			'currency' => $this->shopperUser->getCurrency(),
+			'currency' => $this->getCartCurrencyCode(),
 			'expirationTs' => $this->getCustomer() ? null : (string) new \Carbon\Carbon('+' . $this->cartExpiration . ' days'),
 			'shop' => $this->shopsConfig->getSelectedShop(),
 		]);
@@ -1879,7 +1879,7 @@ class CheckoutManager
 			
 			$cart = $this->cartRepository->many()
 				->where('closedTs IS NULL')
-				->whereMatch(['id' => $id, 'fk_customer' => $this->getCustomer()])
+				->whereMatch(['id' => $id, 'fk_customer' => $this->getCustomer(), 'fk_cart' => $this->getCustomer()?->preferredCurrency ?: $this->shopperUser->getCurrency()])
 				->setTake(1)
 				->first();
 			
