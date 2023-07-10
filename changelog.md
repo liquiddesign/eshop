@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0-beta.1]
+## [2.0.0-beta.1] - 2023-07-10
 
 ### Added
 
@@ -146,6 +146,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Stores are no longer deleted during catalogEntry, only synced
 - Fixed indexes on PackageItem
+
+## [1.4.3] - 2023-06-23
+
+### Changed
+
+- **BREAKING:** When changing amount of item in `CartItemList` and new value is <=0, value was changed to 1. Now, instead of changing value, item  is deleted from cart.
+  - Check your usage before updating to this version! GTM can negatively affect this change.
+
+## [1.4.0] - 2023-06-12
+
+### Changed
+
+- **BREAKING:** `DeliveryPaymentForm` changed properties and methods visibility
 
 ## [1.3.32] - 2023-05-30
 

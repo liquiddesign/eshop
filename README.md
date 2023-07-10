@@ -8,4 +8,3 @@ Služby, entity, administrace a kontroly pro eshop
 
 ## Roadmap
 - Better extensibility of forms and grids
-- Update phpstan/phpstan to ^1.10
