@@ -170,56 +170,56 @@ class ProductList extends Datalist
 		return $this->cachedCounts;
 	}
 
-//	/**
-//	 * @inheritDoc
-//	 */
-//	public function getItemsOnPage(): array
-//	{
-//		if ($this->itemsOnPage !== null) {
-//			return $this->itemsOnPage;
-//		}
-//
-//		\Tracy\Debugger::timer();
-//		$cachedProducts = $this->productsProvider->getProductsFromCacheTable(
-//			$this->getFilters(),
-//			'priorityAvailabilityPrice',
-//			'ASC',
-//			$this->shopperUser->getPricelists()->toArray(),
-//			$this->shopperUser->getVisibilityLists(),
-//		);
-//		\Tracy\Debugger::dump(\Tracy\Debugger::timer());
-//
-//		if ($cachedProducts) {
-//			$this->cachedCounts = [
-//				'attributeValuesCounts' => $cachedProducts['attributeValuesCounts'],
-//				'displayAmountsCounts' => $cachedProducts['displayAmountsCounts'],
-//				'producersCounts' => $cachedProducts['producersCounts'],
-//			];
-//		}
-//
-//		/** @var \StORM\Collection $source */
-//		$source = $this->getFilteredSource();
-//
-//		if ($this->getOnPage()) {
-//			if ($cachedProducts !== false) {
-//				$this->setItemCountCallback(function (): null {
-//					return null;
-//				});
-//
-//				$this->getPaginator()->setItemCount(\count($cachedProducts['productPKs']));
-//
-//				$source->where('this.uuid', \array_slice($cachedProducts['productPKs'], ($this->getPage() - 1) * $this->getOnPage(), $this->getOnPage()));
-//			} else {
-//				$source->setPage($this->getPage(), $this->getOnPage());
-//			}
-//		}
-//
-//		$this->onLoad($source);
-//
-//		$this->itemsOnPage = $this->nestingCallback && !$this->filters ? $this->getNestedSource($source, null) : $source->toArray();
-//
-//		return $this->itemsOnPage;
-//	}
+	/**
+	 * @inheritDoc
+	 */
+	public function getItemsOnPage(): array
+	{
+		if ($this->itemsOnPage !== null) {
+			return $this->itemsOnPage;
+		}
+
+		\Tracy\Debugger::timer();
+		$cachedProducts = $this->productsProvider->getProductsFromCacheTable(
+			$this->getFilters(),
+			'priorityAvailabilityPrice',
+			'ASC',
+			$this->shopperUser->getPricelists()->toArray(),
+			$this->shopperUser->getVisibilityLists(),
+		);
+		\Tracy\Debugger::dump(\Tracy\Debugger::timer());
+
+		if ($cachedProducts) {
+			$this->cachedCounts = [
+				'attributeValuesCounts' => $cachedProducts['attributeValuesCounts'],
+				'displayAmountsCounts' => $cachedProducts['displayAmountsCounts'],
+				'producersCounts' => $cachedProducts['producersCounts'],
+			];
+		}
+
+		/** @var \StORM\Collection $source */
+		$source = $this->getFilteredSource();
+
+		if ($this->getOnPage()) {
+			if ($cachedProducts !== false) {
+				$this->setItemCountCallback(function (): null {
+					return null;
+				});
+
+				$this->getPaginator()->setItemCount(\count($cachedProducts['productPKs']));
+
+				$source->where('this.id', \array_slice($cachedProducts['productPKs'], ($this->getPage() - 1) * $this->getOnPage(), $this->getOnPage()));
+			} else {
+				$source->setPage($this->getPage(), $this->getOnPage());
+			}
+		}
+
+		$this->onLoad($source);
+
+		$this->itemsOnPage = $this->nestingCallback && !$this->filters ? $this->getNestedSource($source, null) : $source->toArray();
+
+		return $this->itemsOnPage;
+	}
 
 	public function handleWatchIt(string $product): void
 	{
