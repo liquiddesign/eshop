@@ -514,7 +514,7 @@ class CheckoutManager
 			'active' => $activate,
 			'cartToken' => $this->getCustomer() ? null : $this->cartToken,
 			'customer' => $this->getCustomer() ?: null,
-			'currency' => $this->getCustomer() ? $this->getCustomer()->preferredCurrency : $this->shopperUser->getCurrency(),
+			'currency' => $this->getCustomer() && $this->getCustomer()->preferredCurrency ? $this->getCustomer()->preferredCurrency : $this->shopperUser->getCurrency(),
 			'expirationTs' => $this->getCustomer() ? null : (string) new \Carbon\Carbon('+' . $this->cartExpiration . ' days'),
 			'shop' => $this->shopsConfig->getSelectedShop(),
 		]);
