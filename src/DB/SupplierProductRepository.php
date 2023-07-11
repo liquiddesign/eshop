@@ -27,7 +27,7 @@ class SupplierProductRepository extends \StORM\Repository
 {
 	private Container $container;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Container $container, private readonly ShopsConfig $shopsConfig)
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Container $container, protected readonly ShopsConfig $shopsConfig)
 	{
 		parent::__construct($connection, $schemaManager);
 
@@ -63,11 +63,15 @@ class SupplierProductRepository extends \StORM\Repository
 		$productContentRepository = $this->getConnection()->findRepository(ProductContent::class);
 		$productPrimaryCategoryRepository = $this->getConnection()->findRepository(ProductPrimaryCategory::class);
 		$categoryRepository = $this->getConnection()->findRepository(Category::class);
+		$visibilityListRepository = $this->getConnection()->findRepository(VisibilityList::class);
+		$visibilityListItemRepository = $this->getConnection()->findRepository(VisibilityListItem::class);
 		$supplierId = $supplier->getPK();
 		$attributeAssignRepository = $this->getConnection()->findRepository(AttributeAssign::class);
 		$photoRepository = $this->getConnection()->findRepository(Photo::class);
 		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$mutation];
 		$riboonId = 'novy_import';
+
+		$visibilityLists = $visibilityListRepository->many()->toArray();
 
 		if ($overwrite) {
 			$updates = ["name$mutationSuffix", 'unit', 'imageFileName', 'vatRate'];
@@ -250,6 +254,15 @@ class SupplierProductRepository extends \StORM\Repository
 					'category' => $category->uuid,
 					'categoryType' => $category->typePK,
 				], checkKeys: ['product' => false,]);
+			}
+
+			foreach ($visibilityLists as $visibilityList) {
+				$visibilityListItemRepository->syncOne([
+					'visibilityList' => $visibilityList->getPK(),
+					'product' => $product->getPK(),
+					'hidden' => $supplier->defaultHiddenProduct,
+					'unavailable' => $draft->unavailable,
+				], []);
 			}
 
 			if ($draft->content) {
