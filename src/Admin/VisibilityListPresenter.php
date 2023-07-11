@@ -250,7 +250,7 @@ class VisibilityListPresenter extends BackendPresenter
 
 		$form->addCheckbox('hidden', 'Skryto');
 
-		$this->formFactory->addShopsContainerToAdminForm($form);
+		$this->formFactory->addShopsContainerToAdminForm($form, false);
 
 		$form->addSubmits(!$object);
 

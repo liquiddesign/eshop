@@ -183,7 +183,7 @@
 			        {foreach $pricelists as $id => $pricelist}
                         <tr class="m-0 mt-1 has-danger"
                             style="{if !$pricelist->isActive}background-color: #E9ECEF;{/if}">
-                            <th class="col-label col-form-label col">{$pricelist->name} <i
+                            <th class="col-label col-form-label col">{$pricelist->name} {($shop = $pricelist->getValue('shop')) ? "(O:$shop)": null} <i
                                         class="fa fa-sort-numeric-up mr-1"></i> {$pricelist->priority}</th>
 
                             <td class="align-middle">{input "prices-$id-price" class => 'form-control form-control-sm col-label max-number'}

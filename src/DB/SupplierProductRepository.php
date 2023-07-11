@@ -360,7 +360,11 @@ class SupplierProductRepository extends \StORM\Repository
 		$contentLocksToUpdate = [];
 
 		foreach ($productContentsToSync as $item) {
-			$product = $products[$item['product']];
+			$product = $products[$item['product']] ?? null;
+
+			if (!$product) {
+				continue;
+			}
 
 			// phpcs:ignore
 			if (($product->supplierContentLock === 0 && $product->supplierLock >= $supplier->importPriority && $product->supplierContentMode === 'priority') ||
