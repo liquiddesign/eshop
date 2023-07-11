@@ -1801,7 +1801,9 @@ class CheckoutManager
 		
 		$this->stm->getLink()->commit();
 		
-		$this->reviewRepository->createReviewsFromOrder($order);
+		if ($purchase->email) {
+			$this->reviewRepository->createReviewsFromOrder($order);
+		}
 		
 		Arrays::invoke($this->onOrderCreate, $order);
 		
