@@ -205,6 +205,13 @@ class Purchase extends \StORM\Entity
 	public ?Customer $customer;
 
 	/**
+	 * Nadřazený zákazník který provedl nákup za skutečného zákazníka
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public Customer|null $parentCustomer = null;
+
+	/**
 	 * Účet
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
