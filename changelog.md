@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - IN DEVELOPMENT
+
+### Added
+
+- ShopperUser now has ability to choose selected Customer via session
+    - This adds option to log in as Customer, but act like child Customer (using his PriceLists, VisibilityLists and make order as him)
+    - CatalogPermission is still used from original Customer
+
+## [2.0.0] - 2023-07-12
+
+### Changed
+
+- PriceLists and VisibilityLists can be created for specific shop or for all shops.
+- Various import changes
+
+### Fixed
+
+- Carts fixes
+- Reviews creation on order creation fix
+
 ## [2.0.0-beta.1] - 2023-07-10
 
 ### Added
@@ -36,7 +56,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - You can now specify purchase discount apply directly to purchase and one time discount whole order without discount every cart item
 - You can now choose cart in almost every method in checkoutManager and use multiple carts
 
-
 ### Changed
 
 - **BREAKING:** PHP version 8.2 or higher is required
@@ -50,19 +69,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - To access Product primary category, use getPrimaryCategory function
     - Function *ProductRepository::getProducts* selects primaryCategory property based on selected Shop and setting of CategoryType for that Shop
 - **BREAKING:** All parts of Product CSV import/export are moved to separate services `ProductExporter` and `ProductImporter`
-  - Old CSV files are not compatible with new import 
-  - Imports/exports reflects changes in content, visibility and categories
-  - Content, Perex and Categories are no longer in 'importColumns' array in configuration. They are now hard-coded in import/export services.
-    - **BREAKING:** You NEED to remove them from you local configurations
+    - Old CSV files are not compatible with new import
+    - Imports/exports reflects changes in content, visibility and categories
+    - Content, Perex and Categories are no longer in 'importColumns' array in configuration. They are now hard-coded in import/export services.
+        - **BREAKING:** You NEED to remove them from you local configurations
 - **BREAKING:** `SupplierCategory` now can have multiple paired Categories
 - **BREAKING:** `SupplierProductRepository::syncProducts` overhauled to reflect all changes
-  - **BREAKING:** Content (name, content, perex) import option "with the longest content" is removed
-  - **BREAKING:** Content is regardless of import option imported only if content of product is empty
-- **BREAKING:** `Product::toArray` now accepts `$shop` and `$selectContent` parameters. `$selectContent` defaults to true, so it selects content, even if it is not loaded. That can lead to performance issue, so always check how you use this.
+    - **BREAKING:** Content (name, content, perex) import option "with the longest content" is removed
+    - **BREAKING:** Content is regardless of import option imported only if content of product is empty
+- **BREAKING:** `Product::toArray` now accepts `$shop` and `$selectContent` parameters. `$selectContent` defaults to true, so it selects content, even if it is not loaded. That can lead to performance
+  issue, so always check how you use this.
 - **BREAKING:** `ProductRepository::getProduct` parameter *productUuid* renamed to *$condition*. Now it is union type accepts array for *whereMatch* or exact *uuid*.
 - **BREAKING:** changed behavior of `CheckoutManager::createCart`
-  - If *active* parameter is false. No longer triggers event *onCartCreate*.
-  - If *active* parameter is false. Property *activeCart* in shopper customer s not updated.
+    - If *active* parameter is false. No longer triggers event *onCartCreate*.
+    - If *active* parameter is false. Property *activeCart* in shopper customer s not updated.
 - XML exports accepts Shop parameter and used entities are affected by it.
 - PriceList selects in XML exports now shows all PriceLists, even from different Shops. Truly active PriceLists are filtered afterward in exports.
 - Category code must be unique within the CategoryType
@@ -135,9 +155,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `Product::$rating`
     - `Product::$primaryCategory`
     - `ExportPresenter::ERROR_MSG`
-      - The error message now shows the actual error.
+        - The error message now shows the actual error.
     - `Product::SUPPLIER_CONTENT_MODE_LENGTH`
-      
+
 ### Deprecated
 
 - `Integration/MailerLite`
@@ -151,8 +171,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **BREAKING:** When changing amount of item in `CartItemList` and new value is <=0, value was changed to 1. Now, instead of changing value, item  is deleted from cart.
-  - Check your usage before updating to this version! GTM can negatively affect this change.
+- **BREAKING:** When changing amount of item in `CartItemList` and new value is <=0, value was changed to 1. Now, instead of changing value, item is deleted from cart.
+    - Check your usage before updating to this version! GTM can negatively affect this change.
 
 ## [1.4.0] - 2023-06-12
 
