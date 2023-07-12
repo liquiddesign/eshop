@@ -13,7 +13,10 @@ use ForceUTF8\Encoding;
 use League\Csv\Reader;
 use Nette\Application\Application;
 use Nette\Utils\FileSystem;
+use PdoDebugger;
 use StORM\Entity;
+use StORM\LogItem;
+use Tracy\Debugger;
 
 abstract class BackendPresenter extends \Admin\BackendPresenter
 {
@@ -32,36 +35,38 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 	#[\Nette\DI\Attributes\Inject]
 	public Application $application;
 
-//	public function afterRender(): void
-//	{
-//		\Tracy\Debugger::$maxLength = 100000;
-//
-//		$this->application->onShutdown[] = function (): void {
-//			$logItems = $this->connection->getLog();
-//
-//			\uasort($logItems, function (LogItem $a, LogItem $b): int {
-//				return $b->getTotalTime() <=> $a->getTotalTime();
-//			});
-//
-//			$totalTime = 0;
-//			$totalAmount = 0;
-//
-//			$logItems = \array_filter($logItems, function (LogItem $item) use (&$totalTime, &$totalAmount): bool {
-//				$totalTime += $item->getTotalTime();
-//				$totalAmount += $item->getAmount();
-//
-//				return $item->getTotalTime() > 0.01;
-//			});
-//
-//			Debugger::dump($totalTime);
-//			Debugger::dump($totalAmount);
-//
-//			foreach ($logItems as $logItem) {
-//				Debugger::dump($logItem);
-//				Debugger::dump(PdoDebugger::show($logItem->getSql(), $logItem->getVars()));
-//			}
-//		};
-//	}
+	public function afterRender(): void
+	{
+		\Tracy\Debugger::$maxLength = 100000;
+
+		$this->application->onShutdown[] = function (): void {
+			if ($this->getRequest()->getParameter('debug') !== null) {
+				$logItems = $this->connection->getLog();
+
+				\uasort($logItems, function (LogItem $a, LogItem $b): int {
+					return $b->getTotalTime() <=> $a->getTotalTime();
+				});
+
+				$totalTime = 0;
+				$totalAmount = 0;
+
+				$logItems = \array_filter($logItems, function (LogItem $item) use (&$totalTime, &$totalAmount): bool {
+					$totalTime += $item->getTotalTime();
+					$totalAmount += $item->getAmount();
+
+					return $item->getTotalTime() > 0.01;
+				});
+
+				Debugger::dump($totalTime);
+				Debugger::dump($totalAmount);
+
+				foreach ($logItems as $logItem) {
+					Debugger::dump($logItem);
+					Debugger::dump(PdoDebugger::show($logItem->getSql(), $logItem->getVars()));
+				}
+			}
+		};
+	}
 
 	public function handleGetProductsForSelect2(?string $q = null, ?int $page = null): void
 	{

@@ -5,6 +5,7 @@ namespace Eshop;
 use Admin\DB\RoleRepository;
 use Base\ShopsConfig;
 use Eshop\Admin\SettingsPresenter;
+use Eshop\DB\CatalogPermission;
 use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\Country;
@@ -22,6 +23,7 @@ use Eshop\DB\PricelistRepository;
 use Eshop\DB\Product;
 use Eshop\DTO\ProductWithFormattedPrices;
 use Nette\DI\Container;
+use Nette\Http\Session;
 use Nette\Localization\Translator;
 use Nette\Security\Authorizator;
 use Nette\Security\IAuthenticator;
@@ -32,6 +34,7 @@ use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Collection;
 use StORM\Exception\NotFoundException;
+use StORM\Expression;
 use Web\DB\SettingRepository;
 
 class ShopperUser extends User
@@ -44,9 +47,15 @@ class ShopperUser extends User
 
 	public const PRICE_PRECISSION = 4;
 
+	public const SESSION_SECTION_NAME = 'shopperUser';
+
+	public const SESSION_ACTIVE_CUSTOMER_NAME = 'activeCustomer';
+
 	protected const MERCHANT_CATALOG_PERMISSIONS = 'price';
 
 	protected ?Customer $customer = null;
+
+	protected Customer|null|false $selectedCustomer = false;
 
 	protected CheckoutManager $checkoutManager;
 
@@ -96,6 +105,7 @@ class ShopperUser extends User
 		protected readonly Container $container,
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly Translator $translator,
+		protected readonly Session $session,
 		?IUserStorage $legacyStorage = null,
 		?IAuthenticator $authenticator = null,
 		?Authorizator $authorizator = null,
@@ -251,6 +261,10 @@ class ShopperUser extends User
 		return $this->config['checkoutSequence'];
 	}
 
+	/**
+	 * @return \Eshop\DB\Customer|null Always customer which is meant to be used for buying
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function getCustomer(): ?Customer
 	{
 		if ($this->customer) {
@@ -261,7 +275,10 @@ class ShopperUser extends User
 
 		if ($this->isLoggedIn()) {
 			if ($identity instanceof Customer) {
-				$this->customer = $this->customerRepository->one($identity->getPK());
+				$this->customer = ($selectedCustomerPK = $this->getSessionSelectedCustomer()) ?
+					$this->customerRepository->one($selectedCustomerPK->getPK()) :
+					$this->customerRepository->one($identity->getPK());
+
 				$this->customer->setAccount($identity->getAccount());
 
 				return $this->customer;
@@ -298,9 +315,75 @@ class ShopperUser extends User
 		return !($amount < $product->minBuyCount || ($product->maxBuyCount !== null && $amount > $product->maxBuyCount));
 	}
 
-	public function getMerchant(): ?Merchant
+	public function getMerchant(): Merchant|null
 	{
 		return $this->isLoggedIn() && $this->getIdentity() instanceof Merchant ? $this->getIdentity() : null;
+	}
+
+	/**
+	 * @return \Eshop\DB\Customer|null Really logged in customer despite selected customer from session.
+	 */
+	public function getLoggedInCustomer(): Customer|null
+	{
+		return $this->isLoggedIn() && $this->getIdentity() instanceof Customer ? $this->getIdentity() : null;
+	}
+
+	/**
+	 * Don't use this directly! Use getCustomer()
+	 * @return \Eshop\DB\Customer|null Selected customer from session.
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function getSessionSelectedCustomer(): Customer|null
+	{
+		if ($this->selectedCustomer !== false) {
+			return $this->selectedCustomer;
+		}
+
+		$customer = $this->session->getSection($this::SESSION_SECTION_NAME)->get($this::SESSION_ACTIVE_CUSTOMER_NAME);
+
+		return $this->selectedCustomer = ($customer ? $this->customerRepository->one($customer, true) : null);
+	}
+
+	/**
+	 * Change selected customer
+	 * @param \Eshop\DB\Customer|string|null $customer
+	 */
+	public function setSelectedCustomer(Customer|string|null $customer): void
+	{
+		$this->selectedCustomer = false;
+
+		if (!$customer) {
+			$this->session->getSection($this::SESSION_SECTION_NAME)->remove($this::SESSION_ACTIVE_CUSTOMER_NAME);
+
+			return;
+		}
+
+		$customer = $customer instanceof Customer ? $customer->getPK() : $customer;
+		$loggedInCustomer = $this->getLoggedInCustomer();
+
+		if ($loggedInCustomer && $loggedInCustomer->getPK() === $customer) {
+			$this->session->getSection($this::SESSION_SECTION_NAME)->remove($this::SESSION_ACTIVE_CUSTOMER_NAME);
+
+			return;
+		}
+
+		$this->session->getSection($this::SESSION_SECTION_NAME)->set($this::SESSION_ACTIVE_CUSTOMER_NAME, $customer);
+	}
+
+	/**
+	 * @return \StORM\Collection<\Eshop\DB\Customer>|false Available customers aka children customers of currently logged in customer and customer itself or false if no one logged in
+	 */
+	public function getAvailableCustomers(): Collection|false
+	{
+		if (!$loggedInCustomer = $this->getLoggedInCustomer()) {
+			return false;
+		}
+
+		$where = new Expression();
+		$where->add('OR', 'this.fk_parentCustomer  = %s', [$loggedInCustomer->getPK()]);
+		$where->add('OR', 'this.uuid = %s', [$loggedInCustomer->getPK()]);
+
+		return $this->customerRepository->many()->where($where->getSql(), $where->getVars());
 	}
 
 	public function canBuyProduct(Product $product): bool
@@ -455,6 +538,34 @@ class ShopperUser extends User
 		return $this->registrationConfiguration;
 	}
 
+	public function getCatalogPermissionObject(): CatalogPermission|null
+	{
+		$customer = $this->getCustomer();
+		$loggedInCustomer = $this->getLoggedInCustomer();
+		$merchant = $this->getMerchant();
+
+		if ($merchant && (!$customer && !$merchant->activeCustomerAccount)) {
+			return null;
+		}
+
+		if (!$customer) {
+			return null;
+		}
+
+		$customerCatalogPermission = $customer->getCatalogPermission();
+		$loggedInCustomerCatalogPermission = $loggedInCustomer?->getCatalogPermission();
+
+		if (!$customerCatalogPermission && !$loggedInCustomerCatalogPermission) {
+			return null;
+		}
+
+		if ($loggedInCustomerCatalogPermission) {
+			return $loggedInCustomerCatalogPermission;
+		}
+
+		return $customerCatalogPermission;
+	}
+
 	/**
 	 * @return 'none'|'catalog'|'price'|string
 	 */
@@ -471,7 +582,9 @@ class ShopperUser extends User
 			return $this->getCustomerGroup()->defaultCatalogPermission;
 		}
 
-		if (!$catalogPermission = $customer->getCatalogPermission()) {
+		$catalogPermission = $this->getCatalogPermissionObject();
+
+		if (!$catalogPermission) {
 			return 'none';
 		}
 
@@ -487,7 +600,7 @@ class ShopperUser extends User
 			return false;
 		}
 
-		if (!$customer || !$catalogPermission = $customer->getCatalogPermission()) {
+		if (!$customer || !$catalogPermission = $this->getCatalogPermissionObject()) {
 			return $this->getCustomerGroup() ? $this->getCustomerGroup()->defaultBuyAllowed : false;
 		}
 
@@ -515,7 +628,7 @@ class ShopperUser extends User
 		}
 
 		if ($customer) {
-			$catalogPerm = $customer->getCatalogPermission();
+			$catalogPerm = $this->getCatalogPermissionObject();
 		}
 
 		return $customer ? $catalogPerm->showPricesWithVat : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricesWithVat;
@@ -534,7 +647,7 @@ class ShopperUser extends User
 		}
 
 		if ($customer) {
-			$catalogPerm = $customer->getCatalogPermission();
+			$catalogPerm = $this->getCatalogPermissionObject();
 		}
 
 		return $customer && $catalogPerm ? $catalogPerm->showPricesWithoutVat : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricesWithoutVat;
@@ -552,7 +665,7 @@ class ShopperUser extends User
 		}
 
 		if ($customer) {
-			$catalogPerm = $customer->getCatalogPermission();
+			$catalogPerm = $this->getCatalogPermissionObject();
 		}
 
 		/** @var 'withVat'|'withoutVat' $result */

@@ -324,7 +324,7 @@ abstract class FrontendPresenter extends Presenter
 		\Tracy\Debugger::$maxLength = 100000;
 
 		$this->netteApplication->onShutdown[] = function (): void {
-			if ($this->container->getParameters()['debugMode'] === true) {
+			if ($this->getRequest()->getParameter('debug') !== null) {
 				$logItems = $this->connection->getLog();
 
 				\uasort($logItems, function (\StORM\LogItem $a, \StORM\LogItem $b): int {

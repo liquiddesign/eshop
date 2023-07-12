@@ -146,6 +146,13 @@ class Customer extends Entity implements IIdentity, IUser
 	 * @constraint
 	 */
 	public ?Customer $parentCustomer;
+
+	/**
+	 * Opposite side of "parentCustomer" relation
+	 * @relation{"targetKey":"fk_parentCustomer"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\Customer>
+	 */
+	public RelationCollection $childCustomers;
 	
 	/**
 	 * Vedoucí
@@ -318,8 +325,8 @@ class Customer extends Entity implements IIdentity, IUser
 	public RelationCollection $accounts;
 	
 	public ?Account $account = null;
-	
-	protected ?CatalogPermission $catalogPermission;
+
+	protected CatalogPermission|null|false $catalogPermission = false;
 	
 	public function getDeliveryAddressLine(): ?string
 	{
@@ -360,12 +367,16 @@ class Customer extends Entity implements IIdentity, IUser
 	
 	public function getCatalogPermission(): ?CatalogPermission
 	{
+		if ($this->catalogPermission !== false) {
+			return $this->catalogPermission;
+		}
+
 		/** @var \Eshop\DB\CatalogPermission|null $perm */
 		$perm = $this->getValue('account') ?
 			$this->getConnection()->findRepository(CatalogPermission::class)->one(['fk_customer' => $this->getPK(), 'fk_account' => $this->getValue('account')], false) :
 			null;
 
-		return $this->catalogPermission ?? $perm;
+		return $this->catalogPermission = $perm;
 	}
 	
 	public function isCompany(): bool
