@@ -275,10 +275,7 @@ class ShopperUser extends User
 
 		if ($this->isLoggedIn()) {
 			if ($identity instanceof Customer) {
-				$this->customer = ($selectedCustomerPK = $this->getSessionSelectedCustomer()) ?
-					$this->customerRepository->one($selectedCustomerPK->getPK()) :
-					$this->customerRepository->one($identity->getPK());
-
+				$this->customer = $this->customerRepository->one($identity->getPK());
 				$this->customer->setAccount($identity->getAccount());
 
 				return $this->customer;
@@ -321,14 +318,6 @@ class ShopperUser extends User
 	}
 
 	/**
-	 * @return \Eshop\DB\Customer|null Really logged in customer despite selected customer from session.
-	 */
-	public function getLoggedInCustomer(): Customer|null
-	{
-		return $this->isLoggedIn() && $this->getIdentity() instanceof Customer ? $this->getIdentity() : null;
-	}
-
-	/**
 	 * Don't use this directly! Use getCustomer()
 	 * @return \Eshop\DB\Customer|null Selected customer from session.
 	 * @throws \StORM\Exception\NotFoundException
@@ -359,9 +348,8 @@ class ShopperUser extends User
 		}
 
 		$customer = $customer instanceof Customer ? $customer->getPK() : $customer;
-		$loggedInCustomer = $this->getLoggedInCustomer();
 
-		if ($loggedInCustomer && $loggedInCustomer->getPK() === $customer) {
+		if ($this->getCustomer() && $customer === $this->getCustomer()->getPK()) {
 			$this->session->getSection($this::SESSION_SECTION_NAME)->remove($this::SESSION_ACTIVE_CUSTOMER_NAME);
 
 			return;
@@ -375,13 +363,13 @@ class ShopperUser extends User
 	 */
 	public function getAvailableCustomers(): Collection|false
 	{
-		if (!$loggedInCustomer = $this->getLoggedInCustomer()) {
+		if (!$customer = $this->getCustomer()) {
 			return false;
 		}
 
 		$where = new Expression();
-		$where->add('OR', 'this.fk_parentCustomer  = %s', [$loggedInCustomer->getPK()]);
-		$where->add('OR', 'this.uuid = %s', [$loggedInCustomer->getPK()]);
+		$where->add('OR', 'this.fk_parentCustomer  = %s', [$customer->getPK()]);
+		$where->add('OR', 'this.uuid = %s', [$customer->getPK()]);
 
 		return $this->customerRepository->many()->where($where->getSql(), $where->getVars());
 	}
@@ -541,7 +529,6 @@ class ShopperUser extends User
 	public function getCatalogPermissionObject(): CatalogPermission|null
 	{
 		$customer = $this->getCustomer();
-		$loggedInCustomer = $this->getLoggedInCustomer();
 		$merchant = $this->getMerchant();
 
 		if ($merchant && (!$customer && !$merchant->activeCustomerAccount)) {
@@ -552,18 +539,7 @@ class ShopperUser extends User
 			return null;
 		}
 
-		$customerCatalogPermission = $customer->getCatalogPermission();
-		$loggedInCustomerCatalogPermission = $loggedInCustomer?->getCatalogPermission();
-
-		if (!$customerCatalogPermission && !$loggedInCustomerCatalogPermission) {
-			return null;
-		}
-
-		if ($loggedInCustomerCatalogPermission) {
-			return $loggedInCustomerCatalogPermission;
-		}
-
-		return $customerCatalogPermission;
+		return $customer->getCatalogPermission();
 	}
 
 	/**
