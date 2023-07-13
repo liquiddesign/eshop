@@ -318,7 +318,6 @@ class ShopperUser extends User
 	}
 
 	/**
-	 * Don't use this directly! Use getCustomer()
 	 * @return \Eshop\DB\Customer|null Selected customer from session.
 	 * @throws \StORM\Exception\NotFoundException
 	 */
@@ -368,7 +367,7 @@ class ShopperUser extends User
 		}
 
 		$where = new Expression();
-		$where->add('OR', 'this.fk_parentCustomer  = %s', [$customer->getPK()]);
+		$where->add('OR', 'this.fk_parentCustomer = %s', [$customer->getPK()]);
 		$where->add('OR', 'this.uuid = %s', [$customer->getPK()]);
 
 		return $this->customerRepository->many()->where($where->getSql(), $where->getVars());

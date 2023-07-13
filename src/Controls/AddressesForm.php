@@ -32,6 +32,11 @@ class AddressesForm extends Form
 	) {
 		parent::__construct();
 
+		$customer = $shopperUser->getCustomer();
+		$selectedCustomer = $this->shopperUser->getSessionSelectedCustomer();
+
+		$customer = $selectedCustomer ?? $customer;
+
 		$this->addText('email', 'AddressesForm.email')->setRequired()->addRule($this::EMAIL);
 		$this->addText('ccEmails', 'AddressesForm.ccEmails');
 		$this->addText('fullname', 'AddressesForm.fullname')->setRequired()->setMaxLength(32);
@@ -47,7 +52,7 @@ class AddressesForm extends Form
 		$billAddressBox->addText('state', 'AddressesForm.bill_state');
 		
 		$otherAddress = $this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool) $this->shopperUser->getCheckoutManager()->getPurchase()->deliveryAddress);
-		$isCompany = $this->addCheckbox('isCompany', 'AddressesForm.isCompany')->setDefaultValue($shopperUser->getCustomer() && $shopperUser->getCustomer()->isCompany());
+		$isCompany = $this->addCheckbox('isCompany', 'AddressesForm.isCompany')->setDefaultValue($customer?->isCompany());
 		$createAccount = $this->addCheckbox('createAccount', 'AddressesForm.createAccount');
 		$this->addPassword('password', 'AddressesForm.password')
 			->addConditionOn($createAccount, $this::EQUAL, true)
@@ -75,8 +80,8 @@ class AddressesForm extends Form
 		$this->addText('bankAccount', 'AddressesForm.bankAccount');
 		$this->addText('bankAccountCode', 'AddressesForm.bankAccountCode');
 		$this->addText('bankSpecificSymbol', 'AddressesForm.bankSpecificSymbol');
-		
-		$customer = $shopperUser->getCustomer();
+
+		$this->addHidden('parentCustomer', $customer && $selectedCustomer && $customer->getPK() !== $selectedCustomer->getPK() ? $customer->getPK() : null);
 		
 		if ($customer && !$this->shopperUser->getCheckoutManager()->getPurchase()->email) {
 			$customerArray = $customer->toArray(['billAddress', 'deliveryAddress']);
