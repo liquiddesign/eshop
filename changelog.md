@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - This adds option to log in as Customer, but act like child Customer (using his PriceLists, VisibilityLists and make order as him)
     - CatalogPermission is still used from original Customer
 
+### Changed
+
+- Updated packages versions
+
 ## [2.0.0] - 2023-07-12
 
 ### Changed
