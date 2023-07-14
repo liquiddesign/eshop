@@ -2,9 +2,9 @@ name: Analysis
 
 on:
   push:
-    branches: [ main, v2 ]
+    branches: [ main, v2, v2.0 ]
   pull_request:
-    branches: [ main, v2 ]
+    branches: [ main, v2, v2.0 ]
 
 jobs:
   build:
