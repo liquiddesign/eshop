@@ -450,33 +450,36 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		return $random;
 	}
-
+	
 	public function exportTreeCsv(Writer $writer, array $items): void
 	{
 		$writer->setDelimiter(';');
-
+		
 		$columns = [
+			'Code',
 			'Subcategory 1',
 			'Subcategory 2',
 			'Subcategory 3',
 			'Subcategory 4',
 			'Subcategory 5',
 		];
-
+		
 		$writer->insertOne($columns);
-
+		
 		$defaultMutationSuffix = '_cs';
-
+		
 		/** @var \Eshop\DB\Category $category */
 		foreach ($items as $category) {
 			$tree = \array_reverse(\explode(';', $category->getFamilyTree()->select(['tree' => 'GROUP_CONCAT(name' . $defaultMutationSuffix . ' SEPARATOR ";")'])->first()->getValue('tree')));
-
+			
 			$row = [];
-
+			
+			$row[0] = $category->code;
+			
 			foreach (\array_keys($columns) as $i) {
-				$row[] = $tree[$i] ?? null;
+				$row[] = $tree[$i + 1] ?? null;
 			}
-
+			
 			$writer->insertOne($row);
 		}
 	}
