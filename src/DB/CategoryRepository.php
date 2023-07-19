@@ -477,7 +477,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			$row[0] = $category->code;
 			
 			foreach (\array_keys($columns) as $i) {
-				$row[$i+1] = $tree[$i] ?? null;
+				$row[$i + 1] = $tree[$i] ?? null;
 			}
 			
 			$writer->insertOne($row);

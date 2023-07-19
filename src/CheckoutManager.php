@@ -1843,6 +1843,41 @@ class CheckoutManager
 		);
 	}
 	
+	protected function getProductRoundAmount(int $amount, Product $product): int
+	{
+		if (!$this->getCustomer() || !$this->getCustomer()->productRoundingPct) {
+			return $amount;
+		}
+		
+		$prAmount = $amount * (1 + ($this->getCustomer()->productRoundingPct / 100));
+		
+		if ($product->inPalett > 0) {
+			$newAmount = $this->cartItemRepository->roundUpToProductRoundAmount($amount, $prAmount, $product->inPalett);
+			
+			if ($amount !== $newAmount) {
+				return $newAmount;
+			}
+		}
+		
+		if ($product->inCarton > 0) {
+			$newAmount = $this->cartItemRepository->roundUpToProductRoundAmount($amount, $prAmount, $product->inCarton);
+			
+			if ($amount !== $newAmount) {
+				return $newAmount;
+			}
+		}
+		
+		if ($product->inPackage > 0) {
+			$newAmount = $this->cartItemRepository->roundUpToProductRoundAmount($amount, $prAmount, $product->inPackage);
+			
+			if ($amount !== $newAmount) {
+				return $newAmount;
+			}
+		}
+		
+		return $amount;
+	}
+
 	private function getActiveCart(): ?Cart
 	{
 		if ($this->getCustomer()) {
@@ -1891,41 +1926,6 @@ class CheckoutManager
 		}
 		
 		return $cart;
-	}
-	
-	private function getProductRoundAmount(int $amount, Product $product): int
-	{
-		if (!$this->getCustomer() || !$this->getCustomer()->productRoundingPct) {
-			return $amount;
-		}
-		
-		$prAmount = $amount * (1 + ($this->getCustomer()->productRoundingPct / 100));
-		
-		if ($product->inPalett > 0) {
-			$newAmount = $this->cartItemRepository->roundUpToProductRoundAmount($amount, $prAmount, $product->inPalett);
-			
-			if ($amount !== $newAmount) {
-				return $newAmount;
-			}
-		}
-		
-		if ($product->inCarton > 0) {
-			$newAmount = $this->cartItemRepository->roundUpToProductRoundAmount($amount, $prAmount, $product->inCarton);
-			
-			if ($amount !== $newAmount) {
-				return $newAmount;
-			}
-		}
-		
-		if ($product->inPackage > 0) {
-			$newAmount = $this->cartItemRepository->roundUpToProductRoundAmount($amount, $prAmount, $product->inPackage);
-			
-			if ($amount !== $newAmount) {
-				return $newAmount;
-			}
-		}
-		
-		return $amount;
 	}
 	
 	private function checkCurrency(Product $product, ?string $cartId = self::ACTIVE_CART_ID): bool
