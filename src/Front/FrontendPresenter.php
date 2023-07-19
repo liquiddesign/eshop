@@ -217,12 +217,12 @@ abstract class FrontendPresenter extends Presenter
 	public function handleWatchIt(string $product): void
 	{
 		if ($customer = $this->shopperUser->getCustomer()) {
-			$this->watcherRepository->createOne([
+			$watcher = $this->watcherRepository->createOne([
 				'product' => $product,
 				'customer' => $customer,
 				'amountFrom' => 1,
 				'beforeAmountFrom' => 0,
-			]);
+			], ignore: true);
 		} else {
 			$this->flashMessage($this->translator->translate(
 				'watcher.signInToAdd',

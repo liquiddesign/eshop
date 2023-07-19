@@ -300,7 +300,7 @@ abstract class ProductPresenter extends FrontendPresenter
 				'customer' => $customer,
 				'amountFrom' => 1,
 				'beforeAmountFrom' => 0,
-			]);
+			], ignore: true);
 
 			Arrays::invoke($this->onProductWatched, $watcher);
 		}

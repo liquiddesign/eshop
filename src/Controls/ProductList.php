@@ -229,7 +229,7 @@ class ProductList extends Datalist
 				'customer' => $customer,
 				'amountFrom' => 1,
 				'beforeAmountFrom' => 0,
-			]);
+			], ignore: true);
 
 			$this->onWatcherCreated($watcher);
 		}
