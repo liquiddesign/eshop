@@ -192,7 +192,7 @@ class CustomerPresenter extends BackendPresenter
 		
 		$grid->addColumn('', function (Customer $object, Datagrid $datagrid) use ($btnSecondary) {
 			return \count($object->accounts) > 0 ?
-				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'accounts', 'accountGrid-company' => $object->email]) . "'>Účty</a>" :
+				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'accounts', 'accountGrid-company' => $object->email, 'accountGrid-customer' => $object->fullname]) . "'>Účty</a>" :
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('newAccount', $object) . "'>Vytvořit&nbsp;účet</a>";
 		}, '%s', null, ['class' => 'minimal']);
 		
@@ -885,7 +885,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			
 			$label = ShopperUser::PERMISSIONS;
 			
-			return '' . $label[$account->getValue('permission')] . ' + ' . ($account->getValue('buyAllowed') ? 'nákup' : 'bez nákupu');
+			return $label[$account->getValue('permission')] . ' + ' . ($account->getValue('buyAllowed') ? 'nákup' : 'bez nákupu');
 		});
 		
 		$grid->addColumnText('Aktivní od', "activeFrom|date:'d.m.Y G:i'", '%s', 'activeFrom', ['class' => 'fit']);
@@ -923,7 +923,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 		
 		$grid->addFilterTextInput('search', ['this.login'], null, 'Login');
-		$grid->addFilterTextInput('company', ['customer.company', 'customer.fullname', 'customer.ic', 'customer.email'], null, 'Zákazník, IČ');
+		$grid->addFilterTextInput('customer', ['customer.fullname'], null, 'Jméno zákazníka');
+		$grid->addFilterTextInput('company', ['customer.company', 'customer.ic', 'customer.email'], null, 'Firma, IČ, email zákazníka');
 		
 		if (\count($this->merchantRepository->getArrayForSelect()) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
