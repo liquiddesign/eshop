@@ -14,6 +14,7 @@ use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\RelatedTypeRepository;
+use Eshop\DB\VisibilityListRepository;
 use Eshop\Integration\Integrations;
 use Forms\Form;
 use Nette\Caching\Cache;
@@ -47,6 +48,9 @@ class SettingsPresenter extends BackendPresenter
 	/** Suffixed with SHOP */
 	public const MAIN_CATEGORY_TYPE = 'mainCategoryType';
 
+	/** Suffixed with SHOP */
+	public const MAIN_VISIBILITY_LIST = 'mainVisibilityList';
+
 	#[Inject]
 	public Integrations $integrations;
 
@@ -76,6 +80,9 @@ class SettingsPresenter extends BackendPresenter
 
 	#[Inject]
 	public CategoryTypeRepository $categoryTypeRepository;
+
+	#[Inject]
+	public VisibilityListRepository $visibilityListRepository;
 
 	/**
 	 * @var array<string|array<mixed>>
@@ -473,6 +480,18 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 				'options' => $this->categoryTypeRepository->getArrayForSelect(),
 				'onSave' => function ($key, $oldValue, $newValue): void {
 					$this->systemicCallback($key, $oldValue, $newValue, $this->categoryTypeRepository);
+				},
+			];
+		}
+
+		foreach ($shops as $shop) {
+			$this->customSettings['Obchod: ' . $shop->name][] = [
+				'key' => self::MAIN_VISIBILITY_LIST . '_' . $shop->getPK(),
+				'label' => 'Hlavní seznam viditelnosti',
+				'type' => 'select',
+				'options' => $this->visibilityListRepository->getArrayForSelect(),
+				'onSave' => function ($key, $oldValue, $newValue): void {
+					$this->systemicCallback($key, $oldValue, $newValue, $this->visibilityListRepository);
 				},
 			];
 		}
