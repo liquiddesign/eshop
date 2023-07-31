@@ -18,6 +18,18 @@ class PackageItem extends \StORM\Entity
 	 * @column
 	 */
 	public int $amount = 0;
+	
+	/**
+	 * Expedováno kusů
+	 * @column
+	 */
+	public int $dispatchedAmount = 0;
+	
+	/**
+	 * Výdejka
+	 * @column
+	 */
+	public ?string $expeditionNumber = null;
 
 	/**
 	 * Smazáno
