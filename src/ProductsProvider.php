@@ -13,13 +13,17 @@ use Eshop\DB\ProductRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
 use Nette\DI\Container;
-use Nette\Utils\Strings;
 use StORM\Connection;
+use Tracy\Debugger;
 use Web\DB\SettingRepository;
 
 class ProductsProvider
 {
 	public const CATEGORY_COLUMNS_COUNT = 20;
+
+	protected const BASE_TABLE_NAME = 'eshop_productsprovidercache';
+
+	protected const CACHE_STATE_TABLE_NAME = self::BASE_TABLE_NAME . '_state';
 
 	public function __construct(
 		protected readonly ProductRepository $productRepository,
@@ -40,7 +44,43 @@ class ProductsProvider
 
 	public function warmUpCacheTable(): void
 	{
+		Debugger::timer();
+
+		// Cache states: 0-not ready, available to be warmedUp, 1-not ready, warmingUp currently, 2-ready
+
 		$link = $this->connection->getLink();
+
+		$cacheStateTableName = self::CACHE_STATE_TABLE_NAME;
+
+		$link->exec("CREATE TABLE IF NOT EXISTS `$cacheStateTableName` (id varchar(32) primary key, value tinyint);");
+
+		$cacheStates = $this->connection->rows([$cacheStateTableName])->setIndex('id')->toArray();
+
+		if (\count($cacheStates) !== 2) {
+			$link->exec("TRUNCATE TABLE $cacheStateTableName");
+			$this->connection->createRow($cacheStateTableName, ['id' => 'ready_index', 'value' => null]);
+			$this->connection->createRow($cacheStateTableName, ['id' => 'warming_index', 'value' => null]);
+
+			$cacheStates = $this->connection->rows([$cacheStateTableName])->setIndex('id')->toArray();
+		}
+
+		\dump($cacheStates);
+		$readyIndex = $cacheStates['ready_index']->value;
+		$warmingIndex = $cacheStates['warming_index']->value;
+
+		if ($warmingIndex === null) {
+			return;
+		}
+
+		$this->connection->syncRow($cacheStateTableName, ['id' => 'warming_index', 'value' => $readyIndex === 1 ? 2 : 1]);
+
+		die();
+
+		$allCategories = $this->categoryRepository->many()->toArray();
+
+		foreach ($allCategories as $category) {
+			$link->exec("DROP TABLE IF EXISTS `eshop_categoryproducts_cache_$category->id`");
+		}
 
 		$link->exec('
 DROP TABLE IF EXISTS `eshop_products_cache`;
@@ -54,12 +94,6 @@ CREATE TABLE `eshop_products_cache` (
   INDEX idx_displayAmount (displayAmount),
   INDEX idx_displayAmount_isSold (displayAmount_isSold)
 );');
-
-//		$link->exec('ALTER TABLE `eshop_products_cache` ROW_FORMAT=DYNAMIC;');
-
-		for ($i = 0; $i < self::CATEGORY_COLUMNS_COUNT; $i++) {
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN category_$i INT UNSIGNED, ADD INDEX idx_category_$i (category_$i);");
-		}
 
 		foreach ($this->visibilityListRepository->many() as $visibilityList) {
 			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->id} INT UNSIGNED DEFAULT('{$visibilityList->id}');");
@@ -81,16 +115,19 @@ CREATE TABLE `eshop_products_cache` (
 			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->id}_priceVatBefore DOUBLE;");
 		}
 
+		Debugger::dump('drop/create tables');
+		Debugger::dump(Debugger::timer());
+
 		$allPrices = $this->priceRepository->many()->toArray();
 		$allPriceLists = $this->pricelistRepository->many()->toArray();
 		$allVisibilityLists = $this->visibilityListRepository->many()->toArray();
 		$allVisibilityListItems = $this->visibilityListItemRepository->many()->toArray();
 		$allDisplayAmounts = $this->displayAmountRepository->many()->setIndex('id')->toArray();
-		$allCategories = $this->categoryRepository->many()->toArray();
 		$allCategoriesByCategory = [];
 
 		$this->connection->getLink()->exec('SET SESSION group_concat_max_len=4294967295');
 
+		$productsByCategories = [];
 		$products = [];
 
 		$productsCollection = $this->productRepository->many()
@@ -118,6 +155,9 @@ CREATE TABLE `eshop_products_cache` (
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
 			->setGroupBy(['this.id']);
 
+		Debugger::dump('load entities');
+		Debugger::dump(Debugger::timer());
+
 		while ($product = $productsCollection->fetch(\stdClass::class)) {
 			/** @var \stdClass $product */
 
@@ -132,9 +172,9 @@ CREATE TABLE `eshop_products_cache` (
 				'producer' => $product->fkProducer,
 			];
 
-			for ($i = 0; $i < self::CATEGORY_COLUMNS_COUNT; $i++) {
-				$products[$product->id]["category_$i"] = null;
-			}
+//			for ($i = 0; $i < self::CATEGORY_COLUMNS_COUNT; $i++) {
+//				$products[$product->id]["category_$i"] = null;
+//			}
 
 			foreach ($allVisibilityLists as $visibilityList) {
 				$products[$product->id]["visibilityList_$visibilityList->id"] = null;
@@ -164,15 +204,19 @@ CREATE TABLE `eshop_products_cache` (
 					}
 
 					$products[$product->id]['categories'] = \array_unique(\array_merge($products[$product->id]['categories'] ?? [], $categoryCategories));
+
+					foreach ($products[$product->id]['categories'] as $productCategory) {
+						$productsByCategories[$productCategory][$product->id] = true;
+					}
 				}
 
-				$i = 0;
-
-				foreach ($products[$product->id]['categories'] as $productCategory) {
-					$products[$product->id]["category_$i"] = $allCategories[$productCategory]->id;
-
-					$i++;
-				}
+//				$i = 0;
+//
+//				foreach ($products[$product->id]['categories'] as $productCategory) {
+//					$products[$product->id]["category_$i"] = $allCategories[$productCategory]->id;
+//
+//					$i++;
+//				}
 			}
 
 			unset($products[$product->id]['categories']);
@@ -205,7 +249,30 @@ CREATE TABLE `eshop_products_cache` (
 			$products[$product->id]['attributeValues'] = $product->attributeValuesPKs;
 		}
 
-		$this->connection->createRows('eshop_products_cache', $products, chunkSize: 10000);
+		Debugger::dump('main loop');
+		Debugger::dump(Debugger::timer());
+
+		$this->connection->createRows('eshop_products_cache', $products, chunkSize: 100000);
+
+		Debugger::dump('insert products');
+		Debugger::dump(Debugger::timer());
+
+		foreach ($productsByCategories as $category => $products) {
+			$categoryId = $allCategories[$category]->id;
+
+			$link->exec("DROP TABLE IF EXISTS `eshop_categoryproducts_cache_$categoryId`;
+CREATE TABLE `eshop_categoryproducts_cache_$categoryId` (
+  product INT UNSIGNED PRIMARY KEY,
+  FOREIGN KEY (product) REFERENCES eshop_products_cache(product) ON UPDATE CASCADE ON DELETE CASCADE 
+);");
+
+			foreach (\array_keys($products) as $product) {
+				$this->connection->createRow("eshop_categoryproducts_cache_$categoryId", ['product' => $product]);
+			}
+		}
+
+		Debugger::dump('create/insert categories tables');
+		Debugger::dump(Debugger::timer());
 	}
 
 	/**
@@ -234,16 +301,21 @@ CREATE TABLE `eshop_products_cache` (
 
 		$category = isset($filters['category']) ? $this->categoryRepository->many()->where('this.path', $filters['category'])->first(true) : null;
 
-		$categoriesWhereString = null;
+//		$categoriesWhereString = null;
 
-		for ($i = 0; $i < self::CATEGORY_COLUMNS_COUNT; $i++) {
-			$categoriesWhereString .= "category_$i = :category OR ";
+//		for ($i = 0; $i < self::CATEGORY_COLUMNS_COUNT; $i++) {
+//			$categoriesWhereString .= "category_$i = :category OR ";
+//		}
+
+//		$categoriesWhereString = Strings::subString($categoriesWhereString, 0, -4);
+
+		if ($category) {
+			$productsCollection = $this->connection->rows(['category' => "eshop_categoryproducts_cache_$category->id"])->join(['this' => 'eshop_products_cache'], 'this.product = category.product', type: 'INNER');
+		} else {
+			$productsCollection = $this->connection->rows(['this' => 'eshop_products_cache']);
 		}
 
-		$categoriesWhereString = Strings::subString($categoriesWhereString, 0, -4);
-
-		$productsCollection = $this->connection->rows(['this' => 'eshop_products_cache'])
-			->setSelect([
+		$productsCollection->setSelect([
 				'product' => 'this.product',
 				'producer' => 'this.producer',
 				'attributeValues' => 'this.attributeValues',
@@ -261,14 +333,16 @@ CREATE TABLE `eshop_products_cache` (
 				$this->createCoalesceFromArray($priceLists, 'priceList_', '_price') => 'ASC',
 			]);
 
-		if ($category) {
-			$productsCollection->where($categoriesWhereString, ['category' => $category->id]);
-		}
+//		if ($category) {
+//			$productsCollection->where($categoriesWhereString, ['category' => $category->id]);
+//		}
 
 		$productPKs = [];
 		$displayAmountsCounts = [];
 		$producersCounts = [];
 		$attributeValuesCounts = [];
+
+		DevelTools::dumpCollection($productsCollection);
 
 		while ($product = $productsCollection->fetch()) {
 			$productPKs[] = $product->product;
