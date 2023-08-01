@@ -364,7 +364,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			return;
 		}
 
-		$collection->where('productContent.fk_shop = :productContentShop OR productContent.fk_shop IS NULL', ['productContentShop' => $shop->getPK()]);
+		$collection->where('productContent.fk_shop = :productContentShop OR productContent.uuid IS NULL', ['productContentShop' => $shop->getPK()]);
 	}
 
 	/**
