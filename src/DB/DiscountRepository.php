@@ -105,6 +105,7 @@ class DiscountRepository extends \StORM\Repository implements IGeneralRepository
 			'valid_from',
 			'valid_to',
 			'usage_date',
+			'valid_to_formatted',
 		]);
 
 		foreach ($this->getValidCoupons()->where('this.targitoExport', true) as $coupon) {
@@ -116,6 +117,7 @@ class DiscountRepository extends \StORM\Repository implements IGeneralRepository
 				$coupon->discount->validFrom ? Carbon::parse($coupon->discount->validFrom)->toDateString() : null,
 				$coupon->discount->validTo ? Carbon::parse($coupon->discount->validTo)->toDateString() : null,
 				$coupon->lastUsageTs ? Carbon::parse($coupon->lastUsageTs)->toDateString() : null,
+				$coupon->discount->validTo ? Carbon::parse($coupon->discount->validTo)->format('d.m.Y') : null,
 			]);
 		}
 	}
