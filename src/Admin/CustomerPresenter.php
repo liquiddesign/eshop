@@ -1036,6 +1036,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				])->setPrompt('Původní');
 			}
 		}
+
 		$values->addSelect('buyAllowed', 'Povolit nákup', [
 			false => 'Ne',
 			true => 'Ano',
