@@ -397,6 +397,7 @@ class ShopperUser extends User
 			$product->getPriceBefore() ? $this->filterPrice($product->getPriceBefore()) : null,
 			$product->getPriceVatBefore() ? $this->filterPrice($product->getPriceVatBefore()) : null,
 			$this->getCustomer(),
+			$product->getPriceBefore() ? (int) ($product->getPrice() / $product->getPriceBefore() * 100) : null,
 		);
 	}
 

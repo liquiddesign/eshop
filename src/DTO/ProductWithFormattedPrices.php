@@ -21,6 +21,7 @@ class ProductWithFormattedPrices
 		private readonly ?string $priceBefore,
 		private readonly ?string $priceVatBefore,
 		private readonly ?Customer $customer,
+		private readonly ?int $discountPercent = null,
 	) {
 	}
 
@@ -155,5 +156,10 @@ class ProductWithFormattedPrices
 	public function showWatchers(): bool
 	{
 		return !$this->inStock() && $this->customer;
+	}
+
+	public function getDiscountPercent(): int|null
+	{
+		return $this->discountPercent;
 	}
 }

@@ -1013,6 +1013,29 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$values = $form->addContainer('values');
 		
 		$values->addSelect('catalogPermission', 'Zobrazení', ShopperUser::PERMISSIONS)->setPrompt('Původní');
+
+		if (isset($this::CONFIGURATIONS['prices']) && $this::CONFIGURATIONS['prices']) {
+			if ($this->shopperUser->getShowWithoutVat()) {
+				$values->addSelect('showPricesWithoutVat', 'Zobrazit ceny bez daně', [
+					false => 'Ne',
+					true => 'Ano',
+				])->setPrompt('Původní');
+			}
+
+			if ($this->shopperUser->getShowVat()) {
+				$values->addSelect('showPricesWithVat', 'Zobrazit ceny s daní', [
+					false => 'Ne',
+					true => 'Ano',
+				])->setPrompt('Původní');
+			}
+
+			if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat()) {
+				$values->addSelect('priorityPrice', 'Prioritní cena', [
+					'withoutVat' => 'Bez daně',
+					'withVat' => 'S daní',
+				])->setPrompt('Původní');
+			}
+		}
 		$values->addSelect('buyAllowed', 'Povolit nákup', [
 			false => 'Ne',
 			true => 'Ano',
