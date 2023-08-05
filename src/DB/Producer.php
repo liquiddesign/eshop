@@ -68,7 +68,7 @@ class Producer extends SystemicEntity
 
 	/**
 	 * ID
-	 * @column
+	 * column - don't created by auto migration, only by manual
 	 */
 	public int $id;
 

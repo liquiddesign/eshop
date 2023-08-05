@@ -184,7 +184,7 @@ class ProductList extends Datalist
 			$this->getFilters(),
 			'priorityAvailabilityPrice',
 			'ASC',
-			$this->shopperUser->getPricelists()->toArray(),
+			$this->shopperUser->getPricelists()->select(['this.id'])->toArray(),
 			$this->shopperUser->getVisibilityLists(),
 		);
 		\Tracy\Debugger::dump(\Tracy\Debugger::timer());

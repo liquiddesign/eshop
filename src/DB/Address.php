@@ -51,13 +51,13 @@ class Address extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $state;
-	
+
 	/**
-	 * Id
-	 * @column{"autoincrement":true}
+	 * ID
+	 * column - don't created by auto migration, only by manual
 	 */
 	public int $id;
-	
+
 	/**
 	 * Externí kód
 	 * @column

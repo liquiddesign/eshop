@@ -11,11 +11,11 @@ namespace Eshop\DB;
 class Autoship extends \StORM\Entity
 {
 	/**
-	 * Id
-	 * @column{"autoincrement":true}
+	 * ID
+	 * column - don't created by auto migration, only by manual
 	 */
 	public int $id;
-	
+
 	/**
 	 * Počet dní
 	 * @column

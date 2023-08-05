@@ -58,6 +58,7 @@
 	},
 	"scripts": {
 		"fix-code": ["@phpcsfix"],
+		"code-style": ["@phpcsfix", "@phpcs"],
 		"check-code": ["@phpcs", "@phpstan", "@lattelint"],
 		"phpstan-clear-cache": "phpstan clear-result-cache",
 		"phpstan": "phpstan analyse --memory-limit 6G -c phpstan.neon",
