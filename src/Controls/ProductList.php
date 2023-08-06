@@ -180,14 +180,19 @@ class ProductList extends Datalist
 		}
 
 		\Tracy\Debugger::timer();
+
 		$cachedProducts = $this->productsProvider->getProductsFromCacheTable(
 			$this->getFilters(),
-			'priorityAvailabilityPrice',
-			'ASC',
+			$this->getOrder(),
+			$this->getDirection(),
 			$this->shopperUser->getPricelists()->select(['this.id'])->toArray(),
 			$this->shopperUser->getVisibilityLists(),
 		);
+
 		\Tracy\Debugger::dump(\Tracy\Debugger::timer());
+
+		/** @var \StORM\Collection $source */
+		$source = $this->getFilteredSource();
 
 		if ($cachedProducts) {
 			$this->cachedCounts = [
@@ -196,9 +201,6 @@ class ProductList extends Datalist
 				'producersCounts' => $cachedProducts['producersCounts'],
 			];
 		}
-
-		/** @var \StORM\Collection $source */
-		$source = $this->getFilteredSource();
 
 		if ($this->getOnPage()) {
 			if ($cachedProducts !== false) {

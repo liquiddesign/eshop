@@ -15,17 +15,49 @@ use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
-use StORM\Connection;
+use Nette\Utils\Strings;
+use StORM\DIConnection;
+use StORM\ICollection;
 use Tracy\Debugger;
 use Web\DB\SettingRepository;
 
 class ProductsProvider
 {
-	public const CATEGORY_COLUMNS_COUNT = 20;
+	/**
+	 * Also hard-coded: category, pricelist
+	 * @var array<string>
+	 */
+	protected array $allowedFilterColumns = [
+		'hidden' => 'visibilityList.hidden',
+		'hiddenInMenu' => 'visibilityList.hiddenInMenu',
+		'priority' => 'visibilityList.priority',
+		'recommended' => 'visibilityList.recommended',
+		'unavailable' => 'visibilityList.unavailable',
+		'name' => 'name',
+		'producer' => 'producer',
+		'displayAmount' => 'displayAmount',
+		'isSold' => 'displayAmount_isSold',
+		'price' => 'priceList.price',
+	];
 
-	protected const BASE_TABLE_NAME = 'eshop_productsprovidercache';
+	/**
+	 * @var array<string>
+	 */
+	protected array $allowedFilterExpressions = [];
 
-	protected const CACHE_STATE_TABLE_NAME = self::BASE_TABLE_NAME . '_state';
+	/**
+	 * @var array<string>
+	 */
+	protected array $allowedOrderColumns = [
+		'priority' => 'visibilityList.priority',
+		'price' => 'priceList.price',
+		'name' => 'name',
+	];
+
+	/**
+	 * @var array<callable(\StORM\ICollection $productsCollection, 'ASC'|'DESC' $direction, array $visibilityLists, array $priceLists): void>
+	 */
+	protected array $allowedOrderExpressions = [];
 
 	public function __construct(
 		protected readonly ProductRepository $productRepository,
@@ -33,7 +65,7 @@ class ProductsProvider
 		protected readonly PriceRepository $priceRepository,
 		protected readonly PricelistRepository $pricelistRepository,
 		protected readonly Container $container,
-		protected readonly Connection $connection,
+		protected readonly DIConnection $connection,
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly CategoryTypeRepository $categoryTypeRepository,
 		protected readonly SettingRepository $settingRepository,
@@ -43,13 +75,58 @@ class ProductsProvider
 		protected readonly VisibilityListRepository $visibilityListRepository,
 		protected readonly ProductsCacheStateRepository $productsCacheStateRepository,
 	) {
+		$this->allowedOrderExpressions['availabilityAndPrice'] = function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
+			$productsCollection->orderBy([
+				'case COALESCE(displayAmount_isSold, 2)
+					 when 0 then 0
+					 when 2 then 1
+					 when 1 then 2
+					 else 2 end' => $direction,
+				$this->createCoalesceFromArray($priceLists, 'priceList', 'price') => $direction,
+			]);
+		};
+
+		$this->allowedOrderExpressions['priorityAvailabilityPrice'] = function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
+			$productsCollection->orderBy([
+				$this->createCoalesceFromArray($visibilityLists, 'visibilityList', 'priority') => $direction,
+				'case COALESCE(displayAmount_isSold, 2)
+                     when 0 then 0
+                     when 1 then 1
+                     when 2 then 2
+                     else 2 end' => $direction,
+				$this->createCoalesceFromArray($priceLists, 'priceList', 'price') => $direction,
+			]);
+		};
+	}
+
+	public function addAllowedFilterColumn(string $name, string $column): void
+	{
+		$this->allowedFilterColumns[$name] = $column;
+	}
+
+	public function addFilterExpression(string $name, callable $callback): void
+	{
+		$this->allowedFilterExpressions[$name] = $callback;
+	}
+
+	public function addAllowedOrderColumn(string $name, string $column): void
+	{
+		$this->allowedOrderColumns[$name] = $column;
+	}
+
+	public function addOrderExpression(string $name, callable $callback): void
+	{
+		$this->allowedOrderExpressions[$name] = $callback;
 	}
 
 	public function warmUpCacheTable(): void
 	{
+		$this->resetHangingStatesOfCaches();
+
 		Debugger::timer();
 
 		$link = $this->connection->getLink();
+		$mutationSuffix = $this->connection->getMutationSuffix();
 
 		$cacheIndexToBeWarmedUp = $this->getCacheIndexToBeWarmedUp();
 
@@ -75,6 +152,7 @@ CREATE TABLE `$productsCacheTableName` (
   displayAmount INT UNSIGNED,
   displayAmount_isSold TINYINT(1),
   attributeValues TEXT,
+  name TEXT,
   INDEX idx_producer (producer),
   INDEX idx_displayAmount (displayAmount),
   INDEX idx_displayAmount_isSold (displayAmount_isSold)
@@ -129,6 +207,7 @@ CREATE TABLE `$productsCacheTableName` (
 				'id' => 'this.id',
 				'fkDisplayAmount' => 'eshop_displayamount.id',
 				'fkProducer' => 'eshop_producer.id',
+				'name' => "this.name$mutationSuffix",
 				'pricesPKs' => 'GROUP_CONCAT(DISTINCT price.uuid ORDER BY priceList.priority)',
 				'categoriesPKs' => 'GROUP_CONCAT(DISTINCT eshop_product_nxn_eshop_category.fk_category)',
 				'visibilityListItemsPKs' => 'GROUP_CONCAT(DISTINCT visibilityListItem.uuid ORDER BY visibilityList.priority)',
@@ -155,6 +234,7 @@ CREATE TABLE `$productsCacheTableName` (
 				'displayAmount' => $product->fkDisplayAmount,
 				'displayAmount_isSold' => $product->fkDisplayAmount ? $allDisplayAmounts[$product->fkDisplayAmount]->isSold : null,
 				'producer' => $product->fkProducer,
+				'name' => $product->name,
 			];
 
 			foreach ($allVisibilityLists as $visibilityList) {
@@ -225,7 +305,7 @@ CREATE TABLE `$productsCacheTableName` (
 		Debugger::dump('main loop');
 		Debugger::dump(Debugger::timer());
 
-		$this->connection->createRows("$productsCacheTableName", $products, chunkSize: 100000);
+		$this->connection->createRows("$productsCacheTableName", $products, chunkSize: 10000);
 
 		Debugger::dump('insert products');
 		Debugger::dump(Debugger::timer());
@@ -277,12 +357,10 @@ CREATE TABLE `$productsCacheTableName` (
 		string|null $orderByName = null,
 		string $orderByDirection = 'ASC',
 		array $priceLists = [],
-		array $visibilityLists = []
+		array $visibilityLists = [],
 	): array|false {
-		unset($orderByName);
-		unset($orderByDirection);
-
 		$category = isset($filters['category']) ? $this->categoryRepository->many()->select(['this.id'])->where('this.path', $filters['category'])->first(true) : null;
+		unset($filters['category']);
 
 		$cacheIndex = $this->getCacheIndexToBeUsed();
 
@@ -291,27 +369,74 @@ CREATE TABLE `$productsCacheTableName` (
 				->join(['this' => "eshop_products_cache_{$cacheIndex}"], 'this.product = category.product', type: 'INNER') :
 			$this->connection->rows(['this' => "eshop_products_cache_{$cacheIndex}"]);
 
+		$productsCollection->setSelect([
+			'product' => 'this.product',
+			'producer' => 'this.producer',
+			'attributeValues' => 'this.attributeValues',
+			'displayAmount' => 'this.displayAmount',
+		]);
+
 		if (isset($filters['pricelist'])) {
 			$priceLists = \array_filter($priceLists, fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
+
+			unset($filters['pricelist']);
 		}
 
-		$productsCollection->setSelect([
-				'product' => 'this.product',
-				'producer' => 'this.producer',
-				'attributeValues' => 'this.attributeValues',
-				'displayAmount' => 'this.displayAmount',
-			])
-			->where($this->createCoalesceFromArray($visibilityLists, 'visibilityList_', '_hidden') . ' = 0')
-			->where($this->createCoalesceFromArray($priceLists, 'priceList_', '_price') . ' > 0')
-			->orderBy([
-				$this->createCoalesceFromArray($visibilityLists, 'visibilityList_', '_priority') => 'ASC',
-				'case COALESCE(displayAmount_isSold, 2)
-                     when 0 then 0
-                     when 1 then 1
-                     when 2 then 2
-                     else 2 end' => 'ASC',
-				$this->createCoalesceFromArray($priceLists, 'priceList_', '_price') => 'ASC',
-			]);
+		foreach ($filters as $filter => $value) {
+			if (isset($this->allowedFilterColumns[$filter])) {
+				$filterColumn = $this->allowedFilterColumns[$filter];
+
+				if (Strings::contains($filterColumn, '.')) {
+					[$filterColumn1, $filterColumn2] = \explode('.', $filterColumn);
+
+					$filterExpression = match ($filterColumn1) {
+						'visibilityList' => $this->createCoalesceFromArray($visibilityLists, 'visibilityList', $filterColumn2),
+						'priceList' => $this->createCoalesceFromArray($priceLists, 'priceList', $filterColumn2),
+						default => $filterColumn,
+					};
+				} else {
+					$filterExpression = $filterColumn;
+				}
+
+				$productsCollection->where($filterExpression, $value);
+
+				continue;
+			}
+
+			if (isset($this->allowedFilterExpressions[$filter])) {
+				$this->allowedFilterExpressions[$filter]($productsCollection, $value, $visibilityLists, $priceLists);
+
+				continue;
+			}
+
+			throw new \Exception("Filter '$filter' is not supported by ProductsProvider! You can add it manually with 'addAllowedFilterColumn' or 'addFilterExpression' function.");
+		}
+
+		$productsCollection->where($this->createCoalesceFromArray($priceLists, 'priceList', 'price') . ' > 0');
+
+		if ($orderByName) {
+			if (isset($this->allowedOrderColumns[$orderByName])) {
+				$orderColumn = $this->allowedOrderColumns[$orderByName];
+
+				if (Strings::contains($orderColumn, '.')) {
+					[$orderColumn1, $orderColumn2] = \explode('.', $orderColumn);
+
+					$orderExpression = match ($orderColumn1) {
+						'visibilityList' => $this->createCoalesceFromArray($visibilityLists, 'visibilityList', $orderColumn2),
+						'priceList' => $this->createCoalesceFromArray($priceLists, 'priceList', $orderColumn2),
+						default => $orderColumn,
+					};
+				} else {
+					$orderExpression = $orderColumn;
+				}
+
+				$productsCollection->orderBy([$orderExpression => $orderByDirection]);
+			} elseif (isset($this->allowedOrderExpressions[$orderByName])) {
+				$this->allowedOrderExpressions[$orderByName]($productsCollection, $orderByDirection, $visibilityLists, $priceLists);
+			} else {
+				throw new \Exception("Order '$orderByName' is not supported by ProductsProvider! You can add it manually with 'addAllowedOrderColumn' or 'addOrderExpression' function.");
+			}
+		}
 
 		$productPKs = [];
 		$displayAmountsCounts = [];
@@ -350,6 +475,11 @@ CREATE TABLE `$productsCacheTableName` (
 			'displayAmountsCounts' => $displayAmountsCounts,
 			'producersCounts' => $producersCounts,
 		];
+	}
+
+	protected function resetHangingStatesOfCaches(): void
+	{
+		//@TODO Check timestamps of caches in warming state. If its too long, reset to empty state.
 	}
 
 	protected function markCacheAsWarming(int $id): void
@@ -430,10 +560,10 @@ CREATE TABLE `$productsCacheTableName` (
 	/**
 	 * @param array $values
 	 */
-	protected function createCoalesceFromArray(array $values, string|null $prefix = null, string|null $suffix = null): string
+	protected function createCoalesceFromArray(array $values, string|null $prefix = null, string|null $suffix = null, string $separator = '_'): string
 	{
-		return $values ? ('COALESCE(' . \implode(',', \array_map(function ($item) use ($prefix, $suffix): string {
-				return $prefix . $item->id . $suffix;
+		return $values ? ('COALESCE(' . \implode(',', \array_map(function ($item) use ($prefix, $suffix, $separator): string {
+				return $prefix . ($prefix ? $separator : '') . $item->id . ($suffix ? $separator : '') . $suffix;
 		}, $values)) . ')') : 'NULL';
 	}
 }
