@@ -445,7 +445,15 @@ CREATE TABLE `$productsCacheTableName` (
 
 		DevelTools::dumpCollection($productsCollection);
 
+		$debug = false;
+
 		while ($product = $productsCollection->fetch()) {
+			if (!$debug) {
+				Debugger::dump($this->connection->getLastLogItem()->getTotalTime());
+
+				$debug = true;
+			}
+
 			$productPKs[] = $product->product;
 
 			if ($product->displayAmount) {
