@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopSystemicEntity;
 use StORM\RelationCollection;
 
 /**
  * Země
  * @table
+ * @index{"name":"country_unique_code","unique":true,"columns":["code","fk_shop"]}
  */
-class Country extends \StORM\Entity
+class Country extends ShopSystemicEntity
 {
 	/**
 	 * Kód
-	 * @unique
 	 * @column
 	 */
 	public ?string $code;

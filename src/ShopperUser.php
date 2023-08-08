@@ -215,7 +215,15 @@ class ShopperUser extends User
 
 	public function getCountry(): Country
 	{
-		return $this->country ??= $this->countryRepository->one(['code' => $this->config['country']], true);
+		if (isset($this->country)) {
+			return $this->country;
+		}
+
+		$country = $this->countryRepository->many()->where('code', $this->config['country']);
+
+		$this->shopsConfig->filterShopsInShopEntityCollection($country);
+
+		return $country->first(true);
 	}
 
 	public function getShowZeroPrices(): bool
