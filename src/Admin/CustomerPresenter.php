@@ -728,18 +728,21 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			['Zákazníci', 'default'],
 			['Detail'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayButtons = [$this->createBackButton('default'), $this->createButton('editAddress', 'Adresy', $this->getParameter('customer'))];
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
 	
 	public function renderEditAddress(): void
 	{
-		$this->template->headerLabel = 'Adresy';
+		/** @var \Eshop\DB\Customer $customer */
+		$customer = $this->getParameter('customer');
+
+		$this->template->headerLabel = 'Adresy - ' . ($customer->company ?: $customer->fullname);
 		$this->template->headerTree = [
 			['Zákazníci', 'default'],
 			['Adresy'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayButtons = [$this->createBackButton('default'), $this->createButton('edit', 'Zákazník', $customer)];
 		$this->template->displayControls = [$this->getComponent('editAddress')];
 	}
 	
