@@ -105,6 +105,12 @@ class Purchase extends \StORM\Entity
 	 * @column{"type":"date"}
 	 */
 	public ?string $desiredShippingDate;
+
+	/**
+	 * Požadované datum doručení
+	 * @column{"type":"date"}
+	 */
+	public ?string $desiredDeliveryDate;
 	
 	/**
 	 * Poznámka

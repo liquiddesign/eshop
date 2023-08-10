@@ -111,10 +111,18 @@
                     </div>
 
                     <div class="mt-2" n:if="$purchase->desiredShippingDate">
-                        <b>Požadované datum expedice:</b>
+                        <b>Požadované datum odeslání:</b>
 
                         <div class="d-flex align-items-center">
                             {$order->purchase->desiredShippingDate|date:'d.m.Y'}
+                        </div>
+                    </div>
+
+                    <div class="mt-2" n:if="$purchase->desiredDeliveryDate">
+                        <b>Požadované datum doručení:</b>
+
+                        <div class="d-flex align-items-center">
+                            {$order->purchase->desiredDeliveryDate|date:'d.m.Y'}
                         </div>
                     </div>
 

@@ -1532,7 +1532,8 @@ class OrderPresenter extends BackendPresenter
 		}
 
 		$form->addGroup('Ostatní');
-		$form->addDate('desiredShippingDate', 'Požadované doručení')->setNullable();
+		$form->addDate('desiredShippingDate', 'Požadované datum odeslání')->setNullable();
+		$form->addDate('desiredDeliveryDate', 'Požadované datum doručení')->setNullable();
 		$form->addText('internalOrderCode', 'Zákaznické číslo')->setNullable();
 		$form->addTextArea('note', 'Poznámka')->setNullable();
 		$form->addTextArea('internalNote', 'Interní poznámka')->setNullable();
@@ -1898,6 +1899,7 @@ class OrderPresenter extends BackendPresenter
 
 		/** @var \Eshop\DB\RelatedType $relatedType */
 		foreach ($this->relatedTypeRepository->getSetTypes() as $relatedType) {
+			/** @var \Eshop\DB\Order $order */
 			foreach ($orders as $order) {
 				/** @var \Eshop\DB\CartItem $item */
 				foreach ($order->purchase->getItems()->where('fk_product IS NOT NULL') as $item) {

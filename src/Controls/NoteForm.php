@@ -22,6 +22,11 @@ class NoteForm extends \Nette\Application\UI\Form
 		$this->addTextArea('note');
 		$this->addText('internalOrderCode');
 		$this->addText('desiredShippingDate')
+			->setNullable()
+			->setHtmlType('date')
+			->setHtmlAttribute('min', (new Carbon())->addDay()->format('Y-m-d'));
+		$this->addText('desiredDeliveryDate')
+			->setNullable()
 			->setHtmlType('date')
 			->setHtmlAttribute('min', (new Carbon())->addDay()->format('Y-m-d'));
 
@@ -34,7 +39,6 @@ class NoteForm extends \Nette\Application\UI\Form
 		unset($form);
 
 		$values = $this->getValues();
-		$values['desiredShippingDate'] = $values['desiredShippingDate'] ?: null;
 
 		$account = $this->shopperUser->getCustomer() && $this->shopperUser->getCustomer()->getAccount() ? $this->shopperUser->getCustomer()->getAccount() : null;
 

@@ -1011,6 +1011,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'orderState' => $this->getState($order),
 			'currencyCode' => $order->purchase->currency->code,
 			'desiredShippingDate' => $purchase->desiredShippingDate,
+			'desiredDeliveryDate' => $purchase->desiredDeliveryDate,
 			'internalOrderCode' => $purchase->internalOrderCode,
 			'phone' => $purchase->phone,
 			'email' => $purchase->email,
