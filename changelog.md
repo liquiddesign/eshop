@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING:** ProfileForm
+  - Email input is nullable instead of required
+  - Addresses now has all possible inputs
 - Updated packages versions
 
 ## [2.0.0] - 2023-07-12

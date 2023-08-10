@@ -37,7 +37,7 @@ class ProfileForm extends \Nette\Application\UI\Form
 		}
 
 		$this->addText('fullname', 'profileForm.fullname');
-		$this->addText('email', 'profileForm.email')->addRule($this::EMAIL)->setRequired();
+		$this->addText('email', 'profileForm.email')->setNullable()->addCondition($this::Filled)->addRule($this::EMAIL);
 		// @TODO: validace na regexp
 		$this->addText('ccEmails', 'profileForm.ccEmail');
 		$this->addText('phone', 'profileForm.phone')
@@ -51,6 +51,8 @@ class ProfileForm extends \Nette\Application\UI\Form
 
 		$this->addGroup('Fakturační adresa');
 		$billAddressBox = $this->addContainer('billAddress');
+		$billAddressBox->addText('name', 'billAddress.name');
+		$billAddressBox->addText('companyName', 'billAddress.companyName');
 		$billAddressBox->addText('street', 'billAddress.street')->setRequired();
 		$billAddressBox->addText('city', 'billAddress.city')->setRequired();
 		$billAddressBox->addText('zipcode', 'billAddress.zipcode')->setRequired()

@@ -660,6 +660,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		
 		$form->addGroup('Fakturační adresa');
 		$billAddress = $form->addContainer('billAddress');
+		$billAddress->addText('name', ' Jméno a příjmení / název firmy');
+		$billAddress->addText('companyName', ' Název firmy');
 		$billAddress->addText('street', 'Ulice');
 		$billAddress->addText('city', 'Město');
 		$billAddress->addText('zipcode', 'PSČ');
