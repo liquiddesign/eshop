@@ -57,6 +57,7 @@ class NoteForm extends \Nette\Application\UI\Form
 		$values['accountFullname'] = $account?->fullname;
 		$values['accountEmail'] = $account && \filter_var($account->login, \FILTER_VALIDATE_EMAIL) !== false ? $account->login : null;
 		$values['currency'] = $this->shopperUser->getCurrency();
+		$values['internalOrderCode'] = $values['internalOrderCode'] ? Helpers::removeEmoji($values['internalOrderCode']) : null;
 		$values['note'] = $values['note'] ? Helpers::removeEmoji($values['note']) : null;
 
 		$this->shopperUser->getCheckoutManager()->syncPurchase($values);
