@@ -407,7 +407,7 @@ class ProductGridFactory
 					/** @var \Nette\Forms\Controls\SelectBox $primaryCategorySelect */
 					$primaryCategorySelect = $form['values']['primaryCategories_primaryCategory_' . $categoryType->getPK()];
 
-			//					$primaryCategorySelect->setItems($this->categoryRepository->getTreeArrayForSelect(true, $categoryType->getPK()));
+					$primaryCategorySelect->setItems($this->categoryRepository->getTreeArrayForSelect(true, $categoryType->getPK()));
 					$primaryCategorySelect->setPrompt(false);
 				}
 
