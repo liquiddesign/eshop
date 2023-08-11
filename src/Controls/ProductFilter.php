@@ -102,7 +102,8 @@ class ProductFilter extends Control
 			'producer' => $this->getProductList()->getCachedCounts()['producersCounts'] ?? $this->producerRepository->getCounts($filters),
 		];
 		
-		$this->template->attributes = $attributes = $this->getAttributes();
+		$this->template->attributes = $this->getAttributes();
+		$this->template->attributesDefaults = $filters['attributes'] ?? [];
 		
 		$this->template->attributesValuesCounts = $this->getProductList()->getCachedCounts()['attributeValuesCounts'] ?? $this->attributeRepository->getCounts($this->attributeValues, $filters);
 		
