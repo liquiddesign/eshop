@@ -20,6 +20,7 @@ use Nette\Caching\Storage;
 use Nette\Utils\Arrays;
 use StORM\Collection;
 use Translator\DB\TranslationRepository;
+use Web\DB\SettingRepository;
 
 /**
  * @method onFormSuccess(array $parameters)
@@ -39,55 +40,38 @@ class ProductFilter extends Control
 	
 	/** @var array<callable(static): void> Occurs when component is attached to presenter */
 	public $onAnchor = [];
-	
-	private TranslationRepository $translator;
-	
-	private FormFactory $formFactory;
-	
-	private AttributeRepository $attributeRepository;
-	
-	private DisplayAmountRepository $displayAmountRepository;
-	
-	private DisplayDeliveryRepository $displayDeliveryRepository;
-	
-	private AttributeValueRangeRepository $attributeValueRangeRepository;
-	
-	private ProducerRepository $producerRepository;
 
-	private Cache $cache;
+	/** @var (callable(static $productFilter, array $attributes): array<\Eshop\DB\Attribute>)|null Called only on first call of getAttributes method. */
+	public $onGetAttributes = null;
+
+	protected Cache $cache;
 	
 	/**
 	 * @var array<\Eshop\DB\Attribute>
 	 */
-	private array $attributes;
+	protected array $attributes;
 	
 	/**
 	 * @var array<string>
 	 */
-	private array $attributeValues = [];
+	protected array $attributeValues = [];
 	
 	/**
 	 * @var array<array<string>>
 	 */
-	private array $rangeValues = [];
+	protected array $rangeValues = [];
 	
 	public function __construct(
-		FormFactory $formFactory,
-		TranslationRepository $translator,
-		AttributeRepository $attributeRepository,
-		DisplayAmountRepository $displayAmountRepository,
-		DisplayDeliveryRepository $displayDeliveryRepository,
-		AttributeValueRangeRepository $attributeValueRangeRepository,
-		ProducerRepository $producerRepository,
+		protected FormFactory $formFactory,
+		protected TranslationRepository $translator,
+		protected AttributeRepository $attributeRepository,
+		protected DisplayAmountRepository $displayAmountRepository,
+		protected DisplayDeliveryRepository $displayDeliveryRepository,
+		protected AttributeValueRangeRepository $attributeValueRangeRepository,
+		protected ProducerRepository $producerRepository,
+		protected SettingRepository $settingRepository,
 		Storage $storage
 	) {
-		$this->translator = $translator;
-		$this->formFactory = $formFactory;
-		$this->attributeRepository = $attributeRepository;
-		$this->displayAmountRepository = $displayAmountRepository;
-		$this->displayDeliveryRepository = $displayDeliveryRepository;
-		$this->attributeValueRangeRepository = $attributeValueRangeRepository;
-		$this->producerRepository = $producerRepository;
 		$this->cache = new Cache($storage);
 	}
 	
@@ -219,7 +203,7 @@ class ProductFilter extends Control
 		return $filters;
 	}
 	
-	private function getProductList(): ProductList
+	protected function getProductList(): ProductList
 	{
 		/** @var \Eshop\Controls\ProductList $parent */
 		$parent = $this->getParent();
@@ -227,7 +211,7 @@ class ProductFilter extends Control
 		return $parent;
 	}
 	
-	private function getCategoryPath(): ?string
+	protected function getCategoryPath(): ?string
 	{
 		return $this->getProductList()->getFilters()['category'] ?? null;
 	}
@@ -235,12 +219,22 @@ class ProductFilter extends Control
 	/**
 	 * @return array<\Eshop\DB\Attribute>
 	 */
-	private function getAttributes(): array
+	protected function getAttributes(): array
 	{
-		return $this->attributes ??= $this->getCategoryPath() ? $this->attributeRepository->getAttributesByCategory($this->getCategoryPath())->where('showFilter', true)->toArray() : [];
+		if (isset($this->attributes)) {
+			return $this->attributes;
+		}
+
+		$attributes = $this->getCategoryPath() ? $this->attributeRepository->getAttributesByCategory($this->getCategoryPath())->where('showFilter', true)->toArray() : [];
+
+		if ($this->onGetAttributes) {
+			$attributes = \call_user_func($this->onGetAttributes, $this, $attributes);
+		}
+
+		return $this->attributes = $attributes;
 	}
 	
-	private function getRangeValues(Attribute $attribute): Collection
+	protected function getRangeValues(Attribute $attribute): Collection
 	{
 		return $this->attributeValueRangeRepository->getCollection()
 			->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attributeValueRange = this.uuid')
@@ -253,7 +247,7 @@ class ProductFilter extends Control
 	 * @param string $uuid
 	 * @return array<string, string>
 	 */
-	private function getSystemicAttributeValues(string $uuid): array
+	protected function getSystemicAttributeValues(string $uuid): array
 	{
 		if ($uuid === 'availability') {
 			return $this->displayAmountRepository->getArrayForSelect(false);
