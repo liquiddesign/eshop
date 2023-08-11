@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Carbon\Carbon;
+use Eshop\Common\Helpers;
 use Eshop\ShopperUser;
 
 class NoteForm extends \Nette\Application\UI\Form
@@ -30,6 +31,13 @@ class NoteForm extends \Nette\Application\UI\Form
 			->setHtmlType('date')
 			->setHtmlAttribute('min', (new Carbon())->addDay()->format('Y-m-d'));
 
+		$checkoutManager = $this->shopperUser->getCheckoutManager();
+		$purchase = $checkoutManager->getPurchase();
+
+		if ($purchase) {
+			$this->setDefaults($purchase->toArray());
+		}
+
 		$this->addSubmit('submit');
 		$this->onSuccess[] = [$this, 'success'];
 	}
@@ -49,6 +57,7 @@ class NoteForm extends \Nette\Application\UI\Form
 		$values['accountFullname'] = $account?->fullname;
 		$values['accountEmail'] = $account && \filter_var($account->login, \FILTER_VALIDATE_EMAIL) !== false ? $account->login : null;
 		$values['currency'] = $this->shopperUser->getCurrency();
+		$values['note'] = $values['note'] ? Helpers::removeEmoji($values['note']) : null;
 
 		$this->shopperUser->getCheckoutManager()->syncPurchase($values);
 	}
