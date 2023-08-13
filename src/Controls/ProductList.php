@@ -43,7 +43,7 @@ class ProductList extends Datalist
 	public $onWatcherDeleted;
 
 	/** @var array<array<string, int>>|null */
-	protected array|null $cachedCounts = null;
+	protected array|null $providerOutput = null;
 
 	public function __construct(
 		private readonly ProductRepository $productRepository,
@@ -165,9 +165,9 @@ class ProductList extends Datalist
 	/**
 	 * @return array<array<string, int>>|null
 	 */
-	public function getCachedCounts(): array|null
+	public function getProviderOutput(): array|null
 	{
-		return $this->cachedCounts;
+		return $this->providerOutput;
 	}
 
 	/**
@@ -179,7 +179,7 @@ class ProductList extends Datalist
 			return $this->itemsOnPage;
 		}
 
-		\Tracy\Debugger::timer();
+//		\Tracy\Debugger::timer();
 
 		$cachedProducts = $this->productsProvider->getProductsFromCacheTable(
 			$this->getFilters(),
@@ -189,17 +189,15 @@ class ProductList extends Datalist
 			$this->shopperUser->getVisibilityLists(),
 		);
 
-		\Tracy\Debugger::dump(\Tracy\Debugger::timer());
+//		\Tracy\Debugger::dump(\Tracy\Debugger::timer());
 
 		/** @var \StORM\Collection $source */
 		$source = $this->getFilteredSource();
 
-		if ($cachedProducts) {
-			$this->cachedCounts = [
-				'attributeValuesCounts' => $cachedProducts['attributeValuesCounts'],
-				'displayAmountsCounts' => $cachedProducts['displayAmountsCounts'],
-				'producersCounts' => $cachedProducts['producersCounts'],
-			];
+		\Tracy\Debugger::barDump($cachedProducts);
+
+		if ($cachedProducts !== false) {
+			$this->providerOutput = $cachedProducts;
 		}
 
 		if ($this->getOnPage()) {

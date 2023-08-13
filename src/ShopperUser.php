@@ -658,10 +658,18 @@ class ShopperUser extends User
 	}
 
 	/**
-	 * Main function, always use this to determine vat or withoutVat on frontend
+	 * @deprecated Use getMainPriceType
 	 * @return 'withVat'|'withoutVat'
 	 */
 	public function getShowPrice(): string
+	{
+		return $this->getMainPriceType();
+	}
+
+	/**
+	 * @return 'withVat'|'withoutVat'
+	 */
+	public function getMainPriceType(): string
 	{
 		if ($this->showPricesWithoutVat() && $this->showPricesWithVat()) {
 			return $this->showPriorityPrices();

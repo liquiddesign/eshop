@@ -11,6 +11,7 @@ use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Forms\FormFactory;
 use Nette\Application\UI\Control;
@@ -70,6 +71,7 @@ class ProductFilter extends Control
 		protected AttributeValueRangeRepository $attributeValueRangeRepository,
 		protected ProducerRepository $producerRepository,
 		protected SettingRepository $settingRepository,
+		protected ShopperUser $shopperUser,
 		Storage $storage
 	) {
 		$this->cache = new Cache($storage);
@@ -80,16 +82,18 @@ class ProductFilter extends Control
 		/** @var array<array<array<string>>> $filters */
 		$filters = $this->getProductList()->getFilters();
 
+		$providerOutput = $this->getProductList()->getProviderOutput();
+
 		$this->template->systemicCounts = [
-			'availability' => $this->getProductList()->getCachedCounts()['displayAmountsCounts'] ?? $this->displayAmountRepository->getCounts($filters),
-			//'delivery' => $this->displayDeliveryRepository->getCounts($filters),
-			'producer' => $this->getProductList()->getCachedCounts()['producersCounts'] ?? $this->producerRepository->getCounts($filters),
+			'availability' => $providerOutput['displayAmountsCounts'] ?? $this->displayAmountRepository->getCounts($filters),
+			'delivery' => $providerOutput['displayDeliveriesCounts'] ?? $this->displayDeliveryRepository->getCounts($filters),
+			'producer' => $providerOutput['producersCounts'] ?? $this->producerRepository->getCounts($filters),
 		];
 		
 		$this->template->attributes = $this->getAttributes();
 		$this->template->attributesDefaults = $filters['attributes'] ?? [];
 		
-		$this->template->attributesValuesCounts = $this->getProductList()->getCachedCounts()['attributeValuesCounts'] ?? $this->attributeRepository->getCounts($this->attributeValues, $filters);
+		$this->template->attributesValuesCounts = $providerOutput['attributeValuesCounts'] ?? $this->attributeRepository->getCounts($this->attributeValues, $filters);
 		
 		foreach ($this->rangeValues as $rangeId => $valuesIds) {
 			foreach ($valuesIds as $valueId) {
@@ -100,7 +104,7 @@ class ProductFilter extends Control
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;
-		$template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
+		$template->render($template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
 	
 	public function createComponentForm(): Form
@@ -113,17 +117,31 @@ class ProductFilter extends Control
 			$filterForm->removeComponent($filterForm[Presenter::SIGNAL_KEY]);
 		};
 
-		/** @TODO set default values based on displayed products */
-		$filterForm->addInteger('priceFrom')->setRequired()->setDefaultValue(0)->setHtmlAttribute('placeholder', 0);
-		$filterForm->addInteger('priceTo')->setRequired()->setDefaultValue(100000)->setHtmlAttribute('placeholder', 100000);
+		$productList = $this->getProductList();
+
+		$productList->getItemsOnPage();
+		$providerOutput = $productList->getProviderOutput();
+
+		$withVat = $this->shopperUser->getMainPriceType() === 'withVat';
+
+		$priceFrom = $providerOutput[$withVat ? 'priceVatMin' : 'priceMin'] ?? 0;
+		$priceTo = $providerOutput[$withVat ? 'priceVatMax' : 'priceMax'] ?? 100000;
+
+		$filterForm->addInteger('priceFrom')
+			->setNullable()
+			->setHtmlAttribute('placeholder', $priceFrom);
+
+		$filterForm->addInteger('priceTo')
+			->setNullable()
+			->setHtmlAttribute('placeholder', $priceTo);
 		
 		$attributesContainer = $filterForm->addContainer('attributes');
 		
-		$defaults = $this->getProductList()->getFilters()['attributes'] ?? [];
+		$defaults = $productList->getFilters()['attributes'] ?? [];
 		
 		foreach ($this->getAttributes() as $attribute) {
 			if (Arrays::contains(\array_keys($this::SYSTEMIC_ATTRIBUTES), $attribute->getPK())) {
-				$attributeValues = $this->getSystemicAttributeValues($attribute->getPK());
+				$attributeValues = $this->getSystemicAttributeValues((string) $attribute->getPK());
 			} else {
 				$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
 				$this->attributeValues = \array_merge($this->attributeValues, \array_keys($attributeValues));
@@ -143,7 +161,7 @@ class ProductFilter extends Control
 				continue;
 			}
 			
-			$checkboxList = $attributesContainer->addCheckboxList($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
+			$checkboxList = $attributesContainer->addCheckboxList((string) $attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
 			
 			if (!isset($defaults[$attribute->getPK()])) {
 				continue;
@@ -156,7 +174,7 @@ class ProductFilter extends Control
 		$submit->setHtmlAttribute('name', '');
 		
 		
-		$filterForm->setDefaults($this->getPresenter()->getParameters());
+		$filterForm->setDefaults($this->getPresenter()?->getParameters());
 		
 		return $filterForm;
 	}
