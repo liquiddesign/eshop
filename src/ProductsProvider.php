@@ -417,11 +417,11 @@ CREATE TABLE `$productsCacheTableName` (
 	): array|false {
 		$index = \serialize($filters) . '_' . $orderByName . '_' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
 
-//		$cachedOutput = $this->cache->load($index, dependencies: [Cache::Tags => ['categories', 'products', 'pricelists']]);
-//
-//		if ($cachedOutput) {
-//			return $cachedOutput;
-//		}
+		$cachedOutput = $this->cache->load($index, dependencies: [Cache::Tags => ['categories', 'products', 'pricelists']]);
+
+		if ($cachedOutput) {
+			return $cachedOutput;
+		}
 
 		$category = isset($filters['category']) ? $this->categoryRepository->many()->select(['this.id'])->where('this.path', $filters['category'])->first(true) : null;
 		unset($filters['category']);
