@@ -564,15 +564,10 @@ CREATE TABLE `$productsCacheTableName` (
 		$priceMax = \PHP_FLOAT_MIN;
 		$priceVatMin = \PHP_FLOAT_MAX;
 		$priceVatMax = \PHP_FLOAT_MIN;
-		$priceMinUnfiltered = \PHP_FLOAT_MAX;
-		$priceMaxUnfiltered = \PHP_FLOAT_MIN;
-		$priceVatMinUnfiltered = \PHP_FLOAT_MAX;
-		$priceVatMaxUnfiltered = \PHP_FLOAT_MIN;
 
 		$dynamicallyCountedDynamicFilters = [];
 
-//		while ($product = $productsCollection->fetch()) {
-		foreach ($productsCollection as $product) {
+		while ($product = $productsCollection->fetch()) {
 			$attributeValues = $product->attributeValues ? \array_flip(\explode(',', $product->attributeValues)) : [];
 
 			foreach ($dynamicFiltersAttributes as $attributePK => $attributeValuesPKs) {
@@ -647,24 +642,24 @@ CREATE TABLE `$productsCacheTableName` (
 				if ($filter === 'priceFrom') {
 					$dynamicallyCountedDynamicFilters[$filter] = true;
 
-					if ($product->price < $priceMinUnfiltered) {
-						$priceMinUnfiltered = $product->price;
+					if ($product->price < $priceMin) {
+						$priceMin = $product->price;
 					}
 
-					if ($product->priceVat < $priceVatMinUnfiltered) {
-						$priceVatMinUnfiltered = $product->priceVat;
+					if ($product->priceVat < $priceVatMin) {
+						$priceVatMin = $product->priceVat;
 					}
 				}
 
 				if ($filter === 'priceTo') {
 					$dynamicallyCountedDynamicFilters[$filter] = true;
 
-					if ($product->price > $priceMaxUnfiltered) {
-						$priceMaxUnfiltered = $product->price;
+					if ($product->price > $priceMax) {
+						$priceMax = $product->price;
 					}
 
-					if ($product->priceVat > $priceVatMaxUnfiltered) {
-						$priceVatMaxUnfiltered = $product->priceVat;
+					if ($product->priceVat > $priceVatMax) {
+						$priceVatMax = $product->priceVat;
 					}
 				}
 
@@ -788,10 +783,6 @@ CREATE TABLE `$productsCacheTableName` (
 			'priceMax' => $priceMax,
 			'priceVatMin' => $priceVatMin,
 			'priceVatMax' => $priceVatMax,
-			'priceMinUnfiltered' => $priceMinUnfiltered,
-			'priceMaxUnfiltered' => $priceMaxUnfiltered,
-			'priceVatMinUnfiltered' => $priceVatMinUnfiltered,
-			'priceVatMaxUnfiltered' => $priceVatMaxUnfiltered,
 		];
 
 		$this->cache->save($index, $output, [Cache::Tags => ['categories', 'products', 'pricelists']]);

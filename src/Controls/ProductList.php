@@ -208,7 +208,11 @@ class ProductList extends Datalist
 
 				$this->getPaginator()->setItemCount(\count($cachedProducts['productPKs']));
 
-				$source->where('this.id', \array_slice($cachedProducts['productPKs'], ($this->getPage() - 1) * $this->getOnPage(), $this->getOnPage()));
+				if ($cachedProducts['productPKs']) {
+					$source->where('this.id', \array_slice($cachedProducts['productPKs'], ($this->getPage() - 1) * $this->getOnPage(), $this->getOnPage()));
+				} else {
+					$source->where('0 = 1');
+				}
 			} else {
 				$source->setPage($this->getPage(), $this->getOnPage());
 			}
