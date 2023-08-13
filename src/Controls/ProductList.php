@@ -194,8 +194,6 @@ class ProductList extends Datalist
 		/** @var \StORM\Collection<\Eshop\DB\Product> $source */
 		$source = $this->getFilteredSource();
 
-		\Tracy\Debugger::barDump($cachedProducts);
-
 		if ($cachedProducts !== false) {
 			$this->providerOutput = $cachedProducts;
 		}
