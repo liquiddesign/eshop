@@ -483,9 +483,13 @@ CREATE TABLE `$productsCacheTableName` (
 				}
 
 				unset($filters['attributes']);
-
-				break;
 			}
+
+			if (!isset($this->allowedDynamicFilterExpressions[$filter]) && !isset($this->allowedDynamicFilterColumns[$filter])) {
+				continue;
+			}
+
+			$dynamicFilters[$filter] = $value;
 		}
 
 		foreach ($filters as $filter => $value) {
@@ -560,8 +564,15 @@ CREATE TABLE `$productsCacheTableName` (
 		$priceMax = \PHP_FLOAT_MIN;
 		$priceVatMin = \PHP_FLOAT_MAX;
 		$priceVatMax = \PHP_FLOAT_MIN;
+		$priceMinUnfiltered = \PHP_FLOAT_MAX;
+		$priceMaxUnfiltered = \PHP_FLOAT_MIN;
+		$priceVatMinUnfiltered = \PHP_FLOAT_MAX;
+		$priceVatMaxUnfiltered = \PHP_FLOAT_MIN;
 
-		while ($product = $productsCollection->fetch()) {
+		$dynamicallyCountedDynamicFilters = [];
+
+//		while ($product = $productsCollection->fetch()) {
+		foreach ($productsCollection as $product) {
 			$attributeValues = $product->attributeValues ? \array_flip(\explode(',', $product->attributeValues)) : [];
 
 			foreach ($dynamicFiltersAttributes as $attributePK => $attributeValuesPKs) {
@@ -595,6 +606,89 @@ CREATE TABLE `$productsCacheTableName` (
 				}
 			}
 
+			foreach (\array_keys($dynamicFilters) as $filter) {
+				$subDynamicFilters = $dynamicFilters;
+				unset($subDynamicFilters[$filter]);
+
+				$useProduct = true;
+
+				foreach ($subDynamicFilters as $subFilter => $value) {
+					if (isset($this->allowedDynamicFilterColumns[$subFilter])) {
+						if (!$product->{$this->allowedDynamicFilterColumns[$subFilter]}) {
+							$useProduct = false;
+
+							break;
+						}
+
+						if (!isset($value[$product->{$this->allowedDynamicFilterColumns[$subFilter]}])) {
+							$useProduct = false;
+
+							break;
+						}
+
+						continue;
+					}
+
+					if (!isset($this->allowedDynamicFilterExpressions[$subFilter])) {
+						continue;
+					}
+
+					if (!$this->allowedDynamicFilterExpressions[$subFilter]($product, $value, $visibilityLists, $priceLists)) {
+						$useProduct = false;
+
+						break;
+					}
+				}
+
+				if (!$useProduct) {
+					continue;
+				}
+
+				if ($filter === 'priceFrom') {
+					$dynamicallyCountedDynamicFilters[$filter] = true;
+
+					if ($product->price < $priceMinUnfiltered) {
+						$priceMinUnfiltered = $product->price;
+					}
+
+					if ($product->priceVat < $priceVatMinUnfiltered) {
+						$priceVatMinUnfiltered = $product->priceVat;
+					}
+				}
+
+				if ($filter === 'priceTo') {
+					$dynamicallyCountedDynamicFilters[$filter] = true;
+
+					if ($product->price > $priceMaxUnfiltered) {
+						$priceMaxUnfiltered = $product->price;
+					}
+
+					if ($product->priceVat > $priceVatMaxUnfiltered) {
+						$priceVatMaxUnfiltered = $product->priceVat;
+					}
+				}
+
+				if ($filter === 'systemicAttributes.availability' && $product->displayAmount) {
+					$dynamicallyCountedDynamicFilters[$filter] = true;
+
+					$displayAmountsCounts[$product->displayAmount] = ($displayAmountsCounts[$product->displayAmount] ?? 0) + 1;
+				}
+
+				if ($filter === 'systemicAttributes.delivery' && $product->displayDelivery) {
+					$dynamicallyCountedDynamicFilters[$filter] = true;
+
+					$displayDeliveriesCounts[$product->displayDelivery] = ($displayDeliveriesCounts[$product->displayAmount] ?? 0) + 1;
+				}
+
+				if ($filter !== 'systemicAttributes.producer' || !$product->producer) {
+					continue;
+				}
+
+				$dynamicallyCountedDynamicFilters[$filter] = true;
+
+				$producersCounts[$product->producer] = ($producersCounts[$product->producer] ?? 0) + 1;
+			}
+
 			foreach ($dynamicFilters as $filter => $value) {
 				if (isset($this->allowedDynamicFilterColumns[$filter])) {
 					if (!$product->{$this->allowedDynamicFilterColumns[$filter]}) {
@@ -617,32 +711,36 @@ CREATE TABLE `$productsCacheTableName` (
 				}
 			}
 
-			if ($product->displayAmount) {
+			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.availability']) && $product->displayAmount) {
 				$displayAmountsCounts[$product->displayAmount] = ($displayAmountsCounts[$product->displayAmount] ?? 0) + 1;
 			}
 
-			if ($product->displayDelivery) {
-				$displayDeliveriesCounts[$product->displayDelivery] = ($displayDeliveriesCounts[$product->displayAmount] ?? 0) + 1;
+			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.delivery']) && $product->displayDelivery) {
+				$displayDeliveriesCounts[$product->displayDelivery] = ($displayDeliveriesCounts[$product->displayDelivery] ?? 0) + 1;
 			}
 
-			if ($product->producer) {
+			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.producer']) && $product->producer) {
 				$producersCounts[$product->producer] = ($producersCounts[$product->producer] ?? 0) + 1;
 			}
 
-			if ($product->price < $priceMin) {
-				$priceMin = $product->price;
+			if (!isset($dynamicallyCountedDynamicFilters['priceFrom'])) {
+				if ($product->price < $priceMin) {
+					$priceMin = $product->price;
+				}
+
+				if ($product->priceVat < $priceVatMin) {
+					$priceVatMin = $product->priceVat;
+				}
 			}
 
-			if ($product->price > $priceMax) {
-				$priceMax = $product->price;
-			}
+			if (!isset($dynamicallyCountedDynamicFilters['priceTo'])) {
+				if ($product->price > $priceMax) {
+					$priceMax = $product->price;
+				}
 
-			if ($product->priceVat < $priceVatMin) {
-				$priceVatMin = $product->priceVat;
-			}
-
-			if ($product->priceVat > $priceVatMax) {
-				$priceVatMax = $product->priceVat;
+				if ($product->priceVat > $priceVatMax) {
+					$priceVatMax = $product->priceVat;
+				}
 			}
 
 			$productPKs[] = $product->product;
@@ -690,6 +788,10 @@ CREATE TABLE `$productsCacheTableName` (
 			'priceMax' => $priceMax,
 			'priceVatMin' => $priceVatMin,
 			'priceVatMax' => $priceVatMax,
+			'priceMinUnfiltered' => $priceMinUnfiltered,
+			'priceMaxUnfiltered' => $priceMaxUnfiltered,
+			'priceVatMinUnfiltered' => $priceVatMinUnfiltered,
+			'priceVatMaxUnfiltered' => $priceVatMaxUnfiltered,
 		];
 
 		$this->cache->save($index, $output, [Cache::Tags => ['categories', 'products', 'pricelists']]);

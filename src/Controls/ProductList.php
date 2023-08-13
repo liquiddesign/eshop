@@ -179,7 +179,7 @@ class ProductList extends Datalist
 			return $this->itemsOnPage;
 		}
 
-//		\Tracy\Debugger::timer();
+		\Tracy\Debugger::timer();
 
 		$cachedProducts = $this->productsProvider->getProductsFromCacheTable(
 			$this->getFilters(),
@@ -189,9 +189,9 @@ class ProductList extends Datalist
 			$this->shopperUser->getVisibilityLists(),
 		);
 
-//		\Tracy\Debugger::dump(\Tracy\Debugger::timer());
+		\Tracy\Debugger::barDump(\Tracy\Debugger::timer());
 
-		/** @var \StORM\Collection $source */
+		/** @var \StORM\Collection<\Eshop\DB\Product> $source */
 		$source = $this->getFilteredSource();
 
 		\Tracy\Debugger::barDump($cachedProducts);
@@ -244,6 +244,10 @@ class ProductList extends Datalist
 				->where('fk_product', $product)
 				->where('fk_customer', $customer)
 				->first();
+
+			if (!$watcher) {
+				$this->redirect('this');
+			}
 
 			$this->onWatcherDeleted($watcher);
 
