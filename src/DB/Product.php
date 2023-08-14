@@ -109,7 +109,7 @@ class Product extends \StORM\Entity
 
 	/**
 	 * Prodejní jednotka (kus)
-	 * @column
+	 * @column{"mutations":true}
 	 */
 	public ?string $unit;
 
