@@ -423,15 +423,15 @@ CREATE TABLE `$productsCacheTableName` (
 			return $cachedOutput;
 		}
 
-		$category = isset($filters['category']) ? $this->categoryRepository->many()->select(['this.id'])->where('this.path', $filters['category'])->first(true) : null;
-		unset($filters['category']);
-
 		$cacheIndex = $this->getCacheIndexToBeUsed();
 
 		if ($cacheIndex === 0) {
 			return false;
 		}
 
+		$category = isset($filters['category']) ? $this->categoryRepository->many()->select(['this.id'])->where('this.path', $filters['category'])->first(true) : null;
+		unset($filters['category']);
+		
 		$productsCollection = $category ?
 			$this->connection->rows(['category' => "eshop_categoryproducts_cache_{$cacheIndex}_$category->id"])
 				->join(['this' => "eshop_products_cache_{$cacheIndex}"], 'this.product = category.product', type: 'INNER') :
