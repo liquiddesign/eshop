@@ -219,8 +219,8 @@ Ostatní: Přebírání ze zvoleného zdroje
 		$form->addText('storageDate', 'Nejbližší datum naskladnění')->setNullable(true)->setHtmlType('date');
 
 		$form->addGroup('Nákup');
-		$form->addText('unit', 'Prodejní jednotka')
-			->setHtmlAttribute('data-info', 'Např.: ks, ml, ...');
+		$form->addLocaleText('unit', 'Jednotka');
+		//	->setHtmlAttribute('data-info', 'Např.: ks, ml, ...');
 
 		$this->monitor(BackendPresenter::class, function (BackendPresenter $backendPresenter) use ($form, $configuration): void {
 			if (isset($configuration['discountLevel']) && $configuration['discountLevel'] && $backendPresenter->isManager) {

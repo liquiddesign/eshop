@@ -436,14 +436,21 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
 
                 <table class="mt-1 mb-1" style="width: auto;">
 
-                <tr class="m-0 mt-1 has-danger">
-                    <th class="col-label col-form-label col">{label unit/}</th>
 
-                    <td class="align-middle">{input unit class => 'form-control form-control-sm col-label max-number'}
-                        <span id="data-info" class="text-gray text-sm">Např.: ks, ml, ...</span>
-                        <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError unit}</span>
-                    </td>
-                </tr>
+                {foreach $form['unit']->getComponents() as $key => $element}
+                    <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}"
+                        id="{$element->getHtmlId()}" data-mutation="{$key}">
+                        {$renderer->renderLabel($element)|noescape}
+
+                        <td class="align-middle">
+                            <div class="d-flex">
+                                {input "unit-$key" class => 'form-control form-control-sm'}
+                            </div>
+
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "unit-$key"}</span>
+                        </td>
+                    </tr>
+                {/foreach}
 
                 <tr class="m-0 mt-1  required has-danger">
                     <th class="col-label col-form-label col">Základní / krokové množství</th>
