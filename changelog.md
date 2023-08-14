@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- New ProductsProvider for high-performance caching and loading of products with semi-dynamic filtering.
+  - **BREAKING:** Multiple entities now uses integer autoincrement for unique index. This has better performance when using select.
+    - **You have to run migration _20230812-v2_cache.sql_**
+  - ProductsProvider uses two sets of own cache + every request is indexed in Nette cache.
+  - During cache warmup second cache is used and after fully warmed up first cache is flipped and vice versa.
+  - Supports full counting of attributes, dynamic filtering of OR attributes and price with minimal impact on performance.
+  - **ProductsProvider has limited options of filtering and ordering, so check if your project is suitable for this cache!**
+    - If the table containing cache states is empty, products will be loaded using the legacy method.
 - ShopperUser now has ability to choose selected Customer via session
     - This adds option to log in as Customer, but act like child Customer (using his PriceLists, VisibilityLists and make order as him)
     - CatalogPermission is still used from original Customer
