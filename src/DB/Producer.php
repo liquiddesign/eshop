@@ -67,6 +67,12 @@ class Producer extends SystemicEntity
 	public bool $hidden = false;
 
 	/**
+	 * ID
+	 * column - don't created by auto migration, only by manual
+	 */
+	public int $id;
+
+	/**
 	 * Hlavní přiřazená kategorie
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}

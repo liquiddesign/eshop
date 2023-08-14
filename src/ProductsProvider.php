@@ -3,23 +3,79 @@
 namespace Eshop;
 
 use Base\ShopsConfig;
+use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
+use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
+use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\ProductsCacheStateRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 use Nette\DI\Container;
+use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
-use StORM\Connection;
+use StORM\DIConnection;
+use StORM\ICollection;
+use Tracy\Debugger;
 use Web\DB\SettingRepository;
 
 class ProductsProvider
 {
-	public const CATEGORY_COLUMNS_COUNT = 20;
+	/**
+	 * Also hard-coded: category, pricelist
+	 * @var array<string>
+	 */
+	protected array $allowedCollectionFilterColumns = [
+		'hidden' => 'visibilityList.hidden',
+		'hiddenInMenu' => 'visibilityList.hiddenInMenu',
+		'priority' => 'visibilityList.priority',
+		'recommended' => 'visibilityList.recommended',
+		'unavailable' => 'visibilityList.unavailable',
+		'name' => 'name',
+		'isSold' => 'displayAmount_isSold',
+	];
+
+	/**
+	 * @var array<callable(\StORM\ICollection<\stdClass> $productsCollection, mixed $value, array<\Eshop\DB\VisibilityList> $visibilityLists, array<\Eshop\DB\Pricelist> $priceLists): void>
+	 */
+	protected array $allowedCollectionFilterExpressions = [];
+
+	/**
+	 * @var array<string>
+	 */
+	protected array $allowedDynamicFilterColumns = [
+		'systemicAttributes.producer' => 'producer',
+		'systemicAttributes.availability' => 'displayAmount',
+		'systemicAttributes.delivery' => 'displayDelivery',
+	];
+
+	/**
+	 * @var array<callable(\stdClass $product, mixed $value, array<\Eshop\DB\VisibilityList> $visibilityLists, array<\Eshop\DB\Pricelist> $priceLists): bool>
+	 */
+	protected array $allowedDynamicFilterExpressions = [];
+
+	/**
+	 * @var array<string>
+	 */
+	protected array $allowedCollectionOrderColumns = [
+		'priority' => 'visibilityList.priority',
+		'price' => 'priceList.price',
+		'name' => 'name',
+	];
+
+	/**
+	 * @var array<callable(\StORM\ICollection<\stdClass> $productsCollection, 'ASC'|'DESC' $direction, array<\Eshop\DB\VisibilityList> $visibilityLists, array<\Eshop\DB\Pricelist>): void>
+	 */
+	protected array $allowedCollectionOrderExpressions = [];
+
+	protected Cache $cache;
 
 	public function __construct(
 		protected readonly ProductRepository $productRepository,
@@ -27,7 +83,7 @@ class ProductsProvider
 		protected readonly PriceRepository $priceRepository,
 		protected readonly PricelistRepository $pricelistRepository,
 		protected readonly Container $container,
-		protected readonly Connection $connection,
+		protected readonly DIConnection $connection,
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly CategoryTypeRepository $categoryTypeRepository,
 		protected readonly SettingRepository $settingRepository,
@@ -35,60 +91,153 @@ class ProductsProvider
 		protected readonly AttributeValueRepository $attributeValueRepository,
 		protected readonly DisplayAmountRepository $displayAmountRepository,
 		protected readonly VisibilityListRepository $visibilityListRepository,
+		protected readonly ProductsCacheStateRepository $productsCacheStateRepository,
+		protected readonly ProducerRepository $producerRepository,
+		protected readonly DisplayDeliveryRepository $displayDeliveryRepository,
+		protected readonly AttributeRepository $attributeRepository,
+		protected readonly ShopperUser $shopperUser,
+		readonly Storage $storage,
 	) {
+		$this->cache = new Cache($storage);
+
+		$this->allowedCollectionOrderExpressions['availabilityAndPrice'] = function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
+			$productsCollection->orderBy([
+				'case COALESCE(displayAmount_isSold, 2)
+					 when 0 then 0
+					 when 2 then 1
+					 when 1 then 2
+					 else 2 end' => $direction,
+				$this->createCoalesceFromArray($priceLists, 'priceList', 'price') => $direction,
+			]);
+		};
+
+		$this->allowedCollectionOrderExpressions['priorityAvailabilityPrice'] = function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
+			$productsCollection->orderBy([
+				$this->createCoalesceFromArray($visibilityLists, 'visibilityList', 'priority') => $direction,
+				'case COALESCE(displayAmount_isSold, 2)
+                     when 0 then 0
+                     when 1 then 1
+                     when 2 then 2
+                     else 2 end' => $direction,
+				$this->createCoalesceFromArray($priceLists, 'priceList', 'price') => $direction,
+			]);
+		};
+
+		$this->allowedDynamicFilterExpressions['priceFrom'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
+			$showVat = $this->shopperUser->getMainPriceType() === 'withVat';
+
+			return $showVat ? $product->priceVat >= $value : $product->price >= $value;
+		};
+
+		$this->allowedDynamicFilterExpressions['priceTo'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
+			$showVat = $this->shopperUser->getMainPriceType() === 'withVat';
+
+			return $showVat ? $product->priceVat <= $value : $product->price <= $value;
+		};
+	}
+
+	public function addAllowedCollectionFilterColumn(string $name, string $column): void
+	{
+		$this->allowedCollectionFilterColumns[$name] = $column;
+	}
+
+	public function addFilterCollectionExpression(string $name, callable $callback): void
+	{
+		$this->allowedCollectionFilterExpressions[$name] = $callback;
+	}
+
+	public function addAllowedDynamicFilterColumn(string $name, string $column): void
+	{
+		$this->allowedDynamicFilterColumns[$name] = $column;
+	}
+
+	public function addFilterDynamicExpression(string $name, callable $callback): void
+	{
+		$this->allowedDynamicFilterExpressions[$name] = $callback;
+	}
+
+	public function addAllowedCollectionOrderColumn(string $name, string $column): void
+	{
+		$this->allowedCollectionOrderColumns[$name] = $column;
+	}
+
+	public function addCollectionOrderExpression(string $name, callable $callback): void
+	{
+		$this->allowedCollectionOrderExpressions[$name] = $callback;
 	}
 
 	public function warmUpCacheTable(): void
 	{
-		$link = $this->connection->getLink();
+		$this->resetHangingStatesOfCaches();
 
-		$link->exec('
-DROP TABLE IF EXISTS `eshop_products_cache`;
-CREATE TABLE `eshop_products_cache` (
-  product VARCHAR(32) PRIMARY KEY,
-  producer VARCHAR(32),
-  displayAmount VARCHAR(32),
+		Debugger::timer();
+
+		$link = $this->connection->getLink();
+		$mutationSuffix = $this->connection->getMutationSuffix();
+
+		$cacheIndexToBeWarmedUp = $this->getCacheIndexToBeWarmedUp();
+
+		if ($cacheIndexToBeWarmedUp === 0) {
+			return;
+		}
+
+		$this->markCacheAsWarming($cacheIndexToBeWarmedUp);
+
+		$allCategories = $this->categoryRepository->many()->select(['this.id'])->toArray();
+
+		foreach ($allCategories as $category) {
+			$link->exec("DROP TABLE IF EXISTS `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$category->id`");
+		}
+
+		$productsCacheTableName = "eshop_products_cache_$cacheIndexToBeWarmedUp";
+
+		$link->exec("
+DROP TABLE IF EXISTS `$productsCacheTableName`;
+CREATE TABLE `$productsCacheTableName` (
+  product INT UNSIGNED PRIMARY KEY,
+  producer INT UNSIGNED,
+  displayAmount INT UNSIGNED,
+  displayDelivery INT UNSIGNED,
   displayAmount_isSold TINYINT(1),
   attributeValues TEXT,
+  name TEXT,
   INDEX idx_producer (producer),
   INDEX idx_displayAmount (displayAmount),
+  INDEX idx_displayDelivery (displayDelivery),
   INDEX idx_displayAmount_isSold (displayAmount_isSold)
-);');
+);");
 
-		$link->exec('ALTER TABLE `eshop_products_cache` ROW_FORMAT=DYNAMIC;');
+		foreach ($allVisibilityLists = $this->visibilityListRepository->many()->select(['this.id']) as $visibilityList) {
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id} INT UNSIGNED DEFAULT('{$visibilityList->id}');");
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_visibilityList_{$visibilityList->id} (visibilityList_{$visibilityList->id});");
 
-		for ($i = 0; $i < self::CATEGORY_COLUMNS_COUNT; $i++) {
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN category_$i VARCHAR(32), ADD INDEX idx_category_$i (category_$i);");
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_hidden TINYINT;");
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_hiddenInMenu TINYINT;");
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_priority SMALLINT;");
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_unavailable TINYINT;");
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_recommended TINYINT;");
 		}
 
-		foreach ($this->visibilityListRepository->many() as $visibilityList) {
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->getPK()} VARCHAR(32) DEFAULT('{$visibilityList->getPK()}');");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD INDEX idx_visibilityList_{$visibilityList->getPK()} (visibilityList_{$visibilityList->getPK()});");
+		foreach ($allPriceLists = $this->pricelistRepository->many()->select(['this.id']) as $priceList) {
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id} INT UNSIGNED DEFAULT('{$priceList->id}');");
 
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->getPK()}_hidden TINYINT(1);");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->getPK()}_hiddenInMenu TINYINT(1);");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->getPK()}_priority INT(11);");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->getPK()}_unavailable TINYINT(1);");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN visibilityList_{$visibilityList->getPK()}_recommended INT(11);");
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_price DOUBLE;");
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVat DOUBLE;");
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceBefore DOUBLE;");
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVatBefore DOUBLE;");
 		}
 
-		foreach ($this->pricelistRepository->many() as $priceList) {
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->getPK()} VARCHAR(32) DEFAULT('{$priceList->getPK()}');");
-
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->getPK()}_price DOUBLE;");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->getPK()}_priceVat DOUBLE;");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->getPK()}_priceBefore DOUBLE;");
-			$link->exec("ALTER TABLE `eshop_products_cache` ADD COLUMN priceList_{$priceList->getPK()}_priceVatBefore DOUBLE;");
-		}
+		Debugger::dump('drop/create tables');
+		Debugger::dump(Debugger::timer());
 
 		$allPrices = $this->priceRepository->many()->toArray();
 		$allVisibilityListItems = $this->visibilityListItemRepository->many()->toArray();
-		$allDisplayAmounts = $this->displayAmountRepository->many()->toArray();
-		$allCategories = $this->categoryRepository->many()->toArray();
+		$allDisplayAmounts = $this->displayAmountRepository->many()->setIndex('id')->toArray();
 		$allCategoriesByCategory = [];
 
 		$this->connection->getLink()->exec('SET SESSION group_concat_max_len=4294967295');
 
+		$productsByCategories = [];
 		$products = [];
 
 		$productsCollection = $this->productRepository->many()
@@ -99,18 +248,29 @@ CREATE TABLE `eshop_products_cache` (
 			->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid', type: 'INNER')
 			->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityList.uuid')
 			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
+			->join(['eshop_displayamount'], 'this.fk_displayAmount = eshop_displayamount.uuid')
+			->join(['eshop_displaydelivery'], 'this.fk_displayDelivery = eshop_displaydelivery.uuid')
+			->join(['eshop_producer'], 'this.fk_producer = eshop_producer.uuid')
+			->join(['eshop_attributevalue'], 'assign.fk_value = eshop_attributevalue.uuid')
 			->setSelect([
-				'uuid' => 'this.uuid',
-				'fkDisplayAmount' => 'this.fk_displayAmount',
-				'fkProducer' => 'this.fk_producer',
+				'id' => 'this.id',
+				'fkDisplayAmount' => 'eshop_displayamount.id',
+				'fkDisplayDelivery' => 'eshop_displaydelivery.id',
+				'fkProducer' => 'eshop_producer.id',
+				'name' => "this.name$mutationSuffix",
 				'pricesPKs' => 'GROUP_CONCAT(DISTINCT price.uuid ORDER BY priceList.priority)',
 				'categoriesPKs' => 'GROUP_CONCAT(DISTINCT eshop_product_nxn_eshop_category.fk_category)',
 				'visibilityListItemsPKs' => 'GROUP_CONCAT(DISTINCT visibilityListItem.uuid ORDER BY visibilityList.priority)',
-				'attributeValuesPKs' => 'GROUP_CONCAT(DISTINCT assign.fk_value)',
+				'attributeValuesPKs' => 'GROUP_CONCAT(DISTINCT eshop_attributevalue.id)',
 			])
 			->where('priceList.isActive', true)
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
-			->setGroupBy(['this.uuid']);
+			->setGroupBy(['this.id']);
+
+		Debugger::dump('load entities');
+		Debugger::dump(Debugger::timer());
+
+		$link->beginTransaction();
 
 		while ($product = $productsCollection->fetch(\stdClass::class)) {
 			/** @var \stdClass $product */
@@ -119,12 +279,31 @@ CREATE TABLE `eshop_products_cache` (
 				continue;
 			}
 
-			$products[$product->uuid] = [
-				'product' => $product->uuid,
+			$products[$product->id] = [
+				'product' => $product->id,
 				'displayAmount' => $product->fkDisplayAmount,
+				'displayDelivery' => $product->fkDisplayDelivery,
 				'displayAmount_isSold' => $product->fkDisplayAmount ? $allDisplayAmounts[$product->fkDisplayAmount]->isSold : null,
 				'producer' => $product->fkProducer,
+				'name' => $product->name,
 			];
+
+			foreach ($allVisibilityLists as $visibilityList) {
+				$products[$product->id]["visibilityList_$visibilityList->id"] = null;
+				$products[$product->id]["visibilityList_{$visibilityList->id}_hidden"] = null;
+				$products[$product->id]["visibilityList_{$visibilityList->id}_hiddenInMenu"] = null;
+				$products[$product->id]["visibilityList_{$visibilityList->id}_priority"] = null;
+				$products[$product->id]["visibilityList_{$visibilityList->id}_unavailable"] = null;
+				$products[$product->id]["visibilityList_{$visibilityList->id}_recommended"] = null;
+			}
+
+			foreach ($allPriceLists as $priceList) {
+				$products[$product->id]["priceList_$priceList->id"] = null;
+				$products[$product->id]["priceList_{$priceList->id}_price"] = null;
+				$products[$product->id]["priceList_{$priceList->id}_priceVat"] = null;
+				$products[$product->id]["priceList_{$priceList->id}_priceBefore"] = null;
+				$products[$product->id]["priceList_{$priceList->id}_priceVatBefore"] = null;
+			}
 
 			if ($categories = $product->categoriesPKs) {
 				$categories = \explode(',', $categories);
@@ -136,23 +315,15 @@ CREATE TABLE `eshop_products_cache` (
 						$categoryCategories = $allCategoriesByCategory[$category] = \array_merge($this->getAncestorsOfCategory($category, $allCategories), [$category]);
 					}
 
-					$products[$product->uuid]['categories'] = \array_unique(\array_merge($products[$product->uuid]['categories'] ?? [], $categoryCategories));
+					$products[$product->id]['categories'] = \array_unique(\array_merge($products[$product->id]['categories'] ?? [], $categoryCategories));
 
-					foreach ($products[$product->uuid]['categories'] as $productCategory) {
-						$productsByCategories[$productCategory][$product->uuid] = true;
+					foreach ($products[$product->id]['categories'] as $productCategory) {
+						$productsByCategories[$productCategory][$product->id] = true;
 					}
-				}
-
-				$i = 0;
-
-				foreach ($products[$product->uuid]['categories'] as $productCategory) {
-					$products[$product->uuid]["category_$i"] = $productCategory;
-
-					$i++;
 				}
 			}
 
-			unset($products[$product->uuid]['categories']);
+			unset($products[$product->id]['categories']);
 
 			if ($visibilityListItems = $product->visibilityListItemsPKs) {
 				$visibilityListItems = \explode(',', $visibilityListItems);
@@ -160,11 +331,11 @@ CREATE TABLE `eshop_products_cache` (
 				foreach ($visibilityListItems as $visibilityListItem) {
 					$visibilityListItem = $allVisibilityListItems[$visibilityListItem];
 
-					$products[$product->uuid]["visibilityList_{$visibilityListItem->getValue('visibilityList')}_hidden"] = $visibilityListItem->hidden;
-					$products[$product->uuid]["visibilityList_{$visibilityListItem->getValue('visibilityList')}_hiddenInMenu"] = $visibilityListItem->hiddenInMenu;
-					$products[$product->uuid]["visibilityList_{$visibilityListItem->getValue('visibilityList')}_priority"] = $visibilityListItem->priority;
-					$products[$product->uuid]["visibilityList_{$visibilityListItem->getValue('visibilityList')}_unavailable"] = $visibilityListItem->unavailable;
-					$products[$product->uuid]["visibilityList_{$visibilityListItem->getValue('visibilityList')}_recommended"] = $visibilityListItem->recommended;
+					$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->getValue('visibilityList')]->id}_hidden"] = $visibilityListItem->hidden;
+					$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->getValue('visibilityList')]->id}_hiddenInMenu"] = $visibilityListItem->hiddenInMenu;
+					$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->getValue('visibilityList')]->id}_priority"] = $visibilityListItem->priority;
+					$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->getValue('visibilityList')]->id}_unavailable"] = $visibilityListItem->unavailable;
+					$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->getValue('visibilityList')]->id}_recommended"] = $visibilityListItem->recommended;
 				}
 			}
 
@@ -173,16 +344,49 @@ CREATE TABLE `eshop_products_cache` (
 			foreach ($prices as $price) {
 				$price = $allPrices[$price];
 
-				$products[$product->uuid]["priceList_{$price->getValue('pricelist')}_price"] = $price->price;
-				$products[$product->uuid]["priceList_{$price->getValue('pricelist')}_priceVat"] = $price->priceVat;
-				$products[$product->uuid]["priceList_{$price->getValue('pricelist')}_priceBefore"] = $price->priceBefore;
-				$products[$product->uuid]["priceList_{$price->getValue('pricelist')}_priceVatBefore"] = $price->priceVatBefore;
+				$products[$product->id]["priceList_{$allPriceLists[$price->getValue('pricelist')]->id}_price"] = $price->price;
+				$products[$product->id]["priceList_{$allPriceLists[$price->getValue('pricelist')]->id}_priceVat"] = $price->priceVat;
+				$products[$product->id]["priceList_{$allPriceLists[$price->getValue('pricelist')]->id}_priceBefore"] = $price->priceBefore;
+				$products[$product->id]["priceList_{$allPriceLists[$price->getValue('pricelist')]->id}_priceVatBefore"] = $price->priceVatBefore;
 			}
 
-			$products[$product->uuid]['attributeValues'] = $product->attributeValuesPKs;
+			$products[$product->id]['attributeValues'] = $product->attributeValuesPKs;
 		}
 
-		$this->connection->createRows('eshop_products_cache', $products, chunkSize: 1);
+		Debugger::dump('main loop');
+		Debugger::dump(Debugger::timer());
+
+		$this->connection->createRows("$productsCacheTableName", $products, chunkSize: 10000);
+
+		Debugger::dump('insert products');
+		Debugger::dump(Debugger::timer());
+
+		$link->commit();
+
+		Debugger::dump('commit transaction');
+		Debugger::dump(Debugger::timer());
+
+		foreach ($productsByCategories as $category => $products) {
+			$categoryId = $allCategories[$category]->id;
+
+			$link->exec("DROP TABLE IF EXISTS `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId`;");
+			$link->exec("CREATE TABLE `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId` (
+  product INT UNSIGNED PRIMARY KEY,
+  FOREIGN KEY (product) REFERENCES eshop_products_cache_{$cacheIndexToBeWarmedUp}(product) ON UPDATE CASCADE ON DELETE CASCADE 
+);");
+			$newRows = [];
+
+			foreach (\array_keys($products) as $product) {
+				$newRows[] = ['product' => $product];
+			}
+
+			$this->connection->createRows("eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId", $newRows);
+		}
+
+		Debugger::dump('create/insert categories tables');
+		Debugger::dump(Debugger::timer());
+
+		$this->markCacheAsReady($cacheIndexToBeWarmedUp);
 	}
 
 	/**
@@ -193,9 +397,14 @@ CREATE TABLE `eshop_products_cache` (
 	 * @param array<string, \Eshop\DB\VisibilityList> $visibilityLists
 	 * @return array{
 	 *     "productPKs": list<string>,
-	 *     "attributeValuesCounts": array<string, int>,
-	 *     "displayAmountsCounts": array<string, int>,
-	 *     "producersCounts": array<string, int>
+	 *     "attributeValuesCounts": array<string|int, int>,
+	 *     "displayAmountsCounts": array<string|int, int>,
+	 *     "displayDeliveriesCounts": array<string|int, int>,
+	 *     "producersCounts": array<string|int, int>,
+	 *     'priceMin': float,
+	 *     'priceMax': float,
+	 *     'priceVatMin': float,
+	 *     'priceVatMax': float
 	 * }|false
 	 * @throws \StORM\Exception\NotFoundException
 	 */
@@ -204,79 +413,454 @@ CREATE TABLE `eshop_products_cache` (
 		string|null $orderByName = null,
 		string $orderByDirection = 'ASC',
 		array $priceLists = [],
-		array $visibilityLists = []
+		array $visibilityLists = [],
 	): array|false {
-		unset($orderByName);
-		unset($orderByDirection);
+		$index = \serialize($filters) . '_' . $orderByName . '_' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
 
-		$category = isset($filters['category']) ? $this->categoryRepository->many()->where('this.path', $filters['category'])->first(true) : null;
+		$cachedOutput = $this->cache->load($index, dependencies: [Cache::Tags => ['categories', 'products', 'pricelists']]);
 
-		$categoriesWhereString = null;
-
-		for ($i = 0; $i < self::CATEGORY_COLUMNS_COUNT; $i++) {
-			$categoriesWhereString .= "category_$i = :category OR ";
+		if ($cachedOutput) {
+			return $cachedOutput;
 		}
 
-		$categoriesWhereString = Strings::subString($categoriesWhereString, 0, -4);
+		$cacheIndex = $this->getCacheIndexToBeUsed();
 
-		$productsCollection = $this->connection->rows(['this' => 'eshop_products_cache'])
-			->setSelect([
-				'product' => 'this.product',
-				'producer' => 'this.producer',
-				'attributeValues' => 'this.attributeValues',
-				'displayAmount' => 'this.displayAmount',
-			])
-			->where($this->createCoalesceFromArray($visibilityLists, 'visibilityList_', '_hidden') . ' = 0')
-			->where($this->createCoalesceFromArray($priceLists, 'priceList_', '_price') . ' > 0')
-			->orderBy([
-				$this->createCoalesceFromArray($visibilityLists, 'visibilityList_', '_priority') => 'ASC',
-				'case COALESCE(displayAmount_isSold, 2)
-					 when 0 then 0
-					 when 1 then 1
-					 when 2 then 2
-					 else 2 end' => 'ASC',
-				$this->createCoalesceFromArray($priceLists, 'priceList_', '_price') => 'ASC',
-			]);
+		if ($cacheIndex === 0) {
+			return false;
+		}
 
-		if ($category) {
-			$productsCollection->where($categoriesWhereString, ['category' => $category->getPK()]);
+		$category = isset($filters['category']) ? $this->categoryRepository->many()->select(['this.id'])->where('this.path', $filters['category'])->first(true) : null;
+		unset($filters['category']);
+		
+		$productsCollection = $category ?
+			$this->connection->rows(['category' => "eshop_categoryproducts_cache_{$cacheIndex}_$category->id"])
+				->join(['this' => "eshop_products_cache_{$cacheIndex}"], 'this.product = category.product', type: 'INNER') :
+			$this->connection->rows(['this' => "eshop_products_cache_{$cacheIndex}"]);
+
+		$productsCollection->setSelect([
+			'product' => 'this.product',
+			'producer' => 'this.producer',
+			'attributeValues' => 'this.attributeValues',
+			'displayAmount' => 'this.displayAmount',
+			'displayDelivery' => 'this.displayDelivery',
+			'price' => $this->createCoalesceFromArray($priceLists, 'priceList', 'price'),
+			'priceVat' => $this->createCoalesceFromArray($priceLists, 'priceList', 'priceVat'),
+		]);
+
+		if (isset($filters['pricelist'])) {
+			$priceLists = \array_filter($priceLists, fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
+
+			unset($filters['pricelist']);
+		}
+
+		$allAttributes = [];
+		$dynamicFiltersAttributes = [];
+		$dynamicFilters = [];
+
+		foreach ($filters as $filter => $value) {
+			if ($filter === 'attributes') {
+				foreach ($value as $subKey => $subValue) {
+					if ($subKey === 'availability') {
+						$subValue = $this->displayAmountRepository->many()->setSelect(['this.id'])->where('this.uuid', $subValue)->toArrayOf('id', toArrayValues: true);
+
+						$dynamicFilters["systemicAttributes.$subKey"] = \array_flip($subValue);
+					} elseif ($subKey === 'producer') {
+						$subValue = $this->producerRepository->many()->setSelect(['this.id'])->where('this.uuid', $subValue)->toArrayOf('id', toArrayValues: true);
+
+						$dynamicFilters["systemicAttributes.$subKey"] = \array_flip($subValue);
+					} elseif ($subKey === 'delivery') {
+						$subValue = $this->displayDeliveryRepository->many()->setSelect(['this.id'])->where('this.uuid', $subValue)->toArrayOf('id', toArrayValues: true);
+
+						$dynamicFilters["systemicAttributes.$subKey"] = \array_flip($subValue);
+					} else {
+						/** @var \Eshop\DB\Attribute $attribute */
+						$attribute = $this->attributeRepository->many()->where('this.uuid', $subKey)->select(['this.id'])->first(true);
+						$allAttributes[$attribute->id] = $attribute;
+
+						$dynamicFiltersAttributes[$attribute->id] =
+							$this->attributeValueRepository->many()->setSelect(['this.id'])->where('this.uuid', $subValue)->toArrayOf('id', toArrayValues: true);
+					}
+				}
+
+				unset($filters['attributes']);
+			}
+
+			if (!isset($this->allowedDynamicFilterExpressions[$filter]) && !isset($this->allowedDynamicFilterColumns[$filter])) {
+				continue;
+			}
+
+			$dynamicFilters[$filter] = $value;
+		}
+
+		foreach ($filters as $filter => $value) {
+			if (isset($this->allowedCollectionFilterColumns[$filter])) {
+				$filterColumn = $this->allowedCollectionFilterColumns[$filter];
+
+				if (Strings::contains($filterColumn, '.')) {
+					[$filterColumn1, $filterColumn2] = \explode('.', $filterColumn);
+
+					$filterExpression = match ($filterColumn1) {
+						'visibilityList' => $this->createCoalesceFromArray($visibilityLists, 'visibilityList', $filterColumn2),
+						'priceList' => $this->createCoalesceFromArray($priceLists, 'priceList', $filterColumn2),
+						default => $filterColumn,
+					};
+				} else {
+					$filterExpression = $filterColumn;
+				}
+
+				$productsCollection->where($filterExpression, $value);
+
+				continue;
+			}
+
+			if (isset($this->allowedCollectionFilterExpressions[$filter])) {
+				$this->allowedCollectionFilterExpressions[$filter]($productsCollection, $value, $visibilityLists, $priceLists);
+
+				continue;
+			}
+
+			if (isset($this->allowedDynamicFilterExpressions[$filter]) || isset($this->allowedDynamicFilterColumns[$filter])) {
+				continue;
+			}
+
+			throw new \Exception("Filter '$filter' is not supported by ProductsProvider! You can add it manually with 'addAllowedFilterColumn' or 'addFilterExpression' functions.");
+		}
+
+		$productsCollection->where($this->createCoalesceFromArray($priceLists, 'priceList', 'price') . ' > 0');
+
+		if ($orderByName) {
+			if (isset($this->allowedCollectionOrderColumns[$orderByName])) {
+				$orderColumn = $this->allowedCollectionOrderColumns[$orderByName];
+
+				if (Strings::contains($orderColumn, '.')) {
+					[$orderColumn1, $orderColumn2] = \explode('.', $orderColumn);
+
+					$orderExpression = match ($orderColumn1) {
+						'visibilityList' => $this->createCoalesceFromArray($visibilityLists, 'visibilityList', $orderColumn2),
+						'priceList' => $this->createCoalesceFromArray($priceLists, 'priceList', $orderColumn2),
+						default => $orderColumn,
+					};
+				} else {
+					$orderExpression = $orderColumn;
+				}
+
+				$productsCollection->orderBy([$orderExpression => $orderByDirection]);
+			} elseif (isset($this->allowedCollectionOrderExpressions[$orderByName])) {
+				$this->allowedCollectionOrderExpressions[$orderByName]($productsCollection, $orderByDirection, $visibilityLists, $priceLists);
+			} else {
+				throw new \Exception("Order '$orderByName' is not supported by ProductsProvider! You can add it manually with 'addAllowedOrderColumn' or 'addOrderExpression' function.");
+			}
 		}
 
 		$productPKs = [];
 		$displayAmountsCounts = [];
+		$displayDeliveriesCounts = [];
 		$producersCounts = [];
 		$attributeValuesCounts = [];
 
+//		DevelTools::dumpCollection($productsCollection);
+
+		$priceMin = \PHP_FLOAT_MAX;
+		$priceMax = \PHP_FLOAT_MIN;
+		$priceVatMin = \PHP_FLOAT_MAX;
+		$priceVatMax = \PHP_FLOAT_MIN;
+
+		$dynamicallyCountedDynamicFilters = [];
+
 		while ($product = $productsCollection->fetch()) {
-			$productPKs[] = $product->product;
+			$attributeValues = $product->attributeValues ? \array_flip(\explode(',', $product->attributeValues)) : [];
 
-			if ($product->displayAmount) {
-				$displayAmountsCounts[$product->displayAmount] = ($displayAmountsCounts[$product->displayAmount] ?? 0) + 1;
-			}
-
-			if ($product->producer) {
-				$producersCounts[$product->producer] = ($producersCounts[$product->producer] ?? 0) + 1;
-			}
-
-			if (!$product->attributeValues) {
-				continue;
-			}
-
-			foreach (\explode(',', $product->attributeValues) as $attributeValue) {
-				if (!$attributeValue) {
+			foreach ($dynamicFiltersAttributes as $attributePK => $attributeValuesPKs) {
+				if (\count($attributeValuesPKs) === 0) {
 					continue;
 				}
 
+				/** @var \Eshop\DB\Attribute $attribute */
+				$attribute = $allAttributes[$attributePK];
+
+				if ($attribute->filterType === 'and') {
+					foreach ($attributeValuesPKs as $attributeValue) {
+						if (!isset($attributeValues[$attributeValue])) {
+							continue 3;
+						}
+					}
+				} else {
+					$found = false;
+
+					foreach ($attributeValuesPKs as $attributeValue) {
+						if (isset($attributeValues[$attributeValue])) {
+							$found = true;
+
+							break;
+						}
+					}
+
+					if (!$found) {
+						continue 2;
+					}
+				}
+			}
+
+			foreach (\array_keys($dynamicFilters) as $filter) {
+				$subDynamicFilters = $dynamicFilters;
+				unset($subDynamicFilters[$filter]);
+
+				$useProduct = true;
+
+				foreach ($subDynamicFilters as $subFilter => $value) {
+					if (isset($this->allowedDynamicFilterColumns[$subFilter])) {
+						if (!$product->{$this->allowedDynamicFilterColumns[$subFilter]}) {
+							$useProduct = false;
+
+							break;
+						}
+
+						if (!isset($value[$product->{$this->allowedDynamicFilterColumns[$subFilter]}])) {
+							$useProduct = false;
+
+							break;
+						}
+
+						continue;
+					}
+
+					if (!isset($this->allowedDynamicFilterExpressions[$subFilter])) {
+						continue;
+					}
+
+					if (!$this->allowedDynamicFilterExpressions[$subFilter]($product, $value, $visibilityLists, $priceLists)) {
+						$useProduct = false;
+
+						break;
+					}
+				}
+
+				if (!$useProduct) {
+					continue;
+				}
+
+				if ($filter === 'priceFrom') {
+					$dynamicallyCountedDynamicFilters[$filter] = true;
+
+					if ($product->price < $priceMin) {
+						$priceMin = $product->price;
+					}
+
+					if ($product->priceVat < $priceVatMin) {
+						$priceVatMin = $product->priceVat;
+					}
+				}
+
+				if ($filter === 'priceTo') {
+					$dynamicallyCountedDynamicFilters[$filter] = true;
+
+					if ($product->price > $priceMax) {
+						$priceMax = $product->price;
+					}
+
+					if ($product->priceVat > $priceVatMax) {
+						$priceVatMax = $product->priceVat;
+					}
+				}
+
+				if ($filter === 'systemicAttributes.availability' && $product->displayAmount) {
+					$dynamicallyCountedDynamicFilters[$filter] = true;
+
+					$displayAmountsCounts[$product->displayAmount] = ($displayAmountsCounts[$product->displayAmount] ?? 0) + 1;
+				}
+
+				if ($filter === 'systemicAttributes.delivery' && $product->displayDelivery) {
+					$dynamicallyCountedDynamicFilters[$filter] = true;
+
+					$displayDeliveriesCounts[$product->displayDelivery] = ($displayDeliveriesCounts[$product->displayAmount] ?? 0) + 1;
+				}
+
+				if ($filter !== 'systemicAttributes.producer' || !$product->producer) {
+					continue;
+				}
+
+				$dynamicallyCountedDynamicFilters[$filter] = true;
+
+				$producersCounts[$product->producer] = ($producersCounts[$product->producer] ?? 0) + 1;
+			}
+
+			foreach ($dynamicFilters as $filter => $value) {
+				if (isset($this->allowedDynamicFilterColumns[$filter])) {
+					if (!$product->{$this->allowedDynamicFilterColumns[$filter]}) {
+						continue 2;
+					}
+
+					if (!isset($value[$product->{$this->allowedDynamicFilterColumns[$filter]}])) {
+						continue 2;
+					}
+
+					continue;
+				}
+
+				if (!isset($this->allowedDynamicFilterExpressions[$filter])) {
+					continue;
+				}
+
+				if (!$this->allowedDynamicFilterExpressions[$filter]($product, $value, $visibilityLists, $priceLists)) {
+					continue 2;
+				}
+			}
+
+			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.availability']) && $product->displayAmount) {
+				$displayAmountsCounts[$product->displayAmount] = ($displayAmountsCounts[$product->displayAmount] ?? 0) + 1;
+			}
+
+			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.delivery']) && $product->displayDelivery) {
+				$displayDeliveriesCounts[$product->displayDelivery] = ($displayDeliveriesCounts[$product->displayDelivery] ?? 0) + 1;
+			}
+
+			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.producer']) && $product->producer) {
+				$producersCounts[$product->producer] = ($producersCounts[$product->producer] ?? 0) + 1;
+			}
+
+			if (!isset($dynamicallyCountedDynamicFilters['priceFrom'])) {
+				if ($product->price < $priceMin) {
+					$priceMin = $product->price;
+				}
+
+				if ($product->priceVat < $priceVatMin) {
+					$priceVatMin = $product->priceVat;
+				}
+			}
+
+			if (!isset($dynamicallyCountedDynamicFilters['priceTo'])) {
+				if ($product->price > $priceMax) {
+					$priceMax = $product->price;
+				}
+
+				if ($product->priceVat > $priceVatMax) {
+					$priceVatMax = $product->priceVat;
+				}
+			}
+
+			$productPKs[] = $product->product;
+
+			foreach (\array_keys($attributeValues) as $attributeValue) {
 				$attributeValuesCounts[$attributeValue] = ($attributeValuesCounts[$attributeValue] ?? 0) + 1;
 			}
 		}
 
-		return [
+		$displayAmounts = $this->displayAmountRepository->many()->setSelect(['this.uuid'])->where('this.id', \array_keys($displayAmountsCounts))->setIndex('this.id')->toArrayOf('uuid');
+
+		foreach ($displayAmounts as $displayAmountId => $displayAmountUuid) {
+			$displayAmountsCounts[$displayAmountUuid] = $displayAmountsCounts[$displayAmountId];
+			unset($displayAmountsCounts[$displayAmountId]);
+		}
+
+		$displayDeliveries = $this->displayDeliveryRepository->many()->setSelect(['this.uuid'])->where('this.id', \array_keys($displayDeliveriesCounts))->setIndex('this.id')->toArrayOf('uuid');
+
+		foreach ($displayDeliveries as $displayDeliveryId => $displayDeliveryUuid) {
+			$displayDeliveriesCounts[$displayDeliveryUuid] = $displayDeliveriesCounts[$displayDeliveryId];
+			unset($displayDeliveriesCounts[$displayDeliveryId]);
+		}
+
+		$producers = $this->producerRepository->many()->setSelect(['this.uuid'])->where('this.id', \array_keys($producersCounts))->setIndex('this.id')->toArrayOf('uuid');
+
+		foreach ($producers as $producerId => $producerUuid) {
+			$producersCounts[$producerUuid] = $producersCounts[$producerId];
+			unset($producersCounts[$producerId]);
+		}
+
+		$attributeValues = $this->attributeValueRepository->many()->setSelect(['this.uuid'])->where('this.id', \array_keys($attributeValuesCounts))->setIndex('this.id')->toArrayOf('uuid');
+
+		foreach ($attributeValues as $attributeValueId => $attributeValueUuid) {
+			$attributeValuesCounts[$attributeValueUuid] = $attributeValuesCounts[$attributeValueId];
+			unset($attributeValuesCounts[$attributeValueId]);
+		}
+
+		$output = [
 			'productPKs' => $productPKs,
 			'attributeValuesCounts' => $attributeValuesCounts,
 			'displayAmountsCounts' => $displayAmountsCounts,
+			'displayDeliveriesCounts' => $displayDeliveriesCounts,
 			'producersCounts' => $producersCounts,
+			'priceMin' => $priceMin,
+			'priceMax' => $priceMax,
+			'priceVatMin' => $priceVatMin,
+			'priceVatMax' => $priceVatMax,
 		];
+
+		$this->cache->save($index, $output, [Cache::Tags => ['categories', 'products', 'pricelists']]);
+
+		return $output;
+	}
+
+	protected function resetHangingStatesOfCaches(): void
+	{
+		//@TODO Check timestamps of caches in warming state. If its too long, reset to empty state.
+	}
+
+	protected function markCacheAsWarming(int $id): void
+	{
+		$this->productsCacheStateRepository->many()->where('this.uuid', $id)->update(['state' => 'warming']);
+	}
+
+	protected function markCacheAsReady(int $id): void
+	{
+		$this->productsCacheStateRepository->many()->where('this.uuid', $id)->update(['state' => 'ready']);
+		$this->productsCacheStateRepository->many()->where('this.uuid', $id === 1 ? 2 : 1)->update(['state' => 'empty']);
+	}
+
+	/**
+	 * @return int<0, 2>
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	protected function getCacheIndexToBeWarmedUp(): int
+	{
+		$cache1State = $this->productsCacheStateRepository->one('1', true)->state;
+		$cache2State = $this->productsCacheStateRepository->one('2', true)->state;
+
+		$cache1State = match ($cache1State) {
+			'empty' => 0,
+			'warming' => 1,
+			'ready' => 2,
+		};
+
+		$cache2State = match ($cache2State) {
+			'empty' => 0,
+			'warming' => 1,
+			'ready' => 2,
+		};
+
+		$logicTable = [
+			'00' => 1,
+			'01' => 0,
+			'02' => 1,
+			'10' => 0,
+			'11' => 0,
+			'12' => 0,
+			'20' => 2,
+			'21' => 0,
+			'22' => 1,
+		];
+
+		return $logicTable[$cache1State . $cache2State];
+	}
+
+	/**
+	 * @return int<0, 2>
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	protected function getCacheIndexToBeUsed(): int
+	{
+		$readyState = $this->productsCacheStateRepository->many()->where('this.state', 'ready')->first();
+
+		if (!$readyState) {
+			return 0;
+		}
+
+		$state = (int) $readyState->getPK();
+
+		if ($state < 0 || $state > 2) {
+			throw new \Exception("State '$state' out of allowed range!");
+		}
+
+		return $state;
 	}
 
 	/**
@@ -297,12 +881,12 @@ CREATE TABLE `eshop_products_cache` (
 	}
 
 	/**
-	 * @param array $values
+	 * @param array<mixed> $values
 	 */
-	protected function createCoalesceFromArray(array $values, string|null $prefix = null, string|null $suffix = null): string
+	protected function createCoalesceFromArray(array $values, string|null $prefix = null, string|null $suffix = null, string $separator = '_'): string
 	{
-		return $values ? ('COALESCE(' . \implode(',', \array_map(function ($item) use ($prefix, $suffix): string {
-				return $prefix . $item . $suffix;
+		return $values ? ('COALESCE(' . \implode(',', \array_map(function (mixed $item) use ($prefix, $suffix, $separator): string {
+				return $prefix . ($prefix ? $separator : '') . $item->id . ($suffix ? $separator : '') . $suffix;
 		}, $values)) . ')') : 'NULL';
 	}
 }

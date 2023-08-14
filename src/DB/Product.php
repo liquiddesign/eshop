@@ -42,6 +42,12 @@ class Product extends \StORM\Entity
 	public const SUPPLIER_CONTENT_MODE_CUSTOM_CONTENT = 'content';
 
 	/**
+	 * ID
+	 * column - don't created by auto migration, only by manual
+	 */
+	public int $id;
+
+	/**
 	 * Název
 	 * @column{"mutations":true}
 	 */

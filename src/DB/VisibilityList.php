@@ -32,6 +32,12 @@ class VisibilityList extends ShopSystemicEntity
 	public bool $hidden = false;
 
 	/**
+	 * ID
+	 * column - don't created by auto migration, only by manual
+	 */
+	public int $id;
+
+	/**
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\VisibilityListItem>
 	 */

@@ -164,6 +164,12 @@ class Category extends SystemicEntity
 	public CategoryType $type;
 
 	/**
+	 * ID
+	 * column - don't created by auto migration, only by manual
+	 */
+	public int $id;
+
+	/**
 	 * Kategorie
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\Category>

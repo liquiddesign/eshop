@@ -95,4 +95,10 @@ class Pricelist extends ShopSystemicEntity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Supplier $supplier;
+
+	/**
+	 * ID
+	 * column - don't created by auto migration, only by manual
+	 */
+	public int $id;
 }

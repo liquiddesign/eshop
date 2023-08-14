@@ -43,7 +43,7 @@ class ProductList extends Datalist
 	public $onWatcherDeleted;
 
 	/** @var array<array<string, int>>|null */
-	protected array|null $cachedCounts = null;
+	protected array|null $providerOutput = null;
 
 	public function __construct(
 		private readonly ProductRepository $productRepository,
@@ -165,61 +165,63 @@ class ProductList extends Datalist
 	/**
 	 * @return array<array<string, int>>|null
 	 */
-	public function getCachedCounts(): array|null
+	public function getProviderOutput(): array|null
 	{
-		return $this->cachedCounts;
+		return $this->providerOutput;
 	}
 
-//	/**
-//	 * @inheritDoc
-//	 */
-//	public function getItemsOnPage(): array
-//	{
-//		if ($this->itemsOnPage !== null) {
-//			return $this->itemsOnPage;
-//		}
-//
-//		\Tracy\Debugger::timer();
-//		$cachedProducts = $this->productsProvider->getProductsFromCacheTable(
-//			$this->getFilters(),
-//			'priorityAvailabilityPrice',
-//			'ASC',
-//			$this->shopperUser->getPricelists()->toArray(),
-//			$this->shopperUser->getVisibilityLists(),
-//		);
-//		\Tracy\Debugger::dump(\Tracy\Debugger::timer());
-//
-//		if ($cachedProducts) {
-//			$this->cachedCounts = [
-//				'attributeValuesCounts' => $cachedProducts['attributeValuesCounts'],
-//				'displayAmountsCounts' => $cachedProducts['displayAmountsCounts'],
-//				'producersCounts' => $cachedProducts['producersCounts'],
-//			];
-//		}
-//
-//		/** @var \StORM\Collection $source */
-//		$source = $this->getFilteredSource();
-//
-//		if ($this->getOnPage()) {
-//			if ($cachedProducts !== false) {
-//				$this->setItemCountCallback(function (): null {
-//					return null;
-//				});
-//
-//				$this->getPaginator()->setItemCount(\count($cachedProducts['productPKs']));
-//
-//				$source->where('this.uuid', \array_slice($cachedProducts['productPKs'], ($this->getPage() - 1) * $this->getOnPage(), $this->getOnPage()));
-//			} else {
-//				$source->setPage($this->getPage(), $this->getOnPage());
-//			}
-//		}
-//
-//		$this->onLoad($source);
-//
-//		$this->itemsOnPage = $this->nestingCallback && !$this->filters ? $this->getNestedSource($source, null) : $source->toArray();
-//
-//		return $this->itemsOnPage;
-//	}
+	/**
+	 * @inheritDoc
+	 */
+	public function getItemsOnPage(): array
+	{
+		if ($this->itemsOnPage !== null) {
+			return $this->itemsOnPage;
+		}
+
+		\Tracy\Debugger::timer();
+
+		$cachedProducts = $this->productsProvider->getProductsFromCacheTable(
+			$this->getFilters(),
+			$this->getOrder(),
+			$this->getDirection(),
+			$this->shopperUser->getPricelists()->select(['this.id'])->toArray(),
+			$this->shopperUser->getVisibilityLists(),
+		);
+
+		\Tracy\Debugger::barDump(\Tracy\Debugger::timer());
+
+		/** @var \StORM\Collection<\Eshop\DB\Product> $source */
+		$source = $this->getFilteredSource();
+
+		if ($cachedProducts !== false) {
+			$this->providerOutput = $cachedProducts;
+		}
+
+		if ($this->getOnPage()) {
+			if ($cachedProducts !== false) {
+				$this->setItemCountCallback(function (): null {
+					return null;
+				});
+
+				$this->getPaginator()->setItemCount(\count($cachedProducts['productPKs']));
+
+				if ($cachedProducts['productPKs']) {
+					$source->where('this.id', \array_slice($cachedProducts['productPKs'], ($this->getPage() - 1) * $this->getOnPage(), $this->getOnPage()));
+				} else {
+					$source->where('0 = 1');
+				}
+			} else {
+				$source->setPage($this->getPage(), $this->getOnPage());
+			}
+		}
+
+		$this->onLoad($source);
+
+		$this->itemsOnPage = $this->nestingCallback && !$this->filters ? $this->getNestedSource($source, null) : $source->toArray();
+
+		return $this->itemsOnPage;
+	}
 
 	public function handleWatchIt(string $product): void
 	{
@@ -244,6 +246,10 @@ class ProductList extends Datalist
 				->where('fk_product', $product)
 				->where('fk_customer', $customer)
 				->first();
+
+			if (!$watcher) {
+				$this->redirect('this');
+			}
 
 			$this->onWatcherDeleted($watcher);
 

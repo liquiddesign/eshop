@@ -118,6 +118,12 @@ class AttributeValue extends SystemicEntity
 	 */
 	public ?AttributeValueRange $attributeValueRange;
 
+	/**
+	 * ID
+	 * column - don't created by auto migration, only by manual
+	 */
+	public int $id;
+
 	public function getInternalName(): string
 	{
 		return $this->internalName ?? $this->label;

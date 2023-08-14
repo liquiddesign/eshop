@@ -20,10 +20,10 @@ class Order extends ShopEntity
 	public const STATE_RECEIVED = 'received';
 	public const STATE_COMPLETED = 'finished';
 	public const STATE_CANCELED = 'canceled';
-	
+
 	/**
-	 * Id
-	 * @column{"autoincrement":true}
+	 * ID
+	 * column - don't created by auto migration, only by manual
 	 */
 	public int $id;
 	
