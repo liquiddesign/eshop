@@ -181,13 +181,17 @@ class ProductList extends Datalist
 
 		\Tracy\Debugger::timer();
 
-		$cachedProducts = $this->productsProvider->getProductsFromCacheTable(
-			$this->getFilters(),
-			$this->getOrder(),
-			$this->getDirection(),
-			$this->shopperUser->getPricelists()->select(['this.id'])->toArray(),
-			$this->shopperUser->getVisibilityLists(),
-		);
+		try {
+			$cachedProducts = $this->productsProvider->getProductsFromCacheTable(
+				$this->getFilters(),
+				$this->getOrder(),
+				$this->getDirection(),
+				$this->shopperUser->getPricelists()->select(['this.id'])->toArray(),
+				$this->shopperUser->getVisibilityLists(),
+			);
+		} catch (\Throwable) {
+			$cachedProducts = false;
+		}
 
 		\Tracy\Debugger::barDump(\Tracy\Debugger::timer());
 
