@@ -989,7 +989,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			}
 
 			if ($this->shopperUser->getShowVat() && $this->shopperUser->getShowWithoutVat()) {
-				$items[$cartItem->getPK()]['totalPricePref'] = $this->shopperUser->showPriorityPrices() === 'withVat' ? $cartItem->getPriceVatSum() : $cartItem->getPriceSum();
+				$items[$cartItem->getPK()]['totalPricePref'] = $this->shopperUser->getMainPriceType() === 'withVat' ? $cartItem->getPriceVatSum() : $cartItem->getPriceSum();
 			} else {
 				if ($this->shopperUser->getShowVat()) {
 					$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceVatSum();
