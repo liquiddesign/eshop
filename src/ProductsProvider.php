@@ -831,10 +831,10 @@ CREATE TABLE `$productsCacheTableName` (
 			'displayAmountsCounts' => $displayAmountsCounts,
 			'displayDeliveriesCounts' => $displayDeliveriesCounts,
 			'producersCounts' => $producersCounts,
-			'priceMin' => $priceMin < \PHP_INT_MAX ? $priceMin : null,
-			'priceMax' => $priceMax > \PHP_INT_MIN ? $priceMax : null,
-			'priceVatMin' => $priceVatMin < \PHP_INT_MAX ? $priceVatMin : null,
-			'priceVatMax' => $priceVatMax > \PHP_INT_MIN ? $priceVatMax : null,
+			'priceMin' => $priceMin < \PHP_FLOAT_MAX ? $priceMin : 0,
+			'priceMax' => $priceMax > \PHP_FLOAT_MIN ? $priceMax : 0,
+			'priceVatMin' => $priceVatMin < \PHP_FLOAT_MAX ? $priceVatMin : 0,
+			'priceVatMax' => $priceVatMax > \PHP_FLOAT_MIN ? $priceVatMax : 0,
 		];
 
 //		$this->cache->save($index, $output, [Cache::Tags => ['categories', 'products', 'pricelists']]);
