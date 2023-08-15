@@ -935,6 +935,12 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$collection->where('this.fk_displayDelivery', $values);
 	}
 
+	public function filterQuery2($values, ICollection $collection): void
+	{
+		// Substitute function, query filtering is only done on cached table
+		unset($values, $collection);
+	}
+
 	/**
 	 * To use this function you need to have JOINED productContent table!
 	 * @param $value

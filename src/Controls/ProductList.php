@@ -23,6 +23,8 @@ use Nette\Utils\Arrays;
 use StORM\Collection;
 use StORM\Connection;
 use StORM\ICollection;
+use Tracy\Debugger;
+use Tracy\ILogger;
 
 /**
  * Class Products
@@ -189,11 +191,15 @@ class ProductList extends Datalist
 				$this->shopperUser->getPricelists()->select(['this.id'])->toArray(),
 				$this->shopperUser->getVisibilityLists(),
 			);
-		} catch (\Throwable) {
+		} catch (\Throwable $e) {
+			Debugger::barDump($e);
+			Debugger::log($e, ILogger::EXCEPTION);
+
 			$cachedProducts = false;
 		}
 
 		\Tracy\Debugger::barDump(\Tracy\Debugger::timer());
+		\Tracy\Debugger::barDump($cachedProducts);
 
 		/** @var \StORM\Collection<\Eshop\DB\Product> $source */
 		$source = $this->getFilteredSource();

@@ -124,6 +124,23 @@ class ProductsProvider
 			]);
 		};
 
+		$this->allowedCollectionFilterExpressions['query2'] = function (ICollection $productsCollection, string $query, array $visibilityLists, array $priceLists): void {
+			$orConditions = [
+				'IF(this.subCode, CONCAT(this.code, this.subCode), this.code) LIKE :qlikeq',
+				'this.externalCode LIKE :qlike',
+				'this.ean LIKE :qlike',
+				'this.name LIKE :qlike COLLATE utf8_general_ci',
+				'this.name LIKE :qlikeq COLLATE utf8_general_ci',
+				'MATCH(this.name) AGAINST (:q)',
+			];
+
+			$productsCollection->where(\implode(' OR ', $orConditions), [
+				'q' => $query,
+				'qlike' => $query . '%',
+				'qlikeq' => '%' . $query . '%',
+			]);
+		};
+
 		$this->allowedDynamicFilterExpressions['priceFrom'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
 			$showVat = $this->shopperUser->getMainPriceType() === 'withVat';
 
@@ -181,11 +198,15 @@ class ProductsProvider
 			$link = $this->connection->getLink();
 			$mutationSuffix = $this->connection->getMutationSuffix();
 
-
-
 			$this->markCacheAsWarming($cacheIndexToBeWarmedUp);
 
 			$allCategories = $this->categoryRepository->many()->select(['this.id'])->toArray();
+
+//			$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
+//				$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
+//				'main';
+//
+//			$allCategoriesByMainCategoryType = $this->categoryRepository->many()->where('this.fk_type', $mainCategoryType)->setSelect(['this.id'], keepIndex: true)->fetchColumns('id');
 
 			foreach ($allCategories as $category) {
 				$link->exec("DROP TABLE IF EXISTS `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$category->id`");
@@ -203,11 +224,21 @@ CREATE TABLE `$productsCacheTableName` (
   displayAmount_isSold TINYINT(1),
   attributeValues TEXT,
   name TEXT,
+  code TEXT,
+  subCode TEXT,
+  externalCode TEXT,
+  ean TEXT,
   INDEX idx_producer (producer),
   INDEX idx_displayAmount (displayAmount),
   INDEX idx_displayDelivery (displayDelivery),
-  INDEX idx_displayAmount_isSold (displayAmount_isSold)
+  INDEX idx_displayAmount_isSold (displayAmount_isSold),
+  INDEX idx_subCode (subCode),
+  INDEX idx_externalCode (externalCode),
+  FULLTEXT INDEX idx_name (name)
 );");
+
+			$link->exec("CREATE UNIQUE INDEX idx_unique_code ON `$productsCacheTableName` (code);");
+			$link->exec("CREATE UNIQUE INDEX idx_unique_ean ON `$productsCacheTableName` (ean);");
 
 			foreach ($allVisibilityLists = $this->visibilityListRepository->many()->select(['this.id']) as $visibilityList) {
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id} INT UNSIGNED DEFAULT('{$visibilityList->id}');");
@@ -260,6 +291,10 @@ CREATE TABLE `$productsCacheTableName` (
 				'fkDisplayDelivery' => 'eshop_displaydelivery.id',
 				'fkProducer' => 'eshop_producer.id',
 				'name' => "this.name$mutationSuffix",
+				'code' => 'this.code',
+				'subCode' => 'this.subCode',
+				'externalCode' => 'this.externalCode',
+				'ean' => 'this.ean',
 				'pricesPKs' => 'GROUP_CONCAT(DISTINCT price.uuid ORDER BY priceList.priority)',
 				'categoriesPKs' => 'GROUP_CONCAT(DISTINCT eshop_product_nxn_eshop_category.fk_category)',
 				'visibilityListItemsPKs' => 'GROUP_CONCAT(DISTINCT visibilityListItem.uuid ORDER BY visibilityList.priority)',
@@ -282,12 +317,16 @@ CREATE TABLE `$productsCacheTableName` (
 				}
 
 				$products[$product->id] = [
-				'product' => $product->id,
-				'displayAmount' => $product->fkDisplayAmount,
-				'displayDelivery' => $product->fkDisplayDelivery,
-				'displayAmount_isSold' => $product->fkDisplayAmount ? $allDisplayAmounts[$product->fkDisplayAmount]->isSold : null,
-				'producer' => $product->fkProducer,
-				'name' => $product->name,
+					'product' => $product->id,
+					'displayAmount' => $product->fkDisplayAmount,
+					'displayDelivery' => $product->fkDisplayDelivery,
+					'displayAmount_isSold' => $product->fkDisplayAmount ? $allDisplayAmounts[$product->fkDisplayAmount]->isSold : null,
+					'producer' => $product->fkProducer,
+					'name' => $product->name,
+					'code' => $product->code,
+					'subCode' => $product->subCode,
+					'externalCode' => $product->externalCode,
+					'ean' => $product->ean,
 				];
 
 				foreach ($allVisibilityLists as $visibilityList) {
@@ -368,14 +407,19 @@ CREATE TABLE `$productsCacheTableName` (
 			Debugger::dump('commit transaction');
 			Debugger::dump(Debugger::timer());
 
-			foreach ($productsByCategories as $category => $products) {
-				$categoryId = $allCategories[$category]->id;
+			foreach ($allCategories as $category) {
+				$categoryId = $category->id;
 
 				$link->exec("DROP TABLE IF EXISTS `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId`;");
 				$link->exec("CREATE TABLE `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId` (
   product INT UNSIGNED PRIMARY KEY,
   FOREIGN KEY (product) REFERENCES eshop_products_cache_{$cacheIndexToBeWarmedUp}(product) ON UPDATE CASCADE ON DELETE CASCADE 
 );");
+			}
+
+			foreach ($productsByCategories as $category => $products) {
+				$categoryId = $allCategories[$category]->id;
+
 				$newRows = [];
 
 				foreach (\array_keys($products) as $product) {
@@ -391,6 +435,8 @@ CREATE TABLE `$productsCacheTableName` (
 			$this->markCacheAsReady($cacheIndexToBeWarmedUp);
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::EXCEPTION);
+			Debugger::dump($e);
+
 			$this->resetHangingStateOfCache($cacheIndexToBeWarmedUp);
 		}
 	}
@@ -421,7 +467,7 @@ CREATE TABLE `$productsCacheTableName` (
 		array $priceLists = [],
 		array $visibilityLists = [],
 	): array|false {
-		$index = \serialize($filters) . '_' . $orderByName . '_' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
+//		$index = \serialize($filters) . '_' . $orderByName . '_' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
 
 //		$cachedOutput = $this->cache->load($index, dependencies: [Cache::Tags => ['categories', 'products', 'pricelists']]);
 //
@@ -779,21 +825,21 @@ CREATE TABLE `$productsCacheTableName` (
 			unset($attributeValuesCounts[$attributeValueId]);
 		}
 
-		$output = [
+		return [
 			'productPKs' => $productPKs,
 			'attributeValuesCounts' => $attributeValuesCounts,
 			'displayAmountsCounts' => $displayAmountsCounts,
 			'displayDeliveriesCounts' => $displayDeliveriesCounts,
 			'producersCounts' => $producersCounts,
-			'priceMin' => $priceMin,
-			'priceMax' => $priceMax,
-			'priceVatMin' => $priceVatMin,
-			'priceVatMax' => $priceVatMax,
+			'priceMin' => $priceMin < \PHP_INT_MAX ? $priceMin : null,
+			'priceMax' => $priceMax > \PHP_INT_MIN ? $priceMax : null,
+			'priceVatMin' => $priceVatMin < \PHP_INT_MAX ? $priceVatMin : null,
+			'priceVatMax' => $priceVatMax > \PHP_INT_MIN ? $priceVatMax : null,
 		];
 
-		$this->cache->save($index, $output, [Cache::Tags => ['categories', 'products', 'pricelists']]);
+//		$this->cache->save($index, $output, [Cache::Tags => ['categories', 'products', 'pricelists']]);
 
-		return $output;
+//		return $output;
 	}
 
 	protected function resetHangingStateOfCache(int $id): void
