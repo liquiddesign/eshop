@@ -24,6 +24,7 @@ use Nette\Utils\Strings;
 use StORM\DIConnection;
 use StORM\ICollection;
 use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\DB\SettingRepository;
 
 class ProductsProvider
@@ -388,7 +389,8 @@ CREATE TABLE `$productsCacheTableName` (
 			Debugger::dump(Debugger::timer());
 
 			$this->markCacheAsReady($cacheIndexToBeWarmedUp);
-		} catch (\Throwable) {
+		} catch (\Throwable $e) {
+			Debugger::log($e, ILogger::EXCEPTION);
 			$this->resetHangingStateOfCache($cacheIndexToBeWarmedUp);
 		}
 	}
