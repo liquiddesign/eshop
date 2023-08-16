@@ -285,8 +285,12 @@ class ProductList extends Datalist
 		$productRepository = $this->productRepository;
 
 		return new Multiplier(function ($itemId) use ($productRepository) {
-			/** @var \Eshop\DB\Product $product */
+			/** @var \Eshop\DB\Product|null $product */
 			$product = $this->itemsOnPage !== null ? ($this->itemsOnPage[$itemId] ?? null) : $productRepository->getProduct($itemId);
+
+			if (!$product) {
+				$this->redirect('this');
+			}
 
 			$form = $this->buyFormFactory->create($product);
 			$form->onSuccess[] = function ($form, $values): void {

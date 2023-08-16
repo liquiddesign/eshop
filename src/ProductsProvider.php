@@ -202,12 +202,6 @@ class ProductsProvider
 
 			$allCategories = $this->categoryRepository->many()->select(['this.id'])->toArray();
 
-//			$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
-//				$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
-//				'main';
-//
-//			$allCategoriesByMainCategoryType = $this->categoryRepository->many()->where('this.fk_type', $mainCategoryType)->setSelect(['this.id'], keepIndex: true)->fetchColumns('id');
-
 			foreach ($allCategories as $category) {
 				$link->exec("DROP TABLE IF EXISTS `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$category->id`");
 			}
@@ -407,18 +401,14 @@ CREATE TABLE `$productsCacheTableName` (
 			Debugger::dump('commit transaction');
 			Debugger::dump(Debugger::timer());
 
-			foreach ($allCategories as $category) {
-				$categoryId = $category->id;
+			foreach ($productsByCategories as $category => $products) {
+				$categoryId = $allCategories[$category]->id;
 
 				$link->exec("DROP TABLE IF EXISTS `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId`;");
 				$link->exec("CREATE TABLE `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId` (
   product INT UNSIGNED PRIMARY KEY,
   FOREIGN KEY (product) REFERENCES eshop_products_cache_{$cacheIndexToBeWarmedUp}(product) ON UPDATE CASCADE ON DELETE CASCADE 
 );");
-			}
-
-			foreach ($productsByCategories as $category => $products) {
-				$categoryId = $allCategories[$category]->id;
 
 				$newRows = [];
 
