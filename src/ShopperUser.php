@@ -342,7 +342,7 @@ class ShopperUser extends User
 
 		$customer = $this->session->getSection($this::SESSION_SECTION_NAME)->get($this::SESSION_ACTIVE_CUSTOMER_NAME);
 
-		return $this->selectedCustomer = ($customer ? $this->customerRepository->one($customer, true) : null);
+		return $this->selectedCustomer = ($customer ? $this->customerRepository->one($customer) : null);
 	}
 
 	/**
