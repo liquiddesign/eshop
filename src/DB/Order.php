@@ -22,11 +22,11 @@ class Order extends ShopEntity
 	public const STATE_CANCELED = 'canceled';
 
 	/**
-	 * ID
-	 * column - don't created by auto migration, only by manual
+	 * Id
+	 * @column{"autoincrement":true}
 	 */
 	public int $id;
-	
+
 	/**
 	 * Kód
 	 * @column
