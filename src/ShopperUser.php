@@ -286,6 +286,8 @@ class ShopperUser extends User
 				$this->customer = $this->customerRepository->one($identity->getPK());
 
 				if (!$this->customer) {
+					$this->logout(true);
+
 					return null;
 				}
 
