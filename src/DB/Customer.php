@@ -143,7 +143,7 @@ class Customer extends Entity implements IIdentity, IUser
 	/**
 	 * Matka
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?Customer $parentCustomer;
 
