@@ -53,8 +53,8 @@ class Address extends \StORM\Entity
 	public ?string $state;
 
 	/**
-	 * ID
-	 * column - don't created by auto migration, only by manual
+	 * Id
+	 * @column{"autoincrement":true}
 	 */
 	public int $id;
 
