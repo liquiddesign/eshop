@@ -1491,7 +1491,8 @@ class CheckoutManager
 	{
 		/** @var \Eshop\DB\VatRateRepository $vatRepo */
 		$vatRepo = $this->cartItemRepository->getConnection()->findRepository(VatRate::class);
-		
+
+		/** @var \Eshop\DB\Purchase $purchase */
 		$purchase = $purchase ?: $this->getPurchase(true, $cartId);
 		
 		$banned = $purchase->email && $this->bannedEmailRepository->isEmailBanned($purchase->email);
@@ -1557,178 +1558,175 @@ class CheckoutManager
 		
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->createOne($orderValues);
-		
-		//@todo getDeliveryPrice se pocita z aktulaniho purchase ne z parametru a presunout do order repository jako create order
-		if ($purchase->deliveryType) {
-			$topLevelItems = $this->getTopLevelItems($cartId)->toArray();
-			$boxList = $purchase->deliveryType->getBoxesForItems($topLevelItems);
-			$packageId = 0;
-			
-			foreach ($boxList as $box) {
-				$packageItems = [];
-				$packageWeight = 0.0;
-				$packageId++;
-				
-				if (!\count($box->getItems())) {
-					foreach ($topLevelItems as $cartItem) {
-						$packageItems[$cartItem->getPK()] = [$cartItem, $cartItem->amount];
-					}
-					
-					$packageWeight = $this->getSumWeight();
-				} else {
-					foreach ($box->getItems() as $item) {
-						$cartItemId = $item->getItem()->getDescription();
-						
-						if (isset($packageItems[$cartItemId][1])) {
-							$packageItems[$cartItemId][1]++;
-							
-							continue;
-						}
-						
-						$packageItems[$item->getItem()->getDescription()] = [$this->getTopLevelItems()->where('this.uuid', $cartItemId)->first(true), 1];
-					}
-					
-					$packageWeight = $box->getItems()->getWeight() / 1000;
+
+		$topLevelItems = $this->getTopLevelItems($cartId)->toArray();
+		$boxList = $purchase->deliveryType ? $purchase->deliveryType->getBoxesForItems($topLevelItems) : $this->deliveryTypeRepository->getDefaultBoxes();
+		$packageId = 0;
+
+		foreach ($boxList as $box) {
+			$packageItems = [];
+			$packageWeight = 0.0;
+			$packageId++;
+
+			if (!\count($box->getItems())) {
+				foreach ($topLevelItems as $cartItem) {
+					$packageItems[$cartItem->getPK()] = [$cartItem, $cartItem->amount];
 				}
-				
-				/** @var \Eshop\DB\Delivery $delivery */
-				$delivery = $this->deliveryRepository->createOne([
-					'order' => $order,
-					'currency' => $currency,
-					'type' => $purchase->deliveryType,
-					'typeName' => $purchase->deliveryType->toArray()['name'],
-					'typeCode' => $purchase->deliveryType->code,
-					'price' => $this->getDeliveryPrice(false),
-					'priceVat' => $this->getDeliveryPriceVat(false),
-					'priceBefore' => $this->getDeliveryPriceBefore(false),
-					'priceVatBefore' => $this->getDeliveryPriceVatBefore(false),
-				]);
-				
-				/** @var \Eshop\DB\Package $package */
-				$package = $this->packageRepository->createOne([
-					'id' => $packageId,
-					'order' => $order->getPK(),
-					'delivery' => $delivery->getPK(),
-					'weight' => $packageWeight,
-				]);
-				
-				$setRelationType = $this->settingRepository->getValueByName(SettingsPresenter::SET_RELATION_TYPE);
-				
-				if ($setRelationType) {
-					/** @var \Eshop\DB\RelatedType $setRelationType */
-					$setRelationType = $this->relatedTypeRepository->one($setRelationType);
+
+				$packageWeight = $this->getSumWeight();
+			} else {
+				foreach ($box->getItems() as $item) {
+					$cartItemId = $item->getItem()->getDescription();
+
+					if (isset($packageItems[$cartItemId][1])) {
+						$packageItems[$cartItemId][1]++;
+
+						continue;
+					}
+
+					$packageItems[$item->getItem()->getDescription()] = [$this->getTopLevelItems()->where('this.uuid', $cartItemId)->first(true), 1];
 				}
-				
-				foreach ($packageItems as $cartItemToParse) {
-					/** @var \Eshop\DB\CartItem $cartItem */
-					[$cartItem, $amount] = $cartItemToParse;
-					
-					/* Create package item for top-level cart items */
-					$packageItem = $this->packageItemRepository->createOne([
+
+				$packageWeight = $box->getItems()->getWeight() / 1000;
+			}
+
+			/** @var \Eshop\DB\Delivery $delivery */
+			$delivery = $this->deliveryRepository->createOne([
+				'order' => $order,
+				'currency' => $currency,
+				'type' => $purchase->deliveryType,
+				'typeName' => $purchase->deliveryType ? $purchase->deliveryType->toArray()['name'] : [],
+				'typeCode' => $purchase->deliveryType?->code,
+				'price' => $this->getDeliveryPrice(false),
+				'priceVat' => $this->getDeliveryPriceVat(false),
+				'priceBefore' => $this->getDeliveryPriceBefore(false),
+				'priceVatBefore' => $this->getDeliveryPriceVatBefore(false),
+			]);
+
+			/** @var \Eshop\DB\Package $package */
+			$package = $this->packageRepository->createOne([
+				'id' => $packageId,
+				'order' => $order->getPK(),
+				'delivery' => $delivery->getPK(),
+				'weight' => $packageWeight,
+			]);
+
+			$setRelationType = $this->settingRepository->getValueByName(SettingsPresenter::SET_RELATION_TYPE);
+
+			if ($setRelationType) {
+				/** @var \Eshop\DB\RelatedType $setRelationType */
+				$setRelationType = $this->relatedTypeRepository->one($setRelationType);
+			}
+
+			foreach ($packageItems as $cartItemToParse) {
+				/** @var \Eshop\DB\CartItem $cartItem */
+				[$cartItem, $amount] = $cartItemToParse;
+
+				/* Create package item for top-level cart items */
+				$packageItem = $this->packageItemRepository->createOne([
+					'package' => $package->getPK(),
+					'cartItem' => $cartItem,
+					'amount' => $amount,
+				]);
+
+				/* Create package items for upsells with link to top-level package item */
+				$upsells = $purchase->getItems()->where('this.fk_upsell', $cartItem->getPK())->toArray();
+
+				foreach ($upsells as $upsell) {
+					$this->packageItemRepository->createOne([
 						'package' => $package->getPK(),
-						'cartItem' => $cartItem,
-						'amount' => $amount,
+						'cartItem' => $upsell->getPK(),
+						'amount' => $upsell->amount,
+						'upsell' => $packageItem->getPK(),
 					]);
-					
-					/* Create package items for upsells with link to top-level package item */
-					$upsells = $purchase->getItems()->where('this.fk_upsell', $cartItem->getPK())->toArray();
-					
-					foreach ($upsells as $upsell) {
-						$this->packageItemRepository->createOne([
-							'package' => $package->getPK(),
-							'cartItem' => $upsell->getPK(),
-							'amount' => $upsell->amount,
-							'upsell' => $packageItem->getPK(),
-						]);
-					}
-					
-					/* Get default set relation type and slave products in that relation for top-level cart item */
-					if (!$setRelationType) {
+				}
+
+				/* Get default set relation type and slave products in that relation for top-level cart item */
+				if (!$setRelationType) {
+					continue;
+				}
+
+				/** @var array<mixed> $relatedCartItems */
+				$relatedCartItems = [];
+
+				/* Load real products in relation with prices */
+				$relatedProducts = $this->productRepository->getSlaveRelatedProducts($setRelationType, $cartItem->product)->toArray();
+
+				if (!$relatedProducts) {
+					continue;
+				}
+
+				$slaveProducts = [];
+
+				foreach ($relatedProducts as $relatedProduct) {
+					$slaveProducts[] = $relatedProduct->getValue('slave');
+				}
+
+				/* Compute total price of set items */
+				/** @var array<\Eshop\DB\Product> $slaveProducts */
+				$slaveProducts = $this->productRepository->getProducts()->where('this.uuid', $slaveProducts)->toArray();
+				$slaveProductsTotalPrice = 0;
+				$slaveProductsTotalPriceVat = 0;
+
+				foreach ($relatedProducts as $relatedProduct) {
+					if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
 						continue;
 					}
-					
-					/** @var array<mixed> $relatedCartItems */
-					$relatedCartItems = [];
-					
-					/* Load real products in relation with prices */
-					$relatedProducts = $this->productRepository->getSlaveRelatedProducts($setRelationType, $cartItem->product)->toArray();
-					
-					if (!$relatedProducts) {
+
+					$slaveProductsTotalPrice += $slaveProducts[$relatedProduct->getValue('slave')]->getPrice() * $relatedProduct->amount;
+					$slaveProductsTotalPriceVat += $slaveProducts[$relatedProduct->getValue('slave')]->getPriceVat() * $relatedProduct->amount;
+				}
+
+				$setTotalPriceModifier = $slaveProductsTotalPrice > 0 ? $cartItem->price / $slaveProductsTotalPrice : 1;
+				$setTotalPriceVatModifier = $slaveProductsTotalPriceVat > 0 ? $cartItem->priceVat / $slaveProductsTotalPriceVat : 1;
+
+				foreach ($relatedProducts as $relatedProduct) {
+					if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
 						continue;
 					}
-					
-					$slaveProducts = [];
-					
-					foreach ($relatedProducts as $relatedProduct) {
-						$slaveProducts[] = $relatedProduct->getValue('slave');
-					}
-					
-					/* Compute total price of set items */
-					/** @var array<\Eshop\DB\Product> $slaveProducts */
-					$slaveProducts = $this->productRepository->getProducts()->where('this.uuid', $slaveProducts)->toArray();
-					$slaveProductsTotalPrice = 0;
-					$slaveProductsTotalPriceVat = 0;
-					
-					foreach ($relatedProducts as $relatedProduct) {
-						if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
-							continue;
-						}
-						
-						$slaveProductsTotalPrice += $slaveProducts[$relatedProduct->getValue('slave')]->getPrice() * $relatedProduct->amount;
-						$slaveProductsTotalPriceVat += $slaveProducts[$relatedProduct->getValue('slave')]->getPriceVat() * $relatedProduct->amount;
-					}
-					
-					$setTotalPriceModifier = $slaveProductsTotalPrice > 0 ? $cartItem->price / $slaveProductsTotalPrice : 1;
-					$setTotalPriceVatModifier = $slaveProductsTotalPriceVat > 0 ? $cartItem->priceVat / $slaveProductsTotalPriceVat : 1;
-					
-					foreach ($relatedProducts as $relatedProduct) {
-						if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
-							continue;
-						}
-						
-						$product = $slaveProducts[$relatedProduct->getValue('slave')];
-						
-						/** @var \Eshop\DB\VatRate|null $vat */
-						$vat = $vatRepo->one($product->vatRate);
-						$vatPct = $vat ? $vat->rate : 0;
-						
-						/* Create related cart items with price computed to match unit price of top-level cart item */
-						$relatedCartItems[] = [
-							'cartItem' => $cartItem->getPK(),
-							'relatedType' => $setRelationType->getPK(),
-							'product' => $product->getPK(),
-							'relatedTypeCode' => $setRelationType->code,
-							'relatedTypeName' => $setRelationType->name,
-							'productName' => $product->toArray()['name'],
-							'productCode' => $product->getFullCode(),
-							'productSubCode' => $product->subCode,
-							'productWeight' => $product->weight,
-							'productDimension' => $product->dimension,
-							'amount' => $relatedProduct->amount * $cartItem->amount,
-							'price' => $product->getPrice() * $setTotalPriceModifier,
-							'priceVat' => $product->getPriceVat() * $setTotalPriceVatModifier,
-							'priceBefore' => $product->getPriceBefore() ?: $product->getPrice(),
-							'priceVatBefore' => $product->getPriceVatBefore() ?: $product->getPriceVat(),
-							'vatPct' => (float) $vatPct,
-						];
-					}
-					
-					if (!$relatedCartItems) {
-						continue;
-					}
-					
-					$this->relatedCartItemRepository->many()->where('fk_cartItem', $cartItem->getPK())->delete();
-					
-					/** @var array<\Eshop\DB\RelatedCartItem> $relatedCartItems */
-					$relatedCartItems = $this->relatedCartItemRepository->createMany($relatedCartItems)->toArray();
-					
-					/* Create relation between related package item and related cart item */
-					foreach ($relatedCartItems as $relatedCartItem) {
-						$this->relatedPackageItemRepository->createOne([
-							'cartItem' => $relatedCartItem->getPK(),
-							'packageItem' => $packageItem->getPK(),
-						]);
-					}
+
+					$product = $slaveProducts[$relatedProduct->getValue('slave')];
+
+					/** @var \Eshop\DB\VatRate|null $vat */
+					$vat = $vatRepo->one($product->vatRate);
+					$vatPct = $vat ? $vat->rate : 0;
+
+					/* Create related cart items with price computed to match unit price of top-level cart item */
+					$relatedCartItems[] = [
+						'cartItem' => $cartItem->getPK(),
+						'relatedType' => $setRelationType->getPK(),
+						'product' => $product->getPK(),
+						'relatedTypeCode' => $setRelationType->code,
+						'relatedTypeName' => $setRelationType->name,
+						'productName' => $product->toArray()['name'],
+						'productCode' => $product->getFullCode(),
+						'productSubCode' => $product->subCode,
+						'productWeight' => $product->weight,
+						'productDimension' => $product->dimension,
+						'amount' => $relatedProduct->amount * $cartItem->amount,
+						'price' => $product->getPrice() * $setTotalPriceModifier,
+						'priceVat' => $product->getPriceVat() * $setTotalPriceVatModifier,
+						'priceBefore' => $product->getPriceBefore() ?: $product->getPrice(),
+						'priceVatBefore' => $product->getPriceVatBefore() ?: $product->getPriceVat(),
+						'vatPct' => (float) $vatPct,
+					];
+				}
+
+				if (!$relatedCartItems) {
+					continue;
+				}
+
+				$this->relatedCartItemRepository->many()->where('fk_cartItem', $cartItem->getPK())->delete();
+
+				/** @var array<\Eshop\DB\RelatedCartItem> $relatedCartItems */
+				$relatedCartItems = $this->relatedCartItemRepository->createMany($relatedCartItems)->toArray();
+
+				/* Create relation between related package item and related cart item */
+				foreach ($relatedCartItems as $relatedCartItem) {
+					$this->relatedPackageItemRepository->createOne([
+						'cartItem' => $relatedCartItem->getPK(),
+						'packageItem' => $packageItem->getPK(),
+					]);
 				}
 			}
 		}

@@ -7,6 +7,9 @@ namespace Eshop\DB;
 use Base\DB\Shop;
 use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
+use DVDoug\BoxPacker;
+use DVDoug\BoxPacker\PackedBoxList;
+use Eshop\DTO\EmptyBox;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
@@ -46,6 +49,14 @@ class DeliveryTypeRepository extends \StORM\Repository implements IGeneralReposi
 		}
 		
 		return $collection->orderBy(['priority DESC', "name$suffix"]);
+	}
+
+	public function getDefaultBoxes(): PackedBoxList
+	{
+		$packedBox = new PackedBoxList();
+		$packedBox->insert(new BoxPacker\PackedBox(new EmptyBox(), new BoxPacker\PackedItemList()));
+
+		return $packedBox;
 	}
 
 	/**
