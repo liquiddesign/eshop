@@ -62,7 +62,7 @@
                 <div class="col-sm-4 invoice-col">
                     <p class="lead mb-1">Fakturační adresa</p>
                     <address class="mt-2">
-                        {$purchase->fullname}<br>
+                        {$billingAddress?->companyName ?: ($billingAddress?->name ?: $purchase->fullname)}<br>
                         <div n:if="$purchase->ic">IČ: {$purchase->ic}<br></div>
                         <div n:if="$purchase->dic">DIČ: {$purchase->dic}<br></div>
                         <div n:if="$billingAddress">{$billingAddress->street}<br></div>
@@ -75,7 +75,7 @@
                     <p class="lead mb-1">Dodací adresa</p>
                     <address n:if="$deliveryAddress" class="mt-2">
                         {if $deliveryAddress->name}{$deliveryAddress->name}<br>{/if}
-                        {if $deliveryAddress->companyName}{$deliveryAddress->companyName}<br>{/if}
+                        {if $deliveryAddress->companyName && $deliveryAddress->name !== $deliveryAddress->companyName}{$deliveryAddress->companyName}<br>{/if}
                         {$deliveryAddress->street}<br>
                         {$deliveryAddress->zipcode} {$deliveryAddress->city}<br>
                     </address>
