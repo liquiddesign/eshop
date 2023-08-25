@@ -17,7 +17,8 @@ use StORM\Collection;
 use StORM\ICollection;
 
 /**
- * @extends \StORM\Repository<\Eshop\DB\Customer>
+ * @template T of \Eshop\DB\Customer
+ * @extends \StORM\Repository<T>
  */
 class CustomerRepository extends \StORM\Repository implements IUserRepository, IGeneralRepository, IGeneralAjaxRepository
 {
