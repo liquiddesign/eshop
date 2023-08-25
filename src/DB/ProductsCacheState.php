@@ -15,4 +15,14 @@ class ProductsCacheState extends \StORM\Entity
 	 * @var 'empty'|'warming'|'ready'
 	 */
 	public string $state = 'empty';
+
+	/**
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $lastWarmUpTs;
+
+	/**
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $lastReadyTs;
 }

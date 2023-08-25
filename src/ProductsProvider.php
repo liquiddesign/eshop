@@ -3,6 +3,7 @@
 namespace Eshop;
 
 use Base\ShopsConfig;
+use Carbon\Carbon;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
@@ -844,8 +845,17 @@ CREATE TABLE `$productsCacheTableName` (
 
 	protected function markCacheAsReady(int $id): void
 	{
-		$this->productsCacheStateRepository->many()->where('this.uuid', $id)->update(['state' => 'ready']);
-		$this->productsCacheStateRepository->many()->where('this.uuid', $id === 1 ? 2 : 1)->update(['state' => 'empty']);
+		$this->productsCacheStateRepository->many()->where('this.uuid', $id)->update([
+			'state' => 'ready',
+			'lastWarmUpTs' => null,
+			'lastReadyTs' => Carbon::now()->toDateTimeString(),
+		]);
+
+		$this->productsCacheStateRepository->many()->where('this.uuid', $id === 1 ? 2 : 1)->update([
+			'state' => 'empty',
+			'lastWarmUpTs' => null,
+			'lastReadyTs' => null,
+		]);
 	}
 
 	/**
@@ -854,20 +864,34 @@ CREATE TABLE `$productsCacheTableName` (
 	 */
 	protected function getCacheIndexToBeWarmedUp(): int
 	{
-		$cache1State = $this->productsCacheStateRepository->one('1')?->state;
-		$cache2State = $this->productsCacheStateRepository->one('2')?->state;
+		$cache1State = $this->productsCacheStateRepository->one('1');
+		$cache2State = $this->productsCacheStateRepository->one('2');
 
-		if (!$cache1State || !$cache2State) {
+		if (!$cache1State?->state || !$cache2State?->state) {
 			return 0;
 		}
 
-		$cache1State = match ($cache1State) {
+		if ($cache1State->state === 'warming' && $cache1State->lastWarmUpTs && Carbon::now()->diffInMinutes(Carbon::parse($cache1State->lastWarmUpTs)) > 15) {
+			$cache1State->state = 'empty';
+			$cache1State->lastWarmUpTs = Carbon::now()->toDateTimeString();
+
+			$cache1State->updateAll(['state', 'lastWarmUpTs']);
+		}
+
+		if ($cache2State->state === 'warming' && $cache2State->lastWarmUpTs && Carbon::now()->diffInMinutes(Carbon::parse($cache2State->lastWarmUpTs)) > 15) {
+			$cache2State->state = 'empty';
+			$cache2State->lastWarmUpTs = Carbon::now()->toDateTimeString();
+
+			$cache2State->updateAll(['state', 'lastWarmUpTs']);
+		}
+
+		$cache1StateIndex = match ($cache1State->state) {
 			'empty' => 0,
 			'warming' => 1,
 			'ready' => 2,
 		};
 
-		$cache2State = match ($cache2State) {
+		$cache2StateIndex = match ($cache2State->state) {
 			'empty' => 0,
 			'warming' => 1,
 			'ready' => 2,
@@ -885,7 +909,13 @@ CREATE TABLE `$productsCacheTableName` (
 			'22' => 1,
 		];
 
-		return $logicTable[$cache1State . $cache2State];
+		$index = $logicTable[$cache1StateIndex . $cache2StateIndex];
+
+		if ($index > 0) {
+			($index === 1 ? $cache1State : $cache2State)->update(['lastWarmUpTs' => Carbon::now()->toDateTimeString()]);
+		}
+
+		return $index;
 	}
 
 	/**
