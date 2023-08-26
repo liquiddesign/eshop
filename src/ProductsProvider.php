@@ -235,7 +235,9 @@ CREATE TABLE `$productsCacheTableName` (
 			$link->exec("CREATE UNIQUE INDEX idx_unique_code ON `$productsCacheTableName` (code);");
 			$link->exec("CREATE UNIQUE INDEX idx_unique_ean ON `$productsCacheTableName` (ean);");
 
-			foreach ($allVisibilityLists = $this->visibilityListRepository->many()->select(['this.id']) as $visibilityList) {
+			$allVisibilityLists = $this->visibilityListRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
+
+			foreach ($allVisibilityLists as $visibilityList) {
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id} INT UNSIGNED DEFAULT('{$visibilityList->id}');");
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_visibilityList_{$visibilityList->id} (visibilityList_{$visibilityList->id});");
 
@@ -246,7 +248,9 @@ CREATE TABLE `$productsCacheTableName` (
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_recommended TINYINT;");
 			}
 
-			foreach ($allPriceLists = $this->pricelistRepository->many()->select(['this.id']) as $priceList) {
+			$allPriceLists = $this->pricelistRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
+
+			foreach ($allPriceLists as $priceList) {
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id} INT UNSIGNED DEFAULT('{$priceList->id}');");
 
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_price DOUBLE;");
@@ -258,9 +262,9 @@ CREATE TABLE `$productsCacheTableName` (
 			Debugger::dump('drop/create tables');
 			Debugger::dump(Debugger::timer());
 
-			$allPrices = $this->priceRepository->many()->toArray();
-			$allVisibilityListItems = $this->visibilityListItemRepository->many()->toArray();
-			$allDisplayAmounts = $this->displayAmountRepository->many()->setIndex('id')->toArray();
+			$allPrices = $this->priceRepository->many()->select(['fkPriceList' => 'this.fk_pricelist'])->fetchArray(\stdClass::class);
+			$allVisibilityListItems = $this->visibilityListItemRepository->many()->select(['fkVisibilityList' => 'this.fk_visibilityList'])->fetchArray(\stdClass::class);
+			$allDisplayAmounts = $this->displayAmountRepository->many()->setIndex('id')->fetchArray(\stdClass::class);
 			$allCategoriesByCategory = [];
 
 			$this->connection->getLink()->exec('SET SESSION group_concat_max_len=4294967295');
@@ -302,7 +306,9 @@ CREATE TABLE `$productsCacheTableName` (
 			Debugger::dump('load entities');
 			Debugger::dump(Debugger::timer());
 
-			$link->beginTransaction();
+			$testFile = \str_replace('\\', '/', __DIR__) . '/data.csv';
+
+			$writer = \fopen($testFile, 'w+');
 
 			while ($product = $productsCollection->fetch(\stdClass::class)) {
 				/** @var \stdClass $product */
@@ -311,34 +317,81 @@ CREATE TABLE `$productsCacheTableName` (
 					continue;
 				}
 
-				$products[$product->id] = [
-					'product' => $product->id,
-					'displayAmount' => $product->fkDisplayAmount,
-					'displayDelivery' => $product->fkDisplayDelivery,
-					'displayAmount_isSold' => $product->fkDisplayAmount ? $allDisplayAmounts[$product->fkDisplayAmount]->isSold : null,
-					'producer' => $product->fkProducer,
-					'name' => $product->name,
-					'code' => $product->code,
-					'subCode' => $product->subCode,
-					'externalCode' => $product->externalCode,
-					'ean' => $product->ean,
+				$productData = [
+					$product->id,
+					$product->fkProducer ?: '\N',
+					$product->fkDisplayAmount ?: '\N',
+					$product->fkDisplayDelivery ?: '\N',
+					$product->fkDisplayAmount ? ((int) $allDisplayAmounts[$product->fkDisplayAmount]->isSold) : '\N',
+					$product->attributeValuesPKs ?: '\N',
+//					$product->name ? ('"' . \addslashes($product->name) . '"') : '\N',
+					'\N',
+					$product->code ? "\"$product->code\"" : '\N',
+					$product->subCode ? "\"$product->subCode\"" : '\N',
+					$product->externalCode ? "\"$product->externalCode\"" : '\N',
+					$product->ean ? "\"$product->ean\"" : '\N',
 				];
 
-				foreach ($allVisibilityLists as $visibilityList) {
-					$products[$product->id]["visibilityList_$visibilityList->id"] = null;
-					$products[$product->id]["visibilityList_{$visibilityList->id}_hidden"] = null;
-					$products[$product->id]["visibilityList_{$visibilityList->id}_hiddenInMenu"] = null;
-					$products[$product->id]["visibilityList_{$visibilityList->id}_priority"] = null;
-					$products[$product->id]["visibilityList_{$visibilityList->id}_unavailable"] = null;
-					$products[$product->id]["visibilityList_{$visibilityList->id}_recommended"] = null;
+				$productVisibilityListItems = [];
+
+				if ($visibilityListItems = $product->visibilityListItemsPKs) {
+					$visibilityListItems = \explode(',', $visibilityListItems);
+
+					foreach ($visibilityListItems as $visibilityListItem) {
+						$visibilityListItem = $allVisibilityListItems[$visibilityListItem];
+
+						$productVisibilityListItems[$allVisibilityLists[$visibilityListItem->fkVisibilityList]->id] = [
+							$allVisibilityLists[$visibilityListItem->fkVisibilityList]->id,
+							$visibilityListItem->hidden,
+							$visibilityListItem->hiddenInMenu,
+							$visibilityListItem->priority,
+							$visibilityListItem->unavailable,
+							$visibilityListItem->recommended,
+						];
+					}
 				}
 
-				foreach ($allPriceLists as $priceList) {
-					$products[$product->id]["priceList_$priceList->id"] = null;
-					$products[$product->id]["priceList_{$priceList->id}_price"] = null;
-					$products[$product->id]["priceList_{$priceList->id}_priceVat"] = null;
-					$products[$product->id]["priceList_{$priceList->id}_priceBefore"] = null;
-					$products[$product->id]["priceList_{$priceList->id}_priceVatBefore"] = null;
+				foreach ($allVisibilityLists as $visibilityList) {
+					$productVisibilityListItem = $productVisibilityListItems[$visibilityList->id] ?? [];
+
+					if ($productVisibilityListItem) {
+						$productData = \array_merge($productData, $productVisibilityListItem);
+
+						continue;
+					}
+
+					for ($i = 0; $i < 6; $i++) {
+						$productData[] = '\N';
+					}
+				}
+
+				$productPriceListItems = [];
+				$priceListItems = \explode(',', $prices);
+
+				foreach ($priceListItems as $priceListItem) {
+					$priceListItem = $allPrices[$priceListItem];
+
+					$productPriceListItems[$allPriceLists[$priceListItem->fkPriceList]->id] = [
+						$allPriceLists[$priceListItem->fkPriceList]->id,
+						$priceListItem->price ?: '\N',
+						$priceListItem->priceVat ?: '\N',
+						$priceListItem->priceBefore ?: '\N',
+						$priceListItem->priceVatBefore ?: '\N',
+					];
+				}
+
+				foreach ($allPriceLists as $visibilityList) {
+					$productPriceListItem = $productPriceListItems[$visibilityList->id] ?? [];
+
+					if ($productPriceListItem) {
+						$productData = \array_merge($productData, $productPriceListItem);
+
+						continue;
+					}
+
+					for ($i = 0; $i < 5; $i++) {
+						$productData[] = '\N';
+					}
 				}
 
 				if ($categories = $product->categoriesPKs) {
@@ -351,55 +404,31 @@ CREATE TABLE `$productsCacheTableName` (
 							$categoryCategories = $allCategoriesByCategory[$category] = \array_merge($this->getAncestorsOfCategory($category, $allCategories), [$category]);
 						}
 
-						$products[$product->id]['categories'] = \array_unique(\array_merge($products[$product->id]['categories'] ?? [], $categoryCategories));
+						$productData['categories'] = \array_unique(\array_merge($productData['categories'] ?? [], $categoryCategories));
 
-						foreach ($products[$product->id]['categories'] as $productCategory) {
+						foreach ($productData['categories'] as $productCategory) {
 							$productsByCategories[$productCategory][$product->id] = true;
 						}
 					}
 				}
 
-				unset($products[$product->id]['categories']);
+				unset($productData['categories']);
 
-				if ($visibilityListItems = $product->visibilityListItemsPKs) {
-					$visibilityListItems = \explode(',', $visibilityListItems);
-
-					foreach ($visibilityListItems as $visibilityListItem) {
-						$visibilityListItem = $allVisibilityListItems[$visibilityListItem];
-
-						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->getValue('visibilityList')]->id}_hidden"] = $visibilityListItem->hidden;
-						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->getValue('visibilityList')]->id}_hiddenInMenu"] = $visibilityListItem->hiddenInMenu;
-						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->getValue('visibilityList')]->id}_priority"] = $visibilityListItem->priority;
-						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->getValue('visibilityList')]->id}_unavailable"] = $visibilityListItem->unavailable;
-						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->getValue('visibilityList')]->id}_recommended"] = $visibilityListItem->recommended;
-					}
-				}
-
-				$prices = \explode(',', $prices);
-
-				foreach ($prices as $price) {
-					$price = $allPrices[$price];
-
-					$products[$product->id]["priceList_{$allPriceLists[$price->getValue('pricelist')]->id}_price"] = $price->price;
-					$products[$product->id]["priceList_{$allPriceLists[$price->getValue('pricelist')]->id}_priceVat"] = $price->priceVat;
-					$products[$product->id]["priceList_{$allPriceLists[$price->getValue('pricelist')]->id}_priceBefore"] = $price->priceBefore;
-					$products[$product->id]["priceList_{$allPriceLists[$price->getValue('pricelist')]->id}_priceVatBefore"] = $price->priceVatBefore;
-				}
-
-				$products[$product->id]['attributeValues'] = $product->attributeValuesPKs;
+				\fputcsv($writer, $productData, ';');
 			}
+
+			\fclose($writer);
 
 			Debugger::dump('main loop');
 			Debugger::dump(Debugger::timer());
 
-			$this->connection->createRows("$productsCacheTableName", $products, chunkSize: 10000);
+			$link->exec("LOAD DATA INFILE \"$testFile\"
+			INTO TABLE $productsCacheTableName
+			fields terminated by ';'
+			optionally enclosed by '\"'
+			escaped by \"\\\\\";");
 
-			Debugger::dump('insert products');
-			Debugger::dump(Debugger::timer());
-
-			$link->commit();
-
-			Debugger::dump('commit transaction');
+			Debugger::dump('load data infile');
 			Debugger::dump(Debugger::timer());
 
 			foreach ($productsByCategories as $category => $products) {
