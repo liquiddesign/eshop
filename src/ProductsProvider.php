@@ -22,6 +22,7 @@ use Nette\Caching\Storage;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
+use PDO;
 use StORM\DIConnection;
 use StORM\ICollection;
 use Tracy\Debugger;
@@ -306,7 +307,7 @@ CREATE TABLE `$productsCacheTableName` (
 			Debugger::dump('load entities');
 			Debugger::dump(Debugger::timer());
 
-			$testFile = \str_replace('\\', '/', __DIR__) . '/data.csv';
+			$testFile = $this->container->getParameters()['tempDir'] . '/products_cache_data.csv';
 
 			$writer = \fopen($testFile, 'w+');
 
@@ -324,8 +325,7 @@ CREATE TABLE `$productsCacheTableName` (
 					$product->fkDisplayDelivery ?: '\N',
 					$product->fkDisplayAmount ? ((int) $allDisplayAmounts[$product->fkDisplayAmount]->isSold) : '\N',
 					$product->attributeValuesPKs ?: '\N',
-//					$product->name ? ('"' . \addslashes($product->name) . '"') : '\N',
-					'\N',
+					$product->name ?: '\N',
 					$product->code ? "\"$product->code\"" : '\N',
 					$product->subCode ? "\"$product->subCode\"" : '\N',
 					$product->externalCode ? "\"$product->externalCode\"" : '\N',
@@ -422,7 +422,7 @@ CREATE TABLE `$productsCacheTableName` (
 			Debugger::dump('main loop');
 			Debugger::dump(Debugger::timer());
 
-			$link->exec("LOAD DATA INFILE \"$testFile\"
+			$link->exec("LOAD DATA LOCAL INFILE \"$testFile\"
 			INTO TABLE $productsCacheTableName
 			fields terminated by ';'
 			optionally enclosed by '\"'
@@ -900,14 +900,14 @@ CREATE TABLE `$productsCacheTableName` (
 			return 0;
 		}
 
-		if ($cache1State->state === 'warming' && $cache1State->lastWarmUpTs && Carbon::now()->diffInMinutes(Carbon::parse($cache1State->lastWarmUpTs)) > 15) {
+		if ($cache1State->state === 'warming' && $cache1State->lastWarmUpTs && Carbon::now()->diffInMinutes(Carbon::parse($cache1State->lastWarmUpTs)) > 5) {
 			$cache1State->state = 'empty';
 			$cache1State->lastWarmUpTs = Carbon::now()->toDateTimeString();
 
 			$cache1State->updateAll(['state', 'lastWarmUpTs']);
 		}
 
-		if ($cache2State->state === 'warming' && $cache2State->lastWarmUpTs && Carbon::now()->diffInMinutes(Carbon::parse($cache2State->lastWarmUpTs)) > 15) {
+		if ($cache2State->state === 'warming' && $cache2State->lastWarmUpTs && Carbon::now()->diffInMinutes(Carbon::parse($cache2State->lastWarmUpTs)) > 5) {
 			$cache2State->state = 'empty';
 			$cache2State->lastWarmUpTs = Carbon::now()->toDateTimeString();
 
