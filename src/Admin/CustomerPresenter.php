@@ -141,12 +141,17 @@ class CustomerPresenter extends BackendPresenter
 		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
 		
 		$grid = $this->gridFactory->create($this->customerRepository->many()
-			->select(['pricelists_names' => "GROUP_CONCAT(pricelists.name SEPARATOR ', ')"])
+			->select(['pricelists_names' => "GROUP_CONCAT(DISTINCT pricelists.name SEPARATOR ', ')"])
+			->select(['visibilityLists_names' => "GROUP_CONCAT(DISTINCT visibilityLists.name SEPARATOR ', ')"])
 			->setGroupBy(['this.uuid']), 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Registrace', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
-		$grid->addColumn('Název / Jméno', function (Customer $customer) {
-			return $customer->company ?: $customer->fullname;
+		$grid->addColumn('Jméno / Adresa (Fakt., Doruč.)', function (Customer $customer) {
+			$hr = '<hr style="margin: 0">';
+			$billAddress = $customer->billAddress?->getFullAddress();
+			$deliveryAddress = $customer->deliveryAddress?->getFullAddress();
+
+			return ($customer->company ?: $customer->fullname) . "$hr<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
 		});
 		$td = '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a><br><a href="tel:%2$s"><i class="fa fa-phone-alt"></i> %2$s</a>';
 		$grid->addColumnTextFit('E-mail / Telefon', ['email', 'phone'], $td)->onRenderCell[] = [$grid, 'decoratorEmpty'];
@@ -164,9 +169,9 @@ class CustomerPresenter extends BackendPresenter
 			$grid->addColumnTextFit('Role', 'customerRole.name', '%s', 'customerRole.name');
 		}
 
-		$grid->addColumnText('Ceníky', 'pricelists_names', '%s');
-		$grid->addColumnTextFit('Sleva', 'discountLevelPct', '%s %%', 'discountLevelPct');
-		$grid->addColumnTextFit('Max. sleva', 'maxDiscountProductPct', '%s %%', 'discountLevelPct');
+		$grid->addColumnText('Ceníky / Viditelníky', ['pricelists_names', 'visibilityLists_names'], '%s<hr style="margin: 0">%s');
+//		$grid->addColumnTextFit('Sleva', 'discountLevelPct', '%s %%', 'discountLevelPct');
+//		$grid->addColumnTextFit('Max. sleva', 'maxDiscountProductPct', '%s %%', 'discountLevelPct');
 		
 		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
 			$grid->addColumn('Věrnostní prog.', function (Customer $object) {
@@ -873,7 +878,11 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			->join(['catalogPermission' => 'eshop_catalogpermission'], 'catalogPermission.fk_account = this.uuid')
 			->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogPermission.fk_customer')
 			->join(['newsletterUser' => 'eshop_newsletteruser'], 'this.uuid = newsletterUser.fk_customerAccount')
-			->select(['company' => 'customer.company', 'customerFullname' => 'customer.fullname'])
+			->select([
+				'company' => 'customer.company',
+				'customerFullname' => 'customer.fullname',
+				'customerPK' => 'customer.uuid',
+			])
 			->select([
 				'permission' => 'catalogPermission.catalogPermission',
 				'buyAllowed' => 'catalogPermission.buyAllowed',
@@ -885,7 +894,17 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$grid->addColumnText('Login', 'login', '%s', 'login', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname');
 		$grid->addColumn('Zákazník', function (Account $account) {
-			return $account->getValue('company') ?: ($account->getValue('customerFullname') ?: '');
+			$customer = $this->customerRepository->one($account->getValue('customerPK'));
+
+			if (!$customer) {
+				return null;
+			}
+
+			$hr = '<hr style="margin: 0">';
+			$billAddress = $customer->billAddress?->getFullAddress();
+			$deliveryAddress = $customer->deliveryAddress?->getFullAddress();
+
+			return ($customer->company ?: $customer->fullname) . "$hr<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
 		});
 		$grid->addColumn('Oprávnění', function (Account $account) {
 			if (!$account->getValue('permission')) {
