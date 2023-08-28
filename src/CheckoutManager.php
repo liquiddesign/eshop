@@ -1207,7 +1207,7 @@ class CheckoutManager
 	
 	public function getDeliveryPriceVat($includePackagesNo = true, ?string $cartId = self::ACTIVE_CART_ID): float
 	{
-		if ($this->getPurchase(false, $cartId) && $this->getPurchase(false, $cartId)->paymentType) {
+		if ($this->getPurchase(false, $cartId) && $this->getPurchase(false, $cartId)->deliveryType) {
 			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true, $cartId)->deliveryPackagesNo : 1;
 			$showPrice = $this->shopperUser->getShowPrice();
 			
@@ -1240,7 +1240,7 @@ class CheckoutManager
 	
 	public function getDeliveryPriceVatBefore($includePackagesNo = true, ?string $cartId = self::ACTIVE_CART_ID): ?float
 	{
-		if ($this->getPurchase(false, $cartId) && $this->getPurchase(false, $cartId)->paymentType) {
+		if ($this->getPurchase(false, $cartId) && $this->getPurchase(false, $cartId)->deliveryType) {
 			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true, $cartId)->deliveryPackagesNo : 1;
 			$showPrice = $this->shopperUser->getShowPrice();
 			$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase(false, $cartId)->getValue('deliveryType')]->getValue('priceBeforeVat');
