@@ -276,6 +276,12 @@ class Purchase extends \StORM\Entity
 	public ?string $bankSpecificSymbol;
 
 	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\Order>
+	 */
+	public RelationCollection $orders;
+
+	/**
 	 * @var array<string>
 	 */
 	private ?array $cartIds;
