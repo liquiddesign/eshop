@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Carbon\Carbon;
 use StORM\RelationCollection;
 
 /**
@@ -177,6 +178,15 @@ class Invoice extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\InvoiceItem>
 	 */
 	public RelationCollection $items;
+	
+	public function getDaysFromDue(): ?int
+	{
+		if (!$this->dueDate) {
+			return null;
+		}
+		
+		return Carbon::now()->diffInDays(Carbon::parse($this->dueDate), false);
+	}
 
 	/**
 	 * @return array<mixed>
