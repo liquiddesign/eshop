@@ -132,7 +132,13 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$value === false ? $collection->where('internalRibbons.fk_internalRibbon IS NULL') : $collection->where('internalRibbons.fk_internalRibbon', $value);
 	}
 
-	public function getFinishedOrders(?Customer $customer = null, ?Merchant $merchant = null, ?Account $account = null): Collection
+	/**
+	 * @param \Eshop\DB\Customer|array<string>|null $customer
+	 * @param \Eshop\DB\Merchant|null $merchant
+	 * @param \Security\DB\Account|null $account
+	 * @return \StORM\Collection
+	 */
+	public function getFinishedOrders(Customer|null|array $customer = null, ?Merchant $merchant = null, ?Account $account = null): Collection
 	{
 		$collection = $this->many()->where('this.completedTs IS NOT NULL AND this.canceledTs IS NULL');
 		$collection->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid');
@@ -140,7 +146,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$collection->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'customer.uuid = nxn.fk_customer');
 
 		if ($customer) {
-			$collection->where('purchase.fk_customer', $customer);
+			$collection->where('purchase.fk_customer', $customer instanceof Customer ? $customer->getPK() : $customer);
 		} elseif ($merchant) {
 			$collection->where('nxn.fk_merchant', $merchant);
 		}
@@ -194,7 +200,13 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		Arrays::invoke($this->onOrdersMergedAll, $targetOrder, $orders);
 	}
 
-	public function getNewOrders(?Customer $customer, ?Merchant $merchant = null, ?Account $account = null): Collection
+	/**
+	 * @param \Eshop\DB\Customer|array<string>|null $customer
+	 * @param \Eshop\DB\Merchant|null $merchant
+	 * @param \Security\DB\Account|null $account
+	 * @return \StORM\Collection
+	 */
+	public function getNewOrders(Customer|null|array $customer, ?Merchant $merchant = null, ?Account $account = null): Collection
 	{
 		$collection = $this->many()->where('this.completedTs IS NULL AND this.canceledTs IS NULL');
 		$collection->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid');
@@ -202,7 +214,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$collection->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'customer.uuid = nxn.fk_customer');
 
 		if ($customer) {
-			$collection->where('purchase.fk_customer', $customer);
+			$collection->where('purchase.fk_customer', $customer instanceof Customer ? $customer->getPK() : $customer);
 		} elseif ($merchant) {
 			$collection->where('nxn.fk_merchant', $merchant);
 		}
