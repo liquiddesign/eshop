@@ -136,7 +136,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	 * @param \Eshop\DB\Customer|array<string>|null $customer
 	 * @param \Eshop\DB\Merchant|null $merchant
 	 * @param \Security\DB\Account|null $account
-	 * @return \StORM\Collection
+	 * @return \StORM\Collection<\Eshop\DB\Order>
 	 */
 	public function getFinishedOrders(Customer|null|array $customer = null, ?Merchant $merchant = null, ?Account $account = null): Collection
 	{
@@ -204,7 +204,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	 * @param \Eshop\DB\Customer|array<string>|null $customer
 	 * @param \Eshop\DB\Merchant|null $merchant
 	 * @param \Security\DB\Account|null $account
-	 * @return \StORM\Collection
+	 * @return \StORM\Collection<\Eshop\DB\Order>
 	 */
 	public function getNewOrders(Customer|null|array $customer, ?Merchant $merchant = null, ?Account $account = null): Collection
 	{
