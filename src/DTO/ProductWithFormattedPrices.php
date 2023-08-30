@@ -60,6 +60,27 @@ class ProductWithFormattedPrices
 		return null;
 	}
 
+	public function isPrimaryPriceWithVat(): bool|null
+	{
+		if (!$this->canView) {
+			return null;
+		}
+
+		if ($this->showWithVat && $this->showWithoutVat) {
+			return $this->priorityPrice === 'withVat';
+		}
+
+		if ($this->showWithVat) {
+			return true;
+		}
+
+		if ($this->showWithoutVat) {
+			return false;
+		}
+
+		return null;
+	}
+
 	/**
 	 * @return string|null Returns formatted price with currency code, e.g. 100 Kč. If price is not set, user has not sufficient rights or user cant see both prices, returns null.
 	 */
@@ -71,6 +92,19 @@ class ProductWithFormattedPrices
 
 		if ($this->showWithVat && $this->showWithoutVat) {
 			return $this->priorityPrice === 'withVat' ? $this->price : $this->priceVat;
+		}
+
+		return null;
+	}
+
+	public function isSecondaryPriceWithVat(): bool|null
+	{
+		if (!$this->canView) {
+			return null;
+		}
+
+		if ($this->showWithVat && $this->showWithoutVat) {
+			return $this->priorityPrice !== 'withVat';
 		}
 
 		return null;
