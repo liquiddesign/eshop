@@ -894,9 +894,11 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$grid->addColumnText('Login', 'login', '%s', 'login', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname');
 		$grid->addColumn('Zákazník', function (Account $account) {
-			$customer = $this->customerRepository->one($account->getValue('customerPK'));
+			if (!$customerPK = $account->getValue('customerPK')) {
+				return null;
+			}
 
-			if (!$customer) {
+			if (!$customer = $this->customerRepository->one($customerPK)) {
 				return null;
 			}
 
