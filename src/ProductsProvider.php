@@ -142,6 +142,37 @@ class ProductsProvider
 			]);
 		};
 
+		/**
+		 * @param \StORM\ICollection $productsCollection
+		 * @param array<string> $uuids
+		 * @param array<\Eshop\DB\VisibilityList> $visibilityLists
+		 * @param array<\Eshop\DB\Pricelist> $priceLists
+		 * @return void
+		 */
+		$this->allowedCollectionFilterExpressions['uuids'] = function (ICollection $productsCollection, array $uuids, array $visibilityLists, array $priceLists): void {
+			$productArray = $this->productRepository->many()->where('this.uuid', $uuids)->setSelect(['this.id'])->toArrayOf('id', toArrayValues: true);
+
+			$productsCollection->where('this.id', $productArray);
+		};
+
+		$this->allowedCollectionFilterExpressions['producer'] = function (ICollection $productsCollection, string $producer, array $visibilityLists, array $priceLists): void {
+			$producerArray = $this->producerRepository->many()->where('this.uuid', $producer)->setSelect(['this.id'])->toArrayOf('id', toArrayValues: true);
+
+			$productsCollection->where('this.producer', $producerArray);
+		};
+
+		/**
+		 * @param \StORM\ICollection $productsCollection
+		 * @param string|array<string> $producer
+		 * @param array<\Eshop\DB\VisibilityList> $visibilityLists
+		 * @param array<\Eshop\DB\Pricelist> $priceLists
+		 */
+		$this->allowedCollectionFilterExpressions['producers'] = function (ICollection $productsCollection, array $producer, array $visibilityLists, array $priceLists): void {
+			$producerArray = $this->producerRepository->many()->where('this.uuid', $producer)->setSelect(['this.id'])->toArrayOf('id', toArrayValues: true);
+
+			$productsCollection->where('this.producer', $producerArray);
+		};
+
 		$this->allowedDynamicFilterExpressions['priceFrom'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
 			$showVat = $this->shopperUser->getMainPriceType() === 'withVat';
 
