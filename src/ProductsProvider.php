@@ -489,22 +489,36 @@ CREATE TABLE `$productsCacheTableName` (
 		array $priceLists = [],
 		array $visibilityLists = [],
 	): array|false {
-//		$index = \serialize($filters) . '_' . $orderByName . '_' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
-
-//		$cachedOutput = $this->cache->load($index, dependencies: [Cache::Tags => ['categories', 'products', 'pricelists']]);
-//
-//		if ($cachedOutput) {
-//			return $cachedOutput;
-//		}
-
 		$cacheIndex = $this->getCacheIndexToBeUsed();
 
 		if ($cacheIndex === 0) {
 			return false;
 		}
 
-		$category = isset($filters['category']) ? $this->categoryRepository->many()->select(['this.id'])->where('this.path', $filters['category'])->first(true) : null;
+		$emptyResult = [
+			'productPKs' => [],
+			'attributeValuesCounts' => [],
+			'displayAmountsCounts' => [],
+			'displayDeliveriesCounts' => [],
+			'producersCounts' => [],
+			'priceMin' => 0,
+			'priceMax' => 0,
+			'priceVatMin' => 0,
+			'priceVatMax' => 0,
+		];
+
+		$category = isset($filters['category']) ? $this->categoryRepository->many()->setSelect(['this.id'])->where('this.path', $filters['category'])->first(true) : null;
 		unset($filters['category']);
+
+		if ($category) {
+			$categoryTableExists = $this->connection->getLink()
+				->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'eshop_categoryproducts_cache_{$cacheIndex}_$category->id';")
+				->fetchColumn();
+
+			if ($categoryTableExists === 0) {
+				return $emptyResult;
+			}
+		}
 		
 		$productsCollection = $category ?
 			$this->connection->rows(['category' => "eshop_categoryproducts_cache_{$cacheIndex}_$category->id"])
@@ -858,10 +872,6 @@ CREATE TABLE `$productsCacheTableName` (
 			'priceVatMin' => $priceVatMin < \PHP_FLOAT_MAX ? $priceVatMin : 0,
 			'priceVatMax' => $priceVatMax > \PHP_FLOAT_MIN ? $priceVatMax : 0,
 		];
-
-//		$this->cache->save($index, $output, [Cache::Tags => ['categories', 'products', 'pricelists']]);
-
-//		return $output;
 	}
 
 	protected function resetHangingStateOfCache(int $id): void
