@@ -1072,7 +1072,6 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 			FileSystem::createDir($detailPath);
 
 			$images = \scandir($imagesPath);
-			$existingImages = \scandir($thumbPath);
 
 			$products = $this->productRepository->many()->setIndex('code')->toArrayOf('uuid');
 
@@ -1101,23 +1100,8 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 						continue;
 					}
 
-					$newPhotos[] = [
-						'product' => $products[$code],
-						'fileName' => $imageFileName,
-						'priority' => 999,
-					];
-
-					if ($values['asMain']) {
-						$newProductsMainImages[] = ['uuid' => $products[$code], 'imageFileName' => $imageFileName];
-					}
-
-					$currentExistingImages = \array_filter($existingImages, function ($value) use ($code) {
-						return \str_contains($value, $code);
-					});
-
-					if (\count($currentExistingImages) > 0) {
-						$existingImagePath = \trim(Arrays::first($currentExistingImages));
-						$existingTimestamp = \filemtime($thumbPath . '/' . $existingImagePath);
+					if (\is_file($originalPath . '/' . $imageFileName)) {
+						$existingTimestamp = \filemtime($originalPath . '/' . $imageFileName);
 						$imagesTimestamp = \filemtime($imagesPath . '/' . $imageFileName);
 
 						if ($existingTimestamp >= $imagesTimestamp) {
@@ -1125,19 +1109,19 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 						}
 
 						try {
-							FileSystem::delete($originalPath . '/' . $existingImagePath);
+							FileSystem::delete($originalPath . '/' . $imageFileName);
 						} catch (\Throwable $e) {
 							Debugger::log($e, ILogger::WARNING);
 						}
 
 						try {
-							FileSystem::delete($detailPath . '/' . $existingImagePath);
+							FileSystem::delete($detailPath . '/' . $imageFileName);
 						} catch (\Throwable $e) {
 							Debugger::log($e, ILogger::WARNING);
 						}
 
 						try {
-							FileSystem::delete($thumbPath . '/' . $existingImagePath);
+							FileSystem::delete($thumbPath . '/' . $imageFileName);
 						} catch (\Throwable $e) {
 							Debugger::log($e, ILogger::WARNING);
 						}
@@ -1155,9 +1139,24 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 						$imageT->save($thumbPath . '/' . $imageFileName);
 					} catch (\Exception $e) {
 					}
+
+					$existingPhoto = $this->photoRepository->many()->where('this.fk_product', $products[$code])->where('this.fileName', $imageFileName)->first();
+
+					$newPhotos[] = [
+						'uuid' => $existingPhoto ? $existingPhoto->getPK() : null,
+						'product' => $products[$code],
+						'fileName' => $imageFileName,
+						'priority' => 999,
+					];
+
+					if (!$values['asMain']) {
+						continue;
+					}
+
+					$newProductsMainImages[] = ['uuid' => $products[$code], 'imageFileName' => $imageFileName];
 				}
 
-				$this->photoRepository->createMany($newPhotos);
+				$this->photoRepository->syncMany($newPhotos, []);
 
 				if (\count($newProductsMainImages) > 0) {
 					$this->productRepository->syncMany($newProductsMainImages);
@@ -1167,6 +1166,7 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 
 				$connection->getLink()->commit();
 			} catch (\Throwable $e) {
+				Debugger::barDump($e);
 				$this->flashMessage('Při zpracovávání došlo k chybě!', 'error');
 
 				$connection->getLink()->rollBack();
@@ -1416,9 +1416,27 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 
 			$tempFilename = \tempnam($this->tempDir, 'csv');
 
+
 			$headerColumns = \array_filter($items, function ($item) use ($values) {
 				return \in_array($item, $values['columns']);
 			}, \ARRAY_FILTER_USE_KEY);
+
+			$mutations = $this->productRepository->getConnection()->getAvailableMutations();
+			$entityColumns = $this->productRepository->getStructure()->getColumns();
+
+			foreach (\array_keys($headerColumns) as $columnKey) {
+				$entityColumn = $entityColumns[$columnKey] ?? null;
+
+				if (!$entityColumn || !$entityColumn->hasMutations()) {
+					continue;
+				}
+
+				foreach (\array_keys($mutations) as $mutation) {
+					$headerColumns["{$columnKey}_$mutation"] = "{$columnKey}_$mutation";
+				}
+
+				unset($headerColumns[$columnKey]);
+			}
 
 			$attributeColumns = \array_filter($attributes, function ($item) use ($values) {
 				return \in_array($item, $values['attributes']);
@@ -1756,6 +1774,7 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 		$reader->setDelimiter($delimiter);
 		$reader->setHeaderOffset(0);
 		$mutation = $this->productRepository->getConnection()->getMutation();
+		$mutations = $this->productRepository->getConnection()->getAvailableMutations();
 		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
 
 		$producers = $this->producerRepository->many()->setIndex('code')->toArrayOf('uuid');
@@ -1763,16 +1782,21 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 		$categories = $this->categoryRepository->many()->toArrayOf('uuid');
 		$categoriesCodes = $this->categoryRepository->many()->setIndex('code')->toArrayOf('uuid');
 
-		$products = $this->productRepository->many()->setSelect([
+		$setSelect = [
 			'uuid',
 			'code',
 			'fullCode' => 'CONCAT(code,".",subCode)',
 			'ean',
-			'name' => "name$mutationSuffix",
-			'perex' => "perex$mutationSuffix",
 			'supplierContentLock',
 			'mpn',
-		], [], true)->fetchArray(\stdClass::class);
+		];
+
+		foreach ($mutations as $mutation => $suffix) {
+			$setSelect["name_$mutation"] = "name$suffix";
+			$setSelect["perex_$mutation"] = "perex$suffix";
+		}
+
+		$products = $this->productRepository->many()->setSelect($setSelect, [], true)->fetchArray(\stdClass::class);
 
 		$header = $reader->getHeader();
 
@@ -1797,9 +1821,22 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 
 		unset($attributeValues);
 
+		$columnsWithMutations = [];
+
 		foreach ($header as $headerItem) {
+			$headerItemWithMutation = null;
+
+			foreach ($mutations as $mutation => $suffix) {
+				if (Strings::endsWith($headerItem, $suffix)) {
+					$headerItemWithMutation = $headerItem;
+					$headerItem = Strings::substring($headerItem, 0, \strpos($headerItem, $suffix));
+
+					$columnsWithMutations[$headerItemWithMutation] = [$headerItem, $mutation];
+				}
+			}
+
 			if (isset($this::CONFIGURATION['importColumns'][$headerItem])) {
-				$parsedHeader[$headerItem] = $headerItem;
+				$parsedHeader[$headerItemWithMutation ?: $headerItem] = $headerItemWithMutation ? $columnsWithMutations[$headerItemWithMutation] : $headerItem;
 			} elseif ($key = \array_search($headerItem, $this::CONFIGURATION['importColumns'])) {
 				$parsedHeader[$key] = $headerItem;
 			} else {
@@ -1909,10 +1946,16 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 			}
 
 			foreach ($record as $key => $value) {
-				$key = \array_search($key, $parsedHeader);
+				$key = isset($parsedHeader[$key]) ? $key : \array_search($key, $parsedHeader);
 
 				if (!$key) {
 					continue;
+				}
+
+				$keyMutation = null;
+
+				if (isset($columnsWithMutations[$key])) {
+					[$key, $keyMutation] = $columnsWithMutations[$key];
 				}
 
 				if ($key === 'producer') {
@@ -1978,7 +2021,7 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 						$newValues['categories'][] = $category;
 					}
 				} elseif ($key === 'name' || $key === 'perex' || $key === 'content') {
-					$newValues[$key][$mutation] = $value;
+					$newValues[$key][$keyMutation] = $value;
 				} elseif ($key === 'priority') {
 					$newValues[$key] = \intval($value);
 				} elseif ($key === 'recommended' || $key === 'hidden' || $key === 'unavailable') {
@@ -2014,11 +2057,11 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 						$newValues['uuid'] = $product->uuid;
 						$newValues['supplierContentLock'] = $product->supplierContentLock;
 
-						if (isset($newValues['name'][$mutation]) && $newValues['name'][$mutation] !== $product->name) {
+						if (isset($newValues['name'][$mutation]) && $newValues['name'][$mutation] !== $product->{"name_$mutation"}) {
 							$newValues['supplierContentLock'] = true;
 						}
 
-						if (isset($newValues['perex'][$mutation]) && $newValues['perex'][$mutation] !== $product->perex) {
+						if (isset($newValues['perex'][$mutation]) && $newValues['perex'][$mutation] !== $product->{"perex_$mutation"}) {
 							$newValues['supplierContentLock'] = true;
 						}
 

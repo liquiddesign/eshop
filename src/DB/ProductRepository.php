@@ -1396,17 +1396,35 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		array $supplierCodes = [],
 		?callable $getSupplierCode = null
 	): void {
+		$connection = $this->getConnection();
+
+		$mutationSuffix = $connection->getMutationSuffix();
+		$mutations = $connection->getAvailableMutations();
+
 		$writer->setDelimiter($delimiter);
-		
 		EncloseField::addTo($writer, "\t\22");
+
+		$entityColumns = $this->getStructure()->getColumns();
+
+		foreach (\array_keys($columns) as $columnKey) {
+			$entityColumn = $entityColumns[$columnKey] ?? null;
+
+			if (!$entityColumn || !$entityColumn->hasMutations()) {
+				continue;
+			}
+
+			foreach (\array_keys($mutations) as $mutation) {
+				$columns["{$columnKey}_$mutation"] = null;
+			}
+
+			unset($columns[$columnKey]);
+		}
 
 		$completeHeaders = \array_merge($header, $supplierCodes);
 
 		if ($completeHeaders) {
 			$writer->insertOne($completeHeaders);
 		}
-		
-		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 
 		$products->setGroupBy(['this.uuid'])
 			->join(['priceTable' => 'eshop_price'], 'this.uuid = priceTable.fk_product')
@@ -1424,7 +1442,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			->join(['masterProduct' => 'eshop_product'], 'this.fk_masterProduct = masterProduct.uuid')
 			->select([
 //				'attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute, '^', CONCAT(COALESCE(attributeValue.label$mutationSuffix), '°', attributeValue.code)) SEPARATOR \"~\")",
-				'producerCodeName' => "CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, ''))",
+				'producerCodeName' => "IF(producer.code IS NOT NULL, CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, '')), NULL)",
 				'amounts' => "GROUP_CONCAT(DISTINCT CONCAT(storeAmount.inStock, '#', store.code) SEPARATOR ':')",
 				'groupedCategories' => "GROUP_CONCAT(DISTINCT CONCAT(category.name$mutationSuffix, '#',
                 IF(category.code IS NULL OR category.code = '', category.uuid, category.code)) ORDER BY LENGTH(category.path) SEPARATOR ':')",
