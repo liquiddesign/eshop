@@ -142,6 +142,15 @@ class ProductsProvider
 			]);
 		};
 
+		$this->allowedCollectionOrderExpressions['query2'] = function (ICollection $productsCollection, string $query, array $visibilityLists, array $priceLists): void {
+			$productsCollection->orderBy([
+				'this.name LIKE :qlike' => 'DESC',
+				'this.name LIKE :qlikeq' => 'DESC',
+				'this.code LIKE :qlike' => 'DESC',
+				'this.ean LIKE :qlike' => 'DESC',
+			]);
+		};
+
 		/**
 		 * @param \StORM\ICollection $productsCollection
 		 * @param array<string> $uuids
@@ -266,7 +275,9 @@ CREATE TABLE `$productsCacheTableName` (
 			$link->exec("CREATE UNIQUE INDEX idx_unique_code ON `$productsCacheTableName` (code);");
 			$link->exec("CREATE UNIQUE INDEX idx_unique_ean ON `$productsCacheTableName` (ean);");
 
-			foreach ($allVisibilityLists = $this->visibilityListRepository->many()->select(['this.id']) as $visibilityList) {
+			$allVisibilityLists = $this->visibilityListRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
+
+			foreach ($allVisibilityLists as $visibilityList) {
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id} INT UNSIGNED DEFAULT('{$visibilityList->id}');");
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_visibilityList_{$visibilityList->id} (visibilityList_{$visibilityList->id});");
 
@@ -277,7 +288,9 @@ CREATE TABLE `$productsCacheTableName` (
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_recommended TINYINT;");
 			}
 
-			foreach ($allPriceLists = $this->pricelistRepository->many()->select(['this.id']) as $priceList) {
+			$allPriceLists = $this->pricelistRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
+
+			foreach ($allPriceLists as $priceList) {
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id} INT UNSIGNED DEFAULT('{$priceList->id}');");
 
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_price DOUBLE;");
@@ -289,9 +302,9 @@ CREATE TABLE `$productsCacheTableName` (
 			Debugger::dump('drop/create tables');
 			Debugger::dump(Debugger::timer());
 
-			$allPrices = $this->priceRepository->many()->toArray();
-			$allVisibilityListItems = $this->visibilityListItemRepository->many()->toArray();
-			$allDisplayAmounts = $this->displayAmountRepository->many()->setIndex('id')->toArray();
+			$allPrices = $this->priceRepository->many()->select(['fkPriceList' => 'this.fk_pricelist'])->fetchArray(\stdClass::class);
+			$allVisibilityListItems = $this->visibilityListItemRepository->many()->select(['fkVisibilityList' => 'this.fk_visibilityList'])->fetchArray(\stdClass::class);
+			$allDisplayAmounts = $this->displayAmountRepository->many()->setIndex('id')->fetchArray(\stdClass::class);
 			$allCategoriesByCategory = [];
 
 			$this->connection->getLink()->exec('SET SESSION group_concat_max_len=4294967295');
@@ -398,11 +411,11 @@ CREATE TABLE `$productsCacheTableName` (
 					foreach ($visibilityListItems as $visibilityListItem) {
 						$visibilityListItem = $allVisibilityListItems[$visibilityListItem];
 
-						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->getValue('visibilityList')]->id}_hidden"] = $visibilityListItem->hidden;
-						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->getValue('visibilityList')]->id}_hiddenInMenu"] = $visibilityListItem->hiddenInMenu;
-						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->getValue('visibilityList')]->id}_priority"] = $visibilityListItem->priority;
-						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->getValue('visibilityList')]->id}_unavailable"] = $visibilityListItem->unavailable;
-						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->getValue('visibilityList')]->id}_recommended"] = $visibilityListItem->recommended;
+						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->fk_visibilityList]->id}_hidden"] = $visibilityListItem->hidden;
+						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->fk_visibilityList]->id}_hiddenInMenu"] = $visibilityListItem->hiddenInMenu;
+						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->fk_visibilityList]->id}_priority"] = $visibilityListItem->priority;
+						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->fk_visibilityList]->id}_unavailable"] = $visibilityListItem->unavailable;
+						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->fk_visibilityList]->id}_recommended"] = $visibilityListItem->recommended;
 					}
 				}
 
@@ -411,10 +424,10 @@ CREATE TABLE `$productsCacheTableName` (
 				foreach ($prices as $price) {
 					$price = $allPrices[$price];
 
-					$products[$product->id]["priceList_{$allPriceLists[$price->getValue('pricelist')]->id}_price"] = $price->price;
-					$products[$product->id]["priceList_{$allPriceLists[$price->getValue('pricelist')]->id}_priceVat"] = $price->priceVat;
-					$products[$product->id]["priceList_{$allPriceLists[$price->getValue('pricelist')]->id}_priceBefore"] = $price->priceBefore;
-					$products[$product->id]["priceList_{$allPriceLists[$price->getValue('pricelist')]->id}_priceVatBefore"] = $price->priceVatBefore;
+					$products[$product->id]["priceList_{$allPriceLists[$price->fk_pricelist]->id}_price"] = $price->price;
+					$products[$product->id]["priceList_{$allPriceLists[$price->fk_pricelist]->id}_priceVat"] = $price->priceVat;
+					$products[$product->id]["priceList_{$allPriceLists[$price->fk_pricelist]->id}_priceBefore"] = $price->priceBefore;
+					$products[$product->id]["priceList_{$allPriceLists[$price->fk_pricelist]->id}_priceVatBefore"] = $price->priceVatBefore;
 				}
 
 				$products[$product->id]['attributeValues'] = $product->attributeValuesPKs;
