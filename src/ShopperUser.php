@@ -319,7 +319,7 @@ class ShopperUser extends User
 
 		$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists);
 
-		return $visibilityLists->select(['this.id'])->where('this.hidden', false)->orderBy(['this.priority' => 'ASC'])->toArray();
+		return $visibilityLists->select(['this.id'])->where('this.hidden', false)->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC'])->toArray();
 	}
 
 	public function canBuyProductAmount(Product $product, $amount): bool

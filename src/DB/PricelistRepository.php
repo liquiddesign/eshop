@@ -44,7 +44,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
 
-		return $collection->orderBy(['priority']);
+		return $collection->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
 	}
 
 	public function getCustomerPricelists(Customer $customer, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
@@ -60,7 +60,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
 
-		return $collection->orderBy(['priority']);
+		return $collection->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
 	}
 
 	public function getMerchantPricelists(Merchant $merchant, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
@@ -76,7 +76,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
 
-		return $collection->orderBy(['priority']);
+		return $collection->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
 	}
 
 	public function removeCustomerPricelist(Customer $customer, Pricelist $pricelist): void
