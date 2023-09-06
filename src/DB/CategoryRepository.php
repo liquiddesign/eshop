@@ -22,6 +22,7 @@ use StORM\ArrayWrapper;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
+use Tracy\Debugger;
 use Web\DB\PageRepository;
 
 /**
@@ -62,6 +63,8 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		if (!Arrays::contains($levels, Strings::length($path) / 4)) {
 			return null;
 		}
+
+		Debugger::barDump($this->shopperUser->getPriceCacheIndex('categories'));
 		
 		$result = $this->cache->load($this->shopperUser->getPriceCacheIndex('categories'), static function (&$dependencies) use ($stm, $productRepository, $levels) {
 			$dependencies = [
