@@ -22,7 +22,6 @@ use StORM\ArrayWrapper;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
-use Tracy\Debugger;
 use Web\DB\PageRepository;
 
 /**
