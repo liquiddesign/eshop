@@ -44,6 +44,11 @@ class ProductList extends Datalist
 	 */
 	public $onWatcherDeleted;
 
+	/**
+	 * @var array<callable> ; Occurs after order create
+	 */
+	public array $onBuyFormSuccessBeforeRedirect = [];
+
 	/** @var array<array<string, int>>|null */
 	protected array|null $providerOutput = null;
 
@@ -294,8 +299,9 @@ class ProductList extends Datalist
 
 			$form = $this->buyFormFactory->create($product);
 			$form->onSuccess[] = function ($form, $values): void {
+				Arrays::invoke($this->onBuyFormSuccessBeforeRedirect);
+
 				$form->getPresenter()->redirect('this');
-				// @TODO call event
 			};
 
 			return $form;
