@@ -540,6 +540,19 @@ class ShopperUser extends User
 		return $this->registrationConfiguration;
 	}
 
+	/**
+	 * @return \StORM\Collection<\Eshop\DB\Customer>
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function getChildrenCustomers(): Collection
+	{
+		$user = $this->getMerchant() ?? $this->getCustomer();
+
+		return $user instanceof Merchant ? $this->customerRepository->many()
+			->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = nxn.fk_customer')
+			->where('nxn.fk_merchant', $user) : $this->customerRepository->many()->where('fk_parentCustomer', $user->getPK());
+	}
+
 	public function getCatalogPermissionObject(): CatalogPermission|null
 	{
 		$customer = $this->getCustomer();
