@@ -50,5 +50,6 @@ class ProductsCachePresenter extends \Admin\BackendPresenter
 		]);
 
 		$this->flashMessage('Provedeno', 'success');
+		$this->redirect('this');
 	}
 }
