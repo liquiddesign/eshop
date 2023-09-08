@@ -227,12 +227,11 @@ class ProductsProvider
 
 	public function warmUpCacheTable(): void
 	{
-		$cacheIndexToBeWarmedUp = 1;
-//		$cacheIndexToBeWarmedUp = $this->getCacheIndexToBeWarmedUp();
+		$cacheIndexToBeWarmedUp = $this->getCacheIndexToBeWarmedUp();
 
-//		if ($cacheIndexToBeWarmedUp === 0) {
-//			return;
-//		}
+		if ($cacheIndexToBeWarmedUp === 0) {
+			return;
+		}
 
 		try {
 			$link = $this->connection->getLink();

@@ -1,0 +1,82 @@
+{varType Eshop\DB\ProductsCacheState[] $cacheStates}
+{define content}
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-1">
+                <div class="col-sm-6">
+                    <h1>Produktová cache</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{plink :Eshop:Admin:Dashboard:default}">Domů</a></li>
+                        {ifset $headerTree}
+                            {foreach $headerTree as $item}
+                                <li class="breadcrumb-item {if $iterator->isLast()}active{/if}">
+                                    {ifset $item[1]}
+                                        {ifset $item[2]}
+                                            <a href="{plink $item[1], $item[2]}">{$item[0]}</a>
+                                        {else}
+                                            <a href="{plink $item[1]}">{$item[0]}</a>
+                                        {/ifset}
+                                    {else}
+                                        {$item[0]}
+                                    {/ifset}
+                                </li>
+                            {/foreach}
+                        {/ifset}
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body p-3">
+                            {foreach $flashes as $message}
+                                <div class="alert alert-{$message->type} mt-4">{$message->message}</div>
+                            {/foreach}
+
+                            <span>
+                                Cache se aktualizuje 2x za hodinu v 10 a 40 minutě. V případě selhání cache se využije legacy řešení (pomalejší).<br>
+                                Načtení cache trvá ~2 minuty. Během této doby se využívá sekundární cache a zobrazování produktů není ovlivněno. Po dokončení načítání dojde k přepnutí na novou cache.
+                            </span>
+
+                            <hr>
+
+                            <table class="table table-sm table-striped">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Stav</th>
+                                    <th>Poslední načítání</th>
+                                    <th>Poslední připravenost</th>
+                                </tr>
+                                <tbody>
+                                    <tr n:foreach="$cacheStates as $cacheState">
+                                        <td>{$cacheState->getPK()}</td>
+                                        <td>{$cacheState->state}</td>
+                                        <td>{$cacheState->lastWarmUpTs}</td>
+                                        <td>{$cacheState->lastReadyTs}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <hr>
+
+                            <span>
+                                Načtení cache spustí kompletní vytváření produktové cache. Tato operace může trvat až 2 minuty a během této doby vám prohlížeč <b>zamezí</b> přístup k eshop! Ostatní uživatelé nebudou ovlivněni.<br>
+                                Pokud spustíte načítání během automatického načítání, nedojde k žádným změnám.
+                            </span>
+
+                            <br>
+
+                            <a n:href="warmUpCache!" onclick='return confirm("Opravdu?")' class="btn btn-warning mt-2">Spustit načítání cache ručně</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{/define}
