@@ -186,7 +186,7 @@ class ProductList extends Datalist
 			return $this->itemsOnPage;
 		}
 
-		\Tracy\Debugger::timer();
+		\Tracy\Debugger::timer('getProductsFromCacheTable');
 
 		try {
 			$cachedProducts = $this->productsProvider->getProductsFromCacheTable(
@@ -203,7 +203,7 @@ class ProductList extends Datalist
 			$cachedProducts = false;
 		}
 
-		\Tracy\Debugger::barDump(\Tracy\Debugger::timer(), 'cacheProducts');
+		\Tracy\Debugger::barDump(\Tracy\Debugger::timer('getProductsFromCacheTable'), 'cacheProducts');
 		\Tracy\Debugger::barDump($cachedProducts);
 
 		/** @var \StORM\Collection<\Eshop\DB\Product> $source */

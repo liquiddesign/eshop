@@ -16,7 +16,7 @@ class DevelTools
 	public static function getCurrentMemoryUsage(): string
 	{
 		$unit = ['b', 'kb', 'mb', 'gb', 'tb', 'pb'];
-		$size = \memory_get_usage(true);
+		$size = \memory_get_usage();
 
 		return \round($size / \pow(1024, ($i = \floor(\log($size, 1024)))), 2) . ' ' . $unit[$i];
 	}

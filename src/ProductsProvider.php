@@ -227,25 +227,37 @@ class ProductsProvider
 
 	public function warmUpCacheTable(): void
 	{
-		$cacheIndexToBeWarmedUp = $this->getCacheIndexToBeWarmedUp();
+		$cacheIndexToBeWarmedUp = 1;
+//		$cacheIndexToBeWarmedUp = $this->getCacheIndexToBeWarmedUp();
 
-		if ($cacheIndexToBeWarmedUp === 0) {
-			return;
-		}
+//		if ($cacheIndexToBeWarmedUp === 0) {
+//			return;
+//		}
 
 		try {
-			Debugger::timer();
-
 			$link = $this->connection->getLink();
 			$mutationSuffix = $this->connection->getMutationSuffix();
 
 			$this->markCacheAsWarming($cacheIndexToBeWarmedUp);
 
-			$allCategories = $this->categoryRepository->many()->select(['this.id'])->toArray();
+			/** @var array<object{id: int, ancestor: string}> $allCategories */
+			$allCategories = $this->categoryRepository->many()->setSelect(['this.id', 'ancestor' => 'this.fk_ancestor'], keepIndex: true)->fetchArray(\stdClass::class);
+
+			Debugger::timer();
 
 			foreach ($allCategories as $category) {
+				$categoryTableExists = $link->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$category->id';")
+					->fetchColumn();
+
+				if ($categoryTableExists <= 0) {
+					continue;
+				}
+
 				$link->exec("DROP TABLE IF EXISTS `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$category->id`");
 			}
+
+			Debugger::dump('drop category tables');
+			Debugger::dump(Debugger::timer());
 
 			$productsCacheTableName = "eshop_products_cache_$cacheIndexToBeWarmedUp";
 
@@ -299,18 +311,38 @@ CREATE TABLE `$productsCacheTableName` (
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVatBefore DOUBLE;");
 			}
 
-			Debugger::dump('drop/create tables');
+			Debugger::dump('drop/create main table');
 			Debugger::dump(Debugger::timer());
 
-			$allPrices = $this->priceRepository->many()->select(['fkPriceList' => 'this.fk_pricelist'])->fetchArray(\stdClass::class);
-			$allVisibilityListItems = $this->visibilityListItemRepository->many()->select(['fkVisibilityList' => 'this.fk_visibilityList'])->fetchArray(\stdClass::class);
+			$allPrices = $this->priceRepository->many()
+				->join(['pricelist' => 'eshop_pricelist'], 'this.fk_pricelist = pricelist.uuid')
+				->setSelect([
+					'this.price',
+					'this.priceVat',
+					'this.priceBefore',
+					'this.priceVatBefore',
+					'priceListId' => 'pricelist.id',
+				], keepIndex: true)->fetchArray(\stdClass::class);
+
+			$allVisibilityListItems = $this->visibilityListItemRepository->many()
+				->join(['visibilityList' => 'eshop_visibilitylist'], 'this.fk_visibilityList = visibilityList.uuid')
+				->setSelect([
+					'this.hidden',
+					'this.hiddenInMenu',
+					'this.priority',
+					'this.unavailable',
+					'this.recommended',
+					'visibilityListId' => 'visibilityList.id',
+				], keepIndex: true)->fetchArray(\stdClass::class);
+
 			$allDisplayAmounts = $this->displayAmountRepository->many()->setIndex('id')->fetchArray(\stdClass::class);
+
+			Debugger::dump('load entities');
+			Debugger::dump(Debugger::timer());
+
 			$allCategoriesByCategory = [];
 
 			$this->connection->getLink()->exec('SET SESSION group_concat_max_len=4294967295');
-
-			$productsByCategories = [];
-			$products = [];
 
 			$productsCollection = $this->productRepository->many()
 			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product', type: 'INNER')
@@ -343,10 +375,9 @@ CREATE TABLE `$productsCacheTableName` (
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
 			->setGroupBy(['this.id']);
 
-			Debugger::dump('load entities');
-			Debugger::dump(Debugger::timer());
-
-			$link->beginTransaction();
+			$products = [];
+			$productsByCategories = [];
+			$i = 0;
 
 			while ($product = $productsCollection->fetch(\stdClass::class)) {
 				/** @var \stdClass $product */
@@ -411,11 +442,11 @@ CREATE TABLE `$productsCacheTableName` (
 					foreach ($visibilityListItems as $visibilityListItem) {
 						$visibilityListItem = $allVisibilityListItems[$visibilityListItem];
 
-						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->fk_visibilityList]->id}_hidden"] = $visibilityListItem->hidden;
-						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->fk_visibilityList]->id}_hiddenInMenu"] = $visibilityListItem->hiddenInMenu;
-						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->fk_visibilityList]->id}_priority"] = $visibilityListItem->priority;
-						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->fk_visibilityList]->id}_unavailable"] = $visibilityListItem->unavailable;
-						$products[$product->id]["visibilityList_{$allVisibilityLists[$visibilityListItem->fk_visibilityList]->id}_recommended"] = $visibilityListItem->recommended;
+						$products[$product->id]["visibilityList_{$visibilityListItem->visibilityListId}_hidden"] = $visibilityListItem->hidden;
+						$products[$product->id]["visibilityList_{$visibilityListItem->visibilityListId}_hiddenInMenu"] = $visibilityListItem->hiddenInMenu;
+						$products[$product->id]["visibilityList_{$visibilityListItem->visibilityListId}_priority"] = $visibilityListItem->priority;
+						$products[$product->id]["visibilityList_{$visibilityListItem->visibilityListId}_unavailable"] = $visibilityListItem->unavailable;
+						$products[$product->id]["visibilityList_{$visibilityListItem->visibilityListId}_recommended"] = $visibilityListItem->recommended;
 					}
 				}
 
@@ -424,26 +455,32 @@ CREATE TABLE `$productsCacheTableName` (
 				foreach ($prices as $price) {
 					$price = $allPrices[$price];
 
-					$products[$product->id]["priceList_{$allPriceLists[$price->fk_pricelist]->id}_price"] = $price->price;
-					$products[$product->id]["priceList_{$allPriceLists[$price->fk_pricelist]->id}_priceVat"] = $price->priceVat;
-					$products[$product->id]["priceList_{$allPriceLists[$price->fk_pricelist]->id}_priceBefore"] = $price->priceBefore;
-					$products[$product->id]["priceList_{$allPriceLists[$price->fk_pricelist]->id}_priceVatBefore"] = $price->priceVatBefore;
+					$products[$product->id]["priceList_{$price->priceListId}_price"] = $price->price;
+					$products[$product->id]["priceList_{$price->priceListId}_priceVat"] = $price->priceVat;
+					$products[$product->id]["priceList_{$price->priceListId}_priceBefore"] = $price->priceBefore;
+					$products[$product->id]["priceList_{$price->priceListId}_priceVatBefore"] = $price->priceVatBefore;
 				}
 
 				$products[$product->id]['attributeValues'] = $product->attributeValuesPKs;
+
+				$i++;
+
+				if ($i !== 1000) {
+					continue;
+				}
+
+				$i = 0;
+
+				$this->connection->createRows("$productsCacheTableName", $products, chunkSize: 1000);
+				$products = [];
 			}
 
+			$this->connection->createRows("$productsCacheTableName", $products);
+			unset($products);
+
+			$productsCollection->__destruct();
+
 			Debugger::dump('main loop');
-			Debugger::dump(Debugger::timer());
-
-			$this->connection->createRows("$productsCacheTableName", $products, chunkSize: 10000);
-
-			Debugger::dump('insert products');
-			Debugger::dump(Debugger::timer());
-
-			$link->commit();
-
-			Debugger::dump('commit transaction');
 			Debugger::dump(Debugger::timer());
 
 			foreach ($productsByCategories as $category => $products) {
@@ -995,14 +1032,14 @@ CREATE TABLE `$productsCacheTableName` (
 
 	/**
 	 * @param string $category
-	 * @param array<\Eshop\DB\Category> $allCategories
+	 * @param array<object{ancestor: string}> $allCategories
 	 * @return array<string>
 	 */
 	protected function getAncestorsOfCategory(string $category, array $allCategories): array
 	{
 		$categories = [];
 
-		while ($ancestor = $allCategories[$category]->getValue('ancestor')) {
+		while ($ancestor = $allCategories[$category]->ancestor) {
 			$categories[] = $ancestor;
 			$category = $ancestor;
 		}
