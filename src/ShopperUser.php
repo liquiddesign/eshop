@@ -548,6 +548,10 @@ class ShopperUser extends User
 	{
 		$user = $this->getMerchant() ?? $this->getCustomer();
 
+		if (!$user) {
+			return $this->customerRepository->many()->where('1=0');
+		}
+
 		return $user instanceof Merchant ? $this->customerRepository->many()
 			->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = nxn.fk_customer')
 			->where('nxn.fk_merchant', $user) : $this->customerRepository->many()->where('fk_parentCustomer', $user->getPK());
