@@ -30,6 +30,8 @@ use Web\DB\SettingRepository;
 
 class ProductsProvider
 {
+	public const PRODUCTS_PROVIDER_CACHE_TAG = 'productsProviderCache';
+
 	/**
 	 * Also hard-coded: category, pricelist
 	 * @var array<string>

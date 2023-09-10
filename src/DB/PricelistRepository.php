@@ -47,6 +47,13 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		return $collection->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
 	}
 
+	/**
+	 * @param \Eshop\DB\Customer $customer
+	 * @param \Eshop\DB\Currency $currency
+	 * @param \Eshop\DB\Country $country
+	 * @param \Eshop\DB\DiscountCoupon|null $activeCoupon
+	 * @return \StORM\Collection<\Eshop\DB\Pricelist>
+	 */
 	public function getCustomerPricelists(Customer $customer, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
 	{
 		$collection = $this->many()

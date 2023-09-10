@@ -10,7 +10,7 @@ use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\DI\Attributes\Inject;
 
-class ProductsCachePresenter extends \Admin\BackendPresenter
+class ProductsCachePresenter extends \Eshop\BackendPresenter
 {
 	#[Inject]
 	public Storage $storage;
