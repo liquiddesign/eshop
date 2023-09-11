@@ -79,6 +79,11 @@ class ProductsProvider
 	 */
 	protected array $allowedCollectionOrderExpressions = [];
 
+	/**
+	 * @var array<mixed>
+	 */
+	protected array $dataCache = [];
+
 	protected Cache $cache;
 
 	public function __construct(
@@ -235,6 +240,8 @@ class ProductsProvider
 			return;
 		}
 
+		$this->cleanCache();
+
 		try {
 			$link = $this->connection->getLink();
 			$mutationSuffix = $this->connection->getMutationSuffix();
@@ -256,9 +263,6 @@ class ProductsProvider
 
 				$link->exec("DROP TABLE IF EXISTS `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$category->id`");
 			}
-
-			Debugger::dump('drop category tables');
-			Debugger::dump(Debugger::timer());
 
 			$productsCacheTableName = "eshop_products_cache_$cacheIndexToBeWarmedUp";
 
@@ -312,9 +316,6 @@ CREATE TABLE `$productsCacheTableName` (
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVatBefore DOUBLE;");
 			}
 
-			Debugger::dump('drop/create main table');
-			Debugger::dump(Debugger::timer());
-
 			$allPrices = $this->priceRepository->many()
 				->join(['pricelist' => 'eshop_pricelist'], 'this.fk_pricelist = pricelist.uuid')
 				->setSelect([
@@ -337,9 +338,6 @@ CREATE TABLE `$productsCacheTableName` (
 				], keepIndex: true)->fetchArray(\stdClass::class);
 
 			$allDisplayAmounts = $this->displayAmountRepository->many()->setIndex('id')->fetchArray(\stdClass::class);
-
-			Debugger::dump('load entities');
-			Debugger::dump(Debugger::timer());
 
 			$allCategoriesByCategory = [];
 
@@ -481,9 +479,6 @@ CREATE TABLE `$productsCacheTableName` (
 
 			$productsCollection->__destruct();
 
-			Debugger::dump('main loop');
-			Debugger::dump(Debugger::timer());
-
 			foreach ($productsByCategories as $category => $products) {
 				$categoryId = $allCategories[$category]->id;
 
@@ -502,10 +497,8 @@ CREATE TABLE `$productsCacheTableName` (
 				$this->connection->createRows("eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId", $newRows);
 			}
 
-			Debugger::dump('create/insert categories tables');
-			Debugger::dump(Debugger::timer());
-
 			$this->markCacheAsReady($cacheIndexToBeWarmedUp);
+			$this->cleanCache();
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::EXCEPTION);
 			Debugger::dump($e);
@@ -546,6 +539,16 @@ CREATE TABLE `$productsCacheTableName` (
 			return false;
 		}
 
+		$dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
+
+		$cachedData = $this->cache->load($dataCacheIndex, dependencies: [
+			Cache::Tags => [self::PRODUCTS_PROVIDER_CACHE_TAG],
+		]);
+
+		if ($cachedData) {
+			return $cachedData;
+		}
+
 		$emptyResult = [
 			'productPKs' => [],
 			'attributeValuesCounts' => [],
@@ -567,6 +570,8 @@ CREATE TABLE `$productsCacheTableName` (
 				->fetchColumn();
 
 			if ($categoryTableExists === 0) {
+				$this->saveDataCacheIndex($dataCacheIndex, $emptyResult);
+
 				return $emptyResult;
 			}
 		}
@@ -912,7 +917,7 @@ CREATE TABLE `$productsCacheTableName` (
 			unset($attributeValuesCounts[$attributeValueId]);
 		}
 
-		return [
+		$result = [
 			'productPKs' => $productPKs,
 			'attributeValuesCounts' => $attributeValuesCounts,
 			'displayAmountsCounts' => $displayAmountsCounts,
@@ -923,6 +928,15 @@ CREATE TABLE `$productsCacheTableName` (
 			'priceVatMin' => $priceVatMin < \PHP_FLOAT_MAX ? \floor($priceVatMin) : 0,
 			'priceVatMax' => $priceVatMax > \PHP_FLOAT_MIN ? \ceil($priceVatMax) : 0,
 		];
+
+		$this->saveDataCacheIndex($dataCacheIndex, $result);
+
+		return $result;
+	}
+
+	public function cleanCache(): void
+	{
+		$this->cache->clean([Cache::Tags => [self::PRODUCTS_PROVIDER_CACHE_TAG]]);
 	}
 
 	protected function resetHangingStateOfCache(int $id): void
@@ -1056,5 +1070,12 @@ CREATE TABLE `$productsCacheTableName` (
 		return $values ? ('COALESCE(' . \implode(',', \array_map(function (mixed $item) use ($prefix, $suffix, $separator): string {
 				return $prefix . ($prefix ? $separator : '') . $item->id . ($suffix ? $separator : '') . $suffix;
 		}, $values)) . ')') : 'NULL';
+	}
+
+	protected function saveDataCacheIndex(string $index, array $data): void
+	{
+		$this->cache->save($index, $data, [
+			Cache::Tags => [self::PRODUCTS_PROVIDER_CACHE_TAG],
+		]);
 	}
 }
