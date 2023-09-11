@@ -211,11 +211,18 @@ class Category extends SystemicEntity
 		return Strings::substring($this->path, 0, 4 * ($level + 1));
 	}
 
-	public function getProductCount(): ?int
+	/**
+	 * @param array<mixed> $filters
+	 * @param array<string, string>|array<string, \Eshop\DB\Pricelist> $priceLists
+	 * @param array<string, string>|array<string, \Eshop\DB\VisibilityList> $visibilityLists
+	 * @throws \StORM\Exception\NotFoundException
+	 * @throws \Throwable
+	 */
+	public function getProductCount(array $filters = [], array $priceLists = [], array $visibilityLists = []): int|null
 	{
 		/** @var \Eshop\DB\CategoryRepository $repository */
 		$repository = $this->getRepository();
 
-		return $repository->getCounts($this->path);
+		return $repository->getCounts($this->path, $filters, $priceLists, $visibilityLists);
 	}
 }

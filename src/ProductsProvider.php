@@ -4,6 +4,7 @@ namespace Eshop;
 
 use Base\ShopsConfig;
 use Carbon\Carbon;
+use Eshop\Admin\SettingsPresenter;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
@@ -561,7 +562,14 @@ CREATE TABLE `$productsCacheTableName` (
 			'priceVatMax' => 0,
 		];
 
-		$category = isset($filters['category']) ? $this->categoryRepository->many()->setSelect(['this.id'])->where('this.path', $filters['category'])->first(true) : null;
+		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
+			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
+			'main';
+
+		$category = isset($filters['category']) ?
+			$this->categoryRepository->many()->setSelect(['this.id'])->where('this.path', $filters['category'])->where('this.fk_type', $mainCategoryType)->first(true) :
+			null;
+
 		unset($filters['category']);
 
 		if ($category) {
@@ -1068,7 +1076,7 @@ CREATE TABLE `$productsCacheTableName` (
 	protected function createCoalesceFromArray(array $values, string|null $prefix = null, string|null $suffix = null, string $separator = '_'): string
 	{
 		return $values ? ('COALESCE(' . \implode(',', \array_map(function (mixed $item) use ($prefix, $suffix, $separator): string {
-				return $prefix . ($prefix ? $separator : '') . $item->id . ($suffix ? $separator : '') . $suffix;
+			return $prefix . ($prefix ? $separator : '') . $item->id . ($suffix ? $separator : '') . $suffix;
 		}, $values)) . ')') : 'NULL';
 	}
 

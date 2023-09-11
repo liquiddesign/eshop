@@ -193,7 +193,7 @@ class ProductList extends Datalist
 				$this->getFilters(),
 				$this->getOrder(),
 				$this->getDirection(),
-				$this->shopperUser->getPricelists()->select(['this.id'])->toArray(),
+				$this->shopperUser->getPricelists()->toArray(),
 				$this->shopperUser->getVisibilityLists(),
 			);
 		} catch (\Throwable $e) {

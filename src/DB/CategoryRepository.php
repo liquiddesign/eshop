@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
+use Eshop\Admin\SettingsPresenter;
+use Eshop\ProductsProvider;
 use Eshop\ShopperUser;
 use Latte\Loaders\StringLoader;
 use Latte\Sandbox\SecurityPolicy;
@@ -14,7 +17,7 @@ use Nette\Bridges\ApplicationLatte\LatteFactory;
 use Nette\Bridges\ApplicationLatte\UIExtension;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
-use Nette\Utils\Arrays;
+use Nette\DI\Container;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use Pages\Helpers;
@@ -23,6 +26,7 @@ use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
 use Web\DB\PageRepository;
+use Web\DB\SettingRepository;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Category>
@@ -39,51 +43,65 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	public function __construct(
 		protected DIConnection $connection,
 		protected SchemaManager $schemaManager,
-		private readonly ShopperUser $shopperUser,
+		protected readonly PageRepository $pageRepository,
+		protected readonly ProducerRepository $producerRepository,
+		protected readonly ProductRepository $productRepository,
+		protected readonly ShopperUser $shopperUser,
+		protected readonly LatteFactory $latteFactory,
+		protected readonly ShopsConfig $shopsConfig,
+		protected readonly SettingRepository $settingRepository,
+		protected readonly Container $container,
 		Storage $storage,
-		private readonly PageRepository $pageRepository,
-		private readonly ProducerRepository $producerRepository,
-		private readonly ProductRepository $productRepository,
-		private readonly LatteFactory $latteFactory,
 		/** @var array<int> */
-		private readonly array $preloadCategoryCounts = []
+		protected readonly array $preloadCategoryCounts = []
 	) {
 		parent::__construct($connection, $schemaManager);
 
 		$this->cache = new Cache($storage);
 	}
 
-	public function getCounts(string $path): ?int
+	/**
+	 * @param string $path
+	 * @param array<mixed> $filters
+	 * @param array<string, string>|array<string, \Eshop\DB\Pricelist> $priceLists
+	 * @param array<string, string>|array<string, \Eshop\DB\VisibilityList> $visibilityLists
+	 * @throws \StORM\Exception\NotFoundException
+	 * @throws \Throwable
+	 */
+	public function getCounts(string $path, array $filters = [], array $priceLists = [], array $visibilityLists = []): int|null
 	{
-		$levels = $this->preloadCategoryCounts;
-		$stm = $this->connection;
-		$productRepository = $this->productRepository;
-		
-		if (!Arrays::contains($levels, Strings::length($path) / 4)) {
+		$productsProvider = $this->container->getByType(ProductsProvider::class);
+
+		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
+			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
+			'main';
+
+		$category = $this->many()->where('this.path', $path)->where('this.fk_type', $mainCategoryType)->first();
+
+		if (!$category) {
 			return null;
 		}
+
+		$filters['category'] = $path;
+
+		$priceLists = $priceLists ?: $this->shopperUser->getPricelists()->toArray();
+		$visibilityLists = $visibilityLists ?: $this->shopperUser->getVisibilityLists();
+
+		$cacheIndex = \serialize($filters) . \serialize(\array_keys($priceLists)) . \serialize(\array_keys($visibilityLists)) . $path;
 		
-		$result = $this->cache->load($this->shopperUser->getPriceCacheIndex('categories'), static function (&$dependencies) use ($stm, $productRepository, $levels) {
+		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($productsProvider, $filters, $priceLists, $visibilityLists) {
 			$dependencies = [
-				Cache::TAGS => ['categories', 'products', 'pricelists'],
+				Cache::Tags => ['categories', 'products', 'pricelists', ProductsProvider::PRODUCTS_PROVIDER_CACHE_TAG],
 			];
-			$result = [];
-			
-			foreach ($levels as $level) {
-				$rows = $stm->rows(['nxn' => 'eshop_product_nxn_eshop_category'], ['uuid' => 'nxn.fk_category', 'path' => 'category.path', 'total' => 'COUNT(DISTINCT nxn.fk_product)'])
-					->join(['this' => 'eshop_product'], 'this.uuid=nxn.fk_product')
-					->join(['category' => 'eshop_category'], 'category.uuid=nxn.fk_category')
-					->setGroupBy(['SUBSTR(category.path,1,:level)'], null, ['level' => $level * 4]);
-				$productRepository->setProductsConditions($rows, false);
-				$productRepository->joinVisibilityListItemToProductCollection($rows);
-				
-				$result += $rows->setIndex('SUBSTR(category.path,1,:level)')->toArrayOf('total');
-			}
-			
-			return $result;
+
+			$result = $productsProvider->getProductsFromCacheTable(
+				$filters,
+				priceLists: $priceLists,
+				visibilityLists: $visibilityLists,
+			);
+
+			return \count($result['productPKs']);
 		});
-		
-		return (int) ($result[$path] ?? 0);
 	}
 
 	/**
