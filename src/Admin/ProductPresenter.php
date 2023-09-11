@@ -62,7 +62,7 @@ use Web\DB\SettingRepository;
 
 class ProductPresenter extends BackendPresenter
 {
-	protected const CONFIGURATION = [
+	public const CONFIGURATION = [
 		'relations' => true,
 		'taxes' => true,
 		'suppliers' => true,
