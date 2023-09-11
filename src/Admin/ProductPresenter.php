@@ -84,6 +84,7 @@ class ProductPresenter extends BackendPresenter
 			'content' => 'Obsah',
 			'storeAmount' => 'Skladová dostupnost',
 			'categories' => 'Kategorie',
+			'primaryCategories' => 'Primární kategorie',
 			'adminUrl' => 'Admin URL',
 			'frontUrl' => 'Front URL',
 			'mergedProducts' => 'Sloučené produkty',
@@ -1301,9 +1302,12 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 
 		return $this->productExporter->createForm(
 			$productGrid,
-			$this::CONFIGURATION['exportColumns'],
-			$this::CONFIGURATION['defaultExportColumns'],
-			$this::CONFIGURATION['exportAttributes'],
+			/** @phpstan-ignore-next-line */
+			$this::CONFIGURATION['exportColumns'] ?? self::CONFIGURATION['exportColumns'] ?? [],
+			/** @phpstan-ignore-next-line */
+			$this::CONFIGURATION['defaultExportColumns'] ?? self::CONFIGURATION['defaultExportColumns'] ?? [],
+			/** @phpstan-ignore-next-line */
+			$this::CONFIGURATION['exportAttributes'] ?? self::CONFIGURATION['exportAttributes'] ?? [],
 			$this->getCsvExportGetSupplierCodeCallback(),
 		);
 	}

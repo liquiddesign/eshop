@@ -266,10 +266,12 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 			->join(['categoryAssign' => 'eshop_product_nxn_eshop_category'], 'this.uuid = categoryAssign.fk_product')
 			->join(['masterProduct' => 'eshop_product'], 'this.fk_masterProduct = masterProduct.uuid')
 			->join(['productContent' => 'eshop_productcontent'], 'this.uuid = productContent.fk_product')
+			->join(['primaryCategory' => 'eshop_productprimarycategory'], 'this.uuid = primaryCategory.fk_product')
 			->select([
 				'producerCodeName' => "CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, ''))",
 				'amounts' => "GROUP_CONCAT(DISTINCT CONCAT(storeAmount.inStock, '#', store.code) SEPARATOR ':')",
 				'groupedCategories' => 'GROUP_CONCAT(DISTINCT CONCAT(categoryAssign.fk_category))',
+				'groupedPrimaryCategories' => 'GROUP_CONCAT(DISTINCT CONCAT(primaryCategory.fk_category))',
 				'masterProductCode' => 'masterProduct.code',
 				'content' => "productContent.content$mutationSuffix",
 				'perex' => "productContent.perex$mutationSuffix",
@@ -332,6 +334,23 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 					}
 
 					$categories = \explode(',', $product->groupedCategories);
+					$categoriesString = null;
+
+					foreach ($categories as $categoryPK) {
+						$category = $allCategories[$categoryPK];
+
+						$categoriesString .= "$category->code#{$category->getValue('type')},";
+					}
+
+					$row[] = $categoriesString;
+				} elseif ($columnKey === 'primaryCategories') {
+					if (!$product->groupedPrimaryCategories) {
+						$row[] = null;
+
+						continue;
+					}
+
+					$categories = \explode(',', $product->groupedPrimaryCategories);
 					$categoriesString = null;
 
 					foreach ($categories as $categoryPK) {
