@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.23] - 2023-09-12
+
+### Added
+- ProductExporter, ProductImporter
+  - Added support for PrimaryCategory import/export in same format as Category 
+  - **BREAKING:** Import: Removed handling of primary categories in regard to categories column. Primary categories are not anymore checked. Fixes are handled by CRON job.
+
 ## [2.1.22] - 2023-09-11
 
 ### Changed

@@ -92,17 +92,9 @@ class ProductImporter
 
 		$categoriesCollection->__destruct();
 
-		/** @var array<array<\Eshop\DB\ProductPrimaryCategory>> $productsPrimaryCategories */
-		$productsPrimaryCategories = [];
-		$productsPrimaryCategoriesCollection = $this->productPrimaryCategoryRepository->many();
-
-		while ($tempProductPrimaryCategory = $productsPrimaryCategoriesCollection->fetch()) {
-			$productsPrimaryCategories[$tempProductPrimaryCategory->getValue('product')][$tempProductPrimaryCategory->getValue('categoryType')] = $tempProductPrimaryCategory;
-		}
-
-		$productsPrimaryCategoriesCollection->__destruct();
-
 		$productsToDeleteCategories = [];
+		$productsToDeletePrimaryCategories = [];
+		$productPrimaryCategoriesToSync = [];
 
 		$products = $this->productRepository->many()->setSelect([
 			'uuid',
@@ -417,15 +409,34 @@ class ProductImporter
 					if (isset($newValues['categories'])) {
 						$valuesToUpdate[$product->uuid]['categories'] = $newValues['categories'];
 					}
+				} elseif ($key === 'primaryCategories' || $key === 'Primární kategorie') {
+					$productsToDeletePrimaryCategories[] = $product->uuid;
+					$valueCategories = \explode(',', $value);
 
-					foreach ($productsPrimaryCategories[$product->uuid] ?? [] as $categoryType => $primaryCategory) {
-						if (!Arrays::contains($newValues['categories'] ?? [], $primaryCategory)) {
-							$this->productPrimaryCategoryRepository->many()
-								->where('fk_product', $product->uuid)
-								->where('fk_category', $primaryCategory)->delete();
+					foreach ($valueCategories as $categoryValue) {
+						$categoryValue = \explode('#', $categoryValue);
 
-							unset($productsPrimaryCategories[$product->uuid][$categoryType]);
+						if (\count($categoryValue) !== 2) {
+							continue;
 						}
+
+						[$category, $categoryType] = $categoryValue;
+
+						if (!isset($categories[$categoryType][$category])) {
+							continue;
+						}
+
+						$category = $categories[$categoryType][$category];
+
+						$productPrimaryCategoriesToSync[] = [
+							'category' => $category->uuid,
+							'categoryType' => $categoryType,
+							'product' => $product->uuid,
+						];
+					}
+
+					if (isset($newValues['primaryCategories'])) {
+						$valuesToUpdate[$product->uuid]['primaryCategories'] = $newValues['primaryCategories'];
 					}
 				}
 			}
@@ -440,8 +451,6 @@ class ProductImporter
 					] + $data, ignore: false);
 				}
 			}
-
-//			$this->visibilityListItemRepository->syncMany($relatedToSync['visibility']);
 
 			if (!$updateAttributes) {
 				continue;
@@ -531,13 +540,20 @@ class ProductImporter
 			}
 		}
 
-		foreach (\array_chunk($productsToDeleteCategories, 100) as $categories) {
+		foreach (\array_chunk($productsToDeleteCategories, 1000) as $products) {
 			$this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
-				->where('fk_product', $categories)
+				->where('fk_product', $products)
+				->delete();
+		}
+
+		foreach (\array_chunk($productsToDeletePrimaryCategories, 1000) as $products) {
+			$this->productPrimaryCategoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
+				->where('fk_product', $products)
 				->delete();
 		}
 
 		$this->attributeAssignRepository->syncMany($attributeAssignsToSync);
+		$this->productPrimaryCategoryRepository->syncMany($productPrimaryCategoriesToSync);
 		$this->productRepository->syncMany($valuesToUpdate);
 		$this->amountRepository->syncMany($amountsToUpdate);
 
