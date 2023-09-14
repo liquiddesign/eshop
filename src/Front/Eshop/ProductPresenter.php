@@ -161,7 +161,10 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 		$this->template->content = null;
 		$this->template->categories = [];
 		$this->template->breadcrumb = [];
-		
+
+		/** @var \Web\Controls\Breadcrumb $breadcrumb */
+		$breadcrumb = $this['breadcrumb'];
+
 		if ($this->category) {
 			$this->template->categories = $categories
 				->where('path LIKE :path', ['path' => $this->category->path . '%'])
@@ -175,9 +178,8 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 
 			foreach ($this->category->getFamilyTree() as $branchId => $branch) {
 				/** @var \Eshop\DB\Category $branch */
-				$this->template->breadcrumb[] = (object) [
-					'name' => $branch->name,
-					'link' => $branchId !== $this->category->getPK() ? $this->link('list', ['category' => $branchId]) : null];
+
+				$breadcrumb->addItem($branch->name, $branchId !== $this->category->getPK() ? $this->link('list', ['category' => $branchId]) : null);
 			}
 		}
 		
