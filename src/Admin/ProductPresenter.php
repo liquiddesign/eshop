@@ -2168,12 +2168,20 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 						}
 
 						if (!isset($groupedAttributeValues[$key][$attributeValue->uuid])) {
-							$groupedAttributeValues[$key][$attributeValue->uuid] = (object) [
+							$label = $attributeValue instanceof AttributeValue ? $attributeValue->getValue('label', $mutation) : $attributeValue->label;
+							$labels = [];
+
+							foreach ($mutations as $suffix) {
+								$labels["label$suffix"] = $label;
+							}
+
+							$groupedAttributeValues[$key][$attributeValue->uuid] = (object) ([
 								'uuid' => $attributeValue->uuid,
-								'label' => $attributeValue instanceof AttributeValue ? $attributeValue->getValue('label', $mutation) : $attributeValue->label,
 								'code' => $attributeValue->code,
 								'attribute' => $attributeValue instanceof AttributeValue ? $attributeValue->getValue('attribute') : $attributeValue->attribute,
-							];
+							] + $labels);
+
+							unset($labels);
 						}
 					}
 
