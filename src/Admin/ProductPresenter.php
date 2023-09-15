@@ -2081,7 +2081,7 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 
 					$newValues['code'] = $code;
 
-					$this->productRepository->createOne($newValues);
+					$product = $this->productRepository->createOne($newValues);
 				}
 			} catch (\Exception $e) {
 				throw new \Exception('Chyba při zpracování dat!');
