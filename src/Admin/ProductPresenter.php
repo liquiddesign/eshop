@@ -1775,7 +1775,6 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 		$reader->setHeaderOffset(0);
 		$mutation = $this->productRepository->getConnection()->getMutation();
 		$mutations = $this->productRepository->getConnection()->getAvailableMutations();
-		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
 
 		$producers = $this->producerRepository->many()->setIndex('code')->toArrayOf('uuid');
 		$stores = $this->storeRepository->many()->setIndex('code')->toArrayOf('uuid');
@@ -1804,12 +1803,20 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 		$attributes = [];
 
 		$groupedAttributeValues = [];
+
+		$labelsSelect = [];
+
+		foreach ($mutations as $mutation => $suffix) {
+			$labelsSelect["label_$mutation"] = "label$suffix";
+		}
+
 		$attributeValues = $this->attributeValueRepository->many()->setSelect([
 			'uuid',
-			'label' => "label$mutationSuffix",
 			'code',
 			'attribute' => 'fk_attribute',
-		], [], true)->fetchArray(\stdClass::class);
+		] + $labelsSelect, [], true)->fetchArray(\stdClass::class);
+
+		unset($labelsSelect);
 
 		foreach ($attributeValues as $attributeValue) {
 			if (!isset($groupedAttributeValues[$attributeValue->attribute])) {
@@ -2123,19 +2130,29 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 
 					if (!$attributeValue) {
 						/** @var \stdClass|null|false|\Eshop\DB\AttributeValue $attributeValue */
-						$attributeValue = $this->arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode): bool {
-							return $x->label === $attributeValueCode;
+						$attributeValue = $this->arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode, $mutations): bool {
+							foreach ($mutations as $mutation) {
+								if ($x->{"label_$mutation"} === $attributeValueCode) {
+									return true;
+								}
+							}
+
+							return false;
 						});
 
 						$tried = 0;
 
 						while ($attributeValue === false || $attributeValue === null) {
 							try {
+								$labels = [];
+
+								foreach (\array_keys($mutations) as $mutation) {
+									$labels[$mutation] = $attributeValueCode;
+								}
+
 								$attributeValue = $this->attributeValueRepository->createOne([
 									'code' => Strings::webalize($attributeValueCode) . '-' . Random::generate(),
-									'label' => [
-										$mutation => $attributeValueCode,
-									],
+									'label' => $labels,
 									'attribute' => $key,
 								], false, true);
 
