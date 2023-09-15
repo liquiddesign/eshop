@@ -82,7 +82,7 @@ class AttributePresenter extends BackendPresenter
 		$this->template->headerLabel = 'Atributy';
 		$this->template->headerTree = [
 			['Atributy', 'this',],
-			[self::TABS[$this->tab]],
+			[$this::TABS[$this->tab]],
 		];
 
 		if ($this->tab === 'attributes') {
@@ -99,7 +99,7 @@ class AttributePresenter extends BackendPresenter
 			$this->template->displayControls = [$this->getComponent('groupsGrid')];
 		}
 
-		$this->template->tabs = self::TABS;
+		$this->template->tabs = $this::TABS;
 	}
 
 	public function createComponentAttributeGrid(): AdminGrid
