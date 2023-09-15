@@ -2131,8 +2131,8 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 					if (!$attributeValue) {
 						/** @var \stdClass|null|false|\Eshop\DB\AttributeValue $attributeValue */
 						$attributeValue = $this->arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode, $mutations): bool {
-							foreach ($mutations as $mutation) {
-								if ($x->{"label_$mutation"} === $attributeValueCode) {
+							foreach ($mutations as $suffix) {
+								if ($x->{"label$suffix"} === $attributeValueCode) {
 									return true;
 								}
 							}
