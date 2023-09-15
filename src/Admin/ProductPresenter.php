@@ -2027,6 +2027,10 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 
 						$newValues['categories'][] = $category;
 					}
+
+					if (isset($newValues['categories']) && $newValues['categories']) {
+						$newValues['primaryCategory'] = Arrays::last($newValues['categories']);
+					}
 				} elseif ($key === 'name' || $key === 'perex' || $key === 'content') {
 					$newValues[$key][$keyMutation] = $value;
 				} elseif ($key === 'priority') {
