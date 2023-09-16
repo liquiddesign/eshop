@@ -43,8 +43,9 @@
 		"soukicz/zbozicz": "^1.2",
 		"heureka/overeno-zakazniky": "^4.0",
 		"dfridrich/qr-platba": "^2.0",
-		"latte/latte": "^3.0"
-    },
+		"latte/latte": "^3.0",
+		"ext-pgsql": "*"
+	},
 	"minimum-stability": "dev",
 	"prefer-stable": true,
 	"require-dev": 
