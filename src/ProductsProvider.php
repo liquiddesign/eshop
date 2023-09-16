@@ -201,6 +201,13 @@ class ProductsProvider
 		};
 	}
 
+	public function __destruct()
+	{
+		if ($this->pgsqlConnection) {
+			\pg_close($this->pgsqlConnection);
+		}
+	}
+
 	public function addAllowedCollectionFilterColumn(string $name, string $column): void
 	{
 		$this->allowedCollectionFilterColumns[$name] = $column;
@@ -281,7 +288,7 @@ CREATE TABLE $productsCacheTableName (
   producer INTEGER,
   displayAmount INTEGER,
   displayDelivery INTEGER,
-  displayAmount_isSold BOOLEAN,
+  displayAmount_isSold INT2,
   attributeValues TEXT,
   name TEXT,
   code TEXT,
@@ -306,11 +313,11 @@ CREATE TABLE $productsCacheTableName (
 				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id} INTEGER DEFAULT('{$visibilityList->id}');");
 				\pg_query($postgres, "CREATE INDEX {$productsCacheTableName}_idx_visibilityList_{$visibilityList->id} ON $productsCacheTableName (visibilityList_{$visibilityList->id});");
 
-				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id}_hidden BOOLEAN;");
-				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id}_hiddenInMenu BOOLEAN;");
-				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id}_priority SMALLINT;");
-				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id}_unavailable BOOLEAN;");
-				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id}_recommended BOOLEAN;");
+				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id}_hidden INT2;");
+				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id}_hiddenInMenu INT2;");
+				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id}_priority INT2;");
+				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id}_unavailable INT2;");
+				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id}_recommended INT2;");
 
 				\pg_query(
 					$postgres,
@@ -595,6 +602,12 @@ ON DELETE CASCADE;");
 		array $priceLists = [],
 		array $visibilityLists = [],
 	): array|false {
+		$postgres = $this->initPgsqlConnection();
+
+		if (!$postgres) {
+			return false;
+		}
+
 		$cacheIndex = $this->getCacheIndexToBeUsed();
 
 		if ($cacheIndex === 0) {
@@ -634,11 +647,10 @@ ON DELETE CASCADE;");
 		unset($filters['category']);
 
 		if ($category) {
-			$categoryTableExists = $this->connection->getLink()
-				->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'eshop_categoryproducts_cache_{$cacheIndex}_$category->id';")
-				->fetchColumn();
+			$categoryTableExists = \pg_query($postgres, "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = 'eshop_categoryproducts_cache_{$cacheIndex}_$category->id';");
+			$categoryTableExists = \pg_fetch_assoc($categoryTableExists);
 
-			if ($categoryTableExists === 0) {
+			if ($categoryTableExists === false) {
 				$this->saveDataCacheIndex($dataCacheIndex, $emptyResult);
 
 				return $emptyResult;
@@ -780,8 +792,20 @@ ON DELETE CASCADE;");
 
 		$dynamicallyCountedDynamicFilters = [];
 
-		while ($product = $productsCollection->fetch()) {
-			$attributeValues = $product->attributeValues ? \array_flip(\explode(',', $product->attributeValues)) : [];
+		$sql = $productsCollection->getSql();
+		$vars = [];
+		$i = 1;
+
+		foreach ($productsCollection->getVars() as $varKey => $varValue) {
+			$sql = \str_replace(":$varKey", "$$i", $sql);
+			$i++;
+			$vars[] = $varValue;
+		}
+
+		$productsPgsqlQuery = \pg_query_params($postgres, $sql, $vars);
+
+		while ($product = \pg_fetch_object($productsPgsqlQuery)) {
+			$attributeValues = $product->attributevalues ? \array_flip(\explode(',', $product->attributevalues)) : [];
 
 			foreach ($dynamicFiltersAttributes as $attributePK => $attributeValuesPKs) {
 				if (\count($attributeValuesPKs) === 0) {
@@ -859,8 +883,8 @@ ON DELETE CASCADE;");
 						$priceMin = $product->price;
 					}
 
-					if ($product->priceVat < $priceVatMin) {
-						$priceVatMin = $product->priceVat;
+					if ($product->pricevat < $priceVatMin) {
+						$priceVatMin = $product->pricevat;
 					}
 				}
 
@@ -871,21 +895,21 @@ ON DELETE CASCADE;");
 						$priceMax = $product->price;
 					}
 
-					if ($product->priceVat > $priceVatMax) {
-						$priceVatMax = $product->priceVat;
+					if ($product->pricevat > $priceVatMax) {
+						$priceVatMax = $product->pricevat;
 					}
 				}
 
 				if ($filter === 'systemicAttributes.availability' && $product->displayAmount) {
 					$dynamicallyCountedDynamicFilters[$filter] = true;
 
-					$displayAmountsCounts[$product->displayAmount] = ($displayAmountsCounts[$product->displayAmount] ?? 0) + 1;
+					$displayAmountsCounts[$product->displayamount] = ($displayAmountsCounts[$product->displayamount] ?? 0) + 1;
 				}
 
-				if ($filter === 'systemicAttributes.delivery' && $product->displayDelivery) {
+				if ($filter === 'systemicAttributes.delivery' && $product->displaydelivery) {
 					$dynamicallyCountedDynamicFilters[$filter] = true;
 
-					$displayDeliveriesCounts[$product->displayDelivery] = ($displayDeliveriesCounts[$product->displayAmount] ?? 0) + 1;
+					$displayDeliveriesCounts[$product->displaydelivery] = ($displayDeliveriesCounts[$product->displaydelivery] ?? 0) + 1;
 				}
 
 				if ($filter !== 'systemicAttributes.producer' || !$product->producer) {
@@ -919,12 +943,12 @@ ON DELETE CASCADE;");
 				}
 			}
 
-			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.availability']) && $product->displayAmount) {
-				$displayAmountsCounts[$product->displayAmount] = ($displayAmountsCounts[$product->displayAmount] ?? 0) + 1;
+			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.availability']) && $product->displayamount) {
+				$displayAmountsCounts[$product->displayamount] = ($displayAmountsCounts[$product->displayamount] ?? 0) + 1;
 			}
 
-			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.delivery']) && $product->displayDelivery) {
-				$displayDeliveriesCounts[$product->displayDelivery] = ($displayDeliveriesCounts[$product->displayDelivery] ?? 0) + 1;
+			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.delivery']) && $product->displaydelivery) {
+				$displayDeliveriesCounts[$product->displaydelivery] = ($displayDeliveriesCounts[$product->displaydelivery] ?? 0) + 1;
 			}
 
 			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.producer']) && $product->producer) {
@@ -936,8 +960,8 @@ ON DELETE CASCADE;");
 					$priceMin = $product->price;
 				}
 
-				if ($product->priceVat < $priceVatMin) {
-					$priceVatMin = $product->priceVat;
+				if ($product->pricevat < $priceVatMin) {
+					$priceVatMin = $product->pricevat;
 				}
 			}
 
@@ -946,8 +970,8 @@ ON DELETE CASCADE;");
 					$priceMax = $product->price;
 				}
 
-				if ($product->priceVat > $priceVatMax) {
-					$priceVatMax = $product->priceVat;
+				if ($product->pricevat > $priceVatMax) {
+					$priceVatMax = $product->pricevat;
 				}
 			}
 
