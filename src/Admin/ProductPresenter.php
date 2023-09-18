@@ -156,6 +156,9 @@ class ProductPresenter extends BackendPresenter
 	/** @var array<callable(\Eshop\DB\Product, array): void> */
 	public array $onProductFormSuccess = [];
 
+	/** @var array<callable(array<string>): void> */
+	public array $onImport = [];
+
 	/** @inject */
 	public ProductGridFactory $productGridFactory;
 
@@ -1883,6 +1886,7 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 		$createdProducts = 0;
 		$updatedProducts = 0;
 		$skippedProducts = 0;
+		$importedProductsPKs = [];
 
 		$searchCode = $searchCriteria === 'all' || $searchCriteria === 'code';
 		$searchEan = $searchCriteria === 'all' || $searchCriteria === 'ean';
@@ -2087,9 +2091,13 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 
 					$product = $this->productRepository->createOne($newValues);
 				}
+
+				$importedProductsPKs[] = $product->uuid;
 			} catch (\Exception $e) {
 				throw new \Exception('Chyba při zpracování dat!');
 			}
+
+			Arrays::invoke($this->onImport, $importedProductsPKs);
 
 			if (!$updateAttributes) {
 				continue;
