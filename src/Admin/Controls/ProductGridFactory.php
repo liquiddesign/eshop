@@ -93,16 +93,16 @@ class ProductGridFactory
 			if ($object->hidden) {
 				$label = 'Neviditelný: Skrytý';
 				$color = 'danger';
-			} elseif ($object->getValue('priceCount') === '0') {
+			} elseif ($object->getValue('priceCount') === 0) {
 				$label = 'Neviditelný: Bez ceny';
 				$color = 'danger';
-			} elseif ($object->getValue('pricelistActive') === '0') {
+			} elseif ($object->getValue('pricelistActive') === 0) {
 				$label = 'Neviditelný: Žádné aktivní ceny';
 				$color = 'danger';
 			} elseif ($object->unavailable) {
 				$label = 'Viditelný: Neprodejný';
 				$color = 'warning';
-			} elseif ($object->getValue('categoryCount') === '0') {
+			} elseif ($object->getValue('categoryCount') === 0) {
 				$label = 'Viditelný: Bez kategorie';
 				$color = 'warning';
 			} else {
