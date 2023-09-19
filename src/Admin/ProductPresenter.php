@@ -1078,13 +1078,19 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 
 			$products = $this->productRepository->many()->setIndex('code')->toArrayOf('uuid');
 
-			$filtered = \array_filter($images, function ($value) use ($products) {
-				$code = \explode('.', $value);
+			$photosToImport = [];
 
-				return Arrays::get($products, $code[0], null);
-			});
+			foreach ($images as $image) {
+				$code = Strings::substring($image, 0, \strpos($image, '.'));
 
-			if (\count($filtered) === 0) {
+				if (!$code || !isset($products[$code])) {
+					continue;
+				}
+
+				$photosToImport[$code][] = $image;
+			}
+
+			if (\count($photosToImport) === 0) {
 				$this->flashMessage('Nenalezen žádný odpovídající obrázek!', 'warning');
 				$this->redirect('this');
 			}
@@ -1095,68 +1101,41 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 			$newProductsMainImages = [];
 
 			try {
-				foreach ($filtered as $fileName) {
-					$code = \explode('.', $fileName)[0];
-					$imageFileName = \trim($fileName);
-
-					if (!isset($products[$code])) {
-						continue;
-					}
-
-					if (\is_file($originalPath . '/' . $imageFileName)) {
-						$existingTimestamp = \filemtime($originalPath . '/' . $imageFileName);
-						$imagesTimestamp = \filemtime($imagesPath . '/' . $imageFileName);
-
-						if ($existingTimestamp >= $imagesTimestamp) {
+				foreach ($photosToImport as $productCode => $photos) {
+					foreach ($photos as $photoFileName) {
+						if (!isset($products[$productCode])) {
 							continue;
 						}
 
-						try {
-							FileSystem::delete($originalPath . '/' . $imageFileName);
-						} catch (\Throwable $e) {
-							Debugger::log($e, ILogger::WARNING);
-						}
+						$imageD = Image::fromFile($imagesPath . '/' . $photoFileName);
+						$imageT = Image::fromFile($imagesPath . '/' . $photoFileName);
+						$imageD->resize(600, null);
+						$imageT->resize(300, null);
+
+						FileSystem::copy($imagesPath . '/' . $photoFileName, $originalPath . '/' . $photoFileName);
 
 						try {
-							FileSystem::delete($detailPath . '/' . $imageFileName);
-						} catch (\Throwable $e) {
-							Debugger::log($e, ILogger::WARNING);
+							$imageD->save($detailPath . '/' . $photoFileName);
+							$imageT->save($thumbPath . '/' . $photoFileName);
+						} catch (\Exception $e) {
 						}
 
-						try {
-							FileSystem::delete($thumbPath . '/' . $imageFileName);
-						} catch (\Throwable $e) {
-							Debugger::log($e, ILogger::WARNING);
+						$existingPhoto = $this->photoRepository->many()->where('this.fk_product', $products[$productCode])->where('this.fileName', $photoFileName)->first();
+
+						if (!$existingPhoto) {
+							$newPhotos[] = [
+								'product' => $products[$productCode],
+								'fileName' => $photoFileName,
+								'priority' => 999,
+							];
 						}
+
+						if (!$values['asMain']) {
+							continue;
+						}
+
+						$newProductsMainImages[] = ['uuid' => $products[$productCode], 'imageFileName' => $photoFileName];
 					}
-
-					$imageD = Image::fromFile($imagesPath . '/' . $imageFileName);
-					$imageT = Image::fromFile($imagesPath . '/' . $imageFileName);
-					$imageD->resize(600, null);
-					$imageT->resize(300, null);
-
-					FileSystem::copy($imagesPath . '/' . $imageFileName, $originalPath . '/' . $imageFileName);
-
-					try {
-						$imageD->save($detailPath . '/' . $imageFileName);
-						$imageT->save($thumbPath . '/' . $imageFileName);
-					} catch (\Exception $e) {
-					}
-
-					$existingPhoto = $this->photoRepository->many()->where('this.fk_product', $products[$code])->where('this.fileName', $imageFileName)->first();
-
-					$newPhotos[] = [
-						'uuid' => $existingPhoto ? $existingPhoto->getPK() : null,
-						'product' => $products[$code],
-						'fileName' => $imageFileName,
-						'priority' => 999,
-					];
-
-					if (!$values['asMain']) {
-						continue;
-					}
-
-					$newProductsMainImages[] = ['uuid' => $products[$code], 'imageFileName' => $imageFileName];
 				}
 
 				$this->photoRepository->syncMany($newPhotos, []);
@@ -1169,7 +1148,7 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 
 				$connection->getLink()->commit();
 			} catch (\Throwable $e) {
-				Debugger::barDump($e);
+				Debugger::dump($e);
 				$this->flashMessage('Při zpracovávání došlo k chybě!', 'error');
 
 				$connection->getLink()->rollBack();
