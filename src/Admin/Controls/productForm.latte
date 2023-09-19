@@ -230,7 +230,7 @@
                     </tr>
                     {foreach $visibilityLists as $id => $visibilityList}
                         <tr class="m-0 mt-1 has-danger"
-                            style="{if !$pricelist->isActive}background-color: #E9ECEF;{/if}">
+                            style="{if $visibilityList->hidden}background-color: #E9ECEF;{/if}">
                             <th class="col-label col-form-label col">
                             {$visibilityList->getValue('fullName')} <i class="fa fa-sort-numeric-up mr-1"></i> {$visibilityList->priority}</th>
 
