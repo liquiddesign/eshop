@@ -55,6 +55,12 @@ class ProductForm extends Control
 	/** @persistent */
 	public string $tab = 'menu0';
 
+	/** @var callable(\Eshop\DB\Product|null $product): array<\Eshop\DB\Pricelist>|null */
+	public $onRenderGetPriceLists;
+
+	/** @var array<\Eshop\DB\Pricelist> */
+	protected array $priceLists;
+
 	private ?Product $product;
 
 	private int $relationMaxItemsCount;
@@ -96,9 +102,12 @@ class ProductForm extends Control
 		SettingRepository $settingRepository,
 		Integrations $integrations,
 		$product = null,
+		$onRenderGetPriceLists = null,
 		private readonly array $configuration = []
 	) {
 		$this->product = $product = $productRepository->get($product);
+		$this->onRenderGetPriceLists = $onRenderGetPriceLists;
+		$this->priceLists = $this->onRenderGetPriceLists ? \call_user_func($this->onRenderGetPriceLists, $this->product) : $this->pricelistRepository->many()->orderBy(['this.priority'])->toArray();
 		$this->relationMaxItemsCount = (int) ($settingRepository->getValueByName('relationMaxItemsCount') ?? $this::RELATION_MAX_ITEMS_COUNT);
 
 		$form = $adminFormFactory->create(true);
@@ -440,14 +449,14 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			]);
 		}
 
-		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository, $storeRepository): void {
+		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $storeRepository): void {
 			$prices = $form->addContainer('prices');
 
 			$pricesPermission = $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default');
 			/** @var null|string $autoPriceConfig */
 			$autoPriceConfig = $this->configuration[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
-			foreach ($pricelistRepository->many() as $prc) {
+			foreach ($this->priceLists as $prc) {
 				$pricelist = $prices->addContainer($prc->getPK());
 				$pricelist->addText('price')
 					->setNullable()
@@ -860,7 +869,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		$this->template->relationMaxItemsCount = $this->relationMaxItemsCount;
 		$this->template->product = $this->getPresenter()->getParameter('product');
-		$this->template->pricelists = $this->pricelistRepository->many()->orderBy(['this.priority']);
+		$this->template->pricelists = $this->priceLists;
 		$this->template->visibilityLists = $this->shopsConfig->selectFullNameInShopEntityCollection($this->visibilityListRepository->many());
 		$this->template->stores = $this->storeRepository->many()->orderBy(['this.name' . $this->storeRepository->getConnection()->getMutationSuffix()]);
 		$this->template->configuration = $this->configuration;
