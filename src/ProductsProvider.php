@@ -169,7 +169,7 @@ class ProductsProvider
 		$this->allowedCollectionFilterExpressions['uuids'] = function (ICollection $productsCollection, array $uuids, array $visibilityLists, array $priceLists): void {
 			$productArray = $this->productRepository->many()->where('this.uuid', $uuids)->setSelect(['this.id'])->toArrayOf('id', toArrayValues: true);
 
-			$productsCollection->where('this.id', $productArray);
+			$productsCollection->where('this.product', $productArray);
 		};
 
 		$this->allowedCollectionFilterExpressions['producer'] = function (ICollection $productsCollection, string $producer, array $visibilityLists, array $priceLists): void {
