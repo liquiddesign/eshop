@@ -1081,7 +1081,7 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 			$photosToImport = [];
 
 			foreach ($images as $image) {
-				$code = Strings::substring($image, 0, \strpos($image, '.'));
+				$code = Strings::substring($image, 0, \strpos($image, '_'));
 
 				if (!$code || !isset($products[$code])) {
 					continue;
@@ -1102,6 +1102,8 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 
 			try {
 				foreach ($photosToImport as $productCode => $photos) {
+					$first = true;
+
 					foreach ($photos as $photoFileName) {
 						if (!isset($products[$productCode])) {
 							continue;
@@ -1130,9 +1132,11 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 							];
 						}
 
-						if (!$values['asMain']) {
+						if (!$values['asMain'] || !$first) {
 							continue;
 						}
+
+						$first = false;
 
 						$newProductsMainImages[] = ['uuid' => $products[$productCode], 'imageFileName' => $photoFileName];
 					}
