@@ -1081,7 +1081,11 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 			$photosToImport = [];
 
 			foreach ($images as $image) {
-				$code = Strings::substring($image, 0, \strpos($image, '_'));
+				if ($image === '.' || $image === '..') {
+					continue;
+				}
+
+				$code = ($underscorePos = \strpos($image, '_')) ? Strings::substring($image, 0, $underscorePos) : Strings::substring($image, 0, \strpos($image, '.'));
 
 				if (!$code || !isset($products[$code])) {
 					continue;
