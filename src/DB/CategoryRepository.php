@@ -71,6 +71,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	public function getCounts(string $path, array $filters = [], array $priceLists = [], array $visibilityLists = []): int|null
 	{
 		$productsProvider = $this->container->getByType(ProductsProvider::class);
+		$productRepository = $this->productRepository;
 
 		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
 			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
@@ -89,18 +90,34 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		$cacheIndex = \serialize($filters) . \serialize(\array_keys($priceLists)) . \serialize(\array_keys($visibilityLists)) . $path;
 		
-		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($productsProvider, $filters, $priceLists, $visibilityLists) {
+		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($productsProvider, $filters, $priceLists, $visibilityLists, $productRepository) {
 			$dependencies = [
 				Cache::Tags => ['categories', 'products', 'pricelists', ProductsProvider::PRODUCTS_PROVIDER_CACHE_TAG],
 			];
 
-			$result = $productsProvider->getProductsFromCacheTable(
-				$filters,
-				priceLists: $priceLists,
-				visibilityLists: $visibilityLists,
-			);
+			try {
+				$result = $productsProvider->getProductsFromCacheTable(
+					$filters,
+					priceLists: $priceLists,
+					visibilityLists: $visibilityLists,
+				);
 
-			return \count($result['productPKs']);
+				return \count($result['productPKs']);
+			} catch (\Throwable) {
+				$collection = $productRepository->many()
+					->setSelect(['total' => 'COUNT(DISTINCT this.uuid)']);
+
+				$productRepository->setProductsConditions($collection, false, $priceLists);
+				$productRepository->joinVisibilityListItemToProductCollection($collection, $visibilityLists);
+
+				$productRepository->filter($collection, $filters);
+
+				try {
+					return $collection->count();
+				} catch (\Throwable) {
+					return 1;
+				}
+			}
 		});
 	}
 
