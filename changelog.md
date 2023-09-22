@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.28] - 2023-09-22
+
+- **BREAKING:** Product::unit is now with mutations. Run migration "20230922-unit_mutations.sql"
+- Ported all changes from v2.0
+
 ## [2.1.23] - 2023-09-12
 
 ### Added
