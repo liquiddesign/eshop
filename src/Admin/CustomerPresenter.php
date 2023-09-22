@@ -533,7 +533,7 @@ class CustomerPresenter extends BackendPresenter
 		$form->addGroup('Nákup a preference');
 		
 		if (isset($this::CONFIGURATIONS['branches']) && $this::CONFIGURATIONS['branches']) {
-			$form->addSelect2('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->setPrompt('Žádná');
+			$form->addSelect2('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->checkDefaultValue(false)->setPrompt('Žádná');
 			$form->addSelect('orderPermission', 'Objednání', [
 				'fullWithApproval' => 'Pouze se schválením',
 				'full' => 'Povoleno',
