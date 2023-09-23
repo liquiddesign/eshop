@@ -245,24 +245,19 @@ class ProductsProvider
 
 		try {
 			$link = $this->connection->getLink();
+			$dbName = $this->connection->getDatabaseName();
 			$mutationSuffix = $this->connection->getMutationSuffix();
 
 			$this->markCacheAsWarming($cacheIndexToBeWarmedUp);
 
-			/** @var array<object{id: int, ancestor: string}> $allCategories */
-			$allCategories = $this->categoryRepository->many()->setSelect(['this.id', 'ancestor' => 'this.fk_ancestor'], keepIndex: true)->fetchArray(\stdClass::class);
-
 			Debugger::timer();
 
-			foreach ($allCategories as $category) {
-				$categoryTableExists = $link->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$category->id';")
-					->fetchColumn();
+			$categoryTablesInDb = $link->query("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
+                  WHERE TABLE_NAME LIKE 'eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_%' AND TABLE_SCHEMA = '$dbName';")
+				->fetchAll(\PDO::FETCH_COLUMN);
 
-				if ($categoryTableExists <= 0) {
-					continue;
-				}
-
-				$link->exec("DROP TABLE IF EXISTS `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$category->id`");
+			foreach ($categoryTablesInDb as $categoryTableName) {
+				$link->exec("DROP TABLE `$categoryTableName`");
 			}
 
 			$productsCacheTableName = "eshop_products_cache_$cacheIndexToBeWarmedUp";
@@ -339,6 +334,9 @@ CREATE TABLE `$productsCacheTableName` (
 				], keepIndex: true)->fetchArray(\stdClass::class);
 
 			$allDisplayAmounts = $this->displayAmountRepository->many()->setIndex('id')->fetchArray(\stdClass::class);
+
+			/** @var array<object{id: int, ancestor: string}> $allCategories */
+			$allCategories = $this->categoryRepository->many()->setSelect(['this.id', 'ancestor' => 'this.fk_ancestor'], keepIndex: true)->fetchArray(\stdClass::class);
 
 			$allCategoriesByCategory = [];
 
@@ -572,9 +570,11 @@ CREATE TABLE `$productsCacheTableName` (
 
 		unset($filters['category']);
 
+		$dbName = $this->connection->getDatabaseName();
+
 		if ($category) {
 			$categoryTableExists = $this->connection->getLink()
-				->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'eshop_categoryproducts_cache_{$cacheIndex}_$category->id';")
+				->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'eshop_categoryproducts_cache_{$cacheIndex}_$category->id' AND TABLE_SCHEMA = '$dbName';")
 				->fetchColumn();
 
 			if ($categoryTableExists === 0) {
@@ -589,6 +589,12 @@ CREATE TABLE `$productsCacheTableName` (
 				->join(['this' => "eshop_products_cache_{$cacheIndex}"], 'this.product = category.product', type: 'INNER') :
 			$this->connection->rows(['this' => "eshop_products_cache_{$cacheIndex}"]);
 
+		if (isset($filters['pricelist'])) {
+			$priceLists = \array_filter($priceLists, fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
+
+			unset($filters['pricelist']);
+		}
+
 		$productsCollection->setSelect([
 			'product' => 'this.product',
 			'producer' => 'this.producer',
@@ -598,12 +604,6 @@ CREATE TABLE `$productsCacheTableName` (
 			'price' => $this->createCoalesceFromArray($priceLists, 'priceList', 'price'),
 			'priceVat' => $this->createCoalesceFromArray($priceLists, 'priceList', 'priceVat'),
 		]);
-
-		if (isset($filters['pricelist'])) {
-			$priceLists = \array_filter($priceLists, fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
-
-			unset($filters['pricelist']);
-		}
 
 		$allAttributes = [];
 		$dynamicFiltersAttributes = [];

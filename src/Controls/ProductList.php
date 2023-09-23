@@ -204,7 +204,7 @@ class ProductList extends Datalist
 		}
 
 		\Tracy\Debugger::barDump(\Tracy\Debugger::timer('getProductsFromCacheTable'), 'cacheProducts');
-		\Tracy\Debugger::barDump($cachedProducts);
+//		\Tracy\Debugger::barDump($cachedProducts);
 
 		/** @var \StORM\Collection<\Eshop\DB\Product> $source */
 		$source = $this->getFilteredSource();
