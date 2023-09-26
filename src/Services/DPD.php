@@ -203,8 +203,8 @@ class DPD
 				$request['_ShipmentDetailVO'][] = $newShipmentVO;
 
 				\bdump($request);
-				die();
-//				$result = $client->NewShipment($request);
+
+				$result = $client->NewShipment($request);
 
 				\bdump($result);
 
