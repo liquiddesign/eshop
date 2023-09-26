@@ -10,6 +10,7 @@ use Eshop\DB\OrderDeliveryStatus;
 use Eshop\DB\OrderDeliveryStatusRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\Providers\Helpers;
+use Eshop\Services\DPD\DeclaredSender;
 use Nette\Application\Application;
 use Nette\DI\Container;
 use Nette\Localization\Translator;
@@ -76,6 +77,11 @@ class DPD
 		$this->labelPrintType = $labelPrintType;
 		$this->container = $container;
 		$this->application = $application;
+	}
+
+	public function getDeclaredSender(): ?DeclaredSender
+	{
+		return null;
 	}
 
 	public function getDpdDeliveryTypePK(): ?string
@@ -188,6 +194,10 @@ class DPD
 					];
 				}
 
+				if ($declaredSender = $this->getDeclaredSender()) {
+					$newShipmentVO['Sender_Declared'] = $declaredSender->getShipmentArray();
+				}
+
 				$request['_ShipmentDetailVO'][] = $newShipmentVO;
 
 				$result = $client->NewShipment($request);
@@ -219,6 +229,8 @@ class DPD
 				$order->update(['dpdError' => true]);
 
 				$ordersWithError[] = $order;
+
+				\bdump($e);
 
 				$tempDir = $this->container->getParameters()['tempDir'] . '/dpd';
 
@@ -276,7 +288,9 @@ class DPD
 				'parcelno' => $dpdCodes,
 			]);
 
-			/** @codingStandardsIgnoreStart Camel caps*/
+			\bdump($result);
+
+			/** @codingStandardsIgnoreStart */
 			$result = $result->GetLabelResult->LabelVO;
 			/** @codingStandardsIgnoreEnd */
 
@@ -323,6 +337,7 @@ class DPD
 			return $filename;
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::ERROR);
+			\bdump($e);
 
 			return null;
 		}
@@ -485,22 +500,30 @@ class DPD
 	{
 		$client = $this->getClient();
 		
-		$client->DeleteParcelByParcelno([
+		$result = $client->DeleteParcelByParcelno([
 			'login' => $this->login,
 			'password' => $this->password,
 			'parcelno' => $list,
 		]);
+		
+		\bdump($result);
+		
+		return;
 	}
 	
 	public function deletePickups(array $list): void
 	{
 		$client = $this->getClient();
 		
-		$client->DeletePickup([
+		$result = $client->DeletePickup([
 			'login' => $this->login,
 			'password' => $this->password,
 			'deleteList' => $list,
 		]);
+		
+		\bdump($result);
+		
+		return;
 	}
 
 	/**
@@ -527,18 +550,27 @@ class DPD
 			$x = 0;
 			$y = 0;
 
-			if ($i % 4 === 0) {
-				$x = 10;
-				$y = 10;
-			} elseif ($i % 4 === 1) {
-				$x = 110;
-				$y = 10;
-			} elseif ($i % 4 === 2) {
-				$x = 10;
-				$y = 150;
-			} elseif ($i % 4 === 3) {
-				$x = 110;
-				$y = 150;
+			switch ($i % 4) {
+				case 0:
+					$x = 10;
+					$y = 10;
+
+					break;
+				case 1:
+					$x = 110;
+					$y = 10;
+
+					break;
+				case 2:
+					$x = 10;
+					$y = 150;
+
+					break;
+				case 3:
+					$x = 110;
+					$y = 150;
+
+					break;
 			}
 
 			$pdf->useTemplate($tplIdxA, $x, $y, 90);
