@@ -38,6 +38,18 @@
                         </tr>
                     {/foreach}
 
+                    {foreach $form['alternativeName']->getComponents() as $key => $element}
+                        <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}" data-mutation="{$key}">
+                            {$renderer->renderLabel($element)|noescape}
+
+                            <td class="align-middle">
+                                {input "alternativeName-$key" class => 'form-control form-control-sm'}
+
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "alternativeName-$key"}</span>
+                            </td>
+                        </tr>
+                    {/foreach}
+
                    {foreach $form['perex']->getComponents() as $key => $element}
                         <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}" data-mutation="{$key}">
                             {$renderer->renderLabel($element)|noescape}
