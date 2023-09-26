@@ -85,6 +85,7 @@ class CategoryForm extends Control
 		});
 
 		$nameInput = $form->addLocaleText('name', 'Název');
+		$form->addLocaleText('alternativeName', 'Alternativní název');
 		$form->addLocalePerexEdit('perex', 'Perex', [
 			/** @codingStandardsIgnoreStart Long string*/
 			'toolbar1' => 'undo redo | styleselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | link unlink anchor | table | copy cut paste pastetext insertcontent code',
