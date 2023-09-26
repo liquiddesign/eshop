@@ -1506,6 +1506,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'billing_city',
 			'is_cancelled',
 			'delivery_state',
+			'discount_code',
 		]);
 
 		$purchases = [];
@@ -1581,6 +1582,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			$email = isset($customers[$purchase->getValue('customer')]) ? $customers[$purchase->getValue('customer')]->email : $purchase->email;
 			$billAddress = $addresses[$purchase->getValue('billAddress')] ?? null;
 
+			$discountCode = $order->getDiscountCoupon() ? $order->getDiscountCoupon()->code : null;
+
 			foreach ($itemsByPurchase[$purchase->getPK()] ?? [] as $item) {
 				$writer->insertOne([
 					$email,
@@ -1596,6 +1599,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					$billAddress ? $billAddress->city : null,
 					$isCancelled,
 					$deliveryStatus,
+					$discountCode,
 				]);
 			}
 
@@ -1614,6 +1618,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					$billAddress ? $billAddress->city : null,
 					$isCancelled,
 					$deliveryStatus,
+					$discountCode,
 				]);
 			}
 
@@ -1635,6 +1640,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				$billAddress ? $billAddress->city : null,
 				$isCancelled,
 				$deliveryStatus,
+				$discountCode,
 			]);
 		}
 	}
