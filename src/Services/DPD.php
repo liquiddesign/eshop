@@ -10,6 +10,7 @@ use Eshop\DB\OrderDeliveryStatus;
 use Eshop\DB\OrderDeliveryStatusRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\Providers\Helpers;
+use Eshop\Services\DPD\DeclaredSender;
 use Nette\Application\Application;
 use Nette\DI\Container;
 use Nette\Localization\Translator;
@@ -78,6 +79,11 @@ class DPD
 		$this->labelPrintType = $labelPrintType;
 		$this->container = $container;
 		$this->application = $application;
+	}
+
+	public function getDeclaredSender(): ?DeclaredSender
+	{
+		return null;
 	}
 
 	public function getDpdDeliveryTypePK(): ?string
@@ -190,10 +196,15 @@ class DPD
 					];
 				}
 
+				if ($declaredSender = $this->getDeclaredSender()) {
+					$newShipmentVO['Sender_Declared'] = $declaredSender->getShipmentArray();
+				}
+
 				$request['_ShipmentDetailVO'][] = $newShipmentVO;
 
 				\bdump($request);
-				$result = $client->NewShipment($request);
+				die();
+//				$result = $client->NewShipment($request);
 
 				\bdump($result);
 
