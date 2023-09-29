@@ -73,7 +73,7 @@ abstract class Helpers
 	
 	public static function createSoapClient(string $url, ?string $login = null, ?string $password = null): \SoapClient
 	{
-		\ini_set('default_socket_timeout', '5000');
+		\ini_set('default_socket_timeout', '60');
 		
 		$context = \stream_context_create([
 			'ssl' => [
@@ -81,7 +81,8 @@ abstract class Helpers
 				'verify_peer_name' => false,
 				'allow_self_signed' => true,
 				'keep_alive' => true,
-				'connection_timeout' => 5000,
+				'connection_timeout' => 30000,
+				'timeout' => 30000,
 			],
 		]);
 		
@@ -89,6 +90,9 @@ abstract class Helpers
 			'stream_context' => $context,
 			'trace' => 1,
 			'cache_wsdl' => \WSDL_CACHE_NONE,
+			'keep_alive' => true,
+			'connection_timeout' => 30000,
+			'timeout' => 30000,
 		];
 		
 		if ($login && $password) {
