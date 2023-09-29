@@ -102,6 +102,10 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 					visibilityLists: $visibilityLists,
 				);
 
+				if (!isset($result['productPKs'])) {
+					throw new \Exception();
+				}
+
 				return \count($result['productPKs']);
 			} catch (\Throwable) {
 				$collection = $productRepository->many()
