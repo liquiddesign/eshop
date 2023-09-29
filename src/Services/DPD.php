@@ -230,7 +230,7 @@ class DPD
 
 				$ordersWithError[] = $order;
 
-				\bdump($e);
+				Debugger::barDump($e);
 
 				$tempDir = $this->container->getParameters()['tempDir'] . '/dpd';
 
@@ -288,7 +288,7 @@ class DPD
 				'parcelno' => $dpdCodes,
 			]);
 
-			\bdump($result);
+			Debugger::barDump($result);
 
 			/** @codingStandardsIgnoreStart */
 			$result = $result->GetLabelResult->LabelVO;
@@ -337,7 +337,7 @@ class DPD
 			return $filename;
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::ERROR);
-			\bdump($e);
+			Debugger::barDump($e);
 
 			return null;
 		}
@@ -506,7 +506,7 @@ class DPD
 			'parcelno' => $list,
 		]);
 		
-		\bdump($result);
+		Debugger::barDump($result);
 		
 		return;
 	}
@@ -520,9 +520,9 @@ class DPD
 			'password' => $this->password,
 			'deleteList' => $list,
 		]);
-		
-		\bdump($result);
-		
+
+		Debugger::barDump($result);
+
 		return;
 	}
 
@@ -550,27 +550,18 @@ class DPD
 			$x = 0;
 			$y = 0;
 
-			switch ($i % 4) {
-				case 0:
-					$x = 10;
-					$y = 10;
-
-					break;
-				case 1:
-					$x = 110;
-					$y = 10;
-
-					break;
-				case 2:
-					$x = 10;
-					$y = 150;
-
-					break;
-				case 3:
-					$x = 110;
-					$y = 150;
-
-					break;
+			if ($i % 4 === 0) {
+				$x = 10;
+				$y = 10;
+			} elseif ($i % 4 === 1) {
+				$x = 110;
+				$y = 10;
+			} elseif ($i % 4 === 2) {
+				$x = 10;
+				$y = 150;
+			} elseif ($i % 4 === 3) {
+				$x = 110;
+				$y = 150;
 			}
 
 			$pdf->useTemplate($tplIdxA, $x, $y, 90);
