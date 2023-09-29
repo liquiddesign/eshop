@@ -384,12 +384,12 @@ class DPD
 					'parcelno' => \array_keys($chunkedOrders),
 				]);
 			} catch (\Exception $e) {
-				throw new \Exception('Invalid request: ' . $e->getMessage());
+				continue;
 			}
 
 			// phpcs:ignore
 			if (!isset($response->GetTrackingByParcelnoResult->TrackingDetailVO) || !\is_array($response->GetTrackingByParcelnoResult->TrackingDetailVO)) {
-				throw new \Exception('Invalid response data');
+				continue;
 			}
 
 			// phpcs:ignore
