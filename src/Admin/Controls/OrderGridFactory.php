@@ -394,12 +394,7 @@ class OrderGridFactory
 			'1' => 'Zaplaceno',
 		], 'fp');
 
-		$collator = new \Collator('cs-CZ');
-		$operationsForFilter = OrderLogItem::OPERATIONS_FOR_FILTER;
-		$collator->sort($operationsForFilter);
-		$operationsForFilter = \array_combine($operationsForFilter, $operationsForFilter);
-
-		$grid->addFilterSelectInput('filter_operations', 'log.operation = :fo', null, '- Operace -', null, $operationsForFilter, 'fo');
+		$this->addOrderLogFiltersInputs($grid);
 
 		if ($ribbons = $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_ORDER)) {
 			$ribbons += ['0' => 'X - bez štítků'];
@@ -885,5 +880,29 @@ class OrderGridFactory
 		/** @var \Eshop\Admin\OrderPresenter $presenter */
 		$presenter = $grid->getPresenter();
 		$presenter->handleExportCsv($object->getPK());
+	}
+
+	public function addOrderLogFiltersInputs(AdminGrid $grid): void
+	{
+		$collator = new \Collator('cs-CZ');
+		$operationsForFilter = OrderLogItem::OPERATIONS_FOR_FILTER;
+		$collator->sort($operationsForFilter);
+		$operationsForFilter = \array_combine($operationsForFilter, $operationsForFilter);
+
+		$grid->addFilterDataSelect(function (Collection $source, $value): void {
+			$source->where('log.operation', $value);
+		}, '', 'filter_operations', null, $operationsForFilter)->setPrompt('- Operace -');
+
+		$operationMessagesToFilter = [
+			'| Cena z ' => 'Změna ceny položek',
+			'| Množství z ' => 'Změna množství položek',
+			'| DPH z ' => 'Změna DPH položek',
+		];
+
+		$collator->asort($operationMessagesToFilter);
+
+		$grid->addFilterDataSelect(function (Collection $source, $value): void {
+			$source->where('log.message LIKE :fod', ['fod' => "%$value%"]);
+		}, '', 'filter_operations_detail', null, $operationMessagesToFilter)->setPrompt('- Detail operace -');
 	}
 }
