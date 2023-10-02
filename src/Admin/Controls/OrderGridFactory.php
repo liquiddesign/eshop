@@ -538,6 +538,10 @@ class OrderGridFactory
 			);
 		}
 
+		if (isset($configuration['recalculateOrderPricesMultiple']) && $configuration['recalculateOrderPricesMultiple']) {
+			$grid->addBulkAction('recalculateOrderPrices', 'recalculateOrderPrices', 'Přepočítat ceny');
+		}
+
 		$grid->monitor(BackendPresenter::class, function (BackendPresenter $presenter) use ($grid, $state, $configuration): void {
 			if ($this->settingRepository->getValueByName('zasilkovnaApiKey') && $state !== Order::STATE_OPEN) {
 				$grid->addBulkAction('exportZasilkovna', 'exportZasilkovna', '<i class="fas fa-paper-plane"></i> Zásilkovna');
