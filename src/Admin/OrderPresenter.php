@@ -121,6 +121,7 @@ class OrderPresenter extends BackendPresenter
 		'pauseOrder' => false,
 		'noteIconColor' => null,
 		'approval' => false,
+		'recalculateOrderPricesMultiple' => false,
 	];
 
 	#[\Nette\DI\Attributes\Inject]
@@ -2106,6 +2107,18 @@ class OrderPresenter extends BackendPresenter
 		$this->redirect('this');
 	}
 
+	public function renderRecalculateOrderPrices(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Přepočítat ceny';
+		$this->template->headerTree = [
+			['Objednávky', 'default',],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('recalculateOrderPricesForm')];
+	}
+
 	public function handleExportCsv(string $orderId): void
 	{
 		$presenter = $this;
@@ -2354,6 +2367,27 @@ class OrderPresenter extends BackendPresenter
 			$submit = $form['submit'];
 			$submit->setCaption('Vše');
 		});
+	}
+
+	public function createComponentRecalculateOrderPricesForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
+			try {
+				$result = $this->orderRepository->recalculateOrderPricesMultiple($collection);
+
+				$msg = 'Provedeno: ' . $result->getCompletedCount() . '<br>';
+				$msg .= 'Přeskočeno: ' . $result->getIgnoredCount() . '<br>';
+				$msg .= 'Chyba: ' . $result->getFailedCount() . '<br>';
+
+				foreach ($result->getFailed() as $order) {
+					$msg .= "$order->code<br>";
+				}
+
+				$this->flashMessage($msg, 'success');
+			} catch (\Throwable $e) {
+				$this->flashMessage($e->getMessage(), 'error');
+			}
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
 	}
 
 	public function createComponentDpdSendForm(): AdminForm

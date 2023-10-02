@@ -9,6 +9,7 @@ use Admin\DB\IGeneralAjaxRepository;
 use Base\ShopsConfig;
 use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
+use Eshop\Admin\HelperClasses\MultipleOperationResult;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Integration\Integrations;
 use Eshop\ShopperUser;
@@ -160,6 +161,31 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	}
 
 	/**
+	 * @param \StORM\Collection<\Eshop\DB\Order> $orders
+	 * @return \Eshop\Admin\HelperClasses\MultipleOperationResult<\Eshop\DB\Order>
+	 */
+	public function recalculateOrderPricesMultiple(Collection $orders): MultipleOperationResult
+	{
+		$result = new MultipleOperationResult();
+
+		foreach ($orders as $order) {
+			try {
+				$this->recalculateOrderPrices($order);
+
+				$result->addCompleted($order);
+			} catch (\Exception $e) {
+				if ($e->getCode() === 1 || $e->getCode() === 2) {
+					$result->addIgnored($order);
+				} else {
+					$result->addFailed($order);
+				}
+			}
+		}
+
+		return $result;
+	}
+
+	/**
 	 * Recalculate all CartItem in Order with new prices based on Customer in order
 	 * WARNING! Does not recalculate with related items!
 	 */
@@ -182,7 +208,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$discountCoupon = $order->getDiscountCoupon();
 
 		if (!$customer) {
-			throw new \Exception('Přepočet cen lze provádět jen pokud má objednávka přiřazeného registrovaného zákazníka!');
+			throw new \Exception('Přepočet cen lze provádět jen pokud má objednávka přiřazeného registrovaného zákazníka!', 1);
 		}
 
 		$customerGroup = $customer->group;
@@ -194,6 +220,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists);
 
 		$visibilityLists = $visibilityLists->where('this.hidden', false)->orderBy(['this.priority' => 'ASC'])->toArray();
+
+		$skipped = true;
 
 		foreach ($cartItems as $cartItem) {
 			$cartItemOld = clone $cartItem;
@@ -217,6 +245,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					'price' => $product->getPrice(),
 					'priceVat' => $product->getPriceVat(),
 				]);
+
+				$skipped = false;
 			}
 
 			if (!$admin || !$isPriceChange) {
@@ -226,6 +256,10 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			$priceChange = " | Cena z $cartItemOld->price $currencySymbol na $cartItem->price $currencySymbol";
 
 			$this->orderLogItemRepository->createLog($order, OrderLogItem::ITEM_EDITED, $cartItem->productName . $priceChange, $admin);
+		}
+
+		if ($skipped) {
+			throw new \Exception('Přeskočeno, žádné položky nevyžadují úpravu nebo některé položky nebylo možné upravit', 2);
 		}
 	}
 
