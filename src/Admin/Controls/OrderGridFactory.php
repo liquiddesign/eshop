@@ -538,6 +538,10 @@ class OrderGridFactory
 			);
 		}
 
+		if (isset($configuration['exportCsvMultiple']) && $configuration['exportCsvMultiple']) {
+			$grid->addBulkAction('exportCsvMultiple', 'exportCsvMultiple', 'Exportovat (CSV)');
+		}
+
 		if (isset($configuration['recalculateOrderPricesMultiple']) && $configuration['recalculateOrderPricesMultiple']) {
 			$grid->addBulkAction('recalculateOrderPrices', 'recalculateOrderPrices', 'Přepočítat ceny');
 		}
