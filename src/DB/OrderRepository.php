@@ -119,6 +119,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		private readonly SettingRepository $settingRepository,
 		private readonly Integrations $integrations,
 		private readonly ShopsConfig $shopsConfig,
+		private readonly PricelistRepository $pricelistRepository,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -150,6 +151,76 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		}
 
 		return $collection;
+	}
+
+	/**
+	 * Recalculate all CartItem in Order with new prices based on Customer in order
+	 * WARNING! Does not recalculate with related items!
+	 */
+	public function recalculateOrderPrices(Order $order, Administrator|null $admin = null): void
+	{
+		/** @var \Eshop\DB\ProductRepository $productRepository */
+		$productRepository = $this->getConnection()->findRepository(Product::class);
+
+		$cartItems = $order->purchase->getItems();
+		$customer = $order->purchase->customer;
+		$currency = $order->purchase->currency;
+		$currencySymbol = $currency->symbol;
+		$calculationPrecision = $currency->calculationPrecision;
+		$calculationPrecisionModifier = 1;
+
+		for ($i = 0; $i < $calculationPrecision; $i++) {
+			$calculationPrecisionModifier *= 0.1;
+		}
+
+		$discountCoupon = $order->getDiscountCoupon();
+
+		if (!$customer) {
+			throw new \Exception('Přepočet cen lze provádět jen pokud má objednávka přiřazeného registrovaného zákazníka!');
+		}
+
+		$customerGroup = $customer->group;
+		/** @var array<\Eshop\DB\Pricelist> $priceLists */
+		$priceLists = $this->pricelistRepository->getCustomerPricelists($customer, $currency, $this->shopperUser->getCountry(), $discountCoupon)->toArray();
+
+		$visibilityLists = $customer->getVisibilityLists();
+
+		$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists);
+
+		$visibilityLists = $visibilityLists->where('this.hidden', false)->orderBy(['this.priority' => 'ASC'])->toArray();
+
+		foreach ($cartItems as $cartItem) {
+			$cartItemOld = clone $cartItem;
+
+			if (!$cartItem->getValue('product')) {
+				continue;
+			}
+
+			$product = $productRepository->getProducts($priceLists, $customer, customerGroup: $customerGroup, visibilityLists: $visibilityLists, currency: $currency)
+				->where('this.uuid', $cartItem->getValue('product'))
+				->first();
+
+			if (!$product) {
+				continue;
+			}
+
+			$isPriceChange = \abs($cartItemOld->price - $product->getPrice()) > $calculationPrecisionModifier;
+
+			if ($isPriceChange) {
+				$cartItem->update([
+					'price' => $product->getPrice(),
+					'priceVat' => $product->getPriceVat(),
+				]);
+			}
+
+			if (!$admin || !$isPriceChange) {
+				continue;
+			}
+
+			$priceChange = " | Cena z $cartItemOld->price $currencySymbol na $cartItem->price $currencySymbol";
+
+			$this->orderLogItemRepository->createLog($order, OrderLogItem::ITEM_EDITED, $cartItem->productName . $priceChange, $admin);
+		}
 	}
 
 	/**
