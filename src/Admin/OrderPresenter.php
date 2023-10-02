@@ -9,6 +9,7 @@ use Admin\Controls\AdminGrid;
 use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\BackendPresenter;
 use Eshop\Common\CheckInvalidAmount;
+use Eshop\Common\Zipper;
 use Eshop\DB\AddressRepository;
 use Eshop\DB\AmountRepository;
 use Eshop\DB\AutoshipRepository;
@@ -108,6 +109,7 @@ class OrderPresenter extends BackendPresenter
 		'defaultExportPPC_columns' => [],
 		'exportEdi' => false,
 		'exportCsv' => true,
+		'exportCsvMultiple' => true,
 		'exportTargito' => false,
 		'showDispatch' => true,
 		'showPay' => true,
@@ -2124,6 +2126,18 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('recalculateOrderPricesForm')];
 	}
 
+	public function renderExportCsvMultiple(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Exportovat (CSV)';
+		$this->template->headerTree = [
+			['Objednávky', 'default',],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('exportCsvMultipleForm')];
+	}
+
 	public function handleExportCsv(string $orderId): void
 	{
 		$presenter = $this;
@@ -2374,6 +2388,38 @@ class OrderPresenter extends BackendPresenter
 		});
 	}
 
+	public function createComponentExportCsvMultipleForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
+			try {
+				$zip = new Zipper($this->tempDir, $this->application);
+
+				/** @var \Eshop\DB\Order $order */
+				foreach ($collection as $order) {
+					$tempFilename = \tempnam($this->tempDir, 'csv');
+
+					$this->application->onShutdown[] = function () use ($tempFilename): void {
+						try {
+							FileSystem::delete($tempFilename);
+						} catch (\Throwable $e) {
+							Debugger::log($e, ILogger::WARNING);
+						}
+					};
+
+					$this->orderRepository->csvExport($order, Writer::createFromPath($tempFilename, 'w+'));
+
+					$zip->addFile($tempFilename, "objednavka-$order->code.csv");
+				}
+			} catch (\Throwable $e) {
+				$this->flashMessage('Chyba: ' . $e->getMessage(), 'error');
+
+				$this->redirect('this');
+			}
+
+			$this->sendResponse(new FileResponse($zip->close(), 'objednavky.zip', Zipper::CONTENT_TYPE));
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
+	}
+
 	public function createComponentRecalculateOrderPricesForm(): AdminForm
 	{
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
@@ -2390,7 +2436,7 @@ class OrderPresenter extends BackendPresenter
 
 				$this->flashMessage($msg, 'success');
 			} catch (\Throwable $e) {
-				$this->flashMessage($e->getMessage(), 'error');
+				$this->flashMessage('Chyba: ' . $e->getMessage(), 'error');
 			}
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
 	}
