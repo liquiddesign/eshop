@@ -1827,7 +1827,29 @@ class OrderPresenter extends BackendPresenter
 
 		$this->template->displayButtons[] =
 			'<a href="#" data-toggle="modal" data-target="#modal-orderInternalRibbonsForm"><button class="btn btn-sm btn-primary"><i class="fas fa-ribbon mr-1"></i> Štítky</button></a>';
-		//  window.print()
+
+		$this->template->displayButtons[] = '
+<a href="' . $this->link('recalculateOrderPrices!', [$order->getPK()]) . '" onclick=\'return confirm("Opravdu? Tato operace je nevratná!")\'>
+	<button class="btn btn-sm btn-primary">
+		<i class="fas fa-calculator mr-1"></i> Přepočítat ceny
+	</button>
+</a>';
+	}
+
+	public function handleRecalculateOrderPrices(string $orderPK): void
+	{
+		try {
+			$order = $this->orderRepository->one($orderPK, true);
+			$this->orderRepository->recalculateOrderPrices($order, $this->getAdministrator());
+
+			$this->flashMessage('Provedeno', 'success');
+		} catch (\Throwable $exception) {
+			Debugger::barDump($exception);
+
+			$this->flashMessage('Chyba: ' . $exception->getMessage(), 'error');
+		}
+
+		$this->redirect('this');
 	}
 
 	public function handleRegenerateInvoices(string $invoicePK, string $orderPK): void
@@ -2218,8 +2240,6 @@ class OrderPresenter extends BackendPresenter
 
 	public function createComponentTargitoExportForm(): AdminForm
 	{
-		Debugger::$showBar = false;
-
 		/** @var \Grid\Datagrid $grid */
 		$grid = $this->getComponent('ordersGrid');
 
@@ -2546,6 +2566,8 @@ class OrderPresenter extends BackendPresenter
 	protected function startup(): void
 	{
 		parent::startup();
+
+		Debugger::$showBar = false;
 
 		$this->dpd = $this->integrations->getService('dpd');
 		$this->ppl = $this->integrations->getService('ppl');
