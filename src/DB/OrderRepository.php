@@ -153,18 +153,19 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 		return $collection;
 	}
-
+	
 	/**
 	 * @param \StORM\Collection<\Eshop\DB\Order> $orders
+	 * @param \Admin\DB\Administrator|null $admin
 	 * @return \Eshop\Admin\HelperClasses\MultipleOperationResult<\Eshop\DB\Order>
 	 */
-	public function recalculateOrderPricesMultiple(Collection $orders): MultipleOperationResult
+	public function recalculateOrderPricesMultiple(Collection $orders, Administrator|null $admin = null): MultipleOperationResult
 	{
 		$result = new MultipleOperationResult();
 
 		foreach ($orders as $order) {
 			try {
-				$this->recalculateOrderPrices($order);
+				$this->recalculateOrderPrices($order, $admin);
 
 				$result->addCompleted($order);
 			} catch (\Exception $e) {

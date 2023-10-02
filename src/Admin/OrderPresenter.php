@@ -2422,7 +2422,7 @@ class OrderPresenter extends BackendPresenter
 	{
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
 			try {
-				$result = $this->orderRepository->recalculateOrderPricesMultiple($collection);
+				$result = $this->orderRepository->recalculateOrderPricesMultiple($collection, $this->getAdministrator());
 
 				$msg = 'Provedeno: ' . $result->getCompletedCount() . '<br>';
 				$msg .= 'Přeskočeno: ' . $result->getIgnoredCount() . '<br>';
