@@ -1823,8 +1823,13 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayButtons[] =
 			'<a href="#" data-toggle="modal" data-target="#modal-emailForm"><button class="btn btn-sm btn-primary"><i class="fas fa-envelope mr-1"></i> Poslat e-mail</button></a>';
 
-		$this->template->displayButtons[] = $this->createButton('exportEdi!', '<i class="fa fa-download mr-1"></i>EDI', [$order->getPK()]);
-		$this->template->displayButtons[] = $this->createButton('exportCsv!', '<i class="fa fa-download mr-1"></i>CSV', [$order->getPK()]);
+		if (isset($this::CONFIGURATION['exportEdi']) && $this::CONFIGURATION['exportEdi']) {
+			$this->template->displayButtons[] = $this->createButton('exportEdi!', '<i class="fa fa-download mr-1"></i>EDI', [$order->getPK()]);
+		}
+
+		if (isset($this::CONFIGURATION['exportCsv']) && $this::CONFIGURATION['exportCsv']) {
+			$this->template->displayButtons[] = $this->createButton('exportCsv!', '<i class="fa fa-download mr-1"></i>CSV', [$order->getPK()]);
+		}
 
 		$this->template->displayButtons[] =
 			'<a href="#" data-toggle="modal" data-target="#modal-orderInternalRibbonsForm"><button class="btn btn-sm btn-primary"><i class="fas fa-ribbon mr-1"></i> Štítky</button></a>';
