@@ -66,6 +66,8 @@ class CategoryPresenter extends BackendPresenter
 
 	/** @persistent */
 	public string $editTab = 'menu0';
+	
+	public string $defaultOrderExpression = 'path';
 
 	private ?CategoryType $categoryType;
 
@@ -79,7 +81,7 @@ class CategoryPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create(
 			$this->categoryRepository->many()->where('this.fk_type', $this->tab),
 			null,
-			'path',
+			$this->defaultOrderExpression,
 			'ASC',
 			true,
 		);
@@ -186,7 +188,7 @@ class CategoryPresenter extends BackendPresenter
 		};
 
 		$grid->addFilterTextInput('search', ['code', 'name_cs'], null, 'Kód, Název');
-		$grid->addFilterButtons(['default', ['categoryGrid-order' => 'path-ASC']]);
+		$grid->addFilterButtons(['default', ['categoryGrid-order' => "$this->defaultOrderExpression-ASC"]]);
 
 		$grid->onDelete[] = function (Category $object): void {
 			foreach ($this->categoryRepository->many()->where('path LIKE :q', ['q' => "$object->path%"])->toArray() as $subCategory) {
