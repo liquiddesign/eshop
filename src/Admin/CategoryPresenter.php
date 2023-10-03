@@ -116,7 +116,7 @@ class CategoryPresenter extends BackendPresenter
 		};
 
 		if ($this->categoryType && !$this->categoryType->isReadOnly()) {
-			$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'this.priority', [], true);
+			$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'this.priority', ['style' => 'width: 70px'], true);
 			$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 			$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 			$grid->addColumnInputCheckbox('<i title="Zobrazit v menu" class="fas fa-bars"></i>', 'showInMenu', '', '', 'showInMenu');
