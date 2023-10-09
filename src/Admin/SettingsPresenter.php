@@ -27,6 +27,8 @@ class SettingsPresenter extends BackendPresenter
 	public const SUPPLIER_PRODUCT_DUMMY_DEFAULT_CATEGORY = 'supplierProductDummyDefaultCategory';
 	public const PPL_DELIVERY_TYPE = 'pplDeliveryType';
 	public const DPD_DELIVERY_TYPE = 'dpdDeliveryType';
+
+	public const ZASILKOVNA_DELIVERY_TYPE = 'zasilkovnaDeliveryType';
 	public const GO_PAY_PAYMENT_TYPE = 'goPayPaymentType';
 	public const SUPPLIER_IN_STOCK_DISPLAY_AMOUNT = 'supplierInStockDisplayAmount';
 	public const SUPPLIER_NOT_IN_STOCK_DISPLAY_AMOUNT = 'supplierNotInStockDisplayAmount';
@@ -395,20 +397,21 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 			];
 		}
 
+		$this->customSettings['Doprava'][] = [
+			'key' => self::PPL_DELIVERY_TYPE,
+			'label' => 'Typ dopravy PPL',
+			'type' => 'select',
+			'options' => $this->deliveryTypeRepository->getArrayForSelect(),
+			'info' => 'Při exportu objednávek do PPL budou odeslány jen objednávky s tímto typem dopravy.',
+			'onSave' => function ($key, $oldValue, $newValue): void {
+				$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
+			},
+		];
+
 		/** @var \Eshop\Services\PPL|null $ppl */
 		$ppl = $this->integrations->getService(Integrations::PPL);
 
 		if ($ppl) {
-			$this->customSettings['Doprava'][] = [
-				'key' => self::PPL_DELIVERY_TYPE,
-				'label' => 'Typ dopravy PPL',
-				'type' => 'select',
-				'options' => $this->deliveryTypeRepository->getArrayForSelect(),
-				'info' => 'Při exportu objednávek do PPL budou odeslány jen objednávky s tímto typem dopravy.',
-				'onSave' => function ($key, $oldValue, $newValue): void {
-					$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
-				},
-			];
 			$this->customSettings['Doprava'][] = [
 				'key' => self::PPL_LAST_USED_PACKAGE_NUMBER,
 				'label' => 'PPL - poslední použité číslo balíku',
@@ -426,6 +429,18 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 		$this->customSettings['Doprava'][] = [
 			'key' => self::BALIKOVNA_DELIVERY_TYPE,
 			'label' => 'Typ dopravy Balíkovna',
+			'type' => 'select',
+			'options' => $this->deliveryTypeRepository->getArrayForSelect(),
+			'info' => '',
+			'onSave' => function ($key, $oldValue, $newValue): void {
+				$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
+			},
+		];
+
+
+		$this->customSettings['Doprava'][] = [
+			'key' => self::ZASILKOVNA_DELIVERY_TYPE,
+			'label' => 'Typ dopravy Zásilkovna',
 			'type' => 'select',
 			'options' => $this->deliveryTypeRepository->getArrayForSelect(),
 			'info' => '',
