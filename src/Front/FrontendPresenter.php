@@ -4,9 +4,7 @@ declare(strict_types=1);
 namespace Eshop\Front;
 
 use Admin\Administrator;
-use Ares\Ares;
-use Ares\HttpException;
-use Ares\IcNotFoundException;
+use Ares\HandleLoadAresTrait;
 use Base\DB\ShopRepository;
 use Base\ShopsConfig;
 use Eshop\DB\CartItem;
@@ -16,7 +14,6 @@ use Eshop\DB\WatcherRepository;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Forms\FormFactory;
-use GuzzleHttp\Exception\GuzzleException;
 use Latte\Engine;
 use Latte\Loaders\StringLoader;
 use Latte\Policy;
@@ -38,7 +35,6 @@ use Nette\Utils\Strings;
 use StORM\DIConnection;
 use Throwable;
 use Tracy\Debugger;
-use Tracy\ILogger;
 use Web\Controls\Breadcrumb;
 use Web\Controls\IBreadcrumbFactory;
 use Web\Controls\IWidgetFactory;
@@ -46,6 +42,7 @@ use Web\Controls\Widget;
 
 abstract class FrontendPresenter extends Presenter
 {
+	use HandleLoadAresTrait;
 	public string $appPath = __DIR__ . '/../../../../../app';
 
 	public string $layoutTemplate = __DIR__ . '/../../../../../app/@layout.latte';
@@ -246,30 +243,6 @@ abstract class FrontendPresenter extends Presenter
 
 		$this->redirect('this');
 		// @TODO call event
-	}
-
-	/**
-	 * @throws \Nette\Application\AbortException
-	 */
-	public function handleLoadAres(): void
-	{
-		$ic = $this->getHttpRequest()->getPost('ic');
-
-		if (!$ic) {
-			$this->sendPayload();
-		}
-
-		try {
-			$this->getPresenter()->payload->result = Ares::loadDataByIc($ic);
-		} catch (HttpException | GuzzleException $e) {
-			Debugger::log($e, ILogger::EXCEPTION);
-
-			$this->getPresenter()->getHttpResponse()->setCode(400);
-		} catch (IcNotFoundException $e) {
-			$this->getPresenter()->getHttpResponse()->setCode(404);
-		}
-
-		$this->getPresenter()->sendPayload();
 	}
 
 	public function cleanCache(): void
