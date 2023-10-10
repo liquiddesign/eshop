@@ -56,7 +56,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		private readonly AttributeValueRepository $attributeValueRepository,
 		private readonly CustomerGroupRepository $customerGroupRepository,
 		private readonly SettingRepository $settingRepository,
-		private readonly ShopperUser $shopperUser,
+		protected readonly ShopperUser $shopperUser,
 		private readonly VisibilityListItemRepository $visibilityListItemRepository,
 		private readonly VisibilityListRepository $visibilityListRepository,
 		private readonly ShopsConfig $shopsConfig,
