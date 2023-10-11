@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Integration;
 
+use Brick\Math\RoundingMode;
 use Brick\Money\Money;
 use Contributte\Comgate\Entity\Codes\PaymentMethodCode;
 use Contributte\Comgate\Entity\Payment;
@@ -101,7 +102,7 @@ class Comgate
 		$currency = $order->getPayment()->currency->code;
 		$customer = $order->purchase->email;
 		$payment = Payment::of(
-			Money::of($price, $currency, new \Brick\Money\Context\CustomContext(2)),
+			Money::of($price, $currency, new \Brick\Money\Context\CustomContext(2), RoundingMode::HALF_EVEN),
 			$order->code,
 			$order->code,
 			$customer,
