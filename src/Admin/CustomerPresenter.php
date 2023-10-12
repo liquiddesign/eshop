@@ -552,7 +552,8 @@ class CustomerPresenter extends BackendPresenter
 	public function createComponentForm(): AdminForm
 	{
 		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
-		
+
+		/** @var \Admin\Controls\AdminForm|array{shop: \Nette\Forms\Controls\TextInput} $form */
 		$form = $this->formFactory->create();
 
 		/** @var \Eshop\DB\Customer|null $customer */
@@ -678,17 +679,31 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 			$values = $form->getValues('array');
 
-			if (!isset($values['email']) || !$this->customerRepository->many()->where('email', $values['email'])->first()) {
+			if (!isset($values['email'])) {
+				return;
+			}
+
+			$customerQuery = $this->customerRepository->many()->where('email', $values['email']);
+
+			if (isset($values['shop'])) {
+				$customerQuery->where('this.fk_shop', $values['shop']);
+			}
+
+			if (!$customerQuery->first()) {
 				return;
 			}
 
 			/** @var \Nette\Forms\Controls\TextInput $emailInput */
 			$emailInput = $form['email'];
 
-			$emailInput->addError('Tento e-mail již existuje!');
+			$emailInput->addError('Tento e-mail již existuje! E-mail může v jednom obchodu existovat maximálně 1x.');
 		};
 
 		$this->formFactory->addShopsContainerToAdminForm($form, false);
+
+		if ($customer) {
+			$form['shop']->setDisabled();
+		}
 
 		$form->addSubmits(!$this->getParameter('customer'));
 
@@ -932,26 +947,23 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 			$accountContactInfos = $account?->getAccountContactInfos()->toArray();
 
-			if ($accountContactInfos) {
-				$form->addGroup('Kontaktní informace');
-				$contactInfosContainer = $form->addContainer('contactInfos');
-
-				$i = 0;
-
-				foreach ($accountContactInfos as $accountContactInfo) {
-					$contactInfosContainer->addText("info_$i", "Kontakt ($accountContactInfo->type)")->setDisabled()->setDefaultValue($accountContactInfo->value);
-
-					$i++;
-				}
+			if (!$accountContactInfos) {
+				return;
 			}
 
-			/** @var \Forms\Container $accountContainer */
-			$accountContainer = $form['account'];
+			$form->addGroup('Kontaktní informace');
+			$contactInfosContainer = $form->addContainer('contactInfos');
 
-			$this->formFactory->addShopsContainerToAdminForm($form, false, $accountContainer);
+			$i = 0;
+
+			foreach ($accountContactInfos as $accountContactInfo) {
+				$contactInfosContainer->addText("info_$i", "Kontakt ($accountContactInfo->type)")->setDisabled()->setDefaultValue($accountContactInfo->value);
+
+				$i++;
+			}
 		};
 		
-		return $this->accountFormFactory->create(false, $callback, true, true);
+		return $this->accountFormFactory->create(false, $callback, true, true, $this->getParameter('account'));
 	}
 	
 	public function createComponentAccountGrid(): AdminGrid
