@@ -4,24 +4,24 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopEntity;
 use Carbon\Carbon;
 use Nette\Security\IIdentity;
 use Security\DB\Account;
 use Security\DB\IUser;
 use StORM\Collection;
-use StORM\Entity;
 use StORM\RelationCollection;
 
 /**
  * Zákazník
  * @table
- * @index{"name":"customer_unique_email","unique":true,"columns":["email"]}
+ * @index{"name":"customer_unique_emailshop","unique":true,"columns":["email", "fk_shop"]}
  * @method array getData()
  * @method \StORM\ICollection<\Eshop\DB\VisibilityList> getVisibilityLists()
  * Due to compatibility within PHP 8.0-8.2 and seamless migration to this version, DynamicProperties are allowed in this class. If they are not, you will have to clear all sessions' data.
  */
 #[\AllowDynamicProperties]
-class Customer extends Entity implements IIdentity, IUser
+class Customer extends ShopEntity implements IIdentity, IUser
 {
 	/**
 	 * Jméno zákazníka / kontaktní osoby
@@ -317,6 +317,12 @@ class Customer extends Entity implements IIdentity, IUser
 	 * @column
 	 */
 	public int $ordersCount = 0;
+
+	/**
+	 * Poslední načtení z ARES
+	 * @column{"type":"datetime"}
+	 */
+	public ?string $aresLoadedTs;
 	
 	/**
 	 * @relationNxN{"via":"eshop_catalogpermission"}

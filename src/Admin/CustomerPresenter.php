@@ -282,7 +282,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($this->customerRepository->many()
 			->select(['pricelists_names' => "GROUP_CONCAT(DISTINCT pricelists.name SEPARATOR ', ')"])
 			->select(['visibilityLists_names' => "GROUP_CONCAT(DISTINCT visibilityLists.name SEPARATOR ', ')"])
-			->setGroupBy(['this.uuid']), 20, 'createdTs', 'DESC', true);
+			->setGroupBy(['this.uuid']), 20, 'createdTs', 'DESC', true, filterShops: false);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Registrace', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
 		$grid->addColumn('Jméno / Adresa (Fakt., Doruč.)', function (Customer $customer) {
@@ -380,6 +380,8 @@ class CustomerPresenter extends BackendPresenter
 		}
 
 		$this->addFiltersToCustomersGrid($grid);
+
+		$this->gridFactory->addShopsFilterSelect($grid);
 
 		$grid->addFilterButtons();
 		
@@ -686,6 +688,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$emailInput->addError('Tento e-mail již existuje!');
 		};
 
+		$this->formFactory->addShopsContainerToAdminForm($form, false);
+
 		$form->addSubmits(!$this->getParameter('customer'));
 
 		$form->onSuccess[] = function (AdminForm $form): void {
@@ -883,7 +887,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 	
 	public function createComponentAccountForm(): AdminForm
 	{
-		$callback = function (Form $form): void {
+		$callback = function (AdminForm $form): void {
 			/** @var \Security\DB\Account|null $account */
 			$account = $this->getParameter('account');
 
@@ -928,20 +932,23 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 			$accountContactInfos = $account?->getAccountContactInfos()->toArray();
 
-			if (!$accountContactInfos) {
-				return;
+			if ($accountContactInfos) {
+				$form->addGroup('Kontaktní informace');
+				$contactInfosContainer = $form->addContainer('contactInfos');
+
+				$i = 0;
+
+				foreach ($accountContactInfos as $accountContactInfo) {
+					$contactInfosContainer->addText("info_$i", "Kontakt ($accountContactInfo->type)")->setDisabled()->setDefaultValue($accountContactInfo->value);
+
+					$i++;
+				}
 			}
 
-			$form->addGroup('Kontaktní informace');
-			$contactInfosContainer = $form->addContainer('contactInfos');
+			/** @var \Forms\Container $accountContainer */
+			$accountContainer = $form['account'];
 
-			$i = 0;
-
-			foreach ($accountContactInfos as $accountContactInfo) {
-				$contactInfosContainer->addText("info_$i", "Kontakt ($accountContactInfo->type)")->setDisabled()->setDefaultValue($accountContactInfo->value);
-
-				$i++;
-			}
+			$this->formFactory->addShopsContainerToAdminForm($form, false, $accountContainer);
 		};
 		
 		return $this->accountFormFactory->create(false, $callback, true, true);
@@ -967,7 +974,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				'buyAllowed' => 'catalogPermission.buyAllowed',
 			]);
 		
-		$grid = $this->gridFactory->create($collection, 20, 'createdTs', 'DESC', true);
+		$grid = $this->gridFactory->create($collection, 20, 'createdTs', 'DESC', true, filterShops: false);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Vytvořen', 'tsRegistered|date', '%s', 'tsRegistered', ['class' => 'fit']);
 		$grid->addColumnText('Login', 'login', '%s', 'login', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
@@ -1044,6 +1051,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$submit->onClick[] = [$this, 'exportAccounts'];
 
 		$this->addFiltersToAccountsGrid($grid);
+
+		$this->gridFactory->addShopsFilterSelect($grid);
 
 		$grid->addFilterButtons();
 		

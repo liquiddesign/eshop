@@ -403,12 +403,6 @@ class OrderGridFactory
 			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
 		}
 
-		if ($shops = $this->shopsConfig->getAvailableShops()) {
-			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
-				$source->where('this.fk_shop', \Eshop\Common\Helpers::replaceArrayValue($value, '0', null));
-			}, '', 'shops', null, $shops, ['placeholder' => '- Obchody -']);
-		}
-
 		$openOrderButton = function () use ($grid, $stateOpen, $btnSecondary): void {
 			try {
 				$grid->getForm()->addSubmit('openMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateOpen))->setHtmlAttribute('class', $btnSecondary)

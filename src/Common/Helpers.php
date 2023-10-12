@@ -23,7 +23,6 @@ class Helpers
 
 	public static function removeEmoji(string $string): string
 	{
-
 		/**
 		 * @see https://unicode.org/charts/PDF/UFE00.pdf
 		 */

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Admin\DB\IGeneralAjaxRepository;
+use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Eshop\Providers\Helpers;
 use League\Csv\EncloseField;
@@ -14,7 +15,9 @@ use Nette\Utils\Validators;
 use Security\DB\IUserRepository;
 use Security\DB\UserRepositoryTrait;
 use StORM\Collection;
+use StORM\DIConnection;
 use StORM\ICollection;
+use StORM\SchemaManager;
 
 /**
  * @template T of \Eshop\DB\Customer
@@ -23,6 +26,11 @@ use StORM\ICollection;
 class CustomerRepository extends \StORM\Repository implements IUserRepository, IGeneralRepository, IGeneralAjaxRepository
 {
 	use UserRepositoryTrait;
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, protected readonly ShopsConfig $shopsConfig)
+	{
+		parent::__construct($connection, $schemaManager);
+	}
+
 	public function createNew(array $values): ?Customer
 	{
 		return $this->createOne($values);

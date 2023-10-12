@@ -70,6 +70,12 @@ class Address extends \StORM\Entity
 	 */
 	public ?string $externalId;
 
+	/**
+	 * Poslední načtení z ARES
+	 * @column{"type":"datetime"}
+	 */
+	public ?string $aresLoadedTs;
+
 	public function getFullAddress(): string
 	{
 		return "$this->street, $this->zipcode $this->city";

@@ -1,0 +1,1 @@
+DROP INDEX customer_unique_email ON eshop_customer
