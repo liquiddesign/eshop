@@ -101,6 +101,7 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 				'dic' => $order->purchase->dic ?: ($order->purchase->customer ? $order->purchase->customer->dic : null),
 				'email' => $order->purchase->email ?: ($order->purchase->customer ? $order->purchase->customer->email : null),
 				'phone' => $order->purchase->phone ?: ($order->purchase->customer ? $order->purchase->customer->phone : null),
+				'paymentType' => $order->purchase->paymentType,
 			] + $values;
 
 		if (!isset($values['code'])) {
