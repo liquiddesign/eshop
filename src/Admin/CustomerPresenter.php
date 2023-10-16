@@ -330,6 +330,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnText('Počet obj.', 'ordersCount', '%s', 'ordersCount', ['class' => 'fit']);
 
 		Arrays::invoke($this->onBeforeAddButtonsCustomersGrid, $grid);
+		$this->addCustomFieldsToCustomerGrid($grid);
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('Feed', function (Customer $customer) use ($btnSecondary) {
@@ -699,6 +700,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$emailInput->addError('Tento e-mail již existuje! E-mail může v jednom obchodu existovat maximálně 1x.');
 		};
 
+		$this->addCustomFieldsToCustomerForm($form);
+
 		$this->formFactory->addShopsContainerToAdminForm($form, false);
 
 		if ($customer) {
@@ -945,6 +948,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			
 			$newsletterInput->addCondition($form::FILLED)->toggle($newsletterGroupsInput->getHtmlId() . '-toogle');
 
+			$this->addCustomFieldsToAccountForm($form);
+
 			$accountContactInfos = $account?->getAccountContactInfos()->toArray();
 
 			if (!$accountContactInfos) {
@@ -1025,6 +1030,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		}
 
 		Arrays::invoke($this->onBeforeAddButtonsAccountsGrid, $grid);
+		$this->addCustomFieldsToCustomerGrid($grid);
 		
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('Login', function (Account $object, Datagrid $grid) use ($btnSecondary) {
@@ -1221,5 +1227,25 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		};
 		
 		return $form;
+	}
+
+	protected function addCustomFieldsToCustomerForm(AdminForm $form): void
+	{
+		unset($form);
+	}
+
+	protected function addCustomFieldsToAccountForm(AdminForm $form): void
+	{
+		unset($form);
+	}
+
+	protected function addCustomFieldsToCustomerGrid(AdminGrid $grid): void
+	{
+		unset($grid);
+	}
+
+	protected function addCustomFieldsToAccountGrid(AdminGrid $grid): void
+	{
+		unset($grid);
 	}
 }
