@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopEntity;
 use StORM\RelationCollection;
 
 /**
@@ -12,7 +13,7 @@ use StORM\RelationCollection;
  * @method \StORM\ICollection<\Eshop\DB\Pricelist> getDefaultPricelists()
  * @method \StORM\ICollection<\Eshop\DB\VisibilityList> getDefaultVisibilityLists()
  */
-class CustomerGroup extends \StORM\Entity
+class CustomerGroup extends ShopEntity
 {
 	/**
 	 * Jméno

@@ -159,14 +159,19 @@ class GroupPresenter extends BackendPresenter
 		}
 		
 		$form->addCheckbox('autoActiveCustomers', 'Zákazníci budou automaticky aktivní po registraci');
-		
+
+		$this->formFactory->addShopsContainerToAdminForm($form);
 		$form->addSubmits(!$group);
 		
 		$form->onSuccess[] = function (AdminForm $form) use ($group): void {
 			$values = $form->getValues('array');
 			
 			if (isset($values['defaultAfterRegistration']) && $values['defaultAfterRegistration']) {
-				$this->userGroupRepo->many()->update(['defaultAfterRegistration' => false]);
+				$query = $this->userGroupRepo->many();
+
+				$this->shopsConfig->filterShopsInShopEntityCollection($query, showOnlyEntitiesWithSelectedShops: true);
+
+				$query->update(['defaultAfterRegistration' => false]);
 			}
 			
 			$group = $this->userGroupRepo->syncOne($values, null, true);
