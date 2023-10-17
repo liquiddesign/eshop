@@ -66,8 +66,12 @@
                                 <div n:if="$purchase->phone"><a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a></div>
                             </div>
                             <div n:if="$purchase->getValue('parentCustomer')" class="mt-2">
-                                <strong>Vytvořil:</strong> <br>
+                                <strong>Objednal zákazník:</strong> <br>
                                 {$purchase->parentCustomer->company ?: $purchase->parentCustomer->fullname} <br>
+                            </div>
+                            <div n:if="$purchase->getValue('account')" class="mt-2">
+                                <strong>Objednal účet:</strong> <br>
+                                {$purchase->account->fullname} ({$purchase->account->login}) <br>
                             </div>
                         </address>
                     </div>
