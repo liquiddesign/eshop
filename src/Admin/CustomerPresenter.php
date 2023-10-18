@@ -24,6 +24,7 @@ use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VisibilityListRepository;
+use Eshop\Services\LostPasswordService;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
@@ -145,6 +146,9 @@ class CustomerPresenter extends BackendPresenter
 
 	#[Inject]
 	public VisibilityListRepository $visibilityListRepository;
+
+	#[Inject]
+	public LostPasswordService $lostPasswordService;
 
 	public function addFiltersToCustomersGrid(AdminGrid $grid): void
 	{
@@ -838,15 +842,29 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 	
 	public function renderEditAccount(Account $account): void
 	{
-		unset($account);
-		
 		$this->template->headerLabel = 'Účet';
 		$this->template->headerTree = [
 			['Zákazníci', 'default'],
 			['Účet'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayButtons = [
+			$this->createBackButton('default'),
+			$this->createButton('sendResetPasswordLink!', 'Poslat link na změnu hesla', $account),
+		];
 		$this->template->displayControls = [$this->getComponent('accountForm')];
+	}
+
+	public function handleSendResetPasswordLink(Account $account): void
+	{
+		try {
+			$this->lostPasswordService->sendResetLink($account);
+
+			$this->flashMessage('E-mail odeslán', 'success');
+		} catch (\Throwable $e) {
+			$this->flashMessage($e->getMessage(), 'error');
+		}
+
+		$this->redirect('this');
 	}
 	
 	public function actionEdit(Customer $customer): void

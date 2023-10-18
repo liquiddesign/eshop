@@ -43,7 +43,8 @@
 		"soukicz/zbozicz": "^1.2",
 		"heureka/overeno-zakazniky": "^4.0",
 		"dfridrich/qr-platba": "^2.0",
-		"latte/latte": "^3.0"
+		"latte/latte": "^3.0",
+		"ramsey/uuid": "^4.7"
     },
 	"minimum-stability": "dev",
 	"prefer-stable": true,
@@ -59,7 +60,7 @@
 	"scripts": {
 		"fix-code": ["@phpcsfix"],
 		"code-style": ["@phpcsfix", "@phpcs"],
-		"check-code": ["@phpcs", "@phpstan", "@lattelint"],
+		"check-code": ["@phpcs", "@phpstan", "@phpstan8", "@lattelint"],
 		"phpstan-clear-cache": "phpstan clear-result-cache",
 		"phpstan": "phpstan analyse --memory-limit 10G -c phpstan.neon",
 		"phpstan8": "phpstan analyse --memory-limit 10G -c phpstan8.neon",
