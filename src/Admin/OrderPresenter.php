@@ -2652,8 +2652,6 @@ class OrderPresenter extends BackendPresenter
 	{
 		parent::startup();
 
-		Debugger::$showBar = false;
-
 		$this->dpd = $this->integrations->getService('dpd');
 		$this->ppl = $this->integrations->getService('ppl');
 
