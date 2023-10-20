@@ -1417,7 +1417,11 @@ class CheckoutManager
 			]);
 		}
 		
-		$customer = $this->customerRepository->one(['email' => $purchase->email]);
+		$customerQuery = $this->customerRepository->many()->where('this.email', $purchase->email);
+		$this->shopsConfig->filterShopsInShopEntityCollection($customerQuery);
+
+		$customer = $customerQuery->first();
+
 		$defaultGroup = $this->customerGroupRepository->getDefaultRegistrationGroup();
 		
 		$customerValues = [
@@ -1428,7 +1432,7 @@ class CheckoutManager
 			'dic' => $purchase->dic,
 			'billAddress' => $purchase->billAddress,
 			'deliveryAddress' => $purchase->deliveryAddress,
-			'group' => $defaultGroup ? $defaultGroup->getPK() : null,
+			'group' => $defaultGroup?->getPK(),
 			'discountLevelPct' => $defaultGroup ? $defaultGroup->defaultDiscountLevelPct : 0,
 		];
 		
