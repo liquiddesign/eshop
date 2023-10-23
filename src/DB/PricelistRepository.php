@@ -14,7 +14,8 @@ use StORM\DIConnection;
 use StORM\SchemaManager;
 
 /**
- * @extends \StORM\Repository<\Eshop\DB\Pricelist>
+ * @template T of \Eshop\DB\Pricelist
+ * @extends \StORM\Repository<T>
  */
 class PricelistRepository extends \StORM\Repository implements IGeneralRepository
 {
