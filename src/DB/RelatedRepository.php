@@ -161,11 +161,11 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 				'type' => $relatedType->getPK(),
 				'master' => $masterPK,
 				'slave' => $slavePK,
-				'amount' => (int)($value['amount'] ?: 1),
+				'amount' => (int) ($value['amount'] ?: 1),
 				'discountPct' => isset($value['discountPct']) ? NumbersHelper::strToFloat($value['discountPct']) : null,
 				'masterPct' => isset($value['masterPct']) ? NumbersHelper::strToFloat($value['masterPct']) : null,
-				'priority' => (int)$value['priority'],
-				'hidden' => (bool)$value['hidden'],
+				'priority' => (int) $value['priority'],
+				'hidden' => (bool) $value['hidden'],
 				'systemic' => false,
 			];
 
