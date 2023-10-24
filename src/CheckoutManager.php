@@ -49,6 +49,7 @@ use Eshop\DB\ReviewRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\Variant;
 use Eshop\DB\VatRate;
+use Eshop\Integration\Integrations;
 use Nette;
 use Nette\Http\Request;
 use Nette\Http\Response;
@@ -233,6 +234,8 @@ class CheckoutManager
 		protected readonly PriceRepository $priceRepository,
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly Request $request,
+		protected readonly Nette\DI\Container $container,
+		protected readonly Integrations $integrations,
 	) {
 	}
 	
@@ -1150,6 +1153,26 @@ class CheckoutManager
 		
 		return $priceVat ?: 0.0;
 	}
+
+	/**
+	 * @deprecated Don't work in all cases!
+	 */
+	public function getCartCheckoutPriceBefore(): float
+	{
+		$price = $this->getSumPriceBefore();
+
+		return $price ?: 0.0;
+	}
+
+	/**
+	 * @deprecated Don't work in all cases!
+	 */
+	public function getCartCheckoutPriceVatBefore(): float
+	{
+		$priceVat = $this->getSumPriceVatBefore();
+
+		return $priceVat ?: 0.0;
+	}
 	
 	public function getPaymentPrice(?string $cartId = self::ACTIVE_CART_ID): float
 	{
@@ -1808,10 +1831,12 @@ class CheckoutManager
 		}
 		
 		Arrays::invoke($this->onOrderCreate, $order);
+
+		$this->onOrderCreate($order);
 		
 		return $order;
 	}
-	
+
 	public function getAttributeNumericSumOfItemsInCart(Attribute $attribute, ?string $cartId = self::ACTIVE_CART_ID): ?float
 	{
 		$sum = 0;
@@ -1832,6 +1857,11 @@ class CheckoutManager
 		}
 		
 		return $sum;
+	}
+
+	protected function onOrderCreate(Order $order): void
+	{
+		unset($order);
 	}
 	
 	protected function createOrderCode(): string
