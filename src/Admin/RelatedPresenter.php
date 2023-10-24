@@ -20,6 +20,7 @@ use Nette\Application\Responses\FileResponse;
 use Nette\Forms\Controls\TextInput;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
+use Nette\Utils\Html;
 use StORM\DIConnection;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -549,6 +550,14 @@ Sloupce discountPct a masterPct <b>nejsou</b> kombinovatelné a může být nast
 Pokud nebude nalezen produkt tak se daný řádek ignoruje. V případě chyby nedojde k žádným změnám.');
 		$form->addSubmit('submit', 'Uložit');
 
+		$form->onRender[] = function (AdminForm $form): void {
+			$presenter = $form->getPresenter();
+
+			foreach ($presenter->template->flashes as $flash) {
+				$form->addError(Html::fromHtml($flash->message));
+			}
+		};
+
 		$form->onSuccess[] = function (Form $form): void {
 			$values = $form->getValues('array');
 
@@ -560,17 +569,24 @@ Pokud nebude nalezen produkt tak se daný řádek ignoruje. V případě chyby n
 			$connection->getLink()->beginTransaction();
 
 			try {
-				$this->relatedRepository->importCsv($file->getContents());
+				$result = $this->relatedRepository->importCsv($file->getContents());
 
 				$connection->getLink()->commit();
-				$this->flashMessage('Provedeno', 'success');
+
+				$notFoundRelationTypes = $result['notFoundRelationTypes'] ? \implode('<br>', $result['notFoundRelationTypes']) : '-';
+				$notFoundProducts = $result['notFoundProducts'] ? \implode('<br>', $result['notFoundProducts']) : '-';
+
+				$this->flashMessage("Provedeno: {$result['importedCount']}<br>
+Nenalezené vazby:<br>$notFoundRelationTypes<br>
+Nenalezené produkty:<br>$notFoundProducts<br>
+", 'success');
 			} catch (\Exception $e) {
 				$connection->getLink()->rollBack();
 
 				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Import dat se nezdařil!', 'error');
 			}
 
-			$form->getPresenter()->redirect('default');
+			$form->getPresenter()->redirect('this');
 		};
 
 		return $form;
