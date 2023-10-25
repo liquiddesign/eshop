@@ -67,7 +67,7 @@ class CountryPresenter extends BackendPresenter
 
 		$form->addText('code', 'Kód');
 		$form->addText('name', 'Název');
-		$form->addText('orderCodeFormat', 'Formát kódu')->setRequired()->setDefaultValue('X%2$s%1$05d');
+//		$form->addText('orderCodeFormat', 'Formát kódu')->setRequired()->setDefaultValue('X%2$s%1$05d');
 		$form->addInteger('orderCodeStartNumber', 'Počáteční číslo objednávek')
 			->setDefaultValue(1)
 			->setRequired()

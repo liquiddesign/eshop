@@ -81,7 +81,7 @@ class AddressesForm extends Form
 		$this->addText('bankAccountCode', 'AddressesForm.bankAccountCode');
 		$this->addText('bankSpecificSymbol', 'AddressesForm.bankSpecificSymbol');
 
-		$this->addHidden('parentCustomer', $customer && $selectedCustomer && $customer->getPK() !== $selectedCustomer->getPK() ? $customer->getPK() : null);
+		$this->addHidden('parentCustomer', $customer && $selectedCustomer && $customer->getPK() !== $selectedCustomer->getPK() ? $customer->getPK() : null)->setNullable();
 		
 		if ($customer && !$this->shopperUser->getCheckoutManager()->getPurchase()->email) {
 			$customerArray = $customer->toArray(['billAddress', 'deliveryAddress']);
