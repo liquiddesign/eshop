@@ -604,7 +604,7 @@ class Product extends \StORM\Entity
 	/**
 	 * @return array<string, array<int, array<string, string>>>
 	 */
-	public function getPreviewAtttributes(): array
+	public function getPreviewAttributes(): array
 	{
 		if (!$this->getValue('parameters')) {
 			return [];
