@@ -14,7 +14,6 @@ use StORM\RelationCollection;
  * Kategorie
  * @table
  * @index{"name":"category_path","unique":true,"columns":["path", "fk_type"]}
- * @index{"name":"category_code","unique":true,"columns":["code", "fk_type"]}
  */
 class Category extends SystemicEntity
 {

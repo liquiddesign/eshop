@@ -12,7 +12,7 @@ use StORM\RelationCollection;
  * Objednávka
  * @method \StORM\RelationCollection<\Eshop\DB\Package> getPackages()
  * @table
- * @index{"name":"order_code","unique":true,"columns":["code"]}
+ * @index{"name":"order_code","unique":true,"columns":["code", "fk_shop"]}
  */
 class Order extends ShopEntity
 {

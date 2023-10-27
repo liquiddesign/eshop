@@ -322,13 +322,26 @@ class SupplierProductRepository extends \StORM\Repository
 				}
 			}
 
-			$pagesRepository->syncOne([
-				'uuid' => $uuid,
-				'url' => ['cs' => Strings::webalize($draft->name) . '-' . Strings::webalize($code)],
-				'title' => ['cs' => $draft->name],
-				'params' => "product=$uuid&",
-				'type' => 'product_detail',
-			], []);
+			if ($this->shopsConfig->getAvailableShops()) {
+				foreach ($this->shopsConfig->getAvailableShops() as $shop) {
+					$pagesRepository->syncOne([
+						'uuid' => $uuid,
+						'url' => ['cs' => Strings::webalize($draft->name) . '-' . Strings::webalize($code)],
+						'title' => ['cs' => $draft->name],
+						'params' => "product=$uuid&",
+						'type' => 'product_detail',
+						'shop' => $shop->getPK(),
+					], []);
+				}
+			} else {
+				$pagesRepository->syncOne([
+					'uuid' => $uuid,
+					'url' => ['cs' => Strings::webalize($draft->name) . '-' . Strings::webalize($code)],
+					'title' => ['cs' => $draft->name],
+					'params' => "product=$uuid&",
+					'type' => 'product_detail',
+				], []);
+			}
 
 			if (!$importImagesResult || !isset($mtime)) {
 				continue;
