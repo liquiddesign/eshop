@@ -403,6 +403,8 @@ class OrderGridFactory
 			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
 		}
 
+		$this->gridFactory->addShopsFilterSelect($grid);
+
 		$openOrderButton = function () use ($grid, $stateOpen, $btnSecondary): void {
 			try {
 				$grid->getForm()->addSubmit('openMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateOpen))->setHtmlAttribute('class', $btnSecondary)
