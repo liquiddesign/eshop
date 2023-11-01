@@ -6,13 +6,19 @@ use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
 use Admin\Controls\AdminGrid;
 use Eshop\BackendPresenter;
+use Eshop\Common\Helpers;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
+use Eshop\DB\InternalRibbon;
+use Eshop\DB\InternalRibbonRepository;
+use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\RibbonRepository;
 use Eshop\DB\VisibilityList;
 use Eshop\DB\VisibilityListItem;
 use Eshop\DB\VisibilityListRepository;
+use Eshop\Services\SettingsService;
 use Forms\Form;
 use Grid\Datagrid;
 use League\Csv\Reader;
@@ -26,6 +32,7 @@ use StORM\Collection;
 use StORM\ICollection;
 use Tracy\Debugger;
 use Tracy\ILogger;
+use Web\DB\SettingRepository;
 
 class VisibilityListPresenter extends BackendPresenter
 {
@@ -51,6 +58,21 @@ class VisibilityListPresenter extends BackendPresenter
 
 	#[Inject]
 	public \Nette\Application\Application $application;
+
+	#[Inject]
+	public SettingRepository $settingRepository;
+
+	#[Inject]
+	public SettingsService $settingsService;
+
+	#[Inject]
+	public ProducerRepository $producerRepository;
+
+	#[Inject]
+	public RibbonRepository $ribbonRepository;
+
+	#[Inject]
+	public InternalRibbonRepository $internalRibbonRepository;
 
 	#[Persistent]
 	public string $tab = 'lists';
@@ -126,9 +148,9 @@ class VisibilityListPresenter extends BackendPresenter
 			}, '', 'list', null, $categories)->setPrompt('- Seznam -');
 		}
 
-		$firstCategoryType = $this->categoryTypeRepository->many()->setOrderBy(['priority'])->first();
+		$categoryTypes = $this->settingsService->getCategoryMainTypes();
 
-		if ($firstCategoryType && ($categories = $this->categoryRepository->getTreeArrayForSelect(true, $firstCategoryType->getPK()))) {
+		if ($categoryTypes && ($categories = $this->categoryRepository->getTreeArrayForSelect(true, \array_keys($categoryTypes)))) {
 			$exactCategories = $categories;
 			$categories += ['0' => 'X - bez kategorie'];
 
@@ -155,6 +177,27 @@ class VisibilityListPresenter extends BackendPresenter
 					$source->filter(['category' => $value === '0' ? false : $category->path]);
 				}
 			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
+		}
+
+		if ($producers = $this->producerRepository->getArrayForSelect()) {
+			$producers += ['0' => 'X - bez výrobce'];
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+				$source->filter(['producer' => Helpers::replaceArrayValue($value, '0', null)]);
+			}, '', 'producers', null, $producers, ['placeholder' => '- Výrobci -']);
+		}
+
+		if ($ribbons = $this->ribbonRepository->getArrayForSelect()) {
+			$ribbons += ['0' => 'X - bez štítků'];
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+				$source->filter(['ribbon' => Helpers::replaceArrayValue($value, '0', null)]);
+			}, '', 'ribbons', null, $ribbons, ['placeholder' => '- Veř. štítky -']);
+		}
+
+		if ($ribbons = $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_PRODUCT)) {
+			$ribbons += ['0' => 'X - bez štítků'];
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+				$source->filter(['internalRibbon' => Helpers::replaceArrayValue($value, '0', null)]);
+			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
 		}
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {

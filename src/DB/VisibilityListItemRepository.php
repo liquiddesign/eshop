@@ -46,7 +46,26 @@ class VisibilityListItemRepository extends \StORM\Repository implements IGeneral
 			$subSelect = $this->getConnection()->rows(['eshop_product_nxn_eshop_category'], ['fk_product'])
 				->join(['eshop_category'], 'eshop_category.uuid=eshop_product_nxn_eshop_category.fk_category')
 				->where('eshop_category.path LIKE :path', ['path' => "$path%"]);
-			$collection->where('product.fk_primaryCategory = :category OR this.uuid IN (' . $subSelect->getSql() . ')', ['category' => $id] + $subSelect->getVars());
+			$collection->where('product.fk_primaryCategory = :category OR this.fk_product IN (' . $subSelect->getSql() . ')', ['category' => $id] + $subSelect->getVars());
 		}
+	}
+
+	public function filterProducer($value, ICollection $collection): void
+	{
+		$value === false ? $collection->where('product.fk_producer IS NULL') : $collection->where('product.fk_producer', $value);
+	}
+
+	public function filterRibbon($value, ICollection $collection): void
+	{
+		$collection->join(['ribbons' => 'eshop_product_nxn_eshop_ribbon'], 'ribbons.fk_product=this.fk_product');
+
+		$value === false ? $collection->where('ribbons.fk_ribbon IS NULL') : $collection->where('ribbons.fk_ribbon', $value);
+	}
+
+	public function filterInternalRibbon($value, ICollection $collection): void
+	{
+		$collection->join(['internalRibbons' => 'eshop_product_nxn_eshop_internalribbon'], 'internalRibbons.fk_product=this.fk_product');
+
+		$value === false ? $collection->where('internalRibbons.fk_internalribbon IS NULL') : $collection->where('internalRibbons.fk_internalribbon', $value);
 	}
 }
