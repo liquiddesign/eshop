@@ -233,7 +233,7 @@
                         <p class="lead mt-4">Platební metoda:</p>
                         <div class="d-flex align-items-center">
                             <img n:if="$purchase->paymentType && $purchase->paymentType->imageFileName" src="{$userUrl|noescape}/paymenttype_images/thumb/{$purchase->paymentType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
-                            {$purchase->paymentType ? $purchase->paymentType->name : null} - {$purchase->paymentType && $payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
+                            {$purchase->paymentType ? $purchase->paymentType->name : null} - {$payment && $payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
                             <a n:if="$presenter->isManager" class="ml-2 d-print-none btn btn-xs btn-outline-primary" n:href="payment $order"><i class="fa fa-xs fa-edit"></i> Změnit</a>
                         </div>
 

@@ -85,14 +85,14 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	
 	/**
 	 * Faktruační adresa
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public ?Address $billAddress;
 	
 	/**
 	 * Dodací adresa
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public ?Address $deliveryAddress;
