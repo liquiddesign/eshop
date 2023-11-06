@@ -34,6 +34,7 @@ use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Html;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\ICollection;
 use Tracy\Debugger;
@@ -381,7 +382,27 @@ class OrderGridFactory
 		}
 
 		// filters
-		$grid->addFilterTextInput('search_order', ['this.code'], null, 'Č. objednávky');
+		$grid->addFilterText(
+			function (ICollection $collection, $value): void {
+				$separator = null;
+
+				if (Strings::contains($value, ';')) {
+					$separator = ';';
+				} elseif (Strings::contains($value, ',')) {
+					$separator = ',';
+				}
+
+				if ($separator) {
+					$collection->where('this.code', \explode($separator, $value));
+				} else {
+					$collection->where('this.code LIKE :search_order', ['search_order' => "%$value%"]);
+				}
+			},
+			null,
+			'search_order',
+		)->setHtmlAttribute('class', 'form-control form-control-sm')
+			->setHtmlAttribute('placeholder', 'Č. objednávek');
+
 		$searchExpressions = ['customer.fullname', 'purchase.fullname', 'customer.ic', 'purchase.ic', 'customer.email', 'purchase.email', 'customer.phone', 'purchase.phone',];
 		$grid->addFilterTextInput('search_q', $searchExpressions, null, 'Jméno zákazníka, IČO, e-mail, telefon');
 		$grid->addFilterButtons(['default']);
