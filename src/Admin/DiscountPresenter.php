@@ -322,7 +322,12 @@ class DiscountPresenter extends BackendPresenter
 //		}, '%s %% | %sx z %s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		
 		$grid->addColumnText('Uplatnění', ['usagesCount', 'usageLimit'], '%s / %s', 'usagesCount', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		
+		$grid->addColumn('', function (DiscountCoupon $coupon): string {
+			return $this->link(':Eshop:Admin:Order:default', [
+				'ordersGrid-coupon' => $coupon->code,
+				'tab' => 'finished',
+			]);
+		}, '<a href="%s" target="_blank"><i class="fas fa-external-link-square-alt"></i></a>', wrapperAttributes: ['class' => 'minimal']);
 		$grid->addColumnLinkDetail('couponsDetail');
 
 		$deleteCondition = function (DiscountCoupon $discountCoupon): bool {
