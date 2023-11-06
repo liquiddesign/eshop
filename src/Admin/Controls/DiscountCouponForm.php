@@ -80,7 +80,7 @@ class DiscountCouponForm extends Control
 		$conditionsContainer = $form->addContainer('conditionsContainer');
 
 		$this->monitor(Presenter::class, function (Presenter $presenter) use ($form, $conditionsContainer, $discountConditionRepository, $discountCoupon): void {
-			for ($i = 0; $i < 6; $i++) {
+			for ($i = 0; $i < 36; $i++) {
 				$conditionsContainer->addSelect("cartCondition_$i", null, DiscountCondition::CART_CONDITIONS);
 				$conditionsContainer->addSelect("quantityCondition_$i", null, DiscountCondition::QUANTITY_CONDITIONS);
 				$conditionsContainer->addMultiSelect2("products_$i", null, [], [
@@ -111,7 +111,7 @@ class DiscountCouponForm extends Control
 
 					$i++;
 
-					if ($i === 6) {
+					if ($i === 36) {
 						break;
 					}
 				}
@@ -203,7 +203,7 @@ class DiscountCouponForm extends Control
 
 			$discountConditionRepository->many()->where('fk_discountCoupon', $discountCoupon->getPK())->delete();
 
-			for ($i = 0; $i < 6; $i++) {
+			for ($i = 0; $i < 36; $i++) {
 				if (!isset($data['conditionsContainer']["products_$i"])) {
 					continue;
 				}
