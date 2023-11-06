@@ -76,7 +76,7 @@ class OrderGridFactory
 	private ?Zbozi $zbozi = null;
 
 	private Container $container;
-	
+
 	/** @var array<mixed> */
 	private array $configuration;
 	
@@ -134,6 +134,7 @@ class OrderGridFactory
 			->join(['comment' => 'eshop_internalcommentorder'], 'this.uuid = comment.fk_order')
 			->join(['payment' => 'eshop_payment'], 'this.uuid = payment.fk_order')
 			->join(['log' => 'eshop_orderlogitem'], 'this.uuid = log.fk_order')
+			->join(['coupon' => 'eshop_discountcoupon'], 'purchase.fk_coupon = coupon.uuid')
 			->select(['commentCount' => 'COUNT(DISTINCT comment.uuid)']);
 
 		Arrays::invoke($this->onCollectionCreation, $collection);
@@ -454,6 +455,10 @@ class OrderGridFactory
 				$source->filter(['internalRibbon' => \Eshop\Common\Helpers::replaceArrayValue($value, '0', null)]);
 			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
 		}
+
+		$grid->addFilterTextInput('coupon', ['coupon.code', 'coupon.label'], null, 'Kupón');
+
+		// Bulk operations
 
 		$openOrderButton = function () use ($grid, $stateOpen, $btnSecondary): void {
 			try {
