@@ -185,7 +185,7 @@ class OrderGridFactory
 		$grid->addColumn('Zákazník a adresa', [$this, 'renderCustomerColumn']);
 		$contacts = '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a><br><small><a href="tel:%2$s"><i class="fa fa-phone-alt"></i> %2$s</a></small>';
 		$grid->addColumnText('Kontakt', ['purchase.email', 'purchase.phone'], $contacts)->onRenderCell[] = [$grid, 'decoratorEmpty'];
-		$grid->addColumnText('Voucher', ['purchase.coupon.label', 'purchase.coupon.code'], '%s<br><small>%s</small>');
+		$grid->addColumnText('Voucher', ['purchase.coupon.label', 'purchase.coupon.code', 'purchase.coupon.discount.internalName_cs'], '%s<br><small>%s - %s</small>');
 
 		$grid->addColumn('Doprava', [$this, 'renderDeliveryColumn']);
 		$grid->addColumn('Platba', [$this, 'renderPaymentColumn']);
