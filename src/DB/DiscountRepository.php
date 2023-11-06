@@ -33,7 +33,19 @@ class DiscountRepository extends \StORM\Repository implements IGeneralRepository
 	{
 		unset($includeHidden);
 
-		return $this->many()->orderBy(['name'])->toArrayOf('name');
+		$mutationSuffix = $this->getConnection()->getMutationSuffix();
+
+		return $this->many()->select(['fullName' => "
+		IF(
+			this.name$mutationSuffix IS NOT NULL AND this.internalName$mutationSuffix IS NOT NULL,
+			CONCAT(
+				this.name$mutationSuffix,
+				' (',
+				this.internalName$mutationSuffix ,
+				')'
+			),
+			IF (this.name$mutationSuffix IS NOT NULL, this.name$mutationSuffix, this.internalName$mutationSuffix)
+		)"])->orderBy(['name'])->toArrayOf('fullName');
 	}
 	
 	public function isTagAssignedToDiscount(Discount $discount, Tag $tag): bool
