@@ -1565,6 +1565,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'is_cancelled',
 			'delivery_state',
 			'discount_code',
+			'order_status',
 		]);
 
 		$purchases = [];
@@ -1658,6 +1659,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					$isCancelled,
 					$deliveryStatus,
 					$discountCode,
+					($payment = $order->getPayment()) && $payment->paidTs ? '1' : '0',
 				]);
 			}
 
@@ -1677,6 +1679,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					$isCancelled,
 					$deliveryStatus,
 					$discountCode,
+					($payment = $order->getPayment()) && $payment->paidTs ? '1' : '0',
 				]);
 			}
 
@@ -1699,6 +1702,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				$isCancelled,
 				$deliveryStatus,
 				$discountCode,
+				($payment = $order->getPayment()) && $payment->paidTs ? '1' : '0',
 			]);
 		}
 	}
