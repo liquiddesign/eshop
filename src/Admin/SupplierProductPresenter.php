@@ -326,6 +326,7 @@ class SupplierProductPresenter extends BackendPresenter
 		/** @var \Eshop\DB\SupplierProduct|null $supplierProduct */
 		$supplierProduct = $this->getParameter('supplierProduct');
 
+		$form->addText('code', 'Kód')->setNullable();
 		$form->addTextArea('ean', 'EAN')->setNullable();
 
 		$form->addSubmits(!$supplierProduct);
