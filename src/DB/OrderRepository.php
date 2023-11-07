@@ -1091,6 +1091,9 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'withoutVat' => false,
 			'catalogPermission' => $this->shopper->getCatalogPermission(),
 			'priorityPrices' => $this->shopper->showPriorityPrices(),
+			'zasilkovnaId' => $purchase->zasilkovnaId,
+			'pickupPointName' => $purchase->getPickupPointName(),
+			'pickupPointId' => $purchase->getPickupPointId(),
 		];
 
 		if ($this->shopper->getCatalogPermission() === 'price') {
