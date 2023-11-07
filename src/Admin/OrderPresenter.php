@@ -1546,6 +1546,9 @@ class OrderPresenter extends BackendPresenter
 		$form->addTextArea('note', 'Poznámka')->setNullable();
 		$form->addTextArea('internalNote', 'Interní poznámka')->setNullable();
 
+		$form->addGroup('Zásilkovna');
+		$form->addInteger('zasilkovnaId', 'ID výdejního místa')->setNullable();
+
 		$form->addSubmits(!$this->getParameter('order'));
 
 		$form->onSuccess[] = function (AdminForm $form): void {
@@ -1571,9 +1574,27 @@ class OrderPresenter extends BackendPresenter
 
 			$originalPurchase = $order->purchase->toArray();
 
+			$zasilkovnaIdChanged = false;
+
+			if ($values['zasilkovnaId'] && $originalPurchase['zasilkovnaId'] !== $values['zasilkovnaId']) {
+				$branch = $this->zasilkovna->getBranch()->find($values['zasilkovnaId']);
+
+				if ($branch) {
+					$values['pickupPointName'] = $branch->getName();
+
+					$zasilkovnaIdChanged = true;
+				} else {
+					$values['zasilkovnaId'] = $originalPurchase['zasilkovnaId'];
+
+					$this->flashMessage('Nové ID pobočky Zásilkovny nenalezeno!<br>Pobočka nebude změněna.', 'error');
+				}
+			}
+
+			$values['zasilkovnaId'] = $values['zasilkovnaId'] ? (string) $values['zasilkovnaId'] : null;
+
 			$order->purchase->update($values, true);
 
-				/** @var \Admin\DB\Administrator|null $admin */
+			/** @var \Admin\DB\Administrator|null $admin */
 			$admin = $this->admin->getIdentity();
 
 			if (!$admin) {
@@ -1586,6 +1607,15 @@ class OrderPresenter extends BackendPresenter
 				$values['note'] !== $originalPurchase['note'] || $values['internalNote'] !== $originalPurchase['internalNote'] ? 'Změna poznámky' : 'Osobní údaje',
 				$admin,
 			);
+
+			if ($zasilkovnaIdChanged) {
+				$this->orderLogItemRepository->createLog(
+					$order,
+					OrderLogItem::EDITED,
+					'Změna ID Zásilkovny: ' . $originalPurchase['zasilkovnaId'] . ' => ' . $values['zasilkovnaId'],
+					$admin,
+				);
+			}
 
 			$this->flashMessage('Uloženo', 'success');
 

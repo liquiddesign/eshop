@@ -22,6 +22,8 @@ use Nette\Utils\FileSystem;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
 use Salamek\Zasilkovna\ApiRest;
+use Salamek\Zasilkovna\Branch;
+use Salamek\Zasilkovna\Model\BranchStorageFile;
 use SimpleXMLElement;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -55,7 +57,11 @@ class Zasilkovna
 
 	private PurchaseRepository $purchaseRepository;
 
+	private string |false $zasilkovnaApiPassword = false;
+
 	private ApiRest $api;
+
+	private Branch $branch;
 
 	public function __construct(
 		PickupPointTypeRepository $pickupPointTypeRepository,
@@ -83,17 +89,35 @@ class Zasilkovna
 		$this->purchaseRepository = $purchaseRepository;
 	}
 
-	public function getApi(): ApiRest
+	public function getZasilkovnaApiPassword(): string
 	{
+		if ($this->zasilkovnaApiPassword !== false) {
+			return $this->zasilkovnaApiPassword;
+		}
+
 		if (!$zasilkovnaApiPassword = $this->settingRepository->getValueByName('zasilkovnaApiPassword')) {
 			throw new ZasilkovnaException('Zasilkovna: API password missing.', ZasilkovnaException::MISSING_API_KEY);
 		}
+
+		return $this->zasilkovnaApiPassword = $zasilkovnaApiPassword;
+	}
+
+	public function getApi(): ApiRest
+	{
+		$zasilkovnaApiPassword = $this->getZasilkovnaApiPassword();
 
 //		if (!$zasilkovnaApiPassword = $this->settingRepository->many()->where('name = "zasilkovnaApiPassword"')->first()) {
 //			throw new ZasilkovnaException('Zasilkovna: API password missing.');
 //		}
 
 		return $this->api ??= new \Salamek\Zasilkovna\ApiRest($zasilkovnaApiPassword);
+	}
+
+	public function getBranch(): Branch
+	{
+		$zasilkovnaApiPassword = $this->getZasilkovnaApiPassword();
+
+		return $this->branch ??= new Branch($zasilkovnaApiPassword, new BranchStorageFile($this->container->getParameters()['tempDir'] . '/zasilkovna_branch_cache'));
 	}
 
 	public function syncPickupPoints(): void
