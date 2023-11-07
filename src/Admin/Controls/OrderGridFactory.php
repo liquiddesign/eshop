@@ -708,10 +708,10 @@ class OrderGridFactory
 				$icon = $order->zasilkovnaCompleted ? 'check' : ($order->zasilkovnaError ? 'times' : 'question');
 				$title = $order->zasilkovnaCompleted ? 'Úspešně odesláno' : ($order->zasilkovnaError ?: 'Neznámý stav - objednávka nebyla odeslána ani exportována');
 				$color = $order->zasilkovnaCompleted ? 'success' : ($order->zasilkovnaError ? 'danger' : 'secondary');
-				$zasilkovnaState = "<br><i class='fas fa-$icon fa-sm text-$color' title='$title'></i>$order->zasilkovnaCode";
+				$zasilkovnaState = "<br><i class='mr-1 fas fa-$icon fa-sm text-$color' title='$title'></i>$order->zasilkovnaCode";
 
 				if ($order->zasilkovnaPrinted) {
-					$zasilkovnaState .= '<i class="fas fa-print"></i>';
+					$zasilkovnaState .= '<i class="ml-1 fas fa-print"></i>';
 				}
 			}
 
