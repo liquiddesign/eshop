@@ -6,16 +6,23 @@ use Eshop\Admin\SettingsPresenter;
 use Eshop\DB\AddressRepository;
 use Eshop\DB\OpeningHoursRepository;
 use Eshop\DB\Order;
+use Eshop\DB\OrderRepository;
 use Eshop\DB\PickupPointRepository;
 use Eshop\DB\PickupPointTypeRepository;
 use Eshop\DB\PurchaseRepository;
-use Eshop\Shopper;
 use GuzzleHttp\Client;
+use Nette\Application\Application;
+use Nette\DI\Container;
 use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
+use Nette\Utils\FileSystem;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
+use Salamek\Zasilkovna\ApiRest;
 use SimpleXMLElement;
+use StORM\Collection;
+use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\DB\SettingRepository;
 
 class Zasilkovna
@@ -44,7 +51,7 @@ class Zasilkovna
 
 	private PurchaseRepository $purchaseRepository;
 
-	private Shopper $shopper;
+	private ApiRest $api;
 
 	public function __construct(
 		PickupPointTypeRepository $pickupPointTypeRepository,
@@ -54,7 +61,11 @@ class Zasilkovna
 		OpeningHoursRepository $openingHoursRepository,
 		Translator $translator,
 		PurchaseRepository $purchaseRepository,
-		Shopper $shopper
+		/* @codingStandardsIgnoreStart */
+		protected Application $application,
+		protected Container $container,
+		protected OrderRepository $orderRepository,
+		/* @codingStandardsIgnoreEnd */
 	) {
 		$this->pickupPointRepository = $pickupPointRepository;
 		$this->pickupPointTypeRepository = $pickupPointTypeRepository;
@@ -63,7 +74,19 @@ class Zasilkovna
 		$this->openingHoursRepository = $openingHoursRepository;
 		$this->translator = $translator;
 		$this->purchaseRepository = $purchaseRepository;
-		$this->shopper = $shopper;
+	}
+
+	public function getApi(): ApiRest
+	{
+		if (!$zasilkovnaApiPassword = $this->settingRepository->getValueByName('zasilkovnaApiPassword')) {
+			throw new ZasilkovnaException('Zasilkovna: API password missing.', ZasilkovnaException::MISSING_API_KEY);
+		}
+
+//		if (!$zasilkovnaApiPassword = $this->settingRepository->many()->where('name = "zasilkovnaApiPassword"')->first()) {
+//			throw new ZasilkovnaException('Zasilkovna: API password missing.');
+//		}
+
+		return $this->api ??= new \Salamek\Zasilkovna\ApiRest($zasilkovnaApiPassword);
 	}
 
 	public function syncPickupPoints(): void
@@ -229,8 +252,46 @@ class Zasilkovna
 		}
 
 		foreach ($orders as $order) {
-			$this->createZasilkovnaPackage($order, $zasilkovnaApiPassword);
+			try {
+				$this->createZasilkovnaPackage($order, $zasilkovnaApiPassword);
+			} catch (\Exception $e) {
+				Debugger::log($e, ILogger::ERROR);
+			}
 		}
+	}
+
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\Order> $orders
+	 * @return string Filename with PDF
+	 * @throws \Eshop\Integration\ZasilkovnaException
+	 */
+	public function printLabels(Collection $orders): string
+	{
+		$api = $this->getApi();
+
+		$orders->where('purchase.zasilkovnaId IS NOT NULL AND LENGTH(purchase.zasilkovnaId) > 0');
+		$orders->where('this.zasilkovnaCompleted', true);
+		$orders->where('this.zasilkovnaCode IS NOT NULL');
+
+		$ordersArray = $orders->toArrayOf('zasilkovnaCode');
+
+		$result = $api->packetsLabelsPdf(\array_values($ordersArray), 'A6 on A4');
+
+		$tempFilename = \tempnam($this->container->getParameters()['tempDir'], 'zasilkovna');
+
+		$this->application->onShutdown[] = function () use ($tempFilename): void {
+			try {
+				FileSystem::delete($tempFilename);
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::WARNING);
+			}
+		};
+
+		FileSystem::write($tempFilename, \base64_decode($result));
+
+		$this->orderRepository->many()->where('this.uuid', \array_keys($ordersArray))->update(['zasilkovnaPrinted' => true]);
+
+		return $tempFilename;
 	}
 
 	/**
@@ -264,6 +325,12 @@ class Zasilkovna
 
 	private function createZasilkovnaPackage(Order $order, $zasilkovnaApiPassword): void
 	{
+		$eshop = $this->settingRepository->getValueByName('zasilkovnaSender');
+
+		if (!$eshop) {
+			throw new ZasilkovnaException('Zasilkovna: No sender available.');
+		}
+
 		/** @var \Eshop\DB\Purchase $purchase */
 		$purchase = $this->purchaseRepository->many()->join(['orders' => 'eshop_order'], 'this.uuid = orders.fk_purchase')->where('orders.uuid', $order->getPK())->first();
 
@@ -273,7 +340,8 @@ class Zasilkovna
 			'verify' => true,
 		]);
 
-		$sumWeight = $purchase->getSumWeight();
+		$sumWeight = ($sumWeight = $purchase->getSumWeight()) > 0 ? $sumWeight / 1000 : 1;
+		\bdump($sumWeight);
 
 		$codPaymentType = $this->settingRepository->getValuesByName(SettingsPresenter::COD_TYPE);
 
@@ -300,7 +368,7 @@ class Zasilkovna
 			        <currency>' . $order->purchase->currency->code . '</currency>
 			        <value>' . $order->getTotalPriceVat() . '</value>
 			        ' . ($cod ? '<cod>' . \round($order->getTotalPriceVat()) . '</cod>' : null) . '
-			        <eshop>' . $this->shopper->getProjectUrl() . '</eshop>
+			        <eshop>' . $eshop . '</eshop>
 			        <weight>' . ($sumWeight > 0 ? $sumWeight : 1) . '</weight>
 			    </packetAttributes>
 			</createPacket>
@@ -321,11 +389,13 @@ class Zasilkovna
 		\bdump($xmlResponse);
 
 		if ((string)$xmlResponse->status !== 'ok') {
+			Debugger::log($xmlResponse->result, ILogger::ERROR);
+
 			$order->update(['zasilkovnaCompleted' => false, 'zasilkovnaError' => 'Chyba při odesílání pomocí API!',]);
 
-			throw new \Exception("Order {$order->code} error sending!");
+			throw new ZasilkovnaException("Order {$order->code} error sending!", ZasilkovnaException::INVALID_RESPONSE);
 		}
 
-		$order->update(['zasilkovnaCompleted' => true, 'zasilkovnaError' => null,]);
+		$order->update(['zasilkovnaCompleted' => true, 'zasilkovnaError' => null, 'zasilkovnaCode' => (string) $xmlResponse->result->id]);
 	}
 }

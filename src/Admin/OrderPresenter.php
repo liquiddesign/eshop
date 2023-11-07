@@ -2155,12 +2155,24 @@ class OrderPresenter extends BackendPresenter
 	{
 		unset($ids);
 
-		$this->template->headerLabel = 'Export pro Zásilkovnu (CSV)';
+		$this->template->headerLabel = 'Export pro Zásilkovnu';
 		$this->template->headerTree = [
 			['Objednávky', 'default',],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('exportZasilkovnaCSVForm')];
+	}
+
+	public function renderPrintZasilkovna(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Tisk štítku pro Zásilkovnu';
+		$this->template->headerTree = [
+			['Objednávky', 'default',],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('printZasilkovnaForm')];
 	}
 
 	public function renderSendPPL(array $ids): void
@@ -2326,13 +2338,44 @@ class OrderPresenter extends BackendPresenter
 
 			$this->sendResponse(new FileResponse($tempFilename, 'zasilkovna.csv', 'text/csv'));
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds(), function (AdminForm $form): void {
-			/** @var \Nette\Forms\Controls\RadioList $bulkTypeInput */
-			$bulkTypeInput = $form['bulkType'];
-			$bulkTypeInput->setHtmlAttribute('data-info', '<br>Systém umožňuje i automatické odeslání do Zásilkovny bez nutnosti manuálního exportu.<br>
-"Exportovat přes API" odešle dosud neexportované objednávky přímo do Zásilkovny. Ruční export označuje objednávky jako exportované a znemožňuje následný automatický export!');
+//			/** @var \Nette\Forms\Controls\RadioList $bulkTypeInput */
+//			$bulkTypeInput = $form['bulkType'];
+//			$bulkTypeInput->setHtmlAttribute('data-info', '<br><br>
+//"Exportovat přes API" odešle dosud neexportované objednávky přímo do Zásilkovny. Ruční export označuje objednávky jako exportované a znemožňuje následný export přes API!');
 
-			$form->addSubmit('onlyNotExported', 'Pouze neexportované');
 			$form->addSubmit('useApi', 'Exportovat přes API');
+//			$form->addSubmit('onlyNotExported', 'Exportovat do CSV (pouze neexportované');
+
+			/** @var \Nette\Forms\Controls\SubmitButton $submit */
+			$submit = $form['submit'];
+			$submit->setCaption('Exportovat do CSV');
+		});
+	}
+
+	public function createComponentPrintZasilkovnaForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection, AdminForm $form): void {
+			/** @var \Nette\Forms\Controls\SubmitButton $submitter */
+			$submitter = $form->isSubmitted();
+
+			if ($submitter->getName() === 'onlyNotPrinted') {
+				$collection->where('this.zasilkovnaPrinted', false);
+			}
+
+			try {
+				$fileName = $this->zasilkovna->printLabels($collection);
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::ERROR);
+				\bdump($e);
+
+				$this->flashMessage('Chyba!<br>' . $e->getMessage(), 'error');
+
+				return;
+			}
+
+			$this->sendResponse(new FileResponse($fileName, 'labels.pdf', 'application/pdf'));
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds(), function (AdminForm $form): void {
+			$form->addSubmit('onlyNotPrinted', 'Pouze nevytištěné');
 
 			/** @var \Nette\Forms\Controls\SubmitButton $submit */
 			$submit = $form['submit'];

@@ -171,7 +171,8 @@ class IntegrationPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 		$form->addText('zasilkovnaApiKey', 'Klíč API')->setNullable();
 		$form->addText('zasilkovnaApiPassword', 'Heslo API')->setNullable();
-		
+		$form->addText('zasilkovnaSender', 'Odesílatel')->setNullable();
+
 		$form->addSubmit('submit', 'Uložit');
 		
 		$form->onSuccess[] = function (AdminForm $form): void {

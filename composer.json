@@ -50,7 +50,8 @@
 		"markette/gopay-inline": "^2.1",
 		"soukicz/zbozicz": "^1.2",
 		"heureka/overeno-zakazniky": "^4.0",
-		"dfridrich/qr-platba": "2"
+		"dfridrich/qr-platba": "2",
+		"salamek/zasilkovna": "^3.3"
 	},
 	"require-dev": 
 	{

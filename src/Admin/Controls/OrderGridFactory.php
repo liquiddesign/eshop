@@ -79,6 +79,8 @@ class OrderGridFactory
 
 	/** @var array<mixed> */
 	private array $configuration;
+
+	private string |false|null $zasilkovnaApiKey = false;
 	
 	public function __construct(
 		AdminGridFactory $adminGridFactory,
@@ -107,6 +109,15 @@ class OrderGridFactory
 		$this->shopper = $shopper;
 		$this->container = $container;
 		$this->settingRepository = $settingRepository;
+	}
+
+	public function getZasilkovnaApiKey(): string|null
+	{
+		if ($this->zasilkovnaApiKey !== false) {
+			return $this->zasilkovnaApiKey;
+		}
+
+		return $this->zasilkovnaApiKey = $this->settingRepository->getValueByName('zasilkovnaApiKey');
 	}
 
 	/**
@@ -586,7 +597,11 @@ class OrderGridFactory
 
 		$grid->monitor(BackendPresenter::class, function (BackendPresenter $presenter) use ($grid, $state, $configuration): void {
 			if ($this->settingRepository->getValueByName('zasilkovnaApiKey') && $state !== Order::STATE_OPEN) {
-				$grid->addBulkAction('exportZasilkovna', 'exportZasilkovna', '<i class="fas fa-paper-plane"></i> Zásilkovna');
+				$grid->addBulkAction('exportZasilkovna', 'exportZasilkovna', '<i class="fas fa-paper-plane"></i> Zásilkovna')->setHtmlAttribute('formtarget', '_blank');
+			}
+
+			if ($this->settingRepository->getValueByName('zasilkovnaApiKey') && $state !== Order::STATE_OPEN) {
+				$grid->addBulkAction('printZasilkovna', 'printZasilkovna', '<i class="fas fa-print"></i> Zásilkovna')->setHtmlAttribute('formtarget', '_blank');
 			}
 
 			if (Helpers::isConfigurationActive($configuration, 'exportPPC') && $state !== Order::STATE_OPEN) {
@@ -689,11 +704,15 @@ class OrderGridFactory
 		if ($order->purchase->zasilkovnaId) {
 			$zasilkovnaState = null;
 
-			if ($this->settingRepository->getValueByName('zasilkovnaApiKey') && $order->getState() !== Order::STATE_OPEN) {
+			if ($this->getZasilkovnaApiKey() && $order->getState() !== Order::STATE_OPEN) {
 				$icon = $order->zasilkovnaCompleted ? 'check' : ($order->zasilkovnaError ? 'times' : 'question');
 				$title = $order->zasilkovnaCompleted ? 'Úspešně odesláno' : ($order->zasilkovnaError ?: 'Neznámý stav - objednávka nebyla odeslána ani exportována');
 				$color = $order->zasilkovnaCompleted ? 'success' : ($order->zasilkovnaError ? 'danger' : 'secondary');
-				$zasilkovnaState = "<i class='ml-2 fas fa-$icon fa-sm text-$color' title='$title'></i>";
+				$zasilkovnaState = "<br><i class='fas fa-$icon fa-sm text-$color' title='$title'></i>$order->zasilkovnaCode";
+
+				if ($order->zasilkovnaPrinted) {
+					$zasilkovnaState .= '<i class="fas fa-print"></i>';
+				}
 			}
 
 			return "<a href='$link'>" . $delivery->getTypeName() . '</a> - ' . $order->purchase->zasilkovnaId . $zasilkovnaState . " <small> $date</small>" . $deliveryInfo;

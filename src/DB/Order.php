@@ -99,6 +99,18 @@ class Order extends \StORM\Entity
 	public ?string $zasilkovnaError = null;
 
 	/**
+	 * Odesláno do systému zásilkovny
+	 * @column
+	 */
+	public ?string $zasilkovnaCode = null;
+
+	/**
+	 * Zásilkovna vytištěno
+	 * @column
+	 */
+	public bool $zasilkovnaPrinted = false;
+
+	/**
 	 * DPD kód
 	 * @column
 	 */
