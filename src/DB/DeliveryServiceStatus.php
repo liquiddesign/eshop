@@ -13,9 +13,10 @@ class DeliveryServiceStatus extends \StORM\Entity
 {
 	public const SERVICE_DPD = 'dpd';
 	public const SERVICE_PPL = 'ppl';
+	public const SERVICE_ZASILKOVNA = 'zas';
 
 	/**
-	 * @column{"type":"enum","length":"'dpd','ppl'"}
+	 * @column{"type":"enum","length":"'dpd','ppl','zas'"}
 	 */
 	public string $service;
 

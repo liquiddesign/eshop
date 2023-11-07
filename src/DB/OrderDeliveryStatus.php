@@ -13,6 +13,7 @@ class OrderDeliveryStatus extends \StORM\Entity
 {
 	public const SERVICE_DPD = 'dpd';
 	public const SERVICE_PPL = 'ppl';
+	public const SERVICE_ZASILKOVNA = 'zas';
 
 	/**
 	 * Timestamp of status creation from service
@@ -21,7 +22,7 @@ class OrderDeliveryStatus extends \StORM\Entity
 	public ?string $createdTs;
 
 	/**
-	 * @column{"type":"enum","length":"'dpd','ppl'"}
+	 * @column{"type":"enum","length":"'dpd','ppl','zas'"}
 	 */
 	public string $service;
 
@@ -42,6 +43,7 @@ class OrderDeliveryStatus extends \StORM\Entity
 	public Order $order;
 
 	/**
+	 * @deprecated don't use at all
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */

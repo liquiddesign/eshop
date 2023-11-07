@@ -126,6 +126,24 @@ class Delivery extends \StORM\Entity
 	 * @column
 	 */
 	public bool $pplPrinted = false;
+
+	/**
+	 * Zasilkovna kód
+	 * @column
+	 */
+	public ?string $zasilkovnaCode;
+
+	/**
+	 * Zasilkovna chyba
+	 * @column
+	 */
+	public bool $zasilkovnaError = false;
+
+	/**
+	 * Zasilkovna doručování dokončeno - není nutné zjištovat stav
+	 * @column
+	 */
+	public bool $zasilkovnaFinished = false;
 	
 	/**
 	 * Dodavatel / Dropship
@@ -147,5 +165,10 @@ class Delivery extends \StORM\Entity
 	public function getPplCode(): ?string
 	{
 		return $this->pplError ? null : $this->pplCode;
+	}
+
+	public function getZasilkovnaCode(): ?string
+	{
+		return $this->zasilkovnaError ? null : $this->zasilkovnaCode;
 	}
 }

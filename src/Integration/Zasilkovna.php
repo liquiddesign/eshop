@@ -4,8 +4,11 @@ namespace Eshop\Integration;
 
 use Eshop\Admin\SettingsPresenter;
 use Eshop\DB\AddressRepository;
+use Eshop\DB\DeliveryRepository;
 use Eshop\DB\OpeningHoursRepository;
 use Eshop\DB\Order;
+use Eshop\DB\OrderDeliveryStatus;
+use Eshop\DB\OrderDeliveryStatusRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PickupPointRepository;
 use Eshop\DB\PickupPointTypeRepository;
@@ -21,6 +24,7 @@ use Nette\Utils\JsonException;
 use Salamek\Zasilkovna\ApiRest;
 use SimpleXMLElement;
 use StORM\Collection;
+use StORM\DIConnection;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
@@ -65,6 +69,9 @@ class Zasilkovna
 		protected Application $application,
 		protected Container $container,
 		protected OrderRepository $orderRepository,
+		protected OrderDeliveryStatusRepository $orderDeliveryStatusRepository,
+		protected DIConnection $connection,
+		protected DeliveryRepository $deliveryRepository,
 		/* @codingStandardsIgnoreEnd */
 	) {
 		$this->pickupPointRepository = $pickupPointRepository;
@@ -292,6 +299,78 @@ class Zasilkovna
 		$this->orderRepository->many()->where('this.uuid', \array_keys($ordersArray))->update(['zasilkovnaPrinted' => true]);
 
 		return $tempFilename;
+	}
+
+	public function syncOrdersStatus(): void
+	{
+		$api = $this->getApi();
+
+		$orders = $this->orderRepository->many()
+			->where('this.zasilkovnaCompleted', true)
+			->where('this.zasilkovnaCode IS NOT NULL');
+
+		foreach ($orders as $order) {
+			$zasilkovnaCodes = \explode(',', $order->zasilkovnaCode);
+
+			foreach ($zasilkovnaCodes as $zasilkovnaCode) {
+				$orderStatus = $api->packetStatus($zasilkovnaCode);
+
+				$this->orderDeliveryStatusRepository->syncOne([
+					'service' => OrderDeliveryStatus::SERVICE_ZASILKOVNA,
+					'order' => $order->getPK(),
+					'createdTs' => $orderStatus['dateTime'],
+					'status' => $orderStatus['statusCode'],
+					'packageCode' => $zasilkovnaCode,
+				]);
+			}
+		}
+	}
+
+	/**
+	 * @param \Eshop\DB\Order $order
+	 * @return array<string>|null
+	 */
+	public function getDeliveryStatusText(Order $order): ?array
+	{
+		if (!$order->zasilkovnaCode || $order->zasilkovnaError) {
+			return null;
+		}
+
+		$result = [];
+
+		foreach (\explode(',', $order->zasilkovnaCode) as $code) {
+			$deliveryStatuses = $this->orderDeliveryStatusRepository->many()
+				->setIndex('this.status')
+				->where('this.service', OrderDeliveryStatus::SERVICE_ZASILKOVNA)
+				->where('this.packageCode', $code)
+				->toArray();
+
+			if (isset($deliveryStatuses['1'])) {
+				$result[$code] = $this->translator->translate('zasStatus.1', 'Příjem elektronických dat k zásilce. Čekáme na předání zboží od odesílatele k přepravě.');
+			} elseif (isset($deliveryStatuses['2'])) {
+				$result[$code] = $this->translator->translate('zasStatus.2', 'Přijetí zásilky na depu.');
+			} elseif (isset($deliveryStatuses['3'])) {
+				$result[$code] = $this->translator->translate('zasStatus.3', 'Zásilka se připravuje k odeslání.');
+			} elseif (isset($deliveryStatuses['4'])) {
+				$result[$code] = $this->translator->translate('zasStatus.4', 'Zásilka je na cestě.');
+			} elseif (isset($deliveryStatuses['5'])) {
+				$result[$code] = $this->translator->translate('zasStatus.5', 'Zásilka byla doručena na místo určení.');
+			} elseif (isset($deliveryStatuses['6'])) {
+				$result[$code] = $this->translator->translate('zasStatus.6', 'Zásilka předána externímu přepravci.');
+			} elseif (isset($deliveryStatuses['7'])) {
+				$result[$code] = $this->translator->translate('zasStatus.7', 'Zásilka byla předána příjemci.');
+			} elseif (isset($deliveryStatuses['9'])) {
+				$result[$code] = $this->translator->translate('zasStatus.9', 'Zásilka se vrací odesílateli.');
+			} elseif (isset($deliveryStatuses['10'])) {
+				$result[$code] = $this->translator->translate('zasStatus.10', 'Zásilka byla vrácena odesílateli.');
+			} elseif (isset($deliveryStatuses['11'])) {
+				$result[$code] = $this->translator->translate('zasStatus.11', 'Doručení zásilky bylo zrušeno.');
+			} elseif (isset($deliveryStatuses['12'])) {
+				$result[$code] = $this->translator->translate('zasStatus.12', 'Zásilka byla převzata a je na cestě na depo.');
+			}
+		}
+
+		return $result;
 	}
 
 	/**
