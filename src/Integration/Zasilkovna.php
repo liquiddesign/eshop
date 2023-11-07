@@ -345,28 +345,28 @@ class Zasilkovna
 				->where('this.packageCode', $code)
 				->toArray();
 
-			if (isset($deliveryStatuses['1'])) {
-				$result[$code] = $this->translator->translate('zasStatus.1', 'Příjem elektronických dat k zásilce. Čekáme na předání zboží od odesílatele k přepravě.');
+			if (isset($deliveryStatuses['7'])) {
+				$result[$code] = $this->translator->translate('zasStatus.7', 'Zásilka byla předána příjemci.');
+			} elseif (isset($deliveryStatuses['11'])) {
+				$result[$code] = $this->translator->translate('zasStatus.11', 'Doručení zásilky bylo zrušeno.');
+			} elseif (isset($deliveryStatuses['10'])) {
+				$result[$code] = $this->translator->translate('zasStatus.10', 'Zásilka byla vrácena odesílateli.');
+			} elseif (isset($deliveryStatuses['9'])) {
+				$result[$code] = $this->translator->translate('zasStatus.9', 'Zásilka se vrací odesílateli.');
+			} elseif (isset($deliveryStatuses['5'])) {
+				$result[$code] = $this->translator->translate('zasStatus.5', 'Zásilka byla doručena na místo určení.');
+			} elseif (isset($deliveryStatuses['4'])) {
+				$result[$code] = $this->translator->translate('zasStatus.4', 'Zásilka je na cestě.');
 			} elseif (isset($deliveryStatuses['2'])) {
 				$result[$code] = $this->translator->translate('zasStatus.2', 'Přijetí zásilky na depu.');
 			} elseif (isset($deliveryStatuses['3'])) {
 				$result[$code] = $this->translator->translate('zasStatus.3', 'Zásilka se připravuje k odeslání.');
-			} elseif (isset($deliveryStatuses['4'])) {
-				$result[$code] = $this->translator->translate('zasStatus.4', 'Zásilka je na cestě.');
-			} elseif (isset($deliveryStatuses['5'])) {
-				$result[$code] = $this->translator->translate('zasStatus.5', 'Zásilka byla doručena na místo určení.');
 			} elseif (isset($deliveryStatuses['6'])) {
 				$result[$code] = $this->translator->translate('zasStatus.6', 'Zásilka předána externímu přepravci.');
-			} elseif (isset($deliveryStatuses['7'])) {
-				$result[$code] = $this->translator->translate('zasStatus.7', 'Zásilka byla předána příjemci.');
-			} elseif (isset($deliveryStatuses['9'])) {
-				$result[$code] = $this->translator->translate('zasStatus.9', 'Zásilka se vrací odesílateli.');
-			} elseif (isset($deliveryStatuses['10'])) {
-				$result[$code] = $this->translator->translate('zasStatus.10', 'Zásilka byla vrácena odesílateli.');
-			} elseif (isset($deliveryStatuses['11'])) {
-				$result[$code] = $this->translator->translate('zasStatus.11', 'Doručení zásilky bylo zrušeno.');
 			} elseif (isset($deliveryStatuses['12'])) {
 				$result[$code] = $this->translator->translate('zasStatus.12', 'Zásilka byla převzata a je na cestě na depo.');
+			} elseif (isset($deliveryStatuses['1'])) {
+				$result[$code] = $this->translator->translate('zasStatus.1', 'Příjem elektronických dat k zásilce. Čekáme na předání zboží od odesílatele k přepravě.');
 			}
 		}
 
