@@ -50,7 +50,7 @@ class Package extends \StORM\Entity
 
 	public function getWeight(): float
 	{
-		return $this->computedWeight ??= $this->getItems()
+		return $this->computedWeight ??= (float) $this->getItems()
 			->setSelect(['weight' => 'SUM(ci.productWeight * ci.amount)'])
 			->join(['ci' => 'eshop_cartitem'], 'this.fk_cartItem = ci.uuid')
 			->firstValue('weight');
