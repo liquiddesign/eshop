@@ -369,7 +369,7 @@ class OrderPresenter extends BackendPresenter
 
 		$form = $this->formFactory->create();
 		$form->addSelect('type', 'Doprava', $this->deliveryTypeRepository->getArrayForSelect())->setRequired();
-		$form->addDataSelect('supplier', 'Dropshipping', $this->supplierRepository->getArrayForSelect());
+		$form->addDataSelect('supplier', 'Dropshipping', $this->supplierRepository->getArrayForSelect())->setPrompt('- Žádný -');
 		$form->addText('externalId', 'Externí Id')->setNullable(true);
 		$form->addDate('shippingDate', 'Den doručení')->setNullable(true);
 		$form->addGroup('Cena');
@@ -378,6 +378,16 @@ class OrderPresenter extends BackendPresenter
 		$form->addText('priceVat', 'Cena s DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
 		$form->addGroup('Stav');
 		$form->addDatetime('shippedTs', 'Expedováno')->setNullable(true);
+
+		$form->addGroup('Zásilkovna');
+		$form->addInteger('zasilkovnaId', 'ID výdejního místa')
+			->setNullable()
+			->setDefaultValue($order->purchase->zasilkovnaId)
+			->setHtmlAttribute('data-info', 'ID požadované pobočky naleznete zde: <a href="https://www.zasilkovna.cz/pobocky" target="_blank">https://www.zasilkovna.cz/pobocky</a><br>Změna ovlivňuje všechny dopravy objednávky.');
+		$form->addText('pickupPointName', 'Název výdejního místa')
+			->setDisabled()
+			->setDefaultValue($order->purchase->pickupPointName)
+			->setHtmlAttribute('data-info', 'Bude vyplněno automaticky podle ID.');
 
 		$form->addHidden('order', (string)$order);
 
@@ -390,10 +400,39 @@ class OrderPresenter extends BackendPresenter
 			$values['typeCode'] = $type['code'];
 			$values['typeName'] = $type['name'];
 
+			$originalPurchase = $order->purchase->toArray();
+			$zasilkovnaIdChanged = false;
+			$purchaseValues = [];
+
+			$purchaseValues['zasilkovnaId'] = $originalPurchase['zasilkovnaId'];
+			$purchaseValues['pickupPointName'] = $originalPurchase['pickupPointName'];
+
+			if ($values['zasilkovnaId']) {
+				if (((string) $originalPurchase['zasilkovnaId']) !== ((string) $values['zasilkovnaId'])) {
+					$branch = $this->zasilkovna->getBranch()->find($values['zasilkovnaId']);
+
+					if ($branch) {
+						$purchaseValues['zasilkovnaId'] = (string) $values['zasilkovnaId'];
+						$purchaseValues['pickupPointName'] = $branch->getName();
+
+						$zasilkovnaIdChanged = true;
+					} else {
+						$this->flashMessage('Nové ID pobočky Zásilkovny nenalezeno!<br>Pobočka nebude změněna.', 'error');
+					}
+				}
+			} else {
+				$zasilkovnaIdChanged = true;
+
+				$purchaseValues['zasilkovnaId'] = null;
+				$purchaseValues['pickupPointName'] = null;
+			}
+
+			unset($values['zasilkovnaId']);
+
 			$delivery = $this->deliveryRepository->syncOne($values);
 
 			if ($order) {
-				$order->purchase->update(['deliveryType' => $values['type']]);
+				$order->purchase->update(['deliveryType' => $values['type']] + $purchaseValues);
 			}
 
 			/** @var \Admin\DB\Administrator|null $admin */
@@ -404,6 +443,15 @@ class OrderPresenter extends BackendPresenter
 			}
 
 			Arrays::invoke($this->orderRepository->onOrderDeliveryChanged, $order, $delivery);
+
+			if ($zasilkovnaIdChanged) {
+				$this->orderLogItemRepository->createLog(
+					$order,
+					OrderLogItem::EDITED,
+					'Změna ID Zásilkovny: ' . $originalPurchase['zasilkovnaId'] . ' => ' . $purchaseValues['zasilkovnaId'],
+					$admin,
+				);
+			}
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detailDelivery', 'delivery', [$delivery], [$order]);
@@ -1546,9 +1594,6 @@ class OrderPresenter extends BackendPresenter
 		$form->addTextArea('note', 'Poznámka')->setNullable();
 		$form->addTextArea('internalNote', 'Interní poznámka')->setNullable();
 
-		$form->addGroup('Zásilkovna');
-		$form->addInteger('zasilkovnaId', 'ID výdejního místa')->setNullable();
-
 		$form->addSubmits(!$this->getParameter('order'));
 
 		$form->onSuccess[] = function (AdminForm $form): void {
@@ -1573,25 +1618,6 @@ class OrderPresenter extends BackendPresenter
 			}
 
 			$originalPurchase = $order->purchase->toArray();
-
-			$zasilkovnaIdChanged = false;
-
-			if ($values['zasilkovnaId'] && $originalPurchase['zasilkovnaId'] !== $values['zasilkovnaId']) {
-				$branch = $this->zasilkovna->getBranch()->find($values['zasilkovnaId']);
-
-				if ($branch) {
-					$values['pickupPointName'] = $branch->getName();
-
-					$zasilkovnaIdChanged = true;
-				} else {
-					$values['zasilkovnaId'] = $originalPurchase['zasilkovnaId'];
-
-					$this->flashMessage('Nové ID pobočky Zásilkovny nenalezeno!<br>Pobočka nebude změněna.', 'error');
-				}
-			}
-
-			$values['zasilkovnaId'] = $values['zasilkovnaId'] ? (string) $values['zasilkovnaId'] : null;
-
 			$order->purchase->update($values, true);
 
 			/** @var \Admin\DB\Administrator|null $admin */
@@ -1607,15 +1633,6 @@ class OrderPresenter extends BackendPresenter
 				$values['note'] !== $originalPurchase['note'] || $values['internalNote'] !== $originalPurchase['internalNote'] ? 'Změna poznámky' : 'Osobní údaje',
 				$admin,
 			);
-
-			if ($zasilkovnaIdChanged) {
-				$this->orderLogItemRepository->createLog(
-					$order,
-					OrderLogItem::EDITED,
-					'Změna ID Zásilkovny: ' . $originalPurchase['zasilkovnaId'] . ' => ' . $values['zasilkovnaId'],
-					$admin,
-				);
-			}
 
 			$this->flashMessage('Uloženo', 'success');
 
