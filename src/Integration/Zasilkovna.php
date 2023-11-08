@@ -274,21 +274,36 @@ class Zasilkovna
 
 	/**
 	 * @param \Eshop\DB\Order[] $orders
-	 * @throws \StORM\Exception\NotFoundException
+	 * @return array<mixed>
+	 * @throws \StORM\Exception\NotFoundException|\Eshop\Integration\ZasilkovnaException
 	 */
-	public function syncOrders($orders): void
+	public function syncOrders($orders): array
 	{
 		if (!$zasilkovnaApiPassword = $this->settingRepository->many()->where('name = "zasilkovnaApiPassword"')->first()) {
-			return;
+			throw new ZasilkovnaException('Zasilkovna: API password missing.', ZasilkovnaException::MISSING_API_KEY);
 		}
+
+		$ordersCompleted = [];
+		$ordersIgnored = [];
+		$ordersWithError = [];
 
 		foreach ($orders as $order) {
 			try {
 				$this->createZasilkovnaPackage($order, $zasilkovnaApiPassword);
+
+				$ordersCompleted[] = $order;
 			} catch (\Exception $e) {
 				Debugger::log($e, ILogger::ERROR);
+
+				$ordersWithError[] = $order;
 			}
 		}
+
+		return [
+			'completed' => $ordersCompleted,
+			'failed' => $ordersWithError,
+			'ignored' => $ordersIgnored,
+		];
 	}
 
 	/**

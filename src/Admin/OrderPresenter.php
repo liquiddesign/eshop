@@ -2362,41 +2362,41 @@ Změna ovlivňuje všechny dopravy objednávky.');
 				$collection->where('this.zasilkovnaCompleted', false);
 			}
 
-			if ($submitter->getName() === 'useApi') {
-				try {
-					$this->zasilkovna->syncOrders($collection->toArray());
-					$this->flashMessage('Provedeno', 'success');
-				} catch (\Exception $e) {
-					$this->flashMessage('Chyba! Zkontrolujte API klíč.<br>' . $e->getMessage(), 'error');
-				}
-
-				return;
+//			if ($submitter->getName() === 'useApi') {
+			try {
+				$this->zasilkovna->syncOrders($collection->toArray());
+				$this->flashMessage('Provedeno', 'success');
+			} catch (\Exception $e) {
+				$this->flashMessage('Chyba! Zkontrolujte API klíč.<br>' . $e->getMessage(), 'error');
 			}
 
-			$tempFilename = \tempnam($this->tempDir, 'csv');
-			$this->application->onShutdown[] = function () use ($tempFilename): void {
-				try {
-					FileSystem::delete($tempFilename);
-				} catch (\Throwable $e) {
-					Debugger::log($e, ILogger::WARNING);
-				}
-			};
+//				return;
+//			}
 
-			$this->orderRepository->csvExportZasilkovna(\array_keys($collection->toArray()), Writer::createFromPath($tempFilename, 'w+'));
-
-			$this->sendResponse(new FileResponse($tempFilename, 'zasilkovna.csv', 'text/csv'));
+//			$tempFilename = \tempnam($this->tempDir, 'csv');
+//			$this->application->onShutdown[] = function () use ($tempFilename): void {
+//				try {
+//					FileSystem::delete($tempFilename);
+//				} catch (\Throwable $e) {
+//					Debugger::log($e, ILogger::WARNING);
+//				}
+//			};
+//
+//			$this->orderRepository->csvExportZasilkovna(\array_keys($collection->toArray()), Writer::createFromPath($tempFilename, 'w+'));
+//
+//			$this->sendResponse(new FileResponse($tempFilename, 'zasilkovna.csv', 'text/csv'));
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds(), function (AdminForm $form): void {
 //			/** @var \Nette\Forms\Controls\RadioList $bulkTypeInput */
 //			$bulkTypeInput = $form['bulkType'];
 //			$bulkTypeInput->setHtmlAttribute('data-info', '<br><br>
 //"Exportovat přes API" odešle dosud neexportované objednávky přímo do Zásilkovny. Ruční export označuje objednávky jako exportované a znemožňuje následný export přes API!');
 
-			$form->addSubmit('useApi', 'Exportovat přes API');
-//			$form->addSubmit('onlyNotExported', 'Exportovat do CSV (pouze neexportované');
+//			$form->addSubmit('useCsv', 'Exportovat do CSV');
+			$form->addSubmit('onlyNotExported', 'Exportovat přes API (pouze neexportované)');
 
 			/** @var \Nette\Forms\Controls\SubmitButton $submit */
 			$submit = $form['submit'];
-			$submit->setCaption('Exportovat do CSV');
+			$submit->setCaption('Exportovat přes API');
 		});
 	}
 
