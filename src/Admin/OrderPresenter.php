@@ -383,7 +383,8 @@ class OrderPresenter extends BackendPresenter
 		$form->addInteger('zasilkovnaId', 'ID výdejního místa')
 			->setNullable()
 			->setDefaultValue($order->purchase->zasilkovnaId)
-			->setHtmlAttribute('data-info', 'ID požadované pobočky naleznete zde: <a href="https://www.zasilkovna.cz/pobocky" target="_blank">https://www.zasilkovna.cz/pobocky</a><br>Změna ovlivňuje všechny dopravy objednávky.');
+			->setHtmlAttribute('data-info', 'ID požadované pobočky naleznete zde: <a href="https://www.zasilkovna.cz/pobocky" target="_blank">https://www.zasilkovna.cz/pobocky</a><br>
+Změna ovlivňuje všechny dopravy objednávky.');
 		$form->addText('pickupPointName', 'Název výdejního místa')
 			->setDisabled()
 			->setDefaultValue($order->purchase->pickupPointName)
