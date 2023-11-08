@@ -277,7 +277,7 @@ class Zasilkovna
 	 * @return array<mixed>
 	 * @throws \StORM\Exception\NotFoundException|\Eshop\Integration\ZasilkovnaException
 	 */
-	public function syncOrders($orders): array
+	public function syncOrders($orders, bool $onlyNotExported = true): array
 	{
 		if (!$zasilkovnaApiPassword = $this->settingRepository->many()->where('name = "zasilkovnaApiPassword"')->first()) {
 			throw new ZasilkovnaException('Zasilkovna: API password missing.', ZasilkovnaException::MISSING_API_KEY);
@@ -288,12 +288,19 @@ class Zasilkovna
 		$ordersWithError = [];
 
 		foreach ($orders as $order) {
+			if ($onlyNotExported && $order->zasilkovnaCode && !$order->zasilkovnaError) {
+				$ordersIgnored[] = $order;
+
+				continue;
+			}
+
 			try {
 				$this->createZasilkovnaPackage($order, $zasilkovnaApiPassword);
 
 				$ordersCompleted[] = $order;
 			} catch (\Exception $e) {
-				Debugger::log($e, ILogger::ERROR);
+				\bdump($e);
+				Debugger::log($order->code . '-' . $e->getMessage(), ILogger::ERROR);
 
 				$ordersWithError[] = $order;
 			}
@@ -320,8 +327,9 @@ class Zasilkovna
 		$orders->where('this.zasilkovnaCode IS NOT NULL');
 
 		$ordersArray = $orders->toArrayOf('zasilkovnaCode');
+		$zasilkovnaCodes = \explode(',', \implode(',', \array_values($ordersArray)));
 
-		$result = $api->packetsLabelsPdf(\array_values($ordersArray), 'A6 on A4');
+		$result = $api->packetsLabelsPdf($zasilkovnaCodes, 'A6 on A4');
 
 		$tempFilename = \tempnam($this->container->getParameters()['tempDir'], 'zasilkovna');
 
@@ -459,7 +467,6 @@ class Zasilkovna
 		]);
 
 		$sumWeight = ($sumWeight = $purchase->getSumWeight()) > 0 ? $sumWeight / 1000 : 1;
-		\bdump($sumWeight);
 
 		$codPaymentType = $this->settingRepository->getValuesByName(SettingsPresenter::COD_TYPE);
 
@@ -474,7 +481,33 @@ class Zasilkovna
 			}
 		}
 
-		$xml = '
+		$zasilkovnaPackages = [];
+
+		foreach ($order->packages as $package) {
+			$delivery = $package->delivery;
+			$deliveryType = $delivery->type;
+
+			if (!$deliveryType || $deliveryType->code !== 'zasilkovna') {
+				continue;
+			}
+
+			if ($delivery->getZasilkovnaCode()) {
+				continue;
+			}
+
+			if ($package->getWeight() > 5000) {
+				throw new ZasilkovnaException("Package '{$package->getPK()}' weight is higher than 5 kg. Order skipped.");
+			}
+
+			$zasilkovnaPackages[] = $package;
+		}
+
+		$perPackageCodAmount = ($packagesCount = \count($zasilkovnaPackages)) > 1 ? $order->getTotalPriceVat() / $packagesCount : $order->getTotalPriceVat();
+
+		$newZasilkovnaCodes = [];
+
+		foreach ($zasilkovnaPackages as $package) {
+			$xml = '
 			<createPacket>
 			    <apiPassword>' . $zasilkovnaApiPassword->value . '</apiPassword>
 			    <packetAttributes>
@@ -485,35 +518,38 @@ class Zasilkovna
 			        <addressId>' . $purchase->zasilkovnaId . '</addressId>
 			        <currency>' . $order->purchase->currency->code . '</currency>
 			        <value>' . $order->getTotalPriceVat() . '</value>
-			        ' . ($cod ? '<cod>' . \round($order->getTotalPriceVat()) . '</cod>' : null) . '
+			        ' . ($cod ? '<cod>' . \round($perPackageCodAmount) . '</cod>' : null) . '
 			        <eshop>' . $eshop . '</eshop>
-			        <weight>' . ($sumWeight > 0 ? $sumWeight : 1) . '</weight>
+			        <weight>' . ($package->getWeight() > 0 ? $package->getWeight() : 1) . '</weight>
 			    </packetAttributes>
 			</createPacket>
 			';
 
-		\bdump($xml);
+			\bdump($xml);
 
-		$options = [
-			'headers' => [
-				'Content-Type' => 'text/xml; charset=UTF8',
-			],
-			'body' => $xml,
-		];
+			$options = [
+				'headers' => [
+					'Content-Type' => 'text/xml; charset=UTF8',
+				],
+				'body' => $xml,
+			];
 
-		$response = $client->request('POST', '', $options);
-		$xmlResponse = new SimpleXMLElement($response->getBody()->getContents());
+			$response = $client->request('POST', '', $options);
+			$xmlResponse = new SimpleXMLElement($response->getBody()->getContents());
 
-		\bdump($xmlResponse);
+			\bdump($xmlResponse);
 
-		if ((string)$xmlResponse->status !== 'ok') {
-			Debugger::log($xmlResponse->result, ILogger::ERROR);
+			if ((string)$xmlResponse->status !== 'ok') {
+				Debugger::log("$order->code-{$package->getPK()}-$xmlResponse->result", ILogger::ERROR);
 
-			$order->update(['zasilkovnaCompleted' => false, 'zasilkovnaError' => 'Chyba při odesílání pomocí API!',]);
+				$order->update(['zasilkovnaCompleted' => false, 'zasilkovnaError' => 'Chyba při odesílání pomocí API!',]);
 
-			throw new ZasilkovnaException("Order {$order->code} error sending!", ZasilkovnaException::INVALID_RESPONSE);
+				throw new ZasilkovnaException("Order {$order->code} error sending!", ZasilkovnaException::INVALID_RESPONSE);
+			}
+
+			$newZasilkovnaCodes[] = (string) $xmlResponse->result->id;
 		}
 
-		$order->update(['zasilkovnaCompleted' => true, 'zasilkovnaError' => null, 'zasilkovnaCode' => (string) $xmlResponse->result->id]);
+		$order->update(['zasilkovnaCompleted' => true, 'zasilkovnaError' => null, 'zasilkovnaCode' => \implode(',', $newZasilkovnaCodes)]);
 	}
 }

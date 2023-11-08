@@ -121,7 +121,7 @@
                     <!-- Table row -->
                     <div class="row">
                         <div class="col-12 table-responsive table-striped">
-                            <h5>Balík #{$package->id} <a n:href="removePackage! $package->getPK()" class="ml-2 text-danger" title="Odstranit" onclick="return confirm('Opravdu?')"><i class="fas fa-trash fa-xs"></i></a></h5>
+                            <div><span class="text-lg">Balík #{$package->id} <a n:href="removePackage! $package->getPK()" class="ml-2 text-danger" title="Odstranit" onclick="return confirm('Opravdu?')"><i class="fas fa-trash fa-xs"></i></a></span> <small class="ml-2">Váha: {$package->getWeight()}</small></div>
                             <table class="table table-sm lqd-table">
                                 <thead class="admin-head">
                                 <tr>

@@ -2353,19 +2353,24 @@ Změna ovlivňuje všechny dopravy objednávky.');
 	public function createComponentExportZasilkovnaCSVForm(): AdminForm
 	{
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection, AdminForm $form): void {
-			/** @var \Nette\Forms\Controls\SubmitButton $submitter */
-			$submitter = $form->isSubmitted();
+//			/** @var \Nette\Forms\Controls\SubmitButton $submitter */
+//			$submitter = $form->isSubmitted();
 
 			$collection->where('purchase.zasilkovnaId IS NOT NULL AND LENGTH(purchase.zasilkovnaId) > 0');
 
-			if ($submitter->getName() === 'onlyNotExported' || $submitter->getName() === 'useApi') {
-				$collection->where('this.zasilkovnaCompleted', false);
-			}
-
 //			if ($submitter->getName() === 'useApi') {
 			try {
-				$this->zasilkovna->syncOrders($collection->toArray());
-				$this->flashMessage('Provedeno', 'success');
+				$result = $this->zasilkovna->syncOrders($collection->toArray());
+
+				$msg = 'Odesláno: ' . \count($result['completed']) . '<br>';
+				$msg .= 'Přeskočeno: ' . \count($result['ignored']) . '<br>';
+				$msg .= 'Chyba: ' . \count($result['failed']) . '<br>';
+
+				foreach ($result['failed'] as $order) {
+					$msg .= "$order->code<br>";
+				}
+
+				$this->flashMessage($msg, 'success');
 			} catch (\Exception $e) {
 				$this->flashMessage('Chyba! Zkontrolujte API klíč.<br>' . $e->getMessage(), 'error');
 			}
@@ -2392,7 +2397,7 @@ Změna ovlivňuje všechny dopravy objednávky.');
 //"Exportovat přes API" odešle dosud neexportované objednávky přímo do Zásilkovny. Ruční export označuje objednávky jako exportované a znemožňuje následný export přes API!');
 
 //			$form->addSubmit('useCsv', 'Exportovat do CSV');
-			$form->addSubmit('onlyNotExported', 'Exportovat přes API (pouze neexportované)');
+//			$form->addSubmit('onlyNotExported', 'Exportovat přes API (pouze neexportované)');
 
 			/** @var \Nette\Forms\Controls\SubmitButton $submit */
 			$submit = $form['submit'];

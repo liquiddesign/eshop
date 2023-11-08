@@ -21,6 +21,7 @@ class Package extends \StORM\Entity
 	
 	/**
 	 * Váha
+	 * @deprecated use self::getWeight
 	 * @column
 	 */
 	public ?float $weight = null;
@@ -44,4 +45,14 @@ class Package extends \StORM\Entity
 	 * @relation
 	 */
 	public Order $order;
+
+	private float $computedWeight;
+
+	public function getWeight(): float
+	{
+		return $this->computedWeight ??= $this->getItems()
+			->setSelect(['weight' => 'SUM(ci.productWeight * ci.amount)'])
+			->join(['ci' => 'eshop_cartitem'], 'this.fk_cartItem = ci.uuid')
+			->firstValue('weight');
+	}
 }
