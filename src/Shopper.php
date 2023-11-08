@@ -122,6 +122,11 @@ class Shopper
 	 */
 	protected array $categories;
 
+	/**
+	 * @var array<mixed>
+	 */
+	protected array $zasilkovna;
+
 	protected bool $allowBannedEmailOrder = false;
 
 	protected bool $useDiscountLevelCalculationInBeforePrice = false;
@@ -158,6 +163,19 @@ class Shopper
 		$this->minimalOrderValueRepository = $minimalOrderValueRepository;
 		$this->roleRepository = $roleRepository;
 		$this->translator = $translator;
+	}
+
+	public function setZasilkovna(array $zasilkovna): void
+	{
+		$this->zasilkovna = $zasilkovna;
+	}
+
+	/**
+	 * @return array<mixed>
+	 */
+	public function getZasilkovna(): array
+	{
+		return $this->zasilkovna;
 	}
 
 	public function setUseDiscountLevelCalculationInBeforePrice(bool $useDiscountLevelCalculationInBeforePrice): void

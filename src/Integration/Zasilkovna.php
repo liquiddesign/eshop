@@ -13,6 +13,7 @@ use Eshop\DB\OrderRepository;
 use Eshop\DB\PickupPointRepository;
 use Eshop\DB\PickupPointTypeRepository;
 use Eshop\DB\PurchaseRepository;
+use Eshop\Shopper;
 use GuzzleHttp\Client;
 use Nette\Application\Application;
 use Nette\DI\Container;
@@ -78,6 +79,7 @@ class Zasilkovna
 		protected OrderDeliveryStatusRepository $orderDeliveryStatusRepository,
 		protected DIConnection $connection,
 		protected DeliveryRepository $deliveryRepository,
+		protected Shopper $shopper,
 		/* @codingStandardsIgnoreEnd */
 	) {
 		$this->pickupPointRepository = $pickupPointRepository;
@@ -466,7 +468,7 @@ class Zasilkovna
 			'verify' => true,
 		]);
 
-		$sumWeight = ($sumWeight = $purchase->getSumWeight()) > 0 ? $sumWeight / 1000 : 1;
+		$sumWeight = ($sumWeight = $purchase->getSumWeight()) > 0 ? $sumWeight * $this->shopper->getZasilkovna()['weightModifierToKg'] : 1;
 
 		$codPaymentType = $this->settingRepository->getValuesByName(SettingsPresenter::COD_TYPE);
 
@@ -495,8 +497,8 @@ class Zasilkovna
 				continue;
 			}
 
-			if ($package->getWeight() > 5000) {
-				throw new ZasilkovnaException("Package '{$package->getPK()}' weight is higher than 5 kg. Order skipped.");
+			if ($package->getWeight() * $this->shopper->getZasilkovna()['weightModifierToKg'] > $this->shopper->getZasilkovna()['maxPackageWeightInKg']) {
+				throw new ZasilkovnaException("Package '{$package->getPK()}' weight is higher than 30 kg. Order skipped.");
 			}
 
 			$zasilkovnaPackages[] = $package;
@@ -520,7 +522,7 @@ class Zasilkovna
 			        <value>' . $order->getTotalPriceVat() . '</value>
 			        ' . ($cod ? '<cod>' . \round($perPackageCodAmount) . '</cod>' : null) . '
 			        <eshop>' . $eshop . '</eshop>
-			        <weight>' . ($package->getWeight() > 0 ? $package->getWeight() : 1) . '</weight>
+			        <weight>' . ($package->getWeight() > 0 ? $package->getWeight() * $this->shopper->getZasilkovna()['weightModifierToKg'] : 1) . '</weight>
 			    </packetAttributes>
 			</createPacket>
 			';

@@ -82,6 +82,10 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			'discountConditions' => Expect::structure([
 				'categories' => Expect::bool(false),
 			]),
+			'zasilkovna' => Expect::structure([
+				'maxPackageWeightInKg' => Expect::int(30),
+				'weightModifierToKg' => Expect::float(1.0),
+			]),
 		]);
 	}
 	
@@ -112,6 +116,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$shopper->addSetup('setAlwaysCreateCustomerOnOrderCreated', [$config['alwaysCreateCustomerOnOrderCreated']]);
 		$shopper->addSetup('setAllowBannedEmailOrder', [$config['allowBannedEmailOrder']]);
 		$shopper->addSetup('setUseDiscountLevelCalculationInBeforePrice', [$config['useDiscountLevelCalculationInBeforePrice']]);
+		$shopper->addSetup('setZasilkovna', [(array) $config['zasilkovna']]);
 
 		$integrations = (array) $config['integrations'];
 		$shopper->addSetup('setIntegrationsEHub', [$integrations['eHub']]);
