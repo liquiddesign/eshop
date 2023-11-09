@@ -138,6 +138,12 @@ class Delivery extends \StORM\Entity
 	 * @column
 	 */
 	public bool $zasilkovnaError = false;
+
+	/**
+	 * Zasilkovna doručování dokončeno - není nutné zjištovat stav
+	 * @column
+	 */
+	public bool $zasilkovnaFinished = false;
 	
 	/**
 	 * Dodavatel / Dropship
