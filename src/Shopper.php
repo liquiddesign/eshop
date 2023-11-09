@@ -697,12 +697,12 @@ class Shopper
 
 	public function addFilters(\Nette\Bridges\ApplicationLatte\Template $template): void
 	{
-		$template->addFilter('price', function ($number, ?string $currencyCode = null) {
-			return $this->filterPrice($number, $currencyCode);
+		$template->addFilter('price', function ($number, ?string $currencyCode = null, ?int $formatDecimals = null) {
+			return $this->filterPrice($number, $currencyCode, $formatDecimals);
 		});
 
-		$template->addFilter('priceNoZero', function ($number, ?string $currencyCode = null) {
-			return $this->filterPriceNoZero($number, $currencyCode);
+		$template->addFilter('priceNoZero', function ($number, ?string $currencyCode = null, ?int $formatDecimals = null) {
+			return $this->filterPriceNoZero($number, $currencyCode, $formatDecimals);
 		});
 	}
 
@@ -711,7 +711,7 @@ class Shopper
 	 * @param float|int $number
 	 * @param string|null $currencyCode
 	 */
-	public function filterPrice($number, ?string $currencyCode = null): string
+	public function filterPrice($number, ?string $currencyCode = null, ?int $formatDecimals = null): string
 	{
 		$currency = $this->getCurrency($currencyCode);
 		
@@ -719,10 +719,12 @@ class Shopper
 			$localeInfo = \localeconv();
 			$currency->formatDecimals = (int) ($localeInfo['frac_digits'] ?? 0);
 		}
+
+		$formatDecimals ??= $currency->formatDecimals;
 		
 		$nbsp = \html_entity_decode('&nbsp;');
-		$formatted = \number_format((float)$number, $currency->formatDecimals, $currency->formatDecimalSeparator, \str_replace(' ', $nbsp, $currency->formatThousandsSeparator));
-		
+		$formatted = \number_format((float)$number, $formatDecimals, $currency->formatDecimalSeparator, \str_replace(' ', $nbsp, $currency->formatThousandsSeparator));
+
 		return ($currency->formatSymbolPosition !== 'after' ? $currency->symbol : '') . $formatted . $nbsp . ($currency->formatSymbolPosition === 'after' ? $currency->symbol : '');
 	}
 
@@ -731,9 +733,9 @@ class Shopper
 	 * @param float|int $number
 	 * @param string|null $currencyCode
 	 */
-	public function filterPriceNoZero($number, ?string $currencyCode = null): string
+	public function filterPriceNoZero($number, ?string $currencyCode = null, ?int $formatDecimals = null): string
 	{
-		return $number > 0 ? $this->filterPrice($number, $currencyCode) : '';
+		return $number > 0 ? $this->filterPrice($number, $currencyCode, $formatDecimals) : '';
 	}
 
 	/**
