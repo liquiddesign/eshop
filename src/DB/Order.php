@@ -110,7 +110,6 @@ class Order extends ShopEntity
 	 */
 	public bool $zasilkovnaPrinted = false;
 
-
 	/**
 	 * DPD kód
 	 * @column
