@@ -19,6 +19,12 @@ class Discount extends ShopEntity
 	 * @column{"mutations":true}
 	 */
 	public ?string $name;
+
+	/**
+	 * Název
+	 * @column{"mutations":true}
+	 */
+	public ?string $internalName;
 	
 	/**
 	 * Platná od
