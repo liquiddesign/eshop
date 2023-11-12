@@ -96,6 +96,9 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			];
 
 			try {
+				$filters['hidden'] = false;
+				$filters['priceGt'] = 0;
+
 				$result = $productsProvider->getProductsFromCacheTable(
 					$filters,
 					priceLists: $priceLists,

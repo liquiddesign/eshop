@@ -201,6 +201,12 @@ class ProductsProvider
 
 			return $showVat ? $product->priceVat <= $value : $product->price <= $value;
 		};
+
+		$this->allowedDynamicFilterExpressions['priceGt'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
+			$showVat = $this->shopperUser->getMainPriceType() === 'withVat';
+
+			return $showVat ? $product->priceVat > $value : $product->price > $value;
+		};
 	}
 
 	public function addAllowedCollectionFilterColumn(string $name, string $column): void
@@ -545,7 +551,7 @@ CREATE TABLE `$productsCacheTableName` (
 		]);
 
 		if ($cachedData) {
-			return $cachedData;
+//			return $cachedData;
 		}
 
 		$emptyResult = [
