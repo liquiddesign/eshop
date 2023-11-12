@@ -16,6 +16,8 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\ProductsCacheStateRepository;
+use Eshop\DB\RelatedRepository;
+use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
 use Nette\Caching\Cache;
@@ -106,6 +108,8 @@ class ProductsProvider
 		protected readonly DisplayDeliveryRepository $displayDeliveryRepository,
 		protected readonly AttributeRepository $attributeRepository,
 		protected readonly ShopperUser $shopperUser,
+		protected readonly RelatedRepository $relatedRepository,
+		protected readonly RelatedTypeRepository $relatedTypeRepository,
 		readonly Storage $storage,
 	) {
 		$this->cache = new Cache($storage);
@@ -267,6 +271,52 @@ class ProductsProvider
 			}
 
 			$productsCacheTableName = "eshop_products_cache_$cacheIndexToBeWarmedUp";
+			$relationsCacheTableName = "eshop_products_relations_cache_$cacheIndexToBeWarmedUp";
+
+			$link->exec("DROP TABLE IF EXISTS `$relationsCacheTableName`");
+
+			$link->exec("
+CREATE TABLE `$relationsCacheTableName` (
+    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    master INT UNSIGNED NOT NULL,
+    slave INT UNSIGNED NOT NULL,
+    priority SMALLINT NOT NULL,
+    amount SMALLINT NOT NULL,
+    hidden TINYINT(1) NOT NULL,
+    systemic TINYINT(1) NOT NULL,
+    discountPct DOUBLE,
+    masterPct DOUBLE,
+    type INT UNSIGNED NOT NULL,
+    INDEX idx_master (master),
+    INDEX idx_slave (slave),
+    INDEX idx_type (type)
+);");
+			$link->exec("CREATE UNIQUE INDEX idx_related_code ON `$relationsCacheTableName` (master, slave, amount, discountPct, masterPct);");
+			$link->exec("CREATE UNIQUE INDEX idx_products_related_unique ON `$relationsCacheTableName` (master, slave);");
+
+			$relations = $this->relatedRepository->many()
+				->join(['type' => 'eshop_relatedtype'], 'this.fk_type = type.uuid')
+				->join(['masterProduct' => 'eshop_product'], 'this.fk_master = masterProduct.uuid')
+				->join(['slaveProduct' => 'eshop_product'], 'this.fk_slave = slaveProduct.uuid')
+				->select([
+					'typeId' => 'type.id',
+					'masterId' => 'masterProduct.id',
+					'slaveId' => 'slaveProduct.id',
+				]);
+
+			foreach ($relations as $relation) {
+				$this->connection->syncRow($relationsCacheTableName, [
+					'master' => $relation->getValue('masterId'),
+					'slave' => $relation->getValue('slaveId'),
+					'type' => $relation->getValue('typeId'),
+					'priority' => $relation->priority,
+					'amount' => $relation->amount,
+					'hidden' => $relation->hidden,
+					'systemic' => $relation->systemic,
+					'discountPct' => $relation->discountPct,
+					'masterPct' => $relation->masterPct,
+				]);
+			}
 
 			$link->exec("
 DROP TABLE IF EXISTS `$productsCacheTableName`;
@@ -614,6 +664,48 @@ CREATE TABLE `$productsCacheTableName` (
 		$allAttributes = [];
 		$dynamicFiltersAttributes = [];
 		$dynamicFilters = [];
+
+		$relationsCacheTableName = "eshop_products_relations_cache_$cacheIndex";
+
+		if (isset($filters['relatedTypeMaster']) && isset($filters['relatedTypeSlave'])) {
+			throw new \Exception("Filters 'relatedTypeMaster' and 'relatedTypeSlave' can't be used at the same time.");
+		}
+
+		if (isset($filters['relatedTypeMaster'])) {
+			$relatedTypeMaster = $filters['relatedTypeMaster'];
+
+			if (!isset($relatedTypeMaster[0]) || !isset($relatedTypeMaster[1])) {
+				Debugger::log('filterRelatedTypeMaster: missing values', ILogger::WARNING);
+			} else {
+				$relatedTypeMaster[0] = $this->productRepository->many()->where('this.uuid', $relatedTypeMaster[0])->setSelect(['id' => 'this.id'])->firstValue('id');
+				$relatedTypeMaster[1] = $this->relatedTypeRepository->many()->where('this.uuid', $relatedTypeMaster[1])->setSelect(['id' => 'this.id'])->firstValue('id');
+
+				$productsCollection->where('this.product', $this->connection->rows([$relationsCacheTableName])
+					->where('master', $relatedTypeMaster[0])
+					->where('type', $relatedTypeMaster[1])
+					->toArrayOf('slave'));
+
+				unset($filters['relatedTypeMaster']);
+			}
+		}
+
+		if (isset($filters['relatedTypeSlave'])) {
+			$relatedTypeSlave = $filters['relatedTypeSlave'];
+
+			if (!isset($relatedTypeSlave[0]) || !isset($relatedTypeSlave[1])) {
+				Debugger::log('filterRelatedTypeMaster: missing values', ILogger::WARNING);
+			} else {
+				$relatedTypeSlave[0] = $this->productRepository->many()->where('this.uuid', $relatedTypeSlave[0])->setSelect(['id' => 'this.id'])->firstValue('id');
+				$relatedTypeSlave[1] = $this->relatedTypeRepository->many()->where('this.uuid', $relatedTypeSlave[1])->setSelect(['id' => 'this.id'])->firstValue('id');
+
+				$productsCollection->where('this.product', $this->connection->rows([$relationsCacheTableName])
+					->where('slave', $relatedTypeSlave[0])
+					->where('type', $relatedTypeSlave[1])
+					->toArrayOf('master'));
+
+				unset($filters['relatedTypeSlave']);
+			}
+		}
 
 		foreach ($filters as $filter => $value) {
 			if ($filter === 'attributes') {

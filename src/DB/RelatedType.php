@@ -14,6 +14,12 @@ use Nette\Utils\Strings;
 class RelatedType extends \StORM\Entity
 {
 	/**
+	 * ID
+	 * column - don't created by auto migration, only by manual
+	 */
+	public int $id;
+
+	/**
 	 * Kód
 	 * @column
 	 */
