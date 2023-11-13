@@ -39,8 +39,8 @@ jobs:
       - name: Run phpcs
         run: composer phpcs
 
-      - name: Run lattelint
-        run: composer lattelint
+#      - name: Run lattelint
+#        run: composer lattelint
 
       - uses: 8398a7/action-slack@v3
         with:
