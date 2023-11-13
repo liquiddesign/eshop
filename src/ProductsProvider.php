@@ -14,6 +14,7 @@ use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
+use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\ProductsCacheStateRepository;
 use Eshop\DB\RelatedRepository;
@@ -110,6 +111,7 @@ class ProductsProvider
 		protected readonly ShopperUser $shopperUser,
 		protected readonly RelatedRepository $relatedRepository,
 		protected readonly RelatedTypeRepository $relatedTypeRepository,
+		protected readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
 		readonly Storage $storage,
 	) {
 		$this->cache = new Cache($storage);
@@ -180,6 +182,25 @@ class ProductsProvider
 			$producerArray = $this->producerRepository->many()->where('this.uuid', $producer)->setSelect(['this.id'])->toArrayOf('id', toArrayValues: true);
 
 			$productsCollection->where('this.producer', $producerArray);
+		};
+
+		/**
+		 * @param \StORM\ICollection $productsCollection
+		 * @param array{0: array<string>|string, 1: string} $value
+		 * @param array<\Eshop\DB\VisibilityList> $visibilityLists
+		 * @param array<\Eshop\DB\Pricelist> $priceLists
+		 * @throws \Exception
+		 */
+		$this->allowedCollectionFilterExpressions['primaryCategoryByCategoryType'] = function (ICollection $productsCollection, array $value, array $visibilityLists, array $priceLists): void {
+			if (\count($value) !== 2) {
+				throw new \Exception("Filter 'primaryCategoryByCategoryType': Input must be array with exactly 2 items!");
+			}
+
+			[$categories, $categoryType] = $value;
+			$categories = $this->categoryRepository->many()->where('this.uuid', $categories)->setSelect(['this.id'])->toArrayOf('id', toArrayValues: true);
+			$categoryType = $this->categoryTypeRepository->many()->where('this.uuid', $categoryType)->setSelect(['id' => 'this.id'])->firstValue('id');
+
+			$productsCollection->where("this.primaryCategory_$categoryType", $categories);
 		};
 
 		/**
@@ -340,7 +361,6 @@ CREATE TABLE `$productsCacheTableName` (
   INDEX idx_externalCode (externalCode),
   FULLTEXT INDEX idx_name (name)
 );");
-
 			$link->exec("CREATE UNIQUE INDEX idx_unique_code ON `$productsCacheTableName` (code);");
 			$link->exec("CREATE UNIQUE INDEX idx_unique_ean ON `$productsCacheTableName` (ean);");
 
@@ -366,6 +386,13 @@ CREATE TABLE `$productsCacheTableName` (
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVat DOUBLE;");
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceBefore DOUBLE;");
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVatBefore DOUBLE;");
+			}
+
+			$allCategoryTypes = $this->categoryTypeRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
+
+			foreach ($allCategoryTypes as $categoryType) {
+				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN primaryCategory_{$categoryType->id} INT UNSIGNED;");
+				$link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_primaryCategory_{$categoryType->id} (primaryCategory_{$categoryType->id});");
 			}
 
 			$allPrices = $this->priceRepository->many()
@@ -394,6 +421,13 @@ CREATE TABLE `$productsCacheTableName` (
 			/** @var array<object{id: int, ancestor: string}> $allCategories */
 			$allCategories = $this->categoryRepository->many()->setSelect(['this.id', 'ancestor' => 'this.fk_ancestor'], keepIndex: true)->fetchArray(\stdClass::class);
 
+			/** @var array<object{category: string|null, categoryType: string}> $allProductPrimaryCategories */
+			$allProductPrimaryCategories = $this->productPrimaryCategoryRepository->many()
+				->join(['eshop_categorytype'], 'this.fk_categoryType = eshop_categorytype.uuid')
+				->join(['eshop_category'], 'this.fk_category = eshop_category.uuid')
+				->setSelect(['category' => 'eshop_category.id', 'categoryType' => 'eshop_categorytype.id'], keepIndex: true)
+				->fetchArray(\stdClass::class);
+
 			$allCategoriesByCategory = [];
 
 			$this->connection->getLink()->exec('SET SESSION group_concat_max_len=4294967295');
@@ -410,6 +444,7 @@ CREATE TABLE `$productsCacheTableName` (
 			->join(['eshop_displaydelivery'], 'this.fk_displayDelivery = eshop_displaydelivery.uuid')
 			->join(['eshop_producer'], 'this.fk_producer = eshop_producer.uuid')
 			->join(['eshop_attributevalue'], 'assign.fk_value = eshop_attributevalue.uuid')
+			->join(['primaryCategory' => 'eshop_productprimarycategory'], 'this.uuid = primaryCategory.fk_product')
 			->setSelect([
 				'id' => 'this.id',
 				'fkDisplayAmount' => 'eshop_displayamount.id',
@@ -424,6 +459,7 @@ CREATE TABLE `$productsCacheTableName` (
 				'categoriesPKs' => 'GROUP_CONCAT(DISTINCT eshop_product_nxn_eshop_category.fk_category)',
 				'visibilityListItemsPKs' => 'GROUP_CONCAT(DISTINCT visibilityListItem.uuid ORDER BY visibilityList.priority)',
 				'attributeValuesPKs' => 'GROUP_CONCAT(DISTINCT eshop_attributevalue.id)',
+				'productPrimaryCategoriesPKs' => 'GROUP_CONCAT(DISTINCT primaryCategory.uuid)',
 			])
 			->where('priceList.isActive', true)
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
@@ -470,6 +506,10 @@ CREATE TABLE `$productsCacheTableName` (
 					$products[$product->id]["priceList_{$priceList->id}_priceVatBefore"] = null;
 				}
 
+				foreach ($allCategoryTypes as $categoryType) {
+					$products[$product->id]["primaryCategory_$categoryType->id"] = null;
+				}
+
 				if ($categories = $product->categoriesPKs) {
 					$categories = \explode(',', $categories);
 
@@ -513,6 +553,14 @@ CREATE TABLE `$productsCacheTableName` (
 					$products[$product->id]["priceList_{$price->priceListId}_priceVat"] = $price->priceVat;
 					$products[$product->id]["priceList_{$price->priceListId}_priceBefore"] = $price->priceBefore;
 					$products[$product->id]["priceList_{$price->priceListId}_priceVatBefore"] = $price->priceVatBefore;
+				}
+
+				$primaryCategories = $product->productPrimaryCategoriesPKs ? \explode(',', $product->productPrimaryCategoriesPKs) : [];
+
+				foreach ($primaryCategories as $primaryCategory) {
+					$primaryCategory = $allProductPrimaryCategories[$primaryCategory];
+
+					$products[$product->id]["primaryCategory_$primaryCategory->categoryType"] = $primaryCategory->category;
 				}
 
 				$products[$product->id]['attributeValues'] = $product->attributeValuesPKs;
@@ -601,7 +649,7 @@ CREATE TABLE `$productsCacheTableName` (
 		]);
 
 		if ($cachedData) {
-//			return $cachedData;
+			return $cachedData;
 		}
 
 		$emptyResult = [
