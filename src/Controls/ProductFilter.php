@@ -127,13 +127,15 @@ class ProductFilter extends Control
 		$priceFrom = $providerOutput[$withVat ? 'priceVatMin' : 'priceMin'] ?? 0;
 		$priceTo = $providerOutput[$withVat ? 'priceVatMax' : 'priceMax'] ?? 100000;
 
-		$filterForm->addInteger('priceFrom')
+		$filterForm->addText('priceFrom')
 			->setNullable()
-			->setHtmlAttribute('placeholder', $priceFrom);
+			->setHtmlAttribute('placeholder', $priceFrom)
+			->addCondition($filterForm::Filled)->addRule($filterForm::Integer);
 
-		$filterForm->addInteger('priceTo')
+		$filterForm->addText('priceTo')
 			->setNullable()
-			->setHtmlAttribute('placeholder', $priceTo);
+			->setHtmlAttribute('placeholder', $priceTo)
+			->addCondition($filterForm::Filled)->addRule($filterForm::Integer);
 		
 		$attributesContainer = $filterForm->addContainer('attributes');
 		
