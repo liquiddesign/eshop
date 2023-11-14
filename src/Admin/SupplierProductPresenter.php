@@ -157,7 +157,7 @@ class SupplierProductPresenter extends BackendPresenter
 
 			for ($i = 1; $i !== 5; $i++) {
 				if (isset($parsed[$i - 1])) {
-					$expression->add('AND', "category.categoryNameL$i=%s", [Strings::trim($parsed[$i - 1])]);
+					$expression->add('AND', "category.categoryNameL$i LIKE %s", [Strings::trim($parsed[$i - 1]) . '%']);
 				}
 			}
 
