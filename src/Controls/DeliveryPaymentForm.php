@@ -190,7 +190,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 			}
 			
 			if (!$allowedPaymentTypes) {
-				return;
+				continue;
 			}
 			
 			$paymentsCondition->addRule(
