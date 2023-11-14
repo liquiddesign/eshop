@@ -307,9 +307,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'fallbackImage' => 'primaryCategory.productFallbackImageFileName',
 				'primaryCategory' => 'primaryCategory.uuid',
 				'primaryCategoryPath' => 'primaryCategory.path',
-				'perex' => "COALESCE(NULLIF(productContent.perex$suffix, ''), NULLIF(primaryCategory.defaultProductPerex$suffix, ''))",
-				'content' => "COALESCE(NULLIF(productContent.content$suffix, ''), NULLIF(primaryCategory.defaultProductContent$suffix, ''))",
-				'originalContent' => "productContent.content$suffix",
 			]);
 			
 			if ($customer) {
@@ -333,24 +330,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	public function joinContentToProductCollection(ICollection $collection, Shop|null|false $shop = null): void
 	{
-		/** @var array<array<mixed>> $joins */
-		$joins = $collection->getModifiers()['JOIN'];
-
-		$joined = false;
-
-		foreach ($joins as $join) {
-			if (Arrays::contains(\array_keys($join[1]), 'productContent')) {
-				$joined = true;
-
-				break;
-			}
-		}
-
-		if ($joined) {
-			return;
-		}
-
-		$collection->join(['productContent' => 'eshop_productcontent'], 'this.uuid = productContent.fk_product');
+		$suffix = $this->getConnection()->getMutationSuffix();
 
 		if ($shop === false) {
 			return;
@@ -364,7 +344,26 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			return;
 		}
 
-		$collection->where('productContent.fk_shop = :productContentShop OR productContent.uuid IS NULL', ['productContentShop' => $shop->getPK()]);
+		$collection->select([
+			'perex' => "COALESCE(
+				NULLIF(
+					(SELECT productContent.perex$suffix FROM eshop_productcontent as productContent WHERE this.uuid = productContent.fk_product AND productContent.fk_shop = :productContentShop),
+					''
+				),
+				NULLIF(primaryCategory.defaultProductPerex$suffix, '')
+			)",
+			'content' => "COALESCE(
+				NULLIF(
+					(SELECT productContent.content$suffix FROM eshop_productcontent as productContent WHERE this.uuid = productContent.fk_product AND productContent.fk_shop = :productContentShop),
+					''
+				),
+				NULLIF(primaryCategory.defaultProductContent$suffix, '')
+			)",
+			'originalContent' => "(
+			SELECT productContent.perex$suffix
+			FROM eshop_productcontent as productContent
+			WHERE this.uuid = productContent.fk_product AND productContent.fk_shop = :productContentShop)",
+		], ['productContentShop' => $shop->getPK()]);
 	}
 
 	/**
