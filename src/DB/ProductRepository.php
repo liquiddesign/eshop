@@ -360,7 +360,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				NULLIF(primaryCategory.defaultProductContent$suffix, '')
 			)",
 			'originalContent' => "(
-			SELECT productContent.perex$suffix
+			SELECT productContent.content$suffix
 			FROM eshop_productcontent as productContent
 			WHERE this.uuid = productContent.fk_product AND productContent.fk_shop = :productContentShop)",
 		], ['productContentShop' => $shop->getPK()]);
