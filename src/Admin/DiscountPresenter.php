@@ -74,7 +74,7 @@ class DiscountPresenter extends BackendPresenter
 		}, '%s', null, ['class' => 'fit']);
 		$grid->addColumnText('Platnost od', "validFrom|date:'d.m.Y G:i'", '%s', 'validFrom', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Platnost od', "validTo|date:'d.m.Y G:i'", '%s', 'validTo', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
-		$grid->addColumnText('Název', 'name', '%s', 'name');
+		$grid->addColumnText('Název v košíku', 'name', '%s', 'name');
 		$grid->addColumnText('Interní název', 'internalName', '%s', 'internalName');
 
 		$grid->addColumn('Akční ceníky', function (Discount $object, $datagrid) {
@@ -165,7 +165,7 @@ class DiscountPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected(condition: $deleteCondition);
 
-		$grid->addFilterTextInput('search', ['name_cs', 'internalName_cs'], null, 'Název, interní název');
+		$grid->addFilterTextInput('search', ['name_cs', 'internalName_cs'], null, 'Název v košíku, interní název');
 
 		if ($ribbons = $this->ribbonRepository->getArrayForSelect()) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
@@ -183,7 +183,7 @@ class DiscountPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create(true);
 
-		$form->addLocaleText('name', 'Název');
+		$form->addLocaleText('name', 'Název v košíku');
 		$form->addLocaleText('internalName', 'Interní název');
 		$form->addDatetime('validFrom', 'Platný od')->setNullable(true);
 		$form->addDatetime('validTo', 'Platný do')->setNullable(true);
