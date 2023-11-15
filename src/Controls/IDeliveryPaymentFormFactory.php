@@ -6,5 +6,8 @@ namespace Eshop\Controls;
 
 interface IDeliveryPaymentFormFactory
 {
-	public function create(): DeliveryPaymentForm;
+	/**
+	 * @param (callable(string, \Eshop\DB\DeliveryType, \Nette\Forms\Rules): void)|null $onTogglePaymentId
+	 */
+	public function create(?callable $onTogglePaymentId = null): DeliveryPaymentForm;
 }

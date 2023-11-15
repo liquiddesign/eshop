@@ -8,6 +8,7 @@ use Eshop\CheckoutManager;
 use Eshop\DB\DeliveryType;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\PaymentType;
+use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PickupPointRepository;
 use Eshop\Shopper;
 use InvalidArgumentException;
@@ -25,6 +26,9 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 	 * @var array<callable(self, array|object): void|callable(array|object): void>
 	 */
 	public $onSuccess = [];
+
+	/** @var (callable(string, \Eshop\DB\DeliveryType, \Nette\Forms\Rules): void)|null */
+	public $onTogglePaymentId = null;
 	
 	public Shopper $shopper;
 
@@ -35,13 +39,17 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 	protected DeliveryTypeRepository $deliveryTypeRepository;
 
 	protected PickupPointRepository $pickupPointRepository;
+
+	protected PaymentTypeRepository $paymentTypeRepository;
 	
 	public function __construct(
 		Shopper $shopper,
 		CheckoutManager $checkoutManager,
 		DeliveryTypeRepository $deliveryTypeRepository,
 		Nette\Localization\Translator $translator,
-		PickupPointRepository $pickupPointRepository
+		PickupPointRepository $pickupPointRepository,
+		PaymentTypeRepository $paymentTypeRepository,
+		?callable $onTogglePaymentId = null,
 	) {
 		parent::__construct();
 		
@@ -50,6 +58,8 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		$this->deliveryTypeRepository = $deliveryTypeRepository;
 		$this->translator = $translator;
 		$this->pickupPointRepository = $pickupPointRepository;
+		$this->paymentTypeRepository = $paymentTypeRepository;
+		$this->onTogglePaymentId = $onTogglePaymentId;
 		
 		$vat = $this->shopper->getShowPrice() === 'withVat';
 		
@@ -195,9 +205,14 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 			$paymentsCondition = $paymentsList->addConditionOn($deliveries, $this::EQUAL, $deliveryId);
 			
 			$allowedPaymentTypes = \array_keys($deliveryType->allowedPaymentTypes->toArray());
-			
+			$allowedPaymentTypes = $allowedPaymentTypes ?: $this->checkoutManager->getPaymentTypes()->toArrayOf('uuid', toArrayValues: true);
+
 			foreach ($allowedPaymentTypes as $paymentId) {
-				$deliveriesCondition->toggle($paymentId);
+				if ($this->onTogglePaymentId) {
+					($this->onTogglePaymentId)($paymentId, $deliveryType, $deliveriesCondition);
+				} else {
+					$deliveriesCondition->toggle($paymentId);
+				}
 			}
 			
 			if (!$allowedPaymentTypes) {
