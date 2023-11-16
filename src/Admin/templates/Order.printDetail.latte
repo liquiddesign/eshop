@@ -483,7 +483,7 @@
                     let vatPct = parseFloat($(this).val());
 
                     let priceVat = price + (price * vatPct / 100);
-                    priceVatInput.val(priceVat.toFixed(2));
+                    priceVatInput.val(priceVat.toFixed(12));
                 });
 
                 $('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="price"]').on('change', function() {
@@ -492,7 +492,7 @@
                     let vatPct = parseFloat($('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="vatPct"]').val());
 
                     let priceVat = price + (price * vatPct / 100);
-                    priceVatInput.val(priceVat.toFixed(2));
+                    priceVatInput.val(priceVat.toFixed(12));
                 });
 
                 $('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="priceVat"]').on('change', function() {
@@ -501,7 +501,7 @@
                     let vatPct = parseFloat($('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="vatPct"]').val());
 
                     let price = priceVat - (priceVat * vatPct / (vatPct + 100));
-                    priceInput.val(price.toFixed(2));
+                    priceInput.val(price.toFixed(12));
                 });
             </script>
         {/foreach}
