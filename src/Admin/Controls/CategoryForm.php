@@ -101,8 +101,8 @@ class CategoryForm extends Control
 		]);
 		$form->addLocaleRichEdit('defaultProductContent', 'Výchozí obsah produktů');
 
-		$this->monitor(Presenter::class, function ($presenter) use ($form, $category): void {
-			$categories = $this->categoryRepository->getTreeArrayForSelect(true, $presenter->tab);
+		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($form, $category): void {
+			$categories = $this->categoryRepository->getTreeArrayForSelect(true, $presenter->tab !== 'none' ? $presenter->tab : $category?->getValue('type'));
 
 			if ($category) {
 				unset($categories[$category->getPK()]);
