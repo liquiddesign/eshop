@@ -65,21 +65,23 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		
 		$deliveriesList = $this->addRadioList('deliveries', 'deliveryPaymentForm.payments', $checkoutManager->getDeliveryTypes($vat)->toArrayOf('name'))
 			->setHtmlAttribute('onChange=updatePoints(this)');
-		$paymentsList = $this->addRadioList('payments', 'deliveryPaymentForm.payments', $checkoutManager->getPaymentTypes()->toArrayOf('name'));
 		
 		$pickupPoint = $this->addSelect('pickupPoint');
 		
 		$allPoints = [];
 		$typesWithPoints = [];
+		$allowedPaymentTypes = [];
 		
 		/** @var \Eshop\DB\DeliveryType $deliveryType */
 		foreach ($checkoutManager->getDeliveryTypes($vat)->toArray() as $deliveryType) {
+			$allowedPaymentTypes = \array_merge($allowedPaymentTypes, $deliveryType->allowedPaymentTypes->toArray());
+
 			$pickupPoints = $this->pickupPointRepository->many()
 				->join(['type' => 'eshop_pickuppointtype'], 'this.fk_pickupPointType = type.uuid')
 				->join(['delivery' => 'eshop_deliverytype'], 'delivery.fk_pickupPointType = type.uuid')
 				->where('delivery.uuid', $deliveryType->getPK())
 				->toArrayOf('name');
-			
+
 			if (\count($pickupPoints) > 0) {
 				$typesWithPoints[] = $deliveryType->getPK();
 			}
@@ -88,6 +90,10 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 			
 			$pickupPoint->setHtmlAttribute('data-' . $deliveryType->getPK(), Nette\Utils\Json::encode($pickupPoints));
 		}
+
+		$allPaymentTypes = \array_intersect_key($checkoutManager->getPaymentTypes()->toArrayOf('name'), $allowedPaymentTypes);
+
+		$paymentsList = $this->addRadioList('payments', 'deliveryPaymentForm.payments', $allPaymentTypes);
 		
 		/** @var \Nette\Forms\Control $deliveries */
 		$deliveries = $this['deliveries'];
@@ -100,7 +106,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 
 		$deliveriesList->setRequired();
 		$paymentsList->setRequired();
-		
+
 		$this->addCombinationRules($deliveriesList, $paymentsList, $checkoutManager->getDeliveryTypes($vat));
 		
 		// @TODO: overload toggle (https://pla.nette.org/cs/forms-toggle#toc-jak-pridat-animaci)
@@ -192,6 +198,8 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 	
 	protected function addCombinationRules(Nette\Forms\Controls\RadioList $deliveriesList, Nette\Forms\Controls\RadioList $paymentsList, Collection $deliveryTypes): void
 	{
+		$paymentTypes = $this->checkoutManager->getPaymentTypes()->toArrayOf('uuid', toArrayValues: true);
+
 		/**
 		 * @var string $deliveryId
 		 * @var \Eshop\DB\DeliveryType $deliveryType
@@ -203,9 +211,9 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 			$deliveries = $this['deliveries'];
 			
 			$paymentsCondition = $paymentsList->addConditionOn($deliveries, $this::EQUAL, $deliveryId);
-			
+
 			$allowedPaymentTypes = \array_keys($deliveryType->allowedPaymentTypes->toArray());
-			$allowedPaymentTypes = $allowedPaymentTypes ?: $this->checkoutManager->getPaymentTypes()->toArrayOf('uuid', toArrayValues: true);
+			$allowedPaymentTypes = $allowedPaymentTypes ?: $paymentTypes;
 
 			foreach ($allowedPaymentTypes as $paymentId) {
 				if ($this->onTogglePaymentId) {
@@ -218,7 +226,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 			if (!$allowedPaymentTypes) {
 				continue;
 			}
-			
+
 			$paymentsCondition->addRule(
 				$this::IS_IN,
 				$this->translator->translate('deliveryPaymentForm.badCombo', 'Nesprávná kombinace dopravy a platby. Vyberte prosím jinou platbu.'),
