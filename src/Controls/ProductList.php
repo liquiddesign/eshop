@@ -78,19 +78,6 @@ class ProductList extends Datalist
 
 		parent::__construct($source);
 
-		// Used only if cache table is not available
-		$this->setItemCountCallback(function (Collection $collection): int {
-			$collection->setSelect([])->setGroupBy([])->setOrderBy([]);
-
-			$subCollection = AdminGrid::processCollectionBaseFrom($collection, useOrder: false, join: false);
-			$subCollection->setSelect(['DISTINCT this.uuid'])->setGroupBy([])->setOrderBy([]);
-
-			$collection = $this->connection->rows()
-				->setFrom(['agg' => "({$subCollection->getSql()})"], $collection->getVars());
-
-			return $collection->enum('agg.uuid', unique: false);
-		});
-
 		$this->setDefaultOnPage(20);
 		$this->setDefaultOrder('priority');
 
@@ -227,6 +214,18 @@ class ProductList extends Datalist
 					$source->where('0 = 1');
 				}
 			} else {
+				$this->setItemCountCallback(function (Collection $collection): int {
+					$collection->setSelect([])->setGroupBy([])->setOrderBy([]);
+
+					$subCollection = AdminGrid::processCollectionBaseFrom($collection, useOrder: false, join: false);
+					$subCollection->setSelect(['DISTINCT this.uuid'])->setGroupBy([])->setOrderBy([]);
+
+					$collection = $this->connection->rows()
+						->setFrom(['agg' => "({$subCollection->getSql()})"], $collection->getVars());
+
+					return $collection->enum('agg.uuid', unique: false);
+				});
+
 				$source->setPage($this->getPage(), $this->getOnPage());
 			}
 		}

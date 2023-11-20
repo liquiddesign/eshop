@@ -4,6 +4,7 @@ namespace Eshop;
 
 use Base\ShopsConfig;
 use Carbon\Carbon;
+use Eshop\Admin\ScriptsPresenter;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
@@ -272,7 +273,7 @@ class ProductsProvider
 			return;
 		}
 
-		$this->cleanCache();
+		$this->cleanProductsProviderCache();
 
 		try {
 			$link = $this->connection->getLink();
@@ -601,7 +602,7 @@ CREATE TABLE `$productsCacheTableName` (
 			}
 
 			$this->markCacheAsReady($cacheIndexToBeWarmedUp);
-			$this->cleanCache();
+			$this->cleanProductsProviderCache();
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::EXCEPTION);
 			Debugger::dump($e);
@@ -642,15 +643,15 @@ CREATE TABLE `$productsCacheTableName` (
 			return false;
 		}
 
-//		$dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
-//
-//		$cachedData = $this->cache->load($dataCacheIndex, dependencies: [
-//			Cache::Tags => [self::PRODUCTS_PROVIDER_CACHE_TAG],
-//		]);
-//
-//		if ($cachedData) {
-//			return $cachedData;
-//		}
+		$dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
+
+		$cachedData = $this->cache->load($dataCacheIndex, dependencies: [
+			Cache::Tags => [self::PRODUCTS_PROVIDER_CACHE_TAG],
+		]);
+
+		if ($cachedData) {
+			return $cachedData;
+		}
 
 		$emptyResult = [
 			'productPKs' => [],
@@ -682,7 +683,7 @@ CREATE TABLE `$productsCacheTableName` (
 				->fetchColumn();
 
 			if ($categoryTableExists === 0) {
-//				$this->saveDataCacheIndex($dataCacheIndex, $emptyResult);
+				$this->saveDataCacheIndex($dataCacheIndex, $emptyResult);
 
 				return $emptyResult;
 			}
@@ -1071,9 +1072,7 @@ CREATE TABLE `$productsCacheTableName` (
 			unset($attributeValuesCounts[$attributeValueId]);
 		}
 
-		//		$this->saveDataCacheIndex($dataCacheIndex, $result);
-
-		return [
+		$result = [
 			'productPKs' => $productPKs,
 			'attributeValuesCounts' => $attributeValuesCounts,
 			'displayAmountsCounts' => $displayAmountsCounts,
@@ -1084,11 +1083,30 @@ CREATE TABLE `$productsCacheTableName` (
 			'priceVatMin' => $priceVatMin < \PHP_FLOAT_MAX ? \floor($priceVatMin) : 0,
 			'priceVatMax' => $priceVatMax > \PHP_FLOAT_MIN ? \ceil($priceVatMax) : 0,
 		];
+
+		$this->saveDataCacheIndex($dataCacheIndex, $result);
+
+		return $result;
 	}
 
-	public function cleanCache(): void
+	public function cleanProductsProviderCache(): void
 	{
 		$this->cache->clean([Cache::Tags => [self::PRODUCTS_PROVIDER_CACHE_TAG]]);
+	}
+
+	public function cleanAppCache(): void
+	{
+		$this->cache->clean([
+			Cache::Tags => [
+				ScriptsPresenter::PRODUCTS_CACHE_TAG,
+				ScriptsPresenter::PRICELISTS_CACHE_TAG,
+				ScriptsPresenter::CATEGORIES_CACHE_TAG,
+				ScriptsPresenter::EXPORT_CACHE_TAG,
+				ScriptsPresenter::ATTRIBUTES_CACHE_TAG,
+				ScriptsPresenter::PRODUCERS_CACHE_TAG,
+				ScriptsPresenter::SETTINGS_CACHE_TAG,
+			],
+		]);
 	}
 
 	protected function resetHangingStateOfCache(int $id): void
@@ -1114,6 +1132,8 @@ CREATE TABLE `$productsCacheTableName` (
 			'lastWarmUpTs' => null,
 			'lastReadyTs' => null,
 		]);
+
+		$this->cleanAppCache();
 	}
 
 	/**
