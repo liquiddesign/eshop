@@ -2581,7 +2581,8 @@ Změna ovlivňuje všechny dopravy objednávky.');
 
 			$this->flashMessage('Provedeno', 'success');
 		} catch (\Throwable $e) {
-			Debugger::log($e->getMessage(), ILogger::ERROR);
+			Debugger::log($e, ILogger::ERROR);
+			Debugger::barDump($e);
 			$connection->getLink()->rollBack();
 
 			$this->flashMessage('Spojení objednávek se nezdařilo!', 'error');

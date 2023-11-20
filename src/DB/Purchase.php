@@ -451,6 +451,6 @@ class Purchase extends \StORM\Entity
 	 */
 	private function getCartIds(): array
 	{
-		return $this->cartIds ??= $this->carts->select(['uuid'])->toArrayOf('uuid', [], true);
+		return $this->cartIds ??= $this->getCarts()->select(['uuid'])->toArrayOf('uuid', [], true);
 	}
 }
