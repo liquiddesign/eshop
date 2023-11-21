@@ -165,6 +165,7 @@ class SupplierPresenter extends BackendPresenter
 		$form->addGroup('Obecné');
 		$form->addText('code', 'Kód')->setRequired();
 		$form->addText('name', 'Název')->setRequired();
+		$form->addCheckbox('highlightStoreAmount', 'Zvýraznit dostupnost produktu od tohoto dodavatele');
 		$form->addSelect('providerClass', 'Typ', $this::SUPPLIER_TYPES)->setRequired();
 		$form->addText('url', 'Adresa feedu')->setRequired();
 		$form->addGroup('Defaultní hodnoty');
@@ -225,6 +226,7 @@ class SupplierPresenter extends BackendPresenter
 		$form->addGroup('Obecné');
 		$form->addText('code', 'Kód')->setHtmlAttribute('readonly', 'readonly');
 		$form->addText('name', 'Název')->setRequired();
+		$form->addCheckbox('highlightStoreAmount', 'Zvýraznit dostupnost produktu od tohoto dodavatele');
 
 		if ($supplier->url) {
 			$form->addText('url', 'Adresa feedu')->setRequired()->setDefaultValue($supplier->url);

@@ -404,7 +404,11 @@
                             </tr>
                             </thead>
                             <tbody>
-                            <tr n:foreach="$storeAmounts as $storeAmount" id="store-{$storeAmount->store->getValue('supplier') ? $storeAmount->store->supplier->getPK() : ''}" class="store {if $storeAmount->store->supplier}supplier-{$storeAmount->store->supplier->getPK()}{/if} {if $storeAmount->inStock === 0}disabled{/if}">
+                            <tr n:foreach="$storeAmounts as $storeAmount"
+                                    id="store-{$storeAmount->store->getValue('supplier') ? $storeAmount->store->supplier->getPK() : ''}"
+                                    class="store {if $storeAmount->store->supplier}supplier-{$storeAmount->store->supplier->getPK()}{/if} {if $storeAmount->inStock === 0}disabled{/if}"
+                                    style="{if $storeAmount->store->supplier && $storeAmount->store->supplier->highlightStoreAmount && $storeAmount->inStock > 0}background-color: #00CC00;{/if}"
+                            >
                                 <td>{input amount:$storeAmount->getPK()}</td>
                                 <td>{$storeAmount->product->name}</td>
                                 <td>{$storeAmount->product->getFullCode()}</td>
