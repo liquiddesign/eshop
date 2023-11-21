@@ -628,7 +628,9 @@ CREATE TABLE `$productsCacheTableName` (
 	 *     'priceVatMin': float,
 	 *     'priceVatMax': float
 	 * }|false
-	 * @throws \StORM\Exception\NotFoundException|\Throwable
+	 * @throws \StORM\Exception\GeneralException
+	 * @throws \StORM\Exception\NotFoundException
+	 * @throws \Throwable
 	 */
 	public function getProductsFromCacheTable(
 		array $filters,
