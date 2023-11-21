@@ -724,36 +724,36 @@ CREATE TABLE `$productsCacheTableName` (
 			$relatedTypeMaster = $filters['relatedTypeMaster'];
 
 			if (!isset($relatedTypeMaster[0]) || !isset($relatedTypeMaster[1])) {
-				Debugger::log('filterRelatedTypeMaster: missing values', ILogger::WARNING);
-			} else {
-				$relatedTypeMaster[0] = $this->productRepository->many()->where('this.uuid', $relatedTypeMaster[0])->setSelect(['id' => 'this.id'])->firstValue('id');
-				$relatedTypeMaster[1] = $this->relatedTypeRepository->many()->where('this.uuid', $relatedTypeMaster[1])->setSelect(['id' => 'this.id'])->firstValue('id');
-
-				$productsCollection->where('this.product', $this->connection->rows([$relationsCacheTableName])
-					->where('master', $relatedTypeMaster[0])
-					->where('type', $relatedTypeMaster[1])
-					->toArrayOf('slave'));
-
-				unset($filters['relatedTypeMaster']);
+				throw new \Exception("Incomplete values for filter: 'relatedTypeMaster'.");
 			}
+
+			$relatedTypeMaster[0] = $this->productRepository->many()->where('this.uuid', $relatedTypeMaster[0])->setSelect(['id' => 'this.id'])->firstValue('id');
+			$relatedTypeMaster[1] = $this->relatedTypeRepository->many()->where('this.uuid', $relatedTypeMaster[1])->setSelect(['id' => 'this.id'])->firstValue('id');
+
+			$productsCollection->where('this.product', $this->connection->rows([$relationsCacheTableName])
+				->where('master', $relatedTypeMaster[0])
+				->where('type', $relatedTypeMaster[1])
+				->toArrayOf('slave'));
+
+			unset($filters['relatedTypeMaster']);
 		}
 
 		if (isset($filters['relatedTypeSlave'])) {
 			$relatedTypeSlave = $filters['relatedTypeSlave'];
 
 			if (!isset($relatedTypeSlave[0]) || !isset($relatedTypeSlave[1])) {
-				Debugger::log('filterRelatedTypeMaster: missing values', ILogger::WARNING);
-			} else {
-				$relatedTypeSlave[0] = $this->productRepository->many()->where('this.uuid', $relatedTypeSlave[0])->setSelect(['id' => 'this.id'])->firstValue('id');
-				$relatedTypeSlave[1] = $this->relatedTypeRepository->many()->where('this.uuid', $relatedTypeSlave[1])->setSelect(['id' => 'this.id'])->firstValue('id');
-
-				$productsCollection->where('this.product', $this->connection->rows([$relationsCacheTableName])
-					->where('slave', $relatedTypeSlave[0])
-					->where('type', $relatedTypeSlave[1])
-					->toArrayOf('master'));
-
-				unset($filters['relatedTypeSlave']);
+				throw new \Exception("Incomplete values for filter: 'relatedTypeSlave'.");
 			}
+
+			$relatedTypeSlave[0] = $this->productRepository->many()->where('this.uuid', $relatedTypeSlave[0])->setSelect(['id' => 'this.id'])->firstValue('id');
+			$relatedTypeSlave[1] = $this->relatedTypeRepository->many()->where('this.uuid', $relatedTypeSlave[1])->setSelect(['id' => 'this.id'])->firstValue('id');
+
+			$productsCollection->where('this.product', $this->connection->rows([$relationsCacheTableName])
+				->where('slave', $relatedTypeSlave[0])
+				->where('type', $relatedTypeSlave[1])
+				->toArrayOf('master'));
+
+			unset($filters['relatedTypeSlave']);
 		}
 
 		foreach ($filters as $filter => $value) {
