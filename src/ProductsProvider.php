@@ -645,15 +645,15 @@ CREATE TABLE `$productsCacheTableName` (
 			return false;
 		}
 
-		$dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
-
-		$cachedData = $this->cache->load($dataCacheIndex, dependencies: [
-			Cache::Tags => [self::PRODUCTS_PROVIDER_CACHE_TAG],
-		]);
-
-		if ($cachedData) {
-			return $cachedData;
-		}
+//		$dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
+//
+//		$cachedData = $this->cache->load($dataCacheIndex, dependencies: [
+//			Cache::Tags => [self::PRODUCTS_PROVIDER_CACHE_TAG],
+//		]);
+//
+//		if ($cachedData) {
+//			return $cachedData;
+//		}
 
 		$emptyResult = [
 			'productPKs' => [],
@@ -685,7 +685,7 @@ CREATE TABLE `$productsCacheTableName` (
 				->fetchColumn();
 
 			if ($categoryTableExists === 0) {
-				$this->saveDataCacheIndex($dataCacheIndex, $emptyResult);
+//				$this->saveDataCacheIndex($dataCacheIndex, $emptyResult);
 
 				return $emptyResult;
 			}
@@ -1074,7 +1074,7 @@ CREATE TABLE `$productsCacheTableName` (
 			unset($attributeValuesCounts[$attributeValueId]);
 		}
 
-		$result = [
+		return [
 			'productPKs' => $productPKs,
 			'attributeValuesCounts' => $attributeValuesCounts,
 			'displayAmountsCounts' => $displayAmountsCounts,
@@ -1086,9 +1086,9 @@ CREATE TABLE `$productsCacheTableName` (
 			'priceVatMax' => $priceVatMax > \PHP_FLOAT_MIN ? \ceil($priceVatMax) : 0,
 		];
 
-		$this->saveDataCacheIndex($dataCacheIndex, $result);
+//		$this->saveDataCacheIndex($dataCacheIndex, $result);
 
-		return $result;
+//		return $result;
 	}
 
 	public function cleanProductsProviderCache(): void
