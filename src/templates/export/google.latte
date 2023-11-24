@@ -22,7 +22,7 @@
             {var $mainPrice = $discountPrice ? $price : ($priceBefore ?: $price)}
             {do $discountPrice ??= $priceType ? $product->getPriceVat() : ($priceType === false ? $product->getPrice() : null)}
             {var $page = $presenter->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product->getPK()])}
-            {var $attributes = $product->getPreviewAtttributes()}
+            {var $attributes = $product->getPreviewAttributes()}
             {var string|null $productContent = $product->getValue('originalContent')}
             {var Eshop\DB\Category|null $category = $product->getValue('primaryCategory') ? ($allCategories[$product->getValue('primaryCategory')] ?? null) : null}
 

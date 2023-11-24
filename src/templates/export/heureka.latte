@@ -59,7 +59,7 @@
             {/if}
             <EAN n:if="$product->ean">{$product->ean}</EAN>
             <DELIVERY_DATE n:if="$product->inStock()">0</DELIVERY_DATE>
-            {var $attributes = $product->getPreviewAtttributes()}
+            {var $attributes = $product->getPreviewAttributes()}
             {foreach $attributes as $attributeValues}
                 {foreach $attributeValues as $attributeValue}
                     <PARAM>
