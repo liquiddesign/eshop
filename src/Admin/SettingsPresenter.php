@@ -454,6 +454,17 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 			},
 		];
 
+		$this->customSettings['Doprava'][] = [
+			'key' => self::ZASILKOVNA_DELIVERY_TYPE,
+			'label' => 'Typ dopravy Zásilkovna',
+			'type' => 'select',
+			'options' => $this->deliveryTypeRepository->getArrayForSelect(),
+			'info' => '',
+			'onSave' => function ($key, $oldValue, $newValue): void {
+				$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
+			},
+		];
+
 		/** @var \Eshop\Services\DPD|null $dpd */
 		$dpd = $this->integrations->getService(Integrations::DPD);
 

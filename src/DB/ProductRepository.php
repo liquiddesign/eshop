@@ -1107,7 +1107,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			}
 			
 			/** @var \Eshop\DB\Attribute $attribute */
-			$attribute = $this->attributeRepository->one($attributeKey);
+			$attribute = $this->attributeRepository->one($attributeKey, true);
 
 			if ($attribute->filterType === 'and') {
 				foreach ($selectedAttributeValues as $attributeValue) {
