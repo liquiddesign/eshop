@@ -481,7 +481,8 @@ class Order extends ShopEntity
 		
 		foreach ($this->purchase->getItems() as $item) {
 			if (isset($grouped[$item->getFullCode()])) {
-				$grouped[$item->getFullCode()]->amount += $item->amount;
+				// phpcs:ignore
+				$grouped[$item->getFullCode()]->amount = $grouped[$item->getFullCode()]->amount + $item->amount;
 			} else {
 				$grouped[$item->getFullCode()] = $item;
 			}

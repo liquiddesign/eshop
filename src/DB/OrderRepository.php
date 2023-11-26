@@ -1780,7 +1780,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		/** @var \Eshop\DB\CartItem $item */
 		foreach ($order->purchase->getItems() as $item) {
 			if (isset($topLevelItems[$item->getFullCode()])) {
-				$topLevelItems[$item->getFullCode()]->amount += $item->amount;
+				// phpcs:ignore
+				$topLevelItems[$item->getFullCode()]->amount = $topLevelItems[$item->getFullCode()]->amount + $item->amount;
 			} else {
 				$topLevelItems[$item->getFullCode()] = $item;
 			}

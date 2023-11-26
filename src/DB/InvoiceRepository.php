@@ -209,7 +209,8 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 			/** @var \Eshop\DB\RelatedInvoiceItem $related */
 			foreach ($item->relatedInvoiceItems as $related) {
 				if (isset($grouped[$related->getFullCode()])) {
-					$grouped[$related->getFullCode()]->amount += $related->amount;
+					// phpcs:ignore
+					$grouped[$related->getFullCode()]->amount = $grouped[$related->getFullCode()]->amount + $related->amount;
 				} else {
 					$grouped[$related->getFullCode()] = $related;
 				}
