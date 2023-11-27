@@ -1780,8 +1780,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		/** @var \Eshop\DB\CartItem $item */
 		foreach ($order->purchase->getItems() as $item) {
 			if (isset($topLevelItems[$item->getFullCode()])) {
-				// phpcs:ignore
-				$topLevelItems[$item->getFullCode()]->amount = $topLevelItems[$item->getFullCode()]->amount + $item->amount;
+				$topLevelItems[$item->getFullCode()]->amount = (int) $topLevelItems[$item->getFullCode()]->amount + $item->amount;
 			} else {
 				$topLevelItems[$item->getFullCode()] = $item;
 			}
@@ -1792,7 +1791,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			/** @var \Eshop\DB\RelatedCartItem $related */
 			foreach ($item->relatedCartItems as $related) {
 				if (isset($grouped[$related->getFullCode()])) {
-					$grouped[$related->getFullCode()]->amount += $related->amount;
+					$grouped[$related->getFullCode()]->amount = (int) $grouped[$related->getFullCode()]->amount + $related->amount;
 				} else {
 					$grouped[$related->getFullCode()] = $related;
 				}
@@ -1803,7 +1802,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 		foreach ($topLevelItems as $item) {
 			if (isset($grouped[$item->getFullCode()])) {
-				$grouped[$item->getFullCode()]->amount += $item->amount;
+				$grouped[$item->getFullCode()]->amount = (int) $grouped[$item->getFullCode()]->amount + $item->amount;
 			} else {
 				$grouped[$item->getFullCode()] = $item;
 			}
