@@ -818,6 +818,18 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		
 		$collection->where($expression->getSql(), ['priceTo' => (float) $value]);
 	}
+
+	public function filterPriceGt($value, ICollection $collection): void
+	{
+		$no = \count($this->shopperUser->getPricelists()->toArray());
+		$expression = new Expression();
+
+		for ($i = 0; $i !== $no; $i++) {
+			$expression->add('OR', "prices$i.price > :priceGt");
+		}
+
+		$collection->where($expression->getSql(), ['priceGt' => (float) $value]);
+	}
 	
 	public function filterPriceVatFrom($value, ICollection $collection): void
 	{

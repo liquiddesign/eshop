@@ -25,6 +25,8 @@ use StORM\ArrayWrapper;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
+use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\DB\PageRepository;
 use Web\DB\SettingRepository;
 
@@ -106,11 +108,14 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 				);
 
 				if (!isset($result['productPKs'])) {
-					throw new \Exception();
+					throw new \Exception('No results returned');
 				}
 
 				return \count($result['productPKs']);
-			} catch (\Throwable) {
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::EXCEPTION);
+				Debugger::barDump($e);
+
 				$collection = $productRepository->many()
 					->setSelect(['total' => 'COUNT(DISTINCT this.uuid)']);
 
