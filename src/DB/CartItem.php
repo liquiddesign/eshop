@@ -12,6 +12,7 @@ use StORM\RelationCollection;
  * Položka košíku
  * @table
  * @index{"name":"cartitem_item","unique":true,"columns":["fk_product","fk_variant","fk_cart"]}
+ * @method \StORM\RelationCollection<\Eshop\DB\PackageItem> getPackageItems()
  */
 class CartItem extends \StORM\Entity implements BoxPacker\Item
 {
@@ -179,6 +180,13 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	 * @var \StORM\RelationCollection<\Eshop\DB\CartItem>
 	 */
 	public RelationCollection $upsells;
+
+	/**
+	 * PackageItems - normally only one
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\PackageItem>
+	 */
+	public RelationCollection $packageItems;
 	
 	public function getProduct(): ?Product
 	{

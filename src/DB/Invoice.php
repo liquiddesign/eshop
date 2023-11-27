@@ -11,6 +11,7 @@ use StORM\RelationCollection;
  * Faktury
  * @table
  * @index{"name":"invoice_codehash","unique":true,"columns":["code", "hash"]}
+ * @method \StORM\RelationCollection<\Eshop\DB\InvoiceItem> getItems()
  */
 class Invoice extends \StORM\Entity
 {
