@@ -228,17 +228,17 @@ class ProductGridFiltersFactory
 			}, '', 'displayAmount', null, $displayAmounts, ['placeholder' => '- Dostupnost -']);
 		}
 
-		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('hidden', (bool) $value);
-		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
-
-		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('recommended', (bool) $value);
-		}, '', 'recommended', null, ['1' => 'Doporučené', '0' => 'Normální'])->setPrompt('- Doporučené -');
-
-		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('unavailable', (bool) $value);
-		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
+//		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+//			$source->where('hidden', (bool) $value);
+//		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
+//
+//		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+//			$source->where('recommended', (bool) $value);
+//		}, '', 'recommended', null, ['1' => 'Doporučené', '0' => 'Normální'])->setPrompt('- Doporučené -');
+//
+//		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+//			$source->where('unavailable', (bool) $value);
+//		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 			if ($value === 'green') {
