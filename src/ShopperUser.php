@@ -200,7 +200,7 @@ class ShopperUser extends User
 	 */
 	public function getDiscountConditions(): array
 	{
-		return $this->config['discountConditions'];
+		return (array) $this->config['discountConditions'];
 	}
 
 	public function isAlwaysCreateCustomerOnOrderCreated(): bool
