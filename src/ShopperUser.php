@@ -533,6 +533,14 @@ class ShopperUser extends User
 	}
 
 	/**
+	 * @param array<mixed> $configuration
+	 */
+	public function setRegistrationConfiguration(array $configuration): void
+	{
+		$this->registrationConfiguration = $configuration;
+	}
+
+	/**
 	 * @return array<mixed>
 	 */
 	public function getRegistrationConfiguration(): array

@@ -1777,11 +1777,18 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$topLevelItems = [];
 		$grouped = [];
 
+		/** @var array<string, int> $topLevelItemsAmounts */
+		$topLevelItemsAmounts = [];
+
+		/** @var array<string, int> $groupedAmounts */
+		$groupedAmounts = [];
+
 		/** @var \Eshop\DB\CartItem $item */
 		foreach ($order->purchase->getItems() as $item) {
 			if (isset($topLevelItems[$item->getFullCode()])) {
-				$topLevelItems[$item->getFullCode()]->amount = (int) $topLevelItems[$item->getFullCode()]->amount + $item->amount;
+				$topLevelItemsAmounts[$item->getFullCode()] = (int) $topLevelItemsAmounts[$item->getFullCode()] + $item->amount;
 			} else {
+				$topLevelItemsAmounts[$item->getFullCode()] = $item->amount;
 				$topLevelItems[$item->getFullCode()] = $item;
 			}
 		}
@@ -1791,21 +1798,28 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			/** @var \Eshop\DB\RelatedCartItem $related */
 			foreach ($item->relatedCartItems as $related) {
 				if (isset($grouped[$related->getFullCode()])) {
-					$grouped[$related->getFullCode()]->amount = (int) $grouped[$related->getFullCode()]->amount + $related->amount;
+					$groupedAmounts[$related->getFullCode()] = (int) $groupedAmounts[$related->getFullCode()] + $related->amount;
 				} else {
+					$groupedAmounts[$related->getFullCode()] = $related->amount;
 					$grouped[$related->getFullCode()] = $related;
 				}
 
 				unset($topLevelItems[$item->getFullCode()]);
+				unset($topLevelItemsAmounts[$item->getFullCode()]);
 			}
 		}
 
 		foreach ($topLevelItems as $item) {
 			if (isset($grouped[$item->getFullCode()])) {
-				$grouped[$item->getFullCode()]->amount = (int) $grouped[$item->getFullCode()]->amount + $item->amount;
+				$groupedAmounts[$item->getFullCode()] = (int) $groupedAmounts[$item->getFullCode()] + $item->amount;
 			} else {
+				$groupedAmounts[$item->getFullCode()] = $item->amount;
 				$grouped[$item->getFullCode()] = $item;
 			}
+		}
+
+		foreach ($grouped as $item) {
+			$item->amount = $groupedAmounts[$item->getFullCode()];
 		}
 
 		return $grouped;
