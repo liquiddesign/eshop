@@ -205,14 +205,20 @@ class Invoice extends \StORM\Entity
 	public function getGroupedItems(): array
 	{
 		$grouped = [];
+		$groupedAmounts = [];
 
 		/** @var \Eshop\DB\InvoiceItem $item */
 		foreach ($this->items as $item) {
 			if (isset($grouped[$item->getFullCode()])) {
-				$grouped[$item->getFullCode()]->amount += $item->amount;
+				$groupedAmounts[$item->getFullCode()] += $item->amount;
 			} else {
 				$grouped[$item->getFullCode()] = $item;
+				$groupedAmounts[$item->getFullCode()] = $item->amount;
 			}
+		}
+
+		foreach ($grouped as $item) {
+			$grouped[$item->getFullCode()]->amount = $groupedAmounts[$item->getFullCode()];
 		}
 
 		return $grouped;

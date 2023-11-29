@@ -478,14 +478,19 @@ class Order extends ShopEntity
 	public function getGroupedItems(): array
 	{
 		$grouped = [];
+		$groupedAmounts = [];
 		
 		foreach ($this->purchase->getItems() as $item) {
 			if (isset($grouped[$item->getFullCode()])) {
-				// phpcs:ignore
-				$grouped[$item->getFullCode()]->amount = $grouped[$item->getFullCode()]->amount + $item->amount;
+				$groupedAmounts[$item->getFullCode()] += $grouped[$item->getFullCode()]->amount;
 			} else {
 				$grouped[$item->getFullCode()] = $item;
+				$groupedAmounts[$item->getFullCode()] = $item->amount;
 			}
+		}
+
+		foreach ($grouped as $item) {
+			$grouped[$item->getFullCode()]->amount = $groupedAmounts[$item->getFullCode()];
 		}
 		
 		return $grouped;
