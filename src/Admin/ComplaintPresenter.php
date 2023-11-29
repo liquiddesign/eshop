@@ -123,7 +123,7 @@ class ComplaintPresenter extends BackendPresenter
 		$form->addSelect('complaintType', 'Typ', $this->complaintTypeRepository->getArrayForSelect())->setRequired();
 		$form->addSelect('complaintState', 'Stav', $this->complaintStateRepository->getArrayForSelect())->setRequired();
 
-		$form->addTextArea('note', 'Komentář');
+		$form->addTextArea('note', 'Komentář')->setHtmlAttribute('rows', 8);
 
 		$form->addText('customerFullName', 'Jméno zákazníka')->setNullable()->setDisabled((bool) $complaint);
 		$form->addEmail('customerEmail', 'E-mail zákazníka')->setNullable()->setDisabled((bool) $complaint);
