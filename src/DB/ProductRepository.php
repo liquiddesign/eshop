@@ -1154,10 +1154,13 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				$exp = new Expression();
 
 				foreach ($selectedAttributeValues as $attributeValue) {
-					$exp->add('OR', 'eshop_attributevalue.uuid = %s', [$attributeValue]);
+					$exp->add('OR', 'eshop_attributevalue.uuid = %s', [$attributeValue], "__var$attributeKey");
 				}
 
-				$subSelect->where('eshop_attributevalue.fk_attribute = :attributeKey AND ' . $exp->getSql(), $exp->getVars() + ['attributeKey' => $attributeKey]);
+				$subSelect->where(
+					"eshop_attributevalue.fk_attribute = :__var{$attributeKey}AttributeKey AND " . $exp->getSql(),
+					$exp->getVars() + ["__var{$attributeKey}AttributeKey" => $attributeKey],
+				);
 
 				$collection->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
 			}
