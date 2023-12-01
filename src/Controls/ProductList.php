@@ -193,8 +193,17 @@ class ProductList extends Datalist
 		\Tracy\Debugger::barDump(\Tracy\Debugger::timer('getProductsFromCacheTable'), 'cacheProducts');
 		\Tracy\Debugger::barDump($cachedProducts);
 
-		/** @var \StORM\Collection<\Eshop\DB\Product> $source */
-		$source = $this->getFilteredSource();
+		try {
+			/** @var \StORM\Collection<\Eshop\DB\Product> $source */
+			$source = $this->getFilteredSource();
+		} catch (\Exception $e) {
+			Debugger::log($e, ILogger::EXCEPTION);
+			Debugger::barDump($e);
+
+			$this->error();
+
+			return [];
+		}
 
 		if ($cachedProducts !== false) {
 			$this->providerOutput = $cachedProducts;

@@ -18,6 +18,7 @@ use StORM\RelationCollection;
  * @index{"name":"customer_unique_emailshop","unique":true,"columns":["email", "fk_shop"]}
  * @method array getData()
  * @method \StORM\ICollection<\Eshop\DB\VisibilityList> getVisibilityLists()
+ * @method \StORM\ICollection<\Eshop\DB\Pricelist> getPricelists()
  * Due to compatibility within PHP 8.0-8.2 and seamless migration to this version, DynamicProperties are allowed in this class. If they are not, you will have to clear all sessions' data.
  */
 #[\AllowDynamicProperties]
