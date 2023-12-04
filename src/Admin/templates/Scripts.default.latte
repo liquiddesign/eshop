@@ -48,7 +48,11 @@
                                     </div>
                                     <div class="row mt-2">
                                         <div class="col-auto">
-                                            <a n:href="$script->link" class="btn btn-sm btn-outline-primary">Provést</a>
+                                            {ifset $script->link}
+                                                <a n:href="$script->link" class="btn btn-sm btn-outline-primary">Provést</a>
+                                            {elseifset $script->url}
+                                                <a href="{$script->url}" class="btn btn-sm btn-outline-primary">Provést</a>
+                                            {/ifset}
                                         </div>
                                     </div>
                                     {if !$iterator->isLast()}<div class="mt-4"><hr></div>{/if}
