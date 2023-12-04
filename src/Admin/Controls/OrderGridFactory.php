@@ -398,6 +398,8 @@ class OrderGridFactory
 			function (ICollection $collection, $value): void {
 				$separator = null;
 
+				$value = Strings::trim($value);
+
 				if (Strings::contains($value, ';')) {
 					$separator = ';';
 				} elseif (Strings::contains($value, ',')) {
@@ -405,7 +407,9 @@ class OrderGridFactory
 				}
 
 				if ($separator) {
-					$collection->where('this.code', \explode($separator, $value));
+					$collection->where('this.code', \array_map(function ($value): string {
+						return Strings::trim($value);
+					}, \explode($separator, $value)));
 				} else {
 					$collection->where('this.code LIKE :search_order', ['search_order' => "%$value%"]);
 				}
