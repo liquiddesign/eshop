@@ -51,7 +51,7 @@
                                             {ifset $script->link}
                                                 <a n:href="$script->link" class="btn btn-sm btn-outline-primary">Provést</a>
                                             {elseifset $script->url}
-                                                <a href="{$script->url}" target="_blank" class="btn btn-sm btn-outline-primary">Provést</a>
+                                                <a href="{$baseUrl}{$script->url}" target="_blank" class="btn btn-sm btn-outline-primary">Provést</a>
                                             {/ifset}
                                         </div>
                                     </div>
