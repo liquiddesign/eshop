@@ -548,6 +548,10 @@ CREATE TABLE `$productsCacheTableName` (
 				$prices = \explode(',', $prices);
 
 				foreach ($prices as $price) {
+					if (!isset($allPrices[$price])) {
+						throw new \Exception('Price not found: ' . $price);
+					}
+
 					$price = $allPrices[$price];
 
 					$products[$product->id]["priceList_{$price->priceListId}_price"] = $price->price;
