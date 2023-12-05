@@ -338,6 +338,20 @@ class Purchase extends \StORM\Entity
 
 		return $cartItemRepository->getItems($this->getCartIds());
 	}
+
+	/**
+	 * @return \StORM\Collection<\Eshop\DB\RelatedCartItem>
+	 */
+	public function getRelatedItems(): Collection
+	{
+		/** @var \Eshop\DB\RelatedCartItemRepository $relatedCartItemRepository */
+		$relatedCartItemRepository = $this->getConnection()->findRepository(RelatedCartItem::class);
+
+		return $relatedCartItemRepository->many()
+			->join(['eshop_cartitem'], 'this.fk_cartItem = eshop_cartitem.uuid')
+			->join(['eshop_cart'], 'eshop_cartitem.fk_cart = eshop_cart.uuid')
+			->where('eshop_cart.fk_purchase', $this->getPK());
+	}
 	
 	/**
 	 * @return \StORM\Collection<\Eshop\DB\CartItem>
