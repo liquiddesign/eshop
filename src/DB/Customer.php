@@ -19,6 +19,7 @@ use StORM\RelationCollection;
  * @method array getData()
  * @method \StORM\RelationCollection<\Eshop\DB\VisibilityList> getVisibilityLists()
  * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getPricelists()
+ * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getFavouritePricelists()
  * Due to compatibility within PHP 8.0-8.2 and seamless migration to this version, DynamicProperties are allowed in this class. If they are not, you will have to clear all sessions' data.
  */
 #[\AllowDynamicProperties]
