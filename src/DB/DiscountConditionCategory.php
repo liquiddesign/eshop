@@ -9,6 +9,7 @@ use StORM\RelationCollection;
 /**
  * Podmínka slevového kuponu pro kategorie
  * @table
+ * @method \StORM\RelationCollection<\Eshop\DB\Category> getCategories()
  */
 class DiscountConditionCategory extends \StORM\Entity
 {

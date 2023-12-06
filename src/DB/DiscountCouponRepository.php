@@ -22,11 +22,12 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		private readonly ShopperUser $shopperUser,
-		private readonly CartItemRepository $cartItemRepository,
-		private readonly DiscountConditionRepository $discountConditionRepository,
-		private readonly DiscountConditionCategoryRepository $discountConditionCategoryRepository,
-		private readonly CategoryRepository $categoryRepository,
+		protected readonly ShopperUser $shopperUser,
+		protected readonly CartItemRepository $cartItemRepository,
+		protected readonly DiscountConditionRepository $discountConditionRepository,
+		protected readonly DiscountConditionCategoryRepository $discountConditionCategoryRepository,
+		protected readonly CategoryRepository $categoryRepository,
+		protected readonly ProductRepository $productRepository,
 	) {
 		parent::__construct($connection, $schemaManager);
 	}
@@ -56,7 +57,7 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 	 */
 	public function getValidCouponByCart(string $code, Cart $cart, ?Customer $customer = null, bool $throw = false): ?DiscountCoupon
 	{
-		$showPrice = $this->shopperUser->getShowPrice();
+		$showPrice = $this->shopperUser->getMainPriceType();
 		$priceType = $showPrice === 'withVat' ? 'priceVat' : 'price';
 
 		try {
@@ -173,11 +174,16 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 		}
 
 		if ($conditions = $this->discountConditionCategoryRepository->many()->where('this.fk_discountCoupon', $coupon->getPK())->toArray()) {
-			$categoriesInCart = $this->cartItemRepository->many()
-				->where('this.fk_cart', $cart->getPK())
-				->join(['eshop_product'], 'this.fk_product = eshop_product.uuid')
-				->select(['primaryCategoryPK' => 'eshop_product.fk_primaryCategory'])
-				->toArrayOf('primaryCategoryPK', toArrayValues: true);
+			/** @var array<\Eshop\DB\Product> $productsInCart */
+			$productsInCart = $this->productRepository->many()->join(['eshop_cartitem'], 'this.uuid = eshop_cartitem.fk_product')
+				->where('eshop_cartitem.fk_cart', $cart->getPK())
+				->toArray();
+
+			$categoriesInCart = [];
+
+			foreach ($productsInCart as $product) {
+				$categoriesInCart = \array_merge($categoriesInCart, $product->getCategories()->toArrayOf('uuid', toArrayValues: true));
+			}
 
 			$categoriesInCart = $this->categoryRepository->many()->where('this.uuid', $categoriesInCart)->toArray();
 

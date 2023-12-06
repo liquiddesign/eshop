@@ -202,11 +202,23 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		unset($includeHidden);
+		return $this->toArrayForSelect($this->getCollection($includeHidden));
+	}
 
-		$suffix = $this->getConnection()->getMutationSuffix();
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\Category> $collection
+	 * @return array<string>
+	 */
+	public function toArrayForSelect(Collection $collection): array
+	{
+		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 
-		return $this->many()->orderBy(["name$suffix"])->toArrayOf('name');
+		return $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection(
+			$collection,
+			selectColumnName: "this.name$mutationSuffix",
+			uniqueColumnName: 'this.code',
+			shops: false,
+		));
 	}
 
 	/**

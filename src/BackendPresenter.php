@@ -107,19 +107,18 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 
 		$suffix = $this->categoryRepository->getConnection()->getMutationSuffix();
 
-		/** @var array<\Eshop\DB\Category> $categories */
-		$categories = $this->categoryRepository->getCollection(true)
-			->join(['eshop_categorytype'], 'this.fk_type = eshop_categorytype.uuid')
-			->where("this.name$suffix LIKE :q OR this.code LIKE :q", ['q' => "%$q%"])
-			->setPage($page ?? 1, 5)
-			->toArray();
+		$categories = $this->categoryRepository->toArrayForSelect(
+			$this->categoryRepository->getCollection(true)
+				->where("this.name$suffix LIKE :q OR this.code LIKE :q", ['q' => "%$q%"])
+				->setPage($page ?? 1, 5)
+		);
 
 		$results = [];
 
 		foreach ($categories as $pk => $category) {
 			$results[] = [
 				'id' => $pk,
-				'text' => $category->type->name . ': ' . $category->name . ' (' . $category->code . ($category->isSystemic() ? ', systémová' : '') . ')',
+				'text' => $category,
 			];
 		}
 

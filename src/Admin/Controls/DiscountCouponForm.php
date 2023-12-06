@@ -5,6 +5,7 @@ namespace Eshop\Admin\Controls;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
 use Eshop\BackendPresenter;
+use Eshop\DB\CategoryRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\Customer;
 use Eshop\DB\Discount;
@@ -24,9 +25,10 @@ class DiscountCouponForm extends Control
 	public function __construct(
 		AdminFormFactory $adminFormFactory,
 		CurrencyRepository $currencyRepository,
-		private readonly DiscountCouponRepository $discountCouponRepository,
-		private readonly DiscountConditionCategoryRepository $discountConditionCategoryRepository,
-		private readonly ShopperUser $shopperUser,
+		protected readonly DiscountCouponRepository $discountCouponRepository,
+		protected readonly DiscountConditionCategoryRepository $discountConditionCategoryRepository,
+		protected readonly ShopperUser $shopperUser,
+		protected readonly CategoryRepository $categoryRepository,
 		DiscountConditionRepository $discountConditionRepository,
 		?DiscountCoupon $discountCoupon,
 		?Discount $discount = null
@@ -149,7 +151,7 @@ class DiscountCouponForm extends Control
 				/** @var \Nette\Forms\Controls\SelectBox $quantityConditionInput */
 				$quantityConditionInput = $conditionsContainer["quantityCondition_$i"];
 
-				$presenter->template->select2AjaxDefaults[$categoriesInput->getHtmlId()] = $condition->categories->toArrayOf('name');
+				$presenter->template->select2AjaxDefaults[$categoriesInput->getHtmlId()] = $this->categoryRepository->toArrayForSelect($condition->getCategories());
 				$cartConditionInput->setDefaultValue($condition->cartCondition);
 				$quantityConditionInput->setDefaultValue($condition->quantityCondition);
 
