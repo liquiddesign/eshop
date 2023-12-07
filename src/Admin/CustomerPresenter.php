@@ -81,6 +81,11 @@ class CustomerPresenter extends BackendPresenter
 	 */
 	public array $onBeforeAddButtonsAccountsGrid = [];
 
+	/**
+	 * @var array<callable(\Admin\Controls\AdminForm $form): void>
+	 */
+	public array $onBeforeSubmitEditAddress = [];
+
 	#[\Nette\DI\Attributes\Inject]
 	public AccountFormFactory $accountFormFactory;
 	
@@ -745,7 +750,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		
 		return $form;
 	}
-	
+
 	public function createComponentEditAddress(): AdminForm
 	{
 		$form = $this->formFactory->create();
@@ -772,6 +777,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			'deliveryAddress' => $this->addressRepo->getStructure(),
 			'billAddress' => $this->addressRepo->getStructure(),
 		]);
+
+		Arrays::invoke($this->onBeforeSubmitEditAddress, $form);
 		
 		$form->addSubmits();
 		
@@ -917,8 +924,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$form->getPresenter()->flashMessage('Uloženo', 'success');
 			$form->processRedirect('this', 'default');
 		};
-		
-		$this->renderEditAddress();
 	}
 	
 	public function createComponentAccountForm(): AdminForm
