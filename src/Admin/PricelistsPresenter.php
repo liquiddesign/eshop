@@ -188,6 +188,11 @@ class PricelistsPresenter extends BackendPresenter
 			'product.code',
 			'ASC',
 		);
+
+		$grid->setItemCountCallback(function (Collection $collection): int {
+			return $collection->count();
+		});
+
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Kód', 'product.code', '%s', 'product.code', ['class' => 'fit']);
@@ -280,10 +285,10 @@ class PricelistsPresenter extends BackendPresenter
 
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
 			$grid->addFilterDataSelect(function (Collection $source, $value): void {
-				$categoryPath = $this->categoryRepository->one($value)->path;
+				$categoryPath = $this->categoryRepository->one($value, true)->path;
 				$source->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=products.uuid');
-				$source->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
-				$source->where('categories.path LIKE :category', ['category' => "$categoryPath%"]);
+//				$source->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
+//				$source->where('categories.path LIKE :category', ['category' => "$categoryPath%"]);
 			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
 		}
 
