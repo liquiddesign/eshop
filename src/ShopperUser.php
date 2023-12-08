@@ -646,7 +646,7 @@ class ShopperUser extends User
 			$catalogPerm = $this->getCatalogPermissionObject();
 		}
 
-		return $customer ? $catalogPerm->showPricesWithVat : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricesWithVat;
+		return $customer && $catalogPerm ? $catalogPerm->showPricesWithVat : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricesWithVat;
 	}
 
 	public function showPricesWithoutVat(): bool
@@ -682,11 +682,8 @@ class ShopperUser extends User
 		if ($customer) {
 			$catalogPerm = $this->getCatalogPermissionObject();
 		}
-
-		/** @var 'withVat'|'withoutVat' $result */
-		$result = $customer ? $catalogPerm->priorityPrice : $this->customerGroupRepository->getUnregisteredGroup()->defaultPriorityPrice;
-
-		return $result;
+		
+		return $customer && $catalogPerm ? $catalogPerm->priorityPrice : $this->customerGroupRepository->getUnregisteredGroup()->defaultPriorityPrice;
 	}
 
 	/**
