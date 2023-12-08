@@ -287,8 +287,8 @@ class PricelistsPresenter extends BackendPresenter
 			$grid->addFilterDataSelect(function (Collection $source, $value): void {
 				$categoryPath = $this->categoryRepository->one($value, true)->path;
 				$source->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=products.uuid');
-//				$source->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
-//				$source->where('categories.path LIKE :category', ['category' => "$categoryPath%"]);
+				$source->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
+				$source->where('categories.path LIKE :category', ['category' => "$categoryPath%"]);
 			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
 		}
 
