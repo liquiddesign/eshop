@@ -1513,6 +1513,7 @@ class OrderPresenter extends BackendPresenter
 
 		$form->addGroup('Fakturační adresa');
 		$billAddress = $form->addContainer('billAddress');
+		$billAddress->addText('name', ' Jméno a příjmení / název firmy');
 		$billAddress->addHidden('uuid')->setNullable();
 		$billAddress->addText('street', 'Ulice');
 		$billAddress->addText('city', 'Město');
