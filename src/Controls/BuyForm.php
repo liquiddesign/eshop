@@ -25,7 +25,8 @@ class BuyForm extends Form
 	public function __construct(Product $product, Shopper $shopper, CheckoutManager $checkoutManager)
 	{
 		parent::__construct();
-
+		
+		$defaultBuyCount = $product->defaultBuyCount;
 		$minCount = $product->minBuyCount ?? CheckoutManager::DEFAULT_MIN_BUY_COUNT;
 		$maxCount = $product->maxBuyCount ?? CheckoutManager::DEFAULT_MAX_BUY_COUNT;
 
@@ -39,7 +40,7 @@ class BuyForm extends Form
 		}
 
 		if ($product->buyStep !== null) {
-			$countInput->addRule([$this, 'validateNumber'], 'Není to násobek', [$product->buyStep, $minCount]);
+			$countInput->addRule([$this, 'validateNumber'], 'Není to násobek', [$product->buyStep, $minCount, $maxCount, $defaultBuyCount]);
 			$countInput->setHtmlAttribute('step', $product->buyStep);
 		}
 
@@ -57,11 +58,21 @@ class BuyForm extends Form
 			$this->onItemAddedToCart($cartItem, (array) $values);
 		};
 	}
-
+	
 	public function validateNumber(Nette\Forms\Control $control, $args): bool
 	{
-		[$buyStep, $minCount] = $args;
-
-		return ($control->getValue() + $minCount - 1) % $buyStep === 0;
+		[$buyStep, $minCount, $maxCount, $defaultBuyCount] = $args;
+		
+		$value = $control->getValue();
+		
+		if ($minCount && $value < $minCount) {
+			return false;
+		}
+		
+		if ($maxCount && $value > $maxCount) {
+			return false;
+		}
+		
+		return ($control->getValue() - $defaultBuyCount) % $buyStep === 0;
 	}
 }
