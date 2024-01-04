@@ -1437,6 +1437,7 @@ class CheckoutManager
 				'active' => !$this->shopperUser->getRegistrationConfiguration()['confirmation'],
 				'authorized' => !$this->shopperUser->getRegistrationConfiguration()['emailAuthorization'],
 				'confirmationToken' => $this->shopperUser->getRegistrationConfiguration()['emailAuthorization'] ? Nette\Utils\Random::generate(128) : null,
+				'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
 			]);
 		}
 		
@@ -1457,6 +1458,7 @@ class CheckoutManager
 			'deliveryAddress' => $purchase->deliveryAddress,
 			'group' => $defaultGroup?->getPK(),
 			'discountLevelPct' => $defaultGroup ? $defaultGroup->defaultDiscountLevelPct : 0,
+			'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
 		];
 		
 		if ($customer) {
