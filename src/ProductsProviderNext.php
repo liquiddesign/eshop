@@ -4,7 +4,6 @@ namespace Eshop;
 
 use Base\ShopsConfig;
 use Carbon\Carbon;
-use Eshop\Admin\ScriptsPresenter;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
@@ -18,8 +17,6 @@ use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\ProductsCacheStateRepository;
-use Eshop\DB\RelatedRepository;
-use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
 use Nette\Caching\Cache;
@@ -27,13 +24,14 @@ use Nette\Caching\Storage;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
+use PgSql\Connection;
 use StORM\DIConnection;
 use StORM\ICollection;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
 
-class ProductsProvider implements GeneralProductProvider
+class ProductsProviderNext implements GeneralProductProvider
 {
 	public const PRODUCTS_PROVIDER_CACHE_TAG = 'productsProviderCache';
 
@@ -84,12 +82,9 @@ class ProductsProvider implements GeneralProductProvider
 	 */
 	protected array $allowedCollectionOrderExpressions = [];
 
-	/**
-	 * @var array<mixed>
-	 */
-	protected array $dataCache = [];
-
 	protected Cache $cache;
+
+	protected Connection|false|null $pgsqlConnection = null;
 
 	public function __construct(
 		protected readonly ProductRepository $productRepository,
@@ -110,8 +105,6 @@ class ProductsProvider implements GeneralProductProvider
 		protected readonly DisplayDeliveryRepository $displayDeliveryRepository,
 		protected readonly AttributeRepository $attributeRepository,
 		protected readonly ShopperUser $shopperUser,
-		protected readonly RelatedRepository $relatedRepository,
-		protected readonly RelatedTypeRepository $relatedTypeRepository,
 		protected readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
 		readonly Storage $storage,
 	) {
@@ -187,6 +180,18 @@ class ProductsProvider implements GeneralProductProvider
 
 		/**
 		 * @param \StORM\ICollection $productsCollection
+		 * @param string|array<string> $producer
+		 * @param array<\Eshop\DB\VisibilityList> $visibilityLists
+		 * @param array<\Eshop\DB\Pricelist> $priceLists
+		 */
+		$this->allowedCollectionFilterExpressions['producers'] = function (ICollection $productsCollection, array $producer, array $visibilityLists, array $priceLists): void {
+			$producerArray = $this->producerRepository->many()->where('this.uuid', $producer)->setSelect(['this.id'])->toArrayOf('id', toArrayValues: true);
+
+			$productsCollection->where('this.producer', $producerArray);
+		};
+
+		/**
+		 * @param \StORM\ICollection $productsCollection
 		 * @param array{0: array<string>|string, 1: string} $value
 		 * @param array<\Eshop\DB\VisibilityList> $visibilityLists
 		 * @param array<\Eshop\DB\Pricelist> $priceLists
@@ -204,18 +209,6 @@ class ProductsProvider implements GeneralProductProvider
 			$productsCollection->where("this.primaryCategory_$categoryType", $categories);
 		};
 
-		/**
-		 * @param \StORM\ICollection $productsCollection
-		 * @param string|array<string> $producer
-		 * @param array<\Eshop\DB\VisibilityList> $visibilityLists
-		 * @param array<\Eshop\DB\Pricelist> $priceLists
-		 */
-		$this->allowedCollectionFilterExpressions['producers'] = function (ICollection $productsCollection, array $producer, array $visibilityLists, array $priceLists): void {
-			$producerArray = $this->producerRepository->many()->where('this.uuid', $producer)->setSelect(['this.id'])->toArrayOf('id', toArrayValues: true);
-
-			$productsCollection->where('this.producer', $producerArray);
-		};
-
 		$this->allowedDynamicFilterExpressions['priceFrom'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
 			$showVat = $this->shopperUser->getMainPriceType() === 'withVat';
 
@@ -228,11 +221,19 @@ class ProductsProvider implements GeneralProductProvider
 			return $showVat ? $product->priceVat <= $value : $product->price <= $value;
 		};
 
+
 		$this->allowedDynamicFilterExpressions['priceGt'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
 			$showVat = $this->shopperUser->getMainPriceType() === 'withVat';
 
 			return $showVat ? $product->priceVat > $value : $product->price > $value;
 		};
+	}
+
+	public function __destruct()
+	{
+		if ($this->pgsqlConnection) {
+			\pg_close($this->pgsqlConnection);
+		}
 	}
 
 	public function addAllowedCollectionFilterColumn(string $name, string $column): void
@@ -267,133 +268,87 @@ class ProductsProvider implements GeneralProductProvider
 
 	public function warmUpCacheTable(): void
 	{
-		$cacheIndexToBeWarmedUp = $this->getCacheIndexToBeWarmedUp();
+		$postgres = $this->initPgsqlConnection();
 
-		if ($cacheIndexToBeWarmedUp === 0) {
+		if (!$postgres) {
 			return;
 		}
 
-		$this->cleanProductsProviderCache();
+//		$cacheIndexToBeWarmedUp = $this->getCacheIndexToBeWarmedUp();
+		$cacheIndexToBeWarmedUp = 2;
+
+//		if ($cacheIndexToBeWarmedUp === 0) {
+//			return;
+//		}
+
+		$this->cleanCache();
 
 		try {
-			$link = $this->connection->getLink();
-			$dbName = $this->connection->getDatabaseName();
 			$mutationSuffix = $this->connection->getMutationSuffix();
 
 			$this->markCacheAsWarming($cacheIndexToBeWarmedUp);
 
-			Debugger::timer();
+			/** @var array<object{id: int, ancestor: string}> $allCategories */
+			$allCategories = $this->categoryRepository->many()->setSelect(['this.id', 'ancestor' => 'this.fk_ancestor'], keepIndex: true)->fetchArray(\stdClass::class);
 
-			$categoryTablesInDb = $link->query("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
-                  WHERE TABLE_NAME LIKE 'eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_%' AND TABLE_SCHEMA = '$dbName';")
-				->fetchAll(\PDO::FETCH_COLUMN);
+			$categoryTables = \pg_query($postgres, "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE 'eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_%';");
+			$categoryTables = \pg_fetch_all($categoryTables);
 
-			foreach ($categoryTablesInDb as $categoryTableName) {
-				$link->exec("DROP TABLE `$categoryTableName`");
+			if ($categoryTables) {
+				$categoryTablesNamesToDelete = [];
+
+				foreach ($categoryTables as $category) {
+					$categoryTablesNamesToDelete[] = $category['tablename'];
+				}
+
+				unset($categoryTables);
+
+				$categoryTablesNamesToDelete = \implode(',', $categoryTablesNamesToDelete);
+
+				\pg_query($postgres, "DROP TABLE $categoryTablesNamesToDelete");
 			}
 
 			$productsCacheTableName = "eshop_products_cache_$cacheIndexToBeWarmedUp";
-			$relationsCacheTableName = "eshop_products_relations_cache_$cacheIndexToBeWarmedUp";
 
-			$link->exec("DROP TABLE IF EXISTS `$relationsCacheTableName`");
-
-			$link->exec("
-CREATE TABLE `$relationsCacheTableName` (
-    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    master INT UNSIGNED NOT NULL,
-    slave INT UNSIGNED NOT NULL,
-    priority SMALLINT NOT NULL,
-    amount SMALLINT NOT NULL,
-    hidden TINYINT(1) NOT NULL,
-    systemic TINYINT(1) NOT NULL,
-    discountPct DOUBLE,
-    masterPct DOUBLE,
-    type INT UNSIGNED NOT NULL,
-    INDEX idx_master (master),
-    INDEX idx_slave (slave),
-    INDEX idx_type (type)
-);");
-			$link->exec("CREATE UNIQUE INDEX idx_related_code ON `$relationsCacheTableName` (master, slave, amount, discountPct, masterPct);");
-			$link->exec("CREATE UNIQUE INDEX idx_products_related_unique ON `$relationsCacheTableName` (master, slave);");
-
-			$relations = $this->relatedRepository->many()
-				->join(['type' => 'eshop_relatedtype'], 'this.fk_type = type.uuid')
-				->join(['masterProduct' => 'eshop_product'], 'this.fk_master = masterProduct.uuid')
-				->join(['slaveProduct' => 'eshop_product'], 'this.fk_slave = slaveProduct.uuid')
-				->select([
-					'typeId' => 'type.id',
-					'masterId' => 'masterProduct.id',
-					'slaveId' => 'slaveProduct.id',
-				]);
-
-			foreach ($relations as $relation) {
-				$this->connection->syncRow($relationsCacheTableName, [
-					'master' => $relation->getValue('masterId'),
-					'slave' => $relation->getValue('slaveId'),
-					'type' => $relation->getValue('typeId'),
-					'priority' => $relation->priority,
-					'amount' => $relation->amount,
-					'hidden' => $relation->hidden,
-					'systemic' => $relation->systemic,
-					'discountPct' => $relation->discountPct,
-					'masterPct' => $relation->masterPct,
-				]);
-			}
-
-			$link->exec("
-DROP TABLE IF EXISTS `$productsCacheTableName`;
-CREATE TABLE `$productsCacheTableName` (
-  product INT UNSIGNED PRIMARY KEY,
-  producer INT UNSIGNED,
-  displayAmount INT UNSIGNED,
-  displayDelivery INT UNSIGNED,
-  displayAmount_isSold TINYINT(1),
+			\pg_query($postgres, "
+DROP TABLE IF EXISTS $productsCacheTableName;
+CREATE TABLE $productsCacheTableName (
+  product INTEGER PRIMARY KEY,
+  producer INTEGER,
+  displayAmount INTEGER,
+  displayDelivery INTEGER,
+  displayAmount_isSold INT2,
   attributeValues TEXT,
   name TEXT,
   code TEXT,
   subCode TEXT,
   externalCode TEXT,
-  ean TEXT,
-  INDEX idx_producer (producer),
-  INDEX idx_displayAmount (displayAmount),
-  INDEX idx_displayDelivery (displayDelivery),
-  INDEX idx_displayAmount_isSold (displayAmount_isSold),
-  INDEX idx_subCode (subCode),
-  INDEX idx_externalCode (externalCode),
-  FULLTEXT INDEX idx_name (name)
-);");
-			$link->exec("CREATE UNIQUE INDEX idx_unique_code ON `$productsCacheTableName` (code);");
-			$link->exec("CREATE UNIQUE INDEX idx_unique_ean ON `$productsCacheTableName` (ean);");
+  ean TEXT
+		);");
+
+			$allCategoryTypes = $this->categoryTypeRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
+
+			foreach ($allCategoryTypes as $categoryType) {
+				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN primaryCategory_{$categoryType->id} INTEGER;");
+			}
 
 			$allVisibilityLists = $this->visibilityListRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
 
 			foreach ($allVisibilityLists as $visibilityList) {
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id} INT UNSIGNED DEFAULT('{$visibilityList->id}');");
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_visibilityList_{$visibilityList->id} (visibilityList_{$visibilityList->id});");
-
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_hidden TINYINT;");
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_hiddenInMenu TINYINT;");
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_priority SMALLINT;");
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_unavailable TINYINT;");
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_recommended TINYINT;");
+				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id}_hidden INT2;");
+				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id}_hiddenInMenu INT2;");
+				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id}_priority INT2;");
+				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id}_unavailable INT2;");
+				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN visibilityList_{$visibilityList->id}_recommended INT2;");
 			}
 
 			$allPriceLists = $this->pricelistRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
 
 			foreach ($allPriceLists as $priceList) {
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id} INT UNSIGNED DEFAULT('{$priceList->id}');");
-
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_price DOUBLE;");
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVat DOUBLE;");
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceBefore DOUBLE;");
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVatBefore DOUBLE;");
-			}
-
-			$allCategoryTypes = $this->categoryTypeRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
-
-			foreach ($allCategoryTypes as $categoryType) {
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN primaryCategory_{$categoryType->id} INT UNSIGNED;");
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_primaryCategory_{$categoryType->id} (primaryCategory_{$categoryType->id});");
+				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN priceList_{$priceList->id}_price float8;");
+				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN priceList_{$priceList->id}_priceVat float8;");
+				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN priceList_{$priceList->id}_priceBefore float8;");
+				\pg_query($postgres, "ALTER TABLE $productsCacheTableName ADD COLUMN priceList_{$priceList->id}_priceVatBefore float8;");
 			}
 
 			$allPrices = $this->priceRepository->many()
@@ -419,9 +374,6 @@ CREATE TABLE `$productsCacheTableName` (
 
 			$allDisplayAmounts = $this->displayAmountRepository->many()->setIndex('id')->fetchArray(\stdClass::class);
 
-			/** @var array<object{id: int, ancestor: string}> $allCategories */
-			$allCategories = $this->categoryRepository->many()->setSelect(['this.id', 'ancestor' => 'this.fk_ancestor'], keepIndex: true)->fetchArray(\stdClass::class);
-
 			/** @var array<object{category: string|null, categoryType: string}> $allProductPrimaryCategories */
 			$allProductPrimaryCategories = $this->productPrimaryCategoryRepository->many()
 				->join(['eshop_categorytype'], 'this.fk_categoryType = eshop_categorytype.uuid')
@@ -431,44 +383,42 @@ CREATE TABLE `$productsCacheTableName` (
 
 			$allCategoriesByCategory = [];
 
-			$this->connection->getLink()->exec('SET SESSION group_concat_max_len=4294967295');
-
 			$productsCollection = $this->productRepository->many()
-			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product', type: 'INNER')
-			->join(['priceList' => 'eshop_pricelist'], 'price.fk_pricelist = priceList.uuid')
-			->join(['discount' => 'eshop_discount'], 'priceList.fk_discount = discount.uuid')
-			->join(['eshop_product_nxn_eshop_category'], 'this.uuid = eshop_product_nxn_eshop_category.fk_product')
-			->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid', type: 'INNER')
-			->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityList.uuid')
-			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
-			->join(['eshop_displayamount'], 'this.fk_displayAmount = eshop_displayamount.uuid')
-			->join(['eshop_displaydelivery'], 'this.fk_displayDelivery = eshop_displaydelivery.uuid')
-			->join(['eshop_producer'], 'this.fk_producer = eshop_producer.uuid')
-			->join(['eshop_attributevalue'], 'assign.fk_value = eshop_attributevalue.uuid')
-			->join(['primaryCategory' => 'eshop_productprimarycategory'], 'this.uuid = primaryCategory.fk_product')
-			->setSelect([
-				'id' => 'this.id',
-				'fkDisplayAmount' => 'eshop_displayamount.id',
-				'fkDisplayDelivery' => 'eshop_displaydelivery.id',
-				'fkProducer' => 'eshop_producer.id',
-				'name' => "this.name$mutationSuffix",
-				'code' => 'this.code',
-				'subCode' => 'this.subCode',
-				'externalCode' => 'this.externalCode',
-				'ean' => 'this.ean',
-				'pricesPKs' => 'GROUP_CONCAT(DISTINCT price.uuid ORDER BY priceList.priority)',
-				'categoriesPKs' => 'GROUP_CONCAT(DISTINCT eshop_product_nxn_eshop_category.fk_category)',
-				'visibilityListItemsPKs' => 'GROUP_CONCAT(DISTINCT visibilityListItem.uuid ORDER BY visibilityList.priority)',
-				'attributeValuesPKs' => 'GROUP_CONCAT(DISTINCT eshop_attributevalue.id)',
-				'productPrimaryCategoriesPKs' => 'GROUP_CONCAT(DISTINCT primaryCategory.uuid)',
-			])
-			->where('priceList.isActive', true)
-			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
-			->setGroupBy(['this.id']);
+				->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product', type: 'INNER')
+				->join(['priceList' => 'eshop_pricelist'], 'price.fk_pricelist = priceList.uuid')
+				->join(['discount' => 'eshop_discount'], 'priceList.fk_discount = discount.uuid')
+				->join(['eshop_product_nxn_eshop_category'], 'this.uuid = eshop_product_nxn_eshop_category.fk_product')
+				->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid', type: 'INNER')
+				->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityList.uuid')
+				->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
+				->join(['eshop_displayamount'], 'this.fk_displayAmount = eshop_displayamount.uuid')
+				->join(['eshop_displaydelivery'], 'this.fk_displayDelivery = eshop_displaydelivery.uuid')
+				->join(['eshop_producer'], 'this.fk_producer = eshop_producer.uuid')
+				->join(['eshop_attributevalue'], 'assign.fk_value = eshop_attributevalue.uuid')
+				->join(['primaryCategory' => 'eshop_productprimarycategory'], 'this.uuid = primaryCategory.fk_product')
+				->setSelect([
+					'id' => 'this.id',
+					'fkDisplayAmount' => 'eshop_displayamount.id',
+					'fkDisplayDelivery' => 'eshop_displaydelivery.id',
+					'fkProducer' => 'eshop_producer.id',
+					'name' => "this.name$mutationSuffix",
+					'code' => 'this.code',
+					'subCode' => 'this.subCode',
+					'externalCode' => 'this.externalCode',
+					'ean' => 'this.ean',
+					'pricesPKs' => 'GROUP_CONCAT(DISTINCT price.uuid ORDER BY priceList.priority)',
+					'categoriesPKs' => 'GROUP_CONCAT(DISTINCT eshop_product_nxn_eshop_category.fk_category)',
+					'visibilityListItemsPKs' => 'GROUP_CONCAT(DISTINCT visibilityListItem.uuid ORDER BY visibilityList.priority)',
+					'attributeValuesPKs' => 'GROUP_CONCAT(DISTINCT eshop_attributevalue.id)',
+					'productPrimaryCategoriesPKs' => 'GROUP_CONCAT(DISTINCT primaryCategory.uuid)',
+				])
+				->where('priceList.isActive', true)
+				->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
+				->setGroupBy(['this.id']);
 
 			$products = [];
 			$productsByCategories = [];
-			$i = 0;
+			$productCounter = 0;
 
 			while ($product = $productsCollection->fetch(\stdClass::class)) {
 				/** @var \stdClass $product */
@@ -477,38 +427,98 @@ CREATE TABLE `$productsCacheTableName` (
 					continue;
 				}
 
-				$products[$product->id] = [
-					'product' => $product->id,
-					'displayAmount' => $product->fkDisplayAmount,
-					'displayDelivery' => $product->fkDisplayDelivery,
-					'displayAmount_isSold' => $product->fkDisplayAmount ? $allDisplayAmounts[$product->fkDisplayAmount]->isSold : null,
-					'producer' => $product->fkProducer,
-					'name' => $product->name,
-					'code' => $product->code,
-					'subCode' => $product->subCode,
-					'externalCode' => $product->externalCode,
-					'ean' => $product->ean,
+				$productData = [
+					$product->id,
+					$product->fkProducer ?: '\N',
+					$product->fkDisplayAmount ?: '\N',
+					$product->fkDisplayDelivery ?: '\N',
+					$product->fkDisplayAmount ? ((int) $allDisplayAmounts[$product->fkDisplayAmount]->isSold) : '\N',
+					$product->attributeValuesPKs ?: '\N',
+					$product->name ?: '\N',
+					$product->code ? "$product->code" : '\N',
+					$product->subCode ? "$product->subCode" : '\N',
+					$product->externalCode ? "$product->externalCode" : '\N',
+					$product->ean ? "$product->ean" : '\N',
 				];
 
-				foreach ($allVisibilityLists as $visibilityList) {
-					$products[$product->id]["visibilityList_$visibilityList->id"] = null;
-					$products[$product->id]["visibilityList_{$visibilityList->id}_hidden"] = null;
-					$products[$product->id]["visibilityList_{$visibilityList->id}_hiddenInMenu"] = null;
-					$products[$product->id]["visibilityList_{$visibilityList->id}_priority"] = null;
-					$products[$product->id]["visibilityList_{$visibilityList->id}_unavailable"] = null;
-					$products[$product->id]["visibilityList_{$visibilityList->id}_recommended"] = null;
-				}
+				$productPrimaryCategories = [];
 
-				foreach ($allPriceLists as $priceList) {
-					$products[$product->id]["priceList_$priceList->id"] = null;
-					$products[$product->id]["priceList_{$priceList->id}_price"] = null;
-					$products[$product->id]["priceList_{$priceList->id}_priceVat"] = null;
-					$products[$product->id]["priceList_{$priceList->id}_priceBefore"] = null;
-					$products[$product->id]["priceList_{$priceList->id}_priceVatBefore"] = null;
+				if ($primaryCategories = $product->productPrimaryCategoriesPKs) {
+					$primaryCategories = \explode(',', $primaryCategories);
+
+					foreach ($primaryCategories as $primaryCategory) {
+						$primaryCategory = $allProductPrimaryCategories[$primaryCategory];
+
+						$productPrimaryCategories[$primaryCategory->categoryType] = $primaryCategory->category;
+					}
 				}
 
 				foreach ($allCategoryTypes as $categoryType) {
-					$products[$product->id]["primaryCategory_$categoryType->id"] = null;
+					$productData[] = $productPrimaryCategories[$categoryType->id] ?? '\N';
+				}
+
+				$productVisibilityListItems = [];
+
+				if ($visibilityListItems = $product->visibilityListItemsPKs) {
+					$visibilityListItems = \explode(',', $visibilityListItems);
+
+					foreach ($visibilityListItems as $visibilityListItem) {
+						$visibilityListItem = $allVisibilityListItems[$visibilityListItem];
+
+						$productVisibilityListItems[$visibilityListItem->visibilityListId] = [
+							$visibilityListItem->hidden,
+							$visibilityListItem->hiddenInMenu,
+							$visibilityListItem->priority,
+							$visibilityListItem->unavailable,
+							$visibilityListItem->recommended,
+						];
+					}
+				}
+
+				foreach ($allVisibilityLists as $visibilityList) {
+					$productVisibilityListItem = $productVisibilityListItems[$visibilityList->id] ?? [];
+
+					if ($productVisibilityListItem) {
+						$productData = \array_merge($productData, $productVisibilityListItem);
+
+						continue;
+					}
+
+					for ($i = 0; $i < 5; $i++) {
+						$productData[] = '\N';
+					}
+				}
+
+				$productPriceListItems = [];
+				$priceListItems = \explode(',', $prices);
+
+				foreach ($priceListItems as $priceListItem) {
+					if (!isset($allPrices[$priceListItem])) {
+						throw new \Exception("Price $priceListItem not found for product $product->id");
+					}
+
+					$priceListItem = $allPrices[$priceListItem];
+
+					$productPriceListItems[$priceListItem->priceListId] = [
+						$priceListItem->price ?: '\N',
+						$priceListItem->priceVat ?: '\N',
+						$priceListItem->priceBefore ?: '\N',
+						$priceListItem->priceVatBefore ?: '\N',
+					];
+				}
+
+				foreach ($allPriceLists as $visibilityList) {
+					$productPriceListItem = $productPriceListItems[$visibilityList->id] ?? [];
+
+					if ($productPriceListItem) {
+						$productData = \array_merge($productData, $productPriceListItem);
+
+						continue;
+					}
+
+					for ($i = 0; $i < 4; $i++) {
+						$productData[] = '\N';
+					}
 				}
 
 				if ($categories = $product->categoriesPKs) {
@@ -521,68 +531,36 @@ CREATE TABLE `$productsCacheTableName` (
 							$categoryCategories = $allCategoriesByCategory[$category] = \array_merge($this->getAncestorsOfCategory($category, $allCategories), [$category]);
 						}
 
-						$products[$product->id]['categories'] = \array_unique(\array_merge($products[$product->id]['categories'] ?? [], $categoryCategories));
+						$productData['categories'] = \array_unique(\array_merge($productData['categories'] ?? [], $categoryCategories));
 
-						foreach ($products[$product->id]['categories'] as $productCategory) {
+						foreach ($productData['categories'] as $productCategory) {
 							$productsByCategories[$productCategory][$product->id] = true;
 						}
 					}
 				}
 
-				unset($products[$product->id]['categories']);
+				unset($productData['categories']);
 
-				if ($visibilityListItems = $product->visibilityListItemsPKs) {
-					$visibilityListItems = \explode(',', $visibilityListItems);
-
-					foreach ($visibilityListItems as $visibilityListItem) {
-						$visibilityListItem = $allVisibilityListItems[$visibilityListItem];
-
-						$products[$product->id]["visibilityList_{$visibilityListItem->visibilityListId}_hidden"] = $visibilityListItem->hidden;
-						$products[$product->id]["visibilityList_{$visibilityListItem->visibilityListId}_hiddenInMenu"] = $visibilityListItem->hiddenInMenu;
-						$products[$product->id]["visibilityList_{$visibilityListItem->visibilityListId}_priority"] = $visibilityListItem->priority;
-						$products[$product->id]["visibilityList_{$visibilityListItem->visibilityListId}_unavailable"] = $visibilityListItem->unavailable;
-						$products[$product->id]["visibilityList_{$visibilityListItem->visibilityListId}_recommended"] = $visibilityListItem->recommended;
-					}
+				foreach ($productData as &$row) {
+					$row = \is_string($row) ? \str_replace(["\t", "\n"], '', $row) : $row;
 				}
 
-				$prices = \explode(',', $prices);
+				$products[] = \implode("\t", $productData);
 
-				foreach ($prices as $price) {
-					if (!isset($allPrices[$price])) {
-						throw new \Exception('Price not found: ' . $price);
-					}
 
-					$price = $allPrices[$price];
+				$productCounter++;
 
-					$products[$product->id]["priceList_{$price->priceListId}_price"] = $price->price;
-					$products[$product->id]["priceList_{$price->priceListId}_priceVat"] = $price->priceVat;
-					$products[$product->id]["priceList_{$price->priceListId}_priceBefore"] = $price->priceBefore;
-					$products[$product->id]["priceList_{$price->priceListId}_priceVatBefore"] = $price->priceVatBefore;
-				}
-
-				$primaryCategories = $product->productPrimaryCategoriesPKs ? \explode(',', $product->productPrimaryCategoriesPKs) : [];
-
-				foreach ($primaryCategories as $primaryCategory) {
-					$primaryCategory = $allProductPrimaryCategories[$primaryCategory];
-
-					$products[$product->id]["primaryCategory_$primaryCategory->categoryType"] = $primaryCategory->category;
-				}
-
-				$products[$product->id]['attributeValues'] = $product->attributeValuesPKs;
-
-				$i++;
-
-				if ($i !== 1000) {
+				if ($productCounter !== 20000) {
 					continue;
 				}
 
-				$i = 0;
+				$productCounter = 0;
 
-				$this->connection->createRows("$productsCacheTableName", $products, chunkSize: 1000);
+				\pg_copy_from($postgres, $productsCacheTableName, $products);
 				$products = [];
 			}
 
-			$this->connection->createRows("$productsCacheTableName", $products);
+			\pg_copy_from($postgres, $productsCacheTableName, $products);
 			unset($products);
 
 			$productsCollection->__destruct();
@@ -590,23 +568,71 @@ CREATE TABLE `$productsCacheTableName` (
 			foreach ($productsByCategories as $category => $products) {
 				$categoryId = $allCategories[$category]->id;
 
-				$link->exec("DROP TABLE IF EXISTS `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId`;");
-				$link->exec("CREATE TABLE `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId` (
-  product INT UNSIGNED PRIMARY KEY,
-  FOREIGN KEY (product) REFERENCES eshop_products_cache_{$cacheIndexToBeWarmedUp}(product) ON UPDATE CASCADE ON DELETE CASCADE 
-);");
+				\pg_query($postgres, "DROP TABLE IF EXISTS eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId;");
+				\pg_query($postgres, "CREATE TABLE eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId (product INTEGER PRIMARY KEY);");
 
 				$newRows = [];
 
 				foreach (\array_keys($products) as $product) {
-					$newRows[] = ['product' => $product];
+					$newRows[] = $product;
 				}
 
-				$this->connection->createRows("eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId", $newRows);
+				\pg_copy_from($postgres, "eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId", $newRows);
+
+				\pg_query($postgres, "ALTER TABLE eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId
+ADD CONSTRAINT fk_product
+FOREIGN KEY (product)
+REFERENCES eshop_products_cache_{$cacheIndexToBeWarmedUp}(product)
+ON UPDATE CASCADE
+ON DELETE CASCADE;");
+			}
+
+			foreach ($allCategoryTypes as $categoryType) {
+				\pg_query($postgres, "CREATE INDEX {$productsCacheTableName}_idx_primaryCategory_{$categoryType->id} ON $productsCacheTableName (primaryCategory_{$categoryType->id});");
+			}
+
+			\pg_query($postgres, "CREATE INDEX {$productsCacheTableName}_idx_producer ON $productsCacheTableName (producer);");
+			\pg_query($postgres, "CREATE INDEX {$productsCacheTableName}_idx_displayAmount ON $productsCacheTableName (displayAmount);");
+			\pg_query($postgres, "CREATE INDEX {$productsCacheTableName}_idx_displayDelivery ON $productsCacheTableName (displayDelivery);");
+			\pg_query($postgres, "CREATE INDEX {$productsCacheTableName}_idx_displayAmount_isSold ON $productsCacheTableName (displayAmount_isSold);");
+			\pg_query($postgres, "CREATE INDEX {$productsCacheTableName}_idx_subCode ON $productsCacheTableName (subCode);");
+			\pg_query($postgres, "CREATE INDEX {$productsCacheTableName}_idx_externalCode ON $productsCacheTableName (externalCode);");
+
+			\pg_query($postgres, "CREATE UNIQUE INDEX {$productsCacheTableName}_idx_unique_code ON $productsCacheTableName (code);");
+			\pg_query($postgres, "CREATE UNIQUE INDEX {$productsCacheTableName}_idx_unique_ean ON $productsCacheTableName (ean);");
+
+			foreach ($allVisibilityLists as $visibilityList) {
+				\pg_query(
+					$postgres,
+					"CREATE INDEX {$productsCacheTableName}_idx_visibilityList_{$visibilityList->id}_hidden ON $productsCacheTableName (visibilityList_{$visibilityList->id}_hidden);",
+				);
+				\pg_query(
+					$postgres,
+					"CREATE INDEX {$productsCacheTableName}_idx_visibilityList_{$visibilityList->id}_hiddenInMenu ON $productsCacheTableName (visibilityList_{$visibilityList->id}_hiddenInMenu);",
+				);
+				\pg_query(
+					$postgres,
+					"CREATE INDEX {$productsCacheTableName}_idx_visibilityList_{$visibilityList->id}_priority ON $productsCacheTableName (visibilityList_{$visibilityList->id}_priority);",
+				);
+				\pg_query(
+					$postgres,
+					"CREATE INDEX {$productsCacheTableName}_idx_visibilityList_{$visibilityList->id}_unavailable ON $productsCacheTableName (visibilityList_{$visibilityList->id}_unavailable);",
+				);
+				\pg_query(
+					$postgres,
+					"CREATE INDEX {$productsCacheTableName}_idx_visibilityList_{$visibilityList->id}_recommended ON $productsCacheTableName (visibilityList_{$visibilityList->id}_recommended);",
+				);
+			}
+
+			foreach ($allPriceLists as $priceList) {
+				\pg_query($postgres, "CREATE INDEX {$productsCacheTableName}_idx_priceList_{$priceList->id}_price ON $productsCacheTableName (priceList_{$priceList->id}_price);");
+				\pg_query($postgres, "CREATE INDEX {$productsCacheTableName}_idx_priceList_{$priceList->id}_priceVat ON $productsCacheTableName (priceList_{$priceList->id}_priceVat);");
+				\pg_query($postgres, "CREATE INDEX {$productsCacheTableName}_idx_priceList_{$priceList->id}_priceBefore ON $productsCacheTableName (priceList_{$priceList->id}_priceBefore);");
+				\pg_query($postgres, "CREATE INDEX {$productsCacheTableName}_idx_priceList_{$priceList->id}_priceVatBefore ON $productsCacheTableName (priceList_{$priceList->id}_priceVatBefore);");
 			}
 
 			$this->markCacheAsReady($cacheIndexToBeWarmedUp);
-			$this->cleanProductsProviderCache();
+			$this->cleanCache();
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::EXCEPTION);
 			Debugger::dump($e);
@@ -616,25 +642,7 @@ CREATE TABLE `$productsCacheTableName` (
 	}
 
 	/**
-	 * @param array<mixed> $filters
-	 * @param string|null $orderByName
-	 * @param 'ASC'|'DESC' $orderByDirection Works only if $orderByName is not null
-	 * @param array<string, \Eshop\DB\Pricelist> $priceLists
-	 * @param array<string, \Eshop\DB\VisibilityList> $visibilityLists
-	 * @return array{
-	 *     "productPKs": list<string>,
-	 *     "attributeValuesCounts": array<string|int, int>,
-	 *     "displayAmountsCounts": array<string|int, int>,
-	 *     "displayDeliveriesCounts": array<string|int, int>,
-	 *     "producersCounts": array<string|int, int>,
-	 *     'priceMin': float,
-	 *     'priceMax': float,
-	 *     'priceVatMin': float,
-	 *     'priceVatMax': float
-	 * }|false
-	 * @throws \StORM\Exception\GeneralException
-	 * @throws \StORM\Exception\NotFoundException
-	 * @throws \Throwable
+	 * @inheritDoc
 	 */
 	public function getProductsFromCacheTable(
 		array $filters,
@@ -643,21 +651,17 @@ CREATE TABLE `$productsCacheTableName` (
 		array $priceLists = [],
 		array $visibilityLists = [],
 	): array|false {
+		$postgres = $this->initPgsqlConnection();
+
+		if (!$postgres) {
+			return false;
+		}
+
 		$cacheIndex = $this->getCacheIndexToBeUsed();
 
 		if ($cacheIndex === 0) {
 			return false;
 		}
-
-//		$dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
-//
-//		$cachedData = $this->cache->load($dataCacheIndex, dependencies: [
-//			Cache::Tags => [self::PRODUCTS_PROVIDER_CACHE_TAG],
-//		]);
-//
-//		if ($cachedData) {
-//			return $cachedData;
-//		}
 
 		$emptyResult = [
 			'productPKs' => [],
@@ -681,20 +685,15 @@ CREATE TABLE `$productsCacheTableName` (
 
 		unset($filters['category']);
 
-		$dbName = $this->connection->getDatabaseName();
-
 		if ($category) {
-			$categoryTableExists = $this->connection->getLink()
-				->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'eshop_categoryproducts_cache_{$cacheIndex}_$category->id' AND TABLE_SCHEMA = '$dbName';")
-				->fetchColumn();
+			$categoryTableExists = \pg_query($postgres, "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = 'eshop_categoryproducts_cache_{$cacheIndex}_$category->id';");
+			$categoryTableExists = \pg_fetch_assoc($categoryTableExists);
 
-			if ($categoryTableExists === 0) {
-//				$this->saveDataCacheIndex($dataCacheIndex, $emptyResult);
-
+			if ($categoryTableExists === false) {
 				return $emptyResult;
 			}
 		}
-		
+
 		$productsCollection = $category ?
 			$this->connection->rows(['category' => "eshop_categoryproducts_cache_{$cacheIndex}_$category->id"])
 				->join(['this' => "eshop_products_cache_{$cacheIndex}"], 'this.product = category.product', type: 'INNER') :
@@ -719,48 +718,6 @@ CREATE TABLE `$productsCacheTableName` (
 		$allAttributes = [];
 		$dynamicFiltersAttributes = [];
 		$dynamicFilters = [];
-
-		$relationsCacheTableName = "eshop_products_relations_cache_$cacheIndex";
-
-		if (isset($filters['relatedTypeMaster']) && isset($filters['relatedTypeSlave'])) {
-			throw new \Exception("Filters 'relatedTypeMaster' and 'relatedTypeSlave' can't be used at the same time.");
-		}
-
-		if (isset($filters['relatedTypeMaster'])) {
-			$relatedTypeMaster = $filters['relatedTypeMaster'];
-
-			if (!isset($relatedTypeMaster[0]) || !isset($relatedTypeMaster[1])) {
-				throw new \Exception("Incomplete values for filter: 'relatedTypeMaster'.");
-			}
-
-			$relatedTypeMaster[0] = $this->productRepository->many()->where('this.uuid', $relatedTypeMaster[0])->setSelect(['id' => 'this.id'])->firstValue('id');
-			$relatedTypeMaster[1] = $this->relatedTypeRepository->many()->where('this.uuid', $relatedTypeMaster[1])->setSelect(['id' => 'this.id'])->firstValue('id');
-
-			$productsCollection->where('this.product', $this->connection->rows([$relationsCacheTableName])
-				->where('master', $relatedTypeMaster[0])
-				->where('type', $relatedTypeMaster[1])
-				->toArrayOf('slave'));
-
-			unset($filters['relatedTypeMaster']);
-		}
-
-		if (isset($filters['relatedTypeSlave'])) {
-			$relatedTypeSlave = $filters['relatedTypeSlave'];
-
-			if (!isset($relatedTypeSlave[0]) || !isset($relatedTypeSlave[1])) {
-				throw new \Exception("Incomplete values for filter: 'relatedTypeSlave'.");
-			}
-
-			$relatedTypeSlave[0] = $this->productRepository->many()->where('this.uuid', $relatedTypeSlave[0])->setSelect(['id' => 'this.id'])->firstValue('id');
-			$relatedTypeSlave[1] = $this->relatedTypeRepository->many()->where('this.uuid', $relatedTypeSlave[1])->setSelect(['id' => 'this.id'])->firstValue('id');
-
-			$productsCollection->where('this.product', $this->connection->rows([$relationsCacheTableName])
-				->where('slave', $relatedTypeSlave[0])
-				->where('type', $relatedTypeSlave[1])
-				->toArrayOf('master'));
-
-			unset($filters['relatedTypeSlave']);
-		}
 
 		foreach ($filters as $filter => $value) {
 			if ($filter === 'attributes') {
@@ -872,8 +829,20 @@ CREATE TABLE `$productsCacheTableName` (
 
 		$dynamicallyCountedDynamicFilters = [];
 
-		while ($product = $productsCollection->fetch()) {
-			$attributeValues = $product->attributeValues ? \array_flip(\explode(',', $product->attributeValues)) : [];
+		$sql = $productsCollection->getSql();
+		$vars = [];
+		$i = 1;
+
+		foreach ($productsCollection->getVars() as $varKey => $varValue) {
+			$sql = \str_replace(":$varKey", "$$i", $sql);
+			$i++;
+			$vars[] = $varValue;
+		}
+
+		$productsPgsqlQuery = \pg_query_params($postgres, $sql, $vars);
+
+		while ($product = \pg_fetch_object($productsPgsqlQuery)) {
+			$attributeValues = $product->attributevalues ? \array_flip(\explode(',', $product->attributevalues)) : [];
 
 			foreach ($dynamicFiltersAttributes as $attributePK => $attributeValuesPKs) {
 				if (\count($attributeValuesPKs) === 0) {
@@ -951,8 +920,8 @@ CREATE TABLE `$productsCacheTableName` (
 						$priceMin = $product->price;
 					}
 
-					if ($product->priceVat < $priceVatMin) {
-						$priceVatMin = $product->priceVat;
+					if ($product->pricevat < $priceVatMin) {
+						$priceVatMin = $product->pricevat;
 					}
 				}
 
@@ -963,21 +932,21 @@ CREATE TABLE `$productsCacheTableName` (
 						$priceMax = $product->price;
 					}
 
-					if ($product->priceVat > $priceVatMax) {
-						$priceVatMax = $product->priceVat;
+					if ($product->pricevat > $priceVatMax) {
+						$priceVatMax = $product->pricevat;
 					}
 				}
 
 				if ($filter === 'systemicAttributes.availability' && $product->displayAmount) {
 					$dynamicallyCountedDynamicFilters[$filter] = true;
 
-					$displayAmountsCounts[$product->displayAmount] = ($displayAmountsCounts[$product->displayAmount] ?? 0) + 1;
+					$displayAmountsCounts[$product->displayamount] = ($displayAmountsCounts[$product->displayamount] ?? 0) + 1;
 				}
 
-				if ($filter === 'systemicAttributes.delivery' && $product->displayDelivery) {
+				if ($filter === 'systemicAttributes.delivery' && $product->displaydelivery) {
 					$dynamicallyCountedDynamicFilters[$filter] = true;
 
-					$displayDeliveriesCounts[$product->displayDelivery] = ($displayDeliveriesCounts[$product->displayAmount] ?? 0) + 1;
+					$displayDeliveriesCounts[$product->displaydelivery] = ($displayDeliveriesCounts[$product->displaydelivery] ?? 0) + 1;
 				}
 
 				if ($filter !== 'systemicAttributes.producer' || !$product->producer) {
@@ -1011,12 +980,12 @@ CREATE TABLE `$productsCacheTableName` (
 				}
 			}
 
-			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.availability']) && $product->displayAmount) {
-				$displayAmountsCounts[$product->displayAmount] = ($displayAmountsCounts[$product->displayAmount] ?? 0) + 1;
+			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.availability']) && $product->displayamount) {
+				$displayAmountsCounts[$product->displayamount] = ($displayAmountsCounts[$product->displayamount] ?? 0) + 1;
 			}
 
-			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.delivery']) && $product->displayDelivery) {
-				$displayDeliveriesCounts[$product->displayDelivery] = ($displayDeliveriesCounts[$product->displayDelivery] ?? 0) + 1;
+			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.delivery']) && $product->displaydelivery) {
+				$displayDeliveriesCounts[$product->displaydelivery] = ($displayDeliveriesCounts[$product->displaydelivery] ?? 0) + 1;
 			}
 
 			if (!isset($dynamicallyCountedDynamicFilters['systemicAttributes.producer']) && $product->producer) {
@@ -1028,8 +997,8 @@ CREATE TABLE `$productsCacheTableName` (
 					$priceMin = $product->price;
 				}
 
-				if ($product->priceVat < $priceVatMin) {
-					$priceVatMin = $product->priceVat;
+				if ($product->pricevat < $priceVatMin) {
+					$priceVatMin = $product->pricevat;
 				}
 			}
 
@@ -1038,8 +1007,8 @@ CREATE TABLE `$productsCacheTableName` (
 					$priceMax = $product->price;
 				}
 
-				if ($product->priceVat > $priceVatMax) {
-					$priceVatMax = $product->priceVat;
+				if ($product->pricevat > $priceVatMax) {
+					$priceVatMax = $product->pricevat;
 				}
 			}
 
@@ -1089,30 +1058,11 @@ CREATE TABLE `$productsCacheTableName` (
 			'priceVatMin' => $priceVatMin < \PHP_FLOAT_MAX ? \floor($priceVatMin) : 0,
 			'priceVatMax' => $priceVatMax > \PHP_FLOAT_MIN ? \ceil($priceVatMax) : 0,
 		];
-
-//		$this->saveDataCacheIndex($dataCacheIndex, $result);
-
-//		return $result;
 	}
 
-	public function cleanProductsProviderCache(): void
+	public function cleanCache(): void
 	{
 		$this->cache->clean([Cache::Tags => [self::PRODUCTS_PROVIDER_CACHE_TAG]]);
-	}
-
-	public function cleanAppCache(): void
-	{
-		$this->cache->clean([
-			Cache::Tags => [
-				ScriptsPresenter::PRODUCTS_CACHE_TAG,
-				ScriptsPresenter::PRICELISTS_CACHE_TAG,
-				ScriptsPresenter::CATEGORIES_CACHE_TAG,
-				ScriptsPresenter::EXPORT_CACHE_TAG,
-				ScriptsPresenter::ATTRIBUTES_CACHE_TAG,
-				ScriptsPresenter::PRODUCERS_CACHE_TAG,
-				ScriptsPresenter::SETTINGS_CACHE_TAG,
-			],
-		]);
 	}
 
 	protected function resetHangingStateOfCache(int $id): void
@@ -1138,8 +1088,6 @@ CREATE TABLE `$productsCacheTableName` (
 			'lastWarmUpTs' => null,
 			'lastReadyTs' => null,
 		]);
-
-		$this->cleanAppCache();
 	}
 
 	/**
@@ -1246,14 +1194,20 @@ CREATE TABLE `$productsCacheTableName` (
 	protected function createCoalesceFromArray(array $values, string|null $prefix = null, string|null $suffix = null, string $separator = '_'): string
 	{
 		return $values ? ('COALESCE(' . \implode(',', \array_map(function (mixed $item) use ($prefix, $suffix, $separator): string {
-			return $prefix . ($prefix ? $separator : '') . $item->id . ($suffix ? $separator : '') . $suffix;
+				return $prefix . ($prefix ? $separator : '') . $item->id . ($suffix ? $separator : '') . $suffix;
 		}, $values)) . ')') : 'NULL';
 	}
 
-	protected function saveDataCacheIndex(string $index, array $data): void
+	protected function initPgsqlConnection(): Connection|false
 	{
-		$this->cache->save($index, $data, [
-			Cache::Tags => [self::PRODUCTS_PROVIDER_CACHE_TAG],
-		]);
+		if ($this->pgsqlConnection === false) {
+			return false;
+		}
+
+		if ($this->pgsqlConnection === null) {
+			$this->pgsqlConnection = \pg_connect('host=localhost port=5432 dbname=abel user=postgres password=postgres');
+		}
+
+		return $this->pgsqlConnection;
 	}
 }
