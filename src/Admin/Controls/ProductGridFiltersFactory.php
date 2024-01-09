@@ -74,7 +74,7 @@ class ProductGridFiltersFactory
 
 		$firstCategoryType = $this->categoryTypeRepository->many()->setOrderBy(['priority'])->first();
 
-		if ($firstCategoryType && ($categories = $this->categoryRepository->getTreeArrayForSelect(true, $firstCategoryType->getPK()))) {
+		if ($firstCategoryType && ($categories = $this->categoryRepository->getTreeArrayForSelect())) {
 			$exactCategories = $categories;
 			$categories += ['0' => 'X - bez kategorie'];
 
