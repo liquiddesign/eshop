@@ -409,6 +409,8 @@ class ShopperUser extends User
 			$this->getCatalogPermission() === 'price',
 			$this->filterPrice($product->getPrice()),
 			$this->filterPrice($product->getPriceVat()),
+			$product->getPrice(),
+			$product->getPriceVat(),
 			$product->getPriceBefore() ? $this->filterPrice($product->getPriceBefore()) : null,
 			$product->getPriceVatBefore() ? $this->filterPrice($product->getPriceVatBefore()) : null,
 			$this->getCustomer(),
@@ -604,6 +606,16 @@ class ShopperUser extends User
 		}
 
 		return $catalogPermission->catalogPermission;
+	}
+
+	public function canViewCatalog(): bool
+	{
+		return $this->getCatalogPermission() !== 'none';
+	}
+
+	public function canViewPrices(): bool
+	{
+		return $this->getCatalogPermission() === 'price';
 	}
 
 	public function getBuyPermission(): bool

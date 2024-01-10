@@ -9,19 +9,21 @@ use Nette\Localization\Translator;
 class ProductWithFormattedPrices
 {
 	public function __construct(
-		private readonly Translator $translator,
-		private readonly Product $product,
-		private readonly bool $showWithVat,
-		private readonly bool $showWithoutVat,
+		protected readonly Translator $translator,
+		protected readonly Product $product,
+		protected readonly bool $showWithVat,
+		protected readonly bool $showWithoutVat,
 		/** @var 'withVat'|'withoutVat' */
-		private readonly string $priorityPrice,
-		private readonly bool $canView,
-		private readonly string $price,
-		private readonly string $priceVat,
-		private readonly ?string $priceBefore,
-		private readonly ?string $priceVatBefore,
-		private readonly ?Customer $customer,
-		private readonly ?int $discountPercent = null,
+		protected readonly string $priorityPrice,
+		protected readonly bool $canView,
+		protected readonly string $price,
+		protected readonly string $priceVat,
+		protected readonly float $priceNumeric,
+		protected readonly float $priceVatNumeric,
+		protected readonly ?string $priceBefore,
+		protected readonly ?string $priceVatBefore,
+		protected readonly ?Customer $customer,
+		protected readonly ?int $discountPercent = null,
 	) {
 	}
 
@@ -55,6 +57,31 @@ class ProductWithFormattedPrices
 
 		if ($this->showWithoutVat) {
 			return $this->price;
+		}
+
+		return null;
+	}
+
+	/**
+	 * @return float|null Returns numeric price. If price is not set or user has not sufficient rights, returns null.
+	 *  If user can see both prices, returns price based on priority.
+	 */
+	public function getPrimaryPriceNumeric(): float|null
+	{
+		if (!$this->canView) {
+			return null;
+		}
+
+		if ($this->showWithVat && $this->showWithoutVat) {
+			return $this->priorityPrice === 'withVat' ? $this->priceVatNumeric : $this->priceNumeric;
+		}
+
+		if ($this->showWithVat) {
+			return $this->priceVatNumeric;
+		}
+
+		if ($this->showWithoutVat) {
+			return $this->priceNumeric;
 		}
 
 		return null;
