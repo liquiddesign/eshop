@@ -7,6 +7,7 @@ namespace Eshop\DB;
 use Eshop\Common\DB\SystemicEntity;
 use Nette\Application\ApplicationException;
 use Nette\Utils\Arrays;
+use StORM\RelationCollection;
 
 /**
  * Výrobce
@@ -76,8 +77,15 @@ class Producer extends SystemicEntity
 	 * Hlavní přiřazená kategorie
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 * @deprecated use mainCategories
 	 */
 	public ?Category $mainCategory;
+
+	/**
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\Category>
+	 */
+	public RelationCollection $mainCategories;
 
 	public function getPreviewImage(string $basePath, string $size = 'detail'): string
 	{

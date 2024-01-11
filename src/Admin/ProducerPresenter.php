@@ -108,7 +108,13 @@ class ProducerPresenter extends BackendPresenter
 
 		$form->addLocalePerexEdit('perex', 'Perex');
 		$form->addLocaleRichEdit('content', 'Obsah');
-		$form->addSelect2('mainCategory', 'Hlavní kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('- Kategorie -');
+
+		$form->addSelect2('mainCategory', 'Hlavní kategorie (staré)', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('- Kategorie -')
+			->setHtmlAttribute('data-info', 'Tato možnost bude brzy odebrána!')
+			->setDisabled();
+
+		$form->addMultiSelect2('mainCategories', 'Hlavní kategorie', $this->categoryRepository->getTreeArrayForSelect());
+
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
@@ -181,7 +187,7 @@ class ProducerPresenter extends BackendPresenter
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
-		$form->setDefaults($producer->toArray());
+		$form->setDefaults($producer->toArray(['mainCategories']));
 	}
 
 	public function onDelete(Entity $object): void
