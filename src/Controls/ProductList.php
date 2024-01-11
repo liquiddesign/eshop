@@ -318,6 +318,9 @@ class ProductList extends Datalist
 
 	public function render(string $display = 'card'): void
 	{
+		// Preload for all parts of list
+		$this->getItemsOnPage();
+
 		$this->template->templateFilters = $this->getFiltersForTemplate();
 		$this->template->display = $display === 'card' ? 'Card' : 'Row';
 		$this->template->paginator = $this->getPaginator();
