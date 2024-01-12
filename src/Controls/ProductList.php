@@ -13,7 +13,7 @@ use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\WatcherRepository;
-use Eshop\ProductsProvider;
+use Eshop\GeneralProductProvider;
 use Eshop\ShopperUser;
 use Forms\FormFactory;
 use Grid\Datalist;
@@ -66,7 +66,7 @@ class ProductList extends Datalist
 		private readonly DisplayAmountRepository $displayAmountRepository,
 		private readonly DisplayDeliveryRepository $displayDeliveryRepository,
 		private readonly Connection $connection,
-		protected readonly ProductsProvider $productsProvider,
+		protected readonly GeneralProductProvider $productsProvider,
 		?array $order = null,
 		?Collection $source = null
 	) {

@@ -7,6 +7,7 @@ namespace Eshop\DB;
 use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
+use Eshop\GeneralProductProvider;
 use Eshop\ProductsProvider;
 use Eshop\ShopperUser;
 use Latte\Loaders\StringLoader;
@@ -72,7 +73,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	 */
 	public function getCounts(string $path, array $filters = [], array $priceLists = [], array $visibilityLists = []): int|null
 	{
-		$productsProvider = $this->container->getByType(ProductsProvider::class);
+		$productsProvider = $this->container->getByType(GeneralProductProvider::class);
 		$productRepository = $this->productRepository;
 
 		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
