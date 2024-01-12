@@ -274,12 +274,11 @@ class ProductsProviderNext implements GeneralProductProvider
 			return;
 		}
 
-//		$cacheIndexToBeWarmedUp = $this->getCacheIndexToBeWarmedUp();
-		$cacheIndexToBeWarmedUp = 2;
+		$cacheIndexToBeWarmedUp = $this->getCacheIndexToBeWarmedUp();
 
-//		if ($cacheIndexToBeWarmedUp === 0) {
-//			return;
-//		}
+		if ($cacheIndexToBeWarmedUp === 0) {
+			return;
+		}
 
 		$this->cleanCache();
 
