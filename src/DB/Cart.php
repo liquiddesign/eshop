@@ -9,6 +9,7 @@ use StORM\RelationCollection;
 /**
  * Košík
  * @table
+ * @method \StORM\RelationCollection<\Eshop\DB\CartItem> getItems()
  */
 class Cart extends \StORM\Entity
 {

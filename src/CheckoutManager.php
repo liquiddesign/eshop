@@ -1753,6 +1753,34 @@ class CheckoutManager
 		if ($purchase->billAddress) {
 			$purchase->billAddress->update(['name' => $purchase->fullname]);
 		}
+
+		try {
+			$carts = $purchase->getCarts()->toArray();
+
+			$serializedDataOfOrder = [
+				'order' => $order->toArray(),
+				'purchase' => $purchase->toArray(['billAddress', 'deliveryAddress']),
+				'carts' => $carts,
+				'cartItems' => [],
+				'relatedCartItems' => [],
+			];
+
+			foreach ($carts as $cart) {
+				/** @var array<\Eshop\DB\CartItem> $cartItems */
+				$cartItems = $cart->getItems()->toArray();
+
+				$serializedDataOfOrder['cartItems'] = \array_merge($cartItems, $serializedDataOfOrder['cartItems']);
+
+				foreach ($cartItems as $cartItem) {
+					$serializedDataOfOrder['relatedCartItems'] = \array_merge($cartItem->getRelatedCartItems()->toArray(), $serializedDataOfOrder['relatedCartItems']);
+				}
+			}
+
+			Debugger::log(Nette\Utils\Json::encode($serializedDataOfOrder), 'orders');
+		} catch (\Throwable $e) {
+			Debugger::log('Cant log order: ' . $order->code, ILogger::EXCEPTION);
+			Debugger::log($e, ILogger::EXCEPTION);
+		}
 		
 		$this->response->setCookie('lastOrderToken', $order->getPK(), '1 hour');
 		
