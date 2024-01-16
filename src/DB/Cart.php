@@ -10,7 +10,7 @@ use StORM\RelationCollection;
 /**
  * Košík
  * @table
- * @index{"name":"cart_id","columns":["id","fk_customer","closedTs"]
+ * @index{"name":"cart_id","columns":["id","fk_customer","closedTs"]}
  * @method \StORM\RelationCollection<\Eshop\DB\CartItem> getItems()
  */
 class Cart extends ShopEntity
