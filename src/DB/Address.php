@@ -80,4 +80,9 @@ class Address extends \StORM\Entity
 	{
 		return "$this->street, $this->zipcode $this->city";
 	}
+
+	public function getName(): string|null
+	{
+		return $this->companyName ?: $this->name;
+	}
 }
