@@ -13,6 +13,7 @@ use StORM\RelationCollection;
  * @table
  * @index{"name":"cartitem_item","unique":true,"columns":["fk_product","fk_variant","fk_cart"]}
  * @method \StORM\RelationCollection<\Eshop\DB\PackageItem> getPackageItems()
+ * @method \StORM\RelationCollection<\Eshop\DB\RelatedCartItem> getRelatedCartItems()
  */
 class CartItem extends \StORM\Entity implements BoxPacker\Item
 {
