@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use StORM\Collection;
+use StORM\DIConnection;
+use StORM\SchemaManager;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\CustomerGroup>
@@ -15,8 +18,13 @@ class CustomerGroupRepository extends \StORM\Repository implements IGeneralRepos
 	public const UNREGISTERED_PK = 'unregistred';
 	
 	private ?CustomerGroup $unregisteredGroup;
-	
-	private ?CustomerGroup $defaultRegistrationGroup;
+
+	private CustomerGroup|null|false $defaultRegistrationGroup = false;
+
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, protected readonly ShopsConfig $shopsConfig)
+	{
+		parent::__construct($connection, $schemaManager);
+	}
 
 	public function getUnregisteredGroup(): CustomerGroup
 	{
@@ -25,7 +33,15 @@ class CustomerGroupRepository extends \StORM\Repository implements IGeneralRepos
 
 	public function getDefaultRegistrationGroup(): ?CustomerGroup
 	{
-		return $this->defaultRegistrationGroup ??= $this->many()->where('defaultAfterRegistration = 1')->first();
+		if ($this->defaultRegistrationGroup !== false) {
+			return $this->defaultRegistrationGroup;
+		}
+
+		$groupQuery = $this->many()->where('defaultAfterRegistration', true);
+
+		$this->shopsConfig->filterShopsInShopEntityCollection($groupQuery, showOnlyEntitiesWithSelectedShops: true);
+
+		return $this->defaultRegistrationGroup = $groupQuery->first();
 	}
 
 	/**
