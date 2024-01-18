@@ -350,6 +350,75 @@ class DPD
 	}
 
 	/**
+	 * Get labels from DPD for orders
+	 * @param int $dpdCode
+	 * @param string|null $printType
+	 */
+	public function getLabelByCode(int $dpdCode, ?string $printType = null): ?string
+	{
+		$client = $this->getClient();
+
+		try {
+			$result = $client->GetLabel([
+				'login' => $this->login,
+				'password' => $this->password,
+				'type' => $printType ?? $this->labelPrintType,
+				'parcelno' => [$dpdCode],
+			]);
+
+			\bdump($result);
+
+			/** @codingStandardsIgnoreStart */
+			$result = $result->GetLabelResult->LabelVO;
+			/** @codingStandardsIgnoreEnd */
+
+			$pdf = new \Jurosh\PDFMerge\PDFMerger();
+
+			$dir = $this->container->getParameters()['tempDir'] . '/pdfs/';
+			FileSystem::createDir($dir);
+
+			if (!\is_array($result)) {
+				$result = [$result];
+			}
+
+			foreach ($result as $item) {
+				$filename = \tempnam($dir, 'dpd');
+
+				$this->application->onShutdown[] = function () use ($filename): void {
+					if (!\is_file($filename)) {
+						return;
+					}
+
+					FileSystem::delete($filename);
+				};
+
+				FileSystem::write($filename, \base64_decode($item->BASE64));
+
+				$pdf->addPDF($filename);
+			}
+
+			$filename = \tempnam($dir, 'dpd');
+
+			$this->application->onShutdown[] = function () use ($filename): void {
+				if (!\is_file($filename)) {
+					return;
+				}
+
+				FileSystem::delete($filename);
+			};
+
+			$pdf->merge('file', $filename);
+
+			return $filename;
+		} catch (\Throwable $e) {
+			Debugger::log($e, ILogger::ERROR);
+			\bdump($e);
+
+			return null;
+		}
+	}
+
+	/**
 	 * @param array<string, \Eshop\DB\Order>|null $orders
 	 * @throws \Exception
 	 */
