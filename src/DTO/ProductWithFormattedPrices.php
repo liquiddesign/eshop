@@ -24,6 +24,11 @@ class ProductWithFormattedPrices
 		protected readonly ?string $priceVatBefore,
 		protected readonly ?Customer $customer,
 		protected readonly ?int $discountPercent = null,
+		protected readonly int $amount = 1,
+		protected readonly ?string $priceSum = null,
+		protected readonly ?string $priceVatSum = null,
+		protected readonly ?string $priceBeforeSum = null,
+		protected readonly ?string $priceVatBeforeSum = null,
 	) {
 	}
 
@@ -57,6 +62,32 @@ class ProductWithFormattedPrices
 
 		if ($this->showWithoutVat) {
 			return $this->price;
+		}
+
+		return null;
+	}
+
+	public function getAmount(): int
+	{
+		return $this->amount;
+	}
+
+	public function getPrimaryPriceSum(): string|null
+	{
+		if (!$this->canView) {
+			return null;
+		}
+
+		if ($this->showWithVat && $this->showWithoutVat) {
+			return $this->priorityPrice === 'withVat' ? $this->priceVatSum : $this->priceSum;
+		}
+
+		if ($this->showWithVat) {
+			return $this->priceVatSum;
+		}
+
+		if ($this->showWithoutVat) {
+			return $this->priceSum;
 		}
 
 		return null;
@@ -157,6 +188,31 @@ class ProductWithFormattedPrices
 
 		if ($this->showWithoutVat) {
 			return $this->priceBefore;
+		}
+
+		return null;
+	}
+
+	/**
+	 * @return string|null Returns formatted price with currency code, e.g. 100 Kč. If price is not set or user has not sufficient rights, returns null.
+	 * If user can see both prices, returns price based on priority.
+	 */
+	public function getPrimaryPriceBeforeSum(): ?string
+	{
+		if (!$this->canView) {
+			return null;
+		}
+
+		if ($this->showWithVat && $this->showWithoutVat) {
+			return $this->priorityPrice === 'withVat' ? $this->priceVatBeforeSum : $this->priceBeforeSum;
+		}
+
+		if ($this->showWithVat) {
+			return $this->priceVatBeforeSum;
+		}
+
+		if ($this->showWithoutVat) {
+			return $this->priceBeforeSum;
 		}
 
 		return null;

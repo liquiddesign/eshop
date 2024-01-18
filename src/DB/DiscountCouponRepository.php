@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\ShopsConfig;
+use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
 use Eshop\Exceptions\InvalidCouponException;
 use Eshop\ShopperUser;
@@ -28,6 +30,7 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 		protected readonly DiscountConditionCategoryRepository $discountConditionCategoryRepository,
 		protected readonly CategoryRepository $categoryRepository,
 		protected readonly ProductRepository $productRepository,
+		protected readonly ShopsConfig $shopsConfig,
 	) {
 		parent::__construct($connection, $schemaManager);
 	}
@@ -52,6 +55,48 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 	}
 
 	/**
+	 * Try if coupon is valid.
+	 * @param \Eshop\DB\DiscountCoupon $coupon
+	 * @param \Eshop\DB\Currency $currency
+	 * @param float|null $cartPrice Test only if not null
+	 * @param \Eshop\DB\Customer|null $customer Always testing!
+	 * @throws \Eshop\Exceptions\InvalidCouponException
+	 */
+	public function tryIsCouponValid(DiscountCoupon $coupon, Currency $currency, ?float $cartPrice = null, ?Customer $customer = null): void
+	{
+		if ($coupon->getValue('currency') !== $currency->getPK()) {
+			throw new InvalidCouponException(code: InvalidCouponException::INVALID_CURRENCY);
+		}
+
+		$shop = $this->shopsConfig->getSelectedShop();
+
+		if ($shop && ($coupon->discount->getValue('shop') !== null && $coupon->discount->getValue('shop') !== $shop->getPK() )) {
+			throw new InvalidCouponException(code: InvalidCouponException::NOT_FOUND);
+		}
+
+		if (($coupon->discount->validFrom && Carbon::parse($coupon->discount->validFrom)->greaterThan(Carbon::now())) ||
+			($coupon->discount->validTo && Carbon::parse($coupon->discount->validTo)->lessThan(Carbon::now()))) {
+			throw new InvalidCouponException(code: InvalidCouponException::NOT_ACTIVE);
+		}
+
+		if ($coupon->usageLimit && ($coupon->usagesCount >= $coupon->usageLimit)) {
+			throw new InvalidCouponException(code: InvalidCouponException::MAX_USAGE);
+		}
+
+		if ($coupon->getValue('exclusiveCustomer') && (!$customer || $coupon->getValue('exclusiveCustomer') !== $customer->getPK())) {
+			throw new InvalidCouponException(code: InvalidCouponException::LIMITED_TO_EXCLUSIVE_CUSTOMER);
+		}
+
+		if ($cartPrice && $coupon->minimalOrderPrice && $coupon->minimalOrderPrice > $cartPrice) {
+			throw new InvalidCouponException(code: InvalidCouponException::LOW_CART_PRICE);
+		}
+
+		if ($cartPrice && $coupon->maximalOrderPrice && $coupon->maximalOrderPrice < $cartPrice) {
+			throw new InvalidCouponException(code: InvalidCouponException::HIGH_CART_PRICE);
+		}
+	}
+
+	/**
 	 * @TODO use DiscountRepository::getActiveDiscounts for discounts
 	 * @throws \Eshop\Exceptions\InvalidCouponException
 	 */
@@ -73,7 +118,7 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 		$cartPrice = $this->cartItemRepository->getSumProperty([$cart->getPK()], $priceType);
 
 		try {
-			$coupon->tryIsValid($cart->currency, $cartPrice, $customer);
+			$this->tryIsCouponValid($coupon, $cart->currency, $cartPrice, $customer);
 		} catch (InvalidCouponException $e) {
 			if ($throw) {
 				throw $e;

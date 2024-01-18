@@ -1315,6 +1315,11 @@ class CheckoutManager
 	{
 		return $this->getPossibleDeliveryDiscount(true) ? $this->getCartCheckoutPriceVat($cartId) / $this->getPossibleDeliveryDiscount(true)->discountPriceFrom * 100 : null;
 	}
+
+	public function getDeliveryDiscountProgressAuto(?string $cartId = self::ACTIVE_CART_ID): ?float
+	{
+		return $this->shopperUser->getMainPriceType() === 'withVat' ? $this->getDeliveryDiscountProgressVat($cartId) : $this->getDeliveryDiscountProgress($cartId);
+	}
 	
 	public function getDiscountCoupon(?string $cartId = self::ACTIVE_CART_ID): ?DiscountCoupon
 	{

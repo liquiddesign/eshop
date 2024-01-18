@@ -21,11 +21,14 @@ class CouponForm extends \Nette\Application\UI\Form
 	 */
 	public array $onRemove = [];
 
+	public string|null $activeCoupon = null;
+
 	public function __construct(private readonly ShopperUser $shopperUser, private readonly DiscountCouponRepository $discountCouponRepository, Nette\Localization\Translator $translator)
 	{
 		parent::__construct();
 
 		$discountCoupon = $this->shopperUser->getCheckoutManager()->getDiscountCoupon();
+		$this->activeCoupon = $discountCoupon?->getPK();
 
 		$this->addCheckbox('active');
 		// phpcs:ignore
@@ -42,7 +45,8 @@ class CouponForm extends \Nette\Application\UI\Form
 			$input = $form['code'];
 
 			try {
-				$this->discountCouponRepository->getValidCouponByCart($values['code'], $this->shopperUser->getCheckoutManager()->getCart(), $shopperUser->getCustomer(), true);
+				$discountCoupon = $this->discountCouponRepository->getValidCouponByCart($values['code'], $this->shopperUser->getCheckoutManager()->getCart(), $shopperUser->getCustomer(), true);
+				$this->activeCoupon = $discountCoupon?->getPK();
 			} catch (InvalidCouponException $e) {
 				$errorMsg = match ($e->getCode()) {
 					InvalidCouponException::NOT_FOUND => $translator->translate('couponFormICE.notFound', 'Slevový kupón není platný'),
@@ -74,15 +78,12 @@ class CouponForm extends \Nette\Application\UI\Form
 	public function setCoupon(Nette\Forms\Controls\SubmitButton $submit): void
 	{
 		unset($submit);
-
-		$values = $this->getValues('array');
-
-		$shopper = $this->shopperUser;
-		$code = (string) $values['code'];
 		
-		if (!$coupon = $this->discountCouponRepository->getValidCouponByCart($code, $this->shopperUser->getCheckoutManager()->getCart(), $shopper->getCustomer())) {
+		if (!$coupon = $this->activeCoupon) {
 			return;
 		}
+
+		$coupon = $this->discountCouponRepository->one($coupon, true);
 
 		$this->shopperUser->getCheckoutManager()->setDiscountCoupon($coupon);
 

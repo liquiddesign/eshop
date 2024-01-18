@@ -5,6 +5,7 @@ namespace Eshop;
 use Admin\DB\RoleRepository;
 use Base\ShopsConfig;
 use Eshop\Admin\SettingsPresenter;
+use Eshop\DB\CartItem;
 use Eshop\DB\CatalogPermission;
 use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
@@ -33,7 +34,7 @@ use Nette\Security\UserStorage;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Collection;
-use StORM\Exception\NotFoundException;
+use StORM\Exception\NotExistsException;
 use StORM\Expression;
 use Web\DB\SettingRepository;
 
@@ -396,7 +397,7 @@ class ShopperUser extends User
 	{
 		try {
 			$product->getPrice();
-		} catch (NotFoundException) {
+		} catch (NotExistsException) {
 			return null;
 		}
 
@@ -415,6 +416,35 @@ class ShopperUser extends User
 			$product->getPriceVatBefore() ? $this->filterPrice($product->getPriceVatBefore()) : null,
 			$this->getCustomer(),
 			$product->getPriceBefore() ? ((int) \round(100 - ($product->getPrice() / $product->getPriceBefore() * 100))) : null,
+		);
+	}
+
+	public function getProductPricesFormattedFromCartItem(CartItem $cartItem): ?ProductWithFormattedPrices
+	{
+		if (!$product = $cartItem->product) {
+			return null;
+		}
+
+		return new ProductWithFormattedPrices(
+			$this->translator,
+			$product,
+			$this->showPricesWithVat(),
+			$this->showPricesWithoutVat(),
+			$this->showPriorityPrices(),
+			$this->getCatalogPermission() === 'price',
+			$this->filterPrice($cartItem->price),
+			$this->filterPrice($cartItem->priceVat),
+			$cartItem->price,
+			$cartItem->priceVat,
+			$cartItem->getPriceBefore() ? $this->filterPrice($cartItem->getPriceBefore()) : null,
+			$cartItem->getPriceVatBefore() ? $this->filterPrice($cartItem->getPriceVatBefore()) : null,
+			$this->getCustomer(),
+			$cartItem->getPriceBefore() ? ((int) \round(100 - ($cartItem->price / $cartItem->getPriceBefore() * 100))) : null,
+			$cartItem->amount,
+			$this->filterPrice($cartItem->price * $cartItem->amount),
+			$this->filterPrice($cartItem->priceVat * $cartItem->amount),
+			$cartItem->getPriceBefore() ? $this->filterPrice($cartItem->getPriceBefore() * $cartItem->amount) : null,
+			$cartItem->getPriceVatBefore() ? $this->filterPrice($cartItem->getPriceVatBefore() * $cartItem->amount) : null,
 		);
 	}
 
