@@ -14,6 +14,7 @@ use Eshop\ShopperUser;
 use InvalidArgumentException;
 use League\Csv\Reader;
 use League\Csv\Writer;
+use Nette\Application\ApplicationException;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Caching\Storages\DevNullStorage;
@@ -364,6 +365,34 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			FROM eshop_productcontent as productContent
 			WHERE this.uuid = productContent.fk_product AND productContent.fk_shop = :productContentShop)",
 		], ['productContentShop' => $shop->getPK()]);
+	}
+
+	/**
+	 * @param \Eshop\DB\Product $product
+	 * @param string $basePath
+	 * @param string $size
+	 * @param bool $fallbackImageSupplied If true, it is expected that property fallbackImage is set on object, otherwise it is selected manually
+	 * @param \Eshop\DB\CategoryType|null $categoryType
+	 * @throws \Nette\Application\ApplicationException
+	 */
+	public function getPreviewImage(Product $product, string $basePath, string $size = 'detail', bool $fallbackImageSupplied = true, ?CategoryType $categoryType = null): string
+	{
+		if (!Arrays::contains(['origin', 'detail', 'thumb'], $size)) {
+			throw new ApplicationException('Invalid product image size: ' . $size);
+		}
+
+		if (!$fallbackImageSupplied && !$categoryType) {
+			$categoryType = $this->shopperUser->getMainCategoryType();
+		}
+
+		$fallbackImage = $fallbackImageSupplied ?
+			($product->__isset('fallbackImage') ? $product->getValue('fallbackImage') : null) :
+			(($primaryCategory = $product->getPrimaryCategory($categoryType)) ? $primaryCategory->productFallbackImageFileName : null);
+
+		$image = $product->imageFileName ?: $fallbackImage;
+		$dir = $product->imageFileName ? Product::GALLERY_DIR : Category::IMAGE_DIR;
+
+		return $image ? "$basePath/userfiles/$dir/$size/$image" : "$basePath/public/img/no-image.png";
 	}
 
 	/**
