@@ -444,17 +444,6 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 		}
 
 		$this->customSettings['Doprava'][] = [
-			'key' => self::BALIKOVNA_DELIVERY_TYPE,
-			'label' => 'Typ dopravy Balíkovna',
-			'type' => 'select',
-			'options' => $this->deliveryTypeRepository->getArrayForSelect(),
-			'info' => '',
-			'onSave' => function ($key, $oldValue, $newValue): void {
-				$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
-			},
-		];
-
-		$this->customSettings['Doprava'][] = [
 			'key' => self::ZASILKOVNA_DELIVERY_TYPE,
 			'label' => 'Typ dopravy Zásilkovna',
 			'type' => 'select',
@@ -483,6 +472,19 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 
 		if (!$shops = $this->shopsConfig->getAvailableShops()) {
 			return;
+		}
+
+		foreach ($shops as $shop) {
+			$this->customSettings['Obchod: ' . $shop->name][] = [
+				'key' => self::BALIKOVNA_DELIVERY_TYPE . '_' . $shop->getPK(),
+				'label' => 'Typ dopravy Balíkovna',
+				'type' => 'select',
+				'options' => $this->deliveryTypeRepository->getArrayForSelect(),
+				'info' => '',
+				'onSave' => function ($key, $oldValue, $newValue): void {
+					$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
+				},
+			];
 		}
 
 		foreach ($shops as $shop) {
