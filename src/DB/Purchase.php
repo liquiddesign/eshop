@@ -95,6 +95,12 @@ class Purchase extends \StORM\Entity
 	public bool $sendNewsletters = false;
 
 	/**
+	 * Posilat dotazniky? (zbozi, heureka, ...)
+	 * @column
+	 */
+	public bool $sendSurvey = false;
+
+	/**
 	 * Interní kod - zákaznické číslo
 	 * @column
 	 */

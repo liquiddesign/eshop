@@ -62,7 +62,8 @@ class AddressesForm extends Form
 			->addRule($this::EQUAL, 'Hesla se neshodují', $this['password'])
 			->setRequired();
 		$this->addCheckbox('sendNewsletters', 'AddressesForm.sendNewsletters');
-		
+		$this->addCheckbox('sendSurvey', 'AddressesForm.sendSurvey');
+
 		// address delivery
 		$deliveryAddressBox = $this->addContainer('deliveryAddress');
 		$deliveryAddressBox->addText('name', 'AddressesForm.delivery_name')->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired();
