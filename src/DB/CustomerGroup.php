@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Base\Entity\ShopEntity;
+use Base\Entity\ShopSystemicEntity;
 use StORM\RelationCollection;
 
 /**
@@ -13,7 +13,7 @@ use StORM\RelationCollection;
  * @method \StORM\ICollection<\Eshop\DB\Pricelist> getDefaultPricelists()
  * @method \StORM\ICollection<\Eshop\DB\VisibilityList> getDefaultVisibilityLists()
  */
-class CustomerGroup extends ShopEntity
+class CustomerGroup extends ShopSystemicEntity
 {
 	/**
 	 * Jméno
@@ -98,11 +98,12 @@ class CustomerGroup extends ShopEntity
 	/**
 	 * Systémová
 	 * @column
+	 * @deprecated Use SystemicEntity
 	 */
 	public bool $systemic = false;
 
 	public function isSystemic(): bool
 	{
-		return $this->systemic;
+		return $this->systemic || $this->systemicLock > 0;
 	}
 }

@@ -10,6 +10,7 @@ use Base\ShopsConfig;
 use Eshop\Admin\Controls\ProductForm;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
+use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\PaymentTypeRepository;
@@ -45,6 +46,9 @@ class SettingsPresenter extends BackendPresenter
 	public const BANK_PAYMENT_TYPE = 'bankPaymentType';
 	public const BANK_ACCOUNT_NUMBER = 'bankAccountNumber';
 	public const BANK_IBAN = 'bankIBAN';
+
+	/** Suffixed with SHOP */
+	public const DEFAULT_UNREGISTERED_GROUP = 'defaultUnregisteredGroup';
 
 	/** Suffixed with SHOP */
 	public const MAIN_CATEGORY_TYPE = 'mainCategoryType';
@@ -84,6 +88,9 @@ class SettingsPresenter extends BackendPresenter
 
 	#[Inject]
 	public VisibilityListRepository $visibilityListRepository;
+
+	#[Inject]
+	public CustomerGroupRepository $customerGroupRepository;
 
 	/**
 	 * @var array<string|array<mixed>>
@@ -485,9 +492,7 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 					$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
 				},
 			];
-		}
 
-		foreach ($shops as $shop) {
 			$this->customSettings['Obchod: ' . $shop->name][] = [
 				'key' => self::MAIN_CATEGORY_TYPE . '_' . $shop->getPK(),
 				'label' => 'Hlavní typ kategorií',
@@ -497,9 +502,7 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 					$this->systemicCallback($key, $oldValue, $newValue, $this->categoryTypeRepository);
 				},
 			];
-		}
 
-		foreach ($shops as $shop) {
 			$this->customSettings['Obchod: ' . $shop->name][] = [
 				'key' => self::MAIN_VISIBILITY_LIST . '_' . $shop->getPK(),
 				'label' => 'Hlavní seznam viditelnosti',
@@ -507,6 +510,16 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 				'options' => $this->visibilityListRepository->getArrayForSelect(),
 				'onSave' => function ($key, $oldValue, $newValue): void {
 					$this->systemicCallback($key, $oldValue, $newValue, $this->visibilityListRepository);
+				},
+			];
+
+			$this->customSettings['Obchod: ' . $shop->name][] = [
+				'key' => self::DEFAULT_UNREGISTERED_GROUP . '_' . $shop->getPK(),
+				'label' => 'Hlavní skupina zákazníků pro neregistrované',
+				'type' => 'select',
+				'options' => $this->customerGroupRepository->getArrayForSelect(),
+				'onSave' => function ($key, $oldValue, $newValue): void {
+					$this->systemicCallback($key, $oldValue, $newValue, $this->customerGroupRepository);
 				},
 			];
 		}
