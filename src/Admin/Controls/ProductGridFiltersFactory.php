@@ -92,7 +92,20 @@ class ProductGridFiltersFactory
 						return;
 					}
 
-					$source->filter(['category' => $value === '0' ? false : $category->path]);
+					if ($value === '0') {
+						return;
+					}
+
+					$allSubCategoriesForCategory = $this->categoryRepository->many()
+						->where('this.path LIKE :path', ['path' => "$category->path%"])
+						->setSelect(['uuid'])
+						->toArrayOf('uuid', toArrayValues: true);
+
+					$subSelect = $this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
+						->where('this.uuid = eshop_product_nxn_eshop_category.fk_product')
+						->where('eshop_product_nxn_eshop_category.fk_category', $allSubCategoriesForCategory);
+
+					$source->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
 				}
 			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
 		}
