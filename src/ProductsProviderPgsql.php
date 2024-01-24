@@ -17,6 +17,8 @@ use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\ProductsCacheStateRepository;
+use Eshop\DB\RelatedRepository;
+use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
 use Nette\Caching\Cache;
@@ -25,13 +27,14 @@ use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use PgSql\Connection;
+use Ramsey\Uuid\Uuid;
 use StORM\DIConnection;
 use StORM\ICollection;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
 
-class ProductsProviderNext implements GeneralProductProvider
+class ProductsProviderPgsql implements GeneralProductProvider
 {
 	public const PRODUCTS_PROVIDER_CACHE_TAG = 'productsProviderCache';
 
@@ -106,6 +109,8 @@ class ProductsProviderNext implements GeneralProductProvider
 		protected readonly AttributeRepository $attributeRepository,
 		protected readonly ShopperUser $shopperUser,
 		protected readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
+		protected readonly RelatedRepository $relatedRepository,
+		protected readonly RelatedTypeRepository $relatedTypeRepository,
 		readonly Storage $storage,
 	) {
 		$this->cache = new Cache($storage);
@@ -308,6 +313,83 @@ class ProductsProviderNext implements GeneralProductProvider
 			}
 
 			$productsCacheTableName = "eshop_products_cache_$cacheIndexToBeWarmedUp";
+
+			$relationsCacheTableName = "eshop_products_relations_cache_$cacheIndexToBeWarmedUp";
+
+			\pg_query($postgres, "DROP TABLE IF EXISTS $relationsCacheTableName");
+
+			\pg_query($postgres, "
+CREATE TABLE $relationsCacheTableName (
+    uuid uuid PRIMARY KEY,
+    master INTEGER NOT NULL,
+    slave INTEGER NOT NULL,
+    priority SMALLINT NOT NULL,
+    amount SMALLINT NOT NULL,
+    hidden INT2 NOT NULL,
+    systemic INT2 NOT NULL,
+    discountPct float8,
+    masterPct float8,
+    type INTEGER NOT NULL
+);");
+
+
+			$relations = $this->relatedRepository->many()
+				->join(['type' => 'eshop_relatedtype'], 'this.fk_type = type.uuid')
+				->join(['masterProduct' => 'eshop_product'], 'this.fk_master = masterProduct.uuid')
+				->join(['slaveProduct' => 'eshop_product'], 'this.fk_slave = slaveProduct.uuid')
+				->select([
+					'typeId' => 'type.id',
+					'masterId' => 'masterProduct.id',
+					'slaveId' => 'slaveProduct.id',
+				]);
+
+			$relationsToInsert = [];
+			$counter = 0;
+
+			while ($relation = $relations->fetch(\stdClass::class)) {
+				/** @var \stdClass $relation */
+
+				$data = [
+					Uuid::uuid7()->toString(),
+					$relation->masterId,
+					$relation->slaveId,
+					$relation->priority,
+					$relation->amount,
+					$relation->hidden,
+					$relation->systemic,
+					$relation->discountPct ?: '\N',
+					$relation->masterPct ?: '\N',
+					$relation->typeId,
+				];
+
+				foreach ($data as &$row) {
+					$row = \is_string($row) ? \str_replace(["\t", "\n"], '', $row) : $row;
+				}
+
+				$relationsToInsert[] = \implode("\t", $data);
+
+				$counter++;
+
+				if ($counter !== 20000) {
+					continue;
+				}
+
+				$counter = 0;
+
+				\pg_copy_from($postgres, $relationsCacheTableName, $relationsToInsert);
+				$relationsToInsert = [];
+			}
+
+			\pg_copy_from($postgres, $relationsCacheTableName, $relationsToInsert);
+			unset($relationsToInsert);
+
+			$relations->__destruct();
+			unset($relations);
+
+			\pg_query($postgres, "CREATE UNIQUE INDEX {$relationsCacheTableName}_idx_unique ON $relationsCacheTableName (master, slave, type);");
+//			\pg_query($postgres, "CREATE UNIQUE INDEX {$relationsCacheTableName}_idx_master ON $relationsCacheTableName (master);");
+//			\pg_query($postgres, "CREATE UNIQUE INDEX {$relationsCacheTableName}_idx_slave ON $relationsCacheTableName (slave);");
+//			\pg_query($postgres, "CREATE UNIQUE INDEX {$relationsCacheTableName}_idx_type ON $relationsCacheTableName (type);");
 
 			\pg_query($postgres, "
 DROP TABLE IF EXISTS $productsCacheTableName;
@@ -718,6 +800,48 @@ ON DELETE CASCADE;");
 		$dynamicFiltersAttributes = [];
 		$dynamicFilters = [];
 
+		$relationsCacheTableName = "eshop_products_relations_cache_$cacheIndex";
+
+		if (isset($filters['relatedTypeMaster']) && isset($filters['relatedTypeSlave'])) {
+			throw new \Exception("Filters 'relatedTypeMaster' and 'relatedTypeSlave' can't be used at the same time.");
+		}
+
+		if (isset($filters['relatedTypeMaster'])) {
+			$relatedTypeMaster = $filters['relatedTypeMaster'];
+
+			if (!isset($relatedTypeMaster[0]) || !isset($relatedTypeMaster[1])) {
+				throw new \Exception("Incomplete values for filter: 'relatedTypeMaster'.");
+			}
+
+			$relatedTypeMaster[0] = $this->productRepository->many()->where('this.uuid', $relatedTypeMaster[0])->setSelect(['id' => 'this.id'])->firstValue('id');
+			$relatedTypeMaster[1] = $this->relatedTypeRepository->many()->where('this.uuid', $relatedTypeMaster[1])->setSelect(['id' => 'this.id'])->firstValue('id');
+
+			$productsCollection->where('this.product', $this->connection->rows([$relationsCacheTableName])
+				->where('master', $relatedTypeMaster[0])
+				->where('type', $relatedTypeMaster[1])
+				->toArrayOf('slave'));
+
+			unset($filters['relatedTypeMaster']);
+		}
+
+		if (isset($filters['relatedTypeSlave'])) {
+			$relatedTypeSlave = $filters['relatedTypeSlave'];
+
+			if (!isset($relatedTypeSlave[0]) || !isset($relatedTypeSlave[1])) {
+				throw new \Exception("Incomplete values for filter: 'relatedTypeSlave'.");
+			}
+
+			$relatedTypeSlave[0] = $this->productRepository->many()->where('this.uuid', $relatedTypeSlave[0])->setSelect(['id' => 'this.id'])->firstValue('id');
+			$relatedTypeSlave[1] = $this->relatedTypeRepository->many()->where('this.uuid', $relatedTypeSlave[1])->setSelect(['id' => 'this.id'])->firstValue('id');
+
+			$productsCollection->where('this.product', $this->connection->rows([$relationsCacheTableName])
+				->where('slave', $relatedTypeSlave[0])
+				->where('type', $relatedTypeSlave[1])
+				->toArrayOf('master'));
+
+			unset($filters['relatedTypeSlave']);
+		}
+
 		foreach ($filters as $filter => $value) {
 			if ($filter === 'attributes') {
 				foreach ($value as $subKey => $subValue) {
@@ -838,7 +962,13 @@ ON DELETE CASCADE;");
 			$vars[] = $varValue;
 		}
 
+		Debugger::dump($sql);
+		Debugger::dump($vars);
+
+		Debugger::dump(Debugger::timer('pg_fetch'));
+		/** @var \PgSql\Result $productsPgsqlQuery */
 		$productsPgsqlQuery = \pg_query_params($postgres, $sql, $vars);
+		Debugger::dump(Debugger::timer('pg_fetch'));
 
 		while ($product = \pg_fetch_object($productsPgsqlQuery)) {
 			$attributeValues = $product->attributevalues ? \array_flip(\explode(',', $product->attributevalues)) : [];
