@@ -985,19 +985,26 @@ CREATE TABLE `$pricesCacheTableName` (
 			if (isset($this->allowedCollectionOrderColumns[$orderByName])) {
 				$orderColumn = $this->allowedCollectionOrderColumns[$orderByName];
 
+				$orderExpression = null;
+
 				if (Strings::contains($orderColumn, '.')) {
 					[$orderColumn1, $orderColumn2] = \explode('.', $orderColumn);
 
-					$orderExpression = match ($orderColumn1) {
-						'visibilityList' => $this->createCoalesceFromArray($visibilityLists, 'visibilityList', $orderColumn2),
-						'priceList' => $this->createCoalesceFromArray($priceLists, 'priceList', $orderColumn2),
-						default => $orderColumn,
-					};
+					if ($orderColumn1 === 'priceList') {
+						$this->applyPricesOrderToCollection($productsCollection, $orderByDirection, $priceLists, $pricesCacheTableName, 'price', '> 0');
+					} else {
+						$orderExpression = match ($orderColumn1) {
+							'visibilityList' => $this->createCoalesceFromArray($visibilityLists, 'visibilityList', $orderColumn2),
+							default => $orderColumn,
+						};
+					}
 				} else {
 					$orderExpression = $orderColumn;
 				}
 
-				$productsCollection->orderBy([$orderExpression => $orderByDirection]);
+				if ($orderExpression) {
+					$productsCollection->orderBy([$orderExpression => $orderByDirection]);
+				}
 			} elseif (isset($this->allowedCollectionOrderExpressions[$orderByName])) {
 				$this->allowedCollectionOrderExpressions[$orderByName]($productsCollection, $orderByDirection, $visibilityLists, $priceLists, $pricesCacheTableName);
 			} else {
