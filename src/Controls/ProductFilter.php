@@ -285,11 +285,19 @@ class ProductFilter extends Control
 					Cache::Tags => [ScriptsPresenter::ATTRIBUTES_CACHE_TAG, ScriptsPresenter::PRODUCERS_CACHE_TAG,],
 				];
 
-				return $this->producerRepository->getCollection()
-					->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid', [], 'INNER')
-					->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid')
-					->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
+				$mutationSuffix = $this->producerRepository->getConnection()->getMutationSuffix();
+
+				$subQuery2 = $this->producerRepository->getConnection()->rows(['product' => 'eshop_product'])
+					->where('product.fk_producer = this.uuid and nxnCategory.fk_product = product.uuid');
+
+				$subQuery1 = $this->producerRepository->getConnection()->rows(['nxnCategory' => 'eshop_product_nxn_eshop_category'])
+					->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid', type: 'INNER')
 					->where('category.path LIKE :s', ['s' => $categoryPath . '%'])
+					->where('EXISTS(' . $subQuery2->getSql() . ')', $subQuery2->getVars());
+
+				return $this->producerRepository->getCollection()
+					->setSelect(['name' => "this.name$mutationSuffix"], keepIndex: true)
+					->where('EXISTS(' . $subQuery1->getSql() . ')', $subQuery1->getVars())
 					->toArrayOf('name');
 			});
 		}
