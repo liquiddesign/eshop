@@ -16,9 +16,9 @@ class Helpers
 	 * Converts array of strings to SQL IN statement
 	 * @param array<string> $array
 	 */
-	public static function arrayToSqlInStatement(array $array): string
+	public static function arrayToSqlInStatement(array $array, string|null $property = null): string
 	{
-		return \implode("','", $array);
+		return \implode("','", $property ? \array_column($array, $property) : $array);
 	}
 
 	public static function removeEmoji(string $string): string

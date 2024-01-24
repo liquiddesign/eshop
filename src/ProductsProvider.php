@@ -6,6 +6,7 @@ use Base\ShopsConfig;
 use Carbon\Carbon;
 use Eshop\Admin\ScriptsPresenter;
 use Eshop\Admin\SettingsPresenter;
+use Eshop\Common\Helpers;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
@@ -26,6 +27,7 @@ use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
+use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use StORM\DIConnection;
 use StORM\ICollection;
@@ -80,7 +82,13 @@ class ProductsProvider implements GeneralProductProvider
 	];
 
 	/**
-	 * @var array<callable(\StORM\ICollection<\stdClass> $productsCollection, 'ASC'|'DESC' $direction, array<\Eshop\DB\VisibilityList> $visibilityLists, array<\Eshop\DB\Pricelist>): void>
+	 * @var array<callable(
+	 *  \StORM\ICollection<\stdClass> $productsCollection,
+	 *  'ASC'|'DESC' $direction,
+	 *  array<\Eshop\DB\VisibilityList> $visibilityLists,
+	 *  array<\Eshop\DB\Pricelist> $priceLists,
+	 *  string $pricesCacheTableName,
+	 * ): void>
 	 */
 	protected array $allowedCollectionOrderExpressions = [];
 
@@ -95,6 +103,7 @@ class ProductsProvider implements GeneralProductProvider
 		protected readonly ProductRepository $productRepository,
 		protected readonly CategoryRepository $categoryRepository,
 		protected readonly PriceRepository $priceRepository,
+		/** @var \Eshop\DB\PricelistRepository<\Eshop\DB\Pricelist> */
 		protected readonly PricelistRepository $pricelistRepository,
 		protected readonly Container $container,
 		protected readonly DIConnection $connection,
@@ -117,28 +126,32 @@ class ProductsProvider implements GeneralProductProvider
 	) {
 		$this->cache = new Cache($storage);
 
-		$this->allowedCollectionOrderExpressions['availabilityAndPrice'] = function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
-			$productsCollection->orderBy([
-				'case COALESCE(displayAmount_isSold, 2)
-					 when 0 then 0
-					 when 2 then 1
-					 when 1 then 2
-					 else 2 end' => $direction,
-				$this->createCoalesceFromArray($priceLists, 'priceList', 'price') => $direction,
-			]);
-		};
+		$this->allowedCollectionOrderExpressions['availabilityAndPrice'] =
+			function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists, string $pricesCacheTableName): void {
+				$productsCollection->orderBy([
+					'case COALESCE(displayAmount_isSold, 2)
+						 when 0 then 0
+						 when 2 then 1
+						 when 1 then 2
+						 else 2 end' => $direction,
+				]);
 
-		$this->allowedCollectionOrderExpressions['priorityAvailabilityPrice'] = function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
-			$productsCollection->orderBy([
-				$this->createCoalesceFromArray($visibilityLists, 'visibilityList', 'priority') => $direction,
-				'case COALESCE(displayAmount_isSold, 2)
-                     when 0 then 0
-                     when 1 then 1
-                     when 2 then 2
-                     else 2 end' => $direction,
-				$this->createCoalesceFromArray($priceLists, 'priceList', 'price') => $direction,
-			]);
-		};
+				$this->applyPricesOrderToCollection($productsCollection, $direction, $priceLists, $pricesCacheTableName, 'price', '> 0');
+			};
+
+		$this->allowedCollectionOrderExpressions['priorityAvailabilityPrice'] =
+			function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists, string $pricesCacheTableName): void {
+				$productsCollection->orderBy([
+					$this->createCoalesceFromArray($visibilityLists, 'visibilityList', 'priority') => $direction,
+					'case COALESCE(displayAmount_isSold, 2)
+	                     when 0 then 0
+	                     when 1 then 1
+	                     when 2 then 2
+	                     else 2 end' => $direction,
+				]);
+
+				$this->applyPricesOrderToCollection($productsCollection, $direction, $priceLists, $pricesCacheTableName, 'price', '> 0');
+			};
 
 		$this->allowedCollectionFilterExpressions['query2'] = function (ICollection $productsCollection, string $query, array $visibilityLists, array $priceLists): void {
 			$orConditions = [
@@ -391,8 +404,8 @@ CREATE TABLE `$productsCacheTableName` (
 			$allVisibilityLists = $this->visibilityListRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
 
 			foreach ($allVisibilityLists as $visibilityList) {
-//				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id} INT UNSIGNED DEFAULT('{$visibilityList->id}');");
-//				$link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_visibilityList_{$visibilityList->id} (visibilityList_{$visibilityList->id});");
+//              $link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id} INT UNSIGNED DEFAULT('{$visibilityList->id}');");
+//              $link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_visibilityList_{$visibilityList->id} (visibilityList_{$visibilityList->id});");
 
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_hidden TINYINT;");
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_hiddenInMenu TINYINT;");
@@ -407,16 +420,16 @@ CREATE TABLE `$productsCacheTableName` (
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN primaryCategory_{$categoryType->id} INT UNSIGNED;");
 			}
 
-//			$allPriceLists = $this->pricelistRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
+//          $allPriceLists = $this->pricelistRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
 
-//			foreach ($allPriceLists as $priceList) {
-//				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id} INT UNSIGNED DEFAULT('{$priceList->id}');");
+//          foreach ($allPriceLists as $priceList) {
+//              $link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id} INT UNSIGNED DEFAULT('{$priceList->id}');");
 //
-//				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_price DOUBLE;");
-//				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVat DOUBLE;");
-//				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceBefore DOUBLE;");
-//				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVatBefore DOUBLE;");
-//			}
+//              $link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_price DOUBLE;");
+//              $link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVat DOUBLE;");
+//              $link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceBefore DOUBLE;");
+//              $link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVatBefore DOUBLE;");
+//          }
 
 			Debugger::dump(Debugger::timer());
 
@@ -429,7 +442,8 @@ CREATE TABLE `$pricesCacheTableName` (
   price DOUBLE,
   priceVat DOUBLE,
   priceBefore DOUBLE,
-  priceVatBefore DOUBLE
+  priceVatBefore DOUBLE,
+  priority INT NOT NULL
 );");
 
 			$allPrices = $this->priceRepository->many()
@@ -441,6 +455,7 @@ CREATE TABLE `$pricesCacheTableName` (
 					'this.priceBefore',
 					'this.priceVatBefore',
 					'priceListId' => 'pricelist.id',
+					'priceListPriority' => 'pricelist.priority',
 					'productId' => 'product.id',
 				], keepIndex: true)->fetchArray(\stdClass::class);
 
@@ -457,6 +472,7 @@ CREATE TABLE `$pricesCacheTableName` (
 					'priceVat' => $price->priceVat,
 					'priceBefore' => $price->priceBefore,
 					'priceVatBefore' => $price->priceVatBefore,
+					'priority' => $price->priceListPriority,
 				];
 
 				$i++;
@@ -477,6 +493,7 @@ CREATE TABLE `$pricesCacheTableName` (
 			Debugger::dump(Debugger::timer());
 
 			$link->exec("CREATE INDEX idx_product ON `$pricesCacheTableName` (product);");
+			$link->exec("CREATE INDEX idx_priority ON `$pricesCacheTableName` (priority);");
 			$link->exec("CREATE UNIQUE INDEX idx_prices_unique ON `$pricesCacheTableName` (product, priceList);");
 
 			Debugger::dump(Debugger::timer());
@@ -655,7 +672,7 @@ CREATE TABLE `$pricesCacheTableName` (
 			$link->exec("CREATE UNIQUE INDEX idx_unique_code ON `$productsCacheTableName` (code);");
 			$link->exec("CREATE UNIQUE INDEX idx_unique_ean ON `$productsCacheTableName` (ean);");
 
-//			$link->exec("ALTER TABLE $pricesCacheTableName ADD CONSTRAINT FOREIGN KEY (product) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE;");
+//          $link->exec("ALTER TABLE $pricesCacheTableName ADD CONSTRAINT FOREIGN KEY (product) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE;");
 
 			foreach ($allCategoryTypes as $categoryType) {
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_primaryCategory_{$categoryType->id} (primaryCategory_{$categoryType->id});");
@@ -728,15 +745,15 @@ CREATE TABLE `$pricesCacheTableName` (
 			return false;
 		}
 
-//		$dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
+//      $dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
 //
-//		$cachedData = $this->cache->load($dataCacheIndex, dependencies: [
-//			Cache::Tags => [self::PRODUCTS_PROVIDER_CACHE_TAG],
-//		]);
+//      $cachedData = $this->cache->load($dataCacheIndex, dependencies: [
+//          Cache::Tags => [self::PRODUCTS_PROVIDER_CACHE_TAG],
+//      ]);
 //
-//		if ($cachedData) {
-//			return $cachedData;
-//		}
+//      if ($cachedData) {
+//          return $cachedData;
+//      }
 
 		$emptyResult = [
 			'productPKs' => [],
@@ -763,12 +780,17 @@ CREATE TABLE `$pricesCacheTableName` (
 		$dbName = $this->connection->getDatabaseName();
 
 		if ($category) {
-			$categoryTableExists = $this->connection->getLink()
-				->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'eshop_categories_cache_{$cacheIndex}_$category->id' AND TABLE_SCHEMA = '$dbName';")
-				->fetchColumn();
+			$categoryTableExistsQuery = $this->connection->getLink()
+				->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'eshop_categories_cache_{$cacheIndex}_$category->id' AND TABLE_SCHEMA = '$dbName';");
 
-			if ($categoryTableExists === 0) {
-//				$this->saveDataCacheIndex($dataCacheIndex, $emptyResult);
+			if (!$categoryTableExistsQuery) {
+				return $emptyResult;
+			}
+
+			$categoryTableExistsQuery = $categoryTableExistsQuery->fetchColumn();
+
+			if ($categoryTableExistsQuery === 0) {
+//              $this->saveDataCacheIndex($dataCacheIndex, $emptyResult);
 
 				return $emptyResult;
 			}
@@ -779,11 +801,17 @@ CREATE TABLE `$pricesCacheTableName` (
 				->join(['this' => "eshop_products_cache_{$cacheIndex}"], 'this.product = category.product', type: 'INNER') :
 			$this->connection->rows(['this' => "eshop_products_cache_{$cacheIndex}"]);
 
+		$pricesCacheTableName = "eshop_products_prices_cache_{$cacheIndex}";
+
+		$productsCollection->setGroupBy(['this.product']);
+
 		if (isset($filters['pricelist'])) {
 			$priceLists = \array_filter($priceLists, fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
 
 			unset($filters['pricelist']);
 		}
+
+		$inPriceLists = Helpers::arrayToSqlInStatement($priceLists, 'id');
 
 		$productsCollection->setSelect([
 			'product' => 'this.product',
@@ -791,9 +819,15 @@ CREATE TABLE `$pricesCacheTableName` (
 			'attributeValues' => 'this.attributeValues',
 			'displayAmount' => 'this.displayAmount',
 			'displayDelivery' => 'this.displayDelivery',
-			'price' => $this->createCoalesceFromArray($priceLists, 'priceList', 'price'),
-			'priceVat' => $this->createCoalesceFromArray($priceLists, 'priceList', 'priceVat'),
-		]);
+			'price' => "(SELECT price FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN(:inPriceLists) AND prices.price > 0 AND prices.priority =
+                (SELECT MIN(pricesPriority.priority) FROM $pricesCacheTableName as pricesPriority WHERE
+                    this.product = pricesPriority.product AND pricesPriority.priceList IN(:inPriceLists) AND pricesPriority.price > 0)
+            LIMIT 1)",
+			'priceVat' => "(SELECT priceVat FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN(:inPriceLists) AND prices.price > 0 AND prices.priority =
+                (SELECT MIN(pricesPriority.priority) FROM $pricesCacheTableName as pricesPriority WHERE
+                    this.product = pricesPriority.product AND pricesPriority.priceList IN(:inPriceLists) AND pricesPriority.price > 0)
+            LIMIT 1)",
+		], ['inPriceLists' => $inPriceLists,]);
 
 		$allAttributes = [];
 		$dynamicFiltersAttributes = [];
@@ -910,7 +944,8 @@ CREATE TABLE `$pricesCacheTableName` (
 			throw new \Exception("Filter '$filter' is not supported by ProductsProvider! You can add it manually with 'addAllowedFilterColumn' or 'addFilterExpression' functions.");
 		}
 
-		$productsCollection->where($this->createCoalesceFromArray($priceLists, 'priceList', 'price') . ' > 0');
+//      $productsCollection->where($this->createCoalesceFromArray($priceLists, 'priceList', 'price') . ' > 0');
+		$productsCollection->where("EXISTS (SELECT * FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN(:inPriceLists) AND prices.price > 0)");
 
 		if ($orderByName) {
 			if (isset($this->allowedCollectionOrderColumns[$orderByName])) {
@@ -930,7 +965,7 @@ CREATE TABLE `$pricesCacheTableName` (
 
 				$productsCollection->orderBy([$orderExpression => $orderByDirection]);
 			} elseif (isset($this->allowedCollectionOrderExpressions[$orderByName])) {
-				$this->allowedCollectionOrderExpressions[$orderByName]($productsCollection, $orderByDirection, $visibilityLists, $priceLists);
+				$this->allowedCollectionOrderExpressions[$orderByName]($productsCollection, $orderByDirection, $visibilityLists, $priceLists, $pricesCacheTableName);
 			} else {
 				throw new \Exception("Order '$orderByName' is not supported by ProductsProvider! You can add it manually with 'addAllowedOrderColumn' or 'addOrderExpression' function.");
 			}
@@ -942,7 +977,7 @@ CREATE TABLE `$pricesCacheTableName` (
 		$producersCounts = [];
 		$attributeValuesCounts = [];
 
-//		DevelTools::dumpCollection($productsCollection);
+		DevelTools::bdumpCollection($productsCollection);
 
 		$priceMin = \PHP_FLOAT_MAX;
 		$priceMax = \PHP_FLOAT_MIN;
@@ -1169,9 +1204,9 @@ CREATE TABLE `$pricesCacheTableName` (
 			'priceVatMax' => $priceVatMax > \PHP_FLOAT_MIN ? \ceil($priceVatMax) : 0,
 		];
 
-//		$this->saveDataCacheIndex($dataCacheIndex, $result);
+//      $this->saveDataCacheIndex($dataCacheIndex, $result);
 
-//		return $result;
+//      return $result;
 	}
 
 	public function cleanProductsProviderCache(): void
@@ -1192,6 +1227,35 @@ CREATE TABLE `$pricesCacheTableName` (
 				ScriptsPresenter::SETTINGS_CACHE_TAG,
 			],
 		]);
+	}
+
+	/**
+	 * @param \StORM\ICollection<\stdClass> $productsCollection
+	 * @param 'ASC'|'DESC' $direction
+	 * @param array<\Eshop\DB\Pricelist> $priceLists
+	 * @param string $pricesCacheTableName
+	 * @param string $property
+	 * @param string|null $where
+	 */
+	protected function applyPricesOrderToCollection(ICollection $productsCollection, string $direction, array $priceLists, string $pricesCacheTableName, string $property, string|null $where): void
+	{
+		$whereIf1 = null;
+		$whereIf2 = null;
+
+		if ($where) {
+			$whereIf1 = "AND prices.$property $where";
+			$whereIf2 = "AND pricesPriority.$property $where";
+		}
+
+		$priceListsInString = Helpers::arrayToSqlInStatement($priceLists, 'id');
+		$priceListsPropertyName = 'var__inPriceLists__' . Random::generate();
+
+		$productsCollection->orderBy([
+			"(SELECT $property FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN(:inPriceLists) $whereIf1 AND prices.priority =
+				(SELECT MIN(pricesPriority.priority) FROM $pricesCacheTableName as pricesPriority WHERE
+					this.product = pricesPriority.product AND pricesPriority.priceList IN(:$priceListsPropertyName) $whereIf2)
+			LIMIT 1)" => $direction,
+		], [$priceListsPropertyName => $priceListsInString]);
 	}
 
 	protected function resetHangingStateOfCache(int $id): void
@@ -1329,6 +1393,10 @@ CREATE TABLE `$pricesCacheTableName` (
 		}, $values)) . ')') : 'NULL';
 	}
 
+	/**
+	 * @param string $index
+	 * @param array<mixed> $data
+	 */
 	protected function saveDataCacheIndex(string $index, array $data): void
 	{
 		$this->cache->save($index, $data, [
