@@ -527,19 +527,57 @@ CREATE TABLE `$pricesCacheTableName` (
 
 			$this->connection->getLink()->exec('SET SESSION group_concat_max_len=4294967295');
 
+			$productPrimaryCategories = $this->productRepository->many()
+				->join(['joinedTable' => 'eshop_productprimarycategory'], 'this.uuid = joinedTable.fk_product', type: 'INNER')
+				->setSelect([
+					'id' => 'this.id',
+					'groupedValues' => 'GROUP_CONCAT(DISTINCT joinedTable.uuid)',
+				])
+				->setGroupBy(['this.id'])
+				->setIndex('id')
+				->toArrayOf('groupedValues');
+
+			$productAttributeValues = $this->productRepository->many()
+				->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product', type: 'INNER')
+				->join(['joinedTable' => 'eshop_productprimarycategory'], 'assign.fk_value = joinedTable.fk_product', type: 'INNER')
+				->setSelect([
+					'id' => 'this.id',
+					'groupedValues' => 'GROUP_CONCAT(DISTINCT joinedTable.uuid)',
+				])
+				->setGroupBy(['this.id'])
+				->setIndex('id')
+				->toArrayOf('groupedValues');
+
+			$productVisibilityListItems = $this->productRepository->many()
+				->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'this.uuid = visibilityListItem.fk_product', type: 'INNER')
+				->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityList.uuid', type: 'INNER')
+				->setSelect([
+					'id' => 'this.id',
+					'groupedValues' => 'GROUP_CONCAT(DISTINCT visibilityListItem.uuid ORDER BY visibilityList.priority)',
+				])
+				->setGroupBy(['this.id'])
+				->setIndex('id')
+				->toArrayOf('groupedValues');
+
+			$productCategories = $this->productRepository->many()
+				->join(['joinedTable' => 'eshop_product_nxn_eshop_category'], 'this.uuid = joinedTable.fk_product', type: 'INNER')
+				->setSelect([
+					'id' => 'this.id',
+					'groupedValues' => 'GROUP_CONCAT(DISTINCT joinedTable.fk_category)',
+				])
+				->setGroupBy(['this.id'])
+				->setIndex('id')
+				->toArrayOf('groupedValues');
+
+			Debugger::dump(Debugger::timer());
+
 			$productsCollection = $this->productRepository->many()
 			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product', type: 'INNER')
 			->join(['priceList' => 'eshop_pricelist'], 'price.fk_pricelist = priceList.uuid')
 			->join(['discount' => 'eshop_discount'], 'priceList.fk_discount = discount.uuid')
-			->join(['eshop_product_nxn_eshop_category'], 'this.uuid = eshop_product_nxn_eshop_category.fk_product')
-			->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid', type: 'INNER')
-			->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityList.uuid')
-			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product')
 			->join(['eshop_displayamount'], 'this.fk_displayAmount = eshop_displayamount.uuid')
 			->join(['eshop_displaydelivery'], 'this.fk_displayDelivery = eshop_displaydelivery.uuid')
 			->join(['eshop_producer'], 'this.fk_producer = eshop_producer.uuid')
-			->join(['eshop_attributevalue'], 'assign.fk_value = eshop_attributevalue.uuid')
-			->join(['primaryCategory' => 'eshop_productprimarycategory'], 'this.uuid = primaryCategory.fk_product')
 			->setSelect([
 				'id' => 'this.id',
 				'fkDisplayAmount' => 'eshop_displayamount.id',
@@ -550,10 +588,6 @@ CREATE TABLE `$pricesCacheTableName` (
 				'subCode' => 'this.subCode',
 				'externalCode' => 'this.externalCode',
 				'ean' => 'this.ean',
-				'categoriesPKs' => 'GROUP_CONCAT(DISTINCT eshop_product_nxn_eshop_category.fk_category)',
-				'visibilityListItemsPKs' => 'GROUP_CONCAT(DISTINCT visibilityListItem.uuid ORDER BY visibilityList.priority)',
-				'attributeValuesPKs' => 'GROUP_CONCAT(DISTINCT eshop_attributevalue.id)',
-				'productPrimaryCategoriesPKs' => 'GROUP_CONCAT(DISTINCT primaryCategory.uuid)',
 			])
 			->where('priceList.isActive', true)
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
@@ -599,7 +633,7 @@ CREATE TABLE `$pricesCacheTableName` (
 					$products[$product->id]["primaryCategory_$categoryType->id"] = null;
 				}
 
-				if ($categories = $product->categoriesPKs) {
+				if ($categories = ($productCategories[$product->id] ?? null)) {
 					$categories = \explode(',', $categories);
 
 					foreach ($categories as $category) {
@@ -619,7 +653,7 @@ CREATE TABLE `$pricesCacheTableName` (
 
 				unset($products[$product->id]['categories']);
 
-				if ($visibilityListItems = $product->visibilityListItemsPKs) {
+				if ($visibilityListItems = ($productVisibilityListItems[$product->id] ?? null)) {
 					$visibilityListItems = \explode(',', $visibilityListItems);
 
 					foreach ($visibilityListItems as $visibilityListItem) {
@@ -633,7 +667,7 @@ CREATE TABLE `$pricesCacheTableName` (
 					}
 				}
 
-				$primaryCategories = $product->productPrimaryCategoriesPKs ? \explode(',', $product->productPrimaryCategoriesPKs) : [];
+				$primaryCategories = isset($productPrimaryCategories[$product->id]) ? \explode(',', $productPrimaryCategories[$product->id]) : [];
 
 				foreach ($primaryCategories as $primaryCategory) {
 					$primaryCategory = $allProductPrimaryCategories[$primaryCategory];
@@ -641,7 +675,7 @@ CREATE TABLE `$pricesCacheTableName` (
 					$products[$product->id]["primaryCategory_$primaryCategory->categoryType"] = $primaryCategory->category;
 				}
 
-				$products[$product->id]['attributeValues'] = $product->attributeValuesPKs;
+				$products[$product->id]['attributeValues'] = ($productAttributeValues[$product->id] ?? null);
 
 				$i++;
 
@@ -977,7 +1011,7 @@ CREATE TABLE `$pricesCacheTableName` (
 		$producersCounts = [];
 		$attributeValuesCounts = [];
 
-		DevelTools::bdumpCollection($productsCollection);
+//		DevelTools::bdumpCollection($productsCollection);
 
 		$priceMin = \PHP_FLOAT_MAX;
 		$priceMax = \PHP_FLOAT_MIN;
