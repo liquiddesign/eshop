@@ -285,6 +285,14 @@ class ProductsProvider implements GeneralProductProvider
 			Debugger::timer();
 
 			$categoryTablesInDb = $link->query("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
+                  WHERE TABLE_NAME LIKE 'eshop_categories_cache_{$cacheIndexToBeWarmedUp}_%' AND TABLE_SCHEMA = '$dbName';")
+				->fetchAll(\PDO::FETCH_COLUMN);
+
+			foreach ($categoryTablesInDb as $categoryTableName) {
+				$link->exec("DROP TABLE `$categoryTableName`");
+			}
+
+			$categoryTablesInDb = $link->query("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
                   WHERE TABLE_NAME LIKE 'eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_%' AND TABLE_SCHEMA = '$dbName';")
 				->fetchAll(\PDO::FETCH_COLUMN);
 
@@ -294,7 +302,9 @@ class ProductsProvider implements GeneralProductProvider
 
 			$productsCacheTableName = "eshop_products_cache_$cacheIndexToBeWarmedUp";
 			$relationsCacheTableName = "eshop_products_relations_cache_$cacheIndexToBeWarmedUp";
+			$pricesCacheTableName = "eshop_products_prices_cache_$cacheIndexToBeWarmedUp";
 
+			Debugger::dump(Debugger::timer());
 			$link->exec("DROP TABLE IF EXISTS `$relationsCacheTableName`");
 
 			$link->exec("
@@ -308,14 +318,8 @@ CREATE TABLE `$relationsCacheTableName` (
     systemic TINYINT(1) NOT NULL,
     discountPct DOUBLE,
     masterPct DOUBLE,
-    type INT UNSIGNED NOT NULL,
-    INDEX idx_master (master),
-    INDEX idx_slave (slave),
-    INDEX idx_type (type)
+    type INT UNSIGNED NOT NULL
 );");
-			$link->exec("CREATE UNIQUE INDEX idx_related_code ON `$relationsCacheTableName` (master, slave, amount, discountPct, masterPct);");
-			$link->exec("CREATE UNIQUE INDEX idx_products_related_unique ON `$relationsCacheTableName` (master, slave);");
-
 			$relations = $this->relatedRepository->many()
 				->join(['type' => 'eshop_relatedtype'], 'this.fk_type = type.uuid')
 				->join(['masterProduct' => 'eshop_product'], 'this.fk_master = masterProduct.uuid')
@@ -326,8 +330,11 @@ CREATE TABLE `$relationsCacheTableName` (
 					'slaveId' => 'slaveProduct.id',
 				]);
 
+			$rowsToInsert = [];
+			$chunkCounter = 0;
+
 			foreach ($relations as $relation) {
-				$this->connection->syncRow($relationsCacheTableName, [
+				$rowsToInsert[] = [
 					'master' => $relation->getValue('masterId'),
 					'slave' => $relation->getValue('slaveId'),
 					'type' => $relation->getValue('typeId'),
@@ -337,8 +344,34 @@ CREATE TABLE `$relationsCacheTableName` (
 					'systemic' => $relation->systemic,
 					'discountPct' => $relation->discountPct,
 					'masterPct' => $relation->masterPct,
-				]);
+				];
+
+				$chunkCounter++;
+
+				if ($chunkCounter !== 1000) {
+					continue;
+				}
+
+				$chunkCounter = 0;
+
+				$this->connection->createRows($relationsCacheTableName, $rowsToInsert, chunkSize: 1000);
+				$rowsToInsert = [];
 			}
+
+			$this->connection->createRows($relationsCacheTableName, $rowsToInsert, chunkSize: 1000);
+			unset($rowsToInsert);
+
+			Debugger::dump(Debugger::timer());
+
+			$link->exec("CREATE INDEX idx_master ON `$relationsCacheTableName` (master);");
+			$link->exec("CREATE INDEX idx_slave ON `$relationsCacheTableName` (slave);");
+			$link->exec("CREATE INDEX idx_type ON `$relationsCacheTableName` (type);");
+			$link->exec("CREATE INDEX idx_related_master ON `$relationsCacheTableName` (master, type);");
+			$link->exec("CREATE INDEX idx_related_slave ON `$relationsCacheTableName` (slave, type);");
+			$link->exec("CREATE INDEX idx_products_related_unique ON `$relationsCacheTableName` (master, slave);");
+			$link->exec("CREATE UNIQUE INDEX idx_related_code ON `$relationsCacheTableName` (master, slave, amount, discountPct, masterPct);");
+
+			Debugger::dump(Debugger::timer());
 
 			$link->exec("
 DROP TABLE IF EXISTS `$productsCacheTableName`;
@@ -353,23 +386,13 @@ CREATE TABLE `$productsCacheTableName` (
   code TEXT,
   subCode TEXT,
   externalCode TEXT,
-  ean TEXT,
-  INDEX idx_producer (producer),
-  INDEX idx_displayAmount (displayAmount),
-  INDEX idx_displayDelivery (displayDelivery),
-  INDEX idx_displayAmount_isSold (displayAmount_isSold),
-  INDEX idx_subCode (subCode),
-  INDEX idx_externalCode (externalCode),
-  FULLTEXT INDEX idx_name (name)
+  ean TEXT
 );");
-			$link->exec("CREATE UNIQUE INDEX idx_unique_code ON `$productsCacheTableName` (code);");
-			$link->exec("CREATE UNIQUE INDEX idx_unique_ean ON `$productsCacheTableName` (ean);");
-
 			$allVisibilityLists = $this->visibilityListRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
 
 			foreach ($allVisibilityLists as $visibilityList) {
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id} INT UNSIGNED DEFAULT('{$visibilityList->id}');");
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_visibilityList_{$visibilityList->id} (visibilityList_{$visibilityList->id});");
+//				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id} INT UNSIGNED DEFAULT('{$visibilityList->id}');");
+//				$link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_visibilityList_{$visibilityList->id} (visibilityList_{$visibilityList->id});");
 
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_hidden TINYINT;");
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_hiddenInMenu TINYINT;");
@@ -378,33 +401,85 @@ CREATE TABLE `$productsCacheTableName` (
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN visibilityList_{$visibilityList->id}_recommended TINYINT;");
 			}
 
-			$allPriceLists = $this->pricelistRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
-
-			foreach ($allPriceLists as $priceList) {
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id} INT UNSIGNED DEFAULT('{$priceList->id}');");
-
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_price DOUBLE;");
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVat DOUBLE;");
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceBefore DOUBLE;");
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVatBefore DOUBLE;");
-			}
-
 			$allCategoryTypes = $this->categoryTypeRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
 
 			foreach ($allCategoryTypes as $categoryType) {
 				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN primaryCategory_{$categoryType->id} INT UNSIGNED;");
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_primaryCategory_{$categoryType->id} (primaryCategory_{$categoryType->id});");
 			}
+
+//			$allPriceLists = $this->pricelistRepository->many()->select(['this.id'])->fetchArray(\stdClass::class);
+
+//			foreach ($allPriceLists as $priceList) {
+//				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id} INT UNSIGNED DEFAULT('{$priceList->id}');");
+//
+//				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_price DOUBLE;");
+//				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVat DOUBLE;");
+//				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceBefore DOUBLE;");
+//				$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN priceList_{$priceList->id}_priceVatBefore DOUBLE;");
+//			}
+
+			Debugger::dump(Debugger::timer());
+
+			$link->exec("
+DROP TABLE IF EXISTS `$pricesCacheTableName`;
+CREATE TABLE `$pricesCacheTableName` (
+  id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  product INT UNSIGNED NOT NULL,
+  priceList INT UNSIGNED NOT NULL,
+  price DOUBLE,
+  priceVat DOUBLE,
+  priceBefore DOUBLE,
+  priceVatBefore DOUBLE
+);");
 
 			$allPrices = $this->priceRepository->many()
 				->join(['pricelist' => 'eshop_pricelist'], 'this.fk_pricelist = pricelist.uuid')
+				->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid')
 				->setSelect([
 					'this.price',
 					'this.priceVat',
 					'this.priceBefore',
 					'this.priceVatBefore',
 					'priceListId' => 'pricelist.id',
+					'productId' => 'product.id',
 				], keepIndex: true)->fetchArray(\stdClass::class);
+
+			$pricesToInsert = [];
+			$i = 0;
+
+			Debugger::dump(Debugger::timer());
+
+			foreach ($allPrices as $price) {
+				$pricesToInsert[] = [
+					'product' => $price->productId,
+					'priceList' => $price->priceListId,
+					'price' => $price->price,
+					'priceVat' => $price->priceVat,
+					'priceBefore' => $price->priceBefore,
+					'priceVatBefore' => $price->priceVatBefore,
+				];
+
+				$i++;
+
+				if ($i !== 1000) {
+					continue;
+				}
+
+				$i = 0;
+
+				$this->connection->createRows("$pricesCacheTableName", $pricesToInsert, chunkSize: 1000);
+				$pricesToInsert = [];
+			}
+
+			$this->connection->createRows("$pricesCacheTableName", $pricesToInsert);
+			unset($pricesToInsert);
+
+			Debugger::dump(Debugger::timer());
+
+			$link->exec("CREATE INDEX idx_product ON `$pricesCacheTableName` (product);");
+			$link->exec("CREATE UNIQUE INDEX idx_prices_unique ON `$pricesCacheTableName` (product, priceList);");
+
+			Debugger::dump(Debugger::timer());
 
 			$allVisibilityListItems = $this->visibilityListItemRepository->many()
 				->join(['visibilityList' => 'eshop_visibilitylist'], 'this.fk_visibilityList = visibilityList.uuid')
@@ -431,6 +506,8 @@ CREATE TABLE `$productsCacheTableName` (
 
 			$allCategoriesByCategory = [];
 
+			Debugger::dump(Debugger::timer());
+
 			$this->connection->getLink()->exec('SET SESSION group_concat_max_len=4294967295');
 
 			$productsCollection = $this->productRepository->many()
@@ -456,7 +533,6 @@ CREATE TABLE `$productsCacheTableName` (
 				'subCode' => 'this.subCode',
 				'externalCode' => 'this.externalCode',
 				'ean' => 'this.ean',
-				'pricesPKs' => 'GROUP_CONCAT(DISTINCT price.uuid ORDER BY priceList.priority)',
 				'categoriesPKs' => 'GROUP_CONCAT(DISTINCT eshop_product_nxn_eshop_category.fk_category)',
 				'visibilityListItemsPKs' => 'GROUP_CONCAT(DISTINCT visibilityListItem.uuid ORDER BY visibilityList.priority)',
 				'attributeValuesPKs' => 'GROUP_CONCAT(DISTINCT eshop_attributevalue.id)',
@@ -470,11 +546,15 @@ CREATE TABLE `$productsCacheTableName` (
 			$productsByCategories = [];
 			$i = 0;
 
+			$first = true;
+
 			while ($product = $productsCollection->fetch(\stdClass::class)) {
 				/** @var \stdClass $product */
 
-				if (!$prices = $product->pricesPKs) {
-					continue;
+				if ($first) {
+					Debugger::dump(Debugger::timer());
+
+					$first = false;
 				}
 
 				$products[$product->id] = [
@@ -491,20 +571,11 @@ CREATE TABLE `$productsCacheTableName` (
 				];
 
 				foreach ($allVisibilityLists as $visibilityList) {
-					$products[$product->id]["visibilityList_$visibilityList->id"] = null;
 					$products[$product->id]["visibilityList_{$visibilityList->id}_hidden"] = null;
 					$products[$product->id]["visibilityList_{$visibilityList->id}_hiddenInMenu"] = null;
 					$products[$product->id]["visibilityList_{$visibilityList->id}_priority"] = null;
 					$products[$product->id]["visibilityList_{$visibilityList->id}_unavailable"] = null;
 					$products[$product->id]["visibilityList_{$visibilityList->id}_recommended"] = null;
-				}
-
-				foreach ($allPriceLists as $priceList) {
-					$products[$product->id]["priceList_$priceList->id"] = null;
-					$products[$product->id]["priceList_{$priceList->id}_price"] = null;
-					$products[$product->id]["priceList_{$priceList->id}_priceVat"] = null;
-					$products[$product->id]["priceList_{$priceList->id}_priceBefore"] = null;
-					$products[$product->id]["priceList_{$priceList->id}_priceVatBefore"] = null;
 				}
 
 				foreach ($allCategoryTypes as $categoryType) {
@@ -545,21 +616,6 @@ CREATE TABLE `$productsCacheTableName` (
 					}
 				}
 
-				$prices = \explode(',', $prices);
-
-				foreach ($prices as $price) {
-					if (!isset($allPrices[$price])) {
-						throw new \Exception('Price not found: ' . $price);
-					}
-
-					$price = $allPrices[$price];
-
-					$products[$product->id]["priceList_{$price->priceListId}_price"] = $price->price;
-					$products[$product->id]["priceList_{$price->priceListId}_priceVat"] = $price->priceVat;
-					$products[$product->id]["priceList_{$price->priceListId}_priceBefore"] = $price->priceBefore;
-					$products[$product->id]["priceList_{$price->priceListId}_priceVatBefore"] = $price->priceVatBefore;
-				}
-
 				$primaryCategories = $product->productPrimaryCategoriesPKs ? \explode(',', $product->productPrimaryCategoriesPKs) : [];
 
 				foreach ($primaryCategories as $primaryCategory) {
@@ -587,14 +643,33 @@ CREATE TABLE `$productsCacheTableName` (
 
 			$productsCollection->__destruct();
 
+			Debugger::dump(Debugger::timer());
+
+			$link->exec("CREATE INDEX idx_producer ON `$productsCacheTableName` (producer);");
+			$link->exec("CREATE INDEX idx_displayAmount ON `$productsCacheTableName` (displayAmount);");
+			$link->exec("CREATE INDEX idx_displayDelivery ON `$productsCacheTableName` (displayDelivery);");
+			$link->exec("CREATE INDEX idx_displayAmount_isSold ON `$productsCacheTableName` (displayAmount_isSold);");
+			$link->exec("CREATE INDEX idx_subCode ON `$productsCacheTableName` (subCode);");
+			$link->exec("CREATE INDEX idx_externalCode ON `$productsCacheTableName` (externalCode);");
+			$link->exec("CREATE FULLTEXT INDEX idx_name ON `$productsCacheTableName` (name);");
+			$link->exec("CREATE UNIQUE INDEX idx_unique_code ON `$productsCacheTableName` (code);");
+			$link->exec("CREATE UNIQUE INDEX idx_unique_ean ON `$productsCacheTableName` (ean);");
+
+//			$link->exec("ALTER TABLE $pricesCacheTableName ADD CONSTRAINT FOREIGN KEY (product) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE;");
+
+			foreach ($allCategoryTypes as $categoryType) {
+				$link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_primaryCategory_{$categoryType->id} (primaryCategory_{$categoryType->id});");
+			}
+
+			Debugger::dump(Debugger::timer());
+
 			foreach ($productsByCategories as $category => $products) {
 				$categoryId = $allCategories[$category]->id;
 
-				$link->exec("DROP TABLE IF EXISTS `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId`;");
-				$link->exec("CREATE TABLE `eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId` (
-  product INT UNSIGNED PRIMARY KEY,
-  FOREIGN KEY (product) REFERENCES eshop_products_cache_{$cacheIndexToBeWarmedUp}(product) ON UPDATE CASCADE ON DELETE CASCADE 
-);");
+				$tableName = "eshop_categories_cache_{$cacheIndexToBeWarmedUp}_$categoryId";
+
+				$link->exec("DROP TABLE IF EXISTS `$tableName`;");
+				$link->exec("CREATE TABLE `$tableName` (product INT UNSIGNED PRIMARY KEY);");
 
 				$newRows = [];
 
@@ -602,8 +677,12 @@ CREATE TABLE `$productsCacheTableName` (
 					$newRows[] = ['product' => $product];
 				}
 
-				$this->connection->createRows("eshop_categoryproducts_cache_{$cacheIndexToBeWarmedUp}_$categoryId", $newRows);
+				$this->connection->createRows("$tableName", $newRows, chunkSize: 1000);
+
+				$link->exec("ALTER TABLE $tableName ADD CONSTRAINT FOREIGN KEY (product) REFERENCES eshop_products_cache_{$cacheIndexToBeWarmedUp}(product) ON UPDATE CASCADE ON DELETE CASCADE ");
 			}
+
+			Debugger::dump(Debugger::timer());
 
 			$this->markCacheAsReady($cacheIndexToBeWarmedUp);
 			$this->cleanProductsProviderCache();
@@ -685,7 +764,7 @@ CREATE TABLE `$productsCacheTableName` (
 
 		if ($category) {
 			$categoryTableExists = $this->connection->getLink()
-				->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'eshop_categoryproducts_cache_{$cacheIndex}_$category->id' AND TABLE_SCHEMA = '$dbName';")
+				->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'eshop_categories_cache_{$cacheIndex}_$category->id' AND TABLE_SCHEMA = '$dbName';")
 				->fetchColumn();
 
 			if ($categoryTableExists === 0) {
@@ -696,7 +775,7 @@ CREATE TABLE `$productsCacheTableName` (
 		}
 		
 		$productsCollection = $category ?
-			$this->connection->rows(['category' => "eshop_categoryproducts_cache_{$cacheIndex}_$category->id"])
+			$this->connection->rows(['category' => "eshop_categories_cache_{$cacheIndex}_$category->id"])
 				->join(['this' => "eshop_products_cache_{$cacheIndex}"], 'this.product = category.product', type: 'INNER') :
 			$this->connection->rows(['this' => "eshop_products_cache_{$cacheIndex}"]);
 
