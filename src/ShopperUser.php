@@ -443,8 +443,8 @@ class ShopperUser extends User
 			$cartItem->amount,
 			$this->filterPrice($cartItem->price * $cartItem->amount),
 			$this->filterPrice($cartItem->priceVat * $cartItem->amount),
-			$cartItem->getPriceBefore() ? $this->filterPrice($cartItem->getPriceBefore() * $cartItem->amount) : null,
-			$cartItem->getPriceVatBefore() ? $this->filterPrice($cartItem->getPriceVatBefore() * $cartItem->amount) : null,
+			$cartItem->getPriceBefore() ? $this->filterPrice($cartItem->getPriceBefore()) : null,
+			$cartItem->getPriceVatBefore() ? $this->filterPrice($cartItem->getPriceVatBefore()) : null,
 		);
 	}
 
