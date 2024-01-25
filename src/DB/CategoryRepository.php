@@ -102,6 +102,8 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 				$filters['hidden'] = false;
 				$filters['priceGt'] = 0;
 
+				\Tracy\Debugger::timer('getProductsFromCacheTable');
+
 				$result = $productsProvider->getProductsFromCacheTable(
 					$filters,
 					priceLists: $priceLists,
@@ -111,6 +113,9 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 				if (!isset($result['productPKs'])) {
 					throw new \Exception('No results returned');
 				}
+
+				\Tracy\Debugger::barDump(\Tracy\Debugger::timer('getProductsFromCacheTable'), 'cacheProducts');
+				\Tracy\Debugger::barDump($result);
 
 				return \count($result['productPKs']);
 			} catch (\Throwable $e) {
