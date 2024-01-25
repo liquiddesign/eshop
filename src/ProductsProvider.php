@@ -27,7 +27,6 @@ use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
-use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use StORM\DIConnection;
 use StORM\ICollection;
@@ -136,7 +135,7 @@ class ProductsProvider implements GeneralProductProvider
 						 else 2 end' => $direction,
 				]);
 
-				$this->applyPricesOrderToCollection($productsCollection, $direction, $priceLists, $pricesCacheTableName, 'price', '> 0');
+				$this->applyPricesOrderToCollection($productsCollection, $direction, $priceLists, $pricesCacheTableName, 'price');
 			};
 
 		$this->allowedCollectionOrderExpressions['priorityAvailabilityPrice'] =
@@ -150,7 +149,7 @@ class ProductsProvider implements GeneralProductProvider
 	                     else 2 end' => $direction,
 				]);
 
-				$this->applyPricesOrderToCollection($productsCollection, $direction, $priceLists, $pricesCacheTableName, 'price', '> 0');
+				$this->applyPricesOrderToCollection($productsCollection, $direction, $priceLists, $pricesCacheTableName, 'price');
 			};
 
 		$this->allowedCollectionFilterExpressions['query2'] = function (ICollection $productsCollection, string $query, array $visibilityLists, array $priceLists): void {
@@ -773,6 +772,8 @@ CREATE TABLE `$pricesCacheTableName` (
 		array $priceLists = [],
 		array $visibilityLists = [],
 	): array|false {
+//		Debugger::barDump($filters);
+
 		$cacheIndex = $this->getCacheIndexToBeUsed();
 
 		if ($cacheIndex === 0) {
@@ -841,9 +842,9 @@ CREATE TABLE `$pricesCacheTableName` (
 
 		if (isset($filters['pricelist'])) {
 			$priceLists = \array_filter($priceLists, fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
-
-			unset($filters['pricelist']);
 		}
+
+		unset($filters['pricelist']);
 
 		$inPriceLists = Helpers::arrayToSqlInStatement($priceLists, 'id');
 
@@ -853,15 +854,16 @@ CREATE TABLE `$pricesCacheTableName` (
 			'attributeValues' => 'this.attributeValues',
 			'displayAmount' => 'this.displayAmount',
 			'displayDelivery' => 'this.displayDelivery',
-			'price' => "(SELECT price FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN(:inPriceLists) AND prices.price > 0 AND prices.priority =
+			'price' => "(SELECT price FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN ('$inPriceLists') AND prices.price > 0 AND prices.priority =
                 (SELECT MIN(pricesPriority.priority) FROM $pricesCacheTableName as pricesPriority WHERE
-                    this.product = pricesPriority.product AND pricesPriority.priceList IN(:inPriceLists) AND pricesPriority.price > 0)
+                    this.product = pricesPriority.product AND pricesPriority.priceList IN ('$inPriceLists') AND pricesPriority.price > 0)
             LIMIT 1)",
-			'priceVat' => "(SELECT priceVat FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN(:inPriceLists) AND prices.price > 0 AND prices.priority =
+			'priceVat' => "(SELECT priceVat FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN ('$inPriceLists') AND prices.price > 0 AND
+			prices.priority =
                 (SELECT MIN(pricesPriority.priority) FROM $pricesCacheTableName as pricesPriority WHERE
-                    this.product = pricesPriority.product AND pricesPriority.priceList IN(:inPriceLists) AND pricesPriority.price > 0)
+                    this.product = pricesPriority.product AND pricesPriority.priceList IN ('$inPriceLists') AND pricesPriority.price > 0)
             LIMIT 1)",
-		], ['inPriceLists' => $inPriceLists,]);
+		]);
 
 		$allAttributes = [];
 		$dynamicFiltersAttributes = [];
@@ -948,19 +950,26 @@ CREATE TABLE `$pricesCacheTableName` (
 			if (isset($this->allowedCollectionFilterColumns[$filter])) {
 				$filterColumn = $this->allowedCollectionFilterColumns[$filter];
 
+				$filterExpression = null;
+
 				if (Strings::contains($filterColumn, '.')) {
 					[$filterColumn1, $filterColumn2] = \explode('.', $filterColumn);
 
-					$filterExpression = match ($filterColumn1) {
-						'visibilityList' => $this->createCoalesceFromArray($visibilityLists, 'visibilityList', $filterColumn2),
-						'priceList' => $this->createCoalesceFromArray($priceLists, 'priceList', $filterColumn2),
-						default => $filterColumn,
-					};
+					if ($filterColumn1 === 'priceList__TODO__') {
+//						$this->applyPricesFilterToCollection($productsCollection, $orderByDirection, $priceLists, $pricesCacheTableName, 'price', $filterColumn2);
+					} else {
+						$filterExpression = match ($filterColumn1) {
+							'visibilityList' => $this->createCoalesceFromArray($visibilityLists, 'visibilityList', $filterColumn2),
+							default => $filterColumn,
+						};
+					}
 				} else {
 					$filterExpression = $filterColumn;
 				}
 
-				$productsCollection->where($filterExpression, $value);
+				if ($filterExpression) {
+					$productsCollection->where($filterExpression, $value);
+				}
 
 				continue;
 			}
@@ -978,8 +987,12 @@ CREATE TABLE `$pricesCacheTableName` (
 			throw new \Exception("Filter '$filter' is not supported by ProductsProvider! You can add it manually with 'addAllowedFilterColumn' or 'addFilterExpression' functions.");
 		}
 
-//      $productsCollection->where($this->createCoalesceFromArray($priceLists, 'priceList', 'price') . ' > 0');
-		$productsCollection->where("EXISTS (SELECT * FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN(:inPriceLists) AND prices.price > 0)");
+		$productsCollection->where("EXISTS (
+			SELECT * FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN('$inPriceLists') AND prices.price > 0 AND prices.priority =
+				(SELECT MIN(pricesPriority.priority) FROM $pricesCacheTableName as pricesPriority
+					WHERE this.product = pricesPriority.product AND pricesPriority.priceList IN('$inPriceLists') AND pricesPriority.price > 0 LIMIT 1
+				)
+			)");
 
 		if ($orderByName) {
 			if (isset($this->allowedCollectionOrderColumns[$orderByName])) {
@@ -991,7 +1004,7 @@ CREATE TABLE `$pricesCacheTableName` (
 					[$orderColumn1, $orderColumn2] = \explode('.', $orderColumn);
 
 					if ($orderColumn1 === 'priceList') {
-						$this->applyPricesOrderToCollection($productsCollection, $orderByDirection, $priceLists, $pricesCacheTableName, 'price', '> 0');
+						$this->applyPricesOrderToCollection($productsCollection, $orderByDirection, $priceLists, $pricesCacheTableName, 'price');
 					} else {
 						$orderExpression = match ($orderColumn1) {
 							'visibilityList' => $this->createCoalesceFromArray($visibilityLists, 'visibilityList', $orderColumn2),
@@ -1027,7 +1040,7 @@ CREATE TABLE `$pricesCacheTableName` (
 
 		$dynamicallyCountedDynamicFilters = [];
 
-		while ($product = $productsCollection->fetch()) {
+		foreach ($productsCollection->fetchArray(\stdClass::class) as $product) {
 			$attributeValues = $product->attributeValues ? \array_flip(\explode(',', $product->attributeValues)) : [];
 
 			foreach ($dynamicFiltersAttributes as $attributePK => $attributeValuesPKs) {
@@ -1276,27 +1289,17 @@ CREATE TABLE `$pricesCacheTableName` (
 	 * @param array<\Eshop\DB\Pricelist> $priceLists
 	 * @param string $pricesCacheTableName
 	 * @param string $property
-	 * @param string|null $where
 	 */
-	protected function applyPricesOrderToCollection(ICollection $productsCollection, string $direction, array $priceLists, string $pricesCacheTableName, string $property, string|null $where): void
+	protected function applyPricesOrderToCollection(ICollection $productsCollection, string $direction, array $priceLists, string $pricesCacheTableName, string $property): void
 	{
-		$whereIf1 = null;
-		$whereIf2 = null;
-
-		if ($where) {
-			$whereIf1 = "AND prices.$property $where";
-			$whereIf2 = "AND pricesPriority.$property $where";
-		}
-
 		$priceListsInString = Helpers::arrayToSqlInStatement($priceLists, 'id');
-		$priceListsPropertyName = 'var__inPriceLists__' . Random::generate();
 
 		$productsCollection->orderBy([
-			"(SELECT $property FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN(:inPriceLists) $whereIf1 AND prices.priority =
+			"(SELECT $property FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN('$priceListsInString') AND prices.price > 0 AND prices.priority =
 				(SELECT MIN(pricesPriority.priority) FROM $pricesCacheTableName as pricesPriority WHERE
-					this.product = pricesPriority.product AND pricesPriority.priceList IN(:$priceListsPropertyName) $whereIf2)
+					this.product = pricesPriority.product AND pricesPriority.priceList IN('$priceListsInString') AND pricesPriority.price > 0)
 			LIMIT 1)" => $direction,
-		], [$priceListsPropertyName => $priceListsInString]);
+		]);
 	}
 
 	protected function resetHangingStateOfCache(int $id): void
