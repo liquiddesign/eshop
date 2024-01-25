@@ -538,7 +538,7 @@ CREATE TABLE `$pricesCacheTableName` (
 
 			$productAttributeValues = $this->productRepository->many()
 				->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product', type: 'INNER')
-				->join(['joinedTable' => 'eshop_productprimarycategory'], 'assign.fk_value = joinedTable.fk_product', type: 'INNER')
+				->join(['joinedTable' => 'eshop_attributevalue'], 'assign.fk_value = joinedTable.uuid', type: 'INNER')
 				->setSelect([
 					'id' => 'this.id',
 					'groupedValues' => 'GROUP_CONCAT(DISTINCT joinedTable.uuid)',
