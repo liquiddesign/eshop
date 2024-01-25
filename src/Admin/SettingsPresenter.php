@@ -408,6 +408,11 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 		/** @var \Eshop\Services\Comgate|null $comgate */
 		$comgate = $this->integrations->getService(Integrations::COMGATE);
 
+		if (!$comgate) {
+			/** @var \Eshop\Services\Comgate|null $comgate */
+			$comgate = $this->container->getService('shopper.comgate');
+		}
+
 		if ($comgate) {
 			$this->customSettings['Platba'][] = [
 				'key' => $this::COMGATE_PAYMENT_TYPE,
