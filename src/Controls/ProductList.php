@@ -29,23 +29,24 @@ use StORM\ICollection;
  * @package Eshop\Controls
  * @method onWatcherCreated(\Eshop\DB\Watcher $watcher)
  * @method onWatcherDeleted(\Eshop\DB\Watcher $watcher)
+ * @method onBuyFormSuccessBeforeRedirect(\Eshop\DB\Product $product)
  */
 class ProductList extends Datalist
 {
 	/**
-	 * @var array<callable>&callable(\Eshop\DB\Watcher): void ; Occurs after order create
+	 * @var array<callable>&callable(\Eshop\DB\Watcher): void
 	 */
-	public $onWatcherCreated;
+	public array $onWatcherCreated;
 
 	/**
-	 * @var array<callable>&callable(\Eshop\DB\Watcher): void ; Occurs after order create
+	 * @var array<callable>&callable(\Eshop\DB\Watcher): void
 	 */
-	public $onWatcherDeleted;
+	public array $onWatcherDeleted;
 	
 	/**
 	 * @var array<callable>&callable(\Eshop\DB\Product): void
 	 */
-	public array $onBuyFormSuccessBeforeRedirect = [];
+	public array $onBuyFormSuccessBeforeRedirect;
 
 	/** @var array<array<string, int>>|null */
 	protected array|null $cachedCounts = null;
@@ -283,7 +284,9 @@ class ProductList extends Datalist
 			
 			$form = $this->buyFormFactory->create($product);
 			$form->onSuccess[] = function ($form, $values) use ($product): void {
-				Arrays::invoke($this->onBuyFormSuccessBeforeRedirect($product));
+				if ($this->onBuyFormSuccessBeforeRedirect($product)) {
+					Arrays::invoke($this->onBuyFormSuccessBeforeRedirect($product));
+				}
 				
 				$form->getPresenter()->redirect('this');
 			};
