@@ -41,6 +41,11 @@ class ProductList extends Datalist
 	 * @var array<callable>&callable(\Eshop\DB\Watcher): void ; Occurs after order create
 	 */
 	public $onWatcherDeleted;
+	
+	/**
+	 * @var array<callable>&callable(\Eshop\DB\Product): void
+	 */
+	public array $onBuyFormSuccessBeforeRedirect = [];
 
 	/** @var array<array<string, int>>|null */
 	protected array|null $cachedCounts = null;
@@ -263,21 +268,26 @@ class ProductList extends Datalist
 
 		$this->redirect('this');
 	}
-
+	
 	public function createComponentBuyForm(): Multiplier
 	{
 		$productRepository = $this->productRepository;
-
+		
 		return new Multiplier(function ($itemId) use ($productRepository) {
-			/** @var \Eshop\DB\Product $product */
+			/** @var \Eshop\DB\Product|null $product */
 			$product = $this->itemsOnPage !== null ? ($this->itemsOnPage[$itemId] ?? null) : $productRepository->getProduct($itemId);
-
+			
+			if (!$product) {
+				$this->redirect('this');
+			}
+			
 			$form = $this->buyFormFactory->create($product);
-			$form->onSuccess[] = function ($form, $values): void {
+			$form->onSuccess[] = function ($form, $values) use ($product): void {
+				Arrays::invoke($this->onBuyFormSuccessBeforeRedirect($product));
+				
 				$form->getPresenter()->redirect('this');
-				// @TODO call event
 			};
-
+			
 			return $form;
 		});
 	}
