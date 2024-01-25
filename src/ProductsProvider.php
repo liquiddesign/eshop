@@ -541,7 +541,7 @@ CREATE TABLE `$pricesCacheTableName` (
 				->join(['joinedTable' => 'eshop_attributevalue'], 'assign.fk_value = joinedTable.uuid', type: 'INNER')
 				->setSelect([
 					'id' => 'this.id',
-					'groupedValues' => 'GROUP_CONCAT(DISTINCT joinedTable.uuid)',
+					'groupedValues' => 'GROUP_CONCAT(DISTINCT joinedTable.id)',
 				])
 				->setGroupBy(['this.id'])
 				->setIndex('id')
