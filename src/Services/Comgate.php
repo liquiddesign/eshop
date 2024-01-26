@@ -52,7 +52,7 @@ class Comgate implements IPaymentIntegration
 
 		$comgatePaymentTypes = $this->paymentTypeRepository->many()->where('this.uuid', $comgatePaymentTypes)->toArray();
 
-		$orderPaymentType = $order->getPayment()->type;
+		$orderPaymentType = $order->getPayment()?->type;
 
 		if (!$orderPaymentType) {
 			return;
