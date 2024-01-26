@@ -470,26 +470,26 @@ CREATE TABLE `$categoriesTableName` (
 				->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid', type: 'INNER')
 				->where('visibilityList.id', $visibilityLists)
 				->setGroupBy(['this.fk_product'])
-				->setIndex('product.id')
 				->setSelect([
 					'this.uuid',
 				])
+				->setIndex('product.id')
 				->orderBy(['visibilityList.priority'])
 				->toArrayOf('uuid')
 			);
 
-			$prices = $pricesCache[$priceListsString] ?? ($pricesCache[$priceListsString] = $this->priceRepository->many()
-				->join(['priceList' => 'eshop_pricelist'], 'this.fk_pricelist = priceList.uuid', type: 'INNER')
-				->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid', type: 'INNER')
+			$prices = $pricesCache[$priceListsString] ?? ($pricesCache[$priceListsString] = $this->productRepository->many()
+				->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
+				->join(['priceList' => 'eshop_pricelist'], 'price.fk_pricelist = priceList.uuid')
 				->where('priceList.id', $priceLists)
-				->setGroupBy(['this.fk_product'])
-				->setIndex('product.id')
+				->setGroupBy(['this.id'])
+				->setOrderBy(['priceList.priority'])
 				->setSelect([
-					'this.uuid',
+					'price.uuid',
+					'priceList.id',
 				])
-				->where('this.price IS NOT NULL')
-				->orderBy(['priceList.priority'])
-				->toArrayOf('uuid')
+				->setIndex('this.id')
+				->fetchArray(\stdClass::class)
 			);
 
 			$sqlTime += Debugger::timer('insertVisibilityPriceTable');
@@ -497,12 +497,12 @@ CREATE TABLE `$categoriesTableName` (
 			$mapToInsert = [];
 
 			foreach ($visibilityListItems as $product => $visibilityListItem) {
-				if (!isset($prices[$product])) {
+				if (!isset($prices[$product]->uuid)) {
 					continue;
 				}
 
 				$visibilityListItem = $allVisibilityListItems[$visibilityListItem];
-				$price = $allPrices[$prices[$product]];
+				$price = $allPrices[$prices[$product]->uuid];
 
 				$mapToInsert[] = [
 					$index,
@@ -511,6 +511,7 @@ CREATE TABLE `$categoriesTableName` (
 					$price->priceVat,
 					$price->priceBefore ?: '\N',
 					$price->priceVatBefore ?: '\N',
+					$prices[$product]->id,
 					$visibilityListItem->hidden,
 					$visibilityListItem->hiddenInMenu,
 					$visibilityListItem->priority,
@@ -531,18 +532,18 @@ CREATE TABLE `$categoriesTableName` (
 		$link = $this->getLink();
 
 //		$link->exec("CREATE INDEX idx_index ON `$pricesCacheTableName` (visibilityPriceIndex);");
-//		$link->exec("CREATE INDEX idx_priority ON `$pricesCacheTableName` (priority);");
+		$link->exec("CREATE INDEX idx_price ON `$pricesCacheTableName` (price);");
 //		$link->exec("ALTER TABLE $pricesCacheTableName ADD CONSTRAINT FOREIGN KEY (product) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE ");
 		$link->exec("ALTER TABLE `$pricesCacheTableName` ADD PRIMARY KEY (visibilityPriceIndex, product);");
 	}
 
 	protected function indexCategoriesTable(string $tableName, string $productsCacheTableName): void
 	{
-		unset($productsCacheTableName);
 		$link = $this->getLink();
 
-//		$link->exec("ALTER TABLE $tableName ADD CONSTRAINT FOREIGN KEY (product) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE ");
+		$link->exec("ALTER TABLE $tableName ADD CONSTRAINT FOREIGN KEY (product) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE ");
 		$link->exec("ALTER TABLE `$tableName` ADD PRIMARY KEY (product, category);");
+		$link->exec("ALTER TABLE `$tableName` ADD INDEX (category);");
 	}
 
 	protected function loadDataInfile(string $tableName, array $data, int $chunkSize = 10000): void
@@ -885,6 +886,7 @@ CREATE TABLE `$pricesCacheTableName` (
   priceVat DOUBLE,
   priceBefore DOUBLE,
   priceVatBefore DOUBLE,
+  priceList INT NOT NULL,
   hidden BOOL NOT NULL,
   hiddenInMenu BOOL NOT NULL,
   priority SMALLINT NOT NULL,

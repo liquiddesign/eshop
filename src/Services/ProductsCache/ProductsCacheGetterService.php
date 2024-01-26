@@ -5,7 +5,6 @@ namespace Eshop\Services\ProductsCache;
 use Base\Bridges\AutoWireService;
 use Base\ShopsConfig;
 use Eshop\Admin\SettingsPresenter;
-use Eshop\Common\Helpers;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
@@ -22,14 +21,15 @@ use Eshop\DB\RelatedRepository;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
+use Eshop\DevelTools;
 use Eshop\ShopperUser;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
-use Nette\Utils\Strings;
 use StORM\DIConnection;
 use StORM\ICollection;
+use Tracy\Debugger;
 use Web\DB\SettingRepository;
 
 class ProductsCacheGetterService implements AutoWireService
@@ -39,11 +39,11 @@ class ProductsCacheGetterService implements AutoWireService
 	 * @var array<string>
 	 */
 	protected array $allowedCollectionFilterColumns = [
-		'hidden' => 'visibilityList.hidden',
-		'hiddenInMenu' => 'visibilityList.hiddenInMenu',
-		'priority' => 'visibilityList.priority',
-		'recommended' => 'visibilityList.recommended',
-		'unavailable' => 'visibilityList.unavailable',
+		'hidden' => 'visibilityPrice.hidden',
+		'hiddenInMenu' => 'visibilityPrice.hiddenInMenu',
+		'priority' => 'visibilityPrice.priority',
+		'recommended' => 'visibilityPrice.recommended',
+		'unavailable' => 'visibilityPrice.unavailable',
 		'name' => 'name',
 		'isSold' => 'displayAmount_isSold',
 	];
@@ -71,8 +71,8 @@ class ProductsCacheGetterService implements AutoWireService
 	 * @var array<string>
 	 */
 	protected array $allowedCollectionOrderColumns = [
-		'priority' => 'visibilityList.priority',
-		'price' => 'priceList.price',
+		'priority' => 'visibilityPrice.priority',
+		'price' => 'visibilityPrice.price',
 		'name' => 'name',
 	];
 
@@ -82,7 +82,6 @@ class ProductsCacheGetterService implements AutoWireService
 	 *  'ASC'|'DESC' $direction,
 	 *  array<\Eshop\DB\VisibilityList> $visibilityLists,
 	 *  array<\Eshop\DB\Pricelist> $priceLists,
-	 *  string $pricesCacheTableName,
 	 * ): void>
 	 */
 	protected array $allowedCollectionOrderExpressions = [];
@@ -177,13 +176,36 @@ class ProductsCacheGetterService implements AutoWireService
 		array $priceLists = [],
 		array $visibilityLists = [],
 	): array|false {
-//		Debugger::barDump($filters);
+		Debugger::barDump($filters);
+		Debugger::barDump($orderByName);
 
+//		xdebug_break();
 		$cacheIndex = $this->getCacheIndexToBeUsed();
 
 		if ($cacheIndex === 0) {
 			return false;
 		}
+
+		$productsCacheTableName = "eshop_products_cache_$cacheIndex";
+		$visibilityPricesCacheTableName = "eshop_products_prices_cache_$cacheIndex";
+		$categoriesTableName = "eshop_categories_cache_$cacheIndex";
+
+		if (!$visibilityLists || !$priceLists) {
+			throw new \Exception('No visibility or price lists supplied.');
+		}
+
+		$visibilityListsIds = $this->visibilityListRepository->many()
+			->setSelect(['this.id'])
+			->setOrderBy(['this.priority'])
+			->where('this.uuid', \array_keys($visibilityLists))
+			->toArrayOf('id', toArrayValues: true);
+		$priceListsIds = $this->pricelistRepository->many()
+			->setSelect(['this.id'])
+			->setOrderBy(['this.priority'])
+			->where('this.uuid', \array_keys($priceLists))
+			->toArrayOf('id', toArrayValues: true);
+
+		$visibilityPriceListsIndex = \implode(',', $visibilityListsIds) . '-' . \implode(',', $priceListsIds);
 
 //      $dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
 //
@@ -195,17 +217,17 @@ class ProductsCacheGetterService implements AutoWireService
 //          return $cachedData;
 //      }
 
-		$emptyResult = [
-			'productPKs' => [],
-			'attributeValuesCounts' => [],
-			'displayAmountsCounts' => [],
-			'displayDeliveriesCounts' => [],
-			'producersCounts' => [],
-			'priceMin' => 0,
-			'priceMax' => 0,
-			'priceVatMin' => 0,
-			'priceVatMax' => 0,
-		];
+//		$emptyResult = [
+//			'productPKs' => [],
+//			'attributeValuesCounts' => [],
+//			'displayAmountsCounts' => [],
+//			'displayDeliveriesCounts' => [],
+//			'producersCounts' => [],
+//			'priceMin' => 0,
+//			'priceMax' => 0,
+//			'priceVatMin' => 0,
+//			'priceVatMax' => 0,
+//		];
 
 		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
 			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
@@ -217,33 +239,25 @@ class ProductsCacheGetterService implements AutoWireService
 
 		unset($filters['category']);
 
-		$dbName = $this->connection->getDatabaseName();
+		$productsCollection = $this->connection->rows(['this' => $productsCacheTableName])
+			->join(
+				['visibilityPrice' => $visibilityPricesCacheTableName],
+				'this.product = visibilityPrice.product AND visibilityPrice.visibilityPriceIndex = :visibilityPriceListsIndex',
+				['visibilityPriceListsIndex' => $visibilityPriceListsIndex],
+				type: 'INNER',
+			);
 
 		if ($category) {
-			$categoryTableExistsQuery = $this->connection->getLink()
-				->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'eshop_categories_cache_{$cacheIndex}_$category->id' AND TABLE_SCHEMA = '$dbName';");
-
-			if (!$categoryTableExistsQuery) {
-				return $emptyResult;
-			}
-
-			$categoryTableExistsQuery = $categoryTableExistsQuery->fetchColumn();
-
-			if ($categoryTableExistsQuery === 0) {
-//              $this->saveDataCacheIndex($dataCacheIndex, $emptyResult);
-
-				return $emptyResult;
-			}
+			$productsCollection->join(
+				['category' => $categoriesTableName],
+				'this.product = category.product AND category.category = :category',
+				['category' => $category->id],
+				type: 'INNER',
+			);
 		}
 
-		$productsCollection = $category ?
-			$this->connection->rows(['category' => "eshop_categories_cache_{$cacheIndex}_$category->id"])
-				->join(['this' => "eshop_products_cache_{$cacheIndex}"], 'this.product = category.product', type: 'INNER') :
-			$this->connection->rows(['this' => "eshop_products_cache_{$cacheIndex}"]);
-
-		$pricesCacheTableName = "eshop_products_prices_cache_{$cacheIndex}";
-
 		$productsCollection->setGroupBy(['this.product']);
+		$productsCollection->where('visibilityPrice.price > 0');
 
 		if (isset($filters['pricelist'])) {
 			$priceLists = \array_filter($priceLists, fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
@@ -251,23 +265,14 @@ class ProductsCacheGetterService implements AutoWireService
 
 		unset($filters['pricelist']);
 
-		$inPriceLists = Helpers::arrayToSqlInStatement($priceLists, 'id');
-
 		$productsCollection->setSelect([
 			'product' => 'this.product',
 			'producer' => 'this.producer',
 			'attributeValues' => 'this.attributeValues',
 			'displayAmount' => 'this.displayAmount',
 			'displayDelivery' => 'this.displayDelivery',
-			'price' => "(SELECT price FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN ('$inPriceLists') AND prices.price > 0 AND prices.priority =
-                (SELECT MIN(pricesPriority.priority) FROM $pricesCacheTableName as pricesPriority WHERE
-                    this.product = pricesPriority.product AND pricesPriority.priceList IN ('$inPriceLists') AND pricesPriority.price > 0)
-            LIMIT 1)",
-			'priceVat' => "(SELECT priceVat FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN ('$inPriceLists') AND prices.price > 0 AND
-			prices.priority =
-                (SELECT MIN(pricesPriority.priority) FROM $pricesCacheTableName as pricesPriority WHERE
-                    this.product = pricesPriority.product AND pricesPriority.priceList IN ('$inPriceLists') AND pricesPriority.price > 0)
-            LIMIT 1)",
+			'price' => 'visibilityPrice.price',
+			'priceVat' => 'visibilityPrice.priceVat',
 		]);
 
 		$allAttributes = [];
@@ -353,28 +358,7 @@ class ProductsCacheGetterService implements AutoWireService
 
 		foreach ($filters as $filter => $value) {
 			if (isset($this->allowedCollectionFilterColumns[$filter])) {
-				$filterColumn = $this->allowedCollectionFilterColumns[$filter];
-
-				$filterExpression = null;
-
-				if (Strings::contains($filterColumn, '.')) {
-					[$filterColumn1, $filterColumn2] = \explode('.', $filterColumn);
-
-					if ($filterColumn1 === 'priceList__TODO__') {
-//						$this->applyPricesFilterToCollection($productsCollection, $orderByDirection, $priceLists, $pricesCacheTableName, 'price', $filterColumn2);
-					} else {
-						$filterExpression = match ($filterColumn1) {
-							'visibilityList' => $this->createCoalesceFromArray($visibilityLists, 'visibilityList', $filterColumn2),
-							default => $filterColumn,
-						};
-					}
-				} else {
-					$filterExpression = $filterColumn;
-				}
-
-				if ($filterExpression) {
-					$productsCollection->where($filterExpression, $value);
-				}
+				$productsCollection->where($this->allowedCollectionFilterColumns[$filter], $value);
 
 				continue;
 			}
@@ -392,39 +376,11 @@ class ProductsCacheGetterService implements AutoWireService
 			throw new \Exception("Filter '$filter' is not supported by ProductsCacheProvider! You can add it manually with 'addAllowedFilterColumn' or 'addFilterExpression' functions.");
 		}
 
-		$productsCollection->where("EXISTS (
-			SELECT * FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN('$inPriceLists') AND prices.price > 0 AND prices.priority =
-				(SELECT MIN(pricesPriority.priority) FROM $pricesCacheTableName as pricesPriority
-					WHERE this.product = pricesPriority.product AND pricesPriority.priceList IN('$inPriceLists') AND pricesPriority.price > 0 LIMIT 1
-				)
-			)");
-
 		if ($orderByName) {
 			if (isset($this->allowedCollectionOrderColumns[$orderByName])) {
-				$orderColumn = $this->allowedCollectionOrderColumns[$orderByName];
-
-				$orderExpression = null;
-
-				if (Strings::contains($orderColumn, '.')) {
-					[$orderColumn1, $orderColumn2] = \explode('.', $orderColumn);
-
-					if ($orderColumn1 === 'priceList') {
-						$this->applyPricesOrderToCollection($productsCollection, $orderByDirection, $priceLists, $pricesCacheTableName, 'price');
-					} else {
-						$orderExpression = match ($orderColumn1) {
-							'visibilityList' => $this->createCoalesceFromArray($visibilityLists, 'visibilityList', $orderColumn2),
-							default => $orderColumn,
-						};
-					}
-				} else {
-					$orderExpression = $orderColumn;
-				}
-
-				if ($orderExpression) {
-					$productsCollection->orderBy([$orderExpression => $orderByDirection]);
-				}
+				$productsCollection->orderBy([$this->allowedCollectionOrderColumns[$orderByName] => $orderByDirection]);
 			} elseif (isset($this->allowedCollectionOrderExpressions[$orderByName])) {
-				$this->allowedCollectionOrderExpressions[$orderByName]($productsCollection, $orderByDirection, $visibilityLists, $priceLists, $pricesCacheTableName);
+				$this->allowedCollectionOrderExpressions[$orderByName]($productsCollection, $orderByDirection, $visibilityLists, $priceLists);
 			} else {
 				throw new \Exception("Order '$orderByName' is not supported by ProductsCacheProvider! You can add it manually with 'addAllowedOrderColumn' or 'addOrderExpression' function.");
 			}
@@ -436,7 +392,7 @@ class ProductsCacheGetterService implements AutoWireService
 		$producersCounts = [];
 		$attributeValuesCounts = [];
 
-//		DevelTools::bdumpCollection($productsCollection);
+		DevelTools::bdumpCollection($productsCollection);
 
 		$priceMin = \PHP_FLOAT_MAX;
 		$priceMax = \PHP_FLOAT_MIN;
@@ -669,25 +625,6 @@ class ProductsCacheGetterService implements AutoWireService
 	}
 
 	/**
-	 * @param \StORM\ICollection<\stdClass> $productsCollection
-	 * @param 'ASC'|'DESC' $direction
-	 * @param array<\Eshop\DB\Pricelist> $priceLists
-	 * @param string $pricesCacheTableName
-	 * @param string $property
-	 */
-	protected function applyPricesOrderToCollection(ICollection $productsCollection, string $direction, array $priceLists, string $pricesCacheTableName, string $property): void
-	{
-		$priceListsInString = Helpers::arrayToSqlInStatement($priceLists, 'id');
-
-		$productsCollection->orderBy([
-			"(SELECT $property FROM $pricesCacheTableName as prices WHERE this.product = prices.product AND prices.priceList IN('$priceListsInString') AND prices.price > 0 AND prices.priority =
-				(SELECT MIN(pricesPriority.priority) FROM $pricesCacheTableName as pricesPriority WHERE
-					this.product = pricesPriority.product AND pricesPriority.priceList IN('$priceListsInString') AND pricesPriority.price > 0)
-			LIMIT 1)" => $direction,
-		]);
-	}
-
-	/**
 	 * @return int<0, 2>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
@@ -711,30 +648,28 @@ class ProductsCacheGetterService implements AutoWireService
 	protected function startUp(): void
 	{
 		$this->allowedCollectionOrderExpressions['availabilityAndPrice'] =
-			function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists, string $pricesCacheTableName): void {
+			function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
 				$productsCollection->orderBy([
 					'case COALESCE(displayAmount_isSold, 2)
 						 when 0 then 0
 						 when 2 then 1
 						 when 1 then 2
 						 else 2 end' => $direction,
+					'visibilityPrice.price' => $direction,
 				]);
-
-				$this->applyPricesOrderToCollection($productsCollection, $direction, $priceLists, $pricesCacheTableName, 'price');
 			};
 
 		$this->allowedCollectionOrderExpressions['priorityAvailabilityPrice'] =
-			function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists, string $pricesCacheTableName): void {
+			function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
 				$productsCollection->orderBy([
-					$this->createCoalesceFromArray($visibilityLists, 'visibilityList', 'priority') => $direction,
+					'visibilityPrice.priority' => $direction,
 					'case COALESCE(displayAmount_isSold, 2)
 	                     when 0 then 0
 	                     when 1 then 1
 	                     when 2 then 2
 	                     else 2 end' => $direction,
+					'visibilityPrice.price' => $direction,
 				]);
-
-				$this->applyPricesOrderToCollection($productsCollection, $direction, $priceLists, $pricesCacheTableName, 'price');
 			};
 
 		$this->allowedCollectionFilterExpressions['query2'] = function (ICollection $productsCollection, string $query, array $visibilityLists, array $priceLists): void {
@@ -844,6 +779,7 @@ class ProductsCacheGetterService implements AutoWireService
 	}
 
 	/**
+	 * @deprecated Don't use. New cache has direct columns.
 	 * @param array<mixed> $values
 	 */
 	protected function createCoalesceFromArray(array $values, string|null $prefix = null, string|null $suffix = null, string $separator = '_'): string

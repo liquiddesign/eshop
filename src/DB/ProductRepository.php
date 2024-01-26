@@ -428,14 +428,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			return;
 		}
 
-		if (!$joined1) {
-			$collection->join(['productPrimaryCategory' => 'eshop_productprimarycategory'], 'this.uuid=productPrimaryCategory.fk_product');
-		}
-
-		if (!$joined2) {
-			$collection->join(['primaryCategory' => 'eshop_category'], 'productPrimaryCategory.fk_category=primaryCategory.uuid');
-		}
-
 		if ($categoryType === false) {
 			return;
 		}
@@ -450,10 +442,19 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			return;
 		}
 
-		$collection->where(
-			'productPrimaryCategory.fk_categoryType = :productPrimaryCategory_shopCategoryType OR productPrimaryCategory.fk_categoryType IS NULL',
-			['productPrimaryCategory_shopCategoryType' => $categoryType],
-		);
+		if (!$joined1) {
+			$collection->join(
+				['productPrimaryCategory' => '(SELECT * FROM eshop_productprimarycategory)'],
+				'this.uuid=productPrimaryCategory.fk_product AND productPrimaryCategory.fk_categoryType = :productPrimaryCategory_shopCategoryType',
+				['productPrimaryCategory_shopCategoryType' => $categoryType],
+			);
+		}
+
+		if ($joined2) {
+			return;
+		}
+
+		$collection->join(['primaryCategory' => 'eshop_category'], 'productPrimaryCategory.fk_category=primaryCategory.uuid');
 	}
 
 	/**

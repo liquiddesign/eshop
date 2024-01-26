@@ -13,6 +13,7 @@ use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
+use Eshop\DevelTools;
 use Web\DB\PageRepository;
 
 class ProductTester
@@ -53,7 +54,9 @@ class ProductTester
 		$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists);
 		$visibilityLists = $visibilityLists->toArray();
 
-		$productFromGetProducts = $this->productRepository->getProducts($priceLists, $customer, visibilityLists: $visibilityLists, currency: $currency)->where('this.uuid', $product->getPK())->first();
+		$productFromGetProducts = $this->productRepository->getProducts($priceLists, $customer, visibilityLists: $visibilityLists, currency: $currency)->where('this.uuid', $product->getPK());
+		DevelTools::bdumpCollection($productFromGetProducts);
+		$productFromGetProducts = $productFromGetProducts->first();
 
 		$usedPrice = null;
 

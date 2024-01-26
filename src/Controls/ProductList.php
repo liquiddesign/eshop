@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Admin\Controls\AdminGrid;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
@@ -21,7 +20,6 @@ use Nette\Application\UI\Multiplier;
 use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
 use StORM\Collection;
-use StORM\Connection;
 use StORM\ICollection;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -65,7 +63,6 @@ class ProductList extends Datalist
 		private readonly ProducerRepository $producerRepository,
 		private readonly DisplayAmountRepository $displayAmountRepository,
 		private readonly DisplayDeliveryRepository $displayDeliveryRepository,
-		private readonly Connection $connection,
 		protected readonly GeneralProductsCacheProvider $productsProvider,
 		?array $order = null,
 		?Collection $source = null
@@ -226,13 +223,7 @@ class ProductList extends Datalist
 				$this->setItemCountCallback(function (Collection $collection): int {
 					$collection->setSelect([])->setGroupBy([])->setOrderBy([]);
 
-					$subCollection = AdminGrid::processCollectionBaseFrom($collection, useOrder: false, join: false);
-					$subCollection->setSelect(['DISTINCT this.uuid'])->setGroupBy([])->setOrderBy([]);
-
-					$collection = $this->connection->rows()
-						->setFrom(['agg' => "({$subCollection->getSql()})"], $collection->getVars());
-
-					return $collection->enum('agg.uuid', unique: false);
+					return $collection->enum('this.uuid');
 				});
 
 				$source->setPage($this->getPage(), $this->getOnPage());
