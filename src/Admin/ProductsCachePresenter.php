@@ -5,7 +5,7 @@ namespace Eshop\Admin;
 
 use Eshop\DB\ProductRepository;
 use Eshop\DB\ProductsCacheStateRepository;
-use Eshop\GeneralProductProvider;
+use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
 use Nette\DI\Attributes\Inject;
 use Tracy\Debugger;
 
@@ -15,7 +15,7 @@ class ProductsCachePresenter extends \Eshop\BackendPresenter
 	public ProductRepository $productRepository;
 
 	#[Inject]
-	public GeneralProductProvider $productsProvider;
+	public GeneralProductsCacheProvider $productsProvider;
 
 	#[Inject]
 	public ProductsCacheStateRepository $productsCacheStateRepository;

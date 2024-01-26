@@ -1,9 +1,11 @@
 <?php
 
-namespace Eshop;
+namespace Eshop\Services\ProductsCache;
 
-interface GeneralProductProvider
+interface GeneralProductsCacheProvider
 {
+	public const PRODUCTS_PROVIDER_CACHE_TAG = 'productsProviderCache';
+
 	public function warmUpCacheTable(): void;
 
 	/**

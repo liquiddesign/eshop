@@ -31,6 +31,9 @@ use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
 
+/**
+ * @deprecated Not useful at the moment. Don't delete yet.
+ */
 class CustomerProductsProvider
 {
 	public const PRODUCTS_PROVIDER_CACHE_TAG = 'productsProviderCache';
@@ -720,7 +723,7 @@ CREATE TABLE `$productsCacheTableName` (
 				continue;
 			}
 
-			throw new \Exception("Filter '$filter' is not supported by ProductsProvider! You can add it manually with 'addAllowedFilterColumn' or 'addFilterExpression' functions.");
+			throw new \Exception("Filter '$filter' is not supported by ProductsCacheProvider! You can add it manually with 'addAllowedFilterColumn' or 'addFilterExpression' functions.");
 		}
 
 		$productsCollection->where($this->createCoalesceFromArray($priceLists, 'priceList', 'price') . ' > 0');
@@ -745,7 +748,7 @@ CREATE TABLE `$productsCacheTableName` (
 			} elseif (isset($this->allowedCollectionOrderExpressions[$orderByName])) {
 				$this->allowedCollectionOrderExpressions[$orderByName]($productsCollection, $orderByDirection, $visibilityLists, $priceLists);
 			} else {
-				throw new \Exception("Order '$orderByName' is not supported by ProductsProvider! You can add it manually with 'addAllowedOrderColumn' or 'addOrderExpression' function.");
+				throw new \Exception("Order '$orderByName' is not supported by ProductsCacheProvider! You can add it manually with 'addAllowedOrderColumn' or 'addOrderExpression' function.");
 			}
 		}
 

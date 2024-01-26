@@ -5,6 +5,11 @@ namespace Eshop\DB;
 use Base\Entity\ShopSystemicEntity;
 use StORM\RelationCollection;
 
+/**
+ * Seznam viditelnost
+ * @table
+ * @index{"name":"visibilitylist_priority","unique":false,"columns":["priority"]}
+ */
 class VisibilityList extends ShopSystemicEntity
 {
 	/**

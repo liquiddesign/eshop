@@ -64,4 +64,12 @@ class SettingsService implements AutoWireService
 
 		return $this->cachedCategoryTypes = [];
 	}
+
+	/**
+	 * @return array<string>
+	 */
+	public function getAllDefaultUnregisteredGroups(): array
+	{
+		return $this->settingRepository->many()->where('this.name LIKE :s', ['s' => SettingsPresenter::DEFAULT_UNREGISTERED_GROUP . '%'])->toArrayOf('value', toArrayValues: true);
+	}
 }

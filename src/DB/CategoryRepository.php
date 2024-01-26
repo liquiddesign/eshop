@@ -7,8 +7,8 @@ namespace Eshop\DB;
 use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
-use Eshop\GeneralProductProvider;
-use Eshop\ProductsProvider;
+use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
+use Eshop\Services\ProductsCache\ProductsCacheProvider;
 use Eshop\ShopperUser;
 use Latte\Loaders\StringLoader;
 use Latte\Sandbox\SecurityPolicy;
@@ -73,7 +73,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	 */
 	public function getCounts(string $path, array $filters = [], array $priceLists = [], array $visibilityLists = []): int|null
 	{
-		$productsProvider = $this->container->getByType(GeneralProductProvider::class);
+		$productsProvider = $this->container->getByType(GeneralProductsCacheProvider::class);
 		$productRepository = $this->productRepository;
 
 		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
@@ -95,7 +95,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		
 		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($productsProvider, $filters, $priceLists, $visibilityLists, $productRepository) {
 			$dependencies = [
-				Cache::Tags => ['categories', 'products', 'pricelists', ProductsProvider::PRODUCTS_PROVIDER_CACHE_TAG],
+				Cache::Tags => ['categories', 'products', 'pricelists', ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
 			];
 
 			try {
