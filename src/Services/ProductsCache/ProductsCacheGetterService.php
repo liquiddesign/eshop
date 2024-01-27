@@ -29,7 +29,6 @@ use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use StORM\DIConnection;
 use StORM\ICollection;
-use Tracy\Debugger;
 use Web\DB\SettingRepository;
 
 class ProductsCacheGetterService implements AutoWireService
@@ -176,10 +175,6 @@ class ProductsCacheGetterService implements AutoWireService
 		array $priceLists = [],
 		array $visibilityLists = [],
 	): array|false {
-		Debugger::barDump($filters);
-		Debugger::barDump($orderByName);
-
-//		xdebug_break();
 		$cacheIndex = $this->getCacheIndexToBeUsed();
 
 		if ($cacheIndex === 0) {
@@ -206,6 +201,7 @@ class ProductsCacheGetterService implements AutoWireService
 			->toArrayOf('id', toArrayValues: true);
 
 		$visibilityPriceListsIndex = \implode(',', $visibilityListsIds) . '-' . \implode(',', $priceListsIds);
+//		Debugger::barDump($visibilityPriceListsIndex);
 
 //      $dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
 //
@@ -216,18 +212,6 @@ class ProductsCacheGetterService implements AutoWireService
 //      if ($cachedData) {
 //          return $cachedData;
 //      }
-
-//		$emptyResult = [
-//			'productPKs' => [],
-//			'attributeValuesCounts' => [],
-//			'displayAmountsCounts' => [],
-//			'displayDeliveriesCounts' => [],
-//			'producersCounts' => [],
-//			'priceMin' => 0,
-//			'priceMax' => 0,
-//			'priceVatMin' => 0,
-//			'priceVatMax' => 0,
-//		];
 
 		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
 			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :

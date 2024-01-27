@@ -428,7 +428,9 @@ CREATE TABLE `$categoriesTableName` (
 
 	protected function insertVisibilityPriceTable(string $pricesCacheTableName): void
 	{
-		$visibilityPriceListsOptions = $this->getAllPossibleVisibilityAndPriceListOptions();
+		[$visibilityPriceListsOptions, $existingVisibilityLists, $existingPriceLists] = $this->getAllPossibleVisibilityAndPriceListOptions();
+		// Not useful right now
+		unset($existingVisibilityLists, $existingPriceLists);
 
 		$visibilityListItemsCache = [];
 		$pricesCache = [];
@@ -469,12 +471,12 @@ CREATE TABLE `$categoriesTableName` (
 				->join(['visibilityList' => 'eshop_visibilitylist'], 'this.fk_visibilityList = visibilityList.uuid', type: 'INNER')
 				->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid', type: 'INNER')
 				->where('visibilityList.id', $visibilityLists)
-				->setGroupBy(['this.fk_product'])
+				->setGroupBy(['product.id', 'visibilityList.priority'])
 				->setSelect([
 					'this.uuid',
 				])
 				->setIndex('product.id')
-				->orderBy(['visibilityList.priority'])
+				->orderBy(['product.id' => 'ASC', 'visibilityList.priority' => 'DESC'])
 				->toArrayOf('uuid')
 			);
 
@@ -482,8 +484,9 @@ CREATE TABLE `$categoriesTableName` (
 				->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
 				->join(['priceList' => 'eshop_pricelist'], 'price.fk_pricelist = priceList.uuid')
 				->where('priceList.id', $priceLists)
-				->setGroupBy(['this.id'])
-				->setOrderBy(['priceList.priority'])
+				->where('price.price IS NOT NULL')
+				->setOrderBy(['this.id' => 'ASC', 'priceList.priority' => 'DESC'])
+				->setGroupBy(['this.id', 'priceList.priority'])
 				->setSelect([
 					'price.uuid',
 					'priceList.id',
@@ -497,12 +500,20 @@ CREATE TABLE `$categoriesTableName` (
 			$mapToInsert = [];
 
 			foreach ($visibilityListItems as $product => $visibilityListItem) {
+//				if ($product === 74220) {
+//					xdebug_break();
+//				}
+
 				if (!isset($prices[$product]->uuid)) {
 					continue;
 				}
 
 				$visibilityListItem = $allVisibilityListItems[$visibilityListItem];
 				$price = $allPrices[$prices[$product]->uuid];
+
+				if (!$this->shopperUser->getShowZeroPrices() && !$price->price > 0) {
+					continue;
+				}
 
 				$mapToInsert[] = [
 					$index,
@@ -827,10 +838,12 @@ CREATE TABLE `$relationsCacheTableName` (
 	}
 
 	/**
-	 * @return array<string, true>
+	 * @return array<array<string, true>>
 	 */
 	protected function getAllPossibleVisibilityAndPriceListOptions(): array
 	{
+		$existingVisibilityLists = [];
+		$existingPriceLists = [];
 		$existingOptions = [];
 		$customerGroupsQuery = $this->customerGroupRepository->many();
 
@@ -842,10 +855,29 @@ CREATE TABLE `$relationsCacheTableName` (
 		}
 
 		foreach ($customerGroupsQuery as $customerGroup) {
+			$visibilityLists = $customerGroup->getDefaultVisibilityLists()->where('hidden', false)->setSelect(['id'])->setOrderBy(['priority'])->toArrayOf('id', toArrayValues: true);
+			$priceLists = $customerGroup->getDefaultPricelists()->where('isActive', true)->setSelect(['id'])->setOrderBy(['priority'])->toArrayOf('id', toArrayValues: true);
+
+			foreach ($visibilityLists as $visibilityList) {
+				if (isset($existingVisibilityLists[$visibilityList])) {
+					continue;
+				}
+
+				$existingVisibilityLists[$visibilityList] = true;
+			}
+
+			foreach ($priceLists as $priceList) {
+				if (isset($existingPriceLists[$priceList])) {
+					continue;
+				}
+
+				$existingPriceLists[$priceList] = true;
+			}
+
 			$index =
-				\implode(',', $customerGroup->getDefaultVisibilityLists()->where('hidden', false)->setSelect(['id'])->setOrderBy(['priority'])->toArrayOf('id', toArrayValues: true)) .
+				\implode(',', $visibilityLists) .
 				'-' .
-				\implode(',', $customerGroup->getDefaultPricelists()->where('isActive', true)->setSelect(['id'])->setOrderBy(['priority'])->toArrayOf('id', toArrayValues: true));
+				\implode(',', $priceLists);
 
 			$existingOptions[$index] = true;
 		}
@@ -867,10 +899,34 @@ CREATE TABLE `$relationsCacheTableName` (
 		$indexes = $customersQuery->toArrayOf('visibilityPriceIndex');
 
 		foreach ($indexes as $index) {
+			if (!$index) {
+				continue;
+			}
+
+			$exploded = \explode('-', $index);
+
+			if (\count($exploded) === 2) {
+				foreach (\explode(',', $exploded[0]) as $visibilityList) {
+					if (isset($existingVisibilityLists[$visibilityList])) {
+						continue;
+					}
+
+					$existingVisibilityLists[$visibilityList] = true;
+				}
+
+				foreach (\explode(',', $exploded[1]) as $priceList) {
+					if (isset($existingPriceLists[$priceList])) {
+						continue;
+					}
+
+					$existingPriceLists[$priceList] = true;
+				}
+			}
+
 			$existingOptions[$index] = true;
 		}
 
-		return $existingOptions;
+		return [$existingOptions, $existingVisibilityLists, $existingPriceLists];
 	}
 
 	protected function createVisibilityPriceTable(string $pricesCacheTableName): void
