@@ -539,12 +539,11 @@ CREATE TABLE `$categoriesTableName` (
 
 	protected function indexVisibilityPriceTable(string $pricesCacheTableName, string $productsCacheTableName): void
 	{
-		unset($productsCacheTableName);
 		$link = $this->getLink();
 
 //		$link->exec("CREATE INDEX idx_index ON `$pricesCacheTableName` (visibilityPriceIndex);");
 		$link->exec("CREATE INDEX idx_price ON `$pricesCacheTableName` (price);");
-//		$link->exec("ALTER TABLE $pricesCacheTableName ADD CONSTRAINT FOREIGN KEY (product) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE ");
+		$link->exec("ALTER TABLE $pricesCacheTableName ADD CONSTRAINT FOREIGN KEY (product) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE ");
 		$link->exec("ALTER TABLE `$pricesCacheTableName` ADD PRIMARY KEY (visibilityPriceIndex, product);");
 	}
 

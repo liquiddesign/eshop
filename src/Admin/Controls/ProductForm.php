@@ -45,6 +45,7 @@ use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use StORM\DIConnection;
 use StORM\ICollection;
+use Tracy\Debugger;
 use Web\DB\PageRepository;
 use Web\DB\SettingRepository;
 
@@ -522,6 +523,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 	public function validate(AdminForm $form): void
 	{
+		Debugger::barDump($form->getErrors());
+
 		if (!$form->isValid()) {
 			return;
 		}
