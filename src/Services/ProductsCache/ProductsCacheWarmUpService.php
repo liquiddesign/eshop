@@ -428,9 +428,7 @@ CREATE TABLE `$categoriesTableName` (
 
 	protected function insertVisibilityPriceTable(string $pricesCacheTableName): void
 	{
-		[$visibilityPriceListsOptions, $existingVisibilityLists, $existingPriceLists] = $this->getAllPossibleVisibilityAndPriceListOptions();
-		// Not useful right now
-		unset($existingVisibilityLists, $existingPriceLists);
+		[$visibilityPriceListsOptions] = $this->getAllPossibleVisibilityAndPriceListOptions();
 
 		$visibilityListItemsCache = [];
 		$pricesCache = [];
@@ -841,8 +839,6 @@ CREATE TABLE `$relationsCacheTableName` (
 	 */
 	protected function getAllPossibleVisibilityAndPriceListOptions(): array
 	{
-		$existingVisibilityLists = [];
-		$existingPriceLists = [];
 		$existingOptions = [];
 		$customerGroupsQuery = $this->customerGroupRepository->many();
 
@@ -856,22 +852,6 @@ CREATE TABLE `$relationsCacheTableName` (
 		foreach ($customerGroupsQuery as $customerGroup) {
 			$visibilityLists = $customerGroup->getDefaultVisibilityLists()->where('hidden', false)->setSelect(['id'])->setOrderBy(['priority'])->toArrayOf('id', toArrayValues: true);
 			$priceLists = $customerGroup->getDefaultPricelists()->where('isActive', true)->setSelect(['id'])->setOrderBy(['priority'])->toArrayOf('id', toArrayValues: true);
-
-			foreach ($visibilityLists as $visibilityList) {
-				if (isset($existingVisibilityLists[$visibilityList])) {
-					continue;
-				}
-
-				$existingVisibilityLists[$visibilityList] = true;
-			}
-
-			foreach ($priceLists as $priceList) {
-				if (isset($existingPriceLists[$priceList])) {
-					continue;
-				}
-
-				$existingPriceLists[$priceList] = true;
-			}
 
 			$index =
 				\implode(',', $visibilityLists) .
@@ -902,30 +882,10 @@ CREATE TABLE `$relationsCacheTableName` (
 				continue;
 			}
 
-			$exploded = \explode('-', $index);
-
-			if (\count($exploded) === 2) {
-				foreach (\explode(',', $exploded[0]) as $visibilityList) {
-					if (isset($existingVisibilityLists[$visibilityList])) {
-						continue;
-					}
-
-					$existingVisibilityLists[$visibilityList] = true;
-				}
-
-				foreach (\explode(',', $exploded[1]) as $priceList) {
-					if (isset($existingPriceLists[$priceList])) {
-						continue;
-					}
-
-					$existingPriceLists[$priceList] = true;
-				}
-			}
-
 			$existingOptions[$index] = true;
 		}
 
-		return [$existingOptions, $existingVisibilityLists, $existingPriceLists];
+		return [$existingOptions];
 	}
 
 	protected function createVisibilityPriceTable(string $pricesCacheTableName): void
