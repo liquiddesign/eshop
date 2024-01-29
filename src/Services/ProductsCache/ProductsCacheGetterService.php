@@ -28,6 +28,7 @@ use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use StORM\DIConnection;
 use StORM\ICollection;
+use Tracy\Debugger;
 use Web\DB\SettingRepository;
 
 class ProductsCacheGetterService implements AutoWireService
@@ -188,6 +189,12 @@ class ProductsCacheGetterService implements AutoWireService
 			throw new \Exception('No visibility or price lists supplied.');
 		}
 
+		if (isset($filters['pricelist'])) {
+			$priceLists = \array_filter($priceLists, fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
+		}
+
+		unset($filters['pricelist']);
+
 		$visibilityListsIds = $this->visibilityListRepository->many()
 			->setSelect(['this.id'])
 			->setOrderBy(['this.priority'])
@@ -200,7 +207,7 @@ class ProductsCacheGetterService implements AutoWireService
 			->toArrayOf('id', toArrayValues: true);
 
 		$visibilityPriceListsIndex = \implode(',', $visibilityListsIds) . '-' . \implode(',', $priceListsIds);
-//		Debugger::barDump($visibilityPriceListsIndex);
+		Debugger::barDump($visibilityPriceListsIndex);
 
 //      $dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
 //
@@ -240,13 +247,7 @@ class ProductsCacheGetterService implements AutoWireService
 		}
 
 		$productsCollection->setGroupBy(['this.product']);
-		$productsCollection->where('visibilityPrice.price > 0');
-
-		if (isset($filters['pricelist'])) {
-			$priceLists = \array_filter($priceLists, fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
-		}
-
-		unset($filters['pricelist']);
+//		$productsCollection->where('visibilityPrice.price > 0');
 
 		$productsCollection->setSelect([
 			'product' => 'this.product',

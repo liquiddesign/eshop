@@ -885,6 +885,30 @@ CREATE TABLE `$relationsCacheTableName` (
 			$existingOptions[$index] = true;
 		}
 
+		$customersQuery = $this->customerRepository->many()
+			->join(['customerXpriceList' => 'eshop_customer_nxn_eshop_pricelist_favourite'], 'this.uuid = customerXpriceList.fk_customer')
+			->join(['priceList' => 'eshop_pricelist'], 'customerXpriceList.fk_pricelist = priceList.uuid')
+			->join(['customerXvisibilityList' => 'eshop_customer_nxn_eshop_visibilitylist'], 'this.uuid = customerXvisibilityList.fk_customer')
+			->join(['visibilityList' => 'eshop_visibilitylist'], 'customerXvisibilityList.fk_visibilitylist = visibilityList.uuid')
+			->setSelect([
+				'visibilityPriceIndex' => 'DISTINCT(CONCAT(
+					GROUP_CONCAT(DISTINCT visibilityList.id ORDER BY visibilityList.priority),
+					"-",
+					GROUP_CONCAT(DISTINCT priceList.id ORDER BY priceList.priority)
+				))',
+			])
+			->setGroupBy(['this.uuid']);
+
+		$indexes = $customersQuery->toArrayOf('visibilityPriceIndex');
+
+		foreach ($indexes as $index) {
+			if (!$index) {
+				continue;
+			}
+
+			$existingOptions[$index] = true;
+		}
+
 		return [$existingOptions];
 	}
 
