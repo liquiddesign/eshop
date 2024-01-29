@@ -9,6 +9,7 @@
 {varType Eshop\DB\Product $product}
 
 <form n:name="form">
+    {dump $form->getErrors()}
     {var $activeMutation = $form->getActiveMutation()}
 	    {var $renderer = $form->getRenderer()}
     <ul class="error" n:ifcontent>
