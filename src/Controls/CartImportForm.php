@@ -113,7 +113,7 @@ class CartImportForm extends Form
 			$productId = $productRow[0] ?? false;
 			$amount = $productRow[1] ?? false;
 			
-			if (!$productId) {
+			if (!$productId || !$amount) {
 				continue;
 			}
 			
