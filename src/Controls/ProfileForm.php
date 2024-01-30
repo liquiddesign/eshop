@@ -60,11 +60,11 @@ class ProfileForm extends \Nette\Application\UI\Form
 
 		$this->addGroup('Doručovací adresa');
 		$deliveryAddressBox = $this->addContainer('deliveryAddress');
-		$deliveryAddressBox->addText('name', 'deliveryAddress.name')->setRequired();
+		$deliveryAddressBox->addText('name', 'deliveryAddress.name')->setNullable();
 		$deliveryAddressBox->addText('companyName', 'deliveryAddress.companyName')->setNullable();
-		$deliveryAddressBox->addText('street', 'deliveryAddress.street')->setRequired();
-		$deliveryAddressBox->addText('city', 'deliveryAddress.city')->setRequired();
-		$deliveryAddressBox->addText('zipcode', 'deliveryAddress.zipcode')->setRequired()
+		$deliveryAddressBox->addText('street', 'deliveryAddress.street');
+		$deliveryAddressBox->addText('city', 'deliveryAddress.city');
+		$deliveryAddressBox->addText('zipcode', 'deliveryAddress.zipcode')->setNullable()->addCondition($this::Filled)
 			->addRule(self::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
 
 		$this->addGroup('Potvrzení');

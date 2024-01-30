@@ -669,7 +669,7 @@ class OrderGridFactory
 		$address = $order->purchase->deliveryAddress ? $order->purchase->deliveryAddress->getFullAddress() : ($order->purchase->billAddress ? $order->purchase->billAddress->getFullAddress() : '');
 
 		if ($order->purchase->customer) {
-			$fullName = $order->purchase->customer->fullname ?: ($order->purchase->fullname ?: '');
+			$fullName = $order->purchase->fullname;
 			$link = $grid->getPresenter()->link(':Eshop:Admin:Customer:edit', [$order->purchase->customer]);
 
 			return "<a href='$link' style='white-space: nowrap;'>$fullName</a><br><small>$address</small>";
