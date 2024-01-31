@@ -20,6 +20,7 @@ use StORM\RelationCollection;
  * @method \StORM\RelationCollection<\Eshop\DB\VisibilityList> getVisibilityLists()
  * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getPricelists()
  * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getFavouritePricelists()
+ * @method \StORM\RelationCollection<\Eshop\DB\Merchant> getMerchants()
  * Due to compatibility within PHP 8.0-8.2 and seamless migration to this version, DynamicProperties are allowed in this class. If they are not, you will have to clear all sessions' data.
  */
 #[\AllowDynamicProperties]
@@ -204,6 +205,13 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @var \StORM\RelationCollection<\Eshop\DB\VisibilityList>
 	 */
 	public RelationCollection $visibilityLists;
+
+	/**
+	 * Obchodníci
+	 * @relationNxN{"sourceViaKey":"fk_merchant","targetViaKey":"fk_customer","via":"eshop_merchant_nxn_eshop_customer"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\Merchant>
+	 */
+	public RelationCollection $merchants;
 	
 	/**
 	 * Skupina uživatelů

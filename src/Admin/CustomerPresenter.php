@@ -40,7 +40,6 @@ use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Connection;
 use StORM\ICollection;
-use Tracy\Debugger;
 
 class CustomerPresenter extends BackendPresenter
 {
@@ -199,6 +198,10 @@ class CustomerPresenter extends BackendPresenter
 			$source->where('accounts.uuid ' . ($value === '1' ? 'IS NOT NULL' : 'IS NULL'));
 		}, '', 'accountsAssigned', 'Účet', ['0' => 'Bez účtu', '1' => 'S účtem'])->setPrompt('- Účet -');
 
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+			$source->where('this.fk_parentCustomer ' . ($value === '1' ? 'IS NOT NULL' : 'IS NULL'));
+		}, '', 'parentCustomer', null, ['0' => 'Ne', '1' => 'Ane'])->setPrompt('- Nadřazený zák. -');
+
 		$grid->addFilterDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs >= :createdTs_from', ['createdTs_from' => $value]);
 		}, '', 'createdTs_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])
@@ -287,10 +290,13 @@ class CustomerPresenter extends BackendPresenter
 	public function createComponentCustomers(): AdminGrid
 	{
 		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
-		
+
 		$grid = $this->gridFactory->create($this->customerRepository->many()
-			->select(['pricelists_names' => "GROUP_CONCAT(DISTINCT pricelists.name SEPARATOR ', ')"])
-			->select(['visibilityLists_names' => "GROUP_CONCAT(DISTINCT visibilityLists.name SEPARATOR ', ')"])
+			->select([
+				'pricelists_names' => "GROUP_CONCAT(DISTINCT pricelists.name SEPARATOR ', ')",
+				'visibilityLists_names' => "GROUP_CONCAT(DISTINCT visibilityLists.name SEPARATOR ', ')",
+				'merchants_names' => "GROUP_CONCAT(DISTINCT merchants.fullname SEPARATOR ', ')",
+			])
 			->setGroupBy(['this.uuid']), 20, 'createdTs', 'DESC', true, filterShops: false);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Registrace', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
@@ -305,12 +311,12 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addColumnTextFit('E-mail / Telefon', ['email', 'phone'], $td)->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		
 		
-		$grid->addColumn($lableMerchants, function (Customer $customer) {
-			return \implode(', ', $this->merchantRepository->many()
-				->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = merchantXcustomer.fk_merchant')
-				->where('fk_customer', $customer)
-				->toArrayOf('fullname'));
-		});
+		$grid->addColumn("$lableMerchants<hr style=\"margin: 0\">Nadřazený zák.", function (Customer $customer) {
+			return [
+				$customer->getValue('merchants_names'),
+				$customer->parentCustomer?->getName(),
+			];
+		}, '%s<hr style="margin: 0">%s');
 		$grid->addColumnTextFit('Skupina', 'group.name', '%s', 'group.name');
 
 		if (isset($this::CONFIGURATIONS['customerRoles']) && $this::CONFIGURATIONS['customerRoles']) {
@@ -787,8 +793,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 	
 	public function renderDefault(?Customer $customer = null): void
 	{
-		Debugger::$showBar = false;
-
 		unset($customer);
 		
 		if ($this->tab === 'customers') {
