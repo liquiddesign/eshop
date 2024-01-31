@@ -90,6 +90,18 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	public ?int $realAmount;
 	
 	/**
+	 * Původní požadované množství
+	 * @column
+	 */
+	public ?int $originalAmount;
+	
+	/**
+	 * Důvod změny původního množství
+	 * @column
+	 */
+	public ?string $changeAmountReason;
+	
+	/**
 	 * Cena
 	 * @column
 	 */
@@ -165,6 +177,12 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	 * @relation
 	 */
 	public ?CartItem $upsell;
+	
+	/**
+	 * Vytvořen
+	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
+	 */
+	public string $createdTs;
 	
 	/**
 	 * Related cart items
