@@ -612,7 +612,7 @@ class ProductsCacheGetterService implements AutoWireService
 	 * @return int<0, 2>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	protected function getCacheIndexToBeUsed(): int
+	public function getCacheIndexToBeUsed(): int
 	{
 		$readyState = $this->productsCacheStateRepository->many()->where('this.state', 'ready')->first();
 
