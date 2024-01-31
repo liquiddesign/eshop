@@ -971,6 +971,7 @@ class CheckoutManager
 				} elseif ($incorrectItem['reason'] === IncorrectItemReason::INCORRECT_AMOUNT) {
 					$incorrectItem['object']->update([
 						'amount' => $incorrectItem['correctValue'],
+						'changeAmountReason' => IncorrectItemReason::INCORRECT_AMOUNT,
 					]);
 				} elseif ($incorrectItem['reason'] === IncorrectItemReason::INCORRECT_PRICE) {
 					$incorrectItem['object']->update([
@@ -982,6 +983,7 @@ class CheckoutManager
 				} elseif ($incorrectItem['reason'] === IncorrectItemReason::PRODUCT_ROUND) {
 					$incorrectItem['object']->update([
 						'amount' => $incorrectItem['correctValue'],
+						'changeAmountReason' => IncorrectItemReason::PRODUCT_ROUND,
 					]);
 				}
 			} catch (\Throwable $e) {

@@ -47,14 +47,14 @@ class CartItemRepository extends \StORM\Repository
 			->where('fk_cart', $cart)
 			->where('fk_product', $product)
 			->where('fk_variant', [$variant])
-			->update(['amount' => $amount, 'price' => $product->getPrice($amount), 'priceVat' => $product->getPriceVat($amount)]);
+			->update(['originalAmount' => $amount, 'amount' => $amount, 'price' => $product->getPrice($amount), 'priceVat' => $product->getPriceVat($amount)]);
 	}
 
 	public function updateCartItemAmount(CartItem $cartItem, Product $product, int $amount): int
 	{
 		return $this->many()
 			->where('this.uuid', $cartItem->getPK())
-			->update(['amount' => $amount, 'price' => $product->getPrice($amount), 'priceVat' => $product->getPriceVat($amount)]);
+			->update(['originalAmount' => $amount, 'amount' => $amount, 'price' => $product->getPrice($amount), 'priceVat' => $product->getPriceVat($amount)]);
 	}
 	
 	public function updateNote(Cart $cart, Product $product, ?Variant $variant, ?string $note): int
@@ -97,6 +97,7 @@ class CartItemRepository extends \StORM\Repository
 			'productDimension' => $product->dimension,
 			'productKeepFlat' => $product->keepFlat,
 			'variantName' => $variant ? $variant->toArray()['name'] : [],
+			'originalAmount' => $amount,
 			'amount' => $amount,
 			'price' => $product->getPrice($amount),
 			'priceVat' => $product->getPriceVat($amount),
