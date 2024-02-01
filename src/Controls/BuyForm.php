@@ -32,16 +32,15 @@ class BuyForm extends Form
 
 		$countInput = $this->addInteger('amount', 'Počet zboží:')
 			->setDefaultValue($product->defaultBuyCount)
-			->addRule($this::MIN, null, $product->minBuyCount)
+			//			->setHtmlAttribute('step', $product->buyStep)
+			//			->addRule($this::MIN, 'Prosím zadejte minimální odběr %d ' . $product->unit, $product->minBuyCount)
+			->addRule([$this, 'validateNumber'], 'Prosím zadejte min. objednávku nebo její násobek: %d ' . $product->unit, [$product->buyStep, $minCount, $maxCount, $defaultBuyCount])
 			->setRequired();
 		
 		if ($maxCount !== null) {
 			$countInput->addRule($this::MAX, null, $maxCount);
 		}
 		
-		$countInput->addRule([$this, 'validateNumber'], 'Není to násobek', [$product->buyStep, $minCount, $maxCount, $defaultBuyCount]);
-		$countInput->setHtmlAttribute('step', $product->buyStep);
-
 		$this->addHidden('itemId', $product->getPK());
 		$this->addHidden('variant');
 		$this->addSubmit('submit', 'Přidat do košíku')->setDisabled(!$shopper->getBuyPermission());
