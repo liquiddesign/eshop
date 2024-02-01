@@ -43,7 +43,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			->where('fk_currency', $currency->getPK())
 			->where('fk_country', $country->getPK());
 
-		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
+//		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
 
 		return $collection->select(['this.id'])->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
 	}
@@ -66,7 +66,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			->where('fk_currency ', $currency->getPK())
 			->where('fk_country', $country->getPK());
 
-		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
+//		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
 
 		return $collection->select(['this.id'])->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
 	}
@@ -82,7 +82,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			->where('fk_currency ', $currency->getPK())
 			->where('fk_country', $country->getPK());
 
-		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
+//		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
 
 		return $collection->select(['this.id'])->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
 	}
