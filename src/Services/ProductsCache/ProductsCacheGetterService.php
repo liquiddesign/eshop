@@ -21,6 +21,7 @@ use Eshop\DB\RelatedRepository;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
+use Eshop\DevelTools;
 use Eshop\ShopperUser;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
@@ -376,7 +377,7 @@ class ProductsCacheGetterService implements AutoWireService
 		$producersCounts = [];
 		$attributeValuesCounts = [];
 
-//		DevelTools::bdumpCollection($productsCollection);
+		DevelTools::bdumpCollection($productsCollection);
 
 		$priceMin = \PHP_FLOAT_MAX;
 		$priceMax = \PHP_FLOAT_MIN;

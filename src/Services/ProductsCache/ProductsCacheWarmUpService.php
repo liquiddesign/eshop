@@ -24,6 +24,7 @@ use Eshop\DB\RelatedRepository;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
+use Eshop\DevelTools;
 use Eshop\Services\SettingsService;
 use Eshop\ShopperUser;
 use Nette\Caching\Cache;
@@ -101,15 +102,19 @@ class ProductsCacheWarmUpService implements AutoWireService
 
 			$this->dropCategoriesTables($cacheIndexToBeWarmedUp, $categoriesTableName);
 			Debugger::dump('dropCategoriesTables: ' . Debugger::timer());
+			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 			$this->createVisibilityPriceTable($visibilityPricesCacheTableName);
 			Debugger::dump('createVisibilityPriceTable: ' . Debugger::timer());
+			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 			$this->insertVisibilityPriceTable($visibilityPricesCacheTableName);
 			Debugger::dump('insertVisibilityPriceTable: ' . Debugger::timer());
+			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 			$this->warmUpRelations($cacheIndexToBeWarmedUp);
 			Debugger::dump('warmUpRelations: ' . Debugger::timer());
+			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 			[
 				$allCategoryTypes,
@@ -121,9 +126,11 @@ class ProductsCacheWarmUpService implements AutoWireService
 				$productCategories,
 			] = $this->getPrefetchedArrays();
 			Debugger::dump('Prefetch before main table: ' . Debugger::timer());
+			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 			$this->createMainTable($productsCacheTableName, $allCategoryTypes);
 			Debugger::dump('createMainTable: ' . Debugger::timer());
+			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 			$productsByCategories = $this->insertMainTable(
 				$productsCacheTableName,
@@ -136,21 +143,27 @@ class ProductsCacheWarmUpService implements AutoWireService
 				$productCategories,
 			);
 			Debugger::dump('insertMainTable: ' . Debugger::timer());
+			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 			$this->indexMainTable($productsCacheTableName, $allCategoryTypes);
 			Debugger::dump('indexMainTable: ' . Debugger::timer());
+			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 			$this->indexVisibilityPriceTable($visibilityPricesCacheTableName, $productsCacheTableName);
 			Debugger::dump('indexVisibilityPriceTable: ' . Debugger::timer());
+			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 			$this->createCategoriesTable($categoriesTableName);
 			Debugger::dump('createCategoriesTable: ' . Debugger::timer());
+			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 			$this->insertCategoriesTable($categoriesTableName, $productsByCategories, $allCategories);
 			Debugger::dump('insertCategoriesTable: ' . Debugger::timer());
+			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 			$this->indexCategoriesTable($categoriesTableName, $productsCacheTableName);
 			Debugger::dump('indexCategoriesTable: ' . Debugger::timer());
+			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 			$this->markCacheAsReady($cacheIndexToBeWarmedUp);
 			$this->cleanProductsProviderCache();
@@ -278,6 +291,7 @@ CREATE TABLE `$categoriesTableName` (
 
 			if ($first) {
 				Debugger::dump('Main select: ' . Debugger::timer());
+				Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 				$first = false;
 			}
@@ -428,29 +442,72 @@ CREATE TABLE `$categoriesTableName` (
 
 	protected function insertVisibilityPriceTable(string $pricesCacheTableName): void
 	{
-		[$visibilityPriceListsOptions] = $this->getAllPossibleVisibilityAndPriceListOptions();
+		Debugger::timer('getAllPossibleVisibilityAndPriceListOptions');
+		[$visibilityPriceListsOptions, $allVisibilityLists, $allPriceLists] = $this->getAllPossibleVisibilityAndPriceListOptions();
+		Debugger::dump('insertVisibilityPriceTable -- getAllPossibleVisibilityAndPriceListOptions: ' . Debugger::timer('getAllPossibleVisibilityAndPriceListOptions'));
+		Debugger::dump(DevelTools::getPeakMemoryUsage());
 
-		$visibilityListItemsCache = [];
-		$pricesCache = [];
+		Debugger::timer('insertVisibilityPriceTable -- prefetch');
 
-		$sqlTime = 0;
-
-		$allVisibilityListItems = $this->visibilityListItemRepository->many()
+		/** @var array<int, array<int, \stdClass>> $allProductsWithVLI */
+		$allProductsWithVLI = [];
+		$allProductsWithVLIQuery = $this->visibilityListItemRepository->many()
+			->join(['visibilityList' => 'eshop_visibilitylist'], 'this.fk_visibilityList = visibilityList.uuid', type: 'INNER')
+			->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid', type: 'INNER')
+			->where('visibilityList.id', $allVisibilityLists)
 			->setSelect([
 				'this.hidden',
 				'this.hiddenInMenu',
 				'this.priority',
 				'this.unavailable',
 				'this.recommended',
-			], keepIndex: true)->fetchArray(\stdClass::class);
+				'productId' => 'product.id',
+				'visibilityListId' => 'visibilityList.id',
+			])
+			->setIndex('product.id')
+			->orderBy(['product.id' => 'ASC', 'visibilityList.priority' => 'ASC']);
 
-		$allPrices = $this->priceRepository->many()
+		while ($item = $allProductsWithVLIQuery->fetch(\stdClass::class)) {
+			/** @var \stdClass $item */
+
+			$allProductsWithVLI[$item->productId][$item->visibilityListId] = $item;
+		}
+
+		$allProductsWithVLIQuery->__destruct();
+		unset($allProductsWithVLIQuery);
+
+		/** @var array<int, array<int, \stdClass>> $allProductsWithPrice */
+		$allProductsWithPrice = [];
+		$allProductsWithPriceQuery = $this->priceRepository->many()
+			->join(['priceList' => 'eshop_pricelist'], 'this.fk_pricelist = priceList.uuid', type: 'INNER')
+			->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid', type: 'INNER')
+			->where('priceList.id', $allPriceLists)
 			->setSelect([
 				'this.price',
 				'this.priceVat',
 				'this.priceBefore',
 				'this.priceVatBefore',
-			], keepIndex: true)->fetchArray(\stdClass::class);
+				'productId' => 'product.id',
+				'priceListId' => 'priceList.id',
+			])
+			->setIndex('product.id')
+			->orderBy(['product.id' => 'ASC', 'priceList.priority' => 'ASC']);
+
+		while ($item = $allProductsWithPriceQuery->fetch(\stdClass::class)) {
+			/** @var \stdClass $item */
+
+			$allProductsWithPrice[$item->productId][$item->priceListId] = $item;
+		}
+
+		$allProductsWithPriceQuery->__destruct();
+		unset($allProductsWithPriceQuery);
+
+		Debugger::dump('insertVisibilityPriceTable -- prefetch: ' . Debugger::timer('insertVisibilityPriceTable -- prefetch'));
+		Debugger::dump(DevelTools::getPeakMemoryUsage());
+
+		$loadDataTime = 0;
+
+		Debugger::timer('insertVisibilityPriceTable -- main while');
 
 		foreach (\array_keys($visibilityPriceListsOptions) as $index) {
 			$explodedIndex = \explode('-', $index);
@@ -460,97 +517,105 @@ CREATE TABLE `$categoriesTableName` (
 			}
 
 			[$visibilityListsString, $priceListsString] = $explodedIndex;
+			/** @var array<int> $visibilityLists */
 			$visibilityLists = \explode(',', $visibilityListsString);
+			/** @var array<int> $priceLists */
 			$priceLists = \explode(',', $priceListsString);
 
-			Debugger::timer('insertVisibilityPriceTable');
-
-			$visibilityListItems = $visibilityListItemsCache[$visibilityListsString] ?? ($visibilityListItemsCache[$visibilityListsString] = $this->visibilityListItemRepository->many()
-				->join(['visibilityList' => 'eshop_visibilitylist'], 'this.fk_visibilityList = visibilityList.uuid', type: 'INNER')
-				->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid', type: 'INNER')
-				->where('visibilityList.id', $visibilityLists)
-				->setGroupBy(['product.id', 'visibilityList.priority'])
-				->setSelect([
-					'this.uuid',
-				])
-				->setIndex('product.id')
-				->orderBy(['product.id' => 'ASC', 'visibilityList.priority' => 'DESC'])
-				->toArrayOf('uuid')
-			);
-
-			$prices = $pricesCache[$priceListsString] ?? ($pricesCache[$priceListsString] = $this->productRepository->many()
-				->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
-				->join(['priceList' => 'eshop_pricelist'], 'price.fk_pricelist = priceList.uuid')
-				->where('priceList.id', $priceLists)
-				->where('price.price IS NOT NULL')
-				->setOrderBy(['this.id' => 'ASC', 'priceList.priority' => 'DESC'])
-				->setGroupBy(['this.id', 'priceList.priority'])
-				->setSelect([
-					'price.uuid',
-					'priceList.id',
-				])
-				->setIndex('this.id')
-				->fetchArray(\stdClass::class)
-			);
-
-			$sqlTime += Debugger::timer('insertVisibilityPriceTable');
-
 			$mapToInsert = [];
+			$i = 0;
 
-			foreach ($visibilityListItems as $product => $visibilityListItem) {
-//				if ($product === 74220) {
-//					xdebug_break();
-//				}
+			foreach ($allProductsWithVLI as $product => $vliItems) {
+				foreach ($visibilityLists as $visibilityListId) {
+					if (!isset($vliItems[$visibilityListId])) {
+						continue;
+					}
 
-				if (!isset($prices[$product]->uuid)) {
+					$visibilityListItem = $vliItems[$visibilityListId];
+
+					if (!isset($allProductsWithPrice[$product])) {
+						continue;
+					}
+
+					$priceItems = $allProductsWithPrice[$product];
+
+					foreach ($priceLists as $priceListId) {
+						if (!isset($priceItems[$priceListId])) {
+							continue;
+						}
+
+						$price = $priceItems[$priceListId];
+
+						if (!$this->shopperUser->getShowZeroPrices() && !$price->price > 0) {
+							continue;
+						}
+
+						$mapToInsert[] = [
+							$index,
+							$product,
+							$price->price,
+							$price->priceVat,
+							$price->priceBefore ?: '\N',
+							$price->priceVatBefore ?: '\N',
+							$priceListId,
+							$visibilityListItem->hidden,
+							$visibilityListItem->hiddenInMenu,
+							$visibilityListItem->priority,
+							$visibilityListItem->unavailable,
+							$visibilityListItem->recommended,
+						];
+
+						break 2;
+					}
+				}
+
+				$i++;
+
+				if ($i !== 10000) {
 					continue;
 				}
 
-				$visibilityListItem = $allVisibilityListItems[$visibilityListItem];
-				$price = $allPrices[$prices[$product]->uuid];
+				Debugger::timer('loadData');
+				$this->loadDataInfile($pricesCacheTableName, $mapToInsert);
+				$loadDataTime += Debugger::timer('loadData');
 
-				if (!$this->shopperUser->getShowZeroPrices() && !$price->price > 0) {
-					continue;
-				}
-
-				$mapToInsert[] = [
-					$index,
-					$product,
-					$price->price,
-					$price->priceVat,
-					$price->priceBefore ?: '\N',
-					$price->priceVatBefore ?: '\N',
-					$prices[$product]->id,
-					$visibilityListItem->hidden,
-					$visibilityListItem->hiddenInMenu,
-					$visibilityListItem->priority,
-					$visibilityListItem->unavailable,
-					$visibilityListItem->recommended,
-				];
+				$mapToInsert = [];
+				$i = 0;
 			}
 
+			Debugger::timer('loadData');
 			$this->loadDataInfile($pricesCacheTableName, $mapToInsert);
+			$loadDataTime += Debugger::timer('loadData');
 		}
 
-		Debugger::dump('SQL in foreach: ' . $sqlTime);
+		Debugger::dump('insertVisibilityPriceTable -- main while: ' . Debugger::timer('insertVisibilityPriceTable -- main while'));
+
+		Debugger::dump('insertVisibilityPriceTable -- load data time: ' . $loadDataTime);
 	}
 
 	protected function indexVisibilityPriceTable(string $pricesCacheTableName, string $productsCacheTableName): void
 	{
 		$link = $this->getLink();
 
-//		$link->exec("CREATE INDEX idx_index ON `$pricesCacheTableName` (visibilityPriceIndex);");
-		$link->exec("CREATE INDEX idx_price ON `$pricesCacheTableName` (price);");
-		$link->exec("ALTER TABLE $pricesCacheTableName ADD CONSTRAINT FOREIGN KEY (product) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE ");
+		Debugger::timer('indexVisibilityPriceTable -- PRIMARY');
 		$link->exec("ALTER TABLE `$pricesCacheTableName` ADD PRIMARY KEY (visibilityPriceIndex, product);");
+		Debugger::dump('indexVisibilityPriceTable -- PRIMARY: ' . Debugger::timer('indexVisibilityPriceTable -- PRIMARY'));
+
+		Debugger::timer('indexVisibilityPriceTable -- product');
+		$link->exec("ALTER TABLE $pricesCacheTableName ADD CONSTRAINT FOREIGN KEY (product) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE ");
+		Debugger::dump('indexVisibilityPriceTable -- product: ' . Debugger::timer('indexVisibilityPriceTable -- product'));
+
+//		Debugger::timer('indexVisibilityPriceTable -- idx_price');
+//		$link->exec("CREATE INDEX idx_price ON `$pricesCacheTableName` (price);");
+//		Debugger::dump('indexVisibilityPriceTable -- idx_price: ' . Debugger::timer('indexVisibilityPriceTable -- idx_price'));
 	}
 
 	protected function indexCategoriesTable(string $tableName, string $productsCacheTableName): void
 	{
 		$link = $this->getLink();
 
-		$link->exec("ALTER TABLE $tableName ADD CONSTRAINT FOREIGN KEY (product) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE ");
 		$link->exec("ALTER TABLE `$tableName` ADD PRIMARY KEY (product, category);");
+		$link->exec("ALTER TABLE $tableName ADD CONSTRAINT FOREIGN KEY (product) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE ");
 		$link->exec("ALTER TABLE `$tableName` ADD INDEX (category);");
 	}
 
@@ -835,11 +900,13 @@ CREATE TABLE `$relationsCacheTableName` (
 	}
 
 	/**
-	 * @return array<array<string, true>>
+	 * @return array{0: array<string, true>, 1: array<int>, 2: array<int>}
 	 */
 	protected function getAllPossibleVisibilityAndPriceListOptions(): array
 	{
 		$existingOptions = [];
+		$allVisibilityLists = [];
+		$allPriceLists = [];
 		$customerGroupsQuery = $this->customerGroupRepository->many();
 
 		// Only customer groups marked as defaultUnregisteredGroup are used
@@ -853,6 +920,14 @@ CREATE TABLE `$relationsCacheTableName` (
 			$visibilityLists = $customerGroup->getDefaultVisibilityLists()->where('hidden', false)->setSelect(['id'])->setOrderBy(['priority'])->toArrayOf('id', toArrayValues: true);
 			$priceLists = $customerGroup->getDefaultPricelists()->where('isActive', true)->setSelect(['id'])->setOrderBy(['priority'])->toArrayOf('id', toArrayValues: true);
 
+			foreach ($visibilityLists as $visibilityList) {
+				$allVisibilityLists[$visibilityList] = true;
+			}
+
+			foreach ($priceLists as $priceList) {
+				$allPriceLists[$priceList] = true;
+			}
+
 			$index =
 				\implode(',', $visibilityLists) .
 				'-' .
@@ -861,55 +936,45 @@ CREATE TABLE `$relationsCacheTableName` (
 			$existingOptions[$index] = true;
 		}
 
-		$customersQuery = $this->customerRepository->many()
-			->join(['customerXpriceList' => 'eshop_customer_nxn_eshop_pricelist'], 'this.uuid = customerXpriceList.fk_customer')
-			->join(['priceList' => 'eshop_pricelist'], 'customerXpriceList.fk_pricelist = priceList.uuid')
-			->join(['customerXvisibilityList' => 'eshop_customer_nxn_eshop_visibilitylist'], 'this.uuid = customerXvisibilityList.fk_customer')
-			->join(['visibilityList' => 'eshop_visibilitylist'], 'customerXvisibilityList.fk_visibilitylist = visibilityList.uuid')
-			->setSelect([
-				'visibilityPriceIndex' => 'DISTINCT(CONCAT(
+		foreach (['eshop_customer_nxn_eshop_pricelist', 'eshop_customer_nxn_eshop_pricelist_favourite'] as $table) {
+			$customersQuery = $this->customerRepository->many()
+				->join(['customerXpriceList' => $table], 'this.uuid = customerXpriceList.fk_customer')
+				->join(['priceList' => 'eshop_pricelist'], 'customerXpriceList.fk_pricelist = priceList.uuid')
+				->join(['customerXvisibilityList' => 'eshop_customer_nxn_eshop_visibilitylist'], 'this.uuid = customerXvisibilityList.fk_customer')
+				->join(['visibilityList' => 'eshop_visibilitylist'], 'customerXvisibilityList.fk_visibilitylist = visibilityList.uuid')
+				->setSelect([
+					'visibilityPriceIndex' => 'DISTINCT(CONCAT(
 					GROUP_CONCAT(DISTINCT visibilityList.id ORDER BY visibilityList.priority),
 					"-",
 					GROUP_CONCAT(DISTINCT priceList.id ORDER BY priceList.priority)
 				))',
-			])
-			->setGroupBy(['this.uuid']);
+				])
+				->setGroupBy(['this.uuid']);
 
-		$indexes = $customersQuery->toArrayOf('visibilityPriceIndex');
+			$indexes = $customersQuery->toArrayOf('visibilityPriceIndex');
 
-		foreach ($indexes as $index) {
-			if (!$index) {
-				continue;
+			foreach ($indexes as $index) {
+				if (!$index) {
+					continue;
+				}
+
+				$exploded = \explode('-', $index);
+
+				if (\count($exploded) === 2) {
+					foreach (\explode(',', $exploded[0]) as $visibilityList) {
+						$allVisibilityLists[$visibilityList] = true;
+					}
+
+					foreach (\explode(',', $exploded[1]) as $priceList) {
+						$allPriceLists[$priceList] = true;
+					}
+				}
+
+				$existingOptions[$index] = true;
 			}
-
-			$existingOptions[$index] = true;
 		}
 
-		$customersQuery = $this->customerRepository->many()
-			->join(['customerXpriceList' => 'eshop_customer_nxn_eshop_pricelist_favourite'], 'this.uuid = customerXpriceList.fk_customer')
-			->join(['priceList' => 'eshop_pricelist'], 'customerXpriceList.fk_pricelist = priceList.uuid')
-			->join(['customerXvisibilityList' => 'eshop_customer_nxn_eshop_visibilitylist'], 'this.uuid = customerXvisibilityList.fk_customer')
-			->join(['visibilityList' => 'eshop_visibilitylist'], 'customerXvisibilityList.fk_visibilitylist = visibilityList.uuid')
-			->setSelect([
-				'visibilityPriceIndex' => 'DISTINCT(CONCAT(
-					GROUP_CONCAT(DISTINCT visibilityList.id ORDER BY visibilityList.priority),
-					"-",
-					GROUP_CONCAT(DISTINCT priceList.id ORDER BY priceList.priority)
-				))',
-			])
-			->setGroupBy(['this.uuid']);
-
-		$indexes = $customersQuery->toArrayOf('visibilityPriceIndex');
-
-		foreach ($indexes as $index) {
-			if (!$index) {
-				continue;
-			}
-
-			$existingOptions[$index] = true;
-		}
-
-		return [$existingOptions];
+		return [$existingOptions, \array_keys($allVisibilityLists), \array_keys($allPriceLists)];
 	}
 
 	protected function createVisibilityPriceTable(string $pricesCacheTableName): void
@@ -919,7 +984,7 @@ CREATE TABLE `$relationsCacheTableName` (
 		$link->exec("
 DROP TABLE IF EXISTS `$pricesCacheTableName`;
 CREATE TABLE `$pricesCacheTableName` (
-  visibilityPriceIndex VARCHAR(511) NOT NULL,
+  visibilityPriceIndex VARCHAR(255) NOT NULL,
   product BIGINT UNSIGNED NOT NULL,
   price DOUBLE NOT NULL,
   priceVat DOUBLE,
