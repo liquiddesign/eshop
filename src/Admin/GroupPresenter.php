@@ -44,26 +44,38 @@ class GroupPresenter extends BackendPresenter
 	{
 		$collection = $this::CONFIGURATION['unregistred'] ? $this->userGroupRepo->many() : $this->userGroupRepo->many()->where('uuid != :s', ['s' => CustomerGroupRepository::UNREGISTERED_PK]);
 		
-		$grid = $this->gridFactory->create($collection, 20, 'name', 'ASC', true);
+		$grid = $this->gridFactory->create($collection, 20, 'name', 'ASC', true, filterShops: false);
 		$grid->addColumnSelector();
 		
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		
-		$grid->addColumn('Ceníky', function (CustomerGroup $group) {
-			$resultString = '';
+		$grid->addColumn('Ceníky / Viditelníky', function (CustomerGroup $group) {
+			$pricelistsResultString = '';
 			
-			foreach ($group->defaultPricelists as $pricelist) {
+			foreach ($group->getDefaultPricelists()->orderBy(['priority' => 'ASC', 'uuid' => 'ASC'])->toArray() as $pricelist) {
 				$link = ':Eshop:Admin:Pricelists:priceListDetail';
 				
 				if (!$this->admin->isAllowed($link)) {
-					$resultString .= $pricelist->name . ', ';
+					$pricelistsResultString .= $pricelist->name . ', ';
 				} else {
-					$resultString .= '<a href=' . $this->link($link, [$pricelist, 'backlink' => $this->storeRequest()]) . '>' . $pricelist->name . '</a>, ';
+					$pricelistsResultString .= '<a href=' . $this->link($link, [$pricelist, 'backlink' => $this->storeRequest()]) . '>' . $pricelist->name . '</a>, ';
+				}
+			}
+
+			$visibilityListsResultString = '';
+
+			foreach ($group->getDefaultVisibilityLists()->orderBy(['priority' => 'ASC', 'uuid' => 'ASC'])->toArray() as $visibilityList) {
+				$link = ':Eshop:Admin:VisibilityList:listDetail';
+
+				if (!$this->admin->isAllowed($link)) {
+					$visibilityListsResultString .= $visibilityList->name . ', ';
+				} else {
+					$visibilityListsResultString .= '<a href=' . $this->link($link, [$visibilityList, 'backlink' => $this->storeRequest()]) . '>' . $visibilityList->name . '</a>, ';
 				}
 			}
 			
-			return Strings::substring($resultString, 0, -2);
-		});
+			return [Strings::substring($pricelistsResultString, 0, -2), Strings::substring($visibilityListsResultString, 0, -2)];
+		}, '%s<hr style="margin: 0">%s');
 		
 		$grid->addColumn('Katalogové oprávnění', function (CustomerGroup $group) {
 			return ShopperUser::PERMISSIONS[$group->defaultCatalogPermission];
@@ -99,6 +111,8 @@ class GroupPresenter extends BackendPresenter
 		});
 		
 		$grid->addFilterTextInput('search', ['name'], null, 'Název');
+		$this->gridFactory->addShopsFilterSelect($grid);
+
 		$grid->addFilterButtons();
 		
 		$grid->onRenderRow[] = function (\Nette\Utils\Html $row, $object): void {
