@@ -45,7 +45,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		$collection = $this->many()
 			->where('isActive', true)
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
-			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'true' : 'false'))
+			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'this.fk_discount = "' . $activeCoupon->getValue('discount') . '"' : 'false'))
 			->where('this.uuid', \array_values($pks))
 			->where('fk_currency', $currency->getPK())
 			->where('fk_country', $country->getPK());
@@ -60,7 +60,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			->where('nxn.fk_customer', $customer->getPK())
 			->where('isActive', true)
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL  OR discount.validTo >= DATE(now()))')
-			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'true' : 'false'))
+			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'this.fk_discount = "' . $activeCoupon->getValue('discount') . '"' : 'false'))
 			->where('fk_currency ', $currency->getPK())
 			->where('fk_country', $country->getPK());
 
@@ -74,7 +74,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			->where('nxn.fk_merchant', $merchant->getPK())
 			->where('isActive', true)
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL  OR discount.validTo >= DATE(now()))')
-			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'true' : 'false'))
+			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'this.fk_discount = "' . $activeCoupon->getValue('discount') . '"' : 'false'))
 			->where('fk_currency ', $currency->getPK())
 			->where('fk_country', $country->getPK());
 
