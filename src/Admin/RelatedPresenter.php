@@ -21,7 +21,10 @@ use Nette\Forms\Controls\TextInput;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Html;
+use Nette\Utils\Strings;
 use StORM\DIConnection;
+use StORM\Expression;
+use StORM\ICollection;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
@@ -51,8 +54,16 @@ class RelatedPresenter extends BackendPresenter
 
 	public function createComponentRelationGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->relatedRepository->many()->where('this.fk_type', $this->tab), 20, 'this.priority', 'ASC', true);
+		$grid = $this->gridFactory->create(
+			$this->relatedRepository->many()->where('this.fk_type', $this->tab),
+			20,
+			'this.priority',
+			'ASC',
+			true,
+		);
+
 		$grid->addColumnSelector();
+		$grid->addColumnText('Obchody', 'shops', '%s', 'this.shops');
 
 		$grid->addColumn($this->relatedType->getMasterInternalName(), function (Related $object, $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$object->master, 'backLink' => $this->storeRequest()]) : '#';
@@ -77,6 +88,7 @@ class RelatedPresenter extends BackendPresenter
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'this.priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'this.hidden');
 
+		$grid->addColumnLinkDetail('detailRelation');
 		$grid->addColumnActionDeleteSystemic();
 
 		$grid->addButtonSaveAll([], [], null, false, null, function ($id, &$data): void {
@@ -114,9 +126,23 @@ class RelatedPresenter extends BackendPresenter
 		$mutationSuffix = $this->relatedTypeRepository->getConnection()->getMutationSuffix();
 
 		$grid->addFilterTextInput('master', ['master.code', 'master.ean', "master.name$mutationSuffix"], null, $this->relatedType->getMasterInternalName() .
-			': EAN, kód, název', '', '%s%%');
+			': EAN, kód, název', '');
 		$grid->addFilterTextInput('slave', ['slave.code', 'slave.ean', "slave.name$mutationSuffix"], null, $this->relatedType->getSlaveInternalName() .
-			': EAN, kód, název', '', '%s%%');
+			': EAN, kód, název', '');
+		$grid->addFilterText(function (ICollection $source, $value): void {
+			$parsed = \explode(',', Strings::trim($value));
+			$expression = new Expression();
+
+			$i = 0;
+
+			foreach ($parsed as $value) {
+				$value = Strings::trim($value);
+
+				$expression->add('OR', "this.shops LIKE :shop__$i", ["shop__$i" => "%$value%"]);
+			}
+
+			$source->where('this.shops LIKE :shops', ['shops' => Strings::trim($value)]);
+		}, '', 'shops')->setHtmlAttribute('placeholder', 'Obchody')->setHtmlAttribute('class', 'form-control form-control-sm');
 
 		$grid->addFilterButtons();
 
@@ -171,6 +197,8 @@ class RelatedPresenter extends BackendPresenter
 			$this->template->select2AjaxDefaults[$slave->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->name];
 		}
 
+		$form->addMultiSelect2('shops', 'Obchody', $this->shopsConfig->getAvailableShopsArrayForSelect());
+
 		$form->addSubmits(!$this->getParameter('relation'));
 
 		$form->onValidate[] = function (AdminForm $form): void {
@@ -193,6 +221,9 @@ class RelatedPresenter extends BackendPresenter
 
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
+
+			\sort($values['shops']);
+			$values['shops'] = $values['shops'] ? \implode(',', $values['shops']) : null;
 
 			$values['master'] = $this->productRepository->one($form->getHttpData()['master'])->getPK();
 			$values['slave'] = $this->productRepository->one($form->getHttpData()['slave'])->getPK();
@@ -265,7 +296,10 @@ class RelatedPresenter extends BackendPresenter
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('relationForm');
 
-		$form->setDefaults($relation->toArray());
+		$relationArray = $relation->toArray();
+		$relationArray['shops'] = $relationArray['shops'] ? \explode(',', $relationArray['shops']) : [];
+
+		$form->setDefaults($relationArray);
 	}
 
 	public function renderDetailRelation(): void
@@ -544,7 +578,8 @@ type - Kód typu<br>
 			discountPct - Procentuální sleva - 0 až 100<br>
 			masterPct - Procentuální cena z master produktu - číslo větší než 0<br>
 			priority - Priorita - celé číslo<br>
-			hidden - Skryto - 0/1<br><br>
+			hidden - Skryto - 0/1<br>
+			shops - Obchody oddělené čárkou<br><br>
 			
 Sloupce discountPct a masterPct <b>nejsou</b> kombinovatelné a může být nastavený vždy maxímálně jeden nebo žádný.<br>
 Pokud nebude nalezen produkt tak se daný řádek ignoruje. V případě chyby nedojde k žádným změnám.');

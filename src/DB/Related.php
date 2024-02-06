@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Eshop\Common\DB\SystemicEntity;
+
 /**
  * Produkty ve vztahu
  * @table
  * @index{"name":"related_code","unique":true,"columns":["fk_master","fk_slave","amount","discountPct","masterPct"]}
+ * @index{"name":"related_shops","unique":false,"columns":["shops"]}
  */
-class Related extends \StORM\Entity
+class Related extends SystemicEntity
 {
 	/**
 	 * @relation
@@ -49,9 +52,16 @@ class Related extends \StORM\Entity
 
 	/**
 	 * Systemic
+	 * @deprecated
 	 * @column
 	 */
 	public bool $systemic = false;
+
+	/**
+	 * Obchody oddělené čárkou
+	 * @column
+	 */
+	public string|null $shops = null;
 
 	/**
 	 * Master produkt
@@ -69,6 +79,6 @@ class Related extends \StORM\Entity
 
 	public function isSystemic(): bool
 	{
-		return $this->systemic;
+		return $this->systemic || $this->systemicLock > 0;
 	}
 }

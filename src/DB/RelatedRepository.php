@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Common\NumbersHelper;
 use League\Csv\Reader;
@@ -25,7 +26,8 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		RelatedTypeRepository $relatedTypeRepository
+		RelatedTypeRepository $relatedTypeRepository,
+		protected readonly ShopsConfig $shopsConfig,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -40,12 +42,29 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 		return $this->getCollection($includeHidden)->toArrayOf('CONCAT(master.name,"-",slave.name)');
 	}
 
-	public function getCollection(bool $includeHidden = false): Collection
+	/**
+	 * @param bool $includeHidden
+	 * @param list<string>|string|null $shops
+	 * @return \StORM\Collection<\Eshop\DB\Related>
+	 */
+	public function getCollection(bool $includeHidden = false, array|string|null $shops = null): Collection
 	{
 		$collection = $this->many();
 
 		if (!$includeHidden) {
 			$collection->where('this.hidden', false);
+		}
+
+		if ($shops === null) {
+			$shop = $this->shopsConfig->getSelectedShop();
+
+			if ($shop) {
+				$collection->where('this.shops LIKE :shops OR this.shops IS NULL', ['shops' => '%' . $shop->getPK() . '%']);
+			}
+		} elseif (\is_array($shops)) {
+			$collection->where('this.shops LIKE :shops OR this.shops IS NULL', ['shops' => '%' . \implode(',', $shops) . '%']);
+		} else {
+			$collection->where('this.shops LIKE :shops OR this.shops IS NULL', ['shops' => '%' . $shops . '%']);
 		}
 
 		return $collection->orderBy(['this.priority']);
@@ -70,6 +89,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			'masterPct',
 			'priority',
 			'hidden',
+			'shops',
 		]);
 
 		/** @var \Eshop\DB\Related $related */
@@ -83,6 +103,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 				$related->masterPct,
 				$related->priority,
 				$related->hidden ? '1' : '0',
+				$related->shops,
 			]);
 		}
 	}
@@ -105,6 +126,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			'masterPct',
 			'priority',
 			'hidden',
+			'shops',
 		]);
 
 		$relatedTypesByCode = $this->relatedTypeRepository->many()->setIndex('code')->toArray();
@@ -123,6 +145,8 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			->setSelect(['this.uuid'])
 			->setIndex('this.ean')
 			->toArrayOf('uuid');
+
+		$availableShops = \array_keys($this->shopsConfig->getAvailableShops());
 
 		$notFoundRelationTypes = [];
 		$notFoundProducts = [];
@@ -156,6 +180,10 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 				continue;
 			}
 
+			$shopsArray = \explode(',', Strings::lower(Strings::trim($value['shops'])));
+			\sort($shopsArray);
+			$rowShops = \array_intersect($shopsArray, $availableShops);
+
 			$data = [
 				'uuid' => DIConnection::generateUuid('relation', "{$relatedType->getPK()}$masterPK$slavePK"),
 				'type' => $relatedType->getPK(),
@@ -167,6 +195,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 				'priority' => (int) $value['priority'],
 				'hidden' => (bool) $value['hidden'],
 				'systemic' => false,
+				'shops' => $rowShops ? \implode(',', $rowShops) : null,
 			];
 
 			try {

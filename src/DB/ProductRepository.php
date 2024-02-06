@@ -1497,11 +1497,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			}
 		}
 		
-		return $this->relatedRepository->many()
-			->where('this.hidden', false)
+		return $this->relatedRepository->getCollection()
 			->where("this.fk_$relatedSide", $product->getPK())
-			->where('this.fk_type', $relatedType->getPK())
-			->orderBy(['this.priority']);
+			->where('this.fk_type', $relatedType->getPK());
 	}
 	
 	/**
