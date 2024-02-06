@@ -1101,7 +1101,7 @@ class CheckoutManager
 		
 		return $lastStep;
 	}
-	
+
 	public function getCheckoutPrice(?string $cartId = self::ACTIVE_CART_ID, bool $purchaseDiscount = true): float
 	{
 		$price = $this->getSumPrice($cartId);
@@ -1212,7 +1212,7 @@ class CheckoutManager
 	{
 		if ($this->getPurchase(false, $cartId) && $this->getPurchase(false, $cartId)->deliveryType) {
 			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true, $cartId)->deliveryPackagesNo : 1;
-			$showPrice = $this->shopperUser->getShowPrice();
+			$showPrice = $this->shopperUser->getMainPriceType();
 			
 			try {
 				$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase(false, $cartId)->getValue('deliveryType')]->getValue('price');
