@@ -17,6 +17,7 @@ use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\SupplierRepository;
+use Eshop\Services\SettingsService;
 use Forms\Form;
 use Grid\Datagrid;
 use Nette\Forms\Controls\TextArea;
@@ -73,6 +74,9 @@ class AttributePresenter extends BackendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public AttributeGroupRepository $attributeGroupRepository;
+
+	#[\Nette\DI\Attributes\Inject]
+	public SettingsService $settingsService;
 
 	/** @persistent */
 	public string $tab = 'attributes';
@@ -219,9 +223,17 @@ class AttributePresenter extends BackendPresenter
 			if ($value === null) {
 				$source->setGroupBy(['this.uuid']);
 			} else {
-				$source->setGroupBy(['this.uuid'], $value === 1 ? 'assignCount != 0' : 'assignCount = 0');
+				$source->setGroupBy(['this.uuid'], $value === '1' ? 'assignCount != 0' : 'assignCount = 0');
 			}
-		}, '', 'assign', null, [0 => 'Pouze nepřiřazené', 1 => 'Pouze přiřazené',])->setPrompt('- Přiřazené -');
+		}, '', 'assign', null, [0 => 'Pouze nepřiřazené', 1 => 'Pouze přiřazené',])->setPrompt('- Přiřazené produktům -');
+
+		$grid->addFilterDataSelect(function (Collection $source, $value): void {
+			if ($value === null) {
+				return;
+			}
+
+			$source->where('attributeXcategory.fk_category ' . ($value === '1' ? 'IS NOT NULL' : 'IS NULL'));
+		}, '', 'categoryAssigned', null, [0 => 'Pouze nepřiřazené', 1 => 'Pouze přiřazené',])->setPrompt('- Přiřazené kategorii -');
 
 		$grid->addFilterButtons(['default']);
 
@@ -246,7 +258,8 @@ class AttributePresenter extends BackendPresenter
 		$form->addText('code', 'Kód')->setRequired();
 		$form->addLocaleText('name', 'Název');
 		$form->addLocaleTextArea('note', 'Dodatečné informace');
-		$form->addMultiSelect2('categories', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect());
+
+		$form->addDataMultiSelect('categories', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect());
 		$form->addMultiSelect2('groups', 'Skupiny', $this->attributeGroupRepository->getArrayForSelect());
 		$form->addText('priority', 'Priorita')
 			->addRule($form::INTEGER)
