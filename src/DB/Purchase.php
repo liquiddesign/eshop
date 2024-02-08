@@ -12,6 +12,7 @@ use StORM\RelationCollection;
 /**
  * Nákup
  * @method \StORM\RelationCollection<\Eshop\DB\Cart> getCarts()
+ * @method \StORM\RelationCollection<\Eshop\DB\Order> getOrders()
  * @table
  */
 class Purchase extends \StORM\Entity

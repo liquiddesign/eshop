@@ -67,6 +67,11 @@ class ShopperUser extends User
 	protected Currency $currency;
 
 	/**
+	 * @var array<\Eshop\DB\Customer>|false
+	 */
+	protected array|false $childrenCustomers = false;
+
+	/**
 	 * @var array<bool>
 	 */
 	protected array $registrationConfiguration = [
@@ -595,6 +600,18 @@ class ShopperUser extends User
 		return $user instanceof Merchant ? $this->customerRepository->many()
 			->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = nxn.fk_customer')
 			->where('nxn.fk_merchant', $user) : $this->customerRepository->many()->where('fk_parentCustomer', $user->getPK());
+	}
+
+	/**
+	 * @return array<\Eshop\DB\Customer>
+	 */
+	public function getChildrenCustomersArray(): array
+	{
+		if ($this->childrenCustomers !== false) {
+			return $this->childrenCustomers;
+		}
+
+		return $this->childrenCustomers = $this->getChildrenCustomers()->toArray();
 	}
 
 	public function getCatalogPermissionObject(): CatalogPermission|null
