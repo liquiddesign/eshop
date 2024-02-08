@@ -1833,7 +1833,7 @@ class CheckoutManager
 		
 		return $sum;
 	}
-	
+
 	protected function createOrderCode(): string
 	{
 		$year = Carbon::now()->format('Y');
@@ -1912,7 +1912,7 @@ class CheckoutManager
 		} elseif ($this->getCustomer()->activeCart?->id === $id) {
 			$cart = $this->getCustomer()->activeCart;
 		} elseif ($this->getCustomer()) {
-			if (\array_key_exists($id, $this->carts)) {
+			if (\array_key_exists($id, $this->carts) && $this->carts[$id]->getValue('customer') === $this->getCustomer()->getPK()) {
 				return $this->carts[$id];
 			}
 			
