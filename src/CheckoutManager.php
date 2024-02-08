@@ -1834,6 +1834,22 @@ class CheckoutManager
 		return $sum;
 	}
 
+	public function closeCart(?string $id = self::ACTIVE_CART_ID): void
+	{
+		if ($id) {
+			unset($this->carts[$id]);
+		}
+
+		try {
+			$cart = $this->getCart($id, false);
+			$cart->update(['closedTs' => Carbon::now()->toDateTimeString()]);
+		} catch (\Exception $x) {
+			unset($x);
+		}
+
+		$this->refreshSumProperties($id);
+	}
+
 	protected function createOrderCode(): string
 	{
 		$year = Carbon::now()->format('Y');
