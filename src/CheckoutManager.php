@@ -1928,7 +1928,11 @@ class CheckoutManager
 		} elseif ($this->getCustomer()->activeCart?->id === $id) {
 			$cart = $this->getCustomer()->activeCart;
 		} elseif ($this->getCustomer()) {
-			if (\array_key_exists($id, $this->carts) && $this->carts[$id]->getValue('customer') === $this->getCustomer()->getPK()) {
+			if (\array_key_exists($id, $this->carts) && $this->carts[$id] === null) {
+				return $this->carts[$id];
+			}
+
+			if (isset($this->carts[$id]) && $this->carts[$id]->getValue('customer') === $this->getCustomer()->getPK()) {
 				return $this->carts[$id];
 			}
 			
