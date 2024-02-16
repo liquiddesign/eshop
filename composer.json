@@ -54,14 +54,14 @@
 		"nette/tester":"*",
 		"tracy/tracy":"*",
 		"composer/composer": "*",
-		"liquiddesign/codestyle": "^3.0.5",
+		"liquiddesign/codestyle": "^3.0.6",
 		"liquiddesign/migrator": "~1.0",
 		"phpstan/phpstan-nette": "~1.0"
 	},
 	"scripts": {
 		"fix-code": ["@phpcsfix"],
 		"code-style": ["@phpcsfix", "@phpcs"],
-		"check-code": ["@phpcs", "@phpstan", "@phpstan8", "@lattelint", "@check-commit"],
+		"check-code": ["@check-commit", "@phpcs", "@phpstan", "@phpstan8", "@lattelint"],
 		"phpstan-clear-cache": "phpstan clear-result-cache",
 		"phpstan": "phpstan analyse --memory-limit 10G -c phpstan.neon",
 		"phpstan8": "phpstan analyse --memory-limit 10G -c phpstan8.neon",
