@@ -1,0 +1,15 @@
+{
+    "name": "liquiddesign/eshop-changelog",
+    "type": "metapackage",
+    "require-dev": {
+        "marcocesarato/php-conventional-changelog": "^1.17"
+    },
+    "scripts": {
+        "changelog": "conventional-changelog",
+        "release": "conventional-changelog --commit",
+        "release:patch": "conventional-changelog --patch --commit",
+        "release:minor": "conventional-changelog --minor --commit",
+        "release:major": "conventional-changelog --major --commit"
+    },
+    "version": "2.1.133"
+}
