@@ -61,7 +61,7 @@
 	"scripts": {
 		"fix-code": ["@phpcsfix"],
 		"code-style": ["@phpcsfix", "@phpcs"],
-		"check-code": ["@check-commit", "@phpcs", "@phpstan", "@phpstan8", "@lattelint"],
+		"check-code": ["@phpcs", "@phpstan", "@phpstan8", "@lattelint", "@check-commit"],
 		"phpstan-clear-cache": "phpstan clear-result-cache",
 		"phpstan": "phpstan analyse --memory-limit 10G -c phpstan.neon",
 		"phpstan8": "phpstan analyse --memory-limit 10G -c phpstan8.neon",
