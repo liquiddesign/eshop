@@ -226,7 +226,10 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 		array $supplierCodes = [],
 		?callable $getSupplierCodeCallback = null,
 	): void {
+		$this->productRepository->getConnection()->setDebug(false);
+
 		$writer->setDelimiter($delimiter);
+		$writer->setFlushThreshold(100);
 
 		EncloseField::addTo($writer, "\t\22");
 
@@ -244,15 +247,17 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 		$visibilityListItemsCollection = $this->visibilityListItemRepository->many()->select(['code' => 'visibilityList.code']);
 
 		while ($visibilityListItem = $visibilityListItemsCollection->fetch(\stdClass::class)) {
-			/** @var array<mixed> $visibilityListItem */
-			$visibilityListItem = (array) $visibilityListItem;
+			/** @var array<mixed> $visibilityListItemArray */
+			$visibilityListItemArray = (array) $visibilityListItem;
 
-			$productsByVisibilityLists[$visibilityListItem['fk_product']][$visibilityListItem['code']] = $visibilityListItem;
+			$productsByVisibilityLists[$visibilityListItemArray['fk_product']][$visibilityListItemArray['code']] = $visibilityListItemArray;
 		}
 
-		$allCategories = $this->categoryRepository->many()->toArray();
-
 		$visibilityListItemsCollection->__destruct();
+		unset($visibilityListItemsCollection);
+
+		$mergedProductsMap = $this->productRepository->getGroupedMergedProducts();
+		$allCategories = $this->categoryRepository->many()->setSelect(['this.uuid', 'this.code', 'this.type'], keepIndex: true)->fetchArray(\stdClass::class);
 
 		$products->setGroupBy(['this.uuid'])
 			->join(['priceTable' => 'eshop_price'], 'this.uuid = priceTable.fk_product')
@@ -283,37 +288,42 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 
 		$attributesByProductPK = [];
 
-		foreach ($this->attributeAssignRepository->many()
-					 ->join(['attributeValue' => 'eshop_attributevalue'], 'this.fk_value = attributeValue.uuid')
-					 ->select([
-						 'fk_attribute' => 'attributeValue.fk_attribute',
-						 'label' => "attributeValue.label$mutationSuffix",
-						 'code' => 'attributeValue.code',
-					 ])
-					 ->fetchArray(\stdClass::class) as $item) {
-			// phpcs:ignore
-			$attributesByProductPK[$item->fk_product][$item->fk_attribute][] = $item;
+		$assignsQuery = $this->attributeAssignRepository->many()
+			->join(['attributeValue' => 'eshop_attributevalue'], 'this.fk_value = attributeValue.uuid')
+			->select([
+				'attributePK' => 'attributeValue.fk_attribute',
+				'productPK' => 'this.fk_product',
+				'label' => "attributeValue.label$mutationSuffix",
+				'code' => 'attributeValue.code',
+			]);
+
+		while ($assign = $assignsQuery->fetch(\stdClass::class)) {
+			/** @var \stdClass $assign */
+			$attributesByProductPK[$assign->productPK][$assign->attributePK][] = $assign;
 		}
 
-		$supplierProductsArray = $this->supplierProductRepository->many()
+		$assignsQuery->__destruct();
+		unset($assignsQuery);
+
+		$supplierProductsQuery = $this->supplierProductRepository->many()
 			->join(['supplier' => 'eshop_supplier'], 'this.fk_supplier = supplier.uuid')
 			->setSelect([
 				'fkProduct' => 'this.fk_product',
 				'supplier.importPriority',
 				'this.recyclingFee',
 			], [], true)
-			->orderBy(['this.fk_product', 'supplier.importPriority'])
-			->fetchArray(\stdClass::class);
+			->orderBy(['this.fk_product', 'supplier.importPriority']);
 
 		$supplierProductsArrayGroupedByProductPK = [];
 
-		foreach ($supplierProductsArray as $supplierProduct) {
+		while ($supplierProduct = $supplierProductsQuery->fetch(\stdClass::class)) {
+			/** @var \Eshop\DB\SupplierProduct|\stdClass $supplierProduct */
 			$supplierProductsArrayGroupedByProductPK[$supplierProduct->fkProduct][] = $supplierProduct;
 		}
 
-		unset($supplierProductsArray);
+		$supplierProductsQuery->__destruct();
+		unset($supplierProductsQuery);
 
-		$mergedProductsMap = $this->productRepository->getGroupedMergedProducts();
 		$productsXCode = $this->productRepository->many()->setSelect(['this.code'], [], true)->toArrayOf('code');
 		$lazyLoadedProducts = [];
 
@@ -339,7 +349,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 					foreach ($categories as $categoryPK) {
 						$category = $allCategories[$categoryPK];
 
-						$categoriesString .= "$category->code#{$category->getValue('type')},";
+						$categoriesString .= "$category->code#{$category->type},";
 					}
 
 					$row[] = $categoriesString;
@@ -356,7 +366,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 					foreach ($categories as $categoryPK) {
 						$category = $allCategories[$categoryPK];
 
-						$categoriesString .= "$category->code#{$category->getValue('type')},";
+						$categoriesString .= "$category->code#{$category->type},";
 					}
 
 					$row[] = $categoriesString;

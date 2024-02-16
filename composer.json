@@ -61,14 +61,15 @@
 	"scripts": {
 		"fix-code": ["@phpcsfix"],
 		"code-style": ["@phpcsfix", "@phpcs"],
-		"check-code": ["@phpcs", "@phpstan", "@phpstan8", "@lattelint"],
+		"check-code": ["@phpcs", "@phpstan", "@phpstan8", "@lattelint", "@check-commit"],
 		"phpstan-clear-cache": "phpstan clear-result-cache",
 		"phpstan": "phpstan analyse --memory-limit 10G -c phpstan.neon",
 		"phpstan8": "phpstan analyse --memory-limit 10G -c phpstan8.neon",
 		"phpcs": "phpcs --standard=ruleset.xml --ignore=assets --cache src",
 		"phpcsfix": "phpcbf --standard=ruleset.xml --ignore=assets --cache src",
 		"lattelint": "php lattelint.php",
-		"tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php"
+		"tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php",
+		"check-commit": "@php ./vendor/liquiddesign/codestyle/src/scripts/check-last-commit.php"
 	},
 	"config": {
 		"allow-plugins": {
