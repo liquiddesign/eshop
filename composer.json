@@ -69,7 +69,8 @@
 		"phpcsfix": "phpcbf --standard=ruleset.xml --ignore=assets --cache src",
 		"lattelint": "php lattelint.php",
 		"tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php",
-		"check-commit": "@php ./vendor/liquiddesign/codestyle/src/scripts/check-last-commit.php"
+		"check-commit": "@php ./vendor/liquiddesign/codestyle/src/scripts/check-last-commit.php",
+		"generate-changelog": "conventional-changelog -p angular -i CHANGELOG.md -s"
 	},
 	"config": {
 		"allow-plugins": {
