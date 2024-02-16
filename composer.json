@@ -54,7 +54,7 @@
 		"nette/tester":"*",
 		"tracy/tracy":"*",
 		"composer/composer": "*",
-		"liquiddesign/codestyle": "^3.0",
+		"liquiddesign/codestyle": "^3.0.5",
 		"liquiddesign/migrator": "~1.0",
 		"phpstan/phpstan-nette": "~1.0"
 	},
