@@ -5,3 +5,4 @@ tests/temp/*
 tests/temp_fixed/*
 .idea/*
 composer.lock
+changelog/vendor/*
