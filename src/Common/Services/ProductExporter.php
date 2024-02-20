@@ -14,6 +14,7 @@ use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
+use Eshop\DevelTools;
 use League\Csv\EncloseField;
 use League\Csv\Writer;
 use Nette\Application\LinkGenerator;
@@ -23,6 +24,8 @@ use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\DIConnection;
+use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\DB\PageRepository;
 
 class ProductExporter
@@ -257,7 +260,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 		unset($visibilityListItemsCollection);
 
 		$mergedProductsMap = $this->productRepository->getGroupedMergedProducts();
-		$allCategories = $this->categoryRepository->many()->setSelect(['this.uuid', 'this.code', 'this.type'], keepIndex: true)->fetchArray(\stdClass::class);
+		$allCategories = $this->categoryRepository->many()->setSelect(['this.uuid', 'this.code', 'type' => 'this.fk_type'], keepIndex: true)->fetchArray(\stdClass::class);
 
 		$products->setGroupBy(['this.uuid'])
 			->join(['priceTable' => 'eshop_price'], 'this.uuid = priceTable.fk_product')
@@ -451,6 +454,8 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 		}
 
 		$products->__destruct();
+
+		Debugger::log(DevelTools::getPeakMemoryUsage(), ILogger::DEBUG);
 	}
 
 	protected function startUp(): void
