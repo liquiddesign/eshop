@@ -1506,8 +1506,14 @@ class CheckoutManager
 			]);
 		}
 		
-		if ($defaultGroup && \count($defaultGroup->defaultPricelists->toArray()) > 0) {
-			$customer->pricelists->relate(\array_keys($defaultGroup->defaultPricelists->toArray()));
+		if ($defaultGroup) {
+			if ($defaultPricelists = $defaultGroup->getDefaultPricelists()->toArray()) {
+				$customer->pricelists->relate(\array_keys($defaultPricelists));
+			}
+
+			if ($defaultVisibilityLists = $defaultGroup->getDefaultVisibilityLists()->toArray()) {
+				$customer->visibilityLists->relate(\array_keys($defaultVisibilityLists));
+			}
 		}
 		
 		return $customer;
