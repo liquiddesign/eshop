@@ -992,6 +992,20 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		return $empty ? [] : $rootCategories;
 	}
 
+	public function changeOrderCartItemAmount(PackageItem $packageItem, CartItem $cartItemOld, int $amount): void
+	{
+		$cartItem = clone $cartItemOld;
+
+		foreach ($packageItem->relatedPackageItems as $relatedPackageItem) {
+			$relatedCartItem = $relatedPackageItem->cartItem;
+
+			$relatedCartItem->update(['amount' => $relatedCartItem->amount / $cartItemOld->amount * $amount]);
+		}
+
+		$packageItem->update(['amount' => $amount]);
+		$cartItem->update(['amount' => $amount]);
+	}
+
 	/**
 	 * @param array<\Eshop\DB\Order> $orders
 	 * @param \Eshop\DB\Currency $currency

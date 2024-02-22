@@ -1180,15 +1180,9 @@ class OrderPresenter extends BackendPresenter
 				$values = $form->getValues('array');
 				unset($values['uuid']);
 
+				$this->orderRepository->changeOrderCartItemAmount($packageItem, $cartItemOld, $values['amount']);
+
 				$cartItem = clone $cartItemOld;
-
-				foreach ($packageItem->relatedPackageItems as $relatedPackageItem) {
-					$relatedCartItem = $relatedPackageItem->cartItem;
-
-					$relatedCartItem->update(['amount' => $relatedCartItem->amount / $cartItemOld->amount * $values['amount']]);
-				}
-
-				$packageItem->update(['amount' => $values['amount']]);
 
 				$cartItem->update($values);
 
