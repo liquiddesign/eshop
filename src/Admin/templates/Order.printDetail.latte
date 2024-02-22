@@ -111,6 +111,7 @@
                             <tr n:if="$order->purchase->desiredShippingDate"><th>Požadované datum odeslání</th><td>{$order->purchase->desiredShippingDate|date:'d.m.Y'}</td></tr>
                             <tr n:if="$order->purchase->desiredDeliveryDate"><th>Požadované datum doručení</th><td>{$order->purchase->desiredDeliveryDate|date:'d.m.Y'}</td></tr>
                             <tr n:if="$order->purchase->internalOrderCode"><th>Interní číslo</th><td>{$order->purchase->internalOrderCode}</td></tr>
+                            <tr><th>Aktualizovat profil</th><td>{$purchase->fillProfile ? 'Ano' : 'Ne'}</td></tr>
                             <tr n:if="$order->externalId"><th>Externí číslo</th><td>{$order->externalId}</td></tr>
                             <tr n:if="$order->externalCode"><th>Externí kód</th><td>{$order->externalCode}</td></tr>
                         </table>

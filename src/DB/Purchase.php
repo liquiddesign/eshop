@@ -283,6 +283,12 @@ class Purchase extends \StORM\Entity
 	public ?string $bankSpecificSymbol;
 
 	/**
+	 * Vyplnit profil údaji z objednávky
+	 * @column
+	 */
+	public bool $fillProfile = false;
+
+	/**
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\Order>
 	 */
