@@ -370,20 +370,7 @@ class CustomerPresenter extends BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder'], false, null, 'this.uuid');
 		
-		$bulkEdits = ['merchant', 'group'];
-
-		if ($this->isManager) {
-			$bulkEdits[] = 'pricelists';
-			$bulkEdits[] = 'favouritePriceLists';
-			$bulkEdits[] = 'visibilityLists';
-			$bulkEdits[] = 'discountLevelPct';
-		}
-		
-		if ($this->isManager && isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
-			$bulkEdits[] = 'loyaltyProgram';
-		}
-		
-		$grid->addButtonBulkEdit('form', $bulkEdits, 'customers');
+		$grid->addButtonBulkEdit('form', $this->getBulkEdits(), 'customers');
 		
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů')
 			->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
@@ -403,7 +390,7 @@ class CustomerPresenter extends BackendPresenter
 		
 		return $grid;
 	}
-	
+
 	public function exportCustomers(Button $button): void
 	{
 		/** @var \Grid\Datagrid $grid */
@@ -1254,6 +1241,27 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		};
 		
 		return $form;
+	}
+
+	/**
+	 * @return array<string>
+	 */
+	protected function getBulkEdits(): array
+	{
+		 $bulkEdits = ['merchant', 'group'];
+
+		if ($this->isManager) {
+			$bulkEdits[] = 'pricelists';
+			$bulkEdits[] = 'favouritePriceLists';
+			$bulkEdits[] = 'visibilityLists';
+			$bulkEdits[] = 'discountLevelPct';
+		}
+
+		if ($this->isManager && isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
+			$bulkEdits[] = 'loyaltyProgram';
+		}
+
+		return $bulkEdits;
 	}
 
 	protected function addCustomFieldsToCustomerForm(AdminForm $form): void
