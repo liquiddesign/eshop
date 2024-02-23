@@ -22,6 +22,7 @@ use Eshop\DB\Merchant;
 use Eshop\DB\MinimalOrderValueRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\Product;
+use Eshop\DependencyAggregates\ShopperUserDependency;
 use Eshop\DTO\ProductWithFormattedPrices;
 use Nette\DI\Container;
 use Nette\Http\Session;
@@ -112,6 +113,7 @@ class ShopperUser extends User
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly Translator $translator,
 		protected readonly Session $session,
+		protected readonly ShopperUserDependency $shopperUserDependency,
 		?IUserStorage $legacyStorage = null,
 		?IAuthenticator $authenticator = null,
 		?Authorizator $authorizator = null,
