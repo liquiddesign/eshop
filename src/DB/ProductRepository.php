@@ -1694,12 +1694,12 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		return $result;
 	}
 	
-	public function isProductDeliveryFreeVat(Product $product, Currency $currency): bool
+	public function isProductDeliveryFreeVat(Product $product, Currency|null $currency = null): bool
 	{
 		return $this->isProductDeliveryFree($product, true, $currency);
 	}
 	
-	public function isProductDeliveryFreeWithoutVat(Product $product, Currency $currency): bool
+	public function isProductDeliveryFreeWithoutVat(Product $product, Currency|null $currency = null): bool
 	{
 		return $this->isProductDeliveryFree($product, false, $currency);
 	}
@@ -1838,6 +1838,29 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$this->doGetProductTree($product, $result);
 
 		return $result;
+	}
+
+	public function isProductDeliveryFree(Product $product, bool|null $vat = null, Currency|null $currency = null): bool
+	{
+		$vat ??= $this->shopperUser->getMainPriceType() === 'withVat';
+		$currency ??= $this->shopperUser->getCurrency();
+
+		$deliveryDiscountQuery = $this->deliveryDiscountRepository->many()->where('this.fk_currency', $currency->getPK());
+
+		$this->shopsConfig->filterShopsInShopEntityCollection($deliveryDiscountQuery, propertyName: 'discount.fk_shop');
+
+		/** @var \Eshop\DB\DeliveryDiscount $deliveryDiscount */
+		foreach ($deliveryDiscountQuery as $deliveryDiscount) {
+			if ($deliveryDiscount->discount->isActive() === false ||
+				$deliveryDiscount->discountPriceFrom > ($vat ? $product->getValue('priceVat') : $product->getValue('price')) ||
+				(\abs($deliveryDiscount->discountPct - 100) >= \PHP_FLOAT_EPSILON)) {
+				continue;
+			}
+			
+			return true;
+		}
+		
+		return false;
 	}
 
 	/**
@@ -2002,21 +2025,5 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	{
 		return "REPLACE(SUBSTRING(SUBSTRING_INDEX($expression, '$delimiter', $position),
        LENGTH(SUBSTRING_INDEX($expression, '$delimiter', " . ($position - 1) . ")) + 1), '$delimiter', '')";
-	}
-	
-	private function isProductDeliveryFree(Product $product, bool $vat, Currency $currency): bool
-	{
-		/** @var \Eshop\DB\DeliveryDiscount $deliveryDiscount */
-		foreach ($this->deliveryDiscountRepository->many()->where('this.fk_currency', $currency->getPK()) as $deliveryDiscount) {
-			if ($deliveryDiscount->discount->isActive() === false ||
-				$deliveryDiscount->discountPriceFrom > ($vat ? $product->getValue('priceVat') : $product->getValue('price')) ||
-				(\abs($deliveryDiscount->discountPct - 100) >= \PHP_FLOAT_EPSILON)) {
-				continue;
-			}
-			
-			return true;
-		}
-		
-		return false;
 	}
 }
