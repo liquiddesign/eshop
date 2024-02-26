@@ -6,6 +6,3 @@ search:
         in: %appDir%/../vendor/liquiddesign/eshop
         files: [*/*Service.php]
         implements: Base\Bridges\AutoWireService
-    eshop_dependency:
-        in: %appDir%/../vendor/liquiddesign/eshop/src/DependencyAggregates
-        files: [*/*Dependency.php, *Dependency.php]
