@@ -48,8 +48,7 @@
         "heureka/overeno-zakazniky": "^4.0",
         "dfridrich/qr-platba": "^2.0",
         "latte/latte": "^3.0",
-        "ramsey/uuid": "^4.7",
-        "ext-pgsql": "*"
+        "ramsey/uuid": "^4.7"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
