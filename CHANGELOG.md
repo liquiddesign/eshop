@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.143](https://github.com/liquiddesign/eshop/compare/v2.1.142...v2.1.143) (2024-02-28)
+
+### Bug Fixes
+
+* Hide bad column ([098998](https://github.com/liquiddesign/eshop/commit/098998a1af087b52155a2f31cef770f1d70cd3de))
+
+
+---
+
 ## [2.1.142](https://github.com/liquiddesign/eshop/compare/v2.1.141...v2.1.142) (2024-02-28)
 
 ### Code Refactoring
