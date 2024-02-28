@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.142](https://github.com/liquiddesign/eshop/compare/v2.1.141...v2.1.142) (2024-02-28)
+
+### Code Refactoring
+
+* Created new OrderEditService ([cba390](https://github.com/liquiddesign/eshop/commit/cba3905127d95e901bef8779e2300f40a528f771))
+
+
+---
+
 ## [2.1.141](https://github.com/liquiddesign/eshop/compare/v2.1.140...v2.1.141) (2024-02-26)
 
 ### Features
