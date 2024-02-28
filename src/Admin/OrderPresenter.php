@@ -6,6 +6,7 @@ namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Carbon\Carbon;
 use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\BackendPresenter;
 use Eshop\Common\CheckInvalidAmount;
@@ -49,7 +50,10 @@ use Eshop\Integration\EHub;
 use Eshop\Integration\Integrations;
 use Eshop\Integration\Zasilkovna;
 use Eshop\Services\DPD;
+use Eshop\Services\Order\OrderEditService;
 use Eshop\Services\PPL;
+use Eshop\ShopperUser;
+use Exception;
 use Forms\Form;
 use Grid\Datagrid;
 use League\Csv\Writer;
@@ -58,6 +62,7 @@ use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Multiplier;
 use Nette\Application\UI\Presenter;
+use Nette\DI\Attributes\Inject;
 use Nette\Forms\Controls\Button;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\Request;
@@ -67,6 +72,7 @@ use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use StORM\Collection;
 use StORM\DIConnection;
+use Throwable;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
@@ -126,118 +132,121 @@ class OrderPresenter extends BackendPresenter
 		'recalculateOrderPricesMultiple' => false,
 	];
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
+	public OrderEditService $orderEditService;
+
+	#[Inject]
 	public OrderRepository $orderRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CartRepository $cartRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public DeliveryRepository $deliveryRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PaymentRepository $paymentRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public DeliveryTypeRepository $deliveryTypeRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PaymentTypeRepository $paymentTypeRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CustomerRepository $customerRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AutoshipRepository $autoshipRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CurrencyRepository $currencyRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public OrderGridFactory $orderGridFactory;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public StoreRepository $storeRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Application $application;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Request $request;
 
-	#[\Nette\DI\Attributes\Inject]
-	public \Eshop\ShopperUser $shopperUser;
+	#[Inject]
+	public ShopperUser $shopperUser;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CartItemRepository $cartItemRepo;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ProductRepository $productRepo;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierRepository $supplierRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public InvoiceRepository $invoiceRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AddressRepository $addressRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CustomerGroupRepository $customerGroupRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PackageItemRepository $packageItemRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public TemplateRepository $templateRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public BannedEmailRepository $bannedEmailRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Mailer $mailer;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public InternalCommentOrderRepository $commentRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public OrderLogItemRepository $orderLogItemRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PickupPointRepository $pickupPointRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public EHub $eHub;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public RelatedTypeRepository $relatedTypeRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Integrations $integrations;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public VatRateRepository $vatRateRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SettingRepository $settingRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public RelatedCartItemRepository $relatedCartItemRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public RelatedPackageItemRepository $relatedPackageItemRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AmountRepository $amountRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Zasilkovna $zasilkovna;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PackageRepository $packageRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public InternalRibbonRepository $internalRibbonRepository;
 
 	/**
@@ -436,7 +445,7 @@ class OrderPresenter extends BackendPresenter
 				$admin = $this->admin->getIdentity();
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, $template->name, $admin);
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				Debugger::log($e, ILogger::ERROR);
 			}
 
@@ -674,147 +683,15 @@ class OrderPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValuesWithAjax();
 
-			if ($values['package'] === 'new') {
-				$purchase = $order->purchase;
+			try {
+				$this->orderEditService->addProduct($order, $values['product'], $values['amount'], $values['cart'], $values['package'], true);
+			} catch (\Exception $e) {
+				$this->flashMessage($e->getMessage(), 'error');
 
-				$newPackageId = $this->packageRepository->many()->where('this.fk_order', $order->getPK())->select(['packagesCount' => 'MAX(this.id) + 1'])->firstValue('packagesCount') ?? 1;
-
-				/** @var \Eshop\DB\Delivery $delivery */
-				$delivery = $this->deliveryRepository->createOne([
-					'order' => $order,
-					'currency' => $purchase->currency->getPK(),
-					'type' => $purchase->deliveryType,
-					'typeName' => $purchase->deliveryType->toArray()['name'],
-					'typeCode' => $purchase->deliveryType->code,
-					'price' => 0,
-					'priceVat' => 0,
-					'priceBefore' => 0,
-					'priceVatBefore' => 0,
-				]);
-
-				/** @var \Eshop\DB\Package $package */
-				$package = $this->packageRepository->createOne([
-					'id' => $newPackageId,
-					'order' => $order->getPK(),
-					'delivery' => $delivery->getPK(),
-				]);
-
-				$values['package'] = $package->getPK();
+				$this->redirect('this');
 			}
 
-			/** @var \Eshop\DB\Cart $cart */
-			$cart = $this->cartRepository->one($values['cart']);
-
-			if ($order->purchase->customer) {
-				$this->shopperUser->setCustomer($order->purchase->customer);
-			}
-
-			/** @var \Eshop\DB\Product $product */
-			$product = $this->productRepo->getProducts($this->shopperUser->getPricelists()->toArray())->where('this.uuid', $values['product'])->first();
-
-			$cartItem = $this->shopperUser->getCheckoutManager()->addItemToCart($product, null, $values['amount'], null, CheckInvalidAmount::NO_CHECK, false, cart: $cart);
-
-			$packageItem = $this->packageItemRepository->createOne([
-				'amount' => $values['amount'],
-				'package' => $values['package'],
-				'cartItem' => $cartItem,
-			]);
-
-			$setRelationType = $this->settingRepository->getValueByName(SettingsPresenter::SET_RELATION_TYPE);
-
-			if ($setRelationType) {
-				/** @var \Eshop\DB\RelatedType $setRelationType */
-				$setRelationType = $this->relatedTypeRepository->one($setRelationType);
-			}
-
-			/* Get default set relation type and slave products in that relation for top-level cart item */
-			if (!$setRelationType) {
-				$this->flashMessage('Provedeno', 'success');
-				$form->processRedirect('this');
-			}
-
-			/** @var array<mixed> $relatedCartItems */
-			$relatedCartItems = [];
-
-			/* Load real products in relation with prices */
-			$relatedProducts = $this->productRepository->getSlaveRelatedProducts($setRelationType, $cartItem->product)->toArray();
-
-			if (!$relatedProducts) {
-				$this->flashMessage('Provedeno', 'success');
-				$form->processRedirect('this');
-			}
-
-			$slaveProducts = [];
-
-			foreach ($relatedProducts as $relatedProduct) {
-				$slaveProducts[] = $relatedProduct->getValue('slave');
-			}
-
-			/* Compute total price of set items */
-			/** @var array<\Eshop\DB\Product> $slaveProducts */
-			$slaveProducts = $this->productRepository->getProducts()->where('this.uuid', $slaveProducts)->toArray();
-			$slaveProductsTotalPrice = 0;
-			$slaveProductsTotalPriceVat = 0;
-
-			foreach ($relatedProducts as $relatedProduct) {
-				if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
-					continue;
-				}
-
-				$slaveProductsTotalPrice += $slaveProducts[$relatedProduct->getValue('slave')]->getPrice() * $relatedProduct->amount;
-				$slaveProductsTotalPriceVat += $slaveProducts[$relatedProduct->getValue('slave')]->getPriceVat() * $relatedProduct->amount;
-			}
-
-			$setTotalPriceModifier = $slaveProductsTotalPrice > 0 ? $cartItem->price / $slaveProductsTotalPrice : 1;
-			$setTotalPriceVatModifier = $slaveProductsTotalPriceVat > 0 ? $cartItem->priceVat / $slaveProductsTotalPriceVat : 1;
-
-			foreach ($relatedProducts as $relatedProduct) {
-				if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
-					continue;
-				}
-
-				$product = $slaveProducts[$relatedProduct->getValue('slave')];
-
-				/** @var \Eshop\DB\VatRate|null $vat */
-				$vat = $this->vatRateRepository->one($product->vatRate);
-				$vatPct = $vat ? $vat->rate : 0;
-
-				/* Create related cart items with price computed to match unit price of top-level cart item */
-				$relatedCartItems[] = [
-					'cartItem' => $cartItem->getPK(),
-					'relatedType' => $setRelationType->getPK(),
-					'product' => $product->getPK(),
-					'relatedTypeCode' => $setRelationType->code,
-					'relatedTypeName' => $setRelationType->name,
-					'productName' => $product->toArray()['name'],
-					'productCode' => $product->getFullCode(),
-					'productSubCode' => $product->subCode,
-					'productWeight' => $product->weight,
-					'productDimension' => $product->dimension,
-					'amount' => $relatedProduct->amount * $cartItem->amount,
-					'price' => $product->getPrice() * $setTotalPriceModifier,
-					'priceVat' => $product->getPriceVat() * $setTotalPriceVatModifier,
-					'priceBefore' => $product->getPriceBefore() ?: $product->getPrice(),
-					'priceVatBefore' => $product->getPriceVatBefore() ?: $product->getPriceVat(),
-					'vatPct' => (float) $vatPct,
-				];
-			}
-
-			if (!$relatedCartItems) {
-				$this->flashMessage('Provedeno', 'success');
-				$form->processRedirect('this');
-			}
-
-			/** @var array<\Eshop\DB\RelatedCartItem> $relatedCartItems */
-			$relatedCartItems = $this->relatedCartItemRepository->createMany($relatedCartItems)->toArray();
-
-			/* Create relation between related package item and related cart item */
-			foreach ($relatedCartItems as $relatedCartItem) {
-				$this->relatedPackageItemRepository->createOne([
-					'cartItem' => $relatedCartItem->getPK(),
-					'packageItem' => $packageItem->getPK(),
-				]);
-			}
+			$product = $this->productRepository->one($values['product'], true);
 
 			/** @var \Admin\DB\Administrator|null $admin */
 			$admin = $this->admin->getIdentity();
@@ -1076,11 +953,11 @@ class OrderPresenter extends BackendPresenter
 
 				foreach ($oldCart->items->where('this.fk_upsell IS NULL') as $item) {
 					if (($product = $item->getValue('product')) === null) {
-						throw new \Exception('Product not found');
+						throw new Exception('Product not found');
 					}
 
 					if (!$product = $this->productRepository->getProduct($product)) {
-						throw new \Exception('Product not found');
+						throw new Exception('Product not found');
 					}
 
 					if (!$item->getPriceSum() > 0) {
@@ -1104,15 +981,15 @@ class OrderPresenter extends BackendPresenter
 
 				foreach ($oldCart->items->clear(true)->where('this.fk_upsell IS NOT NULL') as $item) {
 					if (($product = $item->getValue('product')) === null) {
-						throw new \Exception('Product not found');
+						throw new Exception('Product not found');
 					}
 
 					if (($upsellProduct = $item->getValue('upsell')) === null) {
-						throw new \Exception('Upsell product not found');
+						throw new Exception('Upsell product not found');
 					}
 
 					if (!isset($relations[$upsellProduct][$product])) {
-						throw new \Exception('Product not found');
+						throw new Exception('Product not found');
 					}
 
 					$product = $relations[$upsellProduct][$product];
@@ -1145,7 +1022,7 @@ class OrderPresenter extends BackendPresenter
 				$connection->getLink()->commit();
 
 				$this->flashMessage('Provedeno', 'success');
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				$connection->getLink()->rollBack();
 
 				Debugger::log($e->getMessage(), ILogger::ERROR);
@@ -1180,7 +1057,7 @@ class OrderPresenter extends BackendPresenter
 				$values = $form->getValues('array');
 				unset($values['uuid']);
 
-				$this->orderRepository->changeOrderCartItemAmount($packageItem, $cartItemOld, $values['amount']);
+				$this->orderEditService->changeItemAmount($packageItem, $cartItemOld, $values['amount']);
 
 				$cartItem = clone $cartItemOld;
 
@@ -1298,7 +1175,7 @@ class OrderPresenter extends BackendPresenter
 		$delivery = $this->deliveryRepository->one($delivery, true);
 
 		$values = [
-			'shippedTs' => $shipped ? (string) new \Carbon\Carbon() : null,
+			'shippedTs' => $shipped ? (string) new Carbon() : null,
 		];
 
 		/** @var \Admin\DB\Administrator|null $admin */
@@ -1319,7 +1196,7 @@ class OrderPresenter extends BackendPresenter
 					$this->mailer->send($mail);
 
 					$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::EMAIL_SENT, OrderLogItem::SHIPPED, $admin);
-				} catch (\Throwable $e) {
+				} catch (Throwable $e) {
 				}
 			}
 		} else {
@@ -1846,7 +1723,7 @@ class OrderPresenter extends BackendPresenter
 			$this->orderRepository->recalculateOrderPrices($order, $this->getAdministrator());
 
 			$this->flashMessage('Provedeno', 'success');
-		} catch (\Throwable $exception) {
+		} catch (Throwable $exception) {
 			Debugger::barDump($exception);
 
 			$this->flashMessage('Chyba: ' . $exception->getMessage(), 'error');
@@ -1950,19 +1827,13 @@ class OrderPresenter extends BackendPresenter
 
 	public function handleToggleDeleteOrderItem(string $itemId): void
 	{
-		/** @var \Eshop\DB\PackageItem $packageItem */
-		$packageItem = $this->packageItemRepository->one($itemId, true);
-
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->getParameter('order');
 
-		foreach ($packageItem->relatedPackageItems as $relatedPackageItem) {
-			$relatedPackageItem->cartItem->delete();
-			$relatedPackageItem->delete();
-		}
+		/** @var \Eshop\DB\PackageItem $packageItem */
+		$packageItem = $this->packageItemRepository->one($itemId, true);
 
-		$packageItem->cartItem->delete();
-		$packageItem->delete();
+		$this->orderEditService->removePackageItem($packageItem);
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
@@ -2142,7 +2013,7 @@ class OrderPresenter extends BackendPresenter
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
 			try {
 				FileSystem::delete($tempFilename);
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				Debugger::log($e, ILogger::WARNING);
 			}
 		};
@@ -2162,7 +2033,7 @@ class OrderPresenter extends BackendPresenter
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
 			try {
 				FileSystem::delete($tempFilename);
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				Debugger::log($e, ILogger::WARNING);
 			}
 		};
@@ -2296,7 +2167,7 @@ class OrderPresenter extends BackendPresenter
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
 				try {
 					FileSystem::delete($tempFilename);
-				} catch (\Throwable $e) {
+				} catch (Throwable $e) {
 					Debugger::log($e, ILogger::WARNING);
 				}
 			};
@@ -2349,7 +2220,7 @@ class OrderPresenter extends BackendPresenter
 
 					$this->zasilkovna->syncOrders($orders);
 					$this->flashMessage('Provedeno', 'success');
-				} catch (\Exception $e) {
+				} catch (Exception $e) {
 					$this->flashMessage('Chyba! Zkontrolujte API klíč.<br>' . $e->getMessage(), 'error');
 				}
 
@@ -2360,7 +2231,7 @@ class OrderPresenter extends BackendPresenter
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
 				try {
 					FileSystem::delete($tempFilename);
-				} catch (\Throwable $e) {
+				} catch (Throwable $e) {
 					Debugger::log($e, ILogger::WARNING);
 				}
 			};
@@ -2396,7 +2267,7 @@ class OrderPresenter extends BackendPresenter
 					$this->application->onShutdown[] = function () use ($tempFilename): void {
 						try {
 							FileSystem::delete($tempFilename);
-						} catch (\Throwable $e) {
+						} catch (Throwable $e) {
 							Debugger::log($e, ILogger::WARNING);
 						}
 					};
@@ -2405,7 +2276,7 @@ class OrderPresenter extends BackendPresenter
 
 					$zip->addFile($tempFilename, "objednavka-$order->code.csv");
 				}
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				$this->flashMessage('Chyba: ' . $e->getMessage(), 'error');
 
 				$this->redirect('this');
@@ -2430,7 +2301,7 @@ class OrderPresenter extends BackendPresenter
 				}
 
 				$this->flashMessage($msg, 'success');
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				$this->flashMessage('Chyba: ' . $e->getMessage(), 'error');
 			}
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
@@ -2451,7 +2322,7 @@ class OrderPresenter extends BackendPresenter
 				}
 
 				$this->flashMessage($msg, 'success');
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				$this->flashMessage($e->getMessage(), 'error');
 			}
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
@@ -2504,7 +2375,7 @@ class OrderPresenter extends BackendPresenter
 				}
 
 				$this->flashMessage($msg, 'success');
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				$this->flashMessage($e->getMessage(), 'error');
 			}
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
@@ -2520,7 +2391,7 @@ class OrderPresenter extends BackendPresenter
 				}
 
 				$this->flashMessage('Provedeno', 'success');
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				$this->flashMessage($e->getMessage(), 'error');
 			}
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
@@ -2536,7 +2407,7 @@ class OrderPresenter extends BackendPresenter
 				}
 
 				$this->flashMessage('Provedeno', 'success');
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				$this->flashMessage($e->getMessage(), 'error');
 			}
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
@@ -2582,7 +2453,7 @@ class OrderPresenter extends BackendPresenter
 			$connection->getLink()->commit();
 
 			$this->flashMessage('Provedeno', 'success');
-		} catch (\Throwable $e) {
+		} catch (Throwable $e) {
 			Debugger::log($e->getMessage(), ILogger::ERROR);
 			$connection->getLink()->rollBack();
 
@@ -2666,7 +2537,7 @@ class OrderPresenter extends BackendPresenter
 				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::EMAIL_SENT, OrderLogItem::DELIVERY_CHANGED, $admin);
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				Debugger::log($e->getMessage(), ILogger::WARNING);
 			}
 		};
@@ -2690,7 +2561,7 @@ class OrderPresenter extends BackendPresenter
 				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::PAYMENT_CHANGED, $admin);
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				Debugger::log($e->getMessage(), ILogger::WARNING);
 			}
 		};
@@ -2704,7 +2575,7 @@ class OrderPresenter extends BackendPresenter
 				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::RECEIVED, $admin);
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 			}
 		};
 
@@ -2717,7 +2588,7 @@ class OrderPresenter extends BackendPresenter
 				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 			}
 		};
 
@@ -2736,7 +2607,7 @@ class OrderPresenter extends BackendPresenter
 				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 			}
 		};
 

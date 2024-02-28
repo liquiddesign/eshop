@@ -992,6 +992,9 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		return $empty ? [] : $rootCategories;
 	}
 
+	/**
+	 * @deprecated Use OrderEditService
+	 */
 	public function changeOrderCartItemAmount(PackageItem $packageItem, CartItem $cartItemOld, int $amount): void
 	{
 		$cartItem = clone $cartItemOld;

@@ -5,6 +5,7 @@ parameters:
 	level: 8
 	paths:
 		- src/Services/LostPasswordService.php
+		- src/Services/Order
 	excludePaths:
 		- src/assets/*
 		- src/templates/*
