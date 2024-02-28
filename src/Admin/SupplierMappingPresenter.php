@@ -121,7 +121,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		)->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
 		$grid->addColumnText('Importováno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		$grid->addColumnText('Změněno', "updateTs|date:'d.m.Y G:i'", '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+//		$grid->addColumnText('Změněno', "updateTs|date:'d.m.Y G:i'", '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
 		/** @var 'categories'|'attribute'|'producer'|'attributeValue'|'displayAmount' $property */
 		$property = null;
