@@ -9,6 +9,7 @@ use Eshop\DB\Cart;
 use Eshop\DB\CartItem;
 use Eshop\DB\CartItemRepository;
 use Eshop\DB\CartRepository;
+use Eshop\DB\Customer;
 use Eshop\DB\DeliveryRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
@@ -44,9 +45,17 @@ readonly class OrderEditService implements AutoWireService
 	) {
 	}
 
-	public function addProduct(Order $order, Product|string $product, int $amount, Cart|string|null $cart = null, Package|string|null $package = null, bool $force = false,): true
-	{
-		$this->beforeProcess($order);
+	public function addProduct(
+		Order $order,
+		Product|string $product,
+		int $amount,
+		Cart|string|null $cart = null,
+		Package|string|true|null $package = null,
+		bool $force = false,
+		Customer|null $customer = null,
+		bool|null $replaceMode = null,
+	): true {
+		$this->beforeProcess($order, $customer);
 		$purchase = $order->purchase;
 
 		if (!$product instanceof Product) {
@@ -57,7 +66,7 @@ readonly class OrderEditService implements AutoWireService
 			throw new \Exception('Product not found');
 		}
 
-		if ($this->productRepository->getProducts($this->shopperUser->getCheckoutManager()->getPricelists()->toArray())->where('this.uuid', $product->getPK())->first()) {
+		if (!$this->productRepository->getProducts($this->shopperUser->getCheckoutManager()->getPricelists()->toArray())->where('this.uuid', $product->getPK())->first()) {
 			if (!$force) {
 				throw new \Exception('Customer can\'t buy this product!');
 			}
@@ -74,9 +83,13 @@ readonly class OrderEditService implements AutoWireService
 				throw new \Exception('No cart available');
 			}
 		}
-
-		if ($package !== null && !$package instanceof Package) {
+		
+		if (\is_string($package)) {
 			$package = $this->packageRepository->one($package, true);
+		}
+
+		if ($package === true) {
+			$package = $order->getPackages()->first();
 		}
 
 		if ($package === null) {
@@ -87,7 +100,7 @@ readonly class OrderEditService implements AutoWireService
 				'order' => $order,
 				'currency' => $purchase->currency->getPK(),
 				'type' => $purchase->deliveryType,
-				'typeName' => $purchase->deliveryType?->name,
+				'typeName' => $purchase->deliveryType?->toArray()['name'],
 				'typeCode' => $purchase->deliveryType?->code,
 				'price' => 0,
 				'priceVat' => 0,
@@ -123,17 +136,21 @@ readonly class OrderEditService implements AutoWireService
 			$product,
 			null,
 			$amount,
-			null,
+			$replaceMode,
 			$force ? CheckInvalidAmount::NO_CHECK : CheckInvalidAmount::CHECK_THROW,
 			!$force,
 			cart: $cart
 		);
 
-		$packageItem = $this->packageItemRepository->createOne([
-			'amount' => $amount,
-			'package' => $package->getPK(),
-			'cartItem' => $cartItem,
-		]);
+		if (!$packageItem = $package->getItems()->where('cartItem.fk_product', $product->getPK())->first()) {
+			$packageItem = $this->packageItemRepository->createOne([
+				'amount' => $cartItem->amount,
+				'package' => $package->getPK(),
+				'cartItem' => $cartItem,
+			]);
+		} else {
+			$packageItem->update(['amount' => $cartItem->amount]);
+		}
 
 		$setRelationType = $this->settingRepository->getValueByName(SettingsPresenter::SET_RELATION_TYPE);
 
@@ -274,9 +291,11 @@ readonly class OrderEditService implements AutoWireService
 		$cartItem->delete();
 	}
 
-	protected function beforeProcess(Order $order): bool
+	protected function beforeProcess(Order $order, Customer|null $customer = null): bool
 	{
-		if ($order->purchase->customer) {
+		if ($customer) {
+			$this->shopperUser->setCustomer($customer);
+		} elseif ($order->purchase->customer) {
 			$this->shopperUser->setCustomer($order->purchase->customer);
 		}
 
