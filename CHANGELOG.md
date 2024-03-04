@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.146](https://github.com/liquiddesign/eshop/compare/v2.1.145...v2.1.146) (2024-03-04)
+
+### Features
+
+
+##### Products Cache
+
+* Disable PriceList discounts, better cache update, show index in Customer detail ([1f9264](https://github.com/liquiddesign/eshop/commit/1f926400ccd71901da33af799615007e606031e1))
+
+
+---
+
 ## [2.1.145](https://github.com/liquiddesign/eshop/compare/v2.1.144...v2.1.145) (2024-03-04)
 
 ### Features
