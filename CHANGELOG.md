@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.145](https://github.com/liquiddesign/eshop/compare/v2.1.144...v2.1.145) (2024-03-04)
+
+### Features
+
+
+##### Products Cache
+
+* Add ability to update cache indices of selected Customers of CustomerGroups ([93efc1](https://github.com/liquiddesign/eshop/commit/93efc137dc13d7a67e1cbebec58b5174ec358b8f))
+
+
+---
+
 ## [2.1.144](https://github.com/liquiddesign/eshop/compare/v2.1.143...v2.1.144) (2024-02-29)
 
 ### Bug Fixes
