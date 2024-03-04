@@ -38,6 +38,10 @@ use Web\DB\SettingRepository;
 
 class ProductsCacheWarmUpService implements AutoWireService
 {
+	public const PRODUCTS_TABLE_NAME = 'eshop_products_cache_';
+	public const PRICES_TABLE_NAME = 'eshop_products_prices_cache_';
+	public const CATEGORIES_TABLE_NAME = 'eshop_categories_cache_';
+
 	protected Cache $cache;
 
 	protected \PDO|false $link = false;
@@ -77,6 +81,21 @@ class ProductsCacheWarmUpService implements AutoWireService
 		$this->cache = new Cache($storage);
 	}
 
+	public function getProductsTableName(int $cacheIndexToBeWarmedUp): string
+	{
+		return $this::PRODUCTS_TABLE_NAME . $cacheIndexToBeWarmedUp;
+	}
+
+	public function getPricesTableName(int $cacheIndexToBeWarmedUp): string
+	{
+		return $this::PRICES_TABLE_NAME . $cacheIndexToBeWarmedUp;
+	}
+
+	public function getCategoriesTableName(int $cacheIndexToBeWarmedUp): string
+	{
+		return $this::CATEGORIES_TABLE_NAME . $cacheIndexToBeWarmedUp;
+	}
+
 	public function warmUpCacheTable(): void
 	{
 		$cacheIndexToBeWarmedUp = $this->getCacheIndexToBeWarmedUp();
@@ -93,9 +112,9 @@ class ProductsCacheWarmUpService implements AutoWireService
 
 			$this->markCacheAsWarming($cacheIndexToBeWarmedUp);
 
-			$productsCacheTableName = "eshop_products_cache_$cacheIndexToBeWarmedUp";
-			$visibilityPricesCacheTableName = "eshop_products_prices_cache_$cacheIndexToBeWarmedUp";
-			$categoriesTableName = "eshop_categories_cache_$cacheIndexToBeWarmedUp";
+			$productsCacheTableName = $this->getProductsTableName($cacheIndexToBeWarmedUp);
+			$visibilityPricesCacheTableName = $this->getPricesTableName($cacheIndexToBeWarmedUp);
+			$categoriesTableName = $this->getCategoriesTableName($cacheIndexToBeWarmedUp);
 
 			// From this point, every section is tracked
 			Debugger::timer();
@@ -195,6 +214,97 @@ class ProductsCacheWarmUpService implements AutoWireService
 		]);
 	}
 
+	/**
+	 * @param array<string> $customers
+	 * @param array<string>|null $customerGroups
+	 * @return array{0: array<string, true>, 1: array<int>, 2: array<int>}
+	 */
+	public function getAllPossibleVisibilityAndPriceListOptions(array $customers = [], array|null $customerGroups = null): array
+	{
+		$existingOptions = [];
+		$allVisibilityLists = [];
+		$allPriceLists = [];
+
+		$customerGroupsQuery = $this->customerGroupRepository->many();
+
+		if ($customerGroups !== null) {
+			$customerGroups ?
+				$customerGroupsQuery->where('this.uuid', $customerGroups) :
+				$customerGroupsQuery->where('1=0');
+		}
+
+		// Only customer groups marked as defaultUnregisteredGroup are used
+		if ($unregisteredGroups = $this->settingsService->getAllDefaultUnregisteredGroups()) {
+			$customerGroupsQuery->where('this.uuid', $unregisteredGroups);
+		} else {
+			$customerGroupsQuery->where('this.uuid', CustomerGroupRepository::UNREGISTERED_PK);
+		}
+
+		foreach ($customerGroupsQuery as $customerGroup) {
+			$visibilityLists = $customerGroup->getDefaultVisibilityLists()->where('hidden', false)->setSelect(['id'])->setOrderBy(['priority'])->toArrayOf('id', toArrayValues: true);
+			$priceLists = $customerGroup->getDefaultPricelists()->where('isActive', true)->setSelect(['id'])->setOrderBy(['priority'])->toArrayOf('id', toArrayValues: true);
+
+			foreach ($visibilityLists as $visibilityList) {
+				$allVisibilityLists[$visibilityList] = true;
+			}
+
+			foreach ($priceLists as $priceList) {
+				$allPriceLists[$priceList] = true;
+			}
+
+			$index =
+				\implode(',', $visibilityLists) .
+				'-' .
+				\implode(',', $priceLists);
+
+			$existingOptions[$index] = true;
+		}
+
+		foreach (['eshop_customer_nxn_eshop_pricelist', 'eshop_customer_nxn_eshop_pricelist_favourite'] as $table) {
+			$customersQuery = $this->customerRepository->many()
+				->join(['customerXpriceList' => $table], 'this.uuid = customerXpriceList.fk_customer')
+				->join(['priceList' => 'eshop_pricelist'], 'customerXpriceList.fk_pricelist = priceList.uuid')
+				->join(['customerXvisibilityList' => 'eshop_customer_nxn_eshop_visibilitylist'], 'this.uuid = customerXvisibilityList.fk_customer')
+				->join(['visibilityList' => 'eshop_visibilitylist'], 'customerXvisibilityList.fk_visibilitylist = visibilityList.uuid')
+				->setSelect([
+					'visibilityPriceIndex' => 'DISTINCT(CONCAT(
+                    GROUP_CONCAT(DISTINCT visibilityList.id ORDER BY visibilityList.priority),
+                    "-",
+                    GROUP_CONCAT(DISTINCT priceList.id ORDER BY priceList.priority)
+                ))',
+				])
+				->setGroupBy(['this.uuid']);
+
+			if ($customers) {
+				$customersQuery->where('this.uuid', $customers);
+			}
+
+			$indexes = $customersQuery->toArrayOf('visibilityPriceIndex');
+
+			foreach ($indexes as $index) {
+				if (!$index) {
+					continue;
+				}
+
+				$exploded = \explode('-', $index);
+
+				if (\count($exploded) === 2) {
+					foreach (\explode(',', $exploded[0]) as $visibilityList) {
+						$allVisibilityLists[$visibilityList] = true;
+					}
+
+					foreach (\explode(',', $exploded[1]) as $priceList) {
+						$allPriceLists[$priceList] = true;
+					}
+				}
+
+				$existingOptions[$index] = true;
+			}
+		}
+
+		return [$existingOptions, \array_keys($allVisibilityLists), \array_keys($allPriceLists)];
+	}
+
 	protected function insertCategoriesTable(string $categoriesTableName, array $productsByCategories, array $allCategories): void
 	{
 		$i = 0;
@@ -259,8 +369,8 @@ CREATE TABLE `$categoriesTableName` (
 
 		$productsCollection = $this->productRepository->many()
 			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product', type: 'INNER')
-			->join(['priceList' => 'eshop_pricelist'], 'price.fk_pricelist = priceList.uuid')
-			->join(['discount' => 'eshop_discount'], 'priceList.fk_discount = discount.uuid')
+//			->join(['priceList' => 'eshop_pricelist'], 'price.fk_pricelist = priceList.uuid')
+//			->join(['discount' => 'eshop_discount'], 'priceList.fk_discount = discount.uuid')
 			->join(['eshop_displayamount'], 'this.fk_displayAmount = eshop_displayamount.uuid')
 			->join(['eshop_displaydelivery'], 'this.fk_displayDelivery = eshop_displaydelivery.uuid')
 			->join(['eshop_producer'], 'this.fk_producer = eshop_producer.uuid')
@@ -275,8 +385,8 @@ CREATE TABLE `$categoriesTableName` (
 				'externalCode' => 'this.externalCode',
 				'ean' => 'this.ean',
 			])
-			->where('priceList.isActive', true)
-			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
+//			->where('priceList.isActive', true)
+//			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
 			->setGroupBy(['this.id']);
 
 		$productsByCategories = [];
@@ -304,9 +414,9 @@ CREATE TABLE `$categoriesTableName` (
 				$product->fkDisplayAmount ? ((int) $allDisplayAmounts[$product->fkDisplayAmount]->isSold) : '\N',
 					$productAttributeValues[$product->id] ?? null ?: '\N',
 				$product->name ?: '\N',
-				$product->code ? "\"$product->code\"" : '\N',
-				$product->subCode ? "\"$product->subCode\"" : '\N',
-				$product->externalCode ? "\"$product->externalCode\"" : '\N',
+				$product->code ? "$product->code" : '\N',
+				$product->subCode ? "$product->subCode" : '\N',
+				$product->externalCode ? "$product->externalCode" : '\N',
 				$product->ean ? "\"$product->ean\"" : '\N',
 			];
 
@@ -897,84 +1007,6 @@ CREATE TABLE `$relationsCacheTableName` (
 		foreach ($categoryTablesInDb as $categoryTableName) {
 			$this->getLink()->exec("DROP TABLE `$categoryTableName`");
 		}
-	}
-
-	/**
-	 * @return array{0: array<string, true>, 1: array<int>, 2: array<int>}
-	 */
-	protected function getAllPossibleVisibilityAndPriceListOptions(): array
-	{
-		$existingOptions = [];
-		$allVisibilityLists = [];
-		$allPriceLists = [];
-		$customerGroupsQuery = $this->customerGroupRepository->many();
-
-		// Only customer groups marked as defaultUnregisteredGroup are used
-		if ($unregisteredGroups = $this->settingsService->getAllDefaultUnregisteredGroups()) {
-			$customerGroupsQuery->where('this.uuid', $unregisteredGroups);
-		} else {
-			$customerGroupsQuery->where('this.uuid', CustomerGroupRepository::UNREGISTERED_PK);
-		}
-
-		foreach ($customerGroupsQuery as $customerGroup) {
-			$visibilityLists = $customerGroup->getDefaultVisibilityLists()->where('hidden', false)->setSelect(['id'])->setOrderBy(['priority'])->toArrayOf('id', toArrayValues: true);
-			$priceLists = $customerGroup->getDefaultPricelists()->where('isActive', true)->setSelect(['id'])->setOrderBy(['priority'])->toArrayOf('id', toArrayValues: true);
-
-			foreach ($visibilityLists as $visibilityList) {
-				$allVisibilityLists[$visibilityList] = true;
-			}
-
-			foreach ($priceLists as $priceList) {
-				$allPriceLists[$priceList] = true;
-			}
-
-			$index =
-				\implode(',', $visibilityLists) .
-				'-' .
-				\implode(',', $priceLists);
-
-			$existingOptions[$index] = true;
-		}
-
-		foreach (['eshop_customer_nxn_eshop_pricelist', 'eshop_customer_nxn_eshop_pricelist_favourite'] as $table) {
-			$customersQuery = $this->customerRepository->many()
-				->join(['customerXpriceList' => $table], 'this.uuid = customerXpriceList.fk_customer')
-				->join(['priceList' => 'eshop_pricelist'], 'customerXpriceList.fk_pricelist = priceList.uuid')
-				->join(['customerXvisibilityList' => 'eshop_customer_nxn_eshop_visibilitylist'], 'this.uuid = customerXvisibilityList.fk_customer')
-				->join(['visibilityList' => 'eshop_visibilitylist'], 'customerXvisibilityList.fk_visibilitylist = visibilityList.uuid')
-				->setSelect([
-					'visibilityPriceIndex' => 'DISTINCT(CONCAT(
-					GROUP_CONCAT(DISTINCT visibilityList.id ORDER BY visibilityList.priority),
-					"-",
-					GROUP_CONCAT(DISTINCT priceList.id ORDER BY priceList.priority)
-				))',
-				])
-				->setGroupBy(['this.uuid']);
-
-			$indexes = $customersQuery->toArrayOf('visibilityPriceIndex');
-
-			foreach ($indexes as $index) {
-				if (!$index) {
-					continue;
-				}
-
-				$exploded = \explode('-', $index);
-
-				if (\count($exploded) === 2) {
-					foreach (\explode(',', $exploded[0]) as $visibilityList) {
-						$allVisibilityLists[$visibilityList] = true;
-					}
-
-					foreach (\explode(',', $exploded[1]) as $priceList) {
-						$allPriceLists[$priceList] = true;
-					}
-				}
-
-				$existingOptions[$index] = true;
-			}
-		}
-
-		return [$existingOptions, \array_keys($allVisibilityLists), \array_keys($allPriceLists)];
 	}
 
 	protected function createVisibilityPriceTable(string $pricesCacheTableName): void
