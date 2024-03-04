@@ -30,7 +30,6 @@ readonly class ProductsCacheUpdateService implements AutoWireService
 		$link = $this->connection->getLink();
 		[$visibilityPriceListsOptions, $allVisibilityLists, $allPriceLists] = $this->productsCacheWarmUpService->getAllPossibleVisibilityAndPriceListOptions([$customer->getPK()], []);
 
-		/** @var bool $canStartTransaction */
 		$canStartTransaction = $this->waitForTransaction($link);
 
 		if ($canStartTransaction) {
@@ -49,7 +48,7 @@ readonly class ProductsCacheUpdateService implements AutoWireService
 			Debugger::barDump($e);
 			Debugger::log($e, ILogger::EXCEPTION);
 
-			if ($canStartTransaction) {
+			if ($canStartTransaction === true) {
 				$link->rollBack();
 			}
 		}
