@@ -29,6 +29,7 @@ use StORM\Repository;
 use StORM\SchemaManager;
 use Tracy\Debugger;
 use Tracy\ILogger;
+use Web\DB\Page;
 use Web\DB\PageRepository;
 use Web\DB\SettingRepository;
 
@@ -1420,6 +1421,18 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			unset($columns[$columnKey]);
 		}
 
+		foreach (['exportPage_title', 'exportPage_description'] as $columnKey) {
+			if (!isset($columns[$columnKey])) {
+				continue;
+			}
+
+			foreach (\array_keys($mutations) as $mutation) {
+				$columns["{$columnKey}_$mutation"] = null;
+			}
+
+			unset($columns[$columnKey]);
+		}
+
 		$completeHeaders = \array_merge($header, $supplierCodes);
 
 		if ($completeHeaders) {
@@ -1440,6 +1453,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			->join(['categoryAssign' => 'eshop_product_nxn_eshop_category'], 'this.uuid = categoryAssign.fk_product')
 			->join(['category' => 'eshop_category'], 'categoryAssign.fk_category = category.uuid')
 			->join(['masterProduct' => 'eshop_product'], 'this.fk_masterProduct = masterProduct.uuid')
+			->join(['exportPage' => 'web_page'], "exportPage.params like CONCAT('%', this.uuid, '%') and exportPage.type = 'product_detail'")
 			->select([
 //				'attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute, '^', CONCAT(COALESCE(attributeValue.label$mutationSuffix), '°', attributeValue.code)) SEPARATOR \"~\")",
 				'producerCodeName' => "IF(producer.code IS NOT NULL, CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, '')), NULL)",
@@ -1447,6 +1461,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'groupedCategories' => "GROUP_CONCAT(DISTINCT CONCAT(category.name$mutationSuffix, '#',
                 IF(category.code IS NULL OR category.code = '', category.uuid, category.code)) ORDER BY LENGTH(category.path) SEPARATOR ':')",
 				'masterProductCode' => 'masterProduct.code',
+			])->selectAliases([
+				'exportPage' => Page::class,
 			]);
 
 		$attributesByProductPK = [];
@@ -1488,7 +1504,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		while ($product = $products->fetch()) {
 			/** @var \Eshop\DB\Product|\stdClass $product */
 			$row = [];
-			
+
 			foreach (\array_keys($columns) as $columnKey) {
 				if ($columnKey === 'producer') {
 					$row[] = $product->producerCodeName;

@@ -97,6 +97,8 @@ class ProductPresenter extends BackendPresenter
 			'exportHeureka' => 'Exportovat do Heureky',
 			'exportGoogle' => 'Exportovat do Google',
 			'exportZbozi' => 'Exportovat do Zboží.cz',
+			'exportPage_title' => 'Meta titulek',
+			'exportPage_description' => 'Meta popis',
 		],
 		'exportAttributes' => [],
 		'defaultExportColumns' => [
@@ -121,6 +123,8 @@ class ProductPresenter extends BackendPresenter
 			'exportHeureka' => 'Exportovat do Heureky',
 			'exportGoogle' => 'Exportovat do Google',
 			'exportZbozi' => 'Exportovat do Zboží.cz',
+			'exportPage_title' => 'Meta titulek',
+			'exportPage_description' => 'Meta popis',
 		],
 		'importAttributes' => [],
 		'importExampleFile' => null,
@@ -1428,6 +1432,18 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 				unset($headerColumns[$columnKey]);
 			}
 
+			foreach (['exportPage_title', 'exportPage_description'] as $columnKey) {
+				if (!isset($headerColumns[$columnKey])) {
+					continue;
+				}
+
+				foreach (\array_keys($mutations) as $mutation) {
+					$headerColumns["{$columnKey}_$mutation"] = "{$columnKey}_$mutation";
+				}
+
+				unset($headerColumns[$columnKey]);
+			}
+
 			$attributeColumns = \array_filter($attributes, function ($item) use ($values) {
 				return \in_array($item, $values['attributes']);
 			}, \ARRAY_FILTER_USE_KEY);
@@ -1783,6 +1799,8 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 		foreach ($mutations as $mutation => $suffix) {
 			$setSelect["name_$mutation"] = "name$suffix";
 			$setSelect["perex_$mutation"] = "perex$suffix";
+			$setSelect["page.title_$mutation"] = "page.title$suffix";
+			$setSelect["page.description_$mutation"] = "page.title$suffix";
 		}
 
 		$products = $this->productRepository->many()->setSelect($setSelect, [], true)->fetchArray(\stdClass::class);
