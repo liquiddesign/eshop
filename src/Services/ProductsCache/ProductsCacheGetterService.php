@@ -9,6 +9,7 @@ use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
+use Eshop\DB\Customer;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\PricelistRepository;
@@ -141,6 +142,25 @@ class ProductsCacheGetterService implements AutoWireService
 	public function addAllowedCollectionOrderColumn(string $name, string $column): void
 	{
 		$this->allowedCollectionOrderColumns[$name] = $column;
+	}
+
+	public function getIndexByCustomer(Customer $customer): string
+	{
+		$visibilityLists = $customer->getVisibilityLists()->toArray();
+		$priceLists = $customer->getPricelists()->toArray();
+
+		$visibilityListsIds = $this->visibilityListRepository->many()
+			->setSelect(['this.id'])
+			->setOrderBy(['this.priority'])
+			->where('this.uuid', \array_keys($visibilityLists))
+			->toArrayOf('id', toArrayValues: true);
+		$priceListsIds = $this->pricelistRepository->many()
+			->setSelect(['this.id'])
+			->setOrderBy(['this.priority'])
+			->where('this.uuid', \array_keys($priceLists))
+			->toArrayOf('id', toArrayValues: true);
+
+		return \implode(',', $visibilityListsIds) . '-' . \implode(',', $priceListsIds);
 	}
 
 	public function addCollectionOrderExpression(string $name, callable $callback): void

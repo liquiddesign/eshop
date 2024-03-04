@@ -376,8 +376,8 @@ class PricelistsPresenter extends BackendPresenter
 		$form->addDataSelect('currency', 'Měna', $this->currencyRepository->getArrayForSelect());
 		$form->addDataSelect('country', 'Země DPH', $this->countryRepo->getArrayForSelect());
 
-		$discountInput = $form->addDataSelect('discount', 'Akce', $this->discountRepo->getArrayForSelect())->setPrompt('Žádná');
-		$onlyCouponInput = $form->addCheckbox('activeOnlyWithCoupon', 'Platí pouze se slevovým kupónem');
+		$discountInput = $form->addDataSelect('discount', 'Akce', $this->discountRepo->getArrayForSelect())->setPrompt('Žádná')->setDisabled();
+		$onlyCouponInput = $form->addCheckbox('activeOnlyWithCoupon', 'Platí pouze se slevovým kupónem')->setDisabled();
 		$discountInput->addCondition($form::FILLED)->toggle($onlyCouponInput->getHtmlId() . '-toogle');
 
 		$form->addText('priority', 'Priorita')->addRule($form::INTEGER)->setRequired()->setDefaultValue(10);

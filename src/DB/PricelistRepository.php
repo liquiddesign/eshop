@@ -35,10 +35,13 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 	public function getPricelists(array $pks, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
 	{
+		unset($activeCoupon);
+		// @TODO cache nepočítá s Discount
+
 		$collection = $this->many()
 			->where('isActive', true)
-			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
-			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'this.fk_discount = "' . $activeCoupon->getValue('discount') . '"' : 'false'))
+//			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
+//			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'this.fk_discount = "' . $activeCoupon->getValue('discount') . '"' : 'false'))
 			->where('this.uuid', \array_values($pks))
 			->where('fk_currency', $currency->getPK())
 			->where('fk_country', $country->getPK());
@@ -57,12 +60,15 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	 */
 	public function getCustomerPricelists(Customer $customer, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
 	{
+		unset($activeCoupon);
+		// @TODO cache nepočítá s Discount
+
 		$collection = $this->many()
 			->join(['nxn' => 'eshop_customer_nxn_eshop_pricelist'], 'fk_pricelist=this.uuid')
 			->where('nxn.fk_customer', $customer->getPK())
 			->where('isActive', true)
-			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL  OR discount.validTo >= DATE(now()))')
-			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'this.fk_discount = "' . $activeCoupon->getValue('discount') . '"' : 'false'))
+//			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL  OR discount.validTo >= DATE(now()))')
+//			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'this.fk_discount = "' . $activeCoupon->getValue('discount') . '"' : 'false'))
 			->where('fk_currency ', $currency->getPK())
 			->where('fk_country', $country->getPK());
 

@@ -6,7 +6,6 @@ use Base\Bridges\AutoWireService;
 use Eshop\DB\Customer;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\VisibilityListItemRepository;
-use Eshop\DevelTools;
 use Eshop\ShopperUser;
 use StORM\DIConnection;
 use Tracy\Debugger;
@@ -31,20 +30,28 @@ readonly class ProductsCacheUpdateService implements AutoWireService
 		$link = $this->connection->getLink();
 		[$visibilityPriceListsOptions, $allVisibilityLists, $allPriceLists] = $this->productsCacheWarmUpService->getAllPossibleVisibilityAndPriceListOptions([$customer->getPK()], []);
 
-		$this->waitForTransaction($link);
-		$link->beginTransaction();
+		/** @var bool $canStartTransaction */
+		$canStartTransaction = $this->waitForTransaction($link);
+
+		if ($canStartTransaction) {
+			$link->beginTransaction();
+		}
 
 		try {
 			foreach (\array_keys($visibilityPriceListsOptions) as $option) {
 				$this->updateIndex($option, $usedCacheIndex, $allVisibilityLists, $allPriceLists);
 			}
 
-			$link->commit();
+			if ($canStartTransaction) {
+				$link->commit();
+			}
 		} catch (\Exception $e) {
-			Debugger::dump($e);
+			Debugger::barDump($e);
 			Debugger::log($e, ILogger::EXCEPTION);
 
-			$link->rollBack();
+			if ($canStartTransaction) {
+				$link->rollBack();
+			}
 		}
 	}
 
@@ -110,11 +117,6 @@ readonly class ProductsCacheUpdateService implements AutoWireService
 
 		$allProductsWithPriceQuery->__destruct();
 		unset($allProductsWithPriceQuery);
-
-		Debugger::dump('insertVisibilityPriceTable -- prefetch: ' . Debugger::timer('insertVisibilityPriceTable -- prefetch'));
-		Debugger::dump(DevelTools::getPeakMemoryUsage());
-
-		Debugger::timer('insertVisibilityPriceTable -- main while');
 
 		$this->connection->rows([$visibilityPricesCacheTableName])->where('visibilityPriceIndex', $index)->delete();
 
@@ -185,14 +187,22 @@ readonly class ProductsCacheUpdateService implements AutoWireService
 				}
 			}
 		}
-
-		Debugger::dump('insertVisibilityPriceTable -- main while: ' . Debugger::timer('insertVisibilityPriceTable -- main while'));
 	}
 
-	protected function waitForTransaction(\PDO $link): void
+	protected function waitForTransaction(\PDO $link): bool
 	{
+		$i = 0;
+
 		while ($link->inTransaction()) {
+			if ($i === 1) {
+				return false;
+			}
+
 			\sleep(1);
+
+			$i++;
 		}
+
+		return true;
 	}
 }

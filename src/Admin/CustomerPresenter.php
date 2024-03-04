@@ -25,6 +25,7 @@ use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\Services\LostPasswordService;
+use Eshop\Services\ProductsCache\ProductsCacheGetterService;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
@@ -85,67 +86,67 @@ class CustomerPresenter extends BackendPresenter
 	 */
 	public array $onBeforeSubmitEditAddress = [];
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AccountFormFactory $accountFormFactory;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CustomerRepository $customerRepository;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AccountRepository $accountRepository;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public MerchantRepository $merchantRepository;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public TemplateRepository $templateRepository;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ProductRepository $productRepo;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PaymentTypeRepository $paymentTypeRepo;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public DeliveryTypeRepository $deliveryTypeRepo;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CurrencyRepository $currencyRepo;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CustomerGroupRepository $groupsRepo;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CustomerRoleRepository $customerRoleRepo;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public OrderRepository $orderRepository;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AddressRepository $addressRepo;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Mailer $mailer;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PricelistRepository $pricelistRepo;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CatalogPermissionRepository $catalogPermissionRepo;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Connection $storm;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ShopperUser $shopperUser;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public LoyaltyProgramRepository $loyaltyProgramRepository;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public NewsletterUserRepository $newsletterUserRepository;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public NewsletterUserGroupRepository $newsletterUserGroupRepository;
 
 	#[Inject]
@@ -153,6 +154,9 @@ class CustomerPresenter extends BackendPresenter
 
 	#[Inject]
 	public LostPasswordService $lostPasswordService;
+
+	#[Inject]
+	public ProductsCacheGetterService $productsCacheGetterService;
 
 	public function addFiltersToCustomersGrid(AdminGrid $grid): void
 	{
@@ -674,6 +678,11 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$form->addText('ediBranch', 'EDI: Identifikátor pobočky')
 				->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
 		}
+
+		$form->addGroup('Cache');
+		$form->addText('cacheIndex', 'Index')
+			->setDisabled()
+			->setDefaultValue($customer ? $this->productsCacheGetterService->getIndexByCustomer($customer) : null);
 
 		$form->onValidate[] = function (AdminForm $form): void {
 			if (!$form->isValid()) {
