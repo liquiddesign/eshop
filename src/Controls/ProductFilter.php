@@ -256,8 +256,10 @@ class ProductFilter extends Control
 		switch ($uuid) {
 			case 'availability':
 				return $this->displayAmountRepository->getArrayForSelect(false);
+
 			case 'delivery':
 				return $this->displayDeliveryRepository->getArrayForSelect(false);
+
 			case 'producer':
 				$categoryPath = $this->getCategoryPath() ?? '';
 
@@ -273,6 +275,7 @@ class ProductFilter extends Control
 						->where('category.path LIKE :s', ['s' => $categoryPath . '%'])
 						->toArrayOf('name');
 				});
+
 			default:
 				return [];
 		}

@@ -127,10 +127,12 @@ class SupplierPresenter extends BackendPresenter
 						$msg .= 'Import doběhl v pořádku';
 
 						break;
+
 					case 'importAmount':
 						$msg .= 'Import dosupností a skladů doběhl v pořádku';
 
 						break;
+
 					default:
 						$msg .= 'Zápis do katalogu doběhl v pořádku';
 				}

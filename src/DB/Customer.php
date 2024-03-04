@@ -444,7 +444,7 @@ class Customer extends Entity implements IIdentity, IUser
 	/**
 	 * @return array<mixed>|\StORM\Collection
 	 */
-	public function getMyChildUsers()
+	public function getMyChildUsers(): array|\StORM\Collection
 	{
 		if ($this->isAffiliateTree()) {
 			return $this->getMyTreeUsers();
@@ -490,9 +490,8 @@ class Customer extends Entity implements IIdentity, IUser
 	/**
 	 * Vraci provizi jakou uzivatel dostane z objednavky
 	 * @param \Eshop\DB\Order $order
-	 * @return float|int
 	 */
-	public function getProvisionAmount(Order $order)
+	public function getProvisionAmount(Order $order): float|int
 	{
 		$provision = 0;
 

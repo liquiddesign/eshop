@@ -297,10 +297,12 @@ class CustomerPresenter extends BackendPresenter
 					$filter = '=1';
 
 					break;
+
 				case 'more':
 					$filter = '>1';
 
 					break;
+
 				default:
 					$filter = '=0';
 

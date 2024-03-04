@@ -24,6 +24,7 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 
 	/** @inject */
 	public AttributeValueRepository $attributeValueRepository;
+
 	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 

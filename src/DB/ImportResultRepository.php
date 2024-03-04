@@ -39,10 +39,12 @@ class ImportResultRepository extends \StORM\Repository
 				$typeMsg = 'Import started';
 
 				break;
+
 			case 'importAmount':
 				$typeMsg = 'Import amount started';
 
 				break;
+
 			default:
 				$typeMsg = 'Entry started';
 
