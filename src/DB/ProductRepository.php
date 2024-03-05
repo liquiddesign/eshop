@@ -24,6 +24,7 @@ use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Entity;
 use StORM\Expression;
+use StORM\GenericCollection;
 use StORM\ICollection;
 use StORM\Repository;
 use StORM\SchemaManager;
@@ -1388,7 +1389,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	}
 
 	public function csvExport(
-		ICollection $products,
+		Collection $products,
 		Writer $writer,
 		array $columns = [],
 		array $attributes = [],
@@ -1453,7 +1454,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			->join(['categoryAssign' => 'eshop_product_nxn_eshop_category'], 'this.uuid = categoryAssign.fk_product')
 			->join(['category' => 'eshop_category'], 'categoryAssign.fk_category = category.uuid')
 			->join(['masterProduct' => 'eshop_product'], 'this.fk_masterProduct = masterProduct.uuid')
-			->join(['exportPage' => 'web_page'], "exportPage.params like CONCAT('%', this.uuid, '%') and exportPage.type = 'product_detail'")
+			->join(['exportPage' => 'web_page'], "exportPage.params like CONCAT('%product=', this.uuid, '&%') and exportPage.type = 'product_detail'")
 			->select([
 //				'attributes' => "GROUP_CONCAT(DISTINCT CONCAT(attributeValue.fk_attribute, '^', CONCAT(COALESCE(attributeValue.label$mutationSuffix), '°', attributeValue.code)) SEPARATOR \"~\")",
 				'producerCodeName' => "IF(producer.code IS NOT NULL, CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, '')), NULL)",

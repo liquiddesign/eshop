@@ -1027,11 +1027,6 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 		return $form;
 	}
 
-	public function actionImportCsv(): void
-	{
-		Debugger::$showBar = false;
-	}
-
 	public function renderImportCsv(): void
 	{
 		$this->template->headerLabel = 'Import';
@@ -1240,6 +1235,8 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		};
 
 		$form->onSuccess[] = function (AdminForm $form): void {
+			$this->connection->setDebug(false);
+
 			$values = $form->getValues('array');
 
 			/** @var \Nette\Http\FileUpload $file */
@@ -1272,6 +1269,7 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 				$this->flashMessage('Provedeno', 'success');
 			} catch (\Exception $e) {
 				Debugger::log($e, ILogger::WARNING);
+				Debugger::barDump($e);
 
 				try {
 					FileSystem::delete($tempFileName);
@@ -1406,6 +1404,7 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid, $items, $attributes): void {
 			$values = $form->getValues('array');
 
+			/** @var \StORM\Collection $products */
 			$products = $values['bulkType'] === 'selected' ? $this->productRepository->many()->where('this.uuid', $ids) : $productGrid->getFilteredSource();
 
 			$tempFilename = \tempnam($this->tempDir, 'csv');
@@ -1788,22 +1787,26 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 		$categoriesCodes = $this->categoryRepository->many()->setIndex('code')->toArrayOf('uuid');
 
 		$setSelect = [
-			'uuid',
-			'code',
-			'fullCode' => 'CONCAT(code,".",subCode)',
-			'ean',
-			'supplierContentLock',
-			'mpn',
+			'this.uuid',
+			'this.code',
+			'fullCode' => 'CONCAT(this.code,".",this.subCode)',
+			'this.ean',
+			'this.supplierContentLock',
+			'this.mpn',
 		];
 
 		foreach ($mutations as $mutation => $suffix) {
-			$setSelect["name_$mutation"] = "name$suffix";
-			$setSelect["perex_$mutation"] = "perex$suffix";
-			$setSelect["page.title_$mutation"] = "page.title$suffix";
-			$setSelect["page.description_$mutation"] = "page.title$suffix";
+			$setSelect["name_$mutation"] = "this.name$suffix";
+			$setSelect["perex_$mutation"] = "this.perex$suffix";
+			$setSelect["exportPage_title_$mutation"] = "exportPage.title$suffix";
+			$setSelect["exportPage_description_$mutation"] = "exportPage.title$suffix";
 		}
 
-		$products = $this->productRepository->many()->setSelect($setSelect, [], true)->fetchArray(\stdClass::class);
+		$products = $this->productRepository->many()
+			->join(['exportPage' => 'web_page'], "exportPage.params like CONCAT('%product=', this.uuid, '&%') and exportPage.type = 'product_detail'")
+			->setSelect($setSelect, [], true)
+			->setGroupBy(['this.uuid'])
+			->fetchArray(\stdClass::class);
 
 		$header = $reader->getHeader();
 
@@ -1957,6 +1960,8 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 				continue;
 			}
 
+			$page = null;
+
 			if ($product) {
 				$updatedProducts++;
 			}
@@ -1974,7 +1979,19 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 					[$key, $keyMutation] = $columnsWithMutations[$key];
 				}
 
-				if ($key === 'producer') {
+				if ($key === 'exportPage_title') {
+					$this->pageRepository->many()->where("this.params like :s and this.type = 'product_detail'", ['s' => "%product=$product->uuid&%"])->update([
+						'title' => [
+							$keyMutation => $value,
+						]
+					]);
+				} elseif ($key === 'exportPage_description') {
+					$this->pageRepository->many()->where("this.params like :s and this.type = 'product_detail'", ['s' => "%product=$product->uuid&%"])->update([
+						'description' => [
+							$keyMutation => $value,
+						]
+					]);
+				} elseif ($key === 'producer') {
 					if (Strings::contains($value, '#')) {
 						$producerCode = \explode('#', $value);
 
