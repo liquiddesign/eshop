@@ -64,7 +64,13 @@
 		"phpcs": "phpcs --standard=ruleset.xml --ignore=assets --cache src",
 		"phpcsfix": "phpcbf --standard=ruleset.xml --ignore=assets --cache src",
 		"lattelint": "php lattelint.php",
-		"tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php"
+		"tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php",
+		"changelog": "conventional-changelog --config=./vendor/liquiddesign/codestyle/src/changelog/changelog-config.php",
+		"release": "@changelog --commit",
+		"release:patch": "@changelog --patch --commit",
+		"release:minor": "@changelog --minor --commit",
+		"release:major": "@changelog --major --commit",
+		"check-commit": "@php ./vendor/liquiddesign/codestyle/src/scripts/check-last-commit.php"
 	},
 	"config": {
 		"allow-plugins": {
