@@ -26,6 +26,12 @@ class Pricelist extends ShopSystemicEntity
 	public ?string $name;
 	
 	/**
+	 * Popis
+	 * @column
+	 */
+	public ?string $description;
+	
+	/**
 	 * Je aktivní?
 	 * @column
 	 */

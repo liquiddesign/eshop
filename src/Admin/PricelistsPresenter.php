@@ -106,6 +106,7 @@ class PricelistsPresenter extends BackendPresenter
 			'decoratorNowrap',
 		];
 		$grid->addColumnText('Název', 'name', '%s', 'name');
+		$grid->addColumnText('Popis', 'description', '%s');
 		$grid->addColumn('Akce', function (Pricelist $object) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Discount:detail') && $object->discount ? $this->link(
 				':Eshop:Admin:Discount:detail',
@@ -367,6 +368,7 @@ class PricelistsPresenter extends BackendPresenter
 
 		$form->addText('code', 'Kód');
 		$form->addText('name', 'Název');
+		$form->addTextArea('description', 'Popis');
 
 		$form->addDataSelect('currency', 'Měna', $this->currencyRepository->getArrayForSelect());
 		$form->addDataSelect('country', 'Země DPH', $this->countryRepo->getArrayForSelect());
