@@ -4,6 +4,26 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.147](https://github.com/liquiddesign/eshop/compare/v2.1.146...v2.1.147) (2024-03-07)
+
+### Features
+
+
+##### Pricelist
+
+* Add a description to the price list. ([5ae6b7](https://github.com/liquiddesign/eshop/commit/5ae6b7423522a2c1c050bdd50354b8e8971f4402))
+
+### Styles
+
+* Fix ([00d598](https://github.com/liquiddesign/eshop/commit/00d598c5fa1c1ffe2746a6e0ef938fa69a2fa15d))
+
+### Builds
+
+* Update nette forms and other dependence ([8798b0](https://github.com/liquiddesign/eshop/commit/8798b0f1e1c37d98141e5d27f757c51fec6b5ca3))
+
+
+---
+
 ## [2.1.146](https://github.com/liquiddesign/eshop/compare/v2.1.145...v2.1.146) (2024-03-04)
 
 ### Features
