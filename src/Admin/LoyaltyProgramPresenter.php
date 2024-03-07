@@ -97,9 +97,9 @@ class LoyaltyProgramPresenter extends BackendPresenter
 			$input->setRequired();
 		});
 
-		$form->addDatetime('validFrom', 'Platný od')->setNullable(true);
-		$form->addDatetime('validTo', 'Platný do')->setNullable(true);
-		$form->addDatetime('turnoverFrom', 'Obrat od')->setNullable(true)->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude brán v potaz veškerý obrat zákazníka.');
+		$form->addPolyfillDatetime('validFrom', 'Platný od')->setNullable(true);
+		$form->addPolyfillDatetime('validTo', 'Platný do')->setNullable(true);
+		$form->addPolyfillDatetime('turnoverFrom', 'Obrat od')->setNullable(true)->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude brán v potaz veškerý obrat zákazníka.');
 
 		$form->addSelect2('currency', 'Měna', $this->currencyRepository->getArrayForSelectFromCollection($this->currencyRepository->getCollection(true)->where('cashback', true)))->setRequired()
 			->setHtmlAttribute('data-info', 'Zobrazuje pouze měny označené jako "Cashback".');
@@ -341,7 +341,7 @@ Platí jen pokud má ceník povoleno "Povolit procentualni slevy".',
 		$object = $this->getParameter('history');
 
 		$form->addText('points', 'Změna bodů')->setRequired()->addRule($form::FLOAT);
-		$form->addDatetime('createdTs', 'Vytvořeno')->setDisabled();
+		$form->addPolyfillDatetime('createdTs', 'Vytvořeno')->setDisabled();
 		$inputCustomer = $form->addSelect2('customer', 'Zákazník', $this->customerRepository->getArrayForSelect());
 		$inputProgram = $form->addSelect2('loyaltyProgram', 'Věrnostní program', $this->loyaltyProgramRepository->getArrayForSelect());
 

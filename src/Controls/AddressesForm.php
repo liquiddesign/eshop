@@ -16,12 +16,12 @@ class AddressesForm extends Form
 	/**
 	 * @var array<callable(self, array|object): void|callable(array|object): void>
 	 */
-	public $onValidate = [];
+	public array $onValidate = [];
 
 	/**
 	 * @var array<callable(self, array|object): void|callable(array|object): void>
 	 */
-	public $onSuccess = [];
+	public array $onSuccess = [];
 
 	public function __construct(
 		private readonly ShopperUser $shopperUser,

@@ -26,9 +26,8 @@ use Eshop\DTO\ProductWithFormattedPrices;
 use Nette\DI\Container;
 use Nette\Http\Session;
 use Nette\Localization\Translator;
+use Nette\Security\Authenticator;
 use Nette\Security\Authorizator;
-use Nette\Security\IAuthenticator;
-use Nette\Security\IUserStorage;
 use Nette\Security\User;
 use Nette\Security\UserStorage;
 use Security\DB\Account;
@@ -112,12 +111,11 @@ class ShopperUser extends User
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly Translator $translator,
 		protected readonly Session $session,
-		?IUserStorage $legacyStorage = null,
-		?IAuthenticator $authenticator = null,
-		?Authorizator $authorizator = null,
-		?UserStorage $storage = null,
+		?Authenticator $authenticator,
+		?Authorizator $authorizator,
+		?UserStorage $storage,
 	) {
-		parent::__construct($legacyStorage, $authenticator, $authorizator, $storage);
+		parent::__construct($storage, $authenticator, $authorizator);
 	}
 
 	public function getCheckoutManager(): CheckoutManager

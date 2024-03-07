@@ -18,12 +18,12 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 	/**
 	 * @var array<callable(self, array|object): void|callable(array|object): void>
 	 */
-	public $onValidate = [];
+	public array $onValidate = [];
 	
 	/**
 	 * @var array<callable(self, array|object): void|callable(array|object): void>
 	 */
-	public $onSuccess = [];
+	public array $onSuccess = [];
 
 	/** @var array<callable(string, \Eshop\DB\DeliveryType, \Nette\Forms\Rules): void> */
 	public array $onTogglePaymentId = [];

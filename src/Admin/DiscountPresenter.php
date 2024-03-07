@@ -185,8 +185,8 @@ class DiscountPresenter extends BackendPresenter
 		$form = $this->formFactory->create(true);
 
 		$form->addLocaleText('name', 'Název');
-		$form->addDatetime('validFrom', 'Platný od')->setNullable(true);
-		$form->addDatetime('validTo', 'Platný do')->setNullable(true);
+		$form->addPolyfillDatetime('validFrom', 'Platný od')->setNullable(true);
+		$form->addPolyfillDatetime('validTo', 'Platný do')->setNullable(true);
 
 		/** @var \Eshop\DB\Discount|null $discount */
 		$discount = $this->getParameter('discount');

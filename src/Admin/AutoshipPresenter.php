@@ -60,8 +60,8 @@ class AutoshipPresenter extends BackendPresenter
 		
 		$form = $this->formFactory->create();
 		$form->addInteger('dayInterval', 'Interval (dnů)')->setRequired();
-		$form->addDate('activeFrom', 'Aktivní od');
-		$form->addDate('activeTo', 'Aktivní do');
+		$form->addPolyfillDate('activeFrom', 'Aktivní od');
+		$form->addPolyfillDate('activeTo', 'Aktivní do');
 		$form->addCheckbox('active', 'Aktivní');
 		
 		$form->addGroup('Zákazník');

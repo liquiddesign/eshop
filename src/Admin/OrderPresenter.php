@@ -376,13 +376,13 @@ class OrderPresenter extends BackendPresenter
 		$form->addSelect('type', 'Doprava', $this->deliveryTypeRepository->getArrayForSelect())->setRequired();
 		$form->addDataSelect('supplier', 'Dropshipping', $this->supplierRepository->getArrayForSelect());
 		$form->addText('externalId', 'Externí Id')->setNullable(true);
-		$form->addDate('shippingDate', 'Den doručení')->setNullable(true);
+		$form->addPolyfillDate('shippingDate', 'Den doručení')->setNullable(true);
 		$form->addGroup('Cena');
 		$form->addSelect('currency', 'Měna', $this->currencyRepository->getArrayForSelect())->setRequired();
 		$form->addText('price', 'Cena bez DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
 		$form->addText('priceVat', 'Cena s DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
 		$form->addGroup('Stav');
-		$form->addDatetime('shippedTs', 'Expedováno')->setNullable(true);
+		$form->addPolyfillDatetime('shippedTs', 'Expedováno')->setNullable(true);
 
 		$form->addHidden('order', (string) $order);
 
@@ -494,7 +494,7 @@ class OrderPresenter extends BackendPresenter
 		$form->addText('price', 'Cena bez DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
 		$form->addText('priceVat', 'Cena s DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
 		$form->addGroup('Údaje o zaplacení');
-		$form->addDatetime('paidTs', 'Datum a čas')->setNullable(true);
+		$form->addPolyfillDatetime('paidTs', 'Datum a čas')->setNullable(true);
 		$form->addText('paidPrice', 'Částka bez DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
 		$form->addText('paidPriceVat', 'Částka s DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
 		$form->addHidden('order', (string) $this->getParameter('order'));
@@ -1407,8 +1407,8 @@ class OrderPresenter extends BackendPresenter
 		}
 
 		$form->addGroup('Ostatní');
-		$form->addDate('desiredShippingDate', 'Požadované datum odeslání')->setNullable();
-		$form->addDate('desiredDeliveryDate', 'Požadované datum doručení')->setNullable();
+		$form->addPolyfillDate('desiredShippingDate', 'Požadované datum odeslání')->setNullable();
+		$form->addPolyfillDate('desiredDeliveryDate', 'Požadované datum doručení')->setNullable();
 		$form->addText('internalOrderCode', 'Zákaznické číslo')->setNullable();
 		$form->addTextArea('note', 'Poznámka')->setNullable();
 		$form->addTextArea('internalNote', 'Interní poznámka')->setNullable();
@@ -2467,7 +2467,7 @@ class OrderPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
-		$form->addDatetime('bannedTs', 'Zablokováno')->setNullable();
+		$form->addPolyfillDatetime('bannedTs', 'Zablokováno')->setNullable();
 		$form->addMultiSelect2('internalRibbons', 'Interní štítky', $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_ORDER));
 
 		if ($this->dpd) {

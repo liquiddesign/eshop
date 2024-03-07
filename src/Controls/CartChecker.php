@@ -11,7 +11,7 @@ use Nette\Application\UI\Control;
 class CartChecker extends Control
 {
 	/** @var array<callable(static): void> Occurs when component is attached to presenter */
-	public $onAnchor = [];
+	public array $onAnchor = [];
 
 	public function __construct(private readonly ProductRepository $productRepository, private readonly ShopperUser $shopperUser)
 	{

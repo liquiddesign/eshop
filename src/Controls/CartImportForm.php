@@ -18,7 +18,7 @@ class CartImportForm extends Form
 	/**
 	 * @var array<callable(self, array|object): void|callable(array|object): void>
 	 */
-	public $onValidate = [];
+	public array $onValidate = [];
 	
 	public ?string $cartId = CheckoutManager::ACTIVE_CART_ID;
 	
