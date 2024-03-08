@@ -1347,7 +1347,7 @@ class CheckoutManager
 		return 0.0;
 	}
 	
-	public function checkAmount(Product $product, $amount): bool
+	public function checkAmount(Product $product, int $amount): bool
 	{
 		return !($amount < $product->minBuyCount || ($product->maxBuyCount !== null && $amount > $product->maxBuyCount));
 		

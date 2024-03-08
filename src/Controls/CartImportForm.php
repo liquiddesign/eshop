@@ -94,7 +94,8 @@ class CartImportForm extends Form
 		}
 		
 		while (($data = \fgetcsv($handle, 1000, $delimiter)) !== false) {
-			[$productId, $amount] = $data;
+			$productId = $data[0] ?? false;
+			$amount = $data[1] ?? false;
 			
 			if (!$productId || !$amount) {
 				continue;

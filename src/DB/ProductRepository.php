@@ -934,13 +934,14 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	{
 		$collection->where('this.fk_displayDelivery', $values);
 	}
-
+	
 	/**
 	 * To use this function you need to have JOINED productContent table!
-	 * @param $value
+	 * @param string $value
 	 * @param \StORM\ICollection $collection
+	 * @return \StORM\ICollection
 	 */
-	public function filterQ($value, ICollection $collection): ICollection
+	public function filterQ(string $value, ICollection $collection): ICollection
 	{
 		$langSuffix = $this->getConnection()->getMutationSuffix();
 
