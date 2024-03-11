@@ -154,13 +154,13 @@ class SupplierProductRepository extends \StORM\Repository
 
 			$code = $draft->productCode ?: ($supplier->productCodePrefix ?: '') . $draft->code;
 			$uuid = ProductRepository::generateUuid($draft->ean, $draft->getProductFullCode() ?: $supplier->code . '-' . $draft->code);
-			
+
 			if ($draft->getValue('product') && $draft->getValue('product') !== $uuid) {
 				$uuid = $draft->getValue('product');
 			}
 
 			$primary = isset($productsMap[$uuid]) && $productsMap[$uuid]->sourcePK === $supplierId;
-			
+
 			$values = [
 				'uuid' => $uuid,
 				'ean' => $draft->ean ?: null,
@@ -561,6 +561,9 @@ class SupplierProductRepository extends \StORM\Repository
 
 	private function loadProductsXDisplayAmounts(array &$productsXDisplayAmounts, array &$mergedProductsMap, array &$productsMapXSupplierProductsXDisplayAmount): void
 	{
+		/** @var \Eshop\DB\ProductRepository $productRepository */
+		$productRepository = $this->getConnection()->findRepository(Product::class);
+
 		$supplierProducts = $this->many()
 			->setSelect([
 				'realDisplayAmount' => 'displayAmount.fk_displayAmount',
@@ -570,7 +573,8 @@ class SupplierProductRepository extends \StORM\Repository
 			])
 			->where('this.active', true);
 
-		foreach ($supplierProducts->fetchArray(\stdClass::class) as $supplierProduct) {
+		while ($supplierProduct = $supplierProducts->fetch(\stdClass::class)) {
+			/** @var \stdClass $supplierProduct */
 			if (!isset($productsXDisplayAmounts[$supplierProduct->product])) {
 				$productsXDisplayAmounts[$supplierProduct->product] = [];
 			}
@@ -591,6 +595,33 @@ class SupplierProductRepository extends \StORM\Repository
 				}
 			}
 		}
+
+		$supplierProducts->__destruct();
+		unset($supplierProducts);
+
+		$productsWithoutSupplierProducts = $productRepository->many()
+			->setSelect(['this.uuid'])
+			->join(['e_sp' => 'eshop_supplierproduct'], 'this.uuid = e_sp.fk_product')
+			->where('e_sp.uuid IS NULL');
+
+		while ($product = $productsWithoutSupplierProducts->fetch(\stdClass::class)) {
+			/** @var \stdClass $product */
+			/** @var string $productPK */
+			$productPK = $product->uuid;
+
+			foreach ($mergedProductsMap[$productPK] ?? [] as $mergedProduct) {
+				foreach ($productsMapXSupplierProductsXDisplayAmount[$mergedProduct] ?? [] as $realDisplayAmount) {
+					if (!$realDisplayAmount) {
+						continue;
+					}
+
+					$productsXDisplayAmounts[$productPK][] = $realDisplayAmount;
+				}
+			}
+		}
+
+		$productsWithoutSupplierProducts->__destruct();
+		unset($productsWithoutSupplierProducts);
 	}
 
 	private function loadStock(array &$inStockProducts, array &$notStockProducts, array &$productsXDisplayAmounts, ?callable $customCallback = null): void
@@ -604,13 +635,15 @@ class SupplierProductRepository extends \StORM\Repository
 		/** @var \Eshop\DB\ProductRepository $productRepository */
 		$productRepository = $this->getConnection()->findRepository(Product::class);
 
-		$allProducts = $productRepository->many()->setSelect(['this.uuid'], [], true)->toArrayOf('uuid');
+		$allProducts = $productRepository->many()
+			->setSelect(['this.uuid'], [], true)
+			->toArrayOf('uuid');
 
 		foreach ($allProducts as $productPK) {
 			if (!isset($productsXDisplayAmounts[$productPK])) {
 				$notStockProducts[] = $productPK;
 
-				 continue;
+				continue;
 			}
 
 			$draftDisplayAmounts = $productsXDisplayAmounts[$productPK];
