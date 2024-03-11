@@ -206,25 +206,25 @@ class CustomerPresenter extends BackendPresenter
 			$source->where('this.fk_parentCustomer ' . ($value === '1' ? 'IS NOT NULL' : 'IS NULL'));
 		}, '', 'parentCustomer', null, ['0' => 'Ne', '1' => 'Ane'])->setPrompt('- Nadřazený zák. -');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs >= :createdTs_from', ['createdTs_from' => $value]);
 		}, '', 'createdTs_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
 			->setHtmlAttribute('placeholder', 'Registrace od');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs <= :createdTs_to', ['createdTs_to' => $value]);
 		}, '', 'createdTs_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
 			->setHtmlAttribute('placeholder', 'Registrace do');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('lastOrder.createdTs >= :lastOrder_createdTs_from', ['lastOrder_createdTs_from' => $value]);
 		}, '', 'lastOrder_createdTs_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
 			->setHtmlAttribute('placeholder', 'Poslední obj. od');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('lastOrder.createdTs <= :lastOrder_createdTs_to', ['lastOrder_createdTs_to' => $value]);
 		}, '', 'lastOrder_createdTs_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')

@@ -50,13 +50,11 @@
         "latte/latte": "^3.0",
         "ramsey/uuid": "^4.7"
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
+    "minimum-stability": "stable",
     "require-dev": {
-        "nette/tester": "*",
-        "tracy/tracy": "*",
-        "composer/composer": "*",
-        "liquiddesign/codestyle": "^3.0.6",
+        "tracy/tracy": "^2.10",
+        "composer/composer": "^2.0",
+        "liquiddesign/codestyle": "^3.0.10",
         "liquiddesign/migrator": "~1.0",
         "phpstan/phpstan-nette": "~1.0",
         "marcocesarato/php-conventional-changelog": "dev-main"

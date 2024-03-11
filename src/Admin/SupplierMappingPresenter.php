@@ -287,11 +287,11 @@ class SupplierMappingPresenter extends BackendPresenter
 			$grid->addFilterTextInput('supplierAttributeCode', ['supplierAttribute.code'], null, 'Kód atributu', null, '%s');
 		}
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs >= :created_from', ['created_from' => $value]);
 		}, '', 'date_from', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Importováno od');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
 		}, '', 'created_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Importováno do');
 
