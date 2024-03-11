@@ -296,9 +296,6 @@ CREATE TABLE `eshop_products_cache` (
 		return $categories;
 	}
 
-	/**
-	 * @param array $values
-	 */
 	protected function createCoalesceFromArray(array $values, string|null $prefix = null, string|null $suffix = null): string
 	{
 		return $values ? ('COALESCE(' . \implode(',', \array_map(function ($item) use ($prefix, $suffix): string {
