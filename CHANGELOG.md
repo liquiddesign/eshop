@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.150](https://github.com/liquiddesign/eshop/compare/v2.1.149...v2.1.150) (2024-03-11)
+
+### Bug Fixes
+
+
+##### Supplier Product
+
+* SyncDisplayAmounts was not functioning properly when Product has no SupplierProduct ([480ab7](https://github.com/liquiddesign/eshop/commit/480ab787de5910a138cfedb63ea96ce54dde7615))
+
+
+---
+
 ## [2.1.149](https://github.com/liquiddesign/eshop/compare/v2.1.148...v2.1.149) (2024-03-11)
 
 ### Bug Fixes
