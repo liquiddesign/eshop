@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.149](https://github.com/liquiddesign/eshop/compare/v2.1.148...v2.1.149) (2024-03-11)
+
+### Bug Fixes
+
+* Change grid filters to new datetime polyfills ([c1677c](https://github.com/liquiddesign/eshop/commit/c1677c4a673268e2014db0663d5c7257091f1c19))
+
+
+---
+
 ## [2.1.148](https://github.com/liquiddesign/eshop/compare/v2.1.147...v2.1.148) (2024-03-07)
 
 
