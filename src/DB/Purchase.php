@@ -62,7 +62,7 @@ class Purchase extends \StORM\Entity
 	 * Emaily s kopií
 	 * @column
 	 */
-	public ?string $ccEmails;
+	public ?string $ccEmails = null;
 	
 	/**
 	 * IČO
