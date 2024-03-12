@@ -192,6 +192,19 @@ class CategoryForm extends Control
 
 			$values = $form->getValues('array');
 
+			$query = $this->categoryRepository->many()->where('this.code', $values['code']);
+
+			if ($values['uuid']) {
+				$query->whereNot('this.uuid', $values['uuid']);
+			}
+
+			if ($query->first()) {
+				/** @var \Nette\Forms\Controls\TextInput $input */
+				$input = $form['code'];
+				$input->addError('Neplatný kód! Tento kód již existuje!');
+				$form->addError('Neplatný kód! Tento kód již existuje!');
+			}
+
 			$columnsToCheck = ['defaultProductPerex', 'defaultProductContent'];
 
 			foreach ($columnsToCheck as $column) {

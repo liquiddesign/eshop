@@ -13,6 +13,7 @@ use StORM\RelationCollection;
  * Kategorie
  * @table
  * @index{"name":"category_path","unique":true,"columns":["path"]}
+ * @index{"name":"category_code","unique":true,"columns":["code"]}
  */
 class Category extends SystemicEntity
 {
