@@ -9,7 +9,7 @@ use Eshop\Common\DB\SystemicEntity;
 /**
  * AttributeValue
  * @table
- * @index{"name":"attributeValue_code_unique","unique":true,"columns":["code"]}
+ * @index{"name":"attributeValue_code_unique","unique":true,"columns":["code", "fk_attribute"]}
  */
 class AttributeValue extends SystemicEntity
 {
@@ -18,7 +18,6 @@ class AttributeValue extends SystemicEntity
 	/**
 	 * Kód
 	 * @column
-	 * @unique
 	 */
 	public string $code;
 

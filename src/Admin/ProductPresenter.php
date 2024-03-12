@@ -2163,56 +2163,32 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 					}
 
 					if (!$attributeValue) {
-						/** @var \stdClass|null|false|\Eshop\DB\AttributeValue $attributeValue */
-						$attributeValue = $this->arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode, $mutations): bool {
-							foreach ($mutations as $suffix) {
-								if ($x->{"label$suffix"} === $attributeValueCode) {
-									return true;
-								}
-							}
+						$labels = [];
 
-							return false;
-						});
-
-						$tried = 0;
-
-						while ($attributeValue === false || $attributeValue === null) {
-							try {
-								$labels = [];
-
-								foreach (\array_keys($mutations) as $mutation) {
-									$labels[$mutation] = $attributeValueCode;
-								}
-
-								$attributeValue = $this->attributeValueRepository->createOne([
-									'code' => Strings::webalize($attributeValueCode) . '-' . Random::generate(),
-									'label' => $labels,
-									'attribute' => $key,
-								], false, true);
-
-								$attributeValuesToCreate[] = $attributeValue;
-							} catch (\Throwable $e) {
-							}
-
-							$tried++;
-
-							if ($tried > 10) {
-								throw new \Exception('Cant create new attribute value. Tried 10 times! (product:' . $product->code . ')');
-							}
+						foreach (\array_keys($mutations) as $mutation) {
+							$labels[$mutation] = $attributeValueCode;
 						}
 
-						if (!isset($groupedAttributeValues[$key][$attributeValue->uuid])) {
-							$label = $attributeValue instanceof AttributeValue ? $attributeValue->getValue('label', $mutation) : $attributeValue->label;
+						$attributeValue = $this->attributeValueRepository->createOne([
+							'code' => $attributeValueCode,
+							'label' => $labels,
+							'attribute' => $key,
+						], false, true);
+
+						$attributeValuesToCreate[] = $attributeValue;
+
+						if (!isset($groupedAttributeValues[$key][$attributeValue->getPK()])) {
+							$label = $attributeValue->getValue('label', $mutation);
 							$labels = [];
 
 							foreach ($mutations as $suffix) {
 								$labels["label$suffix"] = $label;
 							}
 
-							$groupedAttributeValues[$key][$attributeValue->uuid] = (object) ([
-								'uuid' => $attributeValue->uuid,
+							$groupedAttributeValues[$key][$attributeValue->getPK()] = (object) ([
+								'uuid' => $attributeValue->getPK(),
 								'code' => $attributeValue->code,
-								'attribute' => $attributeValue instanceof AttributeValue ? $attributeValue->getValue('attribute') : $attributeValue->attribute,
+								'attribute' => $attributeValue->getValue('attribute'),
 							] + $labels);
 
 							unset($labels);
