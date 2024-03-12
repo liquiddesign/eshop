@@ -1062,6 +1062,7 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 			$values = $form->getValues('array');
 
 			$connection = $this->productRepository->getConnection();
+			$mutations = $this->productRepository->getConnection()->getAvailableMutations();
 
 			$imagesPath = \dirname(__DIR__, 5) . '/userfiles/images';
 			$originalPath = \dirname(__DIR__, 5) . '/userfiles/' . Product::GALLERY_DIR . '/origin';
@@ -1128,11 +1129,21 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 						$existingPhoto = $this->photoRepository->many()->where('this.fk_product', $products[$productCode])->where('this.fileName', $photoFileName)->first();
 
 						if (!$existingPhoto) {
-							$newPhotos[] = [
+							$newPhotoArray = [
 								'product' => $products[$productCode],
 								'fileName' => $photoFileName,
 								'priority' => 999,
 							];
+
+							$fileParts = \pathinfo($photoFileName);
+
+							$name = $fileParts['filename'];
+
+							foreach (\array_keys($mutations) as $mutation) {
+								$newPhotoArray['label'][$mutation] = $name;
+							}
+
+							$newPhotos[] = $newPhotoArray;
 						}
 
 						if (!$values['asMain'] || !$first) {
