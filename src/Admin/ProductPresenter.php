@@ -1054,7 +1054,9 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 		$form->addText('password', 'Heslo')->setDisabled()->setDefaultValue($this::CONFIGURATION['importImagesFromStorage']['password']);
 		$form->addCheckbox('asMain', 'Nastavit jako hlavní obrázek')->setHtmlAttribute('data-info', 'Pro práci s FTP doporučejeme klient WinSCP dostupný zde: 
 <a target="_blank" href="https://winscp.net/eng/download.php">https://winscp.net/eng/download.php</a><br>
-Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název obrázků musí být kód daného produktu.');
+Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky.<br><br>
+Název souborů musí být ve formátu "kod_název_1.přípona". Např.: "ABC_obrazek_1.jpg"<br>
+Můžete nahrát více obrázků pro jeden produkt. Např.: "ABC_obrazek_1.jpg", "ABC_obrazek_2.jpg", ...');
 
 		$form->addSubmit('images', 'Importovat');
 
