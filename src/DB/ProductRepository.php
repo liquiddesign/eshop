@@ -1503,16 +1503,16 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$lazyLoadedProducts = [];
 
 		while ($product = $products->fetch()) {
-			/** @var \Eshop\DB\Product|\stdClass $product */
+			/** @var \Eshop\DB\Product $product */
 			$row = [];
 
 			foreach (\array_keys($columns) as $columnKey) {
 				if ($columnKey === 'producer') {
-					$row[] = $product->producerCodeName;
+					$row[] = $product->getValue('producerCodeName');
 				} elseif ($columnKey === 'storeAmount') {
-					$row[] = $product->amounts;
+					$row[] = $product->getValue('amounts');
 				} elseif ($columnKey === 'categories') {
-					$row[] = $product->groupedCategories;
+					$row[] = $product->getValue('groupedCategories');
 				} elseif ($columnKey === 'adminUrl') {
 					$row[] = $this->linkGenerator->link('Eshop:Admin:Product:edit', [$product]);
 				} elseif ($columnKey === 'frontUrl') {
@@ -1584,7 +1584,67 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			$writer->insertOne($row);
 		}
 	}
-	
+
+	/**
+	* @param \StORM\Collection<\Eshop\DB\Product> $products
+	* @param \League\Csv\Writer $writer
+	* @param array<string, string> $columns
+	* @param string $delimiter
+	* @throws \League\Csv\Exception
+	* @throws \League\Csv\InvalidArgument
+	* @throws \StORM\Exception\GeneralException
+	 */
+	public function csvExportPages(
+		Collection $products,
+		Writer $writer,
+		array $columns = [],
+		string $delimiter = ';',
+		bool $includeHeader = true,
+	): void {
+		$connection = $this->getConnection();
+
+		$mutations = $connection->getAvailableMutations();
+
+		$writer->setDelimiter($delimiter);
+		EncloseField::addTo($writer, "\t\22");
+
+		$entityColumns = $this->pageRepository->getStructure()->getColumns();
+
+		foreach ($columns as $columnKey => $columnLabel) {
+			$entityColumn = $entityColumns[$columnKey] ?? null;
+
+			if (!$entityColumn || !$entityColumn->hasMutations()) {
+				continue;
+			}
+
+			foreach (\array_keys($mutations) as $mutation) {
+				$columns["{$columnKey}_$mutation"] = "{$columnLabel}_$mutation";
+			}
+
+			unset($columns[$columnKey]);
+		}
+
+		if ($includeHeader) {
+			$writer->insertOne(\array_merge(['Kód'], \array_values($columns)));
+		}
+
+		$products->join(['export_page' => 'web_page'], "export_page.params like CONCAT('%product=', this.uuid, '&%') and export_page.type = 'product_detail'")
+			->selectAliases(['export_page' => Page::class]);
+
+		while ($product = $products->fetch()) {
+			/** @var \Eshop\DB\Product $product */
+			$row = [];
+
+			$row[] = $product->getFullCode();
+
+			foreach (\array_keys($columns) as $columnKey) {
+				$row[] = $product->getValue('export_page_' . $columnKey);
+			}
+
+			$writer->insertOne($row);
+		}
+	}
+
 	public function isProductDeliveryFreeVat(Product $product, Currency $currency): bool
 	{
 		return $this->isProductDeliveryFree($product, true, $currency);

@@ -17,7 +17,6 @@ use Eshop\BackendPresenter;
 use Eshop\DB\AmountRepository;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
-use Eshop\DB\AttributeValue;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\CustomerRepository;
@@ -701,7 +700,8 @@ class ProductPresenter extends BackendPresenter
 			$this->template->displayButtons = [$this->createNewItemButton('new', ['editTab' => null])];
 
 			if (isset($this::CONFIGURATION['importButton']) && $this::CONFIGURATION['importButton']) {
-				$this->template->displayButtons[] = $this->createButton('importCsv', '<i class="fas fa-file-upload mr-1"></i>Import');
+				$this->template->displayButtons[] = $this->createButton('importCsv', '<i class="fas fa-file-upload mr-1"></i>Import (produkty)');
+				$this->template->displayButtons[] = $this->createButton('csvImportPages', '<i class="fas fa-file-upload mr-1"></i>Import (stránky)');
 			}
 
 			$this->template->displayControls = [$this->getComponent('productGrid')];
@@ -1029,7 +1029,7 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 
 	public function renderImportCsv(): void
 	{
-		$this->template->headerLabel = 'Import';
+		$this->template->headerLabel = 'Import produktů';
 		$this->template->headerTree = [
 			['Produkty', 'default'],
 			['Import'],
@@ -1042,6 +1042,17 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 		}
 
 		$this->template->displayControls[] = $this->getComponent('importImagesForm');
+	}
+
+	public function renderCsvImportPages(): void
+	{
+		$this->template->headerLabel = 'Import stránek';
+		$this->template->headerTree = [
+			['Produkty', 'default'],
+			['Import'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('csvImportPagesForm')];
 	}
 
 	public function createComponentImportImagesForm(): AdminForm
@@ -1301,6 +1312,105 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		return $form;
 	}
 
+	public function createComponentCsvImportPagesForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+
+		$form->addGroup('CSV soubor');
+
+		$allowedColumns = '';
+		$items = [
+			'title' => 'Titulek',
+			'description' => 'Popis',
+			'url' => 'URL',
+		];
+
+		foreach ($items as $key => $value) {
+			$allowedColumns .= "$key, $value<br>";
+		}
+
+		$filePicker = $form->addFilePicker('file', 'Soubor (CSV)')
+			->setRequired()
+			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/csv');
+
+		$form->addSelect('delimiter', 'Oddělovač', [
+			';' => 'Středník (;)',
+			',' => 'Čárka (,)',
+			'   ' => 'Tab (\t)',
+			' ' => 'Mezera ( )',
+			'|' => 'Pipe (|)',
+		])->setHtmlAttribute('data-info', '<h5 class="mt-2">Nápověda</h5>
+Soubor <b>musí obsahovat</b> hlavičku a jeden ze sloupců "Kód" nebo "EAN" pro jednoznačné rozlišení produktů.&nbsp;
+Jako prioritní se hledá kód a pokud není nalezen tak EAN.<br><br>
+Povolené sloupce hlavičky (lze použít obě varianty kombinovaně):<br>
+' . $allowedColumns . '<br>
+<br>
+<b>Pozor!</b> Pokud pracujete se souborem na zařízeních Apple, ujistětě se, že vždy při ukládání použijete možnost uložit do formátu Windows nebo Linux (UTF-8)!');
+
+		$form->addSubmit('submit', 'Importovat');
+
+		$form->onValidate[] = function (AdminForm $form) use ($filePicker): void {
+			$values = $form->getValues('array');
+
+			/** @var \Nette\Http\FileUpload $file */
+			$file = $values['file'];
+
+			if ($file->hasFile()) {
+				return;
+			}
+
+			$filePicker->addError('Neplatný soubor!');
+		};
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			$this->connection->setDebug(false);
+
+			$values = $form->getValues('array');
+
+			/** @var \Nette\Http\FileUpload $file */
+			$file = $values['file'];
+
+			$dir = \dirname(__DIR__, 5);
+			$productsFileName = $dir . '/userfiles/products_pages.csv';
+			$tempFileName = \tempnam($this->container->getParameters()['tempDir'], 'products');
+
+			$file->move($tempFileName);
+
+			$connection = $this->productRepository->getConnection();
+			$connection->getLink()->beginTransaction();
+
+			try {
+				Debugger::log($this->csvImportPages(
+					$tempFileName,
+					$values['delimiter'],
+				), ILogger::DEBUG);
+
+				FileSystem::copy($tempFileName, $productsFileName);
+				FileSystem::delete($tempFileName);
+
+				$connection->getLink()->commit();
+				$this->flashMessage('Provedeno', 'success');
+			} catch (\Exception $e) {
+				Debugger::log($e, ILogger::WARNING);
+				Debugger::barDump($e);
+
+				try {
+					FileSystem::delete($tempFileName);
+				} catch (\Exception $e) {
+					Debugger::log($e, ILogger::WARNING);
+				}
+
+				$connection->getLink()->rollBack();
+
+				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Import dat se nezdařil!', 'error');
+			}
+
+			$this->redirect('this');
+		};
+
+		return $form;
+	}
+
 	public function handleMakeProductCategoryPrimary(string $product, string $category): void
 	{
 		$this->productRepository->one($product)->update(['primaryCategory' => $category]);
@@ -1325,6 +1435,90 @@ Hodnoty atributů, kategorie a skladové množství se zadávají ve stejném fo
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('exportForm')];
+	}
+
+	public function renderExportPages(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Export produktových stránek do CSV';
+		$this->template->headerTree = [
+			['Produkty', 'default'],
+			['Export produktových stránek'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('exportPagesForm')];
+	}
+
+	public function createComponentExportPagesForm(): AdminForm
+	{
+		/** @var \Grid\Datagrid $productGrid */
+		$productGrid = $this->getComponent('productGrid');
+
+		$ids = $this->getParameter('ids') ?: [];
+		$totalNo = $productGrid->getPaginator()->getItemCount();
+		$selectedNo = \count($ids);
+
+		$form = $this->formFactory->create();
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+		$form->addRadioList('bulkType', 'Exportovat', [
+			'selected' => "vybrané ($selectedNo)",
+			'all' => "celý výsledek ($totalNo)",
+		])->setDefaultValue('selected');
+
+		$form->addSelect('delimiter', 'Oddělovač', [
+			';' => 'Středník (;)',
+			',' => 'Čárka (,)',
+			'   ' => 'Tab (\t)',
+			' ' => 'Mezera ( )',
+			'|' => 'Pipe (|)',
+		]);
+		$form->addCheckbox('header', 'Hlavička')->setDefaultValue(true)->setHtmlAttribute('data-info', 'Pokud tuto možnost nepoužijete tak nebude možné tento soubor použít pro import!');
+
+		$headerColumns = $form->addDataMultiSelect('columns', 'Sloupce');
+
+		$items = [
+			'title' => 'Titulek',
+			'description' => 'Popis',
+			'url' => 'URL',
+		];
+
+		$headerColumns->setItems($items);
+		$headerColumns->setDefaultValue(\array_keys($items));
+
+		$form->addSubmit('submit', 'Exportovat');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid, $items): void {
+			/** @var array<mixed> $values */
+			$values = $form->getValues('array');
+
+			/** @var \StORM\Collection<\Eshop\DB\Product> $products */
+			$products = $values['bulkType'] === 'selected' ? $this->productRepository->many()->where('this.uuid', $ids) : $productGrid->getFilteredSource();
+
+			$tempFilename = \tempnam($this->tempDir, 'csv');
+
+			if (!$tempFilename) {
+				$this->flashMessage('Nelze vytvořit dočasný soubor!', 'error');
+
+				$this->redirect('this');
+			}
+
+			// Filter original headers with selected headers
+			$headerColumns = \array_filter($items, function ($item) use ($values) {
+				return \in_array($item, $values['columns']);
+			}, \ARRAY_FILTER_USE_KEY);
+
+			$this->productRepository->csvExportPages(
+				$products,
+				Writer::createFromPath($tempFilename),
+				$headerColumns,
+				$values['delimiter'],
+			);
+
+			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'products_pages.csv', 'text/csv'));
+		};
+
+		return $form;
 	}
 
 	public function createComponentExportForm(): AdminForm
@@ -1996,13 +2190,13 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 					$this->pageRepository->many()->where("this.params like :s and this.type = 'product_detail'", ['s' => "%product=$product->uuid&%"])->update([
 						'title' => [
 							$keyMutation => $value,
-						]
+						],
 					]);
 				} elseif ($key === 'exportPage_description') {
 					$this->pageRepository->many()->where("this.params like :s and this.type = 'product_detail'", ['s' => "%product=$product->uuid&%"])->update([
 						'description' => [
 							$keyMutation => $value,
-						]
+						],
 					]);
 				} elseif ($key === 'producer') {
 					if (Strings::contains($value, '#')) {
@@ -2233,6 +2427,221 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 			'updatedAmounts' => \count($amountsToUpdate),
 			'createdAttributeValues' => \count($attributeValuesToCreate),
 			'attributeAssignsUpdated' => \count($attributeAssignsToSync),
+			'elapsedTimeInSeconds' => (int) Debugger::timer(),
+		];
+	}
+
+	/**
+	 * @param string $filePath
+	 * @param string $delimiter
+	 * @return array<string|int>
+	 * @throws \League\Csv\Exception
+	 * @throws \League\Csv\InvalidArgument
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	protected function csvImportPages(string $filePath, string $delimiter = ';',): array
+	{
+		Debugger::timer();
+
+		$csvData = FileSystem::read($filePath);
+
+		$csvData = Encoding::toUTF8($csvData);
+		$reader = Reader::createFromString($csvData);
+
+		$reader->setDelimiter($delimiter);
+		$reader->setHeaderOffset(0);
+
+		$connection = $this->productRepository->getConnection();
+
+		$mutations = $connection->getAvailableMutations();
+
+		$importColumns = [
+			'code' => 'Kód',
+			'ean' => 'EAN',
+			'title' => 'Titulek',
+			'description' => 'Popis',
+			'url' => 'URL',
+		];
+
+		$header = $reader->getHeader();
+		$parsedHeader = [];
+
+		foreach ($header as $headerItem) {
+			if (isset($importColumns[$headerItem])) {
+				$parsedHeader[$headerItem] = $headerItem;
+
+				continue;
+			}
+
+			if ($key = \array_search($headerItem, $importColumns)) {
+				$parsedHeader[$headerItem] = $key;
+
+				continue;
+			}
+
+			foreach ($mutations as $mutation => $suffix) {
+				if (Strings::endsWith($headerItem, $suffix)) {
+					$headerItemWithMutation = $headerItem;
+					$headerItemWithoutMutation = Strings::substring($headerItemWithMutation, 0, (int) \strpos($headerItem, $suffix));
+
+					if (isset($importColumns[$headerItemWithoutMutation])) {
+						$parsedHeader[$headerItemWithMutation] = [$headerItemWithoutMutation, $mutation];
+					} elseif ($key = \array_search($headerItemWithoutMutation, $importColumns)) {
+						$parsedHeader[$headerItemWithMutation] = [$key, $mutation];
+					}
+
+					continue 2;
+				}
+			}
+		}
+
+		if (\count($parsedHeader) === 0) {
+			throw new \Exception('Soubor neobsahuje hlavičku nebo nebyl nalezen žádný použitelný sloupec!');
+		}
+
+		if (!\array_search('code', $parsedHeader) && !\array_search('ean', $parsedHeader)) {
+			throw new \Exception('Soubor neobsahuje kód ani EAN!');
+		}
+
+		$records = $reader->getRecords();
+
+		$createdProducts = 0;
+		$updatedProducts = 0;
+		$skippedProducts = 0;
+
+		/** @var 'all'|'code'|'ean' $searchCriteria */
+		$searchCriteria = 'all';
+
+		$searchCode = $searchCriteria === 'all' || $searchCriteria === 'code';
+		$searchEan = $searchCriteria === 'all' || $searchCriteria === 'ean';
+
+		$products = $this->productRepository->many()
+			->setSelect([
+				'this.uuid',
+				'this.code',
+				'fullCode' => 'CONCAT(this.code,".",this.subCode)',
+				'this.ean',
+				'this.supplierContentLock',
+				'this.mpn',
+				'export_page_uuid' => 'export_page.uuid',
+			], [], true)
+			->join(['export_page' => 'web_page'], "export_page.params like CONCAT('%product=', this.uuid, '&%') and export_page.type = 'product_detail'")
+			->setGroupBy(['this.uuid'])
+			->fetchArray(\stdClass::class);
+
+		foreach ($records as $record) {
+			$newValues = [];
+			$code = null;
+			$ean = null;
+			$codePrefix = null;
+
+			// Take Code or Ean based on search criteria - if search by, delete it from record
+
+			$parsedHeaderCode = null;
+
+			if ($parsedHeaderCodeKey = \array_search('code', $parsedHeader)) {
+				$parsedHeaderCode = $parsedHeader[$parsedHeaderCodeKey];
+			}
+
+			$parsedHeaderEan = null;
+
+			if ($parsedHeaderEanKey = \array_search('ean', $parsedHeader)) {
+				$parsedHeaderEan = $parsedHeader[$parsedHeaderEanKey];
+			}
+
+			/** @var string|null $codeFromRecord */
+			$codeFromRecord = $parsedHeaderCode ? ($searchCode ? Arrays::pick($record, $parsedHeaderCodeKey, null) : ($record[$parsedHeaderCodeKey] ?? null)) : null;
+			/** @var string|null $eanFromRecord */
+			$eanFromRecord = $parsedHeaderEan ? ($searchEan ? Arrays::pick($record, $parsedHeaderEanKey, null) : ($record[$parsedHeaderEanKey] ?? null)) : null;
+			/** @var \stdClass|null $product */
+			$product = null;
+
+			// Sanitize and prefix code and ean
+
+			if ($parsedHeaderCodeKey && $codeFromRecord) {
+				$codeBase = Strings::trim($codeFromRecord);
+				$codePrefix = Strings::trim('00' . $codeFromRecord);
+
+				$code = $codeBase;
+
+				unset($parsedHeader[$parsedHeaderCodeKey]);
+			}
+
+			if ($parsedHeaderEanKey && $eanFromRecord) {
+				$ean = Strings::trim($eanFromRecord);
+
+				unset($parsedHeader[$parsedHeaderEanKey]);
+			}
+
+			// Fast local search of product based on criteria
+
+			if ($code && $ean && $searchCode && $searchEan) {
+				$product = $this->arrayFind($products, function (\stdClass $x) use ($code, $codePrefix, $ean): bool {
+					return $x->code === $code || $x->fullCode === $code ||
+						$x->code === $codePrefix || $x->fullCode === $codePrefix ||
+						$x->ean === $ean;
+				});
+			} elseif ($code && $searchCode) {
+				$product = $this->arrayFind($products, function (\stdClass $x) use ($code, $codePrefix): bool {
+					return $x->code === $code || $x->fullCode === $code ||
+						$x->code === $codePrefix || $x->fullCode === $codePrefix;
+				});
+			} elseif ($ean && $searchEan) {
+				$product = $this->arrayFind($products, function (\stdClass $x) use ($ean): bool {
+					return $x->ean === $ean;
+				});
+			}
+
+			// Continue based on settings and data
+
+			if (($searchCode && $searchEan && !$code && !$ean) ||
+				($searchCode && !$searchEan && !$code) ||
+				($searchEan && !$searchCode && !$ean) ||
+				!$product
+			) {
+				$skippedProducts++;
+
+				continue;
+			}
+
+			$updatedProducts++;
+
+			foreach ($record as $key => $value) {
+				$parsedKey = $parsedHeader[$key] ?? (($searchedKey = \array_search($key, $parsedHeader)) ? $parsedHeader[$searchedKey] : null);
+
+				if (!$parsedKey) {
+					continue;
+				}
+
+				$column = \is_array($parsedKey) ? $parsedKey[0] : $parsedKey;
+				$mutation = \is_array($parsedKey) ? $parsedKey[1] : null;
+				$value = \strlen($value) > 0 ? $value : null;
+
+				if ($mutation) {
+					$newValues[$column][$mutation] = $value;
+				} else {
+					$newValues[$column] = $value;
+				}
+			}
+
+			try {
+				if (\count($newValues) > 0) {
+					// phpcs:ignore
+					$newValues['uuid'] = $product->export_page_uuid;
+					$newValues['type'] = 'product_detail';
+					$newValues['params'] = "product=$product->uuid&";
+
+					$this->pageRepository->syncOne($newValues, null, true);
+				}
+			} catch (\Exception $e) {
+				throw new \Exception('Chyba při zpracování dat!');
+			}
+		}
+
+		return [
+			'createdProducts' => $createdProducts,
+			'updatedProducts' => $updatedProducts,
+			'skippedProducts' => $skippedProducts,
 			'elapsedTimeInSeconds' => (int) Debugger::timer(),
 		];
 	}

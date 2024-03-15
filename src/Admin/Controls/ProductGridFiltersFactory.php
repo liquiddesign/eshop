@@ -70,7 +70,23 @@ class ProductGridFiltersFactory
 
 	public function addFilters(AdminGrid $grid): void
 	{
-		$grid->addFilterTextInput('code', ['this.code', 'this.ean', 'this.name_cs', 'this.mpn'], null, 'Název, EAN, kód, P/N', '', '%%%s%%');
+		$columns = [
+			'this.code',
+			'this.ean',
+			'this.mpn',
+		];
+
+		$mutationColumns = [
+			'this.name',
+		];
+
+		foreach ($this->categoryRepository->getConnection()->getAvailableMutations() as $mutationSuffix) {
+			foreach ($mutationColumns as $column) {
+				$columns[] = $column . $mutationSuffix;
+			}
+		}
+
+		$grid->addFilterTextInput('code', $columns, null, 'Název, EAN, kód, P/N', '', '%%%s%%');
 
 		$firstCategoryType = $this->categoryTypeRepository->many()->setOrderBy(['priority'])->first();
 

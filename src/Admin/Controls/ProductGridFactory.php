@@ -424,10 +424,18 @@ class ProductGridFactory
 		}
 
 		if (isset($configuration['exportButton']) && $configuration['exportButton']) {
-			$submit = $grid->getForm()->addSubmit('export', 'Exportovat (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+			$submit = $grid->getForm()->addSubmit('export', 'Exportovat produkty (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
 			$submit->onClick[] = function ($button) use ($grid): void {
 				$grid->getPresenter()->redirect('export', [$grid->getSelectedIds()]);
+			};
+		}
+
+		if (isset($configuration['exportButton']) && $configuration['exportButton']) {
+			$submit = $grid->getForm()->addSubmit('exportPages', 'Exportovat stránky (CSV)')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+			$submit->onClick[] = function ($button) use ($grid): void {
+				$grid->getPresenter()->redirect('exportPages', [$grid->getSelectedIds()]);
 			};
 		}
 
