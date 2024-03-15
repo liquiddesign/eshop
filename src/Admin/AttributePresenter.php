@@ -158,15 +158,17 @@ class AttributePresenter extends BackendPresenter
 			}
 		};
 
-		$column = $grid->addColumn('', function (Attribute $object, Datagrid $datagrid) use ($btnSecondary) {
-			return "<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'ranges', 'rangesGrid-attribute' => $object->code,]) . "'>Rozsahy</a>";
-		}, '%s', null, ['class' => 'minimal']);
+		if (isset($this::TABS['ranges'])) {
+			$column = $grid->addColumn('', function (Attribute $object, Datagrid $datagrid) use ($btnSecondary) {
+				return "<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'ranges', 'rangesGrid-attribute' => $object->code,]) . "'>Rozsahy</a>";
+			}, '%s', null, ['class' => 'minimal']);
 
-		$column->onRenderCell[] = function (\Nette\Utils\Html $td, Attribute $object): void {
-			if ($object->isHardSystemic()) {
-				$td[0] = '';
-			}
-		};
+			$column->onRenderCell[] = function (\Nette\Utils\Html $td, Attribute $object): void {
+				if ($object->isHardSystemic()) {
+					$td[0] = '';
+				}
+			};
+		}
 
 		$grid->addColumnLinkDetail('attributeDetail');
 		$grid->addColumnActionDeleteSystemic();
