@@ -1063,6 +1063,7 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 		$form->addText('server', 'FTP server')->setDisabled()->setDefaultValue($this::CONFIGURATION['importImagesFromStorage']['server']);
 		$form->addText('username', 'Uživatelské jméno')->setDisabled()->setDefaultValue($this::CONFIGURATION['importImagesFromStorage']['login']);
 		$form->addText('password', 'Heslo')->setDisabled()->setDefaultValue($this::CONFIGURATION['importImagesFromStorage']['password']);
+		$form->addCheckbox('deleteCurrentImages', 'Vymazat aktuální obrázky');
 		$form->addCheckbox('asMain', 'Nastavit jako hlavní obrázek')->setHtmlAttribute('data-info', 'Pro práci s FTP doporučejeme klient WinSCP dostupný zde: 
 <a target="_blank" href="https://winscp.net/eng/download.php">https://winscp.net/eng/download.php</a><br>
 Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky.<br><br>
@@ -1102,6 +1103,20 @@ Můžete nahrát více obrázků pro jeden produkt. Např.: "ABC_obrazek_1.jpg",
 
 				if (!$code || !isset($products[$code])) {
 					continue;
+				}
+
+				if ($values['deleteCurrentImages']) {
+					$product = $this->productRepository->one(['code' => $code], true);
+					$productImages = $product->photos->toArray();
+
+					foreach ($productImages as $productImage) {
+						FileSystem::delete($originalPath . '/' . $productImage->fileName);
+						FileSystem::delete($thumbPath . '/' . $productImage->fileName);
+						FileSystem::delete($detailPath . '/' . $productImage->fileName);
+					}
+
+					$product->photos->delete();
+					$product->update(['imageFileName' => null]);
 				}
 
 				$photosToImport[$code][] = $image;
