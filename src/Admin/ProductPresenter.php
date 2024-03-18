@@ -699,7 +699,7 @@ class ProductPresenter extends BackendPresenter
 
 			if (isset($this::CONFIGURATION['importButton']) && $this::CONFIGURATION['importButton']) {
 				$this->template->displayButtons[] = $this->createButton('importCsv', '<i class="fas fa-file-upload mr-1"></i>Import (produkty)');
-				$this->template->displayButtons[] = $this->createButton('csvImportPages', '<i class="fas fa-file-upload mr-1"></i>Import (stránky)');
+				$this->template->displayButtons[] = $this->createButton('csvImportPages', '<i class="fas fa-file-upload mr-1"></i>Import (SEO a URL)');
 			}
 
 			$this->template->displayControls = [$this->getComponent('productGrid')];
