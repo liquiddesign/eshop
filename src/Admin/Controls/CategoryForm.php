@@ -23,12 +23,13 @@ use Web\DB\SettingRepository;
 class CategoryForm extends Control
 {
 	public function __construct(
-		private readonly CategoryRepository $categoryRepository,
+		protected readonly CategoryRepository $categoryRepository,
 		AdminFormFactory $formFactory,
-		private readonly PageRepository $pageRepository,
-		private readonly SettingRepository $settingRepository,
-		private readonly ShopperUser $shopperUser,
-		private readonly ?Category $category
+		protected readonly PageRepository $pageRepository,
+		protected readonly SettingRepository $settingRepository,
+		protected readonly ShopperUser $shopperUser,
+		protected readonly ?Category $category,
+		protected readonly bool $showDefaultViewType,
 	) {
 		$form = $formFactory->create(true);
 
@@ -136,6 +137,12 @@ class CategoryForm extends Control
 					->checkDefaultValue(false)
 					->setHtmlAttribute('data-info', 'Nejprve zvolte v nastavení exportů typ kategorií pro Heuréku.');
 			}
+
+			if (!$this->showDefaultViewType) {
+				return;
+			}
+
+			$form->addSelect('defaultViewType', 'Výchozí zobrazení', $presenter::DEFAULT_VIEW_TYPES)->setPrompt('Výchozí');
 		});
 
 		$form->addText('exportGoogleCategory', 'Exportní název pro Google');
