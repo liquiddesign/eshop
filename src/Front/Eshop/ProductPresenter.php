@@ -54,7 +54,7 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 	public string $selectedCompareCategory;
 
 	/** @persistent */
-	public string $display = 'card';
+	public string|null $display = null;
 	
 	protected ?Category $category = null;
 	
