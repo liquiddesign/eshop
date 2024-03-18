@@ -2018,12 +2018,9 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 		foreach ($mutations as $mutation => $suffix) {
 			$setSelect["name_$mutation"] = "this.name$suffix";
 			$setSelect["perex_$mutation"] = "this.perex$suffix";
-			$setSelect["exportPage_title_$mutation"] = "exportPage.title$suffix";
-			$setSelect["exportPage_description_$mutation"] = "exportPage.title$suffix";
 		}
 
 		$products = $this->productRepository->many()
-			->join(['exportPage' => 'web_page'], "exportPage.params like CONCAT('%product=', this.uuid, '&%') and exportPage.type = 'product_detail'")
 			->setSelect($setSelect, [], true)
 			->setGroupBy(['this.uuid'])
 			->fetchArray(\stdClass::class);
@@ -2180,8 +2177,6 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 				continue;
 			}
 
-			$page = null;
-
 			if ($product) {
 				$updatedProducts++;
 			}
@@ -2199,19 +2194,7 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 					[$key, $keyMutation] = $columnsWithMutations[$key];
 				}
 
-				if ($key === 'exportPage_title') {
-					$this->pageRepository->many()->where("this.params like :s and this.type = 'product_detail'", ['s' => "%product=$product->uuid&%"])->update([
-						'title' => [
-							$keyMutation => $value,
-						],
-					]);
-				} elseif ($key === 'exportPage_description') {
-					$this->pageRepository->many()->where("this.params like :s and this.type = 'product_detail'", ['s' => "%product=$product->uuid&%"])->update([
-						'description' => [
-							$keyMutation => $value,
-						],
-					]);
-				} elseif ($key === 'producer') {
+				if ($key === 'producer') {
 					if (Strings::contains($value, '#')) {
 						$producerCode = \explode('#', $value);
 
@@ -2277,7 +2260,9 @@ Tento sloupec se <b>POUŽÍVÁ</b> při importu!');
 					if (isset($newValues['categories']) && $newValues['categories']) {
 						$newValues['primaryCategory'] = Arrays::last($newValues['categories']);
 					}
-				} elseif ($key === 'name' || $key === 'perex' || $key === 'content') {
+				} elseif ($key === 'perex' || $key === 'content') {
+					$newValues[$key][$keyMutation] = \preg_replace('/(\r\n|\r|\n|\x{2028})/u', '<br>', $value);
+				} elseif ($key === 'name') {
 					$newValues[$key][$keyMutation] = $value;
 				} elseif ($key === 'priority') {
 					$newValues[$key] = \intval($value);
