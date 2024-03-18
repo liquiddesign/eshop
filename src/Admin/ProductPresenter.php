@@ -122,8 +122,6 @@ class ProductPresenter extends BackendPresenter
 			'exportHeureka' => 'Exportovat do Heureky',
 			'exportGoogle' => 'Exportovat do Google',
 			'exportZbozi' => 'Exportovat do Zboží.cz',
-			'exportPage_title' => 'Meta titulek',
-			'exportPage_description' => 'Meta popis',
 		],
 		'importAttributes' => [],
 		'importExampleFile' => null,
