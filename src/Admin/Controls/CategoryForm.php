@@ -37,7 +37,8 @@ class CategoryForm extends Control
 		PageRepository $pageRepository,
 		SettingRepository $settingRepository,
 		Shopper $shopper,
-		?Category $category
+		?Category $category,
+		protected bool $showDefaultViewType,
 	) {
 		$this->category = $category;
 		$this->categoryRepository = $categoryRepository;
@@ -134,7 +135,7 @@ class CategoryForm extends Control
 		]);
 		$form->addLocaleRichEdit('defaultProductContent', 'Výchozí obsah produktů');
 
-		$this->monitor(Presenter::class, function ($presenter) use ($form, $category): void {
+		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($form, $category): void {
 			$categories = $this->categoryRepository->getTreeArrayForSelect(true, $presenter->tab);
 
 			if ($category) {
@@ -169,6 +170,12 @@ class CategoryForm extends Control
 					->checkDefaultValue(false)
 					->setHtmlAttribute('data-info', 'Nejprve zvolte v nastavení exportů typ kategorií pro Heuréku.');
 			}
+
+			if (!$this->showDefaultViewType) {
+				return;
+			}
+
+			$form->addSelect('defaultViewType', 'Výchozí zobrazení', $presenter::DEFAULT_VIEW_TYPES)->setPrompt('Výchozí');
 		});
 
 		$form->addText('exportGoogleCategory', 'Exportní název pro Google');

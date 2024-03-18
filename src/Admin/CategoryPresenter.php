@@ -33,12 +33,19 @@ class CategoryPresenter extends BackendPresenter
 	public const PRODUCER_PAGES = 0;
 	public const PRODUCER_CATEGORY = 1;
 
+	public const DEFAULT_VIEW_TYPES = [
+		'row' => 'Řádky',
+		'card' => 'Karty',
+	];
+
 	protected const CONFIGURATION = [
 		'activeProducers' => null,
 		'producerPagesType' => self::PRODUCER_CATEGORY,
 		'dynamicCategories' => false,
 		'targito' => false,
 	];
+
+	protected const SHOW_DEFAULT_VIEW_TYPE = false;
 
 	/** @inject */
 	public Request $request;
@@ -154,9 +161,15 @@ class CategoryPresenter extends BackendPresenter
 				$this->categoryRepository->clearCategoriesCache();
 			});
 
+			$bulkInputs = ['exportGoogleCategory', 'exportGoogleCategoryId', 'exportHeurekaCategory', 'exportZboziCategory', 'hidden', 'showMenu', 'showEmpty'];
+
+			if ($this::SHOW_DEFAULT_VIEW_TYPE) {
+				$bulkInputs[] = 'defaultViewType';
+			}
+
 			$grid->addButtonBulkEdit(
 				'categoryForm',
-				['exportGoogleCategory', 'exportGoogleCategoryId', 'exportHeurekaCategory', 'exportZboziCategory', 'hidden', 'showMenu', 'showEmpty'],
+				$bulkInputs,
 				'categoryGrid',
 			);
 
@@ -253,7 +266,7 @@ class CategoryPresenter extends BackendPresenter
 
 	public function createComponentCategoryForm(): Controls\CategoryForm
 	{
-		return $this->categoryFormFactory->create($this->getParameter('category'));
+		return $this->categoryFormFactory->create($this::SHOW_DEFAULT_VIEW_TYPE, $this->getParameter('category'));
 	}
 
 	public function actionDefault(): void
