@@ -142,6 +142,10 @@
                     {$renderer->renderPair($form['showEmpty'])|noescape}
                     {$renderer->renderPair($form['recommended'])|noescape}
 
+                    {ifset $form['defaultViewType']}
+                        {$renderer->renderPair($form['defaultViewType'])|noescape}
+                    {/ifset}
+
                 </table>
             </fieldset>
 

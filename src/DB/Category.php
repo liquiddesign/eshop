@@ -177,6 +177,11 @@ class Category extends SystemicEntity
 	public RelationCollection $parameterCategories;
 
 	/**
+	 * @column{"type":"enum","length":"'row','card'"}
+	 */
+	public string|null $defaultViewType;
+
+	/**
 	 * Kategorie
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\Category>
