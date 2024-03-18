@@ -160,19 +160,25 @@ class CategoryPresenter extends BackendPresenter
 				$this->categoryRepository->clearCategoriesCache();
 			});
 
+			$bulkInputs = [
+				'exportGoogleCategory',
+				'exportGoogleCategoryId',
+				'exportHeurekaCategory',
+				'exportZboziCategory',
+				'priority',
+				'hidden',
+				'showInMenu',
+				'showEmpty',
+				'recommended',
+			];
+
+			if ($this::SHOW_DEFAULT_VIEW_TYPE) {
+				$bulkInputs[] = 'defaultViewType';
+			}
+
 			$grid->addButtonBulkEdit(
 				'categoryForm',
-				[
-					'exportGoogleCategory',
-					'exportGoogleCategoryId',
-					'exportHeurekaCategory',
-					'exportZboziCategory',
-					'priority',
-					'hidden',
-					'showInMenu',
-					'showEmpty',
-					'recommended',
-				],
+				$bulkInputs,
 				'categoryGrid',
 			);
 
