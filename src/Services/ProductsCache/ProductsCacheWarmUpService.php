@@ -191,6 +191,8 @@ class ProductsCacheWarmUpService implements AutoWireService
 			Debugger::dump($e);
 
 			$this->resetHangingStateOfCache($cacheIndexToBeWarmedUp);
+
+			throw $e;
 		}
 	}
 
