@@ -4,6 +4,29 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.151](https://github.com/liquiddesign/eshop/compare/v2.1.150...v2.1.151) (2024-03-18)
+
+### Features
+
+
+##### Category
+
+* Add defaultViewType ([31db2f](https://github.com/liquiddesign/eshop/commit/31db2f58d44cc990843eb4012dfc8c2ec378b7e3))
+
+### Bug Fixes
+
+
+##### Admin- Attributes
+
+* Show range link only if range tab is available ([1e2129](https://github.com/liquiddesign/eshop/commit/1e2129d930ce71b03aa7590eecbba506eb24f991))
+
+##### Products Cache
+
+* Throw exception in warm up ([aecfe9](https://github.com/liquiddesign/eshop/commit/aecfe9c1759786da9e798e039df09cd1972582b3))
+
+
+---
+
 ## [2.1.150](https://github.com/liquiddesign/eshop/compare/v2.1.149...v2.1.150) (2024-03-11)
 
 ### Bug Fixes
