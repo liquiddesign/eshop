@@ -319,6 +319,10 @@ class Invoice extends \StORM\Entity
 			return 1.0;
 		}
 
+		if ($order->getTotalPriceVat() + $order->getDiscountCoupon()->discountValueVat < \PHP_FLOAT_EPSILON) {
+			return 1.0;
+		}
+
 		return $order->getTotalPriceVat() / ($order->getTotalPriceVat() + $order->getDiscountCoupon()->discountValueVat);
 	}
 }
