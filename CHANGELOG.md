@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.152](https://github.com/liquiddesign/eshop/compare/v2.1.151...v2.1.152) (2024-03-19)
+
+### Features
+
+* Changes from v1.5 ([e4b2a3](https://github.com/liquiddesign/eshop/commit/e4b2a37d382d9a07f831aae457c5a5f854a13194))
+
+##### Category
+
+* BulkEdit defaultViewType ([10f7db](https://github.com/liquiddesign/eshop/commit/10f7db5f5187f49e0b608b441e9a0abd5c411b42))
+
+
+---
+
 ## [2.1.151](https://github.com/liquiddesign/eshop/compare/v2.1.150...v2.1.151) (2024-03-18)
 
 ### Features
