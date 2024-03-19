@@ -134,6 +134,9 @@ class ProductPresenter extends BackendPresenter
 	/** @var array<callable(\Eshop\DB\Product, array): void> */
 	public array $onProductFormSuccess = [];
 
+	/** @var array<callable(array<string>): void> */
+	public array $onImport = [];
+
 	#[\Nette\DI\Attributes\Inject]
 	public ProductGridFactory $productGridFactory;
 
@@ -1251,7 +1254,8 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 					$values['updateAttributes'],
 					$values['createAttributeValues'],
 					$values['searchCriteria'],
-					$this::CONFIGURATION['importColumns']
+					$this::CONFIGURATION['importColumns'],
+					$this->onImport,
 				), ILogger::DEBUG);
 
 				FileSystem::copy($tempFileName, $productsFileName);

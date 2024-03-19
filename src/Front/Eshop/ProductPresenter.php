@@ -21,6 +21,7 @@ use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\Front\FrontendPresenter;
 use Forms\Form;
+use Nette\Application\Attributes\Persistent;
 use Nette\Application\BadRequestException;
 use Nette\Application\Responses\FileResponse;
 use Nette\DI\Attributes\Inject;
@@ -63,11 +64,11 @@ abstract class ProductPresenter extends FrontendPresenter
 	#[Inject]
 	public SettingRepository $settingRepository;
 
-	/** @persistent */
+	#[Persistent]
 	public string $selectedCompareCategory;
 
-	/** @persistent */
-	public string $display = 'card';
+	#[Persistent]
+	public string|null $display = null;
 	
 	protected ?Category $category = null;
 	
@@ -184,7 +185,7 @@ abstract class ProductPresenter extends FrontendPresenter
 		$categories = $this->categoryRepository->getCategories();
 		
 		$this->template->category = $this->category;
-		$this->template->display = $this->display;
+		$this->template->display = $this->getDisplay($this->category);
 		$this->template->perex = null;
 		$this->template->content = null;
 		$this->template->categories = [];
@@ -387,5 +388,22 @@ abstract class ProductPresenter extends FrontendPresenter
 		};
 
 		return $form;
+	}
+
+	/**
+	 * @param \Eshop\DB\Category|null $category
+	 * @return 'card'|'row'
+	 */
+	protected function getDisplay(Category|null $category = null): string
+	{
+		if ($this->display) {
+			return $this->display;
+		}
+
+		if ($category?->defaultViewType) {
+			return $category->defaultViewType;
+		}
+
+		return 'card';
 	}
 }

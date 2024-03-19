@@ -435,7 +435,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		if ($categoryType === null) {
 			$categoryType = $this->shopsConfig->getSelectedShop() ?
 				$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
-				null;
+				'main';
 		}
 
 		if (!$categoryType) {

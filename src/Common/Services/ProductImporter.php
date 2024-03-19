@@ -49,9 +49,13 @@ class ProductImporter
 	 * @param bool $overwriteExisting
 	 * @param bool $updateAttributes
 	 * @param bool $createAttributeValues
+	 * @param string $searchCriteria
+	 * @param array<string> $importColumns
+	 * @param array<callable> $onImport
 	 * @return array<string|int>
 	 * @throws \League\Csv\Exception
 	 * @throws \League\Csv\InvalidArgument
+	 * @throws \League\Csv\SyntaxError
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function importCsv(
@@ -63,6 +67,7 @@ class ProductImporter
 		bool $createAttributeValues = false,
 		string $searchCriteria = 'all',
 		array $importColumns = [],
+		array $onImport = [],
 	): array {
 		$selectedShop = $this->shopsConfig->getSelectedShop();
 
@@ -203,6 +208,7 @@ class ProductImporter
 		$createdProducts = 0;
 		$updatedProducts = 0;
 		$skippedProducts = 0;
+		$importedProductsPKs = [];
 
 		$searchCode = $searchCriteria === 'all' || $searchCriteria === 'code';
 		$searchEan = $searchCriteria === 'all' || $searchCriteria === 'ean';
@@ -363,9 +369,13 @@ class ProductImporter
 
 					$product = $this->productRepository->createOne($newValues);
 				}
+
+				$importedProductsPKs[] = $product->uuid;
 			} catch (\Exception $e) {
 				throw new \Exception('Chyba při zpracování dat!');
 			}
+
+			Arrays::invoke($onImport, $importedProductsPKs);
 
 			foreach ($record as $key => $value) {
 				if (match ($key) {
@@ -378,7 +388,8 @@ class ProductImporter
 						default => $key,
 					};
 
-					$relatedToSync['content'][$key][$mutation] = $value;
+					$relatedToSync['content'][$key][$mutation] = \preg_replace('/(\r\n|\r|\n|\x{2028})/u', '<br>', $value);
+
 					$relatedToSync['content']['shop'] = $selectedShop?->getPK();
 					$relatedToSync['content']['product'] = $product->uuid;
 				} elseif (isset($parsedVisibilityColumns[$key])) {

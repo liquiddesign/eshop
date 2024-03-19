@@ -41,8 +41,8 @@ DROP TABLE eshop_setitem;
 TRUNCATE TABLE eshop_set;
 DROP TABLE eshop_set;
 
-TRUNCATE TABLE eshop_prooduct_nxn_eshop_tag;
-DROP TABLE eshop_prooduct_nxn_eshop_tag;
+TRUNCATE TABLE eshop_product_nxn_eshop_tag;
+DROP TABLE eshop_product_nxn_eshop_tag;
 TRUNCATE TABLE eshop_tag_nxn_eshop_tag;
 DROP TABLE eshop_tag_nxn_eshop_tag;
 TRUNCATE TABLE eshop_discount_nxn_eshop_tag;

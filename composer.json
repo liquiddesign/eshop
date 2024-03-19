@@ -48,7 +48,8 @@
         "heureka/overeno-zakazniky": "^4.0",
         "dfridrich/qr-platba": "^2.0",
         "latte/latte": "^3.0",
-        "ramsey/uuid": "^4.7"
+        "ramsey/uuid": "^4.7",
+        "liquiddesign/liquid-monitor-connector": "^1.0.4"
     },
     "minimum-stability": "stable",
     "require-dev": {
