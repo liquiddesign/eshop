@@ -4,6 +4,16 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.154](https://github.com/liquiddesign/eshop/compare/v2.1.153...v2.1.154) (2024-03-19)
+
+### ⚠ BREAKING CHANGES
+
+* Import files are no longer forced converted to UTF8, because conversion is not reliable. Import is assuming your file is in correct encoding. ([a7b966](https://github.com/liquiddesign/eshop/commit/a7b9669fd84854e9d8b23aeef0e57f4c811663b4))
+* Remove dependency on neitanod/forceutf8 ([a7b966](https://github.com/liquiddesign/eshop/commit/a7b9669fd84854e9d8b23aeef0e57f4c811663b4))
+
+
+---
+
 ## [2.1.153](https://github.com/liquiddesign/eshop/compare/v2.1.152...v2.1.153) (2024-03-19)
 
 ### Bug Fixes
