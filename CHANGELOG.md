@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.153](https://github.com/liquiddesign/eshop/compare/v2.1.152...v2.1.153) (2024-03-19)
+
+### Bug Fixes
+
+
+##### Delivery Payment Form
+
+* Change visibility ([0674af](https://github.com/liquiddesign/eshop/commit/0674af0dfa6e98ed51eb4b42af3e24ea96f25d6c))
+
+
+---
+
 ## [2.1.152](https://github.com/liquiddesign/eshop/compare/v2.1.151...v2.1.152) (2024-03-19)
 
 ### Features
