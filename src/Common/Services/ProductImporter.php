@@ -16,10 +16,8 @@ use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\StoreRepository;
 use Eshop\DB\VisibilityListItemRepository;
-use ForceUTF8\Encoding;
 use League\Csv\Reader;
 use Nette\Utils\Arrays;
-use Nette\Utils\FileSystem;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use Tracy\Debugger;
@@ -71,10 +69,7 @@ class ProductImporter
 	): array {
 		$selectedShop = $this->shopsConfig->getSelectedShop();
 
-		$csvData = FileSystem::read($filePath);
-
-		$csvData = Encoding::toUTF8($csvData);
-		$reader = Reader::createFromString($csvData);
+		$reader = Reader::createFromPath($filePath);
 
 		$reader->setDelimiter($delimiter);
 		$reader->setHeaderOffset(0);

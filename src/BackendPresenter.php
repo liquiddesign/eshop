@@ -9,7 +9,6 @@ use Eshop\DB\CategoryRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
-use ForceUTF8\Encoding;
 use League\Csv\Reader;
 use Nette\Application\Application;
 use Nette\Utils\FileSystem;
@@ -186,8 +185,6 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 
 	public function getReaderFromString(string $content, string $delimiter = ';'): Reader
 	{
-		$content = Encoding::toUTF8($content);
-
 		$reader = Reader::createFromString($content);
 		unset($content);
 
