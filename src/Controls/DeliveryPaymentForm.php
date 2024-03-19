@@ -30,9 +30,9 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 
 	public function __construct(
 		public readonly ShopperUser $shopperUser,
-		private readonly DeliveryTypeRepository $deliveryTypeRepository,
-		private readonly Nette\Localization\Translator $translator,
-		private readonly PickupPointRepository $pickupPointRepository
+		protected readonly DeliveryTypeRepository $deliveryTypeRepository,
+		protected readonly Nette\Localization\Translator $translator,
+		protected readonly PickupPointRepository $pickupPointRepository
 	) {
 		parent::__construct();
 
