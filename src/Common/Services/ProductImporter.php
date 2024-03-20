@@ -2,6 +2,7 @@
 
 namespace Eshop\Common\Services;
 
+use Base\BaseHelpers;
 use Base\Helpers;
 use Base\ShopsConfig;
 use Eshop\DB\AmountRepository;
@@ -21,22 +22,24 @@ use Nette\Utils\Arrays;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use Tracy\Debugger;
+use Web\DB\PageRepository;
 
 class ProductImporter
 {
 	public function __construct(
-		private readonly ProductRepository $productRepository,
-		private readonly AttributeRepository $attributeRepository,
-		private readonly StoreRepository $storeRepository,
-		private readonly CategoryRepository $categoryRepository,
-		private readonly ProducerRepository $producerRepository,
-		private readonly AttributeValueRepository $attributeValueRepository,
-		private readonly AttributeAssignRepository $attributeAssignRepository,
-		private readonly AmountRepository $amountRepository,
-		private readonly ShopsConfig $shopsConfig,
-		private readonly VisibilityListItemRepository $visibilityListItemRepository,
-		private readonly ProductContentRepository $productContentRepository,
-		private readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
+		protected readonly ProductRepository $productRepository,
+		protected readonly AttributeRepository $attributeRepository,
+		protected readonly StoreRepository $storeRepository,
+		protected readonly CategoryRepository $categoryRepository,
+		protected readonly ProducerRepository $producerRepository,
+		protected readonly AttributeValueRepository $attributeValueRepository,
+		protected readonly AttributeAssignRepository $attributeAssignRepository,
+		protected readonly AmountRepository $amountRepository,
+		protected readonly ShopsConfig $shopsConfig,
+		protected readonly VisibilityListItemRepository $visibilityListItemRepository,
+		protected readonly ProductContentRepository $productContentRepository,
+		protected readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
+		protected readonly PageRepository $pageRepository,
 	) {
 	}
 
@@ -68,6 +71,7 @@ class ProductImporter
 		array $onImport = [],
 	): array {
 		$selectedShop = $this->shopsConfig->getSelectedShop();
+		$mutations = $this->productRepository->getConnection()->getAvailableMutations();
 
 		$reader = Reader::createFromPath($filePath);
 
@@ -101,13 +105,11 @@ class ProductImporter
 			'code',
 			'fullCode' => 'CONCAT(code,".",subCode)',
 			'ean',
-			'name' => "name$mutationSuffix",
-			'perex' => "perex$mutationSuffix",
 			'supplierContentLock',
 			'mpn',
 		], [], true)->fetchArray(\stdClass::class);
 
-		$header = $reader->getHeader();
+		$csvHeader = $reader->getHeader();
 
 		$parsedHeader = [];
 		$attributes = [];
@@ -138,16 +140,28 @@ class ProductImporter
 			'priority' => 'Priorita',
 		];
 
+		$productColumns = [
+			'name' => 'Název',
+		];
+
+		foreach ($productColumns as $key => $value) {
+			foreach ($mutations as $mutation) {
+				$importColumns[$key . $mutation] = $value . $mutation;
+			}
+
+			unset($importColumns[$key]);
+		}
+
 		$parsedVisibilityColumns = [];
 
-		foreach ($header as $headerItem) {
+		foreach ($csvHeader as $headerItem) {
 			// Find column by key or name in predefined columns
 			if (isset($importColumns[$headerItem])) {
 				$parsedHeader[$headerItem] = $headerItem;
 			} elseif ($key = \array_search($headerItem, $importColumns)) {
 				$parsedHeader[$key] = $headerItem;
 			} else {
-				if (Strings::contains($headerItem, '#')) {
+				if (\str_contains($headerItem, '#')) {
 					$exploded = \explode('#', $headerItem);
 
 					if (\count($exploded) !== 2) {
@@ -278,6 +292,10 @@ class ProductImporter
 				'visibility' => [],
 			];
 
+			/**
+			  * @var string $key
+			  * @var string $value
+			 */
 			foreach ($record as $key => $value) {
 				$key = \array_search($key, $parsedHeader);
 
@@ -286,7 +304,7 @@ class ProductImporter
 				}
 
 				if ($key === 'producer') {
-					if (Strings::contains($value, '#')) {
+					if (\str_contains($value, '#')) {
 						$producerCode = \explode('#', $value);
 
 						if (\count($producerCode) !== 2) {
@@ -321,7 +339,9 @@ class ProductImporter
 							'inStock' => \intval($amount[0]),
 						];
 					}
-				} elseif ($key === 'name') {
+				} elseif (\str_starts_with((string) $key, 'name_')) {
+					[$key, $mutation] = \explode('_', (string) $key);
+
 					$newValues[$key][$mutation] = $value;
 				} elseif ($key === 'code') {
 					if (!$searchCode) {
@@ -373,21 +393,27 @@ class ProductImporter
 			Arrays::invoke($onImport, $importedProductsPKs);
 
 			foreach ($record as $key => $value) {
-				if (match ($key) {
-						'perex', 'content', 'Popisek', 'Obsah' => true,
-						default => false,
-				}) {
-					$key = match ($key) {
-						'Popisek' => 'perex',
-						'Obsah' => 'content',
-						default => $key,
-					};
+				if (!\str_starts_with((string) $key, 'perex_') && !\str_starts_with((string) $key, 'content_') &&
+					!\str_starts_with((string) $key, 'Popisek_') && !\str_starts_with((string) $key, 'Obsah_')) {
+					continue;
+				}
 
-					$relatedToSync['content'][$key][$mutation] = \preg_replace('/(\r\n|\r|\n|\x{2028})/u', '<br>', $value);
+				[$key, $mutation] = \explode('_', (string) $key);
 
-					$relatedToSync['content']['shop'] = $selectedShop?->getPK();
-					$relatedToSync['content']['product'] = $product->uuid;
-				} elseif (isset($parsedVisibilityColumns[$key])) {
+				$key = match ($key) {
+					'Popisek' => 'perex',
+					'Obsah' => 'content',
+					default => $key,
+				};
+
+				$relatedToSync['content'][$key][$mutation] = \preg_replace('/(\r\n|\r|\n|\x{2028})/u', '<br>', $value);
+
+				$relatedToSync['content']['shop'] = $selectedShop?->getPK();
+				$relatedToSync['content']['product'] = $product->uuid;
+			}
+
+			foreach ($record as $key => $value) {
+				if (isset($parsedVisibilityColumns[$key])) {
 					$relatedToSync['visibility'][$parsedVisibilityColumns[$key]['visibilityList']][$product->uuid][$parsedVisibilityColumns[$key]['property']] =
 						$parsedVisibilityColumns[$key]['property'] === 'priority' ? \intval($value) : ($value === '1');
 				} elseif ($key === 'categories' || $key === 'Kategorie') {
@@ -452,9 +478,9 @@ class ProductImporter
 			foreach ($relatedToSync['visibility'] as $visibilityListPK => $value) {
 				foreach ($value as $productPK => $data) {
 					$this->visibilityListItemRepository->syncOne([
-						'visibilityList' => $visibilityListPK,
-						'product' => $productPK,
-					] + $data, ignore: false);
+							'visibilityList' => $visibilityListPK,
+							'product' => $productPK,
+						] + $data, ignore: false);
 				}
 			}
 
@@ -475,10 +501,10 @@ class ProductImporter
 					->where('eshop_attributevalue.fk_attribute', $key)
 					->delete();
 
-				$attributeValues = Strings::contains($value, ':') ? \explode(':', $value) : [$value];
+				$attributeValues = \str_contains($value, ':') ? \explode(':', $value) : [$value];
 
 				foreach ($attributeValues as $attributeString) {
-					if (Strings::contains($attributeString, '#')) {
+					if (\str_contains($attributeString, '#')) {
 						$attributeValueCode = \explode('#', $attributeString);
 
 						if (\count($attributeValueCode) !== 2) {
@@ -491,7 +517,7 @@ class ProductImporter
 					}
 
 					/** @var \stdClass|null|false|\Eshop\DB\AttributeValue $attributeValue */
-					$attributeValue = Helpers::arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode): bool {
+					$attributeValue = BaseHelpers::arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode): bool {
 						return $x->code === $attributeValueCode;
 					});
 
@@ -501,7 +527,7 @@ class ProductImporter
 
 					if (!$attributeValue) {
 						/** @var \stdClass|null|false|\Eshop\DB\AttributeValue $attributeValue */
-						$attributeValue = Helpers::arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode): bool {
+						$attributeValue = BaseHelpers::arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode): bool {
 							return $x->label === $attributeValueCode;
 						});
 
@@ -570,6 +596,218 @@ class ProductImporter
 			'updatedAmounts' => \count($amountsToUpdate),
 			'createdAttributeValues' => \count($attributeValuesToCreate),
 			'attributeAssignsUpdated' => \count($attributeAssignsToSync),
+			'elapsedTimeInSeconds' => (int) Debugger::timer(),
+		];
+	}
+
+	/**
+	 * @param string $filePath
+	 * @param string $delimiter
+	 * @return array<string|int>
+	 * @throws \League\Csv\Exception
+	 * @throws \League\Csv\InvalidArgument
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function importPagesCsv(string $filePath, string $delimiter = ';',): array
+	{
+		Debugger::timer();
+
+		$reader = Reader::createFromPath($filePath);
+
+		$reader->setDelimiter($delimiter);
+		$reader->setHeaderOffset(0);
+
+		$connection = $this->productRepository->getConnection();
+
+		$mutations = $connection->getAvailableMutations();
+
+		$importColumns = [
+			'code' => 'Kód',
+			'ean' => 'EAN',
+			'title' => 'Titulek',
+			'description' => 'Popis',
+			'url' => 'URL',
+		];
+
+		$header = $reader->getHeader();
+		$parsedHeader = [];
+
+		foreach ($header as $headerItem) {
+			if (isset($importColumns[$headerItem])) {
+				$parsedHeader[$headerItem] = $headerItem;
+
+				continue;
+			}
+
+			if ($key = \array_search($headerItem, $importColumns)) {
+				$parsedHeader[$headerItem] = $key;
+
+				continue;
+			}
+
+			foreach ($mutations as $mutation => $suffix) {
+				if (\str_ends_with($headerItem, $suffix)) {
+					$headerItemWithMutation = $headerItem;
+					$headerItemWithoutMutation = Strings::substring($headerItemWithMutation, 0, Strings::indexOf($headerItem, $suffix));
+
+					if (isset($importColumns[$headerItemWithoutMutation])) {
+						$parsedHeader[$headerItemWithMutation] = [$headerItemWithoutMutation, $mutation];
+					} elseif ($key = \array_search($headerItemWithoutMutation, $importColumns)) {
+						$parsedHeader[$headerItemWithMutation] = [$key, $mutation];
+					}
+
+					continue 2;
+				}
+			}
+		}
+
+		if (\count($parsedHeader) === 0) {
+			throw new \Exception('Soubor neobsahuje hlavičku nebo nebyl nalezen žádný použitelný sloupec!');
+		}
+
+		if (!\array_search('code', $parsedHeader) && !\array_search('ean', $parsedHeader)) {
+			throw new \Exception('Soubor neobsahuje kód ani EAN!');
+		}
+
+		$records = $reader->getRecords();
+
+		$createdProducts = 0;
+		$updatedProducts = 0;
+		$skippedProducts = 0;
+
+		/** @var 'all'|'code'|'ean' $searchCriteria */
+		$searchCriteria = 'all';
+
+		$searchCode = $searchCriteria === 'all' || $searchCriteria === 'code';
+		$searchEan = $searchCriteria === 'all' || $searchCriteria === 'ean';
+
+		$products = $this->productRepository->many()
+			->setSelect([
+				'this.uuid',
+				'this.code',
+				'fullCode' => 'CONCAT(this.code,".",this.subCode)',
+				'this.ean',
+				'this.supplierContentLock',
+				'this.mpn',
+				'export_page_uuid' => 'export_page.uuid',
+			], [], true)
+			->join(['export_page' => 'web_page'], "export_page.params like CONCAT('%product=', this.uuid, '&%') and export_page.type = 'product_detail'")
+			->setGroupBy(['this.uuid'])
+			->fetchArray(\stdClass::class);
+
+		foreach ($records as $record) {
+			$newValues = [];
+			$code = null;
+			$ean = null;
+			$codePrefix = null;
+
+			// Take Code or Ean based on search criteria - if search by, delete it from record
+
+			$parsedHeaderCode = null;
+
+			if ($parsedHeaderCodeKey = \array_search('code', $parsedHeader)) {
+				$parsedHeaderCode = $parsedHeader[$parsedHeaderCodeKey];
+			}
+
+			$parsedHeaderEan = null;
+
+			if ($parsedHeaderEanKey = \array_search('ean', $parsedHeader)) {
+				$parsedHeaderEan = $parsedHeader[$parsedHeaderEanKey];
+			}
+
+			/** @var string|null $codeFromRecord */
+			$codeFromRecord = $parsedHeaderCode ? ($searchCode ? Arrays::pick($record, $parsedHeaderCodeKey, null) : ($record[$parsedHeaderCodeKey] ?? null)) : null;
+			/** @var string|null $eanFromRecord */
+			$eanFromRecord = $parsedHeaderEan ? ($searchEan ? Arrays::pick($record, $parsedHeaderEanKey, null) : ($record[$parsedHeaderEanKey] ?? null)) : null;
+			/** @var \stdClass|null $product */
+			$product = null;
+
+			// Sanitize and prefix code and ean
+
+			if ($parsedHeaderCodeKey && $codeFromRecord) {
+				$codeBase = Strings::trim($codeFromRecord);
+				$codePrefix = Strings::trim('00' . $codeFromRecord);
+
+				$code = $codeBase;
+
+				unset($parsedHeader[$parsedHeaderCodeKey]);
+			}
+
+			if ($parsedHeaderEanKey && $eanFromRecord) {
+				$ean = Strings::trim($eanFromRecord);
+
+				unset($parsedHeader[$parsedHeaderEanKey]);
+			}
+
+			// Fast local search of product based on criteria
+
+			if ($code && $ean && $searchCode && $searchEan) {
+				$product = BaseHelpers::arrayFind($products, function (\stdClass $x) use ($code, $codePrefix, $ean): bool {
+					return $x->code === $code || $x->fullCode === $code ||
+						$x->code === $codePrefix || $x->fullCode === $codePrefix ||
+						$x->ean === $ean;
+				});
+			} elseif ($code && $searchCode) {
+				$product = BaseHelpers::arrayFind($products, function (\stdClass $x) use ($code, $codePrefix): bool {
+					return $x->code === $code || $x->fullCode === $code ||
+						$x->code === $codePrefix || $x->fullCode === $codePrefix;
+				});
+			} elseif ($ean && $searchEan) {
+				$product = BaseHelpers::arrayFind($products, function (\stdClass $x) use ($ean): bool {
+					return $x->ean === $ean;
+				});
+			}
+
+			// Continue based on settings and data
+
+			if (($searchCode && $searchEan && !$code && !$ean) ||
+				($searchCode && !$searchEan && !$code) ||
+				($searchEan && !$searchCode && !$ean) ||
+				!$product
+			) {
+				$skippedProducts++;
+
+				continue;
+			}
+
+			$updatedProducts++;
+
+			foreach ($record as $key => $value) {
+				$parsedKey = $parsedHeader[$key] ?? (($searchedKey = \array_search($key, $parsedHeader)) ? $parsedHeader[$searchedKey] : null);
+
+				if (!$parsedKey) {
+					continue;
+				}
+
+				$column = \is_array($parsedKey) ? $parsedKey[0] : $parsedKey;
+				$mutation = \is_array($parsedKey) ? $parsedKey[1] : null;
+				$value = Strings::length($value) > 0 ? $value : null;
+
+				if ($mutation) {
+					$newValues[$column][$mutation] = $value;
+				} else {
+					$newValues[$column] = $value;
+				}
+			}
+
+			try {
+				if (\count($newValues) > 0) {
+                    // phpcs:ignore
+                    $newValues['uuid'] = $product->export_page_uuid;
+					$newValues['type'] = 'product_detail';
+					$newValues['params'] = "product=$product->uuid&";
+
+					$this->pageRepository->syncOne($newValues, null, true);
+				}
+			} catch (\Exception $e) {
+				throw new \Exception('Chyba při zpracování dat!');
+			}
+		}
+
+		return [
+			'createdProducts' => $createdProducts,
+			'updatedProducts' => $updatedProducts,
+			'skippedProducts' => $skippedProducts,
 			'elapsedTimeInSeconds' => (int) Debugger::timer(),
 		];
 	}

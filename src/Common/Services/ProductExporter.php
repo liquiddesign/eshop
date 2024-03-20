@@ -9,6 +9,7 @@ use Base\ShopsConfig;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\ProductContent;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
@@ -26,6 +27,7 @@ use StORM\Collection;
 use StORM\DIConnection;
 use Tracy\Debugger;
 use Tracy\ILogger;
+use Web\DB\Page;
 use Web\DB\PageRepository;
 
 class ProductExporter
@@ -210,7 +212,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 	 * @param array $columns
 	 * @param array $attributes
 	 * @param string $delimiter
-	 * @param array|null $header
+	 * @param array<string> $header
 	 * @param array $supplierCodes
 	 * @param (callable(\Eshop\DB\Product, string): string|null)|null $getSupplierCodeCallback
 	 * @throws \League\Csv\CannotInsertRecord
@@ -225,16 +227,67 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 		array $columns = [],
 		array $attributes = [],
 		string $delimiter = ';',
-		?array $header = null,
+		array $header = [],
 		array $supplierCodes = [],
 		?callable $getSupplierCodeCallback = null,
 	): void {
-		$this->productRepository->getConnection()->setDebug(false);
+		$this->connection->setDebug(false);
+		$mutations = $this->connection->getAvailableMutations();
 
 		$writer->setDelimiter($delimiter);
 		$writer->setFlushThreshold(100);
 
 		EncloseField::addTo($writer, "\t\22");
+
+		$productColumns = [
+			'name' => 'Název',
+		];
+
+		foreach ($productColumns as $key => $value) {
+			if (!isset($columns[$key])) {
+				continue;
+			}
+
+			foreach ($mutations as $mutation) {
+				$header[] = $value . $mutation;
+				$columns[$key . $mutation] = $value . $mutation;
+			}
+
+			unset($columns[$key], $header[\array_search($value, $header)]);
+		}
+
+		$productContentColumns = [
+			'productContent_perex' => 'Popisek',
+			'productContent_content' => 'Obsah',
+		];
+
+		foreach ($productContentColumns as $key => $value) {
+			if (!isset($columns[\explode('_', $key)[1]])) {
+				continue;
+			}
+
+			foreach ($mutations as $mutation) {
+				$header[] = $value . $mutation;
+				$columns[$key . $mutation] = $value . $mutation;
+			}
+
+			unset($columns[\explode('_', $key)[1]], $header[\array_search($value, $header)]);
+		}
+
+		$pageColumns = [
+			'exportPage_title' => 'Titulek',
+			'exportPage_description' => 'Popis',
+			'exportPage_url' => 'URL',
+		];
+
+		foreach ($pageColumns as $key => $value) {
+			foreach ($mutations as $mutation) {
+				$header[] = $value . $mutation;
+				$columns[$key . $mutation] = $value . $mutation;
+			}
+
+			unset($columns[$key]);
+		}
 
 		$completeHeaders = \array_merge($header, $supplierCodes);
 
@@ -275,14 +328,17 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 			->join(['masterProduct' => 'eshop_product'], 'this.fk_masterProduct = masterProduct.uuid')
 			->join(['productContent' => 'eshop_productcontent'], 'this.uuid = productContent.fk_product')
 			->join(['primaryCategory' => 'eshop_productprimarycategory'], 'this.uuid = primaryCategory.fk_product')
+			->join(['exportPage' => 'web_page'], "exportPage.params like CONCAT('%product=', this.uuid, '&%') and exportPage.type = 'product_detail'")
 			->select([
 				'producerCodeName' => "CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, ''))",
 				'amounts' => "GROUP_CONCAT(DISTINCT CONCAT(storeAmount.inStock, '#', store.code) SEPARATOR ':')",
 				'groupedCategories' => 'GROUP_CONCAT(DISTINCT CONCAT(categoryAssign.fk_category))',
 				'groupedPrimaryCategories' => 'GROUP_CONCAT(DISTINCT CONCAT(primaryCategory.fk_category))',
 				'masterProductCode' => 'masterProduct.code',
-				'content' => "productContent.content$mutationSuffix",
-				'perex' => "productContent.perex$mutationSuffix",
+			])
+			->selectAliases([
+				'exportPage' => Page::class,
+				'productContent' => ProductContent::class,
 			]);
 
 		if ($selectedShop) {

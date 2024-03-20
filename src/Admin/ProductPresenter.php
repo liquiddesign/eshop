@@ -48,7 +48,6 @@ use Nette\Application\Responses\FileResponse;
 use Nette\DI\Attributes\Inject;
 use Nette\Forms\Controls\TextInput;
 use Nette\IOException;
-use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Nette\Utils\Random;
@@ -1024,9 +1023,12 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 		$form->addText('server', 'FTP server')->setDisabled()->setDefaultValue($this::CONFIGURATION['importImagesFromStorage']['server']);
 		$form->addText('username', 'Uživatelské jméno')->setDisabled()->setDefaultValue($this::CONFIGURATION['importImagesFromStorage']['login']);
 		$form->addText('password', 'Heslo')->setDisabled()->setDefaultValue($this::CONFIGURATION['importImagesFromStorage']['password']);
+		$form->addCheckbox('deleteCurrentImages', 'Vymazat aktuální obrázky');
 		$form->addCheckbox('asMain', 'Nastavit jako hlavní obrázek')->setHtmlAttribute('data-info', 'Pro práci s FTP doporučejeme klient WinSCP dostupný zde: 
 <a target="_blank" href="https://winscp.net/eng/download.php">https://winscp.net/eng/download.php</a><br>
-Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název obrázků musí být kód daného produktu.');
+Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky.<br><br>
+Název souborů musí být ve formátu "kod_název_1.přípona". Např.: "ABC_obrazek_1.jpg"<br>
+Můžete nahrát více obrázků pro jeden produkt. Např.: "ABC_obrazek_1.jpg", "ABC_obrazek_2.jpg", ...');
 
 		$form->addSubmit('images', 'Importovat');
 
@@ -1034,6 +1036,7 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 			$values = $form->getValues('array');
 
 			$connection = $this->productRepository->getConnection();
+			$mutations = $this->productRepository->getConnection()->getAvailableMutations();
 
 			$imagesPath = \dirname(__DIR__, 5) . '/userfiles/images';
 			$originalPath = \dirname(__DIR__, 5) . '/userfiles/' . Product::GALLERY_DIR . '/origin';
@@ -1046,17 +1049,40 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 			FileSystem::createDir($detailPath);
 
 			$images = \scandir($imagesPath);
-			$existingImages = \scandir($thumbPath);
 
 			$products = $this->productRepository->many()->setIndex('code')->toArrayOf('uuid');
 
-			$filtered = \array_filter($images, function ($value) use ($products) {
-				$code = \explode('.', $value);
+			$photosToImport = [];
 
-				return Arrays::get($products, $code[0], null);
-			});
+			foreach ($images as $image) {
+				if ($image === '.' || $image === '..') {
+					continue;
+				}
 
-			if (\count($filtered) === 0) {
+				$code = ($underscorePos = Strings::indexOf($image, '_')) ? Strings::substring($image, 0, $underscorePos) : Strings::substring($image, 0, Strings::indexOf($image, '.'));
+
+				if (!$code || !isset($products[$code])) {
+					continue;
+				}
+
+				if ($values['deleteCurrentImages']) {
+					$product = $this->productRepository->one(['code' => $code], true);
+					$productImages = $product->photos->toArray();
+
+					foreach ($productImages as $productImage) {
+						FileSystem::delete($originalPath . '/' . $productImage->fileName);
+						FileSystem::delete($thumbPath . '/' . $productImage->fileName);
+						FileSystem::delete($detailPath . '/' . $productImage->fileName);
+					}
+
+					$product->photos->delete();
+					$product->update(['imageFileName' => null]);
+				}
+
+				$photosToImport[$code][] = $image;
+			}
+
+			if (\count($photosToImport) === 0) {
 				$this->flashMessage('Nenalezen žádný odpovídající obrázek!', 'warning');
 				$this->redirect('this');
 			}
@@ -1067,71 +1093,58 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 			$newProductsMainImages = [];
 
 			try {
-				foreach ($filtered as $fileName) {
-					$code = \explode('.', $fileName)[0];
-					$imageFileName = Strings::trim($fileName);
+				foreach ($photosToImport as $productCode => $photos) {
+					$first = true;
 
-					if (!isset($products[$code])) {
-						continue;
-					}
-
-					$newPhotos[] = [
-						'product' => $products[$code],
-						'fileName' => $imageFileName,
-						'priority' => 999,
-					];
-
-					if ($values['asMain']) {
-						$newProductsMainImages[] = ['uuid' => $products[$code], 'imageFileName' => $imageFileName];
-					}
-
-					$currentExistingImages = \array_filter($existingImages, function ($value) use ($code) {
-						return \str_contains($value, $code);
-					});
-
-					if (\count($currentExistingImages) > 0) {
-						$existingImagePath = Strings::trim(Arrays::first($currentExistingImages));
-						$existingTimestamp = \filemtime($thumbPath . '/' . $existingImagePath);
-						$imagesTimestamp = \filemtime($imagesPath . '/' . $imageFileName);
-
-						if ($existingTimestamp >= $imagesTimestamp) {
+					foreach ($photos as $photoFileName) {
+						if (!isset($products[$productCode])) {
 							continue;
 						}
 
-						try {
-							FileSystem::delete($originalPath . '/' . $existingImagePath);
-						} catch (\Throwable $e) {
-							Debugger::log($e, ILogger::WARNING);
-						}
+						$imageD = Image::fromFile($imagesPath . '/' . $photoFileName);
+						$imageT = Image::fromFile($imagesPath . '/' . $photoFileName);
+						$imageD->resize(600, null);
+						$imageT->resize(300, null);
+
+						FileSystem::copy($imagesPath . '/' . $photoFileName, $originalPath . '/' . $photoFileName);
 
 						try {
-							FileSystem::delete($detailPath . '/' . $existingImagePath);
-						} catch (\Throwable $e) {
-							Debugger::log($e, ILogger::WARNING);
+							$imageD->save($detailPath . '/' . $photoFileName);
+							$imageT->save($thumbPath . '/' . $photoFileName);
+						} catch (\Exception $e) {
 						}
 
-						try {
-							FileSystem::delete($thumbPath . '/' . $existingImagePath);
-						} catch (\Throwable $e) {
-							Debugger::log($e, ILogger::WARNING);
+						$existingPhoto = $this->photoRepository->many()->where('this.fk_product', $products[$productCode])->where('this.fileName', $photoFileName)->first();
+
+						if (!$existingPhoto) {
+							$newPhotoArray = [
+								'product' => $products[$productCode],
+								'fileName' => $photoFileName,
+								'priority' => 999,
+							];
+
+							$fileParts = \pathinfo($photoFileName);
+
+							$name = $fileParts['filename'];
+
+							foreach (\array_keys($mutations) as $mutation) {
+								$newPhotoArray['label'][$mutation] = $name;
+							}
+
+							$newPhotos[] = $newPhotoArray;
 						}
-					}
 
-					$imageD = Image::fromFile($imagesPath . '/' . $imageFileName);
-					$imageT = Image::fromFile($imagesPath . '/' . $imageFileName);
-					$imageD->resize(600, null);
-					$imageT->resize(300, null);
+						if (!$values['asMain'] || !$first) {
+							continue;
+						}
 
-					FileSystem::copy($imagesPath . '/' . $imageFileName, $originalPath . '/' . $imageFileName);
+						$first = false;
 
-					try {
-						$imageD->save($detailPath . '/' . $imageFileName);
-						$imageT->save($thumbPath . '/' . $imageFileName);
-					} catch (\Exception $e) {
+						$newProductsMainImages[] = ['uuid' => $products[$productCode], 'imageFileName' => $photoFileName];
 					}
 				}
 
-				$this->photoRepository->createMany($newPhotos);
+				$this->photoRepository->syncMany($newPhotos, []);
 
 				if (\count($newProductsMainImages) > 0) {
 					$this->productRepository->syncMany($newProductsMainImages);
@@ -1141,6 +1154,7 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 
 				$connection->getLink()->commit();
 			} catch (\Throwable $e) {
+				Debugger::dump($e);
 				$this->flashMessage('Při zpracovávání došlo k chybě!', 'error');
 
 				$connection->getLink()->rollBack();
@@ -1155,6 +1169,7 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 	public function createComponentImportCsvForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
+		$mutations = $this->connection->getAvailableMutations();
 
 		$lastUpdate = null;
 		$path = \dirname(__DIR__, 5) . '/userfiles/products.csv';
@@ -1166,15 +1181,55 @@ Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky. Název 
 		$form->addGroup('CSV soubor');
 		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? Carbon::createFromTimestamp($lastUpdate)->format('d.m.Y G:i') : null);
 
+		$importColumns = $this::CONFIGURATION['importColumns'];
 		$allowedColumns = '';
 
-		foreach ($this::CONFIGURATION['importColumns'] as $key => $value) {
+		$productImportColumns = [
+			'name' => 'Název',
+		];
+
+		foreach ($productImportColumns as $key => $value) {
+			foreach ($mutations as $mutation) {
+				$allowedColumns .= "$key, $value$mutation<br>";
+			}
+
+			unset($importColumns[$key]);
+		}
+
+		$productContentColumns = [
+			'productContent_perex' => 'Perex',
+			'productContent_content' => 'Obsah',
+		];
+
+		foreach ($productContentColumns as $key => $value) {
+			foreach ($mutations as $mutation) {
+				$allowedColumns .= "$key, $value$mutation<br>";
+			}
+
+			unset($importColumns[\explode('_', $key)[1]]);
+		}
+
+		$pagesImportColumns = [
+			'title' => 'Titulek',
+			'description' => 'Popis',
+			'url' => 'URL',
+		];
+
+		foreach ($pagesImportColumns as $key => $value) {
+			foreach ($mutations as $mutation) {
+				$pagesImportColumns[$key . $mutation] = $value . $mutation;
+			}
+
+			unset($pagesImportColumns[$key]);
+		}
+
+		foreach (\array_merge($importColumns, $pagesImportColumns) as $key => $value) {
 			$allowedColumns .= "$key, $value<br>";
 		}
 
 		$filePicker = $form->addFilePicker('file', 'Soubor (CSV)')
 			->setRequired()
-			->addRule($form::MIME_TYPE, 'Neplatný soubor!', 'text/csv');
+			->addRule($form::MimeType, 'Neplatný soubor!', 'text/csv');
 
 		if (isset($this::CONFIGURATION['importExampleFile']) && $this::CONFIGURATION['importExampleFile']) {
 			$filePicker->setHtmlAttribute('data-info', 'Vzorový soubor: <a href="' . $this->link('downloadImportExampleFile!') . '">' . $this::CONFIGURATION['importExampleFile'] . '</a><br
@@ -1218,6 +1273,7 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 		$form->addSubmit('submit', 'Importovat');
 
 		$form->onValidate[] = function (AdminForm $form) use ($filePicker): void {
+			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
 
 			/** @var \Nette\Http\FileUpload $file */
@@ -1231,6 +1287,7 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 		};
 
 		$form->onSuccess[] = function (AdminForm $form): void {
+			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
 
 			/** @var \Nette\Http\FileUpload $file */
@@ -1238,7 +1295,11 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 
 			$dir = \dirname(__DIR__, 5);
 			$productsFileName = $dir . '/userfiles/products.csv';
-			$tempFileName = \tempnam($this->container->parameters['tempDir'], 'products');
+			$tempFileName = \tempnam($this->container->getParameter('tempDir'), 'products');
+
+			if (!$tempFileName) {
+				throw new \Exception('Cant create temp file');
+			}
 
 			$file->move($tempFileName);
 
@@ -1259,20 +1320,35 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 				), ILogger::DEBUG);
 
 				FileSystem::copy($tempFileName, $productsFileName);
-				FileSystem::delete($tempFileName);
 
 				$connection->getLink()->commit();
-				$this->flashMessage('Provedeno', 'success');
+				$this->flashMessage('Import produktů úspěšný', 'success');
 			} catch (\Exception $e) {
-				try {
-					FileSystem::delete($tempFileName);
-				} catch (\Exception $e) {
-					Debugger::log($e, ILogger::WARNING);
-				}
-
 				$connection->getLink()->rollBack();
 
-				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Import dat se nezdařil!', 'error');
+				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Import produktů se nezdařil!', 'error');
+			}
+
+			$connection->getLink()->beginTransaction();
+
+			try {
+				Debugger::log($this->productImporter->importPagesCsv(
+					$tempFileName,
+					$values['delimiter'],
+				), ILogger::DEBUG);
+
+				$connection->getLink()->commit();
+				$this->flashMessage('Import stránek produktů úspěšný', 'success');
+			} catch (\Exception $e) {
+				$connection->getLink()->rollBack();
+
+				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Import stránek produktů se nezdařil!', 'error');
+			}
+
+			try {
+				FileSystem::delete($tempFileName);
+			} catch (\Exception $e) {
+				Debugger::log($e, ILogger::WARNING);
 			}
 
 			$this->redirect('this');
