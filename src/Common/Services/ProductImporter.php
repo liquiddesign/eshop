@@ -784,6 +784,10 @@ class ProductImporter
 				$value = Strings::length($value) > 0 ? $value : null;
 
 				if ($mutation) {
+					if ($column === 'url' && \str_starts_with($value, '/')) {
+						$value = \ltrim($value, '/');
+					}
+
 					$newValues[$column][$mutation] = $value;
 				} else {
 					$newValues[$column] = $value;
