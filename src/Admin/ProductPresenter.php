@@ -85,7 +85,7 @@ class ProductPresenter extends BackendPresenter
 			'categories' => 'Kategorie',
 			'primaryCategories' => 'Primární kategorie',
 			'adminUrl' => 'Admin URL',
-			'frontUrl' => 'Front URL',
+			'frontUrl' => 'Front URL ',
 			'mergedProducts' => 'Sloučené produkty',
 			'masterProduct' => 'Nadřazený sloučený produkt',
 			'recyclingFee' => 'Recyklační poplatek',
@@ -1217,7 +1217,7 @@ Můžete nahrát více obrázků pro jeden produkt. Např.: "ABC_obrazek_1.jpg",
 
 		foreach ($pagesImportColumns as $key => $value) {
 			foreach ($mutations as $mutation) {
-				$pagesImportColumns[$key . $mutation] = $value . $mutation;
+				$pagesImportColumns[$key . $mutation] = $value . $mutation. ($key === 'url' ? ' (URL bez domény)' : '');
 			}
 
 			unset($pagesImportColumns[$key]);
