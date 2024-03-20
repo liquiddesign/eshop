@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.156](https://github.com/liquiddesign/eshop/compare/v2.1.155...v2.1.156) (2024-03-20)
+
+### Features
+
+
+##### Admin- Product-CSV
+
+* Strip URL with starting slash ([7c7cf9](https://github.com/liquiddesign/eshop/commit/7c7cf9055273085254b787d724754073036ee1e2))
+* Label ([0aa52d](https://github.com/liquiddesign/eshop/commit/0aa52d74c249785469db0ce34c0c848b7284f549), [f29463](https://github.com/liquiddesign/eshop/commit/f29463a8331db9bb3126a7630dce3c5ec52d4b4b))
+
+
+---
+
 ## [2.1.155](https://github.com/liquiddesign/eshop/compare/v2.1.154...v2.1.155) (2024-03-20)
 
 ### Features
