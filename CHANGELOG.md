@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.155](https://github.com/liquiddesign/eshop/compare/v2.1.154...v2.1.155) (2024-03-20)
+
+### Features
+
+
+##### Admin- Product-CSV
+
+* New import/export of mutations ([f8a089](https://github.com/liquiddesign/eshop/commit/f8a089c458a1b7c89a3151a82faf394a78fd1ad1))
+
+
+---
+
 ## [2.1.154](https://github.com/liquiddesign/eshop/compare/v2.1.153...v2.1.154) (2024-03-19)
 
 ### ⚠ BREAKING CHANGES
