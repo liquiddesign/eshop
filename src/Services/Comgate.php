@@ -39,6 +39,27 @@ class Comgate implements IPaymentIntegration
 		$this->contributteComgate = $container->getByName('comgate.comgate');
 	}
 
+	/**
+	 * @return array{withoutVat: float, withVat: float}
+	 */
+	public function calculateTotalOrderPrices(Order $order): array
+	{
+		$totalPrice = 0;
+		$totalPriceWithVat = 0;
+
+		/** @var \Eshop\DB\CartItem $item */
+		foreach ($order->purchase->getItems() as $item) {
+			$price = \round($item->getPriceSum(), 2);
+			$totalPrice += $price;
+			$totalPriceWithVat += $price * (100 + ($item->vatPct ?: 21)) / 100;
+		}
+
+		return [
+			'withVat' => $totalPriceWithVat,
+			'withoutVat' => $totalPrice,
+		];
+	}
+
 	public function processPayment(Order $order): void
 	{
 		/** @var \Eshop\DB\Order $order */
@@ -67,8 +88,8 @@ class Comgate implements IPaymentIntegration
 		if ($response['code'] === '0') {
 			$this->paymentResultRepository->saveTransaction(
 				$response['transId'],
-				$order->getTotalPriceVat(),
-				$order->getPayment()->currency->code,
+				$this->calculateTotalOrderPrices($order)['withVat'],
+				$order->getPayment()?->currency->code ?: 'CZK',
 				'PENDING',
 				'comgate',
 				$order,
