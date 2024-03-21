@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.158](https://github.com/liquiddesign/eshop/compare/v2.1.157...v2.1.158) (2024-03-21)
+
+### Features
+
+
+##### Comgate
+
+* New callback to custom price calculation ([8a525c](https://github.com/liquiddesign/eshop/commit/8a525c3f4356aa7d8419677d04d2f26a734354a9))
+
+##### Feeds
+
+* Ceil all prices ([eb2a06](https://github.com/liquiddesign/eshop/commit/eb2a068bb96bb0e2048d73d0f3e25e1011802e99))
+
+
+---
+
 ## [2.1.157](https://github.com/liquiddesign/eshop/compare/v2.1.156...v2.1.157) (2024-03-21)
 
 ### ⚠ BREAKING CHANGES
