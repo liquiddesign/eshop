@@ -26,6 +26,11 @@ use Web\DB\SettingRepository;
 
 class Comgate implements IPaymentIntegration
 {
+	/**
+	 * @var (callable(\Eshop\DB\Order $order): float)|null
+	 */
+	public $onGetOrderTotalPriceVat = null;
+
 	private \Contributte\Comgate\Comgate $contributteComgate;
 
 	public function __construct(
@@ -209,6 +214,6 @@ class Comgate implements IPaymentIntegration
 
 	protected function getOrderTotalPriceVat(Order $order): float
 	{
-		return $order->getTotalPriceVat();
+		return $this->onGetOrderTotalPriceVat ? \call_user_func($this->onGetOrderTotalPriceVat, $order) : $order->getTotalPriceVat();
 	}
 }
