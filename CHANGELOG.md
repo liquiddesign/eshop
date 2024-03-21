@@ -4,6 +4,25 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.159](https://github.com/liquiddesign/eshop/compare/v2.1.158...v2.1.159) (2024-03-21)
+
+### Features
+
+
+##### Products Cache
+
+* Allow nullable producer in collection filter ([cf0e25](https://github.com/liquiddesign/eshop/commit/cf0e25e92a9a2774cfd90ce99fbf9b020c1ff84e))
+
+### Bug Fixes
+
+
+##### Products Cache
+
+* Filter price >= 0 ([d52e98](https://github.com/liquiddesign/eshop/commit/d52e98b183f4a4d5b8a1e28affe90d1a96df3ebe))
+
+
+---
+
 ## [2.1.158](https://github.com/liquiddesign/eshop/compare/v2.1.157...v2.1.158) (2024-03-21)
 
 ### Features
