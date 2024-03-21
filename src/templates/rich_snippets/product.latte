@@ -16,7 +16,7 @@
         "offers": {
             "@type": "Offer",
             "availability": {$product->inStock() ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"},
-            "price": {(string) $product->getPriceVat()},
+            "price": {(string) \ceil($product->getPriceVat())},
             "priceCurrency": "CZK"
         },
         {if $rating = $product->getReviewsRating()}

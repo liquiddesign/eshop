@@ -43,8 +43,8 @@
             {/foreach}
             <g:condition>new</g:condition>
             <g:availability>{if $product->inStock()}in stock{else}out of stock{/if}</g:availability>
-            <g:price n:if="$mainPrice">{$mainPrice|round:2} {$pricelists[$product->pricelist]->currency->code}</g:price>
-            <g:sale_price n:if="$discountPrice && $mainPrice && $discountPrice < $mainPrice">{$discountPrice} {$pricelists[$product->pricelist]->currency->code}</g:sale_price>
+            <g:price n:if="$mainPrice">{$mainPrice|ceil} {$pricelists[$product->pricelist]->currency->code}</g:price>
+            <g:sale_price n:if="$discountPrice && $mainPrice && $discountPrice < $mainPrice">{$discountPrice|ceil} {$pricelists[$product->pricelist]->currency->code}</g:sale_price>
             <g:brand>{$productsFrontendData[$product->getPK()]['producer'] ?? null}</g:brand>
             <g:gtin n:if="$product->ean">{$product->ean}</g:gtin>
             <g:mpn n:if="$product->mpn">{$product->mpn}</g:mpn>
@@ -65,7 +65,7 @@
                 <g:shipping>
                     <g:country>CZ</g:country>
                     <g:service>{$deliveryType->name}</g:service>
-                    <g:price>{$deliveryType->getValue($priceType ? 'priceVat' : 'price')} CZK</g:price>
+                    <g:price>{$deliveryType->getValue($priceType ? 'priceVat' : 'price')|ceil} CZK</g:price>
                 </g:shipping>
             {/foreach}
 
