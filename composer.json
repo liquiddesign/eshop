@@ -67,7 +67,7 @@
 		"check-code": ["@phpcs", "@phpstan", "@lattelint"],
 		"phpstan-clear-cache": "phpstan clear-result-cache",
 		"phpstan": "phpstan analyse --memory-limit 6G -c phpstan.neon",
-		"phpcs": "phpcs --standard=ruleset.xml --ignore=assets --cache src",
+		"phpcs": "phpcs --standard=ruleset.xml --ignore=assets src",
 		"phpcsfix": "phpcbf --standard=ruleset.xml --ignore=assets --cache src",
 		"lattelint": "php lattelint.php",
 		"tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php"
