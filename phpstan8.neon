@@ -6,6 +6,7 @@ parameters:
 	paths:
 		- src/Services/LostPasswordService.php
 		- src/Services/Order
+		- src/Services/Comgate.php
 		- src/Front/Web/SandboxPresenter.php
 	excludePaths:
 		- src/assets/*

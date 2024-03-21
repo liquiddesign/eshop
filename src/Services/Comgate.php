@@ -36,28 +36,10 @@ class Comgate implements IPaymentIntegration
 		public PaymentTypeRepository $paymentTypeRepository,
 		Container $container
 	) {
-		$this->contributteComgate = $container->getByName('comgate.comgate');
-	}
+		/** @var \Contributte\Comgate\Comgate $contributteComgate */
+		$contributteComgate = $container->getByName('comgate.comgate');
 
-	/**
-	 * @return array{withoutVat: float, withVat: float}
-	 */
-	public function calculateTotalOrderPrices(Order $order): array
-	{
-		$totalPrice = 0;
-		$totalPriceWithVat = 0;
-
-		/** @var \Eshop\DB\CartItem $item */
-		foreach ($order->purchase->getItems() as $item) {
-			$price = \round($item->getPriceSum(), 2);
-			$totalPrice += $price;
-			$totalPriceWithVat += $price * (100 + ($item->vatPct ?: 21)) / 100;
-		}
-
-		return [
-			'withVat' => $totalPriceWithVat,
-			'withoutVat' => $totalPrice,
-		];
+		$this->contributteComgate = $contributteComgate;
 	}
 
 	public function processPayment(Order $order): void
@@ -88,7 +70,7 @@ class Comgate implements IPaymentIntegration
 		if ($response['code'] === '0') {
 			$this->paymentResultRepository->saveTransaction(
 				$response['transId'],
-				$this->calculateTotalOrderPrices($order)['withVat'],
+				$this->getOrderTotalPriceVat($order),
 				$order->getPayment()?->currency->code ?: 'CZK',
 				'PENDING',
 				'comgate',
@@ -110,9 +92,14 @@ class Comgate implements IPaymentIntegration
 	 */
 	public function createPayment(Order $order, string $method = PaymentMethodCode::ALL): array
 	{
-		$price = $order->getTotalPriceVat();
-		$currency = $order->getPayment()->currency->code;
-		$customer = $order->purchase->email;
+		$price = $this->getOrderTotalPriceVat($order);
+		$currency = $order->getPayment()?->currency->code;
+
+		if (!$currency) {
+			throw new \Exception("Comgate: Order '$order->code' has no payment.");
+		}
+
+		$customer = (string) $order->purchase->email;
 		$payment = Payment::of(
 			Money::of($price, $currency, new \Brick\Money\Context\CustomContext(2), RoundingMode::HALF_EVEN),
 			$order->code,
@@ -138,6 +125,10 @@ class Comgate implements IPaymentIntegration
 		return $res->getData();
 	}
 
+	/**
+	 * @param \Eshop\DB\PaymentResult $paymentResult
+	 * @param array<mixed> $result
+	 */
 	public function getUrl(PaymentResult $paymentResult, array $result): string
 	{
 		unset($result);
@@ -203,10 +194,10 @@ class Comgate implements IPaymentIntegration
 		]);
 
 		if ($data['status'] === 'PAID') {
-			$paymentResult = $paymentResult->order->getPayment();
+			$paymentResult = $paymentResult->order?->getPayment();
 
 			if ($paymentResult) {
-				$this->orderRepository->changePayment($paymentResult->getPK(), true, true);
+				$this->orderRepository->changePayment((string) $paymentResult->getPK(), true, true);
 			}
 		}
 
@@ -214,5 +205,10 @@ class Comgate implements IPaymentIntegration
 			'code' => 0,
 			'message' => 'OK',
 		];
+	}
+
+	protected function getOrderTotalPriceVat(Order $order): float
+	{
+		return $order->getTotalPriceVat();
 	}
 }
