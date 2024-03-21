@@ -268,7 +268,7 @@ class ProductsCacheGetterService implements AutoWireService
 		}
 
 		$productsCollection->setGroupBy(['this.product']);
-//		$productsCollection->where('visibilityPrice.price > 0');
+		$productsCollection->where('visibilityPrice.price >= 0');
 
 		$productsCollection->setSelect([
 			'product' => 'this.product',
