@@ -729,14 +729,10 @@ class ProductImporter
 				$codePrefix = Strings::trim('00' . $codeFromRecord);
 
 				$code = $codeBase;
-
-				unset($parsedHeader[$parsedHeaderCodeKey]);
 			}
 
 			if ($parsedHeaderEanKey && $eanFromRecord) {
 				$ean = Strings::trim($eanFromRecord);
-
-				unset($parsedHeader[$parsedHeaderEanKey]);
 			}
 
 			// Fast local search of product based on criteria
