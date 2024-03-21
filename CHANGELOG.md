@@ -4,6 +4,29 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.157](https://github.com/liquiddesign/eshop/compare/v2.1.156...v2.1.157) (2024-03-21)
+
+### ⚠ BREAKING CHANGES
+
+
+##### Comgate
+
+* Change calculation of total price with vat to truly reflect price ([a55f3c](https://github.com/liquiddesign/eshop/commit/a55f3c0a76b1459444d41645df4f3b10e8a9feae))
+
+### Features
+
+
+##### Comgate
+
+* Add ability to extend total price calculation ([c6b613](https://github.com/liquiddesign/eshop/commit/c6b613b973374cd5667f8ddc1ba2eb89e89da206))
+
+### Bug Fixes
+
+* Product csv import ([eeffb4](https://github.com/liquiddesign/eshop/commit/eeffb4280f82615c6ba64f2d332a3b7ffc35e3ad))
+
+
+---
+
 ## [2.1.156](https://github.com/liquiddesign/eshop/compare/v2.1.155...v2.1.156) (2024-03-20)
 
 ### Features
