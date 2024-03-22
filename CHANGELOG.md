@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.161](https://github.com/liquiddesign/eshop/compare/v2.1.160...v2.1.161) (2024-03-22)
+
+### Bug Fixes
+
+* Product list category breadcrumbs ([19face](https://github.com/liquiddesign/eshop/commit/19face3b862dc9a88ff6e758441972ab76b06ae1))
+
+
+---
+
 ## [2.1.160](https://github.com/liquiddesign/eshop/compare/v2.1.159...v2.1.160) (2024-03-22)
 
 ### Code Refactoring
