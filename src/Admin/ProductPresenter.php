@@ -47,6 +47,7 @@ use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\DI\Attributes\Inject;
 use Nette\Forms\Controls\TextInput;
+use Nette\InvalidStateException;
 use Nette\IOException;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
@@ -112,14 +113,10 @@ class ProductPresenter extends BackendPresenter
 		],
 		'importAttributes' => [],
 		'importExampleFile' => null,
+		'ftpImportImagesDir' => 'ftp_import_images',
 		'buyCount' => false,
 		'attributeTab' => false,
 		'loyaltyProgram' => false,
-		'importImagesFromStorage' => [
-			'server' => '',
-			'login' => '',
-			'password' => '',
-		],
 		'detailSuppliersTab' => false,
 		'extendedName' => false,
 		'karsa' => false,
@@ -1007,22 +1004,31 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('importCsvForm')];
-
-		if (!isset($this::CONFIGURATION['importImagesFromStorage']['server']) || !$this::CONFIGURATION['importImagesFromStorage']['server']) {
+		
+		try {
+			$importImagesFromStorage = $this->container->getParameter('ftp_import_images');
+		} catch (InvalidStateException) {
 			return;
 		}
-
+		
+		if ($importImagesFromStorage && !isset($importImagesFromStorage['host']) || !$importImagesFromStorage['host']) {
+			return;
+		}
+		
 		$this->template->displayControls[] = $this->getComponent('importImagesForm');
 	}
 
 	public function createComponentImportImagesForm(): AdminForm
 	{
+		$importImagesFromStorage = $this->container->getParameter('ftp_import_images');
+		
 		$form = $this->formFactory->create(false, false, false, false, false);
-
-		$form->addGroup('Obrázky z úložiště');
-		$form->addText('server', 'FTP server')->setDisabled()->setDefaultValue($this::CONFIGURATION['importImagesFromStorage']['server']);
-		$form->addText('username', 'Uživatelské jméno')->setDisabled()->setDefaultValue($this::CONFIGURATION['importImagesFromStorage']['login']);
-		$form->addText('password', 'Heslo')->setDisabled()->setDefaultValue($this::CONFIGURATION['importImagesFromStorage']['password']);
+		
+		$form->addGroup('Obrázky z FTP úložiště');
+		$form->addText('protocol', 'Protokol')->setDisabled()->setDefaultValue('FTP');
+		$form->addText('server', 'Server (Host)')->setDisabled()->setDefaultValue($importImagesFromStorage['host'] ?? '');
+		$form->addText('username', 'Uživatelské jméno')->setDisabled()->setDefaultValue($importImagesFromStorage['user'] ?? '');
+		$form->addText('password', 'Heslo')->setDisabled()->setDefaultValue($importImagesFromStorage['password'] ?? '');
 		$form->addCheckbox('deleteCurrentImages', 'Vymazat aktuální obrázky');
 		$form->addCheckbox('asMain', 'Nastavit jako hlavní obrázek')->setHtmlAttribute('data-info', 'Pro práci s FTP doporučejeme klient WinSCP dostupný zde: 
 <a target="_blank" href="https://winscp.net/eng/download.php">https://winscp.net/eng/download.php</a><br>
@@ -1038,7 +1044,7 @@ Můžete nahrát více obrázků pro jeden produkt. Např.: "ABC_obrazek_1.jpg",
 			$connection = $this->productRepository->getConnection();
 			$mutations = $this->productRepository->getConnection()->getAvailableMutations();
 
-			$imagesPath = \dirname(__DIR__, 5) . '/userfiles/images';
+			$imagesPath = \dirname(__DIR__, 5) . '/userfiles/' . $this::CONFIGURATION['ftpImportImagesDir'];
 			$originalPath = \dirname(__DIR__, 5) . '/userfiles/' . Product::GALLERY_DIR . '/origin';
 			$thumbPath = \dirname(__DIR__, 5) . '/userfiles/' . Product::GALLERY_DIR . '/thumb';
 			$detailPath = \dirname(__DIR__, 5) . '/userfiles/' . Product::GALLERY_DIR . '/detail';
