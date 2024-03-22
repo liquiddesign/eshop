@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.160](https://github.com/liquiddesign/eshop/compare/v2.1.159...v2.1.160) (2024-03-22)
+
+### Code Refactoring
+
+* Ftp images import ([f0105b](https://github.com/liquiddesign/eshop/commit/f0105bf25b26207e5b98aed69eef37af0d3a86c6))
+
+
+---
+
 ## [2.1.159](https://github.com/liquiddesign/eshop/compare/v2.1.158...v2.1.159) (2024-03-21)
 
 ### Features
