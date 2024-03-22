@@ -201,12 +201,13 @@ abstract class ProductPresenter extends FrontendPresenter
 			$this->template->content = $this->category->content;
 			$this->template->imageDir = Category::IMAGE_DIR;
 			$this->template->imageFileName = $this->category->imageFileName;
-
+			
+			/** @var \Web\Controls\Breadcrumb $breadcrumb */
+			$breadcrumb = $this['breadcrumb'];
+			
+			/** @var \Eshop\DB\Category $branch */
 			foreach ($this->category->getFamilyTree() as $branchId => $branch) {
-				/** @var \Eshop\DB\Category $branch */
-				$this->template->breadcrumb[] = (object) [
-					'name' => $branch->name,
-					'link' => $branchId !== $this->category->getPK() ? $this->link('list', ['category' => $branchId]) : null];
+				$breadcrumb->addItem($branch->name, $branchId !== $this->category->getPK() ? $this->link('list', ['category' => $branchId]) : null);
 			}
 		}
 		
