@@ -42,6 +42,7 @@ class CategoryPresenter extends BackendPresenter
 		'producerPagesType' => self::PRODUCER_CATEGORY,
 		'dynamicCategories' => false,
 		'targito' => false,
+		'filterColumns' => ['Kód' => 'this.code', 'Název' => 'this.name_cs'],
 	];
 
 	protected const SHOW_DEFAULT_VIEW_TYPE = false;
@@ -196,8 +197,8 @@ class CategoryPresenter extends BackendPresenter
 		$submit->onClick[] = function ($button) use ($grid): void {
 			$grid->getPresenter()->redirect('exportCategoryTree', [$grid->getSelectedIds()]);
 		};
-
-		$grid->addFilterTextInput('search', ['code', 'name_cs'], null, 'Kód, Název');
+		
+		$grid->addFilterTextInput('search', $this::CONFIGURATION['filterColumns'], null, \implode(', ', \array_keys($this::CONFIGURATION['filterColumns'])));
 		$grid->addFilterButtons(['default', ['categoryGrid-order' => 'path-ASC']]);
 
 		$grid->onDelete[] = function (Category $object): void {
