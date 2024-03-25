@@ -4,6 +4,25 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.164](https://github.com/liquiddesign/eshop/compare/v2.1.163...v2.1.164) (2024-03-25)
+
+### Bug Fixes
+
+
+##### Product CSV import
+
+* Possible duplicate product content ([17e8db](https://github.com/liquiddesign/eshop/commit/17e8db114078370ddf70ade4d1c97706a65bb95d))
+
+### Code Refactoring
+
+
+##### Category grid
+
+* Filter columns by configuration ([a545e6](https://github.com/liquiddesign/eshop/commit/a545e68b2f33deea7e16bbf25cd3fcdf2aa0cfe4))
+
+
+---
+
 ## [2.1.163](https://github.com/liquiddesign/eshop/compare/v2.1.162...v2.1.163) (2024-03-25)
 
 ### Bug Fixes
