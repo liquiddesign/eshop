@@ -341,28 +341,6 @@ class ProductGridFactory
 					}
 				}
 
-				foreach ($relations as $relationName => $categories) {
-					$name = \explode('_', $relationName);
-
-					if (\count($name) !== 2 || $name[0] !== 'categories') {
-						continue;
-					}
-
-					$this->connection->rows(['nxn' => 'eshop_product_nxn_eshop_category'])
-						->join(['category' => 'eshop_category'], 'nxn.fk_category = category.uuid')
-						->where('category.fk_type', $name[1])
-						->where('nxn.fk_product', $id)
-						->delete();
-
-					unset($relations[$relationName]);
-
-					if (\count($categories) === 0) {
-						continue;
-					}
-
-					$object->categories->relate($categories);
-				}
-
 				$updatePrimaryCategoriesTypes = \array_filter($values['keep'], function ($value, $key) use (&$values): bool {
 					$true = Strings::startsWith($key, 'primaryCategories_primaryCategory_') && $value === false;
 
