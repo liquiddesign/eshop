@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.162](https://github.com/liquiddesign/eshop/compare/v2.1.161...v2.1.162) (2024-03-25)
+
+### Bug Fixes
+
+
+##### Products Cache
+
+* Order PriceLists and VisibilityLists correctly by secondary uuid ([44aa7b](https://github.com/liquiddesign/eshop/commit/44aa7b81a841a2f89596a4360b9160796d90e42f))
+
+
+---
+
 ## [2.1.161](https://github.com/liquiddesign/eshop/compare/v2.1.160...v2.1.161) (2024-03-22)
 
 ### Bug Fixes
