@@ -786,16 +786,22 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		}
 
 		unset($values['prices']);
-
+		
 		if (!$this->shopsConfig->getAvailableShops()) {
 			$conditions = [
 				'product' => $product->getPK(),
 			];
-
+			
 			$conditions['perex'] = $content['perex'];
 			$conditions['content'] = $content['content'];
-
-			$this->productContentRepository->syncOne($conditions);
+			
+			$productContent = $this->productContentRepository->many()->where('fk_product', $product->getPK())->first();
+			
+			if ($productContent) {
+				$productContent->update($conditions);
+			} else {
+				$this->productContentRepository->createOne($conditions);
+			}
 		}
 
 		foreach ($this->shopsConfig->getAvailableShops() as $shop) {
