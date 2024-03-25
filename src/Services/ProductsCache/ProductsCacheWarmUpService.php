@@ -243,8 +243,8 @@ class ProductsCacheWarmUpService implements AutoWireService
 		}
 
 		foreach ($customerGroupsQuery as $customerGroup) {
-			$visibilityLists = $customerGroup->getDefaultVisibilityLists()->where('hidden', false)->setSelect(['id'])->setOrderBy(['priority'])->toArrayOf('id', toArrayValues: true);
-			$priceLists = $customerGroup->getDefaultPricelists()->where('isActive', true)->setSelect(['id'])->setOrderBy(['priority'])->toArrayOf('id', toArrayValues: true);
+			$visibilityLists = $customerGroup->getDefaultVisibilityLists()->where('hidden', false)->setSelect(['id'])->setOrderBy(['priority', 'uuid'])->toArrayOf('id', toArrayValues: true);
+			$priceLists = $customerGroup->getDefaultPricelists()->where('isActive', true)->setSelect(['id'])->setOrderBy(['priority', 'uuid'])->toArrayOf('id', toArrayValues: true);
 
 			foreach ($visibilityLists as $visibilityList) {
 				$allVisibilityLists[$visibilityList] = true;
@@ -270,9 +270,9 @@ class ProductsCacheWarmUpService implements AutoWireService
 				->join(['visibilityList' => 'eshop_visibilitylist'], 'customerXvisibilityList.fk_visibilitylist = visibilityList.uuid')
 				->setSelect([
 					'visibilityPriceIndex' => 'DISTINCT(CONCAT(
-                    GROUP_CONCAT(DISTINCT visibilityList.id ORDER BY visibilityList.priority),
+                    GROUP_CONCAT(DISTINCT visibilityList.id ORDER BY visibilityList.priority, visibilityList.uuid),
                     "-",
-                    GROUP_CONCAT(DISTINCT priceList.id ORDER BY priceList.priority)
+                    GROUP_CONCAT(DISTINCT priceList.id ORDER BY priceList.priority, priceList.uuid)
                 ))',
 				])
 				->setGroupBy(['this.uuid']);
