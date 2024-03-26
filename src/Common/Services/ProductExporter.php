@@ -232,62 +232,11 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 		?callable $getSupplierCodeCallback = null,
 	): void {
 		$this->connection->setDebug(false);
-		$mutations = $this->connection->getAvailableMutations();
 
 		$writer->setDelimiter($delimiter);
 		$writer->setFlushThreshold(100);
 
 		EncloseField::addTo($writer, "\t\22");
-
-		$productColumns = [
-			'name' => 'Název',
-		];
-
-		foreach ($productColumns as $key => $value) {
-			if (!isset($columns[$key])) {
-				continue;
-			}
-
-			foreach ($mutations as $mutation) {
-				$header[] = $value . $mutation;
-				$columns[$key . $mutation] = $value . $mutation;
-			}
-
-			unset($columns[$key], $header[\array_search($value, $header)]);
-		}
-
-		$productContentColumns = [
-			'productContent_perex' => 'Popisek',
-			'productContent_content' => 'Obsah',
-		];
-
-		foreach ($productContentColumns as $key => $value) {
-			if (!isset($columns[\explode('_', $key)[1]])) {
-				continue;
-			}
-
-			foreach ($mutations as $mutation) {
-				$header[] = $value . $mutation;
-				$columns[$key . $mutation] = $value . $mutation;
-			}
-
-			unset($columns[\explode('_', $key)[1]], $header[\array_search($value, $header)]);
-		}
-
-		$pageColumns = [
-			'exportPage_title' => 'Titulek',
-			'exportPage_description' => 'Popis',
-			'exportPage_url' => 'URL',
-		];
-
-		foreach ($pageColumns as $key => $value) {
-			foreach ($mutations as $mutation) {
-				$header[] = $value . $mutation;
-				$columns[$key . $mutation] = $value . $mutation;
-			}
-
-			unset($columns[$key]);
-		}
 
 		$completeHeaders = \array_merge($header, $supplierCodes);
 
