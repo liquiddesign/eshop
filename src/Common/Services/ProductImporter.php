@@ -473,18 +473,20 @@ class ProductImporter
 				}
 			}
 			
-			$productContent = $this->productContentRepository->many()->where('fk_product', $relatedToSync['content']['product']);
-			
-			if ($relatedToSync['content']['shop']) {
-				$productContent->where('fk_shop', $relatedToSync['content']['shop']);
-			}
-			
-			$productContent = $productContent->first();
-			
-			if ($productContent) {
-				$productContent->update($relatedToSync['content']);
-			} else {
-				$this->productContentRepository->createOne($relatedToSync['content']);
+			if ($relatedToSync['content']) {
+				$productContent = $this->productContentRepository->many()->where('fk_product', $relatedToSync['content']['product']);
+				
+				if ($relatedToSync['content']['shop']) {
+					$productContent->where('fk_shop', $relatedToSync['content']['shop']);
+				}
+				
+				$productContent = $productContent->first();
+				
+				if ($productContent) {
+					$productContent->update($relatedToSync['content']);
+				} else {
+					$this->productContentRepository->createOne($relatedToSync['content']);
+				}
 			}
 
 			foreach ($relatedToSync['visibility'] as $visibilityListPK => $value) {
