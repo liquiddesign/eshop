@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.169](https://github.com/liquiddesign/eshop/compare/v2.1.168...v2.1.169) (2024-03-26)
+
+### Bug Fixes
+
+
+##### Product Importer
+
+* Change SEO column names ([a7e328](https://github.com/liquiddesign/eshop/commit/a7e3281ff26aa18c410074ba34cf3a56a726dd5f))
+
+
+---
+
 ## [2.1.168](https://github.com/liquiddesign/eshop/compare/v2.1.167...v2.1.168) (2024-03-26)
 
 ### Bug Fixes
