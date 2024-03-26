@@ -1219,8 +1219,8 @@ Můžete nahrát více obrázků pro jeden produkt. Např.: "ABC_obrazek_1.jpg",
 		}
 
 		$pagesImportColumns = [
-			'title' => 'Titulek',
-			'description' => 'Popis',
+			'title' => 'SEO Titulek',
+			'description' => 'SEO Popis',
 			'url' => 'URL',
 		];
 
