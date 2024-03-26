@@ -8,7 +8,6 @@ use Base\ShopsConfig;
 use Eshop\DB\AmountRepository;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeRepository;
-use Eshop\DB\AttributeValue;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\ProducerRepository;
@@ -19,7 +18,6 @@ use Eshop\DB\StoreRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use League\Csv\Reader;
 use Nette\Utils\Arrays;
-use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use Tracy\Debugger;
 use Web\DB\PageRepository;
@@ -145,8 +143,8 @@ class ProductImporter
 		];
 
 		foreach ($productColumns as $key => $value) {
-			foreach ($mutations as $mutation) {
-				$importColumns[$key . $mutation] = $value . $mutation;
+			foreach ($mutations as $tmpMutation) {
+				$importColumns[$key . $tmpMutation] = $value . $tmpMutation;
 			}
 
 			unset($importColumns[$key]);
@@ -340,9 +338,9 @@ class ProductImporter
 						];
 					}
 				} elseif (\str_starts_with((string) $key, 'name_')) {
-					[$key, $mutation] = \explode('_', (string) $key);
+					[$key, $mutationSuffix] = \explode('_', (string) $key);
 
-					$newValues[$key][$mutation] = $value;
+					$newValues[$key][$mutationSuffix] = $value;
 				} elseif ($key === 'code') {
 					if (!$searchCode) {
 						$newValues[$key] = $codeFromRecord ?: null;
@@ -398,7 +396,7 @@ class ProductImporter
 					continue;
 				}
 
-				[$key, $mutation] = \explode('_', (string) $key);
+				[$key, $mutationSuffix] = \explode('_', (string) $key);
 
 				$key = match ($key) {
 					'Popisek' => 'perex',
@@ -406,7 +404,7 @@ class ProductImporter
 					default => $key,
 				};
 
-				$relatedToSync['content'][$key][$mutation] = \preg_replace('/(\r\n|\r|\n|\x{2028})/u', '<br>', $value);
+				$relatedToSync['content'][$key][$mutationSuffix] = \preg_replace('/(\r\n|\r|\n|\x{2028})/u', '<br>', $value);
 
 				$relatedToSync['content']['shop'] = $selectedShop?->getPK();
 				$relatedToSync['content']['product'] = $product->uuid;
@@ -540,41 +538,35 @@ class ProductImporter
 					}
 
 					if (!$attributeValue) {
-						/** @var \stdClass|null|false|\Eshop\DB\AttributeValue $attributeValue */
-						$attributeValue = BaseHelpers::arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode): bool {
-							return $x->label === $attributeValueCode;
-						});
+						$labels = [];
 
-						$tried = 0;
-
-						while ($attributeValue === false || $attributeValue === null) {
-							try {
-								$attributeValue = $this->attributeValueRepository->createOne([
-									'code' => Strings::webalize($attributeValueCode) . '-' . Random::generate(),
-									'label' => [
-										$mutation => $attributeValueCode,
-									],
-									'attribute' => $key,
-								], false, true);
-
-								$attributeValuesToCreate[] = $attributeValue;
-							} catch (\Throwable $e) {
-							}
-
-							$tried++;
-
-							if ($tried > 10) {
-								throw new \Exception('Cant create new attribute value. Tried 10 times! (product:' . $product->code . ')');
-							}
+						foreach (\array_keys($mutations) as $mutation) {
+							$labels[$mutation] = $attributeValueCode;
 						}
 
-						if (!isset($groupedAttributeValues[$key][$attributeValue->uuid])) {
-							$groupedAttributeValues[$key][$attributeValue->uuid] = (object) [
-								'uuid' => $attributeValue->uuid,
-								'label' => $attributeValue instanceof AttributeValue ? $attributeValue->getValue('label', $mutation) : $attributeValue->label,
-								'code' => $attributeValue->code,
-								'attribute' => $attributeValue instanceof AttributeValue ? $attributeValue->getValue('attribute') : $attributeValue->attribute,
-							];
+						$attributeValue = $this->attributeValueRepository->createOne([
+							'code' => $attributeValueCode,
+							'label' => $labels,
+							'attribute' => $key,
+						], false, true);
+
+						$attributeValuesToCreate[] = $attributeValue;
+
+						if (!isset($groupedAttributeValues[$key][$attributeValue->getPK()])) {
+							$label = $attributeValue->getValue('label', $mutation);
+							$labels = [];
+
+							foreach ($mutations as $suffix) {
+								$labels["label$suffix"] = $label;
+							}
+
+							$groupedAttributeValues[$key][$attributeValue->getPK()] = (object) ([
+									'uuid' => $attributeValue->getPK(),
+									'code' => $attributeValue->code,
+									'attribute' => $attributeValue->getValue('attribute'),
+								] + $labels);
+
+							unset($labels);
 						}
 					}
 
