@@ -626,12 +626,12 @@ class ProductImporter
 		$connection = $this->productRepository->getConnection();
 
 		$mutations = $connection->getAvailableMutations();
-
+		
 		$importColumns = [
 			'code' => 'Kód',
 			'ean' => 'EAN',
-			'title' => 'Titulek',
-			'description' => 'Popis',
+			'title' => 'SEO Titulek',
+			'description' => 'SEO Popis',
 			'url' => 'URL',
 		];
 
