@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.167](https://github.com/liquiddesign/eshop/compare/v2.1.166...v2.1.167) (2024-03-26)
+
+### Bug Fixes
+
+
+##### Product Exporter
+
+* Columns order ([dc07ff](https://github.com/liquiddesign/eshop/commit/dc07ff9f4d43be4d1a3000e29a26dd672e8f65a8))
+
+
+---
+
 ## [2.1.166](https://github.com/liquiddesign/eshop/compare/v2.1.165...v2.1.166) (2024-03-26)
 
 ### Bug Fixes
