@@ -413,7 +413,15 @@ abstract class ExportPresenter extends Presenter
 		$priceListsCollection = $this->priceListRepo->many()->where('this.uuid', $priceLists);
 		$this->shopsConfig->filterShopsInShopEntityCollection($priceListsCollection);
 
-		return $priceListsCollection->toArray();
+		$priceLists = $priceListsCollection->toArray();
+
+		if (!$priceLists) {
+			if ($required) {
+				throw new \Exception('No PriceList selected. Please select at least one price list in export settings.');
+			}
+		}
+
+		return $priceLists;
 	}
 
 	/**
@@ -424,9 +432,9 @@ abstract class ExportPresenter extends Presenter
 	 */
 	public function getVisibilityListsFromSetting(string $settingName, bool $required = true): ?array
 	{
-		$priceLists = $this->settingRepo->getValuesByName($settingName);
+		$visibilityLists = $this->settingRepo->getValuesByName($settingName);
 
-		if (!$priceLists) {
+		if (!$visibilityLists) {
 			if ($required) {
 				throw new \Exception('No VisibilityList selected. Please select at least one visibility list in export settings.');
 			}
@@ -434,10 +442,20 @@ abstract class ExportPresenter extends Presenter
 			return null;
 		}
 
-		$priceListsCollection = $this->visibilityListRepository->many()->where('this.uuid', $priceLists);
-		$this->shopsConfig->filterShopsInShopEntityCollection($priceListsCollection);
+		$visibilityListsCollection = $this->visibilityListRepository->many()->where('this.uuid', $visibilityLists);
+		$this->shopsConfig->filterShopsInShopEntityCollection($visibilityListsCollection);
 
-		return $priceListsCollection->toArray();
+		$visibilityLists = $visibilityListsCollection->toArray();
+
+		if (!$visibilityLists) {
+			if ($required) {
+				throw new \Exception('No VisibilityList selected. Please select at least one visibility list in export settings.');
+			}
+
+			return null;
+		}
+
+		return $visibilityLists;
 	}
 
 	public function actionInvoice(string $hash): void
