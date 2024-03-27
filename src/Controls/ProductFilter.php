@@ -45,6 +45,12 @@ class ProductFilter extends Control
 	/** @var (callable(static $productFilter, array $attributes): array<\Eshop\DB\Attribute>)|null Called only on first call of getAttributes method. */
 	public $onGetAttributes = null;
 
+	/** @var null|callable(float $min): float */
+	public $onGetPriceMin = null;
+
+	/** @var null|callable(float $max): float */
+	public $onGetPriceMax = null;
+
 	protected Cache $cache;
 	
 	/**
@@ -129,9 +135,18 @@ class ProductFilter extends Control
 		$priceFrom = $providerOutput[$withVat ? 'priceVatMin' : 'priceMin'] ?? 0;
 		$priceTo = $providerOutput[$withVat ? 'priceVatMax' : 'priceMax'] ?? 100000;
 
+		if ($this->onGetPriceMin) {
+			$priceFrom = \call_user_func($this->onGetPriceMin, $priceFrom);
+		}
+
+		if ($this->onGetPriceMax) {
+			$priceTo = \call_user_func($this->onGetPriceMax, $priceTo);
+		}
+
 		$filterForm->addText('priceFrom')
 			->setNullable()
 			->setHtmlAttribute('placeholder', $priceFrom)
+			->setHtmlAttribute('max', $priceFrom)
 			->addCondition($filterForm::Filled)->addRule($filterForm::Integer);
 
 		$filterForm->addText('priceTo')
