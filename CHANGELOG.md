@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.172](https://github.com/liquiddesign/eshop/compare/v2.1.171...v2.1.172) (2024-03-27)
+
+### Bug Fixes
+
+
+##### Product Filter
+
+* Add new callbacks to modify min max prices ([7f9b1d](https://github.com/liquiddesign/eshop/commit/7f9b1dec769a34aff31723ab2c3c05db9f196101))
+
+
+---
+
 ## [2.1.171](https://github.com/liquiddesign/eshop/compare/v2.1.170...v2.1.171) (2024-03-27)
 
 ### Features
