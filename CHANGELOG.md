@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.171](https://github.com/liquiddesign/eshop/compare/v2.1.170...v2.1.171) (2024-03-27)
+
+### Features
+
+
+##### Product Filter
+
+* Add mainPriceType to template ([81eacf](https://github.com/liquiddesign/eshop/commit/81eacfa290a766234995562901dec58b18a433cf))
+
+
+---
+
 ## [2.1.170](https://github.com/liquiddesign/eshop/compare/v2.1.169...v2.1.170) (2024-03-26)
 
 ### Bug Fixes
