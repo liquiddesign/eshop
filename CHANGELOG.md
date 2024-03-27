@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.173](https://github.com/liquiddesign/eshop/compare/v2.1.172...v2.1.173) (2024-03-27)
+
+### Bug Fixes
+
+
+##### Admin Product
+
+* Default filterColumns config ([9b4f11](https://github.com/liquiddesign/eshop/commit/9b4f1155e5c60fc2094964f60a6a686696f2f297))
+
+
+---
+
 ## [2.1.172](https://github.com/liquiddesign/eshop/compare/v2.1.171...v2.1.172) (2024-03-27)
 
 ### Bug Fixes
