@@ -102,6 +102,8 @@ class ProductFilter extends Control
 			}
 		}
 
+		$this->template->mainPriceType = $this->shopperUser->getMainPriceType();
+
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;
 		$template->render($template->getFile() ?: __DIR__ . '/productFilter.latte');
@@ -112,7 +114,7 @@ class ProductFilter extends Control
 		$filterForm = $this->formFactory->create();
 		
 		$filterForm->setMethod('get');
-		
+
 		$filterForm->onRender[] = function ($filterForm): void {
 			$filterForm->removeComponent($filterForm[Presenter::SIGNAL_KEY]);
 		};
