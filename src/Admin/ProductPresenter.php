@@ -93,8 +93,8 @@ class ProductPresenter extends BackendPresenter
 			'exportHeureka' => 'Exportovat do Heureky',
 			'exportGoogle' => 'Exportovat do Google',
 			'exportZbozi' => 'Exportovat do Zboží.cz',
-			'exportPage_title_cs' => 'Titulek_cs',
-			'exportPage_description_cs' => 'Popis_cs',
+			'exportPage_title_cs' => 'SEO Titulek_cs',
+			'exportPage_description_cs' => 'SEO Popis_cs',
 			'exportPage_url_cs' => 'URL_cs',
 		],
 		'exportAttributes' => [],
@@ -1219,8 +1219,8 @@ Můžete nahrát více obrázků pro jeden produkt. Např.: "ABC_obrazek_1.jpg",
 		}
 
 		$pagesImportColumns = [
-			'title' => 'Titulek',
-			'description' => 'Popis',
+			'title' => 'SEO Titulek',
+			'description' => 'SEO Popis',
 			'url' => 'URL',
 		];
 
