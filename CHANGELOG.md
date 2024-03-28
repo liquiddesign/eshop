@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.174](https://github.com/liquiddesign/eshop/compare/v2.1.173...v2.1.174) (2024-03-28)
+
+### Features
+
+
+##### Purchase
+
+* Filter external DeliveryType IDs by Shop ([b8b679](https://github.com/liquiddesign/eshop/commit/b8b679d76256f165c5877f75f8a1630180adf512))
+
+
+---
+
 ## [2.1.173](https://github.com/liquiddesign/eshop/compare/v2.1.172...v2.1.173) (2024-03-27)
 
 ### Bug Fixes
