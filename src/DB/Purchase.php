@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\DB\Shop;
 use Nette\Utils\Strings;
 use Security\DB\Account;
 use StORM\Collection;
@@ -422,7 +423,7 @@ class Purchase extends \StORM\Entity
 		return $cartItemRepository->getSumProperty($this->getCartIds(), 'productDimension');
 	}
 	
-	public function getDeliveryTypeExternalId(Supplier $supplier): ?string
+	public function getDeliveryTypeExternalId(Supplier $supplier, Shop|null $shop = null): ?string
 	{
 		if (!$this->getValue('deliveryType')) {
 			return null;
@@ -430,11 +431,18 @@ class Purchase extends \StORM\Entity
 
 		$supplierDeliveryTypeRepository = $this->getConnection()->findRepository(SupplierDeliveryType::class);
 
-		/** @var \Eshop\DB\SupplierDeliveryType|null $supplierDeliveryType */
-		$supplierDeliveryType = $supplierDeliveryTypeRepository->many()
+		$query = $supplierDeliveryTypeRepository->many()
 			->where('this.fk_supplier', $supplier->getPK())
-			->where('this.fk_deliveryType', $this->getValue('deliveryType'))
-			->first();
+			->where('this.fk_deliveryType', $this->getValue('deliveryType'));
+
+		if ($shop) {
+			$query->where('this.fk_shop', $shop->getPK());
+		} else {
+			$query->where('this.fk_shop IS NULL');
+		}
+
+		/** @var \Eshop\DB\SupplierDeliveryType|null $supplierDeliveryType */
+		$supplierDeliveryType = $query->first();
 
 		return $supplierDeliveryType->externalId ?? null;
 	}
