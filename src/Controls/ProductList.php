@@ -7,6 +7,7 @@ namespace Eshop\Controls;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
+use Eshop\DB\CurrencyRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
@@ -51,19 +52,20 @@ class ProductList extends Datalist
 	protected array|null $providerOutput = null;
 
 	public function __construct(
-		private readonly ProductRepository $productRepository,
-		private readonly WatcherRepository $watcherRepository,
+		protected readonly ProductRepository $productRepository,
+		protected readonly WatcherRepository $watcherRepository,
 		public readonly ShopperUser $shopperUser,
-		private readonly Translator $translator,
-		private readonly FormFactory $formFactory,
-		private readonly AttributeRepository $attributeRepository,
-		private readonly AttributeValueRepository $attributeValueRepository,
-		private readonly AttributeValueRangeRepository $attributeValueRangeRepository,
-		private readonly IBuyFormFactory $buyFormFactory,
-		private readonly ProducerRepository $producerRepository,
-		private readonly DisplayAmountRepository $displayAmountRepository,
-		private readonly DisplayDeliveryRepository $displayDeliveryRepository,
+		protected readonly Translator $translator,
+		protected readonly FormFactory $formFactory,
+		protected readonly AttributeRepository $attributeRepository,
+		protected readonly AttributeValueRepository $attributeValueRepository,
+		protected readonly AttributeValueRangeRepository $attributeValueRangeRepository,
+		protected readonly IBuyFormFactory $buyFormFactory,
+		protected readonly ProducerRepository $producerRepository,
+		protected readonly DisplayAmountRepository $displayAmountRepository,
+		protected readonly DisplayDeliveryRepository $displayDeliveryRepository,
 		protected readonly GeneralProductsCacheProvider $productsProvider,
+		protected readonly CurrencyRepository $currencyRepository,
 		?array $order = null,
 		?Collection $source = null
 	) {
@@ -317,6 +319,7 @@ class ProductList extends Datalist
 		$this->template->paginator = $this->getPaginator();
 		$this->template->shopper = $this->shopperUser;
 		$this->template->checkoutManager = $this->shopperUser->getCheckoutManager();
+		$this->template->currencies = $this->currencyRepository->many()->toArray();
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;
