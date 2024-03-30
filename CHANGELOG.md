@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.175](https://github.com/liquiddesign/eshop/compare/v2.1.174...v2.1.175) (2024-03-30)
+
+### Features
+
+
+##### Product List
+
+* Add currencies to template ([79c74c](https://github.com/liquiddesign/eshop/commit/79c74cd7bdfd7af48e402162bba99f44ed128e98))
+
+
+---
+
 ## [2.1.174](https://github.com/liquiddesign/eshop/compare/v2.1.173...v2.1.174) (2024-03-28)
 
 ### Features
