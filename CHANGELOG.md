@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.176](https://github.com/liquiddesign/eshop/compare/v2.1.175...v2.1.176) (2024-04-01)
+
+### Bug Fixes
+
+
+##### Checkout Manager
+
+* If no cart, it returned random CartItem of Product. Now it returns null. ([bf22bf](https://github.com/liquiddesign/eshop/commit/bf22bfbe00c73b9b85e5a0ed3c38192708d0f45c))
+
+
+---
+
 ## [2.1.175](https://github.com/liquiddesign/eshop/compare/v2.1.174...v2.1.175) (2024-03-30)
 
 ### Features
