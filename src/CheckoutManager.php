@@ -716,7 +716,7 @@ class CheckoutManager
 	
 	public function getCartItem(Product $product, ?string $cartId = self::ACTIVE_CART_ID): ?CartItem
 	{
-		return $this->cartExists($cartId) ? $this->cartItemRepository->getItem($this->getCart($cartId), $product) : $this->cartItemRepository->many()->where('fk_product', $product->getPK())->first();
+		return $this->cartExists($cartId) ? $this->cartItemRepository->getItem($this->getCart($cartId), $product) : null;
 	}
 	
 	/**

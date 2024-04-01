@@ -21,7 +21,11 @@ class CartItemRepository extends \StORM\Repository
 		
 		$this->productRepository = $productRepository;
 	}
-	
+
+	/**
+	 * @param array<string> $cartIds
+	 * @param string|null $property
+	 */
 	public function getSumProperty(array $cartIds, ?string $property): float
 	{
 		return (float) $this->many()->where('fk_cart', $cartIds)->sum($property === 'amount' ? 'this.amount' : "this.$property * this.amount");
@@ -29,25 +33,33 @@ class CartItemRepository extends \StORM\Repository
 	
 	public function getSumItems(Cart $cart): int
 	{
-		return $this->many()->where('fk_cart', $cart)->where('fk_upsell IS NULL')->count();
+		return $this->many()->where('fk_cart', $cart->getPK())->where('fk_upsell IS NULL')->count();
 	}
 	
 	public function getItem(Cart $cart, Product $product, ?Variant $variant = null): ?CartItem
 	{
-		return $this->many()
-			->where('fk_cart', $cart)
-			->where('fk_product', $product)
-			->where('fk_variant', [$variant])
-			->first();
+		$query = $this->many()
+			->where('fk_cart', $cart->getPK())
+			->where('fk_product', $product->getPK());
+
+		if ($variant) {
+			$query->where('fk_variant', [$variant->getPK()]);
+		}
+
+		return $query->first();
 	}
 	
 	public function updateItemAmount(Cart $cart, ?Variant $variant, Product $product, int $amount): int
 	{
-		return $this->many()
-			->where('fk_cart', $cart)
-			->where('fk_product', $product)
-			->where('fk_variant', [$variant])
-			->update(['amount' => $amount, 'price' => $product->getPrice($amount), 'priceVat' => $product->getPriceVat($amount)]);
+		$qeury = $this->many()
+			->where('fk_cart', $cart->getPK())
+			->where('fk_product', $product->getPK());
+
+		if ($variant) {
+			$qeury->where('fk_variant', [$variant]);
+		}
+
+		return $qeury->update(['amount' => $amount, 'price' => $product->getPrice($amount), 'priceVat' => $product->getPriceVat($amount)]);
 	}
 
 	public function updateCartItemAmount(CartItem $cartItem, Product $product, int $amount): int
@@ -59,13 +71,21 @@ class CartItemRepository extends \StORM\Repository
 	
 	public function updateNote(Cart $cart, Product $product, ?Variant $variant, ?string $note): int
 	{
-		return $this->many()
-			->where('fk_cart', $cart)
-			->where('fk_product', $product)
-			->where('fk_variant', [$variant])
-			->update(['note' => $note]);
+		$query = $this->many()
+			->where('fk_cart', $cart->getPK())
+			->where('fk_product', $product->getPK());
+
+		if ($variant) {
+			$query->where('fk_variant', [$variant->getPK()]);
+		}
+
+		return $query->update(['note' => $note]);
 	}
-	
+
+	/**
+	 * @param array<string> $cartIds
+	 * @return \StORM\Collection<\Eshop\DB\CartItem>
+	 */
 	public function getItems(array $cartIds): Collection
 	{
 		return clone $this->many()->where('fk_cart', $cartIds);
@@ -76,7 +96,7 @@ class CartItemRepository extends \StORM\Repository
 		return $this->many()->where('fk_cart', $cart)->where('this.uuid', $item)->delete();
 	}
 
-	public function syncItem(Cart $cart, ?CartItem $item, \Eshop\DB\Product|\stdClass $product, ?Variant $variant, int $amount, bool $disabled = false): CartItem
+	public function syncItem(Cart $cart, ?CartItem $item, \Eshop\DB\Product $product, ?Variant $variant, int $amount, bool $disabled = false): CartItem
 	{
 		/** @var \Eshop\DB\VatRateRepository $vatRepo */
 		$vatRepo = $this->getConnection()->findRepository(VatRate::class);
@@ -105,7 +125,7 @@ class CartItemRepository extends \StORM\Repository
 			'vatPct' => (float) $vatPct,
 			'product' => !$disabled ? $product->getPK() : null,
 			'pricelist' => $product->pricelist ?? null,
-			'variant' => $variant ? $variant->getPK() : null,
+			'variant' => $variant?->getPK(),
 			'cart' => $cart->getPK(),
 		]);
 	}
@@ -137,7 +157,7 @@ class CartItemRepository extends \StORM\Repository
 		return \intval($amount);
 	}
 	
-	public function isUpsellActive($cartItem, $upsell): bool
+	public function isUpsellActive(string $cartItem, string $upsell): bool
 	{
 		/** @var \Eshop\DB\CartItem $cartItem */
 		$cartItem = $this->one($cartItem, true);
@@ -148,7 +168,7 @@ class CartItemRepository extends \StORM\Repository
 		return (bool) $this->many()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->count() > 0;
 	}
 	
-	public function getUpsell($cartItem, $upsell): ?CartItem
+	public function getUpsell(string $cartItem, string $upsell): ?CartItem
 	{
 		/** @var \Eshop\DB\CartItem $cartItem */
 		$cartItem = $this->one($cartItem, true);
@@ -163,7 +183,11 @@ class CartItemRepository extends \StORM\Repository
 	{
 		return $this->many()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first();
 	}
-	
+
+	/**
+	 * @param \Eshop\DB\CartItem $cartItem
+	 * @param array<string> $upsellIds
+	 */
 	public function deleteUpsellByObjects(CartItem $cartItem, array $upsellIds): int
 	{
 		return $this->many()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsellIds)->delete();

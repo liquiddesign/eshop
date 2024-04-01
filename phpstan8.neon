@@ -4,6 +4,7 @@ parameters:
 		- Nette\Application\UI\Template
 	level: 8
 	paths:
+		- src/DB/CartItemRepository.php
 		- src/Services/LostPasswordService.php
 		- src/Services/Order
 		- src/Services/Comgate.php
