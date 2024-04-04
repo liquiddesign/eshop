@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.180](https://github.com/liquiddesign/eshop/compare/v2.1.179...v2.1.180) (2024-04-04)
+
+### Features
+
+
+##### Admin Attribute
+
+* Add cache clearing ([fbe76f](https://github.com/liquiddesign/eshop/commit/fbe76f5cb6c2b104feec7c33863e3ba3aa9b763e))
+
+
+---
+
 ## [2.1.179](https://github.com/liquiddesign/eshop/compare/v2.1.178...v2.1.179) (2024-04-04)
 
 ### Features
