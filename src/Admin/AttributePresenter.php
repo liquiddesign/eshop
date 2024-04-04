@@ -52,6 +52,9 @@ class AttributePresenter extends BackendPresenter
 	];
 
 	#[\Nette\DI\Attributes\Inject]
+	public \Nette\Caching\Storage $storage;
+
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeRepository $attributeRepository;
 
 	#[\Nette\DI\Attributes\Inject]
@@ -320,6 +323,8 @@ class AttributePresenter extends BackendPresenter
 
 			$object = $this->attributeRepository->syncOne($values, null, true);
 
+			$this->clearNetteCache();
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('attributeDetail', 'default', [$object]);
 		};
@@ -571,6 +576,8 @@ class AttributePresenter extends BackendPresenter
 				$this->pageRepository->syncPage($values['page'], ['attributeValue' => $object->getPK()]);
 			}
 
+			$this->clearNetteCache();
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('valueDetail', 'default', [$object]);
 		};
@@ -601,6 +608,8 @@ class AttributePresenter extends BackendPresenter
 			}
 
 			$object = $this->attributeValueRangeRepository->syncOne($values, null, true);
+
+			$this->clearNetteCache();
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('rangeDetail', 'default', [$object]);
@@ -853,6 +862,8 @@ class AttributePresenter extends BackendPresenter
 				}
 			}
 
+			$this->clearNetteCache();
+
 			$this->redirect('default');
 		};
 
@@ -959,6 +970,8 @@ class AttributePresenter extends BackendPresenter
 
 			$producer = $this->attributeGroupRepository->syncOne($values, null, true);
 
+			$this->clearNetteCache();
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('groupDetail', 'default', [$producer]);
 		};
@@ -995,5 +1008,13 @@ class AttributePresenter extends BackendPresenter
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('groupForm');
 		$form->setDefaults($attributeGroup->toArray());
+	}
+
+	protected function clearNetteCache(): void
+	{
+		$cache = new \Nette\Caching\Cache($this->storage);
+		$cache->clean([
+			\Nette\Caching\Cache::ALL => true,
+		]);
 	}
 }
