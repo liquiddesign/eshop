@@ -4,5 +4,6 @@ tests/output/*
 tests/temp/*
 tests/temp_fixed/*
 .idea/*
+.vscode/*
 composer.lock
 changelog/vendor/*

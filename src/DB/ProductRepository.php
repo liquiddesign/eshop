@@ -345,7 +345,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			return;
 		}
 
-		$collection->select([
+		$select = [
 			'perex' => "COALESCE(
 				NULLIF(
 					(SELECT productContent.perex$suffix FROM eshop_productcontent as productContent WHERE this.uuid = productContent.fk_product AND productContent.fk_shop = :productContentShop),
@@ -360,11 +360,20 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				),
 				NULLIF(primaryCategory.defaultProductContent$suffix, '')
 			)",
+			'name' => "(SELECT productContent.name$suffix FROM eshop_productcontent as productContent WHERE this.uuid = productContent.fk_product AND productContent.fk_shop = :productContentShop)",
 			'originalContent' => "(
-			SELECT productContent.content$suffix
-			FROM eshop_productcontent as productContent
-			WHERE this.uuid = productContent.fk_product AND productContent.fk_shop = :productContentShop)",
-		], ['productContentShop' => $shop->getPK()]);
+				SELECT productContent.content$suffix
+					FROM eshop_productcontent as productContent
+					WHERE this.uuid = productContent.fk_product AND productContent.fk_shop = :productContentShop
+			)",
+		];
+
+		foreach (\array_values($this->getConnection()->getAvailableMutations()) as $suffix) {
+			$select["name$suffix"] =
+				"(SELECT productContent.name$suffix FROM eshop_productcontent as productContent WHERE this.uuid = productContent.fk_product AND productContent.fk_shop = :productContentShop)";
+		}
+
+		$collection->select($select, ['productContentShop' => $shop->getPK()]);
 	}
 
 	/**
@@ -617,6 +626,11 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		$product->setValue('content', $productContent?->content);
 		$product->setValue('perex', $productContent?->perex);
+		$product->setValue('name', $productContent?->name);
+
+		foreach ($this->getConnection()->getAvailableMutations() as $mutation => $suffix) {
+			$product->setValue("name$suffix", $productContent?->getValue('name', $mutation));
+		}
 	}
 	
 	public function getQuantityPrice(Product $product, int $amount, string $property): ?float
@@ -1612,7 +1626,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			}
 			
 			$slaveProduct->shortName = $slaveProduct->name;
-			$slaveProduct->name = $useCombinedName ? $cartItem->productName . ' - ' . $slaveProduct->name : $slaveProduct->name;
+			$slaveProduct->setValue('name', $useCombinedName ? $cartItem->productName . ' - ' . $slaveProduct->name : $slaveProduct->name);
 			$slaveProduct->amount = $cartItem->amount * $related->amount;
 			
 			if ($related->masterPct !== null) {

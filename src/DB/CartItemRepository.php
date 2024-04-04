@@ -104,7 +104,7 @@ class CartItemRepository extends \StORM\Repository
 		$vat = $vatRepo->one($product->vatRate);
 		
 		$vatPct = $vat ? $vat->rate : 0;
-		
+		xdebug_break();
 		return $this->syncOne([
 			'uuid' => $item,
 			'productName' => $product->toArray()['name'],

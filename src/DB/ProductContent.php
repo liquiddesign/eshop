@@ -14,6 +14,12 @@ use Base\Entity\ShopEntity;
 class ProductContent extends ShopEntity
 {
 	/**
+	 * Název
+	 * @column{"mutations":true}
+	 */
+	public ?string $name;
+
+	/**
 	 * Popisek
 	 * @column{"type":"text","mutations":true}
 	 */

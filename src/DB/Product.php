@@ -22,6 +22,9 @@ use Web\DB\Setting;
  * @index{"name":"ean","unique":true,"columns":["ean"]}
  * @method \StORM\ICollection<\Eshop\DB\Category> getCategories():
  * @method \StORM\ICollection<\Eshop\DB\ProductPrimaryCategory> getPrimaryCategories():
+ * @property-read string|null $name Název produktu
+ * @property-read string|null $content Obsah produktu
+ * @property-read string|null $perex Popisek produktu
  */
 class Product extends \StORM\Entity
 {
@@ -46,12 +49,6 @@ class Product extends \StORM\Entity
 	 * column - don't created by auto migration, only by manual
 	 */
 	public int $id;
-
-	/**
-	 * Název
-	 * @column{"mutations":true}
-	 */
-	public ?string $name;
 
 	/**
 	 * Název
@@ -1085,6 +1082,20 @@ class Product extends \StORM\Entity
 	}
 
 	/**
+	 * @param \Base\DB\Shop|null $shop Used only if name property is not set directly
+	 */
+	public function getName(Shop|null $shop = null, string|null $mutation = null): ?string
+	{
+		if ($this->__isset('name')) {
+			return $this->getValue('name');
+		}
+
+		$this->productRepository->hydrateProductWithContent($this, $shop);
+
+		return $this->getValue('name', $mutation);
+	}
+
+	/**
 	 * @param \Base\DB\Shop|null $shop Used only if content property is not set directly
 	 */
 	public function getContent(Shop|null $shop = null): ?string
@@ -1154,6 +1165,12 @@ class Product extends \StORM\Entity
 		if ($selectContent) {
 			$array['content'] = $this->getContent($shop);
 			$array['perex'] = $this->getPerex($shop);
+
+			$array['name'] = [];
+
+			foreach (\array_keys($this->getConnection()->getAvailableMutations()) as $mutation) {
+				$array['name'][$mutation] = $this->getName($shop);
+			}
 		}
 
 		return $array;
@@ -1204,6 +1221,15 @@ class Product extends \StORM\Entity
 
 	public function __get(string $name): mixed
 	{
+		$productContent = match ($name) {
+			'name', 'content', 'perex' => 'get' . Strings::firstUpper($name),
+			default => false,
+		};
+
+		if ($productContent) {
+			return $this->{$productContent}();
+		}
+
 		$deprecated = match ($name) {
 			'hidden', 'hiddenInMenu', 'recommended', 'unavailable' => 'is',
 			'priority', 'primaryCategory' => 'get',
