@@ -22,6 +22,7 @@ use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\QuantityPrice;
 use Eshop\DB\QuantityPriceRepository;
+use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
@@ -46,6 +47,11 @@ class PricelistsPresenter extends BackendPresenter
 			ProductFormAutoPriceConfig::class => ProductFormAutoPriceConfig::NONE,
 		],
 	];
+
+	protected const SHOW_SUPPLIER_NAMES = [];
+
+	#[\Nette\DI\Attributes\Inject]
+	public SupplierProductRepository $supplierProductRepository;
 
 	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $priceListRepository;
@@ -199,13 +205,25 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addColumnText('Kód', 'product.code', '%s', 'product.code', ['class' => 'fit']);
 
 		$grid->addColumn('Produkt', function (Price $price, Datagrid $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(
+			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()?->link(
 				':Eshop:Admin:Product:edit',
 				[$price->product, 'backLink' => $this->storeRequest()],
 			) : '#';
 
 			return '<a href="' . $link . '">' . $price->product->name . '</a>';
 		}, '%s');
+
+		foreach ($this::SHOW_SUPPLIER_NAMES as $supplierId => $supplierName) {
+			$supplierNames = $this->supplierProductRepository->many()
+				->where('this.fk_supplier', $supplierId)
+				->setSelect(['this.fk_product', 'this.name'])
+				->setIndex('this.fk_product')
+				->toArrayOf('name');
+
+			$grid->addColumn("Název ($supplierName)", function (Price $price, Datagrid $datagrid) use ($supplierNames): string|null {
+				return $supplierNames[$price->getValue('product')] ?? null;
+			}, '%s');
+		}
 
 		/** @var null|string $autoPriceConfig */
 		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
