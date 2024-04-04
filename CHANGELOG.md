@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.179](https://github.com/liquiddesign/eshop/compare/v2.1.178...v2.1.179) (2024-04-04)
+
+### Features
+
+
+##### Category
+
+* Add config for showDescendantProducts ([abad5a](https://github.com/liquiddesign/eshop/commit/abad5ad6c6676d51d38f7f53341e4ed038b6005c))
+
+
+---
+
 ## [2.1.178](https://github.com/liquiddesign/eshop/compare/v2.1.177...v2.1.178) (2024-04-04)
 
 ### Features
