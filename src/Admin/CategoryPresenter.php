@@ -173,12 +173,13 @@ class CategoryPresenter extends BackendPresenter
 				'showInMenu',
 				'showEmpty',
 				'recommended',
+				'showDescendantProducts',
 			];
 
 			if ($this::SHOW_DEFAULT_VIEW_TYPE) {
 				$bulkInputs[] = 'defaultViewType';
 			}
-
+			
 			$grid->addButtonBulkEdit(
 				'categoryForm',
 				$bulkInputs,

@@ -427,6 +427,7 @@ CREATE TABLE `$categoriesTableName` (
 			foreach ($primaryCategories as $primaryCategory) {
 				$primaryCategory = $allProductPrimaryCategories[$primaryCategory];
 
+				// @TODO Check if this is correct
 				$products[$product->id]["primaryCategory_$primaryCategory->categoryType"] = $primaryCategory->category;
 			}
 
@@ -436,6 +437,7 @@ CREATE TABLE `$categoriesTableName` (
 				}
 			}
 
+			// @TODO Add control of Category showDescendantProducts
 			if ($categories = ($productCategories[$product->id] ?? null)) {
 				$categories = \explode(',', $categories);
 

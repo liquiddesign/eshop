@@ -810,18 +810,23 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			return;
 		}
 		
-		$id = $this->getConnection()->findRepository(Category::class)->many()->where('path', $path)->firstValue('uuid');
+		/** @var \Eshop\DB\Category|null $category */
+		$category = $this->getConnection()->findRepository(Category::class)->many()->where('path', $path)->first();
 		
-		if (!$id) {
+		if (!$category) {
 			$collection->where('1=0');
 		} else {
+			if ($category->showDescendantProducts) {
+				$path .= '%';
+			}
+
 			$subSelect = $this->getConnection()->rows(['eshop_product_nxn_eshop_category'], ['fk_product'])
 				->join(['eshop_category'], 'eshop_category.uuid=eshop_product_nxn_eshop_category.fk_category')
-				->where('eshop_category.path LIKE :path', ['path' => "$path%"]);
+				->where('eshop_category.path LIKE :path', ['path' => $path]);
 
 			$this->joinPrimaryCategoryToProductCollection($collection);
 
-			$collection->where('productPrimaryCategory.fk_category = :category OR this.uuid IN (' . $subSelect->getSql() . ')', ['category' => $id] + $subSelect->getVars());
+			$collection->where('productPrimaryCategory.fk_category = :category OR this.uuid IN (' . $subSelect->getSql() . ')', ['category' => $category] + $subSelect->getVars());
 		}
 	}
 	
