@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.177](https://github.com/liquiddesign/eshop/compare/v2.1.176...v2.1.177) (2024-04-04)
+
+### Features
+
+
+##### Admin Pricelist Presenter
+
+* Add custom Supplier names columns ([d33ec5](https://github.com/liquiddesign/eshop/commit/d33ec5db211523539aba015b55295e35d11c157a))
+
+
+---
+
 ## [2.1.176](https://github.com/liquiddesign/eshop/compare/v2.1.175...v2.1.176) (2024-04-01)
 
 ### Bug Fixes
