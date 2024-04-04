@@ -3,6 +3,7 @@
 namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminFormFactory;
+use Base\ShopsConfig;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\Customer;
@@ -10,7 +11,7 @@ use Eshop\DB\CustomerRepository;
 use Eshop\DB\DiscountCouponRepository;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\OrderRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Nette;
 use Nette\Application\UI\Control;
@@ -19,65 +20,39 @@ use Tracy\Debugger;
 class StatsControl extends Control
 {
 	/** @var array<callable(static): void> Occurs when component is attached to presenter */
-	public $onAnchor = [];
+	public array $onAnchor = [];
 
 	/**
 	 * @persistent
-	 * @var string[]
+	 * @var array<string>
 	 */
 	public array $state = [];
 
-	public Shopper $shopper;
-
-	private AdminFormFactory $formFactory;
-
-	private OrderRepository $orderRepository;
-
-	private MerchantRepository $merchantRepository;
-
-	private CurrencyRepository $currencyRepository;
-
-	private CustomerRepository $customerRepository;
-
-	private CategoryRepository $categoryRepository;
-
-	private DiscountCouponRepository $discountCouponRepository;
-
-	private ?Customer $signedInCustomer;
-
 	public function __construct(
-		AdminFormFactory $formFactory,
-		Shopper $shopper,
-		OrderRepository $orderRepository,
-		MerchantRepository $merchantRepository,
-		CurrencyRepository $currencyRepository,
-		CustomerRepository $customerRepository,
-		CategoryRepository $categoryRepository,
-		DiscountCouponRepository $discountCouponRepository,
-		?Customer $signedInCustomer = null
+		private readonly AdminFormFactory $formFactory,
+		public ShopperUser $shopperUser,
+		private readonly OrderRepository $orderRepository,
+		private readonly MerchantRepository $merchantRepository,
+		private readonly CurrencyRepository $currencyRepository,
+		private readonly CustomerRepository $customerRepository,
+		private readonly CategoryRepository $categoryRepository,
+		private readonly DiscountCouponRepository $discountCouponRepository,
+		private readonly ShopsConfig $shopsConfig,
+		private readonly ?Customer $signedInCustomer = null
 	) {
-		$this->formFactory = $formFactory;
-		$this->shopper = $shopper;
-		$this->orderRepository = $orderRepository;
-		$this->merchantRepository = $merchantRepository;
-		$this->currencyRepository = $currencyRepository;
-		$this->customerRepository = $customerRepository;
-		$this->categoryRepository = $categoryRepository;
-		$this->discountCouponRepository = $discountCouponRepository;
-		$this->signedInCustomer = $signedInCustomer;
 
 		$form = $this->formFactory->create();
 
 		$form->addText('from', 'Od')
-			->setHtmlAttribute('max', (new Nette\Utils\DateTime())->format('Y-m-d'))
+			->setHtmlAttribute('max', (new \Carbon\Carbon())->format('Y-m-d'))
 			->setHtmlType('date')
 			->setRequired()
-			->setDefaultValue((new Nette\Utils\DateTime())->modify('- 1 week')->format('Y-m-d'));
+			->setDefaultValue((new \Carbon\Carbon())->modify('- 1 week')->format('Y-m-d'));
 		$form->addText('to', 'Do')
-			->setHtmlAttribute('max', (new Nette\Utils\DateTime())->format('Y-m-d'))
+			->setHtmlAttribute('max', (new \Carbon\Carbon())->format('Y-m-d'))
 			->setHtmlType('date')
 			->setRequired()
-			->setDefaultValue((new Nette\Utils\DateTime())->format('Y-m-d'));
+			->setDefaultValue((new \Carbon\Carbon())->format('Y-m-d'));
 		$form->addSelect2('customerType', 'Typ zákazníka', ['new' => 'Nový', 'current' => 'Stávající'])->setPrompt('- Všichni zákazníci -');
 		$form->addText('customer', 'Zákazník')->setNullable()->setHtmlAttribute('placeholder', 'E-mail zákazníka (pouze registrovaní)');
 		$form->addSelect2('merchant', 'Obchodník', $this->merchantRepository->getArrayForSelect())->setPrompt('- Obchodník -');
@@ -123,8 +98,8 @@ class StatsControl extends Control
 		/** @var \Nette\Application\UI\Form $form */
 		$form = $this->getComponent('form');
 
-		$statsFrom = isset($this->state['from']) ? new Nette\Utils\DateTime($this->state['from']) : ((new Nette\Utils\DateTime())->modify('- 1 week'));
-		$statsTo = isset($this->state['to']) ? new Nette\Utils\DateTime($this->state['to']) : (new Nette\Utils\DateTime());
+		$statsFrom = isset($this->state['from']) ? new \Carbon\Carbon($this->state['from']) : ((new \Carbon\Carbon())->modify('- 1 week'));
+		$statsTo = isset($this->state['to']) ? new \Carbon\Carbon($this->state['to']) : (new \Carbon\Carbon());
 		$customerType = $this->state['customerType'] ?? 'all';
 		$customer = $this->signedInCustomer ??
 			(isset($this->state['customer']) ? $this->customerRepository->many()->where('this.email LIKE :s', ['s' => '%' . $this->state['customer'] . '%'])->first() : null);
@@ -151,6 +126,7 @@ class StatsControl extends Control
 			->select(['date' => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
 			->where('this.createdTs >= :from AND this.createdTs <= :to', ['from' => $fromString, 'to' => $toString])
 			->join(['purchase' => 'eshop_purchase'], 'purchase.uuid = this.fk_purchase')
+			->where('this.fk_shop = :s OR this.fk_shop IS NULL', ['s' => $this->shopsConfig->getSelectedShop()])
 			->where('purchase.fk_currency', $currency->getPK());
 
 		if ($customerType !== 'all' && !$customer) {
@@ -162,6 +138,7 @@ class StatsControl extends Control
 				->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
 				->select(['date' => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
 				->where('this.createdTs >= :from AND this.createdTs <= :to', ['from' => $fromString, 'to' => $toString])
+				->where('this.fk_shop = :s OR this.fk_shop IS NULL', ['s' => $this->shopsConfig->getSelectedShop()])
 				->where('purchase.fk_currency', $currency->getPK());
 
 			$orders->where('purchase.fk_customer', \array_values($subSelect->toArrayOf('customerUuid')));
@@ -192,7 +169,7 @@ class StatsControl extends Control
 
 		$orders = $orders->toArray();
 
-		$this->template->shopper = $this->shopper;
+		$this->template->shopper = $this->shopperUser;
 		$this->template->monthlyOrders = $this->orderRepository->getGroupedOrdersPrices($orders, $currency);
 		$this->template->boughtCategories = $this->orderRepository->getOrdersCategoriesGroupedByAmountPercentage($orders, $currency);
 		$this->template->topProducts = $this->orderRepository->getOrdersTopProductsByAmount($orders, $currency);
@@ -201,7 +178,9 @@ class StatsControl extends Control
 		$this->template->lastOrder = $this->orderRepository->getLastOrder();
 		$this->template->currency = $currency;
 		$this->template->ordersCount = \count($orders);
-		$this->template->discountCoupons = $discountCoupons = $this->discountCouponRepository->many()->where('fk_currency', $currency->getPK())->toArray();
+		$this->template->discountCoupons = $discountCoupons = $this->discountCouponRepository->many()
+			->where('discount.fk_shop = :s OR discount.fk_shop IS NULL', ['s' => $this->shopsConfig->getSelectedShop()])
+			->where('fk_currency', $currency->getPK())->toArray();
 		$this->template->usageDiscountCoupons = $this->orderRepository->getDiscountCouponsUsage($orders, $discountCoupons)[0];
 
 		/** @var \Eshop\Admin\StatsPresenter $presenter */

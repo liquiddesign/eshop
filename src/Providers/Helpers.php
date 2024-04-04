@@ -6,6 +6,7 @@ namespace Eshop\Providers;
 
 use Nette\Utils\Arrays;
 use Nette\Utils\Json;
+use Nette\Utils\Strings;
 
 abstract class Helpers
 {
@@ -55,7 +56,7 @@ abstract class Helpers
 
 	/**
 	 * @param mixed $item
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public static function convertToArray($item): array
 	{
@@ -73,7 +74,7 @@ abstract class Helpers
 	
 	public static function createSoapClient(string $url, ?string $login = null, ?string $password = null): \SoapClient
 	{
-		\ini_set('default_socket_timeout', '5000');
+		\ini_set('default_socket_timeout', '60');
 		
 		$context = \stream_context_create([
 			'ssl' => [
@@ -81,7 +82,8 @@ abstract class Helpers
 				'verify_peer_name' => false,
 				'allow_self_signed' => true,
 				'keep_alive' => true,
-				'connection_timeout' => 5000,
+				'connection_timeout' => 30000,
+				'timeout' => 30000,
 			],
 		]);
 		
@@ -89,6 +91,9 @@ abstract class Helpers
 			'stream_context' => $context,
 			'trace' => 1,
 			'cache_wsdl' => \WSDL_CACHE_NONE,
+			'keep_alive' => true,
+			'connection_timeout' => 30000,
+			'timeout' => 30000,
 		];
 		
 		if ($login && $password) {
@@ -141,7 +146,7 @@ abstract class Helpers
 		$openedTags = \array_reverse($openedTags);
 
 		for ($i = 0; $i < $lenOpened; $i++) {
-			if (!\in_array($openedTags[$i], $closedTags)) {
+			if (!Arrays::contains($closedTags, $openedTags[$i])) {
 				$html .= '</' . $openedTags[$i] . '>';
 			} else {
 				unset($closedTags[\array_search($openedTags[$i], $closedTags)]);
@@ -172,7 +177,7 @@ abstract class Helpers
 				$firstName .= $name . ' ';
 			}
 
-			$firstName = \substr($firstName, 0, -1);
+			$firstName = Strings::substring($firstName, 0, -1);
 		}
 
 		$lastName = null;

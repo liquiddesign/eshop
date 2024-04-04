@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\DB\Shop;
 use Eshop\Admin\SettingsPresenter;
 use Nette\Application\ApplicationException;
-use Nette\Utils\DateTime;
+use Nette\Utils\Arrays;
+use Nette\Utils\Strings;
 use StORM\Collection;
+use StORM\Exception\NotExistsException;
 use StORM\IEntityParent;
 use StORM\RelationCollection;
 use Web\DB\Setting;
@@ -17,6 +20,8 @@ use Web\DB\Setting;
  * @table
  * @index{"name":"code_subcode","unique":true,"columns":["code","subCode"]}
  * @index{"name":"ean","unique":true,"columns":["ean"]}
+ * @method \StORM\ICollection<\Eshop\DB\Category> getCategories():
+ * @method \StORM\ICollection<\Eshop\DB\ProductPrimaryCategory> getPrimaryCategories():
  */
 class Product extends \StORM\Entity
 {
@@ -33,9 +38,14 @@ class Product extends \StORM\Entity
 
 	public const SUPPLIER_CONTENT_MODE_NONE = 'none';
 	public const SUPPLIER_CONTENT_MODE_PRIORITY = 'priority';
-	public const SUPPLIER_CONTENT_MODE_LENGTH = 'length';
 	public const SUPPLIER_CONTENT_MODE_SUPPLIER = 'supplier';
 	public const SUPPLIER_CONTENT_MODE_CUSTOM_CONTENT = 'content';
+
+	/**
+	 * ID
+	 * column - don't created by auto migration, only by manual
+	 */
+	public int $id;
 
 	/**
 	 * Název
@@ -105,7 +115,7 @@ class Product extends \StORM\Entity
 
 	/**
 	 * Prodejní jednotka (kus)
-	 * @column
+	 * @column{"mutations":true}
 	 */
 	public ?string $unit;
 
@@ -114,13 +124,6 @@ class Product extends \StORM\Entity
 	 * @column
 	 */
 	public int $defaultBuyCount = 1;
-
-	/**
-	 * Hodnocení
-	 * @column
-	 * @deprecated Use ReviewRepository
-	 */
-	public ?float $rating = null;
 
 	/**
 	 * Minimální prodejní množství
@@ -244,24 +247,6 @@ class Product extends \StORM\Entity
 	public int $discountLevelPct = 0;
 
 	/**
-	 * Perex
-	 * @column{"type":"text","mutations":true}
-	 */
-	public ?string $perex;
-
-	/**
-	 * Obsah
-	 * @column{"type":"longtext","mutations":true}
-	 */
-	public ?string $content;
-
-	/**
-	 * Priorita
-	 * @column
-	 */
-	public int $priority = 10;
-
-	/**
 	 * Priorita
 	 * @column
 	 */
@@ -271,36 +256,6 @@ class Product extends \StORM\Entity
 	 * @column{"type":"timestamp"}
 	 */
 	public ?string $karsaExportTs;
-
-	/**
-	 * Neprodejné
-	 * @column
-	 */
-	public bool $unavailable = false;
-
-	/**
-	 * Set produktů
-	 * @column
-	 */
-	public bool $productsSet = false;
-
-	/**
-	 * Skryto
-	 * @column
-	 */
-	public bool $hidden = false;
-
-	/**
-	 * Skryto v menu a vyhledávání, dostupné přes URL
-	 * @column
-	 */
-	public bool $hiddenInMenu = false;
-
-	/**
-	 * Doporučené
-	 * @column
-	 */
-	public bool $recommended = false;
 
 	/**
 	 * Koncept
@@ -364,7 +319,7 @@ class Product extends \StORM\Entity
 
 	/**
 	 * Režim přebírání obsahu, platí pouze pokud supplierContentLock === false
-	 * @column{"type":"enum","length":"'none','priority','length','supplier'"}
+	 * @column{"type":"enum","length":"'none','priority','supplier'"}
 	 */
 	public string $supplierContentMode = 'none';
 
@@ -400,13 +355,6 @@ class Product extends \StORM\Entity
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?Producer $producer;
-
-	/**
-	 * Hlavní kategorie
-	 * @relation
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
-	 */
-	public ?Category $primaryCategory;
 
 	/**
 	 * Skladem (agregovaná hodnota)
@@ -477,6 +425,12 @@ class Product extends \StORM\Entity
 	public ?Product $masterProduct;
 
 	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\ProductContent>
+	 */
+	public RelationCollection $contents;
+
+	/**
 	 * Sloučené produkty
 	 * @relation{"targetKey":"fk_masterProduct"}
 	 * @var \StORM\RelationCollection<\Eshop\DB\Product>
@@ -484,113 +438,105 @@ class Product extends \StORM\Entity
 	public RelationCollection $slaveProducts;
 
 	/**
-	 * @deprecated
-	 * Skupina parametrů
-	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\ParameterGroup>|\Eshop\DB\ParameterGroup[]
-	 */
-	public RelationCollection $parameterGroups;
-
-	/**
 	 * Kategorie
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\Category>|\Eshop\DB\Category[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Category>
 	 */
 	public RelationCollection $categories;
 
 	/**
 	 * Dodvatelské produkty
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\SupplierProduct>|\Eshop\DB\SupplierProduct[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\SupplierProduct>
 	 */
 	public RelationCollection $supplierProducts;
 
 	/**
-	 * Tagy
-	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\Tag>|\Eshop\DB\Tag[]
-	 * @deprecated
-	 */
-	public RelationCollection $tags;
-
-	/**
 	 * Stužky
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\Ribbon>|\Eshop\DB\Ribbon[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Ribbon>
 	 */
 	public RelationCollection $ribbons;
 
 	/**
 	 * Interní stužky
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\InternalRibbon>|\Eshop\DB\InternalRibbon[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\InternalRibbon>
 	 */
 	public RelationCollection $internalRibbons;
 
 	/**
 	 * Varianty
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Variant>|\Eshop\DB\Variant[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Variant>
 	 */
 	public RelationCollection $variants;
 
 	/**
 	 * Obrázky galerie
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Photo>|\Eshop\DB\Photo[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Photo>
 	 */
 	public RelationCollection $galleryImages;
 
 	/**
 	 * Soubory
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\File>|\Eshop\DB\File[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\File>
 	 */
 	public RelationCollection $files;
 
 	/**
 	 * Množstevní slevy
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\QuantityPrice>|\Eshop\DB\QuantityPrice[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\QuantityPrice>
 	 */
 	public RelationCollection $quantityPrices;
 
 	/**
 	 * Poplatky a daně
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\Tax>|\Eshop\DB\Tax[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Tax>
 	 */
 	public RelationCollection $taxes;
 
 	/**
-	 * Upsell produkty
-	 * @relationNxN{"sourceViaKey":"fk_root","targetViaKey":"fk_upsell"}
-	 * @var \StORM\RelationCollection<\Eshop\DB\Product>|\Eshop\DB\Product[]
-	 * @deprecated
-	 */
-	public RelationCollection $upsells;
-
-	/**
 	 * Věrnostní programy
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\LoyaltyProgramProduct>|\Eshop\DB\LoyaltyProgramProduct[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\LoyaltyProgramProduct>
 	 */
 	public RelationCollection $loyaltyPrograms;
 
 	/**
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Review>|\Eshop\DB\Review[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Review>
 	 */
 	public RelationCollection $reviews;
 
 	/**
 	 * Galerie
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Photo>|\Eshop\DB\Photo[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Photo>
 	 */
 	public RelationCollection $photos;
 
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\VisibilityListItem>
+	 */
+	public RelationCollection $visibilityListItems;
+
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\ProductPrimaryCategory>
+	 */
+	public RelationCollection $primaryCategories;
+
+	public ?VisibilityListItem $visibilityListItem;
+
 	private ProductRepository $productRepository;
+
+	private Category|null|false $fetchedPrimaryCategory = false;
 
 	public function __construct(array $vars, ?IEntityParent $parent = null, array $mutations = [], ?string $mutation = null)
 	{
@@ -630,7 +576,7 @@ class Product extends \StORM\Entity
 	}
 
 	/**
-	 * @return \Eshop\DB\Ribbon[]|\StORM\Entity[]
+	 * @return array<\Eshop\DB\Ribbon>|array<\StORM\Entity>
 	 */
 	public function getImageRibbons(): array
 	{
@@ -643,7 +589,7 @@ class Product extends \StORM\Entity
 	}
 
 	/**
-	 * @return \Eshop\DB\Ribbon[]|\StORM\Entity[]
+	 * @return array<\Eshop\DB\Ribbon>|array<\StORM\Entity>
 	 */
 	public function getTextRibbons(): array
 	{
@@ -656,18 +602,9 @@ class Product extends \StORM\Entity
 	}
 
 	/**
-	 * @deprecated Use getPreviewAtttributes()
 	 * @return array<string, array<int, array<string, string>>>
 	 */
-	public function getPreviewParameters(): array
-	{
-		return $this->getPreviewAtttributes();
-	}
-
-	/**
-	 * @return array<string, array<int, array<string, string>>>
-	 */
-	public function getPreviewAtttributes(): array
+	public function getPreviewAttributes(): array
 	{
 		if (!$this->getValue('parameters')) {
 			return [];
@@ -756,16 +693,16 @@ class Product extends \StORM\Entity
 		}
 
 		if ($this->supplierSource && $this->supplierSource->productCodePrefix && !$this->supplierSource->showCodeWithPrefix) {
-			$prefixLength = \strlen($this->supplierSource->productCodePrefix);
+			$prefixLength = Strings::length($this->supplierSource->productCodePrefix);
 
-			$code = \substr($code, $prefixLength, \strlen($code) - $prefixLength);
+			$code = Strings::substring($code, $prefixLength, Strings::length($code) - $prefixLength);
 		}
 
 		return $code;
 	}
 
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getStoreAmounts(): array
 	{
@@ -773,7 +710,7 @@ class Product extends \StORM\Entity
 	}
 
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getSupplierStoreAmounts(): array
 	{
@@ -786,7 +723,7 @@ class Product extends \StORM\Entity
 
 	/**
 	 * @param string $property
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getSupplierPrices(string $property = 'price'): array
 	{
@@ -798,19 +735,31 @@ class Product extends \StORM\Entity
 	}
 
 	/**
-	 * @deprecated use property primaryCategory instead
+	 * Returns primaryCategory of Product. If property primaryCategory is set, then returns always it.
 	 */
-	public function getPrimaryCategory(): ?Category
+	public function getPrimaryCategory(?CategoryType $categoryType = null): ?Category
 	{
-		return $this->primaryCategory;
+		if ($this->fetchedPrimaryCategory !== false) {
+			return $this->fetchedPrimaryCategory;
+		}
+
+		if ($this->__isset('primaryCategory') && $this->getValue('primaryCategory')) {
+			return $this->fetchedPrimaryCategory = $this->getCategories()->where('this.uuid', $this->getValue('primaryCategory'))->first();
+		}
+
+		if ($categoryType) {
+			return $this->fetchedPrimaryCategory = $this->getPrimaryCategories()->where('this.fk_categoryType', $categoryType->getPK())->first()?->category;
+		}
+
+		return $this->fetchedPrimaryCategory = $this->getPrimaryCategories()->orderBy(['categoryType.priority' => 'ASC'])->first()?->category;
 	}
 
 	/**
 	 * @param string $property
 	 * @param bool $reversed
-	 * @return string[]
+	 * @return array<string>
 	 */
-	public function getCategoryTree(string $property, bool $reversed = false): array
+	public function getCategoryTree(string $property, bool $reversed = false, string $type = 'main'): array
 	{
 		/** @var \Eshop\DB\Product|\stdClass $product */
 		$product = $this;
@@ -823,11 +772,10 @@ class Product extends \StORM\Entity
 		$categoryRepository = $this->getConnection()->findRepository(Category::class);
 
 		$tree = [];
-		$type = 'main';
 
 		if ($categoryRepository->isTreeBuild($type)) {
-			for ($i = 4; $i <= \strlen($product->primaryCategoryPath); $i += 4) {
-				if ($category = $categoryRepository->getCategoryByPath($type, \substr($product->primaryCategoryPath, 0, $i))) {
+			for ($i = 4; $i <= Strings::length($product->primaryCategoryPath); $i += 4) {
+				if ($category = $categoryRepository->getCategoryByPath($type, Strings::substring($product->primaryCategoryPath, 0, $i))) {
 					$tree[] = $category->$property;
 				}
 			}
@@ -840,7 +788,7 @@ class Product extends \StORM\Entity
 		}
 
 		/** @phpstan-ignore-next-line */
-		return $categoryRepository->many()->where('path LIKE :path', ['path' => $this->primaryCategoryPath])->orderBy(['LENGTH(path)' => $reversed ? 'DESC' : 'ASC'])->toArrayOf($tree, [], true);
+		return $categoryRepository->many()->where('path LIKE :path', ['path' => $product->primaryCategoryPath])->orderBy(['LENGTH(path)' => $reversed ? 'DESC' : 'ASC'])->toArrayOf($tree, [], true);
 	}
 
 	public function inStock(): bool
@@ -865,19 +813,19 @@ class Product extends \StORM\Entity
 			$defaultDisplayAmount = $displayAmountRepository->one($defaultDisplayAmount);
 			$defaultUnavailableDisplayAmount = $displayAmountRepository->one($defaultUnavailableDisplayAmount);
 
-			return $this->unavailable === false ? $defaultDisplayAmount : $defaultUnavailableDisplayAmount;
+			return $this->isUnavailable() === false ? $defaultDisplayAmount : $defaultUnavailableDisplayAmount;
 		}
 
 		if ($defaultDisplayAmount) {
 			$defaultDisplayAmount = $displayAmountRepository->one($defaultDisplayAmount);
 
-			return $this->unavailable === false ? $defaultDisplayAmount : $this->displayAmount;
+			return $this->isUnavailable() === false ? $defaultDisplayAmount : $this->displayAmount;
 		}
 
 		if ($defaultUnavailableDisplayAmount) {
 			$defaultUnavailableDisplayAmount = $displayAmountRepository->one($defaultUnavailableDisplayAmount);
 
-			return $this->unavailable === false ? $this->displayAmount : $defaultUnavailableDisplayAmount;
+			return $this->isUnavailable() === false ? $this->displayAmount : $defaultUnavailableDisplayAmount;
 		}
 
 		return $this->displayAmount;
@@ -886,29 +834,29 @@ class Product extends \StORM\Entity
 	public function getPrice(int $amount = 1): float
 	{
 		if ($amount === 1) {
-			return (float)$this->getValue('price');
+			return (float) $this->getValue('price');
 		}
 
-		return (float)($this->getQuantityPrice($amount, 'price') ?: $this->getValue('price'));
+		return (float) ($this->getQuantityPrice($amount, 'price') ?: $this->getValue('price'));
 	}
 
 	public function getPriceVat(int $amount = 1): float
 	{
 		if ($amount === 1) {
-			return (float)$this->getValue('priceVat');
+			return (float) $this->getValue('priceVat');
 		}
 
-		return (float)($this->getQuantityPrice($amount, 'priceVat') ?: $this->getValue('priceVat'));
+		return (float) ($this->getQuantityPrice($amount, 'priceVat') ?: $this->getValue('priceVat'));
 	}
 
 	public function getPriceBefore(): ?float
 	{
-		return (float) $this->getValue('priceBefore') > 0 ? (float)$this->getValue('priceBefore') : null;
+		return (float) $this->getValue('priceBefore') > 0 ? (float) $this->getValue('priceBefore') : null;
 	}
 
 	public function getPriceVatBefore(): ?float
 	{
-		return (float) $this->getValue('priceVatBefore') > 0 ? (float)$this->getValue('priceVatBefore') : null;
+		return (float) $this->getValue('priceVatBefore') > 0 ? (float) $this->getValue('priceVatBefore') : null;
 	}
 
 	public function getDiscountPercent(): ?float
@@ -930,7 +878,7 @@ class Product extends \StORM\Entity
 	}
 
 	/**
-	 * @return \Eshop\DB\QuantityPrice[]|\StORM\Entity[]
+	 * @return array<\Eshop\DB\QuantityPrice>|array<\StORM\Entity>
 	 */
 	public function getQuantityPrices(): array
 	{
@@ -943,15 +891,15 @@ class Product extends \StORM\Entity
 	 * @param bool $fallbackImageSupplied If true, it is expected that property fallbackImage is set on object, otherwise it is selected manually
 	 * @throws \Nette\Application\ApplicationException
 	 */
-	public function getPreviewImage(string $basePath, string $size = 'detail', bool $fallbackImageSupplied = true): string
+	public function getPreviewImage(string $basePath, string $size = 'detail', bool $fallbackImageSupplied = true, ?CategoryType $categoryType = null): string
 	{
-		if (!\in_array($size, ['origin', 'detail', 'thumb'])) {
+		if (!Arrays::contains(['origin', 'detail', 'thumb'], $size)) {
 			throw new ApplicationException('Invalid product image size: ' . $size);
 		}
 
 		$fallbackImage = $fallbackImageSupplied ?
 			($this->__isset('fallbackImage') ? $this->getValue('fallbackImage') : null) :
-			($this->primaryCategory ? $this->primaryCategory->productFallbackImageFileName : null);
+			(($primaryCategory = $this->getPrimaryCategory($categoryType)) ? $primaryCategory->productFallbackImageFileName : null);
 
 		$image = $this->imageFileName ?: $fallbackImage;
 		$dir = $this->imageFileName ? Product::GALLERY_DIR : Category::IMAGE_DIR;
@@ -975,9 +923,9 @@ class Product extends \StORM\Entity
 			return $displayDelivery->label;
 		}
 
-		$nowThresholdTime = DateTime::createFromFormat('G:i', $displayDelivery->timeThreshold);
+		$nowThresholdTime = \Carbon\Carbon::createFromFormat('G:i', $displayDelivery->timeThreshold);
 
-		return $nowThresholdTime > (new DateTime()) ? $displayDelivery->beforeTimeThresholdLabel : $displayDelivery->afterTimeThresholdLabel;
+		return $nowThresholdTime > (new \Carbon\Carbon()) ? $displayDelivery->beforeTimeThresholdLabel : $displayDelivery->afterTimeThresholdLabel;
 	}
 
 	public function getLoyaltyProgramPointsGain(LoyaltyProgram $loyaltyProgram): float
@@ -1015,8 +963,8 @@ class Product extends \StORM\Entity
 				$tmp .= $value->label . ', ';
 			}
 
-			if (\strlen($tmp) > 0) {
-				$tmp = \substr($tmp, 0, -2);
+			if (Strings::length($tmp) > 0) {
+				$tmp = Strings::substring($tmp, 0, -2);
 			}
 
 			$productAttributesByCode[$attribute->code] = $tmp;
@@ -1116,15 +1064,14 @@ class Product extends \StORM\Entity
 		}
 	}
 	
-	public function getGoogleExportCategory(): ?string
+	public function getGoogleExportCategory(?CategoryType $categoryType = null): ?string
 	{
 		if ($this->exportGoogleCategory) {
 			return $this->exportGoogleCategory;
 		}
 		
-		if ($this->primaryCategory) {
-			$category = $this->primaryCategory;
-			$exportGoogleCategory = $this->primaryCategory->exportGoogleCategory;
+		if ($category = $this->getPrimaryCategory($categoryType)) {
+			$exportGoogleCategory = $category->exportGoogleCategory;
 			
 			while ($exportGoogleCategory === null && $category->ancestor !== null) {
 				$category = $category->ancestor;
@@ -1135,6 +1082,103 @@ class Product extends \StORM\Entity
 		}
 		
 		return null;
+	}
+
+	/**
+	 * @param \Base\DB\Shop|null $shop Used only if content property is not set directly
+	 */
+	public function getContent(Shop|null $shop = null): ?string
+	{
+		if ($this->__isset('content')) {
+			return $this->getValue('content');
+		}
+
+		$this->productRepository->hydrateProductWithContent($this, $shop);
+
+		return $this->getValue('content');
+	}
+
+	/**
+	 * @param \Base\DB\Shop|null $shop Used only if perex property is not set directly
+	 */
+	public function getPerex(Shop|null $shop = null): ?string
+	{
+		if ($this->__isset('perex')) {
+			return $this->getValue('perex');
+		}
+
+		$this->productRepository->hydrateProductWithContent($this, $shop);
+
+		return $this->getValue('perex');
+	}
+
+	public function isHidden(): bool
+	{
+		return (bool) $this->loadVisibilityListItemProperty('hidden');
+	}
+
+	public function isHiddenInMenu(): bool
+	{
+		return (bool) $this->loadVisibilityListItemProperty('hiddenInMenu');
+	}
+
+	public function isRecommended(): bool
+	{
+		return (bool) $this->loadVisibilityListItemProperty('recommended');
+	}
+
+	public function getPriority(): int
+	{
+		return (int) $this->loadVisibilityListItemProperty('priority');
+	}
+
+	public function isUnavailable(): bool
+	{
+		return (bool) $this->loadVisibilityListItemProperty('unavailable');
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function toArray(
+		array $relations = [],
+		bool $groupLocales = true,
+		bool $includeNonColumns = false,
+		bool $includePK = true,
+		?callable $relationCallback = null,
+		?Shop $shop = null,
+		bool $selectContent = true,
+	): array {
+		$array = parent::toArray($relations, $groupLocales, $includeNonColumns, $includePK, $relationCallback);
+
+		if ($selectContent) {
+			$array['content'] = $this->getContent($shop);
+			$array['perex'] = $this->getPerex($shop);
+		}
+
+		return $array;
+	}
+
+	/**
+	 * @param 'hidden'|'hiddenInMenu'|'unavailable'|'priority'|'recommended' $property
+	 */
+	private function loadVisibilityListItemProperty(string $property): int|string|bool|float|null
+	{
+		try {
+			return $this->getValue($property);
+		} catch (NotExistsException) {
+			if (isset($this->visibilityListItem)) {
+				return $this->visibilityListItem->$property;
+			}
+
+			$this->productRepository->hydrateProductWithVisibilityListItemProperties($this);
+
+			if (isset($this->visibilityListItem)) {
+				return $this->visibilityListItem->$property;
+			}
+
+			return null;
+		}
 	}
 
 	private function getQuantityPrice(int $amount, string $property): ?float
@@ -1156,5 +1200,20 @@ class Product extends \StORM\Entity
 		}
 
 		return $products;
+	}
+
+	public function __get(string $name): mixed
+	{
+		$deprecated = match ($name) {
+			'hidden', 'hiddenInMenu', 'recommended', 'unavailable' => 'is',
+			'priority', 'primaryCategory' => 'get',
+			default => false,
+		};
+
+		if ($deprecated) {
+			\trigger_error('Property ' . $name . ' is deprecated, use method ' . self::class . '::' . $deprecated . Strings::firstUpper($name) . '() instead', \E_USER_DEPRECATED);
+		}
+
+		return parent::__get($name);
 	}
 }

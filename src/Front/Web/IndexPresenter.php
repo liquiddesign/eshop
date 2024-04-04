@@ -21,40 +21,40 @@ use Web\DB\SettingRepository;
 
 abstract class IndexPresenter extends FrontendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IProductsFactory $productsFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryRepository $categoryRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public HomepageSlideRepository $homepageSlideRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProducerRepository $producerRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public NewsRepository $newsRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DeliveryTypeRepository $deliveryTypeRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PaymentTypeRepository $paymentTypeRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountRepository $discountRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DeliveryDiscountRepository $deliveryDiscountRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SettingRepository $settingsRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public MenuItemRepository $menuRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Pages $pages;
 
 	public function createComponentProducts(): ProductList
@@ -75,7 +75,7 @@ abstract class IndexPresenter extends FrontendPresenter
 	{
 		$this->template->recommendedDeliveryTypes = $this->deliveryTypeRepository->getCollection()->where('recommended', true);
 		$this->template->recommendedPaymentTypes = $this->paymentTypeRepository->getCollection()->where('recommended', true);
-		$this->template->deliveryDiscount = $this->deliveryDiscountRepository->getDeliveryDiscount($this->shopper->getCurrency());
+		$this->template->deliveryDiscount = $this->deliveryDiscountRepository->getDeliveryDiscount($this->shopperUser->getCurrency());
 		$this->template->recommendedDiscounts = $this->discountRepository->getActiveDiscounts()->where('recommended', true);
 		$this->template->recommendedProducers = $this->producerRepository->getCollection()->where('recommended', true);
 		$this->template->recommendedCategories = $this->categoryRepo->getCategories()->where('recommended', true)->setTake(15);

@@ -25,7 +25,7 @@ class DisplayAmountRepository extends \StORM\Repository implements IGeneralRepos
 	}
 	
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{

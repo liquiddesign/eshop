@@ -13,7 +13,7 @@ use Nette\Forms\Form;
 
 class DisplayDeliveryPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DisplayDeliveryRepository $displayDeliveryRepository;
 
 	public function createComponentGrid(): AdminGrid
@@ -55,6 +55,8 @@ class DisplayDeliveryPresenter extends BackendPresenter
 
 		$form->addLocaleText('beforeTimeThresholdLabel', 'Popisek před');
 		$form->addLocaleText('afterTimeThresholdLabel', 'Popisek po');
+
+		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$this->getParameter('displayDelivery'));
 

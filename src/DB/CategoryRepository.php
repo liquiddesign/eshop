@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
-use Eshop\Shopper;
+use Eshop\Admin\SettingsPresenter;
+use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
+use Eshop\Services\ProductsCache\ProductsCacheProvider;
+use Eshop\ShopperUser;
 use Latte\Loaders\StringLoader;
 use Latte\Sandbox\SecurityPolicy;
 use League\Csv\Reader;
 use League\Csv\Writer;
 use Nette\Bridges\ApplicationLatte\LatteFactory;
 use Nette\Bridges\ApplicationLatte\UIExtension;
-use Nette\Bridges\ApplicationLatte\UIMacros;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\DI\Container;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use Pages\Helpers;
@@ -22,7 +26,10 @@ use StORM\ArrayWrapper;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
+use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\DB\PageRepository;
+use Web\DB\SettingRepository;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Category>
@@ -35,195 +42,111 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	public array $categoryMap;
 
 	private Cache $cache;
-
-	private Shopper $shopper;
-
-	private PageRepository $pageRepository;
-
-	private ProducerRepository $producerRepository;
-
-	private ProductRepository $productRepository;
-
-	private LatteFactory $latteFactory;
-	
-	/** @var int[] */
-	private array $preloadCategoryCounts;
 	
 	public function __construct(
-		DIConnection $connection,
-		SchemaManager $schemaManager,
-		Shopper $shopper,
+		protected DIConnection $connection,
+		protected SchemaManager $schemaManager,
+		protected readonly PageRepository $pageRepository,
+		protected readonly ProducerRepository $producerRepository,
+		protected readonly ProductRepository $productRepository,
+		protected readonly ShopperUser $shopperUser,
+		protected readonly LatteFactory $latteFactory,
+		protected readonly ShopsConfig $shopsConfig,
+		protected readonly SettingRepository $settingRepository,
+		protected readonly Container $container,
 		Storage $storage,
-		PageRepository $pageRepository,
-		ProducerRepository $producerRepository,
-		ProductRepository $productRepository,
-		LatteFactory $latteFactory,
-		array $preloadCategoryCounts = []
+		/** @var array<int> */
+		protected readonly array $preloadCategoryCounts = []
 	) {
 		parent::__construct($connection, $schemaManager);
 
 		$this->cache = new Cache($storage);
-		$this->shopper = $shopper;
-		$this->pageRepository = $pageRepository;
-		$this->producerRepository = $producerRepository;
-		$this->productRepository = $productRepository;
-		$this->preloadCategoryCounts = $preloadCategoryCounts;
-		$this->latteFactory = $latteFactory;
 	}
 
 	/**
-	 * @param bool $includeInactive
-	 * @return array<array<array<object>>>
-	 * @throws \Throwable
-	 * @deprecated use category generator
-	 */
-	public function getProducerPages(bool $includeInactive = true): array
-	{
-		return $this->cache->load('categoryProducerPages', function (&$dependencies) use ($includeInactive) {
-			$dependencies = [
-				Cache::TAGS => 'categories',
-			];
-
-			$mutationSuffix = $this->pageRepository->getConnection()->getMutationSuffix();
-
-			$pages = $this->pageRepository->many()->where('type', 'product_list')->setOrderBy(['this.priority']);
-
-			if (!$includeInactive) {
-				$pages->where("active$mutationSuffix", true);
-			}
-
-			$producerPages = [];
-
-			while ($page = $pages->fetch()) {
-				/** @var \Web\DB\Page $page */
-
-				$params = $page->getParsedParameters();
-
-				if (!isset($params['category']) || !isset($params['producer'])) {
-					continue;
-				}
-
-				$producerPages[$params['category']][] = [$page, $this->producerRepository->one($params['producer'])];
-			}
-
-			return $producerPages;
-		});
-	}
-
-	/**
-	 * @param string|null $groupBy
-	 * @param array $filters
-	 * @param array|null $pricelists
-	 * @return array<array<int>>
-	 * @deprecated Use getCounts() instead
+	 * @param string $path
+	 * @param array<mixed> $filters
+	 * @param array<string, string>|array<string, \Eshop\DB\Pricelist> $priceLists
+	 * @param array<string, string>|array<string, \Eshop\DB\VisibilityList> $visibilityLists
+	 * @throws \StORM\Exception\NotFoundException
 	 * @throws \Throwable
 	 */
-	public function getCountsGrouped(?string $groupBy = null, array $filters = [], ?array $pricelists = null): array
+	public function getCounts(string $path, array $filters = [], array $priceLists = [], array $visibilityLists = []): int|null
 	{
-		unset($groupBy);
-		unset($filters);
-		unset($pricelists);
-
-		return [];
-	}
-
-	public function getCounts(string $path): ?int
-	{
-		$levels = $this->preloadCategoryCounts;
-		$stm = $this->connection;
+		$productsProvider = $this->container->getByType(GeneralProductsCacheProvider::class);
 		$productRepository = $this->productRepository;
-		
-		if (!\in_array(\strlen($path) / 4, $levels)) {
+
+		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
+			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
+			'main';
+
+		$category = $this->many()->where('this.path', $path)->where('this.fk_type', $mainCategoryType)->first();
+
+		if (!$category) {
 			return null;
 		}
+
+		$filters['category'] = $path;
+
+		$priceLists = $priceLists ?: $this->shopperUser->getPricelists()->toArray();
+		$visibilityLists = $visibilityLists ?: $this->shopperUser->getVisibilityLists();
+
+		$cacheIndex = \serialize($filters) . \serialize(\array_keys($priceLists)) . \serialize(\array_keys($visibilityLists)) . $path;
 		
-		$result = $this->cache->load($this->shopper->getPriceCacheIndex('categories'), static function (&$dependencies) use ($stm, $productRepository, $levels) {
+		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($productsProvider, $filters, $priceLists, $visibilityLists, $productRepository) {
 			$dependencies = [
-				Cache::TAGS => ['categories', 'products', 'pricelists'],
+				Cache::Tags => ['categories', 'products', 'pricelists', ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
 			];
-			$result = [];
-			
-			foreach ($levels as $level) {
-				$rows = $stm->rows(['nxn' => 'eshop_product_nxn_eshop_category'], ['uuid' => 'nxn.fk_category', 'path' => 'category.path', 'total' => 'COUNT(DISTINCT nxn.fk_product)'])
-					->join(['this' => 'eshop_product'], 'this.uuid=nxn.fk_product')
-					->join(['category' => 'eshop_category'], 'category.uuid=nxn.fk_category')
-					->setGroupBy(['SUBSTR(category.path,1,:level)'], null, ['level' => $level * 4]);
-				$productRepository->setProductsConditions($rows, false);
-				
-				$result += $rows->setIndex('SUBSTR(category.path,1,:level)')->toArrayOf('total');
+
+			try {
+				$filters['hidden'] = false;
+				$filters['priceGt'] = 0;
+
+				\Tracy\Debugger::timer('getProductsFromCacheTable');
+
+				$result = $productsProvider->getProductsFromCacheTable(
+					$filters,
+					priceLists: $priceLists,
+					visibilityLists: $visibilityLists,
+				);
+
+				if (!isset($result['productPKs'])) {
+					throw new \Exception('No results returned');
+				}
+
+				\Tracy\Debugger::barDump(\Tracy\Debugger::timer('getProductsFromCacheTable'), 'cacheProducts');
+				\Tracy\Debugger::barDump($result);
+
+				return \count($result['productPKs']);
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::EXCEPTION);
+				Debugger::barDump($e);
+
+				$collection = $productRepository->many()
+					->setSelect(['total' => 'COUNT(DISTINCT this.uuid)']);
+
+				$productRepository->setProductsConditions($collection, false, $priceLists);
+				$productRepository->joinVisibilityListItemToProductCollection($collection, $visibilityLists);
+
+				$productRepository->filter($collection, $filters);
+
+				try {
+					return $collection->count();
+				} catch (\Throwable) {
+					return 1;
+				}
 			}
-			
-			return $result;
 		});
-		
-		return (int) ($result[$path] ?? 0);
 	}
 
 	/**
-	 * Updates all paths of children of category.
-	 * @deprecated
-	 * @param \Eshop\DB\Category $category
-	 * @param string|null $typeId
-	 * @throws \StORM\Exception\NotFoundException
+	 * @param string $typeId
+	 * @param bool $cache
+	 * @param bool $includeHidden
+	 * @param bool $onlyMenu
+	 * @return \StORM\ArrayWrapper<\Eshop\DB\Category>
+	 * @throws \Throwable
 	 */
-	public function updateCategoryChildrenPath(Category $category, ?string $typeId = null): void
-	{
-		if ($typeId) {
-			$type = $typeId;
-		} else {
-			if (!$category->getValue('type')) {
-				$category = $this->one($category->getPK());
-			}
-
-			$type = $category->getValue('type');
-		}
-
-		if (!$type) {
-			throw new \InvalidArgumentException('Invalid category type!');
-		}
-
-		/** @var \Eshop\DB\Category[] $tree */
-		$tree = $this->getTree($type, false, true);
-
-		$startCategory = null;
-
-		foreach ($tree as $item) {
-			if ($item->getPK() === $category->getPK()) {
-				$startCategory = $item;
-
-				break;
-			}
-
-			if (!\str_contains($category->path, $item->path)) {
-				continue;
-			}
-
-			$startCategory = $this->findCategoryInTree($item, $category);
-
-			if ($startCategory) {
-				break;
-			}
-		}
-
-		if ($startCategory) {
-			$startCategory->setParent($this);
-			$startCategory->update(['path' => $category->path]);
-
-			foreach ($startCategory->children as $child) {
-				$child->setParent($this);
-				$child->update(['path' => $startCategory->path . \substr($child->path, -4)]);
-
-				if (\count($child->children) <= 0) {
-					continue;
-				}
-
-				$this->doUpdateCategoryChildrenPath($child);
-			}
-		}
-
-		$this->clearCategoriesCache();
-	}
-
 	public function getTree(string $typeId = 'main', bool $cache = true, bool $includeHidden = false, bool $onlyMenu = false): ArrayWrapper
 	{
 		unset($cache);
@@ -285,23 +208,37 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		unset($includeHidden);
+		return $this->toArrayForSelect($this->getCollection($includeHidden));
+	}
 
-		$suffix = $this->getConnection()->getMutationSuffix();
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\Category> $collection
+	 * @return array<string>
+	 */
+	public function toArrayForSelect(Collection $collection): array
+	{
+		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 
-		return $this->many()->orderBy(["name$suffix"])->toArrayOf('name');
+		return $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection(
+			$collection,
+			selectColumnName: "this.name$mutationSuffix",
+			uniqueColumnName: 'this.code',
+			shops: false,
+		));
 	}
 
 	/**
 	 * @param bool $includeHidden
-	 * @param string|null $type
-	 * @return string[]
+	 * @param string|list<string>|null $type
+	 * @return array<string>
+	 * @throws \Throwable
 	 */
-	public function getTreeArrayForSelect(bool $includeHidden = true, ?string $type = null): array
+	public function getTreeArrayForSelect(bool $includeHidden = true, string|null|array $type = null): array
 	{
 		$repository = $this;
+		$typeIndex = \is_array($type) ? \serialize($type) : $type;
 
-		return $this->cache->load(($includeHidden ? '1' : '0') . "_$type", static function (&$dependencies) use ($includeHidden, $type, $repository) {
+		return $this->cache->load(($includeHidden ? '1' : '0') . "_$typeIndex", static function (&$dependencies) use ($includeHidden, $type, $repository) {
 			$dependencies = [
 				Cache::TAGS => ['categories'],
 			];
@@ -325,7 +262,10 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 				$currentCategories = \array_reverse($currentCategories);
 
-				$list[$category->getPK()] = $category->type->name . ': ' . \implode(' -> ', $currentCategories) . ' (' . $category->code . ($category->isSystemic() ? ', systémová' : '') . ')';
+				$list[$category->getPK()] = $category->type->name . ': ' .
+					\implode(' -> ', $currentCategories) .
+					' (' . $category->code . ($category->isSystemic() ? ', systémová' : '') . ') ' .
+					($category->type->getValue('shop') ? "(O: {$category->type->getValue('shop')})" : null);
 			}
 
 			return $list;
@@ -343,40 +283,17 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		}
 
 		return $this->many()
-			->where('path', \substr($category->path, 0, 4))
+			->where('path', Strings::substring($category->path, 0, 4))
 			->first();
-	}
-
-	public function getParameterCategoriesOfCategory($category): ?Collection
-	{
-		if (!$category instanceof Category) {
-			if (!$category = $this->one($category)) {
-				return null;
-			}
-		}
-
-		if ($category->ancestor === null) {
-			return $category->parameterCategories;
-		}
-
-		do {
-			if (\count($category->parameterCategories->toArray()) > 0) {
-				return $category->parameterCategories;
-			}
-
-			$category = $category->ancestor;
-		} while ($category !== null);
-
-		return null;
 	}
 
 	public function generateCategoryProducerPages(?array $activeProducers = null): void
 	{
-		/** @var \Eshop\DB\Category[] $categories */
+		/** @var array<\Eshop\DB\Category> $categories */
 		$categories = $this->getCollection(true);
 
 		foreach ($categories as $category) {
-			/** @var \Eshop\DB\Producer[] $producers */
+			/** @var array<\Eshop\DB\Producer> $producers */
 			$producers = $this->producerRepository->many()
 				->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid')
 				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid')
@@ -444,7 +361,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	/**
 	 * @param \Eshop\DB\Category|string $category
 	 * @param array<\Eshop\DB\Category>|null $allCategories
-	 * @return array|\Eshop\DB\Category[]
+	 * @return array<\Eshop\DB\Category>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function getBranch($category, ?array $allCategories = null): array
@@ -521,7 +438,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			$previousCategory = null;
 
 			foreach ($columns as $column) {
-				if (!isset($value[$column]) || \strlen($value[$column]) === 0) {
+				if (!isset($value[$column]) || Strings::length($value[$column]) === 0) {
 					break;
 				}
 
@@ -598,33 +515,36 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		return $random;
 	}
-
+	
 	public function exportTreeCsv(Writer $writer, array $items): void
 	{
 		$writer->setDelimiter(';');
-
+		
 		$columns = [
+			'Code',
 			'Subcategory 1',
 			'Subcategory 2',
 			'Subcategory 3',
 			'Subcategory 4',
 			'Subcategory 5',
 		];
-
+		
 		$writer->insertOne($columns);
-
+		
 		$defaultMutationSuffix = '_cs';
-
+		
 		/** @var \Eshop\DB\Category $category */
 		foreach ($items as $category) {
 			$tree = \array_reverse(\explode(';', $category->getFamilyTree()->select(['tree' => 'GROUP_CONCAT(name' . $defaultMutationSuffix . ' SEPARATOR ";")'])->first()->getValue('tree')));
-
+			
 			$row = [];
-
+			
+			$row[0] = $category->code;
+			
 			foreach (\array_keys($columns) as $i) {
-				$row[] = $tree[$i] ?? null;
+				$row[$i + 1] = $tree[$i] ?? null;
 			}
-
+			
 			$writer->insertOne($row);
 		}
 	}
@@ -682,11 +602,11 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$connection = $this->getConnection();
 		$mutations = $connection->getAvailableMutations();
 
-		/** @var \Eshop\DB\Category[] $categories */
+		/** @var array<\Eshop\DB\Category> $categories */
 		$categories = $this->many()->where('uuid', $categories);
 
 		foreach ($categories as $category) {
-			/** @var \Eshop\DB\Producer[]|\StORM\ICollection $producers */
+			/** @var array<\Eshop\DB\Producer>|\StORM\ICollection $producers */
 			$producers = $this->producerRepository->many()
 				->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid', [], 'INNER')
 				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid');
@@ -793,14 +713,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$policy->allowFilters(['price', 'date']);
 
 		$latte = $this->latteFactory->create();
-
-		/** @phpstan-ignore-next-line @TODO LATTEV3 */
-		if (\version_compare(\Latte\Engine::VERSION, '3', '<')) {
-			/** @phpstan-ignore-next-line @TODO LATTEV3 */
-			UIMacros::install($latte->getCompiler());
-		} else {
-			$latte->addExtension(new UIExtension(null));
-		}
+		$latte->addExtension(new UIExtension(null));
 
 		$latte->setLoader(new StringLoader());
 		$latte->setPolicy($policy);
@@ -819,8 +732,6 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 			return true;
 		} catch (\Throwable $e) {
-			\bdump($e);
-
 			return false;
 		}
 	}
@@ -967,7 +878,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	 * @param \Eshop\DB\CategoryRepository $repository
 	 * @param bool $includeHidden
 	 * @param bool $onlyMenu
-	 * @return \Eshop\DB\Category[]
+	 * @return array<\Eshop\DB\Category>
 	 */
 	private function getTreeHelper(string $typeId, CategoryRepository $repository, bool $includeHidden = false, bool $onlyMenu = false): array
 	{
@@ -985,9 +896,9 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	}
 
 	/**
-	 * @param \Eshop\DB\Category[] $elements
+	 * @param array<\Eshop\DB\Category> $elements
 	 * @param string|null $ancestorId
-	 * @return \Eshop\DB\Category[]
+	 * @return array<\Eshop\DB\Category>
 	 */
 	private function buildTree(array $elements, ?string $ancestorId, string $typeId): array
 	{
@@ -1006,41 +917,5 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		}
 
 		return $branch;
-	}
-
-	private function findCategoryInTree(Category $category, Category $targetCategory): ?Category
-	{
-		foreach ($category->children as $child) {
-			if ($child->getPK() === $targetCategory->getPK()) {
-				return $child;
-			}
-
-			$returnCategory = $this->findCategoryInTree($child, $targetCategory);
-
-			if ($returnCategory) {
-				return $returnCategory;
-			}
-		}
-
-		return null;
-	}
-
-	/**
-	 * @param \Eshop\DB\Category $category
-	 * @throws \StORM\Exception\NotFoundException
-	 * @deprecated
-	 */
-	private function doUpdateCategoryChildrenPath(Category $category): void
-	{
-		foreach ($category->children as $child) {
-			$child->setParent($this);
-			$child->update(['path' => $category->path . \substr($child->path, -4)]);
-
-			if (\count($child->children) <= 0) {
-				continue;
-			}
-
-			$this->doUpdateCategoryChildrenPath($child);
-		}
 	}
 }

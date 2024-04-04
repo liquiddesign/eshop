@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Eshop\Common\DB\SystemicEntity;
+use Base\Entity\ShopSystemicEntity;
 
 /**
  * Zobrazení skladového množství
  * @table
  */
-class DisplayAmount extends SystemicEntity
+class DisplayAmount extends ShopSystemicEntity
 {
 	/**
 	 * Popisek
@@ -41,6 +41,12 @@ class DisplayAmount extends SystemicEntity
 	 * @column
 	 */
 	public int $priority = 10;
+
+	/**
+	 * ID
+	 * column - don't created by auto migration, only by manual
+	 */
+	public int $id;
 
 	/**
 	 * Doprava

@@ -13,7 +13,7 @@ use StORM\Collection;
 class VatRateRepository extends \StORM\Repository implements IGeneralRepository
 {
 	/**
-	 * @return float[]
+	 * @return array<float>
 	 */
 	public function getDefaultVatRates(): array
 	{
@@ -22,7 +22,7 @@ class VatRateRepository extends \StORM\Repository implements IGeneralRepository
 
 	/**
 	 * @param \Eshop\DB\Country|null $country
-	 * @return float[]
+	 * @return array<float>
 	 */
 	public function getVatRatesByCountry(?Country $country = null): array
 	{

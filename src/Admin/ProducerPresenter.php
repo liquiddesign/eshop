@@ -20,16 +20,16 @@ use StORM\Entity;
 
 class ProducerPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProducerRepository $producerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PageRepository $pageRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryRepository $categoryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Request $request;
 
 	public function createComponentGrid(): AdminGrid
@@ -42,7 +42,7 @@ class ProducerPresenter extends BackendPresenter
 
 		$grid->addColumn('Název', function (Producer $producer, $grid) {
 			return [
-				$grid->getPresenter()->link(':Eshop:Product:list', ['producer' => (string)$producer]),
+				$grid->getPresenter()->link(':Eshop:Product:list', ['producer' => (string) $producer]),
 				$producer->name,
 			];
 		}, '<a href="%s" target="_blank"> %s</a>', 'name');
@@ -108,7 +108,13 @@ class ProducerPresenter extends BackendPresenter
 
 		$form->addLocalePerexEdit('perex', 'Perex');
 		$form->addLocaleRichEdit('content', 'Obsah');
-		$form->addSelect2('mainCategory', 'Hlavní kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('- Kategorie -');
+
+		$form->addSelect2('mainCategory', 'Hlavní kategorie (staré)', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('- Kategorie -')
+			->setHtmlAttribute('data-info', 'Tato možnost bude brzy odebrána!')
+			->setDisabled();
+
+		$form->addMultiSelect2('mainCategories', 'Hlavní kategorie', $this->categoryRepository->getTreeArrayForSelect());
+
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
@@ -181,7 +187,7 @@ class ProducerPresenter extends BackendPresenter
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
-		$form->setDefaults($producer->toArray());
+		$form->setDefaults($producer->toArray(['mainCategories']));
 	}
 
 	public function onDelete(Entity $object): void

@@ -8,83 +8,71 @@ use Eshop\CheckoutManager;
 use Eshop\DB\CartItemRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\WatcherRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Grid\Datalist;
 use Nette\Application\UI\Form;
 use Nette\Application\UI\Multiplier;
-use Nette\Forms\IControl;
+use Nette\Forms\Control;
+use Nette\Utils\Arrays;
 
 /**
  * Class Products
- * @method onItemDelete()
- * @method onDeleteAll()
- * @method onItemAmountChange()
  * @package Eshop\Controls
  */
 class CartItemList extends Datalist
 {
-	public CheckoutManager $checkoutManager;
-
-	public Shopper $shopper;
+	/**
+	 * @var array<callable(): void> Occurs on delete item or coupon
+	 */
+	public array $onItemAmountChange = [];
 
 	/**
-	 * @var callable[]&callable(): void; Occurs on delete item or coupon
+	 * @var array<callable(): void> Occurs on delete item or coupon
 	 */
-	public $onItemAmountChange;
+	public array $onItemDelete = [];
 
 	/**
-	 * @var callable[]&callable(): void; Occurs on delete item or coupon
+	 * @var array<callable(): void> Occurs on delete all items
 	 */
-	public $onItemDelete;
+	public array $onDeleteAll = [];
+	
+	public ?string $cartId = CheckoutManager::ACTIVE_CART_ID;
 
-	/**
-	 * @var callable[]&callable(): void; Occurs on delete all items
-	 */
-	public $onDeleteAll;
-
-	private CartItemRepository $cartItemsRepository;
-
-	private ProductRepository $productRepository;
-
-	private WatcherRepository $watcherRepository;
-
-	public function __construct(CartItemRepository $cartItemsRepository, CheckoutManager $checkoutManager, Shopper $shopper, ProductRepository $productRepository, WatcherRepository $watcherRepository)
-	{
-		$this->checkoutManager = $checkoutManager;
-		$this->cartItemsRepository = $cartItemsRepository;
-		$this->shopper = $shopper;
-		$this->productRepository = $productRepository;
-		$this->watcherRepository = $watcherRepository;
-
-		parent::__construct($this->checkoutManager->getItems());
+	public function __construct(
+		private readonly CartItemRepository $cartItemsRepository,
+		public ShopperUser $shopperUser,
+		private readonly ProductRepository $productRepository,
+		private readonly WatcherRepository $watcherRepository
+	) {
+		parent::__construct($this->shopperUser->getCheckoutManager()->getItems());
 	}
 
 	public function handleDeleteItem(string $itemId): void
 	{
-		$this->checkoutManager->deleteItem($this->cartItemsRepository->createEntityInstance(['uuid' => $itemId]));
+		$this->shopperUser->getCheckoutManager()->deleteItem($this->cartItemsRepository->createEntityInstance(['uuid' => $itemId]), $this->cartId);
 
-		$this->onItemDelete();
+		Arrays::invoke($this->onItemDelete);
 	}
 
 	public function handleDeleteAll(): void
 	{
-		$this->checkoutManager->deleteCart();
+		$this->shopperUser->getCheckoutManager()->deleteCart($this->cartId);
 
-		$this->onDeleteAll();
+		Arrays::invoke($this->onDeleteAll);
 	}
 
 	public function handleRemoveDiscountCoupon(string $couponId): void
 	{
 		unset($couponId);
 
-		$this->checkoutManager->setDiscountCoupon(null);
+		$this->shopperUser->getCheckoutManager()->setDiscountCoupon(null);
 
-		$this->onItemDelete();
+		Arrays::invoke($this->onItemDelete);
 	}
 
 	public function createComponentChangeAmountForm(): Multiplier
 	{
-		$checkoutManager = $this->checkoutManager;
+		$checkoutManager = $this->shopperUser->getCheckoutManager();
 		$cartItemRepository = $this->cartItemsRepository;
 
 		return new Multiplier(function ($itemId) use ($checkoutManager, $cartItemRepository) {
@@ -95,15 +83,7 @@ class CartItemList extends Datalist
 
 			$form = new Form();
 
-			//			$maxCount = $product->maxBuyCount ?? $shopper->getMaxBuyCount();
 			$form->addInteger('amount');
-			//			if ($maxCount !== null) {
-			//				$amountInput->addRule($form::MAX, 'Překročeno povolené množství', $product->maxBuyCount ?? $shopper->getMaxBuyCount());
-			//			}
-			//
-			//			if ($product->buyStep !== null) {
-			//				$amountInput->addRule([$this, 'validateNumber'], 'Není to násobek', $product->buyStep);
-			//			}
 
 			$form->onSuccess[] = function ($form, $values) use ($cartItem, $product, $checkoutManager): void {
 				$amount = \intval($values->amount);
@@ -111,14 +91,14 @@ class CartItemList extends Datalist
 				if ($amount <= 0) {
 					$cartItem->delete();
 
-					$this->onItemAmountChange();
+					Arrays::invoke($this->onItemAmountChange);
 
 					return;
 				}
 
 				$checkoutManager->changeCartItemAmount($product, $cartItem, $amount, false);
 
-				$this->onItemAmountChange();
+				Arrays::invoke($this->onItemAmountChange);
 			};
 
 			return $form;
@@ -136,7 +116,7 @@ class CartItemList extends Datalist
 			$amount = 1;
 		}
 
-		$this->checkoutManager->changeCartItemAmount($cartItem->getProduct(), $cartItem, $amount);
+		$this->shopperUser->getCheckoutManager()->changeCartItemAmount($cartItem->getProduct(), $cartItem, $amount);
 	}
 	
 	public function handleChangeUpsell($cartItem, $upsell, bool $isUnique = false): void
@@ -155,10 +135,10 @@ class CartItemList extends Datalist
 			$cartItem = $this->cartItemsRepository->getUpsellByObjects($cartItem, $upsell);
 			
 			if ($cartItem) {
-				$this->checkoutManager->deleteItem($cartItem);
+				$this->shopperUser->getCheckoutManager()->deleteItem($cartItem);
 			}
 		} else {
-			$this->checkoutManager->addUpsellToCart($cartItem, $upsell);
+			$this->shopperUser->getCheckoutManager()->addUpsellToCart($cartItem, $upsell);
 		}
 		
 		$this->redirect('this');
@@ -169,21 +149,21 @@ class CartItemList extends Datalist
 		return $this->cartItemsRepository->isUpsellActive($cartItem, $upsell);
 	}
 
-	public function validateNumber(IControl $control, int $number): bool
+	public function validateNumber(Control $control, int $number): bool
 	{
 		return $control->getValue() % $number === 0;
 	}
 
 	public function render(): void
 	{
-		$this->template->cartCurrency = $this->checkoutManager->getCartCurrencyCode();
-		$this->template->cartItems = $this->checkoutManager->getItems();
-		$this->template->discountCoupon = $this->checkoutManager->getDiscountCoupon();
-		$this->template->discountPrice = $this->checkoutManager->getDiscountPrice();
-		$this->template->discountPriceVat = $this->checkoutManager->getDiscountPriceVat();
-		$this->template->watchers = ($customer = $this->shopper->getCustomer()) ? $this->watcherRepository->getWatchersByCustomer($customer)->setIndex('fk_product')->toArray() : [];
+		$this->template->cartCurrency = $this->shopperUser->getCheckoutManager()->getCartCurrencyCode($this->cartId);
+		$this->template->cartItems = $this->shopperUser->getCheckoutManager()->getItems($this->cartId);
+		$this->template->discountCoupon = $this->shopperUser->getCheckoutManager()->getDiscountCoupon($this->cartId);
+		$this->template->discountPrice = $this->shopperUser->getCheckoutManager()->getDiscountPrice($this->cartId);
+		$this->template->discountPriceVat = $this->shopperUser->getCheckoutManager()->getDiscountPriceVat($this->cartId);
+		$this->template->watchers = ($customer = $this->shopperUser->getCustomer()) ? $this->watcherRepository->getWatchersByCustomer($customer)->setIndex('fk_product')->toArray() : [];
 
-		/** @var \Eshop\DB\CartItem[] $cartItems */
+		/** @var array<\Eshop\DB\CartItem> $cartItems */
 		$cartItems = $this->getItemsOnPage();
 		$this->template->upsells = $this->productRepository->getCartItemsRelations($cartItems);
 

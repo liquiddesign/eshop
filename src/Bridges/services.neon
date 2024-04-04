@@ -1,0 +1,8 @@
+search:
+    eshop:
+        in: %appDir%/../vendor/liquiddesign/eshop
+        files: [*/DB/*Repository.php, */Controls/*Factory.php, */Admin/Controls/*Factory.php, */Integration/*.php]
+    eshop_services:
+        in: %appDir%/../vendor/liquiddesign/eshop
+        files: [*/*Service.php]
+        implements: Base\Bridges\AutoWireService

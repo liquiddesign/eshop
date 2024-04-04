@@ -4,20 +4,28 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopEntity;
+use Carbon\Carbon;
 use Nette\Security\IIdentity;
 use Security\DB\Account;
 use Security\DB\IUser;
 use StORM\Collection;
-use StORM\Entity;
 use StORM\RelationCollection;
 
 /**
  * Zákazník
  * @table
- * @index{"name":"customer_unique_email","unique":true,"columns":["email"]}
+ * @index{"name":"customer_unique_emailshop","unique":true,"columns":["email", "fk_shop"]}
  * @method array getData()
+ * @method \StORM\RelationCollection<\Eshop\DB\VisibilityList> getVisibilityLists()
+ * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getPricelists()
+ * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getFavouritePricelists()
+ * @method \StORM\RelationCollection<\Eshop\DB\Merchant> getMerchants()
+ * @method \StORM\RelationCollection<\Security\DB\Account> getAccounts()
+ * Due to compatibility within PHP 8.0-8.2 and seamless migration to this version, DynamicProperties are allowed in this class. If they are not, you will have to clear all sessions' data.
  */
-class Customer extends Entity implements IIdentity, IUser
+#[\AllowDynamicProperties]
+class Customer extends ShopEntity implements IIdentity, IUser
 {
 	/**
 	 * Jméno zákazníka / kontaktní osoby
@@ -81,14 +89,14 @@ class Customer extends Entity implements IIdentity, IUser
 	
 	/**
 	 * Faktruační adresa
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public ?Address $billAddress;
 	
 	/**
 	 * Dodací adresa
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public ?Address $deliveryAddress;
@@ -139,9 +147,16 @@ class Customer extends Entity implements IIdentity, IUser
 	/**
 	 * Matka
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Customer $parentCustomer;
+
+	/**
+	 * Opposite side of "parentCustomer" relation
+	 * @relation{"targetKey":"fk_parentCustomer"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\Customer>
+	 */
+	public RelationCollection $childCustomers;
 	
 	/**
 	 * Vedoucí
@@ -160,23 +175,44 @@ class Customer extends Entity implements IIdentity, IUser
 	/**
 	 * Povolené exkluzivní platby
 	 * @relationNxN
-	 * @var \Eshop\DB\PaymentType[]|\StORM\RelationCollection<\Eshop\DB\PaymentType>
+	 * @var \StORM\RelationCollection<\Eshop\DB\PaymentType>
 	 */
 	public RelationCollection $exclusivePaymentTypes;
 	
 	/**
 	 * Povolené exkluzivní dopravy
 	 * @relationNxN
-	 * @var \Eshop\DB\DeliveryType[]|\StORM\RelationCollection<\Eshop\DB\DeliveryType>
+	 * @var \StORM\RelationCollection<\Eshop\DB\DeliveryType>
 	 */
 	public RelationCollection $exclusiveDeliveryTypes;
 	
 	/**
 	 * Ceníky
 	 * @relationNxN
-	 * @var \Eshop\DB\Pricelist[]|\StORM\RelationCollection<\Eshop\DB\Pricelist>
+	 * @var \StORM\RelationCollection<\Eshop\DB\Pricelist>
 	 */
 	public RelationCollection $pricelists;
+
+	/**
+	 * Oblíbené ceníky
+	 * @relationNxN{"via":"eshop_customer_nxn_eshop_pricelist_favourite"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\Pricelist>
+	 */
+	public RelationCollection $favouritePriceLists;
+
+	/**
+	 * Viditelníky
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\VisibilityList>
+	 */
+	public RelationCollection $visibilityLists;
+
+	/**
+	 * Obchodníci
+	 * @relationNxN{"sourceViaKey":"fk_merchant","targetViaKey":"fk_customer","via":"eshop_merchant_nxn_eshop_customer"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\Merchant>
+	 */
+	public RelationCollection $merchants;
 	
 	/**
 	 * Skupina uživatelů
@@ -213,31 +249,10 @@ class Customer extends Entity implements IIdentity, IUser
 	public ?string $preferredMutation;
 	
 	/**
-	 * Přihlášen k newsletteru
-	 * @column
-	 * @deprecated
-	 */
-	public bool $newsletter = false;
-
-	/**
-	 * Newsletter skupina
-	 * @column
-	 * @deprecated
-	 */
-	public ?string $newsletterGroup;
-	
-	/**
 	 * Body
 	 * @column
 	 */
 	public ?int $points;
-	
-	/**
-	 * Ukazovat ceny s DPH
-	 * @deprecated
-	 * @column
-	 */
-	public bool $pricesWithVat = false;
 
 	/**
 	 * Oprávnění: objednávky
@@ -313,16 +328,22 @@ class Customer extends Entity implements IIdentity, IUser
 	 * @column
 	 */
 	public int $ordersCount = 0;
+
+	/**
+	 * Poslední načtení z ARES
+	 * @column{"type":"datetime"}
+	 */
+	public ?string $aresLoadedTs;
 	
 	/**
 	 * @relationNxN{"via":"eshop_catalogpermission"}
-	 * @var \StORM\RelationCollection<\Security\DB\Account>|\Security\DB\Account[]
+	 * @var \StORM\RelationCollection<\Security\DB\Account>
 	 */
 	public RelationCollection $accounts;
 	
 	public ?Account $account = null;
-	
-	protected ?CatalogPermission $catalogPermission;
+
+	protected CatalogPermission|null|false $catalogPermission = false;
 	
 	public function getDeliveryAddressLine(): ?string
 	{
@@ -344,7 +365,7 @@ class Customer extends Entity implements IIdentity, IUser
 	}
 	
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getRoles(): array
 	{
@@ -363,12 +384,16 @@ class Customer extends Entity implements IIdentity, IUser
 	
 	public function getCatalogPermission(): ?CatalogPermission
 	{
+		if ($this->catalogPermission !== false) {
+			return $this->catalogPermission;
+		}
+
 		/** @var \Eshop\DB\CatalogPermission|null $perm */
 		$perm = $this->getValue('account') ?
 			$this->getConnection()->findRepository(CatalogPermission::class)->one(['fk_customer' => $this->getPK(), 'fk_account' => $this->getValue('account')], false) :
 			null;
 
-		return $this->catalogPermission ?? $perm;
+		return $this->catalogPermission = $perm;
 	}
 	
 	public function isCompany(): bool
@@ -444,7 +469,7 @@ class Customer extends Entity implements IIdentity, IUser
 	/**
 	 * @return array<mixed>|\StORM\Collection
 	 */
-	public function getMyChildUsers()
+	public function getMyChildUsers(): array|\StORM\Collection
 	{
 		if ($this->isAffiliateTree()) {
 			return $this->getMyTreeUsers();
@@ -490,9 +515,8 @@ class Customer extends Entity implements IIdentity, IUser
 	/**
 	 * Vraci provizi jakou uzivatel dostane z objednavky
 	 * @param \Eshop\DB\Order $order
-	 * @return float|int
 	 */
-	public function getProvisionAmount(Order $order)
+	public function getProvisionAmount(Order $order): float|int
 	{
 		$provision = 0;
 
@@ -548,7 +572,7 @@ class Customer extends Entity implements IIdentity, IUser
 			'productAmount' => !isset($currency) ? $amount : null,
 			'customer' => $this,
 			'currency' => $currency,
-			'createdTs' => \date('Y-m-d H:i:s'),
+			'createdTs' => Carbon::now()->format('Y-m-d H:i:s'),
 		];
 
 		$repository->createOne($reward);

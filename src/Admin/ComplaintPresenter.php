@@ -24,16 +24,16 @@ class ComplaintPresenter extends BackendPresenter
 		'states' => 'Stavy',
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ComplaintRepository $complaintRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ComplaintStateRepository $complaintStateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ComplaintTypeRepository $complaintTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
 	/** @persistent */
@@ -123,13 +123,15 @@ class ComplaintPresenter extends BackendPresenter
 		$form->addSelect('complaintType', 'Typ', $this->complaintTypeRepository->getArrayForSelect())->setRequired();
 		$form->addSelect('complaintState', 'Stav', $this->complaintStateRepository->getArrayForSelect())->setRequired();
 
-		$form->addTextArea('note', 'Komentář');
+		$form->addTextArea('note', 'Komentář')->setHtmlAttribute('rows', 8);
 
 		$form->addText('customerFullName', 'Jméno zákazníka')->setNullable()->setDisabled((bool) $complaint);
 		$form->addEmail('customerEmail', 'E-mail zákazníka')->setNullable()->setDisabled((bool) $complaint);
 		$form->addText('customerPhone', 'Telefon zákazníka')->setNullable()->setDisabled((bool) $complaint)
 			->setHtmlAttribute('data-info', 'Nepovinné údaje budou doplněny automaticky z objednávky.');
 		$form->addEmail('customerBankAccountNumber', 'Číslo účtu zákazníka')->setNullable()->setDisabled((bool) $complaint);
+
+		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$complaint);
 

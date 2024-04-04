@@ -6,16 +6,21 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
+use Base\ShopsConfig;
 use Eshop\Admin\Controls\ProductForm;
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\CategoryTypeRepository;
+use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\RelatedTypeRepository;
+use Eshop\DB\VisibilityListRepository;
 use Eshop\Integration\Integrations;
 use Forms\Form;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\DI\Attributes\Inject;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use Web\DB\SettingRepository;
@@ -27,7 +32,6 @@ class SettingsPresenter extends BackendPresenter
 	public const SUPPLIER_PRODUCT_DUMMY_DEFAULT_CATEGORY = 'supplierProductDummyDefaultCategory';
 	public const PPL_DELIVERY_TYPE = 'pplDeliveryType';
 	public const DPD_DELIVERY_TYPE = 'dpdDeliveryType';
-
 	public const ZASILKOVNA_DELIVERY_TYPE = 'zasilkovnaDeliveryType';
 	public const GO_PAY_PAYMENT_TYPE = 'goPayPaymentType';
 	public const SUPPLIER_IN_STOCK_DISPLAY_AMOUNT = 'supplierInStockDisplayAmount';
@@ -39,34 +43,54 @@ class SettingsPresenter extends BackendPresenter
 	public const PPL_LAST_USED_PACKAGE_NUMBER_COD = 'pplLastUsedPackageNumberCod';
 	public const COMGATE_PAYMENT_TYPE = 'comgatePaymentType';
 	public const BALIKOVNA_DELIVERY_TYPE = 'balikovnaDeliveryType';
-
 	public const BANK_PAYMENT_TYPE = 'bankPaymentType';
 	public const BANK_ACCOUNT_NUMBER = 'bankAccountNumber';
 	public const BANK_IBAN = 'bankIBAN';
 
-	/** @inject */
+	/** Suffixed with SHOP */
+	public const DEFAULT_UNREGISTERED_GROUP = 'defaultUnregisteredGroup';
+
+	/** Suffixed with SHOP */
+	public const MAIN_CATEGORY_TYPE = 'mainCategoryType';
+
+	/** Suffixed with SHOP */
+	public const MAIN_VISIBILITY_LIST = 'mainVisibilityList';
+
+	#[Inject]
 	public Integrations $integrations;
 
-	/** @inject */
+	#[Inject]
 	public SettingRepository $settingsRepository;
 
-	/** @inject */
+	#[Inject]
 	public DeliveryTypeRepository $deliveryTypeRepository;
 
-	/** @inject */
+	#[Inject]
 	public PaymentTypeRepository $paymentTypeRepository;
 
-	/** @inject */
+	#[Inject]
 	public CategoryRepository $categoryRepository;
 
-	/** @inject */
+	#[Inject]
 	public DisplayAmountRepository $displayAmountRepository;
 
-	/** @inject */
+	#[Inject]
 	public RelatedTypeRepository $relatedTypeRepository;
 
-	/** @inject */
+	#[Inject]
 	public Storage $storage;
+
+	#[Inject]
+	public ShopsConfig $shopsConfig;
+
+	#[Inject]
+	public CategoryTypeRepository $categoryTypeRepository;
+
+	#[Inject]
+	public VisibilityListRepository $visibilityListRepository;
+
+	#[Inject]
+	public CustomerGroupRepository $customerGroupRepository;
 
 	/**
 	 * @var array<string|array<mixed>>
@@ -384,6 +408,11 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 		/** @var \Eshop\Services\Comgate|null $comgate */
 		$comgate = $this->integrations->getService(Integrations::COMGATE);
 
+		if (!$comgate) {
+			/** @var \Eshop\Services\Comgate|null $comgate */
+			$comgate = $this->container->getService('shopper.comgate');
+		}
+
 		if ($comgate) {
 			$this->customSettings['Platba'][] = [
 				'key' => $this::COMGATE_PAYMENT_TYPE,
@@ -407,17 +436,17 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 				$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
 			},
 		];
+		$this->customSettings['Doprava'][] = [
+			'key' => self::PPL_LAST_USED_PACKAGE_NUMBER,
+			'label' => 'PPL - poslední použité číslo balíku',
+			'type' => 'string',
+			'info' => 'Pro následující balík PPL bude použito toto číslo + 1.',
+		];
 
 		/** @var \Eshop\Services\PPL|null $ppl */
 		$ppl = $this->integrations->getService(Integrations::PPL);
 
 		if ($ppl) {
-			$this->customSettings['Doprava'][] = [
-				'key' => self::PPL_LAST_USED_PACKAGE_NUMBER,
-				'label' => 'PPL - poslední použité číslo balíku',
-				'type' => 'string',
-				'info' => 'Pro následující balík PPL bude použito toto číslo + 1.',
-			];
 			$this->customSettings['Doprava'][] = [
 				'key' => self::PPL_LAST_USED_PACKAGE_NUMBER_COD,
 				'label' => 'PPL - poslední použité číslo balíku s dobírkou',
@@ -425,18 +454,6 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 				'info' => 'Pro následující balík PPL bude použito toto číslo + 1.',
 			];
 		}
-
-		$this->customSettings['Doprava'][] = [
-			'key' => self::BALIKOVNA_DELIVERY_TYPE,
-			'label' => 'Typ dopravy Balíkovna',
-			'type' => 'select',
-			'options' => $this->deliveryTypeRepository->getArrayForSelect(),
-			'info' => '',
-			'onSave' => function ($key, $oldValue, $newValue): void {
-				$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
-			},
-		];
-
 
 		$this->customSettings['Doprava'][] = [
 			'key' => self::ZASILKOVNA_DELIVERY_TYPE,
@@ -452,20 +469,65 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 		/** @var \Eshop\Services\DPD|null $dpd */
 		$dpd = $this->integrations->getService(Integrations::DPD);
 
-		if (!$dpd) {
+		if ($dpd) {
+			$this->customSettings['Doprava'][] = [
+				'key' => self::DPD_DELIVERY_TYPE,
+				'label' => 'Typ dopravy DPD',
+				'type' => 'select',
+				'options' => $this->deliveryTypeRepository->getArrayForSelect(),
+				'info' => 'Při exportu objednávek do DPD budou odeslány jen objednávky s tímto typem dopravy.',
+				'onSave' => function ($key, $oldValue, $newValue): void {
+					$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
+				},
+			];
+		}
+
+		if (!$shops = $this->shopsConfig->getAvailableShops()) {
 			return;
 		}
 
-		$this->customSettings['Doprava'][] = [
-			'key' => self::DPD_DELIVERY_TYPE,
-			'label' => 'Typ dopravy DPD',
-			'type' => 'select',
-			'options' => $this->deliveryTypeRepository->getArrayForSelect(),
-			'info' => 'Při exportu objednávek do DPD budou odeslány jen objednávky s tímto typem dopravy.',
-			'onSave' => function ($key, $oldValue, $newValue): void {
-				$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
-			},
-		];
+		foreach ($shops as $shop) {
+			$this->customSettings['Obchod: ' . $shop->name][] = [
+				'key' => self::BALIKOVNA_DELIVERY_TYPE . '_' . $shop->getPK(),
+				'label' => 'Typ dopravy Balíkovna',
+				'type' => 'select',
+				'options' => $this->deliveryTypeRepository->getArrayForSelect(),
+				'info' => '',
+				'onSave' => function ($key, $oldValue, $newValue): void {
+					$this->systemicCallback($key, $oldValue, $newValue, $this->deliveryTypeRepository);
+				},
+			];
+
+			$this->customSettings['Obchod: ' . $shop->name][] = [
+				'key' => self::MAIN_CATEGORY_TYPE . '_' . $shop->getPK(),
+				'label' => 'Hlavní typ kategorií',
+				'type' => 'select',
+				'options' => $this->categoryTypeRepository->getArrayForSelect(),
+				'onSave' => function ($key, $oldValue, $newValue): void {
+					$this->systemicCallback($key, $oldValue, $newValue, $this->categoryTypeRepository);
+				},
+			];
+
+			$this->customSettings['Obchod: ' . $shop->name][] = [
+				'key' => self::MAIN_VISIBILITY_LIST . '_' . $shop->getPK(),
+				'label' => 'Hlavní seznam viditelnosti',
+				'type' => 'select',
+				'options' => $this->visibilityListRepository->getArrayForSelect(),
+				'onSave' => function ($key, $oldValue, $newValue): void {
+					$this->systemicCallback($key, $oldValue, $newValue, $this->visibilityListRepository);
+				},
+			];
+
+			$this->customSettings['Obchod: ' . $shop->name][] = [
+				'key' => self::DEFAULT_UNREGISTERED_GROUP . '_' . $shop->getPK(),
+				'label' => 'Hlavní skupina zákazníků pro neregistrované',
+				'type' => 'select',
+				'options' => $this->customerGroupRepository->getArrayForSelect(),
+				'onSave' => function ($key, $oldValue, $newValue): void {
+					$this->systemicCallback($key, $oldValue, $newValue, $this->customerGroupRepository);
+				},
+			];
+		}
 	}
 
 	private function processSetting(array $setting, AdminForm $form): void

@@ -19,14 +19,14 @@ class NewsletterPresenter extends BackendPresenter
 	public ?string $tab = null;
 
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	public array $tabs = [];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public NewsletterUserGroupRepository $newsletterUserGroupRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public NewsletterUserRepository $newsletterUserRepository;
 
 	public function createComponentUserGrid(): AdminGrid

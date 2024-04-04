@@ -17,7 +17,7 @@ class CurrencyPresenter extends BackendPresenter
 		'loyaltyProgram' => false,
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepository;
 
 	public function createComponentGrid(): AdminGrid

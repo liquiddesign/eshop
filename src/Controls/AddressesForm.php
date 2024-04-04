@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\CheckoutManager;
 use Eshop\DB\CustomerRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Application\UI\Form;
 use Nette\Localization\Translator;
 use Nette\Security\Passwords;
@@ -17,36 +16,27 @@ class AddressesForm extends Form
 	/**
 	 * @var array<callable(self, array|object): void|callable(array|object): void>
 	 */
-	public $onValidate = [];
+	public array $onValidate = [];
 
 	/**
 	 * @var array<callable(self, array|object): void|callable(array|object): void>
 	 */
-	public $onSuccess = [];
+	public array $onSuccess = [];
 
-	private CheckoutManager $checkoutManager;
-	
-	private AccountRepository $accountRepository;
-	
-	private Passwords $passwords;
-
-	private CustomerRepository $customerRepository;
-
-	private Shopper $shopper;
-	
 	public function __construct(
-		Shopper $shopper,
-		CheckoutManager $checkoutManager,
-		AccountRepository $accountRepository,
+		private readonly ShopperUser $shopperUser,
+		private readonly AccountRepository $accountRepository,
 		Translator $translator,
-		Passwords $passwords,
-		CustomerRepository $customerRepository
+		private readonly Passwords $passwords,
+		private readonly CustomerRepository $customerRepository
 	) {
 		parent::__construct();
-		
-		$this->checkoutManager = $checkoutManager;
-		$this->accountRepository = $accountRepository;
-		
+
+		$customer = $shopperUser->getCustomer();
+		$selectedCustomer = $this->shopperUser->getSessionSelectedCustomer();
+
+		$customer = $selectedCustomer ?? $customer;
+
 		$this->addText('email', 'AddressesForm.email')->setRequired()->addRule($this::EMAIL);
 		$this->addText('ccEmails', 'AddressesForm.ccEmails');
 		$this->addText('fullname', 'AddressesForm.fullname')->setRequired()->setMaxLength(32);
@@ -61,8 +51,8 @@ class AddressesForm extends Form
 			->addRule(self::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
 		$billAddressBox->addText('state', 'AddressesForm.bill_state');
 		
-		$otherAddress = $this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool)$this->checkoutManager->getPurchase()->deliveryAddress);
-		$isCompany = $this->addCheckbox('isCompany', 'AddressesForm.isCompany')->setDefaultValue($shopper->getCustomer() && $shopper->getCustomer()->isCompany());
+		$otherAddress = $this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool) $this->shopperUser->getCheckoutManager()->getPurchase()->deliveryAddress);
+		$isCompany = $this->addCheckbox('isCompany', 'AddressesForm.isCompany')->setDefaultValue($customer?->isCompany());
 		$createAccount = $this->addCheckbox('createAccount', 'AddressesForm.createAccount');
 		$this->addPassword('password', 'AddressesForm.password')
 			->addConditionOn($createAccount, $this::EQUAL, true)
@@ -72,7 +62,8 @@ class AddressesForm extends Form
 			->addRule($this::EQUAL, 'Hesla se neshodují', $this['password'])
 			->setRequired();
 		$this->addCheckbox('sendNewsletters', 'AddressesForm.sendNewsletters');
-		
+		$this->addCheckbox('sendSurvey', 'AddressesForm.sendSurvey');
+
 		// address delivery
 		$deliveryAddressBox = $this->addContainer('deliveryAddress');
 		$deliveryAddressBox->addText('name', 'AddressesForm.delivery_name')->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired();
@@ -90,10 +81,10 @@ class AddressesForm extends Form
 		$this->addText('bankAccount', 'AddressesForm.bankAccount');
 		$this->addText('bankAccountCode', 'AddressesForm.bankAccountCode');
 		$this->addText('bankSpecificSymbol', 'AddressesForm.bankSpecificSymbol');
+
+		$this->addHidden('parentCustomer', $customer && $selectedCustomer && $customer->getPK() !== $selectedCustomer->getPK() ? $customer->getPK() : null)->setNullable();
 		
-		$customer = $shopper->getCustomer();
-		
-		if ($customer && !$checkoutManager->getPurchase()->email) {
+		if ($customer && !$this->shopperUser->getCheckoutManager()->getPurchase()->email) {
 			$customerArray = $customer->toArray(['billAddress', 'deliveryAddress']);
 			$customerArray['fullname'] = $customer->getName();
 
@@ -108,7 +99,7 @@ class AddressesForm extends Form
 			}
 		}
 		
-		$purchase = $checkoutManager->getPurchase();
+		$purchase = $this->shopperUser->getCheckoutManager()->getPurchase();
 		
 		if ($purchase->email) {
 			$this->setDefaults($purchase);
@@ -125,9 +116,6 @@ class AddressesForm extends Form
 		$this->addSubmit('submit');
 		$this->onSuccess[] = [$this, 'success'];
 		$this->onValidate[] = [$this, 'validateForm'];
-		$this->passwords = $passwords;
-		$this->customerRepository = $customerRepository;
-		$this->shopper = $shopper;
 	}
 
 	public function validateForm(AddressesForm $form): void
@@ -144,11 +132,11 @@ class AddressesForm extends Form
 						!$this->accountRepository->one(['login' => $values['email']]) &&
 						!$this->customerRepository->one(['email' => $values['email']])
 					) ||
-					$this->shopper->isAlwaysCreateCustomerOnOrderCreated()
+					$this->shopperUser->isAlwaysCreateCustomerOnOrderCreated()
 				) &&
 				(
 					!$this->accountRepository->one(['login' => $values['email']]) ||
-					!$this->shopper->isAlwaysCreateCustomerOnOrderCreated()
+					!$this->shopperUser->isAlwaysCreateCustomerOnOrderCreated()
 				)
 			)
 		) {
@@ -168,6 +156,6 @@ class AddressesForm extends Form
 			$values['deliveryAddress'] = null;
 		}
 		
-		$this->checkoutManager->syncPurchase($values);
+		$this->shopperUser->getCheckoutManager()->syncPurchase($values);
 	}
 }

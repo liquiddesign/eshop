@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopEntity;
 use StORM\RelationCollection;
 
 /**
  * Stužky k produktu
  * @table
  */
-class InternalRibbon extends \StORM\Entity
+class InternalRibbon extends ShopEntity
 {
 	public const TYPE_PRODUCT = 'product';
 	public const TYPE_ORDER = 'order';

@@ -17,6 +17,7 @@ use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\SupplierRepository;
+use Eshop\Services\SettingsService;
 use Forms\Form;
 use Grid\Datagrid;
 use Nette\Forms\Controls\TextArea;
@@ -50,29 +51,35 @@ class AttributePresenter extends BackendPresenter
 		'customField1' => null,
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
+	public \Nette\Caching\Storage $storage;
+
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeRepository $attributeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeValueRepository $attributeValueRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryRepository $categoryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PageRepository $pageRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PageTemplateRepository $pageTemplateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeValueRangeRepository $attributeValueRangeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeGroupRepository $attributeGroupRepository;
+
+	#[\Nette\DI\Attributes\Inject]
+	public SettingsService $settingsService;
 
 	/** @persistent */
 	public string $tab = 'attributes';
@@ -123,7 +130,7 @@ class AttributePresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($source, 20, null, null, true);
 
 		$grid->setItemCountCallback(function (ICollection $filteredSource) use ($connection): int {
-			return (int)$connection->rows()
+			return (int) $connection->rows()
 				->select(['count' => 'count(*)'])
 				->from(['derived' => $filteredSource->select(['assignCount' => 'COUNT(assign.uuid)'])], $filteredSource->getVars())
 				->firstValue('count');
@@ -158,15 +165,17 @@ class AttributePresenter extends BackendPresenter
 			}
 		};
 
-		$column = $grid->addColumn('', function (Attribute $object, Datagrid $datagrid) use ($btnSecondary) {
-			return "<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'ranges', 'rangesGrid-attribute' => $object->code,]) . "'>Rozsahy</a>";
-		}, '%s', null, ['class' => 'minimal']);
+		if (isset($this::TABS['ranges'])) {
+			$column = $grid->addColumn('', function (Attribute $object, Datagrid $datagrid) use ($btnSecondary) {
+				return "<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'ranges', 'rangesGrid-attribute' => $object->code,]) . "'>Rozsahy</a>";
+			}, '%s', null, ['class' => 'minimal']);
 
-		$column->onRenderCell[] = function (\Nette\Utils\Html $td, Attribute $object): void {
-			if ($object->isHardSystemic()) {
-				$td[0] = '';
-			}
-		};
+			$column->onRenderCell[] = function (\Nette\Utils\Html $td, Attribute $object): void {
+				if ($object->isHardSystemic()) {
+					$td[0] = '';
+				}
+			};
+		}
 
 		$grid->addColumnLinkDetail('attributeDetail');
 		$grid->addColumnActionDeleteSystemic();
@@ -212,16 +221,24 @@ class AttributePresenter extends BackendPresenter
 		}
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('this.hidden', (bool)$value);
+			$source->where('this.hidden', (bool) $value);
 		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
 
 		$grid->addFilterDataSelect(function (Collection $source, $value): void {
 			if ($value === null) {
 				$source->setGroupBy(['this.uuid']);
 			} else {
-				$source->setGroupBy(['this.uuid'], $value === 1 ? 'assignCount != 0' : 'assignCount = 0');
+				$source->setGroupBy(['this.uuid'], $value === '1' ? 'assignCount != 0' : 'assignCount = 0');
 			}
-		}, '', 'assign', null, [0 => 'Pouze nepřiřazené', 1 => 'Pouze přiřazené',])->setPrompt('- Přiřazené -');
+		}, '', 'assign', null, [0 => 'Pouze nepřiřazené', 1 => 'Pouze přiřazené',])->setPrompt('- Přiřazené produktům -');
+
+		$grid->addFilterDataSelect(function (Collection $source, $value): void {
+			if ($value === null) {
+				return;
+			}
+
+			$source->where('attributeXcategory.fk_category ' . ($value === '1' ? 'IS NOT NULL' : 'IS NULL'));
+		}, '', 'categoryAssigned', null, [0 => 'Pouze nepřiřazené', 1 => 'Pouze přiřazené',])->setPrompt('- Přiřazené kategorii -');
 
 		$grid->addFilterButtons(['default']);
 
@@ -246,7 +263,8 @@ class AttributePresenter extends BackendPresenter
 		$form->addText('code', 'Kód')->setRequired();
 		$form->addLocaleText('name', 'Název');
 		$form->addLocaleTextArea('note', 'Dodatečné informace');
-		$form->addMultiSelect2('categories', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect());
+
+		$form->addDataMultiSelect('categories', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect());
 		$form->addMultiSelect2('groups', 'Skupiny', $this->attributeGroupRepository->getArrayForSelect());
 		$form->addText('priority', 'Priorita')
 			->addRule($form::INTEGER)
@@ -305,6 +323,8 @@ class AttributePresenter extends BackendPresenter
 
 			$object = $this->attributeRepository->syncOne($values, null, true);
 
+			$this->clearNetteCache();
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('attributeDetail', 'default', [$object]);
 		};
@@ -330,7 +350,7 @@ class AttributePresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($source, 20, 'code', 'ASC', true);
 
 		$grid->setItemCountCallback(function (ICollection $filteredSource) {
-			return (int)$this->attributeRepository->getConnection()->rows()
+			return (int) $this->attributeRepository->getConnection()->rows()
 				->select(['count' => 'count(*)'])
 				->from(['derived' => $filteredSource->setSelect(['uuid' => 'this.uuid', 'assignCount' => 'COUNT(assign.uuid)'])], $filteredSource->getVars())
 				->firstValue('count');
@@ -377,7 +397,7 @@ class AttributePresenter extends BackendPresenter
 		}
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('this.hidden', (bool)$value);
+			$source->where('this.hidden', (bool) $value);
 		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
 
 		$grid->addFilterDataSelect(function (Collection $source, $value): void {
@@ -556,6 +576,8 @@ class AttributePresenter extends BackendPresenter
 				$this->pageRepository->syncPage($values['page'], ['attributeValue' => $object->getPK()]);
 			}
 
+			$this->clearNetteCache();
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('valueDetail', 'default', [$object]);
 		};
@@ -586,6 +608,8 @@ class AttributePresenter extends BackendPresenter
 			}
 
 			$object = $this->attributeValueRangeRepository->syncOne($values, null, true);
+
+			$this->clearNetteCache();
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('rangeDetail', 'default', [$object]);
@@ -697,7 +721,7 @@ class AttributePresenter extends BackendPresenter
 
 		$form['page']['url']->forAll(function (TextInput $text, $mutation) use ($page, $form): void {
 			$text->getRules()->reset();
-			$text->addRule([$form, 'validateUrl',], 'URL již existuje', [$this->pageRepository, $mutation, $page->getPK(),]);
+			$text->addRule([$form, 'validateUrl',], 'URL již existuje', [$this->pageRepository, $mutation, $page->getPK(), $this->shopsConfig->getSelectedShop()]);
 		});
 	}
 
@@ -777,7 +801,7 @@ class AttributePresenter extends BackendPresenter
 			$submitter = $form->isSubmitted();
 			$submitName = $submitter->getName();
 
-			/** @var \Eshop\DB\AttributeValue[] $attributeValues */
+			/** @var array<\Eshop\DB\AttributeValue> $attributeValues */
 			$attributeValues = $values['bulkType'] === 'selected' ? $this->attributeValueRepository->many()->where('uuid', $ids) : $productGrid->getFilteredSource();
 
 			if ($submitName === 'submit') {
@@ -837,6 +861,8 @@ class AttributePresenter extends BackendPresenter
 					$page->delete();
 				}
 			}
+
+			$this->clearNetteCache();
 
 			$this->redirect('default');
 		};
@@ -944,6 +970,8 @@ class AttributePresenter extends BackendPresenter
 
 			$producer = $this->attributeGroupRepository->syncOne($values, null, true);
 
+			$this->clearNetteCache();
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('groupDetail', 'default', [$producer]);
 		};
@@ -980,5 +1008,13 @@ class AttributePresenter extends BackendPresenter
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('groupForm');
 		$form->setDefaults($attributeGroup->toArray());
+	}
+
+	protected function clearNetteCache(): void
+	{
+		$cache = new \Nette\Caching\Cache($this->storage);
+		$cache->clean([
+			\Nette\Caching\Cache::ALL => true,
+		]);
 	}
 }

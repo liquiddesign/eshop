@@ -1,3 +1,5 @@
+{default string|null $info = null}
+
 {cache expire => '1 day'}
     {define content}
         <section class="content-header">
@@ -35,6 +37,10 @@
                     <div class="col-12">
                         <div class="card">
                             <div class="card-body p-3">
+                                <span n:if="$info">{$info|noescape}</span>
+
+                                <hr n:if="$info">
+
                                 <div n:foreach="$scripts as $script">
                                     <div class="row">
                                         <div class="col-auto">
@@ -43,12 +49,16 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-auto">
-                                            <span class="text-sm" n:ifset="$script->info">{$script->info}</span>
+                                            <span class="text-sm" n:ifset="$script->info">{$script->info|noescape}</span>
                                         </div>
                                     </div>
                                     <div class="row mt-2">
                                         <div class="col-auto">
-                                            <a n:href="$script->link" class="btn btn-sm btn-outline-primary">Provést</a>
+                                            {ifset $script->link}
+                                                <a n:href="$script->link" class="btn btn-sm btn-outline-primary">Provést</a>
+                                            {elseifset $script->url}
+                                                <a href="{$baseUrl}{$script->url}" target="_blank" class="btn btn-sm btn-outline-primary">Provést</a>
+                                            {/ifset}
                                         </div>
                                     </div>
                                     {if !$iterator->isLast()}<div class="mt-4"><hr></div>{/if}

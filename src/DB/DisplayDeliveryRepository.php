@@ -24,7 +24,7 @@ class DisplayDeliveryRepository extends \StORM\Repository implements IGeneralRep
 	}
 	
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{

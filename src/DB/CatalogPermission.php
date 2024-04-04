@@ -55,20 +55,6 @@ class CatalogPermission extends \StORM\Entity
 	public string $priorityPrice = 'withoutVat';
 
 	/**
-	 * Přihlášen k newsletteru
-	 * @column
-	 * @deprecated
-	 */
-	public bool $newsletter = false;
-
-	/**
-	 * Newsletter skupina
-	 * @column
-	 * @deprecated
-	 */
-	public ?string $newsletterGroup;
-
-	/**
 	 * Zákazník
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation

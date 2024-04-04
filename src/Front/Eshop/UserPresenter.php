@@ -22,40 +22,40 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 {
 	protected const ADMIN_EMAIL = 'info@roiwell.cz';
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public \Forms\Bridges\FormsSecurity\ILostPasswordFormFactory $lostPasswordFormFactory;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public \Forms\Bridges\FormsSecurity\ILoginFormFactory $loginFormFactory;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public TemplateRepository $templateRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AccountRepository $accountRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Nette\Mail\Mailer $mailer;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IRegisterFormFactory $registrationFormFactory;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AddressRepository $addressRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerGroupRepository $customerGroupRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CatalogPermissionRepository $catalogPermissionRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public MerchantRepository $merchantRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Nette\Security\Passwords $passwords;
 	
 	public function createComponentLostPasswordForm(): \Forms\Bridges\FormsSecurity\LostPasswordForm
@@ -89,7 +89,7 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 		$form = $this->loginFormFactory->create([Customer::class, Merchant::class]);
 		
 		$form->onLogin[] = function (\Forms\Bridges\FormsSecurity\LoginForm $form, Nette\Security\IIdentity $user): void {
-			if (($user instanceof Customer || $user instanceof Merchant) && $user->getAccount() && $mutation = $this->shopper->getPreferredMutationByAccount($user->getAccount())) {
+			if (($user instanceof Customer || $user instanceof Merchant) && $user->getAccount() && $mutation = $this->shopperUser->getPreferredMutationByAccount($user->getAccount())) {
 				$this->lang = $mutation;
 			}
 
@@ -118,15 +118,10 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 		
 		$form->onError[] = function (RegistrationForm $form): void {
 			foreach ($form->getErrors() as $error) {
-				switch ($error) {
-					case 'registerForm.account.alreadyExists':
-						$this->flashMessage($this->translator->translate('registerForm.emailExists', 'Účet s tímto emailem již existuje!'), 'error');
-
-						break;
-					case 'registerForm.passwordCheck.notEqual':
-						$this->flashMessage($this->translator->translate('registerForm.pwdsNotMatch', 'Hesla se neshodují!'), 'error');
-
-						break;
+				if ($error === 'registerForm.account.alreadyExists') {
+					$this->flashMessage($this->translator->translate('registerForm.emailExists', 'Účet s tímto emailem již existuje!'), 'error');
+				} elseif ($error === 'registerForm.passwordCheck.notEqual') {
+					$this->flashMessage($this->translator->translate('registerForm.pwdsNotMatch', 'Hesla se neshodují!'), 'error');
 				}
 			}
 		};

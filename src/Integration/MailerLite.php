@@ -4,45 +4,40 @@ namespace Eshop\Integration;
 
 use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CustomerRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use MailerLiteApi\Api\Groups;
 use MailerLiteApi\Api\Subscribers;
 use MailerLiteApi\MailerLite as MailerLiteApi;
 use Nette\Utils\Validators;
 use Web\DB\SettingRepository;
 
+/**
+ * @deprecated Old class, no alternative
+ */
 class MailerLite
 {
-	public Shopper $shopper;
-
-	public CustomerRepository $customerRepository;
-
 	public Subscribers $subscribersApi;
 
 	private ?string $apiKey = null;
 
-	private CatalogPermissionRepository $catalogPermissionRepository;
-
-	private SettingRepository $settingRepository;
-
 	private Groups $groupsApi;
 
 	/**
-	 * @var \stdClass[]
+	 * @var array<\stdClass>
 	 */
 	private array $groups;
 
 	/**
-	 * @var array<string, \stdClass[]>
+	 * @var array<string, array<\stdClass>>
 	 */
 	private array $subscribers;
 
-	public function __construct(SettingRepository $settingRepository, Shopper $shopper, CustomerRepository $customerRepository, CatalogPermissionRepository $catalogPermissionRepository)
-	{
-		$this->shopper = $shopper;
-		$this->customerRepository = $customerRepository;
-		$this->catalogPermissionRepository = $catalogPermissionRepository;
-		$this->settingRepository = $settingRepository;
+	public function __construct(
+		private readonly SettingRepository $settingRepository,
+		public ShopperUser $shopperUser,
+		public CustomerRepository $customerRepository,
+		private readonly CatalogPermissionRepository $catalogPermissionRepository
+	) {
 	}
 
 	/**
@@ -94,7 +89,7 @@ class MailerLite
 				continue;
 			}
 
-			$this->subscribe($catalogPerm->account->login, $catalogPerm->account->fullname, $catalogPerm->newsletterGroup);
+			$this->subscribe($catalogPerm->account->login, $catalogPerm->account->fullname, 'group');
 		}
 	}
 
@@ -170,9 +165,8 @@ class MailerLite
 	/**
 	 * Get group, if groupName doesnt exist creates new.
 	 * @param string $groupName
-	 * @return mixed
 	 */
-	private function getGroupByName(string $groupName)
+	private function getGroupByName(string $groupName): mixed
 	{
 		foreach ($this->groups as $group) {
 			if ($group->name === $groupName) {
@@ -188,7 +182,7 @@ class MailerLite
 
 	/**
 	 * @param string $groupName
-	 * @return \stdClass[]
+	 * @return array<\stdClass>
 	 */
 	private function getSubscribers(string $groupName): array
 	{

@@ -55,7 +55,7 @@ class DiscountCondition extends \StORM\Entity
 	/**
 	 * Produkty
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\Product>|\Eshop\DB\Product[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Product>
 	 */
 	public RelationCollection $products;
 }

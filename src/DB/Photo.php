@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Nette\Application\ApplicationException;
+use Nette\Utils\Arrays;
 
 /**
  * Fotografie k produktu
@@ -63,7 +64,7 @@ class Photo extends \StORM\Entity
 	
 	public function getImagePath(string $basePath, string $size = 'detail'): string
 	{
-		if (!\in_array($size, ['origin', 'detail', 'thumb'])) {
+		if (!Arrays::contains(['origin', 'detail', 'thumb'], $size)) {
 			throw new ApplicationException('Invalid product image size: ' . $size);
 		}
 		

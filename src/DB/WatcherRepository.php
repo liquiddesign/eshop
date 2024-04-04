@@ -68,13 +68,13 @@ class WatcherRepository extends \StORM\Repository
 	 * First array (active): changed watchers in positive way, for example: amountFrom=1, beforeAmountFrom=0, currentAmount=1
 	 * Second array (nonActive): changed watchers in negative way, for example: amountFrom=1, beforeAmountFrom=1, currentAmount=0
 	 * Watchers without change will not be returned.
-	 * @return \Eshop\DB\Watcher[][]
+	 * @return array<array<\Eshop\DB\Watcher>>
 	 */
 	public function getChangedAmountWatchers(bool $email = false): array
 	{
-		/** @var \Eshop\DB\Watcher[] $activeWatchers */
+		/** @var array<\Eshop\DB\Watcher> $activeWatchers */
 		$activeWatchers = [];
-		/** @var \Eshop\DB\Watcher[] $nonActiveWatchers */
+		/** @var array<\Eshop\DB\Watcher> $nonActiveWatchers */
 		$nonActiveWatchers = [];
 
 		$watchers = $this->many()
@@ -120,16 +120,16 @@ class WatcherRepository extends \StORM\Repository
 	 * First array (active): changed watchers in positive way, for example: watchedPrice=40, beforePrice=42, currentPrice=38
 	 * Second array (nonActive): changed watchers in negative way, for example: watchedPrice=40, beforePrice=38, currentPrice=42
 	 * Watchers without change will not be returned.
-	 * @return \Eshop\DB\Watcher[][]
+	 * @return array<array<\Eshop\DB\Watcher>>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function getChangedPriceWatchers(bool $email = false): array
 	{
-		/** @var \Eshop\DB\Watcher[] $activeWatchers */
+		/** @var array<\Eshop\DB\Watcher> $activeWatchers */
 		$activeWatchers = [];
-		/** @var \Eshop\DB\Watcher[] $nonActiveWatchers */
+		/** @var array<\Eshop\DB\Watcher> $nonActiveWatchers */
 		$nonActiveWatchers = [];
-		/** @var array<string, \Eshop\DB\Pricelist[]> $pricelistsByCustomers */
+		/** @var array<string, array<\Eshop\DB\Pricelist>> $pricelistsByCustomers */
 		$pricelistsByCustomers = [];
 
 		$watchers = $this->many()->where('priceFrom IS NOT NULL AND beforePriceFrom IS NOT NULL');
@@ -138,7 +138,7 @@ class WatcherRepository extends \StORM\Repository
 			/** @var \Eshop\DB\Watcher $watcher */
 
 			if (!isset($pricelistsByCustomers[$watcher->getValue('customer')])) {
-				/** @var \Eshop\DB\Pricelist[] $pricelists */
+				/** @var array<\Eshop\DB\Pricelist> $pricelists */
 				$pricelists = $this->pricelistRepository->getCollection()
 					->join(['nxnCustomer' => 'eshop_customer_nxn_eshop_pricelist'], 'this.uuid = nxnCustomer.fk_pricelist')
 					->where('nxnCustomer.fk_customer', $watcher->getValue('customer'))

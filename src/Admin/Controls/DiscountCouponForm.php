@@ -5,6 +5,7 @@ namespace Eshop\Admin\Controls;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
 use Eshop\BackendPresenter;
+use Eshop\DB\CategoryRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\Customer;
 use Eshop\DB\Discount;
@@ -14,7 +15,7 @@ use Eshop\DB\DiscountConditionRepository;
 use Eshop\DB\DiscountCoupon;
 use Eshop\DB\DiscountCouponRepository;
 use Eshop\FormValidators;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Arrays;
@@ -24,11 +25,10 @@ class DiscountCouponForm extends Control
 	public function __construct(
 		AdminFormFactory $adminFormFactory,
 		CurrencyRepository $currencyRepository,
-		/** @codingStandardsIgnoreStart */
-		private DiscountCouponRepository $discountCouponRepository,
-		private DiscountConditionCategoryRepository $discountConditionCategoryRepository,
-		private Shopper $shopper,
-		/** @codingStandardsIgnoreEnd */
+		protected readonly DiscountCouponRepository $discountCouponRepository,
+		protected readonly DiscountConditionCategoryRepository $discountConditionCategoryRepository,
+		protected readonly ShopperUser $shopperUser,
+		protected readonly CategoryRepository $categoryRepository,
 		DiscountConditionRepository $discountConditionRepository,
 		?DiscountCoupon $discountCoupon,
 		?Discount $discount = null
@@ -68,7 +68,7 @@ class DiscountCouponForm extends Control
 		$form->addDataSelect('currency', 'Měna', $currencyRepository->getArrayForSelect());
 		$form->addText('discountValue', 'Sleva')->setHtmlAttribute('data-info', 'Zadejte hodnotu ve zvolené měně.')->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->addText('discountValueVat', 'Sleva s DPH')->setHtmlAttribute('data-info', 'Zadejte hodnotu ve zvolené měně.')->addCondition($form::FILLED)->addRule($form::FLOAT);
-		$form->addHidden('discount', isset($discount) ? (string)$discount : $discountCoupon->getValue('discount'));
+		$form->addHidden('discount', isset($discount) ? (string) $discount : $discountCoupon->getValue('discount'));
 		$form->addText('minimalOrderPrice', 'Minimální cena objednávky')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->addText('maximalOrderPrice', 'Maximální cena objednávky')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->bind($discountCouponRepository->getStructure());
@@ -117,7 +117,7 @@ class DiscountCouponForm extends Control
 				}
 			}
 
-			if (!$this->shopper->getDiscountConditions()['categories']) {
+			if (!$this->shopperUser->getDiscountConditions()['categories']) {
 				return;
 			}
 
@@ -151,7 +151,7 @@ class DiscountCouponForm extends Control
 				/** @var \Nette\Forms\Controls\SelectBox $quantityConditionInput */
 				$quantityConditionInput = $conditionsContainer["quantityCondition_$i"];
 
-				$presenter->template->select2AjaxDefaults[$categoriesInput->getHtmlId()] = $condition->categories->toArrayOf('name');
+				$presenter->template->select2AjaxDefaults[$categoriesInput->getHtmlId()] = $this->categoryRepository->toArrayForSelect($condition->getCategories());
 				$cartConditionInput->setDefaultValue($condition->cartCondition);
 				$quantityConditionInput->setDefaultValue($condition->quantityCondition);
 

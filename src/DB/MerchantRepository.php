@@ -15,15 +15,6 @@ use StORM\Collection;
 class MerchantRepository extends \StORM\Repository implements IUserRepository, IGeneralRepository
 {
 	use UserRepositoryTrait;
-	/**
-	 * @return string[]
-	 * @deprecated use getArrayForSelect()
-	 */
-	public function getListForSelect(): array
-	{
-		return $this->getArrayForSelect();
-	}
-
 	public function getMerchantCustomers(Merchant $merchant): Collection
 	{
 		$customerRepo = $this->getConnection()->findRepository(Customer::class);
@@ -35,7 +26,7 @@ class MerchantRepository extends \StORM\Repository implements IUserRepository, I
 
 	/**
 	 * @param \Eshop\DB\Customer|string|null $customer
-	 * @return \Eshop\DB\Merchant[]
+	 * @return array<\Eshop\DB\Merchant>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function getMerchantsByCustomer($customer = null): array

@@ -33,32 +33,43 @@ class CategoryPresenter extends BackendPresenter
 	public const PRODUCER_PAGES = 0;
 	public const PRODUCER_CATEGORY = 1;
 
+	public const DEFAULT_VIEW_TYPES = [
+		'row' => 'Řádky',
+		'card' => 'Karty',
+	];
 	protected const CONFIGURATION = [
 		'activeProducers' => null,
 		'producerPagesType' => self::PRODUCER_CATEGORY,
 		'dynamicCategories' => false,
 		'targito' => false,
+		'filterColumns' => self::FILTER_COLUMNS,
 	];
 
-	/** @inject */
+	protected const FILTER_COLUMNS = ['Kód' => 'this.code', 'Název' => 'this.name_cs'];
+
+	protected const SHOW_DEFAULT_VIEW_TYPE = false;
+
+	protected const SHOW_DESCENDANT_PRODUCTS = false;
+
+	#[\Nette\DI\Attributes\Inject]
 	public Request $request;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryRepository $categoryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PageRepository $pageRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryTypeRepository $categoryTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ICategoryFormFactory $categoryFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProducerRepository $producerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Application $application;
 
 	/** @persistent */
@@ -70,7 +81,7 @@ class CategoryPresenter extends BackendPresenter
 	private ?CategoryType $categoryType;
 
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	private array $tabs = [];
 
@@ -105,11 +116,11 @@ class CategoryPresenter extends BackendPresenter
 
 		$grid->addColumn('Název', function (Category $category, $grid) {
 			return [
-				$grid->getPresenter()->link(':Eshop:Product:list', ['category' => (string)$category]),
+				$grid->getPresenter()->link(':Eshop:Product:list', ['category' => (string) $category]),
 				$category->name,
 			];
 		}, '<a href="%s" target="_blank"> %s</a>', 'name')->onRenderCell[] = function (\Nette\Utils\Html $td, Category $object): void {
-			$level = \strlen($object->path) / 4 - 1;
+			$level = Strings::length($object->path) / 4 - 1;
 			$td->setHtml(\str_repeat('- - ', $level) . $td->getHtml());
 		};
 
@@ -124,16 +135,16 @@ class CategoryPresenter extends BackendPresenter
 				return '<input class="form-control form-control-sm" type="number" value="' . $category->priority . '" disabled>';
 			}, '%s', 'showInMenu', ['class' => 'minimal']);
 			$grid->addColumn('<i title="Doporučeno" class="far fa-thumbs-up"></i>', function (Category $category) {
-				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int)$category->recommended . '" disabled></label>';
+				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int) $category->recommended . '" disabled></label>';
 			}, '%s', 'showInMenu', ['class' => 'minimal']);
 			$grid->addColumn('<i title="Skryto" class="far fa-eye-slash"></i>', function (Category $category) {
-				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int)$category->hidden . '" disabled></label>';
+				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int) $category->hidden . '" disabled></label>';
 			}, '%s', 'showInMenu', ['class' => 'minimal']);
 			$grid->addColumn('<i title="Zobrazit v menu" class="fas fa-bars"></i>', function (Category $category) {
-				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int)$category->showInMenu . '" disabled></label>';
+				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int) $category->showInMenu . '" disabled></label>';
 			}, '%s', 'showInMenu', ['class' => 'minimal']);
 			$grid->addColumn('<i title="Zobrazit pokud nemá produkty" class="fas fa-list-ol"></i>', function (Category $category) {
-				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int)$category->showEmpty . '" disabled></label>';
+				return '<label><input class="form-check form-control-sm" type="checkbox" value="' . (int) $category->showEmpty . '" disabled></label>';
 			}, '%s', 'showEmpty', ['class' => 'minimal']);
 		}
 
@@ -154,9 +165,29 @@ class CategoryPresenter extends BackendPresenter
 				$this->categoryRepository->clearCategoriesCache();
 			});
 
+			$bulkInputs = [
+				'exportGoogleCategory',
+				'exportGoogleCategoryId',
+				'exportHeurekaCategory',
+				'exportZboziCategory',
+				'priority',
+				'hidden',
+				'showInMenu',
+				'showEmpty',
+				'recommended',
+			];
+
+			if ($this::SHOW_DEFAULT_VIEW_TYPE) {
+				$bulkInputs[] = 'defaultViewType';
+			}
+
+			if ($this::SHOW_DESCENDANT_PRODUCTS) {
+				$bulkInputs[] = 'showDescendantProducts';
+			}
+			
 			$grid->addButtonBulkEdit(
 				'categoryForm',
-				['exportGoogleCategory', 'exportGoogleCategoryId', 'exportHeurekaCategory', 'exportZboziCategory', 'hidden', 'showMenu', 'showEmpty'],
+				$bulkInputs,
 				'categoryGrid',
 			);
 
@@ -175,7 +206,12 @@ class CategoryPresenter extends BackendPresenter
 			$grid->getPresenter()->redirect('exportCategoryTree', [$grid->getSelectedIds()]);
 		};
 
-		$grid->addFilterTextInput('search', ['code', 'name_cs'], null, 'Kód, Název');
+		$grid->addFilterTextInput(
+			'search',
+			$this::CONFIGURATION['filterColumns'] ?? $this::FILTER_COLUMNS,
+			null,
+			\implode(', ', \array_keys($this::CONFIGURATION['filterColumns'] ?? $this::FILTER_COLUMNS)),
+		);
 		$grid->addFilterButtons(['default', ['categoryGrid-order' => 'path-ASC']]);
 
 		$grid->onDelete[] = function (Category $object): void {
@@ -253,19 +289,22 @@ class CategoryPresenter extends BackendPresenter
 
 	public function createComponentCategoryForm(): Controls\CategoryForm
 	{
-		return $this->categoryFormFactory->create($this->getParameter('category'));
+		return $this->categoryFormFactory->create($this::SHOW_DEFAULT_VIEW_TYPE, $this->getParameter('category'), $this::SHOW_DESCENDANT_PRODUCTS);
 	}
 
 	public function actionDefault(): void
 	{
-		$this->tabs = $this->categoryTypeRepository->getArrayForSelect();
+		$categoryTypes = $this->categoryTypeRepository->getCollection(true);
+		$this->shopsConfig->filterShopsInShopEntityCollection($categoryTypes);
+
+		$this->tabs = $this->categoryTypeRepository->toArrayForSelect($categoryTypes);
 		$this->tabs['types'] = '<i class="fa fa-bars"></i> Typy';
 
 		if (isset($this::CONFIGURATION['dynamicCategories']) && $this::CONFIGURATION['dynamicCategories']) {
 			$this->tabs['dynamicCategories'] = 'Dynamické kategorie';
 		}
 
-		if ($this->tab !== 'none') {
+		if ($this->tab !== 'none' && isset($this->tabs[$this->tab])) {
 			return;
 		}
 
@@ -472,6 +511,8 @@ class CategoryPresenter extends BackendPresenter
 		$form->addText('name', 'Název');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
 		$form->addCheckbox('hidden', 'Skryto');
+
+		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$categoryType);
 

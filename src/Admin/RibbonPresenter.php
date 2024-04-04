@@ -37,16 +37,16 @@ class RibbonPresenter extends BackendPresenter
 		],
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public RibbonRepository $ribbonRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public InternalRibbonRepository $internalRibbonRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountRepository $discountRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Connection $storm;
 
 	public function beforeRender(): void
@@ -81,7 +81,7 @@ class RibbonPresenter extends BackendPresenter
 
 		$grid->onRenderRow[] = function (\Nette\Utils\Html $tr, $object) use ($columnText, $columnBackground): void {
 			/** @var \Eshop\DB\Ribbon $object */
-			/** @var \Nette\Utils\Html[] $tr */
+			/** @var array<\Nette\Utils\Html> $tr */
 			$tr[$columnText->getId()]->setAttribute('style', "color: $object->color");
 			$tr[$columnBackground->getId()]->setAttribute('style', "color: $object->backgroundColor");
 		};
@@ -118,7 +118,7 @@ class RibbonPresenter extends BackendPresenter
 
 		$grid->onRenderRow[] = function (\Nette\Utils\Html $tr, $object) use ($columnText, $columnBackground): void {
 			/** @var \Eshop\DB\InternalRibbon $object */
-			/** @var \Nette\Utils\Html[] $tr */
+			/** @var array<\Nette\Utils\Html> $tr */
 			$tr[$columnText->getId()]->setAttribute('style', "color: $object->color");
 			$tr[$columnBackground->getId()]->setAttribute('style', "color: $object->backgroundColor");
 		};
@@ -146,6 +146,8 @@ class RibbonPresenter extends BackendPresenter
 			->setDefaultValue(InternalRibbon::TYPE_PRODUCT)
 			->setRequired()
 			->setDisabled((bool) $ribbon);
+
+		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$ribbon);
 
@@ -205,6 +207,7 @@ class RibbonPresenter extends BackendPresenter
 			->setRequired();
 
 		$form->addDataMultiSelect('discounts', 'Akce', $this->discountRepository->getArrayForSelect())->setHtmlAttribute('placeholder', 'Vyberte položky...');
+		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$ribbon);
 

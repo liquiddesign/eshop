@@ -4,29 +4,29 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Nette\Utils\DateTime;
-use StORM\Collection;
+use Base\Entity\ShopEntity;
+use Nette\Utils\Strings;
 use StORM\RelationCollection;
 
 /**
  * Objednávka
  * @method \StORM\RelationCollection<\Eshop\DB\Package> getPackages()
  * @table
- * @index{"name":"order_code","unique":true,"columns":["code"]}
+ * @index{"name":"order_code","unique":true,"columns":["code", "fk_shop"]}
  */
-class Order extends \StORM\Entity
+class Order extends ShopEntity
 {
 	public const STATE_OPEN = 'open';
 	public const STATE_RECEIVED = 'received';
 	public const STATE_COMPLETED = 'finished';
 	public const STATE_CANCELED = 'canceled';
-	
+
 	/**
 	 * Id
 	 * @column{"autoincrement":true}
 	 */
 	public int $id;
-	
+
 	/**
 	 * Kód
 	 * @column
@@ -97,6 +97,18 @@ class Order extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $zasilkovnaError = null;
+
+	/**
+	 * Odesláno do systému zásilkovny
+	 * @column
+	 */
+	public ?string $zasilkovnaCode = null;
+
+	/**
+	 * Zásilkovna vytištěno
+	 * @column
+	 */
+	public bool $zasilkovnaPrinted = false;
 
 	/**
 	 * DPD kód
@@ -198,27 +210,27 @@ class Order extends \StORM\Entity
 	
 	/**
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Package>|\Eshop\DB\Package[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Package>
 	 */
 	public RelationCollection $packages;
 	
 	/**
 	 * Platby
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Payment>|\Eshop\DB\Payment[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Payment>
 	 */
 	public RelationCollection $payments;
 
 	/**
 	 * Dopravy
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Delivery>|\Eshop\DB\Delivery[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Delivery>
 	 */
 	public RelationCollection $deliveries;
 	
 	/**
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Comgate>|\Eshop\DB\Comgate[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Comgate>
 	 */
 	public RelationCollection $comgate;
 	
@@ -322,15 +334,43 @@ class Order extends \StORM\Entity
 	{
 		return $this->payments->sum('priceVat');
 	}
-
+	
+	public function getPurchaseDiscount(): int
+	{
+		return $this->purchase->discountPct;
+	}
+	
+	public function setPurchaseDiscount(int $value): void
+	{
+		$this->purchase->discountPct = $value;
+	}
+	
+	public function getPurchaseDiscountPrice(): float
+	{
+		if (!$this->getPurchaseDiscount()) {
+			return 0.0;
+		}
+		
+		return \round($this->purchase->getSumPrice() * $this->getPurchaseDiscount() / 100, 2);
+	}
+	
+	public function getPurchaseDiscountPriceVat(): float
+	{
+		if (!$this->getPurchaseDiscount()) {
+			return 0.0;
+		}
+		
+		return \round($this->purchase->getSumPriceVat() * $this->getPurchaseDiscount() / 100, 2);
+	}
+	
 	public function getTotalPrice(): float
 	{
-		return $this->purchase->getSumPrice() + $this->getDeliveryPriceSum() + $this->getPaymentPriceSum() - $this->getDiscountPriceFix();
+		return $this->purchase->getSumPrice() + $this->getDeliveryPriceSum() + $this->getPaymentPriceSum() - $this->getDiscountPriceFix() - $this->getPurchaseDiscountPrice();
 	}
-
+	
 	public function getTotalPriceVat(): float
 	{
-		return $this->purchase->getSumPriceVat() + $this->getDeliveryPriceVatSum() + $this->getPaymentPriceVatSum() - $this->getDiscountPriceFixVat();
+		return $this->purchase->getSumPriceVat() + $this->getDeliveryPriceVatSum() + $this->getPaymentPriceVatSum() - $this->getDiscountPriceFixVat() - $this->getPurchaseDiscountPriceVat();
 	}
 
 	public function getDiscountPrice(): float
@@ -397,7 +437,7 @@ class Order extends \StORM\Entity
 	
 	public function isCompany(): bool
 	{
-		return (bool)$this->getValue('ic');
+		return (bool) $this->getValue('ic');
 	}
 	
 	public function getState(): string
@@ -410,12 +450,12 @@ class Order extends \StORM\Entity
 	
 	public function getId(int $length): string
 	{
-		return \str_pad((string) $this->id, $length, '0', \STR_PAD_LEFT);
+		return Strings::padLeft((string) $this->id, $length, '0');
 	}
 	
 	public function getYear(): int
 	{
-		$created = DateTime::from((int) $this->createdTs);
+		$created = \Carbon\Carbon::parse($this->createdTs);
 		
 		return (int) $created->format('Y');
 	}
@@ -429,22 +469,28 @@ class Order extends \StORM\Entity
 		
 		$id = $maxIdLastYear ? $this->id - (int) $maxIdLastYear : $this->id;
 		
-		return \str_pad((string) $id, $length, '0', \STR_PAD_LEFT);
+		return Strings::padLeft((string) $id, $length, '0');
 	}
 	
 	/**
-	 * @return \Eshop\DB\CartItem[]
+	 * @return array<\Eshop\DB\CartItem>
 	 */
 	public function getGroupedItems(): array
 	{
 		$grouped = [];
+		$groupedAmounts = [];
 		
 		foreach ($this->purchase->getItems() as $item) {
 			if (isset($grouped[$item->getFullCode()])) {
-				$grouped[$item->getFullCode()]->amount += $item->amount;
+				$groupedAmounts[$item->getFullCode()] += $grouped[$item->getFullCode()]->amount;
 			} else {
 				$grouped[$item->getFullCode()] = $item;
+				$groupedAmounts[$item->getFullCode()] = $item->amount;
 			}
+		}
+
+		foreach ($grouped as $item) {
+			$grouped[$item->getFullCode()]->amount = $groupedAmounts[$item->getFullCode()];
 		}
 		
 		return $grouped;
@@ -469,17 +515,6 @@ class Order extends \StORM\Entity
 	public function getDiscountCoupon(): ?DiscountCoupon
 	{
 		return $this->purchase->coupon;
-	}
-
-	/**
-	 * @return \StORM\Collection<\Eshop\DB\Invoice>
-	 * @deprecated use property
-	 */
-	public function getInvoices(): Collection
-	{
-		$invoiceRepository = $this->getConnection()->findRepository(Invoice::class);
-
-		return $invoiceRepository->many()->where('orders.uuid', $this->getPK());
 	}
 
 	public function getDpdCode(): ?string

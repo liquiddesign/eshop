@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\ShopsConfig;
 use Eshop\Admin\SettingsPresenter;
 use Nette\DI\Container;
+use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Strings;
 use StORM\Collection;
@@ -25,7 +27,7 @@ class SupplierProductRepository extends \StORM\Repository
 {
 	private Container $container;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Container $container)
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Container $container, protected readonly ShopsConfig $shopsConfig)
 	{
 		parent::__construct($connection, $schemaManager);
 
@@ -38,7 +40,7 @@ class SupplierProductRepository extends \StORM\Repository
 	 * @param string $country
 	 * @param bool $overwrite
 	 * @param bool $importImages
-	 * @return int[]
+	 * @return array<int>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function syncProducts(Supplier $supplier, string $mutation, string $country, bool $overwrite, bool $importImages = false): array
@@ -58,14 +60,21 @@ class SupplierProductRepository extends \StORM\Repository
 		$supplierProductRepository = $this->getConnection()->findRepository(SupplierProduct::class);
 		$productRepository = $this->getConnection()->findRepository(Product::class);
 		$pagesRepository = $this->getConnection()->findRepository(Page::class);
+		$productContentRepository = $this->getConnection()->findRepository(ProductContent::class);
+		$productPrimaryCategoryRepository = $this->getConnection()->findRepository(ProductPrimaryCategory::class);
+		$categoryRepository = $this->getConnection()->findRepository(Category::class);
+		$visibilityListRepository = $this->getConnection()->findRepository(VisibilityList::class);
+		$visibilityListItemRepository = $this->getConnection()->findRepository(VisibilityListItem::class);
 		$supplierId = $supplier->getPK();
 		$attributeAssignRepository = $this->getConnection()->findRepository(AttributeAssign::class);
 		$photoRepository = $this->getConnection()->findRepository(Photo::class);
 		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$mutation];
 		$riboonId = 'novy_import';
 
+		$visibilityLists = $visibilityListRepository->many()->toArray();
+
 		if ($overwrite) {
-			$updates = ["name$mutationSuffix", "content$mutationSuffix", 'unit', 'imageFileName', 'vatRate', 'fk_displayAmount'];
+			$updates = ["name$mutationSuffix", 'unit', 'imageFileName', 'vatRate'];
 			$updates = \array_fill_keys($updates, null);
 
 			foreach (\array_keys($updates) as $name) {
@@ -74,11 +83,10 @@ class SupplierProductRepository extends \StORM\Repository
 					(
 						supplierContentLock = 0 && 
 						(
-							(VALUES(supplierLock) >= supplierLock && (supplierContentMode = 'priority' || (fk_supplierContent IS NULL && supplierContentMode = 'none'))) ||
-							(supplierContentMode = 'length' && LENGTH(VALUES(content$mutationSuffix)) > LENGTH(content$mutationSuffix))
+							(VALUES(supplierLock) >= supplierLock && supplierContentMode = 'priority') ||
+							(supplierContentMode = 'content' && fk_supplierContent = '$supplierId')
 						)
-					)
-					|| fk_supplierContent='$supplierId',
+					),
 					VALUES($name),
 					$name
 				)");
@@ -86,6 +94,8 @@ class SupplierProductRepository extends \StORM\Repository
 		} else {
 			$updates = [];
 		}
+
+		$allCategories = $categoryRepository->many()->select(['typePK' => 'this.fk_type'])->fetchArray(\stdClass::class);
 
 		$productsMap = $productRepository->many()
 			->setSelect(['contentLock' => 'supplierContentLock', 'sourcePK' => 'fk_supplierSource'], [], true)
@@ -96,36 +106,61 @@ class SupplierProductRepository extends \StORM\Repository
 			->setSelect(['ean', 'uuid'], [], true)
 			->setBufferedQuery(false)
 			->setIndex('ean')
-			->toArrayOf('uuid');
+			->fetchArray(\stdClass::class);
 
 		$drafts = $supplierProductRepository->many()
-			->select(['realCategory' => 'category.fk_category'])
+			->setGroupBy(['this.uuid'])
+			->select(['realCategories' => 'GROUP_CONCAT(supplierCategoryXCategory.fk_category)'])
 			->select(['realDisplayAmount' => 'displayAmount.fk_displayAmount'])
 			->select(['realProducer' => 'producer.fk_producer'])
+			->join(['supplierCategoryXCategory' => 'eshop_suppliercategory_nxn_eshop_category'], 'this.fk_category = supplierCategoryXCategory.fk_supplierCategory', type: 'INNER')
 			->where('this.fk_supplier', $supplier)
-			->where('category.fk_category IS NOT NULL')
+			->where('supplierCategoryXCategory.fk_category IS NOT NULL')
 			->where('this.active', true);
+
+		/** @var array<\stdClass> $existingPrimaryCategories */
+		$existingPrimaryCategories = $productPrimaryCategoryRepository->many()
+			->setSelect([
+				'productPK' => 'this.fk_product',
+				'categories' => 'GROUP_CONCAT(this.fk_category)',
+				'categoryTypes' => 'GROUP_CONCAT(this.fk_categoryType)',
+			])
+			->where('this.fk_category IS NOT NULL')
+			->setGroupBy(['this.fk_product'])
+			->setIndex('productPK')
+			->fetchArray(\stdClass::class);
+
+		/** @var array<array<\stdClass>> $existingProductContents By product -> shop -> mutations */
+		$existingProductContents = [];
+
+		foreach ($productContentRepository->many()
+					 ->select(['productPK' => 'this.fk_product', 'shopPK' => 'this.fk_shop', 'content' => "this.content$mutationSuffix"])
+					 ->fetchArray(\stdClass::class) as $productContent) {
+			$existingProductContents[$productContent->productPK][$productContent->shopPK] = $productContent;
+		}
+
+		$productContentsToSync = [];
 
 		while ($draft = $drafts->fetch()) {
 			/** @var \stdClass|\Eshop\DB\SupplierProduct $draft */
-			$category = $draft->realCategory;
+			$categories = \array_filter(\explode(',', $draft->realCategories), fn ($v) => $v);
 			$displayAmount = $draft->realDisplayAmount;
 			$producer = $draft->realProducer;
 			$currentUpdates = $updates;
 
-			if (!$category) {
+			if (!$categories) {
 				continue;
 			}
 
 			$code = $draft->productCode ?: ($supplier->productCodePrefix ?: '') . $draft->code;
 			$uuid = ProductRepository::generateUuid($draft->ean, $draft->getProductFullCode() ?: $supplier->code . '-' . $draft->code);
-			
+
 			if ($draft->getValue('product') && $draft->getValue('product') !== $uuid) {
 				$uuid = $draft->getValue('product');
 			}
-			
+
 			$primary = isset($productsMap[$uuid]) && $productsMap[$uuid]->sourcePK === $supplierId;
-			
+
 			$values = [
 				'uuid' => $uuid,
 				'ean' => $draft->ean ?: null,
@@ -136,11 +171,9 @@ class SupplierProductRepository extends \StORM\Repository
 				'supplierCode' => $draft->code,
 				'name' => [$mutation => $draft->name],
 				//'perex' => [$mutation => substr($draft->content, 0, 150)],
-				'content' => [$mutation => $draft->content],
+//				'content' => [$mutation => $draft->content],
 				'unit' => $draft->unit,
-				'unavailable' => $draft->unavailable,
-				'hidden' => $supplier->defaultHiddenProduct,
-				'vatRate' => $vatLevels[(int)$draft->vatRate] ?? 'standard',
+				'vatRate' => $vatLevels[(int) $draft->vatRate] ?? 'standard',
 				'producer' => $producer,
 				'displayDelivery' => $supplier->getValue('defaultDisplayDelivery'),
 				'displayAmount' => $displayAmount ?: $supplier->getValue('defaultDisplayAmount'),
@@ -152,8 +185,6 @@ class SupplierProductRepository extends \StORM\Repository
 				'inCarton' => $draft->inCarton,
 				'inPalett' => $draft->inPalett,
 				'weight' => $draft->weight,
-				'categories' => [$category],
-				'primaryCategory' => $category,
 				'supplierLock' => $supplier->importPriority,
 				'supplierSource' => $supplier,
 			];
@@ -169,8 +200,10 @@ class SupplierProductRepository extends \StORM\Repository
 			}
 
 			if ($importImagesResult) {
-				$mtime = \filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
+				// phpcs:ignore
+				$mtime = @\filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 
+				// phpcs:ignore
 				if (!$overwrite || !$draft->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
 					$importImagesResult = false;
 				}
@@ -182,7 +215,10 @@ class SupplierProductRepository extends \StORM\Repository
 				unset($currentUpdates['imageFileName']);
 			}
 
-			$product = $productRepository->syncOne($values, $currentUpdates, false, null, ['categories' => false]);
+			/** @var \Eshop\DB\Product $product */
+			$product = $productRepository->syncOne($values, $currentUpdates, false, false, ['categories' => false]);
+
+			$product->categories->relate($categories, false);
 
 			$updated = $product->getParent() instanceof ICollection;
 
@@ -195,6 +231,65 @@ class SupplierProductRepository extends \StORM\Repository
 					'fk_product' => $product->getPK(),
 					'fk_internalribbon' => $riboonId,
 				]);
+			}
+
+			$existingProductPrimaryCategoriesByType = [];
+			$productPrimaryCategories = isset($existingPrimaryCategories[$product->getPK()]) ? \explode(',', $existingPrimaryCategories[$product->getPK()]->categories) : [];
+
+			foreach ($productPrimaryCategories as $categoryPK) {
+				$category = $allCategories[$categoryPK];
+
+				$existingProductPrimaryCategoriesByType[$category->typePK] = $categoryPK;
+			}
+
+			foreach ($categories as $category) {
+				$category = $allCategories[$category];
+
+				if (isset($existingProductPrimaryCategoriesByType[$category->typePK])) {
+					continue;
+				}
+
+				$productPrimaryCategoryRepository->syncOne([
+					'product' => $product->getPK(),
+					'category' => $category->uuid,
+					'categoryType' => $category->typePK,
+				], checkKeys: ['product' => false,]);
+			}
+
+			foreach ($visibilityLists as $visibilityList) {
+				$visibilityListItemRepository->syncOne([
+					'visibilityList' => $visibilityList->getPK(),
+					'product' => $product->getPK(),
+					'hidden' => $supplier->defaultHiddenProduct,
+					'unavailable' => $draft->unavailable,
+				], []);
+			}
+
+			if ($draft->content) {
+				$productContents = $existingProductContents[$product->getPK()] ?? null;
+
+				if ($this->shopsConfig->getAvailableShops()) {
+					foreach ($this->shopsConfig->getAvailableShops() as $shop) {
+						if (isset($productContents[$shop->getPK()]) && $productContents[$shop->getPK()]->content) {
+							continue;
+						}
+
+						$productContentsToSync[] = [
+							'product' => $product->getPK(),
+							'shop' => $shop->getPK(),
+							'content' => [$mutation => $draft->content],
+						];
+					}
+				} else {
+					$productContent = Arrays::first($productContents);
+
+					if (!$productContent || !$productContent->content) {
+						$productContentsToSync[] = [
+							'product' => $product->getPK(),
+							'content' => [$mutation => $draft->content],
+						];
+					}
+				}
 			}
 
 			if (isset($productsMap[$uuid]) && $productsMap[$uuid]->contentLock) {
@@ -219,7 +314,7 @@ class SupplierProductRepository extends \StORM\Repository
 
 					try {
 						if (isset($eanProductsMap[$draft->ean])) {
-							$draft->update(['product' => $eanProductsMap[$draft->ean]]);
+							$draft->update(['product' => $eanProductsMap[$draft->ean]->uuid]);
 						}
 					} catch (\Throwable $e) {
 						unset($e);
@@ -227,13 +322,26 @@ class SupplierProductRepository extends \StORM\Repository
 				}
 			}
 
-			$pagesRepository->syncOne([
-				'uuid' => $uuid,
-				'url' => ['cs' => Strings::webalize($draft->name) . '-' . Strings::webalize($code)],
-				'title' => ['cs' => $draft->name],
-				'params' => "product=$uuid&",
-				'type' => 'product_detail',
-			], []);
+			if ($this->shopsConfig->getAvailableShops()) {
+				foreach ($this->shopsConfig->getAvailableShops() as $shop) {
+					$pagesRepository->syncOne([
+						'uuid' => $uuid,
+						'url' => ['cs' => Strings::webalize($draft->name) . '-' . Strings::webalize($code)],
+						'title' => ['cs' => $draft->name],
+						'params' => "product=$uuid&",
+						'type' => 'product_detail',
+						'shop' => $shop->getPK(),
+					], []);
+				}
+			} else {
+				$pagesRepository->syncOne([
+					'uuid' => $uuid,
+					'url' => ['cs' => Strings::webalize($draft->name) . '-' . Strings::webalize($code)],
+					'title' => ['cs' => $draft->name],
+					'params' => "product=$uuid&",
+					'type' => 'product_detail',
+				], []);
+			}
 
 			if (!$importImagesResult || !isset($mtime)) {
 				continue;
@@ -251,11 +359,54 @@ class SupplierProductRepository extends \StORM\Repository
 			foreach ($imageSizes as $imageSize) {
 				try {
 					FileSystem::copy($sourceImageDirectory . $sep . $imageSize . $sep . $draft->fileName, $galleryImageDirectory . $sep . $imageSize . $sep . $draft->fileName);
-					@\touch($galleryImageDirectory . $sep . $imageSize . $sep . $draft->fileName, $mtime);
+					\touch($galleryImageDirectory . $sep . $imageSize . $sep . $draft->fileName, $mtime);
 				} catch (\Throwable $e) {
 					Debugger::log($e, ILogger::WARNING);
 				}
 			}
+		}
+
+		$productsToFetch = [];
+
+		foreach ($productContentsToSync as $item) {
+			$productsToFetch[] = $item['product'];
+		}
+
+		$products = $productRepository->many()
+			->setSelect([
+				'uuid',
+				'supplierLock',
+				'supplierContentLock',
+				'supplierContentMode',
+				'supplierContent' => 'fk_supplierContent',
+			], keepIndex: true)
+			->where('this.uuid', $productsToFetch)
+			->fetchArray(\stdClass::class);
+
+		$contentLocksToUpdate = [];
+
+		foreach ($productContentsToSync as $item) {
+			$product = $products[$item['product']] ?? null;
+
+			if (!$product) {
+				continue;
+			}
+
+			// phpcs:ignore
+			if (($product->supplierContentLock === 0 && $product->supplierLock >= $supplier->importPriority && $product->supplierContentMode === 'priority') ||
+				($product->supplierContentLock === 0 && $product->supplierContent === $supplierId)) {
+				$productContentRepository->syncOne([
+					'product' => $product->uuid,
+					'shop' => $item['shop'],
+					'content' => $item['content'],
+				]);
+
+				$contentLocksToUpdate[] = $product->uuid;
+			}
+		}
+
+		if ($contentLocksToUpdate) {
+			$productRepository->many()->where('this.uuid', $contentLocksToUpdate)->update(['supplierLock' => $supplier->importPriority]);
 		}
 
 		return $result;
@@ -410,6 +561,9 @@ class SupplierProductRepository extends \StORM\Repository
 
 	private function loadProductsXDisplayAmounts(array &$productsXDisplayAmounts, array &$mergedProductsMap, array &$productsMapXSupplierProductsXDisplayAmount): void
 	{
+		/** @var \Eshop\DB\ProductRepository $productRepository */
+		$productRepository = $this->getConnection()->findRepository(Product::class);
+
 		$supplierProducts = $this->many()
 			->setSelect([
 				'realDisplayAmount' => 'displayAmount.fk_displayAmount',
@@ -419,7 +573,8 @@ class SupplierProductRepository extends \StORM\Repository
 			])
 			->where('this.active', true);
 
-		foreach ($supplierProducts->fetchArray(\stdClass::class) as $supplierProduct) {
+		while ($supplierProduct = $supplierProducts->fetch(\stdClass::class)) {
+			/** @var \stdClass $supplierProduct */
 			if (!isset($productsXDisplayAmounts[$supplierProduct->product])) {
 				$productsXDisplayAmounts[$supplierProduct->product] = [];
 			}
@@ -440,6 +595,33 @@ class SupplierProductRepository extends \StORM\Repository
 				}
 			}
 		}
+
+		$supplierProducts->__destruct();
+		unset($supplierProducts);
+
+		$productsWithoutSupplierProducts = $productRepository->many()
+			->setSelect(['this.uuid'])
+			->join(['e_sp' => 'eshop_supplierproduct'], 'this.uuid = e_sp.fk_product')
+			->where('e_sp.uuid IS NULL');
+
+		while ($product = $productsWithoutSupplierProducts->fetch(\stdClass::class)) {
+			/** @var \stdClass $product */
+			/** @var string $productPK */
+			$productPK = $product->uuid;
+
+			foreach ($mergedProductsMap[$productPK] ?? [] as $mergedProduct) {
+				foreach ($productsMapXSupplierProductsXDisplayAmount[$mergedProduct] ?? [] as $realDisplayAmount) {
+					if (!$realDisplayAmount) {
+						continue;
+					}
+
+					$productsXDisplayAmounts[$productPK][] = $realDisplayAmount;
+				}
+			}
+		}
+
+		$productsWithoutSupplierProducts->__destruct();
+		unset($productsWithoutSupplierProducts);
 	}
 
 	private function loadStock(array &$inStockProducts, array &$notStockProducts, array &$productsXDisplayAmounts, ?callable $customCallback = null): void
@@ -453,13 +635,15 @@ class SupplierProductRepository extends \StORM\Repository
 		/** @var \Eshop\DB\ProductRepository $productRepository */
 		$productRepository = $this->getConnection()->findRepository(Product::class);
 
-		$allProducts = $productRepository->many()->setSelect(['this.uuid'], [], true)->toArrayOf('uuid');
+		$allProducts = $productRepository->many()
+			->setSelect(['this.uuid'], [], true)
+			->toArrayOf('uuid');
 
 		foreach ($allProducts as $productPK) {
 			if (!isset($productsXDisplayAmounts[$productPK])) {
 				$notStockProducts[] = $productPK;
 
-				 continue;
+				continue;
 			}
 
 			$draftDisplayAmounts = $productsXDisplayAmounts[$productPK];

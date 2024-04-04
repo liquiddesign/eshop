@@ -2,28 +2,22 @@
 
 namespace Eshop\Controls;
 
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\Bridges\FormsSecurity\RegistrationForm;
 use Nette\Localization\Translator;
 
 class IRegisterFormFactory
 {
-	private \Forms\Bridges\FormsSecurity\IRegistrationFormFactory $IRegistrationFormFactory;
-
-	private Translator $translator;
-
-	private Shopper $shopper;
-	
-	public function __construct(\Forms\Bridges\FormsSecurity\IRegistrationFormFactory $IRegistrationFormFactory, Translator $translator, Shopper $shopper)
-	{
-		$this->IRegistrationFormFactory = $IRegistrationFormFactory;
-		$this->translator = $translator;
-		$this->shopper = $shopper;
+	public function __construct(
+		private readonly \Forms\Bridges\FormsSecurity\IRegistrationFormFactory $IRegistrationFormFactory,
+		private readonly Translator $translator,
+		private readonly ShopperUser $shopperUser
+	) {
 	}
 	
 	public function create(): RegistrationForm
 	{
-		$registerConfig = $this->shopper->getRegistrationConfiguration();
+		$registerConfig = $this->shopperUser->getRegistrationConfiguration();
 
 		$form = $this->IRegistrationFormFactory->create($registerConfig['confirmation'], $registerConfig['emailAuthorization']);
 

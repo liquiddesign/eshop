@@ -23,22 +23,24 @@ use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\ProductRepository;
-use Eshop\Shopper;
+use Eshop\DB\VisibilityListRepository;
+use Eshop\Services\LostPasswordService;
+use Eshop\Services\ProductsCache\ProductsCacheGetterService;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
 use League\Csv\Writer;
 use Messages\DB\TemplateRepository;
 use Nette\Application\Responses\FileResponse;
+use Nette\DI\Attributes\Inject;
 use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
-use Nette\Utils\DateTime;
 use Nette\Utils\Validators;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Connection;
 use StORM\ICollection;
-use Tracy\Debugger;
 
 class CustomerPresenter extends BackendPresenter
 {
@@ -68,170 +70,107 @@ class CustomerPresenter extends BackendPresenter
 	
 	/** @persistent */
 	public string $tab = 'customers';
-	
-	/** @inject */
+
+	/**
+	 * @var array<callable(\Admin\Controls\AdminGrid $grid): void>
+	 */
+	public array $onBeforeAddButtonsCustomersGrid = [];
+
+	/**
+	 * @var array<callable(\Admin\Controls\AdminGrid $grid): void>
+	 */
+	public array $onBeforeAddButtonsAccountsGrid = [];
+
+	/**
+	 * @var array<callable(\Admin\Controls\AdminForm $form): void>
+	 */
+	public array $onBeforeSubmitEditAddress = [];
+
+	#[Inject]
 	public AccountFormFactory $accountFormFactory;
 	
-	/** @inject */
+	#[Inject]
 	public CustomerRepository $customerRepository;
 	
-	/** @inject */
+	#[Inject]
 	public AccountRepository $accountRepository;
 	
-	/** @inject */
+	#[Inject]
 	public MerchantRepository $merchantRepository;
 	
-	/** @inject */
+	#[Inject]
 	public TemplateRepository $templateRepository;
 	
-	/** @inject */
+	#[Inject]
 	public ProductRepository $productRepo;
 	
-	/** @inject */
+	#[Inject]
 	public PaymentTypeRepository $paymentTypeRepo;
 	
-	/** @inject */
+	#[Inject]
 	public DeliveryTypeRepository $deliveryTypeRepo;
 	
-	/** @inject */
+	#[Inject]
 	public CurrencyRepository $currencyRepo;
 	
-	/** @inject */
+	#[Inject]
 	public CustomerGroupRepository $groupsRepo;
 
-	/** @inject */
+	#[Inject]
 	public CustomerRoleRepository $customerRoleRepo;
 
-	/** @inject */
+	#[Inject]
 	public OrderRepository $orderRepository;
 	
-	/** @inject */
+	#[Inject]
 	public AddressRepository $addressRepo;
 	
-	/** @inject */
+	#[Inject]
 	public Mailer $mailer;
 	
-	/** @inject */
+	#[Inject]
 	public PricelistRepository $pricelistRepo;
 	
-	/** @inject */
+	#[Inject]
 	public CatalogPermissionRepository $catalogPermissionRepo;
 	
-	/** @inject */
+	#[Inject]
 	public Connection $storm;
 	
-	/** @inject */
-	public Shopper $shopper;
+	#[Inject]
+	public ShopperUser $shopperUser;
 	
-	/** @inject */
+	#[Inject]
 	public LoyaltyProgramRepository $loyaltyProgramRepository;
 	
-	/** @inject */
+	#[Inject]
 	public NewsletterUserRepository $newsletterUserRepository;
 	
-	/** @inject */
+	#[Inject]
 	public NewsletterUserGroupRepository $newsletterUserGroupRepository;
-	
-	public function createComponentCustomers(): AdminGrid
+
+	#[Inject]
+	public VisibilityListRepository $visibilityListRepository;
+
+	#[Inject]
+	public LostPasswordService $lostPasswordService;
+
+	#[Inject]
+	public ProductsCacheGetterService $productsCacheGetterService;
+
+	public function addFiltersToCustomersGrid(AdminGrid $grid): void
 	{
 		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
-		
-		$grid = $this->gridFactory->create($this->customerRepository->many()
-			->select(['pricelists_names' => "GROUP_CONCAT(pricelists.name SEPARATOR ', ')"])
-			->setGroupBy(['this.uuid']), 20, 'createdTs', 'DESC', true);
-		$grid->addColumnSelector();
-		$grid->addColumnText('Registrace', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
-		$grid->addColumn('Název / Jméno', function (Customer $customer) {
-			return $customer->company ?: $customer->fullname;
-		});
-		$td = '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a><br><a href="tel:%2$s"><i class="fa fa-phone-alt"></i> %2$s</a>';
-		$grid->addColumnTextFit('E-mail / Telefon', ['email', 'phone'], $td)->onRenderCell[] = [$grid, 'decoratorEmpty'];
-		
-		
-		$grid->addColumn($lableMerchants, function (Customer $customer) {
-			return \implode(', ', $this->merchantRepository->many()
-				->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = merchantXcustomer.fk_merchant')
-				->where('fk_customer', $customer)
-				->toArrayOf('fullname'));
-		});
-		$grid->addColumnTextFit('Skupina', 'group.name', '%s', 'group.name');
 
-		if (isset($this::CONFIGURATIONS['customerRoles']) && $this::CONFIGURATIONS['customerRoles']) {
-			$grid->addColumnTextFit('Role', 'customerRole.name', '%s', 'customerRole.name');
-		}
-
-		$grid->addColumnText('Ceníky', 'pricelists_names', '%s');
-		$grid->addColumnTextFit('Sleva', 'discountLevelPct', '%s %%', 'discountLevelPct');
-		$grid->addColumnTextFit('Max. sleva', 'maxDiscountProductPct', '%s %%', 'discountLevelPct');
-		
-		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
-			$grid->addColumn('Věrnostní prog.', function (Customer $object) {
-				$link = $this->admin->isAllowed(':Eshop:Admin:LoyaltyProgram:programDetail') && $object->getValue('loyaltyProgram') ? $this->link(
-					':Eshop:Admin:LoyaltyProgram:programDetail',
-					[$object->loyaltyProgram, 'backLink' => $this->storeRequest()],
-				) : '#';
-				
-				return $object->getValue('loyaltyProgram') ?
-					"<a href='" . $link . "'>" . $object->loyaltyProgram->name . '</a><small><br>Bodů: ' . $object->getLoyaltyProgramPoints() .
-					' | Sleva: ' . ($object->loyaltyProgramDiscountLevel ? $object->loyaltyProgramDiscountLevel->discountLevel : 0) . '%</small>' :
-					'';
-			}, '%s');
-		}
-
-		$grid->addColumnText('Poslední obj.', ['lastOrder.code', "lastOrder.createdTs|date:'d.m.Y G:i'"], '%s<br><small>%s</small>', 'lastOrder.createdTs');
-		$grid->addColumnText('Počet obj.', 'ordersCount', '%s', 'ordersCount', ['class' => 'fit']);
-		
-		$btnSecondary = 'btn btn-sm btn-outline-primary';
-		$grid->addColumn('Feed', function (Customer $customer) use ($btnSecondary) {
-			return "<a class='$btnSecondary' target='_blank' href='" . $this->link('//:Eshop:Export:customer', $customer->getPK()) . "'><i class='fa fa-sm fa-rss'></i></a>";
-		}, '%s', null, ['class' => 'minimal']);
-		
-		$grid->addColumn('', function (Customer $object, Datagrid $datagrid) use ($btnSecondary) {
-			return \count($object->accounts) > 0 ?
-				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'accounts', 'accountGrid-company' => $object->email]) . "'>Účty</a>" :
-				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('newAccount', $object) . "'>Vytvořit&nbsp;účet</a>";
-		}, '%s', null, ['class' => 'minimal']);
-		
-		$grid->addColumnLink('editAddress', 'Adresy');
-		$grid->addColumnLinkDetail('edit');
-		
-		$grid->addColumnActionDelete([$this->accountFormFactory, 'deleteAccountHolder']);
-		
-		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder'], false, null, 'this.uuid');
-		
-		$bulkEdits = ['merchant', 'group'];
-
-		if ($this->isManager) {
-			$bulkEdits[] = 'pricelists';
-			$bulkEdits[] = 'discountLevelPct';
-		}
-		
-		if ($this->isManager && isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
-			$bulkEdits[] = 'loyaltyProgram';
-		}
-		
-		$grid->addButtonBulkEdit('form', $bulkEdits, 'customers');
-		
-		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů')
-			->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
-		$submit->onClick[] = [$this, 'exportCustomers'];
-		
-		if (isset($this::CONFIGURATIONS['targito']) && $this::CONFIGURATIONS['targito']) {
-			$submit = $grid->getForm()->addSubmit('downloadContactsTargito', 'Export Targito (CSV)')
-				->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
-			$submit->onClick[] = [$this, 'exportTargito'];
-		}
-		
 		$grid->addFilterTextInput('search', ['this.fullname', 'this.email', 'this.phone'], null, 'Jméno a příjmení, e-mail, telefon');
-		
+
 		if (\count($this->merchantRepository->getArrayForSelect()) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = merchantXcustomer.fk_customer');
 				$source->where('merchantXcustomer.fk_merchant', $value);
 			}, '', 'merchant', $lableMerchants, $this->merchantRepository->getArrayForSelect(), ['placeholder' => "- $lableMerchants -"]);
 		}
-		
+
 		if (\count($this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup'])) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 				$source->where('fk_group', $value);
@@ -252,36 +191,40 @@ class CustomerPresenter extends BackendPresenter
 				$source->where('pricelistNxN.fk_pricelist', $value);
 			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
 		}
-		
+
 		if ($loyaltyPrograms = $this->loyaltyProgramRepository->getArrayForSelect()) {
 			$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 				$source->where('this.fk_loyaltyProgram', $value);
 			}, '', 'loyaltyPrograms', 'Věrnostní program', $loyaltyPrograms)->setPrompt('- Věrnostní program -');
 		}
-		
+
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 			$source->where('accounts.uuid ' . ($value === '1' ? 'IS NOT NULL' : 'IS NULL'));
 		}, '', 'accountsAssigned', 'Účet', ['0' => 'Bez účtu', '1' => 'S účtem'])->setPrompt('- Účet -');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+			$source->where('this.fk_parentCustomer ' . ($value === '1' ? 'IS NOT NULL' : 'IS NULL'));
+		}, '', 'parentCustomer', null, ['0' => 'Ne', '1' => 'Ane'])->setPrompt('- Nadřazený zák. -');
+
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs >= :createdTs_from', ['createdTs_from' => $value]);
 		}, '', 'createdTs_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
 			->setHtmlAttribute('placeholder', 'Registrace od');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs <= :createdTs_to', ['createdTs_to' => $value]);
 		}, '', 'createdTs_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
 			->setHtmlAttribute('placeholder', 'Registrace do');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('lastOrder.createdTs >= :lastOrder_createdTs_from', ['lastOrder_createdTs_from' => $value]);
 		}, '', 'lastOrder_createdTs_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
 			->setHtmlAttribute('placeholder', 'Poslední obj. od');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('lastOrder.createdTs <= :lastOrder_createdTs_to', ['lastOrder_createdTs_to' => $value]);
 		}, '', 'lastOrder_createdTs_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
@@ -292,20 +235,11 @@ class CustomerPresenter extends BackendPresenter
 				return;
 			}
 
-			switch ($customerType) {
-				case 'one':
-					$filter = '=1';
-
-					break;
-				case 'more':
-					$filter = '>1';
-
-					break;
-				default:
-					$filter = '=0';
-
-					break;
-			}
+			$filter = match ($customerType) {
+				'one' => '=1',
+				'more' => '>1',
+				default => '=0',
+			};
 
 			$source->where("this.ordersCount $filter");
 		}, '', 'customerType', null, [
@@ -313,12 +247,154 @@ class CustomerPresenter extends BackendPresenter
 			'one' => 'Jedna objednávka (=1)',
 			'more' => 'Více objednávek (>1)',
 		])->setPrompt('- Počet obj. -');
+	}
+
+	public function addFiltersToAccountsGrid(AdminGrid $grid): void
+	{
+		$grid->addFilterTextInput('search', ['this.login'], null, 'Login');
+		$grid->addFilterTextInput('customer', ['customer.fullname'], null, 'Jméno zákazníka');
+		$grid->addFilterTextInput('company', ['customer.company', 'customer.ic', 'customer.email'], null, 'Firma, IČ, email zákazníka');
+
+		$merchantLabels = $this::CONFIGURATIONS['labels']['merchants'];
+
+		if (\count($this->merchantRepository->getArrayForSelect()) > 0) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
+				$source->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'customer.uuid = merchantXcustomer.fk_customer');
+				$source->where('merchantXcustomer.fk_merchant', $value);
+			}, '', 'merchant', $merchantLabels, $this->merchantRepository->getArrayForSelect(), ['placeholder' => "- $merchantLabels -"]);
+		}
+
+		if (\count($this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup'])) > 0) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
+				$source->where('customer.fk_group', $value);
+			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
+		}
+
+		if (isset($this::CONFIGURATIONS['customerRoles']) && $this::CONFIGURATIONS['customerRoles']) {
+			if (\count($this->customerRoleRepo->getArrayForSelect(true)) > 0) {
+				$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
+					$source->where('customer.fk_customerRole', $value);
+				}, '', 'customerRole', 'Skupina', $this->customerRoleRepo->getArrayForSelect(true), ['placeholder' => '- Role -']);
+			}
+		}
+
+		if (\count($this->pricelistRepo->getArrayForSelect(true)) > 0) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
+				$source->join(['pricelistNxN' => 'eshop_customer_nxn_eshop_pricelist'], 'customer.uuid = pricelistNxN.fk_customer');
+				$source->where('pricelistNxN.fk_pricelist', $value);
+			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
+		}
+
+		$grid->addFilterSelectInput('newsletter', 'IF(:nQ = "1", newsletterUser.uuid IS NOT NULL, newsletterUser.uuid IS NULL)', 'Newsletter', '- Newsletter -', null, [
+			'0' => 'Ne',
+			'1' => 'Ano',
+		], 'nQ');
+	}
+	
+	public function createComponentCustomers(): AdminGrid
+	{
+		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
+
+		$grid = $this->gridFactory->create($this->customerRepository->many()
+			->select([
+				'pricelists_names' => "GROUP_CONCAT(DISTINCT pricelists.name SEPARATOR ', ')",
+				'visibilityLists_names' => "GROUP_CONCAT(DISTINCT visibilityLists.name SEPARATOR ', ')",
+				'merchants_names' => "GROUP_CONCAT(DISTINCT merchants.fullname SEPARATOR ', ')",
+			])
+			->setGroupBy(['this.uuid']), 20, 'createdTs', 'DESC', true, filterShops: false);
+		$grid->addColumnSelector();
+		$grid->addColumnText('Registrace', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
+		$grid->addColumn('Jméno / Adresa (Fakt., Doruč.)', function (Customer $customer) {
+			$hr = '<hr style="margin: 0">';
+			$billAddress = $customer->billAddress?->getFullAddress();
+			$deliveryAddress = $customer->deliveryAddress?->getFullAddress();
+
+			return ($customer->company ?: $customer->fullname) . "$hr<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
+		});
+		$td = '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a><br><a href="tel:%2$s"><i class="fa fa-phone-alt"></i> %2$s</a>';
+		$grid->addColumnTextFit('E-mail / Telefon', ['email', 'phone'], $td)->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		
+		
+		$grid->addColumn("$lableMerchants<hr style=\"margin: 0\">Nadřazený zák.", function (Customer $customer) {
+			return [
+				$customer->getValue('merchants_names'),
+				$customer->parentCustomer?->getName(),
+			];
+		}, '%s<hr style="margin: 0">%s');
+		$grid->addColumnTextFit('Skupina', 'group.name', '%s', 'group.name');
+
+		if (isset($this::CONFIGURATIONS['customerRoles']) && $this::CONFIGURATIONS['customerRoles']) {
+			$grid->addColumnTextFit('Role', 'customerRole.name', '%s', 'customerRole.name');
+		}
+
+		$grid->addColumnText('Ceníky / Viditelníky', ['pricelists_names', 'visibilityLists_names'], '%s<hr style="margin: 0">%s');
+//		$grid->addColumnTextFit('Sleva', 'discountLevelPct', '%s %%', 'discountLevelPct');
+//		$grid->addColumnTextFit('Max. sleva', 'maxDiscountProductPct', '%s %%', 'discountLevelPct');
+		
+		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
+			$grid->addColumn('Věrnostní prog.', function (Customer $object) {
+				$link = $this->admin->isAllowed(':Eshop:Admin:LoyaltyProgram:programDetail') && $object->getValue('loyaltyProgram') ? $this->link(
+					':Eshop:Admin:LoyaltyProgram:programDetail',
+					[$object->loyaltyProgram, 'backLink' => $this->storeRequest()],
+				) : '#';
+				
+				return $object->getValue('loyaltyProgram') ?
+					"<a href='" . $link . "'>" . $object->loyaltyProgram->name . '</a><small><br>Bodů: ' . $object->getLoyaltyProgramPoints() .
+					' | Sleva: ' . ($object->loyaltyProgramDiscountLevel ? $object->loyaltyProgramDiscountLevel->discountLevel : 0) . '%</small>' :
+					'';
+			}, '%s');
+		}
+
+		$grid->addColumnText('Poslední obj.', ['lastOrder.code', "lastOrder.createdTs|date:'d.m.Y G:i'"], '%s<br><small>%s</small>', 'lastOrder.createdTs');
+		$grid->addColumnText('Počet obj.', 'ordersCount', '%s', 'ordersCount', ['class' => 'fit']);
+
+		Arrays::invoke($this->onBeforeAddButtonsCustomersGrid, $grid);
+		$this->addCustomFieldsToCustomerGrid($grid);
+
+		$btnSecondary = 'btn btn-sm btn-outline-primary';
+		$grid->addColumn('Feed', function (Customer $customer) use ($btnSecondary) {
+			return "<a class='$btnSecondary' target='_blank' href='" . $this->link('//:Eshop:Export:customer', $customer->getPK()) . "'><i class='fa fa-sm fa-rss'></i></a>";
+		}, '%s', null, ['class' => 'minimal']);
+		
+		$grid->addColumn('', function (Customer $object, Datagrid $datagrid) use ($btnSecondary) {
+			return \count($object->accounts) > 0 ?
+				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', [
+					'tab' => 'accounts',
+					'accountGrid-company' => $object->email,
+					'accountGrid-customer' => $object->fullname,
+				]) . "'>Účty</a>" :
+				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('newAccount', $object) . "'>Vytvořit&nbsp;účet</a>";
+		}, '%s', null, ['class' => 'minimal']);
+		
+		$grid->addColumnLink('editAddress', 'Adresy');
+		$grid->addColumnLinkDetail('edit');
+
+		$grid->addColumnActionDelete([$this->accountFormFactory, 'deleteAccountHolder']);
+		
+		$grid->addButtonSaveAll();
+		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder'], false, null, 'this.uuid');
+		
+		$grid->addButtonBulkEdit('form', $this->getBulkEdits(), 'customers');
+		
+		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů')
+			->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
+		$submit->onClick[] = [$this, 'exportCustomers'];
+		
+		if (isset($this::CONFIGURATIONS['targito']) && $this::CONFIGURATIONS['targito']) {
+			$submit = $grid->getForm()->addSubmit('downloadContactsTargito', 'Export Targito (CSV)')
+				->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
+			$submit->onClick[] = [$this, 'exportTargito'];
+		}
+
+		$this->addFiltersToCustomersGrid($grid);
+
+		$this->gridFactory->addShopsFilterSelect($grid);
+
 		$grid->addFilterButtons();
 		
 		return $grid;
 	}
-	
+
 	public function exportCustomers(Button $button): void
 	{
 		/** @var \Grid\Datagrid $grid */
@@ -483,7 +559,8 @@ class CustomerPresenter extends BackendPresenter
 	public function createComponentForm(): AdminForm
 	{
 		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
-		
+
+		/** @var \Admin\Controls\AdminForm|array{shop: \Nette\Forms\Controls\TextInput} $form */
 		$form = $this->formFactory->create();
 
 		/** @var \Eshop\DB\Customer|null $customer */
@@ -498,8 +575,16 @@ class CustomerPresenter extends BackendPresenter
 		$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired()->setDisabled((bool) $customer);
 		$form->addText('ccEmails', 'Kopie e-mailů')->setHtmlAttribute('data-info', 'Zadejte e-mailové adresy oddělené středníkem (;).');
 		
-		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->many()->toArrayOf('name'))
+		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...')
+			->setDisabled(!$this->isManager);
+
+		$form->addDataMultiSelect('favouritePriceLists', 'Oblíbené ceníky', $this->pricelistRepo->getArrayForSelect())
+			->setHtmlAttribute('placeholder', 'Vyberte položky...')
+			->setHtmlAttribute('data-info', 'Pokud zvolený ceník není přiřazen jako "Ceníky", bude dodatečně spárován.')
+			->setDisabled(!$this->isManager);
+
+		$form->addMultiSelect2('visibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect())
 			->setDisabled(!$this->isManager);
 		
 		$customersForSelect = $this->customerRepository->getArrayForSelect();
@@ -519,7 +604,7 @@ class CustomerPresenter extends BackendPresenter
 		$form->addGroup('Nákup a preference');
 		
 		if (isset($this::CONFIGURATIONS['branches']) && $this::CONFIGURATIONS['branches']) {
-			$form->addSelect2('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->setPrompt('Žádná');
+			$form->addSelect2('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->checkDefaultValue(false)->setPrompt('Žádná');
 			$form->addSelect('orderPermission', 'Objednání', [
 				'fullWithApproval' => 'Pouze se schválením',
 				'full' => 'Povoleno',
@@ -547,10 +632,15 @@ class CustomerPresenter extends BackendPresenter
 			
 			if ($customer && $customer->getValue('loyaltyProgram')) {
 				$loyaltyProgram = $this->loyaltyProgramRepository->one($customer->getValue('loyaltyProgram'), true);
-				$customerTurnover = $this->orderRepository->getCustomerTotalTurnover($customer, $loyaltyProgram->turnoverFrom ? new DateTime($loyaltyProgram->turnoverFrom) : null, new DateTime());
+				$customerTurnover = $this->orderRepository->getCustomerTotalTurnover(
+					$customer,
+					$loyaltyProgram->turnoverFrom ?
+					new \Carbon\Carbon($loyaltyProgram->turnoverFrom) : null,
+					new \Carbon\Carbon(),
+				);
 				
 				$form->addText('loyaltyProgramTurnover', 'Objem objednávek (Kč)')->setDisabled()->setDefaultValue((string) $customerTurnover);
-				$form->addText('loyaltyProgramPoints', 'Stav věrnostního konta')->setDisabled()->setDefaultValue((string)$customer->getLoyaltyProgramPoints());
+				$form->addText('loyaltyProgramPoints', 'Stav věrnostního konta')->setDisabled()->setDefaultValue((string) $customer->getLoyaltyProgramPoints());
 				$form->addText('loyaltyProgramDiscountLevel', 'Procentuální sleva věrnostního programu (%)')
 					->setDisabled();
 			}
@@ -589,6 +679,11 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
 		}
 
+		$form->addGroup('Cache');
+		$form->addText('cacheIndex', 'Index')
+			->setDisabled()
+			->setDefaultValue($customer ? $this->productsCacheGetterService->getIndexByCustomer($customer) : null);
+
 		$form->onValidate[] = function (AdminForm $form): void {
 			if (!$form->isValid()) {
 				return;
@@ -596,27 +691,76 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 			$values = $form->getValues('array');
 
-			if (!isset($values['email']) || !$this->customerRepository->many()->where('email', $values['email'])->first()) {
+			if (!isset($values['email'])) {
+				return;
+			}
+
+			$customerQuery = $this->customerRepository->many()->where('email', $values['email']);
+
+			if (isset($values['shop'])) {
+				$customerQuery->where('this.fk_shop', $values['shop']);
+			}
+
+			if (!$customerQuery->first()) {
 				return;
 			}
 
 			/** @var \Nette\Forms\Controls\TextInput $emailInput */
 			$emailInput = $form['email'];
 
-			$emailInput->addError('Tento e-mail již existuje!');
+			$emailInput->addError('Tento e-mail již existuje! E-mail může v jednom obchodu existovat maximálně 1x.');
 		};
 
+		$this->addCustomFieldsToCustomerForm($form);
+
+		$this->formFactory->addShopsContainerToAdminForm($form, false);
+
+		if ($customer) {
+			$form['shop']->setDisabled();
+		}
+
 		$form->addSubmits(!$this->getParameter('customer'));
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			$values = $form->getValues('array');
+
+			$merchants = Arrays::pick($values, 'merchants');
+
+			unset($values['merchants']);
+			unset($values['accounts']);
+
+			foreach ($values['favouritePriceLists'] as $favouritePriceList) {
+				if (Arrays::contains($values['pricelists'], $favouritePriceList)) {
+					continue;
+				}
+
+				$values['pricelists'][] = $favouritePriceList;
+			}
+
+			/** @var \Eshop\DB\Customer $customer */
+			$customer = $this->customerRepository->syncOne($values, null, true, false);
+
+			$this->storm->rows(['eshop_merchant_nxn_eshop_customer'])->where('fk_customer', $customer)->delete();
+
+			foreach ($merchants as $merchant) {
+				$this->storm->createRow('eshop_merchant_nxn_eshop_customer', ['fk_merchant' => $merchant, 'fk_customer' => $customer->getPK()]);
+			}
+
+			$this->flashMessage('Vytvořeno', 'success');
+			$form->processRedirect('edit', 'default', [$customer]);
+		};
 		
 		return $form;
 	}
-	
+
 	public function createComponentEditAddress(): AdminForm
 	{
 		$form = $this->formFactory->create();
 		
 		$form->addGroup('Fakturační adresa');
 		$billAddress = $form->addContainer('billAddress');
+		$billAddress->addText('name', ' Jméno a příjmení / název firmy');
+		$billAddress->addText('companyName', ' Název firmy');
 		$billAddress->addText('street', 'Ulice');
 		$billAddress->addText('city', 'Město');
 		$billAddress->addText('zipcode', 'PSČ');
@@ -635,6 +779,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			'deliveryAddress' => $this->addressRepo->getStructure(),
 			'billAddress' => $this->addressRepo->getStructure(),
 		]);
+
+		Arrays::invoke($this->onBeforeSubmitEditAddress, $form);
 		
 		$form->addSubmits();
 		
@@ -643,8 +789,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 	
 	public function renderDefault(?Customer $customer = null): void
 	{
-		Debugger::$showBar = false;
-
 		unset($customer);
 		
 		if ($this->tab === 'customers') {
@@ -685,59 +829,49 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			['Zákazníci', 'default'],
 			['Detail'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayButtons = [$this->createBackButton('default'), $this->createButton('editAddress', 'Adresy', $this->getParameter('customer'))];
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
 	
 	public function renderEditAddress(): void
 	{
-		$this->template->headerLabel = 'Adresy';
+		/** @var \Eshop\DB\Customer $customer */
+		$customer = $this->getParameter('customer');
+
+		$this->template->headerLabel = 'Adresy - ' . ($customer->company ?: $customer->fullname);
 		$this->template->headerTree = [
 			['Zákazníci', 'default'],
 			['Adresy'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayButtons = [$this->createBackButton('default'), $this->createButton('edit', 'Zákazník', $customer)];
 		$this->template->displayControls = [$this->getComponent('editAddress')];
 	}
 	
 	public function renderEditAccount(Account $account): void
 	{
-		unset($account);
-		
 		$this->template->headerLabel = 'Účet';
 		$this->template->headerTree = [
 			['Zákazníci', 'default'],
 			['Účet'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayButtons = [
+			$this->createBackButton('default'),
+			$this->createButton('sendResetPasswordLink!', 'Poslat link na změnu hesla', $account),
+		];
 		$this->template->displayControls = [$this->getComponent('accountForm')];
 	}
-	
-	public function actionNew(): void
+
+	public function handleSendResetPasswordLink(Account $account): void
 	{
-		/** @var \Admin\Controls\AdminForm $form */
-		$form = $this->getComponent('form');
-		
-		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
-			
-			$merchants = Arrays::pick($values, 'merchants');
+		try {
+			$this->lostPasswordService->sendResetLink($account);
 
-			try {
-				$customer = $this->customerRepository->createOne($values);
-			} catch (\Throwable $e) {
-				$this->flashMessage('Nelze vytvořit zákazníka', 'error');
+			$this->flashMessage('E-mail odeslán', 'success');
+		} catch (\Throwable $e) {
+			$this->flashMessage($e->getMessage(), 'error');
+		}
 
-				return;
-			}
-			
-			foreach ($merchants as $merchant) {
-				$this->storm->createRow('eshop_merchant_nxn_eshop_customer', ['fk_merchant' => $merchant, 'fk_customer' => $customer]);
-			}
-			
-			$this->flashMessage('Vytvořeno', 'success');
-			$form->processRedirect('edit', 'default', [$customer]);
-		};
+		$this->redirect('this');
 	}
 	
 	public function actionEdit(Customer $customer): void
@@ -753,39 +887,20 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		
 		$defaults = $customer->toArray([
 				'pricelists',
+				'favouritePriceLists',
+				'visibilityLists',
 				'exclusivePaymentTypes',
 				'exclusiveDeliveryTypes',
 				'accounts',
 			]) + ['merchants' => $merchants];
 		
 		if ($customer->loyaltyProgramDiscountLevel) {
-			$defaults['loyaltyProgramDiscountLevel'] = (string)$customer->loyaltyProgramDiscountLevel->discountLevel;
+			$defaults['loyaltyProgramDiscountLevel'] = (string) $customer->loyaltyProgramDiscountLevel->discountLevel;
 		}
 
 		$defaults['lastOrder'] = $customer->lastOrder ? $customer->lastOrder->code : null;
 		
 		$form->setDefaults($defaults);
-		
-		$form->onSuccess[] = function (AdminForm $form) use ($customer): void {
-			$values = $form->getValues('array');
-			
-			$this->storm->rows(['eshop_merchant_nxn_eshop_customer'])->where('fk_customer', $customer)->delete();
-			
-			foreach ($values['merchants'] as $merchant) {
-				$this->storm->createRow('eshop_merchant_nxn_eshop_customer', ['fk_merchant' => $merchant, 'fk_customer' => $customer]);
-			}
-			
-			unset($values['merchants']);
-			unset($values['accounts']);
-			
-			/** @var \Eshop\DB\Customer $customer */
-			$customer = $this->customerRepository->syncOne($values, null, true);
-			
-			$form->getPresenter()->flashMessage('Uloženo', 'success');
-			$form->processRedirect('edit', 'default', [$customer]);
-		};
-		
-		$this->renderEdit();
 	}
 	
 	public function actionEditAddress(Customer $customer): void
@@ -809,32 +924,33 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$form->getPresenter()->flashMessage('Uloženo', 'success');
 			$form->processRedirect('this', 'default');
 		};
-		
-		$this->renderEditAddress();
 	}
 	
 	public function createComponentAccountForm(): AdminForm
 	{
-		$callback = function (Form $form): void {
+		$callback = function (AdminForm $form): void {
+			/** @var \Security\DB\Account|null $account */
+			$account = $this->getParameter('account');
+
 			$form->addGroup('Oprávnění a zákazník');
 			$container = $form->addContainer('permission');
 			$container->addSelect2('customer', 'Zákazník', $this->customerRepository->getArrayForSelect())->setPrompt('-Zvolte-')->setRequired();
-			$catalogInput = $container->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setDefaultValue('price');
+			$catalogInput = $container->addSelect('catalogPermission', 'Zobrazení', ShopperUser::PERMISSIONS)->setDefaultValue('price');
 			
 			$catalogInput->addCondition($form::EQUAL, 'price')
 				->toggle('frm-accountForm-permission-showPricesWithoutVat-toogle')
 				->toggle('frm-accountForm-permission-showPricesWithVat-toogle');
 			
 			if (isset($this::CONFIGURATIONS['prices']) && $this::CONFIGURATIONS['prices']) {
-				if ($this->shopper->getShowWithoutVat()) {
+				if ($this->shopperUser->getShowWithoutVat()) {
 					$withoutVatInput = $container->addCheckbox('showPricesWithoutVat', 'Zobrazit ceny bez daně');
 				}
 				
-				if ($this->shopper->getShowVat()) {
+				if ($this->shopperUser->getShowVat()) {
 					$withVatInput = $container->addCheckbox('showPricesWithVat', 'Zobrazit ceny s daní');
 				}
 				
-				if ($this->shopper->getShowWithoutVat() && $this->shopper->getShowVat() && isset($withoutVatInput) && isset($withVatInput)) {
+				if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat()) {
 					$container->addSelect('priorityPrice', 'Prioritní cena', [
 						'withoutVat' => 'Bez daně',
 						'withVat' => 'S daní',
@@ -854,15 +970,32 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$newsletterGroupsInput = $container->addMultiSelect2('newsletterGroups', 'Skupiny newsletteru', $this->newsletterUserGroupRepository->getArrayForSelect());
 			
 			$newsletterInput->addCondition($form::FILLED)->toggle($newsletterGroupsInput->getHtmlId() . '-toogle');
+
+			$this->addCustomFieldsToAccountForm($form);
+
+			$accountContactInfos = $account?->getAccountContactInfos()->toArray();
+
+			if (!$accountContactInfos) {
+				return;
+			}
+
+			$form->addGroup('Kontaktní informace');
+			$contactInfosContainer = $form->addContainer('contactInfos');
+
+			$i = 0;
+
+			foreach ($accountContactInfos as $accountContactInfo) {
+				$contactInfosContainer->addText("info_$i", "Kontakt ($accountContactInfo->type)")->setDisabled()->setDefaultValue($accountContactInfo->value);
+
+				$i++;
+			}
 		};
 		
-		return $this->accountFormFactory->create(false, $callback, true, true);
+		return $this->accountFormFactory->create(false, $callback, true, true, $this->getParameter('account'));
 	}
 	
 	public function createComponentAccountGrid(): AdminGrid
 	{
-		$merchantLabels = $this::CONFIGURATIONS['labels']['merchants'];
-		
 		$collection = $this->accountRepository->many()
 			->join(['admin' => 'admin_administrator_nxn_security_account'], 'this.uuid = admin.fk_account')
 			->join(['merchant' => 'eshop_merchant_nxn_security_account'], 'this.uuid = merchant.fk_account')
@@ -871,28 +1004,44 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			->join(['catalogPermission' => 'eshop_catalogpermission'], 'catalogPermission.fk_account = this.uuid')
 			->join(['customer' => 'eshop_customer'], 'customer.uuid = catalogPermission.fk_customer')
 			->join(['newsletterUser' => 'eshop_newsletteruser'], 'this.uuid = newsletterUser.fk_customerAccount')
-			->select(['company' => 'customer.company', 'customerFullname' => 'customer.fullname'])
+			->select([
+				'company' => 'customer.company',
+				'customerFullname' => 'customer.fullname',
+				'customerPK' => 'customer.uuid',
+			])
 			->select([
 				'permission' => 'catalogPermission.catalogPermission',
 				'buyAllowed' => 'catalogPermission.buyAllowed',
 			]);
 		
-		$grid = $this->gridFactory->create($collection, 20, 'createdTs', 'DESC', true);
+		$grid = $this->gridFactory->create($collection, 20, 'createdTs', 'DESC', true, filterShops: false);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Vytvořen', 'tsRegistered|date', '%s', 'tsRegistered', ['class' => 'fit']);
 		$grid->addColumnText('Login', 'login', '%s', 'login', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname');
 		$grid->addColumn('Zákazník', function (Account $account) {
-			return $account->getValue('company') ?: ($account->getValue('customerFullname') ?: '');
+			if (!$customerPK = $account->getValue('customerPK')) {
+				return null;
+			}
+
+			if (!$customer = $this->customerRepository->one($customerPK)) {
+				return null;
+			}
+
+			$hr = '<hr style="margin: 0">';
+			$billAddress = $customer->billAddress?->getFullAddress();
+			$deliveryAddress = $customer->deliveryAddress?->getFullAddress();
+
+			return ($customer->company ?: $customer->fullname) . "$hr<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
 		});
 		$grid->addColumn('Oprávnění', function (Account $account) {
 			if (!$account->getValue('permission')) {
 				return '';
 			}
 			
-			$label = Shopper::PERMISSIONS;
+			$label = ShopperUser::PERMISSIONS;
 			
-			return '' . $label[$account->getValue('permission')] . ' + ' . ($account->getValue('buyAllowed') ? 'nákup' : 'bez nákupu');
+			return $label[$account->getValue('permission')] . ' + ' . ($account->getValue('buyAllowed') ? 'nákup' : 'bez nákupu');
 		});
 		
 		$grid->addColumnText('Aktivní od', "activeFrom|date:'d.m.Y G:i'", '%s', 'activeFrom', ['class' => 'fit']);
@@ -902,6 +1051,9 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		if ($this::CONFIGURATIONS['showAuthorized']) {
 			$grid->addColumnInputCheckbox('Autorizovaný', 'authorized');
 		}
+
+		Arrays::invoke($this->onBeforeAddButtonsAccountsGrid, $grid);
+		$this->addCustomFieldsToCustomerGrid($grid);
 		
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('Login', function (Account $object, Datagrid $grid) use ($btnSecondary) {
@@ -912,7 +1064,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				"<a class='$btnSecondary disabled' href='#'><i class='fa fa-sign-in-alt'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
 		$grid->addColumnLinkDetail('editAccount');
-		
+
 		$grid->addColumnActionDelete();
 		
 		$grid->addButtonSaveAll([], [], null, false, null, function ($id, $data): void {
@@ -929,42 +1081,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 		
-		$grid->addFilterTextInput('search', ['this.login'], null, 'Login');
-		$grid->addFilterTextInput('company', ['customer.company', 'customer.fullname', 'customer.ic', 'customer.email'], null, 'Zákazník, IČ');
-		
-		if (\count($this->merchantRepository->getArrayForSelect()) > 0) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
-				$source->join(['merchantXcustomer' => 'eshop_merchant_nxn_eshop_customer'], 'customer.uuid = merchantXcustomer.fk_customer');
-				$source->where('merchantXcustomer.fk_merchant', $value);
-			}, '', 'merchant', $merchantLabels, $this->merchantRepository->getArrayForSelect(), ['placeholder' => "- $merchantLabels -"]);
-		}
-		
-		if (\count($this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup'])) > 0) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
-				$source->where('customer.fk_group', $value);
-			}, '', 'group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']), ['placeholder' => '- Skupina -']);
-		}
-
-		if (isset($this::CONFIGURATIONS['customerRoles']) && $this::CONFIGURATIONS['customerRoles']) {
-			if (\count($this->customerRoleRepo->getArrayForSelect(true)) > 0) {
-				$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
-					$source->where('customer.fk_customerRole', $value);
-				}, '', 'customerRole', 'Skupina', $this->customerRoleRepo->getArrayForSelect(true), ['placeholder' => '- Role -']);
-			}
-		}
-
-		if (\count($this->pricelistRepo->getArrayForSelect(true)) > 0) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
-				$source->join(['pricelistNxN' => 'eshop_customer_nxn_eshop_pricelist'], 'customer.uuid = pricelistNxN.fk_customer');
-				$source->where('pricelistNxN.fk_pricelist', $value);
-			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
-		}
-		
-		$grid->addFilterSelectInput('newsletter', 'IF(:nQ = "1", newsletterUser.uuid IS NOT NULL, newsletterUser.uuid IS NULL)', 'Newsletter', '- Newsletter -', null, [
-			'0' => 'Ne',
-			'1' => 'Ano',
-		], 'nQ');
-		
 		$submit = $grid->getForm()->addSubmit('permBulkEdit', 'Hromadná úprava')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 		
 		$submit->onClick[] = function () use ($grid): void {
@@ -974,7 +1090,11 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů');
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
 		$submit->onClick[] = [$this, 'exportAccounts'];
-		
+
+		$this->addFiltersToAccountsGrid($grid);
+
+		$this->gridFactory->addShopsFilterSelect($grid);
+
 		$grid->addFilterButtons();
 		
 		return $grid;
@@ -1014,7 +1134,31 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		
 		$values = $form->addContainer('values');
 		
-		$values->addSelect('catalogPermission', 'Zobrazení', Shopper::PERMISSIONS)->setPrompt('Původní');
+		$values->addSelect('catalogPermission', 'Zobrazení', ShopperUser::PERMISSIONS)->setPrompt('Původní');
+
+		if (isset($this::CONFIGURATIONS['prices']) && $this::CONFIGURATIONS['prices']) {
+			if ($this->shopperUser->getShowWithoutVat()) {
+				$values->addSelect('showPricesWithoutVat', 'Zobrazit ceny bez daně', [
+					false => 'Ne',
+					true => 'Ano',
+				])->setPrompt('Původní');
+			}
+
+			if ($this->shopperUser->getShowVat()) {
+				$values->addSelect('showPricesWithVat', 'Zobrazit ceny s daní', [
+					false => 'Ne',
+					true => 'Ano',
+				])->setPrompt('Původní');
+			}
+
+			if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat()) {
+				$values->addSelect('priorityPrice', 'Prioritní cena', [
+					'withoutVat' => 'Bez daně',
+					'withVat' => 'S daní',
+				])->setPrompt('Původní');
+			}
+		}
+
 		$values->addSelect('buyAllowed', 'Povolit nákup', [
 			false => 'Ne',
 			true => 'Ano',
@@ -1106,5 +1250,46 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		};
 		
 		return $form;
+	}
+
+	/**
+	 * @return array<string>
+	 */
+	protected function getBulkEdits(): array
+	{
+		 $bulkEdits = ['merchant', 'group'];
+
+		if ($this->isManager) {
+			$bulkEdits[] = 'pricelists';
+			$bulkEdits[] = 'favouritePriceLists';
+			$bulkEdits[] = 'visibilityLists';
+			$bulkEdits[] = 'discountLevelPct';
+		}
+
+		if ($this->isManager && isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
+			$bulkEdits[] = 'loyaltyProgram';
+		}
+
+		return $bulkEdits;
+	}
+
+	protected function addCustomFieldsToCustomerForm(AdminForm $form): void
+	{
+		unset($form);
+	}
+
+	protected function addCustomFieldsToAccountForm(AdminForm $form): void
+	{
+		unset($form);
+	}
+
+	protected function addCustomFieldsToCustomerGrid(AdminGrid $grid): void
+	{
+		unset($grid);
+	}
+
+	protected function addCustomFieldsToAccountGrid(AdminGrid $grid): void
+	{
+		unset($grid);
 	}
 }

@@ -111,7 +111,7 @@ class EHub
 			throw new \Exception('Invalid response from eHub.', $response->getStatusCode());
 		}
 
-		$result = Helpers::convertJsonToArray((string)$response->getBody());
+		$result = Helpers::convertJsonToArray((string) $response->getBody());
 
 		if ($result['totalItems'] > $this::PER_PAGE) {
 			$loaded = $this::PER_PAGE;
@@ -125,7 +125,7 @@ class EHub
 						],
 				]);
 
-				$result['transactions'] = \array_merge($result['transactions'], Helpers::convertJsonToArray((string)$response->getBody())['transactions']);
+				$result['transactions'] = \array_merge($result['transactions'], Helpers::convertJsonToArray((string) $response->getBody())['transactions']);
 
 				$page++;
 				$loaded += $this::PER_PAGE;
@@ -159,7 +159,7 @@ class EHub
 			throw new \Exception('Invalid response from eHub.', $response->getStatusCode());
 		}
 
-		return Helpers::convertJsonToArray((string)$response->getBody());
+		return Helpers::convertJsonToArray((string) $response->getBody());
 	}
 
 	/**
@@ -194,8 +194,8 @@ class EHub
 		foreach ($order->purchase->getItems() as $item) {
 			$json['orderItems'][] = [
 				'itemId' => $item->product ? $item->product->getFullCode() : $item->getFullCode(),
-				'masterType' => $item->product && $item->product->primaryCategory ? Arrays::first($this->categoryRepository->getBranch($item->product->primaryCategory)) : null,
-				'category' => $item->product && $item->product->primaryCategory ? $item->product->primaryCategory->name : null,
+				'masterType' => $item->product && $item->product->getPrimaryCategory() ? Arrays::first($this->categoryRepository->getBranch($item->product->getPrimaryCategory())) : null,
+				'category' => $item->product && $item->product->getPrimaryCategory() ? $item->product->getPrimaryCategory()->name : null,
 				'name' => $item->product ? $item->product->name : $item->productName,
 				'unitPrice' => \round($item->priceVat, 2),
 				'quantity' => $item->amount,
@@ -215,7 +215,7 @@ class EHub
 			throw new \Exception('Invalid response from eHub.', $response->getStatusCode());
 		}
 
-		return Helpers::convertJsonToArray((string)$response->getBody());
+		return Helpers::convertJsonToArray((string) $response->getBody());
 	}
 
 	/**
@@ -370,8 +370,8 @@ class EHub
 		foreach ($order->purchase->getItems() as $item) {
 			$json['orderItems'][] = [
 				'id' => $item->product ? $item->product->getFullCode() : $item->getFullCode(),
-				'masterType' => $item->product && $item->product->primaryCategory ? Arrays::first($this->categoryRepository->getBranch($item->product->primaryCategory)) : null,
-				'category' => $item->product && $item->product->primaryCategory ? $item->product->primaryCategory->name : null,
+				'masterType' => $item->product && $item->product->getPrimaryCategory() ? Arrays::first($this->categoryRepository->getBranch($item->product->getPrimaryCategory())) : null,
+				'category' => $item->product && $item->product->getPrimaryCategory() ? $item->product->getPrimaryCategory()->name : null,
 				'name' => $item->product ? $item->product->name : $item->productName,
 				'unitPrice' => \round($item->priceVat, 2),
 				'quantity' => $item->amount,

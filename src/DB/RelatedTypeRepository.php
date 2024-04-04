@@ -9,7 +9,6 @@ use Latte\Loaders\StringLoader;
 use Latte\Sandbox\SecurityPolicy;
 use Nette\Bridges\ApplicationLatte\LatteFactory;
 use Nette\Bridges\ApplicationLatte\UIExtension;
-use Nette\Bridges\ApplicationLatte\UIMacros;
 use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -96,13 +95,7 @@ class RelatedTypeRepository extends \StORM\Repository implements IGeneralReposit
 			return Strings::firstLower($s);
 		});
 
-		/** @phpstan-ignore-next-line @TODO LATTEV3 */
-		if (\version_compare(\Latte\Engine::VERSION, '3', '<')) {
-			/** @phpstan-ignore-next-line @TODO LATTEV3 */
-			UIMacros::install($latte->getCompiler());
-		} else {
-			$latte->addExtension(new UIExtension(null));
-		}
+		$latte->addExtension(new UIExtension(null));
 
 		$latte->setLoader(new StringLoader());
 		$latte->setPolicy($policy);
@@ -117,8 +110,6 @@ class RelatedTypeRepository extends \StORM\Repository implements IGeneralReposit
 
 			return true;
 		} catch (\Throwable $e) {
-			\bdump($e);
-
 			return false;
 		}
 	}

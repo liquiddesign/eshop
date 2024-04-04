@@ -7,6 +7,7 @@ use Contributte\Comgate\Comgate;
 use Eshop\DB\ComgateRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\Front\FrontendPresenter;
+use Eshop\Integration\Integrations;
 use Nette\Application\BadRequestException;
 use Tracy\Debugger;
 
@@ -14,14 +15,16 @@ abstract class ComgatePresenter extends FrontendPresenter
 {
 	public Comgate $comgate;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ComgateRepository $comgateRepository;
 
-	/** @inject */
-	public \Eshop\Integration\Comgate $CG;
-
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
+
+	#[\Nette\DI\Attributes\Inject]
+	public Integrations $integrations;
+
+	private \Eshop\Services\Comgate $comgateService;
 
 	public function actionPaymentResult(): void
 	{
@@ -68,7 +71,7 @@ abstract class ComgatePresenter extends FrontendPresenter
 
 	public function actionPaymentSummary(string $id): void
 	{
-		$result = $this->CG->getStatus($id);
+		$result = $this->comgateService->getStatus($id);
 
 		if ($result['merchant'] !== $this->comgate->getMerchant() || $result['secret'] !== $this->comgate->getSecret()) {
 			throw new \Exception('Invalid request');
@@ -88,5 +91,19 @@ abstract class ComgatePresenter extends FrontendPresenter
 
 		$this->template->sendOrderToEHub = $this->getSession()->getSection('frontend')->get('sendOrderToEHub');
 		$this->getSession()->getSection('frontend')->remove('sendOrderToEHub');
+	}
+
+	protected function startup(): void
+	{
+		parent::startup();
+
+		/** @var \Eshop\Services\Comgate|null $comgateService */
+		$comgateService = $this->integrations->getService(Integrations::COMGATE);
+
+		if (!$comgateService) {
+			throw new \Exception('Comgate service not found! Did you register it from "\Eshop\Services"?');
+		}
+
+		$this->comgateService = $comgateService;
 	}
 }

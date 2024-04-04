@@ -15,13 +15,13 @@ use Nette\Utils\FileSystem;
 
 class PhotoPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PhotoRepository $photoRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AdminFormFactory $formFactory;
 	
 	private string $productPhotosPath;
@@ -68,7 +68,7 @@ class PhotoPresenter extends BackendPresenter
 		$form = $this->getComponent('newForm');
 		
 		$values = $photo->toArray();
-		$values['hidden'] = (int)$values['hidden'];
+		$values['hidden'] = (int) $values['hidden'];
 		$form->setDefaults($values);
 		
 		$form->onSuccess[] = function (Form $form) use ($photo): void {
@@ -87,7 +87,7 @@ class PhotoPresenter extends BackendPresenter
 				FileSystem::rename($this->productPhotosPath . \DIRECTORY_SEPARATOR . $photo->fileName, $this->productPhotosPath . \DIRECTORY_SEPARATOR . $values['fileName']);
 			}
 
-			$values['hidden'] = (bool)$values['hidden'];
+			$values['hidden'] = (bool) $values['hidden'];
 			$values['priority'] = $values['priority'] !== '' ? $values['priority'] : 10;
 			$photo->update($values);
 			$this->flashMessage('Uloženo', 'success');

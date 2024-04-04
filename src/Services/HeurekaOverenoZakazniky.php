@@ -4,6 +4,7 @@ namespace Eshop\Services;
 
 use Eshop\DB\Order;
 use Heureka\ShopCertification;
+use Nette\Utils\Validators;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
@@ -25,6 +26,10 @@ class HeurekaOverenoZakazniky
 
 	public function sendOrder(Order $order): void
 	{
+		if (!$order->purchase->email || !Validators::isEmail($order->purchase->email)) {
+			return;
+		}
+
 		$shopCertification = $this->getShopCertification();
 		$shopCertification->setEmail($order->purchase->email);
 		$shopCertification->setOrderId((int) $order->code);

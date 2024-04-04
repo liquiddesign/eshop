@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Carbon\Carbon;
 use Eshop\Common\DB\SystemicEntity;
 use StORM\RelationCollection;
 
@@ -46,30 +47,30 @@ class LoyaltyProgram extends SystemicEntity
 
 	/**
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Customer>|\Eshop\DB\Customer[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Customer>
 	 */
 	public RelationCollection $customers;
 
 	/**
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\LoyaltyProgramDiscountLevel>|\Eshop\DB\LoyaltyProgramDiscountLevel[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\LoyaltyProgramDiscountLevel>
 	 */
 	public RelationCollection $discountLevels;
 
 	/**
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\LoyaltyProgramProduct>|\Eshop\DB\LoyaltyProgramProduct[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\LoyaltyProgramProduct>
 	 */
 	public RelationCollection $products;
 
 	/**
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\LoyaltyProgramHistory>|\Eshop\DB\LoyaltyProgramHistory[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\LoyaltyProgramHistory>
 	 */
 	public RelationCollection $histories;
 
 	public function isActive(): bool
 	{
-		return ($this->validFrom === null || \strtotime($this->validFrom) <= \time()) && ($this->validTo === null || \strtotime($this->validTo) >= \time());
+		return ($this->validFrom === null || Carbon::parse($this->validFrom)->getTimestamp() <= \time()) && ($this->validTo === null || Carbon::parse($this->validTo)->getTimestamp() >= \time());
 	}
 }

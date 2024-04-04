@@ -57,7 +57,7 @@ class PickupPointRepository extends \StORM\Repository implements IGeneralReposit
 	}
 
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getCitiesArrayForSelect(): array
 	{
@@ -71,7 +71,7 @@ class PickupPointRepository extends \StORM\Repository implements IGeneralReposit
 	}
 
 	/**
-	 * @return \Eshop\DB\OpeningHours[]
+	 * @return array<\Eshop\DB\OpeningHours>
 	 * @throws \Throwable
 	 */
 	public function getAllOpeningHours(): array

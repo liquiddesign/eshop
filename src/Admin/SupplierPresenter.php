@@ -29,34 +29,34 @@ class SupplierPresenter extends BackendPresenter
 		\Eshop\Providers\HeurekaProvider::class => 'Heuréka',
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ImportResultRepository $importResultRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierCategoryRepository $supplierCategoryRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierProductRepository $supplierProductRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $pricelistRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public StoreRepository $storeRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DisplayDeliveryRepository $displayDeliveryRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DisplayAmountRepository $displayAmountRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerGroupRepository $customerGroupRepository;
 	
 	public function beforeRender(): void
@@ -120,20 +120,11 @@ class SupplierPresenter extends BackendPresenter
 			}
 
 			if ($object->status === 'ok') {
-				$msg = '';
-
-				switch ($object->type) {
-					case 'import':
-						$msg .= 'Import doběhl v pořádku';
-
-						break;
-					case 'importAmount':
-						$msg .= 'Import dosupností a skladů doběhl v pořádku';
-
-						break;
-					default:
-						$msg .= 'Zápis do katalogu doběhl v pořádku';
-				}
+				$msg = match ($object->type) {
+					'import' => 'Import doběhl v pořádku',
+					'importAmount' => 'Import dosupností a skladů doběhl v pořádku',
+					default => 'Zápis do katalogu doběhl v pořádku',
+				};
 
 				$msg .= " $object->warningMessages";
 
@@ -174,6 +165,7 @@ class SupplierPresenter extends BackendPresenter
 		$form->addGroup('Obecné');
 		$form->addText('code', 'Kód')->setRequired();
 		$form->addText('name', 'Název')->setRequired();
+		$form->addCheckbox('highlightStoreAmount', 'Zvýraznit dostupnost produktu od tohoto dodavatele');
 		$form->addSelect('providerClass', 'Typ', $this::SUPPLIER_TYPES)->setRequired();
 		$form->addText('url', 'Adresa feedu')->setRequired();
 		$form->addGroup('Defaultní hodnoty');
@@ -234,6 +226,7 @@ class SupplierPresenter extends BackendPresenter
 		$form->addGroup('Obecné');
 		$form->addText('code', 'Kód')->setHtmlAttribute('readonly', 'readonly');
 		$form->addText('name', 'Název')->setRequired();
+		$form->addCheckbox('highlightStoreAmount', 'Zvýraznit dostupnost produktu od tohoto dodavatele');
 
 		if ($supplier->url) {
 			$form->addText('url', 'Adresa feedu')->setRequired()->setDefaultValue($supplier->url);

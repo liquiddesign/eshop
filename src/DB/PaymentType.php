@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Eshop\Common\DB\SystemicEntity;
+use Base\Entity\ShopSystemicEntity;
+use StORM\RelationCollection;
 
 /**
  * Typ platby
  * @table
+ * @index{"name":"paymenttype_codeshop","unique":true,"columns":["code", "fk_shop"]}
  */
-class PaymentType extends SystemicEntity
+class PaymentType extends ShopSystemicEntity
 {
 	public const IMAGE_DIR = 'paymenttype_images';
 	
@@ -80,4 +82,10 @@ class PaymentType extends SystemicEntity
 	 * @column
 	 */
 	public ?string $comgateMethod;
+
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\PaymentTypePrice>
+	 */
+	public RelationCollection $paymentTypePrices;
 }

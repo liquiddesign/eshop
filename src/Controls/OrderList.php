@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\Admin\Controls\OrderGridFactory;
-use Eshop\CheckoutManager;
 use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\OrderRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Grid\Datalist;
 use League\Csv\Writer;
 use Nette\Application\Application;
@@ -28,55 +27,36 @@ use Tracy\ILogger;
  */
 class OrderList extends Datalist
 {
-	/**
-	 * Don't remove! Using in template.
-	 */
-	public CheckoutManager $checkoutManager;
-
-	/**
-	 * Don't remove! Using in template.
-	 */
-	public OrderRepository $orderRepository;
-
-	public Shopper $shopper;
-
-	private Translator $translator;
-
-	private OrderGridFactory $orderGridFactory;
-
-	private Application $application;
-
 	private string $tempDir;
 
 	public function __construct(
-		Translator $translator,
-		OrderGridFactory $orderGridFactory,
-		OrderRepository $orderRepository,
+		private Translator $translator,
+		private OrderGridFactory $orderGridFactory,
+		public OrderRepository $orderRepository,
 		CatalogPermissionRepository $catalogPermissionRepository,
-		Shopper $shopper,
-		CheckoutManager $checkoutManager,
-		Application $application,
+		public ShopperUser $shopperUser,
+		private Application $application,
 		?Collection $orders = null
 	) {
-		if (!$orders && $shopper->getCustomer()) {
+		if (!$orders && $shopperUser->getCustomer()) {
 			/** @var \Eshop\DB\CatalogPermission $permission */
-			$permission = $catalogPermissionRepository->many()->where('fk_account', $shopper->getCustomer()->getAccount())->first();
+			$permission = $catalogPermissionRepository->many()->where('fk_account', $shopperUser->getCustomer()->getAccount())->first();
 		}
 
-		parent::__construct($orders ?? $orderRepository->getFinishedOrders($shopper->getCustomer(), $shopper->getMerchant(), isset($permission) ?
-				($permission->viewAllOrders ? null : $shopper->getCustomer()->getAccount()) : null));
+		parent::__construct($orders ?? $orderRepository->getFinishedOrders($shopperUser->getCustomer(), $shopperUser->getMerchant(), isset($permission) ?
+				($permission->viewAllOrders ? null : $shopperUser->getCustomer()->getAccount()) : null));
 
 		$this->setDefaultOnPage(10);
 		$this->setDefaultOrder('createdTs', 'DESC');
 
-		$this->addFilterExpression('search', function (ICollection $collection, $value) use ($orderRepository, $shopper): void {
+		$this->addFilterExpression('search', function (ICollection $collection, $value) use ($orderRepository, $shopperUser): void {
 			$suffix = $orderRepository->getConnection()->getMutationSuffix();
 
 			$or = "this.code = :code OR items.productName$suffix LIKE :string";
-
-			if ($shopper->getMerchant()) {
+			
+			if ($shopperUser->getMerchant()) {
 				$or .= ' OR purchase.accountFullname LIKE :string OR account.fullname LIKE :string';
-				$or .= ' OR purchase.fullname LIKE :string OR customer.fullname LIKE :string OR customer.company LIKE :string';
+				$or .= ' OR purchase.fullname LIKE :string';
 			}
 
 			$collection->where($or, ['code' => $value, 'string' => '%' . $value . '%'])
@@ -90,13 +70,6 @@ class OrderList extends Datalist
 
 		$form->addText('search');
 		$form->addSubmit('submit');
-
-		$this->translator = $translator;
-		$this->orderGridFactory = $orderGridFactory;
-		$this->orderRepository = $orderRepository;
-		$this->shopper = $shopper;
-		$this->checkoutManager = $checkoutManager;
-		$this->application = $application;
 	}
 
 	public function setTempDir(string $tempDir): void
@@ -141,7 +114,6 @@ class OrderList extends Datalist
 		$form->addSubmit('exportCsv');
 		$form->addSubmit('exportExcel');
 		$form->addSubmit('exportExcelZip');
-		$form->addSubmit('exportCsvApi');
 
 		$form->onSuccess[] = function (\Nette\Forms\Form $form): void {
 			$values = $form->getValues('array');
@@ -174,8 +146,6 @@ class OrderList extends Datalist
 				$this->exportOrdersExcel($values);
 			} elseif ($submitName === 'exportExcelZip') {
 				$this->exportOrdersExcelZip($values);
-			} elseif ($submitName === 'exportCsvApi') {
-				$this->exportCsvApi($values);
 			} elseif ($submitName === 'exportCsv') {
 				$this->exportCsv($values);
 			}
@@ -212,42 +182,8 @@ class OrderList extends Datalist
 		$this->orderGridFactory->cancelOrder($order);
 	}
 
-	public function handleExport(string $orderId): void
-	{
-		$object = $this->orderRepository->one($orderId, true);
-		$tempFilename = \tempnam($this->tempDir, 'csv');
-		$this->application->onShutdown[] = function () use ($tempFilename): void {
-			try {
-				FileSystem::delete($tempFilename);
-			} catch (\Throwable $e) {
-				Debugger::log($e, ILogger::WARNING);
-			}
-		};
-
-		/** @phpstan-ignore-next-line volá metodu presenteru, pozůstatek z Linde */
-		$this->getPresenter()->csvOrderExportAPI($object, Writer::createFromPath($tempFilename, 'w+'));
-
-		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, "order-$object->code.csv", 'text/csv'));
-	}
-
-	public function exportCsvApi(array $orders): void
-	{
-		$tempFilename = \tempnam($this->tempDir, 'csv');
-		$this->application->onShutdown[] = function () use ($tempFilename): void {
-			try {
-				FileSystem::delete($tempFilename);
-			} catch (\Throwable $e) {
-				Debugger::log($e, ILogger::WARNING);
-			}
-		};
-		/** @phpstan-ignore-next-line volá metodu presenteru, pozůstatek z Linde */
-		$this->getPresenter()->csvOrderExportItemsAPI($orders, Writer::createFromPath($tempFilename, 'w+'));
-
-		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'orders.csv', 'text/csv'));
-	}
-
 	/**
-	 * @param \Eshop\DB\Order[] $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 */
 	public function exportCsv(array $orders): void
 	{
@@ -261,7 +197,7 @@ class OrderList extends Datalist
 		};
 
 		$writer = Writer::createFromPath($tempFilename, 'w+');
-		$showVat = $this->shopper->getShowVat();
+		$showVat = $this->shopperUser->getShowVat();
 
 		$writer->setDelimiter(';');
 
@@ -327,7 +263,7 @@ class OrderList extends Datalist
 	}
 
 	/**
-	 * @param \Eshop\DB\Order[] $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 * @throws \League\Csv\CannotInsertRecord
 	 * @throws \League\Csv\InvalidArgument
 	 * @throws \Nette\Application\AbortException
@@ -350,7 +286,7 @@ class OrderList extends Datalist
 	}
 
 	/**
-	 * @param \Eshop\DB\Order[] $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 * @throws \Nette\Application\AbortException
 	 * @throws \Nette\Application\BadRequestException
 	 */
@@ -411,7 +347,7 @@ class OrderList extends Datalist
 	}
 
 	/**
-	 * @param \Eshop\DB\Order[] $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 * @throws \Nette\Application\AbortException
 	 * @throws \Nette\Application\BadRequestException
 	 */

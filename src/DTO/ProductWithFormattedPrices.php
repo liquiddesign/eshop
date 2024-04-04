@@ -9,22 +9,27 @@ use Nette\Localization\Translator;
 class ProductWithFormattedPrices
 {
 	public function __construct(
-		/** @codingStandardsIgnoreStart */
-		private Translator $translator,
-		private Product $product,
-		private bool $showWithVat,
-		private bool $showWithoutVat,
+		protected readonly Translator $translator,
+		protected readonly Product $product,
+		protected readonly bool $showWithVat,
+		protected readonly bool $showWithoutVat,
 		/** @var 'withVat'|'withoutVat' */
-		private string $priorityPrice,
-		private bool $canView,
-		private string $price,
-		private string $priceVat,
-		private ?string $priceBefore = null,
-		private ?string $priceVatBefore = null,
-		private ?Customer $customer = null,
-		/** @codingStandardsIgnoreEnd */
+		protected readonly string $priorityPrice,
+		protected readonly bool $canView,
+		protected readonly string $price,
+		protected readonly string $priceVat,
+		protected readonly float $priceNumeric,
+		protected readonly float $priceVatNumeric,
+		protected readonly ?string $priceBefore,
+		protected readonly ?string $priceVatBefore,
+		protected readonly ?Customer $customer,
+		protected readonly ?int $discountPercent = null,
+		protected readonly int $amount = 1,
+		protected readonly ?string $priceSum = null,
+		protected readonly ?string $priceVatSum = null,
+		protected readonly ?string $priceBeforeSum = null,
+		protected readonly ?string $priceVatBeforeSum = null,
 	) {
-		// Nothing here
 	}
 
 	public function getProduct(): Product
@@ -62,25 +67,73 @@ class ProductWithFormattedPrices
 		return null;
 	}
 
-	/**
-	 * @return 'withVat'|'withoutVat'|null
-	 */
-	public function getPrimaryPriceType(): ?string
+	public function getAmount(): int
+	{
+		return $this->amount;
+	}
+
+	public function getPrimaryPriceSum(): string|null
 	{
 		if (!$this->canView) {
 			return null;
 		}
 
 		if ($this->showWithVat && $this->showWithoutVat) {
-			return $this->priorityPrice;
+			return $this->priorityPrice === 'withVat' ? $this->priceVatSum : $this->priceSum;
 		}
 
 		if ($this->showWithVat) {
-			return 'withVat';
+			return $this->priceVatSum;
 		}
 
 		if ($this->showWithoutVat) {
-			return 'withoutVat';
+			return $this->priceSum;
+		}
+
+		return null;
+	}
+
+	/**
+	 * @return float|null Returns numeric price. If price is not set or user has not sufficient rights, returns null.
+	 *  If user can see both prices, returns price based on priority.
+	 */
+	public function getPrimaryPriceNumeric(): float|null
+	{
+		if (!$this->canView) {
+			return null;
+		}
+
+		if ($this->showWithVat && $this->showWithoutVat) {
+			return $this->priorityPrice === 'withVat' ? $this->priceVatNumeric : $this->priceNumeric;
+		}
+
+		if ($this->showWithVat) {
+			return $this->priceVatNumeric;
+		}
+
+		if ($this->showWithoutVat) {
+			return $this->priceNumeric;
+		}
+
+		return null;
+	}
+
+	public function isPrimaryPriceWithVat(): bool|null
+	{
+		if (!$this->canView) {
+			return null;
+		}
+
+		if ($this->showWithVat && $this->showWithoutVat) {
+			return $this->priorityPrice === 'withVat';
+		}
+
+		if ($this->showWithVat) {
+			return true;
+		}
+
+		if ($this->showWithoutVat) {
+			return false;
 		}
 
 		return null;
@@ -102,17 +155,14 @@ class ProductWithFormattedPrices
 		return null;
 	}
 
-	/**
-	 * @return 'withVat'|'withoutVat'|null
-	 */
-	public function getSecondaryPriceType(): ?string
+	public function isSecondaryPriceWithVat(): bool|null
 	{
 		if (!$this->canView) {
 			return null;
 		}
 
 		if ($this->showWithVat && $this->showWithoutVat) {
-			return $this->priorityPrice === 'withVat' ? 'withoutVat' : 'withVat';
+			return $this->priorityPrice !== 'withVat';
 		}
 
 		return null;
@@ -138,6 +188,31 @@ class ProductWithFormattedPrices
 
 		if ($this->showWithoutVat) {
 			return $this->priceBefore;
+		}
+
+		return null;
+	}
+
+	/**
+	 * @return string|null Returns formatted price with currency code, e.g. 100 Kč. If price is not set or user has not sufficient rights, returns null.
+	 * If user can see both prices, returns price based on priority.
+	 */
+	public function getPrimaryPriceBeforeSum(): ?string
+	{
+		if (!$this->canView) {
+			return null;
+		}
+
+		if ($this->showWithVat && $this->showWithoutVat) {
+			return $this->priorityPrice === 'withVat' ? $this->priceVatBeforeSum : $this->priceBeforeSum;
+		}
+
+		if ($this->showWithVat) {
+			return $this->priceVatBeforeSum;
+		}
+
+		if ($this->showWithoutVat) {
+			return $this->priceBeforeSum;
 		}
 
 		return null;
@@ -198,5 +273,10 @@ class ProductWithFormattedPrices
 	public function showWatchers(): bool
 	{
 		return !$this->inStock() && $this->customer;
+	}
+
+	public function getDiscountPercent(): int|null
+	{
+		return $this->discountPercent;
 	}
 }

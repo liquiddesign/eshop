@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\DB\Shop;
 use Nette\Utils\Strings;
 use Security\DB\Account;
 use StORM\Collection;
@@ -12,6 +13,7 @@ use StORM\RelationCollection;
 /**
  * Nákup
  * @method \StORM\RelationCollection<\Eshop\DB\Cart> getCarts()
+ * @method \StORM\RelationCollection<\Eshop\DB\Order> getOrders()
  * @table
  */
 class Purchase extends \StORM\Entity
@@ -95,6 +97,12 @@ class Purchase extends \StORM\Entity
 	public bool $sendNewsletters = false;
 
 	/**
+	 * Posilat dotazniky? (zbozi, heureka, ...)
+	 * @column
+	 */
+	public bool $sendSurvey = false;
+
+	/**
 	 * Interní kod - zákaznické číslo
 	 * @column
 	 */
@@ -105,12 +113,24 @@ class Purchase extends \StORM\Entity
 	 * @column{"type":"date"}
 	 */
 	public ?string $desiredShippingDate;
+
+	/**
+	 * Požadované datum doručení
+	 * @column{"type":"date"}
+	 */
+	public ?string $desiredDeliveryDate;
 	
 	/**
 	 * Poznámka
 	 * @column{"type":"text"}
 	 */
 	public ?string $note;
+	
+	/**
+	 * Sleva na nákup
+	 * @column
+	 */
+	public int $discountPct = 0;
 
 	/**
 	 * Poznámka pro dopravce
@@ -173,7 +193,7 @@ class Purchase extends \StORM\Entity
 	/**
 	 * Košíky
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\Cart>|\Eshop\DB\Cart[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Cart>
 	 */
 	public RelationCollection $carts;
 	
@@ -197,6 +217,13 @@ class Purchase extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Customer $customer;
+
+	/**
+	 * Nadřazený zákazník který provedl nákup za skutečného zákazníka
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public Customer|null $parentCustomer = null;
 
 	/**
 	 * Účet
@@ -257,7 +284,19 @@ class Purchase extends \StORM\Entity
 	public ?string $bankSpecificSymbol;
 
 	/**
-	 * @var string[]
+	 * Vyplnit profil údaji z objednávky
+	 * @column
+	 */
+	public bool $fillProfile = false;
+
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\Order>
+	 */
+	public RelationCollection $orders;
+
+	/**
+	 * @var array<string>
 	 */
 	private ?array $cartIds;
 	
@@ -304,19 +343,32 @@ class Purchase extends \StORM\Entity
 	}
 
 	/**
-	 * @return \Eshop\DB\CartItem[]|\StORM\Collection<\Eshop\DB\CartItem>
+	 * @return \StORM\Collection<\Eshop\DB\CartItem>
 	 */
 	public function getItems(): Collection
 	{
 		/** @var \Eshop\DB\CartItemRepository $cartItemRepository */
 		$cartItemRepository = $this->getConnection()->findRepository(CartItem::class);
 
-		/** @phpstan-ignore-next-line @todo generické typy */
 		return $cartItemRepository->getItems($this->getCartIds());
+	}
+
+	/**
+	 * @return \StORM\Collection<\Eshop\DB\RelatedCartItem>
+	 */
+	public function getRelatedItems(): Collection
+	{
+		/** @var \Eshop\DB\RelatedCartItemRepository $relatedCartItemRepository */
+		$relatedCartItemRepository = $this->getConnection()->findRepository(RelatedCartItem::class);
+
+		return $relatedCartItemRepository->many()
+			->join(['eshop_cartitem'], 'this.fk_cartItem = eshop_cartitem.uuid')
+			->join(['eshop_cart'], 'eshop_cartitem.fk_cart = eshop_cart.uuid')
+			->where('eshop_cart.fk_purchase', $this->getPK());
 	}
 	
 	/**
-	 * @return \Eshop\DB\CartItem[]|\StORM\Collection<\Eshop\DB\CartItem>
+	 * @return \StORM\Collection<\Eshop\DB\CartItem>
 	 */
 	public function getTopLevelItems(): Collection
 	{
@@ -371,7 +423,7 @@ class Purchase extends \StORM\Entity
 		return $cartItemRepository->getSumProperty($this->getCartIds(), 'productDimension');
 	}
 	
-	public function getDeliveryTypeExternalId(Supplier $supplier): ?string
+	public function getDeliveryTypeExternalId(Supplier $supplier, Shop|null $shop = null): ?string
 	{
 		if (!$this->getValue('deliveryType')) {
 			return null;
@@ -379,11 +431,18 @@ class Purchase extends \StORM\Entity
 
 		$supplierDeliveryTypeRepository = $this->getConnection()->findRepository(SupplierDeliveryType::class);
 
-		/** @var \Eshop\DB\SupplierDeliveryType|null $supplierDeliveryType */
-		$supplierDeliveryType = $supplierDeliveryTypeRepository->many()
+		$query = $supplierDeliveryTypeRepository->many()
 			->where('this.fk_supplier', $supplier->getPK())
-			->where('this.fk_deliveryType', $this->getValue('deliveryType'))
-			->first();
+			->where('this.fk_deliveryType', $this->getValue('deliveryType'));
+
+		if ($shop) {
+			$query->where('this.fk_shop', $shop->getPK());
+		} else {
+			$query->where('this.fk_shop IS NULL');
+		}
+
+		/** @var \Eshop\DB\SupplierDeliveryType|null $supplierDeliveryType */
+		$supplierDeliveryType = $query->first();
 
 		return $supplierDeliveryType->externalId ?? null;
 	}
@@ -447,7 +506,7 @@ class Purchase extends \StORM\Entity
 	}
 
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 */
 	private function getCartIds(): array
 	{

@@ -6,8 +6,11 @@ namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Carbon\Carbon;
 use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\BackendPresenter;
+use Eshop\Common\CheckInvalidAmount;
+use Eshop\Common\Zipper;
 use Eshop\DB\AddressRepository;
 use Eshop\DB\AmountRepository;
 use Eshop\DB\AutoshipRepository;
@@ -29,7 +32,6 @@ use Eshop\DB\Order;
 use Eshop\DB\OrderLogItem;
 use Eshop\DB\OrderLogItemRepository;
 use Eshop\DB\OrderRepository;
-use Eshop\DB\PackageItem;
 use Eshop\DB\PackageItemRepository;
 use Eshop\DB\PackageRepository;
 use Eshop\DB\Payment;
@@ -48,7 +50,10 @@ use Eshop\Integration\EHub;
 use Eshop\Integration\Integrations;
 use Eshop\Integration\Zasilkovna;
 use Eshop\Services\DPD;
+use Eshop\Services\Order\OrderEditService;
 use Eshop\Services\PPL;
+use Eshop\ShopperUser;
+use Exception;
 use Forms\Form;
 use Grid\Datagrid;
 use League\Csv\Writer;
@@ -57,16 +62,17 @@ use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Multiplier;
 use Nette\Application\UI\Presenter;
+use Nette\DI\Attributes\Inject;
 use Nette\Forms\Controls\Button;
 use Nette\Forms\Controls\TextInput;
 use Nette\Http\Request;
 use Nette\IOException;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
-use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use StORM\Collection;
 use StORM\DIConnection;
+use Throwable;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
@@ -109,6 +115,7 @@ class OrderPresenter extends BackendPresenter
 		'defaultExportPPC_columns' => [],
 		'exportEdi' => false,
 		'exportCsv' => true,
+		'exportCsvMultiple' => true,
 		'exportTargito' => false,
 		'showDispatch' => true,
 		'showPay' => true,
@@ -116,132 +123,130 @@ class OrderPresenter extends BackendPresenter
 		'showExtendedPay' => true,
 		'targito' => false,
 		'eHub' => false,
-		/** @deprecated Use const ORDER_STATES_NAMES */
-		'orderStates' => null,
 		'print' => true,
 		'printMultiple' => false,
 		'printInvoices' => false,
-		/** @deprecated PackageItem is always deleted */
-		'deletePackageItemMode' => PackageItem::DELETE_MODE_MARK,
 		'pauseOrder' => false,
 		'noteIconColor' => null,
+		'approval' => false,
+		'recalculateOrderPricesMultiple' => false,
 	];
 
-	/** @inject */
+	#[Inject]
+	public OrderEditService $orderEditService;
+
+	#[Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[Inject]
 	public CartRepository $cartRepository;
 
-	/** @inject */
+	#[Inject]
 	public DeliveryRepository $deliveryRepository;
 
-	/** @inject */
+	#[Inject]
 	public PaymentRepository $paymentRepository;
 
-	/** @inject */
+	#[Inject]
 	public DeliveryTypeRepository $deliveryTypeRepository;
 
-	/** @inject */
+	#[Inject]
 	public PaymentTypeRepository $paymentTypeRepository;
 
-	/** @inject */
+	#[Inject]
 	public CustomerRepository $customerRepository;
 
-	/** @inject */
+	#[Inject]
 	public AutoshipRepository $autoshipRepository;
 
-	/** @inject */
+	#[Inject]
 	public CurrencyRepository $currencyRepository;
 
-	/** @inject */
+	#[Inject]
 	public OrderGridFactory $orderGridFactory;
 
-	/** @inject */
+	#[Inject]
 	public StoreRepository $storeRepository;
 
-	/** @inject */
-	public \Eshop\CheckoutManager $checkoutManager;
-
-	/** @inject */
+	#[Inject]
 	public Application $application;
 
-	/** @inject */
+	#[Inject]
 	public Request $request;
 
-	/** @inject */
-	public \Eshop\Shopper $shopper;
+	#[Inject]
+	public ShopperUser $shopperUser;
 
-	/** @inject */
+	#[Inject]
 	public CartItemRepository $cartItemRepo;
 
-	/** @inject */
+	#[Inject]
 	public ProductRepository $productRepo;
 
-	/** @inject */
+	#[Inject]
 	public SupplierRepository $supplierRepository;
 
-	/** @inject */
+	#[Inject]
 	public InvoiceRepository $invoiceRepository;
 
-	/** @inject */
+	#[Inject]
 	public AddressRepository $addressRepository;
 
-	/** @inject */
+	#[Inject]
 	public CustomerGroupRepository $customerGroupRepository;
 
-	/** @inject */
+	#[Inject]
 	public PackageItemRepository $packageItemRepository;
 
-	/** @inject */
+	#[Inject]
 	public TemplateRepository $templateRepository;
 
-	/** @inject */
+	#[Inject]
 	public BannedEmailRepository $bannedEmailRepository;
 
-	/** @inject */
+	#[Inject]
 	public Mailer $mailer;
 
-	/** @inject */
+	#[Inject]
 	public InternalCommentOrderRepository $commentRepository;
 
-	/** @inject */
+	#[Inject]
 	public OrderLogItemRepository $orderLogItemRepository;
 
-	/** @inject */
+	#[Inject]
 	public PickupPointRepository $pickupPointRepository;
 
-	/** @inject */
+	#[Inject]
 	public EHub $eHub;
 
-	/** @inject */
+	#[Inject]
 	public RelatedTypeRepository $relatedTypeRepository;
 
-	/** @inject */
+	#[Inject]
 	public Integrations $integrations;
 
-	/** @inject */
+	#[Inject]
 	public VatRateRepository $vatRateRepository;
 
-	/** @inject */
+	#[Inject]
 	public SettingRepository $settingRepository;
 
-	/** @inject */
+	#[Inject]
 	public RelatedCartItemRepository $relatedCartItemRepository;
 
-	/** @inject */
+	#[Inject]
 	public RelatedPackageItemRepository $relatedPackageItemRepository;
 
-	/** @inject */
+	#[Inject]
 	public AmountRepository $amountRepository;
 
-	/** @inject */
+	#[Inject]
 	public Zasilkovna $zasilkovna;
 
-	/** @inject */
+	#[Inject]
 	public PackageRepository $packageRepository;
 
-	/** @inject */
+	#[Inject]
 	public InternalRibbonRepository $internalRibbonRepository;
 
 	/**
@@ -371,15 +376,15 @@ class OrderPresenter extends BackendPresenter
 		$form->addSelect('type', 'Doprava', $this->deliveryTypeRepository->getArrayForSelect())->setRequired();
 		$form->addDataSelect('supplier', 'Dropshipping', $this->supplierRepository->getArrayForSelect());
 		$form->addText('externalId', 'Externí Id')->setNullable(true);
-		$form->addDate('shippingDate', 'Den doručení')->setNullable(true);
+		$form->addPolyfillDate('shippingDate', 'Den doručení')->setNullable(true);
 		$form->addGroup('Cena');
 		$form->addSelect('currency', 'Měna', $this->currencyRepository->getArrayForSelect())->setRequired();
 		$form->addText('price', 'Cena bez DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
 		$form->addText('priceVat', 'Cena s DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
 		$form->addGroup('Stav');
-		$form->addDatetime('shippedTs', 'Expedováno')->setNullable(true);
+		$form->addPolyfillDatetime('shippedTs', 'Expedováno')->setNullable(true);
 
-		$form->addHidden('order', (string)$order);
+		$form->addHidden('order', (string) $order);
 
 		$form->addSubmits(!$this->getParameter('delivery'));
 
@@ -440,8 +445,7 @@ class OrderPresenter extends BackendPresenter
 				$admin = $this->admin->getIdentity();
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, $template->name, $admin);
-			} catch (\Throwable $e) {
-				\bdump($e);
+			} catch (Throwable $e) {
 				Debugger::log($e, ILogger::ERROR);
 			}
 
@@ -490,10 +494,10 @@ class OrderPresenter extends BackendPresenter
 		$form->addText('price', 'Cena bez DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
 		$form->addText('priceVat', 'Cena s DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
 		$form->addGroup('Údaje o zaplacení');
-		$form->addDatetime('paidTs', 'Datum a čas')->setNullable(true);
+		$form->addPolyfillDatetime('paidTs', 'Datum a čas')->setNullable(true);
 		$form->addText('paidPrice', 'Částka bez DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
 		$form->addText('paidPriceVat', 'Částka s DPH')->addRule($form::FLOAT)->setDefaultValue(0)->setRequired();
-		$form->addHidden('order', (string)$this->getParameter('order'));
+		$form->addHidden('order', (string) $this->getParameter('order'));
 
 		$form->addSubmits(!$this->getParameter('order'));
 
@@ -536,7 +540,7 @@ class OrderPresenter extends BackendPresenter
 			'bannedEmails' => 'Blokované e-maily',
 		];
 
-		if ($this->shopper->getEditOrderAfterCreation()) {
+		if ($this->shopperUser->getEditOrderAfterCreation()) {
 			$tabs = \array_merge(['open' => 'Nové'], $tabs);
 		}
 
@@ -667,9 +671,9 @@ class OrderPresenter extends BackendPresenter
 			/** @var \Nette\Forms\Controls\SelectBox $productInput */
 			$productInput = $form['product'];
 
-			$this->shopper->setCustomer($order->purchase->customer);
+			$this->shopperUser->setCustomer($order->purchase->customer);
 
-			if ($this->productRepo->getProducts($this->checkoutManager->getPricelists()->toArray())->where('this.uuid', $values['product'])->first()) {
+			if ($this->productRepo->getProducts($this->shopperUser->getCheckoutManager()->getPricelists()->toArray())->where('this.uuid', $values['product'])->first()) {
 				return;
 			}
 
@@ -679,148 +683,15 @@ class OrderPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValuesWithAjax();
 
-			if ($values['package'] === 'new') {
-				$purchase = $order->purchase;
+			try {
+				$this->orderEditService->addProduct($order, $values['product'], $values['amount'], $values['cart'], $values['package'], true);
+			} catch (\Exception $e) {
+				$this->flashMessage($e->getMessage(), 'error');
 
-				$newPackageId = $this->packageRepository->many()->where('this.fk_order', $order->getPK())->select(['packagesCount' => 'MAX(this.id) + 1'])->firstValue('packagesCount') ?? 1;
-
-				/** @var \Eshop\DB\Delivery $delivery */
-				$delivery = $this->deliveryRepository->createOne([
-					'order' => $order,
-					'currency' => $purchase->currency->getPK(),
-					'type' => $purchase->deliveryType,
-					'typeName' => $purchase->deliveryType->toArray()['name'],
-					'typeCode' => $purchase->deliveryType->code,
-					'price' => 0,
-					'priceVat' => 0,
-					'priceBefore' => 0,
-					'priceVatBefore' => 0,
-				]);
-
-				/** @var \Eshop\DB\Package $package */
-				$package = $this->packageRepository->createOne([
-					'id' => $newPackageId,
-					'order' => $order->getPK(),
-					'delivery' => $delivery->getPK(),
-				]);
-
-				$values['package'] = $package->getPK();
+				$this->redirect('this');
 			}
 
-			/** @var \Eshop\DB\Cart $cart */
-			$cart = $this->cartRepository->one($values['cart']);
-
-			if ($order->purchase->customer) {
-				$this->shopper->setCustomer($order->purchase->customer);
-				$this->checkoutManager->setCustomer($order->purchase->customer);
-			}
-
-			/** @var \Eshop\DB\Product $product */
-			$product = $this->productRepo->getProducts($this->shopper->getPricelists()->toArray())->where('this.uuid', $values['product'])->first();
-
-			$cartItem = $this->checkoutManager->addItemToCart($product, null, $values['amount'], null, false, false, $cart);
-
-			$packageItem = $this->packageItemRepository->createOne([
-				'amount' => $values['amount'],
-				'package' => $values['package'],
-				'cartItem' => $cartItem,
-			]);
-
-			$setRelationType = $this->settingRepository->getValueByName(SettingsPresenter::SET_RELATION_TYPE);
-
-			if ($setRelationType) {
-				/** @var \Eshop\DB\RelatedType $setRelationType */
-				$setRelationType = $this->relatedTypeRepository->one($setRelationType);
-			}
-
-			/* Get default set relation type and slave products in that relation for top-level cart item */
-			if (!$setRelationType) {
-				$this->flashMessage('Provedeno', 'success');
-				$form->processRedirect('this');
-			}
-
-			/** @var array<mixed> $relatedCartItems */
-			$relatedCartItems = [];
-
-			/* Load real products in relation with prices */
-			$relatedProducts = $this->productRepository->getSlaveRelatedProducts($setRelationType, $cartItem->product)->toArray();
-
-			if (!$relatedProducts) {
-				$this->flashMessage('Provedeno', 'success');
-				$form->processRedirect('this');
-			}
-
-			$slaveProducts = [];
-
-			foreach ($relatedProducts as $relatedProduct) {
-				$slaveProducts[] = $relatedProduct->getValue('slave');
-			}
-
-			/* Compute total price of set items */
-			/** @var array<\Eshop\DB\Product> $slaveProducts */
-			$slaveProducts = $this->productRepository->getProducts()->where('this.uuid', $slaveProducts)->toArray();
-			$slaveProductsTotalPrice = 0;
-			$slaveProductsTotalPriceVat = 0;
-
-			foreach ($relatedProducts as $relatedProduct) {
-				if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
-					continue;
-				}
-
-				$slaveProductsTotalPrice += $slaveProducts[$relatedProduct->getValue('slave')]->getPrice() * $relatedProduct->amount;
-				$slaveProductsTotalPriceVat += $slaveProducts[$relatedProduct->getValue('slave')]->getPriceVat() * $relatedProduct->amount;
-			}
-
-			$setTotalPriceModifier = $slaveProductsTotalPrice > 0 ? $cartItem->price / $slaveProductsTotalPrice : 1;
-			$setTotalPriceVatModifier = $slaveProductsTotalPriceVat > 0 ? $cartItem->priceVat / $slaveProductsTotalPriceVat : 1;
-
-			foreach ($relatedProducts as $relatedProduct) {
-				if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
-					continue;
-				}
-
-				$product = $slaveProducts[$relatedProduct->getValue('slave')];
-
-				/** @var \Eshop\DB\VatRate|null $vat */
-				$vat = $this->vatRateRepository->one($product->vatRate);
-				$vatPct = $vat ? $vat->rate : 0;
-
-				/* Create related cart items with price computed to match unit price of top-level cart item */
-				$relatedCartItems[] = [
-					'cartItem' => $cartItem->getPK(),
-					'relatedType' => $setRelationType->getPK(),
-					'product' => $product->getPK(),
-					'relatedTypeCode' => $setRelationType->code,
-					'relatedTypeName' => $setRelationType->name,
-					'productName' => $product->toArray()['name'],
-					'productCode' => $product->getFullCode(),
-					'productSubCode' => $product->subCode,
-					'productWeight' => $product->weight,
-					'productDimension' => $product->dimension,
-					'amount' => $relatedProduct->amount * $cartItem->amount,
-					'price' => $product->getPrice() * $setTotalPriceModifier,
-					'priceVat' => $product->getPriceVat() * $setTotalPriceVatModifier,
-					'priceBefore' => $product->getPriceBefore() ?: $product->getPrice(),
-					'priceVatBefore' => $product->getPriceVatBefore() ?: $product->getPriceVat(),
-					'vatPct' => (float) $vatPct,
-				];
-			}
-
-			if (!$relatedCartItems) {
-				$this->flashMessage('Provedeno', 'success');
-				$form->processRedirect('this');
-			}
-
-			/** @var array<\Eshop\DB\RelatedCartItem> $relatedCartItems */
-			$relatedCartItems = $this->relatedCartItemRepository->createMany($relatedCartItems)->toArray();
-
-			/* Create relation between related package item and related cart item */
-			foreach ($relatedCartItems as $relatedCartItem) {
-				$this->relatedPackageItemRepository->createOne([
-					'cartItem' => $relatedCartItem->getPK(),
-					'packageItem' => $packageItem->getPK(),
-				]);
-			}
+			$product = $this->productRepository->one($values['product'], true);
 
 			/** @var \Admin\DB\Administrator|null $admin */
 			$admin = $this->admin->getIdentity();
@@ -1071,10 +942,10 @@ class OrderPresenter extends BackendPresenter
 
 				if ($oldOrder->purchase->customer && $oldOrder->purchase->account) {
 					$oldOrder->purchase->customer->setAccount($oldOrder->purchase->account);
-					$this->shopper->setCustomer($oldOrder->purchase->customer);
+					$this->shopperUser->setCustomer($oldOrder->purchase->customer);
 				} else {
-					$this->shopper->setCustomer(null);
-					$this->shopper->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
+					$this->shopperUser->setCustomer(null);
+					$this->shopperUser->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
 				}
 
 				/** @var array<\Eshop\DB\PackageItem> $topLevelItems */
@@ -1082,11 +953,11 @@ class OrderPresenter extends BackendPresenter
 
 				foreach ($oldCart->items->where('this.fk_upsell IS NULL') as $item) {
 					if (($product = $item->getValue('product')) === null) {
-						throw new \Exception('Product not found');
+						throw new Exception('Product not found');
 					}
 
 					if (!$product = $this->productRepository->getProduct($product)) {
-						throw new \Exception('Product not found');
+						throw new Exception('Product not found');
 					}
 
 					if (!$item->getPriceSum() > 0) {
@@ -1097,7 +968,7 @@ class OrderPresenter extends BackendPresenter
 						$product->priceVat = 0;
 					}
 
-					$cartItem = $this->checkoutManager->addItemToCart($product, null, $item->amount, null, false, false, $targetCart);
+					$cartItem = $this->shopperUser->getCheckoutManager()->addItemToCart($product, null, $item->amount, null, CheckInvalidAmount::NO_CHECK, false, $targetCart);
 
 					$topLevelItems[$item->getPK()] = $this->packageItemRepository->createOne([
 						'package' => $package->getPK(),
@@ -1110,15 +981,15 @@ class OrderPresenter extends BackendPresenter
 
 				foreach ($oldCart->items->clear(true)->where('this.fk_upsell IS NOT NULL') as $item) {
 					if (($product = $item->getValue('product')) === null) {
-						throw new \Exception('Product not found');
+						throw new Exception('Product not found');
 					}
 
 					if (($upsellProduct = $item->getValue('upsell')) === null) {
-						throw new \Exception('Upsell product not found');
+						throw new Exception('Upsell product not found');
 					}
 
 					if (!isset($relations[$upsellProduct][$product])) {
-						throw new \Exception('Product not found');
+						throw new Exception('Product not found');
 					}
 
 					$product = $relations[$upsellProduct][$product];
@@ -1131,7 +1002,7 @@ class OrderPresenter extends BackendPresenter
 						$product->priceVat = 0;
 					}
 
-					$cartItem = $this->checkoutManager->addUpsellToCart($topLevelItems[$item->getValue('upsell')]->cartItem, $product, $item->realAmount);
+					$cartItem = $this->shopperUser->getCheckoutManager()->addUpsellToCart($topLevelItems[$item->getValue('upsell')]->cartItem, $product, $item->realAmount);
 
 					$this->packageItemRepository->createOne([
 						'package' => $package->getPK(),
@@ -1151,7 +1022,7 @@ class OrderPresenter extends BackendPresenter
 				$connection->getLink()->commit();
 
 				$this->flashMessage('Provedeno', 'success');
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				$connection->getLink()->rollBack();
 
 				Debugger::log($e->getMessage(), ILogger::ERROR);
@@ -1186,15 +1057,9 @@ class OrderPresenter extends BackendPresenter
 				$values = $form->getValues('array');
 				unset($values['uuid']);
 
+				$this->orderEditService->changeItemAmount($packageItem, $cartItemOld, $values['amount']);
+
 				$cartItem = clone $cartItemOld;
-
-				foreach ($packageItem->relatedPackageItems as $relatedPackageItem) {
-					$relatedCartItem = $relatedPackageItem->cartItem;
-
-					$relatedCartItem->update(['amount' => $relatedCartItem->amount / $cartItemOld->amount * $values['amount']]);
-				}
-
-				$packageItem->update(['amount' => $values['amount']]);
 
 				$cartItem->update($values);
 
@@ -1310,7 +1175,7 @@ class OrderPresenter extends BackendPresenter
 		$delivery = $this->deliveryRepository->one($delivery, true);
 
 		$values = [
-			'shippedTs' => $shipped ? (string)new DateTime() : null,
+			'shippedTs' => $shipped ? (string) new Carbon() : null,
 		];
 
 		/** @var \Admin\DB\Administrator|null $admin */
@@ -1331,7 +1196,7 @@ class OrderPresenter extends BackendPresenter
 					$this->mailer->send($mail);
 
 					$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::EMAIL_SENT, OrderLogItem::SHIPPED, $admin);
-				} catch (\Throwable $e) {
+				} catch (Throwable $e) {
 				}
 			}
 		} else {
@@ -1357,7 +1222,7 @@ class OrderPresenter extends BackendPresenter
 			}
 
 			$values = [
-				'amount' => (int)$data['packageAmount'],
+				'amount' => (int) $data['packageAmount'],
 				'cartItem' => $id,
 				'delivery' => $delivery,
 			];
@@ -1371,7 +1236,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function renderDeliveryColumn(CartItem $item, Datagrid $grid): string
 	{
-		/** @var \Eshop\DB\Delivery[] $deliveries */
+		/** @var array<\Eshop\DB\Delivery> $deliveries */
 		$deliveries = $item->getDeliveries()->toArray();
 		$types = [];
 
@@ -1461,7 +1326,7 @@ class OrderPresenter extends BackendPresenter
 
 			$tempFilename = \tempnam($this->tempDir, 'csv');
 			$headerColumns = \array_filter($items, function ($item) use ($values) {
-				return \in_array($item, $values['columns']);
+				return Arrays::contains($values['columns'], $item);
 			}, \ARRAY_FILTER_USE_KEY);
 
 			$this->orderRepository->csvPPCExport(
@@ -1519,6 +1384,7 @@ class OrderPresenter extends BackendPresenter
 
 		$form->addGroup('Fakturační adresa');
 		$billAddress = $form->addContainer('billAddress');
+		$billAddress->addText('name', ' Jméno a příjmení / název firmy');
 		$billAddress->addHidden('uuid')->setNullable();
 		$billAddress->addText('street', 'Ulice');
 		$billAddress->addText('city', 'Město');
@@ -1541,7 +1407,8 @@ class OrderPresenter extends BackendPresenter
 		}
 
 		$form->addGroup('Ostatní');
-		$form->addDate('desiredShippingDate', 'Požadované doručení')->setNullable();
+		$form->addPolyfillDate('desiredShippingDate', 'Požadované datum odeslání')->setNullable();
+		$form->addPolyfillDate('desiredDeliveryDate', 'Požadované datum doručení')->setNullable();
 		$form->addText('internalOrderCode', 'Zákaznické číslo')->setNullable();
 		$form->addTextArea('note', 'Poznámka')->setNullable();
 		$form->addTextArea('internalNote', 'Interní poznámka')->setNullable();
@@ -1784,7 +1651,7 @@ class OrderPresenter extends BackendPresenter
 
 		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
 			if (!isset($this::ORDER_STATES_EVENTS[$state]) || !Arrays::contains($this::ORDER_STATES_EVENTS[$state], $targetState) ||
-				($state === Order::STATE_OPEN && !$this->shopper->getEditOrderAfterCreation())) {
+				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())) {
 				continue;
 			}
 
@@ -1830,12 +1697,39 @@ class OrderPresenter extends BackendPresenter
 		$this->template->displayButtons[] =
 			'<a href="#" data-toggle="modal" data-target="#modal-emailForm"><button class="btn btn-sm btn-primary"><i class="fas fa-envelope mr-1"></i> Poslat e-mail</button></a>';
 
-		$this->template->displayButtons[] = $this->createButton('exportEdi!', '<i class="fa fa-download mr-1"></i>EDI', [$order->getPK()]);
-		$this->template->displayButtons[] = $this->createButton('exportCsv!', '<i class="fa fa-download mr-1"></i>CSV', [$order->getPK()]);
+		if (isset($this::CONFIGURATION['exportEdi']) && $this::CONFIGURATION['exportEdi']) {
+			$this->template->displayButtons[] = $this->createButton('exportEdi!', '<i class="fa fa-download mr-1"></i>EDI', [$order->getPK()]);
+		}
+
+		if (isset($this::CONFIGURATION['exportCsv']) && $this::CONFIGURATION['exportCsv']) {
+			$this->template->displayButtons[] = $this->createButton('exportCsv!', '<i class="fa fa-download mr-1"></i>CSV', [$order->getPK()]);
+		}
 
 		$this->template->displayButtons[] =
 			'<a href="#" data-toggle="modal" data-target="#modal-orderInternalRibbonsForm"><button class="btn btn-sm btn-primary"><i class="fas fa-ribbon mr-1"></i> Štítky</button></a>';
-		//  window.print()
+
+		$this->template->displayButtons[] = '
+<a href="' . $this->link('recalculateOrderPrices!', [$order->getPK()]) . '" onclick=\'return confirm("Opravdu? Tato operace je nevratná!")\'>
+	<button class="btn btn-sm btn-primary">
+		<i class="fas fa-calculator mr-1"></i> Přepočítat ceny
+	</button>
+</a>';
+	}
+
+	public function handleRecalculateOrderPrices(string $orderPK): void
+	{
+		try {
+			$order = $this->orderRepository->one($orderPK, true);
+			$this->orderRepository->recalculateOrderPrices($order, $this->getAdministrator());
+
+			$this->flashMessage('Provedeno', 'success');
+		} catch (Throwable $exception) {
+			Debugger::barDump($exception);
+
+			$this->flashMessage('Chyba: ' . $exception->getMessage(), 'error');
+		}
+
+		$this->redirect('this');
 	}
 
 	public function handleRegenerateInvoices(string $invoicePK, string $orderPK): void
@@ -1907,6 +1801,7 @@ class OrderPresenter extends BackendPresenter
 
 		/** @var \Eshop\DB\RelatedType $relatedType */
 		foreach ($this->relatedTypeRepository->getSetTypes() as $relatedType) {
+			/** @var \Eshop\DB\Order $order */
 			foreach ($orders as $order) {
 				/** @var \Eshop\DB\CartItem $item */
 				foreach ($order->purchase->getItems()->where('fk_product IS NOT NULL') as $item) {
@@ -1932,19 +1827,13 @@ class OrderPresenter extends BackendPresenter
 
 	public function handleToggleDeleteOrderItem(string $itemId): void
 	{
-		/** @var \Eshop\DB\PackageItem $packageItem */
-		$packageItem = $this->packageItemRepository->one($itemId, true);
-
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->getParameter('order');
 
-		foreach ($packageItem->relatedPackageItems as $relatedPackageItem) {
-			$relatedPackageItem->cartItem->delete();
-			$relatedPackageItem->delete();
-		}
+		/** @var \Eshop\DB\PackageItem $packageItem */
+		$packageItem = $this->packageItemRepository->one($itemId, true);
 
-		$packageItem->cartItem->delete();
-		$packageItem->delete();
+		$this->orderEditService->removePackageItem($packageItem);
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
@@ -1970,23 +1859,23 @@ class OrderPresenter extends BackendPresenter
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->one($orderId, true);
 
-		$this->checkoutManager->deleteCart();
-		$this->checkoutManager->createCart();
+		$this->shopperUser->getCheckoutManager()->deleteCart();
+		$this->shopperUser->getCheckoutManager()->createCart();
 
 		if ($order->purchase->customer && $order->purchase->account) {
 			$order->purchase->customer->setAccount($order->purchase->account);
-			$this->shopper->setCustomer($order->purchase->customer);
+			$this->shopperUser->setCustomer($order->purchase->customer);
 		} else {
-			$this->shopper->setCustomer(null);
-			$this->shopper->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
+			$this->shopperUser->setCustomer(null);
+			$this->shopperUser->setCustomerGroup($this->customerGroupRepository->getUnregisteredGroup());
 		}
 
 		/** @var \Eshop\DB\Cart $cart */
 		$cart = $order->purchase->carts->first();
-		$this->checkoutManager->addItemsFromCart($cart);
+		$this->shopperUser->getCheckoutManager()->addItemsFromCart($cart);
 
-		$purchase = $this->checkoutManager->syncPurchase($order->purchase->toArray());
-		$this->checkoutManager->createOrder($purchase);
+		$purchase = $this->shopperUser->getCheckoutManager()->syncPurchase($order->purchase->toArray());
+		$this->shopperUser->getCheckoutManager()->createOrder($purchase);
 
 		/** @var \Admin\DB\Administrator|null $admin */
 		$admin = $this->admin->getIdentity();
@@ -2091,6 +1980,30 @@ class OrderPresenter extends BackendPresenter
 		$this->redirect('this');
 	}
 
+	public function renderRecalculateOrderPrices(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Přepočítat ceny';
+		$this->template->headerTree = [
+			['Objednávky', 'default',],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('recalculateOrderPricesForm')];
+	}
+
+	public function renderExportCsvMultiple(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Exportovat (CSV)';
+		$this->template->headerTree = [
+			['Objednávky', 'default',],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('exportCsvMultipleForm')];
+	}
+
 	public function handleExportCsv(string $orderId): void
 	{
 		$presenter = $this;
@@ -2100,7 +2013,7 @@ class OrderPresenter extends BackendPresenter
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
 			try {
 				FileSystem::delete($tempFilename);
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				Debugger::log($e, ILogger::WARNING);
 			}
 		};
@@ -2120,7 +2033,7 @@ class OrderPresenter extends BackendPresenter
 		$this->application->onShutdown[] = function () use ($tempFilename): void {
 			try {
 				FileSystem::delete($tempFilename);
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				Debugger::log($e, ILogger::WARNING);
 			}
 		};
@@ -2225,8 +2138,6 @@ class OrderPresenter extends BackendPresenter
 
 	public function createComponentTargitoExportForm(): AdminForm
 	{
-		Debugger::$showBar = false;
-
 		/** @var \Grid\Datagrid $grid */
 		$grid = $this->getComponent('ordersGrid');
 
@@ -2256,7 +2167,7 @@ class OrderPresenter extends BackendPresenter
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
 				try {
 					FileSystem::delete($tempFilename);
-				} catch (\Throwable $e) {
+				} catch (Throwable $e) {
 					Debugger::log($e, ILogger::WARNING);
 				}
 			};
@@ -2304,9 +2215,12 @@ class OrderPresenter extends BackendPresenter
 
 			if ($submitter->getName() === 'useApi') {
 				try {
-					$this->zasilkovna->syncOrders($collection->toArray());
+					/** @var array<\Eshop\DB\Order> $orders */
+					$orders = $collection->toArray();
+
+					$this->zasilkovna->syncOrders($orders);
 					$this->flashMessage('Provedeno', 'success');
-				} catch (\Exception $e) {
+				} catch (Exception $e) {
 					$this->flashMessage('Chyba! Zkontrolujte API klíč.<br>' . $e->getMessage(), 'error');
 				}
 
@@ -2317,7 +2231,7 @@ class OrderPresenter extends BackendPresenter
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
 				try {
 					FileSystem::delete($tempFilename);
-				} catch (\Throwable $e) {
+				} catch (Throwable $e) {
 					Debugger::log($e, ILogger::WARNING);
 				}
 			};
@@ -2340,6 +2254,59 @@ class OrderPresenter extends BackendPresenter
 		});
 	}
 
+	public function createComponentExportCsvMultipleForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
+			try {
+				$zip = new Zipper($this->tempDir, $this->application);
+
+				/** @var \Eshop\DB\Order $order */
+				foreach ($collection as $order) {
+					$tempFilename = \tempnam($this->tempDir, 'csv');
+
+					$this->application->onShutdown[] = function () use ($tempFilename): void {
+						try {
+							FileSystem::delete($tempFilename);
+						} catch (Throwable $e) {
+							Debugger::log($e, ILogger::WARNING);
+						}
+					};
+
+					$this->orderRepository->csvExport($order, Writer::createFromPath($tempFilename, 'w+'));
+
+					$zip->addFile($tempFilename, "objednavka-$order->code.csv");
+				}
+			} catch (Throwable $e) {
+				$this->flashMessage('Chyba: ' . $e->getMessage(), 'error');
+
+				$this->redirect('this');
+			}
+
+			$this->sendResponse(new FileResponse($zip->close(), 'objednavky.zip', Zipper::CONTENT_TYPE));
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
+	}
+
+	public function createComponentRecalculateOrderPricesForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
+			try {
+				$result = $this->orderRepository->recalculateOrderPricesMultiple($collection);
+
+				$msg = 'Provedeno: ' . $result->getCompletedCount() . '<br>';
+				$msg .= 'Přeskočeno: ' . $result->getIgnoredCount() . '<br>';
+				$msg .= 'Chyba: ' . $result->getFailedCount() . '<br>';
+
+				foreach ($result->getFailed() as $order) {
+					$msg .= "$order->code<br>";
+				}
+
+				$this->flashMessage($msg, 'success');
+			} catch (Throwable $e) {
+				$this->flashMessage('Chyba: ' . $e->getMessage(), 'error');
+			}
+		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
+	}
+
 	public function createComponentDpdSendForm(): AdminForm
 	{
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
@@ -2355,7 +2322,7 @@ class OrderPresenter extends BackendPresenter
 				}
 
 				$this->flashMessage($msg, 'success');
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				$this->flashMessage($e->getMessage(), 'error');
 			}
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
@@ -2408,7 +2375,7 @@ class OrderPresenter extends BackendPresenter
 				}
 
 				$this->flashMessage($msg, 'success');
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				$this->flashMessage($e->getMessage(), 'error');
 			}
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
@@ -2418,12 +2385,13 @@ class OrderPresenter extends BackendPresenter
 	{
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
 			try {
+				/** @var \Eshop\DB\Order $order */
 				foreach ($collection as $order) {
 					$this->orderRepository->pauseOrder($order);
 				}
 
 				$this->flashMessage('Provedeno', 'success');
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				$this->flashMessage($e->getMessage(), 'error');
 			}
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
@@ -2433,12 +2401,13 @@ class OrderPresenter extends BackendPresenter
 	{
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('ordersGrid'), function (array $values, Collection $collection): void {
 			try {
+				/** @var \Eshop\DB\Order $order */
 				foreach ($collection as $order) {
 					$this->orderRepository->unPauseOrder($order);
 				}
 
 				$this->flashMessage('Provedeno', 'success');
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				$this->flashMessage($e->getMessage(), 'error');
 			}
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds());
@@ -2484,7 +2453,7 @@ class OrderPresenter extends BackendPresenter
 			$connection->getLink()->commit();
 
 			$this->flashMessage('Provedeno', 'success');
-		} catch (\Throwable $e) {
+		} catch (Throwable $e) {
 			Debugger::log($e->getMessage(), ILogger::ERROR);
 			$connection->getLink()->rollBack();
 
@@ -2498,7 +2467,7 @@ class OrderPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
-		$form->addDatetime('bannedTs', 'Zablokováno')->setNullable();
+		$form->addPolyfillDatetime('bannedTs', 'Zablokováno')->setNullable();
 		$form->addMultiSelect2('internalRibbons', 'Interní štítky', $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_ORDER));
 
 		if ($this->dpd) {
@@ -2568,7 +2537,7 @@ class OrderPresenter extends BackendPresenter
 				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::EMAIL_SENT, OrderLogItem::DELIVERY_CHANGED, $admin);
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				Debugger::log($e->getMessage(), ILogger::WARNING);
 			}
 		};
@@ -2592,7 +2561,7 @@ class OrderPresenter extends BackendPresenter
 				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::PAYMENT_CHANGED, $admin);
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 				Debugger::log($e->getMessage(), ILogger::WARNING);
 			}
 		};
@@ -2606,7 +2575,7 @@ class OrderPresenter extends BackendPresenter
 				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::RECEIVED, $admin);
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 			}
 		};
 
@@ -2619,7 +2588,7 @@ class OrderPresenter extends BackendPresenter
 				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 			}
 		};
 
@@ -2638,7 +2607,7 @@ class OrderPresenter extends BackendPresenter
 				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
-			} catch (\Throwable $e) {
+			} catch (Throwable $e) {
 			}
 		};
 
@@ -2657,7 +2626,7 @@ class OrderPresenter extends BackendPresenter
 
 	protected function getTab(): string
 	{
-		return $this->tab ??= ($this->shopper->getEditOrderAfterCreation() ? Order::STATE_OPEN : Order::STATE_RECEIVED);
+		return $this->tab ??= ($this->shopperUser->getEditOrderAfterCreation() ? Order::STATE_OPEN : Order::STATE_RECEIVED);
 	}
 
 	protected function getOrderStateName(string $state): ?string

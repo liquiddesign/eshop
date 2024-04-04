@@ -16,9 +16,9 @@ use Eshop\DB\SupplierRepository;
 use Nette\Application\Application;
 use Nette\DI\Container;
 use Nette\IOException;
-use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
+use Nette\Utils\Strings;
 use StORM\DIConnection;
 use StORM\ICollection;
 use Tracy\Debugger;
@@ -58,10 +58,10 @@ abstract class SupplierProvider
 
 	protected string $tempDirectory;
 
-	/** @var string[] */
+	/** @var array<string> */
 	private array $eans = [];
 	
-	/** @var string[] */
+	/** @var array<string> */
 	private array $codes = [];
 
 	abstract public function getDataProperties(array &$data, array $item): void;
@@ -115,7 +115,7 @@ abstract class SupplierProvider
 			'name' => $this->getName(),
 			'productCodePrefix' => $this->getProductCodePrefix(),
 			'providerClass' => static::class,
-			'lastImportTs' => (new DateTime())->format('Y-m-d G:i'),
+			'lastImportTs' => (new \Carbon\Carbon())->format('Y-m-d G:i'),
 		], ['uuid', 'lastImportTs', 'providerClass', 'productCodePrefix']);
 		
 		return $this->supplierRepository->one($this->getSupplierId(), true);
@@ -209,12 +209,12 @@ abstract class SupplierProvider
 		}
 		
 		if ((!isset($data[SupplierProduct::class]['ean']) || $data[SupplierProduct::class]['ean'] === false) || (\is_string($data[SupplierProduct::class]['ean']) &&
-				\trim($data[SupplierProduct::class]['ean']) === '')) {
+				Strings::trim($data[SupplierProduct::class]['ean']) === '')) {
 			$data[SupplierProduct::class]['ean'] = null;
 		}
 		
 		if ((!isset($data[SupplierProduct::class]['code']) || $data[SupplierProduct::class]['code'] === false) || (\is_string($data[SupplierProduct::class]['code']) &&
-				\trim($data[SupplierProduct::class]['code']) === '')) {
+				Strings::trim($data[SupplierProduct::class]['code']) === '')) {
 			$data[SupplierProduct::class]['code'] = null;
 		}
 		
@@ -259,7 +259,7 @@ abstract class SupplierProvider
 			$supplierProduct = $this->connection->findRepository(SupplierProduct::class)->syncOne($data[SupplierProduct::class], null, null, $this->importIgnore);
 			$supplierProduct->getParent() instanceof ICollection ? $this->updatedCount++ : $this->insertedCount++;
 		} catch (\PDOException $x) {
-			if ((int) $x->getCode() === 23000 && \strpos($x->getMessage(), 'supplier_product_ean') !== false) {
+			if ((int) $x->getCode() === 23000 && \str_contains($x->getMessage(), 'supplier_product_ean')) {
 				$this->importResultRepository->log('Duplicate item: code - ' . $data[SupplierProduct::class]['code'] . '/ ean - ' . $data[SupplierProduct::class]['ean']);
 				
 				return;

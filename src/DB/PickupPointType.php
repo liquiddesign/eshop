@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Nette\Application\ApplicationException;
+use Nette\Utils\Arrays;
 
 /**
  * Typ výdejního místa
@@ -51,7 +52,7 @@ class PickupPointType extends \StORM\Entity
 
 	public function getImage(string $basePath, string $size = 'detail'): string
 	{
-		if (!\in_array($size, ['origin', 'detail', 'thumb'])) {
+		if (!Arrays::contains(['origin', 'detail', 'thumb'], $size)) {
 			throw new ApplicationException('Invalid product image size: ' . $size);
 		}
 

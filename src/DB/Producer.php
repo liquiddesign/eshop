@@ -6,6 +6,8 @@ namespace Eshop\DB;
 
 use Eshop\Common\DB\SystemicEntity;
 use Nette\Application\ApplicationException;
+use Nette\Utils\Arrays;
+use StORM\RelationCollection;
 
 /**
  * Výrobce
@@ -66,15 +68,28 @@ class Producer extends SystemicEntity
 	public bool $hidden = false;
 
 	/**
+	 * ID
+	 * column - don't created by auto migration, only by manual
+	 */
+	public int $id;
+
+	/**
 	 * Hlavní přiřazená kategorie
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 * @deprecated use mainCategories
 	 */
 	public ?Category $mainCategory;
 
+	/**
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\Category>
+	 */
+	public RelationCollection $mainCategories;
+
 	public function getPreviewImage(string $basePath, string $size = 'detail'): string
 	{
-		if (!\in_array($size, ['origin', 'detail', 'thumb'])) {
+		if (!Arrays::contains(['origin', 'detail', 'thumb'], $size)) {
 			throw new ApplicationException('Invalid product image size: ' . $size);
 		}
 

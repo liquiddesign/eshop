@@ -27,8 +27,9 @@ use Eshop\DB\SupplierProducer;
 use Eshop\DB\SupplierProducerRepository;
 use Eshop\DB\SupplierRepository;
 use Nette\Http\Session;
-use Nette\Utils\Arrays;
 use Nette\Utils\Random;
+use Nette\Utils\Strings;
+use StORM\Collection;
 use StORM\Entity;
 use StORM\Expression;
 use StORM\ICollection;
@@ -41,7 +42,7 @@ class SupplierMappingPresenter extends BackendPresenter
 	];
 
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	public array $TABS = [
 		'category' => 'Kategorie',
@@ -49,52 +50,52 @@ class SupplierMappingPresenter extends BackendPresenter
 		'amount' => 'Dostupnost',
 	];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierMappingRepository $supplierMappingRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryRepository $categoryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProducerRepository $producerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DisplayAmountRepository $displayAmountRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DisplayDeliveryRepository $displayDeliveryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierCategoryRepository $supplierCategoryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierProducerRepository $supplierProducerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierDisplayAmountRepository $supplierDisplayAmountRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierAttributeRepository $supplierAttributeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierAttributeValueRepository $supplierAttributeValueRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierAttributeCategoryAssignRepository $supplierAttributeCategoryAssignRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeRepository $attributeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeValueRepository $attributeValueRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryTypeRepository $categoryTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Session $session;
 
 	/** @persistent */
@@ -102,7 +103,7 @@ class SupplierMappingPresenter extends BackendPresenter
 
 	public function createComponentGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->getMappingRepository()->many(), 20, 'createdTs', 'ASC');
+		$grid = $this->gridFactory->create($this->getMappingCollection(), 20, 'createdTs', 'ASC');
 		$grid->addColumnSelector();
 
 		$grid->addColumn(
@@ -120,23 +121,47 @@ class SupplierMappingPresenter extends BackendPresenter
 		)->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
 		$grid->addColumnText('Importováno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		$grid->addColumnText('Změněno', "updateTs|date:'d.m.Y G:i'", '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+//		$grid->addColumnText('Změněno', "updateTs|date:'d.m.Y G:i'", '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
+		/** @var 'categories'|'attribute'|'producer'|'attributeValue'|'displayAmount' $property */
 		$property = null;
+		$categoriesNames = $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection(
+			$this->categoryRepository->many(),
+			'this.name_cs',
+			uniqueColumnName: 'this.code',
+			shops: false,
+			customSelect: 'type.uuid',
+		));
 
 		if ($this->tab === 'category') {
 			$grid->addColumnText('Název', 'getNameTree', '%s', 'categoryNameL1');
 			$dir = \explode('-', $this->getHttpRequest()->getQuery('grid-order') ?? '')[1] ?? 'ASC';
 			$grid->setSecondaryOrder(['categoryNameL2' => $dir, 'categoryNameL3' => $dir, 'categoryNameL4' => $dir, 'categoryNameL5' => $dir, 'categoryNameL6' => $dir]);
 
-			$grid->addColumn('Napárovano', function (SupplierCategory $mapping) {
-				$link = $mapping->category && $this->admin->isAllowed(':Eshop:Admin:Category:detail') ?
-					$this->link(':Eshop:Admin:Category:detail', [$mapping->category, 'backLink' => $this->storeRequest(),]) : '#';
+			$grid->addColumn('Napárovano', function (SupplierCategory $mapping) use ($categoriesNames) {
+				$categories = $mapping->categories->toArray();
 
-				return $mapping->category ? "<a href='$link'>" . ($mapping->category->name ?: 'Detail kategorie') . '</a>' : '-';
+				$text = null;
+
+				if ($this->admin->isAllowed(':Eshop:Admin:Category:detail')) {
+					foreach ($categories as $category) {
+						$categoryName = $categoriesNames[$category->getPK()];
+
+						$text .= "<a href='" . $this->link(':Eshop:Admin:Category:detail', [$category, 'backLink' => $this->storeRequest(),]) . "'>" .
+							$categoryName . '</a><br>';
+					}
+				} else {
+					foreach ($categories as $category) {
+						$categoryName = $categoriesNames[$category->getPK()];
+
+						$text .= $categoryName . '<br>';
+					}
+				}
+
+				return $text;
 			});
 
-			$property = 'category';
+			$property = 'categories';
 			$grid->addFilterText(function (ICollection $source, $value): void {
 				$parsed = \explode('>', $value);
 				$expression = new Expression();
@@ -144,7 +169,7 @@ class SupplierMappingPresenter extends BackendPresenter
 
 				for ($i = 1; $i !== 7; $i++) {
 					if (isset($parsed[$i - 1])) {
-						$expression->add('AND', "categoryNameL$i=%s", [\trim($parsed[$i - 1])]);
+						$expression->add('AND', "categoryNameL$i=%s", [Strings::trim($parsed[$i - 1])]);
 					}
 				}
 
@@ -243,8 +268,13 @@ class SupplierMappingPresenter extends BackendPresenter
 
 		$submit = $grid->getForm()->addSubmit('createStructureSubmit', 'Vytvořit strukturu')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 		$submit->onClick[] = function ($button) use ($grid): void {
-			$this->session->getSection('bulkEdit')->set('totalIds', \array_keys($grid->getFilteredSource()->toArray()));
-			$this->redirect('mapping', \serialize($grid->getSelectedIds()));
+			unset($grid);
+			$this->flashMessage('Tato funkce momentálně není dostupná', 'warning');
+			$this->redirect('this');
+
+			// @TODO
+//			$this->session->getSection('bulkEdit')->set('totalIds', \array_keys($grid->getFilteredSource()->toArray()));
+//			$this->redirect('mapping', \serialize($grid->getSelectedIds()));
 		};
 
 		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
@@ -257,15 +287,27 @@ class SupplierMappingPresenter extends BackendPresenter
 			$grid->addFilterTextInput('supplierAttributeCode', ['supplierAttribute.code'], null, 'Kód atributu', null, '%s');
 		}
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs >= :created_from', ['created_from' => $value]);
 		}, '', 'date_from', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Importováno od');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
 		}, '', 'created_to', null)->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Importováno do');
 
-		$grid->addFilterCheckboxInput('notmapped', "fk_$property IS NOT NULL", 'Napárované');
+		$grid->addFilterDataSelect(function (ICollection $source, $value) use ($property): void {
+			if ($value === '1') {
+				match ($property) {
+					'categories' => $source->where('supplierCategoryXCategory.fk_category IS NOT NULL'),
+					default => $source->where("this.fk_$property IS NOT NULL"),
+				};
+			} elseif ($value === '0') {
+				match ($property) {
+					'categories' => $source->where('supplierCategoryXCategory.fk_category IS NULL'),
+					default => $source->where("this.fk_$property IS NULL"),
+				};
+			}
+		}, null, 'notmapped', null, ['1' => 'Ano', '0' => 'Ne'])->setPrompt('- Napárované -');
 
 
 		$grid->addFilterButtons();
@@ -278,7 +320,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 
 		if ($this->tab === 'category') {
-			$form->addDataSelect('category', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('Nepřiřazeno');
+			$form->addDataMultiSelect('categories', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect());
 		}
 
 		if ($this->tab === 'producer') {
@@ -553,101 +595,102 @@ class SupplierMappingPresenter extends BackendPresenter
 						$supplierAttributeValue->update(['attributeValue' => $attributeValue->getPK()]);
 					}
 				}
-			} elseif ($this->tab === 'category') {
-				/** @var \Eshop\DB\Category|null $insertToCategory */
-				$insertToCategory = $values['category'] ? $this->categoryRepository->one($values['category']) : null;
-				$type = $insertToCategory ? $insertToCategory->getValue('type') : $values['categoryType'];
 
-				foreach ($data as $uuid) {
-					/** @var \Eshop\DB\SupplierCategory $supplierCategory */
-					$supplierCategory = $this->supplierCategoryRepository->one($uuid);
-
-					if (!$supplierCategory->categoryNameL1) {
-						continue;
-					}
-
-					$newTree = [$supplierCategory->categoryNameL1];
-
-					if ($supplierCategory->categoryNameL2) {
-						$newTree[] = $supplierCategory->categoryNameL2;
-					}
-
-					if ($supplierCategory->categoryNameL3) {
-						$newTree[] = $supplierCategory->categoryNameL3;
-					}
-
-					if ($supplierCategory->categoryNameL4) {
-						$newTree[] = $supplierCategory->categoryNameL4;
-					}
-
-					if ($supplierCategory->categoryNameL5) {
-						$newTree[] = $supplierCategory->categoryNameL5;
-					}
-
-					if ($supplierCategory->categoryNameL6) {
-						$newTree[] = $supplierCategory->categoryNameL6;
-					}
-
-					$currentCategory = $insertToCategory;
-					$path = $insertToCategory ? $insertToCategory->path : null;
-					$first = true;
-
-					foreach ($newTree as $cKey) {
-						$originalPath = $currentCategory ? $currentCategory->path : '';
-
-						do {
-							$tempPath = $path . Random::generate(4, '0-9a-z');
-							$tempCategory = $this->categoryRepository->many()->where('path', $tempPath)->first();
-						} while ($tempCategory);
-
-						/** @var \Eshop\DB\Category|null $existingCategory */
-						$existingCategory = $this->categoryRepository->many()->where('fk_type', $type)->where('path LIKE :s', ['s' => "$originalPath%"])->where('name_cs', $cKey)->first();
-
-						$path = $existingCategory ? $existingCategory->path : $tempPath;
-
-						$newCategoryData = [
-							'name' => ['cs' => $cKey, 'en' => null],
-							'path' => $path,
-							'ancestor' => $currentCategory ? $currentCategory->getPK() : null,
-							'type' => $type,
-						];
-
-						if ($existingCategory) {
-							$existingCategory->update($newCategoryData);
-							$currentCategory = $existingCategory;
-						} elseif ($supplierCategory->category && Arrays::last($newTree) === $cKey) {
-							if ($supplierCategory->category->getValue('ancestor') && $supplierCategory->category->getValue('ancestor') === $newCategoryData['ancestor']) {
-								if (!$overwrite) {
-									unset($newCategoryData['name']);
-								}
-
-								$supplierCategory->category->update($newCategoryData);
-								$currentCategory = $supplierCategory->category;
-							} else {
-								$currentCategory = $this->categoryRepository->createOne($newCategoryData);
-								$supplierCategory->update(['category' => $currentCategory->getPK()]);
-							}
-						} else {
-							/** @var \Eshop\DB\Category $currentCategory */
-							$currentCategory = $this->categoryRepository->createOne($newCategoryData);
-						}
-
-						if (!$first) {
-							continue;
-						}
-
-						$newFirstCategory = $currentCategory;
-						$first = false;
-					}
-
-					$supplierCategory->update(['category' => $currentCategory->getPK()]);
-				}
-
-				if (isset($newFirstCategory)) {
-					$this->categoryRepository->recalculateCategoryTree($newFirstCategory->getValue('type'));
-				}
-
-				$this->categoryRepository->clearCategoriesCache();
+//			} elseif ($this->tab === 'category') {
+//				/** @var \Eshop\DB\Category|null $insertToCategory */
+//				$insertToCategory = $values['category'] ? $this->categoryRepository->one($values['category']) : null;
+//				$type = $insertToCategory ? $insertToCategory->getValue('type') : $values['categoryType'];
+//
+//				foreach ($data as $uuid) {
+//					/** @var \Eshop\DB\SupplierCategory $supplierCategory */
+//					$supplierCategory = $this->supplierCategoryRepository->one($uuid);
+//
+//					if (!$supplierCategory->categoryNameL1) {
+//						continue;
+//					}
+//
+//					$newTree = [$supplierCategory->categoryNameL1];
+//
+//					if ($supplierCategory->categoryNameL2) {
+//						$newTree[] = $supplierCategory->categoryNameL2;
+//					}
+//
+//					if ($supplierCategory->categoryNameL3) {
+//						$newTree[] = $supplierCategory->categoryNameL3;
+//					}
+//
+//					if ($supplierCategory->categoryNameL4) {
+//						$newTree[] = $supplierCategory->categoryNameL4;
+//					}
+//
+//					if ($supplierCategory->categoryNameL5) {
+//						$newTree[] = $supplierCategory->categoryNameL5;
+//					}
+//
+//					if ($supplierCategory->categoryNameL6) {
+//						$newTree[] = $supplierCategory->categoryNameL6;
+//					}
+//
+//					$currentCategory = $insertToCategory;
+//					$path = $insertToCategory?->path;
+//					$first = true;
+//
+//					foreach ($newTree as $cKey) {
+//						$originalPath = $currentCategory ? $currentCategory->path : '';
+//
+//						do {
+//							$tempPath = $path . Random::generate(4, '0-9a-z');
+//							$tempCategory = $this->categoryRepository->many()->where('path', $tempPath)->first();
+//						} while ($tempCategory);
+//
+//						/** @var \Eshop\DB\Category|null $existingCategory */
+//						$existingCategory = $this->categoryRepository->many()->where('fk_type', $type)->where('path LIKE :s', ['s' => "$originalPath%"])->where('name_cs', $cKey)->first();
+//
+//						$path = $existingCategory ? $existingCategory->path : $tempPath;
+//
+//						$newCategoryData = [
+//							'name' => ['cs' => $cKey, 'en' => null],
+//							'path' => $path,
+//							'ancestor' => $currentCategory ? $currentCategory->getPK() : null,
+//							'type' => $type,
+//						];
+//
+//						if ($existingCategory) {
+//							$existingCategory->update($newCategoryData);
+//							$currentCategory = $existingCategory;
+//						} elseif ($supplierCategory->category && Arrays::last($newTree) === $cKey) {
+//							if ($supplierCategory->category->getValue('ancestor') && $supplierCategory->category->getValue('ancestor') === $newCategoryData['ancestor']) {
+//								if (!$overwrite) {
+//									unset($newCategoryData['name']);
+//								}
+//
+//								$supplierCategory->category->update($newCategoryData);
+//								$currentCategory = $supplierCategory->category;
+//							} else {
+//								$currentCategory = $this->categoryRepository->createOne($newCategoryData);
+//								$supplierCategory->update(['category' => $currentCategory->getPK()]);
+//							}
+//						} else {
+//							/** @var \Eshop\DB\Category $currentCategory */
+//							$currentCategory = $this->categoryRepository->createOne($newCategoryData);
+//						}
+//
+//						if (!$first) {
+//							continue;
+//						}
+//
+//						$newFirstCategory = $currentCategory;
+//						$first = false;
+//					}
+//
+//					$supplierCategory->update(['category' => $currentCategory->getPK()]);
+//				}
+//
+//				if (isset($newFirstCategory)) {
+//					$this->categoryRepository->recalculateCategoryTree($newFirstCategory->getValue('type'));
+//				}
+//
+//				$this->categoryRepository->clearCategoriesCache();
 			}
 
 			$this->flashMessage('Uloženo', 'success');
@@ -743,7 +786,12 @@ class SupplierMappingPresenter extends BackendPresenter
 			];
 		}
 
-		$form->setDefaults($object->toArray());
+		$relations = match ($this->tab) {
+			'category' => ['categories'],
+			default => [],
+		};
+
+		$form->setDefaults($object->toArray($relations));
 	}
 
 	protected function startup(): void
@@ -785,5 +833,18 @@ class SupplierMappingPresenter extends BackendPresenter
 		}
 
 		throw new \DomainException('Invalid state');
+	}
+
+	private function getMappingCollection(): Collection
+	{
+		$repository = $this->getMappingRepository();
+
+		$collection = $repository->many();
+
+		if ($this->tab === 'category') {
+			return $collection->join(['supplierCategoryXCategory' => 'eshop_suppliercategory_nxn_eshop_category'], 'this.uuid = supplierCategoryXCategory.fk_supplierCategory');
+		}
+
+		return $repository->many();
 	}
 }

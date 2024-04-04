@@ -11,6 +11,7 @@ use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Forms\FormFactory;
 use Nette\Application\UI\Control;
@@ -20,10 +21,10 @@ use Nette\Caching\Storage;
 use Nette\Utils\Arrays;
 use StORM\Collection;
 use Translator\DB\TranslationRepository;
+use Web\DB\SettingRepository;
 
 /**
  * @method onFormSuccess(array $parameters)
- * @property-read \Nette\Bridges\ApplicationLatte\Template $template
  */
 class ProductFilter extends Control
 {
@@ -34,78 +35,71 @@ class ProductFilter extends Control
 	];
 	
 	/**
-	 * @var callable[]&callable(): void; Occurs after product filter form success
+	 * @var array<callable>&callable(): void ; Occurs after product filter form success
 	 */
-	public $onFormSuccess;
+	public array $onFormSuccess;
 	
 	/** @var array<callable(static): void> Occurs when component is attached to presenter */
-	public $onAnchor = [];
-	
-	private TranslationRepository $translator;
-	
-	private FormFactory $formFactory;
-	
-	private AttributeRepository $attributeRepository;
-	
-	private DisplayAmountRepository $displayAmountRepository;
-	
-	private DisplayDeliveryRepository $displayDeliveryRepository;
-	
-	private AttributeValueRangeRepository $attributeValueRangeRepository;
-	
-	private ProducerRepository $producerRepository;
+	public array $onAnchor = [];
 
-	private Cache $cache;
+	/** @var (callable(static $productFilter, array $attributes): array<\Eshop\DB\Attribute>)|null Called only on first call of getAttributes method. */
+	public $onGetAttributes = null;
+
+	/** @var null|callable(float $min): float */
+	public $onGetPriceMin = null;
+
+	/** @var null|callable(float $max): float */
+	public $onGetPriceMax = null;
+
+	protected Cache $cache;
 	
 	/**
-	 * @var \Eshop\DB\Attribute[]
+	 * @var array<\Eshop\DB\Attribute>
 	 */
-	private array $attributes;
+	protected array $attributes;
 	
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
-	private array $attributeValues = [];
+	protected array $attributeValues = [];
 	
 	/**
-	 * @var string[][]
+	 * @var array<array<string>>
 	 */
-	private array $rangeValues = [];
+	protected array $rangeValues = [];
 	
 	public function __construct(
-		FormFactory $formFactory,
-		TranslationRepository $translator,
-		AttributeRepository $attributeRepository,
-		DisplayAmountRepository $displayAmountRepository,
-		DisplayDeliveryRepository $displayDeliveryRepository,
-		AttributeValueRangeRepository $attributeValueRangeRepository,
-		ProducerRepository $producerRepository,
+		protected FormFactory $formFactory,
+		protected TranslationRepository $translator,
+		protected AttributeRepository $attributeRepository,
+		protected DisplayAmountRepository $displayAmountRepository,
+		protected DisplayDeliveryRepository $displayDeliveryRepository,
+		protected AttributeValueRangeRepository $attributeValueRangeRepository,
+		protected ProducerRepository $producerRepository,
+		protected SettingRepository $settingRepository,
+		protected ShopperUser $shopperUser,
 		Storage $storage
 	) {
-		$this->translator = $translator;
-		$this->formFactory = $formFactory;
-		$this->attributeRepository = $attributeRepository;
-		$this->displayAmountRepository = $displayAmountRepository;
-		$this->displayDeliveryRepository = $displayDeliveryRepository;
-		$this->attributeValueRangeRepository = $attributeValueRangeRepository;
-		$this->producerRepository = $producerRepository;
 		$this->cache = new Cache($storage);
 	}
 	
 	public function render(): void
 	{
-		/** @var string[][][] $filters */
+		/** @var array<array<array<string>>> $filters */
 		$filters = $this->getProductList()->getFilters();
-		
+
+		$providerOutput = $this->getProductList()->getProviderOutput();
+
 		$this->template->systemicCounts = [
-			'availability' => $this->displayAmountRepository->getCounts($filters),
-			//'delivery' => $this->displayDeliveryRepository->getCounts($filters),
-			'producer' => $this->producerRepository->getCounts($filters),
+			'availability' => $providerOutput['displayAmountsCounts'] ?? $this->displayAmountRepository->getCounts($filters),
+			'delivery' => $providerOutput['displayDeliveriesCounts'] ?? $this->displayDeliveryRepository->getCounts($filters),
+			'producer' => $providerOutput['producersCounts'] ?? $this->producerRepository->getCounts($filters),
 		];
 		
-		$this->template->attributes = $attributes = $this->getAttributes();
+		$this->template->attributes = $this->getAttributes();
+		$this->template->attributesDefaults = $filters['attributes'] ?? [];
 		
-		$this->template->attributesValuesCounts = $this->attributeRepository->getCounts($this->attributeValues, $filters);
+		$this->template->attributesValuesCounts = $providerOutput['attributeValuesCounts'] ?? $this->attributeRepository->getCounts($this->attributeValues, $filters);
 		
 		foreach ($this->rangeValues as $rangeId => $valuesIds) {
 			foreach ($valuesIds as $valueId) {
@@ -113,8 +107,12 @@ class ProductFilter extends Control
 				$this->template->attributesValuesCounts[$rangeId] += $this->template->attributesValuesCounts[$valueId] ?? 0;
 			}
 		}
-		
-		$this->template->render($this->template->getFile() ?: __DIR__ . '/productFilter.latte');
+
+		$this->template->mainPriceType = $this->shopperUser->getMainPriceType();
+
+		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
+		$template = $this->template;
+		$template->render($template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
 	
 	public function createComponentForm(): Form
@@ -122,22 +120,47 @@ class ProductFilter extends Control
 		$filterForm = $this->formFactory->create();
 		
 		$filterForm->setMethod('get');
-		
+
 		$filterForm->onRender[] = function ($filterForm): void {
 			$filterForm->removeComponent($filterForm[Presenter::SIGNAL_KEY]);
 		};
 
-		/** @TODO set default values based on displayed products */
-		$filterForm->addInteger('priceFrom')->setRequired()->setDefaultValue(0)->setHtmlAttribute('placeholder', 0);
-		$filterForm->addInteger('priceTo')->setRequired()->setDefaultValue(100000)->setHtmlAttribute('placeholder', 100000);
+		$productList = $this->getProductList();
+
+		$productList->getItemsOnPage();
+		$providerOutput = $productList->getProviderOutput();
+
+		$withVat = $this->shopperUser->getMainPriceType() === 'withVat';
+
+		$priceFrom = $providerOutput[$withVat ? 'priceVatMin' : 'priceMin'] ?? 0;
+		$priceTo = $providerOutput[$withVat ? 'priceVatMax' : 'priceMax'] ?? 100000;
+
+		if ($this->onGetPriceMin) {
+			$priceFrom = \call_user_func($this->onGetPriceMin, $priceFrom);
+		}
+
+		if ($this->onGetPriceMax) {
+			$priceTo = \call_user_func($this->onGetPriceMax, $priceTo);
+		}
+
+		$filterForm->addText('priceFrom')
+			->setNullable()
+			->setHtmlAttribute('placeholder', $priceFrom)
+			->setHtmlAttribute('max', $priceFrom)
+			->addCondition($filterForm::Filled)->addRule($filterForm::Integer);
+
+		$filterForm->addText('priceTo')
+			->setNullable()
+			->setHtmlAttribute('placeholder', $priceTo)
+			->addCondition($filterForm::Filled)->addRule($filterForm::Integer);
 		
 		$attributesContainer = $filterForm->addContainer('attributes');
 		
-		$defaults = $this->getProductList()->getFilters()['attributes'] ?? [];
+		$defaults = $productList->getFilters()['attributes'] ?? [];
 		
 		foreach ($this->getAttributes() as $attribute) {
 			if (Arrays::contains(\array_keys($this::SYSTEMIC_ATTRIBUTES), $attribute->getPK())) {
-				$attributeValues = $this->getSystemicAttributeValues($attribute->getPK());
+				$attributeValues = $this->getSystemicAttributeValues((string) $attribute->getPK());
 			} else {
 				$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
 				$this->attributeValues = \array_merge($this->attributeValues, \array_keys($attributeValues));
@@ -157,7 +180,7 @@ class ProductFilter extends Control
 				continue;
 			}
 			
-			$checkboxList = $attributesContainer->addCheckboxList($attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
+			$checkboxList = $attributesContainer->addCheckboxList((string) $attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
 			
 			if (!isset($defaults[$attribute->getPK()])) {
 				continue;
@@ -170,7 +193,7 @@ class ProductFilter extends Control
 		$submit->setHtmlAttribute('name', '');
 		
 		
-		$filterForm->setDefaults($this->getPresenter()->getParameters());
+		$filterForm->setDefaults($this->getPresenter()?->getParameters());
 		
 		return $filterForm;
 	}
@@ -178,7 +201,7 @@ class ProductFilter extends Control
 	/**
 	 * @param string|null $rootIndex
 	 * @param string|null $valueIndex
-	 * @return mixed[]|mixed[][]|mixed[][][]
+	 * @return array<mixed>|array<array<mixed>>|array<array<array<mixed>>>
 	 */
 	public function getClearFilters(?string $rootIndex = null, ?string $valueIndex = null): array
 	{
@@ -192,7 +215,7 @@ class ProductFilter extends Control
 			return [];
 		}
 		
-		/** @var string[][][] $filters */
+		/** @var array<array<array<string>>> $filters */
 		$filters = $this->getProductList()->getFilters();
 		
 		if ($valueIndex) {
@@ -217,7 +240,7 @@ class ProductFilter extends Control
 		return $filters;
 	}
 	
-	private function getProductList(): ProductList
+	protected function getProductList(): ProductList
 	{
 		/** @var \Eshop\Controls\ProductList $parent */
 		$parent = $this->getParent();
@@ -225,20 +248,30 @@ class ProductFilter extends Control
 		return $parent;
 	}
 	
-	private function getCategoryPath(): ?string
+	protected function getCategoryPath(): ?string
 	{
 		return $this->getProductList()->getFilters()['category'] ?? null;
 	}
 	
 	/**
-	 * @return \Eshop\DB\Attribute[]
+	 * @return array<\Eshop\DB\Attribute>
 	 */
-	private function getAttributes(): array
+	protected function getAttributes(): array
 	{
-		return $this->attributes ??= $this->getCategoryPath() ? $this->attributeRepository->getAttributesByCategory($this->getCategoryPath())->where('showFilter', true)->toArray() : [];
+		if (isset($this->attributes)) {
+			return $this->attributes;
+		}
+
+		$attributes = $this->getCategoryPath() ? $this->attributeRepository->getAttributesByCategory($this->getCategoryPath())->where('showFilter', true)->toArray() : [];
+
+		if ($this->onGetAttributes) {
+			$attributes = \call_user_func($this->onGetAttributes, $this, $attributes);
+		}
+
+		return $this->attributes = $attributes;
 	}
 	
-	private function getRangeValues(Attribute $attribute): Collection
+	protected function getRangeValues(Attribute $attribute): Collection
 	{
 		return $this->attributeValueRangeRepository->getCollection()
 			->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attributeValueRange = this.uuid')
@@ -251,30 +284,41 @@ class ProductFilter extends Control
 	 * @param string $uuid
 	 * @return array<string, string>
 	 */
-	private function getSystemicAttributeValues(string $uuid): array
+	protected function getSystemicAttributeValues(string $uuid): array
 	{
-		switch ($uuid) {
-			case 'availability':
-				return $this->displayAmountRepository->getArrayForSelect(false);
-			case 'delivery':
-				return $this->displayDeliveryRepository->getArrayForSelect(false);
-			case 'producer':
-				$categoryPath = $this->getCategoryPath() ?? '';
-
-				return $this->cache->load("getSystemicAttributeValues-$uuid-$categoryPath", function (&$dependencies) use ($categoryPath) {
-					$dependencies = [
-						Cache::Tags => [ScriptsPresenter::ATTRIBUTES_CACHE_TAG, ScriptsPresenter::PRODUCERS_CACHE_TAG,],
-					];
-
-					return $this->producerRepository->getCollection()
-						->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid', [], 'INNER')
-						->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid')
-						->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
-						->where('category.path LIKE :s', ['s' => $categoryPath . '%'])
-						->toArrayOf('name');
-				});
-			default:
-				return [];
+		if ($uuid === 'availability') {
+			return $this->displayAmountRepository->getArrayForSelect(false);
 		}
+
+		if ($uuid === 'delivery') {
+			return $this->displayDeliveryRepository->getArrayForSelect(false);
+		}
+
+		if ($uuid === 'producer') {
+			$categoryPath = $this->getCategoryPath() ?? '';
+
+			return $this->cache->load("getSystemicAttributeValues-$uuid-$categoryPath", function (&$dependencies) use ($categoryPath) {
+				$dependencies = [
+					Cache::Tags => [ScriptsPresenter::ATTRIBUTES_CACHE_TAG, ScriptsPresenter::PRODUCERS_CACHE_TAG,],
+				];
+
+				$mutationSuffix = $this->producerRepository->getConnection()->getMutationSuffix();
+
+				$subQuery2 = $this->producerRepository->getConnection()->rows(['product' => 'eshop_product'])
+					->where('product.fk_producer = this.uuid and nxnCategory.fk_product = product.uuid');
+
+				$subQuery1 = $this->producerRepository->getConnection()->rows(['nxnCategory' => 'eshop_product_nxn_eshop_category'])
+					->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid', type: 'INNER')
+					->where('category.path LIKE :s', ['s' => $categoryPath . '%'])
+					->where('EXISTS(' . $subQuery2->getSql() . ')', $subQuery2->getVars());
+
+				return $this->producerRepository->getCollection()
+					->setSelect(['name' => "this.name$mutationSuffix"], keepIndex: true)
+					->where('EXISTS(' . $subQuery1->getSql() . ')', $subQuery1->getVars())
+					->toArrayOf('name');
+			});
+		}
+
+		return [];
 	}
 }

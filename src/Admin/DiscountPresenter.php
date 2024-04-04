@@ -6,6 +6,7 @@ namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Carbon\Carbon;
 use Eshop\Admin\Controls\DiscountCouponGeneratorForm;
 use Eshop\Admin\Controls\IDiscountCouponFormFactory;
 use Eshop\Admin\Controls\IDiscountCouponGeneratorFormFactory;
@@ -24,45 +25,46 @@ use Eshop\FormValidators;
 use Forms\Form;
 use Grid\Datagrid;
 use Nette\Caching\Storage;
+use Nette\Utils\Strings;
 use StORM\Connection;
 use StORM\ICollection;
 
 class DiscountPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountRepository $discountRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $priceListRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DeliveryDiscountRepository $deliveryRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public RibbonRepository $ribbonRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IDiscountCouponFormFactory $discountCouponFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Connection $storm;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Storage $storage;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountCouponRepository $discountCouponRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IDiscountCouponGeneratorFormFactory $discountCouponGeneratorFormFactory;
 
 	public function createComponentGrid(): AdminGrid
@@ -89,7 +91,7 @@ class DiscountPresenter extends BackendPresenter
 				}
 			}
 
-			return \substr($resultString, 0, -2);
+			return Strings::substring($resultString, 0, -2);
 		}, '%s');
 
 		//$cache = new Cache($this->storage);
@@ -183,8 +185,8 @@ class DiscountPresenter extends BackendPresenter
 		$form = $this->formFactory->create(true);
 
 		$form->addLocaleText('name', 'Název');
-		$form->addDatetime('validFrom', 'Platný od')->setNullable(true);
-		$form->addDatetime('validTo', 'Platný do')->setNullable(true);
+		$form->addPolyfillDatetime('validFrom', 'Platný od')->setNullable(true);
+		$form->addPolyfillDatetime('validTo', 'Platný do')->setNullable(true);
 
 		/** @var \Eshop\DB\Discount|null $discount */
 		$discount = $this->getParameter('discount');
@@ -207,6 +209,9 @@ class DiscountPresenter extends BackendPresenter
 		)->setHtmlAttribute('placeholder', 'Vyberte položky...');
 
 		$form->addCheckbox('recommended', 'Doporučeno');
+
+		$this->formFactory->addShopsContainerToAdminForm($form, false);
+
 		$form->addSubmits(!$discount);
 
 		$form->onSuccess[] = function (AdminForm $form) use ($discount): void {
@@ -390,7 +395,7 @@ class DiscountPresenter extends BackendPresenter
 		$form->addText('weightTo', 'Do váhy košíku')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
 
 		$form->bind($this->deliveryRepo->getStructure());
-		$form->addHidden('discount', $discount ? (string)$discount : $this->getParameter('deliveryDiscount')->getValue('discount'));
+		$form->addHidden('discount', $discount ? (string) $discount : $this->getParameter('deliveryDiscount')->getValue('discount'));
 		$form->addSubmits(false, false);
 
 		$form->onSuccess[] = function (AdminForm $form): void {
@@ -421,8 +426,8 @@ class DiscountPresenter extends BackendPresenter
 		$form = $this->getComponent('couponsForm')['form'];
 
 		$values = $discountCoupon->toArray();
-		$values['usedTs'] = $values['usedTs'] ? \date('Y-m-d\TH:i:s', \strtotime($values['usedTs'])) : '';
-		$values['createdTs'] = $values['createdTs'] ? \date('Y-m-d\TH:i:s', \strtotime($values['createdTs'])) : '';
+		$values['usedTs'] = $values['usedTs'] ? Carbon::parse($values['usedTs'])->toString() : '';
+		$values['createdTs'] = $values['createdTs'] ? Carbon::parse($values['createdTs'])->toString() : '';
 		$form->setDefaults($values);
 	}
 

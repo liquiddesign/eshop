@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\DB\CustomerRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette;
 
 /**
@@ -18,30 +18,26 @@ class ProfileForm extends \Nette\Application\UI\Form
 	 * Occurs when the form is submitted and successfully validated
 	 * @var array<callable(self, array|object): void|callable(array|object): void>
 	 */
-	public $onSuccess = [];
+	public array $onSuccess = [];
 
 	/**
 	 * @var array<callable(\Eshop\Controls\ProfileForm, string): void>
 	 */
 	public array $onEmailChange = [];
 
-	private Shopper $shopper;
-
 	public function __construct(
-		Shopper $shopper,
+		private readonly ShopperUser $shopperUser,
 		Nette\Localization\Translator $translator,
 		CustomerRepository $customerRepository,
 	) {
 		parent::__construct();
 
-		$this->shopper = $shopper;
-
-		if (!$shopper->getCustomer()) {
+		if (!$shopperUser->getCustomer()) {
 			throw new \InvalidArgumentException('Customer not found');
 		}
 
 		$this->addText('fullname', 'profileForm.fullname');
-		$this->addText('email', 'profileForm.email')->addRule($this::EMAIL)->setRequired();
+		$this->addText('email', 'profileForm.email')->setNullable()->addCondition($this::Filled)->addRule($this::EMAIL);
 		// @TODO: validace na regexp
 		$this->addText('ccEmails', 'profileForm.ccEmail');
 		$this->addText('phone', 'profileForm.phone')
@@ -55,6 +51,8 @@ class ProfileForm extends \Nette\Application\UI\Form
 
 		$this->addGroup('Fakturační adresa');
 		$billAddressBox = $this->addContainer('billAddress');
+		$billAddressBox->addText('name', 'billAddress.name');
+		$billAddressBox->addText('companyName', 'billAddress.companyName');
 		$billAddressBox->addText('street', 'billAddress.street')->setRequired();
 		$billAddressBox->addText('city', 'billAddress.city')->setRequired();
 		$billAddressBox->addText('zipcode', 'billAddress.zipcode')->setRequired()
@@ -62,11 +60,11 @@ class ProfileForm extends \Nette\Application\UI\Form
 
 		$this->addGroup('Doručovací adresa');
 		$deliveryAddressBox = $this->addContainer('deliveryAddress');
-		$deliveryAddressBox->addText('name', 'deliveryAddress.name')->setRequired();
+		$deliveryAddressBox->addText('name', 'deliveryAddress.name')->setNullable();
 		$deliveryAddressBox->addText('companyName', 'deliveryAddress.companyName')->setNullable();
-		$deliveryAddressBox->addText('street', 'deliveryAddress.street')->setRequired();
-		$deliveryAddressBox->addText('city', 'deliveryAddress.city')->setRequired();
-		$deliveryAddressBox->addText('zipcode', 'deliveryAddress.zipcode')->setRequired()
+		$deliveryAddressBox->addText('street', 'deliveryAddress.street');
+		$deliveryAddressBox->addText('city', 'deliveryAddress.city');
+		$deliveryAddressBox->addText('zipcode', 'deliveryAddress.zipcode')->setNullable()->addCondition($this::Filled)
 			->addRule(self::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
 
 		$this->addGroup('Potvrzení');
@@ -79,7 +77,7 @@ class ProfileForm extends \Nette\Application\UI\Form
 
 			$values = $form->getValues();
 
-			$customer = $this->shopper->getCustomer();
+			$customer = $this->shopperUser->getCustomer();
 			$existingCustomer = $customerRepository->many()->where('this.email', $values['email'])->first();
 
 			if (!$existingCustomer || $existingCustomer->getPK() === $customer->getPK()) {
@@ -98,7 +96,7 @@ class ProfileForm extends \Nette\Application\UI\Form
 	public function success(ProfileForm $form): void
 	{
 		$values = (array) $form->getValues();
-		$customer = $this->shopper->getCustomer();
+		$customer = $this->shopperUser->getCustomer();
 		$email = $values['email'];
 
 		$emailChanged = $customer->email !== $email;
@@ -123,6 +121,6 @@ class ProfileForm extends \Nette\Application\UI\Form
 	{
 		parent::beforeRender();
 
-		$this->setDefaults($this->shopper->getCustomer()->toArray(['billAddress', 'deliveryAddress']));
+		$this->setDefaults($this->shopperUser->getCustomer()->toArray(['billAddress', 'deliveryAddress']));
 	}
 }

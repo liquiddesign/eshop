@@ -15,13 +15,13 @@ use StORM\DIConnection;
 
 class AutoshipPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AutoshipRepository $autoshipRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AddressRepository $addressRepository;
 	
 	public function createComponentGrid(): AdminGrid
@@ -60,8 +60,8 @@ class AutoshipPresenter extends BackendPresenter
 		
 		$form = $this->formFactory->create();
 		$form->addInteger('dayInterval', 'Interval (dnů)')->setRequired();
-		$form->addDate('activeFrom', 'Aktivní od');
-		$form->addDate('activeTo', 'Aktivní do');
+		$form->addPolyfillDate('activeFrom', 'Aktivní od');
+		$form->addPolyfillDate('activeTo', 'Aktivní do');
 		$form->addCheckbox('active', 'Aktivní');
 		
 		$form->addGroup('Zákazník');
@@ -118,7 +118,7 @@ class AutoshipPresenter extends BackendPresenter
 					}
 					
 					$values['purchase']['deliveryAddress'] = null;
-				} elseif (!$autoship->purchase->deliveryAddress && \is_array($values['purchase']['deliveryAddress'])) {
+				} elseif (!$autoship->purchase->deliveryAddress && isset($values['purchase']['deliveryAddress'])) {
 					$address = $this->addressRepository->createOne($values['purchase']['deliveryAddress']);
 					$autoship->purchase->update(['deliveryAddress' => $address]);
 				}

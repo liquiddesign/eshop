@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopSystemicEntity;
 use StORM\RelationCollection;
 
 /**
  * Skupiny uživatelů
  * @table
+ * @method \StORM\ICollection<\Eshop\DB\Pricelist> getDefaultPricelists()
+ * @method \StORM\ICollection<\Eshop\DB\VisibilityList> getDefaultVisibilityLists()
  */
-class CustomerGroup extends \StORM\Entity
+class CustomerGroup extends ShopSystemicEntity
 {
 	/**
 	 * Jméno
@@ -63,9 +66,16 @@ class CustomerGroup extends \StORM\Entity
 	/**
 	 * Defaultní ceníky
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\Pricelist>|\Eshop\DB\Pricelist[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Pricelist>
 	 */
 	public RelationCollection $defaultPricelists;
+
+	/**
+	 * Viditelníky
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\VisibilityList>
+	 */
+	public RelationCollection $defaultVisibilityLists;
 
 	/**
 	 * Defaultní po registraci
@@ -88,11 +98,12 @@ class CustomerGroup extends \StORM\Entity
 	/**
 	 * Systémová
 	 * @column
+	 * @deprecated Use SystemicEntity
 	 */
 	public bool $systemic = false;
 
 	public function isSystemic(): bool
 	{
-		return $this->systemic;
+		return $this->systemic || $this->systemicLock > 0;
 	}
 }

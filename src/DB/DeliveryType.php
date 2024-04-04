@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopSystemicEntity;
 use DVDoug\BoxPacker;
 use DVDoug\BoxPacker\Packer;
-use Eshop\Common\DB\SystemicEntity;
-use Nette\Utils\DateTime;
 use StORM\RelationCollection;
 
 /**
  * Typ dopravy
  * @table
+ * @property float $priceVatWithCod
+ * @index{"name":"deliverytype_codeshop","unique":true,"columns":["code", "fk_shop"]}
  */
-class DeliveryType extends SystemicEntity implements BoxPacker\Box
+class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 {
 	public const IMAGE_DIR = 'deliverytype_images';
 	
@@ -153,9 +154,21 @@ class DeliveryType extends SystemicEntity implements BoxPacker\Box
 	
 	/**
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\PaymentType>|\Eshop\DB\PaymentType[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\PaymentType>
 	 */
 	public RelationCollection $allowedPaymentTypes;
+
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\DeliveryTypePrice>
+	 */
+	public RelationCollection $deliveryTypePrices;
+
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\SupplierDeliveryType>
+	 */
+	public RelationCollection $supplierDeliveryTypes;
 	
 	/**
 	 * Výdejní typ
@@ -291,8 +304,8 @@ class DeliveryType extends SystemicEntity implements BoxPacker\Box
 			return $displayDelivery->label;
 		}
 
-		$nowThresholdTime = DateTime::createFromFormat('G:i', $displayDelivery->timeThreshold);
+		$nowThresholdTime = \Carbon\Carbon::createFromFormat('G:i', $displayDelivery->timeThreshold);
 
-		return $nowThresholdTime > (new DateTime()) ? $displayDelivery->beforeTimeThresholdLabel : $displayDelivery->afterTimeThresholdLabel;
+		return $nowThresholdTime > (new \Carbon\Carbon()) ? $displayDelivery->beforeTimeThresholdLabel : $displayDelivery->afterTimeThresholdLabel;
 	}
 }

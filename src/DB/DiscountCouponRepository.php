@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\ShopsConfig;
+use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
 use Eshop\Exceptions\InvalidCouponException;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use StORM\Collection;
@@ -22,13 +24,13 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		/** @codingStandardsIgnoreStart */
-		private Shopper $shopper,
-		private CartItemRepository $cartItemRepository,
-		private DiscountConditionRepository $discountConditionRepository,
-		private DiscountConditionCategoryRepository $discountConditionCategoryRepository,
-		private CategoryRepository $categoryRepository,
-		/** @codingStandardsIgnoreEnd */
+		protected readonly ShopperUser $shopperUser,
+		protected readonly CartItemRepository $cartItemRepository,
+		protected readonly DiscountConditionRepository $discountConditionRepository,
+		protected readonly DiscountConditionCategoryRepository $discountConditionCategoryRepository,
+		protected readonly CategoryRepository $categoryRepository,
+		protected readonly ProductRepository $productRepository,
+		protected readonly ShopsConfig $shopsConfig,
 	) {
 		parent::__construct($connection, $schemaManager);
 	}
@@ -53,25 +55,45 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 	}
 
 	/**
-	 * @deprecated use DiscountRepository::getValidCoupon
-	 * @TODO use DiscountRepository::getActiveDiscounts for discounts
-	*/
-	public function getValidCoupon(string $code, Currency $currency, ?Customer $customer = null): ?DiscountCoupon
+	 * Try if coupon is valid.
+	 * @param \Eshop\DB\DiscountCoupon $coupon
+	 * @param \Eshop\DB\Currency $currency
+	 * @param float|null $cartPrice Test only if not null
+	 * @param \Eshop\DB\Customer|null $customer Always testing!
+	 * @throws \Eshop\Exceptions\InvalidCouponException
+	 */
+	public function tryIsCouponValid(DiscountCoupon $coupon, Currency $currency, ?float $cartPrice = null, ?Customer $customer = null): void
 	{
-		$collection = $this->many()
-			->where('code', $code)
-			->where('fk_currency', $currency->getPK())
-			->where('discount.validFrom IS NULL OR discount.validFrom <= now()')
-			->where('discount.validTo IS NULL OR discount.validTo >= now()')
-			->where('this.usageLimit IS NULL OR (this.usagesCount < this.usageLimit)');
-
-		if ($customer) {
-			$collection->where('fk_exclusiveCustomer IS NULL OR fk_exclusiveCustomer = :customer', ['customer' => $customer]);
-		} else {
-			$collection->where('fk_exclusiveCustomer IS NULL');
+		if ($coupon->getValue('currency') !== $currency->getPK()) {
+			throw new InvalidCouponException(code: InvalidCouponException::INVALID_CURRENCY);
 		}
 
-		return $collection->first();
+		$shop = $this->shopsConfig->getSelectedShop();
+
+		if ($shop && ($coupon->discount->getValue('shop') !== null && $coupon->discount->getValue('shop') !== $shop->getPK() )) {
+			throw new InvalidCouponException(code: InvalidCouponException::NOT_FOUND);
+		}
+
+		if (($coupon->discount->validFrom && Carbon::parse($coupon->discount->validFrom)->greaterThan(Carbon::now())) ||
+			($coupon->discount->validTo && Carbon::parse($coupon->discount->validTo)->lessThan(Carbon::now()))) {
+			throw new InvalidCouponException(code: InvalidCouponException::NOT_ACTIVE);
+		}
+
+		if ($coupon->usageLimit && ($coupon->usagesCount >= $coupon->usageLimit)) {
+			throw new InvalidCouponException(code: InvalidCouponException::MAX_USAGE);
+		}
+
+		if ($coupon->getValue('exclusiveCustomer') && (!$customer || $coupon->getValue('exclusiveCustomer') !== $customer->getPK())) {
+			throw new InvalidCouponException(code: InvalidCouponException::LIMITED_TO_EXCLUSIVE_CUSTOMER);
+		}
+
+		if ($cartPrice && $coupon->minimalOrderPrice && $coupon->minimalOrderPrice > $cartPrice) {
+			throw new InvalidCouponException(code: InvalidCouponException::LOW_CART_PRICE);
+		}
+
+		if ($cartPrice && $coupon->maximalOrderPrice && $coupon->maximalOrderPrice < $cartPrice) {
+			throw new InvalidCouponException(code: InvalidCouponException::HIGH_CART_PRICE);
+		}
 	}
 
 	/**
@@ -80,7 +102,7 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 	 */
 	public function getValidCouponByCart(string $code, Cart $cart, ?Customer $customer = null, bool $throw = false): ?DiscountCoupon
 	{
-		$showPrice = $this->shopper->getShowPrice();
+		$showPrice = $this->shopperUser->getMainPriceType();
 		$priceType = $showPrice === 'withVat' ? 'priceVat' : 'price';
 
 		try {
@@ -96,7 +118,7 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 		$cartPrice = $this->cartItemRepository->getSumProperty([$cart->getPK()], $priceType);
 
 		try {
-			$coupon->tryIsValid($cart->currency, $cartPrice, $customer);
+			$this->tryIsCouponValid($coupon, $cart->currency, $cartPrice, $customer);
 		} catch (InvalidCouponException $e) {
 			if ($throw) {
 				throw $e;
@@ -180,7 +202,7 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 			}
 
 			if ($conditionType === 'and') {
-				$valid = $valid && $conditionValid;
+				$valid = $conditionValid;
 
 				continue;
 			}
@@ -197,11 +219,16 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 		}
 
 		if ($conditions = $this->discountConditionCategoryRepository->many()->where('this.fk_discountCoupon', $coupon->getPK())->toArray()) {
-			$categoriesInCart = $this->cartItemRepository->many()
-				->where('this.fk_cart', $cart->getPK())
-				->join(['eshop_product'], 'this.fk_product = eshop_product.uuid')
-				->select(['primaryCategoryPK' => 'eshop_product.fk_primaryCategory'])
-				->toArrayOf('primaryCategoryPK', toArrayValues: true);
+			/** @var array<\Eshop\DB\Product> $productsInCart */
+			$productsInCart = $this->productRepository->many()->join(['eshop_cartitem'], 'this.uuid = eshop_cartitem.fk_product')
+				->where('eshop_cartitem.fk_cart', $cart->getPK())
+				->toArray();
+
+			$categoriesInCart = [];
+
+			foreach ($productsInCart as $product) {
+				$categoriesInCart = \array_merge($categoriesInCart, $product->getCategories()->toArrayOf('uuid', toArrayValues: true));
+			}
 
 			$categoriesInCart = $this->categoryRepository->many()->where('this.uuid', $categoriesInCart)->toArray();
 
@@ -284,12 +311,12 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 				}
 
 				if ($conditionType === 'and') {
-					$valid = $valid && $conditionValid;
+					$valid = $conditionValid;
 
 					continue;
 				}
 
-				$valid = $valid || $conditionValid;
+				$valid = $conditionValid;
 			}
 		}
 

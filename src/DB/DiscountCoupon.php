@@ -122,6 +122,7 @@ class DiscountCoupon extends \StORM\Entity
 
 	/**
 	 * Try if coupon is valid.
+	 * @deprecated Use DiscountCouponRepository::tryIsCouponValid
 	 * @param \Eshop\DB\Currency $currency
 	 * @param float|null $cartPrice Test only if not null
 	 * @param \Eshop\DB\Customer|null $customer Always testing!

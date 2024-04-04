@@ -9,13 +9,13 @@ use Contributte\GopayInline\Api\Lists\Language;
 use Contributte\GopayInline\Client;
 use Contributte\GopayInline\Http\Response;
 use Eshop\Admin\SettingsPresenter;
-use Eshop\CheckoutManager;
 use Eshop\Common\IPaymentIntegration;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentResult;
 use Eshop\DB\PaymentResultRepository;
 use Eshop\DB\PaymentTypeRepository;
+use Eshop\ShopperUser;
 use Nette\Http\Request;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -23,36 +23,15 @@ use Web\DB\SettingRepository;
 
 class GoPay implements IPaymentIntegration
 {
-	public Client $client;
-
-	public CheckoutManager $checkoutManager;
-
-	public OrderRepository $orderRepository;
-
-	public SettingRepository $settingRepository;
-
-	public PaymentTypeRepository $paymentTypeRepository;
-
-	public PaymentResultRepository $paymentResultRepository;
-
-	public Request $request;
-
 	public function __construct(
-		Client $client,
-		CheckoutManager $checkoutManager,
-		OrderRepository $orderRepository,
-		SettingRepository $settingRepository,
-		PaymentTypeRepository $paymentTypeRepository,
-		PaymentResultRepository $paymentResultRepository,
-		Request $request
+		protected readonly Client $client,
+		protected readonly ShopperUser $shopperUser,
+		protected readonly OrderRepository $orderRepository,
+		protected readonly SettingRepository $settingRepository,
+		protected readonly PaymentTypeRepository $paymentTypeRepository,
+		protected readonly PaymentResultRepository $paymentResultRepository,
+		protected readonly Request $request
 	) {
-		$this->client = $client;
-		$this->checkoutManager = $checkoutManager;
-		$this->orderRepository = $orderRepository;
-		$this->settingRepository = $settingRepository;
-		$this->paymentTypeRepository = $paymentTypeRepository;
-		$this->paymentResultRepository = $paymentResultRepository;
-		$this->request = $request;
 	}
 
 	public function createPayment(Order $order): Response
@@ -73,7 +52,7 @@ class GoPay implements IPaymentIntegration
 					'country_code' => $purchase->billAddress->state ?? 'CZE',
 				],
 			],
-			'amount' => \Money\Money::CZK((int)($order->getTotalPriceVat() * 100)),
+			'amount' => \Money\Money::CZK((int) ($order->getTotalPriceVat() * 100)),
 			'order_number' => $order->code,
 			'callback' => [
 				'return_url' => $baseUrl . 'payment-summary',
@@ -88,7 +67,7 @@ class GoPay implements IPaymentIntegration
 				'type' => 'ITEM',
 				'name' => $item->productName,
 				'count' => $item->amount,
-				'amount' => \Money\Money::CZK((int)($item->getPriceVatSum() * 100)),
+				'amount' => \Money\Money::CZK((int) ($item->getPriceVatSum() * 100)),
 			];
 		}
 
@@ -99,18 +78,16 @@ class GoPay implements IPaymentIntegration
 				'type' => 'DELIVERY',
 				'name' => $deliveryType->name,
 				'count' => 1,
-				'amount' => \Money\Money::CZK((int)($deliveryPaymentPrice * 100)),
+				'amount' => \Money\Money::CZK((int) ($deliveryPaymentPrice * 100)),
 			];
 		}
-
-		\bdump($payment);
 
 		return $this->client->payments->createPayment(PaymentFactory::create($payment));
 	}
 
 	public function processPaymentCallback(): void
 	{
-		$this->checkoutManager->onOrderCreate[] = function (Order $order): void {
+		$this->shopperUser->getCheckoutManager()->onOrderCreate[] = function (Order $order): void {
 			$this->processPayment($order);
 		};
 	}
@@ -144,7 +121,7 @@ class GoPay implements IPaymentIntegration
 			$data = $response->getData();
 			$url = $data['gw_url'];
 
-			$this->paymentResultRepository->saveTransaction((string)$data['id'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, $data['state'], 'goPay', $order);
+			$this->paymentResultRepository->saveTransaction((string) $data['id'], $order->getTotalPriceVat(), $order->getPayment()->currency->code, $data['state'], 'goPay', $order);
 
 			\header('location: ' . $url);
 			exit;

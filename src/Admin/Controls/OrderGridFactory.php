@@ -7,6 +7,7 @@ namespace Eshop\Admin\Controls;
 use Admin\Controls\AdminGrid;
 use Admin\Controls\AdminGridFactory;
 use Admin\Helpers;
+use Base\ShopsConfig;
 use Eshop\BackendPresenter;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\DeliveryTypeRepository;
@@ -21,7 +22,7 @@ use Eshop\Integration\Integrations;
 use Eshop\Integration\Zbozi;
 use Eshop\Services\DPD;
 use Eshop\Services\PPL;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Grid\Datagrid;
 use League\Csv\Writer;
 use Nette\Application\Application;
@@ -31,7 +32,6 @@ use Nette\DI\Container;
 use Nette\Forms\Controls\Button;
 use Nette\IOException;
 use Nette\Utils\Arrays;
-use Nette\Utils\DateTime;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Html;
 use StORM\Collection;
@@ -48,25 +48,7 @@ class OrderGridFactory
 	/** @var array<callable(\Admin\Controls\AdminGrid, array<string>): void> */
 	public array $onBulkActionsCreated = [];
 
-	private OrderRepository $orderRepository;
-
 	private AdminGridFactory $gridFactory;
-
-	private OrderLogItemRepository $orderLogItemRepository;
-
-	private Application $application;
-
-	private CustomerGroupRepository $customerGroupRepository;
-	
-	private DeliveryTypeRepository $deliveryTypeRepository;
-	
-	private PaymentTypeRepository $paymentTypeRepository;
-
-	private Integrations $integrations;
-	
-	private Shopper $shopper;
-
-	private SettingRepository $settingRepository;
 
 	private ?DPD $dpd = null;
 
@@ -74,38 +56,25 @@ class OrderGridFactory
 
 	private ?Zbozi $zbozi = null;
 
-	private Container $container;
-	
 	/** @var array<mixed> */
 	private array $configuration;
 	
 	public function __construct(
 		AdminGridFactory $adminGridFactory,
-		OrderRepository $orderRepository,
-		Application $application,
-		OrderLogItemRepository $orderLogItemRepository,
-		CustomerGroupRepository $customerGroupRepository,
-		DeliveryTypeRepository $deliveryTypeRepository,
-		PaymentTypeRepository $paymentTypeRepository,
-		Shopper $shopper,
-		Integrations $integrations,
-		Container $container,
-		SettingRepository $settingRepository,
-		/** @codingStandardsIgnoreStart */
-		private InternalRibbonRepository $internalRibbonRepository,
-		/** @codingStandardsIgnoreEnd */
+		protected readonly OrderRepository $orderRepository,
+		protected readonly Application $application,
+		protected readonly OrderLogItemRepository $orderLogItemRepository,
+		protected readonly CustomerGroupRepository $customerGroupRepository,
+		protected readonly DeliveryTypeRepository $deliveryTypeRepository,
+		protected readonly PaymentTypeRepository $paymentTypeRepository,
+		protected readonly ShopperUser $shopperUser,
+		protected readonly Integrations $integrations,
+		protected readonly Container $container,
+		protected readonly SettingRepository $settingRepository,
+		protected readonly InternalRibbonRepository $internalRibbonRepository,
+		protected readonly ShopsConfig $shopsConfig,
 	) {
-		$this->orderRepository = $orderRepository;
 		$this->gridFactory = $adminGridFactory;
-		$this->application = $application;
-		$this->orderLogItemRepository = $orderLogItemRepository;
-		$this->customerGroupRepository = $customerGroupRepository;
-		$this->deliveryTypeRepository = $deliveryTypeRepository;
-		$this->paymentTypeRepository = $paymentTypeRepository;
-		$this->integrations = $integrations;
-		$this->shopper = $shopper;
-		$this->container = $container;
-		$this->settingRepository = $settingRepository;
 	}
 
 	/**
@@ -143,6 +112,7 @@ class OrderGridFactory
 			'this.createdTs',
 			'DESC',
 			true,
+			filterShops: false,
 		);
 
 		$grid->addColumnSelector();
@@ -166,7 +136,7 @@ class OrderGridFactory
 					$order->code,
 					$ribbons,
 					$link,
-					(new DateTime($order->createdTs))->format('d.m.Y G:i'),
+					(new \Carbon\Carbon($order->createdTs))->format('d.m.Y G:i'),
 				);
 			}
 
@@ -176,7 +146,7 @@ class OrderGridFactory
 				$grid->getPresenter()->link('printDetail', $order),
 				$order->code,
 				$ribbons,
-				(new DateTime($order->createdTs))->format('d.m.Y G:i'),
+				(new \Carbon\Carbon($order->createdTs))->format('d.m.Y G:i'),
 			);
 		}, '%s', 'this.createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
@@ -190,25 +160,29 @@ class OrderGridFactory
 
 		$properties = [];
 
-		if ($this->shopper->getShowWithoutVat() && $this->shopper->getShowVat()) {
+		if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat()) {
 			$properties = ['getTotalPrice|price:currency.code', 'getTotalPriceVat|price:currency.code'];
 
 			$smallVatText = 's DPH';
 
-			if ($this->shopper->getPriorityPrice() === 'withVat') {
+			if ($this->shopperUser->getPriorityPrice() === 'withVat') {
 				$properties = \array_reverse($properties);
 				$smallVatText = 'bez DPH';
 			}
 
 			$grid->addColumnText('Cena', $properties, "%s<br><small>%s $smallVatText</small>", null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		} elseif ($this->shopper->getShowWithoutVat()) {
+		} elseif ($this->shopperUser->getShowWithoutVat()) {
 			$properties[] = 'getTotalPrice|price:currency.code';
 
 			$grid->addColumnText('Cena', $properties, '%s', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		} elseif ($this->shopper->getShowVat()) {
+		} elseif ($this->shopperUser->getShowVat()) {
 			$properties[] = 'getTotalPriceVat|price:currency.code';
 
 			$grid->addColumnText('Cena', $properties, '%s', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+		}
+
+		if (isset($configuration['approval']) && $configuration['approval']) {
+			$grid->addColumn('Schválení', [$this, 'renderApprovalColumn']);
 		}
 
 		$openOrderButton = function () use ($grid, $stateOpen, $btnSecondary): void {
@@ -281,7 +255,7 @@ class OrderGridFactory
 
 		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
 			if (!isset($orderStatesEvents[$state]) || !Arrays::contains($orderStatesEvents[$state], $targetState) ||
-				($state === Order::STATE_OPEN && !$this->shopper->getEditOrderAfterCreation())) {
+				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())) {
 				continue;
 			}
 
@@ -386,11 +360,11 @@ class OrderGridFactory
 		$grid->addFilterTextInput('search_q', $searchExpressions, null, 'Jméno zákazníka, IČO, e-mail, telefon');
 		$grid->addFilterButtons(['default']);
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs >= :created_from', ['created_from' => $value]);
 		}, '', 'date_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
 		}, '', 'created_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
 
@@ -420,12 +394,7 @@ class OrderGridFactory
 			'1' => 'Zaplaceno',
 		], 'fp');
 
-		$collator = new \Collator('cs-CZ');
-		$operationsForFilter = OrderLogItem::OPERATIONS_FOR_FILTER;
-		$collator->sort($operationsForFilter);
-		$operationsForFilter = \array_combine($operationsForFilter, $operationsForFilter);
-
-		$grid->addFilterSelectInput('filter_operations', 'log.operation = :fo', null, '- Operace -', null, $operationsForFilter, 'fo');
+		$this->addOrderLogFiltersInputs($grid);
 
 		if ($ribbons = $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_ORDER)) {
 			$ribbons += ['0' => 'X - bez štítků'];
@@ -433,6 +402,8 @@ class OrderGridFactory
 				$source->filter(['internalRibbon' => \Eshop\Common\Helpers::replaceArrayValue($value, '0', null)]);
 			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
 		}
+
+		$this->gridFactory->addShopsFilterSelect($grid);
 
 		$openOrderButton = function () use ($grid, $stateOpen, $btnSecondary): void {
 			try {
@@ -506,7 +477,7 @@ class OrderGridFactory
 
 		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
 			if (!isset($orderStatesEvents[$state]) || !Arrays::contains($orderStatesEvents[$state], $targetState) ||
-				($state === Order::STATE_OPEN && !$this->shopper->getEditOrderAfterCreation())) {
+				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())) {
 				continue;
 			}
 
@@ -558,6 +529,14 @@ class OrderGridFactory
 			);
 		}
 
+		if (isset($configuration['exportCsvMultiple']) && $configuration['exportCsvMultiple']) {
+			$grid->addBulkAction('exportCsvMultiple', 'exportCsvMultiple', 'Exportovat (CSV)');
+		}
+
+		if (isset($configuration['recalculateOrderPricesMultiple']) && $configuration['recalculateOrderPricesMultiple']) {
+			$grid->addBulkAction('recalculateOrderPrices', 'recalculateOrderPrices', 'Přepočítat ceny');
+		}
+
 		$grid->monitor(BackendPresenter::class, function (BackendPresenter $presenter) use ($grid, $state, $configuration): void {
 			if ($this->settingRepository->getValueByName('zasilkovnaApiKey') && $state !== Order::STATE_OPEN) {
 				$grid->addBulkAction('exportZasilkovna', 'exportZasilkovna', '<i class="fas fa-paper-plane"></i> Zásilkovna');
@@ -603,9 +582,9 @@ class OrderGridFactory
 			return $presenter->isManager ? '<a href="' . $link . '" class="btn btn-sm btn-outline-primary"><i class="fa fa-sm fa-plus m-1"></i>Zvolte platbu</a>' : 'Zvolte platbu';
 		}
 
-		$linkPay = $grid->getPresenter()->link('changePayment!', ['payment' => (string)$payment, 'paid' => true]);
-		$linkPayPlusEmail = $grid->getPresenter()->link('changePayment!', ['payment' => (string)$payment, 'paid' => true, 'email' => true]);
-		$linkCancel = $grid->getPresenter()->link('changePayment!', ['payment' => (string)$payment, 'paid' => false]);
+		$linkPay = $grid->getPresenter()->link('changePayment!', ['payment' => (string) $payment, 'paid' => true]);
+		$linkPayPlusEmail = $grid->getPresenter()->link('changePayment!', ['payment' => (string) $payment, 'paid' => true, 'email' => true]);
+		$linkCancel = $grid->getPresenter()->link('changePayment!', ['payment' => (string) $payment, 'paid' => false]);
 		$linkCancel = $presenter->isManager ? "<a href='$linkCancel'><i class='far fa-times-circle'></i></a>" : '';
 
 		$paymentInfo = '';
@@ -633,9 +612,9 @@ class OrderGridFactory
 			return '<a href="' . $link . '" class="btn btn-sm btn-outline-primary"><i class="fa fa-sm fa-plus m-1"></i>Zvolte dopravu</a>';
 		}
 
-		$linkShip = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string)$delivery, 'shipped' => true, 'email' => false]);
-		$linkShipPlusEmail = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string)$delivery, 'shipped' => true, 'email' => true]);
-		$linkCancel = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string)$delivery, 'shipped' => false]);
+		$linkShip = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string) $delivery, 'shipped' => true, 'email' => false]);
+		$linkShipPlusEmail = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string) $delivery, 'shipped' => true, 'email' => true]);
+		$linkCancel = $grid->getPresenter()->link('changeDelivery!', ['delivery' => (string) $delivery, 'shipped' => false]);
 
 		if ($delivery->shippedTs) {
 			$from = $order->deliveries->clear(true)->where('shippedTs IS NOT NULL')->enum();
@@ -690,7 +669,7 @@ class OrderGridFactory
 		$address = $order->purchase->deliveryAddress ? $order->purchase->deliveryAddress->getFullAddress() : ($order->purchase->billAddress ? $order->purchase->billAddress->getFullAddress() : '');
 
 		if ($order->purchase->customer) {
-			$fullName = $order->purchase->customer->fullname ?: ($order->purchase->fullname ?: '');
+			$fullName = $order->purchase->fullname;
 			$link = $grid->getPresenter()->link(':Eshop:Admin:Customer:edit', [$order->purchase->customer]);
 
 			return "<a href='$link' style='white-space: nowrap;'>$fullName</a><br><small>$address</small>";
@@ -897,5 +876,29 @@ class OrderGridFactory
 		/** @var \Eshop\Admin\OrderPresenter $presenter */
 		$presenter = $grid->getPresenter();
 		$presenter->handleExportCsv($object->getPK());
+	}
+
+	public function addOrderLogFiltersInputs(AdminGrid $grid): void
+	{
+		$collator = new \Collator('cs-CZ');
+		$operationsForFilter = OrderLogItem::OPERATIONS_FOR_FILTER;
+		$collator->sort($operationsForFilter);
+		$operationsForFilter = \array_combine($operationsForFilter, $operationsForFilter);
+
+		$grid->addFilterDataSelect(function (Collection $source, $value): void {
+			$source->where('log.operation', $value);
+		}, '', 'filter_operations', null, $operationsForFilter)->setPrompt('- Operace -');
+
+		$operationMessagesToFilter = [
+			'| Cena z ' => 'Změna ceny položek',
+			'| Množství z ' => 'Změna množství položek',
+			'| DPH z ' => 'Změna DPH položek',
+		];
+
+		$collator->asort($operationMessagesToFilter);
+
+		$grid->addFilterDataSelect(function (Collection $source, $value): void {
+			$source->where('log.message LIKE :fod', ['fod' => "%$value%"]);
+		}, '', 'filter_operations_detail', null, $operationMessagesToFilter)->setPrompt('- Detail operace -');
 	}
 }

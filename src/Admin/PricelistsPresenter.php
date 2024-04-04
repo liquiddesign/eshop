@@ -22,13 +22,11 @@ use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\QuantityPrice;
 use Eshop\DB\QuantityPriceRepository;
-use Eshop\DB\RibbonRepository;
-use Eshop\DB\SupplierCategoryRepository;
+use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
-use Eshop\DB\TagRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
 use League\Csv\Reader;
@@ -50,61 +48,54 @@ class PricelistsPresenter extends BackendPresenter
 		],
 	];
 
-	/** @inject */
+	protected const SHOW_SUPPLIER_NAMES = [];
+
+	#[\Nette\DI\Attributes\Inject]
+	public SupplierProductRepository $supplierProductRepository;
+
+	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $priceListRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PriceRepository $priceRepository;
 
-	/** @inject */
-	public SupplierRepository $supplierRepo;
-
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryRepository $categoryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProducerRepository $producerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
-	/** @inject */
-	public SupplierCategoryRepository $supplierCategoryRepository;
-
-	/** @inject */
-	public TagRepository $tagRepository;
-
-	/** @inject */
-	public RibbonRepository $ribbonRepository;
-
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Connection $storm;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountRepository $discountRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public QuantityPriceRepository $quantityPriceRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CountryRepository $countryRepo;
 
-	/** @inject */
-	public Shopper $shopper;
+	#[\Nette\DI\Attributes\Inject]
+	public ShopperUser $shopperUser;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public VatRateRepository $vatRateRepository;
 
 	public function createComponentPriceLists(): AdminGrid
@@ -121,6 +112,7 @@ class PricelistsPresenter extends BackendPresenter
 			'decoratorNowrap',
 		];
 		$grid->addColumnText('Název', 'name', '%s', 'name');
+		$grid->addColumnText('Popis', 'description', '%s');
 		$grid->addColumn('Akce', function (Pricelist $object) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Discount:detail') && $object->discount ? $this->link(
 				':Eshop:Admin:Discount:detail',
@@ -203,18 +195,35 @@ class PricelistsPresenter extends BackendPresenter
 			'product.code',
 			'ASC',
 		);
+
+		$grid->setItemCountCallback(function (Collection $collection): int {
+			return $collection->count();
+		});
+
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Kód', 'product.code', '%s', 'product.code', ['class' => 'fit']);
 
 		$grid->addColumn('Produkt', function (Price $price, Datagrid $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(
+			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()?->link(
 				':Eshop:Admin:Product:edit',
 				[$price->product, 'backLink' => $this->storeRequest()],
 			) : '#';
 
 			return '<a href="' . $link . '">' . $price->product->name . '</a>';
 		}, '%s');
+
+		foreach ($this::SHOW_SUPPLIER_NAMES as $supplierId => $supplierName) {
+			$supplierNames = $this->supplierProductRepository->many()
+				->where('this.fk_supplier', $supplierId)
+				->setSelect(['this.fk_product', 'this.name'])
+				->setIndex('this.fk_product')
+				->toArrayOf('name');
+
+			$grid->addColumn("Název ($supplierName)", function (Price $price, Datagrid $datagrid) use ($supplierNames): string|null {
+				return $supplierNames[$price->getValue('product')] ?? null;
+			}, '%s');
+		}
 
 		/** @var null|string $autoPriceConfig */
 		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
@@ -225,7 +234,7 @@ class PricelistsPresenter extends BackendPresenter
 			$grid->addColumnInputPrice('Cena', 'price');
 		}
 
-		if ($this->shopper->getShowVat()) {
+		if ($this->shopperUser->getShowVat()) {
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
 				$grid->addColumnText('Cena s DPH', 'priceVat', '%s');
 			} else {
@@ -239,7 +248,7 @@ class PricelistsPresenter extends BackendPresenter
 			$grid->addColumnInputPrice('Cena před slevou', 'priceBefore');
 		}
 
-		if ($this->shopper->getShowVat()) {
+		if ($this->shopperUser->getShowVat()) {
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
 				$grid->addColumnText('Cena s DPH před slevou', 'priceVatBefore', '%s');
 			} else {
@@ -259,16 +268,16 @@ class PricelistsPresenter extends BackendPresenter
 			}
 
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
-				$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), Shopper::PRICE_PRECISSION);
+				$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), ShopperUser::PRICE_PRECISSION);
 				$prices['priceBefore'] = isset($prices['priceVatBefore']) ?
-					\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), Shopper::PRICE_PRECISSION) :
+					\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), ShopperUser::PRICE_PRECISSION) :
 					null;
 			}
 
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
-				$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), Shopper::PRICE_PRECISSION);
+				$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), ShopperUser::PRICE_PRECISSION);
 				$prices['priceVatBefore'] = isset($prices['priceBefore']) ?
-					\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), Shopper::PRICE_PRECISSION) :
+					\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), ShopperUser::PRICE_PRECISSION) :
 					null;
 			}
 
@@ -295,7 +304,7 @@ class PricelistsPresenter extends BackendPresenter
 
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
 			$grid->addFilterDataSelect(function (Collection $source, $value): void {
-				$categoryPath = $this->categoryRepository->one($value)->path;
+				$categoryPath = $this->categoryRepository->one($value, true)->path;
 				$source->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=products.uuid');
 				$source->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
 				$source->where('categories.path LIKE :category', ['category' => "$categoryPath%"]);
@@ -308,19 +317,12 @@ class PricelistsPresenter extends BackendPresenter
 			}, '', 'producers', null, $producers, ['placeholder' => '- Výrobci -']);
 		}
 
-		if ($tags = $this->tagRepository->getArrayForSelect()) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
-				$source->join(['tags' => 'eshop_product_nxn_eshop_tag'], 'tags.fk_product=products.uuid');
-				$source->where('tags.fk_tag', $value);
-			}, '', 'tags', null, $tags, ['placeholder' => '- Tagy -']);
-		}
-
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('products.hidden', (bool)$value);
+			$source->where('products.hidden', (bool) $value);
 		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('products.unavailable', (bool)$value);
+			$source->where('products.unavailable', (bool) $value);
 		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
 
 		$submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
@@ -358,7 +360,7 @@ class PricelistsPresenter extends BackendPresenter
 			'price' => 'float',
 		];
 
-		if ($this->shopper->getShowVat()) {
+		if ($this->shopperUser->getShowVat()) {
 			$grid->addColumnInputPrice('Cena s daní', 'priceVat');
 
 			$processTypes += ['priceVat' => 'float'];
@@ -368,7 +370,7 @@ class PricelistsPresenter extends BackendPresenter
 
 		$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll($this->shopper->getShowVat() ? ['priceVat', 'validFrom'] : ['validFrom'], $processTypes, null, false, null, null, false);
+		$grid->addButtonSaveAll($this->shopperUser->getShowVat() ? ['priceVat', 'validFrom'] : ['validFrom'], $processTypes, null, false, null, null, false);
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 
 		$grid->addFilterTextInput('search', ['product.code', 'product.name_cs'], null, 'Kód, název');
@@ -389,12 +391,13 @@ class PricelistsPresenter extends BackendPresenter
 
 		$form->addText('code', 'Kód');
 		$form->addText('name', 'Název');
+		$form->addTextArea('description', 'Popis');
 
 		$form->addDataSelect('currency', 'Měna', $this->currencyRepository->getArrayForSelect());
 		$form->addDataSelect('country', 'Země DPH', $this->countryRepo->getArrayForSelect());
 
-		$discountInput = $form->addDataSelect('discount', 'Akce', $this->discountRepo->getArrayForSelect())->setPrompt('Žádná');
-		$onlyCouponInput = $form->addCheckbox('activeOnlyWithCoupon', 'Platí pouze se slevovým kupónem');
+		$discountInput = $form->addDataSelect('discount', 'Akce', $this->discountRepo->getArrayForSelect())->setPrompt('Žádná')->setDisabled();
+		$onlyCouponInput = $form->addCheckbox('activeOnlyWithCoupon', 'Platí pouze se slevovým kupónem')->setDisabled();
 		$discountInput->addCondition($form::FILLED)->toggle($onlyCouponInput->getHtmlId() . '-toogle');
 
 		$form->addText('priority', 'Priorita')->addRule($form::INTEGER)->setRequired()->setDefaultValue(10);
@@ -411,6 +414,8 @@ Pokud je povoleno, aplikuje zmíněnou procentuální slevu. Jinak aplikuje pouz
 				->setHtmlAttribute('data-info', 'Použitý při exportu XML produktů pro Google jako "custom_label_1".')
 				->addCondition($form::FILLED)->addRule($form::MAX_LENGTH, 'Maximálně 100 znaků!', 100);
 		}
+
+		$this->formFactory->addShopsContainerToAdminForm($form, false);
 
 		$form->addSubmits(!$this->getParameter('pricelist'));
 
@@ -565,7 +570,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 			$this->priceListRepository->one($pricelistId),
 			Writer::createFromPath($tempFilename, 'w+'),
 			$type === 'quantity',
-			$this->shopper->getShowVat(),
+			$this->shopperUser->getShowVat(),
 		);
 
 		$response = new FileResponse($tempFilename, 'cenik.csv', 'text/csv');
@@ -724,8 +729,8 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 			$this->priceListRepository->copyPricesArray(
 				$values['bulkType'] === 'selected' ? $ids : \array_keys($grid->getFilteredSource()->toArrayOf('uuid')),
 				$targetPricelist,
-				(float)$values['percent'] / 100,
-				Shopper::PRICE_PRECISSION,
+				(float) $values['percent'] / 100,
+				ShopperUser::PRICE_PRECISSION,
 				$values['overwrite'],
 				$values['beforePrices'] ?? false,
 				$quantity,
@@ -773,8 +778,8 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 //			$products .= $this->productRepository->one($id)->getFullCode() . ';';
 //		}
 //
-//		if (\strlen($products) > 0) {
-//			$products = \substr($products, 0, -1);
+//		if (Strings::length($products) > 0) {
+//			$products = Strings::substring($products, 0, -1);
 //		}
 //
 //		$form->setDefaults(['products' => $products]);

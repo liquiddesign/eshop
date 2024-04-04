@@ -6,6 +6,7 @@ namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\ScriptsPresenter;
+use Eshop\ShopperUser;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use StORM\Collection;
@@ -22,7 +23,7 @@ class ProducerRepository extends Repository implements IGeneralRepository
 
 	private Storage $storage;
 	
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, ProductRepository $productRepository, Storage $storage)
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, ProductRepository $productRepository, Storage $storage, protected readonly ShopperUser $shopperUser)
 	{
 		parent::__construct($connection, $schemaManager);
 		
@@ -75,7 +76,6 @@ class ProducerRepository extends Repository implements IGeneralRepository
 
 	public function cleanProducersCache(): void
 	{
-		\bdump('cleaned');
 		$cache = new Cache($this->storage);
 
 		$cache->clean([
@@ -84,5 +84,15 @@ class ProducerRepository extends Repository implements IGeneralRepository
 				ScriptsPresenter::ATTRIBUTES_CACHE_TAG,
 			],
 		]);
+	}
+
+	public function getFirstMainCategoryByShop(Producer $producer): ?Category
+	{
+		$mainCategoryType = $this->shopperUser->getMainCategoryType();
+
+		return $producer->mainCategories
+			->join(['category' => 'eshop_category'], 'via.fk_category = category.uuid')
+			->where('category.fk_type', $mainCategoryType->getPK())
+			->first();
 	}
 }

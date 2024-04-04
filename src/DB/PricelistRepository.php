@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Common\NumbersHelper;
 use League\Csv\Reader;
@@ -13,58 +14,67 @@ use StORM\DIConnection;
 use StORM\SchemaManager;
 
 /**
- * @extends \StORM\Repository<\Eshop\DB\Pricelist>
+ * @template T of \Eshop\DB\Pricelist
+ * @extends \StORM\Repository<T>
  */
 class PricelistRepository extends \StORM\Repository implements IGeneralRepository
 {
 	public const COPY_PRICES_BEFORE_PRICE_SOURCE = 'from';
 	public const COPY_PRICES_BEFORE_PRICE_TARGET = 'target';
 
-	private PriceRepository $priceRepository;
-
-	private CustomerRepository $customerRepository;
-
-	private CustomerGroupRepository $customerGroupRepository;
-
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		PriceRepository $priceRepository,
-		CustomerRepository $customerRepository,
-		CustomerGroupRepository $customerGroupRepository
+		private readonly PriceRepository $priceRepository,
+		private readonly CustomerRepository $customerRepository,
+		private readonly CustomerGroupRepository $customerGroupRepository,
+		private readonly ShopsConfig $shopsConfig
 	) {
 		parent::__construct($connection, $schemaManager);
-
-		$this->priceRepository = $priceRepository;
-		$this->customerRepository = $customerRepository;
-		$this->customerGroupRepository = $customerGroupRepository;
 	}
 
 	public function getPricelists(array $pks, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
 	{
+		unset($activeCoupon);
+		// @TODO cache nepočítá s Discount
+
 		$collection = $this->many()
 			->where('isActive', true)
-			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
-			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'true' : 'false'))
+//			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
+//			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'this.fk_discount = "' . $activeCoupon->getValue('discount') . '"' : 'false'))
 			->where('this.uuid', \array_values($pks))
 			->where('fk_currency', $currency->getPK())
 			->where('fk_country', $country->getPK());
 
-		return $collection->orderBy(['priority']);
+//		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
+
+		return $collection->select(['this.id'])->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
 	}
 
+	/**
+	 * @param \Eshop\DB\Customer $customer
+	 * @param \Eshop\DB\Currency $currency
+	 * @param \Eshop\DB\Country $country
+	 * @param \Eshop\DB\DiscountCoupon|null $activeCoupon
+	 * @return \StORM\Collection<\Eshop\DB\Pricelist>
+	 */
 	public function getCustomerPricelists(Customer $customer, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
 	{
+		unset($activeCoupon);
+		// @TODO cache nepočítá s Discount
+
 		$collection = $this->many()
 			->join(['nxn' => 'eshop_customer_nxn_eshop_pricelist'], 'fk_pricelist=this.uuid')
 			->where('nxn.fk_customer', $customer->getPK())
 			->where('isActive', true)
-			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL  OR discount.validTo >= DATE(now()))')
-			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'true' : 'false'))
+//			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL  OR discount.validTo >= DATE(now()))')
+//			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'this.fk_discount = "' . $activeCoupon->getValue('discount') . '"' : 'false'))
 			->where('fk_currency ', $currency->getPK())
 			->where('fk_country', $country->getPK());
 
-		return $collection->orderBy(['priority']);
+//		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
+
+		return $collection->select(['this.id'])->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
 	}
 
 	public function getMerchantPricelists(Merchant $merchant, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
@@ -74,11 +84,13 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			->where('nxn.fk_merchant', $merchant->getPK())
 			->where('isActive', true)
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL  OR discount.validTo >= DATE(now()))')
-			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'true' : 'false'))
+			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'this.fk_discount = "' . $activeCoupon->getValue('discount') . '"' : 'false'))
 			->where('fk_currency ', $currency->getPK())
 			->where('fk_country', $country->getPK());
 
-		return $collection->orderBy(['priority']);
+//		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
+
+		return $collection->select(['this.id'])->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
 	}
 
 	public function removeCustomerPricelist(Customer $customer, Pricelist $pricelist): void
@@ -91,7 +103,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 	/**
 	 * @param \Eshop\DB\Pricelist $pricelist
-	 * @return \Eshop\DB\Customer[]
+	 * @return array<\Eshop\DB\Customer>
 	 */
 	public function getPricelistCustomers(Pricelist $pricelist): array
 	{
@@ -237,9 +249,16 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		return $this->getCollection($includeHidden)
-			->select(['fullName' => "IF(this.systemicLock > 0, CONCAT(name, ' (', code, ', systémový)'), CONCAT(name, ' (', code, ')'))"])
-			->toArrayOf('fullName');
+		return $this->toArrayForSelect($this->getCollection($includeHidden));
+	}
+
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\CategoryType> $collection
+	 * @return array<string>
+	 */
+	public function toArrayForSelect(Collection $collection): array
+	{
+		return $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection($collection, uniqueColumnName: 'this.code'));
 	}
 
 	public function getDefaultPricelists(): Collection
@@ -335,7 +354,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			];
 
 			if ($quantityPrices) {
-				$values['validFrom'] = $value['validFrom'] !== '' ? (int)$value['validFrom'] : null;
+				$values['validFrom'] = $value['validFrom'] !== '' ? (int) $value['validFrom'] : null;
 			} else {
 				$values['priceBefore'] = $value['priceBefore'] !== '' ? NumbersHelper::strToFloat($value['priceBefore']) : null;
 				$values['priceVatBefore'] = $value['priceVatBefore'] !== '' ? NumbersHelper::strToFloat($value['priceVatBefore']) : null;
@@ -357,7 +376,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	}
 
 	/**
-	 * @param \Eshop\DB\Pricelist[] $pricelists
+	 * @param array<\Eshop\DB\Pricelist> $pricelists
 	 */
 	public function checkSameCurrency(array $pricelists): ?Currency
 	{
@@ -378,8 +397,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 	}
 
 	/**
-	 * @param \Eshop\DB\Pricelist[] $pricelists
-	 * @return \Eshop\DB\Pricelist[]
+	 * @param array<\Eshop\DB\Pricelist> $pricelists
+	 * @return array<\Eshop\DB\Pricelist>
 	 */
 	public function getTopPriorityPricelists(array $pricelists): array
 	{
@@ -398,7 +417,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 	/**
 	 * Expecting pricelists with same currency!
-	 * @param \Eshop\DB\Pricelist[] $sourcePricelists
+	 * @param array<\Eshop\DB\Pricelist> $sourcePricelists
 	 * @param \Eshop\DB\Pricelist $targetPricelist
 	 * @param string $aggregateFunction
 	 * @param float $percentageChange
@@ -429,7 +448,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		$prices = [];
 
 		foreach ($sourcePricelists as $sourcePricelist) {
-			/** @var \Eshop\DB\Price[] $localPrices */
+			/** @var array<\Eshop\DB\Price> $localPrices */
 			$localPrices = $this->priceRepository->many()->where('this.fk_pricelist', $sourcePricelist->getPK())->toArray();
 
 			foreach ($localPrices as $localPrice) {
@@ -502,8 +521,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 				$newValues['price'] = $priceArray['price'];
 				$newValues['priceVat'] = $priceArray['priceVat'];
 			} elseif ($aggregateFunction === 'avg') {
-				$newValues['price'] = (float)$priceArray['price'] / $priceArray['count'];
-				$newValues['priceVat'] = (float)$priceArray['priceVat'] / $priceArray['count'];
+				$newValues['price'] = (float) $priceArray['price'] / $priceArray['count'];
+				$newValues['priceVat'] = (float) $priceArray['priceVat'] / $priceArray['count'];
 			} elseif ($aggregateFunction === 'med') {
 				if (\count($priceArray['priceArray']) === 1) {
 					$newValues['price'] = $priceArray['priceArray'][0];
@@ -513,16 +532,16 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 					\sort($priceArray['priceVatArray']);
 
 					if ($priceArray['count'] % 2 !== 0) {
-						$middle = (int)($priceArray['count'] / 2);
+						$middle = (int) ($priceArray['count'] / 2);
 
-						$newValues['price'] = $priceArray['priceArray'][(string)$middle];
-						$newValues['priceVat'] = $priceArray['priceVatArray'][(string)$middle];
+						$newValues['price'] = $priceArray['priceArray'][(string) $middle];
+						$newValues['priceVat'] = $priceArray['priceVatArray'][(string) $middle];
 					} else {
-						$middle1 = ((int)($priceArray['count'] / 2)) - 1;
+						$middle1 = ((int) ($priceArray['count'] / 2)) - 1;
 						$middle2 = $middle1 + 1;
 
-						$newValues['price'] = ($priceArray['priceArray'][(string)$middle1] + $priceArray['priceArray'][(string)$middle2]) / 2.0;
-						$newValues['priceVat'] = ($priceArray['priceVatArray'][(string)$middle1] + $priceArray['priceVatArray'][(string)$middle2]) / 2.0;
+						$newValues['price'] = ($priceArray['priceArray'][(string) $middle1] + $priceArray['priceArray'][(string) $middle2]) / 2.0;
+						$newValues['priceVat'] = ($priceArray['priceVatArray'][(string) $middle1] + $priceArray['priceVatArray'][(string) $middle2]) / 2.0;
 					}
 				}
 			}

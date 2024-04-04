@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Eshop\Common\DB\SystemicEntity;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\ICollection;
 use StORM\RelationCollection;
@@ -12,7 +13,8 @@ use StORM\RelationCollection;
 /**
  * Kategorie
  * @table
- * @index{"name":"category_path","unique":true,"columns":["path"]}
+ * @index{"name":"category_path","unique":true,"columns":["path", "fk_type"]}
+ * @index{"name":"category_path_no_uniq","unique":false,"columns":["path"]}
  */
 class Category extends SystemicEntity
 {
@@ -29,6 +31,12 @@ class Category extends SystemicEntity
 	 * @column{"mutations":true}
 	 */
 	public ?string $name;
+
+	/**
+	 * Alternativní název
+	 * @column{"mutations":true}
+	 */
+	public ?string $alternativeName;
 	
 	/**
 	 * Celý název
@@ -148,8 +156,14 @@ class Category extends SystemicEntity
 	public bool $systemic = false;
 
 	/**
+	 * Zobrazit produkty v podkategoriích
+	 * @column
+	 */
+	public bool $showDescendantProducts = true;
+
+	/**
 	 * Pomocí repositářové metody getTree(array $orderBy)
-	 * @var \Eshop\DB\Category[]
+	 * @var array<\Eshop\DB\Category>
 	 */
 	public $children = [];
 
@@ -168,12 +182,15 @@ class Category extends SystemicEntity
 	public CategoryType $type;
 
 	/**
-	 * Kategorie
-	 * @deprecated
-	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\ParameterCategory>|\Eshop\DB\ParameterCategory[]
+	 * ID
+	 * column - don't created by auto migration, only by manual
 	 */
-	public RelationCollection $parameterCategories;
+	public int $id;
+
+	/**
+	 * @column{"type":"enum","length":"'row','card'"}
+	 */
+	public string|null $defaultViewType;
 
 	/**
 	 * Kategorie
@@ -214,34 +231,21 @@ class Category extends SystemicEntity
 
 	public function getParentPath(int $level): string
 	{
-		return \substr($this->path, 0, 4 * ($level + 1));
+		return Strings::substring($this->path, 0, 4 * ($level + 1));
 	}
 
-	public function getProductCount(): ?int
+	/**
+	 * @param array<mixed> $filters
+	 * @param array<string, string>|array<string, \Eshop\DB\Pricelist> $priceLists
+	 * @param array<string, string>|array<string, \Eshop\DB\VisibilityList> $visibilityLists
+	 * @throws \StORM\Exception\NotFoundException
+	 * @throws \Throwable
+	 */
+	public function getProductCount(array $filters = [], array $priceLists = [], array $visibilityLists = []): int|null
 	{
 		/** @var \Eshop\DB\CategoryRepository $repository */
 		$repository = $this->getRepository();
 
-		return $repository->getCounts($this->path);
-	}
-
-	/**
-	 * @deprecated User property instead
-	 */
-	public function getFallbackImage(?Category $category = null): ?string
-	{
-		if (!$category) {
-			$category = $this;
-		}
-
-		if ($category->productFallbackImageFileName) {
-			return $category->productFallbackImageFileName;
-		}
-
-		if ($category->ancestor) {
-			return $this->getFallbackImage($category->ancestor);
-		}
-
-		return null;
+		return $repository->getCounts($this->path, $filters, $priceLists, $visibilityLists);
 	}
 }

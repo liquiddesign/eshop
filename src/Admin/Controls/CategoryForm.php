@@ -9,11 +9,12 @@ use Admin\Controls\AdminFormFactory;
 use Eshop\Admin\CategoryPresenter;
 use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Image;
 use Nette\Utils\Random;
+use Nette\Utils\Strings;
 use Pages\Helpers;
 use StORM\DIConnection;
 use Web\DB\PageRepository;
@@ -21,30 +22,16 @@ use Web\DB\SettingRepository;
 
 class CategoryForm extends Control
 {
-	private CategoryRepository $categoryRepository;
-
-	private PageRepository $pageRepository;
-
-	private SettingRepository $settingRepository;
-
-	private Shopper $shopper;
-
-	private ?Category $category;
-
 	public function __construct(
-		CategoryRepository $categoryRepository,
+		protected readonly CategoryRepository $categoryRepository,
 		AdminFormFactory $formFactory,
-		PageRepository $pageRepository,
-		SettingRepository $settingRepository,
-		Shopper $shopper,
-		?Category $category
+		protected readonly PageRepository $pageRepository,
+		protected readonly SettingRepository $settingRepository,
+		protected readonly ShopperUser $shopperUser,
+		protected readonly ?Category $category,
+		protected readonly bool $showDefaultViewType,
+		protected readonly bool $showDescendantProducts,
 	) {
-		$this->category = $category;
-		$this->categoryRepository = $categoryRepository;
-		$this->pageRepository = $pageRepository;
-		$this->settingRepository = $settingRepository;
-		$this->shopper = $shopper;
-
 		$form = $formFactory->create(true);
 
 		$form->addText('code', 'Kód')->setRequired();
@@ -52,19 +39,19 @@ class CategoryForm extends Control
 		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => function (Image $image): void {
-				$image->resize($this->shopper->getCategoriesImage()['detail']['width'], $this->shopper->getCategoriesImage()['detail']['height']);
+				$image->resize($this->shopperUser->getCategoriesImage()['detail']['width'], $this->shopperUser->getCategoriesImage()['detail']['height']);
 			},
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => function (Image $image): void {
-				$image->resize($this->shopper->getCategoriesImage()['thumb']['width'], $this->shopper->getCategoriesImage()['thumb']['height']);
+				$image->resize($this->shopperUser->getCategoriesImage()['thumb']['width'], $this->shopperUser->getCategoriesImage()['thumb']['height']);
 			},
 		]);
 
-		if ($this->shopper->getCategoriesImage()['detail']['width']) {
-			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální šířce ' . $this->shopper->getCategoriesImage()['detail']['width'] . 'px.');
+		if ($this->shopperUser->getCategoriesImage()['detail']['width']) {
+			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální šířce ' . $this->shopperUser->getCategoriesImage()['detail']['width'] . 'px.');
 		}
 
-		if ($this->shopper->getCategoriesImage()['detail']['height']) {
-			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce ' . $this->shopper->getCategoriesImage()['detail']['height'] . 'px.');
+		if ($this->shopperUser->getCategoriesImage()['detail']['height']) {
+			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce ' . $this->shopperUser->getCategoriesImage()['detail']['height'] . 'px.');
 		}
 
 		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {
@@ -77,19 +64,19 @@ class CategoryForm extends Control
 		$imagePicker = $form->addImagePicker('productFallbackImageFileName', 'Placeholder produktů', [
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => function (Image $image): void {
-				$image->resize($this->shopper->getCategoriesFallbackImage()['detail']['width'], $this->shopper->getCategoriesFallbackImage()['detail']['height']);
+				$image->resize($this->shopperUser->getCategoriesFallbackImage()['detail']['width'], $this->shopperUser->getCategoriesFallbackImage()['detail']['height']);
 			},
 			Category::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => function (Image $image): void {
-				$image->resize($this->shopper->getCategoriesFallbackImage()['thumb']['width'], $this->shopper->getCategoriesFallbackImage()['thumb']['height']);
+				$image->resize($this->shopperUser->getCategoriesFallbackImage()['thumb']['width'], $this->shopperUser->getCategoriesFallbackImage()['thumb']['height']);
 			},
 		])->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce 600px s libovolnou šířkou.');
 
-		if ($this->shopper->getCategoriesFallbackImage()['detail']['width']) {
-			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální šířce ' . $this->shopper->getCategoriesFallbackImage()['detail']['width'] . 'px.');
+		if ($this->shopperUser->getCategoriesFallbackImage()['detail']['width']) {
+			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální šířce ' . $this->shopperUser->getCategoriesFallbackImage()['detail']['width'] . 'px.');
 		}
 
-		if ($this->shopper->getCategoriesFallbackImage()['detail']['height']) {
-			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce ' . $this->shopper->getCategoriesFallbackImage()['detail']['height'] . 'px.');
+		if ($this->shopperUser->getCategoriesFallbackImage()['detail']['height']) {
+			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce ' . $this->shopperUser->getCategoriesFallbackImage()['detail']['height'] . 'px.');
 		}
 
 		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {
@@ -119,23 +106,24 @@ class CategoryForm extends Control
 		});
 
 		$nameInput = $form->addLocaleText('name', 'Název');
+		$form->addLocaleText('alternativeName', 'Alternativní název');
 		$form->addLocalePerexEdit('perex', 'Perex', [
-			/** @codingStandardsIgnoreStart */
+			/** @codingStandardsIgnoreStart Long string*/
 			'toolbar1' => 'undo redo | styleselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | link unlink anchor | table | copy cut paste pastetext insertcontent code',
 			/** @codingStandardsIgnoreEnd */
 			'plugins' => 'table code link',
 		]);
 		$form->addLocaleRichEdit('content', 'Obsah');
 		$form->addLocalePerexEdit('defaultProductPerex', 'Výchozí perex produktů', [
-			/** @codingStandardsIgnoreStart */
+			/** @codingStandardsIgnoreStart Long string */
 			'toolbar1' => 'undo redo | styleselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | link unlink anchor | table | copy cut paste pastetext insertcontent code',
 			/** @codingStandardsIgnoreEnd */
 			'plugins' => 'table code link',
 		]);
 		$form->addLocaleRichEdit('defaultProductContent', 'Výchozí obsah produktů');
 
-		$this->monitor(Presenter::class, function ($presenter) use ($form, $category): void {
-			$categories = $this->categoryRepository->getTreeArrayForSelect(true, $presenter->tab);
+		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($form, $category): void {
+			$categories = $this->categoryRepository->getTreeArrayForSelect(true, $presenter->tab !== 'none' ? $presenter->tab : $category?->getValue('type'));
 
 			if ($category) {
 				unset($categories[$category->getPK()]);
@@ -169,6 +157,12 @@ class CategoryForm extends Control
 					->checkDefaultValue(false)
 					->setHtmlAttribute('data-info', 'Nejprve zvolte v nastavení exportů typ kategorií pro Heuréku.');
 			}
+
+			if (!$this->showDefaultViewType) {
+				return;
+			}
+
+			$form->addSelect('defaultViewType', 'Výchozí zobrazení', $presenter::DEFAULT_VIEW_TYPES)->setPrompt('Výchozí');
 		});
 
 		$form->addText('exportGoogleCategory', 'Exportní název pro Google');
@@ -178,6 +172,14 @@ class CategoryForm extends Control
 		$form->addCheckbox('showInMenu', 'Zobrazit v menu');
 		$form->addCheckbox('showEmpty', 'Zobrazit pokud nemá produkty');
 		$form->addCheckbox('recommended', 'Doporučeno');
+
+		if ($this->showDescendantProducts) {
+			$form->addCheckbox('showDescendantProducts', 'Zobrazit produkty v podkategoriích')->setDefaultValue(true);
+		}
+
+		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($form): void {
+			$form->addHidden('type', $presenter->tab);
+		});
 
 		$form->addPageContainer('product_list', ['category' => $category], $nameInput);
 
@@ -191,6 +193,17 @@ class CategoryForm extends Control
 			}
 
 			$values = $form->getValues('array');
+
+			$existingCodeCombination = $this->categoryRepository->many()
+				->where('this.code', $values['code'])
+				->where('this.fk_type', $values['type'])
+				->first();
+
+			if ($existingCodeCombination && $existingCodeCombination->getPK() !== $values['uuid']) {
+				$form->addError('Kombinace kódu a typu kategorie již existuje!');
+
+				return;
+			}
 
 			$columnsToCheck = ['defaultProductPerex', 'defaultProductContent'];
 
@@ -215,8 +228,9 @@ class CategoryForm extends Control
 
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
-				$values['type'] = $presenter->tab;
 			}
+
+			$values['type'] = $presenter->tab;
 
 			/** @var \Forms\Controls\UploadImage $upload */
 			$upload = $form['imageFileName'];
@@ -226,7 +240,7 @@ class CategoryForm extends Control
 			if ($upload->isOk() && $upload->isFilled()) {
 				$userDir = $form->getUserDir();
 				$fileName = \pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_FILENAME);
-				$fileExtension = \strtolower(\pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_EXTENSION));
+				$fileExtension = Strings::lower(\pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_EXTENSION));
 
 				$newsImageDir = Category::IMAGE_DIR;
 
@@ -245,7 +259,7 @@ class CategoryForm extends Control
 			if ($upload->isOk() && $upload->isFilled()) {
 				$userDir = $form->getUserDir();
 				$fileName = \pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_FILENAME);
-				$fileExtension = \strtolower(\pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_EXTENSION));
+				$fileExtension = Strings::lower(\pathinfo($upload->getValue()->getSanitizedName(), \PATHINFO_EXTENSION));
 
 				$newsImageDir = Category::IMAGE_DIR;
 
@@ -278,7 +292,7 @@ class CategoryForm extends Control
 			$values['path'] = $this->categoryRepository->generateUniquePath($values['ancestor'] ? $this->categoryRepository->one($values['ancestor'])->path : '');
 
 			/** @var \Eshop\DB\Category $category */
-			$category = $this->categoryRepository->syncOne($values, null, true);
+			$category = $this->categoryRepository->syncOne($values, null, true, ignore: false);
 
 			$this->categoryRepository->recalculateCategoryTree($presenter->tab);
 

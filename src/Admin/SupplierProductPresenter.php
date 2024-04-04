@@ -15,6 +15,7 @@ use Eshop\Integration\Integrations;
 use Eshop\Providers\IProducerSyncSupplier;
 use Forms\Form;
 use Nette\Utils\Arrays;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\Expression;
 use StORM\ICollection;
@@ -28,26 +29,26 @@ class SupplierProductPresenter extends BackendPresenter
 	public ?string $tab = null;
 
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	public array $tabs = [];
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierProductRepository $supplierProductRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $pricelistRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProducerRepository $producerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SettingRepository $settingRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Integrations $integrations;
 
 	public function beforeRender(): void
@@ -96,7 +97,7 @@ class SupplierProductPresenter extends BackendPresenter
 					$hitsCount = \count($hits);
 
 					if ($hitsCount > 0) {
-						/** @var string[] $firstHit */
+						/** @var array<string> $firstHit */
 						$firstHit = Arrays::first($hits);
 
 						$hitProduct = $this->productRepository->one($firstHit['objectID']);
@@ -156,7 +157,7 @@ class SupplierProductPresenter extends BackendPresenter
 
 			for ($i = 1; $i !== 5; $i++) {
 				if (isset($parsed[$i - 1])) {
-					$expression->add('AND', "category.categoryNameL$i=%s", [\trim($parsed[$i - 1])]);
+					$expression->add('AND', "category.categoryNameL$i LIKE %s", [Strings::trim($parsed[$i - 1]) . '%']);
 				}
 			}
 
@@ -281,7 +282,7 @@ class SupplierProductPresenter extends BackendPresenter
 					continue;
 				}
 
-				/** @var string[] $firstHit */
+				/** @var array<string> $firstHit */
 				$firstHit = Arrays::first($hits);
 
 				$product = $this->productRepository->one($firstHit['objectID']);
@@ -325,6 +326,7 @@ class SupplierProductPresenter extends BackendPresenter
 		/** @var \Eshop\DB\SupplierProduct|null $supplierProduct */
 		$supplierProduct = $this->getParameter('supplierProduct');
 
+		$form->addText('code', 'Kód')->setNullable();
 		$form->addTextArea('ean', 'EAN')->setNullable();
 
 		$form->addSubmits(!$supplierProduct);
@@ -335,7 +337,7 @@ class SupplierProductPresenter extends BackendPresenter
 			try {
 				$supplierProduct->update($values);
 			} catch (\Throwable $e) {
-				if ((int) $e->getCode() === 23000 && \strpos($e->getMessage(), 'supplier_product_ean') !== false) {
+				if ((int) $e->getCode() === 23000 && Strings::contains($e->getMessage(), 'supplier_product_ean') !== false) {
 					$this->flashMessage('Duplicitní EAN!', 'error');
 
 					return;

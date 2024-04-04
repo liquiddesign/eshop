@@ -36,14 +36,6 @@ class DiscountRepository extends \StORM\Repository implements IGeneralRepository
 		return $this->many()->orderBy(['name'])->toArrayOf('name');
 	}
 	
-	public function isTagAssignedToDiscount(Discount $discount, Tag $tag): bool
-	{
-		return $this->getConnection()->rows(['eshop_discount_nxn_eshop_tag'])
-				->where('fk_discount', $discount->getPK())
-				->where('fk_tag', $tag->getPK())
-				->count() === 1;
-	}
-	
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		unset($includeHidden);

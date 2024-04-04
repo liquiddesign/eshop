@@ -8,5 +8,5 @@ use Eshop\DB\Category;
 
 interface ICategoryFormFactory
 {
-	public function create(?Category $category = null): CategoryForm;
+	public function create(bool $showDefaultViewType, ?Category $category = null, bool $showDescendantProducts = false): CategoryForm;
 }

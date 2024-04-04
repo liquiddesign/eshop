@@ -6,36 +6,36 @@ namespace Eshop\Controls;
 
 use Eshop\BuyException;
 use Eshop\CheckoutManager;
+use Eshop\DB\Customer;
 use Eshop\DB\ProductRepository;
+use Eshop\ShopperUser;
 use Nette\Application\UI\Form;
 use Nette\Http\FileUpload;
+use Nette\Utils\Strings;
 
 class CartImportForm extends Form
 {
 	/**
 	 * @var array<callable(self, array|object): void|callable(array|object): void>
 	 */
-	public $onValidate = [];
-
-	private CheckoutManager $checkoutManager;
+	public array $onValidate = [];
 	
-	private ProductRepository $productRepository;
+	public ?string $cartId = CheckoutManager::ACTIVE_CART_ID;
+	
+	public ?Customer $customer = null;
 	
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
-	private array $items = [];
+	protected array $items = [];
 	
-	public function __construct(CheckoutManager $checkoutManager, ProductRepository $productRepository)
+	public function __construct(private readonly ShopperUser $shopperUser, private readonly ProductRepository $productRepository)
 	{
 		parent::__construct();
 		
-		$this->checkoutManager = $checkoutManager;
-		$this->productRepository = $productRepository;
-		
 		$this->addTextArea('pasteArea');
 		$this->addUpload('importFile');
-//			->addRule(Form::MIME_TYPE, 'Soubor musí být ve formátu CSV', 'text/csv');
+		//			->addRule(Form::MIME_TYPE, 'Soubor musí být ve formátu CSV', 'text/csv');
 		$this->addSubmit('submit');
 		$this->onValidate[] = [$this, 'importAttempt'];
 	}
@@ -54,19 +54,17 @@ class CartImportForm extends Form
 		
 		$notFoundProducts = [];
 		
+		$customer = $this->customer ?: null;
+		$priceLists = $this->customer?->pricelists->toArray(true);
+		
 		foreach ($this->items as $code => $amount) {
-			$supplierPrefixSqlIF = 'IF(ISNULL(supplier.productCodePrefix), this.code, SUBSTRING(this.code,LENGTH(supplier.productCodePrefix)+1))';
-			
 			/** @var \Eshop\DB\Product|null $product */
-			$product = $this->productRepository->getProducts()
-				->where('IF(this.subCode, CONCAT(' . $supplierPrefixSqlIF . ',".",this.subCode),' . $supplierPrefixSqlIF . ') = :code OR this.ean = :code', ['code' => $code])
-				->join(['supplier' => 'eshop_supplier'], 'supplier.uuid = this.fk_supplierSource')
-				->first();
+			$product = $this->productRepository->getProducts($priceLists, $customer)->where('this.code = :code OR this.ean = :code', ['code' => $code])->setTake(1)->first();
 			
 			if ($product) {
 				try {
-					$this->checkoutManager->addItemToCart($product, null, \intval($amount), false, false, false);
-				} catch (BuyException $exception) {
+					$this->shopperUser->getCheckoutManager()->addItemToCart($product, null, \intval($amount), checkCanBuy: false, cartId: $this->cartId);
+				} catch (BuyException) {
 					$notFoundProducts[] = $code . ' ' . $amount;
 				}
 			} else {
@@ -78,23 +76,23 @@ class CartImportForm extends Form
 		if (!$notFoundProducts) {
 			return;
 		}
-
+		
 		$form->addError('Některé z produktů nebyly nalezeny. Zkontrolujte prosím jejich zadání');
-
+		
 		/** @var \Nette\Forms\Controls\TextArea $control */
 		$control = $form['pasteArea'];
-
+		
 		$control->value = \implode("\n", $notFoundProducts);
 	}
-
-	private function parseCSVFile(FileUpload $importFile): void
+	
+	protected function parseCSVFile(FileUpload $importFile): void
 	{
 		$delimiter = $this->detectDelimiter($importFile->getTemporaryFile());
 		
 		if (($handle = \fopen($importFile->getTemporaryFile(), 'r')) === false) {
 			return;
 		}
-
+		
 		while (($data = \fgetcsv($handle, 1000, $delimiter)) !== false) {
 			[$productId, $amount] = $data;
 			
@@ -102,16 +100,16 @@ class CartImportForm extends Form
 				continue;
 			}
 			
-			$this->items[$productId] = isset($this->items[$productId]) ? (int)$this->items[$productId] + (int)$amount : $amount;
+			$this->items[$productId] = isset($this->items[$productId]) ? (int) $this->items[$productId] + (int) $amount : $amount;
 		}
 		
 		\fclose($handle);
 	}
 	
-	private function parsePasteArea(string $pasteArea): void
+	protected function parsePasteArea(string $pasteArea): void
 	{
-		foreach (\explode('<br />', \nl2br(\trim($pasteArea))) as $row) {
-			$productRow = \preg_split('/\s+/', \trim($row));
+		foreach (\explode('<br />', \nl2br(Strings::trim($pasteArea))) as $row) {
+			$productRow = \preg_split('/\s+/', Strings::trim($row));
 			$productId = $productRow[0] ?? false;
 			$amount = $productRow[1] ?? false;
 			
@@ -119,7 +117,7 @@ class CartImportForm extends Form
 				continue;
 			}
 			
-			$this->items[$productId] = isset($this->items[$productId]) ? (int)$this->items[$productId] + (int)$amount : $amount;
+			$this->items[$productId] = isset($this->items[$productId]) ? (int) $this->items[$productId] + (int) $amount : $amount;
 		}
 	}
 	

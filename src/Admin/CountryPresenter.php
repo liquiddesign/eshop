@@ -14,13 +14,13 @@ use Nette\Http\Request;
 
 class CountryPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CountryRepository $countryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public VatRateRepository $vatRateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Request $request;
 
 	public function createComponentGrid(): AdminGrid
@@ -67,6 +67,7 @@ class CountryPresenter extends BackendPresenter
 
 		$form->addText('code', 'Kód');
 		$form->addText('name', 'Název');
+//		$form->addText('orderCodeFormat', 'Formát kódu')->setRequired()->setDefaultValue('X%2$s%1$05d');
 		$form->addInteger('orderCodeStartNumber', 'Počáteční číslo objednávek')
 			->setDefaultValue(1)
 			->setRequired()
@@ -92,7 +93,7 @@ class CountryPresenter extends BackendPresenter
 
 		$form->addText('name', 'Název');
 		$form->addText('rate', 'Výše')->addRule($form::FLOAT)->setRequired();
-		$form->addHidden('country', (string)$this->getParameter('vat')->country);
+		$form->addHidden('country', (string) $this->getParameter('vat')->country);
 		$form->addText('priority', 'Priorita')
 			->addRule($form::INTEGER)
 			->setRequired()

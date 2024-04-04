@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminGrid;
+use Base\ShopsConfig;
+use Eshop\Admin\SettingsPresenter;
 use Eshop\Common\Helpers;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
@@ -18,63 +20,71 @@ use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\Expression;
 use StORM\ICollection;
+use Web\DB\SettingRepository;
 
 class ProductGridFiltersFactory
 {
-	private ProducerRepository $producerRepository;
-
-	private SupplierRepository $supplierRepository;
-
-	private SupplierCategoryRepository $supplierCategoryRepository;
-
-	private CategoryRepository $categoryRepository;
-
-	private RibbonRepository $ribbonRepository;
-
-	private InternalRibbonRepository $internalRibbonRepository;
-
-	private PricelistRepository $pricelistRepository;
-
-	private DisplayAmountRepository $displayAmountRepository;
-
-	private CategoryTypeRepository $categoryTypeRepository;
-
-	private SupplierProductRepository $supplierProductRepository;
-
 	public function __construct(
-		ProducerRepository $producerRepository,
-		SupplierRepository $supplierRepository,
-		SupplierCategoryRepository $supplierCategoryRepository,
-		CategoryRepository $categoryRepository,
-		RibbonRepository $ribbonRepository,
-		InternalRibbonRepository $internalRibbonRepository,
-		PricelistRepository $pricelistRepository,
-		DisplayAmountRepository $displayAmountRepository,
-		CategoryTypeRepository $categoryTypeRepository,
-		SupplierProductRepository $supplierProductRepository
+		private readonly ProducerRepository $producerRepository,
+		private readonly SupplierRepository $supplierRepository,
+		private readonly SupplierCategoryRepository $supplierCategoryRepository,
+		private readonly CategoryRepository $categoryRepository,
+		private readonly RibbonRepository $ribbonRepository,
+		private readonly InternalRibbonRepository $internalRibbonRepository,
+		private readonly PricelistRepository $pricelistRepository,
+		private readonly DisplayAmountRepository $displayAmountRepository,
+		private readonly CategoryTypeRepository $categoryTypeRepository,
+		private readonly SupplierProductRepository $supplierProductRepository,
+		private readonly ShopsConfig $shopsConfig,
+		private readonly SettingRepository $settingRepository,
 	) {
-		$this->producerRepository = $producerRepository;
-		$this->supplierRepository = $supplierRepository;
-		$this->supplierCategoryRepository = $supplierCategoryRepository;
-		$this->categoryRepository = $categoryRepository;
-		$this->ribbonRepository = $ribbonRepository;
-		$this->internalRibbonRepository = $internalRibbonRepository;
-		$this->pricelistRepository = $pricelistRepository;
-		$this->displayAmountRepository = $displayAmountRepository;
-		$this->categoryTypeRepository = $categoryTypeRepository;
-		$this->supplierProductRepository = $supplierProductRepository;
 	}
 
 	public function addFilters(AdminGrid $grid): void
 	{
-		$grid->addFilterTextInput('code', ['this.code', 'this.ean', 'this.name_cs', 'this.mpn'], null, 'Název, EAN, kód, P/N', '', '%%%s%%');
+		$columns = [
+			'this.code',
+			'this.ean',
+			'this.mpn',
+		];
 
-		$firstCategoryType = $this->categoryTypeRepository->many()->setOrderBy(['priority'])->first();
+		$mutationColumns = [
+			'this.name',
+		];
 
-		if ($firstCategoryType && ($categories = $this->categoryRepository->getTreeArrayForSelect(true, $firstCategoryType->getPK()))) {
+		foreach ($this->categoryRepository->getConnection()->getAvailableMutations() as $mutationSuffix) {
+			foreach ($mutationColumns as $column) {
+				$columns[] = $column . $mutationSuffix;
+			}
+		}
+
+		$grid->addFilterTextInput('code', $columns, null, 'Název, EAN, kód, P/N', '');
+
+		if ($shops = $this->shopsConfig->getAvailableShops()) {
+			$categoryTypes = [];
+
+			foreach ($shops as $shop) {
+				$setting = $this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $shop->getPK());
+
+				if (!$setting) {
+					continue;
+				}
+
+				$categoryTypes[] = $setting;
+			}
+
+			$categories = $categoryTypes ? $this->categoryRepository->getTreeArrayForSelect(true, $categoryTypes) : [];
+		} else {
+			$firstCategoryType = $this->categoryTypeRepository->many()->setOrderBy(['priority'])->first();
+
+			$categories = $firstCategoryType ? $this->categoryRepository->getTreeArrayForSelect(true, $firstCategoryType->getPK()) : [];
+		}
+
+		if ($categories) {
 			$exactCategories = $categories;
 			$categories += ['0' => 'X - bez kategorie'];
 
@@ -86,7 +96,7 @@ class ProductGridFiltersFactory
 				if (\str_starts_with($value, '.')) {
 					$subSelect = $this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
 						->where('this.uuid = eshop_product_nxn_eshop_category.fk_product')
-						->where('eshop_product_nxn_eshop_category.fk_category', \substr($value, 1));
+						->where('eshop_product_nxn_eshop_category.fk_category', Strings::substring($value, 1));
 
 					$source->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
 				} else {
@@ -98,7 +108,20 @@ class ProductGridFiltersFactory
 						return;
 					}
 
-					$source->filter(['category' => $value === '0' ? false : $category->path]);
+					if ($value === '0') {
+						return;
+					}
+
+					$allSubCategoriesForCategory = $this->categoryRepository->many()
+						->where('this.path LIKE :path', ['path' => "$category->path%"])
+						->setSelect(['uuid'])
+						->toArrayOf('uuid', toArrayValues: true);
+
+					$subSelect = $this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
+						->where('this.uuid = eshop_product_nxn_eshop_category.fk_product')
+						->where('eshop_product_nxn_eshop_category.fk_category', $allSubCategoriesForCategory);
+
+					$source->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
 				}
 			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
 		}
@@ -234,33 +257,33 @@ class ProductGridFiltersFactory
 			}, '', 'displayAmount', null, $displayAmounts, ['placeholder' => '- Dostupnost -']);
 		}
 
-		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('this.hidden', (bool)$value);
-		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
-
-		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('this.recommended', (bool)$value);
-		}, '', 'recommended', null, ['1' => 'Doporučené', '0' => 'Normální'])->setPrompt('- Doporučené -');
-
-		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-			$source->where('this.unavailable', (bool)$value);
-		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
+//		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+//			$source->where('hidden', (bool) $value);
+//		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
+//
+//		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+//			$source->where('recommended', (bool) $value);
+//		}, '', 'recommended', null, ['1' => 'Doporučené', '0' => 'Normální'])->setPrompt('- Doporučené -');
+//
+//		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+//			$source->where('unavailable', (bool) $value);
+//		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 			if ($value === 'green') {
 				$source->setGroupBy(
 					['this.uuid'],
-					'this.hidden = "0" AND this.unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) > 0 AND pricelistActive = "1"',
+					'hidden = "0" AND unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) > 0 AND pricelistActive = "1"',
 				);
 			} elseif ($value === 'orange') {
 				$source->setGroupBy(
 					['this.uuid'],
-					'this.hidden = "0" AND this.unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) = 0 AND pricelistActive = "1"',
+					'hidden = "0" AND unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) = 0 AND pricelistActive = "1"',
 				);
 			} else {
 				$source->setGroupBy(
 					['this.uuid'],
-					'this.hidden = "1" OR this.unavailable = "1" OR COUNT(DISTINCT price.uuid) = 0 OR COUNT(DISTINCT nxnCategory.fk_category) = 0 OR pricelistActive = "0"',
+					'hidden = "1" OR unavailable = "1" OR COUNT(DISTINCT price.uuid) = 0 OR COUNT(DISTINCT nxnCategory.fk_category) = 0 OR pricelistActive = "0"',
 				);
 			}
 		}, '', 'show', null, ['green' => 'Viditelné', 'orange' => 'Viditelné: bez kategorie', 'red' => 'Neviditelné'])->setPrompt('- Viditelnost v eshopu -');
@@ -271,7 +294,6 @@ class ProductGridFiltersFactory
 
 		$locks = [];
 		$locks[Product::SUPPLIER_CONTENT_MODE_PRIORITY] = 'S nejvyšší prioritou';
-		$locks[Product::SUPPLIER_CONTENT_MODE_LENGTH] = 'S nejdelším obsahem';
 		$locks += $suppliers;
 		$locks[Product::SUPPLIER_CONTENT_MODE_CUSTOM_CONTENT] = 'Nikdy nepřebírat: Vlastní obsah';
 		$locks[Product::SUPPLIER_CONTENT_MODE_NONE] = 'Nikdy nepřebírat: Žádný obsah';
@@ -282,9 +304,6 @@ class ProductGridFiltersFactory
 			if ($value === Product::SUPPLIER_CONTENT_MODE_PRIORITY) {
 				$source->where('this.supplierContentLock', false);
 				$source->where('this.supplierContentMode = "priority" OR (this.fk_supplierContent IS NULL AND this.supplierContentMode = "none")');
-			} elseif ($value === Product::SUPPLIER_CONTENT_MODE_LENGTH) {
-				$source->where('this.supplierContentLock', false);
-				$source->where('this.supplierContentMode', Product::SUPPLIER_CONTENT_MODE_LENGTH);
 			} elseif ($value === Product::SUPPLIER_CONTENT_MODE_CUSTOM_CONTENT) {
 				$source->where('this.supplierContentLock', true);
 				$source->where("this.content$mutationSuffix IS NOT NULL AND LENGTH(this.content$mutationSuffix) > 0");

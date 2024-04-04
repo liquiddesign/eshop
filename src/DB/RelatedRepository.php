@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Common\NumbersHelper;
 use League\Csv\Reader;
 use League\Csv\Writer;
+use Nette\Utils\Strings;
 use Onnov\DetectEncoding\EncodingDetector;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
+use Tracy\Debugger;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Related>
@@ -23,7 +26,8 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		RelatedTypeRepository $relatedTypeRepository
+		RelatedTypeRepository $relatedTypeRepository,
+		protected readonly ShopsConfig $shopsConfig,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -38,12 +42,29 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 		return $this->getCollection($includeHidden)->toArrayOf('CONCAT(master.name,"-",slave.name)');
 	}
 
-	public function getCollection(bool $includeHidden = false): Collection
+	/**
+	 * @param bool $includeHidden
+	 * @param list<string>|string|null $shops
+	 * @return \StORM\Collection<\Eshop\DB\Related>
+	 */
+	public function getCollection(bool $includeHidden = false, array|string|null $shops = null): Collection
 	{
 		$collection = $this->many();
 
 		if (!$includeHidden) {
 			$collection->where('this.hidden', false);
+		}
+
+		if ($shops === null) {
+			$shop = $this->shopsConfig->getSelectedShop();
+
+			if ($shop) {
+				$collection->where('this.shops LIKE :shops OR this.shops IS NULL', ['shops' => '%' . $shop->getPK() . '%']);
+			}
+		} elseif (\is_array($shops)) {
+			$collection->where('this.shops LIKE :shops OR this.shops IS NULL', ['shops' => '%' . \implode(',', $shops) . '%']);
+		} else {
+			$collection->where('this.shops LIKE :shops OR this.shops IS NULL', ['shops' => '%' . $shops . '%']);
 		}
 
 		return $collection->orderBy(['this.priority']);
@@ -68,6 +89,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			'masterPct',
 			'priority',
 			'hidden',
+			'shops',
 		]);
 
 		/** @var \Eshop\DB\Related $related */
@@ -81,11 +103,17 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 				$related->masterPct,
 				$related->priority,
 				$related->hidden ? '1' : '0',
+				$related->shops,
 			]);
 		}
 	}
 
-	public function importCsv(string $content): void
+	/**
+	 * @param string $content
+	 * @return array{importedCount: int, notFoundRelationTypes: array<string>, notFoundProducts: array<string>}
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function importCsv(string $content): array
 	{
 		$reader = $this->getReaderFromString($content);
 
@@ -98,49 +126,95 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			'masterPct',
 			'priority',
 			'hidden',
+			'shops',
 		]);
 
+		$relatedTypesByCode = $this->relatedTypeRepository->many()->setIndex('code')->toArray();
+
+		$productsByCode = $this->getConnection()->findRepository(Product::class)->many()
+			->setSelect(['this.uuid'])
+			->setIndex('this.code')
+			->toArrayOf('uuid');
+
+		$productsByFullCode = $this->getConnection()->findRepository(Product::class)->many()
+			->setSelect(['this.uuid'])
+			->setIndex("CONCAT(this.code,'.',this.subCode)")
+			->toArrayOf('uuid');
+
+		$productsByEan = $this->getConnection()->findRepository(Product::class)->many()
+			->setSelect(['this.uuid'])
+			->setIndex('this.ean')
+			->toArrayOf('uuid');
+
+		$availableShops = \array_keys($this->shopsConfig->getAvailableShops());
+
+		$notFoundRelationTypes = [];
+		$notFoundProducts = [];
+
+		$imported = 0;
+
 		foreach ($iterator as $value) {
-			$relatedType = $this->relatedTypeRepository->many()->where('code', $value['type'])->first();
+			$relatedType = $relatedTypesByCode[$value['type']] ?? null;
 
 			if (!$relatedType) {
+				$notFoundRelationTypes[] = $value['type'];
+
 				continue;
 			}
 
-			$fullCode = \explode('.', $value['master']);
-			$products = $this->getConnection()->findRepository(Product::class)->many()->where('this.code = :product OR this.ean = :product', ['product' => $fullCode[0]]);
+			$master = Strings::trim($value['master']);
+			$masterPK = $productsByEan[$master] ?? $productsByFullCode[$master] ?? $productsByCode[$master] ?? null;
 
-			if (isset($fullCode[1])) {
-				$products->where('this.subcode', $fullCode[1]);
-			}
+			if (!$masterPK) {
+				$notFoundProducts[] = $master;
 
-			if (!$master = $products->first()) {
 				continue;
 			}
 
-			$fullCode = \explode('.', $value['slave']);
-			$products = $this->getConnection()->findRepository(Product::class)->many()->where('this.code = :product OR this.ean = :product', ['product' => $fullCode[0]]);
+			$slave = Strings::trim($value['slave']);
+			$slavePK = $productsByEan[$slave] ?? $productsByFullCode[$slave] ?? $productsByCode[$slave] ?? null;
 
-			if (isset($fullCode[1])) {
-				$products->where('this.subcode', $fullCode[1]);
-			}
+			if (!$slavePK) {
+				$notFoundProducts[] = $slave;
 
-			if (!$slave = $products->first()) {
 				continue;
 			}
 
-			$this->syncOne([
+			$shopsArray = \explode(',', Strings::lower(Strings::trim($value['shops'])));
+			\sort($shopsArray);
+			$rowShops = \array_intersect($shopsArray, $availableShops);
+
+			$data = [
+				'uuid' => DIConnection::generateUuid('relation', "{$relatedType->getPK()}$masterPK$slavePK"),
 				'type' => $relatedType->getPK(),
-				'master' => $master->getPK(),
-				'slave' => $slave->getPK(),
-				'amount' => (int) $value['amount'],
+				'master' => $masterPK,
+				'slave' => $slavePK,
+				'amount' => (int) ($value['amount'] ?: 1),
 				'discountPct' => isset($value['discountPct']) ? NumbersHelper::strToFloat($value['discountPct']) : null,
 				'masterPct' => isset($value['masterPct']) ? NumbersHelper::strToFloat($value['masterPct']) : null,
 				'priority' => (int) $value['priority'],
 				'hidden' => (bool) $value['hidden'],
 				'systemic' => false,
-			]);
+				'shops' => $rowShops ? \implode(',', $rowShops) : null,
+			];
+
+			try {
+				$this->syncOne($data, ignore: false);
+			} catch (\Exception $e) {
+				Debugger::barDump($value);
+				Debugger::barDump($data);
+
+				throw $e;
+			}
+
+			$imported ++;
 		}
+
+		return [
+			'importedCount' => $imported,
+			'notFoundRelationTypes' => $notFoundRelationTypes,
+			'notFoundProducts' => $notFoundProducts,
+		];
 	}
 
 	/** @todo použít univerzální funkci z backend */

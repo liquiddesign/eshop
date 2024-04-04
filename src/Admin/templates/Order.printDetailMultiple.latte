@@ -100,7 +100,8 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                             <tr><th>Objednávka</th><td>{$order->code}</td></tr>
                             <tr><th>Stav</th><td style="text-decoration: underline">{$states[$order->getState()] ?? ''}</td></tr>
                             <tr><th>Vytvořená</th><td>{$order->createdTs|date:'d.m.Y G:i'}</td></tr>
-                            <tr n:if="$order->purchase->desiredShippingDate"><th>Požadované doručení</th><td>{$order->purchase->desiredShippingDate|date:'d.m.Y'}</td></tr>
+                            <tr n:if="$order->purchase->desiredShippingDate"><th>Požadované datum odeslání</th><td>{$order->purchase->desiredShippingDate|date:'d.m.Y'}</td></tr>
+                            <tr n:if="$order->purchase->desiredDeliveryDate"><th>Požadované datum doručení</th><td>{$order->purchase->desiredDeliveryDate|date:'d.m.Y'}</td></tr>
                             <tr n:if="$order->purchase->internalOrderCode"><th>Interní číslo</th><td>{$order->purchase->internalOrderCode}</td></tr>
                             <tr n:if="$order->externalId"><th>Externí číslo</th><td>{$order->externalId}</td></tr>
                             <tr n:if="$order->externalCode"><th>Externí kód</th><td>{$order->externalCode}</td></tr>
@@ -199,7 +200,7 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                         <p class="lead mt-4">Platební metoda:</p>
                         <div class="d-flex align-items-center">
                             <img n:if="$purchase->paymentType->imageFileName" src="{$userUrl|noescape}/paymenttype_images/thumb/{$purchase->paymentType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
-                            {$purchase->paymentType ? $purchase->paymentType->name : null} - {$payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
+                            {$purchase->paymentType ? $purchase->paymentType->name : null} - {$payment && $payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
                         </div>
 
                         {if $order->purchase->note}
@@ -214,7 +215,7 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                         <div class="table-responsive">
                             <table class="table table-sm">
                                 <tbody>
-                                {if $presenter->shopper->getShowVat()}
+                                {if $presenter->shopperUser->getShowVat()}
                                     <tr>
                                         <th>Mezisoučet:</th>
                                         <td>{($order->purchase->getSumPriceVat())|price:$purchase->currency->code}</td>
@@ -239,7 +240,7 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                                         <th><span style="font-size: large">Celkem:</span></th>
                                         <td><span style="font-size: large">{$order->getTotalPriceVat()|price:$purchase->currency->code}</span></td>
                                     </tr>
-                                {elseif $presenter->shopper->getShowWithoutVat()}
+                                {elseif $presenter->shopperUser->getShowWithoutVat()}
                                     <tr>
                                         <th>Mezisoučet:</th>
                                         <td>{($order->purchase->getSumPrice())|price:$purchase->currency->code}</td>

@@ -1,81 +1,97 @@
 {
-	"name": "liquiddesign/eshop",
-	"description": "Ⓔ Služby, entity, administrace a kontroly pro eshop",
-	"license": "MIT",
-	"autoload": {
-		"psr-4": {"Eshop\\": "src/"},
-		"classmap": []
-	},
-	"autoload-dev": {
-		"psr-4": { "Eshop\\Tests\\": "tests/" }
-	},
-	"require" :
-	{
-		"php":">=8.0",
-		"nette/application":"^3.0",
-		"nette/http":"^3.0",
-		"nette/utils":"^3.0",
-		"league/csv": "^9.0",
-		"liquiddesign/forms": "^2.0",
-		"liquiddesign/security": "^1.0.12",
-		"liquiddesign/messages": "^0.1.2",
-		"liquiddesign/translator": "^0.1.0",
-		"liquiddesign/pages": "^1.0.8",
-		"liquiddesign/admin": "^0.5.15",
-		"liquiddesign/web": "^0.1 || ^0.3",
-		"liquiddesign/grid": "^0.1.6",
-		"liquiddesign/common": "~0.1.0 || ~1.0.0",
-		"liquiddesign/ares": "~1.0.0",
-		"ext-pdo": "*",
-		"ext-intl": "*",
-		"ext-curl": "*",
-		"guzzlehttp/guzzle": "^7.0",
-		"mailerlite/mailerlite-api-v2-php-sdk": "^0.3.0",
-      	"ext-zip": "*",
-		"mk-j/php_xlsxwriter": "^0.38.0",
+    "name": "liquiddesign/eshop",
+    "description": "Ⓔ Služby, entity, administrace a kontroly pro eshop",
+    "license": "MIT",
+    "version": "2.1.180",
+    "autoload": {
+        "psr-4": {
+            "Eshop\\": "src/"
+        },
+        "classmap": []
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Eshop\\Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": ">=8.2",
+        "nette/application": "^3.1",
+        "nette/http": "^3.2",
+        "nette/utils": "^4.0",
+        "league/csv": "^9.0",
+        "liquiddesign/web": "^2.1",
+        "liquiddesign/ares": "^2.0",
+        "ext-pdo": "*",
+        "ext-intl": "*",
+        "ext-curl": "*",
+        "guzzlehttp/guzzle": "^7.0",
+        "mailerlite/mailerlite-api-v2-php-sdk": "^0.3.0",
+        "ext-zip": "*",
+        "mk-j/php_xlsxwriter": "^0.39.0",
         "ext-simplexml": "*",
-		"erusev/parsedown": "^1.7",
-		"contributte/comgate": "^0.3.0",
-		"onnov/detect-encoding": "^2.0",
-		"ext-iconv": "*",
-		"ext-json": "*",
-		"ext-soap": "*",
-		"algolia/algoliasearch-client-php": "^3.1",
-		"neitanod/forceutf8": "^2.0",
-		"jurosh/pdf-merge": "^2.0",
-		"salamek/ppl-my-api": "^2.5",
-		"setasign/fpdf": "^1.8",
-		"setasign/fpdi": "^2.0",
-		"dvdoug/boxpacker": "^3.9",
-		"markette/gopay-inline": "^2.1",
-		"soukicz/zbozicz": "^1.2",
-		"heureka/overeno-zakazniky": "^4.0",
-		"dfridrich/qr-platba": "2"
-	},
-	"require-dev": 
-	{
-		"nette/tester":"*",
-		"tracy/tracy":"*",
-		"composer/composer": "*",
-		"liquiddesign/codestyle": "~1.0",
-		"liquiddesign/migrator": "~1.0",
-		"phpstan/phpstan-nette": "~1.0",
-		"phpstan/phpstan": "1.9.2"
-	},
-	"scripts": {
-		"fix-code": ["@phpcsfix"],
-		"check-code": ["@phpcs", "@phpstan", "@lattelint"],
-		"phpstan-clear-cache": "phpstan clear-result-cache",
-		"phpstan": "phpstan analyse --memory-limit 6G -c phpstan.neon",
-		"phpcs": "phpcs --standard=ruleset.xml --ignore=assets --cache src",
-		"phpcsfix": "phpcbf --standard=ruleset.xml --ignore=assets --cache src",
-		"lattelint": "php lattelint.php",
-		"tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php"
-	},
-	"config": {
-		"allow-plugins": {
-			"dealerdirect/phpcodesniffer-composer-installer": true,
-			"php-http/discovery": true
-		}
-	}
+        "erusev/parsedown": "^1.7",
+        "contributte/comgate": "^0.3.0",
+        "onnov/detect-encoding": "^2.0",
+        "ext-iconv": "*",
+        "ext-json": "*",
+        "ext-soap": "*",
+        "algolia/algoliasearch-client-php": "^3.1",
+        "jurosh/pdf-merge": "^2.0",
+        "salamek/ppl-my-api": "^2.5",
+        "setasign/fpdf": "^1.8",
+        "setasign/fpdi": "^2.0",
+        "dvdoug/boxpacker": "^3.9",
+        "markette/gopay-inline": "^2.1",
+        "soukicz/zbozicz": "^1.2",
+        "heureka/overeno-zakazniky": "^4.0",
+        "dfridrich/qr-platba": "^2.0",
+        "latte/latte": "^3.0",
+        "ramsey/uuid": "^4.7",
+        "liquiddesign/liquid-monitor-connector": "^1.0.4"
+    },
+    "minimum-stability": "stable",
+    "require-dev": {
+        "tracy/tracy": "^2.10",
+        "composer/composer": "^2.0",
+        "liquiddesign/codestyle": "^3.0.10",
+        "liquiddesign/migrator": "~1.0",
+        "phpstan/phpstan-nette": "~1.0",
+        "marcocesarato/php-conventional-changelog": "dev-main"
+    },
+    "scripts": {
+        "fix-code": [
+            "@phpcsfix"
+        ],
+        "code-style": [
+            "@phpcsfix",
+            "@phpcs"
+        ],
+        "check-code": [
+            "@phpcs",
+            "@phpstan",
+            "@phpstan8",
+            "@lattelint",
+            "@check-commit"
+        ],
+        "phpstan-clear-cache": "phpstan clear-result-cache",
+        "phpstan": "phpstan analyse --memory-limit 10G -c phpstan.neon",
+        "phpstan8": "phpstan analyse --memory-limit 10G -c phpstan8.neon",
+        "phpcs": "phpcs --standard=ruleset.xml --ignore=assets --cache src",
+        "phpcsfix": "phpcbf --standard=ruleset.xml --ignore=assets --cache src",
+        "lattelint": "php lattelint.php",
+        "tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php",
+        "check-commit": "@php ./vendor/liquiddesign/codestyle/src/scripts/check-last-commit.php",
+        "changelog": "conventional-changelog",
+        "release": "conventional-changelog --commit",
+        "release:patch": "conventional-changelog --patch --commit",
+        "release:minor": "conventional-changelog --minor --commit",
+        "release:major": "conventional-changelog --major --commit"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "php-http/discovery": true
+        }
+    }
 }

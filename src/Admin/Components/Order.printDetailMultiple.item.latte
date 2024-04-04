@@ -21,9 +21,9 @@
         <span n:if="$packageItem->status === 'reserved'" class="text-success"><i class="fa fa-check"></i> Rezervováno</span>
     </td>
     <td style="text-align: right">
-        {$item->priceVat|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price|price} bez DPH</small>{/if}
+        {$item->priceVat|price}{if $presenter->shopperUser->getShowWithoutVat()}<br><small>{$item->price|price} bez DPH</small>{/if}
     </td>
     <td style="text-align: right">
-        {$item->priceVat * $packageItem->amount|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price * $packageItem->amount|price} bez DPH</small>{/if}
+        {$item->priceVat * $packageItem->amount|price}{if $presenter->shopperUser->getShowWithoutVat()}<br><small>{$item->price * $packageItem->amount|price} bez DPH</small>{/if}
     </td>
 </tr>

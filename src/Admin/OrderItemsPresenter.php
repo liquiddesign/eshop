@@ -20,16 +20,16 @@ use StORM\ICollection;
 
 class OrderItemsPresenter extends \Eshop\BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CartItemRepository $cartItemRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PackageItemRepository $packageItemRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
 	public function createComponentGrid(): AdminGrid
@@ -103,25 +103,25 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 
 		$grid->addFilterTextInput('search', ['this.productName_cs', 'this.productCode', 'e_pr.name_cs', 'e_pr.code'], null, 'Kód, název');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('e_o.createdTs >= :created_from', ['created_from' => $value]);
 		}, '', 'created_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
 			->setHtmlAttribute('placeholder', 'Datum vytvoření obj. od');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('e_o.createdTs <= :created_to', ['created_to' => $value]);
 		}, '', 'created_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
 			->setHtmlAttribute('placeholder', 'Datum vytvoření obj. do');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('e_o.completedTs >= :completed_from', ['completed_from' => $value]);
 		}, '', 'completed_from', null, ['defaultHour' => '00', 'defaultMinute' => '00'])
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')
 			->setHtmlAttribute('placeholder', 'Datum odeslání obj. od');
 
-		$grid->addFilterDatetime(function (ICollection $source, $value): void {
+		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('e_o.completedTs <= :completed_to', ['completed_to' => $value]);
 		}, '', 'completed_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])
 			->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')

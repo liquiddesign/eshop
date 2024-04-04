@@ -11,10 +11,10 @@ use Eshop\DB\OrderRepository;
 
 class StatsPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IStatsControlFactory $statsControlFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
 	public function createComponentStats(): StatsControl

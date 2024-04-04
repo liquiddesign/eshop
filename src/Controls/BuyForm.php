@@ -6,7 +6,7 @@ namespace Eshop\Controls;
 
 use Eshop\CheckoutManager;
 use Eshop\DB\Product;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Nette;
 
@@ -16,16 +16,19 @@ use Nette;
 class BuyForm extends Form
 {
 	/**
-	 * @var callable[]
+	 * @var array<callable>
 	 */
 	public array $onItemAddedToCart = [];
 
 	public ?bool $replaceMode = false;
 
-	public function __construct(Product $product, Shopper $shopper, CheckoutManager $checkoutManager)
+	public function __construct(Product $product, ShopperUser $shopperUser)
 	{
 		parent::__construct();
 
+		$checkoutManager = $shopperUser->getCheckoutManager();
+
+		$defaultBuyCount = $product->defaultBuyCount;
 		$minCount = $product->minBuyCount ?? CheckoutManager::DEFAULT_MIN_BUY_COUNT;
 		$maxCount = $product->maxBuyCount ?? CheckoutManager::DEFAULT_MAX_BUY_COUNT;
 
@@ -39,15 +42,15 @@ class BuyForm extends Form
 		}
 
 		if ($product->buyStep !== null) {
-			$countInput->addRule([$this, 'validateNumber'], 'Není to násobek', [$product->buyStep, $minCount]);
+			$countInput->addRule([$this, 'validateNumber'], 'Není to násobek', [$product->buyStep, $minCount, $maxCount, $defaultBuyCount]);
 			$countInput->setHtmlAttribute('step', $product->buyStep);
 		}
 
 		$this->addHidden('itemId', $product->getPK());
 		$this->addHidden('variant');
-		$this->addSubmit('submit', 'Přidat do košíku')->setDisabled(!$shopper->getBuyPermission());
+		$this->addSubmit('submit', 'Přidat do košíku')->setDisabled(!$shopperUser->getBuyPermission());
 
-		if (!$shopper->getBuyPermission()) {
+		if (!$shopperUser->getBuyPermission()) {
 			return;
 		}
 
@@ -60,8 +63,18 @@ class BuyForm extends Form
 
 	public function validateNumber(Nette\Forms\Control $control, $args): bool
 	{
-		[$buyStep, $minCount] = $args;
+		[$buyStep, $minCount, $maxCount, $defaultBuyCount] = $args;
 
-		return ($control->getValue() + $minCount - 1) % $buyStep === 0;
+		$value = $control->getValue();
+
+		if ($minCount && $value < $minCount) {
+			return false;
+		}
+
+		if ($maxCount && $value > $maxCount) {
+			return false;
+		}
+
+		return ($control->getValue() - $defaultBuyCount) % $buyStep === 0;
 	}
 }

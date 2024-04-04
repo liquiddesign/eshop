@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Admin\DB\IGeneralAjaxRepository;
+use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Eshop\Providers\Helpers;
 use League\Csv\EncloseField;
@@ -14,14 +15,22 @@ use Nette\Utils\Validators;
 use Security\DB\IUserRepository;
 use Security\DB\UserRepositoryTrait;
 use StORM\Collection;
+use StORM\DIConnection;
 use StORM\ICollection;
+use StORM\SchemaManager;
 
 /**
- * @extends \StORM\Repository<\Eshop\DB\Customer>
+ * @template T of \Eshop\DB\Customer
+ * @extends \StORM\Repository<T>
  */
 class CustomerRepository extends \StORM\Repository implements IUserRepository, IGeneralRepository, IGeneralAjaxRepository
 {
 	use UserRepositoryTrait;
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, protected readonly ShopsConfig $shopsConfig)
+	{
+		parent::__construct($connection, $schemaManager);
+	}
+
 	public function createNew(array $values): ?Customer
 	{
 		return $this->createOne($values);
@@ -100,7 +109,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 				$lastName,
 				$customer->billAddress ? $customer->billAddress->city : null,
 				$customer->company,
-				$customer->getValue('newsletterPK') || $customer->newsletter ? '1' : '0',
+				$customer->getValue('newsletterPK') ? '1' : '0',
 				$phone,
 			]);
 		}
@@ -120,17 +129,8 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 	}
 
 	/**
-	 * @deprecated use getArrayForSelect()
-	 * @return string[]
-	 */
-	public function getListForSelect(): array
-	{
-		return $this->getArrayForSelect();
-	}
-
-	/**
 	 * @param \Eshop\DB\Customer $customer
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getEmailVariables(Customer $customer): array
 	{
@@ -155,7 +155,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 
 		return $this->many()->select([
 			'name' => 'IF(this.company != "",this.company,this.fullname)',
-			'extendedName' => 'CONCAT(IF(this.company != "",this.company,this.fullname), " (", this.email, ")")',
+			'extendedName' => 'CONCAT(IF(this.company != "",this.company,this.fullname), " (", IFNULL(this.email, ""), ")")',
 		])->orderBy(['fullname']);
 	}
 

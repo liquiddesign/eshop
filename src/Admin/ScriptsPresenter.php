@@ -20,19 +20,19 @@ class ScriptsPresenter extends \Admin\BackendPresenter
 	public const EXPORT_CACHE_TAG = 'export';
 	public const SETTINGS_CACHE_TAG = 'settings';
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public WatcherRepository $watcherRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public TemplateRepository $templateRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Mailer $mailer;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Storage $storage;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepository;
 
 	public function renderDefault(): void
@@ -40,20 +40,17 @@ class ScriptsPresenter extends \Admin\BackendPresenter
 		$this->template->setFile(__DIR__ . '/templates/Scripts.default.latte');
 
 		$this->template->scripts = [
-			(object)[
-				'name' => 'Vymazat mezipaměť',
+			(object) [
+				'name' => 'Vymazat vybrané tagy cache',
 				'link' => 'clearCache!',
-				'info' => 'Po vymazání může být první průchod eshopem pomalý!',
+				'info' => '
+				Není pravidelně spouštěný<br>
+				Maže pouze vybrané tagy cache související s produkty. Po vymazání může být první průchod eshopem pomalý!',
 			],
-			(object)[
+			(object) [
 				'name' => 'Odeslat aktivní hlídací psy',
 				'link' => 'checkWatchers!',
 				'info' => 'Odešle e-maily zákazníkům o případných změnách v dostupnosit jejich hlídaných produktů.',
-			],
-			(object)[
-				'name' => 'Doplnit chybějící hlavní obrázky',
-				'link' => 'fixMissingMainImages!',
-				'info' => 'Vybere všechny produkty, které NEMAJÍ nastavený hlavní obrázek a pokud mají alespoň jeden obrázek tak nastaví náhodně hlavní obrázek.',
 			],
 		];
 	}

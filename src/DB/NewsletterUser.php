@@ -32,7 +32,7 @@ class NewsletterUser extends \StORM\Entity
 	/**
 	 * Skupiny
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\NewsletterUserGroup>|\Eshop\DB\NewsletterUserGroup[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\NewsletterUserGroup>
 	 */
 	public RelationCollection $groups;
 	

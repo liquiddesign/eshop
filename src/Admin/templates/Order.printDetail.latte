@@ -52,18 +52,26 @@
                         <address class="mt-2">
                             <div n:if="$purchase->customer">
                                 <a n:tag-if="$purchase->account && $admin->isAllowed(':Eshop:Admin:Customer:default')" href="{plink :Eshop:Admin:Customer:default, tab=>'accounts', accountGrid-search=>$purchase->account->login}" target="_blank">
-                                    <i n:if="$purchase->account" class="far fa-user" aria-hidden="true"></i> {$purchase->customer->fullname} </a><br>
+                                    <i n:if="$purchase->account" class="far fa-user" aria-hidden="true"></i> {$purchase->fullname ?: ($purchase->customer->company ?: $purchase->customer->fullname)} </a><br>
                                 <div n:if="$purchase->ic || $purchase->customer->ic">IČ: <strong>{$purchase->ic ?: $purchase->customer->ic}</strong><br></div>
                                 <div n:if="$purchase->dic || $purchase->customer->dic">DIČ: <strong>{$purchase->dic ?: $purchase->customer->dic}</strong><br></div>
-                                <div><a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}</a><br></div>
-                                <div><a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a></div>
+                                <div n:if="$purchase->email"><a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}</a><br></div>
+                                <div n:if="$purchase->phone"><a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a></div>
                             </div>
                             <div n:if="!$purchase->customer">
                                 {$purchase->fullname} <br>
                                 <div n:if="$purchase->ic">IČ: <strong>{$purchase->ic}</strong><br></div>
                                 <div n:if="$purchase->dic">DIČ: <strong>{$purchase->dic}</strong><br></div>
-                                <div><a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}</a><br></div>
-                                <div><a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a></div>
+                                <div n:if="$purchase->email"><a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}</a><br></div>
+                                <div n:if="$purchase->phone"><a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a></div>
+                            </div>
+                            <div n:if="$purchase->getValue('parentCustomer')" class="mt-2">
+                                <strong>Objednal zákazník:</strong> <br>
+                                {$purchase->parentCustomer->company ?: $purchase->parentCustomer->fullname} <br>
+                            </div>
+                            <div n:if="$purchase->getValue('account')" class="mt-2">
+                                <strong>Objednal účet:</strong> <br>
+                                {$purchase->account->fullname} ({$purchase->account->login}) <br>
                             </div>
                         </address>
                     </div>
@@ -71,7 +79,7 @@
                     <div class="col-sm-3 invoice-col">
                         <p class="lead mb-1">Fakturační adresa</p>
                         <address class="mt-2">
-                            {$purchase->fullname}<br>
+                            {$billingAddress?->companyName ?: ($billingAddress?->name ?: $purchase->fullname)}<br>
                             <div n:if="$purchase->ic">IČ: {$purchase->ic}<br></div>
                             <div n:if="$purchase->dic">DIČ: {$purchase->dic}<br></div>
                             <div n:if="$billingAddress">{$billingAddress->street}<br></div>
@@ -84,7 +92,7 @@
                         <p class="lead mb-1">Dodací adresa</p>
                         <address n:if="$deliveryAddress" class="mt-2">
                             {if $deliveryAddress->name}{$deliveryAddress->name}<br>{/if}
-                            {if $deliveryAddress->companyName}{$deliveryAddress->companyName}<br>{/if}
+                            {if $deliveryAddress->companyName && $deliveryAddress->name !== $deliveryAddress->companyName}{$deliveryAddress->companyName}<br>{/if}
                             {$deliveryAddress->street}<br>
                             {$deliveryAddress->zipcode} {$deliveryAddress->city}<br>
                         </address>
@@ -100,8 +108,10 @@
                             <tr><th>Objednávka</th><td>{$order->code}</td></tr>
                             <tr><th>Stav</th><td style="text-decoration: underline">{$states[$order->getState()] ?? ''}</td></tr>
                             <tr><th>Vytvořená</th><td>{$order->createdTs|date:'d.m.Y G:i'}</td></tr>
-                            <tr n:if="$order->purchase->desiredShippingDate"><th>Požadované doručení</th><td>{$order->purchase->desiredShippingDate|date:'d.m.Y'}</td></tr>
+                            <tr n:if="$order->purchase->desiredShippingDate"><th>Požadované datum odeslání</th><td>{$order->purchase->desiredShippingDate|date:'d.m.Y'}</td></tr>
+                            <tr n:if="$order->purchase->desiredDeliveryDate"><th>Požadované datum doručení</th><td>{$order->purchase->desiredDeliveryDate|date:'d.m.Y'}</td></tr>
                             <tr n:if="$order->purchase->internalOrderCode"><th>Interní číslo</th><td>{$order->purchase->internalOrderCode}</td></tr>
+                            <tr><th>Aktualizovat profil</th><td>{$purchase->fillProfile ? 'Ano' : 'Ne'}</td></tr>
                             <tr n:if="$order->externalId"><th>Externí číslo</th><td>{$order->externalId}</td></tr>
                             <tr n:if="$order->externalCode"><th>Externí kód</th><td>{$order->externalCode}</td></tr>
                         </table>
@@ -172,10 +182,10 @@
 
                                             </td>
                                             <td style="text-align: right">
-                                                {$item->priceVat|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price|price} bez DPH</small>{/if}
+                                                {$item->priceVat|price}{if $presenter->shopperUser->getShowWithoutVat()}<br><small>{$item->price|price} bez DPH</small>{/if}
                                             </td>
                                             <td style="text-align: right">
-                                                {$item->priceVat * $item->amount|price}{if $presenter->shopper->getShowWithoutVat()}<br><small>{$item->price * $item->amount|price} bez DPH</small>{/if}
+                                                {$item->priceVat * $item->amount|price}{if $presenter->shopperUser->getShowWithoutVat()}<br><small>{$item->price * $item->amount|price} bez DPH</small>{/if}
                                             </td>
                                             <td class="d-print-none"></td>
                                             <td class="d-print-none"></td>
@@ -224,7 +234,7 @@
                         <p class="lead mt-4">Platební metoda:</p>
                         <div class="d-flex align-items-center">
                             <img n:if="$purchase->paymentType && $purchase->paymentType->imageFileName" src="{$userUrl|noescape}/paymenttype_images/thumb/{$purchase->paymentType->imageFileName}" loading="lazy" alt="" style="height: 32px;"/>
-                            {$purchase->paymentType ? $purchase->paymentType->name : null} - {$purchase->paymentType && $payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
+                            {$purchase->paymentType ? $purchase->paymentType->name : null} - {$payment && $payment->paidTs ? 'Zaplaceno' : 'Čeká na zaplacení'}
                             <a n:if="$presenter->isManager" class="ml-2 d-print-none btn btn-xs btn-outline-primary" n:href="payment $order"><i class="fa fa-xs fa-edit"></i> Změnit</a>
                         </div>
 
@@ -263,6 +273,11 @@
                                         <th>Sleva kupónu:</th>
                                         <td>{$order->getDiscountPrice()|price:$purchase->currency->code}</td>
                                         <td>{$order->getDiscountPriceVat()|price:$purchase->currency->code}</td>
+                                    </tr>
+                                    <tr n:if="$order->getPurchaseDiscount()">
+                                        <th>Sleva nákupu:</th>
+                                        <td>{$order->getPurchaseDiscountPrice()|price:$purchase->currency->code}</td>
+                                        <td>{$order->getPurchaseDiscountPriceVat()|price:$purchase->currency->code}</td>
                                     </tr>
                                     <tr>
                                         <th>Doprava:</th>
@@ -390,7 +405,11 @@
                             </tr>
                             </thead>
                             <tbody>
-                            <tr n:foreach="$storeAmounts as $storeAmount" id="store-{$storeAmount->store->getValue('supplier') ? $storeAmount->store->supplier->getPK() : ''}" class="store {if $storeAmount->store->supplier}supplier-{$storeAmount->store->supplier->getPK()}{/if} {if $storeAmount->inStock === 0}disabled{/if}">
+                            <tr n:foreach="$storeAmounts as $storeAmount"
+                                    id="store-{$storeAmount->store->getValue('supplier') ? $storeAmount->store->supplier->getPK() : ''}"
+                                    class="store {if $storeAmount->store->supplier}supplier-{$storeAmount->store->supplier->getPK()}{/if} {if $storeAmount->inStock === 0}disabled{/if}"
+                                    style="{if $storeAmount->store->supplier && $storeAmount->store->supplier->highlightStoreAmount && $storeAmount->inStock > 0}background-color: #00CC00;{/if}"
+                            >
                                 <td>{input amount:$storeAmount->getPK()}</td>
                                 <td>{$storeAmount->product->name}</td>
                                 <td>{$storeAmount->product->getFullCode()}</td>
@@ -469,7 +488,7 @@
                     let vatPct = parseFloat($(this).val());
 
                     let priceVat = price + (price * vatPct / 100);
-                    priceVatInput.val(priceVat.toFixed(2));
+                    priceVatInput.val(priceVat.toFixed(12));
                 });
 
                 $('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="price"]').on('change', function() {
@@ -478,7 +497,7 @@
                     let vatPct = parseFloat($('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="vatPct"]').val());
 
                     let priceVat = price + (price * vatPct / 100);
-                    priceVatInput.val(priceVat.toFixed(2));
+                    priceVatInput.val(priceVat.toFixed(12));
                 });
 
                 $('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="priceVat"]').on('change', function() {
@@ -487,7 +506,7 @@
                     let vatPct = parseFloat($('#modal-detailOrderItemForm-{$packageItemPK|noescape} input[name="vatPct"]').val());
 
                     let price = priceVat - (priceVat * vatPct / (vatPct + 100));
-                    priceInput.val(price.toFixed(2));
+                    priceInput.val(price.toFixed(12));
                 });
             </script>
         {/foreach}

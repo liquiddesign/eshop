@@ -33,55 +33,55 @@ use Web\DB\SettingRepository;
 
 abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ICartItemListFactory $cartItemListFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ICartImportFactory $cartImportFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public INoteFormFactory $noteFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ICartCheckerFactory $cartCheckerFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IDeliveryPaymentFormFactory $deliveryPaymentFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IAddressesFormFactory $addressesFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ICouponFormFactory $couponFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IOrderFormFactory $orderFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SettingRepository $settingRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public MerchantRepository $merchantRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CartRepository $cartRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DiscountCouponRepository $discountCouponRepository;
 
 	public function startup(): void
 	{
 		parent::startup();
 
-		$this->checkoutManager->autoFixCart();
+		$this->shopperUser->getCheckoutManager()->autoFixCart();
 
-		$this->checkoutManager->onOrderCreate[] = function (Order $order): void {
+		$this->shopperUser->getCheckoutManager()->onOrderCreate[] = function (Order $order): void {
 			/** @var \Eshop\DB\Order $order */
 			$order = $this->orderRepository->one($order->getPK(), true);
 
@@ -107,7 +107,7 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 			$this->mailer->send($mail);
 		};
 
-		$this->checkoutManager->onCustomerCreate[] = function (Customer $customer): void {
+		$this->shopperUser->getCheckoutManager()->onCustomerCreate[] = function (Customer $customer): void {
 			$params = [
 				'email' => $customer->email,
 				'link' => $customer->account && $customer->account->confirmationToken ? $this->link('//:Eshop:User:confirmEmailToken', $customer->account->confirmationToken) : '#',
@@ -120,7 +120,7 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 			$registerConfirmation = $this->templateRepository->createMessage('register.confirmation', $params, $customer->email);
 			$registerSuccess = $this->templateRepository->createMessage('register.success', $params, $customer->email);
 
-			$mail = $this->shopper->getRegistrationConfiguration()['emailAuthorization'] ? $registerConfirmation : $registerSuccess;
+			$mail = $this->shopperUser->getRegistrationConfiguration()['emailAuthorization'] ? $registerConfirmation : $registerSuccess;
 			$this->mailer->send($mail);
 		};
 	}
@@ -225,8 +225,8 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 
 	public function actionAddresses(): void
 	{
-		if (!$this->checkoutManager->isStepAllowed('addresses')) {
-			$maxStep = $this->checkoutManager->getMaxStep();
+		if (!$this->shopperUser->getCheckoutManager()->isStepAllowed('addresses')) {
+			$maxStep = $this->shopperUser->getCheckoutManager()->getMaxStep();
 
 			if ($maxStep) {
 				$this->redirect($maxStep);
@@ -238,13 +238,15 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 
 	public function renderAddresses(): void
 	{
-		$this->template->steps = $this->checkoutManager->getCheckoutSteps();
+		$this->template->steps = $this->shopperUser->getCheckoutManager()->getCheckoutSteps();
 	}
 
 	public function actionCart(?string $coupon = null): void
 	{
 		if ($coupon) {
-			$this->checkoutManager->setDiscountCoupon($this->discountCouponRepository->getValidCouponByCart($coupon, $this->checkoutManager->getCart(), $this->shopper->getCustomer()));
+			$this->shopperUser->getCheckoutManager()->setDiscountCoupon(
+				$this->discountCouponRepository->getValidCouponByCart($coupon, $this->shopperUser->getCheckoutManager()->getCart(), $this->shopperUser->getCustomer()),
+			);
 
 			$this->redirect('this');
 		}
@@ -254,36 +256,37 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 	{
 		$vat = false;
 
-		if ($this->shopper->showPricesWithVat() && $this->shopper->showPricesWithoutVat()) {
-			if ($this->shopper->showPriorityPrices() === 'withVat') {
+		if ($this->shopperUser->showPricesWithVat() && $this->shopperUser->showPricesWithoutVat()) {
+			if ($this->shopperUser->showPriorityPrices() === 'withVat') {
 				$vat = true;
 			}
 		} else {
-			if ($this->shopper->showPricesWithVat()) {
+			if ($this->shopperUser->showPricesWithVat()) {
 				$vat = true;
 			}
 		}
 
-		$this->template->sumAmount = $this->checkoutManager->getSumAmount();
-		$this->template->deliveryDiscount = $this->checkoutManager->getDeliveryDiscount();
-		$this->template->possibleDeliveryDiscount = $this->checkoutManager->getPossibleDeliveryDiscount();
-		$this->template->deliveryDiscountLeft = $this->checkoutManager->getPossibleDeliveryDiscount() ?
-			$this->checkoutManager->getPossibleDeliveryDiscount()->discountPriceFrom - ($vat ? $this->checkoutManager->getCartCheckoutPriceVat() : $this->checkoutManager->getCartCheckoutPrice()) :
+		$this->template->sumAmount = $this->shopperUser->getCheckoutManager()->getSumAmount();
+		$this->template->deliveryDiscount = $this->shopperUser->getCheckoutManager()->getDeliveryDiscount();
+		$this->template->possibleDeliveryDiscount = $this->shopperUser->getCheckoutManager()->getPossibleDeliveryDiscount();
+		$this->template->deliveryDiscountLeft = $this->shopperUser->getCheckoutManager()->getPossibleDeliveryDiscount() ?
+			$this->shopperUser->getCheckoutManager()->getPossibleDeliveryDiscount()->discountPriceFrom -
+			($vat ? $this->shopperUser->getCheckoutManager()->getCartCheckoutPriceVat() : $this->shopperUser->getCheckoutManager()->getCartCheckoutPrice()) :
 			null;
-		$this->template->steps = $this->checkoutManager->getCheckoutSteps();
-		$this->template->cartCheckoutPrice = $this->checkoutManager->getCartCheckoutPrice();
-		$this->template->cartCheckoutPriceVat = $this->checkoutManager->getCartCheckoutPriceVat();
-		$this->template->weightSum = $this->checkoutManager->getSumWeight();
-		$this->template->dimensionSum = $this->checkoutManager->getSumDimension();
-		$this->template->loyaltyProgramPointsGain = $this->shopper->getCustomer() ?
-			$this->cartRepository->getLoyaltyProgramPointsGainByCartItemsAndCustomer($this->checkoutManager->getItems(), $this->shopper->getCustomer()) :
+		$this->template->steps = $this->shopperUser->getCheckoutManager()->getCheckoutSteps();
+		$this->template->cartCheckoutPrice = $this->shopperUser->getCheckoutManager()->getCartCheckoutPrice();
+		$this->template->cartCheckoutPriceVat = $this->shopperUser->getCheckoutManager()->getCartCheckoutPriceVat();
+		$this->template->weightSum = $this->shopperUser->getCheckoutManager()->getSumWeight();
+		$this->template->dimensionSum = $this->shopperUser->getCheckoutManager()->getSumDimension();
+		$this->template->loyaltyProgramPointsGain = $this->shopperUser->getCustomer() ?
+			$this->cartRepository->getLoyaltyProgramPointsGainByCartItemsAndCustomer($this->shopperUser->getCheckoutManager()->getItems(), $this->shopperUser->getCustomer()) :
 			null;
 	}
 
 	public function actionDeliveryPayment(): void
 	{
-		if (!$this->checkoutManager->isStepAllowed('deliveryPayment')) {
-			$maxStep = $this->checkoutManager->getMaxStep();
+		if (!$this->shopperUser->getCheckoutManager()->isStepAllowed('deliveryPayment')) {
+			$maxStep = $this->shopperUser->getCheckoutManager()->getMaxStep();
 
 			if ($maxStep) {
 				$this->redirect($maxStep);
@@ -295,15 +298,15 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 
 	public function renderDeliveryPayment(): void
 	{
-		$this->template->deliveryTypes = $this->checkoutManager->getDeliveryTypes()->toArray();
-		$this->template->paymentTypes = $this->checkoutManager->getPaymentTypes()->toArray();
-		$this->template->steps = $this->checkoutManager->getCheckoutSteps();
+		$this->template->deliveryTypes = $this->shopperUser->getCheckoutManager()->getDeliveryTypes()->toArray();
+		$this->template->paymentTypes = $this->shopperUser->getCheckoutManager()->getPaymentTypes()->toArray();
+		$this->template->steps = $this->shopperUser->getCheckoutManager()->getCheckoutSteps();
 	}
 
 	public function actionSummary(): void
 	{
-		if (!$this->checkoutManager->isStepAllowed('summary')) {
-			$maxStep = $this->checkoutManager->getMaxStep();
+		if (!$this->shopperUser->getCheckoutManager()->isStepAllowed('summary')) {
+			$maxStep = $this->shopperUser->getCheckoutManager()->getMaxStep();
 
 			if ($maxStep) {
 				$this->redirect($maxStep);
@@ -315,39 +318,39 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 
 	public function renderSummary(): void
 	{
-		$purchase = $this->checkoutManager->getPurchase();
+		$purchase = $this->shopperUser->getCheckoutManager()->getPurchase();
 
-		$this->template->merchants = $this->merchantRepository->getMerchantsByCustomer($this->shopper->getCustomer());
+		$this->template->merchants = $this->merchantRepository->getMerchantsByCustomer($this->shopperUser->getCustomer());
 		$this->template->order = $purchase;
 		
 		$this->template->billAddress = $purchase->billAddress;
 		$this->template->deliveryAddress = $purchase->deliveryAddress ?: $purchase->billAddress;
-		$this->template->items = $this->checkoutManager->getItems();
-		$this->template->deliveryType = $this->checkoutManager->getPurchase(true)->deliveryType;
-		$this->template->paymentType = $this->checkoutManager->getPurchase(true)->paymentType;
+		$this->template->items = $this->shopperUser->getCheckoutManager()->getItems();
+		$this->template->deliveryType = $this->shopperUser->getCheckoutManager()->getPurchase(true)->deliveryType;
+		$this->template->paymentType = $this->shopperUser->getCheckoutManager()->getPurchase(true)->paymentType;
 
-		$this->template->priceSum = $this->checkoutManager->getSumPrice();
-		$this->template->priceSumVat = $this->checkoutManager->getSumPriceVat();
-		$this->template->deliveryPaymentPrice = $this->checkoutManager->getDeliveryPrice() + $this->checkoutManager->getPaymentPrice();
-		$this->template->deliveryPaymentPriceVat = $this->checkoutManager->getDeliveryPriceVat() + $this->checkoutManager->getPaymentPriceVat();
-		$this->template->discountPrice = $this->checkoutManager->getDiscountPrice();
-		$this->template->discountPriceVat = $this->checkoutManager->getDiscountPriceVat();
-		$this->template->checkoutPrice = $this->checkoutManager->getCheckoutPrice();
-		$this->template->checkoutPriceVat = $this->checkoutManager->getCheckoutPriceVat();
-		$this->template->weightSum = $this->checkoutManager->getSumWeight();
-		$this->template->dimensionSum = $this->checkoutManager->getSumDimension();
-		$this->template->steps = $this->checkoutManager->getCheckoutSteps();
+		$this->template->priceSum = $this->shopperUser->getCheckoutManager()->getSumPrice();
+		$this->template->priceSumVat = $this->shopperUser->getCheckoutManager()->getSumPriceVat();
+		$this->template->deliveryPaymentPrice = $this->shopperUser->getCheckoutManager()->getDeliveryPrice() + $this->shopperUser->getCheckoutManager()->getPaymentPrice();
+		$this->template->deliveryPaymentPriceVat = $this->shopperUser->getCheckoutManager()->getDeliveryPriceVat() + $this->shopperUser->getCheckoutManager()->getPaymentPriceVat();
+		$this->template->discountPrice = $this->shopperUser->getCheckoutManager()->getDiscountPrice();
+		$this->template->discountPriceVat = $this->shopperUser->getCheckoutManager()->getDiscountPriceVat();
+		$this->template->checkoutPrice = $this->shopperUser->getCheckoutManager()->getCheckoutPrice();
+		$this->template->checkoutPriceVat = $this->shopperUser->getCheckoutManager()->getCheckoutPriceVat();
+		$this->template->weightSum = $this->shopperUser->getCheckoutManager()->getSumWeight();
+		$this->template->dimensionSum = $this->shopperUser->getCheckoutManager()->getSumDimension();
+		$this->template->steps = $this->shopperUser->getCheckoutManager()->getCheckoutSteps();
 	}
 
 	public function renderOrder(): void
 	{
-		$order = $this->checkoutManager->getLastOrder();
+		$order = $this->shopperUser->getCheckoutManager()->getLastOrder();
 
 		if (!$order) {
 			throw new Nette\Application\BadRequestException('Order not found');
 		}
 
-		$this->template->steps = $this->checkoutManager->getCheckoutSteps();
+		$this->template->steps = $this->shopperUser->getCheckoutManager()->getCheckoutSteps();
 		$this->template->order = $order;
 	}
 }

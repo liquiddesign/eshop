@@ -1,9 +1,8 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Eshop;
 
+use Base\ShopsConfig;
 use Carbon\Carbon;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Common\CheckInvalidAmount;
@@ -50,11 +49,12 @@ use Eshop\DB\ReviewRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\Variant;
 use Eshop\DB\VatRate;
+use Eshop\Integration\Integrations;
 use Nette;
 use Nette\Http\Request;
 use Nette\Http\Response;
 use Nette\SmartObject;
-use Nette\Utils\DateTime;
+use Nette\Utils\Arrays;
 use Security\DB\AccountRepository;
 use StORM\Collection;
 use StORM\Connection;
@@ -65,475 +65,209 @@ use Tracy\ILogger;
 use Web\DB\SettingRepository;
 
 /**
- * Služba která zapouzdřuje košíky nakupujícího
- * @method onCustomerCreate(\Eshop\DB\Customer $customer)
- * @method onCartCreate(\Eshop\DB\Cart $cart)
- * @method onOrderCreate(\Eshop\DB\Order $order)
- * @method onCartItemDelete()
- * @method onCartItemCreate(\Eshop\DB\CartItem $cartItem)
- * @method onCartItemUpdate(\Eshop\DB\CartItem $cartItem)
+ * Služba která zapouzdřuje nákupní proces
  * @package Eshop
  */
 class CheckoutManager
 {
 	use SmartObject;
+	
+	public const DEFAULT_CART_ID = '1';
+	public const ACTIVE_CART_ID = null;
+	
 	public const DEFAULT_MIN_BUY_COUNT = 1;
 	public const DEFAULT_MAX_BUY_COUNT = 999999999;
 	
 	/**
-	 * @var callable[]&callable(\Eshop\DB\Customer): void; Occurs after customer create
+	 * @var array<callable(\Eshop\DB\Customer): void> Occurs after customer create
 	 */
-	public $onCustomerCreate;
+	public array $onCustomerCreate = [];
 	
 	/**
-	 * @var callable[]&callable(\Eshop\DB\Order): void; Occurs after order create
+	 * @var array<callable(\Eshop\DB\Order): void> Occurs after order create
 	 */
-	public $onOrderCreate;
+	public array $onOrderCreate = [];
 	
 	/**
-	 * @var callable[] Occurs after cart create
+	 * @var array<callable(\Eshop\DB\Cart $cart): void> Occurs after cart create
 	 */
 	public array $onCartCreate = [];
 	
 	/**
-	 * @var callable[]&callable(): void; Occurs after cart item delete
+	 * @var array<callable(): void> Occurs after cart item delete
 	 */
-	public $onCartItemDelete;
+	public array $onCartItemDelete = [];
 	
 	/**
-	 * @var array<callable(\Eshop\DB\CartItem): void>; Occurs after cart item create
+	 * @var array<callable(\Eshop\DB\CartItem): void> Occurs after cart item create
 	 */
-	public $onCartItemCreate;
+	public array $onCartItemCreate = [];
 	
 	/**
-	 * @var callable[]&callable(): void; Occurs after cart item updated
+	 * @var array<callable(): void> Occurs after cart item updated
 	 */
-	public $onCartItemUpdate;
+	public array $onCartItemUpdate = [];
 	
 	/**
 	 * @var array<mixed>|null
 	 */
 	public ?array $orderCodeArguments = null;
 	
-	protected ?string $cartToken;
-
-	protected ?string $lastOrderToken;
+	protected Collection $paymentTypes;
+	
+	protected ?Customer $customer = null;
 	
 	/**
-	 * @var \Eshop\DB\Cart[]|null[]
+	 * @var array<string, float>
 	 */
-	protected array $unattachedCarts = [];
-
-	protected int $cartExpiration = 30;
-
-	protected ?Customer $customer;
-
-	protected Shopper $shopper;
-
-	protected CartRepository $cartRepository;
-
-	protected CartItemRepository $itemRepository;
-
-	protected ProductRepository $productRepository;
-
-	protected DeliveryDiscountRepository $deliveryDiscountRepository;
-
-	protected DeliveryTypeRepository $deliveryTypeRepository;
-
-	protected DeliveryRepository $deliveryRepository;
-
-	protected PaymentTypeRepository $paymentTypeRepository;
-
-	protected PaymentRepository $paymentRepository;
-
-	protected DiscountCouponRepository $discountCouponRepository;
-
-	protected NewsletterUserRepository $newsletterUserRepository;
-
-	protected SettingRepository $settingRepository;
-
-	protected Collection $paymentTypes;
-
-	protected ?float $sumPrice = null;
-
-	protected ?float $sumPriceVat = null;
-
-	protected ?float $sumPriceBefore = null;
-
-	protected ?float $sumPriceVatBefore = null;
-
-	protected ?int $sumAmount = null;
-
-	protected ?int $sumAmountTotal = null;
-
-	protected ?float $sumWeight = null;
-
-	protected ?float $sumDimension = null;
-
-	protected ?int $sumPoints = null;
-
-	protected ?float $maxWeight = null;
-
-	protected ?int $maxDimension = null;
-
-	protected bool $autoFixCart;
-
+	protected array $sumPrice = [];
+	
+	/**
+	 * @var array<string, float>
+	 */
+	protected array $sumPriceVat = [];
+	
+	/**
+	 * @var array<string, float>
+	 */
+	protected array $sumPriceBefore = [];
+	
+	/**
+	 * @var array<string, float>
+	 */
+	protected array $sumPriceVatBefore = [];
+	
+	/**
+	 * @var array<string, int>
+	 */
+	protected array $sumAmount = [];
+	
+	/**
+	 * @var array<string, int>
+	 */
+	protected array $sumAmountTotal = [];
+	
+	/**
+	 * @var array<string, float>
+	 */
+	protected array $sumWeight = [];
+	
+	/**
+	 * @var array<string, float>
+	 */
+	protected array $sumDimension = [];
+	
+	/**
+	 * @var array<string, int>
+	 */
+	protected array $sumPoints = [];
+	
+	/**
+	 * @var array<string, float>
+	 */
+	protected array $maxWeight = [];
+	
+	/**
+	 * @var array<string, int>
+	 */
+	protected array $maxDimension = [];
+	
 	/**
 	 * @var bool|null Cached status of discount coupon validity during request
 	 */
 	protected ?bool $isDiscountCouponValid = null;
 	
 	/**
-	 * @var string[]
+	 * @var array<string>
 	 */
 	protected array $checkoutSequence;
-
-	protected OrderRepository $orderRepository;
-
-	protected AccountRepository $accountRepository;
-
-	protected CustomerRepository $customerRepository;
-
-	protected Response $response;
-
-	protected TaxRepository $taxRepository;
-
-	protected CartItemTaxRepository $cartItemTaxRepository;
-
-	protected PackageRepository $packageRepository;
-
-	protected PackageItemRepository $packageItemRepository;
-
-	protected LoyaltyProgramHistoryRepository $loyaltyProgramHistoryRepository;
-
-	protected BannedEmailRepository $bannedEmailRepository;
-
-	protected OrderLogItemRepository $orderLogItemRepository;
-
-	protected CustomerGroupRepository $customerGroupRepository;
-
-	protected CatalogPermissionRepository $catalogPermissionRepository;
-
-	protected AttributeAssignRepository $attributeAssignRepository;
-
-	protected ReviewRepository $reviewRepository;
-
-	protected RelatedCartItemRepository $relatedCartItemRepository;
-
-	protected RelatedPackageItemRepository $relatedPackageItemRepository;
-
-	protected RelatedTypeRepository $relatedTypeRepository;
-
-	protected DIConnection $stm;
-
-	protected PurchaseRepository $purchaseRepository;
-
-	protected PriceRepository $priceRepository;
-
+	
+	protected ?string $cartToken;
+	
+	protected ?string $lastOrderToken;
+	
+	/**
+	 * @var array<\Eshop\DB\Cart>|array<null>
+	 */
+	protected array $unattachedCarts = [];
+	
+	/**
+	 * @var array<\Eshop\DB\Cart>|array<null>
+	 */
+	protected array $carts = [];
+	
+	protected int $cartExpiration = 30;
+	
 	public function __construct(
-		Shopper $shopper,
-		CartRepository $cartRepository,
-		CartItemRepository $itemRepository,
-		ProductRepository $productRepository,
-		DeliveryDiscountRepository $deliveryDiscountRepository,
-		PaymentTypeRepository $paymentTypeRepository,
-		PaymentRepository $paymentRepository,
-		DeliveryTypeRepository $deliveryTypeRepository,
-		DeliveryRepository $deliveryRepository,
-		OrderRepository $orderRepository,
-		AccountRepository $accountRepository,
-		CustomerRepository $customerRepository,
-		DiscountCouponRepository $discountCouponRepository,
-		Request $request,
-		Response $response,
-		TaxRepository $taxRepository,
-		CartItemTaxRepository $cartItemTaxRepository,
-		PackageRepository $packageRepository,
-		PackageItemRepository $packageItemRepository,
-		LoyaltyProgramHistoryRepository $loyaltyProgramHistoryRepository,
-		BannedEmailRepository $bannedEmailRepository,
-		OrderLogItemRepository $orderLogItemRepository,
-		CustomerGroupRepository $customerGroupRepository,
-		CatalogPermissionRepository $catalogPermissionRepository,
-		AttributeAssignRepository $attributeAssignRepository,
-		ReviewRepository $reviewRepository,
-		NewsletterUserRepository $newsletterUserRepository,
-		SettingRepository $settingRepository,
-		RelatedCartItemRepository $relatedCartItemRepository,
-		RelatedPackageItemRepository $relatedPackageItemRepository,
-		RelatedTypeRepository $relatedTypeRepository,
-		DIConnection $stm,
-		PurchaseRepository $purchaseRepository,
-		PriceRepository $priceRepository
+		protected readonly ShopperUser $shopperUser,
+		protected readonly CartRepository $cartRepository,
+		protected readonly CartItemRepository $cartItemRepository,
+		protected readonly ProductRepository $productRepository,
+		protected readonly DeliveryDiscountRepository $deliveryDiscountRepository,
+		protected readonly PaymentTypeRepository $paymentTypeRepository,
+		protected readonly PaymentRepository $paymentRepository,
+		protected readonly DeliveryTypeRepository $deliveryTypeRepository,
+		protected readonly DeliveryRepository $deliveryRepository,
+		protected readonly OrderRepository $orderRepository,
+		protected readonly AccountRepository $accountRepository,
+		protected readonly CustomerRepository $customerRepository,
+		protected readonly DiscountCouponRepository $discountCouponRepository,
+		protected readonly Response $response,
+		protected readonly TaxRepository $taxRepository,
+		protected readonly CartItemTaxRepository $cartItemTaxRepository,
+		protected readonly PackageRepository $packageRepository,
+		protected readonly PackageItemRepository $packageItemRepository,
+		protected readonly LoyaltyProgramHistoryRepository $loyaltyProgramHistoryRepository,
+		protected readonly BannedEmailRepository $bannedEmailRepository,
+		protected readonly OrderLogItemRepository $orderLogItemRepository,
+		protected readonly CustomerGroupRepository $customerGroupRepository,
+		protected readonly CatalogPermissionRepository $catalogPermissionRepository,
+		protected readonly AttributeAssignRepository $attributeAssignRepository,
+		protected readonly ReviewRepository $reviewRepository,
+		protected readonly NewsletterUserRepository $newsletterUserRepository,
+		protected readonly SettingRepository $settingRepository,
+		protected readonly RelatedCartItemRepository $relatedCartItemRepository,
+		protected readonly RelatedPackageItemRepository $relatedPackageItemRepository,
+		protected readonly RelatedTypeRepository $relatedTypeRepository,
+		protected readonly DIConnection $stm,
+		protected readonly PurchaseRepository $purchaseRepository,
+		protected readonly PriceRepository $priceRepository,
+		protected readonly ShopsConfig $shopsConfig,
+		protected readonly Request $request,
+		protected readonly Nette\DI\Container $container,
+		protected readonly Integrations $integrations,
 	) {
-		$customer = $shopper->getCustomer();
-		$this->customer = $customer ? $customerRepository->one($customer->getPK()) : null;
-		$this->shopper = $shopper;
-		$this->cartRepository = $cartRepository;
-		$this->itemRepository = $itemRepository;
-		$this->productRepository = $productRepository;
-		$this->deliveryDiscountRepository = $deliveryDiscountRepository;
-		$this->paymentTypeRepository = $paymentTypeRepository;
-		$this->paymentRepository = $paymentRepository;
-		$this->deliveryTypeRepository = $deliveryTypeRepository;
-		$this->deliveryRepository = $deliveryRepository;
-		$this->orderRepository = $orderRepository;
-		$this->accountRepository = $accountRepository;
-		$this->customerRepository = $customerRepository;
-		$this->discountCouponRepository = $discountCouponRepository;
-		$this->response = $response;
-		$this->taxRepository = $taxRepository;
-		$this->cartItemTaxRepository = $cartItemTaxRepository;
-		$this->packageRepository = $packageRepository;
-		$this->packageItemRepository = $packageItemRepository;
-		$this->loyaltyProgramHistoryRepository = $loyaltyProgramHistoryRepository;
-		$this->bannedEmailRepository = $bannedEmailRepository;
-		$this->orderLogItemRepository = $orderLogItemRepository;
-		$this->customerGroupRepository = $customerGroupRepository;
-		$this->catalogPermissionRepository = $catalogPermissionRepository;
-		$this->attributeAssignRepository = $attributeAssignRepository;
-		$this->reviewRepository = $reviewRepository;
-		$this->newsletterUserRepository = $newsletterUserRepository;
-		$this->settingRepository = $settingRepository;
-		$this->relatedCartItemRepository = $relatedCartItemRepository;
-		$this->relatedPackageItemRepository = $relatedPackageItemRepository;
-		$this->relatedTypeRepository = $relatedTypeRepository;
-		$this->stm = $stm;
-		$this->purchaseRepository = $purchaseRepository;
-		$this->priceRepository = $priceRepository;
-
-		if (!$request->getCookie('cartToken') && !$this->customer) {
+	}
+	
+	public function startup(): void
+	{
+		if (!$this->request->getCookie('cartToken') && !$this->getCustomer()) {
 			$this->cartToken = DIConnection::generateUuid();
-			$response->setCookie('cartToken', $this->cartToken, $this->cartExpiration . ' days');
+			$this->response->setCookie('cartToken', $this->cartToken, $this->cartExpiration . ' days');
 		} else {
-			$this->cartToken = $request->getCookie('cartToken');
+			$this->cartToken = $this->request->getCookie('cartToken');
 		}
 		
-		if ($this->customer && $this->cartToken) {
+		if ($this->getCustomer() && $this->cartToken) {
 			if ($cart = $this->cartRepository->getUnattachedCart($this->cartToken)) {
-				$this->handleCartOnLogin($cart, $this->customer);
+				$this->handleCartOnLogin($cart, $this->getCustomer());
 			}
 			
-			$response->deleteCookie('cartToken');
+			$this->response->deleteCookie('cartToken');
 			$this->cartToken = null;
 		}
 		
-		$this->lastOrderToken = $request->getCookie('lastOrderToken');
-		
-		$this->shopper->discountCoupon = $this->getDiscountCoupon();
-	}
-
-	public function handleCartOnLogin(Cart $oldCart, Customer $customer): void
-	{
-		unset($customer);
-
-		$this->addItemsFromCart($oldCart);
-		$oldCart->delete();
+		$this->lastOrderToken = $this->request->getCookie('lastOrderToken');
 	}
 	
-	public function setCheckoutSequence(array $checkoutSequence): void
+	public function getCustomer(): ?Customer
 	{
-		$this->checkoutSequence = $checkoutSequence;
-	}
-
-	public function setAutoFixCart(bool $value): void
-	{
-		$this->autoFixCart = $value;
+		return $this->customer ?: $this->shopperUser->getCustomer();
 	}
 	
-	public function getPricelists(?Currency $currency = null, ?DiscountCoupon $discountCoupon = null): Collection
+	public function setCustomer(?Customer $customer): void
 	{
-		return $this->shopper->getPricelists($currency, $discountCoupon ?? $this->getDiscountCoupon());
-	}
-
-	public function cartExists(): bool
-	{
-		if ($this->customer) {
-			if ($this->customer->activeCart) {
-				return true;
-			}
-			
-			$this->customer->activeCart = null;
-			
-			return false;
-		}
-		
-		if (!\array_key_exists($this->cartToken, $this->unattachedCarts)) {
-			$this->unattachedCarts[$this->cartToken] = $this->cartRepository->getUnattachedCart($this->cartToken);
-		}
-		
-		return (bool)$this->unattachedCarts[$this->cartToken];
-	}
-	
-	public function getSumPrice(): float
-	{
-		if (!$this->cartExists()) {
-			return 0.0;
-		}
-		
-		return $this->sumPrice ??= $this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'price');
-	}
-	
-	public function getSumPriceVat(): float
-	{
-		if (!$this->cartExists()) {
-			return 0.0;
-		}
-		
-		return $this->sumPriceVat ??= $this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'priceVat');
-	}
-
-	public function getSumPriceBefore(): float
-	{
-		if (!$this->cartExists()) {
-			return 0.0;
-		}
-
-		return $this->sumPriceBefore ??= $this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'priceBefore');
-	}
-
-	public function getSumPriceVatBefore(): float
-	{
-		if (!$this->cartExists()) {
-			return 0.0;
-		}
-
-		return $this->sumPriceVatBefore ??= $this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'priceVatBefore');
-	}
-	
-	public function getSumItems(): int
-	{
-		if (!$this->cartExists()) {
-			return 0;
-		}
-		
-		return $this->sumAmount ??= $this->itemRepository->getSumItems($this->getCart());
-	}
-	
-	public function getSumAmount(): int
-	{
-		if (!$this->cartExists()) {
-			return 0;
-		}
-		
-		return $this->sumAmountTotal ??= (int)$this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'amount');
-	}
-	
-	public function getSumWeight(): float
-	{
-		if (!$this->cartExists()) {
-			return 0.0;
-		}
-		
-		return $this->sumWeight ??= $this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'productWeight');
-	}
-	
-	public function getSumDimension(): float
-	{
-		if (!$this->cartExists()) {
-			return 0.0;
-		}
-		
-		return $this->sumDimension ??= $this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'productDimension');
-	}
-	
-	public function getMaxWeight(): float
-	{
-		if (!$this->cartExists()) {
-			return 0.0;
-		}
-		
-		return $this->maxWeight ??= $this->itemRepository->many()->where('fk_cart', $this->getCart()->getPK())->max('productWeight');
-	}
-	
-	public function getMaxDimension(): int
-	{
-		if (!$this->cartExists()) {
-			return 0;
-		}
-		
-		return $this->maxDimension ??= (int) $this->itemRepository->many()->where('fk_cart', $this->getCart()->getPK())->max('GREATEST(productWidth,productLength,productDepth)');
-	}
-	
-	public function getSumPoints(): int
-	{
-		if (!$this->cartExists()) {
-			return 0;
-		}
-		
-		return $this->sumPoints ??= (int)$this->itemRepository->getSumProperty([$this->getCart()->getPK()], 'pts');
-	}
-	
-	public function getCartCurrency(): ?Currency
-	{
-		return $this->cartExists() ? $this->getCart()->currency : null;
-	}
-	
-	public function getCartCurrencyCode(): ?string
-	{
-		return $this->cartExists() ? $this->getCart()->currency->code : null;
-	}
-	
-	/**
-	 * @return \Eshop\DB\Cart[]
-	 */
-	public function getAvailableCarts(): array
-	{
-		//@TODO: vrátí asociativní pole všech košíku číslo => cart
-		return [];
-	}
-	
-	public function changeCart(int $id): void
-	{
-		unset($id);
-		// @TODO: zmeni aktivni kosik
-	}
-	
-	public function createCart(int $id = 1, bool $activate = true): Cart
-	{
-		$cart = $this->cartRepository->createOne([
-			'uuid' => $this->customer ? null : $this->cartToken,
-			'id' => $id,
-			'active' => $activate,
-			'customer' => $this->customer ?: null,
-			'currency' => $this->shopper->getCurrency(),
-			'expirationTs' => $this->customer ? null : (string)new DateTime('+' . $this->cartExpiration . ' days'),
-		]);
-		
-		$this->customer ? $this->customer->update(['activeCart' => $cart]) : $this->unattachedCarts[$this->cartToken] = $cart;
-		
-		if (isset($this->onCartCreate)) {
-			Nette\Utils\Arrays::invoke($this->onCartCreate, $cart);
-		}
-		
-		return $cart;
-	}
-	
-	public function canBuyProduct(Product $product): bool
-	{
-		return !$product->unavailable && $product->getValue('price') !== null && $this->shopper->getBuyPermission();
-	}
-	
-	public function disallowItemInCart(CartItem $item): void
-	{
-		$item->update(['product' => null]);
-	}
-	
-	public function updateItemInCart(CartItem $item, Product $product, ?Variant $variant = null, int $amount = 1, bool $checkInvalidAmount = true, bool $checkCanBuy = true): void
-	{
-		if (!$this->checkCurrency($product)) {
-			throw new BuyException('Invalid currency', BuyException::INVALID_CURRENCY);
-		}
-		
-		if ($checkCanBuy && !$this->canBuyProduct($product)) {
-			throw new BuyException('Product is not for sell', BuyException::NOT_FOR_SELL);
-		}
-		
-		if ($checkInvalidAmount && !$this->checkAmount($product, $amount)) {
-			throw new BuyException("Invalid amount: $amount", BuyException::INVALID_AMOUNT);
-		}
-		
-		$this->itemRepository->syncItem($this->getCart(), $item, $product, $variant, $amount);
+		$this->customer = $customer;
 	}
 	
 	/**
@@ -541,9 +275,7 @@ class CheckoutManager
 	 * @param \Eshop\DB\Variant|null $variant
 	 * @param int $amount
 	 * @param ?bool $replaceMode true - replace | false - add or update | null - only add
-	 * @param bool|null|\Eshop\Common\CheckInvalidAmount::SET_DEFAULT_AMOUNT $checkInvalidAmount null - check, but do not throw
-	 *                                                                                           false - dont check | true - check and throw
-	 *                                                                                           constants - see CheckInvalidAmount
+	 * @param \Eshop\Common\CheckInvalidAmount $checkInvalidAmount
 	 * @param ?bool $checkCanBuy
 	 * @param \Eshop\DB\Cart|null $cart
 	 * @param \Eshop\DB\CartItem|null $upsell
@@ -555,54 +287,51 @@ class CheckoutManager
 		?Variant $variant = null,
 		int $amount = 1,
 		?bool $replaceMode = false,
-		bool | int | null $checkInvalidAmount = true,
+		CheckInvalidAmount $checkInvalidAmount = CheckInvalidAmount::CHECK_THROW,
 		?bool $checkCanBuy = true,
 		?Cart $cart = null,
-		?CartItem $upsell = null
+		?CartItem $upsell = null,
+		?string $cartId = self::ACTIVE_CART_ID,
 	): CartItem {
-		if (!$this->checkCurrency($product)) {
+		if (!$this->checkCurrency($product, $cartId)) {
 			throw new BuyException('Invalid currency', BuyException::INVALID_CURRENCY);
 		}
 		
-		if ($checkCanBuy !== false && !$this->shopper->getBuyPermission()) {
+		if ($checkCanBuy !== false && !$this->shopperUser->getBuyPermission()) {
 			throw new BuyException('Permission denied', BuyException::PERMISSION_DENIED);
 		}
 		
 		$disabled = false;
 		
-		if ($checkCanBuy !== false && !$this->canBuyProduct($product)) {
+		if ($checkCanBuy !== false && !$this->shopperUser->canBuyProduct($product)) {
 			if ($checkCanBuy === true) {
 				throw new BuyException('Product is not for sell', BuyException::NOT_FOR_SELL);
 			}
 			
 			$disabled = true;
 		}
-
-		if (\is_null($checkInvalidAmount) || \is_bool($checkInvalidAmount)) {
-			if ($checkInvalidAmount !== false && !$this->checkAmount($product, $amount)) {
-				if ($checkInvalidAmount === true) {
-					throw new BuyException("Invalid amount: $amount", BuyException::INVALID_AMOUNT);
-				}
-
-				$disabled = true;
+		
+		if (!$this->shopperUser->canBuyProductAmount($product, $amount)) {
+			if ($checkInvalidAmount === CheckInvalidAmount::CHECK_THROW) {
+				throw new BuyException("Invalid amount: $amount", BuyException::INVALID_AMOUNT);
 			}
-		} elseif (\is_int($checkInvalidAmount)) {
-			if ($checkInvalidAmount === CheckInvalidAmount::SET_DEFAULT_AMOUNT) {
-				$amount = $this->checkAmount($product, $amount) ? $amount : $product->defaultBuyCount;
+			
+			if ($checkInvalidAmount === CheckInvalidAmount::CHECK_NO_THROW) {
+				$disabled = true;
+			} elseif ($checkInvalidAmount === CheckInvalidAmount::SET_DEFAULT_AMOUNT) {
+				$amount = $product->defaultBuyCount;
 			}
 		}
 		
-		if ($replaceMode !== null && $item = $this->itemRepository->getItem($cart ?? $this->getCart(), $product, $variant)) {
-			$this->changeItemAmount($product, $variant, $replaceMode ? $amount : $item->amount + $amount, $checkInvalidAmount, $cart);
+		if ($replaceMode !== null && $item = $this->cartItemRepository->getItem($cart ?? $this->getCart($cartId), $product, $variant)) {
+			$this->changeItemAmount($product, $variant, $replaceMode ? $amount : $item->amount + $amount, $checkInvalidAmount !== CheckInvalidAmount::NO_CHECK, $cart ?? $this->getCart($cartId));
 			
-			if ($this->onCartItemCreate) {
-				$this->onCartItemCreate($item);
-			}
+			Arrays::invoke($this->onCartItemCreate, $item);
 			
 			return $item;
 		}
 		
-		$cartItem = $this->itemRepository->syncItem($cart ?? $this->getCart(), null, $product, $variant, $amount, $disabled);
+		$cartItem = $this->cartItemRepository->syncItem($cart ?? $this->getCart($cartId), null, $product, $variant, $amount, $disabled);
 		
 		if ($upsell) {
 			$cartItem->update(['upsell' => $upsell->getPK(),]);
@@ -623,11 +352,232 @@ class CheckoutManager
 		
 		$this->refreshSumProperties();
 		
-		if ($this->onCartItemCreate) {
-			$this->onCartItemCreate($cartItem);
-		}
+		Arrays::invoke($this->onCartItemCreate, $cartItem);
 		
 		return $cartItem;
+	}
+	
+	public function cartExists(?string $id = self::ACTIVE_CART_ID): bool
+	{
+		return (bool) ($id === self::ACTIVE_CART_ID ? $this->getActiveCart() : $this->getRealCart($id));
+	}
+	
+	public function getCart(?string $id = self::ACTIVE_CART_ID, bool $createIfNotExists = true): Cart
+	{
+		$cart = $id === self::ACTIVE_CART_ID ? $this->getActiveCart() : $this->getRealCart($id);
+		
+		if (!$cart) {
+			if (!$createIfNotExists) {
+				throw new Nette\Application\ApplicationException("Cart #$id not exists");
+			}
+			
+			return $this->createCart($id ?? self::DEFAULT_CART_ID, $id === self::ACTIVE_CART_ID);
+		}
+		
+		return $cart;
+	}
+	
+	public function handleCartOnLogin(Cart $oldCart, Customer $customer): void
+	{
+		unset($customer);
+		
+		$this->addItemsFromCart($oldCart);
+		
+		if ($oldCart->closedTs) {
+			return;
+		}
+		
+		$oldCart->delete();
+	}
+	
+	/**
+	 * @param \Eshop\DB\Currency|null $currency
+	 * @param \Eshop\DB\DiscountCoupon|null $discountCoupon
+	 * @return \StORM\Collection<\Eshop\DB\Pricelist>
+	 */
+	public function getPricelists(?Currency $currency = null, ?DiscountCoupon $discountCoupon = null): Collection
+	{
+		return $this->shopperUser->getPricelists($currency, $discountCoupon ?? $this->getDiscountCoupon());
+	}
+	
+	public function getSumPrice(?string $id = self::ACTIVE_CART_ID): float
+	{
+		if (!$this->cartExists($id)) {
+			return 0.0;
+		}
+		
+		return $this->sumPrice[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'price');
+	}
+	
+	public function getSumPriceVat(?string $id = self::ACTIVE_CART_ID): float
+	{
+		if (!$this->cartExists($id)) {
+			return 0.0;
+		}
+		
+		return $this->sumPriceVat[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'priceVat');
+	}
+	
+	public function getSumPriceBefore(?string $id = self::ACTIVE_CART_ID): float
+	{
+		if (!$this->cartExists($id)) {
+			return 0.0;
+		}
+		
+		return $this->sumPriceBefore[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'priceBefore');
+	}
+	
+	public function getSumPriceVatBefore(?string $id = self::ACTIVE_CART_ID): float
+	{
+		if (!$this->cartExists($id)) {
+			return 0.0;
+		}
+		
+		return $this->sumPriceVatBefore[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'priceVatBefore');
+	}
+	
+	public function getSumItems(?string $id = self::ACTIVE_CART_ID): int
+	{
+		if (!$this->cartExists($id)) {
+			return 0;
+		}
+		
+		return $this->sumAmount[$id] ??= $this->cartItemRepository->getSumItems($this->getCart($id));
+	}
+	
+	public function getSumAmount(?string $id = self::ACTIVE_CART_ID): int
+	{
+		if (!$this->cartExists($id)) {
+			return 0;
+		}
+		
+		return $this->sumAmountTotal[$id] ??= (int) $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'amount');
+	}
+	
+	public function getSumWeight(?string $id = self::ACTIVE_CART_ID): float
+	{
+		if (!$this->cartExists($id)) {
+			return 0.0;
+		}
+		
+		return $this->sumWeight[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productWeight');
+	}
+	
+	public function getSumDimension(?string $id = self::ACTIVE_CART_ID): float
+	{
+		if (!$this->cartExists($id)) {
+			return 0.0;
+		}
+		
+		return $this->sumDimension[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productDimension');
+	}
+	
+	public function getMaxWeight(?string $id = self::ACTIVE_CART_ID): float
+	{
+		if (!$this->cartExists()) {
+			return 0.0;
+		}
+		
+		return $this->maxWeight[$id] ??= $this->cartItemRepository->many()->where('fk_cart', $this->getCart($id)->getPK())->max('productWeight');
+	}
+	
+	public function getMaxDimension(?string $id = self::ACTIVE_CART_ID): int
+	{
+		if (!$this->cartExists($id)) {
+			return 0;
+		}
+		
+		return $this->maxDimension[$id] ??= (int) $this->cartItemRepository->many()->where('fk_cart', $this->getCart($id)->getPK())->max('GREATEST(productWidth,productLength,productDepth)');
+	}
+	
+	public function getSumPoints(?string $id = self::ACTIVE_CART_ID): int
+	{
+		if (!$this->cartExists($id)) {
+			return 0;
+		}
+		
+		return $this->sumPoints[$id] ??= (int) $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'pts');
+	}
+	
+	public function getCartCurrency(?string $id = self::ACTIVE_CART_ID): ?Currency
+	{
+		return $this->cartExists($id) ? $this->getCart($id)->currency : null;
+	}
+	
+	public function getCartCurrencyCode(?string $id = self::ACTIVE_CART_ID): ?string
+	{
+		return $this->cartExists($id) ? $this->getCart($id)->currency->code : null;
+	}
+	
+	public function createCart(string $id = self::DEFAULT_CART_ID, bool $activate = true): Cart
+	{
+		$cart = $this->cartRepository->createOne([
+			'uuid' => $this->getCustomer() ? null : ($id === self::DEFAULT_CART_ID ? $this->cartToken : null),
+			'id' => $id,
+			'active' => $activate,
+			'cartToken' => $this->getCustomer() ? null : $this->cartToken,
+			'customer' => $this->getCustomer() ?: null,
+			'currency' => $this->getCustomer() && $this->getCustomer()->preferredCurrency ? $this->getCustomer()->preferredCurrency : $this->shopperUser->getCurrency(),
+			'expirationTs' => $this->getCustomer() ? null : (string) new \Carbon\Carbon('+' . $this->cartExpiration . ' days'),
+			'shop' => $this->shopsConfig->getSelectedShop(),
+		]);
+		
+		if ($activate) {
+			$this->getCustomer() ? $this->getCustomer()->update(['activeCart' => $cart]) : $this->unattachedCarts[$this->cartToken] = $cart;
+			
+			Arrays::invoke($this->onCartCreate, $cart);
+		} else {
+			$this->carts[$id] = $cart;
+		}
+		
+		return $cart;
+	}
+	
+	public function switchCart(string $id, bool $createIfNotExists = false): Cart
+	{
+		$this->stm->getLink()->beginTransaction();
+		
+		$this->getCart()->update(['activate' => false]);
+		
+		$cart = $this->getCart($id, $createIfNotExists);
+		$cart->update(['activate' => true]);
+		
+		if ($this->getCustomer()) {
+			$this->getCustomer()->update(['activeCart' => $cart]);
+		}
+		
+		$this->stm->getLink()->commit();
+		
+		return $cart;
+	}
+	
+	public function canBuyProduct(Product $product): bool
+	{
+		return $this->shopperUser->canBuyProduct($product);
+	}
+	
+	public function updateItemInCart(
+		CartItem $item,
+		Product $product,
+		?Variant $variant = null,
+		int $amount = 1,
+		bool $checkInvalidAmount = true,
+		bool $checkCanBuy = true,
+		?string $cartId = self::ACTIVE_CART_ID
+	): void {
+		if (!$this->checkCurrency($product)) {
+			throw new BuyException('Invalid currency', BuyException::INVALID_CURRENCY);
+		}
+		
+		if ($checkCanBuy && !$this->canBuyProduct($product)) {
+			throw new BuyException('Product is not for sell', BuyException::NOT_FOR_SELL);
+		}
+		
+		if ($checkInvalidAmount && !$this->checkAmount($product, $amount)) {
+			throw new BuyException("Invalid amount: $amount", BuyException::INVALID_AMOUNT);
+		}
+		
+		$this->cartItemRepository->syncItem($this->getCart($cartId), $item, $product, $variant, $amount);
 	}
 	
 	/**
@@ -637,7 +587,7 @@ class CheckoutManager
 	 */
 	public function addUpsellToCart(CartItem $cartItem, Product $upsell, ?int $realAmount = null): CartItem
 	{
-		$existingUpsell = $this->itemRepository->getUpsellByObjects($cartItem, $upsell);
+		$existingUpsell = $this->cartItemRepository->getUpsellByObjects($cartItem, $upsell);
 		
 		if ($existingUpsell) {
 			$realAmount = $realAmount && $existingUpsell->realAmount ? $existingUpsell->realAmount + $realAmount : null;
@@ -649,18 +599,18 @@ class CheckoutManager
 				'realAmount' => $realAmount,
 			]);
 			
-			return $this->itemRepository->getUpsellByObjects($cartItem, $upsell);
+			return $this->cartItemRepository->getUpsellByObjects($cartItem, $upsell);
 		}
 		
 		/** @var \Eshop\DB\VatRateRepository $vatRepo */
-		$vatRepo = $this->itemRepository->getConnection()->findRepository(VatRate::class);
+		$vatRepo = $this->cartItemRepository->getConnection()->findRepository(VatRate::class);
 		/** @var \Eshop\DB\VatRate|null $vat */
 		$vat = $vatRepo->one($upsell->vatRate);
 		
 		$vatPct = $vat ? $vat->rate : 0;
 		$amount = $realAmount ? $realAmount * $cartItem->amount : $upsell->getValue('amount');
 		
-		return $this->itemRepository->createOne([
+		return $this->cartItemRepository->createOne([
 			'productName' => $upsell->toArray()['name'],
 			'productCode' => $upsell->getFullCode(),
 			'productSubCode' => $upsell->subCode,
@@ -680,16 +630,16 @@ class CheckoutManager
 	/**
 	 * @throws \Eshop\BuyException
 	 */
-	public function changeItemAmount(Product $product, ?Variant $variant = null, int $amount = 1, ?bool $checkInvalidAmount = true, ?Cart $cart = null): void
+	public function changeItemAmount(Product $product, ?Variant $variant = null, int $amount = 1, ?bool $checkInvalidAmount = true, ?Cart $cart = null, ?string $cartId = self::ACTIVE_CART_ID): void
 	{
 		if ($checkInvalidAmount && !$this->checkAmount($product, $amount)) {
 			throw new BuyException("Invalid amount: $amount", BuyException::INVALID_AMOUNT);
 		}
 		
-		$this->itemRepository->updateItemAmount($cart ?: $this->getCart(), $variant, $product, $amount);
+		$this->cartItemRepository->updateItemAmount($cart ?: $this->getCart($cartId), $variant, $product, $amount);
 		$this->refreshSumProperties();
 		
-		if (!($cartItem = $this->itemRepository->getItem($cart ?: $this->getCart(), $product, $variant))) {
+		if (!($cartItem = $this->cartItemRepository->getItem($cart ?: $this->getCart($cartId), $product, $variant))) {
 			return;
 		}
 		
@@ -706,74 +656,90 @@ class CheckoutManager
 			throw new BuyException("Invalid amount: $amount", BuyException::INVALID_AMOUNT);
 		}
 		
-		$this->itemRepository->updateCartItemAmount($cartItem, $product, $amount);
+		$this->cartItemRepository->updateCartItemAmount($cartItem, $product, $amount);
 		$this->refreshSumProperties();
 		
-		if (!($cartItem = $this->itemRepository->one($cartItem->getPK()))) {
+		if (!($cartItem = $this->cartItemRepository->one($cartItem->getPK()))) {
 			return;
 		}
 		
 		$this->updateItem($cartItem);
 	}
 	
-	public function deleteItem(CartItem $item): void
+	public function deleteItem(CartItem $item, ?string $cartId = self::ACTIVE_CART_ID): void
 	{
 		$this->cartItemTaxRepository->many()->where('fk_cartItem', $item->getPK())->delete();
 		
-		$this->itemRepository->deleteItem($this->getCart(), $item);
+		$cart = $this->getCart($cartId);
 		
-		if (!$this->getSumItems()) {
-			$this->deleteCart();
-		} else {
-			$this->refreshSumProperties();
+		if (!$cart->closedTs) {
+			$this->cartItemRepository->deleteItem($this->getCart($cartId), $item);
 		}
 		
-		$this->onCartItemDelete();
+		if (!$this->getSumItems($cartId)) {
+			$this->deleteCart($cartId);
+		} else {
+			$this->refreshSumProperties($cartId);
+		}
+		
+		Arrays::invoke($this->onCartItemDelete);
 	}
 	
-	public function deleteCart(): void
+	public function deleteCart(?string $id = self::ACTIVE_CART_ID): void
 	{
-		$this->cartItemTaxRepository->many()->where('fk_cartItem', \array_keys($this->getItems()->toArray()))->delete();
+		$cart = $this->getCart($id);
 		
-		$this->cartRepository->deleteCart($this->getCart());
+		$this->cartItemTaxRepository->many()->where('fk_cartItem', \array_keys($this->getItems($id)->toArray()))->delete();
 		
-		if ($this->customer) {
-			$this->customer->activeCart = null;
+		if (!$cart->closedTs) {
+			$this->cartRepository->deleteCart($cart);
+		}
+		
+		if ($this->getCustomer() && $cart->active) {
+			$this->getCustomer()->activeCart = null;
 		} else {
 			unset($this->unattachedCarts[$this->cartToken]);
 		}
 		
-		$this->refreshSumProperties();
+		$this->refreshSumProperties($id);
 	}
 	
-	public function changeItemNote(Product $product, ?Variant $variant = null, ?string $note = null): void
+	public function changeItemNote(Product $product, ?Variant $variant = null, ?string $note = null, ?string $cartId = self::ACTIVE_CART_ID): void
 	{
-		$this->itemRepository->updateNote($this->getCart(), $product, $variant, $note);
+		$this->cartItemRepository->updateNote($this->getCart($cartId), $product, $variant, $note);
 	}
 	
-	public function getItems(): Collection
+	public function getItems(?string $cartId = self::ACTIVE_CART_ID): Collection
 	{
-		return $this->cartExists() ? $this->itemRepository->getItems([$this->getCart()->getPK()]) : $this->itemRepository->many()->where('1=0');
+		return $this->cartExists($cartId) ? $this->cartItemRepository->getItems([$this->getCart($cartId)->getPK()]) : $this->cartItemRepository->many()->where('1=0');
 	}
 	
-	public function getTopLevelItems(): Collection
+	public function getCartItem(Product $product, ?string $cartId = self::ACTIVE_CART_ID): ?CartItem
 	{
-		return $this->getItems()->where('this.fk_upsell IS NULL');
+		return $this->cartExists($cartId) ? $this->cartItemRepository->getItem($this->getCart($cartId), $product) : null;
+	}
+	
+	/**
+	 * @return \StORM\Collection<\Eshop\DB\CartItem>
+	 */
+	public function getTopLevelItems(?string $cartId = self::ACTIVE_CART_ID): Collection
+	{
+		return $this->getItems($cartId)->where('this.fk_upsell IS NULL');
 	}
 	
 	public function addItemsFromCart(Cart $cart, bool $required = false): bool
 	{
-		$ids = $this->itemRepository->getItems([$cart->getPK()])->where('this.fk_product IS NOT NULL')->setSelect(['aux' => 'this.fk_product'])->toArrayOf('aux');
+		$ids = $this->cartItemRepository->getItems([$cart->getPK()])->where('this.fk_product IS NOT NULL')->setSelect(['aux' => 'this.fk_product'])->toArrayOf('aux');
 		
-		/** @var \Eshop\DB\Product[] $products */
+		/** @var array<\Eshop\DB\Product> $products */
 		$products = $this->productRepository->getProducts()->where('this.uuid', $ids)->toArray();
 		
 		$upsellsMap = [];
-		$nonUpsellItems = $this->itemRepository->getItems([$cart->getPK()])->where('this.fk_upsell IS NULL')->toArray();
+		/** @var array<\Eshop\DB\CartItem> $nonUpsellItems */
+		$nonUpsellItems = $this->cartItemRepository->getItems([$cart->getPK()])->where('this.fk_upsell IS NULL')->toArray();
 		
 		$someProductNotFound = false;
 		
-		/** @var \Eshop\DB\CartItem $item */
 		foreach ($nonUpsellItems as $item) {
 			if (!isset($products[$item->getValue('product')])) {
 				if ($required) {
@@ -785,7 +751,7 @@ class CheckoutManager
 				continue;
 			}
 			
-			$newItem = $this->addItemToCart($products[$item->getValue('product')], $item->variant, $item->amount, null, false, $required);
+			$newItem = $this->addItemToCart($products[$item->getValue('product')], $item->variant, $item->amount, null, CheckInvalidAmount::NO_CHECK, $required);
 			
 			$upsellsMap[$item->getPK()] = $newItem;
 		}
@@ -793,7 +759,7 @@ class CheckoutManager
 		$relations = $this->productRepository->getCartItemsRelations($nonUpsellItems, false, false);
 		
 		/** @var \Eshop\DB\CartItem $item */
-		foreach ($this->itemRepository->getItems([$cart->getPK()])->where('this.fk_upsell IS NOT NULL') as $item) {
+		foreach ($this->cartItemRepository->getItems([$cart->getPK()])->where('this.fk_upsell IS NOT NULL') as $item) {
 			if (!isset($products[$item->getValue('product')])) {
 				if ($required) {
 					throw new BuyException('product not found');
@@ -810,9 +776,9 @@ class CheckoutManager
 				if ($required) {
 					throw new BuyException('Upsell product not found');
 				}
-
+				
 				$someProductNotFound = true;
-
+				
 				continue;
 			}
 			
@@ -820,9 +786,9 @@ class CheckoutManager
 				if ($required) {
 					throw new BuyException('Product not found');
 				}
-
+				
 				$someProductNotFound = true;
-
+				
 				continue;
 			}
 			
@@ -844,7 +810,12 @@ class CheckoutManager
 	
 	public function getPaymentTypes(): Collection
 	{
-		return $this->paymentTypes ??= $this->paymentTypeRepository->getPaymentTypes($this->shopper->getCurrency(), $this->customer, $this->shopper->getCustomerGroup());
+		return $this->paymentTypes ??= $this->paymentTypeRepository->getPaymentTypes(
+			$this->shopperUser->getCurrency(),
+			$this->getCustomer(),
+			$this->shopperUser->getCustomerGroup(),
+			$this->shopsConfig->getSelectedShop(),
+		);
 	}
 	
 	/**
@@ -853,13 +824,14 @@ class CheckoutManager
 	public function getDeliveryTypesProcessed(bool $vat): array
 	{
 		$deliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes(
-			$this->shopper->getCurrency(),
-			$this->customer,
-			$this->shopper->getCustomerGroup(),
+			$this->shopperUser->getCurrency(),
+			$this->getCustomer(),
+			$this->shopperUser->getCustomerGroup(),
 			$this->getDeliveryDiscount($vat),
 			$this->getMaxWeight(),
 			$this->getMaxDimension(),
 			$this->getSumWeight(),
+			$this->shopsConfig->getSelectedShop(),
 		)->toArray();
 		
 		foreach ($deliveryTypes as $deliveryType) {
@@ -873,97 +845,96 @@ class CheckoutManager
 	public function getDeliveryTypes(bool $vat = false): Collection
 	{
 		return $this->deliveryTypeRepository->getDeliveryTypes(
-			$this->shopper->getCurrency(),
-			$this->customer,
-			$this->shopper->getCustomerGroup(),
+			$this->shopperUser->getCurrency(),
+			$this->getCustomer(),
+			$this->shopperUser->getCustomerGroup(),
 			$this->getDeliveryDiscount($vat),
 			$this->getMaxWeight(),
 			$this->getMaxDimension(),
 			$this->getSumWeight(),
+			$this->shopsConfig->getSelectedShop(),
 		);
 	}
 	
-	public function checkDiscountCoupon(): bool
+	public function checkDiscountCoupon(?string $cartId = self::ACTIVE_CART_ID): bool
 	{
 		/** @var \Eshop\DB\DiscountCoupon|null $discountCoupon */
-		$discountCoupon = $this->getDiscountCoupon();
+		$discountCoupon = $this->getDiscountCoupon($cartId);
 		
 		if ($discountCoupon === null) {
 			return true;
 		}
-
+		
 		if ($this->isDiscountCouponValid !== null) {
 			return $this->isDiscountCouponValid;
 		}
-
-		$this->setDiscountCoupon(null);
-		$this->shopper->discountCoupon = null;
-		$this->fixCartItems();
 		
-		$valid = (bool)$this->discountCouponRepository->getValidCouponByCart($discountCoupon->code, $this->getCart(), $discountCoupon->exclusiveCustomer);
-
+		$this->setDiscountCoupon(null, $cartId);
+		$this->fixCartItems($cartId);
+		
+		$valid = (bool) $this->discountCouponRepository->getValidCouponByCart($discountCoupon->code, $this->getCart($cartId), $discountCoupon->exclusiveCustomer);
+		
 		$this->setDiscountCoupon($discountCoupon);
-		$this->shopper->discountCoupon = $discountCoupon;
-		$this->fixCartItems();
-
+		$this->fixCartItems($cartId);
+		
 		$this->isDiscountCouponValid = $valid;
-
+		
 		return $valid;
 	}
 	
-	public function checkOrder(): bool
+	public function checkOrder(?string $cartId = self::ACTIVE_CART_ID): bool
 	{
-		return $this->checkCart();
+		return $this->checkCart($cartId);
 	}
 	
-	public function checkCart(): bool
+	public function checkCart(?string $cartId = self::ACTIVE_CART_ID): bool
 	{
-		if (!\boolval(\count($this->getItems()))) {
+		if (!\boolval(\count($this->getItems($cartId)))) {
 			return false;
 		}
 		
-		if (!$this->checkDiscountCoupon()) {
+		if (!$this->checkDiscountCoupon($cartId)) {
 			return false;
 		}
 		
-		return !\count($this->getIncorrectCartItems());
+		return !\count($this->getIncorrectCartItems($cartId));
 	}
-
+	
 	/**
 	 * Fix cart if it is allowed by config
 	 */
-	public function autoFixCart(): void
+	public function autoFixCart(?string $cartId = self::ACTIVE_CART_ID): void
 	{
-		if (!$this->autoFixCart) {
+		if (!$this->shopperUser->getAutoFixCart()) {
 			return;
 		}
-
-		$this->fixCart();
+		
+		$this->fixCart($cartId);
 	}
-
+	
 	/**
 	 * Fix cart
 	 */
-	public function fixCart(): void
+	public function fixCart(?string $cartId = self::ACTIVE_CART_ID): void
 	{
-		if (!$this->checkDiscountCoupon()) {
-			$this->setDiscountCoupon(null);
+		if (!$this->checkDiscountCoupon($cartId)) {
+			$this->setDiscountCoupon(null, $cartId);
 		}
-
-		$this->fixCartItems();
+		
+		$this->fixCartItems($cartId);
 	}
-
+	
 	/**
 	 * Fix cart
 	 */
-	public function fixCartItems(): void
+	public function fixCartItems(?string $cartId = self::ACTIVE_CART_ID): void
 	{
-		$incorrectItems = $this->getIncorrectCartItems();
-
+		$incorrectItems = $this->getIncorrectCartItems($cartId);
+		
 		if (!$incorrectItems) {
 			return;
 		}
-
+		
 		foreach ($incorrectItems as $incorrectItem) {
 			try {
 				if ($incorrectItem['reason'] === IncorrectItemReason::UNAVAILABLE) {
@@ -1000,12 +971,12 @@ class CheckoutManager
 	 *     correctValueVatBefore?: null|float
 	 * }>
 	 */
-	public function getIncorrectCartItems(): array
+	public function getIncorrectCartItems(?string $cartId = self::ACTIVE_CART_ID): array
 	{
 		$incorrectItems = [];
 		
 		/** @var \Eshop\DB\CartItem $cartItem */
-		foreach ($this->getItems() as $cartItem) {
+		foreach ($this->getItems($cartId) as $cartItem) {
 			if (!$cartItem->product) {
 				$cartItem->delete();
 				
@@ -1031,7 +1002,7 @@ class CheckoutManager
 				} elseif ($cartItem->product->maxBuyCount !== null && $cartItem->amount > $cartItem->product->maxBuyCount) {
 					$correctAmount = $cartItem->product->maxBuyCount;
 				} elseif ($cartItem->product->buyStep !== null && $cartItem->amount % $cartItem->product->buyStep !== 0) {
-					$correctAmount = $this->itemRepository->roundUpToNextMultiple($cartItem->amount, $cartItem->product->buyStep);
+					$correctAmount = $this->cartItemRepository->roundUpToNextMultiple($cartItem->amount, $cartItem->product->buyStep);
 				} else {
 					$correctAmount = null;
 				}
@@ -1082,13 +1053,13 @@ class CheckoutManager
 	 * deliveryPayment - pokud je predchozi krok splen (volba dopravy a platby)
 	 * @param string $step
 	 */
-	public function isStepAllowed(string $step): bool
+	public function isStepAllowed(string $step, ?string $cartId = self::ACTIVE_CART_ID): bool
 	{
-		$sequence = \array_search($step, $this->checkoutSequence);
-		$previousStep = $this->checkoutSequence[$sequence - 1] ?? null;
+		$sequence = \array_search($step, $this->shopperUser->getCheckoutSequence());
+		$previousStep = $this->shopperUser->getCheckoutSequence()[$sequence - 1] ?? null;
 		
 		if ($previousStep === 'cart') {
-			return $this->getPurchase() && (bool)\count($this->getItems()) && \count($this->getIncorrectCartItems()) === 0 && $this->checkDiscountCoupon();
+			return $this->getPurchase() && (bool) \count($this->getItems($cartId)) && \count($this->getIncorrectCartItems($cartId)) === 0 && $this->checkDiscountCoupon($cartId);
 		}
 		
 		if ($previousStep === 'addresses') {
@@ -1103,25 +1074,25 @@ class CheckoutManager
 	}
 	
 	/**
-	 * @return bool[]
+	 * @return array<bool>
 	 */
-	public function getCheckoutSteps(): array
+	public function getCheckoutSteps(?string $cartId = self::ACTIVE_CART_ID): array
 	{
 		$steps = [];
 		
-		foreach ($this->checkoutSequence as $step) {
-			$steps[$step] = $this->isStepAllowed($step);
+		foreach ($this->shopperUser->getCheckoutSequence() as $step) {
+			$steps[$step] = $this->isStepAllowed($step, $cartId);
 		}
 		
 		return $steps;
 	}
 	
-	public function getMaxStep(): ?string
+	public function getMaxStep(?string $cartId = self::ACTIVE_CART_ID): ?string
 	{
 		$lastStep = null;
 		
-		foreach ($this->checkoutSequence as $step) {
-			if (!$this->isStepAllowed($step)) {
+		foreach ($this->shopperUser->getCheckoutSequence() as $step) {
+			if (!$this->isStepAllowed($step, $cartId)) {
 				break;
 			}
 			
@@ -1130,31 +1101,55 @@ class CheckoutManager
 		
 		return $lastStep;
 	}
-	
-	public function getCheckoutPrice(): float
+
+	public function getCheckoutPrice(?string $cartId = self::ACTIVE_CART_ID, bool $purchaseDiscount = true): float
 	{
-		$price = $this->getSumPrice() + $this->getDeliveryPrice() + $this->getPaymentPrice() - $this->getDiscountPrice();
+		$price = $this->getSumPrice($cartId);
+		
+		if ($purchaseDiscount && $this->getPurchaseDiscount($cartId)) {
+			$price -= \round($price * $this->getPurchaseDiscount($cartId) / 100, 2);
+		}
+		
+		$price += $this->getDeliveryPrice() + $this->getPaymentPrice() - $this->getDiscountPrice($cartId);
 		
 		return $price ?: 0.0;
 	}
 	
-	public function getCheckoutPriceVat(): float
+	public function getCheckoutPriceVat(?string $cartId = self::ACTIVE_CART_ID, bool $purchaseDiscount = true): float
 	{
-		$priceVat = $this->getSumPriceVat() + $this->getDeliveryPriceVat() + $this->getPaymentPriceVat() - $this->getDiscountPriceVat();
+		$priceVat = $this->getSumPriceVat($cartId);
+		
+		if ($purchaseDiscount && $this->getPurchaseDiscount($cartId)) {
+			$priceVat -= \round($priceVat * $this->getPurchaseDiscount($cartId) / 100, 2);
+		}
+		
+		$priceVat += $this->getDeliveryPriceVat() + $this->getPaymentPriceVat() - $this->getDiscountPriceVat($cartId);
 		
 		return $priceVat ?: 0.0;
 	}
 	
-	public function getCartCheckoutPrice(): float
+	public function getCartCheckoutPrice(?string $cartId = self::ACTIVE_CART_ID, bool $purchaseDiscount = true): float
 	{
-		$price = $this->getSumPrice() - $this->getDiscountPrice();
+		$price = $this->getSumPrice($cartId);
+		
+		if ($purchaseDiscount && $this->getPurchaseDiscount($cartId)) {
+			$price -= \round($price * $this->getPurchaseDiscount($cartId) / 100, 2);
+		}
+		
+		$price -= $this->getDiscountPrice($cartId);
 		
 		return $price ?: 0.0;
 	}
 	
-	public function getCartCheckoutPriceVat(): float
+	public function getCartCheckoutPriceVat(?string $cartId = self::ACTIVE_CART_ID, bool $purchaseDiscount = true): float
 	{
-		$priceVat = $this->getSumPriceVat() - $this->getDiscountPriceVat();
+		$priceVat = $this->getSumPriceVat($cartId);
+		
+		if ($purchaseDiscount && $this->getPurchaseDiscount($cartId)) {
+			$priceVat -= \round($priceVat * $this->getPurchaseDiscount($cartId) / 100, 2);
+		}
+		
+		$priceVat -= $this->getDiscountPriceVat($cartId);
 		
 		return $priceVat ?: 0.0;
 	}
@@ -1179,10 +1174,10 @@ class CheckoutManager
 		return $priceVat ?: 0.0;
 	}
 	
-	public function getPaymentPrice(): float
+	public function getPaymentPrice(?string $cartId = self::ACTIVE_CART_ID): float
 	{
-		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
-			$paymentType = $this->getPaymentTypes()[$this->getPurchase()->getValue('paymentType')] ?? null;
+		if ($this->getPurchase(false, $cartId) && $this->getPurchase(false, $cartId)->paymentType) {
+			$paymentType = $this->getPaymentTypes()[$this->getPurchase(false, $cartId)->getValue('paymentType')] ?? null;
 			
 			if (!$paymentType) {
 				return 0.0;
@@ -1190,16 +1185,16 @@ class CheckoutManager
 			
 			$price = $paymentType->getValue('price');
 			
-			return isset($price) ? (float)$price : 0.0;
+			return isset($price) ? (float) $price : 0.0;
 		}
 		
 		return 0.0;
 	}
 	
-	public function getPaymentPriceVat(): float
+	public function getPaymentPriceVat(?string $cartId = self::ACTIVE_CART_ID): float
 	{
 		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
-			$paymentType = $this->getPaymentTypes()[$this->getPurchase()->getValue('paymentType')] ?? null;
+			$paymentType = $this->getPaymentTypes()[$this->getPurchase(false, $cartId)->getValue('paymentType')] ?? null;
 			
 			if (!$paymentType) {
 				return 0.0;
@@ -1207,147 +1202,174 @@ class CheckoutManager
 			
 			$price = $paymentType->getValue('priceVat');
 			
-			return isset($price) ? (float)$price : 0.0;
+			return isset($price) ? (float) $price : 0.0;
 		}
 		
 		return 0.0;
 	}
 	
-	public function getDeliveryPrice($includePackagesNo = true): float
+	public function getDeliveryPrice($includePackagesNo = true, ?string $cartId = self::ACTIVE_CART_ID): float
 	{
-		if ($this->getPurchase() && $this->getPurchase()->deliveryType) {
-			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true)->deliveryPackagesNo : 1;
-			$showPrice = $this->shopper->getShowPrice();
-
-			try {
-				$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('price');
-
-				return isset($price) ? (float)$price * $deliveryPackagesNo : 0.0;
-			} catch (NotFoundException $e) {
-				$this->getPurchase()->update(['deliveryType' => null]);
-
-				return 0.0;
-			}
-		}
-		
-		return 0.0;
-	}
-	
-	public function getDeliveryPriceVat($includePackagesNo = true): float
-	{
-		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
-			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true)->deliveryPackagesNo : 1;
-			$showPrice = $this->shopper->getShowPrice();
-
-			try {
-				$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('priceVat');
-
-				return isset($price) ? (float)$price * $deliveryPackagesNo : 0.0;
-			} catch (NotFoundException $e) {
-				$this->getPurchase()->update(['deliveryType' => null]);
-
-				return 0.0;
-			}
-		}
-		
-		return 0.0;
-	}
-	
-	public function getDeliveryPriceBefore($includePackagesNo = true): ?float
-	{
-		if ($this->getPurchase() && $this->getPurchase()->deliveryType) {
-			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true)->deliveryPackagesNo : 1;
-			$showPrice = $this->shopper->getShowPrice();
-			$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('priceBefore');
-
-			return isset($price) ? (float)$price * $deliveryPackagesNo : null;
-		}
-		
-		return null;
-	}
-	
-	public function getDeliveryPriceVatBefore($includePackagesNo = true): ?float
-	{
-		if ($this->getPurchase() && $this->getPurchase()->paymentType) {
-			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true)->deliveryPackagesNo : 1;
-			$showPrice = $this->shopper->getShowPrice();
-			$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase()->getValue('deliveryType')]->getValue('priceBeforeVat');
+		if ($this->getPurchase(false, $cartId) && $this->getPurchase(false, $cartId)->deliveryType) {
+			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true, $cartId)->deliveryPackagesNo : 1;
+			$showPrice = $this->shopperUser->getMainPriceType();
 			
-			return isset($price) ? (float)$price * $deliveryPackagesNo : null;
+			try {
+				$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase(false, $cartId)->getValue('deliveryType')]->getValue('price');
+				
+				return isset($price) ? (float) $price * $deliveryPackagesNo : 0.0;
+			} catch (NotFoundException $e) {
+				$this->getPurchase()->update(['deliveryType' => null]);
+				
+				return 0.0;
+			}
+		}
+		
+		return 0.0;
+	}
+	
+	public function getDeliveryPriceVat($includePackagesNo = true, ?string $cartId = self::ACTIVE_CART_ID): float
+	{
+		if ($this->getPurchase(false, $cartId) && $this->getPurchase(false, $cartId)->deliveryType) {
+			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true, $cartId)->deliveryPackagesNo : 1;
+			$showPrice = $this->shopperUser->getShowPrice();
+			
+			try {
+				$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase(false, $cartId)->getValue('deliveryType')]->getValue('priceVat');
+				
+				return isset($price) ? (float) $price * $deliveryPackagesNo : 0.0;
+			} catch (NotFoundException $e) {
+				$this->getPurchase()->update(['deliveryType' => null]);
+				
+				return 0.0;
+			}
+		}
+		
+		return 0.0;
+	}
+	
+	public function getDeliveryPriceBefore($includePackagesNo = true, ?string $cartId = self::ACTIVE_CART_ID): ?float
+	{
+		if ($this->getPurchase(false, $cartId) && $this->getPurchase(false, $cartId)->deliveryType) {
+			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true, $cartId)->deliveryPackagesNo : 1;
+			$showPrice = $this->shopperUser->getShowPrice();
+			$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase(false, $cartId)->getValue('deliveryType')]->getValue('priceBefore');
+			
+			return isset($price) ? (float) $price * $deliveryPackagesNo : null;
 		}
 		
 		return null;
 	}
 	
-	public function getDeliveryDiscount(bool $vat = false): ?DeliveryDiscount
+	public function getDeliveryPriceVatBefore($includePackagesNo = true, ?string $cartId = self::ACTIVE_CART_ID): ?float
 	{
-		$currency = $this->cartExists() ? $this->getCart()->currency : $this->shopper->getCurrency();
+		if ($this->getPurchase(false, $cartId) && $this->getPurchase(false, $cartId)->deliveryType) {
+			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true, $cartId)->deliveryPackagesNo : 1;
+			$showPrice = $this->shopperUser->getShowPrice();
+			$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase(false, $cartId)->getValue('deliveryType')]->getValue('priceBeforeVat');
+			
+			return isset($price) ? (float) $price * $deliveryPackagesNo : null;
+		}
 		
-		return $this->deliveryDiscountRepository->getActiveDeliveryDiscount($currency, $vat ? $this->getCartCheckoutPriceVat() : $this->getCartCheckoutPrice(), $this->getSumWeight());
+		return null;
 	}
 	
-	public function getPossibleDeliveryDiscount(bool $vat = false): ?DeliveryDiscount
+	public function getDeliveryDiscount(bool $vat = false, ?string $cartId = self::ACTIVE_CART_ID): ?DeliveryDiscount
 	{
-		$currency = $this->cartExists() ? $this->getCart()->currency : $this->shopper->getCurrency();
+		$currency = $this->cartExists($cartId) ? $this->getCart($cartId)->currency : $this->shopperUser->getCurrency();
 		
-		return $this->deliveryDiscountRepository->getNextDeliveryDiscount($currency, $vat ? $this->getCartCheckoutPriceVat() : $this->getCartCheckoutPrice(), $this->getSumWeight());
+		return $this->deliveryDiscountRepository->getActiveDeliveryDiscount(
+			$currency,
+			$vat ? $this->getCartCheckoutPriceVat($cartId) : $this->getCartCheckoutPrice($cartId),
+			$this->getSumWeight($cartId)
+		);
 	}
 	
-	public function getPriceLeftToNextDeliveryDiscount(): ?float
+	public function getPossibleDeliveryDiscount(bool $vat = false, ?string $cartId = self::ACTIVE_CART_ID): ?DeliveryDiscount
 	{
-		return $this->getPossibleDeliveryDiscount() ? $this->getPossibleDeliveryDiscount()->discountPriceFrom - $this->getCartCheckoutPrice() : null;
+		$currency = $this->cartExists($cartId) ? $this->getCart($cartId)->currency : $this->shopperUser->getCurrency();
+		
+		return $this->deliveryDiscountRepository->getNextDeliveryDiscount(
+			$currency,
+			$vat ? $this->getCartCheckoutPriceVat($cartId) : $this->getCartCheckoutPrice($cartId),
+			$this->getSumWeight($cartId)
+		);
 	}
 	
-	public function getPriceVatLeftToNextDeliveryDiscount(): ?float
+	public function getPriceLeftToNextDeliveryDiscount(?string $cartId = self::ACTIVE_CART_ID): ?float
 	{
-		return $this->getPossibleDeliveryDiscount(true) ? $this->getPossibleDeliveryDiscount(true)->discountPriceFrom - $this->getCartCheckoutPriceVat() : null;
+		return $this->getPossibleDeliveryDiscount(false, $cartId) ? $this->getPossibleDeliveryDiscount(false, $cartId)->discountPriceFrom - $this->getCartCheckoutPrice($cartId) : null;
 	}
 	
-	public function getDeliveryDiscountProgress(): ?float
+	public function getPriceVatLeftToNextDeliveryDiscount(?string $cartId = self::ACTIVE_CART_ID): ?float
 	{
-		return $this->getPossibleDeliveryDiscount() ? $this->getCartCheckoutPrice() / $this->getPossibleDeliveryDiscount()->discountPriceFrom * 100 : null;
+		return $this->getPossibleDeliveryDiscount(true, $cartId) ? $this->getPossibleDeliveryDiscount(true, $cartId)->discountPriceFrom - $this->getCartCheckoutPriceVat($cartId) : null;
 	}
 	
-	public function getDeliveryDiscountProgressVat(): ?float
+	public function getDeliveryDiscountProgress(?string $cartId = self::ACTIVE_CART_ID): ?float
 	{
-		return $this->getPossibleDeliveryDiscount(true) ? $this->getCartCheckoutPriceVat() / $this->getPossibleDeliveryDiscount(true)->discountPriceFrom * 100 : null;
+		return $this->getPossibleDeliveryDiscount() ? $this->getCartCheckoutPrice($cartId) / $this->getPossibleDeliveryDiscount()->discountPriceFrom * 100 : null;
 	}
 	
-	public function getDiscountCoupon(): ?DiscountCoupon
+	public function getDeliveryDiscountProgressVat(?string $cartId = self::ACTIVE_CART_ID): ?float
 	{
-		if (!$this->cartExists() || !$this->getPurchase()) {
+		return $this->getPossibleDeliveryDiscount(true) ? $this->getCartCheckoutPriceVat($cartId) / $this->getPossibleDeliveryDiscount(true)->discountPriceFrom * 100 : null;
+	}
+
+	public function getDeliveryDiscountProgressAuto(?string $cartId = self::ACTIVE_CART_ID): ?float
+	{
+		return $this->shopperUser->getMainPriceType() === 'withVat' ? $this->getDeliveryDiscountProgressVat($cartId) : $this->getDeliveryDiscountProgress($cartId);
+	}
+	
+	public function getDiscountCoupon(?string $cartId = self::ACTIVE_CART_ID): ?DiscountCoupon
+	{
+		if (!$this->cartExists($cartId) || !$this->getPurchase(false, $cartId)) {
 			return null;
 		}
 		
-		return $this->getPurchase()->coupon;
+		return $this->getPurchase(false, $cartId)->coupon;
 	}
 	
-	public function setDiscountCoupon(?DiscountCoupon $coupon): void
+	public function setDiscountCoupon(?DiscountCoupon $coupon, ?string $cartId = self::ACTIVE_CART_ID): void
 	{
-		if (!$this->getPurchase()) {
-			$purchase = $this->syncPurchase([]);
+		if (!$this->getPurchase(false, $cartId)) {
+			$purchase = $this->syncPurchase([], $cartId);
 		}
 		
-		($purchase ?? $this->getPurchase())->update(['coupon' => $coupon]);
-
+		($purchase ?? $this->getPurchase(false, $cartId))->update(['coupon' => $coupon]);
+		
 		$this->isDiscountCouponValid = null;
 	}
-
-	public function getDiscountPrice(): float
+	
+	public function getPurchaseDiscount(?string $cartId = self::ACTIVE_CART_ID): int
 	{
-		if ($coupon = $this->getDiscountCoupon()) {
+		return $this->getPurchase(false, $cartId)?->discountPct ?? 0;
+	}
+	
+	public function setPurchaseDiscount(int $value, ?string $cartId = self::ACTIVE_CART_ID): void
+	{
+		if (!$this->getPurchase(false, $cartId)) {
+			$purchase = $this->syncPurchase([], $cartId);
+		}
+		
+		($purchase ?? $this->getPurchase(false, $cartId))->update(['discountPct' => $value]);
+	}
+	
+	public function getDiscountPrice(?string $cartId = self::ACTIVE_CART_ID): float
+	{
+		if ($coupon = $this->getDiscountCoupon($cartId)) {
 			return \floatval($coupon->discountValue);
 		}
 		
 		return 0.0;
 	}
-
-	public function getDiscountPriceVat(): float
+	
+	public function getDiscountPriceVat(?string $cartId = self::ACTIVE_CART_ID): float
 	{
-		if ($coupon = $this->getDiscountCoupon()) {
+		if ($coupon = $this->getDiscountCoupon($cartId)) {
 			return \floatval($coupon->discountValueVat);
 		}
-
+		
 		return 0.0;
 	}
 	
@@ -1355,16 +1377,16 @@ class CheckoutManager
 	{
 		return !($amount < $product->minBuyCount || ($product->maxBuyCount !== null && $amount > $product->maxBuyCount));
 		
-		//		|| ($product->buyStep && $amount % $product->buyStep !== 0)
-		//		$min = $product->minBuyCount ?? self::DEFAULT_MIN_BUY_COUNT;
-		//		$max = $product->maxBuyCount ?? self::DEFAULT_MAX_BUY_COUNT;
+		//      || ($product->buyStep && $amount % $product->buyStep !== 0)
+		//      $min = $product->minBuyCount ?? self::DEFAULT_MIN_BUY_COUNT;
+		//      $max = $product->maxBuyCount ?? self::DEFAULT_MAX_BUY_COUNT;
 		//
-		//		return !($amount < $min || $amount > $max || ($amount && $product->buyStep && (($amount + $min - 1) % $product->buyStep !== 0)));
+		//      return !($amount < $min || $amount > $max || ($amount && $product->buyStep && (($amount + $min - 1) % $product->buyStep !== 0)));
 	}
 	
 	public function checkCartItemPrice(CartItem $cartItem): bool
 	{
-		$productPrice = $this->productRepository->getProduct($cartItem->product->getPK())->getPrice((int)$cartItem->amount);
+		$productPrice = $this->productRepository->getProduct($cartItem->product->getPK())->getPrice((int) $cartItem->amount);
 		
 		return \floatval($productPrice) === $cartItem->price;
 	}
@@ -1377,21 +1399,21 @@ class CheckoutManager
 	/**
 	 * @param mixed $values
 	 */
-	public function syncPurchase($values): Purchase
+	public function syncPurchase($values, ?string $cartId = self::ACTIVE_CART_ID): Purchase
 	{
-		if (!$this->getCart()->getValue('purchase')) {
-			$values['currency'] = $this->getCart()->getValue('currency');
+		if (!$this->getCart($cartId)->getValue('purchase')) {
+			$values['currency'] = $this->getCart($cartId)->getValue('currency');
 		}
 		
 		/** @var \Eshop\DB\Purchase $purchase */
-		$purchase = $this->getCart()->syncRelated('purchase', $values);
+		$purchase = $this->getCart($cartId)->syncRelated('purchase', $values);
 		
 		return $purchase;
 	}
 	
-	public function getPurchase(bool $needed = false): ?Purchase
+	public function getPurchase(bool $needed = false, ?string $cartId = self::ACTIVE_CART_ID): ?Purchase
 	{
-		$purchase = $this->getCart()->purchase;
+		$purchase = $this->getCart($cartId)->purchase;
 		
 		if ($needed && !$purchase) {
 			throw new \DomainException('purchase is not created yet');
@@ -1417,13 +1439,18 @@ class CheckoutManager
 				'uuid' => Connection::generateUuid(),
 				'login' => $purchase->email,
 				'password' => $purchase->password,
-				'active' => !$this->shopper->getRegistrationConfiguration()['confirmation'],
-				'authorized' => !$this->shopper->getRegistrationConfiguration()['emailAuthorization'],
-				'confirmationToken' => $this->shopper->getRegistrationConfiguration()['emailAuthorization'] ? Nette\Utils\Random::generate(128) : null,
+				'active' => !$this->shopperUser->getRegistrationConfiguration()['confirmation'],
+				'authorized' => !$this->shopperUser->getRegistrationConfiguration()['emailAuthorization'],
+				'confirmationToken' => $this->shopperUser->getRegistrationConfiguration()['emailAuthorization'] ? Nette\Utils\Random::generate(128) : null,
+				'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
 			]);
 		}
 		
-		$customer = $this->customerRepository->one(['email' => $purchase->email]);
+		$customerQuery = $this->customerRepository->many()->where('this.email', $purchase->email);
+		$this->shopsConfig->filterShopsInShopEntityCollection($customerQuery);
+
+		$customer = $customerQuery->first();
+
 		$defaultGroup = $this->customerGroupRepository->getDefaultRegistrationGroup();
 		
 		$customerValues = [
@@ -1434,8 +1461,9 @@ class CheckoutManager
 			'dic' => $purchase->dic,
 			'billAddress' => $purchase->billAddress,
 			'deliveryAddress' => $purchase->deliveryAddress,
-			'group' => $defaultGroup ? $defaultGroup->getPK() : null,
+			'group' => $defaultGroup?->getPK(),
 			'discountLevelPct' => $defaultGroup ? $defaultGroup->defaultDiscountLevelPct : 0,
+			'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
 		];
 		
 		if ($customer) {
@@ -1448,14 +1476,14 @@ class CheckoutManager
 		if (!$customer) {
 			return null;
 		}
-
+		
 		$customer = $this->customerRepository->one($customer->getPK(), true);
 		
 		if ($createAccount) {
 			$customer->account = $account;
-
+			
 			$customerOrders = $this->orderRepository->many()->where('purchase.fk_customer', $customer->getPK())->toArrayOf('uuid', [], true);
-
+			
 			if ($customerOrders) {
 				$this->purchaseRepository->many()
 					->join(['eshop_order'], 'this.uuid = eshop_order.fk_purchase')
@@ -1478,8 +1506,14 @@ class CheckoutManager
 			]);
 		}
 		
-		if ($defaultGroup && \count($defaultGroup->defaultPricelists->toArray()) > 0) {
-			$customer->pricelists->relate(\array_keys($defaultGroup->defaultPricelists->toArray()));
+		if ($defaultGroup) {
+			if ($defaultPricelists = $defaultGroup->getDefaultPricelists()->toArray()) {
+				$customer->pricelists->relate(\array_keys($defaultPricelists));
+			}
+
+			if ($defaultVisibilityLists = $defaultGroup->getDefaultVisibilityLists()->toArray()) {
+				$customer->visibilityLists->relate(\array_keys($defaultVisibilityLists));
+			}
 		}
 		
 		return $customer;
@@ -1488,30 +1522,33 @@ class CheckoutManager
 	/**
 	 * @param \Eshop\DB\Purchase|null $purchase
 	 * @param array<string|int|float|null> $defaultOrderValues
+	 * @param string $cartId
+	 * @param bool $isLastOrder
 	 * @throws \Eshop\BuyException
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function createOrder(?Purchase $purchase = null, array $defaultOrderValues = []): Order
+	public function createOrder(?Purchase $purchase = null, array $defaultOrderValues = [], ?string $cartId = self::ACTIVE_CART_ID, bool $isLastOrder = true): Order
 	{
 		/** @var \Eshop\DB\VatRateRepository $vatRepo */
-		$vatRepo = $this->itemRepository->getConnection()->findRepository(VatRate::class);
+		$vatRepo = $this->cartItemRepository->getConnection()->findRepository(VatRate::class);
+
+		/** @var \Eshop\DB\Purchase $purchase */
+		$purchase = $purchase ?: $this->getPurchase(true, $cartId);
 		
-		$purchase = $purchase ?: $this->getPurchase();
+		$banned = $purchase->email && $this->bannedEmailRepository->isEmailBanned($purchase->email);
 		
-		$banned = $this->bannedEmailRepository->isEmailBanned($purchase->email);
-		
-		if (!$this->shopper->getAllowBannedEmailOrder() && $banned) {
+		if (!$this->shopperUser->getAllowBannedEmailOrder() && $banned) {
 			throw new BuyException('Banned email', BuyException::BANNED_EMAIL);
 		}
 		
-		$discountCoupon = $this->getDiscountCoupon();
+		$discountCoupon = $this->getDiscountCoupon($cartId);
 		
 		if ($discountCoupon && $discountCoupon->usageLimit && $discountCoupon->usagesCount >= $discountCoupon->usageLimit) {
 			throw new BuyException('Coupon invalid!', BuyException::INVALID_COUPON);
 		}
 		
-		$customer = $this->shopper->getCustomer();
-		$cart = $this->getCart();
+		$customer = $this->getCustomer();
+		$cart = $this->getCart($cartId);
 		$currency = $cart->currency;
 		
 		$this->stm->getLink()->beginTransaction();
@@ -1520,220 +1557,216 @@ class CheckoutManager
 			$purchase->update(['customerDiscountLevel' => $this->productRepository->getBestDiscountLevel($customer)]);
 		}
 		
-		$cart->update(['approved' => ($customer && $customer->orderPermission === 'full') || !$customer ? 'yes' : 'waiting']);
+		$cart->update([
+			'approved' => ($customer && $customer->orderPermission === 'full') || !$customer ? 'yes' : 'waiting',
+			'closedTs' => Carbon::now()->toDateTimeString(),
+		]);
 		
 		// create customer
 		if (!$customer) {
-			if ($purchase->createAccount) {
+			if ($purchase->createAccount && $purchase->email) {
 				$customer = $this->createCustomer($purchase);
 				
 				if ($customer) {
 					$purchase = $this->syncPurchase(['customer' => $customer->getPK()]);
 					
-					$this->onCustomerCreate($customer);
+					Arrays::invoke($this->onCustomerCreate, $customer);
 				}
-			} elseif ($this->shopper->isAlwaysCreateCustomerOnOrderCreated()) {
+			} elseif ($this->shopperUser->isAlwaysCreateCustomerOnOrderCreated()) {
 				$customer = $this->createCustomer($purchase, false);
 				
 				$purchase = $this->syncPurchase(['customer' => $customer ? $customer->getPK() : $this->customerRepository->many()->match(['email' => $purchase->email])->first()]);
 			}
 		}
 		
-		$year = \date('Y');
-		$code = \vsprintf(
-			$this->shopper->getCountry()->orderCodeFormat,
-			$this->orderCodeArguments ??
-			[$this->orderRepository->many()->where('YEAR(this.createdTs)', $year)->enum() + $this->shopper->getCountry()->orderCodeStartNumber, $year],
-		);
-		
 		$orderValues = $defaultOrderValues + [
-			'code' => $code,
-			'purchase' => $purchase,
-		];
+				'code' => $this->createOrderCode(),
+				'purchase' => $purchase,
+			];
 		
-		$orderValues['receivedTs'] = $this->shopper->getEditOrderAfterCreation() ? null : (string)new DateTime();
+		$orderValues['receivedTs'] = $this->shopperUser->getEditOrderAfterCreation() ? null : (string) new \Carbon\Carbon();
 		$orderValues['newCustomer'] = !$purchase->customer || $this->orderRepository->many()
 				->join(['purchase' => 'eshop_purchase'], 'purchase.uuid = this.fk_purchase')
 				->where('purchase.fk_customer', $purchase->customer->getPK())
 				->count() === 0;
 		
-		if ($this->shopper->getAllowBannedEmailOrder() && $banned) {
-			$orderValues['bannedTs'] = (string)new DateTime();
+		if ($this->shopperUser->getAllowBannedEmailOrder() && $banned) {
+			$orderValues['bannedTs'] = (string) (new \Carbon\Carbon());
 		}
+		
+		$orderValues['shop'] = $this->shopsConfig->getSelectedShop();
 		
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->createOne($orderValues);
-		
-		//@todo getDeliveryPrice se pocita z aktulaniho purchase ne z parametru a presunout do order repository jako create order
-		if ($purchase->deliveryType) {
-			$topLevelItems = $this->getTopLevelItems()->toArray();
-			$boxList = $purchase->deliveryType->getBoxesForItems($topLevelItems);
-			$packageId = 0;
-			
-			foreach ($boxList as $box) {
-				$packageItems = [];
-				$packageWeight = 0.0;
-				$packageId++;
-				
-				if (!\count($box->getItems())) {
-					foreach ($topLevelItems as $cartItem) {
-						$packageItems[$cartItem->getPK()] = [$cartItem, $cartItem->amount];
+
+		$topLevelItems = $this->getTopLevelItems($cartId)->toArray();
+		$boxList = $purchase->deliveryType ? $purchase->deliveryType->getBoxesForItems($topLevelItems) : $this->deliveryTypeRepository->getDefaultBoxes();
+		$packageId = 0;
+
+		foreach ($boxList as $box) {
+			$packageItems = [];
+			$packageWeight = 0.0;
+			$packageId++;
+
+			if (!\count($box->getItems())) {
+				foreach ($topLevelItems as $cartItem) {
+					$packageItems[$cartItem->getPK()] = [$cartItem, $cartItem->amount];
+				}
+
+				$packageWeight = $this->getSumWeight();
+			} else {
+				foreach ($box->getItems() as $item) {
+					$cartItemId = $item->getItem()->getDescription();
+
+					if (isset($packageItems[$cartItemId][1])) {
+						$packageItems[$cartItemId][1]++;
+
+						continue;
 					}
 
-					$packageWeight = $this->getSumWeight();
-				} else {
-					foreach ($box->getItems() as $item) {
-						$cartItemId = $item->getItem()->getDescription();
-						
-						if (isset($packageItems[$cartItemId][1])) {
-							$packageItems[$cartItemId][1]++;
+					$packageItems[$item->getItem()->getDescription()] = [$this->getTopLevelItems()->where('this.uuid', $cartItemId)->first(true), 1];
+				}
 
-							continue;
-						}
-						
-						$packageItems[$item->getItem()->getDescription()] = [$this->getTopLevelItems()->where('this.uuid', $cartItemId)->first(true), 1];
-					}
-					
-					$packageWeight = $box->getItems()->getWeight() / 1000;
-				}
-				
-				/** @var \Eshop\DB\Delivery $delivery */
-				$delivery = $this->deliveryRepository->createOne([
-					'order' => $order,
-					'currency' => $currency,
-					'type' => $purchase->deliveryType,
-					'typeName' => $purchase->deliveryType->toArray()['name'],
-					'typeCode' => $purchase->deliveryType->code,
-					'price' => $this->getDeliveryPrice(false),
-					'priceVat' => $this->getDeliveryPriceVat(false),
-					'priceBefore' => $this->getDeliveryPriceBefore(false),
-					'priceVatBefore' => $this->getDeliveryPriceVatBefore(false),
+				$packageWeight = $box->getItems()->getWeight() / 1000;
+			}
+
+			/** @var \Eshop\DB\Delivery $delivery */
+			$delivery = $this->deliveryRepository->createOne([
+				'order' => $order,
+				'currency' => $currency,
+				'type' => $purchase->deliveryType,
+				'typeName' => $purchase->deliveryType ? $purchase->deliveryType->toArray()['name'] : [],
+				'typeCode' => $purchase->deliveryType?->code,
+				'price' => $this->getDeliveryPrice(false),
+				'priceVat' => $this->getDeliveryPriceVat(false),
+				'priceBefore' => $this->getDeliveryPriceBefore(false),
+				'priceVatBefore' => $this->getDeliveryPriceVatBefore(false),
+			]);
+
+			/** @var \Eshop\DB\Package $package */
+			$package = $this->packageRepository->createOne([
+				'id' => $packageId,
+				'order' => $order->getPK(),
+				'delivery' => $delivery->getPK(),
+				'weight' => $packageWeight,
+			]);
+
+			$setRelationType = $this->settingRepository->getValueByName(SettingsPresenter::SET_RELATION_TYPE);
+
+			if ($setRelationType) {
+				/** @var \Eshop\DB\RelatedType $setRelationType */
+				$setRelationType = $this->relatedTypeRepository->one($setRelationType);
+			}
+
+			foreach ($packageItems as $cartItemToParse) {
+				/** @var \Eshop\DB\CartItem $cartItem */
+				[$cartItem, $amount] = $cartItemToParse;
+
+				/* Create package item for top-level cart items */
+				$packageItem = $this->packageItemRepository->createOne([
+					'package' => $package->getPK(),
+					'cartItem' => $cartItem,
+					'amount' => $amount,
 				]);
-				
-				/** @var \Eshop\DB\Package $package */
-				$package = $this->packageRepository->createOne([
-					'id' => $packageId,
-					'order' => $order->getPK(),
-					'delivery' => $delivery->getPK(),
-					'weight' => $packageWeight,
-				]);
-				
-				$setRelationType = $this->settingRepository->getValueByName(SettingsPresenter::SET_RELATION_TYPE);
-				
-				if ($setRelationType) {
-					/** @var \Eshop\DB\RelatedType $setRelationType */
-					$setRelationType = $this->relatedTypeRepository->one($setRelationType);
-				}
-				
-				foreach ($packageItems as $cartItemToParse) {
-					[$cartItem, $amount] = $cartItemToParse;
-					
-					/* Create package item for top-level cart items */
-					$packageItem = $this->packageItemRepository->createOne([
+
+				/* Create package items for upsells with link to top-level package item */
+				$upsells = $purchase->getItems()->where('this.fk_upsell', $cartItem->getPK())->toArray();
+
+				foreach ($upsells as $upsell) {
+					$this->packageItemRepository->createOne([
 						'package' => $package->getPK(),
-						'cartItem' => $cartItem,
-						'amount' => $amount,
+						'cartItem' => $upsell->getPK(),
+						'amount' => $upsell->amount,
+						'upsell' => $packageItem->getPK(),
 					]);
-					
-					/* Create package items for upsells with link to top-level package item */
-					$upsells = $purchase->getItems()->where('this.fk_upsell', $cartItem->getPK())->toArray();
-					
-					foreach ($upsells as $upsell) {
-						$this->packageItemRepository->createOne([
-							'package' => $package->getPK(),
-							'cartItem' => $upsell->getPK(),
-							'amount' => $upsell->amount,
-							'upsell' => $packageItem->getPK(),
-						]);
-					}
-					
-					/* Get default set relation type and slave products in that relation for top-level cart item */
-					if (!$setRelationType) {
-						continue;
-					}
-					
-					/** @var array<mixed> $relatedCartItems */
-					$relatedCartItems = [];
-					
-					/* Load real products in relation with prices */
-					$relatedProducts = $this->productRepository->getSlaveRelatedProducts($setRelationType, $cartItem->product)->toArray();
-					
-					if (!$relatedProducts) {
-						continue;
-					}
-					
-					$slaveProducts = [];
-					
-					foreach ($relatedProducts as $relatedProduct) {
-						$slaveProducts[] = $relatedProduct->getValue('slave');
-					}
-					
-					/* Compute total price of set items */
-					/** @var array<\Eshop\DB\Product> $slaveProducts */
-					$slaveProducts = $this->productRepository->getProducts()->where('this.uuid', $slaveProducts)->toArray();
-					$slaveProductsTotalPrice = 0;
-					$slaveProductsTotalPriceVat = 0;
-					
-					foreach ($relatedProducts as $relatedProduct) {
-						if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
-							continue;
-						}
-						
-						$slaveProductsTotalPrice += $slaveProducts[$relatedProduct->getValue('slave')]->getPrice() * $relatedProduct->amount;
-						$slaveProductsTotalPriceVat += $slaveProducts[$relatedProduct->getValue('slave')]->getPriceVat() * $relatedProduct->amount;
-					}
-					
-					$setTotalPriceModifier = $slaveProductsTotalPrice > 0 ? $cartItem->price / $slaveProductsTotalPrice : 1;
-					$setTotalPriceVatModifier = $slaveProductsTotalPriceVat > 0 ? $cartItem->priceVat / $slaveProductsTotalPriceVat : 1;
-					
-					foreach ($relatedProducts as $relatedProduct) {
-						if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
-							continue;
-						}
-						
-						$product = $slaveProducts[$relatedProduct->getValue('slave')];
-						
-						/** @var \Eshop\DB\VatRate|null $vat */
-						$vat = $vatRepo->one($product->vatRate);
-						$vatPct = $vat ? $vat->rate : 0;
-						
-						/* Create related cart items with price computed to match unit price of top-level cart item */
-						$relatedCartItems[] = [
-							'cartItem' => $cartItem->getPK(),
-							'relatedType' => $setRelationType->getPK(),
-							'product' => $product->getPK(),
-							'relatedTypeCode' => $setRelationType->code,
-							'relatedTypeName' => $setRelationType->name,
-							'productName' => $product->toArray()['name'],
-							'productCode' => $product->getFullCode(),
-							'productSubCode' => $product->subCode,
-							'productWeight' => $product->weight,
-							'productDimension' => $product->dimension,
-							'amount' => $relatedProduct->amount * $cartItem->amount,
-							'price' => $product->getPrice() * $setTotalPriceModifier,
-							'priceVat' => $product->getPriceVat() * $setTotalPriceVatModifier,
-							'priceBefore' => $product->getPriceBefore() ?: $product->getPrice(),
-							'priceVatBefore' => $product->getPriceVatBefore() ?: $product->getPriceVat(),
-							'vatPct' => (float) $vatPct,
-						];
-					}
-					
-					if (!$relatedCartItems) {
+				}
+
+				/* Get default set relation type and slave products in that relation for top-level cart item */
+				if (!$setRelationType) {
+					continue;
+				}
+
+				/** @var array<mixed> $relatedCartItems */
+				$relatedCartItems = [];
+
+				/* Load real products in relation with prices */
+				$relatedProducts = $this->productRepository->getSlaveRelatedProducts($setRelationType, $cartItem->product)->toArray();
+
+				if (!$relatedProducts) {
+					continue;
+				}
+
+				$slaveProducts = [];
+
+				foreach ($relatedProducts as $relatedProduct) {
+					$slaveProducts[] = $relatedProduct->getValue('slave');
+				}
+
+				/* Compute total price of set items */
+				/** @var array<\Eshop\DB\Product> $slaveProducts */
+				$slaveProducts = $this->productRepository->getProducts()->where('this.uuid', $slaveProducts)->toArray();
+				$slaveProductsTotalPrice = 0;
+				$slaveProductsTotalPriceVat = 0;
+
+				foreach ($relatedProducts as $relatedProduct) {
+					if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
 						continue;
 					}
 
-					$this->relatedCartItemRepository->many()->where('fk_cartItem', $cartItem->getPK())->delete();
-					
-					/** @var array<\Eshop\DB\RelatedCartItem> $relatedCartItems */
-					$relatedCartItems = $this->relatedCartItemRepository->createMany($relatedCartItems)->toArray();
-					
-					/* Create relation between related package item and related cart item */
-					foreach ($relatedCartItems as $relatedCartItem) {
-						$this->relatedPackageItemRepository->createOne([
-							'cartItem' => $relatedCartItem->getPK(),
-							'packageItem' => $packageItem->getPK(),
-						]);
+					$slaveProductsTotalPrice += $slaveProducts[$relatedProduct->getValue('slave')]->getPrice() * $relatedProduct->amount;
+					$slaveProductsTotalPriceVat += $slaveProducts[$relatedProduct->getValue('slave')]->getPriceVat() * $relatedProduct->amount;
+				}
+
+				$setTotalPriceModifier = $slaveProductsTotalPrice > 0 ? $cartItem->price / $slaveProductsTotalPrice : 1;
+				$setTotalPriceVatModifier = $slaveProductsTotalPriceVat > 0 ? $cartItem->priceVat / $slaveProductsTotalPriceVat : 1;
+
+				foreach ($relatedProducts as $relatedProduct) {
+					if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
+						continue;
 					}
+
+					$product = $slaveProducts[$relatedProduct->getValue('slave')];
+
+					/** @var \Eshop\DB\VatRate|null $vat */
+					$vat = $vatRepo->one($product->vatRate);
+					$vatPct = $vat ? $vat->rate : 0;
+
+					/* Create related cart items with price computed to match unit price of top-level cart item */
+					$relatedCartItems[] = [
+						'cartItem' => $cartItem->getPK(),
+						'relatedType' => $setRelationType->getPK(),
+						'product' => $product->getPK(),
+						'relatedTypeCode' => $setRelationType->code,
+						'relatedTypeName' => $setRelationType->name,
+						'productName' => $product->toArray()['name'],
+						'productCode' => $product->getFullCode(),
+						'productSubCode' => $product->subCode,
+						'productWeight' => $product->weight,
+						'productDimension' => $product->dimension,
+						'amount' => $relatedProduct->amount * $cartItem->amount,
+						'price' => $product->getPrice() * $setTotalPriceModifier,
+						'priceVat' => $product->getPriceVat() * $setTotalPriceVatModifier,
+						'priceBefore' => $product->getPriceBefore() ?: $product->getPrice(),
+						'priceVatBefore' => $product->getPriceVatBefore() ?: $product->getPriceVat(),
+						'vatPct' => (float) $vatPct,
+					];
+				}
+
+				if (!$relatedCartItems) {
+					continue;
+				}
+
+				$this->relatedCartItemRepository->many()->where('fk_cartItem', $cartItem->getPK())->delete();
+
+				/** @var array<\Eshop\DB\RelatedCartItem> $relatedCartItems */
+				$relatedCartItems = $this->relatedCartItemRepository->createMany($relatedCartItems)->toArray();
+
+				/* Create relation between related package item and related cart item */
+				foreach ($relatedCartItems as $relatedCartItem) {
+					$this->relatedPackageItemRepository->createOne([
+						'cartItem' => $relatedCartItem->getPK(),
+						'packageItem' => $packageItem->getPK(),
+					]);
 				}
 			}
 		}
@@ -1753,12 +1786,42 @@ class CheckoutManager
 		if ($purchase->billAddress) {
 			$purchase->billAddress->update(['name' => $purchase->fullname]);
 		}
+
+		try {
+			$carts = $purchase->getCarts()->toArray();
+
+			$serializedDataOfOrder = [
+				'order' => $order->toArray(),
+				'purchase' => $purchase->toArray(['billAddress', 'deliveryAddress']),
+				'carts' => $carts,
+				'cartItems' => [],
+				'relatedCartItems' => [],
+			];
+
+			foreach ($carts as $cart) {
+				/** @var array<\Eshop\DB\CartItem> $cartItems */
+				$cartItems = $cart->getItems()->toArray();
+
+				$serializedDataOfOrder['cartItems'] = \array_merge($cartItems, $serializedDataOfOrder['cartItems']);
+
+				foreach ($cartItems as $cartItem) {
+					$serializedDataOfOrder['relatedCartItems'] = \array_merge($cartItem->getRelatedCartItems()->toArray(), $serializedDataOfOrder['relatedCartItems']);
+				}
+			}
+
+			Debugger::log(Nette\Utils\Json::encode($serializedDataOfOrder), 'orders');
+		} catch (\Throwable $e) {
+			Debugger::log('Cant log order: ' . $order->code, ILogger::EXCEPTION);
+			Debugger::log($e, ILogger::EXCEPTION);
+		}
 		
-		$this->response->setCookie('lastOrderToken', $order->getPK(), '1 hour');
-		
-		if (!$this->customer) {
-			$this->cartToken = DIConnection::generateUuid();
-			$this->response->setCookie('cartToken', $this->cartToken, $this->cartExpiration . ' days');
+		if ($isLastOrder) {
+			$this->response->setCookie('lastOrderToken', $order->getPK(), '1 hour');
+			
+			if (!$this->getCustomer()) {
+				$this->cartToken = DIConnection::generateUuid();
+				$this->response->setCookie('cartToken', $this->cartToken, $this->cartExpiration . ' days');
+			}
 		}
 		
 		if ($customer) {
@@ -1783,7 +1846,7 @@ class CheckoutManager
 			]);
 		}
 		
-		if ($purchase->sendNewsletters) {
+		if ($purchase->sendNewsletters && $purchase->email) {
 			$this->newsletterUserRepository->syncOne([
 				'email' => $purchase->email,
 				'customerAccount' => $customer && $customer->account ? $customer->account->getPK() : null,
@@ -1792,44 +1855,36 @@ class CheckoutManager
 		
 		$this->orderLogItemRepository->createLog($order, OrderLogItem::CREATED);
 		
-		$this->createCart();
+		if ($isLastOrder) {
+			$this->createCart();
+		}
 		
-		$this->refreshSumProperties();
+		if ($cartId !== self::ACTIVE_CART_ID) {
+			unset($this->carts[$cartId]);
+		}
+		
+		$this->refreshSumProperties($cartId);
 		
 		$this->stm->getLink()->commit();
-
-		$this->reviewRepository->createReviewsFromOrder($order);
 		
+		if ($purchase->email) {
+			$this->reviewRepository->createReviewsFromOrder($order);
+		}
+		
+		Arrays::invoke($this->onOrderCreate, $order);
+
 		$this->onOrderCreate($order);
 		
 		return $order;
 	}
-	
-	/**
-	 * @param \Eshop\DB\Customer $customer
-	 * @deprecated TODO: redesign to $this->shooper->getCustomer();
-	 */
-	public function setCustomer(Customer $customer): void
-	{
-		$this->customer = $customer;
-	}
-	
-	public function getCart(): Cart
-	{
-		if (!$this->cartExists()) {
-			return $this->createCart();
-		}
-		
-		return $this->customer ? $this->customer->activeCart : $this->unattachedCarts[$this->cartToken];
-	}
-	
-	public function getAttributeNumericSumOfItemsInCart(Attribute $attribute): ?float
+
+	public function getAttributeNumericSumOfItemsInCart(Attribute $attribute, ?string $cartId = self::ACTIVE_CART_ID): ?float
 	{
 		$sum = 0;
 		
 		/** @var \Eshop\DB\CartItem $item
 		 */
-		foreach ($this->getItems() as $item) {
+		foreach ($this->getItems($cartId) as $item) {
 			if (!$item->getProduct()) {
 				continue;
 			}
@@ -1844,17 +1899,33 @@ class CheckoutManager
 		
 		return $sum;
 	}
-	
-	private function getProductRoundAmount(int $amount, Product $product): int
+
+	protected function onOrderCreate(Order $order): void
 	{
-		if (!$this->shopper->getCustomer() || !$this->shopper->getCustomer()->productRoundingPct) {
+		unset($order);
+	}
+	
+	protected function createOrderCode(): string
+	{
+		$year = Carbon::now()->format('Y');
+		
+		return \vsprintf(
+			$this->shopperUser->getCountry()->orderCodeFormat,
+			$this->orderCodeArguments ??
+			[$this->orderRepository->many()->where('YEAR(this.createdTs)', $year)->enum() + $this->shopperUser->getCountry()->orderCodeStartNumber, $year],
+		);
+	}
+	
+	protected function getProductRoundAmount(int $amount, Product $product): int
+	{
+		if (!$this->getCustomer() || !$this->getCustomer()->productRoundingPct) {
 			return $amount;
 		}
 		
-		$prAmount = $amount * (1 + ($this->shopper->getCustomer()->productRoundingPct / 100));
+		$prAmount = $amount * (1 + ($this->getCustomer()->productRoundingPct / 100));
 		
 		if ($product->inPalett > 0) {
-			$newAmount = $this->itemRepository->roundUpToProductRoundAmount($amount, $prAmount, $product->inPalett);
+			$newAmount = $this->cartItemRepository->roundUpToProductRoundAmount($amount, $prAmount, $product->inPalett);
 			
 			if ($amount !== $newAmount) {
 				return $newAmount;
@@ -1862,7 +1933,7 @@ class CheckoutManager
 		}
 		
 		if ($product->inCarton > 0) {
-			$newAmount = $this->itemRepository->roundUpToProductRoundAmount($amount, $prAmount, $product->inCarton);
+			$newAmount = $this->cartItemRepository->roundUpToProductRoundAmount($amount, $prAmount, $product->inCarton);
 			
 			if ($amount !== $newAmount) {
 				return $newAmount;
@@ -1870,7 +1941,7 @@ class CheckoutManager
 		}
 		
 		if ($product->inPackage > 0) {
-			$newAmount = $this->itemRepository->roundUpToProductRoundAmount($amount, $prAmount, $product->inPackage);
+			$newAmount = $this->cartItemRepository->roundUpToProductRoundAmount($amount, $prAmount, $product->inPackage);
 			
 			if ($amount !== $newAmount) {
 				return $newAmount;
@@ -1879,21 +1950,71 @@ class CheckoutManager
 		
 		return $amount;
 	}
-	
-	private function checkCurrency(Product $product): bool
+
+	private function getActiveCart(): ?Cart
 	{
-		return $product->getValue('currencyCode') === $this->getCart()->currency->code;
+		if ($this->getCustomer()) {
+			return $this->getCustomer()->activeCart;
+		}
+		
+		if (!\array_key_exists($this->cartToken, $this->unattachedCarts)) {
+			$this->unattachedCarts[$this->cartToken] = $this->cartRepository->getUnattachedCart($this->cartToken);
+		}
+		
+		return $this->unattachedCarts[$this->cartToken];
 	}
 	
-	private function refreshSumProperties(): void
+	private function getRealCart(string $id, bool $saveToCache = true): ?Cart
 	{
-		$this->sumPrice = null;
-		$this->sumPriceVat = null;
-		$this->sumAmountTotal = null;
-		$this->sumAmount = null;
-		$this->sumWeight = null;
-		$this->sumPoints = null;
-		$this->sumDimension = null;
+		$cart = null;
+		
+		if ($id === self::DEFAULT_CART_ID && !$this->getCustomer() && $this->cartToken) {
+			$cart = $this->unattachedCarts[$this->cartToken] ?? $this->cartRepository->one($this->cartToken);
+			
+			if ($saveToCache && $cart) {
+				$this->unattachedCarts[$this->cartToken] = $cart;
+			}
+		} elseif (!$this->getCustomer() && $this->cartToken) {
+			$cart = $this->cartRepository->one(['cartToken' => $this->cartToken]);
+			
+			if ($saveToCache && $cart) {
+				$this->unattachedCarts[$this->cartToken] = $cart;
+			}
+		} elseif ($this->getCustomer()->activeCart?->id === $id) {
+			$cart = $this->getCustomer()->activeCart;
+		} elseif ($this->getCustomer()) {
+			if (\array_key_exists($id, $this->carts)) {
+				return $this->carts[$id];
+			}
+			
+			$cart = $this->cartRepository->many()
+				->where('closedTs IS NULL')
+				->whereMatch(['id' => $id, 'fk_customer' => $this->getCustomer(), 'fk_currency' => $this->getCustomer()->preferredCurrency ?: $this->shopperUser->getCurrency()])
+				->setTake(1)
+				->first();
+			
+			if ($saveToCache) {
+				$this->carts[$id] = $cart;
+			}
+		}
+		
+		return $cart;
+	}
+	
+	private function checkCurrency(Product $product, ?string $cartId = self::ACTIVE_CART_ID): bool
+	{
+		return $product->getValue('currencyCode') === $this->getCart($cartId)->currency->code;
+	}
+	
+	private function refreshSumProperties(?string $cartId = self::ACTIVE_CART_ID): void
+	{
+		unset($this->sumPrice[$cartId]);
+		unset($this->sumPriceVat[$cartId]);
+		unset($this->sumAmountTotal[$cartId]);
+		unset($this->sumAmount[$cartId]);
+		unset($this->sumWeight[$cartId]);
+		unset($this->sumPoints[$cartId]);
+		unset($this->sumDimension[$cartId]);
 	}
 	
 	/**
@@ -1903,15 +2024,15 @@ class CheckoutManager
 	private function updateItem(CartItem $cartItem): void
 	{
 		foreach ($this->productRepository->getCartItemRelations($cartItem, true, false) as $upsell) {
-			if ($upsellCartItem = $this->itemRepository->getUpsell($cartItem->getPK(), $upsell->getPK())) {
+			if ($upsellCartItem = $this->cartItemRepository->getUpsell($cartItem->getPK(), $upsell->getPK())) {
 				$upsellCartItem->update([
-					'price' => (float)$upsell->getValue('price'),
-					'priceVat' => (float)$upsell->getValue('priceVat'),
+					'price' => (float) $upsell->getValue('price'),
+					'priceVat' => (float) $upsell->getValue('priceVat'),
 					'amount' => $upsellCartItem->realAmount ? $upsellCartItem->realAmount * $upsell->getValue('amount') : $upsell->getValue('amount'),
 				]);
 			}
 		}
 		
-		$this->onCartItemUpdate($cartItem);
+		Arrays::invoke($this->onCartItemUpdate, $cartItem);
 	}
 }

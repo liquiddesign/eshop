@@ -4,37 +4,37 @@ declare(strict_types=1);
 namespace Eshop\Front;
 
 use Admin\Administrator;
-use Ares\Ares;
-use Ares\HttpException;
-use Ares\IcNotFoundException;
-use Eshop\CheckoutManager;
+use Ares\HandleLoadAresTrait;
+use Base\DB\ShopRepository;
+use Base\ShopsConfig;
 use Eshop\DB\CartItem;
 use Eshop\DB\NewsletterUserRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\WatcherRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Forms\FormFactory;
-use GuzzleHttp\Exception\GuzzleException;
 use Latte\Engine;
 use Latte\Loaders\StringLoader;
 use Latte\Policy;
 use Latte\Sandbox\SecurityPolicy;
 use Messages\DB\TemplateRepository;
+use Nette\Application\Application;
 use Nette\Application\UI\Presenter;
 use Nette\Bridges\ApplicationLatte\LatteFactory;
 use Nette\Bridges\ApplicationLatte\UIExtension;
-use Nette\Bridges\ApplicationLatte\UIMacros;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\DI\Attributes\Inject;
 use Nette\DI\Container;
 use Nette\Localization\Translator;
 use Nette\Mail\Mailer;
 use Nette\Mail\Message;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
+use StORM\DIConnection;
+use Throwable;
 use Tracy\Debugger;
-use Tracy\ILogger;
 use Web\Controls\Breadcrumb;
 use Web\Controls\IBreadcrumbFactory;
 use Web\Controls\IWidgetFactory;
@@ -42,53 +42,63 @@ use Web\Controls\Widget;
 
 abstract class FrontendPresenter extends Presenter
 {
+	use HandleLoadAresTrait;
 	public string $appPath = __DIR__ . '/../../../../../app';
 
 	public string $layoutTemplate = __DIR__ . '/../../../../../app/@layout.latte';
 
 	public Administrator $admin;
 
-	/** @inject */
+	#[Inject]
 	public Container $container;
 
-	/** @inject */
+	#[Inject]
 	public LatteFactory $latteFactory;
 
-	/** @inject */
+	#[Inject]
 	public Translator $translator;
 
-	/** @inject */
-	public Shopper $shopper;
+	#[Inject]
+	public ShopperUser $shopperUser;
 
-	/** @inject */
+	#[Inject]
 	public ProductRepository $productRepository;
 
-	/** @inject */
+	#[Inject]
 	public TemplateRepository $templateRepository;
 
-	/** @inject */
+	#[Inject]
 	public Mailer $mailer;
 
-	/** @inject */
+	#[Inject]
 	public IBreadcrumbFactory $breadcrumbFactory;
 
-	/** @inject */
+	#[Inject]
 	public IWidgetFactory $widgetFactory;
 
-	/** @inject */
+	#[Inject]
 	public Storage $storage;
 
-	/** @inject */
+	#[Inject]
 	public WatcherRepository $watcherRepository;
 
-	/** @inject */
+	#[Inject]
 	public NewsletterUserRepository $newsletterUserRepository;
 
-	/** @inject */
+	#[Inject]
 	public FormFactory $formFactory;
 
-	/** @inject */
-	public CheckoutManager $checkoutManager;
+	#[Inject]
+	public ShopsConfig $shopsConfig;
+
+	#[Inject]
+	public ShopRepository $shopRepository;
+
+	#[Inject]
+	public Application $netteApplication;
+
+	#[Inject]
+	public DIConnection $connection;
 
 	/** @persistent */
 	public string $lang;
@@ -101,6 +111,8 @@ abstract class FrontendPresenter extends Presenter
 	protected string $tempDir;
 
 	protected string $userDir;
+
+	protected string $appDir;
 
 	private Cache $cache;
 
@@ -122,9 +134,9 @@ abstract class FrontendPresenter extends Presenter
 
 	public function handleLogout(): void
 	{
-		if ($this->shopper->getMerchant() && $this->shopper->getMerchant()->activeCustomer) {
-			$this->shopper->getMerchant()->update(['activeCustomer' => null]);
-			$this->shopper->getMerchant()->update(['activeCustomerAccount' => null]);
+		if ($this->shopperUser->getMerchant() && $this->shopperUser->getMerchant()->activeCustomer) {
+			$this->shopperUser->getMerchant()->update(['activeCustomer' => null]);
+			$this->shopperUser->getMerchant()->update(['activeCustomerAccount' => null]);
 
 			$this->redirect(':Web:Index:default');
 		}
@@ -164,21 +176,21 @@ abstract class FrontendPresenter extends Presenter
 				'inStock' => $inStock,
 			];
 
-			if ($this->shopper->getCatalogPermission() !== 'price') {
+			if ($this->shopperUser->getCatalogPermission() !== 'price') {
 				continue;
 			}
 
-			if ($this->shopper->getShowVat() && $this->shopper->getShowWithoutVat()) {
-				$result[$product->getPK()]['price'] = $this->shopper->showPriorityPrices() === 'withVat' ?
-					$this->shopper->filterPrice($product->getPriceVat()) :
-					$this->shopper->filterPrice($product->getPrice());
+			if ($this->shopperUser->getShowVat() && $this->shopperUser->getShowWithoutVat()) {
+				$result[$product->getPK()]['price'] = $this->shopperUser->showPriorityPrices() === 'withVat' ?
+					$this->shopperUser->filterPrice($product->getPriceVat()) :
+					$this->shopperUser->filterPrice($product->getPrice());
 			} else {
-				if ($this->shopper->getShowVat()) {
-					$result[$product->getPK()]['price'] = $this->shopper->filterPrice($product->getPriceVat());
+				if ($this->shopperUser->getShowVat()) {
+					$result[$product->getPK()]['price'] = $this->shopperUser->filterPrice($product->getPriceVat());
 				}
 
-				if ($this->shopper->getShowWithoutVat()) {
-					$result[$product->getPK()]['price'] = $this->shopper->filterPrice($product->getPrice());
+				if ($this->shopperUser->getShowWithoutVat()) {
+					$result[$product->getPK()]['price'] = $this->shopperUser->filterPrice($product->getPrice());
 				}
 			}
 		}
@@ -201,13 +213,13 @@ abstract class FrontendPresenter extends Presenter
 
 	public function handleWatchIt(string $product): void
 	{
-		if ($customer = $this->shopper->getCustomer()) {
+		if ($customer = $this->shopperUser->getCustomer()) {
 			$this->watcherRepository->createOne([
 				'product' => $product,
 				'customer' => $customer,
 				'amountFrom' => 1,
 				'beforeAmountFrom' => 0,
-			]);
+			], ignore: true);
 		} else {
 			$this->flashMessage($this->translator->translate(
 				'watcher.signInToAdd',
@@ -222,7 +234,7 @@ abstract class FrontendPresenter extends Presenter
 
 	public function handleUnWatchIt(string $product): void
 	{
-		if ($customer = $this->shopper->getCustomer()) {
+		if ($customer = $this->shopperUser->getCustomer()) {
 			$this->watcherRepository->many()
 				->where('fk_product', $product)
 				->where('fk_customer', $customer)
@@ -231,30 +243,6 @@ abstract class FrontendPresenter extends Presenter
 
 		$this->redirect('this');
 		// @TODO call event
-	}
-
-	/**
-	 * @throws \Nette\Application\AbortException
-	 */
-	public function handleLoadAres(): void
-	{
-		$ic = $this->getHttpRequest()->getPost('ic');
-
-		if (!$ic) {
-			$this->sendPayload();
-		}
-
-		try {
-			$this->getPresenter()->payload->result = Ares::loadDataByIc($ic);
-		} catch (HttpException | GuzzleException $e) {
-			Debugger::log($e, ILogger::EXCEPTION);
-
-			$this->getPresenter()->getHttpResponse()->setCode(400);
-		} catch (IcNotFoundException $e) {
-			$this->getPresenter()->getHttpResponse()->setCode(404);
-		}
-
-		$this->getPresenter()->sendPayload();
 	}
 
 	public function cleanCache(): void
@@ -292,9 +280,7 @@ abstract class FrontendPresenter extends Presenter
 
 		try {
 			return $this->latte->renderToString($string, $params);
-		} catch (\Throwable $e) {
-			\bdump($e);
-
+		} catch (Throwable $e) {
 			return null;
 		}
 	}
@@ -306,38 +292,70 @@ abstract class FrontendPresenter extends Presenter
 		}
 	}
 
+	public function afterRender(): void
+	{
+		\Tracy\Debugger::$maxLength = 100000;
+
+		$this->netteApplication->onShutdown[] = function (): void {
+			if ($this->getRequest()->getParameter('debug') !== null) {
+				$logItems = $this->connection->getLog();
+
+				\uasort($logItems, function (\StORM\LogItem $a, \StORM\LogItem $b): int {
+					return $b->getTotalTime() <=> $a->getTotalTime();
+				});
+
+				$totalTime = 0;
+				$totalAmount = 0;
+
+				$logItems = \array_filter($logItems, function (\StORM\LogItem $item) use (&$totalTime, &$totalAmount): bool {
+					$totalTime += $item->getTotalTime();
+					$totalAmount += $item->getAmount();
+
+					return $item->getTotalTime() > 0.01;
+				});
+
+				Debugger::dump($totalTime);
+				Debugger::dump($totalAmount);
+
+				foreach ($logItems as $logItem) {
+					Debugger::dump($logItem);
+					Debugger::dump(\PdoDebugger::show($logItem->getSql(), $logItem->getVars()));
+				}
+			}
+		};
+	}
+
 	protected function startup(): void
 	{
 		parent::startup();
 
 		$this->tempDir = $this->container->getParameters()['tempDir'];
 		$this->userDir = $this->container->getParameters()['wwwDir'] . '/userfiles';
+		$this->appDir = $this->container->getParameters()['appDir'];
 
 		$this->latte = $this->createLatteEngine();
 
-		if ($preferredMutation = $this->shopper->getUserPreferredMutation()) {
+		if ($preferredMutation = $this->shopperUser->getUserPreferredMutation()) {
 			$this->templateRepository->setMutation($preferredMutation);
 		}
 
 		$this->cache = new Cache($this->storage);
 
-		$this->checkoutManager->onCartItemCreate[] = function (CartItem $cartItem): void {
+		$this->shopperUser->getCheckoutManager()->onCartItemCreate[] = function (CartItem $cartItem): void {
 			$this->setCartChanged();
 		};
 
-		$this->checkoutManager->onCartItemDelete[] = function (): void {
+		$this->shopperUser->getCheckoutManager()->onCartItemDelete[] = function (): void {
 			$this->setCartChanged();
 		};
 
-		$this->checkoutManager->onCartItemUpdate[] = function (): void {
+		$this->shopperUser->getCheckoutManager()->onCartItemUpdate[] = function (): void {
 			$this->setCartChanged();
 		};
 
-		if (!$this->shopper->isIntegrationsEHub() || (!$eHub = $this->getParameter('ehub'))) {
+		if (!$this->shopperUser->isIntegrationsEHub() || (!$eHub = $this->getParameter('ehub'))) {
 			return;
 		}
-
-		\bdump('ehub detected and saved to session');
 
 		$this->getSession()->getSection('frontend')->set('ehub', $eHub);
 	}
@@ -386,14 +404,7 @@ abstract class FrontendPresenter extends Presenter
 	{
 		$latte = $this->latteFactory->create();
 
-		/** @phpstan-ignore-next-line @TODO LATTEV3 */
-		if (\version_compare(\Latte\Engine::VERSION, '3', '<')) {
-			/** @phpstan-ignore-next-line @TODO LATTEV3 */
-			UIMacros::install($latte->getCompiler());
-		} else {
-			$latte->addExtension(new UIExtension(null));
-		}
-
+		$latte->addExtension(new UIExtension(null));
 		$latte->setLoader(new StringLoader());
 		$latte->setPolicy($this->getLatteSecurityPolicy());
 		$latte->setSandboxMode();

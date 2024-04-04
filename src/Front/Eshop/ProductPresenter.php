@@ -4,21 +4,32 @@ declare(strict_types=1);
 
 namespace Eshop\Front\Eshop;
 
+use Eshop\Admin\SettingsPresenter;
 use Eshop\CompareManager;
 use Eshop\Controls\BuyForm;
+use Eshop\Controls\IProductsFactory;
 use Eshop\Controls\IProductsFilterFactory;
 use Eshop\Controls\ProductFilter;
 use Eshop\Controls\ProductList;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\Category;
+use Eshop\DB\CategoryRepository;
+use Eshop\DB\FileRepository;
 use Eshop\DB\Producer;
+use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
+use Eshop\DB\ProductRepository;
+use Eshop\Front\FrontendPresenter;
 use Forms\Form;
+use Nette\Application\Attributes\Persistent;
+use Nette\Application\BadRequestException;
 use Nette\Application\Responses\FileResponse;
+use Nette\DI\Attributes\Inject;
 use Nette\Utils\Arrays;
 use StORM\Exception\NotFoundException;
+use Web\DB\SettingRepository;
 
-abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
+abstract class ProductPresenter extends FrontendPresenter
 {
 	/** @var array<callable(\Eshop\DB\Watcher): bool> */
 	public array $onProductWatched = [];
@@ -26,35 +37,38 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 	/** @var array<callable(\Eshop\DB\Product): bool> */
 	public array $onProductUnWatched = [];
 
-	/** @inject */
-	public \Eshop\Controls\IProductsFactory $productsFactory;
+	#[Inject]
+	public IProductsFactory $productsFactory;
 	
-	/** @inject */
-	public \Eshop\DB\ProductRepository $productsRepository;
+	#[Inject]
+	public ProductRepository $productsRepository;
 	
-	/** @inject */
-	public \Eshop\DB\ProducerRepository $producerRepository;
+	#[Inject]
+	public ProducerRepository $producerRepository;
 	
-	/** @inject */
-	public \Eshop\DB\CategoryRepository $categoryRepository;
+	#[Inject]
+	public CategoryRepository $categoryRepository;
 	
-	/** @inject */
-	public \Eshop\DB\FileRepository $fileRepository;
+	#[Inject]
+	public FileRepository $fileRepository;
 
-	/** @inject */
+	#[Inject]
 	public CompareManager $compareManager;
 
-	/** @inject */
+	#[Inject]
 	public IProductsFilterFactory $productsFilterFactory;
 
-	/** @inject */
+	#[Inject]
 	public AttributeValueRepository $attributeValueRepository;
 
-	/** @persistent */
+	#[Inject]
+	public SettingRepository $settingRepository;
+
+	#[Persistent]
 	public string $selectedCompareCategory;
 
-	/** @persistent */
-	public string $display = 'card';
+	#[Persistent]
+	public string|null $display = null;
 	
 	protected ?Category $category = null;
 	
@@ -89,23 +103,38 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 	public function actionList(
 		?string $category = null,
 		?string $producer = null,
-		?string $tag = null,
+		?string $ribbon = null,
 		?string $query = null,
 		?string $priceFrom = null,
 		?string $priceTo = null,
 		?string $attributeValue = null,
 		?array $attributes = null
 	): void {
-		if ($this->shopper->getCatalogPermission() === 'none') {
+		if ($this->shopperUser->getCatalogPermission() === 'none') {
 			$this->error('You dont have permission to view catalog!', 403);
 		}
 		
 		/** @var \Eshop\Controls\ProductList $products */
 		$products = $this->getComponent('products');
-		$filters = ['producer' => $producer, 'tag' => $tag, 'query' => $query];
+		$filters = ['producer' => $producer, 'ribbon' => $ribbon, 'query' => $query];
 		
 		if ($category) {
-			$this->category = $this->categoryRepository->one($category, true);
+			try {
+				$categoryCollection = $this->categoryRepository->many()->where('this.uuid', $category);
+
+				if ($this->shopsConfig->getSelectedShop()) {
+					$categoryType = $this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK());
+
+					if ($categoryType) {
+						$categoryCollection->where('this.fk_type', $categoryType);
+					}
+				}
+
+				$this->category = $categoryCollection->first(true);
+			} catch (NotFoundException $x) {
+				throw new BadRequestException();
+			}
+
 			$filters['category'] = $this->category->path;
 		}
 
@@ -145,18 +174,18 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 		$products->setFilters($filters);
 	}
 	
-	public function renderList(?string $category = null, ?string $producer = null, ?string $tag = null): void
+	public function renderList(?string $category = null, ?string $producer = null, ?string $ribbon = null): void
 	{
 		unset($category);
 		unset($producer);
-		unset($tag);
+		unset($ribbon);
 
 		/** @var \Eshop\Controls\ProductList $products */
 		$products = $this->getComponent('products');
 		$categories = $this->categoryRepository->getCategories();
 		
 		$this->template->category = $this->category;
-		$this->template->display = $this->display;
+		$this->template->display = $this->getDisplay($this->category);
 		$this->template->perex = null;
 		$this->template->content = null;
 		$this->template->categories = [];
@@ -172,12 +201,13 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 			$this->template->content = $this->category->content;
 			$this->template->imageDir = Category::IMAGE_DIR;
 			$this->template->imageFileName = $this->category->imageFileName;
-
+			
+			/** @var \Web\Controls\Breadcrumb $breadcrumb */
+			$breadcrumb = $this['breadcrumb'];
+			
+			/** @var \Eshop\DB\Category $branch */
 			foreach ($this->category->getFamilyTree() as $branchId => $branch) {
-				/** @var \Eshop\DB\Category $branch */
-				$this->template->breadcrumb[] = (object) [
-					'name' => $branch->name,
-					'link' => $branchId !== $this->category->getPK() ? $this->link('list', ['category' => $branchId]) : null];
+				$breadcrumb->addItem($branch->name, $branchId !== $this->category->getPK() ? $this->link('list', ['category' => $branchId]) : null);
 			}
 		}
 		
@@ -198,7 +228,7 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 	
 	public function actionDetail(string $product): void
 	{
-		if ($this->shopper->getCatalogPermission() === 'none') {
+		if ($this->shopperUser->getCatalogPermission() === 'none') {
 			$this->error('You dont have permission to view catalog!', 403);
 		}
 
@@ -207,15 +237,15 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 
 		try {
 			/** @var \Eshop\DB\Product $product */
-			$product = $this->productsRepository->getProducts()->where('this.hidden', false)->where('this.uuid', $product)->first(true);
+			$product = $this->productsRepository->getProducts()->where('this.uuid', $product)->filter(['hidden' => false])->first(true);
 			$this->product = $product;
 		} catch (NotFoundException $e) {
 			$this->error('Product can\'t be viewed', 404);
 		}
 
-		$this->category = $this->product->primaryCategory;
+		$this->category = $this->product->getPrimaryCategory();
 		
-		$form = new BuyForm($this->product, $this->shopper, $this->checkoutManager);
+		$form = new BuyForm($this->product, $this->shopperUser);
 		$this->addComponent($form, 'buyForm');
 		$form->onSuccess[] = function ($form, $values): void {
 			$form->getPresenter()->redirect('this');
@@ -227,11 +257,11 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 	
 	public function handleAddToCart(string $product, int $amount): void
 	{
-		if (!$this->shopper->getBuyPermission()) {
-			throw new \Nette\Application\BadRequestException();
+		if (!$this->shopperUser->getBuyPermission()) {
+			throw new BadRequestException();
 		}
 		
-		$this->checkoutManager->addItemToCart($this->productRepository->getProduct($product), null, $amount);
+		$this->shopperUser->getCheckoutManager()->addItemToCart($this->productRepository->getProduct($product), null, $amount);
 		
 		$this->redirect('this');
 	}
@@ -257,7 +287,7 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 		$this->template->similar = $this->productsRepository->getSimilarProductsByProduct($product);
 		$this->template->loyaltyProgramPointsGain = null;
 
-		if (!($loyaltyProgram = ($this->shopper->getCustomer() ? $this->shopper->getCustomer()->loyaltyProgram : null))) {
+		if (!($loyaltyProgram = ($this->shopperUser->getCustomer() ? $this->shopperUser->getCustomer()->loyaltyProgram : null))) {
 			return;
 		}
 
@@ -266,13 +296,13 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 	
 	public function handleWatchIt(string $product): void
 	{
-		if ($customer = $this->shopper->getCustomer()) {
+		if ($customer = $this->shopperUser->getCustomer()) {
 			$watcher = $this->watcherRepository->createOne([
 				'product' => $product,
 				'customer' => $customer,
 				'amountFrom' => 1,
 				'beforeAmountFrom' => 0,
-			]);
+			], ignore: true);
 
 			Arrays::invoke($this->onProductWatched, $watcher);
 		}
@@ -282,7 +312,7 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 	
 	public function handleUnWatchIt(string $product): void
 	{
-		if ($customer = $this->shopper->getCustomer()) {
+		if ($customer = $this->shopperUser->getCustomer()) {
 			$this->watcherRepository->many()
 				->where('fk_product', $product)
 				->where('fk_customer', $customer)
@@ -359,5 +389,22 @@ abstract class ProductPresenter extends \Eshop\Front\FrontendPresenter
 		};
 
 		return $form;
+	}
+
+	/**
+	 * @param \Eshop\DB\Category|null $category
+	 * @return 'card'|'row'
+	 */
+	protected function getDisplay(Category|null $category = null): string
+	{
+		if ($this->display) {
+			return $this->display;
+		}
+
+		if ($category?->defaultViewType) {
+			return $category->defaultViewType;
+		}
+
+		return 'card';
 	}
 }

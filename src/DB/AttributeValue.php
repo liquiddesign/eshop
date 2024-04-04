@@ -9,7 +9,7 @@ use Eshop\Common\DB\SystemicEntity;
 /**
  * AttributeValue
  * @table
- * @index{"name":"attributeValue_code_unique","unique":true,"columns":["code"]}
+ * @index{"name":"attributeValue_code_unique","unique":true,"columns":["code", "fk_attribute"]}
  */
 class AttributeValue extends SystemicEntity
 {
@@ -117,6 +117,12 @@ class AttributeValue extends SystemicEntity
 	 * @relation
 	 */
 	public ?AttributeValueRange $attributeValueRange;
+
+	/**
+	 * ID
+	 * column - don't created by auto migration, only by manual
+	 */
+	public int $id;
 
 	public function getInternalName(): string
 	{

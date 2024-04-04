@@ -1,107 +1,93 @@
 {contentType application/xml}
 <?xml version="1.0" encoding="utf-8"?>
-{varType Eshop\ExportPresenter $presenter}
-{varType Eshop\DB\Product $product}
-{varType string|null $error}
+{varType Eshop\Front\Eshop\ExportPresenter $presenter}
+{varType Eshop\DB\Product[] $products}
+{varType Eshop\DB\Photo[] $photos}
 {varType string|null $productImageUrl}
 {varType bool|null $priceType}
 {varType Eshop\DB\DeliveryType[] $deliveryTypes}
 {varType Eshop\DB\Price[] $discountPrices}
-{varType Eshop\DB\CustomerGroup $groupAfterRegistration}
+{varType Eshop\DB\Pricelist[] $pricelists}
+{varType Web\DB\Setting|null $colorAttribute}
+{varType Eshop\DB\Category[] $allCategories}
 
-{ifset $error}
-<error>
-    {$error}
-</error>
-{else}
-{try}
-    {cache expire => '1 day', tags => ['export']}
-        {var $pricelists = $presenter->getPricelistFromSetting('googleExportPricelist', false)}
-        {var $products = $pricelists && count($pricelists) ? $presenter->productRepo->getProducts($pricelists)->where('this.hidden', false) : $presenter->productRepo->getProductsAsGroup($groupAfterRegistration)->where('this.hidden', false)}
-        {var $pricelists = $pricelists && count($pricelists) ? $pricelists : $groupAfterRegistration->defaultPricelists->toArray()}
-        {var $photos = $presenter->photoRepository->many()->where('this.googleFeed', true)->setIndex('this.fk_product')->toArray()}
-        {var Web\DB\Setting|null $colorAttribute = $presenter->settingRepo->many()->where('name', 'googleColorAttribute')->first()}
-        {var Web\DB\Setting|null $highlightsAttribute = $presenter->settingRepo->many()->where('name', 'googleHighlightsAttribute')->first()}
-        {var Web\DB\Setting|null $highlightsMutation = $presenter->settingRepo->many()->where('name', 'googleHighlightsMutation')->first()}
-        {var Eshop\DB\AttributeValue[] $highlightsAttributeValues = $highlightsAttribute && $highlightsAttribute->value ? $presenter->attributeValueRepository->many()->where('fk_attribute', $highlightsAttribute->value)->toArray() : []}
-        <rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
-        <channel>
-            <item n:while="$product = $products->where('this.unavailable', 0)->where('this.exportGoogle', true)->fetch()">
-                {var $price = $priceType ? $product->getPriceVat() : ($priceType === false ? $product->getPrice() : null)}
-                {var $priceBefore = $priceType ? $product->getPriceVatBefore() : ($priceType === false ? $product->getPriceBefore() : null)}
+{cache 'xml_google_' . $shop?->getPK(), expire: '1 day', tags: ['export'], }
+    <rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
+    <channel>
+        <item n:foreach="$products as $product">
+            {var $price = $priceType ? $product->getPriceVat() : ($priceType === false ? $product->getPrice() : null)}
+            {var $priceBefore = $priceType ? $product->getPriceVatBefore() : ($priceType === false ? $product->getPriceBefore() : null)}
 
-                {var $discountPrice = isset($discountPrices[$product->getPK()]) ? ($priceType ? $discountPrices[$product->getPK()]->priceVat : ($priceType === false ? $discountPrices[$product->getPK()]->price : null)) : null}
-                {var $mainPrice = $discountPrice ? $price : ($priceBefore ?: $price)}
-                {do $discountPrice ??= $priceType ? $product->getPriceVat() : ($priceType === false ? $product->getPrice() : null)}
-                {var $page = $presenter->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product->getPK()])}
-                {var $attributes = $product->getPreviewAtttributes()}
-                {var string|null $productContent = $product->getValue('originalContent')}
+            {var $discountPrice = isset($discountPrices[$product->getPK()]) ? ($priceType ? $discountPrices[$product->getPK()]->priceVat : ($priceType === false ? $discountPrices[$product->getPK()]->price : null)) : null}
+            {var $mainPrice = $discountPrice ? $price : ($priceBefore ?: $price)}
+            {do $discountPrice ??= $priceType ? $product->getPriceVat() : ($priceType === false ? $product->getPrice() : null)}
+            {var $page = $presenter->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product->getPK()])}
+            {var $attributes = $product->getPreviewAttributes()}
+            {var string|null $productContent = $product->getValue('originalContent')}
+            {var Eshop\DB\Category|null $category = $product->getValue('primaryCategory') ? ($allCategories[$product->getValue('primaryCategory')] ?? null) : null}
 
-                <g:id>{$product->getFullCode()}</g:id>
-                <g:title><![CDATA[{$product->name}]]></g:title>
-                <g:description><![CDATA[{$product->primaryCategory ? ($product->primaryCategory->exportGoogleCategory && Nette\Utils\Strings::length($product->primaryCategory->exportGoogleCategory) > 0 ? $product->primaryCategory->exportGoogleCategory : $product->primaryCategory->name) : null} {$page && $page->getDescription(null) ? $page->getDescription(null) : \strip_tags($productContent ?? '')}]]></g:description>
-                <g:google_product_category n:if="$product->primaryCategory && $product->primaryCategory->exportGoogleCategoryId">{$product->primaryCategory->exportGoogleCategoryId}</g:google_product_category>
-                <g:link>{plink //:Eshop:Product:detail $product->getPK()}</g:link>
-                {if isset($photos[$product->getPK()])}<g:image_link>{$productImageUrl}{$basePath}/userfiles/{\Eshop\DB\Product::GALLERY_DIR}/detail/{$photos[$product->getPK()]->fileName}</g:image_link>{/if}
-                {if ($image = $product->getPreviewImage($basePath)) && !isset($photos[$product->getPK()])}<g:image_link>{$productImageUrl}{$image}</g:image_link>{/if}
-                {foreach $product->photos as $photo}
-                    {var $photoPath = $productImageUrl . $photo->getImagePath($basePath)}
-                    {if ($productImageUrl . $image !== $photoPath)}
-                        <g:additional_image_link>{$photoPath}</g:additional_image_link>
-                    {/if}
+            <g:id>{$product->getFullCode()}</g:id>
+            <g:title><![CDATA[{$product->name}]]></g:title>
+
+            {var string|null $productContent = $presenter->compileLatte($product->content, $productsFrontendData[$product->getPK()] ?? [])}
+            <g:description><![CDATA[{$category ? ($category->exportGoogleCategory && Nette\Utils\Strings::length($category->exportGoogleCategory) > 0 ? $category->exportGoogleCategory : $category->name) : null} {$page && $page->getDescription(null) ? $page->getDescription(null) : \strip_tags($productContent ?? '')}]]></g:description>
+            <g:google_product_category n:if="$category && $category->exportGoogleCategoryId">{$category->exportGoogleCategoryId}</g:google_product_category>
+            <g:link>{plink //:Eshop:Product:detail $product->getPK()}</g:link>
+            {if isset($photos[$product->getPK()])}<g:image_link>{$productImageUrl}{$basePath}/userfiles/{\Eshop\DB\Product::GALLERY_DIR}/detail/{$photos[$product->getPK()]->fileName}</g:image_link>{/if}
+            {if ($image = $product->getPreviewImage($basePath)) && !isset($photos[$product->getPK()])}<g:image_link>{$productImageUrl}{$image}</g:image_link>{/if}
+            {foreach $product->photos as $photo}
+                {var $photoPath = $productImageUrl . $photo->getImagePath($basePath)}
+                {if ($productImageUrl . $image !== $photoPath)}
+                    <g:additional_image_link>{$photoPath}</g:additional_image_link>
+                {/if}
+            {/foreach}
+            <g:condition>new</g:condition>
+            <g:availability>{if $product->inStock()}in stock{else}out of stock{/if}</g:availability>
+            <g:price n:if="$mainPrice">{$mainPrice|ceil} {$pricelists[$product->pricelist]->currency->code}</g:price>
+            <g:sale_price n:if="$discountPrice && $mainPrice && $discountPrice < $mainPrice">{$discountPrice|ceil} {$pricelists[$product->pricelist]->currency->code}</g:sale_price>
+            <g:brand>{$productsFrontendData[$product->getPK()]['producer'] ?? null}</g:brand>
+            <g:gtin n:if="$product->ean">{$product->ean}</g:gtin>
+            <g:mpn n:if="$product->mpn">{$product->mpn}</g:mpn>
+            <g:adult>no</g:adult>
+            <g:color n:if="$colorAttribute && $colorAttribute->value && isset($attributes[$colorAttribute->value]) && \count($attributes[$colorAttribute->value]) > 0">{foreach $attributes[$colorAttribute->value] as $attribute}{breakIf $iterator->getCounter0() === 3}{$attribute['label']}{sep}/{/sep}{/foreach}</g:color>
+
+            {if $category !== null}
+                {do $categories = []}
+                {while $category != null}
+                    {do $categories[] = $category}
+                    {do $category = $category->ancestor ? ($allCategories[$category->ancestor] ?? null) : null}
+                {/while}
+                {do $categories = \array_reverse($categories)}
+                <g:product_type><![CDATA[{foreach $categories as $category}{$category->name}{if !$iterator->isLast()} | {/if}{/foreach}]]></g:product_type>
+            {/if}
+
+            {foreach $deliveryTypes as $deliveryType}
+                <g:shipping>
+                    <g:country>CZ</g:country>
+                    <g:service>{$deliveryType->name}</g:service>
+                    <g:price>{$deliveryType->getValue($priceType ? 'priceVat' : 'price')|ceil} CZK</g:price>
+                </g:shipping>
+            {/foreach}
+
+            {if $highlightsAttribute && $highlightsAttribute->value && isset($attributes[$highlightsAttribute->value]) && \count($attributes[$highlightsAttribute->value]) > 0}
+                {foreach $attributes[$highlightsAttribute->value] as $attribute}
+                    {breakIf $iterator->getCounter0() === 10}
+                    {var ?string $value = $highlightsAttributeValues[$attribute['uuid']]->getValue('label', $highlightsMutation && $highlightsMutation->value ? $highlightsMutation->value : null)}
+                    <g:product_highlight n:if="$value">
+                        {$value}
+                    </g:product_highlight>
                 {/foreach}
-                <g:condition>new</g:condition>
-                <g:availability>{if $product->inStock()}in stock{else}out of stock{/if}</g:availability>
-                <g:price n:if="$mainPrice">{$mainPrice|round:2} {$pricelists[$product->pricelist]->currency->code}</g:price>
-                <g:sale_price n:if="$discountPrice && $mainPrice && $discountPrice < $mainPrice">{$discountPrice} {$pricelists[$product->pricelist]->currency->code}</g:sale_price>
-                <g:brand>{$product->producer ? $product->producer->name : null}</g:brand>
-                <g:gtin n:if="$product->ean">{$product->ean}</g:gtin>
-                <g:mpn n:if="$product->mpn">{$product->mpn}</g:mpn>
-                <g:adult>no</g:adult>
-                <g:color n:if="$colorAttribute && $colorAttribute->value && isset($attributes[$colorAttribute->value]) && \count($attributes[$colorAttribute->value]) > 0">{foreach $attributes[$colorAttribute->value] as $attribute}{breakIf $iterator->getCounter0() === 3}{$attribute['label']}{sep}/{/sep}{/foreach}</g:color>
-                {if ($category = $product->primaryCategory) !== null}
-                    {do $categories = []}
-                    {while $category != null}
-                        {do $categories[] = $category}
-                        {do $category = $category->ancestor}
-                    {/while}
-                    {do $categories = \array_reverse($categories)}
-                    <g:product_type><![CDATA[{foreach $categories as $category}{$category->name}{if !$iterator->isLast()} | {/if}{/foreach}]]></g:product_type>
-                {/if}
+            {/if}
 
-                {foreach $deliveryTypes as $deliveryType}
-                    <g:shipping>
-                        <g:country>CZ</g:country>
-                        <g:service>{$deliveryType->name}</g:service>
-                        <g:price>{$deliveryType->getValue($priceType ? 'priceVat' : 'price')} CZK</g:price>
-                    </g:shipping>
-                {/foreach}
+            {if isset($configuration['customLabel_1']) && $configuration['customLabel_1']}
+                <g:custom_label_1>{$pricelists[$product->pricelist]->customLabel}</g:custom_label_1>
+            {/if}
 
-                {if $highlightsAttribute && $highlightsAttribute->value && isset($attributes[$highlightsAttribute->value]) && \count($attributes[$highlightsAttribute->value]) > 0}
-                    {foreach $attributes[$highlightsAttribute->value] as $attribute}
-                        {breakIf $iterator->getCounter0() === 10}
-                        {var ?string $value = $highlightsAttributeValues[$attribute['uuid']]->getValue('label', $highlightsMutation && $highlightsMutation->value ? $highlightsMutation->value : null)}
-                        <g:product_highlight n:if="$value">
-                            {$value}
-                        </g:product_highlight>
-                    {/foreach}
-                {/if}
-
-                {if isset($configuration['customLabel_1']) && $configuration['customLabel_1']}
-                    <g:custom_label_1>{$pricelists[$product->pricelist]->customLabel}</g:custom_label_1>
-                {/if}
-
-                {if isset($configuration['customLabel_2']) && $configuration['customLabel_2']}
-                    {var $finalPrice = $mainPrice ? ($discountPrice && $discountPrice < $mainPrice ? $discountPrice : $mainPrice) : null}
-                    <g:custom_label_2>{if $finalPrice}{if $finalPrice < 500}0-499{elseif $finalPrice < 1000}500-999{elseif $finalPrice < 2000}1000-1999{elseif $finalPrice < 5000}2000-4999{elseif $finalPrice < 10000}5000-9999{else}10000+{/if}{/if}</g:custom_label_2>
-                {/if}
-            </item>
-        </channel>
-        </rss>
-    {/cache}
-    {else}
-    <error>
-        {\Eshop\ExportPresenter::ERROR_MSG}
-    </error>
-{/try}
-{/ifset}
+            {if isset($configuration['customLabel_2']) && $configuration['customLabel_2']}
+                {var $finalPrice = $mainPrice ? ($discountPrice && $discountPrice < $mainPrice ? $discountPrice : $mainPrice) : null}
+                <g:custom_label_2>{if $finalPrice}{if $finalPrice < 500}0-499{elseif $finalPrice < 1000}500-999{elseif $finalPrice < 2000}1000-1999{elseif $finalPrice < 5000}2000-4999{elseif $finalPrice < 10000}5000-9999{else}10000+{/if}{/if}</g:custom_label_2>
+            {/if}
+        </item>
+    </channel>
+    </rss>
+{/cache}

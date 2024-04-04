@@ -11,8 +11,11 @@ use Eshop\DB\CustomerGroup;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\PricelistRepository;
-use Eshop\Shopper;
+use Eshop\DB\VisibilityListRepository;
+use Eshop\ShopperUser;
 use Forms\Form;
+use Nette\DI\Attributes\Inject;
+use Nette\Utils\Strings;
 
 class GroupPresenter extends BackendPresenter
 {
@@ -22,45 +25,60 @@ class GroupPresenter extends BackendPresenter
 		'prices' => true,
 	];
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerGroupRepository $userGroupRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $pricelistRepo;
 	
-	/** @inject */
-	public Shopper $shopper;
+	#[\Nette\DI\Attributes\Inject]
+	public ShopperUser $shopperUser;
+
+	#[Inject]
+	public VisibilityListRepository $visibilityListRepository;
 	
 	public function createComponentGrid(): AdminGrid
 	{
 		$collection = $this::CONFIGURATION['unregistred'] ? $this->userGroupRepo->many() : $this->userGroupRepo->many()->where('uuid != :s', ['s' => CustomerGroupRepository::UNREGISTERED_PK]);
 		
-		$grid = $this->gridFactory->create($collection, 20, 'name', 'ASC', true);
+		$grid = $this->gridFactory->create($collection, 20, 'name', 'ASC', true, filterShops: false);
 		$grid->addColumnSelector();
 		
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		
-		$grid->addColumn('Ceníky', function (CustomerGroup $group) {
-			$resultString = '';
+		$grid->addColumn('Ceníky / Viditelníky', function (CustomerGroup $group) {
+			$pricelistsResultString = '';
 			
-			foreach ($group->defaultPricelists as $pricelist) {
+			foreach ($group->getDefaultPricelists()->orderBy(['priority' => 'ASC', 'uuid' => 'ASC'])->toArray() as $pricelist) {
 				$link = ':Eshop:Admin:Pricelists:priceListDetail';
 				
 				if (!$this->admin->isAllowed($link)) {
-					$resultString .= $pricelist->name . ', ';
+					$pricelistsResultString .= $pricelist->name . ', ';
 				} else {
-					$resultString .= '<a href=' . $this->link($link, [$pricelist, 'backlink' => $this->storeRequest()]) . '>' . $pricelist->name . '</a>, ';
+					$pricelistsResultString .= '<a href=' . $this->link($link, [$pricelist, 'backlink' => $this->storeRequest()]) . '>' . $pricelist->name . '</a>, ';
+				}
+			}
+
+			$visibilityListsResultString = '';
+
+			foreach ($group->getDefaultVisibilityLists()->orderBy(['priority' => 'ASC', 'uuid' => 'ASC'])->toArray() as $visibilityList) {
+				$link = ':Eshop:Admin:VisibilityList:listDetail';
+
+				if (!$this->admin->isAllowed($link)) {
+					$visibilityListsResultString .= $visibilityList->name . ', ';
+				} else {
+					$visibilityListsResultString .= '<a href=' . $this->link($link, [$visibilityList, 'backlink' => $this->storeRequest()]) . '>' . $visibilityList->name . '</a>, ';
 				}
 			}
 			
-			return \substr($resultString, 0, -2);
-		});
+			return [Strings::substring($pricelistsResultString, 0, -2), Strings::substring($visibilityListsResultString, 0, -2)];
+		}, '%s<hr style="margin: 0">%s');
 		
 		$grid->addColumn('Katalogové oprávnění', function (CustomerGroup $group) {
-			return Shopper::PERMISSIONS[$group->defaultCatalogPermission];
+			return ShopperUser::PERMISSIONS[$group->defaultCatalogPermission];
 		}, '%s', null, ['class' => 'fit']);
 		
 		$grid->addColumn('Povolený nákup', function (CustomerGroup $group) {
@@ -93,6 +111,8 @@ class GroupPresenter extends BackendPresenter
 		});
 		
 		$grid->addFilterTextInput('search', ['name'], null, 'Název');
+		$this->gridFactory->addShopsFilterSelect($grid);
+
 		$grid->addFilterButtons();
 		
 		$grid->onRenderRow[] = function (\Nette\Utils\Html $row, $object): void {
@@ -114,22 +134,22 @@ class GroupPresenter extends BackendPresenter
 		
 		$form->addText('name', 'Název')->setRequired();
 		
-		$catalogPermInput = $form->addSelect('defaultCatalogPermission', 'Katalogové oprávnění', Shopper::PERMISSIONS);
+		$catalogPermInput = $form->addSelect('defaultCatalogPermission', 'Katalogové oprávnění', ShopperUser::PERMISSIONS);
 		
 		$catalogPermInput->addCondition($form::EQUAL, 'price')
 			->toggle('frm-newForm-defaultPricesWithoutVat-toogle')
 			->toggle('frm-newForm-defaultPricesWithVat-toogle');
 		
 		if (isset($this::CONFIGURATION['prices']) && $this::CONFIGURATION['prices']) {
-			if ($this->shopper->getShowWithoutVat()) {
+			if ($this->shopperUser->getShowWithoutVat()) {
 				$withoutVatInput = $form->addCheckbox('defaultPricesWithoutVat', 'Zobrazit ceny bez daně');
 			}
 			
-			if ($this->shopper->getShowVat()) {
+			if ($this->shopperUser->getShowVat()) {
 				$withVatInput = $form->addCheckbox('defaultPricesWithVat', 'Zobrazit ceny s daní');
 			}
 			
-			if ($this->shopper->getShowWithoutVat() && $this->shopper->getShowVat() && isset($withoutVatInput) && isset($withVatInput)) {
+			if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat()) {
 				$form->addSelect('defaultPriorityPrice', 'Prioritní cena', [
 					'withoutVat' => 'Bez daně',
 					'withVat' => 'S daní',
@@ -144,22 +164,28 @@ class GroupPresenter extends BackendPresenter
 		$form->addInteger('defaultMaxDiscountProductPct', 'Výchozí max. sleva u prod. (%)')->setRequired()->setDefaultValue(100);
 		$form->addCheckbox('defaultBuyAllowed', 'Povolený nákup');
 		$form->addCheckbox('defaultViewAllOrders', 'Účet vidí všechny objednávky zákazníka');
-		$form->addDataMultiSelect('defaultPricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
+		$form->addMultiSelect2('defaultPricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
+		$form->addMultiSelect2('defaultVisibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect());
 		
 		if ($this::CONFIGURATION['defaultAfterRegistration']) {
 			$form->addCheckbox('defaultAfterRegistration', 'Výchozí po registraci');
 		}
 		
 		$form->addCheckbox('autoActiveCustomers', 'Zákazníci budou automaticky aktivní po registraci');
-		
+
+		$this->formFactory->addShopsContainerToAdminForm($form);
 		$form->addSubmits(!$group);
 		
 		$form->onSuccess[] = function (AdminForm $form) use ($group): void {
 			$values = $form->getValues('array');
 			
 			if (isset($values['defaultAfterRegistration']) && $values['defaultAfterRegistration']) {
-				$this->userGroupRepo->many()->update(['defaultAfterRegistration' => false]);
+				$query = $this->userGroupRepo->many();
+
+				$this->shopsConfig->filterShopsInShopEntityCollection($query, showOnlyEntitiesWithSelectedShops: true);
+
+				$query->update(['defaultAfterRegistration' => false]);
 			}
 			
 			$group = $this->userGroupRepo->syncOne($values, null, true);
@@ -209,6 +235,7 @@ class GroupPresenter extends BackendPresenter
 		$form = $this->getComponent('newForm');
 		$values = $group->toArray();
 		$values['defaultPricelists'] = \array_keys($group->defaultPricelists->toArray());
+		$values['defaultVisibilityLists'] = \array_keys($group->defaultVisibilityLists->toArray());
 		$form->setDefaults($values);
 	}
 }

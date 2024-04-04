@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Nette\Utils\DateTime;
-
 /**
  * Výsledek
  * @table
@@ -111,8 +109,8 @@ class ImportResult extends \StORM\Entity
 	
 	public function getRuntime(): ?float
 	{
-		$started = (new DateTime($this->startedTs))->getTimestamp();
-		$finished = $this->finishedTs ? (new DateTime($this->finishedTs))->getTimestamp() : null;
+		$started = (new \Carbon\Carbon($this->startedTs))->getTimestamp();
+		$finished = $this->finishedTs ? (new \Carbon\Carbon($this->finishedTs))->getTimestamp() : null;
 		
 		return $finished ? \round(($finished - $started) / 60, 2) : null;
 	}

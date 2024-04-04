@@ -6,9 +6,8 @@
     {varType Admin\Controls\AdminForm $form}
     {var $activeMutation = $form->getActiveMutation()}
     {var Admin\Controls\BootstrapRenderer $renderer = $form->getRenderer()}
-    <ul class="error" n:ifcontent>
-            <li n:foreach="$form->getOwnErrors() as $error">{$error}</li>
-    </ul>
+
+    <div n:foreach="$form->getOwnErrors() as $error" class="alert alert-danger mt-4">{$error}</div>
 
     {if isset($form['__MUTATION_SELECTOR'])}
         <table class="mt-1 mb-1">
@@ -34,6 +33,18 @@
                                 {input "name-$key" class => 'form-control form-control-sm'}
 
                                 <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "name-$key"}</span>
+                            </td>
+                        </tr>
+                    {/foreach}
+
+                    {foreach $form['alternativeName']->getComponents() as $key => $element}
+                        <tr class="m-0 mt-1 has-danger {if $key !== $activeMutation && $activeMutation !== null}inactive{/if}" data-mutation="{$key}">
+                            {$renderer->renderLabel($element)|noescape}
+
+                            <td class="align-middle">
+                                {input "alternativeName-$key" class => 'form-control form-control-sm'}
+
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "alternativeName-$key"}</span>
                             </td>
                         </tr>
                     {/foreach}
@@ -141,6 +152,11 @@
                     {$renderer->renderPair($form['showInMenu'])|noescape}
                     {$renderer->renderPair($form['showEmpty'])|noescape}
                     {$renderer->renderPair($form['recommended'])|noescape}
+                    {ifset $form['showDescendantProducts']}{$renderer->renderPair($form['showDescendantProducts'])|noescape}{/ifset}
+
+                    {ifset $form['defaultViewType']}
+                        {$renderer->renderPair($form['defaultViewType'])|noescape}
+                    {/ifset}
 
                 </table>
             </fieldset>

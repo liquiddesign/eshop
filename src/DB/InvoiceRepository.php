@@ -6,7 +6,7 @@ namespace Eshop\DB;
 
 use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use StORM\Collection;
@@ -19,36 +19,17 @@ use StORM\SchemaManager;
  */
 class InvoiceRepository extends Repository implements IGeneralRepository
 {
-	private AddressRepository $addressRepository;
-	
-	private InvoiceItemRepository $invoiceItemRepository;
-
-	private ProductRepository $productRepository;
-
-	private Shopper $shopper;
-
-	private RelatedInvoiceItemRepository $relatedInvoiceItemRepository;
-
-	private OrderLogItemRepository $orderLogItemRepository;
-	
 	public function __construct(
-		InvoiceItemRepository $invoiceItemRepository,
-		AddressRepository $addressRepository,
+		private readonly InvoiceItemRepository $invoiceItemRepository,
+		private readonly AddressRepository $addressRepository,
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		ProductRepository $productRepository,
-		Shopper $shopper,
-		RelatedInvoiceItemRepository $relatedInvoiceItemRepository,
-		OrderLogItemRepository $orderLogItemRepository
+		private readonly ProductRepository $productRepository,
+		private readonly ShopperUser $shopperUser,
+		private readonly RelatedInvoiceItemRepository $relatedInvoiceItemRepository,
+		private readonly OrderLogItemRepository $orderLogItemRepository
 	) {
 		parent::__construct($connection, $schemaManager);
-		
-		$this->addressRepository = $addressRepository;
-		$this->invoiceItemRepository = $invoiceItemRepository;
-		$this->productRepository = $productRepository;
-		$this->shopper = $shopper;
-		$this->relatedInvoiceItemRepository = $relatedInvoiceItemRepository;
-		$this->orderLogItemRepository = $orderLogItemRepository;
 	}
 
 	/**
@@ -108,19 +89,19 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 		}
 
 		if (!isset($values['exposed'])) {
-			$newValues['exposed'] = (string)(new Carbon());
+			$newValues['exposed'] = (string) (new Carbon());
 		}
 
 		if (!isset($values['taxDate'])) {
-			$days = $this->shopper->getInvoicesAutoTaxDateInDays();
+			$days = $this->shopperUser->getInvoicesAutoTaxDateInDays();
 
-			$newValues['taxDate'] = (string)(new Carbon($newValues['exposed']))->addDays($days);
+			$newValues['taxDate'] = (string) (new Carbon($newValues['exposed']))->addDays($days);
 		}
 
 		if (!isset($values['dueDate'])) {
-			$days = $this->shopper->getInvoicesAutoDueDateInDays();
+			$days = $this->shopperUser->getInvoicesAutoDueDateInDays();
 
-			$newValues['dueDate'] = (string)(new Carbon($newValues['exposed']))->addDays($days);
+			$newValues['dueDate'] = (string) (new Carbon($newValues['exposed']))->addDays($days);
 		}
 
 		if (!isset($values['variableSymbol'])) {
@@ -212,25 +193,36 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 	public function getGroupedItemsWithSets(Invoice $invoice): array
 	{
 		$topLevelItems = [];
+		$topLevelItemsAmounts = [];
+
 		$grouped = [];
+		$groupedAmounts = [];
 
 		/** @var \Eshop\DB\InvoiceItem $item */
 		foreach ($invoice->items->clear(true) as $item) {
 			if (isset($topLevelItems[$item->getFullCode()])) {
-				$topLevelItems[$item->getFullCode()]->amount += $item->amount;
+				$topLevelItemsAmounts[$item->getFullCode()] += $item->amount;
 			} else {
 				$topLevelItems[$item->getFullCode()] = $item;
+				$topLevelItemsAmounts[$item->getFullCode()] = $item->amount;
 			}
 		}
+
+		foreach ($topLevelItems as $item) {
+			$topLevelItems[$item->getFullCode()]->amount = $topLevelItemsAmounts[$item->getFullCode()];
+		}
+
+		unset($topLevelItemsAmounts);
 
 		/** @var \Eshop\DB\InvoiceItem $item */
 		foreach ($invoice->items->clear(true)->where('fk_product IS NOT NULL') as $item) {
 			/** @var \Eshop\DB\RelatedInvoiceItem $related */
 			foreach ($item->relatedInvoiceItems as $related) {
 				if (isset($grouped[$related->getFullCode()])) {
-					$grouped[$related->getFullCode()]->amount += $related->amount;
+					$groupedAmounts[$related->getFullCode()] += $related->amount;
 				} else {
 					$grouped[$related->getFullCode()] = $related;
+					$groupedAmounts[$related->getFullCode()] = $related->amount;
 				}
 
 				unset($topLevelItems[$item->getFullCode()]);
@@ -239,10 +231,15 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 
 		foreach ($topLevelItems as $item) {
 			if (isset($grouped[$item->getFullCode()])) {
-				$grouped[$item->getFullCode()]->amount += $item->amount;
+				$groupedAmounts[$item->getFullCode()] += $item->amount;
 			} else {
 				$grouped[$item->getFullCode()] = $item;
+				$groupedAmounts[$item->getFullCode()] = $item->amount;
 			}
+		}
+
+		foreach ($grouped as $item) {
+			$grouped[$item->getFullCode()]->amount = $groupedAmounts[$item->getFullCode()];
 		}
 
 		return $grouped;

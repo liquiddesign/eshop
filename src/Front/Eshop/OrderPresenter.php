@@ -17,22 +17,22 @@ use Nette\Application\Responses\FileResponse;
 
 abstract class OrderPresenter extends \Eshop\Front\FrontendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IOrderListFactory $orderListFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DeliveryRepository $deliveryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PaymentRepository $paymentRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Application $application;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CatalogPermissionRepository $catalogPermRepository;
 
 	/** @persistent */
@@ -91,7 +91,7 @@ abstract class OrderPresenter extends \Eshop\Front\FrontendPresenter
 			return;
 		}
 
-		$this->checkoutManager->addItemsFromCart($cart);
+		$this->shopperUser->getCheckoutManager()->addItemsFromCart($cart);
 		$this->redirect(':Eshop:Checkout:cart');
 	}
 
@@ -152,25 +152,25 @@ abstract class OrderPresenter extends \Eshop\Front\FrontendPresenter
 
 	public function createComponentOrderList(): OrderList
 	{
-		if ($this->tab === 'finished' || $this->shopper->getCustomer()) {
+		if ($this->tab === 'finished' || $this->shopperUser->getCustomer()) {
 			$orderList = $this->orderListFactory->create();
 		} elseif ($this->tab === 'new') {
 			$orderList = $this->orderListFactory->create($this->orderRepository->getNewOrders(
-				$this->shopper->getCustomer(),
-				$this->shopper->getMerchant(),
+				$this->shopperUser->getCustomer(),
+				$this->shopperUser->getMerchant(),
 			)->orderBy(['this.createdTS' => 'DESC']));
 		} else {
 			$orderList = $this->orderListFactory->create($this->orderRepository->getCanceledOrders(
-				$this->shopper->getCustomer(),
-				$this->shopper->getMerchant(),
+				$this->shopperUser->getCustomer(),
+				$this->shopperUser->getMerchant(),
 			)->orderBy(['this.createdTS' => 'DESC']));
 		}
 
 		$orderList->setTempDir($this->tempDir);
 
 		$orderList->onAnchor[] = function (OrderList $orderList): void {
-			$orderList->template->merchant = $this->shopper->getMerchant();
-			$orderList->template->customer = $this->shopper->getCustomer();
+			$orderList->template->merchant = $this->shopperUser->getMerchant();
+			$orderList->template->customer = $this->shopperUser->getCustomer();
 			$orderList->template->tab = $this->tab;
 			$orderList->template->setFile(\dirname(__DIR__, 6) . '/app/Eshop/Controls/orderList.latte');
 		};
@@ -183,17 +183,17 @@ abstract class OrderPresenter extends \Eshop\Front\FrontendPresenter
 		/** @var \Eshop\DB\CatalogPermission $permission */
 		$permission = $this->catalogPermRepository->many()->where(
 			'fk_account',
-			$this->shopper->getCustomer()->getAccount(),
+			$this->shopperUser->getCustomer()->getAccount(),
 		)->first();
 
 		$orderList = $this->orderListFactory->create($this->orderRepository->getNewOrders(
-			$this->shopper->getCustomer(),
-			$this->shopper->getMerchant(),
-			$permission->viewAllOrders ? null : $this->shopper->getCustomer()->getAccount(),
+			$this->shopperUser->getCustomer(),
+			$this->shopperUser->getMerchant(),
+			$permission->viewAllOrders ? null : $this->shopperUser->getCustomer()->getAccount(),
 		)->orderBy(['this.createdTS' => 'DESC']));
 		$orderList->onAnchor[] = function (OrderList $orderList): void {
-			$orderList->template->merchant = $this->shopper->getMerchant();
-			$orderList->template->customer = $this->shopper->getCustomer();
+			$orderList->template->merchant = $this->shopperUser->getMerchant();
+			$orderList->template->customer = $this->shopperUser->getCustomer();
 			$orderList->template->setFile(\dirname(__DIR__, 6) . '/app/Eshop/Controls/orderList.latte');
 		};
 

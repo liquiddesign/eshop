@@ -10,6 +10,7 @@ use Eshop\DB\OrderDeliveryStatus;
 use Eshop\DB\OrderDeliveryStatusRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\Providers\Helpers;
+use Eshop\Services\DPD\DeclaredSender;
 use Nette\Application\Application;
 use Nette\DI\Container;
 use Nette\Localization\Translator;
@@ -63,11 +64,9 @@ class DPD
 		?SettingRepository $settingRepository = null,
 		?Container $container = null,
 		?Application $application = null,
-		/** @codingStandardsIgnoreStart */
-		private ?OrderRepository $orderRepository = null,
-		private ?OrderDeliveryStatusRepository $orderDeliveryStatusRepository = null,
-		private ?Translator $translator = null,
-		/** @codingStandardsIgnoreEnd */
+		private readonly ?OrderRepository $orderRepository = null,
+		private readonly ?OrderDeliveryStatusRepository $orderDeliveryStatusRepository = null,
+		private readonly ?Translator $translator = null,
 	) {
 		$this->url = $url;
 		$this->login = $login;
@@ -78,6 +77,11 @@ class DPD
 		$this->labelPrintType = $labelPrintType;
 		$this->container = $container;
 		$this->application = $application;
+	}
+
+	public function getDeclaredSender(): ?DeclaredSender
+	{
+		return null;
 	}
 
 	public function getDpdDeliveryTypePK(): ?string
@@ -93,7 +97,7 @@ class DPD
 	 */
 	public function syncOrders(Collection $orders): array
 	{
-		if (\in_array(false, Arrays::invoke($this->onBeforeOrdersSent), true)) {
+		if (Arrays::contains(Arrays::invoke($this->onBeforeOrdersSent), false)) {
 			throw new \Exception('Not allowed');
 		}
 
@@ -113,7 +117,7 @@ class DPD
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($orders as $order) {
-			if (\in_array(false, Arrays::invoke($this->onBeforeOrderSent, $order), true)) {
+			if (Arrays::contains(Arrays::invoke($this->onBeforeOrderSent, $order), false)) {
 				$ordersIgnored[] = $order;
 
 				continue;
@@ -183,21 +187,22 @@ class DPD
 
 				if ($dpdCodType && $order->purchase->paymentType && Arrays::contains($dpdCodType, $order->purchase->paymentType->getPK())) {
 					$newShipmentVO['Additional_Services'] = [
-						'COD' => (string)\number_format($order->getTotalPriceVat(), 2, '.', ''),
+						'COD' => (string) \number_format($order->getTotalPriceVat(), 2, '.', ''),
 						'CURRENCY' => $order->purchase->currency->code,
 						'PAYMENT' => 1,
 						'PURPOSE' => $order->code,
 					];
 				}
 
+				if ($declaredSender = $this->getDeclaredSender()) {
+					$newShipmentVO['Sender_Declared'] = $declaredSender->getShipmentArray();
+				}
+
 				$request['_ShipmentDetailVO'][] = $newShipmentVO;
 
-				\bdump($request);
 				$result = $client->NewShipment($request);
 
-				\bdump($result);
-
-				/** @codingStandardsIgnoreStart */
+				/** @codingStandardsIgnoreStart Camel caps*/
 				if (\is_array($result->NewShipmentResult->NewShipmentResultVO)) {
 					$dpdCodes = null;
 
@@ -209,7 +214,7 @@ class DPD
 					$order->update(['dpdCode' => $dpdCodes, 'dpdError' => false,]);
 
 					$ordersCompleted[] = $order;
-				/** @codingStandardsIgnoreStart */
+				/** @codingStandardsIgnoreStart Camel caps*/
 				} elseif ($dpdCode = $result->NewShipmentResult->NewShipmentResultVO->ParcelVO->PARCELNO) {
 					/** @codingStandardsIgnoreEnd */
 					$order->update(['dpdCode' => $dpdCode, 'dpdError' => false,]);
@@ -225,7 +230,7 @@ class DPD
 
 				$ordersWithError[] = $order;
 
-				\bdump($e);
+				Debugger::barDump($e);
 
 				$tempDir = $this->container->getParameters()['tempDir'] . '/dpd';
 
@@ -283,7 +288,7 @@ class DPD
 				'parcelno' => $dpdCodes,
 			]);
 
-			\bdump($result);
+			Debugger::barDump($result);
 
 			/** @codingStandardsIgnoreStart */
 			$result = $result->GetLabelResult->LabelVO;
@@ -332,7 +337,7 @@ class DPD
 			return $filename;
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::ERROR);
-			\bdump($e);
+			Debugger::barDump($e);
 
 			return null;
 		}
@@ -379,14 +384,12 @@ class DPD
 					'parcelno' => \array_keys($chunkedOrders),
 				]);
 			} catch (\Exception $e) {
-				\bdump($e);
-
-				throw new \Exception('Invalid request: ' . $e->getMessage());
+				continue;
 			}
 
 			// phpcs:ignore
 			if (!isset($response->GetTrackingByParcelnoResult->TrackingDetailVO) || !\is_array($response->GetTrackingByParcelnoResult->TrackingDetailVO)) {
-				throw new \Exception('Invalid response data');
+				continue;
 			}
 
 			// phpcs:ignore
@@ -503,7 +506,7 @@ class DPD
 			'parcelno' => $list,
 		]);
 		
-		\bdump($result);
+		Debugger::barDump($result);
 		
 		return;
 	}
@@ -517,9 +520,9 @@ class DPD
 			'password' => $this->password,
 			'deleteList' => $list,
 		]);
-		
-		\bdump($result);
-		
+
+		Debugger::barDump($result);
+
 		return;
 	}
 
@@ -547,27 +550,18 @@ class DPD
 			$x = 0;
 			$y = 0;
 
-			switch ($i % 4) {
-				case 0:
-					$x = 10;
-					$y = 10;
-
-					break;
-				case 1:
-					$x = 110;
-					$y = 10;
-
-					break;
-				case 2:
-					$x = 10;
-					$y = 150;
-
-					break;
-				case 3:
-					$x = 110;
-					$y = 150;
-
-					break;
+			if ($i % 4 === 0) {
+				$x = 10;
+				$y = 10;
+			} elseif ($i % 4 === 1) {
+				$x = 110;
+				$y = 10;
+			} elseif ($i % 4 === 2) {
+				$x = 10;
+				$y = 150;
+			} elseif ($i % 4 === 3) {
+				$x = 110;
+				$y = 150;
 			}
 
 			$pdf->useTemplate($tplIdxA, $x, $y, 90);

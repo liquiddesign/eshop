@@ -16,7 +16,7 @@ class ComplaintRepository extends \StORM\Repository
 	public string $complaintCodePrefix = 'R';
 
 	/**
-	 * @var null|(callable(): string); Occurs on complaint code generation
+	 * @var null|callable(): string Occurs on complaint code generation
 	 */
 	public $onGenerateComplaintCode = null;
 

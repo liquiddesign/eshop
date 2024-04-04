@@ -1,0 +1,1 @@
+UPDATE eshop_cart INNER JOIN eshop_order ON eshop_cart.fk_purchase=eshop_order.fk_purchase SET eshop_cart.closedTs=NOW() WHERE eshop_order.uuid IS NOT NULL;

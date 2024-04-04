@@ -51,13 +51,13 @@ class Address extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $state;
-	
+
 	/**
 	 * Id
 	 * @column{"autoincrement":true}
 	 */
 	public int $id;
-	
+
 	/**
 	 * Externí kód
 	 * @column
@@ -70,8 +70,19 @@ class Address extends \StORM\Entity
 	 */
 	public ?string $externalId;
 
+	/**
+	 * Poslední načtení z ARES
+	 * @column{"type":"datetime"}
+	 */
+	public ?string $aresLoadedTs;
+
 	public function getFullAddress(): string
 	{
 		return "$this->street, $this->zipcode $this->city";
+	}
+
+	public function getName(): string|null
+	{
+		return $this->companyName ?: $this->name;
 	}
 }

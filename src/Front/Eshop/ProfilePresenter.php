@@ -15,37 +15,33 @@ use Eshop\Controls\WatcherList;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
 use Eshop\DB\OrderRepository;
-use Eshop\Shopper;
 use Forms\FormFactory;
 use Nette;
 
 abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public \Forms\Bridges\FormsSecurity\IChangePasswordFormFactory $changePasswordFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IProfileFormFactory $profileFormFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ICustomerListFactory $customerListFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IWatcherListFactory $watcherListFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
-	public Shopper $shopper;
-
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public FormFactory $formFactory;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public IAccountListFactory $accountListFactory;
 
 	/** @persistent */
@@ -70,12 +66,12 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 		$form = new Nette\Application\UI\Form();
 
 		$form->addText('from', $this->translator->translate('Profile.from', 'Od'))
-			->setHtmlAttribute('min', (new Nette\Utils\DateTime())->modify('- 1 year')->format('Y-m-d'))
-			->setHtmlAttribute('max', (new Nette\Utils\DateTime())->format('Y-m-d'))
+			->setHtmlAttribute('min', (new \Carbon\Carbon())->modify('- 1 year')->format('Y-m-d'))
+			->setHtmlAttribute('max', (new \Carbon\Carbon())->format('Y-m-d'))
 			->setHtmlType('date');
 		$form->addText('to', $this->translator->translate('Profile.to', 'Do'))
-			->setHtmlAttribute('min', (new Nette\Utils\DateTime())->modify('- 1 year')->format('Y-m-d'))
-			->setHtmlAttribute('max', (new Nette\Utils\DateTime())->format('Y-m-d'))
+			->setHtmlAttribute('min', (new \Carbon\Carbon())->modify('- 1 year')->format('Y-m-d'))
+			->setHtmlAttribute('max', (new \Carbon\Carbon())->format('Y-m-d'))
 			->setHtmlType('date');
 		$form->addSubmit('submit', $this->translator->translate('Profile.show', 'Zobrazit'));
 
@@ -113,8 +109,8 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 		/** @var \Nette\Forms\Controls\TextInput $to */
 		$to = $form['to'];
 
-		$from->setDefaultValue($this->statsFrom ?? (new Nette\Utils\DateTime())->modify('- 1 year')->format('Y-m-d'));
-		$to->setDefaultValue($this->statsTo ?? (new Nette\Utils\DateTime())->format('Y-m-d'));
+		$from->setDefaultValue($this->statsFrom ?? (new \Carbon\Carbon())->modify('- 1 year')->format('Y-m-d'));
+		$to->setDefaultValue($this->statsTo ?? (new \Carbon\Carbon())->format('Y-m-d'));
 	}
 
 	public function renderStats(): void
@@ -125,9 +121,9 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 		$breadcrumb->addItem($this->translator->translate('.myAccount', 'Můj účet'));
 		$breadcrumb->addItem($this->translator->translate('.stats', 'Statistiky'));
 
-		$currency = $this->shopper->getCurrency();
+		$currency = $this->shopperUser->getCurrency();
 
-		$user = $this->shopper->getCustomer() ?? $this->shopper->getMerchant();
+		$user = $this->shopperUser->getCustomer() ?? $this->shopperUser->getMerchant();
 
 		/** @var array<\Eshop\DB\Order> $orders */
 		$orders = $this->orderRepository->getOrdersByUser($user)->toArray();
@@ -185,7 +181,7 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 	public function createComponentSettingsForm(): Nette\Application\UI\Form
 	{
 		$presenter = $this;
-		$customer = $this->shopper->getCustomer();
+		$customer = $this->shopperUser->getCustomer();
 
 		$form = new Nette\Application\UI\Form();
 		$form->addCheckbox('newsletter');
@@ -236,7 +232,7 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 		$watcherList = $this->watcherListFactory->create();
 		$watcherList->onAnchor[] = function (WatcherList $watcherList): void {
 			$watcherList->template->setFile(\dirname(__DIR__, 6) . '/app/Eshop/Controls/watcherList.latte');
-			$watcherList->template->products = $this->productRepository->getProducts()->join(['watcher' => 'eshop_watcher'], 'this.uuid = watcher.fk_product');
+//			$watcherList->template->products = $this->productRepository->getProducts()->join(['watcher' => 'eshop_watcher'], 'this.uuid = watcher.fk_product');
 		};
 		
 		return $watcherList;
@@ -244,7 +240,7 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 
 	public function createComponentCustomers(): CustomerList
 	{
-		$user = $this->shopper->getMerchant() ?? $this->shopper->getCustomer();
+		$user = $this->shopperUser->getMerchant() ?? $this->shopperUser->getCustomer();
 
 		$customers = $user instanceof Merchant ? $this->customerRepository->many()
 				->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = nxn.fk_customer')

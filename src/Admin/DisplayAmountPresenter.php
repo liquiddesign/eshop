@@ -14,10 +14,10 @@ use Forms\Form;
 
 class DisplayAmountPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DisplayAmountRepository $displayAmountRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DisplayDeliveryRepository $displayDeliveryRepository;
 
 	public function createComponentGrid(): AdminGrid
@@ -58,6 +58,8 @@ class DisplayAmountPresenter extends BackendPresenter
 		$form->addSelect2('displayDelivery', 'Přednastavené doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('Nepřiřazeno')
 			->setHtmlAttribute('data-info', 'Pokud nastavíte "Přednastavené doručení", tak u produktů s nastaveným doručením na "Automaticky" bude zvoleno toto doručení.');
 		$form->addCheckbox('isSold', 'Označit jako vyprodáno');
+
+		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$this->getParameter('displayAmount'));
 

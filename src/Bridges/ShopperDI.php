@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\Bridges;
 
-use Eshop\CheckoutManager;
+use Eshop\Common\Services\ProductExporter;
+use Eshop\Common\Services\ProductImporter;
+use Eshop\Common\Services\ProductTester;
 use Eshop\CompareManager;
-use Eshop\Integration\Comgate;
-use Eshop\Shopper;
+use Eshop\Services\Comgate;
+use Eshop\Services\ProductsCache\ProductsCacheProvider;
+use Eshop\ShopperUser;
 use Nette\Schema\Expect;
 use Nette\Schema\Schema;
 
@@ -44,8 +47,6 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			'integrations' => Expect::structure([
 				'eHub' => Expect::bool(false),
 			]),
-			/** @deprecated Always true */
-			'useDiscountLevelCalculationInBeforePrice' => Expect::bool(true),
 			'reviews' => Expect::structure([
 				'type' => Expect::anyOf('int', 'float')->firstIsDefault(),
 				'minScore' => Expect::float(1),
@@ -90,38 +91,25 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$config = (array) $this->getConfig();
 
 		$builder = $this->getContainerBuilder();
-		
-		$shopper = $builder->addDefinition($this->prefix('shopper'))->setType(Shopper::class);
-		$cartManager = $builder->addDefinition($this->prefix('cartManager'))->setType(CheckoutManager::class);
+
+		if ($builder->hasDefinition('security.user')) {
+			$builder->removeDefinition('security.user');
+		}
+
+		$shopperUser = $builder->addDefinition('security.user')->setType(ShopperUser::class);
+
 		$builder->addDefinition($this->prefix('comgate'))->setType(Comgate::class);
 		$builder->addDefinition($this->prefix('compareManager'))->setType(CompareManager::class);
+		$builder->addDefinition($this->prefix('productExporter'))->setType(ProductExporter::class);
+		$builder->addDefinition($this->prefix('productImporter'))->setType(ProductImporter::class);
+		$builder->addDefinition($this->prefix('productsProvider'))->setType(ProductsCacheProvider::class);
+		$builder->addDefinition($this->prefix('productTester'))->setType(ProductTester::class);
 
 		/** @var \Nette\DI\Definitions\ServiceDefinition $latteDefinition */
 		$latteDefinition = $builder->getDefinition('latte.templateFactory');
-		$latteDefinition->addSetup('$onCreate[]', [['@shopper.shopper', 'addFilters']]);
+		$latteDefinition->addSetup('$onCreate[]', [['@security.user', 'addFilters']]);
 
-		$shopper->addSetup('setProjectUrl', [$config['projectUrl']]);
-		$shopper->addSetup('setRegistrationConfiguration', [(array) $config['registration']]);
-		$shopper->addSetup('setCountry', [$config['country']]);
-		$shopper->addSetup('setCurrency', [$config['currency']]);
-		$shopper->addSetup('setShowWithoutVat', [$config['showWithoutVat']]);
-		$shopper->addSetup('setShowVat', [$config['showVat']]);
-		$shopper->addSetup('setPriorityPrice', [$config['priorityPrice']]);
-		$shopper->addSetup('setShowZeroPrices', [$config['showZeroPrices']]);
-		$shopper->addSetup('setEditOrderAfterCreation', [$config['editOrderAfterCreation']]);
-		$shopper->addSetup('setAlwaysCreateCustomerOnOrderCreated', [$config['alwaysCreateCustomerOnOrderCreated']]);
-		$shopper->addSetup('setAllowBannedEmailOrder', [$config['allowBannedEmailOrder']]);
-		$shopper->addSetup('setUseDiscountLevelCalculationInBeforePrice', [$config['useDiscountLevelCalculationInBeforePrice']]);
-
-		$integrations = (array) $config['integrations'];
-		$shopper->addSetup('setIntegrationsEHub', [$integrations['eHub']]);
-
-		$shopper->addSetup('setReviews', [(array) $config['reviews']]);
-		$shopper->addSetup('setInvoices', [(array) $config['invoices']]);
-		$shopper->addSetup('setCategories', [(array) $config['categories']]);
-		$shopper->addSetup('setDiscountConditions', [(array) $config['discountConditions']]);
-
-		$cartManager->addSetup('setCheckoutSequence', [$config['checkoutSequence']]);
-		$cartManager->addSetup('setAutoFixCart', [$config['autoFixCart']]);
+		$shopperUser->addSetup('setRegistrationConfiguration', [(array) $config['registration']]);
+		$shopperUser->addSetup('setConfig', [$config]);
 	}
 }

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use Eshop\Common\DB\SystemicEntity;
+use Base\Entity\ShopSystemicEntity;
 
 /**
  * Ceník
  * @table
  */
-class Pricelist extends SystemicEntity
+class Pricelist extends ShopSystemicEntity
 {
 	/**
 	 * Kód
@@ -26,10 +26,22 @@ class Pricelist extends SystemicEntity
 	public ?string $name;
 	
 	/**
+	 * Popis
+	 * @column
+	 */
+	public ?string $description;
+	
+	/**
 	 * Je aktivní?
 	 * @column
 	 */
 	public bool $isActive;
+
+	/**
+	 * Ceny se nastavují jen importy/programově
+	 * @column
+	 */
+	public bool $isReadonly = false;
 	
 	/**
 	 * Je nákupní?
@@ -89,4 +101,10 @@ class Pricelist extends SystemicEntity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Supplier $supplier;
+
+	/**
+	 * ID
+	 * column - don't created by auto migration, only by manual
+	 */
+	public int $id;
 }

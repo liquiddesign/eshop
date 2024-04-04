@@ -15,7 +15,7 @@ use Eshop\DB\PaymentTypePriceRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\SupplierPaymentTypeRepository;
 use Eshop\DB\SupplierRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;
 use Nette\Utils\Image;
@@ -23,31 +23,31 @@ use StORM\DIConnection;
 
 class PaymentTypePresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PaymentTypeRepository $paymentTypeRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PaymentTypePriceRepository $paymentPriceRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CountryRepository $countryRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerGroupRepository $groupRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Request $request;
 	
-	/** @inject */
-	public Shopper $shopper;
+	#[\Nette\DI\Attributes\Inject]
+	public ShopperUser $shopperUser;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierPaymentTypeRepository $supplierPaymentTypeRepository;
 
 	public function createComponentGrid(): AdminGrid
@@ -64,7 +64,7 @@ class PaymentTypePresenter extends BackendPresenter
 			/** @var \Eshop\DB\PaymentTypePrice|null $price */
 			$price = $this->paymentPriceRepo->one(['fk_paymentType' => $paymentType->getPK(), 'fk_currency' => $code]);
 			
-			return $price ? $this->shopper->filterPrice($price->priceVat, $code) : '';
+			return $price ? $this->shopperUser->filterPrice($price->priceVat, $code) : '';
 		});
 		
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
@@ -121,7 +121,7 @@ class PaymentTypePresenter extends BackendPresenter
 		$form->addLocaleText('name', 'Název');
 		$form->addLocalePerexEdit('perex', 'Popisek');
 		$form->addLocalePerexEdit('instructions', 'Instrukce (např. do emailu)');
-		$form->addDataSelect('exclusive', 'Exkluzivní pro skupinu zákazníků', $this->groupRepo->getListForSelect())->setPrompt('Žádná');
+		$form->addDataSelect('exclusive', 'Exkluzivní pro skupinu zákazníků', $this->groupRepo->getArrayForSelect())->setPrompt('Žádná');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
@@ -138,6 +138,8 @@ Např.: "BANK_CZ_CS_P+BANK_CZ_KB-BANK_CZ_RB". Více viz: https://help.comgate.cz
 		foreach ($this->supplierRepository->many() as $supplierPK => $supplier) {
 			$suppliersContainer->addText($supplierPK, " Externí ID: $supplier->name")->setNullable();
 		}
+
+		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$paymentType);
 		
@@ -244,7 +246,7 @@ Např.: "BANK_CZ_CS_P+BANK_CZ_KB-BANK_CZ_RB". Více viz: https://help.comgate.cz
 			'price' => 'float',
 		];
 
-		if ($this->shopper->getShowVat()) {
+		if ($this->shopperUser->getShowVat()) {
 			$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
 
 			$saveAllTypes += ['priceVat' => 'float'];
@@ -318,7 +320,7 @@ Např.: "BANK_CZ_CS_P+BANK_CZ_KB-BANK_CZ_RB". Více viz: https://help.comgate.cz
 	}
 
 	/**
-	 * @return \Eshop\DB\Currency[]
+	 * @return array<\Eshop\DB\Currency>
 	 */
 	private function getAvailableCurrencies(): array
 	{

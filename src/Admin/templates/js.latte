@@ -1,3 +1,6 @@
+{varType Eshop\Admin\OrderPresenter $presenter}
+{varType Eshop\DB\Order $order}
+{varType Eshop\DB\Purchase $purchase}
 <script src="{$baseUrl}/vendor/liquiddesign/eshop/src/assets/dropzone/dropzone.min.js"></script>
 <script src="{$baseUrl}/vendor/liquiddesign/eshop/src/assets/html5sortable/html5sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/StephanWagner/jBox@v1.3.2/dist/jBox.all.min.js"></script>
@@ -8,8 +11,6 @@
     })
 </script>
 
-{varType Eshop\DB\Order $order}
-{varType Eshop\DB\Purchase $purchase}
 {ifset $ordersForJBOX}
     {foreach $ordersForJBOX as $order}
         {do $purchase = $order->purchase}
@@ -41,18 +42,38 @@
                             </a><br>
                             <div n:if="$purchase->ic || $purchase->customer->ic">IČ: <strong>{$purchase->ic ?: $purchase->customer->ic}</strong><br></div>
                             <div n:if="$purchase->dic || $purchase->customer->dic">DIČ: <strong>{$purchase->dic ?: $purchase->customer->dic}</strong><br></div>
-                            <div><a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}
-                                </a><br></div>
-                            <div><a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a>
+                            <div n:if="$purchase->email">
+                                <a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}</a>
+                            </div>
+                            <div n:if="$purchase->phone">
+                                <a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a>
+                            </div>
+                            <div n:if="$purchase->getValue('parentCustomer')" class="mt-2">
+                                <strong>Objednal zákazník:</strong> <br>
+                                {$purchase->parentCustomer->company ?: $purchase->parentCustomer->fullname} <br>
+                            </div>
+                            <div n:if="$purchase->getValue('account')" class="mt-2">
+                                <strong>Objednal účet:</strong> <br>
+                                {$purchase->account->fullname} ({$purchase->account->login}) <br>
                             </div>
                         </div>
                         <div n:if="!$purchase->customer">
                             {$purchase->fullname} <br>
                             <div n:if="$purchase->ic">IČ: <strong>{$purchase->ic}</strong><br></div>
                             <div n:if="$purchase->dic">DIČ: <strong>{$purchase->dic}</strong><br></div>
-                            <div><a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}
-                                </a><br></div>
-                            <div><a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a>
+                            <div>
+                                <a href="mailto:{$purchase->email}"><i class="far fa-envelope"></i> {$purchase->email}</a>
+                            </div>
+                            <div>
+                                <a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a>
+                            </div>
+                            <div n:if="$purchase->getValue('parentCustomer')" class="mt-2">
+                                <strong>Objednal zákazník:</strong> <br>
+                                {$purchase->parentCustomer->company ?: $purchase->parentCustomer->fullname} <br>
+                            </div>
+                            <div n:if="$purchase->getValue('account')" class="mt-2">
+                                <strong>Objednal účet:</strong> <br>
+                                {$purchase->account->fullname} ({$purchase->account->login}) <br>
                             </div>
                         </div>
                     </address>
@@ -61,7 +82,7 @@
                 <div class="col-sm-4 invoice-col">
                     <p class="lead mb-1">Fakturační adresa</p>
                     <address class="mt-2">
-                        {$purchase->fullname}<br>
+                        {$billingAddress?->companyName ?: ($billingAddress?->name ?: $purchase->fullname)}<br>
                         <div n:if="$purchase->ic">IČ: {$purchase->ic}<br></div>
                         <div n:if="$purchase->dic">DIČ: {$purchase->dic}<br></div>
                         <div n:if="$billingAddress">{$billingAddress->street}<br></div>
@@ -74,7 +95,7 @@
                     <p class="lead mb-1">Dodací adresa</p>
                     <address n:if="$deliveryAddress" class="mt-2">
                         {if $deliveryAddress->name}{$deliveryAddress->name}<br>{/if}
-                        {if $deliveryAddress->companyName}{$deliveryAddress->companyName}<br>{/if}
+                        {if $deliveryAddress->companyName && $deliveryAddress->name !== $deliveryAddress->companyName}{$deliveryAddress->companyName}<br>{/if}
                         {$deliveryAddress->street}<br>
                         {$deliveryAddress->zipcode} {$deliveryAddress->city}<br>
                     </address>
@@ -110,10 +131,18 @@
                     </div>
 
                     <div class="mt-2" n:if="$purchase->desiredShippingDate">
-                        <b>Požadované datum expedice:</b>
+                        <b>Požadované datum odeslání:</b>
 
                         <div class="d-flex align-items-center">
                             {$order->purchase->desiredShippingDate|date:'d.m.Y'}
+                        </div>
+                    </div>
+
+                    <div class="mt-2" n:if="$purchase->desiredDeliveryDate">
+                        <b>Požadované datum doručení:</b>
+
+                        <div class="d-flex align-items-center">
+                            {$order->purchase->desiredDeliveryDate|date:'d.m.Y'}
                         </div>
                     </div>
 
@@ -153,7 +182,7 @@
                     <div class="table-responsive">
                         <table class="table order-JBOX">
                             <tbody>
-                            {if $presenter->shopper->getShowVat()}
+                            {if $presenter->shopperUser->getShowVat()}
                                 <tr>
                                     <th>Mezisoučet:</th>
                                     <td>{($order->purchase->getSumPriceVat())|price:$purchase->currency->code}</td>
@@ -176,7 +205,7 @@
                                         <span style="font-size: large">{$order->getTotalPriceVat()|price:$purchase->currency->code}</span>
                                     </td>
                                 </tr>
-                            {elseif $presenter->shopper->getShowWithoutVat()}
+                            {elseif $presenter->shopperUser->getShowWithoutVat()}
                                 <tr>
                                     <th>Mezisoučet:</th>
                                     <td>{($order->purchase->getSumPrice())|price:$purchase->currency->code}</td>

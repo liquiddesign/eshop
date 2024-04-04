@@ -12,7 +12,7 @@ use Eshop\DB\InvoiceRepository;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
 use Messages\DB\TemplateRepository;
@@ -22,32 +22,33 @@ use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
 use Nette\Utils\Html;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\ICollection;
 use Tracy\Debugger;
 
 class InvoicesPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public InvoiceRepository $invoiceRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public LinkGenerator $linkGenerator;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PaymentTypeRepository $paymentTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Mailer $mailer;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public TemplateRepository $templateRepository;
 
-	/** @inject */
-	public Shopper $shopper;
+	#[\Nette\DI\Attributes\Inject]
+	public ShopperUser $shopperUser;
 	
 	public function createComponentGrid(): AdminGrid
 	{
@@ -74,7 +75,7 @@ class InvoicesPresenter extends BackendPresenter
 				$ordersString .= "<a href='$link'>$orderCode</a>";
 			}
 
-			return \substr($ordersString, 0, -2);
+			return Strings::substring($ordersString, 0, -2);
 		}, '%s', 'order.code');
 		$grid->addColumn('Veřejná URL', function (Invoice $invoice): ?string {
 			try {
@@ -82,8 +83,6 @@ class InvoicesPresenter extends BackendPresenter
 
 				return "<a href=\"$link\" target=\"_blank\">$link</a>";
 			} catch (\Nette\Application\UI\InvalidLinkException $e) {
-				\bdump($e);
-
 				return null;
 			}
 		});
@@ -145,11 +144,17 @@ class InvoicesPresenter extends BackendPresenter
 			$form->addText('taxDate', 'Datum zdanitelného plnění')
 				->setHtmlType('date')
 				->setNullable()
-				->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude použito nastavení posunu. Aktuální posun: + ' . $this->shopper->getInvoicesAutoTaxDateInDays() . ' dní vůči datu vystavení');
+				->setHtmlAttribute(
+					'data-info',
+					'Pokud nevyplníte, bude použito nastavení posunu. Aktuální posun: + ' . $this->shopperUser->getInvoicesAutoTaxDateInDays() . ' dní vůči datu vystavení',
+				);
 			$form->addText('dueDate', 'Datum splatnosti')
 				->setHtmlType('date')
 				->setNullable()
-				->setHtmlAttribute('data-info', 'Pokud nevyplníte, bude použito nastavení posunu. Aktuální posun: + ' . $this->shopper->getInvoicesAutoDueDateInDays() . ' dní vůči datu vystavení');
+				->setHtmlAttribute(
+					'data-info',
+					'Pokud nevyplníte, bude použito nastavení posunu. Aktuální posun: + ' . $this->shopperUser->getInvoicesAutoDueDateInDays() . ' dní vůči datu vystavení',
+				);
 
 			$input = $form->addSelectAjax('order', 'Objednávka', '- Vyberte objednávku -', Order::class)->setDisabled((bool) $invoice);
 
@@ -265,7 +270,6 @@ class InvoicesPresenter extends BackendPresenter
 
 			$this->template->displayButtons[] = '<a href="' . $link . '" target="_blank"><button class="btn btn-sm btn-outline-primary"><i class="fas fa-print"></i>&nbsp;Tisková sestava</button></a>';
 		} catch (\Nette\Application\UI\InvalidLinkException $e) {
-			\bdump($e);
 		}
 
 		$this->template->displayControls = [$this->getComponent('form')];
@@ -279,8 +283,6 @@ class InvoicesPresenter extends BackendPresenter
 
 			$this->flashMessage('Odesláno', 'success');
 		} catch (\Throwable $e) {
-			\bdump($e);
-
 			$this->flashMessage('Nelze odeslat email!', 'error');
 		}
 
@@ -295,8 +297,6 @@ class InvoicesPresenter extends BackendPresenter
 
 			$this->flashMessage('Odesláno', 'success');
 		} catch (\Throwable $e) {
-			\bdump($e);
-
 			$this->flashMessage('Nelze odeslat email!', 'error');
 		}
 

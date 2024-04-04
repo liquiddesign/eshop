@@ -3,28 +3,25 @@ declare(strict_types=1);
 
 namespace Eshop\Front\Eshop;
 
+use Carbon\Carbon;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\Review;
 use Eshop\DB\ReviewRepository;
 use Eshop\Front\FrontendPresenter;
-use Eshop\Shopper;
 use Forms\Form;
 use Nette\Localization\Translator;
 
 abstract class ReviewPresenter extends FrontendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ReviewRepository $reviewRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Translator $translator;
-
-	/** @inject */
-	public Shopper $shopper;
 
 	private ?Review $review = null;
 
@@ -62,7 +59,7 @@ abstract class ReviewPresenter extends FrontendPresenter
 
 		$options = [];
 
-		for ($i = $this->shopper->getReviewsMinScore(); $i <= $this->shopper->getReviewsMaxScore(); $i++) {
+		for ($i = $this->shopperUser->getReviewsMinScore(); $i <= $this->shopperUser->getReviewsMaxScore(); $i++) {
 			$options["o_$i"] = $i;
 		}
 
@@ -74,7 +71,7 @@ abstract class ReviewPresenter extends FrontendPresenter
 
 			$this->review->update([
 				'score' => (int) \explode('_', $values['score'])[1],
-				'reviewedTs' => \date('Y-m-d\TH:i:s'),
+				'reviewedTs' => Carbon::now()->format('Y-m-d\TH:i:s'),
 			]);
 
 			$this->flashMessage($this->translator->translate('Review.thankYouNow', 'Děkujeme!'), 'success');

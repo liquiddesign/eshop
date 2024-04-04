@@ -18,49 +18,50 @@ use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PickupPointTypeRepository;
 use Eshop\DB\SupplierDeliveryTypeRepository;
 use Eshop\DB\SupplierRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Forms\Form;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;
+use Nette\Utils\Html;
 use Nette\Utils\Image;
 use StORM\DIConnection;
 
 class DeliveryTypePresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DeliveryTypeRepository $deliveryRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DeliveryTypePriceRepository $deliveryPriceRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CountryRepository $countryRepository;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PaymentTypeRepository $paymentTypeRepo;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CustomerGroupRepository $groupRepo;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PickupPointTypeRepository $pointTypeRepo;
 	
-	/** @inject */
-	public Shopper $shopper;
+	#[\Nette\DI\Attributes\Inject]
+	public ShopperUser $shopperUser;
 	
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public Request $request;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public SupplierDeliveryTypeRepository $supplierDeliveryTypeRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public DisplayDeliveryRepository $displayDeliveryRepository;
 	
 	public function createComponentGrid(): AdminGrid
@@ -83,7 +84,7 @@ class DeliveryTypePresenter extends BackendPresenter
 				->setTake(1)
 				->first();
 			
-			return $price ? $this->shopper->filterPrice($price->priceVat, $code) : '';
+			return $price ? $this->shopperUser->filterPrice($price->priceVat, $code) : '';
 		});
 		
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
@@ -139,7 +140,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form->addDataSelect('defaultDisplayDelivery', 'Výchozí zobrazované doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('-- Žádné --');
 		$form->addDataSelect('exclusive', 'Exkluzivní pro skupinu uživatelů', $this->groupRepo->getArrayForSelect())->setPrompt('-- Žádná --');
 		$form->addDataSelect('pickupPointType', 'Typ výdejních míst', $this->pointTypeRepo->getArrayForSelect())->setPrompt('-- Žádný --');
-		$form->addDataMultiSelect('allowedPaymentTypes', 'Povolené typy plateb', $this->paymentTypeRepo->many()->toArrayOf('code'))
+		$form->addDataMultiSelect('allowedPaymentTypes', 'Povolené typy plateb', $this->paymentTypeRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 		
 		
@@ -165,8 +166,10 @@ class DeliveryTypePresenter extends BackendPresenter
 
 		/** @var \Eshop\DB\Supplier $supplier */
 		foreach ($this->supplierRepository->many() as $supplierPK => $supplier) {
-			$suppliersContainer->addText($supplierPK, " Externí ID: $supplier->name")->setNullable();
+			$suppliersContainer->addText($supplierPK, Html::fromHtml("$this->shopIcon Externí ID: $supplier->name"))->setNullable();
 		}
+
+		$this->formFactory->addShopsContainerToAdminForm($form);
 		
 		$form->addSubmits(!$deliveryType);
 		
@@ -199,6 +202,7 @@ class DeliveryTypePresenter extends BackendPresenter
 					'deliveryType' => $deliveryType->getPK(),
 					'supplier' => $supplierPK,
 					'externalId' => $externalID,
+					'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
 				]);
 			}
 			
@@ -249,10 +253,13 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form = $this->getComponent('newForm');
 
 		$defaults = $deliveryType->toArray(['allowedPaymentTypes']);
-		$defaults['suppliers'] = $this->supplierDeliveryTypeRepository->many()
+		$suppliersDefaultsCollection = $this->supplierDeliveryTypeRepository->many()
 			->where('this.fk_deliveryType', $deliveryType->getPK())
-			->setIndex('this.fk_supplier')
-			->toArrayOf('externalId');
+			->setIndex('this.fk_supplier');
+
+		$this->shopsConfig->filterShopsInShopEntityCollection($suppliersDefaultsCollection, showOnlyEntitiesWithSelectedShops: true);
+
+		$defaults['suppliers'] = $suppliersDefaultsCollection->toArrayOf('externalId');
 
 		$form->setDefaults($defaults);
 	}
@@ -273,7 +280,7 @@ class DeliveryTypePresenter extends BackendPresenter
 			'price' => 'float',
 		];
 
-		if ($this->shopper->getShowVat()) {
+		if ($this->shopperUser->getShowVat()) {
 			$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
 
 			$saveAllTypes += ['priceVat' => 'float'];

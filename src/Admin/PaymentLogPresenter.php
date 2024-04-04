@@ -10,7 +10,7 @@ use Eshop\DB\PaymentLogRepository;
 
 class PaymentLogPresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public PaymentLogRepository $paymentLogRepository;
 	
 	public function createComponentGrid(): AdminGrid

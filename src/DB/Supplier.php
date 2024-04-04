@@ -105,6 +105,12 @@ class Supplier extends \StORM\Entity
 	 * @column
 	 */
 	public bool $syncProductsAllowed = true;
+
+	/**
+	 * Zvýraznit dostupnost produktu od tohoto dodavatele
+	 * @column
+	 */
+	public bool $highlightStoreAmount = false;
 	
 	/**
 	 * Defaultní zobrazení množství

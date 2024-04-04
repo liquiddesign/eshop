@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopEntity;
 use StORM\RelationCollection;
 
 /**
  * Košík
  * @table
+ * @index{"name":"cart_id","columns":["id","fk_customer","closedTs"]}
+ * @method \StORM\RelationCollection<\Eshop\DB\CartItem> getItems()
  */
-class Cart extends \StORM\Entity
+class Cart extends ShopEntity
 {
 	public const EXPIRATION_DAYS = 30;
 
@@ -18,7 +21,13 @@ class Cart extends \StORM\Entity
 	 * Číslo košíku
 	 * @column
 	 */
-	public int $id;
+	public string $id;
+	
+	/**
+	 * Hash nepřipojeného košíku
+	 * @column
+	 */
+	public ?string $cartToken = null;
 	
 	/**
 	 * Aktivní košík
@@ -42,7 +51,13 @@ class Cart extends \StORM\Entity
 	 * Expiruje
 	 * @column{"type":"timestamp"}
 	 */
-	public ?string $expirationTs;
+	public ?string $expirationTs = null;
+	
+	/**
+	 * Uzavřený
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $closedTs = null;
 	
 	/**
 	 * Měna
@@ -81,7 +96,7 @@ class Cart extends \StORM\Entity
 	/**
 	 * Položky košíku
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\CartItem>|\Eshop\DB\CartItem[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\CartItem>
 	 */
 	public RelationCollection $items;
 }

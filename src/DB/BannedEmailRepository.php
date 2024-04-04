@@ -11,6 +11,6 @@ class BannedEmailRepository extends \StORM\Repository
 {
 	public function isEmailBanned(string $email): bool
 	{
-		return (bool)$this->one(['email' => $email]);
+		return (bool) $this->one(['email' => $email]);
 	}
 }

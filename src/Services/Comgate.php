@@ -11,7 +11,6 @@ use Contributte\Comgate\Entity\Payment;
 use Contributte\Comgate\Entity\PaymentStatus;
 use Contributte\Comgate\Gateway\PaymentService;
 use Eshop\Admin\SettingsPresenter;
-use Eshop\CheckoutManager;
 use Eshop\Common\IPaymentIntegration;
 use Eshop\DB\Order;
 use Eshop\DB\OrderRepository;
@@ -27,36 +26,25 @@ use Web\DB\SettingRepository;
 
 class Comgate implements IPaymentIntegration
 {
-	public CheckoutManager $checkoutManager;
-
-	public PaymentService $paymentService;
-
-	public PaymentResultRepository $paymentResultRepository;
-
-	public OrderRepository $orderRepository;
-
-	public SettingRepository $settingRepository;
-
-	public PaymentTypeRepository $paymentTypeRepository;
+	/**
+	 * @var (callable(\Eshop\DB\Order $order): float)|null
+	 */
+	public $onGetOrderTotalPriceVat = null;
 
 	private \Contributte\Comgate\Comgate $contributteComgate;
 
 	public function __construct(
-		CheckoutManager $checkoutManager,
-		PaymentResultRepository $paymentResultRepository,
-		OrderRepository $orderRepository,
-		PaymentService $paymentService,
-		SettingRepository $settingRepository,
-		PaymentTypeRepository $paymentTypeRepository,
+		public PaymentResultRepository $paymentResultRepository,
+		public OrderRepository $orderRepository,
+		public PaymentService $paymentService,
+		public SettingRepository $settingRepository,
+		public PaymentTypeRepository $paymentTypeRepository,
 		Container $container
 	) {
-		$this->checkoutManager = $checkoutManager;
-		$this->paymentResultRepository = $paymentResultRepository;
-		$this->orderRepository = $orderRepository;
-		$this->paymentService = $paymentService;
-		$this->settingRepository = $settingRepository;
-		$this->paymentTypeRepository = $paymentTypeRepository;
-		$this->contributteComgate = $container->getByName('comgate.comgate');
+		/** @var \Contributte\Comgate\Comgate $contributteComgate */
+		$contributteComgate = $container->getByName('comgate.comgate');
+
+		$this->contributteComgate = $contributteComgate;
 	}
 
 	public function processPayment(Order $order): void
@@ -72,7 +60,7 @@ class Comgate implements IPaymentIntegration
 
 		$comgatePaymentTypes = $this->paymentTypeRepository->many()->where('this.uuid', $comgatePaymentTypes)->toArray();
 
-		$orderPaymentType = $order->getPayment()->type;
+		$orderPaymentType = $order->getPayment()?->type;
 
 		if (!$orderPaymentType) {
 			return;
@@ -84,13 +72,11 @@ class Comgate implements IPaymentIntegration
 
 		$response = $this->createPayment($order, $orderPaymentType->comgateMethod ?: PaymentMethodCode::ALL);
 
-		\bdump($response);
-
 		if ($response['code'] === '0') {
 			$this->paymentResultRepository->saveTransaction(
 				$response['transId'],
-				$order->getTotalPriceVat(),
-				$order->getPayment()->currency->code,
+				$this->getOrderTotalPriceVat($order),
+				$order->getPayment()?->currency->code ?: 'CZK',
 				'PENDING',
 				'comgate',
 				$order,
@@ -106,16 +92,21 @@ class Comgate implements IPaymentIntegration
 
 	/**
 	 * @param \Eshop\DB\Order $order
-	 * @return string[]
+	 * @return array<string>
 	 * @throws \Brick\Money\Exception\UnknownCurrencyException
 	 */
 	public function createPayment(Order $order, string $method = PaymentMethodCode::ALL): array
 	{
-		$price = $order->getTotalPriceVat();
-		$currency = $order->getPayment()->currency->code;
-		$customer = $order->purchase->email;
+		$price = $this->getOrderTotalPriceVat($order);
+		$currency = $order->getPayment()?->currency->code;
+
+		if (!$currency) {
+			throw new \Exception("Comgate: Order '$order->code' has no payment.");
+		}
+
+		$customer = (string) $order->purchase->email;
 		$payment = Payment::of(
-			Money::of($price, $currency, new \Brick\Money\Context\CustomContext(2), RoundingMode::DOWN),
+			Money::of($price, $currency, new \Brick\Money\Context\CustomContext(2), RoundingMode::HALF_EVEN),
 			$order->code,
 			$order->code,
 			$customer,
@@ -130,7 +121,7 @@ class Comgate implements IPaymentIntegration
 
 	/**
 	 * @param string $transaction
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getStatus(string $transaction): array
 	{
@@ -139,6 +130,10 @@ class Comgate implements IPaymentIntegration
 		return $res->getData();
 	}
 
+	/**
+	 * @param \Eshop\DB\PaymentResult $paymentResult
+	 * @param array<mixed> $result
+	 */
 	public function getUrl(PaymentResult $paymentResult, array $result): string
 	{
 		unset($result);
@@ -204,10 +199,10 @@ class Comgate implements IPaymentIntegration
 		]);
 
 		if ($data['status'] === 'PAID') {
-			$paymentResult = $paymentResult->order->getPayment();
+			$paymentResult = $paymentResult->order?->getPayment();
 
 			if ($paymentResult) {
-				$this->orderRepository->changePayment($paymentResult->getPK(), true, true);
+				$this->orderRepository->changePayment((string) $paymentResult->getPK(), true, true);
 			}
 		}
 
@@ -215,5 +210,10 @@ class Comgate implements IPaymentIntegration
 			'code' => 0,
 			'message' => 'OK',
 		];
+	}
+
+	protected function getOrderTotalPriceVat(Order $order): float
+	{
+		return $this->onGetOrderTotalPriceVat ? \call_user_func($this->onGetOrderTotalPriceVat, $order) : $order->getTotalPriceVat();
 	}
 }

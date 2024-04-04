@@ -13,17 +13,23 @@ use StORM\RelationCollection;
  */
 class PackageItem extends \StORM\Entity
 {
-	/** @deprecated PackageItem is always deleted */
-	public const DELETE_MODE_DELETE = 'delete';
-
-	/** @deprecated PackageItem is always deleted */
-	public const DELETE_MODE_MARK = 'mark';
-
 	/**
 	 * Počet
 	 * @column
 	 */
 	public int $amount = 0;
+	
+	/**
+	 * Expedováno kusů
+	 * @column
+	 */
+	public int $dispatchedAmount = 0;
+	
+	/**
+	 * Výdejka
+	 * @column
+	 */
+	public ?string $expeditionNumber = null;
 
 	/**
 	 * Smazáno
@@ -83,7 +89,7 @@ class PackageItem extends \StORM\Entity
 	/**
 	 * Related package items
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedPackageItem>|\Eshop\DB\RelatedPackageItem[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedPackageItem>
 	 */
 	public RelationCollection $relatedPackageItems;
 

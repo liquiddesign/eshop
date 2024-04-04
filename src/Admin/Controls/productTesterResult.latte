@@ -1,0 +1,117 @@
+{varType array $testResult}
+
+{foreach $flashes as $message}
+    <div class="alert alert-{$message->type} mt-4">{$message->message}</div>
+{/foreach}
+
+<div n:class="'card card-outline', $testResult['fastTest'] ? 'card-success' : 'card-danger'">
+    <div class="card-header">
+        Výsledek testu
+    </div>
+
+    <div class="card-body">
+        <div n:class="'callout', $testResult['fastTest'] ? 'callout-success' : 'callout-danger'">
+            <h6><i n:class="'icon fas', $testResult['fastTest'] ? 'fa-check' : 'fa-ban'"></i> Rychlý test</h6>
+            <p n:if="!$testResult['fastTest']">Rychlý test provádí stejnou operaci jako frontend. Z toho testu nelze zjistit konkrétní důvod proč není produkt viditelný.</p>
+        </div>
+
+        <div n:class="'callout', $testResult['visibilityList'] ? 'callout-success' : 'callout-danger'">
+            <h6><i n:class="'icon fas', $testResult['visibilityList'] ? 'fa-check' : 'fa-ban'"></i> Záznam v seznamu viditelnosti</h6>
+            <p n:if="!$testResult['visibilityList']">Produkt nemá vytvořený záznam v žádném aktivním seznamu viditelnosti.</p>
+        </div>
+
+        <div n:class="'callout', $testResult['hidden'] ? 'callout-success' : 'callout-danger'">
+            <h6><i n:class="'icon fas', $testResult['hidden'] ? 'fa-check' : 'fa-ban'"></i> Záznam viditelnosti - Skrytý</h6>
+            <p n:if="!$testResult['hidden']">Produkt má v použitém záznamu viditelnosti nastaveno Skryto</p>
+        </div>
+
+        <div n:class="'callout', $testResult['usedPriceList'] ? 'callout-success' : 'callout-danger'">
+            <h6><i n:class="'icon fas', $testResult['usedPriceList'] ? 'fa-check' : 'fa-ban'"></i> Cena v ceníku</h6>
+            <p n:if="!$testResult['usedPriceList']">Produkt nemá žádný záznam o ceně v žádném aktivním ceníku.</p>
+        </div>
+
+        <div n:class="'callout', $testResult['page'] && !$testResult['page']->isOffline ? 'callout-success' : 'callout-warning'">
+            <h6><i n:class="'icon fas', $testResult['page'] && !$testResult['page']->isOffline ? 'fa-check' : 'fa-exclamation'"></i> URL</h6>
+            <p n:if="!$testResult['page']">Produkt nemá vlastní URL. Přesto je produkt dostupný přes defaultní URL.</p>
+            <p n:if="$testResult['page'] && $testResult['page']->isOffline">Produkt má vlastní URL, která je deaktivovaná. Přesto je produkt dostupný přes defaultní URL.</p>
+        </div>
+
+        <span>
+            Výsledek testu nemusí být přesný kvůli rozdílným filtrům na různých pohledech.
+        </span>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-text-width"></i>
+            Ceníky
+        </h3>
+    </div>
+
+    <div class="card-body">
+        <h6>Použitý:</h6>
+        <span n:if="$testResult['usedPriceList']">{$testResult['usedPriceList']->name} ({$testResult['usedPriceList']->code})</span>
+        <span n:if="!$testResult['usedPriceList']">Žádný vyhovující záznam</span>
+
+        <hr>
+
+        <h6>Všechny dostupné:</h6>
+        <table class="table">
+            <tr>
+                <th>Kód</th>
+                <th>Název</th>
+                <th>Aktivní</th>
+                <th>Cena</th>
+                <th>Cena s DPH</th>
+            </tr>
+            <tr n:foreach="$testResult['availablePriceLists'] as $priceList">
+                <td>{$priceList->code}</td>
+                <td>{$priceList->name}</td>
+                <td>{$priceList->price ? 'ANO' : 'NE'}</td>
+                <td>{$priceList->price?->price}</td>
+                <td>{$priceList->price?->priceVat}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-text-width"></i>
+            Seznamy viditelnosti
+        </h3>
+    </div>
+
+    <div class="card-body">
+        <h6>Použitý:</h6>
+        <span n:if="$testResult['usedVisibilityList']">{$testResult['usedVisibilityList']->name} ({$testResult['usedVisibilityList']->code})</span>
+        <span n:if="!$testResult['usedVisibilityList']">Žádný vyhovující záznam</span>
+
+        <hr>
+
+        <h6>Všechny dostupné:</h6>
+        <table class="table">
+            <tr>
+                <th>Kód</th>
+                <th>Název</th>
+                <th>Aktivní</th>
+                <th>Skryto</th>
+                <th>Skryto v menu a vyhledávání</th>
+                <th>Neprodejné</th>
+                <th>Doporučeno</th>
+            </tr>
+            <tr n:foreach="$testResult['availableVisibilityLists'] as $visibilityList">
+                <td>{$visibilityList->code}</td>
+                <td>{$visibilityList->name}</td>
+                <td>{$visibilityList->visibilityListItem ? 'ANO' : 'NE'}</td>
+                <td>{!$visibilityList->visibilityListItem ? '' : ($visibilityList->visibilityListItem->hidden ? 'ANO' : 'NE')}</td>
+                <td>{!$visibilityList->visibilityListItem ? '' : ($visibilityList->visibilityListItem->hiddenInMenu ? 'ANO' : 'NE')}</td>
+                <td>{!$visibilityList->visibilityListItem ? '' : ($visibilityList->visibilityListItem->unavailable ? 'ANO' : 'NE')}</td>
+                <td>{!$visibilityList->visibilityListItem ? '' : ($visibilityList->visibilityListItem->recommended ? 'ANO' : 'NE')}</td>
+            </tr>
+        </table>
+    </div>
+</div>

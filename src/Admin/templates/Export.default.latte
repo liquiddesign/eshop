@@ -63,7 +63,8 @@
                                 {/foreach}
                                 <div class="row">
                                     <div class="col">
-                                        Parametr <i>lang</i> v URL není povinný. Zde je uveden <b>pouze</b> pro příklad použití.
+                                        Parametr <i>lang</i> v URL není povinný. Zde je uveden <b>pouze</b> pro příklad použití.<br>
+                                        {if $shops}Parametr <i>shop</i> v URL není povinný. Pokud je zadán, tak je prioritně použitý pro určení obchodu. Pokud není zadán, je obchod určen podle domény.{/if}
                                     </div>
                                 </div>
                             </div>

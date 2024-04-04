@@ -5,70 +5,54 @@ declare(strict_types=1);
 namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
-use Admin\Controls\AdminGridFactory;
+use Base\ShopsConfig;
+use Eshop\Common\Helpers;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\Product;
+use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\SupplierProductRepository;
+use Eshop\DB\VisibilityListRepository;
 use Eshop\Integration\Integrations;
 use Grid\Datagrid;
 use Nette\DI\Container;
 use Nette\Forms\Controls\Checkbox;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
-use StORM\Connection;
+use Nette\Utils\Strings;
+use StORM\DIConnection;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\PageRepository;
 
 class ProductGridFactory
 {
-	private ProductRepository $productRepository;
-
-	private AdminGridFactory $gridFactory;
-
-	private PageRepository $pageRepository;
-
-	private Container $container;
-
-	private ProductGridFiltersFactory $productGridFiltersFactory;
-
-	private Connection $connection;
-
-	private CategoryRepository $categoryRepository;
-
-	private SupplierProductRepository $supplierProductRepository;
-
-	private CategoryTypeRepository $categoryTypeRepository;
-
 	public function __construct(
-		\Admin\Controls\AdminGridFactory $gridFactory,
-		Container $container,
-		PageRepository $pageRepository,
-		ProductRepository $productRepository,
-		ProductGridFiltersFactory $productGridFiltersFactory,
-		Connection $connection,
-		CategoryRepository $categoryRepository,
-		SupplierProductRepository $supplierProductRepository,
-		CategoryTypeRepository $categoryTypeRepository,
-		/** @codingStandardsIgnoreStart PHP 8.0 */
-		private Integrations $integrations,
-		/** @codingStandardsIgnoreEnd */
+		protected readonly \Admin\Controls\AdminGridFactory $gridFactory,
+		protected readonly Container $container,
+		protected readonly PageRepository $pageRepository,
+		protected readonly ProductRepository $productRepository,
+		protected readonly ProductGridFiltersFactory $productGridFiltersFactory,
+		protected readonly DIConnection $connection,
+		protected readonly CategoryRepository $categoryRepository,
+		protected readonly SupplierProductRepository $supplierProductRepository,
+		protected readonly CategoryTypeRepository $categoryTypeRepository,
+		protected readonly Integrations $integrations,
+		protected readonly ShopsConfig $shopsConfig,
+		protected readonly VisibilityListRepository $visibilityListRepository,
+		protected readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository
 	) {
-		$this->gridFactory = $gridFactory;
-		$this->pageRepository = $pageRepository;
-		$this->container = $container;
-		$this->productGridFiltersFactory = $productGridFiltersFactory;
-		$this->productRepository = $productRepository;
-		$this->connection = $connection;
-		$this->categoryRepository = $categoryRepository;
-		$this->supplierProductRepository = $supplierProductRepository;
-		$this->categoryTypeRepository = $categoryTypeRepository;
 	}
 
 	public function create(array $configuration): Datagrid
 	{
+		$visibilityListsCollection = $this->visibilityListRepository->getCollection();
+
+		if ($selectedShop = $this->shopsConfig->getSelectedShop()) {
+			$visibilityListsCollection->where('this.fk_shop', $selectedShop->getPK());
+		}
+
 		$source = $this->productRepository->many()
 			->setSmartJoin(false)
 			->setGroupBy(['this.uuid'])
@@ -78,6 +62,12 @@ class ProductGridFactory
 			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
 			->join(['pricelist' => 'eshop_pricelist'], 'pricelist.uuid=price.fk_pricelist')
 			->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = this.uuid')
+			->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid')
+			->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityList.uuid')
+			->join(['primaryCategory' => 'eshop_productprimarycategory'], 'primaryCategory.fk_product = this.uuid')
+			->where('visibilityList.uuid IN(:visibilityListIn) OR visibilityList.uuid IS NULL', [
+				'visibilityListIn' => Helpers::arrayToSqlInStatement($visibilityListsCollection->toArrayOf('uuid', toArrayValues: true)),
+			])
 			->select([
 				'photoCount' => 'COUNT(DISTINCT photo.uuid)',
 				'fileCount' => 'COUNT(DISTINCT file.uuid)',
@@ -85,24 +75,27 @@ class ProductGridFactory
 				'priceCount' => 'COUNT(DISTINCT price.uuid)',
 				'categoryCount' => 'COUNT(DISTINCT nxnCategory.fk_category)',
 				'pricelistActive' => 'MAX(pricelist.isActive)',
+				'hidden' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.hidden ORDER BY visibilityList.priority), ',', 1)",
+				'unavailable' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.unavailable ORDER BY visibilityList.priority), ',', 1)",
+				'primaryCategoryPKs' => 'GROUP_CONCAT(primaryCategory.fk_category)',
 			]);
 
-		$grid = $this->gridFactory->create($source, 20, 'this.priority', 'ASC', true);
+		$grid = $this->gridFactory->create($source, 20, 'this.uuid', 'ASC', true);
 		$grid->addColumnSelector();
 		$grid->addColumn('', function (Product $object, Datagrid $datagrid) {
-			if ($object->hidden) {
+			if ($object->isHidden()) {
 				$label = 'Neviditelný: Skrytý';
 				$color = 'danger';
-			} elseif ($object->getValue('priceCount') === '0') {
+			} elseif ($object->getValue('priceCount') === 0) {
 				$label = 'Neviditelný: Bez ceny';
 				$color = 'danger';
-			} elseif ($object->getValue('pricelistActive') === '0') {
+			} elseif ($object->getValue('pricelistActive') === 0) {
 				$label = 'Neviditelný: Žádné aktivní ceny';
 				$color = 'danger';
-			} elseif ($object->unavailable) {
+			} elseif ($object->isUnavailable()) {
 				$label = 'Viditelný: Neprodejný';
 				$color = 'warning';
-			} elseif ($object->getValue('categoryCount') === '0') {
+			} elseif ($object->getValue('categoryCount') === 0) {
 				$label = 'Viditelný: Bez kategorie';
 				$color = 'warning';
 			} else {
@@ -135,7 +128,7 @@ class ProductGridFactory
 			}
 
 			if ($mergedProductsCodes) {
-				$mergedProductsCodes = \substr($mergedProductsCodes, 0, -1);
+				$mergedProductsCodes = Strings::substring($mergedProductsCodes, 0, -1);
 
 				$suppliers[] = "<a href='#' class='badge badge-secondary' style='font-weight: normal;'><i class='fas fa-angle-down fa-sm mr-1'></i>" . $mergedProductsCodes . '</a>';
 			}
@@ -218,16 +211,15 @@ class ProductGridFactory
 
 			$finalStr = '';
 			$last = Arrays::last(\array_keys($productCategories));
-			$primaryCategory = $product->getValue('primaryCategory');
+			$primaryCategories = \explode(',', $product->getValue('primaryCategoryPKs') ?? '');
 
 			foreach ($productCategories as $productCategoryPK => $productCategoryName) {
 				$finalStr .= '<abbr title="' . $categories[$productCategoryPK] . '">';
 				$finalStr .= $productCategoryName;
 				$finalStr .= '</abbr>';
-				$finalStr .= $productCategoryPK === $primaryCategory ?
+				$finalStr .= Arrays::contains($primaryCategories, $productCategoryPK) ?
 					'&nbsp;<i class="fas fa-star fa-sm"></i>' :
-					'&nbsp;<a title="Nastavit jako primární" href="' . $grid->getPresenter()->link('makeProductCategoryPrimary!', ['product' => $product->getPK(), 'category' => $productCategoryPK]) .
-					'"><i class="far fa-star fa-sm"></i></a>';
+					'<i class="far fa-star fa-sm"></i></a>';
 				$finalStr .= $last !== $productCategoryPK ? '&nbsp;|&nbsp;' : null;
 			}
 
@@ -236,15 +228,12 @@ class ProductGridFactory
 		
 		$grid->addColumnText('Sleva', 'discountLevelPct', '%s %%', 'discountLevelPct', ['class' => 'fit']);
 		$grid->addColumn('Obsah', function (Product $object, Datagrid $datagrid) {
-			if ($object->supplierContentLock && $object->content) {
+			if ($object->supplierContentLock && $object->getContent()) {
 				$label = 'Vlastní obsah';
 				$icon = 'fas fa-file-alt';
-			} elseif ($object->supplierContentLock && !$object->content) {
+			} elseif ($object->supplierContentLock && !$object->getContent()) {
 				$label = 'Žádný obsah';
 				$icon = 'fas fa-file-excel';
-			} elseif ($object->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_LENGTH) {
-				$label = 'Ze zdroje s nejdelším obsahem';
-				$icon = 'fas fa-file-import';
 			} elseif ($object->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_PRIORITY || (!$object->supplierContent && $object->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_NONE)) {
 				$label = 'Ze zdroje s nejvyšší prioritou';
 				$icon = 'fas fa-file-upload';
@@ -259,12 +248,13 @@ class ProductGridFactory
 			return '<i title="' . $label . '" class="' . $icon . ' fa-lg text-primary">';
 		}, '%s', null, ['class' => 'fit']);
 
-		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
+//		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 
-		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
-		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
-		$grid->addColumnInputCheckbox('<i title="Skryto v menu a vyhledávání" class="far fa-minus-square"></i>', 'hiddenInMenu', '', '', 'hiddenInMenu');
-		$grid->addColumnInputCheckbox('<i title="Neprodejné" class="fas fa-ban"></i>', 'unavailable', '', '', 'unavailable');
+//		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
+//		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
+//		$grid->addColumnInputCheckbox('<i title="Skryto v menu a vyhledávání" class="far fa-minus-square"></i>', 'hiddenInMenu', '', '', 'hiddenInMenu');
+//		$grid->addColumnInputCheckbox('<i title="Neprodejné" class="fas fa-ban"></i>', 'unavailable', '', '', 'unavailable');
+
 		$grid->addColumnInputCheckbox('<i title="Skrýt ve všech feedech" class="fas fa-minus-circle"></i>', 'exportNone', function (Checkbox $checkbox, Product $product): void {
 			$checkbox->setDisabled(!$product->exportHeureka && !$product->exportGoogle && !$product->exportZbozi);
 			$checkbox->setDefaultValue(!$product->exportHeureka && !$product->exportGoogle && !$product->exportZbozi);
@@ -294,22 +284,20 @@ class ProductGridFactory
 			'displayDelivery',
 			'vatRate',
 			'taxes',
-			'hidden',
-			'hiddenInMenu',
 			'unavailable',
-			'primaryCategory',
+			'primaryCategories',
 			'defaultReviewsCount',
 			'defaultReviewsScore',
 			'supplierDisplayAmountLock',
 			'supplierDisplayAmountMergedLock',
-			'exportHeureka',
-			'exportZbozi',
-			'exportGoogle',
 			'weight',
 			'width',
 			'length',
 			'depth',
 			'dimension',
+			'exportHeureka',
+			'exportZbozi',
+			'exportGoogle',
 		];
 
 		if (isset($configuration['isManager']) && $configuration['isManager']) {
@@ -342,68 +330,64 @@ class ProductGridFactory
 			'default',
 			null,
 			function ($id, Product $object, $values, $relations) {
-				if ($values['keep']['supplierContent'] === false) {
+				if (isset($values['keep']['supplierContent']) && $values['keep']['supplierContent'] === false) {
 					if ($values['values']['supplierContent'] === 'none') {
 						$values['values']['supplierContent'] = null;
 						$values['values']['supplierContentLock'] = true;
 						$values['values']['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_NONE;
-					} elseif ($values['values']['supplierContent'] === 'length') {
-						$values['values']['supplierContent'] = null;
-						$values['values']['supplierContentLock'] = false;
-						$values['values']['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_LENGTH;
 					} else {
 						$values['values']['supplierContentLock'] = false;
 						$values['values']['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_PRIORITY;
 					}
 				}
 
-				foreach ($relations as $relationName => $categories) {
-					$name = \explode('_', $relationName);
+				$updatePrimaryCategoriesTypes = \array_filter($values['keep'], function ($value, $key) use (&$values): bool {
+					$true = Strings::startsWith($key, 'primaryCategories_primaryCategory_') && $value === false;
 
-					if (\count($name) !== 2 || $name[0] !== 'categories') {
-						continue;
+					if ($true) {
+						unset($values['keep'][$key]);
 					}
 
-					$this->connection->rows(['nxn' => 'eshop_product_nxn_eshop_category'])
-						->join(['category' => 'eshop_category'], 'nxn.fk_category = category.uuid')
-						->where('category.fk_type', $name[1])
-						->where('nxn.fk_product', $id)
+					return $true;
+				}, \ARRAY_FILTER_USE_BOTH);
+
+				$realProductCategories = $object->categories->toArray();
+
+				foreach (\array_keys($updatePrimaryCategoriesTypes) as $primaryCategoriesType) {
+					$categoryType = \explode('_', $primaryCategoriesType)[2];
+					$category = $values['values'][$primaryCategoriesType];
+					unset($values['values'][$primaryCategoriesType]);
+
+					$this->productPrimaryCategoryRepository->many()
+						->where('this.fk_product', $object->getPK())
+						->where('this.fk_categoryType', $categoryType)
 						->delete();
 
-					unset($relations[$relationName]);
-
-					if (\count($categories) === 0) {
+					if (!isset($realProductCategories[$category])) {
 						continue;
 					}
 
-					$object->categories->relate($categories);
-				}
-
-				/** @var string|null $newPrimaryCategory */
-				$newPrimaryCategory = Arrays::pick($values['values'], 'primaryCategory', null);
-
-				if ($values['keep']['primaryCategory'] === false && $newPrimaryCategory) {
-					$realProductCategories = $object->categories->toArray();
-
-					if (isset($realProductCategories[$newPrimaryCategory])) {
-						$values['values']['primaryCategory'] = $newPrimaryCategory;
-					} else {
-						unset($values['values']['primaryCategory']);
-					}
+					$this->productPrimaryCategoryRepository->syncOne([
+						'categoryType' => $categoryType,
+						'category' => $category,
+						'product' => $object->getPK(),
+					]);
 				}
 
 				return [$values, $relations];
 			},
 			[],
 			function ($form): AdminForm {
-				/** @var \Nette\Forms\Controls\SelectBox $primaryCategorySelect */
-				$primaryCategorySelect = $form['values']['primaryCategory'];
+				/** @var array<\Eshop\DB\CategoryType> $categoryTypes */
+				$categoryTypes = $this->categoryTypeRepository->getCollection(true)->toArray();
 
-				$firstCategoryType = $this->categoryTypeRepository->many()->setOrderBy(['priority'])->first();
+				foreach ($categoryTypes as $categoryType) {
+					/** @var \Nette\Forms\Controls\SelectBox $primaryCategorySelect */
+					$primaryCategorySelect = $form['values']['primaryCategories_primaryCategory_' . $categoryType->getPK()];
 
-				$primaryCategorySelect->setItems($this->categoryRepository->getTreeArrayForSelect(true, $firstCategoryType->getPK()));
-				$primaryCategorySelect->setPrompt(false);
-				$primaryCategorySelect->setHtmlAttribute('data-info', 'Pokud produkt nemá zvolenou kategorii, nebude jeho primární kategorie změněna!');
+					$primaryCategorySelect->setItems($this->categoryRepository->getTreeArrayForSelect(true, $categoryType->getPK()));
+					$primaryCategorySelect->setPrompt(false);
+				}
 
 				return $form;
 			},

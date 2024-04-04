@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Carbon\Carbon;
 use StORM\RelationCollection;
 
 /**
  * Faktury
  * @table
  * @index{"name":"invoice_codehash","unique":true,"columns":["code", "hash"]}
+ * @method \StORM\RelationCollection<\Eshop\DB\InvoiceItem> getItems()
  */
 class Invoice extends \StORM\Entity
 {
 	/**
-	 * Id
-	 * @column{"autoincrement":true}
+	 * ID
+	 * column - don't created by auto migration, only by manual
 	 */
 	public int $id;
 
@@ -146,13 +148,13 @@ class Invoice extends \StORM\Entity
 
 	/**
 	 * Adresa
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 * @relation
 	 */
 	public ?Address $address;
 
 	/**
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 * @relation
 	 */
 	public ?Customer $customer;
@@ -177,6 +179,15 @@ class Invoice extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\InvoiceItem>
 	 */
 	public RelationCollection $items;
+	
+	public function getDaysFromDue(): ?int
+	{
+		if (!$this->dueDate) {
+			return null;
+		}
+		
+		return Carbon::now()->diffInDays(Carbon::parse($this->dueDate), false);
+	}
 
 	/**
 	 * @return array<mixed>
@@ -194,14 +205,20 @@ class Invoice extends \StORM\Entity
 	public function getGroupedItems(): array
 	{
 		$grouped = [];
+		$groupedAmounts = [];
 
 		/** @var \Eshop\DB\InvoiceItem $item */
 		foreach ($this->items as $item) {
 			if (isset($grouped[$item->getFullCode()])) {
-				$grouped[$item->getFullCode()]->amount += $item->amount;
+				$groupedAmounts[$item->getFullCode()] += $item->amount;
 			} else {
 				$grouped[$item->getFullCode()] = $item;
+				$groupedAmounts[$item->getFullCode()] = $item->amount;
 			}
+		}
+
+		foreach ($grouped as $item) {
+			$grouped[$item->getFullCode()]->amount = $groupedAmounts[$item->getFullCode()];
 		}
 
 		return $grouped;

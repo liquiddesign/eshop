@@ -12,6 +12,8 @@ use StORM\RelationCollection;
  * Položka košíku
  * @table
  * @index{"name":"cartitem_item","unique":true,"columns":["fk_product","fk_variant","fk_cart"]}
+ * @method \StORM\RelationCollection<\Eshop\DB\PackageItem> getPackageItems()
+ * @method \StORM\RelationCollection<\Eshop\DB\RelatedCartItem> getRelatedCartItems()
  */
 class CartItem extends \StORM\Entity implements BoxPacker\Item
 {
@@ -169,7 +171,7 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	/**
 	 * Related cart items
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedCartItem>|\Eshop\DB\RelatedCartItem[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\RelatedCartItem>
 	 */
 	public RelationCollection $relatedCartItems;
 
@@ -179,6 +181,13 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	 * @var \StORM\RelationCollection<\Eshop\DB\CartItem>
 	 */
 	public RelationCollection $upsells;
+
+	/**
+	 * PackageItems - normally only one
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\PackageItem>
+	 */
+	public RelationCollection $packageItems;
 	
 	public function getProduct(): ?Product
 	{
@@ -205,12 +214,12 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	
 	public function getPriceBefore(): ?float
 	{
-		return (float) $this->getValue('priceBefore') > 0 ? (float)$this->getValue('priceBefore') * $this->amount : null;
+		return (float) $this->getValue('priceBefore') > 0 ? (float) $this->getValue('priceBefore') * $this->amount : null;
 	}
 	
 	public function getPriceVatBefore(): ?float
 	{
-		return (float) $this->getValue('priceVatBefore') > 0 ? (float)$this->getValue('priceVatBefore') * $this->amount : null;
+		return (float) $this->getValue('priceVatBefore') > 0 ? (float) $this->getValue('priceVatBefore') * $this->amount : null;
 	}
 	
 	public function getDiscountPercent(): ?float
@@ -233,7 +242,7 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	
 	public function isAvailable(): bool
 	{
-		return $this->product && !$this->product->unavailable;
+		return $this->product && !$this->product->isUnavailable();
 	}
 	
 	public function getFullCode(): ?string

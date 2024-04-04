@@ -20,14 +20,14 @@
 
 	<div class="flex items-end justify-between">
 		<div class="leading-tight mt-4">
-			{if $presenter->shopper->getCatalogPermission() === 'price' || $presenter->shopper->getCatalogPermission() === 'full'}
+			{if $presenter->shopperUser->getCatalogPermission() === 'price' || $presenter->shopperUser->getCatalogPermission() === 'full'}
 			<div n:if="$item->priceBefore" class="font-light text-gray-dark"><del>{$item->priceBefore|price}</del></div>
 			<div class="text-2xl font-bold">{$item->price|price}</div>
 			<div class="text-sm text-gray-dark">s DPH {$item->priceVat|price}</div>
 			{/if}
 		</div>
 
-		<a href="{link buy! $item->uuid}" class="btn btn-sm" n:if="$control->checkoutManager->canBuyProduct($item) && $presenter->shopper->getCatalogPermission() === 'full'">
+		<a href="{link buy! $item->uuid}" class="btn btn-sm" n:if="$control->checkoutManager->canBuyProduct($item) && $presenter->shopperUser->getCatalogPermission() === 'full'">
 			<svg class="h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
 			</svg>

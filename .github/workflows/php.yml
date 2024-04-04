@@ -2,9 +2,9 @@ name: Analysis
 
 on:
   push:
-    branches: [ main, test ]
+    branches: [ main, v1.4, v1.5, v2.0, v2.1 ]
   pull_request:
-    branches: [ main, test ]
+    branches: [ main, v1.4, v1.5, v2.0, v2.1 ]
 
 jobs:
   build:
@@ -12,6 +12,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Setup PHP Action
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
       - name: CRLF
         run: |
           git config --global core.autocrlf true
@@ -41,6 +46,9 @@ jobs:
 
       - name: Run lattelint
         run: composer lattelint
+
+      - name: Run commit check
+        run: composer check-commit
 
       - uses: 8398a7/action-slack@v3
         with:

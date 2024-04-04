@@ -14,10 +14,10 @@ use Nette\Utils\FileSystem;
 
 class FilePresenter extends BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public FileRepository $fileRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AdminFormFactory $formFactory;
 	
 	private string $productFilesPath;
@@ -61,7 +61,7 @@ class FilePresenter extends BackendPresenter
 		$form = $this->getComponent('newForm');
 		
 		$values = $file->toArray();
-		$values['hidden'] = (int)$values['hidden'];
+		$values['hidden'] = (int) $values['hidden'];
 		$form->setDefaults($values);
 		
 		$form->onSuccess[] = function (Form $form) use ($file, $product): void {
@@ -80,7 +80,7 @@ class FilePresenter extends BackendPresenter
 				FileSystem::rename($this->productFilesPath . \DIRECTORY_SEPARATOR . $file->fileName, $this->productFilesPath . \DIRECTORY_SEPARATOR . $values['fileName']);
 			}
 
-			$values['hidden'] = (bool)$values['hidden'];
+			$values['hidden'] = (bool) $values['hidden'];
 			$values['priority'] = $values['priority'] !== '' ? $values['priority'] : 10;
 			$file->update($values);
 			$this->flashMessage('Uloženo', 'success');

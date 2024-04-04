@@ -9,12 +9,13 @@ use Eshop\DB\Order;
 use Eshop\DB\PickupPointRepository;
 use Eshop\DB\PickupPointTypeRepository;
 use Eshop\DB\PurchaseRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use GuzzleHttp\Client;
 use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
+use Nette\Utils\Strings;
 use SimpleXMLElement;
 use Web\DB\SettingRepository;
 
@@ -30,40 +31,16 @@ class Zasilkovna
 		7 => 'sunday',
 	];
 
-	private PickupPointTypeRepository $pickupPointTypeRepository;
-
-	private PickupPointRepository $pickupPointRepository;
-
-	private SettingRepository $settingRepository;
-
-	private AddressRepository $addressRepository;
-
-	private OpeningHoursRepository $openingHoursRepository;
-
-	private Translator $translator;
-
-	private PurchaseRepository $purchaseRepository;
-
-	private Shopper $shopper;
-
 	public function __construct(
-		PickupPointTypeRepository $pickupPointTypeRepository,
-		PickupPointRepository $pickupPointRepository,
-		SettingRepository $settingRepository,
-		AddressRepository $addressRepository,
-		OpeningHoursRepository $openingHoursRepository,
-		Translator $translator,
-		PurchaseRepository $purchaseRepository,
-		Shopper $shopper
+		private readonly PickupPointTypeRepository $pickupPointTypeRepository,
+		private readonly PickupPointRepository $pickupPointRepository,
+		private readonly SettingRepository $settingRepository,
+		private readonly AddressRepository $addressRepository,
+		private readonly OpeningHoursRepository $openingHoursRepository,
+		private readonly Translator $translator,
+		private readonly PurchaseRepository $purchaseRepository,
+		private readonly ShopperUser $shopperUser,
 	) {
-		$this->pickupPointRepository = $pickupPointRepository;
-		$this->pickupPointTypeRepository = $pickupPointTypeRepository;
-		$this->settingRepository = $settingRepository;
-		$this->addressRepository = $addressRepository;
-		$this->openingHoursRepository = $openingHoursRepository;
-		$this->translator = $translator;
-		$this->purchaseRepository = $purchaseRepository;
-		$this->shopper = $shopper;
 	}
 
 	public function syncPickupPoints(): void
@@ -134,7 +111,7 @@ class Zasilkovna
 				'hidden' => false,
 				'description' => [
 					'cs' => $this->translator->translate('.status', 'Stav') . ': ' . $value['status']['description'] . '  ' .
-						(\is_array($value['directions']) ? null : \trim(\strip_tags($value['directions']))),
+						(\is_array($value['directions']) ? null : Strings::trim(\strip_tags($value['directions']))),
 				],
 			]);
 
@@ -142,7 +119,7 @@ class Zasilkovna
 
 			if ($regularOpeningHours = ($openingHours['regular'] ?? null)) {
 				foreach ($regularOpeningHours as $day => $hours) {
-					if (\is_array($hours) || (\is_string($hours) && \strlen($hours) === 0)) {
+					if (\is_array($hours) || (\is_string($hours) && Strings::length($hours) === 0)) {
 						continue;
 					}
 
@@ -219,7 +196,7 @@ class Zasilkovna
 	}
 
 	/**
-	 * @param \Eshop\DB\Order[] $orders
+	 * @param array<\Eshop\DB\Order> $orders
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function syncOrders($orders): void
@@ -300,13 +277,11 @@ class Zasilkovna
 			        <currency>' . $order->purchase->currency->code . '</currency>
 			        <value>' . $order->getTotalPriceVat() . '</value>
 			        ' . ($cod ? '<cod>' . \round($order->getTotalPriceVat()) . '</cod>' : null) . '
-			        <eshop>' . $this->shopper->getProjectUrl() . '</eshop>
+			        <eshop>' . $this->shopperUser->getProjectUrl() . '</eshop>
 			        <weight>' . ($sumWeight > 0 ? $sumWeight : 1) . '</weight>
 			    </packetAttributes>
 			</createPacket>
 			';
-
-		\bdump($xml);
 
 		$options = [
 			'headers' => [
@@ -318,9 +293,7 @@ class Zasilkovna
 		$response = $client->request('POST', '', $options);
 		$xmlResponse = new SimpleXMLElement($response->getBody()->getContents());
 
-		\bdump($xmlResponse);
-
-		if ((string)$xmlResponse->status !== 'ok') {
+		if ((string) $xmlResponse->status !== 'ok') {
 			$order->update(['zasilkovnaCompleted' => false, 'zasilkovnaError' => 'Chyba při odesílání pomocí API!',]);
 
 			throw new \Exception("Order {$order->code} error sending!");

@@ -52,7 +52,7 @@ class AttributeValueRange extends \StORM\Entity
 	/**
 	 * Hodnoty atributu
 	 * @relation
-	 * @var \StORM\RelationCollection<\Eshop\DB\AttributeValue>|\Eshop\DB\AttributeValue[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\AttributeValue>
 	 */
 	public RelationCollection $attributeValues;
 }

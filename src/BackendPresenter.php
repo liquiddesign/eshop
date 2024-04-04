@@ -9,23 +9,63 @@ use Eshop\DB\CategoryRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
-use ForceUTF8\Encoding;
 use League\Csv\Reader;
+use Nette\Application\Application;
 use Nette\Utils\FileSystem;
+use PdoDebugger;
 use StORM\Entity;
+use StORM\LogItem;
+use Tracy\Debugger;
 
 abstract class BackendPresenter extends \Admin\BackendPresenter
 {
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public CategoryRepository $categoryRepository;
 
-	/** @inject */
+	#[\Nette\DI\Attributes\Inject]
 	public AttributeValueRepository $attributeValueRepository;
+
 	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
+
+	#[\Nette\DI\Attributes\Inject]
+	public Application $application;
+
+	public function afterRender(): void
+	{
+		\Tracy\Debugger::$maxLength = 100000;
+
+		$this->application->onShutdown[] = function (): void {
+			if ($this->getRequest()->getParameter('debug') !== null) {
+				$logItems = $this->connection->getLog();
+
+				\uasort($logItems, function (LogItem $a, LogItem $b): int {
+					return $b->getTotalTime() <=> $a->getTotalTime();
+				});
+
+				$totalTime = 0;
+				$totalAmount = 0;
+
+				$logItems = \array_filter($logItems, function (LogItem $item) use (&$totalTime, &$totalAmount): bool {
+					$totalTime += $item->getTotalTime();
+					$totalAmount += $item->getAmount();
+
+					return $item->getTotalTime() > 0.01;
+				});
+
+				Debugger::dump($totalTime);
+				Debugger::dump($totalAmount);
+
+				foreach ($logItems as $logItem) {
+					Debugger::dump($logItem);
+					Debugger::dump(PdoDebugger::show($logItem->getSql(), $logItem->getVars()));
+				}
+			}
+		};
+	}
 
 	public function handleGetProductsForSelect2(?string $q = null, ?int $page = null): void
 	{
@@ -36,7 +76,7 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 
 		$suffix = $this->productRepository->getConnection()->getMutationSuffix();
 
-		/** @var \Eshop\DB\Product[] $products */
+		/** @var array<\Eshop\DB\Product> $products */
 		$products = $this->productRepository->getCollection(true)
 			->where("this.name$suffix LIKE :q OR this.code = :exact OR this.ean = :exact", ['q' => "%$q%", 'exact' => $q,])
 			->setPage($page ?? 1, 5)
@@ -66,19 +106,18 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 
 		$suffix = $this->categoryRepository->getConnection()->getMutationSuffix();
 
-		/** @var \Eshop\DB\Category[] $categories */
-		$categories = $this->categoryRepository->getCollection(true)
-			->join(['eshop_categorytype'], 'this.fk_type = eshop_categorytype.uuid')
-			->where("this.name$suffix LIKE :q OR this.code LIKE :q", ['q' => "%$q%"])
-			->setPage($page ?? 1, 5)
-			->toArray();
+		$categories = $this->categoryRepository->toArrayForSelect(
+			$this->categoryRepository->getCollection(true)
+				->where("this.name$suffix LIKE :q OR this.code LIKE :q", ['q' => "%$q%"])
+				->setPage($page ?? 1, 5)
+		);
 
 		$results = [];
 
 		foreach ($categories as $pk => $category) {
 			$results[] = [
 				'id' => $pk,
-				'text' => $category->type->name . ': ' . $category->name . ' (' . $category->code . ($category->isSystemic() ? ', systémová' : '') . ')',
+				'text' => $category,
 			];
 		}
 
@@ -146,8 +185,6 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 
 	public function getReaderFromString(string $content, string $delimiter = ';'): Reader
 	{
-		$content = Encoding::toUTF8($content);
-
 		$reader = Reader::createFromString($content);
 		unset($content);
 

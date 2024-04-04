@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Caching\Storages\DevNullStorage;
+use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
@@ -19,33 +20,24 @@ use Web\DB\SettingRepository;
  */
 class AttributeRepository extends \StORM\Repository implements IGeneralRepository
 {
-	private AttributeValueRepository $attributeValueRepository;
-
 	private Cache $cache;
-
-	private Shopper $shopper;
-
-	private SettingRepository $settingRepository;
 
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
-		AttributeValueRepository $attributeValueRepository,
-		Shopper $shopper,
+		private readonly AttributeValueRepository $attributeValueRepository,
+		private readonly ShopperUser $shopperUser,
 		Storage $storage,
-		SettingRepository $settingRepository
+		private readonly SettingRepository $settingRepository
 	) {
 		parent::__construct($connection, $schemaManager);
 
-		$this->attributeValueRepository = $attributeValueRepository;
-		$this->shopper = $shopper;
 		$this->cache = new Cache($storage);
-		$this->settingRepository = $settingRepository;
 	}
 
 	/**
 	 * @param bool $includeHidden
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
@@ -135,7 +127,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		return $this->getCollection($includeHidden)
 			->join(['nxn' => 'eshop_attribute_nxn_eshop_category'], 'this.uuid = nxn.fk_attribute')
 			->join(['category' => 'eshop_category'], 'category.uuid = nxn.fk_category')
-			->where(\strlen($query) > 0 ? \substr($query, 0, -3) : '1=0');
+			->where(Strings::length($query) > 0 ? Strings::substring($query, 0, -3) : '1=0');
 	}
 
 	/**
@@ -185,7 +177,7 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 		return $this->cache->load($index, static function (&$dependencies) use ($step, $suffix, $collection) {
 			$items = [];
 
-			/** @var \Eshop\DB\AttributeValue[] $attributeValues */
+			/** @var array<\Eshop\DB\AttributeValue> $attributeValues */
 			$attributeValues = $collection
 				->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
 				->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value', [], 'INNER')
@@ -255,8 +247,9 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 	 */
 	public function getCounts(array $values, array $filters, ?string $cacheId = null): array
 	{
-		$index = $cacheId ?? $this->shopper->getPriceCacheIndex('attributes', $filters);
+		$index = $cacheId ?? $this->shopperUser->getPriceCacheIndex('attributes', $filters);
 		$cache = $index ? $this->cache : new Cache(new DevNullStorage());
+		/** @var \Eshop\DB\ProductRepository $productRepository */
 		$productRepository = $this->getConnection()->findRepository(Product::class);
 
 		return $cache->load($index, static function (&$dependencies) use ($values, $filters, $productRepository) {
@@ -265,6 +258,8 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			];
 
 			$rows = $productRepository->many();
+			$rows->setSmartJoin(false);
+
 			$rows->setFrom(['assign' => 'eshop_attributeassign'])
 				->join(['this' => 'eshop_product'], 'this.uuid=assign.fk_product')
 				->setSelect(['count' => 'COUNT(assign.fk_product)'])
@@ -274,6 +269,9 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			if ($values) {
 				$rows->where('fk_value', $values);
 			}
+
+			$productRepository->joinVisibilityListItemToProductCollection($rows);
+			$productRepository->joinPrimaryCategoryToProductCollection($rows);
 
 			$productRepository->setProductsConditions($rows, false);
 

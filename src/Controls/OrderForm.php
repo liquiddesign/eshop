@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\BuyException;
-use Eshop\CheckoutManager;
+use Eshop\ShopperUser;
 use Nette\Application\UI\Form;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -15,18 +15,14 @@ use Tracy\ILogger;
  */
 class OrderForm extends \Nette\Application\UI\Form
 {
-	public CheckoutManager $checkoutManager;
-
 	/**
-	 * @var callable[]
+	 * @var array<callable>
 	 */
 	public array $onBuyError = [];
 
-	public function __construct(CheckoutManager $checkoutManager)
+	public function __construct(protected readonly ShopperUser $shopperUser)
 	{
 		parent::__construct();
-		
-		$this->checkoutManager = $checkoutManager;
 
 		$this->addTextArea('deliveryNote');
 		$this->addSubmit('submit');
@@ -36,7 +32,7 @@ class OrderForm extends \Nette\Application\UI\Form
 	
 	public function validateOrder(): void
 	{
-		if (!$this->checkoutManager->checkOrder()) {
+		if (!$this->shopperUser->getCheckoutManager()->checkOrder()) {
 			$this->addError('Objednávku nelze odeslat');
 		}
 	}
@@ -44,13 +40,13 @@ class OrderForm extends \Nette\Application\UI\Form
 	public function success(Form $form): void
 	{
 		try {
-			$this->checkoutManager->syncPurchase($form->getValues());
+			$this->shopperUser->getCheckoutManager()->syncPurchase($form->getValues());
 		} catch (\Throwable $e) {
 			Debugger::log('Cant sync purchase!', ILogger::WARNING);
 		}
 
 		try {
-			$this->checkoutManager->createOrder();
+			$this->shopperUser->getCheckoutManager()->createOrder();
 		} catch (BuyException $exception) {
 			$this->onBuyError($exception->getCode());
 		}

@@ -154,9 +154,15 @@ class Attribute extends \StORM\Entity
 	public bool $exportToAlgolia = false;
 
 	/**
+	 * ID
+	 * column - don't created by auto migration, only by manual
+	 */
+	public int $id;
+
+	/**
 	 * Kategorie
 	 * @relationNxN
-	 * @var \StORM\RelationCollection<\Eshop\DB\Category>|\Eshop\DB\Category[]
+	 * @var \StORM\RelationCollection<\Eshop\DB\Category>
 	 */
 	public RelationCollection $categories;
 

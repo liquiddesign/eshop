@@ -14,7 +14,7 @@ class AttributeGroupRepository extends \StORM\Repository implements IGeneralRepo
 {
 	/**
 	 * @param bool $includeHidden
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
@@ -43,6 +43,7 @@ class AttributeGroupRepository extends \StORM\Repository implements IGeneralRepo
 	 */
 	public function getGroupsByAttributes(array $attributes): array
 	{
+		/** @var \StORM\Collection<\Eshop\DB\AttributeGroup> $collection */
 		$collection = $this->getCollection()
 			->join(['attributeXgroup' => 'eshop_attributegroup_nxn_eshop_attribute'], 'attributeXgroup.fk_attributegroup = this.uuid')
 			->where('attributeXgroup.fk_attribute', $attributes)

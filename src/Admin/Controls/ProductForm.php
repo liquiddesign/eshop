@@ -6,6 +6,7 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
+use Base\ShopsConfig;
 use Eshop\Admin\Configs\ProductFormAutoPriceConfig;
 use Eshop\Admin\Configs\ProductFormConfig;
 use Eshop\Admin\ProductPresenter;
@@ -22,9 +23,9 @@ use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
+use Eshop\DB\ProductContentRepository;
+use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
-use Eshop\DB\ProductTabRepository;
-use Eshop\DB\ProductTabTextRepository;
 use Eshop\DB\RelatedRepository;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\RibbonRepository;
@@ -33,14 +34,18 @@ use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\VatRateRepository;
+use Eshop\DB\VisibilityListItemRepository;
+use Eshop\DB\VisibilityListRepository;
 use Eshop\FormValidators;
 use Eshop\Integration\Integrations;
-use Eshop\Shopper;
+use Eshop\ShopperUser;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Arrays;
+use Nette\Utils\Strings;
 use StORM\DIConnection;
 use StORM\ICollection;
+use Tracy\Debugger;
 use Web\DB\PageRepository;
 use Web\DB\SettingRepository;
 
@@ -51,41 +56,13 @@ class ProductForm extends Control
 	/** @persistent */
 	public string $tab = 'menu0';
 
-	public ProductTabRepository $productTabRepository;
+	/** @var callable(\Eshop\DB\Product|null $product): array<\Eshop\DB\Pricelist>|null */
+	public $onRenderGetPriceLists;
 
-	public ProductTabTextRepository $productTabTextRepository;
+	/** @var array<\Eshop\DB\Pricelist> */
+	protected array $priceLists;
 
 	private ?Product $product;
-
-	private ProductRepository $productRepository;
-
-	private PricelistRepository $pricelistRepository;
-
-	private PriceRepository $priceRepository;
-
-	private SupplierRepository $supplierRepository;
-
-	private SupplierProductRepository $supplierProductRepository;
-
-	private PageRepository $pageRepository;
-
-	private Shopper $shopper;
-
-	private VatRateRepository $vatRateRepository;
-
-	private CategoryTypeRepository $categoryTypeRepository;
-
-	private LoyaltyProgramRepository $loyaltyProgramRepository;
-
-	private LoyaltyProgramProductRepository $loyaltyProgramProductRepository;
-
-	private RelatedTypeRepository $relatedTypeRepository;
-
-	private RelatedRepository $relatedRepository;
-
-	private StoreRepository $storeRepository;
-
-	private AmountRepository $amountRepository;
 
 	private int $relationMaxItemsCount;
 
@@ -94,59 +71,44 @@ class ProductForm extends Control
 	 */
 	private array $relatedTypes;
 
-	/** @var array<mixed> */
-	private array $configuration;
-
 	public function __construct(
 		AdminFormFactory $adminFormFactory,
-		PageRepository $pageRepository,
-		ProductRepository $productRepository,
-		PricelistRepository $pricelistRepository,
-		ProductTabRepository $productTabRepository,
-		ProductTabTextRepository $productTabTextRepository,
-		PriceRepository $priceRepository,
-		SupplierRepository $supplierRepository,
-		SupplierProductRepository $supplierProductRepository,
+		private readonly PageRepository $pageRepository,
+		private readonly ProductRepository $productRepository,
+		private readonly PricelistRepository $pricelistRepository,
+		private readonly ProductContentRepository $productContentRepository,
+		private readonly PriceRepository $priceRepository,
+		private readonly SupplierRepository $supplierRepository,
+		private readonly SupplierProductRepository $supplierProductRepository,
 		CategoryRepository $categoryRepository,
 		RibbonRepository $ribbonRepository,
 		InternalRibbonRepository $internalRibbonRepository,
 		ProducerRepository $producerRepository,
-		VatRateRepository $vatRateRepository,
+		private readonly VatRateRepository $vatRateRepository,
 		DisplayAmountRepository $displayAmountRepository,
 		DisplayDeliveryRepository $displayDeliveryRepository,
+		private readonly ShopsConfig $shopsConfig,
 		TaxRepository $taxRepository,
-		Shopper $shopper,
-		CategoryTypeRepository $categoryTypeRepository,
-		LoyaltyProgramRepository $loyaltyProgramRepository,
-		LoyaltyProgramProductRepository $loyaltyProgramProductRepository,
-		RelatedTypeRepository $relatedTypeRepository,
-		RelatedRepository $relatedRepository,
-		StoreRepository $storeRepository,
-		AmountRepository $amountRepository,
+		private readonly ShopperUser $shopperUser,
+		private readonly CategoryTypeRepository $categoryTypeRepository,
+		private readonly LoyaltyProgramRepository $loyaltyProgramRepository,
+		private readonly LoyaltyProgramProductRepository $loyaltyProgramProductRepository,
+		private readonly RelatedTypeRepository $relatedTypeRepository,
+		private readonly RelatedRepository $relatedRepository,
+		private readonly StoreRepository $storeRepository,
+		private readonly AmountRepository $amountRepository,
+		private readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
+		private readonly VisibilityListRepository $visibilityListRepository,
+		private readonly VisibilityListItemRepository $visibilityListItemRepository,
 		SettingRepository $settingRepository,
 		Integrations $integrations,
 		$product = null,
-		array $configuration = []
+		$onRenderGetPriceLists = null,
+		private readonly array $configuration = []
 	) {
 		$this->product = $product = $productRepository->get($product);
-		$this->productRepository = $productRepository;
-		$this->pricelistRepository = $pricelistRepository;
-		$this->productTabRepository = $productTabRepository;
-		$this->productTabTextRepository = $productTabTextRepository;
-		$this->priceRepository = $priceRepository;
-		$this->supplierRepository = $supplierRepository;
-		$this->supplierProductRepository = $supplierProductRepository;
-		$this->pageRepository = $pageRepository;
-		$this->configuration = $configuration;
-		$this->shopper = $shopper;
-		$this->vatRateRepository = $vatRateRepository;
-		$this->categoryTypeRepository = $categoryTypeRepository;
-		$this->loyaltyProgramRepository = $loyaltyProgramRepository;
-		$this->loyaltyProgramProductRepository = $loyaltyProgramProductRepository;
-		$this->relatedTypeRepository = $relatedTypeRepository;
-		$this->relatedRepository = $relatedRepository;
-		$this->storeRepository = $storeRepository;
-		$this->amountRepository = $amountRepository;
+		$this->onRenderGetPriceLists = $onRenderGetPriceLists;
+		$this->priceLists = $this->onRenderGetPriceLists ? \call_user_func($this->onRenderGetPriceLists, $this->product) : $this->pricelistRepository->many()->orderBy(['this.priority'])->toArray();
 		$this->relationMaxItemsCount = (int) ($settingRepository->getValueByName('relationMaxItemsCount') ?? $this::RELATION_MAX_ITEMS_COUNT);
 
 		$form = $adminFormFactory->create(true);
@@ -182,22 +144,37 @@ class ProductForm extends Control
 			$categories = $categoryRepository->getTreeArrayForSelect(true, $categoryType->getPK());
 			$allCategories = \array_merge($allCategories, $categories);
 
-			$categoriesContainer->addMultiSelect2($categoryType->getPK(), 'Kategorie: ' . $categoryType->name, $categories);
+			$categoriesContainer->addMultiSelect2($categoryType->getPK(), 'Kategorie: ' . $categoryType->name . ($categoryType->shop ? " (O:{$categoryType->shop->name})" : ''), $categories);
 		}
 
-		$productCategories = [];
+		$primaryCategoriesContainer = $form->addContainer('primaryCategories');
+		$primaryCategories = $product ? $product->primaryCategories
+			->select(['categoryPK' => 'this.fk_category'])
+			->setIndex('this.fk_categoryType')
+			->toArrayOf('categoryPK') : [];
 
-		if ($this->product) {
-			$assignedProductCategories = $this->product->categories->toArray();
+		foreach ($categoryTypes as $categoryType) {
+			$productCategories = [];
 
-			$productCategories = \array_filter($allCategories, function ($key) use ($assignedProductCategories) {
-				return isset($assignedProductCategories[$key]);
-			}, \ARRAY_FILTER_USE_KEY);
+			if ($this->product) {
+				$assignedProductCategories = $this->product->getCategories()->where('this.fk_type', $categoryType->getPK())->toArray();
+
+				$productCategories = \array_filter($allCategories, function ($key) use ($assignedProductCategories) {
+					return isset($assignedProductCategories[$key]);
+				}, \ARRAY_FILTER_USE_KEY);
+			}
+
+			$primaryCategoriesContainer->addDataSelect(
+				'primaryCategory_' . $categoryType->getPK(),
+				'Primární kategorie: ' . $categoryType->name . ($categoryType->shop ? " (O:{$categoryType->shop->name})" : ''),
+				$productCategories,
+			)
+				->setPrompt('Automaticky')
+				->checkDefaultValue(false)
+				->setDefaultValue($primaryCategories[$categoryType->getPK()] ?? null)
+				->setHtmlAttribute('data-info', 'Primární kategorie je důležitá pro zobrazování drobečkovky produktu, výchozímu obsahu a obrázku a dalších. 
+	V případě zvolení kategorie do které již nepatří, se zvolí automaticky jedna z přiřazených.');
 		}
-
-		$form->addDataSelect('primaryCategory', 'Primární kategorie', $productCategories)->setPrompt('Automaticky')->checkDefaultValue(false)
-			->setHtmlAttribute('data-info', 'Primární kategorie je důležitá pro zobrazování drobečkovky produktu, výchozímu obsahu a obrázku a dalších. 
-		V případě zvolení kategorie do které již nepatří, se zvolí automaticky jedna z přiřazených.');
 
 		$form->addSelect2('producer', 'Výrobce', $producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 
@@ -214,12 +191,9 @@ class ProductForm extends Control
 			'Doručení',
 			$displayDeliveryRepository->getArrayForSelect(),
 		)->setPrompt('Automaticky');
-		$form->addLocalePerexEdit('perex', 'Popisek');
-		$form->addLocaleRichEdit('content', 'Obsah');
 
 		if (isset($configuration['suppliers']) && $configuration['suppliers'] && $this->supplierRepository->many()->count() > 0) {
 			$locks = [];
-			$locks[Product::SUPPLIER_CONTENT_MODE_LENGTH] = 'S nejdelším obsahem';
 
 			if ($product) {
 				/** @var \Eshop\DB\Supplier $supplier */
@@ -233,7 +207,6 @@ class ProductForm extends Control
 			$form->addSelect('supplierContent', 'Přebírat obsah', $locks)->setPrompt('S nejvyšší prioritou')
 				->setHtmlAttribute('data-info', 'Nastavení přebírání obsahu (jméno, perex, obsah) ze zdrojů.<br><br>
 S nejvyšší prioritou: Zdroj s nejvyšší prioritou<br>
-S nejdelším obsahem: Převezme se obsah, který je nejdelší ze všech zdrojů<br>
 Nikdy nepřebírat: Obsah nebude nikdy přebírán<br>
 Ostatní: Přebírání ze zvoleného zdroje
 ');
@@ -245,18 +218,10 @@ Ostatní: Přebírání ze zvoleného zdroje
 		}
 
 		$form->addText('storageDate', 'Nejbližší datum naskladnění')->setNullable(true)->setHtmlType('date');
-		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
-		$hiddenInput = $form->addCheckbox('hidden', 'Skryto');
-		$hiddenInMenuInput = $form->addCheckbox('hiddenInMenu', 'Skryto v menu a vyhledávání');
-
-		$hiddenInMenuInput->addConditionOn($hiddenInput, $form::EQUAL, false)->toggle($hiddenInMenuInput->getHtmlId() . '-toogle');
-
-		$form->addCheckbox('recommended', 'Doporučeno')
-			->setHtmlAttribute('data-info', 'Zobrazí se mezi doporučenými produkty. Např.: na hlavní stránce.');
 
 		$form->addGroup('Nákup');
-		$form->addText('unit', 'Prodejní jednotka')
-			->setHtmlAttribute('data-info', 'Např.: ks, ml, ...');
+		$form->addLocaleText('unit', 'Jednotka');
+		//	->setHtmlAttribute('data-info', 'Např.: ks, ml, ...');
 
 		$this->monitor(BackendPresenter::class, function (BackendPresenter $backendPresenter) use ($form, $configuration): void {
 			if (isset($configuration['discountLevel']) && $configuration['discountLevel'] && $backendPresenter->isManager) {
@@ -288,13 +253,14 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$exportGoogleInput->addConditionOn($exportNoneInput, $form::EQUAL, false)->toggle($exportGoogleInput->getHtmlId() . '-toogle');
 		$exportZboziInput->addConditionOn($exportNoneInput, $form::EQUAL, false)->toggle($exportZboziInput->getHtmlId() . '-toogle');
 
+
 		$defaultReviewsCount = $form->addIntegerNullable('defaultReviewsCount', 'Výchozí počet recenzí');
 
 		$defaultReviewsScore = $form->addText('defaultReviewsScore', 'Výchozí hodnocení recenzí')->setNullable()
 		->setHtmlAttribute(
 			'data-info',
 			'Zobrazované hodnocení produktu se počítá jako průměr výchozích hodnocení (počet výchozích recenzí * výchozí hodnocení recenzí) ve spojení se skutečnými recenzemi.<br>
-Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getReviewsMinScore() . ' - ' . $this->shopper->getReviewsMaxScore() . ' (včetně)',
+Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->getReviewsMinScore() . ' - ' . $this->shopperUser->getReviewsMaxScore() . ' (včetně)',
 		);
 
 		$defaultReviewsScore->addConditionOn($defaultReviewsCount, $form::FILLED)
@@ -324,7 +290,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 			->addCondition($form::FILLED)
 			->addRule($form::FLOAT)
 			->addRule([FormValidators::class, 'isPercentNoMax'], 'Neplatná hodnota!');
-		$form->addCheckbox('unavailable', 'Neprodejné')->setHtmlAttribute('data-info', 'Znemožňuje nákup produktu.');
 
 		if (isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']) {
 			$form->addText('weight', 'Váha')
@@ -436,53 +401,82 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 				}
 			}
 		});
-		// /Relations
 
-		/** @deprecated */
-		if (isset($configuration['upsells']) && $configuration['upsells']) {
-			$this->monitor(Presenter::class, function () use ($form): void {
-				$form->addMultiSelect2('upsells', 'Upsell produkty', [], [
-					'ajax' => [
-						'url' => $this->getPresenter()->link('getProductsForSelect2!'),
-					],
-					'placeholder' => 'Zvolte produkty',
-				])->checkDefaultValue(false);
-			});
+		$contentContainer = $form->addContainer('content');
+
+		if (!$this->shopsConfig->getAvailableShops()) {
+			$contentContainer->addLocalePerexEdit('perex', 'Popisek');
+			$contentContainer->addLocaleRichEdit('content', 'Obsah');
 		}
 
-		/** @var \Eshop\DB\ProductTab $productTab */
-		foreach ($productTabRepository->many() as $productTab) {
-			$form->addLocalePerexEdit('productTab' . $productTab->getPk(), $productTab->name);
+		foreach ($this->shopsConfig->getAvailableShops() as $shop) {
+			$contentContainer->addLocalePerexEdit('perex_' . $shop->getPK(), 'Popisek');
+			$contentContainer->addLocaleRichEdit('content_' . $shop->getPK(), 'Obsah');
 		}
 
-		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $pricelistRepository, $storeRepository): void {
+		$visibilityContainer = $form->addContainer('visibility');
+		$productVisibilityListItems = $this->product ? $this->product->visibilityListItems->setIndex('fk_visibilityList')->toArray() : [];
+
+		foreach ($this->visibilityListRepository->many() as $visibilityList) {
+			$itemContainer = $visibilityContainer->addContainer('list_' . $visibilityList->getPK());
+
+			$activeInput = $itemContainer->addCheckbox('active');
+			$hiddenInput = $itemContainer->addCheckbox('hidden');
+			$hiddenInMenuInput = $itemContainer->addCheckbox('hiddenInMenu');
+			$unavailableInput = $itemContainer->addCheckbox('unavailable');
+			$recommendedInput = $itemContainer->addCheckbox('recommended');
+			$priorityInput = $itemContainer->addInteger('priority')->setRequired()->setDefaultValue(10);
+
+			$activeInput->addCondition($form::Filled)
+				->toggle($hiddenInput->getHtmlId() . '-toogle')
+				->toggle($hiddenInMenuInput->getHtmlId() . '-toogle')
+				->toggle($unavailableInput->getHtmlId() . '-toogle')
+				->toggle($recommendedInput->getHtmlId() . '-toogle')
+				->toggle($priorityInput->getHtmlId() . '-toogle');
+
+			if (!isset($productVisibilityListItems[$visibilityList->getPK()])) {
+				continue;
+			}
+
+			$item = $productVisibilityListItems[$visibilityList->getPK()];
+
+			$itemContainer->setDefaults([
+				'active' => true,
+				'hidden' => $item->hidden,
+				'hiddenInMenu' => $item->hiddenInMenu,
+				'unavailable' => $item->unavailable,
+				'recommended' => $item->recommended,
+				'priority' => $item->priority,
+			]);
+		}
+
+		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $storeRepository): void {
 			$prices = $form->addContainer('prices');
 
 			$pricesPermission = $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default');
 			/** @var null|string $autoPriceConfig */
 			$autoPriceConfig = $this->configuration[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
-			/** @var \Eshop\DB\Price $prc */
-			foreach ($pricelistRepository->many() as $prc) {
+			foreach ($this->priceLists as $prc) {
 				$pricelist = $prices->addContainer($prc->getPK());
 				$pricelist->addText('price')
 					->setNullable()
-					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT)
+					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT || $prc->isReadonly)
 					->addCondition($form::FILLED)
 					->addRule($form::FLOAT);
 				$pricelist->addText('priceVat')
 					->setNullable()
-					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT)
+					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT || $prc->isReadonly)
 					->addCondition($form::FILLED)
 					->addRule($form::FLOAT);
 				$pricelist->addText('priceBefore')
 					->setNullable()
-					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT)
+					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT || $prc->isReadonly)
 					->addCondition($form::FILLED)
 					->addRule($form::FLOAT);
 				$pricelist->addText('priceVatBefore')
 					->setNullable()
-					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT)
+					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT || $prc->isReadonly)
 					->addCondition($form::FILLED)
 					->addRule($form::FLOAT);
 			}
@@ -529,6 +523,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 	public function validate(AdminForm $form): void
 	{
+		Debugger::barDump($form->getErrors());
+
 		if (!$form->isValid()) {
 			return;
 		}
@@ -595,10 +591,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 				$values['supplierContent'] = null;
 				$values['supplierContentLock'] = true;
 				$values['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_NONE;
-			} elseif ($values['supplierContent'] === 'length') {
-				$values['supplierContent'] = null;
-				$values['supplierContentLock'] = false;
-				$values['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_LENGTH;
 			} else {
 				$values['supplierContentLock'] = false;
 				$values['supplierContentMode'] = Product::SUPPLIER_CONTENT_MODE_SUPPLIER;
@@ -611,6 +603,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 		/** @var array $pickedCategories */
 		$pickedCategories = Arrays::pick($values, 'categories');
+		/** @var array<string> $newCategories */
 		$newCategories = [];
 
 		if (\count($pickedCategories) > 0) {
@@ -621,7 +614,14 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 			}
 		}
 
-		$values['primaryCategory'] = Arrays::contains($newCategories, $values['primaryCategory']) ? $values['primaryCategory'] : (\count($newCategories) > 0 ? Arrays::first($newCategories) : null);
+		/** @var array<mixed> $primaryCategories */
+		$primaryCategories = Arrays::pick($values, 'primaryCategories', []);
+
+		/** @var array<mixed> $content */
+		$content = Arrays::pick($values, 'content', []);
+
+		/** @var array<mixed> $visibility */
+		$visibility = Arrays::pick($values, 'visibility', []);
 
 		if ($values['exportNone']) {
 			$values['exportHeureka'] = false;
@@ -636,6 +636,24 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 		if (\count($newCategories) > 0) {
 			$product->categories->relate($newCategories);
+		}
+
+		foreach ($primaryCategories as $categoryTypePK => $primaryCategory) {
+			$categoryTypePK = \explode('_', $categoryTypePK)[1];
+
+			if (!Arrays::contains($newCategories, $primaryCategory)) {
+				$newCategory = $product->getCategories()->where('this.fk_type', $primaryCategory)->first();
+
+				if ($newCategory) {
+					$primaryCategory = $newCategory->getPK();
+				}
+			}
+
+			$this->productPrimaryCategoryRepository->syncOne([
+				'product' => $product->getPK(),
+				'categoryType' => $categoryTypePK,
+				'category' => $primaryCategory,
+			]);
 		}
 
 		if ($this->product) {
@@ -683,8 +701,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 			}
 		}
 
-		// /Relations
-
 		// Loyalty programs
 		$this->loyaltyProgramProductRepository->many()->where('fk_product', $product->getPK())->delete();
 
@@ -704,8 +720,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 				]);
 			}
 		}
-
-		// /Loyalty programs
 
 		$changeColumns = ['name', 'perex', 'content'];
 
@@ -728,6 +742,12 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 		if ($pricesPermission) {
 			foreach ($values['prices'] as $pricelistId => $prices) {
+				$pricelist = $this->pricelistRepository->one($pricelistId);
+
+				if ($pricelist->isReadonly) {
+					continue;
+				}
+
 				/** @var null|string $autoPriceConfig */
 				$autoPriceConfig = $this->configuration[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
@@ -743,16 +763,16 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 				}
 
 				if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
-					$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), Shopper::PRICE_PRECISSION);
+					$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), ShopperUser::PRICE_PRECISSION);
 					$prices['priceBefore'] = isset($prices['priceVatBefore']) ?
-						\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), Shopper::PRICE_PRECISSION) :
+						\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), ShopperUser::PRICE_PRECISSION) :
 						null;
 				}
 
 				if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
-					$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), Shopper::PRICE_PRECISSION);
+					$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), ShopperUser::PRICE_PRECISSION);
 					$prices['priceVatBefore'] = isset($prices['priceBefore']) ?
-						\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), Shopper::PRICE_PRECISSION) :
+						\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), ShopperUser::PRICE_PRECISSION) :
 						null;
 				}
 
@@ -766,22 +786,52 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 		}
 
 		unset($values['prices']);
-
-		foreach ($this->productTabRepository->many() as $productTab) {
+		
+		if (!$this->shopsConfig->getAvailableShops()) {
 			$conditions = [
-				'tab' => $productTab->getPK(),
-				'product' => $values['uuid'],
+				'product' => $product->getPK(),
 			];
 			
-			$conditions['content'] = $values['productTab' . $productTab->getPK()];
+			$conditions['perex'] = $content['perex'];
+			$conditions['content'] = $content['content'];
+			
+			$productContent = $this->productContentRepository->many()->where('fk_product', $product->getPK())->first();
+			
+			if ($productContent) {
+				$productContent->update($conditions);
+			} else {
+				$this->productContentRepository->createOne($conditions);
+			}
+		}
 
-			$this->productTabTextRepository->many()
-				->where('fk_product=:product AND fk_tab=:tab', ['product' => $product->getPK(), 'tab' => $productTab->getPK()])
-				->delete();
+		foreach ($this->shopsConfig->getAvailableShops() as $shop) {
+			$conditions = [
+				'shop' => $shop->getPK(),
+				'product' => $product->getPK(),
+			];
+			
+			$conditions['perex'] = $content['perex_' . $shop->getPK()];
+			$conditions['content'] = $content['content_' . $shop->getPK()];
 
-			$this->productTabTextRepository->syncOne($conditions);
+			$this->productContentRepository->syncOne($conditions);
+		}
 
-			unset($values['productTab' . $productTab->getPK()]);
+		$product->visibilityListItems->delete();
+
+		foreach ($visibility as $itemId => $item) {
+			if (!$item['active']) {
+				continue;
+			}
+
+			$this->visibilityListItemRepository->syncOne([
+				'product' => $product->getPK(),
+				'visibilityList' => Strings::after($itemId, 'list_'),
+				'priority' => $item['priority'],
+				'hidden' => $item['hidden'],
+				'hiddenInMenu' => $item['hiddenInMenu'],
+				'unavailable' => $item['unavailable'],
+				'recommended' => $item['recommended'],
+			]);
 		}
 
 		foreach ($values['stores'] as $storeId => $amount) {
@@ -828,16 +878,12 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 
 		$this->template->relationMaxItemsCount = $this->relationMaxItemsCount;
 		$this->template->product = $this->getPresenter()->getParameter('product');
-		$this->template->pricelists = $this->pricelistRepository->many()->orderBy(['this.priority']);
-		$this->template->productTabs = $this->productTabRepository->many()->orderBy(['this.priority']);
+		$this->template->pricelists = $this->priceLists;
+		$this->template->visibilityLists = $this->shopsConfig->selectFullNameInShopEntityCollection($this->visibilityListRepository->many());
 		$this->template->stores = $this->storeRepository->many()->orderBy(['this.name' . $this->storeRepository->getConnection()->getMutationSuffix()]);
 		$this->template->configuration = $this->configuration;
-		$this->template->shopper = $this->shopper;
-		$this->template->primaryCategory = $this->product && $this->product->primaryCategory ?
-			($this->product->primaryCategory->ancestor ?
-				\implode(' -> ', $this->product->primaryCategory->ancestor->getFamilyTree()->toArrayOf('name')) . ' -> ' . $this->product->primaryCategory->name :
-				$this->product->primaryCategory->name)
-			: '-';
+		$this->template->shopper = $this->shopperUser;
+		$this->template->shops = $this->shopsConfig->getAvailableShops();
 
 		$this->template->productFullTree = $this->product ? $this->productRepository->getProductFullTree($this->product) : [];
 
@@ -857,6 +903,17 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopper->getRevi
 		$this->priceRepository->many()
 			->where('this.fk_product', $productPK)
 			->where('this.fk_pricelist', $pricelistPK)
+			->delete();
+
+		$this->getPresenter()->flashMessage('Provedeno', 'success');
+		$this->getPresenter()->redirect('this');
+	}
+
+	public function handleClearVisibilityList(string $productPK, string $visibilityListPK): void
+	{
+		$this->visibilityListItemRepository->many()
+			->where('this.fk_product', $productPK)
+			->where('this.fk_visibilityList', $visibilityListPK)
 			->delete();
 
 		$this->getPresenter()->flashMessage('Provedeno', 'success');

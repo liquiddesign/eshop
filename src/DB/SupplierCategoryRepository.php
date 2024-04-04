@@ -30,7 +30,7 @@ class SupplierCategoryRepository extends \StORM\Repository
 
 	/**
 	 * @param bool|null $mapped
-	 * @return string[]
+	 * @return array<string>
 	 */
 	public function getArrayForSelect(?bool $mapped = null): array
 	{

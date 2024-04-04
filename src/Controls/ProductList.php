@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\CheckoutManager;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
-use Eshop\DB\CategoryRepository;
+use Eshop\DB\CurrencyRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\WatcherRepository;
-use Eshop\Shopper;
+use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
+use Eshop\ShopperUser;
 use Forms\FormFactory;
 use Grid\Datalist;
 use Nette\Application\UI\Multiplier;
@@ -22,6 +22,8 @@ use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
 use StORM\Collection;
 use StORM\ICollection;
+use Tracy\Debugger;
+use Tracy\ILogger;
 
 /**
  * Class Products
@@ -32,62 +34,42 @@ use StORM\ICollection;
 class ProductList extends Datalist
 {
 	/**
-	 * @var callable[]&callable(\Eshop\DB\Watcher): void; Occurs after order create
+	 * @var array<callable>&callable(\Eshop\DB\Watcher): void ; Occurs after order create
 	 */
 	public $onWatcherCreated;
 
 	/**
-	 * @var callable[]&callable(\Eshop\DB\Watcher): void; Occurs after order create
+	 * @var array<callable>&callable(\Eshop\DB\Watcher): void ; Occurs after order create
 	 */
 	public $onWatcherDeleted;
 
-	public CheckoutManager $checkoutManager;
+	/**
+	 * @var array<callable> ; Occurs after order create
+	 */
+	public array $onBuyFormSuccessBeforeRedirect = [];
 
-	public Shopper $shopper;
-
-	private ProductRepository $productRepository;
-
-	private WatcherRepository $watcherRepository;
-
-	private Translator $translator;
-
-	private FormFactory $formFactory;
-
-	private AttributeRepository $attributeRepository;
-
-	private AttributeValueRepository $attributeValueRepository;
-
-	private AttributeValueRangeRepository $attributeValueRangeRepository;
-
-	private IBuyFormFactory $buyFormFactory;
-
-	private ProducerRepository $producerRepository;
-
-	private DisplayAmountRepository $displayAmountRepository;
-
-	private DisplayDeliveryRepository $displayDeliveryRepository;
+	/** @var array<array<string, int>>|null */
+	protected array|null $providerOutput = null;
 
 	public function __construct(
-		ProductRepository $productRepository,
-		CategoryRepository $categoryRepository,
-		WatcherRepository $watcherRepository,
-		CheckoutManager $checkoutManager,
-		Shopper $shopper,
-		Translator $translator,
-		FormFactory $formFactory,
-		AttributeRepository $attributeRepository,
-		AttributeValueRepository $attributeValueRepository,
-		AttributeValueRangeRepository $attributeValueRangeRepository,
-		IBuyFormFactory $buyFormFactory,
-		ProducerRepository $producerRepository,
-		DisplayAmountRepository $displayAmountRepository,
-		DisplayDeliveryRepository $displayDeliveryRepository,
+		protected readonly ProductRepository $productRepository,
+		protected readonly WatcherRepository $watcherRepository,
+		public readonly ShopperUser $shopperUser,
+		protected readonly Translator $translator,
+		protected readonly FormFactory $formFactory,
+		protected readonly AttributeRepository $attributeRepository,
+		protected readonly AttributeValueRepository $attributeValueRepository,
+		protected readonly AttributeValueRangeRepository $attributeValueRangeRepository,
+		protected readonly IBuyFormFactory $buyFormFactory,
+		protected readonly ProducerRepository $producerRepository,
+		protected readonly DisplayAmountRepository $displayAmountRepository,
+		protected readonly DisplayDeliveryRepository $displayDeliveryRepository,
+		protected readonly GeneralProductsCacheProvider $productsProvider,
+		protected readonly CurrencyRepository $currencyRepository,
 		?array $order = null,
 		?Collection $source = null
 	) {
-		$source ??= $productRepository->getProducts()
-			->join(['displayAmount' => 'eshop_displayamount'], 'this.fk_displayAmount = displayAmount.uuid')
-			->where('this.hidden', false);
+		$source ??= $productRepository->getProducts()->join(['displayAmount' => 'eshop_displayamount'], 'this.fk_displayAmount = displayAmount.uuid');
 
 		if ($order) {
 			$source->orderBy($order);
@@ -98,12 +80,7 @@ class ProductList extends Datalist
 		$this->setDefaultOnPage(20);
 		$this->setDefaultOrder('priority');
 
-		$this->setAllowedOrderColumns(['price' => 'price', 'priority' => 'priority', 'name' => 'name']);
-		$this->setItemCountCallback(function (ICollection $filteredSource) use ($categoryRepository) {
-			$prefetchedCount = isset($this->getFilters()['category']) && \count($this->getFilters()) === 1 ? $categoryRepository->getCounts($this->getFilters()['category']) : null;
-			
-			return $prefetchedCount ?? $filteredSource->setOrderBy([])->count();
-		});
+		$this->setAllowedOrderColumns(['price' => 'price', 'priority' => 'visibilityListItem.priority', 'name' => 'name']);
 
 		$this->addOrderExpression('crossSellOrder', function (ICollection $collection, $value): void {
 			$this->setDefaultOnPage(5);
@@ -123,16 +100,16 @@ class ProductList extends Datalist
 			]);
 		});
 
-		$this->setAllowedRepositoryFilters(['category', 'tag', 'producer', 'related', 'recommended', 'q', 'hidden', 'uuids']);
+		$this->setAllowedRepositoryFilters(['category', 'ribbon', 'producer', 'related', 'recommended', 'q', 'hidden', 'uuids', 'pricelist']);
 
 		$this->addFilterExpression('crossSellFilter', function (ICollection $collection, $value): void {
 			$this->productRepository->filterCrossSellFilter($value, $collection);
 		});
 		$this->addFilterExpression('priceFrom', function (ICollection $collection, $value): void {
-			$this->shopper->getShowPrice() === 'withVat' ? $this->productRepository->filterPriceVatFrom($value, $collection) : $this->productRepository->filterPriceFrom($value, $collection);
+			$this->shopperUser->getShowPrice() === 'withVat' ? $this->productRepository->filterPriceVatFrom($value, $collection) : $this->productRepository->filterPriceFrom($value, $collection);
 		}, '');
 		$this->addFilterExpression('priceTo', function (ICollection $collection, $value): void {
-			$this->shopper->getShowPrice() === 'withVat' ? $this->productRepository->filterPriceVatTo($value, $collection) : $this->productRepository->filterPriceTo($value, $collection);
+			$this->shopperUser->getShowPrice() === 'withVat' ? $this->productRepository->filterPriceVatTo($value, $collection) : $this->productRepository->filterPriceTo($value, $collection);
 		}, '');
 		$this->addFilterExpression('producer', function (ICollection $collection, $value): void {
 			$this->productRepository->filterProducer($value, $collection);
@@ -161,9 +138,6 @@ class ProductList extends Datalist
 		$this->addFilterExpression('attributes', function (ICollection $collection, $attributes): void {
 			$this->productRepository->filterAttributes($attributes, $collection);
 		});
-		$this->addFilterExpression('parameters', function (ICollection $collection, $groups): void {
-			$this->productRepository->filterParameters($groups, $collection);
-		});
 		$this->addFilterExpression('attributeValue', function (ICollection $collection, $value): void {
 			$this->productRepository->filterAttributeValue($value, $collection);
 		});
@@ -179,31 +153,101 @@ class ProductList extends Datalist
 		$this->addFilterExpression('relatedTypeSlave', function (ICollection $collection, $value): void {
 			$this->productRepository->filterRelatedTypeSlave($value, $collection);
 		});
+	}
 
-		$this->productRepository = $productRepository;
-		$this->watcherRepository = $watcherRepository;
-		$this->shopper = $shopper;
-		$this->checkoutManager = $checkoutManager;
-		$this->translator = $translator;
-		$this->formFactory = $formFactory;
-		$this->attributeRepository = $attributeRepository;
-		$this->attributeValueRepository = $attributeValueRepository;
-		$this->attributeValueRangeRepository = $attributeValueRangeRepository;
-		$this->buyFormFactory = $buyFormFactory;
-		$this->producerRepository = $producerRepository;
-		$this->displayAmountRepository = $displayAmountRepository;
-		$this->displayDeliveryRepository = $displayDeliveryRepository;
+	/**
+	 * @return array<array<string, int>>|null
+	 */
+	public function getProviderOutput(): array|null
+	{
+		return $this->providerOutput;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getItemsOnPage(): array
+	{
+		if ($this->itemsOnPage !== null) {
+			return $this->itemsOnPage;
+		}
+
+		\Tracy\Debugger::timer('getProductsFromCacheTable');
+
+		try {
+			$cachedProducts = $this->productsProvider->getProductsFromCacheTable(
+				$this->getFilters(),
+				$this->getOrder(),
+				$this->getDirection(),
+				$this->shopperUser->getPricelists()->toArray(),
+				$this->shopperUser->getVisibilityLists(),
+			);
+		} catch (\Throwable $e) {
+			Debugger::barDump($e);
+			Debugger::log($e, ILogger::EXCEPTION);
+
+			$cachedProducts = false;
+		}
+
+		\Tracy\Debugger::barDump(\Tracy\Debugger::timer('getProductsFromCacheTable'), 'cacheProducts');
+		\Tracy\Debugger::barDump($cachedProducts);
+
+		try {
+			/** @var \StORM\Collection<\Eshop\DB\Product> $source */
+			$source = $this->getFilteredSource();
+		} catch (\Exception $e) {
+			Debugger::log($e, ILogger::EXCEPTION);
+			Debugger::barDump($e);
+
+			$this->error();
+
+			return [];
+		}
+
+		if ($cachedProducts !== false) {
+			$this->providerOutput = $cachedProducts;
+		}
+
+		if ($this->getOnPage()) {
+			if ($cachedProducts !== false) {
+				$this->setItemCountCallback(function (): null {
+					return null;
+				});
+
+				$this->getPaginator()->setItemCount(\count($cachedProducts['productPKs']));
+
+				if ($cachedProducts['productPKs']) {
+					$source->where('this.id', \array_slice($cachedProducts['productPKs'], ($this->getPage() - 1) * $this->getOnPage(), $this->getOnPage()));
+				} else {
+					$source->where('0 = 1');
+				}
+			} else {
+				$this->setItemCountCallback(function (Collection $collection): int {
+					$collection->setSelect([])->setGroupBy([])->setOrderBy([]);
+
+					return $collection->enum('this.uuid');
+				});
+
+				$source->setPage($this->getPage(), $this->getOnPage());
+			}
+		}
+
+		$this->onLoad($source);
+
+		$this->itemsOnPage = $this->nestingCallback && !$this->filters ? $this->getNestedSource($source, null) : $source->toArray();
+
+		return $this->itemsOnPage;
 	}
 
 	public function handleWatchIt(string $product): void
 	{
-		if ($customer = $this->shopper->getCustomer()) {
+		if ($customer = $this->shopperUser->getCustomer()) {
 			$watcher = $this->watcherRepository->createOne([
 				'product' => $product,
 				'customer' => $customer,
 				'amountFrom' => 1,
 				'beforeAmountFrom' => 0,
-			]);
+			], ignore: true);
 
 			$this->onWatcherCreated($watcher);
 		}
@@ -213,11 +257,15 @@ class ProductList extends Datalist
 
 	public function handleUnWatchIt(string $product): void
 	{
-		if ($customer = $this->shopper->getCustomer()) {
+		if ($customer = $this->shopperUser->getCustomer()) {
 			$watcher = $this->watcherRepository->many()
 				->where('fk_product', $product)
 				->where('fk_customer', $customer)
 				->first();
+
+			if (!$watcher) {
+				$this->redirect('this');
+			}
 
 			$this->onWatcherDeleted($watcher);
 
@@ -227,13 +275,13 @@ class ProductList extends Datalist
 		$this->redirect('this');
 	}
 
-	public function handleBuy(string $productId): void
+	public function handleBuy(string $productId, ?int $amount = null): void
 	{
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->itemsOnPage !== null ? ($this->itemsOnPage[$productId] ?? null) : $this->productRepository->getProduct($productId);
-
-		$amount = $product->defaultBuyCount >= $product->minBuyCount ? $product->defaultBuyCount : $product->minBuyCount;
-		$this->checkoutManager->addItemToCart($product, null, $amount);
+		
+		$amount = $amount ?: (\max($product->defaultBuyCount, $product->minBuyCount));
+		$this->shopperUser->getCheckoutManager()->addItemToCart($product, null, $amount);
 
 		$this->redirect('this');
 	}
@@ -243,13 +291,18 @@ class ProductList extends Datalist
 		$productRepository = $this->productRepository;
 
 		return new Multiplier(function ($itemId) use ($productRepository) {
-			/** @var \Eshop\DB\Product $product */
+			/** @var \Eshop\DB\Product|null $product */
 			$product = $this->itemsOnPage !== null ? ($this->itemsOnPage[$itemId] ?? null) : $productRepository->getProduct($itemId);
+
+			if (!$product) {
+				$this->redirect('this');
+			}
 
 			$form = $this->buyFormFactory->create($product);
 			$form->onSuccess[] = function ($form, $values): void {
+				Arrays::invoke($this->onBuyFormSuccessBeforeRedirect);
+
 				$form->getPresenter()->redirect('this');
-				// @TODO call event
 			};
 
 			return $form;
@@ -258,11 +311,15 @@ class ProductList extends Datalist
 
 	public function render(string $display = 'card'): void
 	{
+		// Preload for all parts of list
+		$this->getItemsOnPage();
+
 		$this->template->templateFilters = $this->getFiltersForTemplate();
 		$this->template->display = $display === 'card' ? 'Card' : 'Row';
 		$this->template->paginator = $this->getPaginator();
-		$this->template->shopper = $this->shopper;
-		$this->template->checkoutManager = $this->checkoutManager;
+		$this->template->shopper = $this->shopperUser;
+		$this->template->checkoutManager = $this->shopperUser->getCheckoutManager();
+		$this->template->currencies = $this->currencyRepository->many()->toArray();
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;
@@ -287,7 +344,7 @@ class ProductList extends Datalist
 	}
 
 	/**
-	 * @return string[]
+	 * @return array<string>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	private function getFiltersForTemplate(): array
