@@ -49,6 +49,8 @@ class CategoryPresenter extends BackendPresenter
 
 	protected const SHOW_DEFAULT_VIEW_TYPE = false;
 
+	protected const SHOW_DESCENDANT_PRODUCTS = false;
+
 	#[\Nette\DI\Attributes\Inject]
 	public Request $request;
 
@@ -173,11 +175,14 @@ class CategoryPresenter extends BackendPresenter
 				'showInMenu',
 				'showEmpty',
 				'recommended',
-				'showDescendantProducts',
 			];
 
 			if ($this::SHOW_DEFAULT_VIEW_TYPE) {
 				$bulkInputs[] = 'defaultViewType';
+			}
+
+			if ($this::SHOW_DESCENDANT_PRODUCTS) {
+				$bulkInputs[] = 'showDescendantProducts';
 			}
 			
 			$grid->addButtonBulkEdit(
@@ -282,7 +287,7 @@ class CategoryPresenter extends BackendPresenter
 
 	public function createComponentCategoryForm(): Controls\CategoryForm
 	{
-		return $this->categoryFormFactory->create($this::SHOW_DEFAULT_VIEW_TYPE, $this->getParameter('category'));
+		return $this->categoryFormFactory->create($this::SHOW_DEFAULT_VIEW_TYPE, $this->getParameter('category'), $this::SHOW_DESCENDANT_PRODUCTS);
 	}
 
 	public function actionDefault(): void

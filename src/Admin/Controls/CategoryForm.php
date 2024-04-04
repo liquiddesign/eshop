@@ -30,6 +30,7 @@ class CategoryForm extends Control
 		protected readonly ShopperUser $shopperUser,
 		protected readonly ?Category $category,
 		protected readonly bool $showDefaultViewType,
+		protected readonly bool $showDescendantProducts,
 	) {
 		$form = $formFactory->create(true);
 
@@ -152,7 +153,10 @@ class CategoryForm extends Control
 		$form->addCheckbox('showInMenu', 'Zobrazit v menu');
 		$form->addCheckbox('showEmpty', 'Zobrazit pokud nemá produkty');
 		$form->addCheckbox('recommended', 'Doporučeno');
-		$form->addCheckbox('showDescendantProducts', 'Zobrazit produkty v podkategoriích')->setDefaultValue(true);
+
+		if ($this->showDescendantProducts) {
+			$form->addCheckbox('showDescendantProducts', 'Zobrazit produkty v podkategoriích')->setDefaultValue(true);
+		}
 
 		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($form): void {
 			$form->addHidden('type', $presenter->tab);
