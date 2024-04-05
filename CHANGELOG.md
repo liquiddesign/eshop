@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.181](https://github.com/liquiddesign/eshop/compare/v2.1.180...v2.1.181) (2024-04-05)
+
+### Bug Fixes
+
+
+##### Product Importer
+
+* Import categories ([f9537d](https://github.com/liquiddesign/eshop/commit/f9537dffd7ce2e74a8a8e9330e1c805b5f03a109))
+
+
+---
+
 ## [2.1.180](https://github.com/liquiddesign/eshop/compare/v2.1.179...v2.1.180) (2024-04-04)
 
 ### Features
