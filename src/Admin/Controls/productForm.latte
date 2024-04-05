@@ -16,14 +16,14 @@
         <li n:foreach="$form->getOwnErrors() as $error">{$error}</li>
     </ul>
 
+    {if isset($form['__MUTATION_SELECTOR'])}
+        <table>
+            {$renderer->renderPair($form['__MUTATION_SELECTOR'])|noescape}
+        </table>
+    {/if}
+
     <div class="tab-content">
         <div id="menu0-content" class="tab-pane {$presenter->editTab == 'menu0' ? 'active show' : ''}">
-            {if isset($form['__MUTATION_SELECTOR'])}
-                <table>
-                    {$renderer->renderPair($form['__MUTATION_SELECTOR'])|noescape}
-                </table>
-            {/if}
-
             <fieldset>
                 <table class="mt-1 mb-1">
                     <tr class="m-0 mt-1 has-danger">
