@@ -4,6 +4,25 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.182](https://github.com/liquiddesign/eshop/compare/v2.1.181...v2.1.182) (2024-04-05)
+
+### Features
+
+
+##### Admin Category
+
+* Add code column to types grid ([e402af](https://github.com/liquiddesign/eshop/commit/e402afd1fbca6123791fa067e9397b4b2cf27794))
+
+### Bug Fixes
+
+
+##### Admin Product Form
+
+* Move MUTATION_SELECTOR to top to be visible on all tabs ([dab3fd](https://github.com/liquiddesign/eshop/commit/dab3fd5106010269c5baccfa1e28e5463ecee3cd))
+
+
+---
+
 ## [2.1.181](https://github.com/liquiddesign/eshop/compare/v2.1.180...v2.1.181) (2024-04-05)
 
 ### Bug Fixes
