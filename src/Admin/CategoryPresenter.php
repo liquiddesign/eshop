@@ -471,6 +471,7 @@ class CategoryPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($this->categoryTypeRepository->many(), null, 'priority', 'ASC', true);
 		$grid->addColumnSelector();
 
+		$grid->addColumnText('Kód', 'uuid', '%s', 'uuid');
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
