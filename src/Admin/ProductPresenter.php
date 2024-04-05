@@ -995,7 +995,7 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 
 	public function actionImportCsv(): void
 	{
-		Debugger::$showBar = false;
+		$this->connection->setDebug(false);
 	}
 
 	public function renderImportCsv(): void
@@ -1333,6 +1333,8 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 				$connection->getLink()->commit();
 				$this->flashMessage('Import produktů úspěšný', 'success');
 			} catch (\Exception $e) {
+				Debugger::barDump($e);
+
 				$connection->getLink()->rollBack();
 
 				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Import produktů se nezdařil!', 'error');

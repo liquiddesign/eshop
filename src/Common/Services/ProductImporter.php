@@ -417,6 +417,7 @@ class ProductImporter
 				} elseif ($key === 'categories' || $key === 'Kategorie') {
 					$productsToDeleteCategories[] = $product->uuid;
 					$valueCategories = \explode(',', $value);
+					$categoriesToUpdate = [];
 
 					foreach ($valueCategories as $categoryValue) {
 						$categoryValue = \explode('#', $categoryValue);
@@ -433,11 +434,13 @@ class ProductImporter
 
 						$category = $categories[$categoryType][$category];
 
-						$newValues['categories'][] = $category->uuid;
+						$categoriesToUpdate[] = $category->uuid;
 					}
 
-					if (isset($newValues['categories'])) {
-						$valuesToUpdate[$product->uuid]['categories'] = $newValues['categories'];
+					if ($categoriesToUpdate) {
+						$valuesToUpdate[$product->uuid]['categories'] = $categoriesToUpdate;
+					} else {
+						unset($valuesToUpdate[$product->uuid]['categories']);
 					}
 				} elseif ($key === 'primaryCategories' || $key === 'Primární kategorie') {
 					$productsToDeletePrimaryCategories[] = $product->uuid;
