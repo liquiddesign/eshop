@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.183](https://github.com/liquiddesign/eshop/compare/v2.1.182...v2.1.183) (2024-04-08)
+
+### Features
+
+
+##### Product
+
+* Better types, ProductTester filter change ([103a83](https://github.com/liquiddesign/eshop/commit/103a8317995909748a40427861bf1b4116285c39))
+
+
+---
+
 ## [2.1.182](https://github.com/liquiddesign/eshop/compare/v2.1.181...v2.1.182) (2024-04-05)
 
 ### Features
