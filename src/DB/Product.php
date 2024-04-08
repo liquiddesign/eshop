@@ -1160,7 +1160,7 @@ class Product extends \StORM\Entity
 	}
 
 	/**
-	 * @param 'hidden'|'hiddenInMenu'|'unavailable'|'priority'|'recommended' $property
+	 * @param ('hidden'|'hiddenInMenu'|'unavailable'|'priority'|'recommended')&string $property
 	 */
 	private function loadVisibilityListItemProperty(string $property): int|string|bool|float|null
 	{

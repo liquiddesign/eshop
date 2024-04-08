@@ -51,7 +51,6 @@ class ProductTester
 
 		$priceLists = $this->pricelistRepository->getCustomerPricelists($customer, $currency, $country)->toArray();
 		$visibilityLists = $customer->getVisibilityLists()->where('this.hidden', false)->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
-		$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists);
 		$visibilityLists = $visibilityLists->toArray();
 
 		$productFromGetProducts = $this->productRepository->getProducts($priceLists, $customer, visibilityLists: $visibilityLists, currency: $currency)->where('this.uuid', $product->getPK());
