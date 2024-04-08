@@ -660,10 +660,6 @@ CREATE TABLE `$categoriesTableName` (
 
 						$price = $priceItems[$priceListId];
 
-						if (!$this->shopperUser->getShowZeroPrices() && !$price->price > 0) {
-							continue;
-						}
-
 						$mapToInsert[] = [
 							$index,
 							$product,

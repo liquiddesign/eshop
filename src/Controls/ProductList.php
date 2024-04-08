@@ -80,6 +80,16 @@ class ProductList extends Datalist
 		$this->setDefaultOnPage(20);
 		$this->setDefaultOrder('priority');
 
+		if ($this->shopperUser->getShowZeroPrices()) {
+			$this->setFilters([
+				'priceFrom' => 0,
+			]);
+		} else {
+			$this->setFilters([
+				'priceGt' => 0,
+			]);
+		}
+
 		$this->setAllowedOrderColumns(['price' => 'price', 'priority' => 'visibilityListItem.priority', 'name' => 'name']);
 
 		$this->addOrderExpression('crossSellOrder', function (ICollection $collection, $value): void {
@@ -106,10 +116,10 @@ class ProductList extends Datalist
 			$this->productRepository->filterCrossSellFilter($value, $collection);
 		});
 		$this->addFilterExpression('priceFrom', function (ICollection $collection, $value): void {
-			$this->shopperUser->getShowPrice() === 'withVat' ? $this->productRepository->filterPriceVatFrom($value, $collection) : $this->productRepository->filterPriceFrom($value, $collection);
+			$this->shopperUser->getMainPriceType() === 'withVat' ? $this->productRepository->filterPriceVatFrom($value, $collection) : $this->productRepository->filterPriceFrom($value, $collection);
 		}, '');
 		$this->addFilterExpression('priceTo', function (ICollection $collection, $value): void {
-			$this->shopperUser->getShowPrice() === 'withVat' ? $this->productRepository->filterPriceVatTo($value, $collection) : $this->productRepository->filterPriceTo($value, $collection);
+			$this->shopperUser->getMainPriceType() === 'withVat' ? $this->productRepository->filterPriceVatTo($value, $collection) : $this->productRepository->filterPriceTo($value, $collection);
 		}, '');
 		$this->addFilterExpression('producer', function (ICollection $collection, $value): void {
 			$this->productRepository->filterProducer($value, $collection);
@@ -174,6 +184,8 @@ class ProductList extends Datalist
 
 		\Tracy\Debugger::timer('getProductsFromCacheTable');
 
+//		dump($this->getFilters());
+
 		try {
 			$cachedProducts = $this->productsProvider->getProductsFromCacheTable(
 				$this->getFilters(),
@@ -217,7 +229,11 @@ class ProductList extends Datalist
 				$this->getPaginator()->setItemCount(\count($cachedProducts['productPKs']));
 
 				if ($cachedProducts['productPKs']) {
-					$source->where('this.id', \array_slice($cachedProducts['productPKs'], ($this->getPage() - 1) * $this->getOnPage(), $this->getOnPage()));
+					$pagedProducts = \array_slice($cachedProducts['productPKs'], ($this->getPage() - 1) * $this->getOnPage(), $this->getOnPage());
+
+					Debugger::barDump(\implode('\',\'', $pagedProducts));
+
+					$source->where('this.id', $pagedProducts);
 				} else {
 					$source->where('0 = 1');
 				}
@@ -233,6 +249,8 @@ class ProductList extends Datalist
 		}
 
 		$this->onLoad($source);
+
+		Debugger::barDump(\implode('\',\'', $source->toArrayOf('uuid', toArrayValues: true)));
 
 		$this->itemsOnPage = $this->nestingCallback && !$this->filters ? $this->getNestedSource($source, null) : $source->toArray();
 
