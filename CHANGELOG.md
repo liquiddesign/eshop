@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.184](https://github.com/liquiddesign/eshop/compare/v2.1.183...v2.1.184) (2024-04-08)
+
+### Bug Fixes
+
+
+##### Products Cache
+
+* Zero prices ([fd8977](https://github.com/liquiddesign/eshop/commit/fd8977445e2214a3f08a297b464d35831fe19058))
+
+
+---
+
 ## [2.1.183](https://github.com/liquiddesign/eshop/compare/v2.1.182...v2.1.183) (2024-04-08)
 
 ### Features
