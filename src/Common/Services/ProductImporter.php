@@ -84,12 +84,15 @@ class ProductImporter
 			->setIndex('code')
 			->select(['categoryTypePK' => 'this.fk_type']);
 
+		/** @var array<\stdClass> $allCategories */
+		$allCategories = [];
 		$categories = [];
 
 		while ($tempCategory = $categoriesCollection->fetch(\stdClass::class)) {
 			/** @var \stdClass $tempCategory */
 
 			$categories[$tempCategory->categoryTypePK][$tempCategory->code] = $tempCategory;
+			$allCategories[$tempCategory->uuid] = $tempCategory;
 		}
 
 		$categoriesCollection->__destruct();
@@ -445,6 +448,7 @@ class ProductImporter
 				} elseif ($key === 'primaryCategories' || $key === 'Primární kategorie') {
 					$productsToDeletePrimaryCategories[] = $product->uuid;
 					$valueCategories = \explode(',', $value);
+					$categoriesToBePrimary = [];
 
 					foreach ($valueCategories as $categoryValue) {
 						$categoryValue = \explode('#', $categoryValue);
@@ -466,11 +470,31 @@ class ProductImporter
 							'categoryType' => $categoryType,
 							'product' => $product->uuid,
 						];
+
+						$categoriesToBePrimary[] = $category->uuid;
 					}
 
-					if (isset($newValues['primaryCategories'])) {
-						$valuesToUpdate[$product->uuid]['primaryCategories'] = $newValues['primaryCategories'];
+					if (!$categoriesToBePrimary) {
+						$treesSet = [];
+
+						foreach ($valuesToUpdate[$product->uuid]['categories'] ?? [] as $category) {
+							$category = $allCategories[$category];
+
+							if (isset($treesSet[$category->categoryTypePK])) {
+								continue;
+							}
+
+							$treesSet[$category->categoryTypePK] = true;
+
+							$productPrimaryCategoriesToSync[] = [
+								'category' => $category->uuid,
+								'categoryType' => $category->categoryTypePK,
+								'product' => $product->uuid,
+							];
+						}
 					}
+
+					unset($valuesToUpdate[$product->uuid]['primaryCategories']);
 				}
 			}
 			
@@ -490,6 +514,10 @@ class ProductImporter
 				}
 			}
 
+			/**
+			 * @var string $visibilityListPK
+			 * @var array<mixed> $value
+			 */
 			foreach ($relatedToSync['visibility'] as $visibilityListPK => $value) {
 				foreach ($value as $productPK => $data) {
 					$this->visibilityListItemRepository->syncOne([
