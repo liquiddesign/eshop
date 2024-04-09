@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.185](https://github.com/liquiddesign/eshop/compare/v2.1.184...v2.1.185) (2024-04-09)
+
+### Bug Fixes
+
+
+##### Product Export
+
+* Change name of perex ([41f640](https://github.com/liquiddesign/eshop/commit/41f6404585c59cdaa5d21aee673af6db7e3333e1))
+
+
+---
+
 ## [2.1.184](https://github.com/liquiddesign/eshop/compare/v2.1.183...v2.1.184) (2024-04-08)
 
 ### Bug Fixes
