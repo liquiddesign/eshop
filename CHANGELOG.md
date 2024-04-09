@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.186](https://github.com/liquiddesign/eshop/compare/v2.1.185...v2.1.186) (2024-04-09)
+
+### Features
+
+
+##### Product Importer
+
+* Add default selection of primaryCategory if no primaryCategories are supplied ([f30114](https://github.com/liquiddesign/eshop/commit/f30114535300f8984c857b27d081a277b45d134f))
+
+
+---
+
 ## [2.1.185](https://github.com/liquiddesign/eshop/compare/v2.1.184...v2.1.185) (2024-04-09)
 
 ### Bug Fixes
