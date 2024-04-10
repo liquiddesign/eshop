@@ -393,8 +393,8 @@ class SupplierProductRepository extends \StORM\Repository
 			}
 
 			// phpcs:ignore
-			if (($product->supplierContentLock === 0 && $product->supplierLock >= $supplier->importPriority && $product->supplierContentMode === 'priority') ||
-				($product->supplierContentLock === 0 && $product->supplierContent === $supplierId)) {
+			if ( $product->supplierContentLock === 0 ||
+				($product->supplierLock >= $supplier->importPriority && $product->supplierContentMode === 'priority')) {
 				$productContentRepository->syncOne([
 					'product' => $product->uuid,
 					'shop' => $item['shop'],
