@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.187](https://github.com/liquiddesign/eshop/compare/v2.1.186...v2.1.187) (2024-04-10)
+
+### Features
+
+* Filter fix, supplier naming, private to protected ([ed9031](https://github.com/liquiddesign/eshop/commit/ed9031946d54329961b2ef93b146c2c7aba29158))
+
+##### Admin Visibility List Presenter
+
+* Add Supplier filter ([f84139](https://github.com/liquiddesign/eshop/commit/f84139dedd5c354da51274468271d5069b05d88b))
+
+
+---
+
 ## [2.1.186](https://github.com/liquiddesign/eshop/compare/v2.1.185...v2.1.186) (2024-04-09)
 
 ### Features

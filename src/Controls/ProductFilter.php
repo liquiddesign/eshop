@@ -146,7 +146,6 @@ class ProductFilter extends Control
 		$filterForm->addText('priceFrom')
 			->setNullable()
 			->setHtmlAttribute('placeholder', $priceFrom)
-			->setHtmlAttribute('max', $priceFrom)
 			->addCondition($filterForm::Filled)->addRule($filterForm::Integer);
 
 		$filterForm->addText('priceTo')
