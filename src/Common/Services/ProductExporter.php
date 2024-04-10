@@ -27,7 +27,6 @@ use StORM\Collection;
 use StORM\DIConnection;
 use Tracy\Debugger;
 use Tracy\ILogger;
-use Web\DB\Page;
 use Web\DB\PageRepository;
 
 class ProductExporter
@@ -277,7 +276,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 			->join(['masterProduct' => 'eshop_product'], 'this.fk_masterProduct = masterProduct.uuid')
 			->join(['productContent' => 'eshop_productcontent'], 'this.uuid = productContent.fk_product')
 			->join(['primaryCategory' => 'eshop_productprimarycategory'], 'this.uuid = primaryCategory.fk_product')
-			->join(['exportPage' => 'web_page'], "exportPage.params like CONCAT('%product=', this.uuid, '&%') and exportPage.type = 'product_detail'")
+//			->join(['exportPage' => 'web_page'], "exportPage.params like CONCAT('%product=', this.uuid, '&%') and exportPage.type = 'product_detail'")
 			->select([
 				'producerCodeName' => "CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, ''))",
 				'amounts' => "GROUP_CONCAT(DISTINCT CONCAT(storeAmount.inStock, '#', store.code) SEPARATOR ':')",
@@ -286,7 +285,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 				'masterProductCode' => 'masterProduct.code',
 			])
 			->selectAliases([
-				'exportPage' => Page::class,
+//				'exportPage' => Page::class,
 				'productContent' => ProductContent::class,
 			]);
 
@@ -335,17 +334,39 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 		$productsXCode = $this->productRepository->many()->setSelect(['this.code'], [], true)->toArrayOf('code');
 		$lazyLoadedProducts = [];
 
-		while ($product = $products->fetch()) {
+		$fetchedProducts = $products->toArray();
+
+		/** @var \StORM\Collection<\Web\DB\Page> $pages */
+		$pages = $this->pageRepository->many()
+			->where('this.type', 'product_detail');
+
+		$this->shopsConfig->filterShopsInShopEntityCollection($pages);
+
+		while ($page = $pages->fetch()) {
+			if (($product = $page->getParsedParameter('product')) && isset($fetchedProducts[$product])) {
+				$product = $fetchedProducts[$product];
+				$pageArray = $page->toArray();
+
+				foreach (['url', 'title', 'content'] as $property) {
+					foreach ($pageArray[$property] as $mutation => $value) {
+						$propertyName = 'exportPage_' . $property . '_' . $mutation;
+						$product->$propertyName = $value;
+					}
+				}
+			}
+		}
+
+		foreach ($fetchedProducts as $product) {
 			/** @var \Eshop\DB\Product|\stdClass $product */
 			$row = [];
 
 			foreach (\array_keys($columns) as $columnKey) {
 				if ($columnKey === 'producer') {
-					$row[] = $product->producerCodeName;
+					$row[] = $product->getValue('producerCodeName');
 				} elseif ($columnKey === 'storeAmount') {
-					$row[] = $product->amounts;
+					$row[] = $product->getValue('amounts');
 				} elseif ($columnKey === 'categories') {
-					if (!$product->groupedCategories) {
+					if (!$product->getValue('groupedCategories')) {
 						$row[] = null;
 
 						continue;
