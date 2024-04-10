@@ -25,6 +25,7 @@ use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\DIConnection;
+use StORM\Exception\NotExistsException;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\PageRepository;
@@ -452,7 +453,11 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 
 					$row[] = $visibilityListItem ? $visibilityListItem[$property] : 0;
 				} else {
-					$row[] = $product->getValue($columnKey) === false ? '0' : $product->getValue($columnKey);
+					try {
+						$row[] = $product->getValue($columnKey) === false ? '0' : $product->getValue($columnKey);
+					} catch (NotExistsException) {
+						$row[] = null;
+					}
 				}
 			}
 
