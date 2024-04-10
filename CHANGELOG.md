@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.191](https://github.com/liquiddesign/eshop/compare/v2.1.190...v2.1.191) (2024-04-10)
+
+### Bug Fixes
+
+
+##### Product Exporter
+
+* Change fetching of Page to separate query due to performance ([b8b63e](https://github.com/liquiddesign/eshop/commit/b8b63eee5269a925e8267ca31fcb347fbb357079))
+
+
+---
+
 ## [2.1.190](https://github.com/liquiddesign/eshop/compare/v2.1.189...v2.1.190) (2024-04-10)
 
 ### Features
