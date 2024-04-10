@@ -15,6 +15,8 @@ use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\RibbonRepository;
+use Eshop\DB\SupplierProductRepository;
+use Eshop\DB\SupplierRepository;
 use Eshop\DB\VisibilityList;
 use Eshop\DB\VisibilityListItem;
 use Eshop\DB\VisibilityListRepository;
@@ -29,6 +31,7 @@ use Nette\DI\Attributes\Inject;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Strings;
 use StORM\Collection;
+use StORM\Expression;
 use StORM\ICollection;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -73,6 +76,12 @@ class VisibilityListPresenter extends BackendPresenter
 
 	#[Inject]
 	public InternalRibbonRepository $internalRibbonRepository;
+
+	#[Inject]
+	public SupplierRepository $supplierRepository;
+
+	#[Inject]
+	public SupplierProductRepository $supplierProductRepository;
 
 	#[Persistent]
 	public string $tab = 'lists';
@@ -215,6 +224,27 @@ class VisibilityListPresenter extends BackendPresenter
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 			$source->where('this.unavailable', (bool) $value);
 		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
+
+		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $suppliers): void {
+				$expression = new Expression();
+
+				foreach ($suppliers as $supplier) {
+					$expression->add('OR', 'product.fk_supplierSource=%1$s', [$supplier]);
+				}
+
+				$subSelect = $this->supplierProductRepository->getConnection()
+					->rows(['eshop_supplierproduct']);
+
+				$subSelect->setBinderName('eshop_supplierproductFilterDataMultiSelectSupplier');
+
+				$subSelect
+					->where('this.fk_product = eshop_supplierproduct.fk_product')
+					->where('eshop_supplierproduct.fk_supplier', $suppliers);
+
+				$source->where('EXISTS (' . $subSelect->getSql() . ') OR ' . $expression->getSql(), $subSelect->getVars() + $expression->getVars());
+			}, '', 'suppliers', null, $suppliers, ['placeholder' => '- Zdroje -']);
+		}
 
 		$grid->addFilterButtons();
 
