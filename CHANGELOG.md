@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.188](https://github.com/liquiddesign/eshop/compare/v2.1.187...v2.1.188) (2024-04-10)
+
+### Bug Fixes
+
+
+##### Product Grid Filters Factory
+
+* Category filter - allow all category types ([13dc62](https://github.com/liquiddesign/eshop/commit/13dc6270dc1a8dc4bcc49bb75ca1c3b4d255d594))
+
+
+---
+
 ## [2.1.187](https://github.com/liquiddesign/eshop/compare/v2.1.186...v2.1.187) (2024-04-10)
 
 ### Features
