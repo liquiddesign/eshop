@@ -111,6 +111,18 @@ class Supplier extends \StORM\Entity
 	 * @column
 	 */
 	public bool $highlightStoreAmount = false;
+
+	/**
+	 * Povolí přejmenování dodavatelských produků
+	 * @column
+	 */
+	public bool $allowProductRenaming = false;
+
+	/**
+	 * Výchozí "aktivnost" dodavatelského produktu
+	 * @column
+	 */
+	public bool $defaultActive = true;
 	
 	/**
 	 * Defaultní zobrazení množství

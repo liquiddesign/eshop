@@ -228,7 +228,7 @@ class SupplierPresenter extends BackendPresenter
 		$form->addText('name', 'Název')->setRequired();
 		$form->addCheckbox('highlightStoreAmount', 'Zvýraznit dostupnost produktu od tohoto dodavatele');
 
-		if ($supplier->url) {
+		if ($supplier?->url) {
 			$form->addText('url', 'Adresa feedu')->setRequired()->setDefaultValue($supplier->url);
 		}
 
@@ -238,6 +238,7 @@ class SupplierPresenter extends BackendPresenter
 		$form->addSelect('defaultDisplayAmount', 'Zobrazované množství', $this->displayAmountRepository->getArrayForSelect())->setPrompt('-zvolte-');
 		$form->addSelect('defaultDisplayDelivery', 'Zobrazované doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('-zvolte-');
 		$form->addCheckbox('defaultHiddenProduct', 'Produkty budou skryté');
+		$form->addCheckbox('defaultActive', 'Nové dodavatelské produkty budou neaktivní');
 		$form->addCheckbox('pairWithAlgolia', 'Povolit párování pomocí Algolia')->setHtmlAttribute('data-info', 'Pro zobrazení je nutné mít v Integraci nastavené API.');
 		
 		$form->addGroup('Nastavení importu');
@@ -274,12 +275,13 @@ class SupplierPresenter extends BackendPresenter
 		$form->addSubmit('submit', 'Potvrdit');
 		
 		$form->onSuccess[] = function (AdminForm $form) use ($supplier): void {
+			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
 			
 			$this->supplierRepository->catalogEntry($supplier, $this->tempDir . '/log/import', $values['only_new'], $values['allowImportImages']);
 			
 			$this->flashMessage('Zapsáno do katalogu', 'success');
-			$form->getPresenter()->redirect('default');
+			$form->getPresenter()?->redirect('default');
 		};
 		
 		return $form;
