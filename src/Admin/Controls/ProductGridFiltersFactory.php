@@ -9,7 +9,6 @@ use Base\ShopsConfig;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Common\Helpers;
 use Eshop\DB\CategoryRepository;
-use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\InternalRibbon;
 use Eshop\DB\InternalRibbonRepository;
@@ -37,7 +36,6 @@ class ProductGridFiltersFactory
 		private readonly InternalRibbonRepository $internalRibbonRepository,
 		private readonly PricelistRepository $pricelistRepository,
 		private readonly DisplayAmountRepository $displayAmountRepository,
-		private readonly CategoryTypeRepository $categoryTypeRepository,
 		private readonly SupplierProductRepository $supplierProductRepository,
 		private readonly ShopsConfig $shopsConfig,
 		private readonly SettingRepository $settingRepository,
@@ -79,9 +77,7 @@ class ProductGridFiltersFactory
 
 			$categories = $categoryTypes ? $this->categoryRepository->getTreeArrayForSelect(true, $categoryTypes) : [];
 		} else {
-			$firstCategoryType = $this->categoryTypeRepository->many()->setOrderBy(['priority'])->first();
-
-			$categories = $firstCategoryType ? $this->categoryRepository->getTreeArrayForSelect(true, $firstCategoryType->getPK()) : [];
+			$categories = $this->categoryRepository->getTreeArrayForSelect();
 		}
 
 		if ($categories) {
