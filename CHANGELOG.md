@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.189](https://github.com/liquiddesign/eshop/compare/v2.1.188...v2.1.189) (2024-04-10)
+
+### Bug Fixes
+
+
+##### Supplier Product
+
+* Fill Product content if it is empty if lock is zero ([e6f84b](https://github.com/liquiddesign/eshop/commit/e6f84b7a45e4d6bf0903752ac5ee7d51f74ddd28))
+
+
+---
+
 ## [2.1.188](https://github.com/liquiddesign/eshop/compare/v2.1.187...v2.1.188) (2024-04-10)
 
 ### Bug Fixes
