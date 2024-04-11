@@ -320,6 +320,10 @@ class ProductGridFactory
 			$bulkColumns = \array_merge($bulkColumns, ['algoliaPriority']);
 		}
 
+		if (isset($configuration['customBulkColumns'])) {
+			$bulkColumns = \array_merge($bulkColumns, $configuration['customBulkColumns']);
+		}
+
 		$grid->addButtonBulkEdit(
 			'productForm',
 			$bulkColumns,

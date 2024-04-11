@@ -543,6 +543,12 @@ class ProductPresenter extends BackendPresenter
 
 		$form->setDefaults($productData);
 
+		if (isset($form['customContainer'])) {
+			/** @var \Nette\Forms\Container $customContainer */
+			$customContainer = $form['customContainer'];
+			$customContainer->setDefaults($productData);
+		}
+
 		/** @var \Nette\Forms\Controls\SelectBox|null $input */
 		$input = $form['supplierContent'] ?? null;
 

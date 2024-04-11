@@ -585,6 +585,13 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                         {/formContainer}
                     </table>
                 {/if}
+
+                {if isset($form['customContainer'])}
+                    <legend>Ostatní</legend>
+                    <table class="mt-2 mb-1" style="width: auto;" n:foreach="$form['customContainer']->getControls() as $input">
+                        {$renderer->renderPair($input)|noescape}
+                    </table>
+                {/if}
             </fieldset>
             <fieldset>
                 <table class="mt-1 mb-1">

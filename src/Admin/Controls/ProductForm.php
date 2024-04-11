@@ -629,6 +629,13 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			$values['exportZbozi'] = false;
 		}
 
+		if (isset($values['customContainer'])) {
+			$customContainer = $values['customContainer'];
+			unset($values['customContainer']);
+
+			$values = \array_merge($values, $customContainer);
+		}
+
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
 
