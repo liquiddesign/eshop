@@ -128,7 +128,7 @@ class PricelistsPresenter extends BackendPresenter
 
 	public function createComponentPriceLists(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->priceListRepository->many(), 20, 'priority', 'ASC');
+		$grid = $this->gridFactory->create($this->priceListRepository->many(), 20, 'priority', 'ASC', filterShops: false);
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit'])->onRenderCell[] = [
@@ -209,6 +209,7 @@ class PricelistsPresenter extends BackendPresenter
 			}, '', 'supplier', null, $suppliers)->setPrompt('- Zdroj -');
 		}
 
+		$this->gridFactory->addShopsFilterSelect($grid);
 		$grid->addFilterButtons();
 
 		if (isset($this::CONFIGURATION['aggregate']) && $this::CONFIGURATION['aggregate']) {
