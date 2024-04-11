@@ -236,7 +236,7 @@ class PricelistsPresenter extends BackendPresenter
 
 		$grid->addColumnSelector();
 
-		$grid->addColumnText('Vytvořeno', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
+		$grid->addColumnText('Vytvořeno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit']);
 		$grid->addColumnText('Ceník', ['pricelist.code', 'pricelist.name'], '%s<br>%s', 'pricelist.name');
 		$grid->addColumnText('Kód', 'product.code', '%s', 'product.code', ['class' => 'fit']);
 
