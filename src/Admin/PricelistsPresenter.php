@@ -37,6 +37,8 @@ use League\Csv\Reader;
 use League\Csv\Writer;
 use Nette\Application\Attributes\Persistent;
 use Nette\Application\Responses\FileResponse;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 use Nette\DI\Attributes\Inject;
 use StORM\Collection;
 use StORM\Connection;
@@ -117,6 +119,9 @@ class PricelistsPresenter extends BackendPresenter
 
 	#[Inject]
 	public InternalRibbonRepository $internalRibbonRepository;
+
+	#[Inject]
+	public Storage $storage;
 
 	#[Persistent]
 	public string $tab = 'priceLists';
@@ -237,12 +242,18 @@ class PricelistsPresenter extends BackendPresenter
 			return '<a href="' . $link . '">' . $price->product->name . '</a>';
 		}, '%s');
 
+		$cache = new Cache($this->storage);
+
 		foreach ($this::SHOW_SUPPLIER_NAMES as $supplierId => $supplierName) {
-			$supplierNames = $this->supplierProductRepository->many()
-				->where('this.fk_supplier', $supplierId)
-				->setSelect(['this.fk_product', 'this.name'])
-				->setIndex('this.fk_product')
-				->toArrayOf('name');
+			$supplierNames = $cache->load("ADMIN-SHOW_SUPPLIER_NAMES-$supplierId", function () use ($supplierId) {
+				return $this->supplierProductRepository->many()
+					->where('this.fk_supplier', $supplierId)
+					->setSelect(['this.fk_product', 'this.name'])
+					->setIndex('this.fk_product')
+					->toArrayOf('name');
+			}, [
+				$cache::Expire => '20 minutes',
+			]);
 
 			$grid->addColumn("Název ($supplierName)", function (Price $price, Datagrid $datagrid) use ($supplierNames): string|null {
 				return $supplierNames[$price->getValue('product')] ?? null;

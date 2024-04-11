@@ -596,6 +596,7 @@ CREATE TABLE `$categoriesTableName` (
 			->join(['priceList' => 'eshop_pricelist'], 'this.fk_pricelist = priceList.uuid', type: 'INNER')
 			->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid', type: 'INNER')
 			->where('priceList.id', $allPriceLists)
+			->where('this.hidden', false)
 			->setSelect([
 				'this.price',
 				'this.priceVat',

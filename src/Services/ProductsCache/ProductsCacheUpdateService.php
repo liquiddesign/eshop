@@ -27,6 +27,10 @@ readonly class ProductsCacheUpdateService implements AutoWireService
 	{
 		$usedCacheIndex = $this->productsCacheGetter->getCacheIndexToBeUsed();
 
+		if ($usedCacheIndex === 0) {
+			return;
+		}
+
 		$link = $this->connection->getLink();
 		[$visibilityPriceListsOptions, $allVisibilityLists, $allPriceLists] = $this->productsCacheWarmUpService->getAllPossibleVisibilityAndPriceListOptions([$customer->getPK()], []);
 
