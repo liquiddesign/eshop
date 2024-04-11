@@ -25,4 +25,18 @@ class PriceRepository extends \StORM\Repository
 	{
 		return $this->many()->where('fk_pricelist', $priceList->getPK())->count();
 	}
+
+	public function filterRibbon($value, ICollection $collection): void
+	{
+		$collection->join(['ribbons' => 'eshop_product_nxn_eshop_ribbon'], 'ribbons.fk_product=this.fk_product');
+
+		$value === false ? $collection->where('ribbons.fk_ribbon IS NULL') : $collection->where('ribbons.fk_ribbon', $value);
+	}
+
+	public function filterInternalRibbon($value, ICollection $collection): void
+	{
+		$collection->join(['internalRibbons' => 'eshop_product_nxn_eshop_internalribbon'], 'internalRibbons.fk_product=this.fk_product');
+
+		$value === false ? $collection->where('internalRibbons.fk_internalribbon IS NULL') : $collection->where('internalRibbons.fk_internalribbon', $value);
+	}
 }

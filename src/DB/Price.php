@@ -8,6 +8,7 @@ namespace Eshop\DB;
  * Položka ceníku
  * @table
  * @index{"name":"product_pricelist","unique":true,"columns":["fk_product","fk_pricelist"]}
+ * @index{"name":"price_createdts","unique":false,"columns":["createdTs"]}
  */
 class Price extends \StORM\Entity
 {
@@ -34,6 +35,17 @@ class Price extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $priceVatBefore;
+
+	/**
+	 * @column
+	 */
+	public bool $hidden = false;
+
+	/**
+	 * Vytvořen
+	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
+	 */
+	public string $createdTs;
 	
 	/**
 	 * Produkt

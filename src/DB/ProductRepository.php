@@ -648,8 +648,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$priceWhere = new Expression();
 		
 		foreach ($pricelists as $id => $pricelist) {
-			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
-			
+//			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
+			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "' AND prices$id.hidden = 0");
+
 			$priceZeroWhere = null;
 			
 			if (!$this->shopperUser->getShowZeroPrices()) {

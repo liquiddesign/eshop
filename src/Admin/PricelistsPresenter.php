@@ -9,11 +9,14 @@ use Admin\Controls\AdminGrid;
 use Eshop\Admin\Configs\ProductFormAutoPriceConfig;
 use Eshop\Admin\Configs\ProductFormConfig;
 use Eshop\BackendPresenter;
+use Eshop\Common\Helpers;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\DiscountRepository;
+use Eshop\DB\InternalRibbon;
+use Eshop\DB\InternalRibbonRepository;
 use Eshop\DB\Price;
 use Eshop\DB\Pricelist;
 use Eshop\DB\PricelistRepository;
@@ -22,6 +25,7 @@ use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\QuantityPrice;
 use Eshop\DB\QuantityPriceRepository;
+use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\VatRateRepository;
@@ -31,15 +35,23 @@ use Forms\Form;
 use Grid\Datagrid;
 use League\Csv\Reader;
 use League\Csv\Writer;
+use Nette\Application\Attributes\Persistent;
 use Nette\Application\Responses\FileResponse;
+use Nette\DI\Attributes\Inject;
 use StORM\Collection;
 use StORM\Connection;
+use StORM\Expression;
 use StORM\ICollection;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
 class PricelistsPresenter extends BackendPresenter
 {
+	protected const TABS = [
+		'priceLists' => 'Ceníky',
+		'prices' => 'Ceny',
+	];
+
 	protected const CONFIGURATION = [
 		'aggregate' => true,
 		'customLabel' => false,
@@ -50,53 +62,64 @@ class PricelistsPresenter extends BackendPresenter
 
 	protected const SHOW_SUPPLIER_NAMES = [];
 
-	#[\Nette\DI\Attributes\Inject]
+	protected const SHOW_PRICE_HIDDEN = false;
+
+	#[Inject]
 	public SupplierProductRepository $supplierProductRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PricelistRepository $priceListRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CurrencyRepository $currencyRepo;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PriceRepository $priceRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CurrencyRepository $currencyRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ProductRepository $productRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CustomerRepository $customerRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CategoryRepository $categoryRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ProducerRepository $producerRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierRepository $supplierRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Connection $storm;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public DiscountRepository $discountRepo;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public QuantityPriceRepository $quantityPriceRepo;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CountryRepository $countryRepo;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ShopperUser $shopperUser;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public VatRateRepository $vatRateRepository;
+
+	#[Inject]
+	public RibbonRepository $ribbonRepository;
+
+	#[Inject]
+	public InternalRibbonRepository $internalRibbonRepository;
+
+	#[Persistent]
+	public string $tab = 'priceLists';
 
 	public function createComponentPriceLists(): AdminGrid
 	{
@@ -187,10 +210,210 @@ class PricelistsPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentPriceListItems(): AdminGrid
+	public function createComponentPricesGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create(
-			$this->priceRepository->getPricesByPriceList($this->getParameter('pricelist')),
+			$this->priceRepository->many()
+				->select(['rate' => 'rates.rate'])
+				->join(['products' => 'eshop_product'], 'products.uuid=this.fk_product')
+				->join(['rates' => 'eshop_vatrate'], 'rates.uuid = products.vatRate AND rates.fk_country=pricelist.fk_country'),
+			20,
+			'product.code',
+			'ASC',
+		);
+
+		$grid->addColumnSelector();
+
+		$grid->addColumnText('Vytvořeno', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
+		$grid->addColumnText('Ceník', ['pricelist.code', 'pricelist.name'], '%s<br>%s', 'pricelist.name');
+		$grid->addColumnText('Kód', 'product.code', '%s', 'product.code', ['class' => 'fit']);
+
+		$grid->addColumn('Produkt', function (Price $price, Datagrid $datagrid) {
+			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()?->link(
+				':Eshop:Admin:Product:edit',
+				[$price->product, 'backLink' => $this->storeRequest()],
+			) : '#';
+
+			return '<a href="' . $link . '">' . $price->product->name . '</a>';
+		}, '%s');
+
+		foreach ($this::SHOW_SUPPLIER_NAMES as $supplierId => $supplierName) {
+			$supplierNames = $this->supplierProductRepository->many()
+				->where('this.fk_supplier', $supplierId)
+				->setSelect(['this.fk_product', 'this.name'])
+				->setIndex('this.fk_product')
+				->toArrayOf('name');
+
+			$grid->addColumn("Název ($supplierName)", function (Price $price, Datagrid $datagrid) use ($supplierNames): string|null {
+				return $supplierNames[$price->getValue('product')] ?? null;
+			}, '%s');
+		}
+
+		/** @var null|string $autoPriceConfig */
+		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
+
+		if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
+			$grid->addColumnText('Cena', 'price', '%s');
+		} else {
+			$grid->addColumnInputPrice('Cena', 'price');
+		}
+
+		if ($this->shopperUser->getShowVat()) {
+			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
+				$grid->addColumnText('Cena s DPH', 'priceVat', '%s');
+			} else {
+				$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
+			}
+		}
+
+		if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
+			$grid->addColumnText('Cena před slevou', 'priceBefore', '%s');
+		} else {
+			$grid->addColumnInputPrice('Cena před slevou', 'priceBefore');
+		}
+
+		if ($this->shopperUser->getShowVat()) {
+			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
+				$grid->addColumnText('Cena s DPH před slevou', 'priceVatBefore', '%s');
+			} else {
+				$grid->addColumnInputPrice('Cena s DPH před slevou', 'priceVatBefore');
+			}
+		}
+
+		if ($this::SHOW_PRICE_HIDDEN) {
+			$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', orderExpression: 'hidden');
+		}
+
+		$grid->addColumnActionDelete();
+
+		/** @var null|string $autoPriceConfig */
+		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
+
+		$grid->addButtonSaveAll(onRowUpdate: function (string $id, array &$prices, Price $price) use ($autoPriceConfig): void {
+			if ((!$autoPriceConfig || $autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) && !isset($prices['price']) ||
+				($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT && !isset($prices['priceVat']))) {
+				return;
+			}
+
+			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
+				$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), ShopperUser::PRICE_PRECISSION);
+				$prices['priceBefore'] = isset($prices['priceVatBefore']) ?
+					\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), ShopperUser::PRICE_PRECISSION) :
+					null;
+			}
+
+			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
+				$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), ShopperUser::PRICE_PRECISSION);
+				$prices['priceVatBefore'] = isset($prices['priceBefore']) ?
+					\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), ShopperUser::PRICE_PRECISSION) :
+					null;
+			}
+
+			foreach (['price', 'priceVat', 'priceBefore', 'priceVatBefore'] as $priceKey) {
+				if (isset($prices[$priceKey])) {
+					continue;
+				}
+
+				$prices[$priceKey] = null;
+			}
+		}, diff: false);
+		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
+
+		$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
+			$source->where('this.fk_pricelist', $value);
+		}, '', 'pricelists', null, $this->priceListRepository->getArrayForSelect(), ['placeholder' => '- Ceníky -']);
+
+		$grid->addFilterButtons();
+
+		$grid->addFilterTextInput('code', ['products.code', 'products.ean', 'products.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
+
+		$grid->addFilterInteger(function (ICollection $source, $value): void {
+			$source->where('this.price >= :price', ['price' => $value]);
+		}, null, 'priceFrom', 'Cena od')
+			->setHtmlAttribute('placeholder', 'Cena od')
+			->setHtmlAttribute('class', 'form-control form-control-sm')
+			->setHtmlAttribute('style', 'width: 100px');
+
+		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
+			$grid->addFilterDataSelect(function (Collection $source, $value): void {
+				$categoryPath = $this->categoryRepository->one($value, true)->path;
+				$source->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=products.uuid');
+				$source->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
+				$source->where('categories.path LIKE :category', ['category' => "$categoryPath%"]);
+			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
+		}
+
+		if ($ribbons = $this->ribbonRepository->getArrayForSelect()) {
+			$ribbons += ['0' => 'X - bez štítků'];
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+				$source->filter(['ribbon' => Helpers::replaceArrayValue($value, '0', null)]);
+			}, '', 'ribbons', null, $ribbons, ['placeholder' => '- Veř. štítky -']);
+		}
+
+		if ($ribbons = $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_PRODUCT)) {
+			$ribbons += ['0' => 'X - bez štítků'];
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+				$source->filter(['internalRibbon' => Helpers::replaceArrayValue($value, '0', null)]);
+			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
+		}
+
+		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $suppliers): void {
+				$expression = new Expression();
+
+				foreach ($suppliers as $supplier) {
+					$expression->add('OR', 'product.fk_supplierSource=%1$s', [$supplier]);
+				}
+
+				$subSelect = $this->supplierProductRepository->getConnection()
+					->rows(['eshop_supplierproduct']);
+
+				$subSelect->setBinderName('eshop_supplierproductFilterDataMultiSelectSupplier');
+
+				$subSelect
+					->where('this.fk_product = eshop_supplierproduct.fk_product')
+					->where('eshop_supplierproduct.fk_supplier', $suppliers);
+
+				$source->where('EXISTS (' . $subSelect->getSql() . ') OR ' . $expression->getSql(), $subSelect->getVars() + $expression->getVars());
+			}, '', 'suppliers', null, $suppliers, ['placeholder' => '- Zdroje -']);
+		}
+
+		if ($producers = $this->producerRepository->getArrayForSelect()) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
+				$source->where('products.fk_producer', $value);
+			}, '', 'producers', null, $producers, ['placeholder' => '- Výrobci -']);
+		}
+
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+			$source->where('this.hidden', (bool) $value);
+		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
+
+		if ($this::SHOW_PRICE_HIDDEN) {
+			$grid->addButtonBulkEdit('priceForm', ['hidden'], 'pricesGrid');
+		}
+
+		// @TODO add from old grid
+//		$submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+//		$submit->onClick[] = function ($button) use ($grid): void {
+//			$grid->getPresenter()->redirect('copyToPricelist', [$grid->getSelectedIds(), $this->getParameter('pricelist'), 'standard']);
+//		};
+
+		return $grid;
+	}
+
+	/**
+	 * @deprecated Use createComponentPricesGrid
+	 */
+	public function createComponentPriceListItems(): AdminGrid
+	{
+		$pricelist = $this->getParameter('pricelist');
+
+		if (\is_string($pricelist)) {
+			$pricelist = $this->priceListRepository->one($pricelist, true);
+		}
+
+		$grid = $this->gridFactory->create(
+			$this->priceRepository->getPricesByPriceList($pricelist),
 			20,
 			'product.code',
 			'ASC',
@@ -254,6 +477,10 @@ class PricelistsPresenter extends BackendPresenter
 			} else {
 				$grid->addColumnInputPrice('Cena s DPH před slevou', 'priceVatBefore');
 			}
+		}
+
+		if ($this::SHOW_PRICE_HIDDEN) {
+			$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', orderExpression: 'hidden');
 		}
 
 		$grid->addColumnActionDelete();
@@ -334,10 +561,25 @@ class PricelistsPresenter extends BackendPresenter
 		return $grid;
 	}
 
+	public function createComponentPriceForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+
+		$form->addCheckbox('hidden', 'Skryto');
+
+		return $form;
+	}
+
 	public function createComponentQuantityPricesGrid(): AdminGrid
 	{
+		$pricelist = $this->getParameter('pricelist');
+
+		if (\is_string($pricelist)) {
+			$pricelist = $this->priceListRepository->one($pricelist, true);
+		}
+
 		$grid = $this->gridFactory->create(
-			$this->quantityPriceRepo->getPricesByPriceList($this->getParameter('pricelist')),
+			$this->quantityPriceRepo->getPricesByPriceList($pricelist),
 			20,
 			'price',
 			'ASC',
@@ -558,8 +800,15 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		$this->template->headerTree = [
 			['Ceníky'],
 		];
-		$this->template->displayButtons = [$this->createNewItemButton('priceListNew')];
-		$this->template->displayControls = [$this->getComponent('priceLists')];
+
+		if ($this->tab === 'priceLists') {
+			$this->template->displayButtons = [$this->createNewItemButton('priceListNew')];
+			$this->template->displayControls = [$this->getComponent('priceLists')];
+		} elseif ($this->tab === 'prices') {
+			$this->template->displayControls = [$this->getComponent('pricesGrid')];
+		}
+
+		$this->template->tabs = $this::TABS;
 	}
 
 	public function handlePriceListExport(string $pricelistId, string $type = 'standard'): void
