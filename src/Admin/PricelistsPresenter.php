@@ -202,6 +202,13 @@ class PricelistsPresenter extends BackendPresenter
 			$this->currencyRepo->getArrayForSelect(),
 			's',
 		);
+
+		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
+			$grid->addFilterDataSelect(function (Collection $source, $value): void {
+				$source->where('this.fk_supplier', $value);
+			}, '', 'supplier', null, $suppliers)->setPrompt('- Zdroj -');
+		}
+
 		$grid->addFilterButtons();
 
 		if (isset($this::CONFIGURATION['aggregate']) && $this::CONFIGURATION['aggregate']) {

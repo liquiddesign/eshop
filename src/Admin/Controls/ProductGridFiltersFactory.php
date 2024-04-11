@@ -284,32 +284,40 @@ class ProductGridFiltersFactory
 			}
 		}, '', 'show', null, ['green' => 'Viditelné', 'orange' => 'Viditelné: bez kategorie', 'red' => 'Neviditelné'])->setPrompt('- Viditelnost v eshopu -');
 
-		if (!$suppliers) {
-			return;
+		if ($suppliers) {
+			$locks = [];
+			$locks[Product::SUPPLIER_CONTENT_MODE_PRIORITY] = 'S nejvyšší prioritou';
+			$locks += $suppliers;
+			$locks[Product::SUPPLIER_CONTENT_MODE_CUSTOM_CONTENT] = 'Nikdy nepřebírat: Vlastní obsah';
+			$locks[Product::SUPPLIER_CONTENT_MODE_NONE] = 'Nikdy nepřebírat: Žádný obsah';
+
+			$grid->addFilterDataSelect(function (Collection $source, $value): void {
+				$mutationSuffix = $source->getConnection()->getMutationSuffix();
+
+				if ($value === Product::SUPPLIER_CONTENT_MODE_PRIORITY) {
+					$source->where('this.supplierContentLock', false);
+					$source->where('this.supplierContentMode = "priority" OR (this.fk_supplierContent IS NULL AND this.supplierContentMode = "none")');
+				} elseif ($value === Product::SUPPLIER_CONTENT_MODE_CUSTOM_CONTENT) {
+					$source->where('this.supplierContentLock', true);
+					$source->where("this.content$mutationSuffix IS NOT NULL AND LENGTH(this.content$mutationSuffix) > 0");
+				} elseif ($value === Product::SUPPLIER_CONTENT_MODE_NONE) {
+					$source->where('this.supplierContentLock', true);
+					$source->where("this.content$mutationSuffix IS NULL OR LENGTH(this.content$mutationSuffix) = 0");
+				} else {
+					$source->where('this.supplierContentLock', false);
+					$source->where('this.fk_supplierContent', $value);
+				}
+			}, '', 'supplierContent', null, $locks)->setPrompt('- Přebírání obsahu -');
 		}
 
-		$locks = [];
-		$locks[Product::SUPPLIER_CONTENT_MODE_PRIORITY] = 'S nejvyšší prioritou';
-		$locks += $suppliers;
-		$locks[Product::SUPPLIER_CONTENT_MODE_CUSTOM_CONTENT] = 'Nikdy nepřebírat: Vlastní obsah';
-		$locks[Product::SUPPLIER_CONTENT_MODE_NONE] = 'Nikdy nepřebírat: Žádný obsah';
-
-		$grid->addFilterDataSelect(function (Collection $source, $value): void {
-			$mutationSuffix = $source->getConnection()->getMutationSuffix();
-
-			if ($value === Product::SUPPLIER_CONTENT_MODE_PRIORITY) {
-				$source->where('this.supplierContentLock', false);
-				$source->where('this.supplierContentMode = "priority" OR (this.fk_supplierContent IS NULL AND this.supplierContentMode = "none")');
-			} elseif ($value === Product::SUPPLIER_CONTENT_MODE_CUSTOM_CONTENT) {
-				$source->where('this.supplierContentLock', true);
-				$source->where("this.content$mutationSuffix IS NOT NULL AND LENGTH(this.content$mutationSuffix) > 0");
-			} elseif ($value === Product::SUPPLIER_CONTENT_MODE_NONE) {
-				$source->where('this.supplierContentLock', true);
-				$source->where("this.content$mutationSuffix IS NULL OR LENGTH(this.content$mutationSuffix) = 0");
-			} else {
-				$source->where('this.supplierContentLock', false);
-				$source->where('this.fk_supplierContent', $value);
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+			if ($value === 'master') {
+				$source->where('this.fk_masterProduct IS NULL');
+			} elseif ($value === 'slave') {
+				$source->where('this.fk_masterProduct IS NOT NULL');
 			}
-		}, '', 'supplierContent', null, $locks)->setPrompt('- Přebírání obsahu -');
+		}, '', 'merged', null, ['master' => 'Pouze master', 'slave' => 'Pouze slave'])->setPrompt('- Sloučení -');
+
+		return;
 	}
 }
