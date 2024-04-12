@@ -4,6 +4,32 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.192](https://github.com/liquiddesign/eshop/compare/v2.1.191...v2.1.192) (2024-04-12)
+
+### Features
+
+
+##### Admin
+
+* Change date format ([703b8e](https://github.com/liquiddesign/eshop/commit/703b8ef79ec01104d65d82ec0c3fdbaf7ffc1c46))
+* Add filters ([2593fc](https://github.com/liquiddesign/eshop/commit/2593fc2566a367db2ae66619af0f7f9d20793f1f))
+
+##### Admin Pricelists
+
+* Dont filter shops strictly ([026abd](https://github.com/liquiddesign/eshop/commit/026abd56d44e823742f385c7d57203e9bd5ede49))
+
+##### Admin Product Form
+
+* Add customContainer ([a1a002](https://github.com/liquiddesign/eshop/commit/a1a0023ab4ec1f6db8744b64bd60d001fe11627c))
+
+##### Prices
+
+* Add hidden price to cache ([edc469](https://github.com/liquiddesign/eshop/commit/edc4698241756bc80be16954e411d1a1de6cdd62))
+* New Prices grid, hidden attribute and filters ([5f1980](https://github.com/liquiddesign/eshop/commit/5f19801c9778e93f447d3475a80d84432a43581f))
+
+
+---
+
 ## [2.1.191](https://github.com/liquiddesign/eshop/compare/v2.1.190...v2.1.191) (2024-04-10)
 
 ### Bug Fixes
