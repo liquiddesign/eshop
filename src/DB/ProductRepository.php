@@ -1694,7 +1694,13 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 
 		foreach (\array_keys($products) as $productPK) {
-			$result[$productPK] = $this->doGetGroupedMergedProducts($productsMap, (string) $productPK);
+			$subResult = $this->doGetGroupedMergedProducts($productsMap, (string) $productPK);
+
+			if ($subResult) {
+				$result[$productPK] = $subResult;
+			}
+
+			continue;
 		}
 
 		return $result;
