@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.193](https://github.com/liquiddesign/eshop/compare/v2.1.192...v2.1.193) (2024-04-15)
+
+### Features
+
+
+##### Photo
+
+* New presenter, import/export ([54e265](https://github.com/liquiddesign/eshop/commit/54e265697f1ee0476c8e42aeca860a48dd9e2d24))
+
+##### Product Repository
+
+* GetGroupedMergedProducts don't return empty products ([fafe98](https://github.com/liquiddesign/eshop/commit/fafe985ebf199a2f002561f5da9e21c32fab4fad))
+
+
+---
+
 ## [2.1.192](https://github.com/liquiddesign/eshop/compare/v2.1.191...v2.1.192) (2024-04-12)
 
 ### Features
