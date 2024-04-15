@@ -48,6 +48,7 @@ use Nette\Application\Responses\FileResponse;
 use Nette\DI\Attributes\Inject;
 use Nette\Forms\Controls\TextInput;
 use Nette\IOException;
+use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Nette\Utils\Random;
@@ -136,88 +137,91 @@ class ProductPresenter extends BackendPresenter
 	/** @var array<callable(array<string>): void> */
 	public array $onImport = [];
 
-	#[\Nette\DI\Attributes\Inject]
+	/** @var array<callable(string $mainProduct, array<string> $slaveProducts, array<mixed> $updateValues): void> */
+	public array $onMergeFormSuccess = [];
+
+	#[Inject]
 	public ProductGridFactory $productGridFactory;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public IProductFormFactory $productFormFatory;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public IProductAttributesFormFactory $productAttributesFormFactory;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PhotoRepository $photoRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public FileRepository $fileRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PricelistRepository $pricelistRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PriceRepository $priceRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ProductContentRepository $productContentRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public VatRateRepository $vatRateRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PageRepository $pageRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierProductRepository $supplierProductRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ProductRepository $productRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public NewsletterTypeRepository $newsletterTypeRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ShopperUser $shopperUser;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SettingRepository $settingRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AttributeRepository $attributeRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierRepository $supplierRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CustomerRepository $customerRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ProducerRepository $producerRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AttributeValueRepository $attributeValueRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AttributeAssignRepository $attributeAssignRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public InternalCommentProductRepository $commentRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ProductAttributesGridFactory $productAttributesGridFactory;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CategoryTypeRepository $categoryTypeRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public StoreRepository $storeRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AmountRepository $amountRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public RelatedTypeRepository $relatedTypeRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Application $application;
 
 	#[Inject]
@@ -975,6 +979,7 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 		};
 
 		$form->onSuccess[] = function (AdminForm $form) use ($ids): void {
+			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
 
 			$updateValues = [
@@ -991,6 +996,8 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 				->where('this.uuid', $ids)
 				->whereNot('this.uuid', $values['mainProduct'])
 				->update($updateValues);
+
+			Arrays::invoke($this->onMergeFormSuccess, $values['mainProduct'], $ids, $updateValues);
 
 			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('default');
