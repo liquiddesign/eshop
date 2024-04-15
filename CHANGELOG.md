@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.195](https://github.com/liquiddesign/eshop/compare/v2.1.194...v2.1.195) (2024-04-15)
+
+### Features
+
+
+##### Admin Product
+
+* Add merge callback ([9ba8c6](https://github.com/liquiddesign/eshop/commit/9ba8c6a6edbf9d5782df5c8c63e52963e5a80c89))
+
+
+---
+
 ## [2.1.194](https://github.com/liquiddesign/eshop/compare/v2.1.193...v2.1.194) (2024-04-15)
 
 ### Features
