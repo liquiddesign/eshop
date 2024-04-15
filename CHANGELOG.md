@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.194](https://github.com/liquiddesign/eshop/compare/v2.1.193...v2.1.194) (2024-04-15)
+
+### Features
+
+
+##### Photo
+
+* Add getLabel ([4a917c](https://github.com/liquiddesign/eshop/commit/4a917c727056f4ae807e91db0b1193eef66246d7))
+
+
+---
+
 ## [2.1.193](https://github.com/liquiddesign/eshop/compare/v2.1.192...v2.1.193) (2024-04-15)
 
 ### Features
