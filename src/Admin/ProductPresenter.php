@@ -47,7 +47,6 @@ use Nette\Application\Application;
 use Nette\Application\Responses\FileResponse;
 use Nette\DI\Attributes\Inject;
 use Nette\Forms\Controls\TextInput;
-use Nette\InvalidStateException;
 use Nette\IOException;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
@@ -118,7 +117,6 @@ class ProductPresenter extends BackendPresenter
 		],
 		'importAttributes' => [],
 		'importExampleFile' => null,
-		'ftpImportImagesDir' => 'ftp_import_images',
 		'buyCount' => false,
 		'attributeTab' => false,
 		'loyaltyProgram' => false,
@@ -1015,172 +1013,6 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('importCsvForm')];
-		
-		try {
-			$importImagesFromStorage = $this->container->getParameter('ftp_import_images');
-		} catch (InvalidStateException) {
-			return;
-		}
-		
-		if ($importImagesFromStorage && !isset($importImagesFromStorage['host']) || !$importImagesFromStorage['host']) {
-			return;
-		}
-		
-		$this->template->displayControls[] = $this->getComponent('importImagesForm');
-	}
-
-	public function createComponentImportImagesForm(): AdminForm
-	{
-		$importImagesFromStorage = $this->container->getParameter('ftp_import_images');
-		
-		$form = $this->formFactory->create(false, false, false, false, false);
-		
-		$form->addGroup('Obrázky z FTP úložiště');
-		$form->addText('protocol', 'Protokol')->setDisabled()->setDefaultValue('FTP');
-		$form->addText('server', 'Server (Host)')->setDisabled()->setDefaultValue($importImagesFromStorage['host'] ?? '');
-		$form->addText('username', 'Uživatelské jméno')->setDisabled()->setDefaultValue($importImagesFromStorage['user'] ?? '');
-		$form->addText('password', 'Heslo')->setDisabled()->setDefaultValue($importImagesFromStorage['password'] ?? '');
-		$form->addCheckbox('deleteCurrentImages', 'Vymazat aktuální obrázky');
-		$form->addCheckbox('asMain', 'Nastavit jako hlavní obrázek')->setHtmlAttribute('data-info', 'Pro práci s FTP doporučejeme klient WinSCP dostupný zde: 
-<a target="_blank" href="https://winscp.net/eng/download.php">https://winscp.net/eng/download.php</a><br>
-Výše zobrazené údaje stačí v klientovi vyplnit a nahrát obrázky.<br><br>
-Název souborů musí být ve formátu "kod_název_1.přípona". Např.: "ABC_obrazek_1.jpg"<br>
-Můžete nahrát více obrázků pro jeden produkt. Např.: "ABC_obrazek_1.jpg", "ABC_obrazek_2.jpg", ...');
-
-		$form->addSubmit('images', 'Importovat');
-
-		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
-
-			$connection = $this->productRepository->getConnection();
-			$mutations = $this->productRepository->getConnection()->getAvailableMutations();
-
-			$imagesPath = \dirname(__DIR__, 5) . '/userfiles/' . $this::CONFIGURATION['ftpImportImagesDir'];
-			$originalPath = \dirname(__DIR__, 5) . '/userfiles/' . Product::GALLERY_DIR . '/origin';
-			$thumbPath = \dirname(__DIR__, 5) . '/userfiles/' . Product::GALLERY_DIR . '/thumb';
-			$detailPath = \dirname(__DIR__, 5) . '/userfiles/' . Product::GALLERY_DIR . '/detail';
-
-			FileSystem::createDir($imagesPath);
-			FileSystem::createDir($originalPath);
-			FileSystem::createDir($thumbPath);
-			FileSystem::createDir($detailPath);
-
-			$images = \scandir($imagesPath);
-
-			$products = $this->productRepository->many()->setIndex('code')->toArrayOf('uuid');
-
-			$photosToImport = [];
-
-			foreach ($images as $image) {
-				if ($image === '.' || $image === '..') {
-					continue;
-				}
-
-				$code = ($underscorePos = Strings::indexOf($image, '_')) ? Strings::substring($image, 0, $underscorePos) : Strings::substring($image, 0, Strings::indexOf($image, '.'));
-
-				if (!$code || !isset($products[$code])) {
-					continue;
-				}
-
-				if ($values['deleteCurrentImages']) {
-					$product = $this->productRepository->one(['code' => $code], true);
-					$productImages = $product->photos->toArray();
-
-					foreach ($productImages as $productImage) {
-						FileSystem::delete($originalPath . '/' . $productImage->fileName);
-						FileSystem::delete($thumbPath . '/' . $productImage->fileName);
-						FileSystem::delete($detailPath . '/' . $productImage->fileName);
-					}
-
-					$product->photos->delete();
-					$product->update(['imageFileName' => null]);
-				}
-
-				$photosToImport[$code][] = $image;
-			}
-
-			if (\count($photosToImport) === 0) {
-				$this->flashMessage('Nenalezen žádný odpovídající obrázek!', 'warning');
-				$this->redirect('this');
-			}
-
-			$connection->getLink()->beginTransaction();
-
-			$newPhotos = [];
-			$newProductsMainImages = [];
-
-			try {
-				foreach ($photosToImport as $productCode => $photos) {
-					$first = true;
-
-					foreach ($photos as $photoFileName) {
-						if (!isset($products[$productCode])) {
-							continue;
-						}
-
-						$imageD = Image::fromFile($imagesPath . '/' . $photoFileName);
-						$imageT = Image::fromFile($imagesPath . '/' . $photoFileName);
-						$imageD->resize(600, null);
-						$imageT->resize(300, null);
-
-						FileSystem::copy($imagesPath . '/' . $photoFileName, $originalPath . '/' . $photoFileName);
-
-						try {
-							$imageD->save($detailPath . '/' . $photoFileName);
-							$imageT->save($thumbPath . '/' . $photoFileName);
-						} catch (\Exception $e) {
-						}
-
-						$existingPhoto = $this->photoRepository->many()->where('this.fk_product', $products[$productCode])->where('this.fileName', $photoFileName)->first();
-
-						if (!$existingPhoto) {
-							$newPhotoArray = [
-								'product' => $products[$productCode],
-								'fileName' => $photoFileName,
-								'priority' => 999,
-							];
-
-							$fileParts = \pathinfo($photoFileName);
-
-							$name = $fileParts['filename'];
-
-							foreach (\array_keys($mutations) as $mutation) {
-								$newPhotoArray['label'][$mutation] = $name;
-							}
-
-							$newPhotos[] = $newPhotoArray;
-						}
-
-						if (!$values['asMain'] || !$first) {
-							continue;
-						}
-
-						$first = false;
-
-						$newProductsMainImages[] = ['uuid' => $products[$productCode], 'imageFileName' => $photoFileName];
-					}
-				}
-
-				$this->photoRepository->syncMany($newPhotos, []);
-
-				if (\count($newProductsMainImages) > 0) {
-					$this->productRepository->syncMany($newProductsMainImages);
-				}
-
-				$this->flashMessage('Provedeno', 'success');
-
-				$connection->getLink()->commit();
-			} catch (\Throwable $e) {
-				Debugger::dump($e);
-				$this->flashMessage('Při zpracovávání došlo k chybě!', 'error');
-
-				$connection->getLink()->rollBack();
-			}
-
-			$this->redirect('this');
-		};
-
-		return $form;
 	}
 
 	public function createComponentImportCsvForm(): AdminForm
