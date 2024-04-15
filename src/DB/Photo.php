@@ -70,4 +70,9 @@ class Photo extends \StORM\Entity
 		
 		return $this->fileName ? $basePath . '/userfiles/' . Product::GALLERY_DIR . '/' . $size . '/' . $this->fileName : $basePath . '/public/img/no-image.png';
 	}
+
+	public function getLabel(): string|null
+	{
+		return $this->label ?: $this->product->name;
+	}
 }
