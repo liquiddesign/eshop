@@ -39,7 +39,7 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 		\Tracy\Debugger::$maxLength = 100000;
 
 		$this->application->onShutdown[] = function (): void {
-			if ($this->getRequest()->getParameter('debug') !== null) {
+			if (($debug = $this->getRequest()->getParameter('debug')) !== null) {
 				$logItems = $this->connection->getLog();
 
 				\uasort($logItems, function (LogItem $a, LogItem $b): int {
@@ -49,9 +49,13 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 				$totalTime = 0;
 				$totalAmount = 0;
 
-				$logItems = \array_filter($logItems, function (LogItem $item) use (&$totalTime, &$totalAmount): bool {
+				$logItems = \array_filter($logItems, function (LogItem $item) use (&$totalTime, &$totalAmount, $debug): bool {
 					$totalTime += $item->getTotalTime();
 					$totalAmount += $item->getAmount();
+
+					if ($debug === '0') {
+						return true;
+					}
 
 					return $item->getTotalTime() > 0.01;
 				});
