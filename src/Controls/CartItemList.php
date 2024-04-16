@@ -76,10 +76,14 @@ class CartItemList extends Datalist
 		$cartItemRepository = $this->cartItemsRepository;
 
 		return new Multiplier(function ($itemId) use ($checkoutManager, $cartItemRepository) {
-			/** @var \Eshop\DB\CartItem $cartItem */
+			/** @var \Eshop\DB\CartItem|null $cartItem */
 			$cartItem = $cartItemRepository->one($itemId);
-			$product = $cartItem->getProduct();
 
+			if (!$cartItem) {
+				$this->redirect('this');
+			}
+
+			$product = $cartItem->getProduct();
 
 			$form = new Form();
 
