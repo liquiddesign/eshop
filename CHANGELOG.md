@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.196](https://github.com/liquiddesign/eshop/compare/v2.1.195...v2.1.196) (2024-04-16)
+
+### Bug Fixes
+
+
+##### Cart Item List
+
+* Redirect if $cartItem is null ([ad264e](https://github.com/liquiddesign/eshop/commit/ad264e7543756e45be03abe47440f8c6f3da8878))
+
+
+---
+
 ## [2.1.195](https://github.com/liquiddesign/eshop/compare/v2.1.194...v2.1.195) (2024-04-15)
 
 ### Features
