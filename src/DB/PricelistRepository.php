@@ -11,6 +11,7 @@ use League\Csv\Reader;
 use Nette\Utils\Arrays;
 use StORM\Collection;
 use StORM\DIConnection;
+use StORM\ICollection;
 use StORM\SchemaManager;
 
 /**
@@ -557,5 +558,12 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		}
 
 		$this->priceRepository->syncMany($newPricesInTargetPricelist);
+	}
+
+	public function filterInternalRibbon($value, ICollection $collection): void
+	{
+		$collection->join(['internalRibbons' => 'eshop_pricelist_nxn_eshop_internalribbon'], 'internalRibbons.fk_pricelist=this.uuid');
+
+		$value === false ? $collection->where('internalRibbons.fk_internalRibbon IS NULL') : $collection->where('internalRibbons.fk_internalRibbon', $value);
 	}
 }

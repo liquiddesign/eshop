@@ -139,7 +139,15 @@ class PricelistsPresenter extends BackendPresenter
 			$grid,
 			'decoratorNowrap',
 		];
-		$grid->addColumnText('Název', 'name', '%s', 'name');
+		$grid->addColumn('Název', function (Pricelist $pricelist): array {
+			$ribbons = null;
+
+			foreach ($pricelist->internalRibbons as $ribbon) {
+				$ribbons .= "<div class=\"badge\" style=\"font-weight: normal; font-style: italic; background-color: $ribbon->backgroundColor; color: $ribbon->color\">$ribbon->name</div> ";
+			}
+
+			return [$pricelist->name, $ribbons];
+		}, '%s&nbsp;%s', 'name');
 		$grid->addColumnText('Popis', 'description', '%s');
 		$grid->addColumn('Akce', function (Pricelist $object) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Discount:detail') && $object->discount ? $this->link(
@@ -209,6 +217,13 @@ class PricelistsPresenter extends BackendPresenter
 			}, '', 'supplier', null, $suppliers)->setPrompt('- Zdroj -');
 		}
 
+		if ($ribbons = $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_PRICE_LIST)) {
+			$ribbons += ['0' => 'X - bez štítků'];
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+				$source->filter(['internalRibbon' => \Eshop\Common\Helpers::replaceArrayValue($value, '0', null)]);
+			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
+		}
+
 		$this->gridFactory->addShopsFilterSelect($grid);
 		$grid->addFilterButtons();
 
@@ -238,7 +253,15 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Vytvořeno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit']);
-		$grid->addColumnText('Ceník', ['pricelist.code', 'pricelist.name'], '%s<br>%s', 'pricelist.name');
+		$grid->addColumn('Ceník', function (Price $price): array {
+			$ribbons = null;
+
+			foreach ($price->pricelist->internalRibbons as $ribbon) {
+				$ribbons .= "<div class=\"badge\" style=\"font-weight: normal; font-style: italic; background-color: $ribbon->backgroundColor; color: $ribbon->color\">$ribbon->name</div> ";
+			}
+
+			return [$price->pricelist->code, $price->pricelist->name, $ribbons];
+		}, '%s<br>%s<br>%s', 'pricelist.name');
 		$grid->addColumnText('Kód', 'product.code', '%s', 'product.code', ['class' => 'fit']);
 
 		$grid->addColumn('Produkt', function (Price $price, Datagrid $datagrid) {
@@ -373,7 +396,14 @@ class PricelistsPresenter extends BackendPresenter
 			$ribbons += ['0' => 'X - bez štítků'];
 			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
 				$source->filter(['internalRibbon' => Helpers::replaceArrayValue($value, '0', null)]);
-			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
+			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky produktů -']);
+		}
+
+		if ($ribbons = $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_PRICE_LIST)) {
+			$ribbons += ['0' => 'X - bez štítků'];
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+				$source->filter(['internalRibbonPriceLists' => \Eshop\Common\Helpers::replaceArrayValue($value, '0', null)]);
+			}, '', 'internalRibbonPriceLists', null, $ribbons, ['placeholder' => '- Int. štítky ceníků -']);
 		}
 
 		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
@@ -676,6 +706,8 @@ Pokud je povoleno, aplikuje zmíněnou procentuální slevu. Jinak aplikuje pouz
 				->addCondition($form::FILLED)->addRule($form::MAX_LENGTH, 'Maximálně 100 znaků!', 100);
 		}
 
+		$form->addMultiSelect2('internalRibbons', 'Interní štítky', $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_PRICE_LIST));
+
 		$this->formFactory->addShopsContainerToAdminForm($form, false);
 
 		$form->addSubmits(!$this->getParameter('pricelist'));
@@ -749,7 +781,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		/** @var \Admin\Controls\AdminForm $priceListForm */
 		$priceListForm = $this->getComponent('priceListDetail');
 
-		$priceListForm->setDefaults($pricelist->toArray());
+		$priceListForm->setDefaults($pricelist->toArray(['internalRibbons']));
 	}
 
 	public function renderPriceListDetail(): void

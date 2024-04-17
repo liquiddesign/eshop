@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Base\Entity\ShopSystemicEntity;
+use StORM\RelationCollection;
 
 /**
  * Ceník
@@ -107,4 +108,10 @@ class Pricelist extends ShopSystemicEntity
 	 * column - don't created by auto migration, only by manual
 	 */
 	public int $id;
+
+	/**
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\InternalRibbon>
+	 */
+	public RelationCollection $internalRibbons;
 }

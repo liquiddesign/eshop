@@ -39,4 +39,11 @@ class PriceRepository extends \StORM\Repository
 
 		$value === false ? $collection->where('internalRibbons.fk_internalribbon IS NULL') : $collection->where('internalRibbons.fk_internalribbon', $value);
 	}
+
+	public function filterInternalRibbonPriceLists($value, ICollection $collection): void
+	{
+		$collection->join(['internalRibbons' => 'eshop_pricelist_nxn_eshop_internalribbon'], 'internalRibbons.fk_pricelist=this.fk_pricelist');
+
+		$value === false ? $collection->where('internalRibbons.fk_internalRibbon IS NULL') : $collection->where('internalRibbons.fk_internalRibbon', $value);
+	}
 }
