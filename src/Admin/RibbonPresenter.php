@@ -147,14 +147,14 @@ class RibbonPresenter extends BackendPresenter
 			->setRequired()
 			->setDisabled((bool) $ribbon);
 
-		$this->formFactory->addShopsContainerToAdminForm($form);
+		$this->formFactory->addShopsContainerToAdminForm($form, autoSelect: false);
 
 		$form->addSubmits(!$ribbon);
 
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
-			$ribbon = $this->internalRibbonRepository->syncOne($values);
+			$ribbon = $this->internalRibbonRepository->syncOne($values, ignore: false);
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('internalDetail', 'internal', [$ribbon]);
