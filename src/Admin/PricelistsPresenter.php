@@ -441,6 +441,14 @@ class PricelistsPresenter extends BackendPresenter
 			$grid->addButtonBulkEdit('priceForm', ['hidden'], 'pricesGrid');
 		}
 
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+			if ($value === 'master') {
+				$source->where('product.fk_masterProduct IS NULL');
+			} elseif ($value === 'slave') {
+				$source->where('product.fk_masterProduct IS NOT NULL');
+			}
+		}, '', 'merged', null, ['master' => 'Pouze master', 'slave' => 'Pouze slave'])->setPrompt('- Sloučení -');
+
 		// @TODO add from old grid
 //		$submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 //		$submit->onClick[] = function ($button) use ($grid): void {
