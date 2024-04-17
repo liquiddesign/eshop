@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.199](https://github.com/liquiddesign/eshop/compare/v2.1.198...v2.1.199) (2024-04-17)
+
+### Features
+
+
+##### Price List
+
+* Add masterProduct filter ([f22bbd](https://github.com/liquiddesign/eshop/commit/f22bbd986fcd144e9e6e9c93ff69607344fafe41))
+
+
+---
+
 ## [2.1.198](https://github.com/liquiddesign/eshop/compare/v2.1.197...v2.1.198) (2024-04-17)
 
 ### Features
