@@ -4,6 +4,33 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.197](https://github.com/liquiddesign/eshop/compare/v2.1.196...v2.1.197) (2024-04-17)
+
+### Features
+
+
+##### Dev
+
+* Allow debug attribute to be zero to dump all queries ([4abe7e](https://github.com/liquiddesign/eshop/commit/4abe7ebc1aa8824c858ce8c0708ae6f7f45cf222))
+
+##### Price List
+
+* Add internal ribbons ([6f067c](https://github.com/liquiddesign/eshop/commit/6f067c5dc425031ff8feae873276214d46a33213))
+
+##### Product
+
+* Add transaction to product merging ([4acb43](https://github.com/liquiddesign/eshop/commit/4acb43e8a8329ffbb954c2508a315b7f7fc4381a))
+
+### Bug Fixes
+
+
+##### Ribbon
+
+* Admin save ([604fa0](https://github.com/liquiddesign/eshop/commit/604fa0273a4b71e171955a536be79bbb11c0b00b))
+
+
+---
+
 ## [2.1.196](https://github.com/liquiddesign/eshop/compare/v2.1.195...v2.1.196) (2024-04-16)
 
 ### Bug Fixes
