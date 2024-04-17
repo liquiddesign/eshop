@@ -989,6 +989,19 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	}
 
 	/**
+	 * @param bool|null $value
+	 * @param \StORM\ICollection $collection
+	 */
+	public function filterMasterProduct($value, ICollection $collection): void
+	{
+		if ($value === true) {
+			$collection->where('this.fk_masterProduct IS NULL');
+		} elseif ($value === false) {
+			$collection->where('this.fk_masterProduct IS NOT NULL');
+		}
+	}
+
+	/**
 	 * To use this function you need to have JOINED productContent table!
 	 * @param $value
 	 * @param \StORM\ICollection $collection

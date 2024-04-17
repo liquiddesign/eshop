@@ -277,6 +277,7 @@ class ProductsCacheGetterService implements AutoWireService
 			'displayDelivery' => 'this.displayDelivery',
 			'price' => 'visibilityPrice.price',
 			'priceVat' => 'visibilityPrice.priceVat',
+			'masterProduct' => 'this.masterProduct',
 		]);
 
 		$allAttributes = [];
@@ -772,6 +773,18 @@ class ProductsCacheGetterService implements AutoWireService
 			$showVat = $this->shopperUser->getMainPriceType() === 'withVat';
 
 			return $showVat ? $product->priceVat > $value : $product->price > $value;
+		};
+
+		$this->allowedDynamicFilterExpressions['masterProduct'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
+			if ($value === true) {
+				return $product->masterProduct === null;
+			}
+
+			if ($value === false) {
+				return $product->masterProduct !== null;
+			}
+
+			return true;
 		};
 	}
 

@@ -381,6 +381,7 @@ CREATE TABLE `$categoriesTableName` (
 				'fkDisplayAmount' => 'eshop_displayamount.id',
 				'fkDisplayDelivery' => 'eshop_displaydelivery.id',
 				'fkProducer' => 'eshop_producer.id',
+				'fkMasterProduct' => 'this.fk_masterProduct',
 				'name' => "this.name$mutationSuffix",
 				'code' => 'this.code',
 				'subCode' => 'this.subCode',
@@ -420,6 +421,7 @@ CREATE TABLE `$categoriesTableName` (
 				$product->subCode ? "$product->subCode" : '\N',
 				$product->externalCode ? "$product->externalCode" : '\N',
 				$product->ean ? "\"$product->ean\"" : '\N',
+				$product->fkMasterProduct ?: '\N',
 			];
 
 			$primaryCategories = isset($productPrimaryCategories[$product->id]) ? \explode(',', $productPrimaryCategories[$product->id]) : [];
@@ -548,6 +550,7 @@ CREATE TABLE `$categoriesTableName` (
 		$link->exec("CREATE FULLTEXT INDEX idx_name ON `$productsCacheTableName` (name);");
 		$link->exec("CREATE UNIQUE INDEX idx_unique_code ON `$productsCacheTableName` (code);");
 		$link->exec("CREATE UNIQUE INDEX idx_unique_ean ON `$productsCacheTableName` (ean);");
+		$link->exec("CREATE INDEX idx_masterProduct ON `$productsCacheTableName` (masterProduct);");
 
 		foreach ($allCategoryTypes as $categoryType) {
 			$link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_primaryCategory_{$categoryType->id} (primaryCategory_{$categoryType->id});");
@@ -1049,7 +1052,8 @@ CREATE TABLE `$productsCacheTableName` (
   code VARCHAR(255),
   subCode VARCHAR(255),
   externalCode VARCHAR(255),
-  ean VARCHAR(255)
+  ean VARCHAR(255),
+  masterProduct BIGINT UNSIGNED
 );");
 
 		foreach ($allCategoryTypes as $categoryType) {
