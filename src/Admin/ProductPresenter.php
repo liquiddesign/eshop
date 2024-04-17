@@ -982,24 +982,39 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
 
-			$updateValues = [
-				'fk_masterProduct' => $values['mainProduct'],
-			];
+			$link = $this->productRepository->getConnection()->getLink();
+			$link->beginTransaction();
 
-			foreach (['hidden', 'unavailable', 'hiddenInMenu'] as $key) {
-				if ($values[$key] !== null) {
-					$updateValues[$key] = $values[$key];
+			try {
+				$updateValues = [
+					'fk_masterProduct' => $values['mainProduct'],
+				];
+
+				foreach (['hidden', 'unavailable', 'hiddenInMenu'] as $key) {
+					if ($values[$key] !== null) {
+						$updateValues[$key] = $values[$key];
+					}
 				}
+
+				$this->productRepository->many()
+					->where('this.uuid', $ids)
+					->whereNot('this.uuid', $values['mainProduct'])
+					->update($updateValues);
+
+				Arrays::invoke($this->onMergeFormSuccess, $values['mainProduct'], $ids, $updateValues);
+
+				$link->commit();
+
+				$this->flashMessage('Provedeno', 'success');
+			} catch (\Exception $e) {
+				$link->rollBack();
+
+				Debugger::barDump($e);
+				Debugger::log($e, ILogger::EXCEPTION);
+
+				$this->flashMessage($e->getMessage(), 'error');
 			}
 
-			$this->productRepository->many()
-				->where('this.uuid', $ids)
-				->whereNot('this.uuid', $values['mainProduct'])
-				->update($updateValues);
-
-			Arrays::invoke($this->onMergeFormSuccess, $values['mainProduct'], $ids, $updateValues);
-
-			$this->flashMessage('Provedeno', 'success');
 			$this->redirect('default');
 		};
 
