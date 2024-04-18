@@ -49,9 +49,9 @@ class SupplierStatsPresenter extends BackendPresenter
 			return $this->formatNumber($this->supplierProductRepository->many()->where('this.fk_supplier', $supplier)->enum());
 		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		
-		$grid->addColumn('Mapováno', function (Supplier $supplier) {
-			return $this->formatNumber($this->supplierProductRepository->many()->where('this.fk_supplier', $supplier)->where('category.fk_category IS NOT NULL')->enum());
-		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+//		$grid->addColumn('Mapováno', function (Supplier $supplier) {
+//			return $this->formatNumber($this->supplierProductRepository->many()->where('this.fk_supplier', $supplier)->where('category.fk_category IS NOT NULL')->enum());
+//		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		
 		$grid->addColumn('V katalogu', function (Supplier $supplier) {
 			return $this->formatNumber($this->supplierProductRepository->many()->where('this.fk_supplier', $supplier)->where('fk_product IS NOT NULL')->enum());
@@ -61,14 +61,14 @@ class SupplierStatsPresenter extends BackendPresenter
 			return $this->formatNumber($this->productRepository->many()->where('fk_supplierSource', $supplier)->enum());
 		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		
-		$grid->addColumn('Viditelných', function (Supplier $supplier) use ($pricelists) {
-			return $this->formatNumber($this->productRepository->many()
-				->where('this.fk_supplierSource', $supplier)
-				->where('hidden', false)
-				->join(['prices' => 'eshop_price'], 'prices.fk_product=this.uuid')
-				->where('prices.fk_pricelist', $pricelists)
-				->enum());
-		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
+//		$grid->addColumn('Viditelných', function (Supplier $supplier) use ($pricelists) {
+//			return $this->formatNumber($this->productRepository->many()
+//				->where('this.fk_supplierSource', $supplier)
+//				->where('hidden', false)
+//				->join(['prices' => 'eshop_price'], 'prices.fk_product=this.uuid')
+//				->where('prices.fk_pricelist', $pricelists)
+//				->enum());
+//		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
 		return $grid;
 	}
