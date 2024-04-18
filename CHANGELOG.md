@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.200](https://github.com/liquiddesign/eshop/compare/v2.1.199...v2.1.200) (2024-04-18)
+
+### Bug Fixes
+
+
+##### Import
+
+* Generate page uuid based on shop ([6e7129](https://github.com/liquiddesign/eshop/commit/6e71294031c7ff88407fd45a95756a0630085d99))
+
+
+---
+
 ## [2.1.199](https://github.com/liquiddesign/eshop/compare/v2.1.198...v2.1.199) (2024-04-17)
 
 ### Features
