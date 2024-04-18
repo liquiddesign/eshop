@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.201](https://github.com/liquiddesign/eshop/compare/v2.1.200...v2.1.201) (2024-04-18)
+
+### Chores
+
+* Remove debug ([8efcff](https://github.com/liquiddesign/eshop/commit/8efcff2e2e375863503c85d6a4737c7dd29ab421))
+
+
+---
+
 ## [2.1.200](https://github.com/liquiddesign/eshop/compare/v2.1.199...v2.1.200) (2024-04-18)
 
 ### Bug Fixes
