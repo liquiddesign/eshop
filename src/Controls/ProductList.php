@@ -250,8 +250,6 @@ class ProductList extends Datalist
 
 		$this->onLoad($source);
 
-		Debugger::barDump(\implode('\',\'', $source->toArrayOf('uuid', toArrayValues: true)));
-
 		$this->itemsOnPage = $this->nestingCallback && !$this->filters ? $this->getNestedSource($source, null) : $source->toArray();
 
 		return $this->itemsOnPage;
