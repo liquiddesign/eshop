@@ -325,7 +325,7 @@ class SupplierProductRepository extends \StORM\Repository
 			if ($this->shopsConfig->getAvailableShops()) {
 				foreach ($this->shopsConfig->getAvailableShops() as $shop) {
 					$pagesRepository->syncOne([
-						'uuid' => $uuid,
+						'uuid' => DIConnection::generateUuid($shop->getPK(), $uuid),
 						'url' => ['cs' => Strings::webalize($draft->name) . '-' . Strings::webalize($code)],
 						'title' => ['cs' => $draft->name],
 						'params' => "product=$uuid&",
