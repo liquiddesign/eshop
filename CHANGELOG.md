@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.202](https://github.com/liquiddesign/eshop/compare/v2.1.201...v2.1.202) (2024-04-22)
+
+### Bug Fixes
+
+* Supplier stats ([86fe06](https://github.com/liquiddesign/eshop/commit/86fe0672b51ee338482077b54b84805220c96c92), [888e29](https://github.com/liquiddesign/eshop/commit/888e291250b7de695a4e23b15b0d1e90baeecb88))
+
+##### Product Importer
+
+* URL column null value in str_starts_with() ([a20738](https://github.com/liquiddesign/eshop/commit/a207385009822420b50a20a6029acd18ebd8214d))
+
+
+---
+
 ## [2.1.201](https://github.com/liquiddesign/eshop/compare/v2.1.200...v2.1.201) (2024-04-18)
 
 ### Chores
