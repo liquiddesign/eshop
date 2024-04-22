@@ -9,6 +9,7 @@ use Eshop\BackendPresenter;
 use Eshop\Common\Helpers;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
+use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\InternalRibbon;
 use Eshop\DB\InternalRibbonRepository;
 use Eshop\DB\ProducerRepository;
@@ -82,6 +83,9 @@ class VisibilityListPresenter extends BackendPresenter
 
 	#[Inject]
 	public SupplierProductRepository $supplierProductRepository;
+
+	#[Inject]
+	public DisplayAmountRepository $displayAmountRepository;
 
 	#[Persistent]
 	public string $tab = 'lists';
@@ -244,6 +248,21 @@ class VisibilityListPresenter extends BackendPresenter
 
 				$source->where('EXISTS (' . $subSelect->getSql() . ') OR ' . $expression->getSql(), $subSelect->getVars() + $expression->getVars());
 			}, '', 'suppliers', null, $suppliers, ['placeholder' => '- Zdroje -']);
+		}
+
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+			if ($value === 'master') {
+				$source->where('product.fk_masterProduct IS NULL');
+			} elseif ($value === 'slave') {
+				$source->where('product.fk_masterProduct IS NOT NULL');
+			}
+		}, '', 'merged', null, ['master' => 'Pouze master', 'slave' => 'Pouze slave'])->setPrompt('- Sloučení -');
+
+		if ($displayAmounts = $this->displayAmountRepository->getArrayForSelect()) {
+			$displayAmounts += ['0' => 'X - nepřiřazená'];
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+				$source->where('product.fk_displayAmount', Helpers::replaceArrayValue($value, '0', null));
+			}, '', 'displayAmount', null, $displayAmounts, ['placeholder' => '- Dostupnost -']);
 		}
 
 		$grid->addFilterButtons();

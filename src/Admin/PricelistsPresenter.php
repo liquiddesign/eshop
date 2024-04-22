@@ -15,6 +15,7 @@ use Eshop\DB\CountryRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\DiscountRepository;
+use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\InternalRibbon;
 use Eshop\DB\InternalRibbonRepository;
 use Eshop\DB\Price;
@@ -122,6 +123,9 @@ class PricelistsPresenter extends BackendPresenter
 
 	#[Inject]
 	public Storage $storage;
+
+	#[Inject]
+	public DisplayAmountRepository $displayAmountRepository;
 
 	#[Persistent]
 	public string $tab = 'priceLists';
@@ -448,6 +452,13 @@ class PricelistsPresenter extends BackendPresenter
 				$source->where('product.fk_masterProduct IS NOT NULL');
 			}
 		}, '', 'merged', null, ['master' => 'Pouze master', 'slave' => 'Pouze slave'])->setPrompt('- Sloučení -');
+
+		if ($displayAmounts = $this->displayAmountRepository->getArrayForSelect()) {
+			$displayAmounts += ['0' => 'X - nepřiřazená'];
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+				$source->where('product.fk_displayAmount', Helpers::replaceArrayValue($value, '0', null));
+			}, '', 'displayAmount', null, $displayAmounts, ['placeholder' => '- Dostupnost -']);
+		}
 
 		// @TODO add from old grid
 //		$submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
