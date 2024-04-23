@@ -4,6 +4,25 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.204](https://github.com/liquiddesign/eshop/compare/v2.1.203...v2.1.204) (2024-04-23)
+
+### Features
+
+
+##### Product Form
+
+* Move sections ([0d54f0](https://github.com/liquiddesign/eshop/commit/0d54f00f43ca3e8d1d6eed862bd97286464be9dd))
+
+### Bug Fixes
+
+
+##### Import
+
+* Producer ([2c64ee](https://github.com/liquiddesign/eshop/commit/2c64eef0959075bcaf1f8f4a06ce8aea0551a127))
+
+
+---
+
 ## [2.1.203](https://github.com/liquiddesign/eshop/compare/v2.1.202...v2.1.203) (2024-04-23)
 
 ### Features
