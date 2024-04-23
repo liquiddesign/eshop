@@ -160,61 +160,6 @@
             </fieldset>
         </div>
         <div id="menu1-content" class="tab-pane {$presenter->editTab == 'menu1' ? 'active show' : ''}">
-            <fieldset n:if="$pricelists">
-                <legend>Ceníky</legend>
-                <span class="text-sm ml-2">
-                    {ifset $configuration[Eshop\Admin\Configs\ProductFormConfig::class][Eshop\Admin\Configs\ProductFormAutoPriceConfig::class]}
-                        {do $autoPriceConfig = $configuration[Eshop\Admin\Configs\ProductFormConfig::class][Eshop\Admin\Configs\ProductFormAutoPriceConfig::class]}
-
-                        {switch $autoPriceConfig}
-                            {case Eshop\Admin\Configs\ProductFormAutoPriceConfig::WITH_VAT} Zadávejte pouze cenu bez DPH, cena s DPH bude vypočtena na základě zvolené úrovňe DPH produktu.
-                            {case Eshop\Admin\Configs\ProductFormAutoPriceConfig::WITHOUT_VAT} Zadávejte pouze cenu s DPH, cena bez DPH bude vypočtena na základě zvolené úrovňe DPH produktu.
-                        {/switch}
-                    {/ifset}
-                </span>
-                <table class="mt-1 mb-1" style="width: auto;">
-                    <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col"></th>
-                        <th class="">Cena bez DPH</th>
-                        <th class="pl-2" n:if="$shopper->getShowVat()">Cena s DPH</th>
-                        <th class="pl-2">Původní bez DPH</th>
-                        <th class="pl-2" n:if="$shopper->getShowVat()">Původní s DPH</th>
-                        <th class="pl-2"></th>
-                    </tr>
-			        {foreach $pricelists as $id => $pricelist}
-                        <tr class="m-0 mt-1 has-danger"
-                            style="{if !$pricelist->isActive}background-color: #E9ECEF;{/if}">
-                            <th class="col-label col-form-label col">{$pricelist->name} {($shop = $pricelist->getValue('shop')) ? "(O:$shop)": null} <i
-                                        class="fa fa-sort-numeric-up mr-1"></i> {$pricelist->priority}</th>
-
-                            <td class="align-middle">{input "prices-$id-price" class => 'form-control form-control-sm col-label max-number'}
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "prices-$id-price"}</span>
-                            </td>
-
-                            <td n:if="$shopper->getShowVat()"
-                                    class="align-middle">{input "prices-$id-priceVat" class => 'ml-2 form-control form-control-sm col-label max-number'}
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "prices-$id-priceVat"}</span>
-                            </td>
-
-                            <td class="align-middle">{input "prices-$id-priceBefore" class => 'ml-2 form-control form-control-sm col-label max-number'}
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "prices-$id-priceBefore"}</span>
-                            </td>
-
-                            <td n:if="$shopper->getShowVat()"
-                                    class="align-middle">{input "prices-$id-priceVatBefore" class => 'ml-2 form-control form-control-sm col-label max-number'}
-                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "prices-$id-priceVatBefore"}</span>
-                            </td>
-
-                            {if isset($product) && $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default')}
-                                <td class="align-middle pl-2 pr-2">
-                                   <a n:href="clearPrice! $product->getPK(), $id" title="Vymazat cenu"><i class="fas fa-sm text-danger fa-trash"></i></a>
-                                </td>
-                            {/if}
-                        </tr>
-                    {/foreach}
-                </table>
-            </fieldset>
-
             <fieldset>
                 <legend>Viditelnosti</legend>
                 <span class="text-sm">První checkbox "Aktivní" určuje platnost daného řádku. V případě, že není zaškrtnutý, tak se daný řádek ignoruje a záznam v daném viditelníku pro tento produkt bude vymazán.</span>
@@ -313,6 +258,61 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                             <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError taxes}</span>
                         </td>
                     </tr>
+                </table>
+            </fieldset>
+
+            <fieldset n:if="$pricelists">
+                <legend>Ceníky</legend>
+                <span class="text-sm ml-2">
+                    {ifset $configuration[Eshop\Admin\Configs\ProductFormConfig::class][Eshop\Admin\Configs\ProductFormAutoPriceConfig::class]}
+                        {do $autoPriceConfig = $configuration[Eshop\Admin\Configs\ProductFormConfig::class][Eshop\Admin\Configs\ProductFormAutoPriceConfig::class]}
+
+                        {switch $autoPriceConfig}
+                            {case Eshop\Admin\Configs\ProductFormAutoPriceConfig::WITH_VAT} Zadávejte pouze cenu bez DPH, cena s DPH bude vypočtena na základě zvolené úrovňe DPH produktu.
+                            {case Eshop\Admin\Configs\ProductFormAutoPriceConfig::WITHOUT_VAT} Zadávejte pouze cenu s DPH, cena bez DPH bude vypočtena na základě zvolené úrovňe DPH produktu.
+                        {/switch}
+                    {/ifset}
+                </span>
+                <table class="mt-1 mb-1" style="width: auto;">
+                    <tr class="m-0 mt-1 has-danger">
+                        <th class="col-label col-form-label col"></th>
+                        <th class="">Cena bez DPH</th>
+                        <th class="pl-2" n:if="$shopper->getShowVat()">Cena s DPH</th>
+                        <th class="pl-2">Původní bez DPH</th>
+                        <th class="pl-2" n:if="$shopper->getShowVat()">Původní s DPH</th>
+                        <th class="pl-2"></th>
+                    </tr>
+                    {foreach $pricelists as $id => $pricelist}
+                        <tr class="m-0 mt-1 has-danger"
+                            style="{if !$pricelist->isActive}background-color: #E9ECEF;{/if}">
+                            <th class="col-label col-form-label col">{$pricelist->name} {($shop = $pricelist->getValue('shop')) ? "(O:$shop)": null} <i
+                                        class="fa fa-sort-numeric-up mr-1"></i> {$pricelist->priority}</th>
+
+                            <td class="align-middle">{input "prices-$id-price" class => 'form-control form-control-sm col-label max-number'}
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "prices-$id-price"}</span>
+                            </td>
+
+                            <td n:if="$shopper->getShowVat()"
+                                    class="align-middle">{input "prices-$id-priceVat" class => 'ml-2 form-control form-control-sm col-label max-number'}
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "prices-$id-priceVat"}</span>
+                            </td>
+
+                            <td class="align-middle">{input "prices-$id-priceBefore" class => 'ml-2 form-control form-control-sm col-label max-number'}
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "prices-$id-priceBefore"}</span>
+                            </td>
+
+                            <td n:if="$shopper->getShowVat()"
+                                    class="align-middle">{input "prices-$id-priceVatBefore" class => 'ml-2 form-control form-control-sm col-label max-number'}
+                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "prices-$id-priceVatBefore"}</span>
+                            </td>
+
+                            {if isset($product) && $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default')}
+                                <td class="align-middle pl-2 pr-2">
+                                    <a n:href="clearPrice! $product->getPK(), $id" title="Vymazat cenu"><i class="fas fa-sm text-danger fa-trash"></i></a>
+                                </td>
+                            {/if}
+                        </tr>
+                    {/foreach}
                 </table>
             </fieldset>
 
