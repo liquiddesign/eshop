@@ -92,6 +92,8 @@ class SupplierProductRepository extends \StORM\Repository
 					$name
 				)");
 			}
+
+			$updates['fk_producer'] = new Literal('IF(fk_producer IS NULL, VALUES(fk_producer), fk_producer)');
 		} else {
 			$updates = [];
 		}
