@@ -4,6 +4,23 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.203](https://github.com/liquiddesign/eshop/compare/v2.1.202...v2.1.203) (2024-04-23)
+
+### Features
+
+* Add filters ([a26d76](https://github.com/liquiddesign/eshop/commit/a26d76b17f6f6d13839a545347977cee1d426afd))
+
+##### Import
+
+* Images ([640e5b](https://github.com/liquiddesign/eshop/commit/640e5ba24153cbd6a4f6fc6f8760fc3aca8de83d))
+
+### Styles
+
+* Fix ([36ab3a](https://github.com/liquiddesign/eshop/commit/36ab3a4252d63312e49af11d964d18ebe62dc7e5))
+
+
+---
+
 ## [2.1.202](https://github.com/liquiddesign/eshop/compare/v2.1.201...v2.1.202) (2024-04-22)
 
 ### Bug Fixes
