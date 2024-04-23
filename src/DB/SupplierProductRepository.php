@@ -9,6 +9,7 @@ use Eshop\Admin\SettingsPresenter;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
+use Nette\Utils\Image;
 use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -354,15 +355,29 @@ class SupplierProductRepository extends \StORM\Repository
 				'fileName' => $draft->fileName,
 			]);
 
-			$imageSizes = ['origin', 'detail', 'thumb'];
+			try {
+				FileSystem::copy($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
+				\touch($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $mtime);
 
-			foreach ($imageSizes as $imageSize) {
-				try {
-					FileSystem::copy($sourceImageDirectory . $sep . $imageSize . $sep . $draft->fileName, $galleryImageDirectory . $sep . $imageSize . $sep . $draft->fileName);
-					\touch($galleryImageDirectory . $sep . $imageSize . $sep . $draft->fileName, $mtime);
-				} catch (\Throwable $e) {
-					Debugger::log($e, ILogger::WARNING);
+				if (\is_file($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName)) {
+					FileSystem::copy($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
+				} else {
+					// phpcs:ignore
+					$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
+					$image->resize(600, null);
+					$image->save($galleryImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
 				}
+
+				if (\is_file($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName)) {
+					FileSystem::copy($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
+				} else {
+					// phpcs:ignore
+					$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
+					$image->resize(300, null);
+					$image->save($galleryImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
+				}
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::WARNING);
 			}
 		}
 
