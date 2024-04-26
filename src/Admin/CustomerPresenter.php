@@ -209,7 +209,7 @@ class CustomerPresenter extends BackendPresenter
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 			$source->where('this.fk_parentCustomer ' . ($value === '1' ? 'IS NOT NULL' : 'IS NULL'));
-		}, '', 'parentCustomer', null, ['0' => 'Ne', '1' => 'Ane'])->setPrompt('- Nadřazený zák. -');
+		}, '', 'parentCustomer', null, ['0' => 'Ne', '1' => 'Ano'])->setPrompt('- Nadřazený zák. -');
 
 		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {
 			$source->where('this.createdTs >= :createdTs_from', ['createdTs_from' => $value]);

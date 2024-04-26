@@ -28,6 +28,9 @@ use Web\DB\PageRepository;
 
 class ProductGridFactory
 {
+	/** @var array<callable(\Admin\Controls\AdminGrid $grid): void> */
+	public array $onCreate = [];
+
 	public function __construct(
 		protected readonly \Admin\Controls\AdminGridFactory $gridFactory,
 		protected readonly Container $container,
@@ -248,17 +251,12 @@ class ProductGridFactory
 			return '<i title="' . $label . '" class="' . $icon . ' fa-lg text-primary">';
 		}, '%s', null, ['class' => 'fit']);
 
-//		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
-
-//		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
-//		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
-//		$grid->addColumnInputCheckbox('<i title="Skryto v menu a vyhledávání" class="far fa-minus-square"></i>', 'hiddenInMenu', '', '', 'hiddenInMenu');
-//		$grid->addColumnInputCheckbox('<i title="Neprodejné" class="fas fa-ban"></i>', 'unavailable', '', '', 'unavailable');
-
 		$grid->addColumnInputCheckbox('<i title="Skrýt ve všech feedech" class="fas fa-minus-circle"></i>', 'exportNone', function (Checkbox $checkbox, Product $product): void {
 			$checkbox->setDisabled(!$product->exportHeureka && !$product->exportGoogle && !$product->exportZbozi);
 			$checkbox->setDefaultValue(!$product->exportHeureka && !$product->exportGoogle && !$product->exportZbozi);
 		});
+
+		Arrays::invoke($this->onCreate, $grid);
 
 		$grid->addColumnLinkDetail('edit');
 		$grid->addColumnActionDelete([$this, 'onDelete']);

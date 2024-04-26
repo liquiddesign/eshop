@@ -19,6 +19,7 @@ use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
+use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\Expression;
@@ -27,6 +28,9 @@ use Web\DB\SettingRepository;
 
 class ProductGridFiltersFactory
 {
+	/** @var array<callable(\Admin\Controls\AdminGrid $grid): void> */
+	public array $onAddFilters = [];
+
 	public function __construct(
 		private readonly ProducerRepository $producerRepository,
 		private readonly SupplierRepository $supplierRepository,
@@ -318,6 +322,6 @@ class ProductGridFiltersFactory
 			}
 		}, '', 'merged', null, ['master' => 'Pouze master', 'slave' => 'Pouze slave'])->setPrompt('- Sloučení -');
 
-		return;
+		Arrays::invoke($this->onAddFilters, $grid);
 	}
 }
