@@ -158,6 +158,11 @@ class CustomerPresenter extends BackendPresenter
 	#[Inject]
 	public ProductsCacheGetterService $productsCacheGetterService;
 
+	/**
+	 * @var null|callable(array<mixed> $values, \Admin\Controls\AdminForm $form): bool
+	 */
+	protected mixed $onCustomerFormUniqueValidation = null;
+
 	public function addFiltersToCustomersGrid(AdminGrid $grid): void
 	{
 		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
@@ -695,20 +700,30 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				return;
 			}
 
-			$customerQuery = $this->customerRepository->many()->where('email', $values['email']);
+			$uniqueValid = true;
 
-			if (isset($values['shop'])) {
-				$customerQuery->where('this.fk_shop', $values['shop']);
+			if ($this->onCustomerFormUniqueValidation) {
+				$uniqueValid = \call_user_func($this->onCustomerFormUniqueValidation, $values, $form);
+			} else {
+				$customerQuery = $this->customerRepository->many()->where('email', $values['email']);
+
+				if (isset($values['shop'])) {
+					$customerQuery->where('this.fk_shop', $values['shop']);
+				}
+
+				if ($customerQuery->first()) {
+					$uniqueValid = false;
+				}
 			}
 
-			if (!$customerQuery->first()) {
-				return;
+			if (!$uniqueValid) {
+				/** @var \Nette\Forms\Controls\TextInput $emailInput */
+				$emailInput = $form['email'];
+
+				$emailInput->addError('Neplatná kombinace unikátních hodnot. Zkontrolujte e-mail, obchod a specifické hodnoty.');
 			}
 
-			/** @var \Nette\Forms\Controls\TextInput $emailInput */
-			$emailInput = $form['email'];
-
-			$emailInput->addError('Tento e-mail již existuje! E-mail může v jednom obchodu existovat maximálně 1x.');
+			return;
 		};
 
 		$this->addCustomFieldsToCustomerForm($form);
