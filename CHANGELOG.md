@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.205](https://github.com/liquiddesign/eshop/compare/v2.1.204...v2.1.205) (2024-04-26)
+
+### Features
+
+
+##### Admin Customer
+
+* Add onCustomerFormUniqueValidation ([2f5df5](https://github.com/liquiddesign/eshop/commit/2f5df5ac7fd17f4ad9bac483c264f0c229f3888c))
+
+##### Admin Product
+
+* Add callbacks ([06e392](https://github.com/liquiddesign/eshop/commit/06e392a8edaaf642a01285e229ab5ea716627bed))
+
+
+---
+
 ## [2.1.204](https://github.com/liquiddesign/eshop/compare/v2.1.203...v2.1.204) (2024-04-23)
 
 ### Features
