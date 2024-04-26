@@ -6,7 +6,6 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Base\ShopsConfig;
-use Eshop\Common\Helpers;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\Product;
@@ -62,52 +61,52 @@ class ProductGridFactory
 			->join(['photo' => 'eshop_photo'], 'this.uuid = photo.fk_product')
 			->join(['file' => 'eshop_file'], 'this.uuid = file.fk_product')
 			->join(['comment' => 'eshop_internalcommentproduct'], 'this.uuid = comment.fk_product')
-			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
-			->join(['pricelist' => 'eshop_pricelist'], 'pricelist.uuid=price.fk_pricelist')
+//			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
+//			->join(['pricelist' => 'eshop_pricelist'], 'pricelist.uuid=price.fk_pricelist')
 			->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = this.uuid')
-			->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid')
-			->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityList.uuid')
+//			->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid')
+//			->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityList.uuid')
 			->join(['primaryCategory' => 'eshop_productprimarycategory'], 'primaryCategory.fk_product = this.uuid')
-			->where('visibilityList.uuid IN(:visibilityListIn) OR visibilityList.uuid IS NULL', [
-				'visibilityListIn' => Helpers::arrayToSqlInStatement($visibilityListsCollection->toArrayOf('uuid', toArrayValues: true)),
-			])
+//			->where('visibilityList.uuid IN(:visibilityListIn) OR visibilityList.uuid IS NULL', [
+//				'visibilityListIn' => Helpers::arrayToSqlInStatement($visibilityListsCollection->toArrayOf('uuid', toArrayValues: true)),
+//			])
 			->select([
 				'photoCount' => 'COUNT(DISTINCT photo.uuid)',
 				'fileCount' => 'COUNT(DISTINCT file.uuid)',
 				'commentCount' => 'COUNT(DISTINCT comment.uuid)',
-				'priceCount' => 'COUNT(DISTINCT price.uuid)',
-				'categoryCount' => 'COUNT(DISTINCT nxnCategory.fk_category)',
-				'pricelistActive' => 'MAX(pricelist.isActive)',
-				'hidden' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.hidden ORDER BY visibilityList.priority), ',', 1)",
-				'unavailable' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.unavailable ORDER BY visibilityList.priority), ',', 1)",
+//				'priceCount' => 'COUNT(DISTINCT price.uuid)',
+//				'categoryCount' => 'COUNT(DISTINCT nxnCategory.fk_category)',
+//				'pricelistActive' => 'MAX(pricelist.isActive)',
+//				'hidden' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.hidden ORDER BY visibilityList.priority), ',', 1)",
+//				'unavailable' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.unavailable ORDER BY visibilityList.priority), ',', 1)",
 				'primaryCategoryPKs' => 'GROUP_CONCAT(primaryCategory.fk_category)',
 			]);
 
 		$grid = $this->gridFactory->create($source, 20, 'this.uuid', 'ASC', true);
 		$grid->addColumnSelector();
-		$grid->addColumn('', function (Product $object, Datagrid $datagrid) {
-			if ($object->isHidden()) {
-				$label = 'Neviditelný: Skrytý';
-				$color = 'danger';
-			} elseif ($object->getValue('priceCount') === 0) {
-				$label = 'Neviditelný: Bez ceny';
-				$color = 'danger';
-			} elseif ($object->getValue('pricelistActive') === 0) {
-				$label = 'Neviditelný: Žádné aktivní ceny';
-				$color = 'danger';
-			} elseif ($object->isUnavailable()) {
-				$label = 'Viditelný: Neprodejný';
-				$color = 'warning';
-			} elseif ($object->getValue('categoryCount') === 0) {
-				$label = 'Viditelný: Bez kategorie';
-				$color = 'warning';
-			} else {
-				$label = 'Viditelný';
-				$color = 'success';
-			}
-
-			return '<i title="' . $label . '" class="fa fa-circle fa-sm text-' . $color . '">';
-		}, '%s', null, ['class' => 'fit']);
+//		$grid->addColumn('', function (Product $object, Datagrid $datagrid) {
+//			if ($object->isHidden()) {
+//				$label = 'Neviditelný: Skrytý';
+//				$color = 'danger';
+//			} elseif ($object->getValue('priceCount') === 0) {
+//				$label = 'Neviditelný: Bez ceny';
+//				$color = 'danger';
+//			} elseif ($object->getValue('pricelistActive') === 0) {
+//				$label = 'Neviditelný: Žádné aktivní ceny';
+//				$color = 'danger';
+//			} elseif ($object->isUnavailable()) {
+//				$label = 'Viditelný: Neprodejný';
+//				$color = 'warning';
+//			} elseif ($object->getValue('categoryCount') === 0) {
+//				$label = 'Viditelný: Bez kategorie';
+//				$color = 'warning';
+//			} else {
+//				$label = 'Viditelný';
+//				$color = 'success';
+//			}
+//
+//			return '<i title="' . $label . '" class="fa fa-circle fa-sm text-' . $color . '">';
+//		}, '%s', null, ['class' => 'fit']);
 		$grid->addColumnImage('imageFileName', Product::GALLERY_DIR);
 
 		$grid->addColumn('Kód a EAN', function (Product $product) {
@@ -282,7 +281,6 @@ class ProductGridFactory
 			'displayDelivery',
 			'vatRate',
 			'taxes',
-			'unavailable',
 			'primaryCategories',
 			'defaultReviewsCount',
 			'defaultReviewsScore',
