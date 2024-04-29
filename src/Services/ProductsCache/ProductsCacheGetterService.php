@@ -280,6 +280,7 @@ class ProductsCacheGetterService implements AutoWireService
 			'masterProduct' => 'this.masterProduct',
 		]);
 
+		/** @var array<int, \Eshop\DB\Attribute> $allAttributes */
 		$allAttributes = [];
 		$dynamicFiltersAttributes = [];
 		$dynamicFilters = [];
@@ -346,8 +347,18 @@ class ProductsCacheGetterService implements AutoWireService
 						$attribute = $this->attributeRepository->many()->where('this.uuid', $subKey)->select(['this.id'])->first(true);
 						$allAttributes[$attribute->id] = $attribute;
 
-						$dynamicFiltersAttributes[$attribute->id] =
-							$this->attributeValueRepository->many()->setSelect(['this.id'])->where('this.uuid', $subValue)->toArrayOf('id', toArrayValues: true);
+						if ($attribute->showRange) {
+							$dynamicFiltersAttributes[$attribute->id][] = $this->attributeValueRepository->many()
+								->setSelect(['this.id'])
+								->where('this.fk_attributevaluerange', $subValue)
+								->toArrayOf('id', toArrayValues: true);
+						} else {
+							$dynamicFiltersAttributes[$attribute->id] =
+								$this->attributeValueRepository->many()
+									->setSelect(['this.id'])
+									->where('this.uuid', $subValue)
+									->toArrayOf('id', toArrayValues: true);
+						}
 					}
 				}
 
@@ -409,39 +420,11 @@ class ProductsCacheGetterService implements AutoWireService
 		foreach ($productsCollection->fetchArray(\stdClass::class) as $product) {
 			$attributeValues = $product->attributeValues ? \array_flip(\explode(',', $product->attributeValues)) : [];
 
-			foreach ($dynamicFiltersAttributes as $attributePK => $attributeValuesPKs) {
-				if (\count($attributeValuesPKs) === 0) {
-					continue;
-				}
+			$subDynamicKeys = \array_keys(\array_merge($dynamicFilters, ['attributes' => $dynamicFiltersAttributes]));
 
-				/** @var \Eshop\DB\Attribute $attribute */
-				$attribute = $allAttributes[$attributePK];
-
-				if ($attribute->filterType === 'and') {
-					foreach ($attributeValuesPKs as $attributeValue) {
-						if (!isset($attributeValues[$attributeValue])) {
-							continue 3;
-						}
-					}
-				} else {
-					$found = false;
-
-					foreach ($attributeValuesPKs as $attributeValue) {
-						if (isset($attributeValues[$attributeValue])) {
-							$found = true;
-
-							break;
-						}
-					}
-
-					if (!$found) {
-						continue 2;
-					}
-				}
-			}
-
-			foreach (\array_keys($dynamicFilters) as $filter) {
+			foreach ($subDynamicKeys as $filter) {
 				$subDynamicFilters = $dynamicFilters;
+				$subDynamicAttributes = $dynamicFiltersAttributes;
 				unset($subDynamicFilters[$filter]);
 
 				$useProduct = true;
@@ -471,6 +454,58 @@ class ProductsCacheGetterService implements AutoWireService
 						$useProduct = false;
 
 						break;
+					}
+				}
+
+				foreach ($subDynamicAttributes as $attributePK => $attributeValuesPKs) {
+					if (\count($attributeValuesPKs) === 0) {
+						continue;
+					}
+
+					$attribute = $allAttributes[$attributePK];
+
+					if ($attribute->filterType === 'and') {
+						if ($attribute->showRange) {
+							foreach ($attributeValuesPKs as $attributeValueRanges) {
+								$found = false;
+
+								foreach ($attributeValueRanges as $attributeValue) {
+									if (isset($attributeValues[$attributeValue])) {
+										$found = true;
+
+										break;
+									}
+								}
+
+								if (!$found) {
+									$useProduct = false;
+
+									break 2;
+								}
+							}
+						} else {
+							foreach ($attributeValuesPKs as $attributeValue) {
+								if (!isset($attributeValues[$attributeValue])) {
+									$useProduct = false;
+
+									break 2;
+								}
+							}
+						}
+					} else {
+						$found = false;
+
+						foreach ($attributeValuesPKs as $attributeValue) {
+							if (isset($attributeValues[$attributeValue])) {
+								$found = true;
+
+								break;
+							}
+						}
+
+						if (!$found) {
+							$useProduct = false;
+						}
 					}
 				}
 
@@ -514,13 +549,69 @@ class ProductsCacheGetterService implements AutoWireService
 					$displayDeliveriesCounts[$product->displayDelivery] = ($displayDeliveriesCounts[$product->displayAmount] ?? 0) + 1;
 				}
 
-				if ($filter !== 'systemicAttributes.producer' || !$product->producer) {
+				if ($filter === 'systemicAttributes.producer' && $product->producer) {
+					$dynamicallyCountedDynamicFilters[$filter] = true;
+
+					$producersCounts[$product->producer] = ($producersCounts[$product->producer] ?? 0) + 1;
+				}
+
+				if ($filter === 'attributes') {
+					$dynamicallyCountedDynamicFilters[$filter] = true;
+
+					foreach (\array_keys($attributeValues) as $attributeValue) {
+						$attributeValuesCounts[$attributeValue][$product->id] = ($attributeValuesCounts[$attributeValue] ?? 0) + 1;
+					}
+				}
+
+				continue;
+			}
+
+			foreach ($dynamicFiltersAttributes as $attributePK => $attributeValuesPKs) {
+				if (\count($attributeValuesPKs) === 0) {
 					continue;
 				}
 
-				$dynamicallyCountedDynamicFilters[$filter] = true;
+				$attribute = $allAttributes[$attributePK];
 
-				$producersCounts[$product->producer] = ($producersCounts[$product->producer] ?? 0) + 1;
+				if ($attribute->filterType === 'and') {
+					if ($attribute->showRange) {
+						foreach ($attributeValuesPKs as $attributeValueRanges) {
+							$found = false;
+
+							foreach ($attributeValueRanges as $attributeValue) {
+								if (isset($attributeValues[$attributeValue])) {
+									$found = true;
+
+									break;
+								}
+							}
+
+							if (!$found) {
+								continue 3;
+							}
+						}
+					} else {
+						foreach ($attributeValuesPKs as $attributeValue) {
+							if (!isset($attributeValues[$attributeValue])) {
+								continue 3;
+							}
+						}
+					}
+				} else {
+					$found = false;
+
+					foreach ($attributeValuesPKs as $attributeValue) {
+						if (isset($attributeValues[$attributeValue])) {
+							$found = true;
+
+							break;
+						}
+					}
+
+					if (!$found) {
+						continue 2;
+					}
+				}
 			}
 
 			foreach ($dynamicFilters as $filter => $value) {
@@ -579,9 +670,13 @@ class ProductsCacheGetterService implements AutoWireService
 
 			$productPKs[] = $product->product;
 
-			foreach (\array_keys($attributeValues) as $attributeValue) {
-				$attributeValuesCounts[$attributeValue] = ($attributeValuesCounts[$attributeValue] ?? 0) + 1;
+			if (!isset($dynamicallyCountedDynamicFilters['attributes'])) {
+				foreach (\array_keys($attributeValues) as $attributeValue) {
+					$attributeValuesCounts[$attributeValue] = ($attributeValuesCounts[$attributeValue] ?? 0) + 1;
+				}
 			}
+
+			continue;
 		}
 
 		$displayAmounts = $this->displayAmountRepository->many()->setSelect(['this.uuid'])->where('this.id', \array_keys($displayAmountsCounts))->setIndex('this.id')->toArrayOf('uuid');
