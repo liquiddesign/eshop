@@ -4,6 +4,25 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.208](https://github.com/liquiddesign/eshop/compare/v2.1.207...v2.1.208) (2024-04-29)
+
+### Bug Fixes
+
+
+##### Products Cache
+
+* Filter ranges correctly ([e1655e](https://github.com/liquiddesign/eshop/commit/e1655e56aaa10342c4027324a55319a565315bb1))
+
+### Chores
+
+
+##### Product List
+
+* Hide dump ([ebf021](https://github.com/liquiddesign/eshop/commit/ebf021fb75b850269ca4311f92b38cb2ff357f20))
+
+
+---
+
 ## [2.1.207](https://github.com/liquiddesign/eshop/compare/v2.1.206...v2.1.207) (2024-04-29)
 
 ### Bug Fixes
