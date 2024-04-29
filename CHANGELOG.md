@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.207](https://github.com/liquiddesign/eshop/compare/v2.1.206...v2.1.207) (2024-04-29)
+
+### Bug Fixes
+
+
+##### Admin Order
+
+* Better error handling ([36d318](https://github.com/liquiddesign/eshop/commit/36d318993f591394c49c095d16cbbacd468688cc))
+
+
+---
+
 ## [2.1.206](https://github.com/liquiddesign/eshop/compare/v2.1.205...v2.1.206) (2024-04-26)
 
 ### Features
