@@ -532,6 +532,12 @@ class Product extends \StORM\Entity
 	 */
 	public RelationCollection $primaryCategories;
 
+	/**
+	 * Vytvořen
+	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
+	 */
+	public string $createdTs;
+
 	public ?VisibilityListItem $visibilityListItem;
 
 	private ProductRepository $productRepository;
