@@ -280,6 +280,7 @@ class ProductsCacheGetterService implements AutoWireService
 			'masterProduct' => 'this.masterProduct',
 		]);
 
+		/** @var array<int, \Eshop\DB\Attribute> $allAttributes */
 		$allAttributes = [];
 		$dynamicFiltersAttributes = [];
 		$dynamicFilters = [];
@@ -346,8 +347,22 @@ class ProductsCacheGetterService implements AutoWireService
 						$attribute = $this->attributeRepository->many()->where('this.uuid', $subKey)->select(['this.id'])->first(true);
 						$allAttributes[$attribute->id] = $attribute;
 
-						$dynamicFiltersAttributes[$attribute->id] =
-							$this->attributeValueRepository->many()->setSelect(['this.id'])->where('this.uuid', $subValue)->toArrayOf('id', toArrayValues: true);
+						if ($attribute->showRange) {
+							$attributeValues = $this->attributeValueRepository->many()
+								->select(['this.id'])
+								->where('this.fk_attributevaluerange', $subValue)
+								->toArray();
+
+							foreach ($attributeValues as $attributeValue) {
+								$dynamicFiltersAttributes[$attribute->id][$attributeValue->getValue('attributeValueRange')][] = $attributeValue->id;
+							}
+						} else {
+							$dynamicFiltersAttributes[$attribute->id] =
+								$this->attributeValueRepository->many()
+									->setSelect(['this.id'])
+									->where('this.uuid', $subValue)
+									->toArrayOf('id', toArrayValues: true);
+						}
 					}
 				}
 
@@ -418,9 +433,27 @@ class ProductsCacheGetterService implements AutoWireService
 				$attribute = $allAttributes[$attributePK];
 
 				if ($attribute->filterType === 'and') {
-					foreach ($attributeValuesPKs as $attributeValue) {
-						if (!isset($attributeValues[$attributeValue])) {
-							continue 3;
+					if ($attribute->showRange) {
+						foreach ($attributeValuesPKs as $attributeValueRanges) {
+							$found = false;
+
+							foreach ($attributeValueRanges as $attributeValue) {
+								if (isset($attributeValues[$attributeValue])) {
+									$found = true;
+
+									break;
+								}
+							}
+
+							if (!$found) {
+								continue 3;
+							}
+						}
+					} else {
+						foreach ($attributeValuesPKs as $attributeValue) {
+							if (!isset($attributeValues[$attributeValue])) {
+								continue 3;
+							}
 						}
 					}
 				} else {
@@ -605,11 +638,25 @@ class ProductsCacheGetterService implements AutoWireService
 			unset($producersCounts[$producerId]);
 		}
 
-		$attributeValues = $this->attributeValueRepository->many()->setSelect(['this.uuid'])->where('this.id', \array_keys($attributeValuesCounts))->setIndex('this.id')->toArrayOf('uuid');
+		$attributeValues = $this->attributeValueRepository->many()
+			->setSelect([
+				'this.uuid',
+				'this.id',
+				'rangePK' => 'this.fk_attributevaluerange',
+				'showRange' => 'attribute.showRange',
+			])
+			->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
+			->where('this.id', \array_keys($attributeValuesCounts))
+			->fetchArray(\stdClass::class);
 
-		foreach ($attributeValues as $attributeValueId => $attributeValueUuid) {
-			$attributeValuesCounts[$attributeValueUuid] = $attributeValuesCounts[$attributeValueId];
-			unset($attributeValuesCounts[$attributeValueId]);
+		foreach ($attributeValues as $attributeValue) {
+			if ($attributeValue->showRange) {
+				$attributeValuesCounts[$attributeValue->rangePK] = ($attributeValuesCounts[$attributeValue->rangePK] ?? 0) + $attributeValuesCounts[$attributeValue->id];
+			} else {
+				$attributeValuesCounts[$attributeValue->uuid] = $attributeValuesCounts[$attributeValue->id];
+			}
+
+			unset($attributeValuesCounts[$attributeValue->id]);
 		}
 
 		return [
