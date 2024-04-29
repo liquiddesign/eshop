@@ -231,8 +231,6 @@ class ProductList extends Datalist
 				if ($cachedProducts['productPKs']) {
 					$pagedProducts = \array_slice($cachedProducts['productPKs'], ($this->getPage() - 1) * $this->getOnPage(), $this->getOnPage());
 
-					Debugger::barDump(\implode('\',\'', $pagedProducts));
-
 					$source->where('this.id', $pagedProducts);
 				} else {
 					$source->where('0 = 1');
