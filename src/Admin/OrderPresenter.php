@@ -862,7 +862,12 @@ class OrderPresenter extends BackendPresenter
 			$form->onSuccess[] = function (AdminForm $form) use ($packageItem): void {
 				$values = $form->getValues('array');
 
-				$amount = $this->amountRepository->one($values['amount'], true);
+				$amount = $this->amountRepository->one($values['amount']);
+
+				if (!$amount) {
+					$this->flashMessage('Vybraný sklad již není dostupný. Zkuste prosím znovu.', 'danger');
+					$this->redirect('this');
+				}
 
 				$packageItem->update(['storeAmount' => $amount->getPK(), 'status' => 'waiting', 'store' => $amount->store->getPK(),]);
 
