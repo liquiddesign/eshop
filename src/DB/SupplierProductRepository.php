@@ -192,27 +192,17 @@ class SupplierProductRepository extends \StORM\Repository
 				'supplierSource' => $supplier,
 			];
 
-			$importImagesResult = true;
+			$importImage = true;
 
 			if (!$importImages ||
 				!$supplier->importImages ||
 				!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName) ||
 				!isset($productsMap[$uuid])
 			) {
-				$importImagesResult = false;
+				$importImage = false;
 			}
 
-			if ($importImagesResult) {
-				// phpcs:ignore
-				$mtime = @\filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
-
-				// phpcs:ignore
-				if (!$overwrite || !$draft->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName)) {
-					$importImagesResult = false;
-				}
-			}
-
-			if ($primary && $importImagesResult) {
+			if ($primary && $importImage) {
 				$values['imageFileName'] = $draft->fileName;
 			} else {
 				unset($currentUpdates['imageFileName']);
@@ -328,7 +318,7 @@ class SupplierProductRepository extends \StORM\Repository
 			if ($this->shopsConfig->getAvailableShops()) {
 				foreach ($this->shopsConfig->getAvailableShops() as $shop) {
 					$pagesRepository->syncOne([
-						'uuid' => DIConnection::generateUuid($shop->getPK(), $uuid),
+						'uuid' => DIConnection::generateUuid((string) $shop->getPK(), $uuid),
 						'url' => ['cs' => Strings::webalize($draft->name) . '-' . Strings::webalize($code)],
 						'title' => ['cs' => $draft->name],
 						'params' => "product=$uuid&",
@@ -346,7 +336,7 @@ class SupplierProductRepository extends \StORM\Repository
 				], []);
 			}
 
-			if (!$importImagesResult || !isset($mtime)) {
+			if (!$importImage) {
 				continue;
 			}
 
@@ -356,6 +346,16 @@ class SupplierProductRepository extends \StORM\Repository
 				'supplier' => $supplierId,
 				'fileName' => $draft->fileName,
 			]);
+
+			// phpcs:ignore
+			$mtime = @\filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
+
+			// phpcs:ignore
+			$copyImage = !(!$overwrite || !$draft->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName));
+
+			if (!$copyImage) {
+				continue;
+			}
 
 			try {
 				FileSystem::copy($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
