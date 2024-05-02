@@ -246,17 +246,14 @@ class PricelistsPresenter extends BackendPresenter
 	{
 		$grid = $this->gridFactory->create(
 			$this->priceRepository->many()
+				->setGroupBy(['this.uuid'])
 				->select(['rate' => 'rates.rate'])
 				->join(['products' => 'eshop_product'], 'products.uuid=this.fk_product')
 				->join(['rates' => 'eshop_vatrate'], 'rates.uuid = products.vatRate AND rates.fk_country=pricelist.fk_country'),
 			20,
-			'product.code',
+			null,
 			'ASC',
 		);
-
-		$grid->setItemCountCallback(function (Collection $collection): int {
-			return $collection->setOrderBy([])->count();
-		});
 
 		$grid->addColumnSelector();
 
@@ -269,8 +266,8 @@ class PricelistsPresenter extends BackendPresenter
 			}
 
 			return [$price->pricelist->code, $price->pricelist->name, $ribbons];
-		}, '%s<br>%s<br>%s', 'pricelist.name');
-		$grid->addColumnText('Kód', 'product.code', '%s', 'product.code', ['class' => 'fit']);
+		}, '%s<br>%s<br>%s');
+		$grid->addColumnText('Kód', 'product.code', '%s', null, ['class' => 'fit']);
 
 		$grid->addColumn('Produkt', function (Price $price, Datagrid $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()?->link(
@@ -378,7 +375,9 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addFilterTextInput('code', ['products.code', 'products.ean', 'products.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
 
 		$grid->addFilterInteger(function (ICollection $source, $value): void {
-			$source->where('this.price >= :price', ['price' => $value]);
+			if ($value) {
+				$source->where('this.price >= :price', ['price' => $value]);
+			}
 		}, null, 'priceFrom', 'Cena od')
 			->setHtmlAttribute('placeholder', 'Cena od')
 			->setHtmlAttribute('class', 'form-control form-control-sm')
@@ -387,8 +386,8 @@ class PricelistsPresenter extends BackendPresenter
 		if ($categories = $this->categoryRepository->getTreeArrayForSelect()) {
 			$grid->addFilterDataSelect(function (Collection $source, $value): void {
 				$categoryPath = $this->categoryRepository->one($value, true)->path;
-				$source->join(['eshop_product_nxn_eshop_category'], 'eshop_product_nxn_eshop_category.fk_product=products.uuid');
-				$source->join(['categories' => 'eshop_category'], 'categories.uuid=eshop_product_nxn_eshop_category.fk_category');
+				$source->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product=products.uuid');
+				$source->join(['categories' => 'eshop_category'], 'categories.uuid=nxnCategory.fk_category');
 				$source->where('categories.path LIKE :category', ['category' => "$categoryPath%"]);
 			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
 		}
