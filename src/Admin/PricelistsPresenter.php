@@ -254,6 +254,10 @@ class PricelistsPresenter extends BackendPresenter
 			'ASC',
 		);
 
+		$grid->setItemCountCallback(function (Collection $collection): int {
+			return $collection->setOrderBy([])->count();
+		});
+
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Vytvořeno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit']);

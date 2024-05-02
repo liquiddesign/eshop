@@ -1445,11 +1445,8 @@ class CheckoutManager
 				'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
 			]);
 		}
-		
-		$customerQuery = $this->customerRepository->many()->where('this.email', $purchase->email);
-		$this->shopsConfig->filterShopsInShopEntityCollection($customerQuery);
 
-		$customer = $customerQuery->first();
+		$customer = $this->findCustomerByPurchase($purchase);
 
 		$defaultGroup = $this->customerGroupRepository->getDefaultRegistrationGroup();
 		
@@ -1949,6 +1946,14 @@ class CheckoutManager
 		}
 		
 		return $amount;
+	}
+
+	protected function findCustomerByPurchase(Purchase $purchase): Customer|null
+	{
+		$customerQuery = $this->customerRepository->many()->where('this.email', $purchase->email);
+		$this->shopsConfig->filterShopsInShopEntityCollection($customerQuery);
+
+		return $customerQuery->first();
 	}
 
 	private function getActiveCart(): ?Cart
