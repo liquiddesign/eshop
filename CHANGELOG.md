@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.211](https://github.com/liquiddesign/eshop/compare/v2.1.210...v2.1.211) (2024-05-02)
+
+### Bug Fixes
+
+* Prices grid ([f8f3bb](https://github.com/liquiddesign/eshop/commit/f8f3bb5dad79e6138cb5c1a5c657761addf49b26))
+
+
+---
+
 ## [2.1.210](https://github.com/liquiddesign/eshop/compare/v2.1.209...v2.1.210) (2024-05-02)
 
 ### Bug Fixes
