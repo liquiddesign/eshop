@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.213](https://github.com/liquiddesign/eshop/compare/v2.1.212...v2.1.213) (2024-05-03)
+
+### Features
+
+
+##### Admin Product
+
+* Filters ([5d7a3f](https://github.com/liquiddesign/eshop/commit/5d7a3f26eab3e6167d4736202bbfe7b199c11c8d))
+
+
+---
+
 ## [2.1.212](https://github.com/liquiddesign/eshop/compare/v2.1.211...v2.1.212) (2024-05-03)
 
 ### Bug Fixes
