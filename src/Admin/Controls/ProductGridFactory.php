@@ -59,9 +59,6 @@ class ProductGridFactory
 		$source = $this->productRepository->many()
 			->setSmartJoin(false)
 			->setGroupBy(['this.uuid'])
-			->join(['photo' => 'eshop_photo'], 'this.uuid = photo.fk_product')
-			->join(['file' => 'eshop_file'], 'this.uuid = file.fk_product')
-			->join(['comment' => 'eshop_internalcommentproduct'], 'this.uuid = comment.fk_product')
 			->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = this.uuid')
 			->join(['primaryCategory' => 'eshop_productprimarycategory'], 'primaryCategory.fk_product = this.uuid')
 //			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
@@ -72,9 +69,6 @@ class ProductGridFactory
 				'visibilityListIn' => Helpers::arrayToSqlInStatement($visibilityListsCollection->toArrayOf('uuid', toArrayValues: true)),
 			])
 			->select([
-				'photoCount' => 'COUNT(DISTINCT photo.uuid)',
-				'fileCount' => 'COUNT(DISTINCT file.uuid)',
-				'commentCount' => 'COUNT(DISTINCT comment.uuid)',
 				'primaryCategoryPKs' => 'GROUP_CONCAT(primaryCategory.fk_category)',
 //				'priceCount' => 'COUNT(DISTINCT price.uuid)',
 				'categoryCount' => 'COUNT(DISTINCT nxnCategory.fk_category)',
@@ -85,29 +79,29 @@ class ProductGridFactory
 
 		$grid = $this->gridFactory->create($source, 20, 'this.uuid', 'ASC', true);
 		$grid->addColumnSelector();
-//		$grid->addColumn('', function (Product $object, Datagrid $datagrid) {
-//			if ($object->isHidden()) {
-//				$label = 'Neviditelný: Skrytý';
-//				$color = 'danger';
+		$grid->addColumn('', function (Product $object, Datagrid $datagrid) {
+			if ($object->isHidden()) {
+				$label = 'Neviditelný: Skrytý';
+				$color = 'danger';
 //			} elseif ($object->getValue('priceCount') === 0) {
 //				$label = 'Neviditelný: Bez ceny';
 //				$color = 'danger';
 //			} elseif ($object->getValue('pricelistActive') === 0) {
 //				$label = 'Neviditelný: Žádné aktivní ceny';
 //				$color = 'danger';
-//			} elseif ($object->isUnavailable()) {
-//				$label = 'Viditelný: Neprodejný';
-//				$color = 'warning';
-//			} elseif ($object->getValue('categoryCount') === 0) {
-//				$label = 'Viditelný: Bez kategorie';
-//				$color = 'warning';
-//			} else {
-//				$label = 'Viditelný';
-//				$color = 'success';
-//			}
-//
-//			return '<i title="' . $label . '" class="fa fa-circle fa-sm text-' . $color . '">';
-//		}, '%s', null, ['class' => 'fit']);
+			} elseif ($object->isUnavailable()) {
+				$label = 'Viditelný: Neprodejný';
+				$color = 'warning';
+			} elseif ($object->getValue('categoryCount') === 0) {
+				$label = 'Viditelný: Bez kategorie';
+				$color = 'warning';
+			} else {
+				$label = 'Viditelný';
+				$color = 'success';
+			}
+
+			return '<i title="' . $label . '" class="fa fa-circle fa-sm text-' . $color . '">';
+		}, '%s', null, ['class' => 'fit']);
 		$grid->addColumnText('Vytvořeno', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
 
 		$grid->addColumnImage('imageFileName', Product::GALLERY_DIR);
