@@ -82,6 +82,11 @@ class CheckoutManager
 	 * @var array<callable(\Eshop\DB\Customer): void> Occurs after customer create
 	 */
 	public array $onCustomerCreate = [];
+
+	/**
+	 * @var array<callable(\Eshop\DB\Purchase): void> Occurs after customer create
+	 */
+	public array $onOrderCustomerProcessed = [];
 	
 	/**
 	 * @var array<callable(\Eshop\DB\Order): void> Occurs after order create
@@ -1430,7 +1435,11 @@ class CheckoutManager
 	public function createCustomer(Purchase $purchase, bool $createAccount = true): ?Customer
 	{
 		if ($createAccount) {
-			if (!$this->accountRepository->many()->match(['login' => $purchase->email])->isEmpty()) {
+			$accountQuery = $this->accountRepository->many()->where('login', $purchase->email);
+
+			$this->shopsConfig->filterShopsInShopEntityCollection($accountQuery);
+
+			if (!$accountQuery->isEmpty()) {
 				return null;
 			}
 			
@@ -1575,6 +1584,8 @@ class CheckoutManager
 				$purchase = $this->syncPurchase(['customer' => $customer ? $customer->getPK() : $this->customerRepository->many()->match(['email' => $purchase->email])->first()]);
 			}
 		}
+
+		Arrays::invoke($this->onOrderCustomerProcessed, $purchase);
 		
 		$orderValues = $defaultOrderValues + [
 				'code' => $this->createOrderCode(),
