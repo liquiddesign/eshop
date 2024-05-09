@@ -87,7 +87,7 @@ class ShopperUser extends User
 	/**
 	 * @var array<float>
 	 */
-	protected array $vatRates = [];
+	protected array $vatRates;
 
 	/**
 	 * @var array<mixed>
@@ -227,7 +227,7 @@ class ShopperUser extends User
 
 		$this->shopsConfig->filterShopsInShopEntityCollection($country);
 
-		return $country->first(true);
+		return $this->country = $country->first(true);
 	}
 
 	public function getShowZeroPrices(): bool
