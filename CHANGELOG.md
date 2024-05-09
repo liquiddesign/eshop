@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.216](https://github.com/liquiddesign/eshop/compare/v2.1.215...v2.1.216) (2024-05-09)
+
+### Bug Fixes
+
+
+##### Shopper User
+
+* Default values ([24632a](https://github.com/liquiddesign/eshop/commit/24632a6102620cc71f0ef17e471e8475adcb5da1))
+
+
+---
+
 ## [2.1.215](https://github.com/liquiddesign/eshop/compare/v2.1.214...v2.1.215) (2024-05-09)
 
 ### Features
