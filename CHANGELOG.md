@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.215](https://github.com/liquiddesign/eshop/compare/v2.1.214...v2.1.215) (2024-05-09)
+
+### Features
+
+
+##### Checkout
+
+* Create account based on shop ([63d0af](https://github.com/liquiddesign/eshop/commit/63d0affe250434a601cbf371538850bf78219c5d))
+
+##### Supplier
+
+* Don't use transaction ([a144a5](https://github.com/liquiddesign/eshop/commit/a144a534f378499ab74c703a9ab6653588a8c4e1))
+
+
+---
+
 ## [2.1.214](https://github.com/liquiddesign/eshop/compare/v2.1.213...v2.1.214) (2024-05-03)
 
 ### Features
