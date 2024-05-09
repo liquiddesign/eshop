@@ -55,13 +55,7 @@ class SupplierRepository extends Repository implements IGeneralRepository
 		$mutation = 'cs';
 		$country = 'CZ';
 
-		$link = $this->connection->getLink();
-
-		$link->beginTransaction();
-
 		$result = $this->supplierProductRepository->syncProducts($supplier, $mutation, $country, !$onlyNew, $importImages);
-
-		$link->commit();
 
 		$this->importResultRepository->log("Products entered: inserted: $result[inserted], updated: $result[updated], locked: $result[locked]");
 		
