@@ -15,12 +15,6 @@ use Nette;
 class ProfileForm extends \Nette\Application\UI\Form
 {
 	/**
-	 * Occurs when the form is submitted and successfully validated
-	 * @var array<callable(self, array|object): void|callable(array|object): void>
-	 */
-	public array $onSuccess = [];
-
-	/**
 	 * @var array<callable(\Eshop\Controls\ProfileForm, string): void>
 	 */
 	public array $onEmailChange = [];

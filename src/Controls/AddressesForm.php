@@ -13,16 +13,6 @@ use Security\DB\AccountRepository;
 
 class AddressesForm extends Form
 {
-	/**
-	 * @var array<callable(self, array|object): void|callable(array|object): void>
-	 */
-	public array $onValidate = [];
-
-	/**
-	 * @var array<callable(self, array|object): void|callable(array|object): void>
-	 */
-	public array $onSuccess = [];
-
 	public function __construct(
 		private readonly ShopperUser $shopperUser,
 		private readonly AccountRepository $accountRepository,

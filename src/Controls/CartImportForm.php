@@ -15,11 +15,6 @@ use Nette\Utils\Strings;
 
 class CartImportForm extends Form
 {
-	/**
-	 * @var array<callable(self, array|object): void|callable(array|object): void>
-	 */
-	public array $onValidate = [];
-	
 	public ?string $cartId = CheckoutManager::ACTIVE_CART_ID;
 	
 	public ?Customer $customer = null;

@@ -65,7 +65,7 @@ class FilePresenter extends BackendPresenter
 		$form->setDefaults($values);
 		
 		$form->onSuccess[] = function (Form $form) use ($file, $product): void {
-			$values = $form->getValues();
+			$values = $form->getValues('array');
 
 			foreach (\array_keys($values) as $key) {
 				$values[$key] = $values[$key] !== '' ? $values[$key] : null;

@@ -212,8 +212,6 @@ class ProductList extends Datalist
 			Debugger::barDump($e);
 
 			$this->error();
-
-			return [];
 		}
 
 		if ($cachedProducts !== false) {

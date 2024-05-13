@@ -38,9 +38,6 @@ class ProductFilter extends Control
 	 * @var array<callable>&callable(): void ; Occurs after product filter form success
 	 */
 	public array $onFormSuccess;
-	
-	/** @var array<callable(static): void> Occurs when component is attached to presenter */
-	public array $onAnchor = [];
 
 	/** @var (callable(static $productFilter, array $attributes): array<\Eshop\DB\Attribute>)|null Called only on first call of getAttributes method. */
 	public $onGetAttributes = null;
@@ -192,7 +189,7 @@ class ProductFilter extends Control
 		$submit->setHtmlAttribute('name', '');
 		
 		
-		$filterForm->setDefaults($this->getPresenter()?->getParameters());
+		$filterForm->setDefaults($this->getPresenter()->getParameters());
 		
 		return $filterForm;
 	}

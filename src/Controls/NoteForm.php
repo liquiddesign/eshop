@@ -10,12 +10,6 @@ use Eshop\ShopperUser;
 
 class NoteForm extends \Nette\Application\UI\Form
 {
-	/**
-	 * Occurs when the form is submitted and successfully validated
-	 * @var array<callable(self, array|object): void|callable(array|object): void>
-	 */
-	public array $onSuccess = [];
-
 	public function __construct(private readonly ShopperUser $shopperUser)
 	{
 		parent::__construct();

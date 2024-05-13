@@ -19,9 +19,6 @@ use Tracy\Debugger;
 
 class StatsControl extends Control
 {
-	/** @var array<callable(static): void> Occurs when component is attached to presenter */
-	public array $onAnchor = [];
-
 	/**
 	 * @persistent
 	 * @var array<string>

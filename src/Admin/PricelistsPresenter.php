@@ -270,7 +270,7 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addColumnText('Kód', 'product.code', '%s', null, ['class' => 'fit']);
 
 		$grid->addColumn('Produkt', function (Price $price, Datagrid $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()?->link(
+			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(
 				':Eshop:Admin:Product:edit',
 				[$price->product, 'backLink' => $this->storeRequest()],
 			) : '#';
@@ -499,7 +499,7 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addColumnText('Kód', 'product.code', '%s', 'product.code', ['class' => 'fit']);
 
 		$grid->addColumn('Produkt', function (Price $price, Datagrid $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()?->link(
+			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(
 				':Eshop:Admin:Product:edit',
 				[$price->product, 'backLink' => $this->storeRequest()],
 			) : '#';
