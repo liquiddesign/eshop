@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.217](https://github.com/liquiddesign/eshop/compare/v2.1.216...v2.1.217) (2024-05-13)
+
+### Features
+
+
+##### Admin Visibility List
+
+* Add createdTs to items grid ([385f9e](https://github.com/liquiddesign/eshop/commit/385f9e57065a4c11daeaac636dc53a54ed0bf6e1))
+
+### Styles
+
+* Fix ([abd7e5](https://github.com/liquiddesign/eshop/commit/abd7e5e467b9d4cb6dc7dac6272cc68d43f58807))
+
+
+---
+
 ## [2.1.216](https://github.com/liquiddesign/eshop/compare/v2.1.215...v2.1.216) (2024-05-09)
 
 ### Bug Fixes
