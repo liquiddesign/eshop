@@ -119,16 +119,18 @@ class VisibilityListPresenter extends BackendPresenter
 
 	public function createComponentItemsGrid(): AdminGrid
 	{
-		$collection = $this->visibilityListItemRepository->many();
+		$collection = $this->visibilityListItemRepository->many()
+			->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid');
 
 		$grid = $this->gridFactory->create($collection, 20, 'priority', 'ASC', true, filterShops: false);
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Seznam', 'visibilityList.name', '%s', 'visibilityList.name');
 
+		$grid->addColumnText('Vytvořeno', 'product.createdTs|date', '%s', 'product.createdTs', ['class' => 'fit']);
 		$grid->addColumn('Kód', function (VisibilityListItem $visibilityListItem) {
 			return $visibilityListItem->product->getFullCode();
-		}, '%s', 'product.code', ['class' => 'fit']);
+		}, '%s', 'product.code');
 
 		$grid->addColumn('Produkt', function (VisibilityListItem $visibilityListItem, Datagrid $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(
