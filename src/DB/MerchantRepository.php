@@ -15,6 +15,7 @@ use StORM\Collection;
 class MerchantRepository extends \StORM\Repository implements IUserRepository, IGeneralRepository
 {
 	use UserRepositoryTrait;
+
 	public function getMerchantCustomers(Merchant $merchant): Collection
 	{
 		$customerRepo = $this->getConnection()->findRepository(Customer::class);

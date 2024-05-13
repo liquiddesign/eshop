@@ -22,6 +22,7 @@ use StORM\ICollection;
 class CustomerRepository extends \StORM\Repository implements IUserRepository, IGeneralRepository, IGeneralAjaxRepository
 {
 	use UserRepositoryTrait;
+
 	public function createNew(array $values): ?Customer
 	{
 		return $this->createOne($values);
