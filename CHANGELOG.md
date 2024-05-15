@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.218](https://github.com/liquiddesign/eshop/compare/v2.1.217...v2.1.218) (2024-05-15)
+
+### Bug Fixes
+
+
+##### Products Cache
+
+* Correctly filter PriceLists and VisibilityLists in warm up ([334e58](https://github.com/liquiddesign/eshop/commit/334e58cbe78a77144fa180d17aad446906fa859e))
+
+
+---
+
 ## [2.1.217](https://github.com/liquiddesign/eshop/compare/v2.1.216...v2.1.217) (2024-05-13)
 
 ### Features
