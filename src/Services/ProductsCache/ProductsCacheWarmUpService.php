@@ -275,6 +275,8 @@ class ProductsCacheWarmUpService implements AutoWireService
                     GROUP_CONCAT(DISTINCT priceList.id ORDER BY priceList.priority, priceList.uuid)
                 ))',
 				])
+				->where('priceList.isActive', true)
+				->where('visibilityList.hidden', false)
 				->setGroupBy(['this.uuid']);
 
 			if ($customers) {
