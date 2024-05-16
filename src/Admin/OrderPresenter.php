@@ -448,22 +448,26 @@ class OrderPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValues('array');
 
-			try {
-				$mail = $this->templateRepository->createMessage($values['template'], $this->orderRepository->getEmailVariables($order), $values['email'], $values['ccEmails']);
-				$this->mailer->send($mail);
+			/** @var \Messages\DB\Template $template */
+			$template = $this->templateRepository->one($values['template'], true);
 
-				/** @var \Messages\DB\Template $template */
-				$template = $this->templateRepository->one($values['template']);
+			try {
+				$mail = $this->templateRepository->createMessage($template->code, $this->orderRepository->getEmailVariables($order), $values['email'], $values['ccEmails']);
+				$this->mailer->send($mail);
 
 				/** @var \Admin\DB\Administrator|null $admin */
 				$admin = $this->admin->getIdentity();
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, $template->name, $admin);
+
+				$this->flashMessage('Odesláno', 'success');
 			} catch (Throwable $e) {
+				Debugger::barDump($e);
 				Debugger::log($e, ILogger::ERROR);
+
+				$this->flashMessage('Chyba odesílání: ' . $e->getMessage(), 'error');
 			}
 
-			$this->flashMessage('Odesláno', 'success');
 			$this->redirect('this');
 		};
 
