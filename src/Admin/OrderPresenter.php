@@ -52,6 +52,7 @@ use Eshop\Integration\Zasilkovna;
 use Eshop\Services\DPD;
 use Eshop\Services\Order\OrderEditService;
 use Eshop\Services\PPL;
+use Eshop\Services\TemplateNamesService;
 use Eshop\ShopperUser;
 use Exception;
 use Forms\Form;
@@ -249,6 +250,9 @@ class OrderPresenter extends BackendPresenter
 	#[Inject]
 	public InternalRibbonRepository $internalRibbonRepository;
 
+	#[Inject]
+	public TemplateNamesService $templateNamesGetter;
+
 	/**
 	 * Always use getter getTab()
 	 * @persistent
@@ -423,9 +427,19 @@ class OrderPresenter extends BackendPresenter
 
 		$form = $this->formFactory->create();
 
-		$templates = ['order.created', 'order.confirmed', 'order.canceled', 'order.changed', 'order.created', 'order.payed', 'order.shipped'];
+		$templates = [
+			$this->templateNamesGetter->getOrderCreated(),
+			$this->templateNamesGetter->getOrderCompleted(),
+			$this->templateNamesGetter->getOrderCanceled(),
+			$this->templateNamesGetter->getOrderChanged(),
+			$this->templateNamesGetter->getOrderPayed(),
+			$this->templateNamesGetter->getOrderShipped(),
+		];
 
-		$form->addSelect('template', 'Šablona', $this->templateRepository->many()->where('uuid', $templates)->orderBy(['name'])->toArrayOf('name'))->setRequired();
+		$templatesQuery = $this->templateRepository->many()->where('this.code', $templates);
+		$this->shopsConfig->filterShopsInShopEntityCollection($templatesQuery);
+
+		$form->addSelect('template', 'Šablona', $templatesQuery->orderBy(['name'])->toArrayOf('name'))->setRequired();
 		$form->addText('email', 'E-mail')->setRequired();
 		$form->addText('ccEmails', 'Kopie e-mailů')->setNullable();
 
@@ -1197,7 +1211,7 @@ class OrderPresenter extends BackendPresenter
 
 			if ($email) {
 				try {
-					$mail = $this->templateRepository->createMessage('order.shipped', ['orderCode' => $delivery->order->code], $delivery->order->purchase->email);
+					$mail = $this->templateRepository->createMessage($this->templateNamesGetter->getOrderShipped(), ['orderCode' => $delivery->order->code], $delivery->order->purchase->email);
 					$this->mailer->send($mail);
 
 					$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::EMAIL_SENT, OrderLogItem::SHIPPED, $admin);
@@ -2538,7 +2552,11 @@ class OrderPresenter extends BackendPresenter
 			);
 
 			try {
-				$mail = $this->templateRepository->createMessage('order.deliveryChanged', $this->orderRepository->getEmailVariables($order), $delivery->order->purchase->email);
+				$mail = $this->templateRepository->createMessage(
+					$this->templateNamesGetter->getOrderDeliveryChanged(),
+					$this->orderRepository->getEmailVariables($order),
+					$delivery->order->purchase->email,
+				);
 				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::EMAIL_SENT, OrderLogItem::DELIVERY_CHANGED, $admin);
@@ -2562,7 +2580,11 @@ class OrderPresenter extends BackendPresenter
 			);
 
 			try {
-				$mail = $this->templateRepository->createMessage('order.paymentChanged', $this->orderRepository->getEmailVariables($order), $payment->order->purchase->email);
+				$mail = $this->templateRepository->createMessage(
+					$this->templateNamesGetter->getOrderPaymentChanged(),
+					$this->orderRepository->getEmailVariables($order),
+					$payment->order->purchase->email,
+				);
 				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::PAYMENT_CHANGED, $admin);
@@ -2575,11 +2597,18 @@ class OrderPresenter extends BackendPresenter
 			try {
 				$emailVariables = $this->orderRepository->getEmailVariables($order);
 
-				$mail = $this->templateRepository->createMessage('order.received', $emailVariables, $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
+				$result = $this->templateRepository->sendMessage(
+					$this->templateNamesGetter->getOrderReceived(),
+					$emailVariables,
+					$order->purchase->email,
+					null,
+					null,
+					$order->purchase->getCustomerPrefferedMutation(),
+				);
 
-				$this->mailer->send($mail);
-
-				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::RECEIVED, $admin);
+				if ($result) {
+					$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::RECEIVED, $admin);
+				}
 			} catch (Throwable $e) {
 			}
 		};
@@ -2588,9 +2617,14 @@ class OrderPresenter extends BackendPresenter
 			try {
 				$emailVariables = $this->orderRepository->getEmailVariables($order);
 
-				$mail = $this->templateRepository->createMessage('order.confirmed', $emailVariables, $order->purchase->email, null, null, $order->purchase->getCustomerPrefferedMutation());
-
-				$this->mailer->send($mail);
+				$this->templateRepository->sendMessage(
+					$this->templateNamesGetter->getOrderCompleted(),
+					$emailVariables,
+					$order->purchase->email,
+					null,
+					null,
+					$order->purchase->getCustomerPrefferedMutation(),
+				);
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
 			} catch (Throwable $e) {
@@ -2602,7 +2636,7 @@ class OrderPresenter extends BackendPresenter
 				$emailVariables = $this->orderRepository->getEmailVariables($order);
 
 				$mail = $this->templateRepository->createMessage(
-					'order.canceled',
+					$this->templateNamesGetter->getOrderCanceled(),
 					$emailVariables,
 					$order->purchase->email,
 					null,
