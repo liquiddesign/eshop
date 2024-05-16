@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.219](https://github.com/liquiddesign/eshop/compare/v2.1.218...v2.1.219) (2024-05-16)
+
+### Features
+
+* New TemplateNamesService to get email templates names ([b48aa6](https://github.com/liquiddesign/eshop/commit/b48aa6f3bdbeeba3f7676f28f051649f0986cebc), [42262a](https://github.com/liquiddesign/eshop/commit/42262a4da30c359e8d71f103b6800e027bcc1320))
+
+
+---
+
 ## [2.1.218](https://github.com/liquiddesign/eshop/compare/v2.1.217...v2.1.218) (2024-05-15)
 
 ### Bug Fixes
