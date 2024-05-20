@@ -729,6 +729,7 @@ Pokud je povoleno, aplikuje zmíněnou procentuální slevu. Jinak aplikuje pouz
 		}
 
 		$form->addMultiSelect2('internalRibbons', 'Interní štítky', $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_PRICE_LIST));
+		$form->addText('lastUpdateTs', 'Poslední aktualizace')->setDisabled()->setNullable();
 
 		$this->formFactory->addShopsContainerToAdminForm($form, false);
 

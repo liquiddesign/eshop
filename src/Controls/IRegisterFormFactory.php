@@ -9,9 +9,9 @@ use Nette\Localization\Translator;
 class IRegisterFormFactory
 {
 	public function __construct(
-		private readonly \Forms\Bridges\FormsSecurity\IRegistrationFormFactory $IRegistrationFormFactory,
-		private readonly Translator $translator,
-		private readonly ShopperUser $shopperUser
+		protected readonly \Forms\Bridges\FormsSecurity\IRegistrationFormFactory $IRegistrationFormFactory,
+		protected readonly Translator $translator,
+		protected readonly ShopperUser $shopperUser
 	) {
 	}
 	

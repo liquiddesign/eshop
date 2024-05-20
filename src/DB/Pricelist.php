@@ -110,6 +110,11 @@ class Pricelist extends ShopSystemicEntity
 	public int $id;
 
 	/**
+	 * @column{"type":"datetime"}
+	 */
+	public ?string $lastUpdateTs;
+
+	/**
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\InternalRibbon>
 	 */
