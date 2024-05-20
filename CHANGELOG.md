@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.220](https://github.com/liquiddesign/eshop/compare/v2.1.219...v2.1.220) (2024-05-20)
+
+### Features
+
+* Add lastUpdateTs to PriceList ([61f440](https://github.com/liquiddesign/eshop/commit/61f44033837a636c33e2235d2ec84328af48554d))
+
+
+---
+
 ## [2.1.219](https://github.com/liquiddesign/eshop/compare/v2.1.218...v2.1.219) (2024-05-16)
 
 ### Features
