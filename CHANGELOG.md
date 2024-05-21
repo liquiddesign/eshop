@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.221](https://github.com/liquiddesign/eshop/compare/v2.1.220...v2.1.221) (2024-05-21)
+
+### Bug Fixes
+
+* GetSystemicAttributeValues empty array to where ([0794f4](https://github.com/liquiddesign/eshop/commit/0794f409fa77c05236c0d1d6f9f175f4066b5d26))
+
+
+---
+
 ## [2.1.220](https://github.com/liquiddesign/eshop/compare/v2.1.219...v2.1.220) (2024-05-20)
 
 ### Features
