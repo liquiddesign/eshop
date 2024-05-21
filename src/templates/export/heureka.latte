@@ -2,6 +2,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 {varType Eshop\Front\Eshop\ExportPresenter $presenter}
 {varType Eshop\DB\Product[] $products}
+{varType Eshop\DB\Category[] $allCategories}
 {varType array $categoriesMapWithHeurekaCategories}
 {varType array $productsFrontendData}
 {varType array $allAttributes}
@@ -38,7 +39,8 @@
 
             <PRICE_VAT>{$product->getPriceVat()}</PRICE_VAT>
             <MANUFACTURER>{$productsFrontendData[$product->getPK()]['producer'] ?? null}</MANUFACTURER>
-            {var Eshop\DB\Category|null $category = $product->getValue('primaryCategory')}
+            {var string|null $category = $product->getValue('primaryCategory')}
+
             {if $category && isset($categoriesMapWithHeurekaCategories[$category]['heureka']) && $heurekaCategoryType}
                 {do $category = $categoriesMapWithHeurekaCategories[$category]['heureka']}
                 {do $categories = []}
@@ -49,6 +51,7 @@
                 {do $categories = \array_reverse($categories)}
                 <CATEGORYTEXT>{foreach $categories as $category}{$category->name|noescape}{if !$iterator->isLast()} | {/if}{/foreach}</CATEGORYTEXT>
             {elseif $category && !$heurekaCategoryType}
+                {do $category = $allCategories[$category]}
                 {do $categories = []}
                     {while $category != null}
                         {do $categories[] = $category}

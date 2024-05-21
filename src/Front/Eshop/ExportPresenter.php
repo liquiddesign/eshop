@@ -503,6 +503,7 @@ abstract class ExportPresenter extends Presenter
 		}
 
 		$this->template->categoriesMapWithHeurekaCategories = $this->categoryRepository->getCategoriesMapWithHeurekaCategories($mainCategoriesCollection);
+		$this->template->allCategories = $mainCategoriesCollection->toArray();
 
 		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
 		$this->template->allAttributes = $this->attributeRepository->many()->select(['heureka' => "IFNULL(heurekaName,name$mutationSuffix)"])->toArrayOf('heureka');
