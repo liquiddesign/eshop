@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.222](https://github.com/liquiddesign/eshop/compare/v2.1.221...v2.1.222) (2024-05-21)
+
+### Bug Fixes
+
+
+##### Heureka
+
+* Category tree bad loading ([6609a0](https://github.com/liquiddesign/eshop/commit/6609a04ebc0309844ffa87fd9cbcea769cc4dde1))
+
+
+---
+
 ## [2.1.221](https://github.com/liquiddesign/eshop/compare/v2.1.220...v2.1.221) (2024-05-21)
 
 ### Bug Fixes
