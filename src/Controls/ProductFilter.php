@@ -153,7 +153,7 @@ class ProductFilter extends Control
 		$attributesContainer = $filterForm->addContainer('attributes');
 		
 		$defaults = $productList->getFilters()['attributes'] ?? [];
-		
+
 		foreach ($this->getAttributes() as $attribute) {
 			if (Arrays::contains(\array_keys($this::SYSTEMIC_ATTRIBUTES), $attribute->getPK())) {
 				$attributeValues = $this->getSystemicAttributeValues((string) $attribute->getPK());
@@ -306,7 +306,7 @@ class ProductFilter extends Control
 				$subQuery1 = $this->producerRepository->getConnection()->rows(['nxnCategory' => 'eshop_product_nxn_eshop_category'])
 					->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid', type: 'INNER')
 					->where('category.path LIKE :s', ['s' => $categoryPath . '%'])
-					->where('EXISTS(' . $subQuery2->getSql() . ')', $subQuery2->getVars());
+					->where('EXISTS(' . $subQuery2->getSql() . ')');
 
 				return $this->producerRepository->getCollection()
 					->setSelect(['name' => "this.name$mutationSuffix"], keepIndex: true)
