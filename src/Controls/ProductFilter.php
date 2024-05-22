@@ -64,7 +64,17 @@ class ProductFilter extends Control
 	 * @var array<array<string>>
 	 */
 	protected array $rangeValues = [];
-	
+
+	/**
+	 * @var array<string, array<string, int>>
+	 */
+	protected array $systemicCounts;
+
+	/**
+	 * @var array<string, int>
+	 */
+	protected array $attributesValuesCounts;
+
 	public function __construct(
 		protected FormFactory $formFactory,
 		protected TranslationRepository $translator,
@@ -85,25 +95,11 @@ class ProductFilter extends Control
 		/** @var array<array<array<string>>> $filters */
 		$filters = $this->getProductList()->getFilters();
 
-		$providerOutput = $this->getProductList()->getProviderOutput();
-
-		$this->template->systemicCounts = [
-			'availability' => $providerOutput['displayAmountsCounts'] ?? $this->displayAmountRepository->getCounts($filters),
-			'delivery' => $providerOutput['displayDeliveriesCounts'] ?? $this->displayDeliveryRepository->getCounts($filters),
-			'producer' => $providerOutput['producersCounts'] ?? $this->producerRepository->getCounts($filters),
-		];
+		$this->template->systemicCounts = $this->getSystemicCounts();
 		
 		$this->template->attributes = $this->getAttributes();
 		$this->template->attributesDefaults = $filters['attributes'] ?? [];
-		
-		$this->template->attributesValuesCounts = $providerOutput['attributeValuesCounts'] ?? $this->attributeRepository->getCounts($this->attributeValues, $filters);
-		
-		foreach ($this->rangeValues as $rangeId => $valuesIds) {
-			foreach ($valuesIds as $valueId) {
-				$this->template->attributesValuesCounts[$rangeId] ??= 0;
-				$this->template->attributesValuesCounts[$rangeId] += $this->template->attributesValuesCounts[$valueId] ?? 0;
-			}
-		}
+		$this->template->attributesValuesCounts = $this->getAttributesValuesCounts();
 
 		$this->template->mainPriceType = $this->shopperUser->getMainPriceType();
 
@@ -157,6 +153,15 @@ class ProductFilter extends Control
 		foreach ($this->getAttributes() as $attribute) {
 			if (Arrays::contains(\array_keys($this::SYSTEMIC_ATTRIBUTES), $attribute->getPK())) {
 				$attributeValues = $this->getSystemicAttributeValues((string) $attribute->getPK());
+				$systemicCounts = $this->getSystemicCounts();
+
+				foreach (\array_keys($attributeValues) as $attributeValue) {
+					if (isset($systemicCounts[$attribute->getPK()][$attributeValue]) && $systemicCounts[$attribute->getPK()][$attributeValue] > 0) {
+						continue;
+					}
+
+					unset($attributeValues[$attributeValue]);
+				}
 			} else {
 				$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
 				$this->attributeValues = \array_merge($this->attributeValues, \array_keys($attributeValues));
@@ -169,6 +174,16 @@ class ProductFilter extends Control
 						$attributeValues[$rangeAttribute->getPK()] = $rangeAttribute->name;
 						$this->rangeValues[$rangeAttribute->getPK()] = \explode(',', $rangeAttribute->concatValues);
 					}
+				}
+
+				$attributeValueCounts = $this->getAttributesValuesCounts();
+
+				foreach (\array_keys($attributeValues) as $attributeValue) {
+					if (isset($attributeValueCounts[$attributeValue]) && $attributeValueCounts[$attributeValue] > 0) {
+						continue;
+					}
+
+					unset($attributeValues[$attributeValue]);
 				}
 			}
 			
@@ -234,6 +249,47 @@ class ProductFilter extends Control
 		}
 		
 		return $filters;
+	}
+
+	/**
+	 * @return array<string, array<string, int>>
+	 */
+	protected function getSystemicCounts(): array
+	{
+		/** @var array<array<array<string>>> $filters */
+		$filters = $this->getProductList()->getFilters();
+
+		$providerOutput = $this->getProductList()->getProviderOutput();
+
+		return $this->systemicCounts ??= [
+			'availability' => $providerOutput['displayAmountsCounts'] ?? $this->displayAmountRepository->getCounts($filters),
+			'delivery' => $providerOutput['displayDeliveriesCounts'] ?? $this->displayDeliveryRepository->getCounts($filters),
+			'producer' => $providerOutput['producersCounts'] ?? $this->producerRepository->getCounts($filters),
+		];
+	}
+
+	/**
+	 * @return array<string, int>
+	 */
+	protected function getAttributesValuesCounts(): array
+	{
+		/** @var array<array<array<string>>> $filters */
+		$filters = $this->getProductList()->getFilters();
+
+		$providerOutput = $this->getProductList()->getProviderOutput();
+
+		if (isset($this->attributesValuesCounts)) {
+			return $this->attributesValuesCounts;
+		}
+
+		foreach ($this->rangeValues as $rangeId => $valuesIds) {
+			foreach ($valuesIds as $valueId) {
+				$this->template->attributesValuesCounts[$rangeId] ??= 0;
+				$this->template->attributesValuesCounts[$rangeId] += $this->template->attributesValuesCounts[$valueId] ?? 0;
+			}
+		}
+
+		return $this->attributesValuesCounts ??= ($providerOutput['attributeValuesCounts'] ?? $this->attributeRepository->getCounts($this->attributeValues, $filters));
 	}
 	
 	protected function getProductList(): ProductList
