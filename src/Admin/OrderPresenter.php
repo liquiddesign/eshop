@@ -2601,7 +2601,7 @@ class OrderPresenter extends BackendPresenter
 			try {
 				$emailVariables = $this->orderRepository->getEmailVariables($order);
 
-				$result = $this->templateRepository->sendMessage(
+				$message = $this->templateRepository->createMessage(
 					$this->templateNamesGetter->getOrderReceived(),
 					$emailVariables,
 					$order->purchase->email,
@@ -2610,7 +2610,8 @@ class OrderPresenter extends BackendPresenter
 					$order->purchase->getCustomerPrefferedMutation(),
 				);
 
-				if ($result) {
+				if ($message) {
+					$this->mailer->send($message);
 					$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::RECEIVED, $admin);
 				}
 			} catch (Throwable $e) {
