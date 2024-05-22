@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Base\ShopsConfig;
 use Eshop\DB\CustomerRepository;
 use Eshop\ShopperUser;
 use Nette\Application\UI\Form;
@@ -14,11 +15,12 @@ use Security\DB\AccountRepository;
 class AddressesForm extends Form
 {
 	public function __construct(
-		private readonly ShopperUser $shopperUser,
-		private readonly AccountRepository $accountRepository,
+		protected readonly ShopperUser $shopperUser,
+		protected readonly AccountRepository $accountRepository,
 		Translator $translator,
-		private readonly Passwords $passwords,
-		private readonly CustomerRepository $customerRepository
+		protected readonly Passwords $passwords,
+		protected readonly CustomerRepository $customerRepository,
+		protected readonly ShopsConfig $shopsConfig,
 	) {
 		parent::__construct();
 
@@ -131,20 +133,22 @@ class AddressesForm extends Form
 			return;
 		}
 
+		/** @var array<mixed> $values */
 		$values = $form->getValues('array');
-		
+
+		$accountQuery = $this->accountRepository->many()->where('login', $values['email']);
+		$customerQuery = $this->customerRepository->many()->where('email', $values['email']);
+
+		$this->shopsConfig->filterShopsInShopEntityCollection($accountQuery);
+		$this->shopsConfig->filterShopsInShopEntityCollection($customerQuery);
+
+		/** @var \Security\DB\Account|null $account */
+		$account = $accountQuery->first();
+		/** @var \Eshop\DB\Customer|null $customer */
+		$customer = $customerQuery->first();
+
 		if (!$values['createAccount'] || (
-				(
-					(
-						!$this->accountRepository->one(['login' => $values['email']]) &&
-						!$this->customerRepository->one(['email' => $values['email']])
-					) ||
-					$this->shopperUser->isAlwaysCreateCustomerOnOrderCreated()
-				) &&
-				(
-					!$this->accountRepository->one(['login' => $values['email']]) ||
-					!$this->shopperUser->isAlwaysCreateCustomerOnOrderCreated()
-				)
+				(!$account && !$customer) || $this->shopperUser->isAlwaysCreateCustomerOnOrderCreated()
 			)
 		) {
 			return;
@@ -155,6 +159,7 @@ class AddressesForm extends Form
 	
 	public function success(AddressesForm $form): void
 	{
+		/** @var array<mixed> $values */
 		$values = $form->getValues('array');
 		
 		$values['password'] = $values['createAccount'] && $values['password'] ? $this->passwords->hash($values['password']) : null;
