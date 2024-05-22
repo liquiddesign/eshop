@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.225](https://github.com/liquiddesign/eshop/compare/v2.1.224...v2.1.225) (2024-05-22)
+
+### Bug Fixes
+
+
+##### Product Filter
+
+* Don't hide selected values ([75632c](https://github.com/liquiddesign/eshop/commit/75632c9b43897ea9dee3d5d40f5a8a782b4061f0))
+
+
+---
+
 ## [2.1.224](https://github.com/liquiddesign/eshop/compare/v2.1.223...v2.1.224) (2024-05-22)
 
 ### Features
