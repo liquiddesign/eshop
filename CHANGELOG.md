@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.224](https://github.com/liquiddesign/eshop/compare/v2.1.223...v2.1.224) (2024-05-22)
+
+### Features
+
+* Change onOrderReceived to not throw exception if message doesn't exist ([947c28](https://github.com/liquiddesign/eshop/commit/947c28b37fb0ad5f99a21244b33faf2489206d95))
+
+##### Product Filter
+
+* Don't show values with zero count ([f78756](https://github.com/liquiddesign/eshop/commit/f78756614ff3e401e6b00b527b6b8721ee0f3ffd))
+
+
+---
+
 ## [2.1.223](https://github.com/liquiddesign/eshop/compare/v2.1.222...v2.1.223) (2024-05-22)
 
 ### Features
