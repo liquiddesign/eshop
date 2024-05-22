@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.223](https://github.com/liquiddesign/eshop/compare/v2.1.222...v2.1.223) (2024-05-22)
+
+### Features
+
+
+##### Addresses Form
+
+* Add autocomplete hints ([52d451](https://github.com/liquiddesign/eshop/commit/52d45179c3428e3fffd66fc12740e27e2c6932b6))
+
+
+---
+
 ## [2.1.222](https://github.com/liquiddesign/eshop/compare/v2.1.221...v2.1.222) (2024-05-21)
 
 ### Bug Fixes
