@@ -27,30 +27,41 @@ class AddressesForm extends Form
 
 		$customer = $selectedCustomer ?? $customer;
 
-		$this->addText('email', 'AddressesForm.email')->setRequired()->addRule($this::EMAIL);
-		$this->addText('ccEmails', 'AddressesForm.ccEmails');
-		$this->addText('fullname', 'AddressesForm.fullname')->setRequired()->setMaxLength(32);
-		$this->addText('phone', 'AddressesForm.phone')->addRule(self::PATTERN, $translator->translate('AddressesForm.phonePattern', 'Pouze čísla a znak "+" na začátku!'), '^\+?[0-9]+$');
+		$this->addText('email', 'AddressesForm.email')
+			->setRequired()
+			->addRule($this::Email)
+			->setHtmlAttribute('autocomplete', 'email');
+
+		$this->addText('ccEmails', 'AddressesForm.ccEmails')->setHtmlAttribute('autocomplete', 'off');
+		$this->addText('fullname', 'AddressesForm.fullname')->setRequired()->setMaxLength(32)->setHtmlAttribute('autocomplete', 'name');
+		$this->addText('phone', 'AddressesForm.phone')
+			->setHtmlAttribute('autocomplete', 'tel')
+			->addRule(self::PATTERN, $translator->translate('AddressesForm.phonePattern', 'Pouze čísla a znak "+" na začátku!'), '^\+?[0-9]+$');
 
 		
 		// address bill
 		$billAddressBox = $this->addContainer('billAddress');
-		$billAddressBox->addText('street', 'AddressesForm.bill_street')->setRequired();
-		$billAddressBox->addText('city', 'AddressesForm.bill_city')->setRequired();
+		$billAddressBox->addText('street', 'AddressesForm.bill_street')->setRequired()->setHtmlAttribute('autocomplete', 'street-address');
+		$billAddressBox->addText('city', 'AddressesForm.bill_city')->setRequired()->setHtmlAttribute('autocomplete', 'address-level2');
 		$billAddressBox->addText('zipcode', 'AddressesForm.bill_zipcode')->setRequired()
+			->setHtmlAttribute('autocomplete', 'postal-code')
 			->addRule(self::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
-		$billAddressBox->addText('state', 'AddressesForm.bill_state');
+		$billAddressBox->addText('state', 'AddressesForm.bill_state')->setHtmlAttribute('autocomplete', 'address-level1');
 		
 		$otherAddress = $this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool) $this->shopperUser->getCheckoutManager()->getPurchase()->deliveryAddress);
 		$isCompany = $this->addCheckbox('isCompany', 'AddressesForm.isCompany')->setDefaultValue($customer?->isCompany());
 		$createAccount = $this->addCheckbox('createAccount', 'AddressesForm.createAccount');
+
 		$this->addPassword('password', 'AddressesForm.password')
+			->setHtmlAttribute('autocomplete', 'new-password')
 			->addConditionOn($createAccount, $this::EQUAL, true)
 			->setRequired();
 		$this->addPassword('passwordAgain', 'AddressesForm.passwordAgain')
+			->setHtmlAttribute('autocomplete', 'new-password')
 			->addConditionOn($createAccount, $this::EQUAL, true)
 			->addRule($this::EQUAL, 'Hesla se neshodují', $this['password'])
 			->setRequired();
+
 		$this->addCheckbox('sendNewsletters', 'AddressesForm.sendNewsletters');
 		$this->addCheckbox('sendSurvey', 'AddressesForm.sendSurvey');
 
@@ -58,11 +69,17 @@ class AddressesForm extends Form
 		$deliveryAddressBox = $this->addContainer('deliveryAddress');
 		$deliveryAddressBox->addText('name', 'AddressesForm.delivery_name')->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired();
 		$deliveryAddressBox->addText('companyName', 'AddressesForm.delivery_companyName')->setNullable();
-		$deliveryAddressBox->addText('street', 'AddressesForm.delivery_street')->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired();
-		$deliveryAddressBox->addText('city', 'AddressesForm.delivery_city')->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired();
-		$deliveryAddressBox->addText('zipcode', 'AddressesForm.delivery_zipcode')->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired()
+		$deliveryAddressBox->addText('street', 'AddressesForm.delivery_street')
+			->setHtmlAttribute('autocomplete', 'street-address')
+			->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired();
+		$deliveryAddressBox->addText('city', 'AddressesForm.delivery_city')
+			->setHtmlAttribute('autocomplete', 'address-level2')
+			->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired();
+		$deliveryAddressBox->addText('zipcode', 'AddressesForm.delivery_zipcode')
+			->setHtmlAttribute('autocomplete', 'postal-code')
+			->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired()
 			->addRule(self::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
-		$deliveryAddressBox->addText('state', 'AddressesForm.delivery_state');
+		$deliveryAddressBox->addText('state', 'AddressesForm.delivery_state')->setHtmlAttribute('autocomplete', 'address-level1');
 		
 		// company
 		$this->addText('ic', 'AddressesForm.ic')->addConditionOn($isCompany, $this::EQUAL, true)->setRequired();
