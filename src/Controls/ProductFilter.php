@@ -160,6 +160,10 @@ class ProductFilter extends Control
 						continue;
 					}
 
+					if (isset($defaults[$attribute->getPK()]) && Arrays::contains($defaults[$attribute->getPK()], $attributeValue)) {
+						continue;
+					}
+
 					unset($attributeValues[$attributeValue]);
 				}
 			} else {
@@ -179,7 +183,11 @@ class ProductFilter extends Control
 				$attributeValueCounts = $this->getAttributesValuesCounts();
 
 				foreach (\array_keys($attributeValues) as $attributeValue) {
-					if (isset($attributeValueCounts[$attributeValue]) && $attributeValueCounts[$attributeValue] > 0) {
+					if ((isset($attributeValueCounts[$attributeValue]) && $attributeValueCounts[$attributeValue] > 0)) {
+						continue;
+					}
+
+					if (isset($defaults[$attribute->getPK()]) && Arrays::contains($defaults[$attribute->getPK()], $attributeValue)) {
 						continue;
 					}
 
@@ -192,7 +200,7 @@ class ProductFilter extends Control
 			}
 			
 			$checkboxList = $attributesContainer->addCheckboxList((string) $attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
-			
+
 			if (!isset($defaults[$attribute->getPK()])) {
 				continue;
 			}
