@@ -323,7 +323,8 @@ class Purchase extends \StORM\Entity
 	{
 		$customer->update([
 			'email' => $this->email,
-			'fullname' => $this->fullname,
+			'fullname' => $this->isCompany() ? null : $this->fullname,
+			'company' => $this->isCompany() ? $this->fullname : null,
 			'phone' => $this->phone,
 			'ic' => $this->ic ?: null,
 			'dic' => $this->dic ?: null,
