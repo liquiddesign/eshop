@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.226](https://github.com/liquiddesign/eshop/compare/v2.1.225...v2.1.226) (2024-05-23)
+
+### Bug Fixes
+
+
+##### Addresses Form
+
+* Check createAccount in shops ([ee4485](https://github.com/liquiddesign/eshop/commit/ee4485f52370affc4e2cf8fc53e4237c751dd1e5))
+
+##### Purchase
+
+* Save company name if fillProfile ([cf9fc5](https://github.com/liquiddesign/eshop/commit/cf9fc5b597add1daa10400122c2fe4c28d6cf943))
+
+
+---
+
 ## [2.1.225](https://github.com/liquiddesign/eshop/compare/v2.1.224...v2.1.225) (2024-05-22)
 
 ### Bug Fixes
