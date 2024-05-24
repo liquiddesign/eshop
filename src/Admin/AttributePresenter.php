@@ -378,12 +378,12 @@ class AttributePresenter extends BackendPresenter
 
 		$grid->addColumnLinkDetail('valueDetail');
 		$grid->addColumnActionDelete(null, false, function (AttributeValue $attributeValue) {
-			return !$this->attributeValueRepository->isValuePairedWithProducts($attributeValue);
+			return !$this->attributeValueRepository->isValuePairedWithProducts($attributeValue) && !$attributeValue->isSystemic();
 		});
 
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected(null, false, function (AttributeValue $attributeValue) {
-			return !$this->attributeValueRepository->isValuePairedWithProducts($attributeValue);
+			return !$this->attributeValueRepository->isValuePairedWithProducts($attributeValue) && !$attributeValue->isSystemic();
 		}, 'this.uuid');
 		$grid->addButtonBulkEdit('valuesForm', ['attributeValueRange'], 'valuesGrid');
 
