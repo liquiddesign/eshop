@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.227](https://github.com/liquiddesign/eshop/compare/v2.1.226...v2.1.227) (2024-05-24)
+
+### Bug Fixes
+
+
+##### Product Import
+
+* Case insensitive ([d6da54](https://github.com/liquiddesign/eshop/commit/d6da549d88e0c380b3c9f173f7bf67cfc110bff4))
+
+
+---
+
 ## [2.1.226](https://github.com/liquiddesign/eshop/compare/v2.1.225...v2.1.226) (2024-05-23)
 
 ### Bug Fixes
