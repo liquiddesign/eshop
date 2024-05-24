@@ -561,7 +561,7 @@ class ProductImporter
 
 					/** @var \stdClass|null|false|\Eshop\DB\AttributeValue $attributeValue */
 					$attributeValue = BaseHelpers::arrayFind($groupedAttributeValues[$key] ?? [], function (\stdClass $x) use ($attributeValueCode): bool {
-						return Strings::lower($x->code) === Strings::lower($attributeValueCode);
+						return Strings::trim(Strings::lower($x->code)) === Strings::trim(Strings::lower($attributeValueCode));
 					});
 
 					if (!$attributeValue && !$createAttributeValues) {
