@@ -48,7 +48,7 @@
         "dfridrich/qr-platba": "^2.0",
         "latte/latte": "^3.0",
         "ramsey/uuid": "^4.7",
-        "liquiddesign/liquid-monitor-connector": "^1.0.4"
+        "liquiddesign/liquid-monitor-connector": "^1.0.19"
     },
     "minimum-stability": "stable",
     "require-dev": {
