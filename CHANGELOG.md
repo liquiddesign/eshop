@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.229](https://github.com/liquiddesign/eshop/compare/v2.1.228...v2.1.229) (2024-05-25)
+
+### Chores
+
+* Update minimum version ([7e81a0](https://github.com/liquiddesign/eshop/commit/7e81a0f893b10d711179b8ffaa49eacf6e56a638))
+
+
+---
+
 ## [2.1.228](https://github.com/liquiddesign/eshop/compare/v2.1.227...v2.1.228) (2024-05-24)
 
 ### Bug Fixes
