@@ -69,7 +69,7 @@ class ProductAttributesForm extends Control
 		}
 
 		if (\count($attributes) === 0) {
-			$this->error = 'Produkt nemá žádné atributy!';
+			$this->error = 'Produkt nemá žádné atributy nebo žádný z nich není přiřazený ke kategorii!';
 
 			return;
 		}
