@@ -730,7 +730,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 		$this->formFactory->addShopsContainerToAdminForm($form, false);
 
-		if ($customer) {
+		if ($customer && isset($form['shop'])) {
 			$form['shop']->setDisabled();
 		}
 
