@@ -150,6 +150,17 @@ class ProductFilter extends Control
 		
 		$defaults = $productList->getFilters()['attributes'] ?? [];
 
+		$attributeValuesByAttribute = [];
+
+		foreach ($this->getAttributes() as $attribute) {
+			if (!Arrays::contains(\array_keys($this::SYSTEMIC_ATTRIBUTES), $attribute->getPK())) {
+				$attributeValuesByAttribute[$attribute->getPK()] = $attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
+				$this->attributeValues = \array_merge($this->attributeValues, \array_keys($attributeValues));
+			}
+		}
+
+		$attributeValueCounts = $this->getAttributesValuesCounts();
+
 		foreach ($this->getAttributes() as $attribute) {
 			if (Arrays::contains(\array_keys($this::SYSTEMIC_ATTRIBUTES), $attribute->getPK())) {
 				$attributeValues = $this->getSystemicAttributeValues((string) $attribute->getPK());
@@ -167,20 +178,17 @@ class ProductFilter extends Control
 					unset($attributeValues[$attributeValue]);
 				}
 			} else {
-				$attributeValues = $this->attributeRepository->getAttributeValues($attribute)->toArrayOf('label');
-				$this->attributeValues = \array_merge($this->attributeValues, \array_keys($attributeValues));
-				
+				$attributeValues = $attributeValuesByAttribute[$attribute->getPK()] ?? [];
+
 				if ($attribute->showRange) {
 					$attributeValues = [];
-					
+
 					/** @var \Eshop\DB\AttributeValueRange $rangeAttribute */
 					foreach ($this->getRangeValues($attribute) as $rangeAttribute) {
 						$attributeValues[$rangeAttribute->getPK()] = $rangeAttribute->name;
 						$this->rangeValues[$rangeAttribute->getPK()] = \explode(',', $rangeAttribute->concatValues);
 					}
 				}
-
-				$attributeValueCounts = $this->getAttributesValuesCounts();
 
 				foreach (\array_keys($attributeValues) as $attributeValue) {
 					if ((isset($attributeValueCounts[$attributeValue]) && $attributeValueCounts[$attributeValue] > 0)) {
@@ -194,7 +202,7 @@ class ProductFilter extends Control
 					unset($attributeValues[$attributeValue]);
 				}
 			}
-			
+
 			if (!$attributeValues) {
 				continue;
 			}
@@ -281,23 +289,25 @@ class ProductFilter extends Control
 	 */
 	protected function getAttributesValuesCounts(): array
 	{
+		if (isset($this->attributesValuesCounts)) {
+			return $this->attributesValuesCounts;
+		}
+
 		/** @var array<array<array<string>>> $filters */
 		$filters = $this->getProductList()->getFilters();
 
 		$providerOutput = $this->getProductList()->getProviderOutput();
 
-		if (isset($this->attributesValuesCounts)) {
-			return $this->attributesValuesCounts;
-		}
+		$this->attributesValuesCounts = ($providerOutput['attributeValuesCounts'] ?? $this->attributeRepository->getCounts($this->attributeValues, $filters));
 
 		foreach ($this->rangeValues as $rangeId => $valuesIds) {
 			foreach ($valuesIds as $valueId) {
-				$this->template->attributesValuesCounts[$rangeId] ??= 0;
-				$this->template->attributesValuesCounts[$rangeId] += $this->template->attributesValuesCounts[$valueId] ?? 0;
+				$this->attributesValuesCounts[$rangeId] ??= 0;
+				$this->attributesValuesCounts[$rangeId] += $this->attributesValuesCounts[$valueId] ?? 0;
 			}
 		}
 
-		return $this->attributesValuesCounts ??= ($providerOutput['attributeValuesCounts'] ?? $this->attributeRepository->getCounts($this->attributeValues, $filters));
+		return $this->attributesValuesCounts;
 	}
 	
 	protected function getProductList(): ProductList

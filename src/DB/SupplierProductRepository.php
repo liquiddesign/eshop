@@ -146,7 +146,7 @@ class SupplierProductRepository extends \StORM\Repository
 
 		while ($draft = $drafts->fetch()) {
 			/** @var \stdClass|\Eshop\DB\SupplierProduct $draft */
-			$categories = \array_filter(\explode(',', $draft->realCategories), fn ($v) => $v);
+			$categories = \array_filter(\explode(',', $draft->realCategories), fn (string|null $v) => (bool) $v);
 			$displayAmount = $draft->realDisplayAmount;
 			$producer = $draft->realProducer;
 			$currentUpdates = $updates;
