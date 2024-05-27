@@ -4,6 +4,23 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.230](https://github.com/liquiddesign/eshop/compare/v2.1.229...v2.1.230) (2024-05-27)
+
+### Features
+
+* Better error message ([5fe6c1](https://github.com/liquiddesign/eshop/commit/5fe6c1ed8a1288d3637d09347fe3ae4b4ec29cdf))
+
+### Bug Fixes
+
+* Bad mapping or relation between Merchant and Customer ([090546](https://github.com/liquiddesign/eshop/commit/090546ebdddb71b5a57b6ed021613607c87d26cf))
+
+##### Product Filter
+
+* Counts loading without cache ([2d8196](https://github.com/liquiddesign/eshop/commit/2d8196c92de5692de06eca6089400815d3e1961f))
+
+
+---
+
 ## [2.1.229](https://github.com/liquiddesign/eshop/compare/v2.1.228...v2.1.229) (2024-05-25)
 
 ### Chores
