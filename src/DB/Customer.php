@@ -209,7 +209,7 @@ class Customer extends ShopEntity implements IIdentity, IUser
 
 	/**
 	 * Obchodníci
-	 * @relationNxN{"sourceViaKey":"fk_merchant","targetViaKey":"fk_customer","via":"eshop_merchant_nxn_eshop_customer"}
+	 * @relationNxN{"sourceViaKey":"fk_customer","targetViaKey":"fk_merchant","via":"eshop_merchant_nxn_eshop_customer"}
 	 * @var \StORM\RelationCollection<\Eshop\DB\Merchant>
 	 */
 	public RelationCollection $merchants;

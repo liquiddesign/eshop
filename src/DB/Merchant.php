@@ -87,7 +87,7 @@ class Merchant extends \StORM\Entity implements IIdentity, IUser
 
 	/**
 	 * Zákazníci
-	 * @relationNxN
+	 * @relationNxN{"sourceViaKey":"fk_merchant","targetViaKey":"fk_customer","via":"eshop_merchant_nxn_eshop_customer"}
 	 * @var \StORM\RelationCollection<\Eshop\DB\Customer>
 	 */
 	public RelationCollection $customers;
