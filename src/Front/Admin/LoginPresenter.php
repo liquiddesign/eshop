@@ -24,7 +24,7 @@ abstract class LoginPresenter extends \Eshop\Front\FrontendPresenter
 	
 	public function actionDefault(): void
 	{
-		if ($this->admin->isLoggedIn()) {
+		if ($this->admin->isLoggedIn() && $this->admin->isAllowed($this->admin->getDefaultLink())) {
 			$this->redirect($this->admin->getDefaultLink());
 		}
 		
