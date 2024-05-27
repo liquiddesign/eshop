@@ -114,6 +114,19 @@ class GroupPresenter extends BackendPresenter
 		$this->gridFactory->addShopsFilterSelect($grid);
 
 		$grid->addFilterButtons();
+
+		$grid->addButtonBulkEdit('newForm', [
+			'defaultPricesWithVat',
+			'defaultPricesWithoutVat',
+			'defaultPriorityPrice',
+			'defaultCatalogPermission',
+			'defaultDiscountLevelPct',
+			'defaultMaxDiscountProductPct',
+			'defaultBuyAllowed',
+			'defaultPricelists',
+			'defaultVisibilityLists',
+			'defaultViewAllOrders',
+		], 'grid');
 		
 		$grid->onRenderRow[] = function (\Nette\Utils\Html $row, $object): void {
 			/** @var \Eshop\DB\CustomerGroup $object */
@@ -124,7 +137,7 @@ class GroupPresenter extends BackendPresenter
 		
 		return $grid;
 	}
-	
+
 	public function createComponentNewForm(): Form
 	{
 		$form = $this->formFactory->create();
