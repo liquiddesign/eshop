@@ -4,6 +4,31 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.231](https://github.com/liquiddesign/eshop/compare/v2.1.230...v2.1.231) (2024-05-28)
+
+### Features
+
+
+##### Admin
+
+* Add bulk email sending to Accounts ([d32190](https://github.com/liquiddesign/eshop/commit/d32190eaa7f033dd94e803879dde28caad8b242f))
+* Add bulk edit to Groups ([1261f8](https://github.com/liquiddesign/eshop/commit/1261f8486575fd1c6bc3e9d955581907590f653e))
+
+### Bug Fixes
+
+
+##### Admin
+
+* Isset ([05b649](https://github.com/liquiddesign/eshop/commit/05b6499c56e38adbc9f8b79c76fe9cb437287f5f))
+* Login isAllowed ([e1231e](https://github.com/liquiddesign/eshop/commit/e1231ea00655b53c89adb8959a22bd3072ab10ce))
+
+##### Front Product
+
+* Query fix ([059715](https://github.com/liquiddesign/eshop/commit/059715978880929b443809dc0206fd5d1a3d8907))
+
+
+---
+
 ## [2.1.230](https://github.com/liquiddesign/eshop/compare/v2.1.229...v2.1.230) (2024-05-27)
 
 ### Features
