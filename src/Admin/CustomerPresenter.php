@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\Admin\Controls\AccountFormFactory;
-use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\AddressRepository;
@@ -35,14 +34,16 @@ use Nette\Application\Responses\FileResponse;
 use Nette\DI\Attributes\Inject;
 use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
+use Nette\NotImplementedException;
 use Nette\Utils\Arrays;
 use Nette\Utils\Validators;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
+use StORM\Collection;
 use StORM\Connection;
 use StORM\ICollection;
 
-class CustomerPresenter extends BackendPresenter
+class CustomerPresenter extends \Eshop\BackendPresenter
 {
 	public const TABS = [
 		'customers' => 'Zákazníci',
@@ -67,7 +68,9 @@ class CustomerPresenter extends BackendPresenter
 		'targitoOrigin' => null,
 		'customerRoles' => false,
 	];
-	
+
+	protected const SHOW_ACCOUNTS_BULK_REGISTER_EMAIL = false;
+
 	/** @persistent */
 	public string $tab = 'customers';
 
@@ -1008,6 +1011,25 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		
 		return $this->accountFormFactory->create(false, $callback, true, true, $this->getParameter('account'));
 	}
+
+	public function renderSendNewPasswordToAccountMultiple(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Odeslat e-mail s novým heslem';
+		$this->template->headerTree = [
+			['Zákazníci', 'default'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('sendNewPasswordToAccountMultipleForm')];
+	}
+
+	public function createComponentSendNewPasswordToAccountMultipleForm(): AdminForm
+	{
+		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('accountGrid'), function (array $values, Collection $collection, AdminForm $form): never {
+			$this->sendNewPasswordToAccount($values, $collection);
+		}, $this->getBulkFormActionLink(), $this->accountRepository->many(), $this->getBulkFormIds());
+	}
 	
 	public function createComponentAccountGrid(): AdminGrid
 	{
@@ -1111,7 +1133,11 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$this->gridFactory->addShopsFilterSelect($grid);
 
 		$grid->addFilterButtons();
-		
+
+		if ($this::SHOW_ACCOUNTS_BULK_REGISTER_EMAIL) {
+			$grid->addBulkAction('sendNewPasswordToAccountMultiple', 'sendNewPasswordToAccountMultiple', 'Poslat registrační e-mail (nové heslo)');
+		}
+
 		return $grid;
 	}
 	
@@ -1265,6 +1291,17 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		};
 		
 		return $form;
+	}
+
+	/**
+	 * @param array<mixed> $values
+	 * @param \StORM\Collection<\Security\DB\Account> $collection
+	 */
+	protected function sendNewPasswordToAccount(array $values, Collection $collection): never
+	{
+		unset($values, $collection);
+
+		throw new NotImplementedException();
 	}
 
 	/**

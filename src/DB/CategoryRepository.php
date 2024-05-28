@@ -111,7 +111,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 				);
 
 				if (!isset($result['productPKs'])) {
-					throw new \Exception('No results returned');
+					throw new \Exception('No results returned', 204);
 				}
 
 				\Tracy\Debugger::barDump(\Tracy\Debugger::timer('getProductsFromCacheTable'), 'cacheProducts');
@@ -119,8 +119,10 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 				return \count($result['productPKs']);
 			} catch (\Throwable $e) {
-				Debugger::log($e, ILogger::EXCEPTION);
-				Debugger::barDump($e);
+				if ($e->getCode() !== 204) {
+					Debugger::log($e, ILogger::EXCEPTION);
+					Debugger::barDump($e->getMessage());
+				}
 
 				$collection = $productRepository->many()
 					->setSelect(['total' => 'COUNT(DISTINCT this.uuid)']);
