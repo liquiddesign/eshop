@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.232](https://github.com/liquiddesign/eshop/compare/v2.1.231...v2.1.232) (2024-05-28)
+
+### Features
+
+
+##### Customer
+
+* Favourite products ([e543d5](https://github.com/liquiddesign/eshop/commit/e543d5e420fdc9ad1ebd5bfb33b0ee774f3d7e77))
+
+
+---
+
 ## [2.1.231](https://github.com/liquiddesign/eshop/compare/v2.1.230...v2.1.231) (2024-05-28)
 
 ### Features
