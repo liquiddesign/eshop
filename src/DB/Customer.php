@@ -22,6 +22,7 @@ use StORM\RelationCollection;
  * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getFavouritePricelists()
  * @method \StORM\RelationCollection<\Eshop\DB\Merchant> getMerchants()
  * @method \StORM\RelationCollection<\Security\DB\Account> getAccounts()
+ * @method \StORM\RelationCollection<\Eshop\DB\Product> getFavouriteProducts()
  * Due to compatibility within PHP 8.0-8.2 and seamless migration to this version, DynamicProperties are allowed in this class. If they are not, you will have to clear all sessions' data.
  */
 #[\AllowDynamicProperties]
@@ -340,6 +341,13 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @var \StORM\RelationCollection<\Security\DB\Account>
 	 */
 	public RelationCollection $accounts;
+
+	/**
+	 * Oblíbené produkty
+	 * @relationNxN{"via":"eshop_customer_nxn_eshop_product_favourite"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\Product>
+	 */
+	public RelationCollection $favouriteProducts;
 	
 	public ?Account $account = null;
 

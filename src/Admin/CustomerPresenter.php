@@ -21,6 +21,7 @@ use Eshop\DB\NewsletterUserRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PricelistRepository;
+use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\Services\LostPasswordService;
@@ -31,6 +32,7 @@ use Grid\Datagrid;
 use League\Csv\Writer;
 use Messages\DB\TemplateRepository;
 use Nette\Application\Responses\FileResponse;
+use Nette\Application\UI\Presenter;
 use Nette\DI\Attributes\Inject;
 use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
@@ -573,124 +575,147 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 		/** @var \Eshop\DB\Customer|null $customer */
 		$customer = $this->getParameter('customer');
-		
-		$form->addText('fullname', 'Jméno a příjmení');
-		$form->addText('company', 'Firma');
-		$form->addText('ic', 'IČ');
-		$form->addText('dic', 'DIČ');
-		$form->addText('phone', 'Telefon');
-		
-		$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired()->setDisabled((bool) $customer);
-		$form->addText('ccEmails', 'Kopie e-mailů')->setHtmlAttribute('data-info', 'Zadejte e-mailové adresy oddělené středníkem (;).');
-		
-		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
-			->setHtmlAttribute('placeholder', 'Vyberte položky...')
-			->setDisabled(!$this->isManager);
 
-		$form->addDataMultiSelect('favouritePriceLists', 'Oblíbené ceníky', $this->pricelistRepo->getArrayForSelect())
-			->setHtmlAttribute('placeholder', 'Vyberte položky...')
-			->setHtmlAttribute('data-info', 'Pokud zvolený ceník není přiřazen jako "Ceníky", bude dodatečně spárován.')
-			->setDisabled(!$this->isManager);
+		$form->monitor(Presenter::class, function (Presenter $presenter) use ($form, $customer, $lableMerchants): void {
+			$form->addText('fullname', 'Jméno a příjmení');
+			$form->addText('company', 'Firma');
+			$form->addText('ic', 'IČ');
+			$form->addText('dic', 'DIČ');
+			$form->addText('phone', 'Telefon');
 
-		$form->addMultiSelect2('visibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect())
-			->setDisabled(!$this->isManager);
-		
-		$customersForSelect = $this->customerRepository->getArrayForSelect();
-		
-		if ($customer) {
-			unset($customersForSelect[$customer->getPK()]);
-		}
-		
-		$form->addDataMultiSelect('merchants', $lableMerchants, $this->merchantRepository->getArrayForSelect());
-		$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']))
-			->setPrompt('Žádná');
+			$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired()->setDisabled((bool) $customer);
+			$form->addText('ccEmails', 'Kopie e-mailů')->setHtmlAttribute('data-info', 'Zadejte e-mailové adresy oddělené středníkem (;).');
 
-		if (isset($this::CONFIGURATIONS['customerRoles']) && $this::CONFIGURATIONS['customerRoles']) {
-			$form->addDataSelect('customerRole', 'Role', $this->customerRoleRepo->getArrayForSelect(true))->setPrompt('Žádná');
-		}
+			$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
+				->setHtmlAttribute('placeholder', 'Vyberte položky...')
+				->setDisabled(!$this->isManager);
 
-		$form->addGroup('Nákup a preference');
-		
-		if (isset($this::CONFIGURATIONS['branches']) && $this::CONFIGURATIONS['branches']) {
-			$form->addSelect2('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->checkDefaultValue(false)->setPrompt('Žádná');
-			$form->addSelect('orderPermission', 'Objednání', [
-				'fullWithApproval' => 'Pouze se schválením',
-				'full' => 'Povoleno',
-			])->setDefaultValue('full');
-		}
+			$form->addDataMultiSelect('favouritePriceLists', 'Oblíbené ceníky', $this->pricelistRepo->getArrayForSelect())
+				->setHtmlAttribute('placeholder', 'Vyberte položky...')
+				->setHtmlAttribute('data-info', 'Pokud zvolený ceník není přiřazen jako "Ceníky", bude dodatečně spárován.')
+				->setDisabled(!$this->isManager);
 
-		$form->addText('lastOrder', 'Poslední objednávka')->setDisabled();
-		
-		$form->addDataSelect('preferredMutation', 'Preferovaný jazyk', \array_combine($this->formFactory->formFactory->getDefaultMutations(), $this->formFactory->formFactory->getDefaultMutations()))
-			->setPrompt('Automaticky');
-		$form->addDataSelect('preferredCurrency', 'Preferovaná měna nákupu', $this->currencyRepo->getArrayForSelect())->setPrompt('Žádný');
-		
-		if (isset($this::CONFIGURATIONS['deliveryPayment']) && $this::CONFIGURATIONS['deliveryPayment']) {
-			$form->addDataSelect('preferredPaymentType', 'Preferovaná platba', $this->paymentTypeRepo->getArrayForSelect())->setPrompt('Žádná');
-			$form->addDataSelect('preferredDeliveryType', 'Preferovaná doprava', $this->deliveryTypeRepo->getArrayForSelect())->setPrompt('Žádná');
-			$form->addDataMultiSelect('exclusivePaymentTypes', 'Povolené exkluzivní platby', $this->paymentTypeRepo->getArrayForSelect())
-				->setHtmlAttribute('placeholder', 'Vyberte položky...');
-			$form->addDataMultiSelect('exclusiveDeliveryTypes', 'Povolené exkluzivní dopravy', $this->deliveryTypeRepo->getArrayForSelect())
-				->setHtmlAttribute('placeholder', 'Vyberte položky...');
-		}
-		
-		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram'] && $this->isManager) {
-			$form->addSelect2('loyaltyProgram', 'Věrnostní program', $this->loyaltyProgramRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
-			//->setHtmlAttribute('data-info', 'Zadejte e-mailové adresy oddělené středníkem (;).');
-			
-			if ($customer && $customer->getValue('loyaltyProgram')) {
-				$loyaltyProgram = $this->loyaltyProgramRepository->one($customer->getValue('loyaltyProgram'), true);
-				$customerTurnover = $this->orderRepository->getCustomerTotalTurnover(
-					$customer,
-					$loyaltyProgram->turnoverFrom ?
-					new \Carbon\Carbon($loyaltyProgram->turnoverFrom) : null,
-					new \Carbon\Carbon(),
-				);
-				
-				$form->addText('loyaltyProgramTurnover', 'Objem objednávek (Kč)')->setDisabled()->setDefaultValue((string) $customerTurnover);
-				$form->addText('loyaltyProgramPoints', 'Stav věrnostního konta')->setDisabled()->setDefaultValue((string) $customer->getLoyaltyProgramPoints());
-				$form->addText('loyaltyProgramDiscountLevel', 'Procentuální sleva věrnostního programu (%)')
-					->setDisabled();
+			$form->addMultiSelect2('visibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect())
+				->setDisabled(!$this->isManager);
+
+			$customersForSelect = $this->customerRepository->getArrayForSelect();
+
+			if ($customer) {
+				unset($customersForSelect[$customer->getPK()]);
 			}
-		}
-		
-		if (isset($this::CONFIGURATIONS['discountLevel']) && $this::CONFIGURATIONS['discountLevel'] && $this->isManager) {
-			$form->addInteger('discountLevelPct', 'Sleva (%)')
-				->setHtmlAttribute(
-					'data-info',
-					'Aplikuje se vždy největší z čtveřice: procentuální slevy produktu, procentuální slevy zákazníka, slevy věrnostního programu zákazníka nebo slevového kupónu.<br>
-Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
-				)
-				->setDefaultValue(0)
-				->setRequired();
-			
-			$form->addInteger('maxDiscountProductPct', 'Max. sleva produktů (%)')
-				->setHtmlAttribute(
-					'data-info',
-					'Omezuje maximální slevu z dvojice uživatel - produkt.',
-				)
-				->setDefaultValue(0)
-				->setRequired();
-		}
-		
-		if (isset($this::CONFIGURATIONS['rounding']) && $this::CONFIGURATIONS['rounding']) {
-			$form->addText('productRoundingPct', 'Zokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
-		}
-		
-		$form->addGroup('Exporty');
-		$form->addCheckbox('allowExport', 'Feed povolen');
-		
-		if ($this::CONFIGURATIONS['edi']) {
-			$form->addText('ediCompany', 'EDI: Identifikátor firmy')
-				->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
-			$form->addText('ediBranch', 'EDI: Identifikátor pobočky')
-				->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
-		}
 
-		$form->addGroup('Cache');
-		$form->addText('cacheIndex', 'Index')
-			->setDisabled()
-			->setDefaultValue($customer ? $this->productsCacheGetterService->getIndexByCustomer($customer) : null);
+			$form->addDataMultiSelect('merchants', $lableMerchants, $this->merchantRepository->getArrayForSelect());
+			$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']))
+				->setPrompt('Žádná');
+
+			$productInput = $form->addMultiSelectAjax('favouriteProducts', 'Produkt', 'Zvolte produkt', Product::class);
+
+			if ($customer) {
+				$this->template->select2AjaxDefaults[$productInput->getHtmlId()] = $customer->getFavouriteProducts()->toArrayOf('name');
+			}
+
+			if (isset($this::CONFIGURATIONS['customerRoles']) && $this::CONFIGURATIONS['customerRoles']) {
+				$form->addDataSelect('customerRole', 'Role', $this->customerRoleRepo->getArrayForSelect(true))->setPrompt('Žádná');
+			}
+
+			$form->addGroup('Nákup a preference');
+
+			if (isset($this::CONFIGURATIONS['branches']) && $this::CONFIGURATIONS['branches']) {
+				$form->addSelect2('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->checkDefaultValue(false)->setPrompt('Žádná');
+				$form->addSelect('orderPermission', 'Objednání', [
+					'fullWithApproval' => 'Pouze se schválením',
+					'full' => 'Povoleno',
+				])->setDefaultValue('full');
+			}
+
+			$form->addText('lastOrder', 'Poslední objednávka')->setDisabled();
+
+			$form->addDataSelect(
+				'preferredMutation',
+				'Preferovaný jazyk',
+				\array_combine($this->formFactory->formFactory->getDefaultMutations(), $this->formFactory->formFactory->getDefaultMutations())
+			)
+				->setPrompt('Automaticky');
+			$form->addDataSelect('preferredCurrency', 'Preferovaná měna nákupu', $this->currencyRepo->getArrayForSelect())->setPrompt('Žádný');
+
+			if (isset($this::CONFIGURATIONS['deliveryPayment']) && $this::CONFIGURATIONS['deliveryPayment']) {
+				$form->addDataSelect('preferredPaymentType', 'Preferovaná platba', $this->paymentTypeRepo->getArrayForSelect())->setPrompt('Žádná');
+				$form->addDataSelect('preferredDeliveryType', 'Preferovaná doprava', $this->deliveryTypeRepo->getArrayForSelect())->setPrompt('Žádná');
+				$form->addDataMultiSelect('exclusivePaymentTypes', 'Povolené exkluzivní platby', $this->paymentTypeRepo->getArrayForSelect())
+					->setHtmlAttribute('placeholder', 'Vyberte položky...');
+				$form->addDataMultiSelect('exclusiveDeliveryTypes', 'Povolené exkluzivní dopravy', $this->deliveryTypeRepo->getArrayForSelect())
+					->setHtmlAttribute('placeholder', 'Vyberte položky...');
+			}
+
+			if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram'] && $this->isManager) {
+				$form->addSelect2('loyaltyProgram', 'Věrnostní program', $this->loyaltyProgramRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
+				//->setHtmlAttribute('data-info', 'Zadejte e-mailové adresy oddělené středníkem (;).');
+
+				if ($customer && $customer->getValue('loyaltyProgram')) {
+					$loyaltyProgram = $this->loyaltyProgramRepository->one($customer->getValue('loyaltyProgram'), true);
+					$customerTurnover = $this->orderRepository->getCustomerTotalTurnover(
+						$customer,
+						$loyaltyProgram->turnoverFrom ?
+							new \Carbon\Carbon($loyaltyProgram->turnoverFrom) : null,
+						new \Carbon\Carbon(),
+					);
+
+					$form->addText('loyaltyProgramTurnover', 'Objem objednávek (Kč)')->setDisabled()->setDefaultValue((string) $customerTurnover);
+					$form->addText('loyaltyProgramPoints', 'Stav věrnostního konta')->setDisabled()->setDefaultValue((string) $customer->getLoyaltyProgramPoints());
+					$form->addText('loyaltyProgramDiscountLevel', 'Procentuální sleva věrnostního programu (%)')
+						->setDisabled();
+				}
+			}
+
+			if (isset($this::CONFIGURATIONS['discountLevel']) && $this::CONFIGURATIONS['discountLevel'] && $this->isManager) {
+				$form->addInteger('discountLevelPct', 'Sleva (%)')
+					->setHtmlAttribute(
+						'data-info',
+						'Aplikuje se vždy největší z čtveřice: procentuální slevy produktu, procentuální slevy zákazníka, slevy věrnostního programu zákazníka nebo slevového kupónu.<br>
+Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
+					)
+					->setDefaultValue(0)
+					->setRequired();
+
+				$form->addInteger('maxDiscountProductPct', 'Max. sleva produktů (%)')
+					->setHtmlAttribute(
+						'data-info',
+						'Omezuje maximální slevu z dvojice uživatel - produkt.',
+					)
+					->setDefaultValue(0)
+					->setRequired();
+			}
+
+			if (isset($this::CONFIGURATIONS['rounding']) && $this::CONFIGURATIONS['rounding']) {
+				$form->addText('productRoundingPct', 'Zokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
+			}
+
+			$form->addGroup('Exporty');
+			$form->addCheckbox('allowExport', 'Feed povolen');
+
+			if ($this::CONFIGURATIONS['edi']) {
+				$form->addText('ediCompany', 'EDI: Identifikátor firmy')
+					->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
+				$form->addText('ediBranch', 'EDI: Identifikátor pobočky')
+					->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
+			}
+
+			$form->addGroup('Cache');
+			$form->addText('cacheIndex', 'Index')
+				->setDisabled()
+				->setDefaultValue($customer ? $this->productsCacheGetterService->getIndexByCustomer($customer) : null);
+
+
+			$this->addCustomFieldsToCustomerForm($form);
+
+			$this->formFactory->addShopsContainerToAdminForm($form, false);
+
+			if ($customer && isset($form['shop'])) {
+				$form['shop']->setDisabled();
+			}
+
+			$form->addSubmits(!$this->getParameter('customer'));
+		});
 
 		$form->onValidate[] = function (AdminForm $form): void {
 			if (!$form->isValid()) {
@@ -729,18 +754,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			return;
 		};
 
-		$this->addCustomFieldsToCustomerForm($form);
-
-		$this->formFactory->addShopsContainerToAdminForm($form, false);
-
-		if ($customer && isset($form['shop'])) {
-			$form['shop']->setDisabled();
-		}
-
-		$form->addSubmits(!$this->getParameter('customer'));
-
 		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
+			$values = $form->getValuesWithAjax();
 
 			$merchants = Arrays::pick($values, 'merchants');
 
