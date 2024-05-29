@@ -4,6 +4,25 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.235](https://github.com/liquiddesign/eshop/compare/v2.1.234...v2.1.235) (2024-05-29)
+
+### Features
+
+
+##### Customer
+
+* Show IC ([c0bab2](https://github.com/liquiddesign/eshop/commit/c0bab25469e4d47397e2981f2cc7efc054bc0562))
+
+### Bug Fixes
+
+
+##### Profile Form
+
+* Validation, types ([599cfe](https://github.com/liquiddesign/eshop/commit/599cfe9e27bd85f283bee435ac1e89a60c4ed411))
+
+
+---
+
 ## [2.1.234](https://github.com/liquiddesign/eshop/compare/v2.1.233...v2.1.234) (2024-05-29)
 
 ### Features
