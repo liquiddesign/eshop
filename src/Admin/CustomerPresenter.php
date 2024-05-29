@@ -384,7 +384,13 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder'], false, null, 'this.uuid');
 		
-		$grid->addButtonBulkEdit('form', $this->getBulkEdits(), 'customers');
+		$grid->addButtonBulkEdit('form', $this->getBulkEdits(), 'customers', onBeforeProcess: function (array $values, array $relations): array {
+			if (isset($this->getHttpRequest()->getPost()['values']['favouriteProducts']) && $this->getHttpRequest()->getPost()['values']['favouriteProducts']) {
+				$relations['favouriteProducts'] = $this->getHttpRequest()->getPost()['values']['favouriteProducts'];
+			}
+
+			return [$values, $relations];
+		});
 		
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů')
 			->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
@@ -1331,6 +1337,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$bulkEdits[] = 'favouritePriceLists';
 			$bulkEdits[] = 'visibilityLists';
 			$bulkEdits[] = 'discountLevelPct';
+			$bulkEdits[] = 'favouriteProducts';
 		}
 
 		if ($this->isManager && isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
