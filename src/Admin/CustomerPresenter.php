@@ -608,7 +608,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']))
 				->setPrompt('Žádná');
 
-			$productInput = $form->addMultiSelectAjax('favouriteProducts', 'Produkt', 'Zvolte produkt', Product::class);
+			$productInput = $form->addMultiSelectAjax('favouriteProducts', 'Oblíbené produkty', 'Zvolte produkt', Product::class);
 
 			if ($customer) {
 				$this->template->select2AjaxDefaults[$productInput->getHtmlId()] = $customer->getFavouriteProducts()->toArrayOf('name');
