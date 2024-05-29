@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.233](https://github.com/liquiddesign/eshop/compare/v2.1.232...v2.1.233) (2024-05-29)
+
+### Features
+
+
+##### Customer
+
+* Favourite products label change ([dda5c8](https://github.com/liquiddesign/eshop/commit/dda5c8fc4c9e8f45c11e921336e144b2d2ec72bd))
+
+
+---
+
 ## [2.1.232](https://github.com/liquiddesign/eshop/compare/v2.1.231...v2.1.232) (2024-05-28)
 
 ### Features
