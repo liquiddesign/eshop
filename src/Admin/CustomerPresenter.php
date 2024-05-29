@@ -314,12 +314,15 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			->setGroupBy(['this.uuid']), 20, 'createdTs', 'DESC', true, filterShops: false);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Registrace', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
-		$grid->addColumn('Jméno / Adresa (Fakt., Doruč.)', function (Customer $customer) {
+		$grid->addColumn('Jméno / IČO<hr style=\"margin: 0\">Adresa (Fakt. / Doruč.)', function (Customer $customer) {
 			$hr = '<hr style="margin: 0">';
 			$billAddress = $customer->billAddress?->getFullAddress();
 			$deliveryAddress = $customer->deliveryAddress?->getFullAddress();
 
-			return ($customer->company ?: $customer->fullname) . "$hr<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
+			$firstRow = "<div class='row'><div class='col-6'>{$customer->getName()}</div><div class='col-6'>$customer->ic</div></div>";
+			$secondRow = "<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
+
+			return $firstRow . $hr . $secondRow;
 		});
 		$td = '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a><br><a href="tel:%2$s"><i class="fa fa-phone-alt"></i> %2$s</a>';
 		$grid->addColumnTextFit('E-mail / Telefon', ['email', 'phone'], $td)->onRenderCell[] = [$grid, 'decoratorEmpty'];
