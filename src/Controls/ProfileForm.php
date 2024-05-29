@@ -69,9 +69,14 @@ class ProfileForm extends \Nette\Application\UI\Form
 				return;
 			}
 
-			$values = $form->getValues();
+			$values = $form->getValues('array');
 
 			$customer = $this->shopperUser->getCustomer();
+
+			if (!isset($values['email'])) {
+				return;
+			}
+
 			$existingCustomer = $customerRepository->many()->where('this.email', $values['email'])->first();
 
 			if (!$existingCustomer || $existingCustomer->getPK() === $customer->getPK()) {
@@ -89,7 +94,7 @@ class ProfileForm extends \Nette\Application\UI\Form
 
 	public function success(ProfileForm $form): void
 	{
-		$values = (array) $form->getValues();
+		$values = $form->getValues('array');
 		$customer = $this->shopperUser->getCustomer();
 		$email = $values['email'];
 
