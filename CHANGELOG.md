@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.236](https://github.com/liquiddesign/eshop/compare/v2.1.235...v2.1.236) (2024-05-31)
+
+### Features
+
+
+##### Category
+
+* Better cache ([26ef27](https://github.com/liquiddesign/eshop/commit/26ef274391500c4475df2a507470786ad727c613))
+
+
+---
+
 ## [2.1.235](https://github.com/liquiddesign/eshop/compare/v2.1.234...v2.1.235) (2024-05-29)
 
 ### Features
