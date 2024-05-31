@@ -52,6 +52,8 @@ class ProductGridFiltersFactory
 			'this.code',
 			'this.ean',
 			'this.mpn',
+			'this.externalCode',
+			'this.supplierCode',
 		];
 
 		$mutationColumns = [

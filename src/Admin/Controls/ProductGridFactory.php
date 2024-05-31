@@ -61,8 +61,8 @@ class ProductGridFactory
 			->setGroupBy(['this.uuid'])
 			->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = this.uuid')
 			->join(['primaryCategory' => 'eshop_productprimarycategory'], 'primaryCategory.fk_product = this.uuid')
-//			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
-//			->join(['pricelist' => 'eshop_pricelist'], 'pricelist.uuid=price.fk_pricelist')
+//          ->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
+//          ->join(['pricelist' => 'eshop_pricelist'], 'pricelist.uuid=price.fk_pricelist')
 			->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid')
 			->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityList.uuid')
 			->where('visibilityList.uuid IN(:visibilityListIn) OR visibilityList.uuid IS NULL', [
@@ -70,9 +70,9 @@ class ProductGridFactory
 			])
 			->select([
 				'primaryCategoryPKs' => 'GROUP_CONCAT(primaryCategory.fk_category)',
-//				'priceCount' => 'COUNT(DISTINCT price.uuid)',
+//              'priceCount' => 'COUNT(DISTINCT price.uuid)',
 				'categoryCount' => 'COUNT(DISTINCT nxnCategory.fk_category)',
-//				'pricelistActive' => 'MAX(pricelist.isActive)',
+//              'pricelistActive' => 'MAX(pricelist.isActive)',
 				'hidden' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.hidden ORDER BY visibilityList.priority), ',', 1)",
 				'unavailable' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.unavailable ORDER BY visibilityList.priority), ',', 1)",
 			]);
@@ -83,12 +83,12 @@ class ProductGridFactory
 			if ($object->isHidden()) {
 				$label = 'Neviditelný: Skrytý';
 				$color = 'danger';
-//			} elseif ($object->getValue('priceCount') === 0) {
-//				$label = 'Neviditelný: Bez ceny';
-//				$color = 'danger';
-//			} elseif ($object->getValue('pricelistActive') === 0) {
-//				$label = 'Neviditelný: Žádné aktivní ceny';
-//				$color = 'danger';
+//          } elseif ($object->getValue('priceCount') === 0) {
+//              $label = 'Neviditelný: Bez ceny';
+//              $color = 'danger';
+//          } elseif ($object->getValue('pricelistActive') === 0) {
+//              $label = 'Neviditelný: Žádné aktivní ceny';
+//              $color = 'danger';
 			} elseif ($object->isUnavailable()) {
 				$label = 'Viditelný: Neprodejný';
 				$color = 'warning';
@@ -106,9 +106,7 @@ class ProductGridFactory
 
 		$grid->addColumnImage('imageFileName', Product::GALLERY_DIR);
 
-		$grid->addColumn('Kód a EAN', function (Product $product) {
-			return $product->getFullCode() . ($product->ean ? "<br><small>EAN $product->ean</small>" : '') . ($product->mpn ? "<br><small>P/N $product->mpn</small>" : '');
-		}, '%s', 'code', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
+		$this->addCodeColumn($grid);
 
 		$grid->addColumn('Název', function (Product $product, $grid) {
 			$suppliers = [];
@@ -451,5 +449,12 @@ class ProductGridFactory
 		}
 
 		$product->update(['imageFileName' => null]);
+	}
+
+	protected function addCodeColumn(Datagrid $grid): void
+	{
+		$grid->addColumn('Kód a EAN', function (Product $product) {
+			return $product->getFullCode() . ($product->ean ? "<br><small>EAN $product->ean</small>" : '') . ($product->mpn ? "<br><small>P/N $product->mpn</small>" : '');
+		}, '%s', 'code', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 	}
 }

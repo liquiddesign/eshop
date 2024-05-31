@@ -240,6 +240,6 @@ class Category extends SystemicEntity
 		/** @var \Eshop\DB\CategoryRepository $repository */
 		$repository = $this->getRepository();
 
-		return $repository->getCounts($this->path, $filters, $priceLists, $visibilityLists);
+		return $repository->getCounts($this, $filters, $priceLists, $visibilityLists);
 	}
 }

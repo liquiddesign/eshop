@@ -64,14 +64,14 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	}
 
 	/**
-	 * @param string $path
+	 * @param string|\Eshop\DB\Category $path
 	 * @param array<mixed> $filters
 	 * @param array<string, string>|array<string, \Eshop\DB\Pricelist> $priceLists
 	 * @param array<string, string>|array<string, \Eshop\DB\VisibilityList> $visibilityLists
 	 * @throws \StORM\Exception\NotFoundException
 	 * @throws \Throwable
 	 */
-	public function getCounts(string $path, array $filters = [], array $priceLists = [], array $visibilityLists = []): int|null
+	public function getCounts(string|Category $path, array $filters = [], array $priceLists = [], array $visibilityLists = []): int|null
 	{
 		$productsProvider = $this->container->getByType(GeneralProductsCacheProvider::class);
 		$productRepository = $this->productRepository;
@@ -80,13 +80,15 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
 			'main';
 
-		$category = $this->many()->where('this.path', $path)->where('this.fk_type', $mainCategoryType)->first();
+		$category = \is_string($path) ?
+			$this->many()->where('this.path', $path)->where('this.fk_type', $mainCategoryType)->first() :
+			$path;
 
 		if (!$category) {
 			return null;
 		}
 
-		$filters['category'] = $path;
+		$filters['category'] = $category->path;
 
 		$priceLists = $priceLists ?: $this->shopperUser->getPricelists()->toArray();
 		$visibilityLists = $visibilityLists ?: $this->shopperUser->getVisibilityLists();
