@@ -8,6 +8,7 @@ use Eshop\Admin\SettingsPresenter;
 use Eshop\Common\CheckInvalidAmount;
 use Eshop\Common\IncorrectItemReason;
 use Eshop\DB\Address;
+use Eshop\DB\AddressRepository;
 use Eshop\DB\Attribute;
 use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\BannedEmailRepository;
@@ -241,6 +242,7 @@ class CheckoutManager
 		protected readonly Request $request,
 		protected readonly Nette\DI\Container $container,
 		protected readonly Integrations $integrations,
+		protected readonly AddressRepository $addressRepository,
 	) {
 	}
 	
@@ -1458,19 +1460,47 @@ class CheckoutManager
 		$customer = $this->findCustomerByPurchase($purchase);
 
 		$defaultGroup = $this->customerGroupRepository->getDefaultRegistrationGroup();
-		
+
 		$customerValues = [
 			'email' => $purchase->email,
 			'fullname' => $purchase->fullname,
 			'phone' => $purchase->phone,
 			'ic' => $purchase->ic,
 			'dic' => $purchase->dic,
-			'billAddress' => $purchase->billAddress,
-			'deliveryAddress' => $purchase->deliveryAddress,
 			'group' => $defaultGroup?->getPK(),
 			'discountLevelPct' => $defaultGroup ? $defaultGroup->defaultDiscountLevelPct : 0,
 			'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
 		];
+
+		if ($purchase->billAddress) {
+			$data = $purchase->billAddress->toArray();
+			unset($data['uuid'], $data['id']);
+
+			if (!isset($data['name']) || !$data['name']) {
+				$data['name'] = $purchase->fullname;
+			}
+
+			if ($customer?->getValue('billAddress')) {
+				$customer->billAddress->update($data);
+			} else {
+				$billAddress = $this->addressRepository->createOne($data);
+
+				$customerValues['billAddress'] = $billAddress->getPK();
+			}
+		}
+
+		if ($purchase->deliveryAddress) {
+			$data = $purchase->deliveryAddress->toArray();
+			unset($data['uuid'], $data['id']);
+
+			if ($customer?->getValue('deliveryAddress')) {
+				$customer->deliveryAddress->update($data);
+			} else {
+				$deliveryAddress = $this->addressRepository->createOne($data);
+
+				$customerValues['deliveryAddress'] = $deliveryAddress->getPK();
+			}
+		}
 		
 		if ($customer) {
 			$customerValues['uuid'] = $customer->getPK();
