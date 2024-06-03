@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.237](https://github.com/liquiddesign/eshop/compare/v2.1.236...v2.1.237) (2024-06-03)
+
+### ⚠ BREAKING CHANGES
+
+
+##### Order
+
+* Create separate address rows when create customer in order ([af969a](https://github.com/liquiddesign/eshop/commit/af969ab289dd7aba28d6d30b47bfe51320ff79a0))
+
+
+---
+
 ## [2.1.236](https://github.com/liquiddesign/eshop/compare/v2.1.235...v2.1.236) (2024-05-31)
 
 ### Features
