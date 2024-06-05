@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.238](https://github.com/liquiddesign/eshop/compare/v2.1.237...v2.1.238) (2024-06-05)
+
+### Bug Fixes
+
+
+##### Cart
+
+* Constraint fix ([bac940](https://github.com/liquiddesign/eshop/commit/bac940c94d8dcaa788633785cdf5bc7461e80032))
+
+##### Order
+
+* Template show only Purchase info ([bca7ae](https://github.com/liquiddesign/eshop/commit/bca7aee857d28b8af3bc61eb3b5ac30f938dd3f6))
+
+
+---
+
 ## [2.1.237](https://github.com/liquiddesign/eshop/compare/v2.1.236...v2.1.237) (2024-06-03)
 
 ### ⚠ BREAKING CHANGES
