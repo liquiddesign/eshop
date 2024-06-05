@@ -83,7 +83,7 @@ class Cart extends ShopEntity
 	/**
 	 * Zákazník
 	 * @relation
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Customer $customer;
 
