@@ -294,7 +294,7 @@
                                         <td><span style="font-size: large">{$order->getTotalPrice()|price:$purchase->currency->code}</span></td>
                                         <td>
                                             <span style="font-size: large">{$order->getTotalPriceVat()|price:$purchase->currency->code}</span>
-                                            <span class="ml-2">daň: {$order->getTotalPriceVat() - $order->getTotalPrice()|price:$purchase->currency->code}</span>
+                                            <span class="ml-2">daň: {($order->getTotalPriceVat() - $order->getTotalPrice())|price:$purchase->currency->code}</span>
                                         </td>
                                     </tr>
                                 </tbody>
