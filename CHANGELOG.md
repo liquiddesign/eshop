@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.240](https://github.com/liquiddesign/eshop/compare/v2.1.239...v2.1.240) (2024-06-05)
+
+### Bug Fixes
+
+
+##### Pruchase
+
+* Don't update email ([7ff4a6](https://github.com/liquiddesign/eshop/commit/7ff4a6581247dc99e856dda0092c24fe9c8bbf4f))
+
+
+---
+
 ## [2.1.239](https://github.com/liquiddesign/eshop/compare/v2.1.238...v2.1.239) (2024-06-05)
 
 ### Bug Fixes
