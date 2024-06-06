@@ -375,6 +375,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 					'tab' => 'accounts',
 					'accountGrid-company' => $object->email,
 					'accountGrid-customer' => $object->fullname,
+					'accountGrid-sessionIgnoreLoad' => true,
 				]) . "'>Účty</a>" :
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('newAccount', $object) . "'>Vytvořit&nbsp;účet</a>";
 		}, '%s', null, ['class' => 'minimal']);
