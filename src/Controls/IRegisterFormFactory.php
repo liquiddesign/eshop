@@ -25,9 +25,12 @@ class IRegisterFormFactory
 		$login = $form['login'];
 
 		$login->setHtmlType('email')
-			->addRule($form::EMAIL)
+			->addRule($form::Email)
 			->setRequired($this->translator->translate('registrationForm.enterEmail', 'Zadejte prosím e-mailovou adresu'));
-		$accountType = $form->addRadioList('accountType');
+		$accountType = $form->addRadioList('accountType', items: [
+			'personal' => 'personal',
+			'company' => 'company',
+		]);
 		$form->addText('fullname')
 			->addConditionOn($accountType, $form::EQUAL, 'personal')
 			->setRequired($this->translator->translate('registrationForm.enterFullname', 'Zadejte prosím jméno a příjmení'))
