@@ -4,6 +4,25 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.241](https://github.com/liquiddesign/eshop/compare/v2.1.240...v2.1.241) (2024-06-10)
+
+### Features
+
+
+##### Admin Customer
+
+* Add sessionIgnoreLoad to link ([9cb897](https://github.com/liquiddesign/eshop/commit/9cb8971ddc3891870dec4446e6605e4ce45b354d))
+
+### Bug Fixes
+
+
+##### I Register Form Factory
+
+* AccountType values ([45829a](https://github.com/liquiddesign/eshop/commit/45829ae80c9e9d50110226e525760179b1f33fd3))
+
+
+---
+
 ## [2.1.240](https://github.com/liquiddesign/eshop/compare/v2.1.239...v2.1.240) (2024-06-05)
 
 ### Bug Fixes
