@@ -23,7 +23,7 @@ readonly class ProductsCacheUpdateService implements AutoWireService
 	) {
 	}
 
-	public function updateCustomerVisibilitiesAndPrices(Customer $customer): void
+	public function updateCustomerVisibilitiesAndPrices(Customer $customer, bool $useTransaction = true): void
 	{
 		$usedCacheIndex = $this->productsCacheGetter->getCacheIndexToBeUsed();
 
@@ -34,7 +34,7 @@ readonly class ProductsCacheUpdateService implements AutoWireService
 		$link = $this->connection->getLink();
 		[$visibilityPriceListsOptions, $allVisibilityLists, $allPriceLists] = $this->productsCacheWarmUpService->getAllPossibleVisibilityAndPriceListOptions([$customer->getPK()], []);
 
-		$canStartTransaction = $this->waitForTransaction($link);
+		$canStartTransaction = $useTransaction && $this->waitForTransaction($link);
 
 		if ($canStartTransaction) {
 			$link->beginTransaction();
@@ -52,7 +52,7 @@ readonly class ProductsCacheUpdateService implements AutoWireService
 			Debugger::barDump($e);
 			Debugger::log($e, ILogger::EXCEPTION);
 
-			if ($canStartTransaction === true) {
+			if ($canStartTransaction) {
 				$link->rollBack();
 			}
 		}
