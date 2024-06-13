@@ -4,6 +4,25 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.242](https://github.com/liquiddesign/eshop/compare/v2.1.241...v2.1.242) (2024-06-13)
+
+### Features
+
+
+##### Products Cache Update Service
+
+* UpdateCustomerVisibilitiesAndPrices - add $transaction ([b0a51b](https://github.com/liquiddesign/eshop/commit/b0a51bf46f036db078e7339d3247e6b6ff479f61))
+
+### Bug Fixes
+
+
+##### Products Merger
+
+* Associative array ([49ed46](https://github.com/liquiddesign/eshop/commit/49ed462deb2ab12f3a84903b8785eb25dba10491))
+
+
+---
+
 ## [2.1.241](https://github.com/liquiddesign/eshop/compare/v2.1.240...v2.1.241) (2024-06-10)
 
 ### Features
