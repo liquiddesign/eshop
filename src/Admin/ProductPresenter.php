@@ -939,7 +939,7 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 
 			$existingMasterMergedProducts = $this->productRepository->many()
 				->where('this.fk_masterProduct IS NOT NULL')
-				->where('this.uuid', $ids)
+				->where('this.uuid', \array_values($ids))
 				->whereNot('this.uuid', $values['mainProduct'])
 				->toArrayOf('code');
 
