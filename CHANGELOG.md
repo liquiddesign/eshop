@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.243](https://github.com/liquiddesign/eshop/compare/v2.1.242...v2.1.243) (2024-06-14)
+
+### Bug Fixes
+
+
+##### Products Merger
+
+* Associative array ([d37c75](https://github.com/liquiddesign/eshop/commit/d37c75c534d6cd704b3b7df187f6dd098e730d43))
+
+### Styles
+
+* Fix ([f59786](https://github.com/liquiddesign/eshop/commit/f597866a84f0adfbd9496739497669a1f2d05d39))
+
+
+---
+
 ## [2.1.242](https://github.com/liquiddesign/eshop/compare/v2.1.241...v2.1.242) (2024-06-13)
 
 ### Features
