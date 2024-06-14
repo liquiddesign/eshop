@@ -52,6 +52,7 @@ readonly class ProductsCacheUpdateService implements AutoWireService
 			Debugger::barDump($e);
 			Debugger::log($e, ILogger::EXCEPTION);
 
+			/** @phpstan-ignore-next-line */
 			if ($canStartTransaction) {
 				$link->rollBack();
 			}
