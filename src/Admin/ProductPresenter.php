@@ -910,7 +910,7 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 			'mainProduct',
 			'Hlavní produkt',
 			$this->productRepository->many()
-				->where('this.uuid', \array_values($ids))
+				->where('this.uuid', $ids)
 				->select(['customName' => "CONCAT(this.name$mutationSuffix, ' (', this.code, ')')"])
 			->toArrayOf('customName'),
 		)->setRequired()->setHtmlAttribute('data-info', '<br>
