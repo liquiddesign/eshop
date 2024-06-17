@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.245](https://github.com/liquiddesign/eshop/compare/v2.1.244...v2.1.245) (2024-06-17)
+
+### Features
+
+
+##### Products Cache Update Service
+
+* Insert performance ([4597cd](https://github.com/liquiddesign/eshop/commit/4597cd9f854b5dd38986b83e6fd27e3e8a676841))
+
+
+---
+
 ## [2.1.244](https://github.com/liquiddesign/eshop/compare/v2.1.243...v2.1.244) (2024-06-17)
 
 ### Features
