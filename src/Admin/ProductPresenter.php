@@ -899,7 +899,7 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 
 	public function createComponentMergeForm(): AdminForm
 	{
-		$ids = $this->getParameter('ids') ?: [];
+		$ids = \array_values($this->getParameter('ids') ?: []);
 
 		$form = $this->formFactory->create();
 		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
@@ -939,7 +939,7 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 
 			$existingMasterMergedProducts = $this->productRepository->many()
 				->where('this.fk_masterProduct IS NOT NULL')
-				->where('this.uuid', \array_values($ids))
+				->where('this.uuid', $ids)
 				->whereNot('this.uuid', $values['mainProduct'])
 				->toArrayOf('code');
 
