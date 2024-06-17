@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.247](https://github.com/liquiddesign/eshop/compare/v2.1.246...v2.1.247) (2024-06-17)
+
+### Bug Fixes
+
+* Merge ([b60e34](https://github.com/liquiddesign/eshop/commit/b60e344e3588be4d2fb13be2fb1c2fa1146139c0))
+
+
+---
+
 ## [2.1.246](https://github.com/liquiddesign/eshop/compare/v2.1.245...v2.1.246) (2024-06-17)
 
 ### Features
