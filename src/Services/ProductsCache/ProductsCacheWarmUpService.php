@@ -127,10 +127,6 @@ class ProductsCacheWarmUpService implements AutoWireService
 			Debugger::dump('createVisibilityPriceTable: ' . Debugger::timer());
 			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
-			$this->indexVisibilityPriceTable($visibilityPricesCacheTableName, $productsCacheTableName);
-			Debugger::dump('indexVisibilityPriceTable: ' . Debugger::timer());
-			Debugger::dump(DevelTools::getPeakMemoryUsage());
-
 			$this->insertVisibilityPriceTable($visibilityPricesCacheTableName);
 			Debugger::dump('insertVisibilityPriceTable: ' . Debugger::timer());
 			Debugger::dump(DevelTools::getPeakMemoryUsage());
@@ -170,6 +166,10 @@ class ProductsCacheWarmUpService implements AutoWireService
 
 			$this->indexMainTable($productsCacheTableName, $allCategoryTypes);
 			Debugger::dump('indexMainTable: ' . Debugger::timer());
+			Debugger::dump(DevelTools::getPeakMemoryUsage());
+
+			$this->indexVisibilityPriceTable($visibilityPricesCacheTableName, $productsCacheTableName);
+			Debugger::dump('indexVisibilityPriceTable: ' . Debugger::timer());
 			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 			$this->createCategoriesTable($categoriesTableName);
