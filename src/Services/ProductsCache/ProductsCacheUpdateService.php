@@ -136,6 +136,8 @@ readonly class ProductsCacheUpdateService implements AutoWireService
 		/** @var array<int> $priceLists */
 		$priceLists = \explode(',', $priceListsString);
 
+		$newValues = [];
+
 		foreach ($allProductsWithVLI as $product => $vliItems) {
 			foreach ($visibilityLists as $visibilityListId) {
 				if (!isset($vliItems[$visibilityListId])) {
@@ -161,7 +163,7 @@ readonly class ProductsCacheUpdateService implements AutoWireService
 						continue;
 					}
 
-					$this->connection->syncRow($visibilityPricesCacheTableName, [
+					$newValues[] = [
 						'visibilityPriceIndex' => $index,
 						'product' => $product,
 						'price' => $price->price,
@@ -174,23 +176,18 @@ readonly class ProductsCacheUpdateService implements AutoWireService
 						'priority' => $visibilityListItem->priority,
 						'unavailable' => $visibilityListItem->unavailable,
 						'recommended' => $visibilityListItem->recommended,
-					], [
-						'price',
-						'priceVat',
-						'priceBefore',
-						'priceVatBefore',
-						'priceList',
-						'hidden',
-						'hiddenInMenu',
-						'priority',
-						'unavailable',
-						'recommended',
-					]);
+					];
 
 					break 2;
 				}
 			}
 		}
+
+		if (!$newValues) {
+			return;
+		}
+
+		$this->connection->createRows($visibilityPricesCacheTableName, $newValues);
 	}
 
 	protected function waitForTransaction(\PDO $link): bool
