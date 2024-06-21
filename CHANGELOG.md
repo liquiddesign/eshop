@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.252](https://github.com/liquiddesign/eshop/compare/v2.1.251...v2.1.252) (2024-06-21)
+
+### Bug Fixes
+
+
+##### Customer Form
+
+* Nullable ([076629](https://github.com/liquiddesign/eshop/commit/076629cd6978acdb23e520036886663ee338a9ae))
+
+
+---
+
 ## [2.1.251](https://github.com/liquiddesign/eshop/compare/v2.1.250...v2.1.251) (2024-06-21)
 
 ### Features
