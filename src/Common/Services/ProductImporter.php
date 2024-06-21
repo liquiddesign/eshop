@@ -726,11 +726,29 @@ class ProductImporter
 				'this.ean',
 				'this.supplierContentLock',
 				'this.mpn',
-				'export_page_uuid' => 'export_page.uuid',
+//				'export_page_uuid' => 'export_page.uuid',
 			], [], true)
-			->join(['export_page' => 'web_page'], "export_page.params like CONCAT('%product=', this.uuid, '&%') and export_page.type = 'product_detail'")
+//			->join(['export_page' => 'web_page'], "export_page.params like CONCAT('%product=', this.uuid, '&%') and export_page.type = 'product_detail'")
 			->setGroupBy(['this.uuid'])
 			->fetchArray(\stdClass::class);
+
+		$productPages = [];
+
+		/** @var \StORM\Collection<\Web\DB\Page> $productPagesQuery */
+		$productPagesQuery = $this->pageRepository->many()
+			->where('type', 'product_detail');
+
+		while ($productPage = $productPagesQuery->fetch()) {
+			$product = $productPage->getParsedParameter('product');
+
+			if (!$product) {
+				continue;
+			}
+
+			$productPages[$product] = $productPage;
+		}
+
+		$productPagesQuery->__destruct();
 
 		foreach ($records as $record) {
 			$newValues = [];
@@ -830,7 +848,7 @@ class ProductImporter
 			try {
 				if (\count($newValues) > 0) {
                     // phpcs:ignore
-                    $newValues['uuid'] = $product->export_page_uuid;
+                    $newValues['uuid'] = $productPages[$product->uuid] ?? null;
 					$newValues['type'] = 'product_detail';
 					$newValues['params'] = "product=$product->uuid&";
 
