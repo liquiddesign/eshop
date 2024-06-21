@@ -589,8 +589,8 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		$form->monitor(Presenter::class, function (Presenter $presenter) use ($form, $customer, $lableMerchants): void {
 			$form->addText('fullname', 'Jméno a příjmení');
 			$form->addText('company', 'Firma');
-			$form->addText('ic', 'IČ');
-			$form->addText('dic', 'DIČ');
+			$form->addText('ic', 'IČ')->setNullable();
+			$form->addText('dic', 'DIČ')->setNullable();
 			$form->addText('phone', 'Telefon');
 
 			$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired()->setDisabled((bool) $customer);
@@ -727,7 +727,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$form->addSubmits(!$this->getParameter('customer'));
 		});
 
-		$form->onValidate[] = function (AdminForm $form): void {
+		$form->onValidate[] = function (AdminForm $form) use ($customer): void {
 			if (!$form->isValid()) {
 				return;
 			}
@@ -749,8 +749,12 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 					$customerQuery->where('this.fk_shop', $values['shop']);
 				}
 
-				if ($customerQuery->first()) {
-					$uniqueValid = false;
+				$duplicateCustomer = $customerQuery->first();
+
+				if ($duplicateCustomer) {
+					if (!$customer || ($customer->getPK() !== $duplicateCustomer->getPK())) {
+						$uniqueValid = false;
+					}
 				}
 			}
 
