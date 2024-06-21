@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.250](https://github.com/liquiddesign/eshop/compare/v2.1.249...v2.1.250) (2024-06-21)
+
+### Bug Fixes
+
+
+##### Product Importer
+
+* Fetch pages separately ([97c96d](https://github.com/liquiddesign/eshop/commit/97c96d78a524fcb8d76d4668177b46a8980f60cf))
+
+
+---
+
 ## [2.1.249](https://github.com/liquiddesign/eshop/compare/v2.1.248...v2.1.249) (2024-06-17)
 
 ### Bug Fixes
