@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.251](https://github.com/liquiddesign/eshop/compare/v2.1.250...v2.1.251) (2024-06-21)
+
+### Features
+
+* Revert cache indexing ([0a42da](https://github.com/liquiddesign/eshop/commit/0a42da77b43a14abae4084acb058e9601306ea19))
+
+
+---
+
 ## [2.1.250](https://github.com/liquiddesign/eshop/compare/v2.1.249...v2.1.250) (2024-06-21)
 
 ### Bug Fixes
