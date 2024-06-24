@@ -1463,7 +1463,8 @@ class CheckoutManager
 
 		$customerValues = [
 			'email' => $purchase->email,
-			'fullname' => $purchase->fullname,
+			'fullname' => $purchase->isCompany() ? null : $purchase->fullname,
+			'company' => $purchase->isCompany() ? $purchase->fullname : null,
 			'phone' => $purchase->phone,
 			'ic' => $purchase->ic,
 			'dic' => $purchase->dic,
