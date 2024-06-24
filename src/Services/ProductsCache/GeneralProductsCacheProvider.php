@@ -34,4 +34,9 @@ interface GeneralProductsCacheProvider
 		array $priceLists = [],
 		array $visibilityLists = [],
 	): array|false;
+
+	/**
+	 * Works like warmUpCacheTable, but don't erase all data.
+	 */
+	public function warmUpCacheTableDiff(): void;
 }
