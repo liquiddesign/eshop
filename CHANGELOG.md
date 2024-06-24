@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.253](https://github.com/liquiddesign/eshop/compare/v2.1.252...v2.1.253) (2024-06-24)
+
+### Bug Fixes
+
+
+##### Checkout Manager
+
+* Save company name correctly ([8fb631](https://github.com/liquiddesign/eshop/commit/8fb631487d35d86760ed0384dbcb1f3e9fecf01d))
+
+##### Products Cache
+
+* New system to change only changed rows ([1adde5](https://github.com/liquiddesign/eshop/commit/1adde502d753293767291c2973cffdad3650d37e))
+
+
+---
+
 ## [2.1.252](https://github.com/liquiddesign/eshop/compare/v2.1.251...v2.1.252) (2024-06-21)
 
 ### Bug Fixes
