@@ -19,6 +19,14 @@ readonly class ProductsCacheProvider implements GeneralProductsCacheProvider
 	}
 
 	/**
+	 * Works like warmUpCacheTable, but don't erase all data.
+	 */
+	public function warmUpCacheTableDiff(): void
+	{
+		$this->productsCacheWarmUpService->warmUpCacheTableDiff();
+	}
+
+	/**
 	 * @inheritDoc
 	 */
 	public function getProductsFromCacheTable(array $filters, ?string $orderByName = null, string $orderByDirection = 'ASC', array $priceLists = [], array $visibilityLists = [],): array|false
