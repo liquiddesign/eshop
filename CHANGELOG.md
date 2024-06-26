@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.256](https://github.com/liquiddesign/eshop/compare/v2.1.255...v2.1.256) (2024-06-26)
+
+### Features
+
+* Add performance optimizations to ProductsCacheWarmUpService ([eba359](https://github.com/liquiddesign/eshop/commit/eba359bd4178376e08d1c300ad3df4ee41a346ba))
+
+
+---
+
 ## [2.1.255](https://github.com/liquiddesign/eshop/compare/v2.1.254...v2.1.255) (2024-06-26)
 
 ### Features
