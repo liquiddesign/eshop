@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.255](https://github.com/liquiddesign/eshop/compare/v2.1.254...v2.1.255) (2024-06-26)
+
+### Features
+
+* Update ProductsCacheWarmUpService to use current cache index ([e5042a](https://github.com/liquiddesign/eshop/commit/e5042a5bb364776e187e416152b52a7030f60644))
+
+
+---
+
 ## [2.1.254](https://github.com/liquiddesign/eshop/compare/v2.1.253...v2.1.254) (2024-06-24)
 
 ### Bug Fixes
