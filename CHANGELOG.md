@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.259](https://github.com/liquiddesign/eshop/compare/v2.1.258...v2.1.259) (2024-06-26)
+
+### Features
+
+* Add methods to check and unregister email in NewsletterUserRepository ([19daaa](https://github.com/liquiddesign/eshop/commit/19daaa54bc7f4a52d5fc05dff8a1624a204d4bc2))
+
+
+---
+
 ## [2.1.258](https://github.com/liquiddesign/eshop/compare/v2.1.257...v2.1.258) (2024-06-26)
 
 ### Bug Fixes
