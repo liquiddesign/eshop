@@ -11,6 +11,7 @@ use StORM\RelationCollection;
 /**
  * Objednávka
  * @method \StORM\RelationCollection<\Eshop\DB\Package> getPackages()
+ * @method \StORM\RelationCollection<\Eshop\DB\PaymentResult> getPaymentResults()
  * @table
  * @index{"name":"order_code","unique":true,"columns":["code", "fk_shop"]}
  */
@@ -220,6 +221,13 @@ class Order extends ShopEntity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Payment>
 	 */
 	public RelationCollection $payments;
+
+	/**
+	 * Platby
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\PaymentResult>
+	 */
+	public RelationCollection $paymentResults;
 
 	/**
 	 * Dopravy
