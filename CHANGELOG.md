@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.257](https://github.com/liquiddesign/eshop/compare/v2.1.256...v2.1.257) (2024-06-26)
+
+### Features
+
+* Add PaymentResults relation to Order entity ([0b4a97](https://github.com/liquiddesign/eshop/commit/0b4a97d7917b64b1ea7fb8bcfaa986f5b37a49a8))
+
+
+---
+
 ## [2.1.256](https://github.com/liquiddesign/eshop/compare/v2.1.255...v2.1.256) (2024-06-26)
 
 ### Features
