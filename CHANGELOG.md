@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.258](https://github.com/liquiddesign/eshop/compare/v2.1.257...v2.1.258) (2024-06-26)
+
+### Bug Fixes
+
+* Fix account creation logic and error handling in AddressesForm ([a9676f](https://github.com/liquiddesign/eshop/commit/a9676f5dafa55cc72915340e7102871eb743f97a))
+
+
+---
+
 ## [2.1.257](https://github.com/liquiddesign/eshop/compare/v2.1.256...v2.1.257) (2024-06-26)
 
 ### Features

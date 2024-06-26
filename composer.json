@@ -2,7 +2,7 @@
     "name": "liquiddesign/eshop",
     "description": "Ⓔ Služby, entity, administrace a kontroly pro eshop",
     "license": "MIT",
-    "version": "2.1.257",
+    "version": "2.1.258",
     "autoload": {
         "psr-4": {
             "Eshop\\": "src/"
