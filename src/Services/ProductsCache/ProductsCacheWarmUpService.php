@@ -97,11 +97,11 @@ class ProductsCacheWarmUpService implements AutoWireService
 	}
 
 	/**
-	 * Works like warmUpCacheTable, but don't erase all data.
+	 * Works like warmUpCacheTable, but don't erase all data and updates only current index.
 	 */
 	public function warmUpCacheTableDiff(): void
 	{
-		$cacheIndexToBeWarmedUp = $this->getCacheIndexToBeWarmedUp();
+		$cacheIndexToBeWarmedUp = $this->getCacheIndexToBeUsed();
 
 		if ($cacheIndexToBeWarmedUp === 0) {
 			return;
@@ -383,6 +383,27 @@ class ProductsCacheWarmUpService implements AutoWireService
 		}
 
 		return [$existingOptions, \array_keys($allVisibilityLists), \array_keys($allPriceLists)];
+	}
+
+	/**
+	 * @return int<0, 2>
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	protected function getCacheIndexToBeUsed(): int
+	{
+		$readyState = $this->productsCacheStateRepository->many()->where('this.state', 'ready')->first();
+
+		if (!$readyState) {
+			return 0;
+		}
+
+		$state = (int) $readyState->getPK();
+
+		if ($state < 0 || $state > 2) {
+			throw new \Exception("State '$state' out of allowed range!");
+		}
+
+		return $state;
 	}
 
 	/**
