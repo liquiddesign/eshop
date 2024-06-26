@@ -37,4 +37,14 @@ class NewsletterUserRepository extends \StORM\Repository
 
 		$this->syncOne($values);
 	}
+
+	public function isEmailRegistered(string $email): bool
+	{
+		return !$this->many()->where('this.email', $email)->isEmpty();
+	}
+
+	public function unregisterEmail(string $email): void
+	{
+		$this->many()->where('this.email', $email)->delete();
+	}
 }
