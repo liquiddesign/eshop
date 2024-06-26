@@ -147,14 +147,17 @@ class AddressesForm extends Form
 		/** @var \Eshop\DB\Customer|null $customer */
 		$customer = $customerQuery->first();
 
-		if (!$values['createAccount'] || (
-				(!$account && !$customer) || $this->shopperUser->isAlwaysCreateCustomerOnOrderCreated()
-			)
-		) {
+		if ($values['createAccount'] && $account) {
+			$form->addError('Účet s tímto e-mailem již existuje');
+
 			return;
 		}
 
-		$form->addError('Účet s tímto e-mailem již existuje');
+		if (!$this->shopperUser->isAlwaysCreateCustomerOnOrderCreated() && ($values['createAccount'] && $customer)) {
+			$form->addError('Účet s tímto e-mailem již existuje');
+		}
+
+		return;
 	}
 	
 	public function success(AddressesForm $form): void
