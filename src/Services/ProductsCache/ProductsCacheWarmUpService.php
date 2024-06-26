@@ -1169,11 +1169,13 @@ CREATE TABLE `$categoriesTableName` (
 		$link = $this->getLink();
 
 		Debugger::timer('indexVisibilityPriceTable -- PRIMARY');
-		$link->exec("ALTER TABLE `$pricesCacheTableName` ADD PRIMARY KEY (visibilityPriceIndex, product);");
+		$link->exec("ALTER TABLE `$pricesCacheTableName` ADD PRIMARY KEY (visibilityPriceIndex, product), ALGORITHM = INPLACE;");
 		Debugger::dump('indexVisibilityPriceTable -- PRIMARY: ' . Debugger::timer('indexVisibilityPriceTable -- PRIMARY'));
 
 		Debugger::timer('indexVisibilityPriceTable -- product');
-		$link->exec("ALTER TABLE $pricesCacheTableName ADD CONSTRAINT FOREIGN KEY (product) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE ");
+		$link->exec('SET SESSION foreign_key_checks=OFF;');
+		$link->exec("ALTER TABLE $pricesCacheTableName ADD CONSTRAINT FOREIGN KEY (product) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE, ALGORITHM = NOCOPY");
+		$link->exec('SET SESSION foreign_key_checks=ON;');
 		Debugger::dump('indexVisibilityPriceTable -- product: ' . Debugger::timer('indexVisibilityPriceTable -- product'));
 
 //		Debugger::timer('indexVisibilityPriceTable -- idx_price');
