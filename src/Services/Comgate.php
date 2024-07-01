@@ -214,6 +214,16 @@ class Comgate implements IPaymentIntegration
 
 	protected function getOrderTotalPriceVat(Order $order): float
 	{
-		return $this->onGetOrderTotalPriceVat ? \call_user_func($this->onGetOrderTotalPriceVat, $order) : $order->getTotalPriceVat();
+		if ($this->onGetOrderTotalPriceVat) {
+			try {
+				return \call_user_func($this->onGetOrderTotalPriceVat, $order);
+			} catch (\Exception $e) {
+				Debugger::log($e, ILogger::EXCEPTION);
+
+				return $order->getTotalPriceVat();
+			}
+		}
+
+		return $order->getTotalPriceVat();
 	}
 }
