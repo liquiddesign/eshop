@@ -4,6 +4,17 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.260](https://github.com/liquiddesign/eshop/compare/v2.1.259...v2.1.260) (2024-07-01)
+
+### Features
+
+* Add error handling for custom order total price calculation in Comgate service ([20e836](https://github.com/liquiddesign/eshop/commit/20e836f2c927d82795cac280a0ea52decc0038f2))
+* Remove unused CSV reader methods and imports ([59df6a](https://github.com/liquiddesign/eshop/commit/59df6a382d7d47be27387ab211965c4433f91d2a))
+* Update product name retrieval to use getName() method ([a61a8d](https://github.com/liquiddesign/eshop/commit/a61a8d40ec65b11b67603b9fd932187583fdedd1))
+
+
+---
+
 ## [2.1.259](https://github.com/liquiddesign/eshop/compare/v2.1.258...v2.1.259) (2024-06-26)
 
 ### Features
