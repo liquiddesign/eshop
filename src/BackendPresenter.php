@@ -9,9 +9,7 @@ use Eshop\DB\CategoryRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
-use League\Csv\Reader;
 use Nette\Application\Application;
-use Nette\Utils\FileSystem;
 use PdoDebugger;
 use StORM\Entity;
 use StORM\LogItem;
@@ -185,22 +183,6 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 		$this->payload->pagination = $payload['pagination'];
 
 		$this->sendPayload();
-	}
-
-	public function getReaderFromString(string $content, string $delimiter = ';'): Reader
-	{
-		$reader = Reader::createFromString($content);
-		unset($content);
-
-		$reader->setDelimiter($delimiter);
-		$reader->setHeaderOffset(0);
-
-		return $reader;
-	}
-
-	public function getReader(string $filePath, string $delimiter = ';'): Reader
-	{
-		return $this->getReaderFromString(FileSystem::read($filePath), $delimiter);
 	}
 
 	public function onDeleteImagePublic(Entity $object, string $propertyName = 'imageFileName'): void
