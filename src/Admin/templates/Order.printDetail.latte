@@ -173,7 +173,7 @@
                                             </td>
                                             <td>
                                                 <a n:tag-if="$admin->isAllowed(':Eshop:Admin:Product:default')" href="{plink :Eshop:Admin:Product:default, productGrid-code=>$item->productCode}" target="_blank">
-                                                    -- {$item->product ? $item->product->name : $item->productName}
+                                                    -- {$item->product ? $item->product->getName() : $item->productName}
                                                 </a>
                                                 <i n:if="$item->note" title="{$item->note}" class="far fa-sticky-note"></i>
                                             </td>
@@ -364,7 +364,7 @@
     {foreach $allStoreAmounts as $packageItemPK => $storeAmounts}
         {varType Eshop\DB\Amount[] $storeAmounts}
         {embed modal id:"storeOrderItemForm-$packageItemPK"}
-            {block modal-header}Sklad položky - {$packageItems[$packageItemPK]->cartItem->getProduct() ? $packageItems[$packageItemPK]->cartItem->getProduct()->name : $packageItems[$packageItemPK]->cartItem->productName}{/block}
+            {block modal-header}Sklad položky - {$packageItems[$packageItemPK]->cartItem->getProduct() ? $packageItems[$packageItemPK]->cartItem->getProduct()->getName() : $packageItems[$packageItemPK]->cartItem->productName}{/block}
             {block modal-body}
                 <div class="table-responsive">
                         <table class="table table-sm table-striped">
@@ -411,7 +411,7 @@
                                     style="{if $storeAmount->store->supplier && $storeAmount->store->supplier->highlightStoreAmount && $storeAmount->inStock > 0}background-color: #00CC00;{/if}"
                             >
                                 <td>{input amount:$storeAmount->getPK()}</td>
-                                <td>{$storeAmount->product->name}</td>
+                                <td>{$storeAmount->product->getName()}</td>
                                 <td>{$storeAmount->product->getFullCode()}</td>
                                 <td>{$storeAmount->store->supplier ? ($storeAmount->product->getSupplierProduct($storeAmount->store->supplier->getPK())?->name ?: null)}</td>
                                 <td>{$storeAmount->store->supplier ? ($storeAmount->product->getSupplierProduct($storeAmount->store->supplier->getPK())?->code ?: null)}</td>

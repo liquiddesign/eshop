@@ -15,7 +15,7 @@
     </td>
     <td>
         <a n:tag-if="$admin->isAllowed(':Eshop:Admin:Product:default')" href="{plink :Eshop:Admin:Product:default, productGrid-code=>$item->productCode}" target="_blank">
-            {if $upsell}-- {/if}{$item->product ? $item->product->name : $item->productName}
+            {if $upsell}-- {/if}{$item->product ? $item->product->getName() : $item->productName}
         </a>
         <i n:if="$item->note" title="{$item->note}" class="far fa-sticky-note"></i>
     </td>
