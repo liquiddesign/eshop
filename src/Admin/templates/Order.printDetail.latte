@@ -157,7 +157,7 @@
                                         {include '../Components/Order.printDetail.item.latte', packageItem:$upsellPackageItem, upsell:true}
                                     {/foreach}
 
-                                    {foreach $packageItem->relatedPackageItems->toArray() as $relatedPackageItem}
+                                    {foreach $packageItem->getRelatedPackageItems()->toArray() as $relatedPackageItem}
                                         {varType Eshop\DB\RelatedPackageItem $relatedPackageItem}
                                         {var Eshop\DB\RelatedCartItem $item = $relatedPackageItem->cartItem}
                                         {var Eshop\DB\Product|null $product = $item->product}

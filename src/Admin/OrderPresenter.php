@@ -701,10 +701,22 @@ class OrderPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValuesWithAjax();
 
+			$package = $values['package'] === 'new' ? null : $values['package'];
+
+			$link = $this->connection->getLink();
+
 			try {
-				$this->orderEditService->addProduct($order, $values['product'], $values['amount'], $values['cart'], $values['package'], true);
+				$link->beginTransaction();
+
+				$this->orderEditService->addProduct($order, $values['product'], $values['amount'], $values['cart'], $package, true);
+
+				$link->commit();
 			} catch (\Exception $e) {
+				$link->rollBack();
+
 				$this->flashMessage($e->getMessage(), 'error');
+				Debugger::log($e, ILogger::EXCEPTION);
+				Debugger::barDump($e);
 
 				$this->redirect('this');
 			}
@@ -1557,8 +1569,8 @@ class OrderPresenter extends BackendPresenter
 			$this->template->pickupPoint = null;
 		}
 
-		$this->template->packages = clone $order->packages;
-		$this->template->packageItems = $this->packageItemRepository->many()->where('this.fk_package', (clone $order->packages)->toArrayOf('uuid', toArrayValues: true))->toArray();
+		$this->template->packages = $order->getPackages();
+		$this->template->packageItems = $this->packageItemRepository->many()->where('this.fk_package', $order->getPackages()->toArrayOf('uuid', toArrayValues: true))->toArray();
 
 		$upsells = [];
 
@@ -1856,6 +1868,8 @@ class OrderPresenter extends BackendPresenter
 		/** @var \Eshop\DB\PackageItem $packageItem */
 		$packageItem = $this->packageItemRepository->one($itemId, true);
 
+		$productName = $packageItem->cartItem->productName;
+
 		$this->orderEditService->removePackageItem($packageItem);
 
 		/** @var \Admin\DB\Administrator|null $admin */
@@ -1868,7 +1882,7 @@ class OrderPresenter extends BackendPresenter
 		$this->orderLogItemRepository->createLog(
 			$order,
 			OrderLogItem::ITEM_DELETED,
-			$packageItem->cartItem->productName . ' | ' . $packageItem->amount . ' ks',
+			$productName . ' | ' . $packageItem->amount . ' ks',
 			$admin,
 		);
 

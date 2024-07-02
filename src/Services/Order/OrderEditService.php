@@ -66,12 +66,6 @@ readonly class OrderEditService implements AutoWireService
 			throw new \Exception('Product not found');
 		}
 
-		if (!$this->productRepository->getProducts($this->shopperUser->getCheckoutManager()->getPricelists()->toArray())->where('this.uuid', $product->getPK())->first()) {
-			if (!$force) {
-				throw new \Exception('Customer can\'t buy this product!');
-			}
-		}
-
 		if ($cart !== null && !$cart instanceof Cart) {
 			$cart = $this->cartRepository->one($cart);
 		}
@@ -121,7 +115,7 @@ readonly class OrderEditService implements AutoWireService
 
 		if (!$productWithPrice) {
 			if (!$force) {
-				throw new \Exception('Customer can\'t buy this product!');
+				throw new \Exception("Customer can't buy product '$product->name ($product->code)'!");
 			}
 
 			$product->setValue('price', 0);
@@ -142,14 +136,22 @@ readonly class OrderEditService implements AutoWireService
 			cart: $cart
 		);
 
-		if (!$packageItem = $package->getItems()->where('cartItem.fk_product', $product->getPK())->first()) {
+		if ($replaceMode === null) {
 			$packageItem = $this->packageItemRepository->createOne([
 				'amount' => $cartItem->amount,
 				'package' => $package->getPK(),
 				'cartItem' => $cartItem,
 			]);
 		} else {
-			$packageItem->update(['amount' => $cartItem->amount]);
+			if (!$packageItem = $package->getItems()->where('cartItem.fk_product', $product->getPK())->first()) {
+				$packageItem = $this->packageItemRepository->createOne([
+					'amount' => $cartItem->amount,
+					'package' => $package->getPK(),
+					'cartItem' => $cartItem,
+				]);
+			} else {
+				$packageItem->update(['amount' => $cartItem->amount]);
+			}
 		}
 
 		$setRelationType = $this->settingRepository->getValueByName(SettingsPresenter::SET_RELATION_TYPE);
@@ -204,10 +206,19 @@ readonly class OrderEditService implements AutoWireService
 
 		foreach ($relatedProducts as $relatedProduct) {
 			if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
-				continue;
-			}
+				if (!$force) {
+					throw new \Exception('Customer can\'t buy this product!');
+				}
 
-			$product = $slaveProducts[$relatedProduct->getValue('slave')];
+				$product = $this->productRepository->one($relatedProduct->getValue('slave'), true);
+
+				$product->setValue('price', 0);
+				$product->setValue('priceVat', 0);
+				$product->setValue('priceBefore', null);
+				$product->setValue('priceVatBefore', null);
+			} else {
+				$product = $slaveProducts[$relatedProduct->getValue('slave')];
+			}
 
 			/** @var \Eshop\DB\VatRate|null $vat */
 			$vat = $this->vatRateRepository->one($product->vatRate);
@@ -232,10 +243,6 @@ readonly class OrderEditService implements AutoWireService
 				'priceVatBefore' => $product->getPriceVatBefore() ?: $product->getPriceVat(),
 				'vatPct' => (float) $vatPct,
 			];
-		}
-
-		if (!$relatedCartItems) {
-			return true;
 		}
 
 		/** @var array<\Eshop\DB\RelatedCartItem> $relatedCartItems */
@@ -272,13 +279,20 @@ readonly class OrderEditService implements AutoWireService
 			$packageItem = $this->packageItemRepository->one($packageItem, true);
 		}
 
+		$relatedCartItemsToDelete = [];
+
 		foreach ($packageItem->relatedPackageItems as $relatedPackageItem) {
-			$relatedPackageItem->cartItem->delete();
+			$relatedCartItemsToDelete[] = $relatedPackageItem->getValue('cartItem');
 			$relatedPackageItem->delete();
 		}
 
-		$packageItem->cartItem->delete();
+		$this->relatedCartItemRepository->many()->where('this.uuid', $relatedCartItemsToDelete)->delete();
+
+		$cartItemToDelete = $packageItem->getValue('cartItem');
+
 		$packageItem->delete();
+
+		$this->cartItemRepository->many()->where('this.uuid', $cartItemToDelete)->delete();
 	}
 
 	public function removeCartItem(CartItem|string $cartItem): void
