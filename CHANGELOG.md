@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.263](https://github.com/liquiddesign/eshop/compare/v2.1.262...v2.1.263) (2024-07-03)
+
+### Features
+
+* Add getCheckoutPriceVatBefore method to CheckoutManager ([775131](https://github.com/liquiddesign/eshop/commit/775131563246ca31a251217037e540d8b45ac128))
+
+
+---
+
 ## [2.1.262](https://github.com/liquiddesign/eshop/compare/v2.1.261...v2.1.262) (2024-07-03)
 
 ### Features
