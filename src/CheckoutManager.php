@@ -1761,10 +1761,15 @@ class CheckoutManager
 
 				foreach ($relatedProducts as $relatedProduct) {
 					if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
-						continue;
-					}
+						$product = $this->productRepository->one($relatedProduct->getValue('slave'), true);
 
-					$product = $slaveProducts[$relatedProduct->getValue('slave')];
+						$product->setValue('price', 0);
+						$product->setValue('priceVat', 0);
+						$product->setValue('priceBefore', null);
+						$product->setValue('priceVatBefore', null);
+					} else {
+						$product = $slaveProducts[$relatedProduct->getValue('slave')];
+					}
 
 					/** @var \Eshop\DB\VatRate|null $vat */
 					$vat = $vatRepo->one($product->vatRate);
@@ -1789,10 +1794,6 @@ class CheckoutManager
 						'priceVatBefore' => $product->getPriceVatBefore() ?: $product->getPriceVat(),
 						'vatPct' => (float) $vatPct,
 					];
-				}
-
-				if (!$relatedCartItems) {
-					continue;
 				}
 
 				$this->relatedCartItemRepository->many()->where('fk_cartItem', $cartItem->getPK())->delete();
