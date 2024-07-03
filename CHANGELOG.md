@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.262](https://github.com/liquiddesign/eshop/compare/v2.1.261...v2.1.262) (2024-07-03)
+
+### Features
+
+* Update price rounding and handle missing related products ([4be556](https://github.com/liquiddesign/eshop/commit/4be5561095c4d65e9c410b1f3457bd0b00afedf3))
+
+
+---
+
 ## [2.1.261](https://github.com/liquiddesign/eshop/compare/v2.1.260...v2.1.261) (2024-07-02)
 
 ### Bug Fixes
