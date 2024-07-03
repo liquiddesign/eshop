@@ -1134,6 +1134,13 @@ class CheckoutManager
 		
 		return $priceVat ?: 0.0;
 	}
+
+	public function getCheckoutPriceVatBefore(?string $cartId = self::ACTIVE_CART_ID): float|null
+	{
+		$priceVat = $this->getSumPriceVatBefore($cartId) + $this->getDeliveryPriceVat() + $this->getPaymentPriceVat();
+
+		return $priceVat ?: null;
+	}
 	
 	public function getCartCheckoutPrice(?string $cartId = self::ACTIVE_CART_ID, bool $purchaseDiscount = true): float
 	{
