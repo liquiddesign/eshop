@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.264](https://github.com/liquiddesign/eshop/compare/v2.1.263...v2.1.264) (2024-07-08)
+
+### Bug Fixes
+
+* Update canceled order query condition in OrderRepository ([83cbae](https://github.com/liquiddesign/eshop/commit/83cbaea6fb4ae678c650075f3824a4d6bbd6eae5))
+
+
+---
+
 ## [2.1.263](https://github.com/liquiddesign/eshop/compare/v2.1.262...v2.1.263) (2024-07-03)
 
 ### Features
