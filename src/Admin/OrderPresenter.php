@@ -352,7 +352,7 @@ class OrderPresenter extends BackendPresenter
 		$grid->addColumn('Administrátor', function (OrderLogItem $orderLogItem, AdminGrid $datagrid): string {
 			if ($orderLogItem->administrator) {
 				$link = $this->admin->isAllowed(':Admin:Admin:Administrator:detail') && $orderLogItem->administrator->getPK() !== 'servis' ?
-					$datagrid->getPresenter()->link(':Admin:Admin:Administrator:detail', [$orderLogItem->administrator, 'backLink' => $this->storeRequest()]) :
+					$datagrid->getPresenter()->link(':Admin:Admin:Administrator:detail', [$orderLogItem->administrator]) :
 					'#';
 
 				return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $orderLogItem->administrator->fullName . '</a>';
