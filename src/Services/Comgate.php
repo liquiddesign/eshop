@@ -182,6 +182,8 @@ class Comgate implements IPaymentIntegration
 		$data = $request->getPost();
 
 		if ($data['merchant'] !== $this->contributteComgate->getMerchant() || $data['secret'] !== $this->contributteComgate->getSecret()) {
+			Debugger::log($data, ILogger::DEBUG);
+
 			throw new \Exception('Invalid request');
 		}
 
