@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.265](https://github.com/liquiddesign/eshop/compare/v2.1.264...v2.1.265) (2024-07-08)
+
+### Bug Fixes
+
+* Remove backLink parameter from Administrator detail link ([7b0469](https://github.com/liquiddesign/eshop/commit/7b0469deabd7806f763705c5883824442e56c843))
+
+
+---
+
 ## [2.1.264](https://github.com/liquiddesign/eshop/compare/v2.1.263...v2.1.264) (2024-07-08)
 
 ### Bug Fixes
