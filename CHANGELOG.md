@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.266](https://github.com/liquiddesign/eshop/compare/v2.1.265...v2.1.266) (2024-07-08)
+
+### Features
+
+* Add debug logging for invalid Comgate payment requests ([d75da2](https://github.com/liquiddesign/eshop/commit/d75da260494e991310e34a0ffb91b84a72017d55))
+
+
+---
+
 ## [2.1.265](https://github.com/liquiddesign/eshop/compare/v2.1.264...v2.1.265) (2024-07-08)
 
 ### Bug Fixes
