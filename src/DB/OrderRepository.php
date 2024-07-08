@@ -449,7 +449,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		}
 
 		if ($state === Order::STATE_CANCELED) {
-			return $this->many()->where('this.receivedTs IS NOT NULL AND this.canceledTs IS NOT NULL')
+			return $this->many()->where('this.canceledTs IS NOT NULL')
 				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
 				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
