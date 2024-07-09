@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.268](https://github.com/liquiddesign/eshop/compare/v2.1.267...v2.1.268) (2024-07-09)
+
+### Features
+
+* Add shop support to newsletter user operations ([9d898a](https://github.com/liquiddesign/eshop/commit/9d898a1e7dc7e27749d4d914a5132ffd9dd5b857))
+
+
+---
+
 ## [2.1.267](https://github.com/liquiddesign/eshop/compare/v2.1.266...v2.1.267) (2024-07-09)
 
 ### Features
