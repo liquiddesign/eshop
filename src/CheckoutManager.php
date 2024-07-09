@@ -1897,6 +1897,7 @@ class CheckoutManager
 			$this->newsletterUserRepository->syncOne([
 				'email' => $purchase->email,
 				'customerAccount' => $customer && $customer->account ? $customer->account->getPK() : null,
+				'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
 			], null, false, true);
 		}
 		

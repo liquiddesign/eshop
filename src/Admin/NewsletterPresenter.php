@@ -56,6 +56,7 @@ class NewsletterPresenter extends BackendPresenter
 		$grid->addButtonDeleteSelected();
 
 		$grid->addFilterTextInput('search', ['this.email'], null, 'E-mail');
+		$this->gridFactory->addShopsFilterSelect($grid);
 
 		$grid->addFilterDataSelect(function (Collection $source, $value): void {
 			$source->where('nxn.fk_newsletterusergroup', $value);

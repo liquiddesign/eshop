@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopEntity;
 use Security\DB\Account;
 use StORM\RelationCollection;
 
@@ -12,9 +13,9 @@ use StORM\RelationCollection;
  * @table
  * @index{"name":"newsletteruser_unique_email","unique":true,"columns":["email"]}
  * @index{"name":"newsletteruser_unique_customerAccount","unique":true,"columns":["fk_customerAccount"]}
- * @index{"name":"newsletteruser_unique_email_customerAccount","unique":true,"columns":["email", "fk_customerAccount"]}
+ * @index{"name":"newsletteruser_unique_email_customerAccount","unique":true,"columns":["email", "fk_customerAccount", "fk_shop"]}
  */
-class NewsletterUser extends \StORM\Entity
+class NewsletterUser extends ShopEntity
 {
 	/**
 	 * Email
