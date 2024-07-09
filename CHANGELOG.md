@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.267](https://github.com/liquiddesign/eshop/compare/v2.1.266...v2.1.267) (2024-07-09)
+
+### Features
+
+* Add shops filter and shop association to newsletter users ([f54724](https://github.com/liquiddesign/eshop/commit/f54724c1eb09738f4c7952cbc38c8e111abc5a1b))
+
+
+---
+
 ## [2.1.266](https://github.com/liquiddesign/eshop/compare/v2.1.265...v2.1.266) (2024-07-08)
 
 ### Features
