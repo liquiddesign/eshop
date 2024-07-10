@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.271](https://github.com/liquiddesign/eshop/compare/v2.1.270...v2.1.271) (2024-07-10)
+
+### Features
+
+* Add methods to calculate checkout discount prices ([a76edb](https://github.com/liquiddesign/eshop/commit/a76edb6af9ca14f08b4a7a727a06fab3c47683ac))
+
+
+---
+
 ## [2.1.270](https://github.com/liquiddesign/eshop/compare/v2.1.269...v2.1.270) (2024-07-10)
 
 ### Bug Fixes
