@@ -142,6 +142,11 @@ class SupplierProductRepository extends \StORM\Repository
 			$existingProductContents[$productContent->productPK][$productContent->shopPK] = $productContent;
 		}
 
+		$productsWithDontAssignSupplierCategoryInternalRibbon = $productRepository->many()
+			->where('internalRibbons.uuid', 'dont_assign_supplier_category')
+			->setSelect(['this.uuid'], keepIndex: true)
+			->toArrayOf('uuid');
+
 		$productContentsToSync = [];
 
 		while ($draft = $drafts->fetch()) {
@@ -211,7 +216,9 @@ class SupplierProductRepository extends \StORM\Repository
 			/** @var \Eshop\DB\Product $product */
 			$product = $productRepository->syncOne($values, $currentUpdates, false, false, ['categories' => false]);
 
-			$product->categories->relate($categories, false);
+			if (!isset($productsWithDontAssignSupplierCategoryInternalRibbon[$product->getPK()])) {
+				$product->categories->relate($categories, false);
+			}
 
 			$updated = $product->getParent() instanceof ICollection;
 
