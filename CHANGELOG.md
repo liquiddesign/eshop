@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.270](https://github.com/liquiddesign/eshop/compare/v2.1.269...v2.1.270) (2024-07-10)
+
+### Bug Fixes
+
+* Update order price calculation to use non-VAT sums ([5b3194](https://github.com/liquiddesign/eshop/commit/5b31947c5e92da914173ebddfc036d0ca99ac52e))
+
+
+---
+
 ## [2.1.269](https://github.com/liquiddesign/eshop/compare/v2.1.268...v2.1.269) (2024-07-10)
 
 ### Features
