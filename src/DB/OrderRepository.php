@@ -1135,8 +1135,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			}
 		}
 
-		$deliveryPrice = $order->getDeliveryPriceVatSum();
-		$paymentPrice = $order->getPaymentPriceVatSum();
+		$deliveryPrice = $order->getDeliveryPriceSum();
+		$paymentPrice = $order->getPaymentPriceSum();
 		$totalDeliveryPrice = $deliveryPrice + $paymentPrice;
 		$totalDeliveryPriceVat = $order->getDeliveryPriceVatSum() + $order->getPaymentPriceVatSum();
 
