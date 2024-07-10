@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.269](https://github.com/liquiddesign/eshop/compare/v2.1.268...v2.1.269) (2024-07-10)
+
+### Features
+
+* Update price formatting to use priceSecondary filter ([fba152](https://github.com/liquiddesign/eshop/commit/fba15260d5af41de67a537fe926a20636ba70436))
+
+
+---
+
 ## [2.1.268](https://github.com/liquiddesign/eshop/compare/v2.1.267...v2.1.268) (2024-07-09)
 
 ### Features
