@@ -783,12 +783,41 @@ class ShopperUser extends User
 		});
 	}
 
+	public function addFiltersSecondary(\Nette\Bridges\ApplicationLatte\Template $template): void
+	{
+		$template->addFilter('priceSecondary', function ($number, ?string $currencyCode = null, ?int $formatDecimals = null) {
+			return $this->filterPriceSecondary($number, $currencyCode, $formatDecimals);
+		});
+	}
+
 	/**
 	 * Formátuje cenu
 	 * @param float|int $number
 	 * @param string|null $currencyCode
 	 */
 	public function filterPrice($number, ?string $currencyCode = null, ?int $formatDecimals = null): string
+	{
+		$currency = $this->getCurrency($currencyCode);
+
+		if ($currency->formatDecimals === null) {
+			$localeInfo = \localeconv();
+			$currency->formatDecimals = (int) ($localeInfo['frac_digits'] ?? 0);
+		}
+
+		$formatDecimals ??= $currency->formatDecimals;
+
+		$nbsp = \html_entity_decode('&nbsp;');
+		$formatted = \number_format((float) $number, $formatDecimals, $currency->formatDecimalSeparator, \str_replace(' ', $nbsp, $currency->formatThousandsSeparator));
+
+		return ($currency->formatSymbolPosition !== 'after' ? $currency->symbol : '') . $formatted . $nbsp . ($currency->formatSymbolPosition === 'after' ? $currency->symbol : '');
+	}
+
+	/**
+	 * Formátuje cenu
+	 * @param float|int $number
+	 * @param string|null $currencyCode
+	 */
+	public function filterPriceSecondary($number, ?string $currencyCode = null, ?int $formatDecimals = null): string
 	{
 		$currency = $this->getCurrency($currencyCode);
 

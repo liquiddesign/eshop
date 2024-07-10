@@ -108,6 +108,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		/** @var \Nette\DI\Definitions\ServiceDefinition $latteDefinition */
 		$latteDefinition = $builder->getDefinition('latte.templateFactory');
 		$latteDefinition->addSetup('$onCreate[]', [['@security.user', 'addFilters']]);
+		$latteDefinition->addSetup('$onCreate[]', [['@security.user', 'addFiltersSecondary']]);
 
 		$shopperUser->addSetup('setRegistrationConfiguration', [(array) $config['registration']]);
 		$shopperUser->addSetup('setConfig', [$config]);
