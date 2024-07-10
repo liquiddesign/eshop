@@ -1168,6 +1168,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'totalPriceVat' => $this->shopperUser->getCatalogPermission() === 'price' ? $order->getTotalPriceVat() : null,
 			'currency' => $order->purchase->currency,
 			'discountCoupon' => $order->getDiscountCoupon(),
+			'discountPrice' => $order->getDiscountPrice(),
+			'discountPriceVat' => $order->getDiscountPriceVat(),
 			'order' => $order,
 			'withVat' => false,
 			'withoutVat' => false,

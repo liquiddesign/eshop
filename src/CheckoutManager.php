@@ -1135,6 +1135,13 @@ class CheckoutManager
 		return $priceVat ?: 0.0;
 	}
 
+	public function getCheckoutPriceBefore(?string $cartId = self::ACTIVE_CART_ID): float|null
+	{
+		$priceVat = $this->getSumPriceBefore($cartId) + $this->getDeliveryPrice() + $this->getPaymentPrice();
+
+		return $priceVat ?: null;
+	}
+
 	public function getCheckoutPriceVatBefore(?string $cartId = self::ACTIVE_CART_ID): float|null
 	{
 		$priceVat = $this->getSumPriceVatBefore($cartId) + $this->getDeliveryPriceVat() + $this->getPaymentPriceVat();
@@ -1367,6 +1374,56 @@ class CheckoutManager
 		}
 		
 		($purchase ?? $this->getPurchase(false, $cartId))->update(['discountPct' => $value]);
+	}
+
+	/**
+	 * @return float Actual discount price of current checkout
+	 */
+	public function getCheckoutDiscountPrice(?string $cartId = self::ACTIVE_CART_ID): float
+	{
+		$coupon = $this->getDiscountCoupon($cartId);
+
+		if (!$coupon || $coupon->discountPct) {
+			if ($priceBefore = $this->getCheckoutPriceBefore()) {
+				return $priceBefore - $this->getCheckoutPrice();
+			}
+
+			return 0.0;
+		}
+
+		if ($coupon->discountValue) {
+			$totalPrice = $this->getCheckoutPrice();
+			$totalPriceBefore = $this->getCheckoutPrice() + $this->getDiscountPrice();
+
+			return $totalPriceBefore - $totalPrice;
+		}
+
+		return 0.0;
+	}
+
+	/**
+	 * @return float Actual discount price of current checkout
+	 */
+	public function getCheckoutDiscountPriceVat(?string $cartId = self::ACTIVE_CART_ID): float
+	{
+		$coupon = $this->getDiscountCoupon($cartId);
+
+		if (!$coupon || $coupon->discountPct) {
+			if ($priceVatBefore = $this->getCheckoutPriceVatBefore()) {
+				return $priceVatBefore - $this->getCheckoutPriceVat();
+			}
+
+			return 0.0;
+		}
+
+		if ($coupon->discountValueVat) {
+			$totalPrice = $this->getCheckoutPriceVat();
+			$totalPriceBefore = $this->getCheckoutPriceVat() + $this->getDiscountPriceVat();
+
+			return $totalPriceBefore - $totalPrice;
+		}
+
+		return 0.0;
 	}
 	
 	public function getDiscountPrice(?string $cartId = self::ACTIVE_CART_ID): float
