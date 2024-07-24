@@ -409,7 +409,7 @@ class ProductPresenter extends BackendPresenter
 			$this->fileRepository->syncOne($values);
 
 			$this->flashMessage('Uloženo', 'success');
-			$this->redirect('edit', [new Product(['uuid' => $values['product']])]);
+			$this->redirect('edit', $this->getParameter('product'));
 		};
 
 		return $form;
