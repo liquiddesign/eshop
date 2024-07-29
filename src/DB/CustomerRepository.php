@@ -26,7 +26,6 @@ use StORM\SchemaManager;
 class CustomerRepository extends \StORM\Repository implements IUserRepository, IGeneralRepository, IGeneralAjaxRepository
 {
 	use UserRepositoryTrait;
-
 	public function __construct(DIConnection $connection, SchemaManager $schemaManager, protected readonly ShopsConfig $shopsConfig)
 	{
 		parent::__construct($connection, $schemaManager);

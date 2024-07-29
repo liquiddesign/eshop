@@ -43,7 +43,6 @@ use Web\Controls\Widget;
 abstract class FrontendPresenter extends Presenter
 {
 	use HandleLoadAresTrait;
-
 	public string $appPath = __DIR__ . '/../../../../../app';
 
 	public string $layoutTemplate = __DIR__ . '/../../../../../app/@layout.latte';

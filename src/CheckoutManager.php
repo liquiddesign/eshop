@@ -72,7 +72,6 @@ use Web\DB\SettingRepository;
 class CheckoutManager
 {
 	use SmartObject;
-
 	
 	public const DEFAULT_CART_ID = '1';
 	public const ACTIVE_CART_ID = null;
