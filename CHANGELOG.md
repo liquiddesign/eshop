@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.275](https://github.com/liquiddesign/eshop/compare/v2.1.274...v2.1.275) (2024-07-29)
+
+### Features
+
+* Add free delivery check for Google and Heureka exports ([7a9e61](https://github.com/liquiddesign/eshop/commit/7a9e6198d585d95db70bd511b4705899dca8ac22))
+
+### Styles
+
+* Fix ([ebf893](https://github.com/liquiddesign/eshop/commit/ebf8930259620370c660c452d4e60d534634c780))
+
+
+---
+
 ## [2.1.274](https://github.com/liquiddesign/eshop/compare/v2.1.273...v2.1.274) (2024-07-24)
 
 
