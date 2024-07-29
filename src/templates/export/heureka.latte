@@ -71,13 +71,15 @@
                     </PARAM>
                 {/foreach}
             {/foreach}
+            {var $isDeliveryFree = $presenter->productRepo->isProductDeliveryFreeVat($product)}
+
             {foreach $possibleDeliveryTypes as $deliveryType}
                 {varType Eshop\DB\DeliveryType $deliveryType}
                 {continueIf !$deliveryType->externalIdHeureka}
                 <DELIVERY>
                     <DELIVERY_ID>{$deliveryType->externalIdHeureka}</DELIVERY_ID>
-                    <DELIVERY_PRICE>{$deliveryType->getValue('priceVat')}</DELIVERY_PRICE>
-                    <DELIVERY_PRICE_COD>{$deliveryType->getValue('priceVatWithCod')}</DELIVERY_PRICE_COD>
+                    <DELIVERY_PRICE>{$isDeliveryFree ? 0 : $deliveryType->getValue('priceVat')}</DELIVERY_PRICE>
+                    <DELIVERY_PRICE_COD>{$isDeliveryFree ? ($deliveryType->getValue('priceVatWithCod') - $deliveryType->getValue('priceVat')) : $deliveryType->getValue('priceVatWithCod')}</DELIVERY_PRICE_COD>
                 </DELIVERY>
             {/foreach}
         </SHOPITEM>

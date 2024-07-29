@@ -61,11 +61,13 @@
                 <g:product_type><![CDATA[{foreach $categories as $category}{$category->name}{if !$iterator->isLast()} | {/if}{/foreach}]]></g:product_type>
             {/if}
 
+            {var $isDeliveryFree = $presenter->productRepo->isProductDeliveryFreeVat($product)}
+
             {foreach $deliveryTypes as $deliveryType}
                 <g:shipping>
                     <g:country>CZ</g:country>
                     <g:service>{$deliveryType->name}</g:service>
-                    <g:price>{$deliveryType->getValue($priceType ? 'priceVat' : 'price')|ceil} CZK</g:price>
+                    <g:price>{$isDeliveryFree ? 0 : $deliveryType->getValue($priceType ? 'priceVat' : 'price')|ceil} CZK</g:price>
                 </g:shipping>
             {/foreach}
 
