@@ -429,6 +429,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		};
 
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid): void {
+			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
 			$rawValues = $this->getHttpRequest()->getPost();
 
