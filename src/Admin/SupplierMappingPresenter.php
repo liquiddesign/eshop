@@ -275,7 +275,7 @@ class SupplierMappingPresenter extends BackendPresenter
 
 		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
-				$source->where('fk_supplier', $value);
+				$source->where('this.fk_supplier', $value);
 			}, null, 'supplier', null, $suppliers, ['placeholder' => '- Dodavatel -']);
 		}
 
