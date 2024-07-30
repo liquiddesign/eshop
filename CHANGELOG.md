@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.277](https://github.com/liquiddesign/eshop/compare/v2.1.276...v2.1.277) (2024-07-30)
+
+### Features
+
+* Optimize supplier attribute value assignment and improve performance ([40da51](https://github.com/liquiddesign/eshop/commit/40da518be73749f415007b8938c48a91a1fc279b))
+
+
+---
+
 ## [2.1.276](https://github.com/liquiddesign/eshop/compare/v2.1.275...v2.1.276) (2024-07-30)
 
 ### Features
