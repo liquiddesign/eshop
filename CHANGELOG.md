@@ -4,6 +4,25 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.276](https://github.com/liquiddesign/eshop/compare/v2.1.275...v2.1.276) (2024-07-30)
+
+### Features
+
+* Add filterType column and update attribute creation ([f6bd51](https://github.com/liquiddesign/eshop/commit/f6bd51c118a023ba1474c226cc40ec6418016e12))
+* Update SupplierMappingPresenter with attribute category info ([2056aa](https://github.com/liquiddesign/eshop/commit/2056aad11e6188757e8e333d43826532ee6f2a64))
+* Update bulk mapping functionality and refactor grid creation ([009af0](https://github.com/liquiddesign/eshop/commit/009af05866368b09f6278529d615b2941e0a19d6))
+
+### Bug Fixes
+
+* Supplier filter in SupplierMappingPresenter ([57089c](https://github.com/liquiddesign/eshop/commit/57089c62abc8a69ded497500259df23f94f57cb3))
+
+### Styles
+
+* Fix ([d785ca](https://github.com/liquiddesign/eshop/commit/d785ca96898145468dd3bbdea43fee2c82188871))
+
+
+---
+
 ## [2.1.275](https://github.com/liquiddesign/eshop/compare/v2.1.274...v2.1.275) (2024-07-29)
 
 ### Features
