@@ -199,6 +199,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 			$grid->addColumnText('Název', 'name', '%s', 'name');
 			$grid->addColumnText('Dodavatelské kategorie', 'supplierCategories', '%s');
+			$grid->addColumnText('Operátor', 'filterType', '%s', 'filterType');
 			$grid->addColumn('Napárovano', function (SupplierAttribute $mapping) {
 				$link = $mapping->attribute && $this->admin->isAllowed(':Eshop:Admin:Attribute:attributeDetail') ?
 					$this->link(':Eshop:Admin:Attribute:attributeDetail', [$mapping->attribute, 'backLink' => $this->storeRequest(),]) : '#';
@@ -505,6 +506,7 @@ class SupplierMappingPresenter extends BackendPresenter
 							$supplierAttribute->attribute->update([
 								'name' => ['cs' => $supplierAttribute->name],
 								'supplier' => $supplierAttribute->getValue('supplier'),
+								'filterType' => $supplierAttribute->filterType,
 							]);
 						}
 					} else {
@@ -521,6 +523,7 @@ class SupplierMappingPresenter extends BackendPresenter
 							'code' => $code,
 							'name' => ['cs' => $supplierAttribute->name, 'en' => null],
 							'supplier' => $supplierAttribute->getValue('supplier'),
+							'filterType' => $supplierAttribute->filterType,
 						]);
 
 						if ($supplierAttribute->getValue('categoryPK')) {
