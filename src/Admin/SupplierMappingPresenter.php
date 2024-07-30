@@ -26,6 +26,7 @@ use Eshop\DB\SupplierMappingRepository;
 use Eshop\DB\SupplierProducer;
 use Eshop\DB\SupplierProducerRepository;
 use Eshop\DB\SupplierRepository;
+use Nette\DI\Attributes\Inject;
 use Nette\Http\Session;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
@@ -50,52 +51,52 @@ class SupplierMappingPresenter extends BackendPresenter
 		'amount' => 'Dostupnost',
 	];
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierMappingRepository $supplierMappingRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CategoryRepository $categoryRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ProducerRepository $producerRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public DisplayAmountRepository $displayAmountRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public DisplayDeliveryRepository $displayDeliveryRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierCategoryRepository $supplierCategoryRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierProducerRepository $supplierProducerRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierDisplayAmountRepository $supplierDisplayAmountRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierAttributeRepository $supplierAttributeRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierAttributeValueRepository $supplierAttributeValueRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierAttributeCategoryAssignRepository $supplierAttributeCategoryAssignRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AttributeRepository $attributeRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AttributeValueRepository $attributeValueRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierRepository $supplierRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CategoryTypeRepository $categoryTypeRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Session $session;
 
 	/** @persistent */
@@ -197,6 +198,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		if ($this->tab === 'attribute') {
 			$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
 			$grid->addColumnText('Název', 'name', '%s', 'name');
+			$grid->addColumnText('Dodavatelské kategorie', 'supplierCategories', '%s');
 			$grid->addColumn('Napárovano', function (SupplierAttribute $mapping) {
 				$link = $mapping->attribute && $this->admin->isAllowed(':Eshop:Admin:Attribute:attributeDetail') ?
 					$this->link(':Eshop:Admin:Attribute:attributeDetail', [$mapping->attribute, 'backLink' => $this->storeRequest(),]) : '#';
@@ -826,6 +828,9 @@ class SupplierMappingPresenter extends BackendPresenter
 		throw new \DomainException('Invalid state');
 	}
 
+	/**
+	 * @return \StORM\Collection<\StORM\Entity>
+	 */
 	private function getMappingCollection(): Collection
 	{
 		$repository = $this->getMappingRepository();
@@ -833,9 +838,24 @@ class SupplierMappingPresenter extends BackendPresenter
 		$collection = $repository->many();
 
 		if ($this->tab === 'category') {
-			return $collection->join(['supplierCategoryXCategory' => 'eshop_suppliercategory_nxn_eshop_category'], 'this.uuid = supplierCategoryXCategory.fk_supplierCategory');
+			$collection->join(['supplierCategoryXCategory' => 'eshop_suppliercategory_nxn_eshop_category'], 'this.uuid = supplierCategoryXCategory.fk_supplierCategory');
 		}
 
-		return $repository->many();
+		if ($this->tab === 'attribute') {
+			$collection->setGroupBy(['this.uuid']);
+			$collection->join(['sca' => 'eshop_supplierattributecategoryassign'], 'this.uuid = sca.fk_supplierAttribute');
+			$collection->join(['sc' => 'eshop_suppliercategory'], 'sca.fk_supplierCategory = sc.uuid');
+			$collection->select(['supplierCategories' => 'GROUP_CONCAT(
+				CONCAT(
+					sc.categoryNameL1,
+					IF(sc.categoryNameL2 IS NULL, "" ," - "),
+					COALESCE(sc.categoryNameL2, ""),
+					IF(sc.categoryNameL3 IS NULL, "" ," - "),
+					COALESCE(sc.categoryNameL3, "")
+				) SEPARATOR ", "
+			)']);
+		}
+
+		return $collection;
 	}
 }
