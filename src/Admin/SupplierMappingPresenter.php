@@ -103,7 +103,7 @@ class SupplierMappingPresenter extends BackendPresenter
 
 	public function createComponentGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->getMappingCollection(), 20, 'createdTs', 'ASC');
+		$grid = $this->gridFactory->create($this->getMappingCollection(), 20, 'createdTs', 'ASC', true);
 		$grid->addColumnSelector();
 
 		$grid->addColumn(
@@ -264,17 +264,10 @@ class SupplierMappingPresenter extends BackendPresenter
 			null,
 			$property === 'attribute' || $property === 'attributeValue' ? [$property => $property] : [],
 		);
-		//      $grid->addButtonBulkEdit('mappingForm', [], 'grid', 'bulkMapping', 'Vytvořit strukturu');
 
 		$submit = $grid->getForm()->addSubmit('createStructureSubmit', 'Vytvořit strukturu')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 		$submit->onClick[] = function ($button) use ($grid): void {
-			unset($grid);
-			$this->flashMessage('Tato funkce momentálně není dostupná', 'warning');
-			$this->redirect('this');
-
-			// @TODO
-//			$this->session->getSection('bulkEdit')->set('totalIds', \array_keys($grid->getFilteredSource()->toArray()));
-//			$this->redirect('mapping', \serialize($grid->getSelectedIds()));
+			$this->redirect('mapping', [$grid->getSelectedIds()]);
 		};
 
 		if ($suppliers = $this->supplierRepository->getArrayForSelect()) {
@@ -387,9 +380,11 @@ class SupplierMappingPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create();
 
-		$totalIds = $this->session->getSection('bulkEdit')->get('totalIds');
-		$ids = \unserialize($this->getParameter('selectedIds'));
-		$totalNo = \count($totalIds);
+		/** @var \Grid\Datagrid $grid */
+		$grid = $this->getComponent('grid');
+
+		$ids = $this->getParameter('ids') ?: [];
+		$totalNo = $grid->getFilteredSource()->enum();
 		$selectedNo = \count($ids);
 
 		$form->addRadioList('bulkType', 'Upravit', [
@@ -407,8 +402,8 @@ class SupplierMappingPresenter extends BackendPresenter
 		}
 
 		if ($this->tab === 'attribute') {
-			$form->addCheckbox('mapValues', 'Přiřadit hodnoty');
-			$form->addCheckbox('overwriteValues', 'Přepsat hodnoty');
+//			$form->addCheckbox('mapValues', 'Přiřadit hodnoty');
+//			$form->addCheckbox('overwriteValues', 'Přepsat hodnoty');
 		}
 
 		if ($this->tab === 'attributeValue') {
@@ -433,12 +428,12 @@ class SupplierMappingPresenter extends BackendPresenter
 			$attributeInput->addError('Toto pole je povinné!');
 		};
 
-		$form->onSuccess[] = function (AdminForm $form) use ($ids, $totalIds): void {
+		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid): void {
 			$values = $form->getValues('array');
 			$rawValues = $this->getHttpRequest()->getPost();
 
 			$overwrite = $values['overwrite'];
-			$data = $values['bulkType'] === 'selected' ? $ids : $totalIds;
+			$data = $values['bulkType'] === 'selected' ? $ids : $grid->getFilteredSource()->toArrayOf('uuid');
 
 			if ($this->tab === 'producer') {
 				foreach ($data as $uuid) {
@@ -531,11 +526,11 @@ class SupplierMappingPresenter extends BackendPresenter
 
 						$supplierAttribute->update(['attribute' => $attribute->getPK()]);
 
-						if ($values['mapValues']) {
+						if (isset($values['mapValues']) && $values['mapValues']) {
 							/** @var \Eshop\DB\SupplierAttributeValue $supplierAttributeValue */
 							foreach ($this->supplierAttributeValueRepository->many()->where('fk_supplierAttribute', $supplierAttribute->getPK()) as $supplierAttributeValue) {
 								if ($supplierAttributeValue->attributeValue) {
-									if ($values['overwriteValues']) {
+									if (isset($values['overwriteValues']) && $values['overwriteValues']) {
 										$supplierAttributeValue->attributeValue->update(['label' => ['cs' => $supplierAttributeValue->label, 'en' => null]]);
 									}
 								} else {
@@ -700,14 +695,9 @@ class SupplierMappingPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function actionMapping($selectedIds): void
+	public function renderMapping(array $ids): void
 	{
-		unset($selectedIds);
-	}
-
-	public function renderMapping($selectedIds): void
-	{
-		unset($selectedIds);
+		unset($ids);
 
 		$this->template->headerLabel = 'Vytvořit strukturu';
 		$this->template->headerTree = [

@@ -14,6 +14,7 @@ use Eshop\DB\SupplierRepository;
 use Eshop\Integration\Integrations;
 use Eshop\Providers\IProducerSyncSupplier;
 use Forms\Form;
+use Nette\DI\Attributes\Inject;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use StORM\Collection;
@@ -33,22 +34,22 @@ class SupplierProductPresenter extends BackendPresenter
 	 */
 	public array $tabs = [];
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierProductRepository $supplierProductRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PricelistRepository $pricelistRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ProducerRepository $producerRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierRepository $supplierRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SettingRepository $settingRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Integrations $integrations;
 
 	public function beforeRender(): void
