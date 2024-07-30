@@ -68,6 +68,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$visibilityListItemRepository = $this->getConnection()->findRepository(VisibilityListItem::class);
 		$supplierId = $supplier->getPK();
 		$attributeAssignRepository = $this->getConnection()->findRepository(AttributeAssign::class);
+		$supplierAttributeValueAssignRepository = $this->getConnection()->findRepository(SupplierAttributeValueAssign::class);
 		$photoRepository = $this->getConnection()->findRepository(Photo::class);
 		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$mutation];
 		$riboonId = 'novy_import';
@@ -147,6 +148,38 @@ class SupplierProductRepository extends \StORM\Repository
 			->setSelect(['this.uuid'], keepIndex: true)
 			->toArrayOf('uuid');
 
+		$supplierAttributeValueAssignQuery = $supplierAttributeValueAssignRepository->many()
+			->join(['sav' => 'eshop_supplierattributevalue'], 'this.fk_supplierAttributeValue = sav.uuid')
+			->setSelect([
+				'supplierProductPK' => 'this.fk_supplierProduct',
+				'attributeValuePK' => 'sav.fk_attributeValue',
+			])
+			->where('sav.fk_attributeValue IS NOT NULL');
+
+		$supplierAttributeValuesByProduct = [];
+
+		while ($supplierAttributeValueAssign = $supplierAttributeValueAssignQuery->fetch(\stdClass::class)) {
+			/** @var \stdClass $supplierAttributeValueAssign */
+			$supplierAttributeValuesByProduct[$supplierAttributeValueAssign->supplierProductPK][] = $supplierAttributeValueAssign->attributeValuePK;
+		}
+
+		$supplierAttributeValueAssignQuery->__destruct();
+		unset($supplierAttributeValueAssignQuery);
+
+		$existingAttributeValuesByProductQuery = $attributeAssignRepository->many()->setSelect([
+			'attributeValue' => 'this.fk_value',
+			'product' => 'this.fk_product',
+		]);
+		$existingAttributeValuesByProduct = [];
+
+		while ($existingAttributeValue = $existingAttributeValuesByProductQuery->fetch(\stdClass::class)) {
+			/** @var \stdClass $existingAttributeValue */
+			$existingAttributeValuesByProduct[$existingAttributeValue->product][$existingAttributeValue->attributeValue] = true;
+		}
+
+		$existingAttributeValuesByProductQuery->__destruct();
+		unset($existingAttributeValuesByProductQuery);
+
 		$productContentsToSync = [];
 
 		while ($draft = $drafts->fetch()) {
@@ -178,8 +211,6 @@ class SupplierProductRepository extends \StORM\Repository
 				// jen pokud neni mozne parovat
 				'supplierCode' => $draft->code,
 				'name' => [$mutation => $draft->name],
-				//'perex' => [$mutation => substr($draft->content, 0, 150)],
-//				'content' => [$mutation => $draft->content],
 				'unit' => $draft->unit,
 				'vatRate' => $vatLevels[(int) $draft->vatRate] ?? 'standard',
 				'producer' => $producer,
@@ -296,13 +327,14 @@ class SupplierProductRepository extends \StORM\Repository
 				$result['locked']++;
 			}
 
-			foreach ($this->getConnection()->findRepository(SupplierAttributeValue::class)->many()
-						 ->join(['assign' => 'eshop_supplierattributevalueassign'], 'assign.fk_supplierAttributeValue=this.uuid')
-						 ->where('assign.fk_supplierProduct', $draft)
-						 ->where('this.fk_attributeValue IS NOT NULL') as $attributeValue) {
+			foreach ($supplierAttributeValuesByProduct[$draft->getPK()] ?? [] as $attributeValue) {
+				if (isset($existingAttributeValuesByProduct[$product->getPK()][$attributeValue])) {
+					continue;
+				}
+
 				$attributeAssignRepository->syncOne([
-					'value' => $attributeValue->getValue('attributeValue'),
-					'product' => $product,
+					'value' => $attributeValue,
+					'product' => $product->getPK(),
 				]);
 			}
 
