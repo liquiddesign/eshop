@@ -27,7 +27,7 @@
 		"mk-j/php_xlsxwriter": "^0.39.0",
         "ext-simplexml": "*",
 		"erusev/parsedown": "^1.7",
-		"contributte/comgate": "^0.3.0",
+		"contributte/comgate": "^0.5.0",
 		"onnov/detect-encoding": "^2.0",
 		"ext-iconv": "*",
 		"ext-json": "*",
