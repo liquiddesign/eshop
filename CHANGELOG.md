@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.278](https://github.com/liquiddesign/eshop/compare/v2.1.277...v2.1.278) (2024-07-31)
+
+### ⚠ BREAKING CHANGES
+
+* Update Comgate integration and bump package version ([7cf737](https://github.com/liquiddesign/eshop/commit/7cf7375d086198bdde9745f7b326be6f2a9f9f01))
+
+
+---
+
 ## [2.1.277](https://github.com/liquiddesign/eshop/compare/v2.1.276...v2.1.277) (2024-07-30)
 
 ### Features
