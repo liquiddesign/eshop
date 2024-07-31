@@ -104,12 +104,15 @@ class Comgate implements IPaymentIntegration
 			throw new \Exception("Comgate: Order '$order->code' has no payment.");
 		}
 
-		$customer = (string) $order->purchase->email;
+		$customerEmail = (string) $order->purchase->email;
+		$customerFullName = (string) $order->purchase->fullname;
+
 		$payment = Payment::of(
 			Money::of($price, $currency, new \Brick\Money\Context\CustomContext(2), RoundingMode::HALF_EVEN),
 			$order->code,
 			$order->code,
-			$customer,
+			$customerEmail,
+			$customerFullName,
 			$method,
 		);
 
