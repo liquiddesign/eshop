@@ -4,6 +4,16 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.280](https://github.com/liquiddesign/eshop/compare/v2.1.279...v2.1.280) (2024-08-01)
+
+### Features
+
+* Add maximum order price fields for customers ([86ec99](https://github.com/liquiddesign/eshop/commit/86ec9968547baf5e65c63e4f527f15a5f2517236))
+* Add supplier categories filter to attribute mapping grid ([2b9bbb](https://github.com/liquiddesign/eshop/commit/2b9bbbbb2ff9b59874828342f0c26a8c030d30e4))
+
+
+---
+
 ## [2.1.279](https://github.com/liquiddesign/eshop/compare/v2.1.278...v2.1.279) (2024-08-01)
 
 ### Features
