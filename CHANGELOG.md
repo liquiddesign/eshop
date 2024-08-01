@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.279](https://github.com/liquiddesign/eshop/compare/v2.1.278...v2.1.279) (2024-08-01)
+
+### Features
+
+* Refactor order completion and cancellation handling ([0b1352](https://github.com/liquiddesign/eshop/commit/0b13529584ab4b7d6b2cc5e4535a97cdad0b2c59))
+
+
+---
+
 ## [2.1.278](https://github.com/liquiddesign/eshop/compare/v2.1.277...v2.1.278) (2024-07-31)
 
 ### ⚠ BREAKING CHANGES
