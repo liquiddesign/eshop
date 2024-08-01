@@ -210,6 +210,25 @@ class SupplierMappingPresenter extends BackendPresenter
 			$property = 'attribute';
 			$grid->addColumnInputCheckbox('Aktivní', 'active', '', 'active');
 			$grid->addFilterTextInput('search', ['name'], null, 'Název');
+
+			$grid->addFilterText(function (ICollection $source, $value): void {
+				if (!$value) {
+					return;
+				}
+
+				$source->having('GROUP_CONCAT(
+					CONCAT(
+						sc.categoryNameL1,
+						IF(sc.categoryNameL2 IS NULL, "" ," - "),
+						COALESCE(sc.categoryNameL2, ""),
+						IF(sc.categoryNameL3 IS NULL, "" ," - "),
+						COALESCE(sc.categoryNameL3, "")
+					) SEPARATOR ", "
+				) LIKE :supplierCategories', ['supplierCategories' => "%$value%"]);
+			}, '', 'supplierCategories')
+				->setHtmlAttribute('placeholder', 'Dodavatelské kategorie')
+				->setHtmlAttribute('class', 'form-control form-control-sm');
+
 			$grid->addFilterSelectInput('active', 'active = :active', null, '- Aktivní -', null, ['0' => 'Ne', '1' => 'Ano'], 'active');
 			$grid->addButtonSaveAll();
 		}
