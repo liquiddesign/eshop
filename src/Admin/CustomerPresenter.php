@@ -697,7 +697,12 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			}
 
 			if (isset($this::CONFIGURATIONS['rounding']) && $this::CONFIGURATIONS['rounding']) {
-				$form->addText('productRoundingPct', 'Zokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
+				$form->addText('productRoundingPct', 'Zaokrouhlení od procent (%)')->setNullable()->setHtmlType('number')->addCondition($form::FILLED)->addRule(Form::INTEGER);
+			}
+
+			if ($this->shopperUser->getShowMaxCustomerOrderPrice()) {
+				$form->addFloat('maximumOrderPriceWithoutVat', 'Maximální cena objednávky bez DPH')->setNullable();
+				$form->addFloat('maximumOrderPriceWithVat', 'Maximální cena objednávky s DPH')->setNullable();
 			}
 
 			$form->addGroup('Exporty');
@@ -1350,6 +1355,11 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 		if ($this->isManager && isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
 			$bulkEdits[] = 'loyaltyProgram';
+		}
+
+		if ($this->shopperUser->getShowMaxCustomerOrderPrice()) {
+			$bulkEdits[] = 'maximumOrderPriceWithoutVat';
+			$bulkEdits[] = 'maximumOrderPriceWithVat';
 		}
 
 		return $bulkEdits;

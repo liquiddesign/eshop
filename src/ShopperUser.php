@@ -138,6 +138,16 @@ class ShopperUser extends User
 		$this->config = $config;
 	}
 
+	public function getShowMaxCustomerOrderPrice(): bool
+	{
+		return $this->config['maxCustomerOrderPrice']->show;
+	}
+
+	public function getRestrictMaxCustomerOrderPrice(): bool
+	{
+		return $this->config['maxCustomerOrderPrice']->restrict;
+	}
+
 	public function getAllowBannedEmailOrder(): bool
 	{
 		return $this->config['allowBannedEmailOrder'];

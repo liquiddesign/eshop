@@ -331,6 +331,16 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	public int $ordersCount = 0;
 
 	/**
+	 * @column
+	 */
+	public ?float $maximumOrderPriceWithoutVat = null;
+
+	/**
+	 * @column
+	 */
+	public ?float $maximumOrderPriceWithVat = null;
+
+	/**
 	 * Poslední načtení z ARES
 	 * @column{"type":"datetime"}
 	 */

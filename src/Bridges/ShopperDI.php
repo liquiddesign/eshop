@@ -83,6 +83,12 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			'discountConditions' => Expect::structure([
 				'categories' => Expect::bool(false),
 			]),
+			'maxCustomerOrderPrice' => Expect::structure([
+				// Show inputs in admin customer detail
+				'show' => Expect::bool(false),
+				// False - only warning, True - can't order @TODO condition is not implemented!
+				'restrict' => Expect::bool(false),
+			]),
 		]);
 	}
 	
