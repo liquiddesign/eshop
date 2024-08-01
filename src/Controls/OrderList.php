@@ -166,20 +166,22 @@ class OrderList extends Datalist
 
 	public function handleFinishOrder(string $orderId): void
 	{
-		$order = $this->orderRepository->one($orderId);
-		$this->orderGridFactory->completeOrder($order);
+		$order = $this->orderRepository->one($orderId, true);
+		$this->orderRepository->completeOrder($order);
+
+		$this->flashMessage('Provedeno', 'success');
+		$this->redirect('this');
 	}
 
 	public function handleCancelOrder(string $orderId): void
 	{
-		/** @var \Eshop\DB\Order|null $order */
-		$order = $this->orderRepository->one($orderId);
+		/** @var \Eshop\DB\Order $order */
+		$order = $this->orderRepository->one($orderId, true);
 
-		if (!$order) {
-			return;
-		}
+		$this->orderRepository->cancelOrder($order);
 
-		$this->orderGridFactory->cancelOrder($order);
+		$this->flashMessage('Provedeno', 'success');
+		$this->redirect('this');
 	}
 
 	/**
