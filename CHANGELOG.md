@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.282](https://github.com/liquiddesign/eshop/compare/v2.1.281...v2.1.282) (2024-08-02)
+
+### Bug Fixes
+
+* Add IFNULL check for priceVat in product price selection ([91dce2](https://github.com/liquiddesign/eshop/commit/91dce2ef85fdc672b08242bed0f95a631824b33c))
+
+
+---
+
 ## [2.1.281](https://github.com/liquiddesign/eshop/compare/v2.1.280...v2.1.281) (2024-08-02)
 
 ### Features
