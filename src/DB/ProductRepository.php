@@ -179,7 +179,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				$priceBefore = $this->sqlHandlePrice("prices$id", 'priceBefore', 0, 0, [], $prec, $convertRatio);
 				$priceVatBefore = $this->sqlHandlePrice("prices$id", 'priceVatBefore', 0, 0, [], $prec, $convertRatio);
 				$priceSelects[] = "IF(prices$id.price IS NULL,'X',CONCAT_WS('$sep',LPAD(" . $pricelist->priority .
-					",$priorityLpad,'0'),LPAD(CAST($price AS DECIMAL($priceLpad,$prec)), $priceLpad, '0'),$priceVat,IFNULL($priceBefore,0),IFNULL($priceVatBefore,0),prices$id.fk_pricelist))";
+					",$priorityLpad,'0'),LPAD(CAST($price AS DECIMAL($priceLpad,$prec)), $priceLpad, '0'),IFNULL($priceVat, 0),IFNULL($priceBefore,0),IFNULL($priceVatBefore,0),prices$id.fk_pricelist))";
 			}
 		}
 
@@ -216,7 +216,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			
 			$priceSelect = $this->sqlExplode($expression, $sep, 2);
 			$priceVatSelect = $this->sqlExplode($expression, $sep, 3);
-			
+
 			$collection->select(['price' => $priceSelect]);
 			$collection->select(['priceVat' => $priceVatSelect]);
 			
