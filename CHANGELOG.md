@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.281](https://github.com/liquiddesign/eshop/compare/v2.1.280...v2.1.281) (2024-08-02)
+
+### Features
+
+* Update merchant visibility lists and related functionality ([7a2e06](https://github.com/liquiddesign/eshop/commit/7a2e065e827f890935165bfc171adb0cc09d6e80))
+
+
+---
+
 ## [2.1.280](https://github.com/liquiddesign/eshop/compare/v2.1.279...v2.1.280) (2024-08-01)
 
 ### Features
