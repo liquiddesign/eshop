@@ -11,6 +11,8 @@ use StORM\RelationCollection;
 
 /**
  * Obchodník
+ * @method \StORM\RelationCollection<\Eshop\DB\VisibilityList> getVisibilityLists()
+ * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getPricelists()
  * @table
  */
 class Merchant extends \StORM\Entity implements IIdentity, IUser
@@ -91,6 +93,13 @@ class Merchant extends \StORM\Entity implements IIdentity, IUser
 	 * @var \StORM\RelationCollection<\Eshop\DB\Customer>
 	 */
 	public RelationCollection $customers;
+
+	/**
+	 * Viditelníky
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\VisibilityList>
+	 */
+	public RelationCollection $visibilityLists;
 	
 	/**
 	 * @relationNxN

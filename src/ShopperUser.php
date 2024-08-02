@@ -22,6 +22,7 @@ use Eshop\DB\Merchant;
 use Eshop\DB\MinimalOrderValueRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\Product;
+use Eshop\DB\VisibilityListRepository;
 use Eshop\DTO\ProductWithFormattedPrices;
 use Nette\DI\Container;
 use Nette\Http\Session;
@@ -111,6 +112,7 @@ class ShopperUser extends User
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly Translator $translator,
 		protected readonly Session $session,
+		protected readonly VisibilityListRepository $visibilityListRepository,
 		?Authenticator $authenticator,
 		?Authorizator $authorizator,
 		?UserStorage $storage,
@@ -328,10 +330,13 @@ class ShopperUser extends User
 	public function getVisibilityLists(): array
 	{
 		$customer = $this->getCustomer();
+		$merchant = $this->getMerchant();
 
-		$visibilityLists = $customer ? $customer->getVisibilityLists() : $this->getCustomerGroup()->getDefaultVisibilityLists();
-
-//		$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists);
+		if (!$customer && $merchant) {
+			$visibilityLists = $merchant->getVisibilityLists();
+		} else {
+			$visibilityLists = $customer ? $customer->getVisibilityLists() : $this->getCustomerGroup()->getDefaultVisibilityLists();
+		}
 
 		return $visibilityLists->select(['this.id'])->where('this.hidden', false)->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC'])->toArray();
 	}

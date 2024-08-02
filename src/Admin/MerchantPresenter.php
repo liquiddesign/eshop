@@ -13,9 +13,11 @@ use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\PricelistRepository;
+use Eshop\DB\VisibilityListRepository;
 use Forms\Form;
 use Grid\Datagrid;
 use Messages\DB\TemplateRepository;
+use Nette\DI\Attributes\Inject;
 use Nette\Mail\Mailer;
 use Nette\Security\Passwords;
 use Security\DB\Account;
@@ -28,40 +30,49 @@ class MerchantPresenter extends BackendPresenter
 		'showUnregisteredGroup' => true,
 	];
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AccountFormFactory $accountFormFactory;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public MerchantRepository $merchantRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AccountRepository $accountRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public TemplateRepository $templateRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CustomerGroupRepository $customerGroupRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CustomerRepository $customerRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PricelistRepository $pricelistRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Mailer $mailer;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Passwords $passwords;
+
+	#[Inject]
+	public VisibilityListRepository $visibilityListRepository;
 
 	public function createComponentGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->merchantRepository->many(), 20, 'code', 'ASC', true);
+		$grid = $this->gridFactory->create($this->merchantRepository->many()
+			->setGroupBy(['this.uuid'])
+			->select([
+				'pricelists_names' => "GROUP_CONCAT(DISTINCT pricelists.name SEPARATOR ', ')",
+				'visibilityLists_names' => "GROUP_CONCAT(DISTINCT visibilityLists.name SEPARATOR ', ')",
+		]), 20, 'code', 'ASC', true);
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit']);
 		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname');
+		$grid->addColumnText('Ceníky / Viditelníky', ['pricelists_names', 'visibilityLists_names'], '%s<hr style="margin: 0">%s');
 		$grid->addColumnText(
 			'E-mail',
 			'email',
@@ -100,6 +111,7 @@ class MerchantPresenter extends BackendPresenter
 		$grid->addColumnLinkDetail('Detail');
 		$grid->addColumnActionDelete([$this->accountFormFactory, 'deleteAccountHolder']);
 
+		$grid->addButtonBulkEdit('form', ['visibilityLists']);
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder']);
 
 		$grid->addFilterTextInput('search', ['code', 'fullName', 'email'], null, 'Jméno, kód, e-mail');
@@ -130,6 +142,7 @@ class MerchantPresenter extends BackendPresenter
 			$this->customerGroupRepository->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']),
 		)->setPrompt('Žádná');
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepository->getArrayForSelect());
+		$form->addMultiSelect2('visibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect());
 
 		if ($this::CONFIGURATIONS['customers']) {
 			$form->addMultiSelect2('customers', 'Zákazníci', $this->customerRepository->getArrayForSelect());
@@ -240,6 +253,7 @@ class MerchantPresenter extends BackendPresenter
 
 		if ($this::CONFIGURATIONS['customers']) {
 			$relations[] = 'customers';
+			$relations[] = 'visibilityLists';
 		}
 
 		$form->setDefaults($merchant->toArray($relations));
