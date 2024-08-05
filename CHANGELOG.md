@@ -4,6 +4,23 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.283](https://github.com/liquiddesign/eshop/compare/v2.1.282...v2.1.283) (2024-08-05)
+
+### Features
+
+* Refactor CategoryPresenter and ProductGridFactory for better extensibility ([344449](https://github.com/liquiddesign/eshop/commit/34444949da3bb9fceec14073291db475eb45d4a9))
+
+### Bug Fixes
+
+* Add getDeliveries() method to Order class and update usage ([d42d47](https://github.com/liquiddesign/eshop/commit/d42d4758b55008c049ad61b0a897386113de0cf4))
+
+### Styles
+
+* Fix ([081233](https://github.com/liquiddesign/eshop/commit/081233fa3cfcaeab3fe6bfc9cd411499b21b7872))
+
+
+---
+
 ## [2.1.282](https://github.com/liquiddesign/eshop/compare/v2.1.281...v2.1.282) (2024-08-02)
 
 ### Bug Fixes
