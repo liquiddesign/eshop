@@ -11,6 +11,7 @@ use StORM\RelationCollection;
 /**
  * Objednávka
  * @method \StORM\RelationCollection<\Eshop\DB\Package> getPackages()
+ * @method \StORM\RelationCollection<\Eshop\DB\Delivery> getDeliveries()
  * @method \StORM\RelationCollection<\Eshop\DB\PaymentResult> getPaymentResults()
  * @table
  * @index{"name":"order_code","unique":true,"columns":["code", "fk_shop"]}
