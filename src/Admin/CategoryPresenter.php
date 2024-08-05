@@ -165,17 +165,7 @@ class CategoryPresenter extends BackendPresenter
 				$this->categoryRepository->clearCategoriesCache();
 			});
 
-			$bulkInputs = [
-				'exportGoogleCategory',
-				'exportGoogleCategoryId',
-				'exportHeurekaCategory',
-				'exportZboziCategory',
-				'priority',
-				'hidden',
-				'showInMenu',
-				'showEmpty',
-				'recommended',
-			];
+			$bulkInputs = $this->getCategoryBulkColumns();
 
 			if ($this::SHOW_DEFAULT_VIEW_TYPE) {
 				$bulkInputs[] = 'defaultViewType';
@@ -463,7 +453,16 @@ class CategoryPresenter extends BackendPresenter
 
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('categoryForm')['form'];
-		$form->setDefaults($category->toArray());
+
+		$categoryData = $category->toArray();
+
+		if (isset($form['customContainer'])) {
+			/** @var \Nette\Forms\Container $customContainer */
+			$customContainer = $form['customContainer'];
+			$customContainer->setDefaults($categoryData);
+		}
+
+		$form->setDefaults($categoryData);
 	}
 
 	public function createComponentCategoryTypeGrid(): AdminGrid
@@ -915,6 +914,24 @@ Očekává se formát kategorií dle formátu Heuréky. Tedy "Subcategory 1" atd
 		};
 
 		return $form;
+	}
+
+	/**
+	 * @return list<string>
+	 */
+	protected function getCategoryBulkColumns(): array
+	{
+		return [
+			'exportGoogleCategory',
+			'exportGoogleCategoryId',
+			'exportHeurekaCategory',
+			'exportZboziCategory',
+			'priority',
+			'hidden',
+			'showInMenu',
+			'showEmpty',
+			'recommended',
+		];
 	}
 
 	protected function startup(): void

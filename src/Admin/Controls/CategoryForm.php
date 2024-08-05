@@ -202,6 +202,13 @@ class CategoryForm extends Control
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
+			if (isset($values['customContainer'])) {
+				$customContainer = $values['customContainer'];
+				unset($values['customContainer']);
+
+				$values = \array_merge($values, $customContainer);
+			}
+
 			/** @var \Eshop\Admin\CategoryPresenter $presenter */
 			$presenter = $this->getPresenter();
 

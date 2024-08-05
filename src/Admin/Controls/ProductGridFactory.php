@@ -44,11 +44,15 @@ class ProductGridFactory
 		protected readonly Integrations $integrations,
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly VisibilityListRepository $visibilityListRepository,
-		protected readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository
+		protected readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
 	) {
 	}
 
-	public function create(array $configuration): Datagrid
+	/**
+	 * @param array<mixed> $configuration
+	 * @param list<string> $bulkColumns
+	 */
+	public function create(array $configuration, array $bulkColumns = []): Datagrid
 	{
 		$visibilityListsCollection = $this->visibilityListRepository->getCollection();
 
@@ -266,30 +270,6 @@ class ProductGridFactory
 			$this->productRepository->clearCache();
 		});
 		$grid->addButtonDeleteSelected([$this, 'onDelete'], false, null, 'this.uuid');
-
-		$bulkColumns = [
-			'producer',
-			'categories',
-			'ribbons',
-			'internalRibbons',
-			'displayAmount',
-			'displayDelivery',
-			'vatRate',
-			'taxes',
-			'primaryCategories',
-			'defaultReviewsCount',
-			'defaultReviewsScore',
-			'supplierDisplayAmountLock',
-			'supplierDisplayAmountMergedLock',
-			'weight',
-			'width',
-			'length',
-			'depth',
-			'dimension',
-			'exportHeureka',
-			'exportZbozi',
-			'exportGoogle',
-		];
 
 		if (isset($configuration['isManager']) && $configuration['isManager']) {
 			$bulkColumns = \array_merge($bulkColumns, ['discountLevelPct']);

@@ -249,7 +249,7 @@ class ProductPresenter extends BackendPresenter
 		$config = $this::CONFIGURATION;
 		$config['isManager'] = $this->isManager;
 
-		return $this->productGridFactory->create($config);
+		return $this->productGridFactory->create($config, $this->getBulkColumns());
 	}
 
 	public function createComponentProductAttributesGrid(): \Grid\Datagrid
@@ -1530,6 +1530,36 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 		}
 
 		$this->redirect('this');
+	}
+
+	/**
+	 * @return list<string>
+	 */
+	protected function getBulkColumns(): array
+	{
+		return [
+			'producer',
+			'categories',
+			'ribbons',
+			'internalRibbons',
+			'displayAmount',
+			'displayDelivery',
+			'vatRate',
+			'taxes',
+			'primaryCategories',
+			'defaultReviewsCount',
+			'defaultReviewsScore',
+			'supplierDisplayAmountLock',
+			'supplierDisplayAmountMergedLock',
+			'weight',
+			'width',
+			'length',
+			'depth',
+			'dimension',
+			'exportHeureka',
+			'exportZbozi',
+			'exportGoogle',
+		];
 	}
 
 	protected function createDirectories(): void
