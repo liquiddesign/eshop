@@ -75,6 +75,8 @@ class ProducerPresenter extends BackendPresenter
 			return false;
 		}, oneTimeAfterCallback: $clearCacheCallback);
 
+		$grid->addButtonBulkEdit('newForm', $this->getProducerFormBulkColumns());
+
 		$grid->addFilterTextInput('search', ['name_cs', 'this.code'], null, 'Kód, název');
 
 		$grid->addFilterButtons();
@@ -119,6 +121,8 @@ class ProducerPresenter extends BackendPresenter
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addPageContainer('product_list', ['producer' => $this->getParameter('producer')], $nameInput);
+
+		$this->addCustomFieldsToProducerForm($form);
 
 		$form->addSubmits(!$producer);
 
@@ -202,5 +206,20 @@ class ProducerPresenter extends BackendPresenter
 		}
 
 		$page->delete();
+	}
+
+	protected function addCustomFieldsToProducerForm(AdminForm $form): void
+	{
+		unset($form);
+	}
+
+	/**
+	 * @return list<string>
+	 */
+	protected function getProducerFormBulkColumns(): array
+	{
+		return [
+			'prefixCode',
+		];
 	}
 }
