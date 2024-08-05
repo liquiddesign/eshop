@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.284](https://github.com/liquiddesign/eshop/compare/v2.1.283...v2.1.284) (2024-08-05)
+
+### Features
+
+* Add bulk edit button and custom fields to producer form ([68489d](https://github.com/liquiddesign/eshop/commit/68489d9aa3578d4ca20b9aa207258f471688fb54))
+
+
+---
+
 ## [2.1.283](https://github.com/liquiddesign/eshop/compare/v2.1.282...v2.1.283) (2024-08-05)
 
 ### Features
