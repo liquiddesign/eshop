@@ -608,6 +608,7 @@ class Product extends \StORM\Entity
 	}
 
 	/**
+	 * @deprecated If possible, use ProductGettersService::getPreviewAttributes
 	 * @return array<string, array<int, array<string, string>>>
 	 */
 	public function getPreviewAttributes(): array
@@ -679,6 +680,11 @@ class Product extends \StORM\Entity
 
 	public function getFullCode(string $type = 'fullCode'): ?string
 	{
+		// Virtual column
+		if ($this->__isset('fullCode')) {
+			return $this->getValue('fullCode');
+		}
+
 		$code = null;
 
 		if ($type === 'fullCode') {
@@ -797,6 +803,9 @@ class Product extends \StORM\Entity
 		return $categoryRepository->many()->where('path LIKE :path', ['path' => $product->primaryCategoryPath])->orderBy(['LENGTH(path)' => $reversed ? 'DESC' : 'ASC'])->toArrayOf($tree, [], true);
 	}
 
+	/**
+	 * @deprecated If possible, use ProductGettersService::inStock
+	 */
 	public function inStock(): bool
 	{
 		$displayAmount = $this->getDisplayAmount();
@@ -804,6 +813,9 @@ class Product extends \StORM\Entity
 		return $displayAmount === null || !$displayAmount->isSold;
 	}
 
+	/**
+	 * @deprecated If possible, use ProductGettersService::getDisplayAmount
+	 */
 	public function getDisplayAmount(): ?DisplayAmount
 	{
 		/** @var \Web\DB\SettingRepository $settingRepository */
