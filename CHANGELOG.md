@@ -4,6 +4,25 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.285](https://github.com/liquiddesign/eshop/compare/v2.1.284...v2.1.285) (2024-08-07)
+
+### Features
+
+* Refactor product getters and simplify display amount logic ([e77bd4](https://github.com/liquiddesign/eshop/commit/e77bd46dc5f0d2406b493069b825eea3a69137ea))
+* Add deprecation notices and optimize getFullCode method ([70db9c](https://github.com/liquiddesign/eshop/commit/70db9cd6160e4e6818cef042b77dac86ba475774))
+* Update ExportPresenter with improved type safety and error handling ([a90084](https://github.com/liquiddesign/eshop/commit/a9008410faa75efdd5376a3754b729c67b8d5e64))
+
+### Bug Fixes
+
+* Potential null reference in Order::isFirstOrder() method ([ec76ad](https://github.com/liquiddesign/eshop/commit/ec76ad640e0205d9ff698f71d6632c9760f8dc72))
+
+### Styles
+
+* Exclude ExportPresenter from static analysis and disable variable naming rule ([da8629](https://github.com/liquiddesign/eshop/commit/da86290b24d2bf854c9986446e1836b61cbb8f9b))
+
+
+---
+
 ## [2.1.284](https://github.com/liquiddesign/eshop/compare/v2.1.283...v2.1.284) (2024-08-05)
 
 ### Features
