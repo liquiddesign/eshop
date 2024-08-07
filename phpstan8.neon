@@ -9,6 +9,7 @@ parameters:
 		- src/Services/Order
 		- src/Services/Comgate.php
 		- src/Front/Web/SandboxPresenter.php
+		- src/Front/Eshop/ExportPresenter.php
 	excludePaths:
 		- src/assets/*
 		- src/templates/*

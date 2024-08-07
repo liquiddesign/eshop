@@ -8,4 +8,7 @@
             </property>
         </properties>
     </rule>
+    <rule ref="Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps">
+        <severity>0</severity>
+    </rule>
 </ruleset>

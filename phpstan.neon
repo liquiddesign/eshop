@@ -11,6 +11,7 @@ parameters:
 	excludePaths:
 		- src/assets/*
 		- src/templates/*
+		- src/Front/Eshop/ExportPresenter.php
 
 services:
 	-
