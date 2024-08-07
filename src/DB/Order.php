@@ -547,6 +547,6 @@ class Order extends ShopEntity
 			->orderBy(['createdTs' => 'ASC'])
 			->first();
 
-		return $firstOrder->getPK() === $this->getPK();
+		return $firstOrder?->getPK() === $this->getPK();
 	}
 }
