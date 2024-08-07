@@ -16,6 +16,7 @@ use Eshop\DB\Customer;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\DeliveryTypeRepository;
+use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\InvoiceRepository;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\Order;
@@ -25,10 +26,12 @@ use Eshop\DB\PhotoRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
+use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\DevelTools;
+use Eshop\Services\Product\ProductGettersService;
 use Eshop\ShopperUser;
 use Latte\Engine;
 use Latte\Loaders\StringLoader;
@@ -72,9 +75,11 @@ abstract class ExportPresenter extends Presenter
 	#[Inject]
 	public SettingRepository $settingRepo;
 
+	/** @var \Eshop\DB\PricelistRepository<\Eshop\DB\Pricelist> */
 	#[Inject]
 	public PricelistRepository $priceListRepo;
 
+	/** @var \Eshop\DB\CustomerRepository<\Eshop\DB\Customer> */
 	#[Inject]
 	public CustomerRepository $customerRepo;
 
@@ -87,8 +92,12 @@ abstract class ExportPresenter extends Presenter
 	#[Inject]
 	public MerchantRepository $merchantRepo;
 
+	/** @var \Security\DB\AccountRepository<\Security\DB\Account> */
 	#[Inject]
 	public AccountRepository $accountRepo;
+
+	#[Inject]
+	public DisplayAmountRepository $displayAmountRepository;
 
 	#[Inject]
 	public OrderRepository $orderRepo;
@@ -120,6 +129,7 @@ abstract class ExportPresenter extends Presenter
 	#[Inject]
 	public InvoiceRepository $invoiceRepository;
 
+	/** @var \Eshop\DB\CustomerRepository<\Eshop\DB\Customer> */
 	#[Inject]
 	public CustomerRepository $customerRepository;
 
@@ -159,6 +169,9 @@ abstract class ExportPresenter extends Presenter
 	#[Inject]
 	public ShopsConfig $shopsConfig;
 
+	#[Inject]
+	public ProductGettersService $productGettersService;
+
 	protected Cache $cache;
 
 	protected Engine $latte;
@@ -170,6 +183,10 @@ abstract class ExportPresenter extends Presenter
 		$this->cache = new Cache($storage);
 	}
 
+	/**
+	 * @param string|null $string
+	 * @param array<mixed> $params
+	 */
 	public function compileLatte(?string $string, array $params): ?string
 	{
 		$this->latte ??= $this->createLatteEngine();
@@ -193,7 +210,7 @@ abstract class ExportPresenter extends Presenter
 
 	public function renderPartnersExport(): void
 	{
-		$this->template->setFile(__DIR__ . '/../../templates/export/partners.latte');
+		$this->getTemplate()->setFile(__DIR__ . '/../../templates/export/partners.latte');
 		$this->template->vatRates = $this->vatRateRepo->getVatRatesByCountry();
 	}
 
@@ -290,7 +307,7 @@ abstract class ExportPresenter extends Presenter
 
 	public function renderCustomer(): void
 	{
-		$this->template->setFile(__DIR__ . '/../../templates/export/customer.latte');
+		$this->getTemplate()->setFile(__DIR__ . '/../../templates/export/customer.latte');
 		$this->template->vatRates = $this->vatRateRepo->getVatRatesByCountry();
 	}
 
@@ -298,10 +315,18 @@ abstract class ExportPresenter extends Presenter
 	{
 		$tmpfname = \tempnam($this->context->parameters['tempDir'], 'xml');
 		$fh = \fopen($tmpfname, 'w+');
+
+		if (!$fh) {
+			return;
+		}
+
 		\fwrite($fh, $this->orderRepo->ediExport($order));
 		\fclose($fh);
 
-		$this->context->getService('application')->onShutdown[] = function () use ($tmpfname): void {
+		/** @var \Nette\Application\Application $application */
+		$application = $this->context->getService('application');
+
+		$application->onShutdown[] = function () use ($tmpfname): void {
 			try {
 				FileSystem::delete($tmpfname);
 			} catch (\Throwable $e) {
@@ -342,13 +367,17 @@ abstract class ExportPresenter extends Presenter
 			}
 
 			/** @var \Eshop\DB\CatalogPermission|null $perm */
-			$perm = $this->catalogPermRepo->many()->where('fk_account', $account->getPK())->first();
+			$perm = $this->catalogPermRepo->many()->where('fk_account', $account?->getPK())->first();
 
 			if (!$perm) {
 				$this->error('Invalid account found!');
 			}
 
-			$customer = $perm->customer;
+			$customer = $perm?->customer;
+		}
+
+		if (!$customer) {
+			throw new \Exception('No customer');
 		}
 
 		/** @var array<\Eshop\DB\Order> $orders */
@@ -359,9 +388,9 @@ abstract class ExportPresenter extends Presenter
 			'first_name' => $account && $account->fullname ? $account->fullname : $customer->fullname,
 			'last_name' => null,
 			'phone' => $customer->phone,
-			'street' => $customer->billAddress ? $customer->billAddress->street : null,
-			'city' => $customer->billAddress ? $customer->billAddress->city : null,
-			'zip' => $customer->billAddress ? $customer->billAddress->zipcode : null,
+			'street' => $customer->billAddress?->street,
+			'city' => $customer->billAddress?->city,
+			'zip' => $customer->billAddress?->zipcode,
 			'company_name' => $customer->company,
 			'company_ico' => $customer->ic,
 			'company_dic' => $customer->dic,
@@ -390,6 +419,34 @@ abstract class ExportPresenter extends Presenter
 		}
 
 		$this->sendJson($data);
+	}
+
+	/**
+	 * @param string $settingName
+	 * @return array<\Eshop\DB\Pricelist>
+	 * @throws \Exception
+	 */
+	public function getPricelistFromSettingOrThrow(string $settingName): array
+	{
+		if (!$result = $this->getPricelistFromSetting($settingName)) {
+			throw new \Exception('No PriceList selected. Please select at least one price list in export settings.');
+		}
+
+		return $result;
+	}
+
+	/**
+	 * @param string $settingName
+	 * @return array<\Eshop\DB\VisibilityList>
+	 * @throws \Exception
+	 */
+	public function getVisibilityListsFromSettingOrThrow(string $settingName): array
+	{
+		if (!$result = $this->getVisibilityListsFromSetting($settingName)) {
+			throw new \Exception('No VisibilityList selected. Please select at least one visibility list in export settings.');
+		}
+
+		return $result;
 	}
 
 	/**
@@ -464,7 +521,7 @@ abstract class ExportPresenter extends Presenter
 
 		$invoice->update(['printed' => true]);
 
-		$this->template->setFile($this->template->getFile() ?: __DIR__ . '/../../templates/export/invoice.latte');
+		$this->getTemplate()->setFile($this->getTemplate()->getFile() ?: __DIR__ . '/../../templates/export/invoice.latte');
 	}
 
 	public function renderInvoice(string $hash): void
@@ -472,14 +529,20 @@ abstract class ExportPresenter extends Presenter
 		unset($hash);
 	}
 
+	/**
+	 * @param array<mixed> $hashes
+	 */
 	public function actionInvoiceMultiple(array $hashes): void
 	{
 		$this->invoiceRepository->many()->where('this.hash', $hashes)->update(['printed' => true]);
 		$this->template->invoices = $this->invoiceRepository->many()->where('this.hash', $hashes)->toArray();
 
-		$this->template->setFile($this->template->getFile() ?: __DIR__ . '/../../templates/export/invoice.multiple.latte');
+		$this->getTemplate()->setFile($this->getTemplate()->getFile() ?: __DIR__ . '/../../templates/export/invoice.multiple.latte');
 	}
 
+	/**
+	 * @param array<mixed> $hashes
+	 */
 	public function actionRenderMultiple(array $hashes): void
 	{
 		unset($hashes);
@@ -487,65 +550,9 @@ abstract class ExportPresenter extends Presenter
 
 	public function renderHeurekaExport(): void
 	{
-		[$priceLists, $visibilityLists] = $this->getPriceAndVisibilityLists('heureka');
+		$this->setTemplateDataForHeureka();
 
-		$productsCollection = $this->productRepo->getProducts($priceLists, visibilityLists: $visibilityLists)->where('this.exportHeureka', true);
-		$this->productRepo->filterHidden(false, $productsCollection);
-		$this->productRepo->filterUnavailable(false, $productsCollection);
-
-		$this->template->products = $productsCollection;
-
-		$mainCategoriesCollection = $this->categoryRepository->many()->where('this.fk_type', 'main');
-
-		if (($selectedShop = $this->shopsConfig->getSelectedShop()) &&
-			($mainCategoryTypeSetting = $this->settingRepo->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $selectedShop->getPK()))) {
-			$mainCategoriesCollection = $this->categoryRepository->many()->where('this.fk_type', $mainCategoryTypeSetting);
-		}
-
-		$this->template->categoriesMapWithHeurekaCategories = $this->categoryRepository->getCategoriesMapWithHeurekaCategories($mainCategoriesCollection);
-		$this->template->allCategories = $mainCategoriesCollection->toArray();
-
-		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
-		$this->template->allAttributes = $this->attributeRepository->many()->select(['heureka' => "IFNULL(heurekaName,name$mutationSuffix)"])->toArrayOf('heureka');
-		$this->template->allAttributeValues = $this->attributeValueRepository->many()->select(['heureka' => "IFNULL(heurekaLabel,label$mutationSuffix)"])->toArrayOf('heureka');
-
-		$this->template->photos = $this->photoRepository->many()->setGroupBy(['fk_product'])->setIndex('fk_product')->select(['fileNames' => 'GROUP_CONCAT(fileName)'])->toArrayOf('fileNames');
-
-		$czkCurrency = $this->currencyRepository->one('CZK', true);
-		$unregisteredGroup = $this->customerGroupRepository->getUnregisteredGroup();
-
-		$this->template->possibleDeliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes(
-			$czkCurrency,
-			null,
-			$unregisteredGroup,
-			null,
-			0,
-			0,
-			selectedShop: $this->shopsConfig->getSelectedShop(),
-		)->where('this.externalIdHeureka IS NOT NULL')->toArray();
-
-		$codPaymentTypeSettings = $this->settingRepo->getValuesByName(SettingsPresenter::COD_TYPE);
-
-		/** @var \Eshop\DB\DeliveryType $deliveryType */
-		foreach ($this->template->possibleDeliveryTypes as $deliveryType) {
-			$this->template->possibleDeliveryTypes[$deliveryType->getPK()]->priceVatWithCod = $this->template->possibleDeliveryTypes[$deliveryType->getPK()]->getValue('priceVat');
-			$allowedPaymentTypes = \array_keys($deliveryType->allowedPaymentTypes->toArray());
-
-			foreach ($allowedPaymentTypes && $codPaymentTypeSettings ? $allowedPaymentTypes : $this->paymentTypeRepository->many() as $paymentId) {
-				if (Arrays::contains($codPaymentTypeSettings, $paymentId)) {
-					$this->template->possibleDeliveryTypes[$deliveryType->getPK()]->priceVatWithCod += $this->paymentTypeRepository->getPaymentTypes(
-						$czkCurrency,
-						null,
-						$unregisteredGroup,
-						selectedShop: $this->shopsConfig->getSelectedShop(),
-					)->where('this.uuid', $paymentId)->firstValue('priceVat');
-				}
-			}
-		}
-
-		$this->setProductsFrontendData();
-
-		$this->template->setFile(__DIR__ . '/../../templates/export/heureka.latte');
+		$this->getTemplate()->setFile(__DIR__ . '/../../templates/export/heureka.latte');
 	}
 
 	public function renderZboziExport(): void
@@ -582,7 +589,7 @@ abstract class ExportPresenter extends Presenter
 
 		$this->setProductsFrontendData();
 
-		$this->template->setFile(__DIR__ . '/../../templates/export/zbozi.latte');
+		$this->getTemplate()->setFile(__DIR__ . '/../../templates/export/zbozi.latte');
 	}
 
 	public function renderGoogleExport(): void
@@ -638,7 +645,7 @@ abstract class ExportPresenter extends Presenter
 
 		$this->setProductsFrontendData();
 
-		$this->template->setFile(__DIR__ . '/../../templates/export/google.latte');
+		$this->getTemplate()->setFile(__DIR__ . '/../../templates/export/google.latte');
 	}
 
 	protected function afterRender(): void
@@ -670,15 +677,217 @@ abstract class ExportPresenter extends Presenter
 
 	protected function export(string $name): void
 	{
-		$currency = $this->currencyRepository->one('CZK');
+		$currency = $this->currencyRepository->one('CZK', true);
 
 		$this->template->shop = $this->shopsConfig->getSelectedShop();
 		$this->template->priceType = $this->shopperUser->getShowVat() ? true : ($this->shopperUser->getShowWithoutVat() ? false : null);
 		$this->template->deliveryTypes =
 			$this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0, selectedShop: $this->shopsConfig->getSelectedShop())->where('this.exportToFeed', true);
-		$this->template->setFile(__DIR__ . "/../../templates/export/$name.latte");
+		$this->getTemplate()->setFile(__DIR__ . "/../../templates/export/$name.latte");
 	}
 
+	/**
+	 * @param callable(array<\Eshop\DB\Pricelist>, array<\Eshop\DB\VisibilityList>): array<string, \stdClass>|null $getProductsCallback
+	 * @throws \Exception
+	 */
+	protected function setTemplateDataForHeureka(callable|null $getProductsCallback = null): void
+	{
+		$mainCategoryType = $this->shopperUser->getMainCategoryType();
+		$mainCategoriesCollection = $this->categoryRepository->many()->where('this.fk_type', $mainCategoryType->getPK());
+
+		$this->template->categoriesMapWithHeurekaCategories = $this->categoryRepository->getCategoriesMapWithHeurekaCategories($mainCategoriesCollection);
+		$this->template->allCategories = $mainCategoriesCollection->toArray();
+
+		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
+		$this->template->allAttributes = $this->attributeRepository->many()->select(['heureka' => "IFNULL(heurekaName,name$mutationSuffix)"])->toArrayOf('heureka');
+		$this->template->allAttributeValues = $this->attributeValueRepository->many()->select(['heureka' => "IFNULL(heurekaLabel,label$mutationSuffix)"])->toArrayOf('heureka');
+
+		$this->template->photos = $this->photoRepository->many()->setGroupBy(['fk_product'])->setIndex('fk_product')->select(['fileNames' => 'GROUP_CONCAT(fileName)'])->toArrayOf('fileNames');
+
+		$czkCurrency = $this->currencyRepository->one('CZK', true);
+		$unregisteredGroup = $this->customerGroupRepository->getUnregisteredGroup();
+
+		$this->template->possibleDeliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes(
+			$czkCurrency,
+			null,
+			$unregisteredGroup,
+			null,
+			0,
+			0,
+			selectedShop: $this->shopsConfig->getSelectedShop(),
+		)->where('this.externalIdHeureka IS NOT NULL')->toArray();
+
+		$codPaymentTypeSettings = $this->settingRepo->getValuesByName(SettingsPresenter::COD_TYPE) ?: [];
+
+		/** @var \Eshop\DB\DeliveryType $deliveryType */
+		foreach ($this->template->possibleDeliveryTypes as $deliveryType) {
+			$this->template->possibleDeliveryTypes[$deliveryType->getPK()]->priceVatWithCod = $this->template->possibleDeliveryTypes[$deliveryType->getPK()]->getValue('priceVat');
+			$allowedPaymentTypes = \array_keys($deliveryType->allowedPaymentTypes->toArray());
+
+			foreach ($allowedPaymentTypes && $codPaymentTypeSettings ? $allowedPaymentTypes : $this->paymentTypeRepository->many() as $paymentId) {
+				if (Arrays::contains($codPaymentTypeSettings, $paymentId)) {
+					$this->template->possibleDeliveryTypes[$deliveryType->getPK()]->priceVatWithCod += $this->paymentTypeRepository->getPaymentTypes(
+						$czkCurrency,
+						null,
+						$unregisteredGroup,
+						selectedShop: $this->shopsConfig->getSelectedShop(),
+					)->where('this.uuid', $paymentId)->firstValue('priceVat');
+				}
+			}
+		}
+
+		$this->template->products = $this->cache->load('xml_heureka_products_' . $this->shopsConfig->getSelectedShop()?->getPK(), function (&$dependencies) use ($getProductsCallback) {
+			$dependencies[Cache::Expire] = '1 day';
+			$dependencies[Cache::Tags] = ['export'];
+
+			[$priceLists, $visibilityLists] = $this->getPriceAndVisibilityLists('heureka');
+
+			if ($getProductsCallback) {
+				return $getProductsCallback($priceLists, $visibilityLists);
+			}
+
+			$productsCollection = $this->productRepo->getProducts($priceLists, visibilityLists: $visibilityLists)->where('this.exportHeureka', true);
+			$this->productRepo->filterHidden(false, $productsCollection);
+			$this->productRepo->filterUnavailable(false, $productsCollection);
+
+			return $productsCollection->fetchArray(\stdClass::class);
+		});
+
+		$templateData = $this->getTemplateData($this->template->products, 'xml_heureka_' . $this->shopsConfig->getSelectedShop()?->getPK());
+		$this->template->productsFrontendData = $templateData['productsFrontendData'];
+		$this->template->priceType = $templateData['priceType'];
+		$this->template->deliveryTypes = $templateData['deliveryTypes'];
+	}
+
+	/**
+	 * @param array<string, \stdClass> $products
+	 * @param string $cacheIndex
+	 * @return array{
+	 *      productsFrontendData: array<string, array<mixed>>,
+	 *      priceType: bool,
+	 *      deliveryTypes: array<\stdClass>,
+	 *  }
+	 * @throws \Throwable
+	 */
+	protected function getTemplateData(array $products, string $cacheIndex): array
+	{
+		return $this->cache->load($cacheIndex, function (&$dependencies) use ($products) {
+			$dependencies[Cache::Expire] = '1 day';
+			$dependencies[Cache::Tags] = ['export'];
+
+			$currency = $this->currencyRepository->one('CZK', true);
+
+			$templateData = [
+				'priceType' => $this->shopperUser->getShowVat() ? true : ($this->shopperUser->getShowWithoutVat() ? false : null),
+				'deliveryTypes' => $this->deliveryTypeRepository->getDeliveryTypes($currency, null, null, null, 0.0, 0.0, selectedShop: $this->shopsConfig->getSelectedShop())
+					->where('this.exportToFeed', true)
+					->fetchArray(\stdClass::class),
+			];
+
+			/** @var array<\Eshop\DB\Attribute> $allAttributes */
+			$allAttributes = $this->attributeRepository->many()->toArray();
+			/** @var array<\Eshop\DB\AttributeValue> $allAttributeValues */
+			$allAttributeValues = $this->attributeValueRepository->many()->toArray();
+			/** @var array<\Eshop\DB\Producer> $allProducers */
+			$allProducers = $this->producerRepository->many()->toArray();
+			/** @var array<\Eshop\DB\AttributeAssign> $allAttributeAssigns */
+			$allAttributeAssigns = $this->attributeAssignRepository->many()->toArray();
+			/** @var array<\Eshop\DB\DisplayAmount> $allDisplayAmounts */
+			$allDisplayAmounts = $this->displayAmountRepository->many()->toArray();
+
+			$attributeAssignsByProducts = [];
+
+			foreach ($allAttributeAssigns as $attributeAssign) {
+				$attributeAssignsByProducts[$attributeAssign->getValue('product')][$attributeAssign->getPK()] = $attributeAssign;
+			}
+
+			unset($allAttributeAssigns);
+
+			$query = $this->pageRepository->many()->where('this.type', 'product_detail');
+			$this->shopsConfig->filterShopsInShopEntityCollection($query);
+
+			/** @var array<\Web\DB\Page> $allProductPages */
+			$allProductPages = [];
+
+			foreach ($query->toArray() as $page) {
+				$product = $page->getParsedParameter('product');
+
+				if (!$product) {
+					continue;
+				}
+
+				$allProductPages[$product] = $page;
+			}
+
+			$baseUrl = $this->template->baseUrl;
+
+			$productsFrontendData = [];
+
+			foreach ($products as $product) {
+				/** @var \StORM\IEntityParent<\StORM\Entity> $productRepo */
+				$productRepo = $this->productRepo;
+
+				$productEntity = new Product([
+					'parameters' => $product->parameters,
+					'imageFileName' => $product->imageFileName,
+					'fallbackImage' => $product->fallbackImage,
+					'displayAmount' => $product->fk_displayAmount ? $allDisplayAmounts[$product->fk_displayAmount] : null,
+					'price' => $product->price,
+					'priceVat' => $product->priceVat,
+				], $productRepo);
+
+				$productsFrontendData[$product->uuid] = [
+					'name' => $product->name,
+					'code' => $product->fullCode,
+					'ean' => $product->ean,
+					'previewImage' => $productEntity->getPreviewImage($this->template->basePath),
+					'inStock' => $this->productGettersService->inStock($productEntity),
+					'previewAttributes' => $this->productGettersService->getPreviewAttributes($productEntity),
+					'isProductDeliveryFreeVat' => $this->productRepo->isProductDeliveryFreeVat($productEntity),
+				];
+
+				if (isset($allProductPages[$product->uuid])) {
+					$url = $allProductPages[$product->uuid]->getUrl(null);
+					$productsFrontendData[$product->uuid]['url'] = "$baseUrl/$url";
+				}
+
+				$attributeAssigns = $attributeAssignsByProducts[$product->uuid] ?? [];
+
+				/** @var \Eshop\DB\AttributeAssign $attributeAssign */
+				foreach ($attributeAssigns as $attributeAssign) {
+					if (!isset($allAttributeValues[$attributeAssign->getValue('value')])) {
+						continue;
+					}
+
+					$attributeValue = $allAttributeValues[$attributeAssign->getValue('value')];
+
+					if (!isset($allAttributes[$attributeValue->getValue('attribute')])) {
+						continue;
+					}
+
+					$attribute = $allAttributes[$attributeValue->getValue('attribute')];
+
+					if (isset($productsFrontendData[$product->uuid]['attributes'][$attribute->code])) {
+						$productsFrontendData[$product->uuid]['attributes'][$attribute->code] .= ', ' . $attributeValue->label;
+					} else {
+						$productsFrontendData[$product->uuid]['attributes'][$attribute->code] = $attributeValue->label;
+					}
+				}
+
+				$productsFrontendData[$product->uuid]['producer'] = $product->fk_producer && isset($allProducers[$product->fk_producer]) ?
+					$allProducers[$product->fk_producer]->name :
+					null;
+			}
+
+			$templateData['productsFrontendData'] = $productsFrontendData;
+
+			return $templateData;
+		});
+	}
+
+	/**
+	 * @deprecated Use getTemplateData
+	 */
 	protected function setProductsFrontendData(): void
 	{
 		/** @var array<\Eshop\DB\Attribute> $allAttributes */
@@ -698,11 +907,12 @@ abstract class ExportPresenter extends Presenter
 
 		unset($allAttributeAssigns);
 
-		$this->template->productsFrontendData = [];
+		/** @var array<mixed> $productsFrontendData */
+		$productsFrontendData = [];
 
 		/** @var \Eshop\DB\Product $product */
 		foreach ($this->template->products as $product) {
-			$this->template->productsFrontendData[$product->getPK()] = $product->getSimpleFrontendData();
+			$productsFrontendData[$product->getPK()] = $product->getSimpleFrontendData();
 
 			$attributeAssigns = $attributeAssignsByProducts[$product->getPK()] ?? [];
 
@@ -720,19 +930,22 @@ abstract class ExportPresenter extends Presenter
 
 				$attribute = $allAttributes[$attributeValue->getValue('attribute')];
 
-				if (isset($this->template->productsFrontendData[$product->getPK()]['attributes'][$attribute->code])) {
-					$this->template->productsFrontendData[$product->getPK()]['attributes'][$attribute->code] .= ', ' . $attributeValue->label;
+				if (isset($productsFrontendData[$product->getPK()]['attributes'][$attribute->code])) {
+					$productsFrontendData[$product->getPK()]['attributes'][$attribute->code] .= ', ' . $attributeValue->label;
 				} else {
-					$this->template->productsFrontendData[$product->getPK()]['attributes'][$attribute->code] = $attributeValue->label;
+					$productsFrontendData[$product->getPK()]['attributes'][$attribute->code] = $attributeValue->label;
 				}
 			}
 
-			$this->template->productsFrontendData[$product->getPK()]['producer'] = $product->getValue('producer') && isset($allProducers[$product->getValue('producer')]) ?
+			$productsFrontendData[$product->getPK()]['producer'] = $product->getValue('producer') && isset($allProducers[$product->getValue('producer')]) ?
 				$allProducers[$product->getValue('producer')]->name :
 				null;
 		}
 
-		$currency = $this->currencyRepository->one('CZK');
+		$this->template->productsFrontendData = $productsFrontendData;
+		unset($productsFrontendData);
+
+		$currency = $this->currencyRepository->one('CZK', true);
 
 		$this->template->priceType = $this->shopperUser->getShowVat() ? true : ($this->shopperUser->getShowWithoutVat() ? false : null);
 		$this->template->deliveryTypes =
@@ -747,8 +960,8 @@ abstract class ExportPresenter extends Presenter
 	private function getPriceAndVisibilityLists(string $provider): array
 	{
 		return [
-			$this->getPricelistFromSetting($provider . 'ExportPricelist'),
-			$this->getVisibilityListsFromSetting($provider . 'ExportVisibilityLists'),
+			$this->getPricelistFromSettingOrThrow($provider . 'ExportPricelist'),
+			$this->getVisibilityListsFromSettingOrThrow($provider . 'ExportVisibilityLists'),
 		];
 	}
 }
