@@ -1243,12 +1243,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function getCollection(bool $includeHidden = false): Collection
 	{
+		unset($includeHidden);
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$collection = $this->many();
-		
-		if (!$includeHidden) {
-			$collection->where('this.hidden', false);
-		}
+		$collection->where('this.deletedTs IS NULL');
 
 		$this->joinVisibilityListItemToProductCollection($collection);
 		

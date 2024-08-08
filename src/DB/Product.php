@@ -414,6 +414,11 @@ class Product extends \StORM\Entity
 	/**
 	 * @column{"type":"datetime"}
 	 */
+	public string|null $deletedTs;
+
+	/**
+	 * @column{"type":"datetime"}
+	 */
 	public string|null $lastInStockTs;
 
 	/**

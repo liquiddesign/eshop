@@ -61,6 +61,7 @@ class ProductGridFactory
 		}
 
 		$source = $this->productRepository->many()
+			->where('this.deletedTs IS NULL')
 			->setSmartJoin(false)
 			->setGroupBy(['this.uuid'])
 			->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = this.uuid')
