@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.286](https://github.com/liquiddesign/eshop/compare/v2.1.285...v2.1.286) (2024-08-08)
+
+### Features
+
+* Add lastInStockTs ([091f46](https://github.com/liquiddesign/eshop/commit/091f46a609da9e9c6f4592f75e6e80b5160c59c9))
+
+
+---
+
 ## [2.1.285](https://github.com/liquiddesign/eshop/compare/v2.1.284...v2.1.285) (2024-08-07)
 
 ### Features
