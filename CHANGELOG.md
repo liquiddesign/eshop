@@ -4,6 +4,16 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.287](https://github.com/liquiddesign/eshop/compare/v2.1.286...v2.1.287) (2024-08-08)
+
+### Features
+
+* New function setDraftsCollection ([b24392](https://github.com/liquiddesign/eshop/commit/b2439272222f69c41864674c26d57bcb7d3fd68e))
+* Add deletedTs ([105093](https://github.com/liquiddesign/eshop/commit/105093329cb44beb5a64529e63c29055fea48e35))
+
+
+---
+
 ## [2.1.286](https://github.com/liquiddesign/eshop/compare/v2.1.285...v2.1.286) (2024-08-08)
 
 ### Features
