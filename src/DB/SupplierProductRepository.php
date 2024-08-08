@@ -594,7 +594,10 @@ class SupplierProductRepository extends \StORM\Repository
 		$result['positivelyUpdated'] = $productRepository->many()
 			->where('this.supplierDisplayAmountLock', false)
 			->where('this.uuid', $inStockProducts)
-			->update(['fk_displayAmount' => $inStockSetting]);
+			->update([
+				'fk_displayAmount' => $inStockSetting,
+				'lastInStockTs' => new Literal('NOW()'),
+			]);
 
 		$result['negativelyUpdated'] = $productRepository->many()
 			->where('this.supplierDisplayAmountLock', false)

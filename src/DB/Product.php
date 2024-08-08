@@ -412,6 +412,11 @@ class Product extends \StORM\Entity
 	public bool $exportZbozi = true;
 
 	/**
+	 * @column{"type":"datetime"}
+	 */
+	public string|null $lastInStockTs;
+
+	/**
 	 * Watcher pro aktualniho uživatele jinak nedáva smysl
 	 * @relation
 	 */

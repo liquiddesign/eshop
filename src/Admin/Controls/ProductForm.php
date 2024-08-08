@@ -327,6 +327,10 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			$form->addDataMultiSelect('taxes', 'Poplatky a daně', $taxRepository->getArrayForSelect());
 		}
 
+		$form->addText('lastInStockTs', 'Čas posledního naskladnění')
+			->setHtmlAttribute('readonly', 'readonly')
+			->setOmitted();
+
 		// Relations
 		$this->monitor(Presenter::class, function ($presenter) use ($form): void {
 
