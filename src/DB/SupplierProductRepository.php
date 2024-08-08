@@ -20,6 +20,7 @@ use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\Page;
 use Web\DB\Setting;
+use Web\DB\SettingRepository;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\SupplierProduct>
@@ -28,8 +29,13 @@ class SupplierProductRepository extends \StORM\Repository
 {
 	private Container $container;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, Container $container, protected readonly ShopsConfig $shopsConfig)
-	{
+	public function __construct(
+		DIConnection $connection,
+		SchemaManager $schemaManager,
+		Container $container,
+		protected readonly ShopsConfig $shopsConfig,
+		protected readonly SettingRepository $settingRepository
+	) {
 		parent::__construct($connection, $schemaManager);
 
 		$this->container = $container;
@@ -81,17 +87,17 @@ class SupplierProductRepository extends \StORM\Repository
 
 			foreach (\array_keys($updates) as $name) {
 				$updates[$name] = new Literal("IF
-				(
-					(
-						supplierContentLock = 0 && 
-						(
-							(VALUES(supplierLock) >= supplierLock && supplierContentMode = 'priority') ||
-							(supplierContentMode = 'content' && fk_supplierContent = '$supplierId')
-						)
-					),
-					VALUES($name),
-					$name
-				)");
+                (
+                    (
+                        supplierContentLock = 0 && 
+                        (
+                            (VALUES(supplierLock) >= supplierLock && supplierContentMode = 'priority') ||
+                            (supplierContentMode = 'content' && fk_supplierContent = '$supplierId')
+                        )
+                    ),
+                    VALUES($name),
+                    $name
+                )");
 			}
 
 			$updates['fk_producer'] = new Literal('IF(fk_producer IS NULL, VALUES(fk_producer), fk_producer)');
@@ -121,6 +127,8 @@ class SupplierProductRepository extends \StORM\Repository
 			->where('this.fk_supplier', $supplier)
 			->where('supplierCategoryXCategory.fk_category IS NOT NULL')
 			->where('this.active', true);
+
+		$this->setDraftsCollection($drafts);
 
 		/** @var array<\stdClass> $existingPrimaryCategories */
 		$existingPrimaryCategories = $productPrimaryCategoryRepository->many()
@@ -386,11 +394,11 @@ class SupplierProductRepository extends \StORM\Repository
 				'fileName' => $draft->fileName,
 			]);
 
-			// phpcs:ignore
-			$mtime = @\filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
+            // phpcs:ignore
+            $mtime = @\filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 
-			// phpcs:ignore
-			$copyImage = !(!$overwrite || !$draft->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName));
+            // phpcs:ignore
+            $copyImage = !(!$overwrite || !$draft->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName));
 
 			if (!$copyImage) {
 				continue;
@@ -403,8 +411,8 @@ class SupplierProductRepository extends \StORM\Repository
 				if (\is_file($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName)) {
 					FileSystem::copy($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
 				} else {
-					// phpcs:ignore
-					$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
+                    // phpcs:ignore
+                    $image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 					$image->resize(600, null);
 					$image->save($galleryImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
 				}
@@ -412,8 +420,8 @@ class SupplierProductRepository extends \StORM\Repository
 				if (\is_file($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName)) {
 					FileSystem::copy($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
 				} else {
-					// phpcs:ignore
-					$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
+                    // phpcs:ignore
+                    $image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
 					$image->resize(300, null);
 					$image->save($galleryImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
 				}
@@ -448,8 +456,8 @@ class SupplierProductRepository extends \StORM\Repository
 				continue;
 			}
 
-			// phpcs:ignore
-			if ( $product->supplierContentLock === 0 ||
+            // phpcs:ignore
+            if ( $product->supplierContentLock === 0 ||
 				($product->supplierLock >= $supplier->importPriority && $product->supplierContentMode === 'priority')) {
 				$productContentRepository->syncOne([
 					'product' => $product->uuid,
@@ -605,6 +613,11 @@ class SupplierProductRepository extends \StORM\Repository
 			->update(['fk_displayAmount' => $notInStockSetting]);
 
 		return $result;
+	}
+
+	protected function setDraftsCollection(Collection $collection): void
+	{
+		unset($collection);
 	}
 
 	private function loadProductsMapXSupplierProductsXDisplayAmount(array &$productsMapXSupplierProductsXDisplayAmount): void
