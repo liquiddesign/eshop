@@ -262,6 +262,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 	public function addFiltersToAccountsGrid(AdminGrid $grid): void
 	{
 		$grid->addFilterTextInput('search', ['this.login'], null, 'Login');
+		$grid->addFilterTextInput('fullname', ['this.fullname'], null, 'Jméno účtu');
 		$grid->addFilterTextInput('customer', ['customer.fullname'], null, 'Jméno zákazníka');
 		$grid->addFilterTextInput('company', ['customer.company', 'customer.ic', 'customer.email'], null, 'Firma, IČ, email zákazníka');
 
