@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.289](https://github.com/liquiddesign/eshop/compare/v2.1.288...v2.1.289) (2024-08-09)
+
+### Features
+
+* Add phpstan8 check and update MerchantPresenter ([7dcdfe](https://github.com/liquiddesign/eshop/commit/7dcdfeb74af39a90c742e84912d4120a8625a5c7))
+
+
+---
+
 ## [2.1.288](https://github.com/liquiddesign/eshop/compare/v2.1.287...v2.1.288) (2024-08-09)
 
 ### Features
