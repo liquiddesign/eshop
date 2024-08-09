@@ -367,17 +367,13 @@ abstract class ExportPresenter extends Presenter
 			}
 
 			/** @var \Eshop\DB\CatalogPermission|null $perm */
-			$perm = $this->catalogPermRepo->many()->where('fk_account', $account?->getPK())->first();
+			$perm = $this->catalogPermRepo->many()->where('fk_account', $account->getPK())->first();
 
 			if (!$perm) {
 				$this->error('Invalid account found!');
 			}
 
-			$customer = $perm?->customer;
-		}
-
-		if (!$customer) {
-			throw new \Exception('No customer');
+			$customer = $perm->customer;
 		}
 
 		/** @var array<\Eshop\DB\Order> $orders */

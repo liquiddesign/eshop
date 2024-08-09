@@ -22,6 +22,7 @@ use Nette\Mail\Mailer;
 use Nette\Security\Passwords;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
+use StORM\Collection;
 
 class MerchantPresenter extends BackendPresenter
 {
@@ -36,6 +37,9 @@ class MerchantPresenter extends BackendPresenter
 	#[Inject]
 	public MerchantRepository $merchantRepository;
 
+	/**
+	 * @var \Security\DB\AccountRepository<\Security\DB\Account>
+	 */
 	#[Inject]
 	public AccountRepository $accountRepository;
 
@@ -45,9 +49,15 @@ class MerchantPresenter extends BackendPresenter
 	#[Inject]
 	public CustomerGroupRepository $customerGroupRepository;
 
+	/**
+	 * @var \Eshop\DB\CustomerRepository<\Eshop\DB\Customer>
+	 */
 	#[Inject]
 	public CustomerRepository $customerRepository;
 
+	/**
+	 * @var \Eshop\DB\PricelistRepository<\Eshop\DB\Pricelist>
+	 */
 	#[Inject]
 	public PricelistRepository $pricelistRepository;
 
@@ -67,11 +77,11 @@ class MerchantPresenter extends BackendPresenter
 			->select([
 				'pricelists_names' => "GROUP_CONCAT(DISTINCT pricelists.name SEPARATOR ', ')",
 				'visibilityLists_names' => "GROUP_CONCAT(DISTINCT visibilityLists.name SEPARATOR ', ')",
-		]), 20, 'code', 'ASC', true);
+		]), 20, 'this.code', 'ASC', true);
 		$grid->addColumnSelector();
 
-		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit']);
-		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname');
+		$grid->addColumnText('Kód', 'code', '%s', 'this.code', ['class' => 'fit']);
+		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'this.fullname');
 		$grid->addColumnText('Ceníky / Viditelníky', ['pricelists_names', 'visibilityLists_names'], '%s<hr style="margin: 0">%s');
 		$grid->addColumnText(
 			'E-mail',
@@ -114,7 +124,14 @@ class MerchantPresenter extends BackendPresenter
 		$grid->addButtonBulkEdit('form', ['visibilityLists']);
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder']);
 
-		$grid->addFilterTextInput('search', ['code', 'fullName', 'email'], null, 'Jméno, kód, e-mail');
+		$grid->addFilterTextInput('search', ['this.code', 'this.fullName', 'this.email'], null, 'Jméno, kód, e-mail');
+
+		if ($items = $this->customerRepository->getArrayForSelect()) {
+			$grid->addFilterDataSelect(function (Collection $source, $value): void {
+				$source->where('customers.uuid', $value);
+			}, '', 'customers', null, $items)->setPrompt('- Zákazník -');
+		}
+
 		$grid->addFilterButtons();
 
 		return $grid;
@@ -160,18 +177,22 @@ class MerchantPresenter extends BackendPresenter
 		$passwords = $this->passwords;
 		
 		$form->onSuccess[] = function (AdminForm $form) use ($passwords): void {
+			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
 
 			if (isset($form['account'])) {
-				$form['account']['email']->setValue($values['email']);
 				unset($values['account']);
 			}
 
 			/** @var \Eshop\DB\Merchant $merchant */
 			$merchant = $this->merchantRepository->syncOne($values, null, true);
 
+			/** @var array<mixed> $values */
+			$values = $form->getValues('array');
+
 			if (isset($form['account'])) {
-				$valuesAccount = $form->getValues('array')['account'];
+				/** @var array<mixed> $valuesAccount */
+				$valuesAccount = $values['account'];
 
 				if ($valuesAccount['password']) {
 					$valuesAccount['password'] = $passwords->hash($valuesAccount['password']);
@@ -198,7 +219,11 @@ class MerchantPresenter extends BackendPresenter
 
 	public function handleLoginMerchant(string $login): void
 	{
-		$this->user->login($this->merchantRepository->getByAccountLogin($login), null, [Merchant::class]);
+		if (!$identity = $this->merchantRepository->getByAccountLogin($login)) {
+			throw new \Exception('Merchant not found');
+		}
+
+		$this->user->login($identity, null, [Merchant::class]);
 
 		$this->presenter->redirect(':Web:Index:default');
 	}
@@ -215,6 +240,7 @@ class MerchantPresenter extends BackendPresenter
 
 	public function actionNew(): void
 	{
+		/** @var \Admin\Controls\AdminForm|array<mixed> $form */
 		$form = $this->getComponent('form');
 		$form['account']['password']->setRequired();
 		$form['account']['passwordCheck']->setRequired();
@@ -268,7 +294,7 @@ class MerchantPresenter extends BackendPresenter
 
 	public function actionEditAccount(Merchant $merchant): void
 	{
-		/** @var \Forms\Form $form */
+		/** @var \Admin\Controls\AdminForm|array<mixed> $form */
 		$form = $this->getComponent('accountForm');
 		$form['account']['email']->setDefaultValue($merchant->email);
 
@@ -302,6 +328,7 @@ class MerchantPresenter extends BackendPresenter
 
 	public function actionNewAccount(Merchant $merchant): void
 	{
+		/** @var \Admin\Controls\AdminForm|array<mixed> $form */
 		$form = $this->getComponent('accountForm');
 		$form['account']['password']->setRequired();
 		$form['account']['passwordCheck']->setRequired();

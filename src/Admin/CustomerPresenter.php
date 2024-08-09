@@ -172,7 +172,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 	{
 		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
 
-		$grid->addFilterTextInput('search', ['this.fullname', 'this.email', 'this.phone'], null, 'Jméno a příjmení, e-mail, telefon');
+		$grid->addFilterTextInput('search', ['this.fullname', 'this.email', 'this.phone', 'this.company'], null, 'Jméno a příjmení, e-mail, telefon, firma');
 
 		if (\count($this->merchantRepository->getArrayForSelect()) > 0) {
 			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {

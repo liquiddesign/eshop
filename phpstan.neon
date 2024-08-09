@@ -12,6 +12,7 @@ parameters:
 		- src/assets/*
 		- src/templates/*
 		- src/Front/Eshop/ExportPresenter.php
+		- src/Admin/MerchantPresenter.php
 
 services:
 	-
