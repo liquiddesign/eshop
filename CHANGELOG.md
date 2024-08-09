@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.288](https://github.com/liquiddesign/eshop/compare/v2.1.287...v2.1.288) (2024-08-09)
+
+### Features
+
+* Add fullname filter to accounts grid in CustomerPresenter ([afef49](https://github.com/liquiddesign/eshop/commit/afef4939bf2e327208baeb102e7a894205daaab4))
+
+
+---
+
 ## [2.1.287](https://github.com/liquiddesign/eshop/compare/v2.1.286...v2.1.287) (2024-08-08)
 
 ### Features
