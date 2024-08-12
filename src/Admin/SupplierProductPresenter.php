@@ -62,13 +62,14 @@ class SupplierProductPresenter extends BackendPresenter
 	public function createComponentGrid(): AdminGrid
 	{
 		if (!$this->tab) {
-			return $this->gridFactory->create($this->supplierProductRepository->many()->where('1=0'), 20, 'this.createdTs', 'ASC', true);
+			return $this->gridFactory->create($this->supplierProductRepository->many()->where('1=0'), 20, 'this.createdTs', 'DESC', true);
 		}
 
 		$supplier = $this->supplierRepository->one($this->tab, true);
 
-		$grid = $this->gridFactory->create($this->supplierProductRepository->many()->where('this.fk_supplier', $supplier->getPK()), 20, 'this.createdTs', 'ASC', true);
+		$grid = $this->gridFactory->create($this->supplierProductRepository->many()->where('this.fk_supplier', $supplier->getPK()), 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
+		$grid->addColumnText('Vytvořeno', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
 		$grid->addColumn('Kód a EAN', function (SupplierProduct $product) {
 			return $product->code . ($product->ean ? "<br><small>EAN $product->ean</small>" : '') . ($product->mpn ? "<br><small>P/N $product->mpn</small>" : '');
 		}, '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
