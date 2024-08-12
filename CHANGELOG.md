@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.290](https://github.com/liquiddesign/eshop/compare/v2.1.289...v2.1.290) (2024-08-12)
+
+### Features
+
+* Add product grid item count callback and pre-filter form ([a8a388](https://github.com/liquiddesign/eshop/commit/a8a3888d769062fe73f3acf576aca626511e7e9f))
+
+
+---
+
 ## [2.1.289](https://github.com/liquiddesign/eshop/compare/v2.1.288...v2.1.289) (2024-08-09)
 
 ### Features
