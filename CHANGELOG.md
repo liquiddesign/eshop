@@ -4,6 +4,16 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.291](https://github.com/liquiddesign/eshop/compare/v2.1.290...v2.1.291) (2024-08-12)
+
+### Features
+
+* Refactor discount and pricelist relationship to many-to-many ([4b8eb7](https://github.com/liquiddesign/eshop/commit/4b8eb7a66cbcbe457fa6fa73ec1b8d22e5029f5e))
+* Add many-to-many relationship between Pricelist and Discount ([444a36](https://github.com/liquiddesign/eshop/commit/444a362541b294fbb8fae310e902bc431d406a90), [5b0695](https://github.com/liquiddesign/eshop/commit/5b069516fcedf2967fa760688350708d836e585a))
+
+
+---
+
 ## [2.1.290](https://github.com/liquiddesign/eshop/compare/v2.1.289...v2.1.290) (2024-08-12)
 
 ### Features
