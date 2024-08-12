@@ -92,7 +92,7 @@ class Pricelist extends ShopSystemicEntity
 
 	/**
 	 * Sleva
-	 * @relationNxN
+	 * @relationNxN{"sourceViaKey":"fk_pricelist","targetViaKey":"fk_discount","via":"eshop_discount_nxn_eshop_pricelist"}
 	 * @var \StORM\RelationCollection<\Eshop\DB\Discount>
 	 */
 	public RelationCollection $discounts;

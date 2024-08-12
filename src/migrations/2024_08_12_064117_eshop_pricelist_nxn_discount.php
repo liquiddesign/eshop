@@ -8,4 +8,9 @@ return new class extends Migration {
 		\Illuminate\Support\Facades\DB::unprepared('INSERT INTO eshop_discount_nxn_eshop_pricelist (fk_pricelist, fk_discount)
 SELECT uuid, fk_discount FROM eshop_pricelist WHERE eshop_pricelist.fk_discount IS NOT NULL;');
 	}
+
+	public function down(): void
+	{
+		\Illuminate\Support\Facades\DB::table('eshop_discount_nxn_eshop_pricelist')->truncate();
+	}
 };

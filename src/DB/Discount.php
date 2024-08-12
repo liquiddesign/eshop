@@ -47,7 +47,7 @@ class Discount extends ShopEntity
 	
 	/**
 	 * Akční ceníky
-	 * @relationNxN
+	 * @relationNxN{"sourceViaKey":"fk_discount","targetViaKey":"fk_pricelist","via":"eshop_discount_nxn_eshop_pricelist"}
 	 * @var \StORM\RelationCollection<\Eshop\DB\Pricelist>
 	 */
 	public RelationCollection $pricelists;

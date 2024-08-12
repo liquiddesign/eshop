@@ -708,8 +708,8 @@ class PricelistsPresenter extends BackendPresenter
 		$form->addDataSelect('currency', 'Měna', $this->currencyRepository->getArrayForSelect());
 		$form->addDataSelect('country', 'Země DPH', $this->countryRepo->getArrayForSelect());
 
-		$discountInput = $form->addDataSelect('discount', 'Akce', $this->discountRepo->getArrayForSelect())->setPrompt('Žádná')->setDisabled();
-		$onlyCouponInput = $form->addCheckbox('activeOnlyWithCoupon', 'Platí pouze se slevovým kupónem')->setDisabled();
+		$discountInput = $form->addDataMultiSelect('discounts', 'Akce', $this->discountRepo->getArrayForSelect());
+		$onlyCouponInput = $form->addCheckbox('activeOnlyWithCoupon', 'Platí pouze se slevovým kupónem');
 		$discountInput->addCondition($form::FILLED)->toggle($onlyCouponInput->getHtmlId() . '-toogle');
 
 		$form->addText('priority', 'Priorita')->addRule($form::INTEGER)->setRequired()->setDefaultValue(10);
@@ -803,7 +803,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		/** @var \Admin\Controls\AdminForm $priceListForm */
 		$priceListForm = $this->getComponent('priceListDetail');
 
-		$priceListForm->setDefaults($pricelist->toArray(['internalRibbons']));
+		$priceListForm->setDefaults($pricelist->toArray(['internalRibbons', 'discounts']));
 	}
 
 	public function renderPriceListDetail(): void

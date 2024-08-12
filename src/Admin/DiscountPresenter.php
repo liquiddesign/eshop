@@ -25,6 +25,7 @@ use Eshop\FormValidators;
 use Forms\Form;
 use Grid\Datagrid;
 use Nette\Caching\Storage;
+use Nette\Forms\Controls\TextInput;
 use Nette\Utils\Strings;
 use StORM\Connection;
 use StORM\ICollection;
@@ -193,7 +194,9 @@ class DiscountPresenter extends BackendPresenter
 	{
 		$form = $this->formFactory->create(true);
 
-		$form->addLocaleText('name', 'Název');
+		$form->addLocaleText('name', 'Název')->forPrimary(function (TextInput $input): void {
+			$input->setRequired();
+		});
 		$form->addPolyfillDatetime('validFrom', 'Platný od')->setNullable(true);
 		$form->addPolyfillDatetime('validTo', 'Platný do')->setNullable(true);
 
@@ -208,9 +211,7 @@ class DiscountPresenter extends BackendPresenter
 				->addRule([FormValidators::class, 'isPercent'], 'Zadaná hodnota není procento!');
 		}
 
-		$pricelists = $discount ?
-			$this->priceListRepository->many()->where('fk_discount IS NULL OR fk_discount = :q', ['q' => $discount->getPK()]) : $this->priceListRepository->many()->where('fk_discount IS NULL');
-		$form->addDataMultiSelect('pricelists', 'Ceníky', $pricelists->toArrayOf('name'))->setHtmlAttribute('placeholder', 'Vyberte položky...');
+		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->priceListRepository->getArrayForSelect())->setHtmlAttribute('placeholder', 'Vyberte položky...');
 		$form->addDataMultiSelect(
 			'ribbons',
 			'Štítky',
@@ -225,10 +226,6 @@ class DiscountPresenter extends BackendPresenter
 
 		$form->onSuccess[] = function (AdminForm $form) use ($discount): void {
 			$values = $form->getValues('array');
-
-			if ($discount) {
-				$this->priceListRepository->many()->where('fk_discount', $discount->getPK())->update(['discount' => null]);
-			}
 
 			$discount = $this->discountRepository->syncOne($values, null, true);
 
