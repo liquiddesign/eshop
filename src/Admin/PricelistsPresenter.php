@@ -153,29 +153,21 @@ class PricelistsPresenter extends BackendPresenter
 			return [$pricelist->name, $ribbons];
 		}, '%s&nbsp;%s', 'name');
 		$grid->addColumnText('Popis', 'description', '%s');
-		$grid->addColumn('Akce', function (Pricelist $object) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Discount:detail') && $object->discount ? $this->link(
-				':Eshop:Admin:Discount:detail',
-				[$object->discount, 'backLink' => $this->storeRequest()],
-			) : '#';
+		$grid->addColumn('SLevy', function (Pricelist $object) {
+			$discounts = $object->getDiscounts()->toArray();
+			$result = [];
 
-			return $object->discount ? "<a href='" . $link . "'>" . $object->discount->name . '</a>' : '';
+			foreach ($discounts as $discount) {
+				$link = $this->admin->isAllowed(':Eshop:Admin:Discount:detail') ? $this->link(
+					':Eshop:Admin:Discount:detail',
+					[$discount, 'backLink' => $this->storeRequest()],
+				) : '#';
+
+				$result[] = "<a href='" . $link . "'>$discount->name ($discount->validFrom - $discount->validTo)</a>";
+			}
+
+			return \implode(',', $result);
 		}, '%s');
-
-		$grid->addColumnText(
-			'Akce od',
-			"discount.validFrom|date:'d.m.Y G:i'",
-			'%s',
-			null,
-			['class' => 'fit'],
-		)->onRenderCell[] = [$grid, 'decoratorNowrap'];
-		$grid->addColumnText(
-			'Akce do',
-			"discount.validTo|date:'d.m.Y G:i'",
-			'%s',
-			null,
-			['class' => 'fit'],
-		)->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
 		$grid->addColumn('Zdroj', function (Pricelist $object) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') && $object->supplier ? $this->link(
@@ -226,6 +218,13 @@ class PricelistsPresenter extends BackendPresenter
 			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
 				$source->filter(['internalRibbon' => \Eshop\Common\Helpers::replaceArrayValue($value, '0', null)]);
 			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
+		}
+
+		if ($discounts = $this->discountRepo->getArrayForSelect()) {
+			$discounts += ['0' => 'X - bez akce'];
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+				$source->filter(['discounts' => \Eshop\Common\Helpers::replaceArrayValue($value, '0', null)]);
+			}, '', 'discounts', null, $discounts, ['placeholder' => '- Akce -']);
 		}
 
 		$this->gridFactory->addShopsFilterSelect($grid);

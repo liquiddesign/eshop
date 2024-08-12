@@ -69,7 +69,7 @@ class DiscountPresenter extends BackendPresenter
 
 	public function createComponentGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->discountRepository->many(), 20, 'name', 'ASC', true);
+		$grid = $this->gridFactory->create($this->discountRepository->many(), 20, 'name', 'ASC', true, filterShops: false);
 		$grid->addColumnSelector();
 		$grid->addColumn('', function (Discount $object, Datagrid $datagrid) {
 			return '<i title=' . ($object->isActive() ? 'Aktivní' : 'Neaktivní') . ' class="fa fa-circle fa-sm text-' . ($object->isActive() ? 'success' : 'danger') . '">';
@@ -174,6 +174,15 @@ class DiscountPresenter extends BackendPresenter
 				$source->where('nxn.fk_ribbon', $value);
 			}, '', 'ribbons', null, $ribbons, ['placeholder' => '- Štítky -']);
 		}
+
+		if ($items = $this->priceListRepository->getArrayForSelect()) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
+				$source->join(['nxn' => 'eshop_discount_nxn_eshop_pricelist'], 'nxn.fk_discount=this.uuid');
+				$source->where('nxn.fk_pricelist', $value);
+			}, '', 'pricelists', null, $items, ['placeholder' => '- Ceníky -']);
+		}
+
+		$this->gridFactory->addShopsFilterSelect($grid);
 
 		$grid->addFilterButtons();
 

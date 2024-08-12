@@ -566,4 +566,11 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 		$value === false ? $collection->where('internalRibbons.fk_internalRibbon IS NULL') : $collection->where('internalRibbons.fk_internalRibbon', $value);
 	}
+
+	public function filterDiscounts($value, ICollection $collection): void
+	{
+		$collection->join(['discounts' => 'eshop_discount_nxn_eshop_pricelist'], 'discounts.fk_pricelist=this.uuid');
+
+		$value === false ? $collection->where('discounts.fk_discount IS NULL') : $collection->where('discounts.fk_discount', $value);
+	}
 }

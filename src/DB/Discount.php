@@ -11,6 +11,7 @@ use StORM\RelationCollection;
 /**
  * Slevová akce
  * @table
+ * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getPricelists()
  */
 class Discount extends ShopEntity
 {
@@ -46,7 +47,7 @@ class Discount extends ShopEntity
 	
 	/**
 	 * Akční ceníky
-	 * @relation
+	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\Pricelist>
 	 */
 	public RelationCollection $pricelists;

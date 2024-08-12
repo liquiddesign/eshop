@@ -10,6 +10,7 @@ use StORM\RelationCollection;
 /**
  * Ceník
  * @table
+ * @method \StORM\RelationCollection<\Eshop\DB\Discount> getDiscounts()
  */
 class Pricelist extends ShopSystemicEntity
 {
@@ -88,13 +89,13 @@ class Pricelist extends ShopSystemicEntity
 	 * @constraint
 	 */
 	public Country $country;
-	
+
 	/**
-	 * Akce
-	 * @relation
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 * Sleva
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\Discount>
 	 */
-	public ?Discount $discount;
+	public RelationCollection $discounts;
 	
 	/**
 	 * Dodavatel / externí ceník
