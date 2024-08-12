@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
+use Admin\Controls\AdminGrid;
 use Base\ShopsConfig;
 use Eshop\Common\Helpers;
 use Eshop\DB\CategoryRepository;
@@ -21,6 +22,7 @@ use Nette\Forms\Controls\Checkbox;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Strings;
+use StORM\Collection;
 use StORM\DIConnection;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -83,6 +85,23 @@ class ProductGridFactory
 			]);
 
 		$grid = $this->gridFactory->create($source, 20, 'this.uuid', 'ASC', true);
+
+		$grid->setItemCountCallback(function (Collection $collection): int {
+			$pkName = $collection->getRepository()->getStructure()->getPK()->getName();
+			$collection->setSelect([
+				'hidden' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.hidden ORDER BY visibilityList.priority), ',', 1)",
+				'unavailable' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.unavailable ORDER BY visibilityList.priority), ',', 1)",
+				'categoryCount' => 'COUNT(DISTINCT nxnCategory.fk_category)',
+			])->setOrderBy([]);
+			$subCollection = AdminGrid::processCollectionBaseFrom($collection, useOrder: false, join: false);
+
+			$collection->setSelect([]);
+
+			return $this->connection->rows()
+				->setFrom(['agg' => "({$subCollection->getSql()})"], $collection->getVars())
+				->enum('agg.' . $pkName, unique: false);
+		});
+
 		$grid->addColumnSelector();
 		$grid->addColumn('', function (Product $object, Datagrid $datagrid) {
 			if ($object->isHidden()) {

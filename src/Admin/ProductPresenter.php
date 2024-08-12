@@ -40,11 +40,14 @@ use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\VatRateRepository;
+use Eshop\DB\VisibilityListRepository;
 use Eshop\FormValidators;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Nette\Application\Application;
+use Nette\Application\Attributes\Persistent;
 use Nette\Application\Responses\FileResponse;
+use Nette\Application\UI\Component;
 use Nette\DI\Attributes\Inject;
 use Nette\Forms\Controls\TextInput;
 use Nette\IOException;
@@ -230,11 +233,20 @@ class ProductPresenter extends BackendPresenter
 	#[Inject]
 	public ProductExporter $productExporter;
 
-	/** @persistent */
+	#[Inject]
+	public VisibilityListRepository $visibilityListRepository;
+
+	#[Persistent]
 	public string $tab = 'products';
 
-	/** @persistent */
+	#[Persistent]
 	public string $editTab = 'menu0';
+
+	/**
+	 * @var array<mixed>
+	 */
+	#[Persistent]
+	public array|null $productGridPreFilterForm = null;
 
 	/**
 	 * @var array<string>
@@ -250,6 +262,37 @@ class ProductPresenter extends BackendPresenter
 		$config['isManager'] = $this->isManager;
 
 		return $this->productGridFactory->create($config, $this->getBulkColumns());
+	}
+
+	public function createComponentProductGridPreFilterForm(): AdminForm
+	{
+		$form = $this->formFactory->create(defaultGroup: false);
+
+		$form->addGroup('Nastavení pro výpis');
+		$form->addMultiSelect2('priceLists', 'Ceníky', $this->pricelistRepository->getArrayForSelect());
+		$form->addMultiSelect2('visibilityLists', 'Seznamy viditenosti', $this->visibilityListRepository->getArrayForSelect())
+			->setHtmlAttribute('data-info', '<br>Tato nastavení ovliňují zobrazování dostupnosti ve výpisu produktů. Pokud není vyplněno, používá výchozí nastavení pro aktuální obchod.');
+
+		$form->addSubmit('submit', 'Uložit');
+		$form->addSubmit('cancel', 'Zrušit')->setHtmlAttribute('class', 'btn btn-sm btn-secondary form-control-sm');
+
+		$form->setDefaults($this->productGridPreFilterForm ?: []);
+
+		$form->onSuccess[] = function (AdminForm $form, array $values): void {
+			$submitter = $form->isSubmitted();
+			$submitName = $submitter instanceof Component ? $submitter->getName() : null;
+
+			if ($submitName === 'cancel') {
+				$this->productGridPreFilterForm = null;
+
+				$this->redirect('this');
+			}
+
+			$this->productGridPreFilterForm = $values;
+			$this->redirect('this');
+		};
+
+		return $form;
 	}
 
 	public function createComponentProductAttributesGrid(): \Grid\Datagrid
@@ -680,7 +723,10 @@ class ProductPresenter extends BackendPresenter
 				$this->template->displayButtons[] = $this->createButton('importCsv', '<i class="fas fa-file-upload mr-1"></i>Import');
 			}
 
-			$this->template->displayControls = [$this->getComponent('productGrid')];
+			$this->template->displayControls = [
+//				$this->getComponent('productGridPreFilterForm'),
+				$this->getComponent('productGrid'),
+			];
 		}
 	}
 
