@@ -560,10 +560,11 @@ class SupplierProductRepository extends \StORM\Repository
 
 	/**
 	 * @param callable|null $customCallback
+	 * @param (callable(array<string> $notInStockProducts, string $notInStockSetting): int)|null $notInStockCallback
 	 * @return array{'positivelyUpdated': int, 'negativelyUpdated': int}
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function syncDisplayAmounts(?callable $customCallback = null): array
+	public function syncDisplayAmounts(?callable $customCallback = null, ?callable $notInStockCallback = null): array
 	{
 		$result = [
 			'positivelyUpdated' => 0,
@@ -607,10 +608,10 @@ class SupplierProductRepository extends \StORM\Repository
 				'lastInStockTs' => new Literal('NOW()'),
 			]);
 
-		$result['negativelyUpdated'] = $productRepository->many()
-			->where('this.supplierDisplayAmountLock', false)
-			->where('this.uuid', $notStockProducts)
-			->update(['fk_displayAmount' => $notInStockSetting]);
+		$result['negativelyUpdated'] = $notInStockCallback ? $notInStockCallback($notStockProducts, $notInStockSetting) : $productRepository->many()
+				->where('this.supplierDisplayAmountLock', false)
+				->where('this.uuid', $notStockProducts)
+				->update(['fk_displayAmount' => $notInStockSetting]);
 
 		return $result;
 	}
