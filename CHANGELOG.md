@@ -4,6 +4,16 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.292](https://github.com/liquiddesign/eshop/compare/v2.1.291...v2.1.292) (2024-08-13)
+
+### Features
+
+* Add notInStockCallback parameter to syncDisplayAmounts method ([16a1ef](https://github.com/liquiddesign/eshop/commit/16a1ef19a555e275f9886154b5bf6a59ae6b3e99))
+* Update supplier product grid sorting and add creation date column ([f570e7](https://github.com/liquiddesign/eshop/commit/f570e75b36f54f97af9cf80670f0bedfaaeb8577))
+
+
+---
+
 ## [2.1.291](https://github.com/liquiddesign/eshop/compare/v2.1.290...v2.1.291) (2024-08-12)
 
 ### Features
