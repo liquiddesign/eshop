@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.293](https://github.com/liquiddesign/eshop/compare/v2.1.292...v2.1.293) (2024-08-14)
+
+### Bug Fixes
+
+* Enhance pricelist validation with discount joins and grouping ([141570](https://github.com/liquiddesign/eshop/commit/1415708cca2346f6319992a5913ce9bdb3110902))
+
+
+---
+
 ## [2.1.292](https://github.com/liquiddesign/eshop/compare/v2.1.291...v2.1.292) (2024-08-13)
 
 ### Features
