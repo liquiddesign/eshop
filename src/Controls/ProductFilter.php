@@ -11,6 +11,7 @@ use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
+use Eshop\Services\Attribute\AttributeNumericService;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Forms\FormFactory;
@@ -85,6 +86,7 @@ class ProductFilter extends Control
 		protected ProducerRepository $producerRepository,
 		protected SettingRepository $settingRepository,
 		protected ShopperUser $shopperUser,
+		protected AttributeNumericService $attributeNumericService,
 		Storage $storage
 	) {
 		$this->cache = new Cache($storage);
@@ -162,6 +164,25 @@ class ProductFilter extends Control
 		$attributeValueCounts = $this->getAttributesValuesCounts();
 
 		foreach ($this->getAttributes() as $attribute) {
+			if ($attribute->showNumericSlider) {
+				$min = $this->attributeNumericService->getMin($attribute);
+				$max = $this->attributeNumericService->getMax($attribute);
+
+				$sliderContainer = $attributesContainer->addContainer((string) $attribute->getPK());
+
+				$sliderContainer->addText('from', $attribute->name ?? $attribute->code)
+					->setNullable()
+					->setHtmlAttribute('placeholder', $min)
+					->addCondition($filterForm::Filled)->addRule($filterForm::Integer);
+
+				$sliderContainer->addText('to')
+					->setNullable()
+					->setHtmlAttribute('placeholder', $max)
+					->addCondition($filterForm::Filled)->addRule($filterForm::Integer);
+
+				continue;
+			}
+
 			if (Arrays::contains(\array_keys($this::SYSTEMIC_ATTRIBUTES), $attribute->getPK())) {
 				$attributeValues = $this->getSystemicAttributeValues((string) $attribute->getPK());
 				$systemicCounts = $this->getSystemicCounts();
@@ -218,8 +239,7 @@ class ProductFilter extends Control
 		
 		$submit = $filterForm->addSubmit('submit', $this->translator->translate('filter.showProducts', 'Zobrazit produkty'));
 		$submit->setHtmlAttribute('name', '');
-		
-		
+
 		$filterForm->setDefaults($this->getPresenter()->getParameters());
 		
 		return $filterForm;

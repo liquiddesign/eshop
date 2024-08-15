@@ -363,6 +363,7 @@ class ProductList extends Datalist
 	{
 		$filters = $this->getFilters();
 		$templateFilters = [];
+		$mutationSuffix = $this->attributeValueRepository->getConnection()->getMutationSuffix();
 
 		foreach (Arrays::pick($filters, 'attributes', []) as $attributeKey => $attributeValues) {
 			if ($attributeKey === 'producer') {
@@ -395,13 +396,21 @@ class ProductList extends Datalist
 			/** @var \Eshop\DB\Attribute $attribute */
 			$attribute = $this->attributeRepository->one($attributeKey);
 
-			$attributeValues = $attribute->showRange ?
-				$this->attributeValueRangeRepository->getCollection()
-					->where('this.uuid', $attributeValues)
-					->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attributeValueRange = this.uuid')
-					->join(['attribute' => 'eshop_attribute'], 'attributeValue.fk_attribute = attribute.uuid')
-					->toArrayOf('name') :
-				$this->attributeValueRepository->many()->where('uuid', $attributeValues)->toArrayOf('label');
+			if ($attribute->showNumericSlider) {
+				$attributeValues = $this->attributeValueRepository->many()
+					->where("CAST(this.label$mutationSuffix AS SIGNED) >= :from", ['from' => $attributeValues['from']])
+					->where("CAST(this.label$mutationSuffix AS SIGNED) <= :to", ['to' => $attributeValues['to']])
+					->where('this.fk_attribute', $attribute->getPK())
+					->toArrayOf('label');
+			} else {
+				$attributeValues = $attribute->showRange ?
+					$this->attributeValueRangeRepository->getCollection()
+						->where('this.uuid', $attributeValues)
+						->join(['attributeValue' => 'eshop_attributevalue'], 'attributeValue.fk_attributeValueRange = this.uuid')
+						->join(['attribute' => 'eshop_attribute'], 'attributeValue.fk_attribute = attribute.uuid')
+						->toArrayOf('name') :
+					$this->attributeValueRepository->many()->where('uuid', $attributeValues)->toArrayOf('label');
+			}
 
 			foreach ($attributeValues as $attributeValueKey => $attributeValueLabel) {
 				$templateFilters[$attributeKey][$attributeValueKey] = "$attribute->name: $attributeValueLabel";

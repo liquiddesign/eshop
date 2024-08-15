@@ -282,6 +282,7 @@ class AttributePresenter extends BackendPresenter
 
 		if (!$hardSystemic) {
 			$form->addCheckbox('showRange', 'Zobrazit jako rozsahy')->setHtmlAttribute('data-info', 'Hodnoty atributu nebudou zobrazeny jako jednotlivé položky, ale souhrnně dle nastavení rozsahů.');
+			$form->addCheckbox('showNumericSlider', 'Zobrazit jako slider')->setHtmlAttribute('data-info', 'Hodnoty atributu nebudou zobrazeny jako jednotlivé položky, ale jako slider s krokem 1.');
 		}
 
 		$form->addInteger('showCount', 'Počet položek zobrazených při načtení')->setNullable()

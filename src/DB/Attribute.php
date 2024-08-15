@@ -154,6 +154,11 @@ class Attribute extends \StORM\Entity
 	public bool $exportToAlgolia = false;
 
 	/**
+	 * @column
+	 */
+	public bool $showNumericSlider = false;
+
+	/**
 	 * ID
 	 * column - don't created by auto migration, only by manual
 	 */

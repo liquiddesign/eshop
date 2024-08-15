@@ -196,6 +196,7 @@ class ProductsCacheGetterService implements AutoWireService
 		array $priceLists = [],
 		array $visibilityLists = [],
 	): array|false {
+		$mutationSuffix = $this->connection->getMutationSuffix();
 		$cacheIndex = $this->getCacheIndexToBeUsed();
 
 		if ($cacheIndex === 0) {
@@ -356,6 +357,13 @@ class ProductsCacheGetterService implements AutoWireService
 							foreach ($attributeValues as $attributeValue) {
 								$dynamicFiltersAttributes[$attribute->id][$attributeValue->getValue('attributeValueRange')][] = $attributeValue->id;
 							}
+						} elseif ($attribute->showNumericSlider) {
+							$dynamicFiltersAttributes[$attribute->id] = $this->attributeValueRepository->many()
+								->setSelect(['this.id'])
+								->where("CAST(this.label$mutationSuffix AS SIGNED) >= :from", ['from' => $subValue['from']])
+								->where("CAST(this.label$mutationSuffix AS SIGNED) <= :to", ['to' => $subValue['to']])
+								->where('this.fk_attribute', $attribute->getPK())
+								->toArrayOf('id', toArrayValues: true);
 						} else {
 							$dynamicFiltersAttributes[$attribute->id] =
 								$this->attributeValueRepository->many()
