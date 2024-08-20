@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.2.0](https://github.com/liquiddesign/eshop/compare/v2.1.293...v2.2.0) (2024-08-20)
+
+### Features
+
+* Add numeric slider option for attribute filtering ([740d38](https://github.com/liquiddesign/eshop/commit/740d38a5f4cb4862b8458bb324ba0fcd2d83b4f6))
+
+### Bug Fixes
+
+* ProductExporter TEMPORARY solution ([429117](https://github.com/liquiddesign/eshop/commit/429117dd09617cfd2238b871afe2e8b7cd7da458))
+
+
+---
+
 ## [2.1.293](https://github.com/liquiddesign/eshop/compare/v2.1.292...v2.1.293) (2024-08-14)
 
 ### Bug Fixes
