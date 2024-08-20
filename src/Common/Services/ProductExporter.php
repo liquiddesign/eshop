@@ -164,10 +164,10 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid, $items, $attributes, $getSupplierCodeCallback): void {
 			$values = $form->getValues('array');
-
+			
 			$products = $this->productRepository->many()->where('this.uuid', $values['bulkType'] === 'selected' ?
-				$ids :
-				$productGrid->getFilteredSource()->setSelect(['this.uuid'])->setOrderBy([])->toArrayOf('uuid'));
+				\array_values($ids) :
+				$productGrid->getFilteredSource()->setSelect(['this.uuid', 'visibilityList.hidden', 'unavailable'])->setOrderBy([])->toArrayOf('uuid'));
 
 			$tempFilename = \tempnam($this->tempDir, 'csv');
 
