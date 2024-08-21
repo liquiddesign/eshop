@@ -745,7 +745,7 @@ class ProductImporter
 				continue;
 			}
 
-			$productPages[$product] = $productPage;
+			$productPages[$product] = $productPage->getPK();
 		}
 
 		$productPagesQuery->__destruct();
