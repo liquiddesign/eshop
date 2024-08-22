@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.298](https://github.com/liquiddesign/eshop/compare/v2.1.297...v2.1.298) (2024-08-22)
+
+### Features
+
+* Update release script and fix Heureka export ([a9f98e](https://github.com/liquiddesign/eshop/commit/a9f98ef7e25bf688ae614969a6b1a56d41ae3c5e))
+
+
+---
+
 ## [2.1.293](https://github.com/liquiddesign/eshop/compare/v2.1.292...v2.1.293) (2024-08-14)
 
 ### Bug Fixes
