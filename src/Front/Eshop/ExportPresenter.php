@@ -694,6 +694,9 @@ abstract class ExportPresenter extends Presenter
 		$this->template->categoriesMapWithHeurekaCategories = $this->categoryRepository->getCategoriesMapWithHeurekaCategories($mainCategoriesCollection);
 		$this->template->allCategories = $mainCategoriesCollection->toArray();
 
+		$heurekaCategoryType = $this->settingRepo->getValueByName('heurekaCategoryTypeToParse');
+		$this->template->allHeurekaCategories = $this->categoryRepository->many()->where('this.fk_type', $heurekaCategoryType)->toArray();
+
 		$mutationSuffix = $this->attributeRepository->getConnection()->getMutationSuffix();
 		$this->template->allAttributes = $this->attributeRepository->many()->select(['heureka' => "IFNULL(heurekaName,name$mutationSuffix)"])->toArrayOf('heureka');
 		$this->template->allAttributeValues = $this->attributeValueRepository->many()->select(['heureka' => "IFNULL(heurekaLabel,label$mutationSuffix)"])->toArrayOf('heureka');

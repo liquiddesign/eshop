@@ -12,14 +12,14 @@
 {varType array $possibleDeliveryTypes}
 {var $heurekaCategoryType = $presenter->settingRepo->getValueByName('heurekaCategoryTypeToParse')}
 {var $photoImageUrl = "$userUrl/" . Eshop\DB\Product::GALLERY_DIR . '/detail/'}
-{cache 'xml_heureka_' . $shop?->getPK(), expire: '1 day', tags: ['export'], }
+{cache 'xml_heureka_' . $shop?->getPK(), expire: '1 day', tags: ['export']}
 <SHOP>
     <SHOPITEM n:foreach="$products as $product">
         {varType Eshop\DB\Product $product}
             <ITEM_ID>{$product->fullCode}</ITEM_ID>
             <PRODUCTNAME><![CDATA[{$product->name}]]></PRODUCTNAME>
-{*            {var string|null $productContent = $presenter->compileLatte($product->content, $productsFrontendData[$product->uuid] ?? [])}*}
-{*            <DESCRIPTION n:if="$productContent"><![CDATA[{\strip_tags($productContent)}]]></DESCRIPTION>*}
+            {var string|null $productContent = $presenter->compileLatte($product->content, $productsFrontendData[$product->uuid] ?? [])}
+            <DESCRIPTION n:if="$productContent"><![CDATA[{\strip_tags($productContent)}]]></DESCRIPTION>
             <URL n:ifset="$productsFrontendData[$product->uuid]['url']">{$productsFrontendData[$product->uuid]['url']}</URL>
             {var $productPhotos = isset($photos[$product->uuid]) ? \explode(',', $photos[$product->uuid]) : []}
             {if $image = $productsFrontendData[$product->uuid]['previewImage']}
@@ -42,12 +42,11 @@
             {var string|null $category = $product->primaryCategory}
 
             {if $category && isset($categoriesMapWithHeurekaCategories[$category]['heureka']) && $heurekaCategoryType && isset($allCategories[$category])}
-            {var $categoryPK = $category}
-            {do $category = $categoriesMapWithHeurekaCategories[$category]['heureka']}
+            {var $categoryPK = $categoriesMapWithHeurekaCategories[$category]['heureka']->getPK()}
 
             {do $categories = []}
             {while $categoryPK != null}
-                {do $category = $allCategories[$categoryPK]}
+                {do $category = $allHeurekaCategories[$categoryPK]}
                 {do $categories[] = $category}
                 {do $categoryPK = $category->getValue('ancestor')}
             {/while}

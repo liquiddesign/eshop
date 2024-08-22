@@ -84,7 +84,7 @@
         "tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php",
         "check-commit": "@php ./vendor/liquiddesign/codestyle/src/scripts/check-last-commit.php",
         "changelog": "conventional-changelog",
-        "release": "conventional-changelog --commit",
+        "release": "conventional-changelog --patch --commit",
         "release:patch": "conventional-changelog --patch --commit",
         "release:minor": "conventional-changelog --minor --commit",
         "release:major": "conventional-changelog --major --commit"
