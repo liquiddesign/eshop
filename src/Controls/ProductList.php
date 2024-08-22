@@ -397,9 +397,17 @@ class ProductList extends Datalist
 			$attribute = $this->attributeRepository->one($attributeKey);
 
 			if ($attribute->showNumericSlider) {
-				$attributeValues = $this->attributeValueRepository->many()
-					->where("CAST(this.label$mutationSuffix AS SIGNED) >= :from", ['from' => $attributeValues['from']])
-					->where("CAST(this.label$mutationSuffix AS SIGNED) <= :to", ['to' => $attributeValues['to']])
+				$attributeValuesQuery = $this->attributeValueRepository->many();
+
+				if ($attributeValues['from']) {
+					$attributeValuesQuery->where("CAST(this.label$mutationSuffix AS SIGNED) >= :from", ['from' => $attributeValues['from']]);
+				}
+
+				if ($attributeValues['to']) {
+					$attributeValuesQuery->where("CAST(this.label$mutationSuffix AS SIGNED) <= :to", ['to' => $attributeValues['to']]);
+				}
+
+				$attributeValues = $attributeValuesQuery
 					->where('this.fk_attribute', $attribute->getPK())
 					->toArrayOf('label');
 			} else {

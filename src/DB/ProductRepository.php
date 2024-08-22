@@ -1148,7 +1148,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function filterAttributes($attributes, ICollection $collection): void
 	{
 		$mutationSuffix = $this->connection->getMutationSuffix();
-		
+
 		foreach ($attributes as $attributeKey => $selectedAttributeValues) {
 			if (\count($selectedAttributeValues) === 0) {
 				continue;
@@ -1186,11 +1186,21 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 						->where('eshop_attributevalue.fk_attribute', $attribute->getPK())
 						->toArrayOf('uuid');
 				} elseif ($attribute->showNumericSlider) {
-					$selectedAttributeValues = $this->attributeValueRepository->many()
-						->where("CAST(this.label$mutationSuffix AS SIGNED) >= :from", ['from' => $selectedAttributeValues['from']])
-						->where("CAST(this.label$mutationSuffix AS SIGNED) <= :to", ['to' => $selectedAttributeValues['to']])
-						->where('this.fk_attribute', $attribute->getPK())
-						->toArrayOf('uuid', toArrayValues: true);
+					$selectedAttributeValuesQuery = $this->attributeValueRepository->many();
+
+					if ($selectedAttributeValues['from']) {
+						$selectedAttributeValuesQuery->where("CAST(this.label$mutationSuffix AS SIGNED) >= :from", ['from' => $selectedAttributeValues['from']]);
+					}
+
+					if ($selectedAttributeValues['to']) {
+						$selectedAttributeValuesQuery->where("CAST(this.label$mutationSuffix AS SIGNED) <= :to", ['to' => $selectedAttributeValues['to']]);
+					}
+
+					$selectedAttributeValues = $selectedAttributeValuesQuery->where('this.fk_attribute', $attribute->getPK())->toArrayOf('uuid', toArrayValues: true);
+
+					if (!$selectedAttributeValues) {
+						continue;
+					}
 				}
 
 				$subSelect = $this->getConnection()->rows(['eshop_attributevalue']);

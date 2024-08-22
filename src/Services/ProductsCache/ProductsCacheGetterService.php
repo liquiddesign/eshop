@@ -358,10 +358,18 @@ class ProductsCacheGetterService implements AutoWireService
 								$dynamicFiltersAttributes[$attribute->id][$attributeValue->getValue('attributeValueRange')][] = $attributeValue->id;
 							}
 						} elseif ($attribute->showNumericSlider) {
-							$dynamicFiltersAttributes[$attribute->id] = $this->attributeValueRepository->many()
-								->setSelect(['this.id'])
-								->where("CAST(this.label$mutationSuffix AS SIGNED) >= :from", ['from' => $subValue['from']])
-								->where("CAST(this.label$mutationSuffix AS SIGNED) <= :to", ['to' => $subValue['to']])
+							$numericAttributeValuesQuery = $this->attributeValueRepository->many()
+								->setSelect(['this.id']);
+
+							if ($subValue['from']) {
+								$numericAttributeValuesQuery->where("CAST(this.label$mutationSuffix AS SIGNED) >= :from", ['from' => $subValue['from']]);
+							}
+
+							if ($subValue['to']) {
+								$numericAttributeValuesQuery->where("CAST(this.label$mutationSuffix AS SIGNED) <= :to", ['to' => $subValue['to']]);
+							}
+
+							$dynamicFiltersAttributes[$attribute->id] = $numericAttributeValuesQuery
 								->where('this.fk_attribute', $attribute->getPK())
 								->toArrayOf('id', toArrayValues: true);
 						} else {
