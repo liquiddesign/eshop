@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.299](https://github.com/liquiddesign/eshop/compare/v2.1.298...v2.1.299) (2024-08-22)
+
+### Features
+
+* Refactor numeric slider attribute filtering to handle empty values ([269706](https://github.com/liquiddesign/eshop/commit/269706eb1feb90b2dceeebf95fbfb58793572e74))
+
+
+---
+
 ## [2.1.298](https://github.com/liquiddesign/eshop/compare/v2.1.297...v2.1.298) (2024-08-22)
 
 ### Features
