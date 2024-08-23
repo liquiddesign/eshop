@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.301](https://github.com/liquiddesign/eshop/compare/v2.1.300...v2.1.301) (2024-08-23)
+
+### Features
+
+* Add method to get non-hidden files collection for product ([80a245](https://github.com/liquiddesign/eshop/commit/80a24540300d5c511c330893cd080c2ce8b32ccd))
+
+
+---
+
 ## [2.1.300](https://github.com/liquiddesign/eshop/compare/v2.1.299...v2.1.300) (2024-08-23)
 
 ### Features
