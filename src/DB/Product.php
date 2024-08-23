@@ -22,6 +22,7 @@ use Web\DB\Setting;
  * @index{"name":"ean","unique":true,"columns":["ean"]}
  * @method \StORM\ICollection<\Eshop\DB\Category> getCategories():
  * @method \StORM\ICollection<\Eshop\DB\ProductPrimaryCategory> getPrimaryCategories():
+ * @method \StORM\ICollection<\Eshop\DB\File> getFiles():
  */
 class Product extends \StORM\Entity
 {
@@ -1185,6 +1186,16 @@ class Product extends \StORM\Entity
 		}
 
 		return $array;
+	}
+
+	/**
+	 * @return \StORM\RelationCollection<\Eshop\DB\File>
+	 */
+	public function getFilesCollection(): RelationCollection
+	{
+		return $this->getFiles()
+			->where('this.hidden', false)
+			->setOrderBy(['this.priority' => 'ASC']);
 	}
 
 	/**
