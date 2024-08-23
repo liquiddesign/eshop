@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.300](https://github.com/liquiddesign/eshop/compare/v2.1.299...v2.1.300) (2024-08-23)
+
+### Features
+
+* Refactor attribute filtering logic for numeric sliders and ranges ([2e5161](https://github.com/liquiddesign/eshop/commit/2e51616d0aeff4d30f7a2b801f41b384b47140f5))
+
+
+---
+
 ## [2.1.299](https://github.com/liquiddesign/eshop/compare/v2.1.298...v2.1.299) (2024-08-22)
 
 ### Features
