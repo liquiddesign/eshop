@@ -1165,21 +1165,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			/** @var \Eshop\DB\Attribute $attribute */
 			$attribute = $this->attributeRepository->one($attributeKey, true);
 
-			if ($attribute->filterType === 'and') {
-				foreach ($selectedAttributeValues as $attributeValue) {
-					$subSelect = $this->getConnection()->rows(['eshop_attributevalue']);
-
-					$subSelect->setBinderName("__var$attributeKey" . \str_replace('-', '_', Strings::webalize($attributeValue)));
-
-					$subSelect->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
-						->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
-						->where('eshop_attributeassign.fk_product=this.uuid')
-						->where('eshop_attributevalue.fk_attribute', $attributeKey)
-						->where($attribute->showRange ? 'eshop_attributevalue.fk_attributevaluerange' : 'eshop_attributevalue.uuid', $attributeValue);
-
-					$collection->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
-				}
-			} else {
+			if ($attribute->filterType === 'or' || $attribute->showNumericSlider) {
 				if ($attribute->showRange) {
 					$selectedAttributeValues = $this->getConnection()->rows(['eshop_attributevalue'])
 						->where('eshop_attributevalue.fk_attributevaluerange', $selectedAttributeValues)
@@ -1223,6 +1209,20 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				);
 
 				$collection->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
+			} else {
+				foreach ($selectedAttributeValues as $attributeValue) {
+					$subSelect = $this->getConnection()->rows(['eshop_attributevalue']);
+
+					$subSelect->setBinderName("__var$attributeKey" . \str_replace('-', '_', Strings::webalize($attributeValue)));
+
+					$subSelect->join(['eshop_attributeassign'], 'eshop_attributeassign.fk_value = eshop_attributevalue.uuid')
+						->join(['eshop_attribute'], 'eshop_attribute.uuid = eshop_attributevalue.fk_attribute')
+						->where('eshop_attributeassign.fk_product=this.uuid')
+						->where('eshop_attributevalue.fk_attribute', $attributeKey)
+						->where($attribute->showRange ? 'eshop_attributevalue.fk_attributevaluerange' : 'eshop_attributevalue.uuid', $attributeValue);
+
+					$collection->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
+				}
 			}
 		}
 	}

@@ -363,7 +363,6 @@ class ProductList extends Datalist
 	{
 		$filters = $this->getFilters();
 		$templateFilters = [];
-		$mutationSuffix = $this->attributeValueRepository->getConnection()->getMutationSuffix();
 
 		foreach (Arrays::pick($filters, 'attributes', []) as $attributeKey => $attributeValues) {
 			if ($attributeKey === 'producer') {
@@ -397,19 +396,13 @@ class ProductList extends Datalist
 			$attribute = $this->attributeRepository->one($attributeKey);
 
 			if ($attribute->showNumericSlider) {
-				$attributeValuesQuery = $this->attributeValueRepository->many();
-
 				if ($attributeValues['from']) {
-					$attributeValuesQuery->where("CAST(this.label$mutationSuffix AS SIGNED) >= :from", ['from' => $attributeValues['from']]);
+					$templateFilters[$attributeKey]['from'] = "$attribute->name: >= " . $attributeValues['from'];
 				}
 
 				if ($attributeValues['to']) {
-					$attributeValuesQuery->where("CAST(this.label$mutationSuffix AS SIGNED) <= :to", ['to' => $attributeValues['to']]);
+					$templateFilters[$attributeKey]['to'] = "$attribute->name: <= " . $attributeValues['to'];
 				}
-
-				$attributeValues = $attributeValuesQuery
-					->where('this.fk_attribute', $attribute->getPK())
-					->toArrayOf('label');
 			} else {
 				$attributeValues = $attribute->showRange ?
 					$this->attributeValueRangeRepository->getCollection()
@@ -418,10 +411,10 @@ class ProductList extends Datalist
 						->join(['attribute' => 'eshop_attribute'], 'attributeValue.fk_attribute = attribute.uuid')
 						->toArrayOf('name') :
 					$this->attributeValueRepository->many()->where('uuid', $attributeValues)->toArrayOf('label');
-			}
 
-			foreach ($attributeValues as $attributeValueKey => $attributeValueLabel) {
-				$templateFilters[$attributeKey][$attributeValueKey] = "$attribute->name: $attributeValueLabel";
+				foreach ($attributeValues as $attributeValueKey => $attributeValueLabel) {
+					$templateFilters[$attributeKey][$attributeValueKey] = "$attribute->name: $attributeValueLabel";
+				}
 			}
 		}
 
