@@ -5,14 +5,23 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Common\DB\IGeneralRepository;
+use Eshop\ShopperUser;
+use Nette\Utils\Arrays;
 use StORM\Collection;
+use StORM\DIConnection;
 use StORM\ICollection;
+use StORM\SchemaManager;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\VisibilityListItem>
  */
 class VisibilityListItemRepository extends \StORM\Repository implements IGeneralRepository
 {
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, protected readonly ShopperUser $shopperUser)
+	{
+		parent::__construct($connection, $schemaManager);
+	}
+
 	/**
 	 * @inheritDoc
 	 */
@@ -46,8 +55,67 @@ class VisibilityListItemRepository extends \StORM\Repository implements IGeneral
 			$subSelect = $this->getConnection()->rows(['eshop_product_nxn_eshop_category'], ['fk_product'])
 				->join(['eshop_category'], 'eshop_category.uuid=eshop_product_nxn_eshop_category.fk_category')
 				->where('eshop_category.path LIKE :path', ['path' => "$path%"]);
-			$collection->where('product.fk_primaryCategory = :category OR this.fk_product IN (' . $subSelect->getSql() . ')', ['category' => $id] + $subSelect->getVars());
+
+			$this->joinPrimaryCategoryToProductCollection($collection);
+
+			$collection->where('productPrimaryCategory.fk_category = :category OR this.fk_product IN (' . $subSelect->getSql() . ')', ['category' => $id] + $subSelect->getVars());
 		}
+	}
+
+	/**
+	 * @param \StORM\ICollection<\Eshop\DB\Product> $collection
+	 * @param \Eshop\DB\CategoryType|false|null $categoryType Filter by CategoryType, null - load category type, false - no filter
+	 */
+	public function joinPrimaryCategoryToProductCollection(ICollection $collection, CategoryType|null|false $categoryType = null): void
+	{
+		/** @var array<array<mixed>> $joins */
+		$joins = $collection->getModifiers()['JOIN'];
+
+		$joined1 = false;
+
+		foreach ($joins as $join) {
+			if (Arrays::contains(\array_keys($join[1]), 'productPrimaryCategory')) {
+				$joined1 = true;
+
+				break;
+			}
+		}
+
+		$joined2 = false;
+
+		foreach ($joins as $join) {
+			if (Arrays::contains(\array_keys($join[1]), 'primaryCategory')) {
+				$joined2 = true;
+
+				break;
+			}
+		}
+
+		if ($joined1 && $joined2) {
+			return;
+		}
+
+		if ($categoryType === false) {
+			return;
+		}
+
+		if ($categoryType === null) {
+			$categoryType = $this->shopperUser->getMainCategoryType();
+		}
+
+		if (!$joined1) {
+			$collection->join(
+				['productPrimaryCategory' => '(SELECT * FROM eshop_productprimarycategory)'],
+				'this.uuid=productPrimaryCategory.fk_product AND productPrimaryCategory.fk_categoryType = :productPrimaryCategory_shopCategoryType',
+				['productPrimaryCategory_shopCategoryType' => $categoryType],
+			);
+		}
+
+		if ($joined2) {
+			return;
+		}
+
+		$collection->join(['primaryCategory' => 'eshop_category'], 'productPrimaryCategory.fk_category=primaryCategory.uuid');
 	}
 
 	public function filterProducer($value, ICollection $collection): void
