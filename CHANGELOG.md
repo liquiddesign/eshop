@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.303](https://github.com/liquiddesign/eshop/compare/v2.1.302...v2.1.303) (2024-08-26)
+
+### Features
+
+* Add conditional rendering for breadcrumb and product rich snippets ([859a3a](https://github.com/liquiddesign/eshop/commit/859a3a027f640365cee4555430ea58603955c69b))
+
+
+---
+
 ## [2.1.302](https://github.com/liquiddesign/eshop/compare/v2.1.301...v2.1.302) (2024-08-26)
 
 ### Features
