@@ -24,6 +24,7 @@ use Nette\Utils\Strings;
 use StORM\Collection;
 use Tracy\Debugger;
 use Tracy\ILogger;
+use Web\DB\SettingRepository;
 
 class PhotoPresenter extends \Eshop\BackendPresenter
 {
@@ -54,6 +55,9 @@ class PhotoPresenter extends \Eshop\BackendPresenter
 
 	#[Inject]
 	public PhotoImporterService $photoImporterService;
+
+	#[Inject]
+	public SettingRepository $settingRepository;
 
 	public function createComponentPhotoGrid(): AdminGrid
 	{
@@ -95,6 +99,67 @@ class PhotoPresenter extends \Eshop\BackendPresenter
 		$grid->addBulkAction('export', 'export', 'Exportovat (CSV)');
 
 		$grid->addFilterTextInput('search', ['product.code', 'fileName'], null, 'Kód produktu, název');
+
+		if ($shops = $this->shopsConfig->getAvailableShops()) {
+			$categoryTypes = [];
+
+			foreach ($shops as $shop) {
+				$setting = $this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $shop->getPK());
+
+				if (!$setting) {
+					continue;
+				}
+
+				$categoryTypes[] = $setting;
+			}
+
+			$categories = $categoryTypes ? $this->categoryRepository->getTreeArrayForSelect(true, $categoryTypes) : [];
+		} else {
+			$categories = $this->categoryRepository->getTreeArrayForSelect();
+		}
+
+		if ($categories) {
+			$exactCategories = $categories;
+			$categories += ['0' => 'X - bez kategorie'];
+
+			foreach ($exactCategories as $key => $value) {
+				$categories += ['.' . $key => $value . ' (bez podkategorií)'];
+			}
+
+			$grid->addFilterDataSelect(function (Collection $source, $value): void {
+				if (\str_starts_with($value, '.')) {
+					$subSelect = $this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
+						->where('this.uuid = eshop_product_nxn_eshop_category.fk_product')
+						->where('eshop_product_nxn_eshop_category.fk_category', Strings::substring($value, 1));
+
+					$source->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
+				} else {
+					$category = $this->categoryRepository->one($value);
+
+					if (!$category && $value !== '0') {
+						$source->where('1=0');
+
+						return;
+					}
+
+					if ($value === '0') {
+						return;
+					}
+
+					$allSubCategoriesForCategory = $this->categoryRepository->many()
+						->where('this.path LIKE :path', ['path' => "$category->path%"])
+						->setSelect(['uuid'])
+						->toArrayOf('uuid', toArrayValues: true);
+
+					$subSelect = $this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
+						->where('this.uuid = eshop_product_nxn_eshop_category.fk_product')
+						->where('eshop_product_nxn_eshop_category.fk_category', $allSubCategoriesForCategory);
+
+					$source->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
+				}
+			}, '', 'category', null, $categories)->setPrompt('- Kategorie -');
+		}
+
 		$grid->addFilterButtons();
 
 		return $grid;
