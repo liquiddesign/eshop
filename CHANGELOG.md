@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.302](https://github.com/liquiddesign/eshop/compare/v2.1.301...v2.1.302) (2024-08-26)
+
+### Features
+
+* Add category filter to photo grid in admin panel ([ebbd8d](https://github.com/liquiddesign/eshop/commit/ebbd8d9fb23f79d6b0758647ca2436531ff1c35c))
+
+##### Visibility List Repository
+
+* Add ShopperUser dependency and refactor category filtering ([cc60fe](https://github.com/liquiddesign/eshop/commit/cc60fe99ee2e5ce82af9ebe21415c1ee9c1896a5))
+
+
+---
+
 ## [2.1.301](https://github.com/liquiddesign/eshop/compare/v2.1.300...v2.1.301) (2024-08-23)
 
 ### Features
