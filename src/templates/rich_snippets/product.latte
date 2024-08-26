@@ -18,19 +18,21 @@
             "availability": {$product->inStock() ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"},
             "price": {(string) \ceil($product->getPriceVat())},
             "priceCurrency": "CZK"
-        },
-        {if $rating = $product->getReviewsRating()}
+        }
+        {if $rating = $product->getReviewsRating()},
         "aggregateRating": {
             "@type": "AggregateRating",
             "ratingValue": {(string)(int)$product->rating},
             "reviewCount": "1",
             "worstRating": "0",
             "bestRating": "5"
-        },
+        }
         {/if}
+        {if $product->producer},
         "brand": {
             "@type": "Brand",
-            "name": {$product->producer ? $product->producer->name : null}
+            "name": {$product->producer->name}
         }
+        {/if}
     }
 </script>
