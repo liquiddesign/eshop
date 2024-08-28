@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.304](https://github.com/liquiddesign/eshop/compare/v2.1.303...v2.1.304) (2024-08-28)
+
+### Features
+
+* Refactor ProductPresenter methods to use dedicated getters for import and export columns. ([9cb1db](https://github.com/liquiddesign/eshop/commit/9cb1db87ea0f96f843b86fca29fcd31af1872cd0))
+
+
+---
+
 ## [2.1.303](https://github.com/liquiddesign/eshop/compare/v2.1.302...v2.1.303) (2024-08-26)
 
 ### Features
