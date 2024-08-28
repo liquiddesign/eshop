@@ -1098,7 +1098,7 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 		$form->addGroup('CSV soubor');
 		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? Carbon::createFromTimestamp($lastUpdate)->format('d.m.Y G:i') : null);
 
-		$importColumns = $this::CONFIGURATION['importColumns'];
+		$importColumns = $this->getImportColumns();
 		$allowedColumns = '';
 
 		$productImportColumns = [
@@ -1232,7 +1232,7 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 					$values['updateAttributes'],
 					$values['createAttributeValues'],
 					$values['searchCriteria'],
-					$this::CONFIGURATION['importColumns'],
+					$this->getImportColumns(),
 					$this->onImport,
 				), ILogger::DEBUG);
 
@@ -1301,8 +1301,7 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 
 		return $this->productExporter->createForm(
 			$productGrid,
-			/** @phpstan-ignore-next-line */
-			$this::CONFIGURATION['exportColumns'] ?? self::CONFIGURATION['exportColumns'] ?? [],
+			$this->getExportColumns(),
 			/** @phpstan-ignore-next-line */
 			$this::CONFIGURATION['defaultExportColumns'] ?? self::CONFIGURATION['defaultExportColumns'] ?? [],
 			/** @phpstan-ignore-next-line */
@@ -1576,6 +1575,22 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 		}
 
 		$this->redirect('this');
+	}
+
+	/**
+	 * @return array<string, string>
+	 */
+	protected function getExportColumns(): array
+	{
+		return $this::CONFIGURATION['exportColumns'];
+	}
+
+	/**
+	 * @return array<string, string>
+	 */
+	protected function getImportColumns(): array
+	{
+		return $this::CONFIGURATION['importColumns'];
 	}
 
 	/**

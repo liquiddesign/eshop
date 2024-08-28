@@ -58,7 +58,7 @@ class ProductExporter
 
 	/**
 	 * @param \Admin\Controls\AdminGrid $productGrid
-	 * @param array|null $exportColumns
+	 * @param array<string, string>|null $exportColumns
 	 * @param array|null $defaultExportColumns
 	 * @param array|null $exportAttributes
 	 * @param (callable(\Eshop\DB\Product, string): string|null)|null $getSupplierCodeCallback
