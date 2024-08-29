@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.305](https://github.com/liquiddesign/eshop/compare/v2.1.304...v2.1.305) (2024-08-29)
+
+### Bug Fixes
+
+* Ensure export and import columns are returned as arrays, even if configuration is missing ([06f0a0](https://github.com/liquiddesign/eshop/commit/06f0a0d172647ffdf4eeff7093ab46de43649a4c))
+
+
+---
+
 ## [2.1.304](https://github.com/liquiddesign/eshop/compare/v2.1.303...v2.1.304) (2024-08-28)
 
 ### Features
