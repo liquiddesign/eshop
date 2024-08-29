@@ -1582,7 +1582,7 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 	 */
 	protected function getExportColumns(): array
 	{
-		return $this::CONFIGURATION['exportColumns'];
+		return $this::CONFIGURATION['exportColumns'] ?? [];
 	}
 
 	/**
@@ -1590,7 +1590,7 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 	 */
 	protected function getImportColumns(): array
 	{
-		return $this::CONFIGURATION['importColumns'];
+		return $this::CONFIGURATION['importColumns'] ?? [];
 	}
 
 	/**
