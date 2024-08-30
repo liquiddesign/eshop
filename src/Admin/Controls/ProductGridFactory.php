@@ -483,7 +483,7 @@ class ProductGridFactory
 			return [
 				$page->url,
 				$page->title,
-				$page->description,
+				Strings::substring((string) $page->description, 0, 30),
 			];
 		}, '%s<br>%s<br>%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 	}
