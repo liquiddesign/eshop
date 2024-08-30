@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.307](https://github.com/liquiddesign/eshop/compare/v2.1.306...v2.1.307) (2024-08-30)
+
+### Features
+
+* Refactor product grid and exporter for improved performance ([f0d891](https://github.com/liquiddesign/eshop/commit/f0d8914dbfba1f69210e7cccbc87704bee60d3e9))
+
+### Builds
+
+* Add release-patch script for PowerShell ([4fe069](https://github.com/liquiddesign/eshop/commit/4fe0696168fc4f9f6b800295c6cbb36484d21ed2))
+
+
+---
+
 ## [2.1.306](https://github.com/liquiddesign/eshop/compare/v2.1.305...v2.1.306) (2024-08-30)
 
 ### Bug Fixes
