@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.308](https://github.com/liquiddesign/eshop/compare/v2.1.307...v2.1.308) (2024-08-30)
+
+### Features
+
+* Truncate product page description in grid to 30 characters ([de776d](https://github.com/liquiddesign/eshop/commit/de776de8fba31a5c02d8bbeb80247c0bab61aadf))
+
+
+---
+
 ## [2.1.307](https://github.com/liquiddesign/eshop/compare/v2.1.306...v2.1.307) (2024-08-30)
 
 ### Features
