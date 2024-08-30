@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.306](https://github.com/liquiddesign/eshop/compare/v2.1.305...v2.1.306) (2024-08-30)
+
+### Bug Fixes
+
+* Product export to use array values for filtered UUIDs ([c8e612](https://github.com/liquiddesign/eshop/commit/c8e612c3285921974334522550e385d32533d9b0))
+
+
+---
+
 ## [2.1.305](https://github.com/liquiddesign/eshop/compare/v2.1.304...v2.1.305) (2024-08-29)
 
 ### Bug Fixes
