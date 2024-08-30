@@ -167,7 +167,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 			
 			$products = $this->productRepository->many()->where('this.uuid', $values['bulkType'] === 'selected' ?
 				\array_values($ids) :
-				$productGrid->getFilteredSource()->setOrderBy([])->toArrayOf('uuid'));
+				$productGrid->getFilteredSource()->setOrderBy([])->toArrayOf('uuid', toArrayValues: true));
 
 			$tempFilename = \tempnam($this->tempDir, 'csv');
 
