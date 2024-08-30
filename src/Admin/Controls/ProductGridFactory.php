@@ -224,7 +224,8 @@ class ProductGridFactory
 
 		$mutationSuffix = $this->categoryRepository->getConnection()->getMutationSuffix();
 
-		$grid->addColumnText('Výrobce', 'producer.name', '%s');
+		$this->addProducerColumn($grid);
+
 		$grid->addColumn('Kategorie', function (Product $product, $grid) use ($mutationSuffix) {
 			$categories = $this->categoryRepository->getTreeArrayForSelect();
 			/** @var array<string> $productCategories */
@@ -246,7 +247,8 @@ class ProductGridFactory
 
 			return $finalStr;
 		});
-		
+		$this->addAdditionalColumns($grid);
+
 		$grid->addColumnText('Sleva', 'discountLevelPct', '%s %%', 'discountLevelPct', ['class' => 'fit']);
 		$grid->addColumn('Obsah', function (Product $object, Datagrid $datagrid) {
 			if ($object->supplierContentLock && $object->getContent()) {
@@ -451,10 +453,38 @@ class ProductGridFactory
 		$product->update(['imageFileName' => null]);
 	}
 
-	protected function addCodeColumn(Datagrid $grid): void
+	protected function addCodeColumn(AdminGrid $grid): void
 	{
 		$grid->addColumn('Kód a EAN', function (Product $product) {
 			return $product->getFullCode() . ($product->ean ? "<br><small>EAN $product->ean</small>" : '') . ($product->mpn ? "<br><small>P/N $product->mpn</small>" : '');
 		}, '%s', 'code', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
+	}
+
+	protected function addProducerColumn(AdminGrid $grid): void
+	{
+		$grid->addColumnText('Výrobce', 'producer.name', '%s');
+	}
+
+	protected function addAdditionalColumns(AdminGrid $grid): void
+	{
+		unset($grid);
+	}
+
+	protected function addSeoColumn(AdminGrid $grid): void
+	{
+		$grid->addColumn('SEO', function (Product $product) {
+			/** @var \Web\DB\Page|null $page */
+			$page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product->getPK()]);
+
+			if (!$page) {
+				return '';
+			}
+
+			return [
+				$page->url,
+				$page->title,
+				$page->description,
+			];
+		}, '%s<br>%s<br>%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 	}
 }

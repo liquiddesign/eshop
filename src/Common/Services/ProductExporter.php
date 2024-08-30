@@ -20,6 +20,8 @@ use League\Csv\EncloseField;
 use League\Csv\Writer;
 use Nette\Application\LinkGenerator;
 use Nette\Application\Responses\FileResponse;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
@@ -30,28 +32,32 @@ use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\PageRepository;
 
-class ProductExporter
+readonly class ProductExporter
 {
 	protected string $tempDir;
 
+	protected Cache $cache;
+
 	public function __construct(
-		private readonly ProductRepository $productRepository,
-		private readonly AdminFormFactory $formFactory,
-		private readonly LinkGenerator $linkGenerator,
-		private readonly Container $container,
-		private readonly \Nette\Http\Request $httpRequest,
-		private readonly SupplierRepository $supplierRepository,
-		private readonly AttributeRepository $attributeRepository,
-		private readonly DIConnection $connection,
-		private readonly ShopsConfig $shopsConfig,
-		private readonly AttributeAssignRepository $attributeAssignRepository,
-		private readonly SupplierProductRepository $supplierProductRepository,
-		private readonly PageRepository $pageRepository,
-		private readonly VisibilityListItemRepository $visibilityListItemRepository,
-		private readonly VisibilityListRepository $visibilityListRepository,
-		private readonly CategoryRepository $categoryRepository,
+		protected ProductRepository $productRepository,
+		protected AdminFormFactory $formFactory,
+		protected LinkGenerator $linkGenerator,
+		protected Container $container,
+		protected \Nette\Http\Request $httpRequest,
+		protected SupplierRepository $supplierRepository,
+		protected AttributeRepository $attributeRepository,
+		protected DIConnection $connection,
+		protected ShopsConfig $shopsConfig,
+		protected AttributeAssignRepository $attributeAssignRepository,
+		protected SupplierProductRepository $supplierProductRepository,
+		protected PageRepository $pageRepository,
+		protected VisibilityListItemRepository $visibilityListItemRepository,
+		protected VisibilityListRepository $visibilityListRepository,
+		protected CategoryRepository $categoryRepository,
+		protected Storage $storage,
 	) {
 		$this->tempDir = $this->container->getParameters()['tempDir'];
+		$this->cache = new Cache($this->storage);
 
 		$this->startUp();
 	}
@@ -122,26 +128,32 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 		$headerColumns->setItems($items);
 		$headerColumns->setDefaultValue($defaultItems);
 
-		$attributes = [];
-		$defaultAttributes = [];
+		[$attributes, $defaultAttributes] = $this->cache->load('admin_productexporter_attributes', function (&$dependencies) use ($exportAttributes, $mutationSuffix): array {
+			$dependencies[Cache::Expire] = '12 hours';
 
-		if (isset($exportAttributes)) {
-			foreach ($exportAttributes as $key => $value) {
-				if ($attribute = $this->attributeRepository->many()->where('code', $key)->first()) {
-					$attributes[$attribute->getPK()] = "$value#$key";
-					$defaultAttributes[] = $attribute->getPK();
+			$attributes = [];
+			$defaultAttributes = [];
+
+			if (isset($exportAttributes)) {
+				foreach ($exportAttributes as $key => $value) {
+					if ($attribute = $this->attributeRepository->many()->where('code', $key)->first()) {
+						$attributes[$attribute->getPK()] = "$value#$key";
+						$defaultAttributes[] = $attribute->getPK();
+					}
 				}
+
+				$attributes += $this->attributeRepository->many()
+					->whereNot('this.code', \array_keys($exportAttributes))
+					->join(['attributeValue' => 'eshop_attributevalue'], 'this.uuid = attributeValue.fk_attribute')
+					->join(['assign' => 'eshop_attributeassign'], 'attributeValue.uuid = assign.fk_value')
+					->where('assign.uuid IS NOT NULL')
+					->orderBy(["this.name$mutationSuffix"])
+					->select(['nameAndCode' => "CONCAT(this.name$mutationSuffix, '#', this.code)"])
+					->toArrayOf('nameAndCode');
 			}
 
-			$attributes += $this->attributeRepository->many()
-				->whereNot('this.code', \array_keys($exportAttributes))
-				->join(['attributeValue' => 'eshop_attributevalue'], 'this.uuid = attributeValue.fk_attribute')
-				->join(['assign' => 'eshop_attributeassign'], 'attributeValue.uuid = assign.fk_value')
-				->where('assign.uuid IS NOT NULL')
-				->orderBy(["this.name$mutationSuffix"])
-				->select(['nameAndCode' => "CONCAT(this.name$mutationSuffix, '#', this.code)"])
-				->toArrayOf('nameAndCode');
-		}
+			return [$attributes, $defaultAttributes];
+		});
 
 		$attributesColumns->setItems($attributes);
 		$attributesColumns->setDefaultValue($defaultAttributes);
