@@ -15,6 +15,7 @@ use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Utils\Arrays;
 use Nette\Utils\Random;
+use Nette\Utils\Strings;
 
 class ProductAttributesForm extends Control
 {
@@ -82,7 +83,7 @@ class ProductAttributesForm extends Control
 
 			$attributeValues = $this->attributeRepository->getAttributeValues($attribute, true)->toArrayOf('internalLabel');
 
-			$select = $form->addMultiSelect2($attribute->getPK(), $attribute->name . ' (' . ($attribute->code ?? '-') . ')', $attributeValues, ['tags' => true]);
+			$select = $form->addMultiSelect2('att_' . $attribute->getPK(), $attribute->name . ' (' . ($attribute->code ?? '-') . ')', $attributeValues, ['tags' => true]);
 
 			$existingValues = $this->attributeAssignRepository->many()
 				->join(['attributeValue' => 'eshop_attributevalue'], 'this.fk_value = attributeValue.uuid')
@@ -103,6 +104,7 @@ class ProductAttributesForm extends Control
 
 	public function submit(AdminForm $form): void
 	{
+		/** @var array<mixed> $unsafeValues */
 		$unsafeValues = $form->getHttpData();
 		$values = $form->getValues('array');
 
@@ -115,6 +117,8 @@ class ProductAttributesForm extends Control
 		$mutation = $form->getPrimaryMutation() ?? 'cs';
 
 		foreach (\array_keys($values) as $attributeKey) {
+			$attributePK = Strings::substring((string) $attributeKey, 4);
+
 			foreach ($unsafeValues[$attributeKey] ?? [] as $attributeValueKey) {
 				if (!isset($existingAttributeValues[$attributeValueKey])) {
 					do {
@@ -126,14 +130,14 @@ class ProductAttributesForm extends Control
 					$attributeValueKey = $this->attributeValueRepository->createOne([
 						'code' => $code,
 						'label' => [$mutation => $attributeValueKey,],
-						'attribute' => $attributeKey,
+						'attribute' => $attributePK,
 					])->getPK();
 				}
 
 				$this->attributeAssignRepository->syncOne([
 					'product' => $this->product->getPK(),
 					'value' => $attributeValueKey,
-				]);
+				], ignore: false);
 			}
 		}
 
