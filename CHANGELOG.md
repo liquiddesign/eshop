@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.309](https://github.com/liquiddesign/eshop/compare/v2.1.308...v2.1.309) (2024-08-31)
+
+### Bug Fixes
+
+* Prefix attribute keys with 'att_', consistently process attribute PKs ([5f8f6f](https://github.com/liquiddesign/eshop/commit/5f8f6fa34447866103dab4849e7db639f205ab46))
+
+
+---
+
 ## [2.1.308](https://github.com/liquiddesign/eshop/compare/v2.1.307...v2.1.308) (2024-08-30)
 
 ### Features
