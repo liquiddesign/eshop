@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.311](https://github.com/liquiddesign/eshop/compare/v2.1.310...v2.1.311) (2024-09-02)
+
+### Features
+
+* Update product import flash messages and improve error handling ([bab59a](https://github.com/liquiddesign/eshop/commit/bab59a23e86597bac14288f89c7a33f802836c9f))
+
+### Builds
+
+* Add git push command to release-patch script ([b52bdc](https://github.com/liquiddesign/eshop/commit/b52bdc6ee39edc4952b0e6d3627e0ec2bdf121a2))
+
+
+---
+
 ## [2.1.310](https://github.com/liquiddesign/eshop/compare/v2.1.309...v2.1.310) (2024-09-02)
 
 ### Features
