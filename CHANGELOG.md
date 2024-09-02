@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.312](https://github.com/liquiddesign/eshop/compare/v2.1.311...v2.1.312) (2024-09-02)
+
+### Features
+
+* Increase max length for product grid fields to 80 characters ([aaa0b9](https://github.com/liquiddesign/eshop/commit/aaa0b90eb3f01fcfc003363e999bcdd91326da3b))
+
+
+---
+
 ## [2.1.311](https://github.com/liquiddesign/eshop/compare/v2.1.310...v2.1.311) (2024-09-02)
 
 ### Features
