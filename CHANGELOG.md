@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.310](https://github.com/liquiddesign/eshop/compare/v2.1.309...v2.1.310) (2024-09-02)
+
+### Features
+
+* Extract additional columns into separate method ([a19c39](https://github.com/liquiddesign/eshop/commit/a19c39ee52b32b1f46d71196ea381a4560d3e048))
+
+### Builds
+
+* Update release script to push tags with patches ([82bba8](https://github.com/liquiddesign/eshop/commit/82bba8c8b694a4569340e8d642dc4898b406246e))
+
+
+---
+
 ## [2.1.309](https://github.com/liquiddesign/eshop/compare/v2.1.308...v2.1.309) (2024-08-31)
 
 ### Bug Fixes
