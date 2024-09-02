@@ -480,6 +480,8 @@ class ProductGridFactory
 				return '';
 			}
 
+			$maxLength = 80;
+
 			return \sprintf(
 				<<<'EOT'
 					<b>Title</b>: <abbr title="%s">%s</abbr><br>
@@ -487,11 +489,11 @@ class ProductGridFactory
 					<b>URL</b>: <abbr title="%s">%s</abbr>
 				EOT,
 				$page->title,
-				Strings::length((string) $page->title) > 30 ? Strings::substring((string) $page->title, 0, 30) . '...' : $page->title,
+				Strings::length((string) $page->title) > $maxLength ? Strings::substring((string) $page->title, 0, $maxLength) . '...' : $page->title,
 				$page->description,
-				Strings::length((string) $page->description) > 30 ? Strings::substring((string) $page->description, 0, 30) . '...' : $page->description,
+				Strings::length((string) $page->description) > $maxLength ? Strings::substring((string) $page->description, 0, $maxLength) . '...' : $page->description,
 				$page->url,
-				Strings::length((string) $page->url) > 30 ? Strings::substring((string) $page->url, 0, 30) . '...' : $page->url,
+				Strings::length((string) $page->url) > $maxLength ? Strings::substring((string) $page->url, 0, $maxLength) . '...' : $page->url,
 			);
 		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 	}
