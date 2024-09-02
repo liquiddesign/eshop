@@ -1239,13 +1239,13 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 				FileSystem::copy($tempFileName, $productsFileName);
 
 				$connection->getLink()->commit();
-				$this->flashMessage('Import produktů úspěšný', 'success');
+				$this->flashMessage('Import produktů: úspěšný', 'success');
 			} catch (\Exception $e) {
 				Debugger::barDump($e);
 
 				$connection->getLink()->rollBack();
 
-				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Import produktů se nezdařil!', 'error');
+				$this->flashMessage('Import produktů: ' . ($e->getMessage() !== '' ? $e->getMessage() : 'chyba'), 'error');
 			}
 
 			$connection->getLink()->beginTransaction();
@@ -1257,11 +1257,11 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 				), ILogger::DEBUG);
 
 				$connection->getLink()->commit();
-				$this->flashMessage('Import stránek produktů úspěšný', 'success');
+				$this->flashMessage('Import stránek produktů: úspěšný', 'success');
 			} catch (\Exception $e) {
 				$connection->getLink()->rollBack();
 
-				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Import stránek produktů se nezdařil!', 'error');
+				$this->flashMessage('Import stránek produktů: ' . ($e->getMessage() !== '' ? $e->getMessage() : 'chyba'), 'error');
 			}
 
 			try {

@@ -20,6 +20,7 @@ use League\Csv\Reader;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\DB\PageRepository;
 
 class ProductImporter
@@ -732,6 +733,7 @@ class ProductImporter
 			->setGroupBy(['this.uuid'])
 			->fetchArray(\stdClass::class);
 
+		/** @var array<string> $productPages */
 		$productPages = [];
 
 		/** @var \StORM\Collection<\Web\DB\Page> $productPagesQuery */
@@ -847,14 +849,22 @@ class ProductImporter
 
 			try {
 				if (\count($newValues) > 0) {
-                    // phpcs:ignore
-                    $newValues['uuid'] = $productPages[$product->uuid] ?? null;
 					$newValues['type'] = 'product_detail';
 					$newValues['params'] = "product=$product->uuid&";
 
-					$this->pageRepository->syncOne($newValues, null, true);
+					if ($existingProductPagePK = $productPages[$product->uuid] ?? null) {
+						$this->pageRepository->many()->where('this.uuid', $existingProductPagePK)->update($newValues);
+					} else {
+						$this->pageRepository->createOne($newValues);
+					}
 				}
 			} catch (\Exception $e) {
+				if ($e->getCode() === '23000') {
+					throw new \Exception('chyba. Duplicitní údaje pro kód: ' . $code . ' ' . $e->getMessage());
+				}
+
+				Debugger::log($e->getMessage(), ILogger::DEBUG);
+
 				throw new \Exception('Chyba při zpracování dat!');
 			}
 		}
