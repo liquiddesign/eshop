@@ -247,34 +247,8 @@ class ProductGridFactory
 
 			return $finalStr;
 		});
+
 		$this->addAdditionalColumns($grid);
-
-		$grid->addColumnText('Sleva', 'discountLevelPct', '%s %%', 'discountLevelPct', ['class' => 'fit']);
-		$grid->addColumn('Obsah', function (Product $object, Datagrid $datagrid) {
-			if ($object->supplierContentLock && $object->getContent()) {
-				$label = 'Vlastní obsah';
-				$icon = 'fas fa-file-alt';
-			} elseif ($object->supplierContentLock && !$object->getContent()) {
-				$label = 'Žádný obsah';
-				$icon = 'fas fa-file-excel';
-			} elseif ($object->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_PRIORITY || (!$object->supplierContent && $object->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_NONE)) {
-				$label = 'Ze zdroje s nejvyšší prioritou';
-				$icon = 'fas fa-file-upload';
-			} elseif ($object->supplierContent) {
-				$label = 'Obsah z: ' . $object->supplierContent->name;
-				$icon = 'fas fa-file-download';
-			} else {
-				$label = 'Neznámý stav';
-				$icon = 'fas fa-question';
-			}
-
-			return '<i title="' . $label . '" class="' . $icon . ' fa-lg text-primary">';
-		}, '%s', null, ['class' => 'fit']);
-
-		$grid->addColumnInputCheckbox('<i title="Skrýt ve všech feedech" class="fas fa-minus-circle"></i>', 'exportNone', function (Checkbox $checkbox, Product $product): void {
-			$checkbox->setDisabled(!$product->exportHeureka && !$product->exportGoogle && !$product->exportZbozi);
-			$checkbox->setDefaultValue(!$product->exportHeureka && !$product->exportGoogle && !$product->exportZbozi);
-		});
 
 		Arrays::invoke($this->onCreate, $grid);
 
@@ -467,7 +441,33 @@ class ProductGridFactory
 
 	protected function addAdditionalColumns(AdminGrid $grid): void
 	{
-		unset($grid);
+		$grid->addColumnText('Sleva', 'discountLevelPct', '%s %%', 'discountLevelPct', ['class' => 'fit']);
+
+		$grid->addColumn('Obsah', function (Product $object, Datagrid $datagrid) {
+			if ($object->supplierContentLock && $object->getContent()) {
+				$label = 'Vlastní obsah';
+				$icon = 'fas fa-file-alt';
+			} elseif ($object->supplierContentLock && !$object->getContent()) {
+				$label = 'Žádný obsah';
+				$icon = 'fas fa-file-excel';
+			} elseif ($object->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_PRIORITY || (!$object->supplierContent && $object->supplierContentMode === Product::SUPPLIER_CONTENT_MODE_NONE)) {
+				$label = 'Ze zdroje s nejvyšší prioritou';
+				$icon = 'fas fa-file-upload';
+			} elseif ($object->supplierContent) {
+				$label = 'Obsah z: ' . $object->supplierContent->name;
+				$icon = 'fas fa-file-download';
+			} else {
+				$label = 'Neznámý stav';
+				$icon = 'fas fa-question';
+			}
+
+			return '<i title="' . $label . '" class="' . $icon . ' fa-lg text-primary">';
+		}, '%s', null, ['class' => 'fit']);
+
+		$grid->addColumnInputCheckbox('<i title="Skrýt ve všech feedech" class="fas fa-minus-circle"></i>', 'exportNone', function (Checkbox $checkbox, Product $product): void {
+			$checkbox->setDisabled(!$product->exportHeureka && !$product->exportGoogle && !$product->exportZbozi);
+			$checkbox->setDefaultValue(!$product->exportHeureka && !$product->exportGoogle && !$product->exportZbozi);
+		});
 	}
 
 	protected function addSeoColumn(AdminGrid $grid): void
@@ -480,11 +480,19 @@ class ProductGridFactory
 				return '';
 			}
 
-			return [
-				$page->url,
+			return \sprintf(
+				<<<'EOT'
+					<b>Title</b>: <abbr title="%s">%s</abbr><br>
+					<b>Descr.</b>: <abbr title="%s">%s</abbr><br>
+					<b>URL</b>: <abbr title="%s">%s</abbr>
+				EOT,
 				$page->title,
-				Strings::substring((string) $page->description, 0, 30),
-			];
-		}, '%s<br>%s<br>%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
+				Strings::length((string) $page->title) > 30 ? Strings::substring((string) $page->title, 0, 30) . '...' : $page->title,
+				$page->description,
+				Strings::length((string) $page->description) > 30 ? Strings::substring((string) $page->description, 0, 30) . '...' : $page->description,
+				$page->url,
+				Strings::length((string) $page->url) > 30 ? Strings::substring((string) $page->url, 0, 30) . '...' : $page->url,
+			);
+		}, '%s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 	}
 }
