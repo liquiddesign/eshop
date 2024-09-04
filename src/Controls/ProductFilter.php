@@ -168,16 +168,35 @@ class ProductFilter extends Control
 				$min = $this->attributeNumericService->getMin($attribute);
 				$max = $this->attributeNumericService->getMax($attribute);
 
+				$orderedAttributeValues = $this->attributeNumericService->getLabelsOrderedNumerically($attribute);
+
+				$minAttributeValueWithCount = null;
+				$maxAttributeValueWithCount = null;
+
+				foreach ($orderedAttributeValues as $attributeValue) {
+					$attributeValuePK = $attributeValue->getPK();
+
+					if (!isset($attributeValueCounts[$attributeValuePK]) || $attributeValueCounts[$attributeValuePK] <= 0) {
+						continue;
+					}
+
+					if (!$minAttributeValueWithCount) {
+						$minAttributeValueWithCount = $attributeValue;
+					}
+
+					$maxAttributeValueWithCount = $attributeValue;
+				}
+
 				$sliderContainer = $attributesContainer->addContainer((string) $attribute->getPK());
 
 				$sliderContainer->addText('from', $attribute->name ?? $attribute->code)
 					->setNullable()
-					->setHtmlAttribute('placeholder', $min)
+					->setHtmlAttribute('placeholder', \min((int) $minAttributeValueWithCount?->label, $min))
 					->addCondition($filterForm::Filled)->addRule($filterForm::Integer);
 
 				$sliderContainer->addText('to')
 					->setNullable()
-					->setHtmlAttribute('placeholder', $max)
+					->setHtmlAttribute('placeholder', $maxAttributeValueWithCount?->label ?: $max)
 					->addCondition($filterForm::Filled)->addRule($filterForm::Integer);
 
 				continue;
@@ -234,13 +253,13 @@ class ProductFilter extends Control
 				continue;
 			}
 			
-			$checkboxList->setDefaultValue($defaults[$attribute->getPK()]);
+//			$checkboxList->setDefaultValue($defaults[$attribute->getPK()]);
 		}
 		
 		$submit = $filterForm->addSubmit('submit', $this->translator->translate('filter.showProducts', 'Zobrazit produkty'));
 		$submit->setHtmlAttribute('name', '');
 
-		$filterForm->setDefaults($this->getPresenter()->getParameters());
+//		$filterForm->setDefaults($this->getPresenter()->getParameters());
 		
 		return $filterForm;
 	}
