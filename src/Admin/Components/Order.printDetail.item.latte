@@ -14,10 +14,19 @@
 									{if $item->product && $item->product->ean}<br><small>EAN: {$item->product->ean}</small>{/if}
     </td>
     <td>
-        <a n:tag-if="$admin->isAllowed(':Eshop:Admin:Product:default')" href="{plink :Eshop:Admin:Product:default, productGrid-code=>$item->productCode}" target="_blank">
-            {if $upsell}-- {/if}{$item->product ? $item->product->getName() : $item->productName}
-        </a>
-        <i n:if="$item->note" title="{$item->note}" class="far fa-sticky-note"></i>
+        <div class="d-flex align-items-center">
+            <div>
+                <a n:tag-if="$admin->isAllowed(':Eshop:Admin:Product:default')" href="{plink :Eshop:Admin:Product:default, productGrid-code=>$item->productCode}" target="_blank">
+                    {if $upsell}-- {/if}{$item->product ? $item->product->getName() : $item->productName}
+                </a>
+                <i n:if="$item->note" title="{$item->note}" class="far fa-sticky-note"></i>
+            </div>
+            {ifset $orderPrintDetailItemCustomBlock}
+                <div class="align-self-end ml-auto">
+                    {include $orderPrintDetailItemCustomBlock, template: $this, item: $item}
+                </div>
+            {/ifset}
+        </div>
     </td>
     <td>{$packageItem->amount}</td>
     <td>
