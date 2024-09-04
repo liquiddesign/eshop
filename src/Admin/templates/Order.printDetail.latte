@@ -30,6 +30,14 @@
             {if @$displayButtonsLeft || @$displayButtonsRight}
                 <div class="card-header p-3 d-print-none">
                     <div class="row">
+                        <div class="col">
+                        {foreach $flashes as $message}
+                            <div class="alert alert-{$message->type} mt-4">{$message->message}</div>
+                        {/foreach}
+                        </div>
+                    </div>
+
+                    <div class="row">
                         <div n:ifset="$displayButtonsLeft" class="col-lg-8 col-md-12">
                             {foreach $displayButtonsLeft as $button}
                                 {$button|noescape}

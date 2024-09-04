@@ -10,6 +10,7 @@ use Eshop\DB\CustomerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Nette\Application\Application;
+use Nette\DI\Attributes\Inject;
 use PdoDebugger;
 use StORM\Entity;
 use StORM\LogItem;
@@ -17,19 +18,19 @@ use Tracy\Debugger;
 
 abstract class BackendPresenter extends \Admin\BackendPresenter
 {
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ProductRepository $productRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CategoryRepository $categoryRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public AttributeValueRepository $attributeValueRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CustomerRepository $customerRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Application $application;
 
 	public function afterRender(): void

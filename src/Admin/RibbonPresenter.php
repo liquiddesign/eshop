@@ -61,7 +61,7 @@ class RibbonPresenter extends BackendPresenter
 
 	public function createComponentGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->ribbonRepository->many(), 20, 'priority');
+		$grid = $this->gridFactory->create($this->ribbonRepository->many(), 20, 'priority', filterShops: false);
 		$grid->addColumnSelector();
 		$grid->addColumnImage('imageFileName', Ribbon::IMAGE_DIR);
 		$grid->addColumn('Typ', function (Ribbon $ribbon) {
@@ -89,6 +89,8 @@ class RibbonPresenter extends BackendPresenter
 		$grid->addFilterTextInput('search', ['name_cs'], null, 'Popisek');
 		$grid->addFilterSelectInput('type', 'type = :t', null, '- Typ -', null, $this::TYPES, 't');
 
+		$this->gridFactory->addShopsFilterSelect($grid);
+
 		$grid->addFilterButtons();
 
 		$grid->onDelete[] = [$this, 'onDelete'];
@@ -98,7 +100,7 @@ class RibbonPresenter extends BackendPresenter
 
 	public function createComponentInternalGrid(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->internalRibbonRepository->many(), 20, 'priority');
+		$grid = $this->gridFactory->create($this->internalRibbonRepository->many(), 20, 'priority', filterShops: false);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Popisek', 'name', '%s', 'name');
 		$grid->addColumnText('Typ', 'type', '%s', 'type');
@@ -127,6 +129,7 @@ class RibbonPresenter extends BackendPresenter
 		$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
 			$source->where('type', $value);
 		}, '', 'type', null, InternalRibbon::TYPES, ['placeholder' => '- Typ -']);
+		$this->gridFactory->addShopsFilterSelect($grid);
 		$grid->addFilterButtons(['internal']);
 
 		return $grid;
@@ -207,11 +210,12 @@ class RibbonPresenter extends BackendPresenter
 			->setRequired();
 
 		$form->addDataMultiSelect('discounts', 'Akce', $this->discountRepository->getArrayForSelect())->setHtmlAttribute('placeholder', 'Vyberte položky...');
-		$this->formFactory->addShopsContainerToAdminForm($form);
+		$this->formFactory->addShopsContainerToAdminForm($form, autoSelect: false);
 
 		$form->addSubmits(!$ribbon);
 
 		$form->onSuccess[] = function (AdminForm $form): void {
+			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
 
 			$this->createImageDirs(Ribbon::IMAGE_DIR);
@@ -229,7 +233,7 @@ class RibbonPresenter extends BackendPresenter
 
 			$values['imageFileName'] = $imageUpload->upload($values['uuid'] . '.%2$s');
 
-			$ribbon = $this->ribbonRepository->syncOne($values);
+			$ribbon = $this->ribbonRepository->syncOne($values, ignore: false);
 
 			foreach ($discounts as $discountKey) {
 				$this->storm->createRow('eshop_discount_nxn_eshop_ribbon', [
