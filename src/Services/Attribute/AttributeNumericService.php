@@ -42,4 +42,18 @@ readonly class AttributeNumericService implements AutoWireService
 			->setSelect(['min' => "MIN(CAST(this.label$mutationSuffix AS SIGNED))"])
 			->firstValue('min');
 	}
+
+	/**
+	 * @param \Eshop\DB\Attribute $attribute
+	 * @return array<\Eshop\DB\AttributeValue>
+	 */
+	public function getLabelsOrderedNumerically(Attribute $attribute): array
+	{
+		$mutationSuffix = $this->connection->getMutationSuffix();
+
+		return $this->attributeValueRepository->many()
+			->where('this.fk_attribute', $attribute->getPK())
+			->setOrderBy(["CAST(this.label$mutationSuffix AS SIGNED)"])
+			->toArray();
+	}
 }
