@@ -360,7 +360,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 				$product = $fetchedProducts[$product];
 				$pageArray = $page->toArray();
 
-				foreach (['url', 'title', 'content'] as $property) {
+				foreach (['url', 'title', 'description'] as $property) {
 					foreach ($pageArray[$property] as $mutation => $value) {
 						$propertyName = 'exportPage_' . $property . '_' . $mutation;
 						$product->$propertyName = $value;
