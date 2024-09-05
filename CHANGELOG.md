@@ -4,6 +4,16 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.313](https://github.com/liquiddesign/eshop/compare/v2.1.312...v2.1.313) (2024-09-05)
+
+### Bug Fixes
+
+* Change 'content' to 'description' in ProductExporter export properties ([ba5341](https://github.com/liquiddesign/eshop/commit/ba5341fe3d64a0762d5d27be8555de8b608ca1c4))
+* Add shops filter select to ribbon grids and disable auto-select ([c6a6c3](https://github.com/liquiddesign/eshop/commit/c6a6c392b594286af171b19dbccd2ce1643b0021))
+
+
+---
+
 ## [2.1.312](https://github.com/liquiddesign/eshop/compare/v2.1.311...v2.1.312) (2024-09-02)
 
 ### Features
