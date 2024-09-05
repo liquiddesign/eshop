@@ -12,6 +12,7 @@ use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\Services\Attribute\AttributeNumericService;
+use Eshop\Services\ProductsCache\ProductsCacheGetterService;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Forms\FormFactory;
@@ -87,6 +88,7 @@ class ProductFilter extends Control
 		protected SettingRepository $settingRepository,
 		protected ShopperUser $shopperUser,
 		protected AttributeNumericService $attributeNumericService,
+		protected ProductsCacheGetterService $productsCacheGetterService,
 		Storage $storage
 	) {
 		$this->cache = new Cache($storage);
@@ -124,6 +126,7 @@ class ProductFilter extends Control
 
 		$productList->getItemsOnPage();
 		$providerOutput = $productList->getProviderOutput();
+		$filters = $productList->getFilters();
 
 		$withVat = $this->shopperUser->getMainPriceType() === 'withVat';
 
@@ -165,19 +168,46 @@ class ProductFilter extends Control
 
 		foreach ($this->getAttributes() as $attribute) {
 			if ($attribute->showNumericSlider) {
-				$min = $this->attributeNumericService->getMin($attribute);
-				$max = $this->attributeNumericService->getMax($attribute);
+				$subFilters = $filters;
+				unset($subFilters['attributes'][$attribute->getPK()]);
+
+				$providerOutputWithoutAttribute = $this->productsCacheGetterService->getProductsFromCacheTable(
+					$subFilters,
+					priceLists: $this->shopperUser->getPricelists()->toArray(),
+					visibilityLists: $this->shopperUser->getVisibilityLists(),
+				);
+
+				$subAttributeValuesCounts = $providerOutputWithoutAttribute['attributeValuesCounts'];
+
+				$orderedAttributeValues = $this->attributeNumericService->getLabelsOrderedNumerically($attribute);
+
+				$minAttributeValueWithCount = null;
+				$maxAttributeValueWithCount = null;
+
+				foreach ($orderedAttributeValues as $attributeValue) {
+					$attributeValuePK = $attributeValue->getPK();
+
+					if (!isset($subAttributeValuesCounts[$attributeValuePK]) || $subAttributeValuesCounts[$attributeValuePK] <= 0) {
+						continue;
+					}
+
+					if (!$minAttributeValueWithCount) {
+						$minAttributeValueWithCount = $attributeValue;
+					}
+
+					$maxAttributeValueWithCount = $attributeValue;
+				}
 
 				$sliderContainer = $attributesContainer->addContainer((string) $attribute->getPK());
 
 				$sliderContainer->addText('from', $attribute->name ?? $attribute->code)
 					->setNullable()
-					->setHtmlAttribute('placeholder', $min)
+					->setHtmlAttribute('placeholder', $minAttributeValueWithCount?->label)
 					->addCondition($filterForm::Filled)->addRule($filterForm::Integer);
 
 				$sliderContainer->addText('to')
 					->setNullable()
-					->setHtmlAttribute('placeholder', $max)
+					->setHtmlAttribute('placeholder', $maxAttributeValueWithCount?->label)
 					->addCondition($filterForm::Filled)->addRule($filterForm::Integer);
 
 				continue;
