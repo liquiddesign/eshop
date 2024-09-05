@@ -4,6 +4,21 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.315](https://github.com/liquiddesign/eshop/compare/v2.1.314...v2.1.315) (2024-09-05)
+
+### Features
+
+* Enhance product filter functionality by integrating ProductsCacheGetterService. Update attribute counts logic to use cached data for improved performance and accuracy. Adjust placeholders in filter forms based on count values and clean up commented code for clarity. ([cfb963](https://github.com/liquiddesign/eshop/commit/cfb9634f4d2283781874783e4a1828d607f87d0e))
+* Better attribute counts ([fbb5b6](https://github.com/liquiddesign/eshop/commit/fbb5b64aa88ac738a810bad61e7dbd83462be5c6))
+
+### Bug Fixes
+
+* Product retrieval and error handling in CategoryRepository ([5f4e85](https://github.com/liquiddesign/eshop/commit/5f4e85bbcd421b077e5d7f7dafd4889699e7bc24))
+* Change 'content' to 'description' in ProductExporter export properties ([6536ac](https://github.com/liquiddesign/eshop/commit/6536acc7c0b068fa37f5c6b9f17d3035f1ea8ed0))
+
+
+---
+
 ## [2.1.314](https://github.com/liquiddesign/eshop/compare/v2.1.313...v2.1.314) (2024-09-05)
 
 ### Bug Fixes
