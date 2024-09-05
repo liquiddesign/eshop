@@ -126,17 +126,20 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 					Debugger::barDump($e->getMessage());
 				}
 
-				$collection = $productRepository->many()
+				unset($filters['priceGt']);
+
+				$collection = $productRepository->getProducts($priceLists, visibilityLists: $visibilityLists)
 					->setSelect(['total' => 'COUNT(DISTINCT this.uuid)']);
 
 				$productRepository->setProductsConditions($collection, false, $priceLists);
-				$productRepository->joinVisibilityListItemToProductCollection($collection, $visibilityLists);
 
 				$productRepository->filter($collection, $filters);
 
 				try {
 					return $collection->count();
-				} catch (\Throwable) {
+				} catch (\Throwable $e) {
+					Debugger::log($e, ILogger::EXCEPTION);
+
 					return 1;
 				}
 			}
