@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.314](https://github.com/liquiddesign/eshop/compare/v2.1.313...v2.1.314) (2024-09-05)
+
+### Bug Fixes
+
+* Product retrieval and error handling in CategoryRepository ([b42fd2](https://github.com/liquiddesign/eshop/commit/b42fd223b8893c8614105eb3df96c34a22b88a34))
+
+
+---
+
 ## [2.1.313](https://github.com/liquiddesign/eshop/compare/v2.1.312...v2.1.313) (2024-09-05)
 
 ### Bug Fixes
