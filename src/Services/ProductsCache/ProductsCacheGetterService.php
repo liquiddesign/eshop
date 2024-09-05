@@ -231,15 +231,15 @@ class ProductsCacheGetterService implements AutoWireService
 		$visibilityPriceListsIndex = \implode(',', $visibilityListsIds) . '-' . \implode(',', $priceListsIds);
 		Debugger::barDump($visibilityPriceListsIndex);
 
-//      $dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
-//
-//      $cachedData = $this->cache->load($dataCacheIndex, dependencies: [
-//          Cache::Tags => [self::PRODUCTS_PROVIDER_CACHE_TAG],
-//      ]);
-//
-//      if ($cachedData) {
-//          return $cachedData;
-//      }
+		$dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
+
+		$cachedData = $this->cache->load($dataCacheIndex, dependencies: [
+		  Cache::Tags => [GeneralProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
+		]);
+
+		if ($cachedData) {
+			return $cachedData;
+		}
 
 		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
 			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
@@ -675,7 +675,7 @@ class ProductsCacheGetterService implements AutoWireService
 			unset($attributeValuesCounts[$attributeValue->id]);
 		}
 
-		return [
+		$result = [
 			'productPKs' => $productPKs,
 			'attributeValuesCounts' => $attributeValuesCounts,
 			'displayAmountsCounts' => $displayAmountsCounts,
@@ -687,9 +687,9 @@ class ProductsCacheGetterService implements AutoWireService
 			'priceVatMax' => $priceVatMax > \PHP_FLOAT_MIN ? \ceil($priceVatMax) : 0,
 		];
 
-//      $this->saveDataCacheIndex($dataCacheIndex, $result);
+		$this->saveDataCacheIndex($dataCacheIndex, $result);
 
-//      return $result;
+		return $result;
 	}
 
 	/**
