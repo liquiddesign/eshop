@@ -23,7 +23,7 @@
             </div>
             {ifset $orderPrintDetailItemCustomBlock}
                 <div class="align-self-end ml-auto">
-                    {include $orderPrintDetailItemCustomBlock, template: $this, item: $item}
+                    {include $orderPrintDetailItemCustomBlock, template: $this, item: $item, packageItem: $packageItem}
                 </div>
             {/ifset}
         </div>

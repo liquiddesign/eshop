@@ -259,8 +259,13 @@ class CheckoutManager
 			if ($cart = $this->cartRepository->getUnattachedCart($this->cartToken)) {
 				$this->handleCartOnLogin($cart, $this->getCustomer());
 			}
-			
-			$this->response->deleteCookie('cartToken');
+
+			// In some cases in admin, there is output already sent
+			try {
+				$this->response->deleteCookie('cartToken');
+			} catch (\Exception) {
+			}
+
 			$this->cartToken = null;
 		}
 		
