@@ -31,8 +31,9 @@
                 <div class="card-header p-3 d-print-none">
                     <div class="row">
                         <div class="col">
-                        {foreach $flashes as $message}
-                            <div class="alert alert-{$message->type} mt-4">{$message->message}</div>
+                        {foreach $flashes as $flash}
+                            {do $flash->type = $flash->type === 'error' ? 'danger' : $flash->type}
+                            <div class="alert alert-{$flash->type}">{$flash->message}</div>
                         {/foreach}
                         </div>
                     </div>
