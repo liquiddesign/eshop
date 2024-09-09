@@ -58,7 +58,8 @@
         "liquiddesign/codestyle": "^3.0.10",
         "liquiddesign/migrator": "~1.0",
         "phpstan/phpstan-nette": "~1.0",
-        "marcocesarato/php-conventional-changelog": "dev-main"
+        "marcocesarato/php-conventional-changelog": "dev-main",
+        "ticketswap/phpstan-error-formatter": "^1.0"
     },
     "scripts": {
         "fix-code": [
@@ -76,8 +77,8 @@
             "@check-commit"
         ],
         "phpstan-clear-cache": "phpstan clear-result-cache",
-        "phpstan": "phpstan analyse --memory-limit 10G -c phpstan.neon",
-        "phpstan8": "phpstan analyse --memory-limit 10G -c phpstan8.neon",
+        "phpstan": "phpstan analyse --memory-limit 10G -c phpstan.neon --no-progress",
+        "phpstan8": "phpstan analyse --memory-limit 10G -c phpstan8.neon --no-progress",
         "phpcs": "phpcs --standard=ruleset.xml --ignore=assets --cache src",
         "phpcsfix": "phpcbf --standard=ruleset.xml --ignore=assets --cache src",
         "lattelint": "php lattelint.php",

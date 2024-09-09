@@ -1,7 +1,10 @@
 includes:
 	- vendor/phpstan/phpstan-nette/extension.neon
+	- vendor/ticketswap/phpstan-error-formatter/extension.neon
 
 parameters:
+	errorFormat: ticketswap
+	editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'
 	universalObjectCratesClasses:
 		- Nette\Http\SessionSection
 		- Nette\Application\UI\Template
