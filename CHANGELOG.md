@@ -4,6 +4,20 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.317](https://github.com/liquiddesign/eshop/compare/v2.1.316...v2.1.317) (2024-09-09)
+
+### Features
+
+* Add flash messages and internal ribbons relation to order ([1df077](https://github.com/liquiddesign/eshop/commit/1df0777067c889c46ff6f5012be48e7ff813a933))
+
+### Builds
+
+* Fix actions ([c4b7fa](https://github.com/liquiddesign/eshop/commit/c4b7fa5e19e48db852d9a1099b71f991c0b10053))
+* Better phpstan ([aa5bc6](https://github.com/liquiddesign/eshop/commit/aa5bc61399fd659daa91c83eea7bb2c5bca96fe1))
+
+
+---
+
 ## [2.1.316](https://github.com/liquiddesign/eshop/compare/v2.1.315...v2.1.316) (2024-09-06)
 
 
