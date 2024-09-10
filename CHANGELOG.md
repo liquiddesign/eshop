@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.319](https://github.com/liquiddesign/eshop/compare/v2.1.318...v2.1.319) (2024-09-10)
+
+### Features
+
+* Add OpenGraph image support to category and product forms ([100e94](https://github.com/liquiddesign/eshop/commit/100e942fbd3f422169877dec4b1144983fb98d3c))
+
+
+---
+
 ## [2.1.318](https://github.com/liquiddesign/eshop/compare/v2.1.317...v2.1.318) (2024-09-10)
 
 ### Features
