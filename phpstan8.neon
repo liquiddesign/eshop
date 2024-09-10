@@ -17,6 +17,7 @@ parameters:
 		- src/Front/Web/SandboxPresenter.php
 		- src/Front/Eshop/ExportPresenter.php
 		- src/Admin/MerchantPresenter.php
+		- src/Services/Order/OrderEditService.php
 	excludePaths:
 		- src/assets/*
 		- src/templates/*

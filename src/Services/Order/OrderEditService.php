@@ -45,6 +45,19 @@ readonly class OrderEditService implements AutoWireService
 	) {
 	}
 
+	/**
+	 * @param \Eshop\DB\Order $order
+	 * @param \Eshop\DB\Product|string $product
+	 * @param int $amount
+	 * @param \Eshop\DB\Cart|string|null $cart
+	 * @param \Eshop\DB\Package|string|true|null $package
+	 * @param bool $force
+	 * @param \Eshop\DB\Customer|null $customer
+	 * @param bool|null $replaceMode
+	 * @return array{\Eshop\DB\PackageItem, \Eshop\DB\CartItem}
+	 * @throws \Eshop\BuyException
+	 * @throws \StORM\Exception\NotFoundException
+	 */
 	public function addProduct(
 		Order $order,
 		Product|string $product,
@@ -54,7 +67,7 @@ readonly class OrderEditService implements AutoWireService
 		bool $force = false,
 		Customer|null $customer = null,
 		bool|null $replaceMode = null,
-	): true {
+	): array {
 		$this->beforeProcess($order, $customer);
 		$purchase = $order->purchase;
 
@@ -118,11 +131,50 @@ readonly class OrderEditService implements AutoWireService
 				throw new \Exception("Customer can't buy product '$product->name ($product->code)'!");
 			}
 
-			$product->setValue('price', 0);
-			$product->setValue('priceVat', 0);
-			$product->setValue('priceBefore', null);
-			$product->setValue('priceVatBefore', null);
+			try {
+				$product->setValue('price', $product->getValue('price') ?: 0);
+			} catch (\Exception $e) {
+				$product->setValue('price', 0);
+			}
+
+			try {
+				$product->setValue('priceVat', $product->getValue('priceVat') ?: 0);
+			} catch (\Exception $e) {
+				$product->setValue('priceVat', 0);
+			}
+
+			try {
+				$product->setValue('priceBefore', $product->getValue('priceBefore') ?: null);
+			} catch (\Exception $e) {
+				$product->setValue('priceBefore', null);
+			}
+
+			try {
+				$product->setValue('priceVatBefore', $product->getValue('priceVatBefore') ?: null);
+			} catch (\Exception $e) {
+				$product->setValue('priceVatBefore', null);
+			}
 		} else {
+			try {
+				$productWithPrice->setValue('price', $product->getValue('price'));
+			} catch (\Exception $e) {
+			}
+
+			try {
+				$productWithPrice->setValue('priceVat', $product->getValue('priceVat'));
+			} catch (\Exception $e) {
+			}
+
+			try {
+				$productWithPrice->setValue('priceBefore', $product->getValue('priceBefore'));
+			} catch (\Exception $e) {
+			}
+
+			try {
+				$productWithPrice->setValue('priceVatBefore', $product->getValue('priceVatBefore'));
+			} catch (\Exception $e) {
+			}
+
 			$product = $productWithPrice;
 		}
 
@@ -163,21 +215,21 @@ readonly class OrderEditService implements AutoWireService
 
 		/* Get default set relation type and slave products in that relation for top-level cart item */
 		if (!$setRelationType) {
-			return true;
+			return [$packageItem, $cartItem];
 		}
 
 		/** @var array<mixed> $relatedCartItems */
 		$relatedCartItems = [];
 
 		if (!$cartItem->product) {
-			return true;
+			return [$packageItem, $cartItem];
 		}
 
 		/* Load real products in relation with prices */
 		$relatedProducts = $this->productRepository->getSlaveRelatedProducts($setRelationType, $cartItem->product)->toArray();
 
 		if (!$relatedProducts) {
-			return true;
+			return [$packageItem, $cartItem];
 		}
 
 		$slaveProducts = [];
@@ -256,7 +308,7 @@ readonly class OrderEditService implements AutoWireService
 			]);
 		}
 
-		return true;
+		return [$packageItem, $cartItem];
 	}
 
 	public function changeItemAmount(PackageItem $packageItem, CartItem $cartItem, int $amount): void
