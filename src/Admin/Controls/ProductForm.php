@@ -513,7 +513,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			true,
 			false,
 			'URL a SEO',
-			false,
+			isset($configuration['showPageOgImage']) && $configuration['showPageOgImage'],
 			true,
 		);
 
@@ -857,7 +857,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		unset($values['stores']);
 
-		$form->syncPages(function () use ($product, $values): void {
+		$form->syncPages(function () use ($product, $values, $form): void {
+			$form->uploadOpenGraphImage($form, $values);
 			$this->pageRepository->syncPage($values['page'], ['product' => $product->getPK()]);
 		});
 

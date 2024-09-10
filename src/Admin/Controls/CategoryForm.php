@@ -31,6 +31,8 @@ class CategoryForm extends Control
 		protected readonly ?Category $category,
 		protected readonly bool $showDefaultViewType,
 		protected readonly bool $showDescendantProducts,
+		/** @var array<mixed> $configuration */
+		protected readonly array $configuration,
 	) {
 		$form = $formFactory->create(true);
 
@@ -162,7 +164,12 @@ class CategoryForm extends Control
 			$form->addHidden('type', $presenter->tab);
 		});
 
-		$form->addPageContainer('product_list', ['category' => $category], $nameInput);
+		$form->addPageContainer(
+			'product_list',
+			['category' => $category],
+			$nameInput,
+			opengraph: isset($configuration['showPageOgImage']) && $configuration['showPageOgImage'],
+		);
 
 		if (!$category || (!$category->type->isReadOnly())) {
 			$form->addSubmits(!$category);
@@ -265,7 +272,8 @@ class CategoryForm extends Control
 
 			$this->categoryRepository->recalculateCategoryTree($presenter->tab);
 
-			$form->syncPages(function () use ($category, $values): void {
+			$form->syncPages(function () use ($category, $values, $form): void {
+				$form->uploadOpenGraphImage($form, $values);
 				$values['page']['params'] = Helpers::serializeParameters(['category' => $category->getPK()]);
 				$this->pageRepository->syncOne($values['page']);
 			});

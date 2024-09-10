@@ -127,6 +127,7 @@ class ProductPresenter extends BackendPresenter
 		'detailSuppliersTab' => false,
 		'extendedName' => false,
 		'karsa' => false,
+		'showPageOgImage' => false,
 		ProductFormConfig::class => [
 			ProductFormAutoPriceConfig::class => ProductFormAutoPriceConfig::NONE,
 		],

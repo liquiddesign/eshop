@@ -43,6 +43,7 @@ class CategoryPresenter extends BackendPresenter
 		'dynamicCategories' => false,
 		'targito' => false,
 		'filterColumns' => self::FILTER_COLUMNS,
+		'showPageOgImage' => false,
 	];
 
 	protected const FILTER_COLUMNS = ['Kód' => 'this.code', 'Název' => 'this.name_cs'];
@@ -277,7 +278,7 @@ class CategoryPresenter extends BackendPresenter
 
 	public function createComponentCategoryForm(): Controls\CategoryForm
 	{
-		return $this->categoryFormFactory->create($this::SHOW_DEFAULT_VIEW_TYPE, $this->getParameter('category'), $this::SHOW_DESCENDANT_PRODUCTS);
+		return $this->categoryFormFactory->create($this::SHOW_DEFAULT_VIEW_TYPE, $this->getParameter('category'), $this::SHOW_DESCENDANT_PRODUCTS, $this::CONFIGURATION);
 	}
 
 	public function actionDefault(): void
