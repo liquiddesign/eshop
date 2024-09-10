@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.318](https://github.com/liquiddesign/eshop/compare/v2.1.317...v2.1.318) (2024-09-10)
+
+### Features
+
+* Add OrderEditService to phpstan config and improve addProduct method ([18198d](https://github.com/liquiddesign/eshop/commit/18198ddf0651c2f630bec0d7e0f8817ed187aab9))
+
+
+---
+
 ## [2.1.317](https://github.com/liquiddesign/eshop/compare/v2.1.316...v2.1.317) (2024-09-09)
 
 ### Features
