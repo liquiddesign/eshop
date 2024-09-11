@@ -6,3 +6,7 @@ search:
         in: %appDir%/../vendor/liquiddesign/eshop
         files: [*/*Service.php]
         implements: Base\Bridges\AutoWireService
+    eshop_actions:
+        in: %appDir%/../vendor/liquiddesign/eshop
+        files: [*/Actions/**/*.php]
+        implements: Base\Bridges\AutoWireAction
