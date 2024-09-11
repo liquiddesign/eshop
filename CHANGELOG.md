@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.320](https://github.com/liquiddesign/eshop/compare/v2.1.319...v2.1.320) (2024-09-11)
+
+### Features
+
+* Add GetPrimaryFileName action for product image handling ([557fd4](https://github.com/liquiddesign/eshop/commit/557fd425637a3979af621534cca3136ca1b88f23))
+
+
+---
+
 ## [2.1.319](https://github.com/liquiddesign/eshop/compare/v2.1.318...v2.1.319) (2024-09-10)
 
 ### Features
