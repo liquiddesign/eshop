@@ -16,7 +16,7 @@ readonly class GetPrimaryFileName implements AutoWireAction
 	{
 	}
 
-	public function handle(Product $product, string $size = 'detail', ?CategoryType $categoryType = null): string|null
+	public function execute(Product $product, string $size = 'detail', ?CategoryType $categoryType = null): string|null
 	{
 		if (!Arrays::contains(['origin', 'detail', 'thumb'], $size)) {
 			throw new ApplicationException('Invalid product image size: ' . $size);
