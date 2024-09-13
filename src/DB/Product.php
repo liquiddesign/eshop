@@ -567,6 +567,7 @@ class Product extends \StORM\Entity
 	 * If $onlyDescendants is false, return all descendant and ascendant products
 	 * If $includeDescendantsOfAscendants is true, return all descendant and ascendant products and their descendants. Only works if $onlyDescendants is false.
 	 * @return array<\Eshop\DB\Product>
+	 * @deprecated Use Actions/Product/GetMergedProductsByProduct
 	 */
 	public function getAllMergedProducts(bool $onlyDescendants = true, bool $includeDescendantsOfAscendants = false): array
 	{
