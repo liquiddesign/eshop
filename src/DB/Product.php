@@ -562,6 +562,11 @@ class Product extends \StORM\Entity
 		$this->productRepository = $this->getConnection()->findRepository(Product::class);
 	}
 
+	public function getName(string|null $mutation = null): string|null
+	{
+		return $this->getValue('name', $mutation);
+	}
+
 	/**
 	 * Return all descendant products
 	 * If $onlyDescendants is false, return all descendant and ascendant products
