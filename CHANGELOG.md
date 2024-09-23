@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.324](https://github.com/liquiddesign/eshop/compare/v2.1.323...v2.1.324) (2024-09-23)
+
+### Features
+
+* Add order to payment result and response in Comgate integration ([a588b9](https://github.com/liquiddesign/eshop/commit/a588b9a8df994a6860b424ff0e68c33b14a65165))
+
+
+---
+
 ## [2.1.323](https://github.com/liquiddesign/eshop/compare/v2.1.322...v2.1.323) (2024-09-23)
 
 ### Bug Fixes
