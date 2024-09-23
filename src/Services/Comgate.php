@@ -199,6 +199,8 @@ class Comgate implements IPaymentIntegration
 			throw new \Exception("Payment with id '{$data['transId']}' not found");
 		}
 
+		$order = $paymentResult->order;
+
 		$paymentResult->update([
 			'status' => $data['status'],
 		]);
@@ -214,6 +216,7 @@ class Comgate implements IPaymentIntegration
 		return [
 			'code' => 0,
 			'message' => 'OK',
+			'order' => $order,
 		];
 	}
 
