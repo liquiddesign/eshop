@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.323](https://github.com/liquiddesign/eshop/compare/v2.1.322...v2.1.323) (2024-09-23)
+
+### Bug Fixes
+
+
+##### Product
+
+* Missing getter ([b591ab](https://github.com/liquiddesign/eshop/commit/b591abe8fc3d5ec761fb2d79cf6ab3577503a121))
+
+
+---
+
 ## [2.1.322](https://github.com/liquiddesign/eshop/compare/v2.1.321...v2.1.322) (2024-09-23)
 
 ### Builds
