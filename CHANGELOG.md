@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.322](https://github.com/liquiddesign/eshop/compare/v2.1.321...v2.1.322) (2024-09-23)
+
+### Builds
+
+* Add ignoreErrors for missingType.generics and update PackageItemRepository docblock ([4bf514](https://github.com/liquiddesign/eshop/commit/4bf514a6239a4e0c455e52f5aa5e677b9be1c3d4))
+
+
+---
+
 ## [2.1.320](https://github.com/liquiddesign/eshop/compare/v2.1.319...v2.1.320) (2024-09-11)
 
 ### Features
