@@ -1556,6 +1556,8 @@ class OrderPresenter extends BackendPresenter
 
 	public function renderPrintDetail(Order $order): void
 	{
+		$this->template->showStoreOrderItemForm = $this->showStoreOrderItemForm($order);
+		$this->template->showOrderItemsLink = $this->showOrderItemsLink($order);
 		$this->template->states = $this::ORDER_STATES_NAMES;
 		$this->template->headerLabel = 'Objednávka - ' . $order->code;
 
@@ -1728,7 +1730,7 @@ class OrderPresenter extends BackendPresenter
 			}
 		}
 
-//		$this->template->displayButtons[] = $this->createButton('cloneOrder!', '<i class="far fa-clone mr-1"></i>Objednat znovu', [$order->getPK()]);
+//      $this->template->displayButtons[] = $this->createButton('cloneOrder!', '<i class="far fa-clone mr-1"></i>Objednat znovu', [$order->getPK()]);
 		$this->template->displayButtons[] =
 			'<a href="#" data-toggle="modal" data-target="#modal-emailForm"><button class="btn btn-sm btn-primary"><i class="fas fa-envelope mr-1"></i> Poslat e-mail</button></a>';
 
@@ -1745,9 +1747,9 @@ class OrderPresenter extends BackendPresenter
 
 		$this->template->displayButtons[] = '
 <a href="' . $this->link('recalculateOrderPrices!', [$order->getPK()]) . '" onclick=\'return confirm("Opravdu? Tato operace je nevratná!")\'>
-	<button class="btn btn-sm btn-primary">
-		<i class="fas fa-calculator mr-1"></i> Přepočítat ceny
-	</button>
+    <button class="btn btn-sm btn-primary">
+        <i class="fas fa-calculator mr-1"></i> Přepočítat ceny
+    </button>
 </a>';
 	}
 
@@ -2187,7 +2189,7 @@ class OrderPresenter extends BackendPresenter
 		$form->addRadioList('bulkType', 'Exportovat', [
 			'selected' => "vybrané ($selectedNo)",
 			'all' => "celý výsledek ($totalNo)",
-//			'total' => 'vše',
+//          'total' => 'vše',
 		])->setDefaultValue('selected');
 
 		$form->addSubmit('submit', 'Exportovat');
@@ -2549,6 +2551,20 @@ class OrderPresenter extends BackendPresenter
 		$this->flashMessage('Poslaní k dopravci bylo resetováno', 'success');
 		
 		$this->redirect('this');
+	}
+
+	protected function showStoreOrderItemForm(Order $order): bool
+	{
+		unset($order);
+
+		return true;
+	}
+
+	protected function showOrderItemsLink(Order $order): bool
+	{
+		unset($order);
+
+		return false;
 	}
 
 	protected function startup(): void
