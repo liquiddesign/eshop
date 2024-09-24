@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.326](https://github.com/liquiddesign/eshop/compare/v2.1.325...v2.1.326) (2024-09-24)
+
+### Features
+
+* Add link to order items in package item details ([4e30dc](https://github.com/liquiddesign/eshop/commit/4e30dc01bcc7fd0b842e7a850badf3d52d8c88cc))
+
+
+---
+
 ## [2.1.325](https://github.com/liquiddesign/eshop/compare/v2.1.324...v2.1.325) (2024-09-24)
 
 ### Features
