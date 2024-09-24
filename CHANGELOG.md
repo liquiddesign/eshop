@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.325](https://github.com/liquiddesign/eshop/compare/v2.1.324...v2.1.325) (2024-09-24)
+
+### Features
+
+* Add edit and link icons for order items in order detail ([cfb2ce](https://github.com/liquiddesign/eshop/commit/cfb2ce8b7ef5df65363f03d0a9034019e2652465))
+
+
+---
+
 ## [2.1.324](https://github.com/liquiddesign/eshop/compare/v2.1.323...v2.1.324) (2024-09-23)
 
 ### Features
