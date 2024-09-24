@@ -33,7 +33,7 @@
         {if $packageItem->store && !$packageItem->storeAmount}{$packageItem->store->name}{/if}
         {if $packageItem->storeAmount}{$packageItem->storeAmount->product->getFullCode()}:{$packageItem->storeAmount->store->name}{/if}
         <a n:if="$showStoreOrderItemForm && $item->product" class="modalStoreOrderItemForm d-print-none" data-toggle="modal" data-target="#modal-storeOrderItemForm-{$packageItem->uuid}" href="#"><i class="far fa-edit"></i></a>
-        <a n:if="$showOrderItemsLink && $item->product" n:href=":Eshop:Admin:OrderItems:default"><i class="fas fa-external-link-alt"></i></a><br>
+        <a n:if="$showOrderItemsLink && $item->product" n:href=":Eshop:Admin:OrderItems:default, 'grid-search_order' => $packageItem->package->order->code"><i class="fas fa-external-link-alt"></i></a><br>
         <span n:if="$packageItem->status === 'waiting'" class="text-secondary"><i class="far fa-square"></i> Nepotvrzeno</span>
         <span n:if="$packageItem->status === 'reserved'" class="text-success"><i class="fa fa-check"></i> Rezervováno</span>
     </td>
