@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.327](https://github.com/liquiddesign/eshop/compare/v2.1.326...v2.1.327) (2024-09-26)
+
+### Features
+
+* Add PackageItem interface and implement in PackageItem and RelatedPackageItem ([7e2d3a](https://github.com/liquiddesign/eshop/commit/7e2d3ae96c4dacf977c716aecec02165c7266b9d))
+
+
+---
+
 ## [2.1.326](https://github.com/liquiddesign/eshop/compare/v2.1.325...v2.1.326) (2024-09-24)
 
 ### Features
