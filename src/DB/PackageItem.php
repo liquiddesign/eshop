@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Eshop\Common\DB\IPackageItem;
 use StORM\RelationCollection;
 
 /**
  * Položka balíčku
  * @table
  * @index{"name":"package_item","unique":true,"columns":["fk_store","fk_package","fk_cartItem"]}
+ * @method \StORM\RelationCollection<\Eshop\DB\RelatedPackageItem> getRelatedPackageItems()
  */
-class PackageItem extends \StORM\Entity
+class PackageItem extends \StORM\Entity implements IPackageItem
 {
 	/**
 	 * Počet
@@ -108,5 +110,15 @@ class PackageItem extends \StORM\Entity
 	public function getSupplierProduct(string $supplierCode): ?SupplierProduct
 	{
 		return $this->getSelectedSupplierProductBySupplierCode($supplierCode) ?: ($this->cartItem->product ? $this->cartItem->product->getSupplierProduct($supplierCode) : null);
+	}
+
+	public function getProduct(): Product|null
+	{
+		return $this->cartItem->getProduct();
+	}
+
+	public function getAmount(): int
+	{
+		return $this->amount;
 	}
 }
