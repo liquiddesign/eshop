@@ -171,7 +171,6 @@ class Purchase extends \StORM\Entity
 
 	/**
 	 * ID pobočky zásilkovny
-	 * @deprecated use pickupPointId
 	 * @column{"type":"text"}
 	 */
 	public ?string $zasilkovnaId;

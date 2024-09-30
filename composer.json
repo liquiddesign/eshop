@@ -59,7 +59,8 @@
         "liquiddesign/migrator": "~1.0",
         "phpstan/phpstan-nette": "~1.0",
         "marcocesarato/php-conventional-changelog": "dev-main",
-        "ticketswap/phpstan-error-formatter": "^1.0"
+        "ticketswap/phpstan-error-formatter": "^1.0",
+        "pestphp/pest": "^3.1"
     },
     "scripts": {
         "fix-code": [
@@ -93,7 +94,8 @@
     "config": {
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true,
-            "php-http/discovery": true
+            "php-http/discovery": true,
+            "pestphp/pest-plugin": true
         }
     }
 }
