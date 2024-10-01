@@ -1068,6 +1068,11 @@ class CheckoutManager
 	public function isStepAllowed(string $step, ?string $cartId = self::ACTIVE_CART_ID): bool
 	{
 		$sequence = \array_search($step, $this->shopperUser->getCheckoutSequence());
+
+		if ($sequence === false) {
+			return false;
+		}
+
 		$previousStep = $this->shopperUser->getCheckoutSequence()[$sequence - 1] ?? null;
 		
 		if ($previousStep === 'cart') {
@@ -1102,7 +1107,7 @@ class CheckoutManager
 	public function getMaxStep(?string $cartId = self::ACTIVE_CART_ID): ?string
 	{
 		$lastStep = null;
-		
+
 		foreach ($this->shopperUser->getCheckoutSequence() as $step) {
 			if (!$this->isStepAllowed($step, $cartId)) {
 				break;
