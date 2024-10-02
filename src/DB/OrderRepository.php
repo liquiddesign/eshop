@@ -1115,6 +1115,10 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		foreach ($purchase->getItems() as $cartItem) {
 			$items[$cartItem->getPK()] = $cartItem->toArray();
 			$items[$cartItem->getPK()]['fullCode'] = $cartItem->getFullCode();
+			$items[$cartItem->getPK()]['code'] = $cartItem->getProduct()?->code ?: $cartItem->productCode;
+			$items[$cartItem->getPK()]['supplierCode'] = $cartItem->getProduct()?->supplierCode;
+			$items[$cartItem->getPK()]['ean'] = $cartItem->getProduct()?->ean;
+			$items[$cartItem->getPK()]['externalCode'] = $cartItem->getProduct()?->externalCode;
 			$items[$cartItem->getPK()]['totalPrice'] = $cartItem->getPriceSum();
 			$items[$cartItem->getPK()]['totalPriceVat'] = $cartItem->getPriceVatSum();
 
