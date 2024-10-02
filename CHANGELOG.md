@@ -4,6 +4,17 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.329](https://github.com/liquiddesign/eshop/compare/v2.1.328...v2.1.329) (2024-10-02)
+
+### Features
+
+* Add product codes and identifiers to cart item representation in OrderRepository ([7f6b05](https://github.com/liquiddesign/eshop/commit/7f6b05c80441be602d55744738a3cd9d44b779a7))
+* Add getNextStep method to determine the next checkout step based on the current step and cart ID. ([11b183](https://github.com/liquiddesign/eshop/commit/11b1835895bc2918f3ace1d824e0d339b9b00f97))
+* Add check for invalid step in CheckoutManager ([b85b0b](https://github.com/liquiddesign/eshop/commit/b85b0b14eab93e9ca49d0f528f21de5cd3244eec))
+
+
+---
+
 ## [2.1.328](https://github.com/liquiddesign/eshop/compare/v2.1.327...v2.1.328) (2024-09-30)
 
 
