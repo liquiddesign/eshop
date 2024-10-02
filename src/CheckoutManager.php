@@ -1058,6 +1058,26 @@ class CheckoutManager
 		
 		return $incorrectItems;
 	}
+
+	public function getNextStep(string $currentStep, ?string $cartId = self::ACTIVE_CART_ID): string|null
+	{
+		$steps = $this->getCheckoutSteps($cartId);
+		$found = false;
+
+		foreach ($steps as $step => $allowed) {
+			if ($currentStep === $step && $allowed) {
+				$found = true;
+
+				continue;
+			}
+
+			if ($found) {
+				return $step;
+			}
+		}
+
+		return null;
+	}
 	
 	/**
 	 * cart - pokud je buy allowed
