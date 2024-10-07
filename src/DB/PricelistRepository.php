@@ -85,6 +85,8 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 	public function getMerchantPricelists(Merchant $merchant, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
 	{
+		$shop = $this->shopsConfig->getSelectedShop();
+
 		$collection = $this->many()
 			->join(['nxn' => 'eshop_merchant_nxn_eshop_pricelist'], 'fk_pricelist=this.uuid')
 			->where('nxn.fk_merchant', $merchant->getPK())
@@ -95,6 +97,10 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			->where('discount.uuid IS NULL OR this.activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'discount.uuid = "' . $activeCoupon->getValue('discount') . '"' : 'false'))
 			->where('fk_currency ', $currency->getPK())
 			->where('fk_country', $country->getPK());
+
+		if ($shop) {
+			$collection->where('discount.fk_shop = :shop OR discount.fk_shop IS NULL', ['shop' => $shop->getPK()]);
+		}
 
 //		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
 
