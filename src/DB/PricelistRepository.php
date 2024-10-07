@@ -89,8 +89,10 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			->join(['nxn' => 'eshop_merchant_nxn_eshop_pricelist'], 'fk_pricelist=this.uuid')
 			->where('nxn.fk_merchant', $merchant->getPK())
 			->where('isActive', true)
+			->join(['nxnDiscount' => 'eshop_discount_nxn_eshop_pricelist'], 'nxnDiscount.fk_pricelist=this.uuid')
+			->join(['discount' => 'eshop_discount'], 'nxnDiscount.fk_discount=discount.uuid')
 			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL  OR discount.validTo >= DATE(now()))')
-			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'this.fk_discount = "' . $activeCoupon->getValue('discount') . '"' : 'false'))
+			->where('discount.uuid IS NULL OR this.activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'discount.uuid = "' . $activeCoupon->getValue('discount') . '"' : 'false'))
 			->where('fk_currency ', $currency->getPK())
 			->where('fk_country', $country->getPK());
 
