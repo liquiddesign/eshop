@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.331](https://github.com/liquiddesign/eshop/compare/v2.1.330...v2.1.331) (2024-10-07)
+
+### Bug Fixes
+
+* Add shop-specific filtering to merchant pricelist retrieval. ([d26d9d](https://github.com/liquiddesign/eshop/commit/d26d9dcb043ceb347eaf9ed4ec1af1fab8ff5519))
+
+
+---
+
 ## [2.1.330](https://github.com/liquiddesign/eshop/compare/v2.1.329...v2.1.330) (2024-10-07)
 
 ### Bug Fixes
