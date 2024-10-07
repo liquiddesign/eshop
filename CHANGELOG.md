@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.330](https://github.com/liquiddesign/eshop/compare/v2.1.329...v2.1.330) (2024-10-07)
+
+### Bug Fixes
+
+* Discount query by adding joins and updating conditions ([2a8d0e](https://github.com/liquiddesign/eshop/commit/2a8d0ecc09e9221dfab825ac36952349c1c0db9a))
+
+
+---
+
 ## [2.1.329](https://github.com/liquiddesign/eshop/compare/v2.1.328...v2.1.329) (2024-10-02)
 
 ### Features
