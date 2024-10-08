@@ -147,6 +147,7 @@ class AttributePresenter extends BackendPresenter
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 		$grid->addColumnInputCheckbox('Filtrace', 'showFilter', '', '', 'showFilter');
 		$grid->addColumnInputCheckbox('Náhled', 'showProduct', '', '', 'showProduct');
+		$grid->addColumnInputCheckbox('Slider', 'showNumericSlider', '', '', 'showNumericSlider');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
