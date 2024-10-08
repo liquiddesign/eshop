@@ -4,6 +4,7 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminFormFactory;
 use Base\ShopsConfig;
+use Eshop\Actions\Order\GetOrdersForStats;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\Customer;
@@ -35,6 +36,7 @@ class StatsControl extends Control
 		private readonly CategoryRepository $categoryRepository,
 		private readonly DiscountCouponRepository $discountCouponRepository,
 		private readonly ShopsConfig $shopsConfig,
+		private readonly GetOrdersForStats $getOrdersForStats,
 		private readonly ?Customer $signedInCustomer = null
 	) {
 
@@ -113,58 +115,7 @@ class StatsControl extends Control
 
 		$form->setDefaults($this->state);
 
-		$statsFrom->setTime(0, 0);
-		$statsTo->setTime(23, 59, 59);
-		$fromString = $statsFrom->format('Y-m-d\TH:i:s');
-		$toString = $statsTo->format('Y-m-d\TH:i:s');
-
-		$orders = $this->orderRepository->many()
-			->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
-			->select(['date' => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
-			->where('this.createdTs >= :from AND this.createdTs <= :to', ['from' => $fromString, 'to' => $toString])
-			->join(['purchase' => 'eshop_purchase'], 'purchase.uuid = this.fk_purchase')
-			->where('this.fk_shop = :s OR this.fk_shop IS NULL', ['s' => $this->shopsConfig->getSelectedShop()])
-			->where('purchase.fk_currency', $currency->getPK());
-
-		if ($customerType !== 'all' && !$customer) {
-			$subSelect = $this->orderRepository->many()
-				->join(['purchase' => 'eshop_purchase'], 'purchase.uuid = this.fk_purchase')
-				->setGroupBy(['purchase.fk_customer'], 'customerCount ' . ($customerType === 'new' ? '= 1' : '> 1'))
-				->select(['customerCount' => 'COUNT(purchase.fk_customer)'])
-				->select(['customerUuid' => 'purchase.fk_customer'])
-				->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
-				->select(['date' => "DATE_FORMAT(this.createdTs, '%Y-%m')"])
-				->where('this.createdTs >= :from AND this.createdTs <= :to', ['from' => $fromString, 'to' => $toString])
-				->where('this.fk_shop = :s OR this.fk_shop IS NULL', ['s' => $this->shopsConfig->getSelectedShop()])
-				->where('purchase.fk_currency', $currency->getPK());
-
-			$orders->where('purchase.fk_customer', \array_values($subSelect->toArrayOf('customerUuid')));
-		}
-
-		if ($customer) {
-			$orders->where('purchase.fk_customer', $customer->getPK());
-		}
-
-		if ($merchant) {
-			$orders->join(['customerXmerchant' => 'eshop_merchant_nxn_eshop_customer'], 'customerXmerchant.fk_customer = purchase.fk_customer')
-				->where('customerXmerchant.fk_merchant', $merchant->getPK());
-		}
-
-		$orders->join(['cart' => 'eshop_cart'], 'purchase.uuid = cart.fk_purchase')
-			->join(['cartCurrency' => 'eshop_currency'], 'cartCurrency.uuid = cart.fk_currency')
-			->select([
-				'purchaseCart' => 'cart.uuid',
-				'cartCurrency' => 'cartCurrency.uuid',
-			]);
-
-		if ($category) {
-			$orders->join(['cartItem' => 'eshop_cartitem'], 'cart.uuid = cartItem.fk_cart', [], 'INNER')
-				->join(['product' => 'eshop_product'], 'cartItem.fk_product = product.uuid', [], 'INNER')
-				->join(['productXcategory' => 'eshop_product_nxn_eshop_category'], 'product.uuid = productXcategory.fk_product', [], 'INNER')
-				->where('productXcategory.fk_category', $category->getPK());
-		}
-
-		$orders = $orders->toArray();
+		$orders = $this->getOrdersForStats->execute($currency, $statsTo, $statsFrom, $customerType, $customer, $merchant, $category);
 
 		$this->template->shopper = $this->shopperUser;
 		$this->template->monthlyOrders = $this->orderRepository->getGroupedOrdersPrices($orders, $currency);

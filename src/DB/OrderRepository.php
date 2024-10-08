@@ -926,12 +926,19 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			$purchases[] = $order->getValue('purchase');
 		}
 
+		$categoryType = $this->shopperUser->getMainCategoryType();
+
 		$repository = $this->connection->findRepository(CartItem::class);
 		$items = $repository->many()
 			->join(['cart' => 'eshop_cart'], 'this.fk_cart = cart.uuid')
 			->join(['purchase' => 'eshop_purchase'], 'cart.fk_purchase = purchase.uuid')
 			->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid')
-			->select(['purchasePK' => 'purchase.uuid', 'primaryCategory' => 'product.fk_primaryCategory'])
+			->join(
+				['productPrimaryCategory' => '(SELECT * FROM eshop_productprimarycategory)'],
+				'this.uuid=productPrimaryCategory.fk_product AND productPrimaryCategory.fk_categoryType = :productPrimaryCategory_shopCategoryType',
+				['productPrimaryCategory_shopCategoryType' => $categoryType],
+			)
+			->select(['purchasePK' => 'purchase.uuid', 'primaryCategory' => 'productPrimaryCategory.fk_category'])
 			->where('purchase.uuid', $purchases)
 			->toArray();
 
@@ -1029,7 +1036,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			->join(['cart' => 'eshop_cart'], 'this.fk_cart = cart.uuid')
 			->join(['purchase' => 'eshop_purchase'], 'cart.fk_purchase = purchase.uuid')
 			->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid')
-			->select(['purchasePK' => 'purchase.uuid', 'primaryCategory' => 'product.fk_primaryCategory'])
+			->select(['purchasePK' => 'purchase.uuid'])
 			->where('purchase.uuid', $purchases)
 			->toArray();
 
@@ -1077,6 +1084,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	{
 		$collection = $this->many()
 			->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
+			->join(['cart' => 'eshop_cart'], 'this.fk_purchase = cart.fk_purchase')
+			->select(['purchaseCart' => 'cart.uuid', 'cartCurrency' => 'cart.fk_currency'])
 			->orderBy(['this.createdTs']);
 
 		if ($user) {
