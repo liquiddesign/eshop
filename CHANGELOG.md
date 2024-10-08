@@ -4,6 +4,20 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.332](https://github.com/liquiddesign/eshop/compare/v2.1.331...v2.1.332) (2024-10-08)
+
+### Features
+
+* Add showNumericSlider ([60ad1a](https://github.com/liquiddesign/eshop/commit/60ad1ab427a2dd035e8b4c5def84e75278d90df2))
+* Implement GetOrdersForStats action and integrate into StatsControl ([ec56fd](https://github.com/liquiddesign/eshop/commit/ec56fde54ed358c8df5e3904dec62cb8b2eebacb))
+
+### Builds
+
+* Remove --no-progress ([60a91a](https://github.com/liquiddesign/eshop/commit/60a91a2c90cd6d1c5d91b1ef2e1992f5261da1fc))
+
+
+---
+
 ## [2.1.331](https://github.com/liquiddesign/eshop/compare/v2.1.330...v2.1.331) (2024-10-07)
 
 ### Bug Fixes
