@@ -78,8 +78,8 @@
             "@check-commit"
         ],
         "phpstan-clear-cache": "phpstan clear-result-cache",
-        "phpstan": "phpstan analyse --memory-limit 10G -c phpstan.neon --no-progress",
-        "phpstan8": "phpstan analyse --memory-limit 10G -c phpstan8.neon --no-progress",
+        "phpstan": "phpstan analyse --memory-limit 10G -c phpstan.neon",
+        "phpstan8": "phpstan analyse --memory-limit 10G -c phpstan8.neon",
         "phpcs": "phpcs --standard=ruleset.xml --ignore=assets --cache src",
         "phpcsfix": "phpcbf --standard=ruleset.xml --ignore=assets --cache src",
         "lattelint": "php lattelint.php",
