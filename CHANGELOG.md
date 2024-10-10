@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.333](https://github.com/liquiddesign/eshop/compare/v2.1.332...v2.1.333) (2024-10-10)
+
+### Features
+
+* Add 'deletedTs' field to ProductForm for rendering display ([502268](https://github.com/liquiddesign/eshop/commit/502268de8c1aeec469dd4331bde7060698f6bea2))
+
+
+---
+
 ## [2.1.332](https://github.com/liquiddesign/eshop/compare/v2.1.331...v2.1.332) (2024-10-08)
 
 ### Features
