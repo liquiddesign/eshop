@@ -132,6 +132,7 @@ class ProductForm extends Control
 		$form->addLocaleText('extendedName', 'Rozšířený název');
 		$nameInput = $form->addLocaleText('name', 'Název');
 
+		$form->addText('deletedTs', 'Čas smazání')->setDisabled();
 		$form->addSelect('vatRate', 'Úroveň DPH (%)', $vatRateRepository->getDefaultVatRates());
 
 		/** @var array<\Eshop\DB\CategoryType> $categoryTypes */
