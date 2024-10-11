@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.334](https://github.com/liquiddesign/eshop/compare/v2.1.333...v2.1.334) (2024-10-11)
+
+### Bug Fixes
+
+* Backlink, breadcrumb ([472fad](https://github.com/liquiddesign/eshop/commit/472fadd454b862bcf0e3152fc85b5ce8b4fcb633))
+
+
+---
+
 ## [2.1.333](https://github.com/liquiddesign/eshop/compare/v2.1.332...v2.1.333) (2024-10-10)
 
 ### Features
