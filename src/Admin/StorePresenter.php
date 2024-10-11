@@ -37,7 +37,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumn('Zdroj', function (Store $object, $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') && $object->supplier ?
-				$datagrid->getPresenter()->link(':Eshop:Admin:Supplier:detail', [$object->supplier, 'backLink' => $this->storeRequest()]) : '#';
+				$datagrid->getPresenter()->link(':Eshop:Admin:Supplier:detail', [$object->supplier]) : '#';
 			
 			return $object->supplier ? "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->supplier->name . '</a>' : '';
 		}, '%s');
@@ -133,7 +133,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 		
 		$grid->addColumn('Produkt', function (Amount $amount, AdminGrid $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ?
-				$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$amount->product, 'backLink' => $this->storeRequest()]) : '#';
+				$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$amount->product]) : '#';
 			
 			return '<a href="' . $link . '">&nbsp;' . $amount->product->name . '</a>';
 		}, '%s');

@@ -199,7 +199,7 @@ class PickupPointPresenter extends BackendPresenter
 		$grid->addColumnText('Email', 'email', '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a>', 'email')->onRenderCell[] = [$grid, 'decoratorEmpty'];
 		$grid->addColumn('Typ místa', function (PickupPoint $object, $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:PickupPoint:typeDetail') ?
-				$datagrid->getPresenter()->link(':Eshop:Admin:PickupPoint:typeDetail', [$object->pickupPointType, 'backLink' => $this->storeRequest()]) : '#';
+				$datagrid->getPresenter()->link(':Eshop:Admin:PickupPoint:typeDetail', [$object->pickupPointType]) : '#';
 
 			return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->pickupPointType->name . '</a>';
 		});

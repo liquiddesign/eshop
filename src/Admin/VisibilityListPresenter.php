@@ -135,7 +135,7 @@ class VisibilityListPresenter extends BackendPresenter
 		$grid->addColumn('Produkt', function (VisibilityListItem $visibilityListItem, Datagrid $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(
 				':Eshop:Admin:Product:edit',
-				[$visibilityListItem->product, 'backLink' => $this->storeRequest()],
+				[$visibilityListItem->product],
 			) : '#';
 
 			return '<a href="' . $link . '">' . $visibilityListItem->product->name . '</a>';

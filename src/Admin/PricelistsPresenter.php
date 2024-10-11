@@ -160,7 +160,7 @@ class PricelistsPresenter extends BackendPresenter
 			foreach ($discounts as $discount) {
 				$link = $this->admin->isAllowed(':Eshop:Admin:Discount:detail') ? $this->link(
 					':Eshop:Admin:Discount:detail',
-					[$discount, 'backLink' => $this->storeRequest()],
+					[$discount],
 				) : '#';
 
 				$result[] = "<a href='" . $link . "'>$discount->name ($discount->validFrom - $discount->validTo)</a>";
@@ -172,7 +172,7 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addColumn('Zdroj', function (Pricelist $object) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') && $object->supplier ? $this->link(
 				':Eshop:Admin:Supplier:detail',
-				[$object->supplier, 'backLink' => $this->storeRequest()],
+				[$object->supplier],
 			) : '#';
 
 			return $object->supplier ? "<a href='" . $link . "'>" . $object->supplier->name . '</a>' : '';
@@ -271,7 +271,7 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addColumn('Produkt', function (Price $price, Datagrid $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(
 				':Eshop:Admin:Product:edit',
-				[$price->product, 'backLink' => $this->storeRequest()],
+				[$price->product],
 			) : '#';
 
 			return '<a href="' . $link . '">' . $price->product->name . '</a>';
@@ -500,7 +500,7 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addColumn('Produkt', function (Price $price, Datagrid $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(
 				':Eshop:Admin:Product:edit',
-				[$price->product, 'backLink' => $this->storeRequest()],
+				[$price->product],
 			) : '#';
 
 			return '<a href="' . $link . '">' . $price->product->name . '</a>';
@@ -660,7 +660,7 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addColumn('Produkt', function (QuantityPrice $price, Datagrid $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(
 				':Eshop:Admin:Product:edit',
-				[$price->product, 'backLink' => $this->storeRequest()],
+				[$price->product],
 			) : '#';
 
 			return '<a href="' . $link . '">' . $price->product->name . '</a>';

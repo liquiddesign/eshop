@@ -66,13 +66,13 @@ class RelatedPresenter extends BackendPresenter
 		$grid->addColumnText('Obchody', 'shops', '%s', 'this.shops');
 
 		$grid->addColumn($this->relatedType->getMasterInternalName(), function (Related $object, $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$object->master, 'backLink' => $this->storeRequest()]) : '#';
+			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$object->master]) : '#';
 
 			return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->master->name . '</a>';
 		}, '%s');
 
 		$grid->addColumn($this->relatedType->getSlaveInternalName(), function (Related $object, $datagrid) {
-			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$object->slave, 'backLink' => $this->storeRequest()]) : '#';
+			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$object->slave]) : '#';
 
 			return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->slave->name . '</a>';
 		}, '%s');

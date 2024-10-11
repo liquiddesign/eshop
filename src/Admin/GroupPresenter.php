@@ -58,7 +58,7 @@ class GroupPresenter extends BackendPresenter
 				if (!$this->admin->isAllowed($link)) {
 					$pricelistsResultString .= $pricelist->name . ', ';
 				} else {
-					$pricelistsResultString .= '<a href=' . $this->link($link, [$pricelist, 'backlink' => $this->storeRequest()]) . '>' . $pricelist->name . '</a>, ';
+					$pricelistsResultString .= '<a href=' . $this->link($link, [$pricelist]) . '>' . $pricelist->name . '</a>, ';
 				}
 			}
 
@@ -70,7 +70,7 @@ class GroupPresenter extends BackendPresenter
 				if (!$this->admin->isAllowed($link)) {
 					$visibilityListsResultString .= $visibilityList->name . ', ';
 				} else {
-					$visibilityListsResultString .= '<a href=' . $this->link($link, [$visibilityList, 'backlink' => $this->storeRequest()]) . '>' . $visibilityList->name . '</a>, ';
+					$visibilityListsResultString .= '<a href=' . $this->link($link, [$visibilityList]) . '>' . $visibilityList->name . '</a>, ';
 				}
 			}
 			

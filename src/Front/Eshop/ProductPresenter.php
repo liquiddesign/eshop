@@ -207,7 +207,7 @@ abstract class ProductPresenter extends FrontendPresenter
 			
 			/** @var \Eshop\DB\Category $branch */
 			foreach ($this->category->getFamilyTree() as $branchId => $branch) {
-				$breadcrumb->addItem($branch->name, $branchId !== $this->category->getPK() ? $this->link('list', ['category' => $branchId]) : null);
+				$breadcrumb->addItem((string) $branch->name, $branchId !== $this->category->getPK() ? $this->link('list', ['category' => $branchId]) : null);
 			}
 		}
 		
@@ -275,11 +275,11 @@ abstract class ProductPresenter extends FrontendPresenter
 			foreach ($this->category->getFamilyTree() as $branchId => $branch) {
 				/** @var \Eshop\DB\Category $branch */
 
-				$breadcrumb->addItem($branch->name, $this->link('list', ['category' => $branchId]));
+				$breadcrumb->addItem((string) $branch->name, $this->link('list', ['category' => $branchId]));
 			}
 		}
 
-		$breadcrumb->addItem($this->product->name);
+		$breadcrumb->addItem((string) $this->product->name);
 		
 		$this->template->product = $this->product;
 		$this->template->category = $this->category;

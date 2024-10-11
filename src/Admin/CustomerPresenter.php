@@ -349,7 +349,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			$grid->addColumn('Věrnostní prog.', function (Customer $object) {
 				$link = $this->admin->isAllowed(':Eshop:Admin:LoyaltyProgram:programDetail') && $object->getValue('loyaltyProgram') ? $this->link(
 					':Eshop:Admin:LoyaltyProgram:programDetail',
-					[$object->loyaltyProgram, 'backLink' => $this->storeRequest()],
+					[$object->loyaltyProgram],
 				) : '#';
 				
 				return $object->getValue('loyaltyProgram') ?

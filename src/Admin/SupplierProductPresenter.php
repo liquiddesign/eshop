@@ -80,7 +80,7 @@ class SupplierProductPresenter extends BackendPresenter
 
 		$grid->addColumn('Napárovano', function (SupplierProduct $supplierProduct, AdminGrid $datagrid) {
 			$link = $supplierProduct->product && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ?
-				$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$supplierProduct->product, 'backLink' => $this->storeRequest(),]) : '#';
+				$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$supplierProduct->product,]) : '#';
 
 			return $supplierProduct->product ? "<a href='$link'>" . $supplierProduct->product->getFullCode() . '</a>' : '-ne-';
 		}, '%s', 'product');
@@ -105,7 +105,7 @@ class SupplierProductPresenter extends BackendPresenter
 						$hitProduct = $this->productRepository->one($firstHit['objectID']);
 
 						$link = $hitProduct && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ?
-							$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$hitProduct, 'backLink' => $this->storeRequest(),]) : '#';
+							$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$hitProduct,]) : '#';
 
 						$acceptLink = '<a class="ml-2" title="Napárovat" href="' .
 							$this->link('acceptAlgoliaSuggestion!', ['supplierProduct' => $supplierProduct->getPK(), 'product' => $hitProduct->getPK()])

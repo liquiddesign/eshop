@@ -43,7 +43,7 @@ class NewsletterPresenter extends BackendPresenter
 			}
 
 			$link = $this->admin->isAllowed(':Eshop:Admin:Customer:editAccount') ?
-				$datagrid->getPresenter()->link(':Eshop:Admin:Customer:editAccount', [$newsletterUser->customerAccount, 'backLink' => $this->storeRequest()]) : '#';
+				$datagrid->getPresenter()->link(':Eshop:Admin:Customer:editAccount', [$newsletterUser->customerAccount]) : '#';
 
 			return '<a href="' . $link . "\"><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $newsletterUser->customerAccount->login . '</a>';
 		});

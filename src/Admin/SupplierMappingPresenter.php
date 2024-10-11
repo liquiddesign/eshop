@@ -112,7 +112,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			function (Entity $supplierMapping) {
 				/** @var \Eshop\DB\SupplierMapping $supplierMapping */
 				$link = $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') ?
-					$this->link(':Eshop:Admin:Supplier:detail', [$supplierMapping->supplier, 'backLink' => $this->storeRequest(),]) : '#';
+					$this->link(':Eshop:Admin:Supplier:detail', [$supplierMapping->supplier,]) : '#';
 
 				return "<a href='$link'>" . ($supplierMapping->supplier->name ?: 'Detail dodavatele') . '</a>';
 			},
@@ -148,7 +148,7 @@ class SupplierMappingPresenter extends BackendPresenter
 					foreach ($categories as $category) {
 						$categoryName = $categoriesNames[$category->getPK()];
 
-						$text .= "<a href='" . $this->link(':Eshop:Admin:Category:detail', [$category, 'backLink' => $this->storeRequest(),]) . "'>" .
+						$text .= "<a href='" . $this->link(':Eshop:Admin:Category:detail', [$category,]) . "'>" .
 							$categoryName . '</a><br>';
 					}
 				} else {
@@ -186,7 +186,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			$grid->addColumnText('Název', 'name', '%s', 'name');
 			$grid->addColumn('Napárovano', function (SupplierProducer $mapping) {
 				$link = $mapping->producer && $this->admin->isAllowed(':Eshop:Admin:Producer:detail') ?
-					$this->link(':Eshop:Admin:Producer:detail', [$mapping->producer, 'backLink' => $this->storeRequest(),]) : '#';
+					$this->link(':Eshop:Admin:Producer:detail', [$mapping->producer,]) : '#';
 
 				return $mapping->producer ? "<a href='$link'>" . ($mapping->producer->name ?: 'Detail výrobce') . '</a>' : '-';
 			});
@@ -202,7 +202,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			$grid->addColumnText('Operátor', 'filterType', '%s', 'filterType');
 			$grid->addColumn('Napárovano', function (SupplierAttribute $mapping) {
 				$link = $mapping->attribute && $this->admin->isAllowed(':Eshop:Admin:Attribute:attributeDetail') ?
-					$this->link(':Eshop:Admin:Attribute:attributeDetail', [$mapping->attribute, 'backLink' => $this->storeRequest(),]) : '#';
+					$this->link(':Eshop:Admin:Attribute:attributeDetail', [$mapping->attribute,]) : '#';
 
 				return $mapping->attribute ? "<a href='$link'>" . ($mapping->attribute->name ?: 'Detail atributu') . '</a>' : '-';
 			});
@@ -236,16 +236,16 @@ class SupplierMappingPresenter extends BackendPresenter
 		if ($this->tab === 'attributeValue') {
 			$grid->addColumn('Atribut', function (SupplierAttributeValue $mapping) {
 				$link = $mapping->supplierAttribute && $this->admin->isAllowed(':Eshop:Admin:SupplierMapping:detail') ?
-					$this->link(':Eshop:Admin:SupplierMapping:detail', [$mapping->getValue('supplierAttribute'), 'backLink' => $this->storeRequest(), 'tab' => 'attribute']) : '#';
+					$this->link(':Eshop:Admin:SupplierMapping:detail', [$mapping->getValue('supplierAttribute'), 'tab' => 'attribute']) : '#';
 
 				return $mapping->supplierAttribute ? "<a href='$link'>" . ($mapping->supplierAttribute->name ?: 'Detail atributu') . '</a>' : '-';
 			});
 			$grid->addColumnText('Název', 'label', '%s', 'label');
 			$grid->addColumn('Napárovano', function (SupplierAttributeValue $mapping) {
 				$link = $mapping->attributeValue && $this->admin->isAllowed(':Eshop:Admin:Attribute:valueDetail') ?
-					$this->link(':Eshop:Admin:Attribute:valueDetail', [$mapping->attributeValue, 'backLink' => $this->storeRequest(),]) : '#';
+					$this->link(':Eshop:Admin:Attribute:valueDetail', [$mapping->attributeValue,]) : '#';
 				$attributeLink = $mapping->attributeValue && $this->admin->isAllowed(':Eshop:Admin:Attribute:attributeDetail') ?
-					$this->link(':Eshop:Admin:Attribute:attributeDetail', [$mapping->attributeValue->attribute, 'backLink' => $this->storeRequest(),]) : '#';
+					$this->link(':Eshop:Admin:Attribute:attributeDetail', [$mapping->attributeValue->attribute,]) : '#';
 
 				return $mapping->attributeValue ? "<a href='$attributeLink'>" .
 					($mapping->attributeValue->attribute->name ?: 'Detail atributu') .
@@ -261,7 +261,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			$grid->addColumnText('Hodnota', 'name', '%s', 'name');
 			$grid->addColumn('Napárovano', function (SupplierDisplayAmount $mapping) {
 				$link = $mapping->displayAmount && $this->admin->isAllowed(':Eshop:Admin:DisplayAmount:detail') ?
-					$this->link(':Eshop:Admin:DisplayAmount:detail', [$mapping->displayAmount, 'backLink' => $this->storeRequest(),]) : '#';
+					$this->link(':Eshop:Admin:DisplayAmount:detail', [$mapping->displayAmount,]) : '#';
 
 				return $mapping->displayAmount ? "<a href='$link'>" . ($mapping->displayAmount->label ?: 'Detail dostupnosti') . '</a>' : '-';
 			});

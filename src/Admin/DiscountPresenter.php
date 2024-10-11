@@ -88,7 +88,7 @@ class DiscountPresenter extends BackendPresenter
 				if (!$this->admin->isAllowed($link)) {
 					$resultString .= $pricelist->name . ', ';
 				} else {
-					$resultString .= '<a href=' . $this->link($link, [$pricelist, 'backlink' => $this->storeRequest()]) . '>' . $pricelist->name . '</a>, ';
+					$resultString .= '<a href=' . $this->link($link, [$pricelist]) . '>' . $pricelist->name . '</a>, ';
 				}
 			}
 
@@ -299,7 +299,7 @@ class DiscountPresenter extends BackendPresenter
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumn('Exkluzivně pro zákazníka', function (DiscountCoupon $object, Datagrid $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Customer:edit') && $object->exclusiveCustomer ?
-				$datagrid->getPresenter()->link(':Eshop:Admin:Customer:edit', [$object->exclusiveCustomer, 'backLink' => $this->storeRequest()]) : '#';
+				$datagrid->getPresenter()->link(':Eshop:Admin:Customer:edit', [$object->exclusiveCustomer]) : '#';
 
 			return $object->exclusiveCustomer ? '<a href="' . $link . "\"><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->exclusiveCustomer->fullname . '</a>' : '';
 		});
