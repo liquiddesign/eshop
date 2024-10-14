@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.335](https://github.com/liquiddesign/eshop/compare/v2.1.334...v2.1.335) (2024-10-14)
+
+### Features
+
+* Implement GetDeliveryTypesWithPaymentTypes action and DTO ([16f727](https://github.com/liquiddesign/eshop/commit/16f7277c8ac88be5f46b1a8ee7471e851ab6b98c))
+
+
+---
+
 ## [2.1.334](https://github.com/liquiddesign/eshop/compare/v2.1.333...v2.1.334) (2024-10-11)
 
 ### Bug Fixes
