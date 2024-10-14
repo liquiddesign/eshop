@@ -6,29 +6,29 @@ use Eshop\DB\Customer;
 use Eshop\DB\Product;
 use Nette\Localization\Translator;
 
-class ProductWithFormattedPrices
+readonly class ProductWithFormattedPrices
 {
 	public function __construct(
-		protected readonly Translator $translator,
-		protected readonly Product $product,
-		protected readonly bool $showWithVat,
-		protected readonly bool $showWithoutVat,
+		protected Translator $translator,
+		protected Product $product,
+		protected bool $showWithVat,
+		protected bool $showWithoutVat,
 		/** @var 'withVat'|'withoutVat' */
-		protected readonly string $priorityPrice,
-		protected readonly bool $canView,
-		protected readonly string $price,
-		protected readonly string $priceVat,
-		protected readonly float $priceNumeric,
-		protected readonly float $priceVatNumeric,
-		protected readonly ?string $priceBefore,
-		protected readonly ?string $priceVatBefore,
-		protected readonly ?Customer $customer,
-		protected readonly ?int $discountPercent = null,
-		protected readonly int $amount = 1,
-		protected readonly ?string $priceSum = null,
-		protected readonly ?string $priceVatSum = null,
-		protected readonly ?string $priceBeforeSum = null,
-		protected readonly ?string $priceVatBeforeSum = null,
+		protected string $priorityPrice,
+		protected bool $canView,
+		protected string $price,
+		protected string $priceVat,
+		protected float $priceNumeric,
+		protected float $priceVatNumeric,
+		protected ?string $priceBefore,
+		protected ?string $priceVatBefore,
+		protected ?Customer $customer,
+		protected ?int $discountPercent = null,
+		protected int $amount = 1,
+		protected ?string $priceSum = null,
+		protected ?string $priceVatSum = null,
+		protected ?string $priceBeforeSum = null,
+		protected ?string $priceVatBeforeSum = null,
 	) {
 	}
 
