@@ -498,7 +498,7 @@ class Purchase extends \StORM\Entity
 		}
 
 		if ($this->zasilkovnaId) {
-			return $this->pickupPoint ? $this->pickupPoint->name : $this->zasilkovnaId;
+			return $this->pickupPoint ? $this->pickupPoint->name : $this->pickupPointName;
 		}
 
 		return null;
