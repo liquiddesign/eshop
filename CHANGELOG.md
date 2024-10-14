@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.336](https://github.com/liquiddesign/eshop/compare/v2.1.335...v2.1.336) (2024-10-14)
+
+### Bug Fixes
+
+* Zasilkovna pickup point fallback in Purchase class ([0ad379](https://github.com/liquiddesign/eshop/commit/0ad3795091278d0055db641a83f610104c7277ff))
+
+
+---
+
 ## [2.1.335](https://github.com/liquiddesign/eshop/compare/v2.1.334...v2.1.335) (2024-10-14)
 
 ### Features
