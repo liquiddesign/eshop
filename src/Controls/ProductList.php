@@ -110,7 +110,7 @@ class ProductList extends Datalist
 			]);
 		});
 
-		$this->setAllowedRepositoryFilters(['category', 'ribbon', 'producer', 'related', 'recommended', 'q', 'hidden', 'uuids', 'pricelist']);
+		$this->setAllowedRepositoryFilters(['category', 'ribbon', 'producer', 'related', 'recommended', 'q', 'hidden', 'uuids', 'pricelist', 'hiddenInMenu']);
 
 		$this->addFilterExpression('crossSellFilter', function (ICollection $collection, $value): void {
 			$this->productRepository->filterCrossSellFilter($value, $collection);
@@ -183,8 +183,6 @@ class ProductList extends Datalist
 		}
 
 		\Tracy\Debugger::timer('getProductsFromCacheTable');
-
-//		dump($this->getFilters());
 
 		try {
 			$cachedProducts = $this->productsProvider->getProductsFromCacheTable(

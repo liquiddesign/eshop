@@ -179,36 +179,46 @@ class ProductFilter extends Control
 
 				$subAttributeValuesCounts = $providerOutputWithoutAttribute['attributeValuesCounts'];
 
-				$orderedAttributeValues = $this->attributeNumericService->getLabelsOrderedNumerically($attribute);
+				$orderedAttributeValues = $this->attributeNumericService->getNumberValues($attribute);
+
+				$minValue = \PHP_FLOAT_MAX;
+				$maxValue = \PHP_FLOAT_MIN;
 
 				$minAttributeValueWithCount = null;
 				$maxAttributeValueWithCount = null;
 
-				foreach ($orderedAttributeValues as $attributeValue) {
-					$attributeValuePK = $attributeValue->getPK();
-
+				foreach ($orderedAttributeValues as $attributeValuePK => $attributeValue) {
 					if (!isset($subAttributeValuesCounts[$attributeValuePK]) || $subAttributeValuesCounts[$attributeValuePK] <= 0) {
 						continue;
 					}
 
-					if (!$minAttributeValueWithCount) {
+					$minNumber = $attributeValue->numberFrom ?: $attributeValue->number;
+					$maxNumber = $attributeValue->numberTo ?: $attributeValue->number;
+
+					if ($minNumber < $minValue) {
+						$minValue = $minNumber;
 						$minAttributeValueWithCount = $attributeValue;
 					}
 
-					$maxAttributeValueWithCount = $attributeValue;
+					if ($maxNumber > $maxValue) {
+						$maxValue = $maxNumber;
+						$maxAttributeValueWithCount = $attributeValue;
+					}
+
+					continue;
 				}
 
 				$sliderContainer = $attributesContainer->addContainer((string) $attribute->getPK());
 
 				$sliderContainer->addText('from', $attribute->name ?? $attribute->code)
 					->setNullable()
-					->setHtmlAttribute('placeholder', $minAttributeValueWithCount?->label)
-					->addCondition($filterForm::Filled)->addRule($filterForm::Integer);
+					->setHtmlAttribute('placeholder', $minAttributeValueWithCount ? $minValue : null)
+					->addCondition($filterForm::Filled)->addRule($filterForm::Float);
 
 				$sliderContainer->addText('to')
 					->setNullable()
-					->setHtmlAttribute('placeholder', $maxAttributeValueWithCount?->label)
-					->addCondition($filterForm::Filled)->addRule($filterForm::Integer);
+					->setHtmlAttribute('placeholder', $maxAttributeValueWithCount ? $maxValue : null)
+					->addCondition($filterForm::Filled)->addRule($filterForm::Float);
 
 				continue;
 			}

@@ -49,6 +49,7 @@ class AttributePresenter extends BackendPresenter
 		'forceValueFormMutationSelector' => false,
 		// Change null to custom string => will be displayed as name of field
 		'customField1' => null,
+		'showNumberRangeInGrid' => false,
 	];
 
 	#[\Nette\DI\Attributes\Inject]
@@ -283,7 +284,8 @@ class AttributePresenter extends BackendPresenter
 
 		if (!$hardSystemic) {
 			$form->addCheckbox('showRange', 'Zobrazit jako rozsahy')->setHtmlAttribute('data-info', 'Hodnoty atributu nebudou zobrazeny jako jednotlivé položky, ale souhrnně dle nastavení rozsahů.');
-			$form->addCheckbox('showNumericSlider', 'Zobrazit jako slider')->setHtmlAttribute('data-info', 'Hodnoty atributu nebudou zobrazeny jako jednotlivé položky, ale jako slider s krokem 1.');
+			$form->addCheckbox('showNumericSlider', 'Zobrazit jako slider')->setHtmlAttribute('data-info', 'Hodnoty atributu nebudou zobrazeny jako jednotlivé položky, ale jako slider OD - DO.');
+			$form->addFloat('sliderStep', 'Krok slideru')->setDefaultValue(1)->setRequired();
 		}
 
 		$form->addInteger('showCount', 'Počet položek zobrazených při načtení')->setNullable()
@@ -370,7 +372,13 @@ class AttributePresenter extends BackendPresenter
 
 			return '<a href="' . $grid->getPresenter()->link(':Eshop:Product:list', ['attributeValue' => $attributeValue->getPK()]) . '" target="_blank">' . $attributeValue->label . '</a>';
 		}, '%s', 'label');
-		$grid->addColumnText('Číselná reprezentace', 'number', '%s', 'number');
+		$grid->addColumnInputFloat('Číselná reprezentace', 'number');
+
+		if ($this::CONFIGURATIONS['showNumberRangeInGrid'] ?? false) {
+			$grid->addColumnInputFloat('Číselná reprezentace OD', 'numberFrom');
+			$grid->addColumnInputFloat('Číselná reprezentace DO', 'numberTo');
+		}
+
 		$grid->addColumnText('Atribut', 'attribute.name', '%s', 'attribute.name');
 		$grid->addColumnText('Zdroj', 'supplierName', '%s', 'supplierName');
 		$grid->addColumnText('Rozsah', 'rangeName', '%s');
@@ -419,6 +427,14 @@ class AttributePresenter extends BackendPresenter
 				}
 			}, '', 'range', null, ['0' => 'X - bez rozsahu'] + $options)->setPrompt('- Rozsahy -');
 		}
+
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+			if ($value === '0') {
+				$source->where('this.number IS NULL');
+			} else {
+				$source->where('this.number IS NOT NULL');
+			}
+		}, '', 'number', null, ['1' => 'Ano', '0' => 'Ne'])->setPrompt('- Číslená reprezentace -');
 
 		$grid->addFilterButtons(['default']);
 
@@ -470,8 +486,10 @@ class AttributePresenter extends BackendPresenter
 		$form->addLocaleTextArea('note', 'Dodatečné informace');
 		$form->addText('metaValue', 'Doprovodná hodnota')->setNullable();
 		$form->addText('number', 'Číselná reprezentace')->addFilter('floatval')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
+		$form->addText('numberFrom', 'Ruční hodnota od (pouze slider)')->addFilter('floatval')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
+		$form->addText('numberTo', 'Ruční hodnota do (pouze slider)')->addFilter('floatval')->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->addText('priority', 'Priorita')
-			->addRule($form::INTEGER)
+			->addRule($form::Integer)
 			->setRequired()
 			->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');

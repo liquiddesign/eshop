@@ -196,7 +196,6 @@ class ProductsCacheGetterService implements AutoWireService
 		array $priceLists = [],
 		array $visibilityLists = [],
 	): array|false {
-		$mutationSuffix = $this->connection->getMutationSuffix();
 		$cacheIndex = $this->getCacheIndexToBeUsed();
 
 		if ($cacheIndex === 0) {
@@ -238,7 +237,7 @@ class ProductsCacheGetterService implements AutoWireService
 		]);
 
 		if ($cachedData) {
-			return $cachedData;
+//			return $cachedData;
 		}
 
 		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
@@ -361,12 +360,12 @@ class ProductsCacheGetterService implements AutoWireService
 							$numericAttributeValuesQuery = $this->attributeValueRepository->many()
 								->setSelect(['this.id']);
 
-							if ($subValue['from']) {
-								$numericAttributeValuesQuery->where("CAST(this.label$mutationSuffix AS SIGNED) >= :from", ['from' => $subValue['from']]);
+							if (isset($subValue['from'])) {
+								$numericAttributeValuesQuery->where('this.number >= :from OR this.numberFrom >= :from', ['from' => $subValue['from']]);
 							}
 
-							if ($subValue['to']) {
-								$numericAttributeValuesQuery->where("CAST(this.label$mutationSuffix AS SIGNED) <= :to", ['to' => $subValue['to']]);
+							if (isset($subValue['to'])) {
+								$numericAttributeValuesQuery->where('this.number <= :to OR this.numberTo <= :to', ['to' => $subValue['to']]);
 							}
 
 							$dynamicFiltersAttributes[$attribute->id] = $numericAttributeValuesQuery

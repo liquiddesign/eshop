@@ -47,13 +47,11 @@ readonly class AttributeNumericService implements AutoWireService
 	 * @param \Eshop\DB\Attribute $attribute
 	 * @return array<\Eshop\DB\AttributeValue>
 	 */
-	public function getLabelsOrderedNumerically(Attribute $attribute): array
+	public function getNumberValues(Attribute $attribute): array
 	{
-		$mutationSuffix = $this->connection->getMutationSuffix();
-
 		return $this->attributeValueRepository->many()
 			->where('this.fk_attribute', $attribute->getPK())
-			->setOrderBy(["CAST(this.label$mutationSuffix AS SIGNED)"])
+			->where('this.number IS NOT NULL OR this.numberFrom IS NOT NULL OR this.numberTo IS NOT NULL')
 			->toArray();
 	}
 }

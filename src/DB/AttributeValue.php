@@ -53,6 +53,18 @@ class AttributeValue extends SystemicEntity
 	public ?float $number;
 
 	/**
+	 * Číselná reprezentace pro Slider jako rozsah OD
+	 * @column
+	 */
+	public ?float $numberFrom;
+
+	/**
+	 * Číselná reprezentace pro Slider jako rozsah DO
+	 * @column
+	 */
+	public ?float $numberTo;
+
+	/**
 	 * Priorita
 	 * @column
 	 */
@@ -127,5 +139,10 @@ class AttributeValue extends SystemicEntity
 	public function getInternalName(): string
 	{
 		return $this->internalName ?? $this->label;
+	}
+
+	public function getSliderValue(): float|null
+	{
+		return $this->number ?? $this->numberFrom ?? $this->numberTo;
 	}
 }

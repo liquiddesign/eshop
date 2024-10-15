@@ -159,6 +159,11 @@ class Attribute extends \StORM\Entity
 	public bool $showNumericSlider = false;
 
 	/**
+	 * @column
+	 */
+	public float $sliderStep = 1.0;
+
+	/**
 	 * ID
 	 * column - don't created by auto migration, only by manual
 	 */

@@ -690,7 +690,7 @@ CREATE TABLE `$categoriesTableName` (
 				$product->code ? "$product->code" : '\N',
 				$product->subCode ? "$product->subCode" : '\N',
 				$product->externalCode ? "$product->externalCode" : '\N',
-				$product->ean ? "\"$product->ean\"" : '\N',
+				$product->ean ? "$product->ean" : '\N',
 				$product->fkMasterProduct ?: '\N',
 			];
 

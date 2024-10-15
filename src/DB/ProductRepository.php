@@ -1147,8 +1147,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function filterAttributes($attributes, ICollection $collection): void
 	{
-		$mutationSuffix = $this->connection->getMutationSuffix();
-
 		foreach ($attributes as $attributeKey => $selectedAttributeValues) {
 			if (\count($selectedAttributeValues) === 0) {
 				continue;
@@ -1174,12 +1172,12 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				} elseif ($attribute->showNumericSlider) {
 					$selectedAttributeValuesQuery = $this->attributeValueRepository->many();
 
-					if ($selectedAttributeValues['from']) {
-						$selectedAttributeValuesQuery->where("CAST(this.label$mutationSuffix AS SIGNED) >= :from", ['from' => $selectedAttributeValues['from']]);
+					if (isset($selectedAttributeValues['from'])) {
+						$selectedAttributeValuesQuery->where('this.number >= :from OR this.numberFrom >= :from', ['from' => $selectedAttributeValues['from']]);
 					}
 
-					if ($selectedAttributeValues['to']) {
-						$selectedAttributeValuesQuery->where("CAST(this.label$mutationSuffix AS SIGNED) <= :to", ['to' => $selectedAttributeValues['to']]);
+					if (isset($selectedAttributeValues['to'])) {
+						$selectedAttributeValuesQuery->where('this.number <= :to OR this.numberTo <= :to', ['to' => $selectedAttributeValues['to']]);
 					}
 
 					$selectedAttributeValues = $selectedAttributeValuesQuery->where('this.fk_attribute', $attribute->getPK())->toArrayOf('uuid', toArrayValues: true);
