@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.337](https://github.com/liquiddesign/eshop/compare/v2.1.336...v2.1.337) (2024-10-15)
+
+### Features
+
+* Slider attributes ([9e1847](https://github.com/liquiddesign/eshop/commit/9e1847f46449cbe65d6d6dea5c5400eab1b00b18))
+
+
+---
+
 ## [2.1.336](https://github.com/liquiddesign/eshop/compare/v2.1.335...v2.1.336) (2024-10-14)
 
 ### Bug Fixes
