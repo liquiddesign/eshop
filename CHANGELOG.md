@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.338](https://github.com/liquiddesign/eshop/compare/v2.1.337...v2.1.338) (2024-10-15)
+
+### Features
+
+* Hide sliderStep ([990cb1](https://github.com/liquiddesign/eshop/commit/990cb1a63ed71092366a8254b97db069bdbaa51d))
+
+
+---
+
 ## [2.1.337](https://github.com/liquiddesign/eshop/compare/v2.1.336...v2.1.337) (2024-10-15)
 
 ### Features
