@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.339](https://github.com/liquiddesign/eshop/compare/v2.1.338...v2.1.339) (2024-10-16)
+
+### Features
+
+* Add 'importPrices' option for import result type ([3ccb76](https://github.com/liquiddesign/eshop/commit/3ccb76276f50b78828257e4677405ce5e1ca0740))
+
+
+---
+
 ## [2.1.338](https://github.com/liquiddesign/eshop/compare/v2.1.337...v2.1.338) (2024-10-15)
 
 ### Features
