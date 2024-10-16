@@ -24,7 +24,7 @@ class ImportResult extends \StORM\Entity
 	
 	/**
 	 * Typ
-	 * @column{"type":"enum","length":"'import','entry','importAmount'"}
+	 * @column{"type":"enum","length":"'import','entry','importAmount','importPrices'"}
 	 */
 	public string $type = 'import';
 	

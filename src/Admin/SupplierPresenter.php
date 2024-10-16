@@ -123,6 +123,7 @@ class SupplierPresenter extends BackendPresenter
 				$msg = match ($object->type) {
 					'import' => 'Import doběhl v pořádku',
 					'importAmount' => 'Import dosupností a skladů doběhl v pořádku',
+					'importPrices' => 'Import cen doběhl v pořádku',
 					default => 'Zápis do katalogu doběhl v pořádku',
 				};
 
