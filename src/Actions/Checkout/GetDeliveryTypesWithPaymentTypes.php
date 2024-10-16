@@ -29,14 +29,14 @@ class GetDeliveryTypesWithPaymentTypes extends BaseAction
 			$result = [];
 
 			foreach ($deliveryTypes as $deliveryType) {
-				$allowedPaymentTypes = \array_keys($deliveryType->allowedPaymentTypes->toArray());
+				$allowedPaymentTypes = $deliveryType->allowedPaymentTypes->toArray();
 
-				foreach ($allowedPaymentTypes as $paymentId) {
-					if (isset($paymentTypes[$paymentId])) {
+				foreach ($allowedPaymentTypes as $paymentType) {
+					if (isset($paymentTypes[$paymentType->getPK()])) {
 						continue;
 					}
 
-					unset($allowedPaymentTypes[$paymentId]);
+					unset($allowedPaymentTypes[$paymentType->getPK()]);
 				}
 
 				if (!$allowedPaymentTypes) {
