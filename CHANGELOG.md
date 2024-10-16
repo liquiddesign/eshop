@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.340](https://github.com/liquiddesign/eshop/compare/v2.1.339...v2.1.340) (2024-10-16)
+
+### Bug Fixes
+
+* Wrong unset keys ([21855c](https://github.com/liquiddesign/eshop/commit/21855cf02b17199c1d3b92b6f632f45610246830))
+
+
+---
+
 ## [2.1.339](https://github.com/liquiddesign/eshop/compare/v2.1.338...v2.1.339) (2024-10-16)
 
 ### Features
