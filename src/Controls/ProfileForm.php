@@ -51,6 +51,7 @@ class ProfileForm extends \Nette\Application\UI\Form
 		$billAddressBox->addText('city', 'billAddress.city')->setRequired();
 		$billAddressBox->addText('zipcode', 'billAddress.zipcode')->setRequired()
 			->addRule(self::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
+		$billAddressBox->addText('state', 'billAddress.state')->setNullable();
 
 		$this->addGroup('Doručovací adresa');
 		$deliveryAddressBox = $this->addContainer('deliveryAddress');
@@ -60,6 +61,7 @@ class ProfileForm extends \Nette\Application\UI\Form
 		$deliveryAddressBox->addText('city', 'deliveryAddress.city');
 		$deliveryAddressBox->addText('zipcode', 'deliveryAddress.zipcode')->setNullable()->addCondition($this::Filled)
 			->addRule(self::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
+		$deliveryAddressBox->addText('state', 'deliveryAddress.state')->setNullable();
 
 		$this->addGroup('Potvrzení');
 		$this->addSubmit('submit', 'profileForm.submit');
