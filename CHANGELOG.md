@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.341](https://github.com/liquiddesign/eshop/compare/v2.1.340...v2.1.341) (2024-10-17)
+
+### Features
+
+* Add state field to billing and delivery addresses in ProfileForm ([e2b397](https://github.com/liquiddesign/eshop/commit/e2b3977e400a6dce688f56323f705dd4ddf5d710))
+
+
+---
+
 ## [2.1.340](https://github.com/liquiddesign/eshop/compare/v2.1.339...v2.1.340) (2024-10-16)
 
 ### Bug Fixes
