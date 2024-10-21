@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.343](https://github.com/liquiddesign/eshop/compare/v2.1.342...v2.1.343) (2024-10-21)
+
+### Features
+
+* Improve product search with partial code and EAN matching ([56e83d](https://github.com/liquiddesign/eshop/commit/56e83db839758824fa2571214abc4a014fedde4c))
+
+
+---
+
 ## [2.1.342](https://github.com/liquiddesign/eshop/compare/v2.1.341...v2.1.342) (2024-10-21)
 
 ### Features
