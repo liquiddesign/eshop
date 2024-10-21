@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.342](https://github.com/liquiddesign/eshop/compare/v2.1.341...v2.1.342) (2024-10-21)
+
+### Features
+
+* Add method to extend supplier form with custom fields ([9ecb02](https://github.com/liquiddesign/eshop/commit/9ecb02922106aeb104675499f38eaf7baaf88f1f))
+
+
+---
+
 ## [2.1.341](https://github.com/liquiddesign/eshop/compare/v2.1.340...v2.1.341) (2024-10-17)
 
 ### Features
