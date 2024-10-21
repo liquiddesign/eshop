@@ -1243,11 +1243,18 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function getAjaxArrayForSelect(bool $includeHidden = true, ?string $q = null, ?int $page = null): array
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
-		
+
 		return $this->getCollection($includeHidden)
-			->where("this.name$suffix LIKE :q OR this.code = :exact OR this.ean = :exact", ['q' => "%$q%", 'exact' => $q,])
+			->select(['fullName' => "CONCAT(name$suffix, ' (', code, ')')"])
+			->where(
+				"this.name$suffix LIKE :q OR this.code LIKE :starts OR this.ean LIKE :starts",
+				[
+					'q' => "%$q%",
+					'starts' => "$q%",
+				]
+			)
 			->setPage($page ?? 1, 5)
-			->toArrayOf('name');
+			->toArrayOf('fullName');
 	}
 	
 	public function getProductByCodeOrEAN(string $expression): ?Product
