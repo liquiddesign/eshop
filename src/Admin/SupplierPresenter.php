@@ -216,7 +216,7 @@ class SupplierPresenter extends BackendPresenter
 
 		return $form;
 	}
-	
+
 	public function createComponentForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
@@ -247,6 +247,8 @@ class SupplierPresenter extends BackendPresenter
 		$form->addInteger('importPriceRatio', 'Procentuální změna ceny')->setRequired();
 		$form->addCheckbox('splitPricelists', 'Rozdělit ceníky (dostupné / nedostupné)');
 		$form->addCheckbox('importImages', 'Importovat obrázky');
+
+		$this->addCustomFieldsToSupplierForm($form);
 		
 		$form->addSubmits(!$supplier);
 		
@@ -383,5 +385,10 @@ class SupplierPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('importForm')];
+	}
+
+	protected function addCustomFieldsToSupplierForm(AdminForm $form): void
+	{
+		unset($form);
 	}
 }
