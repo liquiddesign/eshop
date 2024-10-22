@@ -20,7 +20,7 @@ use StORM\ICollection;
 use StORM\SchemaManager;
 
 /**
- * @template T of \Eshop\DB\Customer
+ * @template T of \Eshop\DB\Customer = \Eshop\DB\Customer
  * @extends \StORM\Repository<T>
  */
 class CustomerRepository extends \StORM\Repository implements IUserRepository, IGeneralRepository, IGeneralAjaxRepository

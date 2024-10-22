@@ -15,7 +15,7 @@ use StORM\ICollection;
 use StORM\SchemaManager;
 
 /**
- * @template T of \Eshop\DB\Pricelist
+ * @template T of \Eshop\DB\Pricelist = \Eshop\DB\Pricelist
  * @extends \StORM\Repository<T>
  */
 class PricelistRepository extends \StORM\Repository implements IGeneralRepository
