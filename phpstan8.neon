@@ -21,9 +21,6 @@ parameters:
 	excludePaths:
 		- src/assets/*
 		- src/templates/*
-	ignoreErrors:
-		-
-			identifier: missingType.generics
 services:
 	-
 		class: StORM\Bridges\PhpStan\OneReturnType

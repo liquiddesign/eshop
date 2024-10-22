@@ -180,13 +180,13 @@ class Invoice extends \StORM\Entity
 	 */
 	public RelationCollection $items;
 	
-	public function getDaysFromDue(): ?int
+	public function getDaysFromDue(): float|null
 	{
 		if (!$this->dueDate) {
 			return null;
 		}
 		
-		return Carbon::now()->diffInDays(Carbon::parse($this->dueDate), false);
+		return Carbon::now()->diffInDays(Carbon::parse($this->dueDate));
 	}
 
 	/**
