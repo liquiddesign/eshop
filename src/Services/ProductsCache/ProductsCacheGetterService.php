@@ -237,7 +237,7 @@ class ProductsCacheGetterService implements AutoWireService
 		]);
 
 		if ($cachedData) {
-//			return $cachedData;
+			return $cachedData;
 		}
 
 		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
