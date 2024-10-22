@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.344](https://github.com/liquiddesign/eshop/compare/v2.1.343...v2.1.344) (2024-10-22)
+
+### Features
+
+* Add template annotations to Customer, PackageItem, and Pricelist repositories ([7f4af1](https://github.com/liquiddesign/eshop/commit/7f4af1de137a9e49250ebb044aab9fd089db8adf))
+
+
+---
+
 ## [2.1.343](https://github.com/liquiddesign/eshop/compare/v2.1.342...v2.1.343) (2024-10-21)
 
 ### Features
