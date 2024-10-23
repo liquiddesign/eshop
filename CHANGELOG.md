@@ -4,6 +4,20 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.345](https://github.com/liquiddesign/eshop/compare/v2.1.344...v2.1.345) (2024-10-23)
+
+### Features
+
+* Add getPreviousStep method to CheckoutManager class ([81d411](https://github.com/liquiddesign/eshop/commit/81d4118e485f511ccafc9d56b5d4bd2bfc1d7ed5))
+* Enable cache in Cache ([3ffbb0](https://github.com/liquiddesign/eshop/commit/3ffbb0ea7a713a10bd01d039cbd9f3323ff25715))
+
+### Builds
+
+* Fix phpstan ([f774c1](https://github.com/liquiddesign/eshop/commit/f774c1edcc00951aef41ded8cc84644452499e87))
+
+
+---
+
 ## [2.1.344](https://github.com/liquiddesign/eshop/compare/v2.1.343...v2.1.344) (2024-10-22)
 
 ### Features
