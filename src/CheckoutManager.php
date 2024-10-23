@@ -1078,6 +1078,17 @@ class CheckoutManager
 
 		return null;
 	}
+
+	public function getPreviousStep(string $currentStep): string|null
+	{
+		$sequence = \array_search($currentStep, $this->shopperUser->getCheckoutSequence());
+
+		if ($sequence === false) {
+			return null;
+		}
+
+		return $this->shopperUser->getCheckoutSequence()[$sequence - 1] ?? null;
+	}
 	
 	/**
 	 * cart - pokud je buy allowed
