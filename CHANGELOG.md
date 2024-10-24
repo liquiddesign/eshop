@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.346](https://github.com/liquiddesign/eshop/compare/v2.1.345...v2.1.346) (2024-10-24)
+
+### Features
+
+* Implement GetSupplierProductByProduct and refactor supplier actions ([798d17](https://github.com/liquiddesign/eshop/commit/798d17ac5ebb69b02e15df03155f482868c6086d))
+
+### Builds
+
+* Update phpstan ([3bfa69](https://github.com/liquiddesign/eshop/commit/3bfa69e2a8bcda9a03982401a20c393523f4ef55))
+
+
+---
+
 ## [2.1.345](https://github.com/liquiddesign/eshop/compare/v2.1.344...v2.1.345) (2024-10-23)
 
 ### Features
