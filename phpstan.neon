@@ -12,6 +12,7 @@ parameters:
 	paths:
 		- src
 	excludePaths:
+		- src/Actions
 		- src/assets/*
 		- src/templates/*
 		- src/Front/Eshop/ExportPresenter.php
