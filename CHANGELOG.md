@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.347](https://github.com/liquiddesign/eshop/compare/v2.1.346...v2.1.347) (2024-10-25)
+
+### Features
+
+* Add availability column and update Algolia search method ([b85a17](https://github.com/liquiddesign/eshop/commit/b85a175d398e6d866a2c83d85927c1839b948ecc))
+
+
+---
+
 ## [2.1.346](https://github.com/liquiddesign/eshop/compare/v2.1.345...v2.1.346) (2024-10-24)
 
 ### Features
