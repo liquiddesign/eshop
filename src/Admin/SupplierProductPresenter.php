@@ -77,6 +77,7 @@ class SupplierProductPresenter extends BackendPresenter
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumnText('Výrobce', 'producer.name', '%s');
 		$grid->addColumnText('Kategorie', ['category.getNameTree'], '%s');
+		$grid->addColumnText('Dostupnost', ['displayAmount.name'], '%s');
 
 		$grid->addColumn('Napárovano', function (SupplierProduct $supplierProduct, AdminGrid $datagrid) {
 			$link = $supplierProduct->product && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ?
@@ -95,7 +96,7 @@ class SupplierProductPresenter extends BackendPresenter
 				}
 
 				try {
-					$hits = $algolia->searchProduct($supplierProduct->name)['hits'];
+					$hits = $algolia->search($supplierProduct->name, 'products')['hits'];
 					$hitsCount = \count($hits);
 
 					if ($hitsCount > 0) {
