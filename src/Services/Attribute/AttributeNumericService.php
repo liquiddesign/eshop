@@ -15,34 +15,6 @@ readonly class AttributeNumericService implements AutoWireService
 	) {
 	}
 
-	public function getMax(Attribute $attribute): float|int|null
-	{
-		if (!$attribute->showNumericSlider) {
-			return null;
-		}
-
-		$mutationSuffix = $this->connection->getMutationSuffix();
-
-		return $this->attributeValueRepository->many()
-			->where('this.fk_attribute', $attribute->getPK())
-			->setSelect(['max' => "MAX(CAST(this.label$mutationSuffix AS SIGNED))"])
-			->firstValue('max');
-	}
-
-	public function getMin(Attribute $attribute): float|int|null
-	{
-		if (!$attribute->showNumericSlider) {
-			return null;
-		}
-
-		$mutationSuffix = $this->connection->getMutationSuffix();
-
-		return $this->attributeValueRepository->many()
-			->where('this.fk_attribute', $attribute->getPK())
-			->setSelect(['min' => "MIN(CAST(this.label$mutationSuffix AS SIGNED))"])
-			->firstValue('min');
-	}
-
 	/**
 	 * @param \Eshop\DB\Attribute $attribute
 	 * @return array<\Eshop\DB\AttributeValue>
