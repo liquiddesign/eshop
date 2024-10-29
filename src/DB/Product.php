@@ -599,6 +599,7 @@ class Product extends \StORM\Entity
 	}
 
 	/**
+	 * @deprecated Use GetProductRibbons
 	 * @return array<\Eshop\DB\Ribbon>|array<\StORM\Entity>
 	 */
 	public function getImageRibbons(): array
@@ -612,6 +613,7 @@ class Product extends \StORM\Entity
 	}
 
 	/**
+	 * @deprecated Use GetProductRibbons
 	 * @return array<\Eshop\DB\Ribbon>|array<\StORM\Entity>
 	 */
 	public function getTextRibbons(): array

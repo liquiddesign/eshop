@@ -15,12 +15,18 @@ class RibbonRepository extends \StORM\Repository implements IGeneralRepository
 	private Collection $imageRibbons;
 	
 	private Collection $textRibbons;
-	
+
+	/**
+	 * @return \StORM\Collection<\Eshop\DB\Ribbon>
+	 */
 	public function getImageRibbons(): Collection
 	{
 		return $this->imageRibbons ??= $this->many()->where('type', 'onlyImage')->where('hidden', false)->orderBy(['priority']);
 	}
-	
+
+	/**
+	 * @return \StORM\Collection<\Eshop\DB\Ribbon>
+	 */
 	public function getTextRibbons(): Collection
 	{
 		return $this->textRibbons ??= $this->many()->where('type', 'normal')->where('hidden', false)->orderBy(['priority']);
