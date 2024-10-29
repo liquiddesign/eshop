@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.350](https://github.com/liquiddesign/eshop/compare/v2.1.349...v2.1.350) (2024-10-29)
+
+### Features
+
+* Set default value for merged filter to 'master' ([4b4dd9](https://github.com/liquiddesign/eshop/commit/4b4dd9d41b889967453dc831ef052c6d325c2d83))
+
+
+---
+
 ## [2.1.349](https://github.com/liquiddesign/eshop/compare/v2.1.348...v2.1.349) (2024-10-29)
 
 ### Features
