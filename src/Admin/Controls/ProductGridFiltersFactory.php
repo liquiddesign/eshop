@@ -325,7 +325,9 @@ class ProductGridFiltersFactory
 			} elseif ($value === 'slave') {
 				$source->where('this.fk_masterProduct IS NOT NULL');
 			}
-		}, '', 'merged', null, ['master' => 'Pouze master', 'slave' => 'Pouze slave'])->setPrompt('- Sloučení -');
+		}, 'master', 'merged', null, ['master' => 'Pouze master', 'slave' => 'Pouze slave'])
+			->setPrompt('- Sloučení -')
+			->setDefaultValue('master');
 
 		Arrays::invoke($this->onAddFilters, $grid);
 	}
