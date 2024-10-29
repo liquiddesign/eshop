@@ -4,6 +4,23 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.348](https://github.com/liquiddesign/eshop/compare/v2.1.347...v2.1.348) (2024-10-29)
+
+### Features
+
+* Add GetProductRibbons action and RibbonType enum ([c3f7e9](https://github.com/liquiddesign/eshop/commit/c3f7e93261b185457c0dbbe9d823ede6b150296f))
+
+### Code Refactoring
+
+* Remove old methods ([c799b3](https://github.com/liquiddesign/eshop/commit/c799b36a14bfb8f5ed2bf5c4c445ca66a14a0b7f))
+
+### Builds
+
+* Add php links ([779c6e](https://github.com/liquiddesign/eshop/commit/779c6ecc64ae0ddb64e3391a97dcc2f3c2c1ed1c))
+
+
+---
+
 ## [2.1.347](https://github.com/liquiddesign/eshop/compare/v2.1.346...v2.1.347) (2024-10-25)
 
 ### Features

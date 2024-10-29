@@ -2,7 +2,7 @@
     "name": "liquiddesign/eshop",
     "description": "Ⓔ Služby, entity, administrace a kontroly pro eshop",
     "license": "MIT",
-    "version": "2.1.347",
+    "version": "2.1.348",
     "autoload": {
         "psr-4": {
             "Eshop\\": "src/"
@@ -85,11 +85,16 @@
         "lattelint": "@php lattelint.php",
         "tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php",
         "check-commit": "@php ./vendor/liquiddesign/codestyle/src/scripts/check-last-commit.php",
-        "changelog": "conventional-changelog",
-        "release": "conventional-changelog --patch --commit",
-        "release:patch": "conventional-changelog --patch --commit",
-        "release:minor": "conventional-changelog --minor --commit",
-        "release:major": "conventional-changelog --major --commit"
+        "changelog": "@php ./vendor/bin/conventional-changelog",
+        "release": "@php ./vendor/bin/conventional-changelog --patch --commit",
+        "release:patch": "@php ./vendor/bin/conventional-changelog --patch --commit",
+        "release:minor": "@php ./vendor/bin/conventional-changelog --minor --commit",
+        "release:major": "@php ./vendor/bin/conventional-changelog --major --commit",
+        "release:patch full": [
+            "@release:patch",
+            "git push",
+            "git push --tags"
+        ]
     },
     "config": {
         "allow-plugins": {
