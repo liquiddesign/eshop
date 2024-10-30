@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.351](https://github.com/liquiddesign/eshop/compare/v2.1.350...v2.1.351) (2024-10-30)
+
+### Features
+
+* Search only masters ([417701](https://github.com/liquiddesign/eshop/commit/4177010093965970a95499a3a72b131b23c836dd))
+
+
+---
+
 ## [2.1.350](https://github.com/liquiddesign/eshop/compare/v2.1.349...v2.1.350) (2024-10-29)
 
 ### Features
