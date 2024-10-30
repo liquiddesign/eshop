@@ -1253,6 +1253,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 					'starts' => "$q%",
 				]
 			)
+			->where('this.fk_masterProduct IS NULL')
 			->setPage($page ?? 1, 5)
 			->toArrayOf('fullName');
 	}

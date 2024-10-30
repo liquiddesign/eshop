@@ -82,6 +82,7 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 		/** @var array<\Eshop\DB\Product> $products */
 		$products = $this->productRepository->getCollection(true)
 			->where("this.name$suffix LIKE :q OR this.code = :exact OR this.ean = :exact", ['q' => "%$q%", 'exact' => $q,])
+			->where('this.fk_masterProduct IS NULL')
 			->setPage($page ?? 1, 5)
 			->toArrayOf('name');
 
@@ -131,6 +132,7 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 	}
 
 	/**
+	 * @deprecated ABEL feature -> move to abel-base
 	 * @throws \Nette\Application\AbortException
 	 * @throws \StORM\Exception\NotFoundException
 	 */
@@ -151,6 +153,7 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 			->join(['category' => 'eshop_category'], 'nxnCategory.fk_category = category.uuid')
 			->where('category.path LIKE :categoryPath', ['categoryPath' => $printerCategory->path . '%'])
 			->where("this.name$suffix LIKE :q OR this.code = :exact OR this.ean = :exact", ['q' => "%$q%", 'exact' => $q,])
+			->where('this.fk_masterProduct IS NULL')
 			->setPage($page ?? 1, 5);
 
 		if ($product) {
