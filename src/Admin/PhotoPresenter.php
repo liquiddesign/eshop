@@ -152,7 +152,7 @@ class PhotoPresenter extends \Eshop\BackendPresenter
 						->toArrayOf('uuid', toArrayValues: true);
 
 					$subSelect = $this->categoryRepository->getConnection()->rows(['eshop_product_nxn_eshop_category'])
-						->where('this.uuid = eshop_product_nxn_eshop_category.fk_product')
+						->where('this.fk_product = eshop_product_nxn_eshop_category.fk_product')
 						->where('eshop_product_nxn_eshop_category.fk_category', $allSubCategoriesForCategory);
 
 					$source->where('EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
