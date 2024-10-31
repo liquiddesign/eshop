@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.355](https://github.com/liquiddesign/eshop/compare/v2.1.354...v2.1.355) (2024-10-31)
+
+### Bug Fixes
+
+
+##### Product
+
+* Merged filter ([f1df9f](https://github.com/liquiddesign/eshop/commit/f1df9f70ca1fffa798d3275e10ae736a8e1507d8))
+
+
+---
+
 ## [2.1.354](https://github.com/liquiddesign/eshop/compare/v2.1.353...v2.1.354) (2024-10-31)
 
 ### Bug Fixes
