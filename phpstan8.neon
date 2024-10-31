@@ -1,10 +1,9 @@
 includes:
 	- vendor/phpstan/phpstan-nette/extension.neon
-	- vendor/ticketswap/phpstan-error-formatter/extension.neon
+	- vendor/liquiddesign/storm/phpstan-extension.neon
+	- vendor/dave-liddament/phpstan-php-language-extensions/extension.neon
 
 parameters:
-	errorFormat: ticketswap
-	editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'
 	universalObjectCratesClasses:
 		- Nette\Http\SessionSection
 		- Nette\Application\UI\Template
@@ -19,27 +18,7 @@ parameters:
 		- src/Front/Eshop/ExportPresenter.php
 		- src/Admin/MerchantPresenter.php
 		- src/Services/Order/OrderEditService.php
+		- src/Admin/Controls/Customer
 	excludePaths:
 		- src/assets/*
 		- src/templates/*
-services:
-	-
-		class: StORM\Bridges\PhpStan\OneReturnType
-		tags:
-			- phpstan.broker.dynamicMethodReturnTypeExtension
-	-
-		class: StORM\Bridges\PhpStan\FirstReturnType
-		tags:
-			- phpstan.broker.dynamicMethodReturnTypeExtension
-	-
-		class: StORM\Bridges\PhpStan\FindRepositoryReturnType
-		tags:
-			- phpstan.broker.dynamicMethodReturnTypeExtension
-	-
-		class: StORM\Bridges\PhpStan\OneThrowType
-		tags:
-			- phpstan.broker.dynamicMethodThrowTypeExtension
-	-
-		class: StORM\Bridges\PhpStan\FirstThrowType
-		tags:
-			- phpstan.broker.dynamicMethodThrowTypeExtension

@@ -49,18 +49,20 @@
         "latte/latte": "^3.0",
         "ramsey/uuid": "^4.7",
         "liquiddesign/liquid-monitor-connector": "^1.0.19",
-        "illuminate/database": "^11.0"
+        "illuminate/database": "^11.0",
+        "dave-liddament/php-language-extensions": "^0.8"
     },
     "minimum-stability": "stable",
     "require-dev": {
         "tracy/tracy": "^2.10",
         "composer/composer": "^2.0",
-        "liquiddesign/codestyle": "^3.0.10",
+        "liquiddesign/codestyle": "^3.0.13",
         "liquiddesign/migrator": "~1.0",
         "phpstan/phpstan-nette": "~1.0",
-        "marcocesarato/php-conventional-changelog": "dev-main",
-        "ticketswap/phpstan-error-formatter": "^1.0",
-        "pestphp/pest": "^3.1"
+        "marcocesarato/php-conventional-changelog": "^1.17",
+        "pestphp/pest": "^3.1",
+        "dave-liddament/phpstan-php-language-extensions": "^0.7",
+        "phpstan/phpstan-deprecation-rules": "^1.2"
     },
     "scripts": {
         "fix-code": [
@@ -78,8 +80,8 @@
             "@check-commit"
         ],
         "phpstan-clear-cache": "@php ./vendor/bin/phpstan clear-result-cache",
-        "phpstan": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan.neon",
-        "phpstan8": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan8.neon",
+        "phpstan": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan.neon --ansi",
+        "phpstan8": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan8.neon --ansi",
         "phpcs": "@php ./vendor/bin/phpcs --standard=ruleset.xml --ignore=assets --cache src",
         "phpcsfix": "@php ./vendor/bin/phpcbf --standard=ruleset.xml --ignore=assets --cache src",
         "lattelint": "@php lattelint.php",

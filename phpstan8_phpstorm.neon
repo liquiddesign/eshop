@@ -1,3 +1,10 @@
+includes:
+	- vendor/phpstan/phpstan-nette/extension.neon
+	- vendor/liquiddesign/storm/phpstan-extension.neon
+	- phar://phpstan.phar/conf/bleedingEdge.neon
+	- vendor/phpstan/phpstan-deprecation-rules/rules.neon
+	- vendor/dave-liddament/phpstan-php-language-extensions/extension.neon
+
 parameters:
 	universalObjectCratesClasses:
 		- Nette\Http\SessionSection
@@ -8,24 +15,3 @@ parameters:
 	excludePaths:
 		- src/assets/*
 		- src/templates/*
-services:
-	-
-		class: StORM\Bridges\PhpStan\OneReturnType
-		tags:
-			- phpstan.broker.dynamicMethodReturnTypeExtension
-	-
-		class: StORM\Bridges\PhpStan\FirstReturnType
-		tags:
-			- phpstan.broker.dynamicMethodReturnTypeExtension
-	-
-		class: StORM\Bridges\PhpStan\FindRepositoryReturnType
-		tags:
-			- phpstan.broker.dynamicMethodReturnTypeExtension
-	-
-		class: StORM\Bridges\PhpStan\OneThrowType
-		tags:
-			- phpstan.broker.dynamicMethodThrowTypeExtension
-	-
-		class: StORM\Bridges\PhpStan\FirstThrowType
-		tags:
-			- phpstan.broker.dynamicMethodThrowTypeExtension
