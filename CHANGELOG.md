@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.354](https://github.com/liquiddesign/eshop/compare/v2.1.353...v2.1.354) (2024-10-31)
+
+### Bug Fixes
+
+
+##### Photo
+
+* Category filter ([0afe53](https://github.com/liquiddesign/eshop/commit/0afe53e1616605772d766dceeb4c3484446a55b0))
+
+
+---
+
 ## [2.1.353](https://github.com/liquiddesign/eshop/compare/v2.1.352...v2.1.353) (2024-10-31)
 
 ### ⚠ BREAKING CHANGES
