@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.352](https://github.com/liquiddesign/eshop/compare/v2.1.351...v2.1.352) (2024-10-31)
+
+### Features
+
+* Favourite products ([549c9e](https://github.com/liquiddesign/eshop/commit/549c9e9b829a4151518c57d0a7887c23bc1febc9))
+
+### Builds
+
+* Improve phpstan ([7b3b5b](https://github.com/liquiddesign/eshop/commit/7b3b5b5fe6c36cebccbc37bd8535e763b37773cd))
+
+
+---
+
 ## [2.1.351](https://github.com/liquiddesign/eshop/compare/v2.1.350...v2.1.351) (2024-10-30)
 
 ### Features
