@@ -6,6 +6,7 @@ namespace Eshop\Admin;
 use Admin\Admin\Controls\AccountFormFactory;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\Admin\Controls\Customer\FavouriteProductsTrait;
 use Eshop\DB\AddressRepository;
 use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CurrencyRepository;
@@ -47,6 +48,8 @@ use StORM\ICollection;
 
 class CustomerPresenter extends \Eshop\BackendPresenter
 {
+	use FavouriteProductsTrait;
+
 	public const TABS = [
 		'customers' => 'Zákazníci',
 		'accounts' => 'Účty',
@@ -389,13 +392,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder'], false, null, 'this.uuid');
 		
-		$grid->addButtonBulkEdit('form', $this->getBulkEdits(), 'customers', onBeforeProcess: function (array $values, array $relations): array {
-			if (isset($this->getHttpRequest()->getPost()['values']['favouriteProducts']) && $this->getHttpRequest()->getPost()['values']['favouriteProducts']) {
-				$relations['favouriteProducts'] = $this->getHttpRequest()->getPost()['values']['favouriteProducts'];
-			}
-
-			return [$values, $relations];
-		});
+		$grid->addButtonBulkEdit('form', $this->getBulkEdits(), 'customers', copyRawValues: ['favouriteProducts' => 'favouriteProducts']);
 		
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů')
 			->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
@@ -882,7 +879,11 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			['Zákazníci', 'default'],
 			['Detail'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default'), $this->createButton('editAddress', 'Adresy', $this->getParameter('customer'))];
+		$this->template->displayButtons = [
+			$this->createBackButton('default'),
+			$this->createButton2('editAddress', 'Adresy', linkArgs: [$this->getParameter('customer')]),
+//			$this->createButton2('editFavouriteProducts', 'Oblíbené produkty', linkArgs: [$this->getParameter('customer')]),
+		];
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
 	
@@ -896,7 +897,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			['Zákazníci', 'default'],
 			['Adresy'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default'), $this->createButton('edit', 'Zákazník', $customer)];
+		$this->template->displayButtons = [$this->createBackButton('default'), $this->createButton2('edit', 'Zákazník', linkArgs: [$customer])];
 		$this->template->displayControls = [$this->getComponent('editAddress')];
 	}
 	
