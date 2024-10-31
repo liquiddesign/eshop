@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.353](https://github.com/liquiddesign/eshop/compare/v2.1.352...v2.1.353) (2024-10-31)
+
+### ⚠ BREAKING CHANGES
+
+* Remove PS script, use composer release:patch-full ([03596d](https://github.com/liquiddesign/eshop/commit/03596d924b20487b5c911fc80ed3bdac468af79c))
+
+
+---
+
 ## [2.1.352](https://github.com/liquiddesign/eshop/compare/v2.1.351...v2.1.352) (2024-10-31)
 
 ### Features
