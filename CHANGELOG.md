@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.356](https://github.com/liquiddesign/eshop/compare/v2.1.355...v2.1.356) (2024-11-04)
+
+### Features
+
+* Bigger select limit ([8c57fe](https://github.com/liquiddesign/eshop/commit/8c57fe2927d9f2c9553b3712a0777218b0f0ec29))
+
+### Chores
+
+* Add type ([addca1](https://github.com/liquiddesign/eshop/commit/addca110ba3e882a70f12a37953ec98d028d074b))
+
+
+---
+
 ## [2.1.355](https://github.com/liquiddesign/eshop/compare/v2.1.354...v2.1.355) (2024-10-31)
 
 ### Bug Fixes
