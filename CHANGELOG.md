@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.357](https://github.com/liquiddesign/eshop/compare/v2.1.356...v2.1.357) (2024-11-04)
+
+### Chores
+
+* Remove type ([96f42b](https://github.com/liquiddesign/eshop/commit/96f42b17bc6cbc1665a69b3ec0b407d86d2b2305))
+
+
+---
+
 ## [2.1.356](https://github.com/liquiddesign/eshop/compare/v2.1.355...v2.1.356) (2024-11-04)
 
 ### Features
