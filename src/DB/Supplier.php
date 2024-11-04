@@ -31,7 +31,6 @@ class Supplier extends \StORM\Entity
 	/**
 	 * Třída importu
 	 * @column
-	 * @var class-string
 	 */
 	public string $providerClass;
 
