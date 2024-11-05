@@ -7,6 +7,7 @@ namespace Eshop\Admin;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Carbon\Carbon;
+use Eshop\Actions\Product\GetMergedProductsByProduct;
 use Eshop\Admin\Configs\ProductFormAutoPriceConfig;
 use Eshop\Admin\Configs\ProductFormConfig;
 use Eshop\Admin\Controls\IProductAttributesFormFactory;
@@ -256,6 +257,11 @@ class ProductPresenter extends BackendPresenter
 		'products' => 'Katalog',
 		'attributes' => 'Atributy',
 	];
+
+	public function __construct(private readonly GetMergedProductsByProduct $getMergedProductsByProduct)
+	{
+		parent::__construct();
+	}
 
 	public function createComponentProductGrid(): \Grid\Datagrid
 	{
@@ -982,6 +988,7 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 				return;
 			}
 
+			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
 
 			$existingMasterMergedProducts = $this->productRepository->many()
@@ -1000,7 +1007,7 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 			foreach ($this->productRepository->many()->where('this.uuid', $ids) as $product) {
 				/** @var array<string, \Eshop\DB\Product> $localProducts */
 				$localProducts = [$product->getPK() => $product];
-				$localProducts = \array_merge($localProducts, $product->getAllMergedProducts());
+				$localProducts = Arrays::mergeTree($localProducts, $this->getMergedProductsByProduct->execute($product));
 
 				/**
 				 * @var string $localProductPK

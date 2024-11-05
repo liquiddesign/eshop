@@ -589,13 +589,13 @@ class Product extends \StORM\Entity
 			$up[$masterProduct->getPK()] = $masterProduct;
 
 			if ($includeDescendantsOfAscendants) {
-				$up = \array_merge($up, $this->doGetAllMergedProducts($masterProduct));
+				$up = Arrays::mergeTree($up, $this->doGetAllMergedProducts($masterProduct));
 			}
 
 			$product = $masterProduct;
 		}
 
-		return \array_merge(\array_reverse($up), $down);
+		return Arrays::mergeTree(\array_reverse($up), $down);
 	}
 
 	/**
@@ -1243,7 +1243,7 @@ class Product extends \StORM\Entity
 		foreach ($product->slaveProducts as $mergedProduct) {
 			$products[$mergedProduct->getPK()] = $mergedProduct;
 
-			$products = \array_merge($products, $this->doGetAllMergedProducts($mergedProduct));
+			$products = Arrays::mergeTree($products, $this->doGetAllMergedProducts($mergedProduct));
 		}
 
 		return $products;

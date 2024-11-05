@@ -5,6 +5,7 @@ namespace Eshop\Actions\Product;
 use Base\Bridges\AutoWireAction;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Nette\Utils\Arrays;
 
 readonly class GetMergedProductsByProduct implements AutoWireAction
 {
@@ -32,13 +33,13 @@ readonly class GetMergedProductsByProduct implements AutoWireAction
 			$up[$masterProduct->getPK()] = $masterProduct;
 
 			if ($includeDescendantsOfAscendants) {
-				$up = \array_merge($up, $this->doGetAllMergedProducts($masterProduct));
+				$up = Arrays::mergeTree($up, $this->doGetAllMergedProducts($masterProduct));
 			}
 
 			$product = $masterProduct;
 		}
 
-		return \array_merge(\array_reverse($up), $down);
+		return Arrays::mergeTree(\array_reverse($up), $down);
 	}
 
 	/**
@@ -51,7 +52,7 @@ readonly class GetMergedProductsByProduct implements AutoWireAction
 		foreach ($product->slaveProducts as $mergedProduct) {
 			$products[$mergedProduct->getPK()] = $mergedProduct;
 
-			$products = \array_merge($products, $this->doGetAllMergedProducts($mergedProduct));
+			$products = Arrays::mergeTree($products, $this->doGetAllMergedProducts($mergedProduct));
 		}
 
 		return $products;
