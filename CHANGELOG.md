@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.360](https://github.com/liquiddesign/eshop/compare/v2.1.359...v2.1.360) (2024-11-05)
+
+### Bug Fixes
+
+* Array_merge ([3e70d2](https://github.com/liquiddesign/eshop/commit/3e70d2f727d96793a3123c5bf1211970c1cc4c1c))
+
+
+---
+
 ## [2.1.359](https://github.com/liquiddesign/eshop/compare/v2.1.358...v2.1.359) (2024-11-05)
 
 ### Bug Fixes
