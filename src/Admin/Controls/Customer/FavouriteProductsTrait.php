@@ -31,7 +31,7 @@ trait FavouriteProductsTrait
 		$form = $this->formFactory->create(defaultGroup: false);
 
 		$form->monitor(Presenter::class, function () use ($form, $customer): void {
-			$productInput = $form->addMultiSelectAjax('favouriteProducts', 'Oblíbené produkty', 'Zvolte produkt', Product::class, ['maximumSelectionLength' => 300]);
+			$productInput = $form->addMultiSelectAjax('favouriteProducts', 'Oblíbené produkty', 'Zvolte produkt', Product::class, ['maximumSelectionLength' => 500]);
 
 			if ($customer) {
 				$this->template->select2AjaxDefaults[$productInput->getHtmlId()] = $customer->getFavouriteProducts()->toArrayOf('name');
