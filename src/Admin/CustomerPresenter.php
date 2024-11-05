@@ -392,7 +392,16 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder'], false, null, 'this.uuid');
 		
-		$grid->addButtonBulkEdit('form', $this->getBulkEdits(), 'customers', copyRawValues: ['favouriteProducts' => 'favouriteProducts']);
+		$grid->addButtonBulkEdit('form', $this->getBulkEdits(), 'customers');
+//		$grid->addButtonBulkEdit(
+//			'editFavouriteProducts',
+//			['favouriteProducts'],
+//			'customers',
+//			'favouriteProducts',
+//			'Upravit oblíbené produkty',
+//			'bulkEdit',
+//			copyRawValues: ['favouriteProducts' => 'favouriteProducts'],
+//		);
 		
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů')
 			->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
@@ -616,7 +625,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']))
 				->setPrompt('Žádná');
 
-			$productInput = $form->addMultiSelectAjax('favouriteProducts', 'Oblíbené produkty', 'Zvolte produkt', Product::class, ['maximumSelectionLength' => 300]);
+			$productInput = $form->addMultiSelectAjax('favouriteProducts', 'Oblíbené produkty', 'Zvolte produkt', Product::class)->setHtmlAttribute('class', 'w-100');
 
 			if ($customer) {
 				$this->template->select2AjaxDefaults[$productInput->getHtmlId()] = $customer->getFavouriteProducts()->toArrayOf('name');
@@ -946,7 +955,10 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				'exclusivePaymentTypes',
 				'exclusiveDeliveryTypes',
 				'accounts',
+				'favouriteProducts',
 			]) + ['merchants' => $merchants];
+
+		$defaults['favouriteProducts'] = \implode(',', $defaults['favouriteProducts']);
 		
 		if ($customer->loyaltyProgramDiscountLevel) {
 			$defaults['loyaltyProgramDiscountLevel'] = (string) $customer->loyaltyProgramDiscountLevel->discountLevel;
@@ -1352,7 +1364,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$bulkEdits[] = 'favouritePriceLists';
 			$bulkEdits[] = 'visibilityLists';
 			$bulkEdits[] = 'discountLevelPct';
-			$bulkEdits[] = 'favouriteProducts';
 		}
 
 		if ($this->isManager && isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {

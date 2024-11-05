@@ -16,3 +16,4 @@ parameters:
 		- src/Front/Eshop/ExportPresenter.php
 		- src/Admin/MerchantPresenter.php
 		- src/Admin/Controls/Customer
+		- src/migrations
