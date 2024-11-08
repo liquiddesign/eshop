@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.362](https://github.com/liquiddesign/eshop/compare/v2.1.361...v2.1.362) (2024-11-08)
+
+### Bug Fixes
+
+
+##### Product List
+
+* Add last order by primary key ([d0c60b](https://github.com/liquiddesign/eshop/commit/d0c60b872bb5f733985f4d59b4103685abdb3b8f))
+
+
+---
+
 ## [2.1.361](https://github.com/liquiddesign/eshop/compare/v2.1.360...v2.1.361) (2024-11-08)
 
 ### Features
