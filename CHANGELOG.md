@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.361](https://github.com/liquiddesign/eshop/compare/v2.1.360...v2.1.361) (2024-11-08)
+
+### Features
+
+* Multi-language product files ([cc9a28](https://github.com/liquiddesign/eshop/commit/cc9a2871ca4483b124f81a816fbe45aa4466ad71))
+
+
+---
+
 ## [2.1.360](https://github.com/liquiddesign/eshop/compare/v2.1.359...v2.1.360) (2024-11-05)
 
 ### Bug Fixes
