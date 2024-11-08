@@ -316,7 +316,11 @@ class ProductPresenter extends BackendPresenter
 	{
 		$grid = $this->gridFactory->create($this->fileRepository->many()->where('fk_product', $this->getParameter('product')), 20, 'priority', 'ASC', true);
 		$grid->addColumnSelector();
-		$grid->addColumnText('Popisek', 'label_cs', '%s', 'label_cs');
+		$grid->addColumnText('Popisek', 'label_' . $this->lang, '%s', 'label_' . $this->lang);
+		$grid->addColumnText('Název souboru', 'fileName', '%s', 'fileName');
+		$grid->addColumn('Jazyky', function ($object) {
+			return $object->mutations ? Strings::upper(\str_replace('_', ', ', $object->mutations)) : 'Všechny';
+		});
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
@@ -327,7 +331,7 @@ class ProductPresenter extends BackendPresenter
 
 		$grid->addButtonSaveAll();
 
-		$grid->addFilterTextInput('search', ['fileName'], null, 'Jméno souboru');
+		$grid->addFilterTextInput('search', ['fileName'], null, 'Název souboru');
 		$grid->addFilterButtons(['this', $this->getParameter('product')]);
 
 		return $grid;
@@ -411,32 +415,43 @@ class ProductPresenter extends BackendPresenter
 	public function createComponentFileForm(): Form
 	{
 		$form = $this->formFactory->create(true);
-
-		if (!$this->getParameter('file')) {
-			$form->addFilePicker('fileName', 'Vybrat soubor', \DIRECTORY_SEPARATOR . Product::FILE_DIR)->setRequired();
+		
+		/** @var \Eshop\DB\File|null $file */
+		$file = $this->getParameter('file');
+		
+		if (!$file) {
+			$form->addUpload('fileName', 'Vybrat soubor')->setRequired();
 		}
 
 		$form->addLocaleText('label', 'Popisek')->forPrimary(function ($input): void {
 			$input->setRequired();
 		});
+		
+		$form->addDataMultiSelect(
+			'mutations',
+			'Zobrazit v jazycích',
+			\array_combine($this->formFactory->formFactory->getDefaultMutations(), $this->formFactory->formFactory->getDefaultMutations())
+		);
+		
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
 
 		$form->addHidden('product', (string) $this->getParameter('product'));
 
 		$form->addSubmit('submit', 'Uložit');
-
-		$form->onValidate[] = function (Form $form): void {
+		
+		$form->onValidate[] = function (Form $form) use ($file): void {
 			if (!$form->isValid()) {
 				return;
 			}
-
+			
+			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
-
-			if (isset($values['fileName']) && $values['fileName']->isOK()) {
+			
+			if ($file || (isset($values['fileName']) && $values['fileName']->isOK())) {
 				return;
 			}
-
+			
 			$form->addError('Je nutné přiložit soubor!');
 		};
 
@@ -448,18 +463,26 @@ class ProductPresenter extends BackendPresenter
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
 			}
-
-			if (isset($values['fileName'])) {
-				/** @var \Forms\Controls\UploadFile $upload */
-				$upload = $form['fileName'];
-
-				$values['fileName'] = $upload->upload($values['uuid'] . '.%2$s');
+			
+			if ($values['mutations']) {
+				\sort($values['mutations']);
+				$values['mutations'] = \implode('_', $values['mutations']);
 			}
-
-			$this->fileRepository->syncOne($values);
-
+			
+			if (isset($values['fileName'])) {
+				/** @var \Nette\Http\FileUpload $upload */
+				$upload = $values['fileName'];
+				
+				$mutationsPath = $values['mutations'] ? $values['mutations'] . '/' : '';
+				$upload->move($this->wwwDir . '/userfiles/' . File::FILE_DIR . '/' . $mutationsPath . $upload->getSanitizedName());
+				
+				$values['fileName'] = $upload->getSanitizedName();
+			}
+			
+			$file = $this->fileRepository->syncOne($values);
+			
 			$this->flashMessage('Uloženo', 'success');
-			$this->redirect('edit', $this->getParameter('product'));
+			$this->redirect('edit', ['product' => $file->product]);
 		};
 
 		return $form;
@@ -474,6 +497,9 @@ class ProductPresenter extends BackendPresenter
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('fileForm');
+		$values = $file->toArray();
+		$values['mutations'] = $file->mutations ? \array_combine(\explode('_', $file->mutations), \explode('_', $file->mutations)) : [];
+		
 		$form->setDefaults($file->toArray());
 	}
 
@@ -736,18 +762,20 @@ class ProductPresenter extends BackendPresenter
 			];
 		}
 	}
-
+	
 	public function deleteFile(File $file): void
 	{
 		$dir = File::FILE_DIR;
-		$rootDir = $this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . $dir;
-
+		
+		$rootDir = $this->wwwDir . '/userfiles/' . $dir;
+		$mutationsDir = $file->mutations ? $file->mutations . '/' : '';
+		
 		if (!$file->fileName) {
 			return;
 		}
-
+		
 		try {
-			FileSystem::delete($rootDir . \DIRECTORY_SEPARATOR . $file->fileName);
+			FileSystem::delete($rootDir . '/' . $mutationsDir . $file->fileName);
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::WARNING);
 		}

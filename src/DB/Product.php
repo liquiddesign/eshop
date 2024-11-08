@@ -1195,15 +1195,16 @@ class Product extends \StORM\Entity
 
 		return $array;
 	}
-
+	
 	/**
 	 * @return \StORM\RelationCollection<\Eshop\DB\File>
 	 */
 	public function getFilesCollection(): RelationCollection
 	{
 		return $this->getFiles()
-			->where('this.hidden', false)
-			->setOrderBy(['this.priority' => 'ASC']);
+					->where('mutations IS NULL OR mutations LIKE :mutation', ['mutation' => '%' . $this->activeMutation . '%'])
+					->where('this.hidden', false)
+					->setOrderBy(['this.priority' => 'ASC']);
 	}
 
 	/**

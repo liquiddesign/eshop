@@ -135,7 +135,7 @@
                                         {$button|noescape}
                                     {/foreach}
 
-                                    <a id="files-new" style="display:none;"><button class="btn btn-success btn-sm"><i class="fa fa-sm fa-plus m-1"></i>Nový soubor</button></a>
+                                    <a n:href="newFile $product"><button class="btn btn-success btn-sm"><i class="fa fa-sm fa-plus m-1"></i>Nový soubor</button></a>
                                 </div>
                             </div>
                         </div>
@@ -171,11 +171,6 @@
                         </div>
 
                         <div id="files-r-content" style="display: none">
-                            <div id="files-form" style="display:none;">
-                                {control fileForm}
-                                <hr>
-                            </div>
-
                             {control fileGrid}
                         </div>
 
@@ -245,10 +240,8 @@
 
                 if(search_params.get('editTab') === 'files'){
                     $('#files-r-content').show();
-                    $('#files-new').show();
                 }else{
                     $('#files-r-content').hide();
-                    $('#files-new').hide();
                 }
 
                 $('input[name="editTab"]').val(search_params.get('editTab'))
@@ -268,12 +261,7 @@
 
             {if $editTab === 'files'}
                 $('#files-r-content').show();
-                $('#files-new').show();
             {/if}
-
-            $('#files-new').click(function (){
-               $('#files-form').toggle();
-            });
         });
     </script>
 

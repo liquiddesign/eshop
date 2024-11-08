@@ -31,6 +31,12 @@ class File extends \StORM\Entity
 	public ?string $label;
 	
 	/**
+	 * Povolené mutace
+	 * @column
+	 */
+	public ?string $mutations;
+	
+	/**
 	 * Priorita
 	 * @column
 	 */
@@ -50,6 +56,12 @@ class File extends \StORM\Entity
 	
 	public function getFilePath(string $basePath): ?string
 	{
-		return $this->fileName ? $basePath . '/userfiles/' . self::FILE_DIR . '/' . $this->fileName : null;
+		if (!$this->fileName) {
+			return null;
+		}
+		
+		$mutationsDir = $this->mutations ? $this->mutations . '/' : '';
+		
+		return $basePath . '/userfiles/' . self::FILE_DIR . '/' . $mutationsDir . $this->fileName;
 	}
 }
