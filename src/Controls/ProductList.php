@@ -66,8 +66,9 @@ class ProductList extends Datalist
 		protected readonly DisplayDeliveryRepository $displayDeliveryRepository,
 		protected readonly GeneralProductsCacheProvider $productsProvider,
 		protected readonly CurrencyRepository $currencyRepository,
+		protected readonly string $primaryKeyName,
 		?array $order = null,
-		?Collection $source = null
+		?Collection $source = null,
 	) {
 		$source ??= $productRepository->getProducts()->join(['displayAmount' => 'eshop_displayamount'], 'this.fk_displayAmount = displayAmount.uuid');
 
@@ -243,6 +244,7 @@ class ProductList extends Datalist
 		}
 
 		$this->onLoad($source);
+		$source->orderBy([$this->primaryKeyName]);
 
 		$this->itemsOnPage = $this->nestingCallback && !$this->filters ? $this->getNestedSource($source, null) : $source->toArray();
 
