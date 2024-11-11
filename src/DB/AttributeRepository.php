@@ -48,6 +48,10 @@ class AttributeRepository extends \StORM\Repository implements IGeneralRepositor
 			->toArrayOf('fullName');
 	}
 
+	/**
+	 * @param bool $includeHidden
+	 * @return \StORM\Collection<\Eshop\DB\Attribute>
+	 */
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();

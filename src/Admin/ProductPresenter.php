@@ -41,6 +41,7 @@ use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\VatRateRepository;
+use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\FormValidators;
 use Eshop\ShopperUser;
@@ -237,6 +238,9 @@ class ProductPresenter extends BackendPresenter
 
 	#[Inject]
 	public VisibilityListRepository $visibilityListRepository;
+
+	#[Inject]
+	public VisibilityListItemRepository $visibilityListItemRepository;
 
 	#[Persistent]
 	public string $tab = 'products';
@@ -1068,9 +1072,7 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 			$link->beginTransaction();
 
 			try {
-				$updateValues = [
-					'fk_masterProduct' => $values['mainProduct'],
-				];
+				$updateValues = [];
 
 				foreach (['hidden', 'unavailable', 'hiddenInMenu'] as $key) {
 					if ($values[$key] !== null) {
@@ -1078,10 +1080,17 @@ Sloučení neovliňuje produkty ani importy, nic se nemaže. Můžete zvolit jes
 					}
 				}
 
+				if ($updateValues) {
+					$this->visibilityListItemRepository->many()
+						->where('this.fk_product', $ids)
+						->whereNot('this.fk_product', $values['mainProduct'])
+						->update($updateValues);
+				}
+
 				$this->productRepository->many()
 					->where('this.uuid', $ids)
 					->whereNot('this.uuid', $values['mainProduct'])
-					->update($updateValues);
+					->update(['fk_masterProduct' => $values['mainProduct'],]);
 
 				Arrays::invoke($this->onMergeFormSuccess, $values['mainProduct'], $ids, $updateValues);
 

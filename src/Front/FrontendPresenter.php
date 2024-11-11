@@ -149,10 +149,13 @@ abstract class FrontendPresenter extends Presenter
 	public function handleGetProductsForTypeAhead(): void
 	{
 		$value = $this->getParameter('value');
-		$products = $this->productRepository->getProducts()->where(
-			'this.hidden',
-			false,
-		)->filter(['q' => $value])->setTake(6);
+		$products = $this->productRepository->getProducts()
+			->filter([
+				'q' => $value,
+				'hidden' => false,
+				'hiddenInMenu' => false,
+			])
+			->setTake(6);
 		$result = [];
 
 		/** @var \Eshop\DB\Product $product */

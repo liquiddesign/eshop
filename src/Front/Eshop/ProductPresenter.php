@@ -116,7 +116,12 @@ abstract class ProductPresenter extends FrontendPresenter
 		
 		/** @var \Eshop\Controls\ProductList $products */
 		$products = $this->getComponent('products');
-		$filters = ['producer' => $producer, 'ribbon' => $ribbon];
+		$filters = [
+			'hidden' => false,
+			'hiddenInMenu' => false,
+			'producer' => $producer,
+			'ribbon' => $ribbon,
+		];
 		
 		if ($category) {
 			try {

@@ -39,7 +39,7 @@ readonly class GetMergedProductsByProduct implements AutoWireAction
 			$product = $masterProduct;
 		}
 
-		return Arrays::mergeTree(\array_reverse($up), $down);
+		return Arrays::mergeTree($up, $down);
 	}
 
 	/**
