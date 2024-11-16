@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.364](https://github.com/liquiddesign/eshop/compare/v2.1.363...v2.1.364) (2024-11-16)
+
+### ⚠ BREAKING CHANGES
+
+
+##### Delivery
+
+* Changed calculation of DeliveryTypes and return types ([edc6fe](https://github.com/liquiddesign/eshop/commit/edc6fe0f0bc3797e3b41e3520d08b8e2a26b4e3f))
+
+
+---
+
 ## [2.1.363](https://github.com/liquiddesign/eshop/compare/v2.1.362...v2.1.363) (2024-11-11)
 
 ### Bug Fixes
