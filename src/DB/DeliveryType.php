@@ -179,16 +179,6 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	
 	private BoxPacker\PackedBoxList $boxesForItems;
 	
-	public function getRealPrice(): float
-	{
-		return $this->getValue('price') * ($this->getValue('packagesNo') ?? 1);
-	}
-	
-	public function getRealPriceVat(): float
-	{
-		return $this->getValue('priceVat') * ($this->getValue('packagesNo') ?? 1);
-	}
-	
 	public function getPackagesNo(): int
 	{
 		return $this->getValue('packagesNo') ?? 1;

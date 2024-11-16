@@ -108,7 +108,11 @@ class DeliveryTypeRepository extends \StORM\Repository implements IGeneralReposi
 				'discountValueVat' => \intval($deliveryDiscount->discountValueVat),
 			]);
 		} else {
-			$collection->select(['price' => 'IFNULL(prices.price,0)', 'priceVat' => 'IFNULL(prices.priceVat,0)', 'priceBefore' => 'NULL', 'priceBeforeVat' => 'NULL']);
+			$collection->select([
+				'price' => 'IFNULL(prices.price,0)',
+				'priceVat' => 'IFNULL(prices.priceVat,0)',
+				'priceBefore' => 'NULL',
+				'priceBeforeVat' => 'NULL']);
 		}
 		
 		if ($allowedDeliveries) {

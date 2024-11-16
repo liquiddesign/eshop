@@ -20,6 +20,7 @@ use Eshop\DB\SupplierDeliveryTypeRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\ShopperUser;
 use Forms\Form;
+use Nette\DI\Attributes\Inject;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;
 use Nette\Utils\Html;
@@ -28,40 +29,40 @@ use StORM\DIConnection;
 
 class DeliveryTypePresenter extends BackendPresenter
 {
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public DeliveryTypeRepository $deliveryRepo;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public DeliveryTypePriceRepository $deliveryPriceRepo;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CurrencyRepository $currencyRepo;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CountryRepository $countryRepository;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PaymentTypeRepository $paymentTypeRepo;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public CustomerGroupRepository $groupRepo;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public PickupPointTypeRepository $pointTypeRepo;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public ShopperUser $shopperUser;
 	
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Request $request;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierRepository $supplierRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public SupplierDeliveryTypeRepository $supplierDeliveryTypeRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public DisplayDeliveryRepository $displayDeliveryRepository;
 	
 	public function createComponentGrid(): AdminGrid
@@ -73,24 +74,24 @@ class DeliveryTypePresenter extends BackendPresenter
 		$grid->addColumnImage('imageFileName', DeliveryType::IMAGE_DIR);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		
-		$code = $this->currencyRepo->many()->firstValue('uuid');
-		$grid->addColumn('Celková cena', function (DeliveryType $deliveryType, AdminGrid $dataGrid) use ($code) {
-			/** @var \Eshop\DB\DeliveryTypePrice|null $price */
-			$price = $this->deliveryPriceRepo->many()
-				->where('fk_deliveryType', $deliveryType->getPK())
-				->where('fk_currency', $code)
-				->where('weightTo IS NOT NULL')
-				->orderBy(['weightTo'])
-				->setTake(1)
-				->first();
-			
-			return $price ? $this->shopperUser->filterPrice($price->priceVat, $code) : '';
-		});
+//		$code = $this->currencyRepo->many()->firstValue('uuid');
+//		$grid->addColumn('Celková cena', function (DeliveryType $deliveryType, AdminGrid $dataGrid) use ($code) {
+//			/** @var \Eshop\DB\DeliveryTypePrice|null $price */
+//			$price = $this->deliveryPriceRepo->many()
+//				->where('fk_deliveryType', $deliveryType->getPK())
+//				->where('fk_currency', $code)
+//				->where('weightTo IS NOT NULL')
+//				->orderBy(['weightTo'])
+//				->setTake(1)
+//				->first();
+//
+//			return $price ? $this->shopperUser->filterPrice($price->priceVat, $code) : '';
+//		});
 		
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
-		
+
 		$grid->addColumnLink('prices', 'Ceník');
 		$grid->addColumnLinkDetail('Detail');
 		$grid->addColumnActionDeleteSystemic();
@@ -288,7 +289,7 @@ class DeliveryTypePresenter extends BackendPresenter
 
 		$grid->addColumnInputFloat('Dostupné do váhy kg (včetně)', 'weightTo', '', '', 'weightTo');
 		$grid->addColumnInputFloat('Dostupné do rozměru (včetně)', 'dimensionTo', '', '', 'dimensionTo');
-		
+
 		$grid->addColumnText('Měna', 'currency.code', '%s');
 		
 		$grid->addColumnActionDelete();

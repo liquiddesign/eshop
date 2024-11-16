@@ -830,32 +830,12 @@ class CheckoutManager
 			$this->shopsConfig->getSelectedShop(),
 		);
 	}
-	
+
 	/**
-	 * @return array<\Eshop\DB\DeliveryType>
+	 * @param bool $vat
+	 * @return \StORM\Collection<\Eshop\DB\DeliveryType>
 	 */
-	public function getDeliveryTypesProcessed(bool $vat): array
-	{
-		$deliveryTypes = $this->deliveryTypeRepository->getDeliveryTypes(
-			$this->shopperUser->getCurrency(),
-			$this->getCustomer(),
-			$this->shopperUser->getCustomerGroup(),
-			$this->getDeliveryDiscount($vat),
-			$this->getMaxWeight(),
-			$this->getMaxDimension(),
-			$this->getSumWeight(),
-			$this->shopsConfig->getSelectedShop(),
-		)->toArray();
-		
-		foreach ($deliveryTypes as $deliveryType) {
-			$boxes = $deliveryType->maxWeight !== null ? \count($deliveryType->getBoxesForItems($this->getTopLevelItems()->toArray())) : 1;
-			$deliveryType->setValue('packagesNo', $boxes);
-		}
-		
-		return $deliveryTypes;
-	}
-	
-	public function getDeliveryTypes(bool $vat = false): Collection
+	public function getDeliveryTypesCollection(bool $vat = false): Collection
 	{
 		return $this->deliveryTypeRepository->getDeliveryTypes(
 			$this->shopperUser->getCurrency(),
@@ -867,6 +847,22 @@ class CheckoutManager
 			$this->getSumWeight(),
 			$this->shopsConfig->getSelectedShop(),
 		);
+	}
+
+	/**
+	 * @param bool $vat
+	 * @return array<\Eshop\DB\DeliveryType>
+	 */
+	public function getDeliveryTypes(bool $vat = false): array
+	{
+		$deliveryTypes = $this->getDeliveryTypesCollection($vat)->toArray();
+
+		foreach ($deliveryTypes as $deliveryType) {
+			$boxes = $deliveryType->maxWeight !== null ? \count($deliveryType->getBoxesForItems($this->getTopLevelItems()->toArray())) : 1;
+			$deliveryType->setValue('packagesNo', $boxes);
+		}
+
+		return $deliveryTypes;
 	}
 	
 	public function checkDiscountCoupon(?string $cartId = self::ACTIVE_CART_ID): bool
@@ -1295,7 +1291,7 @@ class CheckoutManager
 	{
 		if ($this->getPurchase(false, $cartId) && $this->getPurchase(false, $cartId)->deliveryType) {
 			$deliveryPackagesNo = $includePackagesNo ? $this->getPurchase(true, $cartId)->deliveryPackagesNo : 1;
-			$showPrice = $this->shopperUser->getShowPrice();
+			$showPrice = $this->shopperUser->getMainPriceType();
 			
 			try {
 				$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase(false, $cartId)->getValue('deliveryType')]->getValue('priceVat');

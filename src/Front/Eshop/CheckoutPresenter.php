@@ -298,7 +298,7 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 
 	public function renderDeliveryPayment(): void
 	{
-		$this->template->deliveryTypes = $this->shopperUser->getCheckoutManager()->getDeliveryTypes()->toArray();
+		$this->template->deliveryTypes = $this->shopperUser->getCheckoutManager()->getDeliveryTypes();
 		$this->template->paymentTypes = $this->shopperUser->getCheckoutManager()->getPaymentTypes()->toArray();
 		$this->template->steps = $this->shopperUser->getCheckoutManager()->getCheckoutSteps();
 	}

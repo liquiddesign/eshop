@@ -11,7 +11,6 @@ use Eshop\DB\PickupPointRepository;
 use Eshop\ShopperUser;
 use InvalidArgumentException;
 use Nette;
-use StORM\Collection;
 
 class DeliveryPaymentForm extends Nette\Application\UI\Form
 {
@@ -26,9 +25,11 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 	) {
 		parent::__construct();
 
-		$vat = $this->shopperUser->getShowPrice() === 'withVat';
-		
-		$deliveriesList = $this->addRadioList('deliveries', 'deliveryPaymentForm.payments', $this->shopperUser->getCheckoutManager()->getDeliveryTypes($vat)->toArrayOf('name'))
+		$vat = $this->shopperUser->getMainPriceType() === 'withVat';
+
+		$deliveryTypes = $this->shopperUser->getCheckoutManager()->getDeliveryTypes($vat);
+
+		$deliveriesList = $this->addRadioList('deliveries', 'deliveryPaymentForm.payments', \collect($deliveryTypes)->pluck('name', 'uuid')->toArray())
 			->setHtmlAttribute('onChange=updatePoints(this)');
 		$paymentsList = $this->addRadioList('payments', 'deliveryPaymentForm.payments', $this->shopperUser->getCheckoutManager()->getPaymentTypes()->toArrayOf('name'));
 		
@@ -36,9 +37,8 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		
 		$allPoints = [];
 		$typesWithPoints = [];
-		
-		/** @var \Eshop\DB\DeliveryType $deliveryType */
-		foreach ($this->shopperUser->getCheckoutManager()->getDeliveryTypes($vat)->toArray() as $deliveryType) {
+
+		foreach ($deliveryTypes as $deliveryType) {
 			$pickupPoints = $this->pickupPointRepository->many()
 				->join(['type' => 'eshop_pickuppointtype'], 'this.fk_pickupPointType = type.uuid')
 				->join(['delivery' => 'eshop_deliverytype'], 'delivery.fk_pickupPointType = type.uuid')
@@ -154,8 +154,13 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		
 		$deliveries->addError($this->translator->translate('deliveryPaymentForm.missingZasil', 'Pro dopravu Zásilkovna je nutné zvolit výdejní místo.'));
 	}
-	
-	private function addCombinationRules(Nette\Forms\Controls\RadioList $deliveriesList, Nette\Forms\Controls\RadioList $paymentsList, Collection $deliveryTypes): void
+
+	/**
+	 * @param \Nette\Forms\Controls\RadioList $deliveriesList
+	 * @param \Nette\Forms\Controls\RadioList $paymentsList
+	 * @param array<\Eshop\DB\DeliveryType> $deliveryTypes
+	 */
+	private function addCombinationRules(Nette\Forms\Controls\RadioList $deliveriesList, Nette\Forms\Controls\RadioList $paymentsList, array $deliveryTypes): void
 	{
 		/**
 		 * @var string $deliveryId
