@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.365](https://github.com/liquiddesign/eshop/compare/v2.1.364...v2.1.365) (2024-11-18)
+
+### Features
+
+* Better merchant admin, add merchants to cache ([ff521e](https://github.com/liquiddesign/eshop/commit/ff521efc8a8b29ffc09dccb9292527039ba975cc))
+
+
+---
+
 ## [2.1.364](https://github.com/liquiddesign/eshop/compare/v2.1.363...v2.1.364) (2024-11-16)
 
 ### ⚠ BREAKING CHANGES
