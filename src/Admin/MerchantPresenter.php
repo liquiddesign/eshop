@@ -14,6 +14,7 @@ use Eshop\DB\Merchant;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\VisibilityListRepository;
+use Eshop\Services\ProductsCache\ProductsCacheGetterService;
 use Forms\Form;
 use Grid\Datagrid;
 use Messages\DB\TemplateRepository;
@@ -37,9 +38,6 @@ class MerchantPresenter extends BackendPresenter
 	#[Inject]
 	public MerchantRepository $merchantRepository;
 
-	/**
-	 * @var \Security\DB\AccountRepository<\Security\DB\Account>
-	 */
 	#[Inject]
 	public AccountRepository $accountRepository;
 
@@ -49,15 +47,9 @@ class MerchantPresenter extends BackendPresenter
 	#[Inject]
 	public CustomerGroupRepository $customerGroupRepository;
 
-	/**
-	 * @var \Eshop\DB\CustomerRepository<\Eshop\DB\Customer>
-	 */
 	#[Inject]
 	public CustomerRepository $customerRepository;
 
-	/**
-	 * @var \Eshop\DB\PricelistRepository<\Eshop\DB\Pricelist>
-	 */
 	#[Inject]
 	public PricelistRepository $pricelistRepository;
 
@@ -69,6 +61,14 @@ class MerchantPresenter extends BackendPresenter
 
 	#[Inject]
 	public VisibilityListRepository $visibilityListRepository;
+
+	#[Inject]
+	public ProductsCacheGetterService $productsCacheGetterService;
+
+	/**
+	 * @var null|callable(array<mixed> $values, \Admin\Controls\AdminForm $form): bool
+	 */
+	protected mixed $onMerchantFormUniqueValidation = null;
 
 	public function createComponentGrid(): AdminGrid
 	{
@@ -139,17 +139,14 @@ class MerchantPresenter extends BackendPresenter
 
 	public function createComponentForm(): Form
 	{
+		$merchant = $this->getParameter('merchant');
+
 		$form = $this->formFactory->create(false, false, false, false, false);
 
 		$form->addGroup('Obchodník');
-		$form->addText('code', 'Kód');
+		$form->addText('code', 'Kód')->setNullable();
 		$form->addText('fullname', 'Jméno a příjmení')->setRequired();
 		$form->addEmail('email', 'E-mail')->setRequired();
-
-		if (!$this->getParameter('merchant')) {
-			$form->addGroup('Účet');
-			$this->accountFormFactory->addContainer($form);
-		}
 
 		$form->addGroup('Další možnosti');
 
@@ -172,43 +169,60 @@ class MerchantPresenter extends BackendPresenter
 			'Posílat e-mailem informace o objednávkách přiřazených zákazníků.',
 		);
 
-		$form->addSubmits(!$this->getParameter('merchant'));
+		$this->formFactory->addShopsContainerToAdminForm($form);
 
-		$passwords = $this->passwords;
+		$form->addGroup('Cache');
+		$form->addText('cacheIndex', 'Index')
+			->setDisabled()
+			->setDefaultValue($merchant ? $this->productsCacheGetterService->getIndexByCustomer($merchant) : null);
+
+		$form->addSubmits(!$merchant);
+
+		$form->onValidate[] = function (AdminForm $form) use ($merchant): void {
+			if (!$form->isValid()) {
+				return;
+			}
+
+			$values = $form->getValuesWithAjax();
+
+			$uniqueValid = true;
+
+			if ($this->onMerchantFormUniqueValidation) {
+				$uniqueValid = \call_user_func($this->onMerchantFormUniqueValidation, $values, $form);
+			} else {
+				$query = $this->merchantRepository->many()->where('this.email', $values['email']);
+
+				if (isset($values['shop'])) {
+					$query->where('this.fk_shop', $values['shop']);
+				} else {
+					$query->where('this.fk_shop IS NULL');
+				}
+
+				$duplicate = $query->first();
+
+				if ($duplicate) {
+					if (!$merchant || ($merchant->getPK() !== $duplicate->getPK())) {
+						$uniqueValid = false;
+					}
+				}
+			}
+
+			if (!$uniqueValid) {
+				/** @var \Nette\Forms\Controls\TextInput $emailInput */
+				$emailInput = $form['email'];
+
+				$emailInput->addError('Neplatná kombinace unikátních hodnot. Zkontrolujte e-mail, obchod a specifické hodnoty.');
+			}
+
+			return;
+		};
 		
-		$form->onSuccess[] = function (AdminForm $form) use ($passwords): void {
+		$form->onSuccess[] = function (AdminForm $form): void {
 			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
-
-			if (isset($form['account'])) {
-				unset($values['account']);
-			}
 
 			/** @var \Eshop\DB\Merchant $merchant */
-			$merchant = $this->merchantRepository->syncOne($values, null, true);
-
-			/** @var array<mixed> $values */
-			$values = $form->getValues('array');
-
-			if (isset($form['account'])) {
-				/** @var array<mixed> $valuesAccount */
-				$valuesAccount = $values['account'];
-
-				if ($valuesAccount['password']) {
-					$valuesAccount['password'] = $passwords->hash($valuesAccount['password']);
-				} else {
-					unset($valuesAccount['password']);
-				}
-
-				if (!$valuesAccount['uuid']) {
-					$account = $this->accountRepository->createOne($valuesAccount, true);
-				} else {
-					$account = $this->accountRepository->one($valuesAccount['uuid'], true);
-					$account->update($valuesAccount);
-				}
-
-				$merchant->accounts->relate([$account->getPK()]);
-			}
+			$merchant = $this->merchantRepository->syncOne($values, null, true, ignore: false);
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$merchant]);
@@ -236,14 +250,6 @@ class MerchantPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createNewItemButton('new')];
 		$this->template->displayControls = [$this->getComponent('grid')];
-	}
-
-	public function actionNew(): void
-	{
-		/** @var \Admin\Controls\AdminForm|array<mixed> $form */
-		$form = $this->getComponent('form');
-		$form['account']['password']->setRequired();
-		$form['account']['passwordCheck']->setRequired();
 	}
 
 	public function renderNew(): void
@@ -304,9 +310,9 @@ class MerchantPresenter extends BackendPresenter
 			$accountForm->setDefaults($account->toArray());
 		}
 
-		$this->accountFormFactory->onUpdateAccount[] = function (): void {
+		$this->accountFormFactory->onUpdateAccount[] = function () use ($merchant): void {
 			$this->flashMessage('Účet byl upraven', 'success');
-			$this->redirect('default');
+			$this->redirect('editAccount', $merchant);
 		};
 
 		$this->accountFormFactory->onDeleteAccount[] = function (): void {
@@ -336,6 +342,9 @@ class MerchantPresenter extends BackendPresenter
 
 		$this->accountFormFactory->onCreateAccount[] = function (Account $account) use ($merchant): void {
 			$merchant->accounts->relate([$account->getPK()]);
+
+			$this->flashMessage('Účet vytvořen', 'success');
+			$this->redirect('editAccount', $merchant);
 		};
 	}
 

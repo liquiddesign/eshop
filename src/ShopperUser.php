@@ -392,12 +392,12 @@ class ShopperUser extends User
 	}
 
 	/**
-	 * @return \StORM\Collection<\Eshop\DB\Customer>|false Available customers aka children customers of currently logged in customer and customer itself or false if no one logged in
+	 * @return \StORM\Collection<\Eshop\DB\Customer> Available customers aka children customers of currently logged in customer and customer itself
 	 */
-	public function getAvailableCustomers(): Collection|false
+	public function getAvailableCustomers(): Collection
 	{
 		if (!$customer = $this->getCustomer()) {
-			return false;
+			return $this->customerRepository->many()->where('0=1');
 		}
 
 		$where = new Expression();

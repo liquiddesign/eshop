@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\Entity\ShopEntity;
 use Nette\Security\IIdentity;
 use Security\DB\Account;
 use Security\DB\IUser;
@@ -15,7 +16,7 @@ use StORM\RelationCollection;
  * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getPricelists()
  * @table
  */
-class Merchant extends \StORM\Entity implements IIdentity, IUser
+class Merchant extends ShopEntity implements IIdentity, IUser
 {
 	/**
 	 * Kód
@@ -135,5 +136,10 @@ class Merchant extends \StORM\Entity implements IIdentity, IUser
 	public function getPreferredMutation(): ?string
 	{
 		return $this->preferredMutation;
+	}
+
+	public function getName(): string
+	{
+		return $this->fullname;
 	}
 }

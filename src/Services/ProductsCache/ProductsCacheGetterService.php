@@ -12,6 +12,7 @@ use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\Customer;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
+use Eshop\DB\Merchant;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
@@ -144,19 +145,19 @@ class ProductsCacheGetterService implements AutoWireService
 		$this->allowedCollectionOrderColumns[$name] = $column;
 	}
 
-	public function getIndexByCustomer(Customer $customer): string
+	public function getIndexByCustomer(Customer|Merchant $customerMerchant): string
 	{
-		$visibilityLists = $customer->getVisibilityLists()->toArray();
-		$priceLists = $customer->getPricelists()->toArray();
+		$visibilityLists = $customerMerchant->getVisibilityLists()->toArray();
+		$priceLists = $customerMerchant->getPricelists()->toArray();
 
 		$visibilityListsIds = $this->visibilityListRepository->many()
 			->setSelect(['this.id'])
-			->setOrderBy(['this.priority'])
+			->setOrderBy(['this.priority', 'this.uuid'])
 			->where('this.uuid', \array_keys($visibilityLists))
 			->toArrayOf('id', toArrayValues: true);
 		$priceListsIds = $this->pricelistRepository->many()
 			->setSelect(['this.id'])
-			->setOrderBy(['this.priority'])
+			->setOrderBy(['this.priority', 'this.uuid'])
 			->where('this.uuid', \array_keys($priceLists))
 			->toArrayOf('id', toArrayValues: true);
 

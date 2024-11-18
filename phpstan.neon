@@ -17,3 +17,4 @@ parameters:
 		- src/Admin/MerchantPresenter.php
 		- src/Admin/Controls/Customer
 		- src/migrations
+		- src/Admin/MerchantPresenter.php

@@ -14,6 +14,7 @@ use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
+use Eshop\DB\MerchantRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
@@ -76,6 +77,7 @@ class ProductsCacheWarmUpService implements AutoWireService
 		protected readonly CustomerRepository $customerRepository,
 		protected readonly CustomerGroupRepository $customerGroupRepository,
 		protected readonly SettingsService $settingsService,
+		protected readonly MerchantRepository $merchantRepository,
 		readonly Storage $storage,
 	) {
 		$this->cache = new Cache($storage);
@@ -293,11 +295,12 @@ class ProductsCacheWarmUpService implements AutoWireService
 	}
 
 	/**
-	 * @param array<string> $customers
-	 * @param array<string>|null $customerGroups
-	 * @return array{0: array<string, true>, 1: array<int>, 2: array<int>}
+	 * @param array<string|int> $customers
+	 * @param array<string|int>|null $customerGroups
+	 * @param array<string|int> $merchants
+	 * @return array{0: array<string|int, true>, 1: list<string|int>, 2: list<string|int>}
 	 */
-	public function getAllPossibleVisibilityAndPriceListOptions(array $customers = [], array|null $customerGroups = null): array
+	public function getAllPossibleVisibilityAndPriceListOptions(array $customers = [], array|null $customerGroups = null, array $merchants = []): array
 	{
 		$existingOptions = [];
 		$allVisibilityLists = [];
@@ -360,6 +363,50 @@ class ProductsCacheWarmUpService implements AutoWireService
 			}
 
 			$indexes = $customersQuery->toArrayOf('visibilityPriceIndex');
+
+			foreach ($indexes as $index) {
+				if (!$index) {
+					continue;
+				}
+
+				$exploded = \explode('-', $index);
+
+				if (\count($exploded) === 2) {
+					foreach (\explode(',', $exploded[0]) as $visibilityList) {
+						$allVisibilityLists[$visibilityList] = true;
+					}
+
+					foreach (\explode(',', $exploded[1]) as $priceList) {
+						$allPriceLists[$priceList] = true;
+					}
+				}
+
+				$existingOptions[$index] = true;
+			}
+		}
+
+		foreach (['eshop_merchant_nxn_eshop_pricelist'] as $table) {
+			$merchantsQuery = $this->merchantRepository->many()
+				->join(['merchantXpriceList' => $table], 'this.uuid = merchantXpriceList.fk_merchant')
+				->join(['priceList' => 'eshop_pricelist'], 'merchantXpriceList.fk_pricelist = priceList.uuid')
+				->join(['merchantXvisibilityList' => 'eshop_merchant_nxn_eshop_visibilitylist'], 'this.uuid = merchantXvisibilityList.fk_merchant')
+				->join(['visibilityList' => 'eshop_visibilitylist'], 'merchantXvisibilityList.fk_visibilitylist = visibilityList.uuid')
+				->setSelect([
+					'visibilityPriceIndex' => 'DISTINCT(CONCAT(
+                    GROUP_CONCAT(DISTINCT visibilityList.id ORDER BY visibilityList.priority, visibilityList.uuid),
+                    "-",
+                    GROUP_CONCAT(DISTINCT priceList.id ORDER BY priceList.priority, priceList.uuid)
+                ))',
+				])
+				->where('priceList.isActive', true)
+				->where('visibilityList.hidden', false)
+				->setGroupBy(['this.uuid']);
+
+			if ($merchants) {
+				$merchantsQuery->where('this.uuid', $merchants);
+			}
+
+			$indexes = $merchantsQuery->toArrayOf('visibilityPriceIndex');
 
 			foreach ($indexes as $index) {
 				if (!$index) {
