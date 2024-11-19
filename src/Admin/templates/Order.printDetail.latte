@@ -314,6 +314,10 @@
 
                 <hr class="d-print-none">
 
+                {ifset $customContentBlock1}
+                    {include $customContentBlock1}
+                {/ifset}
+
                 <div class="row d-print-none">
                     <div class="col-12 mt-4">
                         <h4>Nový komentář</h4>
