@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.366](https://github.com/liquiddesign/eshop/compare/v2.1.365...v2.1.366) (2024-11-19)
+
+### Features
+
+* Add custom block to template ([97edb7](https://github.com/liquiddesign/eshop/commit/97edb78f405f807a73246f3f130cac1e3b3c1e29))
+
+
+---
+
 ## [2.1.365](https://github.com/liquiddesign/eshop/compare/v2.1.364...v2.1.365) (2024-11-18)
 
 ### Features
