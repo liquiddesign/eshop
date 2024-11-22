@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.367](https://github.com/liquiddesign/eshop/compare/v2.1.366...v2.1.367) (2024-11-22)
+
+### Features
+
+* Dropshipping ([e2e5e0](https://github.com/liquiddesign/eshop/commit/e2e5e066588681edba4a90ad0e949a1944d44434))
+
+
+---
+
 ## [2.1.366](https://github.com/liquiddesign/eshop/compare/v2.1.365...v2.1.366) (2024-11-19)
 
 ### Features
