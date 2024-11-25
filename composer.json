@@ -50,7 +50,7 @@
         "ramsey/uuid": "^4.7",
         "liquiddesign/liquid-monitor-connector": "^1.0.19",
         "illuminate/database": "^11.0",
-        "illuminate/support": ">=11.0 <=11.20",
+        "illuminate/support": "^11.0",
         "dave-liddament/php-language-extensions": "^0.9"
     },
     "minimum-stability": "stable",
