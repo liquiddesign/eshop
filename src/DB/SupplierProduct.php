@@ -253,6 +253,12 @@ class SupplierProduct extends \StORM\Entity
 	 */
 	public string $createdTs;
 
+	/**
+	 * Datum aktualizace logistických údajů
+	 * @column{"type":"date"}
+	 */
+	public ?string $logisticsUpdateTs = null;
+
 	public function getProductFullCode(): ?string
 	{
 		//@TODO code-subcode delimeter (tečka) by mel jit nastavit
