@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.368](https://github.com/liquiddesign/eshop/compare/v2.1.367...v2.1.368) (2024-11-25)
+
+### Bug Fixes
+
+* Dropshipping trait name ([2796e1](https://github.com/liquiddesign/eshop/commit/2796e19ca9a84dd32165440de95b8c0a3331a881))
+
+
+---
+
 ## [2.1.367](https://github.com/liquiddesign/eshop/compare/v2.1.366...v2.1.367) (2024-11-22)
 
 ### Features
