@@ -151,6 +151,24 @@ class SupplierProduct extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $weight;
+
+	/**
+	 * Délka
+	 * @column
+	 */
+	public ?float $length;
+
+	/**
+	 * Šírka
+	 * @column
+	 */
+	public ?float $width;
+
+	/**
+	 * Hloubka
+	 * @column
+	 */
+	public ?float $depth;
 	
 	/**
 	 * Obrázek
