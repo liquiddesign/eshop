@@ -4,6 +4,20 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.369](https://github.com/liquiddesign/eshop/compare/v2.1.368...v2.1.369) (2024-11-26)
+
+### Features
+
+* Adding logistic update timestamp ([f3a468](https://github.com/liquiddesign/eshop/commit/f3a4680d233723f5794ba29c362da834baca92c0))
+* Supplier product logistic attributes ([77b2c2](https://github.com/liquiddesign/eshop/commit/77b2c2151da4d8d2120febf2fb59be46c6fc38a8), [464df3](https://github.com/liquiddesign/eshop/commit/464df3cb2e78a9d9c688774302ef3946a645a38e))
+
+### Chores
+
+* Fix dependencies ([56d8d5](https://github.com/liquiddesign/eshop/commit/56d8d5ff8e13633291df7a7b215066a6111f32ff))
+
+
+---
+
 ## [2.1.368](https://github.com/liquiddesign/eshop/compare/v2.1.367...v2.1.368) (2024-11-25)
 
 ### Bug Fixes
