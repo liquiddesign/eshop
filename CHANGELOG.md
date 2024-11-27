@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.370](https://github.com/liquiddesign/eshop/compare/v2.1.369...v2.1.370) (2024-11-27)
+
+### Features
+
+
+##### Supplier Mapping
+
+* Add category selection and enhance filtering in supplier mapping ([8b0041](https://github.com/liquiddesign/eshop/commit/8b00410427ee0366d689df8d4f51ef978c6e24f8))
+
+
+---
+
 ## [2.1.369](https://github.com/liquiddesign/eshop/compare/v2.1.368...v2.1.369) (2024-11-26)
 
 ### Features
