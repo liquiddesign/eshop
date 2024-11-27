@@ -126,7 +126,19 @@ class AttributePresenter extends BackendPresenter
 			->join(['attributeXgroup' => 'eshop_attributegroup_nxn_eshop_attribute'], 'attributeXgroup.fk_attribute = this.uuid')
 			->join(['attributegroup' => 'eshop_attributegroup'], 'attributeXgroup.fk_attributegroup = attributegroup.uuid')
 			->join(['attributeValue' => 'eshop_attributevalue'], 'this.uuid = attributeValue.fk_attribute')
-			->join(['assign' => 'eshop_attributeassign'], 'attributeValue.uuid = assign.fk_value');
+			->join(['assign' => 'eshop_attributeassign'], 'attributeValue.uuid = assign.fk_value')
+			->join(['e_sa' => 'eshop_supplierattribute'], 'e_sa.fk_attribute = this.uuid AND this.fk_supplier = e_sa.fk_supplier')
+			->join(['sca' => 'eshop_supplierattributecategoryassign'], 'e_sa.uuid = sca.fk_supplierAttribute')
+			->join(['sc' => 'eshop_suppliercategory'], 'sca.fk_supplierCategory = sc.uuid')
+			->select(['supplierCategories' => 'GROUP_CONCAT(DISTINCT
+				CONCAT(
+					sc.categoryNameL1,
+					IF(sc.categoryNameL2 IS NULL, "" ," - "),
+					COALESCE(sc.categoryNameL2, ""),
+					IF(sc.categoryNameL3 IS NULL, "" ," - "),
+					COALESCE(sc.categoryNameL3, "")
+				) SEPARATOR ", "
+			)']);
 
 		$grid = $this->gridFactory->create($source, 20, null, null, true);
 
@@ -142,7 +154,7 @@ class AttributePresenter extends BackendPresenter
 		$grid->addColumnText('Název', 'name', '%s', 'name');
 		$grid->addColumnText('Kategorie', 'categoriesNames', '%s');
 		$grid->addColumnText('Skupiny', 'groupsNames', '%s');
-		$grid->addColumnText('Zdroj', 'supplier.name', '%s', 'supplier.name');
+		$grid->addColumnText('Zdroj', ['supplier.name', 'supplierCategories'], '%s<br>%s', 'supplier.name');
 
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
@@ -241,6 +253,16 @@ class AttributePresenter extends BackendPresenter
 
 			$source->where('attributeXcategory.fk_category ' . ($value === '1' ? 'IS NOT NULL' : 'IS NULL'));
 		}, '', 'categoryAssigned', null, [0 => 'Pouze nepřiřazené', 1 => 'Pouze přiřazené',])->setPrompt('- Přiřazené kategorii -');
+
+		$grid->addFilterText(function (ICollection $source, $value): void {
+			if (!$value) {
+				return;
+			}
+
+			$source->having('supplierCategories LIKE :supplierCategories', ['supplierCategories' => "%$value%"]);
+		}, '', 'supplierCategories')
+			->setHtmlAttribute('placeholder', 'Dodavatelské kategorie')
+			->setHtmlAttribute('class', 'form-control form-control-sm');
 
 		$grid->addFilterButtons(['default']);
 

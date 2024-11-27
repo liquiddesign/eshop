@@ -8,6 +8,7 @@ use Admin\Controls\AdminGrid;
 use Eshop\BackendPresenter;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
+use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\DisplayAmountRepository;
@@ -26,6 +27,7 @@ use Eshop\DB\SupplierMappingRepository;
 use Eshop\DB\SupplierProducer;
 use Eshop\DB\SupplierProducerRepository;
 use Eshop\DB\SupplierRepository;
+use Nette\Application\UI\Presenter;
 use Nette\DI\Attributes\Inject;
 use Nette\Http\Session;
 use Nette\Utils\Random;
@@ -409,30 +411,33 @@ class SupplierMappingPresenter extends BackendPresenter
 		$totalNo = $grid->getFilteredSource()->enum();
 		$selectedNo = \count($ids);
 
-		$form->addRadioList('bulkType', 'Upravit', [
-			'selected' => "vybrané ($selectedNo)",
-			'all' => "celý výsledek ($totalNo)",
-		])->setDefaultValue('selected');
+		$form->monitor(Presenter::class, function () use ($form, $selectedNo, $totalNo): void {
+			$form->addRadioList('bulkType', 'Upravit', [
+				'selected' => "vybrané ($selectedNo)",
+				'all' => "celý výsledek ($totalNo)",
+			])->setDefaultValue('selected');
 
-		$form->addCheckbox('overwrite', 'Přepsat');
+			$form->addCheckbox('overwrite', 'Přepsat');
 
-		if ($this->tab === 'category') {
-			$categoryInput = $form->addDataSelect('category', 'Nadřazená kategorie', $this->categoryRepository->getArrayForSelect())->setPrompt('Žádná');
-			$categoryTypeInput = $form->addSelect('categoryType', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect());
+			if ($this->tab === 'category') {
+				$categoryInput = $form->addDataSelect('category', 'Nadřazená kategorie', $this->categoryRepository->getArrayForSelect())->setPrompt('Žádná');
+				$categoryTypeInput = $form->addSelect('categoryType', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect());
 
-			$categoryInput->addCondition($form::BLANK)->toggle($categoryTypeInput->getHtmlId() . '-toogle');
-		}
+				$categoryInput->addCondition($form::BLANK)->toggle($categoryTypeInput->getHtmlId() . '-toogle');
+			}
 
-		if ($this->tab === 'attribute') {
+			if ($this->tab === 'attribute') {
+				$form->addMultiSelectAjax('categories', 'Přiřadit kategorie', 'Zvolte kategorie', Category::class);
 //			$form->addCheckbox('mapValues', 'Přiřadit hodnoty');
 //			$form->addCheckbox('overwriteValues', 'Přepsat hodnoty');
-		}
+			}
 
-		if ($this->tab === 'attributeValue') {
-			$form->addSelect2Ajax('attribute', $this->link('getAttributes!'), 'Atribut');
-		}
+			if ($this->tab === 'attributeValue') {
+				$form->addSelect2Ajax('attribute', $this->link('getAttributes!'), 'Atribut');
+			}
 
-		$form->addSubmits(false, false);
+			$form->addSubmits(false, false);
+		});
 
 		$form->onValidate[] = function (AdminForm $form): void {
 			if ($form->hasErrors()) {
@@ -521,6 +526,10 @@ class SupplierMappingPresenter extends BackendPresenter
 							$supplierAttribute->attribute->categories->relate([$supplierAttribute->getValue('categoryPK')]);
 						}
 
+						if (isset($rawValues['categories'])) {
+							$supplierAttribute->attribute->categories->relate($rawValues['categories']);
+						}
+
 						if ($overwrite) {
 							$supplierAttribute->attribute->update([
 								'name' => ['cs' => $supplierAttribute->name],
@@ -547,6 +556,10 @@ class SupplierMappingPresenter extends BackendPresenter
 
 						if ($supplierAttribute->getValue('categoryPK')) {
 							$attribute->categories->relate([$supplierAttribute->getValue('categoryPK')]);
+						}
+
+						if (isset($rawValues['categories'])) {
+							$attribute->categories->relate($rawValues['categories']);
 						}
 
 						$supplierAttribute->update(['attribute' => $attribute->getPK()]);

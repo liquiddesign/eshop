@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Admin\DB\IGeneralAjaxRepository;
 use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
@@ -34,7 +35,7 @@ use Web\DB\SettingRepository;
 /**
  * @extends \StORM\Repository<\Eshop\DB\Category>
  */
-class CategoryRepository extends \StORM\Repository implements IGeneralRepository
+class CategoryRepository extends \StORM\Repository implements IGeneralRepository, IGeneralAjaxRepository
 {
 	/**
 	 * @var array<array<object>>
@@ -231,6 +232,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			selectColumnName: "this.name$mutationSuffix",
 			uniqueColumnName: 'this.code',
 			shops: false,
+			customSelect: 'type.name',
 		));
 	}
 
@@ -763,6 +765,18 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		foreach ($updates as $updatePK => $updatePath) {
 			$this->many()->where('this.uuid', $updatePK)->update(['path' => $updatePath]);
 		}
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getAjaxArrayForSelect(bool $includeHidden = true, ?string $q = null, ?int $page = null): array
+	{
+		$suffix = $this->getConnection()->getMutationSuffix();
+
+		return $this->toArrayForSelect($this->getCollection($includeHidden)
+			->where("this.name$suffix LIKE :like", ['like' => "%$q%"])
+			->setPage($page ?? 1, 5));
 	}
 
 	private function recalculateTree(array &$tree, ?string $ancestorPath = null, array &$updates = []): void
