@@ -84,6 +84,8 @@
 {/form}
 
 <div class="pagination ml-lg-auto" n:if="$showPaginator">
+    {var $paginator = $control->getPaginator(true)}
+
     {if $showItemsPerPage}
         <div class="col-12">
             <ul class="pagination align-items-center mr-lg-2 mb-2 mb-lg-0">
