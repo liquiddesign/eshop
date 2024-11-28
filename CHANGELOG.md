@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.372](https://github.com/liquiddesign/eshop/compare/v2.1.371...v2.1.372) (2024-11-28)
+
+### Features
+
+* Refactor product dimensions to use float types and add logistics data synchronization method ([2dcd79](https://github.com/liquiddesign/eshop/commit/2dcd7903df56f1286d5963d72e9d662df0bffd7b))
+
+
+---
+
 ## [2.1.371](https://github.com/liquiddesign/eshop/compare/v2.1.370...v2.1.371) (2024-11-28)
 
 ### Performance Improvements
