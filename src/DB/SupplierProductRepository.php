@@ -82,7 +82,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$visibilityLists = $visibilityListRepository->many()->toArray();
 
 		if ($overwrite) {
-			$updates = ["name$mutationSuffix", 'unit', 'imageFileName', 'vatRate', 'width', 'length', 'weight', 'depth'];
+			$updates = ["name$mutationSuffix", 'unit', 'imageFileName', 'vatRate'];
 			$updates = \array_fill_keys($updates, null);
 
 			foreach (\array_keys($updates) as $name) {
