@@ -4,6 +4,25 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.371](https://github.com/liquiddesign/eshop/compare/v2.1.370...v2.1.371) (2024-11-28)
+
+### Performance Improvements
+
+
+##### Attribute Grid
+
+* Better count function ([485879](https://github.com/liquiddesign/eshop/commit/48587972a2785d3a2990bca5644f85fb9f59211d))
+
+### Bug Fixes
+
+
+##### Product Attribute Grid
+
+* Paginator getter ([d349c5](https://github.com/liquiddesign/eshop/commit/d349c58c496c3c3ea110e292beddf37dfff58687))
+
+
+---
+
 ## [2.1.370](https://github.com/liquiddesign/eshop/compare/v2.1.369...v2.1.370) (2024-11-27)
 
 ### Features
