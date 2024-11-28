@@ -479,6 +479,33 @@ class SupplierProductRepository extends \StORM\Repository
 		return $result;
 	}
 
+	public function syncLogisticsData(Supplier $supplier): void
+	{
+		/** @var \StORM\Collection<\Eshop\DB\SupplierProduct> $drafts */
+		$drafts = $this->many()
+			->where('this.fk_supplier', $supplier->getPK())
+			->where('this.active', true)
+			->where('this.fk_product IS NOT NULL')
+			->selectAliases(['product'])
+			->where('this.weight IS NOT NULL OR this.width IS NOT NULL OR this.length IS NOT NULL OR this.depth IS NOT NULL')
+			->where('product.weight IS NULL OR product.width IS NULL OR product.length IS NULL OR product.depth IS NULL');
+
+		$productRepository = $this->getConnection()->findRepository(Product::class);
+
+		while ($draft = $drafts->fetch()) {
+			$productRepository->syncOne([
+				'uuid' => $draft->getValue('product'),
+				'weight' => $draft->getValue('product_weight') ?: $draft->weight,
+				'width' => $draft->getValue('product_width') ?: $draft->width,
+				'length' => $draft->getValue('product_length') ?: $draft->length,
+				'depth' => $draft->getValue('product_depth') ?: $draft->depth,
+				], ['weight', 'width', 'length', 'depth',], ignore: false);
+		}
+
+		$drafts->__destruct();
+		unset($drafts);
+	}
+
 	/**
 	 * @throws \StORM\Exception\NotFoundException
 	 */

@@ -293,14 +293,14 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			->addRule([FormValidators::class, 'isPercentNoMax'], 'Neplatná hodnota!');
 
 		if (isset($configuration['weightAndDimension']) && $configuration['weightAndDimension']) {
-			$form->addText('weight', 'Váha')
+			$form->addFloat('weight', 'Váha')
 				->setHtmlAttribute('data-info', 'Celková váha produktu.')
 				->setNullable()
 				->addCondition($form::FILLED)
 				->addRule($form::FLOAT);
-			$form->addIntegerNullable('width', 'Šířka');
-			$form->addIntegerNullable('length', 'Délka');
-			$form->addIntegerNullable('depth', 'Hloubka');
+			$form->addFloat('width', 'Šířka')->setNullable();
+			$form->addFloat('length', 'Délka')->setNullable();
+			$form->addFloat('depth', 'Hloubka')->setNullable();
 			$form->addCheckbox('keepFlat', 'Přepravovat naležato');
 		}
 

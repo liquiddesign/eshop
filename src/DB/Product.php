@@ -214,19 +214,19 @@ class Product extends \StORM\Entity
 	 * Šířka
 	 * @column
 	 */
-	public ?int $width;
+	public ?float $width;
 	
 	/**
 	 * Délka
 	 * @column
 	 */
-	public ?int $length;
+	public ?float $length;
 	
 	/**
 	 * Hloubka
 	 * @column
 	 */
-	public ?int $depth;
+	public ?float $depth;
 	
 	/**
 	 * Při přepravě nechat naplacato
