@@ -142,12 +142,9 @@ class AttributePresenter extends BackendPresenter
 
 		$grid = $this->gridFactory->create($source, 20, null, null, true);
 
-		$grid->setItemCountCallback(function (ICollection $filteredSource) use ($connection): int {
-			return (int) $connection->rows()
-				->select(['count' => 'count(*)'])
-				->from(['derived' => $filteredSource->select(['assignCount' => 'COUNT(assign.uuid)'])], $filteredSource->getVars())
-				->firstValue('count');
-		});
+//		$grid->setItemCountCallback(function (ICollection $filteredSource) use ($connection): int {
+//			return (int) \count($filteredSource->toArray());
+//		});
 
 		$grid->addColumnSelector();
 		$grid->addColumnTextFit('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
@@ -259,7 +256,15 @@ class AttributePresenter extends BackendPresenter
 				return;
 			}
 
-			$source->having('supplierCategories LIKE :supplierCategories', ['supplierCategories' => "%$value%"]);
+			$source->having('GROUP_CONCAT(DISTINCT
+				CONCAT(
+					sc.categoryNameL1,
+					IF(sc.categoryNameL2 IS NULL, "" ," - "),
+					COALESCE(sc.categoryNameL2, ""),
+					IF(sc.categoryNameL3 IS NULL, "" ," - "),
+					COALESCE(sc.categoryNameL3, "")
+				) SEPARATOR ", "
+			) LIKE :supplierCategories', ['supplierCategories' => "%$value%"]);
 		}, '', 'supplierCategories')
 			->setHtmlAttribute('placeholder', 'Dodavatelské kategorie')
 			->setHtmlAttribute('class', 'form-control form-control-sm');
