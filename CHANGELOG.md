@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.374](https://github.com/liquiddesign/eshop/compare/v2.1.373...v2.1.374) (2024-11-29)
+
+### Bug Fixes
+
+* Int to float ([f1aaa9](https://github.com/liquiddesign/eshop/commit/f1aaa9f28735fd8f9519f33b2f0b52ab3f063489))
+
+
+---
+
 ## [2.1.373](https://github.com/liquiddesign/eshop/compare/v2.1.372...v2.1.373) (2024-11-28)
 
 
