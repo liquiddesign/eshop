@@ -861,7 +861,16 @@ class CheckoutManager
 		$deliveryTypes = $this->getDeliveryTypesCollection($vat)->toArray();
 
 		foreach ($deliveryTypes as $deliveryType) {
-			$boxes = $deliveryType->maxWeight !== null ? \count($deliveryType->getBoxesForItems($this->getTopLevelItems()->toArray())) : 1;
+			try {
+				$boxes = $deliveryType->maxWeight !== null ? \count($deliveryType->getBoxesForItems($this->getTopLevelItems()->toArray())) : 1;
+			} catch (\Exception $e) {
+//				Debugger::barDump($e);
+
+				$deliveryType->setValue('packagesNo', 1);
+
+				continue;
+			}
+
 			$deliveryType->setValue('packagesNo', $boxes);
 		}
 
