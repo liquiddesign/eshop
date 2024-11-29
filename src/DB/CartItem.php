@@ -52,19 +52,19 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	 * Šířka produktu
 	 * @column
 	 */
-	public ?int $productWidth;
+	public ?float $productWidth;
 	
 	/**
 	 * Délka produktu
 	 * @column
 	 */
-	public ?int $productLength;
+	public ?float $productLength;
 	
 	/**
 	 * Hloubka produktu
 	 * @column
 	 */
-	public ?int $productDepth;
+	public ?float $productDepth;
 	
 	/**
 	 * Produkt naplacato?
