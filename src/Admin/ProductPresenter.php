@@ -698,6 +698,7 @@ class ProductPresenter extends BackendPresenter
 		foreach ($photos as $photo) {
 			$row = [];
 			$row['name'] = $photo->fileName;
+			$row['uuid'] = $photo->getPK();
 			$row['size'] = \file_exists($basePath . $photo->fileName) ? \filesize($basePath . $photo->fileName) : 0;
 			$row['main'] = $product->imageFileName === $photo->fileName;
 			$row['googleFeed'] = $photo->googleFeed;

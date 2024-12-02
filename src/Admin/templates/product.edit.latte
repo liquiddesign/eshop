@@ -269,7 +269,10 @@
         let mainPhotos = [];
 
         {foreach $photos as $photo}
-            mainPhotos[{$photo['name']}] = {$photo['main'] ? true : false};
+            mainPhotos[{$photo['name']}] = {[
+            'main' => $photo['main'] ? true : false,
+            'uuid' => $photo['uuid']
+        ]};
         {/foreach}
 
         let googlePhotos = [];
@@ -277,7 +280,10 @@
         {foreach $photos as $photo}
             {continueIf !$photo['googleFeed']}
 
-            googlePhotos[{$photo['name']}] = true;
+            googlePhotos[{$photo['name']}] = {[
+            main: true,
+            uuid: $photo['uuid']
+        ]};
         {/foreach}
 
         Dropzone.options.photosDropzone = {
@@ -354,7 +360,7 @@
                         });
                     }
 
-                    newNode.innerHTML = '<i class=" ' + (mainPhotos[(response ?? file).name] ? 'fas' : 'far') + ' fa-star"></i>';
+                    newNode.innerHTML = '<i class=" ' + (mainPhotos[(response ?? file).name].main ? 'fas' : 'far') + ' fa-star"></i>';
                     file.previewTemplate.appendChild(newNode);
 
                     if (response) {
@@ -416,9 +422,11 @@
                 }
 
                 let imageElement = image[0].children[0];
-                let alt = imageElement.alt.split('.')[0];
+                let photo = mainPhotos[imageElement.alt] !== undefined ? mainPhotos[imageElement.alt] : googlePhotos[imageElement.alt];
 
-                data[String(alt)] = i++;
+                if (photo) {
+                    data[photo.uuid] = i++;
+                }
             });
 
             $.ajax({
