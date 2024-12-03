@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.377](https://github.com/liquiddesign/eshop/compare/v2.1.376...v2.1.377) (2024-12-03)
+
+### Bug Fixes
+
+* Admin - Product files tab ([5f6f9d](https://github.com/liquiddesign/eshop/commit/5f6f9d1b481f16e12f96c0fffb140082b78e1ac2))
+
+
+---
+
 ## [2.1.376](https://github.com/liquiddesign/eshop/compare/v2.1.375...v2.1.376) (2024-12-03)
 
 ### Bug Fixes
