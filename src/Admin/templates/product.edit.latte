@@ -134,8 +134,6 @@
                                     {foreach $displayButtons as $button}
                                         {$button|noescape}
                                     {/foreach}
-
-                                    <a n:href="newFile $product"><button class="btn btn-success btn-sm"><i class="fa fa-sm fa-plus m-1"></i>Nový soubor</button></a>
                                 </div>
                             </div>
                         </div>
@@ -171,6 +169,10 @@
                         </div>
 
                         <div id="files-r-content" style="display: none">
+                            <div class="mb-2 mt-3">
+                                <a n:if="isset($product)" n:href="newFile $product"><button class="btn btn-success btn-sm"><i class="fa fa-sm fa-plus m-1"></i>Nový soubor</button></a>
+                            </div>
+
                             {control fileGrid}
                         </div>
 
