@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.379](https://github.com/liquiddesign/eshop/compare/v2.1.378...v2.1.379) (2024-12-04)
+
+### Features
+
+* Enhance category filtering by adding a filter for mapped categories in the supplier mapping grid. Update comments to clarify variable types. ([e2308a](https://github.com/liquiddesign/eshop/commit/e2308accf7439d2a42de7c2cd07d305f2dacca4d))
+
+
+---
+
 ## [2.1.378](https://github.com/liquiddesign/eshop/compare/v2.1.377...v2.1.378) (2024-12-04)
 
 ### Bug Fixes
