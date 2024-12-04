@@ -187,10 +187,14 @@ class ProductFilter extends Control
 				$minAttributeValueWithCount = null;
 				$maxAttributeValueWithCount = null;
 
+				$anyValue = false;
+
 				foreach ($orderedAttributeValues as $attributeValuePK => $attributeValue) {
 					if (!isset($subAttributeValuesCounts[$attributeValuePK]) || $subAttributeValuesCounts[$attributeValuePK] <= 0) {
 						continue;
 					}
+
+					$anyValue = true;
 
 					$minNumber = $attributeValue->numberFrom ?: $attributeValue->number;
 					$maxNumber = $attributeValue->numberTo ?: $attributeValue->number;
@@ -205,6 +209,10 @@ class ProductFilter extends Control
 						$maxAttributeValueWithCount = $attributeValue;
 					}
 
+					continue;
+				}
+
+				if (!$anyValue) {
 					continue;
 				}
 
