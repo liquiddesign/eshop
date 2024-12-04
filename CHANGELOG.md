@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.378](https://github.com/liquiddesign/eshop/compare/v2.1.377...v2.1.378) (2024-12-04)
+
+### Bug Fixes
+
+* Slider counts ([8348ee](https://github.com/liquiddesign/eshop/commit/8348ee6532cc14d4d61c7ca1b227a9b842fbb2f1))
+
+
+---
+
 ## [2.1.377](https://github.com/liquiddesign/eshop/compare/v2.1.376...v2.1.377) (2024-12-03)
 
 ### Bug Fixes
