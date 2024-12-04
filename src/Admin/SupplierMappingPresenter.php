@@ -126,7 +126,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		$grid->addColumnText('Importováno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 //		$grid->addColumnText('Změněno', "updateTs|date:'d.m.Y G:i'", '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
-		/** @var 'categories'|'attribute'|'producer'|'attributeValue'|'displayAmount' $property */
+		/** @var 'categories'|'attribute'|'producer'|'attributeValue'|'displayAmount'|null $property */
 		$property = null;
 		$categoriesNames = $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection(
 			$this->categoryRepository->many(),
@@ -182,6 +182,17 @@ class SupplierMappingPresenter extends BackendPresenter
 
 				$source->where($expression->getSql() . $orExpression, $expression->getVars() + ['value' => "$value%"]);
 			}, '', 'category')->setHtmlAttribute('placeholder', 'Název')->setHtmlAttribute('class', 'form-control form-control-sm');
+
+			$grid->addFilterText(function (ICollection $source, $value): void {
+				if (!$value) {
+					return;
+				}
+
+				$source->where('EXISTS(SELECT * FROM eshop_category as ec INNER JOIN eshop_suppliercategory_nxn_eshop_category AS nxn ON
+					nxn.fk_category=ec.uuid AND nxn.fk_supplierCategory = this.uuid AND ec.name_cs LIKE :category_name)', ['category_name' => "$value%"]);
+			}, '', 'categories')
+				->setHtmlAttribute('placeholder', 'Napárovaná kategorie')
+				->setHtmlAttribute('class', 'form-control form-control-sm');
 		}
 
 		if ($this->tab === 'producer') {
