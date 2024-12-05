@@ -188,10 +188,13 @@ class SupplierMappingPresenter extends BackendPresenter
 					return;
 				}
 
-				$source->where('EXISTS(SELECT * FROM eshop_category as ec INNER JOIN eshop_suppliercategory_nxn_eshop_category AS nxn ON
-					nxn.fk_category=ec.uuid AND nxn.fk_supplierCategory = this.uuid AND ec.name_cs LIKE :category_name)', ['category_name' => "$value%"]);
+				$source->where(
+					'EXISTS(SELECT * FROM eshop_category as ec INNER JOIN eshop_suppliercategory_nxn_eshop_category AS nxn ON
+					nxn.fk_category=ec.uuid AND nxn.fk_supplierCategory = this.uuid AND (ec.name_cs LIKE :category_name or ec.code LIKE :category_code))',
+					['category_name' => "%$value%", 'category_code' => "$value%",],
+				);
 			}, '', 'categories')
-				->setHtmlAttribute('placeholder', 'Napárovaná kategorie')
+				->setHtmlAttribute('placeholder', 'Napárovaná kategorie (název, kód)')
 				->setHtmlAttribute('class', 'form-control form-control-sm');
 		}
 
