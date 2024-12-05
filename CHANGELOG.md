@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.380](https://github.com/liquiddesign/eshop/compare/v2.1.379...v2.1.380) (2024-12-05)
+
+### Features
+
+* Enhance category filtering by including code match criteria in SupplierMappingPresenter. Update placeholder text for clarity. ([405cad](https://github.com/liquiddesign/eshop/commit/405cadeb9b1eebc7c2fedf02fa1bb5a296e58f05))
+
+
+---
+
 ## [2.1.379](https://github.com/liquiddesign/eshop/compare/v2.1.378...v2.1.379) (2024-12-04)
 
 ### Features
