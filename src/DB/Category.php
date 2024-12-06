@@ -156,7 +156,7 @@ class Category extends SystemicEntity
 	public bool $showDescendantProducts = true;
 
 	/**
-	 * Zobrazit produkty v podkategoriích
+	 * Zobrazit produkty v nadřazených kategoriích
 	 * @column
 	 */
 	public bool $showProductsInAncestors = true;
