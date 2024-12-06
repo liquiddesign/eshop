@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.381](https://github.com/liquiddesign/eshop/compare/v2.1.380...v2.1.381) (2024-12-06)
+
+### Features
+
+* Improve category search functionality by allowing partial matches in SupplierMappingPresenter. Add new categoryFull filter in SupplierProductPresenter for enhanced category searching with wildcard support. Update placeholder text for clarity on category and producer filtering. ([d1e9b7](https://github.com/liquiddesign/eshop/commit/d1e9b7d36a066208fa8c1e40e657af5c3c5844ff))
+
+
+---
+
 ## [2.1.380](https://github.com/liquiddesign/eshop/compare/v2.1.379...v2.1.380) (2024-12-05)
 
 ### Features
