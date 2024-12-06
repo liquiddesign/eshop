@@ -155,6 +155,16 @@ class SupplierProductPresenter extends BackendPresenter
 		$grid->addFilterTextInput('q', ['this.name'], null, 'Název produktu');
 
 		$grid->addFilterText(function (ICollection $source, $value): void {
+			$expression = new Expression();
+
+			for ($i = 1; $i !== 5; $i++) {
+				$expression->add('OR', "category.categoryNameL$i LIKE %s", ['%' . $value . '%']);
+			}
+
+			$source->where('(' . $expression->getSql() . ')', $expression->getVars());
+		}, '', 'categoryFull')->setHtmlAttribute('placeholder', 'Kategorie')->setHtmlAttribute('class', 'form-control form-control-sm');
+
+		$grid->addFilterText(function (ICollection $source, $value): void {
 			$parsed = \explode('>', $value);
 			$expression = new Expression();
 
@@ -165,7 +175,7 @@ class SupplierProductPresenter extends BackendPresenter
 			}
 
 			$source->where('(' . $expression->getSql() . ') OR producer.name=:producer', $expression->getVars() + ['producer' => $value]);
-		}, '', 'category')->setHtmlAttribute('placeholder', 'Kategorie, výrobce')->setHtmlAttribute('class', 'form-control form-control-sm');
+		}, '', 'category')->setHtmlAttribute('placeholder', 'Kategorie (odděleno ">"), výrobce')->setHtmlAttribute('class', 'form-control form-control-sm');
 
 		$grid->addFilterSelectInput(
 			'notmapped',

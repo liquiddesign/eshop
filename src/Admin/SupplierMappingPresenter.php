@@ -180,7 +180,7 @@ class SupplierMappingPresenter extends BackendPresenter
 					$orExpression .= " OR categoryNameL$i LIKE :value";
 				}
 
-				$source->where($expression->getSql() . $orExpression, $expression->getVars() + ['value' => "$value%"]);
+				$source->where($expression->getSql() . $orExpression, $expression->getVars() + ['value' => "%$value%"]);
 			}, '', 'category')->setHtmlAttribute('placeholder', 'Název')->setHtmlAttribute('class', 'form-control form-control-sm');
 
 			$grid->addFilterText(function (ICollection $source, $value): void {
