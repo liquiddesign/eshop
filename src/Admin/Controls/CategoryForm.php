@@ -155,6 +155,7 @@ class CategoryForm extends Control
 		$form->addCheckbox('showInMenu', 'Zobrazit v menu');
 		$form->addCheckbox('showEmpty', 'Zobrazit pokud nemá produkty');
 		$form->addCheckbox('recommended', 'Doporučeno');
+		$form->addCheckbox('showProductsInAncestors', 'Zobrazit produkty v nadřazených kategoriích');
 
 		if ($this->showDescendantProducts) {
 			$form->addCheckbox('showDescendantProducts', 'Zobrazit produkty v podkategoriích')->setDefaultValue(true);

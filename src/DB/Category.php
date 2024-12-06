@@ -156,6 +156,12 @@ class Category extends SystemicEntity
 	public bool $showDescendantProducts = true;
 
 	/**
+	 * Zobrazit produkty v podkategoriích
+	 * @column
+	 */
+	public bool $showProductsInAncestors = true;
+
+	/**
 	 * Pomocí repositářové metody getTree(array $orderBy)
 	 * @var array<\Eshop\DB\Category>
 	 */

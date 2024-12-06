@@ -812,13 +812,20 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		if (!$category) {
 			$collection->where('1=0');
 		} else {
+			$descendants = [$category->getPK()];
+
 			if ($category->showDescendantProducts) {
-				$path .= '%';
+				$descendants = \array_merge(
+					$descendants,
+					$category->getDescendants()
+						->where('showProductsInAncestors', true)
+						->toArrayOf('uuid', toArrayValues: true)
+				);
 			}
 
 			$subSelect = $this->getConnection()->rows(['eshop_product_nxn_eshop_category'], ['fk_product'])
 				->join(['eshop_category'], 'eshop_category.uuid=eshop_product_nxn_eshop_category.fk_category')
-				->where('eshop_category.path LIKE :path', ['path' => $path]);
+				->where('eshop_category.uuid', $descendants);
 
 			$this->joinPrimaryCategoryToProductCollection($collection);
 

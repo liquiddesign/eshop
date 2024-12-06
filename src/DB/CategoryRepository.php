@@ -74,6 +74,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	 */
 	public function getCounts(string|Category $path, array $filters = [], array $priceLists = [], array $visibilityLists = []): int|null
 	{
+		/** @var \Eshop\Services\ProductsCache\GeneralProductsCacheProvider $productsProvider */
 		$productsProvider = $this->container->getByType(GeneralProductsCacheProvider::class);
 		$productRepository = $this->productRepository;
 
@@ -111,6 +112,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 					$filters,
 					priceLists: $priceLists,
 					visibilityLists: $visibilityLists,
+					showAncestorsInCategory: false
 				);
 
 				if (!isset($result['productPKs'])) {
