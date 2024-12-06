@@ -26,8 +26,14 @@ readonly class ProductsCacheProvider implements GeneralProductsCacheProvider
 	/**
 	 * @inheritDoc
 	 */
-	public function getProductsFromCacheTable(array $filters, ?string $orderByName = null, string $orderByDirection = 'ASC', array $priceLists = [], array $visibilityLists = [],): array|false
-	{
-		return $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists);
+	public function getProductsFromCacheTable(
+		array $filters,
+		?string $orderByName = null,
+		string $orderByDirection = 'ASC',
+		array $priceLists = [],
+		array $visibilityLists = [],
+		bool $showAncestorsInCategory = true,
+	): array|false {
+		return $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists, $showAncestorsInCategory);
 	}
 }

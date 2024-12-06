@@ -636,10 +636,11 @@ class ProductsCacheWarmUpService implements AutoWireService
 		foreach ($productsByCategories as $category => $products) {
 			$categoryId = $allCategories[$category]->id;
 
-			foreach (\array_keys($products) as $product) {
+			foreach ($products as $product => $data) {
 				$categoriesToInsert[] = [
 					$product,
 					$categoryId,
+					$data[0],
 				];
 
 				$i++;
@@ -663,7 +664,8 @@ class ProductsCacheWarmUpService implements AutoWireService
 		$link->exec("
 CREATE TABLE `$categoriesTableName` (
   product BIGINT UNSIGNED NOT NULL,
-  category INT UNSIGNED NOT NULL
+  category INT UNSIGNED NOT NULL,
+  showInCategory BOOL NOT NULL
 );");
 	}
 
@@ -691,6 +693,8 @@ CREATE TABLE `$categoriesTableName` (
 		$mutationSuffix = $this->getMutationSuffix();
 
 		$productsCollection = $this->productRepository->many()
+			// TODO remove
+//			->where('this.uuid', '023887cdd93fbfd41fe471835be5a455')
 			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product', type: 'INNER')
 			->join(['eshop_displayamount'], 'this.fk_displayAmount = eshop_displayamount.uuid')
 			->join(['eshop_displaydelivery'], 'this.fk_displayDelivery = eshop_displaydelivery.uuid')
@@ -710,7 +714,6 @@ CREATE TABLE `$categoriesTableName` (
 			->setGroupBy(['this.id']);
 
 		$productsByCategories = [];
-		$allCategoriesByCategory = [];
 		$productsDataToInsert = [];
 
 		$i = 0;
@@ -746,7 +749,7 @@ CREATE TABLE `$categoriesTableName` (
 			foreach ($primaryCategories as $primaryCategory) {
 				$primaryCategory = $allProductPrimaryCategories[$primaryCategory];
 
-				// @TODO Check if this is correct
+				// @TODO This does not work
 				$products[$product->id]["primaryCategory_$primaryCategory->categoryType"] = $primaryCategory->category;
 			}
 
@@ -761,21 +764,17 @@ CREATE TABLE `$categoriesTableName` (
 				$categories = \explode(',', $categories);
 
 				foreach ($categories as $category) {
-					$categoryCategories = $allCategoriesByCategory[$category] ?? null;
+					$categoryEntity = $allCategories[$category];
 
-					if ($categoryCategories === null) {
-						$categoryCategories = $allCategoriesByCategory[$category] = \array_merge($this->getAncestorsOfCategory($category, $allCategories), [$category]);
+					$ancestors = $this->getAncestorsOfCategory($category, $allCategories);
+
+					foreach ($ancestors as $ancestor) {
+						$productsByCategories[$ancestor][$product->id] = [$categoryEntity->showProductsInAncestors];
 					}
 
-					$productData['categories'] = \array_unique(\array_merge($productData['categories'] ?? [], $categoryCategories));
-
-					foreach ($productData['categories'] as $productCategory) {
-						$productsByCategories[$productCategory][$product->id] = true;
-					}
+					$productsByCategories[$category][$product->id] = [1];
 				}
 			}
-
-			unset($productData['categories']);
 
 			$productsDataToInsert[] = $productData;
 
@@ -808,8 +807,15 @@ CREATE TABLE `$categoriesTableName` (
 
 		$allDisplayAmounts = $this->displayAmountRepository->many()->setIndex('id')->fetchArray(\stdClass::class);
 
-		/** @var array<object{id: int, ancestor: string}> $allCategories */
-		$allCategories = $this->categoryRepository->many()->setSelect(['this.id', 'ancestor' => 'this.fk_ancestor'], keepIndex: true)->fetchArray(\stdClass::class);
+		/** @var array<object{id: int, ancestor: string, showDescendantProducts: bool, showProductsInAncestors: bool}> $allCategories */
+		$allCategories = $this->categoryRepository->many()
+			->setSelect([
+				'this.id',
+				'ancestor' => 'this.fk_ancestor',
+				'showDescendantProducts' => 'this.showDescendantProducts',
+				'showProductsInAncestors' => 'this.showProductsInAncestors',
+			], keepIndex: true)
+			->fetchArray(\stdClass::class);
 
 		/** @var array<object{category: string|null, categoryType: string}> $allProductPrimaryCategories */
 		$allProductPrimaryCategories = $this->productPrimaryCategoryRepository->many()
@@ -1409,7 +1415,7 @@ CREATE TABLE `$categoriesTableName` (
 
 	/**
 	 * @param string $category
-	 * @param array<object{ancestor: string}> $allCategories
+	 * @param array<object{ancestor: string, showDescendantProducts: bool, showProductsInAncestors: bool}> $allCategories
 	 * @return array<string>
 	 */
 	protected function getAncestorsOfCategory(string $category, array $allCategories): array

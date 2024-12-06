@@ -196,6 +196,7 @@ class ProductsCacheGetterService implements AutoWireService
 		string $orderByDirection = 'ASC',
 		array $priceLists = [],
 		array $visibilityLists = [],
+		bool $showAncestorsInCategory = true,
 	): array|false {
 		$cacheIndex = $this->getCacheIndexToBeUsed();
 
@@ -266,6 +267,10 @@ class ProductsCacheGetterService implements AutoWireService
 				['category' => $category->id],
 				type: 'INNER',
 			);
+
+			if ($showAncestorsInCategory) {
+				$productsCollection->where('category.showInCategory = 1');
+			}
 		}
 
 		$productsCollection->setGroupBy(['this.product']);
