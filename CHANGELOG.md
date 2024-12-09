@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.383](https://github.com/liquiddesign/eshop/compare/v2.1.382...v2.1.383) (2024-12-09)
+
+### Features
+
+* Enhance product caching functionality by adding `showAncestorsInCategory` parameter. Update relevant methods to support filtering cached products based on ancestor visibility and adjust the related data structures accordingly. ([2934ab](https://github.com/liquiddesign/eshop/commit/2934ab7237b488f0663586332219b0e06ccfa452))
+
+### Bug Fixes
+
+
+##### Product Presenter
+
+* ActionList - check category for hidden ([73a008](https://github.com/liquiddesign/eshop/commit/73a00840ee94ababdf0ae089088f791e316ab18e))
+
+
+---
+
 ## [2.1.382](https://github.com/liquiddesign/eshop/compare/v2.1.381...v2.1.382) (2024-12-06)
 
 ### Features
