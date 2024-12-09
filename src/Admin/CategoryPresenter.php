@@ -131,6 +131,7 @@ class CategoryPresenter extends BackendPresenter
 			$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
 			$grid->addColumnInputCheckbox('<i title="Zobrazit v menu" class="fas fa-bars"></i>', 'showInMenu', '', '', 'showInMenu');
 			$grid->addColumnInputCheckbox('<i title="Zobrazit pokud nemá produkty" class="fas fa-list-ol"></i>', 'showEmpty', '', '', 'showEmpty');
+			$grid->addColumnInputCheckbox('<i title="Zobrazit produkty v nadřazených kategoriích" class="fas fa-level-up-alt"></i>', 'showProductsInAncestors', '', '', 'showProductsInAncestors');
 		} else {
 			$grid->addColumn('Priorita', function (Category $category) {
 				return '<input class="form-control form-control-sm" type="number" value="' . $category->priority . '" disabled>';
@@ -932,6 +933,7 @@ Očekává se formát kategorií dle formátu Heuréky. Tedy "Subcategory 1" atd
 			'showInMenu',
 			'showEmpty',
 			'recommended',
+			'showProductsInAncestors',
 		];
 	}
 
