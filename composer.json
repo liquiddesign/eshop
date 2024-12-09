@@ -94,6 +94,7 @@
         "release:minor": "@php ./vendor/bin/conventional-changelog --minor --commit",
         "release:major": "@php ./vendor/bin/conventional-changelog --major --commit",
         "release:patch-full": [
+            "git pull",
             "@release:patch",
             "git push",
             "git push --tags"
