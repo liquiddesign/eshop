@@ -125,7 +125,7 @@ abstract class ProductPresenter extends FrontendPresenter
 		
 		if ($category) {
 			try {
-				$categoryCollection = $this->categoryRepository->many()->where('this.uuid', $category);
+				$categoryCollection = $this->categoryRepository->many()->where('this.uuid', $category)->where('this.hidden', false);
 
 				if ($this->shopsConfig->getSelectedShop()) {
 					$categoryType = $this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK());
