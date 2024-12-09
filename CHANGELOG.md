@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.384](https://github.com/liquiddesign/eshop/compare/v2.1.383...v2.1.384) (2024-12-09)
+
+### Features
+
+* Add checkbox option for displaying products in ancestor categories in CategoryPresenter. ([7cf8fc](https://github.com/liquiddesign/eshop/commit/7cf8fcdbb06804a6ee02e9d492c0945c47311f21))
+
+
+---
+
 ## [2.1.383](https://github.com/liquiddesign/eshop/compare/v2.1.382...v2.1.383) (2024-12-09)
 
 ### Features
