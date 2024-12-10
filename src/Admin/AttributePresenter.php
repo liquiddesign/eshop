@@ -97,7 +97,8 @@ class AttributePresenter extends BackendPresenter
 			$this->template->displayButtons = [$this->createNewItemButton('attributeNew')];
 			$this->template->displayControls = [$this->getComponent('attributeGrid')];
 		} elseif ($this->tab === 'values') {
-			$this->template->displayButtons = [$this->createNewItemButton('valueNew')];
+			$attribute = $this->getParameter('attribute') ? $this->attributeRepository->one($this->getParameter('attribute')) : null;
+			$this->template->displayButtons = [$this->createNewItemButton('valueNew', ['attribute' => $attribute])];
 			$this->template->displayControls = [$this->getComponent('valuesGrid')];
 		} elseif ($this->tab === 'ranges') {
 			$this->template->displayButtons = [$this->createNewItemButton('rangeNew')];
@@ -166,7 +167,11 @@ class AttributePresenter extends BackendPresenter
 			$attributeValues = $this->attributeRepository->getAttributeValues($object, true);
 
 			return \count($attributeValues) > 0 ?
-				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', ['tab' => 'values', 'valuesGrid-attribute' => $object->code,]) . "'>Hodnoty</a>" :
+				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', [
+					'tab' => 'values',
+					'valuesGrid-attribute' => $object->code,
+					'attribute' => $object->getPK(),
+				]) . "'>Hodnoty</a>" :
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('valueNew', $object) . "'>Vytvořit&nbsp;hodnotu</a>";
 		}, '%s', null, ['class' => 'minimal']);
 
@@ -496,16 +501,17 @@ class AttributePresenter extends BackendPresenter
 		$form = $this->formFactory->create(true);
 
 		$form->addText('code', 'Kód')->setRequired();
-
-		if (!($this->getParameter('attributeValue') && $this->attributeValueRepository->isValuePairedWithProducts($this->getParameter('attributeValue')))) {
-			$attributeInput = $form->addDataSelect('attribute', 'Atribut', $this->attributeRepository->getArrayForSelect())->setRequired()
-				->setHtmlAttribute('data-info', 'Hodnoty systémových atributů "' . \implode(', ', ProductFilter::SYSTEMIC_ATTRIBUTES) . '" nebudou použity.');
-
-			if ($attribute = $this->getParameter('attribute')) {
-				$attributeInput->setDefaultValue($attribute->getPK());
-			}
+		
+		$attributeInput = $form->addSelect2('attribute', 'Atribut', $this->attributeRepository->getArrayForSelect())->setRequired()
+							   ->setHtmlAttribute('data-info', 'Hodnoty systémových atributů "' . \implode(', ', ProductFilter::SYSTEMIC_ATTRIBUTES) . '" nebudou použity.')
+							   ->setDisabled($this->getParameter('attributeValue') && $this->attributeValueRepository->isValuePairedWithProducts($this->getParameter('attributeValue')));
+		
+		$attribute = $this->getParameter('attribute') ?: $attributeValue?->attribute;
+		
+		if ($attribute) {
+			$attributeInput->setDefaultValue($attribute->getPK());
 		}
-
+		
 		$form->addText('internalName', 'Interní název')->setNullable()
 			->setHtmlAttribute('data-info', 'Používá se pro lepší přehlednost v adminu. Pokud není vyplněn, tak se použije "Popisek".');
 		$nameInput = $form->addLocaleText('label', 'Popisek');
@@ -626,7 +632,16 @@ class AttributePresenter extends BackendPresenter
 			$this->clearNetteCache();
 
 			$this->flashMessage('Uloženo', 'success');
-			$form->processRedirect('valueDetail', 'default', [$object]);
+			
+			$attributeValue = $this->attributeValueRepository->one($object->getPK());
+			
+			$form->processRedirect(
+				'valueDetail',
+				'default',
+				[$object],
+				['attribute' => $attributeValue->attribute->getPK()],
+				['attributeValue' => $object, 'attribute' => $this->getParameter('attribute')]
+			);
 		};
 
 		return $form;
@@ -737,7 +752,7 @@ class AttributePresenter extends BackendPresenter
 			['Hodnoty', 'default',],
 			['Nová položka'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayButtons = [$this->createBackButton('default', ['attribute' => (string) $this->getParameter('attribute')])];
 		$this->template->displayControls = [$this->getComponent('valuesForm')];
 	}
 
@@ -780,7 +795,7 @@ class AttributePresenter extends BackendPresenter
 			['Hodnoty', 'default',],
 			['Detail'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayButtons = [$this->createBackButton('default', ['attribute' => $this->getParameter('attribute')])];
 		$this->template->displayControls = [$this->getComponent('valuesForm')];
 	}
 	
