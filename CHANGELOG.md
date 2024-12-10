@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.385](https://github.com/liquiddesign/eshop/compare/v2.1.384...v2.1.385) (2024-12-10)
+
+### Bug Fixes
+
+
+##### Attribute Presenter
+
+* Setting attribute for attributeValue forms ([fcac62](https://github.com/liquiddesign/eshop/commit/fcac62a279006f4f242e7857399d870e6bdc35ab))
+
+### Builds
+
+* Add pull ([23aebc](https://github.com/liquiddesign/eshop/commit/23aebcb89930028149dad751fecb17a02a7d2df5))
+
+
+---
+
 ## [2.1.384](https://github.com/liquiddesign/eshop/compare/v2.1.383...v2.1.384) (2024-12-09)
 
 ### Features
