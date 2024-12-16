@@ -453,6 +453,26 @@ class ProductsCacheGetterService implements AutoWireService
 				/** @var \Eshop\DB\Attribute $attribute */
 				$attribute = $allAttributes[$attributePK];
 
+				if ($attribute->showRange) {
+					foreach ($attributeValuesPKs as $attributeValueRanges) {
+						$found = false;
+
+						foreach ($attributeValueRanges as $attributeValue) {
+							if (isset($attributeValues[$attributeValue])) {
+								$found = true;
+
+								break;
+							}
+						}
+
+						if (!$found) {
+							continue 3;
+						}
+					}
+
+					continue;
+				}
+
 				if ($attribute->filterType === 'or' || $attribute->showNumericSlider) {
 					$found = false;
 
@@ -467,29 +487,13 @@ class ProductsCacheGetterService implements AutoWireService
 					if (!$found) {
 						continue 2;
 					}
-				} else {
-					if ($attribute->showRange) {
-						foreach ($attributeValuesPKs as $attributeValueRanges) {
-							$found = false;
 
-							foreach ($attributeValueRanges as $attributeValue) {
-								if (isset($attributeValues[$attributeValue])) {
-									$found = true;
+					continue;
+				}
 
-									break;
-								}
-							}
-
-							if (!$found) {
-								continue 3;
-							}
-						}
-					} else {
-						foreach ($attributeValuesPKs as $attributeValue) {
-							if (!isset($attributeValues[$attributeValue])) {
-								continue 3;
-							}
-						}
+				foreach ($attributeValuesPKs as $attributeValue) {
+					if (!isset($attributeValues[$attributeValue])) {
+						continue 3;
 					}
 				}
 			}
