@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.387](https://github.com/liquiddesign/eshop/compare/v2.1.386...v2.1.387) (2024-12-16)
+
+### Bug Fixes
+
+* Attributes filtering order ([8b12c2](https://github.com/liquiddesign/eshop/commit/8b12c2933c662f28d440b0f4f0a8c946ce270803))
+
+
+---
+
 ## [2.1.386](https://github.com/liquiddesign/eshop/compare/v2.1.385...v2.1.386) (2024-12-16)
 
 ### Bug Fixes
