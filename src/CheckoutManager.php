@@ -1753,7 +1753,13 @@ class CheckoutManager
 		$order = $this->orderRepository->createOne($orderValues);
 
 		$topLevelItems = $this->getTopLevelItems($cartId)->toArray();
-		$boxList = $purchase->deliveryType ? $purchase->deliveryType->getBoxesForItems($topLevelItems) : $this->deliveryTypeRepository->getDefaultBoxes();
+
+		try {
+			$boxList = $purchase->deliveryType ? $purchase->deliveryType->getBoxesForItems($topLevelItems) : $this->deliveryTypeRepository->getDefaultBoxes();
+		} catch (\Exception $e) {
+			$boxList = $this->deliveryTypeRepository->getDefaultBoxes();
+		}
+
 		$packageId = 0;
 
 		foreach ($boxList as $box) {

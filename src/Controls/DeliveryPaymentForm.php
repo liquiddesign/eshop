@@ -111,9 +111,15 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 
 		$deliveryType = $this->deliveryTypeRepository->one($values['deliveries'], true);
 
+		try {
+			$boxesCount = \count($deliveryType->getBoxesForItems($this->shopperUser->getCheckoutManager()->getTopLevelItems()->toArray()));
+		} catch (\Exception $e) {
+			$boxesCount = 1;
+		}
+
 		$newValues = [
 			'deliveryType' => $values['deliveries'],
-			'deliveryPackagesNo' => \count($deliveryType->getBoxesForItems($this->shopperUser->getCheckoutManager()->getTopLevelItems()->toArray())),
+			'deliveryPackagesNo' => $boxesCount,
 			'paymentType' => $values['payments'],
 			'zasilkovnaId' => $deliveryType->code === 'zasilkovna' ? $values['zasilkovnaId'] : null,
 			'pickupPointId' => $deliveryType->code !== 'zasilkovna' ? $values['pickupPointId'] : null,
