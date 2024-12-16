@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.388](https://github.com/liquiddesign/eshop/compare/v2.1.387...v2.1.388) (2024-12-16)
+
+### Features
+
+* Enhance number filtering by adding range filters for 'numberFrom' and 'numberTo' in AttributePresenter.php. Correct prompt text to 'Číselná reprezentace'. Set HTML attributes for improved styling and user experience. ([4f0437](https://github.com/liquiddesign/eshop/commit/4f04378f691cd903684171c41b401dfc9d06816a))
+
+
+---
+
 ## [2.1.387](https://github.com/liquiddesign/eshop/compare/v2.1.386...v2.1.387) (2024-12-16)
 
 ### Bug Fixes
