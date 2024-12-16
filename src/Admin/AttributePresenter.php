@@ -466,7 +466,25 @@ class AttributePresenter extends BackendPresenter
 			} else {
 				$source->where('this.number IS NOT NULL');
 			}
-		}, '', 'number', null, ['1' => 'Ano', '0' => 'Ne'])->setPrompt('- Číslená reprezentace -');
+		}, '', 'number', null, ['1' => 'Ano', '0' => 'Ne'])->setPrompt('- Číselná reprezentace -');
+
+		$grid->addFilterInteger(function (ICollection $source, $value) use ($mutationSuffix): void {
+			if ($value) {
+				$source->where("this.label$mutationSuffix >= :numberFrom", ['numberFrom' => $value]);
+			}
+		}, null, 'numberFrom')
+			->setHtmlAttribute('placeholder', 'Hodnota >=')
+			->setHtmlAttribute('class', 'form-control form-control-sm')
+			->setHtmlAttribute('style', 'width: 200px');
+
+		$grid->addFilterInteger(function (ICollection $source, $value) use ($mutationSuffix): void {
+			if ($value) {
+				$source->where("this.label$mutationSuffix <= :numberTo", ['numberTo' => $value]);
+			}
+		}, null, 'numberTo')
+			->setHtmlAttribute('placeholder', 'Hodnota <=')
+			->setHtmlAttribute('class', 'form-control form-control-sm')
+			->setHtmlAttribute('style', 'width: 200px');
 
 		$grid->addFilterButtons(['default']);
 
