@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.386](https://github.com/liquiddesign/eshop/compare/v2.1.385...v2.1.386) (2024-12-16)
+
+### Bug Fixes
+
+* Handle exceptions for box retrieval in CheckoutManager and DeliveryPaymentForm ([d62c15](https://github.com/liquiddesign/eshop/commit/d62c153844337777a1eb8da6f28bdb1e6295695c))
+
+
+---
+
 ## [2.1.385](https://github.com/liquiddesign/eshop/compare/v2.1.384...v2.1.385) (2024-12-10)
 
 ### Bug Fixes
