@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.389](https://github.com/liquiddesign/eshop/compare/v2.1.388...v2.1.389) (2024-12-19)
+
+### Bug Fixes
+
+* PHP 8.4 - Update CSV output to escape special characters ([d9554b](https://github.com/liquiddesign/eshop/commit/d9554b3a9b1ff24c0ae48e08d74807e150dba082))
+
+
+---
+
 ## [2.1.388](https://github.com/liquiddesign/eshop/compare/v2.1.387...v2.1.388) (2024-12-16)
 
 ### Features
