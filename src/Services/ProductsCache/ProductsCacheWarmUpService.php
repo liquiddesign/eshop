@@ -1256,8 +1256,7 @@ CREATE TABLE `$categoriesTableName` (
 		$i = 0;
 
 		foreach ($data as $row) {
-			// @phpcs:ignore
-			\fputcsv($buffer, $row, escape: "\\");
+			\fputcsv($buffer, $row);
 
 			$i++;
 
