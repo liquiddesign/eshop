@@ -201,7 +201,7 @@ class ProductList extends Datalist
 		}
 
 		\Tracy\Debugger::barDump(\Tracy\Debugger::timer('getProductsFromCacheTable'), 'cacheProducts');
-		\Tracy\Debugger::barDump($cachedProducts);
+		\Tracy\Debugger::barDump(isset($cachedProducts['productPKs']) ? \count($cachedProducts['productPKs']) : false);
 
 		try {
 			/** @var \StORM\Collection<\Eshop\DB\Product> $source */
