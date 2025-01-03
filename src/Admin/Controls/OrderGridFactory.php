@@ -102,6 +102,10 @@ class OrderGridFactory
 			->join(['comment' => 'eshop_internalcommentorder'], 'this.uuid = comment.fk_order')
 			->join(['payment' => 'eshop_payment'], 'this.uuid = payment.fk_order')
 			->join(['log' => 'eshop_orderlogitem'], 'this.uuid = log.fk_order')
+			->join(['package' => 'eshop_package'], 'this.uuid = package.fk_order')
+			->join(['packageItem' => 'eshop_packageitem'], 'package.uuid = packageItem.fk_package')
+			->join(['cartItem' => 'eshop_cartitem'], 'packageItem.fk_cartItem = cartItem.uuid')
+			->join(['product' => 'eshop_product'], 'cartItem.fk_product = product.uuid')
 			->select(['commentCount' => 'COUNT(DISTINCT comment.uuid)']);
 
 		Arrays::invoke($this->onCollectionCreation, $collection);
@@ -355,7 +359,7 @@ class OrderGridFactory
 		}
 
 		// filters
-		$grid->addFilterTextInput('search_order', ['this.code'], null, 'Č. objednávky');
+		$grid->addFilterTextInput('search_product', ['product.code', 'product.ean'], null, 'Č. objednávky');
 		$searchExpressions = ['customer.fullname', 'purchase.fullname', 'customer.ic', 'purchase.ic', 'customer.email', 'purchase.email', 'customer.phone', 'purchase.phone',];
 		$grid->addFilterTextInput('search_q', $searchExpressions, null, 'Jméno zákazníka, IČO, e-mail, telefon');
 		$grid->addFilterButtons(['default']);
@@ -402,6 +406,8 @@ class OrderGridFactory
 				$source->filter(['internalRibbon' => \Eshop\Common\Helpers::replaceArrayValue($value, '0', null)]);
 			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
 		}
+
+		$grid->addFilterTextInput('search_items', ['product.code', 'product.ean'], null, 'Kód, EAN položky');
 
 		$this->gridFactory->addShopsFilterSelect($grid);
 
