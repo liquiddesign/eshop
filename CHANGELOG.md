@@ -4,6 +4,24 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.390](https://github.com/liquiddesign/eshop/compare/v2.1.389...v2.1.390) (2025-01-09)
+
+### Features
+
+* Add merchant information to order print detail and checkout process ([6afdc8](https://github.com/liquiddesign/eshop/commit/6afdc88f5196da8f8cec277e57f05e5e5b5675fc))
+* Add product search and join package tables in OrderGridFactory ([abd889](https://github.com/liquiddesign/eshop/commit/abd8896d24f584f27f7fdadff8f8b7812362e85b))
+
+### Bug Fixes
+
+* PHP 8.4 - Update CSV output to escape special characters ([40ccb9](https://github.com/liquiddesign/eshop/commit/40ccb94b8f917166cdb28fbb91122786e0dc9078))
+
+### Chores
+
+* Optimize debug output ([a09103](https://github.com/liquiddesign/eshop/commit/a091031e32f4d9a6e8d9fb2d7b05684574776366))
+
+
+---
+
 ## [2.1.389](https://github.com/liquiddesign/eshop/compare/v2.1.388...v2.1.389) (2024-12-19)
 
 ### Bug Fixes
