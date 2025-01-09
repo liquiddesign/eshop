@@ -1699,6 +1699,7 @@ class CheckoutManager
 		}
 		
 		$customer = $this->getCustomer();
+		$merchant = $this->shopperUser->getMerchant();
 		$cart = $this->getCart($cartId);
 		$currency = $cart->currency;
 		
@@ -1706,6 +1707,10 @@ class CheckoutManager
 		
 		if ($customer) {
 			$purchase->update(['customerDiscountLevel' => $this->productRepository->getBestDiscountLevel($customer)]);
+		}
+
+		if ($merchant) {
+			$purchase->update(['merchant' => $merchant->getPK()]);
 		}
 		
 		$cart->update([

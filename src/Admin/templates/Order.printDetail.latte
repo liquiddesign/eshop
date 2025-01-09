@@ -78,6 +78,10 @@
                                 <strong>Objednal zákazník:</strong> <br>
                                 {$purchase->parentCustomer->company ?: $purchase->parentCustomer->fullname} <br>
                             </div>
+                            <div n:if="$purchase->getValue('merchant')" class="mt-2">
+                                <strong>Objednal obchodník:</strong> <br>
+                                {$purchase->merchant->fullname} <br>
+                            </div>
                             <div n:if="$purchase->getValue('account')" class="mt-2">
                                 <strong>Objednal účet:</strong> <br>
                                 {$purchase->account->fullname} ({$purchase->account->login}) <br>
