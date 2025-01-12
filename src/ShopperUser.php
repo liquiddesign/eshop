@@ -317,7 +317,7 @@ class ShopperUser extends User
 					$identity->activeCustomer->setAccount($identity->activeCustomerAccount);
 				}
 
-				return $this->customer = $identity->activeCustomer;
+				return $this->customer = $this->customerRepository->one($identity->getValue('activeCustomer'));
 			}
 		}
 
