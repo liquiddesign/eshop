@@ -312,7 +312,7 @@ class ShopperUser extends User
 				return $this->customer;
 			}
 
-			if ($identity instanceof Merchant) {
+			if ($identity instanceof Merchant && $identity->getValue('activeCustomer')) {
 				if ($identity->activeCustomerAccount) {
 					$identity->activeCustomer->setAccount($identity->activeCustomerAccount);
 				}
