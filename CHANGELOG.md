@@ -4,6 +4,16 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.394](https://github.com/liquiddesign/eshop/compare/v2.1.393...v2.1.394) (2025-01-13)
+
+### Features
+
+* Add MerchantRepository to ShopperUser and update catalog permission logic ([a510a9](https://github.com/liquiddesign/eshop/commit/a510a90820b1f523bf5205dacaa8112b3bf4b7b4))
+* GetLastPurchasedProducts action to retrieve customer's recent purchases ([08641e](https://github.com/liquiddesign/eshop/commit/08641e63389dedb571905a3f7a1f01e19796aa5a))
+
+
+---
+
 ## [2.1.393](https://github.com/liquiddesign/eshop/compare/v2.1.392...v2.1.393) (2025-01-13)
 
 ### Bug Fixes
