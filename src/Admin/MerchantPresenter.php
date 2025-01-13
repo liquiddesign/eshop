@@ -162,6 +162,9 @@ class MerchantPresenter extends BackendPresenter
 			$form->addMultiSelect2('customers', 'Zákazníci', $this->customerRepository->getArrayForSelect());
 		}
 
+		$form->addSelect('catalogPermission', 'Zdroj oprávnění', ['customer' => 'Zákazník', 'merchant' => 'Obchodník'])
+			->setDefaultValue('customer')
+			->setHtmlAttribute('data-info', 'Pokud se obchodník přihlásí na zákazníka, tak určuje, jestli použít oprávnění zákazníka nebo obchodníka.');
 		$form->addCheckbox('customersPermission', 'Oprávnění: Správa zákazníků');
 		$form->addCheckbox('ordersPermission', 'Oprávnění: Správa objednávek');
 		$form->addCheckbox(

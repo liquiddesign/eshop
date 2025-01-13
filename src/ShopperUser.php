@@ -19,6 +19,7 @@ use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\DiscountCoupon;
 use Eshop\DB\Merchant;
+use Eshop\DB\MerchantRepository;
 use Eshop\DB\MinimalOrderValueRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\Product;
@@ -102,6 +103,7 @@ class ShopperUser extends User
 		protected readonly CurrencyRepository $currencyRepository,
 		protected readonly CountryRepository $countryRepository,
 		protected readonly CustomerRepository $customerRepository,
+		protected readonly MerchantRepository $merchantRepository,
 		protected readonly CustomerGroupRepository $customerGroupRepository,
 		protected readonly MinimalOrderValueRepository $minimalOrderValueRepository,
 		protected readonly AccountRepository $accountRepository,
@@ -348,7 +350,7 @@ class ShopperUser extends User
 
 	public function getMerchant(): Merchant|null
 	{
-		return $this->isLoggedIn() && $this->getIdentity() instanceof Merchant ? $this->getIdentity() : null;
+		return $this->isLoggedIn() && $this->getIdentity() instanceof Merchant ? $this->merchantRepository->one($this->getIdentity()->getPK()) : null;
 	}
 
 	/**
@@ -651,12 +653,16 @@ class ShopperUser extends User
 		$customer = $this->getCustomer();
 		$merchant = $this->getMerchant();
 
+		if ($merchant?->catalogPermission === 'merchant') {
+			return self::MERCHANT_CATALOG_PERMISSIONS;
+		}
+
 		if ($merchant && (!$customer && !$merchant->activeCustomerAccount)) {
 			return self::MERCHANT_CATALOG_PERMISSIONS;
 		}
 
 		if (!$customer) {
-			return $this->getCustomerGroup()->defaultCatalogPermission;
+			return $this->getCustomerGroup()?->defaultCatalogPermission ?: 'none';
 		}
 
 		$catalogPermission = $this->getCatalogPermissionObject();

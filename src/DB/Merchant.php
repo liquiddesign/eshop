@@ -37,6 +37,12 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 	public string $email;
 
 	/**
+	 * Určuje odkud se bere oprávnění pro katalog při přihlášení na zákazníka
+	 * @column{"type":"enum","length":"'customer','merchant'"}
+	 */
+	public string $catalogPermission = 'customer';
+
+	/**
 	 * Právě přihlášený zákazník
 	 * @relation
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
