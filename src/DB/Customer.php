@@ -19,7 +19,7 @@ use StORM\RelationCollection;
  * @method array getData()
  * @method \StORM\RelationCollection<\Eshop\DB\VisibilityList> getVisibilityLists()
  * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getPricelists()
- * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getFavouritePricelists()
+ * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getFavouritePriceLists()
  * @method \StORM\RelationCollection<\Eshop\DB\Merchant> getMerchants()
  * @method \StORM\RelationCollection<\Security\DB\Account> getAccounts()
  * @method \StORM\RelationCollection<\Eshop\DB\Product> getFavouriteProducts()
