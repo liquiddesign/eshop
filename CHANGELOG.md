@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.393](https://github.com/liquiddesign/eshop/compare/v2.1.392...v2.1.393) (2025-01-13)
+
+### Bug Fixes
+
+* Restrict Merchant identity check to active customers only ([39d16f](https://github.com/liquiddesign/eshop/commit/39d16f910f5dd99877083f67cd3143b6fb03ed0c))
+
+### Builds
+
+* Gitignore ([52ea7d](https://github.com/liquiddesign/eshop/commit/52ea7df10a6b87db9042c81966639e87afd6476a))
+
+
+---
+
 ## [2.1.392](https://github.com/liquiddesign/eshop/compare/v2.1.391...v2.1.392) (2025-01-12)
 
 
