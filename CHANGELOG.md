@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.395](https://github.com/liquiddesign/eshop/compare/v2.1.394...v2.1.395) (2025-01-13)
+
+### Bug Fixes
+
+* Typo in docblock for getFavouritePriceLists method in Customer.php ([0f5700](https://github.com/liquiddesign/eshop/commit/0f5700fe7858cd81a93a68e21d8b6e318c921a40))
+
+
+---
+
 ## [2.1.394](https://github.com/liquiddesign/eshop/compare/v2.1.393...v2.1.394) (2025-01-13)
 
 ### Features
