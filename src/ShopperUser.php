@@ -57,6 +57,8 @@ class ShopperUser extends User
 
 	protected ?Customer $customer = null;
 
+	protected Merchant|null|false $merchant = false;
+
 	protected Customer|null|false $selectedCustomer = false;
 
 	protected CheckoutManager $checkoutManager;
@@ -314,12 +316,14 @@ class ShopperUser extends User
 				return $this->customer;
 			}
 
-			if ($identity instanceof Merchant && $identity->getValue('activeCustomer')) {
-				if ($identity->activeCustomerAccount) {
-					$identity->activeCustomer->setAccount($identity->activeCustomerAccount);
+			if ($identity instanceof Merchant) {
+				$merchant = $this->getMerchant();
+
+				if ($merchant->activeCustomerAccount) {
+					$merchant->activeCustomer->setAccount($merchant->activeCustomerAccount);
 				}
 
-				return $this->customer = $this->customerRepository->one($identity->getValue('activeCustomer'));
+				return $this->customer = $merchant->activeCustomer;
 			}
 		}
 
@@ -350,6 +354,10 @@ class ShopperUser extends User
 
 	public function getMerchant(): Merchant|null
 	{
+		if ($this->merchant !== false) {
+			return $this->merchant;
+		}
+
 		return $this->isLoggedIn() && $this->getIdentity() instanceof Merchant ? $this->merchantRepository->one($this->getIdentity()->getPK()) : null;
 	}
 
@@ -519,6 +527,14 @@ class ShopperUser extends User
 	{
 		$this->customer = $customer;
 		$this->customerGroup = null;
+	}
+
+	/**
+	 * Nastaví obchodníka
+	 */
+	public function setMerchant(?Merchant $merchant): void
+	{
+		$this->merchant = $merchant;
 	}
 
 	public function getCustomerGroup(): ?CustomerGroup
