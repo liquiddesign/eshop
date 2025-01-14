@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.396](https://github.com/liquiddesign/eshop/compare/v2.1.395...v2.1.396) (2025-01-14)
+
+### Bug Fixes
+
+* Add merchant property and methods to ShopperUser class ([60d4fe](https://github.com/liquiddesign/eshop/commit/60d4fe7736d2944563f7f2c0a83cc02d0193330c))
+
+
+---
+
 ## [2.1.395](https://github.com/liquiddesign/eshop/compare/v2.1.394...v2.1.395) (2025-01-13)
 
 ### Bug Fixes
