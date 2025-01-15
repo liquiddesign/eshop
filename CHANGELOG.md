@@ -4,6 +4,20 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.397](https://github.com/liquiddesign/eshop/compare/v2.1.396...v2.1.397) (2025-01-15)
+
+### Features
+
+* Add selectedCartId property and getter/setter methods to CheckoutManager ([9c8db8](https://github.com/liquiddesign/eshop/commit/9c8db86ab267b79e38c75226fb41f68c54542d11))
+* Impersonation methods ([2ee1b8](https://github.com/liquiddesign/eshop/commit/2ee1b8efcfb0ed72d410d4f04a52eff49d4cb5b2))
+
+### Chores
+
+* Update parameter documentation for product in CheckoutManager.php ([ecbf76](https://github.com/liquiddesign/eshop/commit/ecbf76f8a2adfe7750012ee9afa11784271c68fb))
+
+
+---
+
 ## [2.1.396](https://github.com/liquiddesign/eshop/compare/v2.1.395...v2.1.396) (2025-01-14)
 
 ### Bug Fixes
