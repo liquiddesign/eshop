@@ -358,7 +358,7 @@ class ShopperUser extends User
 			return $this->merchant;
 		}
 
-		return $this->isLoggedIn() && $this->getIdentity() instanceof Merchant ? $this->merchantRepository->one($this->getIdentity()->getPK()) : null;
+		return $this->merchant = ($this->isLoggedIn() && $this->getIdentity() instanceof Merchant ? $this->merchantRepository->one($this->getIdentity()->getPK()) : null);
 	}
 
 	/**

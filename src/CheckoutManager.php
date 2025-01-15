@@ -204,6 +204,8 @@ class CheckoutManager
 	protected array $carts = [];
 	
 	protected int $cartExpiration = 30;
+
+	protected string|null $selectedCartId = null;
 	
 	public function __construct(
 		protected readonly ShopperUser $shopperUser,
@@ -271,6 +273,16 @@ class CheckoutManager
 		}
 		
 		$this->lastOrderToken = $this->request->getCookie('lastOrderToken');
+	}
+
+	public function setSelectedCartId(string|null $selectedCartId): void
+	{
+		$this->selectedCartId = $selectedCartId;
+	}
+
+	public function getSelectedCartId(): string|null
+	{
+		return $this->selectedCartId;
 	}
 	
 	public function getCustomer(): ?Customer
@@ -372,11 +384,19 @@ class CheckoutManager
 	
 	public function cartExists(?string $id = self::ACTIVE_CART_ID): bool
 	{
+		if ($id === self::ACTIVE_CART_ID) {
+			$id = $this->getSelectedCartId();
+		}
+
 		return (bool) ($id === self::ACTIVE_CART_ID ? $this->getActiveCart() : $this->getRealCart($id));
 	}
 	
 	public function getCart(?string $id = self::ACTIVE_CART_ID, bool $createIfNotExists = true): Cart
 	{
+		if ($id === self::ACTIVE_CART_ID) {
+			$id = $this->getSelectedCartId();
+		}
+
 		$cart = $id === self::ACTIVE_CART_ID ? $this->getActiveCart() : $this->getRealCart($id);
 		
 		if (!$cart) {
