@@ -284,7 +284,7 @@ class CheckoutManager
 	}
 	
 	/**
-	 * @param \Eshop\DB\Product $product Must have set prices
+	 * @param \Eshop\DB\Product $product Must have come from ProductRepository::getProducts()
 	 * @param \Eshop\DB\Variant|null $variant
 	 * @param int $amount
 	 * @param ?bool $replaceMode true - replace | false - add or update | null - only add
