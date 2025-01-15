@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.398](https://github.com/liquiddesign/eshop/compare/v2.1.397...v2.1.398) (2025-01-15)
+
+### Bug Fixes
+
+* Delete cart $id usage ([176cad](https://github.com/liquiddesign/eshop/commit/176cadc9871cf5c0605a005262ce236d9b2c70e3))
+
+
+---
+
 ## [2.1.397](https://github.com/liquiddesign/eshop/compare/v2.1.396...v2.1.397) (2025-01-15)
 
 ### Features
