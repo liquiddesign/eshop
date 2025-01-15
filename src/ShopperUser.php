@@ -908,4 +908,63 @@ class ShopperUser extends User
 
 		return null;
 	}
+
+	/**
+	 * @throws \StORM\Exception\NotFoundException
+	 * @throws \Exception
+	 */
+	public function impersonateCustomer(Customer $customer): void
+	{
+		$merchant = $this->getMerchant();
+		$account = $customer->account;
+
+		if ($merchant === null) {
+			throw new \Exception('Impersonation allowed only for merchant accounts!');
+		}
+
+		$merchant->update(['activeCustomer' => $customer->getPK()]);
+
+		if ($account === null) {
+			return;
+		}
+
+		$merchant->update(['activeCustomerAccount' => $account->getPK()]);
+	}
+
+	/**
+	 * @throws \StORM\Exception\NotFoundException
+	 * @throws \Exception
+	 */
+	public function impersonateAccount(Account $account): void
+	{
+		$merchant = $this->getMerchant();
+		$customer = $this->customerRepository->one(['accounts' => $account]);
+
+		if ($merchant === null) {
+			throw new \Exception('Impersonation allowed only for merchant accounts!');
+		}
+
+		if ($customer === null) {
+			throw new \Exception('Only customer accounts can be impersonated!');
+		}
+
+		$merchant->update(['activeCustomer' => $customer->getPK()]);
+		$merchant->update(['activeCustomerAccount' => $account->getPK()]);
+	}
+
+	/**
+	 * @throws \StORM\Exception\NotFoundException
+	 * @throws \Exception
+	 */
+	public function stopImpersonating(): void
+	{
+		$merchant = $this->getMerchant();
+
+		if ($merchant === null) {
+			throw new \Exception('Impersonation allowed only for merchant accounts!');
+		}
+
+		$merchant->update(['activeCustomer' => null]);
+		$merchant->update(['activeCustomerAccount' => null]);
+	}
 }
