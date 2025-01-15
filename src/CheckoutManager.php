@@ -722,7 +722,7 @@ class CheckoutManager
 	{
 		$cart = $this->getCart($id);
 		
-		$this->cartItemTaxRepository->many()->where('fk_cartItem', \array_keys($this->getItems($id)->toArray()))->delete();
+		$this->cartItemTaxRepository->many()->where('fk_cartItem', \array_keys($this->getItems($cart->id)->toArray()))->delete();
 		
 		if (!$cart->closedTs) {
 			$this->cartRepository->deleteCart($cart);
@@ -733,8 +733,10 @@ class CheckoutManager
 		} else {
 			unset($this->unattachedCarts[$this->cartToken]);
 		}
-		
-		$this->refreshSumProperties($id);
+
+		unset($this->carts[$cart->id]);
+
+		$this->refreshSumProperties($cart->id);
 	}
 	
 	public function changeItemNote(Product $product, ?Variant $variant = null, ?string $note = null, ?string $cartId = self::ACTIVE_CART_ID): void
