@@ -1,0 +1,17 @@
+services:
+  cli:
+    build:
+      context: .
+      dockerfile: ./docker/CLI.Dockerfile
+    environment:
+      - APP_UID=1000
+      - APP_GID=1000
+      - COMPOSER=composer.json
+    working_dir: /var/www/html
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/var/www/html
+      - composer_cache:/.composer
+volumes:
+  composer_cache:
