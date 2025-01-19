@@ -190,7 +190,7 @@ class ProductList extends Datalist
 				$this->getFilters(),
 				$this->getOrder(),
 				$this->getDirection(),
-				$this->shopperUser->getPricelists()->toArray(),
+				$this->shopperUser->getPriceListsCached(),
 				$this->shopperUser->getVisibilityLists(),
 			);
 		} catch (\Throwable $e) {

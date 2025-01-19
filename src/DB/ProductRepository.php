@@ -134,7 +134,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			$convertRatio = $currency->convertRatio;
 		}
 		
-		$pricelists ??= $this->shopperUser->getPricelists()->toArray();
+		$pricelists ??= $this->shopperUser->getPriceListsCached();
 		$pricelists = \array_values($pricelists);
 		$customer = $customerGroup ? $customer : ($customer ?: $this->shopperUser->getCustomer());
 
@@ -639,7 +639,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	public function setProductsConditions(ICollection $collection, bool $includeHidden = true, ?array $pricelists = null): void
 	{
-		$pricelists = $pricelists ?: \array_values($this->shopperUser->getPricelists()->toArray());
+		$pricelists = $pricelists ?: \array_values($this->shopperUser->getPriceListsCached());
 		$priceWhere = new Expression();
 		
 		foreach ($pricelists as $id => $pricelist) {
@@ -835,7 +835,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function filterPriceFrom($value, ICollection $collection): void
 	{
-		$no = \count($this->shopperUser->getPricelists()->toArray());
+		$no = \count($this->shopperUser->getPriceListsCached());
 		$expression = new Expression();
 		
 		for ($i = 0; $i !== $no; $i++) {
@@ -847,7 +847,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function filterPriceTo($value, ICollection $collection): void
 	{
-		$no = \count($this->shopperUser->getPricelists()->toArray());
+		$no = \count($this->shopperUser->getPriceListsCached());
 		$expression = new Expression();
 		
 		for ($i = 0; $i !== $no; $i++) {
@@ -859,7 +859,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	public function filterPriceGt($value, ICollection $collection): void
 	{
-		$no = \count($this->shopperUser->getPricelists()->toArray());
+		$no = \count($this->shopperUser->getPriceListsCached());
 		$expression = new Expression();
 
 		for ($i = 0; $i !== $no; $i++) {
@@ -871,7 +871,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function filterPriceVatFrom($value, ICollection $collection): void
 	{
-		$no = \count($this->shopperUser->getPricelists()->toArray());
+		$no = \count($this->shopperUser->getPriceListsCached());
 		$expression = new Expression();
 		
 		for ($i = 0; $i !== $no; $i++) {
@@ -883,7 +883,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	public function filterPriceVatTo($value, ICollection $collection): void
 	{
-		$no = \count($this->shopperUser->getPricelists()->toArray());
+		$no = \count($this->shopperUser->getPriceListsCached());
 		$expression = new Expression();
 		
 		for ($i = 0; $i !== $no; $i++) {

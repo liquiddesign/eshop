@@ -173,7 +173,7 @@ class ProductFilter extends Control
 
 				$providerOutputWithoutAttribute = $this->productsCacheGetterService->getProductsFromCacheTable(
 					$subFilters,
-					priceLists: $this->shopperUser->getPricelists()->toArray(),
+					priceLists: $this->shopperUser->getPriceListsCached(),
 					visibilityLists: $this->shopperUser->getVisibilityLists(),
 				);
 

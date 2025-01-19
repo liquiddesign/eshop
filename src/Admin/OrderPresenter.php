@@ -691,7 +691,7 @@ class OrderPresenter extends BackendPresenter
 
 			$this->shopperUser->setCustomer($order->purchase->customer);
 
-			if ($this->productRepo->getProducts($this->shopperUser->getCheckoutManager()->getPricelists()->toArray())->where('this.uuid', $values['product'])->first()) {
+			if ($this->productRepo->getProducts()->where('this.uuid', $values['product'])->first()) {
 				return;
 			}
 

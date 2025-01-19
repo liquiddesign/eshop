@@ -424,13 +424,14 @@ class CheckoutManager
 	}
 	
 	/**
+	 * @deprecated Use ShopperUser::getPriceListsCached() instead
 	 * @param \Eshop\DB\Currency|null $currency
 	 * @param \Eshop\DB\DiscountCoupon|null $discountCoupon
-	 * @return \StORM\Collection<\Eshop\DB\Pricelist>
+	 * @return array<int|string, \Eshop\DB\Pricelist>
 	 */
-	public function getPricelists(?Currency $currency = null, ?DiscountCoupon $discountCoupon = null): Collection
+	public function getPricelists(?Currency $currency = null, ?DiscountCoupon $discountCoupon = null): array
 	{
-		return $this->shopperUser->getPricelists($currency, $discountCoupon ?? $this->getDiscountCoupon());
+		return $this->shopperUser->getPriceListsCached($currency, $discountCoupon ?? $this->getDiscountCoupon());
 	}
 	
 	public function getSumPrice(?string $id = self::ACTIVE_CART_ID): float

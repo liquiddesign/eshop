@@ -55,15 +55,15 @@ class ShopperUser extends User
 
 	protected const MERCHANT_CATALOG_PERMISSIONS = 'price';
 
-	protected ?Customer $customer = null;
+	protected Customer|null|false $customer = false;
 
 	protected Merchant|null|false $merchant = false;
 
 	protected Customer|null|false $selectedCustomer = false;
 
-	protected CheckoutManager $checkoutManager;
+	protected CustomerGroup|null|false $customerGroup = false;
 
-	protected ?CustomerGroup $customerGroup;
+	protected CheckoutManager $checkoutManager;
 
 	protected Country $country;
 
@@ -99,6 +99,16 @@ class ShopperUser extends User
 	private array $config = [];
 
 	private CategoryType|null|false $mainCategoryType = false;
+
+	/**
+	 * @var array<string, array<int|string, \Eshop\DB\Pricelist>>
+	 */
+	private array $priceLists = [];
+
+	/**
+	 * @var array<int|string, \Eshop\DB\VisibilityList>|false
+	 */
+	private array|false $visibilityLists = false;
 
 	public function __construct(
 		protected readonly PricelistRepository $pricelistRepository,
@@ -295,7 +305,7 @@ class ShopperUser extends User
 	 */
 	public function getCustomer(): ?Customer
 	{
-		if ($this->customer) {
+		if ($this->customer !== false) {
 			return $this->customer;
 		}
 
@@ -335,6 +345,10 @@ class ShopperUser extends User
 	 */
 	public function getVisibilityLists(): array
 	{
+		if ($this->visibilityLists !== false) {
+			return $this->visibilityLists;
+		}
+
 		$customer = $this->getCustomer();
 		$merchant = $this->getMerchant();
 
@@ -344,7 +358,7 @@ class ShopperUser extends User
 			$visibilityLists = $customer ? $customer->getVisibilityLists() : $this->getCustomerGroup()->getDefaultVisibilityLists();
 		}
 
-		return $visibilityLists->select(['this.id'])->where('this.hidden', false)->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC'])->toArray();
+		return $this->visibilityLists = $visibilityLists->select(['this.id'])->where('this.hidden', false)->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC'])->toArray();
 	}
 
 	public function canBuyProductAmount(Product $product, $amount): bool
@@ -525,8 +539,9 @@ class ShopperUser extends User
 	 */
 	public function setCustomer(?Customer $customer): void
 	{
+		$this->clearCached();
+
 		$this->customer = $customer;
-		$this->customerGroup = null;
 	}
 
 	/**
@@ -534,14 +549,20 @@ class ShopperUser extends User
 	 */
 	public function setMerchant(?Merchant $merchant): void
 	{
+		$this->clearCached();
+
 		$this->merchant = $merchant;
 	}
 
 	public function getCustomerGroup(): ?CustomerGroup
 	{
+		if ($this->customerGroup !== false) {
+			return $this->customerGroup;
+		}
+
 		$customer = $this->getCustomer();
 
-		return $this->customerGroup ??= $customer ? $customer->group : $this->customerGroupRepository->getUnregisteredGroup();
+		return $this->customerGroup = $customer ? $customer->group : $this->customerGroupRepository->getUnregisteredGroup();
 	}
 
 	public function setCustomerGroup(CustomerGroup $customerGroup): void
@@ -561,8 +582,7 @@ class ShopperUser extends User
 	}
 
 	/**
-	 * Vrací kolekci aktuálních ceník, respektující uživatel i měnu, cachuje se do proměnné pokud není zadána měna
-	 * If possible, dont use this function but getPricelists(..) in CheckoutManager!
+	 * Vrací kolekci aktuálních ceník, respektující uživatel i měnu
 	 * @param \Eshop\DB\Currency|null $currency
 	 * @param \Eshop\DB\DiscountCoupon|null $discountCoupon
 	 * @return \StORM\Collection<\Eshop\DB\Pricelist>
@@ -588,6 +608,25 @@ class ShopperUser extends User
 	}
 
 	/**
+	 * Vrací kolekci aktuálních ceník, respektující uživatel i měnu, cachuje se do proměnné
+	 * @param \Eshop\DB\Currency|null $currency
+	 * @param \Eshop\DB\DiscountCoupon|null $discountCoupon
+	 * @return array<string|int, \Eshop\DB\Pricelist>
+	 */
+	public function getPriceListsCached(
+		Currency|null $currency = null,
+		DiscountCoupon|null $discountCoupon = null
+	): array {
+		$index = "{$currency?->getPK()}-{$discountCoupon?->getPK()}";
+
+		if (isset($this->priceLists[$index])) {
+			return $this->priceLists[$index];
+		}
+
+		return $this->priceLists[$index] = $this->getPricelists($currency, $discountCoupon)->toArray();
+	}
+
+	/**
 	 * @param string $prefix
 	 * @param array<mixed> $filters
 	 */
@@ -597,7 +636,7 @@ class ShopperUser extends User
 			return null;
 		}
 
-		return $prefix . \implode('', $this->getPricelists()->toArrayOf('uuid')) . \implode('', \array_keys($this->getVisibilityLists())) . \http_build_query($filters);
+		return $prefix . \implode('', \array_keys($this->getPriceListsCached())) . \implode('', \array_keys($this->getVisibilityLists())) . \http_build_query($filters);
 	}
 
 	/**
@@ -966,5 +1005,14 @@ class ShopperUser extends User
 
 		$merchant->update(['activeCustomer' => null]);
 		$merchant->update(['activeCustomerAccount' => null]);
+	}
+
+	protected function clearCached(): void
+	{
+		$this->priceLists = [];
+		$this->visibilityLists = false;
+		$this->customer = false;
+		$this->merchant = false;
+		$this->customerGroup = false;
 	}
 }

@@ -7,6 +7,7 @@ namespace Eshop\DB;
 use Admin\DB\IGeneralAjaxRepository;
 use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
+use Eshop\Admin\ScriptsPresenter;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
 use Eshop\Services\ProductsCache\ProductsCacheProvider;
@@ -78,9 +79,16 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$productsProvider = $this->container->getByType(GeneralProductsCacheProvider::class);
 		$productRepository = $this->productRepository;
 
-		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
-			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
-			'main';
+		$mainCategoryType = $this->cache->load(self::class . "::mainCategoryType", function (&$dependencies) {
+			$dependencies = [
+				Cache::Tags => [ScriptsPresenter::CATEGORIES_CACHE_TAG, ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
+				Cache::Expire => '1 day',
+			];
+
+			return $this->shopsConfig->getSelectedShop() ?
+				$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
+				'main';
+		});
 
 		$category = \is_string($path) ?
 			$this->many()->where('this.path', $path)->where('this.fk_type', $mainCategoryType)->first() :
@@ -92,7 +100,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		$filters['category'] = $category->path;
 
-		$priceLists = $priceLists ?: $this->shopperUser->getPricelists()->toArray();
+		$priceLists = $priceLists ?: $this->shopperUser->getPriceListsCached();
 		$visibilityLists = $visibilityLists ?: $this->shopperUser->getVisibilityLists();
 
 		$cacheIndex = \serialize($filters) . \serialize(\array_keys($priceLists)) . \serialize(\array_keys($visibilityLists)) . $path;
