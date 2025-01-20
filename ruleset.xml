@@ -11,4 +11,7 @@
     <rule ref="Squiz.NamingConventions.ValidVariableName.MemberNotCamelCaps">
         <severity>0</severity>
     </rule>
+    <rule ref="Generic.Files.LineEndings.InvalidEOLChar">
+        <severity>0</severity>
+    </rule>
 </ruleset>
