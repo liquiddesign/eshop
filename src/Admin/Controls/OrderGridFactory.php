@@ -359,7 +359,7 @@ class OrderGridFactory
 		}
 
 		// filters
-		$grid->addFilterTextInput('search_product', ['product.code', 'product.ean'], null, 'Č. objednávky');
+		$grid->addFilterTextInput('search_order', ['this.code'], null, 'Č. objednávky');
 		$searchExpressions = ['customer.fullname', 'purchase.fullname', 'customer.ic', 'purchase.ic', 'customer.email', 'purchase.email', 'customer.phone', 'purchase.phone',];
 		$grid->addFilterTextInput('search_q', $searchExpressions, null, 'Jméno zákazníka, IČO, e-mail, telefon');
 		$grid->addFilterButtons(['default']);
