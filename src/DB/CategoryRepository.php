@@ -79,7 +79,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$productsProvider = $this->container->getByType(GeneralProductsCacheProvider::class);
 		$productRepository = $this->productRepository;
 
-		$mainCategoryType = $this->cache->load(self::class . "::mainCategoryType", function (&$dependencies) {
+		$mainCategoryType = $this->cache->load(self::class . '::mainCategoryType', function (&$dependencies) {
 			$dependencies = [
 				Cache::Tags => [ScriptsPresenter::CATEGORIES_CACHE_TAG, ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
 				Cache::Expire => '1 day',
