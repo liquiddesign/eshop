@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.402](https://github.com/liquiddesign/eshop/compare/v2.1.401...v2.1.402) (2025-01-22)
+
+### Bug Fixes
+
+* Php 8.4 compatibility ([b9277f](https://github.com/liquiddesign/eshop/commit/b9277f8a28386b9d5a7a478714dd53d98dea9c85))
+
+### Styles
+
+* Fix ([36ca20](https://github.com/liquiddesign/eshop/commit/36ca20f3596ef6938e7d37c94adc5298a14e1ae2))
+
+
+---
+
 ## [2.1.398](https://github.com/liquiddesign/eshop/compare/v2.1.397...v2.1.398) (2025-01-15)
 
 ### Bug Fixes
