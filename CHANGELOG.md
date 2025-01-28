@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.403](https://github.com/liquiddesign/eshop/compare/v2.1.402...v2.1.403) (2025-01-28)
+
+### Features
+
+* Drop-shipping per item ([78c127](https://github.com/liquiddesign/eshop/commit/78c1275a2c579953a31a35545418cd24a4703d38))
+
+
+---
+
 ## [2.1.402](https://github.com/liquiddesign/eshop/compare/v2.1.401...v2.1.402) (2025-01-22)
 
 ### Bug Fixes
