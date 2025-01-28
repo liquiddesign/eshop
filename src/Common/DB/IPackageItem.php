@@ -9,4 +9,6 @@ interface IPackageItem
 	public function getProduct(): Product|null;
 
 	public function getAmount(): int;
+
+	public function isDropShipping(): bool;
 }

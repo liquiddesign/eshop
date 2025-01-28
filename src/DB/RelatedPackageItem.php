@@ -36,4 +36,9 @@ class RelatedPackageItem extends \StORM\Entity implements IPackageItem
 	{
 		return $this->cartItem->amount;
 	}
+
+	public function isDropShipping(): bool
+	{
+		return $this->packageItem->isDropShipping();
+	}
 }

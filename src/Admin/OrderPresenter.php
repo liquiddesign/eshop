@@ -73,6 +73,7 @@ use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use StORM\Collection;
 use StORM\DIConnection;
+use StORM\Literal;
 use Throwable;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -2528,6 +2529,13 @@ class OrderPresenter extends BackendPresenter
 	public function handleUnPauseOrder(string $orderPK): void
 	{
 		$this->orderRepository->unPauseOrder($this->orderRepository->one($orderPK));
+	}
+
+	public function handleTogglePackageItemDropShipping(string $packageItemPK): void
+	{
+		$this->packageItemRepository->many()->where('this.uuid', $packageItemPK)->update(['dropShipping' => new Literal('!dropShipping')]);
+
+		$this->redirect('this');
 	}
 
 	public function handleResetTransport(string $uuid): void

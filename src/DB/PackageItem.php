@@ -96,6 +96,11 @@ class PackageItem extends \StORM\Entity implements IPackageItem
 	public RelationCollection $relatedPackageItems;
 
 	/**
+	 * @column
+	 */
+	public bool $dropShipping = false;
+
+	/**
 	 * Returns selected supplier product by storeAmount
 	 */
 	public function getSelectedSupplierProductBySupplierCode(string $supplierCode): ?SupplierProduct
@@ -120,5 +125,10 @@ class PackageItem extends \StORM\Entity implements IPackageItem
 	public function getAmount(): int
 	{
 		return $this->amount;
+	}
+
+	public function isDropShipping(): bool
+	{
+		return $this->dropShipping;
 	}
 }
