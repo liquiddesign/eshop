@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.406](https://github.com/liquiddesign/eshop/compare/v2.1.405...v2.1.406) (2025-01-30)
+
+### Bug Fixes
+
+* Default delivery type for checkout ([872f93](https://github.com/liquiddesign/eshop/commit/872f93dcc360efeddb8f2feb81cbd15eebaef0bc))
+
+
+---
+
 ## [2.1.403](https://github.com/liquiddesign/eshop/compare/v2.1.402...v2.1.403) (2025-01-28)
 
 ### Features
