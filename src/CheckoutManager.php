@@ -25,6 +25,7 @@ use Eshop\DB\CustomerRepository;
 use Eshop\DB\DeliveryDiscount;
 use Eshop\DB\DeliveryDiscountRepository;
 use Eshop\DB\DeliveryRepository;
+use Eshop\DB\DeliveryType;
 use Eshop\DB\DeliveryTypeRepository;
 use Eshop\DB\DiscountCoupon;
 use Eshop\DB\DiscountCouponRepository;
@@ -37,6 +38,7 @@ use Eshop\DB\OrderRepository;
 use Eshop\DB\PackageItemRepository;
 use Eshop\DB\PackageRepository;
 use Eshop\DB\PaymentRepository;
+use Eshop\DB\PaymentType;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\Product;
@@ -2087,6 +2089,30 @@ class CheckoutManager
 		}
 		
 		return $sum;
+	}
+
+	public function getSelectedDeliveryType(): ?DeliveryType
+	{
+		$purchase = $this->getPurchase(true);
+		$customer = $this->shopperUser->getCustomer();
+
+		if (!$purchase->deliveryType && $customer?->preferredDeliveryType) {
+			return $customer->preferredDeliveryType;
+		}
+
+		return $purchase->deliveryType;
+	}
+
+	public function getSelectedPaymentType(): ?PaymentType
+	{
+		$purchase = $this->getPurchase(true);
+		$customer = $this->shopperUser->getCustomer();
+
+		if (!$purchase->deliveryType && $customer?->preferredPaymentType) {
+			return $customer->preferredPaymentType;
+		}
+
+		return $purchase->paymentType;
 	}
 
 	protected function onOrderCreate(Order $order): void

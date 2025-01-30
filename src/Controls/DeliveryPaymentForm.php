@@ -57,7 +57,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		/** @var \Nette\Forms\Control $deliveries */
 		$deliveries = $this['deliveries'];
 		
-		$pickupPoint->setItems($allPoints)->setPrompt('Vyberte výdejní místo')->addConditionOn($deliveries, $this::IS_IN, $typesWithPoints)->addRule($this::REQUIRED);
+		$pickupPoint->setItems($allPoints)->setPrompt('Vyberte výdejní místo')->addConditionOn($deliveries, $this::IsIn, $typesWithPoints)->addRule($this::Required);
 		
 		$zasilkovnaIdInput = $this->addHidden('zasilkovnaId')->setNullable();
 		$pickupPointIdInput = $this->addHidden('pickupPointId')->setNullable();
@@ -195,7 +195,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 			}
 			
 			$paymentsCondition->addRule(
-				$this::IS_IN,
+				$this::IsIn,
 				$this->translator->translate('deliveryPaymentForm.badCombo', 'Nesprávná kombinace dopravy a platby. Vyberte prosím jinou platbu.'),
 				$allowedPaymentTypes,
 			);
@@ -204,25 +204,11 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 	
 	private function getSelectedDeliveryType(): ?DeliveryType
 	{
-		$purchase = $this->shopperUser->getCheckoutManager()->getPurchase(true);
-		$shopper = $this->shopperUser;
-		
-		if (!$purchase->deliveryType && $shopper->getCustomer() && $shopper->getCustomer()->preferredDeliveryType) {
-			return $shopper->getCustomer()->preferredDeliveryType;
-		}
-		
-		return $purchase->deliveryType;
+		return $this->shopperUser->getCheckoutManager()->getSelectedDeliveryType();
 	}
 	
 	private function getSelectedPaymentType(): ?PaymentType
 	{
-		$purchase = $this->shopperUser->getCheckoutManager()->getPurchase(true);
-		$shopper = $this->shopperUser;
-		
-		if (!$purchase->deliveryType && $shopper->getCustomer() && $shopper->getCustomer()->preferredPaymentType) {
-			return $shopper->getCustomer()->preferredPaymentType;
-		}
-		
-		return $purchase->paymentType;
+		return $this->shopperUser->getCheckoutManager()->getSelectedPaymentType();
 	}
 }
