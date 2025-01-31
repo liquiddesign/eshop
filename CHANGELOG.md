@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.407](https://github.com/liquiddesign/eshop/compare/v2.1.406...v2.1.407) (2025-01-31)
+
+### Features
+
+* Add master and slave relations to product form ([c30270](https://github.com/liquiddesign/eshop/commit/c30270761bd89f514e5b95036530dcc21f7cb4d3))
+
+
+---
+
 ## [2.1.406](https://github.com/liquiddesign/eshop/compare/v2.1.405...v2.1.406) (2025-01-30)
 
 ### Bug Fixes
