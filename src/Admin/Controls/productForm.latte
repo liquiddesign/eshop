@@ -610,32 +610,69 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
         <div id="menu4-content" class="tab-pane {$presenter->editTab == 'menu4' ? 'active show' : ''}">
             <fieldset>
                 {foreach $relatedTypes as $relatedType}
-                    {formContainer "relatedType_" . $relatedType->uuid}
-                        <legend>{$relatedType->name}</legend>
+                    <legend>
+                        {$relatedType->name} ({$masterRelationsCount[$relatedType->getPK()] ?? 0} - {$slaveRelationsCount[$relatedType->getPK()] ?? 0})
 
-                        <table class="mt-1 mb-1" style="width: auto;">
-                            <thead>
-                            <tr>
-                                <th class="p-2">{$relatedType->getSlaveInternalName()}</th>
-                                <th class="p-2">Množství</th>
-                                <th class="p-2">Priorita</th>
-                                <th class="p-2">Skryto</th>
-                                {if $relatedType->defaultDiscountPct}<th class="p-2">Sleva (0-100%)</th>{/if}
-                                {if $relatedType->defaultMasterPct}<th class="p-2">Procento z ceny produktu: {$relatedType->getMasterInternalName()} (0-max%)</th>{/if}
-                            </tr>
-                            </thead>
-                            {for $i =0; $i < $relationMaxItemsCount; $i++}
+                        <span class="ml-2" data-toggle="collapse" data-target="#relatedType-{$relatedType->getPK()}" aria-expanded="false"
+                                aria-controls="collapseExample">
+                            <i class="fas fa-chevron-down" id="toggleIcon"></i>
+                        </span>
+                    </legend>
+
+                    <div class="row collapse" id="relatedType-{$relatedType->getPK()}">
+                        <div class="col-6">
+                        {formContainer "relatedType_master_" . $relatedType->uuid}
+                            <table class="mt-1 mb-1" style="width: auto;">
+                                <thead>
                                 <tr>
-                                    <td class="p-2">{input "product_$i", class: "form-control form-control-sm"}</td>
-                                    <td class="p-2">{input "amount_$i", class: "form-control form-control-sm"}</td>
-                                    <td class="p-2">{input "priority_$i", class: "form-control form-control-sm"}</td>
-                                    <td class="p-2">{input "hidden_$i", class: "form-check-input form-control-sm"}</td>
-                                    {if $relatedType->defaultDiscountPct}<td class="p-2">{input "discountPct_$i", class: "form-control form-control-sm"}</td>{/if}
-                                    {if $relatedType->defaultMasterPct}<td class="p-2">{input "masterPct_$i", class: "form-control form-control-sm"}</td>{/if}
+                                    <th class="p-2">{$relatedType->getSlaveInternalName()}</th>
+                                    <th class="p-2">Množství</th>
+                                    <th class="p-2">Priorita</th>
+                                    <th class="p-2">Skryto</th>
+                                    {if $relatedType->defaultDiscountPct}<th class="p-2">Sleva (0-100%)</th>{/if}
+                                {if $relatedType->defaultMasterPct}<th class="p-2">Procento z ceny produktu: {$relatedType->getMasterInternalName()} (0-max%)</th>{/if}
                                 </tr>
-                            {/for}
-                        </table>
-                    {/formContainer}
+                                </thead>
+                                {for $i =0; $i < $relationMaxItemsCount; $i++}
+                                    <tr>
+                                        <td class="p-2" style="min-width: 360px;">{input "product_$i", class: "form-control form-control-sm", style: "width: 100% !important"}</td>
+                                        <td class="p-2">{input "amount_$i", class: "form-control form-control-sm"}</td>
+                                        <td class="p-2">{input "priority_$i", class: "form-control form-control-sm"}</td>
+                                        <td class="p-2">{input "hidden_$i", class: "form-check-input form-control-sm"}</td>
+                                        {if $relatedType->defaultDiscountPct}<td class="p-2">{input "discountPct_$i", class: "form-control form-control-sm"}</td>{/if}
+                                    {if $relatedType->defaultMasterPct}<td class="p-2">{input "masterPct_$i", class: "form-control form-control-sm"}</td>{/if}
+                                    </tr>
+                                {/for}
+                            </table>
+                        {/formContainer}
+                        </div>
+                        <div class="col-6">
+                        {formContainer "relatedType_slave_" . $relatedType->uuid}
+                            <table class="mt-1 mb-1" style="width: auto;">
+                                <thead>
+                                <tr>
+                                    <th class="p-2">{$relatedType->getMasterInternalName()}</th>
+                                    <th class="p-2">Množství</th>
+                                    <th class="p-2">Priorita</th>
+                                    <th class="p-2">Skryto</th>
+                                    {if $relatedType->defaultDiscountPct}<th class="p-2">Sleva (0-100%)</th>{/if}
+                                {if $relatedType->defaultMasterPct}<th class="p-2">Procento z ceny produktu: {$relatedType->getSlaveInternalName()} (0-max%)</th>{/if}
+                                </tr>
+                                </thead>
+                                {for $i =0; $i < $relationMaxItemsCount; $i++}
+                                    <tr>
+                                        <td class="p-2" style="min-width: 360px;">{input "product_$i", class: "form-control form-control-sm", style: "width: 100% !important"}</td>
+                                        <td class="p-2">{input "amount_$i", class: "form-control form-control-sm"}</td>
+                                        <td class="p-2">{input "priority_$i", class: "form-control form-control-sm"}</td>
+                                        <td class="p-2">{input "hidden_$i", class: "form-check-input form-control-sm"}</td>
+                                        {if $relatedType->defaultDiscountPct}<td class="p-2">{input "discountPct_$i", class: "form-control form-control-sm"}</td>{/if}
+                                    {if $relatedType->defaultMasterPct}<td class="p-2">{input "masterPct_$i", class: "form-control form-control-sm"}</td>{/if}
+                                    </tr>
+                                {/for}
+                            </table>
+                        {/formContainer}
+                        </div>
+                    </div>
                 {/foreach}
             </fieldset>
             <fieldset>

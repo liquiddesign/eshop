@@ -38,6 +38,17 @@ class DeliveryTypeRepository extends \StORM\Repository implements IGeneralReposi
 			$this->shopsConfig->selectFullNameInShopEntityCollection($this->getCollection($includeHidden), selectColumnName: "this.name$mutationSuffix", uniqueColumnName: 'this.code'),
 		);
 	}
+
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\DeliveryType> $collection
+	 * @return array<string>
+	 */
+	public function toArrayForSelect(Collection $collection): array
+	{
+		$suffix = $this->getConnection()->getMutationSuffix();
+
+		return $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection($collection, "this.name$suffix", 'this.code'));
+	}
 	
 	public function getCollection(bool $includeHidden = false): Collection
 	{
