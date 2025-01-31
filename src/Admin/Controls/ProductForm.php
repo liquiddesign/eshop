@@ -432,7 +432,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 					/** @var \Nette\Forms\Controls\Checkbox $hiddenInput */
 					$hiddenInput = $relationsSlaveContainer["hidden_$i"];
 
-					$presenter->template->select2AjaxDefaults[$productInput->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->name];
+					$presenter->template->select2AjaxDefaults[$productInput->getHtmlId()] = [$relation->getValue('master') => $relation->master->name];
 					$amountInput->setDefaultValue($relation->amount);
 					$priorityInput->setDefaultValue($relation->priority);
 					$hiddenInput->setDefaultValue($relation->hidden);
