@@ -90,6 +90,8 @@ class ProductsCacheGetterService implements AutoWireService
 
 	protected Cache $cache;
 
+	private DIConnection $connection;
+
 	public function __construct(
 		protected readonly ProductRepository $productRepository,
 		protected readonly CategoryRepository $categoryRepository,
@@ -97,7 +99,6 @@ class ProductsCacheGetterService implements AutoWireService
 		/** @var \Eshop\DB\PricelistRepository<\Eshop\DB\Pricelist> */
 		protected readonly PricelistRepository $pricelistRepository,
 		protected readonly Container $container,
-		protected readonly DIConnection $connection,
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly CategoryTypeRepository $categoryTypeRepository,
 		protected readonly SettingRepository $settingRepository,
@@ -116,6 +117,11 @@ class ProductsCacheGetterService implements AutoWireService
 		readonly Storage $storage,
 	) {
 		$this->cache = new Cache($storage);
+
+		try {
+			$this->connection = $this->container->getService('storm.cache');
+		} catch (\Exception $e) {
+		}
 
 		$this->startUp();
 	}
@@ -204,9 +210,9 @@ class ProductsCacheGetterService implements AutoWireService
 			return false;
 		}
 
-		$productsCacheTableName = "eshop_products_cache_$cacheIndex";
-		$visibilityPricesCacheTableName = "eshop_products_prices_cache_$cacheIndex";
-		$categoriesTableName = "eshop_categories_cache_$cacheIndex";
+		$productsCacheTableName = "products_$cacheIndex";
+		$visibilityPricesCacheTableName = "prices_$cacheIndex";
+		$categoriesTableName = "categories_$cacheIndex";
 
 		if (!$visibilityLists || !$priceLists) {
 			throw new \Exception('No visibility or price lists supplied.');
@@ -232,6 +238,8 @@ class ProductsCacheGetterService implements AutoWireService
 		$visibilityPriceListsIndex = \implode(',', $visibilityListsIds) . '-' . \implode(',', $priceListsIds);
 		Debugger::barDump($visibilityPriceListsIndex);
 
+		$visibilityPricesCacheTableName .= '_' . \md5($visibilityPriceListsIndex);
+
 		$dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
 
 		$cachedData = $this->cache->load($dataCacheIndex, dependencies: [
@@ -239,7 +247,7 @@ class ProductsCacheGetterService implements AutoWireService
 		]);
 
 		if ($cachedData) {
-			return $cachedData;
+//			return $cachedData;
 		}
 
 		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
@@ -255,8 +263,7 @@ class ProductsCacheGetterService implements AutoWireService
 		$productsCollection = $this->connection->rows(['this' => $productsCacheTableName])
 			->join(
 				['visibilityPrice' => $visibilityPricesCacheTableName],
-				'this.product = visibilityPrice.product AND visibilityPrice.visibilityPriceIndex = :visibilityPriceListsIndex',
-				['visibilityPriceListsIndex' => $visibilityPriceListsIndex],
+				'this.product = visibilityPrice.product',
 				type: 'INNER',
 			);
 
@@ -291,7 +298,7 @@ class ProductsCacheGetterService implements AutoWireService
 		$dynamicFiltersAttributes = [];
 		$dynamicFilters = [];
 
-		$relationsCacheTableName = "eshop_products_relations_cache_$cacheIndex";
+		$relationsCacheTableName = "relations_$cacheIndex";
 
 		if (isset($filters['relatedTypeMaster']) && isset($filters['relatedTypeSlave'])) {
 			throw new \Exception("Filters 'relatedTypeMaster' and 'relatedTypeSlave' can't be used at the same time.");

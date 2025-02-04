@@ -3,31 +3,22 @@
 namespace Eshop\Services\ProductsCache;
 
 use Base\Bridges\AutoWireService;
-use Base\ShopsConfig;
 use Carbon\Carbon;
 use Eshop\Admin\ScriptsPresenter;
-use Eshop\DB\AttributeRepository;
-use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\DisplayAmountRepository;
-use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\MerchantRepository;
-use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
-use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\ProductsCacheStateRepository;
 use Eshop\DB\RelatedRepository;
-use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\VisibilityListItemRepository;
-use Eshop\DB\VisibilityListRepository;
 use Eshop\DevelTools;
 use Eshop\Services\SettingsService;
-use Eshop\ShopperUser;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\DI\Container;
@@ -35,67 +26,52 @@ use Nette\Utils\FileSystem;
 use StORM\DIConnection;
 use Tracy\Debugger;
 use Tracy\ILogger;
-use Web\DB\SettingRepository;
 
 class ProductsCacheWarmUpService implements AutoWireService
 {
-	public const PRODUCTS_TABLE_NAME = 'eshop_products_cache_';
-	public const PRICES_TABLE_NAME = 'eshop_products_prices_cache_';
-	public const CATEGORIES_TABLE_NAME = 'eshop_categories_cache_';
+	private const PRODUCTS_TABLE_NAME = 'products_';
+	private const PRICES_TABLE_NAME = 'prices_';
+	private const CATEGORIES_TABLE_NAME = 'categories_';
 
-	protected Cache $cache;
+	private Cache $cache;
 
-	protected \PDO|false $link = false;
+	private \PDO|false $link = false;
 
-	protected string|false $dbName = false;
+	private string|false $dbName = false;
 
-	protected string|false $mutationSuffix = false;
+	private string|false $mutationSuffix = false;
+
+	private DIConnection $connection;
 
 	public function __construct(
-		protected readonly ProductRepository $productRepository,
-		protected readonly CategoryRepository $categoryRepository,
-		protected readonly PriceRepository $priceRepository,
-		/** @var \Eshop\DB\PricelistRepository<\Eshop\DB\Pricelist> */
-		protected readonly PricelistRepository $pricelistRepository,
-		protected readonly Container $container,
-		protected readonly DIConnection $connection,
-		protected readonly ShopsConfig $shopsConfig,
-		protected readonly CategoryTypeRepository $categoryTypeRepository,
-		protected readonly SettingRepository $settingRepository,
-		protected readonly VisibilityListItemRepository $visibilityListItemRepository,
-		protected readonly AttributeValueRepository $attributeValueRepository,
-		protected readonly DisplayAmountRepository $displayAmountRepository,
-		protected readonly VisibilityListRepository $visibilityListRepository,
-		protected readonly ProductsCacheStateRepository $productsCacheStateRepository,
-		protected readonly ProducerRepository $producerRepository,
-		protected readonly DisplayDeliveryRepository $displayDeliveryRepository,
-		protected readonly AttributeRepository $attributeRepository,
-		protected readonly ShopperUser $shopperUser,
-		protected readonly RelatedRepository $relatedRepository,
-		protected readonly RelatedTypeRepository $relatedTypeRepository,
-		protected readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
-		protected readonly CustomerRepository $customerRepository,
-		protected readonly CustomerGroupRepository $customerGroupRepository,
-		protected readonly SettingsService $settingsService,
-		protected readonly MerchantRepository $merchantRepository,
+		private readonly ProductRepository $productRepository,
+		private readonly CategoryRepository $categoryRepository,
+		private readonly PriceRepository $priceRepository,
+		private readonly DIConnection $defaultConnection,
+		private readonly Container $container,
+		private readonly CategoryTypeRepository $categoryTypeRepository,
+		private readonly VisibilityListItemRepository $visibilityListItemRepository,
+		private readonly DisplayAmountRepository $displayAmountRepository,
+		private readonly ProductsCacheStateRepository $productsCacheStateRepository,
+		private readonly RelatedRepository $relatedRepository,
+		private readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
+		private readonly CustomerRepository $customerRepository,
+		private readonly CustomerGroupRepository $customerGroupRepository,
+		private readonly SettingsService $settingsService,
+		private readonly MerchantRepository $merchantRepository,
 		readonly Storage $storage,
 	) {
 		$this->cache = new Cache($storage);
-	}
 
-	public function getProductsTableName(int $cacheIndexToBeWarmedUp): string
-	{
-		return $this::PRODUCTS_TABLE_NAME . $cacheIndexToBeWarmedUp;
+		try {
+			$this->connection = $this->container->getService('storm.cache');
+		} catch (\Exception $e) {
+		}
 	}
 
 	public function getPricesTableName(int $cacheIndexToBeWarmedUp): string
 	{
 		return $this::PRICES_TABLE_NAME . $cacheIndexToBeWarmedUp;
-	}
-
-	public function getCategoriesTableName(int $cacheIndexToBeWarmedUp): string
-	{
-		return $this::CATEGORIES_TABLE_NAME . $cacheIndexToBeWarmedUp;
 	}
 
 	/**
@@ -176,6 +152,7 @@ class ProductsCacheWarmUpService implements AutoWireService
 
 	public function warmUpCacheTable(): void
 	{
+		\xhprof_enable();
 		$cacheIndexToBeWarmedUp = $this->getCacheIndexToBeWarmedUp();
 
 		if ($cacheIndexToBeWarmedUp === 0) {
@@ -201,8 +178,8 @@ class ProductsCacheWarmUpService implements AutoWireService
 			Debugger::dump('dropCategoriesTables: ' . Debugger::timer());
 			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
-			$this->createVisibilityPriceTable($visibilityPricesCacheTableName);
-			Debugger::dump('createVisibilityPriceTable: ' . Debugger::timer());
+			$this->dropVisibilityPriceTables($visibilityPricesCacheTableName);
+			Debugger::dump('dropVisibilityPriceTables: ' . Debugger::timer());
 			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 			$this->warmUpRelations($cacheIndexToBeWarmedUp);
@@ -242,12 +219,8 @@ class ProductsCacheWarmUpService implements AutoWireService
 			Debugger::dump('indexMainTable: ' . Debugger::timer());
 			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
-			$this->insertVisibilityPriceTable($visibilityPricesCacheTableName);
+			$this->insertVisibilityPriceTable($visibilityPricesCacheTableName, $productsCacheTableName);
 			Debugger::dump('insertVisibilityPriceTable: ' . Debugger::timer());
-			Debugger::dump(DevelTools::getPeakMemoryUsage());
-
-			$this->indexVisibilityPriceTable($visibilityPricesCacheTableName, $productsCacheTableName);
-			Debugger::dump('indexVisibilityPriceTable: ' . Debugger::timer());
 			Debugger::dump(DevelTools::getPeakMemoryUsage());
 
 			$this->createCategoriesTable($categoriesTableName);
@@ -272,26 +245,6 @@ class ProductsCacheWarmUpService implements AutoWireService
 
 			throw $e;
 		}
-	}
-
-	public function cleanProductsProviderCache(): void
-	{
-		$this->cache->clean([Cache::Tags => [GeneralProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG]]);
-	}
-
-	public function cleanAppCache(): void
-	{
-		$this->cache->clean([
-			Cache::Tags => [
-				ScriptsPresenter::PRODUCTS_CACHE_TAG,
-				ScriptsPresenter::PRICELISTS_CACHE_TAG,
-				ScriptsPresenter::CATEGORIES_CACHE_TAG,
-				ScriptsPresenter::EXPORT_CACHE_TAG,
-				ScriptsPresenter::ATTRIBUTES_CACHE_TAG,
-				ScriptsPresenter::PRODUCERS_CACHE_TAG,
-				ScriptsPresenter::SETTINGS_CACHE_TAG,
-			],
-		]);
 	}
 
 	/**
@@ -432,11 +385,41 @@ class ProductsCacheWarmUpService implements AutoWireService
 		return [$existingOptions, \array_keys($allVisibilityLists), \array_keys($allPriceLists)];
 	}
 
+	private function getProductsTableName(int $cacheIndexToBeWarmedUp): string
+	{
+		return $this::PRODUCTS_TABLE_NAME . $cacheIndexToBeWarmedUp;
+	}
+
+	private function getCategoriesTableName(int $cacheIndexToBeWarmedUp): string
+	{
+		return $this::CATEGORIES_TABLE_NAME . $cacheIndexToBeWarmedUp;
+	}
+
+	private function cleanProductsProviderCache(): void
+	{
+		$this->cache->clean([Cache::Tags => [GeneralProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG]]);
+	}
+
+	private function cleanAppCache(): void
+	{
+		$this->cache->clean([
+			Cache::Tags => [
+				ScriptsPresenter::PRODUCTS_CACHE_TAG,
+				ScriptsPresenter::PRICELISTS_CACHE_TAG,
+				ScriptsPresenter::CATEGORIES_CACHE_TAG,
+				ScriptsPresenter::EXPORT_CACHE_TAG,
+				ScriptsPresenter::ATTRIBUTES_CACHE_TAG,
+				ScriptsPresenter::PRODUCERS_CACHE_TAG,
+				ScriptsPresenter::SETTINGS_CACHE_TAG,
+			],
+		]);
+	}
+
 	/**
 	 * @return int<0, 2>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	protected function getCacheIndexToBeUsed(): int
+	private function getCacheIndexToBeUsed(): int
 	{
 		$readyState = $this->productsCacheStateRepository->many()->where('this.state', 'ready')->first();
 
@@ -464,7 +447,7 @@ class ProductsCacheWarmUpService implements AutoWireService
 	 * @param array<mixed> $productCategories
 	 * @return array<mixed>
 	 */
-	protected function diffUpdateMainTable(
+	private function diffUpdateMainTable(
 		string $productsCacheTableName,
 		array $allCategoryTypes,
 		array $allDisplayAmounts,
@@ -628,7 +611,7 @@ class ProductsCacheWarmUpService implements AutoWireService
 		return $productsByCategories;
 	}
 
-	protected function insertCategoriesTable(string $categoriesTableName, array $productsByCategories, array $allCategories): void
+	private function insertCategoriesTable(string $categoriesTableName, array $productsByCategories, array $allCategories): void
 	{
 		$i = 0;
 		$categoriesToInsert = [];
@@ -657,7 +640,7 @@ class ProductsCacheWarmUpService implements AutoWireService
 		$this->loadDataInfile($categoriesTableName, $categoriesToInsert);
 	}
 
-	protected function createCategoriesTable(string $categoriesTableName): void
+	private function createCategoriesTable(string $categoriesTableName): void
 	{
 		$link = $this->getLink();
 
@@ -680,21 +663,19 @@ CREATE TABLE `$categoriesTableName` (
 	 * @param array<mixed> $productCategories
 	 * @return array<mixed>
 	 */
-	protected function insertMainTable(
+	private function insertMainTable(
 		string $productsCacheTableName,
 		array $allCategoryTypes,
 		array $allDisplayAmounts,
-		array $allCategories,
-		array $allProductPrimaryCategories,
-		array $productPrimaryCategories,
-		array $productAttributeValues,
-		array $productCategories,
+		array &$allCategories,
+		array &$allProductPrimaryCategories,
+		array &$productPrimaryCategories,
+		array &$productAttributeValues,
+		array &$productCategories,
 	): array {
 		$mutationSuffix = $this->getMutationSuffix();
 
 		$productsCollection = $this->productRepository->many()
-			// TODO remove
-//			->where('this.uuid', '023887cdd93fbfd41fe471835be5a455')
 			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product', type: 'INNER')
 			->join(['eshop_displayamount'], 'this.fk_displayAmount = eshop_displayamount.uuid')
 			->join(['eshop_displaydelivery'], 'this.fk_displayDelivery = eshop_displaydelivery.uuid')
@@ -801,7 +782,7 @@ CREATE TABLE `$categoriesTableName` (
 	/**
 	 * @return array<mixed>
 	 */
-	protected function getPrefetchedArrays(): array
+	private function getPrefetchedArrays(): array
 	{
 		$allCategoryTypes = $this->categoryTypeRepository->many()->select(['this.id'])->setOrderBy(['this.id'])->fetchArray(\stdClass::class);
 
@@ -860,7 +841,7 @@ CREATE TABLE `$categoriesTableName` (
 		return [$allCategoryTypes, $allDisplayAmounts, $allCategories, $allProductPrimaryCategories, $productPrimaryCategories, $productAttributeValues, $productCategories];
 	}
 
-	protected function indexMainTable(string $productsCacheTableName, array $allCategoryTypes): void
+	private function indexMainTable(string $productsCacheTableName, array $allCategoryTypes): void
 	{
 		$link = $this->getLink();
 
@@ -880,7 +861,7 @@ CREATE TABLE `$categoriesTableName` (
 		}
 	}
 
-	protected function diffUpdateVisibilityPriceTable(string $pricesCacheTableName): void
+	private function diffUpdateVisibilityPriceTable(string $pricesCacheTableName): void
 	{
 		Debugger::timer('getAllPossibleVisibilityAndPriceListOptions');
 		[$visibilityPriceListsOptions, $allVisibilityLists, $allPriceLists] = $this->getAllPossibleVisibilityAndPriceListOptions();
@@ -1066,7 +1047,7 @@ CREATE TABLE `$categoriesTableName` (
 		Debugger::dump('insertVisibilityPriceTable -- main while: ' . Debugger::timer('insertVisibilityPriceTable -- main while'));
 	}
 
-	protected function insertVisibilityPriceTable(string $pricesCacheTableName): void
+	private function insertVisibilityPriceTable(string $pricesCacheTableName, string $productsCacheTableName): void
 	{
 		Debugger::timer('getAllPossibleVisibilityAndPriceListOptions');
 		[$visibilityPriceListsOptions, $allVisibilityLists, $allPriceLists] = $this->getAllPossibleVisibilityAndPriceListOptions();
@@ -1138,6 +1119,10 @@ CREATE TABLE `$categoriesTableName` (
 		Debugger::timer('insertVisibilityPriceTable -- main while');
 
 		foreach (\array_keys($visibilityPriceListsOptions) as $index) {
+			$indexPricesCacheTableName = "{$pricesCacheTableName}_" . \md5($index);
+
+			$this->createVisibilityPriceTable($indexPricesCacheTableName, $index);
+
 			$explodedIndex = \explode('-', $index);
 
 			if (\count($explodedIndex) !== 2) {
@@ -1175,7 +1160,6 @@ CREATE TABLE `$categoriesTableName` (
 						$price = $priceItems[$priceListId];
 
 						$mapToInsert[] = [
-							$index,
 							$product,
 							$price->price,
 							$price->priceVat,
@@ -1200,7 +1184,7 @@ CREATE TABLE `$categoriesTableName` (
 				}
 
 				Debugger::timer('loadData');
-				$this->loadDataInfile($pricesCacheTableName, $mapToInsert);
+				$this->loadDataInfile($indexPricesCacheTableName, $mapToInsert);
 				$loadDataTime += Debugger::timer('loadData');
 
 				$mapToInsert = [];
@@ -1208,8 +1192,12 @@ CREATE TABLE `$categoriesTableName` (
 			}
 
 			Debugger::timer('loadData');
-			$this->loadDataInfile($pricesCacheTableName, $mapToInsert);
+			$this->loadDataInfile($indexPricesCacheTableName, $mapToInsert);
 			$loadDataTime += Debugger::timer('loadData');
+
+			$this->indexVisibilityPriceTable($indexPricesCacheTableName, $productsCacheTableName);
+			Debugger::dump('indexVisibilityPriceTable: ' . Debugger::timer());
+			Debugger::dump(DevelTools::getPeakMemoryUsage());
 		}
 
 		Debugger::dump('insertVisibilityPriceTable -- main while: ' . Debugger::timer('insertVisibilityPriceTable -- main while'));
@@ -1217,12 +1205,12 @@ CREATE TABLE `$categoriesTableName` (
 		Debugger::dump('insertVisibilityPriceTable -- load data time: ' . $loadDataTime);
 	}
 
-	protected function indexVisibilityPriceTable(string $pricesCacheTableName, string $productsCacheTableName): void
+	private function indexVisibilityPriceTable(string $pricesCacheTableName, string $productsCacheTableName): void
 	{
 		$link = $this->getLink();
 
 		Debugger::timer('indexVisibilityPriceTable -- PRIMARY');
-		$link->exec("ALTER TABLE `$pricesCacheTableName` ADD PRIMARY KEY (visibilityPriceIndex, product), ALGORITHM = INPLACE;");
+		$link->exec("ALTER TABLE `$pricesCacheTableName` ADD PRIMARY KEY (product), ALGORITHM = INPLACE;");
 		Debugger::dump('indexVisibilityPriceTable -- PRIMARY: ' . Debugger::timer('indexVisibilityPriceTable -- PRIMARY'));
 
 		Debugger::timer('indexVisibilityPriceTable -- product');
@@ -1236,7 +1224,7 @@ CREATE TABLE `$categoriesTableName` (
 //		Debugger::dump('indexVisibilityPriceTable -- idx_price: ' . Debugger::timer('indexVisibilityPriceTable -- idx_price'));
 	}
 
-	protected function indexCategoriesTable(string $tableName, string $productsCacheTableName): void
+	private function indexCategoriesTable(string $tableName, string $productsCacheTableName): void
 	{
 		$link = $this->getLink();
 
@@ -1245,7 +1233,7 @@ CREATE TABLE `$categoriesTableName` (
 		$link->exec("ALTER TABLE `$tableName` ADD INDEX (category);");
 	}
 
-	protected function loadDataInfile(string $tableName, array $data, int $chunkSize = 10000): void
+	private function loadDataInfile(string $tableName, array $data, int $chunkSize = 10000): void
 	{
 //		Debugger::timer('loadDataInfile');
 		$tmpFileName = \tempnam($this->container->getParameter('tempDir'), 'csv');
@@ -1299,7 +1287,7 @@ CREATE TABLE `$categoriesTableName` (
 //		Debugger::dump('Insert to DB: ' . Debugger::timer('loadDataInfile'));
 	}
 
-	protected function getLink(): \PDO
+	private function getLink(): \PDO
 	{
 		if ($this->link !== false) {
 			return $this->link;
@@ -1308,7 +1296,7 @@ CREATE TABLE `$categoriesTableName` (
 		return $this->link = $this->connection->getLink();
 	}
 
-	protected function getDbName(): string
+	private function getDbName(): string
 	{
 		if ($this->dbName !== false) {
 			return $this->dbName;
@@ -1317,26 +1305,26 @@ CREATE TABLE `$categoriesTableName` (
 		return $this->dbName = $this->connection->getDatabaseName();
 	}
 
-	protected function getMutationSuffix(): string
+	private function getMutationSuffix(): string
 	{
 		if ($this->mutationSuffix !== false) {
 			return $this->mutationSuffix;
 		}
 
-		return $this->mutationSuffix = $this->connection->getMutationSuffix();
+		return $this->mutationSuffix = $this->defaultConnection->getMutationSuffix();
 	}
 
-	protected function resetHangingStateOfCache(int $id): void
+	private function resetHangingStateOfCache(int $id): void
 	{
 		$this->productsCacheStateRepository->many()->where('this.uuid', $id)->update(['state' => 'empty']);
 	}
 
-	protected function markCacheAsWarming(int $id): void
+	private function markCacheAsWarming(int $id): void
 	{
 		$this->productsCacheStateRepository->many()->where('this.uuid', $id)->update(['state' => 'warming']);
 	}
 
-	protected function markCacheAsReady(int $id): void
+	private function markCacheAsReady(int $id): void
 	{
 		$this->productsCacheStateRepository->many()->where('this.uuid', $id)->update([
 			'state' => 'ready',
@@ -1357,7 +1345,7 @@ CREATE TABLE `$categoriesTableName` (
 	 * @return int<0, 2>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	protected function getCacheIndexToBeWarmedUp(): int
+	private function getCacheIndexToBeWarmedUp(): int
 	{
 		$cache1State = $this->productsCacheStateRepository->one('1');
 		$cache2State = $this->productsCacheStateRepository->one('2');
@@ -1366,14 +1354,15 @@ CREATE TABLE `$categoriesTableName` (
 			return 0;
 		}
 
-		if ($cache1State->state === 'warming' && $cache1State->lastWarmUpTs && Carbon::now()->diffInMinutes(Carbon::parse($cache1State->lastWarmUpTs)) > 15) {
+		// TODO revert to 15 minutes
+		if ($cache1State->state === 'warming' && $cache1State->lastWarmUpTs && Carbon::now()->diffInMinutes(Carbon::parse($cache1State->lastWarmUpTs)) > 0) {
 			$cache1State->state = 'empty';
 			$cache1State->lastWarmUpTs = Carbon::now()->toDateTimeString();
 
 			$cache1State->updateAll(['state', 'lastWarmUpTs']);
 		}
 
-		if ($cache2State->state === 'warming' && $cache2State->lastWarmUpTs && Carbon::now()->diffInMinutes(Carbon::parse($cache2State->lastWarmUpTs)) > 15) {
+		if ($cache2State->state === 'warming' && $cache2State->lastWarmUpTs && Carbon::now()->diffInMinutes(Carbon::parse($cache2State->lastWarmUpTs)) > 0) {
 			$cache2State->state = 'empty';
 			$cache2State->lastWarmUpTs = Carbon::now()->toDateTimeString();
 
@@ -1418,7 +1407,7 @@ CREATE TABLE `$categoriesTableName` (
 	 * @param array<object{ancestor: string, showDescendantProducts: bool, showProductsInAncestors: bool}> $allCategories
 	 * @return array<string>
 	 */
-	protected function getAncestorsOfCategory(string $category, array $allCategories): array
+	private function getAncestorsOfCategory(string $category, array $allCategories): array
 	{
 		$categories = [];
 
@@ -1430,10 +1419,10 @@ CREATE TABLE `$categoriesTableName` (
 		return $categories;
 	}
 
-	protected function warmUpRelations(int $cacheIndexToBeWarmedUp): void
+	private function warmUpRelations(int $cacheIndexToBeWarmedUp): void
 	{
 		$link = $this->getLink();
-		$relationsCacheTableName = "eshop_products_relations_cache_$cacheIndexToBeWarmedUp";
+		$relationsCacheTableName = "relations_$cacheIndexToBeWarmedUp";
 
 		$link->exec("DROP TABLE IF EXISTS `$relationsCacheTableName`");
 
@@ -1500,7 +1489,7 @@ CREATE TABLE `$relationsCacheTableName` (
 		$link->exec("CREATE UNIQUE INDEX idx_related_code ON `$relationsCacheTableName` (master, slave, amount, discountPct, masterPct);");
 	}
 
-	protected function dropCategoriesTables(int $cacheIndexToBeWarmedUp, string $categoriesTableName): void
+	private function dropCategoriesTables(int $cacheIndexToBeWarmedUp, string $categoriesTableName): void
 	{
 		$dbName = $this->getDbName();
 
@@ -1525,14 +1514,26 @@ CREATE TABLE `$relationsCacheTableName` (
 		}
 	}
 
-	protected function createVisibilityPriceTable(string $pricesCacheTableName): void
+	private function dropVisibilityPriceTables(string $prefix): void
+	{
+		$pdo = $this->getLink();
+
+		$stmt = $pdo->prepare('SHOW TABLES LIKE :prefix');
+		$stmt->execute([':prefix' => $prefix . '%']);
+		$tables = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+
+		foreach ($tables as $table) {
+			$pdo->exec("DROP TABLE `$table`");
+		}
+	}
+
+	private function createVisibilityPriceTable(string $pricesCacheTableName, string $index): void
 	{
 		$link = $this->getLink();
 
 		$link->exec("
 DROP TABLE IF EXISTS `$pricesCacheTableName`;
 CREATE TABLE `$pricesCacheTableName` (
-  visibilityPriceIndex VARCHAR(255) NOT NULL,
   product BIGINT UNSIGNED NOT NULL,
   price DOUBLE NOT NULL,
   priceVat DOUBLE,
@@ -1544,10 +1545,10 @@ CREATE TABLE `$pricesCacheTableName` (
   priority SMALLINT NOT NULL,
   unavailable BOOL NOT NULL,
   recommended BOOL NOT NULL
-);");
+) COMMENT=\"$index\"");
 	}
 
-	protected function createMainTable(string $productsCacheTableName, array $allCategoryTypes): void
+	private function createMainTable(string $productsCacheTableName, array $allCategoryTypes): void
 	{
 		$link = $this->getLink();
 
