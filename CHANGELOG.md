@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.408](https://github.com/liquiddesign/eshop/compare/v2.1.407...v2.1.408) (2025-02-04)
+
+### Bug Fixes
+
+* Trim URL values in product importer ([4c56fc](https://github.com/liquiddesign/eshop/commit/4c56fc7c118b7668270bd5f686ac386fdfabab1b))
+
+
+---
+
 ## [2.1.407](https://github.com/liquiddesign/eshop/compare/v2.1.406...v2.1.407) (2025-01-31)
 
 ### Features
