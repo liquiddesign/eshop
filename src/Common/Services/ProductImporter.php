@@ -841,6 +841,10 @@ class ProductImporter
 						$value = \ltrim($value, '/');
 					}
 
+					if ($column === 'url' && $value) {
+						$value = \trim($value);
+					}
+
 					$newValues[$column][$mutation] = $value;
 				} else {
 					$newValues[$column] = $value;
