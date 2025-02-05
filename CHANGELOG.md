@@ -4,6 +4,20 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.408](https://github.com/liquiddesign/eshop/compare/v2.1.407...v2.1.408) (2025-02-05)
+
+### Bug Fixes
+
+* Gallery dropzone in admin product detail (not upload more than 2 images on drop) ([275c23](https://github.com/liquiddesign/eshop/commit/275c234c1ce27e17efe3d043f828b0defa403b09))
+* Trim URL values in product importer ([4c56fc](https://github.com/liquiddesign/eshop/commit/4c56fc7c118b7668270bd5f686ac386fdfabab1b))
+
+### Chores
+
+* Release ([b91ad2](https://github.com/liquiddesign/eshop/commit/b91ad2a3e488ea1f940ef6fa58d82a6dcd005f7c))
+
+
+---
+
 ## [2.1.408](https://github.com/liquiddesign/eshop/compare/v2.1.407...v2.1.408) (2025-02-04)
 
 ### Bug Fixes
