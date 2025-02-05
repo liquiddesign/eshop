@@ -4,6 +4,23 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.410](https://github.com/liquiddesign/eshop/compare/v2.1.409...v2.1.410) (2025-02-05)
+
+### Features
+
+* Update release scripts and add getSelectedAmount() method ([d103a8](https://github.com/liquiddesign/eshop/commit/d103a82f2ff78f48ecfee039a129f2bb98f5a5cd))
+
+### Bug Fixes
+
+* Gallery dropzone in admin product detail (not upload more than 2 images on drop) ([48bc00](https://github.com/liquiddesign/eshop/commit/48bc0051ebc46a90143b5aec9e36ced3e4c1d017))
+
+### Chores
+
+* Update (2.1.409) ([7999b1](https://github.com/liquiddesign/eshop/commit/7999b127adf9214da7faa28dd4e9158b3fbcb645))
+
+
+---
+
 ## [2.1.409](https://github.com/liquiddesign/eshop/compare/v2.1.408...v2.1.409) (2025-02-05)
 
 ### Bug Fixes
