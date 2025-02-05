@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 /**
- * @extends \StORM\Repository<\Eshop\DB\RelatedPackageItem>
+ * @template T of \Eshop\DB\RelatedPackageItem = \Eshop\DB\RelatedPackageItem
+ * @extends \StORM\Repository<T>
  */
 class RelatedPackageItemRepository extends \StORM\Repository
 {
