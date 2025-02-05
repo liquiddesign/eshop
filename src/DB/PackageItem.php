@@ -131,4 +131,9 @@ class PackageItem extends \StORM\Entity implements IPackageItem
 	{
 		return $this->dropShipping;
 	}
+
+	public function getSelectedAmount(): Amount|null
+	{
+		return $this->storeAmount;
+	}
 }

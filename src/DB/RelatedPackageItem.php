@@ -41,4 +41,9 @@ class RelatedPackageItem extends \StORM\Entity implements IPackageItem
 	{
 		return $this->packageItem->isDropShipping();
 	}
+
+	public function getSelectedAmount(): Amount|null
+	{
+		return $this->packageItem->getSelectedAmount();
+	}
 }

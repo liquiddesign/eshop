@@ -2,6 +2,7 @@
 
 namespace Eshop\Common\DB;
 
+use Eshop\DB\Amount;
 use Eshop\DB\Product;
 
 interface IPackageItem
@@ -11,4 +12,6 @@ interface IPackageItem
 	public function getAmount(): int;
 
 	public function isDropShipping(): bool;
+
+	public function getSelectedAmount(): Amount|null;
 }
