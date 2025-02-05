@@ -355,7 +355,7 @@
 
                         $.ajax({
                             method: "POST",
-                            url: 'dropzoneSetMain!&filename=' + fileData.name,
+                            url: {plink dropzoneSetMain!} + '&filename=' + fileData.name,
                         }).done(function () {
                             toastr.success('Provedeno');
                         });
