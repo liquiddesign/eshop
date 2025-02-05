@@ -11,6 +11,24 @@ All notable changes to this project will be documented in this file.
 * Gallery dropzone in admin product detail (not upload more than 2 images on drop) ([275c23](https://github.com/liquiddesign/eshop/commit/275c234c1ce27e17efe3d043f828b0defa403b09))
 * Trim URL values in product importer ([4c56fc](https://github.com/liquiddesign/eshop/commit/4c56fc7c118b7668270bd5f686ac386fdfabab1b))
 
+##### Product Importer
+
+* Phpcs - trim() to Nette\Utils\Strings::trim() ([4cc3f9](https://github.com/liquiddesign/eshop/commit/4cc3f9ac32e5e221681c0d40b37004853ab3f40c))
+
+### Chores
+
+* Release ([e8f793](https://github.com/liquiddesign/eshop/commit/e8f7939f624d501111d1f500ba9901f966cb8c34), [b91ad2](https://github.com/liquiddesign/eshop/commit/b91ad2a3e488ea1f940ef6fa58d82a6dcd005f7c))
+
+
+---
+
+## [2.1.408](https://github.com/liquiddesign/eshop/compare/v2.1.407...v2.1.408) (2025-02-05)
+
+### Bug Fixes
+
+* Gallery dropzone in admin product detail (not upload more than 2 images on drop) ([275c23](https://github.com/liquiddesign/eshop/commit/275c234c1ce27e17efe3d043f828b0defa403b09))
+* Trim URL values in product importer ([4c56fc](https://github.com/liquiddesign/eshop/commit/4c56fc7c118b7668270bd5f686ac386fdfabab1b))
+
 ### Chores
 
 * Release ([b91ad2](https://github.com/liquiddesign/eshop/commit/b91ad2a3e488ea1f940ef6fa58d82a6dcd005f7c))
