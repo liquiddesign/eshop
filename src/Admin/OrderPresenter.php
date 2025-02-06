@@ -893,6 +893,11 @@ class OrderPresenter extends BackendPresenter
 			$form->onSuccess[] = function (AdminForm $form) use ($packageItem): void {
 				$values = $form->getValues('array');
 
+				if (!$values['amount']) {
+					$this->flashMessage('Nebyl vybrán žádný sklad. Zkuste prosím znovu.', 'danger');
+					$this->redirect('this');
+				}
+
 				$amount = $this->amountRepository->one($values['amount']);
 
 				if (!$amount) {
