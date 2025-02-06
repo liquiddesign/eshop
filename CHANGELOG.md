@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.413](https://github.com/liquiddesign/eshop/compare/v2.1.412...v2.1.413) (2025-02-06)
+
+### Bug Fixes
+
+* Add validation for selected warehouse in order form ([2ac4d9](https://github.com/liquiddesign/eshop/commit/2ac4d9b1264220057b8fa2815db94f4b22fec39b))
+
+
+---
+
 ## [2.1.412](https://github.com/liquiddesign/eshop/compare/v2.1.411...v2.1.412) (2025-02-05)
 
 
