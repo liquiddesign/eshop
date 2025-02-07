@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use StORM\Collection;
+use StORM\DIConnection;
+use StORM\SchemaManager;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\Ribbon>
@@ -15,6 +18,11 @@ class RibbonRepository extends \StORM\Repository implements IGeneralRepository
 	private Collection $imageRibbons;
 	
 	private Collection $textRibbons;
+
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, private readonly ShopsConfig $shopsConfig)
+	{
+		parent::__construct($connection, $schemaManager);
+	}
 
 	/**
 	 * @return \StORM\Collection<\Eshop\DB\Ribbon>
@@ -33,12 +41,26 @@ class RibbonRepository extends \StORM\Repository implements IGeneralRepository
 	}
 
 	/**
-	 * @param bool $includeHidden
-	 * @return array<string, string>
+	 * @inheritDoc
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		return $this->getCollection($includeHidden)->toArrayOf('name');
+		return $this->toArrayForSelect($this->getCollection($includeHidden));
+	}
+
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\Category> $collection
+	 * @return array<string>
+	 */
+	public function toArrayForSelect(Collection $collection): array
+	{
+		$mutationSuffix = $this->getConnection()->getMutationSuffix();
+
+		return $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection(
+			$collection,
+			selectColumnName: "this.name$mutationSuffix",
+			systemic: false,
+		));
 	}
 	
 	public function getCollection(bool $includeHidden = false): Collection

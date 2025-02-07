@@ -3,12 +3,13 @@
 namespace Eshop\Actions\Product\Ribbon;
 
 use Base\BaseAction;
+use Base\ShopsConfig;
 use Eshop\DB\Product;
 use Eshop\DB\RibbonRepository;
 
 class GetProductRibbons extends BaseAction
 {
-	public function __construct(private readonly RibbonRepository $ribbonRepository)
+	public function __construct(private readonly RibbonRepository $ribbonRepository, private readonly ShopsConfig $shopsConfig)
 	{
 	}
 
@@ -22,7 +23,11 @@ class GetProductRibbons extends BaseAction
 		return $this->getLocalCachedOutput($product->getPK() . '-' . $type->value, function () use ($product, $type): array {
 			$ribbons = $type === RibbonType::IMAGE ? $this->ribbonRepository->getImageRibbons() : $this->ribbonRepository->getTextRibbons();
 
-			return $ribbons->where('this.uuid', $product->ribbons->toArrayOf('uuid', toArrayValues: true))->toArray();
+			$query = $product->getRibbons();
+
+			$this->shopsConfig->filterShopsInShopEntityCollection($query);
+
+			return $ribbons->where('this.uuid', $query->toArrayOf('uuid', toArrayValues: true))->toArray();
 		});
 	}
 }
