@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.414](https://github.com/liquiddesign/eshop/compare/v2.1.413...v2.1.414) (2025-02-07)
+
+### Bug Fixes
+
+* Ribbon query ([3cd53c](https://github.com/liquiddesign/eshop/commit/3cd53cda514538b6188ed133b50b13edf14dd821))
+
+
+---
+
 ## [2.1.413](https://github.com/liquiddesign/eshop/compare/v2.1.412...v2.1.413) (2025-02-06)
 
 ### Bug Fixes
