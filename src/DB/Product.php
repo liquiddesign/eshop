@@ -23,6 +23,7 @@ use Web\DB\Setting;
  * @method \StORM\ICollection<\Eshop\DB\Category> getCategories():
  * @method \StORM\ICollection<\Eshop\DB\ProductPrimaryCategory> getPrimaryCategories():
  * @method \StORM\ICollection<\Eshop\DB\File> getFiles():
+ * @method \StORM\ICollection<\Eshop\DB\Ribbon> getRibbons():
  */
 class Product extends \StORM\Entity
 {
