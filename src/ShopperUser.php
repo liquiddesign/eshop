@@ -1023,5 +1023,6 @@ class ShopperUser extends User
 		$this->customer = false;
 		$this->merchant = false;
 		$this->customerGroup = false;
+		$this->mainPriceType = false;
 	}
 }
