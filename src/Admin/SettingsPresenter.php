@@ -167,11 +167,7 @@ class SettingsPresenter extends BackendPresenter
 
 			$cache = new Cache($this->storage);
 
-			$cache->clean([
-				Cache::Tags => [
-					ScriptsPresenter::SETTINGS_CACHE_TAG,
-				],
-			]);
+			$cache->clean([Cache::All => true]);
 
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$this->redirect('default');

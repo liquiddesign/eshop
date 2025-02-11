@@ -110,6 +110,11 @@ class ShopperUser extends User
 	 */
 	private array|false $visibilityLists = false;
 
+	/**
+	 * @var 'withVat'|'withoutVat'|false
+	 */
+	private string|false $mainPriceType = false;
+
 	public function __construct(
 		protected readonly PricelistRepository $pricelistRepository,
 		protected readonly CurrencyRepository $currencyRepository,
@@ -833,19 +838,23 @@ class ShopperUser extends User
 	 */
 	public function getMainPriceType(): string
 	{
+		if ($this->mainPriceType !== false) {
+			return $this->mainPriceType;
+		}
+
 		if ($this->showPricesWithoutVat() && $this->showPricesWithVat()) {
-			return $this->showPriorityPrices();
+			return $this->mainPriceType = $this->showPriorityPrices();
 		}
 
 		if ($this->showPricesWithoutVat()) {
-			return 'withoutVat';
+			return $this->mainPriceType = 'withoutVat';
 		}
 
 		if ($this->showPricesWithVat()) {
-			return 'withVat';
+			return $this->mainPriceType = 'withVat';
 		}
 
-		return 'withoutVat';
+		return $this->mainPriceType = 'withoutVat';
 	}
 
 	public function addFilters(\Nette\Bridges\ApplicationLatte\Template $template): void
