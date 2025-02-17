@@ -58,10 +58,10 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 
 	/**
 	 * Skupina zákazníků, ve které je správce
-	 * @relation
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\CustomerGroup>
 	 */
-	public ?CustomerGroup $customerGroup;
+	public RelationCollection $customerGroups;
 
 	/**
 	 * Oprávnění správy zákazníků
