@@ -24,7 +24,6 @@ use Nette\Security\Passwords;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Collection;
-use Tracy\Debugger;
 
 class MerchantPresenter extends BackendPresenter
 {
