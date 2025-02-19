@@ -51,7 +51,7 @@ use Web\DB\SettingRepository;
 
 class ProductForm extends Control
 {
-	public const RELATION_MAX_ITEMS_COUNT = 10;
+	public const RELATION_MAX_ITEMS_COUNT = 30;
 
 	/** @persistent */
 	public string $tab = 'menu0';
