@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.418](https://github.com/liquiddesign/eshop/compare/v2.1.417...v2.1.418) (2025-02-24)
+
+### Bug Fixes
+
+* Update children property type to mixed for better flexibility ([afe05c](https://github.com/liquiddesign/eshop/commit/afe05c40c446e629be2fc31b2d320ce4347ea288))
+
+
+---
+
 ## [2.1.417](https://github.com/liquiddesign/eshop/compare/v2.1.416...v2.1.417) (2025-02-24)
 
 ### Bug Fixes
