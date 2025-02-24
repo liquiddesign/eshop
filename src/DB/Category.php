@@ -164,8 +164,11 @@ class Category extends SystemicEntity
 	/**
 	 * Pomocí repositářové metody getTree(array $orderBy)
 	 * @var array<\Eshop\DB\Category>|\StORM\ArrayWrapper<\Eshop\DB\Category>
+	 * @codingStandardsIgnoreStart
 	 */
-	public mixed $children;
+	public $children;
+
+	/* @codingStandardsIgnoreEnd */
 
 	/**
 	 * Nadřazený
