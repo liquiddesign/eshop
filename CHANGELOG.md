@@ -4,6 +4,23 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.416](https://github.com/liquiddesign/eshop/compare/v2.1.415...v2.1.416) (2025-02-24)
+
+### Features
+
+* Add script to access Docker CLI as www-data user ([a0c650](https://github.com/liquiddesign/eshop/commit/a0c6505b4984737affbd15f10ccc67bd21da15e1))
+
+### Bug Fixes
+
+* Update RELATION_MAX_ITEMS_COUNT to 100 ([9eaf4d](https://github.com/liquiddesign/eshop/commit/9eaf4d804729b59e717650c82671b94486d4f77f))
+
+### Code Refactoring
+
+* Change public properties to typed arrays in multiple classes ([d6c0b4](https://github.com/liquiddesign/eshop/commit/d6c0b4becdb4a54cbd28e444a55374f3bd1c8d4f))
+
+
+---
+
 ## [2.1.415](https://github.com/liquiddesign/eshop/compare/v2.1.414...v2.1.415) (2025-02-24)
 
 ### Features
