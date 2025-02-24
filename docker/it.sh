@@ -1,0 +1,1 @@
+docker compose exec -it --user www-data cli bash
