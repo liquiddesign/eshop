@@ -36,13 +36,13 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 
 	public function getPricelists(array $pks, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
 	{
-		unset($activeCoupon);
-		// @TODO cache nepočítá s Discount
-
 		$collection = $this->many()
+			->setGroupBy(['this.uuid'])
 			->where('isActive', true)
-//			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
-//			->where('fk_discount IS NULL OR activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'this.fk_discount = "' . $activeCoupon->getValue('discount') . '"' : 'false'))
+			->join(['nxnDiscount' => 'eshop_discount_nxn_eshop_pricelist'], 'nxnDiscount.fk_pricelist=this.uuid')
+			->join(['discount' => 'eshop_discount'], 'nxnDiscount.fk_discount=discount.uuid')
+			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL  OR discount.validTo >= DATE(now()))')
+			->where('discount.uuid IS NULL OR this.activeOnlyWithCoupon = 0 OR ' . ($activeCoupon ? 'discount.uuid = "' . $activeCoupon->getValue('discount') . '"' : 'false'))
 			->where('this.uuid', \array_values($pks))
 			->where('fk_currency', $currency->getPK())
 			->where('fk_country', $country->getPK());
@@ -64,6 +64,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		$shop = $this->shopsConfig->getSelectedShop();
 
 		$collection = $this->many()
+			->setGroupBy(['this.uuid'])
 			->join(['nxn' => 'eshop_customer_nxn_eshop_pricelist'], 'fk_pricelist=this.uuid')
 			->where('nxn.fk_customer', $customer->getPK())
 			->where('isActive', true)
@@ -88,6 +89,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		$shop = $this->shopsConfig->getSelectedShop();
 
 		$collection = $this->many()
+			->setGroupBy(['this.uuid'])
 			->join(['nxn' => 'eshop_merchant_nxn_eshop_pricelist'], 'fk_pricelist=this.uuid')
 			->where('nxn.fk_merchant', $merchant->getPK())
 			->where('isActive', true)

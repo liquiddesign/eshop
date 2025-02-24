@@ -441,8 +441,13 @@ class ProductsCacheGetterService implements AutoWireService
 		$priceVatMax = \PHP_FLOAT_MIN;
 
 		$dynamicallyCountedDynamicFilters = [];
+//		Debugger::dump(Debugger::timer());
 
-		foreach ($productsCollection->fetchArray(\stdClass::class) as $product) {
+		$fetchedProducts = $productsCollection->fetchArray(\stdClass::class);
+
+//		Debugger::dump(Debugger::timer());
+
+		foreach ($fetchedProducts as $product) {
 			$attributeValues = $product->attributeValues ? \array_flip(\explode(',', $product->attributeValues)) : [];
 
 			foreach ($dynamicFiltersAttributes as $attributePK => $attributeValuesPKs) {
@@ -642,6 +647,7 @@ class ProductsCacheGetterService implements AutoWireService
 			}
 		}
 
+//		Debugger::dump(Debugger::timer());
 		$displayAmounts = $this->displayAmountRepository->many()->setSelect(['this.uuid'])->where('this.id', \array_keys($displayAmountsCounts))->setIndex('this.id')->toArrayOf('uuid');
 
 		foreach ($displayAmounts as $displayAmountId => $displayAmountUuid) {
@@ -663,6 +669,7 @@ class ProductsCacheGetterService implements AutoWireService
 			unset($producersCounts[$producerId]);
 		}
 
+//		Debugger::dump(Debugger::timer());
 		$attributeValues = $this->attributeValueRepository->many()
 			->setSelect([
 				'this.uuid',
@@ -698,6 +705,7 @@ class ProductsCacheGetterService implements AutoWireService
 
 		$this->saveDataCacheIndex($dataCacheIndex, $result);
 
+//		Debugger::dump(Debugger::timer());
 		return $result;
 	}
 
