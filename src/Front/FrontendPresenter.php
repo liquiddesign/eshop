@@ -105,7 +105,7 @@ abstract class FrontendPresenter extends Presenter
 	public string $lang;
 
 	/** @var array<callable(\Web\Controls\Breadcrumb): void> */
-	public $onBreadcrumbCreated = [];
+	public array $onBreadcrumbCreated = [];
 
 	protected Engine $latte;
 
