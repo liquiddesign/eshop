@@ -6,7 +6,6 @@ namespace Eshop\DB;
 
 use Eshop\Common\DB\SystemicEntity;
 use Nette\Utils\Strings;
-use StORM\ArrayWrapper;
 use StORM\Collection;
 use StORM\ICollection;
 use StORM\RelationCollection;
@@ -164,9 +163,9 @@ class Category extends SystemicEntity
 
 	/**
 	 * Pomocí repositářové metody getTree(array $orderBy)
-	 * @var array<\Eshop\DB\Category>|\StORM\ArrayWrapper<\Eshop\DB\Category>
+	 * @var array<<\Eshop\DB\Category>>|\StORM\ArrayWrapper<\Eshop\DB\Category>
 	 */
-	public array|ArrayWrapper $children = [];
+	public mixed $children;
 
 	/**
 	 * Nadřazený
