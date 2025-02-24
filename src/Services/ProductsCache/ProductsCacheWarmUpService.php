@@ -295,6 +295,24 @@ class ProductsCacheWarmUpService implements AutoWireService
 	}
 
 	/**
+	 * @param array<mixed> $elements
+	 * @return array<array<mixed>>
+	 */
+	public function generateCombinations(array $elements): array
+	{
+		// Empty combination = no dynamic price list
+		$result = [[]];
+
+		foreach ($elements as $element) {
+			foreach ($result as $combination) {
+				$result[] = \array_merge($combination, [$element]);
+			}
+		}
+
+		return $result;
+	}
+
+	/**
 	 * @param array<string|int> $customers
 	 * @param array<string|int>|null $customerGroups
 	 * @param array<string|int> $merchants
@@ -302,6 +320,9 @@ class ProductsCacheWarmUpService implements AutoWireService
 	 */
 	public function getAllPossibleVisibilityAndPriceListOptions(array $customers = [], array|null $customerGroups = null, array $merchants = []): array
 	{
+		/** @var array<string|int, \Eshop\DB\Pricelist> $prefetchedPriceLists */
+		$prefetchedPriceLists = $this->pricelistRepository->many()->select(['this.id'])->toArray();
+
 		$existingOptions = [];
 		$allVisibilityLists = [];
 		$allPriceLists = [];
@@ -322,8 +343,17 @@ class ProductsCacheWarmUpService implements AutoWireService
 		}
 
 		foreach ($customerGroupsQuery as $customerGroup) {
-			$visibilityLists = $customerGroup->getDefaultVisibilityLists()->where('hidden', false)->setSelect(['id'])->setOrderBy(['priority', 'uuid'])->toArrayOf('id', toArrayValues: true);
-			$priceLists = $customerGroup->getDefaultPricelists()->where('isActive', true)->setSelect(['id'])->setOrderBy(['priority', 'uuid'])->toArrayOf('id', toArrayValues: true);
+			$visibilityLists = $customerGroup->getDefaultVisibilityLists()
+				->where('hidden', false)
+				->setSelect(['id'])
+				->setOrderBy(['priority', 'uuid'])
+				->toArrayOf('id', toArrayValues: true);
+
+			$priceLists = $customerGroup->getDefaultPricelists()
+				->where('isActive', true)
+				->setSelect(['id'], keepIndex: true)
+				->setOrderBy(['priority', 'uuid'])
+				->toArrayOf('id');
 
 			foreach ($visibilityLists as $visibilityList) {
 				$allVisibilityLists[$visibilityList] = true;
@@ -333,12 +363,46 @@ class ProductsCacheWarmUpService implements AutoWireService
 				$allPriceLists[$priceList] = true;
 			}
 
-			$index =
-				\implode(',', $visibilityLists) .
-				'-' .
-				\implode(',', $priceLists);
+			// If PriceList has discount, his validity is dynamic
+			// Because of that, we need to create unique index for each combination of dynamic PriceLists
 
-			$existingOptions[$index] = true;
+			$fixedPriceLists = [];
+			$dynamicPriceLists = [];
+
+			foreach ($priceLists as $PK => $id) {
+				if ($prefetchedPriceLists[$PK]->getDiscounts()->count() === 0) {
+					$fixedPriceLists[$PK] = $id;
+				} else {
+					$dynamicPriceLists[$PK] = $id;
+				}
+			}
+
+			// Generate all possible combinations of dynamic price lists
+			$possibleCombinations = $this->generateCombinations($dynamicPriceLists);
+
+			// Generate all valid price list sequences with preserved order
+			$finalCombinations = [];
+
+			foreach ($possibleCombinations as $combination) {
+				$newCombination = [];
+
+				foreach ($priceLists as $id) {
+					if (\Nette\Utils\Arrays::contains($fixedPriceLists, $id) || \Nette\Utils\Arrays::contains($combination, $id)) {
+						$newCombination[] = $id;
+					}
+				}
+
+				$finalCombinations[] = $newCombination;
+			}
+
+			foreach ($finalCombinations as $combination) {
+				$index =
+					\implode(',', $visibilityLists) .
+					'-' .
+					\implode(',', $combination);
+
+				$existingOptions[$index] = true;
+			}
 		}
 
 		foreach (['eshop_customer_nxn_eshop_pricelist', 'eshop_customer_nxn_eshop_pricelist_favourite'] as $table) {
@@ -351,7 +415,7 @@ class ProductsCacheWarmUpService implements AutoWireService
 					'visibilityPriceIndex' => 'DISTINCT(CONCAT(
                     GROUP_CONCAT(DISTINCT visibilityList.id ORDER BY visibilityList.priority, visibilityList.uuid),
                     "-",
-                    GROUP_CONCAT(DISTINCT priceList.id ORDER BY priceList.priority, priceList.uuid)
+                    GROUP_CONCAT(DISTINCT priceList.uuid ORDER BY priceList.priority, priceList.uuid)
                 ))',
 				])
 				->where('priceList.isActive', true)
@@ -371,17 +435,64 @@ class ProductsCacheWarmUpService implements AutoWireService
 
 				$exploded = \explode('-', $index);
 
-				if (\count($exploded) === 2) {
-					foreach (\explode(',', $exploded[0]) as $visibilityList) {
-						$allVisibilityLists[$visibilityList] = true;
-					}
+				if (\count($exploded) !== 2) {
+					continue;
+				}
 
-					foreach (\explode(',', $exploded[1]) as $priceList) {
-						$allPriceLists[$priceList] = true;
+				$visibilityLists = \explode(',', $exploded[0]);
+
+				foreach ($visibilityLists as $visibilityList) {
+					$allVisibilityLists[$visibilityList] = true;
+				}
+
+				$priceListsPKs = \explode(',', $exploded[1]);
+				$priceLists = [];
+
+				foreach ($priceListsPKs as $priceList) {
+					$allPriceLists[$prefetchedPriceLists[$priceList]->id] = true;
+					$priceLists[$priceList] = $prefetchedPriceLists[$priceList]->id;
+				}
+
+				// If PriceList has discount, his validity is dynamic
+				// Because of that, we need to create unique index for each combination of dynamic PriceLists
+
+				$fixedPriceLists = [];
+				$dynamicPriceLists = [];
+
+				foreach ($priceLists as $PK => $id) {
+					if ($prefetchedPriceLists[$PK]->getDiscounts()->count() === 0) {
+						$fixedPriceLists[$PK] = $id;
+					} else {
+						$dynamicPriceLists[$PK] = $id;
 					}
 				}
 
-				$existingOptions[$index] = true;
+				// Generate all possible combinations of dynamic price lists
+				$possibleCombinations = $this->generateCombinations($dynamicPriceLists);
+
+				// Generate all valid price list sequences with preserved order
+				$finalCombinations = [];
+
+				foreach ($possibleCombinations as $combination) {
+					$newCombination = [];
+
+					foreach ($priceLists as $id) {
+						if (\Nette\Utils\Arrays::contains($fixedPriceLists, $id) || \Nette\Utils\Arrays::contains($combination, $id)) {
+							$newCombination[] = $id;
+						}
+					}
+
+					$finalCombinations[] = $newCombination;
+				}
+
+				foreach ($finalCombinations as $combination) {
+					$index =
+						\implode(',', $visibilityLists) .
+						'-' .
+						\implode(',', $combination);
+
+					$existingOptions[$index] = true;
+				}
 			}
 		}
 
@@ -415,17 +526,64 @@ class ProductsCacheWarmUpService implements AutoWireService
 
 				$exploded = \explode('-', $index);
 
-				if (\count($exploded) === 2) {
-					foreach (\explode(',', $exploded[0]) as $visibilityList) {
-						$allVisibilityLists[$visibilityList] = true;
-					}
+				if (\count($exploded) !== 2) {
+					continue;
+				}
 
-					foreach (\explode(',', $exploded[1]) as $priceList) {
-						$allPriceLists[$priceList] = true;
+				$visibilityLists = \explode(',', $exploded[0]);
+
+				foreach ($visibilityLists as $visibilityList) {
+					$allVisibilityLists[$visibilityList] = true;
+				}
+
+				$priceListsPKs = \explode(',', $exploded[1]);
+				$priceLists = [];
+
+				foreach ($priceListsPKs as $priceList) {
+					$allPriceLists[$prefetchedPriceLists[$priceList]->id] = true;
+					$priceLists[$priceList] = $prefetchedPriceLists[$priceList]->id;
+				}
+
+				// If PriceList has discount, his validity is dynamic
+				// Because of that, we need to create unique index for each combination of dynamic PriceLists
+
+				$fixedPriceLists = [];
+				$dynamicPriceLists = [];
+
+				foreach ($priceLists as $PK => $id) {
+					if ($prefetchedPriceLists[$PK]->getDiscounts()->count() === 0) {
+						$fixedPriceLists[$PK] = $id;
+					} else {
+						$dynamicPriceLists[$PK] = $id;
 					}
 				}
 
-				$existingOptions[$index] = true;
+				// Generate all possible combinations of dynamic price lists
+				$possibleCombinations = $this->generateCombinations($dynamicPriceLists);
+
+				// Generate all valid price list sequences with preserved order
+				$finalCombinations = [];
+
+				foreach ($possibleCombinations as $combination) {
+					$newCombination = [];
+
+					foreach ($priceLists as $id) {
+						if (\Nette\Utils\Arrays::contains($fixedPriceLists, $id) || \Nette\Utils\Arrays::contains($combination, $id)) {
+							$newCombination[] = $id;
+						}
+					}
+
+					$finalCombinations[] = $newCombination;
+				}
+
+				foreach ($finalCombinations as $combination) {
+					$index =
+						\implode(',', $visibilityLists) .
+						'-' .
+						\implode(',', $combination);
+
+					$existingOptions[$index] = true;
+				}
 			}
 		}
 
