@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.417](https://github.com/liquiddesign/eshop/compare/v2.1.416...v2.1.417) (2025-02-24)
+
+### Bug Fixes
+
+* Update children property type to support ArrayWrapper ([491b84](https://github.com/liquiddesign/eshop/commit/491b84571f1a71a37bae5e120aca93b331880aa2))
+
+
+---
+
 ## [2.1.416](https://github.com/liquiddesign/eshop/compare/v2.1.415...v2.1.416) (2025-02-24)
 
 ### Features
