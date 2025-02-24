@@ -98,7 +98,7 @@ class StatsControl extends Control
 		$form = $this->getComponent('form');
 
 		$statsFrom = isset($this->state['from']) ? new \Carbon\Carbon($this->state['from']) : ((new \Carbon\Carbon())->modify('- 1 week'));
-		$statsTo = isset($this->state['to']) ? new \Carbon\Carbon($this->state['to']) : (new \Carbon\Carbon());
+		$statsTo = isset($this->state['to']) ? new \Carbon\Carbon($this->state['to']) : new \Carbon\Carbon();
 		$customerType = $this->state['customerType'] ?? 'all';
 		$customer = $this->signedInCustomer ??
 			(isset($this->state['customer']) ? $this->customerRepository->many()->where('this.email LIKE :s', ['s' => '%' . $this->state['customer'] . '%'])->first() : null);

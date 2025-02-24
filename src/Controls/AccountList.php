@@ -26,7 +26,7 @@ class AccountList extends Datalist
 	/**
 	 * @var array<callable(self, array|object): void|callable(array|object): void>
 	 */
-	public $onSuccess = [];
+	public array $onSuccess = [];
 
 	public function __construct(
 		private readonly ShopperUser $shopperUser,
