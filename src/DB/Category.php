@@ -163,7 +163,7 @@ class Category extends SystemicEntity
 
 	/**
 	 * Pomocí repositářové metody getTree(array $orderBy)
-	 * @var array<<\Eshop\DB\Category>>|\StORM\ArrayWrapper<\Eshop\DB\Category>
+	 * @var array<\Eshop\DB\Category>|\StORM\ArrayWrapper<\Eshop\DB\Category>
 	 */
 	public mixed $children;
 
