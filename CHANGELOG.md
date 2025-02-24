@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.415](https://github.com/liquiddesign/eshop/compare/v2.1.414...v2.1.415) (2025-02-24)
+
+### Features
+
+* Enhance pricelist retrieval with dynamic discount handling and caching improvements ([8fc3a1](https://github.com/liquiddesign/eshop/commit/8fc3a1ec5e58577b447d35831096d83ab33c1ca8))
+* Cache main price type and clear all cache on settings save ([8ae5d2](https://github.com/liquiddesign/eshop/commit/8ae5d220190218ed2965e7829dbdaf01d9dc498d))
+* Implement caching for supplier names in PricelistsPresenter to improve performance ([6c4527](https://github.com/liquiddesign/eshop/commit/6c45271e7ed6df8a63ad0fae5ddb2074f8c9ecc5))
+
+### Bug Fixes
+
+* Setting RELATION_MAX_ITEMS_COUNT to 30 ([a5220d](https://github.com/liquiddesign/eshop/commit/a5220d3df98a9563f75837c2eefc4d3ffe0c9bf1))
+* Reset mainPriceType in clearUserData method ([b331ea](https://github.com/liquiddesign/eshop/commit/b331eadef5f6ec3851ba8460072aa5d90b8799f9))
+
+
+---
+
 ## [2.1.414](https://github.com/liquiddesign/eshop/compare/v2.1.413...v2.1.414) (2025-02-07)
 
 ### Bug Fixes
