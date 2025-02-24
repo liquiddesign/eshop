@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.422](https://github.com/liquiddesign/eshop/compare/v2.1.421...v2.1.422) (2025-02-24)
+
+### Bug Fixes
+
+* Simplify children property type declaration for clarity ([2acb96](https://github.com/liquiddesign/eshop/commit/2acb9673bc033ed9ca397529daf5061cedd48744))
+
+
+---
+
 ## [2.1.421](https://github.com/liquiddesign/eshop/compare/v2.1.420...v2.1.421) (2025-02-24)
 
 ### Bug Fixes
