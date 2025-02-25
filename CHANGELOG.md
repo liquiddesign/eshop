@@ -4,6 +4,20 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.425](https://github.com/liquiddesign/eshop/compare/v2.1.424...v2.1.425) (2025-02-25)
+
+
+---
+
+## [2.1.424](https://github.com/liquiddesign/eshop/compare/v2.1.423...v2.1.424) (2025-02-25)
+
+### Features
+
+* Implement TogglePackageItemDropShipping action and refactor order handling ([442bbf](https://github.com/liquiddesign/eshop/commit/442bbf773e3a4a4038be152d1118f9feb3a057b7))
+
+
+---
+
 ## [2.1.423](https://github.com/liquiddesign/eshop/compare/v2.1.422...v2.1.423) (2025-02-25)
 
 ### Bug Fixes
