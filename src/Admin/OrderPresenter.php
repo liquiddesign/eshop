@@ -7,6 +7,7 @@ namespace Eshop\Admin;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Carbon\Carbon;
+use Eshop\Actions\PackageItem\TogglePackageItemDropShipping;
 use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\BackendPresenter;
 use Eshop\Common\CheckInvalidAmount;
@@ -73,7 +74,6 @@ use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use StORM\Collection;
 use StORM\DIConnection;
-use StORM\Literal;
 use Throwable;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -253,6 +253,9 @@ class OrderPresenter extends BackendPresenter
 
 	#[Inject]
 	public TemplateNamesService $templateNamesGetter;
+
+	#[Inject]
+	public TogglePackageItemDropShipping $togglePackageItemDropShipping;
 
 	/**
 	 * Always use getter getTab()
@@ -2536,9 +2539,9 @@ class OrderPresenter extends BackendPresenter
 		$this->orderRepository->unPauseOrder($this->orderRepository->one($orderPK));
 	}
 
-	public function handleTogglePackageItemDropShipping(string $packageItemPK): void
+	public function handleTogglePackageItemDropShipping(string $packageItemPK): never
 	{
-		$this->packageItemRepository->many()->where('this.uuid', $packageItemPK)->update(['dropShipping' => new Literal('!dropShipping')]);
+		$this->togglePackageItemDropShipping->execute($packageItemPK);
 
 		$this->redirect('this');
 	}
