@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.423](https://github.com/liquiddesign/eshop/compare/v2.1.422...v2.1.423) (2025-02-25)
+
+### Bug Fixes
+
+* Add coding standards ignore comments for children property in Category.php ([cafa6b](https://github.com/liquiddesign/eshop/commit/cafa6b5fb1182d3647d0d8687e21fa61573c6dd0))
+
+### Builds
+
+* Docker ([775c0b](https://github.com/liquiddesign/eshop/commit/775c0bc74594adff7d26a06e2d85e07c068657a8))
+
+
+---
+
 ## [2.1.422](https://github.com/liquiddesign/eshop/compare/v2.1.421...v2.1.422) (2025-02-24)
 
 ### Bug Fixes
