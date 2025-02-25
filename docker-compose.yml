@@ -13,5 +13,6 @@ services:
     volumes:
       - .:/var/www/html
       - composer_cache:/.composer
+      - ~/.gitconfig:/home/www-data/.gitconfig
 volumes:
   composer_cache:
