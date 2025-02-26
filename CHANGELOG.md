@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.426](https://github.com/liquiddesign/eshop/compare/v2.1.425...v2.1.426) (2025-02-26)
+
+### Bug Fixes
+
+* Exclude soft-deleted products from queries in ProductRepository and ProductsCacheWarmUpService ([e63f62](https://github.com/liquiddesign/eshop/commit/e63f627eaba207d1c71ade4abf2ca03a47b4549c))
+
+
+---
+
 ## [2.1.425](https://github.com/liquiddesign/eshop/compare/v2.1.424...v2.1.425) (2025-02-25)
 
 
