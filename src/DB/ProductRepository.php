@@ -170,6 +170,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$priceLpad = (string) ($prec + 9);
 		$priceSelects = $priceWhere = [];
 		$collection = $this->many()->setSmartJoin(false);
+
+		$collection->where('this.deletedTs IS NULL');
 		
 		/** @var \Eshop\DB\Pricelist $pricelist */
 		foreach ($pricelists as $id => $pricelist) {

@@ -506,7 +506,7 @@ class ProductsCacheWarmUpService implements AutoWireService
 					'visibilityPriceIndex' => 'DISTINCT(CONCAT(
                     GROUP_CONCAT(DISTINCT visibilityList.id ORDER BY visibilityList.priority, visibilityList.uuid),
                     "-",
-                    GROUP_CONCAT(DISTINCT priceList.id ORDER BY priceList.priority, priceList.uuid)
+                    GROUP_CONCAT(DISTINCT priceList.uuid ORDER BY priceList.priority, priceList.uuid)
                 ))',
 				])
 				->where('priceList.isActive', true)
@@ -851,12 +851,11 @@ CREATE TABLE `$categoriesTableName` (
 		$mutationSuffix = $this->getMutationSuffix();
 
 		$productsCollection = $this->productRepository->many()
-			// TODO remove
-//			->where('this.uuid', '023887cdd93fbfd41fe471835be5a455')
 			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product', type: 'INNER')
 			->join(['eshop_displayamount'], 'this.fk_displayAmount = eshop_displayamount.uuid')
 			->join(['eshop_displaydelivery'], 'this.fk_displayDelivery = eshop_displaydelivery.uuid')
 			->join(['eshop_producer'], 'this.fk_producer = eshop_producer.uuid')
+			->where('this.deletedTs IS NULL')
 			->setSelect([
 				'id' => 'this.id',
 				'fkDisplayAmount' => 'eshop_displayamount.id',
