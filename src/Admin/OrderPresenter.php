@@ -8,6 +8,7 @@ use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Carbon\Carbon;
 use Eshop\Actions\PackageItem\TogglePackageItemDropShipping;
+use Eshop\Actions\Product\GetMergedProductsByProduct;
 use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\BackendPresenter;
 use Eshop\Common\CheckInvalidAmount;
@@ -256,6 +257,9 @@ class OrderPresenter extends BackendPresenter
 
 	#[Inject]
 	public TogglePackageItemDropShipping $togglePackageItemDropShipping;
+
+	#[Inject]
+	public GetMergedProductsByProduct $getMergedProductsByProduct;
 
 	/**
 	 * Always use getter getTab()
@@ -884,9 +888,23 @@ class OrderPresenter extends BackendPresenter
 		return new Multiplier(function ($packageItemPK): AdminForm {
 			$form = $this->formFactory->create();
 
+			/** @var \Eshop\DB\PackageItem $packageItem */
 			$packageItem = $this->packageItemRepository->one($packageItemPK, true);
 
-			$amountInput = $form->addRadioList('amount', null, $this->amountRepository->many()->toArrayOf('uuid'));
+			$product = $packageItem->getProduct();
+
+			if (!$product) {
+				throw new Exception("PackageItem '$packageItemPK' has no relation to product!");
+			}
+
+			$mergedProducts = $this->getMergedProductsByProduct->execute($product, false, true);
+			$mergedProducts[$product->getPK()] = $product;
+
+			$amountInput = $form->addRadioList(
+				'amount',
+				null,
+				$this->amountRepository->many()->where('this.fk_product', \array_keys($mergedProducts))->toArrayOf('uuid'),
+			);
 
 			if ($packageItem->storeAmount) {
 				$amountInput->setDefaultValue($packageItem->storeAmount->getPK());
@@ -1616,7 +1634,7 @@ class OrderPresenter extends BackendPresenter
 					continue;
 				}
 
-				$mergedProducts = $product->getAllMergedProducts(false, true);
+				$mergedProducts = $this->getMergedProductsByProduct->execute($product, false, true);
 				$mergedProducts[$product->getPK()] = $product;
 
 				foreach ($mergedProducts as $product) {
