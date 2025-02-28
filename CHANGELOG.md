@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.427](https://github.com/liquiddesign/eshop/compare/v2.1.426...v2.1.427) (2025-02-28)
+
+### Features
+
+* Integrate GetMergedProductsByProduct action into OrderPresenter for enhanced product handling ([b9b926](https://github.com/liquiddesign/eshop/commit/b9b926a39a9f898ed21e4df683ab12234c704a6e))
+
+
+---
+
 ## [2.1.426](https://github.com/liquiddesign/eshop/compare/v2.1.425...v2.1.426) (2025-02-26)
 
 ### Bug Fixes
