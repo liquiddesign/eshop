@@ -15,6 +15,7 @@ use Eshop\Admin\Controls\IProductFormFactory;
 use Eshop\Admin\Controls\ProductAttributesForm;
 use Eshop\Admin\Controls\ProductAttributesGridFactory;
 use Eshop\Admin\Controls\ProductGridFactory;
+use Eshop\Admin\HelperClasses\ProductCloner;
 use Eshop\BackendPresenter;
 use Eshop\Common\Services\ProductExporter;
 use Eshop\Common\Services\ProductImporter;
@@ -419,10 +420,10 @@ class ProductPresenter extends BackendPresenter
 	public function createComponentFileForm(): Form
 	{
 		$form = $this->formFactory->create(true);
-		
+
 		/** @var \Eshop\DB\File|null $file */
 		$file = $this->getParameter('file');
-		
+
 		if (!$file) {
 			$form->addUpload('fileName', 'Vybrat soubor')->setRequired();
 		}
@@ -430,32 +431,32 @@ class ProductPresenter extends BackendPresenter
 		$form->addLocaleText('label', 'Popisek')->forPrimary(function ($input): void {
 			$input->setRequired();
 		});
-		
+
 		$form->addDataMultiSelect(
 			'mutations',
 			'Zobrazit v jazycích',
 			\array_combine($this->formFactory->formFactory->getDefaultMutations(), $this->formFactory->formFactory->getDefaultMutations())
 		);
-		
+
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
 		$form->addCheckbox('hidden', 'Skryto');
 
 		$form->addHidden('product', (string) $this->getParameter('product'));
 
 		$form->addSubmit('submit', 'Uložit');
-		
+
 		$form->onValidate[] = function (Form $form) use ($file): void {
 			if (!$form->isValid()) {
 				return;
 			}
-			
+
 			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
-			
+
 			if ($file || (isset($values['fileName']) && $values['fileName']->isOK())) {
 				return;
 			}
-			
+
 			$form->addError('Je nutné přiložit soubor!');
 		};
 
@@ -467,24 +468,24 @@ class ProductPresenter extends BackendPresenter
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
 			}
-			
+
 			if ($values['mutations']) {
 				\sort($values['mutations']);
 				$values['mutations'] = \implode('_', $values['mutations']);
 			}
-			
+
 			if (isset($values['fileName'])) {
 				/** @var \Nette\Http\FileUpload $upload */
 				$upload = $values['fileName'];
-				
+
 				$mutationsPath = $values['mutations'] ? $values['mutations'] . '/' : '';
 				$upload->move($this->wwwDir . '/userfiles/' . File::FILE_DIR . '/' . $mutationsPath . $upload->getSanitizedName());
-				
+
 				$values['fileName'] = $upload->getSanitizedName();
 			}
-			
+
 			$file = $this->fileRepository->syncOne($values);
-			
+
 			$this->flashMessage('Uloženo', 'success');
 			$this->redirect('edit', ['product' => $file->product]);
 		};
@@ -503,7 +504,7 @@ class ProductPresenter extends BackendPresenter
 		$form = $this->getComponent('fileForm');
 		$values = $file->toArray();
 		$values['mutations'] = $file->mutations ? \array_combine(\explode('_', $file->mutations), \explode('_', $file->mutations)) : [];
-		
+
 		$form->setDefaults($file->toArray());
 	}
 
@@ -676,7 +677,10 @@ class ProductPresenter extends BackendPresenter
 			['Produkty', 'default'],
 			['Detail'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayButtons = [
+			$this->createBackButton('default'),
+			$this->createCloneButton($product),
+		];
 		$this->template->displayControls = [
 			'productForm' => $this->getComponent('productForm'),
 		];
@@ -767,18 +771,18 @@ class ProductPresenter extends BackendPresenter
 			];
 		}
 	}
-	
+
 	public function deleteFile(File $file): void
 	{
 		$dir = File::FILE_DIR;
-		
+
 		$rootDir = $this->wwwDir . '/userfiles/' . $dir;
 		$mutationsDir = $file->mutations ? $file->mutations . '/' : '';
-		
+
 		if (!$file->fileName) {
 			return;
 		}
-		
+
 		try {
 			FileSystem::delete($rootDir . '/' . $mutationsDir . $file->fileName);
 		} catch (\Throwable $e) {
@@ -998,7 +1002,7 @@ Více informací <a href="http://help.mailerlite.com/article/show/29194-what-cus
 			$this->productRepository->many()
 				->where('this.uuid', $ids)
 				->select(['customName' => "CONCAT(this.name$mutationSuffix, ' (', this.code, ')')"])
-			->toArrayOf('customName'),
+				->toArrayOf('customName'),
 		)->setRequired()->setHtmlAttribute('data-info', '<br>
 Vysvětlení: Všechny vybrané produkty budou sloučené pod zvolený hlavní produkt.<br>
 Produkt může být sloučený pod <b>maximálně jeden</b> produkt. Ten ale může být sloučený pod další a tím vznikne strom.<br>
@@ -1437,6 +1441,81 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 		$this->template->displayButtons = [$this->createBackButton('default')];
 	}
 
+	public function createComponentCloneForm(): AdminForm
+	{
+		/** @var \Eshop\DB\Product $product */
+		$product = $this->getParameter('product');
+
+		$form = $this->formFactory->create();
+
+		$form->addMultiSelect2Ajax('clonedProducts', $this->link('getProductsForSelect2!'), 'Produkty', [], 'Vyberte');
+
+		$clonedFieldsSelection = $form->addContainer('clonedFieldsSelection');
+
+		// Scalar
+		$clonedFieldsSelection->addCheckbox('producer', 'producer')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('alternative', 'alternative')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('taxes', 'taxes')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('internalRibbons', 'internalRibbons')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('ribbons', 'ribbons')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('categories', 'categories')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('masterProduct', 'masterProduct')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('exportZboziCategory', 'exportZboziCategory')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('exportHeurekaCategory', 'exportHeurekaCategory')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('supplierSource', 'supplierSource')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('displayAmount', 'displayAmount')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('displayDelivery', 'displayDelivery')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('loyaltyPrograms', 'loyaltyPrograms')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('contents', 'contents')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('variants', 'variants')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('reviews', 'reviews')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('visibilityListItems', 'visibilityListItems')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('quantityPrices', 'quantityPrices')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('galleryImages', 'galleryImages')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('photos', 'photos')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('files', 'files')->setDefaultValue(true);
+
+		$form->addSubmit('submit', 'Kopírovat');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($product): void {
+			$values = $form->getValues('array');
+			$rawValues = $this->getHttpRequest()->getPost();
+
+			$clonedProducts = [];
+
+			foreach ($rawValues['clonedProducts'] as $productPK) {
+				$cloningTarget = $this->productRepository->one($productPK);
+
+				if ($cloningTarget === null || $cloningTarget === $product) {
+					continue;
+				}
+
+				$clonedProducts[] = $cloningTarget;
+			}
+
+			$fieldSelectedForCloning = \array_filter($values['clonedFieldsSelection'], function ($value) {
+				return $value === true;
+			});
+
+			$productCloner = new ProductCloner($this->container, $this->connection->getLink());
+			$productCloner->cloneProduct($product, $clonedProducts, \array_keys($fieldSelectedForCloning));
+
+			$this->flashMessage('Cloning successful');
+			$this->redirect('edit', ['product' => $product]);
+		};
+
+		return $form;
+	}
+
+	public function renderCloneProduct(Product $product): void
+	{
+		$this->template->product = $product;
+		$this->template->form = $this->getComponent('cloneForm');
+		$this->template->displayButtons = [$this->createBackButton('edit', $product)];
+		$this->template->displayLabels = ['Kopírování produktu ' . $product->name];
+		$this->template->setFile(__DIR__ . '/templates/clone.latte');
+	}
+
 	public function renderComments(Product $product): void
 	{
 		$this->template->comments = $this->commentRepository->many()->where('fk_product', $product->getPK())->orderBy(['createdTs' => 'DESC'])->toArray();
@@ -1684,5 +1763,10 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 		}
 
 		FileSystem::createDir($this->wwwDir . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . File::FILE_DIR);
+	}
+
+	protected function createCloneButton(Product $product): string
+	{
+		return $this->createButton2('cloneProduct', '<i class="fas fa-copy"></i>&nbsp;' . $this->translator->translate('admin.copy', 'Kopírovat'), 'btn btn-sm btn-secondary', ['product' => $product]);
 	}
 }

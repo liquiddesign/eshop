@@ -1,0 +1,99 @@
+{varType Admin\Controls\AdminForm $form}
+
+{block content}
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-1">
+                <div class="col-sm-6">
+                    <h1>{@$headerLabel}</h1>
+                    {if @$displayLabels}
+                        {foreach $displayLabels as $label}
+                            <h2>{$label|noescape}</h2>
+                        {/foreach}
+                    {/if}
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{plink :Eshop:Admin:Dashboard:default}">Domů</a></li>
+                        {ifset $headerTree}
+                            {foreach $headerTree as $item}
+                                <li class="breadcrumb-item {if $iterator->isLast()}active{/if}">
+                                    {ifset $item[1]}
+                                        {ifset $item[2]}
+                                            <a href="{plink $item[1], $item[2]}">{$item[0]}</a>
+                                        {else}
+                                            <a href="{plink $item[1]}">{$item[0]}</a>
+                                        {/ifset}
+                                    {else}
+                                        {$item[0]}
+                                    {/ifset}
+                                </li>
+                            {/foreach}
+                        {/ifset}
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="content">
+        <div class="card card-primary card-outline card-outline-tabs">
+            <div n:if="@$tabs" class="card-header p-0 border-bottom-0">
+                <ul class="nav nav-tabs" id="custom-tabs-one-tab" role="tablist">
+                    {foreach $tabs as $tab => $label}
+                        <li class="nav-item">
+                            {if substr($tab, 0, 1) === '@'}
+                                {do $tab = substr($tab, 1)}
+                                <a class="nav-link {if $tab === $presenter->getAction() || $tab === @$activeTab}active{/if}"
+                                   id="custom-tabs-one-home-tab" data-toggle="pill" href="{plink $tab}"
+                                   role="tab">{$label|noescape}</a>
+                            {else}
+                                <a class="nav-link {if $tab === $presenter->getParameter('tab') || $tab === @$activeTab}active{/if}"
+                                   id="custom-tabs-one-home-tab" data-toggle="pill"
+                                   href="{plink $presenter->getAction() tab=>$tab}" role="tab">{$label|noescape}</a>
+                            {/if}
+
+                        </li>
+                    {/foreach}
+                </ul>
+            </div>
+
+            {if @$displayButtons}
+                <div class="card-header p-3">
+                    <div class="row">
+                        <div class="col-lg-6 col-md-12">
+                            {foreach $displayButtons as $button}
+                                {$button|noescape}
+                            {/foreach}
+                        </div>
+                    </div>
+                </div>
+            {/if}
+            <div class="card-body p-3">
+                {form cloneForm}
+                    {input clonedProducts}
+                    {formContainer clonedFieldsSelection}
+                        <div n:foreach="$form['clonedFieldsSelection']->getControls() as $field" class="form-group">
+                            <div class="row">
+                                <div class="col-3">
+                                    {$form->getRenderer()->renderPair($field)|noescape}
+                                </div>
+                                <div class="col-3">
+                                    <input n:if="!$product->{$field->name} instanceof StORM\Collection" type="text" disabled value="{$product->{$field->name}}"/>
+                                </div>
+                            </div>
+                        </div>
+                    {/formContainer}
+                    {input submit}
+                {/form}
+            </div>
+        </div>
+    </section>
+{/block}
+{block scripts}
+    <script n:if="$flashes" src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+    {foreach $flashes as $flash}
+        <script>
+            toastr.{$flash->type|noescape}({$flash->message});
+        </script>
+    {/foreach}
+{/block}
