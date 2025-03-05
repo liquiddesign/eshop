@@ -4,6 +4,21 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.428](https://github.com/liquiddesign/eshop/compare/v2.1.427...v2.1.428) (2025-03-05)
+
+### Features
+
+* Add priceListsMode to Merchant and implement merged price list retrieval ([709e91](https://github.com/liquiddesign/eshop/commit/709e91249410f2f1e3137aaaca304508ed2fcb15))
+* Disallow buy deleted products ([9405bf](https://github.com/liquiddesign/eshop/commit/9405bfef2384372a16c3f4dac8de6311151b7e5a))
+* Cloning products ([9560eb](https://github.com/liquiddesign/eshop/commit/9560eb5d4eaacec2b4f7bd2285fff26605d458b5))
+
+### Bug Fixes
+
+* Remove soft-deleted product filter from ProductRepository and ProductsCacheWarmUpService ([a5e10b](https://github.com/liquiddesign/eshop/commit/a5e10b6783263ff7add54a0bb140e2e22b092935))
+
+
+---
+
 ## [2.1.427](https://github.com/liquiddesign/eshop/compare/v2.1.426...v2.1.427) (2025-02-28)
 
 ### Features
