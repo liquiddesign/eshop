@@ -437,7 +437,7 @@ class ShopperUser extends User
 
 	public function canBuyProduct(Product $product): bool
 	{
-		return !$product->isUnavailable() && $product->getValue('price') !== null && $this->getBuyPermission();
+		return !$product->isUnavailable() && $product->getValue('price') !== null && $this->getBuyPermission() && $product->deletedTs === null;
 	}
 
 	public function getProductPricesFormatted(Product $product): ?ProductWithFormattedPrices
