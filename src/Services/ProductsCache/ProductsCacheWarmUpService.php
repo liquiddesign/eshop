@@ -855,7 +855,6 @@ CREATE TABLE `$categoriesTableName` (
 			->join(['eshop_displayamount'], 'this.fk_displayAmount = eshop_displayamount.uuid')
 			->join(['eshop_displaydelivery'], 'this.fk_displayDelivery = eshop_displaydelivery.uuid')
 			->join(['eshop_producer'], 'this.fk_producer = eshop_producer.uuid')
-			->where('this.deletedTs IS NULL')
 			->setSelect([
 				'id' => 'this.id',
 				'fkDisplayAmount' => 'eshop_displayamount.id',
