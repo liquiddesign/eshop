@@ -3,7 +3,6 @@
 namespace Eshop\Admin\HelperClasses;
 
 use Eshop\DB\File;
-use Eshop\DB\Photo;
 use Eshop\DB\Product;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;

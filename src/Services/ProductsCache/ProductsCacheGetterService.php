@@ -220,12 +220,12 @@ class ProductsCacheGetterService implements AutoWireService
 
 		$visibilityListsIds = $this->visibilityListRepository->many()
 			->setSelect(['this.id'])
-			->setOrderBy(['this.priority'])
+			->setOrderBy(['this.priority', 'this.uuid'])
 			->where('this.uuid', \array_keys($visibilityLists))
 			->toArrayOf('id', toArrayValues: true);
 		$priceListsIds = $this->pricelistRepository->many()
 			->setSelect(['this.id'])
-			->setOrderBy(['this.priority'])
+			->setOrderBy(['this.priority', 'this.uuid'])
 			->where('this.uuid', \array_keys($priceLists))
 			->toArrayOf('id', toArrayValues: true);
 

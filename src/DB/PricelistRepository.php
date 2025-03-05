@@ -47,7 +47,7 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			->where('fk_currency', $currency->getPK())
 			->where('fk_country', $country->getPK());
 
-//		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
+		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
 
 		return $collection->select(['this.id'])->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
 	}
@@ -79,11 +79,18 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			$collection->where('discount.fk_shop = :shop OR discount.fk_shop IS NULL', ['shop' => $shop->getPK()]);
 		}
 
-//		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
+		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
 
 		return $collection->select(['this.id'])->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
 	}
 
+	/**
+	 * @param \Eshop\DB\Merchant $merchant
+	 * @param \Eshop\DB\Currency $currency
+	 * @param \Eshop\DB\Country $country
+	 * @param \Eshop\DB\DiscountCoupon|null $activeCoupon
+	 * @return \StORM\Collection<\Eshop\DB\Pricelist>
+	 */
 	public function getMerchantPricelists(Merchant $merchant, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
 	{
 		$shop = $this->shopsConfig->getSelectedShop();
@@ -104,7 +111,21 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 			$collection->where('discount.fk_shop = :shop OR discount.fk_shop IS NULL', ['shop' => $shop->getPK()]);
 		}
 
-//		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
+		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
+
+		return $collection->select(['this.id'])->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
+	}
+
+	public function getMergedPriceLists(Customer $customer, Merchant $merchant, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
+	{
+		$customerPriceLists = $this->getCustomerPricelists($customer, $currency, $country, $activeCoupon);
+		$merchantPriceLists = $this->getMerchantPricelists($merchant, $currency, $country, $activeCoupon);
+
+		$collection = $this->many()
+			->setGroupBy(['this.uuid'])
+			->where('this.uuid', \array_merge($customerPriceLists->toArrayOf('uuid', toArrayValues: true), $merchantPriceLists->toArrayOf('uuid', toArrayValues: true)));
+
+		$this->shopsConfig->filterShopsInShopEntityCollection($collection);
 
 		return $collection->select(['this.id'])->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
 	}

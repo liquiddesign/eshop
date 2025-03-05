@@ -604,6 +604,18 @@ class ShopperUser extends User
 		$unregisteredPricelists = $unregistredGroup->defaultPricelists->toArrayOf('uuid');
 		$repo = $this->pricelistRepository;
 
+		if ($customer && $merchant) {
+			if ($merchant->priceListsMode === 'customer') {
+				return $repo->getCustomerPricelists($customer, $currency, $this->getCountry(), $discountCoupon);
+			}
+
+			if ($merchant->priceListsMode === 'merchant') {
+				return $repo->getMerchantPricelists($merchant, $currency, $this->getCountry(), $discountCoupon);
+			}
+
+			return $repo->getMergedPriceLists($customer, $merchant, $currency, $this->getCountry(), $discountCoupon);
+		}
+
 		if (!$customer && $merchant) {
 			return $repo->getMerchantPricelists($merchant, $currency, $this->getCountry(), $discountCoupon);
 		}

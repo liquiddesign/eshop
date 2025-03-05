@@ -113,6 +113,12 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 	 * @var \StORM\RelationCollection<\Security\DB\Account>
 	 */
 	public RelationCollection $accounts;
+
+	/**
+	 * Určuje odkud se berou ceníky
+	 * @column{"type":"enum","length":"'customer','merchant','merge'"}
+	 */
+	public string $priceListsMode = 'merchant';
 	
 	protected ?Account $account = null;
 	

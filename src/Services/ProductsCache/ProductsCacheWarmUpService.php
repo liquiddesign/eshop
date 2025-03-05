@@ -3,6 +3,7 @@
 namespace Eshop\Services\ProductsCache;
 
 use Base\Bridges\AutoWireService;
+use Base\DB\Shop;
 use Base\ShopsConfig;
 use Carbon\Carbon;
 use Eshop\Admin\ScriptsPresenter;
@@ -31,6 +32,7 @@ use Eshop\ShopperUser;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\DI\Container;
+use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use StORM\DIConnection;
 use Tracy\Debugger;
@@ -320,274 +322,26 @@ class ProductsCacheWarmUpService implements AutoWireService
 	 */
 	public function getAllPossibleVisibilityAndPriceListOptions(array $customers = [], array|null $customerGroups = null, array $merchants = []): array
 	{
-		/** @var array<string|int, \Eshop\DB\Pricelist> $prefetchedPriceLists */
-		$prefetchedPriceLists = $this->pricelistRepository->many()->select(['this.id'])->toArray();
-
+		/** @var array<string|int, true> $existingOptions */
 		$existingOptions = [];
 		$allVisibilityLists = [];
 		$allPriceLists = [];
 
-		$customerGroupsQuery = $this->customerGroupRepository->many();
-
-		if ($customerGroups !== null) {
-			$customerGroups ?
-				$customerGroupsQuery->where('this.uuid', $customerGroups) :
-				$customerGroupsQuery->where('1=0');
+		if (!$this->shopsConfig->getAvailableShops()) {
+			return $this->getAllPossibleVisibilityAndPriceListOptionsHelper($customers, $customerGroups, $merchants);
 		}
 
-		// Only customer groups marked as defaultUnregisteredGroup are used
-		if ($unregisteredGroups = $this->settingsService->getAllDefaultUnregisteredGroups()) {
-			$customerGroupsQuery->where('this.uuid', $unregisteredGroups);
-		} else {
-			$customerGroupsQuery->where('this.uuid', CustomerGroupRepository::UNREGISTERED_PK);
+		foreach ($this->shopsConfig->getAvailableShops() as $shop) {
+			[$existingOptionsShop, $allVisibilityListsShop, $allPriceListsShop] = $this->getAllPossibleVisibilityAndPriceListOptionsHelper($customers, $customerGroups, $merchants, $shop);
+			/** @var array<string|int, true> $existingOptions */
+			$existingOptions = Arrays::mergeTree($existingOptions, $existingOptionsShop);
+
+			// merge only new values
+			$allVisibilityLists = \array_merge($allVisibilityLists, \array_diff($allVisibilityListsShop, $allVisibilityLists));
+			$allPriceLists = \array_merge($allPriceLists, \array_diff($allPriceListsShop, $allPriceLists));
 		}
 
-		foreach ($customerGroupsQuery as $customerGroup) {
-			$visibilityLists = $customerGroup->getDefaultVisibilityLists()
-				->where('hidden', false)
-				->setSelect(['id'])
-				->setOrderBy(['priority', 'uuid'])
-				->toArrayOf('id', toArrayValues: true);
-
-			$priceLists = $customerGroup->getDefaultPricelists()
-				->where('isActive', true)
-				->setSelect(['id'], keepIndex: true)
-				->setOrderBy(['priority', 'uuid'])
-				->toArrayOf('id');
-
-			foreach ($visibilityLists as $visibilityList) {
-				$allVisibilityLists[$visibilityList] = true;
-			}
-
-			foreach ($priceLists as $priceList) {
-				$allPriceLists[$priceList] = true;
-			}
-
-			// If PriceList has discount, his validity is dynamic
-			// Because of that, we need to create unique index for each combination of dynamic PriceLists
-
-			$fixedPriceLists = [];
-			$dynamicPriceLists = [];
-
-			foreach ($priceLists as $PK => $id) {
-				if ($prefetchedPriceLists[$PK]->getDiscounts()->count() === 0) {
-					$fixedPriceLists[$PK] = $id;
-				} else {
-					$dynamicPriceLists[$PK] = $id;
-				}
-			}
-
-			// Generate all possible combinations of dynamic price lists
-			$possibleCombinations = $this->generateCombinations($dynamicPriceLists);
-
-			// Generate all valid price list sequences with preserved order
-			$finalCombinations = [];
-
-			foreach ($possibleCombinations as $combination) {
-				$newCombination = [];
-
-				foreach ($priceLists as $id) {
-					if (\Nette\Utils\Arrays::contains($fixedPriceLists, $id) || \Nette\Utils\Arrays::contains($combination, $id)) {
-						$newCombination[] = $id;
-					}
-				}
-
-				$finalCombinations[] = $newCombination;
-			}
-
-			foreach ($finalCombinations as $combination) {
-				$index =
-					\implode(',', $visibilityLists) .
-					'-' .
-					\implode(',', $combination);
-
-				$existingOptions[$index] = true;
-			}
-		}
-
-		foreach (['eshop_customer_nxn_eshop_pricelist', 'eshop_customer_nxn_eshop_pricelist_favourite'] as $table) {
-			$customersQuery = $this->customerRepository->many()
-				->join(['customerXpriceList' => $table], 'this.uuid = customerXpriceList.fk_customer')
-				->join(['priceList' => 'eshop_pricelist'], 'customerXpriceList.fk_pricelist = priceList.uuid')
-				->join(['customerXvisibilityList' => 'eshop_customer_nxn_eshop_visibilitylist'], 'this.uuid = customerXvisibilityList.fk_customer')
-				->join(['visibilityList' => 'eshop_visibilitylist'], 'customerXvisibilityList.fk_visibilitylist = visibilityList.uuid')
-				->setSelect([
-					'visibilityPriceIndex' => 'DISTINCT(CONCAT(
-                    GROUP_CONCAT(DISTINCT visibilityList.id ORDER BY visibilityList.priority, visibilityList.uuid),
-                    "-",
-                    GROUP_CONCAT(DISTINCT priceList.uuid ORDER BY priceList.priority, priceList.uuid)
-                ))',
-				])
-				->where('priceList.isActive', true)
-				->where('visibilityList.hidden', false)
-				->setGroupBy(['this.uuid']);
-
-			if ($customers) {
-				$customersQuery->where('this.uuid', $customers);
-			}
-
-			$indexes = $customersQuery->toArrayOf('visibilityPriceIndex');
-
-			foreach ($indexes as $index) {
-				if (!$index) {
-					continue;
-				}
-
-				$exploded = \explode('-', $index);
-
-				if (\count($exploded) !== 2) {
-					continue;
-				}
-
-				$visibilityLists = \explode(',', $exploded[0]);
-
-				foreach ($visibilityLists as $visibilityList) {
-					$allVisibilityLists[$visibilityList] = true;
-				}
-
-				$priceListsPKs = \explode(',', $exploded[1]);
-				$priceLists = [];
-
-				foreach ($priceListsPKs as $priceList) {
-					$allPriceLists[$prefetchedPriceLists[$priceList]->id] = true;
-					$priceLists[$priceList] = $prefetchedPriceLists[$priceList]->id;
-				}
-
-				// If PriceList has discount, his validity is dynamic
-				// Because of that, we need to create unique index for each combination of dynamic PriceLists
-
-				$fixedPriceLists = [];
-				$dynamicPriceLists = [];
-
-				foreach ($priceLists as $PK => $id) {
-					if ($prefetchedPriceLists[$PK]->getDiscounts()->count() === 0) {
-						$fixedPriceLists[$PK] = $id;
-					} else {
-						$dynamicPriceLists[$PK] = $id;
-					}
-				}
-
-				// Generate all possible combinations of dynamic price lists
-				$possibleCombinations = $this->generateCombinations($dynamicPriceLists);
-
-				// Generate all valid price list sequences with preserved order
-				$finalCombinations = [];
-
-				foreach ($possibleCombinations as $combination) {
-					$newCombination = [];
-
-					foreach ($priceLists as $id) {
-						if (\Nette\Utils\Arrays::contains($fixedPriceLists, $id) || \Nette\Utils\Arrays::contains($combination, $id)) {
-							$newCombination[] = $id;
-						}
-					}
-
-					$finalCombinations[] = $newCombination;
-				}
-
-				foreach ($finalCombinations as $combination) {
-					$index =
-						\implode(',', $visibilityLists) .
-						'-' .
-						\implode(',', $combination);
-
-					$existingOptions[$index] = true;
-				}
-			}
-		}
-
-		foreach (['eshop_merchant_nxn_eshop_pricelist'] as $table) {
-			$merchantsQuery = $this->merchantRepository->many()
-				->join(['merchantXpriceList' => $table], 'this.uuid = merchantXpriceList.fk_merchant')
-				->join(['priceList' => 'eshop_pricelist'], 'merchantXpriceList.fk_pricelist = priceList.uuid')
-				->join(['merchantXvisibilityList' => 'eshop_merchant_nxn_eshop_visibilitylist'], 'this.uuid = merchantXvisibilityList.fk_merchant')
-				->join(['visibilityList' => 'eshop_visibilitylist'], 'merchantXvisibilityList.fk_visibilitylist = visibilityList.uuid')
-				->setSelect([
-					'visibilityPriceIndex' => 'DISTINCT(CONCAT(
-                    GROUP_CONCAT(DISTINCT visibilityList.id ORDER BY visibilityList.priority, visibilityList.uuid),
-                    "-",
-                    GROUP_CONCAT(DISTINCT priceList.uuid ORDER BY priceList.priority, priceList.uuid)
-                ))',
-				])
-				->where('priceList.isActive', true)
-				->where('visibilityList.hidden', false)
-				->setGroupBy(['this.uuid']);
-
-			if ($merchants) {
-				$merchantsQuery->where('this.uuid', $merchants);
-			}
-
-			$indexes = $merchantsQuery->toArrayOf('visibilityPriceIndex');
-
-			foreach ($indexes as $index) {
-				if (!$index) {
-					continue;
-				}
-
-				$exploded = \explode('-', $index);
-
-				if (\count($exploded) !== 2) {
-					continue;
-				}
-
-				$visibilityLists = \explode(',', $exploded[0]);
-
-				foreach ($visibilityLists as $visibilityList) {
-					$allVisibilityLists[$visibilityList] = true;
-				}
-
-				$priceListsPKs = \explode(',', $exploded[1]);
-				$priceLists = [];
-
-				foreach ($priceListsPKs as $priceList) {
-					$allPriceLists[$prefetchedPriceLists[$priceList]->id] = true;
-					$priceLists[$priceList] = $prefetchedPriceLists[$priceList]->id;
-				}
-
-				// If PriceList has discount, his validity is dynamic
-				// Because of that, we need to create unique index for each combination of dynamic PriceLists
-
-				$fixedPriceLists = [];
-				$dynamicPriceLists = [];
-
-				foreach ($priceLists as $PK => $id) {
-					if ($prefetchedPriceLists[$PK]->getDiscounts()->count() === 0) {
-						$fixedPriceLists[$PK] = $id;
-					} else {
-						$dynamicPriceLists[$PK] = $id;
-					}
-				}
-
-				// Generate all possible combinations of dynamic price lists
-				$possibleCombinations = $this->generateCombinations($dynamicPriceLists);
-
-				// Generate all valid price list sequences with preserved order
-				$finalCombinations = [];
-
-				foreach ($possibleCombinations as $combination) {
-					$newCombination = [];
-
-					foreach ($priceLists as $id) {
-						if (\Nette\Utils\Arrays::contains($fixedPriceLists, $id) || \Nette\Utils\Arrays::contains($combination, $id)) {
-							$newCombination[] = $id;
-						}
-					}
-
-					$finalCombinations[] = $newCombination;
-				}
-
-				foreach ($finalCombinations as $combination) {
-					$index =
-						\implode(',', $visibilityLists) .
-						'-' .
-						\implode(',', $combination);
-
-					$existingOptions[$index] = true;
-				}
-			}
-		}
-
-		return [$existingOptions, \array_keys($allVisibilityLists), \array_keys($allPriceLists)];
+		return [$existingOptions, \array_values($allVisibilityLists), \array_values($allPriceLists)];
 	}
 
 	/**
@@ -1387,9 +1141,9 @@ CREATE TABLE `$categoriesTableName` (
 		$link->exec('SET SESSION foreign_key_checks=ON;');
 		Debugger::dump('indexVisibilityPriceTable -- product: ' . Debugger::timer('indexVisibilityPriceTable -- product'));
 
-//		Debugger::timer('indexVisibilityPriceTable -- idx_price');
-//		$link->exec("CREATE INDEX idx_price ON `$pricesCacheTableName` (price);");
-//		Debugger::dump('indexVisibilityPriceTable -- idx_price: ' . Debugger::timer('indexVisibilityPriceTable -- idx_price'));
+//      Debugger::timer('indexVisibilityPriceTable -- idx_price');
+//      $link->exec("CREATE INDEX idx_price ON `$pricesCacheTableName` (price);");
+//      Debugger::dump('indexVisibilityPriceTable -- idx_price: ' . Debugger::timer('indexVisibilityPriceTable -- idx_price'));
 	}
 
 	protected function indexCategoriesTable(string $tableName, string $productsCacheTableName): void
@@ -1403,7 +1157,7 @@ CREATE TABLE `$categoriesTableName` (
 
 	protected function loadDataInfile(string $tableName, array $data, int $chunkSize = 10000): void
 	{
-//		Debugger::timer('loadDataInfile');
+//      Debugger::timer('loadDataInfile');
 		$tmpFileName = \tempnam($this->container->getParameter('tempDir'), 'csv');
 
 		$buffer = \fopen('php://memory', 'rw');
@@ -1440,19 +1194,19 @@ CREATE TABLE `$categoriesTableName` (
 
 		\fclose($file);
 
-//		Debugger::dump('Insert to CSV: ' . Debugger::timer('loadDataInfile'));
+//      Debugger::dump('Insert to CSV: ' . Debugger::timer('loadDataInfile'));
 
 		$tmpFileName = \str_replace('\\', '\\\\', $tmpFileName);
 
 		$this->getLink()->exec("LOAD DATA LOCAL INFILE \"$tmpFileName\"
-			INTO TABLE $tableName
-			fields terminated by ','
-			optionally enclosed by '\"'
-			escaped by \"\\\\\";");
+            INTO TABLE $tableName
+            fields terminated by ','
+            optionally enclosed by '\"'
+            escaped by \"\\\\\";");
 
 		FileSystem::delete($tmpFileName);
 
-//		Debugger::dump('Insert to DB: ' . Debugger::timer('loadDataInfile'));
+//      Debugger::dump('Insert to DB: ' . Debugger::timer('loadDataInfile'));
 	}
 
 	protected function getLink(): \PDO
@@ -1647,9 +1401,9 @@ CREATE TABLE `$relationsCacheTableName` (
 		$this->connection->createRows($relationsCacheTableName, $rowsToInsert, chunkSize: 1000);
 		unset($rowsToInsert);
 
-//		$link->exec("CREATE INDEX idx_master ON `$relationsCacheTableName` (master);");
-//		$link->exec("CREATE INDEX idx_slave ON `$relationsCacheTableName` (slave);");
-//		$link->exec("CREATE INDEX idx_type ON `$relationsCacheTableName` (type);");
+//      $link->exec("CREATE INDEX idx_master ON `$relationsCacheTableName` (master);");
+//      $link->exec("CREATE INDEX idx_slave ON `$relationsCacheTableName` (slave);");
+//      $link->exec("CREATE INDEX idx_type ON `$relationsCacheTableName` (type);");
 		$link->exec("CREATE INDEX idx_related_master ON `$relationsCacheTableName` (master, type);");
 		$link->exec("CREATE INDEX idx_related_slave ON `$relationsCacheTableName` (slave, type);");
 		$link->exec("CREATE INDEX idx_products_related_unique ON `$relationsCacheTableName` (master, slave);");
@@ -1727,5 +1481,287 @@ CREATE TABLE `$productsCacheTableName` (
 		foreach ($allCategoryTypes as $categoryType) {
 			$link->exec("ALTER TABLE $productsCacheTableName ADD primaryCategory_{$categoryType->id} INT UNSIGNED;");
 		}
+	}
+
+	/**
+	 * @param array<string|int> $customers
+	 * @param array<string|int>|null $customerGroups
+	 * @param array<string|int> $merchants
+	 * @return array{0: array<string|int, true>, 1: list<string|int>, 2: list<string|int>}
+	 */
+	private function getAllPossibleVisibilityAndPriceListOptionsHelper(array $customers = [], array|null $customerGroups = null, array $merchants = [], Shop|null $shop = null): array
+	{
+		/** @var array<string|int, \Eshop\DB\Pricelist> $prefetchedPriceLists */
+		$prefetchedPriceLists = $this->pricelistRepository->many()->select(['this.id'])->toArray();
+
+		$existingOptions = [];
+		$allVisibilityLists = [];
+		$allPriceLists = [];
+
+		$customerGroupsQuery = $this->customerGroupRepository->many();
+
+		if ($customerGroups !== null) {
+			$customerGroups ?
+				$customerGroupsQuery->where('this.uuid', $customerGroups) :
+				$customerGroupsQuery->where('1=0');
+		}
+
+		// Only customer groups marked as defaultUnregisteredGroup are used
+		if ($unregisteredGroups = $this->settingsService->getAllDefaultUnregisteredGroups()) {
+			$customerGroupsQuery->where('this.uuid', $unregisteredGroups);
+		} else {
+			$customerGroupsQuery->where('this.uuid', CustomerGroupRepository::UNREGISTERED_PK);
+		}
+
+		foreach ($customerGroupsQuery as $customerGroup) {
+			$visibilityLists = $customerGroup->getDefaultVisibilityLists()
+				->where('hidden', false)
+				->setSelect(['id'])
+				->setOrderBy(['priority', 'uuid'])
+				->where('this.fk_shop = :shop OR this.fk_shop IS NULL', ['shop' => $shop?->getPK()])
+				->toArrayOf('id', toArrayValues: true);
+
+			$priceLists = $customerGroup->getDefaultPricelists()
+				->where('isActive', true)
+				->setSelect(['id'], keepIndex: true)
+				->setOrderBy(['priority', 'uuid'])
+				->where('this.fk_shop = :shop OR this.fk_shop IS NULL', ['shop' => $shop?->getPK()])
+				->toArrayOf('id');
+
+			foreach ($visibilityLists as $visibilityList) {
+				$allVisibilityLists[$visibilityList] = true;
+			}
+
+			foreach ($priceLists as $priceList) {
+				$allPriceLists[$priceList] = true;
+			}
+
+			// If PriceList has discount, his validity is dynamic
+			// Because of that, we need to create unique index for each combination of dynamic PriceLists
+
+			$fixedPriceLists = [];
+			$dynamicPriceLists = [];
+
+			foreach ($priceLists as $PK => $id) {
+				if ($prefetchedPriceLists[$PK]->getDiscounts()->count() === 0) {
+					$fixedPriceLists[$PK] = $id;
+				} else {
+					$dynamicPriceLists[$PK] = $id;
+				}
+			}
+
+			// Generate all possible combinations of dynamic price lists
+			$possibleCombinations = $this->generateCombinations($dynamicPriceLists);
+
+			// Generate all valid price list sequences with preserved order
+			$finalCombinations = [];
+
+			foreach ($possibleCombinations as $combination) {
+				$newCombination = [];
+
+				foreach ($priceLists as $id) {
+					if (\Nette\Utils\Arrays::contains($fixedPriceLists, $id) || \Nette\Utils\Arrays::contains($combination, $id)) {
+						$newCombination[] = $id;
+					}
+				}
+
+				$finalCombinations[] = $newCombination;
+			}
+
+			foreach ($finalCombinations as $combination) {
+				$index =
+					\implode(',', $visibilityLists) .
+					'-' .
+					\implode(',', $combination);
+
+				$existingOptions[$index] = true;
+			}
+		}
+
+		foreach (['eshop_customer_nxn_eshop_pricelist', 'eshop_customer_nxn_eshop_pricelist_favourite'] as $table) {
+			$customersQuery = $this->customerRepository->many()
+				->join(['customerXpriceList' => $table], 'this.uuid = customerXpriceList.fk_customer')
+				->join(['priceList' => 'eshop_pricelist'], 'customerXpriceList.fk_pricelist = priceList.uuid')
+				->join(['customerXvisibilityList' => 'eshop_customer_nxn_eshop_visibilitylist'], 'this.uuid = customerXvisibilityList.fk_customer')
+				->join(['visibilityList' => 'eshop_visibilitylist'], 'customerXvisibilityList.fk_visibilitylist = visibilityList.uuid')
+				->setSelect([
+					'visibilityPriceIndex' => 'DISTINCT(CONCAT(
+                    GROUP_CONCAT(DISTINCT visibilityList.id ORDER BY visibilityList.priority, visibilityList.uuid),
+                    "-",
+                    GROUP_CONCAT(DISTINCT priceList.uuid ORDER BY priceList.priority, priceList.uuid)
+                ))',
+				])
+				->where('priceList.isActive', true)
+				->where('visibilityList.hidden', false)
+				->where('(priceList.fk_shop = :shop OR priceList.fk_shop IS NULL) AND (visibilityList.fk_shop = :shop OR visibilityList.fk_shop IS NULL)', ['shop' => $shop?->getPK()])
+				->setGroupBy(['this.uuid']);
+
+			if ($customers) {
+				$customersQuery->where('this.uuid', $customers);
+			}
+
+			$indexes = $customersQuery->toArrayOf('visibilityPriceIndex');
+
+			foreach ($indexes as $index) {
+				if (!$index) {
+					continue;
+				}
+
+				$exploded = \explode('-', $index);
+
+				if (\count($exploded) !== 2) {
+					continue;
+				}
+
+				$visibilityLists = \explode(',', $exploded[0]);
+
+				foreach ($visibilityLists as $visibilityList) {
+					$allVisibilityLists[$visibilityList] = true;
+				}
+
+				$priceListsPKs = \explode(',', $exploded[1]);
+				$priceLists = [];
+
+				foreach ($priceListsPKs as $priceList) {
+					$allPriceLists[$prefetchedPriceLists[$priceList]->id] = true;
+					$priceLists[$priceList] = $prefetchedPriceLists[$priceList]->id;
+				}
+
+				// If PriceList has discount, his validity is dynamic
+				// Because of that, we need to create unique index for each combination of dynamic PriceLists
+
+				$fixedPriceLists = [];
+				$dynamicPriceLists = [];
+
+				foreach ($priceLists as $PK => $id) {
+					if ($prefetchedPriceLists[$PK]->getDiscounts()->count() === 0) {
+						$fixedPriceLists[$PK] = $id;
+					} else {
+						$dynamicPriceLists[$PK] = $id;
+					}
+				}
+
+				// Generate all possible combinations of dynamic price lists
+				$possibleCombinations = $this->generateCombinations($dynamicPriceLists);
+
+				// Generate all valid price list sequences with preserved order
+				$finalCombinations = [];
+
+				foreach ($possibleCombinations as $combination) {
+					$newCombination = [];
+
+					foreach ($priceLists as $id) {
+						if (\Nette\Utils\Arrays::contains($fixedPriceLists, $id) || \Nette\Utils\Arrays::contains($combination, $id)) {
+							$newCombination[] = $id;
+						}
+					}
+
+					$finalCombinations[] = $newCombination;
+				}
+
+				foreach ($finalCombinations as $combination) {
+					$index =
+						\implode(',', $visibilityLists) .
+						'-' .
+						\implode(',', $combination);
+
+					$existingOptions[$index] = true;
+				}
+			}
+		}
+
+		foreach (['eshop_merchant_nxn_eshop_pricelist'] as $table) {
+			$merchantsQuery = $this->merchantRepository->many()
+				->join(['merchantXpriceList' => $table], 'this.uuid = merchantXpriceList.fk_merchant')
+				->join(['priceList' => 'eshop_pricelist'], 'merchantXpriceList.fk_pricelist = priceList.uuid')
+				->join(['merchantXvisibilityList' => 'eshop_merchant_nxn_eshop_visibilitylist'], 'this.uuid = merchantXvisibilityList.fk_merchant')
+				->join(['visibilityList' => 'eshop_visibilitylist'], 'merchantXvisibilityList.fk_visibilitylist = visibilityList.uuid')
+				->setSelect([
+					'visibilityPriceIndex' => 'DISTINCT(CONCAT(
+                    GROUP_CONCAT(DISTINCT visibilityList.id ORDER BY visibilityList.priority, visibilityList.uuid),
+                    "-",
+                    GROUP_CONCAT(DISTINCT priceList.uuid ORDER BY priceList.priority, priceList.uuid)
+                ))',
+				])
+				->where('priceList.isActive', true)
+				->where('visibilityList.hidden', false)
+				->where('(priceList.fk_shop = :shop OR priceList.fk_shop IS NULL) AND (visibilityList.fk_shop = :shop OR visibilityList.fk_shop IS NULL)', ['shop' => $shop?->getPK()])
+				->setGroupBy(['this.uuid']);
+
+			if ($merchants) {
+				$merchantsQuery->where('this.uuid', $merchants);
+			}
+
+			$indexes = $merchantsQuery->toArrayOf('visibilityPriceIndex');
+
+			foreach ($indexes as $index) {
+				if (!$index) {
+					continue;
+				}
+
+				$exploded = \explode('-', $index);
+
+				if (\count($exploded) !== 2) {
+					continue;
+				}
+
+				$visibilityLists = \explode(',', $exploded[0]);
+
+				foreach ($visibilityLists as $visibilityList) {
+					$allVisibilityLists[$visibilityList] = true;
+				}
+
+				$priceListsPKs = \explode(',', $exploded[1]);
+				$priceLists = [];
+
+				foreach ($priceListsPKs as $priceList) {
+					$allPriceLists[$prefetchedPriceLists[$priceList]->id] = true;
+					$priceLists[$priceList] = $prefetchedPriceLists[$priceList]->id;
+				}
+
+				// If PriceList has discount, his validity is dynamic
+				// Because of that, we need to create unique index for each combination of dynamic PriceLists
+
+				$fixedPriceLists = [];
+				$dynamicPriceLists = [];
+
+				foreach ($priceLists as $PK => $id) {
+					if ($prefetchedPriceLists[$PK]->getDiscounts()->count() === 0) {
+						$fixedPriceLists[$PK] = $id;
+					} else {
+						$dynamicPriceLists[$PK] = $id;
+					}
+				}
+
+				// Generate all possible combinations of dynamic price lists
+				$possibleCombinations = $this->generateCombinations($dynamicPriceLists);
+
+				// Generate all valid price list sequences with preserved order
+				$finalCombinations = [];
+
+				foreach ($possibleCombinations as $combination) {
+					$newCombination = [];
+
+					foreach ($priceLists as $id) {
+						if (\Nette\Utils\Arrays::contains($fixedPriceLists, $id) || \Nette\Utils\Arrays::contains($combination, $id)) {
+							$newCombination[] = $id;
+						}
+					}
+
+					$finalCombinations[] = $newCombination;
+				}
+
+				foreach ($finalCombinations as $combination) {
+					$index =
+						\implode(',', $visibilityLists) .
+						'-' .
+						\implode(',', $combination);
+
+					$existingOptions[$index] = true;
+				}
+			}
+		}
+
+		return [$existingOptions, \array_keys($allVisibilityLists), \array_keys($allPriceLists)];
 	}
 }
