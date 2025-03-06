@@ -1276,14 +1276,14 @@ CREATE TABLE `$categoriesTableName` (
 			return 0;
 		}
 
-		if ($cache1State->state === 'warming' && $cache1State->lastWarmUpTs && Carbon::now()->diffInMinutes(Carbon::parse($cache1State->lastWarmUpTs)) > 15) {
+		if ($cache1State->state === 'warming' && $cache1State->lastWarmUpTs && \abs(Carbon::now()->diffInMinutes(Carbon::parse($cache1State->lastWarmUpTs))) > 15) {
 			$cache1State->state = 'empty';
 			$cache1State->lastWarmUpTs = Carbon::now()->toDateTimeString();
 
 			$cache1State->updateAll(['state', 'lastWarmUpTs']);
 		}
 
-		if ($cache2State->state === 'warming' && $cache2State->lastWarmUpTs && Carbon::now()->diffInMinutes(Carbon::parse($cache2State->lastWarmUpTs)) > 15) {
+		if ($cache2State->state === 'warming' && $cache2State->lastWarmUpTs && \abs(Carbon::now()->diffInMinutes(Carbon::parse($cache2State->lastWarmUpTs))) > 15) {
 			$cache2State->state = 'empty';
 			$cache2State->lastWarmUpTs = Carbon::now()->toDateTimeString();
 
