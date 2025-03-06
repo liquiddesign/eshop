@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.430](https://github.com/liquiddesign/eshop/compare/v2.1.429...v2.1.430) (2025-03-06)
+
+### Bug Fixes
+
+* Ensure absolute time difference is used for cache warm-up state management ([7846f3](https://github.com/liquiddesign/eshop/commit/7846f319e14d65509b8729ae85c4269ddd794024))
+
+### Builds
+
+* Actions fix ([a20d39](https://github.com/liquiddesign/eshop/commit/a20d39ebbcc16d5f751dcb47a3b65ac83f016da4))
+
+
+---
+
 ## [2.1.429](https://github.com/liquiddesign/eshop/compare/v2.1.428...v2.1.429) (2025-03-06)
 
 ### Features
