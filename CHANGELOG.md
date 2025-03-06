@@ -4,6 +4,17 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.429](https://github.com/liquiddesign/eshop/compare/v2.1.428...v2.1.429) (2025-03-06)
+
+### Features
+
+* Enhance product form and grid with deleted timestamp handling ([342970](https://github.com/liquiddesign/eshop/commit/342970271c6ce08d7df495937469c61e067130f1))
+* Add getImportedDocuments method to Order for handling imported documents ([118683](https://github.com/liquiddesign/eshop/commit/118683c2a3545aad3991c2a556fe6820198dd705))
+* Add priceListsMode selection to MerchantPresenter for flexible pricing options ([e54eef](https://github.com/liquiddesign/eshop/commit/e54eef18352463c7f76ba466a42cd58002d83b77))
+
+
+---
+
 ## [2.1.428](https://github.com/liquiddesign/eshop/compare/v2.1.427...v2.1.428) (2025-03-05)
 
 ### Features
