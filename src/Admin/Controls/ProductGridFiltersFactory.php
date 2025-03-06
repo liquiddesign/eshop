@@ -329,6 +329,16 @@ class ProductGridFiltersFactory
 			->setPrompt('- Sloučení -')
 			->setDefaultValue('master');
 
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+			if ($value === 'yes') {
+				$source->where('this.deletedTs IS NOT NULL');
+			} elseif ($value === 'no') {
+				$source->where('this.deletedTs IS NULL');
+			}
+		}, '', 'deleted', null, ['yes' => 'Ano', 'no' => 'Ne'])
+			->setPrompt('- Vyřazení -')
+			->setDefaultValue('no');
+
 		Arrays::invoke($this->onAddFilters, $grid);
 	}
 }

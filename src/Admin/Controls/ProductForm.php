@@ -132,7 +132,9 @@ class ProductForm extends Control
 		$form->addLocaleText('extendedName', 'Rozšířený název');
 		$nameInput = $form->addLocaleText('name', 'Název');
 
-		$form->addText('deletedTs', 'Čas smazání')->setDisabled();
+		$form->addText('deletedTs', 'Čas smazání')
+			->setHtmlAttribute('data-info', 'Čas vyřazení produktu. Vyplňuje se automaticky.')
+			->setNullable();
 		$form->addSelect('vatRate', 'Úroveň DPH (%)', $vatRateRepository->getDefaultVatRates());
 
 		/** @var array<\Eshop\DB\CategoryType> $categoryTypes */
@@ -329,8 +331,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		}
 
 		$form->addText('lastInStockTs', 'Čas posledního naskladnění')
-			->setHtmlAttribute('readonly', 'readonly')
-			->setOmitted();
+			->setHtmlAttribute('data-info', 'Čas posledního naskladnění u jakéhokoliv dodavatele. Vyplňuje se automaticky.')
+			->setNullable();
 
 		// Relations
 		$this->monitor(Presenter::class, function ($presenter) use ($form): void {
