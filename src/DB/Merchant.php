@@ -118,7 +118,7 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 	 * Určuje odkud se berou ceníky
 	 * @column{"type":"enum","length":"'customer','merchant','merge'"}
 	 */
-	public string $priceListsMode = 'merchant';
+	public string $priceListsMode = 'customer';
 	
 	protected ?Account $account = null;
 	
