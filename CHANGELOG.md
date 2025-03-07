@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.431](https://github.com/liquiddesign/eshop/compare/v2.1.430...v2.1.431) (2025-03-07)
+
+### Features
+
+
+##### Merchant
+
+* Change default price list mode ([e7eedc](https://github.com/liquiddesign/eshop/commit/e7eedc2a8718e0ab3674f99b1662c9ead79a666b))
+
+### Bug Fixes
+
+* Ensure absolute time difference is used for cache warm-up state management ([59b550](https://github.com/liquiddesign/eshop/commit/59b550fcb1ad6c00167f8959e75d57622442048e))
+
+
+---
+
 ## [2.1.430](https://github.com/liquiddesign/eshop/compare/v2.1.429...v2.1.430) (2025-03-06)
 
 ### Bug Fixes
