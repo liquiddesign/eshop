@@ -166,7 +166,11 @@ class MerchantPresenter extends BackendPresenter
 			->setDefaultValue('customer')
 			->setHtmlAttribute('data-info', 'Pokud se obchodník přihlásí na zákazníka, tak určuje, jestli použít oprávnění zákazníka nebo obchodníka.');
 
-		$form->addSelect('priceListsMode', 'Zdroj ceníků', ['customer' => 'Zákazník', 'merchant' => 'Obchodník', 'merge' => 'Kombinovat'])
+		$form->addSelect('priceListsMode', 'Zdroj ceníků', [
+			'customer' => 'Zákazník',
+//			'merchant' => 'Obchodník',
+			'merge' => 'Kombinovat',
+		])
 			->setDefaultValue('customer')
 			->setHtmlAttribute('data-info', 'Pokud se obchodník přihlásí na zákazníka, tak určuje, jestli použít ceníky zákazníka, obchodníka nebo spojit ceníky obou.');
 		$form->addCheckbox('customersPermission', 'Oprávnění: Správa zákazníků');
