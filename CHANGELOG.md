@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.432](https://github.com/liquiddesign/eshop/compare/v2.1.431...v2.1.432) (2025-03-07)
+
+### Features
+
+
+##### Merchant
+
+* Change default price list mode ([fbbfe2](https://github.com/liquiddesign/eshop/commit/fbbfe210d80d0868bca2c4a637df8b36024ac47c))
+
+
+---
+
 ## [2.1.431](https://github.com/liquiddesign/eshop/compare/v2.1.430...v2.1.431) (2025-03-07)
 
 ### Features
