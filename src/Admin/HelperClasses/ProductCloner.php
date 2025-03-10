@@ -11,6 +11,7 @@ use Nette\Utils\Image;
 use Ramsey\Uuid\Uuid;
 use StORM\DIConnection;
 use StORM\Entity;
+use Tracy\Debugger;
 
 readonly class ProductCloner
 {
@@ -152,6 +153,7 @@ readonly class ProductCloner
 				$imageD->save($basePath . '/detail/' . $newFilename);
 				$imageT->save($basePath . '/thumb/' . $newFilename);
 			} catch (\Exception $e) {
+				Debugger::barDump($e);
 			}
 
 			$photoClone->fileName = $newFilename;

@@ -1453,27 +1453,28 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 		$clonedFieldsSelection = $form->addContainer('clonedFieldsSelection');
 
 		// Scalar
-		$clonedFieldsSelection->addCheckbox('producer', 'producer')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('alternative', 'alternative')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('taxes', 'taxes')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('internalRibbons', 'internalRibbons')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('ribbons', 'ribbons')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('categories', 'categories')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('masterProduct', 'masterProduct')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('exportZboziCategory', 'exportZboziCategory')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('exportHeurekaCategory', 'exportHeurekaCategory')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('supplierSource', 'supplierSource')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('displayAmount', 'displayAmount')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('displayDelivery', 'displayDelivery')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('loyaltyPrograms', 'loyaltyPrograms')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('contents', 'contents')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('variants', 'variants')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('reviews', 'reviews')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('visibilityListItems', 'visibilityListItems')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('quantityPrices', 'quantityPrices')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('galleryImages', 'galleryImages')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('photos', 'photos')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('files', 'files')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('producer', 'Výrobce')->setDefaultValue(true);
+//		$clonedFieldsSelection->addCheckbox('alternative', 'Alternativa')->setDefaultValue(true);
+//		$clonedFieldsSelection->addCheckbox('taxes', 'Daně')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('internalRibbons', 'Interní štítky')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('ribbons', 'Veřejné štítky')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('categories', 'Kategorie')->setDefaultValue(true);
+//		$clonedFieldsSelection->addCheckbox('masterProduct', 'Nadřazený produkt')->setDefaultValue(true);
+//		$clonedFieldsSelection->addCheckbox('exportZboziCategory', 'Export Zboží Kategorie')->setDefaultValue(true);
+//		$clonedFieldsSelection->addCheckbox('exportHeurekaCategory', 'Export Heureka Kategorie')->setDefaultValue(true);
+//		$clonedFieldsSelection->addCheckbox('supplierSource', 'Zdroj Dodavatele')->setDefaultValue(true);
+//		$clonedFieldsSelection->addCheckbox('displayAmount', 'Zobrazit Množství')->setDefaultValue(true);
+//		$clonedFieldsSelection->addCheckbox('displayDelivery', 'Zobrazit Dodání')->setDefaultValue(true);
+//		$clonedFieldsSelection->addCheckbox('loyaltyPrograms', 'Věrnostní Programy')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('contents', 'Obsahy')->setDefaultValue(true);
+//		$clonedFieldsSelection->addCheckbox('variants', 'Varianty')->setDefaultValue(true);
+//		$clonedFieldsSelection->addCheckbox('reviews', 'Recenze')->setDefaultValue(true);
+//		$clonedFieldsSelection->addCheckbox('visibilityListItems', 'Položky Seznamu Viditelnosti')->setDefaultValue(true);
+//		$clonedFieldsSelection->addCheckbox('quantityPrices', 'Množstevní Ceny')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('photos', 'Fotografie')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('files', 'Soubory')->setDefaultValue(true);
+
+		// TODO vazby z entity Related
 
 		$form->addSubmit('submit', 'Kopírovat');
 
@@ -1510,10 +1511,11 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 	public function renderCloneProduct(Product $product): void
 	{
 		$this->template->product = $product;
-		$this->template->form = $this->getComponent('cloneForm');
+//		$this->template->form = $this->getComponent('cloneForm');
 		$this->template->displayButtons = [$this->createBackButton('edit', $product)];
 		$this->template->displayLabels = ['Kopírování produktu ' . $product->name];
-		$this->template->setFile(__DIR__ . '/templates/clone.latte');
+		$this->template->displayControls = [$this->getComponent('cloneForm')];
+//		$this->template->setFile(__DIR__ . '/templates/clone.latte');
 	}
 
 	public function renderComments(Product $product): void
