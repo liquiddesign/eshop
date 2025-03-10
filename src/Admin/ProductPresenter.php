@@ -15,7 +15,6 @@ use Eshop\Admin\Controls\IProductFormFactory;
 use Eshop\Admin\Controls\ProductAttributesForm;
 use Eshop\Admin\Controls\ProductAttributesGridFactory;
 use Eshop\Admin\Controls\ProductGridFactory;
-use Eshop\Admin\HelperClasses\ProductCloner;
 use Eshop\BackendPresenter;
 use Eshop\Common\Services\ProductExporter;
 use Eshop\Common\Services\ProductImporter;
@@ -45,8 +44,10 @@ use Eshop\DB\VatRateRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\FormValidators;
+use Eshop\Services\Product\ProductClonerService;
 use Eshop\ShopperUser;
 use Forms\Form;
+use Grid\Datagrid;
 use Nette\Application\Application;
 use Nette\Application\Attributes\Persistent;
 use Nette\Application\Responses\FileResponse;
@@ -78,6 +79,7 @@ class ProductPresenter extends BackendPresenter
 		'rounding' => true,
 		'importButton' => false,
 		'exportButton' => false,
+		'cloneButton' => true,
 		'exportColumns' => [
 			'code' => 'Kód',
 			'ean' => 'EAN',
@@ -243,6 +245,9 @@ class ProductPresenter extends BackendPresenter
 	#[Inject]
 	public VisibilityListItemRepository $visibilityListItemRepository;
 
+	#[Inject]
+	public ProductClonerService $productCloner;
+
 	#[Persistent]
 	public string $tab = 'products';
 
@@ -268,7 +273,7 @@ class ProductPresenter extends BackendPresenter
 		parent::__construct();
 	}
 
-	public function createComponentProductGrid(): \Grid\Datagrid
+	public function createComponentProductGrid(): Datagrid
 	{
 		$config = $this::CONFIGURATION;
 		$config['isManager'] = $this->isManager;
@@ -307,7 +312,7 @@ class ProductPresenter extends BackendPresenter
 		return $form;
 	}
 
-	public function createComponentProductAttributesGrid(): \Grid\Datagrid
+	public function createComponentProductAttributesGrid(): Datagrid
 	{
 		return $this->productAttributesGridFactory->create($this::CONFIGURATION);
 	}
@@ -1443,17 +1448,17 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 
 	public function createComponentCloneForm(): AdminForm
 	{
-		/** @var \Eshop\DB\Product $product */
-		$product = $this->getParameter('product');
+		$targetProductsKeys = $this->getParameter('targetProducts');
 
 		$form = $this->formFactory->create();
 
-		$form->addMultiSelect2Ajax('clonedProducts', $this->link('getProductsForSelect2!'), 'Produkty', [], 'Vyberte');
+		$form->addSelect2Ajax('clonedProduct', $this->link('getProductsForSelect2!'), 'Zdroj pro kopii', [], 'Vyberte');
 
 		$clonedFieldsSelection = $form->addContainer('clonedFieldsSelection');
 
 		// Scalar
 		$clonedFieldsSelection->addCheckbox('producer', 'Výrobce')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('related', 'Související produkty')->setDefaultValue(true);
 //		$clonedFieldsSelection->addCheckbox('alternative', 'Alternativa')->setDefaultValue(true);
 //		$clonedFieldsSelection->addCheckbox('taxes', 'Daně')->setDefaultValue(true);
 		$clonedFieldsSelection->addCheckbox('internalRibbons', 'Interní štítky')->setDefaultValue(true);
@@ -1478,42 +1483,82 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 
 		$form->addSubmit('submit', 'Kopírovat');
 
-		$form->onSuccess[] = function (AdminForm $form) use ($product): void {
-			$values = $form->getValues('array');
+		$form->onValidate[] = function (AdminForm $form) use ($targetProductsKeys): void {
+			if ($form->isValid() === false) {
+				return;
+			}
+
 			$rawValues = $this->getHttpRequest()->getPost();
 
-			$clonedProducts = [];
+			if (isset($rawValues['clonedProduct']) === false) {
+				/** @var \Nette\Forms\Controls\SelectBox $input */
+				$input = $form['clonedProduct'];
+				$input->addError('Toto pole je povinné!');
 
-			foreach ($rawValues['clonedProducts'] as $productPK) {
+				return;
+			}
+
+			$clonedProduct = $this->productRepository->one($rawValues['clonedProduct']);
+
+			if ($clonedProduct === null) {
+				/** @var \Nette\Forms\Controls\SelectBox $input */
+				$input = $form['clonedProduct'];
+				$input->addError('Kopírovaný produkt nebyl nalezen!');
+
+				return;
+			}
+
+			foreach ($targetProductsKeys as $productPK) {
 				$cloningTarget = $this->productRepository->one($productPK);
 
-				if ($cloningTarget === null || $cloningTarget === $product) {
+				if ($cloningTarget === null) {
+					$form->addError(\sprintf('Cílový produkt %s nebyl nalezen!', $productPK));
+
+					return;
+				}
+			}
+		};
+
+		$form->onSuccess[] = function (AdminForm $form) use ($targetProductsKeys): void {
+			$values = $form->getValues('array');
+			$clonedProductPK = $this->getHttpRequest()->getPost()['clonedProduct'];
+
+			$sourceProduct = $this->productRepository->one($clonedProductPK);
+
+			$targetProducts = [];
+
+			foreach ($targetProductsKeys as $productPK) {
+				$cloningTarget = $this->productRepository->one($productPK);
+
+				if ($cloningTarget === $sourceProduct) {
 					continue;
 				}
 
-				$clonedProducts[] = $cloningTarget;
+				$targetProducts[] = $cloningTarget;
 			}
 
 			$fieldSelectedForCloning = \array_filter($values['clonedFieldsSelection'], function ($value) {
 				return $value === true;
 			});
 
-			$productCloner = new ProductCloner($this->container, $this->connection->getLink());
-			$productCloner->cloneProduct($product, $clonedProducts, \array_keys($fieldSelectedForCloning));
+			$this->productCloner->cloneProduct($sourceProduct, $targetProducts, \array_keys($fieldSelectedForCloning));
 
-			$this->flashMessage('Cloning successful');
-			$this->redirect('edit', ['product' => $product]);
+			$this->flashMessage('Kopírování bylo úspěšné.', 'success');
+			$this->redirect('edit', ['product' => $sourceProduct]);
 		};
 
 		return $form;
 	}
 
-	public function renderCloneProduct(Product $product): void
+	public function renderCloneProduct(array $targetProducts): void
 	{
-		$this->template->product = $product;
-//		$this->template->form = $this->getComponent('cloneForm');
-		$this->template->displayButtons = [$this->createBackButton('edit', $product)];
-		$this->template->displayLabels = ['Kopírování produktu ' . $product->name];
+		if (\count($targetProducts) === 0) {
+			$this->flashMessage('Nebyli vybrány produkty pro kopírování.', 'error');
+			$this->redirect('default');
+		}
+
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayLabels = ['Kopírování produktu'];
 		$this->template->displayControls = [$this->getComponent('cloneForm')];
 //		$this->template->setFile(__DIR__ . '/templates/clone.latte');
 	}

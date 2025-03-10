@@ -1,9 +1,11 @@
 <?php
 
-namespace Eshop\Admin\HelperClasses;
+namespace Eshop\Services\Product;
 
+use Base\Bridges\AutoWireService;
 use Eshop\DB\File;
 use Eshop\DB\Product;
+use Eshop\DB\RelatedRepository;
 use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
@@ -13,7 +15,7 @@ use StORM\DIConnection;
 use StORM\Entity;
 use Tracy\Debugger;
 
-readonly class ProductCloner
+readonly class ProductClonerService implements AutoWireService
 {
 	private const INVERSE_RELATION_KEYS = [
 		'contents',
@@ -32,8 +34,11 @@ readonly class ProductCloner
 		'ribbons',
 	];
 
-	public function __construct(private Container $container, private \PDO $link,)
-	{
+	public function __construct(
+		private Container $container,
+		private DIConnection $storm,
+		private RelatedRepository $relatedRepository
+	) {
 	}
 
 	/**
@@ -43,12 +48,14 @@ readonly class ProductCloner
 	 */
 	public function cloneProduct(Product $sourceProduct, array $targetProducts, array $clonedFields): void
 	{
-		$this->link->beginTransaction();
+		$this->storm->getLink()->beginTransaction();
 
 		foreach ($targetProducts as $targetProduct) {
 			foreach ($clonedFields as $clonedField) {
 				if ($clonedField === 'files') {
 					$this->cloneFilesRelation($sourceProduct, $targetProduct);
+				} elseif ($clonedField === 'related') {
+					$this->cloneRelated($sourceProduct, $targetProduct);
 				} elseif ($clonedField === 'photos' || $clonedField === 'galleryImages') {
 					$this->clonePhotosRelation($sourceProduct, $targetProduct, $clonedField);
 				} elseif (Arrays::contains(self::INVERSE_RELATION_KEYS, $clonedField)) {
@@ -63,7 +70,7 @@ readonly class ProductCloner
 			$targetProduct->updateAll();
 		}
 
-		$this->link->commit();
+		$this->storm->getLink()->commit();
 	}
 
 	private function cloneSimpleInverseRelation(Product $sourceProduct, Product $targetProduct, string $relationName): void
@@ -165,5 +172,27 @@ readonly class ProductCloner
 		$targetProduct->{$relationName}->relate(\array_map(function (Entity $photo) {
 			return $photo->getPK();
 		}, $clonedPhotos));
+	}
+
+	private function cloneRelated(Product $sourceProduct, Product $targetProduct): void
+	{
+		$this->relatedRepository->many()
+			->where('fk_master = :prod OR fk_slave = :prod', ['prod' => $targetProduct->getPK()])
+			->delete();
+
+		$relatedAsMaster = $this->relatedRepository->many()->where('fk_master', $sourceProduct);
+		$relatedAsSlave = $this->relatedRepository->many()->where('fk_slave', $sourceProduct);
+
+		foreach ($relatedAsMaster as $relation) {
+			$relationArray = $relation->toArray(includePK: false);
+			$relationArray['master'] = $targetProduct->getPK();
+			$this->relatedRepository->createOne($relationArray);
+		}
+
+		foreach ($relatedAsSlave as $relation) {
+			$relationArray = $relation->toArray(includePK: false);
+			$relationArray['slave'] = $targetProduct->getPK();
+			$this->relatedRepository->createOne($relationArray);
+		}
 	}
 }

@@ -385,6 +385,14 @@ class ProductGridFactory
 			};
 		}
 
+		if (isset($configuration['cloneButton']) && $configuration['cloneButton']) {
+			$submit = $grid->getForm()->addSubmit('clone', 'Kopírovat')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+			$submit->onClick[] = function ($button) use ($grid): void {
+				$grid->getPresenter()->redirect('cloneProduct', [$grid->getSelectedIds()]);
+			};
+		}
+
 		$submit = $grid->getForm()->addSubmit('newsletterExport', 'Newsletter export')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
 		$submit->onClick[] = function ($button) use ($grid): void {
