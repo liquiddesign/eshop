@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.436](https://github.com/liquiddesign/eshop/compare/v2.1.435...v2.1.436) (2025-03-11)
+
+### Features
+
+* Add getCustomerGroups method to Merchant class ([1ff38a](https://github.com/liquiddesign/eshop/commit/1ff38a6e33b134bbfaa64dcdb8bbda9f4994cc2c))
+
+
+---
+
 ## [2.1.435](https://github.com/liquiddesign/eshop/compare/v2.1.434...v2.1.435) (2025-03-11)
 
 ### Features
