@@ -81,10 +81,11 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 
 		/** @var array<\Eshop\DB\Product> $products */
 		$products = $this->productRepository->getCollection(true)
+			->select(['fullname' => "CONCAT(this.name$suffix, ' (', this.code, ')')"])
 			->where("this.name$suffix LIKE :q OR this.code = :exact OR this.ean = :exact", ['q' => "%$q%", 'exact' => $q,])
 			->where('this.fk_masterProduct IS NULL')
 			->setPage($page ?? 1, 5)
-			->toArrayOf('name');
+			->toArrayOf('fullname');
 
 		$results = [];
 

@@ -684,7 +684,7 @@ class ProductPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [
 			$this->createBackButton('default'),
-			$this->createCloneButton($product),
+//			$this->createCloneButton($product),
 		];
 		$this->template->displayControls = [
 			'productForm' => $this->getComponent('productForm'),
@@ -1544,7 +1544,7 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 			$this->productCloner->cloneProduct($sourceProduct, $targetProducts, \array_keys($fieldSelectedForCloning));
 
 			$this->flashMessage('Kopírování bylo úspěšné.', 'success');
-			$this->redirect('edit', ['product' => $sourceProduct]);
+			$this->redirect('default');
 		};
 
 		return $form;
@@ -1553,14 +1553,13 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 	public function renderCloneProduct(array $targetProducts): void
 	{
 		if (\count($targetProducts) === 0) {
-			$this->flashMessage('Nebyli vybrány produkty pro kopírování.', 'error');
+			$this->flashMessage('Nebyly vybrány produkty pro kopírování.', 'error');
 			$this->redirect('default');
 		}
 
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayLabels = ['Kopírování produktu'];
 		$this->template->displayControls = [$this->getComponent('cloneForm')];
-//		$this->template->setFile(__DIR__ . '/templates/clone.latte');
 	}
 
 	public function renderComments(Product $product): void

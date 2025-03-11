@@ -21,6 +21,7 @@ use Nette\DI\Container;
 use Nette\Forms\Controls\Checkbox;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
+use Nette\Utils\Html;
 use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -386,7 +387,7 @@ class ProductGridFactory
 		}
 
 		if (isset($configuration['cloneButton']) && $configuration['cloneButton']) {
-			$submit = $grid->getForm()->addSubmit('clone', 'Kopírovat')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+			$submit = $grid->getForm()->addSubmit('clone', Html::fromHtml('<i class="fas fa-copy"></i>&nbsp;Kopírovat do ...'))->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
 			$submit->onClick[] = function ($button) use ($grid): void {
 				$grid->getPresenter()->redirect('cloneProduct', [$grid->getSelectedIds()]);
