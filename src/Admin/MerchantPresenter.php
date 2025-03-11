@@ -177,7 +177,7 @@ class MerchantPresenter extends BackendPresenter
 
 		$form->addSelect('priceListsMode', 'Zdroj ceníků', [
 			'customer' => 'Zákazník',
-//			'merchant' => 'Obchodník',
+			'merchant' => 'Obchodník (nedoporučeno)',
 			'merge' => 'Kombinovat',
 		])
 			->setDefaultValue('customer')
