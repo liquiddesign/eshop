@@ -4,6 +4,23 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.433](https://github.com/liquiddesign/eshop/compare/v2.1.432...v2.1.433) (2025-03-11)
+
+### Features
+
+* Cloning products modifications ([03120c](https://github.com/liquiddesign/eshop/commit/03120c65151527f18400b6b067c7b80e2591ad90))
+
+##### Backend Presenter, Product Grid Factory, Product Presenter
+
+* Enhance product display and cloning functionality ([4e3f13](https://github.com/liquiddesign/eshop/commit/4e3f1309de8342456f4075d62648d44cfca62ece))
+
+##### Product Cloner, Product Presenter
+
+* Update checkbox labels to Czech and add error logging ([bad9a1](https://github.com/liquiddesign/eshop/commit/bad9a153f07401518473749ce8dd2478903d58ae))
+
+
+---
+
 ## [2.1.432](https://github.com/liquiddesign/eshop/compare/v2.1.431...v2.1.432) (2025-03-07)
 
 ### Features
