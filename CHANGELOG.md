@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.434](https://github.com/liquiddesign/eshop/compare/v2.1.433...v2.1.434) (2025-03-11)
+
+### Features
+
+
+##### Product Presenter
+
+* Update default checkbox values for cloned fields selection ([846e7b](https://github.com/liquiddesign/eshop/commit/846e7b3b726ff5d6d0104b8a71cef5bf2d9513b3))
+
+
+---
+
 ## [2.1.433](https://github.com/liquiddesign/eshop/compare/v2.1.432...v2.1.433) (2025-03-11)
 
 ### Features
