@@ -14,6 +14,7 @@ use StORM\RelationCollection;
  * Obchodník
  * @method \StORM\RelationCollection<\Eshop\DB\VisibilityList> getVisibilityLists()
  * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getPricelists()
+ * @method \StORM\RelationCollection<\Eshop\DB\CustomerGroup> getCustomerGroups()
  * @table
  */
 class Merchant extends ShopEntity implements IIdentity, IUser
