@@ -13,6 +13,7 @@ use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\ProducerRepository;
+use Eshop\ShopperUser;
 use Forms\Form;
 use League\Csv\Writer;
 use Nette\Application\Application;
@@ -72,6 +73,9 @@ class CategoryPresenter extends BackendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public Application $application;
+
+	#[\Nette\DI\Attributes\Inject]
+	public ShopperUser $shopperUser;
 
 	/** @persistent */
 	public string $tab = 'none';
@@ -635,7 +639,7 @@ class CategoryPresenter extends BackendPresenter
 			->where("params != ''")
 			->where("params REGEXP '^(category|producer|attributeValue|tag)={1}[A-Za-z0-9]+&{1}$' = 0");
 
-		$grid = $this->gridFactory->create($collection, 20, 'title', 'ASC', true);
+		$grid = $this->gridFactory->create($collection, 20, 'title', 'ASC', true, filterShops: false);
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Název', 'name', '%s', 'name');
@@ -662,6 +666,9 @@ class CategoryPresenter extends BackendPresenter
 		$grid->addButtonBulkEdit('dynamicCategoryDetail', ['isOffline'], 'dynamicCategoriesGrid');
 
 		$grid->addFilterTextInput('search', ['title_cs', 'url'], null, 'Název, URL');
+
+		$this->gridFactory->addShopsFilterSelect($grid);
+
 		$grid->addFilterButtons();
 
 		$grid->onDelete[] = function (CategoryType $object): void {
@@ -683,11 +690,24 @@ class CategoryPresenter extends BackendPresenter
 		});
 		$form->addLocaleRichEdit('content', 'Obsah');
 
-		$form->addPageContainer('product_list', $dynamicCategory ? $dynamicCategory->getParsedParameters() : ['category' => null], null, false, true, false, 'URL a SEO', false, true);
+		$form->addPageContainer(
+			'product_list',
+			$dynamicCategory ? $dynamicCategory->getParsedParameters() : ['category' => null],
+			null,
+			true,
+			true,
+			false,
+			'URL a SEO',
+			false,
+			true,
+		);
 		$form->addGroup('Parametry');
 		$parametersContainer = $form->addContainer('parameters');
 
-		$parametersContainer->addSelect2('category', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('Nepřiřazeno');
+		$mainCategoryType = $this->shopperUser->getMainCategoryType();
+		$categoriesQuery = $this->categoryRepository->getCollection(true)->where('this.fk_type', $mainCategoryType->getPK());
+
+		$parametersContainer->addSelect2('category', 'Kategorie', $this->categoryRepository->toArrayForSelect($categoriesQuery))->setPrompt('Nepřiřazeno')->checkDefaultValue(false);
 		$parametersContainer->addSelect2('producer', 'Výrobce', $this->producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 		$parametersContainer->addMultiSelect2Ajax('attributeValue', $this->link('getAttributeValues!'), 'Hodnoty atributu', [], 'Nepřiřazeno');
 		$parametersContainer->addText('priceFrom', 'Cena od')->addCondition($form::FILLED)->addRule($form::FLOAT);
@@ -696,7 +716,7 @@ class CategoryPresenter extends BackendPresenter
 
 		$form->addSubmits(!$dynamicCategory);
 
-		$form->onValidate[] = function (AdminForm $form) use ($dynamicCategory): void {
+		$form->onValidate[] = function (AdminForm $form): void {
 			if ($form->isValid() === false) {
 				return;
 			}
@@ -712,18 +732,9 @@ class CategoryPresenter extends BackendPresenter
 
 			if (\count($values['page']['params']) < 2) {
 				$form->addError('Je nutné vyplnit alespoň 2 parametry!');
-
-				return;
 			}
 
-			/** @var \Web\DB\Page|null $page */
-			$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, $values['page']['params']);
-
-			if ($page === null || ($dynamicCategory !== null && $dynamicCategory->getPK() === $page->getPK())) {
-				return;
-			}
-
-			$form->addError('Stránka s danými parametry již existuje!');
+			return;
 		};
 
 
